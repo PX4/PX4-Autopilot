@@ -88,7 +88,8 @@ public:
 
 	void setPriority(const uint8_t priority) { _priority = priority; }
 	void setConnected(const bool connected) { _connected = connected; }
-	void setStateOfCharge(const float soc) { _state_of_charge = soc; _external_state_of_charge = true; }
+	void setStateOfCharge(const float soc) { _state_of_charge = math::constrain(soc, 0.f, 1.f); _external_state_of_charge = true; }
+	void setCapacityMah(const float capacity) { _capacity_mah = math::max(capacity, 0.f); }
 	void updateVoltage(const float voltage_v);
 	void updateCurrent(const float current_a);
 	void updateTemperature(const float temperature_c);
@@ -101,6 +102,7 @@ public:
 	void updateBatteryStatus(const hrt_abstime &timestamp);
 
 	battery_status_s getBatteryStatus();
+	float getCurrentAverage() const { return PX4_ISFINITE(_current_average_filter_a.getState()) ? _current_average_filter_a.getState() : -1.f; }
 	void publishBatteryStatus(const battery_status_s &battery_status);
 
 	/**
@@ -109,6 +111,27 @@ public:
 	 * @see publishBatteryStatus()
 	 */
 	void updateAndPublishBatteryStatus(const hrt_abstime &timestamp);
+
+	/**
+	 * Calculates how much time is left before the battery is depleted,
+	 * given the heavily low-pass filtered current consumption.
+	 * Requires the capacity and state of charge e.g. externally set through setCapacity() and setStateOfCharge().
+	 *
+	 * @param current_a The current draw from the battery in amperes.
+	 * @return Estimated remaining time in seconds.
+	 */
+	float computeRemainingTime(float current_a);
+
+	/**
+	 * Updates coulomb counting
+	 * Requires a dt, seeupdateDt()
+	 *
+	 * @param current_a Positive current draw in A
+	 * @return Accumulated used capacity in mAh
+	 */
+	float sumDischarged(float current_a);
+	uint8_t determineWarning(float state_of_charge);
+	void updateDt(const hrt_abstime &timestamp);
 
 protected:
 	static constexpr float LITHIUM_BATTERY_RECOGNITION_VOLTAGE = 2.1f;
@@ -130,7 +153,6 @@ protected:
 		float v_empty;
 		float v_charged;
 		int32_t  n_cells;
-		float capacity;
 		float r_internal;
 		float low_thr;
 		float crit_thr;
@@ -145,13 +167,10 @@ protected:
 	void updateParams() override;
 
 private:
-	void sumDischarged(const hrt_abstime &timestamp, float current_a);
 	float calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a);
 	void estimateStateOfCharge();
-	uint8_t determineWarning(float state_of_charge);
 	uint16_t determineFaults();
 	void computeScale();
-	float computeRemainingTime(float current_a);
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<flight_phase_estimation_s> _flight_phase_estimation_sub{ORB_ID(flight_phase_estimation)};
@@ -176,6 +195,8 @@ private:
 	float _state_of_charge{-1.f}; // [0,1]
 	float _scale{1.f};
 	uint8_t _warning{battery_status_s::WARNING_NONE};
+	float _dt{0.f};
+	float _capacity_mah{0.f};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
 	bool _vehicle_status_is_fw{false};

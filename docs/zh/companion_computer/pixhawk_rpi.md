@@ -132,50 +132,50 @@ Enter the following commands (in sequence) a terminal to configure Ubuntu for RP
 
 1. Install `raspi-config`:
 
-  ```sh
-  sudo apt update
-  sudo apt upgrade
-  sudo apt-get install raspi-config
-  ```
+   ```sh
+   sudo apt update
+   sudo apt upgrade
+   sudo apt-get install raspi-config
+   ```
 
 2. Open `raspi-config`:
 
-  ```sh
-  sudo raspi-config
-  ```
+   ```sh
+   sudo raspi-config
+   ```
 
 3. Go to the **Interface Option** and then click **Serial Port**.
 
-  - Select **No** to disable serial login shell.
-  - Select **Yes** to enable the serial interface.
-  - Click **Finish** and restart the RPi.
+   - Select **No** to disable serial login shell.
+   - Select **Yes** to enable the serial interface.
+   - Click **Finish** and restart the RPi.
 
 4. Open the firmware boot configuration file in the `nano` editor on RPi:
 
-  ```sh
-  sudo nano /boot/firmware/config.txt
-  ```
+   ```sh
+   sudo nano /boot/firmware/config.txt
+   ```
 
 5. Append the following text to the end of the file (after the last line):
 
-  ```sh
-  enable_uart=1
-  dtoverlay=disable-bt
-  ```
+   ```sh
+   enable_uart=1
+   dtoverlay=disable-bt
+   ```
 
 6. Then save the file and restart the RPi.
 
-  - In `nano` you can save the file using the following sequence of keyboard shortcuts: **ctrl+x**, **ctrl+y**, **Enter**.
+   - In `nano` you can save the file using the following sequence of keyboard shortcuts: **ctrl+x**, **ctrl+y**, **Enter**.
 
 7. Check that the serial port is available.
-  In this case we use the following terminal commands to list the serial devices:
+   In this case we use the following terminal commands to list the serial devices:
 
-  ```sh
-  cd /
-  ls /dev/ttyAMA0
-  ```
+   ```sh
+   cd /
+   ls /dev/ttyAMA0
+   ```
 
-  The result of the command should include the RX/TX connection `/dev/ttyAMA0` (note that this serial port is also available as `/dev/serial0`).
+   The result of the command should include the RX/TX connection `/dev/ttyAMA0` (note that this serial port is also available as `/dev/serial0`).
 
 The RPi is now setup to work with RPi and communicate using the `/dev/ttyAMA0` serial port.
 Note that we'll install more software in the following sections to work with MAVLink and ROS 2.
@@ -199,39 +199,39 @@ First check the Pixhawk `TELEM 2` configuration:
 2. Open QGroundControl (the vehicle should connect).
 3. [Check/change the following parameters](../advanced_config/parameters.md) in QGroundControl:
 
-  ```ini
-  MAV_1_CONFIG = TELEM2
-  UXRCE_DDS_CFG = 0 (Disabled)
-  SER_TEL2_BAUD = 57600
-  ```
+   ```ini
+   MAV_1_CONFIG = TELEM2
+   UXRCE_DDS_CFG = 0 (Disabled)
+   SER_TEL2_BAUD = 57600
+   ```
 
-  Note that the parameters may already be set appropriately.
-  For information about how serial ports and MAVLink configuration work see [Serial Port Configuration](../peripherals/serial_configuration.md) and [MAVLink Peripherals](../peripherals/mavlink_peripherals.md).
+   Note that the parameters may already be set appropriately.
+   For information about how serial ports and MAVLink configuration work see [Serial Port Configuration](../peripherals/serial_configuration.md) and [MAVLink Peripherals](../peripherals/mavlink_peripherals.md).
 
 Then install setup MAVProxy on the RPi using the following terminal commands:
 
 1. Install MAVProxy:
 
-  ```sh
-  sudo apt install python3-pip
-  sudo pip3 install mavproxy
-  sudo apt remove modemmanager
-  ```
+   ```sh
+   sudo apt install python3-pip
+   sudo pip3 install mavproxy
+   sudo apt remove modemmanager
+   ```
 
 2. Run MAVProxy, setting the port to connect to `/dev/ttyAMA0` and the baud rate to match the PX4:
 
-  ```sh
-  sudo mavproxy.py --master=/dev/serial0 --baudrate 57600
-  ```
+   ```sh
+   sudo mavproxy.py --master=/dev/serial0 --baudrate 57600
+   ```
 
-  ::: info
-  Note that above we used `/dev/serial0`, but we could equally well have used `/dev/ttyAMA0`.
-  If we were connecting via USB then we would instead set the port as `/dev/ttyACM0`:
+   ::: info
+   Note that above we used `/dev/serial0`, but we could equally well have used `/dev/ttyAMA0`.
+   If we were connecting via USB then we would instead set the port as `/dev/ttyACM0`:
 
-  ```sh
-  sudo chmod a+rw /dev/ttyACM0
-  sudo mavproxy.py --master=/dev/ttyACM0 --baudrate 57600
-  ```
+   ```sh
+   sudo chmod a+rw /dev/ttyACM0
+   sudo mavproxy.py --master=/dev/ttyACM0 --baudrate 57600
+   ```
 
 
 :::
@@ -259,27 +259,27 @@ The configuration steps are:
 
 2. [Check/change the following parameters](../advanced_config/parameters.md) in QGroundControl:
 
-  ```ini
-  MAV_1_CONFIG = 0 (Disabled)
-  UXRCE_DDS_CFG = 102 (TELEM2)
-  SER_TEL2_BAUD = 921600
-  ```
+   ```ini
+   MAV_1_CONFIG = 0 (Disabled)
+   UXRCE_DDS_CFG = 102 (TELEM2)
+   SER_TEL2_BAUD = 921600
+   ```
 
-  [MAV_1_CONFIG=0](../advanced_config/parameter_reference.md#MAV_1_CONFIG) and [UXRCE_DDS_CFG=102](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG) disable MAVLink on TELEM2 and enable the uXRCE-DDS client on TELEM2, respectively.
-  The `SER_TEL2_BAUD` rate sets the comms link data rate.\
-  You could similarly configure a connection to `TELEM1` using either `MAV_1_CONFIG` or `MAV_0_CONFIG`.
+   [MAV_1_CONFIG=0](../advanced_config/parameter_reference.md#MAV_1_CONFIG) and [UXRCE_DDS_CFG=102](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG) disable MAVLink on TELEM2 and enable the uXRCE-DDS client on TELEM2, respectively.
+   The `SER_TEL2_BAUD` rate sets the comms link data rate.\
+   You could similarly configure a connection to `TELEM1` using either `MAV_1_CONFIG` or `MAV_0_CONFIG`.
 
-  ::: info
-  You will need to reboot the flight controller to apply any changes to these parameters.
+   ::: info
+   You will need to reboot the flight controller to apply any changes to these parameters.
 
 :::
 
 3. Check that the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) module is now running.
-  YOu can do this by running the following command in the QGroundControl [MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html):
+   YOu can do this by running the following command in the QGroundControl [MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html):
 
-  ```sh
-  uxrce_dds_client status
-  ```
+   ```sh
+   uxrce_dds_client status
+   ```
 
 :::info
 If the client module is not running you can start it manually in the MAVLink console:
@@ -300,32 +300,32 @@ The steps to setup ROS 2 and the Micro XRCE-DDS Agent on the RPi are:
 
 2. Install the git using the RPi terminal:
 
-  ```sh
-  sudo apt install git
-  ```
+   ```sh
+   sudo apt install git
+   ```
 
 3. Install the uXRCE_DDS agent:
 
-  ```sh
-  git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
-  cd Micro-XRCE-DDS-Agent
-  mkdir build
-  cd build
-  cmake ..
-  make
-  sudo make install
-  sudo ldconfig /usr/local/lib/
-  ```
+   ```sh
+   git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   cd Micro-XRCE-DDS-Agent
+   mkdir build
+   cd build
+   cmake ..
+   make
+   sudo make install
+   sudo ldconfig /usr/local/lib/
+   ```
 
-  See [uXRCE-DDS > Micro XRCE-DDS Agent Installation](../middleware/uxrce_dds.md#micro-xrce-dds-agent-installation) for alternative ways of installing the agent.
+   See [uXRCE-DDS > Micro XRCE-DDS Agent Installation](../middleware/uxrce_dds.md#micro-xrce-dds-agent-installation) for alternative ways of installing the agent.
 
 4. Start the agent in the RPi terminal:
 
-  ```sh
-  sudo MicroXRCEAgent serial --dev /dev/serial0 -b 921600
-  ```
+   ```sh
+   sudo MicroXRCEAgent serial --dev /dev/serial0 -b 921600
+   ```
 
-  Note how we use the serial port set up earlier and the same baud rate as for PX4.
+   Note how we use the serial port set up earlier and the same baud rate as for PX4.
 
 Now that both the agent and client are running, you should see activity on both the MAVLink console and the RPi terminal.
 You can view the available topics using the following command on the RPi:

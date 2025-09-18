@@ -74,12 +74,11 @@ bool FlightTaskManualAcceleration::update()
 	static constexpr float min_vel = 2.f; // minimum max-velocity near max_hagl
 
 	if (max_hagl_ratio > factor_threshold) {
-		max_hagl_ratio = math::min(max_hagl_ratio, 1.f);
 		const float vxy_max = math::min(vehicle_local_pos.vxy_max, _param_mpc_vel_manual.get());
-		_stick_acceleration_xy.setVelocityConstraint(interpolate(vxy_max, factor_threshold, min_vel, vxy_max, min_vel));
+		_stick_acceleration_xy.setVelocityConstraint(interpolate(max_hagl_ratio, factor_threshold, 1.f, vxy_max, min_vel));
 
-	} else {
-		_stick_acceleration_xy.setVelocityConstraint(math::min(_param_mpc_vel_manual.get(), vehicle_local_pos.vxy_max));
+	} else if (PX4_ISFINITE(vehicle_local_pos.vxy_max)) {
+		_stick_acceleration_xy.setVelocityConstraint(vehicle_local_pos.vxy_max);
 	}
 
 	_stick_acceleration_xy.generateSetpoints(_sticks.getPitchRollExpo(), _yaw, _yaw_setpoint, _position,

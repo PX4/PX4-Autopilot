@@ -101,15 +101,15 @@ python simulation-gazebo --overwrite
 
 1. В одному терміналі запустіть
 
-  ```sh
-  PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 PX4_GZ_WORLD=windy ./build/px4_sitl_default/bin/px4
-  ```
+   ```sh
+   PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 PX4_GZ_WORLD=windy ./build/px4_sitl_default/bin/px4
+   ```
 
 2. У вікні другого терміналу запустіть:
 
-  ```sh
-  python3 /path/to/simulation-gazebo --world windy
-  ```
+   ```sh
+   python3 /path/to/simulation-gazebo --world windy
+   ```
 
 Не потрібно передавати додаткових параметрів скрипту simulation-gazebo щоб цей приклад працював, оскільки усі вузли Gazebo виконуються на одному комп'ютері.
 Дивіться приклад складнішого сценарію з різними комп'ютерами нижче.

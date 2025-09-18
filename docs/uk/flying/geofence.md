@@ -43,7 +43,7 @@ Geofence planning is fully documented in [Plan View > GeoFence](https://docs.qgr
    - Маркер центру зони може бути використаний для переміщення зони у правильне положення.
    - Маркер на межі кругової зони може бути використаний для зміни радіуса.
    - Маркери на кутах (вершинах) можуть бути використані для зміни геометрії полігону.
-      Додаткові вершини створюються шляхом натискання на середину ліній між наявними маркерами.
+     Додаткові вершини створюються шляхом натискання на середину ліній між наявними маркерами.
 5. Use the _Geofence Editor_ to set a fence as an inclusion or exclusion, and to select a fence to edit (**Edit** radio button) or Delete (**Del** button).
 6. Додайте стільки зон, скільки забажаєте.
 7. Once finished, click on the **Upload** button (top right) to send the fence (along with rally points and mission) to the vehicle.

@@ -33,8 +33,8 @@ The general requirements for all supported boards are:
 
 6. Adequate documentation, which includes, but is not limited to:
    - A complete pinout made available publicly that maps PX4 pin definitions to:
-      1. Microcontroller pins
-      2. Physical external connectors
+     1. Microcontroller pins
+     2. Physical external connectors
    - A block diagram or full schematic of the main components (sensors, power supply, etc.) that allows to infer software requirements and boot order
    - A manual of the finished product detailing its use
 

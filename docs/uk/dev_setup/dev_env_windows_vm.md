@@ -57,12 +57,12 @@ Allocate as many CPU cores and memory resources to the VM as possible.
    Запам'ятайте, всі налаштування потрібні тільки для використання у вашій основній операційній системі, тому можна вимкнути будь-який режим збереження екрана та функції безпеки локальні робочої станції, що не збільшують ризик мережевої атаки.
 
 10. Once the new VM is booted up make sure you install _VMWare tools drivers and tools extension_ inside your guest system.
-   Це підвищить продуктивність та зручність користування віртуальною машиною:
-   - Значно поліпшена продуктивність графіки
-   - Належна підтримка використання апаратного забезпечення, наприклад розподілу портів USB (важливо для завантаження прошивок), прокручування коліщатком миші, підтримка звуку
-   - Адаптація роздільної здатності дисплею гостя до розміру вікна емулятора
-   - Спільний доступ до буфера обміну з основної ОС
-   - Спільний доступ до файлів з основної ОС
+    Це підвищить продуктивність та зручність користування віртуальною машиною:
+    - Значно поліпшена продуктивність графіки
+    - Належна підтримка використання апаратного забезпечення, наприклад розподілу портів USB (важливо для завантаження прошивок), прокручування коліщатком миші, підтримка звуку
+    - Адаптація роздільної здатності дисплею гостя до розміру вікна емулятора
+    - Спільний доступ до буфера обміну з основної ОС
+    - Спільний доступ до файлів з основної ОС
 
 11. Continue with [PX4 environment setup for Linux](../dev_setup/dev_env_linux.md)
 
@@ -96,11 +96,11 @@ One limitation of virtual machines is that you can't automatically connect to a 
 
 4. Add USB filters for the bootloader in VM: **VirtualBox > Settings > USB > Add new USB filter**.
    - Відкрийте меню і під'єднайте USB-кабель, підключений до автопілота.
-      Select the `...Bootloader` device when it appears in the UI.
+     Select the `...Bootloader` device when it appears in the UI.
 
-      ::: info
-      The bootloader device only appears for a few seconds after connecting USB.
-      Якщо він зникає до того як ви змогли обрати його, від'єднайте та повторно під'єднайте USB.
+     ::: info
+     The bootloader device only appears for a few seconds after connecting USB.
+     Якщо він зникає до того як ви змогли обрати його, від'єднайте та повторно під'єднайте USB.
 
 :::
 

@@ -29,6 +29,8 @@ RUN git config --global --add safe.directory '*'
 # Create user with id 1001 (jenkins docker workflow default)
 RUN useradd --shell /bin/bash -u 1001 -c "" -m user && usermod -a -G dialout user
 
+ENV PATH="${PATH}:/opt/xtensa-esp-elf/bin"
+
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 CMD ["/bin/bash"]

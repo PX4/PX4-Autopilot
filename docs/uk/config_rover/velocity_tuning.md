@@ -94,7 +94,7 @@ These steps are only necessary if you are tuning/want to unlock the manual [Posi
 
 The rover is now ready to drive in [Position mode](../flight_modes_rover/manual.md#position-mode) and the configuration can be continued with [position tuning](position_tuning.md).
 
-## Attitude Controller Structure (Info Only)
+## Velocity Controller Structure (Info Only)
 
 This section provides additional information for developers and people with experience in control system design.
 

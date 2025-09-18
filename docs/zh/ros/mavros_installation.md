@@ -148,21 +148,21 @@ Now you are ready to do the build:
 2. 安装MAVROS最新的版本：
    - 发行版 / 稳定版
 
-      ```sh
-      rosinstall_generator --upstream mavros | tee -a /tmp/mavros.rosinstall
-      ```
+     ```sh
+     rosinstall_generator --upstream mavros | tee -a /tmp/mavros.rosinstall
+     ```
 
    - Latest source
 
-      ```sh
-      rosinstall_generator --upstream-development mavros | tee -a /tmp/mavros.rosinstall
-      ```
+     ```sh
+     rosinstall_generator --upstream-development mavros | tee -a /tmp/mavros.rosinstall
+     ```
 
-      ```sh
-      # For fetching all the dependencies into your catkin_ws,
-      # just add '--deps' to the above scripts, E.g.:
-      #   rosinstall_generator --upstream mavros --deps | tee -a /tmp/mavros.rosinstall
-      ```
+     ```sh
+     # For fetching all the dependencies into your catkin_ws,
+     # just add '--deps' to the above scripts, E.g.:
+     #   rosinstall_generator --upstream mavros --deps | tee -a /tmp/mavros.rosinstall
+     ```
 
 3. Create workspace & deps
 

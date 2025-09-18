@@ -84,26 +84,26 @@ The Starling features ModalAI's [open SDK](https://docs.modalai.com/voxl-develop
 #### Налаштування відображення
 
 1. **Увімкніть приймач**: Як тільки ваш квадрокоптер увімкнено, ви помітите, що синій світлодіод приймача ELRS мигає.
-  Це свідчить про те, що отримувач увімкнений, але ще не встановив зв'язок з передавачем.
+   Це свідчить про те, що отримувач увімкнений, але ще не встановив зв'язок з передавачем.
 
-  ![Приймач Starling](../../assets/hardware/complete_vehicles/modalai_starling/starling-photo.png)
+   ![Приймач Starling](../../assets/hardware/complete_vehicles/modalai_starling/starling-photo.png)
 
 2. **Увійдіть в режим зв'язку**: Для ініціювання зв'язку відкрийте термінал та виконайте команди `adb shell` та `voxl-elrs -bind`.
-  Ви побачите, що світлодіод приймача перемикається на миготливий в режимі миттєвого реагування, сигналізуючи, що тепер він у режимі зв'язку.
+   Ви побачите, що світлодіод приймача перемикається на миготливий в режимі миттєвого реагування, сигналізуючи, що тепер він у режимі зв'язку.
 
-  ![Boot Screenshot](../../assets/hardware/complete_vehicles/modalai_starling/screenshot-boot.png)
+   ![Boot Screenshot](../../assets/hardware/complete_vehicles/modalai_starling/screenshot-boot.png)
 
 #### Налаштування передавача
 
 1. **Отримайте доступ до меню**: На вашому передавачі радіо Commando 8, включеному в комплект, натисніть ліву кнопку режиму, щоб відкрити систему меню.
 
-  ![Натисніть Меню на ПДУ](../../assets/hardware/complete_vehicles/modalai_starling/radio-1.png)
+   ![Натисніть Меню на ПДУ](../../assets/hardware/complete_vehicles/modalai_starling/radio-1.png)
 
 2. **Перейдіть до ExpressLRS**: Використовуйте праву кнопку, щоб вибрати перший пункт меню, який повинен бути "ExpressLRS."
 
 3. **Знайдіть опцію Bind**: Після вибору опції "ExpressLRS" прокрутіть вниз до нижньої частини меню, щоб знайти розділ "Bind". Це можна зробити, натиснувши праву кнопку донизу, поки ви не досягнете опцію "Прив'язка".
 
-  ![Press Binding on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-2.png)
+   ![Press Binding on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-2.png)
 
 4. **Ініціювати Прив'язку**: Виберіть "Прив'язати", щоб перевести передавач у режим прив'язки. Ви будете знати, що процес був успішним, коли передавач видасть сигнал, вказуючи на успішне зв'язування.
 

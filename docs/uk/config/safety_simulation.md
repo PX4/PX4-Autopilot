@@ -14,7 +14,7 @@ Note that any delayed action (`COM_FAIL_ACT_T`) will also be delayed in the simu
 2. Встановіть тип транспортного засобу
 3. Set the other values in the **State** or any of the flags under **Conditions**
    - The **Intended Mode** corresponds to the commanded mode via RC or GCS (or external script).
-      Станова машина аварійного відновлення може перевизначити це у разі аварійного відновлення.
+     Станова машина аварійного відновлення може перевизначити це у разі аварійного відновлення.
 4. Check the action under **Output**
 5. Check what happens when changing mode or **Move the RC sticks**
 6. Грайте з різними налаштуваннями та умовами!

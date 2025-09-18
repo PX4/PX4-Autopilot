@@ -50,7 +50,7 @@
 #include <uORB/topics/rover_steering_setpoint.h>
 #include <uORB/topics/rover_rate_setpoint.h>
 #include <uORB/topics/rover_attitude_setpoint.h>
-#include <uORB/topics/rover_velocity_setpoint.h>
+#include <uORB/topics/rover_speed_setpoint.h>
 #include <uORB/topics/rover_position_setpoint.h>
 
 using namespace matrix;
@@ -110,7 +110,7 @@ private:
 	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
 	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
-	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
+	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
 	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	// Variables
@@ -126,6 +126,9 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
 		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz,
+		(ParamFloat<px4::params::RO_YAW_EXPO>)      _param_ro_yaw_expo,
+		(ParamFloat<px4::params::RO_YAW_SUPEXPO>)   _param_ro_yaw_supexpo,
+		(ParamFloat<px4::params::RM_YAW_STK_GAIN>)  _param_rm_yaw_stk_gain,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
 		(ParamFloat<px4::params::RM_COURSE_CTL_TH>) _param_rm_course_ctl_th

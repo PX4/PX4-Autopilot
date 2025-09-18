@@ -23,7 +23,7 @@
 1. Відкрийте меню QGroundControl: **Settings > Parameters > Sensor Calibration**.
 2. Параметри, розташовані в розділі, як показано нижче (або ви можете знайти їх):
 
-  ![FC Orientation QGC v2](../../assets/qgc/setup/sensor/fc_orientation_qgc_v2.png)
+   ![FC Orientation QGC v2](../../assets/qgc/setup/sensor/fc_orientation_qgc_v2.png)
 
 ## Підсумок параметра
 

@@ -113,6 +113,8 @@ void Battery::updateTemperature(const float temperature_c)
 
 void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 {
+	updateDt(timestamp);
+
 	// Require minimum voltage otherwise override connected status
 	if (_voltage_v < LITHIUM_BATTERY_RECOGNITION_VOLTAGE) {
 		_connected = false;
@@ -129,7 +131,7 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 		resetInternalResistanceEstimation(_voltage_v, _current_a);
 	}
 
-	sumDischarged(timestamp, _current_a);
+	sumDischarged(_current_a);
 	_state_of_charge_volt_based =
 		calculateStateOfChargeVoltageBased(_voltage_v, _current_a);
 
@@ -159,7 +161,7 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.connected = _connected;
 	battery_status.source = _source;
 	battery_status.priority = _priority;
-	battery_status.capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;
+	battery_status.capacity = static_cast<uint16_t>(_capacity_mah);
 	battery_status.id = static_cast<uint8_t>(_index);
 	battery_status.warning = _warning;
 	battery_status.timestamp = hrt_absolute_time();
@@ -188,26 +190,24 @@ void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp)
 	updateBatteryStatus(timestamp);
 	publishBatteryStatus(getBatteryStatus());
 }
-
-void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
+void Battery::updateDt(const hrt_abstime &timestamp)
 {
-	// Not a valid measurement
-	if (current_a < 0.f) {
-		// Because the measurement was invalid we need to stop integration
-		// and re-initialize with the next valid measurement
-		_last_timestamp = 0;
-		return;
-	}
-
-	// Ignore first update because we don't know dt.
 	if (_last_timestamp != 0) {
-		const float dt = (timestamp - _last_timestamp) / 1e6;
-		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
-		_discharged_mah_loop = (current_a * 1e3f) * (dt / 3600.f);
-		_discharged_mah += _discharged_mah_loop;
+		_dt = math::min((timestamp - _last_timestamp) / 1e6f, 2.f); // guard to a maximum 2 seconds dt
 	}
 
 	_last_timestamp = timestamp;
+}
+
+float Battery::sumDischarged(float current_a)
+{
+	if (_dt > FLT_EPSILON) {
+		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
+		_discharged_mah_loop = (current_a * 1e3f) * (_dt / 3600.f);
+		_discharged_mah += _discharged_mah_loop;
+	}
+
+	return _discharged_mah;
 }
 
 float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a)
@@ -287,16 +287,16 @@ void Battery::resetInternalResistanceEstimation(const float voltage_v, const flo
 void Battery::estimateStateOfCharge()
 {
 	// choose which quantity we're using for final reporting
-	if ((_params.capacity > 0.f) && _battery_initialized) {
+	if ((_capacity_mah > 0.f) && _battery_initialized) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		// The lower the voltage the more adjust the estimate with it to avoid deep discharge
 		const float weight_v = 3e-2f * (1 - _state_of_charge_volt_based);
 		_state_of_charge = (1 - weight_v) * _state_of_charge + weight_v * _state_of_charge_volt_based;
 		// directly apply current capacity slope calculated using current
-		_state_of_charge -= _discharged_mah_loop / _params.capacity;
+		_state_of_charge -= _discharged_mah_loop / _capacity_mah;
 		_state_of_charge = math::max(_state_of_charge, 0.f);
 
-		const float state_of_charge_current_based = math::max(1.f - _discharged_mah / _params.capacity, 0.f);
+		const float state_of_charge_current_based = math::max(1.f - _discharged_mah / _capacity_mah, 0.f);
 		_state_of_charge = math::min(state_of_charge_current_based, _state_of_charge);
 
 	} else {
@@ -376,14 +376,18 @@ float Battery::computeRemainingTime(float current_a)
 		// For FW only update when we are in level flight
 		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
 					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
-			// only update with positive numbers
-			_current_average_filter_a.update(fmaxf(current_a, 0.f));
+			if (_dt > FLT_EPSILON) {
+				_current_average_filter_a.update(fmaxf(current_a, 0.f), _dt);
+
+			} else {
+				_current_average_filter_a.update(fmaxf(current_a, 0.f));
+			}
 		}
 	}
 
 	// Remaining time estimation only possible with capacity
-	if (_params.capacity > 0.f) {
-		const float remaining_capacity_mah = _state_of_charge * _params.capacity;
+	if (_capacity_mah > 0.f) {
+		const float remaining_capacity_mah = _state_of_charge * _capacity_mah;
 		const float current_ma = fmaxf(_current_average_filter_a.getState() * 1e3f, FLT_EPSILON);
 		time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
 	}
@@ -397,13 +401,16 @@ void Battery::updateParams()
 	param_get(_param_handles.v_empty, &_params.v_empty);
 	param_get(_param_handles.v_charged, &_params.v_charged);
 	param_get(_param_handles.n_cells, &_params.n_cells);
-	param_get(_param_handles.capacity, &_params.capacity);
 	param_get(_param_handles.r_internal, &_params.r_internal);
 	param_get(_param_handles.source, &_params.source);
 	param_get(_param_handles.low_thr, &_params.low_thr);
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);
 	param_get(_param_handles.bat_avrg_current, &_params.bat_avrg_current);
+
+	float capacity{0.f};
+	param_get(_param_handles.capacity, &capacity);
+	setCapacityMah(capacity);
 
 	if (n_cells != _params.n_cells) {
 		_internal_resistance_initialized = false;

@@ -68,13 +68,13 @@ failure <component> <failure_type> [-i <instance_number>]
 1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN).
 2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
-  ```sh
-  # Fail RC (turn publishing off)
-  failure rc_signal off
+   ```sh
+   # Fail RC (turn publishing off)
+   failure rc_signal off
 
-  # Restart RC publishing
-  failure rc_signal ok
-  ```
+   # Restart RC publishing
+   failure rc_signal ok
+   ```
 
 ## MAVSDK відлагоджувальний плагін
 

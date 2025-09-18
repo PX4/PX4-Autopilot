@@ -37,8 +37,8 @@ Alternatively you can just append the modified parameters to the startup configu
 Як додати конфігурацію до прошивки:
 
 1. Create a new config file in the [init.d/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d/airframes) folder.
-  - Give it a short descriptive filename and prepend the filename with an unused autostart ID (for example, `1033092_superfast_vtol`).
-  - Оновіть файл з параметрами конфігурації та програмами (див. вище).
+   - Give it a short descriptive filename and prepend the filename with an unused autostart ID (for example, `1033092_superfast_vtol`).
+   - Оновіть файл з параметрами конфігурації та програмами (див. вище).
 2. Add the name of the new frame config file to the [CMakeLists.txt](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/CMakeLists.txt) in the relevant section for the type of vehicle.
 3. [Build and upload](../dev_setup/building_px4.md) the software.
 
@@ -292,37 +292,37 @@ If the airframe is for a **new group** you additionally need to:
 
 2. Add a mapping between the new group name and image filename in the [srcparser.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4airframes/srcparser.py) method `GetImageName()` (follow the pattern below):
 
-  ```python
-  def GetImageName(self):
-      """
-      Get parameter group image base name (w/o extension)
-      """
-      if (self.name == "Standard Plane"):
-          return "Plane"
-      elif (self.name == "Flying Wing"):
-          return "FlyingWing"
-       ...
-   ...
-      return "AirframeUnknown"
-  ```
+   ```python
+   def GetImageName(self):
+       """
+       Get parameter group image base name (w/o extension)
+       """
+       if (self.name == "Standard Plane"):
+           return "Plane"
+       elif (self.name == "Flying Wing"):
+           return "FlyingWing"
+        ...
+    ...
+       return "AirframeUnknown"
+   ```
 
 3. Update _QGroundControl_:
 
-  - Add the svg image for the group into: [src/AutopilotPlugins/Common/images](https://github.com/mavlink/qgroundcontrol/tree/master/src/AutoPilotPlugins/Common/Images)
-  - Add reference to the svg image into [qgcimages.qrc](https://github.com/mavlink/qgroundcontrol/blob/master/qgcimages.qrc), following the pattern below:
+   - Add the svg image for the group into: [src/AutopilotPlugins/Common/images](https://github.com/mavlink/qgroundcontrol/tree/master/src/AutoPilotPlugins/Common/Images)
+   - Add reference to the svg image into [qgcimages.qrc](https://github.com/mavlink/qgroundcontrol/blob/master/qgcimages.qrc), following the pattern below:
 
-    ```xml
-    <qresource prefix="/qmlimages">
-       ...
-       <file alias="Airframe/AirframeSimulation">src/AutoPilotPlugins/Common/Images/AirframeSimulation.svg</file>
-       <file alias="Airframe/AirframeUnknown">src/AutoPilotPlugins/Common/Images/AirframeUnknown.svg</file>
-       <file alias="Airframe/Boat">src/AutoPilotPlugins/Common/Images/Boat.svg</file>
-       <file alias="Airframe/FlyingWing">src/AutoPilotPlugins/Common/Images/FlyingWing.svg</file>
-       ...
-    ```
+     ```xml
+     <qresource prefix="/qmlimages">
+        ...
+        <file alias="Airframe/AirframeSimulation">src/AutoPilotPlugins/Common/Images/AirframeSimulation.svg</file>
+        <file alias="Airframe/AirframeUnknown">src/AutoPilotPlugins/Common/Images/AirframeUnknown.svg</file>
+        <file alias="Airframe/Boat">src/AutoPilotPlugins/Common/Images/Boat.svg</file>
+        <file alias="Airframe/FlyingWing">src/AutoPilotPlugins/Common/Images/FlyingWing.svg</file>
+        ...
+     ```
 
-    ::: info
-    The remaining airframe metadata should be automatically included in the firmware (once **srcparser.py** is updated).
+     ::: info
+     The remaining airframe metadata should be automatically included in the firmware (once **srcparser.py** is updated).
 
 :::
 

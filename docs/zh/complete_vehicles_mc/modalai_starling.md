@@ -84,26 +84,26 @@ Follow this guide to bind your ELRS receiver to your transmitter.
 #### Setting up the Receiver
 
 1. **Power On the Receiver**: Once your drone is powered on, you'll notice the ELRS receiver's blue LED flashing.
-  This is an indication that the receiver is on but has not yet established a connection with a transmitter.
+   This is an indication that the receiver is on but has not yet established a connection with a transmitter.
 
-  ![Starling Receiver](../../assets/hardware/complete_vehicles/modalai_starling/starling-photo.png)
+   ![Starling Receiver](../../assets/hardware/complete_vehicles/modalai_starling/starling-photo.png)
 
 2. **Enter Binding Mode**: To initiate binding, open a terminal and execute the `adb shell` and `voxl-elrs -bind` commands.
-  You'll observe the receiver's LED switch to a flashing in a heartbeat pattern, signaling that it is now in binding mode.
+   You'll observe the receiver's LED switch to a flashing in a heartbeat pattern, signaling that it is now in binding mode.
 
-  ![Boot Screenshot](../../assets/hardware/complete_vehicles/modalai_starling/screenshot-boot.png)
+   ![Boot Screenshot](../../assets/hardware/complete_vehicles/modalai_starling/screenshot-boot.png)
 
 #### Setting up the Transmitter
 
 1. **Access the Menu**: On your Commando 8 radio transmitter included in the kit, press the left mode button to open the menu system.
 
-  ![Press Menu on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-1.png)
+   ![Press Menu on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-1.png)
 
 2. **Navigate to ExpressLRS**: Use the right button to select the first menu entry, which should be "ExpressLRS."
 
 3. **Find the Bind Option**: With the "ExpressLRS" option selected, scroll down to the bottom of the menu to locate the "Bind" section. This can be done by pressing the right button downwards until you reach the "Bind" option.
 
-  ![Press Binding on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-2.png)
+   ![Press Binding on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-2.png)
 
 4. **Initiate Binding**: Select "Bind" to put the transmitter into binding mode. You will know the process has been successful when the transmitter emits a beep, indicating a successful bind.
 

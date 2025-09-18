@@ -316,33 +316,33 @@ The PX4 Gazebo worlds and and models databases [can be found on GitHub here](htt
 
 1. **Start simulator + default world + spawn vehicle at default pose**
 
-  ```sh
-  PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4
-  ```
+   ```sh
+   PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4
+   ```
 
 2. **Start simulator + default world + spawn vehicle at custom pose (y=2m)**
 
-  ```sh
-  PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,2" PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4
-  ```
+   ```sh
+   PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,2" PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4
+   ```
 
 3. **Start simulator + default world + link to existing vehicle**
 
-  ```sh
-  PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_NAME=x500 ./build/px4_sitl_default/bin/px4
-  ```
+   ```sh
+   PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_NAME=x500 ./build/px4_sitl_default/bin/px4
+   ```
 
 4. **Start simulator in standalone mode + connect to Gazebo instance running default world**
 
-  ```sh
-  PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4
-  ```
+   ```sh
+   PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4
+   ```
 
-  В окремому терміналі запустіть:
+   В окремому терміналі запустіть:
 
-  ```sh
-  python /path/to/simulation-gazebo
-  ```
+   ```sh
+   python /path/to/simulation-gazebo
+   ```
 
 ## Додавання нових світів та моделей
 
@@ -358,38 +358,38 @@ SDF files, mesh files, textures and anything else to do with the functionality a
 
 2. Define the default parameters for Gazebo in the airframe configuration file (this example is from [x500 quadcopter](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/airframes/4001_gz_x500)):
 
-  ```ini
-  PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
-  PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
-  PX4_SIM_MODEL=${PX4_SIM_MODEL:=<your model name>}
-  ```
+   ```ini
+   PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+   PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+   PX4_SIM_MODEL=${PX4_SIM_MODEL:=<your model name>}
+   ```
 
-  - `PX4_SIMULATOR=${PX4_SIMULATOR:=gz}` sets the default simulator (Gz) for that specific airframe.
+   - `PX4_SIMULATOR=${PX4_SIMULATOR:=gz}` sets the default simulator (Gz) for that specific airframe.
 
-  - `PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}` sets the [default world](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/default.sdf) for that specific airframe.
+   - `PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}` sets the [default world](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/default.sdf) for that specific airframe.
 
-  - Setting the default value of `PX4_SIM_MODEL` lets you start the simulation with just:
+   - Setting the default value of `PX4_SIM_MODEL` lets you start the simulation with just:
 
-    ```sh
-    PX4_SYS_AUTOSTART=<your new airframe id> ./build/px4_sitl_default/bin/px4
-    ```
+     ```sh
+     PX4_SYS_AUTOSTART=<your new airframe id> ./build/px4_sitl_default/bin/px4
+     ```
 
 3. Add CMake Target for the [airframe](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/airframes/CMakeLists.txt).
 
-  - If you plan to use "regular" mode, add your model SDF to `Tools/simulation/gz/models/`.
-  - If you plan to use _standalone_ mode, add your model SDF to `~/.simulation-gazebo/models/`
+   - If you plan to use "regular" mode, add your model SDF to `Tools/simulation/gz/models/`.
+   - If you plan to use _standalone_ mode, add your model SDF to `~/.simulation-gazebo/models/`
 
-  Ви звичайно також можете використовувати обидва варіанти.
+   Ви звичайно також можете використовувати обидва варіанти.
 
 ### Додавання світу
 
 Щоб додати новий світ:
 
 1. Add your world to the list of worlds found in the [`CMakeLists.txt` here](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_bridge/CMakeLists.txt).
-  This is required in order to allow `CMake` to generate correct targets.
+   This is required in order to allow `CMake` to generate correct targets.
 
-  - If you plan to use "normal" mode, add your world sdf to `Tools/simulation/gz/worlds/`.
-  - If you plan to use _standalone_ mode, add your world SDF to `~/.simulation-gazebo/worlds/`
+   - If you plan to use "normal" mode, add your world sdf to `Tools/simulation/gz/worlds/`.
+   - If you plan to use _standalone_ mode, add your world SDF to `~/.simulation-gazebo/worlds/`
 
 :::info
 As long as the world file and the model file are in the Gazebo search path (`GZ_SIM_RESOURCE_PATH`) it is not necessary to add them to the PX4 world and model directories.

@@ -111,9 +111,9 @@ However if you change the baud rate from 57600 you will need to create and use a
 
 1. Disable SiK Radio in QGC (**Application Settings → General → AutoConnect**).
 2. Create a new link configuration:
-  - Go to **Application Settings → Comms Links**.
-  - Click **Add**.
-  - Set **Type** to **Serial**, configure the **Serial Port** and **Baud Rate** to match the J.Fi device.
+   - Go to **Application Settings → Comms Links**.
+   - Click **Add**.
+   - Set **Type** to **Serial**, configure the **Serial Port** and **Baud Rate** to match the J.Fi device.
 3. Select **Connect** to connect with the new configuration.
 
 ## J.Fi Configuration

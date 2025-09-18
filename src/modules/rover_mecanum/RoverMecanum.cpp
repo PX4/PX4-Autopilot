@@ -98,7 +98,7 @@ void RoverMecanum::Run()
 void RoverMecanum::generateSetpoints()
 {
 	vehicle_status_s vehicle_status{};
-	_vehicle_status_sub.update(&vehicle_status);
+	_vehicle_status_sub.copy(&vehicle_status);
 
 	switch (vehicle_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
@@ -139,16 +139,16 @@ void RoverMecanum::updateControllers()
 		_mecanum_pos_control.updatePosControl();
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_mecanum_vel_control.updateVelControl();
-	}
-
 	if (_vehicle_control_mode.flag_control_attitude_enabled) {
 		_mecanum_att_control.updateAttControl();
 	}
 
 	if (_vehicle_control_mode.flag_control_rates_enabled) {
 		_mecanum_rate_control.updateRateControl();
+	}
+
+	if (_vehicle_control_mode.flag_control_velocity_enabled) {
+		_mecanum_speed_control.updateSpeedControl();
 	}
 
 	if (_vehicle_control_mode.flag_control_allocation_enabled) {
@@ -168,7 +168,7 @@ void RoverMecanum::runSanityChecks()
 		return;
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled && !_mecanum_vel_control.runSanityChecks()) {
+	if (_vehicle_control_mode.flag_control_velocity_enabled && !_mecanum_speed_control.runSanityChecks()) {
 		_sanity_checks_passed = false;
 		return;
 	}
@@ -183,7 +183,8 @@ void RoverMecanum::runSanityChecks()
 
 void RoverMecanum::reset()
 {
-	_mecanum_vel_control.reset();
+	_mecanum_pos_control.reset();
+	_mecanum_speed_control.reset();
 	_mecanum_att_control.reset();
 	_mecanum_rate_control.reset();
 	_manual_mode.reset();

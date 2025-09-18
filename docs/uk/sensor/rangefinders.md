@@ -146,11 +146,11 @@ To view the rangefinder output:
 
 1. Open the menu **Q > Select Tool > Analyze Tools**:
 
-  ![Menu for QGC Analyze Tool](../../assets/qgc/analyze/menu_analyze_tool.png)
+   ![Menu for QGC Analyze Tool](../../assets/qgc/analyze/menu_analyze_tool.png)
 
 2. Select the message `DISTANCE_SENSOR`, and then check the plot checkbox against `current_distance`.
-  The tool will then plot the result:
-  ![QGC Analyze DISTANCE_SENSOR value](../../assets/qgc/analyze/qgc_analyze_tool_distance_sensor.png)
+   The tool will then plot the result:
+   ![QGC Analyze DISTANCE_SENSOR value](../../assets/qgc/analyze/qgc_analyze_tool_distance_sensor.png)
 
 ### QGroundControl MAVLink Console
 

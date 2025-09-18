@@ -18,21 +18,21 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 **Screw**- Sunk Screw M2.5\*6 12pcs
 
 1. Insert the hanger rubber ring gasket in each of their respective hangers.
-  Do not use sharp objects to press the rubbers inside.
+   Do not use sharp objects to press the rubbers inside.
 
-  [![Assembly1](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly1.png)](https://www.youtube.com/watch?v=4Tid-FCP_aI)
+   [![Assembly1](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly1.png)](https://www.youtube.com/watch?v=4Tid-FCP_aI)
 
 2. Take the battery mounting board and screw it with the slide bar clip using the Sunk Screw M2.5\*6.
 
-  [![Assembly2](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly2.png)](https://youtu.be/9E-rld6tPWQ)
+   [![Assembly2](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly2.png)](https://youtu.be/9E-rld6tPWQ)
 
 3. Screw 4 hangers to the Platform Board using Sunk Screw M2.5\*6.
 
-  [![Assembly3](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly3.png)](https://youtu.be/4qIBABc9KsY))
+   [![Assembly3](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly3.png)](https://youtu.be/4qIBABc9KsY))
 
 4. Take the slide bar and insert 4 hangers to screw to the bottom plate later.
 
-  [![Assembly4](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly4.png)](https://youtu.be/CFx6Ct7FCIc))
+   [![Assembly4](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly4.png)](https://youtu.be/CFx6Ct7FCIc))
 
 5. Now insert the battery holder and payload holders assembled in step 2 & 3
 
@@ -44,11 +44,11 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 
 1. Take the bottom plate and insert 4 M3\*14 screws and fasten the nylon standoffs on the same.
 
-  [![Assembly6](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly6.png)](https://youtu.be/IfsMXTr3Uy4)
+   [![Assembly6](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly6.png)](https://youtu.be/IfsMXTr3Uy4)
 
 2. Place the Power distribution board and use the locknuts to assemble them. The power module PM02 (for Pixhawk 6C) would power this board
 
-  [![Assembly7](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly7.png)](https://youtu.be/Qjs6pqarRIY)
+   [![Assembly7](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly7.png)](https://youtu.be/Qjs6pqarRIY)
 
 3. Use Socket Cap Screws M2.5\*6 and screw the bottom plate on the 4 hangers (that we inserted in the 2 bars on the 3rd step of the payload holder assembly)
 
@@ -56,15 +56,15 @@ This topic provides full instructions for building the [Holybro X500 V2 ARF Kit]
 
 1. To assemble the landing gear, loosen the pre-assembled screws of the Landing Gear-Cross Bar and insert the Landing Gear-Vertical Pole and fasten the same.
 
-  [![Assembly8](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly8.png)](https://youtu.be/mU4vm4zyjcY)
+   [![Assembly8](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly8.png)](https://youtu.be/mU4vm4zyjcY)
 
-  [![Assembly9](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly9.png)](https://youtu.be/7REaF3YAqLg)
+   [![Assembly9](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly9.png)](https://youtu.be/7REaF3YAqLg)
 
 2. Use the Socket Cap Screw M3\*8 to screw the landing gears to the bottom plate
 
-  [![Assembly11](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly11.png)](https://youtu.be/iDxzWeyCN54)
+   [![Assembly11](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly11.png)](https://youtu.be/iDxzWeyCN54)
 
-  [![Assembly12](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly12.png)](https://youtu.be/3fNJQraCJx0)
+   [![Assembly12](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly12.png)](https://youtu.be/3fNJQraCJx0)
 
 Because it’s cumbersome to insert the wires once the top plate is assembled, do the wiring beforehand.
 Although the design is well built such that you can do this later as well.
@@ -92,28 +92,28 @@ Note that the ESC connectors are color-coded and must be inserted in the PWM out
 
 1. Putting the arms is quite simple as the motors come pre-assembled.
 
-  - Ensure that you have the right numbered arm with its motor on the respective side.
+   - Ensure that you have the right numbered arm with its motor on the respective side.
 
-  [![Assembly15](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly15.png)](https://youtu.be/45KCey3WiJ4)
+   [![Assembly15](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly15.png)](https://youtu.be/45KCey3WiJ4)
 
-  :::tip
-  Use your allen keys/ any elongated item and insert it on the opposite side of the bolt that you're trying to fasten.
+   :::tip
+   Use your allen keys/ any elongated item and insert it on the opposite side of the bolt that you're trying to fasten.
 
 :::
 
 2. Take one arm and insert the rectangle extrusion inside the rectangular hollow on the bottom plate.
 
-  [![Assembly16](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly16.png)](https://youtu.be/GOTqmjq9_3s)
+   [![Assembly16](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly16.png)](https://youtu.be/GOTqmjq9_3s)
 
 3. While inserting the top plate on top of this the 3 piece assembly (bottom plate, top plate & arms) have to screwed using Socket Cap Screw M3\*38 and Flange Locknut M3.
 
 4. Hold one side using the mini cross wrench provided in the developer kit.
 
-  [![Assembly17](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly17.png)](https://youtu.be/2rcNVekJQd0)
+   [![Assembly17](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly17.png)](https://youtu.be/2rcNVekJQd0)
 
 5. Do not fasten any screws before all 3 motors are in place as this might make it difficult while you’re assembling the 3rd and 4th motor.
 
-  [![Assembly18](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly18.png)](https://youtu.be/SlKRuNoE_AY)
+   [![Assembly18](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly18.png)](https://youtu.be/SlKRuNoE_AY)
 
 ### Propellers
 
@@ -132,13 +132,13 @@ The following parts can be placed as per usual.
 
 1. Assemble the GPS by following the video.
 
-  [![Assembly20](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly20.png)](https://youtu.be/aiFxVJFjlos)
+   [![Assembly20](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly20.png)](https://youtu.be/aiFxVJFjlos)
 
-  This guide uses the GPS mount location suggested in Holybro’s guide.
+   This guide uses the GPS mount location suggested in Holybro’s guide.
 
 2. Screw the GPS mount’s bottom end on the payload holder side using Locknut M3 & Screw M3\*10
 
-  [![Assembly21](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly21.png)](https://youtu.be/uG5UKy3FrIc)
+   [![Assembly21](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/assembly21.png)](https://youtu.be/uG5UKy3FrIc)
 
 ### Pixhawk 6C
 

@@ -16,7 +16,7 @@ parameters:
                     sure to set this high enough so that the motors are always spinning while
                     armed.
             type: float
-            unit: '%'
+            unit: norm
             min: 0
             max: 1
             decimal: 2

@@ -316,6 +316,43 @@ For SIH as SITL (no FC):
 
 For specific examples see the `_sihsim_` airframes in [ROMFS/px4fmu_common/init.d-posix/airframes](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/airframes/) (SIH as SITL) and [ROMFS/px4fmu_common/init.d/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d/airframes) (SIH on FC).
 
+## Controlling Actuators in SIH
+
+:::warning
+If you want to control throttling actuators in SIH, make sure to remove propellers for safety.
+:::
+
+In some scenarios, it may be useful to control an actuator while running SIH. For example, you might want to verify that winches or grippers are functioning correctly by checking the servo responses.
+
+To enable actuator control in SIH:
+
+1. Configure PWM parameters in the airframe file:
+
+Ensure your airframe file includes the necessary parameters to map PWM outputs to the correct channels.
+
+For example, if a servo is connected to MAIN 3 and you want to map it to AUX1 on your RC, use the following command:
+
+`param set-default PWM_MAIN_FUNC3 407`
+
+You can find a full list of available values for `PWM_MAIN_FUNCn` [here](../advanced_config/parameter_reference.md#PWM_MAIN_FUNC1). In this case, `407` maps the MAIN 3 output to AUX1 on the RC.
+
+Alternatively, you can use the [`PWM_AUX_FUNCn`](../advanced_config/parameter_reference.md#PWM_AUX_FUNC1) parameters.
+
+You may also configure the output as desired:
+- Disarmed PWM: ([`PWM_MAIN_DISn`](../advanced_config/parameter_reference.md#PWM_MAIN_DIS1) / [`PWM_AUX_DIS1`](../advanced_config/parameter_reference.md#PWM_AUX_DIS1))
+- Minimum PWM ([`PWM_MAIN_MINn`](../advanced_config/parameter_reference.md#PWM_MAIN_MIN1) / [`PWM_AUX_MINn`](../advanced_config/parameter_reference.md#PWM_AUX_MIN1))
+- Maximum PWM ([`PWM_MAIN_MAXn`](../advanced_config/parameter_reference.md#PWM_MAIN_MAX1) / [`PWM_AUX_MAXn`](../advanced_config/parameter_reference.md#PWM_AUX_MAX1))
+
+2. Manually start the PWM output driver
+
+For safety, the PWM driver is not started automatically in SIH. To enable it, run the following command in the MAVLink shell:
+
+`pwm_out start`
+
+And to disable it again:
+
+`pwm_out stop`
+
 ## Dynamic Models
 
 The dynamic models for the various vehicles are:

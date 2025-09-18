@@ -53,15 +53,15 @@ This section contains topics related to [helicopter](../frames_helicopter/index.
    Для кожного набору сервоприводів:
 
    - `Angle`: Clockwise angle in degree on the swash plate circle at which the servo arm is attached starting from `0` pointing forwards.
-      Приклад для типової настройки, де три сервопривода керують планкою рівномірно розподіленою по колу (360° / 3 =) по 120° кожен, що призводить до наступних кутів:
+     Приклад для типової настройки, де три сервопривода керують планкою рівномірно розподіленою по колу (360° / 3 =) по 120° кожен, що призводить до наступних кутів:
 
-      | #       | Кут  |
-      | ------- | ---- |
-      | Servo 1 | 60°  |
-      | Servo 2 | 180° |
-      | Servo 3 | 300° |
+     | #       | Кут  |
+     | ------- | ---- |
+     | Servo 1 | 60°  |
+     | Servo 2 | 180° |
+     | Servo 3 | 300° |
 
-      <img width="700" alt="warning and requirement" src="../../assets/airframes/helicopter/swash_plate_servo_angles.png">
+     <img width="700" alt="warning and requirement" src="../../assets/airframes/helicopter/swash_plate_servo_angles.png">
 
    - `Arm Length (relative to each other)`: Radius from the swash plate center (top view). Коротше плече означає, що та ж сама рух сервопривода зміщує плиту більше. Це дозволяє отримати компенсацію автопілоту.
 
@@ -72,7 +72,7 @@ This section contains topics related to [helicopter](../frames_helicopter/index.
    - `Yaw compensation scale based on collective pitch`: How much yaw is feed forward compensated based on the current collective pitch.
    - `Main rotor turns counter-clockwise`: `Disabled` (clockwise rotation) | `Enabled`
    - `Throttle spoolup time`: Set value (in seconds) greater than the achievable minimum motor spool up time.
-      Більше значення може поліпшити зручність користувача.
+     Більше значення може поліпшити зручність користувача.
 
 3. Видаліть лопаті ротора та пропелери
 

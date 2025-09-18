@@ -76,18 +76,11 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 						measurement_var + bias_est.getBiasVar(),
 						math::max(_params.ekf2_gps_p_gate, 1.f));
 
-		// update the bias estimator before updating the main filter but after
-		// using its current state to compute the vertical position innovation
-		if (measurement_valid) {
-			bias_est.setMaxStateNoise(sqrtf(measurement_var));
-			bias_est.setProcessNoiseSpectralDensity(_params.gps_hgt_bias_nsd);
-			bias_est.fuseBias(measurement - _gpos.altitude(), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
-		}
-
 		// determine if we should use height aiding
 		const bool common_conditions_passing = measurement_valid
 						       && _local_origin_lat_lon.isInitialized()
-						       && _gnss_checks.passed();
+						       && _gnss_checks.passed()
+						       && !_control_status.flags.gnss_fault;
 
 		const bool continuing_conditions_passing = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VPOS))
 				&& common_conditions_passing;
@@ -102,6 +95,12 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 		if (_control_status.flags.gps_hgt) {
 			if (continuing_conditions_passing) {
+
+				// update the bias estimator before updating the main filter but after
+				// using its current state to compute the vertical position innovation
+				bias_est.setMaxStateNoise(sqrtf(measurement_var));
+				bias_est.setProcessNoiseSpectralDensity(_params.gps_hgt_bias_nsd);
+				bias_est.fuseBias(measurement - _gpos.altitude(), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 
 				fuseVerticalPosition(aid_src);
 

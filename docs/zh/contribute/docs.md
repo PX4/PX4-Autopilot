@@ -63,33 +63,33 @@ The instructions below explain how to get git and use it on your local computer.
 
 4. Clone (copy) your forked repository to your local computer:
 
-  ```sh
-  cd ~/wherever/
-  git clone https://github.com/<your git name>/PX4-Autopilot.git
-  ```
+   ```sh
+   cd ~/wherever/
+   git clone https://github.com/<your git name>/PX4-Autopilot.git
+   ```
 
-  For example, to clone PX4 source fork for a user with Github account "john_citizen":
+   For example, to clone PX4 source fork for a user with Github account "john_citizen":
 
-  ```sh
-  git clone https://github.com/john_citizen/PX4-Autopilot.git
-  ```
+   ```sh
+   git clone https://github.com/john_citizen/PX4-Autopilot.git
+   ```
 
 5. Navigate to your local repository:
 
-  ```sh
-  cd ~/wherever/PX4-Autopilot
-  ```
+   ```sh
+   cd ~/wherever/PX4-Autopilot
+   ```
 
 6. Add a _remote_ called "upstream" to point to the "official" PX4 version of the library:
 
-  ```sh
-  git remote add upstream https://github.com/PX4/PX4-Autopilot.git
-  ```
+   ```sh
+   git remote add upstream https://github.com/PX4/PX4-Autopilot.git
+   ```
 
-  :::tip
-  A "remote" is a handle to a particular repository.
-  The remote named _origin_ is created by default when you clone the repository, and points to _your fork_ of the guide.
-  Above you create a new remote _upstream_ that points to the PX4 project version of the documents.
+   :::tip
+   A "remote" is a handle to a particular repository.
+   The remote named _origin_ is created by default when you clone the repository, and points to _your fork_ of the guide.
+   Above you create a new remote _upstream_ that points to the PX4 project version of the documents.
 
 :::
 
@@ -99,111 +99,111 @@ Within the repository you created above:
 
 1. Bring your copy of the repository `main` branch up to date:
 
-  ```sh
-  git checkout main
-  git fetch upstream main
-  git pull upstream main
-  ```
+   ```sh
+   git checkout main
+   git fetch upstream main
+   git pull upstream main
+   ```
 
 2. Create a new branch for your changes:
 
-  ```sh
-  git checkout -b <your_feature_branch_name>
-  ```
+   ```sh
+   git checkout -b <your_feature_branch_name>
+   ```
 
-  This creates a local branch on your computer named `your_feature_branch_name`.
+   This creates a local branch on your computer named `your_feature_branch_name`.
 
 3. Make changes to the documentation as needed (general guidance on this in following sections)
 
 4. Once you are satisfied with your changes, you can add them to your local branch using a "commit":
 
-  ```sh
-  git add <file name>
-  git commit -m "<your commit message>"
-  ```
+   ```sh
+   git add <file name>
+   git commit -m "<your commit message>"
+   ```
 
-  For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
+   For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
 
 5. Push your local branch (including commits added to it) to your forked repository on Github.
 
-  ```sh
-  git push origin your_feature_branch_name
-  ```
+   ```sh
+   git push origin your_feature_branch_name
+   ```
 
 6. Go to your forked repository on Github in a web browser, e.g.: `https://github.com/<your git name>/PX4-Autopilot.git`.
-  There you should see the message that a new branch has been pushed to your forked repository.
+   There you should see the message that a new branch has been pushed to your forked repository.
 
 7. Create a pull request (PR):
-  - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
-    Press it.
-  - A pull request template will be created.
-    It will list your commits and you can (must) add a meaningful title (in case of a one commit PR, it's usually the commit message) and message (<span style="color:orange">explain what you did for what reason</span>.
-    Check [other pull requests](https://github.com/PX4/PX4-Autopilot/pulls) for comparison).
-  - Add the "Documentation" label.
+   - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
+     Press it.
+   - A pull request template will be created.
+     It will list your commits and you can (must) add a meaningful title (in case of a one commit PR, it's usually the commit message) and message (<span style="color:orange">explain what you did for what reason</span>.
+     Check [other pull requests](https://github.com/PX4/PX4-Autopilot/pulls) for comparison).
+   - Add the "Documentation" label.
 
 8. You're done!
 
-  Maintainers for the PX4 User Guide will now have a look at your contribution and decide if they want to integrate it.
-  Check if they have questions on your changes every once in a while.
+   Maintainers for the PX4 User Guide will now have a look at your contribution and decide if they want to integrate it.
+   Check if they have questions on your changes every once in a while.
 
 ### Gitbook Documentation Toolchain
 
 概述：
 
 1. Install the [Vitepress prerequisites](https://vitepress.dev/guide/getting-started#prerequisites):
-  - [Nodejs 18+](https://nodejs.org/en)
-  - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
+   - [Nodejs 18+](https://nodejs.org/en)
+   - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
 
 2. Navigate to your local repository and the `/docs` subdirectory:
 
-  ```sh
-  cd ~/wherever/PX4-Autopilot/docs
-  ```
+   ```sh
+   cd ~/wherever/PX4-Autopilot/docs
+   ```
 
 3. Install dependencies (including Vitepress):
 
-  ```sh
-  yarn install
-  ```
+   ```sh
+   yarn install
+   ```
 
 4. Preview and serve the library:
 
-  ```sh
-  yarn start
-  ```
+   ```sh
+   yarn start
+   ```
 
-  - Once the development/preview server has built the library (less than a minute for the first time) it will show you the URL you can preview the site on.
-    This will be something like: `http://localhost:5173/px4_user_guide/`.
-  - Stop serving using **CTRL+C** in the terminal prompt.
+   - Once the development/preview server has built the library (less than a minute for the first time) it will show you the URL you can preview the site on.
+     This will be something like: `http://localhost:5173/px4_user_guide/`.
+   - Stop serving using **CTRL+C** in the terminal prompt.
 
 5. Open previewed pages in your local editor:
 
-  First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
-  For example, you can enable VSCode as your default editor by entering:
+   First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
+   For example, you can enable VSCode as your default editor by entering:
 
-  - Windows:
+   - Windows:
 
-    ```sh
-    set EDITOR=code
-    ```
+     ```sh
+     set EDITOR=code
+     ```
 
-  - Linux:
+   - Linux:
 
-    ```sh
-    export EDITOR=code
-    ```
+     ```sh
+     export EDITOR=code
+     ```
 
-  The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
+   The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
 
 6. You can build the library as it would be done for deployment:
 
-  ```sh
-  # Ubuntu
-  yarn docs:build
+   ```sh
+   # Ubuntu
+   yarn docs:build
 
-  # Windows
-  yarn docs:buildwin
-  ```
+   # Windows
+   yarn docs:buildwin
+   ```
 
 :::tip
 Use `yarn start` to preview changes _as you make them_ (documents are updated and served very quickly).
@@ -256,38 +256,38 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
 ## 翻译
 
 1. 图片
-  - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
-    Do not further nest folders.
-  - Put new image files in an appropriate nested sub-folder of `/assets/`.
-    Deeper nesting is allowed/encouraged.
-  - Use descriptive names for folders and files.
-    In particular, image filenames should describe what they contain (don't name as "image1.png")
-  - Use lower case filenames and separate words using underscores (`_`).
+   - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
+     Do not further nest folders.
+   - Put new image files in an appropriate nested sub-folder of `/assets/`.
+     Deeper nesting is allowed/encouraged.
+   - Use descriptive names for folders and files.
+     In particular, image filenames should describe what they contain (don't name as "image1.png")
+   - Use lower case filenames and separate words using underscores (`_`).
 
 2. 内容:
-  - 将新文件放入相应的子文件夹
-  - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
-  - SVG files are preferred for diagrams.
-    PNG files are preferred over JPG for screenshots.
+   - 将新文件放入相应的子文件夹
+   - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
+   - SVG files are preferred for diagrams.
+     PNG files are preferred over JPG for screenshots.
 
 3. Content:
-  - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
-    - **Bold** for button presses and menu definitions.
-    - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
-    - `code` for file paths, and code, parameter names that aren't linked, using tools in a command line, such as `prettier`.
-  - Headings and page titles should use "First Letter Capitalisation".
-  - The page title should be a first level heading (`#`).
-    All other headings should be h2 (`##`) or lower.
-  - Don't add any style to headings.
-  - Don't translate the text indicating the name of an `info`, `tip` or `warning` declaration (e.g. `::: tip`) as this precise text is required to render the aside properly.
-  - Break lines on sentences by preference.
-    Don't break lines based on some arbitrary line length.
-  - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
+   - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
+     - **Bold** for button presses and menu definitions.
+     - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
+     - `code` for file paths, and code, parameter names that aren't linked, using tools in a command line, such as `prettier`.
+   - Headings and page titles should use "First Letter Capitalisation".
+   - The page title should be a first level heading (`#`).
+     All other headings should be h2 (`##`) or lower.
+   - Don't add any style to headings.
+   - Don't translate the text indicating the name of an `info`, `tip` or `warning` declaration (e.g. `::: tip`) as this precise text is required to render the aside properly.
+   - Break lines on sentences by preference.
+     Don't break lines based on some arbitrary line length.
+   - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
 
 4. Videos:
-  - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
-    - Use instructional videos sparingly as they date badly, and are hard to maintain.
-    - Cool videos of airframes in flight are always welcome.
+   - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
+     - Use instructional videos sparingly as they date badly, and are hard to maintain.
+     - Cool videos of airframes in flight are always welcome.
 
 ## 许可证
 

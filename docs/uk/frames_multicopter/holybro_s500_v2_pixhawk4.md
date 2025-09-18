@@ -115,11 +115,11 @@ No LiPo battery is included.
 Оцінкований час для збирання - 90 хвилин, близько 45 хвилин на збірку рами та 45 хвилин на встановлення та налаштування автопілота в QGroundControl.
 
 1. Збірка шасі.
-  Ми збираємося почати зі складання шасі на вертикальний стовп. Відкрутіть гвинти стійки посадки та вставте вертикальний стовп, як показано нижче.
+   Ми збираємося почати зі складання шасі на вертикальний стовп. Відкрутіть гвинти стійки посадки та вставте вертикальний стовп, як показано нижче.
 
-  ![Figure 1](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig1.jpg)
+   ![Figure 1](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig1.jpg)
 
-  ![Figure 2](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig2.jpg)
+   ![Figure 2](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig2.jpg)
 
 2. Зібрати плату управління живленням до стільникового шасі. Закрутіть шасі з вертикальним полем на повністю зібрану плату управління живленням.
 
@@ -132,132 +132,132 @@ No LiPo battery is included.
 ![Figure 4](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig4.jpg)
 
 1. Зберігайте зброю на плату керування живленням.
-  Прикріпіть руку до плати управління живленням.
+   Прикріпіть руку до плати управління живленням.
 
-  ![Figure 6](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig7.jpg)
+   ![Figure 6](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig7.jpg)
 
-  ![Figure 7](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig8.jpg)
+   ![Figure 7](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig8.jpg)
 
-  Використовуйте гвинти M2 5X6 по 2 штуки в кожній руці.
-  Вставте гвинти знизу пластини.
+   Використовуйте гвинти M2 5X6 по 2 штуки в кожній руці.
+   Вставте гвинти знизу пластини.
 
-  ![Figure 8](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig9.jpg)
+   ![Figure 8](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig9.jpg)
 
-  Переконайтеся, що кабелі ESC прокладені через середину руки.
+   Переконайтеся, що кабелі ESC прокладені через середину руки.
 
-  ![Figure 9](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig91.jpg)
+   ![Figure 9](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig91.jpg)
 
 2. Assemble the 8_3 2.54mm pitch Horizontal Pin to the 10 to 10 pin cable (PWM) to the Power Management Board.
-  Connect the 10 to 10 pin cable (PWM) to the 8_3 2.54mm pitch Horizontal Pin.
+   Connect the 10 to 10 pin cable (PWM) to the 8_3 2.54mm pitch Horizontal Pin.
 
-  ![Figure 10](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig10.jpg)
+   ![Figure 10](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig10.jpg)
 
-  Виріжте шматок стрічки 3M та прикріпіть його до нижньої частини горизонтального штиря:
+   Виріжте шматок стрічки 3M та прикріпіть його до нижньої частини горизонтального штиря:
 
-  ![Figure 11](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig11.jpg)
+   ![Figure 11](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig11.jpg)
 
-  Stick the Horizontal Pin to the Power Management Board:
+   Stick the Horizontal Pin to the Power Management Board:
 
-  ![Figure 12](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig12.jpg)
+   ![Figure 12](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig12.jpg)
 
-  ![Figure 13](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig13.jpg)
+   ![Figure 13](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig13.jpg)
 
 3. Зберіть двигуни на руки. Для цього нам знадобляться 16 шурупів M3X7, 4 мотори та 4 руки.
 
-  Встановіть двигуни в кожну руку, пропустіть гвинт через дно руки:
+   Встановіть двигуни в кожну руку, пропустіть гвинт через дно руки:
 
-  ![Figure 14](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig14.jpg)
+   ![Figure 14](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig14.jpg)
 
-  ![Figure 15](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig15.jpg)
+   ![Figure 15](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig15.jpg)
 
-  Після того, як 4 мотори встановлені на руку, візьміть кабелі (червоний, синій, чорний) і пропустіть їх через різьбу руки.
-  3 кабелі, які мають колірну маркування, підключаються до ESC.
+   Після того, як 4 мотори встановлені на руку, візьміть кабелі (червоний, синій, чорний) і пропустіть їх через різьбу руки.
+   3 кабелі, які мають колірну маркування, підключаються до ESC.
 
-  ![Figure 16](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig16.jpg)
+   ![Figure 16](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig16.jpg)
 
-  ![Figure 17](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig17.jpg)
+   ![Figure 17](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig17.jpg)
 
 4. Монтаж GPS на рамці.
-  Для цього нам знадобиться GPS Pixhawk 4 та монтажна плита.
+   Для цього нам знадобиться GPS Pixhawk 4 та монтажна плита.
 
-  ![GPS Parts](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_gpskit.png)
+   ![GPS Parts](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_gpskit.png)
 
-  Встановіть мачту GPS на задню частину дошки, використовуйте 4 гвинти:
+   Встановіть мачту GPS на задню частину дошки, використовуйте 4 гвинти:
 
-  ![Figure 18](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig18.jpg)
+   ![Figure 18](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig18.jpg)
 
-  ![Figure 19](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig19.jpg)
+   ![Figure 19](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig19.jpg)
 
-  Використовуйте стрічку та приклейте GPS на верх мачти GPS:
+   Використовуйте стрічку та приклейте GPS на верх мачти GPS:
 
-  ![Figure 20](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig20.jpg)
+   ![Figure 20](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig20.jpg)
 
 5. Вставте FrSky на дошку. Наклейте FrSky за допомогою двосторонньої стрічки (3M) на нижню плату.
-  Прикріпіть FrSky до рами:
+   Прикріпіть FrSky до рами:
 
-  ![Figure 21](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig21.jpg)
+   ![Figure 21](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig21.jpg)
 
-  ![Figure 22](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig22.jpg)
+   ![Figure 22](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig22.jpg)
 
 6. Прикріпіть телеметрію до рами.
-  Наступним кроком є взяти телеметричне радіо Holybro та прикріпити його до рами, використовуйте стрічку 3M.
+   Наступним кроком є взяти телеметричне радіо Holybro та прикріпити його до рами, використовуйте стрічку 3M.
 
-  ![Figure 23](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig23.jpg)
+   ![Figure 23](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig23.jpg)
 
-  ![Figure 24](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig24.jpg)
+   ![Figure 24](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig24.jpg)
 
-  Цей збірний вузол прикріплений всередину рами, спрямований на зовнішню сторону вперед автомобіля.
-  На нижче наведеному зображенні показано радіо, яке знаходиться всередині нижньої частини рами.
+   Цей збірний вузол прикріплений всередину рами, спрямований на зовнішню сторону вперед автомобіля.
+   На нижче наведеному зображенні показано радіо, яке знаходиться всередині нижньої частини рами.
 
-  ![Figure 25](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig25.jpg)
+   ![Figure 25](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig25.jpg)
 
 7. Монтаж Pixhawk 4 на плату.
-  Використовуйте двосторонній скотч для кріплення Pixhawk 4 до центральної пластини:
+   Використовуйте двосторонній скотч для кріплення Pixhawk 4 до центральної пластини:
 
-  ![Figure 26](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig26.jpg)
+   ![Figure 26](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig26.jpg)
 
-  ![Figure 27](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig27.jpg)
+   ![Figure 27](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig27.jpg)
 
-  ![Figure 28](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig28.jpg)
+   ![Figure 28](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig28.jpg)
 
-  Наступним кроком є монтаж Pixhawk 4 на плату до рами.
-  Для цього нам знадобляться винти M2 5X6.
-  Вирівняйте пластину з рамою та вставте гвинти.
-  Перед тим як встановлювати плату, ми рекомендуємо накласти стрічку на модуль живлення (таким чином він буде щільно фіксуватися).
+   Наступним кроком є монтаж Pixhawk 4 на плату до рами.
+   Для цього нам знадобляться винти M2 5X6.
+   Вирівняйте пластину з рамою та вставте гвинти.
+   Перед тим як встановлювати плату, ми рекомендуємо накласти стрічку на модуль живлення (таким чином він буде щільно фіксуватися).
 
-  ![Figure 29](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig29.jpg)
+   ![Figure 29](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig29.jpg)
 
-  ![Figure 30](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig30.jpg)
+   ![Figure 30](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig30.jpg)
 
 8. Збирання кронштейну батареї до рами.
-  Для цього нам знадобляться винти M2 5X6 та кріплення батареї:
+   Для цього нам знадобляться винти M2 5X6 та кріплення батареї:
 
-  ![Figure 31](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig31.jpg)
+   ![Figure 31](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig31.jpg)
 
-  Вставте довгі важі в маленькі кільця:
+   Вставте довгі важі в маленькі кільця:
 
-  ![Figure 32](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig32.png)
+   ![Figure 32](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig32.png)
 
-  ![Figure 33](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig33.png)
+   ![Figure 33](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig33.png)
 
-  Додайте це до рами, переконайтеся, що всі чотири сторони вирівняні для вставки гвинтів:
+   Додайте це до рами, переконайтеся, що всі чотири сторони вирівняні для вставки гвинтів:
 
-  ![Figure 34](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig34.jpg)
+   ![Figure 34](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig34.jpg)
 
-  Зберіть маленьку пластину до ніг та відкрутіть по всіх чотирьох сторонах.
+   Зберіть маленьку пластину до ніг та відкрутіть по всіх чотирьох сторонах.
 
-  ![Figure 35](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig35.jpg)
+   ![Figure 35](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig35.jpg)
 
-  Останнім кроком є закріплення плати:
+   Останнім кроком є закріплення плати:
 
-  ![Figure 36](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig36.jpg)
+   ![Figure 36](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig36.jpg)
 
 9. Підключення Pixhawk 4. Pixhawk 4, який має кілька різних дротів та з'єднань з ним.
-  Нижче наведено зображення кожного дроту, який потрібен з Pixhawk, і його вигляд підключення.
+   Нижче наведено зображення кожного дроту, який потрібен з Pixhawk, і його вигляд підключення.
 
 10. Підключіть модуль телеметрії та GPS до контролера польоту, як показано на рисунку 37; підключіть RC приймач, всі 4 ESC до контролера польоту, а також модуль живлення.
 
-  ![Figure 37](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig37.png)
+    ![Figure 37](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig37.png)
 
 Після повної збірки комплект виглядає як показано нижче:
 

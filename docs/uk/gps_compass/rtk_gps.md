@@ -122,35 +122,35 @@ This should be set by default, but if not, follow the [MAVLink2 configuration in
 Підключення RTK GPS насправді просте:
 
 1. Start _QGroundControl_ and attach the base RTK GPS via USB to the ground station.
-  Пристрій визнається автоматично.
+   Пристрій визнається автоматично.
 
 2. Start the vehicle and make sure it is connected to _QGroundControl_.
 
-  :::tip
-  _QGroundControl_ displays an RTK GPS status icon in the top icon bar while an RTK GPS device is connected (in addition to the normal GPS status icon).
-  Іконка червона, поки налаштовується RTK, а потім змінюється на білу, коли RTK GPS активний.
-  Ви можете натиснути на піктограму, щоб побачити поточний стан та точність RTK.
+   :::tip
+   _QGroundControl_ displays an RTK GPS status icon in the top icon bar while an RTK GPS device is connected (in addition to the normal GPS status icon).
+   Іконка червона, поки налаштовується RTK, а потім змінюється на білу, коли RTK GPS активний.
+   Ви можете натиснути на піктограму, щоб побачити поточний стан та точність RTK.
 
 :::
 
 3. _QGroundControl_ then starts the RTK setup process (known as "Survey-In").
 
-  Survey-In - це процедура запуску для отримання точної оцінки положення базової станції.
-  The process typically takes several minutes (it ends after reaching the minimum time and accuracy specified in the [RTK settings](#rtk-gps-settings)).
+   Survey-In - це процедура запуску для отримання точної оцінки положення базової станції.
+   The process typically takes several minutes (it ends after reaching the minimum time and accuracy specified in the [RTK settings](#rtk-gps-settings)).
 
-  Ви можете відстежити прогрес, натиснувши на піктограму стану RTK GPS.
+   Ви можете відстежити прогрес, натиснувши на піктограму стану RTK GPS.
 
-  ![survey-in](../../assets/qgc/setup/rtk/qgc_rtk_survey-in.png)
+   ![survey-in](../../assets/qgc/setup/rtk/qgc_rtk_survey-in.png)
 
 4. Після завершення опитування:
-  - The RTK GPS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
+   - The RTK GPS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
 
-    ![RTK streaming](../../assets/qgc/setup/rtk/qgc_rtk_streaming.png)
+     ![RTK streaming](../../assets/qgc/setup/rtk/qgc_rtk_streaming.png)
 
-  - Транспортний GPS переходить у режим RTK.
-    The new mode is displayed in the _normal_ GPS status icon (`3D RTK GPS Lock`):
+   - Транспортний GPS переходить у режим RTK.
+     The new mode is displayed in the _normal_ GPS status icon (`3D RTK GPS Lock`):
 
-    ![RTK GPS Status](../../assets/qgc/setup/rtk/qgc_rtk_gps_status.png)
+     ![RTK GPS Status](../../assets/qgc/setup/rtk/qgc_rtk_gps_status.png)
 
 ### Налаштування GPS як Джерело розділення/Курсування
 

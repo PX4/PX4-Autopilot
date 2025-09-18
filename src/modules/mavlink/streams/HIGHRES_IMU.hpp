@@ -63,7 +63,7 @@ public:
 private:
 	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::SubscriptionMultiArray<vehicle_imu_s, 3> _vehicle_imu_subs{ORB_ID::vehicle_imu};
+	uORB::SubscriptionMultiArray<vehicle_imu_s, 4> _vehicle_imu_subs{ORB_ID::vehicle_imu};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
@@ -190,8 +190,8 @@ private:
 			msg.xmag = mag(0);
 			msg.ymag = mag(1);
 			msg.zmag = mag(2);
-			msg.abs_pressure = air_data.baro_pressure_pa;
-			msg.diff_pressure = differential_pressure.differential_pressure_pa;
+			msg.abs_pressure = air_data.baro_pressure_pa * 0.01f; // Pa to hPa
+			msg.diff_pressure = differential_pressure.differential_pressure_pa * 0.01f; // Pa to hPa
 			msg.pressure_alt = air_data.baro_alt_meter;
 			msg.temperature = air_data.ambient_temperature;
 			msg.fields_updated = fields_updated;

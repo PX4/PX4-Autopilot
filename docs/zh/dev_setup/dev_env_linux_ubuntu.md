@@ -33,24 +33,24 @@ To install the toolchain:
 
 1. [Download PX4 Source Code](../dev_setup/building_px4.md):
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+   ```
 
-  ::: info
-  The environment setup scripts in the source usually work for recent PX4 releases.
-  If working with an older version of PX4 you may need to [get the source code specific to your release](../contribute/git_examples.md#get-a-specific-release).
+   ::: info
+   The environment setup scripts in the source usually work for recent PX4 releases.
+   If working with an older version of PX4 you may need to [get the source code specific to your release](../contribute/git_examples.md#get-a-specific-release).
 
 :::
 
 2. Run the **ubuntu.sh** with no arguments (in a bash shell) to install everything:
 
-  ```sh
-  bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
-  ```
+   ```sh
+   bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
+   ```
 
-  - 在安装过程中确认并通过所有的提示。
-  - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
+   - 在安装过程中确认并通过所有的提示。
+   - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
 
 3. If you need Gazebo Classic (Ubuntu 22.04 only) then you can manually remove Gazebo and install it by following the instructions in [Gazebo Classic > Installation](../sim_gazebo_classic/index.md#installation).
 

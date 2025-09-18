@@ -1,54 +1,54 @@
-# Multi-Vehicle Simulation with ROS 2
+# 使用 ROS 2 进行多车辆仿真
 
-[XRCE-DDS](../middleware/uxrce_dds.md) allows for multiple clients to be connected to the same agent over UDP.
-This is particular useful in simulation as only one agent needs to be started.
+[XRCE-DDS](../middleware/uxrce_dds.md) 支持多个客户端通过 UDP 协议连接到同一个代理。
+这在模拟中特别有用，因为只有一个代理需要启动。
 
-## Setup and Requirements
+## 设置和要求
 
-The only requirements are
+唯一的要求是
 
-- To be able to run [multi-vehicle simulation](../simulation/multi-vehicle-simulation.md) without ROS 2 with the desired simulator ([Gazebo](../sim_gazebo_gz/multi_vehicle_simulation.md), [Gazebo Classic](../sim_gazebo_classic/multi_vehicle_simulation.md#multiple-vehicle-with-gazebo-classic), [FlightGear](../sim_flightgear/multi_vehicle.md) and [JMAVSim](../sim_jmavsim/multi_vehicle.md)).
-- To be able to use [ROS 2](../ros2/user_guide.md) in a single vehicle simulation.
+- 能够在不依赖 ROS 2 的情况下，使用所需的仿真器([Gazebo](../sim_gazebo_gz/multi_vehicle_simulation.md), [Gazebo Classic](../sim_gazebo_classic/multi_vehicle_simulation.md#multiple-vehicle-with-gazebo-classic), [FlightGear](../sim_flightgear/multi_vehicle.md) 和 [JMAVSim](../sim_jmavsim/multi_vehicle.md))运行多车辆仿真[multi-vehicle simulation](../simulation/multi-vehicle-simulation.md)。
+- 能够在单车辆仿真中使用ROS 2（机器人操作系统 2）
 
-## Principle of Operation
+## 工作原理
 
-In simulation each PX4 instance receives a unique `px4_instance` number starting from `0`.
-This value is used to assign a unique value to [UXRCE_DDS_KEY](../advanced_config/parameter_reference.md#UXRCE_DDS_KEY):
+在仿真中，每个 PX4 实例都会获得一个唯一的px4_instance编号，编号从0开始。
+该值用于为 [UXRCE_DDS_KEY](../advanced_config/parameter_reference.md#UXRCE_DDS_KEY)分配一个唯一值：
 
 ```sh
-param set UXRCE_DDS_KEY $((px4_instance+1))
+参数设置 UXRCE_DDS_KEY $(px4_instance+1))
 ```
 
 :::info
-By doing so, `UXRCE_DDS_KEY` will always coincide with [MAV_SYS_ID](../advanced_config/parameter_reference.md#MAV_SYS_ID).
+通过这种方式，UXRCE_DDS_KEY 将始终与 [MAV_SYS_ID] 保持一致（../advanced_config/parameter_reference.md#MAV_SYS_ID）
 :::
 
-Moreover, when `px4_instance` is greater than zero, a unique ROS 2 [namespace prefix](../middleware/uxrce_dds.md#customizing-the-namespace) in the form `px4_$px4_instance` is added:
+此外，当 px4_instance 大于 0 时，会添加一个格式为 px4_$px4_instance 的唯一 ROS 2 命名空间前缀：
 
 ```sh
 uxrce_dds_ns="-n px4_$px4_instance"
 ```
 
 :::info
-The environment variable `PX4_UXRCE_DDS_NS`, if set, will override the namespace behavior described above.
+环境变量 PX4_UXRCE_DDS_NS 若已设置，将覆盖上文所述的命名空间行为。
 :::
 
-The first instance (`px4_instance=0`) does not have an additional namespace in order to be consistent with the default behavior of the `xrce-dds` client on a real vehicle.
-This mismatch can be fixed by manually using `PX4_UXRCE_DDS_NS` on the first instance or by starting adding vehicles from index `1` instead of `0` (this is the default behavior adopted by [sitl_multiple_run.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/simulation/gazebo-classic/sitl_multiple_run.sh) for Gazebo Classic).
+第一个实例（px4_instance=0）没有额外的命名空间，此举是为了与真实载具上 xrce-dds 客户端的默认行为保持一致。
+这种不匹配可以通过手动使用 `PX4_UXRCE_DDS_NS` 来修复，或者通过从索引 `1` 中添加车辆而不是 `0` (这是Gazebo Classic的 [sitl_multiple_run.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/simulation/gazebo-classic/sitl_multiple_run.sh) 的默认行为)。
 
-The default client configuration in simulation is summarized as follows:
+模拟中的默认客户端配置概述如下：
 
-| `PX4_UXRCE_DDS_NS` | `px4_instance` | `UXRCE_DDS_KEY`  | client namespace      |
+| `PX4_UXRCE_DDS_NS` | `px4_instance` | `UXRCE_DDS_KEY`  | 客户端命名空间               |
 | ------------------ | -------------- | ---------------- | --------------------- |
-| not provided       | 0              | `px4_instance+1` | 无                     |
-| provided           | 0              | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
-| not provided       | > 0            | `px4_instance+1` | `px4_${px4_instance}` |
-| provided           | > 0            | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
+| 未提供                | 0              | `px4_instance+1` | 无                     |
+| 已提供                | 0              | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
+| 未提供                | > 0            | `px4_instance+1` | `px4_${px4_instance}` |
+| 已提供                | > 0            | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
 
-## Adjusting the `target_system` value
+## 调整 `target_system` 值
 
-PX4 accepts [VehicleCommand](../msg_docs/VehicleCommand.md) messages only if their `target_system` field is zero (broadcast communication) or coincides with `MAV_SYS_ID`.
-In all other situations, the messages are ignored.
-Therefore, when ROS 2 nodes want to send `VehicleCommand` to PX4, they must ensure that the messages are filled with the appropriate `target_system` value.
+PX4 只在他们的 `target_system` 字段为 0 (路由通信) 或与 `MAV_SYS_ID` 一致时，才接受 [VehicleCommand](../msg_docs/VehicleCommand.md)。
+在所有其他情况下，信息都被忽视。
+因此，当 ROS 2 节点需向 PX4 发送 VehicleCommand（载具指令）消息时，必须确保消息中填写了合适的 target_system（目标系统）字段值。
 
 For example, if you want to send a command to your third vehicle, which has `px4_instance=2`, you need to set `target_system=3` in all your `VehicleCommand` messages.

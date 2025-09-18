@@ -109,23 +109,23 @@ We recommend using PX4 `make` commands to switch between source code branches.
 
 1. Очистити поточну гілку, деініціалізувати підмодуль та видалити всі артефакти збірки:
 
-  ```sh
-  make clean
-  make distclean
-  ```
+   ```sh
+   make clean
+   make distclean
+   ```
 
 2. Switch to a new branch or tag (here we first fetch the fictional branch "PR_test_branch" from the `upstream` remote):
 
-  ```sh
-  git fetch upstream PR_test_branch
-  git checkout PR_test_branch
-  ```
+   ```sh
+   git fetch upstream PR_test_branch
+   git checkout PR_test_branch
+   ```
 
 3. Отримати підмодулі для нової гілки:
 
-  ```sh
-  make submodulesclean
-  ```
+   ```sh
+   make submodulesclean
+   ```
 
 <!-- FYI: Cleaning commands in https://github.com/PX4/PX4-Autopilot/blob/main/Makefile#L494 -->
 
@@ -138,35 +138,35 @@ To get the source code for a _specific older release_ (tag):
 
 1. Clone the PX4-Autopilot repo and navigate into _PX4-Autopilot_ directory:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git
-  cd PX4-Autopilot
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git
+   cd PX4-Autopilot
+   ```
 
-  :::info
+   :::info
 
-  Ви можете повторно використовувати існуючий репозиторій, а не клонувати новий.
-  In this case clean the build environment (see [changing source trees](#changing-source-trees)):
+   Ви можете повторно використовувати існуючий репозиторій, а не клонувати новий.
+   In this case clean the build environment (see [changing source trees](#changing-source-trees)):
 
-  ```sh
-  make clean
-  make distclean
-  ```
+   ```sh
+   make clean
+   make distclean
+   ```
 
 
 :::
 
 2. Код оформлення замовлення для конкретного тегу (наприклад, для мітки v1.13.0-beta2)
 
-  ```sh
-  git checkout v1.13.0-beta2
-  ```
+   ```sh
+   git checkout v1.13.0-beta2
+   ```
 
 3. Оновити підмодулі:
 
-  ```sh
-  make submodulesclean
-  ```
+   ```sh
+   make submodulesclean
+   ```
 
 ## Щоб отримати гілку релізу
 

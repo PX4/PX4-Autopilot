@@ -55,7 +55,10 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * Determines when to start and stop logging. By default, logging is started
  * when arming the system, and stopped when disarming.
  *
- * @value -1 disabled
+ * Note: The logging start/end points that can be configured here only apply to
+ * SD logging. The mavlink backend is started/stopped independently
+ * of these points.
+ *
  * @value 0 when armed until disarm (default)
  * @value 1 from boot until disarm
  * @value 2 from boot until shutdown
@@ -66,6 +69,25 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_MODE, 0);
+
+/**
+ * Logging Backend (integer bitmask).
+ *
+ * If no logging is set the logger will not be started.
+ *
+ * Set bits true to enable:
+ * 0: SD card logging
+ * 1: Mavlink logging
+ *
+ * @min 0
+ * @max 3
+ * @bit 0 SD card logging
+ * @bit 1 Mavlink logging
+ *
+ * @reboot_required true
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_BACKEND, 3);
 
 /**
  * Battery-only Logging

@@ -40,33 +40,33 @@ These instructions were tested on Ubuntu 18.04
 
 2. Встановити FlightGear:
 
-  ```sh
-  sudo add-apt-repository ppa:saiarcot895/flightgear
-  sudo apt update
-  sudo apt install flightgear
-  ```
+   ```sh
+   sudo add-apt-repository ppa:saiarcot895/flightgear
+   sudo apt update
+   sudo apt install flightgear
+   ```
 
-  Це встановить останню стабільну версію FlightGear зі сховища PAA разом із пакетом FGdata.
+   Це встановить останню стабільну версію FlightGear зі сховища PAA разом із пакетом FGdata.
 
-  :::tip
-  For some models (e.g. those with electric engines) the daily build with the newest features may be necessary.
-  Install this using the [daily build PPA](https://launchpad.net/~saiarcot895/+archive/ubuntu/flightgear-edge).
+   :::tip
+   For some models (e.g. those with electric engines) the daily build with the newest features may be necessary.
+   Install this using the [daily build PPA](https://launchpad.net/~saiarcot895/+archive/ubuntu/flightgear-edge).
 
 :::
 
 3. Перевірте, що ви можете запустити FlightGear:
 
-  ```sh
-  fgfs --launcher
-  ```
+   ```sh
+   fgfs --launcher
+   ```
 
 4. Set write permissions to the **Protocols** folder in the FlightGear installation directory:
 
-  ```sh
-  sudo chmod a+w /usr/share/games/flightgear/Protocol
-  ```
+   ```sh
+   sudo chmod a+w /usr/share/games/flightgear/Protocol
+   ```
 
-  Налаштування дозволів потрібне, оскільки PX4-FlightGear-Bridge розміщує тут файл визначення зв’язку.
+   Налаштування дозволів потрібне, оскільки PX4-FlightGear-Bridge розміщує тут файл визначення зв’язку.
 
 Additional installation instructions can be found on [FlightGear wiki](https://wiki.flightgear.org/Howto:Install_Flightgear_from_a_PPA).
 

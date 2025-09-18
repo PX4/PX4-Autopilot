@@ -621,8 +621,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 		position_valid_but_low_accuracy = (_param_com_low_eph.get() > FLT_EPSILON && lpos.eph > _param_com_low_eph.get());
 	}
 
-	if (!reporter.failsafeFlags().position_accuracy_low && position_valid_but_low_accuracy
-	    && _param_com_pos_low_act.get()) {
+	if (position_valid_but_low_accuracy && _param_com_pos_low_act.get()) {
 
 		// only report if armed
 		if (context.isArmed()) {

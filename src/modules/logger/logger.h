@@ -267,6 +267,7 @@ private:
 	void write_info_multiple(LogType type, const char *name, int fd);
 	void write_info(LogType type, const char *name, int32_t value);
 	void write_info(LogType type, const char *name, uint32_t value);
+	void write_info(LogType type, const char *name, uint64_t value);
 
 	/** generic common template method for write_info variants */
 	template<typename T>

@@ -26,6 +26,8 @@ param set-default SENS_IMU_TEMP 10.0
 #param set-default SENS_IMU_TEMP_I 0.025
 #param set-default SENS_IMU_TEMP_P 1.0
 
+param set-default UAVCAN_ESC_IFACE 1
+
 if ver hwtypecmp ARKPI6X000
 then
 	# TODO: Add the correct sensor ID

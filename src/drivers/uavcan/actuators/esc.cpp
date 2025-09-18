@@ -96,7 +96,7 @@ UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned to
 
 	_prev_cmd_pub = timestamp;
 
-	uavcan::equipment::esc::RawCommand msg;
+	uavcan::equipment::esc::RawCommand msg = {};
 
 	// directly output values from mixer
 	for (unsigned i = 0; i < total_outputs; i++) {

@@ -27,10 +27,10 @@ You must already have installed the command line [PX4 developer environment](../
 
    - Select _Open folder ..._ option on the welcome page (or using the menu: **File > Open Folder**):
 
-      ![Open Folder](../../assets/toolchain/vscode/welcome_open_folder.jpg)
+     ![Open Folder](../../assets/toolchain/vscode/welcome_open_folder.jpg)
 
    - A file selection dialog will appear.
-      Select the **PX4-Autopilot** directory and then press **OK**.
+     Select the **PX4-Autopilot** directory and then press **OK**.
 
    The project files and configuration will then load into _VSCode_.
 
@@ -49,9 +49,9 @@ You must already have installed the command line [PX4 developer environment](../
 :::
 
    - If prompted to install a new version of _cmake_:
-      - Say **No** (the right version is installed with the [PX4 developer environment](../dev_setup/dev_env.md)).
+     - Say **No** (the right version is installed with the [PX4 developer environment](../dev_setup/dev_env.md)).
    - If prompted to sign into _github.com_ and add your credentials:
-      - This is up to you! It provides a deep integration between Github and the IDE, which may simplify your workflow.
+     - This is up to you! It provides a deep integration between Github and the IDE, which may simplify your workflow.
    - Other prompts are optional, and may be installed if they seem useful. <!-- perhaps add screenshot of these prompts -->
 
 <a id="building"></a>
@@ -63,21 +63,21 @@ To build:
 1. Select your build target ("cmake build config"):
 
    - The current _cmake build target_ is shown on the blue _config_ bar at the bottom (if this is already your desired target, skip to next step).
-      ![Select Cmake build target](../../assets/toolchain/vscode/cmake_build_config.jpg)
+     ![Select Cmake build target](../../assets/toolchain/vscode/cmake_build_config.jpg)
 
-      ::: info
-      The cmake target you select affects the targets offered for when [building/debugging](#debugging) (i.e. for hardware debugging you must select a hardware target like `px4_fmu-v6`).
+     ::: info
+     The cmake target you select affects the targets offered for when [building/debugging](#debugging) (i.e. for hardware debugging you must select a hardware target like `px4_fmu-v6`).
 
 :::
 
    - Click the target on the config bar to display other options, and select the one you want (this will replace any selected target).
 
    - _Cmake_ will then configure your project (see notification in bottom right).
-      ![Cmake config project](../../assets/toolchain/vscode/cmake_configuring_project.jpg)
+     ![Cmake config project](../../assets/toolchain/vscode/cmake_configuring_project.jpg)
 
    - Wait until configuration completes.
-      When this is done the notification will disappear and you'll be shown the build location:
-      ![Cmake config project](../../assets/toolchain/vscode/cmake_configuring_project_done.jpg).
+     When this is done the notification will disappear and you'll be shown the build location:
+     ![Cmake config project](../../assets/toolchain/vscode/cmake_configuring_project_done.jpg).
 
 2. You can then kick off a build from the config bar (select either **Build** or **Debug**).
    ![Run debug or build](../../assets/toolchain/vscode/run_debug_build.jpg)

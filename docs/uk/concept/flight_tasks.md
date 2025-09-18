@@ -38,24 +38,24 @@ _Польотні завдання_ використовуються у [Реж�
 
    - Оновіть відмітку про авторське право до поточного року
 
-      ```cmake
-      ############################################################################
-      #
-      #   Copyright (c) 2021 PX4 Development Team. All rights reserved.
-      #
-      ```
+     ```cmake
+     ############################################################################
+     #
+     #   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+     #
+     ```
 
    - Модифікуйте код щоб він відповідав новому завданню, наприклад замініть `FlightTaskOrbit` на `FlightTaskMyTask`.
-      Код буде виглядати приблизно так:
+     Код буде виглядати приблизно так:
 
-      ```cmake
-      px4_add_library(FlightTaskMyTask
-          FlightTaskMyTask.cpp
-      )
+     ```cmake
+     px4_add_library(FlightTaskMyTask
+         FlightTaskMyTask.cpp
+     )
 
-      target_link_libraries(FlightTaskMyTask PUBLIC FlightTask)
-      target_include_directories(FlightTaskMyTask PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-      ```
+     target_link_libraries(FlightTaskMyTask PUBLIC FlightTask)
+     target_include_directories(FlightTaskMyTask PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+     ```
 
 4. Оновіть файл заголовків (у цьому випадку **FlightTaskMyTask. pp**): Більшість завдань повторно реалізує віртуальні методи `activate()` і `update()`, в цьому прикладі ми також маємо приватну змінну.
 
@@ -140,35 +140,35 @@ _Польотні завдання_ використовуються у [Реж�
 
    - Оновіть `MPC_POS_MODE` ([multicopter_position_mode_params.](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mc_pos_control/multicopter_position_mode_params.c)), щоб додати варіант для вибору "MyTask", якщо параметр має раніше невикористане значення, наприклад 5:
 
-      ```c
-      ...
-       * @value 0 Direct velocity
-       * @value 3 Smoothed velocity
-       * @value 4 Acceleration based
-       * @value 5 My task
-       * @group Multicopter Position Control
-       */
-      PARAM_DEFINE_INT32(MPC_POS_MODE, 5);
-      ```
+     ```c
+     ...
+      * @value 0 Direct velocity
+      * @value 3 Smoothed velocity
+      * @value 4 Acceleration based
+      * @value 5 My task
+      * @group Multicopter Position Control
+      */
+     PARAM_DEFINE_INT32(MPC_POS_MODE, 5);
+     ```
 
    - Додайте мітку case для нового варіанту в операторі switch для параметра в [FlightModeManager.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/flight_mode_manager/FlightModeManager.cpp#L266-L285), щоб увімкнути завдання коли `_param_mpc_pos_mode` має відповідне значення.
 
-      ```cpp
-      ...
-      // manual position control
-      ...
-      switch (_param_mpc_pos_mode.get()) {
-        ...
-        case 3:
-           error = switchTask(FlightTaskIndex::ManualPositionSmoothVel);
-           break;
-        case 5: // Add case for new task: MyTask
-           error = switchTask(FlightTaskIndex::MyTask);
-           break;
-      case 4:
-      ....
-      ...
-      ```
+     ```cpp
+     ...
+     // manual position control
+     ...
+     switch (_param_mpc_pos_mode.get()) {
+       ...
+       case 3:
+          error = switchTask(FlightTaskIndex::ManualPositionSmoothVel);
+          break;
+       case 5: // Add case for new task: MyTask
+          error = switchTask(FlightTaskIndex::MyTask);
+          break;
+     case 4:
+     ....
+     ...
+     ```
 
 ## Перевірка нового польотного завдання
 

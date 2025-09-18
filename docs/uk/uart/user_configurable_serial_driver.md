@@ -26,33 +26,33 @@
 
 1. Створіть конфігураційний файл модуля YAML:
 
-  - Add a new file in the driver's source directory named **module.yaml**
-  - Вставте наступний текст і підлаштуйте за потреби:
+   - Add a new file in the driver's source directory named **module.yaml**
+   - Вставте наступний текст і підлаштуйте за потреби:
 
-    ```cmake
-    module_name: uLanding Radar
-    serial_config:
-        - command: ulanding_radar start -d ${SERIAL_DEV} -b p:${BAUD_PARAM}
-          port_config_param:
-            name: SENS_ULAND_CFG
-            group: Sensors
-    ```
+     ```cmake
+     module_name: uLanding Radar
+     serial_config:
+         - command: ulanding_radar start -d ${SERIAL_DEV} -b p:${BAUD_PARAM}
+           port_config_param:
+             name: SENS_ULAND_CFG
+             group: Sensors
+     ```
 
-    ::: info
-    The full documentation of the module configuration file can be found in the [validation/module_schema.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/validation/module_schema.yaml) file.
-    Це також використовується для перевірки всіх файлів конфігурації в CI.
+     ::: info
+     The full documentation of the module configuration file can be found in the [validation/module_schema.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/validation/module_schema.yaml) file.
+     Це також використовується для перевірки всіх файлів конфігурації в CI.
 
 :::
 
 2. Add the module configuration to the **CMakeLists.txt** file for the driver module:
 
-  ```cmake
-  px4_add_module(
-  	MODULE drivers__ulanding
-  	MAIN ulanding_radar
-  	SRCS
-  		ulanding.cpp
-  	MODULE_CONFIG
-  		module.yaml
-  	)
-  ```
+   ```cmake
+   px4_add_module(
+   	MODULE drivers__ulanding
+   	MAIN ulanding_radar
+   	SRCS
+   		ulanding.cpp
+   	MODULE_CONFIG
+   		module.yaml
+   	)
+   ```

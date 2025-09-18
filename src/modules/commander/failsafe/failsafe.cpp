@@ -456,7 +456,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
 			&& in_forward_flight && !state.mission_finished;
 
-	// Manual control (RC) loss
+	// Manual control (RC or joystick) loss
 	if (!status_flags.manual_control_signal_lost) {
 		// If manual control was lost and arming was allowed, consider it optional until we regain manual control
 		_manual_control_lost_at_arming = false;
@@ -668,46 +668,20 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		}
 	}
 
-	// posctrl
-	switch (position_control_navigation_loss_response(_param_com_posctl_navl.get())) {
-	case position_control_navigation_loss_response::Altitude_Manual: // AltCtrl/Manual
-
-		// PosCtrl/PositionSlow -> AltCtrl
-		if ((user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
-		     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
-		    && !modeCanRun(status_flags, user_intended_mode)) {
-			action = Action::FallbackAltCtrl;
-			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
-		}
-
-		// AltCtrl -> Stabilized
-		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ALTCTL
-		    && !modeCanRun(status_flags, user_intended_mode)) {
-			action = Action::FallbackStab;
-			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
-		}
-
-		break;
-
-	case position_control_navigation_loss_response::Land_Descend: // Land/Terminate
-
-		// PosCtrl/PositionSlow -> Land
-		if ((user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
-		     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
-		    && !modeCanRun(status_flags, user_intended_mode)) {
-			action = Action::Land;
-			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-			// Land -> Descend
-			if (!modeCanRun(status_flags, user_intended_mode)) {
-				action = Action::Descend;
-				user_intended_mode = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-			}
-		}
-
-		break;
+	// PosCtrl/PositionSlow -> AltCtrl
+	if ((user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
+	     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
+	    && !modeCanRun(status_flags, user_intended_mode)) {
+		action = Action::FallbackAltCtrl;
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 	}
 
+	// AltCtrl -> Stabilized
+	if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ALTCTL
+	    && !modeCanRun(status_flags, user_intended_mode)) {
+		action = Action::FallbackStab;
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+	}
 
 	// Last, check can_run for intended mode
 	if (!modeCanRun(status_flags, user_intended_mode)) {

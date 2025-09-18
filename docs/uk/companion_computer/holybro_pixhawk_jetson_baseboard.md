@@ -892,95 +892,95 @@ These instructions approximately mirror the [PX4 Ethernet setup](../advanced_con
 Next we modify the Jetson IP address to be on the same network as the Pixhawk:
 
 1. Make sure `netplan` is installed.
-  You can check by running the following command:
+   You can check by running the following command:
 
-  ```sh
-  netplan -h
-  ```
+   ```sh
+   netplan -h
+   ```
 
-  If not, install it using the commands:
+   If not, install it using the commands:
 
-  ```sh
-  sudo apt update
-  sudo apt install netplan.io
-  ```
+   ```sh
+   sudo apt update
+   sudo apt install netplan.io
+   ```
 
 2. Check `system_networkd` is running:
 
-  ```sh
-  sudo systemctl status systemd-networkd
-  ```
+   ```sh
+   sudo systemctl status systemd-networkd
+   ```
 
-  You should see output like below if it is active:
+   You should see output like below if it is active:
 
-  ```sh
-  ● systemd-networkd.service - Network Configuration
-       Loaded: loaded (/lib/systemd/system/systemd-networkd.service; enabled; vendor preset: enabled)
-       Active: active (running) since Wed 2024-09-11 23:32:44 EDT; 23min ago
-  TriggeredBy: ● systemd-networkd.socket
-         Docs: man:systemd-networkd.service(8)
-     Main PID: 2452 (systemd-network)
-       Status: "Processing requests..."
-        Tasks: 1 (limit: 18457)
-       Memory: 2.7M
-          CPU: 157ms
-       CGroup: /system.slice/systemd-networkd.service
-               └─2452 /lib/systemd/systemd-networkd
+   ```sh
+   ● systemd-networkd.service - Network Configuration
+        Loaded: loaded (/lib/systemd/system/systemd-networkd.service; enabled; vendor preset: enabled)
+        Active: active (running) since Wed 2024-09-11 23:32:44 EDT; 23min ago
+   TriggeredBy: ● systemd-networkd.socket
+          Docs: man:systemd-networkd.service(8)
+      Main PID: 2452 (systemd-network)
+        Status: "Processing requests..."
+         Tasks: 1 (limit: 18457)
+        Memory: 2.7M
+           CPU: 157ms
+        CGroup: /system.slice/systemd-networkd.service
+                └─2452 /lib/systemd/systemd-networkd
 
-  Sep 11 23:32:44 ubuntu systemd-networkd[2452]: lo: Gained carrier
-  Sep 11 23:32:44 ubuntu systemd-networkd[2452]: wlan0: Gained IPv6LL
-  Sep 11 23:32:44 ubuntu systemd-networkd[2452]: eth0: Gained IPv6LL
-  Sep 11 23:32:44 ubuntu systemd-networkd[2452]: Enumeration completed
-  Sep 11 23:32:44 ubuntu systemd[1]: Started Network Configuration.
-  Sep 11 23:32:44 ubuntu systemd-networkd[2452]: wlan0: Connected WiFi access point: Verizon_7YLWWD (78:67:0e:ea:a6:0>
-  Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: Re-configuring with /run/systemd/network/10-netplan-eth0.netwo>
-  Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: DHCPv6 lease lost
-  Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: Re-configuring with /run/systemd/network/10-netplan-eth0.netwo>
-  Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: DHCPv6 lease lost
-  ```
+   Sep 11 23:32:44 ubuntu systemd-networkd[2452]: lo: Gained carrier
+   Sep 11 23:32:44 ubuntu systemd-networkd[2452]: wlan0: Gained IPv6LL
+   Sep 11 23:32:44 ubuntu systemd-networkd[2452]: eth0: Gained IPv6LL
+   Sep 11 23:32:44 ubuntu systemd-networkd[2452]: Enumeration completed
+   Sep 11 23:32:44 ubuntu systemd[1]: Started Network Configuration.
+   Sep 11 23:32:44 ubuntu systemd-networkd[2452]: wlan0: Connected WiFi access point: Verizon_7YLWWD (78:67:0e:ea:a6:0>
+   Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: Re-configuring with /run/systemd/network/10-netplan-eth0.netwo>
+   Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: DHCPv6 lease lost
+   Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: Re-configuring with /run/systemd/network/10-netplan-eth0.netwo>
+   Sep 11 23:34:16 ubuntu systemd-networkd[2452]: eth0: DHCPv6 lease lost
+   ```
 
-  If `system_networkd` is not running, it can be enabled using:
+   If `system_networkd` is not running, it can be enabled using:
 
-  ```sh
-  sudo systemctl start systemd-networkd
-  sudo systemctl enable systemd-networkd
-  ```
+   ```sh
+   sudo systemctl start systemd-networkd
+   sudo systemctl enable systemd-networkd
+   ```
 
 3. Open the Netplan configuration file (so we can set up a static IP for the Jetson).
 
-  The Netplan configuration file is usually located in the `/etc/netplan/` directory and named something like `01-netcfg.yaml` (the name can vary).
-  Below we use `nano` to open the file, but you can use your preferred text editor:
+   The Netplan configuration file is usually located in the `/etc/netplan/` directory and named something like `01-netcfg.yaml` (the name can vary).
+   Below we use `nano` to open the file, but you can use your preferred text editor:
 
-  ```sh
-  sudo nano /etc/netplan/01-netcfg.yaml
-  ```
+   ```sh
+   sudo nano /etc/netplan/01-netcfg.yaml
+   ```
 
 4. Modify the yaml configuration, by overwriting the contents with the following information and then saving:
 
-  ```sh
-  network:
-    version: 2
-    renderer: networkd
-    ethernets:
-      eth0:
-        dhcp4: no
-        addresses:
-          - 10.41.10.1/24
-        routes:
-          - to: 0.0.0.0/0
-            via: 10.41.10.254
-        nameservers:
-          addresses:
-            - 10.41.10.254
-  ```
+   ```sh
+   network:
+     version: 2
+     renderer: networkd
+     ethernets:
+       eth0:
+         dhcp4: no
+         addresses:
+           - 10.41.10.1/24
+         routes:
+           - to: 0.0.0.0/0
+             via: 10.41.10.254
+         nameservers:
+           addresses:
+             - 10.41.10.254
+   ```
 
-  This gives the Jetson a static IP address on the Ethernet interface of `10.41.10.1` .
+   This gives the Jetson a static IP address on the Ethernet interface of `10.41.10.1` .
 
 5. Apply the changes using the following command:
 
-  ```sh
-  sudo netplan apply
-  ```
+   ```sh
+   sudo netplan apply
+   ```
 
 The Pixhawk Ethernet address is set to `10.41.10.2` by default, which is on the same subnet.
 We can test our changes above by pinging the Pixhawk from within the Jetson terminal:

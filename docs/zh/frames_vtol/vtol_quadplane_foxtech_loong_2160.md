@@ -99,33 +99,33 @@ Use a soldering iron to press the threaded inserts into the 3D-Printed parts.
 
 1. Insert 10x M3 threaded inserts into the baseplate as shown in the picture:
 
-  ![Baseplate with threaded inserts](../../assets/airframes/vtol/foxtech_loong_2160/03-baseplate.jpg)
+   ![Baseplate with threaded inserts](../../assets/airframes/vtol/foxtech_loong_2160/03-baseplate.jpg)
 
 2. Insert 2x M3 threaded inserts into the stack fixture as shown in the picture below:
 
-  ![Stack fixture with threaded inserts](../../assets/airframes/vtol/foxtech_loong_2160/04-stack-fixture.jpg)
+   ![Stack fixture with threaded inserts](../../assets/airframes/vtol/foxtech_loong_2160/04-stack-fixture.jpg)
 
 3. Insert 2x M4 threaded inserts into the fan mount and radio mount as shown in the picture below.
 
-  ![Radio-mount](../../assets/airframes/vtol/foxtech_loong_2160/05-radio-mount.jpg)
+   ![Radio-mount](../../assets/airframes/vtol/foxtech_loong_2160/05-radio-mount.jpg)
 
-  If you would like to add a 40mm 5V fan to the fan mount, insert 4x M3 inserts.
+   If you would like to add a 40mm 5V fan to the fan mount, insert 4x M3 inserts.
 
-  ![Fan-mount](../../assets/airframes/vtol/foxtech_loong_2160/06-fan-mount.jpg)
+   ![Fan-mount](../../assets/airframes/vtol/foxtech_loong_2160/06-fan-mount.jpg)
 
 4. Change the cable connector to a servo connector so it can be plugged into the servo rail to be powered.
 
-  ::: info
-  A fan might be needed if a powerful radio is used.
+   ::: info
+   A fan might be needed if a powerful radio is used.
 
 :::
 
-  ![Fan-mount with fan](../../assets/airframes/vtol/foxtech_loong_2160/07-fan-mount.jpg)
+   ![Fan-mount with fan](../../assets/airframes/vtol/foxtech_loong_2160/07-fan-mount.jpg)
 
 5. Remove the original mounting plate from the vehicle.
-  Tape the cables to the outside of the fuselage.
+   Tape the cables to the outside of the fuselage.
 
-  ![Empty fuselage](../../assets/airframes/vtol/foxtech_loong_2160/08-preparations.jpg)
+   ![Empty fuselage](../../assets/airframes/vtol/foxtech_loong_2160/08-preparations.jpg)
 
 6. Slide the baseplate into the vehicle.
 
@@ -142,9 +142,9 @@ The 40A power module provides power for the avionics when using Skynode (and com
 1. Remove the case from the 40A PM.
 2. Screw the PM with 2x M2x6mm to the bottom of the baseplate.
 3. Create a cable to extend the XT60 connector to an XT30 that is mounted on the baseplate.
-  With that, the 6S battery power can be directly plugged into the XT30 connector with the pre-configured cable that comes with the vehicle.
+   With that, the 6S battery power can be directly plugged into the XT30 connector with the pre-configured cable that comes with the vehicle.
 
-  ![40A Power Module installation](../../assets/airframes/vtol/foxtech_loong_2160/10-40a-power-module.jpg)
+   ![40A Power Module installation](../../assets/airframes/vtol/foxtech_loong_2160/10-40a-power-module.jpg)
 
 If necessary, the 10V output of the radio port on the PM can also be exposed via an XT30 that can be mounted next to the 6S battery input XT60.
 
@@ -153,17 +153,17 @@ If necessary, the 10V output of the radio port on the PM can also be exposed via
 #### Pitot Tube
 
 1. The sensor can be installed with 2x M3x16mm screws in the front right corner of the baseplate.
-  Take care that the connector is facing the center of the fuselage.
+   Take care that the connector is facing the center of the fuselage.
 
-  ![Mounted airspeed sensor](../../assets/airframes/vtol/foxtech_loong_2160/11-airspeed-sensor.jpg)
+   ![Mounted airspeed sensor](../../assets/airframes/vtol/foxtech_loong_2160/11-airspeed-sensor.jpg)
 
-  Only the front tube (not as shown in the picture) is used; the other tube can be removed since our experience showed that the pressure inside the fuselage is sufficient as static pressure.
+   Only the front tube (not as shown in the picture) is used; the other tube can be removed since our experience showed that the pressure inside the fuselage is sufficient as static pressure.
 
 2. When the stack is mounted inside the fuselage, the tube coming from the wing and the one from the airspeed sensor need to be spliced together.
-  Use some spit (that's the easiest way) to push them together and afterward use a heat shrink tube to reinforce the connection.
+   Use some spit (that's the easiest way) to push them together and afterward use a heat shrink tube to reinforce the connection.
 
-  :::warning
-  Use a heat source carefully since the foam starts to melt at high temperatures.
+   :::warning
+   Use a heat source carefully since the foam starts to melt at high temperatures.
 
 :::
 
@@ -175,22 +175,22 @@ If no lidar is mounted you should disable using fixed-wing actuation in hover to
 :::
 
 1. Mark the location to install the lidar with some tape or a pen.
-  Cut a hole inside the PVC shell and the foam, so that the lidar fits in place.
+   Cut a hole inside the PVC shell and the foam, so that the lidar fits in place.
 
-  ![Prepared lidar hole](../../assets/airframes/vtol/foxtech_loong_2160/12-lidar-01.jpg)
+   ![Prepared lidar hole](../../assets/airframes/vtol/foxtech_loong_2160/12-lidar-01.jpg)
 
 2. Secure the lidar with hot glue.
 
-  ![Installed lidar](../../assets/airframes/vtol/foxtech_loong_2160/13-lidar-02.jpg)
+   ![Installed lidar](../../assets/airframes/vtol/foxtech_loong_2160/13-lidar-02.jpg)
 
 #### GPS/Compass
 
 1. Use double sided tape to mount the GPS in the rear of the vehicle underneath the rear latch.
 
-  ![Installed GPS](../../assets/airframes//vtol/foxtech_loong_2160/14-gps.jpg)
+   ![Installed GPS](../../assets/airframes//vtol/foxtech_loong_2160/14-gps.jpg)
 
-  The arrow on the GPS for the orientation can be ignored.
-  The orientation will be detected by the flight controller during the calibration.
+   The arrow on the GPS for the orientation can be ignored.
+   The orientation will be detected by the flight controller during the calibration.
 
 ### Flight Controller
 
@@ -203,15 +203,15 @@ Install either the Pixhawk or Skynode onto the baseplate.
 #### Skynode
 
 1. Use 4x M3x8 screws to mount the Skynode to the baseplate.
-  Make sure that the top of the "A" is facing to the front of the vehicle.
+   Make sure that the top of the "A" is facing to the front of the vehicle.
 2. Plug the 40A Power Module into the upper one of the two power connectors.
 3. Plug one (or if needed two) USB adapters into the 4-pin JST-GH connectors into the back of the Skynode and feed them to the front of the plate.
-  Fix the cables with zip ties in place.
+   Fix the cables with zip ties in place.
 4. Tape a I2C splitter to the front right side of the baseplate (The splitter can be used to plug in ETH devices such as a radio link.)
 5. Connect the I2C splitter with the ETH port in the back of the Skynode.
 6. Plug in the two 40-pin cables into the front of the Skynode.
 7. Plug in the USB-C extension cable and bend it over to the front.
-  The bend needs to be very tight, so that the plate will fit into the vehicle.
+   The bend needs to be very tight, so that the plate will fit into the vehicle.
 
 ![Installed Skynode](../../assets/airframes/vtol/foxtech_loong_2160/15-skynode.jpg)
 
@@ -223,17 +223,17 @@ Install either the Pixhawk or Skynode onto the baseplate.
 
 1. Tape the Skynode LTE antennas to the side of the fuselage as shown in the picture:
 
-  ![LTE-Antennas](../../assets/airframes/vtol/foxtech_loong_2160/16-lte-antennas.jpg)
+   ![LTE-Antennas](../../assets/airframes/vtol/foxtech_loong_2160/16-lte-antennas.jpg)
 
 2. If you are using a radio telemetry module you can mount the antennas to the top of the fuselage.
-  In the front you can mount the antenna extension cable directly.
+   In the front you can mount the antenna extension cable directly.
 
-  ![WIFI-Antennas-Front](../../assets/airframes/vtol/foxtech_loong_2160/17-antenna-front.jpg)
+   ![WIFI-Antennas-Front](../../assets/airframes/vtol/foxtech_loong_2160/17-antenna-front.jpg)
 
-  In the back you can use the 3D-Printed antenna adapter.
-  The adapter can be glued in place with hot glue.
+   In the back you can use the 3D-Printed antenna adapter.
+   The adapter can be glued in place with hot glue.
 
-  ![WIFI-Antenna-Back](../../assets/airframes/vtol/foxtech_loong_2160/19-rear-antenna.jpg)
+   ![WIFI-Antenna-Back](../../assets/airframes/vtol/foxtech_loong_2160/19-rear-antenna.jpg)
 
 ### 12S Power Module
 
