@@ -64,7 +64,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <parameters/param.h>
-#include <random>
+#include <px4_platform_common/px4_config.h>
 
 using namespace time_literals;
 
@@ -152,11 +152,6 @@ private:
 	perf_counter_t _agp_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": agp")};
 	perf_counter_t _imu_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": imu")};
 	perf_counter_t _distance_sensor_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": distance")};
-
-	// Random number generator for offsets and noise
-	std::random_device _rd;
-	std::mt19937 _gen;
-	std::uniform_real_distribution<float> _uniform_dist;
 
 	// Parameters
 	DEFINE_PARAMETERS(

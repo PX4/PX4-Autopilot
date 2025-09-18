@@ -92,12 +92,13 @@ bool FailureInjection::handle_gps_failure(sensor_gps_s &gps)
 
 		}
 
+		_gps_prev = gps;
+
 	} else {
 		gps = _gps_prev;
 	}
 
 	_last_gps_timestamp = gps.timestamp;
-	_gps_prev = gps;
 
 	return true;
 }
@@ -113,7 +114,6 @@ bool FailureInjection::handle_gps_alt_failure(sensor_gps_s &gps)
 		if (_gps_alt_wrong) {
 			gps.altitude_msl_m += 100.0;
 			gps.altitude_ellipsoid_m += 100.0;
-
 		}
 
 		if (_gps_alt_drift) {
@@ -132,16 +132,15 @@ bool FailureInjection::handle_gps_alt_failure(sensor_gps_s &gps)
 			}
 
 			gps.altitude_msl_m = _gps_alt_offset;
-
 		}
 
+		_gps_prev = gps;
 
 	} else {
 		gps = _gps_prev;
 	}
 
 	_last_gps_timestamp = gps.timestamp;
-	_gps_prev = gps;
 
 	return true;
 
