@@ -1153,7 +1153,7 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const targetObs &tar
 	if (dt_sync_us > meas_valid_TIMEOUT_US || dt_sync_us < 0.f) {
 
 		PX4_DEBUG("Obs type: %d too old or in the future. Time sync: %.2f [ms] (timeout: %.2f [ms])",
-			  target_obs.type,
+			  static_cast<int>(target_obs.type),
 			  (double)(dt_sync_us / 1000), (double)(meas_valid_TIMEOUT_US / 1000));
 
 		target_innov.fused = false;
@@ -1199,7 +1199,7 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const targetObs &tar
 
 		if (!est.update()) {
 			all_axis_fused = false;
-			PX4_DEBUG("Obs i = %d : not fused in direction: %d", target_obs.type, j);
+			PX4_DEBUG("Obs i = %d : not fused in direction: %d", static_cast<int>(target_obs.type), j);
 		}
 
 		target_innov.observation[j] = meas_j;

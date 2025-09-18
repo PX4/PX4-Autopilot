@@ -615,7 +615,7 @@ void VisionTargetEst::perform_orientation_update(const localPose &local_pose, co
 	perf_begin(_cycle_perf_yaw);
 
 	if (local_pose_updated) {
-		_vte_orientation->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
+		_vte_orientation->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid, local_pose.timestamp);
 	}
 
 	_vte_orientation->update();

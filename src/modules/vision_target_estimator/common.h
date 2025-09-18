@@ -87,4 +87,10 @@ enum SensorFusionMask : uint8_t {
 	USE_IRLOCK          = (1 << 6) ///< set to true to use IRLOCK.
 };
 
+struct rangeSensor {
+	hrt_abstime timestamp = 0;
+	bool valid = false;
+	float dist_bottom = 0.f;
+};
+
 } // namespace vision_target_estimator

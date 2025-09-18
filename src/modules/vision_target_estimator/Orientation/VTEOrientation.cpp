@@ -244,7 +244,6 @@ bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiduci
 	return true;
 }
 
-
 void VTEOrientation::handleUwbData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_uwb)
 {
 	sensor_uwb_s uwb_report;
@@ -318,7 +317,6 @@ bool VTEOrientation::fuseNewSensorData(ObsValidMask &vte_fusion_aid_mask,
 	return meas_fused;
 }
 
-
 bool VTEOrientation::fuseMeas(const targetObs &target_obs)
 {
 	// Update step for orientation
@@ -336,7 +334,7 @@ bool VTEOrientation::fuseMeas(const targetObs &target_obs)
 	if (dt_sync_us > meas_valid_TIMEOUT_US || dt_sync_us < 0.f) {
 
 		PX4_INFO("Obs type: %d too old or in the future. Time sync: %.2f [ms] > timeout: %.2f [ms]",
-			 target_obs.type, (double)(dt_sync_us / 1000), (double)(meas_valid_TIMEOUT_US / 1000));
+			 static_cast<int>(target_obs.type), (double)(dt_sync_us / 1000), (double)(meas_valid_TIMEOUT_US / 1000));
 
 		// No measurement update, set to false
 		target_innov.fused = false;
@@ -346,7 +344,7 @@ bool VTEOrientation::fuseMeas(const targetObs &target_obs)
 
 	if (!target_obs.updated) {
 
-		PX4_DEBUG("Obs i = %d: non-valid", target_obs.type);
+		PX4_DEBUG("Obs i = %d: non-valid", static_cast<int>(target_obs.type));
 		target_innov.fused = false;
 		_vte_aid_ev_yaw_pub.publish(target_innov);
 		return false;
@@ -400,7 +398,7 @@ void VTEOrientation::publishTarget()
 void VTEOrientation::checkMeasurementInputs()
 {
 	if (_range_sensor.valid) {
-		_range_sensor.valid = isMeasUpdated(_range_sensor.last_update);
+		_range_sensor.valid = isMeasUpdated(_range_sensor.timestamp);
 	}
 
 	// TODO: check other measurements?
@@ -420,11 +418,11 @@ void VTEOrientation::updateParams()
 }
 
 // TODO: forward the timestamp as for VTEPosition
-void VTEOrientation::set_range_sensor(const float dist, const bool valid)
+void VTEOrientation::set_range_sensor(const float dist, const bool valid, hrt_abstime timestamp)
 {
-	_range_sensor.valid = valid && (PX4_ISFINITE(dist) && dist > 0.f);
+	_range_sensor.valid = valid && isMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
 	_range_sensor.dist_bottom = dist;
-	_range_sensor.last_update = hrt_absolute_time();
+	_range_sensor.timestamp = timestamp;
 }
 
 bool VTEOrientation::createEstimator()
