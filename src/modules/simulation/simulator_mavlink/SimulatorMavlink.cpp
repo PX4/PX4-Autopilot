@@ -197,8 +197,8 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 
 	// accel
 	if ((sensors.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
-		if (sensors.id >= ACCEL_COUNT_MAX) {
-			PX4_ERR("Number of simulated accelerometer %d out of range. Max: %d", sensors.id, ACCEL_COUNT_MAX);
+		if (sensors.id >= kAccelCountMax) {
+			PX4_ERR("Number of simulated accelerometer %d out of range. Max: %d", sensors.id, kAccelCountMax);
 			return;
 		}
 
@@ -241,8 +241,8 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 
 	// gyro
 	if ((sensors.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
-		if (sensors.id >= GYRO_COUNT_MAX) {
-			PX4_ERR("Number of simulated gyroscope %d out of range. Max: %d", sensors.id, GYRO_COUNT_MAX);
+		if (sensors.id >= kGyroCountMax) {
+			PX4_ERR("Number of simulated gyroscope %d out of range. Max: %d", sensors.id, kGyroCountMax);
 			return;
 		}
 
@@ -284,8 +284,8 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 
 	// magnetometer
 	if ((sensors.fields_updated & SensorSource::MAG) == SensorSource::MAG) {
-		if (sensors.id >= MAG_COUNT_MAX) {
-			PX4_ERR("Number of simulated magnetometer %d out of range. Max: %d", sensors.id, MAG_COUNT_MAX);
+		if (sensors.id >= kMagCountMax) {
+			PX4_ERR("Number of simulated magnetometer %d out of range. Max: %d", sensors.id, kMagCountMax);
 			return;
 		}
 

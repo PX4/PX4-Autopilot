@@ -196,16 +196,16 @@ private:
 	float _last_distance_sensor_value{0.0f};
 
 	// Air constants
-	static constexpr float TEMPERATURE_MSL = 288.0f; // [K]
-	static constexpr float PRESSURE_MSL = 101325.0f; // [Pa]
-	static constexpr float LAPSE_RATE = 0.0065f; // [K/m]
-	static constexpr float AIR_DENSITY_MSL = 1.225f; // [kg/m^3]
-	static constexpr float RHO = 1.225f; // Air density at sea level [kg/m^3]
+	static constexpr float kTemperatureMsl = 288.0f; // [K]
+	static constexpr float kPressureMsl = 101325.0f; // [Pa]
+	static constexpr float kLapseRate = 0.0065f; // [K/m]
+	static constexpr float kAirDensityMsl = 1.225f; // [kg/m^3]
+	static constexpr float kRho = 1.225f; // Air density at sea level [kg/m^3]
 
 	// IMU constants
-	static constexpr float T1_C = 15.0f; // Temperature constant
+	static constexpr float kT1C = 15.0f; // Temperature constant
 
-	static constexpr hrt_abstime GROUNDTRUTH_DATA_MAX_AGE_US = 12000;
+	static constexpr hrt_abstime kGroundtruthDataMaxAgeUs = 12000;
 
 	// Parameter handles for cross-module access
 	param_t _param_sim_gz_en_handle{PARAM_INVALID};

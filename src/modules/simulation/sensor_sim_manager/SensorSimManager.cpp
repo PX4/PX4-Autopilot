@@ -49,8 +49,8 @@ SensorSimManager::SensorSimManager() :
 	_gen(_rd()),
 	_uniform_dist(0.0f, 1.0f)
 {
-	_px4_accel.set_temperature(T1_C);
-	_px4_gyro.set_temperature(T1_C);
+	_px4_accel.set_temperature(kT1C);
+	_px4_gyro.set_temperature(kT1C);
 
 	srand(1234);
 
@@ -269,7 +269,7 @@ void SensorSimManager::updateGPS()
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (lpos.timestamp > 0 && gpos.timestamp > 0 &&
-	    (now - lpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US && (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
+	    (now - lpos.timestamp) < kGroundtruthDataMaxAgeUs && (now - gpos.timestamp) < kGroundtruthDataMaxAgeUs) {
 
 		double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
 		double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
@@ -316,7 +316,7 @@ void SensorSimManager::updateGPS()
 		sensor_gps.altitude_ellipsoid_m = altitude;
 		sensor_gps.noise_per_ms = 0;
 		sensor_gps.jamming_indicator = 0;
-		sensor_gps.vel_m_s = sqrtf(gps_vel(0) * gps_vel(0) + gps_vel(1) * gps_vel(1)); // GPS ground speed, (metres/sec)
+		sensor_gps.vel_m_s = gps_vel.xy().norm(); // GPS ground speed, (metres/sec)
 		sensor_gps.vel_n_m_s = gps_vel(0);
 		sensor_gps.vel_e_m_s = gps_vel(1);
 		sensor_gps.vel_d_m_s = gps_vel(2);
@@ -337,7 +337,6 @@ void SensorSimManager::updateGPS()
 		// Apply failure injection
 		if (_failure_injection.handle_gps_failure(sensor_gps) && _failure_injection.handle_gps_alt_failure(sensor_gps)) {
 			_sensor_gps_pub.publish(sensor_gps);
-
 		}
 	}
 
@@ -353,14 +352,14 @@ void SensorSimManager::updateBarometer()
 	if (_vehicle_global_position_sub.copy(&gpos)) {
 		const hrt_abstime now = hrt_absolute_time();
 
-		if (gpos.timestamp > 0 && (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
+		if (gpos.timestamp > 0 && (now - gpos.timestamp) < kGroundtruthDataMaxAgeUs) {
 			const float dt = math::constrain((gpos.timestamp - _last_baro_update_time) * 1e-6f, 0.001f, 0.1f);
 
 			const float alt_msl = gpos.alt;
 
-			const float temperature_local = TEMPERATURE_MSL - LAPSE_RATE * alt_msl;
-			const float pressure_ratio = powf(TEMPERATURE_MSL / temperature_local, 5.256f);
-			const float absolute_pressure = PRESSURE_MSL / pressure_ratio;
+			const float temperature_local = kTemperatureMsl - kLapseRate * alt_msl;
+			const float pressure_ratio = powf(kTemperatureMsl / temperature_local, 5.256f);
+			const float absolute_pressure = kPressureMsl / pressure_ratio;
 
 			// generate Gaussian noise sequence using polar form of Box-Muller transformation
 			double y1;
@@ -425,7 +424,7 @@ void SensorSimManager::updateMagnetometer()
 	if (_vehicle_global_position_sub.copy(&gpos)) {
 		const hrt_abstime now = hrt_absolute_time();
 
-		if (gpos.timestamp > 0 && (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US && gpos.eph < 1000) {
+		if (gpos.timestamp > 0 && (now - gpos.timestamp) < kGroundtruthDataMaxAgeUs && gpos.eph < 1000) {
 			// magnetic field data returned by the geo library using the current GPS position
 			const float declination_rad = math::radians(get_mag_declination_degrees(gpos.lat, gpos.lon));
 			const float inclination_rad = math::radians(get_mag_inclination_degrees(gpos.lat, gpos.lon));
@@ -486,8 +485,8 @@ void SensorSimManager::updateAirspeed()
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (lpos.timestamp > 0 && gpos.timestamp > 0 && attitude.timestamp > 0 &&
-	    (now - lpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US && (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US
-	    && (now - attitude.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
+	    (now - lpos.timestamp) < kGroundtruthDataMaxAgeUs && (now - gpos.timestamp) < kGroundtruthDataMaxAgeUs
+	    && (now - attitude.timestamp) < kGroundtruthDataMaxAgeUs) {
 
 		Vector3f velocity_E{lpos.vx, lpos.vy, lpos.vz}; // Velocity in NED frame (similar to Earth frame)
 
@@ -509,11 +508,11 @@ void SensorSimManager::updateAirspeed()
 		// Calculate indicated airspeed using air density ratio
 		// For now, use standard air density ratio calculation
 		const float alt_amsl = gpos.alt;
-		const float temperature_local = TEMPERATURE_MSL - LAPSE_RATE * alt_amsl;
-		const float density_ratio = powf(TEMPERATURE_MSL / temperature_local, 4.256f);
-		const float air_density = AIR_DENSITY_MSL / density_ratio;
+		const float temperature_local = kTemperatureMsl - kLapseRate * alt_amsl;
+		const float density_ratio = powf(kTemperatureMsl / temperature_local, 4.256f);
+		const float air_density = kAirDensityMsl / density_ratio;
 
-		airspeed.indicated_airspeed_m_s = true_airspeed * sqrtf(air_density / RHO);
+		airspeed.indicated_airspeed_m_s = true_airspeed * sqrtf(air_density / kRho);
 		airspeed.confidence = 0.7f;
 		airspeed.timestamp = hrt_absolute_time();
 		_airspeed_pub.publish(airspeed);
@@ -558,7 +557,7 @@ void SensorSimManager::updateAGP()
 
 	const hrt_abstime now = hrt_absolute_time();
 
-	if (gpos.timestamp > 0 && (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
+	if (gpos.timestamp > 0 && (now - gpos.timestamp) < kGroundtruthDataMaxAgeUs) {
 
 		if (_failure_injection.is_agp_blocked()) {
 			perf_end(_agp_perf);
@@ -625,9 +624,9 @@ void SensorSimManager::updateIMU()
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (gpos.timestamp > 0 && lpos.timestamp > 0 && attitude.timestamp > 0 && angular_velocity.timestamp > 0 &&
-	    (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US && (now - lpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US &&
-	    (now - attitude.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US
-	    && (now - angular_velocity.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
+	    (now - gpos.timestamp) < kGroundtruthDataMaxAgeUs && (now - lpos.timestamp) < kGroundtruthDataMaxAgeUs &&
+	    (now - attitude.timestamp) < kGroundtruthDataMaxAgeUs
+	    && (now - angular_velocity.timestamp) < kGroundtruthDataMaxAgeUs) {
 
 		// The sensor signals reconstruction and noise levels are from [1]
 		// [1] Bulka, Eitan, and Meyer Nahon. "Autonomous fixed-wing aerobatics: from theory to flight."
@@ -699,7 +698,7 @@ void SensorSimManager::updateDistanceSensor()
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (lpos.timestamp > 0 && attitude.timestamp > 0 &&
-	    (now - lpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US && (now - attitude.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
+	    (now - lpos.timestamp) < kGroundtruthDataMaxAgeUs && (now - attitude.timestamp) < kGroundtruthDataMaxAgeUs) {
 
 		if (_failure_injection.is_distance_sensor_blocked()) {
 			perf_end(_distance_sensor_perf);

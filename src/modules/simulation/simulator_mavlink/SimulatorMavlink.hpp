@@ -164,22 +164,22 @@ private:
 	static SimulatorMavlink *_instance;
 
 	// simulated sensor instances
-	static constexpr uint8_t ACCEL_COUNT_MAX = 3;
-	PX4Accelerometer _px4_accel[ACCEL_COUNT_MAX] {
+	static constexpr uint8_t kAccelCountMax = 3;
+	PX4Accelerometer _px4_accel[kAccelCountMax] {
 		{1310988, ROTATION_NONE}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 		{1310996, ROTATION_NONE}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
 		{1311004, ROTATION_NONE}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 	};
 
-	static constexpr uint8_t GYRO_COUNT_MAX = 3;
-	PX4Gyroscope _px4_gyro[GYRO_COUNT_MAX] {
+	static constexpr uint8_t kGyroCountMax = 3;
+	PX4Gyroscope _px4_gyro[kGyroCountMax] {
 		{1310988, ROTATION_NONE}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 		{1310996, ROTATION_NONE}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
 		{1311004, ROTATION_NONE}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 	};
 
-	static constexpr uint8_t MAG_COUNT_MAX = 2;
-	PX4Magnetometer _px4_mag[MAG_COUNT_MAX] {
+	static constexpr uint8_t kMagCountMax = 2;
+	PX4Magnetometer _px4_mag[kMagCountMax] {
 		{197388, ROTATION_NONE},
 		{197644, ROTATION_NONE},
 	};
@@ -279,15 +279,12 @@ private:
 	battery_status_s _battery_status{};
 
 	sensor_accel_fifo_s _last_accel_fifo{};
-	matrix::Vector3f _last_accel[GYRO_COUNT_MAX] {};
+	matrix::Vector3f _last_accel[kGyroCountMax] {};
 
 	sensor_gyro_fifo_s _last_gyro_fifo{};
-	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
+	matrix::Vector3f _last_gyro[kGyroCountMax] {};
 
-
-
-
-	matrix::Vector3f _last_mag[MAG_COUNT_MAX] {};
+	matrix::Vector3f _last_mag[kMagCountMax] {};
 
 	float _last_baro_pressure{0.0f};
 	float _last_baro_temperature{0.0f};
