@@ -88,7 +88,7 @@ public:
 
 	void reset_filter();
 
-	void set_range_sensor(const float dist, const bool valid);
+	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
 
 	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
 
@@ -167,12 +167,6 @@ private:
 	};
 
 	localOrientation _local_orientation{};
-
-	struct rangeSensor {
-		bool valid = false;
-		float dist_bottom;
-		hrt_abstime last_update = 0;
-	};
 
 	rangeSensor _range_sensor{};
 

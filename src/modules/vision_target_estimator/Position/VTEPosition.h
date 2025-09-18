@@ -289,11 +289,6 @@ private:
 	perf_counter_t _vte_predict_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE prediction")};
 	perf_counter_t _vte_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE update")};
 
-	struct rangeSensor {
-		hrt_abstime timestamp = 0;
-		bool valid = false;
-		float dist_bottom = 0.f;
-	};
 
 	rangeSensor _range_sensor{};
 
