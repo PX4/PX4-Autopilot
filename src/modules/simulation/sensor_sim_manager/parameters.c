@@ -76,6 +76,15 @@ PARAM_DEFINE_INT32(SENS_EN_ARSPDSIM, 0);
 PARAM_DEFINE_INT32(SENS_EN_AGPSIM, 0);
 
 /**
+ * Enable simulated distance sensor
+ *
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
+ */
+PARAM_DEFINE_INT32(SENS_EN_DISTSIM, 0);
+
+/**
  * Number of GPS satellites used in simulation
  *
  * @group Simulator
@@ -136,3 +145,27 @@ PARAM_DEFINE_FLOAT(SIM_MAG_OFFSET_Z, 0.0f);
  * @bit 1 Drift
  */
 PARAM_DEFINE_INT32(SIM_AGP_FAIL, 0);
+
+/**
+ * distance sensor minimum range
+ *
+ * @unit m
+ * @min 0.0
+ * @max 10.0
+ * @decimal 4
+ * @increment 0.01
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MIN, 0.0f);
+
+/**
+ * distance sensor maximum range
+ *
+ * @unit m
+ * @min 0.0
+ * @max 1000.0
+ * @decimal 4
+ * @increment 0.01
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MAX, 100.0f);

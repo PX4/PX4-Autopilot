@@ -5,6 +5,7 @@
 param set-default EKF2_GPS_DELAY 10
 param set-default EKF2_MULTI_IMU 3
 param set-default SENS_IMU_MODE 0
+param set-default SIM_GZ_EN 1
 
 simulator_tcp_port=$((4560+px4_instance))
 
@@ -24,4 +25,12 @@ if [ -z "${PX4_SIM_HOSTNAME}" ]; then
 else
 	echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOSTNAME}"
 	simulator_mavlink start -h "${PX4_SIM_HOSTNAME}" "${simulator_tcp_port}"
+fi
+
+echo "mvlinksim"
+
+# Start sensor simulation manager for additional sensors not handled by gz
+if param compare -s SENS_EN_AGPSIM 1 || param compare -s SENS_EN_MAGSIM 1 || param compare -s SENS_EN_ARSPDSIM 1
+then
+	sensor_sim_manager start
 fi

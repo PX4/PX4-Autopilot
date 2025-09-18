@@ -58,6 +58,7 @@ static constexpr FailureUnit failure_units[] = {
 	{ "baro", vehicle_command_s::FAILURE_UNIT_SENSOR_BARO},
 	{ "gps", vehicle_command_s::FAILURE_UNIT_SENSOR_GPS},
 	{ "gps_alt", vehicle_command_s::FAILURE_UNIT_SENSOR_GPS_ALT},
+	{ "agp", vehicle_command_s::FAILURE_UNIT_SENSOR_AGP},
 	{ "optical_flow", vehicle_command_s::FAILURE_UNIT_SENSOR_OPTICAL_FLOW},
 	{ "vio", vehicle_command_s::FAILURE_UNIT_SENSOR_VIO},
 	{ "distance_sensor", vehicle_command_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR},
@@ -135,6 +136,7 @@ int inject_failure(const FailureUnit& unit, const FailureType& type, uint8_t ins
 	command.param3 = static_cast<float>(instance);
 	command.timestamp = hrt_absolute_time();
 	command_pub.publish(command);
+	printf("pub\n");
 
 	vehicle_command_ack_s ack;
 

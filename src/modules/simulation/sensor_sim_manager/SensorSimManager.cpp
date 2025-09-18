@@ -97,20 +97,28 @@ SensorSimManager::SensorSimManager() :
 		.enabled = false,
 	};
 
-	// IMU: 250 Hz
-	_imu_timing = {
-		.interval_us = 4000,
-		.next_update_time = now,
-		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 4000),
-		.enabled = true,  // Always enabled
-	};
-
 	// Distance sensor: 50 Hz
 	_distance_sensor_timing = {
 		.interval_us = 20000,
 		.next_update_time = now,
 		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 20000),
-		.enabled = true,  // Always enabled
+		.enabled = false,
+	};
+
+	// IMU: 250 Hz
+	_imu_timing = {
+		.interval_us = 4000,
+		.next_update_time = now,
+		.offset_us = static_cast<hrt_abstime>(_uniform_dist(_gen) * 4000),
+		.enabled = true,
+	};
+
+	// Failure Injection Poll: 10 Hz
+	_failure_update = {
+		.interval_us = 100000,
+		.next_update_time = now,
+		.offset_us = 0,
+		.enabled = true,
 	};
 
 	_gps_timing.next_update_time += _gps_timing.offset_us;
@@ -120,6 +128,8 @@ SensorSimManager::SensorSimManager() :
 	_agp_timing.next_update_time += _agp_timing.offset_us;
 	_imu_timing.next_update_time += _imu_timing.offset_us;
 	_distance_sensor_timing.next_update_time += _distance_sensor_timing.offset_us;
+
+	_param_sim_gz_en_handle = param_find("SIM_GZ_EN");
 
 }
 
@@ -137,6 +147,10 @@ SensorSimManager::~SensorSimManager()
 
 bool SensorSimManager::init()
 {
+	if (_param_sim_gz_en_handle != PARAM_INVALID) {
+		param_get(_param_sim_gz_en_handle, &_sim_gz_en_value);
+	}
+
 	ScheduleOnInterval(2_ms);
 	return true;
 }
@@ -183,23 +197,28 @@ void SensorSimManager::Run()
 
 	perf_begin(_loop_perf);
 
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s parameter_update;
-		_parameter_update_sub.copy(&parameter_update);
-		updateParams();
-
-		_gps_timing.enabled = (_param_sens_en_gpssim.get() != 0);
-		_baro_timing.enabled = (_param_sens_en_barosim.get() != 0);
-		_mag_timing.enabled = (_param_sens_en_magsim.get() != 0);
-		_airspeed_timing.enabled = (_param_sens_en_arspdsim.get() != 0);
-		_agp_timing.enabled = (_param_sens_en_agpsim.get() != 0);
-	}
-
 	const hrt_abstime now = hrt_absolute_time();
 
-	if (_gps_timing.enabled && now >= _gps_timing.next_update_time) {
-		_failure_injection.check_failure_injections(); // TODO, just here for now...
+	if (now >= _failure_update.next_update_time) {
+		_failure_injection.check_failure_injections();
+		_failure_update.next_update_time = now + _failure_update.interval_us;
 
+		if (_parameter_update_sub.updated()) {
+			parameter_update_s parameter_update;
+			_parameter_update_sub.copy(&parameter_update);
+			updateParams();
+
+			_gps_timing.enabled = (_param_sens_en_gpssim.get() != 0);
+			_baro_timing.enabled = (_param_sens_en_barosim.get() != 0);
+			_mag_timing.enabled = (_param_sens_en_magsim.get() != 0);
+			_airspeed_timing.enabled = (_param_sens_en_arspdsim.get() != 0);
+			_agp_timing.enabled = (_param_sens_en_agpsim.get() != 0);
+			_distance_sensor_timing.enabled = (_param_sens_en_distsim.get() != 0);
+			_imu_timing.enabled = (_sim_gz_en_value == 0);
+		}
+	}
+
+	if (_gps_timing.enabled && now >= _gps_timing.next_update_time) {
 		updateGPS();
 		_gps_timing.next_update_time = now + _gps_timing.interval_us;
 	}
@@ -247,11 +266,10 @@ void SensorSimManager::updateGPS()
 	vehicle_global_position_s gpos{};
 	_vehicle_global_position_sub.copy(&gpos);
 
-	// Check if data is recent (within 20ms), TODO
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (lpos.timestamp > 0 && gpos.timestamp > 0 &&
-	    (now - lpos.timestamp) < 20000 && (now - gpos.timestamp) < 20000) {
+	    (now - lpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US && (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
 
 		double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
 		double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
@@ -333,10 +351,9 @@ void SensorSimManager::updateBarometer()
 	vehicle_global_position_s gpos;
 
 	if (_vehicle_global_position_sub.copy(&gpos)) {
-		// Check if data is recent (within 20ms), TODO
 		const hrt_abstime now = hrt_absolute_time();
 
-		if (gpos.timestamp > 0 && (now - gpos.timestamp) < 20000) {
+		if (gpos.timestamp > 0 && (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
 			const float dt = math::constrain((gpos.timestamp - _last_baro_update_time) * 1e-6f, 0.001f, 0.1f);
 
 			const float alt_msl = gpos.alt;
@@ -406,10 +423,9 @@ void SensorSimManager::updateMagnetometer()
 	vehicle_global_position_s gpos;
 
 	if (_vehicle_global_position_sub.copy(&gpos)) {
-		// Check if data is recent (within 20ms), TODO
 		const hrt_abstime now = hrt_absolute_time();
 
-		if (gpos.timestamp > 0 && (now - gpos.timestamp) < 20000 && gpos.eph < 1000) {
+		if (gpos.timestamp > 0 && (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US && gpos.eph < 1000) {
 			// magnetic field data returned by the geo library using the current GPS position
 			const float declination_rad = math::radians(get_mag_declination_degrees(gpos.lat, gpos.lon));
 			const float inclination_rad = math::radians(get_mag_inclination_degrees(gpos.lat, gpos.lon));
@@ -466,11 +482,12 @@ void SensorSimManager::updateAirspeed()
 	vehicle_attitude_s attitude{};
 	_vehicle_attitude_sub.copy(&attitude);
 
-	// Check if data is recent (within 20ms), TODO
+	// Check if groundtruth data is recent
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (lpos.timestamp > 0 && gpos.timestamp > 0 && attitude.timestamp > 0 &&
-	    (now - lpos.timestamp) < 20000 && (now - gpos.timestamp) < 20000 && (now - attitude.timestamp) < 20000) {
+	    (now - lpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US && (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US
+	    && (now - attitude.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
 
 		Vector3f velocity_E{lpos.vx, lpos.vy, lpos.vz}; // Velocity in NED frame (similar to Earth frame)
 
@@ -514,6 +531,7 @@ void SensorSimManager::updateAirspeed()
 		const float airspeed_blockage_rampup_time = 1e6f; // 1 second in microseconds
 
 		float airspeed_blockage_scale = 1.f;
+
 		if (blocked_timestamp > 0) {
 			airspeed_blockage_scale = math::constrain(1.f - (now - blocked_timestamp) /
 						  airspeed_blockage_rampup_time, 1.f - blockage_fraction, 1.f);
@@ -521,7 +539,8 @@ void SensorSimManager::updateAirspeed()
 
 		differential_pressure_s differential_pressure{};
 		differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
-		differential_pressure.differential_pressure_pa = diff_pressure * 100.f * airspeed_blockage_scale; // hPa to Pa with blockage scaling
+		differential_pressure.differential_pressure_pa = diff_pressure * 100.f *
+				airspeed_blockage_scale; // hPa to Pa with blockage scaling
 		differential_pressure.temperature = temperature_local;
 		differential_pressure.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(differential_pressure);
@@ -537,26 +556,24 @@ void SensorSimManager::updateAGP()
 	vehicle_global_position_s gpos{};
 	_vehicle_global_position_sub.copy(&gpos);
 
-	// Check if data is recent (within 20ms), TODO
 	const hrt_abstime now = hrt_absolute_time();
 
-	if (gpos.timestamp > 0 && (now - gpos.timestamp) < 20000) {
+	if (gpos.timestamp > 0 && (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
+
+		if (_failure_injection.is_agp_blocked()) {
+			perf_end(_agp_perf);
+			return;
+		}
 
 		const uint64_t current_time = gpos.timestamp;
 		const float dt = (current_time - _agp_time_last_update) * 1e-6f;
 		_agp_time_last_update = current_time;
 
-		// Handle failure modes
-		enum class FailureMode : int32_t {
-			Stuck = (1 << 0),
-			Drift = (1 << 1)
-		};
-
-		if (!(_sim_agp_fail.get() & static_cast<int32_t>(FailureMode::Stuck))) {
+		if (!_failure_injection.is_agp_stuck()) {
 			_agp_measured_lla = LatLonAlt(gpos.lat, gpos.lon, gpos.alt_ellipsoid);
 		}
 
-		if (_sim_agp_fail.get() & static_cast<int32_t>(FailureMode::Drift)) {
+		if (_failure_injection.is_agp_drift()) {
 			_agp_position_bias += matrix::Vector3f(1.5f, -5.f, 0.f) * dt;
 			_agp_measured_lla += _agp_position_bias;
 
@@ -605,12 +622,12 @@ void SensorSimManager::updateIMU()
 	vehicle_angular_velocity_s angular_velocity{};
 	_vehicle_angular_velocity_sub.copy(&angular_velocity);
 
-	// Check if data is recent (within 20ms)
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (gpos.timestamp > 0 && lpos.timestamp > 0 && attitude.timestamp > 0 && angular_velocity.timestamp > 0 &&
-	    (now - gpos.timestamp) < 20000 && (now - lpos.timestamp) < 20000 &&
-	    (now - attitude.timestamp) < 20000 && (now - angular_velocity.timestamp) < 20000) {
+	    (now - gpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US && (now - lpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US &&
+	    (now - attitude.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US
+	    && (now - angular_velocity.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
 
 		// The sensor signals reconstruction and noise levels are from [1]
 		// [1] Bulka, Eitan, and Meyer Nahon. "Autonomous fixed-wing aerobatics: from theory to flight."
@@ -679,12 +696,15 @@ void SensorSimManager::updateDistanceSensor()
 	vehicle_attitude_s attitude{};
 	_vehicle_attitude_sub.copy(&attitude);
 
-	// Check if data is recent (within 20ms), TODO
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (lpos.timestamp > 0 && attitude.timestamp > 0 &&
-	    (now - lpos.timestamp) < 20000 && (now - attitude.timestamp) < 20000 &&
-	    fabsf(_distance_snsr_override) < 10000) {
+	    (now - lpos.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US && (now - attitude.timestamp) < GROUNDTRUTH_DATA_MAX_AGE_US) {
+
+		if (_failure_injection.is_distance_sensor_blocked()) {
+			perf_end(_distance_sensor_perf);
+			return;
+		}
 
 		device::Device::DeviceId device_id;
 		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
@@ -696,22 +716,30 @@ void SensorSimManager::updateDistanceSensor()
 		distance_sensor.device_id = device_id.devid;
 		distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 		distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-		distance_sensor.min_distance = _distance_snsr_min;
-		distance_sensor.max_distance = _distance_snsr_max;
+		distance_sensor.min_distance = _distance_snsr_min.get();
+		distance_sensor.max_distance = _distance_snsr_max.get();
 		distance_sensor.signal_quality = -1;
 
-		if (_distance_snsr_override >= 0.f) {
-			distance_sensor.current_distance = _distance_snsr_override;
+		float current_distance;
+
+		if (_failure_injection.is_distance_sensor_stuck()) {
+			current_distance = _last_distance_sensor_value;
+
+		} else if (_failure_injection.is_distance_sensor_wrong()) {
+			current_distance = 0.5f;
 
 		} else {
 			Quatf q{attitude.q};
-			distance_sensor.current_distance = -lpos.z / q.dcm_z()(2);
+			current_distance = -lpos.z / q.dcm_z()(2);
 
-			if (distance_sensor.current_distance > _distance_snsr_max) {
-				distance_sensor.current_distance = UINT16_MAX / 100.f;
+			if (current_distance > _distance_snsr_max.get()) {
+				current_distance = UINT16_MAX / 100.f;
 			}
+
+			_last_distance_sensor_value = current_distance;
 		}
 
+		distance_sensor.current_distance = current_distance;
 		distance_sensor.timestamp = hrt_absolute_time();
 		_distance_sensor_pub.publish(distance_sensor);
 	}

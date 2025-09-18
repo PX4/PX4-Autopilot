@@ -325,7 +325,8 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	}
 
 	// differential pressure
-	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_failure_injection.is_airspeed_disconnected()) {
+	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS
+	    && !_failure_injection.is_airspeed_disconnected()) {
 
 		const float blockage_fraction = 0.7; // defines max blockage (fully ramped)
 		const float airspeed_blockage_rampup_time = 1_s; // time it takes to go max blockage, linear ramp
@@ -333,6 +334,7 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 		float airspeed_blockage_scale = 1.f;
 
 		hrt_abstime blocked_timestamp = _failure_injection.get_airspeed_blocked_timestamp();
+
 		if (blocked_timestamp > 0) {
 			airspeed_blockage_scale = math::constrain(1.f - (hrt_absolute_time() - blocked_timestamp) /
 						  airspeed_blockage_rampup_time, 1.f - blockage_fraction, 1.f);
@@ -1225,11 +1227,28 @@ void SimulatorMavlink::run()
 
 int SimulatorMavlink::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavlink)
 {
+	if (_failure_injection.is_distance_sensor_blocked()) {
+		return PX4_OK;
+	}
+
 	distance_sensor_s dist{};
 	dist.timestamp = hrt_absolute_time();
 	dist.min_distance = dist_mavlink->min_distance / 100.0f;
 	dist.max_distance = dist_mavlink->max_distance / 100.0f;
-	dist.current_distance = dist_mavlink->current_distance / 100.0f;
+
+	float current_distance = dist_mavlink->current_distance / 100.0f;
+
+	if (_failure_injection.is_distance_sensor_stuck()) {
+		current_distance = _last_distance_sensor_value;
+
+	} else if (_failure_injection.is_distance_sensor_wrong()) {
+		current_distance = 0.5f;
+
+	} else {
+		_last_distance_sensor_value = current_distance;
+	}
+
+	dist.current_distance = current_distance;
 	dist.type = dist_mavlink->type;
 	dist.variance = dist_mavlink->covariance * 1e-4f; // cm^2 to m^2
 

@@ -53,6 +53,14 @@ public:
 
 	bool is_vio_blocked() { return _vio_blocked; }
 
+	bool is_agp_blocked() { return _agp_blocked; }
+	bool is_agp_stuck() { return _agp_stuck; }
+	bool is_agp_drift() { return _agp_drift; }
+
+	bool is_distance_sensor_blocked() { return _distance_sensor_blocked; }
+	bool is_distance_sensor_stuck() { return _distance_sensor_stuck; }
+	bool is_distance_sensor_wrong() { return _distance_sensor_wrong; }
+
 private:
 
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
@@ -89,5 +97,11 @@ private:
 	bool _airspeed_disconnected{false};
 	hrt_abstime _airspeed_blocked_timestamp{0};
 	bool _vio_blocked{false};
+	bool _agp_blocked{false};
+	bool _agp_stuck{false};
+	bool _agp_drift{false};
+	bool _distance_sensor_blocked{false};
+	bool _distance_sensor_stuck{false};
+	bool _distance_sensor_wrong{false};
 
 };

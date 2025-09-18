@@ -63,6 +63,7 @@
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
+#include <parameters/param.h>
 #include <random>
 
 using namespace time_literals;
@@ -116,6 +117,7 @@ private:
 	SensorTiming _agp_timing;
 	SensorTiming _imu_timing;
 	SensorTiming _distance_sensor_timing;
+	SensorTiming _failure_update;
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -164,13 +166,15 @@ private:
 		(ParamInt<px4::params::SENS_EN_MAGSIM>) _param_sens_en_magsim,
 		(ParamInt<px4::params::SENS_EN_ARSPDSIM>) _param_sens_en_arspdsim,
 		(ParamInt<px4::params::SENS_EN_AGPSIM>) _param_sens_en_agpsim,
+		(ParamInt<px4::params::SENS_EN_DISTSIM>) _param_sens_en_distsim,
 		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used,
 		(ParamFloat<px4::params::SIM_BARO_OFF_P>) _sim_baro_off_p,
 		(ParamFloat<px4::params::SIM_BARO_OFF_T>) _sim_baro_off_t,
 		(ParamFloat<px4::params::SIM_MAG_OFFSET_X>) _sim_mag_offset_x,
 		(ParamFloat<px4::params::SIM_MAG_OFFSET_Y>) _sim_mag_offset_y,
 		(ParamFloat<px4::params::SIM_MAG_OFFSET_Z>) _sim_mag_offset_z,
-		(ParamInt<px4::params::SIM_AGP_FAIL>) _sim_agp_fail
+		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _distance_snsr_min,
+		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _distance_snsr_max
 	)
 
 	hrt_abstime _last_baro_update_time{0};
@@ -190,9 +194,7 @@ private:
 	matrix::Vector3f _last_gyro{};
 	matrix::Vector3f _specific_force_E{};
 
-	float _distance_snsr_min{0.3f};
-	float _distance_snsr_max{50.0f};
-	float _distance_snsr_override{-1.0f};
+	float _last_distance_sensor_value{0.0f};
 
 	// Air constants
 	static constexpr float TEMPERATURE_MSL = 288.0f; // [K]
@@ -203,5 +205,11 @@ private:
 
 	// IMU constants
 	static constexpr float T1_C = 15.0f; // Temperature constant
+
+	static constexpr hrt_abstime GROUNDTRUTH_DATA_MAX_AGE_US = 12000;
+
+	// Parameter handles for cross-module access
+	param_t _param_sim_gz_en_handle{PARAM_INVALID};
+	int32_t _sim_gz_en_value{0};
 
 };
