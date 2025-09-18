@@ -581,7 +581,7 @@ void BMI088_Accelerometer::FIFOReset()
 
 void BMI088_Accelerometer::UpdateTemperature()
 {
-	// stored in an 11-bit value in 2’s complement format
+	// stored in an 11-bit value in 2's complement format
 	uint8_t temperature_buf[4] {};
 	temperature_buf[0] = static_cast<uint8_t>(Register::TEMP_MSB) | DIR_READ;
 	// temperature_buf[1] dummy byte
@@ -608,6 +608,15 @@ void BMI088_Accelerometer::UpdateTemperature()
 	float temperature = (Temp_int11 * 0.125f) + 23.f; // Temp_int11 * 0.125°C/LSB + 23°C
 
 	if (PX4_ISFINITE(temperature)) {
+		// Validar faixa operacional conforme datasheet seção 1.1
+		if (temperature < -40.0f) {
+			temperature = -40.0f;
+			PX4_WARN("BMI088: Temperature below operational range, clamped to -40°C");
+		} else if (temperature > 85.0f) {
+			temperature = 85.0f;
+			PX4_WARN("BMI088: Temperature above operational range, clamped to 85°C");
+		}
+		
 		_px4_accel.set_temperature(temperature);
 
 	} else {
