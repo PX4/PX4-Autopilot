@@ -144,7 +144,6 @@ private:
 	float _last_baro_pressure{0.0f};
 	float _last_baro_temperature{0.0f};
 
-	// TODO: needed?
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _gps_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": gps")};
 	perf_counter_t _baro_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": baro")};
@@ -179,7 +178,7 @@ private:
 
 	hrt_abstime _last_baro_update_time{0};
 	float _baro_drift_pa{0.0f};
-	float _baro_drift_pa_per_sec{0.1f}; // TODO, was 0
+	float _baro_drift_pa_per_sec{0.1f};
 	bool _baro_rnd_use_last{false};
 	double _baro_rnd_y2{0.0};
 

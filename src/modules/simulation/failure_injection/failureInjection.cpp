@@ -1,11 +1,6 @@
 
 #include <simulation/failure_injection/failureInjection.hpp>
 
-void FailureInjection::test()
-{
-	printf("test\n");
-}
-
 bool FailureInjection::handle_gps_failure(sensor_gps_s &gps)
 {
 	if (_gps_blocked) {
@@ -39,7 +34,7 @@ bool FailureInjection::handle_gps_failure(sensor_gps_s &gps)
 			matrix::Vector2f vel_gps(gps.vel_n_m_s, gps.vel_e_m_s);
 			const float vel_norm = vel_gps.norm();
 
-			// directional drift by 5%
+			// directional drift by RELATIVE_GPS_DRIFT
 			if (vel_norm > 1.f) {
 				vel_gps *= 1.f + RELATIVE_GPS_DRIFT;
 
@@ -50,7 +45,7 @@ bool FailureInjection::handle_gps_failure(sensor_gps_s &gps)
 				vel_gps(0) = 0.5f;
 			}
 
-			// perpendicular drift by 5%
+			// perpendicular drift
 			matrix::Vector2f vel_normal = vel_gps.normalized();
 			vel_gps(0) += vel_norm * RELATIVE_GPS_DRIFT * vel_normal(1);
 			vel_gps(1) -= vel_norm * RELATIVE_GPS_DRIFT * vel_normal(0);
@@ -165,7 +160,7 @@ void FailureInjection::check_failure_injections()
 				// }
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_DRIFT) {
-				PX4_INFO("CMD_INJECT_FAILURE, GPsS drift");
+				PX4_INFO("CMD_INJECT_FAILURE, GPS drift");
 				supported = true;
 				_gps_drift = true;
 
@@ -285,7 +280,7 @@ void FailureInjection::check_failure_injections()
 				// 0 to signal all
 				if (instance == 0) {
 					for (int i = 0; i < GYRO_COUNT_MAX; i++) {
-						PX4_WARN("CMD_INJECT_FAILUREe, gyro %d stuck", i);
+						PX4_WARN("CMD_INJECT_FAILURE, gyro %d stuck", i);
 						_gyro_blocked[i] = false;
 						_gyro_stuck[i] = true;
 					}
