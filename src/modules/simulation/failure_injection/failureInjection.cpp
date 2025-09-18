@@ -423,6 +423,63 @@ void FailureInjection::check_failure_injections()
 				supported = true;
 				_vio_blocked = false;
 			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_AGP) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, agp off");
+				supported = true;
+				_agp_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, agp ok");
+				supported = true;
+				_agp_blocked = false;
+				_agp_stuck = false;
+				_agp_drift = false;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				PX4_WARN("CMD_INJECT_FAILURE, agp stuck");
+				supported = true;
+				_agp_stuck = true;
+				_agp_blocked = false;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_DRIFT) {
+				PX4_WARN("CMD_INJECT_FAILURE, agp drift");
+				supported = true;
+				_agp_drift = true;
+			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, distance sensor off");
+				supported = true;
+				_distance_sensor_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, distance sensor ok");
+				supported = true;
+				_distance_sensor_blocked = false;
+				_distance_sensor_stuck = false;
+				_distance_sensor_wrong = false;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				PX4_WARN("CMD_INJECT_FAILURE, distance sensor stuck");
+				supported = true;
+				_distance_sensor_stuck = true;
+				_distance_sensor_blocked = false;
+				_distance_sensor_wrong = false;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
+				PX4_WARN("CMD_INJECT_FAILURE, distance sensor wrong (blocked at 0.5m)");
+				supported = true;
+				_distance_sensor_wrong = true;
+				_distance_sensor_blocked = false;
+				_distance_sensor_stuck = false;
+			}
 		}
 
 		if (handled) {
