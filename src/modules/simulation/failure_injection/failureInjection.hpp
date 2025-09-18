@@ -48,20 +48,17 @@
 #include <lib/geo/geo.h>
 #include <matrix/math.hpp>
 
+static constexpr uint8_t kAccelCountMax = 4;
+static constexpr uint8_t kGyroCountMax  = 4;
+static constexpr uint8_t kMagCountMax   = 4;
 
-static constexpr uint8_t ACCEL_COUNT_MAX = 4;
-static constexpr uint8_t GYRO_COUNT_MAX  = 4;
-static constexpr uint8_t MAG_COUNT_MAX   = 4;
-static constexpr uint8_t BARO_COUNT_MAX  = 4;
-
-// drift by 10%
-static constexpr float RELATIVE_GPS_DRIFT = 0.1f;
+static constexpr float kRelativeGpsDrift = 0.1f;
 
 class FailureInjection
 {
 
 public:
-	FailureInjection() {};
+	FailureInjection() = default;
 
 	void check_failure_injections();
 	bool handle_gps_failure(sensor_gps_s &gps);
@@ -97,9 +94,6 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
-
-
-	// GPS
 	bool _gps_drift{false};
 	bool _gps_alt_drift{false};
 	MapProjection _mp;
@@ -107,7 +101,7 @@ private:
 	matrix::Vector2f _gps_drift_pos;
 	double _gps_alt_offset{0};
 	hrt_abstime _last_gps_timestamp{0};
-	hrt_abstime _t0{0};
+	hrt_abstime _alt_drift_t0{0};
 
 	bool _gps_blocked{false};
 	bool _gps_alt_blocked{false};
@@ -117,12 +111,13 @@ private:
 	bool _gps_alt_wrong{false};
 	sensor_gps_s _gps_prev{};
 
-	bool _accel_blocked[ACCEL_COUNT_MAX] {};
-	bool _accel_stuck[ACCEL_COUNT_MAX] {};
-	bool _gyro_blocked[GYRO_COUNT_MAX] {};
-	bool _gyro_stuck[GYRO_COUNT_MAX] {};
-	bool _mag_blocked[MAG_COUNT_MAX] {};
-	bool _mag_stuck[MAG_COUNT_MAX] {};
+	bool _accel_blocked[kAccelCountMax] {};
+	bool _accel_stuck[kAccelCountMax] {};
+	bool _gyro_blocked[kGyroCountMax] {};
+	bool _gyro_stuck[kGyroCountMax] {};
+
+	bool _mag_blocked[kMagCountMax] {};
+	bool _mag_stuck[kMagCountMax] {};
 	bool _baro_blocked{false};
 	bool _baro_stuck{false};
 	bool _airspeed_disconnected{false};
