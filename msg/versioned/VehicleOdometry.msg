@@ -13,7 +13,7 @@ uint8 POSE_FRAME_NED     = 1  # NED earth-fixed frame. Origin is position of GC 
 uint8 POSE_FRAME_FRD     = 2  # FRD world-fixed frame. Arbitrary origin and heading reference. Z is down.
 
 float32[3] position  # [m] [@frame @local_frame] [@invalid NaN If invalid/unknown] Position
-float32[4] q         # [@invalid NaN First value if invalid/unknown] Quaternion rotation from FRD body frame to reference frame
+float32[4] q         # [-] [@invalid NaN First value if invalid/unknown] Quaternion rotation from FRD body frame to reference frame
 
 uint8 velocity_frame               # [@enum VELOCITY_FRAME] Reference frame of the velocity data
 uint8 VELOCITY_FRAME_UNKNOWN  = 0  # Unknown frame
@@ -28,7 +28,7 @@ float32[3] position_variance    #
 float32[3] orientation_variance #
 float32[3] velocity_variance    # 
 
-uint8 reset_counter  # 
+uint8 reset_counter  # [-]
 int8 quality         #
 
 # TOPICS vehicle_odometry vehicle_mocap_odometry vehicle_visual_odometry
