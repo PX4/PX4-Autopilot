@@ -37,8 +37,8 @@
 
 const char *const UavcanFlowBridge::NAME = "flow";
 
-UavcanFlowBridge::UavcanFlowBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_flow", ORB_ID(sensor_optical_flow)),
+UavcanFlowBridge::UavcanFlowBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_flow", ORB_ID(sensor_optical_flow), node_info_publisher),
 	_sub_flow(node)
 {
 }
@@ -95,4 +95,10 @@ void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex:
 	flow.timestamp = hrt_absolute_time();
 
 	publish(msg.getSrcNodeID().get(), &flow);
+
+	// Register device capability if not already done
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				flow.device_id, NodeInfoPublisher::DeviceCapability::OPTICAL_FLOW);
+	}
 }

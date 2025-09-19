@@ -596,7 +596,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 	// Sensor bridges
-	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
+	IUavcanSensorBridge::make_all(_node, _sensor_bridges, &_node_info_publisher);
 
 	for (const auto &br : _sensor_bridges) {
 		ret = br->init();
@@ -608,6 +608,10 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 		PX4_DEBUG("sensor bridge '%s' init ok", br->get_name());
 	}
+
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+	_esc_controller.set_node_info_publisher(&_node_info_publisher);
+#endif
 
 	/* Set up shared service clients */
 	_param_getset_client.setCallback(GetSetCallback(this, &UavcanNode::cb_getset));

@@ -45,8 +45,8 @@
 
 const char *const UavcanBarometerBridge::NAME = "baro";
 
-UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_baro", ORB_ID(sensor_baro)),
+UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_baro", ORB_ID(sensor_baro), node_info_publisher),
 	_sub_air_pressure_data(node),
 	_sub_air_temperature_data(node)
 { }
@@ -111,6 +111,12 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 
 	device_id.devid_s.devtype = DRV_BARO_DEVTYPE_UAVCAN;
 	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
+
+	// Register barometer capability with NodeInfoPublisher after first successful message
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), device_id.devid,
+				NodeInfoPublisher::DeviceCapability::BAROMETER);
+	}
 
 	// publish
 	sensor_baro_s sensor_baro{};

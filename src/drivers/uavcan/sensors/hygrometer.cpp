@@ -33,13 +33,13 @@
 
 #include "hygrometer.hpp"
 
-#include <drivers/drv_hrt.h>
+#include <uORB/topics/sensor_hygrometer.h>
 #include <lib/atmosphere/atmosphere.h>
 
 const char *const UavcanHygrometerBridge::NAME = "hygrometer_sensor";
 
-UavcanHygrometerBridge::UavcanHygrometerBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_hygrometer_sensor", ORB_ID(sensor_hygrometer)),
+UavcanHygrometerBridge::UavcanHygrometerBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_hygrometer_sensor", ORB_ID(sensor_hygrometer), node_info_publisher),
 	_sub_hygro(node)
 {
 }
@@ -70,4 +70,10 @@ void UavcanHygrometerBridge::hygro_sub_cb(const uavcan::ReceivedDataStructure<dr
 	report.timestamp = hrt_absolute_time();
 
 	publish(msg.getSrcNodeID().get(), &report);
+
+	// Register device capability if not already done
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				report.device_id, NodeInfoPublisher::DeviceCapability::HYGROMETER);
+	}
 }

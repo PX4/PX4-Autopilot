@@ -44,8 +44,8 @@
 
 const char *const UavcanMagnetometerBridge::NAME = "mag";
 
-UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_mag", ORB_ID(sensor_mag)),
+UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_mag", ORB_ID(sensor_mag), node_info_publisher),
 	_sub_mag(node),
 	_sub_mag2(node)
 {
@@ -87,6 +87,12 @@ void UavcanMagnetometerBridge::mag_sub_cb(const
 		return;
 	}
 
+	// Register magnetometer capability with NodeInfoPublisher after first successful message
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), mag->get_device_id(),
+				NodeInfoPublisher::DeviceCapability::MAGNETOMETER);
+	}
+
 	const float x = msg.magnetic_field_ga[0];
 	const float y = msg.magnetic_field_ga[1];
 	const float z = msg.magnetic_field_ga[2];
@@ -110,6 +116,13 @@ UavcanMagnetometerBridge::mag2_sub_cb(const
 
 	if (mag == nullptr) {
 		return;
+	}
+
+	// Register magnetometer capability with NodeInfoPublisher after first successful message
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				mag->get_device_id(),
+				NodeInfoPublisher::DeviceCapability::MAGNETOMETER);
 	}
 
 	const float x = msg.magnetic_field_ga[0];

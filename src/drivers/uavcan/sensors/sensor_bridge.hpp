@@ -42,6 +42,7 @@
 #include <drivers/drv_orb_dev.h>
 #include <lib/drivers/device/Device.hpp>
 #include <uORB/uORB.h>
+#include <drivers/uavcan/node_info.hpp>
 
 /**
  * A sensor bridge class must implement this interface.
@@ -80,7 +81,8 @@ public:
 	 * Sensor bridge factory.
 	 * Creates all known sensor bridges and puts them in the linked list.
 	 */
-	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list);
+	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list,
+			     class NodeInfoPublisher *node_info_publisher);
 };
 
 namespace uavcan_bridge
@@ -106,13 +108,16 @@ class UavcanSensorBridgeBase : public IUavcanSensorBridge, public device::Device
 protected:
 	static constexpr unsigned DEFAULT_MAX_CHANNELS = 4;
 	const unsigned _max_channels;
+	class NodeInfoPublisher *_node_info_publisher;
 
 	UavcanSensorBridgeBase(const char *name, const orb_id_t orb_topic_sensor,
+			       class NodeInfoPublisher *node_info_publisher,
 			       const unsigned max_channels = DEFAULT_MAX_CHANNELS) :
 		Device(name),
 		_orb_topic(orb_topic_sensor),
 		_channels(new uavcan_bridge::Channel[max_channels]),
-		_max_channels(max_channels)
+		_max_channels(max_channels),
+		_node_info_publisher(node_info_publisher)
 	{
 		set_device_bus_type(DeviceBusType_UAVCAN);
 		set_device_bus(0);

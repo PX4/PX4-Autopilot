@@ -53,8 +53,8 @@ using namespace time_literals;
 
 const char *const UavcanGnssBridge::NAME = "gnss";
 
-UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gps)),
+UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gps), node_info_publisher),
 	_node(node),
 	_sub_auxiliary(node),
 	_sub_fix(node),
@@ -358,6 +358,13 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 {
 	sensor_gps_s sensor_gps{};
 	sensor_gps.device_id = get_device_id();
+
+	// Register GPS capability with NodeInfoPublisher after first successful message
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				sensor_gps.device_id,
+				NodeInfoPublisher::DeviceCapability::GPS);
+	}
 
 	/*
 	 * FIXME HACK

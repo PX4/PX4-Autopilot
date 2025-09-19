@@ -48,7 +48,7 @@ class UavcanRangefinderBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanRangefinderBridge(uavcan::INode &node);
+	UavcanRangefinderBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 

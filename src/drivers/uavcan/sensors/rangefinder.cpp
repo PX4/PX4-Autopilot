@@ -42,8 +42,8 @@
 
 const char *const UavcanRangefinderBridge::NAME = "rangefinder";
 
-UavcanRangefinderBridge::UavcanRangefinderBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_rangefinder", ORB_ID(distance_sensor)),
+UavcanRangefinderBridge::UavcanRangefinderBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_rangefinder", ORB_ID(distance_sensor), node_info_publisher),
 	_sub_range_data(node)
 { }
 
@@ -115,6 +115,12 @@ void UavcanRangefinderBridge::range_sub_cb(const
 	}
 
 	rangefinder->update(hrt_absolute_time(), msg.range, quality);
+
+	// Register device capability if not already done
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				rangefinder->get_device_id(), NodeInfoPublisher::DeviceCapability::RANGEFINDER);
+	}
 }
 
 int UavcanRangefinderBridge::init_driver(uavcan_bridge::Channel *channel)

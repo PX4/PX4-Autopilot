@@ -33,18 +33,51 @@
 
 #pragma once
 #include <uavcan/protocol/node_info_retriever.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/device_information.h>
+#include <stdint.h>  // For UINT8_MAX, UINT32_MAX
+#include <px4_platform_common/time.h>
+
+using namespace time_literals;
+
+constexpr int 		DEVICE_INFO_PUBLISH_INTERVAL_MS 	= 1000;
+constexpr uint64_t 	DEVICE_INFO_PUBLISH_RATE_LIMIT_US 	= 100_ms;
 
 class NodeInfoPublisher : private uavcan::INodeInfoListener, private uavcan::TimerBase
 {
 public:
+	enum class DeviceCapability : uint8_t {
+		NONE = UINT8_MAX,  // Invalid/unset capability value (255)
+		GENERIC = 0,
+		AIRSPEED = 1,
+		ESC = 2,
+		SERVO = 3,
+		GPS = 4,
+		MAGNETOMETER = 5,
+		PARACHUTE = 6,
+		RANGEFINDER = 7,
+		WINCH = 8,
+		BAROMETER = 9,
+		OPTICAL_FLOW = 10,
+		ACCELEROMETER = 11,
+		GYROSCOPE = 12,
+		DIFFERENTIAL_PRESSURE = 13,
+		BATTERY = 14,
+		HYGROMETER = 15,
+	};
+
 	NodeInfoPublisher(uavcan::INode &node, uavcan::NodeInfoRetriever &node_info_retriever);
 	~NodeInfoPublisher();
+
+	// Called by sensor bridges to register device capabilities
+	void registerDeviceCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability);
 
 private:
 	struct NodeInfo {
 		NodeInfo(uavcan::NodeID id, const uavcan::protocol::GetNodeInfo_::Response &node_info)
 			: node_id(id), sw_major(node_info.software_version.major), sw_minor(node_info.software_version.minor),
-			  vcs_commit(node_info.software_version.vcs_commit)
+			  vcs_commit(node_info.software_version.vcs_commit), hw_major(node_info.hardware_version.major),
+			  hw_minor(node_info.hardware_version.minor)
 		{
 			memcpy(name, node_info.name.c_str(), node_info.name.capacity());
 			name[node_info.name.capacity() - 1] = '\0';
@@ -58,7 +91,45 @@ private:
 		uint8_t unique_id[uavcan::protocol::GetNodeInfo_::Response::FieldTypes::hardware_version::FieldTypes::unique_id::MaxSize];
 		uint8_t sw_major;
 		uint8_t sw_minor;
-		uint32_t vcs_commit; // e.g. git short commit hash. Optional.
+		uint32_t vcs_commit;
+		uint8_t hw_major;
+		uint8_t hw_minor;
+	};
+
+	struct DeviceInformation {
+		uint8_t node_id;
+		uint32_t device_id;
+		DeviceCapability capability;
+		bool has_node_info;
+		bool has_capability;
+
+		char vendor_name[32];
+		char model_name[32];
+		char firmware_version[24];
+		char hardware_version[24];
+		char serial_number[32];
+
+		DeviceInformation() : node_id(UINT8_MAX), device_id(UINT32_MAX), capability(DeviceCapability::NONE),
+			has_node_info(false), has_capability(false)
+		{
+			// Initialize string fields
+			vendor_name[0] = '\0';
+			model_name[0] = '\0';
+			firmware_version[0] = '\0';
+			hardware_version[0] = '\0';
+			serial_number[0] = '\0';
+		}
+
+		DeviceInformation(uint8_t nid, uint32_t did, DeviceCapability cap)
+			: node_id(nid), device_id(did), capability(cap), has_node_info(false), has_capability(true)
+		{
+			// Initialize string fields
+			vendor_name[0] = '\0';
+			model_name[0] = '\0';
+			firmware_version[0] = '\0';
+			hardware_version[0] = '\0';
+			serial_number[0] = '\0';
+		}
 	};
 
 	void handleNodeInfoRetrieved(uavcan::NodeID node_id,
@@ -67,15 +138,29 @@ private:
 
 	void handleTimerEvent(const uavcan::TimerEvent &event) override;
 
-	void publishInfo(const NodeInfo &info);
-
 	void startTimerIfNotRunning();
 
-	void addOrReplaceNodeInfo(const NodeInfo &info);
+	// Register device info or capability, set nodeinfo to nullptr if only registering capability
+	void registerDevice(uint8_t node_id, const NodeInfo *info, uint32_t device_id, DeviceCapability capability);
+
+	// Publishing methods
+	void publishDeviceInformationImmediate(size_t device_index);
+	void publishDeviceInformationPeriodic();
+	void publishSingleDeviceInformation(const DeviceInformation &device_info);
+
+	// Helper functions
+	void populateDeviceInfoFields(DeviceInformation &device_info, const NodeInfo &info);
+	void parseNodeName(const char *name, DeviceInformation &device_info);
+	bool extendDeviceInformationsArray();
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
 
-	NodeInfo *_node_info_array{nullptr};
-	size_t _node_info_array_size{0};
-	size_t _next_to_publish{0};
+	// Device capability tracking
+	DeviceInformation *_device_informations{nullptr};
+	size_t _device_informations_size{0};
+	uORB::Publication<device_information_s> _device_info_pub{ORB_ID(device_information)};
+	uint64_t _last_device_info_publish{0};
+
+	// Round-robin publishing
+	size_t _next_device_to_publish{0};
 };

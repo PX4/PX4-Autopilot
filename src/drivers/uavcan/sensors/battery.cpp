@@ -39,8 +39,8 @@
 
 const char *const UavcanBatteryBridge::NAME = "battery";
 
-UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_battery", ORB_ID(battery_status)),
+UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_battery", ORB_ID(battery_status), node_info_publisher),
 	ModuleParams(nullptr),
 	_sub_battery(node),
 	_sub_battery_aux(node),
@@ -149,6 +149,11 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 			snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number),
 				 "%" PRIu32, msg.model_instance_id);
 			_battery_info_pub[instance].publish(_battery_info[instance]);
+		}
+
+		if (_node_info_publisher != nullptr) {
+			_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+					_battery_status[instance].id, NodeInfoPublisher::DeviceCapability::BATTERY);
 		}
 	}
 }
@@ -284,6 +289,11 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number), "%" PRIu16,
 		 msg.serial_number);
 	_battery_info_pub[instance].publish(_battery_info[instance]);
+
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				_battery_status[instance].id, NodeInfoPublisher::DeviceCapability::BATTERY);
+	}
 }
 
 void

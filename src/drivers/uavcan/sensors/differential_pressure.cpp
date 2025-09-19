@@ -44,8 +44,9 @@
 
 const char *const UavcanDifferentialPressureBridge::NAME = "differential_pressure";
 
-UavcanDifferentialPressureBridge::UavcanDifferentialPressureBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_differential_pressure", ORB_ID(differential_pressure)),
+UavcanDifferentialPressureBridge::UavcanDifferentialPressureBridge(uavcan::INode &node,
+		class NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_differential_pressure", ORB_ID(differential_pressure), node_info_publisher),
 	_sub_air(node)
 {
 }
@@ -88,4 +89,10 @@ void UavcanDifferentialPressureBridge::air_sub_cb(const
 	report.timestamp = hrt_absolute_time();
 
 	publish(msg.getSrcNodeID().get(), &report);
+
+	// Register device capability if not already done
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				report.device_id, NodeInfoPublisher::DeviceCapability::DIFFERENTIAL_PRESSURE);
+	}
 }

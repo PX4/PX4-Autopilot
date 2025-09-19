@@ -40,8 +40,8 @@
 
 const char *const UavcanGyroBridge::NAME = "gyro";
 
-UavcanGyroBridge::UavcanGyroBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_gyro", ORB_ID(sensor_gyro)),
+UavcanGyroBridge::UavcanGyroBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_gyro", ORB_ID(sensor_gyro), node_info_publisher),
 	_sub_imu_data(node)
 { }
 
@@ -77,6 +77,12 @@ void UavcanGyroBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 		     msg.rate_gyro_latest[0],
 		     msg.rate_gyro_latest[1],
 		     msg.rate_gyro_latest[2]);
+
+	// Register device capability if not already done
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				gyro->get_device_id(), NodeInfoPublisher::DeviceCapability::GYROSCOPE);
+	}
 }
 
 int UavcanGyroBridge::init_driver(uavcan_bridge::Channel *channel)
