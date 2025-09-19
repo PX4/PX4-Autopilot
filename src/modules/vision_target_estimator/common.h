@@ -50,7 +50,7 @@ namespace vision_target_estimator
 {
 
 /* timeout after which the target is not valid if no measurements are seen*/
-static constexpr uint32_t kTargetValidTimeoutUs = 2_s; // TODO: use in position filter
+static constexpr uint32_t kTargetValidTimeoutUs = 2_s;
 
 /* timeout after which the measurement is not valid*/
 static constexpr uint32_t kMeasValidTimeoutUs = 1_s;
@@ -61,7 +61,10 @@ static constexpr uint32_t kMeasUpdatedTimeoutUs = 100_ms;
 /* Valid AoA measurement range between -60.00° and +60.00° for UWB*/
 static constexpr float max_uwb_aoa_angle_degree = 60.0f;
 
-static inline bool HasTimedOut(const hrt_abstime ts, const uint32_t timeout_us)
+static constexpr float kMinObservationNoise = 1e-2f;
+static constexpr float kMinNisThreshold = 0.1f;
+
+static inline bool hasTimedOut(const hrt_abstime ts, const uint32_t timeout_us)
 {
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -75,12 +78,12 @@ static inline bool HasTimedOut(const hrt_abstime ts, const uint32_t timeout_us)
 
 static inline bool isMeasValid(hrt_abstime ts)
 {
-	return !HasTimedOut(ts, kMeasValidTimeoutUs);
+	return !hasTimedOut(ts, kMeasValidTimeoutUs);
 }
 
-static inline bool IsMeasUpdated(hrt_abstime ts)
+static inline bool isMeasUpdated(hrt_abstime ts)
 {
-	return !HasTimedOut(ts, kMeasUpdatedTimeoutUs);
+	return !hasTimedOut(ts, kMeasUpdatedTimeoutUs);
 }
 
 union SensorFusionMaskU {
