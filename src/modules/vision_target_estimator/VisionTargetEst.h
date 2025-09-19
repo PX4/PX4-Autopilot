@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -96,7 +96,7 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 private:
-	struct localPose {
+	struct LocalPose {
 		bool pos_valid = false;
 		matrix::Vector3f xyz{};
 
@@ -114,29 +114,29 @@ private:
 
 	void Run() override;
 	void updateParams() override;
-	void handle_exit();
-	void stop_all_estimators();
-	void start_estimators_if_needed();
-	bool estimators_stopped_due_to_timeout();
-	void perform_estimations();
-	void perform_position_update(const localPose &local_pose, const bool local_pose_updated);
-	void perform_orientation_update(const localPose &local_pose, const bool local_pose_updated);
-	void publish_vte_input(const matrix::Vector3f &vehicle_acc_ned_sampled, const matrix::Quaternionf &q_att);
+	void handleExit();
+	void stopAllEstimators();
+	void startEstIfNeeded();
+	bool estStoppedDueToTimeout();
+	void updateEstimators();
+	void updatePosEst(const LocalPose &local_pose, const bool local_pose_updated);
+	void updateYawEst(const LocalPose &local_pose, const bool local_pose_updated);
+	void publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sampled, const matrix::Quaternionf &q_att);
 
-	inline bool no_active_task() {return _vte_current_task == VisionTargetEstTask::VTE_NO_TASK;};
-	inline bool no_estimator_running()
+	inline bool noActiveTask() {return _vte_current_task == VisionTargetEstTask::VTE_NO_TASK;};
+	inline bool noEstRunning()
 	{
 		return (!_vte_orientation_enabled || !_orientation_estimator_running) && (!_vte_position_enabled
 				|| !_position_estimator_running);
 	};
 
-	void update_task_topics();
-	bool new_task_available();
-	bool is_current_task_done();
-	bool start_position_estimator();
-	void stop_position_estimator();
-	bool start_orientation_estimator();
-	void stop_orientation_estimator();
+	void updateTaskTopics();
+	bool isNewTaskAvailable();
+	bool IsCurrentTaskDone();
+	bool startPosEst();
+	void stopPosEst();
+	bool startYawEst();
+	void stopYawEst();
 	bool get_input(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att, matrix::Vector3f &gps_pos_offset,
 		       matrix::Vector3f &gps_vel_offset,
 		       bool gps_vel_offset_updated = false);
@@ -161,7 +161,7 @@ private:
 
 	uORB::Publication<vision_target_est_input_s> _vision_target_est_input_pub{ORB_ID(vision_target_est_input)};
 
-	// TODO: change to enum class
+	// TODO: change to union
 	enum VisionTargetEstTask : uint16_t {
 		// Bit locations for VTE tasks
 		VTE_NO_TASK = 0,
@@ -195,7 +195,7 @@ private:
 	bool _gps_pos_is_offset{false};
 
 	bool get_gps_velocity_offset(matrix::Vector3f &vel_offset);
-	bool get_local_pose(localPose &local_pose);
+	bool get_local_pose(LocalPose &local_pose);
 
 	bool check_and_update_elapsed(hrt_abstime &last_time, const hrt_abstime interval);
 
@@ -203,7 +203,7 @@ private:
 	matrix::Vector3f _vehicle_acc_ned_sum{};
 	uint32_t _loops_count{0};
 	hrt_abstime _last_acc_reset{0};
-	void reset_acc_downsample();
+	void resetAccDownsample();
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
