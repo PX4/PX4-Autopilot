@@ -62,6 +62,7 @@
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
+#include <matrix/Quaternion.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
 #include "KF_orientation.h"
@@ -82,13 +83,14 @@ public:
 	/*
 	 * Get new measurements and update the state estimate
 	 */
-	void update();
+	void update(const matrix::Quaternionf &q_att);
 
 	bool init();
 
 	void resetFilter();
 
 	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
+	void set_local_orientation(const float yaw, const bool valid, const hrt_abstime timestamp);
 	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
@@ -138,10 +140,11 @@ private:
 	};
 
 	bool initEstimator(const ObsValidMaskU &vte_fusion_aid_mask, const TargetObs observations[ObsType::Type_count]);
-	bool updateStep();
+	bool updateStep(const matrix::Quaternionf &q_att);
 	void predictionStep();
 
-	void processObservations(ObsValidMaskU &vte_fusion_aid_mask, TargetObs observations[ObsType::Type_count]);
+	void processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
+				 TargetObs observations[ObsType::Type_count]);
 	bool fuseNewSensorData(ObsValidMaskU &vte_fusion_aid_mask, const TargetObs observations[ObsType::Type_count]);
 
 	/* Vision data */
@@ -150,9 +153,9 @@ private:
 	bool processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs);
 
 	/* UWB data */
-	void handleUwbData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_uwb);
+	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_uwb);
 	bool isUwbDataValid(const sensor_uwb_s &uwb_report);
-	bool processObsUwb(const sensor_uwb_s &uwb_report, TargetObs &obs);
+	bool processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs);
 
 	bool fuseMeas(const TargetObs &target_pos_obs);
 	void publishTarget();
@@ -186,13 +189,15 @@ private:
 	float _ev_angle_noise;
 	bool  _ev_noise_md{false};
 	float _nis_threshold;
+	float _uwb_angle_noise_min{kMinObservationNoise};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_YAW_UNC_IN>) _param_vte_yaw_unc_in,
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
 		(ParamFloat<px4::params::VTE_EVA_NOISE>) _param_vte_ev_angle_noise,
 		(ParamInt<px4::params::VTE_EV_NOISE_MD>) _param_vte_ev_noise_md,
-		(ParamFloat<px4::params::VTE_YAW_NIS_THRE>) _param_vte_yaw_nis_thre
+		(ParamFloat<px4::params::VTE_YAW_NIS_THRE>) _param_vte_yaw_nis_thre,
+		(ParamFloat<px4::params::VTE_UWB_A_NOISE>) _param_vte_uwb_a_noise
 	)
 };
 } // namespace vision_target_estimator

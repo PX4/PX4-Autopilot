@@ -74,7 +74,7 @@ void VTEOrientation::resetFilter()
 	_estimator_initialized = false;
 }
 
-void VTEOrientation::update()
+void VTEOrientation::update(const matrix::Quaternionf &q_att)
 {
 	if (_parameter_update_sub.updated()) {
 		updateParams();
@@ -89,7 +89,7 @@ void VTEOrientation::update()
 	}
 
 	// update and fuse the observations and pulishes innovations
-	if (updateStep()) {
+	if (updateStep(q_att)) {
 		_last_update = _last_predict;
 	}
 
@@ -139,13 +139,13 @@ void VTEOrientation::predictionStep()
 	_target_est_yaw.predictCov(dt);
 }
 
-bool VTEOrientation::updateStep()
+bool VTEOrientation::updateStep(const matrix::Quaternionf &q_att)
 {
 	TargetObs obs_fiducial_marker_orientation;
 
 	ObsValidMaskU vte_fusion_aid_mask{};
 	TargetObs observations[ObsType::Type_count];
-	processObservations(vte_fusion_aid_mask, observations);
+	processObservations(q_att, vte_fusion_aid_mask, observations);
 
 	// No new observations --> no fusion.
 	if (vte_fusion_aid_mask.value == 0) {
@@ -162,11 +162,12 @@ bool VTEOrientation::updateStep()
 	return fuseNewSensorData(vte_fusion_aid_mask, observations);
 }
 
-void VTEOrientation::processObservations(ObsValidMaskU &vte_fusion_aid_mask, TargetObs obs[ObsType::Type_count])
+void VTEOrientation::processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
+		TargetObs obs[ObsType::Type_count])
 {
 	handleVisionData(vte_fusion_aid_mask, obs[ObsType::Fiducial_marker]);
 
-	handleUwbData(vte_fusion_aid_mask, obs[ObsType::Uwb]);
+	handleUwbData(q_att, vte_fusion_aid_mask, obs[ObsType::Uwb]);
 }
 
 void VTEOrientation::handleVisionData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker)
@@ -232,7 +233,8 @@ bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiduci
 	return true;
 }
 
-void VTEOrientation::handleUwbData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_uwb)
+void VTEOrientation::handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
+				   TargetObs &obs_uwb)
 {
 	sensor_uwb_s uwb_report;
 
@@ -248,7 +250,7 @@ void VTEOrientation::handleUwbData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs
 		return;
 	}
 
-	if (processObsUwb(uwb_report, obs_uwb)) {
+	if (processObsUwb(q_att, uwb_report, obs_uwb)) {
 		vte_fusion_aid_mask.flags.fuse_uwb = true;
 	}
 }
@@ -262,29 +264,45 @@ bool VTEOrientation::isUwbDataValid(const sensor_uwb_s &uwb_report)
 
 	if (!PX4_ISFINITE(uwb_report.distance) ||
 	    fabsf(uwb_report.aoa_azimuth_dev) > max_uwb_aoa_angle_degree ||
-	    fabsf(uwb_report.aoa_elevation_dev) > max_uwb_aoa_angle_degree) {
+	    fabsf(uwb_report.aoa_elevation_dev) > max_uwb_aoa_angle_degree ||
+	    fabsf(uwb_report.aoa_azimuth_resp) > max_uwb_aoa_angle_degree) {
 		return false;
 	}
 
 	return true;
 }
 
-// TODO: complete
-bool VTEOrientation::processObsUwb(const sensor_uwb_s &uwb_report, TargetObs &obs)
+bool VTEOrientation::processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs)
 {
+	matrix::Vector3f rel_pos_ned{};
+
+	if (!uwbMeasurementToNed(uwb_report, q_att, rel_pos_ned)) {
+		return false;
+	}
+
+	const float horizontal_sq = rel_pos_ned(0) * rel_pos_ned(0) + rel_pos_ned(1) * rel_pos_ned(1);
+
+	if (!PX4_ISFINITE(horizontal_sq) || horizontal_sq < 1e-4f) {
+		return false;
+	}
+
+	const float bearing_drone_to_target = atan2f(rel_pos_ned(1), rel_pos_ned(0));
+	const float bearing_target_to_drone = wrap_pi(bearing_drone_to_target + M_PI_F);
+	const float aoa_resp_rad = math::radians(uwb_report.aoa_azimuth_resp);
+
+	if (!PX4_ISFINITE(aoa_resp_rad)) {
+		return false;
+	}
+
 	obs.timestamp = uwb_report.timestamp;
-	// obs.updated = ;
-
-	// obs.meas = ;
-	// obs.meas_unc = ;
-
-	// obs.meas_h_theta(State::yaw) = 1; // Set to 1 if observed, zero otherwise
-	// obs.meas_h_theta(State::yaw_rate) = 1; // Set to 1 if observed, zero otherwise
-
-	// obs.updated = true;
+	obs.meas = wrap_pi(bearing_target_to_drone - aoa_resp_rad);
+	obs.meas_unc = fmaxf(math::sq(math::radians(3.f)), _uwb_angle_noise_min);
+	obs.meas_h_theta(State::yaw) = 1;
+	obs.meas_h_theta(State::yaw_rate) = 0;
+	obs.updated = true;
 	obs.type = ObsType::Uwb;
 
-	return false; // TODO: change to true once implemented
+	return true;
 }
 
 bool VTEOrientation::fuseNewSensorData(ObsValidMaskU &vte_fusion_aid_mask,
@@ -372,7 +390,7 @@ void VTEOrientation::publishTarget()
 	matrix::Vector<float, State::size> state_var = _target_est_yaw.get_state_covariance();
 
 	vision_target_orientation.timestamp = _last_predict;
-	vision_target_orientation.orientation_valid = hasTimedOut(_last_update, kTargetValidTimeoutUs);
+	vision_target_orientation.orientation_valid = !hasTimedOut(_last_update, kTargetValidTimeoutUs);
 
 	vision_target_orientation.theta = state(State::yaw);
 	vision_target_orientation.cov_theta = state_var(State::yaw);
@@ -389,7 +407,9 @@ void VTEOrientation::checkMeasurementInputs()
 		_range_sensor.valid = isMeasUpdated(_range_sensor.timestamp);
 	}
 
-	// TODO: check other measurements?
+	if (_local_orientation.valid && !isMeasUpdated(_local_orientation.last_update)) {
+		_local_orientation.valid = false;
+	}
 }
 
 void VTEOrientation::updateParams()
@@ -403,6 +423,7 @@ void VTEOrientation::updateParams()
 	const float new_ev_angle_noise = _param_vte_ev_angle_noise.get();
 	_ev_noise_md = _param_vte_ev_noise_md.get();
 	const float new_nis_threshold = _param_vte_yaw_nis_thre.get();
+	const float new_uwb_angle_noise_min = _param_vte_uwb_a_noise.get();
 
 	if (PX4_ISFINITE(new_ev_angle_noise) && new_ev_angle_noise > kMinObservationNoise) {
 		_ev_angle_noise = new_ev_angle_noise;
@@ -419,6 +440,14 @@ void VTEOrientation::updateParams()
 		PX4_WARN("VTE: VTE_YAW_NIS_THRE %.1f <= %.1f, keeping previous value",
 			 (double)new_nis_threshold, (double)kMinNisThreshold);
 	}
+
+	if (PX4_ISFINITE(new_uwb_angle_noise_min) && new_uwb_angle_noise_min > 0.f) {
+		_uwb_angle_noise_min = new_uwb_angle_noise_min;
+
+	} else {
+		PX4_WARN("VTE: VTE_UWB_A_NOISE %.1f <= 0, keeping previous value",
+			 (double)new_uwb_angle_noise_min);
+	}
 }
 
 void VTEOrientation::set_range_sensor(const float dist, const bool valid, hrt_abstime timestamp)
@@ -426,6 +455,13 @@ void VTEOrientation::set_range_sensor(const float dist, const bool valid, hrt_ab
 	_range_sensor.valid = valid && isMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
 	_range_sensor.dist_bottom = dist;
 	_range_sensor.timestamp = timestamp;
+}
+
+void VTEOrientation::set_local_orientation(const float yaw, const bool valid, const hrt_abstime timestamp)
+{
+	_local_orientation.valid = valid && isMeasUpdated(timestamp);
+	_local_orientation.yaw = wrap_pi(yaw);
+	_local_orientation.last_update = timestamp;
 }
 
 } // namespace vision_target_estimator

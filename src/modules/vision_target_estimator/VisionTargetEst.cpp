@@ -574,78 +574,93 @@ void VisionTargetEst::updateEstimators()
 	LocalPose local_pose;
 	const bool local_pose_updated = get_local_pose(local_pose);
 
-	if (_vte_position_enabled && _position_estimator_running) {
-		updatePosEst(local_pose, local_pose_updated);
+	matrix::Vector3f vel_offset_body{};
+	const bool vel_offset_updated = get_gps_velocity_offset(vel_offset_body);
+
+	matrix::Vector3f vehicle_acc_ned{};
+	matrix::Quaternionf q_att{};
+	matrix::Vector3f gps_pos_offset_ned{};
+	matrix::Vector3f vel_offset_ned = vel_offset_body;
+
+	// Minimal requirements: acc (for input) and attitude (to rotate acc in vehicle-carried NED frame)
+	if (!get_input(vehicle_acc_ned, q_att, gps_pos_offset_ned, vel_offset_ned, vel_offset_updated)) {
+		perf_end(_cycle_perf);
+		return;
 	}
 
-	if (_vte_orientation_enabled && _orientation_estimator_running
-	    && check_and_update_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
-		updateYawEst(local_pose, local_pose_updated);
+	if (_vte_position_enabled && _position_estimator_running) {
+		updatePosEst(local_pose, local_pose_updated, vehicle_acc_ned, q_att,
+			     gps_pos_offset_ned, vel_offset_ned, vel_offset_updated);
+	}
+
+	if (_vte_orientation_enabled && _orientation_estimator_running) {
+		updateYawEst(local_pose, local_pose_updated, q_att);
 	}
 
 	perf_end(_cycle_perf);
 }
 
-void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local_pose_updated)
+void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local_pose_updated,
+				   const matrix::Vector3f &vehicle_acc_ned,
+				   const matrix::Quaternionf &q_att,
+				   const matrix::Vector3f &gps_pos_offset_ned,
+				   const matrix::Vector3f &vel_offset_ned,
+				   const bool vel_offset_updated)
 {
-	matrix::Vector3f gps_pos_offset_ned{};
-	matrix::Vector3f vel_offset{};
-	const bool vel_offset_updated = get_gps_velocity_offset(vel_offset);
-
-	matrix::Vector3f vehicle_acc_ned{};
-	matrix::Quaternionf q_att{}; // Required for Uwb (and Irlock)
-
-	// TODO: Downsample attitude quaternions
-	/* Downsample acceleration ned */
-	if (get_input(vehicle_acc_ned, q_att, gps_pos_offset_ned, vel_offset, vel_offset_updated)) {
-
-		/* If the acceleration has been averaged for too long, early return */
-		if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
-			PX4_DEBUG("Forced acc downsample reset");
-			resetAccDownsample();
-			return;
-		}
-
-		_vehicle_acc_ned_sum += vehicle_acc_ned;
-		_loops_count ++;
-
-		if (check_and_update_elapsed(_last_update_pos, (1_s / vte_pos_UPDATE_RATE_HZ))) {
-
-			perf_begin(_cycle_perf_pos);
-
-			if (local_pose_updated) {
-				_vte_position.set_local_velocity(local_pose.vel_xyz, local_pose.vel_valid, local_pose.timestamp);
-				_vte_position.set_local_position(local_pose.xyz, local_pose.pos_valid, local_pose.timestamp);
-				_vte_position.set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid, local_pose.timestamp);
-			}
-
-			_vte_position.set_gps_pos_offset(gps_pos_offset_ned, _gps_pos_is_offset);
-
-			if (vel_offset_updated) {
-				_vte_position.set_vel_offset(vel_offset);
-			}
-
-			const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
-
-			_vte_position.update(vehicle_acc_ned_sampled, q_att);
-			publishVteInput(vehicle_acc_ned_sampled, q_att);
-
-			resetAccDownsample();
-
-			perf_end(_cycle_perf_pos);
-		}
+	/* If the acceleration has been averaged for too long, early return */
+	if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
+		PX4_DEBUG("Forced acc downsample reset");
+		resetAccDownsample();
+		return;
 	}
+
+	_vehicle_acc_ned_sum += vehicle_acc_ned;
+	_loops_count ++;
+
+	if (check_and_update_elapsed(_last_update_pos, (1_s / vte_pos_UPDATE_RATE_HZ))) {
+		return;
+	}
+
+	perf_begin(_cycle_perf_pos);
+
+	if (local_pose_updated) {
+		_vte_position.set_local_velocity(local_pose.vel_xyz, local_pose.vel_valid, local_pose.timestamp);
+		_vte_position.set_local_position(local_pose.xyz, local_pose.pos_valid, local_pose.timestamp);
+		_vte_position.set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid, local_pose.timestamp);
+	}
+
+	_vte_position.set_gps_pos_offset(gps_pos_offset_ned, _gps_pos_is_offset);
+
+	if (vel_offset_updated) {
+		_vte_position.set_vel_offset(vel_offset_ned);
+	}
+
+	const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
+
+	_vte_position.update(vehicle_acc_ned_sampled, q_att);
+	publishVteInput(vehicle_acc_ned_sampled, q_att);
+
+	resetAccDownsample();
+
+	perf_end(_cycle_perf_pos);
 }
 
-void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local_pose_updated)
+void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local_pose_updated,
+				   const matrix::Quaternionf &q_att)
 {
+
+	if (check_and_update_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
+		return;
+	}
+
 	perf_begin(_cycle_perf_yaw);
 
 	if (local_pose_updated) {
 		_vte_orientation.set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid, local_pose.timestamp);
+		_vte_orientation.set_local_orientation(local_pose.yaw, local_pose.yaw_valid, local_pose.timestamp);
 	}
 
-	_vte_orientation.update();
+	_vte_orientation.update(q_att);
 	perf_end(_cycle_perf_yaw);
 }
 
@@ -733,7 +748,6 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 	const bool vehicle_attitude_updated = _vehicle_attitude_sub.update(&vehicle_attitude);
 	const bool vehicle_acceleration_updated = _vehicle_acceleration_sub.update(&vehicle_acceleration);
 
-	// Minimal requirement: acceleraion (for input) and attitude (to rotate acc in vehicle-carried NED frame)
 	if (!vehicle_attitude_updated || !vehicle_acceleration_updated) {
 		return false;
 	}

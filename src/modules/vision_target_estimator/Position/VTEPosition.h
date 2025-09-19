@@ -343,7 +343,7 @@ private:
 	bool  _ev_noise_md{false};
 	float _ev_pos_noise{0.1f};
 	float _nis_threshold{3.84f};
-	float _uwb_noise{0.1f};
+	float _uwb_p_noise{0.1f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_ACC_D_UNC>) _param_vte_acc_d_unc,
@@ -362,7 +362,7 @@ private:
 		(ParamFloat<px4::params::VTE_MOVING_T_MAX>) _param_vte_moving_t_max,
 		(ParamFloat<px4::params::VTE_MOVING_T_MIN>) _param_vte_moving_t_min,
 		(ParamFloat<px4::params::VTE_POS_NIS_THRE>) _param_vte_pos_nis_thre,
-		(ParamFloat<px4::params::VTE_UWB_NOISE>) _param_vte_uwb_noise,
+		(ParamFloat<px4::params::VTE_UWB_P_NOISE>) _param_vte_uwb_p_noise,
 		(ParamFloat<px4::params::VTE_IRL_SCALE_X>) _param_vte_irl_scale_x,
 		(ParamFloat<px4::params::VTE_IRL_SCALE_Y>) _param_vte_irl_scale_y,
 		(ParamInt<px4::params::VTE_IRL_SENS_ROT>) _param_vte_irl_sens_rot,

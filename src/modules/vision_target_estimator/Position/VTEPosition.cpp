@@ -352,24 +352,11 @@ bool VTEPosition::isUwbDataValid(const sensor_uwb_s &uwb_report)
 
 bool VTEPosition::processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs)
 {
-	// Convert degrees to radians
-	const float theta_rad = math::radians(uwb_report.aoa_azimuth_dev);
-	const float phi_rad = math::radians(uwb_report.aoa_elevation_dev);
+	matrix::Vector3f pos_ned{};
 
-	const float distance = uwb_report.distance;
-
-	// Calculate the relative position components
-	const float delta_z = -distance * cosf(phi_rad) * cosf(theta_rad); // Negative because Z is down in NED
-	const float delta_y = distance * cosf(phi_rad) * sinf(theta_rad);
-	const float delta_x = -distance * sinf(phi_rad);
-
-	// Total position in NED frame
-	const Vector3f pos(uwb_report.offset_x + delta_x, uwb_report.offset_y + delta_y, uwb_report.offset_z + delta_z);
-
-	// Rotate UWB into NED frame
-	matrix::Quaternion<float> q_rotation = q_att * get_rot_quaternion(static_cast<enum Rotation>
-					       (uwb_report.orientation));
-	const Vector3f pos_ned = q_rotation.rotateVector(pos);
+	if (!uwbMeasurementToNed(uwb_report, q_att, pos_ned)) {
+		return false;
+	}
 
 	obs.meas_xyz = pos_ned;
 
@@ -377,9 +364,9 @@ bool VTEPosition::processObsUwb(const matrix::Quaternionf &q_att, const sensor_u
 	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
 	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
 
-	// Variance of UWB Distance measurements is +/- 5 cm
+	// Variance of UWB distance measurements is +/- 5 cm
 	// Variance of UWB Angle of Arrival measurements is +/- 3° Degree
-	const float unc = fmaxf((math::sq(distance * 0.02f) + 0.0004f), _uwb_noise * _uwb_noise);
+	const float unc = fmaxf((math::sq(uwb_report.distance * 0.02f) + 0.0004f), _uwb_p_noise * _uwb_p_noise);
 	obs.meas_unc_xyz(vtest::Axis::x) = unc;
 	obs.meas_unc_xyz(vtest::Axis::y) = unc;
 	obs.meas_unc_xyz(vtest::Axis::z) = unc;
@@ -1254,7 +1241,7 @@ void VTEPosition::publishTarget()
 	target_pose.timestamp = _last_predict;
 	vte_state.timestamp = _last_predict;
 
-	target_pose.rel_pos_valid = hasTimedOut(_last_update, kTargetValidTimeoutUs);
+	target_pose.rel_pos_valid = !hasTimedOut(_last_update, kTargetValidTimeoutUs);
 
 #if defined(CONFIG_VTEST_MOVING)
 	target_pose.is_static = false;
@@ -1493,7 +1480,7 @@ void VTEPosition::updateParams()
 	const float new_ev_pos_noise = _param_vte_ev_pos_noise.get();
 	const float new_nis_threshold = _param_vte_pos_nis_thre.get();
 
-	_uwb_noise = _param_vte_uwb_noise.get();
+	_uwb_p_noise = _param_vte_uwb_p_noise.get();
 
 	_irlock_config.scale_x = _param_vte_irl_scale_x.get();
 	_irlock_config.scale_y = _param_vte_irl_scale_y.get();
