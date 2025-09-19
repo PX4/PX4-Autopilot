@@ -118,7 +118,6 @@ void VTEPosition::resetFilter()
 	_last_relative_meas_fused_time = 0;
 	_bias_set = false;
 	_mission_land_position.valid = false;
-	_has_timed_out = false;
 }
 
 void VTEPosition::update(const Vector3f &acc_ned, const matrix::Quaternionf &q_att)
@@ -131,18 +130,11 @@ void VTEPosition::update(const Vector3f &acc_ned, const matrix::Quaternionf &q_a
 
 	// predict the target state using a constant relative acceleration model
 	if (_estimator_initialized) {
+		perf_begin(_vte_predict_perf);
+		predictionStep(acc_ned);
+		perf_end(_vte_predict_perf);
 
-		if (hrt_absolute_time() - _last_update > _vte_TIMEOUT_US) {
-			PX4_WARN("VTE Position estimator has timed out");
-			_has_timed_out = true;
-
-		} else {
-			perf_begin(_vte_predict_perf);
-			predictionStep(acc_ned);
-			perf_end(_vte_predict_perf);
-
-			_last_predict = hrt_absolute_time();
-		}
+		_last_predict = hrt_absolute_time();
 	}
 
 	// update and fuse the observations and publishes innovations
@@ -375,8 +367,7 @@ bool VTEPosition::processObsUwb(const matrix::Quaternionf &q_att, const sensor_u
 	const Vector3f pos(uwb_report.offset_x + delta_x, uwb_report.offset_y + delta_y, uwb_report.offset_z + delta_z);
 
 	// Rotate UWB into NED frame
-	const matrix::Quaternion<float> q_to_ned_uwb(0.0f, 0.7071068f, 0.0f, 0.7071068f); // TODO: no magic numbers
-	matrix::Quaternion<float> q_rotation = q_att * q_to_ned_uwb * get_rot_quaternion(static_cast<enum Rotation>
+	matrix::Quaternion<float> q_rotation = q_att * get_rot_quaternion(static_cast<enum Rotation>
 					       (uwb_report.orientation));
 	const Vector3f pos_ned = q_rotation.rotateVector(pos);
 
@@ -459,7 +450,7 @@ bool VTEPosition::isUavGpsVelocityValid()
 	}
 
 	if (_gps_pos_is_offset && !_velocity_offset_ned.valid) {
-		PX4_WARN("Uav Gps velocity invalid offset!"); // TODO: this message can spam
+		PX4_DEBUG("Uav Gps velocity invalid offset!");
 		return false;
 	}
 
@@ -805,7 +796,7 @@ bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &fiducial_
 
 	/* RELATIVE POSITION*/
 	if (!PX4_ISFINITE(vision_ned(0)) || !PX4_ISFINITE(vision_ned(1)) || !PX4_ISFINITE(vision_ned(2))) {
-		PX4_WARN("VISION position is corrupt!");
+		PX4_WARN("VTE: Vision position NED is corrupt!");
 		return false;
 	}
 
@@ -1135,7 +1126,6 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_GNSS_repor
 	return true;
 }
 
-// TODO: decide if we want to split the estimation into vertical and horizontal component
 bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &target_obs)
 {
 	perf_begin(_vte_update_perf);
@@ -1264,7 +1254,7 @@ void VTEPosition::publishTarget()
 	target_pose.timestamp = _last_predict;
 	vte_state.timestamp = _last_predict;
 
-	target_pose.rel_pos_valid =	isMeasValid(_last_update);
+	target_pose.rel_pos_valid = hasTimedOut(_last_update, kTargetValidTimeoutUs);
 
 #if defined(CONFIG_VTEST_MOVING)
 	target_pose.is_static = false;
@@ -1410,15 +1400,15 @@ void VTEPosition::checkMeasurementInputs()
 {
 	// Make sure range sensor, local position and local velocity are up to date.
 	if (_range_sensor.valid) {
-		_range_sensor.valid = IsMeasUpdated(_range_sensor.timestamp);
+		_range_sensor.valid = isMeasUpdated(_range_sensor.timestamp);
 	}
 
 	if (_local_position.valid) {
-		_local_position.valid = IsMeasUpdated(_local_position.timestamp);
+		_local_position.valid = isMeasUpdated(_local_position.timestamp);
 	}
 
 	if (_local_velocity.valid) {
-		_local_velocity.valid = IsMeasUpdated(_local_velocity.timestamp);
+		_local_velocity.valid = isMeasUpdated(_local_velocity.timestamp);
 	}
 
 	// TODO: check other measurements?
@@ -1445,7 +1435,7 @@ void VTEPosition::set_vel_offset(const matrix::Vector3f &xyz)
 
 void VTEPosition::set_range_sensor(const float dist, const bool valid, hrt_abstime timestamp)
 {
-	_range_sensor.valid = valid && IsMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
+	_range_sensor.valid = valid && isMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
 	_range_sensor.dist_bottom = dist;
 	_range_sensor.timestamp = timestamp;
 
@@ -1454,14 +1444,14 @@ void VTEPosition::set_range_sensor(const float dist, const bool valid, hrt_absti
 void VTEPosition::set_local_velocity(const matrix::Vector3f &vel_xyz, const bool vel_valid, hrt_abstime timestamp)
 {
 	_local_velocity.xyz = vel_xyz;
-	_local_velocity.valid = vel_valid && IsMeasUpdated(timestamp);
+	_local_velocity.valid = vel_valid && isMeasUpdated(timestamp);
 	_local_velocity.timestamp = timestamp;
 }
 
 void VTEPosition::set_local_position(const matrix::Vector3f &xyz, const bool pos_valid, hrt_abstime timestamp)
 {
 	_local_position.xyz = xyz;
-	_local_position.valid = pos_valid && IsMeasUpdated(timestamp);
+	_local_position.valid = pos_valid && isMeasUpdated(timestamp);
 	_local_position.timestamp = timestamp;
 }
 
@@ -1498,10 +1488,10 @@ void VTEPosition::updateParams()
 	_bias_unc = _param_vte_bias_unc.get();
 	_uav_acc_unc = _param_vte_acc_d_unc.get();
 	_gps_vel_noise = _param_vte_gps_vel_noise.get();
-	_gps_pos_noise = _param_vte_gps_pos_noise.get();
 	_ev_noise_md = _param_vte_ev_noise_md.get();
-	_ev_pos_noise = _param_vte_ev_pos_noise.get();
-	_nis_threshold = _param_vte_pos_nis_thre.get();
+	const float new_gps_pos_noise = _param_vte_gps_pos_noise.get();
+	const float new_ev_pos_noise = _param_vte_ev_pos_noise.get();
+	const float new_nis_threshold = _param_vte_pos_nis_thre.get();
 
 	_uwb_noise = _param_vte_uwb_noise.get();
 
@@ -1512,11 +1502,39 @@ void VTEPosition::updateParams()
 	_irlock_config.offset_z = _param_vte_irl_pos_z.get();
 	_irlock_config.sensor_yaw = static_cast<enum Rotation>(_param_vte_irl_sens_rot.get());
 	_irlock_config.meas_unc = fmaxf(_param_vte_irl_meas_unc.get(), 1e-6f);
-	_irlock_config.noise = fmaxf(_param_vte_irl_noise.get(), 1e-2f);
+	const float new_irlock_noise = _param_vte_irl_noise.get();
 
-	// TODO: Check that params are valid. Integrate into the function. only update the global variables with correct values
-	// _gps_pos_noise, _ev_pos_noise, _irlock_config.noise must all be > 1e-2f
-	// _nis_threshold > 0.1f all params are float
+	if (PX4_ISFINITE(new_gps_pos_noise) && new_gps_pos_noise > kMinObservationNoise) {
+		_gps_pos_noise = new_gps_pos_noise;
+
+	} else {
+		PX4_WARN("VTE: VTE_GPS_POS_NOISE %.1f <= %.1f, keeping previous value",
+			 (double)new_gps_pos_noise, (double)kMinObservationNoise);
+	}
+
+	if (PX4_ISFINITE(new_ev_pos_noise) && new_ev_pos_noise > kMinObservationNoise) {
+		_ev_pos_noise = new_ev_pos_noise;
+
+	} else {
+		PX4_WARN("VTE: VTE_EV_POS_NOISE %.1f <= %.1f, keeping previous value",
+			 (double)new_ev_pos_noise, (double)kMinObservationNoise);
+	}
+
+	if (PX4_ISFINITE(new_irlock_noise) && new_irlock_noise > kMinObservationNoise) {
+		_irlock_config.noise = new_irlock_noise;
+
+	} else {
+		PX4_WARN("VTE: VTE_IRL_NOISE %.1f <= %.1f, keeping previous value",
+			 (double)new_irlock_noise, (double)kMinObservationNoise);
+	}
+
+	if (PX4_ISFINITE(new_nis_threshold) && new_nis_threshold > kMinNisThreshold) {
+		_nis_threshold = new_nis_threshold;
+
+	} else {
+		PX4_WARN("VTE: VTE_POS_NIS_THRE %.1f <= %.1f, keeping previous value",
+			 (double)new_nis_threshold, (double)kMinNisThreshold);
+	}
 }
 
 bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who) const

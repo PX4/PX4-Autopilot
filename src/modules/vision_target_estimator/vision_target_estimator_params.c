@@ -75,7 +75,6 @@ PARAM_DEFINE_INT32(VTE_POS_EN, 1);
  */
 PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
 
-// TODO: this is only for the Position estimator
 /**
  * Integer bitmask controlling data fusion and aiding methods.
  *

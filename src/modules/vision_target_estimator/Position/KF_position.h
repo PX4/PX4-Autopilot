@@ -31,8 +31,6 @@
  *
  ****************************************************************************/
 
-// TODO: lean up comments
-
 /**
  * @file KF_position_moving.h
  * @brief Filter to estimate the pose of moving targets. State: [r, vd, b, at, vt]
