@@ -57,11 +57,11 @@
 namespace vision_target_estimator
 {
 
-static constexpr uint32_t vte_pos_UPDATE_RATE_HZ = 50;
-static constexpr uint32_t vte_yaw_UPDATE_RATE_HZ = 50;
-static constexpr uint32_t acc_downsample_TIMEOUT_US = 40_ms; // 40 ms -> 25Hz
-static constexpr uint32_t estimator_restart_time_US = 3_s; // Wait at least 3 second before re-starting the filter
-static constexpr float CONSTANTS_ONE_G = 9.80665f;  // m/s^2
+static constexpr uint32_t kVtePosUpdateRateHz = 50;
+static constexpr uint32_t kVteYawUpdateRateHz = 50;
+static constexpr uint32_t kAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25Hz
+static constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
+static constexpr float kGravity = 9.80665f;  // m/s^2
 static constexpr uint32_t kAccUpdatedTimeoutUs = 20_ms; // TODO: check if we can lower it
 
 VisionTargetEst::VisionTargetEst() :
@@ -290,7 +290,7 @@ bool VisionTargetEst::startYawEst()
 		return false;
 	}
 
-	if ((hrt_absolute_time() - _vte_orientation_stop_time) < estimator_restart_time_US) {
+	if (!hasTimedOut(_vte_orientation_stop_time, kEstRestartTimeUs)) {
 		return false;
 	}
 
@@ -305,8 +305,7 @@ bool VisionTargetEst::startPosEst()
 		return false;
 	}
 
-	// Don't start estimator if it was stopped recently
-	if ((hrt_absolute_time() - _vte_position_stop_time) < estimator_restart_time_US) {
+	if (!hasTimedOut(_vte_position_stop_time, kEstRestartTimeUs)) {
 		return false;
 	}
 
@@ -609,7 +608,7 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 				   const bool vel_offset_updated)
 {
 	/* If the acceleration has been averaged for too long, early return */
-	if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
+	if (hasTimedOut(_last_acc_reset, kAccDownsampleTimeoutUs)) {
 		PX4_DEBUG("Forced acc downsample reset");
 		resetAccDownsample();
 		return;
@@ -618,7 +617,7 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 	_vehicle_acc_ned_sum += vehicle_acc_ned;
 	_loops_count ++;
 
-	if (!check_and_update_elapsed(_last_update_pos, (1_s / vte_pos_UPDATE_RATE_HZ))) {
+	if (!checkAndUpdateElapsed(_last_update_pos, (1_s / kVtePosUpdateRateHz))) {
 		return;
 	}
 
@@ -650,7 +649,7 @@ void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local
 				   const matrix::Quaternionf &q_att)
 {
 
-	if (!check_and_update_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
+	if (!checkAndUpdateElapsed(_last_update_yaw, (1_s / kVteYawUpdateRateHz))) {
 		return;
 	}
 
@@ -776,7 +775,7 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 	quat_att = q_att;
 
 	/* Compensate for gravity. */
-	const matrix::Vector3f gravity_ned(0, 0, CONSTANTS_ONE_G);
+	const matrix::Vector3f gravity_ned(0, 0, kGravity);
 	vehicle_acc_ned = quat_att.rotateVector(_vehicle_acc_body.xyz) + gravity_ned;
 
 	/* Rotate position and velocity offset into ned frame */
@@ -795,7 +794,7 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 	return true;
 }
 
-bool VisionTargetEst::check_and_update_elapsed(hrt_abstime &last_time, const hrt_abstime interval)
+bool VisionTargetEst::checkAndUpdateElapsed(hrt_abstime &last_time, const hrt_abstime interval)
 {
 
 	if (hrt_elapsed_time(&last_time) > interval) {

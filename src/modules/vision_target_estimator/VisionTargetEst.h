@@ -209,7 +209,7 @@ private:
 	bool get_gps_velocity_offset(matrix::Vector3f &vel_offset);
 	bool get_local_pose(LocalPose &local_pose);
 
-	bool check_and_update_elapsed(hrt_abstime &last_time, const hrt_abstime interval);
+	bool checkAndUpdateElapsed(hrt_abstime &last_time, const hrt_abstime interval);
 
 	/* Down sample acceleration data */
 	matrix::Vector3f _vehicle_acc_ned_sum{};
