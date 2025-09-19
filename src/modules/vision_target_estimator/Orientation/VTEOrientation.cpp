@@ -67,7 +67,8 @@ VTEOrientation::~VTEOrientation() = default;
 
 bool VTEOrientation::init()
 {
-	return createEstimator();
+	_target_est_yaw = KF_orientation{};
+	return true;
 }
 
 void VTEOrientation::reset_filter()
@@ -125,8 +126,8 @@ bool VTEOrientation::initEstimator(const ObsValidMask &vte_fusion_aid_mask,
 		state_var_init(i) = _yaw_unc;
 	}
 
-	_target_est_yaw->setState(state_init);
-	_target_est_yaw->setStateVar(state_var_init);
+	_target_est_yaw.setState(state_init);
+	_target_est_yaw.setStateVar(state_var_init);
 
 	PX4_INFO("Orientation filter init yaw: %.2f [rad] yaw_rate: %.2f [rad/s]", (double)state_init(State::yaw),
 		 (double)state_init(State::yaw_rate));
@@ -144,8 +145,8 @@ void VTEOrientation::predictionStep()
 	// Time from last prediciton
 	float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC_F;
 
-	_target_est_yaw->predictState(dt);
-	_target_est_yaw->predictCov(dt);
+	_target_est_yaw.predictState(dt);
+	_target_est_yaw.predictCov(dt);
 }
 
 bool VTEOrientation::updateStep()
@@ -350,14 +351,14 @@ bool VTEOrientation::fuseMeas(const targetObs &target_obs)
 	// Convert time sync to seconds
 	const float dt_sync_s = dt_sync_us / SEC2USEC_F;
 
-	_target_est_yaw->syncState(dt_sync_s);
-	_target_est_yaw->setH(target_obs.meas_h_theta);
-	target_innov.innovation_variance = _target_est_yaw->computeInnovCov(target_obs.meas_unc);
-	target_innov.innovation = _target_est_yaw->computeInnov(target_obs.meas);
+	_target_est_yaw.syncState(dt_sync_s);
+	_target_est_yaw.setH(target_obs.meas_h_theta);
+	target_innov.innovation_variance = _target_est_yaw.computeInnovCov(target_obs.meas_unc);
+	target_innov.innovation = _target_est_yaw.computeInnov(target_obs.meas);
 
 	// Set the Normalized Innovation Squared (NIS) check threshold. Used to reject outlier measurements
-	_target_est_yaw->setNISthreshold(_nis_threshold);
-	meas_fused = _target_est_yaw->update();
+	_target_est_yaw.setNISthreshold(_nis_threshold);
+	meas_fused = _target_est_yaw.update();
 
 	// Fill the target innovation field
 	target_innov.innovation_rejected = !meas_fused;
@@ -366,7 +367,7 @@ bool VTEOrientation::fuseMeas(const targetObs &target_obs)
 	target_innov.observation = target_obs.meas;
 	target_innov.observation_variance = target_obs.meas_unc;
 
-	target_innov.test_ratio = _target_est_yaw->getTestRatio();
+	target_innov.test_ratio = _target_est_yaw.getTestRatio();
 
 	_vte_aid_ev_yaw_pub.publish(target_innov);
 
@@ -377,8 +378,8 @@ void VTEOrientation::publishTarget()
 {
 	vision_target_est_orientation_s vision_target_orientation{};
 
-	matrix::Vector<float, State::size> state = _target_est_yaw->getState();
-	matrix::Vector<float, State::size> state_var = _target_est_yaw->getStateVar();
+	matrix::Vector<float, State::size> state = _target_est_yaw.getState();
+	matrix::Vector<float, State::size> state_var = _target_est_yaw.getStateVar();
 
 	vision_target_orientation.timestamp = _last_predict;
 	vision_target_orientation.orientation_valid = (hrt_absolute_time() - _last_update < target_valid_TIMEOUT_US);
@@ -420,19 +421,6 @@ void VTEOrientation::set_range_sensor(const float dist, const bool valid, hrt_ab
 	_range_sensor.valid = valid && isMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
 	_range_sensor.dist_bottom = dist;
 	_range_sensor.timestamp = timestamp;
-}
-
-bool VTEOrientation::createEstimator()
-{
-	auto estimator = std::make_unique<KF_orientation>();
-
-	if (!estimator) {
-		PX4_ERR("VTE orientation creation failed");
-		return false;
-	}
-
-	_target_est_yaw = std::move(estimator);
-	return true;
 }
 
 } // namespace vision_target_estimator
