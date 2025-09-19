@@ -53,7 +53,6 @@
 
 #include "VisionTargetEst.h"
 
-
 namespace vision_target_estimator
 {
 
@@ -63,6 +62,7 @@ static constexpr uint32_t kAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25Hz
 static constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
 static constexpr float kGravity = 9.80665f;  // m/s^2
 static constexpr uint32_t kAccUpdatedTimeoutUs = 20_ms; // TODO: check if we can lower it
+static constexpr float kMinGpsOffsetM = 0.01f; // Consider GNSS not offset below 1cm
 
 VisionTargetEst::VisionTargetEst() :
 	ModuleParams(nullptr),
@@ -99,6 +99,62 @@ int VisionTargetEst::task_spawn(int argc, char *argv[])
 	_task_id = -1;
 
 	return PX4_ERROR;
+}
+
+void VisionTargetEst::Run()
+{
+	if (should_exit()) {
+		handleExit();
+		return;
+	}
+
+	updateTaskTopics();
+
+	if (_parameter_update_sub.updated()) {
+		updateParams();
+	}
+
+	// If a new task is available, stop the estimators if they were already running
+	if (isNewTaskAvailable()) {
+		stopAllEstimators();
+	}
+
+	// No task running, early return
+	if (noActiveTask()) {
+		return;
+	}
+
+	// Task is running, check if an estimator must be started or re-started
+	startEstIfNeeded();
+
+	// Early return if no estimator is running or activated
+	if (noEstRunning()) {
+		if (IsCurrentTaskDone()) {
+			_vte_current_task.value = 0;
+		}
+
+		return;
+	}
+
+	// Stop estimators once task is completed
+	if (IsCurrentTaskDone()) {
+		stopAllEstimators();
+		_vte_current_task.value = 0;
+		return;
+	}
+
+	if (estStoppedDueToTimeout()) {
+		return;
+	}
+
+	// Early return checks passed, start filter computations.
+	updateEstimators();
+}
+
+void VisionTargetEst::handleExit()
+{
+	_vehicle_attitude_sub.unregisterCallback();
+	exit_and_cleanup();
 }
 
 bool VisionTargetEst::init()
@@ -173,16 +229,17 @@ void VisionTargetEst::updateParams()
 		}
 	}
 
-	float gps_pos_x;
+	float gps_pos_x = 0.f;
 	param_get(param_find("EKF2_GPS_POS_X"), &gps_pos_x);
 
-	float gps_pos_y;
+	float gps_pos_y = 0.f;
 	param_get(param_find("EKF2_GPS_POS_Y"), &gps_pos_y);
 
-	float gps_pos_z;
+	float gps_pos_z = 0.f;
 	param_get(param_find("EKF2_GPS_POS_Z"), &gps_pos_z);
 
-	_gps_pos_is_offset = ((gps_pos_x > 0.01f) || (gps_pos_y > 0.01f) || (gps_pos_z > 0.01f));
+	_gps_pos_is_offset = ((fabsf(gps_pos_x) > kMinGpsOffsetM) || (fabsf(gps_pos_y) > kMinGpsOffsetM)
+			      || (fabsf(gps_pos_z) > kMinGpsOffsetM));
 	_gps_pos_offset_xyz = matrix::Vector3f(gps_pos_x, gps_pos_y, gps_pos_z);
 
 	SensorFusionMaskU new_aid_mask{};
@@ -347,7 +404,6 @@ bool VisionTargetEst::startPosEst()
 
 bool VisionTargetEst::isNewTaskAvailable()
 {
-
 	if (_vte_task_mask.flags.for_prec_land && _is_in_prec_land) {
 
 		// Precision land task already running
@@ -381,7 +437,6 @@ bool VisionTargetEst::isNewTaskAvailable()
 
 bool VisionTargetEst::IsCurrentTaskDone()
 {
-
 	// Prec-land
 	if (_vte_current_task.flags.for_prec_land) {
 
@@ -420,7 +475,6 @@ bool VisionTargetEst::IsCurrentTaskDone()
 
 void VisionTargetEst::updateTaskTopics()
 {
-
 	// The structure allows to add additional tasks status here E.g. precision delivery, follow me, precision takeoff.
 
 #if !defined(CONSTRAINED_FLASH)
@@ -434,63 +488,6 @@ void VisionTargetEst::updateTaskTopics()
 	}
 
 #endif
-
-}
-
-void VisionTargetEst::Run()
-{
-	if (should_exit()) {
-		handleExit();
-		return;
-	}
-
-	updateTaskTopics();
-
-	if (_parameter_update_sub.updated()) {
-		updateParams();
-	}
-
-	// If a new task is available, stop the estimators if they were already running
-	if (isNewTaskAvailable()) {
-		stopAllEstimators();
-	}
-
-	// No task running, early return
-	if (noActiveTask()) {
-		return;
-	}
-
-	// Task is running, check if an estimator must be started or re-started
-	startEstIfNeeded();
-
-	// Early return if no estimator is running or activated
-	if (noEstRunning()) {
-		if (IsCurrentTaskDone()) {
-			_vte_current_task.value = 0;
-		}
-
-		return;
-	}
-
-	// Stop estimators once task is completed
-	if (IsCurrentTaskDone()) {
-		stopAllEstimators();
-		_vte_current_task.value = 0;
-		return;
-	}
-
-	if (estStoppedDueToTimeout()) {
-		return;
-	}
-
-	// Early return checks passed, start filter computations.
-	updateEstimators();
-}
-
-void VisionTargetEst::handleExit()
-{
-	_vehicle_attitude_sub.unregisterCallback();
-	exit_and_cleanup();
 }
 
 void VisionTargetEst::stopAllEstimators()
@@ -755,7 +752,10 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 	if (vehicle_acceleration_updated) {
 		_vehicle_acc_body.xyz = matrix::Vector3f(vehicle_acceleration.xyz);
 		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp;
-		_vehicle_acc_body.valid = hasTimedOut(vehicle_acceleration.timestamp, kAccUpdatedTimeoutUs);
+		_vehicle_acc_body.valid = !hasTimedOut(vehicle_acceleration.timestamp, kAccUpdatedTimeoutUs);
+
+	} else {
+		_vehicle_acc_body.valid = !hasTimedOut(vehicle_acceleration.timestamp, kAccUpdatedTimeoutUs);
 	}
 
 	if (!_vehicle_acc_body.valid) {
@@ -819,7 +819,7 @@ int VisionTargetEst::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Module to estimate the position and orientation of a target using a vision sensor and GNSS.
+Module to estimate the position and orientation of a target using a relative sensor e.g. vision, uwb, or irlock and GNSS. To configure, set the VTE* params.
 
 The module runs periodically on the HP work queue.
 )DESCR_STR");
