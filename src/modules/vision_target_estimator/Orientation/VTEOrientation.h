@@ -159,6 +159,7 @@ private:
 
 	bool fuseMeas(const TargetObs &target_pos_obs);
 	void publishTarget();
+	void resetObservations();
 
 	uORB::Subscription _fiducial_marker_yaw_report_sub{ORB_ID(fiducial_marker_yaw_report)};
 	uORB::Subscription _sensor_uwb_sub{ORB_ID(sensor_uwb)};
@@ -176,6 +177,9 @@ private:
 	bool _estimator_initialized{false};
 
 	KF_orientation _target_est_yaw{};
+	TargetObs _obs_buffer[ObsType::Type_count] {};
+	estimator_aid_source1d_s _aid_src1d_buffer{};
+	vision_target_est_orientation_s _orientation_msg{};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)

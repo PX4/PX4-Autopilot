@@ -141,11 +141,9 @@ void VTEOrientation::predictionStep()
 
 bool VTEOrientation::updateStep(const matrix::Quaternionf &q_att)
 {
-	TargetObs obs_fiducial_marker_orientation;
-
 	ObsValidMaskU vte_fusion_aid_mask{};
-	TargetObs observations[ObsType::Type_count];
-	processObservations(q_att, vte_fusion_aid_mask, observations);
+	resetObservations();
+	processObservations(q_att, vte_fusion_aid_mask, _obs_buffer);
 
 	// No new observations --> no fusion.
 	if (vte_fusion_aid_mask.value == 0) {
@@ -153,13 +151,20 @@ bool VTEOrientation::updateStep(const matrix::Quaternionf &q_att)
 	}
 
 	// Initialize estimator if not already initialized
-	if (!_estimator_initialized && !initEstimator(vte_fusion_aid_mask, observations)) {
+	if (!_estimator_initialized && !initEstimator(vte_fusion_aid_mask, _obs_buffer)) {
 		resetFilter();
 		return false;
 	}
 
 	// Fuse new sensor data
-	return fuseNewSensorData(vte_fusion_aid_mask, observations);
+	return fuseNewSensorData(vte_fusion_aid_mask, _obs_buffer);
+}
+
+void VTEOrientation::resetObservations()
+{
+	for (auto &obs : _obs_buffer) {
+		obs = {};
+	}
 }
 
 void VTEOrientation::processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
@@ -328,7 +333,8 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 	// update step for orientation
 	bool meas_fused = false;
 
-	estimator_aid_source1d_s target_innov;
+	estimator_aid_source1d_s &target_innov = _aid_src1d_buffer;
+	target_innov = {};
 
 	target_innov.time_last_fuse = _last_predict;
 	target_innov.timestamp_sample = target_obs.timestamp;
@@ -384,7 +390,8 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 
 void VTEOrientation::publishTarget()
 {
-	vision_target_est_orientation_s vision_target_orientation{};
+	vision_target_est_orientation_s &vision_target_orientation = _orientation_msg;
+	vision_target_orientation = {};
 
 	matrix::Vector<float, State::size> state = _target_est_yaw.get_state();
 	matrix::Vector<float, State::size> state_var = _target_est_yaw.get_state_covariance();

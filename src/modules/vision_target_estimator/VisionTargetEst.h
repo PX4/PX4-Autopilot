@@ -58,6 +58,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/vision_target_est_input.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #if !defined(CONSTRAINED_FLASH)
 #include <uORB/topics/prec_land_status.h>
 #endif
@@ -169,6 +170,10 @@ private:
 
 	uORB::Publication<vision_target_est_input_s> _vision_target_est_input_pub{ORB_ID(vision_target_est_input)};
 
+	param_t _param_ekf2_gps_pos_x{PARAM_INVALID};
+	param_t _param_ekf2_gps_pos_y{PARAM_INVALID};
+	param_t _param_ekf2_gps_pos_z{PARAM_INVALID};
+
 	union VisionTargetEstTaskMaskU {
 		struct {
 			uint8_t for_prec_land : 1; ///< bit0: precision landing task active
@@ -216,6 +221,7 @@ private:
 	uint32_t _loops_count{0};
 	hrt_abstime _last_acc_reset{0};
 	void resetAccDownsample();
+	position_setpoint_triplet_s _pos_sp_triplet_buffer{};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
