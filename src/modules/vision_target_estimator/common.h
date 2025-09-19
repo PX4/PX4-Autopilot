@@ -43,6 +43,12 @@
 
 #include <cstdint>
 #include <drivers/drv_hrt.h>
+#include <lib/conversion/rotation.h>
+#include <mathlib/mathlib.h>
+#include <matrix/Matrix.hpp>
+#include <matrix/Quaternion.hpp>
+#include <matrix/math.hpp>
+#include <uORB/topics/sensor_uwb.h>
 
 using namespace time_literals;
 
@@ -107,5 +113,33 @@ struct RangeSensor {
 	bool valid = false;
 	float dist_bottom = 0.f;
 };
+
+inline bool uwbMeasurementToNed(const sensor_uwb_s &uwb_report,
+				const matrix::Quaternionf &vehicle_att,
+				matrix::Vector3f &relative_pos_ned)
+{
+	if (!PX4_ISFINITE(uwb_report.distance) || (uwb_report.distance <= 0.f)) {
+		return false;
+	}
+
+	const float theta_rad = math::radians(uwb_report.aoa_azimuth_dev);
+	const float phi_rad = math::radians(uwb_report.aoa_elevation_dev);
+
+	const float distance = uwb_report.distance;
+
+	const float delta_z = -distance * cosf(phi_rad) * cosf(theta_rad);
+	const float delta_y = distance * cosf(phi_rad) * sinf(theta_rad);
+	const float delta_x = -distance * sinf(phi_rad);
+
+	const matrix::Vector3f relative_pos_sensor(uwb_report.offset_x + delta_x,
+			uwb_report.offset_y + delta_y,
+			uwb_report.offset_z + delta_z);
+
+	const matrix::Quaternionf sensor_rotation = get_rot_quaternion(static_cast<enum Rotation>(uwb_report.orientation));
+	const matrix::Quaternionf body_to_ned = vehicle_att * sensor_rotation;
+
+	relative_pos_ned = body_to_ned.rotateVector(relative_pos_sensor);
+	return true;
+}
 
 } // namespace vision_target_estimator

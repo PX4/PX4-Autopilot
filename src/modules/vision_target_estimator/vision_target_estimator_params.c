@@ -398,7 +398,21 @@ PARAM_DEFINE_FLOAT(VTE_YAW_NIS_THRE, 3.84f);
  *
  * @group Vision Target Estimator
  */
-PARAM_DEFINE_FLOAT(VTE_UWB_NOISE, 0.1f);
+PARAM_DEFINE_FLOAT(VTE_UWB_P_NOISE, 0.1f);
+
+/**
+ * Minimum observation noise for uwb angle fusion.
+ *
+ * minimum allowed observation noise for uwb angle fusion (rad)
+ *
+ * @min 0.001
+ * @max 1.0
+ * @unit rad
+ * @decimal 2
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_UWB_A_NOISE, 0.05f);
 
 /**
  * IRLOCK measurement scale X
