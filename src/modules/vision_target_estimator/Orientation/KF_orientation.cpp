@@ -49,10 +49,7 @@ void KF_orientation::predictState(float dt)
 
 	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
 	_state = phi * _state;
-
-	for (int i = 0; i < State::size; i++) {
-		_state(i) = matrix::wrap_pi(_state(i));
-	}
+	_state(State::yaw) = matrix::wrap_pi(_state(State::yaw));
 }
 
 void KF_orientation::predictCov(float dt)
@@ -79,10 +76,7 @@ bool KF_orientation::update()
 	const matrix::Matrix<float, State::size, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
-
-	for (int i = 0; i < State::size; i++) {
-		_state(i) = matrix::wrap_pi(_state(i));
-	}
+	_state(State::yaw) = matrix::wrap_pi(_state(State::yaw));
 
 	_state_covariance = _state_covariance - kalmanGain * _meas_matrix_row_vect.transpose() * _state_covariance;
 
@@ -94,10 +88,7 @@ void KF_orientation::syncState(float dt)
 
 	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
 	_sync_state = matrix::inv(phi) * _state;
-
-	for (int i = 0; i < State::size; i++) {
-		_sync_state(i) = matrix::wrap_pi(_sync_state(i));
-	}
+	_sync_state(State::yaw) = matrix::wrap_pi(_sync_state(State::yaw));
 }
 
 float KF_orientation::computeInnovCov(float meas_unc)

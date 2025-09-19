@@ -91,7 +91,7 @@ public:
 
 	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
 	void set_local_orientation(const float yaw, const bool valid, const hrt_abstime timestamp);
-	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
+	void set_vte_timeout(const uint32_t tout) {_vte_TIMEOUT_US = tout;};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
 	bool timedOut() {return hasTimedOut(_last_update, _vte_TIMEOUT_US);};
@@ -171,7 +171,7 @@ private:
 
 	LocalOrientation _local_orientation{};
 
-	RangeSensor _range_sensor{};
+	FloatStamped _range_sensor{};
 
 	bool _estimator_initialized{false};
 

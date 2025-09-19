@@ -150,6 +150,9 @@ private:
 	perf_counter_t _cycle_perf_yaw{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle yaw")};
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle ")};
 
+	Vector3fStamped _vehicle_acc_body{};
+	hrt_abstime _acc_sample_warn_last{0};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
