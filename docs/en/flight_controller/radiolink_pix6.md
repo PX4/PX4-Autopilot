@@ -150,7 +150,7 @@ Unless noted otherwise all connectors are JST GH.
 | 7   | DRDY      | +3.3V |
 | 8   | GND       | GND   |
 
-### POWER1
+### POWER1 (HY2.0-6P)
 
 | Pin | Signal  | Volt        |
 | --- | ------- | ----------- |
@@ -161,7 +161,7 @@ Unless noted otherwise all connectors are JST GH.
 | 5   | GND     | GND         |
 | 6   | GND     | GND         |
 
-### POWER2
+### POWER2 (HY2.0-6P)
 
 | Pin | Signal | Volt  |
 | --- | ------ | ----- |
@@ -214,7 +214,7 @@ Unless noted otherwise all connectors are JST GH.
 | 1   | VCC     | +5V  |
 | 2   | BUZZER- | +5V  |
 
-### Spektrum/DSM Port
+### Spektrum/DSM Port (PH1.25-3P)
 
 | Pin | Signal | Volt  |
 | --- | ------ | ----- |
@@ -222,7 +222,7 @@ Unless noted otherwise all connectors are JST GH.
 | 2   | GND    | GND   |
 | 3   | Signal | +3.3V |
 
-### Debug port
+### Debug port (SH1.0-8P)
 
 | Pin | Signal    | Volt  |
 | --- | --------- | ----- |
@@ -264,6 +264,30 @@ In addition to the [basic configuration](../config/index.md), the following para
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) | This should be disabled since the board does not have an internal mag. You can enable it if you attach an external mag. |
 
+## recommended accessories
+
+### POWER MODULES
+The PIX6 has 2 dedicated power monitor ports with a 6 pin connector. One is the Analog power monitor(Power1), and the others is the I2C power monitor(Power2).
+#### POWER1 PORT(Analog)
+The POWER1 port is an analog power monitor with a 6 pin connector. The analog power monitor can be used to monitor the voltage and current of the power supply.
+![Radiolink POWER MODULES](../../assets/flight_controller/radiolink_pix6/radiolink_power_modules.png)
+
+The power module that comes with the flight controller with a wide voltage input range of 2-12S (7.4-50.4V), a maximum detection current of 90A (single ESC maximum detection current is 22.5A), a BEC output voltage of 5.3±0.2V, and a BEC output current of 2A.
+#### POWER2 PORT(I2C)
+The POWER2 port is an I2C power monitor with a 6 pin connector. The I2C power monitor can be used to monitor the voltage and current of the power supply.The PIX6 support power modules from other manufacturers, such as [holybro_pm02d](../power_module/holybro_pm02d.md).
+
+### GPS MODULES
+The PIX6 has 2 dedicated GPS ports with a 6 pin connector. One is the GPS1 port, and the others is the GPS2 port.
+
+Radiolink manufactures a variety of high-performance GPS，Dual Anti-interference Technology Worry-free of UAV High-power Image Transmission, High-Voltage Lines, or Other Strong Signal Interference
+
+[Radiolink SE100](https://radiolink.com.cn/se100)
+
+[Radiolink TS100](https://radiolink.com.cn/ts100v2)
+
+[Radiolink RTK F9P](https://radiolink.com.cn/rtk_f9p)
+
+
 ## Serial Port Mapping
 
 | UART   | Device     | Port                  |
@@ -282,3 +306,28 @@ The RadiolinkPIX6 has 3 analog inputs, one 6V tolerant and two 3.3V tolerant
 - ADC Pin12 -> ADC 6.6V Sense
 - ADC Pin4 -> ADC IN1 3.3V Sense
 - ADC Pin13 -> ADC IN2 3.3V Sense
+
+## Radio Control
+
+A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
+
+- Spektrum/DSM receivers connect to the **DSM/SBUS RC** input.
+- PPM or SBUS receivers connect to the **RC IN** input port.
+- CRSF receiver must be wired to a spare port (UART) on the Flight Controller. Then you can bind the transmitter and receiver together.
+#### CRSF Parameter Configuration
+
+[Find and set](../advanced_config/parameters.md) the following parameters:
+
+1. [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) — Set to the port that is connected to the CRSF receiver (such as `TELEM1`).
+
+   This [configures the serial port](../peripherals/serial_configuration.md) to use the CRSF protocol.
+   Note that some serial ports may already have a [default serial port mapping](../peripherals/serial_configuration.md#default-serial-port-configuration) or [default MAVLink serial port mapping](../peripherals/mavlink_peripherals.md#default-mavlink-ports) that you will have to un-map before you can assign the port to CRSF.
+   For example, if you want to use `TELEM1` or `TELEM2` you first need to modify [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) or [MAV_1_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG) to stop setting those ports.
+
+   There is no need to set the baud rate for the port, as this is configured by the driver.
+
+1. [RC_CRSF_TEL_EN](../advanced_config/parameter_reference.md#RC_CRSF_TEL_EN) — Enable to activate Crossfire telemetry.
+
+For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).
