@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,29 +50,37 @@ namespace vision_target_estimator
 {
 
 /* timeout after which the target is not valid if no measurements are seen*/
-static constexpr uint32_t target_valid_TIMEOUT_US = 2_s;
+static constexpr uint32_t kTargetValidTimeoutUs = 2_s; // TODO: use in position filter
 
 /* timeout after which the measurement is not valid*/
-static constexpr uint32_t meas_valid_TIMEOUT_US = 1_s;
+static constexpr uint32_t kMeasValidTimeoutUs = 1_s;
 
 /* timeout after which the measurement is not considered updated*/
-static constexpr uint32_t meas_updated_TIMEOUT_US = 100_ms;
+static constexpr uint32_t kMeasUpdatedTimeoutUs = 100_ms;
 
 /* Valid AoA measurement range between -60.00° and +60.00° for UWB*/
 static constexpr float max_uwb_aoa_angle_degree = 60.0f;
 
-static inline bool isMeasValid(hrt_abstime time_stamp)
+static inline bool HasTimedOut(const hrt_abstime ts, const uint32_t timeout_us)
 {
 	const hrt_abstime now = hrt_absolute_time();
-	return (time_stamp <= now) &&
-	       ((now - time_stamp) < static_cast<hrt_abstime>(meas_valid_TIMEOUT_US));
+
+	// Future timestamps are considered invalid -> timed out
+	if (ts > now) {
+		return true;
+	}
+
+	return (now - ts) >= static_cast<hrt_abstime>(timeout_us);
 }
 
-static inline bool isMeasUpdated(hrt_abstime time_stamp)
+static inline bool isMeasValid(hrt_abstime ts)
 {
-	const hrt_abstime now = hrt_absolute_time();
-	return (time_stamp <= now) &&
-	       ((now - time_stamp) < static_cast<hrt_abstime>(meas_updated_TIMEOUT_US));
+	return !HasTimedOut(ts, kMeasValidTimeoutUs);
+}
+
+static inline bool IsMeasUpdated(hrt_abstime ts)
+{
+	return !HasTimedOut(ts, kMeasUpdatedTimeoutUs);
 }
 
 union sensor_fusion_mask_u {
@@ -91,7 +99,7 @@ union sensor_fusion_mask_u {
 };
 static_assert(sizeof(sensor_fusion_mask_u) == 2, "Unexpected packing");
 
-struct rangeSensor {
+struct RangeSensor {
 	hrt_abstime timestamp = 0;
 	bool valid = false;
 	float dist_bottom = 0.f;

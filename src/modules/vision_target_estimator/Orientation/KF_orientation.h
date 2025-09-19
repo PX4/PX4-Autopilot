@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,16 +70,16 @@ public:
 
 	// Backwards state prediciton
 	void syncState(float dt);
-	void setH(const matrix::Vector<float, State::size> &h_meas) {_meas_matrix_row_vect = h_meas;}
-	void setState(const matrix::Vector<float, State::size> &state) {_state = state;}
-	void setStateVar(const matrix::Vector<float, State::size> &var)
+	void set_H(const matrix::Vector<float, State::size> &h_meas) {_meas_matrix_row_vect = h_meas;}
+	void set_state(const matrix::Vector<float, State::size> &state) {_state = state;}
+	void set_state_covariance(const matrix::Vector<float, State::size> &var)
 	{
 		const matrix::SquareMatrix<float, State::size> var_mat = diag(var);
 		_state_covariance = var_mat;
 	};
 
-	matrix::Vector<float, State::size> getState() { return _state;}
-	matrix::Vector<float, State::size> getStateVar()
+	matrix::Vector<float, State::size> get_state() { return _state;}
+	matrix::Vector<float, State::size> get_state_covariance()
 	{
 		const matrix::SquareMatrix<float, State::size> var_mat = _state_covariance;
 		return var_mat.diag();
@@ -88,8 +88,8 @@ public:
 	float computeInnovCov(float measUnc);
 	float computeInnov(float meas);
 
-	void setNISthreshold(float nis_threshold) { _nis_threshold = nis_threshold; };
-	float getTestRatio() {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
+	void set_nis_threshold(float nis_threshold) { _nis_threshold = nis_threshold; };
+	float get_test_ratio() {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
 
 private:
 

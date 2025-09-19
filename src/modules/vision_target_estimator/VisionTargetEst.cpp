@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -220,15 +220,15 @@ void VisionTargetEst::updateParams()
 	}
 
 	if (_vte_position_enabled && _position_estimator_running
-	    && !_vte_position.has_fusion_enabled()) {
+	    && !_vte_position.fusionEnabled()) {
 		PX4_INFO("VTE position estimator stopped, no fusion source selected.");
-		stop_position_estimator();
+		stopPosEst();
 	}
 
 	if (_vte_orientation_enabled && _orientation_estimator_running
-	    && !_vte_orientation.has_fusion_enabled()) {
+	    && !_vte_orientation.fusionEnabled()) {
 		PX4_INFO("VTE yaw estimator stopped, no fusion source selected.");
-		stop_orientation_estimator();
+		stopYawEst();
 	}
 }
 
@@ -276,14 +276,14 @@ void VisionTargetEst::printAidMask()
 	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
 }
 
-void VisionTargetEst::reset_acc_downsample()
+void VisionTargetEst::resetAccDownsample()
 {
 	_vehicle_acc_ned_sum.setAll(0);
 	_loops_count = 0;
 	_last_acc_reset = hrt_absolute_time();
 }
 
-bool VisionTargetEst::start_orientation_estimator()
+bool VisionTargetEst::startYawEst()
 {
 	if (!_vte_orientation_enabled) {
 		return false;
@@ -294,11 +294,11 @@ bool VisionTargetEst::start_orientation_estimator()
 	}
 
 	PX4_INFO("Starting Orientation Vision Target Estimator.");
-	_vte_orientation.reset_filter();
+	_vte_orientation.resetFilter();
 	return true;
 }
 
-bool VisionTargetEst::start_position_estimator()
+bool VisionTargetEst::startPosEst()
 {
 	if (!_vte_position_enabled) {
 		return false;
@@ -309,10 +309,10 @@ bool VisionTargetEst::start_position_estimator()
 		return false;
 	}
 
-	reset_acc_downsample();
+	resetAccDownsample();
 
 	PX4_INFO("Starting Position Vision Target Estimator.");
-	_vte_position.reset_filter();
+	_vte_position.resetFilter();
 
 	if (_vte_current_task & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
 
@@ -345,7 +345,7 @@ bool VisionTargetEst::start_position_estimator()
 	return true;
 }
 
-bool VisionTargetEst::new_task_available()
+bool VisionTargetEst::isNewTaskAvailable()
 {
 
 	if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND && _is_in_prec_land) {
@@ -377,7 +377,7 @@ bool VisionTargetEst::new_task_available()
 	return false;
 }
 
-bool VisionTargetEst::is_current_task_done()
+bool VisionTargetEst::IsCurrentTaskDone()
 {
 
 	// Prec-land
@@ -416,7 +416,7 @@ bool VisionTargetEst::is_current_task_done()
 	return false;
 }
 
-void VisionTargetEst::update_task_topics()
+void VisionTargetEst::updateTaskTopics()
 {
 
 	// The structure allows to add additional tasks status here E.g. precision delivery, follow me, precision takeoff.
@@ -438,32 +438,32 @@ void VisionTargetEst::update_task_topics()
 void VisionTargetEst::Run()
 {
 	if (should_exit()) {
-		handle_exit();
+		handleExit();
 		return;
 	}
 
-	update_task_topics();
+	updateTaskTopics();
 
 	if (_parameter_update_sub.updated()) {
 		updateParams();
 	}
 
 	// If a new task is available, stop the estimators if they were already running
-	if (new_task_available()) {
-		stop_all_estimators();
+	if (isNewTaskAvailable()) {
+		stopAllEstimators();
 	}
 
 	// No task running, early return
-	if (no_active_task()) {
+	if (noActiveTask()) {
 		return;
 	}
 
 	// Task is running, check if an estimator must be started or re-started
-	start_estimators_if_needed();
+	startEstIfNeeded();
 
 	// Early return if no estimator is running or activated
-	if (no_estimator_running()) {
-		if (is_current_task_done()) {
+	if (noEstRunning()) {
+		if (IsCurrentTaskDone()) {
 			_vte_current_task = VisionTargetEstTask::VTE_NO_TASK;
 		}
 
@@ -471,90 +471,90 @@ void VisionTargetEst::Run()
 	}
 
 	// Stop estimators once task is completed
-	if (is_current_task_done()) {
-		stop_all_estimators();
+	if (IsCurrentTaskDone()) {
+		stopAllEstimators();
 		_vte_current_task = VisionTargetEstTask::VTE_NO_TASK;
 		return;
 	}
 
-	if (estimators_stopped_due_to_timeout()) {
+	if (estStoppedDueToTimeout()) {
 		return;
 	}
 
 	// Early return checks passed, start filter computations.
-	perform_estimations();
+	updateEstimators();
 }
 
-void VisionTargetEst::handle_exit()
+void VisionTargetEst::handleExit()
 {
 	_vehicle_attitude_sub.unregisterCallback();
 	exit_and_cleanup();
 }
 
-void VisionTargetEst::stop_all_estimators()
+void VisionTargetEst::stopAllEstimators()
 {
 	if (_vte_position_enabled && _position_estimator_running) {
-		stop_position_estimator();
+		stopPosEst();
 	}
 
 	if (_vte_orientation_enabled && _orientation_estimator_running) {
-		stop_orientation_estimator();
+		stopYawEst();
 	}
 }
 
-void VisionTargetEst::stop_position_estimator()
+void VisionTargetEst::stopPosEst()
 {
 
 	PX4_INFO("Stopping Position Vision Target Estimator.");
 
 	if (_vte_position_enabled) {
-		_vte_position.reset_filter();
+		_vte_position.resetFilter();
 	}
 
 	_position_estimator_running = false;
 	_vte_position_stop_time = hrt_absolute_time();
 }
 
-void VisionTargetEst::stop_orientation_estimator()
+void VisionTargetEst::stopYawEst()
 {
 
 	PX4_INFO("Stopping Orientation Vision Target Estimator.");
 
 	if (_vte_orientation_enabled) {
-		_vte_orientation.reset_filter();
+		_vte_orientation.resetFilter();
 	}
 
 	_orientation_estimator_running = false;
 	_vte_orientation_stop_time = hrt_absolute_time();
 }
 
-void VisionTargetEst::start_estimators_if_needed()
+void VisionTargetEst::startEstIfNeeded()
 {
 
 	// Only start the estimator if fusion is enabled, otherwise it will timeout
-	if (!_position_estimator_running && _vte_position_enabled && _vte_position.has_fusion_enabled()) {
-		_position_estimator_running = start_position_estimator();
+	if (!_position_estimator_running && _vte_position_enabled && _vte_position.fusionEnabled()) {
+		_position_estimator_running = startPosEst();
 	}
 
-	if (!_orientation_estimator_running && _vte_orientation_enabled && _vte_orientation.has_fusion_enabled()) {
-		_orientation_estimator_running = start_orientation_estimator();
+	if (!_orientation_estimator_running && _vte_orientation_enabled && _vte_orientation.fusionEnabled()) {
+		_orientation_estimator_running = startYawEst();
 	}
 }
 
-bool VisionTargetEst::estimators_stopped_due_to_timeout()
+bool VisionTargetEst::estStoppedDueToTimeout()
 {
 	bool all_estimators_stopped = true;
 
-	if (_position_estimator_running && _vte_position.has_timed_out()) {
-		stop_position_estimator();
+	if (_position_estimator_running && _vte_position.timedOut()) {
+		stopPosEst();
 		PX4_INFO("Estimator TIMEOUT, position VTE stopped.");
 
 	} else {
 		all_estimators_stopped = false;
 	}
 
-	if (_orientation_estimator_running && _vte_orientation.has_timed_out()) {
-		stop_orientation_estimator();
+	if (_orientation_estimator_running && _vte_orientation.timedOut()) {
+		stopYawEst();
 		PX4_INFO("Estimator TIMEOUT, orientation VTE stopped.");
 
 	} else {
@@ -565,26 +565,26 @@ bool VisionTargetEst::estimators_stopped_due_to_timeout()
 	return all_estimators_stopped;
 }
 
-void VisionTargetEst::perform_estimations()
+void VisionTargetEst::updateEstimators()
 {
 	perf_begin(_cycle_perf);
 
-	localPose local_pose;
+	LocalPose local_pose;
 	const bool local_pose_updated = get_local_pose(local_pose);
 
 	if (_vte_position_enabled && _position_estimator_running) {
-		perform_position_update(local_pose, local_pose_updated);
+		updatePosEst(local_pose, local_pose_updated);
 	}
 
 	if (_vte_orientation_enabled && _orientation_estimator_running
 	    && check_and_update_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
-		perform_orientation_update(local_pose, local_pose_updated);
+		updateYawEst(local_pose, local_pose_updated);
 	}
 
 	perf_end(_cycle_perf);
 }
 
-void VisionTargetEst::perform_position_update(const localPose &local_pose, const bool local_pose_updated)
+void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local_pose_updated)
 {
 	matrix::Vector3f gps_pos_offset_ned{};
 	matrix::Vector3f vel_offset{};
@@ -600,7 +600,7 @@ void VisionTargetEst::perform_position_update(const localPose &local_pose, const
 		/* If the acceleration has been averaged for too long, early return */
 		if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
 			PX4_DEBUG("Forced acc downsample reset");
-			reset_acc_downsample();
+			resetAccDownsample();
 			return;
 		}
 
@@ -620,22 +620,22 @@ void VisionTargetEst::perform_position_update(const localPose &local_pose, const
 			_vte_position.set_gps_pos_offset(gps_pos_offset_ned, _gps_pos_is_offset);
 
 			if (vel_offset_updated) {
-				_vte_position.set_velocity_offset(vel_offset);
+				_vte_position.set_vel_offset(vel_offset);
 			}
 
 			const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
 
 			_vte_position.update(vehicle_acc_ned_sampled, q_att);
-			publish_vte_input(vehicle_acc_ned_sampled, q_att);
+			publishVteInput(vehicle_acc_ned_sampled, q_att);
 
-			reset_acc_downsample();
+			resetAccDownsample();
 
 			perf_end(_cycle_perf_pos);
 		}
 	}
 }
 
-void VisionTargetEst::perform_orientation_update(const localPose &local_pose, const bool local_pose_updated)
+void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local_pose_updated)
 {
 	perf_begin(_cycle_perf_yaw);
 
@@ -647,8 +647,8 @@ void VisionTargetEst::perform_orientation_update(const localPose &local_pose, co
 	perf_end(_cycle_perf_yaw);
 }
 
-void VisionTargetEst::publish_vte_input(const matrix::Vector3f &vehicle_acc_ned_sampled,
-					const matrix::Quaternionf &q_att_sampled)
+void VisionTargetEst::publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sampled,
+				      const matrix::Quaternionf &q_att_sampled)
 {
 	vision_target_est_input_s vte_input_report;
 	vte_input_report.timestamp = hrt_absolute_time();
@@ -684,7 +684,7 @@ bool VisionTargetEst::get_gps_velocity_offset(matrix::Vector3f &vel_offset_body)
 	return true;
 }
 
-bool VisionTargetEst::get_local_pose(localPose &local_pose)
+bool VisionTargetEst::get_local_pose(LocalPose &local_pose)
 {
 
 	vehicle_local_position_s vehicle_local_position;
