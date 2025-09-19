@@ -79,13 +79,12 @@ union sensor_fusion_mask_u {
 	struct {
 		uint16_t use_target_gps_pos   : 1;  ///< bit 0
 		uint16_t use_uav_gps_vel      : 1;  ///< bit 1
-		uint16_t use_precision_pad    : 1;  ///< bit 2
-		uint16_t use_vision_pos       : 1;  ///< bit 3
-		uint16_t use_mission_pos      : 1;  ///< bit 4
-		uint16_t use_target_gps_vel   : 1;  ///< bit 5
-		uint16_t use_uwb              : 1;  ///< bit 6
-		uint16_t use_irlock           : 1;  ///< bit 7
-		uint16_t reserved             : 8;  ///< bits 8..15 (future use)
+		uint16_t use_vision_pos       : 1;  ///< bit 2
+		uint16_t use_mission_pos      : 1;  ///< bit 3
+		uint16_t use_target_gps_vel   : 1;  ///< bit 4
+		uint16_t use_uwb              : 1;  ///< bit 5
+		uint16_t use_irlock           : 1;  ///< bit 6
+		uint16_t reserved             : 9;  ///< bits 7..15 (future use)
 	} flags;
 
 	uint16_t value;
