@@ -105,9 +105,8 @@ bool VTEPosition::init()
 
 #endif // CONFIG_VTEST_MOVING
 
-	if (!createEstimators()) {
-		PX4_ERR("VTE position KF creation failed");
-		return false;
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		_target_est_pos[axis] = KF_position{};
 	}
 
 	return true;
@@ -183,8 +182,8 @@ bool VTEPosition::initEstimator(const Matrix<float, vtest::Axis::size, vtest::St
 
 	for (int i = 0; i < vtest::Axis::size; i++) {
 
-		_target_est_pos[i]->setState(state_init.row(i));
-		_target_est_pos[i]->setStateVar(state_var_init.row(i));
+		_target_est_pos[i].setState(state_init.row(i));
+		_target_est_pos[i].setStateVar(state_var_init.row(i));
 	}
 
 	// Debug INFO
@@ -230,14 +229,14 @@ void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned)
 	for (int i = 0; i < vtest::Axis::size; i++) {
 
 #if defined(CONFIG_VTEST_MOVING)
-		_target_est_pos[i]->setTargetAccVar(target_acc_cov(i, i));
+		_target_est_pos[i].setTargetAccVar(target_acc_cov(i, i));
 #endif // CONFIG_VTEST_MOVING
 
-		_target_est_pos[i]->setBiasVar(bias_cov(i, i));
-		_target_est_pos[i]->setInputAccVar(input_cov(i, i));
+		_target_est_pos[i].setBiasVar(bias_cov(i, i));
+		_target_est_pos[i].setInputAccVar(input_cov(i, i));
 
-		_target_est_pos[i]->predictState(dt, vehicle_acc_ned(i));
-		_target_est_pos[i]->predictCov(dt);
+		_target_est_pos[i].predictState(dt, vehicle_acc_ned(i));
+		_target_est_pos[i].predictCov(dt);
 	}
 }
 
@@ -699,15 +698,15 @@ void VTEPosition::updateBias(const ObsValidMask &vte_fusion_aid_mask,
 
 	// Reset filter's state and variance
 	for (int i = 0; i < vtest::Axis::size; i++) {
-		matrix::Vector<float, vtest::State::size> temp_state = _target_est_pos[i]->getState();
+		matrix::Vector<float, vtest::State::size> temp_state = _target_est_pos[i].getState();
 		temp_state(vtest::State::bias) = bias_init(i);
 		temp_state(vtest::State::pos_rel) = pos_init(i);
-		_target_est_pos[i]->setState(temp_state);
+		_target_est_pos[i].setState(temp_state);
 
-		matrix::Vector<float, vtest::State::size> temp_state_var = _target_est_pos[i]->getStateVar();
+		matrix::Vector<float, vtest::State::size> temp_state_var = _target_est_pos[i].getStateVar();
 		temp_state_var(vtest::State::bias) = state_bias_var_vect(i);
 		temp_state_var(vtest::State::pos_rel) = state_pos_var_vect(i);
-		_target_est_pos[i]->setStateVar(temp_state_var);
+		_target_est_pos[i].setStateVar(temp_state_var);
 	}
 
 	_bias_set = true;
@@ -1180,7 +1179,7 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const targetObs &tar
 			continue; // nothing to do for this iteration
 		}
 
-		KF_position &est = *_target_est_pos[j];
+		KF_position &est = _target_est_pos[j];
 
 		const float meas_j     = target_obs.meas_xyz(j);
 		const float meas_unc_j = target_obs.meas_unc_xyz(j);
@@ -1273,13 +1272,13 @@ void VTEPosition::publishTarget()
 #endif // CONFIG_VTEST_MOVING
 
 	// Get state
-	matrix::Vector<float, vtest::State::size> state_x = _target_est_pos[vtest::Axis::x]->getState();
-	matrix::Vector<float, vtest::State::size> state_y = _target_est_pos[vtest::Axis::y]->getState();
-	matrix::Vector<float, vtest::State::size> state_z = _target_est_pos[vtest::Axis::z]->getState();
+	matrix::Vector<float, vtest::State::size> state_x = _target_est_pos[vtest::Axis::x].getState();
+	matrix::Vector<float, vtest::State::size> state_y = _target_est_pos[vtest::Axis::y].getState();
+	matrix::Vector<float, vtest::State::size> state_z = _target_est_pos[vtest::Axis::z].getState();
 
-	matrix::Vector<float, vtest::State::size> state_var_x = _target_est_pos[vtest::Axis::x]->getStateVar();
-	matrix::Vector<float, vtest::State::size> state_var_y = _target_est_pos[vtest::Axis::y]->getStateVar();
-	matrix::Vector<float, vtest::State::size> state_var_z = _target_est_pos[vtest::Axis::z]->getStateVar();
+	matrix::Vector<float, vtest::State::size> state_var_x = _target_est_pos[vtest::Axis::x].getStateVar();
+	matrix::Vector<float, vtest::State::size> state_var_y = _target_est_pos[vtest::Axis::y].getStateVar();
+	matrix::Vector<float, vtest::State::size> state_var_z = _target_est_pos[vtest::Axis::z].getStateVar();
 
 	// Fill target relative pose
 	target_pose.x_rel = state_x(vtest::State::pos_rel);
@@ -1529,22 +1528,6 @@ void VTEPosition::updateParams()
 		float _ev_pos_noise{0.f};
 		float _nis_threshold{0.f};
 	*/
-}
-
-bool VTEPosition::createEstimators()
-{
-	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
-		auto estimator = std::make_unique<KF_position>();
-
-		if (!estimator) {
-			PX4_ERR("VTE position creation failed on axis %d", axis);
-			return false;
-		}
-
-		_target_est_pos[axis] = std::move(estimator);
-	}
-
-	return true;
 }
 
 bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who) const
