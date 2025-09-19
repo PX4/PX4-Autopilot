@@ -106,7 +106,7 @@ void VTEOrientation::update()
 	if (_estimator_initialized) {publishTarget();}
 }
 
-bool VTEOrientation::initEstimator(const ObsValidMask &vte_fusion_aid_mask,
+bool VTEOrientation::initEstimator(const ObsValidMaskU &vte_fusion_aid_mask,
 				   const TargetObs observations[ObsType::Type_count])
 {
 	// Until a sensor measures the yaw rate, state_init(State::yaw_rate) is init at zero
@@ -153,7 +153,7 @@ bool VTEOrientation::updateStep()
 {
 	TargetObs obs_fiducial_marker_orientation;
 
-	ObsValidMask vte_fusion_aid_mask{};
+	ObsValidMaskU vte_fusion_aid_mask{};
 	TargetObs observations[ObsType::Type_count];
 	processObservations(vte_fusion_aid_mask, observations);
 
@@ -172,14 +172,14 @@ bool VTEOrientation::updateStep()
 	return fuseNewSensorData(vte_fusion_aid_mask, observations);
 }
 
-void VTEOrientation::processObservations(ObsValidMask &vte_fusion_aid_mask, TargetObs obs[ObsType::Type_count])
+void VTEOrientation::processObservations(ObsValidMaskU &vte_fusion_aid_mask, TargetObs obs[ObsType::Type_count])
 {
 	handleVisionData(vte_fusion_aid_mask, obs[ObsType::Fiducial_marker]);
 
 	handleUwbData(vte_fusion_aid_mask, obs[ObsType::Uwb]);
 }
 
-void VTEOrientation::handleVisionData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker)
+void VTEOrientation::handleVisionData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker)
 {
 
 	if (!_vte_aid_mask.flags.use_vision_pos) {
@@ -242,7 +242,7 @@ bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiduci
 	return true;
 }
 
-void VTEOrientation::handleUwbData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_uwb)
+void VTEOrientation::handleUwbData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_uwb)
 {
 	sensor_uwb_s uwb_report;
 
@@ -297,7 +297,7 @@ bool VTEOrientation::processObsUwb(const sensor_uwb_s &uwb_report, TargetObs &ob
 	return false; // TODO: change to true once implemented
 }
 
-bool VTEOrientation::fuseNewSensorData(ObsValidMask &vte_fusion_aid_mask,
+bool VTEOrientation::fuseNewSensorData(ObsValidMaskU &vte_fusion_aid_mask,
 				       const TargetObs observations[ObsType::Type_count])
 {
 	bool meas_fused = false;
