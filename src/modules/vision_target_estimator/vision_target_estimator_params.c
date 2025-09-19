@@ -81,7 +81,7 @@ PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
  *
  * Set bits in the following positions to enable:
  * 0 : Set to true to use the target's GNSS position data if available. (+1)
- * 1 : Set to true to use the relative GNSS velocity data if available. (+2)
+ * 1 : Set to true to use the uav GNSS velocity data if available. (+2)
  * 2 : Set to true to use the target relative position from vision-based data if available. (+4)
  * 3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
  * 4 : Set to true to use the target GNSS velocity if available. (+16)
@@ -92,7 +92,7 @@ PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
  * @min 0
  * @max 127
  * @bit 0 target GNSS position
- * @bit 1 relative GNSS velocity
+ * @bit 1 uav GNSS velocity
  * @bit 2 vision relative position
  * @bit 3 mission position
  * @bit 4 target GNSS velocity

@@ -53,6 +53,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <memory>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
@@ -184,10 +185,10 @@ private:
 	void printAidMask();
 
 	bool _vte_orientation_enabled{false};
-	VTEOrientation *_vte_orientation {nullptr};
+	std::unique_ptr<VTEOrientation> _vte_orientation;
 	hrt_abstime _last_update_yaw{0};
 
-	VTEPosition *_vte_position {nullptr};
+	std::unique_ptr<VTEPosition> _vte_position;
 	bool _vte_position_enabled{false};
 	hrt_abstime _last_update_pos{0};
 

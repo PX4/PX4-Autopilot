@@ -46,6 +46,7 @@
 #include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
+#include <memory>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -89,12 +90,11 @@ public:
 	void reset_filter();
 
 	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
-
 	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
-
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
 	bool has_timed_out() {return _has_timed_out;};
+	bool has_fusion_enabled() {return _vte_aid_mask.value != 0;};
 
 protected:
 
@@ -177,7 +177,7 @@ private:
 
 	bool _estimator_initialized{false};
 
-	KF_orientation *_target_est_yaw {nullptr};
+	std::unique_ptr<KF_orientation> _target_est_yaw;
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
