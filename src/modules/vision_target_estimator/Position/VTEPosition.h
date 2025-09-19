@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -94,40 +94,33 @@ public:
 
 	bool init();
 
-	void reset_filter();
+	void resetFilter();
 
 	void set_mission_position(const double lat_deg, const double lon_deg, const float alt_m);
 	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
 	void set_local_velocity(const matrix::Vector3f &vel_xyz, const bool valid, const hrt_abstime timestamp);
 	void set_local_position(const matrix::Vector3f &xyz, const bool valid, const hrt_abstime timestamp);
 	void set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset);
-	void set_velocity_offset(const matrix::Vector3f &xyz);
+	void set_vel_offset(const matrix::Vector3f &xyz);
 	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
-	bool has_timed_out() {return _has_timed_out;};
+	bool timedOut() {return _has_timed_out;};
 	// TODO: Could be more strict and require a relative position meas (vision, GPS, irlock, uwb)
-	bool has_fusion_enabled() {return _vte_aid_mask.value != 0;};
-
-private:
-	struct accInput {
-
-		bool acc_ned_valid = false;
-		matrix::Vector3f vehicle_acc_ned;
-	};
+	bool fusionEnabled() {return _vte_aid_mask.value != 0;};
 
 protected:
 
 	/*
-	 * Update parameters.
+	 * update parameters.
 	 */
 	void updateParams() override;
 
 	// Geographic limits
-	static constexpr double lat_abs_max_deg =  90.0;
-	static constexpr double lon_abs_max_deg = 180.0;
-	static constexpr float alt_min_m = -350.f;
-	static constexpr float alt_max_m = 10000.f;
+	static constexpr double kLatAbsMaxDeg =  90.0;
+	static constexpr double kLonAbsMaxDeg = 180.0;
+	static constexpr float kAltMinM = -350.f;
+	static constexpr float kAltMaxM = 10000.f;
 
 	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
 	uORB::Publication<vision_target_est_position_s> _targetEstimatorStatePub{ORB_ID(vision_target_est_position)};
@@ -145,7 +138,7 @@ protected:
 
 private:
 
-	bool _has_timed_out{false};
+	bool _has_timed_out{false}; // TODO: no need for this variable. Call HasTimedOut(_last_update, _vte_TIMEOUT_US)
 
 	enum ObsType {
 		Target_gps_pos,
@@ -158,7 +151,7 @@ private:
 		Type_count
 	};
 
-	struct targetObs {
+	struct TargetObs {
 
 		ObsType type;
 		hrt_abstime timestamp = 0;
@@ -217,55 +210,55 @@ private:
 	};
 
 	bool initializeEstimator(const ObsValidMask &vte_fusion_aid_mask,
-				 const targetObs observations[ObsType::Type_count]);
+				 const TargetObs observations[ObsType::Type_count]);
 	void updateBias(const ObsValidMask &vte_fusion_aid_mask,
-			const targetObs observations[ObsType::Type_count]);
-	void getPosInit(const ObsValidMask &vte_fusion_aid_mask,
-			const targetObs observations[ObsType::Type_count], matrix::Vector3f &pos_init);
+			const TargetObs observations[ObsType::Type_count]);
+	void get_pos_init(const ObsValidMask &vte_fusion_aid_mask,
+			  const TargetObs observations[ObsType::Type_count], matrix::Vector3f &pos_init);
 	bool fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, ObsValidMask &vte_fusion_aid_mask,
-			       const targetObs observations[ObsType::Type_count]);
+			       const TargetObs observations[ObsType::Type_count]);
 	void processObservations(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask,
-				 targetObs observations[ObsType::Type_count]);
+				 TargetObs observations[ObsType::Type_count]);
 
 	bool isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who = nullptr) const;
 
 	/* Vision data */
-	void handleVisionData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_fiducial_marker);
+	void handleVisionData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker);
 	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose);
-	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, targetObs &obs);
+	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, TargetObs &obs);
 
 	/* IRLOCK data */
-	void handleIrlockData(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask, targetObs &obs_irlock);
+	void handleIrlockData(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_irlock);
 	bool isIrlockDataValid(const irlock_report_s &irlock_report) const;
-	bool processObsIrlock(const matrix::Quaternionf &q_att, const irlock_report_s &irlock_report, targetObs &obs);
+	bool processObsIrlock(const matrix::Quaternionf &q_att, const irlock_report_s &irlock_report, TargetObs &obs);
 
 	/* UWB data */
-	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask, targetObs &obs_uwb);
+	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_uwb);
 	bool isUwbDataValid(const sensor_uwb_s &uwb_report);
-	bool processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, targetObs &obs);
+	bool processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs);
 
 	/* UAV GPS data */
 	void handleUavGpsData(ObsValidMask &vte_fusion_aid_mask,
-			      targetObs &obs_gps_pos_mission,
-			      targetObs &obs_gps_vel_uav);
+			      TargetObs &obs_gps_pos_mission,
+			      TargetObs &obs_gps_vel_uav);
 	bool updateUavGpsData();
 	bool isUavGpsPositionValid();
 	bool isUavGpsVelocityValid();
-	bool processObsGNSSPosMission(targetObs &obs);
-	bool processObsGNSSVelUav(targetObs &obs);
+	bool processObsGNSSPosMission(TargetObs &obs);
+	bool processObsGNSSVelUav(TargetObs &obs);
 
 	/* Target GPS data */
 	void handleTargetGpsData(ObsValidMask &vte_fusion_aid_mask,
-				 targetObs &obs_gps_pos_target,
-				 targetObs &obs_gps_vel_target);
+				 TargetObs &obs_gps_pos_target,
+				 TargetObs &obs_gps_vel_target);
 	bool isTargetGpsPositionValid(const target_gnss_s &target_GNSS_report);
 	bool isTargetGpsVelocityValid(const target_gnss_s &target_GNSS_report);
-	bool processObsGNSSPosTarget(const target_gnss_s &target_GNSS_report, targetObs &obs);
+	bool processObsGNSSPosTarget(const target_gnss_s &target_GNSS_report, TargetObs &obs);
 #if defined(CONFIG_VTEST_MOVING)
-	bool processObsGNSSVelTarget(const target_gnss_s &target_GNSS_report, targetObs &obs);
+	bool ProcessObsGNSSVelTarget(const target_gnss_s &target_GNSS_report, TargetObs &obs);
 #endif // CONFIG_VTEST_MOVING
 
-	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const targetObs &target_pos_obs);
+	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const TargetObs &target_pos_obs);
 	void publishTarget();
 	void publishInnov(const estimator_aid_source3d_s &target_innov, const ObsType type);
 
@@ -279,7 +272,7 @@ private:
 	perf_counter_t _vte_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE update")};
 
 
-	rangeSensor _range_sensor{};
+	RangeSensor _range_sensor{};
 
 	struct IrlockConfig {
 		float scale_x{1.0f};
@@ -294,7 +287,7 @@ private:
 
 	IrlockConfig _irlock_config{};
 
-	struct globalPos {
+	struct GlobalPose {
 		hrt_abstime timestamp = 0;
 		bool valid = false;
 		double lat_deg = 0.0; 	// Latitude in degrees
@@ -304,30 +297,30 @@ private:
 		float epv = 0.f;
 	};
 
-	globalPos _mission_land_position{};
-	globalPos _uav_gps_position{};
+	GlobalPose _mission_land_position{};
+	GlobalPose _uav_gps_position{};
 
-	struct velStamped {
+	struct VelStamped {
 		hrt_abstime timestamp = 0;
 		bool valid = false;
 		matrix::Vector3f xyz{};
 		float uncertainty = 0.f;
 	};
 
-	velStamped _uav_gps_vel{};
+	VelStamped _uav_gps_vel{};
 
-	struct vecStamped {
+	struct VecStamped {
 		hrt_abstime timestamp = 0;
 		bool valid = false;
 		matrix::Vector3f xyz{};
 	};
 
-	vecStamped _local_position{};
-	vecStamped _local_velocity{};
-	vecStamped _target_gps_vel{};
-	vecStamped _pos_rel_gnss{};
-	vecStamped _velocity_offset_ned{};
-	vecStamped _gps_pos_offset_ned{};
+	VecStamped _local_position{};
+	VecStamped _local_velocity{};
+	VecStamped _target_gps_vel{};
+	VecStamped _pos_rel_gnss{};
+	VecStamped _velocity_offset_ned{};
+	VecStamped _gps_pos_offset_ned{};
 	bool _gps_pos_is_offset{false};
 	bool _bias_set{false};
 

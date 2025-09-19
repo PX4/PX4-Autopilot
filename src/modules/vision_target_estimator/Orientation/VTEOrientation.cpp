@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,7 +71,7 @@ bool VTEOrientation::init()
 	return true;
 }
 
-void VTEOrientation::reset_filter()
+void VTEOrientation::resetFilter()
 {
 	_estimator_initialized = false;
 	_has_timed_out = false;
@@ -98,7 +98,7 @@ void VTEOrientation::update()
 		}
 	}
 
-	// Update and fuse the observations and pulishes innovations
+	// update and fuse the observations and pulishes innovations
 	if (updateStep()) {
 		_last_update = _last_predict;
 	}
@@ -107,7 +107,7 @@ void VTEOrientation::update()
 }
 
 bool VTEOrientation::initEstimator(const ObsValidMask &vte_fusion_aid_mask,
-				   const targetObs observations[ObsType::Type_count])
+				   const TargetObs observations[ObsType::Type_count])
 {
 	// Until a sensor measures the yaw rate, state_init(State::yaw_rate) is init at zero
 	matrix::Vector<float, State::size> state_init{};
@@ -126,8 +126,8 @@ bool VTEOrientation::initEstimator(const ObsValidMask &vte_fusion_aid_mask,
 		state_var_init(i) = _yaw_unc;
 	}
 
-	_target_est_yaw.setState(state_init);
-	_target_est_yaw.setStateVar(state_var_init);
+	_target_est_yaw.set_state(state_init);
+	_target_est_yaw.set_state_covariance(state_var_init);
 
 	PX4_INFO("Orientation filter init yaw: %.2f [rad] yaw_rate: %.2f [rad/s]", (double)state_init(State::yaw),
 		 (double)state_init(State::yaw_rate));
@@ -151,10 +151,10 @@ void VTEOrientation::predictionStep()
 
 bool VTEOrientation::updateStep()
 {
-	targetObs obs_fiducial_marker_orientation;
+	TargetObs obs_fiducial_marker_orientation;
 
 	ObsValidMask vte_fusion_aid_mask{};
-	targetObs observations[ObsType::Type_count];
+	TargetObs observations[ObsType::Type_count];
 	processObservations(vte_fusion_aid_mask, observations);
 
 	// No new observations --> no fusion.
@@ -164,7 +164,7 @@ bool VTEOrientation::updateStep()
 
 	// Initialize estimator if not already initialized
 	if (!_estimator_initialized && !initEstimator(vte_fusion_aid_mask, observations)) {
-		reset_filter();
+		resetFilter();
 		return false;
 	}
 
@@ -172,14 +172,14 @@ bool VTEOrientation::updateStep()
 	return fuseNewSensorData(vte_fusion_aid_mask, observations);
 }
 
-void VTEOrientation::processObservations(ObsValidMask &vte_fusion_aid_mask, targetObs obs[ObsType::Type_count])
+void VTEOrientation::processObservations(ObsValidMask &vte_fusion_aid_mask, TargetObs obs[ObsType::Type_count])
 {
 	handleVisionData(vte_fusion_aid_mask, obs[ObsType::Fiducial_marker]);
 
 	handleUwbData(vte_fusion_aid_mask, obs[ObsType::Uwb]);
 }
 
-void VTEOrientation::handleVisionData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_fiducial_marker)
+void VTEOrientation::handleVisionData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker)
 {
 
 	if (!_vte_aid_mask.flags.use_vision_pos) {
@@ -217,7 +217,7 @@ bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiduc
 	return true;
 }
 
-bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, targetObs &obs)
+bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs)
 {
 	float yaw_unc;
 
@@ -242,7 +242,7 @@ bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiduci
 	return true;
 }
 
-void VTEOrientation::handleUwbData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_uwb)
+void VTEOrientation::handleUwbData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_uwb)
 {
 	sensor_uwb_s uwb_report;
 
@@ -280,7 +280,7 @@ bool VTEOrientation::isUwbDataValid(const sensor_uwb_s &uwb_report)
 }
 
 // TODO: complete
-bool VTEOrientation::processObsUwb(const sensor_uwb_s &uwb_report, targetObs &obs)
+bool VTEOrientation::processObsUwb(const sensor_uwb_s &uwb_report, TargetObs &obs)
 {
 	obs.timestamp = uwb_report.timestamp;
 	// obs.updated = ;
@@ -298,7 +298,7 @@ bool VTEOrientation::processObsUwb(const sensor_uwb_s &uwb_report, targetObs &ob
 }
 
 bool VTEOrientation::fuseNewSensorData(ObsValidMask &vte_fusion_aid_mask,
-				       const targetObs observations[ObsType::Type_count])
+				       const TargetObs observations[ObsType::Type_count])
 {
 	bool meas_fused = false;
 
@@ -315,9 +315,9 @@ bool VTEOrientation::fuseNewSensorData(ObsValidMask &vte_fusion_aid_mask,
 	return meas_fused;
 }
 
-bool VTEOrientation::fuseMeas(const targetObs &target_obs)
+bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 {
-	// Update step for orientation
+	// update step for orientation
 	bool meas_fused = false;
 
 	estimator_aid_source1d_s target_innov;
@@ -329,10 +329,10 @@ bool VTEOrientation::fuseMeas(const targetObs &target_obs)
 	// Compute the measurement's time delay (difference between state and measurement time on validity)
 	const float dt_sync_us = (_last_predict - target_obs.timestamp);
 
-	if (dt_sync_us > meas_valid_TIMEOUT_US || dt_sync_us < 0.f) {
+	if (dt_sync_us > kMeasValidTimeoutUs || dt_sync_us < 0.f) {
 
 		PX4_INFO("Obs type: %d too old or in the future. Time sync: %.2f [ms] > timeout: %.2f [ms]",
-			 static_cast<int>(target_obs.type), (double)(dt_sync_us / 1000), (double)(meas_valid_TIMEOUT_US / 1000));
+			 static_cast<int>(target_obs.type), (double)(dt_sync_us / 1000), (double)(kMeasValidTimeoutUs / 1000));
 
 		// No measurement update, set to false
 		target_innov.fused = false;
@@ -352,12 +352,12 @@ bool VTEOrientation::fuseMeas(const targetObs &target_obs)
 	const float dt_sync_s = dt_sync_us / SEC2USEC_F;
 
 	_target_est_yaw.syncState(dt_sync_s);
-	_target_est_yaw.setH(target_obs.meas_h_theta);
+	_target_est_yaw.set_H(target_obs.meas_h_theta);
 	target_innov.innovation_variance = _target_est_yaw.computeInnovCov(target_obs.meas_unc);
 	target_innov.innovation = _target_est_yaw.computeInnov(target_obs.meas);
 
 	// Set the Normalized Innovation Squared (NIS) check threshold. Used to reject outlier measurements
-	_target_est_yaw.setNISthreshold(_nis_threshold);
+	_target_est_yaw.set_nis_threshold(_nis_threshold);
 	meas_fused = _target_est_yaw.update();
 
 	// Fill the target innovation field
@@ -367,7 +367,7 @@ bool VTEOrientation::fuseMeas(const targetObs &target_obs)
 	target_innov.observation = target_obs.meas;
 	target_innov.observation_variance = target_obs.meas_unc;
 
-	target_innov.test_ratio = _target_est_yaw.getTestRatio();
+	target_innov.test_ratio = _target_est_yaw.get_test_ratio();
 
 	_vte_aid_ev_yaw_pub.publish(target_innov);
 
@@ -378,11 +378,11 @@ void VTEOrientation::publishTarget()
 {
 	vision_target_est_orientation_s vision_target_orientation{};
 
-	matrix::Vector<float, State::size> state = _target_est_yaw.getState();
-	matrix::Vector<float, State::size> state_var = _target_est_yaw.getStateVar();
+	matrix::Vector<float, State::size> state = _target_est_yaw.get_state();
+	matrix::Vector<float, State::size> state_var = _target_est_yaw.get_state_covariance();
 
 	vision_target_orientation.timestamp = _last_predict;
-	vision_target_orientation.orientation_valid = (hrt_absolute_time() - _last_update < target_valid_TIMEOUT_US);
+	vision_target_orientation.orientation_valid = (hrt_absolute_time() - _last_update < kTargetValidTimeoutUs);
 
 	vision_target_orientation.theta = state(State::yaw);
 	vision_target_orientation.cov_theta = state_var(State::yaw);
@@ -396,7 +396,7 @@ void VTEOrientation::publishTarget()
 void VTEOrientation::checkMeasurementInputs()
 {
 	if (_range_sensor.valid) {
-		_range_sensor.valid = isMeasUpdated(_range_sensor.timestamp);
+		_range_sensor.valid = IsMeasUpdated(_range_sensor.timestamp);
 	}
 
 	// TODO: check other measurements?
@@ -418,7 +418,7 @@ void VTEOrientation::updateParams()
 // TODO: forward the timestamp as for VTEPosition
 void VTEOrientation::set_range_sensor(const float dist, const bool valid, hrt_abstime timestamp)
 {
-	_range_sensor.valid = valid && isMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
+	_range_sensor.valid = valid && IsMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
 	_range_sensor.dist_bottom = dist;
 	_range_sensor.timestamp = timestamp;
 }

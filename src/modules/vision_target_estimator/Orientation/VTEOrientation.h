@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -86,19 +86,19 @@ public:
 
 	bool init();
 
-	void reset_filter();
+	void resetFilter();
 
 	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
 	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
-	bool has_timed_out() {return _has_timed_out;};
-	bool has_fusion_enabled() {return _vte_aid_mask.value != 0;};
+	bool timedOut() {return _has_timed_out;};
+	bool fusionEnabled() {return _vte_aid_mask.value != 0;};
 
 protected:
 
 	/*
-	 * Update parameters.
+	 * update parameters.
 	 */
 	void updateParams() override;
 
@@ -131,7 +131,7 @@ private:
 
 	static_assert(sizeof(ObsValidMask) == 1, "Unexpected masking size");
 
-	struct targetObs {
+	struct TargetObs {
 		ObsType type;
 		hrt_abstime timestamp = 0;
 		bool updated = false;
@@ -140,38 +140,38 @@ private:
 		matrix::Vector<float, State::size> meas_h_theta{};
 	};
 
-	bool initEstimator(const ObsValidMask &vte_fusion_aid_mask, const targetObs observations[ObsType::Type_count]);
+	bool initEstimator(const ObsValidMask &vte_fusion_aid_mask, const TargetObs observations[ObsType::Type_count]);
 	bool updateStep();
 	void predictionStep();
 
-	void processObservations(ObsValidMask &vte_fusion_aid_mask, targetObs observations[ObsType::Type_count]);
-	bool fuseNewSensorData(ObsValidMask &vte_fusion_aid_mask, const targetObs observations[ObsType::Type_count]);
+	void processObservations(ObsValidMask &vte_fusion_aid_mask, TargetObs observations[ObsType::Type_count]);
+	bool fuseNewSensorData(ObsValidMask &vte_fusion_aid_mask, const TargetObs observations[ObsType::Type_count]);
 
 	/* Vision data */
-	void handleVisionData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_fiducial_marker);
+	void handleVisionData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker);
 	bool isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw);
-	bool processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, targetObs &obs);
+	bool processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs);
 
 	/* UWB data */
-	void handleUwbData(ObsValidMask &vte_fusion_aid_mask, targetObs &obs_uwb);
+	void handleUwbData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_uwb);
 	bool isUwbDataValid(const sensor_uwb_s &uwb_report);
-	bool processObsUwb(const sensor_uwb_s &uwb_report, targetObs &obs);
+	bool processObsUwb(const sensor_uwb_s &uwb_report, TargetObs &obs);
 
-	bool fuseMeas(const targetObs &target_pos_obs);
+	bool fuseMeas(const TargetObs &target_pos_obs);
 	void publishTarget();
 
 	uORB::Subscription _fiducial_marker_yaw_report_sub{ORB_ID(fiducial_marker_yaw_report)};
 	uORB::Subscription _sensor_uwb_sub{ORB_ID(sensor_uwb)};
 
-	struct localOrientation {
+	struct LocalOrientation {
 		bool valid = false;
 		float yaw = 0.f;
 		hrt_abstime last_update = 0;
 	};
 
-	localOrientation _local_orientation{};
+	LocalOrientation _local_orientation{};
 
-	rangeSensor _range_sensor{};
+	RangeSensor _range_sensor{};
 
 	bool _estimator_initialized{false};
 
