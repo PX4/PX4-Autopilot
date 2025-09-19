@@ -234,11 +234,10 @@ void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned)
 
 bool VTEPosition::updateStep(const Vector3f &vehicle_acc_ned, const matrix::Quaternionf &q_att)
 {
-
 	// update the observations and vte_fusion_aid_mask if any valid observation.
-	TargetObs observations[ObsType::Type_count];
+	resetObservations();
 	ObsValidMaskU vte_fusion_aid_mask{};
-	processObservations(q_att, vte_fusion_aid_mask, observations);
+	processObservations(q_att, vte_fusion_aid_mask, _obs_buffer);
 
 	// No new observations --> no fusion.
 	if (vte_fusion_aid_mask.value == 0) {
@@ -255,17 +254,24 @@ bool VTEPosition::updateStep(const Vector3f &vehicle_acc_ned, const matrix::Quat
 
 	// Initialize estimator if not already initialized
 	if (!_estimator_initialized &&
-	    !initializeEstimator(vte_fusion_aid_mask, observations)) {
+	    !initializeEstimator(vte_fusion_aid_mask, _obs_buffer)) {
 		return false;
 	}
 
 	// update bias if needed.
 	if (!_bias_set && shouldSetBias(vte_fusion_aid_mask)) {
-		updateBias(vte_fusion_aid_mask, observations);
+		updateBias(vte_fusion_aid_mask, _obs_buffer);
 	}
 
 	// Fuse new sensor data
-	return fuseNewSensorData(vehicle_acc_ned, vte_fusion_aid_mask, observations);
+	return fuseNewSensorData(vehicle_acc_ned, vte_fusion_aid_mask, _obs_buffer);
+}
+
+void VTEPosition::resetObservations()
+{
+	for (auto &obs : _obs_buffer) {
+		obs = {};
+	}
 }
 
 void VTEPosition::processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
@@ -1121,12 +1127,12 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 {
 	perf_begin(_vte_update_perf);
 
-	estimator_aid_source3d_s target_innov;
+	_target_innov = {};
 	bool all_axis_fused = true;
 
-	target_innov.time_last_fuse = _last_predict;
-	target_innov.timestamp_sample = target_obs.timestamp;
-	target_innov.timestamp = hrt_absolute_time();
+	_target_innov.time_last_fuse = _last_predict;
+	_target_innov.timestamp_sample = target_obs.timestamp;
+	_target_innov.timestamp = hrt_absolute_time();
 
 	// measurement's time delay (difference between state and measurement time on validity)
 	const float dt_sync_us = (_last_predict - target_obs.timestamp);
@@ -1138,18 +1144,18 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 			  static_cast<int>(target_obs.type),
 			  (double)(dt_sync_us / 1000), (double)(kMeasValidTimeoutUs / 1000));
 
-		target_innov.fused = false;
+		_target_innov.fused = false;
 		perf_end(_vte_update_perf);
-		publishInnov(target_innov, target_obs.type);
+		publishInnov(_target_innov, target_obs.type);
 		return false;
 	}
 
 	if (!target_obs.updated(vtest::Axis::x) && !target_obs.updated(vtest::Axis::y) && !target_obs.updated(vtest::Axis::z)) {
 		all_axis_fused = false;
 		PX4_DEBUG("Obs i = %d: non-valid", target_obs.type);
-		target_innov.fused = false;
+		_target_innov.fused = false;
 		perf_end(_vte_update_perf);
-		publishInnov(target_innov, target_obs.type);
+		publishInnov(_target_innov, target_obs.type);
 		return false;
 	}
 
@@ -1173,8 +1179,8 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 		const Vector<float, vtest::State::size> meas_h_row = target_obs.meas_h_xyz.row(j);
 		est.set_H(meas_h_row);
 
-		target_innov.innovation_variance[j] = est.computeInnovCov(meas_unc_j);
-		target_innov.innovation[j] = est.computeInnov(meas_j);
+		_target_innov.innovation_variance[j] = est.computeInnovCov(meas_unc_j);
+		_target_innov.innovation[j] = est.computeInnov(meas_j);
 
 		// Set the Normalized Innovation Squared (NIS) check threshold. Used to reject outlier measurements
 		est.set_nis_threshold(_nis_threshold);
@@ -1184,23 +1190,22 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 			PX4_DEBUG("Obs i = %d : not fused in direction: %d", static_cast<int>(target_obs.type), j);
 		}
 
-		target_innov.observation[j] = meas_j;
-		target_innov.observation_variance[j] = meas_unc_j;
-		target_innov.test_ratio[j] = est.get_test_ratio();
+		_target_innov.observation[j] = meas_j;
+		_target_innov.observation_variance[j] = meas_unc_j;
+		_target_innov.test_ratio[j] = est.get_test_ratio();
 	}
 
-	target_innov.fused = all_axis_fused;
-	target_innov.innovation_rejected = !all_axis_fused;
+	_target_innov.fused = all_axis_fused;
+	_target_innov.innovation_rejected = !all_axis_fused;
 
 	perf_end(_vte_update_perf);
-	publishInnov(target_innov, target_obs.type);
+	publishInnov(_target_innov, target_obs.type);
 
 	return all_axis_fused;
 }
 
 void VTEPosition::publishInnov(const estimator_aid_source3d_s &target_innov, const ObsType type)
 {
-
 	// Publish innovations
 	switch (type) {
 	case ObsType::Target_gps_pos:
@@ -1238,19 +1243,18 @@ void VTEPosition::publishInnov(const estimator_aid_source3d_s &target_innov, con
 
 void VTEPosition::publishTarget()
 {
+	_vte_state = {};
+	_target_pose = {};
 
-	vision_target_est_position_s vte_state{};
-	landing_target_pose_s target_pose{};
+	_target_pose.timestamp = _last_predict;
+	_vte_state.timestamp = _last_predict;
 
-	target_pose.timestamp = _last_predict;
-	vte_state.timestamp = _last_predict;
-
-	target_pose.rel_pos_valid = !hasTimedOut(_last_update, kTargetValidTimeoutUs);
+	_target_pose.rel_pos_valid = !hasTimedOut(_last_update, kTargetValidTimeoutUs);
 
 #if defined(CONFIG_VTEST_MOVING)
-	target_pose.is_static = false;
+	_target_pose.is_static = false;
 #else
-	target_pose.is_static = true;
+	_target_pose.is_static = true;
 #endif // CONFIG_VTEST_MOVING
 
 	// Get state
@@ -1263,124 +1267,124 @@ void VTEPosition::publishTarget()
 	matrix::Vector<float, vtest::State::size> state_var_z = _target_est_pos[vtest::Axis::z].get_state_covariance();
 
 	// Fill target relative pose
-	target_pose.x_rel = state_x(vtest::State::pos_rel);
-	target_pose.y_rel = state_y(vtest::State::pos_rel);
-	target_pose.z_rel = state_z(vtest::State::pos_rel);
+	_target_pose.x_rel = state_x(vtest::State::pos_rel);
+	_target_pose.y_rel = state_y(vtest::State::pos_rel);
+	_target_pose.z_rel = state_z(vtest::State::pos_rel);
 
-	target_pose.cov_x_rel = state_var_x(vtest::State::pos_rel);
-	target_pose.cov_y_rel = state_var_y(vtest::State::pos_rel);
-	target_pose.cov_z_rel = state_var_z(vtest::State::pos_rel);
+	_target_pose.cov_x_rel = state_var_x(vtest::State::pos_rel);
+	_target_pose.cov_y_rel = state_var_y(vtest::State::pos_rel);
+	_target_pose.cov_z_rel = state_var_z(vtest::State::pos_rel);
 
 	// Fill target relative velocity
-	target_pose.vx_rel = -state_x(vtest::State::vel_uav);
-	target_pose.vy_rel = -state_y(vtest::State::vel_uav);
-	target_pose.vz_rel = -state_z(vtest::State::vel_uav);
+	_target_pose.vx_rel = -state_x(vtest::State::vel_uav);
+	_target_pose.vy_rel = -state_y(vtest::State::vel_uav);
+	_target_pose.vz_rel = -state_z(vtest::State::vel_uav);
 
-	target_pose.cov_vx_rel = state_var_x(vtest::State::vel_uav);
-	target_pose.cov_vy_rel = state_var_y(vtest::State::vel_uav);
-	target_pose.cov_vz_rel = state_var_z(vtest::State::vel_uav);
+	_target_pose.cov_vx_rel = state_var_x(vtest::State::vel_uav);
+	_target_pose.cov_vy_rel = state_var_y(vtest::State::vel_uav);
+	_target_pose.cov_vz_rel = state_var_z(vtest::State::vel_uav);
 
 #if defined(CONFIG_VTEST_MOVING)
 	// If target is moving, relative velocity = vel_target - vel_uav
-	target_pose.vx_rel += state_x(vtest::State::vel_target);
-	target_pose.vy_rel += state_y(vtest::State::vel_target);
-	target_pose.vz_rel += state_z(vtest::State::vel_target);
+	_target_pose.vx_rel += state_x(vtest::State::vel_target);
+	_target_pose.vy_rel += state_y(vtest::State::vel_target);
+	_target_pose.vz_rel += state_z(vtest::State::vel_target);
 
 	// Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y)
-	target_pose.cov_vx_rel += state_var_x(vtest::State::vel_target);
-	target_pose.cov_vy_rel += state_var_y(vtest::State::vel_target);
-	target_pose.cov_vz_rel += state_var_z(vtest::State::vel_target);
+	_target_pose.cov_vx_rel += state_var_x(vtest::State::vel_target);
+	_target_pose.cov_vy_rel += state_var_y(vtest::State::vel_target);
+	_target_pose.cov_vz_rel += state_var_z(vtest::State::vel_target);
 
 #endif // CONFIG_VTEST_MOVING
 
 	// Fill vision target estimator state
-	vte_state.x_rel = target_pose.x_rel;
-	vte_state.y_rel = target_pose.y_rel;
-	vte_state.z_rel = target_pose.z_rel;
+	_vte_state.x_rel = _target_pose.x_rel;
+	_vte_state.y_rel = _target_pose.y_rel;
+	_vte_state.z_rel = _target_pose.z_rel;
 
-	vte_state.cov_x_rel = target_pose.cov_x_rel;
-	vte_state.cov_y_rel = target_pose.cov_y_rel;
-	vte_state.cov_z_rel = target_pose.cov_z_rel;
+	_vte_state.cov_x_rel = _target_pose.cov_x_rel;
+	_vte_state.cov_y_rel = _target_pose.cov_y_rel;
+	_vte_state.cov_z_rel = _target_pose.cov_z_rel;
 
 	// Fill uav velocity
-	vte_state.vx_uav = state_x(vtest::State::vel_uav);
-	vte_state.vy_uav = state_y(vtest::State::vel_uav);
-	vte_state.vz_uav = state_z(vtest::State::vel_uav);
+	_vte_state.vx_uav = state_x(vtest::State::vel_uav);
+	_vte_state.vy_uav = state_y(vtest::State::vel_uav);
+	_vte_state.vz_uav = state_z(vtest::State::vel_uav);
 
-	vte_state.cov_vx_uav = state_var_x(vtest::State::vel_uav);
-	vte_state.cov_vy_uav = state_var_y(vtest::State::vel_uav);
-	vte_state.cov_vz_uav = state_var_z(vtest::State::vel_uav);
+	_vte_state.cov_vx_uav = state_var_x(vtest::State::vel_uav);
+	_vte_state.cov_vy_uav = state_var_y(vtest::State::vel_uav);
+	_vte_state.cov_vz_uav = state_var_z(vtest::State::vel_uav);
 
-	vte_state.x_bias = state_x(vtest::State::bias);
-	vte_state.y_bias = state_y(vtest::State::bias);
-	vte_state.z_bias = state_z(vtest::State::bias);
+	_vte_state.x_bias = state_x(vtest::State::bias);
+	_vte_state.y_bias = state_y(vtest::State::bias);
+	_vte_state.z_bias = state_z(vtest::State::bias);
 
-	vte_state.cov_x_bias = state_var_x(vtest::State::bias);
-	vte_state.cov_y_bias = state_var_y(vtest::State::bias);
-	vte_state.cov_z_bias = state_var_z(vtest::State::bias);
+	_vte_state.cov_x_bias = state_var_x(vtest::State::bias);
+	_vte_state.cov_y_bias = state_var_y(vtest::State::bias);
+	_vte_state.cov_z_bias = state_var_z(vtest::State::bias);
 
 #if defined(CONFIG_VTEST_MOVING)
 
-	vte_state.vx_target = state_x(vtest::State::vel_target);
-	vte_state.vy_target = state_y(vtest::State::vel_target);
-	vte_state.vz_target = state_z(vtest::State::vel_target);
+	_vte_state.vx_target = state_x(vtest::State::vel_target);
+	_vte_state.vy_target = state_y(vtest::State::vel_target);
+	_vte_state.vz_target = state_z(vtest::State::vel_target);
 
-	vte_state.cov_vx_target = state_var_x(vtest::State::vel_target);
-	vte_state.cov_vy_target = state_var_y(vtest::State::vel_target);
-	vte_state.cov_vz_target = state_var_z(vtest::State::vel_target);
+	_vte_state.cov_vx_target = state_var_x(vtest::State::vel_target);
+	_vte_state.cov_vy_target = state_var_y(vtest::State::vel_target);
+	_vte_state.cov_vz_target = state_var_z(vtest::State::vel_target);
 
-	vte_state.ax_target = state_x(vtest::State::acc_target);
-	vte_state.ay_target = state_y(vtest::State::acc_target);
-	vte_state.az_target = state_z(vtest::State::acc_target);
+	_vte_state.ax_target = state_x(vtest::State::acc_target);
+	_vte_state.ay_target = state_y(vtest::State::acc_target);
+	_vte_state.az_target = state_z(vtest::State::acc_target);
 
-	vte_state.cov_ax_target = state_var_x(vtest::State::acc_target);
-	vte_state.cov_ay_target = state_var_y(vtest::State::acc_target);
-	vte_state.cov_az_target = state_var_z(vtest::State::acc_target);
+	_vte_state.cov_ax_target = state_var_x(vtest::State::acc_target);
+	_vte_state.cov_ay_target = state_var_y(vtest::State::acc_target);
+	_vte_state.cov_az_target = state_var_z(vtest::State::acc_target);
 
 #endif // CONFIG_VTEST_MOVING
 
 	// If the target is static, valid and vision obs was fused recently, use the relative to aid the EKF2 state estimation.
 	// Check performed in EKF2 to use target vel: if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid)
-	target_pose.rel_vel_valid = target_pose.is_static && _param_vte_ekf_aid.get() && target_pose.rel_pos_valid &&
-				    (hrt_absolute_time() - _last_relative_meas_fused_time) < kMeasValidTimeoutUs;
+	_target_pose.rel_vel_valid = _target_pose.is_static && _param_vte_ekf_aid.get() && _target_pose.rel_pos_valid &&
+				     (hrt_absolute_time() - _last_relative_meas_fused_time) < kMeasValidTimeoutUs;
 
-	// Prec land does not check target_pose.abs_pos_valid. Only send the target if abs pose valid.
-	if (_local_position.valid && target_pose.rel_pos_valid) {
-		target_pose.x_abs = target_pose.x_rel + _local_position.xyz(0);
-		target_pose.y_abs = target_pose.y_rel + _local_position.xyz(1);
-		target_pose.z_abs = target_pose.z_rel + _local_position.xyz(2);
-		target_pose.abs_pos_valid = true;
+	// Prec land does not check _target_pose.abs_pos_valid. Only send the target if abs pose valid.
+	if (_local_position.valid && _target_pose.rel_pos_valid) {
+		_target_pose.x_abs = _target_pose.x_rel + _local_position.xyz(0);
+		_target_pose.y_abs = _target_pose.y_rel + _local_position.xyz(1);
+		_target_pose.z_abs = _target_pose.z_rel + _local_position.xyz(2);
+		_target_pose.abs_pos_valid = true;
 
 #if defined(CONFIG_VTEST_MOVING)
 
 		// If the target is moving, move towards its expected location
 		float mpc_z_v_auto_dn = 0.f;
 		param_get(param_find("MPC_Z_V_AUTO_DN"), &mpc_z_v_auto_dn);
-		float intersection_time_s = fabsf(target_pose.z_rel / mpc_z_v_auto_dn);
+		float intersection_time_s = fabsf(_target_pose.z_rel / mpc_z_v_auto_dn);
 		intersection_time_s = math::constrain(intersection_time_s, _param_vte_moving_t_min.get(),
 						      _param_vte_moving_t_max.get());
 
 		// Anticipate where the target will be
-		target_pose.x_abs += vte_state.vx_target * intersection_time_s;
-		target_pose.y_abs += vte_state.vy_target * intersection_time_s;
-		target_pose.z_abs += vte_state.vz_target * intersection_time_s;
+		_target_pose.x_abs += _vte_state.vx_target * intersection_time_s;
+		_target_pose.y_abs += _vte_state.vy_target * intersection_time_s;
+		_target_pose.z_abs += _vte_state.vz_target * intersection_time_s;
 
 #endif // CONFIG_VTEST_MOVING
 
-		_targetPosePub.publish(target_pose);
+		_targetPosePub.publish(_target_pose);
 
 	}
 
-	_targetEstimatorStatePub.publish(vte_state);
+	_targetEstimatorStatePub.publish(_vte_state);
 
 	// TODO: decide what to do with Bias lim
 	float bias_lim = _param_vte_bias_lim.get();
 
-	if (((float)fabs(vte_state.x_bias) > bias_lim
-	     || (float)fabs(vte_state.y_bias) > bias_lim || (float)fabs(vte_state.z_bias) > bias_lim)) {
+	if (((float)fabs(_vte_state.x_bias) > bias_lim
+	     || (float)fabs(_vte_state.y_bias) > bias_lim || (float)fabs(_vte_state.z_bias) > bias_lim)) {
 
 		PX4_DEBUG("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
-			  (double)vte_state.x_bias, (double)vte_state.y_bias, (double)vte_state.z_bias);
+			  (double)_vte_state.x_bias, (double)_vte_state.y_bias, (double)_vte_state.z_bias);
 
 		// resetFilter();
 	}
