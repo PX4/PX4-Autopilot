@@ -245,7 +245,7 @@ bool VTEPosition::updateStep(const Vector3f &vehicle_acc_ned, const matrix::Quat
 
 	// update the observations and vte_fusion_aid_mask if any valid observation.
 	TargetObs observations[ObsType::Type_count];
-	ObsValidMask vte_fusion_aid_mask{};
+	ObsValidMaskU vte_fusion_aid_mask{};
 	processObservations(q_att, vte_fusion_aid_mask, observations);
 
 	// No new observations --> no fusion.
@@ -276,7 +276,7 @@ bool VTEPosition::updateStep(const Vector3f &vehicle_acc_ned, const matrix::Quat
 	return fuseNewSensorData(vehicle_acc_ned, vte_fusion_aid_mask, observations);
 }
 
-void VTEPosition::processObservations(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask,
+void VTEPosition::processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
 				      TargetObs obs[ObsType::Type_count])
 {
 	handleVisionData(vte_fusion_aid_mask, obs[ObsType::Fiducial_marker]);
@@ -292,7 +292,7 @@ void VTEPosition::processObservations(const matrix::Quaternionf &q_att, ObsValid
 	handleTargetGpsData(vte_fusion_aid_mask, obs[ObsType::Target_gps_pos], obs[ObsType::Target_gps_vel]);
 }
 
-void VTEPosition::handleVisionData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker)
+void VTEPosition::handleVisionData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker)
 {
 
 	if (!_vte_aid_mask.flags.use_vision_pos) {
@@ -320,7 +320,8 @@ bool VTEPosition::isVisionDataValid(const fiducial_marker_pos_report_s &fiducial
 	return isMeasValid(fiducial_marker_pose.timestamp);
 }
 
-void VTEPosition::handleUwbData(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_uwb)
+void VTEPosition::handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
+				TargetObs &obs_uwb)
 {
 	sensor_uwb_s uwb_report;
 
@@ -402,7 +403,7 @@ bool VTEPosition::processObsUwb(const matrix::Quaternionf &q_att, const sensor_u
 	return true;
 }
 
-void VTEPosition::handleUavGpsData(ObsValidMask &vte_fusion_aid_mask,
+void VTEPosition::handleUavGpsData(ObsValidMaskU &vte_fusion_aid_mask,
 				   TargetObs &obs_gps_pos_mission,
 				   TargetObs &obs_gps_vel_uav)
 {
@@ -497,7 +498,7 @@ bool VTEPosition::updateUavGpsData()
 	return vehicle_gps_position_updated;
 }
 
-void VTEPosition::handleTargetGpsData(ObsValidMask &vte_fusion_aid_mask,
+void VTEPosition::handleTargetGpsData(ObsValidMaskU &vte_fusion_aid_mask,
 				      TargetObs &obs_gps_pos_target,
 				      TargetObs &obs_gps_vel_target)
 {
@@ -579,7 +580,7 @@ bool VTEPosition::isTargetGpsVelocityValid(const target_gnss_s &target_GNSS_repo
 	return true;
 }
 
-bool VTEPosition::initializeEstimator(const ObsValidMask &vte_fusion_aid_mask,
+bool VTEPosition::initializeEstimator(const ObsValidMaskU &vte_fusion_aid_mask,
 				      const TargetObs observations[ObsType::Type_count])
 {
 	if (!hasNewPositionSensorData(vte_fusion_aid_mask)) {
@@ -653,7 +654,7 @@ bool VTEPosition::initializeEstimator(const ObsValidMask &vte_fusion_aid_mask,
 	return true;
 }
 
-void VTEPosition::get_pos_init(const ObsValidMask &vte_fusion_aid_mask,
+void VTEPosition::get_pos_init(const ObsValidMaskU &vte_fusion_aid_mask,
 			       const TargetObs observations[ObsType::Type_count], matrix::Vector3f &pos_init)
 {
 
@@ -677,7 +678,7 @@ void VTEPosition::get_pos_init(const ObsValidMask &vte_fusion_aid_mask,
 
 }
 
-void VTEPosition::updateBias(const ObsValidMask &vte_fusion_aid_mask,
+void VTEPosition::updateBias(const ObsValidMaskU &vte_fusion_aid_mask,
 			     const TargetObs observations[ObsType::Type_count])
 {
 
@@ -718,7 +719,7 @@ void VTEPosition::updateBias(const ObsValidMask &vte_fusion_aid_mask,
 		 (double)bias_init(vtest::Axis::y), (double)bias_init(vtest::Axis::z));
 }
 
-bool VTEPosition::fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, ObsValidMask &vte_fusion_aid_mask,
+bool VTEPosition::fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &vte_fusion_aid_mask,
 				    const TargetObs observations[ObsType::Type_count])
 {
 	bool pos_fused = false;
@@ -830,7 +831,7 @@ bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &fiducial_
 	return true;
 }
 
-void VTEPosition::handleIrlockData(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask,
+void VTEPosition::handleIrlockData(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
 				   TargetObs &obs_irlock)
 {
 	irlock_report_s irlock_report;
@@ -1515,19 +1516,7 @@ void VTEPosition::updateParams()
 
 	// TODO: Check that params are valid. Integrate into the function. only update the global variables with correct values
 	// _gps_pos_noise, _ev_pos_noise, _irlock_config.noise must all be > 1e-2f
-	// _nis_threshold > 0.1
-
-	/*
-	here are the types:
-		float _target_acc_unc{0.f};
-		float _bias_unc{0.f};
-		float _uav_acc_unc{0.f};
-		float _gps_vel_noise{0.f};
-		float _gps_pos_noise{0.f};
-		bool  _ev_noise_md{false};
-		float _ev_pos_noise{0.f};
-		float _nis_threshold{0.f};
-	*/
+	// _nis_threshold > 0.1f all params are float
 }
 
 bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who) const

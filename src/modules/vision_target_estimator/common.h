@@ -83,7 +83,7 @@ static inline bool IsMeasUpdated(hrt_abstime ts)
 	return !HasTimedOut(ts, kMeasUpdatedTimeoutUs);
 }
 
-union sensor_fusion_mask_u {
+union SensorFusionMaskU {
 	struct {
 		uint16_t use_target_gps_pos   : 1;  ///< bit 0
 		uint16_t use_uav_gps_vel      : 1;  ///< bit 1
@@ -97,7 +97,7 @@ union sensor_fusion_mask_u {
 
 	uint16_t value;
 };
-static_assert(sizeof(sensor_fusion_mask_u) == 2, "Unexpected packing");
+static_assert(sizeof(SensorFusionMaskU) == 2, "Unexpected packing");
 
 struct RangeSensor {
 	hrt_abstime timestamp = 0;

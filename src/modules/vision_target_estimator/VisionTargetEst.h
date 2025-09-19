@@ -123,7 +123,7 @@ private:
 	void updateYawEst(const LocalPose &local_pose, const bool local_pose_updated);
 	void publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sampled, const matrix::Quaternionf &q_att);
 
-	inline bool noActiveTask() {return _vte_current_task == VisionTargetEstTask::VTE_NO_TASK;};
+	inline bool noActiveTask() {return _vte_current_task.value == 0;};
 	inline bool noEstRunning()
 	{
 		return (!_vte_orientation_enabled || !_orientation_estimator_running) && (!_vte_position_enabled
@@ -161,16 +161,20 @@ private:
 
 	uORB::Publication<vision_target_est_input_s> _vision_target_est_input_pub{ORB_ID(vision_target_est_input)};
 
-	// TODO: change to union
-	enum VisionTargetEstTask : uint16_t {
-		// Bit locations for VTE tasks
-		VTE_NO_TASK = 0,
-		VTE_FOR_PREC_LAND  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
-		VTE_DEBUG = (1 << 1) ///< set to true if target GPS position data is ready to be fused
+	union VisionTargetEstTaskMaskU {
+		struct {
+			uint8_t for_prec_land : 1; ///< bit0: precision landing task active
+			uint8_t debug         : 1; ///< bit1: debug task active
+			uint8_t reserved      : 6; ///< bits2..7: reserved for future use
+		} flags;
+
+		uint8_t value{0};
 	};
 
-	int _vte_current_task{VisionTargetEstTask::VTE_NO_TASK};
-	int _vte_task_mask{VisionTargetEstTask::VTE_NO_TASK};
+	static_assert(sizeof(VisionTargetEstTaskMaskU) == 1, "Unexpected task mask size");
+
+	VisionTargetEstTaskMaskU _vte_current_task{};
+	VisionTargetEstTaskMaskU _vte_task_mask{};
 
 	bool _position_estimator_running{false};
 	bool _orientation_estimator_running{false};
@@ -179,7 +183,7 @@ private:
 	uint64_t _vte_orientation_stop_time{0};
 
 	uint32_t _vte_TIMEOUT_US{3_s};
-	sensor_fusion_mask_u _vte_aid_mask{};
+	SensorFusionMaskU _vte_aid_mask{};
 	uint16_t adjustAidMask(const int input_mask);
 	void printAidMask();
 

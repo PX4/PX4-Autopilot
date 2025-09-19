@@ -154,21 +154,21 @@ void VisionTargetEst::updateParams()
 
 	ModuleParams::updateParams();
 
-	const int new_vte_task_mask = _param_vte_task_mask.get();
+	const uint8_t new_vte_task_mask = static_cast<uint8_t>(_param_vte_task_mask.get());
 
-	if (new_vte_task_mask != _vte_task_mask) {
+	if (new_vte_task_mask != _vte_task_mask.value) {
 
-		_vte_task_mask = new_vte_task_mask;
+		_vte_task_mask.value = new_vte_task_mask;
 
-		if (_vte_task_mask < 1) {
+		if (_vte_task_mask.value < 1) {
 			PX4_WARN("VTE no task, update VTE_TASK_MASK");
 
 		} else {
 			PX4_INFO("VTE VTE_TASK_MASK config: ");
 
-			if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) { PX4_INFO("    Precision landing");}
+			if (_vte_task_mask.flags.for_prec_land) { PX4_INFO("    Precision landing"); }
 
-			if (_vte_task_mask & VisionTargetEstTask::VTE_DEBUG) { PX4_WARN("    DEBUG, always active");}
+			if (_vte_task_mask.flags.debug) { PX4_WARN("    DEBUG, always active"); }
 		}
 	}
 
@@ -184,7 +184,7 @@ void VisionTargetEst::updateParams()
 	_gps_pos_is_offset = ((gps_pos_x > 0.01f) || (gps_pos_y > 0.01f) || (gps_pos_z > 0.01f));
 	_gps_pos_offset_xyz = matrix::Vector3f(gps_pos_x, gps_pos_y, gps_pos_z);
 
-	sensor_fusion_mask_u new_aid_mask{};
+	SensorFusionMaskU new_aid_mask{};
 	new_aid_mask.value = adjustAidMask(_param_vte_aid_mask.get());
 
 	if (new_aid_mask.value != _vte_aid_mask.value) {
@@ -234,7 +234,7 @@ void VisionTargetEst::updateParams()
 
 uint16_t VisionTargetEst::adjustAidMask(const int input_vte_aid_mask)
 {
-	sensor_fusion_mask_u new_aid_mask{};
+	SensorFusionMaskU new_aid_mask{};
 	new_aid_mask.value = input_vte_aid_mask;
 
 #if defined(CONFIG_VTEST_MOVING)
@@ -314,7 +314,7 @@ bool VisionTargetEst::startPosEst()
 	PX4_INFO("Starting Position Vision Target Estimator.");
 	_vte_position.resetFilter();
 
-	if (_vte_current_task & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
+	if (_vte_current_task.flags.for_prec_land) {
 
 		bool next_sp_is_land = false;
 		bool current_sp_is_land = false;
@@ -348,31 +348,33 @@ bool VisionTargetEst::startPosEst()
 bool VisionTargetEst::isNewTaskAvailable()
 {
 
-	if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND && _is_in_prec_land) {
+	if (_vte_task_mask.flags.for_prec_land && _is_in_prec_land) {
 
 		// Precision land task already running
-		if (_vte_current_task == VisionTargetEstTask::VTE_FOR_PREC_LAND) {
+		if (_vte_current_task.flags.for_prec_land) {
 			return false;
 		}
 
 		PX4_INFO("VTE, precision landing task requested.");
-		_vte_current_task = VisionTargetEstTask::VTE_FOR_PREC_LAND;
+		_vte_current_task.value = 0;
+		_vte_current_task.flags.for_prec_land = 1;
 		return true;
 
-	} else if (_vte_task_mask & VisionTargetEstTask::VTE_DEBUG) {
+	} else if (_vte_task_mask.flags.debug) {
 
 		// DEBUG task already running
-		if (_vte_current_task == VisionTargetEstTask::VTE_DEBUG) {
+		if (_vte_current_task.flags.debug) {
 			return false;
 		}
 
 		PX4_WARN("VTE, DEBUG task requested.");
-		_vte_current_task = VisionTargetEstTask::VTE_DEBUG;
+		_vte_current_task.value = 0;
+		_vte_current_task.flags.debug = 1;
 		return true;
 	}
 
 	// To add a new task:
-	// else if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_NEW_TASK && _is_in_new_task) {...}
+	// else if ((_vte_task_mask.value & <new task bit>) && _is_in_new_task) {...}
 
 	return false;
 }
@@ -381,9 +383,9 @@ bool VisionTargetEst::IsCurrentTaskDone()
 {
 
 	// Prec-land
-	if (_vte_current_task & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
+	if (_vte_current_task.flags.for_prec_land) {
 
-		if (!(_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND)) {
+		if (!_vte_task_mask.flags.for_prec_land) {
 			PX4_INFO("VTE_TASK_MASK updated, precision landing task completed.");
 			return true;
 		}
@@ -403,9 +405,9 @@ bool VisionTargetEst::IsCurrentTaskDone()
 			return true;
 		}
 
-	} else if (_vte_current_task & VisionTargetEstTask::VTE_DEBUG) {
+	} else if (_vte_current_task.flags.debug) {
 
-		if (!(_vte_task_mask & VisionTargetEstTask::VTE_DEBUG)) {
+		if (!_vte_task_mask.flags.debug) {
 			PX4_INFO("VTE_TASK_MASK updated, DEBUG task completed.");
 			return true;
 		}
@@ -423,7 +425,7 @@ void VisionTargetEst::updateTaskTopics()
 
 #if !defined(CONSTRAINED_FLASH)
 
-	if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
+	if (_vte_task_mask.flags.for_prec_land) {
 		prec_land_status_s prec_land_status;
 
 		if (_prec_land_status_sub.update(&prec_land_status)) {
@@ -464,7 +466,7 @@ void VisionTargetEst::Run()
 	// Early return if no estimator is running or activated
 	if (noEstRunning()) {
 		if (IsCurrentTaskDone()) {
-			_vte_current_task = VisionTargetEstTask::VTE_NO_TASK;
+			_vte_current_task.value = 0;
 		}
 
 		return;
@@ -473,7 +475,7 @@ void VisionTargetEst::Run()
 	// Stop estimators once task is completed
 	if (IsCurrentTaskDone()) {
 		stopAllEstimators();
-		_vte_current_task = VisionTargetEstTask::VTE_NO_TASK;
+		_vte_current_task.value = 0;
 		return;
 	}
 
