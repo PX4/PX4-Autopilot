@@ -102,7 +102,7 @@ public:
 	void set_local_position(const matrix::Vector3f &xyz, const bool valid, const hrt_abstime timestamp);
 	void set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset);
 	void set_vel_offset(const matrix::Vector3f &xyz);
-	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
+	void set_vte_timeout(const uint32_t tout) {_vte_TIMEOUT_US = tout;};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
 	bool timedOut() {return hasTimedOut(_last_update, _vte_TIMEOUT_US);};
@@ -270,7 +270,7 @@ private:
 	perf_counter_t _vte_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE update")};
 
 
-	RangeSensor _range_sensor{};
+	FloatStamped _range_sensor{};
 
 	struct IrlockConfig {
 		float scale_x{1.0f};
@@ -307,18 +307,13 @@ private:
 
 	VelStamped _uav_gps_vel{};
 
-	struct VecStamped {
-		hrt_abstime timestamp = 0;
-		bool valid = false;
-		matrix::Vector3f xyz{};
-	};
+	Vector3fStamped _local_position{};
+	Vector3fStamped _local_velocity{};
+	Vector3fStamped _target_gps_vel{};
+	Vector3fStamped _pos_rel_gnss{};
+	Vector3fStamped _velocity_offset_ned{};
+	Vector3fStamped _gps_pos_offset_ned{};
 
-	VecStamped _local_position{};
-	VecStamped _local_velocity{};
-	VecStamped _target_gps_vel{};
-	VecStamped _pos_rel_gnss{};
-	VecStamped _velocity_offset_ned{};
-	VecStamped _gps_pos_offset_ned{};
 	bool _gps_pos_is_offset{false};
 	bool _bias_set{false};
 

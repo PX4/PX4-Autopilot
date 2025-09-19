@@ -108,10 +108,16 @@ union SensorFusionMaskU {
 };
 static_assert(sizeof(SensorFusionMaskU) == 2, "Unexpected packing");
 
-struct RangeSensor {
+struct FloatStamped {
 	hrt_abstime timestamp = 0;
 	bool valid = false;
 	float dist_bottom = 0.f;
+};
+
+struct Vector3fStamped {
+	hrt_abstime timestamp = 0;
+	bool valid = false;
+	matrix::Vector3f xyz{};
 };
 
 inline bool uwbMeasurementToNed(const sensor_uwb_s &uwb_report,

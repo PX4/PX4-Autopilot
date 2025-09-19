@@ -62,6 +62,7 @@ static constexpr uint32_t vte_yaw_UPDATE_RATE_HZ = 50;
 static constexpr uint32_t acc_downsample_TIMEOUT_US = 40_ms; // 40 ms -> 25Hz
 static constexpr uint32_t estimator_restart_time_US = 3_s; // Wait at least 3 second before re-starting the filter
 static constexpr float CONSTANTS_ONE_G = 9.80665f;  // m/s^2
+static constexpr uint32_t kAccUpdatedTimeoutUs = 20_ms; // TODO: check if we can lower it
 
 VisionTargetEst::VisionTargetEst() :
 	ModuleParams(nullptr),
@@ -617,7 +618,7 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 	_vehicle_acc_ned_sum += vehicle_acc_ned;
 	_loops_count ++;
 
-	if (check_and_update_elapsed(_last_update_pos, (1_s / vte_pos_UPDATE_RATE_HZ))) {
+	if (!check_and_update_elapsed(_last_update_pos, (1_s / vte_pos_UPDATE_RATE_HZ))) {
 		return;
 	}
 
@@ -649,7 +650,7 @@ void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local
 				   const matrix::Quaternionf &q_att)
 {
 
-	if (check_and_update_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
+	if (!check_and_update_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
 		return;
 	}
 
@@ -710,7 +711,7 @@ bool VisionTargetEst::get_local_pose(LocalPose &local_pose)
 		return false;
 	}
 
-	if ((hrt_absolute_time() - vehicle_local_position.timestamp) > 100_ms) {
+	if (!isMeasUpdated(vehicle_local_position.timestamp)) {
 		PX4_DEBUG("Local position too old.");
 		return false;
 	}
@@ -742,24 +743,41 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 				matrix::Vector3f &vel_offset_rot_ned,
 				const bool vel_offset_updated)
 {
-	vehicle_attitude_s	vehicle_attitude;
-	vehicle_acceleration_s	vehicle_acceleration;
+	vehicle_attitude_s vehicle_attitude;
+	vehicle_acceleration_s vehicle_acceleration;
 
 	const bool vehicle_attitude_updated = _vehicle_attitude_sub.update(&vehicle_attitude);
 	const bool vehicle_acceleration_updated = _vehicle_acceleration_sub.update(&vehicle_acceleration);
 
-	if (!vehicle_attitude_updated || !vehicle_acceleration_updated) {
+	if (!vehicle_attitude_updated) {
+		return false;
+	}
+
+	if (vehicle_acceleration_updated) {
+		_vehicle_acc_body.xyz = matrix::Vector3f(vehicle_acceleration.xyz);
+		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp;
+		_vehicle_acc_body.valid = hasTimedOut(vehicle_acceleration.timestamp, kAccUpdatedTimeoutUs);
+	}
+
+	if (!_vehicle_acc_body.valid) {
+		PX4_DEBUG("VTE acceleration sample unavailable");
+
+		if (hrt_elapsed_time(&_acc_sample_warn_last) > 1_s) {
+			PX4_WARN("VTE acc sample stale (%.1f ms)",
+				 static_cast<double>((hrt_absolute_time() - _vehicle_acc_body.timestamp) / 1e3));
+			_acc_sample_warn_last = hrt_absolute_time();
+		}
+
 		return false;
 	}
 
 	/* Transform FRD body acc to NED */
 	const matrix::Quaternionf q_att(&vehicle_attitude.q[0]); // (w,x,y,z)
 	quat_att = q_att;
-	const matrix::Vector3f vehicle_acc{vehicle_acceleration.xyz};
 
 	/* Compensate for gravity. */
 	const matrix::Vector3f gravity_ned(0, 0, CONSTANTS_ONE_G);
-	vehicle_acc_ned = quat_att.rotateVector(vehicle_acc) + gravity_ned;
+	vehicle_acc_ned = quat_att.rotateVector(_vehicle_acc_body.xyz) + gravity_ned;
 
 	/* Rotate position and velocity offset into ned frame */
 	if (_gps_pos_is_offset) {
