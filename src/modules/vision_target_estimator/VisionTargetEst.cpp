@@ -72,8 +72,8 @@ VisionTargetEst::VisionTargetEst() :
 
 VisionTargetEst::~VisionTargetEst()
 {
-	delete _vte_position;
-	delete _vte_orientation;
+	_vte_position.reset();
+	_vte_orientation.reset();
 
 	perf_free(_cycle_perf_pos);
 	perf_free(_cycle_perf_yaw);
@@ -115,10 +115,8 @@ bool VisionTargetEst::init()
 		return false;
 	}
 
-	delete _vte_position;
-	delete _vte_orientation;
-	_vte_position = nullptr;
-	_vte_orientation = nullptr;
+	_vte_position.reset();
+	_vte_orientation.reset();
 
 	_orientation_estimator_running = false;
 	_position_estimator_running = false;
@@ -129,14 +127,28 @@ bool VisionTargetEst::init()
 	// Params with reboot required
 	if (_param_vte_pos_en.get()) {
 		PX4_INFO("VTE position estimator enabled.");
-		_vte_position = new VTEPosition;
-		_vte_position_enabled = (_vte_position != nullptr && _vte_position->init());
+		auto position_estimator = std::make_unique<VTEPosition>();
+
+		if (position_estimator && position_estimator->init()) {
+			_vte_position = std::move(position_estimator);
+			_vte_position_enabled = true;
+
+		} else {
+			PX4_ERR("VTE position estimator initialisation failed");
+		}
 	}
 
 	if (_param_vte_yaw_en.get()) {
 		PX4_INFO("VTE yaw estimator enabled.");
-		_vte_orientation = new VTEOrientation;
-		_vte_orientation_enabled = (_vte_orientation != nullptr && _vte_orientation->init());
+		auto orientation_estimator = std::make_unique<VTEOrientation>();
+
+		if (orientation_estimator && orientation_estimator->init()) {
+			_vte_orientation = std::move(orientation_estimator);
+			_vte_orientation_enabled = true;
+
+		} else {
+			PX4_ERR("VTE yaw estimator initialisation failed");
+		}
 	}
 
 	// Params that impact the estimators
@@ -188,11 +200,11 @@ void VisionTargetEst::updateParams()
 	if (new_aid_mask.value != _vte_aid_mask.value) {
 		_vte_aid_mask.value = new_aid_mask.value;
 
-		if (_vte_position_enabled) {
+		if (_vte_position_enabled && _vte_position) {
 			_vte_position->set_vte_aid_mask(new_aid_mask.value);
 		}
 
-		if (_vte_orientation_enabled) {
+		if (_vte_orientation_enabled && _vte_orientation) {
 			_vte_orientation->set_vte_aid_mask(new_aid_mask.value);
 		}
 
@@ -208,13 +220,25 @@ void VisionTargetEst::updateParams()
 
 		_vte_TIMEOUT_US = new_vte_timeout_us;
 
-		if (_vte_position_enabled) {
+		if (_vte_position_enabled && _vte_position) {
 			_vte_position->set_vte_timeout(new_vte_timeout_us);
 		}
 
-		if (_vte_orientation_enabled) {
+		if (_vte_orientation_enabled && _vte_orientation) {
 			_vte_orientation->set_vte_timeout(new_vte_timeout_us);
 		}
+	}
+
+	if (_vte_position_enabled && _position_estimator_running && _vte_position
+	    && !_vte_position->has_fusion_enabled()) {
+		PX4_INFO("VTE position estimator stopped, no fusion source selected.");
+		stop_position_estimator();
+	}
+
+	if (_vte_orientation_enabled && _orientation_estimator_running && _vte_orientation
+	    && !_vte_orientation->has_fusion_enabled()) {
+		PX4_INFO("VTE yaw estimator stopped, no fusion source selected.");
+		stop_orientation_estimator();
 	}
 }
 
@@ -232,7 +256,7 @@ uint16_t VisionTargetEst::adjustAidMask(const int input_vte_aid_mask)
 
 #endif // CONFIG_VTEST_MOVING
 
-	if ((new_aid_mask.flags.use_target_gps_pos) && (_vte_aid_mask.flags.use_mission_pos)) {
+	if (new_aid_mask.flags.use_target_gps_pos && new_aid_mask.flags.use_mission_pos) {
 		PX4_WARN("VTE both target GPS position and mission land position data fusion cannot be enabled simultaneously.");
 		PX4_WARN("Disabling mission land position fusion.");
 		new_aid_mask.flags.use_mission_pos = false;
@@ -271,16 +295,25 @@ void VisionTargetEst::reset_acc_downsample()
 
 bool VisionTargetEst::start_orientation_estimator()
 {
+	if (!_vte_orientation) {
+		return false;
+	}
+
 	if ((hrt_absolute_time() - _vte_orientation_stop_time) < estimator_restart_time_US) {
 		return false;
 	}
 
 	PX4_INFO("Starting Orientation Vision Target Estimator.");
+	_vte_orientation->reset_filter();
 	return true;
 }
 
 bool VisionTargetEst::start_position_estimator()
 {
+	if (!_vte_position) {
+		return false;
+	}
+
 	// Don't start estimator if it was stopped recently
 	if ((hrt_absolute_time() - _vte_position_stop_time) < estimator_restart_time_US) {
 		return false;
@@ -289,6 +322,7 @@ bool VisionTargetEst::start_position_estimator()
 	reset_acc_downsample();
 
 	PX4_INFO("Starting Position Vision Target Estimator.");
+	_vte_position->reset_filter();
 
 	if (_vte_current_task & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
 
@@ -483,7 +517,7 @@ void VisionTargetEst::stop_position_estimator()
 
 	PX4_INFO("Stopping Position Vision Target Estimator.");
 
-	if (_vte_position_enabled) {
+	if (_vte_position_enabled && _vte_position) {
 		_vte_position->reset_filter();
 	}
 
@@ -496,7 +530,7 @@ void VisionTargetEst::stop_orientation_estimator()
 
 	PX4_INFO("Stopping Orientation Vision Target Estimator.");
 
-	if (_vte_orientation_enabled) {
+	if (_vte_orientation_enabled && _vte_orientation) {
 		_vte_orientation->reset_filter();
 	}
 
@@ -508,12 +542,13 @@ void VisionTargetEst::start_estimators_if_needed()
 {
 
 	// Only start the estimator if fusion is enabled, otherwise it will timeout
-	if (!_position_estimator_running && _vte_position_enabled && _vte_position->has_fusion_enabled()) {
+	if (!_position_estimator_running && _vte_position_enabled && _vte_position
+	    && _vte_position->has_fusion_enabled()) {
 		_position_estimator_running = start_position_estimator();
 	}
 
-	// TODO: include _vte_orientation->has_fusion_enabled()
-	if (!_orientation_estimator_running && _vte_orientation_enabled) {
+	if (!_orientation_estimator_running && _vte_orientation_enabled && _vte_orientation
+	    && _vte_orientation->has_fusion_enabled()) {
 		_orientation_estimator_running = start_orientation_estimator();
 	}
 }
@@ -576,7 +611,7 @@ void VisionTargetEst::perform_position_update(const localPose &local_pose, const
 
 		/* If the acceleration has been averaged for too long, early return */
 		if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
-			PX4_INFO("Forced acc downsample reset");
+			PX4_DEBUG("Forced acc downsample reset");
 			reset_acc_downsample();
 			return;
 		}
@@ -671,7 +706,7 @@ bool VisionTargetEst::get_local_pose(localPose &local_pose)
 	}
 
 	if ((hrt_absolute_time() - vehicle_local_position.timestamp) > 100_ms) {
-		PX4_WARN("Local position too old.");
+		PX4_DEBUG("Local position too old.");
 		return false;
 	}
 

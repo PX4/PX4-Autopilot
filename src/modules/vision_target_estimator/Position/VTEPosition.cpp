@@ -71,10 +71,6 @@ VTEPosition::VTEPosition() :
 
 VTEPosition::~VTEPosition()
 {
-	for (int i = 0; i < vtest::Axis::size; i++) {
-		delete _target_est_pos[i];
-	}
-
 	perf_free(_vte_predict_perf);
 	perf_free(_vte_update_perf);
 }
@@ -1432,16 +1428,18 @@ void VTEPosition::set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps
 {
 	_gps_pos_is_offset = gps_is_offset;
 	_gps_pos_offset_ned.xyz = xyz;
-	_gps_pos_offset_ned.valid = (PX4_ISFINITE(_gps_pos_offset_ned.xyz(0)) && PX4_ISFINITE(_gps_pos_offset_ned.xyz(0))
-				     && PX4_ISFINITE(_gps_pos_offset_ned.xyz(2)));
+	_gps_pos_offset_ned.valid = PX4_ISFINITE(xyz(0))
+				    && PX4_ISFINITE(xyz(1))
+				    && PX4_ISFINITE(xyz(2));
 	_gps_pos_offset_ned.timestamp = hrt_absolute_time();
 }
 
 void VTEPosition::set_velocity_offset(const matrix::Vector3f &xyz)
 {
 	_velocity_offset_ned.xyz = xyz;
-	_velocity_offset_ned.valid = (PX4_ISFINITE(_velocity_offset_ned.xyz(0)) && PX4_ISFINITE(_velocity_offset_ned.xyz(0))
-				      && PX4_ISFINITE(_velocity_offset_ned.xyz(2)));
+	_velocity_offset_ned.valid = PX4_ISFINITE(xyz(0))
+				     && PX4_ISFINITE(xyz(1))
+				     && PX4_ISFINITE(xyz(2));
 	_velocity_offset_ned.timestamp = hrt_absolute_time();
 }
 
@@ -1535,40 +1533,18 @@ void VTEPosition::updateParams()
 
 bool VTEPosition::createEstimators()
 {
-
-	// Array to hold temporary pointers
-	KF_position *tmp[vtest::Axis::size] = {nullptr, nullptr, nullptr};
-	bool init_failed = false;
-
-	// Try to allocate new estimators
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
-		tmp[axis] = new KF_position;
+		auto estimator = std::make_unique<KF_position>();
 
-		if (tmp[axis] == nullptr) {
-			init_failed = true;
-			break;
+		if (!estimator) {
+			PX4_ERR("VTE position creation failed on axis %d", axis);
+			return false;
 		}
+
+		_target_est_pos[axis] = std::move(estimator);
 	}
 
-	if (init_failed) {
-		// Clean up any allocated estimators
-		for (int axis = 0; axis < vtest::Axis::size; ++axis) {
-			delete tmp[axis];
-			tmp[axis] = nullptr;
-		}
-
-		return false;
-
-	} else {
-		// Replace old estimators with new ones
-		for (int axis = 0; axis < vtest::Axis::size; ++axis) {
-			delete _target_est_pos[axis];
-			_target_est_pos[axis] = tmp[axis];
-			tmp[axis] = nullptr; // Prevent deletion in the cleanup loop
-		}
-
-		return true;
-	}
+	return true;
 }
 
 bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who) const

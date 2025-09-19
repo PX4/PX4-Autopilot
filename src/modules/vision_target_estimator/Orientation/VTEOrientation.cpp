@@ -63,10 +63,7 @@ VTEOrientation::VTEOrientation() :
 	updateParams();
 }
 
-VTEOrientation::~VTEOrientation()
-{
-	delete _target_est_yaw;
-}
+VTEOrientation::~VTEOrientation() = default;
 
 bool VTEOrientation::init()
 {
@@ -206,12 +203,12 @@ void VTEOrientation::handleVisionData(ObsValidMask &vte_fusion_aid_mask, targetO
 bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw)
 {
 	if (!isMeasValid(fiducial_marker_yaw.timestamp)) {
-		PX4_WARN("Vision yaw is outdated!");
+		PX4_DEBUG("Vision yaw is outdated!");
 		return false;
 	}
 
 	if (!PX4_ISFINITE(fiducial_marker_yaw.yaw_ned)) {
-		PX4_WARN("Vision yaw is corrupt!");
+		PX4_DEBUG("Vision yaw is corrupt!");
 		return false;
 	}
 
@@ -427,19 +424,15 @@ void VTEOrientation::set_range_sensor(const float dist, const bool valid, hrt_ab
 
 bool VTEOrientation::createEstimator()
 {
-	KF_orientation *tmp_theta = new KF_orientation;
+	auto estimator = std::make_unique<KF_orientation>();
 
-	if (tmp_theta == nullptr) {
+	if (!estimator) {
 		PX4_ERR("VTE orientation creation failed");
 		return false;
-
-	} else {
-
-		delete _target_est_yaw;
-		_target_est_yaw = tmp_theta;
-
-		return true;
 	}
+
+	_target_est_yaw = std::move(estimator);
+	return true;
 }
 
 } // namespace vision_target_estimator

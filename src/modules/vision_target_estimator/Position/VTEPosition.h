@@ -71,6 +71,7 @@
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
+#include <memory>
 #include "KF_position.h"
 #include <vtest_derivation/generated/state.h>
 #include "../common.h"
@@ -97,24 +98,16 @@ public:
 	void reset_filter();
 
 	void set_mission_position(const double lat_deg, const double lon_deg, const float alt_m);
-
 	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
-
 	void set_local_velocity(const matrix::Vector3f &vel_xyz, const bool valid, const hrt_abstime timestamp);
-
 	void set_local_position(const matrix::Vector3f &xyz, const bool valid, const hrt_abstime timestamp);
-
 	void set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset);
-
 	void set_velocity_offset(const matrix::Vector3f &xyz);
-
 	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
-
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
 	bool has_timed_out() {return _has_timed_out;};
-
-	// TODO: decide if a relative position measurement is required.
+	// TODO: Could be more strict and require a relative position meas (vision, GPS, irlock, uwb)
 	bool has_fusion_enabled() {return _vte_aid_mask.value != 0;};
 
 private:
@@ -343,7 +336,7 @@ private:
 	uint64_t _last_relative_meas_fused_time{0};
 	bool _estimator_initialized{false};
 
-	KF_position *_target_est_pos[vtest::Axis::size] {nullptr, nullptr, nullptr};
+	std::unique_ptr<KF_position> _target_est_pos[vtest::Axis::size];
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
