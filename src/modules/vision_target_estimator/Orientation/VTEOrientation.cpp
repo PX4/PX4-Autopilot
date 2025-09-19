@@ -39,8 +39,6 @@
  *
  */
 
-// TODO: implement aid mask. In the future there might be more measurements
-
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
@@ -74,7 +72,6 @@ bool VTEOrientation::init()
 void VTEOrientation::resetFilter()
 {
 	_estimator_initialized = false;
-	_has_timed_out = false;
 }
 
 void VTEOrientation::update()
@@ -87,15 +84,8 @@ void VTEOrientation::update()
 
 	// predict the target state using a constant relative acceleration model
 	if (_estimator_initialized) {
-
-		if (hrt_absolute_time() - _last_update > _vte_TIMEOUT_US) {
-			PX4_WARN("VTE orientation estimator has timed out");
-			_has_timed_out = true;
-
-		} else {
-			predictionStep();
-			_last_predict = hrt_absolute_time();
-		}
+		predictionStep();
+		_last_predict = hrt_absolute_time();
 	}
 
 	// update and fuse the observations and pulishes innovations
@@ -382,7 +372,7 @@ void VTEOrientation::publishTarget()
 	matrix::Vector<float, State::size> state_var = _target_est_yaw.get_state_covariance();
 
 	vision_target_orientation.timestamp = _last_predict;
-	vision_target_orientation.orientation_valid = (hrt_absolute_time() - _last_update < kTargetValidTimeoutUs);
+	vision_target_orientation.orientation_valid = hasTimedOut(_last_update, kTargetValidTimeoutUs);
 
 	vision_target_orientation.theta = state(State::yaw);
 	vision_target_orientation.cov_theta = state_var(State::yaw);
@@ -396,7 +386,7 @@ void VTEOrientation::publishTarget()
 void VTEOrientation::checkMeasurementInputs()
 {
 	if (_range_sensor.valid) {
-		_range_sensor.valid = IsMeasUpdated(_range_sensor.timestamp);
+		_range_sensor.valid = isMeasUpdated(_range_sensor.timestamp);
 	}
 
 	// TODO: check other measurements?
@@ -410,15 +400,30 @@ void VTEOrientation::updateParams()
 	ModuleParams::updateParams();
 
 	_yaw_unc = _param_vte_yaw_unc_in.get();
-	_ev_angle_noise = _param_vte_ev_angle_noise.get();
+	const float new_ev_angle_noise = _param_vte_ev_angle_noise.get();
 	_ev_noise_md = _param_vte_ev_noise_md.get();
-	_nis_threshold = _param_vte_yaw_nis_thre.get();
+	const float new_nis_threshold = _param_vte_yaw_nis_thre.get();
+
+	if (PX4_ISFINITE(new_ev_angle_noise) && new_ev_angle_noise > kMinObservationNoise) {
+		_ev_angle_noise = new_ev_angle_noise;
+
+	} else {
+		PX4_WARN("VTE: VTE_EVA_NOISE %.1f <= %.1f, keeping previous value",
+			 (double)new_ev_angle_noise, (double)kMinObservationNoise);
+	}
+
+	if (PX4_ISFINITE(new_nis_threshold) && new_nis_threshold > kMinNisThreshold) {
+		_nis_threshold = new_nis_threshold;
+
+	} else {
+		PX4_WARN("VTE: VTE_YAW_NIS_THRE %.1f <= %.1f, keeping previous value",
+			 (double)new_nis_threshold, (double)kMinNisThreshold);
+	}
 }
 
-// TODO: forward the timestamp as for VTEPosition
 void VTEOrientation::set_range_sensor(const float dist, const bool valid, hrt_abstime timestamp)
 {
-	_range_sensor.valid = valid && IsMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
+	_range_sensor.valid = valid && isMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
 	_range_sensor.dist_bottom = dist;
 	_range_sensor.timestamp = timestamp;
 }

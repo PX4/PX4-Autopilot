@@ -105,7 +105,7 @@ public:
 	void set_vte_timeout(const float tout) {_vte_TIMEOUT_US = static_cast<uint32_t>(tout * 1_s);};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
-	bool timedOut() {return _has_timed_out;};
+	bool timedOut() {return hasTimedOut(_last_update, _vte_TIMEOUT_US);};
 	// TODO: Could be more strict and require a relative position meas (vision, GPS, irlock, uwb)
 	bool fusionEnabled() {return _vte_aid_mask.value != 0;};
 
@@ -137,9 +137,7 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
-
-	bool _has_timed_out{false}; // TODO: no need for this variable. Call HasTimedOut(_last_update, _vte_TIMEOUT_US)
-
+	// TODO: enum class
 	enum ObsType {
 		Target_gps_pos,
 		Mission_gps_pos,
