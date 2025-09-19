@@ -46,7 +46,7 @@ class UavcanFlowBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanFlowBridge(uavcan::INode &node);
+	UavcanFlowBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 
