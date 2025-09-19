@@ -119,8 +119,13 @@ private:
 	void startEstIfNeeded();
 	bool estStoppedDueToTimeout();
 	void updateEstimators();
-	void updatePosEst(const LocalPose &local_pose, const bool local_pose_updated);
-	void updateYawEst(const LocalPose &local_pose, const bool local_pose_updated);
+	void updatePosEst(const LocalPose &local_pose, const bool local_pose_updated,
+			  const matrix::Vector3f &vehicle_acc_ned,
+			  const matrix::Quaternionf &q_att,
+			  const matrix::Vector3f &gps_pos_offset_ned,
+			  const matrix::Vector3f &vel_offset_ned,
+			  const bool vel_offset_updated);
+	void updateYawEst(const LocalPose &local_pose, const bool local_pose_updated, const matrix::Quaternionf &q_att);
 	void publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sampled, const matrix::Quaternionf &q_att);
 
 	inline bool noActiveTask() {return _vte_current_task.value == 0;};
