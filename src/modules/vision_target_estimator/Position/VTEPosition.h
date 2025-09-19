@@ -259,6 +259,7 @@ private:
 	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const TargetObs &target_pos_obs);
 	void publishTarget();
 	void publishInnov(const estimator_aid_source3d_s &target_innov, const ObsType type);
+	void resetObservations();
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_pos_report)};
@@ -269,6 +270,10 @@ private:
 	perf_counter_t _vte_predict_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE prediction")};
 	perf_counter_t _vte_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE update")};
 
+	TargetObs _obs_buffer[ObsType::Type_count] {};
+	estimator_aid_source3d_s _target_innov{};
+	landing_target_pose_s _target_pose{};
+	vision_target_est_position_s _vte_state{};
 
 	FloatStamped _range_sensor{};
 

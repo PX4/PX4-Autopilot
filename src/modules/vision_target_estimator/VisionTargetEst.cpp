@@ -69,6 +69,10 @@ VisionTargetEst::VisionTargetEst() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::vte)
 {
 	_vision_target_est_input_pub.advertise();
+
+	_param_ekf2_gps_pos_x = param_find("EKF2_GPS_POS_X");
+	_param_ekf2_gps_pos_y = param_find("EKF2_GPS_POS_Y");
+	_param_ekf2_gps_pos_z = param_find("EKF2_GPS_POS_Z");
 }
 
 VisionTargetEst::~VisionTargetEst()
@@ -230,13 +234,20 @@ void VisionTargetEst::updateParams()
 	}
 
 	float gps_pos_x = 0.f;
-	param_get(param_find("EKF2_GPS_POS_X"), &gps_pos_x);
-
 	float gps_pos_y = 0.f;
-	param_get(param_find("EKF2_GPS_POS_Y"), &gps_pos_y);
-
 	float gps_pos_z = 0.f;
-	param_get(param_find("EKF2_GPS_POS_Z"), &gps_pos_z);
+
+	if (_param_ekf2_gps_pos_x != PARAM_INVALID) {
+		param_get(_param_ekf2_gps_pos_x, &gps_pos_x);
+	}
+
+	if (_param_ekf2_gps_pos_y != PARAM_INVALID) {
+		param_get(_param_ekf2_gps_pos_y, &gps_pos_y);
+	}
+
+	if (_param_ekf2_gps_pos_z != PARAM_INVALID) {
+		param_get(_param_ekf2_gps_pos_z, &gps_pos_z);
+	}
 
 	_gps_pos_is_offset = ((fabsf(gps_pos_x) > kMinGpsOffsetM) || (fabsf(gps_pos_y) > kMinGpsOffsetM)
 			      || (fabsf(gps_pos_z) > kMinGpsOffsetM));
@@ -376,22 +387,20 @@ bool VisionTargetEst::startPosEst()
 		bool next_sp_is_land = false;
 		bool current_sp_is_land = false;
 
-		position_setpoint_triplet_s pos_sp_triplet;
-
-		if (_pos_sp_triplet_sub.update(&pos_sp_triplet)) {
-			next_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
-			current_sp_is_land = (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND);
+		if (_pos_sp_triplet_sub.update(&_pos_sp_triplet_buffer)) {
+			next_sp_is_land = (_pos_sp_triplet_buffer.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
+			current_sp_is_land = (_pos_sp_triplet_buffer.current.type == position_setpoint_s::SETPOINT_TYPE_LAND);
 		}
 
 		if (next_sp_is_land) {
 			PX4_INFO("VTE for precision landing, next sp is land.");
-			_vte_position.set_mission_position(pos_sp_triplet.next.lat, pos_sp_triplet.next.lon,
-							   pos_sp_triplet.next.alt);
+			_vte_position.set_mission_position(_pos_sp_triplet_buffer.next.lat, _pos_sp_triplet_buffer.next.lon,
+							   _pos_sp_triplet_buffer.next.alt);
 
 		} else if (current_sp_is_land) {
 			PX4_INFO("VTE for precision landing, current sp is land.");
-			_vte_position.set_mission_position(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon,
-							   pos_sp_triplet.current.alt);
+			_vte_position.set_mission_position(_pos_sp_triplet_buffer.current.lat, _pos_sp_triplet_buffer.current.lon,
+							   _pos_sp_triplet_buffer.current.alt);
 
 		} else {
 			PX4_WARN("VTE for precision landing, land position cannot be used.");
@@ -542,26 +551,25 @@ void VisionTargetEst::startEstIfNeeded()
 
 bool VisionTargetEst::estStoppedDueToTimeout()
 {
-	bool all_estimators_stopped = true;
+	bool timed_out = false;
 
 	if (_position_estimator_running && _vte_position.timedOut()) {
 		stopPosEst();
 		PX4_INFO("Estimator TIMEOUT, position VTE stopped.");
-
-	} else {
-		all_estimators_stopped = false;
+		timed_out = true;
 	}
 
 	if (_orientation_estimator_running && _vte_orientation.timedOut()) {
 		stopYawEst();
 		PX4_INFO("Estimator TIMEOUT, orientation VTE stopped.");
-
-	} else {
-		all_estimators_stopped = false;
+		timed_out = true;
 	}
 
-	// Early return if all estimators are stopped
-	return all_estimators_stopped;
+	if (!timed_out) {
+		return false;
+	}
+
+	return !_position_estimator_running && !_orientation_estimator_running;
 }
 
 void VisionTargetEst::updateEstimators()
@@ -739,8 +747,8 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 				matrix::Vector3f &vel_offset_rot_ned,
 				const bool vel_offset_updated)
 {
-	vehicle_attitude_s vehicle_attitude;
-	vehicle_acceleration_s vehicle_acceleration;
+	vehicle_attitude_s vehicle_attitude{};
+	vehicle_acceleration_s vehicle_acceleration{};
 
 	const bool vehicle_attitude_updated = _vehicle_attitude_sub.update(&vehicle_attitude);
 	const bool vehicle_acceleration_updated = _vehicle_acceleration_sub.update(&vehicle_acceleration);
@@ -752,11 +760,10 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 	if (vehicle_acceleration_updated) {
 		_vehicle_acc_body.xyz = matrix::Vector3f(vehicle_acceleration.xyz);
 		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp;
-		_vehicle_acc_body.valid = !hasTimedOut(vehicle_acceleration.timestamp, kAccUpdatedTimeoutUs);
-
-	} else {
-		_vehicle_acc_body.valid = !hasTimedOut(vehicle_acceleration.timestamp, kAccUpdatedTimeoutUs);
 	}
+
+	_vehicle_acc_body.valid = (_vehicle_acc_body.timestamp != 0)
+				  && !hasTimedOut(_vehicle_acc_body.timestamp, kAccUpdatedTimeoutUs);
 
 	if (!_vehicle_acc_body.valid) {
 		PX4_DEBUG("VTE acceleration sample unavailable");
