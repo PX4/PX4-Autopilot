@@ -71,7 +71,6 @@
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
-#include <memory>
 #include "KF_position.h"
 #include <vtest_derivation/generated/state.h>
 #include "../common.h"
@@ -188,7 +187,6 @@ private:
 
 	static_assert(sizeof(ObsValidMask) == 1, "Unexpected masking size");
 
-	bool createEstimators();
 	bool initEstimator(const matrix::Matrix <float, vtest::Axis::size, vtest::State::size>
 			   &state_init);
 	bool updateStep(const matrix::Vector3f &vehicle_acc_ned, const matrix::Quaternionf &q_att);
@@ -336,7 +334,7 @@ private:
 	uint64_t _last_relative_meas_fused_time{0};
 	bool _estimator_initialized{false};
 
-	std::unique_ptr<KF_position> _target_est_pos[vtest::Axis::size];
+	KF_position _target_est_pos[vtest::Axis::size];
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)

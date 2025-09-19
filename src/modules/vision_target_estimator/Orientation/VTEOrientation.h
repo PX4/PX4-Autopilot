@@ -46,7 +46,6 @@
 #include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
-#include <memory>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -141,7 +140,6 @@ private:
 		matrix::Vector<float, State::size> meas_h_theta{};
 	};
 
-	bool createEstimator();
 	bool initEstimator(const ObsValidMask &vte_fusion_aid_mask, const targetObs observations[ObsType::Type_count]);
 	bool updateStep();
 	void predictionStep();
@@ -177,7 +175,7 @@ private:
 
 	bool _estimator_initialized{false};
 
-	std::unique_ptr<KF_orientation> _target_est_yaw;
+	KF_orientation _target_est_yaw{};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
