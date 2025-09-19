@@ -119,7 +119,7 @@ private:
 		Type_count
 	};
 
-	union ObsValidMask {
+	union ObsValidMaskU {
 		struct {
 			uint8_t fuse_vision : 1; ///< bit0: external vision data ready to be fused
 			uint8_t fuse_uwb    : 1; ///< bit1: UWB data ready to be fused
@@ -129,7 +129,7 @@ private:
 		uint8_t value{0};
 	};
 
-	static_assert(sizeof(ObsValidMask) == 1, "Unexpected masking size");
+	static_assert(sizeof(ObsValidMaskU) == 1, "Unexpected masking size");
 
 	struct TargetObs {
 		ObsType type;
@@ -140,20 +140,20 @@ private:
 		matrix::Vector<float, State::size> meas_h_theta{};
 	};
 
-	bool initEstimator(const ObsValidMask &vte_fusion_aid_mask, const TargetObs observations[ObsType::Type_count]);
+	bool initEstimator(const ObsValidMaskU &vte_fusion_aid_mask, const TargetObs observations[ObsType::Type_count]);
 	bool updateStep();
 	void predictionStep();
 
-	void processObservations(ObsValidMask &vte_fusion_aid_mask, TargetObs observations[ObsType::Type_count]);
-	bool fuseNewSensorData(ObsValidMask &vte_fusion_aid_mask, const TargetObs observations[ObsType::Type_count]);
+	void processObservations(ObsValidMaskU &vte_fusion_aid_mask, TargetObs observations[ObsType::Type_count]);
+	bool fuseNewSensorData(ObsValidMaskU &vte_fusion_aid_mask, const TargetObs observations[ObsType::Type_count]);
 
 	/* Vision data */
-	void handleVisionData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker);
+	void handleVisionData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker);
 	bool isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw);
 	bool processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs);
 
 	/* UWB data */
-	void handleUwbData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_uwb);
+	void handleUwbData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_uwb);
 	bool isUwbDataValid(const sensor_uwb_s &uwb_report);
 	bool processObsUwb(const sensor_uwb_s &uwb_report, TargetObs &obs);
 
@@ -184,7 +184,7 @@ private:
 
 	/* parameters from vision_target_estimator_params.c*/
 	uint32_t _vte_TIMEOUT_US = 3_s;
-	sensor_fusion_mask_u _vte_aid_mask{};
+	SensorFusionMaskU _vte_aid_mask{};
 	float _yaw_unc;
 	float _ev_angle_noise;
 	bool  _ev_noise_md{false};

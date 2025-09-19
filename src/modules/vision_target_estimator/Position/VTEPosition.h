@@ -163,7 +163,7 @@ private:
 		meas_h_xyz{}; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the state
 	};
 
-	union ObsValidMask {
+	union ObsValidMaskU {
 		struct {
 			uint8_t fuse_target_gps_pos : 1; ///< bit0: target GPS position ready to be fused
 			uint8_t fuse_uav_gps_vel    : 1; ///< bit1: UAV GPS velocity ready to be fused
@@ -178,7 +178,7 @@ private:
 		uint8_t value{0};
 	};
 
-	static_assert(sizeof(ObsValidMask) == 1, "Unexpected masking size");
+	static_assert(sizeof(ObsValidMaskU) == 1, "Unexpected masking size");
 
 	bool initEstimator(const matrix::Matrix <float, vtest::Axis::size, vtest::State::size>
 			   &state_init);
@@ -187,14 +187,14 @@ private:
 
 	void updateTargetGpsVelocity(const target_gnss_s &target_GNSS_report);
 
-	inline bool hasNewNonGpsPositionSensorData(const ObsValidMask &vte_fusion_aid_mask) const
+	inline bool hasNewNonGpsPositionSensorData(const ObsValidMaskU &vte_fusion_aid_mask) const
 	{
 		return vte_fusion_aid_mask.flags.fuse_vision
 		       || vte_fusion_aid_mask.flags.fuse_uwb
 		       || vte_fusion_aid_mask.flags.fuse_irlock;
 	}
 
-	inline bool hasNewPositionSensorData(const ObsValidMask &vte_fusion_aid_mask) const
+	inline bool hasNewPositionSensorData(const ObsValidMaskU &vte_fusion_aid_mask) const
 	{
 		return vte_fusion_aid_mask.flags.fuse_mission_pos
 		       || vte_fusion_aid_mask.flags.fuse_target_gps_pos
@@ -204,41 +204,41 @@ private:
 	}
 
 	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
-	inline bool shouldSetBias(const ObsValidMask &vte_fusion_aid_mask)
+	inline bool shouldSetBias(const ObsValidMaskU &vte_fusion_aid_mask)
 	{
 		return isMeasValid(_pos_rel_gnss.timestamp) && hasNewNonGpsPositionSensorData(vte_fusion_aid_mask);
 	};
 
-	bool initializeEstimator(const ObsValidMask &vte_fusion_aid_mask,
+	bool initializeEstimator(const ObsValidMaskU &vte_fusion_aid_mask,
 				 const TargetObs observations[ObsType::Type_count]);
-	void updateBias(const ObsValidMask &vte_fusion_aid_mask,
+	void updateBias(const ObsValidMaskU &vte_fusion_aid_mask,
 			const TargetObs observations[ObsType::Type_count]);
-	void get_pos_init(const ObsValidMask &vte_fusion_aid_mask,
+	void get_pos_init(const ObsValidMaskU &vte_fusion_aid_mask,
 			  const TargetObs observations[ObsType::Type_count], matrix::Vector3f &pos_init);
-	bool fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, ObsValidMask &vte_fusion_aid_mask,
+	bool fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &vte_fusion_aid_mask,
 			       const TargetObs observations[ObsType::Type_count]);
-	void processObservations(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask,
+	void processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
 				 TargetObs observations[ObsType::Type_count]);
 
 	bool isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who = nullptr) const;
 
 	/* Vision data */
-	void handleVisionData(ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker);
+	void handleVisionData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker);
 	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose);
 	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, TargetObs &obs);
 
 	/* IRLOCK data */
-	void handleIrlockData(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_irlock);
+	void handleIrlockData(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_irlock);
 	bool isIrlockDataValid(const irlock_report_s &irlock_report) const;
 	bool processObsIrlock(const matrix::Quaternionf &q_att, const irlock_report_s &irlock_report, TargetObs &obs);
 
 	/* UWB data */
-	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMask &vte_fusion_aid_mask, TargetObs &obs_uwb);
+	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_uwb);
 	bool isUwbDataValid(const sensor_uwb_s &uwb_report);
 	bool processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs);
 
 	/* UAV GPS data */
-	void handleUavGpsData(ObsValidMask &vte_fusion_aid_mask,
+	void handleUavGpsData(ObsValidMaskU &vte_fusion_aid_mask,
 			      TargetObs &obs_gps_pos_mission,
 			      TargetObs &obs_gps_vel_uav);
 	bool updateUavGpsData();
@@ -248,7 +248,7 @@ private:
 	bool processObsGNSSVelUav(TargetObs &obs);
 
 	/* Target GPS data */
-	void handleTargetGpsData(ObsValidMask &vte_fusion_aid_mask,
+	void handleTargetGpsData(ObsValidMaskU &vte_fusion_aid_mask,
 				 TargetObs &obs_gps_pos_target,
 				 TargetObs &obs_gps_vel_target);
 	bool isTargetGpsPositionValid(const target_gnss_s &target_GNSS_report);
@@ -336,7 +336,7 @@ private:
 	void checkMeasurementInputs();
 
 	uint32_t _vte_TIMEOUT_US = 3_s;
-	sensor_fusion_mask_u _vte_aid_mask{};
+	SensorFusionMaskU _vte_aid_mask{};
 	float _target_acc_unc{1.f};
 	float _bias_unc{0.05f};
 	float _uav_acc_unc{1.f};
