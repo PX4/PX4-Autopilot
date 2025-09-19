@@ -118,78 +118,78 @@ This considerably speeds up the build process but requires that the Agent depend
 
 1. Створіть директорію робочого простору для агента:
 
-  ```sh
-  mkdir -p ~/px4_ros_uxrce_dds_ws/src
-  ```
+   ```sh
+   mkdir -p ~/px4_ros_uxrce_dds_ws/src
+   ```
 
 2. Clone the source code for the eProsima [Micro-XRCE-DDS-Agent](https://github.com/eProsima/Micro-XRCE-DDS-Agent) to the `/src` directory (the `main` branch is cloned by default):
 
-  ```sh
-  cd ~/px4_ros_uxrce_dds_ws/src
-  git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
-  ```
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
 
 3. Source the ROS 2 development environment, and compile the workspace using `colcon`:
 
-  :::: tabs
+   :::: tabs
 
-  ::: tab humble
+   ::: tab humble
 
-  ```sh
-  source /opt/ros/humble/setup.bash
-  colcon build
-  ```
-
-
-:::
-
-  ::: tab foxy
-
-  ```sh
-  source /opt/ros/foxy/setup.bash
-  colcon build
-  ```
+   ```sh
+   source /opt/ros/humble/setup.bash
+   colcon build
+   ```
 
 
 :::
 
-  ::::
+   ::: tab foxy
 
-  This builds all the folders under `/src` using the sourced toolchain.
+   ```sh
+   source /opt/ros/foxy/setup.bash
+   colcon build
+   ```
+
+
+:::
+
+   ::::
+
+   This builds all the folders under `/src` using the sourced toolchain.
 
 Для запуску агента micro XRCE-DDS в робочому просторі:
 
 1. Source the `local_setup.bash` to make the executables available in the terminal (also `setup.bash` if using a new terminal).
 
-  :::: tabs
+   :::: tabs
 
-  ::: tab humble
+   ::: tab humble
 
-  ```sh
-  source /opt/ros/humble/setup.bash
-  source install/local_setup.bash
-  ```
-
-
-:::
-
-  ::: tab foxy
-
-  ```sh
-  source /opt/ros/foxy/setup.bash
-  source install/local_setup.bash
-  ```
+   ```sh
+   source /opt/ros/humble/setup.bash
+   source install/local_setup.bash
+   ```
 
 
 :::
 
-  ::::
+   ::: tab foxy
+
+   ```sh
+   source /opt/ros/foxy/setup.bash
+   source install/local_setup.bash
+   ```
+
+
+:::
+
+   ::::
 
 1) Запустіть агента з налаштуваннями для підключення до клієнта uXRCE-DDS, який працює на симуляторі:
 
-  ```sh
-  MicroXRCEAgent udp4 -p 8888
-  ```
+   ```sh
+   MicroXRCEAgent udp4 -p 8888
+   ```
 
 ## Запуск агента та клієнта
 
@@ -466,15 +466,15 @@ Each (`topic`,`type`) pairs defines:
 
 1. A new `publication`, `subscription`, or `subscriptions_multi`, depending on the list to which it is added.
 2. The topic _base name_, which **must** coincide with the desired uORB topic name that you want to publish/subscribe.
-  It is identified by the last token in `topic:` that starts with `/` and does not contains any `/` in it.
-  `vehicle_odometry`, `vehicle_status` and `offboard_control_mode` are examples of base names.
+   It is identified by the last token in `topic:` that starts with `/` and does not contains any `/` in it.
+   `vehicle_odometry`, `vehicle_status` and `offboard_control_mode` are examples of base names.
 3. The topic [namespace](https://design.ros2.org/articles/topic_and_service_names.html#namespaces).
-  By default it is set to:
-  - `/fmu/out/` for topics that are _published_ by PX4.
-  - `/fmu/in/` for topics that are _subscribed_ by PX4.
+   By default it is set to:
+   - `/fmu/out/` for topics that are _published_ by PX4.
+   - `/fmu/in/` for topics that are _subscribed_ by PX4.
 4. The message type (`VehicleOdometry`, `VehicleStatus`, `OffboardControlMode`, etc.) and the ROS 2 package (`px4_msgs`) that is expected to provide the message definition.
 5. **(Optional)**: An additional `rate_limit` field (only for publication entries), which specifies the maximum rate (Hz) at which messages will be published on this topic by PX4 to ROS 2.
-  If left unspecified, the maximum publication rate limit is set to 100 Hz.
+   If left unspecified, the maximum publication rate limit is set to 100 Hz.
 
 `subscriptions` and `subscriptions_multi` allow us to choose the uORB topic instance that ROS 2 topics are routed to: either a shared instance that may also be getting updates from internal PX4 uORB publishers, or a separate instance that is reserved for ROS2 publications, respectively.
 Without this mechanism all ROS 2 messages would be routed to the _same_ uORB topic instance (because ROS 2 does not have the concept of [multiple topic instances](../middleware/uorb.md#multi-instance)), and it would not be possible for PX4 subscribers to differentiate between streams from ROS 2 or PX4 publishers.

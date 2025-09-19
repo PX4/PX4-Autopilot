@@ -87,14 +87,14 @@ To set the above "example" configuration using the _QGroundControl_:
 
 3. Enter commands "like" the ones below into the _MAVLink Console_ (to write the values to the configuration file):
 
-  ```sh
-  echo DEVICE=eth0 > /fs/microsd/net.cfg
-  echo BOOTPROTO=fallback >> /fs/microsd/net.cfg
-  echo IPADDR=10.41.10.2 >> /fs/microsd/net.cfg
-  echo NETMASK=255.255.255.0 >>/fs/microsd/net.cfg
-  echo ROUTER=10.41.10.254 >>/fs/microsd/net.cfg
-  echo DNS=10.41.10.254 >>/fs/microsd/net.cfg
-  ```
+   ```sh
+   echo DEVICE=eth0 > /fs/microsd/net.cfg
+   echo BOOTPROTO=fallback >> /fs/microsd/net.cfg
+   echo IPADDR=10.41.10.2 >> /fs/microsd/net.cfg
+   echo NETMASK=255.255.255.0 >>/fs/microsd/net.cfg
+   echo ROUTER=10.41.10.254 >>/fs/microsd/net.cfg
+   echo DNS=10.41.10.254 >>/fs/microsd/net.cfg
+   ```
 
 4. 一旦设置了网络配置，您可以断开 USB 电缆。
 
@@ -113,36 +113,36 @@ Note that there are many more [examples](https://github.com/canonical/netplan/tr
 设置Ubuntu计算机：
 
 1. In a terminal, create and open a `netplan` configuration file: `/etc/netplan/01-network-manager-all.yaml`
-  Below we do this using the _nano_ text editor.
+   Below we do this using the _nano_ text editor.
 
-  ```
-  sudo nano /etc/netplan/01-network-manager-all.yaml
-  ```
+   ```
+   sudo nano /etc/netplan/01-network-manager-all.yaml
+   ```
 
 2. 将以下配置信息复制并粘贴到文件中（注意：缩进很重要！）:
 
-  ```
-  network:
-    version: 2
-    renderer: NetworkManager
-    ethernets:
-        enp2s0:
-            addresses:
-                - 10.41.10.1/24
-            nameservers:
-                addresses: [10.41.10.1]
-            routes:
-                - to: 10.41.10.1
-                  via: 10.41.10.1
-  ```
+   ```
+   network:
+     version: 2
+     renderer: NetworkManager
+     ethernets:
+         enp2s0:
+             addresses:
+                 - 10.41.10.1/24
+             nameservers:
+                 addresses: [10.41.10.1]
+             routes:
+                 - to: 10.41.10.1
+                   via: 10.41.10.1
+   ```
 
-  保存并退出编辑器。
+   保存并退出编辑器。
 
 3. Apply the _netplan_ configuration by entering the following command into the Ubuntu terminal.
 
-  ```
-  sudo netplan apply
-  ```
+   ```
+   sudo netplan apply
+   ```
 
 ### 机载计算机以太网网络设置
 
@@ -189,9 +189,9 @@ Assuming you have already [Set up the Ethernet Network](#setting-up-the-ethernet
 
 3. Start QGroundControl and [define a comm link](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/settings_view.html) (**Application Settings > Comm Links**) specifying the _server address_ and port as the IP address and port assigned in PX4, respectively.
 
-  假设值已按本主题其余部分所述设置，设置将如下所示：
+   假设值已按本主题其余部分所述设置，设置将如下所示：
 
-  ![QGC comm link for ethernet setup](../../assets/qgc/settings/comm_link/px4_ethernet_link_config.png)
+   ![QGC comm link for ethernet setup](../../assets/qgc/settings/comm_link/px4_ethernet_link_config.png)
 
 4. 如果你选择这个链接，QGroundControl 应该会连接。
 
@@ -205,14 +205,14 @@ Assuming you have already [Set up the Ethernet Network](#setting-up-the-ethernet
 
 1. [Set up the Ethernet Network](#setting-up-the-ethernet-network) so your companion computer and PX4 run on the same network.
 2. Modify the [PX4 Ethernet Port Configuration](#px4-ethernet-network-setup) to connect to a companion computer.
-  You might change the parameters [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT) and [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) to `14540`, and [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) to `2` (Onboard).
+   You might change the parameters [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT) and [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) to `14540`, and [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) to `2` (Onboard).
 3. Follow the instructions in [MAVSDK-python](https://github.com/mavlink/MAVSDK-Python) to install and use MAVSDK.
 
-  例如，您的代码将使用以下方式连接到PX4：
+   例如，您的代码将使用以下方式连接到PX4：
 
-  ```python
-  await drone.connect(system_address="udp://10.41.10.2:14540")
-  ```
+   ```python
+   await drone.connect(system_address="udp://10.41.10.2:14540")
+   ```
 
 :::info
 MAVSDK can connect to the PX4 on port `14550` if you don't modify the PX4 Ethernet port configuration.
@@ -235,38 +235,38 @@ MAVSDK can connect to the PX4 on port `14550` if you don't modify the PX4 Ethern
 1. 通过以太网连接您的飞行控制器和机载计算机。
 
 2. [Start the uXRCE-DDS client on PX4](../middleware/uxrce_dds.md#starting-the-client), either manually or by customizing the system startup script.
-  Note that you must use the IP address of the companion computer and the UDP port on which the agent is listening (the example configuration above sets the companion IP address to `10.41.10.1`, and the agent UDP port is set to `8888` in the next step).
+   Note that you must use the IP address of the companion computer and the UDP port on which the agent is listening (the example configuration above sets the companion IP address to `10.41.10.1`, and the agent UDP port is set to `8888` in the next step).
 
 3. [Start the micro XRCE-DDS agent on the companion computer](../middleware/uxrce_dds.md#starting-the-agent).
-  For example, enter the following command in a terminal to start the agent listening on UDP port `8888`.
+   For example, enter the following command in a terminal to start the agent listening on UDP port `8888`.
 
-  ```sh
-  MicroXRCEAgent udp4 -p 8888
-  ```
+   ```sh
+   MicroXRCEAgent udp4 -p 8888
+   ```
 
 4. Run a [listener node](../ros2/user_guide.md#running-the-example) in a new terminal to confirm the connection is established:
 
-  ```sh
-  source ~/ws_sensor_combined/install/setup.bash
-  ros2 launch px4_ros_com sensor_combined_listener.launch.py
-  ```
+   ```sh
+   source ~/ws_sensor_combined/install/setup.bash
+   ros2 launch px4_ros_com sensor_combined_listener.launch.py
+   ```
 
-  如果所有设置都正确，终端应显示如下输出:
+   如果所有设置都正确，终端应显示如下输出:
 
-  ```sh
-  RECEIVED SENSOR COMBINED DATA
-  =============================
-  ts: 855801598
-  gyro_rad[0]: -0.00339938
-  gyro_rad[1]: 0.00440091
-  gyro_rad[2]: 0.00513893
-  gyro_integral_dt: 4997
-  accelerometer_timestamp_relative: 0
-  accelerometer_m_s2[0]: -0.0324082
-  accelerometer_m_s2[1]: 0.0392213
-  accelerometer_m_s2[2]: -9.77914
-  accelerometer_integral_dt: 4997
-  ```
+   ```sh
+   RECEIVED SENSOR COMBINED DATA
+   =============================
+   ts: 855801598
+   gyro_rad[0]: -0.00339938
+   gyro_rad[1]: 0.00440091
+   gyro_rad[2]: 0.00513893
+   gyro_integral_dt: 4997
+   accelerometer_timestamp_relative: 0
+   accelerometer_m_s2[0]: -0.0324082
+   accelerometer_m_s2[1]: 0.0392213
+   accelerometer_m_s2[2]: -9.77914
+   accelerometer_integral_dt: 4997
+   ```
 
 ## See Also
 

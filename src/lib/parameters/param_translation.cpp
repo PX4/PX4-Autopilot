@@ -150,5 +150,18 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2025-08-22: translate SDLOG_MODE (disabled) to SDLOG_BACKEND (no logging backend)
+	{
+		if (strcmp("SDLOG_MODE", node->name) == 0) {
+			if (node->i32 == -1) {
+				node->i32 = 0;
+
+				int32_t sdlog_backend_val = 0;
+				param_set(param_find("SDLOG_BACKEND"), &sdlog_backend_val);
+				PX4_INFO("migrating %s -> %s", "SDLOG_MODE", "SDLOG_BACKEND");
+			}
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

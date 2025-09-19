@@ -28,3 +28,5 @@ When submitting [Pull Requests](../contribute/code.md#pull-requests) for new fun
 - [MC_04 - Failsafe Testing](../test_cards/mc_04_failsafe_testing.md)
 - [MC_05 - Indoor Flight (Manual Modes)](../test_cards/mc_05_indoor_flight_manual_modes.md)
 - [MC_06 - Indoor Flight (Optical Flow)](../test_cards/mc_06_optical_flow.md)
+- [MC_07 - VIO (Visual-Inertial Odometry)](../test_cards/mc_07_vio.md)
+- [MC_08 - DSHOT ESC](../test_cards/mc_08_dshot.md)

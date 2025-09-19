@@ -1,48 +1,48 @@
-# PX4 ROS 2 Interface Library
+# PX4 ROS 2 接口库
 
-<Badge type="tip" text="PX4 v1.15" /> <Badge type="warning" text="Experimental" />
+<0/> <1/>
 
 :::warning
 Experimental
-At the time of writing, parts of the PX4 ROS 2 Interface Library are experimental, and hence subject to change.
+在撰写本文时，PX4 ROS 2 接口库的部分内容仍处于试验阶段，因此可能会发生变动。
 :::
 
-The [PX4 ROS 2 Interface Library](https://github.com/Auterion/px4-ros2-interface-lib) is a C++ library that simplifies controlling and interacting with PX4 from ROS 2.
+[PX4 ROS 2 接口库 ]（https://github.com/Auterion/px4-ros2-interface-lib）是一个 C++ 库，可简化从 ROS 2 对 PX4 进行控制和交互的操作。
 
-The library provides two high-level interfaces for developers:
+该库为开发者提供了两个高级接口。
 
-1. The [Control Interface](./px4_ros2_control_interface.md) allows developers to create and dynamically register modes written using ROS 2.
-   It provides classes for sending different types of setpoints, ranging from high-level navigation tasks all the way down to direct actuator controls.
-2. The [Navigation Interface](./px4_ros2_navigation_interface.md) enables sending vehicle position estimates to PX4 from ROS 2 applications, such as a VIO system.
+1. [Control Interface](./px4_ros2_control_interface.md) 允许开发者创建并动态注册使用 ROS2 编写的模式。
+   它为发送不同类型的设置点提供了课程，涵盖范围从高级导航任务一直到直接执行器控制。
+2. [导航界面](./px4_ros2_navigation_interface.md) 允许从ROS 2应用程序（如VIO系统）向PX4发送车辆位置估计数。
 
 <!--
 ## Overview
 -->
 
-## Installation in a ROS 2 Workspace
+## 在 ROS 2 工作区中安装
 
-To get started using the library within an existing ROS 2 workspace:
+要开始使用现有ROS2工作空间内的库：
 
-1. Make sure you have a working [ROS 2 setup](../ros2/user_guide.md), with [`px4_msgs`](https://github.com/PX4/px4_msgs) in the ROS 2 workspace.
+1. 请确保您在 ROS 2 工作区中有 [ROS 2 设置](../ros2/user_guide.md) 与 [`px4_msgs`](https://github.com/PX4/px4_msgs]。
 
-2. Clone the repository into the workspace:
+2. 将代码仓库克隆到工作空间中
 
    ```sh
    cd $ros_workspace/src
    git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
    ```
 
-   ::: info
-   To ensure compatibility, use the latest _main_ branches for PX4, _px4_msgs_ and the library.
-   See also [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
+   提示信息
+   为确保兼容性，请使用 PX4、px4_msgs（PX4 消息包）及该库的最新 main 分支。
+   另请参阅 [here]（https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4）
 
 :::
 
-3. Build the workspace:
+3. 构建工作空间:
 
    ```sh
    cd ..
-   colcon build
+   colcon building
    source install/setup.bash
    ```
 
@@ -50,9 +50,9 @@ To get started using the library within an existing ROS 2 workspace:
 ## How to Use the Library
 -->
 
-## CI: Integration Tests
+## ROS集成测试
 
-When opening a pull request to PX4, CI runs the library integration tests.
-These test that mode registration, failsafes, and mode replacement, work as expected.
+向 PX4 提交拉取请求（pull request）时，持续集成（CI）会运行该库的集成测试
+这些测试用于验证模式注册、故障保护（failsafes）和模式替换功能是否按预期工作。
 
-For more information see [PX4 ROS2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md).
+欲了解更多信息，请访问[PX4 ROS2 接口库集成测试](../test_and_ci/integration_testing_px4_ros2_interface.md)。

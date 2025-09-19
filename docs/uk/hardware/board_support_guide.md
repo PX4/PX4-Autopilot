@@ -33,8 +33,8 @@ Boards that are not compliant with the requirements are [unsupported](#unsupport
 
 6. Достатня документація, яка включає, але не обмежується:
    - Повний підключення, яке стало доступним для громадськості, яке відображає PX4 визначення контактів на:
-      1. Піни мікроконтролера
-      2. Фізичні зовнішні роз'ємники
+     1. Піни мікроконтролера
+     2. Фізичні зовнішні роз'ємники
    - A block diagram or full schematic of the main components (sensors, power supply, etc.) that allows to infer software requirements and boot order
    - Посібник з використання готового продукту
 

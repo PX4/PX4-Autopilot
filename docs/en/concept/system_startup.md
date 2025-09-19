@@ -13,9 +13,9 @@ The first executed file is the [init.d/rcS](https://github.com/PX4/PX4-Autopilot
 
 The following sections are split according to the operating system that PX4 runs on.
 
-## Posix (Linux/MacOS)
+## POSIX (Linux/MacOS)
 
-On Posix, the system shell is used as script interpreter (e.g. /bin/sh, being symlinked to dash on Ubuntu).
+On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being symlinked to dash on Ubuntu).
 For that to work, a few things are required:
 
 - PX4 modules need to look like individual executables to the system.
@@ -54,7 +54,7 @@ cd <PX4-Autopilot>/build/px4_sitl_default/bin
 ### Dynamic Modules
 
 Normally, all modules are compiled into a single PX4 executable.
-However, on Posix, there's the option of compiling a module into a separate file, which can be loaded into PX4 using the `dyn` command.
+However, on POSIX, there's the option of compiling a module into a separate file, which can be loaded into PX4 using the `dyn` command.
 
 ```sh
 dyn ./test.px4mod
@@ -90,7 +90,7 @@ This is documented below.
 The best way to customize the system startup is to introduce a [new frame configuration](../dev_airframes/adding_a_new_frame.md).
 The frame configuration file can be included in the firmware or on an SD Card.
 
-#### Dynamic customization
+#### Dynamic Customization
 
 If you only need to "tweak" the existing configuration, such as starting one more application or setting the value of a few parameters, you can specify these by creating two files in the `/etc/` directory of the SD Card:
 
@@ -148,27 +148,36 @@ The following example shows how to start custom applications:
   mandatory_app start     # Will abort boot if mandatory_app is unknown or fails
   ```
 
-#### Additional customization
+#### Additional Init-File Customization
 
-In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization,
-you can add a script that will be contained in the binary.
+In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization, you can add a script that will be compiled into the binary for a particular `make` target build variant.
 
-**Note**: In almost all cases, you should use a frame configuration. This method should only be used for
-edge-cases such as customizing `cannode` based boards.
+::: warning
+In almost all cases, you should use a frame configuration.
+This method should only be used for edge-cases such as customizing `cannode` based boards.
+:::
 
-- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup. For example:
+The steps are:
+
+- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup.
+  For example:
+
   ```sh
   # File: boards/<vendor>/<board>/init/rc.additional
   param set-default <param> <value>
   ```
 
-- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script. For example:
+- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script.
+  For example:
+
   ```sh
   # File: boards/<vendor>/<board>/var.px4board
   CONFIG_BOARD_ADDITIONAL_INIT="rc.additional"
   ```
 
-- Compile the firmware with your new variant by appending the variant name to the compile target. For example:
+- Compile the firmware with your new variant by appending the variant name to the compile target.
+  For example:
+
   ```sh
   make <target>_var
   ```

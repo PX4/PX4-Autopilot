@@ -12,6 +12,7 @@ This category includes boards that are not fully compliant with the pixhawk stan
 
 이 카테고리의 보드는 다음과 같습니다.
 
+- [Accton Godwit GA1](../flight_controller/accton-godwit_ga1.md)
 - [AirMind MindPX](../flight_controller/mindpx.md)
 - [AirMind MindRacer](../flight_controller/mindracer.md)
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md) (and [ARK Electronics Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md))
