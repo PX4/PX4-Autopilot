@@ -500,7 +500,7 @@ void VTEPosition::handleTargetGpsData(ObsValidMaskU &vte_fusion_aid_mask,
 
 #if defined(CONFIG_VTEST_MOVING)
 
-	if (!isTargetGpsVelValid(target_GNSS_report)) {
+	if (!isTargetGpsVelocityValid(target_GNSS_report)) {
 		return;
 	}
 
@@ -673,7 +673,11 @@ void VTEPosition::updateBias(const ObsValidMaskU &vte_fusion_aid_mask,
 	const Vector3f state_bias_var_vect(state_bias_var, state_bias_var, state_bias_var);
 
 	// Compute the initial bias
-	const Vector3f bias_init = _pos_rel_gnss.xyz - pos_init;
+	Vector3f bias_init{};
+
+	if (_pos_rel_gnss.valid) {
+		bias_init = _pos_rel_gnss.xyz - pos_init;
+	}
 
 	// Reset filter's state and variance
 	for (int i = 0; i < vtest::Axis::size; i++) {
