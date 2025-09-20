@@ -40029,17 +40029,6 @@ must have a unique session key.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 1       |
 
-### UXRCE_DDS_NS_IDX (`INT32`) {#UXRCE_DDS_NS_IDX}
-
-Define an index-based message namespace.
-
-Defines an index-based namespace for DDS messages, e.g, uav_0, uav_1, up to uav_9999
-A value less than zero leaves the namespace empty
-
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | -1       | 9999     |           | -1      |      |
-
 ### UXRCE_DDS_PRT (`INT32`) {#UXRCE_DDS_PRT}
 
 uXRCE-DDS UDP port.
