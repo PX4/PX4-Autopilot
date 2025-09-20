@@ -43,7 +43,7 @@
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
-#include "vtest_derivation/generated/state.h"
+#include <vtest_derivation/generated/state.h>
 
 #pragma once
 

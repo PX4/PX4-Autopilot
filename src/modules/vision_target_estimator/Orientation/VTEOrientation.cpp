@@ -53,7 +53,7 @@ namespace vision_target_estimator
 using namespace matrix;
 
 constexpr float kDefaultVisionYawDistance = 10.f;
-constexpr float kDefaultUwbAngleNoise = math::radians(3.f) * math::radians(3.f);
+constexpr float kDefaultUwbAngleVar = math::radians(3.f) * math::radians(3.f);
 
 VTEOrientation::VTEOrientation() :
 	ModuleParams(nullptr)
@@ -210,15 +210,12 @@ bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiduc
 
 bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs) const
 {
-	const float base_variance = _ev_angle_noise * _ev_angle_noise;
-	float yaw_unc = base_variance;
+	float yaw_unc = fmaxf(fiducial_marker_yaw.yaw_var_ned, _min_ev_angle_var);
 
 	if (_ev_noise_md) {
 		const float range = _range_sensor.valid ? fmaxf(_range_sensor.dist_bottom, 1.f) : kDefaultVisionYawDistance;
-		yaw_unc = base_variance * range;
+		yaw_unc = _min_ev_angle_var * range;
 
-	} else {
-		yaw_unc = fmaxf(fiducial_marker_yaw.yaw_var_ned, base_variance);
 	}
 
 	obs.timestamp = fiducial_marker_yaw.timestamp;
@@ -289,7 +286,7 @@ bool VTEOrientation::processObsUwb(const matrix::Quaternionf &q_att, const senso
 
 	obs.timestamp = uwb_report.timestamp;
 	obs.meas = wrap_pi(bearing_target_to_drone - aoa_resp_rad);
-	obs.meas_unc = fmaxf(kDefaultUwbAngleNoise, _uwb_angle_noise_min);
+	obs.meas_unc = fmaxf(kDefaultUwbAngleVar, _min_uwb_angle_var);
 	obs.meas_h_theta(State::yaw) = 1;
 	obs.updated = true;
 	obs.type = ObsType::Uwb;
@@ -405,10 +402,10 @@ void VTEOrientation::updateParams()
 	const float new_ev_angle_noise = _param_vte_ev_angle_noise.get();
 	_ev_noise_md = _param_vte_ev_noise_md.get();
 	const float new_nis_threshold = _param_vte_yaw_nis_thre.get();
-	const float new_uwb_angle_noise_min = _param_vte_uwb_a_noise.get();
+	const float new_uwb_angle_noise = _param_vte_uwb_a_noise.get();
 
 	if (PX4_ISFINITE(new_ev_angle_noise) && new_ev_angle_noise > kMinObservationNoise) {
-		_ev_angle_noise = new_ev_angle_noise;
+		_min_ev_angle_var = new_ev_angle_noise * new_ev_angle_noise;
 
 	} else {
 		PX4_WARN("VTE: VTE_EVA_NOISE %.1f <= %.1f, keeping previous value",
@@ -423,12 +420,12 @@ void VTEOrientation::updateParams()
 			 (double)new_nis_threshold, (double)kMinNisThreshold);
 	}
 
-	if (PX4_ISFINITE(new_uwb_angle_noise_min) && new_uwb_angle_noise_min > 0.f) {
-		_uwb_angle_noise_min = new_uwb_angle_noise_min;
+	if (PX4_ISFINITE(new_uwb_angle_noise) && new_uwb_angle_noise > 0.f) {
+		_min_uwb_angle_var = new_uwb_angle_noise * new_uwb_angle_noise;
 
 	} else {
 		PX4_WARN("VTE: VTE_UWB_A_NOISE %.1f <= 0, keeping previous value",
-			 (double)new_uwb_angle_noise_min);
+			 (double)new_uwb_angle_noise);
 	}
 }
 
