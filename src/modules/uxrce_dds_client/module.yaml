@@ -129,3 +129,16 @@ parameters:
             reboot_required: true
             default: -1
             unit: s
+
+        UXRCE_DDS_NS_IDX:
+            description:
+                short: Define an index-based message namespace
+                long: |
+                    Defines an index-based namespace for DDS messages, e.g, uav_0, uav_1, up to uav_9999
+                    A value less than zero leaves the namespace empty
+            type: int32
+            min: -1
+            max: 9999
+            category: System
+            reboot_required: true
+            default: -1
