@@ -56,13 +56,13 @@
 namespace vision_target_estimator
 {
 
-static constexpr uint32_t kVtePosUpdateRateHz = 50;
-static constexpr uint32_t kVteYawUpdateRateHz = 50;
-static constexpr uint32_t kAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25Hz
-static constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
-static constexpr float kGravity = 9.80665f;  // m/s^2
-static constexpr uint32_t kAccUpdatedTimeoutUs = 20_ms; // TODO: check if we can lower it
-static constexpr float kMinGpsOffsetM = 0.01f; // Consider GNSS not offset below 1cm
+constexpr uint32_t kVtePosUpdateRateHz = 50;
+constexpr uint32_t kVteYawUpdateRateHz = 50;
+constexpr uint32_t kAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25Hz
+constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
+constexpr float kGravity = 9.80665f;  // m/s^2
+constexpr uint32_t kAccUpdatedTimeoutUs = 20_ms; // TODO: check if we can lower it
+constexpr float kMinGpsOffsetM = 0.01f; // Consider GNSS not offset below 1cm
 
 VisionTargetEst::VisionTargetEst() :
 	ModuleParams(nullptr),
@@ -555,13 +555,13 @@ bool VisionTargetEst::estStoppedDueToTimeout()
 
 	if (_position_estimator_running && _vte_position.timedOut()) {
 		stopPosEst();
-		PX4_INFO("Estimator TIMEOUT, position VTE stopped.");
+		PX4_WARN("Estimator TIMEOUT, position VTE stopped.");
 		timed_out = true;
 	}
 
 	if (_orientation_estimator_running && _vte_orientation.timedOut()) {
 		stopYawEst();
-		PX4_INFO("Estimator TIMEOUT, orientation VTE stopped.");
+		PX4_WARN("Estimator TIMEOUT, orientation VTE stopped.");
 		timed_out = true;
 	}
 
@@ -586,16 +586,28 @@ void VisionTargetEst::updateEstimators()
 	matrix::Quaternionf q_att{};
 	matrix::Vector3f gps_pos_offset_ned{};
 	matrix::Vector3f vel_offset_ned = vel_offset_body;
+	bool acc_valid = false;
 
-	// Minimal requirements: acc (for input) and attitude (to rotate acc in vehicle-carried NED frame)
-	if (!get_input(vehicle_acc_ned, q_att, gps_pos_offset_ned, vel_offset_ned, vel_offset_updated)) {
+	// Minimal requirements: attitude (always) and acceleration for position estimator
+	if (!get_input(vehicle_acc_ned, q_att, gps_pos_offset_ned, vel_offset_ned, vel_offset_updated, acc_valid)) {
 		perf_end(_cycle_perf);
 		return;
 	}
 
 	if (_vte_position_enabled && _position_estimator_running) {
-		updatePosEst(local_pose, local_pose_updated, vehicle_acc_ned, q_att,
-			     gps_pos_offset_ned, vel_offset_ned, vel_offset_updated);
+		if (acc_valid) {
+			updatePosEst(local_pose, local_pose_updated, vehicle_acc_ned, q_att,
+				     gps_pos_offset_ned, vel_offset_ned, vel_offset_updated);
+
+		} else {
+			if ((_vehicle_acc_body.timestamp != 0) && (hrt_elapsed_time(&_acc_sample_warn_last) > 1_s)) {
+				PX4_WARN("VTE acc sample stale (%.1f ms)",
+					 static_cast<double>((hrt_absolute_time() - _vehicle_acc_body.timestamp) / 1e3));
+				_acc_sample_warn_last = hrt_absolute_time();
+			}
+
+			resetAccDownsample();
+		}
 	}
 
 	if (_vte_orientation_enabled && _orientation_estimator_running) {
@@ -672,8 +684,9 @@ void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local
 void VisionTargetEst::publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sampled,
 				      const matrix::Quaternionf &q_att_sampled)
 {
-	vision_target_est_input_s vte_input_report;
+	vision_target_est_input_s vte_input_report{};
 	vte_input_report.timestamp = hrt_absolute_time();
+	vte_input_report.timestamp_sample = _vehicle_acc_body.timestamp;
 
 	for (int i = 0; i < 3; i++) {
 		vte_input_report.acc_xyz[i] = vehicle_acc_ned_sampled(i);
@@ -696,7 +709,6 @@ bool VisionTargetEst::get_gps_velocity_offset(matrix::Vector3f &vel_offset_body)
 
 	if (!_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity)) {
 		return false;
-
 	}
 
 	// If the GPS antenna is not at the center of mass, when the drone rotates around the center of mass, the GPS will record a velocity.
@@ -745,7 +757,8 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 				matrix::Quaternionf &quat_att,
 				matrix::Vector3f &gps_pos_offset_ned,
 				matrix::Vector3f &vel_offset_rot_ned,
-				const bool vel_offset_updated)
+				const bool vel_offset_updated,
+				bool &acc_valid)
 {
 	vehicle_attitude_s vehicle_attitude{};
 	vehicle_acceleration_s vehicle_acceleration{};
@@ -764,26 +777,20 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 
 	_vehicle_acc_body.valid = (_vehicle_acc_body.timestamp != 0)
 				  && !hasTimedOut(_vehicle_acc_body.timestamp, kAccUpdatedTimeoutUs);
-
-	if (!_vehicle_acc_body.valid) {
-		PX4_DEBUG("VTE acceleration sample unavailable");
-
-		if (hrt_elapsed_time(&_acc_sample_warn_last) > 1_s) {
-			PX4_WARN("VTE acc sample stale (%.1f ms)",
-				 static_cast<double>((hrt_absolute_time() - _vehicle_acc_body.timestamp) / 1e3));
-			_acc_sample_warn_last = hrt_absolute_time();
-		}
-
-		return false;
-	}
+	acc_valid = _vehicle_acc_body.valid;
 
 	/* Transform FRD body acc to NED */
 	const matrix::Quaternionf q_att(&vehicle_attitude.q[0]); // (w,x,y,z)
 	quat_att = q_att;
 
-	/* Compensate for gravity. */
-	const matrix::Vector3f gravity_ned(0, 0, kGravity);
-	vehicle_acc_ned = quat_att.rotateVector(_vehicle_acc_body.xyz) + gravity_ned;
+	if (acc_valid) {
+		/* Compensate for gravity. */
+		const matrix::Vector3f gravity_ned(0, 0, kGravity);
+		vehicle_acc_ned = quat_att.rotateVector(_vehicle_acc_body.xyz) + gravity_ned;
+
+	} else {
+		vehicle_acc_ned.setAll(0.f);
+	}
 
 	/* Rotate position and velocity offset into ned frame */
 	if (_gps_pos_is_offset) {
@@ -791,6 +798,9 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 
 		if (vel_offset_updated) {
 			vel_offset_rot_ned = quat_att.rotateVector(vel_offset_rot_ned);
+
+		} else {
+			vel_offset_rot_ned.setAll(0.f);
 		}
 
 	} else {

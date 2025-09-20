@@ -145,7 +145,8 @@ private:
 	void stopYawEst();
 	bool get_input(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att, matrix::Vector3f &gps_pos_offset,
 		       matrix::Vector3f &gps_vel_offset,
-		       bool gps_vel_offset_updated = false);
+		       bool vel_offset_updated,
+		       bool &acc_valid);
 
 	perf_counter_t _cycle_perf_pos{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle pos")};
 	perf_counter_t _cycle_perf_yaw{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle yaw")};
@@ -211,7 +212,7 @@ private:
 	matrix::Vector3f _gps_pos_offset_xyz{};
 	bool _gps_pos_is_offset{false};
 
-	bool get_gps_velocity_offset(matrix::Vector3f &vel_offset);
+	bool get_gps_velocity_offset(matrix::Vector3f &vel_offset_body);
 	bool get_local_pose(LocalPose &local_pose);
 
 	bool checkAndUpdateElapsed(hrt_abstime &last_time, const hrt_abstime interval);

@@ -105,7 +105,7 @@ public:
 	void set_vte_timeout(const uint32_t tout) {_vte_TIMEOUT_US = tout;};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
-	bool timedOut() {return hasTimedOut(_last_update, _vte_TIMEOUT_US);};
+	bool timedOut() {return _estimator_initialized && hasTimedOut(_last_update, _vte_TIMEOUT_US);};
 	// TODO: Could be more strict and require a relative position meas (vision, GPS, irlock, uwb)
 	bool fusionEnabled() {return _vte_aid_mask.value != 0;};
 
@@ -115,12 +115,6 @@ protected:
 	 * update parameters.
 	 */
 	void updateParams() override;
-
-	// Geographic limits
-	static constexpr double kLatAbsMaxDeg =  90.0;
-	static constexpr double kLonAbsMaxDeg = 180.0;
-	static constexpr float kAltMinM = -350.f;
-	static constexpr float kAltMaxM = 10000.f;
 
 	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
 	uORB::Publication<vision_target_est_position_s> _targetEstimatorStatePub{ORB_ID(vision_target_est_position)};
@@ -201,6 +195,16 @@ private:
 		       || vte_fusion_aid_mask.flags.fuse_irlock;
 	}
 
+	inline bool isTimeDifferenceWithin(const hrt_abstime a, const hrt_abstime b, const uint32_t timeout_us) const
+	{
+		if ((a == 0) || (b == 0)) {
+			return false;
+		}
+
+		const hrt_abstime diff = (a > b) ? (a - b) : (b - a);
+		return diff <= timeout_us;
+	}
+
 	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
 	inline bool shouldSetBias(const ObsValidMaskU &vte_fusion_aid_mask)
 	{
@@ -262,7 +266,7 @@ private:
 	void resetObservations();
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
-	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_pos_report)};
+	uORB::Subscription _fiducial_marker_pos_report_sub{ORB_ID(fiducial_marker_pos_report)};
 	uORB::Subscription _irlock_report_sub{ORB_ID(irlock_report)};
 	uORB::Subscription _target_gnss_sub{ORB_ID(target_gnss)};
 	uORB::Subscription _sensor_uwb_sub{ORB_ID(sensor_uwb)};
@@ -318,6 +322,8 @@ private:
 	Vector3fStamped _pos_rel_gnss{};
 	Vector3fStamped _velocity_offset_ned{};
 	Vector3fStamped _gps_pos_offset_ned{};
+	param_t _param_mpc_z_v_auto_dn{PARAM_INVALID};
+	float _mpc_z_v_auto_dn{0.f};
 
 	bool _gps_pos_is_offset{false};
 	bool _bias_set{false};

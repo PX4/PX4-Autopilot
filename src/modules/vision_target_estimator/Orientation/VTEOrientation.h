@@ -94,7 +94,7 @@ public:
 	void set_vte_timeout(const uint32_t tout) {_vte_TIMEOUT_US = tout;};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
-	bool timedOut() {return hasTimedOut(_last_update, _vte_TIMEOUT_US);};
+	bool timedOut() {return _estimator_initialized && hasTimedOut(_last_update, _vte_TIMEOUT_US);};
 	bool fusionEnabled() {return _vte_aid_mask.value != 0;};
 
 protected:
