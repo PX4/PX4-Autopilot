@@ -341,12 +341,13 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 	target_innov.timestamp = hrt_absolute_time();
 
 	// Compute the measurement's time delay (difference between state and measurement time on validity)
-	const float dt_sync_us = (_last_predict - target_obs.timestamp);
+	const int64_t dt_sync_us = signedTimeDiffUs(_last_predict, target_obs.timestamp);
 
-	if (dt_sync_us > kMeasValidTimeoutUs || dt_sync_us < 0.f) {
+	if (dt_sync_us > static_cast<int64_t>(kMeasValidTimeoutUs) || dt_sync_us < 0) {
 
 		PX4_INFO("Obs type: %d too old or in the future. Time sync: %.2f [ms] > timeout: %.2f [ms]",
-			 static_cast<int>(target_obs.type), (double)(dt_sync_us / 1000), (double)(kMeasValidTimeoutUs / 1000));
+			 static_cast<int>(target_obs.type), static_cast<double>(dt_sync_us) / 1000.,
+			 static_cast<double>(kMeasValidTimeoutUs) / 1000.);
 
 		// No measurement update, set to false
 		target_innov.fused = false;
@@ -363,7 +364,7 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 	}
 
 	// Convert time sync to seconds
-	const float dt_sync_s = dt_sync_us / SEC2USEC_F;
+	const float dt_sync_s = static_cast<float>(dt_sync_us) / SEC2USEC_F;
 
 	_target_est_yaw.syncState(dt_sync_s);
 	_target_est_yaw.set_H(target_obs.meas_h_theta);

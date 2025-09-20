@@ -50,10 +50,10 @@
 #include <matrix/math.hpp>
 #include <uORB/topics/sensor_uwb.h>
 
-using namespace time_literals;
-
 namespace vision_target_estimator
 {
+
+using namespace time_literals;
 
 /* timeout after which the target is not valid if no measurements are seen*/
 static constexpr uint32_t kTargetValidTimeoutUs = 2_s;
@@ -90,6 +90,11 @@ static inline bool isMeasValid(hrt_abstime ts)
 static inline bool isMeasUpdated(hrt_abstime ts)
 {
 	return !hasTimedOut(ts, kMeasUpdatedTimeoutUs);
+}
+
+inline int64_t signedTimeDiffUs(const hrt_abstime newer, const hrt_abstime older)
+{
+	return static_cast<int64_t>(newer) - static_cast<int64_t>(older);
 }
 
 union SensorFusionMaskU {
