@@ -52,6 +52,14 @@ namespace vision_target_estimator
 
 using namespace matrix;
 
+// Geographic limits
+constexpr double kLatAbsMaxDeg =  90.0;
+constexpr double kLonAbsMaxDeg = 180.0;
+constexpr float kAltMinM = -350.f;
+constexpr float kAltMaxM = 10000.f;
+constexpr float kMinAbsMpcZVAutoDn = 1e-3f;
+constexpr float kDefaultVisionUncDistance = 10.f;
+
 
 VTEPosition::VTEPosition() :
 	ModuleParams(nullptr)
@@ -108,6 +116,8 @@ bool VTEPosition::init()
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
 		_target_est_pos[axis] = KF_position{};
 	}
+
+	_param_mpc_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
 
 	return true;
 }
@@ -208,24 +218,17 @@ void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned)
 	// Time from last prediciton
 	const float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC_F;
 
-	// The rotated input cov (from body to NED R*cov*R^T) is the same as the original input cov since input_cov = acc_unc * Identiy and R*R^T = Identity
-	const SquareMatrix<float, vtest::Axis::size> input_cov = diag(Vector3f(_uav_acc_unc, _uav_acc_unc, _uav_acc_unc));
-	const SquareMatrix<float, vtest::Axis::size> bias_cov = diag(Vector3f(_bias_unc, _bias_unc, _bias_unc));
-
-#if defined(CONFIG_VTEST_MOVING)
-	const SquareMatrix<float, vtest::Axis::size> target_acc_cov = diag(Vector3f(_target_acc_unc, _target_acc_unc,
-			_target_acc_unc));
-#endif // CONFIG_VTEST_MOVING
-
 	//Decoupled dynamics, we neglect the off diag elements.
 	for (int i = 0; i < vtest::Axis::size; i++) {
 
 #if defined(CONFIG_VTEST_MOVING)
-		_target_est_pos[i].set_target_acc_var(target_acc_cov(i, i));
+		_target_est_pos[i].set_target_acc_var(_target_acc_unc);
 #endif // CONFIG_VTEST_MOVING
 
-		_target_est_pos[i].set_bias_var(bias_cov(i, i));
-		_target_est_pos[i].set_input_var(input_cov(i, i));
+		// We assume an isotropic uncertainty (cov = sigma^2 * I)
+		// The rotated input covariance from body to NED R*(sigma^2 * I)*R^T = sigma^2*I because R*R^T = I.
+		_target_est_pos[i].set_bias_var(_bias_unc);
+		_target_est_pos[i].set_input_var(_uav_acc_unc);
 
 		_target_est_pos[i].predictState(dt, vehicle_acc_ned(i));
 		_target_est_pos[i].predictCov(dt);
@@ -297,17 +300,17 @@ void VTEPosition::handleVisionData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs
 		return;
 	}
 
-	fiducial_marker_pos_report_s fiducial_marker_pose;
+	fiducial_marker_pos_report_s report;
 
-	if (!_fiducial_marker_report_sub.update(&fiducial_marker_pose)) {
+	if (!_fiducial_marker_pos_report_sub.update(&report)) {
 		return;
 	}
 
-	if (!isVisionDataValid(fiducial_marker_pose)) {
+	if (!isVisionDataValid(report)) {
 		return;
 	}
 
-	if (processObsVision(fiducial_marker_pose, obs_fiducial_marker)) {
+	if (processObsVision(report, obs_fiducial_marker)) {
 		vte_fusion_aid_mask.flags.fuse_vision = true;
 	}
 }
@@ -353,7 +356,6 @@ bool VTEPosition::isUwbDataValid(const sensor_uwb_s &uwb_report)
 	}
 
 	return true;
-
 }
 
 bool VTEPosition::processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs)
@@ -764,29 +766,29 @@ bool VTEPosition::fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, Obs
 }
 
 /*Vision observation: [rx, ry, rz]*/
-bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, TargetObs &obs)
+bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &report, TargetObs &obs)
 {
 	/* Rotate vision observation from body FRD - to vc-NED */
-	const matrix::Quaternionf quat_att(fiducial_marker_pose.q);
-	const Vector3f vision_body(fiducial_marker_pose.x_rel_body, fiducial_marker_pose.y_rel_body,
-				   fiducial_marker_pose.z_rel_body);
+	const matrix::Quaternionf quat_att(report.q);
+	const Vector3f vision_body(report.x_rel_body, report.y_rel_body, report.z_rel_body);
 	const Vector3f vision_ned = quat_att.rotateVector(vision_body);
 
 	// Rotate covariance matrix to vc-NED
 	SquareMatrix<float, vtest::Axis::size> Cov_rotated;
+	const float minVar = _ev_pos_noise * _ev_pos_noise;
 
 	// Use uncertainty from parameters or from vision messages
 	if (_ev_noise_md) {
 		// Uncertainty proportional to the vertical distance
-		const float meas_uncertainty = _range_sensor.valid ? ((_ev_pos_noise * _ev_pos_noise) * fmaxf(_range_sensor.dist_bottom,
-					       1.f)) : ((_ev_pos_noise * _ev_pos_noise) * 10);
-		Cov_rotated = diag(Vector3f(meas_uncertainty, meas_uncertainty, meas_uncertainty));
+		const float meas_unc = _range_sensor.valid ? (minVar * fmaxf(_range_sensor.dist_bottom, 1.f)) :
+				       (minVar * kDefaultVisionUncDistance);
+		Cov_rotated = diag(Vector3f(meas_unc, meas_unc, meas_unc));
 
 	} else {
-		const SquareMatrix<float, vtest::Axis::size> covMat = diag(Vector3f(fmaxf(fiducial_marker_pose.var_x_rel_body,
-				_ev_pos_noise * _ev_pos_noise),
-				fmaxf(fiducial_marker_pose.var_y_rel_body, _ev_pos_noise * _ev_pos_noise),
-				fmaxf(fiducial_marker_pose.var_z_rel_body, _ev_pos_noise * _ev_pos_noise)));
+		const SquareMatrix<float, vtest::Axis::size> covMat = diag(Vector3f(
+					fmaxf(report.var_x_rel_body, minVar),
+					fmaxf(report.var_y_rel_body, minVar),
+					fmaxf(report.var_z_rel_body, minVar)));
 		const matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
 		Cov_rotated = R_att * covMat * R_att.transpose();
 	}
@@ -797,7 +799,7 @@ bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &fiducial_
 		return false;
 	}
 
-	obs.timestamp = fiducial_marker_pose.timestamp;
+	obs.timestamp = report.timestamp;
 
 	obs.type = ObsType::Fiducial_marker;
 	obs.updated(vtest::Axis::x) = true;
@@ -919,8 +921,8 @@ bool VTEPosition::processObsGNSSVelUav(TargetObs &obs)
 	Vector3f vel_uav_ned = _uav_gps_vel.xyz;
 
 	if (_gps_pos_is_offset) {
-		if (((_velocity_offset_ned.timestamp - _uav_gps_vel.timestamp) > kMeasUpdatedTimeoutUs)) {
-
+		if (!_velocity_offset_ned.valid
+		    || !isTimeDifferenceWithin(_velocity_offset_ned.timestamp, _uav_gps_vel.timestamp, kMeasUpdatedTimeoutUs)) {
 			return false;
 		}
 
@@ -1000,7 +1002,8 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 	// Offset gps relative position to the center of mass:
 	if (_gps_pos_is_offset) {
 
-		if ((_gps_pos_offset_ned.timestamp - _uav_gps_position.timestamp) > kMeasUpdatedTimeoutUs) {
+		if (!_gps_pos_offset_ned.valid
+		    || !isTimeDifferenceWithin(_gps_pos_offset_ned.timestamp, _uav_gps_position.timestamp, kMeasUpdatedTimeoutUs)) {
 			return false;
 		}
 
@@ -1072,7 +1075,8 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_GNSS_repor
 
 	// Offset gps relative position to the center of mass:
 	if (_gps_pos_is_offset) {
-		if ((_gps_pos_offset_ned.timestamp - _uav_gps_position.timestamp) > kMeasUpdatedTimeoutUs) {
+		if (!_gps_pos_offset_ned.valid
+		    || !isTimeDifferenceWithin(_gps_pos_offset_ned.timestamp, _uav_gps_position.timestamp, kMeasUpdatedTimeoutUs)) {
 
 			return false;
 		}
@@ -1135,14 +1139,14 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 	_target_innov.timestamp = hrt_absolute_time();
 
 	// measurement's time delay (difference between state and measurement time on validity)
-	const float dt_sync_us = (_last_predict - target_obs.timestamp);
+	const int64_t dt_sync_us = signedTimeDiffUs(_last_predict, target_obs.timestamp);
 
 	// Reject old measurements or measurements in the "future" due to bad time sync
-	if (dt_sync_us > kMeasValidTimeoutUs || dt_sync_us < 0.f) {
+	if (dt_sync_us > static_cast<int64_t>(kMeasValidTimeoutUs) || dt_sync_us < 0) {
 
 		PX4_DEBUG("Obs type: %d too old or in the future. Time sync: %.2f [ms] (timeout: %.2f [ms])",
 			  static_cast<int>(target_obs.type),
-			  (double)(dt_sync_us / 1000), (double)(kMeasValidTimeoutUs / 1000));
+			  static_cast<double>(dt_sync_us) / 1000., static_cast<double>(kMeasValidTimeoutUs) / 1000.);
 
 		_target_innov.fused = false;
 		perf_end(_vte_update_perf);
@@ -1159,7 +1163,7 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 		return false;
 	}
 
-	const float dt_sync_s = dt_sync_us / SEC2USEC_F;
+	const float dt_sync_s = static_cast<float>(dt_sync_us) / SEC2USEC_F;
 
 	for (int j = 0; j < vtest::Axis::size; j++) {
 
@@ -1358,8 +1362,12 @@ void VTEPosition::publishTarget()
 #if defined(CONFIG_VTEST_MOVING)
 
 		// If the target is moving, move towards its expected location
-		float mpc_z_v_auto_dn = 0.f;
-		param_get(param_find("MPC_Z_V_AUTO_DN"), &mpc_z_v_auto_dn);
+		float mpc_z_v_auto_dn = _mpc_z_v_auto_dn;
+
+		if (fabsf(mpc_z_v_auto_dn) < kMinAbsMpcZVAutoDn) {
+			mpc_z_v_auto_dn = (mpc_z_v_auto_dn >= 0.f) ? kMinAbsMpcZVAutoDn : -kMinAbsMpcZVAutoDn;
+		}
+
 		float intersection_time_s = fabsf(_target_pose.z_rel / mpc_z_v_auto_dn);
 		intersection_time_s = math::constrain(intersection_time_s, _param_vte_moving_t_min.get(),
 						      _param_vte_moving_t_max.get());
@@ -1530,6 +1538,18 @@ void VTEPosition::updateParams()
 		PX4_WARN("VTE: VTE_POS_NIS_THRE %.1f <= %.1f, keeping previous value",
 			 (double)new_nis_threshold, (double)kMinNisThreshold);
 	}
+
+#if defined(CONFIG_VTEST_MOVING)
+
+	if (_param_mpc_z_v_auto_dn != PARAM_INVALID) {
+		float new_mpc_z_v_auto_dn = _mpc_z_v_auto_dn;
+
+		if (param_get(_param_mpc_z_v_auto_dn, &new_mpc_z_v_auto_dn) == PX4_OK) {
+			_mpc_z_v_auto_dn = new_mpc_z_v_auto_dn;
+		}
+	}
+
+#endif // CONFIG_VTEST_MOVING
 }
 
 bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who) const
