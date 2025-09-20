@@ -194,11 +194,11 @@ private:
 	/* parameters from vision_target_estimator_params.c*/
 	uint32_t _vte_TIMEOUT_US = 3_s;
 	SensorFusionMaskU _vte_aid_mask{};
-	float _yaw_unc;
-	float _ev_angle_noise;
+	float _yaw_unc{1.f};
+	float _min_ev_angle_var{0.025f};
 	bool  _ev_noise_md{false};
-	float _nis_threshold;
-	float _uwb_angle_noise_min{kMinObservationNoise};
+	float _nis_threshold{3.84f};
+	float _min_uwb_angle_var{0.025f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_YAW_UNC_IN>) _param_vte_yaw_unc_in,
