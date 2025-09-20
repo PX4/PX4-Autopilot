@@ -69,7 +69,7 @@
 
 #include "Position/VTEPosition.h"
 #include "Orientation/VTEOrientation.h"
-
+#include "common.h"
 
 namespace vision_target_estimator
 {
@@ -118,7 +118,7 @@ private:
 	void handleExit();
 	void stopAllEstimators();
 	void startEstIfNeeded();
-	bool estStoppedDueToTimeout();
+	bool allEstStoppedDueToTimeout();
 	void updateEstimators();
 	void updatePosEst(const LocalPose &local_pose, const bool local_pose_updated,
 			  const matrix::Vector3f &vehicle_acc_ned,
@@ -129,8 +129,8 @@ private:
 	void updateYawEst(const LocalPose &local_pose, const bool local_pose_updated, const matrix::Quaternionf &q_att);
 	void publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sampled, const matrix::Quaternionf &q_att);
 
-	inline bool noActiveTask() {return _vte_current_task.value == 0;};
-	inline bool noEstRunning()
+	inline bool noActiveTask() const {return _current_task.value == 0;};
+	inline bool noEstRunning() const
 	{
 		return (!_vte_orientation_enabled || !_orientation_estimator_running) && (!_vte_position_enabled
 				|| !_position_estimator_running);
@@ -138,15 +138,15 @@ private:
 
 	void updateTaskTopics();
 	bool isNewTaskAvailable();
-	bool IsCurrentTaskDone();
+	bool isCurrentTaskComplete();
 	bool startPosEst();
 	void stopPosEst();
 	bool startYawEst();
 	void stopYawEst();
-	bool get_input(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att, matrix::Vector3f &gps_pos_offset,
-		       matrix::Vector3f &gps_vel_offset,
-		       bool vel_offset_updated,
-		       bool &acc_valid);
+	bool pollEstimatorInput(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att, matrix::Vector3f &gps_pos_offset,
+				matrix::Vector3f &vel_offset_ned,
+				bool vel_offset_updated,
+				bool &acc_valid);
 
 	perf_counter_t _cycle_perf_pos{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle pos")};
 	perf_counter_t _cycle_perf_yaw{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle yaw")};
@@ -159,7 +159,6 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -187,7 +186,7 @@ private:
 
 	static_assert(sizeof(VisionTargetEstTaskMaskU) == 1, "Unexpected task mask size");
 
-	VisionTargetEstTaskMaskU _vte_current_task{};
+	VisionTargetEstTaskMaskU _current_task{};
 	VisionTargetEstTaskMaskU _vte_task_mask{};
 
 	bool _position_estimator_running{false};
@@ -212,14 +211,15 @@ private:
 	matrix::Vector3f _gps_pos_offset_xyz{};
 	bool _gps_pos_is_offset{false};
 
-	bool get_gps_velocity_offset(matrix::Vector3f &vel_offset_body);
-	bool get_local_pose(LocalPose &local_pose);
+	bool computeGpsVelocityOffset(matrix::Vector3f &vel_offset_body);
+	bool pollLocalPose(LocalPose &local_pose);
+	const position_setpoint_s *findLandSetpoint();
 
-	bool checkAndUpdateElapsed(hrt_abstime &last_time, const hrt_abstime interval);
+	bool updateWhenIntervalElapsed(hrt_abstime &last_time, const hrt_abstime interval) const;
 
 	/* Down sample acceleration data */
 	matrix::Vector3f _vehicle_acc_ned_sum{};
-	uint32_t _loops_count{0};
+	uint32_t _acc_sample_count{0};
 	hrt_abstime _last_acc_reset{0};
 	void resetAccDownsample();
 	position_setpoint_triplet_s _pos_sp_triplet_buffer{};

@@ -99,6 +99,7 @@ SimulatorMavlink::SimulatorMavlink() :
 
 	_esc_status_pub.advertise();
 	_fiducial_marker_pos_report_pub.advertise();
+	_fiducial_marker_yaw_report_pub.advertise();
 	_target_gnss_pub.advertise();
 }
 

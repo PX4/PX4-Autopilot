@@ -59,7 +59,7 @@ using namespace time_literals;
 static constexpr uint32_t kTargetValidTimeoutUs = 2_s;
 
 /* timeout after which the measurement is not valid*/
-static constexpr uint32_t kMeasValidTimeoutUs = 1_s;
+static constexpr uint32_t kMeasRecentTimeoutUs = 1_s;
 
 /* timeout after which the measurement is not considered updated*/
 static constexpr uint32_t kMeasUpdatedTimeoutUs = 100_ms;
@@ -82,9 +82,9 @@ static inline bool hasTimedOut(const hrt_abstime ts, const uint32_t timeout_us)
 	return (now - ts) >= static_cast<hrt_abstime>(timeout_us);
 }
 
-static inline bool isMeasValid(hrt_abstime ts)
+static inline bool isMeasRecent(hrt_abstime ts)
 {
-	return !hasTimedOut(ts, kMeasValidTimeoutUs);
+	return !hasTimedOut(ts, kMeasRecentTimeoutUs);
 }
 
 static inline bool isMeasUpdated(hrt_abstime ts)
@@ -92,7 +92,7 @@ static inline bool isMeasUpdated(hrt_abstime ts)
 	return !hasTimedOut(ts, kMeasUpdatedTimeoutUs);
 }
 
-inline int64_t signedTimeDiffUs(const hrt_abstime newer, const hrt_abstime older)
+constexpr inline int64_t signedTimeDiffUs(const hrt_abstime newer, const hrt_abstime older)
 {
 	return static_cast<int64_t>(newer) - static_cast<int64_t>(older);
 }
