@@ -829,7 +829,7 @@ int VisionTargetEst::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Module to estimate the position and orientation of a target using a relative sensor e.g. vision, uwb, or irlock and GNSS. To configure, set the VTE* params.
+Module to estimate the position and orientation of a target using relative sensors.
 
 The module runs periodically on the HP work queue.
 )DESCR_STR");

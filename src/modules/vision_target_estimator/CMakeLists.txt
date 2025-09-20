@@ -136,8 +136,6 @@ px4_add_module(
 	COMPILE_FLAGS
 	STACK_MAX
 		5000
-	INCLUDES
-		${VTEST_GENERATED_DERIVATION_INCLUDE_PATH}
 	SRCS
 		VisionTargetEst.cpp
 		Position/VTEPosition.cpp
@@ -149,4 +147,8 @@ px4_add_module(
 	DEPENDS
 		mathlib
 		px4_work_queue
+)
+
+target_include_directories(modules__vision_target_estimator BEFORE PRIVATE
+	${VTEST_GENERATED_DERIVATION_INCLUDE_PATH}
 )
