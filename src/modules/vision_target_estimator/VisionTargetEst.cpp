@@ -131,23 +131,19 @@ void VisionTargetEst::Run()
 	// Task is running, check if an estimator must be started or re-started
 	startEstIfNeeded();
 
-	// Early return if no estimator is running or activated
-	if (noEstRunning()) {
-		if (IsCurrentTaskDone()) {
-			_vte_current_task.value = 0;
-		}
+	const bool task_completed = isCurrentTaskComplete();
 
-		return;
-	}
-
-	// Stop estimators once task is completed
-	if (IsCurrentTaskDone()) {
+	if (task_completed) {
 		stopAllEstimators();
-		_vte_current_task.value = 0;
+		_current_task = VisionTargetEstTaskMaskU{};
 		return;
 	}
 
-	if (estStoppedDueToTimeout()) {
+	if (noEstRunning()) {
+		return;
+	}
+
+	if (allEstStoppedDueToTimeout()) {
 		return;
 	}
 
@@ -233,38 +229,36 @@ void VisionTargetEst::updateParams()
 		}
 	}
 
-	float gps_pos_x = 0.f;
-	float gps_pos_y = 0.f;
-	float gps_pos_z = 0.f;
+	matrix::Vector3f gps_antenna_offset{};
 
 	if (_param_ekf2_gps_pos_x != PARAM_INVALID) {
-		param_get(_param_ekf2_gps_pos_x, &gps_pos_x);
+		param_get(_param_ekf2_gps_pos_x, &gps_antenna_offset(0));
 	}
 
 	if (_param_ekf2_gps_pos_y != PARAM_INVALID) {
-		param_get(_param_ekf2_gps_pos_y, &gps_pos_y);
+		param_get(_param_ekf2_gps_pos_y, &gps_antenna_offset(1));
 	}
 
 	if (_param_ekf2_gps_pos_z != PARAM_INVALID) {
-		param_get(_param_ekf2_gps_pos_z, &gps_pos_z);
+		param_get(_param_ekf2_gps_pos_z, &gps_antenna_offset(2));
 	}
 
-	_gps_pos_is_offset = ((fabsf(gps_pos_x) > kMinGpsOffsetM) || (fabsf(gps_pos_y) > kMinGpsOffsetM)
-			      || (fabsf(gps_pos_z) > kMinGpsOffsetM));
-	_gps_pos_offset_xyz = matrix::Vector3f(gps_pos_x, gps_pos_y, gps_pos_z);
+	_gps_pos_is_offset = (fabsf(gps_antenna_offset(0)) > kMinGpsOffsetM)
+			     || (fabsf(gps_antenna_offset(1)) > kMinGpsOffsetM)
+			     || (fabsf(gps_antenna_offset(2)) > kMinGpsOffsetM);
+	_gps_pos_offset_xyz = gps_antenna_offset;
 
-	SensorFusionMaskU new_aid_mask{};
-	new_aid_mask.value = adjustAidMask(_param_vte_aid_mask.get());
+	const uint16_t requested_aid_mask = adjustAidMask(_param_vte_aid_mask.get());
 
-	if (new_aid_mask.value != _vte_aid_mask.value) {
-		_vte_aid_mask.value = new_aid_mask.value;
+	if (requested_aid_mask != _vte_aid_mask.value) {
+		_vte_aid_mask.value = requested_aid_mask;
 
 		if (_vte_position_enabled) {
-			_vte_position.set_vte_aid_mask(new_aid_mask.value);
+			_vte_position.set_vte_aid_mask(requested_aid_mask);
 		}
 
 		if (_vte_orientation_enabled) {
-			_vte_orientation.set_vte_aid_mask(new_aid_mask.value);
+			_vte_orientation.set_vte_aid_mask(requested_aid_mask);
 		}
 
 		printAidMask();
@@ -348,7 +342,7 @@ void VisionTargetEst::printAidMask()
 void VisionTargetEst::resetAccDownsample()
 {
 	_vehicle_acc_ned_sum.setAll(0);
-	_loops_count = 0;
+	_acc_sample_count = 0;
 	_last_acc_reset = hrt_absolute_time();
 }
 
@@ -382,25 +376,9 @@ bool VisionTargetEst::startPosEst()
 	PX4_INFO("Starting Position Vision Target Estimator.");
 	_vte_position.resetFilter();
 
-	if (_vte_current_task.flags.for_prec_land) {
-
-		bool next_sp_is_land = false;
-		bool current_sp_is_land = false;
-
-		if (_pos_sp_triplet_sub.update(&_pos_sp_triplet_buffer)) {
-			next_sp_is_land = (_pos_sp_triplet_buffer.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
-			current_sp_is_land = (_pos_sp_triplet_buffer.current.type == position_setpoint_s::SETPOINT_TYPE_LAND);
-		}
-
-		if (next_sp_is_land) {
-			PX4_INFO("VTE for precision landing, next sp is land.");
-			_vte_position.set_mission_position(_pos_sp_triplet_buffer.next.lat, _pos_sp_triplet_buffer.next.lon,
-							   _pos_sp_triplet_buffer.next.alt);
-
-		} else if (current_sp_is_land) {
-			PX4_INFO("VTE for precision landing, current sp is land.");
-			_vte_position.set_mission_position(_pos_sp_triplet_buffer.current.lat, _pos_sp_triplet_buffer.current.lon,
-							   _pos_sp_triplet_buffer.current.alt);
+	if (_current_task.flags.for_prec_land) {
+		if (const position_setpoint_s *land_setpoint = findLandSetpoint()) {
+			_vte_position.set_mission_position(land_setpoint->lat, land_setpoint->lon, land_setpoint->alt);
 
 		} else {
 			PX4_WARN("VTE for precision landing, land position cannot be used.");
@@ -411,30 +389,51 @@ bool VisionTargetEst::startPosEst()
 	return true;
 }
 
+const position_setpoint_s *VisionTargetEst::findLandSetpoint()
+{
+	if (!_pos_sp_triplet_sub.update(&_pos_sp_triplet_buffer)) {
+		return nullptr;
+	}
+
+	if (_pos_sp_triplet_buffer.next.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		PX4_INFO("VTE for precision landing, next sp is land.");
+		return &_pos_sp_triplet_buffer.next;
+	}
+
+	if (_pos_sp_triplet_buffer.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		PX4_INFO("VTE for precision landing, current sp is land.");
+		return &_pos_sp_triplet_buffer.current;
+	}
+
+	return nullptr;
+}
+
 bool VisionTargetEst::isNewTaskAvailable()
 {
 	if (_vte_task_mask.flags.for_prec_land && _is_in_prec_land) {
 
 		// Precision land task already running
-		if (_vte_current_task.flags.for_prec_land) {
+		if (_current_task.flags.for_prec_land) {
 			return false;
 		}
 
 		PX4_INFO("VTE, precision landing task requested.");
-		_vte_current_task.value = 0;
-		_vte_current_task.flags.for_prec_land = 1;
+		VisionTargetEstTaskMaskU new_task{};
+		new_task.flags.for_prec_land = 1;
+		_current_task = new_task;
 		return true;
 
 	} else if (_vte_task_mask.flags.debug) {
 
 		// DEBUG task already running
-		if (_vte_current_task.flags.debug) {
+		if (_current_task.flags.debug) {
 			return false;
 		}
 
 		PX4_WARN("VTE, DEBUG task requested.");
-		_vte_current_task.value = 0;
-		_vte_current_task.flags.debug = 1;
+		VisionTargetEstTaskMaskU new_task{};
+		new_task.flags.debug = 1;
+		_current_task = new_task;
 		return true;
 	}
 
@@ -444,10 +443,10 @@ bool VisionTargetEst::isNewTaskAvailable()
 	return false;
 }
 
-bool VisionTargetEst::IsCurrentTaskDone()
+bool VisionTargetEst::isCurrentTaskComplete()
 {
 	// Prec-land
-	if (_vte_current_task.flags.for_prec_land) {
+	if (_current_task.flags.for_prec_land) {
 
 		if (!_vte_task_mask.flags.for_prec_land) {
 			PX4_INFO("VTE_TASK_MASK updated, precision landing task completed.");
@@ -469,7 +468,7 @@ bool VisionTargetEst::IsCurrentTaskDone()
 			return true;
 		}
 
-	} else if (_vte_current_task.flags.debug) {
+	} else if (_current_task.flags.debug) {
 
 		if (!_vte_task_mask.flags.debug) {
 			PX4_INFO("VTE_TASK_MASK updated, DEBUG task completed.");
@@ -549,7 +548,7 @@ void VisionTargetEst::startEstIfNeeded()
 	}
 }
 
-bool VisionTargetEst::estStoppedDueToTimeout()
+bool VisionTargetEst::allEstStoppedDueToTimeout()
 {
 	bool timed_out = false;
 
@@ -565,11 +564,7 @@ bool VisionTargetEst::estStoppedDueToTimeout()
 		timed_out = true;
 	}
 
-	if (!timed_out) {
-		return false;
-	}
-
-	return !_position_estimator_running && !_orientation_estimator_running;
+	return timed_out && !_position_estimator_running && !_orientation_estimator_running;
 }
 
 void VisionTargetEst::updateEstimators()
@@ -577,10 +572,10 @@ void VisionTargetEst::updateEstimators()
 	perf_begin(_cycle_perf);
 
 	LocalPose local_pose;
-	const bool local_pose_updated = get_local_pose(local_pose);
+	const bool local_pose_updated = pollLocalPose(local_pose);
 
 	matrix::Vector3f vel_offset_body{};
-	const bool vel_offset_updated = get_gps_velocity_offset(vel_offset_body);
+	const bool vel_offset_updated = computeGpsVelocityOffset(vel_offset_body);
 
 	matrix::Vector3f vehicle_acc_ned{};
 	matrix::Quaternionf q_att{};
@@ -589,7 +584,7 @@ void VisionTargetEst::updateEstimators()
 	bool acc_valid = false;
 
 	// Minimal requirements: attitude (always) and acceleration for position estimator
-	if (!get_input(vehicle_acc_ned, q_att, gps_pos_offset_ned, vel_offset_ned, vel_offset_updated, acc_valid)) {
+	if (!pollEstimatorInput(vehicle_acc_ned, q_att, gps_pos_offset_ned, vel_offset_ned, vel_offset_updated, acc_valid)) {
 		perf_end(_cycle_perf);
 		return;
 	}
@@ -632,9 +627,9 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 	}
 
 	_vehicle_acc_ned_sum += vehicle_acc_ned;
-	_loops_count ++;
+	_acc_sample_count++;
 
-	if (!checkAndUpdateElapsed(_last_update_pos, (1_s / kVtePosUpdateRateHz))) {
+	if (!updateWhenIntervalElapsed(_last_update_pos, (1_s / kVtePosUpdateRateHz))) {
 		return;
 	}
 
@@ -652,7 +647,7 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 		_vte_position.set_vel_offset(vel_offset_ned);
 	}
 
-	const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
+	const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _acc_sample_count;
 
 	_vte_position.update(vehicle_acc_ned_sampled, q_att);
 	publishVteInput(vehicle_acc_ned_sampled, q_att);
@@ -666,7 +661,7 @@ void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local
 				   const matrix::Quaternionf &q_att)
 {
 
-	if (!checkAndUpdateElapsed(_last_update_yaw, (1_s / kVteYawUpdateRateHz))) {
+	if (!updateWhenIntervalElapsed(_last_update_yaw, (1_s / kVteYawUpdateRateHz))) {
 		return;
 	}
 
@@ -699,7 +694,7 @@ void VisionTargetEst::publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sa
 	_vision_target_est_input_pub.publish(vte_input_report);
 }
 
-bool VisionTargetEst::get_gps_velocity_offset(matrix::Vector3f &vel_offset_body)
+bool VisionTargetEst::computeGpsVelocityOffset(matrix::Vector3f &vel_offset_body)
 {
 	if (!_gps_pos_is_offset) {
 		return false;
@@ -718,7 +713,7 @@ bool VisionTargetEst::get_gps_velocity_offset(matrix::Vector3f &vel_offset_body)
 	return true;
 }
 
-bool VisionTargetEst::get_local_pose(LocalPose &local_pose)
+bool VisionTargetEst::pollLocalPose(LocalPose &local_pose)
 {
 
 	vehicle_local_position_s vehicle_local_position;
@@ -753,12 +748,12 @@ bool VisionTargetEst::get_local_pose(LocalPose &local_pose)
 	return true;
 }
 
-bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
-				matrix::Quaternionf &quat_att,
-				matrix::Vector3f &gps_pos_offset_ned,
-				matrix::Vector3f &vel_offset_rot_ned,
-				const bool vel_offset_updated,
-				bool &acc_valid)
+bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned,
+		matrix::Quaternionf &quat_att,
+		matrix::Vector3f &gps_pos_offset_ned,
+		matrix::Vector3f &vel_offset_ned,
+		const bool vel_offset_updated,
+		bool &acc_valid)
 {
 	vehicle_attitude_s vehicle_attitude{};
 	vehicle_acceleration_s vehicle_acceleration{};
@@ -797,21 +792,19 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned,
 		gps_pos_offset_ned = quat_att.rotateVector(_gps_pos_offset_xyz);
 
 		if (vel_offset_updated) {
-			vel_offset_rot_ned = quat_att.rotateVector(vel_offset_rot_ned);
+			vel_offset_ned = quat_att.rotateVector(vel_offset_ned);
 
-		} else {
-			vel_offset_rot_ned.setAll(0.f);
 		}
 
 	} else {
 		gps_pos_offset_ned.setAll(0.f);
-		vel_offset_rot_ned.setAll(0.f);
+		vel_offset_ned.setAll(0.f);
 	}
 
 	return true;
 }
 
-bool VisionTargetEst::checkAndUpdateElapsed(hrt_abstime &last_time, const hrt_abstime interval)
+bool VisionTargetEst::updateWhenIntervalElapsed(hrt_abstime &last_time, const hrt_abstime interval) const
 {
 
 	if (hrt_elapsed_time(&last_time) > interval) {
