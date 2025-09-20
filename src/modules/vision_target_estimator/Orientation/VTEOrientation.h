@@ -50,7 +50,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/fiducial_marker_yaw_report.h>
 #include <uORB/topics/vision_target_est_orientation.h>
 #include <uORB/topics/sensor_uwb.h>
@@ -94,8 +93,8 @@ public:
 	void set_vte_timeout(const uint32_t tout) {_vte_TIMEOUT_US = tout;};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
-	bool timedOut() {return _estimator_initialized && hasTimedOut(_last_update, _vte_TIMEOUT_US);};
-	bool fusionEnabled() {return _vte_aid_mask.value != 0;};
+	bool timedOut() const {return _estimator_initialized && hasTimedOut(_last_update, _vte_TIMEOUT_US);};
+	bool fusionEnabled() const {return _vte_aid_mask.value != 0;};
 
 protected:
 
@@ -112,11 +111,17 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
-	enum ObsType {
+	enum class ObsType : uint8_t {
 		Fiducial_marker,
 		Uwb,
 		Type_count
 	};
+
+	static constexpr size_t kObsTypeCount = static_cast<size_t>(ObsType::Type_count);
+	static constexpr size_t obsIndex(ObsType type)
+	{
+		return static_cast<size_t>(type);
+	}
 
 	union ObsValidMaskU {
 		struct {
@@ -139,23 +144,23 @@ private:
 		matrix::Vector<float, State::size> meas_h_theta{};
 	};
 
-	bool initEstimator(const ObsValidMaskU &vte_fusion_aid_mask, const TargetObs observations[ObsType::Type_count]);
-	bool updateStep(const matrix::Quaternionf &q_att);
+	bool initEstimator(const ObsValidMaskU &fusion_mask, const TargetObs observations[kObsTypeCount]);
+	bool performUpdateStep(const matrix::Quaternionf &q_att);
 	void predictionStep();
 
-	void processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
-				 TargetObs observations[ObsType::Type_count]);
-	bool fuseNewSensorData(ObsValidMaskU &vte_fusion_aid_mask, const TargetObs observations[ObsType::Type_count]);
+	void processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
+				 TargetObs observations[kObsTypeCount]);
+	bool fuseActiveMeasurements(ObsValidMaskU &fusion_mask, const TargetObs observations[kObsTypeCount]);
 
 	/* Vision data */
-	void handleVisionData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker);
-	bool isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw);
-	bool processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs);
+	void handleVisionData(ObsValidMaskU &fusion_mask, TargetObs &vision_obs);
+	bool isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw) const;
+	bool processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs) const;
 
 	/* UWB data */
-	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_uwb);
-	bool isUwbDataValid(const sensor_uwb_s &uwb_report);
-	bool processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs);
+	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask, TargetObs &uwb_obs);
+	bool isUwbDataValid(const sensor_uwb_s &uwb_report) const;
+	bool processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs) const;
 
 	bool fuseMeas(const TargetObs &target_pos_obs);
 	void publishTarget();
@@ -177,7 +182,7 @@ private:
 	bool _estimator_initialized{false};
 
 	KF_orientation _target_est_yaw{};
-	TargetObs _obs_buffer[ObsType::Type_count] {};
+	TargetObs _obs_buffer[kObsTypeCount] {};
 	estimator_aid_source1d_s _aid_src1d_buffer{};
 	vision_target_est_orientation_s _orientation_msg{};
 

@@ -52,6 +52,9 @@ namespace vision_target_estimator
 
 using namespace matrix;
 
+constexpr float kDefaultVisionYawDistance = 10.f;
+constexpr float kDefaultUwbAngleNoise = math::radians(3.f) * math::radians(3.f);
+
 VTEOrientation::VTEOrientation() :
 	ModuleParams(nullptr)
 {
@@ -82,39 +85,38 @@ void VTEOrientation::update(const matrix::Quaternionf &q_att)
 
 	checkMeasurementInputs();
 
-	// predict the target state using a constant relative acceleration model
+	// Predict the target yaw state using the configured kinematic model.
 	if (_estimator_initialized) {
 		predictionStep();
 		_last_predict = hrt_absolute_time();
 	}
 
-	// update and fuse the observations and pulishes innovations
-	if (updateStep(q_att)) {
+	// Update with the latest observations and publish any resulting innovations.
+	if (performUpdateStep(q_att)) {
 		_last_update = _last_predict;
 	}
 
-	if (_estimator_initialized) {publishTarget();}
+	if (_estimator_initialized) {
+		publishTarget();
+	}
 }
 
-bool VTEOrientation::initEstimator(const ObsValidMaskU &vte_fusion_aid_mask,
-				   const TargetObs observations[ObsType::Type_count])
+bool VTEOrientation::initEstimator(const ObsValidMaskU &fusion_mask,
+				   const TargetObs observations[kObsTypeCount])
 {
 	// Until a sensor measures the yaw rate, state_init(State::yaw_rate) is init at zero
 	matrix::Vector<float, State::size> state_init{};
 
 	// Yaw init
-	if (vte_fusion_aid_mask.flags.fuse_vision) {
-		state_init(State::yaw) = observations[ObsType::Fiducial_marker].meas;
+	if (fusion_mask.flags.fuse_vision) {
+		state_init(State::yaw) = observations[obsIndex(ObsType::Fiducial_marker)].meas;
 
-	} else if (vte_fusion_aid_mask.flags.fuse_uwb) {
-		state_init(State::yaw) = observations[ObsType::Uwb].meas;
+	} else if (fusion_mask.flags.fuse_uwb) {
+		state_init(State::yaw) = observations[obsIndex(ObsType::Uwb)].meas;
 	}
 
 	matrix::Vector<float, State::size> state_var_init;
-
-	for (int i = 0; i < State::size; i++) {
-		state_var_init(i) = _yaw_unc;
-	}
+	state_var_init.setAll(_yaw_unc);
 
 	_target_est_yaw.set_state(state_init);
 	_target_est_yaw.set_state_covariance(state_var_init);
@@ -132,32 +134,29 @@ bool VTEOrientation::initEstimator(const ObsValidMaskU &vte_fusion_aid_mask,
 
 void VTEOrientation::predictionStep()
 {
-	// Time from last prediciton
-	float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC_F;
+	// Time since the last prediction
+	const float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC_F;
 
 	_target_est_yaw.predictState(dt);
 	_target_est_yaw.predictCov(dt);
 }
 
-bool VTEOrientation::updateStep(const matrix::Quaternionf &q_att)
+bool VTEOrientation::performUpdateStep(const matrix::Quaternionf &q_att)
 {
-	ObsValidMaskU vte_fusion_aid_mask{};
+	ObsValidMaskU fusion_mask{};
 	resetObservations();
-	processObservations(q_att, vte_fusion_aid_mask, _obs_buffer);
+	// Gather the latest observations from each enabled data source.
+	processObservations(q_att, fusion_mask, _obs_buffer);
 
-	// No new observations --> no fusion.
-	if (vte_fusion_aid_mask.value == 0) {
+	if (fusion_mask.value == 0) {
 		return false;
 	}
 
-	// Initialize estimator if not already initialized
-	if (!_estimator_initialized && !initEstimator(vte_fusion_aid_mask, _obs_buffer)) {
-		resetFilter();
+	if (!_estimator_initialized && !initEstimator(fusion_mask, _obs_buffer)) {
 		return false;
 	}
 
-	// Fuse new sensor data
-	return fuseNewSensorData(vte_fusion_aid_mask, _obs_buffer);
+	return fuseActiveMeasurements(fusion_mask, _obs_buffer);
 }
 
 void VTEOrientation::resetObservations()
@@ -167,39 +166,35 @@ void VTEOrientation::resetObservations()
 	}
 }
 
-void VTEOrientation::processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
-		TargetObs obs[ObsType::Type_count])
+void VTEOrientation::processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
+		TargetObs observations[kObsTypeCount])
 {
-	handleVisionData(vte_fusion_aid_mask, obs[ObsType::Fiducial_marker]);
+	handleVisionData(fusion_mask, observations[obsIndex(ObsType::Fiducial_marker)]);
 
-	handleUwbData(q_att, vte_fusion_aid_mask, obs[ObsType::Uwb]);
+	handleUwbData(q_att, fusion_mask, observations[obsIndex(ObsType::Uwb)]);
 }
 
-void VTEOrientation::handleVisionData(ObsValidMaskU &vte_fusion_aid_mask, TargetObs &obs_fiducial_marker)
+void VTEOrientation::handleVisionData(ObsValidMaskU &fusion_mask, TargetObs &vision_obs)
 {
-
 	if (!_vte_aid_mask.flags.use_vision_pos) {
 		return;
 	}
 
 	fiducial_marker_yaw_report_s fiducial_marker_yaw;
 
-	if (!_fiducial_marker_yaw_report_sub.update(&fiducial_marker_yaw)) {
+	if (!_fiducial_marker_yaw_report_sub.update(&fiducial_marker_yaw)
+	    || !isVisionDataValid(fiducial_marker_yaw)) {
 		return;
 	}
 
-	if (!isVisionDataValid(fiducial_marker_yaw)) {
-		return;
-	}
-
-	if (processObsVision(fiducial_marker_yaw, obs_fiducial_marker)) {
-		vte_fusion_aid_mask.flags.fuse_vision = true;
+	if (processObsVision(fiducial_marker_yaw, vision_obs)) {
+		fusion_mask.flags.fuse_vision = true;
 	}
 }
 
-bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw)
+bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw) const
 {
-	if (!isMeasValid(fiducial_marker_yaw.timestamp)) {
+	if (!isMeasRecent(fiducial_marker_yaw.timestamp)) {
 		PX4_DEBUG("Vision yaw is outdated!");
 		return false;
 	}
@@ -213,33 +208,31 @@ bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiduc
 	return true;
 }
 
-bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs)
+bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs) const
 {
-	float yaw_unc;
+	const float base_variance = _ev_angle_noise * _ev_angle_noise;
+	float yaw_unc = base_variance;
 
 	if (_ev_noise_md) {
-		yaw_unc = _range_sensor.valid ? (_ev_angle_noise * _ev_angle_noise * fmaxf(_range_sensor.dist_bottom,
-						 1.f)) : (_ev_angle_noise * _ev_angle_noise * 10);
+		const float range = _range_sensor.valid ? fmaxf(_range_sensor.dist_bottom, 1.f) : kDefaultVisionYawDistance;
+		yaw_unc = base_variance * range;
 
 	} else {
-		yaw_unc = fmaxf(fiducial_marker_yaw.yaw_var_ned, _ev_angle_noise * _ev_angle_noise);
+		yaw_unc = fmaxf(fiducial_marker_yaw.yaw_var_ned, base_variance);
 	}
 
 	obs.timestamp = fiducial_marker_yaw.timestamp;
 	obs.updated = true;
-
 	obs.meas = wrap_pi(fiducial_marker_yaw.yaw_ned);
 	obs.meas_unc = yaw_unc;
 	obs.meas_h_theta(State::yaw) = 1;
-
-	obs.updated = true;
 	obs.type = ObsType::Fiducial_marker;
 
 	return true;
 }
 
-void VTEOrientation::handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &vte_fusion_aid_mask,
-				   TargetObs &obs_uwb)
+void VTEOrientation::handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
+				   TargetObs &uwb_obs)
 {
 	sensor_uwb_s uwb_report;
 
@@ -247,37 +240,32 @@ void VTEOrientation::handleUwbData(const matrix::Quaternionf &q_att, ObsValidMas
 		return;
 	}
 
-	if (!_sensor_uwb_sub.update(&uwb_report)) {
+	if (!_sensor_uwb_sub.update(&uwb_report) || !isUwbDataValid(uwb_report)) {
 		return;
 	}
 
-	if (!isUwbDataValid(uwb_report)) {
-		return;
-	}
-
-	if (processObsUwb(q_att, uwb_report, obs_uwb)) {
-		vte_fusion_aid_mask.flags.fuse_uwb = true;
+	if (processObsUwb(q_att, uwb_report, uwb_obs)) {
+		fusion_mask.flags.fuse_uwb = true;
 	}
 }
 
 // TODO: check
-bool VTEOrientation::isUwbDataValid(const sensor_uwb_s &uwb_report)
+bool VTEOrientation::isUwbDataValid(const sensor_uwb_s &uwb_report) const
 {
-	if (!isMeasValid(uwb_report.timestamp)) {
+	if (!isMeasRecent(uwb_report.timestamp)) {
 		return false;
 	}
 
-	if (!PX4_ISFINITE(uwb_report.distance) ||
-	    fabsf(uwb_report.aoa_azimuth_dev) > max_uwb_aoa_angle_degree ||
-	    fabsf(uwb_report.aoa_elevation_dev) > max_uwb_aoa_angle_degree ||
-	    fabsf(uwb_report.aoa_azimuth_resp) > max_uwb_aoa_angle_degree) {
-		return false;
-	}
+	const bool finite_range = PX4_ISFINITE(uwb_report.distance);
+	const bool angles_within_bounds = fabsf(uwb_report.aoa_azimuth_dev) <= max_uwb_aoa_angle_degree
+					  && fabsf(uwb_report.aoa_elevation_dev) <= max_uwb_aoa_angle_degree
+					  && fabsf(uwb_report.aoa_azimuth_resp) <= max_uwb_aoa_angle_degree;
 
-	return true;
+	return finite_range && angles_within_bounds;
 }
 
-bool VTEOrientation::processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs)
+bool VTEOrientation::processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report,
+				   TargetObs &obs) const
 {
 	matrix::Vector3f rel_pos_ned{};
 
@@ -301,28 +289,27 @@ bool VTEOrientation::processObsUwb(const matrix::Quaternionf &q_att, const senso
 
 	obs.timestamp = uwb_report.timestamp;
 	obs.meas = wrap_pi(bearing_target_to_drone - aoa_resp_rad);
-	obs.meas_unc = fmaxf(math::sq(math::radians(3.f)), _uwb_angle_noise_min);
+	obs.meas_unc = fmaxf(kDefaultUwbAngleNoise, _uwb_angle_noise_min);
 	obs.meas_h_theta(State::yaw) = 1;
-	obs.meas_h_theta(State::yaw_rate) = 0;
 	obs.updated = true;
 	obs.type = ObsType::Uwb;
 
 	return true;
 }
 
-bool VTEOrientation::fuseNewSensorData(ObsValidMaskU &vte_fusion_aid_mask,
-				       const TargetObs observations[ObsType::Type_count])
+bool VTEOrientation::fuseActiveMeasurements(ObsValidMaskU &fusion_mask,
+		const TargetObs observations[kObsTypeCount])
 {
 	bool meas_fused = false;
 
 	// Fuse vision position
-	if (vte_fusion_aid_mask.flags.fuse_vision) {
-		meas_fused |= fuseMeas(observations[ObsType::Fiducial_marker]);
+	if (fusion_mask.flags.fuse_vision) {
+		meas_fused |= fuseMeas(observations[obsIndex(ObsType::Fiducial_marker)]);
 	}
 
 	// Fuse uwb
-	if (vte_fusion_aid_mask.flags.fuse_uwb) {
-		meas_fused |= fuseMeas(observations[ObsType::Uwb]);
+	if (fusion_mask.flags.fuse_uwb) {
+		meas_fused |= fuseMeas(observations[obsIndex(ObsType::Uwb)]);
 	}
 
 	return meas_fused;
@@ -330,9 +317,6 @@ bool VTEOrientation::fuseNewSensorData(ObsValidMaskU &vte_fusion_aid_mask,
 
 bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 {
-	// update step for orientation
-	bool meas_fused = false;
-
 	estimator_aid_source1d_s &target_innov = _aid_src1d_buffer;
 	target_innov = {};
 
@@ -340,30 +324,24 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 	target_innov.timestamp_sample = target_obs.timestamp;
 	target_innov.timestamp = hrt_absolute_time();
 
-	// Compute the measurement's time delay (difference between state and measurement time on validity)
 	const int64_t dt_sync_us = signedTimeDiffUs(_last_predict, target_obs.timestamp);
+	const bool measurement_stale = (dt_sync_us > static_cast<int64_t>(kMeasRecentTimeoutUs)) || (dt_sync_us < 0);
 
-	if (dt_sync_us > static_cast<int64_t>(kMeasValidTimeoutUs) || dt_sync_us < 0) {
+	if (measurement_stale || !target_obs.updated) {
+		if (measurement_stale) {
+			PX4_INFO("Obs type: %d too old or in the future. Time sync: %.2f [ms] > timeout: %.2f [ms]",
+				 static_cast<int>(target_obs.type), static_cast<double>(dt_sync_us) / 1000.,
+				 static_cast<double>(kMeasRecentTimeoutUs) / 1000.);
 
-		PX4_INFO("Obs type: %d too old or in the future. Time sync: %.2f [ms] > timeout: %.2f [ms]",
-			 static_cast<int>(target_obs.type), static_cast<double>(dt_sync_us) / 1000.,
-			 static_cast<double>(kMeasValidTimeoutUs) / 1000.);
+		} else {
+			PX4_DEBUG("Obs i = %d: non-valid", static_cast<int>(target_obs.type));
+		}
 
-		// No measurement update, set to false
 		target_innov.fused = false;
 		_vte_aid_ev_yaw_pub.publish(target_innov);
 		return false;
 	}
 
-	if (!target_obs.updated) {
-
-		PX4_DEBUG("Obs i = %d: non-valid", static_cast<int>(target_obs.type));
-		target_innov.fused = false;
-		_vte_aid_ev_yaw_pub.publish(target_innov);
-		return false;
-	}
-
-	// Convert time sync to seconds
 	const float dt_sync_s = static_cast<float>(dt_sync_us) / SEC2USEC_F;
 
 	_target_est_yaw.syncState(dt_sync_s);
@@ -371,17 +349,13 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 	target_innov.innovation_variance = _target_est_yaw.computeInnovCov(target_obs.meas_unc);
 	target_innov.innovation = _target_est_yaw.computeInnov(target_obs.meas);
 
-	// Set the Normalized Innovation Squared (NIS) check threshold. Used to reject outlier measurements
 	_target_est_yaw.set_nis_threshold(_nis_threshold);
-	meas_fused = _target_est_yaw.update();
+	const bool meas_fused = _target_est_yaw.update();
 
-	// Fill the target innovation field
 	target_innov.innovation_rejected = !meas_fused;
 	target_innov.fused = meas_fused;
-
 	target_innov.observation = target_obs.meas;
 	target_innov.observation_variance = target_obs.meas_unc;
-
 	target_innov.test_ratio = _target_est_yaw.get_test_ratio();
 
 	_vte_aid_ev_yaw_pub.publish(target_innov);
