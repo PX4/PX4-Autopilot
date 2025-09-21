@@ -204,7 +204,6 @@ bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiduc
 		return false;
 	}
 
-	// TODO: extend checks
 	return true;
 }
 
@@ -385,10 +384,6 @@ void VTEOrientation::checkMeasurementInputs()
 	if (_range_sensor.valid) {
 		_range_sensor.valid = isMeasUpdated(_range_sensor.timestamp);
 	}
-
-	if (_local_orientation.valid && !isMeasUpdated(_local_orientation.last_update)) {
-		_local_orientation.valid = false;
-	}
 }
 
 void VTEOrientation::updateParams()
@@ -434,13 +429,6 @@ void VTEOrientation::set_range_sensor(const float dist, const bool valid, hrt_ab
 	_range_sensor.valid = valid && isMeasUpdated(timestamp) && (PX4_ISFINITE(dist) && dist > 0.f);
 	_range_sensor.dist_bottom = dist;
 	_range_sensor.timestamp = timestamp;
-}
-
-void VTEOrientation::set_local_orientation(const float yaw, const bool valid, const hrt_abstime timestamp)
-{
-	_local_orientation.valid = valid && isMeasUpdated(timestamp);
-	_local_orientation.yaw = wrap_pi(yaw);
-	_local_orientation.last_update = timestamp;
 }
 
 } // namespace vision_target_estimator

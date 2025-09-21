@@ -89,7 +89,6 @@ public:
 	void resetFilter();
 
 	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
-	void set_local_orientation(const float yaw, const bool valid, const hrt_abstime timestamp);
 	void set_vte_timeout(const uint32_t tout) {_vte_TIMEOUT_US = tout;};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
@@ -168,14 +167,6 @@ private:
 
 	uORB::Subscription _fiducial_marker_yaw_report_sub{ORB_ID(fiducial_marker_yaw_report)};
 	uORB::Subscription _sensor_uwb_sub{ORB_ID(sensor_uwb)};
-
-	struct LocalOrientation {
-		bool valid = false;
-		float yaw = 0.f;
-		hrt_abstime last_update = 0;
-	};
-
-	LocalOrientation _local_orientation{};
 
 	FloatStamped _range_sensor{};
 
