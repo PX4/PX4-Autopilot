@@ -321,13 +321,13 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 	target_innov.timestamp = hrt_absolute_time();
 
 	const int64_t dt_sync_us = signedTimeDiffUs(_last_predict, target_obs.timestamp);
-	const bool measurement_stale = (dt_sync_us > static_cast<int64_t>(kMeasRecentTimeoutUs)) || (dt_sync_us < 0);
+	const bool measurement_stale = (dt_sync_us > static_cast<int64_t>(_meas_recent_timeout_us)) || (dt_sync_us < 0);
 
 	if (measurement_stale || !target_obs.updated) {
 		if (measurement_stale) {
 			PX4_INFO("Obs type: %d too old or in the future. Time sync: %.2f [ms] > timeout: %.2f [ms]",
 				 static_cast<int>(target_obs.type), static_cast<double>(dt_sync_us) / 1000.,
-				 static_cast<double>(kMeasRecentTimeoutUs) / 1000.);
+				 static_cast<double>(_meas_recent_timeout_us) / 1000.);
 
 		} else {
 			PX4_DEBUG("Obs i = %d: non-valid", static_cast<int>(target_obs.type));
@@ -368,7 +368,7 @@ void VTEOrientation::publishTarget()
 	matrix::Vector<float, State::size> state_var = _target_est_yaw.get_state_covariance();
 
 	vision_target_orientation.timestamp = _last_predict;
-	vision_target_orientation.orientation_valid = !hasTimedOut(_last_update, kTargetValidTimeoutUs);
+	vision_target_orientation.orientation_valid = !hasTimedOut(_last_update, _target_valid_timeout_us);
 
 	vision_target_orientation.theta = state(State::yaw);
 	vision_target_orientation.cov_theta = state_var(State::yaw);
