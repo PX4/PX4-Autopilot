@@ -266,12 +266,12 @@ void VisionTargetEst::updateParams()
 
 	const uint32_t new_vte_timeout_us = static_cast<uint32_t>(_param_vte_btout.get() * 1_s);
 
-	if (new_vte_timeout_us != _vte_TIMEOUT_US) {
+	if (new_vte_timeout_us != _vte_timeout_us) {
 
 		PX4_INFO("VTE timeout: %.1f [s] (previous: %.1f [s])", static_cast<double>(new_vte_timeout_us) / 1e6,
-			 static_cast<double>(_vte_TIMEOUT_US) / 1e6);
+			 static_cast<double>(_vte_timeout_us) / 1e6);
 
-		_vte_TIMEOUT_US = new_vte_timeout_us;
+		_vte_timeout_us = new_vte_timeout_us;
 
 		if (_vte_position_enabled) {
 			_vte_position.set_vte_timeout(new_vte_timeout_us);
@@ -279,6 +279,63 @@ void VisionTargetEst::updateParams()
 
 		if (_vte_orientation_enabled) {
 			_vte_orientation.set_vte_timeout(new_vte_timeout_us);
+		}
+	}
+
+	const uint32_t new_target_valid_timeout_us = static_cast<uint32_t>(_param_vte_tgt_tout.get() * 1_s);
+
+	if (new_target_valid_timeout_us != _target_valid_timeout_us) {
+
+		PX4_INFO("VTE target validity timeout: %.2f [s] (previous: %.2f [s])",
+			 static_cast<double>(new_target_valid_timeout_us) / 1e6,
+			 static_cast<double>(_target_valid_timeout_us) / 1e6);
+
+		_target_valid_timeout_us = new_target_valid_timeout_us;
+
+		if (_vte_position_enabled) {
+			_vte_position.set_target_valid_timeout(new_target_valid_timeout_us);
+		}
+
+		if (_vte_orientation_enabled) {
+			_vte_orientation.set_target_valid_timeout(new_target_valid_timeout_us);
+		}
+	}
+
+	const uint32_t new_meas_recent_timeout_us = static_cast<uint32_t>(_param_vte_mrec_tout.get() * 1_s);
+
+	if (new_meas_recent_timeout_us != _meas_recent_timeout_us) {
+
+		PX4_INFO("VTE measurement recent timeout: %.2f [s] (previous: %.2f [s])",
+			 static_cast<double>(new_meas_recent_timeout_us) / 1e6,
+			 static_cast<double>(_meas_recent_timeout_us) / 1e6);
+
+		_meas_recent_timeout_us = new_meas_recent_timeout_us;
+
+		if (_vte_position_enabled) {
+			_vte_position.set_meas_recent_timeout(new_meas_recent_timeout_us);
+		}
+
+		if (_vte_orientation_enabled) {
+			_vte_orientation.set_meas_recent_timeout(new_meas_recent_timeout_us);
+		}
+	}
+
+	const uint32_t new_meas_updated_timeout_us = static_cast<uint32_t>(_param_vte_mupd_tout.get() * 1_s);
+
+	if (new_meas_updated_timeout_us != _meas_updated_timeout_us) {
+
+		PX4_INFO("VTE measurement updated timeout: %.3f [s] (previous: %.3f [s])",
+			 static_cast<double>(new_meas_updated_timeout_us) / 1e6,
+			 static_cast<double>(_meas_updated_timeout_us) / 1e6);
+
+		_meas_updated_timeout_us = new_meas_updated_timeout_us;
+
+		if (_vte_position_enabled) {
+			_vte_position.set_meas_updated_timeout(new_meas_updated_timeout_us);
+		}
+
+		if (_vte_orientation_enabled) {
+			_vte_orientation.set_meas_updated_timeout(new_meas_updated_timeout_us);
 		}
 	}
 
@@ -718,11 +775,6 @@ bool VisionTargetEst::pollLocalPose(LocalPose &local_pose)
 	vehicle_local_position_s vehicle_local_position;
 
 	if (!_vehicle_local_position_sub.update(&vehicle_local_position)) {
-		return false;
-	}
-
-	if (!isMeasUpdated(vehicle_local_position.timestamp)) {
-		PX4_DEBUG("Local position too old.");
 		return false;
 	}
 

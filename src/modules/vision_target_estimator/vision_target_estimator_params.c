@@ -137,6 +137,51 @@ PARAM_DEFINE_INT32(VTE_TASK_MASK, 1);
 PARAM_DEFINE_FLOAT(VTE_BTOUT, 3.0f);
 
 /**
+ * Target validity timeout
+ *
+ * Maximum time without any fused measurements before the published relative pose/yaw is flagged invalid.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 50
+ * @decimal 2
+ * @increment 0.25
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_TGT_TOUT, 2.0f);
+
+/**
+ * Measurement recent timeout
+ *
+ * Time window for considering a raw measurement as recent and eligible for fusion.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 10
+ * @decimal 2
+ * @increment 0.05
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_M_REC_TOUT, 1.0f);
+
+/**
+ * Measurement updated timeout
+ *
+ * Maximum allowed age of a retained measurement before it is discarded from the estimator's cache.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 5
+ * @decimal 3
+ * @increment 0.01
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_M_UPD_TOUT, 0.1f);
+
+/**
  * Drone acceleration uncertainty
  *
  * Variance of drone's acceleration used for target position prediction.

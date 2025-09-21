@@ -195,7 +195,10 @@ private:
 	uint64_t _vte_position_stop_time{0};
 	uint64_t _vte_orientation_stop_time{0};
 
-	uint32_t _vte_TIMEOUT_US{3_s};
+	uint32_t _vte_timeout_us{3_s};
+	uint32_t _target_valid_timeout_us{2_s};
+	uint32_t _meas_recent_timeout_us{1_s};
+	uint32_t _meas_updated_timeout_us{100_ms};
 	SensorFusionMaskU _vte_aid_mask{};
 	uint16_t adjustAidMask(const int input_mask);
 	void printAidMask();
@@ -229,6 +232,9 @@ private:
 		(ParamInt<px4::params::VTE_POS_EN>) _param_vte_pos_en,
 		(ParamInt<px4::params::VTE_TASK_MASK>) _param_vte_task_mask,
 		(ParamFloat<px4::params::VTE_BTOUT>) _param_vte_btout,
+		(ParamFloat<px4::params::VTE_TGT_TOUT>) _param_vte_tgt_tout,
+		(ParamFloat<px4::params::VTE_M_REC_TOUT>) _param_vte_mrec_tout,
+		(ParamFloat<px4::params::VTE_M_UPD_TOUT>) _param_vte_mupd_tout,
 		(ParamInt<px4::params::VTE_AID_MASK>) _param_vte_aid_mask
 	)
 };
