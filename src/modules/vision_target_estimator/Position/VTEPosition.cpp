@@ -57,9 +57,9 @@ constexpr double kLatAbsMaxDeg =  90.0;
 constexpr double kLonAbsMaxDeg = 180.0;
 constexpr float kAltMinM = -350.f;
 constexpr float kAltMaxM = 10000.f;
-constexpr float kMinAbsMpcZVAutoDn = 1e-3f;
-constexpr float kDefaultVisionUncDistance = 10.f;
-
+constexpr float kMinAbsMpcZVAutoDnMps = 1e-3f;
+constexpr float kDefaultVisionUncDistanceM = 10.f;
+constexpr float kMinTimesSyncNoInterpolationS = 0.1f;
 
 VTEPosition::VTEPosition() :
 	ModuleParams(nullptr)
@@ -759,7 +759,7 @@ bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &report, T
 	if (_ev_noise_md) {
 		// Uncertainty proportional to the vertical distance
 		const float meas_unc = _range_sensor.valid ? (_min_ev_pos_var * fmaxf(_range_sensor.dist_bottom, 1.f)) :
-				       (_min_ev_pos_var * kDefaultVisionUncDistance);
+				       (_min_ev_pos_var * kDefaultVisionUncDistanceM);
 		cov_rotated = diag(Vector3f(meas_unc, meas_unc, meas_unc));
 
 	} else {
@@ -901,7 +901,7 @@ bool VTEPosition::processObsGNSSVelUav(TargetObs &obs) const
 	obs.meas_h_xyz(vtest::Axis::y, vtest::State::vel_uav) = 1;
 	obs.meas_h_xyz(vtest::Axis::z, vtest::State::vel_uav) = 1;
 
-	const float unc = fmaxf(_uav_gps_vel.uncertainty * _uav_gps_vel.uncertainty, _min_gps_vel_var);
+	const float unc = fmaxf(math::sq(_uav_gps_vel.uncertainty), _min_gps_vel_var);
 	obs.meas_unc_xyz(vtest::Axis::x) = unc;
 	obs.meas_unc_xyz(vtest::Axis::y) = unc;
 	obs.meas_unc_xyz(vtest::Axis::z) = unc;
@@ -928,7 +928,7 @@ bool VTEPosition::ProcessObsGNSSVelTarget(const target_gnss_s &target_gnss, Targ
 	obs.meas_xyz(vtest::Axis::y) = target_gnss.vel_e_m_s;
 	obs.meas_xyz(vtest::Axis::z) = target_gnss.vel_d_m_s;
 
-	const float unc = fmaxf(target_gnss.s_variance_m_s * target_gnss.s_variance_m_s, _min_gps_vel_var);
+	const float unc = fmaxf(math::sq(target_gnss.s_variance_m_s), _min_gps_vel_var);
 
 	obs.meas_unc_xyz(vtest::Axis::x) = unc;
 	obs.meas_unc_xyz(vtest::Axis::y) = unc;
@@ -974,8 +974,8 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 		gps_relative_pos += _gps_pos_offset_ned.xyz;
 	}
 
-	const float gps_unc_horizontal = fmaxf(_uav_gps_position.eph * _uav_gps_position.eph, _min_gps_pos_var);
-	const float gps_unc_vertical = fmaxf(_uav_gps_position.epv * _uav_gps_position.epv, _min_gps_pos_var);
+	const float gps_unc_horizontal = fmaxf(math::sq(_uav_gps_position.eph), _min_gps_pos_var);
+	const float gps_unc_vertical = fmaxf(math::sq(_uav_gps_position.epv), _min_gps_pos_var);
 
 	// GPS already in NED, no rotation required.
 	// Obs: [pos_rel + bias]
@@ -1017,8 +1017,9 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 /*Target GNSS observation: [rx + bx, ry + by, rz + bz]*/
 bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs)
 {
-	// TODO: the target's position can have latency, interpolate the position of the UAV based on the time diff.
-	const float dt_sync_us = fabsf((float)(_uav_gps_position.timestamp - target_gnss.timestamp));
+	const int64_t time_diff_us = static_cast<int64_t>(target_gnss.timestamp)
+				     - static_cast<int64_t>(_uav_gps_position.timestamp);
+	const float dt_sync_us = fabsf(static_cast<float>(time_diff_us));
 
 	if (dt_sync_us > kMeasRecentTimeoutUs) {
 		PX4_INFO("Time diff between UAV GNSS and target GNNS too high: %.2f [ms] > timeout: %.2f [ms]",
@@ -1026,14 +1027,39 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 		return false;
 	}
 
+	double uav_lat_deg = _uav_gps_position.lat_deg;
+	double uav_lon_deg = _uav_gps_position.lon_deg;
+	float uav_alt_m = _uav_gps_position.alt_m;
+
+	const float dt_sync_s = static_cast<float>(time_diff_us) / SEC2USEC_F;
+	const float dt_sync_s_abs = fabsf(dt_sync_s);
+	bool uav_position_interpolated = false;
+
+	// Compensate UAV motion during the latency interval
+	if (dt_sync_s_abs > kMinTimesSyncNoInterpolationS &&
+	    _uav_gps_vel.valid
+	    && isTimeDifferenceWithin(_uav_gps_vel.timestamp, _uav_gps_position.timestamp, kMeasUpdatedTimeoutUs)) {
+		const matrix::Vector3f uav_vel_ned = _uav_gps_vel.xyz;
+		const float delta_n = uav_vel_ned(vtest::Axis::x) * dt_sync_s;
+		const float delta_e = uav_vel_ned(vtest::Axis::y) * dt_sync_s;
+
+		double lat_res = uav_lat_deg;
+		double lon_res = uav_lon_deg;
+		add_vector_to_global_position(uav_lat_deg, uav_lon_deg, delta_n, delta_e, &lat_res, &lon_res);
+		uav_lat_deg = lat_res;
+		uav_lon_deg = lon_res;
+		uav_alt_m = _uav_gps_position.alt_m - uav_vel_ned(vtest::Axis::z) * dt_sync_s;
+		uav_position_interpolated = true;
+	}
+
 	// Obtain GPS relative measurements in NED as target_global - uav_gps_global followed by global2local transformation
 	Vector3f gps_relative_pos;
-	get_vector_to_next_waypoint(_uav_gps_position.lat_deg, _uav_gps_position.lon_deg,
+	get_vector_to_next_waypoint(uav_lat_deg, uav_lon_deg,
 				    target_gnss.latitude_deg, target_gnss.longitude_deg,
 				    &gps_relative_pos(0), &gps_relative_pos(1));
 
 	// Down direction (if the drone is above the target, the relative position is positive)
-	gps_relative_pos(2) = _uav_gps_position.alt_m - target_gnss.altitude_msl_m;
+	gps_relative_pos(2) = uav_alt_m - target_gnss.altitude_msl_m;
 
 	// Offset gps relative position to the center of mass:
 	if (_gps_pos_is_offset) {
@@ -1047,10 +1073,14 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	}
 
 	// Var(aX - bY) = a^2 Var(X) + b^2Var(Y) - 2ab Cov(X,Y)
-	const float gps_unc_horizontal = fmaxf(_uav_gps_position.eph * _uav_gps_position.eph,
-					       _min_gps_pos_var) + fmaxf(target_gnss.eph * target_gnss.eph, _min_gps_pos_var);
-	const float gps_unc_vertical = fmaxf(_uav_gps_position.epv * _uav_gps_position.epv,
-					     _min_gps_pos_var) + fmaxf(target_gnss.epv * target_gnss.epv, _min_gps_pos_var);
+	const float propagation_unc = uav_position_interpolated
+				      ? math::sq(_uav_gps_vel.uncertainty * dt_sync_s_abs) : 0.f;
+	const float gps_unc_horizontal = fmaxf(math::sq(_uav_gps_position.eph), _min_gps_pos_var)
+					 + fmaxf(math::sq(target_gnss.eph), _min_gps_pos_var)
+					 + propagation_unc;
+	const float gps_unc_vertical = fmaxf(math::sq(_uav_gps_position.epv), _min_gps_pos_var)
+				       + fmaxf(math::sq(target_gnss.epv), _min_gps_pos_var)
+				       + propagation_unc;
 
 	// GPS already in NED, no rotation required.
 	// Obs: [pos_rel + bias]
@@ -1324,8 +1354,8 @@ void VTEPosition::publishTarget()
 		// If the target is moving, move towards its expected location
 		float mpc_z_v_auto_dn = _mpc_z_v_auto_dn;
 
-		if (fabsf(mpc_z_v_auto_dn) < kMinAbsMpcZVAutoDn) {
-			mpc_z_v_auto_dn = (mpc_z_v_auto_dn >= 0.f) ? kMinAbsMpcZVAutoDn : -kMinAbsMpcZVAutoDn;
+		if (fabsf(mpc_z_v_auto_dn) < kMinAbsMpcZVAutoDnMps) {
+			mpc_z_v_auto_dn = (mpc_z_v_auto_dn >= 0.f) ? kMinAbsMpcZVAutoDnMps : -kMinAbsMpcZVAutoDnMps;
 		}
 
 		float intersection_time_s = fabsf(_target_pose.z_rel / mpc_z_v_auto_dn);
@@ -1396,6 +1426,10 @@ void VTEPosition::checkMeasurementInputs()
 
 	if (_gps_pos_offset_ned.valid) {
 		_gps_pos_offset_ned.valid = isMeasUpdated(_gps_pos_offset_ned.timestamp);
+	}
+
+	if (_uav_gps_vel.valid) {
+		_uav_gps_vel.valid = isMeasUpdated(_uav_gps_vel.timestamp);
 	}
 }
 
