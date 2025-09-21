@@ -52,29 +52,49 @@ endif()
 
 # Set up paths and default variables
 set(VTEST_DERIVATION_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Position/vtest_derivation)
+set(VTEST_PREGENERATED_STATIC_DIR ${VTEST_DERIVATION_SRC_DIR}/generated)
+set(VTEST_PREGENERATED_MOVING_DIR ${VTEST_DERIVATION_SRC_DIR}/generated_moving)
 
-set(VTEST_GENERATED_FILE_LIST
-	${VTEST_DERIVATION_SRC_DIR}/generated/state.h
-	${VTEST_DERIVATION_SRC_DIR}/generated/predictCov.h
-	${VTEST_DERIVATION_SRC_DIR}/generated/computeInnovCov.h
-	${VTEST_DERIVATION_SRC_DIR}/generated/predictState.h
-	${VTEST_DERIVATION_SRC_DIR}/generated/syncState.h
+set(VTEST_PREGENERATED_STATIC_FILES
+	${VTEST_PREGENERATED_STATIC_DIR}/state.h
+	${VTEST_PREGENERATED_STATIC_DIR}/predictCov.h
+	${VTEST_PREGENERATED_STATIC_DIR}/computeInnovCov.h
+	${VTEST_PREGENERATED_STATIC_DIR}/predictState.h
+	${VTEST_PREGENERATED_STATIC_DIR}/syncState.h
+)
+
+set(VTEST_PREGENERATED_MOVING_FILES
+	${VTEST_PREGENERATED_MOVING_DIR}/state.h
+	${VTEST_PREGENERATED_MOVING_DIR}/predictCov.h
+	${VTEST_PREGENERATED_MOVING_DIR}/computeInnovCov.h
+	${VTEST_PREGENERATED_MOVING_DIR}/predictState.h
+	${VTEST_PREGENERATED_MOVING_DIR}/syncState.h
+)
+
+set(VTEST_DERIVATION_DST_DIR ${CMAKE_CURRENT_BINARY_DIR}/vtest_derivation)
+file(MAKE_DIRECTORY ${VTEST_DERIVATION_DST_DIR})
+
+set(VTEST_GENERATED_FILE_LIST_DST
+	${VTEST_DERIVATION_DST_DIR}/generated/state.h
+	${VTEST_DERIVATION_DST_DIR}/generated/predictCov.h
+	${VTEST_DERIVATION_DST_DIR}/generated/computeInnovCov.h
+	${VTEST_DERIVATION_DST_DIR}/generated/predictState.h
+	${VTEST_DERIVATION_DST_DIR}/generated/syncState.h
 )
 
 # Use one file as the dependency anchor. The custom_command OUTPUT will ensure all are generated.
-set(VTEST_GENERATED_FILES ${VTEST_DERIVATION_SRC_DIR}/generated/state.h)
-set(VTEST_GENERATED_DERIVATION_INCLUDE_PATH ${VTEST_DERIVATION_SRC_DIR}/..)
+set(VTEST_GENERATED_FILES ${VTEST_DERIVATION_DST_DIR}/generated/state.h)
+set(VTEST_GENERATED_DERIVATION_INCLUDE_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 if(VTEST_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 
 	set(VTEST_SYMFORCE_TARGET_DEPS)
 
-	# Regenerate default committed files in the source tree
-	# This can be disabled to prevent accidental changes to committed files.
+	# Regenerate committed defaults when requested.
 	if(VTEST_UPDATE_COMMITTED_DERIVATION)
 		add_custom_command(
 			OUTPUT
-				${VTEST_GENERATED_FILE_LIST}
+				${VTEST_PREGENERATED_STATIC_FILES}
 			COMMAND
 				${PYTHON_EXECUTABLE} ${VTEST_DERIVATION_SRC_DIR}/derivation.py
 			DEPENDS
@@ -85,24 +105,35 @@ if(VTEST_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 			COMMENT "VTEST Symforce code generation (default, committed)"
 			USES_TERMINAL
 		)
-		list(APPEND VTEST_SYMFORCE_TARGET_DEPS ${VTEST_GENERATED_FILE_LIST})
+		list(APPEND VTEST_SYMFORCE_TARGET_DEPS ${VTEST_PREGENERATED_STATIC_FILES})
+
+		if(CONFIG_VTEST_MOVING)
+			set(VTEST_DERIVATION_MOVING_TMP_DIR ${CMAKE_CURRENT_BINARY_DIR}/vtest_derivation_committed_moving)
+			file(MAKE_DIRECTORY ${VTEST_DERIVATION_MOVING_TMP_DIR})
+
+			add_custom_command(
+				OUTPUT
+					${VTEST_PREGENERATED_MOVING_FILES}
+				COMMAND
+					${CMAKE_COMMAND} -E remove_directory ${VTEST_DERIVATION_MOVING_TMP_DIR}/generated
+				COMMAND
+					${PYTHON_EXECUTABLE} ${VTEST_DERIVATION_SRC_DIR}/derivation.py --moving
+				COMMAND
+					${CMAKE_COMMAND} -E remove_directory ${VTEST_PREGENERATED_MOVING_DIR}
+				COMMAND
+					${CMAKE_COMMAND} -E make_directory ${VTEST_PREGENERATED_MOVING_DIR}
+				COMMAND
+					${CMAKE_COMMAND} -E copy_directory ${VTEST_DERIVATION_MOVING_TMP_DIR}/generated ${VTEST_PREGENERATED_MOVING_DIR}
+				DEPENDS
+					${VTEST_DERIVATION_SRC_DIR}/derivation.py
+					${VTEST_DERIVATION_SRC_DIR}/utils/derivation_utils.py
+				WORKING_DIRECTORY ${VTEST_DERIVATION_MOVING_TMP_DIR}
+				COMMENT "VTEST Symforce code generation (moving, committed)"
+				USES_TERMINAL
+			)
+			list(APPEND VTEST_SYMFORCE_TARGET_DEPS ${VTEST_PREGENERATED_MOVING_FILES})
+		endif()
 	endif()
-
-	# Generate files to the build directory for non-default configurations
-	set(VTEST_DERIVATION_DST_DIR ${CMAKE_CURRENT_BINARY_DIR}/vtest_derivation)
-	file(MAKE_DIRECTORY ${VTEST_DERIVATION_DST_DIR})
-
-	set(VTEST_GENERATED_FILE_LIST_DST
-		${VTEST_DERIVATION_DST_DIR}/generated/state.h
-		${VTEST_DERIVATION_DST_DIR}/generated/predictCov.h
-		${VTEST_DERIVATION_DST_DIR}/generated/computeInnovCov.h
-		${VTEST_DERIVATION_DST_DIR}/generated/predictState.h
-		${VTEST_DERIVATION_DST_DIR}/generated/syncState.h
-	)
-
-	# Overwrite variables to use build directory paths for the compile step
-	set(VTEST_GENERATED_FILES ${VTEST_DERIVATION_DST_DIR}/generated/state.h)
-	set(VTEST_GENERATED_DERIVATION_INCLUDE_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 	set(SYMFORCE_ARGS)
 	if(CONFIG_VTEST_MOVING)
@@ -127,6 +158,31 @@ if(VTEST_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 
 	add_custom_target(vtest_symforce_generate
 		DEPENDS ${VTEST_SYMFORCE_TARGET_DEPS}
+	)
+
+else()
+	if(CONFIG_VTEST_MOVING)
+		set(VTEST_PREGENERATED_SOURCE_DIR ${VTEST_PREGENERATED_MOVING_DIR})
+		set(VTEST_PREGENERATED_SOURCE_FILES ${VTEST_PREGENERATED_MOVING_FILES})
+		set(VTEST_PREGENERATED_CONFIG moving)
+	else()
+		set(VTEST_PREGENERATED_SOURCE_DIR ${VTEST_PREGENERATED_STATIC_DIR})
+		set(VTEST_PREGENERATED_SOURCE_FILES ${VTEST_PREGENERATED_STATIC_FILES})
+		set(VTEST_PREGENERATED_CONFIG static)
+	endif()
+
+	add_custom_command(
+		OUTPUT
+			${VTEST_GENERATED_FILE_LIST_DST}
+		COMMAND
+			${CMAKE_COMMAND} -E remove_directory ${VTEST_DERIVATION_DST_DIR}/generated
+		COMMAND
+			${CMAKE_COMMAND} -E make_directory ${VTEST_DERIVATION_DST_DIR}/generated
+		COMMAND
+			${CMAKE_COMMAND} -E copy_directory ${VTEST_PREGENERATED_SOURCE_DIR} ${VTEST_DERIVATION_DST_DIR}/generated
+		DEPENDS
+			${VTEST_PREGENERATED_SOURCE_FILES}
+		COMMENT "VTEST using pre-generated symforce outputs (${VTEST_PREGENERATED_CONFIG})"
 	)
 endif()
 
