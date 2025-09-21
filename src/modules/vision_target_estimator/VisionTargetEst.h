@@ -199,6 +199,10 @@ private:
 	uint32_t _target_valid_timeout_us{2_s};
 	uint32_t _meas_recent_timeout_us{1_s};
 	uint32_t _meas_updated_timeout_us{100_ms};
+	float _pos_update_rate_hz{50.f};
+	float _yaw_update_rate_hz{50.f};
+	hrt_abstime _pos_update_period_us{20_ms};
+	hrt_abstime _yaw_update_period_us{20_ms};
 	SensorFusionMaskU _vte_aid_mask{};
 	uint16_t adjustAidMask(const int input_mask);
 	void printAidMask();
@@ -235,6 +239,8 @@ private:
 		(ParamFloat<px4::params::VTE_TGT_TOUT>) _param_vte_tgt_tout,
 		(ParamFloat<px4::params::VTE_M_REC_TOUT>) _param_vte_mrec_tout,
 		(ParamFloat<px4::params::VTE_M_UPD_TOUT>) _param_vte_mupd_tout,
+		(ParamFloat<px4::params::VTE_POS_RATE>) _param_vte_pos_rate,
+		(ParamFloat<px4::params::VTE_YAW_RATE>) _param_vte_yaw_rate,
 		(ParamInt<px4::params::VTE_AID_MASK>) _param_vte_aid_mask
 	)
 };
