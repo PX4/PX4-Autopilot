@@ -90,10 +90,13 @@ public:
 	void resetFilter();
 
 	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
-	void set_vte_timeout(const uint32_t tout) {_vte_TIMEOUT_US = tout;};
+	void set_vte_timeout(const uint32_t tout) {_vte_timeout_us = tout;};
+	void set_target_valid_timeout(const uint32_t tout) {_target_valid_timeout_us = tout;};
+	void set_meas_recent_timeout(const uint32_t tout) {_meas_recent_timeout_us = tout;};
+	void set_meas_updated_timeout(const uint32_t tout) {_meas_updated_timeout_us = tout;};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
-	bool timedOut() const {return _estimator_initialized && hasTimedOut(_last_update, _vte_TIMEOUT_US);};
+	bool timedOut() const {return _estimator_initialized && hasTimedOut(_last_update, _vte_timeout_us);};
 	bool fusionEnabled() const {return _vte_aid_mask.value != 0;};
 
 protected:
@@ -148,6 +151,16 @@ private:
 	bool performUpdateStep(const matrix::Quaternionf &q_att);
 	void predictionStep();
 
+	inline bool isMeasRecent(hrt_abstime ts) const
+	{
+		return !hasTimedOut(ts, _meas_recent_timeout_us);
+	}
+
+	inline bool isMeasUpdated(hrt_abstime ts) const
+	{
+		return !hasTimedOut(ts, _meas_updated_timeout_us);
+	}
+
 	void processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
 				 TargetObs observations[kObsTypeCount]);
 	bool fuseActiveMeasurements(ObsValidMaskU &fusion_mask, const TargetObs observations[kObsTypeCount]);
@@ -184,7 +197,10 @@ private:
 	void checkMeasurementInputs();
 
 	/* parameters from vision_target_estimator_params.c*/
-	uint32_t _vte_TIMEOUT_US = 3_s;
+	uint32_t _vte_timeout_us{3_s};
+	uint32_t _target_valid_timeout_us{2_s};
+	uint32_t _meas_recent_timeout_us{1_s};
+	uint32_t _meas_updated_timeout_us{100_ms};
 	SensorFusionMaskU _vte_aid_mask{};
 	float _yaw_unc{1.f};
 	float _min_ev_angle_var{0.025f};

@@ -55,15 +55,6 @@ namespace vision_target_estimator
 
 using namespace time_literals;
 
-/* timeout after which the target is not valid if no measurements are seen*/
-static constexpr uint32_t kTargetValidTimeoutUs = 2_s;
-
-/* timeout after which the measurement is not valid*/
-static constexpr uint32_t kMeasRecentTimeoutUs = 1_s;
-
-/* timeout after which the measurement is not considered updated*/
-static constexpr uint32_t kMeasUpdatedTimeoutUs = 100_ms;
-
 /* Valid AoA measurement range between -60.00° and +60.00° for UWB*/
 static constexpr float max_uwb_aoa_angle_degree = 60.0f;
 
@@ -80,16 +71,6 @@ static inline bool hasTimedOut(const hrt_abstime ts, const uint32_t timeout_us)
 	}
 
 	return (now - ts) >= static_cast<hrt_abstime>(timeout_us);
-}
-
-static inline bool isMeasRecent(hrt_abstime ts)
-{
-	return !hasTimedOut(ts, kMeasRecentTimeoutUs);
-}
-
-static inline bool isMeasUpdated(hrt_abstime ts)
-{
-	return !hasTimedOut(ts, kMeasUpdatedTimeoutUs);
 }
 
 constexpr inline int64_t signedTimeDiffUs(const hrt_abstime newer, const hrt_abstime older)

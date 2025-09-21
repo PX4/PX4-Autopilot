@@ -100,10 +100,13 @@ public:
 	void set_local_position(const matrix::Vector3f &xyz, const bool valid, const hrt_abstime timestamp);
 	void set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset);
 	void set_vel_offset(const matrix::Vector3f &xyz);
-	void set_vte_timeout(const uint32_t tout) {_vte_TIMEOUT_US = tout;};
+	void set_vte_timeout(const uint32_t tout) {_vte_timeout_us = tout;};
+	void set_target_valid_timeout(const uint32_t tout) {_target_valid_timeout_us = tout;};
+	void set_meas_recent_timeout(const uint32_t tout) {_meas_recent_timeout_us = tout;};
+	void set_meas_updated_timeout(const uint32_t tout) {_meas_updated_timeout_us = tout;};
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
-	bool timedOut() const {return _estimator_initialized && hasTimedOut(_last_update, _vte_TIMEOUT_US);};
+	bool timedOut() const {return _estimator_initialized && hasTimedOut(_last_update, _vte_timeout_us);};
 	// TODO: Could be more strict and require a relative position meas (vision, GPS, irlock, uwb)
 	bool fusionEnabled() const {return _vte_aid_mask.value != 0;};
 
@@ -180,6 +183,16 @@ private:
 			   &state_init);
 	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned, const matrix::Quaternionf &q_att);
 	void predictionStep(const matrix::Vector3f &acc);
+
+	inline bool isMeasRecent(hrt_abstime ts) const
+	{
+		return !hasTimedOut(ts, _meas_recent_timeout_us);
+	}
+
+	inline bool isMeasUpdated(hrt_abstime ts) const
+	{
+		return !hasTimedOut(ts, _meas_updated_timeout_us);
+	}
 
 	inline bool hasNewNonGpsPositionSensorData(const ObsValidMaskU &fusion_mask) const
 	{
@@ -349,7 +362,10 @@ private:
 	/* parameters from vision_target_estimator_params.c*/
 	void checkMeasurementInputs();
 
-	uint32_t _vte_TIMEOUT_US = 3_s;
+	uint32_t _vte_timeout_us{3_s};
+	uint32_t _target_valid_timeout_us{2_s};
+	uint32_t _meas_recent_timeout_us{1_s};
+	uint32_t _meas_updated_timeout_us{100_ms};
 	SensorFusionMaskU _vte_aid_mask{};
 	float _target_acc_unc{1.f};
 	float _bias_unc{0.05f};

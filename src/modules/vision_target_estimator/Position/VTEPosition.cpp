@@ -888,7 +888,7 @@ bool VTEPosition::processObsGNSSVelUav(TargetObs &obs) const
 
 	if (_gps_pos_is_offset) {
 		if (!_velocity_offset_ned.valid
-		    || !isTimeDifferenceWithin(_velocity_offset_ned.timestamp, _uav_gps_vel.timestamp, kMeasUpdatedTimeoutUs)) {
+		    || !isTimeDifferenceWithin(_velocity_offset_ned.timestamp, _uav_gps_vel.timestamp, _meas_updated_timeout_us)) {
 			return false;
 		}
 
@@ -967,7 +967,7 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 	if (_gps_pos_is_offset) {
 
 		if (!_gps_pos_offset_ned.valid
-		    || !isTimeDifferenceWithin(_gps_pos_offset_ned.timestamp, _uav_gps_position.timestamp, kMeasUpdatedTimeoutUs)) {
+		    || !isTimeDifferenceWithin(_gps_pos_offset_ned.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
 			return false;
 		}
 
@@ -1021,9 +1021,9 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 				     - static_cast<int64_t>(_uav_gps_position.timestamp);
 	const float dt_sync_us = fabsf(static_cast<float>(time_diff_us));
 
-	if (dt_sync_us > kMeasRecentTimeoutUs) {
+	if (dt_sync_us > _meas_recent_timeout_us) {
 		PX4_INFO("Time diff between UAV GNSS and target GNNS too high: %.2f [ms] > timeout: %.2f [ms]",
-			 (double)(dt_sync_us / 1000), (double)(kMeasRecentTimeoutUs / 1000));
+			 (double)(dt_sync_us / 1000), (double)(_meas_recent_timeout_us / 1000));
 		return false;
 	}
 
@@ -1038,7 +1038,7 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	// Compensate UAV motion during the latency interval
 	if (dt_sync_s_abs > kMinTimesSyncNoInterpolationS &&
 	    _uav_gps_vel.valid
-	    && isTimeDifferenceWithin(_uav_gps_vel.timestamp, _uav_gps_position.timestamp, kMeasUpdatedTimeoutUs)) {
+	    && isTimeDifferenceWithin(_uav_gps_vel.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
 		const matrix::Vector3f uav_vel_ned = _uav_gps_vel.xyz;
 		const float delta_n = uav_vel_ned(vtest::Axis::x) * dt_sync_s;
 		const float delta_e = uav_vel_ned(vtest::Axis::y) * dt_sync_s;
@@ -1064,7 +1064,7 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	// Offset gps relative position to the center of mass:
 	if (_gps_pos_is_offset) {
 		if (!_gps_pos_offset_ned.valid
-		    || !isTimeDifferenceWithin(_gps_pos_offset_ned.timestamp, _uav_gps_position.timestamp, kMeasUpdatedTimeoutUs)) {
+		    || !isTimeDifferenceWithin(_gps_pos_offset_ned.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
 
 			return false;
 		}
@@ -1132,11 +1132,11 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 	const int64_t dt_sync_us = signedTimeDiffUs(_last_predict, target_obs.timestamp);
 
 	// Reject old measurements or measurements in the "future" due to bad time sync
-	if (dt_sync_us > static_cast<int64_t>(kMeasRecentTimeoutUs) || dt_sync_us < 0) {
+	if (dt_sync_us > static_cast<int64_t>(_meas_recent_timeout_us) || dt_sync_us < 0) {
 
 		PX4_DEBUG("Obs type: %d too old or in the future. Time sync: %.2f [ms] (timeout: %.2f [ms])",
 			  static_cast<int>(target_obs.type),
-			  static_cast<double>(dt_sync_us) / 1000., static_cast<double>(kMeasRecentTimeoutUs) / 1000.);
+			  static_cast<double>(dt_sync_us) / 1000., static_cast<double>(_meas_recent_timeout_us) / 1000.);
 
 		_target_innov.fused = false;
 		perf_end(_vte_update_perf);
@@ -1243,7 +1243,7 @@ void VTEPosition::publishTarget()
 	_target_pose.timestamp = _last_predict;
 	_vte_state.timestamp = _last_predict;
 
-	_target_pose.rel_pos_valid = !hasTimedOut(_last_update, kTargetValidTimeoutUs);
+	_target_pose.rel_pos_valid = !hasTimedOut(_last_update, _target_valid_timeout_us);
 
 #if defined(CONFIG_VTEST_MOVING)
 	_target_pose.is_static = false;
@@ -1340,7 +1340,7 @@ void VTEPosition::publishTarget()
 	// If the target is static, valid and vision obs was fused recently, use the relative to aid the EKF2 state estimation.
 	// Check performed in EKF2 to use target vel: if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid)
 	_target_pose.rel_vel_valid = _target_pose.is_static && _param_vte_ekf_aid.get() && _target_pose.rel_pos_valid &&
-				     (hrt_absolute_time() - _last_relative_meas_fused_time) < kMeasRecentTimeoutUs;
+				     (hrt_absolute_time() - _last_relative_meas_fused_time) < _meas_recent_timeout_us;
 
 	// Prec land does not check _target_pose.abs_pos_valid. Only send the target if abs pose valid.
 	if (_local_position.valid && _target_pose.rel_pos_valid) {
