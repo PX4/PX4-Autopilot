@@ -74,7 +74,6 @@
 #include <vtest_derivation/generated/state.h>
 #include "../common.h"
 
-using namespace time_literals;
 
 namespace vision_target_estimator
 {

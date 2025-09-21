@@ -67,10 +67,11 @@
 #include "KF_orientation.h"
 #include "../common.h"
 
-using namespace time_literals;
 
 namespace vision_target_estimator
 {
+
+using namespace time_literals;
 
 class VTEOrientation: public ModuleParams
 {
