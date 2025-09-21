@@ -111,7 +111,14 @@ You must already have installed ROS 2 following the instructions in: [ROS 2 User
 
 ::: warning
 This approach will use the existing ROS 2 versions of the Agent dependencies, such as `fastcdr` and `fastdds`.
-This considerably speeds up the build process but requires that the Agent dependency versions match the ROS 2 ones.
+This considerably speeds up the build process but requires that the Agent dependency versions match the ROS 2 ones:
+
+| ROS 2 version | Micro-XRCE-DDS-Agent version |
+|---------------|------------------------------|
+| Foxy          | v2.4.2                       |
+| Humble        | v2.4.2                       |
+| Jazzy         | v2.4.3                       |
+
 :::
 
 To build the agent within ROS:
@@ -124,14 +131,49 @@ To build the agent within ROS:
 
 1. Clone the source code for the eProsima [Micro-XRCE-DDS-Agent](https://github.com/eProsima/Micro-XRCE-DDS-Agent) to the `/src` directory (the `main` branch is cloned by default):
 
+   ::::tabs
+
+   ::: tab jazzy
+
    ```sh
    cd ~/px4_ros_uxrce_dds_ws/src
    git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
    ```
 
+   :::
+
+   ::: tab humble
+
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+   :::
+
+   ::: tab foxy
+
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+   :::
+
+   ::::
+
 1. Source the ROS 2 development environment, and compile the workspace using `colcon`:
 
    :::: tabs
+
+   ::: tab jazzy
+
+   ```sh
+   source /opt/ros/jazzy/setup.bash
+   colcon build
+   ```
+
+   :::
 
    ::: tab humble
 
@@ -160,6 +202,15 @@ To run the micro XRCE-DDS agent in the workspace:
 1. Source the `local_setup.bash` to make the executables available in the terminal (also `setup.bash` if using a new terminal).
 
    :::: tabs
+
+   ::: tab jazzy
+
+   ```sh
+   source /opt/ros/jazzy/setup.bash
+   source install/local_setup.bash
+   ```
+
+   :::
 
    ::: tab humble
 
