@@ -504,6 +504,7 @@ void VTEPosition::handleTargetGpsData(ObsValidMaskU &fusion_mask,
 #endif // CONFIG_VTEST_MOVING
 }
 
+#if defined(CONFIG_VTEST_MOVING)
 void VTEPosition::updateTargetGpsVelocity(const target_gnss_s &target_gnss)
 {
 	_target_gps_vel.timestamp = target_gnss.timestamp;
@@ -513,6 +514,7 @@ void VTEPosition::updateTargetGpsVelocity(const target_gnss_s &target_gnss)
 	_target_gps_vel.xyz(vtest::Axis::y) = target_gnss.vel_e_m_s;
 	_target_gps_vel.xyz(vtest::Axis::z) = target_gnss.vel_d_m_s;
 }
+#endif // CONFIG_VTEST_MOVING
 
 bool VTEPosition::isTargetGpsPositionValid(const target_gnss_s &target_gnss) const
 {
@@ -1096,7 +1098,7 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 	_target_innov.timestamp_sample = target_obs.timestamp;
 	_target_innov.timestamp = hrt_absolute_time();
 
-	// measurement's time delay (difference between state and measurement time on validity)
+	// Measurement's time delay (difference between state and measurement time on validity)
 	const int64_t dt_sync_us = signedTimeDiffUs(_last_predict, target_obs.timestamp);
 
 	// Reject old measurements or measurements in the "future" due to bad time sync
@@ -1372,7 +1374,29 @@ void VTEPosition::checkMeasurementInputs()
 		_local_velocity.valid = isMeasUpdated(_local_velocity.timestamp);
 	}
 
-	// TODO: check other measurements?
+	if (_local_velocity.valid) {
+		_local_velocity.valid = isMeasUpdated(_local_velocity.timestamp);
+	}
+
+#if defined(CONFIG_VTEST_MOVING)
+
+	if (_target_gps_vel.valid) {
+		_target_gps_vel.valid = isMeasUpdated(_target_gps_vel.timestamp);
+	}
+
+#endif // CONFIG_VTEST_MOVING
+
+	if (_pos_rel_gnss.valid) {
+		_pos_rel_gnss.valid = isMeasUpdated(_pos_rel_gnss.timestamp);
+	}
+
+	if (_velocity_offset_ned.valid) {
+		_velocity_offset_ned.valid = isMeasUpdated(_velocity_offset_ned.timestamp);
+	}
+
+	if (_gps_pos_offset_ned.valid) {
+		_gps_pos_offset_ned.valid = isMeasUpdated(_gps_pos_offset_ned.timestamp);
+	}
 }
 
 void VTEPosition::set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset)
