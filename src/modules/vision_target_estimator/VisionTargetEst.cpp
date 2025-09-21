@@ -669,7 +669,6 @@ void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local
 
 	if (local_pose_updated) {
 		_vte_orientation.set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid, local_pose.timestamp);
-		_vte_orientation.set_local_orientation(local_pose.yaw, local_pose.yaw_valid, local_pose.timestamp);
 	}
 
 	_vte_orientation.update(q_att);

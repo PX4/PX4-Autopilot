@@ -182,8 +182,6 @@ private:
 	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned, const matrix::Quaternionf &q_att);
 	void predictionStep(const matrix::Vector3f &acc);
 
-	void updateTargetGpsVelocity(const target_gnss_s &target_gnss);
-
 	inline bool hasNewNonGpsPositionSensorData(const ObsValidMaskU &fusion_mask) const
 	{
 		return fusion_mask.flags.fuse_vision
@@ -266,6 +264,7 @@ private:
 	bool processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs);
 #if defined(CONFIG_VTEST_MOVING)
 	bool ProcessObsGNSSVelTarget(const target_gnss_s &target_gnss, TargetObs &obs) const;
+	void updateTargetGpsVelocity(const target_gnss_s &target_gnss);
 #endif // CONFIG_VTEST_MOVING
 
 	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const TargetObs &target_pos_obs);
@@ -326,10 +325,14 @@ private:
 
 	Vector3fStamped _local_position{};
 	Vector3fStamped _local_velocity{};
-	Vector3fStamped _target_gps_vel{};
 	Vector3fStamped _pos_rel_gnss{};
 	Vector3fStamped _velocity_offset_ned{};
 	Vector3fStamped _gps_pos_offset_ned{};
+
+#if defined(CONFIG_VTEST_MOVING)
+	Vector3fStamped _target_gps_vel {};
+#endif // CONFIG_VTEST_MOVING
+
 	param_t _param_mpc_z_v_auto_dn{PARAM_INVALID};
 	float _mpc_z_v_auto_dn{0.f};
 
