@@ -745,8 +745,8 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		_airspeed_filter.update(dt, airspeed_input, _airspeed_filter_param, _control_flag.airspeed_enabled);
 
 		// Update Reference model submodule
-		if (1.f - _fast_descend < FLT_EPSILON) {
-			// Reset the altitude reference model, while we are in fast descend.
+		if (1.f - _fast_descend < FLT_EPSILON || !PX4_ISFINITE(hgt_rate_sp)) {
+			// Reset the altitude reference model while we are in fast descend or in height rate control mode
 			const TECSAltitudeReferenceModel::AltitudeReferenceState init_state{
 				.alt = altitude,
 				.alt_rate = hgt_rate};
