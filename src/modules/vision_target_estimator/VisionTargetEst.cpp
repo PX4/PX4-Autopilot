@@ -56,8 +56,6 @@
 namespace vision_target_estimator
 {
 
-constexpr uint32_t kVtePosUpdateRateHz = 50;
-constexpr uint32_t kVteYawUpdateRateHz = 50;
 constexpr uint32_t kAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25Hz
 constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
 constexpr float kGravity = 9.80665f;  // m/s^2
@@ -337,6 +335,48 @@ void VisionTargetEst::updateParams()
 		if (_vte_orientation_enabled) {
 			_vte_orientation.set_meas_updated_timeout(new_meas_updated_timeout_us);
 		}
+	}
+
+	const float new_pos_update_rate_hz = _param_vte_pos_rate.get();
+
+	if (PX4_ISFINITE(new_pos_update_rate_hz) && new_pos_update_rate_hz > 0.f) {
+
+		hrt_abstime new_pos_update_period_us = static_cast<hrt_abstime>(fmaxf(roundf(1e6f / new_pos_update_rate_hz), 1.f));
+
+		if ((fabsf(new_pos_update_rate_hz - _pos_update_rate_hz) > FLT_EPSILON)
+		    || (new_pos_update_period_us != _pos_update_period_us)) {
+			PX4_INFO("VTE position update rate: %.1f Hz (previous: %.1f Hz)",
+				 static_cast<double>(new_pos_update_rate_hz),
+				 static_cast<double>(_pos_update_rate_hz));
+		}
+
+		_pos_update_rate_hz = new_pos_update_rate_hz;
+		_pos_update_period_us = new_pos_update_period_us;
+
+	} else {
+		PX4_WARN("VTE_POS_RATE %.2f invalid, keeping previous value",
+			 static_cast<double>(new_pos_update_rate_hz));
+	}
+
+	const float new_yaw_update_rate_hz = _param_vte_yaw_rate.get();
+
+	if (PX4_ISFINITE(new_yaw_update_rate_hz) && new_yaw_update_rate_hz > 0.f) {
+
+		hrt_abstime new_yaw_update_period_us = static_cast<hrt_abstime>(fmaxf(roundf(1e6f / new_yaw_update_rate_hz), 1.f));
+
+		if ((fabsf(new_yaw_update_rate_hz - _yaw_update_rate_hz) > FLT_EPSILON)
+		    || (new_yaw_update_period_us != _yaw_update_period_us)) {
+			PX4_INFO("VTE yaw update rate: %.1f Hz (previous: %.1f Hz)",
+				 static_cast<double>(new_yaw_update_rate_hz),
+				 static_cast<double>(_yaw_update_rate_hz));
+		}
+
+		_yaw_update_rate_hz = new_yaw_update_rate_hz;
+		_yaw_update_period_us = new_yaw_update_period_us;
+
+	} else {
+		PX4_WARN("VTE_YAW_RATE %.2f invalid, keeping previous value",
+			 static_cast<double>(new_yaw_update_rate_hz));
 	}
 
 	if (_vte_position_enabled && _position_estimator_running
@@ -686,7 +726,7 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 	_vehicle_acc_ned_sum += vehicle_acc_ned;
 	_acc_sample_count++;
 
-	if (!updateWhenIntervalElapsed(_last_update_pos, (1_s / kVtePosUpdateRateHz))) {
+	if (!updateWhenIntervalElapsed(_last_update_pos, _pos_update_period_us)) {
 		return;
 	}
 
@@ -718,7 +758,7 @@ void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local
 				   const matrix::Quaternionf &q_att)
 {
 
-	if (!updateWhenIntervalElapsed(_last_update_yaw, (1_s / kVteYawUpdateRateHz))) {
+	if (!updateWhenIntervalElapsed(_last_update_yaw, _yaw_update_period_us)) {
 		return;
 	}
 
