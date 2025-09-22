@@ -237,7 +237,7 @@ void RTL::on_activation()
 		break;
 	}
 
-	_navigator->activate_set_gimbal_neutral_timer(hrt_absolute_time());
+	_navigator->gimbal_neutral_delayed();
 }
 
 void RTL::on_active()

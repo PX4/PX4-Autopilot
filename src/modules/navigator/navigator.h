@@ -60,6 +60,7 @@
 #if CONFIG_NAVIGATOR_ADSB
 #include <lib/adsb/AdsbConflict.h>
 #endif // CONFIG_NAVIGATOR_ADSB
+#include <lib/hysteresis/hysteresis.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
@@ -281,13 +282,7 @@ public:
 	void acquire_gimbal_control();
 	void release_gimbal_control();
 	void set_gimbal_neutral();
-
-	/* Set gimbal to neutral position (level with horizon) to reduce risk of damage on landing.
-	The commands are executed after time delay. */
-	void neutralize_gimbal_if_control_activated();
-	/* Accepts a new timestamp only if the current timestamp is UINT64_MAX, preventing the
-	timer from resetting during an ongoing neutral command. */
-	void activate_set_gimbal_neutral_timer(const hrt_abstime timestamp);
+	void gimbal_neutral_delayed() { _gimbal_neutral_hysteresis.set_state_and_update(true, hrt_absolute_time()); }; // Acquires and releases control
 
 	void preproject_stop_point(double &lat, double &lon);
 
@@ -397,9 +392,7 @@ private:
 
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
 
-
-	// timer to trigger a delayed set gimbal neutral command
-	hrt_abstime _gimbal_neutral_activation_time{UINT64_MAX};
+	systemlib::Hysteresis _gimbal_neutral_hysteresis{false}; ///< Delay to avoid race condition with previous mode still wanting gimbal control e.g. slow mode flight task
 
 	// update subscriptions
 	void params_update();

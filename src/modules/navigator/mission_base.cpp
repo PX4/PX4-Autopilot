@@ -182,7 +182,7 @@ MissionBase::on_inactivation()
 	_navigator->stop_capturing_images();
 
 	if (!_navigator->get_land_detected()->landed) {
-		_navigator->activate_set_gimbal_neutral_timer(hrt_absolute_time());
+		_navigator->gimbal_neutral_delayed();
 	}
 
 	if (_navigator->get_precland()->is_activated()) {
@@ -702,7 +702,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
-			_navigator->activate_set_gimbal_neutral_timer(hrt_absolute_time());
+			_navigator->gimbal_neutral_delayed();
 
 		} else {
 

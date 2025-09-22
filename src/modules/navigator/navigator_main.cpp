@@ -114,6 +114,8 @@ Navigator::Navigator() :
 	_distance_sensor_mode_change_request_pub.get().request_on_off = distance_sensor_mode_change_request_s::REQUEST_OFF;
 	_distance_sensor_mode_change_request_pub.update();
 
+	_gimbal_neutral_hysteresis.set_hysteresis_time_from(false, 250_ms);
+
 	reset_triplets();
 }
 
@@ -924,7 +926,16 @@ void Navigator::run()
 			publish_mission_result();
 		}
 
-		neutralize_gimbal_if_control_activated();
+		// Set gimbal neutral if requested and delay is over
+		const hrt_abstime now = hrt_absolute_time();
+		_gimbal_neutral_hysteresis.update(now);
+
+		if (_gimbal_neutral_hysteresis.get_state()) {
+			acquire_gimbal_control();
+			set_gimbal_neutral();
+			release_gimbal_control();
+			_gimbal_neutral_hysteresis.set_state_and_update(false, now); // instantly resets from true to false
+		}
 
 		publish_navigator_status();
 
@@ -1649,27 +1660,6 @@ void Navigator::set_gimbal_neutral()
 	vehicle_command.param4 = NAN;
 	vehicle_command.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
 	publish_vehicle_command(vehicle_command);
-}
-
-void Navigator::activate_set_gimbal_neutral_timer(const hrt_abstime timestamp)
-{
-	if (_gimbal_neutral_activation_time == UINT64_MAX) {
-		_gimbal_neutral_activation_time = timestamp;
-	}
-}
-
-void Navigator::neutralize_gimbal_if_control_activated()
-{
-	const hrt_abstime now{hrt_absolute_time()};
-
-	// The time delay must be sufficiently long to allow flight tasks to complete its
-	// destruction and release gimbal control before the navigator takes control of the gimbal.
-	if (_gimbal_neutral_activation_time != UINT64_MAX && now > _gimbal_neutral_activation_time + 250_ms) {
-		acquire_gimbal_control();
-		set_gimbal_neutral();
-		release_gimbal_control();
-		_gimbal_neutral_activation_time = UINT64_MAX;
-	}
 }
 
 void Navigator::sendWarningDescentStoppedDueToTerrain()
