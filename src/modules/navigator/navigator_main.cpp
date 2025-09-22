@@ -241,6 +241,8 @@ void Navigator::run()
 		_position_controller_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 
+		const hrt_abstime now = hrt_absolute_time();
+
 		// Handle Vehicle commands
 		int vehicle_command_updates = 0;
 
@@ -268,7 +270,7 @@ void Navigator::run()
 				// which can lead to dangerous and unexpected behaviors (see loiter.cpp, there is an if(armed) in there too)
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
-				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				_wait_for_vehicle_status_timestamp = now;
 
 				vehicle_global_position_s position_setpoint{};
 
@@ -397,10 +399,10 @@ void Navigator::run()
 						rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
 					}
 
-					rep->previous.timestamp = hrt_absolute_time();
+					rep->previous.timestamp = now;
 
 					rep->current.valid = true;
-					rep->current.timestamp = hrt_absolute_time();
+					rep->current.timestamp = now;
 
 					rep->next.valid = false;
 
@@ -430,7 +432,7 @@ void Navigator::run()
 				position_setpoint.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
-				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				_wait_for_vehicle_status_timestamp = now;
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -478,10 +480,10 @@ void Navigator::run()
 
 					rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
 
-					rep->previous.timestamp = hrt_absolute_time();
+					rep->previous.timestamp = now;
 
 					rep->current.valid = true;
-					rep->current.timestamp = hrt_absolute_time();
+					rep->current.timestamp = now;
 
 					rep->next.valid = false;
 
@@ -506,7 +508,7 @@ void Navigator::run()
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
-				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				_wait_for_vehicle_status_timestamp = now;
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -535,7 +537,7 @@ void Navigator::run()
 					rep->current.alt = position_setpoint.alt;
 
 					rep->current.valid = true;
-					rep->current.timestamp = hrt_absolute_time();
+					rep->current.timestamp = now;
 
 					_time_loitering_after_gf_breach = 0; // have to manually reset this in all LOITER cases
 
@@ -554,7 +556,7 @@ void Navigator::run()
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
-				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				_wait_for_vehicle_status_timestamp = now;
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -587,7 +589,7 @@ void Navigator::run()
 					rep->current.alt = position_setpoint.alt;
 
 					rep->current.valid = true;
-					rep->current.timestamp = hrt_absolute_time();
+					rep->current.timestamp = now;
 
 					_time_loitering_after_gf_breach = 0; // have to manually reset this in all LOITER cases
 
@@ -614,7 +616,7 @@ void Navigator::run()
 				if (home_global_position_valid()) {
 
 					rep->previous.valid = true;
-					rep->previous.timestamp = hrt_absolute_time();
+					rep->previous.timestamp = now;
 
 				} else {
 					rep->previous.valid = false;
@@ -638,7 +640,7 @@ void Navigator::run()
 				rep->current.alt = cmd.param7;
 
 				rep->current.valid = true;
-				rep->current.timestamp = hrt_absolute_time();
+				rep->current.timestamp = now;
 
 				rep->next.valid = false;
 
@@ -749,8 +751,7 @@ void Navigator::run()
 					break;
 				}
 
-				_vroi.timestamp = hrt_absolute_time();
-
+				_vroi.timestamp = now;
 				_vehicle_roi_pub.publish(_vroi);
 
 				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
@@ -927,7 +928,6 @@ void Navigator::run()
 		}
 
 		// Set gimbal neutral if requested and delay is over
-		const hrt_abstime now = hrt_absolute_time();
 		_gimbal_neutral_hysteresis.update(now);
 
 		if (_gimbal_neutral_hysteresis.get_state()) {
