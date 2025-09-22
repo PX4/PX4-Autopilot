@@ -468,7 +468,7 @@ int Commander::custom_command(int argc, char *argv[])
 			const float heading_accuracy = NAN;
 
 			bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE,
-							0.f, 0.f, heading, 0.f, 0.f, 0.f, heading_accuracy);
+							0.f, 0.f, heading, 0.f, 0.0, 0.0, heading_accuracy);
 			return (ret ? 0 : 1);
 
 		} else {
