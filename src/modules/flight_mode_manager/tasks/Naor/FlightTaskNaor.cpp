@@ -40,6 +40,7 @@
 #include <mathlib/mathlib.h>
 #include <geo/geo.h>
 #include <lib/motion_planning/PositionSmoothing.hpp>
+#include <px4_platform_common/log.h>
 
 
 #define MAZ_Z_VELOCITY 1.2f
@@ -120,7 +121,7 @@ bool FlightTaskNaor::activate(const trajectory_setpoint_s &last_setpoint)
 
 void FlightTaskNaor::_throttleToVelocity()
 {
-	_velocity_setpoint(2) = map(_sticks.getPositionExpo()(2), -1.0f, 1.0f, -MAZ_Z_VELOCITY, MAZ_Z_VELOCITY);
+	_velocity_setpoint(2) = map(_sticks.getThrottleZeroCenteredExpo(), -1.0f, 1.0f, -MAZ_Z_VELOCITY, MAZ_Z_VELOCITY);
 }
 
 

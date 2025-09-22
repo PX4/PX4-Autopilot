@@ -133,6 +133,7 @@ set(msg_files
 	MagWorkerData.msg
 	ManualControlSwitches.msg
 	MavlinkLog.msg
+	naor_debug.msg
 	MavlinkTunnel.msg
 	MessageFormatRequest.msg
 	MessageFormatResponse.msg
@@ -164,6 +165,7 @@ set(msg_files
 	PositionControllerStatus.msg
 	PositionSetpoint.msg
 	PositionSetpointTriplet.msg
+	PidConsts.msg
 	PowerButtonState.msg
 	PowerMonitor.msg
 	PpsCapture.msg
@@ -208,6 +210,7 @@ set(msg_files
 	SensorsStatusImu.msg
 	SensorUwb.msg
 	SensorAirflow.msg
+	SuperHoldDebug.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
