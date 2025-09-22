@@ -203,9 +203,9 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
-
-			pos_sp_triplet->previous = pos_sp_triplet->current;
 		}
+
+		pos_sp_triplet->previous = pos_sp_triplet->current;
 
 		if (num_found_items > 0) {
 			mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->next);
