@@ -75,7 +75,7 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"Hold",
 	"Return",
 	"Position Slow",
-	"7: unallocated",
+	"7: Naor",
 	"Altitude Cruise",
 	"9: unallocated",
 	"Acro",

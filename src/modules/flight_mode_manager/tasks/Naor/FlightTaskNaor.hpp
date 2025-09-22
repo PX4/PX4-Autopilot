@@ -45,7 +45,6 @@
  #include "StickTiltXY.hpp"
  #include <uORB/Subscription.hpp>
  #include <uORB/topics/vehicle_odometry.h>
- #include <uORB/topics/naor_debug.h>
  #include <matrix/matrix/math.hpp>
  #include <lib/motion_planning/PositionSmoothing.hpp>
  #include <uORB/Publication.hpp>
