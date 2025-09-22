@@ -229,6 +229,18 @@ void FlightModeManager::start_flight_task()
 		matching_task_running = matching_task_running && !task_failure;
 	}
 
+		// NAOR manual control mode
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_NAOR) {
+			found_some_task = true;
+			FlightTaskError error = FlightTaskError::NoError;
+
+			// Use Naor flight task
+			error = switchTask(FlightTaskIndex::Naor);
+
+			task_failure = (error != FlightTaskError::NoError);
+			matching_task_running = matching_task_running && !task_failure;
+		}
+
 	// Manual altitude control
 	if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL) || task_failure) {
 		found_some_task = true;
