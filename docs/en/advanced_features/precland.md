@@ -56,7 +56,7 @@ A flow diagram showing the phases can be found in [landing phases flow Diagram](
 
 Precision landing can optionally align the multicopter's yaw to match the detected target orientation while the vehicle is approaching or descending above the pad.
 Enable this behaviour with [PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN).
-When enabled, PX4 uses the `vision_target_est_orientation` topic (published by the [Vision Target Estimator](/vision_target_estimator.md)) to command the yaw setpoint as long as the orientation data remains valid.
+When enabled, PX4 uses the `vision_target_est_orientation` topic (published by the [Vision Target Estimator](../advanced_features/vision_target_estimator.md)) to command the yaw setpoint as long as the orientation data remains valid.
 If the orientation feed times out (see [PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)) or the parameter is disabled, yaw control falls back to the default mission behaviour.
 
 ## Initiating a Precision Landing

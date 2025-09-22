@@ -26,6 +26,7 @@ For tuning workflows, log analysis guidance, and instructions on extending the e
     - [Measurements validity](#measurements-validity)
   - [Configuration](#configuration)
     - [Module enable and scheduling](#module-enable-and-scheduling)
+    - [Task selection](#task-selection)
     - [Sensor fusion selection](#sensor-fusion-selection)
     - [Noise and gating](#noise-and-gating)
     - [Sensor-specific settings](#sensor-specific-settings)
@@ -33,7 +34,7 @@ For tuning workflows, log analysis guidance, and instructions on extending the e
     - [Moving-target projection parameters (experimental)](#moving-target-projection-parameters-experimental)
   - [Gazebo Classic Simulation](#gazebo-classic-simulation)
   - [Generated SymForce Functions](#generated-symforce-functions)
-  - [Monitoring and Data Products](#monitoring-and-data-products)
+  - [Monitoring](#monitoring)
   - [Operational Notes](#operational-notes)
 
 ## Architecture Overview
@@ -46,7 +47,7 @@ VTEST is implemented as two tightly coupled, but independent, estimators managed
 The work item re-schedules both filters at the rates commanded by [`VTE_POS_RATE`](../advanced_config/parameter_reference.md#VTE_POS_RATE) and [`VTE_YAW_RATE`](../advanced_config/parameter_reference.md#VTE_YAW_RATE) (default 50 Hz). Each cycle it provides vehicle acceleration (downsampled and rotated to NED), attitude, local position, local velocity, and range-sensor updates, while also enforcing timeouts, parameter reloads, and task activation.
 
 > [!WARNING]
-> The moving-target mode (`CONFIG_VTEST_MOVING=y`) is experimental and has not yet been flight tested.
+> The moving-target mode `CONFIG_VTEST_MOVING=y` is experimental and has not yet been flight tested.
 
 ## Building the Module
 
@@ -140,13 +141,14 @@ $$
 
 ## Estimator Lifecycle
 
-1. **Task activation** - `VisionTargetEst` enables the position and/or orientation filters when the UAV is performing a task selected in [`VTE_TASK_MASK`](../advanced_config/parameter_reference.md#VTE_TASK_MASK). Bit 0 activates precision landing, while bit 1 keeps the estimator running continuously for debugging; future task bits can enable additional mission profiles.
-2. **Initialization** - the position filter waits until at least one position-like observation (vision, UWB, IRLock, or GNSS) becomes available. Priority is given to non-GNSS sources so the GNSS bias can be resolved later from the difference between the GNSS baseline and that first relative measurement.
-3. **Bias estimation** - when a second independent position source becomes available, the GNSS bias vector is set to `pos_rel_gnss - pos_rel_ref`. From that moment GNSS absolute observations include the bias component inside the measurement model.
+1. **Task activation**: `VisionTargetEst` enables the position and/or orientation filters when the UAV is performing a task selected in [`VTE_TASK_MASK`](../advanced_config/parameter_reference.md#VTE_TASK_MASK). Bit 0 activates precision landing, while bit 1 keeps the estimator running continuously for debugging; future task bits can enable additional mission profiles.
+2. **Initialization**: The position filter waits until at least one position-like observation (vision, UWB, IRLock, or GNSS) becomes available. Priority is given to non-GNSS sources so the GNSS bias can be resolved later from the difference between the GNSS baseline and that first relative measurement.
+3. **Bias estimation**: When a GNSS observation is valid and a second independent position source becomes available, the GNSS bias vector is set to `pos_rel_gnss - pos_rel_ref`. From that moment GNSS absolute observations include the bias component inside the measurement model.
 
-   In typical precision-landing setups the vehicle hovers within tens of metres from the pad for less than a minute. During that window the atmospheric and multipath conditions that shift the two GNSS receivers are effectively constant, so the estimator treats the bias as a steady offset. Once the bias has been observed with the help of the relative measurements, it continues to correct the absolute GNSS data even if the vision/UWB feed momentarily drops out, allowing the descent to remain centred on the target.
-4. **Prediction / update loop** - acceleration updates trigger predictions; measurement handlers populate observation buffers and run fusions that pass the NIS gates defined by [`VTE_POS_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) and [`VTE_YAW_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE).
-5. **Timeout handling** - if no position measurement is fused for [`VTE_BTOUT`](../advanced_config/parameter_reference.md#VTE_BTOUT), the filters are stopped; the published pose/yaw is flagged invalid once [`VTE_TGT_TOUT`](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) elapses without fresh data.
+   In typical precision-landing setups the vehicle hovers within tens of metres from the pad for less than a minute. During that window the atmospheric conditions that shift the output of the GNSS receiver are assumed constant, so the estimator treats the bias as a steady offset. Once the bias has been observed with the help of the relative measurements, it continues to correct the absolute GNSS data even if the vision/UWB feed momentarily drops out, allowing the descent to remain centred on the target.
+4. **Prediction**: Predictions are performed at the rates commanded by [`VTE_POS_RATE`](../advanced_config/parameter_reference.md#VTE_POS_RATE) and [`VTE_YAW_RATE`](../advanced_config/parameter_reference.md#VTE_YAW_RATE) (default 50 Hz).
+5. **Update**: When new sensor observations are available, measurement handlers check the validity of the measurement (timestamp, value, and fusion requested in [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK)), process it, and populate observation buffers. The observations that pass the NIS gates defined by [`VTE_POS_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) and [`VTE_YAW_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) are then fused.
+6. **Timeout handling** - if no position measurement is fused for [`VTE_BTOUT`](../advanced_config/parameter_reference.md#VTE_BTOUT), the filters are stopped; the published pose/yaw is flagged invalid once [`VTE_TGT_TOUT`](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) elapses without fresh data.
 
 ## Measurement Sources
 
@@ -177,9 +179,20 @@ Two time horizons guard incoming data: [`VTE_M_REC_TOUT`](../advanced_config/par
 - [`VTE_EN`](../advanced_config/parameter_reference.md#VTE_EN) - global module enable (reboot required).
 - [`VTE_POS_EN`](../advanced_config/parameter_reference.md#VTE_POS_EN) / [`VTE_YAW_EN`](../advanced_config/parameter_reference.md#VTE_YAW_EN) - enable the position and orientation filters respectively (reboot required).
 - [`VTE_POS_RATE`](../advanced_config/parameter_reference.md#VTE_POS_RATE), [`VTE_YAW_RATE`](../advanced_config/parameter_reference.md#VTE_YAW_RATE) - desired update rates for the position and yaw filters; the work item adapts its scheduling to maintain these targets.
-- [`VTE_TASK_MASK`](../advanced_config/parameter_reference.md#VTE_TASK_MASK) - selects runtime tasks such as precision landing (bit 0) or continuous debugging (bit 1).
 - [`VTE_BTOUT`](../advanced_config/parameter_reference.md#VTE_BTOUT), [`VTE_TGT_TOUT`](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) - timeouts for estimator shutdown and published validity flags.
 - [`VTE_M_REC_TOUT`](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT), [`VTE_M_UPD_TOUT`](../advanced_config/parameter_reference.md#VTE_M_UPD_TOUT) - maximum ages for measurements to be fused or retained.
+
+### Task selection
+
+[`VTE_TASK_MASK`](../advanced_config/parameter_reference.md#VTE_TASK_MASK)selects runtime tasks during which the estimators perform computations and estimate the state of the target.
+
+| Bit | Value | Meaning |
+| --- | --- | --- |
+| 0 | `1` | precision landing |
+| 1 | `2` | DEBUG, always active |
+
+> [!IMPORTANT]
+> Precision landing yaw control is disabled by default. Enable [PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN) when you want the mission controller to align the vehicle with the target heading, and configure the landing waypoint for precision landing (see [Mission precision landing](../advanced_features/precland.md#mission)). Without both settings the aircraft will only track the position estimate from the Vision Target Estimator.
 
 ### Sensor fusion selection
 
@@ -224,9 +237,6 @@ If any condition fails, `rel_vel_valid` is cleared and EKF2 ignores the input.
 
 When `CONFIG_VTEST_MOVING` is active, [`VTE_MOVING_T_MIN`](../advanced_config/parameter_reference.md#VTE_MOVING_T_MIN) and [`VTE_MOVING_T_MAX`](../advanced_config/parameter_reference.md#VTE_MOVING_T_MAX) determine how far ahead the target position is projected when publishing the absolute landing setpoint. The estimator computes an intersection time $\Delta t$ by constraining $|z_{rel}| / |v_{descent}|$ between the two parameters, then shifts the absolute landing target by $\Delta t$ along the estimated target velocity (with a correction from the target acceleration state). The goal is to command the vehicle towards where the moving target will be at touchdown, not where it was at the last measurement.
 
-> [!IMPORTANT]
-> Precision landing yaw control is disabled by default. Enable [PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN) when you want the mission controller to align the vehicle with the target heading, and configure the landing waypoint for precision landing (see [Mission precision landing](../advanced_features/precland.md#mission)). Without both settings the aircraft will only track the position estimate from the Vision Target Estimator.
-
 ## Gazebo Classic Simulation
 
 Run the SITL world `gazebo-classic_iris_irlock` to simulate precision landing using the VTEST fusing vision (ArUco-based), IRLock (simulated by a logical camera), and target GNSS aiding. The models were introduced in [PX4/PX4-SITL_gazebo-classic#950](https://github.com/PX4/PX4-SITL_gazebo-classic/pull/950).
@@ -246,12 +256,10 @@ Run the SITL world `gazebo-classic_iris_irlock` to simulate precision landing us
    Re-run the build after adjusting the `find_package` line.
 
 > [!TIP]Tips
-> - **Pad visibility** In `Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/land_pad/land_pad.sdf`, increase the visual box size to `1.5 1.5 0.01` so the pad stays in view longer while the vehicle descends.
-> - **Mission waypoint bias** Enable vision and mission position aiding in [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) (set bits 2 and 3, disable bit 0). Place the landing waypoint 3 to 4 m away from the pad in QGroundControl to watch the UAV correct towards the pad once it is detected. In the logs, observe how the GNSS bias compensates for the distance between the land waypoint and the actual pad.
-> - **Measurement noise experiments** The ArUco plugin publishes nominal standard deviations through `set_std_x` and `set_std_y` in `Tools/simulation/gazebo-classic/sitl_gazebo-classic/src/gazebo_aruco_plugin.cpp`. Modify these assignments, and optionally the camera noise block in `.../models/aruco_cam/aruco_cam.sdf`, to see how innovation gates react to noisier vision.
-> - **Moving target trials** To emulate a moving pad, edit `<initial_velocity>` in `.../models/land_pad/land_pad.sdf` (for example `0.5 0 0`) and enable `CONFIG_VTEST_MOVING` so the estimator tracks the target velocity.
-
-Continue with [Monitoring and Data Products](#monitoring-and-data-products) for the uORB topics to watch during the simulation.
+> - **Pad visibility**: In `Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/land_pad/land_pad.sdf`, increase the visual box size to `1.5 1.5 0.01` so the pad stays in view longer while the vehicle descends.
+> - **Mission waypoint bias**: Enable vision and mission position aiding in [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) (set bits 2 and 3, disable bit 0). Place the landing waypoint 3 to 4 m away from the pad in QGroundControl to watch the UAV correct towards the pad once it is detected. In the logs, observe how the GNSS bias compensates for the distance between the land waypoint and the actual pad.
+> - **Measurement noise experiments**: The ArUco plugin publishes nominal standard deviations through `set_std_x` and `set_std_y` in `Tools/simulation/gazebo-classic/sitl_gazebo-classic/src/gazebo_aruco_plugin.cpp`. Modify these assignments, and optionally the camera noise block in `.../models/aruco_cam/aruco_cam.sdf`, to see how innovation gates react to noisier vision.
+> - **Moving target trials**: To emulate a moving pad, edit `<initial_velocity>` in `.../models/land_pad/land_pad.sdf` (for example `0.5 0 0`) and enable `CONFIG_VTEST_MOVING` so the estimator tracks the target velocity.
 
 ## Generated SymForce Functions
 
@@ -264,7 +272,9 @@ Continue with [Monitoring and Data Products](#monitoring-and-data-products) for 
 
 The generated files (`predictState.h`, `predictCov.h`, `computeInnovCov.h`, `syncState.h`, `state.h`) are included through the build directory and must not be edited manually. See the [Vision Target Estimator deep dive](../advanced_features/vision_target_estimator_advanced.md#regenerating-the-symbolic-model) for regeneration prerequisites and troubleshooting tips.
 
-## Monitoring and Data Products
+## Monitoring
+
+For a detailed log analysis guidance, see the [Vision Target Estimator deep dive](../advanced_features/vision_target_estimator_advanced.md).
 
 - `landing_target_pose.rel_pos_valid` and `.abs_pos_valid` indicate whether recent measurements support relative and absolute positioning.
 - `vision_target_est_position` exposes every state component (relative position, vehicle velocity, GNSS bias, and optional target motion) together with diagonal covariance entries.
