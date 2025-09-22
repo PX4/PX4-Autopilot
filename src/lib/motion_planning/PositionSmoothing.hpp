@@ -442,7 +442,7 @@ private:
 
 	/* Internal state */
 	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
-	float _max_speed_previous{0.f};
+	float _max_xy_speed_previous{0.f};
 
 	/* Internal functions */
 	bool _isTurning(const Vector3f &target) const;

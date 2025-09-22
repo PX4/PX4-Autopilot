@@ -230,10 +230,10 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 
 		if (!is_single_waypoint && _isTurning(target)) {
 			// Limit speed during a turn
-			max_xy_speed = math::min(_max_speed_previous, max_xy_speed);
+			max_xy_speed = math::min(_max_xy_speed_previous, max_xy_speed);
 
 		} else {
-			_max_speed_previous = max_xy_speed;
+			_max_xy_speed_previous = max_xy_speed;
 		}
 
 		Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(max_xy_speed * max_xy_speed + max_z_speed * max_z_speed);
@@ -264,10 +264,10 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 
 		if (_isTurning(target)) {
 			// Lock speed during turn
-			xy_speed = math::min(_max_speed_previous, xy_speed);
+			xy_speed = math::min(_max_xy_speed_previous, xy_speed);
 
 		} else {
-			_max_speed_previous = xy_speed;
+			_max_xy_speed_previous = xy_speed;
 		}
 
 		Vector2f vel_sp_constrained_xy = u_pos_traj_to_dest_xy * xy_speed;
