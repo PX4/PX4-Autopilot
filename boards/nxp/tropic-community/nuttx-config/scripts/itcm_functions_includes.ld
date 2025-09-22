@@ -1,4 +1,3 @@
-/* Auto-generated */
 *(.text._ZN4uORB7Manager27orb_add_internal_subscriberE6ORB_IDhPj)
 *(.text._ZN13MavlinkStream6updateERKy)
 *(.text._ZN7Mavlink16update_rate_multEv)
