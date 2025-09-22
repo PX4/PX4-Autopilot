@@ -63,10 +63,11 @@ px4_add_module(
 	MAIN navigator
 	SRCS ${NAVIGATOR_SOURCES}
 	DEPENDS
+		adsb
 		dataman_client
 		geo
-		adsb
 		geofence_breach_avoidance
+		hysteresis
 		motion_planning
 		mission_feasibility_checker
 		rtl_time_estimator

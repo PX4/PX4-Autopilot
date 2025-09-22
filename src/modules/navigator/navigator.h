@@ -397,16 +397,6 @@ private:
 	// update subscriptions
 	void params_update();
 
-	/**
-	 * Publish a new position setpoint triplet for position controllers
-	 */
-	void publish_position_setpoint_triplet();
-
-	/**
-	 * Publish the mission result so commander and mavlink know what is going on
-	 */
-	void publish_mission_result();
-
 	void publish_navigator_status();
 
 	void publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);

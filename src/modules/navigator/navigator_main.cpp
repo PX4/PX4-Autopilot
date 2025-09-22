@@ -920,11 +920,18 @@ void Navigator::run()
 		}
 
 		if (_pos_sp_triplet_updated) {
-			publish_position_setpoint_triplet();
+			_pos_sp_triplet.timestamp = hrt_absolute_time();
+			_pos_sp_triplet_pub.publish(_pos_sp_triplet);
+			_pos_sp_triplet_updated = false;
 		}
 
 		if (_mission_result_updated) {
-			publish_mission_result();
+			_mission_result.timestamp = hrt_absolute_time();
+			_mission_result_pub.publish(_mission_result);
+			_mission_result.item_do_jump_changed = false;
+			_mission_result.item_changed_index = 0;
+			_mission_result.item_do_jump_remaining = 0;
+			_mission_result_updated = false;
 		}
 
 		// Set gimbal neutral if requested and delay is over
@@ -1144,13 +1151,6 @@ int Navigator::print_status()
 	return 0;
 }
 
-void Navigator::publish_position_setpoint_triplet()
-{
-	_pos_sp_triplet.timestamp = hrt_absolute_time();
-	_pos_sp_triplet_pub.publish(_pos_sp_triplet);
-	_pos_sp_triplet_updated = false;
-}
-
 float Navigator::get_default_acceptance_radius()
 {
 	return _param_nav_acc_rad.get();
@@ -1367,21 +1367,6 @@ int Navigator::custom_command(int argc, char *argv[])
 	}
 
 	return print_usage("unknown command");
-}
-
-void Navigator::publish_mission_result()
-{
-	_mission_result.timestamp = hrt_absolute_time();
-
-	/* lazily publish the mission result only once available */
-	_mission_result_pub.publish(_mission_result);
-
-	/* reset some of the flags */
-	_mission_result.item_do_jump_changed = false;
-	_mission_result.item_changed_index = 0;
-	_mission_result.item_do_jump_remaining = 0;
-
-	_mission_result_updated = false;
 }
 
 void Navigator::set_mission_failure_heading_timeout()
