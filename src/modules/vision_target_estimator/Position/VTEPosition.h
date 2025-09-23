@@ -70,6 +70,7 @@
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
+#include <containers/Array.hpp>
 #include "KF_position.h"
 #include <vtest_derivation/generated/state.h>
 #include "../common.h"
@@ -354,7 +355,7 @@ private:
 	uint64_t _last_relative_meas_fused_time{0};
 	bool _estimator_initialized{false};
 
-	KF_position _target_est_pos[vtest::Axis::size];
+	px4::Array<KF_position, vtest::Axis::size> _target_est_pos{};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
