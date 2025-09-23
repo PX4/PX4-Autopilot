@@ -46,10 +46,10 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_target_pose.h>
 
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/prec_land_status.h>
 #include <uORB/topics/vision_target_est_orientation.h>
-#endif
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -116,14 +116,14 @@ private:
 
 	uORB::Subscription _target_pose_sub{ORB_ID(landing_target_pose)};
 
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	uORB::Subscription _target_orientation_sub {ORB_ID(vision_target_est_orientation)};
 	float _target_yaw{0.f};
 	bool _target_yaw_valid{false};
 	hrt_abstime _last_target_yaw_update{0};
 	uORB::Publication<prec_land_status_s> _prec_land_status_pub {ORB_ID(prec_land_status)};
 	void _publish_prec_land_status(const bool prec_land_ongoing);
-#endif
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
 	bool _target_pose_updated{false}; /**< wether the landing target position message is updated */
