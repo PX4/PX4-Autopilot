@@ -402,7 +402,8 @@ void Ekf::updateParameters()
 	_aux_global_position.updateParameters();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 #if defined (CONFIG_EKF2_RANGE_FINDER)
-	// TODO: set the tilt/rotation shit
+	// TODO: initialize static rangefinder parameters
+	_rng_consistency_check.setGate(_params.ekf2_rng_k_gate);
 
 #endif
 }

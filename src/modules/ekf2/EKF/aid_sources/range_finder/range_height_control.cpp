@@ -46,8 +46,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		return;
 	}
 
-	// TODO: move setting params to init function
-	_rng_consistency_check.setGate(_params.ekf2_rng_k_gate);
+	// Apply rotation to earth frame
 	_range_sensor.updateSensorToEarthRotation(_R_to_earth);
 
 	// TODO: why isn't this being done anywhere?

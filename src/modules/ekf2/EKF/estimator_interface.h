@@ -381,7 +381,7 @@ protected:
 	uint64_t _range_time_last_good_sample{};
 
 	SensorRangeFinder _range_sensor{};
-	RangeFinderConsistencyCheck _rng_consistency_check;
+	RangeFinderConsistencyCheck _rng_consistency_check{};
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
