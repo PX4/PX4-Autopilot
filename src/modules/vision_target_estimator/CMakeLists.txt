@@ -86,6 +86,8 @@ set(VTEST_GENERATED_FILE_LIST_DST
 set(VTEST_GENERATED_FILES ${VTEST_DERIVATION_DST_DIR}/generated/state.h)
 set(VTEST_GENERATED_DERIVATION_INCLUDE_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
+set(VTEST_GENERATED_TARGET "")
+
 if(VTEST_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 
 	set(VTEST_SYMFORCE_TARGET_DEPS)
@@ -159,6 +161,7 @@ if(VTEST_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 	add_custom_target(vtest_symforce_generate
 		DEPENDS ${VTEST_SYMFORCE_TARGET_DEPS}
 	)
+	set(VTEST_GENERATED_TARGET vtest_symforce_generate)
 
 else()
 	if(CONFIG_VTEST_MOVING)
@@ -184,6 +187,15 @@ else()
 			${VTEST_PREGENERATED_SOURCE_FILES}
 		COMMENT "VTEST using pre-generated symforce outputs (${VTEST_PREGENERATED_CONFIG})"
 	)
+
+	add_custom_target(vtest_derivation_prebuilt
+		DEPENDS ${VTEST_GENERATED_FILE_LIST_DST}
+	)
+	set(VTEST_GENERATED_TARGET vtest_derivation_prebuilt)
+endif()
+
+if(VTEST_GENERATED_TARGET)
+	add_dependencies(prebuild_targets ${VTEST_GENERATED_TARGET})
 endif()
 
 px4_add_module(
