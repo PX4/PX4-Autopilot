@@ -45,8 +45,7 @@ void Ekf::initTerrain()
 	// assume a ground clearance
 	_state.terrain = -_gpos.altitude() + _params.ekf2_min_rng;
 
-	// use the ground clearance value as our uncertainty
-	// TODO: JAKE: ^ doesn't make any sense
+	// use the sensor noise value as our uncertainty
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.ekf2_rng_noise));
 }
 
