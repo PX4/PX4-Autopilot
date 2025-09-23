@@ -404,6 +404,7 @@ void Ekf::updateParameters()
 #if defined (CONFIG_EKF2_RANGE_FINDER)
 
 	sensor::SensorRangeFinder::Parameters params = {};
+	// TODO:
 	// params.ekf2_imu_pos_x = _param_ekf2_imu_pos_x.get();
 	// params.ekf2_imu_pos_y = _param_ekf2_imu_pos_y.get();
 	// params.ekf2_imu_pos_z = _param_ekf2_imu_pos_z.get();
