@@ -105,8 +105,7 @@ void Ekf::initialiseCovariance()
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_TERRAIN)
-	// use the ground clearance value as our uncertainty
-	// TODO: ^ why? wouldn't the noise value make more sense?
+	// use the ground clearance value as our uncertainty. TODO: wouldn't it make more sense to  use the noise value instead?
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.ekf2_rng_noise));
 #endif // CONFIG_EKF2_TERRAIN
 }
@@ -230,7 +229,6 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		P(State::terrain.idx, State::terrain.idx) += terrain_process_noise;
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-		// TODO: explain
 		_rng_consistency_check.set_terrain_process_noise(terrain_process_noise);
 #endif // CONFIG_EKF2_RANGE_FINDER
 	}

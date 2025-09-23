@@ -46,13 +46,12 @@ void RangeFinderConsistencyCheck::init(const float z, const float z_var, const f
 {
 	printf("RangeFinderConsistencyCheck::init\n");
 
-	_P = sym::RangeValidationFilterPInit(z_var, dist_bottom_var);
-	_Ht = sym::RangeValidationFilterH<float>();
+	_p = sym::RangeValidationFilterPInit(z_var, dist_bottom_var);
+	_ht = sym::RangeValidationFilterH<float>();
 
 	_x(RangeFilter::z.idx) = z;
 	_x(RangeFilter::terrain.idx) = z - dist_bottom;
 	_initialized = true;
-	// _test_ratio_lpf.reset(0.f);
 	_test_ratio = 0.f;
 	_t_since_first_sample = 0.f;
 }
@@ -75,8 +74,8 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 	// prediction step
 	_time_last_update_us = time_us;
 	_x(RangeFilter::z.idx) -= dt * vz;
-	_P(RangeFilter::z.idx, RangeFilter::z.idx) += dt * dt * vz_var;
-	_P(RangeFilter::terrain.idx, RangeFilter::terrain.idx) += _terrain_process_noise;
+	_p(RangeFilter::z.idx, RangeFilter::z.idx) += dt * dt * vz_var;
+	_p(RangeFilter::terrain.idx, RangeFilter::terrain.idx) += _terrain_process_noise;
 
 	// iterate through both measurements (z and dist_bottom)
 	const Vector2f measurements{z, dist_bottom};
@@ -84,7 +83,7 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 	for (int measurement_idx = 0; measurement_idx < 2; measurement_idx++) {
 
 		// dist_bottom
-		Vector2f H = _Ht;
+		Vector2f H = _ht;
 		float R = dist_bottom_var;
 
 		// z, direct state measurement
@@ -101,8 +100,8 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 		// for H as col-vector:
 		// innovation variance S = H^T * P * H + R
 		// kalman gain K = P * H / S
-		const float S = (H.transpose() * _P * H + R)(0, 0);
-		Vector2f K = (_P * H / S);
+		const float S = (H.transpose() * _p * H + R)(0, 0);
+		Vector2f K = (_p * H / S);
 
 		if (measurement_idx == 0) {
 			K(RangeFilter::z.idx) = 1.f;
@@ -110,8 +109,6 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 		} else if (measurement_idx == 1) {
 			_innov = y;
 			const float test_ratio = fminf(sq(y) / (sq(_gate) * S), 4.f); // limit to 4 to limit sensitivity to outliers
-			// _test_ratio_lpf.setParameters(dt, _t_to_init);
-			// _test_ratio_lpf.update(sign(_innov) * test_ratio);
 			_test_ratio = sign(_innov) * test_ratio;
 		}
 
@@ -124,7 +121,7 @@ void RangeFinderConsistencyCheck::update(const float z, const float z_var, const
 		Matrix2f I;
 		I.setIdentity();
 		Matrix2f IKH = I - K.multiplyByTranspose(H);
-		_P = IKH * _P * IKH.transpose() + (K * R).multiplyByTranspose(K);
+		_p = IKH * _p * IKH.transpose() + (K * R).multiplyByTranspose(K);
 	}
 
 	evaluateState(dt, vz, vz_var);

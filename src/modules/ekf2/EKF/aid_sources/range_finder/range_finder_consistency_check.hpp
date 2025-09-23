@@ -40,7 +40,9 @@
 #ifndef EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
 #define EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
 
-#include <mathlib/math/filter/AlphaFilter.hpp>
+#include <mathlib/math/Functions.hpp>
+
+using namespace math;
 
 class RangeFinderConsistencyCheck final
 {
@@ -54,7 +56,6 @@ public:
 		UNKNOWN = 2
 	};
 
-	// float getTestRatioLpf() const { return _initialized ? _test_ratio_lpf.getState() : 0.f; }
 	float getTestRatioLpf() const { return _test_ratio; }
 
 	float getInnov() const { return _initialized ? _innov : 0.f; }
@@ -75,15 +76,14 @@ private:
 	void init(float z, float z_var, float dist_bottom, float dist_bottom_var);
 	void evaluateState(float dt, float vz, float vz_var);
 	float _terrain_process_noise{0.0f};
-	matrix::SquareMatrix<float, 2> _P{};
-	matrix::Vector2f _Ht{};
+	matrix::SquareMatrix<float, 2> _p{};
+	matrix::Vector2f _ht{};
 	matrix::Vector2f _x{};
 	bool _initialized{false};
 	float _innov{0.f};
 	float _innov_var{0.f};
 	uint64_t _time_last_update_us{0};
 	static constexpr float time_constant{1.f};
-	// AlphaFilter<float> _test_ratio_lpf{time_constant};
 
 	float _test_ratio{0.f};
 
