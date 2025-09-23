@@ -133,7 +133,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	updateRangeHagl(_aid_src_rng_hgt);
 
 	if (!PX4_ISFINITE(_aid_src_rng_hgt.observation) || !PX4_ISFINITE(_aid_src_rng_hgt.observation_variance)) {
-		ECL_INFO("INFINIFY OBSERVATION INVALID");
+		printf("INFINIFY OBSERVATION INVALID\n");
 	}
 
 	// Fuse Range data as Primary height source
@@ -166,13 +166,13 @@ void Ekf::fuseRangeAsHeightAiding()
 
 	// Start fusion
 	if (!_control_status.flags.rng_terrain) {
-		ECL_INFO("START RNG Terrain fusion");
+		printf("START RNG Terrain fusion\n");
 		_control_status.flags.rng_terrain = true;
 
 		// We must reset terrain to range before we start fusing again, otherwise there
 		// can be a delta between RNG terrain estimate and previous, which will cause a
 		// discontinuity in the lpos.z state
-		ECL_INFO("resetting terrain to range");
+		printf("resetting terrain to range\n");
 		resetTerrainToRng(_aid_src_rng_hgt);
 		resetAidSourceStatusZeroInnovation(_aid_src_rng_hgt);
 	}
@@ -193,19 +193,19 @@ void Ekf::fuseRangeAsHeightAiding()
 	if (do_range_aid) {
 
 		if (!_control_status.flags.rng_hgt) {
-			ECL_INFO("START RNG Altitude fusion");
+			printf("START RNG Altitude fusion\n");
 			_control_status.flags.rng_hgt = true;
 
 			// Reset altitude to rangefinder if on ground
 			if (!_control_status.flags.in_air) {
-				ECL_INFO("GND resetting altitude to range");
+				printf("GND resetting altitude to range\n");
 				resetAltitudeTo(_aid_src_rng_hgt.observation - _state.terrain);
 			}
 
 			// TODO: review for correctness
 			if (_aid_src_rng_hgt.innovation_rejected) {
 				// Reset aid source
-				ECL_INFO("resetting aid source");
+				printf("resetting aid source\n");
 				resetAidSourceStatusZeroInnovation(_aid_src_rng_hgt);
 			}
 		}
@@ -239,7 +239,7 @@ void Ekf::fuseRangeAsHeightSource()
 
 		// Cannot have terrain estimate fusion while RANGE is primary
 		stopRangeTerrainFusion("Cannot have terrain estimate fusion while RANGE is primary");
-		ECL_INFO("initializing range as primary");
+		printf("initializing range as primary\n");
 		_state.terrain = 0.f;
 
 		// TODO: needed? It's set above in --> resetAidSourceStatusZeroInnovation()
@@ -249,7 +249,7 @@ void Ekf::fuseRangeAsHeightSource()
 	// TODO:
 	// When RNG is primary height source
 	if (isHeightResetRequired() && _control_status.flags.rng_hgt && (_height_sensor_ref == HeightSensor::RANGE)) {
-		ECL_INFO("RNG height fusion reset required, all height sources failing");
+		printf("RNG height fusion reset required, all height sources failing\n");
 
 		uint64_t timestamp = _aid_src_rng_hgt.timestamp;
 		_information_events.flags.reset_hgt_to_rng = true;
@@ -258,7 +258,7 @@ void Ekf::fuseRangeAsHeightSource()
 
 		// reset vertical velocity if no valid sources available
 		if (!isVerticalVelocityAidingActive()) {
-			ECL_INFO("resetting vertical velocity");
+			printf("resetting vertical velocity\n");
 			resetVerticalVelocityToZero();
 		}
 
@@ -282,7 +282,7 @@ bool Ekf::rangeAidConditionsPassed()
 	if (conditions_met) {
 		if (!_rng_aid_conditions_valid) {
 			// Conditions just became valid
-			ECL_INFO("RNG AID conditions valid");
+			printf("RNG AID conditions valid\n");
 			_rng_aid_conditions_valid = true;
 			_time_rng_aid_conditions_valid = _time_latest_us;
 		}
@@ -298,15 +298,15 @@ bool Ekf::rangeAidConditionsPassed()
 			_rng_aid_conditions_valid = false;
 
 			// if (!is_hagl_stable) {
-			//  ECL_INFO("!is_hagl_stable");
+			//  printf("!is_hagl_stable\n");
 			// }
 			// if (is_horizontal_aiding_active && !is_below_max_speed) {
 			if (!is_below_max_speed) {
-				ECL_INFO("!is_below_max_speed");
+				printf("!is_below_max_speed\n");
 			}
 
 			if (!is_in_range) {
-				ECL_INFO("!is_in_range");
+				printf("!is_in_range\n");
 			}
 		}
 	}
@@ -384,7 +384,7 @@ float Ekf::getRngVar() const
 void Ekf::stopRangeAltitudeFusion(const char *reason)
 {
 	if (_control_status.flags.rng_hgt) {
-		ECL_INFO("STOP RNG Altitude fusion: %s", reason);
+		printf("STOP RNG Altitude fusion: %s\n", reason);
 		_control_status.flags.rng_hgt = false;
 
 		if (_height_sensor_ref == HeightSensor::RANGE) {
@@ -396,7 +396,7 @@ void Ekf::stopRangeAltitudeFusion(const char *reason)
 void Ekf::stopRangeTerrainFusion(const char *reason)
 {
 	if (_control_status.flags.rng_terrain) {
-		ECL_INFO("STOP RNG Terrain fusion: %s", reason);
+		printf("STOP RNG Terrain fusion: %s\n", reason);
 		_control_status.flags.rng_terrain = false;
 	}
 }
