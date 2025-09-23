@@ -67,16 +67,19 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	float cosine_max_tilt = 0.9659; // 10 degrees
 	_range_sensor.setCosMaxTilt(cosine_max_tilt);
 	_rng_consistency_check.setGate(_params.ekf2_rng_k_gate);
-	// Update sensor to earth rotation
 	_range_sensor.updateSensorToEarthRotation(_R_to_earth);
 
-	// TODO: refactor into validity_checks()
-	// Gate sample consumption on these checks
-	bool quality_ok = sample.quality > 0; // TODO: what about unknown? (-1)
+	bool quality_ok = sample.quality > 0;
+
+	// While on ground fake a measurement at ground level if the signal quality is bad
+	if (!quality_ok && !_control_status.flags.in_air) {
+		sample.quality = 100;
+		quality_ok = true;
+		sample.range = _range_sensor.getValidMinVal();
+	}
+
 	bool tilt_ok = _range_sensor.isTiltOk();
 	bool range_ok = sample.range <= _range_sensor.getValidMaxVal() && sample.range >= _range_sensor.getValidMinVal();
-	// - Not stuck value
-	// - Not fog detected
 
 	// If quality, tilt, or value are outside of bounds -- throw away measurement
 	if (!quality_ok || !tilt_ok || !range_ok) {
