@@ -24919,7 +24919,6 @@ Reboot | minValue | maxValue | increment | default | unit
 Deadzone for sticks (only specific use cases).
 
 Range around stick center ignored to prevent
-vehicle drift from stick hardware inaccuracy.
 Does not apply to any precise constant input like
 throttle and attitude or rate piloting.
 
@@ -24931,8 +24930,6 @@ throttle and attitude or rate piloting.
 
 Trigger time for kill stick gesture.
 
-The timeout for holding the left stick to the lower left
-and the right stick to the lower right at the same time until the gesture
 kills the actuators one-way.
 A negative value disables the feature.
 
@@ -26743,14 +26740,12 @@ Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
 output = MC_YAWRATE_K _ (MC_YAWRATE_P _ error
 
-
-Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
-
 Reboot | minValue | maxValue | increment | default | unit
 --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 0.6 | 0.01 | 0.2 |
+&nbsp; | 0.01 | 5.0 | 0.0005 | 1.0 |
 
-### MC_YAW_TQ_CUTOFF (`FLOAT`) {#MC_YAW_TQ_CUTOFF}
+### MC_YAWRATE_P (`FLOAT`) {#MC_YAWRATE_P}
+
 
 Low pass filter cutoff frequency for yaw torque setpoint.
 
@@ -33070,7 +33065,6 @@ can lead to an unexpected behavior and vehicle instability.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 2       |
-
 ### SENS_AFBR_HYSTER (`INT32`) {#SENS_AFBR_HYSTER}
 
 AFBR Rangefinder Short/Long Range Threshold Hysteresis.
