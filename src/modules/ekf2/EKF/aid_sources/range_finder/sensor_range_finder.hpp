@@ -50,11 +50,10 @@ namespace sensor
 {
 
 struct rangeSample {
-	uint64_t    time_us{};  ///< timestamp of the measurement (uSec)
-	float       range{};      ///< range (distance to ground) measurement (m)
-	int8_t      quality{};  ///< Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality.
+	uint64_t    time_us{};  // timestamp of the measurement (uSec)
+	float       range{};    // range (distance to ground) measurement (m)
+	int8_t      quality{};  // Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality.
 };
-
 
 class SensorRangeFinder
 {
@@ -76,35 +75,25 @@ public:
 		float range_cos_max_tilt{0.7071f}; // 45 degrees max tilt
 	};
 
-	void updateParameters(Parameters& parameters) { _parameters = parameters; };
-
-	bool timedOut(uint64_t time_now) const;
-	void setSample(const rangeSample &sample);
-
-
 	// This is required because of the ring buffer
 	// TODO: move the ring buffer here
 	rangeSample *sample() { return &_sample; }
 
+	void setSample(const rangeSample &sample);
 	void setPitchOffset(float new_pitch_offset);
-
 	void setCosMaxTilt(float cos_max_tilt) { _range_cos_max_tilt = cos_max_tilt; }
-
-	float getCosTilt() const { return _cos_tilt_rng_to_earth; }
-
 	void setLimits(float min_distance, float max_distance);
 
-	// void setRange(float rng) { _sample.rng = rng; }
-	// float getRange() const { return _sample.rng; }
-
+	float getCosTilt() const { return _cos_tilt_rng_to_earth; }
 	float getDistBottom() const { return _sample.range * _cos_tilt_rng_to_earth; }
+	float getValidMinVal() const { return _min_distance; }
+	float getValidMaxVal() const { return _max_distance; }
 
-	float getValidMinVal() const { return _rng_valid_min_val; }
-	float getValidMaxVal() const { return _rng_valid_max_val; }
-
+	void updateParameters(Parameters &parameters) { _parameters = parameters; };
 	void updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth);
 
 	bool isTiltOk() const { return _cos_tilt_rng_to_earth > _range_cos_max_tilt; }
+	bool timedOut(uint64_t time_now) const;
 
 private:
 
@@ -112,21 +101,16 @@ private:
 
 	Parameters _parameters{};
 
-	/*
-	 * Tilt check
-	 */
-	float _cos_tilt_rng_to_earth{1.f};		///< 2,2 element of the rotation matrix from sensor frame to earth frame
-	float _range_cos_max_tilt{0.7071f};	///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
-	float _pitch_offset_rad{3.14f}; 		///< range finder tilt rotation about the Y body axis
-	float _sin_pitch_offset{0.0f}; 		///< sine of the range finder tilt rotation about the Y body axis
-	float _cos_pitch_offset{-1.0f}; 		///< cosine of the range finder tilt rotation about the Y body axis
+	// Tilt check
+	float _cos_tilt_rng_to_earth{1.f};  // 2,2 element of the rotation matrix from sensor frame to earth frame
+	float _range_cos_max_tilt{0.7071f}; // cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
+	float _pitch_offset_rad{3.14f};     // range finder tilt rotation about the Y body axis
+	float _sin_pitch_offset{0.0f};      // sine of the range finder tilt rotation about the Y body axis
+	float _cos_pitch_offset{-1.0f};     // cosine of the range finder tilt rotation about the Y body axis
 
-	/*
-	 * Range check
-	 */
-	float _rng_valid_min_val{};	///< minimum distance that the rangefinder can measure (m)
-	float _rng_valid_max_val{};	///< maximum distance that the rangefinder can measure (m)
-
+	// Range check
+	float _min_distance{}; // minimum distance that the rangefinder can measure (m)
+	float _max_distance{}; // maximum distance that the rangefinder can measure (m)
 };
 
 } // namespace sensor

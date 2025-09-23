@@ -73,8 +73,8 @@ void SensorRangeFinder::setPitchOffset(float new_pitch_offset)
 
 void SensorRangeFinder::setLimits(float min_distance, float max_distance)
 {
-	_rng_valid_min_val = min_distance;
-	_rng_valid_max_val = max_distance;
+	_min_distance = min_distance;
+	_max_distance = max_distance;
 }
 
 void SensorRangeFinder::updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth)

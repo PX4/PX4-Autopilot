@@ -783,8 +783,8 @@ private:
 	void fuseRangeAsHeightAiding();
 	bool isConditionalRangeAidSuitable();
 	bool rangeAidConditionsPassed();
-	void stopRangeAltitudeFusion(const char* reason);
-	void stopRangeTerrainFusion(const char* reason);
+	void stopRangeAltitudeFusion(const char *reason);
+	void stopRangeTerrainFusion(const char *reason);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)

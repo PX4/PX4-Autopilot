@@ -376,8 +376,9 @@ protected:
 	uint64_t _time_last_range_buffer_push{0};
 
 	// Range aiding
-	bool _rng_aid_conditions_valid{false};
-	uint64_t _time_rng_aid_conditions_valid{0};
+	bool _rng_aid_conditions_valid{};
+	uint64_t _time_rng_aid_conditions_valid{};
+	uint64_t _range_time_last_good_sample{};
 
 	sensor::SensorRangeFinder _range_sensor{};
 	RangeFinderConsistencyCheck _rng_consistency_check;

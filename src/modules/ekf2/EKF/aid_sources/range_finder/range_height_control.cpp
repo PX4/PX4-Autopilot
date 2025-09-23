@@ -46,22 +46,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		return;
 	}
 
-	// TODO: why isn't this being done anywhere?
-	_aid_src_rng_hgt.fused = false;
-
-	// Pop rangefinder measurement from buffer of samples into active sample
-	sensor::rangeSample sample = {};
-	if (!_range_buffer->pop_first_older_than(imu_sample.time_us, &sample)) {
-		if (_range_sensor.timedOut(imu_sample.time_us)) {
-			stopRangeAltitudeFusion("sensor timed out");
-			stopRangeTerrainFusion("sensor timed out");
-		}
-		return;
-	}
-
-	// Set the raw sample
-	_range_sensor.setSample(sample);
-
 	// TODO: move setting params to init function
 	_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
 	float cosine_max_tilt = 0.9659; // 10 degrees
@@ -69,20 +53,54 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	_rng_consistency_check.setGate(_params.ekf2_rng_k_gate);
 	_range_sensor.updateSensorToEarthRotation(_R_to_earth);
 
-	bool quality_ok = sample.quality > 0;
+	// TODO: why isn't this being done anywhere?
+	_aid_src_rng_hgt.fused = false;
 
-	// While on ground fake a measurement at ground level if the signal quality is bad
-	if (!quality_ok && !_control_status.flags.in_air) {
-		sample.quality = 100;
-		quality_ok = true;
-		sample.range = _range_sensor.getValidMinVal();
+	// Pop rangefinder measurement from buffer of samples into active sample
+	sensor::rangeSample sample = {};
+
+	if (!_range_buffer->pop_first_older_than(imu_sample.time_us, &sample)) {
+		if (_range_sensor.timedOut(imu_sample.time_us)) {
+			stopRangeAltitudeFusion("sensor timed out");
+			stopRangeTerrainFusion("sensor timed out");
+		}
+
+		return;
 	}
 
+	// Set the raw sample
+	_range_sensor.setSample(sample);
+
+	// Quality checks
+	if (sample.quality == 0) {
+		if (_control_status.flags.in_air) {
+			// Disable fusion after 1s of bad quality
+			uint64_t elapsed = sample.time_us - _range_time_last_good_sample;
+
+			if (elapsed > 1'000'000) {
+				stopRangeAltitudeFusion("sensor quality bad");
+				stopRangeTerrainFusion("sensor quality bad");
+			}
+
+			return;
+
+		} else {
+			// While on ground fake a measurement at ground level if the signal quality is bad
+			sample.quality = 100;
+			sample.range = _range_sensor.getValidMinVal();
+			_range_time_last_good_sample = sample.time_us;
+		}
+
+	} else {
+		_range_time_last_good_sample = sample.time_us;
+	}
+
+	// Tilt and range checks
 	bool tilt_ok = _range_sensor.isTiltOk();
 	bool range_ok = sample.range <= _range_sensor.getValidMaxVal() && sample.range >= _range_sensor.getValidMinVal();
 
-	// If quality, tilt, or value are outside of bounds -- throw away measurement
-	if (!quality_ok || !tilt_ok || !range_ok) {
+	// If tilt or value are outside of bounds -- throw away measurement
+	if (!tilt_ok || !range_ok) {
 		stopRangeAltitudeFusion("pre checks failed");
 		stopRangeTerrainFusion("pre checks failed");
 		return;
@@ -125,6 +143,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	// NOTE: terrain is not estimated in this mode
 	if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::RANGE)) {
 		fuseRangeAsHeightSource();
+
 	} else {
 		// Fuse Range data as aiding height source (Primary GPS or Baro)
 		fuseRangeAsHeightAiding();
@@ -133,13 +152,8 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 void Ekf::fuseRangeAsHeightAiding()
 {
-	// ISSUES: 6/25/2025
-	// - optical flow terrain fucks everything up, I've hardcoded disabled it
-	// - when rng fusion starts again, EKF Z state is corrupted (oscillation)
-	// -
-
-	const char* kNotKinematicallyConsistentText = "not kinematically consistent";
-	const char* kConditionsFailingText = "conditions failing";
+	const char *kNotKinematicallyConsistentText = "not kinematically consistent";
+	const char *kConditionsFailingText = "conditions failing";
 
 	// Stop fusion if rangefinder kinematic consistency fails
 	if (!_control_status.flags.rng_kin_consistent) {
@@ -147,7 +161,6 @@ void Ekf::fuseRangeAsHeightAiding()
 		stopRangeAltitudeFusion(kNotKinematicallyConsistentText);
 		return;
 	}
-
 
 	//// TERRAIN FUSION ////
 
@@ -208,6 +221,7 @@ void Ekf::fuseRangeAsHeightAiding()
 	fuseHaglRng(_aid_src_rng_hgt, _control_status.flags.rng_hgt, _control_status.flags.rng_terrain);
 }
 
+// TODO: remove this mode entirely
 void Ekf::fuseRangeAsHeightSource()
 {
 	// When primary height source is RANGE, we always fuse it
@@ -280,6 +294,7 @@ bool Ekf::rangeAidConditionsPassed()
 			// Conditions have been valid for at least 1s
 			conditions_passing = true;
 		}
+
 	} else {
 
 		if (_rng_aid_conditions_valid) {
@@ -292,6 +307,7 @@ bool Ekf::rangeAidConditionsPassed()
 			if (!is_below_max_speed) {
 				ECL_INFO("!is_below_max_speed");
 			}
+
 			if (!is_in_range) {
 				ECL_INFO("!is_in_range");
 			}
@@ -345,12 +361,12 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 
 	const float innov_gate = math::max(_params.ekf2_rng_gate, 1.f);
 	updateAidSourceStatus(aid_src,
-				  _range_sensor.sample()->time_us, // sample timestamp
-				  measurement,                               // observation
-				  measurement_variance,                      // observation variance
-				  getHagl() - measurement,                   // innovation
-				  innovation_variance,                       // innovation variance
-				  innov_gate);                               // innovation gate
+			      _range_sensor.sample()->time_us, // sample timestamp
+			      measurement,                               // observation
+			      measurement_variance,                      // observation variance
+			      getHagl() - measurement,                   // innovation
+			      innovation_variance,                       // innovation variance
+			      innov_gate);                               // innovation gate
 
 	// z special case if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter
@@ -368,18 +384,19 @@ float Ekf::getRngVar() const
 	return dist_var;
 }
 
-void Ekf::stopRangeAltitudeFusion(const char* reason)
+void Ekf::stopRangeAltitudeFusion(const char *reason)
 {
 	if (_control_status.flags.rng_hgt) {
 		ECL_INFO("STOP RNG Altitude fusion: %s", reason);
 		_control_status.flags.rng_hgt = false;
+
 		if (_height_sensor_ref == HeightSensor::RANGE) {
 			_height_sensor_ref = HeightSensor::UNKNOWN;
 		}
 	}
 }
 
-void Ekf::stopRangeTerrainFusion(const char* reason)
+void Ekf::stopRangeTerrainFusion(const char *reason)
 {
 	if (_control_status.flags.rng_terrain) {
 		ECL_INFO("STOP RNG Terrain fusion: %s", reason);
