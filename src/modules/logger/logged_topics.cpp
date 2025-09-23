@@ -195,7 +195,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("yaw_estimator_status", 1000);
 
 	// Vision target estimator topics
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	add_topic("vision_target_est_input", 50);
 	add_topic("vision_target_est_position", 100);
 	add_topic("vision_target_est_orientation", 100);
@@ -211,7 +211,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("fiducial_marker_yaw_report", 100);
 	add_optional_topic("sensor_uwb", 100);
 	add_optional_topic("target_gnss", 100);
-#endif // !CONSTRAINED_FLASH
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
 	add_topic_multi("battery_status", 200, 3);

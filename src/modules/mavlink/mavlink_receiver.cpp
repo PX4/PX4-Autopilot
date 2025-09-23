@@ -302,22 +302,24 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY:
 		handle_message_debug_float_array(msg);
 		break;
+#endif // !CONSTRAINED_FLASH
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
 
 	case MAVLINK_MSG_ID_TARGET_RELATIVE:
 		handle_message_target_relative(msg);
 		break;
-#endif
+#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
 
 #if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
 
 	case MAVLINK_MSG_ID_TARGET_ABSOLUTE:
 		handle_message_target_absolute(msg);
 		break;
-#endif
+#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
 
-#endif // !CONSTRAINED_FLASH
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	case MAVLINK_MSG_ID_GIMBAL_MANAGER_SET_ATTITUDE:
 		handle_message_gimbal_manager_set_attitude(msg);
@@ -2851,6 +2853,10 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 	_debug_array_pub.publish(debug_topic);
 }
 
+#endif // !CONSTRAINED_FLASH
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 #if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
 void
 MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
@@ -2892,7 +2898,7 @@ MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 
 	if (updated) { _target_gnss_pub.publish(target_GNSS_report); }
 }
-#endif
+#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
 
 #if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
 void
@@ -2957,8 +2963,8 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 	}
 
 	// Forward target to the vision target estimator (VTE) or precland based VTE_EN
-	int32_t vte_enabled;
-	param_get(param_find("VTE_EN"), &vte_enabled);
+	int32_t vte_enabled = 0;
+	param_get(_param_vte_en, &vte_enabled);
 
 	if (!vte_enabled) {
 
@@ -3029,9 +3035,8 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 	}
 
 }
-#endif
-
-#endif // !CONSTRAINED_FLASH
+#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 void
 MavlinkReceiver::handle_message_onboard_computer_status(mavlink_message_t *msg)

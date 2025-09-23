@@ -102,6 +102,7 @@ bool VTEPosition::init()
 		return false;
 	}
 
+	_param_mpc_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
 #else
 	PX4_INFO("VTE for static target init");
 
@@ -116,8 +117,6 @@ bool VTEPosition::init()
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
 		_target_est_pos[axis] = KF_position{};
 	}
-
-	_param_mpc_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
 
 	return true;
 }

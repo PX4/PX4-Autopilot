@@ -122,7 +122,7 @@ PrecLand::on_active()
 		_target_pose_valid = false;
 	}
 
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	// get orientation measurement
 	if (_param_pld_yaw_en.get()) {
@@ -139,7 +139,7 @@ PrecLand::on_active()
 		}
 	}
 
-#endif
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	// stop if we are landed
 	if (_navigator->get_land_detected()->landed) {
@@ -180,17 +180,17 @@ PrecLand::on_active()
 		break;
 	}
 
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_publish_prec_land_status(_state != PrecLandState::Done);
-#endif
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }
 
 void
 PrecLand::on_inactivation()
 {
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_publish_prec_land_status(false);
-#endif
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_is_activated = false;
 }
 
@@ -293,13 +293,13 @@ PrecLand::run_state_horizontal_approach()
 	pos_sp_triplet->current.alt = _approach_alt;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	if (_param_pld_yaw_en.get() && _target_yaw_valid) {
 		pos_sp_triplet->current.yaw = _target_yaw;
 	}
 
-#endif
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	_navigator->set_position_setpoint_triplet_updated();
 }
@@ -331,7 +331,7 @@ PrecLand::run_state_descend_above_target()
 	_map_ref.reproject(_target_pose.x_abs, _target_pose.y_abs, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	if (_param_pld_yaw_en.get() && _target_yaw_valid) {
 		pos_sp_triplet->current.yaw = _target_yaw;
@@ -619,7 +619,7 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 }
 
 
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 void PrecLand::_publish_prec_land_status(const bool prec_land_ongoing)
 {
 	prec_land_status_s prec_land_status{};
@@ -634,4 +634,4 @@ void PrecLand::_publish_prec_land_status(const bool prec_land_ongoing)
 	prec_land_status.nav_state = (int)_state;
 	_prec_land_status_pub.publish(prec_land_status);
 }
-#endif
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR

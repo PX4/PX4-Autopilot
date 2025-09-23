@@ -64,9 +64,11 @@
 #include <uORB/topics/esc_report.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/fiducial_marker_pos_report.h>
 #include <uORB/topics/fiducial_marker_yaw_report.h>
 #include <uORB/topics/target_gnss.h>
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
@@ -259,9 +261,12 @@ private:
 	uORB::Publication<vehicle_local_position_s>	_lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
 	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
-	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub{ORB_ID(fiducial_marker_pos_report)};
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub {ORB_ID(fiducial_marker_pos_report)};
 	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
 	uORB::Publication<target_gnss_s>		_target_gnss_pub{ORB_ID(target_gnss)};
+	param_t _param_vte_en{PARAM_INVALID};
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	//rpm
 	uORB::Publication<rpm_s>			_rpm_pub{ORB_ID(rpm)};

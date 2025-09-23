@@ -198,25 +198,27 @@ if(VTEST_GENERATED_TARGET)
 	add_dependencies(prebuild_targets ${VTEST_GENERATED_TARGET})
 endif()
 
-px4_add_module(
-	MODULE modules__vision_target_estimator
-	MAIN vision_target_estimator
-	COMPILE_FLAGS
-	STACK_MAX
-		5000
-	SRCS
-		VisionTargetEst.cpp
-		Position/VTEPosition.cpp
-		Position/KF_position.cpp
-		Orientation/VTEOrientation.cpp
-		Orientation/KF_orientation.cpp
+if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
+	px4_add_module(
+		MODULE modules__vision_target_estimator
+		MAIN vision_target_estimator
+		COMPILE_FLAGS
+		STACK_MAX
+			5000
+		SRCS
+			VisionTargetEst.cpp
+			Position/VTEPosition.cpp
+			Position/KF_position.cpp
+			Orientation/VTEOrientation.cpp
+			Orientation/KF_orientation.cpp
 
-		${VTEST_GENERATED_FILES}
-	DEPENDS
-		mathlib
-		px4_work_queue
-)
+			${VTEST_GENERATED_FILES}
+		DEPENDS
+			mathlib
+			px4_work_queue
+	)
 
-target_include_directories(modules__vision_target_estimator BEFORE PRIVATE
-	${VTEST_GENERATED_DERIVATION_INCLUDE_PATH}
-)
+	target_include_directories(modules__vision_target_estimator BEFORE PRIVATE
+		${VTEST_GENERATED_DERIVATION_INCLUDE_PATH}
+	)
+endif()

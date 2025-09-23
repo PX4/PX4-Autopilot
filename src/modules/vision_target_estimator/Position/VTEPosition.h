@@ -344,10 +344,9 @@ private:
 
 #if defined(CONFIG_VTEST_MOVING)
 	Vector3fStamped _target_gps_vel {};
-#endif // CONFIG_VTEST_MOVING
-
-	param_t _param_mpc_z_v_auto_dn{PARAM_INVALID};
 	float _mpc_z_v_auto_dn{0.f};
+	param_t _param_mpc_z_v_auto_dn{PARAM_INVALID};
+#endif // CONFIG_VTEST_MOVING
 
 	bool _gps_pos_is_offset{false};
 	bool _bias_set{false};

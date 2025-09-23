@@ -98,9 +98,11 @@ SimulatorMavlink::SimulatorMavlink() :
 	}
 
 	_esc_status_pub.advertise();
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_fiducial_marker_pos_report_pub.advertise();
 	_fiducial_marker_yaw_report_pub.advertise();
 	_target_gnss_pub.advertise();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }
 
 void SimulatorMavlink::parameters_update(bool force)
@@ -386,19 +388,21 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		handle_message_landing_target(msg);
 		break;
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
 
 	case MAVLINK_MSG_ID_TARGET_RELATIVE:
 		handle_message_target_relative(msg);
 		break;
-#endif
+#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
 
 #if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
 
 	case MAVLINK_MSG_ID_TARGET_ABSOLUTE:
 		handle_message_target_absolute(msg);
 		break;
-#endif
+#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 		handle_message_hil_state_quaternion(msg);
@@ -678,6 +682,8 @@ void SimulatorMavlink::handle_message_landing_target(const mavlink_message_t *ms
 }
 
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 #if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
 void
 SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
@@ -719,7 +725,7 @@ SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 
 	if (updated) { _target_gnss_pub.publish(target_GNSS_report); }
 }
-#endif
+#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
 
 
 #if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
@@ -774,8 +780,8 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 	}
 
 	// Forward target to the vision target estimator (VTE) or precland based VTE_EN
-	int32_t vte_enabled;
-	param_get(param_find("VTE_EN"), &vte_enabled);
+	int32_t vte_enabled = 0;
+	param_get(_param_vte_en, &vte_enabled);
 
 	if (!vte_enabled) {
 
@@ -846,7 +852,8 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 	}
 
 }
-#endif
+#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
 {
