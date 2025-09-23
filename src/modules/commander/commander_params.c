@@ -173,19 +173,19 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
  * A value of 2 allows either RC Transmitter or Joystick input. The first valid input is used, will fallback to other sources if the input stream becomes invalid.
  * A value of 3 allows either input from RC or joystick. The first available source is selected and used until reboot.
  * A value of 4 ignores any stick input.
- * A value of 5 allows either RC Transmitter or Joystick input. But RC has priority and whenever avaiable is immedietely used.
- * A value of 6 allows either RC Transmitter or Joystick input. But Joystick has priority and whenever avaiable is immedietely used.
+ * A value of 5 allows either RC Transmitter or Joystick input, prioritizing by ascending source ID, giving an RC transmitter priority over MAVLink joysticks, and lower MAVLink instance numbers priority over higher ones.
+ * A value of 6 allows either RC Transmitter or Joystick input, prioritizing by descending source ID, giving MAVLink joysticks priority over an RC transmitter, and higher MAVLink instance numbers priority over lower ones.
  *
  * @group Commander
  * @min 0
- * @max 4
+ * @max 6
  * @value 0 RC Transmitter only
  * @value 1 Joystick only
  * @value 2 RC and Joystick with fallback
  * @value 3 RC or Joystick keep first
  * @value 4 Stick input disabled
- * @value 5 RC priority, Joystick fallback
- * @value 6 Joystick priority, RC fallback
+ * @value 5 Ascending priority
+ * @value 6 Descending priority
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 3);
 

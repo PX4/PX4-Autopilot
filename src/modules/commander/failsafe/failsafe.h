@@ -132,7 +132,9 @@ private:
 		JoystickOnly = 1,		// Joystick only
 		RcAndJoystickWithFallback = 2,	// RC And Joystick with fallback
 		RcOrJoystickKeepFirst = 3,	// RC or Joystick keep first
-		StickInputDisabled = 4		// input disabled
+		StickInputDisabled = 4,		// input disabled
+		AscendingPriority = 5,		// ascending source priority
+		DescendingPriority = 6		// descending source priority
 	};
 
 	enum class command_after_high_wind_failsafe : int32_t {

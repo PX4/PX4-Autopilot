@@ -39,7 +39,7 @@
 class ManualControlSelector
 {
 public:
-	void setRcInMode(int32_t rc_in_mode) { _rc_in_mode = rc_in_mode; }
+	void setRcInMode(int32_t rc_in_mode) { _rc_in_mode = static_cast<RcInMode>(rc_in_mode); }
 	void setTimeout(uint64_t timeout) { _timeout = timeout; }
 	void updateValidityOfChosenInput(uint64_t now);
 	void updateWithNewInputSample(uint64_t now, const manual_control_setpoint_s &input, int instance);
@@ -51,11 +51,20 @@ private:
 	static bool isRc(uint8_t source);
 	static bool isMavlink(uint8_t source);
 
+	// COM_RC_IN_MODE parameter values
+	enum class RcInMode : int32_t {
+		RcTransmitterOnly = 0, 		// RC Transmitter only
+		JoystickOnly = 1,		// Joystick only
+		RcAndJoystickWithFallback = 2,	// RC And Joystick with fallback
+		RcOrJoystickKeepFirst = 3,	// RC or Joystick keep first
+		StickInputDisabled = 4,		// input disabled
+		AscendingPriority = 5,		// ascending source priority
+		DescendingPriority = 6		// descending source priority
+	};
+
 	manual_control_setpoint_s _setpoint{};
 	uint64_t _timeout{0};
-	int32_t _rc_in_mode{0};
+	RcInMode _rc_in_mode{RcInMode::RcTransmitterOnly};
 	int _instance{-1};
 	uint8_t _first_valid_source{manual_control_setpoint_s::SOURCE_UNKNOWN};
-	uint64_t _timestamp_last_rc{0};
-	uint64_t _timestamp_last_mavlink{0};
 };
