@@ -69,7 +69,8 @@ private:
 
 	modal_io_mavlink_data_s _mavlink_odometry{};
 
-	int pipe_ch{0};
+	int flow_pipe_ch{0};
+	int vio_pipe_ch{0};
 
 };
 
@@ -84,9 +85,17 @@ bool MavlinkOdometryBridge::init()
 		return false;
 	}
 
-	char pipe_name[] = "hitl_vio";
-	if (MPA::PipeCreate(pipe_name) == -1) {
-		PX4_ERR("Pipe create failed for %s", pipe_name);
+	char vio_pipe_name[] = "hitl_vio";
+	vio_pipe_ch = MPA::PipeCreate(vio_pipe_name);
+	if (vio_pipe_ch == -1) {
+		PX4_ERR("Pipe create failed for %s", vio_pipe_name);
+		return false;
+	}
+
+	char flow_pipe_name[] = "state";
+	flow_pipe_ch = MPA::PipeCreate(flow_pipe_name);
+	if (flow_pipe_ch == -1) {
+		PX4_ERR("Pipe create failed for %s", flow_pipe_name);
 		return false;
 	}
 
@@ -205,8 +214,12 @@ void MavlinkOdometryBridge::Run()
 			s.quality = quality;
 			s.n_feature_points = 25;
 
-			if (MPA::PipeWrite(pipe_ch, (void*)&s, sizeof(vio_data_t)) == -1) {
-				PX4_ERR("Pipe write failed!");
+			if (MPA::PipeWrite(vio_pipe_ch, (void*)&s, sizeof(vio_data_t)) == -1) {
+				PX4_ERR("Pipe %d write failed!", vio_pipe_ch);
+			}
+
+			if (MPA::PipeWrite(flow_pipe_ch, (void*)&s, sizeof(vio_data_t)) == -1) {
+				PX4_ERR("Pipe %d write failed!", flow_pipe_ch);
 			}
 		}
 	}
