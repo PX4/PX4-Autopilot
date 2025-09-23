@@ -46,9 +46,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		return;
 	}
 
-	// Apply rotation to earth frame
-	_range_sensor.updateSensorToEarthRotation(_R_to_earth);
-
 	// TODO: why isn't this being done anywhere?
 	_aid_src_rng_hgt.fused = false;
 
@@ -56,8 +53,10 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	rangeSample sample = {};
 
 	if (!_range_buffer->pop_first_older_than(imu_sample.time_us, &sample)) {
-		// Check if sample is timed out (200ms)
-		if (imu_sample.time_us > sample.time_us + 200'000) {
+		// no new sample available, check if we've timed out
+		bool had_sample = _range_time_last_good_sample > 0;
+		bool timed_out = imu_sample.time_us > _range_time_last_good_sample + 200'000;
+		if (had_sample && timed_out) {
 			stopRangeAltitudeFusion("sensor timed out");
 			stopRangeTerrainFusion("sensor timed out");
 		}
@@ -107,7 +106,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	// Correct the range data for position offset relative to the IMU
 	const Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
 	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-	sample.range = sample.range + pos_offset_earth(2) / _range_sensor.getCosTilt();
+	sample.range = sample.range + pos_offset_earth(2) / _R_to_earth(2, 2); // rotate into earth frame
 
 	// Provide sample from buffer to object
 	_range_sensor.setSample(sample);

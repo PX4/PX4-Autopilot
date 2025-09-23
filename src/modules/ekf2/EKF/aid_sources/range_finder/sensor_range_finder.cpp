@@ -56,11 +56,4 @@ void SensorRangeFinder::setLimits(float min_distance, float max_distance)
 	_max_distance = max_distance;
 }
 
-void SensorRangeFinder::updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth)
-{
-	// calculate 2,2 element of rotation matrix from sensor frame to earth frame
-	// this is required for use of range finder and flow data
-	_cos_tilt_rng_to_earth =  R_to_earth(2, 2) * -1; // sensor points straight down
-}
-
 } // namespace estimator

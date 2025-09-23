@@ -66,12 +66,9 @@ public:
 	void setSample(const rangeSample &sample);
 	void setLimits(float min_distance, float max_distance);
 
-	float getCosTilt() const { return _cos_tilt_rng_to_earth; }
 	float getDistBottom() const { return _sample.range * _cos_tilt_rng_to_earth; }
 	float getValidMinVal() const { return _min_distance; }
 	float getValidMaxVal() const { return _max_distance; }
-
-	void updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth);
 
 	bool isTiltOk() const { return _cos_tilt_rng_to_earth > _range_cos_max_tilt; }
 
