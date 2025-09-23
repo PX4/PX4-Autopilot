@@ -280,7 +280,7 @@ set(msg_files
 )
 list(SORT msg_files)
 
-if(NOT CONSTRAINED_FLASH)
+if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 	list(APPEND msg_files
 		TargetGnss.msg
 		VisionTargetEstInput.msg
