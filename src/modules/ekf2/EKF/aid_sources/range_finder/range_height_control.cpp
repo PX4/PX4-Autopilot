@@ -47,9 +47,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	}
 
 	// TODO: move setting params to init function
-	_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
-	float cosine_max_tilt = 0.9659; // 10 degrees
-	_range_sensor.setCosMaxTilt(cosine_max_tilt);
 	_rng_consistency_check.setGate(_params.ekf2_rng_k_gate);
 	_range_sensor.updateSensorToEarthRotation(_R_to_earth);
 
@@ -57,10 +54,11 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	_aid_src_rng_hgt.fused = false;
 
 	// Pop rangefinder measurement from buffer of samples into active sample
-	sensor::rangeSample sample = {};
+	rangeSample sample = {};
 
 	if (!_range_buffer->pop_first_older_than(imu_sample.time_us, &sample)) {
-		if (_range_sensor.timedOut(imu_sample.time_us)) {
+		// Check if sample is timed out (200ms)
+		if (imu_sample.time_us > sample.time_us + 200'000) {
 			stopRangeAltitudeFusion("sensor timed out");
 			stopRangeTerrainFusion("sensor timed out");
 		}

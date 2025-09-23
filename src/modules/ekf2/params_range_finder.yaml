@@ -52,15 +52,6 @@ parameters:
       min: 0.01
       unit: m
       decimal: 2
-    EKF2_RNG_PITCH:
-      description:
-        short: Range sensor pitch offset
-      type: float
-      default: 0.0
-      min: -0.75
-      max: 0.75
-      unit: rad
-      decimal: 3
     EKF2_RNG_A_VMAX:
       description:
         short: Maximum horizontal velocity allowed for conditional range aid mode

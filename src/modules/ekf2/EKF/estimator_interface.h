@@ -113,7 +113,7 @@ public:
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	void setRangeData(const estimator::sensor::rangeSample &range_sample);
+	void setRangeData(const estimator::rangeSample &range_sample);
 
 	// set sensor limitations reported by the rangefinder
 	void set_rangefinder_limits(float min_distance, float max_distance)
@@ -372,7 +372,7 @@ protected:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	RingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
+	RingBuffer<rangeSample> *_range_buffer {nullptr};
 	uint64_t _time_last_range_buffer_push{0};
 
 	// Range aiding
@@ -380,7 +380,7 @@ protected:
 	uint64_t _time_rng_aid_conditions_valid{};
 	uint64_t _range_time_last_good_sample{};
 
-	sensor::SensorRangeFinder _range_sensor{};
+	SensorRangeFinder _range_sensor{};
 	RangeFinderConsistencyCheck _rng_consistency_check;
 #endif // CONFIG_EKF2_RANGE_FINDER
 

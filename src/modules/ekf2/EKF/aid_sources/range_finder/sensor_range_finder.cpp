@@ -44,31 +44,10 @@
 
 namespace estimator
 {
-namespace sensor
-{
 
 void SensorRangeFinder::setSample(const rangeSample &sample)
 {
 	_sample = sample;
-}
-
-bool SensorRangeFinder::timedOut(uint64_t time_now) const
-{
-	if (_sample.time_us > time_now) {
-		return false;
-	}
-
-	// TODO: 200ms?
-	return time_now > _sample.time_us + 200'000;
-}
-
-void SensorRangeFinder::setPitchOffset(float new_pitch_offset)
-{
-	if (fabsf(_pitch_offset_rad - new_pitch_offset) > FLT_EPSILON) {
-		_sin_pitch_offset = sinf(new_pitch_offset);
-		_cos_pitch_offset = cosf(new_pitch_offset);
-		_pitch_offset_rad = new_pitch_offset;
-	}
 }
 
 void SensorRangeFinder::setLimits(float min_distance, float max_distance)
@@ -81,8 +60,7 @@ void SensorRangeFinder::updateSensorToEarthRotation(const matrix::Dcmf &R_to_ear
 {
 	// calculate 2,2 element of rotation matrix from sensor frame to earth frame
 	// this is required for use of range finder and flow data
-	_cos_tilt_rng_to_earth = R_to_earth(2, 0) * _sin_pitch_offset + R_to_earth(2, 2) * _cos_pitch_offset;
+	_cos_tilt_rng_to_earth =  R_to_earth(2, 2) * -1; // sensor points straight down
 }
 
-} // namespace sensor
 } // namespace estimator

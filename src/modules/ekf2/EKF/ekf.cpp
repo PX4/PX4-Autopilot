@@ -402,17 +402,8 @@ void Ekf::updateParameters()
 	_aux_global_position.updateParameters();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 #if defined (CONFIG_EKF2_RANGE_FINDER)
+	// TODO: set the tilt/rotation shit
 
-	sensor::SensorRangeFinder::Parameters params = {};
-	// TODO:
-	// params.ekf2_imu_pos_x = _param_ekf2_imu_pos_x.get();
-	// params.ekf2_imu_pos_y = _param_ekf2_imu_pos_y.get();
-	// params.ekf2_imu_pos_z = _param_ekf2_imu_pos_z.get();
-	// params.ekf2_rng_pos_x = _param_ekf2_rng_pos_x.get();
-	// params.ekf2_rng_pos_y = _param_ekf2_rng_pos_y.get();
-	// params.ekf2_rng_pos_z = _param_ekf2_rng_pos_z.get();
-	params.ekf2_rng_pitch = _params.ekf2_rng_pitch;
-	_range_sensor.updateParameters(params);
 #endif
 }
 

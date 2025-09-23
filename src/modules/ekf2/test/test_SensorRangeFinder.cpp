@@ -37,7 +37,7 @@
 #include "EKF/aid_sources/range_finder/sensor_range_finder.hpp"
 #include <matrix/math.hpp>
 
-using estimator::sensor::rangeSample;
+using estimator::rangeSample;
 using matrix::Dcmf;
 using matrix::Eulerf;
 using namespace estimator::sensor;
@@ -48,8 +48,6 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		_range_finder.setPitchOffset(0.f);
-		_range_finder.setCosMaxTilt(0.707f);
 		_range_finder.setLimits(_min_range, _max_range);
 	}
 
