@@ -1790,7 +1790,7 @@ void Commander::run()
 		_power_button_state_sub.copy(&button_state);
 
 		tune_control_s tune_control{};
-		button_state.timestamp = hrt_absolute_time();
+		tune_control.timestamp = hrt_absolute_time();
 		tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
 	}
 
