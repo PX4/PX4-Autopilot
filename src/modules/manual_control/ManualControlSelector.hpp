@@ -58,8 +58,10 @@ private:
 		RcAndJoystickWithFallback = 2,	// RC And Joystick with fallback
 		RcOrJoystickKeepFirst = 3,	// RC or Joystick keep first
 		StickInputDisabled = 4,		// input disabled
-		AscendingPriority = 5,		// ascending source priority
-		DescendingPriority = 6		// descending source priority
+		RcThenJoystickAscendingPriority = 5,	// RC, then Joystick ascending prio
+		JoystickAscendingThenRcPriority = 6,	// Joystick ascending prio, then RC
+		RcThenJoystickDescendingPriority = 7,	// RC, then Joystick descending prio
+		JoystickDescendingThenRcPriority = 8	// Joystick descending prio, then RC
 	};
 
 	manual_control_setpoint_s _setpoint{};
