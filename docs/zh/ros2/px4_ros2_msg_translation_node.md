@@ -1,81 +1,82 @@
-# PX4 ROS 2 Message Translation Node
+# PX4 ROS 2 消息翻译节点
 
-<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
+<0/> <1/>
 
-The message translation node allows ROS 2 applications that were compiled against different versions of the PX4 messages to interwork with newer versions of PX4, and vice versa, without having to change either the application or the PX4 side.
+消息翻译节点允许针对不同版本的 PX4 消息编译的 ROS 2 应用程序与更新版本的 PX4 交互。 反之亦然，而不必更改应用程序或PX4一侧。
 
 ## 综述
 
-The translation of messages from one definition version to another is possible thanks to the introduction of [message versioning](../middleware/uorb.md#message-versioning).
+由于引入了[消息版本](../middleware/uorb.md#message-versioning)，将消息从一个定义版本翻译成另一个定义版本是可能的。
 
-The translation node has access to all message versions previously defined by PX4.
-It dynamically observes the DDS data space, monitoring the publications, subscriptions and services originating from either PX4 via the [uXRCE-DDS Bridge](../middleware/uxrce_dds.md), or ROS 2 applications.
-When necessary, it converts messages to the current versions expected by both applications and PX4, ensuring compatibility.
+翻译节点可以访问之前由 PX4 定义的所有消息版本。
+它积极观察了光盘系统的数据空间，监测出版物。 通过[uXRCE-DDS桥](../middleware/uxrce_dds.md)或外空委2应用源于PX4的订阅和服务。
+必要时，它会将消息转换到应用程序和PX4预期的当前版本，确保兼容性。
 
-![Overview ROS 2 Message Translation Node](../../assets/middleware/ros2/px4_ros2_interface_lib/translation_node.svg)
+！[概述ROS 2消息转换节点]
+(../../assets/middleware/ros2/px4_ros2_interface_lib/translation_node.svg)
 
 <!-- doc source: ../../assets/middleware/ros2/px4_ros2_interface_lib/translation_node.drawio -->
 
-To support the coexistence of different versions of the same messages within the ROS 2 domain, the ROS 2 topic-names for publications, subscriptions, and services include their respective message version as a suffix.
-This naming convention takes the form `<topic_name>_v<version>`, as shown in the diagram above.
+支持不同版本的同一消息在交战规则2域内共存， 出版、订阅和服务的ROS 2主题名称包括各自的信息版本的后缀。
+这个命名协议的形式为`<topic_name>_v<version>`。
 
 ## 用法
 
 ### 安装
 
-The following steps describe how to install and run the translation node on your machine.
+以下步骤描述如何在您的机器上安装和运行翻译节点。
 
-1. (Optional) Create a new ROS 2 workspace in which to build the message translation node and its dependencies:
+1. (可选) 创建一个新的 ROS2 工作空间，用于构建消息翻译节点及其依赖：
 
    ```sh
    mkdir -p /path/to/ros_ws/src
    ```
 
-2. Run the following helper script to copy the message definitions and translation node into your ROS workspace directory.
+2. 运行下面的帮助脚本来复制消息定义并将节点翻译到您的ROS工作区目录。
 
    ```sh
    cd /path/to/ros_ws
    /path/to/PX4-Autopilot/Tools/copy_to_ros_ws.sh .
    ```
 
-3. Build and source the workspace.
+3. 构建并源自工作区。
 
    ```sh
    colcon build
    source /path/to/ros_ws/install/setup.bash
    ```
 
-4. Finally, run the translation node.
+4. 最后，运行翻译节点。
 
    ```sh
    ros2 run translation_node translation_node_bin
    ```
 
-   You should see an output similar to:
+   您应该看到一个相似的输出：
 
    ```sh
-   [INFO] [1734525720.729530513] [translation_node]: Registered pub/sub topics and versions:
-   [INFO] [1734525720.729594413] [translation_node]: Registered services and versions:
+   [INFO] [1734525720.729530513] [translation_node]: 注册的 pub/子主题和版本:
+   [INFO] [1734525720.729594413] [translation_node]: 注册的服务和版本:
    ```
 
-With the translation node running, any simultaneously running ROS 2 application designed to communicate with PX4 can do so, as long as it uses message versions recognized by the node.
-The translation node will print a warning if it encounters an unknown topic version.
+在正在运行翻译节点时，任何同时运行旨在与 PX4 通信的 ROS 2 应用程序都可以这样做。 只要它使用节点承认的消息版本。
+翻译节点如果遇到未知的主题版本，将打印警告。
 
 :::info
-After making a modification in PX4 to the message definitions and/or translation node code, you will need to rerun the steps above from point 2 to update your ROS workspace accordingly.
+在 PX4 修改消息定义和/或翻译节点代码后， 您需要从点2重新运行以上步骤来相应更新您的ROS工作区。
 :::
 
 ### 在ROS 应用中
 
-While developing a ROS 2 application that communicates with PX4, it is not necessary to know the specific version of a message being used.
-The message version can be added generically to a topic name like this:
+开发与 PX4 通信的 ROS 2 应用程序时，不必知道正在使用的消息的特定版本。
+消息版本可以以如以下方式一般添加到主题名称中：
 
 :::: tabs
 
 :::tab C++
 
 ```c++
-topic_name + "_v" + std::to_string(T::MESSAGE_VERSION)
+主题名称+ "_v" + std::to_string(T::MESSAGE_VERSION)
 ```
 
 :::
@@ -83,30 +84,30 @@ topic_name + "_v" + std::to_string(T::MESSAGE_VERSION)
 :::tab Python
 
 ```python
-topic_name + "_v" + VehicleAttitude.MESSAGE_VERSION
+主题名称 + "_v" + VehicleAttitude.MESSAGE_VERSION
 ```
 
 :::
 
 ::::
 
-where `T` is the message type, e.g. `px4_msgs::msg::VehicleAttitude`.
+其中‘T’消息类型，例如`px4_msgs::msg::VehicleAttitude`.
 
-For example, the following implements a minimal subscriber and publisher node that uses two versioned PX4 messages and topics:
+例如，以下是一个实现最小化订阅者和发布者节点的示例，该节点使用两个带版本的 PX4 消息和主题：
 
 :::: tabs
 
 :::tab C++
 
 ```c++
-#include <string>
-#include <rclcpp/rclcpp.hpp>
-#include <px4_msgs/msg/vehicle_command.hpp>
-#include <px4_msgs/msg/vehicle_attitude.hpp>
+#include <0>
+#include <1>
+#include <2>
+#include <3>
 
 // Template function to get the message version suffix
 // The correct message version is directly inferred from the message defintion
-template <typename T>
+template <4>
 std::string getMessageNameVersion() {
     if (T::MESSAGE_VERSION == 0) return "";
     return "_v" + std::to_string(T::MESSAGE_VERSION);
@@ -116,13 +117,13 @@ class MinimalPubSub : public rclcpp::Node {
   public:
     MinimalPubSub() : Node("minimal_pub_sub") {
       // Use template function to define the correct topics automatically
-      const std::string sub_topic = "/fmu/out/vehicle_attitude" + getMessageNameVersion<px4_msgs::msg::VehicleAttitude>();
-      const std::string pub_topic = "/fmu/in/vehicle_command" + getMessageNameVersion<px4_msgs::msg::VehicleCommand>();
+      const std::string sub_topic = "/fmu/out/vehicle_attitude" + getMessageNameVersion<5>();
+      const std::string pub_topic = "/fmu/in/vehicle_command" + getMessageNameVersion<6>();
 
-      _subscription = this->create_subscription<px4_msgs::msg::VehicleAttitude>(
+      _subscription = this->create_subscription<5>(
           sub_topic, 10,
           std::bind(&MinimalPubSub::attitude_callback, this, std::placeholders::_1));
-      _publisher = this->create_publisher<px4_msgs::msg::VehicleCommand>(pub_topic, 10);
+      _publisher = this->create_publisher<6>(pub_topic, 10);
     }
 
   private:
@@ -130,8 +131,8 @@ class MinimalPubSub : public rclcpp::Node {
       RCLCPP_INFO(this->get_logger(), "Received attitude message.");
     }
 
-    rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr _publisher;
-    rclcpp::Subscription<px4_msgs::msg::VehicleAttitude>::SharedPtr _subscription;
+    rclcpp::Publisher<6>::SharedPtr _publisher;
+    rclcpp::Subscription<5>::SharedPtr _subscription;
 };
 ```
 
@@ -180,34 +181,34 @@ class MinimalPubSub(Node):
 
 ::::
 
-On the PX4 side, the DDS client automatically adds the version suffix if a message definition contains the field `uint32 MESSAGE_VERSION = x`.
+在 PX4 侧，如果消息定义包含字段`uint32 MESSAGE_VERSION = x`，DDS客户端自动添加版本后缀。
 
 :::info
 主题版本0意味着不应添加`_v<version>`后缀。
 :::
 
-## Development
+## 开发
 
-### Definitions
+### 定义
 
-A **message** defines the data format used for communication, whether over a topic or a service.
-Therefore a message can be either a _topic_ message defined by a `.msg` file, or a _service_ message defined by a `.srv` file.
+**消息** 定义了用于通信的数据格式，无论是主题还是服务。
+因此，消息可以是 ".msg" 文件定义的 _topic_ 消息，也可以是 ".srv" 文件定义的 _service_ 消息。
 
-A **versioned message** is a message for which changes are tracked and each change results in a version bump, with the previous state of the definition being stored in history.
-The latest version of every message is stored in `msg/versioned/` for topics (or `srv/versioned` for services), and all older versions are stored in `msg/px4_msgs_old/msg/` (or `msg/px4_msgs_old/srv/`).
+**版本信息** 是指跟踪更改的消息，每次变更都会导致版本号递增，且定义的历史状态会被保存下来。
+每个消息的最新版本都存储在 `msg/versioned/` 中，用于主题(或`srv/versioned` 用于服务)， 所有旧版本都存储在`msg/px4_msgs_old/msg/`(或`msg/px4_msgs_old/srv/`)中。
 
-A **version translation** defines a bidirectional mapping of the contents of one or more message definition across different versions.
-Each translation is stored as a separate `.h` header file under `msg/translation_node/translations/`.
-Message translations can be either _direct_ or _generic_.
+**版本翻译**定义了一个或多个消息定义的内容在不同版本之间的双向映射。
+每个翻译以单独的 .h 头文件形式存储在 msg/translation_node/translations/ 目录下。
+消息翻译可以是 _direct_或 _generic_。
 
-- A **direct translation** defines a bidirectional mapping of the contents of a _single_ message between two of its versions.
-  This is the simpler case and should be preferred if possible.
-- A **generic translation** defines a bidirectional mapping of the contents of `n` input messages to `m` output messages across different versions.
-  This can be used for merging or splitting a message, or when moving a field from one message to another.
+- **直接翻译** 定义一个双向映射其两个版本之间消息的内容。
+  这是更简单的情况，在可能的情况下应优先选择。
+- **通用翻译** 定义了双向映射`n`输入消息的内容到不同版本的`m`输出消息。
+  这可用于合并或拆分消息，也可用于将某个字段从一个消息迁移至另一个消息。
 
 ### File Structure
 
-Starting from PX4 v1.16, the PX4-Autopilot `msg/` and `srv/` directories are structured as follows:
+从 PX4 v1.16 版本开始，PX4-Autopilot（PX4 自动驾驶系统）的 msg/ 和 srv/ 目录结构如下：
 
 ```
 PX4-Autopilot
@@ -222,15 +223,15 @@ PX4-Autopilot
   └── versioned/         # Latest versioned service message files
 ```
 
-This structure introduces new directories: `versioned/`, `px4_msgs_old/`, and `translation_node/`.
+这个结构引入了新的目录：“versioned/`，`px4_msgs_old/`，以及`translation_node/\`。
 
-#### Directories `msg/versioned/` and `srv/versioned/`
+#### 目录`msg/versioned/` 和 `srv/versioned/`
 
-- Contain the current latest version of each message.
-- Files in these directories must include a `MESSAGE_VERSION` field to indicate that they are versioned.
-- File names follow the conventional naming scheme (without a version suffix).
+- 包含每条消息当前的最新版本。
+- 这些目录中的文件必须包含 `MESSAGE_VERSION` 字段以表明它们是版本控制。
+- 文件名遵循常规命名规则（不带版本后缀）。
 
-Example directory structure:
+示例目录结构：
 
 ```
 PX4-Autopilot
@@ -244,13 +245,13 @@ PX4-Autopilot
     └── VehicleCommand.srv         # e.g. MESSAGE_VERSION = 2
 ```
 
-#### Directory `px4_msgs_old/`
+#### 目录`px4_msgs_old/`
 
-- Archives the history of all versioned messages, including both topic and service messages (resp. under `msg/` and `srv/` subdirectories).
-- Each file includes a `MESSAGE_VERSION` field.
-- File names reflect the message's version with a suffix (e.g., `V1`, `V2`).
+- 将所有版本信息的历史记录存档，包括主题和服务信息(resp. under `msg/`和`srv/`子目录)。
+- 每个文件都包含一个 MESSAGE_VERSION 字段。
+- 文件名反映了带有后缀的消息版本(如：`V1`、`V2`)。
 
-Example directory structure (matching the example above):
+示例目录结构(匹配上面的示例)：
 
 ```
   ...
@@ -264,13 +265,13 @@ Example directory structure (matching the example above):
       └── VehicleCommandV1.srv
 ```
 
-#### Directory `translation_node/`
+#### 目录`translation_node/`
 
-- Contains headers for translating between all different versions of messages.
-- Each translation (direct or generic) is a single `.h` header file.
-- The header `all_translation.h` acts as the main header, and includes all subsequent translation headers.
+- 包含用于在所有不同版本的消息之间进行翻译的标题。
+- 每个翻译 (直接或通用) 都是单个的 `.h` 标题文件。
+- 标题`all_translation.h`是主标题，包含所有其后的翻译标题。
 
-Example directory structure (matching the example above):
+示例目录结构(匹配上面的示例)：
 
 ```
   ...
@@ -287,36 +288,36 @@ Example directory structure (matching the example above):
       └── translation_vehicle_command_v2.h          # Direct translation v1 <-> latest (v2)
 ```
 
-### Updating a Versioned Message
+### 正在更新版本信息...
 
-This section provides a step-by-step walkthrough and a basic working example of what the process of changing a versioned message looks like.
+本节提供了分步操作指南以及一个基础的可运行示例，以展示修改版本化消息的流程具体是怎样的。
 
-The example describes the process of updating the `VehicleAttitude` message definition to contain an additional `new_field` entry, incrementing the message version from `3` to `4`, and creating a new direct translation in the process.
+该示例描述了更新VehicleAttitude消息定义的流程，具体包括：为其添加一个额外的new_field字段、将消息版本从3递增至4，并在此过程中创建一个新的直接转换。
 
-1. **Create an Archived Definition of the Current Versioned Message**
+1. **创建当前版本信息的存档定义**
 
-   Copy the versioned `.msg` topic message file (or `.srv` service message file) to `px4_msgs_old/msg/` (or `px4_msgs_old/srv/`), and append its message version to the file name.
+   将版本号的`.msg`主题消息文件(或`.srv`服务消息文件)复制到`px4_msgs_old/msg/`(或`px4_msgs_old/srv/`)，并将其消息版本附加到文件名。
 
-   For example:<br>
-   Copy `msg/versioned/VehicleAttitude.msg` → `msg/versioned/px4_msgs_old/msg/VehicleAttitudeV3.msg`
+   例如：<br>
+   复制  `msg/versioned/VehicleAttitude.msg` → `msg/versioned/px4_msgs_old/msg/VehicleAttitudeV3.msg`
 
-2. **Update Translation References to the Archived Definition**
+2. **更新对存档定义的转化引用**
 
-   Update the existing translations header files `msg/translation_node/translations/*.h` to reference the newly archived message definition.
+   更新现有翻译标头文件 `msg/translation_node/translations/*.h` 以参考新存档的消息定义。
 
-   For example, update references in those files:<br>
+   例如，更新这些文件中的引用:<br>
 
-   - Replace `px4_msgs::msg::VehicleAttitude` → `px4_msgs_old::msg::VehicleAttitudeV3`
-   - Replace `#include <px4_msgs/msg/vehicle_attitude.hpp>` → `#include <px4_msgs_old/msg/vehicle_attitude_v3.hpp>`
+   - 替换 `px4_msgs::msg::VehicleAttitude` → `px4_msgs_old::msg::VehicleAttitudeV3`
+   - 替换`#include <px4_msgs/msg/vehicle_attitude.hpp>` -> \`#include <px4_msgs_old/msg/vehicle_attitude_v3.hpp>
 
-3. **Update the Versioned Definition**
+3. **更新版本定义**
 
-   Update the versioned `.msg` topic message file (or `.srv` service message file) with required changes.
+   更新版本的 `.msg` 主题消息文件 (或`.srv` 服务消息文件) 并进行必要的更改。
 
-   First increment the `MESSAGE_VERSION` field.
-   Then update the message fields that prompted the version change.
+   第一次递增`MESSAGE_VERSION`字段。
+   然后更新促使版本变更的消息字段。
 
-   For example, update `msg/versioned/VehicleAttitude.msg` from:
+   例如，更新 `msg/versioned/vehicleAttitde.msg` 从：
 
    ```txt
    uint32 MESSAGE_VERSION = 3
@@ -324,20 +325,19 @@ The example describes the process of updating the `VehicleAttitude` message defi
    ...
    ```
 
-   to
+   到
 
    ```txt
    uint32 MESSAGE_VERSION = 4  # Increment
    uint64 timestamp
    float32 new_field           # Make definition changes
-   ...
    ```
 
-4. **Add a New Translation Header**
+4. **添加新的翻译标头**
 
-   Add a new version translation to bridge the archived version and the updated current version, by creating a new translation header.
+   通过创建一个新的翻译标头来添加一个新的版本翻译来连接存档版本和更新的当前版本。
 
-   For example, create a direct translation header `translation_node/translations/translation_vehicle_attitude_v4.h`:
+   例如，创建一个直接翻译标题`translation_node/translation_vaille_attitude_v4.h`：
 
    ```c++
    // Translate VehicleAttitude v3 <--> v4
@@ -381,72 +381,70 @@ The example describes the process of updating the `VehicleAttitude` message defi
        // Discards `new_field` from MessageNewer
      }
    };
-
-   REGISTER_TOPIC_TRANSLATION_DIRECT(VehicleAttitudeV4Translation);
    ```
 
-   Version translation templates are provided here:
+   版本翻译模板在此提供：
 
    - [Direct Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_direct_v1.h)
    - [Generic Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_multi_v2.h)
    - [Direct Service Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_service_v1.h)
 
-5. **Include New Headers in `all_translations.h`**
+5. **在`all_translations.h`中包含新标头**
 
-   Add all newly created headers to [`translations/all_translations.h`](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/all_translations.h) so that the translation node can find them.
+   将所有新创建的标题添加到[`translations/all_translations.h`](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/all_translations.h)，以便翻译节点能够找到它们。
 
-   For example, append the following line to `all_translation.h`:
+   例如，在`all_translation.h`上加上以下一行：
 
    ```c++
    #include "translation_vehicle_attitude_v4.h"
    ```
 
-Note that in the example above and in most cases, step 4 only requires the developer to create a direct translation for the definition change.
-This is because the changes only involved a single message.
-In more complex cases of splitting, merging and/or moving definitions then a generic translation must be created.
+请注意，在上述示例中以及在大多数情况下，步骤 4 仅要求开发者针对此次定义变更创建一个直接转换。
+这是因为更改只涉及一个消息。
+在更复杂的分割、合并和/或移动定义的情况下，必须创建一个通用转化。
 
-For example when moving a field from one message to another, a single generic translation should be added with the two older message versions as input, and the two newer versions as output.
-This ensures there is no information lost when translating forward or backward.
+例如，当一个字段从一个消息移动到另一个消息时。 应增加一个单一通用翻译，两个较旧的信息版本作为输入，两个较新的版本作为输出。
+这就确保了在向前或向后翻译时不会丢失信息。
 
-This is exactly the approach shown by the [Generic Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_multi_v2.h), omitting only the code for actually modifying fields in the `fromOlder()` and `toOlder()` methods.
+这正是 [Generic Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_multi_v2.h) 所显示的方法。 只省略`fromOlder()` 和 `toOlder()` 方法中的字段的代码。
 
 :::warning
-If a nested message definition changes, all messages including that message also require a version update.
-For example this would be the case for message [PositionSetpointTriplet](../msg_docs/PositionSetpointTriplet.md) if it were versioned.
-This is primarily important for services which are more likely reference other message definitions.
+如果嵌套消息定义发生了变化，包括该消息在内的所有消息也需要版本更新。
+例如，如果消息 [PositionSetpointTriplet](../msg_docs/PositionSetpointTriplet.md)有版本，将会出现这种情况。
+这一点对于服务而言尤为重要，因为服务更有可能引用其他消息定义。
 :::
 
-## Implementation Details
+## 实现细节
 
-The translation node dynamically monitors the topics and services.
-It then instantiates the counterside of the publications and subscribers as required.
-For example if there is an external publisher for version 1 of a topic and subscriber for version 2.
+转换节点动态监测主题和服务。
+然后视需要举例说明出版物和订阅者的对应情况。
+例如，如果主题第1版有外部发行商，第2版则有订阅商。
 
-Internally, it maintains a graph of all known topic and version tuples (which are the graph nodes).
-The graph is connected by the message translations.
-As arbitrary message translations can be registered, the graph can have cycles and multiple paths from one node to another.
-Therefore on a topic update, the graph is traversed using a shortest path algorithm.
-When moving from one node to the next, the message translation method is called with the current topic data.
-If a node contains an instantiated publisher (because it previously detected an external subscriber), the data is published.
-Thus, multiple subscribers of any version of the topic can be updated with the correct version of the data.
+在内部，它保存一份所有已知主题和版本管束的图表(即图节点)。
+该图通过消息转换实现连接。
+由于任意的消息转换可以注册，图可以有周期和从一个节点到另一个节点的多个路径。
+因此，在主题更新中，图形使用最短路径算法。
+当从一个节点移动到另一个节点时，消息翻译方法将与当前主题数据调用。
+如果节点包含实例化发布器 (因为它先前检测到外部订阅者)，数据将被发布。
+这样，本专题任何版本的多个订阅者都可以用正确的数据更新数据。
 
-For translations with multiple input topics, the translation continues once all input messages are available.
+对于有多个输入主题的转化，转化将在所有输入消息都可用后继续。
 
 ## 局限
 
-- Translation of service messages does not work on ROS Humble, but does on ROS Jazzy.
-  This is because the current implementation depends on a service API that is not yet available in ROS Humble.
-  Translation of topic messages is fully supported.
-- Services messages only support a linear history, i.e. no message splitting or merging.
-- Having both publishers and subscribers for two different versions of the same topic is currently not handled by the translation node and would trigger infinite circular publications.
-  This refers to the following problematic configuration:
+- 服务消息的转化不适用于 ROS Humble，而是适用于ROSJazzy。
+  这是因为当前的实现取决于尚未在ROS人类中提供的服务 API 。
+  完全支持主题信息转化。
+- 服务消息只支持线性历史记录，即没有消息拆分或合并。
+- 两个不同版本的同一主题的出版商和订户目前都不是由转化节点处理的，会引发无限的循环出版物。
+  这是指下列有问题的配置：
 
   ```
   app 1: pub topic_v1, sub topic_v1
   app 2: pub topic_v2, sub topic_v2
   ```
 
-  In practice this configuration is unlikely to occur because ROS topics shared with the FMU are intended to be directional (e.g. `/fmu/out/vehicle_status` or `/fmu/in/trajectory_setpoint`), therefore apps typically do not publish and subscribe simultaneously to the same topic.
-  The translation node could be extended to handle this corner-case if required.
+  实际上，这种配置不大可能发生，因为与金融监督单位共享的外空系统专题是指向的(例如)。 `/fmu/out/vehicle_status` 或 `/fmu/in/tracjectory_setpoint` ，因此应用通常不会同时发布和订阅相同的主题。
+  如果需要，可以扩展翻译节点来处理这个卷轴。
 
-Original document with requirements: https://docs.google.com/document/d/18_RxV1eEjt4haaa5QkFZAlIAJNv9w5HED2aUEiG7PVQ/edit?usp=sharing
+需要原始文件：https://docs.google.com/document/d/18_RxV1eEjt4haaa5QkFZAlIAJNv9w5HED2aUEiG7PVQ/edit?usp=sharing
