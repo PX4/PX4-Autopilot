@@ -7,6 +7,7 @@
       - [位置模式（多旋翼）](flight_modes_mc/position.md)
       - [Position Slow Mode (MC)](flight_modes_mc/position_slow.md)
       - [高度模式（多旋翼）](flight_modes_mc/altitude.md)
+      - [Altitude Cruise Mode (MC)](flight_modes_mc/altitude_cruise.md)
       - [Stabilized Mode (MC)](flight_modes_mc/manual_stabilized.md)
       - [特技模式（多旋翼）](flight_modes_mc/acro.md)
       - [环绕模式（多旋翼）](flight_modes_mc/orbit.md)

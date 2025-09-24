@@ -5,7 +5,7 @@
 示例将首先发送设置点、进入offboard模式、解锁、起飞至5米，并悬停等待。
 虽然简单，但它显示了如何使用offboard控制以及如何向无人机发送指令。
 
-It has been tested on Ubuntu 20.04 with ROS 2 Foxy and PX4 v1.14.
+该内容已在搭载 ROS 2 Foxy 与 PX4 v1.14 的 Ubuntu 20.04 系统上完成测试。
 
 :::warning
 _Offboard_ control is dangerous.
@@ -13,22 +13,22 @@ _Offboard_ control is dangerous.
 :::
 
 :::info
-ROS and PX4 make a number of different assumptions, in particular with respect to [frame conventions](../ros/external_position_estimation.md#reference-frames-and-ros).
+ROS 与 PX4 存在若干不同的预设（假设），尤其是在坐标系约定（[frame conventions]）方面../ros/external_position_estimation.md#reference-frames-and-ros
 当主题发布或订阅时，坐标系类型之间没有隐含转换！
 
-这个例子按照PX4的定义在NED坐标系下发布位置。
-To subscribe to data coming from nodes that publish in a different frame (for example the ENU, which is the standard frame of reference in ROS/ROS 2), use the helper functions in the [frame_transforms](https://github.com/PX4/px4_ros_com/blob/main/src/lib/frame_transforms.cpp) library.
+这个例子按照PX4的预期在NED坐标系下发布位置。
+若要订阅来自在不同框架内发布的节点的数据(例如ENU, 这是ROS/ROS 2中的标准参考框架，使用 [frame_transforms](https://github.com/PX4/px4_ros_com/blob/main/src/lib/frame_transforms.cpp)库中的辅助函数。
 :::
 
-## 尝试一下
+## 小試身手
 
-Follow the instructions in [ROS 2 User Guide](../ros2/user_guide.md) to install PX and run the simulator, install ROS 2, and start the XRCE-DDS Agent.
+请遵循 ROS 2 用户指南 （../ros2/user_guide.md）中的说明，完成安装 PX4和运行模拟器，安装 ROS 2和启动 XRCE-DDS 代理（Agent）。
 
-After that we can follow a similar set of steps to those in [ROS 2 User Guide > Build ROS 2 Workspace](../ros2/user_guide.md#build-ros-2-workspace) to run the example.
+之后，我们可参照 ROS 2 用户指南 > 构建 ROS 2 工作空间 （../ros2/user_guide.md#build-ros-2-workspace）中的相似的步骤来运行这个例子。
 
 :::tip
-Make sure that QGC is connected to PX4 before running the ROS 2 node.
-This is needed because, by default, you cannot arm a vehicle without a connection to ground station (QGC) or an established RC connection (this ensures there is always the option to regain manual control).
+运行 ROS 2 节点前，请确保 QGC已连接到 PX4。
+之所以需要这样做，是因为默认情况下，若未连接地面控制站（QGC）或已建立的RC连接，飞行器无法解锁（这一机制可确保始终存在重新获得手动控制权的途径）。
 :::
 
 构建并运行示例：
@@ -42,14 +42,14 @@ This is needed because, by default, you cannot arm a vehicle without a connectio
    cd ~/ws_offboard_control/src/
    ```
 
-3. Clone the [px4_msgs](https://github.com/PX4/px4_msgs) repo to the `/src` directory (this repo is needed in every ROS 2 PX4 workspace!):
+3. 将 px4_msgs 代码仓库克隆到 /src 目录下（每个 ROS 2 PX4 工作空间都需要该仓库！）：
 
    ```sh
    git clone https://github.com/PX4/px4_msgs.git
-   # checkout the matching release branch if not using PX4 main.
+   #若未使用 PX4 的 main 分支，请切换到对应的发布分支
    ```
 
-4. Clone the example repository [px4_ros_com](https://github.com/PX4/px4_ros_com) to the `/src` directory:
+4. 将示例代码仓库 px4_ros_com （https://github.com/PX4/px4_ros_com）克隆到 /src 目录下：
 
    ```sh
    git clone https://github.com/PX4/px4_ros_com.git
@@ -83,7 +83,7 @@ This is needed because, by default, you cannot arm a vehicle without a connectio
 
    ::::
 
-6. Source the `local_setup.bash`:
+6. 来源 `local_setup.bash`：
 
    ```sh
    source install/local_setup.bash
@@ -99,81 +99,81 @@ This is needed because, by default, you cannot arm a vehicle without a connectio
 
 ## 实现
 
-The source code of the offboard control example can be found in [PX4/px4_ros_com](https://github.com/PX4/px4_ros_com) in the directory [/src/examples/offboard/offboard_control.cpp](https://github.com/PX4/px4_ros_com/blob/main/src/examples/offboard/offboard_control.cpp).
+离板控制示例的源代码可以在[ PX4/px4_ros_com ]目录里 [/src/examples/offboard/offboard_control.cpp](https://github.com/PX4/px4_ros_com/blob/main/src/examples/offboard/offboard_control.cpp)中找到 [X4/px4_ros_com](https://github.com/PX4/px4_ros_com)。
 
 :::info
-PX4 publishes all the messages used in this example as ROS topics by default (see [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml)).
+PX4 默认情况下将此示例中使用的所有消息以ROS为话题发布(详见 [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml))。
 :::
 
-PX4 requires that the vehicle is already receiving `OffboardControlMode` messages before it will arm in offboard mode, or before it will switch to offboard mode when flying.
-In addition, PX4 will switch out of offboard mode if the stream rate of `OffboardControlMode` messages drops below approximately 2Hz.
+PX4 要求，飞行器需先持续接收 OffboardControlMode（离板控制模式）消息，之后才能在离板模式下解锁（arm），或在飞行过程中切换至离板模式。
+此外，若 OffboardControlMode（离板控制模式）消息的数据流速率降至约 2Hz 以下，PX4 将会退出离板模式。
 该行为在ROS 2 节点的主循环中实现的，如下所示：
 
 ```cpp
-auto timer_callback = [this]() -> void {
+auto timer_callback = [this]() -&gt; void {
 
-	if (offboard_setpoint_counter_ == 10) {
-		// Change to Offboard mode after 10 setpoints
-		this->publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
+    if (offboard_setpoint_counter_ == 10) {
+        // Change to Offboard mode after 10 setpoints
+        this-&gt;publish_vehicle_command(VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
 
-		// Arm the vehicle
-		this->arm();
-	}
+        // Arm the vehicle
+        this-&gt;arm();
+    }
 
-	// OffboardControlMode needs to be paired with TrajectorySetpoint
-	publish_offboard_control_mode();
-	publish_trajectory_setpoint();
+    // OffboardControlMode needs to be paired with TrajectorySetpoint
+    publish_offboard_control_mode();
+    publish_trajectory_setpoint();
 
-	// stop the counter after reaching 11
-	if (offboard_setpoint_counter_ < 11) {
-		offboard_setpoint_counter_++;
-	}
+    // stop the counter after reaching 11
+    if (offboard_setpoint_counter_ &lt; 11) {
+        offboard_setpoint_counter_++;
+    }
 };
-timer_ = this->create_wall_timer(100ms, timer_callback);
+timer_ = this-&gt;create_wall_timer(100ms, timer_callback);
 ```
 
 循环运行在一个100毫秒计时器。
-For the first 10 cycles it calls `publish_offboard_control_mode()` and `publish_trajectory_setpoint()` to send [OffboardControlMode](../msg_docs/OffboardControlMode.md) and [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) messages to PX4.
-The `OffboardControlMode` messages are streamed so that PX4 will allow arming once it switches to offboard mode, while the `TrajectorySetpoint` messages are ignored (until the vehicle is in offboard mode).
+在最初的 10 个循环中，它会调用 publish_offboard_control_mode() 和 publish_trajectory_setpoint() 这两个函数，向 PX4 发送 OffboardControlMode（离板控制模式）（../msg_docs/OffboardControlMode.md） 和 TrajectorySetpoint（轨迹设定点）（../msg_docs/TrajectorySetpoint.md） 消息。
+OffboardControlMode消息会持续发送，以便 PX4 切换到离板模式后允许解锁；而 TrajectorySetpoint消息会被忽略（直到载具处于离板模式）
 
-After 10 cycles `publish_vehicle_command()` is called to change to offboard mode, and `arm()` is called to arm the vehicle.
-在飞行器解锁并和切换模式后，它将开始跟踪位置设定值。
-在每个周期内仍然发送设定值，确保飞行器不会切换出offboard模式。
+10 个循环后，会调用 publish_vehicle_command() 函数切换至离板模式，并调用 arm() 函数对载具进行解锁。
+在载具解锁并和切换模式后，它将开始跟踪位置设定值。
+在每个周期内仍然发送设定值，确保载具不会切换出offboard模式。
 
-The implementations of the `publish_offboard_control_mode()` and `publish_trajectory_setpoint()` methods are shown below.
-These publish the [OffboardControlMode](../msg_docs/OffboardControlMode.md) and [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) messages to PX4 (respectively).
+publish_offboard_control_mode() 和 publish_trajectory_setpoint() 这两个方法的实现代码如下所示。
+这些方法会分别发布到 PX4 的 [OffboardControlMode](../msg_docs/OffboardControlMode.md和 [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) 消息。
 
-The `OffboardControlMode` is required in order to inform PX4 of the _type_ of offboard control behing used.
-Here we're only using _position control_, so the `position` field is set to `true` and all the other fields are set to `false`.
+OffboardControlMode（离板控制模式）消息是必需的，其作用是告知 PX4 当前所使用的离板控制类型。
+此处我们仅使用位置控制，因此将 `position` 字段设为`true`，而所有其他字段均设为 `false`。
 
 ```cpp
 /**
- * @brief Publish the offboard control mode.
- *        For this example, only position and altitude controls are active.
+ * @short 发布离板控制模式。
+ *在本示例中，仅位置控制和高度控制处于激活状态
  */
-void OffboardControl::publish_offboard_control_mode()
-{
-	OffboardControlMode msg{};
-	msg.position = true;
-	msg.velocity = false;
-	msg.acceleration = false;
+无效的离板控制：:publish_offboard_control_mode()
+Power
+	OffboardControlModel msg{}；
+	msg.position = true；
+	msg.veocity = false；
+	msg. cceleration = false;
 	msg.attitude = false;
 	msg.body_rate = false;
-	msg.thrust_and_torque = false;
-	msg.direct_actuator = false;
-	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
+	msg.subust_and_torque = false;
+	msg. irect_actuator = false;
+	msg.timestamp = this->get_clock()->now ().nanoseconds() / 1000;
 	offboard_control_mode_publisher_->publish(msg);
 }
 ```
 
-`TrajectorySetpoint` provides the position setpoint.
-In this case, the `x`, `y`, `z` and `yaw` fields are hardcoded to certain values, but they can be updated dynamically according to an algorithm or even by a subscription callback for messages coming from another node.
+`TrattorySettpoint` 提供了位置设定点。
+在这种情况下，`x`、`y`、`z`和`yaw`字段的值是硬编码为特定数值的。 但它们可以根据算法动态更新，甚至可以通过订阅回调函数来从另一个节点进行更新。
 
 ```cpp
 /**
- * @brief Publish a trajectory setpoint
- *        For this example, it sends a trajectory setpoint to make the
- *        vehicle hover at 5 meters with a yaw angle of 180 degrees.
+ *@brief 发布轨迹设定点
+
+ 在本示例中，该函数会发送一个轨迹设定点，使载具在 5 米高度悬停，并保持 180 度的偏航角。
  */
 void OffboardControl::publish_trajectory_setpoint()
 {
@@ -185,9 +185,9 @@ void OffboardControl::publish_trajectory_setpoint()
 }
 ```
 
-The `publish_vehicle_command()` sends [VehicleCommand](../msg_docs/VehicleCommand.md) messages with commands to the flight controller.
-We use it above to change the mode to offboard mode, and also in `arm()` to arm the vehicle.
-While we don't call `disarm()` in this example, it is also used in the implementation of that function.
+`publish_vehicle_command()` 将带有命令的 [VehicleCommand](../msg_docs/VehicleCommand.md)消息发送给载具。
+我们使用上面的方法将模式切换为 offboard 模式，同时也在 arm() 函数中用它来对载具进行解锁。
+我们在此示例中不调用 `disarm()` ，但它也用于执行此功能。
 
 ```cpp
 /**
@@ -198,23 +198,23 @@ While we don't call `disarm()` in this example, it is also used in the implement
  */
 void OffboardControl::publish_vehicle_command(uint16_t command, float param1, float param2)
 {
-	VehicleCommand msg{};
-	msg.param1 = param1;
-	msg.param2 = param2;
-	msg.command = command;
-	msg.target_system = 1;
-	msg.target_component = 1;
-	msg.source_system = 1;
-	msg.source_component = 1;
-	msg.from_external = true;
-	msg.timestamp = this->get_clock()->now().nanoseconds() / 1000;
-	vehicle_command_publisher_->publish(msg);
+    VehicleCommand msg{};
+    msg.param1 = param1;
+    msg.param2 = param2;
+    msg.command = command;
+    msg.target_system = 1;
+    msg.target_component = 1;
+    msg.source_system = 1;
+    msg.source_component = 1;
+    msg.from_external = true;
+    msg.timestamp = this-&gt;get_clock()-&gt;now().nanoseconds() / 1000;
+    vehicle_command_publisher_-&gt;publish(msg);
 }
 ```
 
 :::info
-[VehicleCommand](../msg_docs/VehicleCommand.md) is one of the simplest and most powerful ways to command PX4, and by subscribing to [VehicleCommandAck](../msg_docs/VehicleCommandAck.md) you can also confirm that setting a particular command was successful.
-The param and command fields map to [MAVLink commands](https://mavlink.io/en/messages/common.html#mav_commands) and their parameter values.
+[VehicleCommand](../msg_docs/VehicleCommand.md是命令PX4的最简单和最高效的方式之一。 通过订阅 [VehicleCommandAck](../msg_docs/VehicleCommandAck.md)，您也可以确认设置特定命令是否成功。
+参数字段和 指令字段对应于 [MAVLink commands](https://mavlink.io/en/messages/common.html#mav_commands)以及他们的参数值
 :::
 
 ## See Also
