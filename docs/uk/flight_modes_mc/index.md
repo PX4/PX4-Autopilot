@@ -21,10 +21,12 @@ Manual-Easy:
 - [Stabilized mode](../flight_modes_mc/manual_stabilized.md) — Releasing the sticks levels and maintains the vehicle horizontal posture (but not altitude or position).
   Транспортний засіб продовжить рухатися з імпульсом, і як висота, так і горизонтальна позиція можуть бути піддані впливу вітру.
   This mode is also used if "Manual mode" is selected in a ground station.
+- [Altitude Cruise mode](../flight_modes_mc/altitude_cruise.md) — Very similar to _Altitude mode_, with the difference that when the roll and pitch sticks are released the vehicle does not level out but keeps the tilt until further inputs are given.
+  Additionally it is possible to disable the manual control failsafe for this mode, having the vehicle continue on it's set path even if there are no new control inputs.
 
 Manual-Acrobatic
 
-- [Acro](../flight_modes_mc/acro.md) — Ручний режим для виконання акробатичних маневрів, таких як креніння та петлі.
+- [Acro](../flight_modes_mc/acro.md) — Manual mode for performing acrobatic manoeuvrers, such as rolls and loops.
   Відпускання палиць призупиняє обертання транспортного засобу в площині крена, тангажу та розвороту, але іншим чином не стабілізує транспортний засіб.
 
 Автономний:
