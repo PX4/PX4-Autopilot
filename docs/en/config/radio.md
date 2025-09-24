@@ -153,25 +153,27 @@ To map a PARAM tuning channel to a parameter:
 You can clear all parameter/tuning channel mappings by selecting menu **Tools > Clear RC to Param** at the top right of the _Parameters_ screen.
 :::
 
-## RC Input Enable/Disable Switch
+## RC-Input Enable/Disable Switch
 
-You can configure PX4 to use a switch channel on your transmitter to enable or disable R/C inputs to the rest of the PX4 system. This is convenient for flight testing companion software, as it allows a safety pilot to leave their R/C transmitter turned on, but without fear that bumping the sticks will override the companion software control. By default, this behavior is disabled.
+You can configure PX4 to use a switch channel on your transmitter to enable or disable RC inputs to the rest of the PX4 system.
+This is convenient for flight testing companion software, as it allows a safety pilot to leave their RC transmitter turned on, but without fear that bumping the sticks will override the companion software control.
 
-Set the [RC_MAP_RC_ENABLE](../advanced_config/parameter_reference.md#RC_MAP_RC_ENABLE) parameter to the channel index of the switch you want to use for this functionality. You can use [RC_ENABLESW_TH](../advanced_config/parameter_reference.md#RC_ENABLESW_TH) to configure the behavior of this switch.
+Set the [RC_MAP_RC_ENABLE](../advanced_config/parameter_reference.md#RC_MAP_RC_ENABLE) parameter to the channel index of the switch you want to use to control RC input.
+Optionally use [RC_ENABLESW_TH](../advanced_config/parameter_reference.md#RC_ENABLESW_TH) to configure the trigger level of the switch (this should not be necessary).
 
-When the switch is asserted, R/C stick inputs and switch interactions will have no effect on the autopilot. You can test this functionality prior to arming with the following procedure:
+When the RC-Input-Enable switch is engaged, RC stick inputs other switches will have no effect on the autopilot.
+You can test this functionality prior to arming with the following procedure:
 
-1. Assert the R/C enable switch
-2. Switch into a manual flight mode
-3. Deassert the R/C enable switch
-4. Observe in QGroundControl that manual control inputs have been lost
-5. Reassert the R/C enable switch
-6. Observe in QGroundControl that manual control inputs  have recovered
+1. Activate the RC-Input-Enable switch.
+2. Switch into a manual flight mode.
+3. Deactivate the RC-Input-Enable enable switch.
+4. Observe in QGroundControl that manual control inputs have been lost.
+5. Reactivate the RC enable switch.
+6. Observe in QGroundControl that manual control inputs have recovered.
 
 :::tip
-While the R/C enabled switch is deasserted, the autopilot will still report having a good R/C link in the Mavlink `RC_CHANNELS` message.
+While the _RC enabled_ switch is off, the autopilot will still report having a good RC link in the MAVLink `RC_CHANNELS` message.
 :::
-
 
 ## Further Information
 
