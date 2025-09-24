@@ -1310,7 +1310,7 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 		crypto_suffix = "e";
 	}
 
-#endif
+#endif // PX4_CRYPTO
 
 	char *log_file_name = _file_name[(int)type].log_file_name;
 
@@ -1419,7 +1419,7 @@ void Logger::start_log_file(LogType type)
 		(px4_crypto_algorithm_t)_param_sdlog_crypto_algorithm.get(),
 		_param_sdlog_crypto_key.get(),
 		_param_sdlog_crypto_exchange_key.get());
-#endif
+#endif // PX4_CRYPTO
 
 	if (_writer.start_log_file(type, file_name)) {
 		_writer.select_write_backend(LogWriter::BackendFile);
