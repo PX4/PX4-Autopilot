@@ -352,15 +352,15 @@ TEST(ManualControlSelector, RcOutdated)
 	EXPECT_EQ(selector.instance(), -1);
 }
 
-TEST(ManualControlSelector, AscendingSourcePriority)
+TEST(ManualControlSelector, RcThenJoystickAscendingPriority)
 {
 	ManualControlSelector selector;
-	selector.setRcInMode(5); // Configure ascending source ID priority (lower number wins)
+	selector.setRcInMode(5); // Configure RC, then Joystick ascending
 	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = SOME_TIME;
 
-	// Valid RC input (ID 1) gets used
+	// Valid RC input gets used
 	manual_control_setpoint_s input{};
 	input.data_source = SOURCE_RC;
 	input.valid = true;
@@ -373,7 +373,7 @@ TEST(ManualControlSelector, AscendingSourcePriority)
 
 	timestamp += 100_ms;
 
-	// Now provide input from MAVLink (ID 2) as well which should get ignored (1 < 2)
+	// Now provide input from MAVLink 0 as well which should get ignored
 	input.data_source = SOURCE_MAVLINK_0;
 	input.timestamp_sample = timestamp;
 	selector.updateWithNewInputSample(timestamp, input, 1);
@@ -384,7 +384,7 @@ TEST(ManualControlSelector, AscendingSourcePriority)
 
 	timestamp += 500_ms;
 
-	// Now we update MAVLink and let RC time out, so it should switch to MAVLink
+	// Now we update MAVLink 0 and let RC time out, so it should switch to MAVLink 0
 	input.data_source = SOURCE_MAVLINK_0;
 	input.timestamp_sample = timestamp;
 	selector.updateWithNewInputSample(timestamp, input, 1);
@@ -393,7 +393,7 @@ TEST(ManualControlSelector, AscendingSourcePriority)
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), 1);
 
-	// If we get RC back immediately, it should take over with priority (1 < 2)
+	// If we get RC back immediately, it should take over with priority
 	input.data_source = SOURCE_RC;
 	input.timestamp_sample = timestamp;
 	selector.updateWithNewInputSample(timestamp, input, 0);
@@ -402,157 +402,368 @@ TEST(ManualControlSelector, AscendingSourcePriority)
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
-}
+	timestamp += 100_ms;
 
-TEST(ManualControlSelector, MavlinkTwoInstanceAscendingPriority)
-{
-	ManualControlSelector selector;
-	selector.setRcInMode(5); // Configure ascending source ID priority (lower number wins)
-	selector.setTimeout(500_ms);
-
-	uint64_t timestamp = SOME_TIME;
-
-	// Valid MAVLink 1 input (ID 3) gets used
-	manual_control_setpoint_s input{};
+	// Now provide input from MAVLink 1, which should get ignored
 	input.data_source = SOURCE_MAVLINK_1;
-	input.valid = true;
 	input.timestamp_sample = timestamp;
-	selector.updateWithNewInputSample(timestamp, input, 1);
+	selector.updateWithNewInputSample(timestamp, input, 2);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
+	EXPECT_EQ(selector.instance(), 0);
+
+	timestamp += 500_ms;
+
+	// Now we update MAVLink 1 and let RC time out, so it should switch to MAVLink 1
+	input.data_source = SOURCE_MAVLINK_1;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
-	EXPECT_EQ(selector.instance(), 1);
+	EXPECT_EQ(selector.instance(), 2);
 
 	timestamp += 100_ms;
 
-	// Now provide input from MAVLink 0 (ID 2), which has higher priority (2 < 3) and should take over
+	// Now provide input from MAVLink 0, which has higher priority and should take over
 	input.data_source = SOURCE_MAVLINK_0;
-	input.timestamp_sample = timestamp;
-	selector.updateWithNewInputSample(timestamp, input, 0);
-
-	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
-	EXPECT_EQ(selector.instance(), 0);
-
-	// If we get MAVLink 1 back immediately, it should be ignored since MAVLink 0 has higher priority (2 < 3)
-	input.data_source = SOURCE_MAVLINK_1;
 	input.timestamp_sample = timestamp;
 	selector.updateWithNewInputSample(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
-	EXPECT_EQ(selector.instance(), 0);
+	EXPECT_EQ(selector.instance(), 1);
+
+	// If we get MAVLink 1 back immediately, it should be ignored since MAVLink 0 has higher priority
+	input.data_source = SOURCE_MAVLINK_1;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 2);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.instance(), 1);
 
 	timestamp += 500_ms;
 
 	// Now we update MAVLink 1 and let MAVLink 0 time out, so it should switch to MAVLink 1
 	input.data_source = SOURCE_MAVLINK_1;
 	input.timestamp_sample = timestamp;
-	selector.updateWithNewInputSample(timestamp, input, 1);
+	selector.updateWithNewInputSample(timestamp, input, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
-	EXPECT_EQ(selector.instance(), 1);
+	EXPECT_EQ(selector.instance(), 2);
 }
 
-TEST(ManualControlSelector, DescendingSourcePriority)
+TEST(ManualControlSelector, JoystickAscendingThenRcPriority)
 {
 	ManualControlSelector selector;
-	selector.setRcInMode(6); // Configure descending source ID priority (higher number wins)
+	selector.setRcInMode(6); // Configure Joystick ascending, then RC
 	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = SOME_TIME;
 
-	// Valid MAVLink input (ID 2) gets used
+	// Valid MAVLink 0 input gets used
 	manual_control_setpoint_s input{};
 	input.data_source = SOURCE_MAVLINK_0;
 	input.valid = true;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 1);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.instance(), 1);
+
+	timestamp += 100_ms;
+
+	// Now provide input from MAVLink 1 as well which should get ignored
+	input.data_source = SOURCE_MAVLINK_1;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 2);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.instance(), 1);
+
+	timestamp += 500_ms;
+
+	// Now we update MAVLink 1 and let MAVLink 0 time out, so it should switch to MAVLink 1
+	input.data_source = SOURCE_MAVLINK_1;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 2);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
+	EXPECT_EQ(selector.instance(), 2);
+
+	// If we get MAVLink 0 back immediately, it should take over with priority
+	input.data_source = SOURCE_MAVLINK_0;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 1);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.instance(), 1);
+
+	timestamp += 100_ms;
+
+	// Now provide input from RC, which should get ignored
+	input.data_source = SOURCE_RC;
 	input.timestamp_sample = timestamp;
 	selector.updateWithNewInputSample(timestamp, input, 0);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.instance(), 1);
+
+	timestamp += 500_ms;
+
+	// Now we update RC and let MAVLink 0 time out, so it should switch to RC
+	input.data_source = SOURCE_RC;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 0);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
 	timestamp += 100_ms;
 
-	// Now provide input from RC (ID 1) as well which should get ignored (2 > 1)
-	input.data_source = SOURCE_RC;
+	// Now provide input from MAVLink 1, which has higher priority and should take over
+	input.data_source = SOURCE_MAVLINK_1;
 	input.timestamp_sample = timestamp;
-	selector.updateWithNewInputSample(timestamp, input, 1);
+	selector.updateWithNewInputSample(timestamp, input, 2);
 
 	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
+	EXPECT_EQ(selector.instance(), 2);
+
+	// If we get RC back immediately, it should be ignored since MAVLink 1 has higher priority
+	input.data_source = SOURCE_RC;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 0);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
+	EXPECT_EQ(selector.instance(), 2);
+
+	timestamp += 500_ms;
+
+	// Now we update RC and let MAVLink 1 time out, so it should switch to RC
+	input.data_source = SOURCE_RC;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 0);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
+	EXPECT_EQ(selector.instance(), 0);
+}
+
+TEST(ManualControlSelector, RcThenJoystickDescendingPriority)
+{
+	ManualControlSelector selector;
+	selector.setRcInMode(7); // Configure RC, then Joystick descending
+	selector.setTimeout(500_ms);
+
+	uint64_t timestamp = SOME_TIME;
+
+	// Valid RC input gets used
+	manual_control_setpoint_s input{};
+	input.data_source = SOURCE_RC;
+	input.valid = true;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 0);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
+	EXPECT_EQ(selector.instance(), 0);
+
+	timestamp += 100_ms;
+
+	// Now provide input from MAVLink 1 as well which should get ignored
+	input.data_source = SOURCE_MAVLINK_1;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 2);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 
 	timestamp += 500_ms;
 
-	// Now we update RC and let MAVLink time out, so it should switch to RC
+	// Now we update MAVLink 0 and let RC time out, so it should switch to MAVLink 0
+	input.data_source = SOURCE_MAVLINK_1;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 2);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
+	EXPECT_EQ(selector.instance(), 2);
+
+	// If we get RC back immediately, it should take over with priority
 	input.data_source = SOURCE_RC;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 0);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
+	EXPECT_EQ(selector.instance(), 0);
+
+	timestamp += 100_ms;
+
+	// Now provide input from MAVLink 0, which should get ignored
+	input.data_source = SOURCE_MAVLINK_0;
 	input.timestamp_sample = timestamp;
 	selector.updateWithNewInputSample(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
+	EXPECT_EQ(selector.instance(), 0);
+
+	timestamp += 500_ms;
+
+	// Now we update MAVLink 0 and let RC time out, so it should switch to MAVLink 0
+	input.data_source = SOURCE_MAVLINK_0;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 1);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
 	EXPECT_EQ(selector.instance(), 1);
-
-	// If we get MAVLink back immediately, it should take over with priority (2 > 1)
-	input.data_source = SOURCE_MAVLINK_0;
-	input.timestamp_sample = timestamp;
-	selector.updateWithNewInputSample(timestamp, input, 0);
-
-	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
-	EXPECT_EQ(selector.instance(), 0);
-}
-
-TEST(ManualControlSelector, MavlinkTwoInstanceDescendingPriority)
-{
-	ManualControlSelector selector;
-	selector.setRcInMode(6); // Configure descending source ID priority (higher number wins)
-	selector.setTimeout(500_ms);
-
-	uint64_t timestamp = SOME_TIME;
-
-	// Valid MAVLink 0 input (ID 2) gets used
-	manual_control_setpoint_s input{};
-	input.data_source = SOURCE_MAVLINK_0;
-	input.valid = true;
-	input.timestamp_sample = timestamp;
-	selector.updateWithNewInputSample(timestamp, input, 0);
-
-	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
-	EXPECT_EQ(selector.instance(), 0);
 
 	timestamp += 100_ms;
 
-	// Now provide input from MAVLink 1 (ID 3), which has higher priority (3 > 2) and should take over
+	// Now provide input from MAVLink 1, which has higher priority and should take over
 	input.data_source = SOURCE_MAVLINK_1;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 2);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
+	EXPECT_EQ(selector.instance(), 2);
+
+	// If we get MAVLink 0 back immediately, it should be ignored since MAVLink 1 has higher priority
+	input.data_source = SOURCE_MAVLINK_0;
 	input.timestamp_sample = timestamp;
 	selector.updateWithNewInputSample(timestamp, input, 1);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
-	EXPECT_EQ(selector.instance(), 1);
-
-	// If we get MAVLink 0 back immediately, it should be ignored since MAVLink 1 has higher priority (3 > 2)
-	input.data_source = SOURCE_MAVLINK_0;
-	input.timestamp_sample = timestamp;
-	selector.updateWithNewInputSample(timestamp, input, 0);
-
-	EXPECT_TRUE(selector.setpoint().valid);
-	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
-	EXPECT_EQ(selector.instance(), 1);
+	EXPECT_EQ(selector.instance(), 2);
 
 	timestamp += 500_ms;
 
 	// Now we update MAVLink 0 and let MAVLink 1 time out, so it should switch to MAVLink 0
 	input.data_source = SOURCE_MAVLINK_0;
 	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 1);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.instance(), 1);
+}
+
+TEST(ManualControlSelector, JoystickDescendingThenRcPriority)
+{
+	ManualControlSelector selector;
+	selector.setRcInMode(8); // Configure Joystick descending, then RC
+	selector.setTimeout(500_ms);
+
+	uint64_t timestamp = SOME_TIME;
+
+	// Valid MAVLink 1 input gets used
+	manual_control_setpoint_s input{};
+	input.data_source = SOURCE_MAVLINK_1;
+	input.valid = true;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 2);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
+	EXPECT_EQ(selector.instance(), 2);
+
+	timestamp += 100_ms;
+
+	// Now provide input from MAVLink 0 as well which should get ignored
+	input.data_source = SOURCE_MAVLINK_0;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 1);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
+	EXPECT_EQ(selector.instance(), 2);
+
+	timestamp += 500_ms;
+
+	// Now we update MAVLink 0 and let MAVLink 1 time out, so it should switch to MAVLink 0
+	input.data_source = SOURCE_MAVLINK_0;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 1);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.instance(), 1);
+
+	// If we get MAVLink 1 back immediately, it should take over with priority
+	input.data_source = SOURCE_MAVLINK_1;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 2);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
+	EXPECT_EQ(selector.instance(), 2);
+
+	timestamp += 100_ms;
+
+	// Now provide input from RC, which should get ignored
+	input.data_source = SOURCE_RC;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 0);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_1);
+	EXPECT_EQ(selector.instance(), 2);
+
+	timestamp += 500_ms;
+
+	// Now we update RC and let MAVLink 1 time out, so it should switch to RC
+	input.data_source = SOURCE_RC;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 0);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
+	EXPECT_EQ(selector.instance(), 0);
+
+	timestamp += 100_ms;
+
+	// Now provide input from MAVLink 0, which has higher priority and should take over
+	input.data_source = SOURCE_MAVLINK_0;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 1);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.instance(), 1);
+
+	// If we get RC back immediately, it should be ignored since MAVLink 0 has higher priority
+	input.data_source = SOURCE_RC;
+	input.timestamp_sample = timestamp;
 	selector.updateWithNewInputSample(timestamp, input, 0);
 
 	EXPECT_TRUE(selector.setpoint().valid);
 	EXPECT_EQ(selector.setpoint().data_source, SOURCE_MAVLINK_0);
+	EXPECT_EQ(selector.instance(), 1);
+
+	timestamp += 500_ms;
+
+	// Now we update RC and let MAVLink 0 time out, so it should switch to RC
+	input.data_source = SOURCE_RC;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 0);
+
+	EXPECT_TRUE(selector.setpoint().valid);
+	EXPECT_EQ(selector.setpoint().data_source, SOURCE_RC);
 	EXPECT_EQ(selector.instance(), 0);
 }

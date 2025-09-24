@@ -75,8 +75,8 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 		return;
 	}
 
-	if (_param_com_rc_in_mode.get() != 0 && _param_com_rc_in_mode.get() != 2 && _param_com_rc_in_mode.get() != 3
-	    && _param_com_rc_in_mode.get() != 5 && _param_com_rc_in_mode.get() != 6) {
+	// return early when joystick only or stick input disabled
+	if (_param_com_rc_in_mode.get() == 1 || _param_com_rc_in_mode.get() == 4) {
 		return;
 	}
 
