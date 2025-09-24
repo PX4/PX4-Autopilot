@@ -83,19 +83,33 @@ private:
 	static constexpr uint8_t I2C_LEGACY_CMD_WRITE_LASER_CONTROL = 5;
 
 	enum class Register : uint8_t {
-		// see http://support.lightware.co.za/sf20/#/commands
+		// Common registers
 		ProductName = 0,
-		DistanceOutput = 27,
 		DistanceData = 44,
 		LaserFiring = 50,
+		Protocol = 120,
+	};
+
+	enum class RegisterSF20 : uint8_t {
+		// See http://support.lightware.co.za/sf20/#/commands
+		DistanceOutput = 27,
 		MeasurementMode = 93,
 		ZeroOffset = 94,
 		LostSignalCounter = 95,
-		Protocol = 120,
 		ServoConnected = 121,
 	};
 
-	static constexpr uint16_t output_data_config = 0b11010110100;
+	enum class RegisterSF30 : uint8_t {
+		// See https://lightwarelidar.com/wp-content/uploads/2025/06/SF30D-Product-Guide-v3.pdf
+		DistanceOutput = 29,
+		UpdateRate = 76,
+		LostSignalCounter = 115,
+		ZeroOffset = 116,
+	};
+
+	static constexpr uint16_t output_data_config_sf20 = 0b110'1011'0100;
+	static constexpr uint8_t output_data_config_sf30 = 0b0111'1110;
+
 	struct OutputData {
 		int16_t first_return_median;
 		int16_t first_return_strength;
@@ -107,7 +121,8 @@ private:
 
 	enum class Type {
 		Generic = 0,
-		LW20c
+		LW20c,
+		SF30d,
 	};
 	enum class State {
 		Configuring,
@@ -118,10 +133,11 @@ private:
 
 	void start();
 
-	int readRegister(Register reg, uint8_t *data, int len);
+	template<typename RegisterType>
+	int readRegister(RegisterType reg, uint8_t *data, int len);
 
 	int configure();
-	int enableI2CBinaryProtocol();
+	int enableI2CBinaryProtocol(const char *product_name1, const char *product_name2);
 	int collect();
 
 	int updateRestriction();
@@ -219,10 +235,11 @@ int LightwareLaser::init()
 		break;
 
 	case 7:
-		/* SF/LW30/d (200m 49-20'000Hz) */
+		/* SF/SF30/d (200m 39-20'000Hz) */
 		_px4_rangefinder.set_min_distance(0.2f);
 		_px4_rangefinder.set_max_distance(200.0f);
-		_conversion_interval = 20409;
+		_conversion_interval = 25641;
+		_type = Type::SF30d;
 		break;
 
 	default:
@@ -240,7 +257,8 @@ int LightwareLaser::init()
 	return ret;
 }
 
-int LightwareLaser::readRegister(Register reg, uint8_t *data, int len)
+template<typename RegisterType>
+int LightwareLaser::readRegister(RegisterType reg, uint8_t *data, int len)
 {
 	const uint8_t cmd = (uint8_t)reg;
 	return transfer(&cmd, 1, data, len);
@@ -256,12 +274,21 @@ int LightwareLaser::probe()
 		}
 
 	case Type::LW20c:
-		// try to enable I2C binary protocol
-		int ret = enableI2CBinaryProtocol();
+		return enableI2CBinaryProtocol("SF20", "LW20");
 
-		if (ret != 0) {
-			return ret;
-		}
+	case Type::SF30d:
+		return enableI2CBinaryProtocol("SF30", "LW30");
+	}
+
+	return -1;
+}
+
+int LightwareLaser::enableI2CBinaryProtocol(const char *product_name1, const char *product_name2)
+{
+	for (int i = 0; i < 3; ++i) {
+		// try to enable I2C binary protocol (this command is undocumented)
+		const uint8_t cmd[] = {(uint8_t)Register::Protocol, 0xaa, 0xaa};
+		int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
 
 		// read the product name
 		uint8_t product_name[16];
@@ -269,43 +296,10 @@ int LightwareLaser::probe()
 		product_name[sizeof(product_name) - 1] = '\0';
 		PX4_DEBUG("product: %s", product_name);
 
-		if (ret == 0 && (strncmp((const char *)product_name, "SF20", sizeof(product_name)) == 0 ||
-				 strncmp((const char *)product_name, "LW20", sizeof(product_name)) == 0)) {
+		if (ret == 0 && (strncmp((const char *)product_name, product_name1, sizeof(product_name)) == 0 ||
+				 strncmp((const char *)product_name, product_name2, sizeof(product_name)) == 0)) {
 			return 0;
 		}
-
-		return -1;
-	}
-
-	return -1;
-}
-
-int LightwareLaser::enableI2CBinaryProtocol()
-{
-	const uint8_t cmd[] = {(uint8_t)Register::Protocol, 0xaa, 0xaa};
-	int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
-
-	if (ret != 0) {
-		return ret;
-	}
-
-	// Now read and check against the expected values
-	for (int i = 0; i < 2; ++i) {
-		uint8_t value[2];
-		ret = transfer(cmd, 1, value, sizeof(value));
-
-		if (ret != 0) {
-			return ret;
-		}
-
-		PX4_DEBUG("protocol values: 0x%" PRIx8 " 0x%" PRIx8, value[0], value[1]);
-
-		if (value[0] == 0xcc && value[1] == 0x00) {
-			return 0;
-		}
-
-		// Occasionally the previous transfer returns ret == value[0] == value[1] == 0. If so, wait a bit and retry
-		px4_usleep(1000);
 	}
 
 	return -1;
@@ -330,23 +324,42 @@ int LightwareLaser::configure()
 		}
 		break;
 
-	case Type::LW20c:
+	case Type::LW20c: {
+			// There are commonly 2 hardware variants (SF + LW) with the same specifications
+			int ret = enableI2CBinaryProtocol("SF20", "LW20");
+			const uint8_t cmd1[] = {(uint8_t)RegisterSF20::ServoConnected, 0};
+			ret |= transfer(cmd1, sizeof(cmd1), nullptr, 0);
+			const uint8_t cmd2[] = {(uint8_t)RegisterSF20::ZeroOffset, 0, 0, 0, 0};
+			ret |= transfer(cmd2, sizeof(cmd2), nullptr, 0);
+			const uint8_t cmd3[] = {(uint8_t)RegisterSF20::MeasurementMode, 1}; // 48Hz
+			ret |= transfer(cmd3, sizeof(cmd3), nullptr, 0);
+			const uint8_t cmd4[] = {(uint8_t)RegisterSF20::DistanceOutput, output_data_config_sf20 & 0xff, (output_data_config_sf20 >> 8) & 0xff, 0, 0};
+			ret |= transfer(cmd4, sizeof(cmd4), nullptr, 0);
+			const uint8_t cmd5[] = {(uint8_t)RegisterSF20::LostSignalCounter, 0, 0, 0, 0}; // immediately report lost signal
+			ret |= transfer(cmd5, sizeof(cmd5), nullptr, 0);
+			const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
+			ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
 
-		int ret = enableI2CBinaryProtocol();
-		const uint8_t cmd1[] = {(uint8_t)Register::ServoConnected, 0};
-		ret |= transfer(cmd1, sizeof(cmd1), nullptr, 0);
-		const uint8_t cmd2[] = {(uint8_t)Register::ZeroOffset, 0, 0, 0, 0};
-		ret |= transfer(cmd2, sizeof(cmd2), nullptr, 0);
-		const uint8_t cmd3[] = {(uint8_t)Register::MeasurementMode, 1}; // 48Hz
-		ret |= transfer(cmd3, sizeof(cmd3), nullptr, 0);
-		const uint8_t cmd4[] = {(uint8_t)Register::DistanceOutput, output_data_config & 0xff, (output_data_config >> 8) & 0xff, 0, 0};
-		ret |= transfer(cmd4, sizeof(cmd4), nullptr, 0);
-		const uint8_t cmd5[] = {(uint8_t)Register::LostSignalCounter, 0, 0, 0, 0}; // immediately report lost signal
-		ret |= transfer(cmd5, sizeof(cmd5), nullptr, 0);
-		const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
-		ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
+			return ret;
+		}
+		break;
 
-		return ret;
+	case Type::SF30d: {
+			// There are commonly 2 hardware variants (SF + LW) with the same specifications
+			int ret = enableI2CBinaryProtocol("SF30", "LW30");
+			const uint8_t cmd2[] = {(uint8_t)RegisterSF30::ZeroOffset, 0, 0, 0, 0};
+			ret |= transfer(cmd2, sizeof(cmd2), nullptr, 0);
+			const uint8_t cmd3[] = {(uint8_t)RegisterSF30::UpdateRate, 9}; // 39Hz
+			ret |= transfer(cmd3, sizeof(cmd3), nullptr, 0);
+			const uint8_t cmd4[] = {(uint8_t)RegisterSF30::DistanceOutput, output_data_config_sf30, 0, 0, 0};
+			ret |= transfer(cmd4, sizeof(cmd4), nullptr, 0);
+			const uint8_t cmd5[] = {(uint8_t)RegisterSF30::LostSignalCounter, 0, 0, 0, 0}; // immediately report lost signal
+			ret |= transfer(cmd5, sizeof(cmd5), nullptr, 0);
+			const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
+			ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
+
+			return ret;
+		}
 		break;
 	}
 
@@ -378,6 +391,7 @@ int LightwareLaser::collect()
 		}
 
 	case Type::LW20c:
+	case Type::SF30d:
 
 		/* read from the sensor */
 		perf_begin(_sample_perf);
@@ -479,7 +493,8 @@ int LightwareLaser::updateRestriction()
 				return transfer(cmd, sizeof(cmd), nullptr, 0);
 			}
 
-		case Type::LW20c: {
+		case Type::LW20c:
+		case Type::SF30d: {
 				const uint8_t cmd[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
 				return transfer(cmd, sizeof(cmd), nullptr, 0);
 			}
@@ -551,7 +566,7 @@ void LightwareLaser::print_usage()
 		R"DESCR_STR(
 ### Description
 
-I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20.
+I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20, SF30/d.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 )DESCR_STR");
