@@ -71,21 +71,35 @@ __license__ = "BSD"
 __email__ = "thomasgubler@gmail.com"
 
 ZENOH_TEMPLATE_FILE = ['Kconfig.topics.em', 'uorb_pubsub_factory.hpp.em']
-TOPICS_TOKEN = '# TOPICS '
+TOPICS_TOKEN = '# TOPICS'
 
 
-def get_topics(filename):
+def get_topics(filename, defines=None):
     """
     Get TOPICS names from a "# TOPICS" line
     """
     ofile = open(filename, 'r')
     text = ofile.read()
     result = []
+    defined_configs = set(defines or [])
     for each_line in text.split('\n'):
         if each_line.startswith(TOPICS_TOKEN):
-            topic_names_str = each_line.strip()
-            topic_names_str = topic_names_str.replace(TOPICS_TOKEN, "")
-            topic_names_list = topic_names_str.split(" ")
+            topic_names_str = each_line[len(TOPICS_TOKEN):].strip()
+
+            config_guard = None
+            if topic_names_str.startswith('['):
+                closing_idx = topic_names_str.find(']')
+                if closing_idx != -1:
+                    config_guard = topic_names_str[1:closing_idx]
+                    topic_names_str = topic_names_str[closing_idx + 1:].strip()
+
+            if config_guard and config_guard not in defined_configs:
+                continue
+
+            if not topic_names_str:
+                continue
+
+            topic_names_list = topic_names_str.split()
             for topic in topic_names_list:
                 # topic name PascalCase (file name) to snake_case (topic name)
                 topic_name = re.sub(r'(?<!^)(?=[A-Z])', '_', topic).lower()
@@ -125,7 +139,7 @@ def generate_by_template(output_file, template_file, em_globals):
     return True
 
 
-def generate_topics_list_file_from_files(files, outputdir, template_filename, templatedir, rihs_path):
+def generate_topics_list_file_from_files(files, outputdir, template_filename, templatedir, rihs_path, defines=None):
     # generate cpp file with topics list
     filenames = []
     for filename in [os.path.basename(p) for p in files if os.path.basename(p).endswith(".msg")]:
@@ -154,9 +168,11 @@ def generate_topics_list_file_from_files(files, outputdir, template_filename, te
 
     topics = []
     datatypes_with_topics = dict()
+    defined_configs = set(defines or [])
+
     for msg_filename in files:
         datatype = re.sub(r'(?<!^)(?=[A-Z])', '_', os.path.basename(msg_filename)).lower().replace(".msg","")
-        datatypes_with_topics[datatype] = get_topics(msg_filename)
+        datatypes_with_topics[datatype] = get_topics(msg_filename, defined_configs)
         topics.extend(datatypes_with_topics[datatype])
 
     tl_globals = {"msgs": filenames, "topics": topics, "datatypes": datatypes, "full_base_names": full_base_names, "rihs01_hashes": rihs01_hashes, "datatypes_with_topics": datatypes_with_topics}
@@ -181,13 +197,17 @@ if __name__ == "__main__":
                         ' name when converting directories')
     parser.add_argument('--rihs', dest='rihs', default='',
                         help='path where rihs01 json files located')
+    parser.add_argument('--define', dest='define', action='append', default=[],
+                        help='Enable optional topic groups guarded by the provided Kconfig symbols')
     args = parser.parse_args()
 
+    defines = set(args.define or [])
+
     if args.zenoh_config:
-        generate_topics_list_file_from_files(args.file, args.outputdir, ZENOH_TEMPLATE_FILE[0], args.templatedir, args.rihs)
+        generate_topics_list_file_from_files(args.file, args.outputdir, ZENOH_TEMPLATE_FILE[0], args.templatedir, args.rihs, defines)
         exit(0)
     elif args.zenoh_pub_sub:
-        generate_topics_list_file_from_files(args.file, args.outputdir, ZENOH_TEMPLATE_FILE[1], args.templatedir, args.rihs)
+        generate_topics_list_file_from_files(args.file, args.outputdir, ZENOH_TEMPLATE_FILE[1], args.templatedir, args.rihs, defines)
         exit(0)
     else:
         print('Error: either --headers or --sources must be specified')
