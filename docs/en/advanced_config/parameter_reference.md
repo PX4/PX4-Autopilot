@@ -10,264 +10,6 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
 
 <!-- markdown generator: src/lib/parameters/px4params/markdownout.py -->
 
-## UAVCAN Motor Parameters
-
-### ctl_bw (`INT32`) {#ctl_bw}
-
-Speed controller bandwidth.
-
-Speed controller bandwidth, in Hz. Higher values result in faster speed and current rise times, but may result in overshoot and higher current consumption. For fixed-wing aircraft, this value should be less than 50 Hz; for multirotors, values up to 100 Hz may provide improvements in responsiveness.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 10       | 250      |           | 75      | Hz   |
-
-### ctl_dir (`INT32`) {#ctl_dir}
-
-Reverse direction.
-
-Motor spin direction as detected during initial enumeration. Use 0 or 1 to reverse direction.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        |           | 1       |
-
-### ctl_gain (`FLOAT`) {#ctl_gain}
-
-Speed (RPM) controller gain.
-
-Determines controller
-aggressiveness; units are amp-seconds per radian. Systems with
-higher rotational inertia (large props) will need gain increased;
-systems with low rotational inertia (small props) may need gain
-decreased. Higher values result in faster response, but may result
-in oscillation and excessive overshoot. Lower values result in a
-slower, smoother response.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0.00     | 1.00     |           | 1       | C/rad |
-
-### ctl_hz_idle (`FLOAT`) {#ctl_hz_idle}
-
-Idle speed (e Hz).
-
-Idle speed (e Hz)
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 3.5     | Hz   |
-
-### ctl_start_rate (`INT32`) {#ctl_start_rate}
-
-Spin-up rate (e Hz/s).
-
-Spin-up rate (e Hz/s)
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 5        | 1000     |           | 25      | 1/s^2 |
-
-### esc_index (`INT32`) {#esc_index}
-
-Index of this ESC in throttle command messages.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 15       |           | 0       |
-
-### id_ext_status (`INT32`) {#id_ext_status}
-
-Extended status ID.
-
-Extended status ID
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 1        | 1000000  |           | 20034   |
-
-### int_ext_status (`INT32`) {#int_ext_status}
-
-Extended status interval (µs).
-
-Extended status interval (µs)
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1000000  |           | 50000   | us   |
-
-### int_status (`INT32`) {#int_status}
-
-ESC status interval (µs).
-
-ESC status interval (µs)
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          | 1000000  |           | 50000   | us   |
-
-### mot_i_max (`FLOAT`) {#mot_i_max}
-
-Motor current limit in amps.
-
-This determines the maximum
-current controller setpoint, as well as the maximum allowable
-current setpoint slew rate. This value should generally be set to
-the continuous current rating listed in the motor’s specification
-sheet, or set equal to the motor’s specified continuous power
-divided by the motor voltage limit.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 1        | 80       |           | 12      | A    |
-
-### mot_kv (`INT32`) {#mot_kv}
-
-Motor Kv in RPM per volt.
-
-This can be taken from the motor’s
-specification sheet; accuracy will help control performance but
-some deviation from the specified value is acceptable.
-
-| Reboot | minValue | maxValue | increment | default | unit  |
-| ------ | -------- | -------- | --------- | ------- | ----- |
-| &nbsp; | 0        | 4000     |           | 2300    | rpm/V |
-
-### mot_ls (`FLOAT`) {#mot_ls}
-
-READ ONLY: Motor inductance in henries.
-
-This is measured on start-up.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     | H    |
-
-### mot_num_poles (`INT32`) {#mot_num_poles}
-
-Number of motor poles.
-
-Used to convert mechanical speeds to
-electrical speeds. This number should be taken from the motor’s
-specification sheet.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 2        | 40       |           | 14      |
-
-### mot_rs (`FLOAT`) {#mot_rs}
-
-READ ONLY: Motor resistance in ohms.
-
-This is measured on start-up. When
-tuning a new motor, check that this value is approximately equal
-to the value shown in the motor’s specification sheet.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     | Ohm  |
-
-### mot_v_accel (`FLOAT`) {#mot_v_accel}
-
-Acceleration limit (V).
-
-Acceleration limit (V)
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     | 1.00     |           | 0.5     | V    |
-
-### mot_v_max (`FLOAT`) {#mot_v_max}
-
-Motor voltage limit in volts.
-
-The current controller’s
-commanded voltage will never exceed this value. Note that this may
-safely be above the nominal voltage of the motor; to determine the
-actual motor voltage limit, divide the motor’s rated power by the
-motor current limit.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        |          |           | 14.8    | V    |
-
-## UAVCAN GNSS
-
-### gnss.dyn_model (`INT32`) {#gnss.dyn_model}
-
-GNSS dynamic model.
-
-Dynamic model used in the GNSS positioning engine. 0 –
-Automotive, 1 – Sea, 2 – Airborne.
-
-**Values:**
-
-- `0`: Automotive
-- `1`: Sea
-- `2`: Airborne
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 2        |           | 2       |
-
-### gnss.old_fix_msg (`INT32`) {#gnss.old_fix_msg}
-
-Broadcast old GNSS fix message.
-
-Broadcast the old (deprecated) GNSS fix message
-uavcan.equipment.gnss.Fix alongside the new alternative
-uavcan.equipment.gnss.Fix2. It is recommended to
-disable this feature to reduce the CAN bus traffic.
-
-**Values:**
-
-- `0`: Fix2
-- `1`: Fix and Fix2
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        |           | 1       |
-
-### gnss.warn_dimens (`INT32`) {#gnss.warn_dimens}
-
-device health warning.
-
-Set the device health to Warning if the dimensionality of
-the GNSS solution is less than this value. 3 for the full (3D)
-solution, 2 for planar (2D) solution, 1 for time-only solution,
-0 disables the feature.
-
-**Values:**
-
-- `0`: disables the feature
-- `1`: time-only solution
-- `2`: planar (2D) solution
-- `3`: full (3D) solution
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 3        |           | 0       |
-
-### gnss.warn_sats (`INT32`) {#gnss.warn_sats}
-
-Set the device health to Warning if the number of satellites
-used in the GNSS solution is below this threshold. Zero
-disables the feature
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |
-
-### uavcan.pubp-pres (`INT32`) {#uavcan.pubp-pres}
-
-Set the device health to Warning if the number of satellites
-used in the GNSS solution is below this threshold. Zero
-disables the feature
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1000000  |           | 0       | us   |
-
 ## ADSB
 
 ### ADSB_CALLSIGN_1 (`INT32`) {#ADSB_CALLSIGN_1}
@@ -15723,6 +15465,7 @@ selected flight mode will be applied.
 - `11`: Land
 - `12`: Follow Me
 - `13`: Precision Land
+- `16`: Altitude Cruise
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -15760,6 +15503,7 @@ selected flight mode will be applied.
 - `11`: Land
 - `12`: Follow Me
 - `13`: Precision Land
+- `16`: Altitude Cruise
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -15797,6 +15541,7 @@ selected flight mode will be applied.
 - `11`: Land
 - `12`: Follow Me
 - `13`: Precision Land
+- `16`: Altitude Cruise
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -15834,6 +15579,7 @@ selected flight mode will be applied.
 - `11`: Land
 - `12`: Follow Me
 - `13`: Precision Land
+- `16`: Altitude Cruise
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -15871,6 +15617,7 @@ selected flight mode will be applied.
 - `11`: Land
 - `12`: Follow Me
 - `13`: Precision Land
+- `16`: Altitude Cruise
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -15908,6 +15655,7 @@ selected flight mode will be applied.
 - `11`: Land
 - `12`: Follow Me
 - `13`: Precision Land
+- `16`: Altitude Cruise
 - `100`: External Mode 1
 - `101`: External Mode 2
 - `102`: External Mode 3
@@ -16369,10 +16117,11 @@ External modes requiring stick input will still failsafe.
 - `1`: Hold
 - `2`: Offboard
 - `3`: External Mode
+- `4`: Altitude Cruise
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 15       |           | 0       |
+| &nbsp; | 0        | 31       |           | 0       |
 
 ### COM_RC_ARM_HYST (`INT32`) {#COM_RC_ARM_HYST}
 
@@ -24821,6 +24570,19 @@ arms and to the lower left disarms the vehicle.
 | ------ | -------- | -------- | --------- | ----------- | ---- |
 | &nbsp; |          |          |           | Enabled (1) |
 
+### MAN_DEADZONE (`FLOAT`) {#MAN_DEADZONE}
+
+Deadzone for sticks (only specific use cases).
+
+Range around stick center ignored to prevent
+vehicle drift from stick hardware inaccuracy.
+Does not apply to any precise constant input like
+throttle and attitude or rate piloting.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1        | 0.01      | 0.1     |
+
 ### MAN_KILL_GEST_T (`FLOAT`) {#MAN_KILL_GEST_T}
 
 Trigger time for kill stick gesture.
@@ -25672,16 +25434,6 @@ The speed threshold is MPC_HOLD_MAX_XY
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 2        |           | 2       |
 
-### MPC_HOLD_DZ (`FLOAT`) {#MPC_HOLD_DZ}
-
-Deadzone for sticks in manual piloted modes.
-
-Does not apply to manual throttle and direct attitude piloting by stick.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        | 0.01      | 0.1     |
-
 ### MPC_HOLD_MAX_XY (`FLOAT`) {#MPC_HOLD_MAX_XY}
 
 Maximum horizontal velocity for which position hold is enabled (use 0 to disable check).
@@ -25824,7 +25576,7 @@ Airmode is used to keep torque authority with zero thrust (see MC_AIRMODE).
 
 ### MPC_MAN_TILT_MAX (`FLOAT`) {#MPC_MAN_TILT_MAX}
 
-Maximal tilt angle in Stabilized or Altitude mode.
+Maximal tilt angle in Stabilized, Altitude and Altitude Cruise mode.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -26092,19 +25844,6 @@ capabilities of the vehicle.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.1      | 10       | 1         | 2.      |
 
-### MPC_XY_MAN_EXPO (`FLOAT`) {#MPC_XY_MAN_EXPO}
-
-Manual position control stick exponential curve sensitivity.
-
-The higher the value the less sensitivity the stick has around zero
-while still reaching the maximum value with full stick deflection.
-0 Purely linear input curve
-1 Purely cubic input curve
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        | 0.01      | 0.6     |
-
 ### MPC_XY_P (`FLOAT`) {#MPC_XY_P}
 
 Proportional gain for horizontal position error.
@@ -26176,32 +25915,6 @@ Defined as corrective acceleration in m/s^2 per m/s velocity error
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1.2      | 5        | 0.1       | 1.8     |
-
-### MPC_YAW_EXPO (`FLOAT`) {#MPC_YAW_EXPO}
-
-Manual control stick yaw rotation exponential curve.
-
-The higher the value the less sensitivity the stick has around zero
-while still reaching the maximum value with full stick deflection.
-0 Purely linear input curve
-1 Purely cubic input curve
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        | 0.01      | 0.6     |
-
-### MPC_Z_MAN_EXPO (`FLOAT`) {#MPC_Z_MAN_EXPO}
-
-Manual control stick vertical exponential curve.
-
-The higher the value the less sensitivity the stick has around zero
-while still reaching the maximum value with full stick deflection.
-0 Purely linear input curve
-1 Purely cubic input curve
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        | 0.01      | 0.6     |
 
 ### MPC_Z_P (`FLOAT`) {#MPC_Z_P}
 
@@ -26537,7 +26250,7 @@ Pitch rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = MC_PITCHRATE_K _ (MC_PITCHRATE_P _ error
+output = MC*PITCHRATE_K * (MC*PITCHRATE_P * error
 
 - MC_PITCHRATE_I \* error_integral
 - MC_PITCHRATE_D \* error_derivative)
@@ -26604,7 +26317,7 @@ Roll rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = MC_ROLLRATE_K _ (MC_ROLLRATE_P _ error
+output = MC*ROLLRATE_K * (MC*ROLLRATE_P * error
 
 - MC_ROLLRATE_I \* error_integral
 - MC_ROLLRATE_D \* error_derivative)
@@ -26671,7 +26384,7 @@ Yaw rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = MC_YAWRATE_K _ (MC_YAWRATE_P _ error
+output = MC*YAWRATE_K * (MC*YAWRATE_P * error
 
 - MC_YAWRATE_I \* error_integral
 - MC_YAWRATE_D \* error_derivative)
@@ -26905,7 +26618,7 @@ Thrust to motor control signal model parameter.
 
 Parameter used to model the nonlinear relationship between
 motor control signal (e.g. PWM) and static thrust.
-The model is: rel_thrust = factor _ rel_signal^2 + (1-factor) _ rel_signal,
+The model is: rel*thrust = factor * rel*signal^2 + (1-factor) * rel_signal,
 where rel_thrust is the normalized thrust between 0 and 1, and
 rel_signal is the relative motor control signal between 0 and 1.
 
@@ -29769,7 +29482,7 @@ Proportional gain for ground speed controller.
 
 Tuning parameter for the speed reduction based on the course error.
 
-Reduced_speed = RO_MAX_THR_SPEED _ (1 - normalized_course_error _ RO_SPEED_RED)
+Reduced*speed = RO_MAX_THR_SPEED * (1 - normalized*course_error * RO_SPEED_RED)
 The normalized course error is the angle between the current course and the bearing setpoint
 interpolated from [0, 180] -> [0, 1].
 Higher value -> More speed reduction.
@@ -33020,6 +32733,49 @@ reset of counter takes some time - measurement with reset has worse accuracy.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 500000  |
 
+### SBG_BAUDRATE (`INT32`) {#SBG_BAUDRATE}
+
+sbgECom driver baudrate.
+
+Baudrate used by default for serial communication between PX4
+and SBG Systems INS through sbgECom driver.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 9600     | 921600   |           | 921600  |
+
+### SBG_CONFIGURE_EN (`INT32`) {#SBG_CONFIGURE_EN}
+
+sbgECom driver INS configuration enable.
+
+Enable SBG Systems INS configuration through sbgECom driver
+on start.
+
+| Reboot | minValue | maxValue | increment | default      | unit |
+| ------ | -------- | -------- | --------- | ------------ | ---- |
+| &nbsp; |          |          |           | Disabled (0) |
+
+### SBG_MODE (`INT32`) {#SBG_MODE}
+
+sbgECom driver mode.
+
+Modes available for sbgECom driver.
+In Sensors Only mode, use external IMU and magnetometer.
+In GNSS mode, use external GNSS in addition to sensors only mode.
+In INS mode, use external Kalman Filter in addition to GNSS mode.
+In INS mode, requires EKF2_EN 0. Keeping both enabled
+can lead to an unexpected behavior and vehicle instability.
+
+**Values:**
+
+- `0`: Sensors Only
+- `1`: GNSS
+- `2`: INS (default)
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 2       |
+
 ### SENS_AFBR_HYSTER (`INT32`) {#SENS_AFBR_HYSTER}
 
 AFBR Rangefinder Short/Long Range Threshold Hysteresis.
@@ -34555,6 +34311,31 @@ Analog Devices ADIS16448 IMU Orientation(external SPI).
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 101      |           | 0       |
+
+### SENS_SBG_CFG (`INT32`) {#SENS_SBG_CFG}
+
+Serial Configuration for sbgECom.
+
+Configure on which serial port to run sbgECom.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
 
 ### SENS_SF0X_CFG (`INT32`) {#SENS_SF0X_CFG}
 
@@ -36480,7 +36261,7 @@ Pitch rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = SC_PITCHRATE_K _ (SC_PITCHRATE_P _ error
+output = SC*PITCHRATE_K * (SC*PITCHRATE_P * error
 
 - SC_PITCHRATE_I \* error_integral
 - SC_PITCHRATE_D \* error_derivative)
@@ -36547,7 +36328,7 @@ Roll rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = SC_ROLLRATE_K _ (SC_ROLLRATE_P _ error
+output = SC*ROLLRATE_K * (SC*ROLLRATE_P * error
 
 - SC_ROLLRATE_I \* error_integral
 - SC_ROLLRATE_D \* error_derivative)
@@ -36614,7 +36395,7 @@ Yaw rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = SC_YAWRATE_K _ (SC_YAWRATE_P _ error
+output = SC*YAWRATE_K * (SC*YAWRATE_P * error
 
 - SC_YAWRATE_I \* error_integral
 - SC_YAWRATE_D \* error_derivative)
@@ -40028,6 +39809,17 @@ must have a unique session key.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 1       |
+
+### UXRCE_DDS_NS_IDX (`INT32`) {#UXRCE_DDS_NS_IDX}
+
+Define an index-based message namespace.
+
+Defines an index-based namespace for DDS messages, e.g, uav_0, uav_1, up to uav_9999
+A value less than zero leaves the namespace empty
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | -1       | 9999     |           | -1      |
 
 ### UXRCE_DDS_PRT (`INT32`) {#UXRCE_DDS_PRT}
 
