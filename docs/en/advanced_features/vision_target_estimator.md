@@ -1,6 +1,6 @@
 # Vision Target Estimator (VTEST)
 
-The Vision Target Estimator (VTEST) fuses relative target measurements (vision, UWB, IRLock) with absolute positioning sources (vehicle GNSS, a mission landing waypoint, and/or target-mounted GNSS). It runs alongside the primary vehicle estimator and publishes
+The Vision Target Estimator (VTEST) fuses relative target measurements (vision and UWB) with absolute positioning sources (vehicle GNSS, a mission landing waypoint, and/or target-mounted GNSS). It runs alongside the primary vehicle estimator and publishes
 
 - `landing_target_pose` - relative and absolute target pose in NED for precision landing.
 - `vision_target_est_position` - the full position-state vector (with covariances) for logging and tuning.
@@ -63,7 +63,7 @@ Other boards provide the same `_visionTargetEst` suffix. Enable `CONFIG_VTEST_MO
 
 ### Position state
 
-For a static target the per-axis state is $x = [ r, v^{uav}, b ]^T$, where $r$ is the relative NED displacement (target minus vehicle), $v^{uav}$ is the vehicle velocity, and $b$ represents the steady GNSS bias between the GNSS-based observations and the relative observations (vision, UWB, IRLock). The discrete prediction model, assuming constant NED acceleration input $a^{uav}$ over the integration interval $dt$, is
+For a static target the per-axis state is $x = [ r, v^{uav}, b ]^T$, where $r$ is the relative NED displacement (target minus vehicle), $v^{uav}$ is the vehicle velocity, and $b$ represents the steady GNSS bias between the GNSS-based observations and the relative observations (vision or UWB). The discrete prediction model, assuming constant NED acceleration input $a^{uav}$ over the integration interval $dt$, is
 
 $$
 \begin{aligned}
@@ -142,7 +142,7 @@ $$
 ## Estimator Lifecycle
 
 1. **Task activation**: `VisionTargetEst` enables the position and/or orientation filters when the UAV is performing a task selected in [`VTE_TASK_MASK`](../advanced_config/parameter_reference.md#VTE_TASK_MASK). Bit 0 activates precision landing, while bit 1 keeps the estimator running continuously for debugging; future task bits can enable additional mission profiles.
-2. **Initialization**: The position filter waits until at least one position-like observation (vision, UWB, IRLock, or GNSS) becomes available. Priority is given to non-GNSS sources so the GNSS bias can be resolved later from the difference between the GNSS baseline and that first relative measurement.
+2. **Initialization**: The position filter waits until at least one position-like observation (vision, UWB, or GNSS) becomes available. Priority is given to non-GNSS sources so the GNSS bias can be resolved later from the difference between the GNSS baseline and that first relative measurement.
 3. **Bias estimation**: When a GNSS observation is valid and a second independent position source becomes available, the GNSS bias vector is set to `pos_rel_gnss - pos_rel_ref`. From that moment GNSS absolute observations include the bias component inside the measurement model.
 
    In typical precision-landing setups the vehicle hovers within tens of metres from the pad for less than a minute. During that window the atmospheric conditions that shift the output of the GNSS receiver are assumed constant, so the estimator treats the bias as a steady offset. Once the bias has been observed with the help of the relative measurements, it continues to correct the absolute GNSS data even if the vision/UWB feed momentarily drops out, allowing the descent to remain centred on the target.
@@ -159,7 +159,6 @@ All measurements are fused sequentially. For each observation `z` a one-row Jaco
 | Target GNSS position | `target_gnss` | $z = r + b$ once the bias is observable, otherwise $z = r$ | The vehicle GNSS sample is interpolated to the target timestamp using the vehicle velocity so the two receivers share a common epoch. Requires [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 0. |
 | Mission landing waypoint | `position_setpoint_triplet` | $z = r$ | Provides a fallback absolute reference when target GNSS is unavailable. Enable [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 3 and avoid combining it with target GNSS because only one GNSS bias can be estimated. |
 | Vision pose | `fiducial_marker_pos_report` | $z = r$ after rotating the body-frame measurement into NED | Uses the message variances, or scales with altitude when [`VTE_EV_NOISE_MD`](../advanced_config/parameter_reference.md#VTE_EV_NOISE_MD)=1. Recent vision fusions are required for EKF aiding. |
-| IRLock | `irlock_report` + `vehicle_local_position` (range via `dist_bottom`) | $z = r$ for the lateral components only. | Requires a valid range estimate and correct camera geometry (tune [`VTE_IRL_SCALE_X`](../advanced_config/parameter_reference.md#VTE_IRL_SCALE_X), [`VTE_IRL_SCALE_Y`](../advanced_config/parameter_reference.md#VTE_IRL_SCALE_Y), [`VTE_IRL_POS_X`](../advanced_config/parameter_reference.md#VTE_IRL_POS_X), [`VTE_IRL_POS_Y`](../advanced_config/parameter_reference.md#VTE_IRL_POS_Y), [`VTE_IRL_POS_Z`](../advanced_config/parameter_reference.md#VTE_IRL_POS_Z)). Noise is scaled with range through [`VTE_IRL_MEAS_UNC`](../advanced_config/parameter_reference.md#VTE_IRL_MEAS_UNC). IRLock does not provide an observation for the vertical 1d filter.|
 | UWB position | `sensor_uwb` | $z = r$ extracted from ranges and angle-of-arrival | Measurements outside +/-60 deg azimuth or with invalid covariance are rejected. Configure [`VTE_UWB_P_NOISE`](../advanced_config/parameter_reference.md#VTE_UWB_P_NOISE) and [`VTE_UWB_A_NOISE`](../advanced_config/parameter_reference.md#VTE_UWB_A_NOISE) to match the tag characteristics. |
 | Vehicle GNSS velocity | `sensor_gps` | $z = v^{uav}$ | Removes rotation-induced velocity using the EKF2 GPS offset (`EKF2_GPS_POS_*`). Enable [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 1. |
 | Target GNSS velocity (moving mode) | `target_gnss` | $z = v^{t}$ | Available only when `CONFIG_VTEST_MOVING=y` and [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 4 is set. |
@@ -206,19 +205,17 @@ Two time horizons guard incoming data: [`VTE_M_REC_TOUT`](../advanced_config/par
 | 3 | `8` | Mission landing waypoint |
 | 4 | `16` | Target GNSS velocity (moving mode only) |
 | 5 | `32` | UWB range / AoA |
-| 6 | `64` | IRLock |
 
 ### Noise and gating
 
 - Adjust [`VTE_POS_UNC_IN`](../advanced_config/parameter_reference.md#VTE_POS_UNC_IN), [`VTE_VEL_UNC_IN`](../advanced_config/parameter_reference.md#VTE_VEL_UNC_IN), [`VTE_BIA_UNC_IN`](../advanced_config/parameter_reference.md#VTE_BIA_UNC_IN), [`VTE_ACC_UNC_IN`](../advanced_config/parameter_reference.md#VTE_ACC_UNC_IN) to reflect initial uncertainty. Larger numbers slow initial convergence but reduce the chance of aggressive transients.
 - [`VTE_ACC_D_UNC`](../advanced_config/parameter_reference.md#VTE_ACC_D_UNC), [`VTE_ACC_T_UNC`](../advanced_config/parameter_reference.md#VTE_ACC_T_UNC), [`VTE_BIAS_UNC`](../advanced_config/parameter_reference.md#VTE_BIAS_UNC) - process noise for vehicle acceleration, target acceleration, and GNSS bias. Increase [`VTE_ACC_D_UNC`](../advanced_config/parameter_reference.md#VTE_ACC_D_UNC) if the estimator lags behind real motion, and raise [`VTE_BIAS_UNC`](../advanced_config/parameter_reference.md#VTE_BIAS_UNC) if GNSS bias corrections should respond more quickly. In moving-target builds, use [`VTE_ACC_T_UNC`](../advanced_config/parameter_reference.md#VTE_ACC_T_UNC) to match expected target manoeuvrability.
 - [`VTE_POS_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE), [`VTE_YAW_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) - chi-squared thresholds (e.g. 3.84 corresponds to $95\%$ confidence).
-- Measurement variance floors: [`VTE_GPS_P_NOISE`](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE), [`VTE_GPS_V_NOISE`](../advanced_config/parameter_reference.md#VTE_GPS_V_NOISE), [`VTE_UWB_P_NOISE`](../advanced_config/parameter_reference.md#VTE_UWB_P_NOISE), [`VTE_UWB_A_NOISE`](../advanced_config/parameter_reference.md#VTE_UWB_A_NOISE), [`VTE_IRL_NOISE`](../advanced_config/parameter_reference.md#VTE_IRL_NOISE), [`VTE_EVP_NOISE`](../advanced_config/parameter_reference.md#VTE_EVP_NOISE), [`VTE_EVA_NOISE`](../advanced_config/parameter_reference.md#VTE_EVA_NOISE). Parameter updates below the hard-coded `kMinObservationNoise = 1e-2` (see `src/modules/vision_target_estimator/common.h`) are rejected to keep the Kalman gains bounded.
+- Measurement variance floors: [`VTE_GPS_P_NOISE`](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE), [`VTE_GPS_V_NOISE`](../advanced_config/parameter_reference.md#VTE_GPS_V_NOISE), [`VTE_UWB_P_NOISE`](../advanced_config/parameter_reference.md#VTE_UWB_P_NOISE), [`VTE_UWB_A_NOISE`](../advanced_config/parameter_reference.md#VTE_UWB_A_NOISE), [`VTE_EVP_NOISE`](../advanced_config/parameter_reference.md#VTE_EVP_NOISE), [`VTE_EVA_NOISE`](../advanced_config/parameter_reference.md#VTE_EVA_NOISE). Parameter updates below the hard-coded `kMinObservationNoise = 1e-2` (see `src/modules/vision_target_estimator/common.h`) are rejected to keep the Kalman gains bounded.
 - [`VTE_EV_NOISE_MD`](../advanced_config/parameter_reference.md#VTE_EV_NOISE_MD) - when set to 1 the estimator ignores variances from the vision message and scales from parameters using range data.
 
 ### Sensor-specific settings
 
-- **IRLock geometry** - [`VTE_IRL_SCALE_X`](../advanced_config/parameter_reference.md#VTE_IRL_SCALE_X), [`VTE_IRL_SCALE_Y`](../advanced_config/parameter_reference.md#VTE_IRL_SCALE_Y), [`VTE_IRL_POS_X`](../advanced_config/parameter_reference.md#VTE_IRL_POS_X), [`VTE_IRL_POS_Y`](../advanced_config/parameter_reference.md#VTE_IRL_POS_Y), [`VTE_IRL_POS_Z`](../advanced_config/parameter_reference.md#VTE_IRL_POS_Z), [`VTE_IRL_SENS_ROT`](../advanced_config/parameter_reference.md#VTE_IRL_SENS_ROT), [`VTE_IRL_MEAS_UNC`](../advanced_config/parameter_reference.md#VTE_IRL_MEAS_UNC) describe the lens scaling, sensor pose, and noise to convert pixel offsets into NED positions.
 - **GNSS antenna offsets** - `VisionTargetEst` reads [`EKF2_GPS_POS_X`](../advanced_config/parameter_reference.md#EKF2_GPS_POS_X), [`EKF2_GPS_POS_Y`](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Y), and [`EKF2_GPS_POS_Z`](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Z) to remove position and rotation-induced velocity offsets before forming GNSS measurements, so configure EKF2 with the correct antenna location.
 - **UWB calibration** - tune [`VTE_UWB_P_NOISE`](../advanced_config/parameter_reference.md#VTE_UWB_P_NOISE) and [`VTE_UWB_A_NOISE`](../advanced_config/parameter_reference.md#VTE_UWB_A_NOISE) to match the tag accuracy; the estimator also rejects samples with invalid geometry or stale timestamps.
 - **Vision range scaling** - with [`VTE_EV_NOISE_MD`](../advanced_config/parameter_reference.md#VTE_EV_NOISE_MD)=1, the vision position noise scales with the measured range, guarding against under-reported uncertainties as the vehicle gains altitude.
@@ -229,7 +226,7 @@ When [`VTE_EKF_AID`](../advanced_config/parameter_reference.md#VTE_EKF_AID)=1, `
 
 - `landing_target_pose.is_static = true`, which is only the case when `CONFIG_VTEST_MOVING` is disabled.
 - `landing_target_pose.rel_pos_valid = true` and a recent relative measurement (within [`VTE_M_REC_TOUT`](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT)).
-- A relative position measurement has been fused (vision, UWB, IRLock).
+- A relative position measurement has been fused (vision or UWB).
 
 If any condition fails, `rel_vel_valid` is cleared and EKF2 ignores the input.
 
@@ -239,7 +236,7 @@ When `CONFIG_VTEST_MOVING` is active, [`VTE_MOVING_T_MIN`](../advanced_config/pa
 
 ## Gazebo Classic Simulation
 
-Run the SITL world `gazebo-classic_iris_irlock` to simulate precision landing using the VTEST fusing vision (ArUco-based), IRLock (simulated by a logical camera), and target GNSS aiding. The models were introduced in [PX4/PX4-SITL_gazebo-classic#950](https://github.com/PX4/PX4-SITL_gazebo-classic/pull/950).
+Run the SITL world `gazebo-classic_iris_irlock` to simulate precision landing using the VTEST fusing vision (ArUco-based) and target GNSS aiding. The world name is retained for historical reasons. The models were introduced in [PX4/PX4-SITL_gazebo-classic#950](https://github.com/PX4/PX4-SITL_gazebo-classic/pull/950).
 
 1. Launch the simulator with:
 

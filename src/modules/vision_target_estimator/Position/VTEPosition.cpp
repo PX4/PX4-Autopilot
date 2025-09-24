@@ -72,7 +72,6 @@ VTEPosition::VTEPosition() :
 	_vte_aid_gps_vel_target_pub.advertise();
 	_vte_aid_fiducial_marker_pub.advertise();
 	_vte_aid_uwb_pub.advertise();
-	_vte_aid_irlock_pub.advertise();
 
 	updateParams();
 }
@@ -275,9 +274,6 @@ void VTEPosition::processObservations(const matrix::Quaternionf &q_att, ObsValid
 				      TargetObs observations[kObsTypeCount])
 {
 	handleVisionData(fusion_mask, observations[obsIndex(ObsType::Fiducial_marker)]);
-
-	handleIrlockData(q_att, fusion_mask, observations[obsIndex(ObsType::Irlock)]);
-
 	handleUwbData(q_att, fusion_mask, observations[obsIndex(ObsType::Uwb)]);
 
 	if (updateUavGpsData()) {
@@ -630,12 +626,6 @@ void VTEPosition::selectInitialPosition(const ObsValidMaskU &fusion_mask,
 		return;
 	}
 
-	if (fusion_mask.flags.fuse_irlock && _range_sensor.valid) {
-		initial_position = observations[obsIndex(ObsType::Irlock)].meas_xyz;
-		initial_position(2) = _range_sensor.dist_bottom;
-		return;
-	}
-
 	if (fusion_mask.flags.fuse_uwb) {
 		initial_position = observations[obsIndex(ObsType::Uwb)].meas_xyz;
 		return;
@@ -720,10 +710,6 @@ bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned
 		position_fused |= fuse_relative_obs(ObsType::Fiducial_marker);
 	}
 
-	if (fusion_mask.flags.fuse_irlock) {
-		position_fused |= fuse_relative_obs(ObsType::Irlock);
-	}
-
 	if (fusion_mask.flags.fuse_uwb) {
 		position_fused |= fuse_relative_obs(ObsType::Uwb);
 	}
@@ -794,88 +780,6 @@ bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &report, T
 	obs.meas_unc_xyz(vtest::Axis::x) = cov_rotated(vtest::Axis::x, vtest::Axis::x);
 	obs.meas_unc_xyz(vtest::Axis::y) = cov_rotated(vtest::Axis::y, vtest::Axis::y);
 	obs.meas_unc_xyz(vtest::Axis::z) = cov_rotated(vtest::Axis::z, vtest::Axis::z);
-
-	return true;
-}
-
-void VTEPosition::handleIrlockData(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
-				   TargetObs &irlock_obs)
-{
-	irlock_report_s irlock_report;
-
-	if (!_vte_aid_mask.flags.use_irlock) {
-		return;
-	}
-
-	if (!_irlock_report_sub.update(&irlock_report) || !isIrlockDataValid(irlock_report)) {
-		return;
-	}
-
-	if (processObsIrlock(q_att, irlock_report, irlock_obs)) {
-		fusion_mask.flags.fuse_irlock = true;
-	}
-}
-
-bool VTEPosition::isIrlockDataValid(const irlock_report_s &irlock_report) const
-{
-	const bool measurement_valid = isMeasRecent(irlock_report.timestamp)
-				       && PX4_ISFINITE(irlock_report.pos_x)
-				       && PX4_ISFINITE(irlock_report.pos_y);
-
-	return measurement_valid && _range_sensor.valid && PX4_ISFINITE(_range_sensor.dist_bottom);
-}
-
-bool VTEPosition::processObsIrlock(const matrix::Quaternionf &q_att, const irlock_report_s &irlock_report,
-				   TargetObs &obs) const
-{
-	const float dist_z = _range_sensor.dist_bottom - _irlock_config.offset_z;
-
-	if (!PX4_ISFINITE(dist_z) || dist_z <= 0.f) {
-		return false;
-	}
-
-	matrix::Vector3f sensor_ray;
-	sensor_ray(0) = irlock_report.pos_x * _irlock_config.scale_x;
-	sensor_ray(1) = irlock_report.pos_y * _irlock_config.scale_y;
-	sensor_ray(2) = 1.0f;
-
-	const matrix::Dcmf sensor_to_body = get_rot_matrix(_irlock_config.sensor_yaw);
-	matrix::Vector3f sensor_ray_body = sensor_to_body * sensor_ray;
-	const matrix::Vector3f sensor_ray_ned = q_att.rotateVector(sensor_ray_body);
-
-	if (!PX4_ISFINITE(sensor_ray_ned(0)) || !PX4_ISFINITE(sensor_ray_ned(1)) || !PX4_ISFINITE(sensor_ray_ned(2))) {
-		return false;
-	}
-
-	if (fabsf(sensor_ray_ned(2)) < 1e-5f) {
-		return false;
-	}
-
-	const float rel_x = sensor_ray_ned(0) / sensor_ray_ned(2) * dist_z + _irlock_config.offset_x;
-	const float rel_y = sensor_ray_ned(1) / sensor_ray_ned(2) * dist_z + _irlock_config.offset_y;
-
-	if (!PX4_ISFINITE(rel_x) || !PX4_ISFINITE(rel_y)) {
-		return false;
-	}
-
-	obs.meas_h_xyz.zero();
-	obs.meas_xyz(0) = rel_x;
-	obs.meas_xyz(1) = rel_y;
-
-	// For now only x, y are supported
-	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
-	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
-
-	const float planar_unc = fmaxf(_irlock_config.meas_unc * dist_z * dist_z, _irlock_config.min_var);
-	obs.meas_unc_xyz(vtest::Axis::x) = planar_unc;
-	obs.meas_unc_xyz(vtest::Axis::y) = planar_unc;
-
-	obs.timestamp = irlock_report.timestamp;
-	obs.type = ObsType::Irlock;
-
-	obs.updated(vtest::Axis::x) = true;
-	obs.updated(vtest::Axis::y) = true;
-	obs.updated(vtest::Axis::z) = false;
 
 	return true;
 }
@@ -1225,10 +1129,6 @@ void VTEPosition::publishInnov(const estimator_aid_source3d_s &target_innov, con
 		_vte_aid_uwb_pub.publish(target_innov);
 		break;
 
-	case ObsType::Irlock:
-		_vte_aid_irlock_pub.publish(target_innov);
-		break;
-
 	case ObsType::Type_count:
 		break;
 	}
@@ -1512,15 +1412,6 @@ void VTEPosition::updateParams()
 	const float new_nis_threshold = _param_vte_pos_nis_thre.get();
 	const float new_uwb_p_noise = _param_vte_uwb_p_noise.get();
 
-	_irlock_config.scale_x = _param_vte_irl_scale_x.get();
-	_irlock_config.scale_y = _param_vte_irl_scale_y.get();
-	_irlock_config.offset_x = _param_vte_irl_pos_x.get();
-	_irlock_config.offset_y = _param_vte_irl_pos_y.get();
-	_irlock_config.offset_z = _param_vte_irl_pos_z.get();
-	_irlock_config.sensor_yaw = static_cast<enum Rotation>(_param_vte_irl_sens_rot.get());
-	_irlock_config.meas_unc = fmaxf(_param_vte_irl_meas_unc.get(), 1e-6f);
-	const float new_irlock_noise = _param_vte_irl_noise.get();
-
 	if (PX4_ISFINITE(new_gps_pos_noise) && new_gps_pos_noise > kMinObservationNoise) {
 		_min_gps_pos_var = new_gps_pos_noise * new_gps_pos_noise;
 
@@ -1551,14 +1442,6 @@ void VTEPosition::updateParams()
 	} else {
 		PX4_WARN("VTE: VTE_EV_POS_NOISE %.1f <= %.1f, keeping previous value",
 			 (double)new_ev_pos_noise, (double)kMinObservationNoise);
-	}
-
-	if (PX4_ISFINITE(new_irlock_noise) && new_irlock_noise > kMinObservationNoise) {
-		_irlock_config.min_var = new_irlock_noise * new_irlock_noise;
-
-	} else {
-		PX4_WARN("VTE: VTE_IRL_NOISE %.1f <= %.1f, keeping previous value",
-			 (double)new_irlock_noise, (double)kMinObservationNoise);
 	}
 
 	if (PX4_ISFINITE(new_nis_threshold) && new_nis_threshold > kMinNisThreshold) {
