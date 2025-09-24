@@ -65,7 +65,7 @@ PX4 Micro XRCE-DDS Client is based on version `v2.x` which is not compatible wit
 В Ubuntu ви можете зібрати з вихідного коду і встановити Агент окремо за допомогою наступних команд:
 
 ```sh
-git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
 cd Micro-XRCE-DDS-Agent
 mkdir build
 cd build
@@ -126,7 +126,7 @@ This considerably speeds up the build process but requires that the Agent depend
 
    ```sh
    cd ~/px4_ros_uxrce_dds_ws/src
-   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
    ```
 
 3. Source the ROS 2 development environment, and compile the workspace using `colcon`:
@@ -279,6 +279,9 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
   - [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT): Bridge time synchronization enable.
     Клієнтський модуль uXRCE-DDS може синхронізувати мітку часу повідомлень, якими обмінюються через міст.
     Це стандартна конфігурація. In certain situations, for example during [simulations](../ros2/user_guide.md#ros-gazebo-and-px4-time-synchronization), this feature may be disabled.
+  - [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX): Index-based namespace definition
+    Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
+    See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
 
 :::info
 Many ports are already have a default configuration.
@@ -354,7 +357,7 @@ Note that all the messages from PX4 source code are present in the repository, b
 
 ## Customizing the Namespace
 
-Custom topic and service namespaces can be applied at build time (changing [dds_topics.yaml](../middleware/dds_topics.md)) or at runtime (which is useful for multi vehicle operations):
+Custom topic and service namespaces can be applied at build time (changing [dds_topics.yaml](../middleware/dds_topics.md)), at runtime, or through a parameter (which is useful for multi vehicle operations):
 
 - One possibility is to use the `-n` option when starting the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) from command line.
   Ця техніка може бути використана як у симуляторах, так і на реальних транспортних засобах.
@@ -382,6 +385,22 @@ PX4_UXRCE_DDS_NS=uav_1 make px4_sitl gz_x500
 ```
 
 :::
+
+- A simple index-based namespace can be applied by setting the parameter [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) to a value between 0 and 9999.
+  This will generate a namespace such as `/uav_0`, `/uav_1`, and so on.
+  This technique is ideal if vehicles must be persistently associated with namespaces because their clients are automatically started through PX4.
+
+:::info
+PX4 parameters cannot carry rich text strings.
+Therefore, you cannot use [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) to automatically start a client with an arbitrary message namespace through PX4.
+You can however specify a namespace when starting the client, using the `-n` argument:
+
+```sh
+# In etc/extras.txt on the MicroSD card
+uxrce_dds_client start -n fancy_uav
+```
+
+This can be included in `etc/extras.txt` as part of a custom [System Startup](../concept/system_startup.md).
 
 ## PX4 ROS 2 QoS Settings
 
@@ -516,7 +535,7 @@ For a list of services, details and examples see the [service documentation](../
 These guidelines explain how to migrate from using PX4 v1.13 [Fast-RTPS](../middleware/micrortps.md) middleware to PX4 v1.14 `uXRCE-DDS` middleware.
 These are useful if you have [ROS 2 applications written for PX4 v1.13](https://docs.px4.io/v1.13/en/ros/ros2_comm.html), or you have used Fast-RTPS to interface your applications to PX4 [directly](https://docs.px4.io/v1.13/en/middleware/micrortps.html#agent-in-an-offboard-fast-dds-interface-ros-independent).
 
-:::info
+::: info
 This section contains migration-specific information.
 You should also read the rest of this page to properly understand uXRCE-DDS.
 :::
