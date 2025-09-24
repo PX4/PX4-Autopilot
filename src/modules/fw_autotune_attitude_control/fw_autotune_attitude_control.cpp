@@ -124,11 +124,18 @@ void FwAutotuneAttitudeControl::Run()
 		}
 	}
 
-	vehicle_torque_setpoint_s vehicle_torque_setpoint;
-	vehicle_angular_velocity_s angular_velocity;
 
-	if (!_vehicle_torque_setpoint_sub.copy(&vehicle_torque_setpoint)
-	    || !_vehicle_angular_velocity_sub.copy(&angular_velocity)) {
+	if (_vehicle_angular_velocity_sub.updated()) {
+		vehicle_angular_velocity_s vehicle_angular_velocity;
+
+		if (_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity)) {
+			_angular_velocity = Vector3f(vehicle_angular_velocity.xyz);
+		}
+	}
+
+	vehicle_torque_setpoint_s vehicle_torque_setpoint;
+
+	if (!_vehicle_torque_setpoint_sub.copy(&vehicle_torque_setpoint)) {
 		return;
 	}
 
@@ -152,17 +159,17 @@ void FwAutotuneAttitudeControl::Run()
 
 	checkFilters();
 
-	if (_state == state::roll) {
+	if (_state == state::roll || _state == state::roll_amp_detection) {
 		_sys_id.update(_input_scale * vehicle_torque_setpoint.xyz[0],
-			       angular_velocity.xyz[0]);
+			       _angular_velocity(0));
 
-	} else if (_state == state::pitch) {
+	} else if (_state == state::pitch || _state == state::pitch_amp_detection) {
 		_sys_id.update(_input_scale * vehicle_torque_setpoint.xyz[1],
-			       angular_velocity.xyz[1]);
+			       _angular_velocity(1));
 
-	} else if (_state == state::yaw) {
+	} else if (_state == state::yaw || _state == state::yaw_amp_detection) {
 		_sys_id.update(_input_scale * vehicle_torque_setpoint.xyz[2],
-			       angular_velocity.xyz[2]);
+			       _angular_velocity(2));
 	}
 
 	if (hrt_elapsed_time(&_last_publish) > _publishing_dt_hrt || _last_publish == 0) {
@@ -188,9 +195,16 @@ void FwAutotuneAttitudeControl::Run()
 		_attitude_p = math::constrain(1.f / (math::radians(60.f) * (_kiff(0) + _kiff(2))), 1.f, 5.f);
 
 		const Vector<float, 5> &coeff_var = _sys_id.getVariances();
-		const Vector3f rate_sp = _sys_id.areFiltersInitialized()
-					 ? getIdentificationSignal()
-					 : Vector3f();
+		Vector3f rate_sp{};
+
+		if (_sys_id.areFiltersInitialized()) {
+			if (_state == state::roll_amp_detection || _state == state::pitch_amp_detection || _state == state::yaw_amp_detection) {
+				rate_sp = getAmplitudeDetectionSignal();
+
+			} else {
+				rate_sp = getIdentificationSignal();
+			}
+		}
 
 		autotune_attitude_control_status_s status{};
 		status.timestamp = now;
@@ -308,7 +322,8 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	case state::init:
 		if (_are_filters_initialized) {
-			_state = state::roll;
+			_state = state::roll_amp_detection;
+			_amplitude_detection_state = amplitudeDetectionState::init;
 			_state_start_time = now;
 			_sys_id.reset(sys_id_init);
 			// first step needs to be shorter to keep the drone centered
@@ -322,11 +337,28 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 		break;
 
-	case state::roll:
-		if (!(_param_fw_at_axes.get() & Axes::roll)) {
-			// Should not tune this axis, skip
-			_state = state::roll_pause;
+	case state::roll_amp_detection: {
+			if (!(_param_fw_at_axes.get() & Axes::roll)) {
+				// Should not tune this axis, skip
+				_state = state::roll_pause;
+				break;
+			}
+
+			const float abs_roll_rate = fabsf(_angular_velocity(0));
+			const float target = min(kTargetRollRate, math::radians(_param_fw_r_rmax.get()));
+
+			updateAmplitudeDetectionState(now, abs_roll_rate, target);
+
+			if (_amplitude_detection_state == amplitudeDetectionState::complete) {
+
+				_state = state::roll;
+				_state_start_time = now;
+			}
+
+			break;
 		}
+
+	case state::roll:
 
 		if ((_sys_id.getFitness() < converged_thr)
 		    && ((now - _state_start_time) > 5_s)) {
@@ -341,7 +373,8 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	case state::roll_pause:
 		if ((now - _state_start_time) > 2_s) {
-			_state = state::pitch;
+			_state = state::pitch_amp_detection;
+			_amplitude_detection_state = amplitudeDetectionState::init;
 			_state_start_time = now;
 			_sys_id.reset(sys_id_init);
 			_input_scale = 1.f / _param_fw_pr_p.get();
@@ -354,11 +387,29 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 		break;
 
-	case state::pitch:
-		if (!(_param_fw_at_axes.get() & Axes::pitch)) {
-			// Should not tune this axis, skip
-			_state = state::pitch_pause;
+	case state::pitch_amp_detection: {
+			if (!(_param_fw_at_axes.get() & Axes::pitch)) {
+				// Should not tune this axis, skip
+				_state = state::pitch_pause;
+				break;
+			}
+
+			const float abs_pitch_rate = fabsf(_angular_velocity(1));
+			const float max_pitch_rate = min(_param_fw_p_rmax_pos.get(), _param_fw_p_rmax_neg.get());
+			const float target = min(kTargetPitchRate, math::radians(max_pitch_rate));
+
+			updateAmplitudeDetectionState(now, abs_pitch_rate, target);
+
+			if (_amplitude_detection_state == amplitudeDetectionState::complete) {
+
+				_state = state::pitch;
+				_state_start_time = now;
+			}
+
+			break;
 		}
+
+	case state::pitch:
 
 		if ((_sys_id.getFitness() < converged_thr)
 		    && ((now - _state_start_time) > 5_s)) {
@@ -371,7 +422,8 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	case state::pitch_pause:
 		if ((now - _state_start_time) > 2_s) {
-			_state = state::yaw;
+			_state = state::yaw_amp_detection;
+			_amplitude_detection_state = amplitudeDetectionState::init;
 			_state_start_time = now;
 			_sys_id.reset(sys_id_init);
 			_input_scale = 1.f / _param_fw_yr_p.get();
@@ -379,19 +431,33 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			// first step needs to be shorter to keep the drone centered
 			_steps_counter = 5;
 			_max_steps = 10;
-
-			// reset yaw signal filter states
 			_signal_filter.reset(0.f);
 		}
 
 		break;
 
-	case state::yaw:
-		if (!(_param_fw_at_axes.get() & Axes::yaw)) {
-			// Should not tune this axis, skip
-			_state = state::yaw_pause;
+	case state::yaw_amp_detection: {
+			if (!(_param_fw_at_axes.get() & Axes::yaw)) {
+				// Should not tune this axis, skip
+				_state = state::yaw_pause;
+				break;
+			}
+
+			const float abs_yaw_rate = fabsf(_angular_velocity(2));
+			const float target = min(kTargetYawRate, math::radians(_param_fw_y_rmax.get()));
+
+			updateAmplitudeDetectionState(now, abs_yaw_rate, target);
+
+			if (_amplitude_detection_state == amplitudeDetectionState::complete) {
+
+				_state = state::yaw;
+				_state_start_time = now;
+			}
+
+			break;
 		}
 
+	case state::yaw:
 		if ((_sys_id.getFitness() < converged_thr)
 		    && ((now - _state_start_time) > 5_s)) {
 			copyGains(2);
@@ -618,10 +684,94 @@ void FwAutotuneAttitudeControl::saveGainsToParams()
 	}
 }
 
-const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
+void FwAutotuneAttitudeControl::updateAmplitudeDetectionState(const hrt_abstime now,
+		const float rate, const float target_rate)
 {
 
+	const hrt_abstime time_since_last_amplitude_increase = now - _time_last_amplitude_increase;
 
+	switch (_amplitude_detection_state) {
+	case amplitudeDetectionState::init:
+		_signal_amp = 0.1f;  // start with an initial amplitude of 0.1 rad/s
+		_rate_reached = false;
+		_time_last_amplitude_increase = _state_start_time;
+		_amplitude_detection_state = amplitudeDetectionState::first_period;
+
+		break;
+
+
+	case amplitudeDetectionState::first_period:
+
+		if (!_rate_reached && rate >= target_rate) {
+			_rate_reached = true;
+		}
+
+		if (time_since_last_amplitude_increase >= 1_s) {
+			_amplitude_detection_state = _rate_reached ?
+						     amplitudeDetectionState::second_period :
+						     amplitudeDetectionState::increase_amplitude;
+
+			// reset flag
+			_rate_reached = false;
+		}
+
+		break;
+
+	case amplitudeDetectionState::second_period:
+		if (!_rate_reached && rate >= target_rate) {
+			_rate_reached = true;
+		}
+
+		if (time_since_last_amplitude_increase >= 2_s) {
+			_amplitude_detection_state = _rate_reached ?
+						     amplitudeDetectionState::set_amplitude :
+						     amplitudeDetectionState::increase_amplitude;
+			// reset flag
+			_rate_reached = false;
+		}
+
+		break;
+
+
+	case amplitudeDetectionState::increase_amplitude:
+
+		_signal_amp += kSignalAmpStep;
+		_time_last_amplitude_increase = now;
+
+		_amplitude_detection_state = (_signal_amp > kSignalAmpMax) ?
+					     amplitudeDetectionState::set_amplitude :
+					     amplitudeDetectionState::first_period;
+
+
+		break;
+
+	case amplitudeDetectionState::set_amplitude:
+
+		_signal_amp = math::constrain(_signal_amp - kSignalAmpStep, 0.1f, kSignalAmpMax);
+		_amplitude_detection_state = amplitudeDetectionState::complete;
+
+		break;
+
+	case amplitudeDetectionState::complete:
+		break;
+	}
+}
+
+const Vector3f FwAutotuneAttitudeControl::getAmplitudeDetectionSignal()
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float t = static_cast<float>(now - _state_start_time) * 1e-6f;
+
+	float signal = sinf(2.0f * M_PI_F * t);
+
+	signal *= _signal_amp;
+	Vector3f rate_sp = scaleInputSignal(signal);
+
+	return rate_sp;
+}
+
+const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
+{
 	const hrt_abstime now = hrt_absolute_time();
 	const float t = static_cast<float>(now - _state_start_time) * 1e-6f;
 	float signal = 0.0f;
@@ -665,26 +815,32 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 	}
 
 
-	signal *= _param_fw_at_sysid_amp.get();
+	signal *= _signal_amp;
+	Vector3f rate_sp = scaleInputSignal(signal);
+
+	return rate_sp;
+}
+
+const Vector3f FwAutotuneAttitudeControl::scaleInputSignal(const float signal)
+{
+	float signal_scaled = 0.f;
 	Vector3f rate_sp{};
 
-	float signal_scaled = 0.f;
-
-	if (_state == state::roll || _state == state::test) {
+	if (_state == state::roll_amp_detection || _state == state::roll || _state == state::test) {
 		// Scale the signal such that the attitude controller is
 		// able to cancel it completely at an attitude error of pi/8
 		signal_scaled = math::min(signal * M_PI_F / (8.f * _param_fw_r_tc.get()), math::radians(_param_fw_r_rmax.get()));
 		rate_sp(0) = signal_scaled - _signal_filter.getState();
 	}
 
-	if (_state ==  state::pitch || _state == state::test) {
+	if (_state == state::pitch_amp_detection || _state ==  state::pitch || _state == state::test) {
 		const float pitch_rate_max_deg = math::min(_param_fw_p_rmax_pos.get(), _param_fw_p_rmax_neg.get());
 		signal_scaled = math::min(signal * M_PI_F / (8.f * _param_fw_p_tc.get()), math::radians(pitch_rate_max_deg));
 		rate_sp(1) = signal_scaled - _signal_filter.getState();
 
 	}
 
-	if (_state ==  state::yaw) {
+	if (_state == state::yaw_amp_detection || _state ==  state::yaw) {
 		// Do not send a signal that produces more than a full deflection of the rudder
 		signal_scaled = math::min(signal, 1.f / (_param_fw_yr_ff.get() + _param_fw_yr_p.get()),
 					  math::radians(_param_fw_y_rmax.get()));
