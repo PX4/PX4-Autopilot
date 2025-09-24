@@ -481,11 +481,11 @@ Position, velocity or orientation measurements from an external vision system, e
 
 The measurements that are fused are configured by setting the appropriate bits of [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL) to `true`:
 
-- `0`: Horizontal position data
+- `0`: 水平位置数据
 - `1`: Vertical position data.
   Height sources may additionally be configured using [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) (see section [Height](#height)).
-- `2`: Velocity data
-- `3`: Yaw data
+- `2`：速度数据
+- `3`:偏航角数据
 
 Note that if yaw data is used (bit 3) the heading is with respect to the external vision frame; otherwise the heading is relative to North.
 

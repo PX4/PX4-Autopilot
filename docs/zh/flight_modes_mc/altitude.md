@@ -21,7 +21,7 @@ The diagram below shows the mode behaviour visually (for a [mode 2 transmitter](
 RC/manual mode like [Stabilized mode](../flight_modes_mc/manual_stabilized.md) but with _altitude stabilization_ (centred sticks level vehicle and hold it to fixed altitude).
 The horizontal position of the vehicle can move due to wind (or pre-existing momentum).
 
-- 回正摇杆（内带死区）：
+- Centered sticks:
   - RPY摇杆使飞机水平。
   - 油门（~50%）抗风保持当前姿态。
 - 外部中心：

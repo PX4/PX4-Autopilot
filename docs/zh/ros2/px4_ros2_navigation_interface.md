@@ -7,16 +7,16 @@ Experimental
 在撰写本文时，PX4 ROS 2 接口库的部分内容仍处于试验阶段，因此可能会发生变动。
 :::
 
-The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) navigation interface enables developers to send their position measurements to PX4 directly from ROS 2 applications, such as a VIO system or a map matching system.
-The interface provides a layer of abstraction from PX4 and the uORB messaging framework, and introduces a few sanity checks on the requested state estimation updates sent via the interface.
-These measurements are then fused into the EKF just as though they were internal PX4 measurements.
+[PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) 中的导航接口，支持开发者直接从 ROS 2 应用（如视觉惯性里程计系统或地图匹配系统）向 PX4 发送位置测量数据。
+该接口提供了对 PX4 和 uORB 消息框架的抽象层，并对通过该接口发送的请求状态估计更新引入了一些合理性检查。
+这些测量数据随后会被融合到扩展EKF中，其处理方式与 PX4 内部生成的测量数据完全一致。
 
-The library provides two classes, [`LocalPositionMeasurementInterface`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1LocalPositionMeasurementInterface.html) and [`GlobalPositionMeasurementInterface`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1GlobalPositionMeasurementInterface.html), which both expose a similar `update` method to provide either a local position or global position update to PX4, respectively.
-The `update` method expects a position measurement `struct` ([`LocalPositionMeasurement`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1LocalPositionMeasurement.html) or [`GlobalPositionMeasurement`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1GlobalPositionMeasurement.html)) which developers can populate with their own generated position measurements.
+库提供两个类，[`LocalPositionMeasurementInterface`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1LocalPositionMeasurementInterface.html) 和 [`GlobalPositionMeasureInterface`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1GlobalPositionMeasurementInterface.html) 它都会暴露出一个类似的 "update" 方法来提供一个本地位置或全球位置更新到 PX4。
+`update`方法需要一个位置测量`struct`(`LocalPositionMeasure`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1LocalPositionMeasurement.html)或[\`GlobalPositionMeasure\`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1GlobalPositionMeasurement.html)]，开发者可以在其中填入自己生成的位置测量数据。
 
-## Installation and First Test
+## 安装与首次测试
 
-The following steps are required to get started:
+开始使用前，需完成以下步骤：
 
 1. 请确保您在 ROS 2 工作区中有 [ROS 2 设置](../ros2/user_guide.md) 与 [`px4_msgs`](https://github.com/PX4/px4_msgs]。
 
@@ -37,32 +37,32 @@ The following steps are required to get started:
 
    ```sh
    cd ..
-   colcon build
+   colcon版本
    ```
 
-4. In a different shell, start PX4 SITL:
+4. 在另一个外壳中，启动 PX4 SITL：
 
    ```sh
    cd $px4-autopilot
    make px4_sitl gazebo-classic
    ```
 
-   (here we use Gazebo-Classic, but you can use any model or simulator)
+   (这里我们使用Gazebo-Classic，但你可以使用任何模型或模拟器)
 
-5. In yet a different shell, run the micro XRCE agent (you can keep it running afterward):
+5. 在另一个独立的终端中，运行 micro XRCE 代理（运行后可保持后台持续运行）：
 
    ```sh
    MicroXRCEAgent udp4 -p 8888
    ```
 
-6. Back in the ROS 2 terminal, source the workspace you just built (in step 3) and run the [global_navigation](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/navigation/global_navigation) example, which periodically sends dummy global position updates:
+6. 返回ROS2终端，为您刚刚构建的工作空间（步骤3），运行 [global_navigation](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/navigation/global_navigation) 示例。 它会周期性地发送虚拟的全球位置更新（数据）：
 
    ```sh
    source install/setup.bash
    ros2 run example_global_navigation_cpp example_global_navigation
    ```
 
-   You should get an output like this showing that the global interface is successfully sending position updates:
+   你应会看到如下所示的输出，该输出表明全球位置接口正成功发送位置更新：
 
    ```sh
    [INFO] [1702030701.836897756] [example_global_navigation_node]: example_global_navigation_node running!
@@ -70,13 +70,13 @@ The following steps are required to get started:
    [DEBUG] [1702030703.837223884] [example_global_navigation_node]: Successfully sent position update to navigation interface.
    ```
 
-7. In the PX4 shell, you can check that PX4 receives global position updates:
+7. 在 PX4 终端（PX4 shell）中，你可以通过以下操作检查 PX4 是否接收到全球位置更新（数据）
 
    ```sh
    listener aux_global_position
    ```
 
-   The output should look like:
+   输出内容应如下所示：
 
    ```sh
    TOPIC: aux_global_position
@@ -97,31 +97,31 @@ The following steps are required to get started:
       dead_reckoning: False
    ```
 
-8. Now you are ready to use the navigation interface to send your own position updates.
+8. 现在你已准备好使用该导航接口发送自己的位置更新数据了。
 
-## How to use the Library
+## 如何使用代码库
 
-To send a position measurement, you populate the position struct with the values you have measured.
-Then call the interface's update function with that struct as the argument.
+要发送位置测量数据，你需要用所测量的值填充位置结构体。
+然后以此结构调用接口的更新功能作为参数。
 
-For a basic example of how to use this interface, check out the [examples](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/navigation) in the `Auterion/px4-ros2-interface-lib` repository, such as [examples/cpp/navigation/local_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/local_navigation/include/local_navigation.hpp) or [examples/cpp/navigation/global_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/local_navigation/include/global_navigation.hpp).
+关于如何使用此接口的基本示例，请在“Auterion/px4-ros2-interface-lib”仓库中查看 [examples](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/navigation) 例如[示例/cpp/navigation/local_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/local_navigation/include/local_navigation.hpp)或[示例/cpp/navigation/global_navigation](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/examples/cpp/navigation/local_navigation/include/global_navigation.hpp)。
 
-### Local Position Updates
+### 局部位置更新
 
-First ensure that the PX4 parameter [`EKF2_EV_CTRL`](../advanced_config/parameter_reference.md#EKF2_EV_CTRL) is properly configured to fuse external local measurements, by setting the appropriate bits to `true`:
+首先确保正确配置 PX4 参数[`EKF2_EV_CTRL`](../advanced_config/parameter_reference.md#EKF2_EV_CTRL)通过将相应的位设置为true，可以正确配置（系统）以融合外部局部测量数据：
 
-- `0`: Horizontal position data
-- `1`: Vertical position data
-- `2`: Velocity data
-- `3`: Yaw data
+- `0`: 水平位置数据
+- `1`：垂直位置数据
+- `2`：速度数据
+- `3`:偏航角数据
 
-To send a local position measurement to PX4:
+向PX4发送局部位置测量：
 
-1. Create a [`LocalPositionMeasurementInterface`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1LocalPositionMeasurementInterface.html) instance by providing it with: a ROS node, and the pose and velocity reference frames of your measurements.
-2. Populate a [`LocalPositionMeasurement`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1LocalPositionMeasurement.html) `struct` with your measurements.
-3. Pass the `struct` to the `LocalPositionMeasurementInterface` [`update()`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1LocalPositionMeasurementInterface.html#a6fd180b944710716d418b2cfe1c0c8e3) method.
+1. 通过提供一个 ROS节点，创建一个 [`localPositionMeasureInterface` ](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1LocalPositionMeasurementInterface.html) 实例：您测量的位置和速度参考框架。
+2. 包含一个[`本地定位测量`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1LocalPositionMeasurement.html) `structt` ，包含你测量的数据。
+3. 将 `struct` 传入 `LocalPositionMeasurementInterface` [`update()`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1LocalPositionMeasurementInterface.html#a6fd180b944710716d418b2cfe1c0c8e3) 方法中。
 
-The available pose and velocity reference frames for your measurements are defined by the following `enum`:
+你的测量数据可用的位置和速度参考坐标系由以下枚举（enum）定义：
 
 ```cpp
 enum class PoseFrame
@@ -140,36 +140,36 @@ enum class VelocityFrame
 };
 ```
 
-The `LocalPositionMeasurement` struct is defined as follows:
+`LocalPositionMeasurement`结构定义如下：
 
 ```cpp
 struct LocalPositionMeasurement
 {
    rclcpp::Time timestamp_sample {};
 
-   std::optional<Eigen::Vector2f> position_xy {std::nullopt};
-   std::optional<Eigen::Vector2f> position_xy_variance {std::nullopt};
-   std::optional<float> position_z {std::nullopt};
-   std::optional<float> position_z_variance {std::nullopt};
+   std::optional<0> position_xy {std::nullopt};
+   std::optional<0> position_xy_variance {std::nullopt};
+   std::optional<1> position_z {std::nullopt};
+   std::optional<1> position_z_variance {std::nullopt};
 
-   std::optional<Eigen::Vector2f> velocity_xy {std::nullopt};
-   std::optional<Eigen::Vector2f> velocity_xy_variance {std::nullopt};
-   std::optional<float> velocity_z {std::nullopt};
-   std::optional<float> velocity_z_variance {std::nullopt};
+   std::optional<0> velocity_xy {std::nullopt};
+   std::optional<0> velocity_xy_variance {std::nullopt};
+   std::optional<1> velocity_z {std::nullopt};
+   std::optional<1> velocity_z_variance {std::nullopt};
 
-   std::optional<Eigen::Quaternionf> attitude_quaternion {std::nullopt};
-   std::optional<Eigen::Vector3f> attitude_variance {std::nullopt};
+   std::optional<2> attitude_quaternion {std::nullopt};
+   std::optional<3> attitude_variance {std::nullopt};
 };
 ```
 
-The `update()` method of the local interface expects the following conditions to hold for `LocalPositionMeasurement`:
+局部接口的update()方法要求LocalPositionMeasurement（局部位置测量结构体）满足以下条件：
 
-- The sample timestamp is defined.
-- Values do not have a \`NAN\`\`.
-- If a measurement value is provided, its associated variance value is well defined (e.g. if `position_xy` is defined, then `position_xy_variance` must be defined).
-- If a measurement value is provided, its associated reference frame is not unknown (e.g. if `position_xy` is defined, then the interface was initialised with a pose frame different from `PoseFrame::Unknown`).
+- 示例时间戳已定义。
+- 数值不得包含 `NAN` 。
+- 如果提供了某个测量值，则其关联的方差值必须明确定义（例如，若position_xy已定义，则position_xy_variance也必须定义）。
+- 如果提供了某个测量值，那么其关联的参考坐标系不得为 “未知”（例如，若position_xy已定义，则接口必须以不同于PoseFrame::Unknown的位置坐标系进行初始化）。
 
-The following code snippet is an example of a ROS 2 node which uses the local navigation interface to send 3D pose updates in the North-East-Down (NED) reference frame to PX4:
+以下是一个 ROS 2 节点的示例代码片段，该节点使用局部导航接口向 PX4 发送东北天（NED）参考坐标系下的 3D 位姿更新：
 
 ```cpp
 class MyLocalMeasurementUpdateNode : public rclcpp::Node
@@ -185,7 +185,7 @@ public:
       const px4_ros2::VelocityFrame velocity_frame = px4_ros2::VelocityFrame::Unknown;
       // Initialize local interface [1]
       _local_position_measurement_interface =
-         std::make_shared<px4_ros2::LocalPositionMeasurementInterface>(*this, pose_frame, velocity_frame);
+         std::make_shared<Eigen::Vector2f>(*this, pose_frame, velocity_frame);
    }
 
    void sendUpdate()
@@ -217,45 +217,44 @@ public:
    }
 
 private:
-   std::shared_ptr<px4_ros2::LocalPositionMeasurementInterface> _local_position_measurement_interface;
+   std::shared_ptr<Eigen::Vector2f> _local_position_measurement_interface;
 };
 ```
 
-### Global Position Updates
+### 全局位置更新
 
-First ensure that the PX4 parameter [`EKF2_AGP_CTRL`](../advanced_config/parameter_reference.md#EKF2_AGP_CTRL) is properly configured to fuse external global measurements, by setting the appropriate bits to `true`:
+首先确保正确配置 PX4 参数[`EKF2_EV_CTRL`](../advanced_config/parameter_reference.md#EKF2_AGP_CTRL)通过将相应的位设置为true，可以正确配置（系统）以融合外部全部测量数据：
 
-- `0`: Horizontal position data
-- `1`: Vertical position data
+- `0`: 水平位置数据
+- `1`：垂直位置数据
 
-To send a global position measurement to PX4:
+向PX4发送全局位置测量：
 
-1. Create a [`GlobalPositionMeasurementInterface`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1GlobalPositionMeasurementInterface.html) instance by providing it with a ROS node.
-2. Populate a [`GlobalPositionMeasurement`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1GlobalPositionMeasurement.html) `struct` with your measurements.
-3. Pass the struct to the `GlobalPositionMeasurementInterface` [update()](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1GlobalPositionMeasurementInterface.html#a1a183b595ef7f6a22f3a83ba543fe86d) method.
+1. 创建一个 [`GlobalPositionMeasureInterface`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1GlobalPositionMeasurementInterface.html) 实例，并提供一个 ROS节点。
+2. 包含一个[`GlobalPositionMeasurement`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1GlobalPositionMeasurement.html) `struct` ，包含你测量的数据。
+3. 将结构移至`GlobalPositionMeasurementInterface` [update()](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1GlobalPositionMeasurementInterface.html#a1a183b595ef7f6a22f3a83ba543fe86d) 方法中。
 
-The `GlobalPositionMeasurement` struct is defined as follows:
+`GlobalPositionMeasurement`结构定义如下：
 
 ```cpp
 struct GlobalPositionMeasurement
 {
    rclcpp::Time timestamp_sample {};
 
-   std::optional<Eigen::Vector2d> lat_lon {std::nullopt};
-   std::optional<float> horizontal_variance {std::nullopt};
+   std::optional<px4_ros2::LocalPositionMeasurementInterface> lat_lon {std::nullopt};
+   std::optional<1> horizontal_variance {std::nullopt};
 
-   std::optional<float> altitude_msl {std::nullopt};
-   std::optional<float> vertical_variance {std::nullopt};
-};
+   std::optional<1> altitude_msl {std::nullopt};
+   std::optional<1> vertical_variance {std::nullopt};
 ```
 
-The `update()` method of the global interface expects the following conditions to hold for `GlobalPositionMeasurement`:
+全局接口的 `update()` 方法预计在 `GlobalPositionMeasurement` 中保留以下条件：
 
-- The sample `timestamp_sample` is defined.
-- Values do not have a NAN.
-- If a measurement value is provided, its associated variance value is well defined (e.g. if `lat_lon` is defined, then `horizontal_variance` must be defined).
+- 样本`timestamp_sample`已定义。
+- 数据不得包含NAN。
+- 如果提供了某个测量值，那么其关联的方差值必须明确定义（例如，若lat_lon（经纬度）已定义，则horizontal_variance（水平方差）也必须定义）。
 
-The following code snippet is an example of a ROS 2 node which uses the global navigation interface to send a measurement with latitude, longitude and altitude to PX4:
+下面的代码片段是一个 ROS 2 节点的示例，该节点使用全局导航接口来发送一个测量纬度。 经度和高度到 PX4：
 
 ```cpp
 class MyGlobalMeasurementUpdateNode : public rclcpp::Node
@@ -266,7 +265,7 @@ public:
    {
       // Initialize global interface [1]
       _global_position_measurement_interface =
-         std::make_shared<px4_ros2::GlobalPositionMeasurementInterface>(*this);
+         std::make_shared<Eigen::Vector2d>(*this);
    }
 
    void sendUpdate()
@@ -298,11 +297,11 @@ public:
    }
 
 private:
-   std::shared_ptr<px4_ros2::GlobalPositionMeasurementInterface> _global_position_measurement_interface;
+   std::shared_ptr<0> _global_position_measurement_interface;
 };
 ```
 
-## Multiple Instances of an Interface
+## 接口的多个实例
 
-Using multiple instances of the same interface (e.g. local and local) to send estimation updates will stream all update messages to the same topic and result in cross-talk.
-This should not affect measurement fusion into the EKF, but different measurement sources will become indistinguishable.
+使用同一接口的多个实例（例如，多个局部接口实例）发送估计更新时，会将所有更新消息发送到同一个主题，从而导致串扰。
+这不应影响计量并入EKF，但不同的计量来源将无法区分。

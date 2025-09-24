@@ -1,4 +1,4 @@
-# 使用 ROS 2 进行多车辆仿真
+# 使用 ROS 2 进行多车辆模拟
 
 [XRCE-DDS](../middleware/uxrce_dds.md) 支持多个客户端通过 UDP 协议连接到同一个代理。
 这在模拟中特别有用，因为只有一个代理需要启动。
@@ -8,7 +8,7 @@
 唯一的要求是
 
 - 能够在不依赖 ROS 2 的情况下，使用所需的仿真器([Gazebo](../sim_gazebo_gz/multi_vehicle_simulation.md), [Gazebo Classic](../sim_gazebo_classic/multi_vehicle_simulation.md#multiple-vehicle-with-gazebo-classic), [FlightGear](../sim_flightgear/multi_vehicle.md) 和 [JMAVSim](../sim_jmavsim/multi_vehicle.md))运行多车辆仿真[multi-vehicle simulation](../simulation/multi-vehicle-simulation.md)。
-- 能够在单车辆仿真中使用ROS 2（机器人操作系统 2）
+- 能够在单一车辆仿真中使用ROS 2（机器人操作系统 2）
 
 ## 工作原理
 
@@ -51,4 +51,4 @@ PX4 只在他们的 `target_system` 字段为 0 (路由通信) 或与 `MAV_SYS_I
 在所有其他情况下，信息都被忽视。
 因此，当 ROS 2 节点需向 PX4 发送 VehicleCommand（载具指令）消息时，必须确保消息中填写了合适的 target_system（目标系统）字段值。
 
-For example, if you want to send a command to your third vehicle, which has `px4_instance=2`, you need to set `target_system=3` in all your `VehicleCommand` messages.
+例如，若你想向 px4_instance=2 的第三台飞行器发送指令，则需要在所有 VehicleCommand消息中设置 target_system=3。
