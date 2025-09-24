@@ -84,9 +84,14 @@ int VisionTargetEst::task_spawn(int argc, char *argv[])
 {
 
 #if !defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) || !CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-	PX4_ERR("Vision Target Estimator cannot run without CONFIG_MODULES_VISION_TARGET_ESTIMATOR (missing topics)");
+	PX4_ERR("Vision Target Estimator cannot run without CONFIG_MODULES_VISION_TARGET_ESTIMATOR (missing topics).");
 	return PX4_ERROR;
 #endif // !CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
+#if defined(CONFIG_MODULES_LANDING_TARGET_ESTIMATOR) && CONFIG_MODULES_LANDING_TARGET_ESTIMATOR
+	PX4_ERR("Vision Target Estimator cannot run with CONFIG_MODULES_LANDING_TARGET_ESTIMATOR enabled.");
+	return PX4_ERROR;
+#endif // CONFIG_MODULES_LANDING_TARGET_ESTIMATOR
 
 	VisionTargetEst *instance = new VisionTargetEst();
 
