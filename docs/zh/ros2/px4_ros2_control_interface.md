@@ -398,7 +398,7 @@ _goto_setpoint->update(
   max_heading_rate_rad_s);
 ```
 
-更新方法中，除位置外的所有参数均被模板化为 std::optional<float> 类型。这意味着，若需限制航向速率但不限制平动速度，可通过 std::nullopt 实现这一需求。
+更新方法中，除位置外的所有参数均被模板化为 `std::optional<float>` 类型。这意味着，若需限制航向速率但不限制平动速度，可通过 `std::nullopt` 实现这一需求。
 
 ```cpp
 _goto_setpoint->update(
