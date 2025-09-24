@@ -86,8 +86,7 @@ union SensorFusionMaskU {
 		uint16_t use_mission_pos      : 1;  ///< bit 3
 		uint16_t use_target_gps_vel   : 1;  ///< bit 4
 		uint16_t use_uwb              : 1;  ///< bit 5
-		uint16_t use_irlock           : 1;  ///< bit 6
-		uint16_t reserved             : 9;  ///< bits 7..15 (future use)
+		uint16_t reserved             : 10; ///< bits 6..15 (future use)
 	} flags;
 
 	uint16_t value;
