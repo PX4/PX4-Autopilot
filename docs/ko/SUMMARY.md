@@ -7,6 +7,7 @@
       - [위치 모드 (멀티콥터)](flight_modes_mc/position.md)
       - [Position Slow Mode (MC)](flight_modes_mc/position_slow.md)
       - [고도 모드 (멀티콥터)](flight_modes_mc/altitude.md)
+      - [Altitude Cruise Mode (MC)](flight_modes_mc/altitude_cruise.md)
       - [Stabilized Mode (MC)](flight_modes_mc/manual_stabilized.md)
       - [아크로 모드 (멀티콥터)](flight_modes_mc/acro.md)
       - [궤도 모드 (멀티콥터)](flight_modes_mc/orbit.md)
