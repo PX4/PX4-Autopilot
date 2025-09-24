@@ -88,7 +88,9 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		bool is_tilt_good = true;
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-		is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
+		// TODO: magic number -- decouple max tilt for flow fusion from max tilt for range fusion
+		float cosine_max_tilt = 0.7071f;
+		is_tilt_good = (_R_to_earth(2, 2) > cosine_max_tilt);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 		calcOptFlowBodyRateComp(flow_sample);

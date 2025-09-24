@@ -372,6 +372,7 @@ void LoggedTopics::add_high_rate_sensors_topics()
 	add_topic_multi("sensor_optical_flow", 0, 2);
 	add_topic_multi("sensor_gps", 0, 4);
 	add_topic_multi("sensor_mag", 0, 4);
+	add_topic_multi("sensor_baro", 0, 4);
 }
 
 void LoggedTopics::add_mavlink_tunnel()
