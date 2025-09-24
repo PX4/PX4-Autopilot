@@ -9,7 +9,7 @@ An incorrectly set gain during tuning can make altitude or heading control unsta
 :::
 
 :::tip
-All parameters are documented in the [Parameter Reference](../advanced_config/parameter_reference.md#fw-tecs).
+All parameters are documented in the Parameter Reference [FW Performance](../advanced_config/parameter_reference.md#fw-performance) and [FW NPFG Control](../advanced_config/parameter_reference.md#fw-npfg-control) sections.
 本指南将介绍所有重要参数。
 :::
 
@@ -77,7 +77,7 @@ Furthermore, these two values define the height rate limits commanded by the use
 
 ### 固定翼轨迹控制调整（位置）
 
-All path control parameters are described [here](../advanced_config/parameter_reference.md#fw-path-control).
+All path control parameters are described in [FW NPFG Control (Parameter Reference)](../advanced_config/parameter_reference.md#fw-npfg-control).
 
 - [NPFG_PERIOD](../advanced_config/parameter_reference.md#NPFG_PERIOD) - This is the previously called L1 distance and defines the tracking point ahead of the aircraft it's following.
   大多数飞机适用于10-20米的数值范围。
