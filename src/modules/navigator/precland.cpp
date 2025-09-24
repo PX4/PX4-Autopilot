@@ -337,7 +337,7 @@ PrecLand::run_state_descend_above_target()
 		pos_sp_triplet->current.yaw = _target_yaw;
 	}
 
-#endif
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	_navigator->set_position_setpoint_triplet_updated();
 }
@@ -617,7 +617,6 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 	sp_x = sp_curr(0);
 	sp_y = sp_curr(1);
 }
-
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 void PrecLand::_publish_prec_land_status(const bool prec_land_ongoing)

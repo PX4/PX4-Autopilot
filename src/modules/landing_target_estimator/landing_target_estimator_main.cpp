@@ -83,6 +83,11 @@ int landing_target_estimator_thread_main(int argc, char *argv[]);
 int landing_target_estimator_main(int argc, char *argv[])
 {
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	PX4_ERR("landing_target_estimator cannot be started if CONFIG_MODULES_VISION_TARGET_ESTIMATOR is enabled.");
+	return PX4_ERROR;
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	if (argc < 2) {
 		goto exiterr;
 	}

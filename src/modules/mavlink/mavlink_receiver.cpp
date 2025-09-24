@@ -2852,7 +2852,6 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 
 	_debug_array_pub.publish(debug_topic);
 }
-
 #endif // !CONSTRAINED_FLASH
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
