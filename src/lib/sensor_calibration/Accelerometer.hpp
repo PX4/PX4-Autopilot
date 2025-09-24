@@ -84,11 +84,14 @@ public:
 		return _rotation * matrix::Vector3f{(data - _thermal_offset - _offset).emult(_scale)};
 	}
 
-	// Compute sensor offset from bias (board frame)
+	// Compute sensor offset from bias (body frame)
 	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
 	{
 		// updated calibration offset = existing offset + bias rotated to sensor frame and unscaled
-		return _offset + (_rotation.T() * bias).edivide(_scale);
+		// Note: _rotation transforms from sensor frame to body frame, so _rotation.I() transforms back
+		// Using .I() instead of .T() because _rotation may not be perfectly orthonormal when it includes
+		// sensor level adjustments from SENS_BOARD_*_OFF parameters
+		return _offset + (_rotation.I() * bias).edivide(_scale);
 	}
 
 	bool ParametersLoad();
