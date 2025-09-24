@@ -106,12 +106,19 @@ The development version, fetched using `--edge` above, does work.
 
 ### Build/Run within ROS 2 Workspace
 
-The agent can be built and launched within a ROS 2 workspace (or build standalone and launched from a workspace.
+The agent can be built and launched within a ROS 2 workspace (or build standalone and launched from a workspace).
 You must already have installed ROS 2 following the instructions in: [ROS 2 User Guide > Install ROS 2](../ros2/user_guide.md#install-ros-2).
 
 ::: warning
 This approach will use the existing ROS 2 versions of the Agent dependencies, such as `fastcdr` and `fastdds`.
-This considerably speeds up the build process but requires that the Agent dependency versions match the ROS 2 ones.
+This considerably speeds up the build process but requires that the Agent dependency versions match the ROS 2 ones:
+
+| ROS 2 version | Micro-XRCE-DDS-Agent version |
+| ------------- | ---------------------------- |
+| Foxy          | v2.4.2                       |
+| Humble        | v2.4.2                       |
+| Jazzy         | v2.4.3                       |
+
 :::
 
 To build the agent within ROS:
@@ -124,14 +131,49 @@ To build the agent within ROS:
 
 1. Clone the source code for the eProsima [Micro-XRCE-DDS-Agent](https://github.com/eProsima/Micro-XRCE-DDS-Agent) to the `/src` directory (the `main` branch is cloned by default):
 
+   ::::tabs
+
+   ::: tab jazzy
+
    ```sh
    cd ~/px4_ros_uxrce_dds_ws/src
    git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
    ```
 
+   :::
+
+   ::: tab humble
+
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+   :::
+
+   ::: tab foxy
+
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+   :::
+
+   ::::
+
 1. Source the ROS 2 development environment, and compile the workspace using `colcon`:
 
    :::: tabs
+
+   ::: tab jazzy
+
+   ```sh
+   source /opt/ros/jazzy/setup.bash
+   colcon build
+   ```
+
+   :::
 
    ::: tab humble
 
@@ -160,6 +202,15 @@ To run the micro XRCE-DDS agent in the workspace:
 1. Source the `local_setup.bash` to make the executables available in the terminal (also `setup.bash` if using a new terminal).
 
    :::: tabs
+
+   ::: tab jazzy
+
+   ```sh
+   source /opt/ros/jazzy/setup.bash
+   source install/local_setup.bash
+   ```
+
+   :::
 
    ::: tab humble
 
@@ -230,7 +281,6 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
 
 - [UXRCE_DDS_CFG](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG): Set the port to connect on, such as `TELEM2`, `Ethernet`, or `Wifi`.
 - If using an Ethernet connection:
-
   - [UXRCE_DDS_PRT](../advanced_config/parameter_reference.md#UXRCE_DDS_PRT):
     Use this to specify the agent UDP listening port.
     The default value is `8888`.
@@ -240,7 +290,6 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
     The default value is `2130706433` which corresponds to the _localhost_ `127.0.0.1`.
 
     You can use [Tools/convert_ip.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/convert_ip.py) to convert between the formats:
-
     - To obtain the `int32` version of an IP in decimal dot notation the command is:
 
       ```sh
@@ -254,14 +303,12 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
       ```
 
 - If using a serial connection:
-
   - [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD), [SER_URT6_BAUD](../advanced_config/parameter_reference.md#SER_URT6_BAUD) (and so on):
     Use the `_BAUD` parameter associated with the serial port to set the baud rate.
     For example, you'd set a value for `SER_TEL2_BAUD` if you are connecting to the companion using `TELEM2`.
     For more information see [Serial port configuration](../peripherals/serial_configuration.md#serial-port-configuration).
 
 - Some setups might also need these parameters to be set:
-
   - [UXRCE_DDS_KEY](../advanced_config/parameter_reference.md#UXRCE_DDS_KEY): The uXRCE-DDS key.
     If you're working in a multi-client, single agent configuration, each client should have a unique non-zero key.
     This is primarily important for multi-vehicle simulations, where all clients are connected in UDP to the same agent.
