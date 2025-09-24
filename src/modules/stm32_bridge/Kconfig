@@ -1,0 +1,5 @@
+menuconfig MODULES_STM32_BRIDGE
+	bool "stm32_bridge"
+	default n
+
+

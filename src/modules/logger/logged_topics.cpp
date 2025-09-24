@@ -132,8 +132,9 @@ void LoggedTopics::add_default_topics()
 	add_topic("transponder_report");
 	add_topic("vehicle_acceleration", 50);
 	add_topic("vehicle_air_data", 200);
-	add_topic("vehicle_angular_velocity", 20);
-	add_topic("vehicle_attitude", 50);
+	// bump to ~200 Hz
+	add_topic("vehicle_angular_velocity", 5);
+	add_topic("vehicle_attitude", 5);
 	add_topic("vehicle_attitude_setpoint", 50);
 	add_topic("vehicle_command");
 	add_topic("vehicle_command_ack");
@@ -142,7 +143,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_global_position", 200);
 	add_topic("vehicle_gps_position", 100);
 	add_topic("vehicle_land_detected");
-	add_topic("vehicle_local_position", 100);
+	// ~50 Hz for local position
+	add_topic("vehicle_local_position", 20);
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_magnetometer", 200);
 	add_topic("vehicle_rates_setpoint", 20);
@@ -190,7 +192,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("estimator_status_flags", 10);
 	add_optional_topic_multi("yaw_estimator_status", 1000);
 
-	// log all raw sensors at minimal rate (at least 1 Hz)
+	// raw sensors & IMU
 	add_topic_multi("battery_status", 200, 3);
 	add_topic_multi("differential_pressure", 1000, 2);
 	add_topic_multi("distance_sensor", 1000, 2);
@@ -202,69 +204,28 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("sensor_optical_flow", 1000, 2);
 
+	// 高频 IMU（500 Hz）
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
 	add_topic("vehicle_optical_flow", 500);
 	add_topic("aux_global_position", 500);
-	//add_optional_topic("vehicle_optical_flow_vel", 100);
 	add_optional_topic("pps_capture");
 
-	// additional control allocation logging
-	add_topic("actuator_motors", 100);
-	add_topic("actuator_servos", 100);
+	// 提升执行器到 ~200 Hz
+	add_topic("actuator_motors", 5);
+	add_topic("actuator_servos", 5);
 	add_topic_multi("vehicle_thrust_setpoint", 20, 2);
 	add_topic_multi("vehicle_torque_setpoint", 20, 2);
 
-	// SYS_HITL: default ground truth logging for simulation
 	int32_t sys_hitl = 0;
 	param_get(param_find("SYS_HITL"), &sys_hitl);
-
 	if (sys_hitl >= 1) {
 		add_topic("vehicle_angular_velocity_groundtruth", 10);
 		add_topic("vehicle_attitude_groundtruth", 10);
 		add_topic("vehicle_global_position_groundtruth", 100);
 		add_topic("vehicle_local_position_groundtruth", 20);
 	}
-
-#ifdef CONFIG_ARCH_BOARD_PX4_SITL
-	add_topic("fw_virtual_attitude_setpoint");
-	add_topic("mc_virtual_attitude_setpoint");
-	add_optional_topic("vehicle_torque_setpoint_virtual_mc");
-	add_optional_topic("vehicle_torque_setpoint_virtual_fw");
-	add_optional_topic("vehicle_thrust_setpoint_virtual_mc");
-	add_optional_topic("vehicle_thrust_setpoint_virtual_fw");
-	add_topic("time_offset");
-	add_topic("vehicle_angular_velocity", 10);
-	add_topic("vehicle_angular_velocity_groundtruth", 10);
-	add_topic("vehicle_attitude_groundtruth", 10);
-	add_topic("vehicle_global_position_groundtruth", 100);
-	add_topic("vehicle_local_position_groundtruth", 20);
-
-	// EKF replay
-	{
-		// optionally log all estimator* topics at minimal rate
-		const uint16_t kEKFVerboseIntervalMilliseconds = 10; // 100 Hz
-		const struct orb_metadata *const *topic_list = orb_get_topics();
-
-		for (size_t i = 0; i < orb_topics_count(); i++) {
-			if (strncmp(topic_list[i]->o_name, "estimator", 9) == 0) {
-				add_optional_topic_multi(topic_list[i]->o_name, kEKFVerboseIntervalMilliseconds);
-			}
-		}
-	}
-
-	add_topic("vehicle_attitude");
-	add_topic("vehicle_global_position");
-	add_topic("vehicle_local_position");
-	add_topic("wind");
-	add_optional_topic_multi("yaw_estimator_status");
-
-#endif /* CONFIG_ARCH_BOARD_PX4_SITL */
-
-#ifdef CONFIG_BOARD_UAVCAN_INTERFACES
-	add_topic_multi("can_interface_status", 100, CONFIG_BOARD_UAVCAN_INTERFACES);
-#endif
 }
 
 void LoggedTopics::add_high_rate_topics()

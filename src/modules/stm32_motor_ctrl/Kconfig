@@ -1,0 +1,5 @@
+menuconfig MODULES_STM32_MOTOR_CTRL
+	bool "stm32_motor_ctrl"
+	default n
+
+

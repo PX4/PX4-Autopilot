@@ -238,6 +238,7 @@ set(msg_files
 	VelocityLimits.msg
 	WheelEncoders.msg
 	YawEstimatorStatus.msg
+	Stm32Setpoint.msg
 	versioned/ActuatorMotors.msg
 	versioned/ActuatorServos.msg
 	versioned/AirspeedValidated.msg
