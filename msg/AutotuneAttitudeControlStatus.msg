@@ -1,8 +1,10 @@
-uint64 timestamp                # time since system start (microseconds)
+# Autotune attitude control status
 
-float32[5] coeff                # coefficients of the identified discrete-time model
-float32[5] coeff_var            # coefficients' variance of the identified discrete-time model
-float32 fitness                 # fitness of the parameter estimate
+uint64 timestamp  # [us] Time since system start
+
+float32[5] coeff      # [-] Coefficients of the identified discrete-time model
+float32[5] coeff_var  # [-] Coefficients' variance of the identified discrete-time model
+float32 fitness       # [-] Fitness of the parameter estimate
 float32 innov
 float32 dt_model
 
@@ -17,7 +19,8 @@ float32[3] rate_sp
 float32 u_filt
 float32 y_filt
 
-uint8 STATE_IDLE = 0
+uint8 state                               # [@enum STATE]
+uint8 STATE_IDLE = 0                      # Idle state
 uint8 STATE_INIT = 1
 uint8 STATE_ROLL_AMPLITUDE_DETECTION = 2
 uint8 STATE_ROLL = 3
@@ -34,5 +37,3 @@ uint8 STATE_TEST = 13
 uint8 STATE_COMPLETE = 14
 uint8 STATE_FAIL = 15
 uint8 STATE_WAIT_FOR_DISARM = 16
-
-uint8 state
