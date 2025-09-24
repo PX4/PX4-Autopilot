@@ -64,11 +64,9 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_uwb.h>
-#include <uORB/topics/irlock_report.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
-#include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
 #include <containers/Array.hpp>
 #include "KF_position.h"
@@ -108,7 +106,7 @@ public:
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
 	bool timedOut() const {return _estimator_initialized && hasTimedOut(_last_update, _vte_timeout_us);};
-	// TODO: Could be more strict and require a relative position meas (vision, GPS, irlock, uwb)
+	// TODO: Could be more strict and require a relative position meas (vision, GPS, uwb)
 	bool fusionEnabled() const {return _vte_aid_mask.value != 0;};
 
 protected:
@@ -128,7 +126,6 @@ protected:
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_vel_uav_pub{ORB_ID(vte_aid_gps_vel_uav)};
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_fiducial_marker_pub{ORB_ID(vte_aid_fiducial_marker)};
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_uwb_pub{ORB_ID(vte_aid_uwb)};
-	uORB::Publication<estimator_aid_source3d_s> _vte_aid_irlock_pub{ORB_ID(vte_aid_irlock)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -141,7 +138,6 @@ private:
 		Target_gps_vel,
 		Fiducial_marker,
 		Uwb,
-		Irlock,
 		Type_count
 	};
 
@@ -171,8 +167,7 @@ private:
 			uint8_t fuse_mission_pos    : 1; ///< bit3: mission position ready to be fused
 			uint8_t fuse_target_gps_vel : 1; ///< bit4: target GPS velocity ready to be fused
 			uint8_t fuse_uwb            : 1; ///< bit5: UWB data ready to be fused
-			uint8_t fuse_irlock         : 1; ///< bit6: IRLOCK data ready to be fused
-			uint8_t reserved            : 1; ///< bit7: reserved for future use
+			uint8_t reserved            : 2; ///< bits6..7: reserved for future use
 		} flags;
 
 		uint8_t value{0};
@@ -198,8 +193,7 @@ private:
 	inline bool hasNewNonGpsPositionSensorData(const ObsValidMaskU &fusion_mask) const
 	{
 		return fusion_mask.flags.fuse_vision
-		       || fusion_mask.flags.fuse_uwb
-		       || fusion_mask.flags.fuse_irlock;
+		       || fusion_mask.flags.fuse_uwb;
 	}
 
 	inline bool hasNewPositionSensorData(const ObsValidMaskU &fusion_mask) const
@@ -207,8 +201,7 @@ private:
 		return fusion_mask.flags.fuse_mission_pos
 		       || fusion_mask.flags.fuse_target_gps_pos
 		       || fusion_mask.flags.fuse_vision
-		       || fusion_mask.flags.fuse_uwb
-		       || fusion_mask.flags.fuse_irlock;
+		       || fusion_mask.flags.fuse_uwb;
 	}
 
 	inline bool isTimeDifferenceWithin(const hrt_abstime a, const hrt_abstime b, const uint32_t timeout_us) const
@@ -248,11 +241,6 @@ private:
 	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose) const;
 	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, TargetObs &obs) const;
 
-	/* IRLOCK data */
-	void handleIrlockData(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask, TargetObs &irlock_obs);
-	bool isIrlockDataValid(const irlock_report_s &irlock_report) const;
-	bool processObsIrlock(const matrix::Quaternionf &q_att, const irlock_report_s &irlock_report, TargetObs &obs) const;
-
 	/* UWB data */
 	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask, TargetObs &uwb_obs);
 	bool isUwbDataValid(const sensor_uwb_s &uwb_report) const;
@@ -287,7 +275,6 @@ private:
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_pos_report_sub{ORB_ID(fiducial_marker_pos_report)};
-	uORB::Subscription _irlock_report_sub{ORB_ID(irlock_report)};
 	uORB::Subscription _target_gnss_sub{ORB_ID(target_gnss)};
 	uORB::Subscription _sensor_uwb_sub{ORB_ID(sensor_uwb)};
 
@@ -300,19 +287,6 @@ private:
 	vision_target_est_position_s _vte_state{};
 
 	FloatStamped _range_sensor{};
-
-	struct IrlockConfig {
-		float scale_x{1.0f};
-		float scale_y{1.0f};
-		float offset_x{0.0f};
-		float offset_y{0.0f};
-		float offset_z{0.0f};
-		enum Rotation sensor_yaw {ROTATION_YAW_90};
-		float meas_unc{0.005f};
-		float min_var{0.01f};
-	};
-
-	IrlockConfig _irlock_config{};
 
 	struct GlobalPose {
 		hrt_abstime timestamp = 0;
@@ -394,15 +368,7 @@ private:
 		(ParamFloat<px4::params::VTE_MOVING_T_MAX>) _param_vte_moving_t_max,
 		(ParamFloat<px4::params::VTE_MOVING_T_MIN>) _param_vte_moving_t_min,
 		(ParamFloat<px4::params::VTE_POS_NIS_THRE>) _param_vte_pos_nis_thre,
-		(ParamFloat<px4::params::VTE_UWB_P_NOISE>) _param_vte_uwb_p_noise,
-		(ParamFloat<px4::params::VTE_IRL_SCALE_X>) _param_vte_irl_scale_x,
-		(ParamFloat<px4::params::VTE_IRL_SCALE_Y>) _param_vte_irl_scale_y,
-		(ParamInt<px4::params::VTE_IRL_SENS_ROT>) _param_vte_irl_sens_rot,
-		(ParamFloat<px4::params::VTE_IRL_POS_X>) _param_vte_irl_pos_x,
-		(ParamFloat<px4::params::VTE_IRL_POS_Y>) _param_vte_irl_pos_y,
-		(ParamFloat<px4::params::VTE_IRL_POS_Z>) _param_vte_irl_pos_z,
-		(ParamFloat<px4::params::VTE_IRL_MEAS_UNC>) _param_vte_irl_meas_unc,
-		(ParamFloat<px4::params::VTE_IRL_NOISE>) _param_vte_irl_noise
+		(ParamFloat<px4::params::VTE_UWB_P_NOISE>) _param_vte_uwb_p_noise
 	)
 };
 } // namespace vision_target_estimator
