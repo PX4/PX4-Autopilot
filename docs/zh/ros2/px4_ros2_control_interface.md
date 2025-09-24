@@ -248,11 +248,11 @@ private:
 };
 ```
 
-- [1]`: 首先创建一个从 [`px4_ros2:::ModeBase\` ](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1ModeBase.html )继承的类。
-- [2]\`: 在构造函数中，我们传递模式名称。 这也使我们能够配置一些其他内容，例如替换飞行控制器的内置模式。
-- [3]：我们在此处创建后续想要使用的所有对象。
+- `[1]`: 首先创建一个从 [`px4_ros2:::ModeBase`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1ModeBase.html)继承的类。
+- `[2]`: 在构造函数中，我们传递模式名称。 这也使我们能够配置一些其他内容，例如替换飞行控制器的内置模式。
+- `[3]`：我们在此处创建后续想要使用的所有对象。
   这可以是 RC 输入、设置点类型(s)或遥测数据。 `*this` 作为`Context`传递给每个对象，将对象与模式联系起来。
-- [4]：每当该模式处于激活状态时，此方法会定期被调用（更新频率取决于设定值类型）。
+- `[4]`：每当该模式处于激活状态时，此方法会定期被调用（更新频率取决于设定值类型）。
   我们可以在这里开展工作并产生一个新的设定点。
 
 创建此模式的实例后， `mode->doRegister()` 必须被调用，在飞行控制器中进行实际注册，如果失败则返回 `false` 。
@@ -266,9 +266,9 @@ private:
 class MyModeExecutor : public px4_ros2::ModeExecutorBase // [1]
 {
 public:
-  MyModeExecutor(rclcpp::Node & node, px4_ros2::ModeBase & owned_mode) // [2]
-  : ModeExecutorBase(node, px4_ros2::ModeExecutorBase::Settings{}, owned_mode),
-    _node(node)
+  MyModeExecutor(px4_ros2::ModeBase & owned_mode) // [2]
+  : ModeExecutorBase(px4_ros2::ModeExecutorBase::Settings{}, owned_mode),
+    _node(owned_mode.node())
   { }
 
   enum class State // [3]
@@ -344,8 +344,8 @@ private:
 
 以下章节提供了支持的设置点类型列表：
 
-- [GotoSetpointType](#go-to-setpoint-gotosetpointtype): 平稳的位置控制以及（可选的）航向控制
-- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype)： <Badge type="tip" text="main (planned for: PX4 v1.17)" /> 对横向和纵向固定翼动态的直接控制
+- [MulticopterGotoSetpointType](#go-to-setpoint-multicoptergotosetpointtype): <Badge type="warning" text="MC only" /> Smooth position and (optionally) heading control
+- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="warning" text="FW only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" /> Direct control of lateral and longitudinal fixed wing dynamics
 - [DirectActuatorsSetpointType](#direct-actuator-control-setpoint-directactuatorssetpointtype)：直接控制发动机和飞行地面servo setpoints
 
 :::tip
@@ -354,14 +354,18 @@ private:
 您可以通过添加一个从 `px4_ros2::SetpointBase` 继承的类来添加您自己的 setpoint 类型， 根据设置点的要求设置配置标志，然后发布任何包含设置点的主题。
 :::
 
-#### 转到设置点 (GotoSetpointType)
+#### Go-to Setpoint (MulticopterGotoSetpointType)
+
+<Badge type="warning" text="MC only" />
 
 :::info
-当前，此设定值类型仅支持多旋翼飞行器。
+This setpoint type is currently only supported for multicopters.
 :::
 
-以[`px4_ros2:::GotoSetpootType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/goto.hpp) 设置点类型平滑控制位置和(可选) 设置点。
-该设定值类型会传输至FMU，用于基于位置和航向的平滑控制器；该平滑控制器采用时间最优、最大加加速度轨迹设计，并设有速度和加速度约束。
+Smoothly control position and (optionally) heading setpoints with the [`px4_ros2::MulticopterGotoSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/multicopter/goto.hpp) setpoint type.
+The setpoint type is streamed to FMU based position and heading smoothers formulated with time-optimal, maximum-jerk trajectories, with velocity and acceleration constraints.
+
+There is also a [`px4_ros2::MulticopterGotoGlobalSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/multicopter/goto.hpp) class that allows to send setpoints in global coordinates.
 
 最简单的用法就是直接向update method中输入一个3D 位置
 
@@ -553,7 +557,7 @@ _fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
 
 要在外部飞行模式下控制VTOL，需确保根据当前飞行配置返回正确的设定值类型：
 
-- 多旋翼模式：使用与多旋翼控制兼容的设定值类型。 例如：要么[`GotoSetpootType`](#go-to-setpoint-gotosetpointtype) 要么[`TracjectorySettpointType`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1TrajectorySetpointType.html)。
+- 多旋翼模式：使用与多旋翼控制兼容的设定值类型。 For example: either the [`MulticopterGotoSetpointType`](#go-to-setpoint-multicoptergotosetpointtype) or the [`TrajectorySetpointType`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1TrajectorySetpointType.html).
 - 固定翼形模式：使用 [`FwLateralLongitudinalSetpointType` ](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype)。
 
 只要VTOL在整个外部模式期间始终处于多旋翼模式或固定翼模式中的任意一种，就无需额外处理。
