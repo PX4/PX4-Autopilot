@@ -327,15 +327,15 @@ private:
 };
 ```
 
-- [1]`: 首先创建一个从 [`px4_ros2:::ModeExecutorBase\` ](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1ModeExecutorBase.html ) 继承的类。
-- [2]`: 构造函数采用与执行器相关联的自定义模式，并传递给`ModeExecutorBase\`的构造函数。
-- [3]\`: 我们为想要运行的状态定义一个枚举。
-- [4]`: `onActivate`在执行器激活时被调用。 此时，我们可以开始遍历这些状态了。
-    你是如何操作的，在这个示例中使用`runState\` 方法来执行下一个状态。
-- [5]`: 在切换到状态时，我们会调用 `ModeExecutorBase` 中的异步方法来启动所需的模式：`run`, “eff”、“rtl”、“等等”。
-    这些方法被传递了一个被要求完成的函数； 回调提供一个 `Result\` 参数，告诉您操作是否成功。
+- `[1]`: 首先创建一个从 [`px4_ros2::ModeExecutorBase`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1ModeExecutorBase.html) 继承的类。
+- `[2]`: 构造函数采用与执行器相关联的自定义模式，并传递给`ModeExecutorBase`的构造函数。
+- `[3]`: 我们为想要运行的状态定义一个枚举。
+- `[4]`: `onActivate` 在执行器激活时被调用。 此时，我们可以开始遍历这些状态了。
+  你是如何操作的，在这个示例中使用 `runState` 方法来执行下一个状态。
+- `[5]`: 在切换到状态时，我们会调用 `ModeExecutorBase` 中的异步方法来启动所需的模式：`run`, `eff`、`rtl`、“等等”。
+  这些方法被传递了一个被要求完成的函数； 回调提供一个 `Result` 参数，告诉您操作是否成功。
   回调运行下一个成功状态。
-- [6]`: 我们使用 `scheduleMode()\` 方法来启动执行者"拥有模式", 遵循与其他状态处理器相同的模式。
+- `[6]`: 我们使用 `scheduleMode()` 方法来启动执行者"拥有模式", 遵循与其他状态处理器相同的模式。
 
 ### 设置点类型
 
