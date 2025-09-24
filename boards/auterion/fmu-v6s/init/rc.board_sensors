@@ -37,6 +37,10 @@ then
 	set INA_CONFIGURED yes
 fi
 
+if param compare HIWONDER_EMM_EN 1
+then
+	hiwonder_emm start
+fi
 
 if param compare SENS_EN_INA228 1
 then
