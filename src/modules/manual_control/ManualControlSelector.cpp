@@ -48,8 +48,10 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 
 	const bool update_existing_input = _setpoint.valid && (input.data_source == _setpoint.data_source);
 	const bool start_using_new_input = !_setpoint.valid;
-	const bool is_priority_mode = (_rc_in_mode == RcInMode::AscendingPriority
-				       || _rc_in_mode == RcInMode::DescendingPriority);
+	const bool is_priority_mode = (_rc_in_mode == RcInMode::RcThenJoystickAscendingPriority
+				       || _rc_in_mode == RcInMode::JoystickAscendingThenRcPriority
+				       || _rc_in_mode == RcInMode::RcThenJoystickDescendingPriority
+				       || _rc_in_mode == RcInMode::JoystickDescendingThenRcPriority);
 
 	// Switch to new input if it's valid and we don't already have a valid one
 	if (isInputValid(input, now) && (update_existing_input || start_using_new_input || is_priority_mode)) {
@@ -91,12 +93,68 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 			|| (_first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN);
 		break;
 
-	case RcInMode::AscendingPriority:
-		match = !_setpoint.valid || (input.data_source <= _setpoint.data_source);
+	case RcInMode::RcThenJoystickAscendingPriority:
+		if (isRc(input.data_source)) {
+			match = true;
+
+		} else if (isMavlink(input.data_source)) {
+			if (!_setpoint.valid) {
+				match = true;
+
+			} else if (isMavlink(_setpoint.data_source)) {
+				match = input.data_source <= _setpoint.data_source;
+			}
+		}
+
 		break;
 
-	case RcInMode::DescendingPriority:
-		match = !_setpoint.valid || (input.data_source >= _setpoint.data_source);
+	case RcInMode::JoystickAscendingThenRcPriority:
+		if (isMavlink(input.data_source)) {
+			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
+				match = true;
+
+			} else if (isMavlink(_setpoint.data_source)) {
+				match = input.data_source <= _setpoint.data_source;
+			}
+
+		} else if (isRc(input.data_source)) {
+			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
+				match = true;
+			}
+		}
+
+		break;
+
+	case RcInMode::RcThenJoystickDescendingPriority:
+		if (isRc(input.data_source)) {
+			match = true;
+
+		} else if (isMavlink(input.data_source)) {
+			if (!_setpoint.valid) {
+				match = true;
+
+			} else if (isMavlink(_setpoint.data_source)) {
+				match = input.data_source >= _setpoint.data_source;
+			}
+		}
+
+		break;
+
+	case RcInMode::JoystickDescendingThenRcPriority:
+		if (isMavlink(input.data_source)) {
+			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
+				match = true;
+
+			} else if (isMavlink(_setpoint.data_source)) {
+				match = input.data_source >= _setpoint.data_source;
+			}
+
+		} else if (isRc(input.data_source)) {
+			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
+				match = true;
+			}
+		}
+
 		break;
 
 	case RcInMode::StickInputDisabled:
