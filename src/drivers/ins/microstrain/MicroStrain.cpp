@@ -189,9 +189,9 @@ bool mipInterfaceUserRecvFromDevice(mip_interface *device, uint8_t *buffer, size
 
 bool mipInterfaceUserSendToDevice(mip_interface *device, const uint8_t *data, size_t length)
 {
-	int res = device_uart.write(const_cast<uint8_t *>(data), length);
+	size_t res = device_uart.write(const_cast<uint8_t *>(data), length);
 
-	if (res >= 0) {
+	if (res == length) {
 		return true;
 	}
 
