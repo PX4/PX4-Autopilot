@@ -24,9 +24,9 @@ uint8 VELOCITY_FRAME_BODY_FRD = 3  # FRD body-fixed frame
 float32[3] velocity          # [m/s] [@frame @velocity_frame] [@invalid NaN If invalid/unknown] Velocity.
 float32[3] angular_velocity  # [rad/s] [@frame @VELOCITY_FRAME_BODY_FRD] [@invalid NaN If invalid/unknown] Angular velocity in body-fixed frame
 
-float32[3] position_variance    #
-float32[3] orientation_variance #
-float32[3] velocity_variance    # 
+float32[3] position_variance     # [m^2] Variance of position error
+float32[3] orientation_variance  # [rad^2] Variance of orientation/attitude error (expressed in body frame)
+float32[3] velocity_variance     # [m^2/s^2] Variance of velocity error
 
 uint8 reset_counter  # [-] Reset counter. Counts reset events on attitude, velocity and position.
 int8 quality         # [-] [@invalid 0] Quality. Unused.
