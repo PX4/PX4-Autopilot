@@ -102,8 +102,6 @@ Mavlink::Mavlink() :
 	ModuleParams(nullptr),
 	_receiver(*this)
 {
-	_mavlink_status.flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1); // Use MAVLink 2
-
 	// initialise parameter cache
 	mavlink_update_parameters();
 
@@ -189,6 +187,8 @@ Mavlink::mavlink_update_parameters()
 {
 	updateParams();
 
+	set_protocol_version(_param_mav_proto_ver.get());
+
 	if (_param_mav_type.get() < 0 || _param_mav_type.get() >= MAV_TYPE_ENUM_END) {
 		_param_mav_type.set(0);
 		_param_mav_type.commit_no_notification();
@@ -270,6 +270,18 @@ Mavlink::set_instance_id()
 	}
 
 	return false;
+}
+
+void Mavlink::set_protocol_version(unsigned version)
+{
+	if (version == 1) {
+		get_status()->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+		_protocol_version = 1;
+
+	} else {
+		get_status()->flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1);
+		_protocol_version = 2;
+	}
 }
 
 int
@@ -1128,7 +1140,7 @@ Mavlink::send_protocol_version()
 {
 	mavlink_protocol_version_t msg = {};
 
-	msg.version = 200;
+	msg.version = _protocol_version * 100;
 	msg.min_version = 100;
 	msg.max_version = 203;
 	uint64_t mavlink_lib_git_version_binary = px4_mavlink_lib_version_binary();
@@ -2805,7 +2817,7 @@ void Mavlink::publish_telemetry_status()
 	_tstatus.flow_control = get_flow_control_enabled();
 	_tstatus.ftp = ftp_enabled();
 	_tstatus.forwarding = get_forwarding_on();
-	_tstatus.mavlink_v2 = true;
+	_tstatus.mavlink_v2 = (_protocol_version == 2);
 
 	_tstatus.streams = _streams.size();
 
@@ -3029,6 +3041,8 @@ Mavlink::display_status()
 	}
 
 	printf("\tForwarding: %s\n", get_forwarding_on() ? "On" : "Off");
+	printf("\tMAVLink version: %" PRId32 "\n", _protocol_version);
+
 	printf("\ttransport protocol: ");
 
 	switch (_protocol) {

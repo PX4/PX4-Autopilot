@@ -50,6 +50,14 @@ PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 
 /**
+ * MAVLink protocol version
+ * @group MAVLink
+ * @value 1 v1, auto-upgrade to v2
+ * @value 2 v2 only
+ */
+PARAM_DEFINE_INT32(MAV_PROTO_VER, 2);
+
+/**
  * MAVLink SiK Radio ID
  *
  * When non-zero the MAVLink app will attempt to configure the
