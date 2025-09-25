@@ -7,7 +7,7 @@ Support for rover is [experimental](../airframes/index.md#experimental-vehicles)
 Maintainer volunteers, [contribution](../contribute/index.md) of new features, new frame configurations, or other improvements would all be very welcome!
 :::
 
-![Rovers](../../assets/airframes/rover/rovers.png)
+![Rovers](../../assets/airframes/rover/hiwonder_rovers/hiwonder_rovers.png)
 
 
 PX4 provides support for the three most common types of rovers:
@@ -26,11 +26,11 @@ The supported frames can be seen in [Airframes Reference > Rover](../airframes/a
 An Ackermann rover controls its direction by pointing the front wheels in the direction of travel — the [Ackermann steering geometry](https://en.wikipedia.org/wiki/Ackermann_steering_geometry) compensates for the fact that wheels on the inside and outside of the turn move at different rates.
 This kind of steering is used on most commercial vehicles, including cars, trucks etc.
 
+![Ackermann rover](../../assets/airframes/rover/hiwonder_rovers/hiwonder_ackermann.png)
+
 ::: info
 PX4 does not require that the vehicle uses the Ackermann geometry and will work with any front-steering rover.
 :::
-
-![Axial Trail Honcho](../../assets/airframes/rover/axial_trail_honcho.png)
 
 ## Differential
 
@@ -40,7 +40,7 @@ A differential rover's motion is controlled using a differential drive mechanism
 Forward motion is achieved by driving both wheels at the same speed in the same direction.
 Rotation is achieved by driving the wheels at different speeds in opposite directions, allowing the rover to turn on the spot.
 
-![Aion R1](../../assets/airframes/rover/aion_r1/r1_rover_no_bg.png)
+![Tracked Rover](../../assets/airframes/rover/hiwonder_rovers/hiwonder_tracked.png)
 
 ::: info
 The differential setup also work for rovers with skid or tank steering.
@@ -53,7 +53,7 @@ The differential setup also work for rovers with skid or tank steering.
 A Mecanum rover is a type of mobile robot that uses Mecanum wheels to achieve omnidirectional movement. These wheels are unique because they have rollers mounted at a 45-degree angle around their circumference, allowing the rover to move not only forward and backward but also side-to-side and diagonally without needing to rotate first.
 Each wheel is driven by its own motor, and by controlling the speed and direction of each motor, the rover can move in any direction or spin in place.
 
-![Mecanum rover](../../assets/airframes/rover/rover_mecanum.png)
+![Mecanum rover](../../assets/airframes/rover/hiwonder_rovers/hiwonder_mecanum.png)
 
 ## See Also
 
