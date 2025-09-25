@@ -205,10 +205,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("vte_aid_gps_vel_target", 100);
 	add_optional_topic("vte_aid_fiducial_marker", 100);
 	add_optional_topic("vte_aid_ev_yaw", 100);
-	add_optional_topic("vte_aid_uwb", 100);
 	add_optional_topic("fiducial_marker_pos_report", 100);
 	add_optional_topic("fiducial_marker_yaw_report", 100);
-	add_optional_topic("sensor_uwb", 100);
 	add_optional_topic("target_gnss", 100);
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
