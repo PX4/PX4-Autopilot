@@ -33,7 +33,7 @@ ROS 与 PX4 存在若干不同的预设（假设），尤其是在坐标系约�
 
 构建并运行示例：
 
-1. Open a new terminal.
+1. 打开一个新的终端。
 
 2. 使用以下方法创建并切换至新的 colcon工作目录：
 
@@ -55,7 +55,7 @@ ROS 与 PX4 存在若干不同的预设（假设），尤其是在坐标系约�
    git clone https://github.com/PX4/px4_ros_com.git
    ```
 
-5. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
+5. 在当前终端中加载 ROS 2 开发环境，并使用 colcon 工具编译工作空间：
 
    :::: tabs
 

@@ -474,7 +474,7 @@ _fw_lateral_longitudinal_setpoint->updateWithAltitude(altitude_msl,
   lateral_acceleration);
 ```
 
-等效的空速和横向加速参数定义为 `std::opulatory<float>`, 所以你可以通过 `std::nullopt` 省略其中任何一个。
+等效的空速和横向加速参数定义为 `std::optional<float>`, 所以你可以通过 `std::nullopt` 省略其中任何一个。
 
 :::tip
 若同时提供了横向加速度设定值和航线角设定值，横向加速度设定值将被用作前馈（feedforward）
@@ -483,7 +483,7 @@ _fw_lateral_longitudinal_setpoint->updateWithAltitude(altitude_msl,
 ##### 使用设定值结构体实现完全控制
 
 为实现充分的灵活性，你可以创建并传递一个[`FwLateralLongitudinalSetpoint` ](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1FwLateralLongitudinalSetpoint.html) 结构体。
-每个字段都使用 "std::opulatory<float> "模板。
+每个字段都使用 `std::optional<float>` 模板。
 
 :::tip
 若同时设置了航线角（course）和空速方向（airspeed direction），则空速方向优先，航线角不进行控制。
@@ -530,7 +530,7 @@ config_s.withThrottleLimits(0.4F, 0.6F);
 _fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
 ```
 
-所有配置字段都定义为 "std::opulatory<float>"。
+所有配置字段都定义为 `std::optional<float>`。
 未设置的值将默认采用 PX4 的配置。
 更多关于配置选项的信息，请参阅 [LateralControlConfiguration](../msg_docs/LateralControlConfiguration.md) 和 [FixedWingLongitudinalConfiguration](../msg_docs/LongitudinalControlConfiguration.md)。
 
