@@ -13,7 +13,7 @@ uint8 POSE_FRAME_NED     = 1  # NED earth-fixed frame. Origin is position of GC 
 uint8 POSE_FRAME_FRD     = 2  # FRD world-fixed frame. Arbitrary origin and heading reference. Z is down.
 
 float32[3] position  # [m] [@frame @local_frame] [@invalid NaN If invalid/unknown] Position
-float32[4] q         # [-] [@invalid NaN First value if invalid/unknown] Quaternion rotation from FRD body frame to reference frame
+float32[4] q         # [-] [@invalid NaN First value if invalid/unknown] Quaternion rotation from FRD body frame to reference frame. Follows the Hamiltonian convention (w, x, y, z, right-handed, passive rotations from body to world)
 
 uint8 velocity_frame               # [@enum VELOCITY_FRAME] Reference frame of the velocity data
 uint8 VELOCITY_FRAME_UNKNOWN  = 0  # Unknown frame
