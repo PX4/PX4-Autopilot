@@ -112,7 +112,10 @@ The test steps are:
 5. The tuning will be immediately/automatically be applied and tested in flight (by default).
    PX4 will then run a 4 second test and revert the new tuning if a problem is detected.
 
-The figure below shows how steps 4 and 5 might look in flight on the pitch axis. The pitch rate gradually increases up until it reaches the target. This amplitude is then held while the signal frequency is increased. You can then see how the tuned system is able to follow the setpoint in the test signal.
+The figure below shows how steps 4 and 5 might look in flight on the pitch axis.
+The pitch rate gradually increases up until it reaches the target.
+This amplitude is then held while the signal frequency is increased.
+You can then see how the tuned system is able to follow the setpoint in the test signal.
 
 <img src="../../assets/config/fw/autotune.png" title="Fixed-Wing Autotune"/>
 
