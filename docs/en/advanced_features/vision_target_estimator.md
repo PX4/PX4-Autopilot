@@ -9,6 +9,9 @@ The Vision Target Estimator (VTEST) fuses vision-based relative target measureme
 
 When [`VTE_EKF_AID`](../advanced_config/parameter_reference.md#VTE_EKF_AID)=1 and the target is static, the relative velocity estimate is forwarded to the main EKF2 estimator (see [EKF2 aiding](#ekf2-aiding) for the required conditions).
 
+> [!WARNING]
+> VTEST is a beta feature, disabled in default board configurations, and should only be enabled on custom builds after careful bench and flight testing.
+
 For tuning workflows, log analysis guidance, and instructions on extending the estimator, see the [Vision Target Estimator deep dive](../advanced_features/vision_target_estimator_advanced.md).
 
 ## Table of Contents
@@ -31,6 +34,9 @@ For tuning workflows, log analysis guidance, and instructions on extending the e
     - [Noise and gating](#noise-and-gating)
     - [Sensor-specific settings](#sensor-specific-settings)
     - [EKF2 aiding](#ekf2-aiding)
+    - [MAVLink Messages](#mavlink-messages)
+      - [TARGET\_RELATIVE (ID 511)](#target_relative-id-511)
+      - [TARGET\_ABSOLUTE (ID 510)](#target_absolute-id-510)
     - [Moving-target projection parameters (experimental)](#moving-target-projection-parameters-experimental)
   - [Gazebo Classic Simulation](#gazebo-classic-simulation)
   - [Generated SymForce Functions](#generated-symforce-functions)
@@ -52,6 +58,8 @@ The work item re-schedules both filters at the rates commanded by [`VTE_POS_RATE
 ## Building the Module
 
 The estimator is not part of the default PX4 board configurations. Build a board variant that enables the module, or add `CONFIG_MODULES_VISION_TARGET_ESTIMATOR=y` to a custom `.px4board` file.
+
+Set `CONFIG_MAVLINK_DIALECT="development"` so the [MAVLink messages](#mavlink-messages) for relative and absolute target measurements are available, and disable the legacy landing target estimator by adding `CONFIG_MODULES_LANDING_TARGET_ESTIMATOR=n` (both modules publish `landing_target_pose` and will conflict if enabled together).
 
 Common build targets that already include the module are:
 - `make px4_fmu-v6c_visionTargetEst`
@@ -165,6 +173,9 @@ All measurements are fused sequentially. For each observation `z` a one-row Jaco
 
 All innovation data are published on dedicated topics (`vte_aid_gps_pos_target`, `vte_aid_fiducial_marker`, `vte_aid_ev_yaw`, etc.), making it easy to inspect residuals and test ratios in logs. Rejected measurements still emit innovation messages with `fused=false` so tuning sessions can identify time skew or noise mismatches.
 
+> [!NOTE]
+> UWB and IRLock are candidates for future development once representative test data is available.
+
 ### Measurements validity
 
 Two time horizons guard incoming data: [`VTE_M_REC_TOUT`](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT) defines how old a sample can be and still be considered for fusion, while [`VTE_M_UPD_TOUT`](../advanced_config/parameter_reference.md#VTE_M_UPD_TOUT) bounds how long cached measurements remain valid in the estimator state. The published outputs toggle `*_valid` false after [`VTE_TGT_TOUT`](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) (and the estimators fully stop once [`VTE_BTOUT`](../advanced_config/parameter_reference.md#VTE_BTOUT) is exceeded). Measurements timestamped in the future relative to the latest prediction are always rejected and reported on the innovation topics.
@@ -226,6 +237,30 @@ When [`VTE_EKF_AID`](../advanced_config/parameter_reference.md#VTE_EKF_AID)=1, `
 
 If any condition fails, `rel_vel_valid` is cleared and EKF2 ignores the input.
 
+### MAVLink Messages
+
+To run the vision target estimator, `CONFIG_MAVLINK_DIALECT="development"` is required to expose `TARGET_RELATIVE` for vision-based observations and `TARGET_ABSOLUTE` for target-mounted GNSS data, two PX4-specific messages that feed the estimator. Note that there are open discussions to include them into the common MAVLink dialect.
+
+#### TARGET_RELATIVE (ID 511)
+
+`TARGET_RELATIVE` extends the `LANDING_TARGET` message with a full 3D report that includes orientation and measurement uncertainty:
+
+- A coordinate frame selector (`TARGET_OBS_FRAME`) and a sensor quaternion (`q_sensor`) that, when provided, rotates the measurement into vehicle-carried NED.
+- Target pose (`x`, `y`, `z`, `q_target`) and variances (`pos_std`, `yaw_std`), collected from onboard vision pipelines.
+
+`mavlink_receiver` validates the frame/type and handles the message differently depending on the Vision Target Estimator status:
+
+- When `VTE_EN=0`, the measurement is rotated (using `q_sensor` or the vehicle attitude for body-frame reports) and published straight to `landing_target_pose` so precision-landing can operate without the estimator.
+- When `VTE_EN=1`, the message is split into `fiducial_marker_pos_report` and `fiducial_marker_yaw_report`, preserving the rotated pose and yaw variance. `VisionTargetEst` consumes these uORB topics to drive the position and orientation filters.
+
+#### TARGET_ABSOLUTE (ID 510)
+
+`TARGET_ABSOLUTE` reports the target's absolute state when it carries its own GNSS (and optionally IMU). A capability bitmap advertises which fields are valid. PX4 maps the available content into the `target_gnss` uORB topic:
+
+- Bit 0 (position) triggers publication of latitude/longitude/altitude along with the horizontal and vertical accuracy estimates (`position_std`).
+- Bit 1 (velocity) forwards the body-frame velocity vector (`vel`) and its standard deviations (`vel_std`).
+- Additional fields (acceleration, quaternion `q_target`, rates, uncertainties) are not supported and reserved  for future fusion logic once flight testing is available.
+
 ### Moving-target projection parameters (experimental)
 
 When `CONFIG_VTEST_MOVING` is active, [`VTE_MOVING_T_MIN`](../advanced_config/parameter_reference.md#VTE_MOVING_T_MIN) and [`VTE_MOVING_T_MAX`](../advanced_config/parameter_reference.md#VTE_MOVING_T_MAX) determine how far ahead the target position is projected when publishing the absolute landing setpoint. The estimator computes an intersection time $\Delta t$ by constraining $|z_{rel}| / |v_{descent}|$ between the two parameters, then shifts the absolute landing target by $\Delta t$ along the estimated target velocity (with a correction from the target acceleration state). The goal is to command the vehicle towards where the moving target will be at touchdown, not where it was at the last measurement.
@@ -233,6 +268,9 @@ When `CONFIG_VTEST_MOVING` is active, [`VTE_MOVING_T_MIN`](../advanced_config/pa
 ## Gazebo Classic Simulation
 
 Run the SITL world `gazebo-classic_iris_irlock` to simulate precision landing using the VTEST fusing vision (ArUco-based) and target GNSS aiding. The world name is retained for historical reasons. The models were introduced in [PX4/PX4-SITL_gazebo-classic#950](https://github.com/PX4/PX4-SITL_gazebo-classic/pull/950).
+
+> [!TIP]
+> The ArUco vision observation path implemented in `Tools/simulation/gazebo-classic/sitl_gazebo-classic/src/gazebo_aruco_plugin.cpp` provides a concrete example of how to obtain a vision-based observation of a target and how to publish the `TARGET_RELATIVE` message.
 
 1. Launch the simulator with:
 
