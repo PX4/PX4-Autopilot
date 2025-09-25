@@ -234,12 +234,13 @@ private:
 	void processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
 				 TargetObs observations[kObsTypeCount]);
 
-	bool isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who = nullptr) const;
+	bool isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who = nullptr,
+			      hrt_abstime *warn_last = nullptr);
 
 	/* Vision data */
 	void handleVisionData(ObsValidMaskU &fusion_mask, TargetObs &vision_obs);
 	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose) const;
-	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, TargetObs &obs) const;
+	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, TargetObs &obs);
 
 	/* UWB data */
 	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask, TargetObs &uwb_obs);
@@ -251,8 +252,8 @@ private:
 			      TargetObs &mission_pos_obs,
 			      TargetObs &uav_vel_obs);
 	bool updateUavGpsData();
-	bool isUavGpsPositionValid() const;
-	bool isUavGpsVelocityValid() const;
+	bool isUavGpsPositionValid();
+	bool isUavGpsVelocityValid();
 	bool processObsGNSSPosMission(TargetObs &obs);
 	bool processObsGNSSVelUav(TargetObs &obs) const;
 
@@ -260,8 +261,8 @@ private:
 	void handleTargetGpsData(ObsValidMaskU &fusion_mask,
 				 TargetObs &target_pos_obs,
 				 TargetObs &target_vel_obs);
-	bool isTargetGpsPositionValid(const target_gnss_s &target_gnss) const;
-	bool isTargetGpsVelocityValid(const target_gnss_s &target_gnss) const;
+	bool isTargetGpsPositionValid(const target_gnss_s &target_gnss);
+	bool isTargetGpsVelocityValid(const target_gnss_s &target_gnss);
 	bool processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs);
 #if defined(CONFIG_VTEST_MOVING)
 	bool ProcessObsGNSSVelTarget(const target_gnss_s &target_gnss, TargetObs &obs) const;
@@ -272,6 +273,7 @@ private:
 	void publishTarget();
 	void publishInnov(const estimator_aid_source3d_s &target_innov, const ObsType type);
 	void resetObservations();
+	bool shouldEmitWarning(hrt_abstime &last_warn);
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_pos_report_sub{ORB_ID(fiducial_marker_pos_report)};
@@ -332,6 +334,14 @@ private:
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
+	hrt_abstime _uav_gps_vel_warn_last{0};
+	hrt_abstime _target_gps_vel_warn_last{0};
+	hrt_abstime _vision_pos_warn_last{0};
+	hrt_abstime _uav_gps_pos_warn_last{0};
+	hrt_abstime _target_gps_pos_warn_last{0};
+	hrt_abstime _mission_pos_warn_last{0};
+	hrt_abstime _mission_pos_status_warn_last{0};
+	hrt_abstime _init_vel_warn_last{0};
 
 	/* parameters from vision_target_estimator_params.c*/
 	void checkMeasurementInputs();

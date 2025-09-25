@@ -52,6 +52,7 @@
 #include <systemlib/err.h>
 
 #include "VisionTargetEst.h"
+#include "common.h"
 
 namespace vision_target_estimator
 {
@@ -442,7 +443,6 @@ void VisionTargetEst::printAidMask()
 
 	if (_vte_aid_mask.flags.use_uwb) {PX4_INFO("    Uwb relative position fusion enabled");}
 
-
 	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
 }
 
@@ -702,7 +702,7 @@ void VisionTargetEst::updateEstimators()
 				     gps_pos_offset_ned, vel_offset_ned, vel_offset_updated);
 
 		} else {
-			if ((_vehicle_acc_body.timestamp != 0) && (hrt_elapsed_time(&_acc_sample_warn_last) > 1_s)) {
+			if ((_vehicle_acc_body.timestamp != 0) && (hrt_elapsed_time(&_acc_sample_warn_last) > kWarnThrottleIntervalUs)) {
 				PX4_WARN("VTE acc sample stale (%.1f ms)",
 					 static_cast<double>((hrt_absolute_time() - _vehicle_acc_body.timestamp) / 1e3));
 				_acc_sample_warn_last = hrt_absolute_time();

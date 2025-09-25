@@ -61,6 +61,8 @@ static constexpr float max_uwb_aoa_angle_degree = 60.0f;
 static constexpr float kMinObservationNoise = 1e-2f;
 static constexpr float kMinNisThreshold = 0.1f;
 
+constexpr hrt_abstime kWarnThrottleIntervalUs = 20_s;
+
 static inline bool hasTimedOut(const hrt_abstime ts, const uint32_t timeout_us)
 {
 	const hrt_abstime now = hrt_absolute_time();
