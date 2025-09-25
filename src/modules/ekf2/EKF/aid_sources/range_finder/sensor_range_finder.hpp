@@ -41,8 +41,6 @@
 #ifndef EKF_SENSOR_RANGE_FINDER_HPP
 #define EKF_SENSOR_RANGE_FINDER_HPP
 
-#include "Sensor.hpp"
-
 #include <matrix/math.hpp>
 #include <lib/mathlib/math/filter/MedianFilter.hpp>
 
@@ -60,17 +58,17 @@ struct rangeSample {
 static constexpr uint64_t RNG_MAX_INTERVAL =
 	200e3;  ///< Maximum allowable time interval between range finder measurements (uSec)
 
-class SensorRangeFinder : public Sensor
+class SensorRangeFinder
 {
 public:
 	SensorRangeFinder() = default;
-	~SensorRangeFinder() override = default;
+	~SensorRangeFinder() = default;
 
 	void runChecks(uint64_t current_time_us, const matrix::Dcmf &R_to_earth);
-	bool isHealthy() const override { return _is_sample_valid; }
-	bool isDataHealthy() const override { return _is_sample_ready && _is_sample_valid; }
+	bool isHealthy() const { return _is_sample_valid; }
+	bool isDataHealthy() const { return _is_sample_ready && _is_sample_valid; }
 	bool isDataReady() const { return _is_sample_ready; }
-	bool isRegularlySendingData() const override { return _is_regularly_sending_data; }
+	bool isRegularlySendingData() const { return _is_regularly_sending_data; }
 	bool isStuckDetectorEnabled() const { return _stuck_threshold > 0.f; }
 
 	void setSample(const rangeSample &sample)
