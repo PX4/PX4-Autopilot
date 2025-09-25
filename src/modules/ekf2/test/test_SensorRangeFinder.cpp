@@ -103,26 +103,20 @@ void SensorRangeFinderTest::testTilt(const Eulerf &euler, bool should_pass)
 
 	if (should_pass) {
 		EXPECT_TRUE(_range_finder.isDataHealthy());
-		EXPECT_TRUE(_range_finder.isHealthy());
 
 	} else {
 		EXPECT_FALSE(_range_finder.isDataHealthy());
-		EXPECT_FALSE(_range_finder.isHealthy());
 	}
 }
 
 TEST_F(SensorRangeFinderTest, setRange)
 {
-	rangeSample sample{};
-	sample.rng = 1.f;
-	sample.time_us = 1e6;
-	sample.quality = 9;
+	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
+	_range_finder.setSample(_good_sample);
 
-	_range_finder.setRange(sample.rng);
-	_range_finder.setDataReadiness(true);
-	_range_finder.setValidity(true);
+	_range_finder.setRange(1.23);
+	_range_finder.runChecks(_good_sample.time_us, attitude);
 	EXPECT_TRUE(_range_finder.isDataHealthy());
-	EXPECT_TRUE(_range_finder.isHealthy());
 }
 
 TEST_F(SensorRangeFinderTest, goodData)
@@ -134,7 +128,6 @@ TEST_F(SensorRangeFinderTest, goodData)
 
 	// THEN: the data can be used for aiding
 	EXPECT_TRUE(_range_finder.isDataHealthy());
-	EXPECT_TRUE(_range_finder.isHealthy());
 }
 
 TEST_F(SensorRangeFinderTest, tiltExceeded)
@@ -177,7 +170,6 @@ TEST_F(SensorRangeFinderTest, rangeMaxExceeded)
 
 	// THEN: the data should be marked as unhealthy
 	EXPECT_FALSE(_range_finder.isDataHealthy());
-	EXPECT_FALSE(_range_finder.isHealthy());
 }
 
 TEST_F(SensorRangeFinderTest, rangeMinExceeded)
@@ -192,7 +184,6 @@ TEST_F(SensorRangeFinderTest, rangeMinExceeded)
 
 	// THEN: the data should be marked as unhealthy
 	EXPECT_FALSE(_range_finder.isDataHealthy());
-	EXPECT_FALSE(_range_finder.isHealthy());
 }
 
 TEST_F(SensorRangeFinderTest, outOfDate)
@@ -208,7 +199,6 @@ TEST_F(SensorRangeFinderTest, outOfDate)
 
 	// THEN: the data should be marked as unhealthy
 	EXPECT_FALSE(_range_finder.isDataHealthy());
-	EXPECT_FALSE(_range_finder.isHealthy());
 }
 
 TEST_F(SensorRangeFinderTest, rangeStuck)
@@ -229,7 +219,6 @@ TEST_F(SensorRangeFinderTest, rangeStuck)
 	}
 
 	EXPECT_FALSE(_range_finder.isDataHealthy());
-	EXPECT_FALSE(_range_finder.isHealthy());
 
 	new_sample.quality = 100;
 
@@ -244,13 +233,11 @@ TEST_F(SensorRangeFinderTest, rangeStuck)
 	// because the sensor is "stuck"
 	if (_range_finder.isStuckDetectorEnabled()) {
 		EXPECT_FALSE(_range_finder.isDataHealthy());
-		EXPECT_FALSE(_range_finder.isHealthy());
 
 	} else {
 		// If stuck detector is disabled then the
 		// data should instantly be marked as healthy
 		EXPECT_TRUE(_range_finder.isDataHealthy());
-		EXPECT_TRUE(_range_finder.isHealthy());
 	}
 
 	// BUT WHEN: we continue to send samples but with changing distance
@@ -264,7 +251,6 @@ TEST_F(SensorRangeFinderTest, rangeStuck)
 	// THEN: the data should be marked as healthy
 	// because the sensor is not "stuck" anymore
 	EXPECT_TRUE(_range_finder.isDataHealthy());
-	EXPECT_TRUE(_range_finder.isHealthy());
 }
 
 TEST_F(SensorRangeFinderTest, qualityHysteresis)
@@ -278,13 +264,11 @@ TEST_F(SensorRangeFinderTest, qualityHysteresis)
 	_range_finder.setSample(new_sample);
 	_range_finder.runChecks(new_sample.time_us, attitude);
 	EXPECT_FALSE(_range_finder.isDataHealthy());
-	EXPECT_FALSE(_range_finder.isHealthy());
 
 	new_sample.quality = _good_sample.quality;
 	_range_finder.setSample(new_sample);
 	_range_finder.runChecks(new_sample.time_us, attitude);
 	EXPECT_FALSE(_range_finder.isDataHealthy());
-	EXPECT_FALSE(_range_finder.isHealthy());
 
 	// AND: we need to put enough good data to pass the hysteresis
 	const uint64_t dt = 3e5;
@@ -298,7 +282,6 @@ TEST_F(SensorRangeFinderTest, qualityHysteresis)
 
 	// THEN: the data is again declared healthy
 	EXPECT_TRUE(_range_finder.isDataHealthy());
-	EXPECT_TRUE(_range_finder.isHealthy());
 }
 
 TEST_F(SensorRangeFinderTest, continuity)
@@ -314,7 +297,6 @@ TEST_F(SensorRangeFinderTest, continuity)
 	// THEN: the data should be marked as unhealthy
 	// Note that it also fails the out-of-date test here
 	EXPECT_FALSE(_range_finder.isDataHealthy());
-	EXPECT_FALSE(_range_finder.isHealthy());
 
 	// AND WHEN: the data rate is acceptable
 	dt_sensor_us = 3e5;
@@ -324,11 +306,9 @@ TEST_F(SensorRangeFinderTest, continuity)
 	// THEN: it should still fail until the filter converge
 	// to the new datarate
 	EXPECT_FALSE(_range_finder.isDataHealthy());
-	EXPECT_FALSE(_range_finder.isHealthy());
 
 	updateSensorAtRate(_good_sample, duration_us, dt_update_us, dt_sensor_us);
 	EXPECT_TRUE(_range_finder.isDataHealthy());
-	EXPECT_TRUE(_range_finder.isHealthy());
 }
 
 TEST_F(SensorRangeFinderTest, distBottom)
@@ -359,7 +339,6 @@ TEST_F(SensorRangeFinderTest, blockedByFog)
 	updateSensorAtRate(_good_sample, duration_us, dt_update_us, dt_sensor_us);
 	// THEN: the data should be marked as healthy
 	EXPECT_TRUE(_range_finder.isDataHealthy());
-	EXPECT_TRUE(_range_finder.isHealthy());
 
 	// WHEN: sensor is then blocked by fog
 	// range jumps to value below 2m
@@ -369,7 +348,6 @@ TEST_F(SensorRangeFinderTest, blockedByFog)
 
 	// THEN: the data should be marked as unhealthy
 	EXPECT_FALSE(_range_finder.isDataHealthy());
-	EXPECT_FALSE(_range_finder.isHealthy());
 
 	// WHEN: the sensor is not blocked by fog anymore
 	sample.rng = 5.f;
@@ -378,7 +356,6 @@ TEST_F(SensorRangeFinderTest, blockedByFog)
 
 	// THEN: the data should be marked as healthy again
 	EXPECT_TRUE(_range_finder.isDataHealthy());
-	EXPECT_TRUE(_range_finder.isHealthy());
 
 	// WHEN: the sensor is is not jumping to a value below 2m
 	while (sample.rng > _min_range) {
@@ -390,6 +367,4 @@ TEST_F(SensorRangeFinderTest, blockedByFog)
 
 	// THEN: the data should still be marked as healthy
 	EXPECT_TRUE(_range_finder.isDataHealthy());
-	EXPECT_TRUE(_range_finder.isHealthy());
-
 }

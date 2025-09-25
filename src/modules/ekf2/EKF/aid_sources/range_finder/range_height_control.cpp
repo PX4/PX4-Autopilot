@@ -57,7 +57,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		_range_sensor.setQualityHysteresis(_params.ekf2_rng_qlty_t);
 		_range_sensor.setMaxFogDistance(_params.ekf2_rng_fog);
 
-		_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
+		_range_sensor.runChecks(imu_sample.time_us, _R_to_earth, _control_status.flags.in_air);
 
 		if (_range_sensor.isDataHealthy()) {
 			// correct the range data for position offset relative to the IMU
@@ -75,17 +75,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				_rng_consistency_check.setGate(_params.ekf2_rng_k_gate);
 				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2),
 							      P(State::vel.idx + 2, State::vel.idx + 2), horizontal_motion, imu_sample.time_us);
-			}
-
-		} else {
-			// If we are supposed to be using range finder data but have bad range measurements
-			// and are on the ground, then synthesise a measurement at the expected on ground value
-			if (!_control_status.flags.in_air
-			    && _range_sensor.isRegularlySendingData()
-			    && _range_sensor.isDataReady()) {
-
-				_range_sensor.setRange(_params.ekf2_min_rng);
-				_range_sensor.setValidity(true); // bypass the checks
 			}
 		}
 
