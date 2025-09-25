@@ -71,7 +71,6 @@ VTEPosition::VTEPosition() :
 	_vte_aid_gps_vel_uav_pub.advertise();
 	_vte_aid_gps_vel_target_pub.advertise();
 	_vte_aid_fiducial_marker_pub.advertise();
-	_vte_aid_uwb_pub.advertise();
 
 	updateParams();
 }
@@ -138,7 +137,7 @@ void VTEPosition::resetFilter()
 	_mission_land_position.valid = false;
 }
 
-void VTEPosition::update(const Vector3f &acc_ned, const matrix::Quaternionf &q_att)
+void VTEPosition::update(const Vector3f &acc_ned)
 {
 	if (_parameter_update_sub.updated()) {
 		updateParams();
@@ -156,7 +155,7 @@ void VTEPosition::update(const Vector3f &acc_ned, const matrix::Quaternionf &q_a
 	}
 
 	// Update with the newest observations and publish any resulting innovations.
-	if (performUpdateStep(acc_ned, q_att)) {
+	if (performUpdateStep(acc_ned)) {
 		_last_update = _last_predict;
 	}
 
@@ -245,12 +244,12 @@ void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned)
 	}
 }
 
-bool VTEPosition::performUpdateStep(const Vector3f &vehicle_acc_ned, const matrix::Quaternionf &q_att)
+bool VTEPosition::performUpdateStep(const Vector3f &vehicle_acc_ned)
 {
 	// Gather observations and tag the fusion mask bits for each new valid source.
 	resetObservations();
 	ObsValidMaskU fusion_mask{};
-	processObservations(q_att, fusion_mask, _obs_buffer);
+	processObservations(fusion_mask, _obs_buffer);
 
 	if (fusion_mask.value == 0) {
 		return false;
@@ -280,11 +279,10 @@ void VTEPosition::resetObservations()
 	}
 }
 
-void VTEPosition::processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
+void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 				      TargetObs observations[kObsTypeCount])
 {
 	handleVisionData(fusion_mask, observations[obsIndex(ObsType::Fiducial_marker)]);
-	handleUwbData(q_att, fusion_mask, observations[obsIndex(ObsType::Uwb)]);
 
 	if (updateUavGpsData()) {
 		handleUavGpsData(fusion_mask,
@@ -321,68 +319,6 @@ bool VTEPosition::isVisionDataValid(const fiducial_marker_pos_report_s &fiducial
 					&& PX4_ISFINITE(fiducial_marker_pose.z_rel_body);
 
 	return finite_measurement && isMeasRecent(fiducial_marker_pose.timestamp);
-}
-
-void VTEPosition::handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
-				TargetObs &uwb_obs)
-{
-	sensor_uwb_s uwb_report;
-
-	if (!_vte_aid_mask.flags.use_uwb) {
-		return;
-	}
-
-	if (!_sensor_uwb_sub.update(&uwb_report) || !isUwbDataValid(uwb_report)) {
-		return;
-	}
-
-	if (processObsUwb(q_att, uwb_report, uwb_obs)) {
-		fusion_mask.flags.fuse_uwb = true;
-	}
-}
-
-bool VTEPosition::isUwbDataValid(const sensor_uwb_s &uwb_report) const
-{
-	if (!isMeasRecent(uwb_report.timestamp)) {
-		return false;
-	}
-
-	const bool finite_range = PX4_ISFINITE(uwb_report.distance);
-	const bool angles_within_bounds = fabsf(uwb_report.aoa_azimuth_dev) <= max_uwb_aoa_angle_degree
-					  && fabsf(uwb_report.aoa_elevation_dev) <= max_uwb_aoa_angle_degree;
-
-	return finite_range && angles_within_bounds;
-}
-
-bool VTEPosition::processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs) const
-{
-	matrix::Vector3f pos_ned{};
-
-	if (!uwbMeasurementToNed(uwb_report, q_att, pos_ned)) {
-		return false;
-	}
-
-	obs.meas_xyz = pos_ned;
-
-	obs.meas_h_xyz(vtest::Axis::x, vtest::State::pos_rel) = 1;
-	obs.meas_h_xyz(vtest::Axis::y, vtest::State::pos_rel) = 1;
-	obs.meas_h_xyz(vtest::Axis::z, vtest::State::pos_rel) = 1;
-
-	// Variance of UWB distance measurements is +/- 5 cm
-	// Variance of UWB Angle of Arrival measurements is +/- 3° Degree
-	const float unc = fmaxf((math::sq(uwb_report.distance * 0.02f) + 0.0004f), _min_uwb_pos_var);
-	obs.meas_unc_xyz(vtest::Axis::x) = unc;
-	obs.meas_unc_xyz(vtest::Axis::y) = unc;
-	obs.meas_unc_xyz(vtest::Axis::z) = unc;
-
-	obs.timestamp = uwb_report.timestamp;
-
-	obs.type = ObsType::Uwb;
-	obs.updated(vtest::Axis::x) = true;
-	obs.updated(vtest::Axis::y) = true;
-	obs.updated(vtest::Axis::z) = true;
-
-	return true;
 }
 
 void VTEPosition::handleUavGpsData(ObsValidMaskU &fusion_mask,
@@ -644,11 +580,6 @@ void VTEPosition::selectInitialPosition(const ObsValidMaskU &fusion_mask,
 		return;
 	}
 
-	if (fusion_mask.flags.fuse_uwb) {
-		initial_position = observations[obsIndex(ObsType::Uwb)].meas_xyz;
-		return;
-	}
-
 	if (fusion_mask.flags.fuse_target_gps_pos) {
 		initial_position = observations[obsIndex(ObsType::Target_gps_pos)].meas_xyz;
 		return;
@@ -726,10 +657,6 @@ bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned
 
 	if (fusion_mask.flags.fuse_vision) {
 		position_fused |= fuse_relative_obs(ObsType::Fiducial_marker);
-	}
-
-	if (fusion_mask.flags.fuse_uwb) {
-		position_fused |= fuse_relative_obs(ObsType::Uwb);
 	}
 
 	if (fusion_mask.flags.fuse_uav_gps_vel) {
@@ -1146,10 +1073,6 @@ void VTEPosition::publishInnov(const estimator_aid_source3d_s &target_innov, con
 		_vte_aid_fiducial_marker_pub.publish(target_innov);
 		break;
 
-	case ObsType::Uwb:
-		_vte_aid_uwb_pub.publish(target_innov);
-		break;
-
 	case ObsType::Type_count:
 		break;
 	}
@@ -1433,7 +1356,6 @@ void VTEPosition::updateParams()
 	const float new_gps_pos_noise = _param_vte_gps_pos_noise.get();
 	const float new_ev_pos_noise = _param_vte_ev_pos_noise.get();
 	const float new_nis_threshold = _param_vte_pos_nis_thre.get();
-	const float new_uwb_p_noise = _param_vte_uwb_p_noise.get();
 
 	if (PX4_ISFINITE(new_gps_pos_noise) && new_gps_pos_noise > kMinObservationNoise) {
 		_min_gps_pos_var = new_gps_pos_noise * new_gps_pos_noise;
@@ -1449,14 +1371,6 @@ void VTEPosition::updateParams()
 	} else {
 		PX4_WARN("VTE: VTE_GPS_VEL_NOISE %.1f <= %.1f, keeping previous value",
 			 (double)new_gps_vel_noise, (double)kMinObservationNoise);
-	}
-
-	if (PX4_ISFINITE(new_uwb_p_noise) && new_uwb_p_noise > kMinObservationNoise) {
-		_min_uwb_pos_var = new_uwb_p_noise * new_uwb_p_noise;
-
-	} else {
-		PX4_WARN("VTE: VTE_UWB_P_NOISE %.1f <= %.1f, keeping previous value",
-			 (double)new_uwb_p_noise, (double)kMinObservationNoise);
 	}
 
 	if (PX4_ISFINITE(new_ev_pos_noise) && new_ev_pos_noise > kMinObservationNoise) {

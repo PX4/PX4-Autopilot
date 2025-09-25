@@ -52,7 +52,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/fiducial_marker_yaw_report.h>
 #include <uORB/topics/vision_target_est_orientation.h>
-#include <uORB/topics/sensor_uwb.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/estimator_aid_source1d.h>
@@ -83,7 +82,7 @@ public:
 	/*
 	 * Get new measurements and update the state estimate
 	 */
-	void update(const matrix::Quaternionf &q_att);
+	void update();
 
 	bool init();
 
@@ -116,7 +115,6 @@ protected:
 private:
 	enum class ObsType : uint8_t {
 		Fiducial_marker,
-		Uwb,
 		Type_count
 	};
 
@@ -129,8 +127,7 @@ private:
 	union ObsValidMaskU {
 		struct {
 			uint8_t fuse_vision : 1; ///< bit0: external vision data ready to be fused
-			uint8_t fuse_uwb    : 1; ///< bit1: UWB data ready to be fused
-			uint8_t reserved    : 6; ///< bit2..7: reserved for future use
+			uint8_t reserved    : 7; ///< bit1..7: reserved for future use
 		} flags;
 
 		uint8_t value{0};
@@ -148,7 +145,7 @@ private:
 	};
 
 	bool initEstimator(const ObsValidMaskU &fusion_mask, const TargetObs observations[kObsTypeCount]);
-	bool performUpdateStep(const matrix::Quaternionf &q_att);
+	bool performUpdateStep();
 	void predictionStep();
 
 	inline bool isMeasRecent(hrt_abstime ts) const
@@ -161,7 +158,7 @@ private:
 		return !hasTimedOut(ts, _meas_updated_timeout_us);
 	}
 
-	void processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
+	void processObservations(ObsValidMaskU &fusion_mask,
 				 TargetObs observations[kObsTypeCount]);
 	bool fuseActiveMeasurements(ObsValidMaskU &fusion_mask, const TargetObs observations[kObsTypeCount]);
 
@@ -170,17 +167,11 @@ private:
 	bool isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw) const;
 	bool processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs) const;
 
-	/* UWB data */
-	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask, TargetObs &uwb_obs);
-	bool isUwbDataValid(const sensor_uwb_s &uwb_report) const;
-	bool processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs) const;
-
 	bool fuseMeas(const TargetObs &target_pos_obs);
 	void publishTarget();
 	void resetObservations();
 
 	uORB::Subscription _fiducial_marker_yaw_report_sub{ORB_ID(fiducial_marker_yaw_report)};
-	uORB::Subscription _sensor_uwb_sub{ORB_ID(sensor_uwb)};
 
 	FloatStamped _range_sensor{};
 
@@ -206,15 +197,13 @@ private:
 	float _min_ev_angle_var{0.025f};
 	bool  _ev_noise_md{false};
 	float _nis_threshold{3.84f};
-	float _min_uwb_angle_var{0.025f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_YAW_UNC_IN>) _param_vte_yaw_unc_in,
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
 		(ParamFloat<px4::params::VTE_EVA_NOISE>) _param_vte_ev_angle_noise,
 		(ParamInt<px4::params::VTE_EV_NOISE_MD>) _param_vte_ev_noise_md,
-		(ParamFloat<px4::params::VTE_YAW_NIS_THRE>) _param_vte_yaw_nis_thre,
-		(ParamFloat<px4::params::VTE_UWB_A_NOISE>) _param_vte_uwb_a_noise
+		(ParamFloat<px4::params::VTE_YAW_NIS_THRE>) _param_vte_yaw_nis_thre
 	)
 };
 } // namespace vision_target_estimator

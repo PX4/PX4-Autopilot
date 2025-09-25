@@ -66,6 +66,7 @@
 #include <parameters/param.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/topics/parameter_update.h>
+#include <matrix/Quaternion.hpp>
 
 #include "Position/VTEPosition.h"
 #include "Orientation/VTEOrientation.h"
@@ -122,11 +123,10 @@ private:
 	void updateEstimators();
 	void updatePosEst(const LocalPose &local_pose, const bool local_pose_updated,
 			  const matrix::Vector3f &vehicle_acc_ned,
-			  const matrix::Quaternionf &q_att,
 			  const matrix::Vector3f &gps_pos_offset_ned,
 			  const matrix::Vector3f &vel_offset_ned,
 			  const bool vel_offset_updated);
-	void updateYawEst(const LocalPose &local_pose, const bool local_pose_updated, const matrix::Quaternionf &q_att);
+	void updateYawEst(const LocalPose &local_pose, const bool local_pose_updated);
 	void publishVteInput(const matrix::Vector3f &vehicle_acc_ned_sampled, const matrix::Quaternionf &q_att);
 
 	inline bool noActiveTask() const {return _current_task.value == 0;};
@@ -153,6 +153,7 @@ private:
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle ")};
 
 	Vector3fStamped _vehicle_acc_body{};
+	matrix::Quaternionf _last_att{1.f, 0.f, 0.f, 0.f};
 	hrt_abstime _acc_sample_warn_last{0};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

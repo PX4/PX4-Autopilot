@@ -84,17 +84,15 @@ PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
  * 2 : Set to true to use the target relative position from vision-based data if available. (+4)
  * 3 : Set to true to use the mission land point. Ignored if target GNSS position enabled. (+8)
  * 4 : Set to true to use the target GNSS velocity if available. (+16)
- * 5 : Set to true to use the target relative position from uwb data if available (+32)
  *
  * @group Vision Target Estimator
  * @min 0
- * @max 63
+ * @max 31
  * @bit 0 target GNSS position
  * @bit 1 uav GNSS velocity
  * @bit 2 vision relative position
  * @bit 3 mission position
  * @bit 4 target GNSS velocity
- * @bit 5 uwb
  *
  *
  * @group Vision Target Estimator
@@ -456,31 +454,3 @@ PARAM_DEFINE_FLOAT(VTE_POS_NIS_THRE, 3.84f);
  * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_YAW_NIS_THRE, 3.84f);
-
-/**
- * Measurement noise for uwb position.
- *
- * minimum allowed observation noise for uwb position fusion (m)
- *
- * @min 0.01
- * @max 10.0
- * @unit m
- * @decimal 2
- *
- * @group Vision Target Estimator
- */
-PARAM_DEFINE_FLOAT(VTE_UWB_P_NOISE, 0.1f);
-
-/**
- * Minimum observation noise for uwb angle fusion.
- *
- * minimum allowed observation noise for uwb angle fusion (rad)
- *
- * @min 0.001
- * @max 1.0
- * @unit rad
- * @decimal 2
- *
- * @group Vision Target Estimator
- */
-PARAM_DEFINE_FLOAT(VTE_UWB_A_NOISE, 0.05f);

@@ -43,20 +43,14 @@
 
 #include <cstdint>
 #include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
-#include <matrix/Quaternion.hpp>
 #include <matrix/math.hpp>
-#include <uORB/topics/sensor_uwb.h>
 
 namespace vision_target_estimator
 {
 
 using namespace time_literals;
-
-/* Valid AoA measurement range between -60.00° and +60.00° for UWB*/
-static constexpr float max_uwb_aoa_angle_degree = 60.0f;
 
 static constexpr float kMinObservationNoise = 1e-2f;
 static constexpr float kMinNisThreshold = 0.1f;
@@ -87,8 +81,7 @@ union SensorFusionMaskU {
 		uint16_t use_vision_pos       : 1;  ///< bit 2
 		uint16_t use_mission_pos      : 1;  ///< bit 3
 		uint16_t use_target_gps_vel   : 1;  ///< bit 4
-		uint16_t use_uwb              : 1;  ///< bit 5
-		uint16_t reserved             : 10; ///< bits 6..15 (future use)
+		uint16_t reserved             : 11; ///< bits 5..15 (future use)
 	} flags;
 
 	uint16_t value;
@@ -106,33 +99,5 @@ struct Vector3fStamped {
 	bool valid = false;
 	matrix::Vector3f xyz{};
 };
-
-inline bool uwbMeasurementToNed(const sensor_uwb_s &uwb_report,
-				const matrix::Quaternionf &vehicle_att,
-				matrix::Vector3f &relative_pos_ned)
-{
-	if (!PX4_ISFINITE(uwb_report.distance) || (uwb_report.distance <= 0.f)) {
-		return false;
-	}
-
-	const float theta_rad = math::radians(uwb_report.aoa_azimuth_dev);
-	const float phi_rad = math::radians(uwb_report.aoa_elevation_dev);
-
-	const float distance = uwb_report.distance;
-
-	const float delta_z = -distance * cosf(phi_rad) * cosf(theta_rad);
-	const float delta_y = distance * cosf(phi_rad) * sinf(theta_rad);
-	const float delta_x = -distance * sinf(phi_rad);
-
-	const matrix::Vector3f relative_pos_sensor(uwb_report.offset_x + delta_x,
-			uwb_report.offset_y + delta_y,
-			uwb_report.offset_z + delta_z);
-
-	const matrix::Quaternionf sensor_rotation = get_rot_quaternion(static_cast<enum Rotation>(uwb_report.orientation));
-	const matrix::Quaternionf body_to_ned = vehicle_att * sensor_rotation;
-
-	relative_pos_ned = body_to_ned.rotateVector(relative_pos_sensor);
-	return true;
-}
 
 } // namespace vision_target_estimator

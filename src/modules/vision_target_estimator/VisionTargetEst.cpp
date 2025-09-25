@@ -441,7 +441,6 @@ void VisionTargetEst::printAidMask()
 
 	if (_vte_aid_mask.flags.use_uav_gps_vel) {PX4_INFO("    UAV GPS velocity fusion enabled");}
 
-	if (_vte_aid_mask.flags.use_uwb) {PX4_INFO("    Uwb relative position fusion enabled");}
 
 	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
 }
@@ -696,9 +695,11 @@ void VisionTargetEst::updateEstimators()
 		return;
 	}
 
+	_last_att = q_att;
+
 	if (_vte_position_enabled && _position_estimator_running) {
 		if (acc_valid) {
-			updatePosEst(local_pose, local_pose_updated, vehicle_acc_ned, q_att,
+			updatePosEst(local_pose, local_pose_updated, vehicle_acc_ned,
 				     gps_pos_offset_ned, vel_offset_ned, vel_offset_updated);
 
 		} else {
@@ -713,7 +714,7 @@ void VisionTargetEst::updateEstimators()
 	}
 
 	if (_vte_orientation_enabled && _orientation_estimator_running) {
-		updateYawEst(local_pose, local_pose_updated, q_att);
+		updateYawEst(local_pose, local_pose_updated);
 	}
 
 	perf_end(_cycle_perf);
@@ -721,7 +722,6 @@ void VisionTargetEst::updateEstimators()
 
 void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local_pose_updated,
 				   const matrix::Vector3f &vehicle_acc_ned,
-				   const matrix::Quaternionf &q_att,
 				   const matrix::Vector3f &gps_pos_offset_ned,
 				   const matrix::Vector3f &vel_offset_ned,
 				   const bool vel_offset_updated)
@@ -756,16 +756,15 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 
 	const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _acc_sample_count;
 
-	_vte_position.update(vehicle_acc_ned_sampled, q_att);
-	publishVteInput(vehicle_acc_ned_sampled, q_att);
+	_vte_position.update(vehicle_acc_ned_sampled);
+	publishVteInput(vehicle_acc_ned_sampled, _last_att);
 
 	resetAccDownsample();
 
 	perf_end(_cycle_perf_pos);
 }
 
-void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local_pose_updated,
-				   const matrix::Quaternionf &q_att)
+void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local_pose_updated)
 {
 
 	if (!updateWhenIntervalElapsed(_last_update_yaw, _yaw_update_period_us)) {
@@ -778,7 +777,7 @@ void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local
 		_vte_orientation.set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid, local_pose.timestamp);
 	}
 
-	_vte_orientation.update(q_att);
+	_vte_orientation.update();
 	perf_end(_cycle_perf_yaw);
 }
 

@@ -63,7 +63,6 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/sensor_uwb.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
@@ -87,7 +86,7 @@ public:
 	/*
 	 * Get new measurements and update the state estimate
 	 */
-	void update(const matrix::Vector3f &acc_ned, const matrix::Quaternionf &q_att);
+	void update(const matrix::Vector3f &acc_ned);
 
 	bool init();
 
@@ -106,7 +105,7 @@ public:
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
 	bool timedOut() const {return _estimator_initialized && hasTimedOut(_last_update, _vte_timeout_us);};
-	// TODO: Could be more strict and require a relative position meas (vision, GPS, uwb)
+	// TODO: Could be more strict and require a relative position meas (vision, GPS)
 	bool fusionEnabled() const {return _vte_aid_mask.value != 0;};
 
 protected:
@@ -125,7 +124,6 @@ protected:
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_vel_target_pub{ORB_ID(vte_aid_gps_vel_target)};
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_vel_uav_pub{ORB_ID(vte_aid_gps_vel_uav)};
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_fiducial_marker_pub{ORB_ID(vte_aid_fiducial_marker)};
-	uORB::Publication<estimator_aid_source3d_s> _vte_aid_uwb_pub{ORB_ID(vte_aid_uwb)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -137,7 +135,6 @@ private:
 		Uav_gps_vel,
 		Target_gps_vel,
 		Fiducial_marker,
-		Uwb,
 		Type_count
 	};
 
@@ -166,8 +163,7 @@ private:
 			uint8_t fuse_vision         : 1; ///< bit2: external vision-relative position ready to be fused
 			uint8_t fuse_mission_pos    : 1; ///< bit3: mission position ready to be fused
 			uint8_t fuse_target_gps_vel : 1; ///< bit4: target GPS velocity ready to be fused
-			uint8_t fuse_uwb            : 1; ///< bit5: UWB data ready to be fused
-			uint8_t reserved            : 2; ///< bits6..7: reserved for future use
+			uint8_t reserved            : 3; ///< bits5..7: reserved for future use
 		} flags;
 
 		uint8_t value{0};
@@ -177,7 +173,7 @@ private:
 
 	bool initEstimator(const matrix::Matrix <float, vtest::Axis::size, vtest::State::size>
 			   &state_init);
-	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned, const matrix::Quaternionf &q_att);
+	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc);
 
 	inline bool isMeasRecent(hrt_abstime ts) const
@@ -192,16 +188,14 @@ private:
 
 	inline bool hasNewNonGpsPositionSensorData(const ObsValidMaskU &fusion_mask) const
 	{
-		return fusion_mask.flags.fuse_vision
-		       || fusion_mask.flags.fuse_uwb;
+		return fusion_mask.flags.fuse_vision;
 	}
 
 	inline bool hasNewPositionSensorData(const ObsValidMaskU &fusion_mask) const
 	{
 		return fusion_mask.flags.fuse_mission_pos
 		       || fusion_mask.flags.fuse_target_gps_pos
-		       || fusion_mask.flags.fuse_vision
-		       || fusion_mask.flags.fuse_uwb;
+		       || fusion_mask.flags.fuse_vision;
 	}
 
 	inline bool isTimeDifferenceWithin(const hrt_abstime a, const hrt_abstime b, const uint32_t timeout_us) const
@@ -231,7 +225,7 @@ private:
 				   const TargetObs observations[kObsTypeCount], matrix::Vector3f &initial_position);
 	bool fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
 				    const TargetObs observations[kObsTypeCount]);
-	void processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
+	void processObservations(ObsValidMaskU &fusion_mask,
 				 TargetObs observations[kObsTypeCount]);
 
 	bool isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who = nullptr,
@@ -241,11 +235,6 @@ private:
 	void handleVisionData(ObsValidMaskU &fusion_mask, TargetObs &vision_obs);
 	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose) const;
 	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, TargetObs &obs);
-
-	/* UWB data */
-	void handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask, TargetObs &uwb_obs);
-	bool isUwbDataValid(const sensor_uwb_s &uwb_report) const;
-	bool processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report, TargetObs &obs) const;
 
 	/* UAV GPS data */
 	void handleUavGpsData(ObsValidMaskU &fusion_mask,
@@ -278,7 +267,6 @@ private:
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_pos_report_sub{ORB_ID(fiducial_marker_pos_report)};
 	uORB::Subscription _target_gnss_sub{ORB_ID(target_gnss)};
-	uORB::Subscription _sensor_uwb_sub{ORB_ID(sensor_uwb)};
 
 	perf_counter_t _vte_predict_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE prediction")};
 	perf_counter_t _vte_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE update")};
@@ -359,7 +347,6 @@ private:
 	bool  _ev_noise_md{false};
 	float _min_ev_pos_var{0.01f};
 	float _nis_threshold{3.84f};
-	float _min_uwb_pos_var{0.01f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_ACC_D_UNC>) _param_vte_acc_d_unc,
@@ -377,8 +364,7 @@ private:
 		(ParamInt<px4::params::VTE_EKF_AID>) _param_vte_ekf_aid,
 		(ParamFloat<px4::params::VTE_MOVING_T_MAX>) _param_vte_moving_t_max,
 		(ParamFloat<px4::params::VTE_MOVING_T_MIN>) _param_vte_moving_t_min,
-		(ParamFloat<px4::params::VTE_POS_NIS_THRE>) _param_vte_pos_nis_thre,
-		(ParamFloat<px4::params::VTE_UWB_P_NOISE>) _param_vte_uwb_p_noise
+		(ParamFloat<px4::params::VTE_POS_NIS_THRE>) _param_vte_pos_nis_thre
 	)
 };
 } // namespace vision_target_estimator
