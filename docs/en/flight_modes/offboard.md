@@ -278,41 +278,6 @@ The following MAVLink messages and their particular fields and field values are 
     - Attitude/orientation (`SET_ATTITUDE_TARGET.q`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
     - Body rate (`SET_ATTITUDE_TARGET` `.body_roll_rate` ,`.body_pitch_rate`, `.body_yaw_rate`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
 
-### Rover
-
-- [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
-  - The following input combinations are supported (in `type_mask`):
-    - Position setpoint (only `x`, `y`, `z`)
-      - Specify the _type_ of the setpoint in `type_mask`:
-
-        ::: info
-        The _setpoint type_ values below are not part of the MAVLink standard for the `type_mask` field.
-        :::
-
-        The values are:
-        - 12288: Loiter setpoint (vehicle stops when close enough to setpoint).
-
-    - Velocity setpoint (only `vx`, `vy`, `vz`)
-
-  - PX4 supports the coordinate frames (`coordinate_frame` field): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) and [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED).
-
-- [SET_POSITION_TARGET_GLOBAL_INT](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT)
-  - The following input combinations are supported (in `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
-    - Position setpoint (only `lat_int`, `lon_int`, `alt`)
-  - Specify the _type_ of the setpoint in `type_mask` (not part of the MAVLink standard).
-    The values are:
-    - Following bits not set then normal behaviour.
-    - 12288: Loiter setpoint (vehicle stops when close enough to setpoint).
-
-  - PX4 supports the coordinate frames (`coordinate_frame` field): [MAV_FRAME_GLOBAL](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL).
-
-- [SET_ATTITUDE_TARGET](https://mavlink.io/en/messages/common.html#SET_ATTITUDE_TARGET)
-  - The following input combinations are supported:
-    - Attitude/orientation (`SET_ATTITUDE_TARGET.q`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
-      ::: info
-      Only the yaw setting is actually used/extracted.
-      :::
-
 ## Offboard Parameters
 
 _Offboard mode_ is affected by the following parameters:
