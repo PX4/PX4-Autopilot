@@ -82,6 +82,16 @@ VTEPosition::~VTEPosition()
 	perf_free(_vte_update_perf);
 }
 
+bool VTEPosition::shouldEmitWarning(hrt_abstime &last_warn)
+{
+	if ((last_warn == 0) || (hrt_elapsed_time(&last_warn) > kWarnThrottleIntervalUs)) {
+		last_warn = hrt_absolute_time();
+		return true;
+	}
+
+	return false;
+}
+
 bool VTEPosition::init()
 {
 	// Check valid vtest_derivation/generated/state.h
@@ -392,14 +402,14 @@ void VTEPosition::handleUavGpsData(ObsValidMaskU &fusion_mask,
 	}
 }
 
-bool VTEPosition::isUavGpsPositionValid() const
+bool VTEPosition::isUavGpsPositionValid()
 {
 	if (!isMeasRecent(_uav_gps_position.timestamp)) {
 		return false;
 	}
 
 	if (!isLatLonAltValid(_uav_gps_position.lat_deg, _uav_gps_position.lon_deg,
-			      _uav_gps_position.alt_m, "UAV GPS ")) {
+			      _uav_gps_position.alt_m, "UAV GPS ", &_uav_gps_pos_warn_last)) {
 		return false;
 	}
 
@@ -411,14 +421,17 @@ bool VTEPosition::isUavGpsPositionValid() const
 	return true;
 }
 
-bool VTEPosition::isUavGpsVelocityValid() const
+bool VTEPosition::isUavGpsVelocityValid()
 {
 	if (!PX4_ISFINITE(_uav_gps_vel.xyz(vtest::Axis::x)) ||
 	    !PX4_ISFINITE(_uav_gps_vel.xyz(vtest::Axis::y)) ||
 	    !PX4_ISFINITE(_uav_gps_vel.xyz(vtest::Axis::z))) {
-		PX4_WARN(" Uav Gps velocity not finite! vx: %.1f, vy: %.1f, vz: %.1f",
-			 (double)_uav_gps_vel.xyz(vtest::Axis::x), (double)_uav_gps_vel.xyz(vtest::Axis::y),
-			 (double)_uav_gps_vel.xyz(vtest::Axis::z));
+		if (shouldEmitWarning(_uav_gps_vel_warn_last)) {
+			PX4_WARN("UAV GPS velocity not finite! vx: %.1f, vy: %.1f, vz: %.1f",
+				 (double)_uav_gps_vel.xyz(vtest::Axis::x), (double)_uav_gps_vel.xyz(vtest::Axis::y),
+				 (double)_uav_gps_vel.xyz(vtest::Axis::z));
+		}
+
 		return false;
 	}
 
@@ -511,32 +524,34 @@ void VTEPosition::updateTargetGpsVelocity(const target_gnss_s &target_gnss)
 }
 #endif // CONFIG_VTEST_MOVING
 
-bool VTEPosition::isTargetGpsPositionValid(const target_gnss_s &target_gnss) const
+bool VTEPosition::isTargetGpsPositionValid(const target_gnss_s &target_gnss)
 {
 	if (!isMeasRecent(target_gnss.timestamp)) {
 		return false;
 	}
 
 	if (!isLatLonAltValid(target_gnss.latitude_deg, target_gnss.longitude_deg,
-			      target_gnss.altitude_msl_m, "Target GPS ")) {
+			      target_gnss.altitude_msl_m, "Target GPS ", &_target_gps_pos_warn_last)) {
 		return false;
 	}
 
 	return true;
 }
 
-bool VTEPosition::isTargetGpsVelocityValid(const target_gnss_s &target_gnss) const
+bool VTEPosition::isTargetGpsVelocityValid(const target_gnss_s &target_gnss)
 {
 	if (!isMeasRecent(target_gnss.timestamp)) {
 		return false;
 	}
 
-	// Make sure measurement are valid
 	if (!target_gnss.vel_ned_updated ||
 	    !PX4_ISFINITE(target_gnss.vel_n_m_s) ||
 	    !PX4_ISFINITE(target_gnss.vel_e_m_s) ||
 	    !PX4_ISFINITE(target_gnss.vel_d_m_s)) {
-		PX4_WARN("Target GPS velocity is corrupt!");
+		if (shouldEmitWarning(_target_gps_vel_warn_last)) {
+			PX4_WARN("Target GPS velocity is corrupt!");
+		}
+
 		return false;
 	}
 
@@ -555,7 +570,10 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 			(_uav_gps_vel.valid && isMeasRecent(_uav_gps_vel.timestamp));
 
 	if (!has_initial_velocity_estimate) {
-		PX4_WARN("No UAV velocity estimate. Estimator cannot be started.");
+		if (shouldEmitWarning(_init_vel_warn_last)) {
+			PX4_WARN("No UAV velocity estimate. Estimator cannot be started.");
+		}
+
 		return false;
 	}
 
@@ -730,7 +748,7 @@ bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned
 }
 
 /*Vision observation: [rx, ry, rz]*/
-bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &report, TargetObs &obs) const
+bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &report, TargetObs &obs)
 {
 	// Rotate vision observation from body FRD to vc-NED
 	const matrix::Quaternionf quat_att(report.q);
@@ -758,7 +776,10 @@ bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &report, T
 
 	// Relative position
 	if (!PX4_ISFINITE(vision_ned(0)) || !PX4_ISFINITE(vision_ned(1)) || !PX4_ISFINITE(vision_ned(2))) {
-		PX4_WARN("VTE: Vision position NED is corrupt!");
+		if (shouldEmitWarning(_vision_pos_warn_last)) {
+			PX4_WARN("VTE: Vision position NED is corrupt!");
+		}
+
 		return false;
 	}
 
@@ -1380,14 +1401,16 @@ void VTEPosition::set_mission_position(const double lat_deg, const double lon_de
 		_mission_land_position.lon_deg = lon_deg;
 		_mission_land_position.alt_m = alt_m;
 		_mission_land_position.valid = isLatLonAltValid(_mission_land_position.lat_deg, _mission_land_position.lon_deg,
-					       _mission_land_position.alt_m, "Mission position ");
+					       _mission_land_position.alt_m, "Mission position ", &_mission_pos_warn_last);
 
 		if (_mission_land_position.valid) {
 			PX4_INFO("Mission position lat %.8f, lon %.8f [deg], alt %.1f [m]", lat_deg,
 				 lon_deg, (double)(alt_m));
 
 		} else {
-			PX4_WARN("Mission position not used because not valid");
+			if (shouldEmitWarning(_mission_pos_status_warn_last)) {
+				PX4_WARN("Mission position not used because not valid");
+			}
 		}
 
 	} else {
@@ -1465,11 +1488,12 @@ void VTEPosition::updateParams()
 #endif // CONFIG_VTEST_MOVING
 }
 
-bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who) const
+bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who,
+				   hrt_abstime *warn_last)
 {
 	// all finite
 	if (!PX4_ISFINITE(lat_deg) || !PX4_ISFINITE(lon_deg) || !PX4_ISFINITE(alt_m)) {
-		if (who) {
+		if (who && (!warn_last || shouldEmitWarning(*warn_last))) {
 			PX4_WARN("%s position not finite! lat: %.8f, lon: %.8f, alt: %.1f",
 				 who, lat_deg, lon_deg, (double)alt_m);
 		}
@@ -1479,7 +1503,7 @@ bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, 
 
 	// latitude/longitude within symmetric geographic ranges
 	if ((fabs(lat_deg) > kLatAbsMaxDeg) || (fabs(lon_deg) > kLonAbsMaxDeg)) {
-		if (who) {
+		if (who && (!warn_last || shouldEmitWarning(*warn_last))) {
 			PX4_WARN("%s lat/lon out of range! lat: %.8f, lon: %.8f", who, lat_deg, lon_deg);
 		}
 
@@ -1488,8 +1512,8 @@ bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, 
 
 	// (0,0) sentinel is considered invalid
 	if ((fabs(lat_deg) < DBL_EPSILON) && (fabs(lon_deg) < DBL_EPSILON)) {
-		if (who) {
-			PX4_WARN("%s position near (0,0) sentinel!", who);
+		if (who && (!warn_last || shouldEmitWarning(*warn_last))) {
+			PX4_WARN("%s position near (0,0)!", who);
 		}
 
 		return false;
@@ -1497,7 +1521,7 @@ bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, 
 
 	// altitude window
 	if ((alt_m < kAltMinM) || (alt_m > kAltMaxM)) {
-		if (who) {
+		if (who && (!warn_last || shouldEmitWarning(*warn_last))) {
 			PX4_WARN("%s altitude out of range! alt: %.1f [m] (limits: %.1f;%.1f)",
 				 who, (double)alt_m, (double)kAltMinM, (double)kAltMaxM);
 		}

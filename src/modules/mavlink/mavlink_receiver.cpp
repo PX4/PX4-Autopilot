@@ -116,6 +116,9 @@ MavlinkReceiver::MavlinkReceiver(Mavlink &parent) :
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
 {
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	_param_vte_en = param_find("VTE_EN");
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 }
 
 void
@@ -2963,7 +2966,18 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 
 	// Forward target to the vision target estimator (VTE) or precland based VTE_EN
 	int32_t vte_enabled = 0;
-	param_get(_param_vte_en, &vte_enabled);
+
+	if (_param_vte_en == PARAM_INVALID) {
+		if (hrt_elapsed_time(&_vte_en_invalid_warn_last) > 20_s) {
+			PX4_WARN(" Could not find VTE_EN, target_relative msg ignored.");
+			_vte_en_invalid_warn_last = hrt_absolute_time();
+		}
+
+		return;
+
+	} else {
+		param_get(_param_vte_en, &vte_enabled);
+	}
 
 	if (!vte_enabled) {
 

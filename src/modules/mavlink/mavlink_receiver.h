@@ -354,6 +354,7 @@ private:
 	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
 	uORB::Publication<target_gnss_s>		_target_gnss_pub{ORB_ID(target_gnss)};
 	param_t _param_vte_en{PARAM_INVALID};
+	hrt_abstime _vte_en_invalid_warn_last{0};
 # endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	// ORB publications (multi)
