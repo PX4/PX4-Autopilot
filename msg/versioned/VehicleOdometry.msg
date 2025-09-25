@@ -28,8 +28,8 @@ float32[3] position_variance    #
 float32[3] orientation_variance #
 float32[3] velocity_variance    # 
 
-uint8 reset_counter  # [-]
-int8 quality         #
+uint8 reset_counter  # [-] Reset counter. Counts reset events on attitude, velocity and position.
+int8 quality         # [-] [@invalid 0] Quality. Unused.
 
 # TOPICS vehicle_odometry vehicle_mocap_odometry vehicle_visual_odometry
 # TOPICS estimator_odometry
