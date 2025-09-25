@@ -5,13 +5,18 @@ on:
     branches:
       - 'main'
       - 'release/**'
+      - 'l10n_crowdin_docs_translations_*'
     paths:
       - 'docs/en/**'
+      - 'docs/uk/**'
+      - 'docs/zh/**'
   pull_request:
     branches:
       - '**'
     paths:
       - 'docs/en/**'
+      - 'docs/uk/**'
+      - 'docs/zh/**'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
