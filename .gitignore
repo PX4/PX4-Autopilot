@@ -109,3 +109,16 @@ src/systemcmds/topic_listener/listener_generated.cpp
 # colcon
 log/
 keys/
+
+# local data/artifacts
+user_processed/
+user_ulog/
+*.ulg
+*.parquet
+*.csv
+
+# toolchains/archives
+Tools/setup/*.tar.xz*
+
+# local gazebo scratch
+gazebo_classic
