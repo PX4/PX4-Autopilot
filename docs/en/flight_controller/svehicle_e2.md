@@ -1,16 +1,15 @@
-# Svehicle E2
+# S-Vehicle E2
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
 :::
 
-The _E2_ is an advanced autopilot manufactured by Svehicle<sup>&reg;</sup>.
+The _E2_ is an advanced autopilot manufactured by S-Vehicle<sup>&reg;</sup>.
 
-The autopilot is recommended for commercial system integration but is also suitable for academic research and any other applications.
+The autopilot is recommended for commercial system integration, but is also suitable for academic research and any other applications.
+It brings you ultimate performance, stability, and reliability in every aspect.
 
 ![SVehicle-E2](../../assets/flight_controller/svehicle_e2/main.png)
-
-The E2 brings you ultimate performance, stability, and reliability in every aspect.
 
 ::: info
 These flight controllers are [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -61,7 +60,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 ## Purchase Channels
 
-Order from [Svehicle](https://svehicle.cn/).
+Order from [S-Vehicle](https://svehicle.cn/).
 
 ## Serial Port Mapping
 
@@ -79,8 +78,9 @@ Order from [Svehicle](https://svehicle.cn/).
 ## PWM Output
 
 The E2-Plus flight controller supports up to 14 PWM outputs.
-First 8 outputs (labelled M1 to M8) are controlled by a dedicated STM32F103 IOMCU controller.
-The remaining 6 outputs (labelled 9 to 16) are the "auxiliary" outputs. These are directly attached to the STM32H753 FMU controller .
+The first 8 outputs (labelled M1 to M8) are controlled by a dedicated STM32F103 IOMCU controller.
+The remaining 6 outputs (labelled 9 to 16) are the "auxiliary" outputs.
+These are directly attached to the STM32H753 FMU controller .
 
 The 14 PWM outputs are:
 
@@ -98,7 +98,8 @@ The 6 FMU PWM outputs are in 2 groups:
 A1 - A4 are in one group.
 A5, A6 are in a 2nd group.
 
-Channels within the same group need to use the same output rate. If any channel in a group uses DShot then all channels in the group need to use DShot.
+Channels within the same group need to use the same output rate.
+If any channel in a group uses DShot then all channels in the group need to use DShot.
 
 ### Electrical data
 
@@ -112,7 +113,12 @@ Channels within the same group need to use the same output rate. If any channel 
 
 ## Battery Monitoring
 
-The board has connectors for 3 power monitors. The board is configure by default for a DroneCAN power monitor, and also has analog power monitor defaults configured which is enabled. The default PDB included with the E2+ is DroneCAN and must be connected to Power 2. If using a analog power monitor, battery voltage is on pin 6 and current on pin 9 and this should be connected to Power 1.
+The board has connectors for 3 power monitors.
+
+The board is configure by default for a DroneCAN power monitor, and also has analog power monitor defaults configured which is enabled.
+The default PDB included with the E2+ is DroneCAN and must be connected to `POWER2`.
+
+If using a analog power monitor, battery voltage is on pin 6 and current on pin 9 and this should be connected to `POWER1`.
 
 ## Building Firmware
 
@@ -123,7 +129,7 @@ It is pre-built and installed automatically by _QGroundControl_ when the appropr
 
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
-```
+```sh
 make svehicle_e2_default
 ```
 
@@ -131,19 +137,21 @@ make svehicle_e2_default
 
 The [PX4 System Console](../debug/system_console.md) and [SWD Interface](../debug/swd_debug.md) operate on the **FMU Debug** port.
 
-| Pin      | Signal           | Volt  |
-| -------- | ---------------- | ----- |
-| 1 (red)  | 5V+              | +5V   |
-| 2 (blk)  | DEBUG TX (OUT)   | +3.3V |
-| 3 (blk)  | DEBUG RX (IN)    | +3.3V |
-| 4 (blk)  | FMU_SWDIO        | +3.3V |
-| 5 (blk)  | FMU_SWCLK        | +3.3V |
-| 6 (blk)  | GND              | GND   |
+| Pin     | Signal         | Volt  |
+| ------- | -------------- | ----- |
+| 1 (red) | 5V+            | +5V   |
+| 2 (blk) | DEBUG TX (OUT) | +3.3V |
+| 3 (blk) | DEBUG RX (IN)  | +3.3V |
+| 4 (blk) | FMU_SWDIO      | +3.3V |
+| 5 (blk) | FMU_SWCLK      | +3.3V |
+| 6 (blk) | GND            | GND   |
 
 For information about using this port see:
 
 - [SWD Debug Port](../debug/swd_debug.md)
 - [PX4 System Console](../debug/system_console.md) (Note, the FMU console maps to USART3).
+
+## Pinouts
 
 ![SVehicle-E2 Top Down Photo](../../assets/flight_controller/svehicle_e2/top.png)
 
@@ -152,6 +160,8 @@ For information about using this port see:
 ![SVehicle-E2 left Photo](../../assets/flight_controller/svehicle_e2/left.png)
 
 ![SVehicle-E2 right Photo](../../assets/flight_controller/svehicle_e2/right.png)
+
 ## Supported Platforms / Airframes
 
-Any multirotor/airplane/rover or boat that can be controlled using normal RC servos or Futaba S-Bus servos. The complete set of supported configurations can be found in the [Airframe Reference](../airframes/airframe_reference.md).
+Any multirotor/airplane/rover or boat that can be controlled using normal RC servos or Futaba S-Bus servos.
+The complete set of supported configurations can be found in the [Airframe Reference](../airframes/airframe_reference.md).
