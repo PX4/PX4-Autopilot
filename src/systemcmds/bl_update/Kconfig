@@ -5,6 +5,13 @@ menuconfig SYSTEMCMDS_BL_UPDATE
 	---help---
 		Enable support for bl_update
 
+menuconfig BL_UPDATE_BL_ROMFS
+	bool "include bootloader in ROMFS"
+	default n
+	depends on SYSTEMCMDS_BL_UPDATE
+	---help---
+		Include bootloader in ROMFS
+
 menuconfig USER_BL_UPDATE
 	bool "bl_update running as userspace module"
 	default n
