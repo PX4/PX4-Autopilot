@@ -514,15 +514,15 @@ void EKF2::Run()
 
 				if (_ekf.setEkfGlobalOrigin(latitude, longitude, altitude)) {
 					// Validate the ekf origin status.
-					uint64_t origin_time {};
-					_ekf.getEkfGlobalOrigin(origin_time, latitude, longitude, altitude);
-					PX4_INFO("%d - New NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
-						 _instance, latitude, longitude, static_cast<double>(altitude));
+					PX4_INFO("%d - New NED origin (LLA): %3.10f, %3.10f, %4.3f", _instance,
+						 _ekf.global_origin().getProjectionReferenceLat(),
+						 _ekf.global_origin().getProjectionReferenceLon(),
+						 static_cast<double>(_ekf.getEkfGlobalOriginAltitude()));
 
 					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 				} else {
-					PX4_ERR("%d - Failed to set new NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
+					PX4_ERR("%d - Failed to set new NED origin (LLA): %3.10f, %3.10f, %4.3f",
 						_instance, latitude, longitude, static_cast<double>(altitude));
 
 					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
@@ -598,6 +598,29 @@ void EKF2::Run()
 				command_ack.timestamp = hrt_absolute_time();
 				_vehicle_command_ack_pub.publish(command_ack);
 			}
+		}
+
+	} else if (_multi_mode) {
+		estimator_selector_status_s ekf_selection;
+		vehicle_local_position_s lpos;
+
+		if (_estimator_selector_status_sub.update(&ekf_selection)
+		    && ekf_selection.primary_instance != _instance
+		    && _vehicle_local_position_sub.update(&lpos)
+		    && lpos.ref_timestamp > 0
+		    && PX4_ISFINITE(lpos.ref_lat) && PX4_ISFINITE(lpos.ref_lon) && PX4_ISFINITE(lpos.ref_alt)
+		    && (abs(lpos.ref_lat - _ekf.global_origin().getProjectionReferenceLat()) > 1e-9
+			|| abs(lpos.ref_lon - _ekf.global_origin().getProjectionReferenceLon()) > 1e-9
+			|| abs(lpos.ref_alt - _ekf.getEkfGlobalOriginAltitude()) > 1e-3f)) {
+
+			_ekf.setEkfGlobalOrigin(lpos.ref_lat, lpos.ref_lon, lpos.ref_alt);
+
+			// Validate the ekf origin status.
+			PX4_INFO("%d - New NED origin (LLA): %3.10f, %3.10f, %4.3f", _instance,
+				 _ekf.global_origin().getProjectionReferenceLat(),
+				 _ekf.global_origin().getProjectionReferenceLon(),
+				 static_cast<double>(_ekf.getEkfGlobalOriginAltitude()));
+
 		}
 	}
 
