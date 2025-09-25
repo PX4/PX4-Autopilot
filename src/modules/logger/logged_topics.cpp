@@ -171,12 +171,12 @@ void LoggedTopics::add_default_topics()
 	// EKF multi topics
 	{
 		// optionally log all estimator* topics at minimal rate
-		const uint16_t kEKFVerboseIntervalMilliseconds = 500; // 2 Hz
+		//const uint16_t kEKFVerboseIntervalMilliseconds = 500; // 2 Hz
 		const struct orb_metadata *const *topic_list = orb_get_topics();
 
 		for (size_t i = 0; i < orb_topics_count(); i++) {
 			if (strncmp(topic_list[i]->o_name, "estimator", 9) == 0) {
-				add_optional_topic_multi(topic_list[i]->o_name, kEKFVerboseIntervalMilliseconds);
+				add_topic_multi(topic_list[i]->o_name);
 			}
 		}
 	}
