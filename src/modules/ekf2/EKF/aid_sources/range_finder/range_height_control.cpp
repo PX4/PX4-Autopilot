@@ -56,6 +56,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		// no new sample available, check if we've timed out
 		bool had_sample = _range_time_last_good_sample > 0;
 		bool timed_out = imu_sample.time_us > _range_time_last_good_sample + 200'000;
+
 		if (had_sample && timed_out) {
 			stopRangeAltitudeFusion("sensor timed out");
 			stopRangeTerrainFusion("sensor timed out");
@@ -63,9 +64,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 		return;
 	}
-
-	// Set the raw sample
-	_range_sensor.setSample(sample);
 
 	// Quality checks
 	if (sample.quality == 0) {
@@ -83,7 +81,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		} else {
 			// While on ground fake a measurement at ground level if the signal quality is bad
 			sample.quality = 100;
-			sample.range = _range_sensor.getValidMinVal();
+			sample.range = sample.min_distance;
 			_range_time_last_good_sample = sample.time_us;
 		}
 
@@ -91,9 +89,9 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		_range_time_last_good_sample = sample.time_us;
 	}
 
-	// Tilt and range checks
-	bool tilt_ok = _range_sensor.isTiltOk();
-	bool range_ok = sample.range <= _range_sensor.getValidMaxVal() && sample.range >= _range_sensor.getValidMinVal();
+	float cos_theta = _R_to_earth(2, 2);
+	bool tilt_ok = cos_theta > _params.range_cos_max_tilt;
+	bool range_ok = sample.range <= sample.max_distance && sample.range >= sample.min_distance;
 
 	// If tilt or value are outside of bounds -- throw away measurement
 	if (!tilt_ok || !range_ok) {
@@ -105,19 +103,22 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	// TODO: refactor into apply_body_offset()
 	// Correct the range data for position offset relative to the IMU
 	const Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
-	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-	sample.range = sample.range + pos_offset_earth(2) / _R_to_earth(2, 2); // rotate into earth frame
 
-	// Provide sample from buffer to object
-	_range_sensor.setSample(sample);
+	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+
+	sample.range = sample.range + pos_offset_earth(2) / cos_theta; // rotate into earth frame
 
 	// TODO: refactor into consintency_filter_update() that runs consistency status
 	// Check kinematic consistency of rangefinder measurement w.r.t Altitude Estimate
 	_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
 
+	// rotate into world frame
+	float sample_corrected = sample.range * cos_theta;
+
 	const float z = _gpos.altitude();
 	const float vz = _state.vel(2);
-	const float dist = _range_sensor.getDistBottom(); // NOTE: applies rotation into world frame
+	const float dist = sample_corrected;
+
 	const float dist_var = 0.05;
 	const float z_var = P(State::pos.idx + 2, State::pos.idx + 2);
 	const float vz_var = P(State::vel.idx + 2, State::vel.idx + 2);
@@ -129,7 +130,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 	_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent();
 
 	// Publish EstimatorAidSource1d (observation, variance, rejected, fused)
-	updateRangeHagl(_aid_src_rng_hgt);
+	updateRangeHagl(_aid_src_rng_hgt, sample_corrected, sample.time_us);
 
 	if (!PX4_ISFINITE(_aid_src_rng_hgt.observation) || !PX4_ISFINITE(_aid_src_rng_hgt.observation_variance)) {
 		printf("INFINIFY OBSERVATION INVALID\n");
@@ -347,17 +348,17 @@ void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)
 	aid_src.time_last_fuse = _time_delayed_us;
 }
 
-void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
+void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src, float measurement, uint64_t time_us)
 {
-	const float measurement = math::max(_range_sensor.getDistBottom(), _params.ekf2_min_rng);
-	const float measurement_variance = getRngVar();
+	measurement = math::max(measurement, _params.ekf2_min_rng);
+	const float measurement_variance = sq(_params.ekf2_rng_noise) + sq(_params.ekf2_rng_sfe * measurement);
 
 	float innovation_variance;
 	sym::ComputeHaglInnovVar(P, measurement_variance, &innovation_variance);
 
 	const float innov_gate = math::max(_params.ekf2_rng_gate, 1.f);
 	updateAidSourceStatus(aid_src,
-			      _range_sensor.sample()->time_us, // sample timestamp
+			      time_us,                                   // sample timestamp
 			      measurement,                               // observation
 			      measurement_variance,                      // observation variance
 			      getHagl() - measurement,                   // innovation
@@ -371,13 +372,6 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 		aid_src.innovation = math::constrain(aid_src.innovation, -innov_limit, innov_limit);
 		aid_src.innovation_rejected = false;
 	}
-}
-
-float Ekf::getRngVar() const
-{
-	const float dist_dependant_var = sq(_params.ekf2_rng_sfe * _range_sensor.getDistBottom());
-	const float dist_var = sq(_params.ekf2_rng_noise) + dist_dependant_var;
-	return dist_var;
 }
 
 void Ekf::stopRangeAltitudeFusion(const char *reason)

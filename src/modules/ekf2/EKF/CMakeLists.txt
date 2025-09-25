@@ -126,7 +126,6 @@ if(CONFIG_EKF2_RANGE_FINDER)
 		aid_sources/range_finder/range_finder_consistency_check.cpp
 		aid_sources/range_finder/range_height_control.cpp
 		aid_sources/range_finder/range_height_fusion.cpp
-		aid_sources/range_finder/sensor_range_finder.cpp
 	)
 endif()
 

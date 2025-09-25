@@ -2402,11 +2402,10 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 				.time_us = optical_flow.timestamp_sample,
 				.range = optical_flow.distance_m,
 				.quality = quality,
+				.min_distance = optical_flow.min_ground_distance,
+				.max_distance = optical_flow.max_ground_distance,
 			};
 			_ekf.setRangeData(range_sample);
-
-			// set sensor limits
-			_ekf.set_rangefinder_limits(optical_flow.min_ground_distance, optical_flow.max_ground_distance);
 		}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -2577,11 +2576,11 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 				.time_us = distance_sensor.timestamp,
 				.range = distance_sensor.current_distance,
 				.quality = distance_sensor.signal_quality,
+				.min_distance = distance_sensor.min_distance,
+				.max_distance = distance_sensor.max_distance,
 			};
-			_ekf.setRangeData(range_sample);
 
-			// Save sensor limits reported by the rangefinder
-			_ekf.set_rangefinder_limits(distance_sensor.min_distance, distance_sensor.max_distance);
+			_ekf.setRangeData(range_sample);
 
 			_last_range_sensor_update = ekf2_timestamps.timestamp;
 		}

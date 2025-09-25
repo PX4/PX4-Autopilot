@@ -301,6 +301,10 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 		}
 	}
 
+	// TODO: better way to do this?
+	_range_min_distance = range_sample.min_distance;
+	_range_max_distance = range_sample.max_distance;
+
 	const int64_t time_us = range_sample.time_us
 				- static_cast<int64_t>(_params.ekf2_rng_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2

@@ -222,6 +222,14 @@ struct airspeedSample {
 	float       eas2tas{};          ///< equivalent to true airspeed factor
 };
 
+struct rangeSample {
+	uint64_t    time_us{};  // timestamp of the measurement (uSec)
+	float       range{};    // range (distance to ground) measurement (m)
+	int8_t      quality{};  // Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality.
+	float 		min_distance{};
+	float 		max_distance{};
+};
+
 struct flowSample {
 	uint64_t    time_us{};   ///< timestamp of the integration period midpoint (uSec)
 	Vector2f    flow_rate{}; ///< measured angular rate of the image about the X and Y body axes (rad/s), RH rotation is positive
@@ -423,6 +431,7 @@ struct parameters {
 	float ekf2_rng_a_hmax{5.0f};            ///< maximum height above ground for which we allow to use the range finder as height source (if rng_control == 1)
 	float ekf2_rng_a_vmax{1.0f};            ///< maximum ground velocity for which we allow to use the range finder as height source (if rng_control == 1)
 	float ekf2_rng_qlty_t{1.0f};            ///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
+	float range_cos_max_tilt{0.7071f};      ///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
 	float ekf2_rng_k_gate{1.0f};            ///< gate size used by the range finder kinematic consistency check
 	float ekf2_rng_fog{0.f};                ///< max distance which a blocked range sensor measures (fog, dirt) [m]
 

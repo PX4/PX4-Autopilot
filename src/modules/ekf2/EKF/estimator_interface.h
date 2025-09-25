@@ -68,7 +68,6 @@
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 # include "aid_sources/range_finder/range_finder_consistency_check.hpp"
-# include "aid_sources/range_finder/sensor_range_finder.hpp"
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_GNSS)
@@ -114,12 +113,6 @@ public:
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	void setRangeData(const estimator::rangeSample &range_sample);
-
-	// set sensor limitations reported by the rangefinder
-	void set_rangefinder_limits(float min_distance, float max_distance)
-	{
-		_range_sensor.setLimits(min_distance, max_distance);
-	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
 
@@ -380,7 +373,10 @@ protected:
 	uint64_t _time_rng_aid_conditions_valid{};
 	uint64_t _range_time_last_good_sample{};
 
-	SensorRangeFinder _range_sensor{};
+	// TODO: find a better way to store these?
+	float _range_min_distance{};
+	float _range_max_distance{};
+
 	RangeFinderConsistencyCheck _rng_consistency_check{};
 #endif // CONFIG_EKF2_RANGE_FINDER
 

@@ -343,10 +343,10 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// Calculate range finder limits
-	const float rangefinder_hagl_min = _range_sensor.getValidMinVal();
+	const float rangefinder_hagl_min = _range_min_distance;
 
 	// Allow use of 90% of rangefinder maximum range to allow for angular motion
-	const float rangefinder_hagl_max = 0.9f * _range_sensor.getValidMaxVal();
+	const float rangefinder_hagl_max = 0.9f * _range_max_distance;
 
 	// TODO : calculate visual odometry limits
 	const bool relying_on_rangefinder = isOnlyActiveSourceOfVerticalPositionAiding(_control_status.flags.rng_hgt);
