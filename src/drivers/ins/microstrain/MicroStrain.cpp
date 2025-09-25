@@ -112,19 +112,15 @@ MicroStrain::MicroStrain(const char *uart_port) :
 		  (double)_param_ms_sensor_pitch.get(),
 		  (double)_param_ms_sensor_yaw.get());
 
-	rotation_gnss.euler[0] = _param_ms_gnss_roll.get();
-	rotation_gnss.euler[1] = _param_ms_gnss_pitch.get();
-	rotation_gnss.euler[2] = _param_ms_gnss_yaw.get();
-	PX4_DEBUG("GNSS Roll/Pitch/Yaw: %f/%f/%f", (double)_param_ms_gnss_roll.get(),
-		  (double)_param_ms_gnss_pitch.get(),
-		  (double)_param_ms_gnss_yaw.get());
-
 	rotation_ext_mag.euler[0] = _param_ms_emag_roll.get();
 	rotation_ext_mag.euler[1] = _param_ms_emag_pitch.get();
 	rotation_ext_mag.euler[2] = _param_ms_emag_yaw.get();
 	PX4_DEBUG("External magnetometer Roll/Pitch/Yaw: %f/%f/%f", (double)_param_ms_emag_roll.get(),
 		  (double)_param_ms_emag_pitch.get(),
 		  (double)_param_ms_emag_yaw.get());
+
+	rotation_ext_heading.euler[2] = _param_ms_ehead_yaw.get();
+	PX4_DEBUG("External heading yaw: %f", (double)_param_ms_ehead_yaw.get());
 
 	ext_mag_uncert = _param_ms_emag_uncert.get();
 	opt_flow_uncert = _param_ms_oflow_uncert.get();
@@ -141,7 +137,6 @@ MicroStrain::MicroStrain(const char *uart_port) :
 	_estimator_status_pub.advertise();
 	_sensor_gps_pub[0].advertise();
 	_sensor_gps_pub[1].advertise();
-
 }
 
 MicroStrain::~MicroStrain()
@@ -564,7 +559,6 @@ mip_cmd_result MicroStrain::configureImuMessageFormat()
 				 imu_descriptors);
 
 	return res;
-
 }
 
 mip_cmd_result MicroStrain::configureFilterMessageFormat()
@@ -733,107 +727,78 @@ mip_cmd_result MicroStrain::configureGnssMessageFormat(uint8_t descriptor_set)
 				 gnss_descriptors);
 
 	return res;
-
 }
 
 mip_cmd_result MicroStrain::configureAidingMeasurement(uint16_t aiding_source, bool enable)
 {
-	mip_cmd_result res;
-
-	// Configures the aiding measurement if the device support it
-	if (supportsDescriptor(MIP_FILTER_CMD_DESC_SET, MIP_CMD_DESC_FILTER_AIDING_MEASUREMENT_ENABLE)) {
-		res = mip_filter_write_aiding_measurement_enable(&_device, aiding_source, enable);
-
-		// If the device doesnt support the aiding source but the command is to disable it, we consider it a success
-		if (res == MIP_NACK_INVALID_PARAM && !enable) {
-			res = MIP_ACK_OK;
-		}
-
-	} else {
+	// If the device doesn’t support aiding measurements
+	if (!supportsDescriptor(MIP_FILTER_CMD_DESC_SET, MIP_CMD_DESC_FILTER_AIDING_MEASUREMENT_ENABLE)) {
 		PX4_WARN("Aiding measurements are not supported");
 
-		// If the command was to disable, we consider it a success
-		if (!enable) {
-			res = MIP_ACK_OK;
+		// disabling is always OK
+		return enable ? MIP_PX4_ERROR : MIP_ACK_OK;
+	}
 
-		} else {
-			res = MIP_PX4_ERROR;
+	// Try to configure aiding measurement
+	mip_cmd_result res = mip_filter_write_aiding_measurement_enable(&_device, aiding_source, enable);
+
+	// If the device doesnt support the aiding source but the command is to disable it, we consider it a success
+	if (res == MIP_NACK_INVALID_PARAM && !enable) {
+		return MIP_ACK_OK;
+	}
+
+	return res;
+}
+
+mip_cmd_result MicroStrain::enableAidingSource(uint16_t source,
+		bool enabled,
+		uint8_t frame_id,
+		uint8_t frame_format,
+		const float offset[3],
+		mip_aiding_frame_config_command_rotation rotation,
+		uint16_t aiding_cmd_desc,
+		bool &aiding_flag,
+		const char *name)
+{
+	mip_cmd_result res = configureAidingMeasurement(source, enabled);
+
+	if (!mip_cmd_result_is_ack(res)) {
+		PX4_ERR("Could not configure %s aiding", name);
+		return res;
+	}
+
+	// Frame 0 is used to handle the internal aiding scenario
+	if (frame_id == 0) {
+		return res;
+	}
+
+	// True if the aiding message supported & requested
+	aiding_flag = supportsDescriptor(MIP_AIDING_CMD_DESC_SET, aiding_cmd_desc) && enabled;
+
+	// Error if requested but unsupported.
+	if (enabled && !aiding_flag) {
+		PX4_ERR("Sending %s aiding messages not supported", name);
+		return MIP_PX4_ERROR;
+	}
+
+	// Write the frame config if enabled
+	if (aiding_flag) {
+		res = mip_aiding_write_frame_config(&_device, frame_id, frame_format, false, offset, &rotation);
+
+		if (!mip_cmd_result_is_ack(res)) {
+			PX4_ERR("Could not write %s frame config", name);
+			return res;
 		}
 	}
 
 	return res;
 }
 
-mip_cmd_result MicroStrain::configureAidingSources()
+mip_cmd_result MicroStrain::configureGnssAiding()
 {
-	PX4_DEBUG("Configuring aiding sources");
-	mip_cmd_result res;
-
-	// Selectively turn on internal magnetometer as an aiding source
-	if (!mip_cmd_result_is_ack(res = configureAidingMeasurement(
-			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_MAGNETOMETER,
-			_param_ms_int_mag_en.get()))) {
-		PX4_ERR("Could not configure internal magnetometer aiding");
-		return res;
-	}
-
-	// Selectively turn on external magnetometer as an aiding source
-	if (!mip_cmd_result_is_ack(res = configureAidingMeasurement(
-			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_EXTERNAL_MAGNETOMETER,
-			_param_ms_ext_mag_en.get()))) {
-		PX4_ERR("Could not configure external magnetometer aiding");
-		return res;
-
-	} else {
-		_ext_mag_aiding = supportsDescriptor(MIP_AIDING_CMD_DESC_SET, MIP_CMD_DESC_AIDING_MAGNETIC_FIELD)
-				  && _param_ms_ext_mag_en.get();
-
-		if (!_ext_mag_aiding && _param_ms_ext_mag_en.get()) {
-			PX4_ERR("Sending external mag aiding messages is not supported");
-			return MIP_PX4_ERROR;
-		}
-
-		if (_ext_mag_aiding) {
-			if (!mip_cmd_result_is_ack(res = mip_aiding_write_frame_config(&_device, 2,
-							 MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER, false,
-							 ext_mag_offset, &rotation_ext_mag))) {
-				PX4_ERR("Could not write aiding frame config");
-				return res;
-			}
-		}
-
-	}
-
-	// Selectively turn on body frame velocity as an aiding source
-	if (!mip_cmd_result_is_ack(res = configureAidingMeasurement(
-			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_VEHICLE_FRAME_VEL,
-			_param_ms_ext_opt_flow_en.get()))) {
-		PX4_ERR("Could not configure external optical flow aiding");
-		return res;
-
-	} else {
-		_ext_optical_flow_aiding = supportsDescriptor(MIP_AIDING_CMD_DESC_SET, MIP_CMD_DESC_AIDING_VEL_ODOM)
-					   && _param_ms_ext_opt_flow_en.get();
-
-		if (!_ext_optical_flow_aiding && _param_ms_ext_opt_flow_en.get()) {
-			PX4_ERR("Sending external optical flow aiding messages is not supported");
-			return MIP_PX4_ERROR;
-		}
-
-		if (_ext_optical_flow_aiding) {
-			if (!mip_cmd_result_is_ack(res = mip_aiding_write_frame_config(&_device, 3,
-							 MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER, false,
-							 optical_flow_offset, &rotation_oflow))) {
-				PX4_ERR("Could not write aiding frame config");
-				return res;
-			}
-		}
-
-	}
-
 	// Enables GNSS Position & Velocity as an aiding measurement
-	res = configureAidingMeasurement(MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_GNSS_POS_VEL,
-					 true);
+	mip_cmd_result res = configureAidingMeasurement(MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_GNSS_POS_VEL,
+			     true);
 
 	if (!mip_cmd_result_is_ack(res)) {
 		if (res != MIP_NACK_INVALID_PARAM && res != MIP_PX4_ERROR) {
@@ -841,10 +806,13 @@ mip_cmd_result MicroStrain::configureAidingSources()
 			return res;
 
 		} else {
+			// AR and AHRS edge case
 			PX4_WARN("Could not enable GNSS Position & Velocity aiding");
+			return MIP_ACK_OK;
 		}
+	}
 
-	} else {
+	else {
 		// Check to see if sending GNSS position and velocity as an aiding measurement is supported
 		bool pos_aiding = supportsDescriptor(MIP_AIDING_CMD_DESC_SET, MIP_CMD_DESC_AIDING_POS_LLH);
 		bool vel_aiding = supportsDescriptor(MIP_AIDING_CMD_DESC_SET, MIP_CMD_DESC_AIDING_VEL_NED);
@@ -854,26 +822,6 @@ mip_cmd_result MicroStrain::configureAidingSources()
 			PX4_ERR("Sending GNSS pos/vel aiding messages is not supported");
 			return MIP_PX4_ERROR;
 		}
-
-	}
-
-	// Selectively turn on external heading as an aiding measurement
-	if (!mip_cmd_result_is_ack(res = configureAidingMeasurement(
-			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_GNSS_HEADING,
-			_param_ms_ext_heading_en.get()))) {
-		PX4_ERR("Could not configure external heading aiding");
-		return res;
-
-	} else {
-		// Check to see if sending external heading as an aiding measurement is supported
-		_ext_heading_aiding = supportsDescriptor(MIP_AIDING_CMD_DESC_SET, MIP_CMD_DESC_AIDING_HEADING_TRUE)
-				      && _param_ms_ext_heading_en.get();
-
-		if (!_ext_heading_aiding && _param_ms_ext_heading_en.get()) {
-			PX4_ERR("Sending external heading aiding messages is not supported");
-			return MIP_PX4_ERROR;
-		}
-
 	}
 
 	// Prioritizing setting up multi antenna offsets if it is supported
@@ -882,28 +830,25 @@ mip_cmd_result MicroStrain::configureAidingSources()
 		mip_cmd_result res2 = mip_filter_write_multi_antenna_offset(&_device, 2, gnss_antenna_offset2);
 
 		if (!mip_cmd_result_is_ack(res1)) {
-			PX4_ERR("Could not write multi antenna offsets");
+			PX4_ERR("Could not write multi antenna (1) offsets");
 			return res1;
-
 		}
 
 		else if (!mip_cmd_result_is_ack(res2)) {
-			PX4_ERR("Could not write multi antenna offsets");
+			PX4_ERR("Could not write multi antenna (2) offsets");
 			return res2;
-
 		}
 
 		if (supportsDescriptor(MIP_FILTER_CMD_DESC_SET, MIP_CMD_DESC_FILTER_GNSS_SOURCE_CONTROL)) {
 			if (!mip_cmd_result_is_ack(res = mip_filter_write_gnss_source(&_device, (uint8_t)_param_ms_gnss_aid_src_ctrl.get()))) {
 				PX4_ERR("Could not write the gnss aiding source");
 				return res;
-
 			}
 
 			_ext_pos_vel_aiding = (_param_ms_gnss_aid_src_ctrl.get() == MIP_FILTER_GNSS_SOURCE_COMMAND_SOURCE_EXT);
+		}
 
-
-		} else {
+		else {
 			PX4_ERR("Does not support GNSS source control");
 			return MIP_PX4_ERROR;
 		}
@@ -915,7 +860,6 @@ mip_cmd_result MicroStrain::configureAidingSources()
 			PX4_ERR("Could not configure dual antenna heading aiding");
 			return res;
 		}
-
 	}
 
 	// Otherwise sets up the aiding frame
@@ -931,6 +875,61 @@ mip_cmd_result MicroStrain::configureAidingSources()
 	else {
 		PX4_WARN("Aiding frames are not supported");
 	}
+
+	return res;
+}
+
+mip_cmd_result MicroStrain::configureAidingSources()
+{
+	PX4_DEBUG("Configuring aiding sources");
+	mip_cmd_result res;
+
+	// Selectively turn on internal magnetometer as an aiding source
+	if (!mip_cmd_result_is_ack(res = enableAidingSource(
+			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_MAGNETOMETER,
+			_param_ms_int_mag_en.get(),
+			0, 0, nullptr, mip_aiding_frame_config_command_rotation{0},
+			0, _ext_mag_aiding, "internal magnetometer"))) {
+		return res;
+	}
+
+	// Selectively turn on external magnetometer as an aiding source
+	if (!mip_cmd_result_is_ack(res = enableAidingSource(
+			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_EXTERNAL_MAGNETOMETER,
+			_param_ms_ext_mag_en.get(),
+			2, MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER,
+			ext_mag_offset, rotation_ext_mag,
+			MIP_CMD_DESC_AIDING_MAGNETIC_FIELD,
+			_ext_mag_aiding,
+			"external magnetometer"))) {
+		return res;
+	}
+
+	// Selectively turn on body frame velocity as an aiding source
+	if (!mip_cmd_result_is_ack(res = enableAidingSource(
+			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_VEHICLE_FRAME_VEL,
+			_param_ms_ext_opt_flow_en.get(),
+			3, MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER,
+			optical_flow_offset, rotation_oflow,
+			MIP_CMD_DESC_AIDING_VEL_ODOM,
+			_ext_optical_flow_aiding,
+			"optical flow"))) {
+		return res;
+	}
+
+	// Selectively turn on external heading as an aiding source
+	if (!mip_cmd_result(res = enableAidingSource(MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_GNSS_HEADING,
+				  _param_ms_ext_heading_en.get(),
+				  4, MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER,
+				  ext_heading_offset, rotation_ext_heading,
+				  MIP_CMD_DESC_AIDING_HEADING_TRUE,
+				  _ext_heading_aiding,
+				  "external heading"))) {
+		return res;
+	}
+
+	// Configures GNSS Aiding
+	res = configureGnssAiding();
 
 	return res;
 }
@@ -1132,29 +1131,23 @@ void MicroStrain::sensorCallback(void *user, const mip_packet *packet, mip::Time
 			accel.updated = true;
 			break;
 
-
 		case MIP_DATA_DESC_SENSOR_GYRO_SCALED:
 			extract_mip_sensor_scaled_gyro_data_from_field(&field, &gyro.sample);
 			gyro.updated = true;
 			break;
-
 
 		case MIP_DATA_DESC_SENSOR_MAG_SCALED:
 			extract_mip_sensor_scaled_mag_data_from_field(&field, &mag.sample);
 			mag.updated = true;
 			break;
 
-
 		case MIP_DATA_DESC_SENSOR_PRESSURE_SCALED:
 			extract_mip_sensor_scaled_pressure_data_from_field(&field, &baro.sample);
 			baro.updated = true;
 			break;
 
-
 		default:
 			break;
-
-
 		}
 	}
 
@@ -1163,7 +1156,6 @@ void MicroStrain::sensorCallback(void *user, const mip_packet *packet, mip::Time
 		ref->_px4_accel.update(t, accel.sample.scaled_accel[0]*CONSTANTS_ONE_G,
 				       accel.sample.scaled_accel[1]*CONSTANTS_ONE_G,
 				       accel.sample.scaled_accel[2]*CONSTANTS_ONE_G);
-
 	}
 
 	if (gyro.updated) {
@@ -1791,9 +1783,7 @@ void MicroStrain::sendMagAiding()
 	t.reserved = 0x00;
 	t.nanoseconds = 0;
 
-	//Better name, make param?
 	float uncert[3] = {ext_mag_uncert, ext_mag_uncert, ext_mag_uncert};
-	//PX4_INFO("%f/%f/%f", (double)mag.magnetometer_ga[0], (double)mag.magnetometer_ga[1], (double)mag.magnetometer_ga[2]);
 
 	mip_aiding_magnetic_field(&_device, &t, 2, mag.magnetometer_ga, uncert,
 				  MIP_AIDING_MAGNETIC_FIELD_COMMAND_VALID_FLAGS_ALL);
@@ -1812,7 +1802,6 @@ void MicroStrain::sendOpticalFlowAiding()
 	t.reserved = 0x00;
 	t.nanoseconds = 0;
 
-	//Better name, make param?
 	float vel[3] = {ofv.vel_body[0], ofv.vel_body[1], 0};
 	float uncert[3] = {opt_flow_uncert, opt_flow_uncert, 0.0};
 
@@ -1844,7 +1833,6 @@ bool MicroStrain::init()
 
 void MicroStrain::Run()
 {
-
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();

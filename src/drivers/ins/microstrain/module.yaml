@@ -4,7 +4,7 @@ serial_config:
     - command: sleep 1; microstrain start -d ${SERIAL_DEV}
       port_config_param:
         name: SENS_MS_CFG
-        group: Sensorss
+        group: Sensors
 
 parameters:
     - group: Sensors
@@ -12,460 +12,398 @@ parameters:
 
         MS_MODE:
             description:
-                short: Toggles using the device as the primary EKF
+                short: MicroStrain device mode
                 long: |
-                    Setting to 1 will publish data from the device to the vehicle topics (global_position, attitude, local_position, odometry), estimator_status and sensor_selection
-                    Setting to 0 will publish data from the device to the external_ins topics (global position, attitude, local position)
-                    Restart Required
-
-                    This parameter is specific to the MicroStrain driver.
-            type: int32
-            default: 1
+                    Sensor mode publishes raw IMU data to be used by EKF2. INS data from the device is published to the external INS topics.
+                    INS mode publishes the INS data to the vehicle topics to be used for navigation.
+            type: enum
+            values:
+                0: Sensor Mode
+                1: INS Mode
+            reboot_required: true
+            default: 0
 
         MS_IMU_RATE_HZ:
             description:
-                short: IMU Data Rate
+                short: MicroStrain IMU data rate
                 long: |
-                    IMU (Accelerometer and Gyroscope) data rate
-                    The INS driver will be scheduled at a rate 2*MS_IMU_RATE_HZ
-                    Max Limit: 1000
-                    0 - Disable IMU datastream
-                    The max limit should be divisible by the rate
-                    eg: 1000 % MS_IMU_RATE_HZ = 0
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    Accelerometer and Gyroscope data rate (Hz).
+                    Valid rates: 0 or any factor of 1000.
             type: int32
+            max: 1000
+            min: 0
+            reboot_required: true
             default: 500
 
         MS_MAG_RATE_HZ:
             description:
-                short: Magnetometer Data Rate
+                short: MicroStrain magnetometer data rate
                 long: |
-                    Magnetometer data rate
-                    Max Limit: 1000
-                    0 - Disable magnetometer datastream
-                    The max limit should be divisible by the rate
-                    eg: 1000 % MS_MAG_RATE_HZ = 0
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    Magnetometer data rate (Hz).
+                    Valid rates: 0 or any factor of 1000.
             type: int32
+            max: 1000
+            min: 0
+            reboot_required: true
             default: 50
 
         MS_BARO_RATE_HZ:
             description:
-                short: Barometer data rate
+                short: MicroStrain barometer data rate
                 long: |
-                    Barometer data rate
-                    Max Limit: 1000
-                    0 - Disable barometer datastream
-                    The max limit should be divisible by the rate
-                    eg: 1000 % MS_BARO_RATE_HZ = 0
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    Barometer data rate (Hz).
+                    Valid rates: 0 or any factor of 1000.
             type: int32
+            max: 1000
+            min: 0
+            reboot_required: true
             default: 50
 
         MS_FILT_RATE_HZ:
             description:
-                short: EKF data Rate
+                short: MicroStrain EKF data rate
                 long: |
-                    EKF data rate
-                    Max Limit: 1000
-                    0 - Disable EKF datastream
-                    The max limit should be divisible by the rate
-                    eg: 1000 % MS_FILT_RATE_HZ = 0
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    The rate at which the INS data is published (Hz).
+                    Valid rates: 0 or any factor of 1000.
             type: int32
+            max: 1000
+            min: 0
+            reboot_required: true
             default: 250
 
         MS_GNSS_RATE_HZ:
             description:
-                short: GNSS data Rate
+                short: MicroStrain GNSS data rate
                 long: |
-                    GNSS receiver 1 and 2 data rate
-                    Max Limit: 5
-                    The max limit should be divisible by the rate
-                    0 - Disable GNSS datastream
-                    eg: 5 % MS_GNSS_RATE_HZ = 0
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    GNSS receiver 1 and 2 data rate (Hz).
+                    Valid rates: 0, 1 or 5.
             type: int32
+            max: 5
+            min: 0
+            reboot_required: true
             default: 5
 
         MS_ALIGNMENT:
             description:
-                short: Alignment type
+                short: MicroStrain heading alignment type
                 long: |
-                    Select the source of heading alignment
-                    This is a bitfield, you can use more than 1 source
-                    Bit 0 - Dual-antenna GNSS
-                    Bit 1 - GNSS kinematic (requires motion, e.g. a GNSS velocity)
-                    Bit 2 - Magnetometer
-                    Bit 3 - External Heading (first valid external heading will be used to initialize the filter)
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
-            type: int32
+                    Select the source of heading alignment.
+            type: bitmask
+            bit:
+                0: Dual-antenna GNSS
+                1: GNSS kinematic (requires motion, e.g. a GNSS velocity)
+                2: Magnetometer
+                3: External Heading (first valid external heading will be used to initialize the filter)
+            max: 15
+            min: 1
+            reboot_required: true
             default: 2
 
         MS_GNSS_AID_SRC:
             description:
-                short: GNSS aiding source control
+                short: MicroStrain GNSS aiding source control
                 long: |
-                    Select the source of gnss aiding (GNSS/INS)
-                    1 = All internal receivers,
-                    2 = External GNSS messages,
-                    3 = GNSS receiver 1 only
-                    4 = GNSS receiver 2 only
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
-            type: int32
+                    Select the source of gnss aiding (GNSS/INS).
+            type: enum
+            values:
+                1: All internal receivers
+                2: External GNSS messages
+                3: GNSS receiver 1 only
+                4: GNSS receiver 2 only
+            reboot_required: true
             default: 1
 
         MS_INT_MAG_EN:
             description:
-                short: Toggles internal magnetometer aiding in the device filter
+                short: Enable MicroStrain internal magnetometer
                 long: |
-                    0 = Disabled,
-                    1 = Enabled
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
-            type: int32
+                    Toggles internal magnetometer aiding in the device filter.
+            type: enum
+            values:
+                0: Disabled
+                1: Enabled
+            reboot_required: true
             default: 0
 
         MS_EXT_MAG_EN:
             description:
-                short: Toggles external magnetometer aiding in the device filter
+                short: Enable MicroStrain external magnetometer aiding
                 long: |
-                    0 = Disabled,
-                    1 = Enabled
-                    Restart required
-            type: int32
+                    Toggles external magnetometer aiding in the device filter.
+            type: enum
+            values:
+                0: Disabled
+                1: Enabled
+            reboot_required: true
             default: 0
 
         MS_INT_HEAD_EN:
             description:
-                short: Toggles internal heading as an aiding measurement
+                short: Enable MicroStrain internal heading aiding
                 long: |
-                    0 = Disabled,
-                    1 = Enabled
+                    Toggles internal heading as an aiding measurement.
                     If dual antennas are supported (CV7-GNSS/INS). The filter will be configured to use dual antenna heading as an aiding measurement.
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
-            type: int32
+            type: enum
+            values:
+                0: Disabled
+                1: Enabled
+            reboot_required: true
             default: 0
 
         MS_EXT_HEAD_EN:
             description:
-                short: Toggles external heading as an aiding measurement
+                short: Enable MicroStrain external heading aiding
                 long: |
-                    0 = Disabled,
-                    1 = Enabled
+                    Toggles external heading as an aiding measurement.
                     If enabled, the filter will be configured to accept external heading as an aiding meaurement.
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
-            type: int32
+            type: enum
+            values:
+                0: Disabled
+                1: Enabled
+            reboot_required: true
             default: 0
 
         MS_OPT_FLOW_EN:
             description:
-                short: Toggles optical flow aiding in the device filter
+                short: Enable MicroStrain optical flow aiding
                 long: |
-                    0 = Disabled,
-                    1 = Enabled
-                    Restart required
-            type: int32
+                    Toggles body frame velocity as an aiding measurement.
+                    The driver uses the body frame velocity from the optical flow sensor as the aiding measurements.
+            type: enum
+            values:
+                0: Disabled
+                1: Enabled
+            reboot_required: true
             default: 0
 
         MS_SVT_EN:
             description:
-                short: Enables sensor to vehicle transform
+                short: Enables Microstrain sensor to vehicle transform
                 long: |
-                    0 = Disabled,
-                    1 = Enabled
                     If the sensor has a different orientation with respect to the vehicle. This will enable a transform to correct itself.
-                    The transform is described by MS_SENSOR_ROLL, MS_SENSOR_PITCH, MS_SENSOR_YAW
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
-            type: int32
+                    The transform is described by MS_SENSOR_ROLL, MS_SENSOR_PITCH, MS_SENSOR_YAW.
+            type: enum
+            values:
+                0: Disabled
+                1: Enabled
+            reboot_required: true
             default: 0
 
         MS_ACCEL_RANGE:
             description:
-                short: Sets the range of the accelerometer
+                short: MicroStrain accelerometer range
                 long: |
-                    -1 = Will not be configured, and will use the device default range,
-                    Each adjustable range has a corresponding integer setting. Refer to the device's User Manual to check the available adjustment ranges.
-                    https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    -1 = Will not be configured, and will use the device default range.
+                    Ranges vary by device and map to integer codes. Check the device's [User Manual](https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com) for supported ranges and set the corresponding integer.
             type: int32
+            reboot_required: true
             default: -1
 
         MS_GYRO_RANGE:
             description:
-                short: Sets the range of the gyro
+                short: MicroStrain gyroscope range
                 long: |
-                    -1 = Will not be configured, and will use the device default range,
-                    Each adjustable range has a corresponding integer setting. Refer to the device's User Manual to check the available adjustment ranges.
-                    https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    -1 = Will not be configured, and will use the device default range.
+                    Ranges vary by device and map to integer codes. Check the device's [User Manual](https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com) for supported ranges and set the corresponding integer.
             type: int32
+            reboot_required: true
             default: -1
 
         MS_GNSS_OFF1_X:
             description:
-                short: GNSS lever arm offset 1 (X)
+                short: MicroStrain GNSS lever arm offset 1 (X)
                 long: |
-                    Lever arm offset (m) in the X direction for the external GNSS receiver
-                    In the case of a dual antenna setup, this is antenna 1
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    Lever arm offset (m) in the X direction for the external GNSS receiver.
+                    In the case of a dual antenna setup, this is antenna 1.
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_GNSS_OFF1_Y:
             description:
-                short: GNSS lever arm offset 1 (Y)
+                short: MicroStrain GNSS lever arm offset 1 (Y)
                 long: |
-                    Lever arm offset (m) in the Y direction for the external GNSS receiver
-                    In the case of a dual antenna setup, this is antenna 1
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    Lever arm offset (m) in the Y direction for the external GNSS receiver.
+                    In the case of a dual antenna setup, this is antenna 1.
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_GNSS_OFF1_Z:
             description:
-                short: GNSS lever arm offset 1 (Z)
+                short: MicroStrain GNSS lever arm offset 1 (Z)
                 long: |
-                    Lever arm offset (m) in the Z direction for the external GNSS receiver
-                    In the case of a dual antenna setup, this is antenna 1
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    Lever arm offset (m) in the Z direction for the external GNSS receiver.
+                    In the case of a dual antenna setup, this is antenna 1.
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_GNSS_OFF2_X:
             description:
-                short: GNSS lever arm offset 2 (X)
+                short: MicroStrain GNSS lever arm offset 2 (X)
                 long: |
                     Lever arm offset (m) in the X direction for antenna 2
-                    This will only be used if the device supports a dual antenna setup
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    This will only be used if the device supports a dual antenna setup.
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_GNSS_OFF2_Y:
             description:
-                short: GNSS lever arm offset 2 (Y)
+                short: MicroStrain GNSS lever arm offset 2 (Y)
                 long: |
-                    Lever arm offset (m) in the Y direction for antenna 2
-                    This will only be used if the device supports a dual antenna setup
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    Lever arm offset (m) in the Y direction for antenna 2.
+                    This will only be used if the device supports a dual antenna setup.
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_GNSS_OFF2_Z:
             description:
-                short: GNSS lever arm offset 2 (Z)
+                short: MicroStrain GNSS lever arm offset 2 (Z)
                 long: |
-                    Lever arm offset (m) in the X direction for antenna 2
-                    This will only be used if the device supports a dual antenna setup
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    Lever arm offset (m) in the X direction for antenna 2.
+                    This will only be used if the device supports a dual antenna setup.
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_SENSOR_ROLL:
             description:
-                short: Sensor to Vehicle Transform (Roll)
+                short: MicroStrain Sensor to vehicle transform (Roll)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the x axis
-                    Requires MS_SVT_EN to be enabled to be used
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    The orientation of the device (Radians) with respect to the vehicle frame around the x axis.
+                    Requires MS_SVT_EN to be enabled to be used.
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_SENSOR_PTCH:
             description:
-                short: Sensor to Vehicle Transform (Pitch)
+                short: MicroStrain Sensor to Vehicle Transform (Pitch)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the y axis
-                    Requires MS_SVT_EN to be enabled to be used
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    The orientation of the device (Radians) with respect to the vehicle frame around the y axis.
+                    Requires MS_SVT_EN to be enabled to be used.
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_SENSOR_YAW:
             description:
-                short: Sensor to Vehicle Transform (Yaw)
+                short: MicroStrain Sensor to Vehicle Transform (Yaw)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis
-                    Requires MS_SVT_EN to be enabled to be used
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
+                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+                    Requires MS_SVT_EN to be enabled to be used.
             type: float
-            default: 0.0
-
-        MS_GNSS_ROLL:
-            description:
-                short: GNSS Orientation (Roll)
-                long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the x axis
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
-            type: float
-            default: 0.0
-
-        MS_GNSS_PTCH:
-            description:
-                short: GNSS Orientation (Pitch)
-                long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the y axis
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
-            type: float
-            default: 0.0
-
-        MS_GNSS_YAW:
-            description:
-                short: GNSS Orientation (Yaw)
-                long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis
-                    Restart required
-
-                    This parameter is specific to the MicroStrain driver.
-            type: float
+            reboot_required: true
             default: 0.0
 
         MS_EMAG_OFF_X:
             description:
-                short: External Magnetometer offset (X)
+                short: MicroStrain External Magnetometer offset (X)
                 long: |
-                    Lever arm offset (m) in the X direction if an external magnetometer is connected
-                    Restart required
+                    Offset (m) in the X direction if an external magnetometer is connected
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_EMAG_OFF_Y:
             description:
-                short: External Magnetometer offset (Y)
+                short: MicroStrain External Magnetometer offset (Y)
                 long: |
-                    Lever arm offset (m) in the Y direction if an external magnetometer is connected
-                    Restart required
+                    Offset (m) in the Y direction if an external magnetometer is connected
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_EMAG_OFF_Z:
             description:
-                short: External Magnetometer offset (Z)
+                short: MicroStrain External Magnetometer offset (Z)
                 long: |
-                    Lever arm offset (m) in the Z direction if an external magnetometer is connected
-                    Restart required
+                    Offset (m) in the Z direction if an external magnetometer is connected
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_EMAG_ROLL:
             description:
-                short: External Magnetometer Orientation (Roll)
+                short: MicroStrain external Magnetometer Orientation (Roll)
                 long: |
                     The orientation of the device (Radians) with respect to the vehicle frame around the x axis
-                    Restart required
-
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_EMAG_PTCH:
             description:
-                short: External Magnetometer Orientation (Pitch)
+                short: MicroStrain External Magnetometer Orientation (Pitch)
                 long: |
                     The orientation of the device (Radians) with respect to the vehicle frame around the y axis
-                    Restart required
-
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_EMAG_YAW:
             description:
-                short: External Magnetometer Orientation (Yaw)
+                short: MicroStrain External Magnetometer Orientation (Yaw)
                 long: |
                     The orientation of the device (Radians) with respect to the vehicle frame around the z axis
-                    Restart required
-
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_OFLW_OFF_X:
             description:
-                short: Optical Flow offset (X)
+                short: MicroStrain optical flow offset (X)
                 long: |
-                    Lever arm offset (m) in the X direction if an Optical Flow sensor is connected
-                    Restart required
+                    Offset (m) in the X direction if an Optical Flow sensor is connected
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_OFLW_OFF_Y:
             description:
-                short: Optical Flow offset (Y)
+                short: MicroStrain optical flow offset (Y)
                 long: |
-                    Lever arm offset (m) in the Y direction if an Optical Flow is connected
-                    Restart required
+                    Offset (m) in the Y direction if an Optical Flow sensor is connected
             type: float
+            reboot_required: true
             default: 0.0
 
         MS_OFLW_OFF_Z:
             description:
-                short: Optical Flow offset (Z)
+                short: MicroStrain optical flow offset (Z)
                 long: |
-                    Lever arm offset (m) in the Z direction if an Optical Flow is connected
-                    Restart required
+                    Offset (m) in the Z direction if an Optical Flow sensor is connected
             type: float
+            reboot_required: true
+            default: 0.0
+
+        MS_EHEAD_YAW:
+            description:
+                short: MicroStrain External Heading Orientation (Yaw)
+                long: |
+                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+            type: float
+            reboot_required: true
             default: 0.0
 
         MS_EMAG_UNCERT:
             description:
-                short: External Magnetometer Uncertainty
+                short: MicroStrain external magnetometer uncertainty
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis
-                    Restart required
+                    The 1-sigma uncertainty (in Gauss) for all axes, which will remain constant across all aiding measurements.
             type: float
-            default: 0.0
+            reboot_required: true
+            default: 0.1
 
         MS_OFLW_UNCERT:
             description:
-                short: Optical Flow Uncertainty
+                short: MicroStrain optical flow uncertainty
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis
-                    Restart required
+                    The 1-sigma uncertainty (in m/s) for the X and Y axes, which will remain constant across all aiding measurements.
+                    The Z axis is not used for aiding.
             type: float
-            default: 0.0
+            reboot_required: true
+            default: 0.1
