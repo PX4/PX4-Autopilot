@@ -851,6 +851,7 @@
     - [PX4 ROS 2 Interface Library](ros2/px4_ros2_interface_lib.md)
       - [Control Interface](ros2/px4_ros2_control_interface.md)
       - [Navigation Interface](ros2/px4_ros2_navigation_interface.md)
+      - [Waypoint Missions](ros2/px4_ros2_waypoint_missions.md)
     - [ROS 2 Message Translation Node](ros2/px4_ros2_msg_translation_node.md)
   - [ROS 1 (Deprecated)](ros/ros1.md)
     - [ROS/MAVROS Installation Guide](ros/mavros_installation.md)
