@@ -38,12 +38,11 @@ This section provides an overview of the topics and fields that matter during lo
    - `vision_target_est_orientation`
 - `landing_target_pose`: controller-facing pose plus `rel_pos_valid`, `rel_vel_valid`, and `fused` booleans.
 - `vision_target_est_input`: downsampled acceleration in NED and the quaternion fed to each prediction step. Can be used to correlate estimator behaviour with vehicle attitude changes.
-- `vte_aid_*`: one topic per fused source (`vte_aid_gps_pos_target`, `vte_aid_gps_pos_mission`, `vte_aid_gps_vel_uav`, `vte_aid_gps_vel_target`, `vte_aid_fiducial_marker`, `vte_aid_uwb`, `vte_aid_ev_yaw`). Each publishes the innovation, variance, observation, observation variance, chi-squared `test_ratio`, timestamps, and the `fused` flag (true when the update passed the gate).
+- `vte_aid_*`: one topic per fused source (`vte_aid_gps_pos_target`, `vte_aid_gps_pos_mission`, `vte_aid_gps_vel_uav`, `vte_aid_gps_vel_target`, `vte_aid_fiducial_marker`, `vte_aid_ev_yaw`). Each publishes the innovation, variance, observation, observation variance, chi-squared `test_ratio`, timestamps, and the `fused` flag (true when the update passed the gate).
 
 ### Main input feeds
 
 - Vision: `fiducial_marker_pos_report` / `fiducial_marker_yaw_report`
-- UWB: `sensor_uwb`
 - GNSS on the target: `target_gnss`
 - Vehicle GNSS: `sensor_gps` (used to convert absolute GNSS measurements to relative vehicle-carried NED measurements)
 - Mission position: `position_setpoint_triplet`
@@ -51,7 +50,7 @@ This section provides an overview of the topics and fields that matter during lo
 
 ### What to look for in logs
 
-1. **Estimator output vs. observations**: In all axis directions, overlay the estimator outputs position `vision_target_est_position.x_rel`, `vision_target_est_orientation.theta` with measurement observations `vte_aid_*.observation[0]` (e.g. `vte_aid_fiducial_marker.observation[0]` or the relevant UWB or GNSS observation). The traces should converge after a short transient. Large steady offsets point to calibration errors or incorrect body-to-NED transforms.
+1. **Estimator output vs. observations**: In all axis directions, overlay the estimator outputs position `vision_target_est_position.x_rel`, `vision_target_est_orientation.theta` with measurement observations `vte_aid_*.observation[0]` (e.g. `vte_aid_fiducial_marker.observation[0]` or the relevant GNSS observation). The traces should converge after a short transient. Large steady offsets point to calibration errors or incorrect body-to-NED transforms.
 2. **Innovation behaviour**: `vte_aid_*.innovation` (e.g. `vte_aid_fiducial_marker.innovation`) should be centred at zero and resemble white noise. Recall that the innovation is defined as the difference between the state prediction and the measurement observation of the state. It follows that the drifting innovations can come from
    - State prediction errors:
       - check the estimators state outputs which correspond to the prediction of the state when no measurements are fused
@@ -77,8 +76,8 @@ Start by confirming that the estimator is running (`vision_target_estimator stat
 | --- | --- | --- |
 | Vehicle misses the pad or ignores target yaw | Mission land waypoint not set to precision mode or yaw alignment disabled | In QGroundControl set the land waypoint `Precision landing` field (or `MAV_CMD_NAV_LAND` `param2`) to Opportunistic/Required as described in [Precision landing missions](../advanced_features/precland.md#mission), and enable [`PLD_YAW_EN`](../advanced_config/parameter_reference.md#PLD_YAW_EN). In logs verify that `trajectory_setpoint.x/y` converge to `landing_target_pose.x_abs/y_abs` and that `trajectory_setpoint.yaw` follows `vision_target_est_orientation.theta`. |
 | Frequent innovation rejections | Incorrect noise floors or timestamp skew | Verify sensor variances, verify the NIS threholds ([`VTE_POS_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) and [`VTE_YAW_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE)), compare timestamp_sample (measurement time of validity) with time_last_fuse (contains the prediction time) on the same vte_aid_* topic.. |
-| Bias does not converge | No secondary position source | Ensure vision or UWB fusion is enabled so the filter can observe GNSS bias. |
-| Orientation estimate drifts | Missing yaw measurements or low NIS gate | Enable [`VTE_YAW_EN`](../advanced_config/parameter_reference.md#VTE_YAW_EN) and ensure vision yaw or UWB azimuth data is present. Increase [`VTE_YAW_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) if legitimate data is being rejected. |
+| Bias does not converge | No secondary position source | Ensure vision fusion is enabled so the filter can observe GNSS bias. |
+| Orientation estimate drifts | Missing yaw measurements or low NIS gate | Enable [`VTE_YAW_EN`](../advanced_config/parameter_reference.md#VTE_YAW_EN) and ensure vision yaw data is present. Increase [`VTE_YAW_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) if legitimate data is being rejected. |
 | `rel_pos_valid` toggles during descent | Position measurements arriving too slowly | Increase [`VTE_TGT_TOUT`](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) or improve the measurement rate so updates remain inside [`VTE_M_REC_TOUT`](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT). |
 | No `vte_aid_*` topics in the log | Sensor not publishing or fusion mask disabled | Use `listener` on the raw sensor topic, confirm [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) includes the relevant bit, and rerun the test with the debug task active. |
 | Estimator never starts | Task mask disabled or mission not requesting precision landing | Set [`VTE_TASK_MASK`](../advanced_config/parameter_reference.md#VTE_TASK_MASK)=1 (or 3 for continuous debugging) and verify that new measurements arrive with valid timestamps. |
@@ -91,15 +90,15 @@ The next four dashboards provide hints on how to analyse logs of the Vision Targ
 > Plot Juggler (or the PX4 DevTools log viewer) is the easiest way to inspect the estimator as it allows you to group related signals into subplots that share the time axis.
 
 **Estimator output and observation consistency**: Quick health check that the fused sensors agree with the estimated state before diving into per-axis innovations.
-- **Top row (observations and state output)**: For every axis, plot all the available observations `vte_aid_*.observation[0]` (in this example: vision,IRLock, UWB, and target GNSS) alongside `vision_target_est_position`. Expect a smooth state trace following the trend of the most precise observations.
+- **Top row (observations and state output)**: For every axis, plot all the available observations `vte_aid_*.observation[0]` (in this example: vision/IRLock and target GNSS) alongside `vision_target_est_position`. Expect a smooth state trace following the trend of the most precise observations.
 - **Second row (GNSS bias estimate)**: Plot `vision_target_est_position.*_bias`. The bias should settle once both a GNSS observation and a relative observation are fused. A non-zero bias is expected; what matters is that it remains stable so the corrected GNSS still points to the pad if the relative measurement temporarily drops out.
-- **Third row (sensor variances)**: Compare `vte_aid_*.observation_variance[0]` across sensors. Large gaps mean one source is trusted far more than the others. Tune [`VTE_EVP_NOISE`](../advanced_config/parameter_reference.md#VTE_EVP_NOISE), [`VTE_UWB_P_NOISE`](../advanced_config/parameter_reference.md#VTE_UWB_P_NOISE), or [`VTE_GPS_P_NOISE`](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE) until variances reflect the real-world accuracy.
+- **Third row (sensor variances)**: Compare `vte_aid_*.observation_variance[0]` across sensors. Large gaps mean one source is trusted far more than the others. Tune [`VTE_EVP_NOISE`](../advanced_config/parameter_reference.md#VTE_EVP_NOISE) or [`VTE_GPS_P_NOISE`](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE) until variances reflect the real-world accuracy.
 - **Bottom row (approach context)**: `vehicle_local_position.dist_bottom` indicates the descent phase and helps correlate changes in variance or bias with altitude.
 
 ![VTEST all observations](../../assets/vision_target_estimator/VtestAllObservations.png)
 
 **Innovation Consistency**: Use this view to confirm that every fused sensor produces zero-mean, white-noise innovations; large drifts reveal modelling errors, mis-scaled noise, or frame-misaligned observations.
-- **Top row (x innovations)**: For every measurement available, plot all the innovations (e.g. `vte_aid_fiducial_marker.innovation[0]`, `vte_aid_uwb.innovation[0]`, and `vte_aid_gps_pos_target.innovation[0]`). The innovations should fluctuate around zero.
+- **Top row (x innovations)**: For every measurement available, plot all the innovations (e.g. `vte_aid_fiducial_marker.innovation[0]` and `vte_aid_gps_pos_target.innovation[0]`). The innovations should fluctuate around zero.
 - **Second row (y innovations)**: The same signals for the y direction. White-noise like innovations indicate the measurements and the assumed noise matches reality.
 - **Third row (z innovations)**: Index 2 is only populated by sources that provide altitude information. A persistent offset, such as the ~2 m bias from `vte_aid_fiducial_marker` in the example, shows that the camera observations are not precise at higher altitudes. The measurement variance should reflect this behaviour.
 - **Bottom row (fusion decisions)**: The boolean `*.fused` arrays confirm that the Kalman update is skipped whenever the NIS exceeds the gate. If a good sensor is frequently rejected, revisit the variance floors listed earlier.
@@ -149,7 +148,7 @@ To integrate a new sensor:
 4. **Subscribe and validate**: add a `uORB::Subscription` to the filter, check for finite values, and reject samples that are too old `isMeasUpdated` or timestamped in the future before marking the observation valid.
 5. **Implement the handler** in `processObservations()`. Convert the measurement into NED coordinates, populate `TargetObs::meas_xyz`, `meas_unc_xyz`, and the observation Jacobian (`meas_h_xyz` or `meas_h_theta`), and set the fusion-mask flag only after the data passes validation.
 6. **Provide tunable noise**: declare a parameter (e.g. `VTE_<SENSOR>_NOISE`) and clamp it with `kMinObservationNoise` so the estimator never believes a measurement is perfect.
-7. **Log the innovations**: add a publication member and ORB topic (see `vte_aid_uwb` for reference) so that logs include the innovation, variance, and fused flag for the new sensor.
+7. **Log the innovations**: add a publication member and ORB topic (see `vte_aid_fiducial_marker` for reference) so that logs include the innovation, variance, and fused flag for the new sensor.
 8. **Exercise SITL**: update the Gazebo (or other) simulation so that replay tests produce the new measurement. This keeps CI coverage intact and provides a reference data set for tuning.
 9. **Document the workflow**: update this deep dive and any setup how-tos so users know how to enable the new bit, calibrate the sensor, and interpret its logs.
 

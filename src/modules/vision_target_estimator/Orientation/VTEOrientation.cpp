@@ -53,7 +53,6 @@ namespace vision_target_estimator
 using namespace matrix;
 
 constexpr float kDefaultVisionYawDistance = 10.f;
-constexpr float kDefaultUwbAngleVar = math::radians(3.f) * math::radians(3.f);
 
 VTEOrientation::VTEOrientation() :
 	ModuleParams(nullptr)
@@ -77,7 +76,7 @@ void VTEOrientation::resetFilter()
 	_estimator_initialized = false;
 }
 
-void VTEOrientation::update(const matrix::Quaternionf &q_att)
+void VTEOrientation::update()
 {
 	if (_parameter_update_sub.updated()) {
 		updateParams();
@@ -92,7 +91,7 @@ void VTEOrientation::update(const matrix::Quaternionf &q_att)
 	}
 
 	// Update with the latest observations and publish any resulting innovations.
-	if (performUpdateStep(q_att)) {
+	if (performUpdateStep()) {
 		_last_update = _last_predict;
 	}
 
@@ -110,9 +109,6 @@ bool VTEOrientation::initEstimator(const ObsValidMaskU &fusion_mask,
 	// Yaw init
 	if (fusion_mask.flags.fuse_vision) {
 		state_init(State::yaw) = observations[obsIndex(ObsType::Fiducial_marker)].meas;
-
-	} else if (fusion_mask.flags.fuse_uwb) {
-		state_init(State::yaw) = observations[obsIndex(ObsType::Uwb)].meas;
 	}
 
 	matrix::Vector<float, State::size> state_var_init;
@@ -141,12 +137,12 @@ void VTEOrientation::predictionStep()
 	_target_est_yaw.predictCov(dt);
 }
 
-bool VTEOrientation::performUpdateStep(const matrix::Quaternionf &q_att)
+bool VTEOrientation::performUpdateStep()
 {
 	ObsValidMaskU fusion_mask{};
 	resetObservations();
 	// Gather the latest observations from each enabled data source.
-	processObservations(q_att, fusion_mask, _obs_buffer);
+	processObservations(fusion_mask, _obs_buffer);
 
 	if (fusion_mask.value == 0) {
 		return false;
@@ -166,12 +162,10 @@ void VTEOrientation::resetObservations()
 	}
 }
 
-void VTEOrientation::processObservations(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
+void VTEOrientation::processObservations(ObsValidMaskU &fusion_mask,
 		TargetObs observations[kObsTypeCount])
 {
 	handleVisionData(fusion_mask, observations[obsIndex(ObsType::Fiducial_marker)]);
-
-	handleUwbData(q_att, fusion_mask, observations[obsIndex(ObsType::Uwb)]);
 }
 
 void VTEOrientation::handleVisionData(ObsValidMaskU &fusion_mask, TargetObs &vision_obs)
@@ -227,72 +221,6 @@ bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiduci
 	return true;
 }
 
-void VTEOrientation::handleUwbData(const matrix::Quaternionf &q_att, ObsValidMaskU &fusion_mask,
-				   TargetObs &uwb_obs)
-{
-	sensor_uwb_s uwb_report;
-
-	if (!_vte_aid_mask.flags.use_uwb) {
-		return;
-	}
-
-	if (!_sensor_uwb_sub.update(&uwb_report) || !isUwbDataValid(uwb_report)) {
-		return;
-	}
-
-	if (processObsUwb(q_att, uwb_report, uwb_obs)) {
-		fusion_mask.flags.fuse_uwb = true;
-	}
-}
-
-// TODO: check
-bool VTEOrientation::isUwbDataValid(const sensor_uwb_s &uwb_report) const
-{
-	if (!isMeasRecent(uwb_report.timestamp)) {
-		return false;
-	}
-
-	const bool finite_range = PX4_ISFINITE(uwb_report.distance);
-	const bool angles_within_bounds = fabsf(uwb_report.aoa_azimuth_dev) <= max_uwb_aoa_angle_degree
-					  && fabsf(uwb_report.aoa_elevation_dev) <= max_uwb_aoa_angle_degree
-					  && fabsf(uwb_report.aoa_azimuth_resp) <= max_uwb_aoa_angle_degree;
-
-	return finite_range && angles_within_bounds;
-}
-
-bool VTEOrientation::processObsUwb(const matrix::Quaternionf &q_att, const sensor_uwb_s &uwb_report,
-				   TargetObs &obs) const
-{
-	matrix::Vector3f rel_pos_ned{};
-
-	if (!uwbMeasurementToNed(uwb_report, q_att, rel_pos_ned)) {
-		return false;
-	}
-
-	const float horizontal_sq = rel_pos_ned(0) * rel_pos_ned(0) + rel_pos_ned(1) * rel_pos_ned(1);
-
-	if (!PX4_ISFINITE(horizontal_sq) || horizontal_sq < 1e-4f) {
-		return false;
-	}
-
-	const float bearing_drone_to_target = atan2f(rel_pos_ned(1), rel_pos_ned(0));
-	const float bearing_target_to_drone = wrap_pi(bearing_drone_to_target + M_PI_F);
-	const float aoa_resp_rad = math::radians(uwb_report.aoa_azimuth_resp);
-
-	if (!PX4_ISFINITE(aoa_resp_rad)) {
-		return false;
-	}
-
-	obs.timestamp = uwb_report.timestamp;
-	obs.meas = wrap_pi(bearing_target_to_drone - aoa_resp_rad);
-	obs.meas_unc = fmaxf(kDefaultUwbAngleVar, _min_uwb_angle_var);
-	obs.meas_h_theta(State::yaw) = 1;
-	obs.updated = true;
-	obs.type = ObsType::Uwb;
-
-	return true;
-}
-
 bool VTEOrientation::fuseActiveMeasurements(ObsValidMaskU &fusion_mask,
 		const TargetObs observations[kObsTypeCount])
 {
@@ -301,11 +229,6 @@ bool VTEOrientation::fuseActiveMeasurements(ObsValidMaskU &fusion_mask,
 	// Fuse vision position
 	if (fusion_mask.flags.fuse_vision) {
 		meas_fused |= fuseMeas(observations[obsIndex(ObsType::Fiducial_marker)]);
-	}
-
-	// Fuse uwb
-	if (fusion_mask.flags.fuse_uwb) {
-		meas_fused |= fuseMeas(observations[obsIndex(ObsType::Uwb)]);
 	}
 
 	return meas_fused;
@@ -397,7 +320,6 @@ void VTEOrientation::updateParams()
 	const float new_ev_angle_noise = _param_vte_ev_angle_noise.get();
 	_ev_noise_md = _param_vte_ev_noise_md.get();
 	const float new_nis_threshold = _param_vte_yaw_nis_thre.get();
-	const float new_uwb_angle_noise = _param_vte_uwb_a_noise.get();
 
 	if (PX4_ISFINITE(new_ev_angle_noise) && new_ev_angle_noise > kMinObservationNoise) {
 		_min_ev_angle_var = new_ev_angle_noise * new_ev_angle_noise;
@@ -415,13 +337,6 @@ void VTEOrientation::updateParams()
 			 (double)new_nis_threshold, (double)kMinNisThreshold);
 	}
 
-	if (PX4_ISFINITE(new_uwb_angle_noise) && new_uwb_angle_noise > 0.f) {
-		_min_uwb_angle_var = new_uwb_angle_noise * new_uwb_angle_noise;
-
-	} else {
-		PX4_WARN("VTE: VTE_UWB_A_NOISE %.1f <= 0, keeping previous value",
-			 (double)new_uwb_angle_noise);
-	}
 }
 
 void VTEOrientation::set_range_sensor(const float dist, const bool valid, hrt_abstime timestamp)
