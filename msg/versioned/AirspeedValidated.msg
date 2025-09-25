@@ -12,7 +12,7 @@ float32 indicated_airspeed_m_s   # [m/s] [@invalid NaN] Indicated airspeed (IAS)
 float32 calibrated_airspeed_m_s  # [m/s] [@invalid NaN] Calibrated airspeed (CAS)
 float32 true_airspeed_m_s        # [m/s] [@invalid NaN] True airspeed (TAS)
 
-int8 airspeed_source                       # [@enum SOURCE] Source of currently published airspeed values
+int8 airspeed_source               # [@enum SOURCE] Source of currently published airspeed values
 int8 SOURCE_DISABLED = -1          # Disabled
 int8 SOURCE_GROUND_MINUS_WIND = 0  # Ground speed minus wind
 int8 SOURCE_SENSOR_1 = 1           # Sensor 1
