@@ -26,7 +26,7 @@ The default type is recommended.
 :::
 
 ::: warning
-There is a known issue ([PX4-Autopilot#?](https://github.com/PX4/PX4-Autopilot/issues/?)) with fixed-wing approaches and landings while in RTL mode.
+There is a known issue ([PX4-Autopilot#25633](https://github.com/PX4/PX4-Autopilot/issues/#25633)) with fixed-wing approaches and landings while in RTL mode.
 Please review the issue and verify in simulation that the behavior you get is safe in an RTL landing scenario (if not, consider using rally points).
 :::
 
