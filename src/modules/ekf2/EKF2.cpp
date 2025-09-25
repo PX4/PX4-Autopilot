@@ -1059,12 +1059,12 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 	if (_ekf.aid_src_baro_hgt().timestamp_sample != 0) {
 		const BiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
 
-		if (fabsf(status.bias - _last_baro_bias_published) > 1e-6f) {
-			_estimator_baro_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.aid_src_baro_hgt().timestamp_sample, timestamp,
-							 _device_id_baro));
+		//if (fabsf(status.bias - _last_baro_bias_published) > 1e-6f) {
+		_estimator_baro_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.aid_src_baro_hgt().timestamp_sample, timestamp,
+						 _device_id_baro));
 
-			_last_baro_bias_published = status.bias;
-		}
+		_last_baro_bias_published = status.bias;
+		//}
 	}
 }
 #endif // CONFIG_EKF2_BAROMETER
