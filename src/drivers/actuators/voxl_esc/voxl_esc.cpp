@@ -312,10 +312,10 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("VOXL_ESC_CMD"), &params->cmd_type);
 
 	if (params->cmd_type > VOXL_ESC_PWM_CMDS) {
-		PX4_WARN("Warning, VOXL_ESC_CMD set to invalid value %d. Using 1 instead", params->cmd_type);
+		PX4_WARN("Warning, VOXL_ESC_CMD set to invalid value %d. Using 1 instead", (int) params->cmd_type);
 		params->cmd_type = VOXL_ESC_PWM_CMDS;
 	} else if (params->cmd_type < VOXL_ESC_RPM_CMDS) {
-		PX4_WARN("Warning, VOXL_ESC_CMD set to invalid value %d. Using 0 instead", params->cmd_type);
+		PX4_WARN("Warning, VOXL_ESC_CMD set to invalid value %d. Using 0 instead", (int) params->cmd_type);
 		params->cmd_type = VOXL_ESC_RPM_CMDS;
 	}
 
