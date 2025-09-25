@@ -416,6 +416,7 @@
       - [Attitude Tuning](config_rover/attitude_tuning.md)
       - [Velocity Tuning](config_rover/velocity_tuning.md)
       - [Position Tuning](config_rover/position_tuning.md)
+    - [Apps & API](flight_modes_rover/api.md)
     - [Complete Vehicles](complete_vehicles_rover/index.md)
       - [Aion Robotics R1](complete_vehicles_rover/aion_r1.md)
   - [Submarines (experimental)](frames_sub/index.md)

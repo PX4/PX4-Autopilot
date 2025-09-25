@@ -90,6 +90,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Rover
 
 - Removed deprecated rover module ([PX4-Autopilot#25054](https://github.com/PX4/PX4-Autopilot/pull/25054)).
+- Add support for [Apps & API](../flight_modes_rover/api.md) ([PX4-Autopilot#25074](https://github.com/PX4/PX4-Autopilot/pull/25074), [PX4-ROS2-Interface-Lib#140](https://github.com/Auterion/px4-ros2-interface-lib/pull/140)).
 
 ### ROS 2
 
