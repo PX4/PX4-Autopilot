@@ -199,7 +199,6 @@ private:
 
 	MapProjection _pos_ref{};
 	double _ref_alt = 0;
-	float _gps_origin_ep[2] = {0};
 
 	template <typename T>
 	struct SensorSample {

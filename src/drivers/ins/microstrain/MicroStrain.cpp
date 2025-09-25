@@ -1286,8 +1286,8 @@ void MicroStrain::filterCallback(void *user, const mip_packet *packet, mip::Time
 
 		gp.alt_valid = is_fullnav && pos_llh.sample.valid_flags;
 
-		gp.eph = sqrtf(sq(llh_uncert.sample.north) + sq(llh_uncert.sample.east) + sq(ref->_gps_origin_ep[0]));
-		gp.epv = sqrtf(sq(llh_uncert.sample.down) + sq(ref->_gps_origin_ep[1]));
+		gp.eph = sqrtf(sq(llh_uncert.sample.north) + sq(llh_uncert.sample.east));
+		gp.epv = llh_uncert.sample.down;
 
 		// ------- Fields we cannot obtain -------
 		gp.delta_alt = 0;
@@ -1710,9 +1710,6 @@ void MicroStrain::initializeRefPos()
 	_pos_ref.initReference(gps.latitude_deg, gps.longitude_deg, t);
 	_ref_alt = gps.altitude_msl_m;
 
-	_gps_origin_ep[0] = gps.eph;
-	_gps_origin_ep[1] = gps.epv;
-
 	PX4_DEBUG("Reference position initialized");
 }
 
@@ -1798,8 +1795,8 @@ void MicroStrain::sendMagAiding()
 	float uncert[3] = {ext_mag_uncert, ext_mag_uncert, ext_mag_uncert};
 	//PX4_INFO("%f/%f/%f", (double)mag.magnetometer_ga[0], (double)mag.magnetometer_ga[1], (double)mag.magnetometer_ga[2]);
 
-	mip_cmd_result res = mip_aiding_magnetic_field(&_device, &t, 2, mag.magnetometer_ga, uncert,
-			     MIP_AIDING_MAGNETIC_FIELD_COMMAND_VALID_FLAGS_ALL);
+	mip_aiding_magnetic_field(&_device, &t, 2, mag.magnetometer_ga, uncert,
+				  MIP_AIDING_MAGNETIC_FIELD_COMMAND_VALID_FLAGS_ALL);
 }
 
 void MicroStrain::sendOpticalFlowAiding()
@@ -1819,7 +1816,7 @@ void MicroStrain::sendOpticalFlowAiding()
 	float vel[3] = {ofv.vel_body[0], ofv.vel_body[1], 0};
 	float uncert[3] = {opt_flow_uncert, opt_flow_uncert, 0.0};
 
-	mip_cmd_result res = mip_aiding_vehicle_fixed_frame_velocity(&_device, &t, 3, vel, uncert, 0x0003);
+	mip_aiding_vehicle_fixed_frame_velocity(&_device, &t, 3, vel, uncert, 0x0003);
 }
 
 void MicroStrain::sendAidingMeasurements()
