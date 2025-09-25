@@ -106,12 +106,19 @@ The development version, fetched using `--edge` above, does work.
 
 ### Збірка/Запуск у межах робочого простору ROS 2
 
-Агент може бути створений і запущений в робочому просторі ROS 2 (або створений окремо і запущений з робочого простору.
+The agent can be built and launched within a ROS 2 workspace (or build standalone and launched from a workspace).
 You must already have installed ROS 2 following the instructions in: [ROS 2 User Guide > Install ROS 2](../ros2/user_guide.md#install-ros-2).
 
 :::warning
 This approach will use the existing ROS 2 versions of the Agent dependencies, such as `fastcdr` and `fastdds`.
-This considerably speeds up the build process but requires that the Agent dependency versions match the ROS 2 ones.
+This considerably speeds up the build process but requires that the Agent dependency versions match the ROS 2 ones:
+
+| ROS 2 version | Micro-XRCE-DDS-Agent version           |
+| ------------- | -------------------------------------- |
+| Foxy          | v2.4.2 |
+| Humble        | v2.4.2 |
+| Jazzy         | v2.4.3 |
+
 :::
 
 Створити агента в межах ROS:
@@ -124,14 +131,53 @@ This considerably speeds up the build process but requires that the Agent depend
 
 2. Clone the source code for the eProsima [Micro-XRCE-DDS-Agent](https://github.com/eProsima/Micro-XRCE-DDS-Agent) to the `/src` directory (the `main` branch is cloned by default):
 
+   ::::tabs
+
+   ::: tab jazzy
+
    ```sh
    cd ~/px4_ros_uxrce_dds_ws/src
    git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
    ```
 
+
+:::
+
+   ::: tab humble
+
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+
+:::
+
+   ::: tab foxy
+
+   ```sh
+   cd ~/px4_ros_uxrce_dds_ws/src
+   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   ```
+
+
+:::
+
+   ::::
+
 3. Source the ROS 2 development environment, and compile the workspace using `colcon`:
 
    :::: tabs
+
+   ::: tab jazzy
+
+   ```sh
+   source /opt/ros/jazzy/setup.bash
+   colcon build
+   ```
+
+
+:::
 
    ::: tab humble
 
@@ -162,6 +208,16 @@ This considerably speeds up the build process but requires that the Agent depend
 1. Source the `local_setup.bash` to make the executables available in the terminal (also `setup.bash` if using a new terminal).
 
    :::: tabs
+
+   ::: tab jazzy
+
+   ```sh
+   source /opt/ros/jazzy/setup.bash
+   source install/local_setup.bash
+   ```
+
+
+:::
 
    ::: tab humble
 
@@ -235,7 +291,6 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
 - [UXRCE_DDS_CFG](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG): Set the port to connect on, such as `TELEM2`, `Ethernet`, or `Wifi`.
 
 - Якщо використовується Ethernet-підключення:
-
   - [UXRCE_DDS_PRT](../advanced_config/parameter_reference.md#UXRCE_DDS_PRT):
     Use this to specify the agent UDP listening port.
     The default value is `8888`.
@@ -259,14 +314,12 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
       ```
 
 - Якщо використовується послідовне підключення:
-
   - [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD), [SER_URT6_BAUD](../advanced_config/parameter_reference.md#SER_URT6_BAUD) (and so on):
     Use the `_BAUD` parameter associated with the serial port to set the baud rate.
     For example, you'd set a value for `SER_TEL2_BAUD` if you are connecting to the companion using `TELEM2`.
     For more information see [Serial port configuration](../peripherals/serial_configuration.md#serial-port-configuration).
 
 - Деякі налаштування можуть також потребувати встановлення цих параметрів:
-
   - [UXRCE_DDS_KEY](../advanced_config/parameter_reference.md#UXRCE_DDS_KEY): The uXRCE-DDS key.
     Якщо ви працюєте в мультиклієнтській конфігурації з одним агентом, кожен клієнт повинен мати унікальний ненульовий ключ.
     Це насамперед важливо для симуляцій з кількома транспортними засобами, де всі клієнти під'єднані до UDP одного агента.
