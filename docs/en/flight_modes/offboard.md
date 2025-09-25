@@ -278,6 +278,10 @@ The following MAVLink messages and their particular fields and field values are 
     - Attitude/orientation (`SET_ATTITUDE_TARGET.q`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
     - Body rate (`SET_ATTITUDE_TARGET` `.body_roll_rate` ,`.body_pitch_rate`, `.body_yaw_rate`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
 
+### Rover
+
+Rover does not support a MAVLink offboard API (ROS2 is supported).
+
 ## Offboard Parameters
 
 _Offboard mode_ is affected by the following parameters:
