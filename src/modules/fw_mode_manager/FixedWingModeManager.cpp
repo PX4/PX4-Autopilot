@@ -166,7 +166,7 @@ FixedWingModeManager::airspeed_poll()
 
 		// do not use synthetic airspeed as it's for the use here not reliable enough
 		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
-		    && airspeed_validated.airspeed_source != airspeed_validated_s::SYNTHETIC) {
+		    && airspeed_validated.airspeed_source != airspeed_validated_s::SOURCE_SYNTHETIC) {
 
 			_airspeed_eas = airspeed_validated.calibrated_airspeed_m_s;
 		}

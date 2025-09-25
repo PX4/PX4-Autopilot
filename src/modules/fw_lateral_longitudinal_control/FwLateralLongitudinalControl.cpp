@@ -607,7 +607,7 @@ void FwLateralLongitudinalControl::updateAirspeed() {
 		// do not use synthetic airspeed as this would create a thrust loop
 		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
 		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-		    && airspeed_validated.airspeed_source != airspeed_validated_s::SYNTHETIC) {
+		    && airspeed_validated.airspeed_source != airspeed_validated_s::SOURCE_SYNTHETIC) {
 
 			_time_airspeed_last_valid = airspeed_validated.timestamp;
 			_long_control_state.airspeed_eas = airspeed_validated.calibrated_airspeed_m_s;
