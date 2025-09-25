@@ -176,7 +176,7 @@ void LoggedTopics::add_default_topics()
 
 		for (size_t i = 0; i < orb_topics_count(); i++) {
 			if (strncmp(topic_list[i]->o_name, "estimator", 9) == 0) {
-				add_topic_multi(topic_list[i]->o_name);
+				add_topic_multi(topic_list[i]->o_name, 0, 1, false);
 			}
 		}
 	}
