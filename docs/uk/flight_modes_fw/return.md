@@ -25,6 +25,11 @@
 
 :::
 
+:::warning
+There is a known issue ([PX4-Autopilot#25436](https://github.com/PX4/PX4-Autopilot/issues/25436)) with fixed-wing approaches and landings while in RTL mode.
+Please review the issue and verify in simulation that the behavior you get is safe in an RTL landing scenario (if not, consider using rally points).
+:::
+
 ## Технічний підсумок
 
 Літальні апарати з фіксованим крилом за замовчуванням використовують тип повернення до призначення _місії посадки/точка збору_.
