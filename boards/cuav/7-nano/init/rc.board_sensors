@@ -12,10 +12,17 @@ else
 fi
 
 iim42652 -s -R 22 start
-bmi088 -A -R 29 -s start
-bmi088 -G -R 29 -s start
 
-ist8310 -I -R 18 start
+bmi088 -A -R 29 -s start
+if ! bmi088 -G -R 29 -s start
+then
+	iim42653 -s -b 2 -R 22 start
+fi
+
+if ! ist8310 -I -R 18 start
+then
+	iis2mdc -I -R 37 start
+fi
 
 bmp581 -s start
 icp201xx -I start
