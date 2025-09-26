@@ -57,8 +57,9 @@ Each wheel is driven by its own motor, and by controlling the speed and directio
 
 ## See Also
 
-- [Drive Modes](../flight_modes_rover/index.md).
+- [Drive Modes](../flight_modes_rover/index.md)
 - [Configuration/Tuning](../config_rover/index.md)
+- [Apps & API](../flight_modes_rover/api.md)
 - [Complete Vehicles](../complete_vehicles_rover/index.md)
 
 ## Simulation
