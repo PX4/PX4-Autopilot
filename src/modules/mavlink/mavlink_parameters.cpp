@@ -140,7 +140,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
 
 			if (set.target_system == mavlink_system.sysid && set.target_component < 127 &&
-    			    !(set.target_component >= MAV_COMP_ID_CAMERA && set.target_component <= MAV_COMP_ID_CAMERA6) &&
+			    !(set.target_component >= MAV_COMP_ID_CAMERA && set.target_component <= MAV_COMP_ID_CAMERA6) &&
 			    (set.target_component != mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
 				// publish set request to UAVCAN driver via uORB.
 				uavcan_parameter_request_s req{};
