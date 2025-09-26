@@ -1,0 +1,12 @@
+menuconfig SYSTEMCMDS_RESET
+	bool "reset"
+	default n
+	---help---
+		Enable support for reset
+
+menuconfig USER_RESET
+	bool "reset running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_RESET
+	---help---
+		Put reset in userspace memory
