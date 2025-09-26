@@ -38,7 +38,6 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
-
 #include <uavcan/equipment/ahrs/RawIMU.hpp>
 
 class UavcanAccelBridge : public UavcanSensorBridgeBase
@@ -46,7 +45,7 @@ class UavcanAccelBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanAccelBridge(uavcan::INode &node);
+	UavcanAccelBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 
