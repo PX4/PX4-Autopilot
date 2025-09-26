@@ -38,7 +38,7 @@ if args.filter:
 default_container = 'ghcr.io/px4/px4-dev:v1.16.0-rc1-258-g0369abd556'
 build_configs = []
 grouped_targets = {}
-excluded_boards = ['modalai_voxl2', 'px4_ros2']  # TODO: fix and enable
+excluded_boards = ['modalai_voxl2', 'px4_ros2', 'espressif_esp32']  # TODO: fix and enable
 excluded_manufacturers = ['atlflight']
 excluded_platforms = ['qurt']
 excluded_labels = [

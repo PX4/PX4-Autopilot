@@ -48,12 +48,13 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
 
 // Local includes
 #include "AckermannActControl/AckermannActControl.hpp"
 #include "AckermannRateControl/AckermannRateControl.hpp"
 #include "AckermannAttControl/AckermannAttControl.hpp"
-#include "AckermannVelControl/AckermannVelControl.hpp"
+#include "AckermannSpeedControl/AckermannSpeedControl.hpp"
 #include "AckermannPosControl/AckermannPosControl.hpp"
 #include "AckermannDriveModes/AckermannAutoMode/AckermannAutoMode.hpp"
 #include "AckermannDriveModes/AckermannManualMode/AckermannManualMode.hpp"
@@ -90,9 +91,9 @@ private:
 	void Run() override;
 
 	/**
-	 * @brief Generate and publish roverSetpoints from manualControlSetpoints.
+	 * @brief Generate rover setpoints from supported PX4 internal modes
 	 */
-	void manualControl();
+	void generateSetpoints();
 
 	/**
 	 * @brief Update the active controllers.
@@ -115,6 +116,7 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
@@ -122,7 +124,7 @@ private:
 	AckermannActControl  _ackermann_act_control{this};
 	AckermannRateControl _ackermann_rate_control{this};
 	AckermannAttControl  _ackermann_att_control{this};
-	AckermannVelControl  _ackermann_vel_control{this};
+	AckermannSpeedControl  _ackermann_speed_control{this};
 	AckermannPosControl  _ackermann_pos_control{this};
 	AckermannAutoMode	     _auto_mode{this};
 	AckermannManualMode 	     _manual_mode{this};

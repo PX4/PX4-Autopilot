@@ -152,7 +152,7 @@ To setup and start the agent:
 1. Enter the following commands to fetch and build the agent from source:
 
    ```sh
-   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
    cd Micro-XRCE-DDS-Agent
    mkdir build
    cd build
@@ -707,7 +707,7 @@ Therefore,
 
   ```sh
   rm ~/ros2_ws/src/px4_msgs/msg/*.msg
-  cp ~/PX4-Autopilot/mgs/*.msg ~/ros2_ws/src/px4_msgs/msg/
+  cp ~/PX4-Autopilot/msg/*.msg ~/ros2_ws/src/px4_msgs/msg/
   ```
 
   ::: info

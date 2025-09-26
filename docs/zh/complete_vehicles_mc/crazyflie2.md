@@ -36,9 +36,9 @@ The main hardware documentation is here: https://wiki.bitcraze.io/projects:crazy
 ## 购买渠道
 
 - [Crazyflie 2.0](https://store.bitcraze.io/collections/kits/products/crazyflie-2-0).
-- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/collections/kits/products/crazyradio-pa): used for wireless communication between _QGroundControl_ and Crazyflie 2.0.
+- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/products/crazyradio-pa): used for wireless communication between _QGroundControl_ and Crazyflie 2.0.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): breakout expansion board for connecting new peripherals.
-- [Flow deck](https://store.bitcraze.io/collections/decks/products/flow-deck): contains an optical flow sensor to measure movements of the ground and a distance sensor to measure the distance to the ground.
+- [Flow deck](https://store.bitcraze.io/products/flow-deck): contains an optical flow sensor to measure movements of the ground and a distance sensor to measure the distance to the ground.
   This will be useful for precise altitude and position control.
 - [Z-ranger deck](https://store.bitcraze.io/collections/decks/products/z-ranger-deck) has the same distance sensor as the Flow deck to measure the distance to the ground.
   This will be useful for precise altitude control.
@@ -51,54 +51,54 @@ After setting up the PX4 development environment, follow these steps to install 
 
 1. Download the source code of the PX4 Bootloader:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Bootloader.git
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Bootloader.git
+   ```
 
 2. Navigate into the top directory of the source code and compile it using:
 
-  ```sh
-  make crazyflie_bl
-  ```
+   ```sh
+   make crazyflie_bl
+   ```
 
 3. Put the Crazyflie 2.0 into DFU mode by following these steps:
-  - Ensure it is initially unpowered.
-  - Hold down the reset button (see figure below...).
-    ![Crazyflie2 Reset Button](../../assets/flight_controller/crazyflie/crazyflie_reset_button.jpg)
-  - Plug into computer's USB port.
-  - After a second, the blue LED should start blinking and after 5 seconds should start blinking faster.
-  - Release button.
+   - Ensure it is initially unpowered.
+   - Hold down the reset button (see figure below...).
+     ![Crazyflie2 Reset Button](../../assets/flight_controller/crazyflie/crazyflie_reset_button.jpg)
+   - Plug into computer's USB port.
+   - After a second, the blue LED should start blinking and after 5 seconds should start blinking faster.
+   - Release button.
 
 4. Install _dfu-util_:
 
-  ```sh
-  sudo apt-get update
-  sudo apt-get install dfu-util
-  ```
+   ```sh
+   sudo apt-get update
+   sudo apt-get install dfu-util
+   ```
 
 5. Flash bootloader using _dfu-util_ and unplug Crazyflie 2.0 when done:
 
-  ```sh
-  sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D ./build/crazyflie_bl/crazyflie_bl.bin
-  ```
+   ```sh
+   sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D ./build/crazyflie_bl/crazyflie_bl.bin
+   ```
 
-  When powering on the Crazyflie 2.0 the yellow LED should blink.
+   When powering on the Crazyflie 2.0 the yellow LED should blink.
 
 6. Download the source code of the PX4 autopilot:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git
+   ```
 
 7. Navigate into the top directory of the source code and compile it using:
 
-  ```sh
-  make bitcraze_crazyflie_default upload
-  ```
+   ```sh
+   make bitcraze_crazyflie_default upload
+   ```
 
 8. When prompted to plug in device, plug in Crazyflie 2.0.
-  The yellow LED should start blinking indicating bootloader mode.
-  Then the red LED should turn on indicating that the flashing process has started.
+   The yellow LED should start blinking indicating bootloader mode.
+   Then the red LED should turn on indicating that the flashing process has started.
 
 9. Wait for completion.
 
@@ -203,7 +203,7 @@ python cfbridge.py
 
 :::info
 _Cfbridge_ by default tries to initiate the radio link communication on channel 80 and with crazyflie address 0xE7E7E7E7E7.
-If you are using [multiple crazyflies and/or crazyradios](https://github.com/dennisss/cfbridge/blob/master/index.md#advanced-swarming) in the same room and want to use a different channel and/or address for each, first connect the crazyflie with QGroundControl via a USB cable and change the syslink parameters (channel, address) in QGroundControl.
+If you are using [multiple crazyflies and/or crazyradios](https://github.com/dennisss/cfbridge/blob/master/README.md#advanced-swarming) in the same room and want to use a different channel and/or address for each, first connect the crazyflie with QGroundControl via a USB cable and change the syslink parameters (channel, address) in QGroundControl.
 Next, launch the cfbridge by giving the same channel and address as the first and second arguments respectively, e.g: `python cfbridge.py 90 0x0202020202`
 :::
 
@@ -234,7 +234,7 @@ This is the rate at which Joystick commands are sent from QGroundControl to Craz
 Crazyflie 2.0 is able to fly with precise control in [Stabilized mode](../flight_modes_mc/manual_stabilized.md), [Altitude mode](../flight_modes_mc/altitude.md) and [Position mode](../flight_modes_mc/position.md).
 
 - You will need the [Z-ranger deck](https://store.bitcraze.io/collections/decks/products/z-ranger-deck) to fly in _Altitude_ mode.
-  If you also want to fly in the _Position_ mode, it is recommended you buy the [Flow deck](https://store.bitcraze.io/collections/decks/products/flow-deck) which also has the integrated Z-ranger sensor.
+  If you also want to fly in the _Position_ mode, it is recommended you buy the [Flow deck](https://store.bitcraze.io/products/flow-deck) which also has the integrated Z-ranger sensor.
 - The onboard barometer is highly susceptible to any external wind disturbances including those created by Crazyflie's own propellers. Hence, we isolated the barometer with a piece of foam, and then mounted the distance sensor on top of it as shown below:
 
 ![Crazyflie barometer](../../assets/flight_controller/crazyflie/crazyflie_barometer.jpg)
@@ -266,7 +266,7 @@ Since the onboard barometer is highly susceptible to wind disturbances created b
 
 ## Position Control
 
-With [Flow deck](https://store.bitcraze.io/collections/decks/products/flow-deck), you can fly Crazyflie 2.0 in _Position mode_.
+With [Flow deck](https://store.bitcraze.io/products/flow-deck), you can fly Crazyflie 2.0 in _Position mode_.
 Unlike [PX4FLOW](../sensor/px4flow.md), the flow deck does not house a gyro, hence the onboard gyro is used for flow fusion to find the local position estimates.
 Moreover, the flow deck shares the same SPI bus as the SD card deck, therefore logging at high rate on SD card is not recommended when flying in _Position mode_.
 

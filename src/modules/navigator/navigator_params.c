@@ -43,11 +43,14 @@
 /**
  * Loiter radius (FW only)
  *
- * Default value of loiter radius in FW mode (e.g. for Loiter mode).
+ * Default value of loiter radius in fixed-wing mode (e.g. for Loiter mode).
+ *
+ * The direction of the loiter can be set via the sign: A positive value for
+ * clockwise, negative for counter-clockwise.
  *
  * @unit m
- * @min 25
- * @max 1000
+ * @min -10000
+ * @max 10000
  * @decimal 1
  * @increment 0.5
  * @group Mission

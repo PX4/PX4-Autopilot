@@ -456,7 +456,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
 			&& in_forward_flight && !state.mission_finished;
 
-	// Manual control (RC) loss
+	// Manual control (RC or joystick) loss
 	if (!status_flags.manual_control_signal_lost) {
 		// If manual control was lost and arming was allowed, consider it optional until we regain manual control
 		_manual_control_lost_at_arming = false;
@@ -471,10 +471,24 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	const bool rc_loss_ignored_takeoff = (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 					      state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Hold);
+	const bool rc_loss_ignored_altitude_cruise = (state.user_intended_mode ==
+			vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE
+			&& (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::AltitudeCruise));
+
+	const bool rc_loss_ignored_external_mode =
+		(state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL2 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL3 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL4 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL5 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL6 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL7 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL8)
+		&& (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::ExternalMode);
 
 	const bool rc_loss_ignored = rc_loss_ignored_mission || rc_loss_ignored_loiter || rc_loss_ignored_offboard ||
-				     rc_loss_ignored_takeoff || ignore_any_link_loss_vtol_takeoff_fixedwing
-				     || _manual_control_lost_at_arming;
+				     rc_loss_ignored_takeoff || rc_loss_ignored_external_mode || ignore_any_link_loss_vtol_takeoff_fixedwing
+				     || _manual_control_lost_at_arming || rc_loss_ignored_altitude_cruise;
 
 	if (_param_com_rc_in_mode.get() != int32_t(RcInMode::StickInputDisabled) && !rc_loss_ignored) {
 		CHECK_FAILSAFE(status_flags, manual_control_signal_lost,
@@ -657,46 +671,20 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		}
 	}
 
-	// posctrl
-	switch (position_control_navigation_loss_response(_param_com_posctl_navl.get())) {
-	case position_control_navigation_loss_response::Altitude_Manual: // AltCtrl/Manual
-
-		// PosCtrl/PositionSlow -> AltCtrl
-		if ((user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
-		     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
-		    && !modeCanRun(status_flags, user_intended_mode)) {
-			action = Action::FallbackAltCtrl;
-			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
-		}
-
-		// AltCtrl -> Stabilized
-		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ALTCTL
-		    && !modeCanRun(status_flags, user_intended_mode)) {
-			action = Action::FallbackStab;
-			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
-		}
-
-		break;
-
-	case position_control_navigation_loss_response::Land_Descend: // Land/Terminate
-
-		// PosCtrl/PositionSlow -> Land
-		if ((user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
-		     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
-		    && !modeCanRun(status_flags, user_intended_mode)) {
-			action = Action::Land;
-			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-			// Land -> Descend
-			if (!modeCanRun(status_flags, user_intended_mode)) {
-				action = Action::Descend;
-				user_intended_mode = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-			}
-		}
-
-		break;
+	// PosCtrl/PositionSlow -> AltCtrl
+	if ((user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
+	     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
+	    && !modeCanRun(status_flags, user_intended_mode)) {
+		action = Action::FallbackAltCtrl;
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 	}
 
+	// AltCtrl -> Stabilized
+	if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ALTCTL
+	    && !modeCanRun(status_flags, user_intended_mode)) {
+		action = Action::FallbackStab;
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+	}
 
 	// Last, check can_run for intended mode
 	if (!modeCanRun(status_flags, user_intended_mode)) {

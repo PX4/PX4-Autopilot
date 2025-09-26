@@ -16,6 +16,26 @@ if MODULES_ZENOH
             2: INFO + ERROR
             3: DEBUG + INFO + ERROR
 
+    config ZENOH_DEFAULT_LOCATOR
+        string "Zenoh default mode"
+        default "tcp/127.0.0.1:7447" if PLATFORM_POSIX
+        default "" if !PLATFORM_POSIX
+
+    config ZENOH_RMW_LIVELINESS
+        bool "[EXPERIMENTAL] rmw_zenoh liveliness implemenation"
+        default y
+        ---help---
+                Declares liveliness tokens with key expressions in the way rmw_zenoh expects them
+                Allowing to construct ROS2 graphs
+
+    config ZENOH_PUB_ON_MATCHING
+        bool "[EXPERIMENTAL] Only publish data when having matching subscribers"
+        default n
+        ---help---
+                Uses the Zenoh matching feature to check whether a publisher has subscribers.
+                If so, only then publish the data. This is still experimental
+
+
     # Choose exactly one item
     choice ZENOH_PUBSUB_SELECTION
             prompt "Publishers/Subscribers selection"

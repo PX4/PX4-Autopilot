@@ -12,7 +12,7 @@ Crazyflie 2.1 може літати лише в режимі [Стабілізо
 :::
 
 Лінійка мікро-квадрокоптерів Crazyflie була створена компанією Bitcraze AB.
-Огляд Crazyflie 2.1 можна [знайти тут](https://www.bitcraze.io/products/crazyflie-2-1/).
+An overview of the Crazyflie 2.1 can be [found here](https://www.bitcraze.io/products/crazyflie-2-1-brushless/).
 
 ![Зображення Crazyflie2](../../assets/flight_controller/crazyflie21/crazyflie_2.1.jpg)
 
@@ -40,9 +40,9 @@ Crazyflie 2.1 може літати лише в режимі [Стабілізо
 
 Корисне периферійне обладнання включає в себе:
 
-- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/collections/kits/products/crazyradio-pa): використовується для бездротового зв'язку між _QGroundControl_ та Crazyflie 2.0
+- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/products/crazyradio-pa): Wireless communication between _QGroundControl_ and Crazyflie 2.0
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): плата розширення для підключення нових периферійних пристроїв.
-- [Flow deck v2](https://store.bitcraze.io/collections/decks/products/flow-deck-v2): Оптичний сенсор потоку та датчик відстані для управління висотою та позицією.
+- [Flow deck v2](https://store.bitcraze.io/products/flow-deck-v2): Optical flow sensor and a distance sensor for altitude and position control.
 - [Z-ranger deck v2](https://store.bitcraze.io/collections/decks/products/z-ranger-deck-v2): Датчик відстані для керування висотою (той самий датчик, що й Flow deck).
 - [Мульти-датчикова плата](https://store.bitcraze.io/collections/decks/products/multi-ranger-deck) Виявлення об'єктів у багатьох напрямках
 - [Бортовий динамік](https://store.bitcraze.io/collections/decks/products/buzzer-deck) Аудіоповідомлення про події в системі, такі як низький рівень заряду або завершення зарядки.
@@ -64,56 +64,56 @@ Crazyflie 2.1 може літати лише в режимі [Стабілізо
 
 1. Завантажте вихідний код завантажувача PX4:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Bootloader.git --recurse-submodules
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Bootloader.git --recurse-submodules
+   ```
 
 2. Перейдіть до верхньої директорії вихідного коду та скомпілюйте його за допомогою:
 
-  ```sh
-  make crazyflie21_bl
-  ```
+   ```sh
+   make crazyflie21_bl
+   ```
 
 3. Поставте Crazyflie 2.1 у режим DFU, виконавши ці кроки:
-  - Спочатку переконайтеся, що він знеструмлений.
-  - Переконайтеся, що акумулятор від'єднаний.
-  - Утримуйте кнопку скидання (див. малюнок нижче...).
-    ![Crazyflie2 Reset Button](../../assets/flight_controller/crazyflie/crazyflie_reset_button.jpg)
-  - Підключіть до USB-порту комп'ютера.
-  - Через секунду синій світлодіод повинен почати блимати, а через 5 секунд повинен почати блимати швидше.
-  - Відпустіть кнопку.
+   - Спочатку переконайтеся, що він знеструмлений.
+   - Переконайтеся, що акумулятор від'єднаний.
+   - Утримуйте кнопку скидання (див. малюнок нижче...).
+     ![Crazyflie2 Reset Button](../../assets/flight_controller/crazyflie/crazyflie_reset_button.jpg)
+   - Підключіть до USB-порту комп'ютера.
+   - Через секунду синій світлодіод повинен почати блимати, а через 5 секунд повинен почати блимати швидше.
+   - Відпустіть кнопку.
 
 4. Встановіть _dfu-util_:
 
-  ```sh
-  sudo apt-get update
-  sudo apt-get install dfu-util
-  ```
+   ```sh
+   sudo apt-get update
+   sudo apt-get install dfu-util
+   ```
 
 5. Виконайте прошивку завантажувальника за допомогою _dfu-util_ та від'єднайте Crazyflie 2.1, коли це зроблено:
 
-  ```sh
-  sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D ./build/crazyflie21_bl/crazyflie21_bl.bin
-  ```
+   ```sh
+   sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D ./build/crazyflie21_bl/crazyflie21_bl.bin
+   ```
 
-  Коли увімкнено Crazyflie 2.1, жовтий світлодіод повинен мигати.
+   Коли увімкнено Crazyflie 2.1, жовтий світлодіод повинен мигати.
 
 6. Завантажте вихідний код завантажувача автопілоту PX4:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git
+   ```
 
 7. Перейдіть до верхньої директорії вихідного коду та скомпілюйте його за допомогою:
 
-  ```sh
-  cd PX4-Autopilot/
-  make bitcraze_crazyflie21_default upload
-  ```
+   ```sh
+   cd PX4-Autopilot/
+   make bitcraze_crazyflie21_default upload
+   ```
 
 8. Коли вас попросять підключити пристрій, підключіть Crazyflie 2.1.
-  Жовтий світлодіод повинен почати блимати, що вказує на режим завантажувача.
-  Потім червоний світлодіод повинен увімкнутися, що вказує на те, що процес мигання розпочався.
+   Жовтий світлодіод повинен почати блимати, що вказує на режим завантажувача.
+   Потім червоний світлодіод повинен увімкнутися, що вказує на те, що процес мигання розпочався.
 
 9. Очікування завершення.
 
@@ -124,20 +124,20 @@ Crazyflie 2.1 може літати лише в режимі [Стабілізо
 1. Завантажте останній [завантажувач Crazyflie 2.1](https://github.com/bitcraze/crazyflie2-stm-bootloader/releases)
 
 2. Поставте Crazyflie 2.1 у режим DFU, виконавши ці кроки:
-  - Спочатку переконайтеся, що він знеструмлений.
-  - Переконайтеся, що акумулятор від'єднаний.
-  - Утримуйте кнопку скидання.
-  - Підключіть до USB-порту комп'ютера.
-  - Через секунду синій світлодіод повинен почати блимати, а через 5 секунд повинен почати блимати швидше.
-  - Відпустіть кнопку.
+   - Спочатку переконайтеся, що він знеструмлений.
+   - Переконайтеся, що акумулятор від'єднаний.
+   - Утримуйте кнопку скидання.
+   - Підключіть до USB-порту комп'ютера.
+   - Через секунду синій світлодіод повинен почати блимати, а через 5 секунд повинен почати блимати швидше.
+   - Відпустіть кнопку.
 
 3. Виконайте прошивку завантажувальника за допомогою _dfu-util_ та від'єднайте Crazyflie 2.1, коли це зроблено:
 
-  ```sh
-  sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D cf2loader-1.0.bin
-  ```
+   ```sh
+   sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D cf2loader-1.0.bin
+   ```
 
-  Коли увімкнено Crazyflie 2.1, жовтий світлодіод повинен мигати.
+   Коли увімкнено Crazyflie 2.1, жовтий світлодіод повинен мигати.
 
 4. Встановіть останнє програмне забезпечення для польоту Bitcraze Crazyflie 2.1, використовуючи [цей](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/#update-fw) посібник.
 
@@ -220,7 +220,7 @@ Crazyflie 2.1 може літати лише в режимі [Стабілізо
 
   ::: info
   _Cfbridge_ за замовчуванням намагається ініціювати комунікацію радіоканалу на каналі 80 та з адресою crazyflie 0xE7E7E7E7E7.
-  Якщо ви використовуєте [кілька crazyflies та/або crazyradios](https://github.com/dennisss/cfbridge/blob/master/index.md#advanced-swarming) в одній кімнаті і хочете використовувати різні канали та/або адреси для кожного, спочатку підключіть crazyflie до QGroundControl через USB-кабель і змініть параметри syslink (канал, адреса) в QGroundControl.
+  If you are using [multiple crazyflies and/or crazyradios](https://github.com/dennisss/cfbridge/blob/master/README.md#advanced-swarming) in the same room and want to use a different channel and/or address for each, first connect the crazyflie with QGroundControl via a USB cable and change the syslink parameters (channel, address) in QGroundControl.
   Після цього запустіть cfbridge, надаючи той самий канал та адресу як перший та другий аргументи відповідно, наприклад: `python cfbridge.py 90 0x0202020202`
 
 :::

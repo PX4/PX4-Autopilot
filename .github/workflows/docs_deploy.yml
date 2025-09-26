@@ -7,11 +7,15 @@ on:
       - 'release/**'
     paths:
       - 'docs/en/**'
+      - 'docs/uk/**'
+      - 'docs/zh/**'
   pull_request:
     branches:
       - '**'
     paths:
       - 'docs/en/**'
+      - 'docs/uk/**'
+      - 'docs/zh/**'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:

@@ -66,7 +66,7 @@ void UavcanArmingStatus::periodic_update(const uavcan::TimerEvent &)
 	if (_actuator_armed_sub.update(&actuator_armed)) {
 		uavcan::equipment::safety::ArmingStatus cmd;
 
-		if (actuator_armed.lockdown || actuator_armed.manual_lockdown) {
+		if (actuator_armed.lockdown || actuator_armed.kill) {
 			cmd.status = cmd.STATUS_DISARMED;
 
 		} else if (actuator_armed.armed) {

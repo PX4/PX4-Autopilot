@@ -90,9 +90,7 @@ For more information see: [Durandal Technical Data Sheet](https://cdn.shopify.co
 
 ## Where to Buy
 
-Order from [Holybro](https://holybro.com/collections/autopilot-flight-controllers/products/durandal).
-
-<a id="connections"></a>
+Order from [Holybro](https://holybro.com/products/durandal).
 
 ## Connections
 
@@ -182,9 +180,7 @@ make holybro_durandal-v1_default
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the _Debug Port_.
 

@@ -93,9 +93,9 @@ bool FixedwingLandDetector::_get_landed_state()
 		airspeed_validated_s airspeed_validated{};
 		_airspeed_validated_sub.copy(&airspeed_validated);
 
-		const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_1
-						  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_2
-						  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_3;
+		const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_1
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_2
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_3;
 
 		bool airspeed_invalid = false;
 

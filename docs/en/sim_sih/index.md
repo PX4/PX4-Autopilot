@@ -28,6 +28,7 @@ The Desktop computer is only used to display the virtual vehicle.
 - SIH as SITL (without hardware) from PX4 v1.14.
 - SIH for Standard VTOL from PX4 v1.16.
 - SIH for MC Hexacopter X from `main` (expected to be PX4 v1.17).
+- SIH for Ackermann Rover from `main`.
 
 ### Benefits
 
@@ -122,6 +123,10 @@ make px4_fmu-v6x boardconfig
 
 After uploading, check that the required modules are present.
 
+::: note
+To use rover in SIH you must use the [rover build](../config_rover/index.md#flashing-the-rover-build) or add the rover modules to your board configuration.
+:::
+
 ## Starting SIH
 
 To set up/start SIH:
@@ -134,6 +139,7 @@ To set up/start SIH:
    - [SIH plane AERT](../airframes/airframe_reference.md#plane_simulation_sih_plane_aert)
    - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
    - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
+   - [SIH Ackermann Rover](../airframes/airframe_reference.md#rover_rover_sih_rover_ackermann)
 
 The autopilot will then reboot.
 The `sih` module is started on reboot, and the vehicle should be displayed on the ground control station map.
@@ -213,6 +219,12 @@ To run SIH as SITL:
 
      ```sh
      make px4_sitl sihsim_standard_vtol
+     ```
+
+   - Ackermann Rover
+
+     ```sh
+     make px4_sitl sihsim_rover_ackermann
      ```
 
 ### Change Simulation Speed
@@ -304,6 +316,43 @@ For SIH as SITL (no FC):
 
 For specific examples see the `_sihsim_` airframes in [ROMFS/px4fmu_common/init.d-posix/airframes](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/airframes/) (SIH as SITL) and [ROMFS/px4fmu_common/init.d/airframes](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d/airframes) (SIH on FC).
 
+## Controlling Actuators in SIH
+
+:::warning
+If you want to control throttling actuators in SIH, make sure to remove propellers for safety.
+:::
+
+In some scenarios, it may be useful to control an actuator while running SIH. For example, you might want to verify that winches or grippers are functioning correctly by checking the servo responses.
+
+To enable actuator control in SIH:
+
+1. Configure PWM parameters in the airframe file:
+
+Ensure your airframe file includes the necessary parameters to map PWM outputs to the correct channels.
+
+For example, if a servo is connected to MAIN 3 and you want to map it to AUX1 on your RC, use the following command:
+
+`param set-default PWM_MAIN_FUNC3 407`
+
+You can find a full list of available values for `PWM_MAIN_FUNCn` [here](../advanced_config/parameter_reference.md#PWM_MAIN_FUNC1). In this case, `407` maps the MAIN 3 output to AUX1 on the RC.
+
+Alternatively, you can use the [`PWM_AUX_FUNCn`](../advanced_config/parameter_reference.md#PWM_AUX_FUNC1) parameters.
+
+You may also configure the output as desired:
+- Disarmed PWM: ([`PWM_MAIN_DISn`](../advanced_config/parameter_reference.md#PWM_MAIN_DIS1) / [`PWM_AUX_DIS1`](../advanced_config/parameter_reference.md#PWM_AUX_DIS1))
+- Minimum PWM ([`PWM_MAIN_MINn`](../advanced_config/parameter_reference.md#PWM_MAIN_MIN1) / [`PWM_AUX_MINn`](../advanced_config/parameter_reference.md#PWM_AUX_MIN1))
+- Maximum PWM ([`PWM_MAIN_MAXn`](../advanced_config/parameter_reference.md#PWM_MAIN_MAX1) / [`PWM_AUX_MAXn`](../advanced_config/parameter_reference.md#PWM_AUX_MAX1))
+
+2. Manually start the PWM output driver
+
+For safety, the PWM driver is not started automatically in SIH. To enable it, run the following command in the MAVLink shell:
+
+`pwm_out start`
+
+And to disable it again:
+
+`pwm_out stop`
+
 ## Dynamic Models
 
 The dynamic models for the various vehicles are:
@@ -312,6 +361,7 @@ The dynamic models for the various vehicles are:
 - Hexacopter: Equivalent to the Quadcopter but with a symmetric hexacopter x actuation setup.
 - Fixed-wing: Inspired by the PhD thesis: "Dynamics modeling of agile fixed-wing unmanned aerial vehicles." Khan, Waqas, supervised by Nahon, Meyer, McGill University, PhD thesis, 2016.
 - Tailsitter: Inspired by the master's thesis: "Modeling and control of a flying wing tailsitter unmanned aerial vehicle." Chiappinelli, Romain, supervised by Nahon, Meyer, McGill University, Masters thesis, 2018.
+- Ackermann Rover: Based on lateral vehicle dynamics of the bicycle model adapted from [Sri Anumakonda, Everything you need to know about Self-Driving Cars in <30 minutes](https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427)
 
 ## Video
 

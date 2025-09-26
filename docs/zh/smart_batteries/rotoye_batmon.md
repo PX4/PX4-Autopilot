@@ -3,11 +3,6 @@
 [Rotoye 电池监测器](https://rotoye.com/batmon/) 是一款套件，用于为现成的锂离子和锂聚合物电池增添智能电池功能。
 It can be purchased as a standalone unit or as part of a factory-assembled smart-battery.
 
-:::info
-At time of writing you can only use Batmon by [building a custom branch of PX4](#build-px4-firmware).
-Support in the codeline is pending [PR approval](https://github.com/PX4/PX4-Autopilot/pull/16723).
-:::
-
 ![Rotoye 电池监控板](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye.jpg)
 
 ![组装的罗托耶智能电池](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye-pack.jpg)

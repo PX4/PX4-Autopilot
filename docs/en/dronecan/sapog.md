@@ -8,30 +8,7 @@ While it can be controlled using traditional PWM input, it is designed to operat
 
 Multiple vendors sell ESC hardware that runs sapog firmware:
 
-- [Zubax Orel 20](https://zubax.com/products/orel_20)
 - [Holybro Kotleta20](https://holybro.com/products/kotleta20)
-
-<style>
-#image_container {
-  height: 100%;
-  width: 100%;
-  display: flex;
-}
-.image_column {
-  width: 33%;
-  text-align: center;
-}
-
-</style>
-
-<div id="image_container">
-  <div class="image_column">
-  <img src="../../assets/peripherals/esc_uavcan_zubax_orel20/orel20_top.jpg" alt="Orel20 - Top"/><br><a href="https://zubax.com/products/orel_20">Zubax Orel 20</a>
-  </div>
-  <div class="image_column">
-    <img src="../../assets/peripherals/esc_uavcan_holybro_kotleta20/kotleta20_top.jpg" alt="Holybro Kotleta20 top" /><br><a href="https://holybro.com/products/kotleta20">Holybro Kotleta20</a>
-  </div>
-</div>
 
 ## Hardware Setup
 
@@ -123,4 +100,4 @@ See [DroneCAN Troubleshooting](index.md#troubleshooting)
 
 - [PX4/Sapog](https://github.com/PX4/sapog#px4-sapog) (Github)
 - [Sapog v2 Reference Manual](https://files.zubax.com/products/io.px4.sapog/Sapog_v2_Reference_Manual.pdf)
-- [Using Sapog based ESC with PX4](https://kb.zubax.com/display/MAINKB/Using+Sapog-based+ESC+with+PX4) (Zubax KB)
+- [Using Telega-based controllers with PX4 autopilots](https://wiki.zubax.com/public/telega/telega-v0-legacy/Using-Telega-based-controllers-with-PX4-autopilots) (Zubax KB)

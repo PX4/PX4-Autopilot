@@ -368,7 +368,7 @@ void Navigator::run()
 
 
 						} else {
-							rep->current.loiter_radius = get_loiter_radius();
+							rep->current.loiter_radius = get_default_loiter_rad();
 						}
 
 						if (PX4_ISFINITE(curr->current.loiter_minor_radius) && fabsf(curr->current.loiter_minor_radius) > FLT_EPSILON) {
@@ -471,7 +471,7 @@ void Navigator::run()
 						rep->current.loiter_radius = curr->current.loiter_radius;
 
 					} else {
-						rep->current.loiter_radius = get_loiter_radius();
+						rep->current.loiter_radius = get_default_loiter_rad();
 					}
 
 					rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
@@ -509,8 +509,8 @@ void Navigator::run()
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-					rep->current.loiter_radius = get_loiter_radius();
-					rep->current.loiter_direction_counter_clockwise = false;
+					rep->current.loiter_radius = get_default_loiter_rad();
+					rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 					rep->current.loiter_orientation = 0.0f;
 					rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_ORBIT;
 					rep->current.cruising_throttle = get_cruising_throttle();
@@ -525,7 +525,7 @@ void Navigator::run()
 
 					if (PX4_ISFINITE(cmd.param1)) {
 						rep->current.loiter_radius = fabsf(cmd.param1);
-						rep->current.loiter_direction_counter_clockwise = cmd.param1 < 0;
+						rep->current.loiter_direction_counter_clockwise = cmd.param1 < -FLT_EPSILON;
 					}
 
 					rep->current.lat = position_setpoint.lat;
@@ -557,8 +557,8 @@ void Navigator::run()
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-					rep->current.loiter_minor_radius = fabsf(get_loiter_radius());
-					rep->current.loiter_direction_counter_clockwise = get_loiter_radius() < 0;
+					rep->current.loiter_minor_radius = fabsf(get_default_loiter_rad());
+					rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 					rep->current.loiter_orientation = 0.0f;
 					rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_FIGUREEIGHT;
 					rep->current.cruising_speed = get_cruising_speed();
@@ -571,7 +571,7 @@ void Navigator::run()
 
 					if (PX4_ISFINITE(cmd.param1)) {
 						rep->current.loiter_radius = fabsf(cmd.param1);
-						rep->current.loiter_direction_counter_clockwise = cmd.param1 < 0;
+						rep->current.loiter_direction_counter_clockwise = cmd.param1 < -FLT_EPSILON;
 					}
 
 					rep->current.loiter_radius = math::max(rep->current.loiter_radius, 2.0f * rep->current.loiter_minor_radius);
@@ -604,8 +604,8 @@ void Navigator::run()
 				rep->previous.lon = get_global_position()->lon;
 				rep->previous.alt = get_global_position()->alt;
 
-				rep->current.loiter_radius = get_loiter_radius();
-				rep->current.loiter_direction_counter_clockwise = false;
+				rep->current.loiter_radius = get_default_loiter_rad();
+				rep->current.loiter_direction_counter_clockwise = get_default_loiter_CCW();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 				rep->current.cruising_speed = -1.f; // reset to default
 
@@ -639,6 +639,10 @@ void Navigator::run()
 				rep->current.timestamp = hrt_absolute_time();
 
 				rep->next.valid = false;
+
+				// Fixed-wing: vehicle will takeoff towards these coordinates and establish on a loiter there
+				_takeoff.setLoiterPosition(matrix::Vector2d(cmd.param5, cmd.param6));
+				_takeoff.setLoiterAltitudeAmsl(cmd.param7);
 
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
@@ -819,6 +823,7 @@ void Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+		case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
 		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
@@ -900,6 +905,8 @@ void Navigator::run()
 			publish_mission_result();
 		}
 
+		neutralize_gimbal_if_control_activated();
+
 		publish_navigator_status();
 
 		publish_distance_sensor_mode_request();
@@ -937,7 +944,7 @@ void Navigator::geofence_breach_check()
 			vertical_test_point_distance = _gf_breach_avoidance.computeVerticalBrakingDistanceMultirotor();
 
 		} else {
-			test_point_distance = 2.0f * get_loiter_radius();
+			test_point_distance = 2.0f * get_default_loiter_rad();
 			vertical_test_point_distance = 5.0f;
 
 			if (hrt_absolute_time() - pos_ctrl_status.timestamp < 100000 && PX4_ISFINITE(pos_ctrl_status.nav_bearing)) {
@@ -1052,7 +1059,7 @@ void Navigator::geofence_breach_check()
 				rep->current.lon = loiter_longitude;
 				rep->current.alt = loiter_altitude_amsl;
 				rep->current.valid = true;
-				rep->current.loiter_radius = get_loiter_radius();
+				rep->current.loiter_radius = get_default_loiter_rad();
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 				rep->current.cruising_throttle = get_cruising_throttle();
 				rep->current.acceptance_radius = get_acceptance_radius();
@@ -1169,7 +1176,7 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.lat = static_cast<double>(NAN);
 	sp.lon = static_cast<double>(NAN);
 	sp.yaw = NAN;
-	sp.loiter_radius = get_loiter_radius();
+	sp.loiter_radius = get_default_loiter_rad();
 	sp.acceptance_radius = get_default_acceptance_radius();
 	sp.cruising_speed = get_cruising_speed();
 	sp.cruising_throttle = get_cruising_throttle();
@@ -1623,6 +1630,27 @@ void Navigator::set_gimbal_neutral()
 	vehicle_command.param4 = NAN;
 	vehicle_command.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
 	publish_vehicle_command(vehicle_command);
+}
+
+void Navigator::activate_set_gimbal_neutral_timer(const hrt_abstime timestamp)
+{
+	if (_gimbal_neutral_activation_time == UINT64_MAX) {
+		_gimbal_neutral_activation_time = timestamp;
+	}
+}
+
+void Navigator::neutralize_gimbal_if_control_activated()
+{
+	const hrt_abstime now{hrt_absolute_time()};
+
+	// The time delay must be sufficiently long to allow flight tasks to complete its
+	// destruction and release gimbal control before the navigator takes control of the gimbal.
+	if (_gimbal_neutral_activation_time != UINT64_MAX && now > _gimbal_neutral_activation_time + 250_ms) {
+		acquire_gimbal_control();
+		set_gimbal_neutral();
+		release_gimbal_control();
+		_gimbal_neutral_activation_time = UINT64_MAX;
+	}
 }
 
 void Navigator::sendWarningDescentStoppedDueToTerrain()

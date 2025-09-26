@@ -27,18 +27,18 @@ Before calibration they must be [enabled via the corresponding parameter](../adv
 
 4. Click the **Airspeed** sensor button.
 
-  ![Airspeed calibration](../../assets/qgc/setup/sensor/sensor_airspeed.jpg)
+   ![Airspeed calibration](../../assets/qgc/setup/sensor/sensor_airspeed.jpg)
 
 5. Захистіть сенсор від вітру (тобто закрийте його рукою).
-  Пильнуйте, щоб не заблокувати жодного з отворів.
+   Пильнуйте, щоб не заблокувати жодного з отворів.
 
 6. Click **OK** to start the calibration.
 
 7. Після запиту, дмухніть у кінець труби пітота, щоб сигналізувати про завершення калібрування.
 
-  :::tip
-  Blowing into the tube is also a basic check that the dynamic and static ports are installed correctly.
-  Якщо вони будуть поміняні місцями, то датчик буде відображати великий від'ємний перепад тиску, коли ви дмухаєте в трубку, і калібрування завершиться з помилкою.
+   :::tip
+   Blowing into the tube is also a basic check that the dynamic and static ports are installed correctly.
+   Якщо вони будуть поміняні місцями, то датчик буде відображати великий від'ємний перепад тиску, коли ви дмухаєте в трубку, і калібрування завершиться з помилкою.
 
 :::
 
@@ -46,4 +46,5 @@ Before calibration they must be [enabled via the corresponding parameter](../adv
 
 ## Подальша інформація
 
+- [Airspeed Validation](../advanced_config/airspeed_validation.md).
 - [QGroundControl User Guide > Sensors](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/sensors_px4.html#airspeed)

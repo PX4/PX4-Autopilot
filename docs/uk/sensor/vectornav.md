@@ -61,18 +61,18 @@ PX4 може використовувати це як [зовнішній INS] (
 5. Налаштуйте водія як зовнішній INS або надайте сирові дані:
 
    - Якщо використовувати VectorNav як зовнішній INS, встановіть [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) на `INS`.
-      Це вимикає EKF2.
+     Це вимикає EKF2.
    - Якщо використовувати VectorNav як зовнішні інерційні сенсори:
 
-      1. Встановіть [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) на `Sensors Only`
-      2. Якщо внутрішні датчики увімкнені, пріоритетом є датчики VectorNav за допомогою [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), де _n_ - це номер екземпляра компонента ІМП (0, 1 і т.д.).
+     1. Встановіть [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) на `Sensors Only`
+     2. Якщо внутрішні датчики увімкнені, пріоритетом є датчики VectorNav за допомогою [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), де _n_ - це номер екземпляра компонента ІМП (0, 1 і т.д.).
 
-      :::tip
-      У більшості випадків зовнішній IMU (VN) має найвищий номер.
-      Ви можете отримати список доступних компонентів IMU, використовуючи [`uorb top -1`](../middleware/uorb.md#uorb-top-command), ви можете відрізняти їх за допомогою команди [`listener`](../modules/modules_command.md#listener) та розглядаючи дані чи просто швидкості.
+     :::tip
+     У більшості випадків зовнішній IMU (VN) має найвищий номер.
+     Ви можете отримати список доступних компонентів IMU, використовуючи [`uorb top -1`](../middleware/uorb.md#uorb-top-command), ви можете відрізняти їх за допомогою команди [`listener`](../modules/modules_command.md#listener) та розглядаючи дані чи просто швидкості.
 
-      За потреби ви можете перевірити [CAL_GYROn_ID](../advanced_config/parameter_reference.md#CAL_GYRO0_ID), щоб побачити ідентифікатор пристрою.
-      Пріоритет становить 0-255, де 0 абсолютно вимкнено, а 255 - найвищий пріоритет.
+     За потреби ви можете перевірити [CAL_GYROn_ID](../advanced_config/parameter_reference.md#CAL_GYRO0_ID), щоб побачити ідентифікатор пристрою.
+     Пріоритет становить 0-255, де 0 абсолютно вимкнено, а 255 - найвищий пріоритет.
 
 :::
 

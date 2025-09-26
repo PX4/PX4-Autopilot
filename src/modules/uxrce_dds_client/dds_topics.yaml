@@ -97,6 +97,10 @@ publications:
     type: px4_msgs::msg::HomePosition
     rate_limit: 5.
 
+  - topic: /fmu/out/wind
+    type: px4_msgs::msg::Wind
+    rate_limit: 1.
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -195,8 +199,8 @@ subscriptions:
   - topic: /fmu/in/rover_position_setpoint
     type: px4_msgs::msg::RoverPositionSetpoint
 
-  - topic: /fmu/in/rover_velocity_setpoint
-    type: px4_msgs::msg::RoverVelocitySetpoint
+  - topic: /fmu/in/rover_speed_setpoint
+    type: px4_msgs::msg::RoverSpeedSetpoint
 
   - topic: /fmu/in/rover_attitude_setpoint
     type: px4_msgs::msg::RoverAttitudeSetpoint
@@ -209,6 +213,9 @@ subscriptions:
 
   - topic: /fmu/in/rover_steering_setpoint
     type: px4_msgs::msg::RoverSteeringSetpoint
+
+  - topic: /fmu/in/landing_gear
+    type: px4_msgs::msg::LandingGear
 
 # Create uORB::PublicationMulti
 subscriptions_multi:

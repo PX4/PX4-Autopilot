@@ -118,7 +118,7 @@ PX4 підтримує наступні команди MAVLink для камер
 | 1     | Вмикає інтерфейс GPIO. AUX виходи дають періодичний високий або низький сигнал (в залежності від параметра `TRIG_POLARITY`) кожен інтервал часу [TRIG_INTERVAL](../advanced_config/parameter_reference.md#TRIG_INTERVAL). Це може бути використано для безпосереднього спуску більшості стандартних камер машинного зору. Зверніть увагу, що на апаратному забезпеченні серії PX4FMU (Pixhawk, Pixracer тощо) рівень сигналу на AUX контактах становить 3,3 В.                                                                             |
 | 2     | Вмикає інтерфейс Seagull MAP2. This allows the use of the [Seagull MAP2](https://www.seagulluav.com/product/seagull-map2/) to interface to a multitude of supported cameras. Контакт/канал 1 (спуск камери) так контакт/канал 2 (селектор режиму) MAP2 повинні бути підключені до [контактів спрацювання камери](#trigger-output-pin-configuration) з налаштованим низьким та високим сигналом. За допомогою Seagull MAP2, PX4 також підтримує автоматичний контроль потужності та функційність утримання в робочому стані камер Sony Multiport, таких як QX-1. |
 | 3     | Цей режим дозволяє використовувати камери MAVLink, які використовували старі інтерфейси [описані вище](#mavlink-command-interface). Повідомлення автоматично видаються на каналі `onboard` MAVLink під час знаходження їх в місіях. PX4 випускає повідомлення MAVLink `CAMERA_TRIGGER`, коли спрацьовує камера, за замовчуванням на канал `onboard` (якщо він не використовується, буде потрібно ввімкнути власний потік). [Прості камери MAVLink](../camera/mavlink_v1_camera.md) пояснюють цей випадок більш детально.                                                           |
-| 4     | Вмикає загальний інтерфейс ШІМ. Це дозволяє використовувати [інфрачервоні спускові пристрої](https://hobbyking.com/en_us/universal-remote-control-infrared-shutter-ir-rc-1g.html) або сервоприводи для спуску камери.                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 4     | Вмикає загальний інтерфейс ШІМ. This allows the use of [infrared triggers](https://www.seagulluav.com/product/seagull-ir/) or servos to trigger your camera.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### Налаштування вихідних контактів спуску
 
@@ -188,16 +188,16 @@ PX4 видає повідомлення MAVLink [CAMERA_TRIGGER](https://mavlink
 
 1. На консолі PX4:
 
-  ```shell
-  camera_trigger test
-  ```
+   ```shell
+   camera_trigger test
+   ```
 
 2. Від _QGroundControl_:
 
-  Клацніть на **Запуск камери** на головній панелі інструментів.
-  Ці знімки не відображаються або не підраховуються для геотегування.
+   Клацніть на **Запуск камери** на головній панелі інструментів.
+   Ці знімки не відображаються або не підраховуються для геотегування.
 
-  ![QGC Тестова Камера](../../assets/camera/qgc_test_camera.png)
+   ![QGC Тестова Камера](../../assets/camera/qgc_test_camera.png)
 
 ## Приклад Sony QX-1 (Фотограметрія)
 
@@ -246,7 +246,7 @@ PX4 видає повідомлення MAVLink [CAMERA_TRIGGER](https://mavlink
 
 ### Реконструкція
 
-Ми використовуємо [Pix4D](https://pix4d.com/) для реконструкції у 3D.
+We use [Pix4D](https://www.pix4d.com/) for 3D reconstruction.
 
 ![Геомаркування](../../assets/camera/geotag.jpg)
 

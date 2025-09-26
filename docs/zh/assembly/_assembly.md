@@ -72,7 +72,7 @@ The FCs have much the same ports with similar names, and core peripherals are co
 | Full GPS plus Safety Switch | GPS1                             | GPS&SAFETY   | Primary GNSS module (GPS, compass, safety switch, buzzer, LED)   |
 | Basic GPS                   | GPS2                             | GPS2                             | Secondary GNSS module (GNSS/compass)                             |
 | CAN                         | CAN1/CAN2                        | CAN1/CAN2                        | DroneCAN devices, such as GNSS modules, motors, etc                                 |
-| Telemetry                   | TELEM (1,2,3) | TELEM (1,2,3) | Telemetry radios, companion computers, MAVLink cameras, etc.        |
+| 数传                          | TELEM (1,2,3) | TELEM (1,2,3) | Telemetry radios, companion computers, MAVLink cameras, etc.        |
 | Analog Power                | POWER (1,2)   | POWER (1,2)   | SMbus (I2C) power modules                                        |
 | I2C                         | I2C                              | None                             | Other I2C peripherals                                                               |
 | SPI                         | SPI                              | SPI6                             | SPI devices (note: 11 pin, not 6 as in standard) |
@@ -291,7 +291,7 @@ If you're using [DroneCAN ESC](../peripherals/esc_motors.md#dronecan) the contro
 ### Flight Controller Power
 
 Pixhawk FCs require a regulated power supply that can supply at around 5V/3A continuous (check your specific FC)!
-This is sufficient to power the controller itself and a few low-power peripherals, such as a GNSS module, RC transmitter, and low power telemetry radio, but not for motors, actuators, and other peripherals.
+This is sufficient to power the controller itself and a few low-power peripherals, such as a GNSS module, RC receiver, and low power telemetry radio, but not for motors, actuators, and other peripherals.
 
 [Power modules](../power_module/index.md) are commonly used to "split off" this regulated power supply for the FC and also to provide measurements of the battery voltage and total current to the whole system — which PX4 can use to estimate power levels.
 The power module is connected to the FC power port, which is normally labeled `POWER` (or `POWER 1` or `POWER 2` for FCs that have redundant power supply).

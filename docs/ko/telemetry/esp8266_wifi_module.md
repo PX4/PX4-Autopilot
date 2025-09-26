@@ -16,8 +16,7 @@ ESP8266 모듈은 여러 곳에서 쉽게 구매할 수 있습니다.
 
 3.3V 사용 모듈:
 
-- [WRL-17146](https://www.sparkfun.com/products/13678) (Sparkfun)
-- [AI Cloud](https://us.gearbest.com/boards-shields/pp_009604906563.html) - discontinued (GearBeast)
+- [WRL-17146](https://www.sparkfun.com/wifi-module-esp8266-4mb-flash.html) (Sparkfun)
 
 5.0V 사용 모듈:
 

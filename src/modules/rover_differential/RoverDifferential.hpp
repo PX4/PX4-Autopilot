@@ -47,12 +47,13 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
 
 // Local includes
 #include "DifferentialActControl/DifferentialActControl.hpp"
 #include "DifferentialRateControl/DifferentialRateControl.hpp"
 #include "DifferentialAttControl/DifferentialAttControl.hpp"
-#include "DifferentialVelControl/DifferentialVelControl.hpp"
+#include "DifferentialSpeedControl/DifferentialSpeedControl.hpp"
 #include "DifferentialPosControl/DifferentialPosControl.hpp"
 #include "DifferentialDriveModes/DifferentialAutoMode/DifferentialAutoMode.hpp"
 #include "DifferentialDriveModes/DifferentialManualMode/DifferentialManualMode.hpp"
@@ -89,9 +90,9 @@ private:
 	void Run() override;
 
 	/**
-	 * @brief Handle manual control
+	 * @brief Generate rover setpoints from supported PX4 internal modes
 	 */
-	void manualControl();
+	void generateSetpoints();
 
 	/**
 	 * @brief Update the controllers
@@ -114,6 +115,7 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
@@ -121,7 +123,7 @@ private:
 	DifferentialActControl   _differential_act_control{this};
 	DifferentialRateControl  _differential_rate_control{this};
 	DifferentialAttControl   _differential_att_control{this};
-	DifferentialVelControl   _differential_vel_control{this};
+	DifferentialSpeedControl   _differential_speed_control{this};
 	DifferentialPosControl   _differential_pos_control{this};
 	DifferentialAutoMode	 _auto_mode{this};
 	DifferentialManualMode 	 _manual_mode{this};

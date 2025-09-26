@@ -32,12 +32,12 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Де купити
 
-Pixracer is available from the [mRobotics.io](https://store.mrobotics.io/mRo-PixRacer-R15-Official-p/m10023a.htm).
+Pixracer Pro is available from the [store.3dr.com](https://store.3dr.com/pixracer-pro/).
 
 Аксесуари в комплекті:
 
 - [Digital airspeed sensor](https://hobbyking.com/en_us/hkpilot-32-digital-air-speed-sensor-and-pitot-tube-set.html)
-- [Hobbyking<sup>&reg;</sup> OSD + EU Telemetry (433 MHz)](https://hobbyking.com/en_us/micro-hkpilot-telemetry-radio-module-with-on-screen-display-osd-unit-433mhz.html)
+- Hobbyking<sup>&reg;</sup> OSD + EU Telemetry (433 MHz) (Discontinued)
 
 ## Набір
 

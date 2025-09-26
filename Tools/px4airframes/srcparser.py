@@ -14,7 +14,6 @@ class AirframeGroup(object):
         self.af_class = af_class
         self.airframes = []
 
-
     def AddAirframe(self, airframe):
         """
         Add airframe to the airframe group
@@ -107,6 +106,8 @@ class AirframeGroup(object):
             return "Balloon"
         elif (self.type == "Vectored 6 DOF UUV"):
             return "Vectored6DofUUV"
+        elif self.type == "Free-Flyer":
+            return "FreeFlyer"
         return "AirframeUnknown"
 
     def GetAirframes(self):
