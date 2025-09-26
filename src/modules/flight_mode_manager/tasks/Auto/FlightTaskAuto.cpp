@@ -782,6 +782,12 @@ void FlightTaskAuto::_updateTrajConstraints()
 	_position_smoothing.setCruiseSpeed(_mc_cruise_speed);
 	_position_smoothing.setHorizontalTrajectoryGain(_param_mpc_xy_traj_p.get());
 	_position_smoothing.setTargetAcceptanceRadius(_target_acceptance_radius);
+	_position_smoothing.setMaxSpeedAndAccelerationZ(
+		_param_mpc_z_v_auto_up.get(),
+		_param_mpc_z_v_auto_dn.get(),
+		_param_mpc_acc_up_max.get(),
+		_param_mpc_acc_down_max.get()
+	);
 
 	// Update the constraints of the trajectories
 	_position_smoothing.setMaxAccelerationXY(_param_mpc_acc_hor.get()); // TODO : Should be computed using heading
