@@ -74,21 +74,35 @@ TEMPLATE_FILE = ['msg.h.em', 'msg.cpp.em', 'uorb_idl_header.h.em', 'msg.json.em'
 TOPICS_LIST_TEMPLATE_FILE = ['uORBTopics.hpp.em', 'uORBTopics.cpp.em', None, None]
 INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
-TOPICS_TOKEN = '# TOPICS '
+TOPICS_TOKEN = '# TOPICS'
 
 
-def get_topics(filename):
+def get_topics(filename, defines=None):
     """
     Get TOPICS names from a "# TOPICS" line
     """
     ofile = open(filename, 'r')
     text = ofile.read()
     result = []
+    defined_configs = set(defines or [])
     for each_line in text.split('\n'):
         if each_line.startswith(TOPICS_TOKEN):
-            topic_names_str = each_line.strip()
-            topic_names_str = topic_names_str.replace(TOPICS_TOKEN, "")
-            topic_names_list = topic_names_str.split(" ")
+            topic_names_str = each_line[len(TOPICS_TOKEN):].strip()
+
+            config_guard = None
+            if topic_names_str.startswith('['):
+                closing_idx = topic_names_str.find(']')
+                if closing_idx != -1:
+                    config_guard = topic_names_str[1:closing_idx]
+                    topic_names_str = topic_names_str[closing_idx + 1:].strip()
+
+            if config_guard and config_guard not in defined_configs:
+                continue
+
+            if not topic_names_str:
+                continue
+
+            topic_names_list = topic_names_str.split()
             for topic in topic_names_list:
                 # topic name PascalCase (file name) to snake_case (topic name)
                 topic_name = re.sub(r'(?<!^)(?=[A-Z])', '_', topic).lower()
@@ -104,7 +118,7 @@ def get_topics(filename):
     return result
 
 
-def generate_output_from_file(format_idx, filename, outputdir, package, templatedir, includepath, all_topics):
+def generate_output_from_file(format_idx, filename, outputdir, package, templatedir, includepath, all_topics, defines=None):
     """
     Converts a single .msg file to an uorb header/source file
     """
@@ -137,7 +151,7 @@ def generate_output_from_file(format_idx, filename, outputdir, package, template
               " msg definition is not of type uint64 but rather of type " + field_name_and_type.get('timestamp') + "!")
         exit(1)
 
-    topics = get_topics(filename)
+    topics = get_topics(filename, defines)
 
     if includepath:
         search_path = genmsg.command_line.includepath_to_dict(includepath)
@@ -235,6 +249,8 @@ if __name__ == "__main__":
     parser.add_argument('-p', dest='prefix', default='',
                         help='string added as prefix to the output file '
                         ' name when converting directories')
+    parser.add_argument('--define', dest='define', action='append', default=[],
+                        help='Enable optional topic groups guarded by the provided Kconfig symbols')
     args = parser.parse_args()
 
     if args.include_paths:
@@ -252,13 +268,15 @@ if __name__ == "__main__":
         print('Error: either --headers, --sources or --json must be specified')
         exit(-1)
     if args.file is not None:
+        defines = set(args.define or [])
+
         all_topics = []
         for msg_filename in args.file:
-            all_topics.extend(get_topics(msg_filename))
+            all_topics.extend(get_topics(msg_filename, defines))
         all_topics.sort()
 
         for f in args.file:
-            generate_output_from_file(generate_idx, f, args.outputdir, args.package, args.templatedir, INCL_DEFAULT, all_topics)
+            generate_output_from_file(generate_idx, f, args.outputdir, args.package, args.templatedir, INCL_DEFAULT, all_topics, defines)
 
         # Generate topics list header and source file
         if TOPICS_LIST_TEMPLATE_FILE[generate_idx] is not None and os.path.isfile(os.path.join(args.templatedir, TOPICS_LIST_TEMPLATE_FILE[generate_idx])):
