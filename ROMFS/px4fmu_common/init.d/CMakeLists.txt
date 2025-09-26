@@ -67,6 +67,11 @@ if(CONFIG_MODULES_MC_RATE_CONTROL)
 		rc.mc_apps
 		rc.mc_defaults
 	)
+else()
+	px4_add_romfs_files(
+		rc.heli_defaults
+		rc.mc_defaults
+	)
 endif()
 
 if(CONFIG_MODULES_ROVER_DIFFERENTIAL)
