@@ -104,6 +104,20 @@ void RtlMissionFastReverse::setActiveMissionItems()
 	WorkItemType new_work_item_type{WorkItemType::WORK_ITEM_TYPE_DEFAULT};
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+	// Skip CONDITION_GATEs
+	if (_mission_item.nav_cmd == NAV_CMD_CONDITION_GATE) {
+		if (setNextMissionItem()) {
+			if (!loadCurrentMissionItem()) {
+				setEndOfMissionItems();
+				return;
+			}
+
+		} else {
+			setEndOfMissionItems();
+			return;
+		}
+	}
+
 	// Transition to fixed wing if necessary.
 	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    _vehicle_status_sub.get().is_vtol &&
