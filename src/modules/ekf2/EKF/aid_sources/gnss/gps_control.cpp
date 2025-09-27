@@ -124,7 +124,8 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 	const bool continuing_conditions_passing = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
-			&& !_control_status.flags.gnss_fault;
+			&& !_control_status.flags.gnss_fault
+			&& !_control_status.flags.gnss_hgt_fault;
 	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
 
 	if (_control_status.flags.gnss_vel) {
@@ -180,7 +181,8 @@ void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool for
 
 	const bool continuing_conditions_passing = gnss_pos_enabled
 			&& _control_status.flags.tilt_align
-			&& _control_status.flags.yaw_align;
+			&& _control_status.flags.yaw_align
+			&& !_control_status.flags.gnss_hgt_fault;
 	const bool starting_conditions_passing = continuing_conditions_passing && _gnss_checks.passed();
 	const bool gpos_init_conditions_passing = gnss_pos_enabled && _gnss_checks.passed();
 
