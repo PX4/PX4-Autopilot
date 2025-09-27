@@ -1081,7 +1081,10 @@ void UavcanNode::publish_node_statuses()
 bool UavcanMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
-	_esc_controller.update_outputs(outputs, num_outputs);
+	if (_esc_controller.initialized()) {
+		_esc_controller.update_outputs(outputs, num_outputs);
+	}
+
 	return true;
 }
 
