@@ -126,9 +126,9 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				stopRngHgtFusion();
 			}
 
-		} else {
+		} else if (starting_conditions_passing) {
 			if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::RANGE)) {
-				if (do_conditional_range_aid && starting_conditions_passing) {
+				if (do_conditional_range_aid) {
 					// Range finder is used while hovering to stabilize the height estimate. Don't reset but use it as height reference.
 					ECL_INFO("starting conditional %s height fusion", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::RANGE;
@@ -141,7 +141,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 						resetAidSourceStatusZeroInnovation(aid_src);
 					}
 
-				} else if (do_range_aid && starting_conditions_passing) {
+				} else if (do_range_aid) {
 					// Range finder is the primary height source, the ground is now the datum used
 					// to compute the local vertical position
 					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
@@ -158,7 +158,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				}
 
 			} else {
-				if ((do_conditional_range_aid || do_range_aid) && starting_conditions_passing) {
+				if ((do_conditional_range_aid || do_range_aid)) {
 					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
 					_control_status.flags.rng_hgt = true;
 
