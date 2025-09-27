@@ -69,6 +69,8 @@ public:
 
 	int init();
 
+	bool initialized() { return _initialized; };
+
 	void update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned total_outputs);
 
 	/**
@@ -96,6 +98,8 @@ private:
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
+
+	bool _initialized{};
 
 	esc_status_s	_esc_status{};
 

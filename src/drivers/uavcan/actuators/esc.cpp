@@ -81,6 +81,8 @@ UavcanEscController::init()
 		_param_handles[i] = param_find(param_name);
 	}
 
+	_initialized = true;
+
 	return res;
 }
 

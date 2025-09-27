@@ -529,10 +529,16 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	// Actuators
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-	ret = _esc_controller.init();
+	int32_t uavcan_enable = -1;
+	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 
-	if (ret < 0) {
-		return ret;
+	if (uavcan_enable > 2) {
+
+		ret = _esc_controller.init();
+
+		if (ret < 0) {
+			return ret;
+		}
 	}
 
 #endif
@@ -606,10 +612,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	_param_getset_client.setCallback(GetSetCallback(this, &UavcanNode::cb_getset));
 	_param_opcode_client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
 	_param_restartnode_client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
-
-
-	int32_t uavcan_enable = 1;
-	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 
 	if (uavcan_enable > 1) {
 		_servers = new UavcanServers(_node, _node_info_retriever);
@@ -1079,7 +1081,10 @@ void UavcanNode::publish_node_statuses()
 bool UavcanMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
-	_esc_controller.update_outputs(outputs, num_outputs);
+	if (_esc_controller.initialized()) {
+		_esc_controller.update_outputs(outputs, num_outputs);
+	}
+
 	return true;
 }
 
