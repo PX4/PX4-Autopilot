@@ -50,6 +50,9 @@ publications:
     type: px4_msgs::msg::TimesyncStatus
     rate_limit: 10.
 
+  - topic: /fmu/out/transponder_report
+    type: px4_msgs::msg::TransponderReport
+ 
   # - topic: /fmu/out/vehicle_angular_velocity
   #   type: px4_msgs::msg::VehicleAngularVelocity
 
