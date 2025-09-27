@@ -43,20 +43,18 @@ void ManualControlSelector::updateValidityOfChosenInput(uint64_t now)
 
 void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_control_setpoint_s &input, int instance)
 {
-	if (input.valid) {
-		if (isRc(input.data_source)) { _timestamp_last_rc = input.timestamp_sample; }
-
-		if (isMavlink(input.data_source)) { _timestamp_last_mavlink = input.timestamp_sample; }
-	}
-
 	// First check if the chosen input got invalid, so it can get replaced
 	updateValidityOfChosenInput(now);
 
 	const bool update_existing_input = _setpoint.valid && (input.data_source == _setpoint.data_source);
 	const bool start_using_new_input = !_setpoint.valid;
+	const bool is_priority_mode = (_rc_in_mode == RcInMode::RcThenJoystickAscendingPriority
+				       || _rc_in_mode == RcInMode::JoystickAscendingThenRcPriority
+				       || _rc_in_mode == RcInMode::RcThenJoystickDescendingPriority
+				       || _rc_in_mode == RcInMode::JoystickDescendingThenRcPriority);
 
 	// Switch to new input if it's valid and we don't already have a valid one
-	if (isInputValid(input, now) && (update_existing_input || start_using_new_input)) {
+	if (isInputValid(input, now) && (update_existing_input || start_using_new_input || is_priority_mode)) {
 		_setpoint = input;
 		_setpoint.valid = true;
 		_setpoint.timestamp = now; // timestamp_sample is preserved
@@ -78,32 +76,88 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 	bool match = false;
 
 	switch (_rc_in_mode) { // COM_RC_IN_MODE
-	case 0: // RC Transmitter only
+	case RcInMode::RcTransmitterOnly:
 		match = isRc(input.data_source);
 		break;
 
-	case 1: // Joystick only
+	case RcInMode::JoystickOnly:
 		match = isMavlink(input.data_source);
 		break;
 
-	case 2: // RC and Joystick with fallback
+	case RcInMode::RcAndJoystickWithFallback:
 		match = true;
 		break;
 
-	case 3: // RC or Joystick keep first
+	case RcInMode::RcOrJoystickKeepFirst:
 		match = (input.data_source == _first_valid_source)
 			|| (_first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN);
 		break;
 
-	case 5: // RC priority, Joystick fallback
-		match = isRc(input.data_source) || (now > _timestamp_last_rc + _timeout);
+	case RcInMode::RcThenJoystickAscendingPriority:
+		if (isRc(input.data_source)) {
+			match = true;
+
+		} else if (isMavlink(input.data_source)) {
+			if (!_setpoint.valid) {
+				match = true;
+
+			} else if (isMavlink(_setpoint.data_source)) {
+				match = input.data_source <= _setpoint.data_source;
+			}
+		}
+
 		break;
 
-	case 6: // Joystick priority, RC fallback
-		match = isMavlink(input.data_source) || (now > _timestamp_last_mavlink + _timeout);
+	case RcInMode::JoystickAscendingThenRcPriority:
+		if (isMavlink(input.data_source)) {
+			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
+				match = true;
+
+			} else if (isMavlink(_setpoint.data_source)) {
+				match = input.data_source <= _setpoint.data_source;
+			}
+
+		} else if (isRc(input.data_source)) {
+			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
+				match = true;
+			}
+		}
+
 		break;
 
-	case 4: // Stick input disabled
+	case RcInMode::RcThenJoystickDescendingPriority:
+		if (isRc(input.data_source)) {
+			match = true;
+
+		} else if (isMavlink(input.data_source)) {
+			if (!_setpoint.valid) {
+				match = true;
+
+			} else if (isMavlink(_setpoint.data_source)) {
+				match = input.data_source >= _setpoint.data_source;
+			}
+		}
+
+		break;
+
+	case RcInMode::JoystickDescendingThenRcPriority:
+		if (isMavlink(input.data_source)) {
+			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
+				match = true;
+
+			} else if (isMavlink(_setpoint.data_source)) {
+				match = input.data_source >= _setpoint.data_source;
+			}
+
+		} else if (isRc(input.data_source)) {
+			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
+				match = true;
+			}
+		}
+
+		break;
+
+	case RcInMode::StickInputDisabled:
 	default:
 		break;
 	}
