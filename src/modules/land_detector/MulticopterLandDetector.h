@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,15 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/**
- * @file MulticopterLandDetector.h
- * Land detection implementation for multicopters.
- *
- * @author Johan Jansen <jnsn.johan@gmail.com>
- * @author Morten Lysgaard <morten@lysgaard.no>
- * @author Julian Oes <julian@oes.ch>
- */
 
 #pragma once
 
@@ -87,24 +78,6 @@ private:
 	/** Distance above ground below which entering ground contact state is possible when distance to ground is available. */
 	static constexpr float DIST_FROM_GROUND_THRESHOLD = 1.0f;
 
-	struct {
-		param_t minThrottle;
-		param_t hoverThrottle;
-		param_t minManThrottle;
-		param_t useHoverThrustEstimate;
-		param_t landSpeed;
-		param_t crawlSpeed;
-	} _paramHandle{};
-
-	struct {
-		float minThrottle;
-		float hoverThrottle;
-		float minManThrottle;
-		bool useHoverThrustEstimate;
-		float landSpeed;
-		float crawlSpeed;
-	} _params{};
-
 	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
@@ -118,27 +91,35 @@ private:
 	bool _flag_control_climb_rate_enabled{false};
 	bool _hover_thrust_initialized{false};
 
+	float _hover_throttle{0.f};
+
 	float _vehicle_thrust_setpoint_throttle{0.f};
 
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_DISARMED};
 
 	systemlib::Hysteresis _minimum_thrust_8s_hysteresis{false};
 
-	bool _in_descend{false};		///< vehicle is commanded to desend
-	bool _horizontal_movement{false};	///< vehicle is moving horizontally
+	bool _in_descend{false};           ///< vehicle is commanded to desend
+	bool _horizontal_movement{false};  ///< vehicle is moving horizontally
 	bool _vertical_movement{false};
 	bool _rotational_movement{false};
 	bool _has_low_throttle{false};
 	bool _close_to_ground_or_skipped_check{false};
-	bool _below_gnd_effect_hgt{false};	///< vehicle height above ground is below height where ground effect occurs
+	bool _below_gnd_effect_hgt{false}; ///< vehicle height above ground is below height where ground effect occurs
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
-		(ParamFloat<px4::params::LNDMC_TRIG_TIME>)   _param_lndmc_trig_time,
+		(ParamFloat<px4::params::LNDMC_TRIG_TIME>)  _param_lndmc_trig_time,
 		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
 		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
 		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max,
-		(ParamFloat<px4::params::LNDMC_ALT_GND>)    _param_lndmc_alt_gnd_effect
+		(ParamFloat<px4::params::LNDMC_ALT_GND>)    _param_lndmc_alt_gnd_effect,
+		(ParamFloat<px4::params::MPC_MANTHR_MIN>)   _param_mpc_manthr_min,
+		(ParamFloat<px4::params::MPC_THR_MIN>)      _param_mpc_thr_min,
+		(ParamInt<px4::params::MPC_USE_HTE>)        _param_mpc_use_hte,
+		(ParamFloat<px4::params::MPC_THR_HOVER>)    _param_mpc_thr_hover,
+		(ParamFloat<px4::params::MPC_LAND_SPEED>)   _param_mpc_land_speed,
+		(ParamFloat<px4::params::MPC_LAND_CRWL>)    _param_mpc_land_crwl
 	);
 };
 
