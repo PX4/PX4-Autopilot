@@ -16,7 +16,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-14
     strategy:
       matrix:
         config: [
@@ -32,7 +32,8 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: setup
-      run: ./Tools/setup/macos.sh; ./Tools/setup/macos.sh
+      run: |
+        ./Tools/setup/macos.sh
 
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp
@@ -40,12 +41,14 @@ jobs:
       run: |
         string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
         message("::set-output name=timestamp::${current_date}")
+
     - name: ccache cache files
       uses: actions/cache@v4
       with:
         path: ~/.ccache
         key: macos_${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
         restore-keys: macos_${{matrix.config}}-ccache-
+
     - name: setup ccache
       run: |
           mkdir -p ~/.ccache
