@@ -128,13 +128,38 @@ public:
 		EXPECT_EQ(manual_control_switches_sub.get().return_switch, expected_position);
 	}
 
+	void checkOffboardConsentSwitch(float channel_value, float threshold, float expected_value){
+		_param_rc_map_offbcnsnt.set(1);
+		_param_rc_map_offbcnsnt.commit();
+		_param_rc_offbcnsnt_th.set(threshold);
+		_param_rc_offbcnsnt_th.commit();
+		_rc_update.updateParams();
+
+		EXPECT_EQ(_param_rc_map_offbcnsnt.get(), 1);
+		EXPECT_FLOAT_EQ(_param_rc_offbcnsnt_th.get(), threshold);
+
+		_rc_update.setChannel(0, channel_value);
+		_rc_update.UpdateManualSwitches(0);
+		_rc_update.UpdateManualSwitches(0);
+
+		uORB::SubscriptionData<debug_key_value_s> sub{ORB_ID(debug_key_value)};
+		std::array<char, 10> key;
+		memcpy(key.data(), sub.get().key, 10);
+		std::array<char, 10> key_expected =  {'O','F','F','B','C','N','S','N','T','\0'};
+
+		EXPECT_EQ(key, key_expected);
+		EXPECT_EQ(sub.get().value, expected_value);
+	}
+
 	TestRCUpdate _rc_update;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
 		(ParamInt<px4::params::RC_MAP_FLTM_BTN>) _param_rc_map_fltm_btn,
 		(ParamInt<px4::params::RC_MAP_RETURN_SW>) _param_rc_map_return_sw,
-		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th
+		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
+		(ParamInt<px4::params::RC_MAP_OFFBCNSNT>) _param_rc_map_offbcnsnt,
+		(ParamFloat<px4::params::RC_OFFBCNSNT_TH>) _param_rc_offbcnsnt_th
 	)
 };
 
@@ -233,3 +258,66 @@ TEST_F(RCUpdateTest, ReturnSwitchNegativeThresholds)
 	checkReturnSwitch(1.f, -.001f, 3); // Above minimum threshold -> SWITCH_POS_OFF
 	checkReturnSwitch(-1.f, -.001f, 1); // Slightly below minimum threshold -> SWITCH_POS_OFF
 }
+
+TEST_F(RCUpdateTest, OffboardConsentSwitchUnassigned)
+{
+	// GIVEN: Default configuration with no assigned return switch
+	_param_rc_map_offbcnsnt.set(0);
+	_param_rc_map_offbcnsnt.commit();
+	EXPECT_EQ(_param_rc_map_offbcnsnt.get(), 0);
+
+	// WHEN: we update the switches two times to pass the simple outlier protection
+	_rc_update.UpdateManualSwitches(0);
+	_rc_update.UpdateManualSwitches(0);
+
+	uORB::SubscriptionData<debug_key_value_s> sub{ORB_ID(debug_key_value)};
+	std::array<char, 10> key;
+	memcpy(key.data(), sub.get().key, 10);
+	std::array<char, 10> key_expected =  {'O','F','F','B','C','N','S','N','T','\0'};
+
+	EXPECT_EQ(key, key_expected);
+	EXPECT_EQ(sub.get().value, 1);
+}
+
+TEST_F(RCUpdateTest, OffboardConsentPositiveThresholds){
+
+	checkOffboardConsentSwitch(-1, 0.5, 0.);
+	checkOffboardConsentSwitch(0., 0.5, 0.);
+	checkOffboardConsentSwitch(.001, 0.5, 1.);
+	checkOffboardConsentSwitch(1., 0.5, 1.);
+
+	checkOffboardConsentSwitch(-1, 0.75, 0.);
+	checkOffboardConsentSwitch(0., 0.75, 0.);
+	checkOffboardConsentSwitch(.5, 0.75, 0.);
+	checkOffboardConsentSwitch(.5001, 0.75, 1.);
+	checkOffboardConsentSwitch(1., 0.5, 1.);
+
+	checkOffboardConsentSwitch(-1.f, 0.f, 0); // On minimum threshold -> SWITCH_POS_OFF
+	checkOffboardConsentSwitch(-.999f, 0.f, 1); // Slightly above minimum threshold -> SWITCH_POS_ON
+	checkOffboardConsentSwitch(1.f, 0.f, 1); // Above minimum threshold -> SWITCH_POS_ON
+
+	checkOffboardConsentSwitch(-1.f, 1.f, 0); // Below maximum threshold -> SWITCH_POS_OFF
+	checkOffboardConsentSwitch(1.f, 1.f, 0); // On maximum threshold -> SWITCH_POS_OFF
+}
+
+TEST_F(RCUpdateTest, OffboardConsentNegativeThresholds)
+{
+	checkOffboardConsentSwitch(1.f, -0.5f, 0); // Above threshold -> SWITCH_POS_OFF
+	checkOffboardConsentSwitch(0.f, -0.5f, 0); // On threshold -> SWITCH_POS_OFF
+	checkOffboardConsentSwitch(-.001f, -0.5f, 1); // Slightly below threshold -> SWITCH_POS_ON
+	checkOffboardConsentSwitch(-1.f, -0.5f, 1); // Below threshold -> SWITCH_POS_ON
+
+	checkOffboardConsentSwitch(1.f, -0.75f, 0); // Above threshold -> SWITCH_POS_OFF
+	checkOffboardConsentSwitch(.5f, -0.75f, 0); // On threshold -> SWITCH_POS_OFF
+	checkOffboardConsentSwitch(.499f, -0.75f, 1); // Slightly below threshold -> SWITCH_POS_ON
+	checkOffboardConsentSwitch(-1.f, -0.75f, 1); // Below threshold -> SWITCH_POS_ON
+
+	checkOffboardConsentSwitch(1.f, -1.f, 0); // On maximum threshold -> SWITCH_POS_OFF
+	checkOffboardConsentSwitch(.999f, -1.f, 1); // Slighly below maximum threshold -> SWITCH_POS_ON
+	checkOffboardConsentSwitch(-1.f, -1.f, 1); // Below minimum threshold -> SWITCH_POS_ON
+
+	checkOffboardConsentSwitch(1.f, -.001f, 0); // Above minimum threshold -> SWITCH_POS_OFF
+	checkOffboardConsentSwitch(-1.f, -.001f, 1); // Slightly below minimum threshold -> SWITCH_POS_OFF
+}
+
+

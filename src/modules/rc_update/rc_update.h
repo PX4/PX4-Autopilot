@@ -53,6 +53,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/input_rc.h>
@@ -168,9 +169,15 @@ protected:
 	uORB::Publication<rc_channels_s> _rc_channels_pub{ORB_ID(rc_channels)};
 	uORB::PublicationMulti<manual_control_setpoint_s> _manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::Publication<manual_control_switches_s> _manual_control_switches_pub{ORB_ID(manual_control_switches)};
+	uORB::Publication<debug_key_value_s> _debug_kv_pub{ORB_ID(debug_key_value)};
 
 	manual_control_switches_s _manual_switches_previous{};
 	manual_control_switches_s _manual_switches_last_publish{};
+	switch_pos_t _offboard_consent_previous{false};
+	switch_pos_t _offboard_consent_last_publish{false};
+	uint64_t _offboard_consent_last_publish_ts{0};
+	uint64_t _offboard_consent_previous_ts{0};
+
 	rc_channels_s _rc{};
 	bool _rc_calibrated{false};
 
@@ -218,6 +225,7 @@ protected:
 		(ParamInt<px4::params::RC_MAP_TRANS_SW>) _param_rc_map_trans_sw,
 		(ParamInt<px4::params::RC_MAP_GEAR_SW>) _param_rc_map_gear_sw,
 		(ParamInt<px4::params::RC_MAP_FLTM_BTN>) _param_rc_map_fltm_btn,
+		(ParamInt<px4::params::RC_MAP_OFFBCNSNT>) _param_rc_map_offbcnsnt,
 
 		(ParamInt<px4::params::RC_MAP_AUX1>) _param_rc_map_aux1,
 		(ParamInt<px4::params::RC_MAP_AUX2>) _param_rc_map_aux2,
@@ -241,6 +249,7 @@ protected:
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
 		(ParamFloat<px4::params::RC_ENG_MOT_TH>) _param_rc_eng_mot_th,
 		(ParamFloat<px4::params::RC_PAYLOAD_TH>) _param_rc_payload_th,
+		(ParamFloat<px4::params::RC_OFFBCNSNT_TH>) _param_rc_offbcnsnt_th,
 
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
 	)

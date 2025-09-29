@@ -210,6 +210,7 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = _param_rc_map_arm_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = _param_rc_map_trans_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_GEAR] = _param_rc_map_gear_sw.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_OFFBOARD_CONSENT] = _param_rc_map_offbcnsnt.get() - 1;
 
 	_rc.function[rc_channels_s::FUNCTION_FLAPS] = _param_rc_map_flaps.get() - 1;
 
@@ -614,6 +615,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.gear_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_GEAR, _param_rc_gear_th.get());
 	switches.engage_main_motor_switch =
 		getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_ENGAGE_MAIN_MOTOR, _param_rc_eng_mot_th.get());
+
 #if defined(ATL_MANTIS_RC_INPUT_HACKS)
 	switches.photo_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_3, 0.5f);
 	switches.video_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_4, 0.5f);
@@ -623,6 +625,32 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.payload_power_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_PAYLOAD_POWER,
 					_param_rc_payload_th.get());
 #endif
+	const auto offboard_consent_switch_state = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_OFFBOARD_CONSENT, _param_rc_offbcnsnt_th.get());
+	if(offboard_consent_switch_state == _offboard_consent_previous &&
+		timestamp_sample < _offboard_consent_previous_ts + VALID_DATA_MIN_INTERVAL_US)
+	{
+		bool changed = offboard_consent_switch_state != _offboard_consent_last_publish;
+		bool timeout = hrt_elapsed_time(&_offboard_consent_last_publish_ts) > 500_ms;
+		if(changed || timeout){
+			debug_key_value_s kv;
+			kv.timestamp = hrt_absolute_time();
+			memset(kv.key, 0, 10);
+			static const char* KEY = "OFFBCNSNT";
+			memcpy(kv.key, KEY, strlen(KEY));
+			if(offboard_consent_switch_state == manual_control_switches_s::SWITCH_POS_ON || offboard_consent_switch_state == manual_control_switches_s::SWITCH_POS_NONE){
+				//If the switch isn't mapped, then we still want to allow offboard control
+				kv.value = 1.0;
+			}else{
+				kv.value = 0.0;
+			}
+			_debug_kv_pub.publish(kv);
+			_offboard_consent_last_publish = offboard_consent_switch_state;
+			_offboard_consent_last_publish_ts= kv.timestamp;
+		}
+	}
+	_offboard_consent_previous = offboard_consent_switch_state;
+	_offboard_consent_previous_ts = timestamp_sample;
+
 
 	// last 2 switch updates identical within 1 second (simple protection from bad RC data)
 	if ((switches == _manual_switches_previous)
@@ -643,6 +671,8 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 			_manual_switches_last_publish.timestamp_sample = _manual_switches_previous.timestamp_sample;
 			_manual_switches_last_publish.timestamp = hrt_absolute_time();
 			_manual_control_switches_pub.publish(_manual_switches_last_publish);
+
+
 		}
 	}
 
