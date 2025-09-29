@@ -215,7 +215,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 		// Only set the previous position item if the current one really changed
 		if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&
-		!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
+		    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
 			pos_sp_triplet->previous = current_setpoint_copy;
 		}
 
