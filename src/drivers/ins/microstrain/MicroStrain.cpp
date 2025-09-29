@@ -135,8 +135,6 @@ MicroStrain::MicroStrain(const char *uart_port) :
 	_vehicle_global_position_pub.advertise();
 	_vehicle_odometry_pub.advertise();
 	_estimator_status_pub.advertise();
-	_sensor_gps_pub[0].advertise();
-	_sensor_gps_pub[1].advertise();
 }
 
 MicroStrain::~MicroStrain()
@@ -662,6 +660,11 @@ mip_cmd_result MicroStrain::configureFilterMessageFormat()
 
 mip_cmd_result MicroStrain::configureGnssMessageFormat(uint8_t descriptor_set)
 {
+	if (_param_ms_gnss_aid_src_ctrl.get() == MIP_FILTER_GNSS_SOURCE_COMMAND_SOURCE_EXT) {
+		PX4_DEBUG("External GNSS aiding source detected, skipping GNSS message format config");
+		return MIP_ACK_OK;
+	}
+
 	PX4_DEBUG("Configuring GNSS Message Format");
 
 	uint8_t num_gnss_descriptors = 0;
@@ -826,26 +829,44 @@ mip_cmd_result MicroStrain::configureGnssAiding()
 
 	// Prioritizing setting up multi antenna offsets if it is supported
 	if (supportsDescriptor(MIP_FILTER_CMD_DESC_SET, MIP_CMD_DESC_FILTER_MULTI_ANTENNA_OFFSET)) {
-		mip_cmd_result res1 = mip_filter_write_multi_antenna_offset(&_device, 1, gnss_antenna_offset1);
-		mip_cmd_result res2 = mip_filter_write_multi_antenna_offset(&_device, 2, gnss_antenna_offset2);
 
-		if (!mip_cmd_result_is_ack(res1)) {
-			PX4_ERR("Could not write multi antenna (1) offsets");
-			return res1;
-		}
-
-		else if (!mip_cmd_result_is_ack(res2)) {
-			PX4_ERR("Could not write multi antenna (2) offsets");
-			return res2;
-		}
-
+		// Sets up the GNSS aiding source
 		if (supportsDescriptor(MIP_FILTER_CMD_DESC_SET, MIP_CMD_DESC_FILTER_GNSS_SOURCE_CONTROL)) {
 			if (!mip_cmd_result_is_ack(res = mip_filter_write_gnss_source(&_device, (uint8_t)_param_ms_gnss_aid_src_ctrl.get()))) {
 				PX4_ERR("Could not write the gnss aiding source");
 				return res;
 			}
 
-			_ext_pos_vel_aiding = (_param_ms_gnss_aid_src_ctrl.get() == MIP_FILTER_GNSS_SOURCE_COMMAND_SOURCE_EXT);
+			// Checks if the gnss aiding source is external
+			if (_param_ms_gnss_aid_src_ctrl.get() == MIP_FILTER_GNSS_SOURCE_COMMAND_SOURCE_EXT) {
+				_ext_pos_vel_aiding = true;
+
+				// Sets up the aiding frame for the external source
+				if (supportsDescriptor(MIP_AIDING_CMD_DESC_SET, MIP_CMD_DESC_AIDING_FRAME_CONFIG)) {
+					if (!mip_cmd_result_is_ack(res = mip_aiding_write_frame_config(&_device, 1,
+									 MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER, false,
+									 gnss_antenna_offset1, &rotation_gnss))) {
+						PX4_ERR("Could not write aiding frame config");
+						return res;
+					}
+				}
+			}
+
+			else {
+				// Sets up the antenna offsets if the source is internal
+				mip_cmd_result res1 = mip_filter_write_multi_antenna_offset(&_device, 1, gnss_antenna_offset1);
+				mip_cmd_result res2 = mip_filter_write_multi_antenna_offset(&_device, 2, gnss_antenna_offset2);
+
+				if (!mip_cmd_result_is_ack(res1)) {
+					PX4_ERR("Could not write multi antenna (1) offsets");
+					return res1;
+				}
+
+				else if (!mip_cmd_result_is_ack(res2)) {
+					PX4_ERR("Could not write multi antenna (2) offsets");
+					return res2;
+				}
+			}
 		}
 
 		else {
@@ -854,10 +875,11 @@ mip_cmd_result MicroStrain::configureGnssAiding()
 		}
 
 		// Selectively enables dual antenna heading as an aiding measurement
-		if (!mip_cmd_result_is_ack(res = configureAidingMeasurement(
+		if (!mip_cmd_result_is_ack(res = enableAidingSource(
 				MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_GNSS_HEADING,
-				_param_ms_int_heading_en.get()))) {
-			PX4_ERR("Could not configure dual antenna heading aiding");
+				_param_ms_int_heading_en.get(),
+				0, 0, nullptr, mip_aiding_frame_config_command_rotation{0},
+				0, _int_aiding, "dual antenna heading"))) {
 			return res;
 		}
 	}
@@ -889,7 +911,7 @@ mip_cmd_result MicroStrain::configureAidingSources()
 			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_MAGNETOMETER,
 			_param_ms_int_mag_en.get(),
 			0, 0, nullptr, mip_aiding_frame_config_command_rotation{0},
-			0, _ext_mag_aiding, "internal magnetometer"))) {
+			0, _int_aiding, "internal magnetometer"))) {
 		return res;
 	}
 
@@ -918,13 +940,14 @@ mip_cmd_result MicroStrain::configureAidingSources()
 	}
 
 	// Selectively turn on external heading as an aiding source
-	if (!mip_cmd_result(res = enableAidingSource(MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_GNSS_HEADING,
-				  _param_ms_ext_heading_en.get(),
-				  4, MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER,
-				  ext_heading_offset, rotation_ext_heading,
-				  MIP_CMD_DESC_AIDING_HEADING_TRUE,
-				  _ext_heading_aiding,
-				  "external heading"))) {
+	if (!mip_cmd_result_is_ack(res = enableAidingSource(
+			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_GNSS_HEADING,
+			_param_ms_ext_heading_en.get(),
+			4, MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER,
+			ext_heading_offset, rotation_ext_heading,
+			MIP_CMD_DESC_AIDING_HEADING_TRUE,
+			_ext_heading_aiding,
+			"external heading"))) {
 		return res;
 	}
 

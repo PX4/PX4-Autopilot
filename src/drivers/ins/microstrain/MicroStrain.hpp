@@ -192,6 +192,7 @@ private:
 	bool _ext_heading_aiding{false};
 	bool _ext_mag_aiding{false};
 	bool _ext_optical_flow_aiding{false};
+	bool _int_aiding{false};
 
 	float gnss_antenna_offset1[3] = {0};
 	float gnss_antenna_offset2[3] = {0};

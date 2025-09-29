@@ -303,7 +303,8 @@ parameters:
             description:
                 short: MicroStrain External Magnetometer offset (X)
                 long: |
-                    Offset (m) in the X direction if an external magnetometer is connected
+                    Offset (m) in the X direction if an external magnetometer is connected.
+                    Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.0
@@ -312,7 +313,8 @@ parameters:
             description:
                 short: MicroStrain External Magnetometer offset (Y)
                 long: |
-                    Offset (m) in the Y direction if an external magnetometer is connected
+                    Offset (m) in the Y direction if an external magnetometer is connected.
+                    Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.0
@@ -321,16 +323,18 @@ parameters:
             description:
                 short: MicroStrain External Magnetometer offset (Z)
                 long: |
-                    Offset (m) in the Z direction if an external magnetometer is connected
+                    Offset (m) in the Z direction if an external magnetometer is connected.
+                    Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.0
 
         MS_EMAG_ROLL:
             description:
-                short: MicroStrain external Magnetometer Orientation (Roll)
+                short: MicroStrain External Magnetometer Orientation (Roll)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the x axis
+                    The orientation of the device (Radians) with respect to the vehicle frame around the x axis.
+                    Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.0
@@ -339,7 +343,8 @@ parameters:
             description:
                 short: MicroStrain External Magnetometer Orientation (Pitch)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the y axis
+                    The orientation of the device (Radians) with respect to the vehicle frame around the y axis.
+                    Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.0
@@ -348,7 +353,8 @@ parameters:
             description:
                 short: MicroStrain External Magnetometer Orientation (Yaw)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis
+                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+                    Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.0
@@ -357,7 +363,8 @@ parameters:
             description:
                 short: MicroStrain optical flow offset (X)
                 long: |
-                    Offset (m) in the X direction if an Optical Flow sensor is connected
+                    Offset (m) in the X direction if an Optical Flow sensor is connected.
+                    Requires MS_OPT_FLOW_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.0
@@ -366,7 +373,8 @@ parameters:
             description:
                 short: MicroStrain optical flow offset (Y)
                 long: |
-                    Offset (m) in the Y direction if an Optical Flow sensor is connected
+                    Offset (m) in the Y direction if an Optical Flow sensor is connected.
+                    Requires MS_OPT_FLOW_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.0
@@ -375,7 +383,8 @@ parameters:
             description:
                 short: MicroStrain optical flow offset (Z)
                 long: |
-                    Offset (m) in the Z direction if an Optical Flow sensor is connected
+                    Offset (m) in the Z direction if an Optical Flow sensor is connected.
+                    Requires MS_OPT_FLOW_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.0
@@ -385,6 +394,7 @@ parameters:
                 short: MicroStrain External Heading Orientation (Yaw)
                 long: |
                     The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+                    Requires MS_EXT_HEAD_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.0
@@ -394,6 +404,7 @@ parameters:
                 short: MicroStrain external magnetometer uncertainty
                 long: |
                     The 1-sigma uncertainty (in Gauss) for all axes, which will remain constant across all aiding measurements.
+                    Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.1
@@ -404,6 +415,7 @@ parameters:
                 long: |
                     The 1-sigma uncertainty (in m/s) for the X and Y axes, which will remain constant across all aiding measurements.
                     The Z axis is not used for aiding.
+                    Requires MS_OPT_FLOW_EN to be enabled to be used.
             type: float
             reboot_required: true
             default: 0.1
