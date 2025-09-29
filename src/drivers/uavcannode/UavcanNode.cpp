@@ -824,6 +824,20 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 		}
 	}
 
+	// Read the static node ID parameter and use it if no valid node_id from shared memory
+	int32_t cannode_node_id = 0;
+	param_get(param_find("CANNODE_NODE_ID"), &cannode_node_id);
+
+	if (node_id == 0 && cannode_node_id > 0 && cannode_node_id <= 127) {
+		node_id = cannode_node_id;
+	}
+
+	// Persist the node ID for the bootloader
+	bootloader_app_shared_t shared_write = {};
+	shared_write.node_id = node_id;
+	shared_write.bus_speed = bitrate;
+	bootloader_app_shared_write(&shared_write, BootLoader);
+
 	if (
 #if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 		board_booted_by_px4() &&
