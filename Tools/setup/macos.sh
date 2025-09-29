@@ -42,6 +42,8 @@ else
 		echo "Installing PX4 general dependencies (homebrew px4-dev)"
 		brew tap PX4/px4
 		brew install px4-dev
+		# lock down gcc to v9 for v1.16 branch
+		brew install gcc-arm-none-eabi
 		brew install ncurses
 		brew install python-tk
 	fi
