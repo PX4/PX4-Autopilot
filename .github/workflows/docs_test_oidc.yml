@@ -1,0 +1,34 @@
+name: Dump OIDC sub claim
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'   # run this on release branches too
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch:   # allow manual trigger
+
+jobs:
+  show-oidc-claim:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # needed to fetch the OIDC token
+      contents: read
+    steps:
+      - name: Dump OIDC sub claim
+        run: |
+          url="${ACTIONS_ID_TOKEN_REQUEST_URL}?audience=sts.amazonaws.com"
+          jwt="$(curl -s -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$url" | jq -r .value)"
+          body="$(echo "$jwt" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null || true)"
+          echo "OIDC sub: $(echo "$body" | jq -r .sub)"
+
+      - name: Configure AWS from OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: Sanity check AWS credentials
+        run: aws sts get-caller-identity
