@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,26 +31,31 @@
  *
  ****************************************************************************/
 
-/**
- * @file land_detector_main.cpp
- * Land detection algorithm
- *
- * @author Johan Jansen <jnsn.johan@gmail.com>
- * @author Lorenz Meier <lorenz@px4.io>
- */
-
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
 
+#if defined(CONFIG_MODULES_FW_ATT_CONTROL)
 #include "FixedwingLandDetector.h"
-#include "MulticopterLandDetector.h"
-#include "RoverLandDetector.h"
-#include "VtolLandDetector.h"
-#include "AirshipLandDetector.h"
+#endif
 
+#if defined(CONFIG_MODULES_MC_POS_CONTROL)
+#include "MulticopterLandDetector.h"
+#endif
+
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
+#include "RoverLandDetector.h"
+#endif
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL)
+#include "VtolLandDetector.h"
+#endif
+
+#if defined(CONFIG_MODULES_AIRSHIP_ATT_CONTROL)
+#include "AirshipLandDetector.h"
+#endif
 
 namespace land_detector
 {
@@ -67,19 +72,44 @@ int LandDetector::task_spawn(int argc, char *argv[])
 	LandDetector *obj = nullptr;
 
 	if (strcmp(argv[1], "fixedwing") == 0) {
+#if defined(CONFIG_MODULES_FW_ATT_CONTROL)
 		obj = new FixedwingLandDetector();
+#else
+		print_usage("fixedwing mode not enabled in configuration");
+		return PX4_ERROR;
+#endif
 
 	} else if (strcmp(argv[1], "multicopter") == 0) {
+#if defined(CONFIG_MODULES_MC_POS_CONTROL)
 		obj = new MulticopterLandDetector();
+#else
+		print_usage("multicopter mode not enabled in configuration");
+		return PX4_ERROR;
+#endif
 
 	} else if (strcmp(argv[1], "vtol") == 0) {
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL)
 		obj = new VtolLandDetector();
+#else
+		print_usage("vtol mode not enabled in configuration");
+		return PX4_ERROR;
+#endif
 
 	} else if (strcmp(argv[1], "rover") == 0) {
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
 		obj = new RoverLandDetector();
+#else
+		print_usage("rover mode not enabled in configuration");
+		return PX4_ERROR;
+#endif
 
 	} else if (strcmp(argv[1], "airship") == 0) {
+#if defined(CONFIG_MODULES_AIRSHIP_ATT_CONTROL)
 		obj = new AirshipLandDetector();
+#else
+		print_usage("airship mode not enabled in configuration");
+		return PX4_ERROR;
+#endif
 
 	} else {
 		print_usage("unknown mode");

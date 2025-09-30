@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,11 +37,11 @@ px4_add_module(
 	SRCS
 		land_detector_main.cpp
 		LandDetector.cpp
-		MulticopterLandDetector.cpp
-		FixedwingLandDetector.cpp
-		VtolLandDetector.cpp
-		RoverLandDetector.cpp
-		AirshipLandDetector.cpp
+		$<$<BOOL:${CONFIG_MODULES_MC_POS_CONTROL}>:MulticopterLandDetector.cpp>
+		$<$<BOOL:${CONFIG_MODULES_FW_ATT_CONTROL}>:FixedwingLandDetector.cpp>
+		$<$<BOOL:${CONFIG_MODULES_VTOL_ATT_CONTROL}>:VtolLandDetector.cpp>
+		$<$<BOOL:${CONFIG_MODULES_AIRSHIP_ATT_CONTROL}>:AirshipLandDetector.cpp>
+		$<$<OR:$<BOOL:${CONFIG_MODULES_ROVER_ACKERMANN}>,$<BOOL:${CONFIG_MODULES_ROVER_DIFFERENTIAL}>,$<BOOL:${CONFIG_MODULES_ROVER_MECANUM}>>:RoverLandDetector.cpp>
 	DEPENDS
 		hysteresis
 	)
