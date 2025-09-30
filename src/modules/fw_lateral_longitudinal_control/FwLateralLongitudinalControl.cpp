@@ -146,7 +146,6 @@ void FwLateralLongitudinalControl::Run()
 
 		updateControllerConfiguration();
 
-		_tecs.set_speed_weight(_long_configuration.speed_weight);
 		updateTECSAltitudeTimeConstant(checkLowHeightConditions()
 					       || _long_configuration.enforce_low_height_condition, control_interval);
 		_tecs.set_altitude_error_time_constant(_tecs_alt_time_const_slew_rate.getState());
@@ -218,6 +217,7 @@ void FwLateralLongitudinalControl::Run()
 						   _long_configuration.sink_rate_target,
 						   _long_configuration.climb_rate_target,
 						   _long_configuration.disable_underspeed_protection,
+						   _long_configuration.speed_weight,
 						   _long_control_sp.height_rate
 						  );
 
@@ -360,7 +360,7 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 		float pitch_min_rad, float pitch_max_rad, float throttle_min,
 		float throttle_max, const float desired_max_sinkrate,
 		const float desired_max_climbrate,
-		bool disable_underspeed_detection, float hgt_rate_sp)
+		bool disable_underspeed_detection, float speed_weight, float hgt_rate_sp)
 {
 	bool tecs_is_running = true;
 
@@ -377,6 +377,14 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 						throttle_max, airspeed_sp, _air_density);
 
 	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
+
+	// TECS speed weight driven by setpoint validity
+	if (PX4_ISFINITE(airspeed_sp) && !PX4_ISFINITE(alt_sp) && !PX4_ISFINITE(hgt_rate_sp)) {
+		_tecs.set_speed_weight(2.0);
+
+	} else {
+		_tecs.set_speed_weight(speed_weight);
+	}
 
 	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
