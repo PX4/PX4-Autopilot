@@ -100,8 +100,32 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 	if (rng_data_ready && _range_sensor.getSampleAddress()) {
 
-		updateRangeHagl(aid_src);
+		const float measurement = math::max(_range_sensor.getDistBottom(), _params.ekf2_min_rng);
+		const float measurement_variance = getRngVar();
+
+		float innovation_variance;
+		sym::ComputeHaglInnovVar(P, measurement_variance, &innovation_variance);
+
+		const float innov_gate = math::max(_params.ekf2_rng_gate, 1.f);
+		updateAidSourceStatus(aid_src,
+				      _range_sensor.getSampleAddress()->time_us, // sample timestamp
+				      measurement,                               // observation
+				      measurement_variance,                      // observation variance
+				      getHagl() - measurement,                   // innovation
+				      innovation_variance,                       // innovation variance
+				      innov_gate);                               // innovation gate
+
 		const bool measurement_valid = PX4_ISFINITE(aid_src.observation) && PX4_ISFINITE(aid_src.observation_variance);
+
+		// z special case if there is bad vertical acceleration data, then don't reject measurement,
+		// but limit innovation to prevent spikes that could destabilise the filter
+		if (_fault_status.flags.bad_acc_vertical && aid_src.innovation_rejected
+		    && measurement_valid && _range_sensor.isDataHealthy()
+		   ) {
+			const float innov_limit = innov_gate * sqrtf(aid_src.innovation_variance);
+			aid_src.innovation = math::constrain(aid_src.innovation, -innov_limit, innov_limit);
+			aid_src.innovation_rejected = false;
+		}
 
 		const bool continuing_conditions_passing = ((_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED))
 				|| (_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL)))
@@ -244,32 +268,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		ECL_WARN("stopping %s fusion, no data", HGT_SRC_NAME);
 		stopRngHgtFusion();
 		stopRngTerrFusion();
-	}
-}
-
-void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
-{
-	const float measurement = math::max(_range_sensor.getDistBottom(), _params.ekf2_min_rng);
-	const float measurement_variance = getRngVar();
-
-	float innovation_variance;
-	sym::ComputeHaglInnovVar(P, measurement_variance, &innovation_variance);
-
-	const float innov_gate = math::max(_params.ekf2_rng_gate, 1.f);
-	updateAidSourceStatus(aid_src,
-			      _range_sensor.getSampleAddress()->time_us, // sample timestamp
-			      measurement,                               // observation
-			      measurement_variance,                      // observation variance
-			      getHagl() - measurement,                   // innovation
-			      innovation_variance,                       // innovation variance
-			      innov_gate);                               // innovation gate
-
-	// z special case if there is bad vertical acceleration data, then don't reject measurement,
-	// but limit innovation to prevent spikes that could destabilise the filter
-	if (_fault_status.flags.bad_acc_vertical && aid_src.innovation_rejected) {
-		const float innov_limit = innov_gate * sqrtf(aid_src.innovation_variance);
-		aid_src.innovation = math::constrain(aid_src.innovation, -innov_limit, innov_limit);
-		aid_src.innovation_rejected = false;
 	}
 }
 
