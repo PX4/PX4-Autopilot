@@ -299,36 +299,6 @@ parameters:
             reboot_required: true
             default: 0.0
 
-        MS_EMAG_OFF_X:
-            description:
-                short: MicroStrain External Magnetometer offset (X)
-                long: |
-                    Offset (m) in the X direction if an external magnetometer is connected.
-                    Requires MS_EXT_MAG_EN to be enabled to be used.
-            type: float
-            reboot_required: true
-            default: 0.0
-
-        MS_EMAG_OFF_Y:
-            description:
-                short: MicroStrain External Magnetometer offset (Y)
-                long: |
-                    Offset (m) in the Y direction if an external magnetometer is connected.
-                    Requires MS_EXT_MAG_EN to be enabled to be used.
-            type: float
-            reboot_required: true
-            default: 0.0
-
-        MS_EMAG_OFF_Z:
-            description:
-                short: MicroStrain External Magnetometer offset (Z)
-                long: |
-                    Offset (m) in the Z direction if an external magnetometer is connected.
-                    Requires MS_EXT_MAG_EN to be enabled to be used.
-            type: float
-            reboot_required: true
-            default: 0.0
-
         MS_EMAG_ROLL:
             description:
                 short: MicroStrain External Magnetometer Orientation (Roll)

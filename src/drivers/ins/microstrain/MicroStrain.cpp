@@ -91,13 +91,6 @@ MicroStrain::MicroStrain(const char *uart_port) :
 		  (double)_param_ms_gnss_offset2_y.get(),
 		  (double)_param_ms_gnss_offset2_z.get());
 
-	ext_mag_offset[0] = _param_ms_emag_offset_x.get();
-	ext_mag_offset[1] = _param_ms_emag_offset_y.get();
-	ext_mag_offset[2] = _param_ms_emag_offset_z.get();
-	PX4_DEBUG("External magnetometer offset: %f/%f/%f", (double)_param_ms_emag_offset_x.get(),
-		  (double)_param_ms_emag_offset_y.get(),
-		  (double)_param_ms_emag_offset_z.get());
-
 	optical_flow_offset[0] = _param_ms_oflow_offset_x.get();
 	optical_flow_offset[1] = _param_ms_oflow_offset_y.get();
 	optical_flow_offset[2] = _param_ms_oflow_offset_z.get();
