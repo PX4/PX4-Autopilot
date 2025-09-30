@@ -234,6 +234,17 @@ void ExternalChecks::update()
 
 		if (!timed_out && valid && _current_request_id == reply.request_id) {
 			_reply_received_mask |= 1u << reply.registration_id;
+
+			const int num_no_response = _registrations[reply.registration_id].num_no_response;
+			const int max_num_no_reply = _registrations[reply.registration_id].waiting_for_first_response ?
+						     NUM_NO_REPLY_UNTIL_UNRESPONSIVE_INIT : NUM_NO_REPLY_UNTIL_UNRESPONSIVE;
+
+			if (num_no_response > 0) {
+				// + 1 to match 'commander status' which starts at 1
+				PX4_INFO("External mode %i responsive after failing to reply %d/%d times",
+					 reply.registration_id + 1, num_no_response, max_num_no_reply);
+			}
+
 			_registrations[reply.registration_id].num_no_response = 0;
 			_registrations[reply.registration_id].waiting_for_first_response = false;
 
