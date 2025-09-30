@@ -422,6 +422,7 @@
       - [Hiwonder Tracked Chassi](complete_vehicles_rover/hiwonder_tracked.md)
       - [Hiwonder Mecanum Chassi](complete_vehicles_rover/hiwonder_mecanum.md)
       - [Aion Robotics R1 (Discontinued)](complete_vehicles_rover/aion_r1.md)
+    - [Developer Guide](frames_rover/developer_guide.md)
   - [Submarines (experimental)](frames_sub/index.md)
     - [BlueROV2](frames_sub/bluerov2.md)
   - [Airframes Reference](airframes/airframe_reference.md)

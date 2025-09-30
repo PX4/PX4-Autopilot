@@ -5,6 +5,7 @@
 :::warning
 Support for rover is [experimental](../airframes/index.md#experimental-vehicles).
 Maintainer volunteers, [contribution](../contribute/index.md) of new features, new frame configurations, or other improvements would all be very welcome!
+Check the [Rover Developer Guide](../frames_rover/developer_guide.md) to kick-start your development!
 :::
 
 ![Rovers](../../assets/airframes/rover/hiwonder_rovers/hiwonder_rovers.png)
@@ -61,13 +62,4 @@ Each wheel is driven by its own motor, and by controlling the speed and directio
 - [Configuration/Tuning](../config_rover/index.md)
 - [Apps & API](../flight_modes_rover/api.md)
 - [Complete Vehicles](../complete_vehicles_rover/index.md)
-
-## Simulation
-
-PX4 provides synthetic simulation models for [Gazebo](../sim_gazebo_gz/index.md) of all three rover types to test the software and validate changes and new features:
-
-- [Ackermann rover](../sim_gazebo_gz/vehicles.md#ackermann-rover)
-- [Differential rover](../sim_gazebo_gz/vehicles.md#differential-rover)
-- [Mecanum rover](../sim_gazebo_gz/vehicles.md#mecanum-rover)
-
-![Rover gazebo simulation](../../assets/airframes/rover/rover_simulation.png)
+- [Developer Guide](../frames_rover/developer_guide.md)
