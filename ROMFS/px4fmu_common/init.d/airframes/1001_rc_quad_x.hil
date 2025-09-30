@@ -6,6 +6,8 @@
 # @class Copter
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
+#
+# @board all include
 # @board px4_fmu-v2 exclude
 #
 

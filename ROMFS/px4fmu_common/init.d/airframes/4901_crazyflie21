@@ -15,6 +15,7 @@
 # @board px4_fmu-v5x exclude
 # @board px4_fmu-v6x exclude
 # @board diatone_mamba-f405-mk2 exclude
+# @board all include
 #
 . ${R}etc/init.d/rc.mc_defaults
 

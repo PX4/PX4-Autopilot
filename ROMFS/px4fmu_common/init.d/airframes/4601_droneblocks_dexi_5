@@ -8,16 +8,7 @@
 # @maintainer Dennis Baldwin <db@droneblocks.io>
 # @maintainer Alex klimaj <alex@arkelectron.com>
 #
-# @board px4_fmu-v2 exclude
-# @board px4_fmu-v3 exclude
-# @board px4_fmu-v4 exclude
-# @board px4_fmu-v4pro exclude
-# @board px4_fmu-v5 exclude
-# @board px4_fmu-v5x exclude
-# @board px4_fmu-v6x exclude
-# @board bitcraze_crazyflie exclude
-# @board diatone_mamba-f405-mk2 exclude
-# @board ark_fmu-v6x exclude
+# @board ark_pi6x include
 #
 
 . ${R}etc/init.d/rc.mc_defaults

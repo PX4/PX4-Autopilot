@@ -11,6 +11,7 @@
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
+# @board all include
 #
 
 . ${R}etc/init.d/rc.airship_defaults

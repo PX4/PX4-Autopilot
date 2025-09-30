@@ -5,6 +5,7 @@
 # @type VTOL Tiltrotor
 # @class VTOL
 #
+# @board all include
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
 #
