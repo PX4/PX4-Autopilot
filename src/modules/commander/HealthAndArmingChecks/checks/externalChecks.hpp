@@ -72,7 +72,7 @@ private:
 	static constexpr int NUM_NO_REPLY_UNTIL_UNRESPONSIVE = 3; ///< Mode timeout = this value * UPDATE_INTERVAL
 	/// Timeout directly after registering (in some cases ROS can take a while until the subscription gets the first
 	/// sample, around 800ms was observed)
-	static constexpr int NUM_NO_REPLY_UNTIL_UNRESPONSIVE_INIT = 10;
+	static constexpr int NUM_NO_REPLY_UNTIL_UNRESPONSIVE_INIT = 20; /// increased to accomodate slower external modes
 
 	void checkNonRegisteredModes(const Context &context, Report &reporter) const;
 
