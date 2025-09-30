@@ -38,7 +38,7 @@ _Crazyflie 2.0_ було [припинено/замінено](../flight_control
 - [Crazyflie 2.0](https://store.bitcraze.io/collections/kits/products/crazyflie-2-0).
 - [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/products/crazyradio-pa): used for wireless communication between _QGroundControl_ and Crazyflie 2.0.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): плата розширення для підключення нових периферійних пристроїв.
-- [Дека потоку](https://store.bitcraze.io/collections/decks/products/flow-deck): містить оптичний сенсор потоку для вимірювання рухів землі та датчик відстані для вимірювання відстані до землі.
+- [Flow deck](https://store.bitcraze.io/products/flow-deck): contains an optical flow sensor to measure movements of the ground and a distance sensor to measure the distance to the ground.
   Це буде корисно для точного контролю висоти та положення.
 - [Deck Z-ranger](https://store.bitcraze.io/collections/decks/products/z-ranger-deck) має той самий датчик відстані, як і Deck Flow, щоб виміряти відстань до землі.
   Це буде корисно для точного контролю висоти.
@@ -51,54 +51,54 @@ _Crazyflie 2.0_ було [припинено/замінено](../flight_control
 
 1. Завантажте вихідний код завантажувача PX4:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Bootloader.git
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Bootloader.git
+   ```
 
 2. Перейдіть до верхньої директорії вихідного коду та скомпілюйте його за допомогою:
 
-  ```sh
-  make crazyflie_bl
-  ```
+   ```sh
+   make crazyflie_bl
+   ```
 
 3. Поставте Crazyflie 2.0 у режим DFU, виконавши ці кроки:
-  - Спочатку переконайтеся, що він знеструмлений.
-  - Утримуйте кнопку скидання (див. малюнок нижче...).
-    ![Crazyflie2 Reset Button](../../assets/flight_controller/crazyflie/crazyflie_reset_button.jpg)
-  - Підключіть до USB-порту комп'ютера.
-  - Через секунду синій світлодіод повинен почати блимати, а через 5 секунд повинен почати блимати швидше.
-  - Відпустіть кнопку.
+   - Спочатку переконайтеся, що він знеструмлений.
+   - Утримуйте кнопку скидання (див. малюнок нижче...).
+     ![Crazyflie2 Reset Button](../../assets/flight_controller/crazyflie/crazyflie_reset_button.jpg)
+   - Підключіть до USB-порту комп'ютера.
+   - Через секунду синій світлодіод повинен почати блимати, а через 5 секунд повинен почати блимати швидше.
+   - Відпустіть кнопку.
 
 4. Встановіть _dfu-util_:
 
-  ```sh
-  sudo apt-get update
-  sudo apt-get install dfu-util
-  ```
+   ```sh
+   sudo apt-get update
+   sudo apt-get install dfu-util
+   ```
 
 5. Виконайте прошивку завантажувальника за допомогою _dfu-util_ та від'єднайте Crazyflie 2.0, коли це зроблено:
 
-  ```sh
-  sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D ./build/crazyflie_bl/crazyflie_bl.bin
-  ```
+   ```sh
+   sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D ./build/crazyflie_bl/crazyflie_bl.bin
+   ```
 
-  Коли увімкнено Crazyflie 2.0, жовтий світлодіод повинен мигати.
+   Коли увімкнено Crazyflie 2.0, жовтий світлодіод повинен мигати.
 
 6. Завантажте вихідний код завантажувача автопілоту PX4:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git
+   ```
 
 7. Перейдіть до верхньої директорії вихідного коду та скомпілюйте його за допомогою:
 
-  ```sh
-  make bitcraze_crazyflie_default upload
-  ```
+   ```sh
+   make bitcraze_crazyflie_default upload
+   ```
 
 8. Коли вас попросять підключити пристрій, підключіть Crazyflie 2.0.
-  Жовтий світлодіод повинен почати блимати, що вказує на режим завантажувача.
-  Потім червоний світлодіод повинен увімкнутися, що вказує на те, що процес мигання розпочався.
+   Жовтий світлодіод повинен почати блимати, що вказує на режим завантажувача.
+   Потім червоний світлодіод повинен увімкнутися, що вказує на те, що процес мигання розпочався.
 
 9. Очікування завершення.
 
@@ -234,7 +234,7 @@ make venv
 Crazyflie 2.0 може літати з точним керуванням у режимі [Стабілізований режим](../flight_modes_mc/manual_stabilized.md), режимі [Висотний режим](../flight_modes_mc/altitude.md) та режимі [Позиційний режим](../flight_modes_mc/position.md).
 
 - Для польоту в режимі _Altitude_ вам знадобиться [Z-ranger deck](https://store.bitcraze.io/collections/decks/products/z-ranger-deck).
-  Якщо ви також хочете літати в режимі _Position_, рекомендується придбати [Flow deck](https://store.bitcraze.io/collections/decks/products/flow-deck), який також має вбудований сенсор Z-ranger.
+  If you also want to fly in the _Position_ mode, it is recommended you buy the [Flow deck](https://store.bitcraze.io/products/flow-deck) which also has the integrated Z-ranger sensor.
 - Покладений барометр дуже чутливий до будь-яких зовнішніх вітрових порушень, включаючи ті, які створюються Crazyflie власними гвинтами. Отже, ми відокремили барометр за допомогою шматка піни, а потім встановили датчик відстані зверху, як показано нижче:
 
 ![Барометр Crazyflie](../../assets/flight_controller/crazyflie/crazyflie_barometer.jpg)
@@ -266,7 +266,7 @@ Crazyflie може літати в режимі _Altitude_, якщо ви вик
 
 ## Керування позицією
 
-З [Flow deck](https://store.bitcraze.io/collections/decks/products/flow-deck) ви можете літати на Crazyflie 2.0 в _Position mode_.
+With [Flow deck](https://store.bitcraze.io/products/flow-deck), you can fly Crazyflie 2.0 in _Position mode_.
 На відміну від [PX4FLOW](../sensor/px4flow.md), плата потоку не містить гіроскоп, тому вбудований гіроскоп використовується для об'єднання потоку з метою знаходження місцевих оцінок позиції.
 Крім того, палуба потоку використовує ту саму шину SPI, що й палуба SD-карти, тому ведення журналу на високій швидкості на SD-картці не рекомендується під час польоту у режимі _Position mode_.
 

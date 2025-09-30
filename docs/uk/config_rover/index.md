@@ -25,18 +25,18 @@ Rovers use a custom build that must be flashed onto your flight controller inste
    To build for rover with the `make` command, replace the `_default` suffix with `_rover`.
    For example, to build rover for px4_fmu-v6x boards, you would use the command:
 
-    ```sh
-    make px4_fmu-v6x_rover
-    ```
+   ```sh
+   make px4_fmu-v6x_rover
+   ```
 
    ::: info
    You can also enable the modules in default builds by adding these lines to your [board configuration](../hardware/porting_guide_config.md) (e.g. for fmu-v6x you might add them to [`main/boards/px4/fmu-v6x/default.px4board`](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)):
 
-    ```sh
-    CONFIG_MODULES_ROVER_ACKERMANN=y
-    CONFIG_MODULES_ROVER_DIFFERENTIAL=y
-    CONFIG_MODULES_ROVER_MECANUM=y
-    ```
+   ```sh
+   CONFIG_MODULES_ROVER_ACKERMANN=y
+   CONFIG_MODULES_ROVER_DIFFERENTIAL=y
+   CONFIG_MODULES_ROVER_MECANUM=y
+   ```
 
    Note that adding the rover modules may lead to flash overflow, in which case you will need to disable modules that you do not plan to use (such as those related to multicopter or fixed wing).
 

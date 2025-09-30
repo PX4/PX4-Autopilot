@@ -44,7 +44,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Control
 
-- TBD
+- Added new flight mode(s): [Altitude Cruise (MC)](../flight_modes_mc/altitude_cruise.md), Altitude Cruise (FW).
+  For fixed-wing the mode behaves the same as Altitude mode but you can disable the manual control loss failsafe. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise
+  ](https://github.com/PX4/PX4-Autopilot/pull/25435)).
 
 ### Estimation
 
@@ -52,7 +54,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Sensors
 
-- TBD
+- Add [sbgECom INS driver](../sensor/sbgecom.md) ([PX4-Autopilot#24137](https://github.com/PX4/PX4-Autopilot/pull/24137))
 
 ### Simulation
 
@@ -65,6 +67,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### uXRCE-DDS / ROS2
 
 - [PX4 ROS 2 Interface Library](../ros2/px4_ros2_control_interface.md) support for [Fixed Wing lateral/longitudinal setpoint](../ros2/px4_ros2_control_interface.md#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype) (`FwLateralLongitudinalSetpointType`) and [VTOL transitions](../ros2/px4_ros2_control_interface.md#controlling-a-vtol). ([PX4-Autopilot#24056](https://github.com/PX4/PX4-Autopilot/pull/24056)).
+- [PX4 ROS 2 Interface Library](../ros2/px4_ros2_control_interface.md) support for [ROS-based waypoint missions](../ros2/px4_ros2_waypoint_missions.md).
 
 ### MAVLink
 
@@ -72,7 +75,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Multi-Rotor
 
-- TBD
+- Removed parameters `MPC_{XY/Z/YAW}_MAN_EXPO` and use default value instead, as they were not deemed necessary anymore. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise](https://github.com/PX4/PX4-Autopilot/pull/25435)).
+- Renamed `MPC_HOLD_DZ` to `MAN_DEADZONE` to have it globally available in modes that allow for a dead zone. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise](https://github.com/PX4/PX4-Autopilot/pull/25435)).
 
 ### VTOL
 
@@ -86,6 +90,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Rover
 
 - Removed deprecated rover module ([PX4-Autopilot#25054](https://github.com/PX4/PX4-Autopilot/pull/25054)).
+- Add support for [Apps & API](../flight_modes_rover/api.md) ([PX4-Autopilot#25074](https://github.com/PX4/PX4-Autopilot/pull/25074), [PX4-ROS2-Interface-Lib#140](https://github.com/Auterion/px4-ros2-interface-lib/pull/140)).
 
 ### ROS 2
 

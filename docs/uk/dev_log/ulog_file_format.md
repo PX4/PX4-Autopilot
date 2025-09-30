@@ -491,6 +491,7 @@ struct message_dropout_s {
   - [replay module](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/replay)
   - [hardfault_log module](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hardfault_log): append hardfault crash data.
 - [pyulog](https://github.com/PX4/pyulog): python, ULog reader and writer library with CLI scripts.
+  The project also has tools to convert ULog to rosbag and other formats.
 - [ulog_cpp](https://github.com/PX4/ulog_cpp): C++, ULog reader and writer library.
 - [FlightPlot](https://github.com/PX4/FlightPlot): Java, log plotter.
 - [MAVLink](https://github.com/mavlink/mavlink): Messages for ULog streaming via MAVLink (note that appending data is not supported, at least not for cut off messages).

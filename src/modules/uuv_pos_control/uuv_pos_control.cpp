@@ -90,61 +90,172 @@ void UUVPOSControl::parameters_update(bool force)
 	}
 }
 
-void UUVPOSControl::publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
-		const float roll_des, const float pitch_des, const float yaw_des)
-{
-	//watch if inputs are not to high
-	vehicle_attitude_setpoint_s vehicle_attitude_setpoint = {};
-	vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
-
-	const Quatf attitude_setpoint(Eulerf(roll_des, pitch_des, yaw_des));
-	attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
-
-	vehicle_attitude_setpoint.thrust_body[0] = thrust_x;
-	vehicle_attitude_setpoint.thrust_body[1] = thrust_y;
-	vehicle_attitude_setpoint.thrust_body[2] = thrust_z;
-
-
-	_att_sp_pub.publish(vehicle_attitude_setpoint);
-}
-
-void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des,
-		const float roll_des, const float pitch_des, const float yaw_des,
-		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des, vehicle_attitude_s &vehicle_attitude,
+		vehicle_local_position_s &vlocal_pos, bool altitude_mode)
 {
 	//get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
 
+	// Assumes target 0 velocity
 	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
 					     * vlocal_pos.vx,
 					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
 					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
 
-	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+	if (altitude_mode) {
+		// In altitude mode, we only control the z-axis
+		p_control_output(0) = 0.0f;
+		p_control_output(1) = 0.0f;
+	}
 
-	publish_attitude_setpoint(rotated_input(0),
-				  rotated_input(1),
-				  rotated_input(2),
-				  roll_des, pitch_des, yaw_des);
+	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output); //rotate the coord.sys (from global to body)
 
+	_attitude_setpoint.timestamp = hrt_absolute_time();
+	_attitude_setpoint.q_d[0] = _trajectory_setpoint.quaternion[0];
+	_attitude_setpoint.q_d[1] = _trajectory_setpoint.quaternion[1];
+	_attitude_setpoint.q_d[2] = _trajectory_setpoint.quaternion[2];
+	_attitude_setpoint.q_d[3] = _trajectory_setpoint.quaternion[3];
+	_attitude_setpoint.thrust_body[0] = rotated_input(0);
+	_attitude_setpoint.thrust_body[1] = rotated_input(1);
+	_attitude_setpoint.thrust_body[2] = rotated_input(2);
 }
 
-void UUVPOSControl::stabilization_controller_6dof(const Vector3f &pos_des,
-		const float roll_des, const float pitch_des, const float yaw_des,
-		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+void UUVPOSControl::check_setpoint_validity(vehicle_local_position_s &vlocal_pos)
 {
-	//get current rotation of vehicle
+	const float _setpoint_age = (hrt_absolute_time() - _trajectory_setpoint.timestamp) * 1e-6f;
+
+	if (_setpoint_age < 0.0f || _setpoint_age > _param_setpoint_max_age.get()) {
+		reset_trajectory_setpoint(vlocal_pos);
+	}
+
+	if (!PX4_ISFINITE(_trajectory_setpoint.position[0]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.position[1]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.position[2]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.quaternion[0]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.quaternion[1]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.quaternion[2]) ||
+	    !PX4_ISFINITE(_trajectory_setpoint.quaternion[3])) {
+		reset_trajectory_setpoint(vlocal_pos);
+	}
+}
+
+void UUVPOSControl::generate_trajectory_setpoint(vehicle_local_position_s &vlocal_pos,
+		vehicle_attitude_s &vehicle_attitude,
+		float dt)
+{
+	float roll = Eulerf(matrix::Quatf(_trajectory_setpoint.quaternion)).phi();
+	float pitch = Eulerf(matrix::Quatf(_trajectory_setpoint.quaternion)).theta();
+	float yaw = Eulerf(matrix::Quatf(_trajectory_setpoint.quaternion)).psi();
+
+	// Integrate manual control inputs
+	// Info:
+	//  - throttle is Z, roll is Y, pitch is X
+	//  - if param_stab_mode == 1:
+	//	- roll = 0
+	//	- pitch = 0
+	//  - if param_stab_mode == 0:
+	//      - roll can be updated with D-pad  (joystick)
+	//      - pitch can be updated with D-pad (joystick)
+	float roll_setpoint = roll;
+	float pitch_setpoint = pitch;
+
+	if (_param_stab_mode.get()) {
+		roll_setpoint = 0.0;
+		pitch_setpoint = 0.0;
+
+	} else {
+		// Update target roll and pitch setpoint with D-pad
+		switch (_manual_control_setpoint.buttons) {
+		case 2048:
+			pitch_setpoint -= dt * _param_sgm_pitch.get();
+			break;
+
+		case 4096:
+			pitch_setpoint += dt * _param_sgm_pitch.get();
+			break;
+
+		case 8192:
+			roll_setpoint -= dt * _param_sgm_roll.get();
+			break;
+
+		case 16384:
+			roll_setpoint += dt * _param_sgm_roll.get();
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_sgm_yaw.get();
+
+	// Update position setpoints based on manual control inputs
+	float vx_sp = 0.0;
+
+	if (_manual_control_setpoint.pitch > _param_pos_stick_db.get()
+	    || _manual_control_setpoint.pitch < -_param_pos_stick_db.get()) {
+		// If pitch is not zero, we use it to set the roll setpoint
+		vx_sp = _manual_control_setpoint.pitch * _param_pgm_vel.get();
+	}
+
+	float vy_sp = 0.0;
+
+	if (_manual_control_setpoint.roll > _param_pos_stick_db.get()
+	    || _manual_control_setpoint.roll < -_param_pos_stick_db.get()) {
+		// If roll is not zero, we use it to set the pitch setpoint
+		vy_sp = _manual_control_setpoint.roll * _param_pgm_vel.get();
+	}
+
+	float vz_sp = 0.0;
+
+	if (_manual_control_setpoint.throttle > _param_pos_stick_db.get()
+	    || _manual_control_setpoint.throttle < -_param_pos_stick_db.get()) {
+		// If throttle is not zero, we use it to set the vertical velocity
+		vz_sp = -_manual_control_setpoint.throttle * _param_pgm_vel.get();
+	}
+
+	// rotate velocity setpoint in body frame to global frame
+	Vector3f velocity_setpoint(vx_sp, vy_sp, vz_sp);
 	Quatf q_att(vehicle_attitude.q);
+	Vector3f rotated_velocity_setpoint = q_att.rotateVector(velocity_setpoint);
 
-	Vector3f p_control_output = Vector3f(0,
-					     0,
-					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
-	//potential d controller missing
-	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
+	// Generate target quaternion
+	Eulerf euler_sp(roll_setpoint, pitch_setpoint, yaw_setpoint);
+	Quatf q_sp = euler_sp;
 
-	publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
-				  roll_des, pitch_des, yaw_des);
+	// Normalize the quaternion to avoid numerical issues
+	q_sp.normalize();
 
+	q_sp.copyTo(_trajectory_setpoint.quaternion);
+
+	_trajectory_setpoint.timestamp = hrt_absolute_time();
+
+	if (!_param_pos_mode.get()) {
+		_trajectory_setpoint.position[0] = _trajectory_setpoint.position[0] + vx_sp * dt; // X in world frame
+		_trajectory_setpoint.position[1] = _trajectory_setpoint.position[1] + vy_sp * dt; // Y in world frame
+		_trajectory_setpoint.position[2] = _trajectory_setpoint.position[2] + vz_sp * dt; // Z in world frame
+
+	} else {
+		_trajectory_setpoint.position[0] = _trajectory_setpoint.position[0] + rotated_velocity_setpoint(
+				0) * dt; // X in body frame
+		_trajectory_setpoint.position[1] = _trajectory_setpoint.position[1] + rotated_velocity_setpoint(
+				1) * dt; // Y in body frame
+		_trajectory_setpoint.position[2] = _trajectory_setpoint.position[2] + rotated_velocity_setpoint(
+				2) * dt; // Z in body frame
+	}
+}
+
+void UUVPOSControl::reset_trajectory_setpoint(vehicle_local_position_s &vlocal_pos)
+{
+	// Reset trajectory setpoint to current position and attitude
+	_trajectory_setpoint.timestamp = hrt_absolute_time();
+	_trajectory_setpoint.position[0] = vlocal_pos.x;
+	_trajectory_setpoint.position[1] = vlocal_pos.y;
+	_trajectory_setpoint.position[2] = vlocal_pos.z;
+	_trajectory_setpoint.quaternion[0] = _vehicle_attitude.q[0];
+	_trajectory_setpoint.quaternion[1] = _vehicle_attitude.q[1];
+	_trajectory_setpoint.quaternion[2] = _vehicle_attitude.q[2];
+	_trajectory_setpoint.quaternion[3] = _vehicle_attitude.q[3];
 }
 
 void UUVPOSControl::Run()
@@ -160,7 +271,6 @@ void UUVPOSControl::Run()
 	/* check vehicle control mode for changes to publication state */
 	_vcontrol_mode_sub.update(&_vcontrol_mode);
 
-
 	/* update parameters from storage */
 	parameters_update();
 
@@ -169,34 +279,58 @@ void UUVPOSControl::Run()
 
 	/* only run controller if local_pos changed */
 	if (_vehicle_local_position_sub.update(&vlocal_pos)) {
+		const float dt = math::constrain(((vlocal_pos.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
+		_last_run = vlocal_pos.timestamp_sample;
 
-		/* Run geometric attitude controllers if NOT manual mode*/
-		if (!_vcontrol_mode.flag_control_manual_enabled
-		    && _vcontrol_mode.flag_control_attitude_enabled
-		    && _vcontrol_mode.flag_control_rates_enabled) {
+		// Update vehicle attitude
+		_vehicle_attitude_sub.update(&_vehicle_attitude);
 
-			_vehicle_attitude_sub.update(&_vehicle_attitude);//get current vehicle attitude
+		/* Run position or altitude mode from manual setpoints*/
+		if (_vcontrol_mode.flag_control_manual_enabled
+		    && (_vcontrol_mode.flag_control_altitude_enabled
+			|| _vcontrol_mode.flag_control_position_enabled)
+		    && _vcontrol_mode.flag_armed) {
+			/* Update manual setpoints */
+
+			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled
+							&& ! _vcontrol_mode.flag_control_position_enabled;
+
+			_manual_control_setpoint_sub.update(&_manual_control_setpoint);
+
+			// Ensure no nan and sufficiently recent setpoint
+			check_setpoint_validity(vlocal_pos);
+
+			// Generate _trajectory_setpoint -> creates _trajectory_setpoint
+			generate_trajectory_setpoint(vlocal_pos, _vehicle_attitude, dt);
+
+			pose_controller_6dof(Vector3f(_trajectory_setpoint.position), _vehicle_attitude,
+					     vlocal_pos, altitude_only_flag);
+
+		} else if (!_vcontrol_mode.flag_control_manual_enabled
+			   && (_vcontrol_mode.flag_control_altitude_enabled
+			       || _vcontrol_mode.flag_control_position_enabled)
+			   && _vcontrol_mode.flag_armed) {
+			/* Autonomous position mode - no manual inputs are used */
+			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled
+							&& ! _vcontrol_mode.flag_control_position_enabled;
+
+			// get manual control setpoint
 			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
-			float roll_des = 0;
-			float pitch_des = 0;
-			float yaw_des = _trajectory_setpoint.yaw;
+			pose_controller_6dof(Vector3f(_trajectory_setpoint.position), _vehicle_attitude,
+					     vlocal_pos, altitude_only_flag);
 
-			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
-			if (_param_stabilization.get() == 0) {
-				pose_controller_6dof(Vector3f(_trajectory_setpoint.position),
-						     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
-
-			} else {
-				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
-							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
-			}
+		} else {
+			// Reset if not in a valid mode (like attitude, rate, manual) to clear setpoint
+			check_setpoint_validity(vlocal_pos);
 		}
 	}
 
 	/* Only publish if any of the proper modes are enabled */
-	if (_vcontrol_mode.flag_control_manual_enabled ||
-	    _vcontrol_mode.flag_control_attitude_enabled) {
+	if (_vcontrol_mode.flag_control_position_enabled ||
+	    _vcontrol_mode.flag_control_altitude_enabled) {
+		// Print attitude setpoint
+		_att_sp_pub.publish(_attitude_setpoint);
 	}
 
 	perf_end(_loop_perf);

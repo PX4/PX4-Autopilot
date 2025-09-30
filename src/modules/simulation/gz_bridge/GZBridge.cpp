@@ -90,32 +90,46 @@ int GZBridge::init()
 	}
 
 	// OPTIONAL:
-	if (!subscribeNavsat(false)) {
-		return PX4_ERROR;
+	if (_sim_gz_en_gps.get()) {
+		if (!subscribeNavsat(false)) {
+			return PX4_ERROR;
+		}
 	}
 
-	if (!subscribeAirPressure(false)) {
-		return PX4_ERROR;
+	if (_sim_gz_en_baro.get()) {
+		if (!subscribeAirPressure(false)) {
+			return PX4_ERROR;
+		}
 	}
 
-	if (!subscribeDistanceSensor(false)) {
-		return PX4_ERROR;
+	if (_sim_gz_en_lidar.get()) {
+		if (!subscribeDistanceSensor(false)) {
+			return PX4_ERROR;
+		}
 	}
 
-	if (!subscribeAirspeed(false)) {
-		return PX4_ERROR;
+	if (_sim_gz_en_aspd.get()) {
+		if (!subscribeAirspeed(false)) {
+			return PX4_ERROR;
+		}
 	}
 
-	if (!subscribeOpticalFlow(false)) {
-		return PX4_ERROR;
+	if (_sim_gz_en_flow.get()) {
+		if (!subscribeOpticalFlow(false)) {
+			return PX4_ERROR;
+		}
 	}
 
-	if (!subscribeOdometry(false)) {
-		return PX4_ERROR;
+	if (_sim_gz_en_odom.get()) {
+		if (!subscribeOdometry(false)) {
+			return PX4_ERROR;
+		}
 	}
 
-	if (!subscribeLaserScan(false)) {
-		return PX4_ERROR;
+	if (_sim_gz_en_lidar.get()) {
+		if (!subscribeLaserScan(false)) {
+			return PX4_ERROR;
+		}
 	}
 
 	// ESC mixing interface

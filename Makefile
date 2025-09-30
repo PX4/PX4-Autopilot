@@ -328,6 +328,8 @@ bootloaders_update: \
 	cuav_nora_bootloader \
 	cuav_x7pro_bootloader \
 	cuav_7-nano_bootloader \
+	cuav_fmu-v6x_bootloader \
+	cuav_x25-evo_bootloader \
 	cubepilot_cubeorange_bootloader \
 	cubepilot_cubeorangeplus_bootloader \
 	hkust_nxt-dual_bootloader \
@@ -347,6 +349,7 @@ bootloaders_update: \
 	mro_ctrl-zero-h7_bootloader \
 	mro_ctrl-zero-h7-oem_bootloader \
 	mro_pixracerpro_bootloader \
+	narinfc_h7_bootloader \
 	px4_fmu-v6c_bootloader \
 	px4_fmu-v6u_bootloader \
 	px4_fmu-v6x_bootloader \
@@ -468,7 +471,7 @@ python_coverage:
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
-.PHONY: scan-build px4_sitl_default-clang clang-tidy clang-tidy-fix clang-tidy-quiet
+.PHONY: scan-build px4_sitl_default-clang clang-tidy clang-tidy-fix
 .PHONY: cppcheck shellcheck_all validate_module_configs
 
 scan-build:
@@ -494,10 +497,6 @@ clang-tidy: px4_sitl_default-clang
 clang-tidy-fix: px4_sitl_default-clang
 	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -fix -p .
 
-# modified version of run-clang-tidy.py to return error codes and only output relevant results
-clang-tidy-quiet: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -p .
-
 # TODO: Fix cppcheck errors then try --enable=warning,performance,portability,style,unusedFunction or --enable=all
 cppcheck: px4_sitl_default
 	@mkdir -p "$(SRC_DIR)"/build/cppcheck
@@ -512,6 +511,7 @@ validate_module_configs:
 	@find "$(SRC_DIR)"/src/modules "$(SRC_DIR)"/src/drivers "$(SRC_DIR)"/src/lib -name *.yaml -type f \
 	-not -path "$(SRC_DIR)/src/lib/mixer_module/*" \
 	-not -path "$(SRC_DIR)/src/modules/uxrce_dds_client/dds_topics.yaml" \
+	-not -path "$(SRC_DIR)/src/modules/zenoh/dds_topics.yaml" \
 	-not -path "$(SRC_DIR)/src/modules/zenoh/zenoh-pico/*" \
 	-not -path "$(SRC_DIR)/src/lib/events/libevents/*" \
 	-not -path "$(SRC_DIR)/src/lib/cdrstream/*" \

@@ -166,11 +166,11 @@ In this case you might use the settings: [IMU_GYRO_NF0_FRQ=32](../advanced_confi
 ## Додаткові поради
 
 1. Прийнятна затримка залежить від розміру транспортного засобу та очікувань.
-  FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
-  For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
+   FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
+   For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
 
 2. You can start tuning at higher `IMU_GYRO_CUTOFF` values (e.g. 100Hz), which might be desirable because the default tuning of `IMU_GYRO_CUTOFF` is set very low (30Hz).
-  Однак вам потрібно бути обізнаними з ризиками:
-  - Не літайте більше 20-30 секунд
-  - Перевірте, що двигуни не нагріваються занадто сильно
-  - Слухайте дивні звуки та симптоми надмірного шуму, як обговорено вище.
+   Однак вам потрібно бути обізнаними з ризиками:
+   - Не літайте більше 20-30 секунд
+   - Перевірте, що двигуни не нагріваються занадто сильно
+   - Слухайте дивні звуки та симптоми надмірного шуму, як обговорено вище.

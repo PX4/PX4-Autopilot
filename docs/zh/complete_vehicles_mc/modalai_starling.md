@@ -1,15 +1,17 @@
-# VOXL 2 Starling PX4 Development Drone
+# ModalAI Starling (PX4 Autonomy Developer Kit)
 
-The [Starling](https://modalai.com/starling) is a SLAM development drone supercharged by [VOXL 2](../flight_controller/modalai_voxl_2.md) and PX4 with SWAP-optimized sensors and payloads optimized for indoor and outdoor autonomous navigation.
+The [Starlings](https://www.modalai.com/pages/starlings) are SLAM development drones supercharged by [VOXL 2](../flight_controller/modalai_voxl_2.md) and PX4 with SWAP-optimized sensors and payloads optimized for indoor and outdoor autonomous navigation.
 Powered by Blue UAS Framework autopilot, VOXL 2, the Starling weighs only 275g and boasts an impressive 30 minutes of autonomous indoor flight time.
 
 ![Overview](../../assets/hardware/complete_vehicles/modalai_starling/starling_front_hero.jpg)
 
-The VOXL 2 Starling is a PX4 development drone that houses a [VOXL 2](../flight_controller/modalai_voxl_2.md) companion computer and PX4 flight controller, image sensors, GPS, and connectivity modem and is ready-to-fly out-of-the-box.
-The Starling features ModalAI’s [open SDK](https://docs.modalai.com/voxl-developer-bootcamp/) that has pre-configured autonomy models for computer vision assisted flight.
+The ModalAI PX4 Autonomy Developer Kit is a Starling-based development drone.
+It houses a [VOXL 2](../flight_controller/modalai_voxl_2.md), which is a powerful companion computer and PX4 flight controller in one small package, image sensors, GPS, and connectivity modem, and is ready-to-fly out-of-the-box.
+The Starling features ModalAI's [open SDK](https://docs.modalai.com/voxl-developer-bootcamp/) that has pre-configured autonomy models for computer vision assisted flight.
 This development drone is meant to help you get to market faster and accelerate your application development and prototyping.
 
-This guide explains the minimal additional setup required to get the UAV ready to fly. It also covers a hardware overview, first flight, setting up WiFi, and more.
+This guide explains the minimal additional setup required to get the UAV ready to fly.
+It also covers a hardware overview, first flight, setting up WiFi, and more.
 
 :::info
 For complete and regularly updated documentation, please visit <https://docs.modalai.com/starling-v2>.
@@ -21,7 +23,7 @@ If you are new to VOXL, be sure to familiarize yourself with the core features o
 
 ## 购买渠道
 
-[modalai.com/starling](https://modalai.com/starling)
+[ModalAI PX4 Autonomy Developer Kit](https://www.modalai.com/products/px4-autonomy-developer-kit?variant=46969885950256)
 
 ## Hardware Overview
 
@@ -82,26 +84,26 @@ Follow this guide to bind your ELRS receiver to your transmitter.
 #### Setting up the Receiver
 
 1. **Power On the Receiver**: Once your drone is powered on, you'll notice the ELRS receiver's blue LED flashing.
-  This is an indication that the receiver is on but has not yet established a connection with a transmitter.
+   This is an indication that the receiver is on but has not yet established a connection with a transmitter.
 
-  ![Starling Receiver](../../assets/hardware/complete_vehicles/modalai_starling/starling-photo.png)
+   ![Starling Receiver](../../assets/hardware/complete_vehicles/modalai_starling/starling-photo.png)
 
 2. **Enter Binding Mode**: To initiate binding, open a terminal and execute the `adb shell` and `voxl-elrs -bind` commands.
-  You'll observe the receiver's LED switch to a flashing in a heartbeat pattern, signaling that it is now in binding mode.
+   You'll observe the receiver's LED switch to a flashing in a heartbeat pattern, signaling that it is now in binding mode.
 
-  ![Boot Screenshot](../../assets/hardware/complete_vehicles/modalai_starling/screenshot-boot.png)
+   ![Boot Screenshot](../../assets/hardware/complete_vehicles/modalai_starling/screenshot-boot.png)
 
 #### Setting up the Transmitter
 
 1. **Access the Menu**: On your Commando 8 radio transmitter included in the kit, press the left mode button to open the menu system.
 
-  ![Press Menu on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-1.png)
+   ![Press Menu on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-1.png)
 
 2. **Navigate to ExpressLRS**: Use the right button to select the first menu entry, which should be "ExpressLRS."
 
 3. **Find the Bind Option**: With the "ExpressLRS" option selected, scroll down to the bottom of the menu to locate the "Bind" section. This can be done by pressing the right button downwards until you reach the "Bind" option.
 
-  ![Press Binding on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-2.png)
+   ![Press Binding on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-2.png)
 
 4. **Initiate Binding**: Select "Bind" to put the transmitter into binding mode. You will know the process has been successful when the transmitter emits a beep, indicating a successful bind.
 
@@ -121,3 +123,5 @@ A secure connection is vital for the reliable operation of your drone, so always
 - [VOXL 2 Starling Hardware Overview](https://youtu.be/M9OiMpbEYOg)
 - [VOXL 2 Starling First Flight Tutorial](https://youtu.be/Cpbbye3Z6co)
 - [VOXL 2 Starling ELRS Set Up](https://youtu.be/7OwGS-kcFVg)
+
+<!--  @katzfey - ModalAI reviewer -->

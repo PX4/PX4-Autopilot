@@ -26,7 +26,6 @@ This topic explains how to construct and extend the development environment used
 
 - Симуляція: Gazebo та ROS не підтримуються.
 - Підтримуються лише збірки NuttX і JMAVSim/SITL.
-- [Known problems](https://github.com/orgs/PX4/projects/6) (Also use to report issues).
 
 ### Встановлення за допомогою скриптів оболонки
 
@@ -95,7 +94,7 @@ The toolchain gets maintained and hence these instructions might not cover every
 
 :::
 
-6. Write up or copy the **batch scripts** [`run-console.bat`](https://github.com/MaEtUgR/PX4Toolchain/blob/master/run-console.bat) and [`setup-environment.bat`](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/scripts/setup-environment.bat).
+6. Write up or copy the **batch scripts** [`run-console.bat`](https://github.com/PX4/PX4-windows-toolchain/blob/master/run-console.bat) and [`setup-environment.bat`](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/scripts/setup-environment.bat).
 
    Причиною запуску всіх інструментів розробки через підготовлений пакетні скрипти є те, що вони налаштовують початкову програму використовувати локальне, портативне середовище Cygwin всередині директорії інструментарію.
    This is done by always first calling the script [**setup-environment.bat**](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/scripts/setup-environment.bat) and the desired application like the console after that.
@@ -111,11 +110,11 @@ The toolchain gets maintained and hence these instructions might not cover every
    ```
 
    ::: info
-   That's what [cygwin64/install-cygwin-python-packages.bat](https://github.com/MaEtUgR/PX4Toolchain/blob/master/toolchain/cygwin64/install-cygwin-python-packages.bat) does.
+   That's what [cygwin64/install-cygwin-python-packages.bat](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/cygwin64/install-cygwin-python-packages.bat) does.
 
 :::
 
-8. Download the [**ARM GCC compiler**](https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads) as zip archive of the binaries for Windows and unpack the content to the folder `C:\PX4\toolchain\gcc-arm`.
+8. Download the [**ARM GCC compiler**](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain) as zip archive of the binaries for Windows and unpack the content to the folder `C:\PX4\toolchain\gcc-arm`.
 
    ::: info
    This is what the toolchain does in: [gcc-arm/install-gcc-arm.bat](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/gcc-arm/install-gcc-arm.bat).
@@ -124,7 +123,7 @@ The toolchain gets maintained and hence these instructions might not cover every
 
 9. Встановіть JDK:
 
-   - Download Java 14 from [Oracle](https://www.oracle.com/java/technologies/downloads/) or [AdoptOpenJDK](https://adoptopenjdk.net/).
+   - Download Java 14 from [Oracle](https://www.oracle.com/java/technologies/downloads/)
    - Оскільки, на жаль, не існує портативного архіву, який містить безпосередньо бінарні файли вам потрібно встановити Java.
    - Find the binaries and move/copy them to **C:\PX4\toolchain\jdk**.
    - Ви можете видалити Java із вашої системи Windows, нам були потрібні лише бінарні файли для набору інструментів.
@@ -136,31 +135,31 @@ The toolchain gets maintained and hence these instructions might not cover every
 
 10. Download [**Apache Ant**](https://ant.apache.org/bindownload.cgi) as zip archive of the binaries for Windows and unpack the content to the folder `C:\PX4\toolchain\apache-ant`.
 
-   :::tip
-   Make sure you don't have an additional folder layer from the folder which is inside the downloaded archive.
+    :::tip
+    Make sure you don't have an additional folder layer from the folder which is inside the downloaded archive.
 
 :::
 
-   ::: info
-   This is what the toolchain does in: [apache-ant/install-apache-ant.bat](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/apache-ant/install-apache-ant.bat).
+    ::: info
+    This is what the toolchain does in: [apache-ant/install-apache-ant.bat](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/apache-ant/install-apache-ant.bat).
 
 :::
 
 11. Download, build and add _genromfs_ to the path:
-   - Clone the source code to the folder **C:\PX4\toolchain\genromfs\genromfs-src** with
+    - Clone the source code to the folder **C:\PX4\toolchain\genromfs\genromfs-src** with
 
       ```sh
       cd /c/toolchain/genromfs
       git clone https://github.com/chexum/genromfs.git genromfs-src
       ```
 
-   - Скомпілюйте це:
+    - Скомпілюйте це:
 
       ```sh
       cd genromfs-src
       make all
       ```
 
-   - Copy the resulting binary **genromfs.exe** one folder level out to: **C:\PX4\toolchain\genromfs**
+    - Copy the resulting binary **genromfs.exe** one folder level out to: **C:\PX4\toolchain\genromfs**
 
 12. Make sure all the binary folders of all the installed components are correctly listed in the `PATH` variable configured by [**setup-environment.bat**](https://github.com/PX4/PX4-windows-toolchain/blob/master/toolchain/scripts/setup-environment.bat).

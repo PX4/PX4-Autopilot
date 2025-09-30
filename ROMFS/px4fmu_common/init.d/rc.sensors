@@ -237,6 +237,7 @@ then
 	qmc5883p -X -q start
 	rm3100 -X -q start
 	bmm350 -X -q start
+	iis2mdc -X -q start
 
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start

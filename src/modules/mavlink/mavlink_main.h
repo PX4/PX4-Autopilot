@@ -180,6 +180,9 @@ public:
 	void			check_events_enable() { _should_check_events.store(true); }
 	void			check_events_disable() { _should_check_events.store(false); }
 
+	bool			sending_parameters() const { return _sending_parameters.load(); }
+	void			set_sending_parameters(bool sending) { _sending_parameters.store(sending); }
+
 	int			get_uart_fd() const { return _uart_fd; }
 
 	/**
@@ -213,6 +216,7 @@ public:
 		MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH,
 		MAVLINK_MODE_UAVIONIX,
 		MAVLINK_MODE_LOW_BANDWIDTH,
+		MAVLINK_MODE_DISTANCE_SENSOR,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -272,6 +276,9 @@ public:
 
 		case MAVLINK_MODE_UAVIONIX:
 			return "uAvionix";
+
+		case MAVLINK_MODE_DISTANCE_SENSOR:
+			return "DistanceSensor";
 
 		default:
 			return "Unknown";
@@ -566,6 +573,7 @@ private:
 	bool			_received_messages{false};	/**< Whether we've received valid mavlink messages. */
 
 	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
+	px4::atomic_bool	_sending_parameters{false};     /**< True if parameters are currently sent out */
 
 	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
 

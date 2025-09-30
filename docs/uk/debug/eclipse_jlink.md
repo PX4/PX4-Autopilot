@@ -53,17 +53,17 @@ For more information, see: [https://gnu-mcu-eclipse.github.io/debug/jlink/instal
 
 7. Пакети з оновленнями:
    - Click the small icon on the top right called _Open Perspective_ and open the _Packs_ perspective.
-      ![Eclipse: Workspace](../../assets/debug/eclipse_workspace_perspective.png)
+     ![Eclipse: Workspace](../../assets/debug/eclipse_workspace_perspective.png)
 
    - Click the **update all** button.
 
-      :::tip
-      This takes a VERY LONG TIME (10 minutes).
-      Ігноруйте всі помилки про відсутні пакети.
+     :::tip
+     This takes a VERY LONG TIME (10 minutes).
+     Ігноруйте всі помилки про відсутні пакети.
 
 :::
 
-      ![Eclipse: Workspace Packs Perspective](../../assets/debug/eclipse_packs_perspective.jpg)
+     ![Eclipse: Workspace Packs Perspective](../../assets/debug/eclipse_packs_perspective.jpg)
 
    - The STM32Fxx devices are found in the Keil folder, install by right-clicking and then selecting **install** on the according device for F4 and F7.
 
@@ -79,24 +79,24 @@ For more information, see: [https://gnu-mcu-eclipse.github.io/debug/jlink/instal
    ![Eclipse: Debug config](../../assets/debug/eclipse_settings_debug_config.png)
 
 10. Then select _GDB SEGGER J-Link Debugging_ and then the **New config** button on the top left.
-   ![Eclipse: GDB Segger Debug config](../../assets/debug/eclipse_settings_debug_config_gdb_segger.png)
+    ![Eclipse: GDB Segger Debug config](../../assets/debug/eclipse_settings_debug_config_gdb_segger.png)
 
 11. Налаштування конфігурації збірки:
 
-   - Give it a name and set the _C/C++ Application_ to the corresponding **.elf** file.
-   - Choose _Disable Auto build_
+    - Give it a name and set the _C/C++ Application_ to the corresponding **.elf** file.
+    - Choose _Disable Auto build_
 
       ::: info
       Remember that you must build the target from the command line before starting a debug session.
 
 :::
 
-   ![Eclipse: GDB Segger Debug config](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config.png)
+    ![Eclipse: GDB Segger Debug config](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config.png)
 
 12. The _Debugger_ and _Startup_ tabs shouldn’t need any modifications (just verify your settings with the screenshots below)
 
-   ![Eclipse: GDB Segger Debug config: debugger tab](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config_debugger_tab.png)
-   ![Eclipse: GDB Segger Debug config: startup tab](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config_startup_tab.png)
+    ![Eclipse: GDB Segger Debug config: debugger tab](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config_debugger_tab.png)
+    ![Eclipse: GDB Segger Debug config: startup tab](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config_startup_tab.png)
 
 ## Відлагодження з урахуванням завдань SEGGER
 
@@ -109,16 +109,16 @@ Task-aware debugging (also known as [thread-aware debugging](https://www.segger.
    - Відкрийте термінал у кореневій теці вихідного коду PX4-Autopilot
 
    - In the terminal, open `menuconfig` using the appropriate make target for the build.
-      Це виглядатиме приблизно так:
+     Це виглядатиме приблизно так:
 
-      ```sh
-      make px4_fmu-v5_default boardguiconfig
-      ```
+     ```sh
+     make px4_fmu-v5_default boardguiconfig
+     ```
 
-      (See [PX4 Menuconfig Setup](../hardware/porting_guide_config.md#px4-menuconfig-setup) for more information) on using the config tools).
+     (See [PX4 Menuconfig Setup](../hardware/porting_guide_config.md#px4-menuconfig-setup) for more information) on using the config tools).
 
    - Ensure that the _Enable TCBinfo struct for debug_ is selected as shown:
-      ![NuttX: Menuconfig: CONFIG_DEBUG_TCBINFO](../../assets/debug/nuttx_tcb_task_aware.png)
+     ![NuttX: Menuconfig: CONFIG_DEBUG_TCBINFO](../../assets/debug/nuttx_tcb_task_aware.png)
 
 2. Compile the **jlink-nuttx.so** library in the terminal by running the following command in the terminal: `make jlink-nuttx`
 

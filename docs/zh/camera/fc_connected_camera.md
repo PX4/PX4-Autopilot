@@ -97,13 +97,13 @@ For more information see [Finding/Updating Parameters > Parameters Not In Firmwa
 
 Four different modes are supported, controlled by the [TRIG_MODE](../advanced_config/parameter_reference.md#TRIG_MODE) parameter:
 
-| Mode | 描述                                                                                                                                                                                                                                             |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Camera triggering is disabled.                                                                                                                                                                                                 |
-| 1    | Works like a basic intervalometer that can be enabled and disabled by using the MAVLink command `MAV_CMD_DO_TRIGGER_CONTROL`. See [command interface](#mavlink-command-interface) for more details.            |
-| 2    | Switches the intervalometer constantly on.                                                                                                                                                                                     |
-| 3    | Triggers based on distance. A shot is taken every time the set horizontal distance is exceeded. The minimum time interval between two shots is however limited by the set triggering interval. |
-| 4    | Triggers automatically when flying a survey in Mission mode.                                                                                                                                                                   |
+| 模式 | 描述                                                                                                                                                                                                                                             |
+| -- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0  | Camera triggering is disabled.                                                                                                                                                                                                 |
+| 1  | Works like a basic intervalometer that can be enabled and disabled by using the MAVLink command `MAV_CMD_DO_TRIGGER_CONTROL`. See [command interface](#mavlink-command-interface) for more details.            |
+| 2  | Switches the intervalometer constantly on.                                                                                                                                                                                     |
+| 3  | Triggers based on distance. A shot is taken every time the set horizontal distance is exceeded. The minimum time interval between two shots is however limited by the set triggering interval. |
+| 4  | Triggers automatically when flying a survey in Mission mode.                                                                                                                                                                   |
 
 :::info
 If it is your first time enabling the camera trigger app, remember to reboot after changing the `TRIG_MODE` parameter.
@@ -118,7 +118,7 @@ The camera trigger driver supports several backends - each for a specific applic
 | 1      | Enables the GPIO interface. The AUX outputs are pulsed high or low (depending on the `TRIG_POLARITY` parameter) every [TRIG_INTERVAL](../advanced_config/parameter_reference.md#TRIG_INTERVAL) duration. This can be used to trigger most standard machine vision cameras directly. Note that on PX4FMU series hardware (Pixhawk, Pixracer, etc.), the signal level on the AUX pins is 3.3v.                                                                 |
 | 2      | Enables the Seagull MAP2 interface. This allows the use of the [Seagull MAP2](https://www.seagulluav.com/product/seagull-map2/) to interface to a multitude of supported cameras. Pin/Channel 1 (camera trigger) and Pin/Channel 2 (mode selector) of the MAP2 should be connected to the lower and higher mapped [camera trigger pins](#trigger-output-pin-configuration). Using Seagull MAP2, PX4 also supports automatic power control and keep-alive functionalities of Sony Multiport cameras like the QX-1. |
 | 3      | This mode enables MAVLink cameras that used the legacy [MAVLink interface listed above](#mavlink-command-interface). The messages are automatically emitted on the MAVLink `onboard` channel when found in missions. PX4 emits the `CAMERA_TRIGGER` MAVLink message when a camera is triggered, by default to the `onboard` channel (if this is not used, custom stream will need to be enabled). [Simple MAVLink cameras](../camera/mavlink_v1_camera.md) explains this use case in more detail.                                    |
-| 4      | Enables the generic PWM interface. This allows the use of [infrared triggers](https://hobbyking.com/en_us/universal-remote-control-infrared-shutter-ir-rc-1g.html) or servos to trigger your camera.                                                                                                                                                                                                                                                                                                                                                                                    |
+| 4      | Enables the generic PWM interface. This allows the use of [infrared triggers](https://www.seagulluav.com/product/seagull-ir/) or servos to trigger your camera.                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 ### Trigger Output Pin Configuration
 
@@ -188,16 +188,16 @@ The following sections are out of date and need retesting.
 
 1. On the PX4 console:
 
-  ```shell
-  camera_trigger test
-  ```
+   ```shell
+   camera_trigger test
+   ```
 
 2. From _QGroundControl_:
 
-  Click on **Trigger Camera** in the main instrument panel.
-  These shots are not logged or counted for geotagging.
+   Click on **Trigger Camera** in the main instrument panel.
+   These shots are not logged or counted for geotagging.
 
-  ![QGC Test Camera](../../assets/camera/qgc_test_camera.png)
+   ![QGC Test Camera](../../assets/camera/qgc_test_camera.png)
 
 ## Sony QX-1 example (Photogrammetry)
 

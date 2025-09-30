@@ -32,6 +32,7 @@ Then open the QGC application menu ("Q" icon in the top-left corner) and choose 
 - [Accelerometer](../config/accelerometer.md)
 - [Level Horizon](../config/level_horizon_calibration.md)
 - [Airspeed](../config/airspeed.md) (Fixed-wing/VTOL only)
+  - [Airspeed Validation](../advanced_config/airspeed_validation.md).
 
 :::info
 Setup for these and other sensors is located in [Sensor Hardware & Setup](../sensor/index.md).
@@ -69,7 +70,7 @@ The video below shows most of the calibration process (it uses an older version 
 
 ## 技术支持
 
-If you need help with the configuration you can ask for help on the [QGroundControl Support forum](https://discuss.px4.io//c/qgroundcontrol/qgroundcontrol-usage).
+If you need help with the configuration you can ask for help on the [QGroundControl Support forum](https://discuss.px4.io/c/qgroundcontrol/qgroundcontrol-usage/18).
 
 ## See Also
 

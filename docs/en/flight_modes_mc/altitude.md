@@ -21,7 +21,7 @@ The diagram below shows the mode behaviour visually (for a [mode 2 transmitter](
 RC/manual mode like [Stabilized mode](../flight_modes_mc/manual_stabilized.md) but with _altitude stabilization_ (centred sticks level vehicle and hold it to fixed altitude).
 The horizontal position of the vehicle can move due to wind (or pre-existing momentum).
 
-- Centered sticks (inside deadband):
+- Centered sticks:
   - RPY sticks levels vehicle.
   - Throttle (~50%) holds current altitude steady against wind.
 - Outside center:

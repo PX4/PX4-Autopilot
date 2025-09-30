@@ -98,15 +98,6 @@ void FwAutotuneAttitudeControl::Run()
 		updateStateMachine(hrt_absolute_time());
 	}
 
-	_aux_switch_en = isAuxEnableSwitchEnabled();
-
-	// new control data needed every iteration
-	if ((_state == state::idle && !_aux_switch_en)
-	    || !_vehicle_torque_setpoint_sub.updated()) {
-
-		return;
-	}
-
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
 
@@ -114,6 +105,15 @@ void FwAutotuneAttitudeControl::Run()
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 			_nav_state = vehicle_status.nav_state;
 		}
+	}
+
+	_aux_switch_en = isAuxEnableSwitchEnabled();
+
+	// new control data needed every iteration
+	if ((_state == state::idle && !_aux_switch_en)
+	    || !_vehicle_torque_setpoint_sub.updated()) {
+
+		return;
 	}
 
 	if (_actuator_controls_status_sub.updated()) {

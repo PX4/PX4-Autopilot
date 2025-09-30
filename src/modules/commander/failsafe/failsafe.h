@@ -57,7 +57,8 @@ private:
 		Mission = (1 << 0),
 		Hold = (1 << 1),
 		Offboard = (1 << 2),
-		ExternalMode = (1 << 3)
+		ExternalMode = (1 << 3),
+		AltitudeCruise = (1 << 4)
 	};
 
 	enum class DatalinkLossExceptionBits : int32_t {
@@ -83,11 +84,6 @@ private:
 		Hold_mode = 5,
 		Terminate = 6,
 		Disarm = 7,
-	};
-
-	enum class position_control_navigation_loss_response : int32_t {
-		Altitude_Manual = 0,
-		Land_Descend = 1,
 	};
 
 	enum class actuator_failure_failsafe_mode : int32_t {
@@ -202,7 +198,6 @@ private:
 					(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
 					(ParamInt<px4::params::COM_DLL_EXCEPT>) _param_com_dll_except,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
-					(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 					(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
