@@ -8,7 +8,7 @@ uint64 timestamp         # [us] Time since system start
 uint64 timestamp_sample  # [us] Timestamp sample
 
 uint8 pose_frame              # [@enum POSE_FRAME] Position and orientation frame of reference
-uint8 POSE_FRAME_UNKNOWN = 0
+uint8 POSE_FRAME_UNKNOWN = 0  # Unknown frame
 uint8 POSE_FRAME_NED     = 1  # North-East-Down (NED) navigation frame. Aligned with True North.
 uint8 POSE_FRAME_FRD     = 2  # Forward-Right-Down (FRD) frame. Constant arbitrary heading offset from True North. Z is down.
 
