@@ -17,7 +17,7 @@ float32[4] q         # [-] [@invalid NaN First value if invalid/unknown] Attitud
 
 uint8 velocity_frame               # [@enum VELOCITY_FRAME] Reference frame of the velocity data
 uint8 VELOCITY_FRAME_UNKNOWN  = 0  # Unknown frame
-uint8 VELOCITY_FRAME_NED      = 1  # NED earth-fixed frame
+uint8 VELOCITY_FRAME_NED      = 1  # NED navigation frame at current position.
 uint8 VELOCITY_FRAME_FRD      = 2  # FRD world-fixed frame. Arbitrary heading reference. Z is down.
 uint8 VELOCITY_FRAME_BODY_FRD = 3  # FRD body-fixed frame
 
