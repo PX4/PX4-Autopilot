@@ -27,7 +27,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+  RAW_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
 jobs:
   build:
@@ -45,6 +45,14 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Derive branch name
+        run: |
+          BRANCH="${RAW_BRANCH_NAME}"
+          if [[ "$BRANCH" =~ ^release/(.*) ]]; then
+            BRANCH="v${BASH_REMATCH[1]}"
+          fi
+          echo "BRANCH_NAME=$BRANCH" >> $GITHUB_ENV
 
       - name: Setup Node
         uses: actions/setup-node@v4
