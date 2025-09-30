@@ -71,6 +71,7 @@ To use the MicroStrain driver:
 
 3. Reboot and start the driver
    - `microstrain start -d <port>`
+   - To start the driver automatically when the flight controller powers on, set [SENS_MS_CFG](../advanced_config/parameter_reference.md#SENS_MS_CFG) to the sensor’s connected port.
 
 ## MicroStrain Configuration
 
@@ -99,14 +100,33 @@ To use the MicroStrain driver:
 2. Aiding measurements:
 
    - If supported, GNSS position and velocity aiding are always enabled.
-   - Internal magnetometer aiding, Internal heading aiding and external heading aiding are disabled by default. They can be enabled using the following parameters:
+   - Internal/external magnetometer and heading aiding, as well as optical flow aiding, are disabled by default. They can be enabled using the following parameters:
 
      - [MS_INT_MAG_EN](../advanced_config/parameter_reference.md#MS_INT_MAG_EN)
      - [MS_INT_HEAD_EN](../advanced_config/parameter_reference.md#MS_INT_HEAD_EN)
      - [MS_EXT_HEAD_EN](../advanced_config/parameter_reference.md#MS_EXT_HEAD_EN)
+     - [MS_EXT_MAG_EN](../advanced_config/parameter_reference.md#MS_EXT_MAG_EN)
+     - [MS_OPT_FLOW_EN](../advanced_config/parameter_reference.md#MS_OPT_FLOW_EN)
+
+   - The aiding frames for external sources can be configured using the following parameters:
+
+     - [MS_EHEAD_YAW](../advanced_config/parameter_reference.md#MS_EHEAD_YAW)
+     - [MS_EMAG_ROLL](../advanced_config/parameter_reference.md#MS_EMAG_ROLL)
+     - [MS_EMAG_PTCH](../advanced_config/parameter_reference.md#MS_EMAG_PTCH)
+     - [MS_EMAG_YAW](../advanced_config/parameter_reference.md#MS_EMAG_YAW)
+     - [MS_OFLW_OFF_X](../advanced_config/parameter_reference.md#MS_OFLW_OFF_X)
+     - [MS_OFLW_OFF_Y](../advanced_config/parameter_reference.md#MS_OFLW_OFF_Y)
+     - [MS_OFLW_OFF_Z](../advanced_config/parameter_reference.md#MS_OFLW_OFF_Z)
+     - [SENS_FLOW_ROT](../advanced_config/parameter_reference.md#SENS_FLOW_ROT)
+
+   - The uncertainty for optical flow and external magnetometer aiding must be specified using the following parameters:
+
+     - [MS_EMAG_UNCERT](../advanced_config/parameter_reference.md#MS_EMAG_UNCERT)
+     - [MS_OFLW_UNCERT](../advanced_config/parameter_reference.md#MS_OFLW_UNCERT)
 
    ::: tip
-   If the MicroStrain sensor does not support these aiding sources but they are enabled, sensor initialization will fail.
+   1. When optical flow aiding is enabled, the sensor uses the vehicle_optical_flow_vel output from the flight controller as a body-frame velocity aiding measurement.
+   2. If the MicroStrain sensor does not support these aiding sources but they are enabled, sensor initialization will fail.
 
    :::
 
@@ -147,7 +167,7 @@ To use the MicroStrain driver:
 
    :::
 
-7. Lever arm offsets:
+7. GNSS Lever arm offsets:
 
    - The lever arm offset for the external GNSS receiver can be configured using:
 
