@@ -1,4 +1,4 @@
-# Test MC_07 - VIO (Visual-Inertial Odometry)
+# Test MC_09 - VIO (Visual-Inertial Odometry)
 
 ## Objective
 

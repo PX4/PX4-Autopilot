@@ -15,6 +15,7 @@ Ensure there are no other sources of positioning besides optical flow
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): `0`
 - [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL): `0`
 - [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG): `0`
+- [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF): `0` (Barometric pressure)
 
 Ensure that the drone can go into Altitude / Position flight mode while still on the ground
 
@@ -38,6 +39,16 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Pitch/Roll/Yaw response set to pitch/roll/yaw rates
 
+❏ Varying height terrain
+
+&nbsp;&nbsp;&nbsp;&nbsp;❏ But boxes on the ground to create varying heights in terrain
+
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Take off in position mode and fly over the boxes such that the downward facing rangefinder varies in value
+
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Do a few passes with varying amounts of time over the boxes (1-30 seconds if possible)
+
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Drone should not raise in height when flying over boxes
+
 ## Landing
 
 ❏ Land in either Position or Altitude mode with the throttle below 40%
@@ -50,4 +61,5 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 - Drone should hold altitude in Altitude Flight mode without wandering
 - Drone should hold position within 1 meter in Position Flight mode without pilot moving sticks
 - No oscillations should present in any of the above flight modes
+- Drone should not raise in height when flying over boxes
 - Upon landing, copter should not bounce on the ground
