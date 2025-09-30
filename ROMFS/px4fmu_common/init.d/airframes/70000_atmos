@@ -17,7 +17,6 @@
 # @maintainer DISCOWER
 # @url https://atmos.discower.io
 #
-# @board all include
 
 . ${R}etc/init.d/rc.sc_defaults
 

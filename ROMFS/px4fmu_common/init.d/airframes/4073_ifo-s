@@ -16,8 +16,6 @@
 #
 # @maintainer Hyon Lim <lim@uvify.com>
 #
-# @board all include
-#
 
 . ${R}etc/init.d/rc.mc_defaults
 

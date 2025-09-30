@@ -8,7 +8,6 @@
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
 # @board px4_fmu-v6x exclude
-# @board all include
 #
 
 . ${R}etc/init.d/rc.mc_defaults

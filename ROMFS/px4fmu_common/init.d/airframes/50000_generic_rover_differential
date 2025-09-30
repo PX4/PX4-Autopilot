@@ -5,6 +5,5 @@
 # @type Rover
 # @class Rover
 #
-# @board all include
 
 . ${R}etc/init.d/rc.rover_differential_defaults

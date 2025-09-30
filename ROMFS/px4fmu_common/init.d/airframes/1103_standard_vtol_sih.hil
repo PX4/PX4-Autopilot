@@ -14,7 +14,6 @@
 # @output Servo2 Elevator
 # @output Servo3 Rudder
 #
-# @board all include
 # @board px4_fmu-v2 exclude
 #
 

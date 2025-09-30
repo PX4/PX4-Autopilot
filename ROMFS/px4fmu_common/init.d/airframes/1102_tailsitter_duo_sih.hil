@@ -12,7 +12,6 @@
 #
 # @maintainer Romain Chiappinelli <romain.chiap@gmail.com>
 #
-# @board all include
 # @board px4_fmu-v2 exclude
 #
 

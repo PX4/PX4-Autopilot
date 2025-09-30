@@ -11,8 +11,6 @@
 #
 # @maintainer Iain Galloway <iain.galloway@nxp.com>
 #
-# @board all include
-#
 
 . ${R}etc/init.d/rc.mc_defaults
 

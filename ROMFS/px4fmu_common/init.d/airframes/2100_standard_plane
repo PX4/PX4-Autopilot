@@ -6,7 +6,6 @@
 # @class Plane
 #
 # @board bitcraze_crazyflie exclude
-# @board all include
 #
 
 . ${R}etc/init.d/rc.fw_defaults

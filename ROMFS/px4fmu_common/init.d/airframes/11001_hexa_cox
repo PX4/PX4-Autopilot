@@ -14,7 +14,6 @@
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
-# @board all include
 # @board bitcraze_crazyflie exclude
 # @board px4_fmu-v2 exclude
 #
