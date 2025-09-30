@@ -12,7 +12,7 @@ uint8 POSE_FRAME_UNKNOWN = 0
 uint8 POSE_FRAME_NED     = 1  # North-East-Down (NED) navigation frame. Aligned with True North.
 uint8 POSE_FRAME_FRD     = 2  # Forward-Right-Down (FRD) frame. Constant arbitrary heading offset from True North. Z is down.
 
-float32[3] position  # [m] [@frame @local_frame] [@invalid NaN If invalid/unknown] Position
+float32[3] position  # [m] [@frame @local_frame] [@invalid NaN If invalid/unknown] Position. Origin is position of GC at startup.
 float32[4] q         # [-] [@invalid NaN First value if invalid/unknown] Attitude (expressed as a quaternion) relative to pose reference frame at current location. Follows the Hamiltonian convention (w, x, y, z, right-handed, passive rotations from body to world)
 
 uint8 velocity_frame               # [@enum VELOCITY_FRAME] Reference frame of the velocity data
