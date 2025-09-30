@@ -14,6 +14,13 @@
 - Add -e option to dsp_hitl start command to send odometry to voxl-vision-hub
 - Set MAV_RC_BRIDGE to 1 for joystick to voxl-vision-hub routing
 
+## VFC PID and hover thrust
+
+- "vfc_thrust_hover":   0.7
+- "vfc_kp_z_vio": 0.7
+- "vfc_ki_z_vio": 0.6
+- "vfc_kd_z_vio": 0.35
+
 ## Using joystick
 
 - Set MAV_RC_BRIDGE to 1
