@@ -10,7 +10,7 @@ uint64 timestamp_sample  # [us] Timestamp sample
 uint8 pose_frame              # [@enum POSE_FRAME] Position and orientation frame of reference
 uint8 POSE_FRAME_UNKNOWN = 0
 uint8 POSE_FRAME_NED     = 1  # North-East-Down (NED) navigation frame. Aligned with True North.
-uint8 POSE_FRAME_FRD     = 2  # FRD world-fixed frame. Arbitrary origin and heading reference. Z is down.
+uint8 POSE_FRAME_FRD     = 2  # Forward-Right-Down (FRD) frame. Constant arbitrary heading offset from True North. Z is down.
 
 float32[3] position  # [m] [@frame @local_frame] [@invalid NaN If invalid/unknown] Position
 float32[4] q         # [-] [@invalid NaN First value if invalid/unknown] Quaternion rotation from FRD body frame to reference frame. Follows the Hamiltonian convention (w, x, y, z, right-handed, passive rotations from body to world)
