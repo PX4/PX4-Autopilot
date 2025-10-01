@@ -6,7 +6,7 @@ To test that optical flow works as expected with a low mounted optical flow sens
 
 ## Preflight
 
-Ensure that the drone's optical flow sensor is mounted less than an inch off of the ground.
+Ensure that the drone's optical flow sensor is mounted more than an inch off of the ground.
 
 Ensure that MPC_THR_MIN is tuned correctly for landing
 
