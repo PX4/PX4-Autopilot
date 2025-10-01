@@ -832,7 +832,7 @@
       - [Test MC_05 - Manual Modes (Inside)](test_cards/mc_05_indoor_flight_manual_modes.md)
       - [Test MC_06 - Optical Flow (Inside)](test_cards/mc_06_optical_flow.md)
       - [Test MC_07 - Optical Flow Failure Modes](test_cards/mc_07_optical_flow_failure.md)
-      - [Test MC_08 - DSHOT ESC](/est_cards/mc_08_dshot.md)
+      - [Test MC_08 - DSHOT ESC](test_cards/mc_08_dshot.md)
       - [Test MC_09 - VIO (Visual-Inertial Odometry)](test_cards/mc_09_vio.md)
       - [Test MC_10 - Optical Flow / GPS Mixed](test_cards/mc_10_optical_flow_gps_mixed.md)
     - [Unit Tests](test_and_ci/unit_tests.md)
