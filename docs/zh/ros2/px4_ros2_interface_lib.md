@@ -14,10 +14,7 @@ Experimental
 1. [Control Interface](./px4_ros2_control_interface.md) 允许开发者创建并动态注册使用 ROS2 编写的模式。
    它为发送不同类型的设置点提供了课程，涵盖范围从高级导航任务一直到直接执行器控制。
 2. [导航界面](./px4_ros2_navigation_interface.md) 允许从ROS 2应用程序（如VIO系统）向PX4发送车辆位置估计数。
-
-<!--
-## Overview
--->
+3. [Waypoint Missions](./px4_ros2_waypoint_missions.md) 允许航点飞行任务完全在ROS2中运行。
 
 ## 在 ROS 2 工作区中安装
 

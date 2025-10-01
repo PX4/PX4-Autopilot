@@ -266,7 +266,7 @@ The configuration steps are:
    ```
 
    [MAV_1_CONFIG=0](../advanced_config/parameter_reference.md#MAV_1_CONFIG) and [UXRCE_DDS_CFG=102](../advanced_config/parameter_reference.md#UXRCE_DDS_CFG) disable MAVLink on TELEM2 and enable the uXRCE-DDS client on TELEM2, respectively.
-   The `SER_TEL2_BAUD` rate sets the comms link data rate.\
+   The `SER_TEL2_BAUD` rate sets the comms link data rate.  
    You could similarly configure a connection to `TELEM1` using either `MAV_1_CONFIG` or `MAV_0_CONFIG`.
 
    ::: info
