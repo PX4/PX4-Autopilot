@@ -74,6 +74,7 @@ jobs:
       - name: Build with VitePress
         working-directory: ./docs
         run: |
+          echo "BRANCH_NAME is: $BRANCH_NAME"
           npm run docs:build_ubuntu
           touch .vitepress/dist/.nojekyll
           npm run docs:sitemap
