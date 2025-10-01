@@ -5,18 +5,9 @@ on:
     branches:
       - "main"
       - "release/**"
-    paths:
-      - "docs/en/**"
   pull_request:
     branches:
       - "**"
-    paths:
-      - "docs/en/**"
-      - "docs/zh/**"
-      - "docs/uk/**"
-      - "docs/ko/**"
-
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -28,15 +19,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on:
-      [
-        runs-on,
-        runner=8cpu-linux-x64,
-        image=ubuntu24-full-x64,
-        "run-id=${{ github.run_id }}",
-        spot=false,
-        extras=s3-cache,
-      ]
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     outputs:
       branchname: ${{ steps.set-branch.outputs.branchname }}
       releaseversion: ${{ steps.set-version.outputs.releaseversion }}
@@ -85,7 +68,7 @@ jobs:
   deploy:
     if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged) || github.event_name == 'workflow_dispatch' }}
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
 
     steps:
       - name: Download Artifact
