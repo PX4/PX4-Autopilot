@@ -105,14 +105,14 @@ jobs:
 
       - name: Upload HTML with short cache
         run: |
-          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build.outputs.versionname }}/ \
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build.outputs.releaseversion }}/ \
             --delete \
             --exclude "*" --include "*.html" \
             --cache-control "public, max-age=60"
 
       - name: Upload assets with long cache
         run: |
-          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build.outputs.versionname }}/ \
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build.outputs.releaseversion }}/ \
             --delete \
             --exclude "*.html" \
             --cache-control "public, max-age=86400, immutable"
