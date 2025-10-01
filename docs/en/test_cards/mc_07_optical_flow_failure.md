@@ -6,7 +6,7 @@ To test that optical flow works as expected with a low mounted optical flow sens
 
 ## Preflight
 
-Ensure that the drone's optical flow sensor is mounted less than an inch off of the ground.
+Ensure that the drone's optical flow sensor is mounted more than an inch off of the ground.
 
 Disconnect all GPS / compasses and ensure vehicle is using optical flow for navigation
 ([Setup Information here](../sensor/optical_flow.md))
