@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v4
 
       - id: set-branch
-        run: echo "::set-output name=branchname::${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+        run: echo "branchname=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
 
       - id: set-version
         run: |
@@ -41,7 +41,7 @@ jobs:
           else
             version="v${branch#release/}"
           fi
-          echo "::set-output name=releaseversion::$version"
+          echo "releaseversion=$version" >> $GITHUB_OUTPUT
 
       - name: Setup Node
         uses: actions/setup-node@v4
