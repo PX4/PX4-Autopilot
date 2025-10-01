@@ -1,34 +1,3 @@
-name: Docs - Deploy PX4 User Guide to AWS
-
-on:
-  push:
-    branches:
-      - "main"
-      - "release/**"
-    paths:
-      - "docs/en/**"
-  pull_request:
-    branches:
-      - "**"
-    paths:
-      - "docs/en/**"
-      - "docs/zh/**"
-      - "docs/uk/**"
-      - "docs/ko/**"
-
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  id-token: write # for AWS OIDC
-
-concurrency:
-  group: docs-deploy
-  cancel-in-progress: false
-
-env:
-  RAW_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-
 jobs:
   build:
     runs-on:
@@ -40,6 +9,8 @@ jobs:
         spot=false,
         extras=s3-cache,
       ]
+    outputs:
+      branch_name: ${{ steps.derive.outputs.branch_name }}
     steps:
       - uses: runs-on/action@v1
 
@@ -47,12 +18,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Derive branch name
+        id: derive
         run: |
           BRANCH="${RAW_BRANCH_NAME}"
           if [[ "$BRANCH" =~ ^release/(.*) ]]; then
             BRANCH="v${BASH_REMATCH[1]}"
           fi
-          echo "BRANCH_NAME=$BRANCH" >> $GITHUB_ENV
+          echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
+          echo "Derived branch name: $BRANCH"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -64,17 +37,12 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile --cwd ./docs
 
-      - name: Debug environment (only on manual run)
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          echo "=== Environment variables ==="
-          env | sort
-          echo "============================="
-
       - name: Build with VitePress
         working-directory: ./docs
+        env:
+          BRANCH_NAME: ${{ steps.derive.outputs.branch_name }}
         run: |
-          echo "BRANCH_NAME is: $BRANCH_NAME"
+          echo "Building with BRANCH_NAME=$BRANCH_NAME"
           npm run docs:build_ubuntu
           touch .vitepress/dist/.nojekyll
           npm run docs:sitemap
@@ -91,7 +59,8 @@ jobs:
     if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged) || github.event_name == 'workflow_dispatch' }}
     needs: build
     runs-on: ubuntu-latest
-
+    env:
+      BRANCH_NAME: ${{ needs.build.outputs.branch_name }}
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v4
@@ -110,14 +79,15 @@ jobs:
 
       - name: Upload HTML with short cache
         run: |
-          aws s3 sync ~/_book/ s3://px4-docs/${{ env.BRANCH_NAME }}/ \
+          echo "Deploying to s3://px4-docs/${BRANCH_NAME}/"
+          aws s3 sync ~/_book/ s3://px4-docs/${BRANCH_NAME}/ \
             --delete \
             --exclude "*" --include "*.html" \
             --cache-control "public, max-age=60"
 
       - name: Upload assets with long cache
         run: |
-          aws s3 sync ~/_book/ s3://px4-docs/${{ env.BRANCH_NAME }}/ \
+          aws s3 sync ~/_book/ s3://px4-docs/${BRANCH_NAME}/ \
             --delete \
             --exclude "*.html" \
             --cache-control "public, max-age=86400, immutable"
