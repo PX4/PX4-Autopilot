@@ -352,7 +352,7 @@ TEST(ManualControlSelector, RcOutdated)
 	EXPECT_EQ(selector.instance(), -1);
 }
 
-TEST(ManualControlSelector, RcThenJoystickAscendingPriority)
+TEST(ManualControlSelector, PriorityRcThenMavlinkAscending)
 {
 	ManualControlSelector selector;
 	selector.setRcInMode(5); // Configure RC, then Joystick ascending
@@ -456,7 +456,7 @@ TEST(ManualControlSelector, RcThenJoystickAscendingPriority)
 	EXPECT_EQ(selector.instance(), 2);
 }
 
-TEST(ManualControlSelector, JoystickAscendingThenRcPriority)
+TEST(ManualControlSelector, PriorityMavlinkAscendingThenRc)
 {
 	ManualControlSelector selector;
 	selector.setRcInMode(6); // Configure Joystick ascending, then RC
@@ -560,7 +560,7 @@ TEST(ManualControlSelector, JoystickAscendingThenRcPriority)
 	EXPECT_EQ(selector.instance(), 0);
 }
 
-TEST(ManualControlSelector, RcThenJoystickDescendingPriority)
+TEST(ManualControlSelector, PriorityRcThenMavlinkDescending)
 {
 	ManualControlSelector selector;
 	selector.setRcInMode(7); // Configure RC, then Joystick descending
@@ -664,7 +664,7 @@ TEST(ManualControlSelector, RcThenJoystickDescendingPriority)
 	EXPECT_EQ(selector.instance(), 1);
 }
 
-TEST(ManualControlSelector, JoystickDescendingThenRcPriority)
+TEST(ManualControlSelector, PriorityMavlinkDescendingThenRc)
 {
 	ManualControlSelector selector;
 	selector.setRcInMode(8); // Configure Joystick descending, then RC

@@ -128,15 +128,15 @@ private:
 
 	// COM_RC_IN_MODE parameter values
 	enum class RcInMode : int32_t {
-		RcTransmitterOnly = 0, 		// RC Transmitter only
-		JoystickOnly = 1,		// Joystick only
-		RcAndJoystickWithFallback = 2,	// RC And Joystick with fallback
-		RcOrJoystickKeepFirst = 3,	// RC or Joystick keep first
-		StickInputDisabled = 4,		// input disabled
-		RcThenJoystickAscendingPriority = 5,	// RC, then Joystick ascending prio
-		JoystickAscendingThenRcPriority = 6,	// Joystick ascending prio, then RC
-		RcThenJoystickDescendingPriority = 7,	// RC, then Joystick descending prio
-		JoystickDescendingThenRcPriority = 8	// Joystick descending prio, then RC
+		RcOnly = 0,
+		MavLinkOnly = 1,
+		RcOrMavlinkWithFallback = 2,
+		RcOrMavlinkKeepFirst = 3,
+		DisableManualControl = 4,
+		PriorityRcThenMavlinkAscending = 5,
+		PriorityMavlinkAscendingThenRc = 6,
+		PriorityRcThenMavlinkDescending = 7,
+		PriorityMavlinkDescendingThenRc = 8
 	};
 
 	enum class command_after_high_wind_failsafe : int32_t {

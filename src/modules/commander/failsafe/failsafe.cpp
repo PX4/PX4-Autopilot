@@ -490,7 +490,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 				     rc_loss_ignored_takeoff || rc_loss_ignored_external_mode || ignore_any_link_loss_vtol_takeoff_fixedwing
 				     || _manual_control_lost_at_arming || rc_loss_ignored_altitude_cruise;
 
-	if (_param_com_rc_in_mode.get() != int32_t(RcInMode::StickInputDisabled) && !rc_loss_ignored) {
+	if (_param_com_rc_in_mode.get() != int32_t(RcInMode::DisableManualControl) && !rc_loss_ignored) {
 		CHECK_FAILSAFE(status_flags, manual_control_signal_lost,
 			       fromNavDllOrRclActParam(_param_nav_rcl_act.get()).causedBy(Cause::ManualControlLoss));
 	}
@@ -531,7 +531,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 		// If manual control loss and GCS connection loss are disabled and we lose both command links and the mission finished,
 		// trigger RTL to avoid losing the vehicle
-		if ((_param_com_rc_in_mode.get() == int32_t(RcInMode::StickInputDisabled) || rc_loss_ignored_mission)
+		if ((_param_com_rc_in_mode.get() == int32_t(RcInMode::DisableManualControl) || rc_loss_ignored_mission)
 		    && _param_nav_dll_act.get() == int32_t(gcs_connection_loss_failsafe_mode::Disabled)
 		    && state.mission_finished) {
 			_last_state_mission_control_lost = checkFailsafe(_caller_id_mission_control_lost, _last_state_mission_control_lost,
