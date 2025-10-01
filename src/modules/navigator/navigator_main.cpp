@@ -652,9 +652,7 @@ void Navigator::run()
 
 				_vtol_takeoff.setTransitionAltitudeAbsolute(cmd.param7);
 
-				float epsilon = 1e-6f;
-				if (std::fabs(cmd.param2 - 3.0f) < epsilon) { // Specified transition direction
-					PX4_WARN("[Navigator::run] setTransitionDirecton from cmd.param4");
+				if (std::fabs(cmd.param2 - 3.0f) < FLT_EPSILON) { // Specified transition direction
 					_vtol_takeoff.setTransitionDirection(cmd.param4);
 				}
 

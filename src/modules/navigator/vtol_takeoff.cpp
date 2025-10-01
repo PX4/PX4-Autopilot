@@ -71,11 +71,10 @@ VtolTakeoff::on_active()
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-				if (std::isnan(_transition_direction_deg)) {
+				if (!PX4_ISFINITE(_transition_direction_deg)) {
 					_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_navigator->get_home_position()->lat,
 							_navigator->get_home_position()->lon, _loiter_location(0), _loiter_location(1)));
 				} else {
-					PX4_WARN("[VtolTakeoff] Transition direction from Command");
 					_mission_item.yaw = wrap_pi(math::radians(_transition_direction_deg));
 				}
 				_mission_item.force_heading = true;
