@@ -158,6 +158,13 @@ bool SerialImpl::close()
 	return true;
 }
 
+ssize_t SerialImpl::bytesAvailable()
+{
+	// TODO:
+	PX4_WARN("bytesAvailable not implemented!");
+	return 0;
+}
+
 ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 {
 	if (!_open) {
