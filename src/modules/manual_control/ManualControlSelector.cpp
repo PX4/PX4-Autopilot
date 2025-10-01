@@ -94,67 +94,23 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 		break;
 
 	case RcInMode::PriorityRcThenMavlinkAscending:
-		if (isRc(input.data_source)) {
-			match = true;
-
-		} else if (isMavlink(input.data_source)) {
-			if (!_setpoint.valid) {
-				match = true;
-
-			} else if (isMavlink(_setpoint.data_source)) {
-				match = input.data_source <= _setpoint.data_source;
-			}
-		}
-
+		match = !_setpoint.valid || (input.data_source <= _setpoint.data_source);
 		break;
 
 	case RcInMode::PriorityMavlinkAscendingThenRc:
-		if (isMavlink(input.data_source)) {
-			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
-				match = true;
-
-			} else if (isMavlink(_setpoint.data_source)) {
-				match = input.data_source <= _setpoint.data_source;
-			}
-
-		} else if (isRc(input.data_source)) {
-			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
-				match = true;
-			}
-		}
-
+		match = !_setpoint.valid
+			|| (isRc(input.data_source) && isRc(_setpoint.data_source))
+			|| (isMavlink(input.data_source) && (isRc(_setpoint.data_source) || input.data_source <= _setpoint.data_source));
 		break;
 
 	case RcInMode::PriorityRcThenMavlinkDescending:
-		if (isRc(input.data_source)) {
-			match = true;
-
-		} else if (isMavlink(input.data_source)) {
-			if (!_setpoint.valid) {
-				match = true;
-
-			} else if (isMavlink(_setpoint.data_source)) {
-				match = input.data_source >= _setpoint.data_source;
-			}
-		}
-
+		match = !_setpoint.valid
+			|| isRc(input.data_source)
+			|| (isMavlink(input.data_source) && isMavlink(_setpoint.data_source) && input.data_source >= _setpoint.data_source);
 		break;
 
 	case RcInMode::PriorityMavlinkDescendingThenRc:
-		if (isMavlink(input.data_source)) {
-			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
-				match = true;
-
-			} else if (isMavlink(_setpoint.data_source)) {
-				match = input.data_source >= _setpoint.data_source;
-			}
-
-		} else if (isRc(input.data_source)) {
-			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
-				match = true;
-			}
-		}
-
+		match = !_setpoint.valid || (input.data_source >= _setpoint.data_source);
 		break;
 
 	case RcInMode::DisableManualControl:
