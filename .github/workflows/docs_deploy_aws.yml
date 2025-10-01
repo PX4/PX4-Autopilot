@@ -1,3 +1,33 @@
+name: Docs - Deploy PX4 User Guide to AWS
+
+on:
+  push:
+    branches:
+      - "main"
+      - "release/**"
+    paths:
+      - "docs/en/**"
+  pull_request:
+    branches:
+      - "**"
+    paths:
+      - "docs/en/**"
+      - "docs/zh/**"
+      - "docs/uk/**"
+      - "docs/ko/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+
+env:
+  RAW_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
 jobs:
   build:
     runs-on:
@@ -42,7 +72,7 @@ jobs:
         env:
           BRANCH_NAME: ${{ steps.derive.outputs.branch_name }}
         run: |
-          echo "Building with BRANCH_NAME=$BRANCH_NAME"
+          echo "BRANCH_NAME is: $BRANCH_NAME"
           npm run docs:build_ubuntu
           touch .vitepress/dist/.nojekyll
           npm run docs:sitemap
@@ -77,9 +107,11 @@ jobs:
       - name: Sanity check AWS credentials
         run: aws sts get-caller-identity
 
+      - name: Echo branch name for deploy
+        run: echo "Deploying to branch path: $BRANCH_NAME"
+
       - name: Upload HTML with short cache
         run: |
-          echo "Deploying to s3://px4-docs/${BRANCH_NAME}/"
           aws s3 sync ~/_book/ s3://px4-docs/${BRANCH_NAME}/ \
             --delete \
             --exclude "*" --include "*.html" \
