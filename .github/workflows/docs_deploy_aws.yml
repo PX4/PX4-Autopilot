@@ -35,7 +35,11 @@ jobs:
       - id: set-version
         run: |
           branch="${{ steps.set-branch.outputs.branchname }}"
-          version="v${branch#release/}"
+          if [[ "$branch" == "main" ]]; then
+            version="main"
+          else
+            version="v${branch#release/}"
+          fi
           echo "::set-output name=releaseversion::$version"
 
       - name: Setup Node
