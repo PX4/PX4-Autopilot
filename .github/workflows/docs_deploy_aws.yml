@@ -64,6 +64,13 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile --cwd ./docs
 
+      - name: Debug environment (only on manual run)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "=== Environment variables ==="
+          env | sort
+          echo "============================="
+
       - name: Build with VitePress
         working-directory: ./docs
         run: |
