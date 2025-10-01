@@ -9,7 +9,7 @@ Successive steps enable [drive modes](../flight_modes_rover/index.md) with more 
 | 1    | [Basic Setup](basic_setup.md)         | [Full manual mode](../flight_modes_rover/manual.md#manual-mode)           |
 | 2    | [Rate Tuning](rate_tuning.md)         | [Manual acro mode](../flight_modes_rover/manual.md#acro-mode)             |
 | 3    | [Attitude Tuning](attitude_tuning.md) | [Manual stabilized mode](../flight_modes_rover/manual.md#stabilized-mode) |
-| 4    | [Velocity Tuning](velocity_tuning.md) | [Manual position mode](../flight_modes_rover/manual.md#manual-mode)       |
+| 4    | [Speed Tuning](speed_tuning.md)       | [Manual position mode](../flight_modes_rover/manual.md#manual-mode)       |
 | 5    | [Position Tuning](position_tuning.md) | [Auto modes](../flight_modes_rover/auto.md)                               |
 
 ::: warning

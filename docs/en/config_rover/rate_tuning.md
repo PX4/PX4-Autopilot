@@ -22,8 +22,9 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
 
    If you see no need to limit the yaw rate, set this parameter to the maximum yaw rate the rover can achieve:
 
-   1. In [Manual mode](../flight_modes_rover/manual.md#manual-mode) drive the rover at full throttle and with the maximum steering angle.
+   1. Set the [RO_YAW_RATE_LIM](#RO_YAW_RATE_LIM) to the maximum possible value, then in [Acro mode](../flight_modes_rover/manual.md#acro-mode) drive the rover at full throttle and with the maximum steering input.
    2. Plot the `measured_yaw_rate` from [RoverRateStatus](../msg_docs/RoverRateStatus.md) and enter the highest observed value for [RO_YAW_RATE_LIM](#RO_YAW_RATE_LIM).
+      Pay attention to the units, in the log the rate is given as $rad/s$, but the parameter has to be set in $deg/s$.
 
    :::
 
@@ -53,9 +54,9 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
    To tune this parameter:
 
    1. Put the rover in [Acro mode](../flight_modes_rover/manual.md#acro-mode) and hold the throttle stick and the right stick at a few different levels for a couple of seconds each.
-   1. Disarm the rover and from the flight log plot the `adjusted_yaw_rate_setpoint` and the `measured_yaw_rate` from [RoverRateStatus](../msg_docs/RoverRateStatus.md) over each other.
-   1. Increase [RO_YAW_RATE_P](#RO_YAW_RATE_P) if the measured value does not track the setpoint fast enough or decrease it if the measurement overshoots the setpoint by too much.
-   1. Repeat until you are satisfied with the behaviour.
+   2. Disarm the rover and from the flight log plot the `adjusted_yaw_rate_setpoint` and the `measured_yaw_rate` from [RoverRateStatus](../msg_docs/RoverRateStatus.md) over each other.
+   3. Increase [RO_YAW_RATE_P](#RO_YAW_RATE_P) if the measured value does not track the setpoint fast enough or decrease it if the measurement overshoots the setpoint by too much.
+   4. Repeat until you are satisfied with the behaviour.
       :::
 
 4. [RO_YAW_RATE_I](#RO_YAW_RATE_I) [-]: Integral gain of the closed loop yaw rate controller.

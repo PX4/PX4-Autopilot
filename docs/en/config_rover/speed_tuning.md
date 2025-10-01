@@ -1,4 +1,4 @@
-# Velocity Tuning
+# Speed Tuning
 
 :::warning
 The [attitude tuning](attitude_tuning.md) must've already been completed before this step!
@@ -6,13 +6,13 @@ The [attitude tuning](attitude_tuning.md) must've already been completed before 
 
 ::: info
 To tune we will be using the manual [Position mode](../flight_modes_rover/manual.md#position-mode).
-This mode requires a global position estimate (GPS) and tuning of some parameters that go beyond the velocity controller.
-If you use a custom external flight mode that controls velocity but does not require a global position estimate you can ignore the [manual position mode parameters](#manual-position-mode-parameters).
+This mode requires a global position estimate (GPS) and tuning of some parameters that go beyond the speed controller.
+If you use a custom external flight mode that controls speed but does not require a global position estimate you can ignore the [manual position mode parameters](#manual-position-mode-parameters).
 :::
 
 ## Speed Parameters
 
-To tune the velocity controller configure the following [parameters](../advanced_config/parameters.md) in QGroundControl:
+To tune the speed controller configure the following [parameters](../advanced_config/parameters.md) in QGroundControl:
 
 1. [RO_SPEED_LIM](#RO_SPEED_LIM) [m/s]: This is the maximum speed you want to allow for your rover.
    This will define the stick-to-speed mapping for [Position mode](../flight_modes_rover/manual.md#position-mode) and set an upper limit for the speed setpoint.
@@ -27,7 +27,7 @@ To tune the velocity controller configure the following [parameters](../advanced
    1. Set [RO_SPEED_P](#RO_SPEED_P) and [RO_SPEED_I](#RO_SPEED_I) to zero.
       This way the speed is only controlled by the feed-forward term, which makes it easier to tune.
    2. Put the rover in [Position mode](../flight_modes_rover/manual.md#position-mode) and then move the left stick of your controller up and/or down and hold it at a few different levels for a couple of seconds each.
-   3. Disarm the rover and from the flight log plot the `adjusted_speed_body_x_setpoint` and the `measured_speed_body_x` from the [RoverVelocityStatus](../msg_docs/RoverVelocityStatus.md) message over each other.
+   3. Disarm the rover and from the flight log plot the `adjusted_speed_body_x_setpoint` and the `measured_speed_body_x` from the [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md) message over each other.
    4. If the actual speed of the rover is higher than the speed setpoint, increase [RO_MAX_THR_SPEED](#RO_MAX_THR_SPEED).
       If it is the other way around decrease the parameter and repeat until you are satisfied with the setpoint tracking.
 
@@ -86,14 +86,9 @@ These steps are only necessary if you are tuning/want to unlock the manual [Posi
 
 The rover is now ready to drive in [Position mode](../flight_modes_rover/manual.md#position-mode) and the configuration can be continued with [position tuning](position_tuning.md).
 
-## Velocity Controller Structure (Info Only)
+## Speed Controller Structure (Info Only)
 
 This section provides additional information for developers and people with experience in control system design.
-
-The velocity vector is defined by the following two values:
-
-1. The absolute speed [$m/s$]
-2. The direction (bearing) [$rad$]
 
 The speed controller uses the following structure:
 
@@ -103,7 +98,7 @@ The feed forward mapping is done by interpolating the speed setpoint from [-[RO_
 
 For ackermann and differential rovers the bearing is aligned with the vehicle yaw. Therefor the bearing is simply sent as a yaw setpoint to the [yaw controller](attitude_tuning.md#attitude-controller-structure-info-only) and the speed setpoint is always defined in body x direction.
 
-For mecanum vehicles, the bearing and yaw are decoupled. The direction is controlled by splitting the velocity vector into one speed component in body x direction and one in body y direction.
+For mecanum vehicles, the bearing and yaw are decoupled. The direction is controlled by splitting the speed vector into one speed component in body x direction and one in body y direction.
 Both these setpoint are then sent to their own closed loop speed controllers.
 
 ## Parameter Overview

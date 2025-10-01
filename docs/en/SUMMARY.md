@@ -414,7 +414,7 @@
       - [Basic Setup](config_rover/basic_setup.md)
       - [Rate Tuning](config_rover/rate_tuning.md)
       - [Attitude Tuning](config_rover/attitude_tuning.md)
-      - [Velocity Tuning](config_rover/velocity_tuning.md)
+      - [Speed Tuning](config_rover/speed_tuning.md)
       - [Position Tuning](config_rover/position_tuning.md)
     - [Apps & API](flight_modes_rover/api.md)
     - [Complete Vehicles](complete_vehicles_rover/index.md)

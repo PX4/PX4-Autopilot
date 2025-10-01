@@ -3,7 +3,7 @@
 Position tuning is required in order to use [Auto modes](../flight_modes_rover/auto.md).
 
 :::warning
-The [velocity tuning](velocity_tuning.md) must've already been completed before this step!
+The [speed tuning](speed_tuning.md) must've already been completed before this step!
 :::
 
 The position controller is responsible for autonomously guiding the vehicle to a position setpoint.
@@ -41,7 +41,7 @@ To tune the position controller configure the [parameters](../advanced_config/pa
    These two parameters have to be tuned as a pair, repeat until you are satisfied with the behaviour.
    :::
 
-3. Plot the `adjusted_speed_body_x_setpoint` and `measured_speed_body_x` from the [RoverVelocityStatus](../msg_docs/RoverVelocityStatus.md) message over each other.
+3. Plot the `adjusted_speed_body_x_setpoint` and `measured_speed_body_x` from the [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md) message over each other.
    If the tracking of these setpoints is not satisfactory adjust the values for [RO_SPEED_P](../advanced_config/parameter_reference.md#RO_SPEED_P) and [RO_SPEED_I](../advanced_config/parameter_reference.md#RO_SPEED_I).
 
 ## Path Following
@@ -79,7 +79,7 @@ The following parameters are used to tune the algorithm:
 
 During any auto navigation task observe the behaviour of the rover and if you are unsatisfied with the path following, there are 2 steps to take:
 
-1. Check if all the setpoints ([rate](rate_tuning.md), [attitude](attitude_tuning.md) and [velocity](velocity_tuning.md)) are properly tracked.
+1. Check if all the setpoints ([rate](rate_tuning.md), [attitude](attitude_tuning.md) and [speed](speed_tuning.md)) are properly tracked.
 2. Further tune the [path following algorithm](#path-following).
 
 ## Ackermann Rover Only
@@ -157,7 +157,7 @@ When targeting a position setpoint this line is constructed from the current pos
 The radius of the circle around the vehicle is used to tune the controller and is often referred to as look-ahead distance.
 
 The look-ahead distance sets how aggressive the controller behaves and is defined as $l_d = v \cdot k$.
-It depends on the velocity $v$ of the rover and a tuning parameter $k$ that can be set with the parameter [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN).
+It depends on the speed $v$ of the rover and a tuning parameter $k$ that can be set with the parameter [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN).
 
 ::: info
 A lower value of [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN) makes the controller more aggressive but can lead to oscillations!

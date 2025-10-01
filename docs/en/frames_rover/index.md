@@ -15,7 +15,7 @@ PX4 provides support for the three most common types of rovers:
 | Rover Type                        | Steering                                                                                                                                                      |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [**Ackermann**](#ackermann)       | Direction is controlled by pointing wheels in the direction of travel. This kind of steering is used on most commercial vehicles, including cars, trucks etc. |
-| [**Differential**](#differential) | Direction is controlled by moving the left- and right-side wheels at different speeds.                                                                        |
+| [**Differential**](#differential) | Direction is controlled by moving the left- and right-side wheels (or tracks) at different speeds.                                                            |
 | [**Mecanum**](#mecanum)           | Direction is controlled by moving each mecanum wheel individually at different speeds and in different directions.                                            |
 
 The supported frames can be seen in [Airframes Reference > Rover](../airframes/airframe_reference.md#rover).

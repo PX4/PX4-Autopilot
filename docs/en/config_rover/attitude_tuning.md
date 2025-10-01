@@ -19,7 +19,7 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
    If you observe a steady state error in the yaw setpoint increase the the integrator of the rate controller: [RO_YAW_RATE_I](../advanced_config/parameter_reference.md#RO_YAW_RATE_I) .
    :::
 
-The rover is now ready to drive in [Stabilized mode](../flight_modes_rover/manual.md#stabilized-mode) and the configuration can be continued with [velocity tuning](velocity_tuning.md).
+The rover is now ready to drive in [Stabilized mode](../flight_modes_rover/manual.md#stabilized-mode) and the configuration can be continued with [speed tuning](speed_tuning.md).
 
 ## Attitude Controller Structure (Info Only)
 
