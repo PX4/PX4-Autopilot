@@ -26,9 +26,6 @@ concurrency:
   group: docs-deploy
   cancel-in-progress: false
 
-env:
-  RAW_BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-
 jobs:
   build:
     runs-on:
@@ -40,19 +37,23 @@ jobs:
         spot=false,
         extras=s3-cache,
       ]
+    outputs:
+      branchname: ${{ steps.set-branch.outputs.branchname }}
+      releaseversion: ${{ steps.set-version.outputs.releaseversion }}
     steps:
       - uses: runs-on/action@v1
 
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Derive branch name
+      - id: set-branch
+        run: echo "::set-output name=branchname::${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+
+      - id: set-version
         run: |
-          BRANCH="${RAW_BRANCH_NAME}"
-          if [[ "$BRANCH" =~ ^release/(.*) ]]; then
-            BRANCH="v${BASH_REMATCH[1]}"
-          fi
-          echo "BRANCH_NAME=$BRANCH" >> $GITHUB_ENV
+          branch="${{ steps.set-branch.outputs.branchname }}"
+          version="v${branch#release/}"
+          echo "::set-output name=releaseversion::$version"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -66,6 +67,8 @@ jobs:
 
       - name: Build with VitePress
         working-directory: ./docs
+        env:
+          BRANCH_NAME: ${{ steps.set-version.outputs.releaseversion }}
         run: |
           npm run docs:build_ubuntu
           touch .vitepress/dist/.nojekyll
@@ -102,14 +105,14 @@ jobs:
 
       - name: Upload HTML with short cache
         run: |
-          aws s3 sync ~/_book/ s3://px4-docs/${{ env.BRANCH_NAME }}/ \
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build.outputs.versionname }}/ \
             --delete \
             --exclude "*" --include "*.html" \
             --cache-control "public, max-age=60"
 
       - name: Upload assets with long cache
         run: |
-          aws s3 sync ~/_book/ s3://px4-docs/${{ env.BRANCH_NAME }}/ \
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build.outputs.versionname }}/ \
             --delete \
             --exclude "*.html" \
             --cache-control "public, max-age=86400, immutable"
