@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   id-token: write # for AWS OIDC
 
 concurrency:
