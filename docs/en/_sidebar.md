@@ -81,7 +81,6 @@
     - [Reptile Dragon 2 (ARK6X)](/frames_plane/reptile_dragon_2.md)
     - [Turbo Timber Evolution (Pixhawk 4 Mini)](/frames_plane/turbo_timber_evolution.md)
     - [Wing Wing Z84 (Pixracer)](/frames_plane/wing_wing_z84.md)
-
 - [VTOL](/frames_vtol/index.md)
   - [Assembly](/assembly/assembly_vtol.md)
   - [VTOL Config/Tuning](/config_vtol/index.md)
