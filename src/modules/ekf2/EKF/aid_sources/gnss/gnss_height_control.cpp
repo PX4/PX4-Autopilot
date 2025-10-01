@@ -134,51 +134,57 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 			}
 
 		} else {
-			if (starting_conditions_passing) {
+			if (altitude_initialisation_conditions_passing) {
+				// Altitude not initialized, GNSS is the configured height reference
+				_information_events.flags.reset_hgt_to_gps = true;
+				initialiseAltitudeTo(measurement, measurement_var);
+				bias_est.reset();
 
-				if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS) && isGnssHgtResetAllowed()) {
-					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
+				// Start fusion if GPS vertical position control is also enabled
+				if (starting_conditions_passing) {
 					_height_sensor_ref = HeightSensor::GNSS;
+					resetAidSourceStatusZeroInnovation(aid_src);
+					aid_src.time_last_fuse = _time_delayed_us;
+					bias_est.setFusionActive();
+					_control_status.flags.gps_hgt = true;
+				}
 
+			} else if (starting_conditions_passing) {
+				if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS) && isGnssHgtResetAllowed()) {
+					_height_sensor_ref = HeightSensor::GNSS;
 					_information_events.flags.reset_hgt_to_gps = true;
 
-					initialiseAltitudeTo(measurement, measurement_var);
+					resetAltitudeTo(measurement, measurement_var);
 					bias_est.reset();
 					resetAidSourceStatusZeroInnovation(aid_src);
-
-				}
-
-				bool is_gnss_hgt_consistent = true;
-
-				if (_control_status.flags.gnss_hgt_fault) {
-
-					if (aid_src.innovation_rejected) {
-						_time_last_gnss_hgt_rejected = _time_delayed_us;
-					}
-
-					is_gnss_hgt_consistent = isTimedOut(_time_last_gnss_hgt_rejected, _params.hgt_fusion_timeout_max);
-				}
-
-				if (is_gnss_hgt_consistent) {
-					if (_params.ekf2_hgt_ref != static_cast<int32_t>(HeightSensor::GNSS)) {
-						bias_est.setBias(-_gpos.altitude() + measurement);
-					}
 
 					aid_src.time_last_fuse = _time_delayed_us;
 					bias_est.setFusionActive();
 					_control_status.flags.gps_hgt = true;
 					_control_status.flags.gnss_hgt_fault = false;
+
+				} else {
+					bool is_gnss_hgt_consistent = true;
+
+					if (_control_status.flags.gnss_hgt_fault) {
+						if (aid_src.innovation_rejected) {
+							_time_last_gnss_hgt_rejected = _time_delayed_us;
+						}
+
+						is_gnss_hgt_consistent = isTimedOut(_time_last_gnss_hgt_rejected, _params.hgt_fusion_timeout_max);
+					}
+
+					if (is_gnss_hgt_consistent) {
+						if (_params.ekf2_hgt_ref != static_cast<int32_t>(HeightSensor::GNSS)) {
+							bias_est.setBias(-_gpos.altitude() + measurement);
+						}
+
+						aid_src.time_last_fuse = _time_delayed_us;
+						bias_est.setFusionActive();
+						_control_status.flags.gps_hgt = true;
+						_control_status.flags.gnss_hgt_fault = false;
+					}
 				}
-			}
-
-			if (altitude_initialisation_conditions_passing && !_control_status.flags.gnss_hgt_fault) {
-
-				// Do not start GNSS altitude aiding, but use measurement
-				// to initialize altitude and bias of other height sensors
-				_information_events.flags.reset_hgt_to_gps = true;
-
-				initialiseAltitudeTo(measurement, measurement_var);
-				bias_est.reset();
 			}
 		}
 
@@ -207,7 +213,8 @@ void Ekf::stopGpsHgtFusion()
 bool Ekf::isGnssHgtResetAllowed()
 {
 	const bool allowed = !(static_cast<GnssMode>(_params.ekf2_gps_mode) == GnssMode::kDeadReckoning
-			       && isOtherSourceOfVerticalPositionAidingThan(_control_status.flags.gps_hgt));
+			       && isOtherSourceOfVerticalPositionAidingThan(_control_status.flags.gps_hgt))
+			     || !PX4_ISFINITE(_local_origin_alt);
 
 	return allowed;
 }
