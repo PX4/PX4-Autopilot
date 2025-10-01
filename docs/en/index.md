@@ -96,7 +96,7 @@ You can access these from the Languages menu (top right):
 
 ![Language Selector](../assets/vuepress/language_selector.png)
 
-<!--@include: _contributors.md-->
+<!--@include: _contributors.md -->
 
 ## License
 
