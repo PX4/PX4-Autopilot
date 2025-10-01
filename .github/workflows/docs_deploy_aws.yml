@@ -7,41 +7,49 @@ on:
       - "release/**"
     paths:
       - "docs/en/**"
+      - "docs/zh/**"
+      - "docs/uk/**"
+      - "docs/ko/**"
   pull_request:
-    branches:
-      - "**"
     paths:
       - "docs/en/**"
-
-  workflow_dispatch:
+      - "docs/zh/**"
+      - "docs/uk/**"
+      - "docs/ko/**"
 
 permissions:
   contents: read
+  actions: read
   id-token: write # for AWS OIDC
 
 concurrency:
   group: docs-deploy
   cancel-in-progress: false
 
-env:
-  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-
 jobs:
   build:
-    runs-on:
-      [
-        runs-on,
-        runner=8cpu-linux-x64,
-        image=ubuntu24-full-x64,
-        "run-id=${{ github.run_id }}",
-        spot=false,
-        extras=s3-cache,
-      ]
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    outputs:
+      branchname: ${{ steps.set-branch.outputs.branchname }}
+      releaseversion: ${{ steps.set-version.outputs.releaseversion }}
     steps:
       - uses: runs-on/action@v1
 
       - name: Checkout
         uses: actions/checkout@v4
+
+      - id: set-branch
+        run: echo "branchname=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+
+      - id: set-version
+        run: |
+          branch="${{ steps.set-branch.outputs.branchname }}"
+          if [[ "$branch" == "main" ]]; then
+            version="main"
+          else
+            version="v${branch#release/}"
+          fi
+          echo "releaseversion=$version" >> $GITHUB_OUTPUT
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -55,6 +63,8 @@ jobs:
 
       - name: Build with VitePress
         working-directory: ./docs
+        env:
+          BRANCH_NAME: ${{ steps.set-version.outputs.releaseversion }}
         run: |
           npm run docs:build_ubuntu
           touch .vitepress/dist/.nojekyll
@@ -91,14 +101,14 @@ jobs:
 
       - name: Upload HTML with short cache
         run: |
-          aws s3 sync ~/_book/ s3://px4-docs/${{ env.BRANCH_NAME }}/ \
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build.outputs.releaseversion }}/ \
             --delete \
             --exclude "*" --include "*.html" \
             --cache-control "public, max-age=60"
 
       - name: Upload assets with long cache
         run: |
-          aws s3 sync ~/_book/ s3://px4-docs/${{ env.BRANCH_NAME }}/ \
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build.outputs.releaseversion }}/ \
             --delete \
             --exclude "*.html" \
             --cache-control "public, max-age=86400, immutable"
