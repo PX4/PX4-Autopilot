@@ -46,15 +46,8 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 	// First check if the chosen input got invalid, so it can get replaced
 	updateValidityOfChosenInput(now);
 
-	const bool update_existing_input = _setpoint.valid && (input.data_source == _setpoint.data_source);
-	const bool start_using_new_input = !_setpoint.valid;
-	const bool is_priority_mode = (_rc_in_mode == RcInMode::PriorityRcThenMavlinkAscending
-				       || _rc_in_mode == RcInMode::PriorityMavlinkAscendingThenRc
-				       || _rc_in_mode == RcInMode::PriorityRcThenMavlinkDescending
-				       || _rc_in_mode == RcInMode::PriorityMavlinkDescendingThenRc);
-
-	// Switch to new input if it's valid and we don't already have a valid one
-	if (isInputValid(input, now) && (update_existing_input || start_using_new_input || is_priority_mode)) {
+	// Update with input sample if it's valid and should be chosen according to COM_RC_IN_MODE
+	if (isInputValid(input, now)) {
 		_setpoint = input;
 		_setpoint.valid = true;
 		_setpoint.timestamp = now; // timestamp_sample is preserved
@@ -81,11 +74,11 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 		break;
 
 	case RcInMode::MavLinkOnly:
-		match = isMavlink(input.data_source);
+		match = isMavlink(input.data_source) && ((input.data_source == _setpoint.data_source) || !_setpoint.valid);
 		break;
 
 	case RcInMode::RcOrMavlinkWithFallback:
-		match = true;
+		match = (input.data_source == _setpoint.data_source) || !_setpoint.valid;
 		break;
 
 	case RcInMode::RcOrMavlinkKeepFirst:
