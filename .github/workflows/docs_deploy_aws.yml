@@ -17,6 +17,8 @@ on:
       - "docs/uk/**"
       - "docs/ko/**"
 
+  workflow_dispatch:
+
 permissions:
   contents: read
   actions: read
