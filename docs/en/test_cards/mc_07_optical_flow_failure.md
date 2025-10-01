@@ -8,6 +8,8 @@ To test that optical flow works as expected with a low mounted optical flow sens
 
 Ensure that the drone's optical flow sensor is mounted less than an inch off of the ground.
 
+Ensure that MPC_THR_MIN is tuned correctly for landing
+
 Disconnect all GPS / compasses and ensure vehicle is using optical flow for navigation
 ([Setup Information here](../sensor/optical_flow.md))
 
@@ -19,6 +21,8 @@ Ensure there are no other sources of positioning besides optical flow
 - [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG): `0`
 
 Ensure that the drone can go into Position flight mode while still on the ground
+
+
 
 ## Flight Tests
 

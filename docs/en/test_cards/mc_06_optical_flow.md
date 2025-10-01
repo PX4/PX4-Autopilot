@@ -15,7 +15,9 @@ Ensure there are no other sources of positioning besides optical flow
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): `0`
 - [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL): `0`
 - [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG): `0`
+- [EKF2_RNG_CTRL ](../advanced_config/parameter_reference.md#EKF2_RNG_CTRL): `1` (Enabled - conditional mode)
 - [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF): `0` (Barometric pressure)
+
 
 Ensure that the drone can go into Altitude / Position flight mode while still on the ground
 
