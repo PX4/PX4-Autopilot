@@ -2,12 +2,11 @@
 
 ## Objective
 
-To test that optical flow mixed with GPS works as expected
+Test that optical flow mixed with GPS works as expected
 
 ## Preflight
 
-Setup Optical Flow and GPS
-([Setup Information for Optical Flow here](../sensor/optical_flow.md))
+[Setup optical flow and GPS](../sensor/optical_flow.md)
 
 Ensure there are no other sources of positioning besides optical flow
 
@@ -17,11 +16,11 @@ Ensure there are no other sources of positioning besides optical flow
 - [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG): `1`
 - [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF): `1` (GPS)
 
-Ensure that the drone can go into Altitude / Position flight mode while still on the ground
+Ensure that the drone can go into [Altitude](../flight_modes_mc/altitude.md) / [Position](../flight_modes_mc/position.md) mode while still on the ground
 
 ## Flight Tests
 
-❏ Altitude flight mode
+❏ [Altitude mode](../flight_modes_mc/altitude.md)
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Vertical position should hold current value with stick centered
 
@@ -29,7 +28,7 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response set to climb/descent rate
 
-❏ Position flight mode
+❏ [Position mode](../flight_modes_mc/position.md)
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Horizontal position should hold current value with stick centered
 
@@ -41,17 +40,17 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 
 ❏ GPS Cutout
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Takeoff in position flight mode in GPS rich environment (outdoors)
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Takeoff in position mode in GPS rich environment (outdoors)
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Open QGC and navigate to Mavlink Console
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Open QGC and navigate to MAVLink Console
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Type `gps off` to disable GPS
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Drone should maintain postion hold via Optical Flow
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Drone should maintain position hold via optical flow
 
 ❏ GPS Degredation
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Takeoff in position flight mode in GPS rich environment (outdoors)
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Takeoff in position mode in GPS rich environment (outdoors)
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Fly under a metal surface (or other GPS blocking structure)
 
@@ -61,16 +60,15 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 
 ❏ GPS Acquisition
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Takeoff in position flight mode in non-GPS environment
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Takeoff in position mode in non-GPS environment
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Fly into a GPS rich environment (outdoors)
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Ensure drone acquires GPS position
 
-
 ## Expected Results
 
 - Take-off should be smooth as throttle is raised
-- Drone should hold position within 1 meter in Position Flight mode without pilot moving sticks
+- Drone should hold position within 1 meter in Position mode without pilot moving sticks
 - Drone should hold position in GPS rich environment as well as non-GPS environment
 - No oscillations should present in any of the above flight modes
