@@ -66,7 +66,7 @@ private:
 
 	manual_control_setpoint_s _setpoint{};
 	uint64_t _timeout{0};
-	RcInMode _rc_in_mode{RcInMode::RcOnly};
+	RcInMode _rc_in_mode{RcInMode::DisableManualControl};
 	int _instance{-1};
 	uint8_t _first_valid_source{manual_control_setpoint_s::SOURCE_UNKNOWN};
 };
