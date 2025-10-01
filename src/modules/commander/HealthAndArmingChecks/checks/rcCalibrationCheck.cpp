@@ -75,7 +75,7 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 		return;
 	}
 
-	// return early when joystick only or stick input disabled
+	// return early when stick input from RC is disabled (MAVLink only or manual control disabled)
 	if (_param_com_rc_in_mode.get() == 1 || _param_com_rc_in_mode.get() == 4) {
 		return;
 	}

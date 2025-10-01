@@ -48,10 +48,10 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 
 	const bool update_existing_input = _setpoint.valid && (input.data_source == _setpoint.data_source);
 	const bool start_using_new_input = !_setpoint.valid;
-	const bool is_priority_mode = (_rc_in_mode == RcInMode::RcThenJoystickAscendingPriority
-				       || _rc_in_mode == RcInMode::JoystickAscendingThenRcPriority
-				       || _rc_in_mode == RcInMode::RcThenJoystickDescendingPriority
-				       || _rc_in_mode == RcInMode::JoystickDescendingThenRcPriority);
+	const bool is_priority_mode = (_rc_in_mode == RcInMode::PriorityRcThenMavlinkAscending
+				       || _rc_in_mode == RcInMode::PriorityMavlinkAscendingThenRc
+				       || _rc_in_mode == RcInMode::PriorityRcThenMavlinkDescending
+				       || _rc_in_mode == RcInMode::PriorityMavlinkDescendingThenRc);
 
 	// Switch to new input if it's valid and we don't already have a valid one
 	if (isInputValid(input, now) && (update_existing_input || start_using_new_input || is_priority_mode)) {
@@ -76,24 +76,24 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 	bool match = false;
 
 	switch (_rc_in_mode) { // COM_RC_IN_MODE
-	case RcInMode::RcTransmitterOnly:
+	case RcInMode::RcOnly:
 		match = isRc(input.data_source);
 		break;
 
-	case RcInMode::JoystickOnly:
+	case RcInMode::MavLinkOnly:
 		match = isMavlink(input.data_source);
 		break;
 
-	case RcInMode::RcAndJoystickWithFallback:
+	case RcInMode::RcOrMavlinkWithFallback:
 		match = true;
 		break;
 
-	case RcInMode::RcOrJoystickKeepFirst:
+	case RcInMode::RcOrMavlinkKeepFirst:
 		match = (input.data_source == _first_valid_source)
 			|| (_first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN);
 		break;
 
-	case RcInMode::RcThenJoystickAscendingPriority:
+	case RcInMode::PriorityRcThenMavlinkAscending:
 		if (isRc(input.data_source)) {
 			match = true;
 
@@ -108,7 +108,7 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 
 		break;
 
-	case RcInMode::JoystickAscendingThenRcPriority:
+	case RcInMode::PriorityMavlinkAscendingThenRc:
 		if (isMavlink(input.data_source)) {
 			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
 				match = true;
@@ -125,7 +125,7 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 
 		break;
 
-	case RcInMode::RcThenJoystickDescendingPriority:
+	case RcInMode::PriorityRcThenMavlinkDescending:
 		if (isRc(input.data_source)) {
 			match = true;
 
@@ -140,7 +140,7 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 
 		break;
 
-	case RcInMode::JoystickDescendingThenRcPriority:
+	case RcInMode::PriorityMavlinkDescendingThenRc:
 		if (isMavlink(input.data_source)) {
 			if (!_setpoint.valid || isRc(_setpoint.data_source)) {
 				match = true;
@@ -157,7 +157,7 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 
 		break;
 
-	case RcInMode::StickInputDisabled:
+	case RcInMode::DisableManualControl:
 	default:
 		break;
 	}
