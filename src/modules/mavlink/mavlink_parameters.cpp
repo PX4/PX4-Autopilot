@@ -125,7 +125,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 				if (param == PARAM_INVALID) {
 					PX4_ERR("unknown param: %s", name);
-					send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, name, -1 , msg->sysid, msg->compid );
+					send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, name, -1, msg->sysid, msg->compid);
 
 				} else if (!((param_type(param) == PARAM_TYPE_INT32 && set.param_type == MAV_PARAM_TYPE_INT32) ||
 					     (param_type(param) == PARAM_TYPE_FLOAT && set.param_type == MAV_PARAM_TYPE_REAL32))) {
@@ -209,7 +209,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 						if (result == 1) {
 							PX4_ERR("unknown param name: %s", name);
-							send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, name,-1 , msg->sysid, msg->compid);
+							send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, name, -1, msg->sysid, msg->compid);
 
 						} else if (result == 2) {
 							PX4_ERR("Failed loading param from storage: %s", name);
@@ -226,7 +226,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 					if (ret == 1) {
 						PX4_ERR("unknown param index: %i", req_read.param_index);
-						send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, nullptr, req_read.param_index, msg->sysid,msg->compid);
+						send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, nullptr, req_read.param_index, msg->sysid, msg->compid);
 
 					} else if (ret == 2) {
 						PX4_ERR("failed loading param from storage index: %i", req_read.param_index);
@@ -497,11 +497,13 @@ int
 MavlinkParametersManager::send_param(param_t param, int component_id)
 {
 	PX4_ERR("Debug:TestSP: %i", 1);
+
 	if (param == PARAM_INVALID) {
 		return 1;
 	}
 
 	PX4_ERR("Debug:TestSP: %i", 1);
+
 	/* no free TX buf to send this param */
 	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_VALUE_LEN) {
 		return 1;
@@ -585,15 +587,18 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 }
 
 
-int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *param_id, const int param_index, const int target_sysid, const int target_compid,
+int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *param_id, const int param_index,
+		const int target_sysid, const int target_compid,
 		int component_id)
 {
-       PX4_ERR("Debug:Test: %i", 1);
+	PX4_ERR("Debug:Test: %i", 1);
+
 	/* no free TX buf to send this param error message */
 	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_ERROR_LEN) {
 		return 1;
 	}
-        PX4_ERR("Debug:Test: %i", 2);
+
+	PX4_ERR("Debug:Test: %i", 2);
 	mavlink_param_error_t msg;
 	msg.target_system = target_sysid;
 	msg.target_component = target_compid;
@@ -631,7 +636,8 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 		mavlink_msg_param_error_encode_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet, &msg);
 		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
 	}
-PX4_ERR("Test: %i", 3);
+
+	PX4_ERR("Test: %i", 3);
 	return 0;
 }
 
