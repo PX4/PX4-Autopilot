@@ -934,7 +934,7 @@ mip_cmd_result MicroStrain::configureAidingSources()
 
 	// Selectively turn on external heading as an aiding source
 	if (!mip_cmd_result_is_ack(res = enableAidingSource(
-			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_GNSS_HEADING,
+			MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_EXTERNAL_HEADING,
 			_param_ms_ext_heading_en.get(),
 			4, MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER,
 			ext_heading_offset, rotation_ext_heading,
