@@ -28,6 +28,6 @@ char[32] vendor_name  # Name of the device vendor
 char[32] model_name   # Name of the device model
 
 uint32   device_id         # [-] [@invalid 0 if not available] Unique device ID for the sensor. Does not change between power cycles.
-char[24] firmware_version  # [-] [@invalid -1 if not available] Firmware version.
-char[24] hardware_version  # [-] [@invalid -1 if not available] Hardware version.
-char[32] serial_number     # [-] [@invalid -1 if not available] Device serial number or unique identifier.
+char[24] firmware_version  # [-] [@invalid empty if not available] Firmware version.
+char[24] hardware_version  # [-] [@invalid empty if not available] Hardware version.
+char[33] serial_number     # [-] [@invalid empty if not available] Device serial number or unique identifier.

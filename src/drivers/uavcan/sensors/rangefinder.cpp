@@ -42,7 +42,7 @@
 
 const char *const UavcanRangefinderBridge::NAME = "rangefinder";
 
-UavcanRangefinderBridge::UavcanRangefinderBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+UavcanRangefinderBridge::UavcanRangefinderBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_rangefinder", ORB_ID(distance_sensor), node_info_publisher),
 	_sub_range_data(node)
 { }

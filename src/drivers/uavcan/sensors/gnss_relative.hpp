@@ -45,7 +45,7 @@ class UavcanGnssRelativeBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanGnssRelativeBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher);
+	UavcanGnssRelativeBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 

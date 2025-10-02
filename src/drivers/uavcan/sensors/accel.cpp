@@ -40,7 +40,7 @@
 
 const char *const UavcanAccelBridge::NAME = "accel";
 
-UavcanAccelBridge::UavcanAccelBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+UavcanAccelBridge::UavcanAccelBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_accel", ORB_ID(sensor_accel), node_info_publisher),
 	_sub_imu_data(node)
 { }

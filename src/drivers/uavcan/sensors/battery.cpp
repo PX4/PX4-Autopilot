@@ -39,7 +39,7 @@
 
 const char *const UavcanBatteryBridge::NAME = "battery";
 
-UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_battery", ORB_ID(battery_status), node_info_publisher),
 	ModuleParams(nullptr),
 	_sub_battery(node),

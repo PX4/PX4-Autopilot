@@ -93,7 +93,7 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 
 			// Case 2: Check if node_id already exists with capability but no info - update that entry
 			if (_device_informations[i].node_id == node_id &&
-			    _device_informations[i].has_capability &&
+			    _device_informations[i].capability != DeviceCapability::NONE  &&
 			    !_device_informations[i].has_node_info) {
 
 				populateDeviceInfoFields(_device_informations[i], *info);
@@ -106,61 +106,32 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 			if (_device_informations[i].node_id == node_id &&
 			    _device_informations[i].device_id == device_id &&
 			    _device_informations[i].capability == capability &&
-			    _device_informations[i].has_capability) {
+			    _device_informations[i].capability != DeviceCapability::NONE) {
 				return;
 			}
 
-			// Case 1b: if this node has multiple capabilities, add a new entry for the new capability
+			// Case 1b: if this node has multiple capabilities, continue
 			if (_device_informations[i].node_id == node_id &&
-			    _device_informations[i].has_capability &&
+			    _device_informations[i].capability != DeviceCapability::NONE  &&
 			    _device_informations[i].capability != capability) {
-				if (extendDeviceInformationsArray()) {
-					_device_informations[_device_informations_size - 1] = _device_informations[i];
-					_device_informations[_device_informations_size - 1].device_id = device_id;
-					_device_informations[_device_informations_size - 1].capability = capability;
-					_device_informations[_device_informations_size - 1].has_capability = true;
 
-				} else {
-					PX4_DEBUG("Failed to extend device informations array for node %d", node_id);
-				}
-
-				return;
+				continue;
 			}
 
 			// Case 2: Check if node_id already exists with node info but no capability - update that entry
 			if (_device_informations[i].node_id == node_id &&
 			    _device_informations[i].has_node_info &&
-			    !_device_informations[i].has_capability) {
+			    _device_informations[i].capability == DeviceCapability::NONE) {
 
 				_device_informations[i].device_id = device_id;
 				_device_informations[i].capability = capability;
-				_device_informations[i].has_capability = true;
 				publishDeviceInformationImmediate(i);
 				return;
 			}
 		}
-
-		// Case 3: Find unused slot and use it
-		if (_device_informations[i].node_id == UINT8_MAX && !_device_informations[i].has_capability
-		    && !_device_informations[i].has_node_info) {
-
-			_device_informations[i] = DeviceInformation();
-			_device_informations[i].node_id = node_id;
-
-			if (is_registering_info) {
-				populateDeviceInfoFields(_device_informations[i], *info);
-
-			} else {
-				_device_informations[i].device_id = device_id;
-				_device_informations[i].capability = capability;
-				_device_informations[i].has_capability = true;
-			}
-
-			return;
-		}
 	}
 
-	// Case 4: extend array and add entry at the end
+	// Case 3: extend array and add entry at the end
 	if (extendDeviceInformationsArray()) {
 		_device_informations[_device_informations_size - 1] = DeviceInformation();
 		_device_informations[_device_informations_size - 1].node_id = node_id;
@@ -171,7 +142,6 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 		} else {
 			_device_informations[_device_informations_size - 1].device_id = device_id;
 			_device_informations[_device_informations_size - 1].capability = capability;
-			_device_informations[_device_informations_size - 1].has_capability = true;
 		}
 
 	} else {
@@ -222,7 +192,7 @@ void NodeInfoPublisher::publishDeviceInformationPeriodic()
 
 		const auto &device_info = _device_informations[_next_device_to_publish];
 
-		if (device_info.has_node_info && device_info.has_capability) {
+		if (device_info.has_node_info && device_info.capability != DeviceCapability::NONE) {
 			publishSingleDeviceInformation(device_info);
 			_next_device_to_publish++;
 			return;
@@ -245,11 +215,22 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 	msg.device_id = device_info.device_id;
 
 	// Copy pre-populated fields directly from the struct
-	strlcpy(msg.model_name, device_info.model_name, sizeof(msg.model_name));
-	strlcpy(msg.vendor_name, device_info.vendor_name, sizeof(msg.vendor_name));
-	strlcpy(msg.firmware_version, device_info.firmware_version, sizeof(msg.firmware_version));
-	strlcpy(msg.hardware_version, device_info.hardware_version, sizeof(msg.hardware_version));
-	strlcpy(msg.serial_number, device_info.serial_number, sizeof(msg.serial_number));
+	// Copy strings using memcpy and ensure null termination
+	static_assert(sizeof(msg.model_name) == sizeof(device_info.model_name), "Array size mismatch");
+	memcpy(msg.model_name, device_info.model_name, sizeof(msg.model_name));
+	msg.model_name[sizeof(msg.model_name) - 1] = '\0';
+
+	memcpy(msg.vendor_name, device_info.vendor_name, sizeof(msg.vendor_name));
+	msg.vendor_name[sizeof(msg.vendor_name) - 1] = '\0';
+
+	memcpy(msg.firmware_version, device_info.firmware_version, sizeof(msg.firmware_version));
+	msg.firmware_version[sizeof(msg.firmware_version) - 1] = '\0';
+
+	memcpy(msg.hardware_version, device_info.hardware_version, sizeof(msg.hardware_version));
+	msg.hardware_version[sizeof(msg.hardware_version) - 1] = '\0';
+
+	memcpy(msg.serial_number, device_info.serial_number, sizeof(msg.serial_number));
+	msg.serial_number[sizeof(msg.serial_number) - 1] = '\0';
 
 	_device_info_pub.publish(msg);
 
@@ -270,16 +251,18 @@ void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info,
 	snprintf(device_info.hardware_version, sizeof(device_info.hardware_version),
 		 "%d.%d", info.hw_major, info.hw_minor);
 	snprintf(device_info.serial_number, sizeof(device_info.serial_number),
-		 "%02x%02x%02x%02x%02x%02x%02x%02x",
+		 "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 		 info.unique_id[0], info.unique_id[1], info.unique_id[2], info.unique_id[3],
-		 info.unique_id[4], info.unique_id[5], info.unique_id[6], info.unique_id[7]);
+		 info.unique_id[4], info.unique_id[5], info.unique_id[6], info.unique_id[7],
+		 info.unique_id[8], info.unique_id[9], info.unique_id[10], info.unique_id[11],
+		 info.unique_id[12], info.unique_id[13], info.unique_id[14], info.unique_id[15]);
 }
 
 void NodeInfoPublisher::parseNodeName(const char *name, DeviceInformation &device_info)
 {
 	if (!name || strlen(name) == 0) {
-		strlcpy(device_info.vendor_name, "-1", sizeof(device_info.vendor_name));
-		strlcpy(device_info.model_name, "-1", sizeof(device_info.model_name));
+		strlcpy(device_info.vendor_name, "", sizeof(device_info.vendor_name));
+		strlcpy(device_info.model_name, "", sizeof(device_info.model_name));
 		return;
 	}
 
@@ -288,7 +271,7 @@ void NodeInfoPublisher::parseNodeName(const char *name, DeviceInformation &devic
 
 	if (after_first_dot == nullptr) {
 		// No dot - whole string is model, vendor is -1
-		strlcpy(device_info.vendor_name, "-1", sizeof(device_info.vendor_name));
+		strlcpy(device_info.vendor_name, "", sizeof(device_info.vendor_name));
 		strlcpy(device_info.model_name, name, sizeof(device_info.model_name));
 		return;
 	}
@@ -300,7 +283,7 @@ void NodeInfoPublisher::parseNodeName(const char *name, DeviceInformation &devic
 
 	if (second_dot == nullptr) {
 		// Only one dot - everything after first dot is model, vendor is -1
-		strlcpy(device_info.vendor_name, "-1", sizeof(device_info.vendor_name));
+		strlcpy(device_info.vendor_name, "", sizeof(device_info.vendor_name));
 		strlcpy(device_info.model_name, after_first_dot,  sizeof(device_info.model_name));
 		return;
 	}

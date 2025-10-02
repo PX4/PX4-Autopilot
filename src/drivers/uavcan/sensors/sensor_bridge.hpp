@@ -82,7 +82,7 @@ public:
 	 * Creates all known sensor bridges and puts them in the linked list.
 	 */
 	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list,
-			     class NodeInfoPublisher *node_info_publisher);
+			     NodeInfoPublisher *node_info_publisher);
 };
 
 namespace uavcan_bridge
@@ -108,10 +108,10 @@ class UavcanSensorBridgeBase : public IUavcanSensorBridge, public device::Device
 protected:
 	static constexpr unsigned DEFAULT_MAX_CHANNELS = 4;
 	const unsigned _max_channels;
-	class NodeInfoPublisher *_node_info_publisher;
+	NodeInfoPublisher *_node_info_publisher;
 
 	UavcanSensorBridgeBase(const char *name, const orb_id_t orb_topic_sensor,
-			       class NodeInfoPublisher *node_info_publisher,
+			       NodeInfoPublisher *node_info_publisher,
 			       const unsigned max_channels = DEFAULT_MAX_CHANNELS) :
 		Device(name),
 		_orb_topic(orb_topic_sensor),

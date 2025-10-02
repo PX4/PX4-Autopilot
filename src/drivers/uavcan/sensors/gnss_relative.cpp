@@ -38,7 +38,7 @@
 
 const char *const UavcanGnssRelativeBridge::NAME = "gnss_relative";
 
-UavcanGnssRelativeBridge::UavcanGnssRelativeBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+UavcanGnssRelativeBridge::UavcanGnssRelativeBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_gnss_relative", ORB_ID(sensor_gnss_relative), node_info_publisher),
 	_sub_rel_pos_heading(node)
 {

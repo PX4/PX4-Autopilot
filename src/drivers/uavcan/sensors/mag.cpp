@@ -44,7 +44,7 @@
 
 const char *const UavcanMagnetometerBridge::NAME = "mag";
 
-UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_mag", ORB_ID(sensor_mag), node_info_publisher),
 	_sub_mag(node),
 	_sub_mag2(node)

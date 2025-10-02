@@ -48,7 +48,7 @@ class UavcanAirspeedBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanAirspeedBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher);
+	UavcanAirspeedBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 

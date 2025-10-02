@@ -86,7 +86,7 @@
  * IUavcanSensorBridge
  */
 void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list,
-				   class NodeInfoPublisher *node_info_publisher)
+				   NodeInfoPublisher *node_info_publisher)
 {
 	// airspeed
 #if defined(CONFIG_UAVCAN_SENSOR_AIRSPEED)

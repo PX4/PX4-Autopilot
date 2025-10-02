@@ -45,7 +45,7 @@
 const char *const UavcanDifferentialPressureBridge::NAME = "differential_pressure";
 
 UavcanDifferentialPressureBridge::UavcanDifferentialPressureBridge(uavcan::INode &node,
-		class NodeInfoPublisher *node_info_publisher) :
+		NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_differential_pressure", ORB_ID(differential_pressure), node_info_publisher),
 	_sub_air(node)
 {

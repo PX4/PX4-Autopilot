@@ -40,7 +40,7 @@
 
 const char *const UavcanGyroBridge::NAME = "gyro";
 
-UavcanGyroBridge::UavcanGyroBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+UavcanGyroBridge::UavcanGyroBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_gyro", ORB_ID(sensor_gyro), node_info_publisher),
 	_sub_imu_data(node)
 { }

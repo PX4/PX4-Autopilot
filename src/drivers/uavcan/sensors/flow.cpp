@@ -37,7 +37,7 @@
 
 const char *const UavcanFlowBridge::NAME = "flow";
 
-UavcanFlowBridge::UavcanFlowBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+UavcanFlowBridge::UavcanFlowBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_flow", ORB_ID(sensor_optical_flow), node_info_publisher),
 	_sub_flow(node)
 {

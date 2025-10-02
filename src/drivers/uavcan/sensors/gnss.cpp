@@ -53,7 +53,7 @@ using namespace time_literals;
 
 const char *const UavcanGnssBridge::NAME = "gnss";
 
-UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gps), node_info_publisher),
 	_node(node),
 	_sub_auxiliary(node),

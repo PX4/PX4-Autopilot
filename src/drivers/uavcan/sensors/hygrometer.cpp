@@ -38,7 +38,7 @@
 
 const char *const UavcanHygrometerBridge::NAME = "hygrometer_sensor";
 
-UavcanHygrometerBridge::UavcanHygrometerBridge(uavcan::INode &node, class NodeInfoPublisher *node_info_publisher) :
+UavcanHygrometerBridge::UavcanHygrometerBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_hygrometer_sensor", ORB_ID(sensor_hygrometer), node_info_publisher),
 	_sub_hygro(node)
 {

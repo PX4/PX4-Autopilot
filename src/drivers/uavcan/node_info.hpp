@@ -48,22 +48,22 @@ class NodeInfoPublisher : private uavcan::INodeInfoListener, private uavcan::Tim
 public:
 	enum class DeviceCapability : uint8_t {
 		NONE = UINT8_MAX,  // Invalid/unset capability value (255)
-		GENERIC = 0,
-		AIRSPEED = 1,
-		ESC = 2,
-		SERVO = 3,
-		GPS = 4,
-		MAGNETOMETER = 5,
-		PARACHUTE = 6,
-		RANGEFINDER = 7,
-		WINCH = 8,
-		BAROMETER = 9,
-		OPTICAL_FLOW = 10,
-		ACCELEROMETER = 11,
-		GYROSCOPE = 12,
-		DIFFERENTIAL_PRESSURE = 13,
-		BATTERY = 14,
-		HYGROMETER = 15,
+		GENERIC = device_information_s::DEVICE_TYPE_GENERIC,
+		AIRSPEED = device_information_s::DEVICE_TYPE_AIRSPEED,
+		ESC = device_information_s::DEVICE_TYPE_ESC,
+		SERVO = device_information_s::DEVICE_TYPE_SERVO,
+		GPS = device_information_s::DEVICE_TYPE_GPS,
+		MAGNETOMETER = device_information_s::DEVICE_TYPE_MAGNETOMETER,
+		PARACHUTE = device_information_s::DEVICE_TYPE_PARACHUTE,
+		RANGEFINDER = device_information_s::DEVICE_TYPE_RANGEFINDER,
+		WINCH = device_information_s::DEVICE_TYPE_WINCH,
+		BAROMETER = device_information_s::DEVICE_TYPE_BAROMETER,
+		OPTICAL_FLOW = device_information_s::DEVICE_TYPE_OPTICAL_FLOW,
+		ACCELEROMETER = device_information_s::DEVICE_TYPE_ACCELEROMETER,
+		GYROSCOPE = device_information_s::DEVICE_TYPE_GYROSCOPE,
+		DIFFERENTIAL_PRESSURE = device_information_s::DEVICE_TYPE_DIFFERENTIAL_PRESSURE,
+		BATTERY = device_information_s::DEVICE_TYPE_BATTERY,
+		HYGROMETER = device_information_s::DEVICE_TYPE_HYGROMETER,
 	};
 
 	NodeInfoPublisher(uavcan::INode &node, uavcan::NodeInfoRetriever &node_info_retriever);
@@ -101,7 +101,6 @@ private:
 		uint32_t device_id;
 		DeviceCapability capability;
 		bool has_node_info;
-		bool has_capability;
 
 		char vendor_name[32];
 		char model_name[32];
@@ -110,7 +109,7 @@ private:
 		char serial_number[32];
 
 		DeviceInformation() : node_id(UINT8_MAX), device_id(UINT32_MAX), capability(DeviceCapability::NONE),
-			has_node_info(false), has_capability(false)
+			has_node_info(false)
 		{
 			// Initialize string fields
 			vendor_name[0] = '\0';
@@ -121,7 +120,7 @@ private:
 		}
 
 		DeviceInformation(uint8_t nid, uint32_t did, DeviceCapability cap)
-			: node_id(nid), device_id(did), capability(cap), has_node_info(false), has_capability(true)
+			: node_id(nid), device_id(did), capability(cap), has_node_info(false)
 		{
 			// Initialize string fields
 			vendor_name[0] = '\0';
@@ -159,7 +158,7 @@ private:
 	DeviceInformation *_device_informations{nullptr};
 	size_t _device_informations_size{0};
 	uORB::Publication<device_information_s> _device_info_pub{ORB_ID(device_information)};
-	uint64_t _last_device_info_publish{0};
+	hrt_abstime _last_device_info_publish{0};
 
 	// Round-robin publishing
 	size_t _next_device_to_publish{0};
