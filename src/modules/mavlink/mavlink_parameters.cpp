@@ -125,10 +125,14 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 
 				if (param == PARAM_INVALID) {
 					PX4_ERR("unknown param: %s", name);
+					send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, name, -1 , msg->sysid, msg->compid );
 
 				} else if (!((param_type(param) == PARAM_TYPE_INT32 && set.param_type == MAV_PARAM_TYPE_INT32) ||
 					     (param_type(param) == PARAM_TYPE_FLOAT && set.param_type == MAV_PARAM_TYPE_REAL32))) {
 					PX4_ERR("param types mismatch param: %s", name);
+					// TODO: Send PARAM_ERROR message.
+					// send_error(MAV_PARAM_ERROR_TYPE_MISMATCH, name, -1 , msg->sysid, msg->compid );
+					// Needs https://github.com/mavlink/mavlink/pull/2358
 
 				} else {
 					// According to the mavlink spec we should always acknowledge a write operation.
@@ -200,18 +204,36 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						/* enforce null termination */
 						name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 						/* attempt to find parameter and send it */
-						send_param(param_find_no_notification(name));
+
+						const int result = send_param(param_find_no_notification(name));
+
+						if (result == 1) {
+							PX4_ERR("unknown param name: %s", name);
+							send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, name,-1 , msg->sysid, msg->compid);
+
+						} else if (result == 2) {
+							PX4_ERR("Failed loading param from storage: %s", name);
+							// send_error(MAV_PARAM_ERROR_??? ,name, -1 , msg.sysid, msg.compid);
+							// This case means the parameter could not be populated in param_get.
+							// It does exist though. TODO work out right error code.
+						}
 					}
 
 				} else {
+
 					/* when index is >= 0, send this parameter again */
 					int ret = send_param(param_for_used_index(req_read.param_index));
 
 					if (ret == 1) {
-						PX4_ERR("unknown param ID: %i", req_read.param_index);
+						PX4_ERR("unknown param index: %i", req_read.param_index);
+						send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, nullptr, req_read.param_index, msg->sysid,msg->compid);
 
 					} else if (ret == 2) {
-						PX4_ERR("failed loading param from storage ID: %i", req_read.param_index);
+						PX4_ERR("failed loading param from storage index: %i", req_read.param_index);
+						// send_error(MAV_PARAM_ERROR_???, nullptr, req_read.param_index, msg->sysid, msg->compid);
+						// This case means the parameter could not be populated in param_get.
+						// Or "Failed loading param from storage"
+						// TODO work out right error code.
 					}
 				}
 			}
@@ -474,10 +496,12 @@ MavlinkParametersManager::send_one()
 int
 MavlinkParametersManager::send_param(param_t param, int component_id)
 {
+	PX4_ERR("Debug:TestSP: %i", 1);
 	if (param == PARAM_INVALID) {
 		return 1;
 	}
 
+	PX4_ERR("Debug:TestSP: %i", 1);
 	/* no free TX buf to send this param */
 	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_VALUE_LEN) {
 		return 1;
@@ -549,7 +573,7 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 		mavlink_msg_param_value_send_struct(_mavlink.get_channel(), &msg);
 
 	} else {
-		// Re-pack the message with a different component ID
+		// Re-pack the message with a passed component ID
 		mavlink_message_t mavlink_packet;
 		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet, &msg);
 		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
@@ -557,6 +581,57 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 
 	_last_param_sent = hrt_absolute_time();
 
+	return 0;
+}
+
+
+int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *param_id, const int param_index, const int target_sysid, const int target_compid,
+		int component_id)
+{
+       PX4_ERR("Debug:Test: %i", 1);
+	/* no free TX buf to send this param error message */
+	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_ERROR_LEN) {
+		return 1;
+	}
+        PX4_ERR("Debug:Test: %i", 2);
+	mavlink_param_error_t msg;
+	msg.target_system = target_sysid;
+	msg.target_component = target_compid;
+	msg.error = error;
+
+	if (param_index > -1) { // param_id is not used
+
+		msg.param_index = param_index;
+
+	} else {
+#if defined(__GNUC__) && __GNUC__ >= 8
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+#endif
+		/*
+		 * coverity[buffer_size_warning : FALSE]
+		 *
+		 * The MAVLink spec does not require the string to be NUL-terminated if it
+		 * has length 16. In this case the receiving end needs to terminate it
+		 * when copying it.
+		 */
+		strncpy(msg.param_id, param_id, MAVLINK_MSG_PARAM_ERROR_FIELD_PARAM_ID_LEN);
+#if defined(__GNUC__) && __GNUC__ >= 8
+#pragma GCC diagnostic pop
+#endif/* code */
+	}
+
+	/* default component ID */
+	if (component_id < 0) {
+		mavlink_msg_param_error_send_struct(_mavlink.get_channel(), &msg);
+
+	} else {
+		// Re-pack the message with a different component ID
+		mavlink_message_t mavlink_packet;
+		mavlink_msg_param_error_encode_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet, &msg);
+		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
+	}
+PX4_ERR("Test: %i", 3);
 	return 0;
 }
 
