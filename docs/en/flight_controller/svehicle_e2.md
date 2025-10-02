@@ -62,6 +62,15 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 Order from [S-Vehicle](https://svehicle.cn/).
 
+## Radio Control
+A Radio Control (RC) system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+
+You will need to select a compatible transmitter/receiver and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
+
+Spektrum/DSM receivers connect to the DSM/SBUS RC input.
+PPM or SBUS receivers connect to the RC IN input port.
+CRSF receiver must be wired to a spare port (UART) on the Flight Controller. Then you can bind the transmitter and receiver together.
+
 ## Serial Port Mapping
 
 | UART   | Device     | Port          |
@@ -79,7 +88,7 @@ Order from [S-Vehicle](https://svehicle.cn/).
 
 The E2-Plus flight controller supports up to 14 PWM outputs.
 The first 8 outputs (labelled M1 to M8) are controlled by a dedicated STM32F103 IOMCU controller.
-The remaining 6 outputs (labelled 9 to 16) are the "auxiliary" outputs.
+The remaining 6 outputs (labelled 9 to 14) are the "auxiliary" outputs.
 These are directly attached to the STM32H753 FMU controller .
 
 The 14 PWM outputs are:
@@ -115,17 +124,15 @@ If any channel in a group uses DShot then all channels in the group need to use 
 
 The board has connectors for 3 power monitors.
 
-The board is configure by default for a DroneCAN power monitor, and also has analog power monitor defaults configured which is enabled.
-The default PDB included with the E2+ is DroneCAN and must be connected to `POWER2`.
+- POWER1 -- ADC
+- POWER2 -- DroneCAN
+- POWER3 -- I2C
 
-If using a analog power monitor, battery voltage is on pin 6 and current on pin 9 and this should be connected to `POWER1`.
+The board is configure by default for a analog power monitor, and also has DroneCAN power monitor and I2C defaults configured which is enabled.
+
+The default PDB included with the E2+ is analog and must be connected to `POWER1`.
 
 ## Building Firmware
-
-:::tip
-Most users do not need to build this firmware!
-It is pre-built and installed automatically by _QGroundControl_ when the appropriate hardware is connected.
-:::
 
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
@@ -150,6 +157,7 @@ For information about using this port see:
 
 - [SWD Debug Port](../debug/swd_debug.md)
 - [PX4 System Console](../debug/system_console.md) (Note, the FMU console maps to USART3).
+- All ports use GH1.25 ,power ports use ports on E2 uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/en-us/products/part-detail/5024430670).
 
 ## Pinouts
 
