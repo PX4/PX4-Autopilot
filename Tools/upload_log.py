@@ -25,10 +25,6 @@ except ImportError as e:
     sys.exit(1)
 
 
-SERVER = 'https://logs.px4.io'
-#SERVER = 'http://localhost:5006' # for testing locally
-UPLOAD_URL = SERVER+'/upload'
-
 quiet = False
 
 def ask_value(text, default=None):
@@ -60,6 +56,8 @@ def main():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', default=False,
             help='Quiet mode: do not ask for values which were not provided as parameters')
+    parser.add_argument('--server', dest='server', type=str, default='https://logs.px4.io',
+                      help='Server URL (default: https://logs.px4.io), use http://localhost:5006 for testing locally')
     parser.add_argument("--description", dest="description", type=str,
                       help="Log description", default=None)
     parser.add_argument("--feedback", dest="feedback", type=str,
@@ -98,6 +96,9 @@ def main():
         email = ask_value('Your e-mail', default_email)
     else:
         email = args.email
+
+    SERVER = args.server
+    UPLOAD_URL = SERVER + '/upload'
 
     payload = {'type': args.type, 'description': description,
                'feedback': feedback, 'email': email, 'source': args.source}
