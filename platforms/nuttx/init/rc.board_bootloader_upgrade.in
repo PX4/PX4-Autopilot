@@ -1,7 +1,7 @@
 #! /bin/sh
 
 #
-# Bootloader upgrade
+# Bootloader upgrade (ROMFS)
 #
 if param compare -s SYS_BL_UPDATE 1
 then
