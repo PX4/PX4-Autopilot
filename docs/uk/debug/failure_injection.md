@@ -9,7 +9,7 @@ Failure injection is disabled by default, and can be enabled using the [SYS_FAIL
 Failure injection still in development.
 На момент написання (PX4 v1.14):
 
-- Це можна використовувати лише в симуляції (підтримка як для впровадження в реальному польоті запланована).
+- Support may vary by failure type and between simulatiors and real vehicle.
 - Потребує підтримки в симуляторі.
   Це підтримується в Gazebo Classic
 - Багато типів відмов не широко реалізовані.
@@ -33,31 +33,31 @@ failure <component> <failure_type> [-i <instance_number>]
 
 - _component_:
   - Датчики:
-    - `gyro`: Gyro.
-    - `accel`: Accelerometer.
+    - `gyro`: Gyroscope
+    - `accel`: Accelerometer
     - `mag`: Magnetometer
     - `baro`: Barometer
-    - `gps`: GPS
+    - `gps`: Global navigation satellite system
     - `optical_flow`: Optical flow.
-    - `vio`: Visual inertial odometry.
+    - `vio`: Visual inertial odometry
     - `distance_sensor`: Distance sensor (rangefinder).
-    - `airspeed`: Airspeed sensor.
+    - `airspeed`: Airspeed sensor
   - Системи:
-    - `battery`: Battery.
-    - `motor`: Motor.
-    - `servo`: Servo.
-    - `avoidance`: Avoidance.
-    - `rc_signal`: RC Signal.
-    - `mavlink_signal`: MAVLink signal (data telemetry).
+    - `battery`: Battery
+    - `motor`: Motor
+    - `servo`: Servo
+    - `avoidance`: Avoidance
+    - `rc_signal`: RC Signal
+    - `mavlink_signal`: MAVLink data telemetry connection
 - _failure_type_:
-  - `ok`: Publish as normal (Disable failure injection).
-  - `off`: Stop publishing.
-  - `stuck`: Report same value every time (_could_ indicate a malfunctioning sensor).
-  - `garbage`: Publish random noise. Це схоже на читання неініціалізованої пам'яті.
-  - `wrong`: Publish invalid values (that still look reasonable/aren't "garbage").
-  - `slow`: Publish at a reduced rate.
-  - `delayed`: Publish valid data with a significant delay.
-  - `intermittent`: Publish intermittently.
+  - `ok`: Publish as normal (Disable failure injection)
+  - `off`: Stop publishing
+  - `stuck`: Constantly report the same value which _can_ happen on a malfunctioning sensor
+  - `garbage`: Publish random noise. This looks like reading uninitialized memory
+  - `wrong`: Publish invalid values that still look reasonable/aren't "garbage"
+  - `slow`: Publish at a reduced rate
+  - `delayed`: Publish valid data with a significant delay
+  - `intermittent`: Publish intermittently
 - _instance number_ (optional): Instance number of affected sensor.
   0 (за замовчуванням) вказує на всі сенсори вказаного типу.
 
@@ -65,7 +65,7 @@ failure <component> <failure_type> [-i <instance_number>]
 
 Щоб симулювати втрату сигналу RC без вимкнення вашого пульта керування RC:
 
-1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN).
+1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN). And specifically to turn off motors also [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
 2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
