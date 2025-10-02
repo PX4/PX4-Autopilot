@@ -20,6 +20,8 @@ See [Simulation](../simulation/index.md) for general information about simulator
 
 Gazebo Harmonic is installed by default on Ubuntu 22.04 as part of the normal [development environment setup](../dev_setup/dev_env_linux_ubuntu.md#simulation-and-nuttx-pixhawk-targets).
 
+Gazebo versions Harmonic, Ionic, and Jetty are supported on Ubuntu 24.04. The latest installed Gazebo release is used by default.
+
 :::info
 The PX4 installation scripts are based on the instructions: [Binary Installation on Ubuntu](https://gazebosim.org/docs/harmonic/install_ubuntu/) (gazebosim.org).
 :::
