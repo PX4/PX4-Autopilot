@@ -199,6 +199,9 @@ private:
 
 	void modeManagementUpdate();
 
+	void checkRCModeSwitch();
+	void sendModeCommand(uint8_t main_mode, uint8_t sub_mode = 0);
+
 	static void onFailsafeNotifyUserTrampoline(void *arg);
 	void onFailsafeNotifyUser();
 
@@ -321,6 +324,10 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
+	// RC mode switch state tracking
+	bool _rc_mode_switch_last_state{false};
+	hrt_abstime _rc_mode_switch_last_time{0};
+
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
 
@@ -347,6 +354,10 @@ private:
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_com_takeoff_act,
-		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
+		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
+		(ParamInt<px4::params::COM_RC_LOITER_CH>)   _param_com_rc_loiter_ch,
+		(ParamFloat<px4::params::COM_RC_LOITER_TH>) _param_com_rc_loiter_th,
+		(ParamInt<px4::params::COM_RC_LOIT_INV>)   _param_com_rc_loiter_inv,
+		(ParamFloat<px4::params::COM_RC_LOITER_DB>) _param_com_rc_loiter_db
 	)
 };
