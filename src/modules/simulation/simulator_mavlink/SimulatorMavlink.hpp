@@ -77,6 +77,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/rpm.h>
+#include <simulation/failure_injection/failureInjection.hpp>
 
 #include <random>
 
@@ -157,29 +158,28 @@ private:
 	}
 
 
-	void check_failure_injections();
 
 	int publish_distance_topic(const mavlink_distance_sensor_t *dist);
 
 	static SimulatorMavlink *_instance;
 
 	// simulated sensor instances
-	static constexpr uint8_t ACCEL_COUNT_MAX = 3;
-	PX4Accelerometer _px4_accel[ACCEL_COUNT_MAX] {
+	static constexpr uint8_t kAccelCountMax = 3;
+	PX4Accelerometer _px4_accel[kAccelCountMax] {
 		{1310988, ROTATION_NONE}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 		{1310996, ROTATION_NONE}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
 		{1311004, ROTATION_NONE}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 	};
 
-	static constexpr uint8_t GYRO_COUNT_MAX = 3;
-	PX4Gyroscope _px4_gyro[GYRO_COUNT_MAX] {
+	static constexpr uint8_t kGyroCountMax = 3;
+	PX4Gyroscope _px4_gyro[kGyroCountMax] {
 		{1310988, ROTATION_NONE}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 		{1310996, ROTATION_NONE}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
 		{1311004, ROTATION_NONE}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 	};
 
-	static constexpr uint8_t MAG_COUNT_MAX = 2;
-	PX4Magnetometer _px4_mag[MAG_COUNT_MAX] {
+	static constexpr uint8_t kMagCountMax = 2;
+	PX4Magnetometer _px4_mag[kMagCountMax] {
 		{197388, ROTATION_NONE},
 		{197644, ROTATION_NONE},
 	};
@@ -203,6 +203,7 @@ private:
 
 	uORB::PublicationMulti<distance_sensor_s>	*_dist_pubs[ORB_MULTI_MAX_INSTANCES] {};
 	uint32_t _dist_sensor_ids[ORB_MULTI_MAX_INSTANCES] {};
+	float _last_distance_sensor_value{0.0f};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -277,36 +278,18 @@ private:
 	vehicle_status_s _vehicle_status{};
 	battery_status_s _battery_status{};
 
-	bool _accel_blocked[ACCEL_COUNT_MAX] {};
-	bool _accel_stuck[ACCEL_COUNT_MAX] {};
 	sensor_accel_fifo_s _last_accel_fifo{};
-	matrix::Vector3f _last_accel[GYRO_COUNT_MAX] {};
+	matrix::Vector3f _last_accel[kGyroCountMax] {};
 
-	bool _gyro_blocked[GYRO_COUNT_MAX] {};
-	bool _gyro_stuck[GYRO_COUNT_MAX] {};
 	sensor_gyro_fifo_s _last_gyro_fifo{};
-	matrix::Vector3f _last_gyro[GYRO_COUNT_MAX] {};
+	matrix::Vector3f _last_gyro[kGyroCountMax] {};
 
-	bool _baro_blocked{false};
-	bool _baro_stuck{false};
-
-	bool _mag_blocked[MAG_COUNT_MAX] {};
-	bool _mag_stuck[MAG_COUNT_MAX] {};
-
-	bool _gps_blocked{false};
-	bool _gps_stuck{false};
-	bool _gps_wrong{false};
-	sensor_gps_s _gps_prev{};
-	bool _airspeed_disconnected{false};
-	hrt_abstime _airspeed_blocked_timestamp{0};
-	bool _vio_blocked{false};
-
-	float _last_magx[MAG_COUNT_MAX] {};
-	float _last_magy[MAG_COUNT_MAX] {};
-	float _last_magz[MAG_COUNT_MAX] {};
+	matrix::Vector3f _last_mag[kMagCountMax] {};
 
 	float _last_baro_pressure{0.0f};
 	float _last_baro_temperature{0.0f};
+
+	FailureInjection _failure_injection{};
 
 	int32_t _output_functions[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
 
