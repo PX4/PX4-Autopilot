@@ -49,8 +49,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <simulation/failure_injection/failureInjection.hpp>
@@ -130,7 +128,6 @@ private:
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
-	uORB::PublicationMulti<airspeed_s> _airspeed_pub{ORB_ID(airspeed)};
 	uORB::PublicationMulti<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<vehicle_global_position_s> _aux_global_position_pub{ORB_ID(aux_global_position)};
 
@@ -174,8 +171,6 @@ private:
 	hrt_abstime _last_baro_update_time{0};
 	float _baro_drift_pa{0.0f};
 	float _baro_drift_pa_per_sec{0.1f};
-	bool _baro_rnd_use_last{false};
-	double _baro_rnd_y2{0.0};
 
 	matrix::Vector3f _mag_earth_pred{};
 	bool _mag_earth_available{false};
@@ -186,19 +181,15 @@ private:
 
 	matrix::Vector3f _last_accel{};
 	matrix::Vector3f _last_gyro{};
-	matrix::Vector3f _specific_force_E{};
 
 	float _last_distance_sensor_value{0.0f};
 
 	// Air constants
-	static constexpr float kTemperatureMsl = 288.0f; // [K]
+	static constexpr float kAbsoluteZeroC = -273.15f; // [K]
+	static constexpr float kTemperatureMsl = 288.15f; // [K]
 	static constexpr float kPressureMsl = 101325.0f; // [Pa]
 	static constexpr float kLapseRate = 0.0065f; // [K/m]
 	static constexpr float kAirDensityMsl = 1.225f; // [kg/m^3]
-	static constexpr float kRho = 1.225f; // Air density at sea level [kg/m^3]
-
-	// IMU constants
-	static constexpr float kT1C = 15.0f; // Temperature constant
 
 	static constexpr hrt_abstime kGroundtruthDataMaxAgeUs = 12000;
 

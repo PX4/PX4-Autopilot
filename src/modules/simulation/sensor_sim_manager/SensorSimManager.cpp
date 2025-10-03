@@ -47,6 +47,7 @@ SensorSimManager::SensorSimManager() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	static constexpr float kT1C = 15.0f; // Temperature constant
 	_px4_accel.set_temperature(kT1C);
 	_px4_gyro.set_temperature(kT1C);
 
@@ -163,8 +164,8 @@ float SensorSimManager::generate_wgn()
 
 	if (phase) {
 		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
+			const float U1 = (float)rand() / (float)RAND_MAX;
+			const float U2 = (float)rand() / (float)RAND_MAX;
 			V1 = 2.0f * U1 - 1.0f;
 			V2 = 2.0f * U2 - 1.0f;
 			S = V1 * V1 + V2 * V2;
@@ -269,11 +270,11 @@ void SensorSimManager::updateGPS()
 	if (lpos.timestamp > 0 && gpos.timestamp > 0 &&
 	    (now - lpos.timestamp) < kGroundtruthDataMaxAgeUs && (now - gpos.timestamp) < kGroundtruthDataMaxAgeUs) {
 
-		double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double altitude = (double)(gpos.alt + (generate_wgn() * 0.5f));
+		const double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+		const double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+		const double altitude = (double)(gpos.alt + (generate_wgn() * 0.5f));
 
-		Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
+		const Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
 
 		// device id
 		device::Device::DeviceId device_id;
@@ -308,13 +309,13 @@ void SensorSimManager::updateGPS()
 		sensor_gps.timestamp_sample = gpos.timestamp_sample;
 		sensor_gps.time_utc_usec = 0;
 		sensor_gps.device_id = device_id.devid;
-		sensor_gps.latitude_deg = latitude; // Latitude in degrees
-		sensor_gps.longitude_deg = longitude; // Longitude in degrees
-		sensor_gps.altitude_msl_m = altitude; // Altitude in meters above MSL
+		sensor_gps.latitude_deg = latitude;
+		sensor_gps.longitude_deg = longitude;
+		sensor_gps.altitude_msl_m = altitude;
 		sensor_gps.altitude_ellipsoid_m = altitude;
 		sensor_gps.noise_per_ms = 0;
 		sensor_gps.jamming_indicator = 0;
-		sensor_gps.vel_m_s = gps_vel.xy().norm(); // GPS ground speed, (metres/sec)
+		sensor_gps.vel_m_s = gps_vel.xy().norm();
 		sensor_gps.vel_n_m_s = gps_vel(0);
 		sensor_gps.vel_e_m_s = gps_vel(1);
 		sensor_gps.vel_d_m_s = gps_vel(2);
@@ -332,7 +333,6 @@ void SensorSimManager::updateGPS()
 
 		sensor_gps.timestamp = hrt_absolute_time();
 
-		// Apply failure injection
 		if (_failure_injection.handle_gps_failure(sensor_gps) && _failure_injection.handle_gps_alt_failure(sensor_gps)) {
 			_sensor_gps_pub.publish(sensor_gps);
 		}
@@ -353,47 +353,18 @@ void SensorSimManager::updateBarometer()
 		if (gpos.timestamp > 0 && (now - gpos.timestamp) < kGroundtruthDataMaxAgeUs) {
 			const float dt = math::constrain((gpos.timestamp - _last_baro_update_time) * 1e-6f, 0.001f, 0.1f);
 
-			const float alt_msl = gpos.alt;
-
-			const float temperature_local = kTemperatureMsl - kLapseRate * alt_msl;
+			const float temperature_local = kTemperatureMsl - kLapseRate * gpos.alt;
 			const float pressure_ratio = powf(kTemperatureMsl / temperature_local, 5.256f);
 			const float absolute_pressure = kPressureMsl / pressure_ratio;
 
-			// generate Gaussian noise sequence using polar form of Box-Muller transformation
-			double y1;
-			{
-				double x1;
-				double x2;
-				double w;
-
-				if (!_baro_rnd_use_last) {
-					do {
-						x1 = 2. * (double)generate_wgn() - 1.;
-						x2 = 2. * (double)generate_wgn() - 1.;
-						w = x1 * x1 + x2 * x2;
-					} while (w >= 1.0);
-
-					w = sqrt((-2.0 * log(w)) / w);
-					// calculate two values - the second value can be used next time because it is uncorrelated
-					y1 = x1 * w;
-					_baro_rnd_y2 = x2 * w;
-					_baro_rnd_use_last = true;
-
-				} else {
-					// no need to repeat the calculation - use the second value from last update
-					y1 = _baro_rnd_y2;
-					_baro_rnd_use_last = false;
-				}
-			}
-
 			if (!_failure_injection.is_baro_stuck()) {
-				const float abs_pressure_noise = 1.f * (float)y1;  // 1 Pa RMS noise
+				const float abs_pressure_noise = generate_wgn();  // 1 Pa RMS noise
 				_baro_drift_pa += _baro_drift_pa_per_sec * dt;
 				const float absolute_pressure_noisy = absolute_pressure + abs_pressure_noise + _baro_drift_pa;
 
 				_last_baro_pressure = absolute_pressure_noisy + _sim_baro_off_p.get();
 
-				_last_baro_temperature = temperature_local - 273.0f + _sim_baro_off_t.get();
+				_last_baro_temperature = temperature_local - kAbsoluteZeroC + _sim_baro_off_t.get();
 			}
 
 			if (!_failure_injection.is_baro_blocked()) {
@@ -446,7 +417,7 @@ void SensorSimManager::updateMagnetometer()
 
 				expected_field += noiseGauss3f(0.02f, 0.02f, 0.03f);
 
-				Vector3f mag_output{
+				const Vector3f mag_output{
 					expected_field(0) + _sim_mag_offset_x.get(),
 					expected_field(1) + _sim_mag_offset_y.get(),
 					expected_field(2) + _sim_mag_offset_z.get()
@@ -486,42 +457,15 @@ void SensorSimManager::updateAirspeed()
 	    (now - lpos.timestamp) < kGroundtruthDataMaxAgeUs && (now - gpos.timestamp) < kGroundtruthDataMaxAgeUs
 	    && (now - attitude.timestamp) < kGroundtruthDataMaxAgeUs) {
 
-		Vector3f velocity_E{lpos.vx, lpos.vy, lpos.vz}; // Velocity in NED frame (similar to Earth frame)
-
-		airspeed_s airspeed{};
-		airspeed.timestamp_sample = now;
-
-		float true_airspeed = fmaxf(0.1f, velocity_E.norm() + generate_wgn() * 0.2f);
-
-		hrt_abstime blocked_timestamp = _failure_injection.get_airspeed_blocked_timestamp();
-
-		if (blocked_timestamp > 0) {
-			// Simulate blocked pitot tube - airspeed decreases exponentially
-			float time_since_blocked = (now - blocked_timestamp) * 1e-6f;
-			true_airspeed *= expf(-time_since_blocked / 10.0f); // Decay over ~10 seconds
-		}
-
-		airspeed.true_airspeed_m_s = true_airspeed;
-
-		// Calculate indicated airspeed using air density ratio
-		// For now, use standard air density ratio calculation
-		const float alt_amsl = gpos.alt;
-		const float temperature_local = kTemperatureMsl - kLapseRate * alt_amsl;
+		const hrt_abstime blocked_timestamp = _failure_injection.get_airspeed_blocked_timestamp();
+		const float temperature_local = kTemperatureMsl - kLapseRate * gpos.alt;
 		const float density_ratio = powf(kTemperatureMsl / temperature_local, 4.256f);
 		const float air_density = kAirDensityMsl / density_ratio;
-
-		airspeed.indicated_airspeed_m_s = true_airspeed * sqrtf(air_density / kRho);
-		airspeed.confidence = 0.7f;
-		airspeed.timestamp = hrt_absolute_time();
-		_airspeed_pub.publish(airspeed);
-
-		// Also publish differential pressure for compatibility
-		Vector3f local_velocity = Vector3f{lpos.vx, lpos.vy, lpos.vz};
-		Vector3f body_velocity = Dcmf{Quatf{attitude.q}} .transpose() * local_velocity;
+		const Vector3f body_velocity = Dcmf{Quatf{attitude.q}} .transpose() * Vector3f{lpos.vx, lpos.vy, lpos.vz};
 
 		// calculate differential pressure + noise in hPa
 		const float diff_pressure_noise = (float)generate_wgn() * 0.01f;
-		float diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
+		const float diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
 					      0) + diff_pressure_noise;
 
 		const float blockage_fraction = 0.7f; // defines max blockage (fully ramped)
@@ -538,7 +482,7 @@ void SensorSimManager::updateAirspeed()
 		differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
 		differential_pressure.differential_pressure_pa = diff_pressure * 100.f *
 				airspeed_blockage_scale; // hPa to Pa with blockage scaling
-		differential_pressure.temperature = temperature_local;
+		differential_pressure.temperature = temperature_local + kAbsoluteZeroC; // K to C
 		differential_pressure.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(differential_pressure);
 	}
@@ -562,9 +506,8 @@ void SensorSimManager::updateAGP()
 			return;
 		}
 
-		const uint64_t current_time = gpos.timestamp;
-		const float dt = (current_time - _agp_time_last_update) * 1e-6f;
-		_agp_time_last_update = current_time;
+		const float dt = (gpos.timestamp - _agp_time_last_update) * 1e-6f;
+		_agp_time_last_update = gpos.timestamp;
 
 		if (!_failure_injection.is_agp_stuck()) {
 			_agp_measured_lla = LatLonAlt(gpos.lat, gpos.lon, gpos.alt_ellipsoid);
@@ -630,21 +573,17 @@ void SensorSimManager::updateIMU()
 		// [1] Bulka, Eitan, and Meyer Nahon. "Autonomous fixed-wing aerobatics: from theory to flight."
 		//     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
 
-		Quatf q_E{attitude.q};
-		const Dcmf R_E2B(q_E.inversed());
+		const Dcmf R_E2B(Quatf{attitude.q}.inversed());
 
-		Vector3f acceleration_N{lpos.ax, lpos.ay, lpos.az}; // acceleration in NED frame
-
-		const float gravity = 9.80665f; // Standard gravity
-		Vector3f gravity_N{0.0f, 0.0f, gravity}; // Gravity in NED (down positive)
-		Vector3f specific_force_N = acceleration_N - gravity_N; // Subtract gravity from acceleration to get specific force
-		Vector3f specific_force_B = Dcmf{Quatf{attitude.q}}.transpose() * specific_force_N;
+		const Vector3f acceleration_N{lpos.ax, lpos.ay, lpos.az}; // acceleration in NED frame
+		const Vector3f specific_force_N = acceleration_N - Vector3f{0.0f, 0.0f, 9.80665f};
+		const Vector3f specific_force_B = R_E2B * specific_force_N;
 
 		Vector3f accel_noise;
 		Vector3f gyro_noise;
 
 		// Use velocity magnitude to determine noise level (higher noise when moving)
-		Vector3f velocity{lpos.vx, lpos.vy, lpos.vz};
+		const Vector3f velocity{lpos.vx, lpos.vy, lpos.vz};
 
 		if (velocity.norm() > 0.1f) {
 			accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
@@ -655,12 +594,12 @@ void SensorSimManager::updateIMU()
 			gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
 		}
 
-		Vector3f accel = specific_force_B + accel_noise;
+		const Vector3f accel = specific_force_B + accel_noise;
 
 		// Angular velocity with Earth rotation and noise
-		Vector3f w_B{angular_velocity.xyz[0], angular_velocity.xyz[1], angular_velocity.xyz[2]};
+		const Vector3f w_B{angular_velocity.xyz[0], angular_velocity.xyz[1], angular_velocity.xyz[2]};
 		const Vector3f earth_spin_rate_B = R_E2B * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE);
-		Vector3f gyro = w_B + earth_spin_rate_B + gyro_noise;
+		const Vector3f gyro = w_B + earth_spin_rate_B + gyro_noise;
 
 		if (_failure_injection.is_accel_stuck()) {
 			_px4_accel.update(now, _last_accel(0), _last_accel(1), _last_accel(2));
