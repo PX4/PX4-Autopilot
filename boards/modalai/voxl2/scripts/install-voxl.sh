@@ -129,6 +129,7 @@ adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-imu_server"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-apps_sbus"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-vfc_logger"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mavlink_odometry_bridge"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-vehicle_air_data_bridge"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-dps310"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-icp101xx"
 
