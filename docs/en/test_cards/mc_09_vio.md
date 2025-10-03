@@ -1,14 +1,14 @@
-# Test MC_07 - VIO (Visual-Inertial Odometry)
+# Test MC_09 - VIO (Visual-Inertial Odometry)
 
 ## Objective
 
-To test that external vision (VIO) works as expected
+Test that external vision (VIO) works as expected
 
 ## Preflight
 
 Disconnect all GPS / compasses and ensure vehicle is using VIO for navigation
 
-Ensure that the drone can go into Altitude / Position flight mode while still on the ground
+Ensure that the drone can go into [Altitude](../flight_modes_mc/altitude.md) / [Position](../flight_modes_mc/position.md) mode while still on the ground
 
 Ensure there are no other sources of positioning besides VIO:
 
@@ -19,7 +19,7 @@ Ensure there are no other sources of positioning besides VIO:
 
 ## Flight Tests
 
-❏ Altitude flight mode
+❏ [Altitude mode](../flight_modes_mc/altitude.md)
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Vertical position should hold current value with stick centered
 
@@ -27,7 +27,7 @@ Ensure there are no other sources of positioning besides VIO:
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response set to climb/descent rate
 
-❏ Position flight mode
+❏ [Position mode](../flight_modes_mc/position.md)
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Horizontal position should hold current value with stick centered
 
@@ -46,7 +46,7 @@ Ensure there are no other sources of positioning besides VIO:
 ## Expected Results
 
 - Take-off should be smooth as throttle is raised
-- Drone should hold altitude in Altitude Flight mode without wandering
-- Drone should hold position within 1 meter in Position Flight mode without pilot moving sticks
+- Drone should hold altitude in Altitude mode without wandering
+- Drone should hold position within 1 meter in Position mode without pilot moving sticks
 - No oscillations should present in any of the above flight modes
 - Upon landing, copter should not bounce on the ground

@@ -6,22 +6,22 @@ Regression test for DSHOT working with PX4
 
 ## Preflight
 
-- Ensure vehicle is using a DSHOT ESC.
+- Ensure vehicle is using a DSHOT ESC
 - Parameter [DSHOT_BIDIR_EN](../advanced_config/parameter_reference.md#DSHOT_BIDIR_EN) is enabled
 - Parameter [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) is configured (if ESC supports telemetry)
 - Parameter [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) has Debug (`5`) checked
 
 ## Flight Tests
 
-❏ Stabilized Flight mode
+❏ [Stabilized mode](../flight_modes_mc/manual_stabilized.md)
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Takeoff in stabilized flight mode to ensure correct motor spin
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Takeoff in stabilized mode to ensure correct motor spin
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Pitch/Roll/Yaw response 1:1
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response 1:1
 
-❏ Position flight mode
+❏ [Position mode](../flight_modes_mc/position.md)
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Horizontal position should hold current value with stick centered
 
@@ -41,6 +41,6 @@ Regression test for DSHOT working with PX4
 
 - Download flight logs
 - Load into Data Plot Juggler
-- Ensure data is logged for esc_status/esc.0x/esc_rpm
+- Ensure data is logged for `esc_status`/`esc.0x`/`esc_rpm`
 
   ![Reference frames](../../assets/test_cards/dshot_log_output.png)
