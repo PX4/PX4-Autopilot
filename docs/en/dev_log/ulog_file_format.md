@@ -497,6 +497,7 @@ A valid ULog parser must fulfill the following requirements:
 - [ulogreader](https://github.com/maxsun/ulogreader): Javascript, ULog reader and parser outputs log in JSON object format.
 - [Foxglove](https://foxglove.dev): an integrated visualization and diagnosis tool for robotics data that supports ULog files.
 - [TypeScript ULog parser](https://github.com/foxglove/ulog): TypeScript, ULog reader that outputs JS objects.
+- [yule_log](https://crates.io/crates/yule_log): A streaming ULog parser written in Rust.
 
 ## File Format Version History
 
