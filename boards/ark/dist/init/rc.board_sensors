@@ -11,7 +11,6 @@ param set-default SENS_AFBR_HYSTER 1
 
 param set-default MAV_SYS_ID 158
 param set-default MAV_COMP_ID 158
-param set-default MAV_PROTO_VER 2
 
 param set-default MAV_0_MODE 14
 param set-default MAV_0_FORWARD 0
