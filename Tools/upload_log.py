@@ -97,8 +97,8 @@ def main():
     else:
         email = args.email
 
-    SERVER = args.server
-    UPLOAD_URL = SERVER + '/upload'
+    server = args.server
+    upload_url = server + '/upload'
 
     payload = {'type': args.type, 'description': description,
                'feedback': feedback, 'email': email, 'source': args.source}
@@ -114,13 +114,13 @@ def main():
             print('Uploading '+file_name+'...')
 
         with open(file_name, 'rb') as f:
-            r = requests.post(UPLOAD_URL, data=payload, files={'filearg': f},
+            r = requests.post(upload_url, data=payload, files={'filearg': f},
                     allow_redirects=False)
             if r.status_code == 302: # redirect
                 if 'Location'  in r.headers:
                     plot_url = r.headers['Location']
                     if len(plot_url) > 0 and plot_url[0] == '/':
-                        plot_url = SERVER + plot_url
+                        plot_url = server + plot_url
                     print('URL: '+plot_url)
 
 
