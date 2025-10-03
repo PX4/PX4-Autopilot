@@ -32,6 +32,15 @@
  ****************************************************************************/
 
 /**
+ * UAVCAN CAN node ID (0 for dynamic allocation).
+ *
+ * @min 0
+ * @max 127
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CANNODE_NODE_ID, 0);
+
+/**
  * UAVCAN CAN bus bitrate.
  *
  * @min 20000
