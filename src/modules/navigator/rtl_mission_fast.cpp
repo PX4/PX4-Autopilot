@@ -109,6 +109,20 @@ void RtlMissionFast::setActiveMissionItems()
 		}
 	}
 
+	// Skip CONDITION_GATEs
+	if (_mission_item.nav_cmd == NAV_CMD_CONDITION_GATE) {
+		if (setNextMissionItem()) {
+			if (!loadCurrentMissionItem()) {
+				setEndOfMissionItems();
+				return;
+			}
+
+		} else {
+			setEndOfMissionItems();
+			return;
+		}
+	}
+
 	// Transition to fixed wing if necessary.
 	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    _vehicle_status_sub.get().is_vtol &&
