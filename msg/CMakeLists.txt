@@ -271,6 +271,9 @@ set(msg_files
 	versioned/VehicleRatesSetpoint.msg
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
+	versioned/Vtx.msg
+	versioned/VtxAuxMap.msg
+	versioned/VtxTable.msg
 	versioned/Wind.msg
 )
 list(SORT msg_files)
