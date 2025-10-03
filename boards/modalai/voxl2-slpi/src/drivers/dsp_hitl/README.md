@@ -1,4 +1,15 @@
 
+# HITL scripts
+
+- voxl-px4-hitl: Very simple, perhaps could be folded into voxl-px4
+- voxl-px4-hitl-start: Should be able to fold this in to voxl-px4-start
+- voxl-px4-hitl-set-default-parameters.config: Could be moved to standard method
+
+# HITL parameters
+
+- HITL uses it's own parameter file
+	- Located at /data/px4/param/hitl_parameters
+
 # Using HITL with VFC
 
 ## voxl-vision-hub
@@ -21,7 +32,7 @@
 - "vfc_ki_z_vio": 0.6
 - "vfc_kd_z_vio": 0.35
 
-## Using joystick
+# Using joystick
 
 - Set MAV_RC_BRIDGE to 1
 - Set COM_RC_IN_MODE to 1
