@@ -57,7 +57,7 @@ namespace device
 {
 
 SPI::SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency) :
-	CDev(name, nullptr),
+	PX4SPI(name),
 	_device(device),
 	_mode(mode),
 	_frequency(frequency)
