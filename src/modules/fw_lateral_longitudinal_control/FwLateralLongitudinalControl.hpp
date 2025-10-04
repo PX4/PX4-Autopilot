@@ -216,7 +216,7 @@ private:
 					float pitch_min_rad, float pitch_max_rad, float throttle_min,
 					float throttle_max, const float desired_max_sinkrate,
 					const float desired_max_climbrate,
-					bool disable_underspeed_detection, float hgt_rate_sp);
+					bool disable_underspeed_detection, float speed_weight, float hgt_rate_sp);
 
 	void tecs_status_publish(float alt_sp, float equivalent_airspeed_sp, float true_airspeed_derivative_raw,
 				 float throttle_trim);
