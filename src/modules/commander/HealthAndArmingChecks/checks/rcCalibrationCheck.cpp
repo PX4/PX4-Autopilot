@@ -75,7 +75,8 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 		return;
 	}
 
-	if (_param_com_rc_in_mode.get() != 0 && _param_com_rc_in_mode.get() != 2 && _param_com_rc_in_mode.get() != 3) {
+	// return early when stick input from RC is disabled (MAVLink only or manual control disabled)
+	if (_param_com_rc_in_mode.get() == 1 || _param_com_rc_in_mode.get() == 4) {
 		return;
 	}
 

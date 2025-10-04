@@ -112,8 +112,10 @@ void Ekf::checkHeightSensorRefFallback()
 		    || ((fallback_list[i] == HeightSensor::GNSS) && _control_status.flags.gps_hgt)
 		    || ((fallback_list[i] == HeightSensor::RANGE) && _control_status.flags.rng_hgt)
 		    || ((fallback_list[i] == HeightSensor::EV) && _control_status.flags.ev_hgt)) {
-			ECL_INFO("fallback to secondary height reference");
+
 			_height_sensor_ref = fallback_list[i];
+
+			ECL_WARN("fallback to secondary height reference %d", (int)_height_sensor_ref);
 			break;
 		}
 	}

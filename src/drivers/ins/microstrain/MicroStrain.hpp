@@ -62,6 +62,8 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/vehicle_optical_flow_vel.h>
 #include <uORB/topics/debug_array.h>
 #include <uORB/topics/estimator_status.h>
 
@@ -145,6 +147,18 @@ private:
 
 	mip_cmd_result configureAidingMeasurement(uint16_t aiding_source, bool enable);
 
+	mip_cmd_result enableAidingSource(uint16_t source,
+					  bool enabled,
+					  uint8_t frame_id,
+					  uint8_t frame_format,
+					  const float offset[3],
+					  mip_aiding_frame_config_command_rotation rotation,
+					  uint16_t aiding_cmd_desc,
+					  bool &aiding_flag,
+					  const char *name);
+
+	mip_cmd_result configureGnssAiding();
+
 	mip_cmd_result configureAidingSources();
 
 	mip_cmd_result writeFilterInitConfig();
@@ -152,6 +166,12 @@ private:
 	void initializeRefPos();
 
 	void updateGeoidHeight(float geoid_height, float t);
+
+	void sendGPSAiding();
+
+	void sendMagAiding();
+
+	void sendOpticalFlowAiding();
 
 	void sendAidingMeasurements();
 
@@ -170,11 +190,23 @@ private:
 
 	bool _ext_pos_vel_aiding{false};
 	bool _ext_heading_aiding{false};
-	bool _ext_aiding{false};
+	bool _ext_mag_aiding{false};
+	bool _ext_optical_flow_aiding{false};
+	bool _int_aiding{false};
 
 	float gnss_antenna_offset1[3] = {0};
 	float gnss_antenna_offset2[3] = {0};
-	mip_aiding_frame_config_command_rotation rotation = {0};
+	float ext_mag_offset[3] = {0};
+	float optical_flow_offset[3] = {0};
+	float ext_heading_offset[3] = {0};
+	mip_aiding_frame_config_command_rotation rotation_sens = {0};
+	mip_aiding_frame_config_command_rotation rotation_gnss = {0};
+	mip_aiding_frame_config_command_rotation rotation_ext_mag = {0};
+	mip_aiding_frame_config_command_rotation rotation_oflow = {0};
+	mip_aiding_frame_config_command_rotation rotation_ext_heading = {0};
+
+	float ext_mag_uncert = 0.0;
+	float opt_flow_uncert = 0.0;
 
 	AlphaFilter<float> _geoid_height_lpf;
 	uint64_t _last_geoid_height_update_us{0};
@@ -182,7 +214,6 @@ private:
 
 	MapProjection _pos_ref{};
 	double _ref_alt = 0;
-	float _gps_origin_ep[2] = {0};
 
 	template <typename T>
 	struct SensorSample {
@@ -217,8 +248,10 @@ private:
 		(ParamInt<px4::params::MS_ALIGNMENT>) _param_ms_alignment,
 		(ParamInt<px4::params::MS_GNSS_AID_SRC>) _param_ms_gnss_aid_src_ctrl,
 		(ParamInt<px4::params::MS_INT_MAG_EN>) _param_ms_int_mag_en,
+		(ParamInt<px4::params::MS_EXT_MAG_EN>) _param_ms_ext_mag_en,
 		(ParamInt<px4::params::MS_INT_HEAD_EN>) _param_ms_int_heading_en,
 		(ParamInt<px4::params::MS_EXT_HEAD_EN>) _param_ms_ext_heading_en,
+		(ParamInt<px4::params::MS_OPT_FLOW_EN>) _param_ms_ext_opt_flow_en,
 		(ParamInt<px4::params::MS_SVT_EN>) _param_ms_svt_en,
 		(ParamInt<px4::params::MS_ACCEL_RANGE>) _param_ms_accel_range_setting,
 		(ParamInt<px4::params::MS_GYRO_RANGE>) _param_ms_gyro_range_setting,
@@ -230,7 +263,16 @@ private:
 		(ParamFloat<px4::params::MS_GNSS_OFF2_Z>) _param_ms_gnss_offset2_z,
 		(ParamFloat<px4::params::MS_SENSOR_ROLL>) _param_ms_sensor_roll,
 		(ParamFloat<px4::params::MS_SENSOR_PTCH>) _param_ms_sensor_pitch,
-		(ParamFloat<px4::params::MS_SENSOR_YAW>) _param_ms_sensor_yaw
+		(ParamFloat<px4::params::MS_SENSOR_YAW>) _param_ms_sensor_yaw,
+		(ParamFloat<px4::params::MS_EMAG_ROLL>) _param_ms_emag_roll,
+		(ParamFloat<px4::params::MS_EMAG_PTCH>) _param_ms_emag_pitch,
+		(ParamFloat<px4::params::MS_EMAG_YAW>) _param_ms_emag_yaw,
+		(ParamFloat<px4::params::MS_OFLW_OFF_X>) _param_ms_oflow_offset_x,
+		(ParamFloat<px4::params::MS_OFLW_OFF_Y>) _param_ms_oflow_offset_y,
+		(ParamFloat<px4::params::MS_OFLW_OFF_Z>) _param_ms_oflow_offset_z,
+		(ParamFloat<px4::params::MS_EHEAD_YAW>) _param_ms_ehead_yaw,
+		(ParamFloat<px4::params::MS_EMAG_UNCERT>) _param_ms_emag_uncert,
+		(ParamFloat<px4::params::MS_OFLW_UNCERT>) _param_ms_oflow_uncert
 	)
 
 	// Sensor types needed for message creation / updating / publishing
@@ -256,4 +298,6 @@ private:
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
+	uORB::Subscription _vehicle_optical_flow_vel_sub{ORB_ID(vehicle_optical_flow_vel)};
 };

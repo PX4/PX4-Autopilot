@@ -197,7 +197,8 @@ export default defineConfig({
         text: "Version",
         items: [
           { text: "main", link: "https://docs.px4.io/main/en/" },
-          { text: "v1.15 (stable)", link: "https://docs.px4.io/v1.15/en/" },
+          { text: "v1.16 (stable)", link: "https://docs.px4.io/v1.16/en/" },
+          { text: "v1.15", link: "https://docs.px4.io/v1.15/en/" },
           { text: "v1.14", link: "https://docs.px4.io/v1.14/en/" },
           { text: "v1.13", link: "https://docs.px4.io/v1.13/en/" },
           { text: "v1.12", link: "https://docs.px4.io/v1.12/en/" },
