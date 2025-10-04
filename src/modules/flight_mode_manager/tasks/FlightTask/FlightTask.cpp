@@ -137,6 +137,7 @@ void FlightTask::_evaluateVehicleLocalPosition()
 		if (_sub_vehicle_local_position.get().xy_valid) {
 			_position(0) = _sub_vehicle_local_position.get().x;
 			_position(1) = _sub_vehicle_local_position.get().y;
+			_eph = _sub_vehicle_local_position.get().eph;
 		}
 
 		if (_sub_vehicle_local_position.get().z_valid) {
