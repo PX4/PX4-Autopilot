@@ -20,6 +20,25 @@ make ark_can-flow_default
 
 This will create an output in **build/ark_can-flow_default** named **XX-X.X.XXXXXXXX.uavcan.bin**. Follow the instructions at [DroneCAN firmware update](index.md#firmware-update) to flash the firmware.
 
+## Firmware Releases
+
+When PX4 creates official releases, CAN node firmware files are packaged separately from regular flight controller firmware:
+
+- **Flight controller firmware**: Available as `.px4` files in the root of the release
+- **CAN node firmware**: Available as `.uavcan.bin` files organized in named subdirectories under `can_nodes/`
+
+For example, in a release you might find:
+```
+├── px4_fmu-v5_default.px4                    (flight controller firmware)
+├── can_nodes/
+│   ├── ark_can-flow_default/
+│   │   └── 1234-1.0.abcd1234.uavcan.bin     (CAN node firmware)
+│   └── ark_can-gps_default/
+│       └── 5678-2.0.efgh5678.uavcan.bin     (CAN node firmware)
+```
+
+Use the `.uavcan.bin` files from the appropriate subdirectory to flash your CAN nodes.
+
 ## Developer Information
 
 This section has information that is relevant to developers who want to add support for new DroneCAN hardware to the PX4 Autopilot.
