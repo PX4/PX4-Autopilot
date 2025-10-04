@@ -119,6 +119,12 @@
 # include <uORB/topics/debug_vect.h>
 #endif // !CONSTRAINED_FLASH
 
+# if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#  include <uORB/topics/fiducial_marker_pos_report.h>
+#  include <uORB/topics/fiducial_marker_yaw_report.h>
+#  include <uORB/topics/target_gnss.h>
+# endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 using namespace time_literals;
 
 class Mavlink;
@@ -215,6 +221,12 @@ private:
 	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 #endif // !CONSTRAINED_FLASH
+
+# if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	void handle_message_target_relative(mavlink_message_t *msg);
+	void handle_message_target_absolute(mavlink_message_t *msg);
+# endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	void handle_message_request_event(mavlink_message_t *msg);
 
 	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
@@ -335,6 +347,14 @@ private:
 	uORB::Publication<debug_value_s>			_debug_value_pub{ORB_ID(debug_value)};
 	uORB::Publication<debug_vect_s>				_debug_vect_pub{ORB_ID(debug_vect)};
 #endif // !CONSTRAINED_FLASH
+
+# if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub {ORB_ID(fiducial_marker_pos_report)};
+	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
+	uORB::Publication<target_gnss_s>		_target_gnss_pub{ORB_ID(target_gnss)};
+	param_t _param_vte_en{PARAM_INVALID};
+	hrt_abstime _vte_en_invalid_warn_last{0};
+# endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	// ORB publications (multi)
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
