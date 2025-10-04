@@ -170,4 +170,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          files: artifacts/*.px4
+          files: |
+            artifacts/*.px4
+            artifacts/can_nodes/**/*.uavcan.bin

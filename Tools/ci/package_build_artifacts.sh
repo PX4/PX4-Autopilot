@@ -1,8 +1,32 @@
 #!/bin/bash
 
+# Enable globstar for recursive globbing
+shopt -s globstar
+
 mkdir artifacts
-cp **/**/*.px4 artifacts/
-cp **/**/*.elf artifacts/
+
+# Copy px4 files for regular flight controllers
+cp **/**/*.px4 artifacts/ 2>/dev/null || true
+
+# Copy uavcan.bin files for CAN nodes to named folders
+mkdir -p artifacts/can_nodes
+for uavcan_bin in **/**/*.uavcan.bin; do
+  if [ -f "$uavcan_bin" ]; then
+    # Extract build directory name (e.g., "ark_can-flow_default" from "build/ark_can-flow_default/...")
+    build_dir=$(echo "$uavcan_bin" | sed 's|build/\([^/]*\)/.*|\1|')
+    
+    # Create subdirectory for this CAN node
+    can_node_dir="artifacts/can_nodes/$build_dir"
+    mkdir -p "$can_node_dir"
+    
+    # Copy the uavcan.bin file with original name
+    cp "$uavcan_bin" "$can_node_dir/"
+    
+    echo "Packaged CAN node firmware: $uavcan_bin -> $can_node_dir/"
+  fi
+done
+
+cp **/**/*.elf artifacts/ 2>/dev/null || true
 for build_dir_path in build/*/ ; do
   build_dir_path=${build_dir_path::${#build_dir_path}-1}
   build_dir=${build_dir_path#*/}
