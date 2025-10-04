@@ -59,7 +59,7 @@ using namespace device;
 class CrsfRc : public ModuleBase<CrsfRc>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	CrsfRc(const char *device);
+	CrsfRc(const char *device, uint32_t baudrate);
 	~CrsfRc() override;
 
 	/** @see ModuleBase */
@@ -94,12 +94,14 @@ private:
 
 	char _device[20] {}; ///< device / serial port path
 	bool _is_singlewire{false};
+	uint32_t _baudrate{0};
 
 	static constexpr size_t RC_MAX_BUFFER_SIZE{64};
 	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};
 	uint32_t _bytes_rx{0};
 
 	hrt_abstime _last_packet_seen{0};
+	hrt_abstime _last_stats_tx_seen{0};
 
 	CrsfParserStatistics_t _packet_parser_statistics{0};
 
