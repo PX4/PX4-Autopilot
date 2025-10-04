@@ -26,6 +26,23 @@ for uavcan_bin in **/**/*.uavcan.bin; do
   fi
 done
 
+# Also check for CAN node binaries in deploy directories
+for deploy_bin in **/deploy/*.bin; do
+  if [ -f "$deploy_bin" ]; then
+    # Extract build directory name from deploy path
+    build_dir=$(echo "$deploy_bin" | sed 's|build/\([^/]*\)/.*|\1|')
+    
+    # Create subdirectory for this CAN node
+    can_node_dir="artifacts/can_nodes/$build_dir"
+    mkdir -p "$can_node_dir"
+    
+    # Copy the bin file
+    cp "$deploy_bin" "$can_node_dir/"
+    
+    echo "Packaged CAN node firmware from deploy: $deploy_bin -> $can_node_dir/"
+  fi
+done
+
 cp **/**/*.elf artifacts/ 2>/dev/null || true
 for build_dir_path in build/*/ ; do
   build_dir_path=${build_dir_path::${#build_dir_path}-1}
