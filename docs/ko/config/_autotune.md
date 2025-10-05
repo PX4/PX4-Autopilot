@@ -43,13 +43,13 @@ To make sure the vehicle is stable enough for auto-tuning:
 2. Take off and <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">hover at 1m above ground in [Altitude mode](../flight_modes_mc/altitude.md) or [Stabilized mode](../flight_modes_mc/manual_stabilized.md)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">fly at cruise speed in [Position mode](../flight_modes_fw/position.md) or [Altitude mode](../flight_modes_fw/altitude.md)</div>.
 
 3. Use the RC transmitter roll stick to perform the following maneuver, tilting the vehicle just a few degrees: _roll left > roll right > center_ (The whole maneuver should take about 3 seconds).
-  기체는 2번의 진동 이내에서 안정화되어야 합니다.
+   기체는 2번의 진동 이내에서 안정화되어야 합니다.
 
 4. 각각의 시도에서 더 큰 진폭으로 기울이면서 기동을 반복합니다.
-  기체가 ~20도에서 2번의 진동 내에서 안정화될 수 있으면 다음 단계로 이동합니다.
+   기체가 ~20도에서 2번의 진동 내에서 안정화될 수 있으면 다음 단계로 이동합니다.
 
 5. 피치 축에서 동일한 동작을 반복합니다.
-  As above, start with small angles and confirm that the vehicle can stabilise itself within 2 oscillations before increasing the tilt.
+   As above, start with small angles and confirm that the vehicle can stabilise itself within 2 oscillations before increasing the tilt.
 
 If the drone can stabilize itself within 2 oscillations it is ready for the [auto-tuning procedure](#auto-tuning-procedure).
 
@@ -72,41 +72,56 @@ The test steps are:
 1. Perform the [pre-tuning test](#pre-tuning-test).
 
 2. Takeoff using RC control <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">in [Altitude mode](../flight_modes_mc/altitude.md).
-  Hover the vehicle at a safe distance and at a few meters above ground (between 4 and 20m).</div><div v-else-if="$frontmatter.frame === 'Plane'">
-  Once flying at cruise speed, activate [Hold mode](../flight_modes_fw/hold.md).
-  This will guide the plane to fly in circle at constant altitude and speed.</div>
+   Hover the vehicle at a safe distance and at a few meters above ground (between 4 and 20m).</div><div v-else-if="$frontmatter.frame === 'Plane'">
+   Once flying at cruise speed, activate [Hold mode](../flight_modes_fw/hold.md).
+   This will guide the plane to fly in circle at constant altitude and speed.</div>
 
 3. Enable autotune.
 
-  <div v-if="$frontmatter.frame === 'Plane'">
-  <div class="tip custom-block"><p class="custom-block-title">TIP</p>
+   <div v-if="$frontmatter.frame === 'Plane'">
+   <div class="tip custom-block"><p class="custom-block-title">TIP</p>
 
-  If an [Enable/Disable Autotune Switch](#enable-disable-autotune-switch) is configured you can just toggle the switch to the "enabled" position.
+   If an [Enable/Disable Autotune Switch](#enable-disable-autotune-switch) is configured you can just toggle the switch to the "enabled" position.
 
-  </div></div>
+   </div></div>
 
-  1. In QGroundControl, open the menu **Vehicle setup > PID Tuning**:
+   1. In QGroundControl, open the menu **Vehicle setup > PID Tuning**:
 
-    ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png)
+      ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png)
 
-  2. Select either the _Rate Controller_ or _Attitude Controller_ tabs.
+   2. Select either the _Rate Controller_ or _Attitude Controller_ tabs.
 
-  3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors).
+   3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors).
 
-  4. Read the warning popup and click on **OK** to start tuning.
-
-4. The drone will first start to perform quick roll motions followed by pitch and yaw motions.
-  The progress is shown in the progress bar, next to the _Autotune_ button.
+   4. Read the warning popup and click on **OK** to start tuning.
 
 <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
 
+4. The drone will first start to perform quick roll motions followed by pitch and yaw motions.
+   The progress is shown in the progress bar, next to the _Autotune_ button.
+
+</div><div v-else-if="$frontmatter.frame === 'Plane'">
+
+4. The drone will first start to perform quick roll motions followed by pitch and yaw motions. When [`FW_AT_SYSID_TYPE`](../advanced_config/parameter_reference.md#FW_AT_SYSID_TYPE) is set to linear/logarithmic sine sweep (recommended), the max rates are approximately 45 deg/s for roll and 30 deg/s for pitch and yaw.
+   The progress is shown in the progress bar, next to the _Autotune_ button.
+
+</div>
+<div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
+
 5. Manually land and disarm to apply the new tuning parameters.
-  Takeoff carefully and manually test that the vehicle is stable.
+   Takeoff carefully and manually test that the vehicle is stable.
 
 </div><div v-else-if="$frontmatter.frame === 'Plane'">
 
 5. The tuning will be immediately/automatically be applied and tested in flight (by default).
-  PX4 will then run a 4 second test and revert the new tuning if a problem is detected.
+   PX4 will then run a 4 second test and revert the new tuning if a problem is detected.
+
+The figure below shows how steps 4 and 5 might look in flight on the pitch axis.
+The pitch rate gradually increases up until it reaches the target.
+This amplitude is then held while the signal frequency is increased.
+You can then see how the tuned system is able to follow the setpoint in the test signal.
+
+<img src="../../assets/config/fw/autotune.png" title="Fixed-Wing Autotune"/>
 
 </div>
 
@@ -174,9 +189,20 @@ Fast oscillations (more than 1 oscillation per second): this is because the gain
 
 ### 자동 튜닝 실패
 
+<div v-if="$frontmatter.frame === 'Multicopter'">
+
 If the drone was not moving enough during auto-tuning, the system identification algorithm might have issues to find the correct coefficients.
 
-Increase the <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">[MC_AT_SYSID_AMP](../advanced_config/parameter_reference.md#MC_AT_SYSID_AMP)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">[FW_AT_SYSID_AMP](../advanced_config/parameter_reference.md#FW_AT_SYSID_AMP)</div> parameter by steps of 1 and trigger the auto-tune again.
+Increase the [MC_AT_SYSID_AMP](../advanced_config/parameter_reference.md#MC_AT_SYSID_AMP) parameter by steps of 1 and trigger the auto-tune again.
+
+</div>
+<div v-else-if="$frontmatter.frame === 'Plane'">
+
+By default, the autotune maneuvers ensure that a sufficient angular rate is reached for system identification. The target rates are approximately 45 deg/s for roll and 30 deg/s for pitch and yaw.
+
+If the signal-to-noise ratio of the vehicle is low, the system identification algorithm might have issues finding the correct coefficients. Ensure that there is no excessive noise and/or platform vibration.
+
+</div>
 
 ### The drone oscillates after auto-tuning
 

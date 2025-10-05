@@ -58,7 +58,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### 시뮬레이션
 
-- TBD
+- Overhaul rover simulation:
+  - Add synthetic differential rover model: [PX4-gazebo-models#107](https://github.com/PX4/PX4-gazebo-models/pull/107)
+  - Add synthetic mecanum rover model: [PX4-gazebo-models#113](https://github.com/PX4/PX4-gazebo-models/pull/113)
+  - Update synthetic ackermann rover model: [PX4-gazebo-models#117](https://github.com/PX4/PX4-gazebo-models/pull/117)
 
 ### Ethernet
 
@@ -91,6 +94,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Removed deprecated rover module ([PX4-Autopilot#25054](https://github.com/PX4/PX4-Autopilot/pull/25054)).
 - Add support for [Apps & API](../flight_modes_rover/api.md) ([PX4-Autopilot#25074](https://github.com/PX4/PX4-Autopilot/pull/25074), [PX4-ROS2-Interface-Lib#140](https://github.com/Auterion/px4-ros2-interface-lib/pull/140)).
+- Update [rover simulation](../frames_rover/index.md#simulation) ([PX4-Autopilot#25644](https://github.com/PX4/PX4-Autopilot/pull/25644)) (see [Simulation](#simulation) release note for details).
 
 ### ROS 2
 
