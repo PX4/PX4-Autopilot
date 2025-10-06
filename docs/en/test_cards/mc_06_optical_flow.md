@@ -41,7 +41,7 @@ Ensure that the drone can go into Altitude / Position mode while still on the gr
 
 ❏ Varying height terrain
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ But boxes on the ground to create varying heights in terrain
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Put boxes on the ground to create varying heights in terrain
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Take off in position mode and fly over the boxes such that the downward facing rangefinder varies in value
 
