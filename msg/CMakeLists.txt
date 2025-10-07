@@ -105,7 +105,6 @@ set(msg_files
 	HeaterStatus.msg
 	HomePosition.msg
 	HoverThrustEstimate.msg
-	ImuServer.msg
 	InputRc.msg
 	InternalCombustionEngineStatus.msg
 	IridiumsbdStatus.msg

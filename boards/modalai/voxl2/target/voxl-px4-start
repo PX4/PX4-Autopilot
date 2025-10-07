@@ -43,16 +43,18 @@ if [ $RETURNCODE -ne 0 ]; then
     fi
 fi
 
-# We can only run on M0052, M0054, or M0104 so exit with error if that is not the case
+# We can only run on M0054 or M0104 so exit with error if that is not the case
 if [ $PLATFORM = "M0052" ]; then
     /bin/echo "Running on M0052"
+    /bin/echo "Error M0052 is no longer supported!!!"
+    exit 1
 elif [ $PLATFORM = "M0054" ]; then
     /bin/echo "Running on M0054"
 elif [ $PLATFORM = "M0104" ]; then
     /bin/echo "Running on M0104"
 else
     /bin/echo "Error, cannot determine platform!"
-    exit 0
+    exit 1
 fi
 
 # Sleep a little here. A lot happens when the uorb and muorb start
@@ -113,13 +115,7 @@ qshell ist8308 start -R 12 -X -b 1
 
 # GPS and magnetometer
 if [ "$GPS" != "NONE" ]; then
-	# On M0052 the GPS driver runs on the apps processor
-	if [ $PLATFORM = "M0052" ]; then
-	    gps start -d /dev/ttyHS2
-	# On M0054 and M0104 the GPS driver runs on SLPI DSP
-	else
-	    qshell gps start
-	fi
+    qshell gps start
 fi
 
 # Auto detect an ncp5623c i2c RGB LED. If one isn't connected this will
@@ -164,20 +160,12 @@ elif [ "$RC" == "CRSF_MAV" ]; then
     qshell mavlink_rc_in start -m -p 7 -b 115200
 elif [ "$RC" == "SPEKTRUM" ]; then
     /bin/echo "Starting Spektrum RC"
-	# On M0052 the RC driver runs on the apps processor
-	if [ $PLATFORM = "M0052" ]; then
-        rc_input start -d /dev/ttyHS1
-	# On M0054 and M0104 the RC driver runs on SLPI DSP
-	else
-        qshell spektrum_rc start
-	fi
+    qshell spektrum_rc start
 elif [ "$RC" == "GHST" ]; then
     /bin/echo "Starting GHST RC driver"
     qshell ghst_rc start -d 7
 elif [ "$RC" == "M0065_SBUS" ]; then
-	if [ $PLATFORM = "M0052" ]; then
-		apps_sbus start
-	elif [ "$ESC" != "VOXL2_IO_PWM_ESC" ]; then
+	if [ "$ESC" != "VOXL2_IO_PWM_ESC" ]; then
     	/bin/echo "Attempting to start M0065 SBUS RC driver for original M0065 FW"
     	qshell dsp_sbus start
 		retVal=$?
@@ -256,12 +244,6 @@ vfc_logger start
 
 # Start microdds_client for ros2 offboard messages from agent over localhost
 microdds_client start -t udp -h 127.0.0.1 -p 8888
-
-# On M0052 there is only one IMU. So, PX4 needs to
-# publish IMU samples externally for VIO to use.
-if [ $PLATFORM = "M0052" ]; then
-	imu_server start
-fi
 
 # start the onboard fast link to connect to voxl-mavlink-server
 mavlink start -x -u 14556 -o 14557 -r 100000 -n lo -m onboard

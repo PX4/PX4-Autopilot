@@ -60,8 +60,6 @@ ICM42688P::ICM42688P(const I2CSPIDriverConfig &config) :
 		// _px4_accel = std::make_shared<PX4Accelerometer>(get_device_id(), rotation);
 		// _px4_gyro = std::make_shared<PX4Gyroscope>(get_device_id(), rotation);
 		ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
-		// _imu_server_pub.advertise();
-
 	} else {
 		ConfigureSampleRate(0);
 	}
@@ -80,10 +78,6 @@ ICM42688P::~ICM42688P()
 	perf_free(_fifo_overflow_perf);
 	perf_free(_fifo_reset_perf);
 	perf_free(_drdy_missed_perf);
-
-	// if (!hitl_mode){
-	//  		_imu_server_pub.unadvertise();
-	// }
 }
 
 int ICM42688P::init()
@@ -661,7 +655,6 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 		if (ProcessTemperature(buffer.f, valid_samples)) {
 			ProcessGyro(timestamp_sample, buffer.f, valid_samples);
 			ProcessAccel(timestamp_sample, buffer.f, valid_samples);
-			ProcessIMU(timestamp_sample, buffer.f, valid_samples);
 			return true;
 		}
 	}
@@ -678,115 +671,6 @@ void ICM42688P::FIFOReset()
 
 	// reset while FIFO is disabled
 	_drdy_fifo_read_samples.store(0);
-}
-
-static constexpr int32_t reassemble_20bit(const uint32_t a, const uint32_t b, const uint32_t c)
-{
-	// 0xXXXAABBC
-	uint32_t high   = ((a << 12) & 0x000FF000);
-	uint32_t low    = ((b << 4)  & 0x00000FF0);
-	uint32_t lowest = (c         & 0x0000000F);
-
-	uint32_t x = high | low | lowest;
-
-	if (a & Bit7) {
-		// sign extend
-		x |= 0xFFF00000u;
-	}
-
-	return static_cast<int32_t>(x);
-}
-
-
-void ICM42688P::ProcessIMU(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
-{
-	float accel_x = 0.0, accel_y = 0.0, accel_z = 0.0;
-	float gyro_x = 0.0,  gyro_y = 0.0,  gyro_z = 0.0;
-	//static int ctr = 0;
-
-	for (int i = 0; i < samples; i++) {
-		_imu_server_decimator++;
-		if (_imu_server_decimator == 8) {
-			_imu_server_decimator = 0;
-			// 20 bit hires mode
-
-			// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
-			// Accel data is 18 bit
-			int32_t temp_accel_x = reassemble_20bit(fifo[i].ACCEL_DATA_X1, fifo[i].ACCEL_DATA_X0,
-								   fifo[i].Ext_Accel_X_Gyro_X & 0xF0 >> 4);
-			int32_t temp_accel_y = reassemble_20bit(fifo[i].ACCEL_DATA_Y1, fifo[i].ACCEL_DATA_Y0,
-								   fifo[i].Ext_Accel_Y_Gyro_Y & 0xF0 >> 4);
-			int32_t temp_accel_z = reassemble_20bit(fifo[i].ACCEL_DATA_Z1, fifo[i].ACCEL_DATA_Z0,
-								   fifo[i].Ext_Accel_Z_Gyro_Z & 0xF0 >> 4);
-
-			// Gyro [19:12] + Gyro [11:4] + Gyro [3:0] (bottom 4 bits of 20 bit extension byte)
-			int32_t temp_gyro_x = reassemble_20bit(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0,
-								  fifo[i].Ext_Accel_X_Gyro_X & 0x0F);
-			int32_t temp_gyro_y = reassemble_20bit(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0,
-								  fifo[i].Ext_Accel_Y_Gyro_Y & 0x0F);
-			int32_t temp_gyro_z = reassemble_20bit(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0,
-								  fifo[i].Ext_Accel_Z_Gyro_Z & 0x0F);
-
-			// accel samples invalid if -524288
-			if (temp_accel_x != -524288 && temp_accel_y != -524288 && temp_accel_z != -524288) {
-				// shift accel by 2 (2 least significant bits are always 0)
-				accel_x = (float) temp_accel_x / 4.f;
-				accel_y = (float) temp_accel_y / 4.f;
-				accel_z = (float) temp_accel_z / 4.f;
-
-				// shift gyro by 1 (least significant bit is always 0)
-				gyro_x = (float) temp_gyro_x / 2.f;
-				gyro_y = (float) temp_gyro_y / 2.f;
-				gyro_z = (float) temp_gyro_z / 2.f;
-
-				// correct frame for publication
-				// sensor's frame is +x forward, +y left, +z up
-				// flip y & z to publish right handed with z down (x forward, y right, z down)
-				accel_y = -accel_y;
-				accel_z = -accel_z;
-				gyro_y  = -gyro_y;
-				gyro_z  = -gyro_z;
-
-				// Scale everything appropriately
-				float accel_scale_factor = (CONSTANTS_ONE_G / 8192.f);
-				accel_x *= accel_scale_factor;
-				accel_y *= accel_scale_factor;
-				accel_z *= accel_scale_factor;
-
-				float gyro_scale_factor = math::radians(1.f / 131.f);
-				gyro_x *= gyro_scale_factor;
-				gyro_y *= gyro_scale_factor;
-				gyro_z *= gyro_scale_factor;
-
-				// correct for rate of change of temperature
-				// ctr++;
-				// if(ctr>100){
-				// 	ctr = 0;
-				// 	PX4_INFO("%6.2f %6.2f %6.2f %6.2f", (double)_current_temp_gradient, double(accel_z), (double)_current_temp_correction, (double)(accel_z + _current_temp_correction));
-				// }
-				accel_z -= _current_temp_correction;
-
-
-				// Store the data in our array
-				_imu_server_data.accel_x[_imu_server_index] = accel_x;
-				_imu_server_data.accel_y[_imu_server_index] = accel_y;
-				_imu_server_data.accel_z[_imu_server_index] = accel_z;
-				_imu_server_data.gyro_x[_imu_server_index]  = gyro_x;
-				_imu_server_data.gyro_y[_imu_server_index]  = gyro_y;
-				_imu_server_data.gyro_z[_imu_server_index]  = gyro_z;
-				_imu_server_data.ts[_imu_server_index]      = timestamp_sample - (125 * (samples - 1 - i));
-				_imu_server_index++;
-
-				// If array is full, publish the data
-				if (_imu_server_index == 10) {
-					_imu_server_index = 0;
-					_imu_server_data.timestamp = hrt_absolute_time();
-					_imu_server_data.temperature = 0; // Not used right now
-					_imu_server_pub.publish(_imu_server_data);
-				}
-			}
-		}
-	}
 }
 
 void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], uint8_t samples)

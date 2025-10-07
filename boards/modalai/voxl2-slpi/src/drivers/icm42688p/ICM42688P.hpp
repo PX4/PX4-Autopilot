@@ -51,7 +51,6 @@
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/topics/imu_server.h>
 #include <uORB/topics/sensor_accel_fifo.h>
 #include <uORB/topics/sensor_gyro_fifo.h>
 #include <lib/parameters/param.h>
@@ -168,7 +167,6 @@ private:
 	bool FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples);
 	void FIFOReset();
 
-	void ProcessIMU(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples);
 	void ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], uint8_t samples);
 	void ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], uint8_t samples);
 	bool ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples);
@@ -255,12 +253,6 @@ private:
 	};
 
 	uint32_t _temperature_samples{0};
-
-	// Support for the IMU server
-	uint32_t _imu_server_index{0};
-	uint32_t _imu_server_decimator{0};
-	imu_server_s _imu_server_data;
-	uORB::Publication<imu_server_s> _imu_server_pub{ORB_ID(imu_server)};
 
 	// temperature rate of change compensation stuff
 	param_t dt_comp_coeff_handle;
