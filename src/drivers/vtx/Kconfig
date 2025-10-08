@@ -1,0 +1,5 @@
+menuconfig DRIVERS_VTX
+	bool "vtx"
+	default n
+	---help---
+		Enable support for VTX
