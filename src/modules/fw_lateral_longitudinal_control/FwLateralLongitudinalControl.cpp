@@ -829,7 +829,7 @@ void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const 
 	}
 
 	if (PX4_ISFINITE(configuration_in.speed_weight)) {
-		_long_configuration.speed_weight = math::max(math::max(2.0f, configuration_in.speed_weight), 0.0f);
+		_long_configuration.speed_weight = math::constrain(configuration_in.speed_weight, 0.f, 2.f);
 	} else {
 		_long_configuration.speed_weight = _param_t_spdweight.get();
 	}
