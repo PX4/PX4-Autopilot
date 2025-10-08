@@ -1,23 +1,6 @@
-name: Docs - Deploy PX4 User Guide
+name: Docs - Deploy PX4 User Guide to Github pages (Manual)
 
 on:
-  push:
-    branches:
-      - 'main'
-      - 'release/**'
-    paths:
-      - 'docs/en/**'
-      - 'docs/uk/**'
-      - 'docs/zh/**'
-  pull_request:
-    branches:
-      - '**'
-    paths:
-      - 'docs/en/**'
-      - 'docs/uk/**'
-      - 'docs/zh/**'
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
