@@ -2,7 +2,7 @@
 #
 # ?
 
-uint64 timestamp         # [us] Time since system start
+uint64 timestamp         # [us] Time since system start at publication
 uint64 timestamp_sample  # [us] Timestamp of the raw data
 
 uint32 device_id                  # [-] Unique device ID for the sensor that does not change between power cycles
