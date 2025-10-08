@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# PX4 FMUv6X specific board sensors init
+# Auterion FMUv6X specific board sensors init
 #------------------------------------------------------------------------------
 set HAVE_PM2 yes
 set INA_CONFIGURED no
@@ -55,15 +55,11 @@ then
 	set INA_CONFIGURED yes
 fi
 
-if [ $INA_CONFIGURED = no ]
-then
-	# INA226, INA228, INA238 auto-start
-	i2c_launcher start -b 1
-	if [ $HAVE_PM2 = yes ]
-	then
-		i2c_launcher start -b 2
-	fi
-fi
+#Start Auterion Power Module selector for Skynode boards
+pm_selector_auterion start
+
+# Auterion's INA238 uses a shunt value of 0.0003 instead of 0.0005.
+param set-default INA238_SHUNT 0.0003
 
 # Keep nesting shallow
 if ver hwtypecmp V6X006 V6X008
