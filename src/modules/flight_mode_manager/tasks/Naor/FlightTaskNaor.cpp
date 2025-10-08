@@ -39,8 +39,8 @@
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include <geo/geo.h>
-#include <lib/motion_planning/PositionSmoothing.hpp>
 #include <px4_platform_common/log.h>
+
 
 
 #define MAZ_Z_VELOCITY 1.2f
@@ -110,8 +110,7 @@ bool FlightTaskNaor::activate(const trajectory_setpoint_s &last_setpoint)
 
 		_position_to_hold(0) = 0.0f;
 		_position_to_hold(1) = 0.0f;
-		_position_to_hold(2) = -1.5f;
-		PX4_INFO("altitude is %f", double(_position(2)));
+		_position_to_hold(2) = -2.0f;
 		_first_time = false;
 	}
 	return ret;
@@ -140,19 +139,19 @@ void FlightTaskNaor::_updateSetpoints_acc(Vector2f acceleration_setpoint)
 
 void FlightTaskNaor::first_pid_init(pid_consts_s pid_data){
 	// Initialize default PID constants in the struct
-	_pid_consts.x_ned[0] = 0.8f;	// P term
-	_pid_consts.x_ned[1] = 0.2f;  // I term
-	_pid_consts.x_ned[2] = 0.05f;  // D term
-	_pid_consts.y_ned[0] = 0.8f;	// P term
-	_pid_consts.y_ned[1] = 0.2f;  // I term
-	_pid_consts.y_ned[2] = 0.05f;  // D term
+	_pid_consts.x_ned[0] = 0.7f;	// P term
+	_pid_consts.x_ned[1] = 0.18f;  // I term
+	_pid_consts.x_ned[2] = 0.06f;  // D term
+	_pid_consts.y_ned[0] = 0.7f;	// P term
+	_pid_consts.y_ned[1] = 0.18f;  // I term
+	_pid_consts.y_ned[2] = 0.06f;  // D term
 	_pid_consts.altitude[0] = 1.0f;	// P term
 	_pid_consts.altitude[1] = 0.1f;	// I term
 	_pid_consts.altitude[2] = 0.02f;	// D term
-	_pid_consts.x_ned_integral_max = 1.0f;	// Integral limit
-	_pid_consts.y_ned_integral_max = 1.0f;	// Integral limit
-	_pid_consts.x_ned_max_output = 0.5f;  // Max velocity output
-	_pid_consts.y_ned_max_output = 0.5f;  // Max velocity output
+	_pid_consts.x_ned_integral_max = 0.1f;	// Integral limit
+	_pid_consts.y_ned_integral_max = 0.1f;	// Integral limit
+	_pid_consts.x_ned_max_output = 0.35f;  // Max velocity output
+	_pid_consts.y_ned_max_output = 0.35f;  // Max velocity output
 	_pid_consts.altitude_integral_max = 1.0f;	// Integral limit
 	_pid_consts.altitude_output = 0.5f;	// Max velocity output
 
@@ -177,6 +176,7 @@ void FlightTaskNaor::first_pid_init(pid_consts_s pid_data){
 	PX4_INFO("Altitude PID: P=%.1f, I=%.1f, D=%.1f, Max=%.1f",
 		 (double)_pid_consts.altitude[0], (double)_pid_consts.altitude[1],
 		 (double)_pid_consts.altitude[2], (double)_pid_consts.altitude_output);
+	_updateTrajectoryBoundaries();
 
 }
 
@@ -214,6 +214,7 @@ void FlightTaskNaor::update_pid_constants(pid_consts_s pid_data){
 	PX4_INFO("Altitude PID: P=%.1f, I=%.1f, D=%.1f, Max=%.1f",
 		 (double)_pid_consts.altitude[0], (double)_pid_consts.altitude[1],
 		 (double)_pid_consts.altitude[2], (double)_pid_consts.altitude_output);
+	_updateTrajectoryBoundaries();
 
 
 }
@@ -221,19 +222,23 @@ void FlightTaskNaor::update_pid_constants(pid_consts_s pid_data){
 void FlightTaskNaor::_updateTrajectoryBoundaries()
 {
 	// update params of the position smoothing
-	_position_smoothing.setMaxAllowedHorizontalError(_param_mpc_xy_err_max.get());
-	_position_smoothing.setHorizontalTrajectoryGain(_param_mpc_xy_traj_p.get());
-	_position_smoothing.setMaxVelocityXY(_param_mpc_xy_vel_max.get());
+	_velocity_smoothing_x.setMaxVel(_pid_consts.x_ned_max_output);
+	_velocity_smoothing_y.setMaxVel(_pid_consts.y_ned_max_output);
+	_velocity_smoothing_x.setMaxAccel(0.1);
+	_velocity_smoothing_y.setMaxAccel(0.1);
+	_velocity_smoothing_x.setMaxJerk(0.2);
+	_velocity_smoothing_y.setMaxJerk(0.2);
 
 }
 
+float FlightTaskNaor::zero_velocity_setpoint(float vel){
 
-void FlightTaskNaor::Fast_error_close(float cartzian_error){
-
-	if (total_Error_calc() > cartzian_error){
-		_position_setpoint = _position_to_hold;
+	if (fabsf(vel) < 0.07f){
+		return 0.0f;
 	}
+	return vel;
 }
+
 
 float FlightTaskNaor::total_Error_calc(){
 	matrix::Vector3f Error;
@@ -249,6 +254,10 @@ void FlightTaskNaor::_execute_trajectory(){
 	float scaled_yaw_input = _sticks.getYawExpo() * 0.2f; // Reduce to 50% of original input
 	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, scaled_yaw_input, _yaw, _deltatime, _unaided_yaw);
 	_velocity_setpoint = pid_operation(_position_to_hold);
+	PX4_INFO("velocity data x: %.3f y: %.3f z: %.3f", (double)_velocity_setpoint(0), (double)_velocity_setpoint(1), (double)_velocity_setpoint(2));
+	_position_setpoint(0) = NAN;
+	_position_setpoint(1) = NAN;
+
 	// _throttleToVelocity();
 }
 
@@ -257,9 +266,12 @@ matrix::Vector3f FlightTaskNaor::pid_operation(matrix::Vector3f target_position)
 	_pid_x.setSetpoint(target_position(0));
 	_pid_y.setSetpoint(target_position(1));
 	_pid_altitude.setSetpoint(target_position(2));
-	velocity_command(0) = _pid_x.update(_position(0), _deltatime);
-	velocity_command(1) = _pid_y.update(_position(1), _deltatime);
-	// Removed excessive velocity logging - was flooding logs on every control loop
+
+	float vel_sp_x = zero_velocity_setpoint(_pid_x.update(_position(0), _deltatime));
+	float vel_sp_y = zero_velocity_setpoint(_pid_y.update(_position(1), _deltatime));
+
+	velocity_command(0) = vel_sp_x;
+	velocity_command(1) = vel_sp_y;
 	velocity_command(2) = NAN;
 	return velocity_command;
 }
@@ -313,14 +325,6 @@ bool FlightTaskNaor::update()
 	bool ret = FlightTask::update();
 	update_pid_constants(_pid_consts);
 
-	// Check if MPC is available by checking if MPC parameters are valid
-	bool mpc_available = PX4_ISFINITE(_param_mpc_xy_err_max.get()) &&
-	                     PX4_ISFINITE(_param_mpc_xy_traj_p.get()) &&
-	                     PX4_ISFINITE(_param_mpc_xy_vel_max.get());
-
-	if (mpc_available) {
-		_updateTrajectoryBoundaries();
-	}
 
 	_execute_trajectory();
 	_position_setpoint(2) = _position_to_hold(2);

@@ -608,6 +608,10 @@
                             "name": "altitude_cruise",
                             "description": "Altitude Cruise"
                         },
+                        "25": {
+                            "name": "naor",
+                            "description": "Naor"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"

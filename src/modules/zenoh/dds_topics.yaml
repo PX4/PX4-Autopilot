@@ -56,9 +56,6 @@ publications:
   - topic: /fmu/out/vehicle_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
 
-  - topic: /fmu/out/vehicle_gps_position
-    type: px4_msgs::msg::SensorGps
-
   - topic: /fmu/out/vehicle_local_position
     type: px4_msgs::msg::VehicleLocalPosition
 
@@ -68,8 +65,24 @@ publications:
   - topic: /fmu/out/vehicle_status
     type: px4_msgs::msg::VehicleStatus
 
-  - topic: /fmu/out/airspeed_validated
-    type: px4_msgs::msg::AirspeedValidated
+  - topic: /fmu/out/input_rc
+    type: px4_msgs::msg::InputRc
+
+  - topic: /fmu/out/sensor_gyro
+    type: px4_msgs::msg::SensorGyro
+
+  - topic: /fmu/out/sensor_gyro_fifo
+    type: px4_msgs::msg::SensorGyro
+
+  - topic: /fmu/out/sensor_accel
+    type: px4_msgs::msg::SensorAccel
+
+  - topic: /fmu/out/sensor_accel_fifo
+    type: px4_msgs::msg::SensorAccelFifo
+
+  - topic: /fmu/out/bias_estimate
+    type: px4_msgs::msg::EstimatorSensorBias
+
 
 # Create uORB::Publication
 subscriptions:

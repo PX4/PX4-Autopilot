@@ -49,7 +49,7 @@
 #include <uORB/topics/super_hold_debug.h>
 #include <uORB/topics/pid_consts.h>
 #include <matrix/matrix/math.hpp>
-#include <lib/motion_planning/PositionSmoothing.hpp>
+#include <lib/motion_planning/VelocitySmoothing.hpp>
 #include <uORB/Publication.hpp>
 #include <lib/pid/PID.hpp>
 
@@ -78,15 +78,7 @@ protected:
 
 	virtual void _updateSetpoints_acc(matrix::Vector2f acceleration_setpoint); /**< updates all setpoints */
 	virtual void _throttleToVelocity(); /**< scales sticks to velocity in z */
-	void first_pid_init(pid_consts_s pid_data);
-	void Fast_error_close(float cartzian_error);
-	void update_pid_constants(pid_consts_s pid_data);
-	bool has_pid_constants_updated(pid_consts_s pid_data);
-	matrix::Vector3f pid_operation(matrix::Vector3f target_position);
-	void _execute_trajectory();
-	void _publish_debug_topics();
-	float total_Error_calc();
-	bool _checkTakeoff() override; /**< override to remove altitude constraints */
+
 
 	Sticks _sticks{this};
 	StickTiltXY _stick_tilt_xy{this};
@@ -100,6 +92,15 @@ private:
 
 	void _updateTrajectoryBoundaries();
 	bool _updateYawCorrection();
+	void first_pid_init(pid_consts_s pid_data);
+	void update_pid_constants(pid_consts_s pid_data);
+	bool has_pid_constants_updated(pid_consts_s pid_data);
+	matrix::Vector3f pid_operation(matrix::Vector3f target_position);
+	void _execute_trajectory();
+	void _publish_debug_topics();
+	float total_Error_calc();
+	bool _checkTakeoff() override; /**< override to remove altitude constraints */
+	float zero_velocity_setpoint(float vel);
 	SuperHoldMode_state _super_hold_mode_state = SuperHoldMode_state::init;
 	vehicle_odometry_s _visual_odometry;
 	uORB::Subscription _visual_odometry_sub{ORB_ID(vehicle_visual_odometry)};
@@ -112,7 +113,8 @@ private:
 	super_hold_debug_s _super_hold_debug;
 	uORB::Publication<super_hold_debug_s> _super_hold_debug_pub{ORB_ID(super_hold_debug)};
 	uORB::Subscription _pid_consts_sub{ORB_ID(pid_consts)};
-	PositionSmoothing _position_smoothing;
+	VelocitySmoothing _velocity_smoothing_x;
+	VelocitySmoothing _velocity_smoothing_y;
 
 	PID _pid_x;
 	PID _pid_y;
