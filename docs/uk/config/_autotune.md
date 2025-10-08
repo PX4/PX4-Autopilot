@@ -95,9 +95,17 @@ The RC sticks cannot be used during autotuning (moving the sticks will stop the 
 
    4. Read the warning popup and click on **OK** to start tuning.
 
-4. Дрон спочатку почне виконувати швидкі рухи кочення, а потім рухи тангажу та рухи курсу.
+<div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
+
+4. The drone will first start to perform quick roll motions followed by pitch and yaw motions.
    The progress is shown in the progress bar, next to the _Autotune_ button.
 
+</div><div v-else-if="$frontmatter.frame === 'Plane'">
+
+4. The drone will first start to perform quick roll motions followed by pitch and yaw motions. When [`FW_AT_SYSID_TYPE`](../advanced_config/parameter_reference.md#FW_AT_SYSID_TYPE) is set to linear/logarithmic sine sweep (recommended), the max rates are approximately 45 deg/s for roll and 30 deg/s for pitch and yaw.
+   The progress is shown in the progress bar, next to the _Autotune_ button.
+
+</div>
 <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
 
 5. Manually land and disarm to apply the new tuning parameters.
@@ -107,6 +115,13 @@ The RC sticks cannot be used during autotuning (moving the sticks will stop the 
 
 5. The tuning will be immediately/automatically be applied and tested in flight (by default).
    PX4 will then run a 4 second test and revert the new tuning if a problem is detected.
+
+The figure below shows how steps 4 and 5 might look in flight on the pitch axis.
+The pitch rate gradually increases up until it reaches the target.
+This amplitude is then held while the signal frequency is increased.
+You can then see how the tuned system is able to follow the setpoint in the test signal.
+
+<img src="../../assets/config/fw/autotune.png" title="Fixed-Wing Autotune"/>
 
 </div>
 
@@ -174,9 +189,20 @@ Fast oscillations (more than 1 oscillation per second): this is because the gain
 
 ### Послідовність автоматичної настройки не вдається
 
+<div v-if="$frontmatter.frame === 'Multicopter'">
+
 Якщо безпілотник не рухався достатньо під час автоматичного налаштування, алгоритм ідентифікації системи може мати проблеми з визначенням правильних коефіцієнтів.
 
-Increase the <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">[MC_AT_SYSID_AMP](../advanced_config/parameter_reference.md#MC_AT_SYSID_AMP)</div><div style="display: inline;" v-else-if="$frontmatter.frame === 'Plane'">[FW_AT_SYSID_AMP](../advanced_config/parameter_reference.md#FW_AT_SYSID_AMP)</div> parameter by steps of 1 and trigger the auto-tune again.
+Increase the [MC_AT_SYSID_AMP](../advanced_config/parameter_reference.md#MC_AT_SYSID_AMP) parameter by steps of 1 and trigger the auto-tune again.
+
+</div>
+<div v-else-if="$frontmatter.frame === 'Plane'">
+
+By default, the autotune maneuvers ensure that a sufficient angular rate is reached for system identification. The target rates are approximately 45 deg/s for roll and 30 deg/s for pitch and yaw.
+
+If the signal-to-noise ratio of the vehicle is low, the system identification algorithm might have issues finding the correct coefficients. Ensure that there is no excessive noise and/or platform vibration.
+
+</div>
 
 ### The drone oscillates after auto-tuning
 

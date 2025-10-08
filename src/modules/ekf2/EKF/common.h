@@ -607,8 +607,10 @@ uint64_t mag_heading_consistent  :
 		uint64_t baro_fault              : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
 		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
 uint64_t gnss_fault              :
-		1; ///< 45 - true if GNSS measurements have been declared faulty and are no longer used
+		1; ///< 45 - true if GNSS measurements (lat, lon, vel) have been declared faulty and are no longer used
 		uint64_t yaw_manual              : 1; ///< 46 - true if yaw has been reset manually
+uint64_t gnss_hgt_fault              :
+		1; ///< 47 - true if GNSS measurements (alt) have been declared faulty and are no longer used
 	} flags;
 	uint64_t value;
 };
