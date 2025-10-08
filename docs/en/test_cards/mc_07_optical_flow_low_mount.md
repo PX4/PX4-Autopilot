@@ -1,4 +1,4 @@
-# Test MC_07 - Optical Flow Failure
+# Test MC_07 - Optical Flow Low Sensor
 
 ## Objective
 

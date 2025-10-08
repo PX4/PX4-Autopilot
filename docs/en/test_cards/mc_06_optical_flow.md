@@ -13,9 +13,6 @@ Ensure there are no other sources of positioning besides optical flow:
 - [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL): `1`
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): `0`
 - [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL): `0`
-- [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG): `0`
-- [EKF2_RNG_CTRL ](../advanced_config/parameter_reference.md#EKF2_RNG_CTRL): `1` (Enabled - conditional mode)
-- [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF): `0` (Barometric pressure)
 
 Ensure that the drone can go into Altitude / Position mode while still on the ground
 
@@ -58,7 +55,7 @@ Ensure that the drone can go into Altitude / Position mode while still on the gr
 ## Expected Results
 
 - Take-off should be smooth as throttle is raised
-- Drone should hold altitude in Altitude mode without wandering
+- Drone should hold altitude in Altitude mode without wandering (over surface with many features)
 - Drone should hold position within 1 meter in Position mode without pilot moving sticks
 - No oscillations should present in any of the above flight modes
 - Drone should not raise in height when flying over boxes
