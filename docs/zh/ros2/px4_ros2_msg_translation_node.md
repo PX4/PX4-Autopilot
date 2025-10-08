@@ -1,6 +1,6 @@
 # PX4 ROS 2 消息翻译节点
 
-<0/> <1/>
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
 消息翻译节点允许针对不同版本的 PX4 消息编译的 ROS 2 应用程序与更新版本的 PX4 交互。 反之亦然，而不必更改应用程序或PX4一侧。
 
