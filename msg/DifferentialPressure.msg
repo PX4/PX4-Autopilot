@@ -3,7 +3,7 @@
 # ?
 
 uint64 timestamp         # [us] Time since system start at publication
-uint64 timestamp_sample  # [us] Timestamp of the raw data
+uint64 timestamp_sample  # [us] Timestamp of raw data capture
 
 uint32 device_id                  # [-] Unique device ID for the sensor that does not change between power cycles
 float32 differential_pressure_pa  # [Pa] Differential pressure reading in Pascals (may be negative)
