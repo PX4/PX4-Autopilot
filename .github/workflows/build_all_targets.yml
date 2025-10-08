@@ -34,13 +34,21 @@ jobs:
   group_targets:
     name: Scan for Board Targets
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
       branchname: ${{ steps.set-branch.outputs.branchname }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Cache Python pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**./Tools/setup/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Update python packaging to avoid canonicalize_version() error
         run: |
@@ -99,7 +107,7 @@ jobs:
       # ccache-<system os>-<system arch>-<builder group>-
       # ccache-<linux>-<arm64>-<aarch64-0>-
       # ccache-<linux>-<x64>-<nuttx-0>-
-      - name: Restore ccache from key
+      - name: Cache Restore from Key
         id: cc_restore
         uses: actions/cache/restore@v4
         with:
@@ -112,7 +120,7 @@ jobs:
             ccache-${{ runner.os }}-
             ccache-
 
-      - name: Set ccache defaults and show stats
+      - name: Cache Config and Stats
         run: |
             mkdir -p ~/.ccache
             echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
@@ -124,7 +132,7 @@ jobs:
             ccache -s
             ccache -z
 
-      - name: Building [${{ matrix.targets }}]
+      - name: Building Artifacts for [${{ matrix.targets }}]
         run: |
             ./Tools/ci/build_all_runner.sh ${{matrix.targets}} ${{matrix.arch}}
 
@@ -138,7 +146,7 @@ jobs:
           name: px4_${{matrix.group}}_build_artifacts
           path: artifacts/
 
-      - name: Post Build Cache Stats
+      - name: Cache Post Build Stats
         if: always()
         run: |
             ccache -s
@@ -166,7 +174,7 @@ jobs:
           path: artifacts/
           merge-multiple: true
 
-      - name: Upload Location
+      - name: Choose Upload Location
         id: upload-location
         run: |
           # Determine upload location based on branch or tag with the following considerations:
@@ -225,7 +233,7 @@ jobs:
       # if build is a release triggered by a versioned tag then create a github release
       # and upload the build artifacts. A draft release is created so that the release
       # can be reviewed before publishing
-      - name: Upload Binaries to Release
+      - name: Upload Artifacts to GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
