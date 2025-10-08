@@ -20,6 +20,8 @@ See [Simulation](../simulation/index.md) for general information about simulator
 
 Gazebo Harmonic is installed by default on Ubuntu 22.04 as part of the normal [development environment setup](../dev_setup/dev_env_linux_ubuntu.md#simulation-and-nuttx-pixhawk-targets).
 
+Gazebo versions Harmonic, Ionic, and Jetty are supported on Ubuntu 24.04. The latest installed Gazebo release is used by default.
+
 :::info
 The PX4 installation scripts are based on the instructions: [Binary Installation on Ubuntu](https://gazebosim.org/docs/harmonic/install_ubuntu/) (gazebosim.org).
 :::
@@ -48,22 +50,23 @@ make px4_sitl gz_x500
 The supported vehicles and `make` commands are listed below.
 Note that all gazebo make targets have the prefix `gz_`.
 
-| Транспортний засіб                                                                                                                                                 | Команда                             | `PX4_SYS_AUTOSTART` |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- | ------------------- |
-| [Quadrotor (x500)](../sim_gazebo_gz/vehicles.md#x500-quadrotor)                                                                                 | `make px4_sitl gz_x500`             | 4001                |
-| [X500 Quadrotor with Depth Camera (Front-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-depth-camera-front-facing)                   | `make px4_sitl gz_x500_depth`       | 4002                |
-| [Quadrotor(x500) with Vision Odometry](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-visual-odometry)                                        | `make px4_sitl gz_x500_vision`      | 4005                |
-| [Quadrotor(x500) with 1D LIDAR (Down-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-1d-lidar-down-facing)         | `make px4_sitl gz_x500_lidar_down`  | 4016                |
-| [Quadrotor(x500) with 2D LIDAR](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-2d-lidar)                                                      | `make px4_sitl gz_x500_lidar_2d`    | 4013                |
-| [Quadrotor(x500) with 1D LIDAR (Front-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-1d-lidar-front-facing)       | `make px4_sitl gz_x500_lidar_front` | 4017                |
-| [Quadrotor(x500) with gimbal (Front-facing) in Gazebo](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-gimbal-front-facing) | `make px4_sitl gz_x500_gimbal`      | 4019                |
-| [VTOL](../sim_gazebo_gz/vehicles.md#standard-vtol)                                                                                                                 | `make px4_sitl gz_standard_vtol`    | 4004                |
-| [Plane](../sim_gazebo_gz/vehicles.md#standard-plane)                                                                                                               | `make px4_sitl gz_rc_cessna`        | 4003                |
-| [Advanced Plane](../sim_gazebo_gz/vehicles.md#advanced-plane)                                                                                                      | `make px4_sitl gz_advanced_plane`   | 4008                |
-| [Differential Rover](../sim_gazebo_gz/vehicles.md#differential-rover)                                                                                              | `make px4_sitl gz_r1_rover`         | 4009                |
-| [Ackermann Rover](../sim_gazebo_gz/vehicles.md#ackermann-rover)                                                                                                    | `make px4_sitl gz_rover_ackermann`  | 4012                |
-| [Quad Tailsitter VTOL](../sim_gazebo_gz/vehicles.md#quad-tailsitter-vtol)                                                                                          | `make px4_sitl gz_quadtailsitter`   | 4018                |
-| [Tiltrotor VTOL](../sim_gazebo_gz/vehicles.md#tiltrotor-vtol)                                                                                                      | `make px4_sitl gz_tiltrotor`        | 4020                |
+| Транспортний засіб                                                                                                                                                 | Команда                               | `PX4_SYS_AUTOSTART` |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | ------------------- |
+| [Quadrotor (x500)](../sim_gazebo_gz/vehicles.md#x500-quadrotor)                                                                                 | `make px4_sitl gz_x500`               | 4001                |
+| [X500 Quadrotor with Depth Camera (Front-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-depth-camera-front-facing)                   | `make px4_sitl gz_x500_depth`         | 4002                |
+| [Quadrotor(x500) with Vision Odometry](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-visual-odometry)                                        | `make px4_sitl gz_x500_vision`        | 4005                |
+| [Quadrotor(x500) with 1D LIDAR (Down-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-1d-lidar-down-facing)         | `make px4_sitl gz_x500_lidar_down`    | 4016                |
+| [Quadrotor(x500) with 2D LIDAR](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-2d-lidar)                                                      | `make px4_sitl gz_x500_lidar_2d`      | 4013                |
+| [Quadrotor(x500) with 1D LIDAR (Front-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-1d-lidar-front-facing)       | `make px4_sitl gz_x500_lidar_front`   | 4017                |
+| [Quadrotor(x500) with gimbal (Front-facing) in Gazebo](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-gimbal-front-facing) | `make px4_sitl gz_x500_gimbal`        | 4019                |
+| [VTOL](../sim_gazebo_gz/vehicles.md#standard-vtol)                                                                                                                 | `make px4_sitl gz_standard_vtol`      | 4004                |
+| [Plane](../sim_gazebo_gz/vehicles.md#standard-plane)                                                                                                               | `make px4_sitl gz_rc_cessna`          | 4003                |
+| [Advanced Plane](../sim_gazebo_gz/vehicles.md#advanced-plane)                                                                                                      | `make px4_sitl gz_advanced_plane`     | 4008                |
+| [Quad Tailsitter VTOL](../sim_gazebo_gz/vehicles.md#quad-tailsitter-vtol)                                                                                          | `make px4_sitl gz_quadtailsitter`     | 4018                |
+| [Tiltrotor VTOL](../sim_gazebo_gz/vehicles.md#tiltrotor-vtol)                                                                                                      | `make px4_sitl gz_tiltrotor`          | 4020                |
+| [Differential Rover](../sim_gazebo_gz/vehicles.md#differential-rover)                                                                                              | `make px4_sitl gz_rover_differential` | 50000               |
+| [Ackermann Rover](../sim_gazebo_gz/vehicles.md#ackermann-rover)                                                                                                    | `make px4_sitl gz_rover_ackermann`    | 51000               |
+| [Mecanum Rover](../sim_gazebo_gz/vehicles.md#mecanum-rover)                                                                                                        | `make px4_sitl gz_rover_mecanum`      | 52000               |
 
 All [vehicle models](../sim_gazebo_gz/vehicles.md) (and [worlds](#specify-world)) are included as a submodule from the [Gazebo Models Repository](../sim_gazebo_gz/gazebo_models.md) repository.
 

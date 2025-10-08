@@ -57,15 +57,17 @@ Each wheel is driven by its own motor, and by controlling the speed and directio
 
 ## Дивіться також
 
-- [Drive Modes](../flight_modes_rover/index.md).
+- [Drive Modes](../flight_modes_rover/index.md)
 - [Configuration/Tuning](../config_rover/index.md)
+- [Apps & API](../flight_modes_rover/api.md)
 - [Complete Vehicles](../complete_vehicles_rover/index.md)
 
 ## Симуляція
 
-[Gazebo](../sim_gazebo_gz/index.md) provides simulations for ackermann and differential rovers:
+PX4 provides synthetic simulation models for [Gazebo](../sim_gazebo_gz/index.md) of all three rover types to test the software and validate changes and new features:
 
 - [Ackermann rover](../sim_gazebo_gz/vehicles.md#ackermann-rover)
 - [Differential rover](../sim_gazebo_gz/vehicles.md#differential-rover)
+- [Mecanum rover](../sim_gazebo_gz/vehicles.md#mecanum-rover)
 
 ![Rover gazebo simulation](../../assets/airframes/rover/rover_simulation.png)
