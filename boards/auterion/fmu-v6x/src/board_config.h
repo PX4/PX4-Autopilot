@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * PX4FMU-v6x internal definitions
+ * AuterionFMU-v6x internal definitions
  */
 
 #pragma once
@@ -215,14 +215,8 @@
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 #define HW_INFO_INIT_PREFIX    "V6X"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 7
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 1
 //                 Base/FMUM
-#define V6X_0     HW_FMUM_ID(0x0)   // FMUV6X, Auterion,HB  Sensor Set Rev 0
-#define V6X_1     HW_FMUM_ID(0x1)   // FMUV6X, CUAV Sensor Set Rev 1
-#define V6X_3     HW_FMUM_ID(0x3)   // FMUV6X, HB              Sensor Set Rev 3
-#define V6X_4     HW_FMUM_ID(0x4)   // FMUV6X, HB              Sensor Set Rev 4
-#define V6X_6     HW_FMUM_ID(0x6)   // FMUV6X, HB              Sensor Set Rev 6
-#define V6X_8     HW_FMUM_ID(0x8)   // FMUV6X, HB              Sensor Set Rev 8
 #define V6X_16    HW_FMUM_ID(0x10)  // FMUV6X, Auterion        Sensor Set Rev 16 from EEPROM
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
@@ -269,6 +263,11 @@
 #define GPIO_VDD_3V3_SENSORS4_EN        /* PG8  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN8)
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PH2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN2)
 #define GPIO_VDD_3V3_SD_CARD_EN         /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
+
+/* MCP23009 GPIO expander */
+#define BOARD_GPIO_VDD_5V_COMP_VALID           "/dev/gpio4"
+#define BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID      "/dev/gpio5"
+
 
 /* Spare GPIO */
 
