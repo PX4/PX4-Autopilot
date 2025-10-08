@@ -50,19 +50,19 @@ struct AllocatorSynchronizer {
 	~AllocatorSynchronizer() { ::leave_critical_section(state); }
 };
 
-struct Allocator : public uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer> {
-	static constexpr unsigned CapacitySoftLimit = 250;
-	static constexpr unsigned CapacityHardLimit = 500;
+struct Allocator : public
+	uavcan::PoolAllocator<250 * uavcan::MemPoolBlockSize, uavcan::MemPoolBlockSize, AllocatorSynchronizer> {
+	static constexpr unsigned NumBlocks = 250;
 
 	Allocator() :
-		uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer>(CapacitySoftLimit, CapacityHardLimit)
+		uavcan::PoolAllocator<250 * uavcan::MemPoolBlockSize, uavcan::MemPoolBlockSize, AllocatorSynchronizer>()
 	{ }
 
 	~Allocator()
 	{
-		if (getNumAllocatedBlocks() > 0) {
+		if (getNumUsedBlocks() > 0) {
 			PX4_ERR("UAVCAN LEAKS MEMORY: %u BLOCKS (%u BYTES) LOST",
-				getNumAllocatedBlocks(), getNumAllocatedBlocks() * uavcan::MemPoolBlockSize);
+				getNumUsedBlocks(), getNumUsedBlocks() * uavcan::MemPoolBlockSize);
 		}
 	}
 };

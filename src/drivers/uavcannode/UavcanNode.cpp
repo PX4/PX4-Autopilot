@@ -692,11 +692,7 @@ void UavcanNode::PrintInfo()
 
 	// Memory status
 	printf("Pool allocator status:\n");
-	printf("\tCapacity hard/soft: %u/%u blocks\n",
-	       _pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
-	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
-	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
-
+	printf("\tCapacity: %u blocks\n", _pool_allocator.getBlockCapacity());
 	printf("\n");
 
 	// UAVCAN node perfcounters
@@ -748,13 +744,6 @@ void UavcanNode::PrintInfo()
 	perf_print_counter(_interval_perf);
 
 	pthread_mutex_unlock(&_node_mutex);
-}
-
-void UavcanNode::shrink()
-{
-	(void)pthread_mutex_lock(&_node_mutex);
-	_pool_allocator.shrink();
-	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
 } // namespace uavcannode
