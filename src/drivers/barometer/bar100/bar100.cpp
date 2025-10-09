@@ -38,6 +38,7 @@
 
 #include "bar100.hpp"
 #include "bar100_registers.h"
+#include <inttypes.h>
 
 #define BAR100_CONVERSION_INTERVAL (20_ms) // Keep this for PX4's time literal
 
@@ -48,6 +49,7 @@ Bar100::Bar100(const I2CSPIDriverConfig &config) :
     _measure_perf(perf_alloc(PC_ELAPSED, "bar100_measure")),
     _comms_errors(perf_alloc(PC_COUNT, "bar100_com_err"))
 {
+    PX4_ERR("Bar100 constructor called");
 }
 
 Bar100::~Bar100()
@@ -61,13 +63,13 @@ int Bar100::init()
 {
     int ret = I2C::init();
     if (ret != PX4_OK) {
-	DEVICE_DEBUG("I2C::init failed (%i)", ret);
+        PX4_ERR("I2C init failed (%d)", ret);
         return ret;
     }
 
-    // Read memory map to initialize sensor info
-    if (_read_memory_map() != PX4_OK) {
-        return -EIO;
+    if (_reset() != PX4_OK) {
+        PX4_ERR("BAR100 memory map read failed");
+        return PX4_ERROR;
     }
 
     _initialized = true;
@@ -77,10 +79,26 @@ int Bar100::init()
 
 int Bar100::probe()
 {
-    set_device_address(BAR100_I2C_ADDR);
-    // Try to read memory map as probe
-    return (_read_memory_map() == PX4_OK) ? PX4_OK : -EIO;
+    PX4_INFO("Probing BAR100 at I2C addr 0x%02X", BAR100_I2C_ADDR);
+
+    uint8_t cmd = BAR100_REQUEST_CMD ; // usually 0xAC
+    if (transfer(&cmd, 1, nullptr, 0) != PX4_OK) {
+        PX4_ERR("BAR100 did not ACK request command");
+        return -EIO;
+    }
+
+    px4_usleep(10000); // wait 10ms
+    uint8_t buf[5] {};
+    if (transfer(nullptr, 0, buf, 5) != PX4_OK) {
+        PX4_ERR("BAR100 read failed");
+        return -EIO;
+    }
+
+    PX4_INFO("BAR100 probe successful: %02x %02x %02x %02x %02x",
+             buf[0], buf[1], buf[2], buf[3], buf[4]);
+    return PX4_OK;
 }
+
 
 int Bar100::read(unsigned offset, void *data, unsigned count)
 {
@@ -92,31 +110,23 @@ void Bar100::RunImpl()
 {
     perf_begin(_sample_perf);
 
-    if (!_initialized) {
-        perf_end(_sample_perf);
-        return;
-    }
-
     if (_read_sensor() == PX4_OK) {
-        sensor_baro_s sensor_baro{};
-        sensor_baro.timestamp_sample = hrt_absolute_time();
-        sensor_baro.device_id = get_device_id();
-        sensor_baro.pressure = _pressure();      // Pa
-        sensor_baro.temperature = _temperature(); // deg C
-        sensor_baro.error_count = perf_event_count(_comms_errors);
-        sensor_baro.timestamp = hrt_absolute_time();
-        _sensor_baro_pub.publish(sensor_baro);
+        sensor_baro_s report{};
+        report.timestamp = hrt_absolute_time();
+        report.device_id = get_device_id();
+        report.pressure = _last_pressure;
+        report.temperature = _last_temperature;
+
+        _sensor_baro_pub.publish(report);
     }
 
     perf_end(_sample_perf);
-
-    // Schedule next measurement
-    ScheduleDelayed(BAR100_CONVERSION_INTERVAL); // 20ms interval, adjust as needed
+    ScheduleDelayed(BAR100_CONVERSION_INTERVAL_US);
 }
 
 void Bar100::_start()
 {
-    ScheduleDelayed(BAR100_CONVERSION_INTERVAL);
+    ScheduleDelayed(BAR100_CONVERSION_INTERVAL_US);
 }
 
 int Bar100::_reset()
@@ -125,90 +135,148 @@ int Bar100::_reset()
     return _read_memory_map();
 }
 
-int Bar100::_read_memory_map()
+bool Bar100::_read_registers(uint8_t start_reg, uint8_t *data, unsigned len)
 {
-    // Use register constants from header
-    uint8_t regs[BAR100_NUM_REGISTERS] = {
-        BAR100_REG_CUST_ID0,
-        BAR100_REG_CUST_ID1,
-        BAR100_REG_SCALING0,
-        BAR100_REG_SCALING1,
-        BAR100_REG_SCALING2,
-        BAR100_REG_SCALING3,
-        BAR100_REG_SCALING4
-    };
-    uint16_t values[BAR100_NUM_REGISTERS] = {};
-
-    for (int i = 0; i < BAR100_NUM_REGISTERS; ++i) {
-        uint8_t cmd = regs[i];
-        uint8_t buf[3] = {};
-        if (transfer(&cmd, 1, buf, 3) != PX4_OK) {
-            return -EIO;
-        }
-        values[i] = (buf[1] << 8) | buf[2];
+    // Send the register address, then read `len` bytes from it
+    if (transfer(&start_reg, 1, data, len) != PX4_OK) {
+        PX4_ERR("BAR100: failed to read registers starting at 0x%02X", start_reg);
+        perf_count(_comms_errors);
+        return false;
     }
 
-    // Assign values as in KellerLD.cpp
-    uint16_t cust_id0 = values[0];
-    uint16_t cust_id1 = values[1];
-    _code = (uint32_t(cust_id1) << 16) | cust_id0;
+    return true;
+}
+
+// Helper: read a single MTP 16-bit value (write mtp address, read 3 bytes: status, hi, lo)
+bool Bar100::_read_mtp16(uint8_t mtp_addr, uint16_t &val)
+{
+    uint8_t cmd = mtp_addr;
+    uint8_t buf[3] = {0};
+
+    // write MTP address, then read 3 bytes (status + msb + lsb)
+    if (transfer(&cmd, 1, buf, sizeof(buf)) != PX4_OK) {
+        PX4_ERR("BAR100: failed mtp read 0x%02X", mtp_addr);
+        perf_count(_comms_errors);
+        return false;
+    }
+
+    // buf[0] = status (ignore), buf[1]=msb, buf[2]=lsb
+    val = (static_cast<uint16_t>(buf[1]) << 8) | static_cast<uint16_t>(buf[2]);
+    return true;
+}
+
+bool Bar100::_read_memory_map()
+{
+    // Read CUST_ID registers (each as 16-bit via mtp)
+    uint16_t cust_id0 = 0;
+    uint16_t cust_id1 = 0;
+
+    if (!_read_mtp16(BAR100_REG_CUST_ID0, cust_id0) ||
+        !_read_mtp16(BAR100_REG_CUST_ID1, cust_id1)) {
+        PX4_ERR("BAR100: failed to read CUST_IDs");
+        return false;
+    }
+
     _equipment = cust_id0 >> 10;
-    _place = cust_id0 & 0b000000111111111;
-    _file = cust_id1;
+    _code = (static_cast<uint32_t>(cust_id1) << 16) | cust_id0;
 
-    uint16_t scaling0 = values[2];
-    _mode = scaling0 & 0b00000011;
-    _year = scaling0 >> 11;
-    _month = (scaling0 & 0b0000011110000000) >> 7;
-    _day = (scaling0 & 0b0000000001111100) >> 2;
+    // Read scaling registers individually (each mtp returns 16-bit)
+    uint16_t scaling0 = 0, scaling1 = 0, scaling2 = 0, scaling3 = 0, scaling4 = 0;
 
-    if (_mode == 0) {
-        _P_mode = 1.01325f;
-    } else if (_mode == 1) {
-        _P_mode = 1.0f;
-    } else {
-        _P_mode = 0.0f;
+    if (!_read_mtp16(BAR100_REG_SCALING0, scaling0) ||
+        !_read_mtp16(BAR100_REG_SCALING1, scaling1) ||
+        !_read_mtp16(BAR100_REG_SCALING2, scaling2) ||
+        !_read_mtp16(BAR100_REG_SCALING3, scaling3) ||
+        !_read_mtp16(BAR100_REG_SCALING4, scaling4)) {
+        PX4_ERR("BAR100: failed to read SCALING registers");
+        return false;
     }
 
-    uint32_t scaling12 = (uint32_t(values[3]) << 16) | values[4];
-    _P_min = *reinterpret_cast<float*>(&scaling12);
+    // Decode mode & date from scaling0 (same bit fields as Arduino)
+    _mode  = scaling0 & 0b00000011;
+    uint16_t year  = (scaling0 >> 11) + 2000; // assume offset from 2000
+    uint8_t month  = (scaling0 & 0b0000011110000000) >> 7;
+    uint8_t day    = (scaling0 & 0b0000000001111100) >> 2;
 
-    uint32_t scaling34 = (uint32_t(values[5]) << 16) | values[6];
-    _P_max = *reinterpret_cast<float*>(&scaling34);
+    // P_mode same as Arduino
+    if (_mode == 0) {
+        _P_mode = 1.01325f; // PA mode (vented)
+    } else if (_mode == 1) {
+        _P_mode = 1.0f; // PR mode (sealed)
+    } else {
+        _P_mode = 0.0f; // absolute or unspecified
+    }
 
-    return PX4_OK;
+    // Combine scaling1+2 and scaling3+4 into 32-bit words (Arduino does this)
+    uint32_t scaling12 = (static_cast<uint32_t>(scaling1) << 16) | scaling2;
+    uint32_t scaling34 = (static_cast<uint32_t>(scaling3) << 16) | scaling4;
+
+    // Reinterpret as IEEE-754 floats — exactly like Arduino code
+    memcpy(&_P_min, &scaling12, sizeof(float));
+    memcpy(&_P_max, &scaling34, sizeof(float));
+
+    PX4_INFO("BAR100 MTP: code=0x%08" PRIx32 " equip=%u mode=%u date=%04u-%02u-%02u",
+             _code, _equipment, _mode, year, month, day);
+    PX4_INFO("BAR100 calib: Pmin=%.6f bar Pmax=%.6f bar Pmode=%.6f",
+             (double)_P_min, (double)_P_max, (double)_P_mode);
+
+    // Basic sanity check
+    if (!PX4_ISFINITE(_P_min) || !PX4_ISFINITE(_P_max) || _P_min >= _P_max) {
+        PX4_ERR("BAR100: bad calibration data (Pmin=%.6f Pmax=%.6f)", (double)_P_min, (double)_P_max);
+        return false;
+    }
+
+    return true;
 }
 
 int Bar100::_read_sensor()
 {
-    // Request measurement
-    uint8_t cmd = BAR100_REQUEST;
+    uint8_t cmd = BAR100_REQUEST_CMD;
+    uint8_t buf[BAR100_MEASUREMENT_BYTES] = {0};
+
+    // send measurement request
     if (transfer(&cmd, 1, nullptr, 0) != PX4_OK) {
         perf_count(_comms_errors);
-        return -EIO;
+        PX4_ERR("BAR100: failed to send measure cmd");
+        return PX4_ERROR;
     }
 
-    px4_usleep(9000); // 9ms conversion time
+    // wait per datasheet (Arduino uses 9 ms)
+    px4_usleep(9000);
 
-    uint8_t buf[5] = {};
-    if (transfer(nullptr, 0, buf, 5) != PX4_OK) {
+    if (transfer(nullptr, 0, buf, sizeof(buf)) != PX4_OK) {
         perf_count(_comms_errors);
-        return -EIO;
+        PX4_ERR("BAR100: failed to read measurement");
+        return PX4_ERROR;
     }
 
-    uint8_t status = buf[0];
-    _P = (buf[1] << 8) | buf[2];
-    uint16_t T = (buf[3] << 8) | buf[4];
+    // Debug raw bytes (enable PX4_DEBUG to see)
+    PX4_DEBUG("BAR100 raw: %02x %02x %02x %02x %02x", buf[0], buf[1], buf[2], buf[3], buf[4]);
 
-    _P_bar = (float(_P) - 16384.0f) * (_P_max - _P_min) / 32768.0f + _P_min + _P_mode;
-    _last_temperature = ((T >> 4) - 24) * 0.05f - 50.0f;
+    // Extract raw values exactly like Arduino
+    uint16_t P_raw = (static_cast<uint16_t>(buf[1]) << 8) | static_cast<uint16_t>(buf[2]);
+    uint16_t T_raw = (static_cast<uint16_t>(buf[3]) << 8) | static_cast<uint16_t>(buf[4]);
+
+    // Apply Arduino (KellerLD) formula for pressure (bar)
+    // P_bar = (P_raw - 16384) * (P_max - P_min) / 32768 + P_min + P_mode
+    _P_bar = (static_cast<float>(P_raw) - 16384.0f) * (_P_max - _P_min) / 32768.0f + _P_min + _P_mode;
+
+    // Apply Arduino formula for temperature (°C)
+    // T_degc = ((T_raw >> 4) - 24) * 0.05 - 50
+    _last_temperature = ((T_raw >> 4) - 24) * 0.05f - 50.0f;
+
+    // Convert bar -> Pascal for PX4 (1 bar = 100000 Pa)
+    _last_pressure = _P_bar * 100000.0f;
+
+    PX4_DEBUG("BAR100 conv: P_raw=%u P_bar=%.6fbar P_Pa=%.2f Pa T_raw=%u T_C=%.2f",
+              P_raw, (double)_P_bar, (double)_last_pressure, T_raw, (double)_last_temperature);
 
     return PX4_OK;
 }
 
 float Bar100::_pressure()
 {
-    return _P_bar * 1000.0f; // Pa
+    return _last_pressure; // Already in Pascals
 }
 
 float Bar100::_temperature()
@@ -223,7 +291,7 @@ float Bar100::_depth()
 
 float Bar100::_altitude()
 {
-    return (1.0f - pow((_pressure() / 1013.25f), 0.190284f)) * 145366.45f * 0.3048f;
+    return (1.0f - powf((_pressure() / 1013.25f), 0.190284f)) * 145366.45f * 0.3048f;
 }
 
 bool Bar100::_status()
