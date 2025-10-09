@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_ANELLO_X3
+	bool "anello_x3"
+	default n
+	---help---
+		Enable support for anello_x3
