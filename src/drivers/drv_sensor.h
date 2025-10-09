@@ -260,6 +260,8 @@
 
 #define DRV_INS_DEVTYPE_SBG		0xEC
 
+#define DRV_ADC_DEVTYPE_ADS7953 0xED
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
