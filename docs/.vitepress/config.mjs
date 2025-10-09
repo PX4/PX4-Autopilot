@@ -31,6 +31,7 @@ export default defineConfig({
       tabsPlugin(md); //https://github.com/Red-Asuka/vitepress-plugin-tabs
     },
   },
+  cleanUrls: true,
 
   vite: {
     plugins: [
