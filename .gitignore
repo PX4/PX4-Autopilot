@@ -109,3 +109,6 @@ src/systemcmds/topic_listener/listener_generated.cpp
 # colcon
 log/
 keys/
+
+
+Tools/setup/xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu*
