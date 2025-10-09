@@ -524,7 +524,7 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 						break;
 					}
 
-					if (_turtle_mode_en && _outputs_on) {
+					if (_turtle_mode_en) {
 						state = esc_report_s::ESC_STATE_TURTLE_MODE;
 					}
 

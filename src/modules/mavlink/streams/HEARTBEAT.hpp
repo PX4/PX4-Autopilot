@@ -37,6 +37,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/esc_status.h>
 
 class MavlinkStreamHeartbeat : public MavlinkStream
 {
@@ -62,6 +63,7 @@ private:
 	uORB::Subscription _acturator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 
 	bool send() override
 	{
@@ -75,6 +77,9 @@ private:
 
 			actuator_armed_s actuator_armed{};
 			_acturator_armed_sub.copy(&actuator_armed);
+
+			esc_status_s esc_status{};
+			_esc_status_sub.copy(&esc_status);
 
 			// uint8_t base_mode (MAV_MODE_FLAG) - System mode bitmap.
 			uint8_t base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
@@ -103,6 +108,9 @@ private:
 			// uint32_t custom_mode - A bitfield for use for autopilot-specific flags
 			union px4_custom_mode custom_mode {get_px4_custom_mode(vehicle_status.nav_state)};
 
+			if (esc_status.esc[0].esc_state == px4::msg::EscReport::ESC_STATE_TURTLE_MODE) {
+				custom_mode.reserved = PX4_CUSTOMER_MODE_TURTLE;
+			}
 
 			// uint8_t system_status (MAV_STATE) - System status flag.
 			uint8_t system_status = MAV_STATE_UNINIT;

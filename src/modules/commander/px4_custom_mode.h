@@ -71,6 +71,8 @@ enum PX4_CUSTOM_SUB_MODE_POSCTL {
 	PX4_CUSTOM_SUB_MODE_POSCTL_ORBIT
 };
 
+#define PX4_CUSTOMER_MODE_TURTLE 1
+
 union px4_custom_mode {
 	struct {
 		uint16_t reserved;
