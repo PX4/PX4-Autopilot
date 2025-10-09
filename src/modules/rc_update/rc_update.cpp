@@ -54,6 +54,7 @@ static bool operator ==(const manual_control_switches_s &a, const manual_control
 		a.kill_switch == b.kill_switch &&
 		a.arm_switch == b.arm_switch &&
 		a.transition_switch == b.transition_switch &&
+		a.manual_estop_switch == b.manual_estop_switch &&
 		a.gear_switch == b.gear_switch &&
 		a.photo_switch == b.photo_switch &&
 		a.video_switch == b.video_switch &&
@@ -105,6 +106,7 @@ RCUpdate::RCUpdate() :
 	updateParams(); // Call is needed to populate the _rc.function array
 
 	_button_pressed_hysteresis.set_hysteresis_time_from(false, 50_ms);
+
 }
 
 RCUpdate::~RCUpdate()
@@ -210,6 +212,7 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = _param_rc_map_arm_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = _param_rc_map_trans_sw.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_GEAR] = _param_rc_map_gear_sw.get() - 1;
+	_rc.function[rc_channels_s::FUNCTION_RC_ESTOP] = _param_rc_map_estop.get() - 1;
 
 	_rc.function[rc_channels_s::FUNCTION_FLAPS] = _param_rc_map_flaps.get() - 1;
 
@@ -614,6 +617,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.gear_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_GEAR, _param_rc_gear_th.get());
 	switches.engage_main_motor_switch =
 		getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_ENGAGE_MAIN_MOTOR, _param_rc_eng_mot_th.get());
+
 #if defined(ATL_MANTIS_RC_INPUT_HACKS)
 	switches.photo_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_3, 0.5f);
 	switches.video_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_4, 0.5f);
@@ -623,6 +627,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	switches.payload_power_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_PAYLOAD_POWER,
 					_param_rc_payload_th.get());
 #endif
+	switches.manual_estop_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_RC_ESTOP, _param_rc_estop_th.get());
 
 	// last 2 switch updates identical within 1 second (simple protection from bad RC data)
 	if ((switches == _manual_switches_previous)
@@ -631,7 +636,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		const bool switches_changed = (switches != _manual_switches_last_publish);
 
 		// publish immediately on change or at ~1 Hz
-		if (switches_changed || (hrt_elapsed_time(&_manual_switches_last_publish.timestamp) >= 1_s)) {
+		if (switches_changed || (hrt_elapsed_time(&_manual_switches_last_publish.timestamp) >= 300_ms)) {
 			uint32_t switch_changes = _manual_switches_last_publish.switch_changes;
 
 			if (switches_changed) {
@@ -643,6 +648,8 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 			_manual_switches_last_publish.timestamp_sample = _manual_switches_previous.timestamp_sample;
 			_manual_switches_last_publish.timestamp = hrt_absolute_time();
 			_manual_control_switches_pub.publish(_manual_switches_last_publish);
+
+
 		}
 	}
 

@@ -45,6 +45,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
@@ -53,6 +54,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/input_rc.h>
@@ -70,11 +72,13 @@ namespace rc_update
  *
  * Handling of RC updates
  */
-class RCUpdate : public ModuleBase<RCUpdate>, public ModuleParams, public px4::WorkItem
+class RCUpdate : public ModuleBase<RCUpdate>, public ModuleParams, public  px4::WorkItem
 {
 public:
 	RCUpdate();
 	~RCUpdate() override;
+
+
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -171,6 +175,7 @@ protected:
 
 	manual_control_switches_s _manual_switches_previous{};
 	manual_control_switches_s _manual_switches_last_publish{};
+
 	rc_channels_s _rc{};
 	bool _rc_calibrated{false};
 
@@ -218,6 +223,7 @@ protected:
 		(ParamInt<px4::params::RC_MAP_TRANS_SW>) _param_rc_map_trans_sw,
 		(ParamInt<px4::params::RC_MAP_GEAR_SW>) _param_rc_map_gear_sw,
 		(ParamInt<px4::params::RC_MAP_FLTM_BTN>) _param_rc_map_fltm_btn,
+		(ParamInt<px4::params::RC_MAP_ESTOP_SW>) _param_rc_map_estop,
 
 		(ParamInt<px4::params::RC_MAP_AUX1>) _param_rc_map_aux1,
 		(ParamInt<px4::params::RC_MAP_AUX2>) _param_rc_map_aux2,
@@ -241,6 +247,7 @@ protected:
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
 		(ParamFloat<px4::params::RC_ENG_MOT_TH>) _param_rc_eng_mot_th,
 		(ParamFloat<px4::params::RC_PAYLOAD_TH>) _param_rc_payload_th,
+		(ParamFloat<px4::params::RC_ESTOP_TH>) _param_rc_estop_th,
 
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
 	)

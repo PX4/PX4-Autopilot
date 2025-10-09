@@ -107,6 +107,26 @@ void ManualControl::processInput(hrt_abstime now)
 		}
 	}
 
+	const bool rc_estop_engaged = _selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC &&
+				      _time_rc_estop_engaged != 0;
+
+	if (_rc_estop_published_last != rc_estop_engaged || hrt_elapsed_time(&_rc_estop_published_last_time) > 1000_ms) {
+		debug_key_value_s kv;
+		kv.timestamp = hrt_absolute_time();
+
+
+		memset(kv.key, 0, sizeof(kv.key));
+		size_t key_len = strlen(ESTOP_DEBUG_VALUE_KEY);
+		size_t max_len = sizeof(kv.key) - 1;
+		size_t len_to_copy = key_len > max_len ? max_len : key_len;
+		memcpy(kv.key, ESTOP_DEBUG_VALUE_KEY, len_to_copy);
+		kv.value = rc_estop_engaged ? 1.f : 0.f;
+		_debug_kv_pub.publish(kv);
+		_rc_estop_published_last_time = kv.timestamp;
+		_rc_estop_published_last = rc_estop_engaged;
+	}
+
+
 	if (_selector.setpoint().valid) {
 		_published_invalid_once = false;
 
@@ -116,10 +136,57 @@ void ManualControl::processInput(hrt_abstime now)
 		const float dt_s = (now - _timestamp_last_loop) / 1e6f;
 		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
 
+
+
 		_selector.setpoint().sticks_moving = (fabsf(_roll_diff.update(_selector.setpoint().roll, dt_s)) > minimum_stick_change)
 						     || (fabsf(_pitch_diff.update(_selector.setpoint().pitch, dt_s)) > minimum_stick_change)
 						     || (fabsf(_yaw_diff.update(_selector.setpoint().yaw, dt_s)) > minimum_stick_change)
 						     || (fabsf(_throttle_diff.update(_selector.setpoint().throttle, dt_s)) > minimum_stick_change);
+
+		if (_selector.setpoint().sticks_moving) {
+			_time_last_sticks_actually_moved = hrt_absolute_time();
+		}
+
+		if (_selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC) {
+			const bool fake_stick_movement = (_time_rc_estop_engaged != 0) &&
+							 (hrt_absolute_time() <= (_time_rc_estop_engaged + 2500_ms));
+
+			if (fake_stick_movement) {
+				_time_rc_estop_engaged_latch = _time_rc_estop_engaged;
+				_selector.setpoint().sticks_moving = true;
+			}
+
+			if (_time_last_sticks_actually_moved < _time_rc_estop_engaged_latch) {
+				if (hrt_elapsed_time(&_time_last_neutral_sticks_msg) > 2500_ms) {
+					_time_last_neutral_sticks_msg = hrt_absolute_time();
+					orb_advert_t mavlink_log_pub = nullptr;
+					mavlink_log_info(&mavlink_log_pub, "R/C E-Stop: Overriding sticks with neutral until real movement");
+					events::send(events::ID("manual_control_rc_e_stop_movment_not_detected"), {events::Log::Info, events::LogInternal::Info},
+						     "ManualControl: R/C E-Stop: Overriding sticks with neutral until real movement");
+				}
+
+				_selector.setpoint().sticks_moving = true;
+				_selector.setpoint().roll = 0;
+				_selector.setpoint().pitch = 0;
+				_selector.setpoint().yaw = 0;
+				_selector.setpoint().throttle = 0;
+
+			} else {
+				if (_time_rc_estop_engaged_latch != 0) {
+					orb_advert_t mavlink_log_pub = nullptr;
+					mavlink_log_info(&mavlink_log_pub, "R/C E-Stop stick movement detected. No longer overriding with neutral sticks");
+					events::send(events::ID("manual_control_rc_e_stop_movment"), {events::Log::Info, events::LogInternal::Info},
+						     "ManualControl: R/C E-Stop stick movement detected. No longer overriding with neutral sticks");
+				}
+
+				_time_rc_estop_engaged = 0;
+				_time_rc_estop_engaged_latch = 0;
+			}
+
+		} else {
+			_time_rc_estop_engaged_latch = 0;
+		}
+
 
 		_selector.setpoint().timestamp = now;
 		_manual_control_setpoint_pub.publish(_selector.setpoint());
@@ -228,6 +295,30 @@ void ManualControl::processSwitches(hrt_abstime &now)
 					}
 				}
 
+
+				if (switches.manual_estop_switch != _previous_switches.manual_estop_switch) {
+					switch (switches.manual_estop_switch) {
+					case manual_control_switches_s::SWITCH_POS_ON: {
+							orb_advert_t mavlink_log_pub = nullptr;
+							mavlink_log_info(&mavlink_log_pub, "R/C E-Stop engaged. Simulating stick movement for 2.5 seconds");
+							events::send(events::ID("manual_control_rc_e_stop"), {events::Log::Info, events::LogInternal::Info},
+								     "ManualControl: R/C E-stop engaged. Simulating stick movement for 2.5 seconds");
+							_time_rc_estop_engaged = hrt_absolute_time();
+						}
+						break;
+
+					case manual_control_switches_s::SWITCH_POS_OFF: {
+							_time_rc_estop_engaged = 0;
+							break;
+						}
+
+					case manual_control_switches_s::SWITCH_POS_NONE:
+					default:
+						_time_rc_estop_engaged = 0;
+						break;
+					}
+				}
+
 				if (switches.kill_switch != _previous_switches.kill_switch) {
 					if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
 						sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_RC_SWITCH);
@@ -289,12 +380,14 @@ void ManualControl::processSwitches(hrt_abstime &now)
 				evaluateModeSlot(switches.mode_slot);
 			}
 
+
 			_previous_switches = switches;
 			_previous_switches_initialized = true;
 		}
 
 	} else {
 		// Don't react on switch changes while RC was not in use
+		_time_rc_estop_engaged = 0;
 		_previous_switches_initialized = false;
 	}
 }

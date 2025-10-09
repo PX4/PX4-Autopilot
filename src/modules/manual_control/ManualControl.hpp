@@ -42,6 +42,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/action_request.h>
+#include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -105,6 +106,7 @@ private:
 		{this, ORB_ID(manual_control_input), 2},
 	};
 	uORB::SubscriptionCallbackWorkItem _manual_control_switches_sub{this, ORB_ID(manual_control_switches)};
+	uORB::Subscription _manual_control_switches_sub_offboard_consent{ORB_ID(manual_control_switches)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
@@ -115,6 +117,10 @@ private:
 	ManualControlSelector _selector;
 
 	hrt_abstime _timestamp_last_loop{0};
+	hrt_abstime _time_rc_estop_engaged{0};
+	hrt_abstime _time_rc_estop_engaged_latch{0};
+	hrt_abstime _time_last_sticks_actually_moved{0};
+	hrt_abstime _time_last_neutral_sticks_msg{0};
 	int _previous_manual_control_input_instance{-1};
 	bool _previous_switches_initialized{false};
 	manual_control_switches_s _previous_switches{};
@@ -141,6 +147,15 @@ private:
 	uint8_t _system_id{1};
 	bool _rotary_wing{false};
 	bool _vtol{false};
+
+
+	static constexpr auto ESTOP_DEBUG_VALUE_KEY = "RCESTOPEN";
+
+	uORB::Publication<debug_key_value_s> _debug_kv_pub{ORB_ID(debug_key_value)};
+	bool _rc_estop_published_last{false};
+	hrt_abstime _rc_estop_published_last_time;
+
+
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,

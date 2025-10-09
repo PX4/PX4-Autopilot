@@ -33,6 +33,8 @@
 
 #define MODULE_NAME "rc_update"
 
+#include <array>
+
 #include <gtest/gtest.h>
 #include "rc_update.h"
 
@@ -128,13 +130,35 @@ public:
 		EXPECT_EQ(manual_control_switches_sub.get().return_switch, expected_position);
 	}
 
+	void checkRCESTOPSwitch(float channel_value, float threshold, float /*expected_value*/, uint8_t expected_position)
+	{
+		_param_rc_map_estop_sw.set(1);
+		_param_rc_estop_th.set(threshold);
+		_param_rc_map_estop_sw.commit();
+		_param_rc_estop_th.commit();
+
+		_rc_update.updateParams();
+
+		EXPECT_EQ(_param_rc_map_estop_sw.get(), 1);
+		EXPECT_FLOAT_EQ(_param_rc_estop_th.get(), threshold);
+
+		_rc_update.setChannel(0, channel_value);
+		_rc_update.UpdateManualSwitches(0);
+		_rc_update.UpdateManualSwitches(0);
+
+		uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
+		EXPECT_EQ(manual_control_switches_sub.get().manual_estop_switch, expected_position);
+	}
+
 	TestRCUpdate _rc_update;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
 		(ParamInt<px4::params::RC_MAP_FLTM_BTN>) _param_rc_map_fltm_btn,
 		(ParamInt<px4::params::RC_MAP_RETURN_SW>) _param_rc_map_return_sw,
-		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th
+		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
+		(ParamInt<px4::params::RC_MAP_ESTOP_SW>) _param_rc_map_estop_sw,
+		(ParamFloat<px4::params::RC_ESTOP_TH>) _param_rc_estop_th
 	)
 };
 
@@ -232,4 +256,63 @@ TEST_F(RCUpdateTest, ReturnSwitchNegativeThresholds)
 
 	checkReturnSwitch(1.f, -.001f, 3); // Above minimum threshold -> SWITCH_POS_OFF
 	checkReturnSwitch(-1.f, -.001f, 1); // Slightly below minimum threshold -> SWITCH_POS_OFF
+}
+
+TEST_F(RCUpdateTest, OffboardConsentSwitchUnassigned)
+{
+
+	// GIVEN: Default configuration with no assigned return switch
+	_param_rc_map_estop_sw.set(0);
+	_param_rc_map_estop_sw.commit();
+	EXPECT_EQ(_param_rc_map_estop_sw.get(), 0);
+
+	// WHEN: we update the switches two times to pass the simple outlier protection
+	_rc_update.UpdateManualSwitches(0);
+	_rc_update.UpdateManualSwitches(0);
+
+	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
+	EXPECT_EQ(manual_control_switches_sub.get().manual_estop_switch, 0); // manual_control_switches_s::SWITCH_POS_NONE
+}
+
+TEST_F(RCUpdateTest, OffboardConsentPositiveThresholds)
+{
+
+
+	checkRCESTOPSwitch(-1, 0.5, 0., 3);
+	checkRCESTOPSwitch(0., 0.5, 0., 3);
+	checkRCESTOPSwitch(.001, 0.5, 1., 1);
+	checkRCESTOPSwitch(1., 0.5, 1., 1);
+
+	checkRCESTOPSwitch(-1, 0.75, 0., 3);
+	checkRCESTOPSwitch(0., 0.75, 0., 3);
+	checkRCESTOPSwitch(.5, 0.75, 0., 3);
+	checkRCESTOPSwitch(.5001, 0.75, 1., 1);
+	checkRCESTOPSwitch(1., 0.5, 1., 1);
+
+	checkRCESTOPSwitch(-1.f, 0.f, 0, 3); // On minimum threshold -> SWITCH_POS_OFF
+	checkRCESTOPSwitch(-.999f, 0.f, 1, 1); // Slightly above minimum threshold -> SWITCH_POS_ON
+	checkRCESTOPSwitch(1.f, 0.f, 1, 1); // Above minimum threshold -> SWITCH_POS_ON
+
+	checkRCESTOPSwitch(-1.f, 1.f, 0, 3); // Below maximum threshold -> SWITCH_POS_OFF
+	checkRCESTOPSwitch(1.f, 1.f, 0, 3); // On maximum threshold -> SWITCH_POS_OFF
+}
+
+TEST_F(RCUpdateTest, OffboardConsentNegativeThresholds)
+{
+	checkRCESTOPSwitch(1.f, -0.5f, 0, 3); // Above threshold -> SWITCH_POS_OFF
+	checkRCESTOPSwitch(0.f, -0.5f, 0, 3); // On threshold -> SWITCH_POS_OFF
+	checkRCESTOPSwitch(-.001f, -0.5f, 1, 1); // Slightly below threshold -> SWITCH_POS_ON
+	checkRCESTOPSwitch(-1.f, -0.5f, 1, 1); // Below threshold -> SWITCH_POS_ON
+
+	checkRCESTOPSwitch(1.f, -0.75f, 0, 3); // Above threshold -> SWITCH_POS_OFF
+	checkRCESTOPSwitch(.5f, -0.75f, 0, 3); // On threshold -> SWITCH_POS_OFF
+	checkRCESTOPSwitch(.499f, -0.75f, 1, 1); // Slightly below threshold -> SWITCH_POS_ON
+	checkRCESTOPSwitch(-1.f, -0.75f, 1, 1); // Below threshold -> SWITCH_POS_ON
+
+	checkRCESTOPSwitch(1.f, -1.f, 0, 3); // On maximum threshold -> SWITCH_POS_OFF
+	checkRCESTOPSwitch(.999f, -1.f, 1, 1); // Slighly below maximum threshold -> SWITCH_POS_ON
+	checkRCESTOPSwitch(-1.f, -1.f, 1, 1); // Below minimum threshold -> SWITCH_POS_ON
+
+	checkRCESTOPSwitch(1.f, -.001f, 0, 3); // Above minimum threshold -> SWITCH_POS_OFF
+	checkRCESTOPSwitch(-1.f, -.001f, 1, 1); // Slightly below minimum threshold -> SWITCH_POS_OFF
 }
