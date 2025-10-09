@@ -61,52 +61,18 @@ pm_selector_auterion start
 # Auterion's INA238 uses a shunt value of 0.0003 instead of 0.0005.
 param set-default INA238_SHUNT 0.0003
 
-# Keep nesting shallow
-if ver hwtypecmp V6X006 V6X008
-then
-	if ver hwtypecmp V6X006
-	then
-		# Internal SPI bus ICM45686
-		adis16470 -s -R 0 start
-		iim42652 -s -R 6 start
-		icm45686 -s -R 10 start
-	else
-		# Internal SPI bus 3x ICM45686
-		icm45686 -b 3 -s -R 0 start
-		icm45686 -b 2 -s -R 0 start
-		icm45686 -b 1 -s -R 10 start
-	fi
-else
-	if ver hwtypecmp V6X004
-	then
-		# Internal SPI bus ICM20649
-		icm20649 -s -R 6 start
-	else
-		# Internal SPI BMI088
-		bmi088 -A -R 6 -s start
-		bmi088 -G -R 6 -s start
-	fi
+# Internal SPI BMI088
+bmi088 -A -R 6 -s start
+bmi088 -G -R 6 -s start
 
-	# Internal SPI bus ICM42688p
-	icm42688p -R 12 -s start
+# Internal SPI bus ICM42688p
+icm42688p -R 12 -s start
 
-	if ver hwtypecmp V6X003 V6X004
-	then
-		# Internal SPI bus ICM-42670-P (hard-mounted)
-		icm42670p -R 10 -s start
-	else
-		icm20602 -R 6 -s start
-	fi
-fi
+# Internal SPI bus ICM20602
+icm20602 -R 6 -s start
 
-# Internal magnetometer on I2c
-if ver hwtypecmp V6X001
-then
-	rm3100 -I -b 4 start
-else
-	# Internal magnetometer on I2C
-	bmm150 -I -R 0 start
-fi
+# Internal magnetometer on I2C
+bmm150 -I -R 0 start
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
@@ -114,21 +80,11 @@ ist8310 -X -b 1 -R 10 start
 # Possible internal Baro
 if param compare SENS_INT_BARO_EN 1
 then
-	if ver hwtypecmp V6X001 V6X006 V6X008
-	then
-		icp201xx -I -a 0x64 start
-	else
-		bmp388 -I -a 0x77 start
-	fi
+	bmp388 -I -a 0x77 start
 fi
 
 #external baro
-if ver hwtypecmp V6X001
-then
-	icp201xx -X start
-else
-	bmp388 -X start
-fi
+bmp388 -X start
 
 # Don't try to start external baro on I2C3 as it can conflict with the MS5525DSO airspeed sensor.
 #ms5611 -X start

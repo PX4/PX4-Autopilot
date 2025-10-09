@@ -215,14 +215,8 @@
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 #define HW_INFO_INIT_PREFIX    "V6X"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 7
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 1
 //                 Base/FMUM
-#define V6X_0     HW_FMUM_ID(0x0)   // FMUV6X, Auterion,HB  Sensor Set Rev 0
-#define V6X_1     HW_FMUM_ID(0x1)   // FMUV6X, CUAV Sensor Set Rev 1
-#define V6X_3     HW_FMUM_ID(0x3)   // FMUV6X, HB              Sensor Set Rev 3
-#define V6X_4     HW_FMUM_ID(0x4)   // FMUV6X, HB              Sensor Set Rev 4
-#define V6X_6     HW_FMUM_ID(0x6)   // FMUV6X, HB              Sensor Set Rev 6
-#define V6X_8     HW_FMUM_ID(0x8)   // FMUV6X, HB              Sensor Set Rev 8
 #define V6X_16    HW_FMUM_ID(0x10)  // FMUV6X, Auterion        Sensor Set Rev 16 from EEPROM
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
