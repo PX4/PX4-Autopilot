@@ -126,7 +126,6 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				if (param == PARAM_INVALID) {
 					PX4_ERR("unknown param: %s", name);
 					send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, name, -1, msg->sysid, msg->compid);
-
 				} else if (!((param_type(param) == PARAM_TYPE_INT32 && set.param_type == MAV_PARAM_TYPE_INT32) ||
 					     (param_type(param) == PARAM_TYPE_FLOAT && set.param_type == MAV_PARAM_TYPE_REAL32))) {
 					PX4_ERR("param types mismatch param: %s", name);
@@ -208,14 +207,15 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						const int result = send_param(param_find_no_notification(name));
 
 						if (result == 1) {
-							PX4_ERR("unknown param name: %s", name);
+							PX4_ERR("Unknown param name: %s", name);
 							send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, name, -1, msg->sysid, msg->compid);
 
 						} else if (result == 2) {
 							PX4_ERR("Failed loading param from storage: %s", name);
-							// send_error(MAV_PARAM_ERROR_??? ,name, -1 , msg.sysid, msg.compid);
-							// This case means the parameter could not be populated in param_get.
-							// It does exist though. TODO work out right error code.
+							// TODO: Send PARAM_ERROR message.
+							// This case means the parameter exists but read failed in param_get.
+							// send_error(MAV_PARAM_ERROR_READ_ERROR, name, -1 , msg->sysid, msg->compid );
+							// Needs https://github.com/mavlink/mavlink/pull/2358
 						}
 					}
 
@@ -225,15 +225,15 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					int ret = send_param(param_for_used_index(req_read.param_index));
 
 					if (ret == 1) {
-						PX4_ERR("unknown param index: %i", req_read.param_index);
+						PX4_ERR("Unknown param index: %i", req_read.param_index);
 						send_error(MAV_PARAM_ERROR_DOES_NOT_EXIST, nullptr, req_read.param_index, msg->sysid, msg->compid);
 
 					} else if (ret == 2) {
-						PX4_ERR("failed loading param from storage index: %i", req_read.param_index);
-						// send_error(MAV_PARAM_ERROR_???, nullptr, req_read.param_index, msg->sysid, msg->compid);
+						PX4_ERR("Failed loading param from storage index: %i", req_read.param_index);
+						// send_error(MAV_PARAM_ERROR_READ_FAIL, nullptr, req_read.param_index, msg->sysid, msg->compid);
 						// This case means the parameter could not be populated in param_get.
 						// Or "Failed loading param from storage"
-						// TODO work out right error code.
+
 					}
 				}
 			}
@@ -496,13 +496,10 @@ MavlinkParametersManager::send_one()
 int
 MavlinkParametersManager::send_param(param_t param, int component_id)
 {
-	PX4_ERR("Debug:TestSP: %i", 1);
 
 	if (param == PARAM_INVALID) {
 		return 1;
 	}
-
-	PX4_ERR("Debug:TestSP: %i", 1);
 
 	/* no free TX buf to send this param */
 	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_VALUE_LEN) {
@@ -591,14 +588,11 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 		const int target_sysid, const int target_compid,
 		int component_id)
 {
-	PX4_ERR("Debug:Test: %i", 1);
-
 	/* no free TX buf to send this param error message */
 	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_ERROR_LEN) {
 		return 1;
 	}
 
-	PX4_ERR("Debug:Test: %i", 2);
 	mavlink_param_error_t msg;
 	msg.target_system = target_sysid;
 	msg.target_component = target_compid;
@@ -637,7 +631,6 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
 	}
 
-	PX4_ERR("Test: %i", 3);
 	return 0;
 }
 
