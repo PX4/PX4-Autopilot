@@ -1,0 +1,5 @@
+menuconfig DRIVERS_BAROMETER_BAR100
+	bool "bar100"
+	default n
+	---help---
+		Enable support for bar100
