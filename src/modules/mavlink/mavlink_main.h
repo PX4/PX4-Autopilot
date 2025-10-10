@@ -157,14 +157,7 @@ public:
 
 	mavlink_status_t 	*get_status() { return &_mavlink_status; }
 
-	/**
-	 * Set the MAVLink version
-	 *
-	 * Currently supporting v1 and v2
-	 *
-	 * @param version MAVLink version
-	 */
-	void			set_proto_version(unsigned version);
+	void			set_protocol_version(unsigned version);
 
 	static int		destroy_all_instances();
 
@@ -620,8 +613,7 @@ private:
 	uint64_t		_last_write_success_time{0};
 	uint64_t		_last_write_try_time{0};
 	uint64_t		_mavlink_start_time{0};
-	int32_t			_protocol_version_switch{-1};
-	int32_t			_protocol_version{0};
+	int32_t _protocol_version = 0; ///< after initialization the only values are 1 and 2
 
 	unsigned		_bytes_tx{0};
 	unsigned		_bytes_txerr{0};
