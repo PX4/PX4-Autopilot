@@ -20,6 +20,16 @@ make ark_can-flow_default
 
 This will create an output in **build/ark_can-flow_default** named **XX-X.X.XXXXXXXX.uavcan.bin**. Follow the instructions at [DroneCAN firmware update](index.md#firmware-update) to flash the firmware.
 
+## Downloading Pre-built Firmware
+
+Pre-built CAN node firmware binaries are available in PX4 releases. The binaries are packaged in the `cannode/` folder, with each target in its own named directory containing the `.uavcan.bin` file.
+
+For example, to download firmware for the Ark Flow:
+1. Go to the [PX4 releases page](https://github.com/PX4/PX4-Autopilot/releases)
+2. Download the release assets
+3. Navigate to `cannode/ark_can-flow/`
+4. Use the `.uavcan.bin` file for flashing
+
 ## Developer Information
 
 This section has information that is relevant to developers who want to add support for new DroneCAN hardware to the PX4 Autopilot.

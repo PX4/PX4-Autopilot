@@ -239,4 +239,7 @@ jobs:
         with:
           draft: true
           files: artifacts/*.px4
+          files: |
+            artifacts/*.px4
+            artifacts/cannode/**/*.uavcan.bin
           name: ${{ steps.upload-location.outputs.uploadlocation }}
