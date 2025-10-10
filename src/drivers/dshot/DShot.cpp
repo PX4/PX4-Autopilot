@@ -120,17 +120,21 @@ void DShot::enable_dshot_outputs(const bool enabled)
 			param_get(handle, &tim_config);
 			unsigned int dshot_frequency_request = 0;
 
-			if (tim_config == -5) {
+			if (tim_config == -5 || tim_config == -8) {
 				dshot_frequency_request = DSHOT150;
 
-			} else if (tim_config == -4) {
+			} else if (tim_config == -4 || tim_config == -7) {
 				dshot_frequency_request = DSHOT300;
 
-			} else if (tim_config == -3) {
+			} else if (tim_config == -3 || tim_config == -6) {
 				dshot_frequency_request = DSHOT600;
 
 			} else {
 				_output_mask &= ~channels; // don't use for dshot
+			}
+
+			if (tim_config < -5) {
+				_bidirectional_dshot_enabled = true;
 			}
 
 			if (dshot_frequency_request != 0) {
@@ -144,8 +148,6 @@ void DShot::enable_dshot_outputs(const bool enabled)
 				}
 			}
 		}
-
-		_bidirectional_dshot_enabled = _param_bidirectional_enable.get();
 
 		int ret = up_dshot_init(_output_mask, dshot_frequency, _bidirectional_dshot_enabled);
 
