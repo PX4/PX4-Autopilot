@@ -612,6 +612,7 @@ State FlightTaskAuto::_getCurrentState()
 	const Vector3f u_prev_to_target = (_triplet_target - _triplet_prev_wp).unit_or_zero();
 	const Vector3f prev_to_pos = _position - _triplet_prev_wp;
 	const Vector3f pos_to_target = _triplet_target - _position;
+
 	// Calculate the closest point to the vehicle position on the line prev_wp - target
 	_closest_pt = _triplet_prev_wp + u_prev_to_target * (prev_to_pos * u_prev_to_target);
 
@@ -629,10 +630,9 @@ State FlightTaskAuto::_getCurrentState()
 		// Previous is in front
 		return_state = State::previous_infront;
 
-	} else if ((_position - _closest_pt).longerThan(_target_acceptance_radius)) {
+	} else if (_type != WaypointType::land && (_position - _closest_pt).longerThan(_target_acceptance_radius)) {
 		// Vehicle too far from the track
 		return_state = State::offtrack;
-
 	}
 
 	return return_state;
