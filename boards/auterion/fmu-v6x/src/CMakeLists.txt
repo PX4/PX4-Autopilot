@@ -35,7 +35,6 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 	add_library(drivers_board
 		bootloader_main.c
 		init.cpp
-		usb.c
 		timer_config.cpp
 	)
 	target_link_libraries(drivers_board
@@ -58,7 +57,6 @@ else()
 		sdio.c
 		spi.cpp
 		timer_config.cpp
-		usb.c
 	)
 	add_dependencies(drivers_board arch_board_hw_info)
 

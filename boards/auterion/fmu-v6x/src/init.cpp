@@ -179,10 +179,6 @@ stm32_boardinitialize(void)
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 
-	/* configure USB interfaces */
-
-	stm32_usbinitialize();
-
 	VDD_3V3_ETH_POWER_EN(true);
 
 }

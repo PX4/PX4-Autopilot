@@ -63,7 +63,7 @@
 
 #define APP_LOAD_ADDRESS               0x08020000
 #define BOOTLOADER_DELAY               5000
-#define INTERFACE_USB                  1
+#define INTERFACE_USB                  0
 #define INTERFACE_USB_CONFIG           "/dev/ttyACM0"
 #define BOARD_VBUS                     MK_GPIO_INPUT(GPIO_OTGFS_VBUS)
 
