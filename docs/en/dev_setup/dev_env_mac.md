@@ -6,14 +6,14 @@ This environment can be used to build PX4 for:
 - Pixhawk and other NuttX-based hardware
 - [Gazebo Simulation](../sim_gazebo_gz/index.md) (Gazebo Harmonic)
 
-:::tip
+::: tip
 This setup is supported by the PX4 dev team.
-To build other targets you will need to use a [different OS](../dev_setup/dev_env.md#supported-targets) or an [unsupported development environment](../advanced/community_supported_dev_env.md).
+To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will need to use a [different OS](../dev_setup/dev_env.md#supported-targets) or an [unsupported development environment](../advanced/community_supported_dev_env.md).
 :::
 
-## Video Guide
+<!-- ## Video Guide
 
-<lite-youtube videoid="tMbMGiMs1cQ" title="Setting up your PX4 development environment on macOS"/>
+> **Note:** The video guide previously available here is now outdated. Please follow the updated instructions below for the latest setup process. If you are referencing the YouTube video, be aware that some steps may have changed. -->
 
 ## Development Environment Setup
 
@@ -33,8 +33,15 @@ To build other targets you will need to use a [different OS](../dev_setup/dev_en
 
 3. Enforce Python 3 by appending the following lines to `~/.bashrc`(or `~/.zshrc` for zsh):
 
+   Ensure Python 3 is used by default, as some PX4 scripts require the `python3` and `pip3` executables to be available in your system `PATH`.
+
+   ::: tip
+   If you need help installing an updated version of Python 3, we recommend the [pyenv project](https://github.com/pyenv/pyenv?tab=readme-ov-file), which gives you utmost flexibility by allowing you to set a global and local Python version at the per-directory level.
+   :::
+
+4. Point pip3 to macOS system python 3 pip
+
    ```sh
-   # Point pip3 to macOS system python 3 pip
    alias pip3=/usr/bin/pip3
    ```
 
@@ -47,32 +54,22 @@ To build other targets you will need to use a [different OS](../dev_setup/dev_en
    brew install px4-dev px4-sim
    ```
 
-2. **Important:** Link the ARM cross-compiler manually (required step):
-
-   ```sh
-   brew link --overwrite --force arm-gcc-bin@13
-   ```
-
-   ::: warning
-   Homebrew does not link versioned formulae by default, so this manual linking step is required for the ARM cross-compiler (v13) to function properly.
-   If you have other versions of `arm-none-eabi-gcc` installed, this may override them.
-   You can unlink it manually later with `brew unlink arm-gcc-bin@13` if needed.
-   :::
-
-3. Install the required Python packages:
-
-   ```sh
-   # Install required packages using pip3
-   python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
-   # If this fails with a permissions error, your Python install is in a system path - use this command instead:
-   sudo -H python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
-   ```
-
-### Download PX4 Source Code
+2. ### Download PX4 Source Code
 
 ```sh
 git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 ```
+
+4. Prerequisites setup
+
+   Use the [`macos.sh` setup script](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh) to automatically install all development dependencies:
+
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git --recursive   cd PX4-Autopilot
+   ./Tools/setup/macos.sh
+   ```
+
+   This script will install all required Homebrew packages, Python dependencies, and perform the necessary setup steps.
 
 ## Gazebo Simulation
 
