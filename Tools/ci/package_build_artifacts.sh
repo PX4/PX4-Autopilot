@@ -5,8 +5,33 @@ shopt -s globstar
 
 mkdir artifacts
 
-# Copy px4 files for regular flight controllers
-cp **/**/*.px4 artifacts/ 2>/dev/null || true
+# First, identify CAN node builds by finding which builds have .uavcan.bin files
+cannode_builds=()
+for uavcan_bin in **/**/*.uavcan.bin; do
+  if [ -f "$uavcan_bin" ]; then
+    build_dir=$(echo "$uavcan_bin" | sed 's|build/\([^/]*\)/.*|\1|')
+    cannode_builds+=("$build_dir")
+  fi
+done
+
+# Copy px4 files for regular flight controllers only (exclude CAN nodes)
+for px4_file in **/**/*.px4; do
+  if [ -f "$px4_file" ]; then
+    build_dir=$(echo "$px4_file" | sed 's|build/\([^/]*\)/.*|\1|')
+    # Check if this build is NOT a CAN node
+    is_cannode=false
+    for cannode in "${cannode_builds[@]}"; do
+      if [ "$build_dir" == "$cannode" ]; then
+        is_cannode=true
+        break
+      fi
+    done
+    
+    if [ "$is_cannode" == "false" ]; then
+      cp "$px4_file" artifacts/ 2>/dev/null || true
+    fi
+  fi
+done
 
 # Copy uavcan.bin files for CAN nodes to named folders
 mkdir -p artifacts/can_nodes
@@ -44,6 +69,50 @@ for deploy_bin in **/deploy/*.bin; do
 done
 
 cp **/**/*.elf artifacts/ 2>/dev/null || true
+for build_dir_path in build/*/ ; do
+  build_dir_path=${build_dir_path::${#build_dir_path}-1}
+  build_dir=${build_dir_path#*/}
+  mkdir artifacts/$build_dir
+  find artifacts/ -maxdepth 1 -type f -name "*$build_dir*"
+  # Airframe
+  cp $build_dir_path/airframes.xml artifacts/$build_dir/
+  # Parameters
+  cp $build_dir_path/parameters.xml artifacts/$build_dir/
+  cp $build_dir_path/parameters.json artifacts/$build_dir/
+  cp $build_dir_path/parameters.json.xz artifacts/$build_dir/
+  # Actuators
+  cp $build_dir_path/actuators.json artifacts/$build_dir/
+  cp $build_dir_path/actuators.json.xz artifacts/$build_dir/
+  # Events
+  cp $build_dir_path/events/all_events.json.xz artifacts/$build_dir/
+  # ROS 2 msgs
+  cp $build_dir_path/events/all_events.json.xz artifacts/$build_dir/
+  # Module Docs
+  ls -la artifacts/$build_dir
+  echo "----------"
+done
+
+if [ -d artifacts/px4_sitl_default ]; then
+  # general metadata
+  mkdir artifacts/_general/
+  cp artifacts/px4_sitl_default/airframes.xml artifacts/_general/
+  # Airframe
+  cp artifacts/px4_sitl_default/airframes.xml artifacts/_general/
+  # Parameters
+  cp artifacts/px4_sitl_default/parameters.xml artifacts/_general/
+  cp artifacts/px4_sitl_default/parameters.json artifacts/_general/
+  cp artifacts/px4_sitl_default/parameters.json.xz artifacts/_general/
+  # Actuators
+  cp artifacts/px4_sitl_default/actuators.json artifacts/_general/
+  cp artifacts/px4_sitl_default/actuators.json.xz artifacts/_general/
+  # Events
+  cp artifacts/px4_sitl_default/events/all_events.json.xz artifacts/_general/
+  # ROS 2 msgs
+  cp artifacts/px4_sitl_default/events/all_events.json.xz artifacts/_general/
+  # Module Docs
+  ls -la artifacts/_general/
+fi
+
 for build_dir_path in build/*/ ; do
   build_dir_path=${build_dir_path::${#build_dir_path}-1}
   build_dir=${build_dir_path#*/}
