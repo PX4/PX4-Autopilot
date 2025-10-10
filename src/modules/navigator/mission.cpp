@@ -263,6 +263,10 @@ void Mission::setActiveMissionItems()
 			pos_sp_triplet->next.valid = false;
 		}
 
+	} else if (_mission_item.nav_cmd == NAV_CMD_DELAY) {
+		// Invalidate next waypoint to ensure vehicle holds position and doesn't try to track ahead
+		pos_sp_triplet->next.valid = false;
+
 	} else {
 		handleVtolTransition(new_work_item_type, next_mission_items, num_found_items);
 	}
