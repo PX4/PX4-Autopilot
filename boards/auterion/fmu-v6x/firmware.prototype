@@ -1,0 +1,13 @@
+{
+    "board_id": 53,
+    "magic": "AutFWv1",
+    "description": "Firmware for the AutFMUv6X board",
+    "image": "",
+    "build_time": 0,
+    "summary": "AutFMUv6X",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1966080,
+    "git_identity": "",
+    "board_revision": 0
+}

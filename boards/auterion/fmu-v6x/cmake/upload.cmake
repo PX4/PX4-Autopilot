@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,46 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
-	add_compile_definitions(BOOTLOADER)
-	add_library(drivers_board
-		bootloader_main.c
-		init.cpp
-		usb.c
-		timer_config.cpp
-	)
-	target_link_libraries(drivers_board
-		PRIVATE
-			nuttx_arch # sdio
-			nuttx_drivers # sdio
-			px4_layer #gpio
-			arch_io_pins # iotimer
-			bootloader
-	)
-	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
 
-else()
-	add_library(drivers_board
-		can.c
-		i2c.cpp
-		init.cpp
-		led.c
-		mtd.cpp
-		sdio.c
-		spi.cpp
-		timer_config.cpp
-		usb.c
-	)
-	add_dependencies(drivers_board arch_board_hw_info)
 
-	target_link_libraries(drivers_board
-		PRIVATE
-			arch_io_pins
-			arch_spi
-			arch_board_hw_info
-			drivers__led # drv_led_start
-			nuttx_arch # sdio
-			nuttx_drivers # sdio
-			px4_layer
-	)
-endif()
+set(PX4_FW_NAME ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.px4)
+
+add_custom_target(upload_skynode_usb
+	COMMAND ${PX4_SOURCE_DIR}/Tools/auterion/upload_skynode.sh --file=${PX4_FW_NAME}
+	DEPENDS ${PX4_FW_NAME}
+	COMMENT "Uploading PX4"
+	USES_TERMINAL
+)
+
+add_custom_target(upload_skynode_wifi
+	COMMAND ${PX4_SOURCE_DIR}/Tools/auterion/upload_skynode.sh --file=${PX4_FW_NAME} --wifi
+	DEPENDS ${PX4_FW_NAME}
+	COMMENT "Uploading PX4"
+	USES_TERMINAL
+)
