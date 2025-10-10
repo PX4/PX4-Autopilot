@@ -144,7 +144,7 @@ public:
 	bool update(void *dst)
 	{
 		if (subscribe()) {
-			return Manager::orb_data_copy(_node, dst, _last_generation, true);
+			return Manager::orb_data_copy(_node, dst, _last_generation, false);
 		}
 
 		return false;
@@ -157,7 +157,7 @@ public:
 	bool copy(void *dst)
 	{
 		if (subscribe()) {
-			return Manager::orb_data_copy(_node, dst, _last_generation, false);
+			return Manager::orb_data_copy(_node, dst, _last_generation, true);
 		}
 
 		return false;
