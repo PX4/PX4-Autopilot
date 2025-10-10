@@ -70,6 +70,32 @@ PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
 PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 
 /**
+ * u-blox GPS minimum satellite signal level for navigation
+ *
+ * @min 0
+ * @max 255
+ * @unit dBHz
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MIN_CNO, 6);
+
+/**
+ * u-blox GPS minimum elevation for a GNSS satellite to be used in navigation
+ *
+ * @min 0
+ * @max 127
+ * @unit deg
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MIN_ELEV, 10);
+
+/**
  * Enable sat info (if available)
  *
  * Enable publication of satellite info (ORB_ID(satellite_info)) if possible.

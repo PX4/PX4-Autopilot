@@ -736,6 +736,20 @@ GPS::run()
 		param_get(handle, &gps_ubx_dynmodel);
 	}
 
+	int32_t gps_ubx_min_cno = 6;
+	handle = param_find("GPS_UBX_MIN_CNO");
+	
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_ubx_min_cno);
+	}
+	
+	int32_t gps_ubx_min_elev = 10;
+	handle = param_find("GPS_UBX_MIN_ELEV");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_ubx_min_elev);
+	}
+
 	handle = param_find("GPS_UBX_MODE");
 
 	GPSDriverUBX::UBXMode ubx_mode{GPSDriverUBX::UBXMode::Normal};
@@ -877,7 +891,7 @@ GPS::run()
 		/* FALLTHROUGH */
 		case gps_driver_mode_t::UBX:
 			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_sensor_gps, _p_report_sat_info,
-						   gps_ubx_dynmodel, heading_offset, f9p_uart2_baudrate, ubx_mode);
+						   gps_ubx_dynmodel, heading_offset, f9p_uart2_baudrate, ubx_mode, gps_ubx_min_cno, gps_ubx_min_elev);
 			set_device_type(DRV_GPS_DEVTYPE_UBX);
 			break;
 #ifndef CONSTRAINED_FLASH
