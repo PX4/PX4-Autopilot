@@ -473,6 +473,10 @@
 
 #define BOARD_NUM_IO_TIMERS 5
 
+/* No CDCACM driver for this board, so this is manually defined for version.c
+ * so that the px4_board_version reports the correct board id to the companion */
+#define CONFIG_CDCACM_PRODUCTID 53
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
