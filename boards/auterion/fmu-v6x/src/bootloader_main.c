@@ -48,11 +48,8 @@
 #include "arm_internal.h"
 #include <px4_platform_common/init.h>
 
-extern int sercon_main(int c, char **argv);
-
 void board_late_initialize(void)
 {
-	sercon_main(0, NULL);
 }
 
 extern void sys_tick_handler(void);

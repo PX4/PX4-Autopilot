@@ -57,17 +57,12 @@
  */
 
 /* Boot device selection list*/
-#define USB0_DEV       0x01
 #define SERIAL0_DEV    0x02
 #define SERIAL1_DEV    0x04
 
 #define APP_LOAD_ADDRESS               0x08020000
 #define BOOTLOADER_DELAY               5000
-#define INTERFACE_USB                  1
-#define INTERFACE_USB_CONFIG           "/dev/ttyACM0"
-#define BOARD_VBUS                     MK_GPIO_INPUT(GPIO_OTGFS_VBUS)
-
-//#define USE_VBUS_PULL_DOWN
+#define INTERFACE_USB                  0
 #define INTERFACE_USART                1
 #define INTERFACE_USART_CONFIG         "/dev/ttyS0,1500000"
 #define BOOT_DELAY_ADDRESS             0x000001a0
@@ -84,6 +79,10 @@
 #define BOARD_LED_OFF                  1
 
 #define SERIAL_BREAK_DETECT_DISABLED   1
+
+// Connected to VBUS on the Auterion FMU v6x
+#define BOARD_FORCE_BL_PIN             (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTA|GPIO_PIN9)
+#define BOARD_FORCE_BL_STATE           1
 
 /*
  * Uncommenting this allows to force the bootloader through
@@ -118,11 +117,11 @@
 #endif
 
 #ifndef BOOT_DEVICES_SELECTION
-#  define BOOT_DEVICES_SELECTION USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
+#  define BOOT_DEVICES_SELECTION SERIAL0_DEV|SERIAL1_DEV
 #endif
 
 #ifndef BOOT_DEVICES_FILTER_ONUSB
-#  define BOOT_DEVICES_FILTER_ONUSB USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
+#  define BOOT_DEVICES_FILTER_ONUSB SERIAL0_DEV|SERIAL1_DEV
 #endif
 
 #endif /* HW_CONFIG_H_ */
