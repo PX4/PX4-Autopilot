@@ -283,30 +283,6 @@ PARAM_DEFINE_FLOAT(SIH_LOC_LON0, 8.545594f);
 PARAM_DEFINE_FLOAT(SIH_LOC_H0, 489.4f);
 
 /**
- * distance sensor minimum range
- *
- * @unit m
- * @min 0.0
- * @max 10.0
- * @decimal 4
- * @increment 0.01
- * @group Simulation In Hardware
- */
-PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MIN, 0.0f);
-
-/**
- * distance sensor maximum range
- *
- * @unit m
- * @min 0.0
- * @max 1000.0
- * @decimal 4
- * @increment 0.01
- * @group Simulation In Hardware
- */
-PARAM_DEFINE_FLOAT(SIH_DISTSNSR_MAX, 100.0f);
-
-/**
  * if >= 0 the distance sensor measures will be overridden by this value
  *
  * Absolute value superior to 10000 will disable distance sensor
