@@ -33,6 +33,9 @@
 
 project(px4_gz_plugins)
 
+# Option to enable building ROS2 dependent plugins
+option(BUILD_ROS2_PLUGINS "Enable building ROS2 dependent plugins" OFF)
+
 if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")
     find_package(gz-transport NAMES gz-transport gz-transport14 gz-transport13)
     find_package(gz-sim NAMES gz-sim gz-sim9 gz-sim8)
@@ -71,10 +74,31 @@ if (gz-transport_FOUND)
     add_subdirectory(buoyancy)
     add_subdirectory(spacecraft_thruster)
 
-    # Add an alias target for each plugin
-    if (TARGET GstCameraSystem)
-        add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem MovingPlatformController TemplatePlugin GenericMotorModelPlugin BuoyancySystemPlugin GstCameraSystem SpacecraftThrusterModelPlugin)
-    else()
-        add_custom_target(px4_gz_plugins ALL DEPENDS OpticalFlowSystem MovingPlatformController TemplatePlugin GenericMotorModelPlugin BuoyancySystemPlugin SpacecraftThrusterModelPlugin)
+    # Add ROS2 dependent plugins if BUILD_ROS2_PLUGINS is enabled
+    if (BUILD_ROS2_PLUGINS)
+        message(STATUS "BUILD_ROS2_PLUGINS enabled - motor_failure plugin will be built")
+        add_subdirectory(motor_failure)
     endif()
+
+    # Add an alias target for each plugin
+    set(PX4_GZ_PLUGIN_DEPS
+        OpticalFlowSystem
+        MovingPlatformController
+        TemplatePlugin
+        GenericMotorModelPlugin
+        BuoyancySystemPlugin
+        SpacecraftThrusterModelPlugin
+    )
+
+    # Add GStreamer plugin if available
+    if (TARGET GstCameraSystem)
+        list(APPEND PX4_GZ_PLUGIN_DEPS GstCameraSystem)
+    endif()
+
+    # Add ROS2 dependent plugins if BUILD_ROS2_PLUGINS is enabled
+    if (BUILD_ROS2_PLUGINS AND TARGET MotorFailurePlugin)
+        list(APPEND PX4_GZ_PLUGIN_DEPS MotorFailurePlugin)
+    endif()
+
+    add_custom_target(px4_gz_plugins ALL DEPENDS ${PX4_GZ_PLUGIN_DEPS})
 endif()
