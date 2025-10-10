@@ -89,6 +89,16 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 			_voltage_low_hysteresis.set_state_and_update(avionics_power_rail_voltage < low_error_threshold, now);
 			_voltage_high_hysteresis.set_state_and_update(avionics_power_rail_voltage > high_error_threshold, now);
 
+			static float latest_low_failure_val = 0.0f;
+			static float latest_high_failure_val = 0.0f;
+
+			if(avionics_power_rail_voltage < low_error_threshold){
+				latest_low_failure_val = avionics_power_rail_voltage;
+			}
+			if(avionics_power_rail_voltage > high_error_threshold){
+				latest_high_failure_val = avionics_power_rail_voltage;
+			}
+
 			if (_voltage_low_hysteresis.get_state()) {
 
 				/* EVENT
@@ -101,11 +111,11 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 				 */
 				reporter.healthFailure<float, float>(NavModes::All, health_component_t::system,
 								     events::ID("check_avionics_power_low"),
-								     events::Log::Error, "Avionics Power low: {1:.2} Volt", avionics_power_rail_voltage, low_error_threshold);
+								     events::Log::Error, "Avionics Power low: {1:.2} Volt", latest_low_failure_val, low_error_threshold);
 
 				if (reporter.mavlink_log_pub()) {
 					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Avionics Power low: %6.2f Volt",
-							     (double)avionics_power_rail_voltage);
+							     (double)latest_low_failure_val);
 				}
 
 			} else if (_voltage_high_hysteresis.get_state()) {
@@ -119,11 +129,11 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 				 */
 				reporter.healthFailure<float, float>(NavModes::All, health_component_t::system,
 								     events::ID("check_avionics_power_high"),
-								     events::Log::Error, "Avionics Power high: {1:.2} Volt", avionics_power_rail_voltage, high_error_threshold);
+								     events::Log::Error, "Avionics Power high: {1:.2} Volt", latest_high_failure_val, high_error_threshold);
 
 				if (reporter.mavlink_log_pub()) {
 					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Avionics Power high: %6.2f Volt",
-							     (double)avionics_power_rail_voltage);
+							     (double)latest_high_failure_val);
 				}
 			}
 
