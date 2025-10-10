@@ -23,7 +23,7 @@ public:
 
 
 private:
-	uORB::PublicationMulti<adc_report_s> _to_adc_report{ORB_ID(adc_report)};
+	uORB::PublicationMulti<adc_report_s> _adc_report_pub{ORB_ID(adc_report)};
 
 	static const hrt_abstime SAMPLE_INTERVAL{50_ms};
 
