@@ -645,20 +645,20 @@ menu "Zenoh publishers/subscribers"
 		bool "rover_rate_status"
 		default n
 
+	config ZENOH_PUBSUB_ROVER_SPEED_SETPOINT
+		bool "rover_speed_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_SPEED_STATUS
+		bool "rover_speed_status"
+		default n
+
 	config ZENOH_PUBSUB_ROVER_STEERING_SETPOINT
 		bool "rover_steering_setpoint"
 		default n
 
 	config ZENOH_PUBSUB_ROVER_THROTTLE_SETPOINT
 		bool "rover_throttle_setpoint"
-		default n
-
-	config ZENOH_PUBSUB_ROVER_VELOCITY_SETPOINT
-		bool "rover_velocity_setpoint"
-		default n
-
-	config ZENOH_PUBSUB_ROVER_VELOCITY_STATUS
-		bool "rover_velocity_status"
 		default n
 
 	config ZENOH_PUBSUB_RPM
@@ -703,6 +703,10 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_SENSOR_GNSS_RELATIVE
 		bool "sensor_gnss_relative"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_GNSS_STATUS
+		bool "sensor_gnss_status"
 		default n
 
 	config ZENOH_PUBSUB_SENSOR_GPS
@@ -1103,10 +1107,10 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_ROVER_POSITION_SETPOINT
 	select ZENOH_PUBSUB_ROVER_RATE_SETPOINT
 	select ZENOH_PUBSUB_ROVER_RATE_STATUS
+	select ZENOH_PUBSUB_ROVER_SPEED_SETPOINT
+	select ZENOH_PUBSUB_ROVER_SPEED_STATUS
 	select ZENOH_PUBSUB_ROVER_STEERING_SETPOINT
 	select ZENOH_PUBSUB_ROVER_THROTTLE_SETPOINT
-	select ZENOH_PUBSUB_ROVER_VELOCITY_SETPOINT
-	select ZENOH_PUBSUB_ROVER_VELOCITY_STATUS
 	select ZENOH_PUBSUB_RPM
 	select ZENOH_PUBSUB_RTL_STATUS
 	select ZENOH_PUBSUB_RTL_TIME_ESTIMATE
@@ -1118,6 +1122,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_SENSOR_COMBINED
 	select ZENOH_PUBSUB_SENSOR_CORRECTION
 	select ZENOH_PUBSUB_SENSOR_GNSS_RELATIVE
+	select ZENOH_PUBSUB_SENSOR_GNSS_STATUS
 	select ZENOH_PUBSUB_SENSOR_GPS
 	select ZENOH_PUBSUB_SENSOR_GYRO
 	select ZENOH_PUBSUB_SENSOR_GYRO_FFT
