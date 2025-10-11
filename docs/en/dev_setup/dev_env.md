@@ -4,13 +4,13 @@ The _supported platforms_ for PX4 development are:
 
 - [Ubuntu Linux (24.04/22.04)](../dev_setup/dev_env_linux_ubuntu.md) — Recommended
 - [Windows (10/11)](../dev_setup/dev_env_windows_wsl.md) — via WSL2
-- [Mac OS](../dev_setup/dev_env_mac.md)
+- [macOS](../dev_setup/dev_env_mac.md)
 
 ## Supported Targets
 
 The table below shows what PX4 targets you can build on each OS.
 
-| Target                                                                                                                                 | Linux (Ubuntu) | Mac | Windows |
+| Target                                                                                                                                 | Linux (Ubuntu) | macOS | Windows |
 | -------------------------------------------------------------------------------------------------------------------------------------- | :------------: | :-: | :-----: |
 | **NuttX based hardware:** [Pixhawk Series](../flight_controller/pixhawk_series.md), [Crazyflie](../complete_vehicles_mc/crazyflie2.md) |       ✓        |  ✓  |    ✓    |
 | **Linux-based hardware:** [Raspberry Pi 2/3](../flight_controller/raspberry_pi_navio2.md)                                              |       ✓        |     |         |
