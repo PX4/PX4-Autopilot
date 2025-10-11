@@ -42,6 +42,11 @@
 
 #include "DShotTelemetry.h"
 
+#include <uORB/topics/esc_flasher_request.h>
+#include <uORB/topics/esc_flasher_request_ack.h>
+#include <uORB/topics/esc_flasher_status.h>
+#include <uORB/topics/esc_flasher_versions.h>
+
 using namespace time_literals;
 
 #if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
@@ -76,6 +81,8 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
+	void retrieve_and_print_esc_info_thread_safe(const int motor_index);
+
 	/**
 	 * Send a dshot command to one or all motors
 	 * This is expected to be called from another thread.
@@ -92,6 +99,9 @@ public:
 
 	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+			   unsigned num_outputs, unsigned num_control_groups_updated);// override;
 
 private:
 
@@ -121,13 +131,15 @@ private:
 
 	void enable_dshot_outputs(const bool enabled);
 
-	void init_telemetry(const char *device, bool swap_rxtx);
+	void init_telemetry(const char *device);
 
 	int handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data, bool ignore_rpm);
 
 	void publish_esc_status(void);
 
 	int handle_new_bdshot_erpm(void);
+
+	int request_esc_info();
 
 	void Run() override;
 
@@ -137,7 +149,13 @@ private:
 
 	void handle_vehicle_commands();
 
-	uint16_t convert_output_to_3d_scaling(uint16_t output);
+	void handle_esc_flasher_requests();
+
+	void run_get_esc_info();
+
+	int retrieve_and_print_esc_info_non_blocking(const int motor_index);
+
+	int retrieve_and_print_esc_info_check_result(uint8_t* fw_ver_major, uint8_t* fw_ver_minor);
 
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uint32_t _reversible_outputs{};
@@ -147,31 +165,78 @@ private:
 	uORB::PublicationMultiData<esc_status_s> esc_status_pub{ORB_ID(esc_status)};
 
 	static char _telemetry_device[20];
-	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
 
 	px4::atomic<Command *> _new_command{nullptr};
 
+	px4::atomic<DShotTelemetry::OutputBuffer *> _request_esc_info{nullptr};
 
 	bool _outputs_initialized{false};
 	bool _outputs_on{false};
+	bool _waiting_for_esc_info{false};
 	bool _bidirectional_dshot_enabled{false};
+
+	const char *esc_type_unknown = "Unknown";
+	const char *esc_type_am32 = "AM32";
+	const char *esc_type_blheli32 = "BLHeli32";
+	const char *esc_type_am32_old = "AM32_Old";
+	const char *esc_type_bluejay = "BlueJay";
+
+	const char* esc_types_strings[5] = {esc_type_unknown, esc_type_am32, esc_type_blheli32, esc_type_am32_old, esc_type_bluejay};
+
+	enum class ESCType {
+		Unknown = 0,
+		AM32 = 1,
+		BLHELI32 = 2,
+		AM32_Old = 3,
+		BlueJay = 4
+	};
+	ESCType _esc_type{ESCType::Unknown};
+	ESCType _esc_type_temp{ESCType::Unknown};
+
+	esc_flasher_request_s _esc_flasher_request{0};
+	esc_flasher_request_ack_s _esc_flasher_response{0};
+	uint32_t esc_flasher_esc_info_state{0};
+	uint32_t esc_flasher_esc_info_motor_index;
+	uint32_t esc_flasher_flashing_state{0};
+	DShotTelemetry::OutputBuffer esc_flasher_output_buffer{};
 
 	static constexpr unsigned _num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
 	uint32_t _output_mask{0};
 
 	int _num_motors{0};
+	uint32_t _broken_esc{0};
+	bool _broken_esc_flag{0};
+
+	// run_get_esc_info variables
+	struct EscInfoSave {
+		ESCType type;
+		uint8_t fw_major;
+		uint8_t fw_minor;
+	};
+
+	EscInfoSave _esc_info_save[esc_status_s::CONNECTED_ESC_MAX];
+
+	uint64_t get_esc_info_time{0};
+	uint32_t get_esc_info_state{0};
+	uint32_t get_esc_info_motor_index{0};
+	uint32_t get_esc_info_start{0};
+	uint32_t get_esc_info_boot{0};
+	uint32_t get_esc_info_tries{0};
+	//uint32_t get_esc_info_debug{0};
 
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t	_bdshot_rpm_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot rpm")};
-	perf_counter_t	_dshot_telem_perf{perf_alloc(PC_COUNT, MODULE_NAME": dshot telem")};
 
 	Command _current_command{};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Subscription _esc_flasher_request_sub{ORB_ID(esc_flasher_request)};
+	uORB::Subscription _esc_flasher_status_sub{ORB_ID(esc_flasher_status)};
+	uORB::Publication<esc_flasher_request_ack_s> _esc_flasher_request_ack_pub{ORB_ID(esc_flasher_request_ack)};
 	uint16_t _esc_status_counter{0};
+	uORB::Publication<esc_flasher_versions_s> _esc_flasher_versions_pub{ORB_ID(esc_flasher_versions)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::DSHOT_MIN>)    _param_dshot_min,
@@ -179,6 +244,7 @@ private:
 		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
 		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count,
-		(ParamBool<px4::params::DSHOT_BIDIR_EN>) _param_bidirectional_enable
+		(ParamBool<px4::params::DSHOT_BIDIR_EN>) _param_bidirectional_enable,
+		(ParamInt<px4::params::ESC_TYPE>) _param_esc_type
 	)
 };
