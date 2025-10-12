@@ -1,7 +1,7 @@
 # Запуск системи
 
 Запуск PX4 контрольований скриптами оболонки.
-На NuttX вони знаходяться у директорії [ROMFS/px4fmu_common/init.d](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d), деякі з них також використовуються на Posix системах (Linux/MacOS).
+On NuttX they reside in the [ROMFS/px4fmu_common/init.d](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d) folder - some of these are also used on Posix (Linux/macOS).
 Скрипти які використовуються тільки на Posix системах знаходяться у [ROMFS/px4fmu_common/init.d-posix](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d-posix).
 
 Усі файли, які починаються з числа і підкреслення (наприклад, `10000_airaipl`) є попередньо визначеними конфігураціями планерів.
@@ -13,7 +13,7 @@ They are exported at build-time into an `airframes.xml` file which is parsed by 
 
 Наступні секції розділені відповідно до операційної системи, на яких виконується PX4.
 
-## POSIX (Linux/MacOS)
+## POSIX (Linux/macOS)
 
 On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being symlinked to dash on Ubuntu).
 Щоб це працювало потрібно кілька речей:
