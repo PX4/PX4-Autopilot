@@ -502,6 +502,7 @@ Since the Definitions and Data Sections use the same message header format, they
 - [ulogreader](https://github.com/maxsun/ulogreader): Javascript, ULog reader and parser outputs log in JSON object format.
 - [Foxglove](https://foxglove.dev): an integrated visualization and diagnosis tool for robotics data that supports ULog files.
 - [TypeScript ULog parser](https://github.com/foxglove/ulog): TypeScript, ULog reader that outputs JS objects.
+- [yule_log](https://crates.io/crates/yule_log): A streaming ULog parser written in Rust.
 
 ## 파일 형식 버전 이력
 
