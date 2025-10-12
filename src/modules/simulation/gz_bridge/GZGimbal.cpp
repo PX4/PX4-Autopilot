@@ -228,7 +228,7 @@ void GZGimbal::publishDeviceAttitude()
 void GZGimbal::publishJointCommand(gz::transport::Node::Publisher &publisher, const float att_stp, const float rate_stp,
 				   float &last_stp, const float min_stp, const float max_stp, const float dt)
 {
-	gz::msgs::Double msg;
+	gz::msgs::Float msg;
 
 	float new_stp = computeJointSetpoint(att_stp, rate_stp, last_stp, dt);
 	new_stp = math::constrain(new_stp, min_stp, max_stp);
