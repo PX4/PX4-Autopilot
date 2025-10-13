@@ -92,10 +92,11 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 			static float latest_low_failure_val = 0.0f;
 			static float latest_high_failure_val = 0.0f;
 
-			if(avionics_power_rail_voltage < low_error_threshold){
+			if (avionics_power_rail_voltage < low_error_threshold) {
 				latest_low_failure_val = avionics_power_rail_voltage;
 			}
-			if(avionics_power_rail_voltage > high_error_threshold){
+
+			if (avionics_power_rail_voltage > high_error_threshold) {
 				latest_high_failure_val = avionics_power_rail_voltage;
 			}
 
