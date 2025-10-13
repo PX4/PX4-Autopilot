@@ -199,7 +199,7 @@ void Ekf::resetYawByFusion(const float yaw, const float yaw_variance)
 
 void Ekf::resetHorizontalVelocityToMatchYaw(const float delta_yaw)
 {
-	if (fabsf(delta_yaw) > 0.3f) {
+	if (!isNorthEastAidingActive() && fabsf(delta_yaw) > 0.3f) {
 		const matrix::Dcm2f R_yaw(delta_yaw);
 		const Vector2f vel_rotated = R_yaw * Vector2f(_state.vel);
 		const float vel_var = fmaxf(P(State::vel.idx, State::vel.idx), P(State::vel.idx + 1, State::vel.idx + 1));
