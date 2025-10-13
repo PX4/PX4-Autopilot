@@ -13,6 +13,7 @@ OSD=DISABLE
 DAEMON_MODE=DISABLE
 SENSOR_CAL=ACTUAL
 ARTIFACT_MODE=DISABLE
+HITL=DISABLE
 EXTRA_STEPS=()
 
 # Try to source configuration variables from a file.
@@ -51,6 +52,7 @@ print_usage() {
     echo "                [-o (Start OSD module on the apps processor)]"
     echo "                [-p (Specify Fixed Wing airframe selected)]"
     echo "                [-r (Specify TBS Crossfire RC receiver, MAVLINK)]"
+    echo "                [-s (Start in HITL simulation mode)]"
     echo "                [-w (Specify TBS Crossfire RC receiver, raw)]"
     echo "                [-z (Use fake sensor calibration values)]"
     echo "                [-h (show help)]"
@@ -71,6 +73,8 @@ print_config_settings(){
     echo "DAEMON_MODE=$DAEMON_MODE"
     echo "SENSOR_CAL=$SENSOR_CAL"
     echo "ARTIFACT_MODE=$ARTIFACT_MODE"
+    echo "HITL=$HITL"
+
     echo "EXTRA STEPS:"
     for i in "${EXTRA_STEPS[@]}"
     do
@@ -79,7 +83,7 @@ print_config_settings(){
     echo -e "*************************\n"
 }
 
-while getopts "abcdhfmoprwz" flag
+while getopts "abcdhfmoprswz" flag
 do
     case "${flag}" in
         a)
@@ -124,6 +128,10 @@ do
             echo "[INFO] TBS Crossfire RC receiver, MAVLINK selected"
             RC=CRSF_MAV
             ;;
+        s)
+            echo "[INFO] HITL simulation selected"
+            HITL=ENABLED
+            ;;
         w)
             echo "[INFO] TBS Crossfire RC receiver, raw selected"
             RC=CRSF_RAW
@@ -153,6 +161,10 @@ fi
 
 print_config_settings
 
-AIRFRAME=$AIRFRAME GPS=$GPS RC=$RC ESC=$ESC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
-AIRSPEED_SENSOR=$AIRSPEED_SENSOR OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS ARTIFACT_MODE=$ARTIFACT_MODE \
-px4 $DAEMON -s /usr/bin/voxl-px4-start
+if [ $HITL == "ENABLED" ]; then
+   px4 -s /usr/bin/voxl-px4-hitl-start
+else
+   AIRFRAME=$AIRFRAME GPS=$GPS RC=$RC ESC=$ESC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
+   AIRSPEED_SENSOR=$AIRSPEED_SENSOR OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS ARTIFACT_MODE=$ARTIFACT_MODE \
+   px4 $DAEMON -s /usr/bin/voxl-px4-start
+fi
