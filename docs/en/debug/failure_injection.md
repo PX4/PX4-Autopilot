@@ -61,11 +61,11 @@ where:
 - _instance number_ (optional): Instance number of affected sensor.
   0 (default) indicates all sensors of specified type.
 
-### Example
+### Example: RC signal
 
 To simulate losing RC signal without having to turn off your RC controller:
 
-1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN). And specifically to turn off motors also [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
+1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN).
 1. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
@@ -74,6 +74,21 @@ To simulate losing RC signal without having to turn off your RC controller:
 
    # Restart RC publishing
    failure rc_signal ok
+   ```
+
+### Example: Motor
+
+To stop a motor mid-flight without the system anticipating it or excluding it from allocation effectiveness:
+
+1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN). And specifically to allow turning off motors also enable [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
+1. Enter the following commands on the MAVLink console or SITL _pxh shell_:
+
+   ```sh
+   # Turn off first motor
+   failure motor off -i 1
+
+   # Turn it back on
+   failure motor ok -i 1
    ```
 
 ## MAVSDK Failure Plugin
