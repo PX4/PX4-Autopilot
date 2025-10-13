@@ -46,6 +46,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_selector_status.h>
@@ -56,6 +57,7 @@
 #include <uORB/topics/sensor_gyro_fifo.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/internal_combustion_engine_status.h>
 
 using namespace time_literals;
 
@@ -82,6 +84,7 @@ private:
 	inline float FilterAngularAcceleration(int axis, float inverse_dt_s, float data[], int N = 1);
 
 	void DisableDynamicNotchEscRpm();
+	void DisableDynamicNotchIceRpm();
 	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
 
@@ -89,6 +92,8 @@ private:
 	void SensorBiasUpdate(bool force = false);
 	bool SensorSelectionUpdate(const hrt_abstime &time_now_us, bool force = false);
 	void UpdateDynamicNotchEscRpm(const hrt_abstime &time_now_us, bool force = false);
+	void UpdateDynamicNotchIceRpm(const hrt_abstime &time_now_us, bool force = false);
+
 	void UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, bool force = false);
 	bool UpdateSampleRate();
 
@@ -104,6 +109,8 @@ private:
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
+	uORB::SubscriptionMultiArray<internal_combustion_engine_status_s> _ice_status_sub{ORB_ID::internal_combustion_engine_status};
+
 	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
 #endif // !CONSTRAINED_FLASH
 
@@ -138,6 +145,7 @@ private:
 	enum DynamicNotch {
 		EscRpm = 1,
 		FFT    = 2,
+		IceRpm = 4,
 	};
 
 	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 3_s;
@@ -148,13 +156,28 @@ private:
 	using NotchFilterHarmonic = math::NotchFilter<float>[3][MAX_NUM_ESCS];
 	NotchFilterHarmonic *_dynamic_notch_filter_esc_rpm{nullptr};
 
+	// Internal Combustion Engine (ICE) dynamic notch filters (separate storage)
+	static constexpr int MAX_NUM_ICE_ENGINES = 5;
+	using NotchFilterIceHarmonic = math::NotchFilter<float>[3][MAX_NUM_ICE_ENGINES];
+	NotchFilterIceHarmonic *_dynamic_notch_filter_ice_rpm{nullptr};
+
 	int _esc_rpm_harmonics{0};
+
+	int _ice_rpm_harmonics{0};
 	px4::Bitset<MAX_NUM_ESCS> _esc_available{};
 	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESCS] {};
+
+	// ICE availability/timeouts (separate from ESC)
+	px4::Bitset<MAX_NUM_ICE_ENGINES> _ice_available{};
+	hrt_abstime _last_ice_rpm_notch_update[MAX_NUM_ICE_ENGINES] {};
 
 	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_init_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
+
+	perf_counter_t _dynamic_notch_filter_ice_rpm_disable_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_ice_rpm_init_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_ice_rpm_update_perf{nullptr};
 
 	// FFT
 	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x)
