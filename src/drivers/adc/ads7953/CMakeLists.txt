@@ -39,6 +39,8 @@ px4_add_module(
 		ADS7953.cpp
 		ADS7953.h
 		ads7953_main.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		px4_work_queue
 	)

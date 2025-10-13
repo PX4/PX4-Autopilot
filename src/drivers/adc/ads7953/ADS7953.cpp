@@ -3,11 +3,23 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <drivers/drv_adc.h>
+#include <parameters/param.h>
 
 ADS7953::ADS7953(const I2CSPIDriverConfig &config) :
 	SPI(config),
-	I2CSPIDriver(config)
+	I2CSPIDriver(config),
+	ModuleParams(nullptr)
 {
+}
+
+
+void ADS7953::parameters_update()
+{
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+		updateParams();
+	}
 }
 
 int ADS7953::init()
@@ -15,22 +27,19 @@ int ADS7953::init()
 	int ret = SPI::init();
 
 	if (ret != PX4_OK) {
-		DEVICE_DEBUG("SPI::init failed (%i)", ret);
+		PX4_DEBUG("SPI::init failed (%i)", ret);
 		return ret;
 	}
 
-	float ref_volt = 2.5f;
-	param_get(param_find("ADC_ADS7953_REFV"), &ref_volt);
-
 	_adc_report.device_id = this->get_device_id();
-	_adc_report.v_ref = ref_volt;
+	_adc_report.v_ref = _adc_ads7953_refv.get();
 	_adc_report.resolution = 4096;
 
 	for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 		_adc_report.channel_id[i] = -1;
 	}
 
-	ScheduleNow();
+	ScheduleOnInterval(10_ms);
 	return PX4_OK;
 }
 
@@ -44,7 +53,7 @@ int ADS7953::probe()
 	int ret = rw_msg(&recv_data[0], 1, true);
 
 	if (ret != PX4_OK) {
-		DEVICE_DEBUG("ADS7953 probing failed (%i)", ret);
+		PX4_DEBUG("ADS7953 probing failed (%i)", ret);
 		return ret;
 	}
 
@@ -52,7 +61,7 @@ int ADS7953::probe()
 	ret = rw_msg(&recv_data[0], 0, true);
 
 	if (ret != PX4_OK || (recv_data[0] >> 4) != 1U) {
-		DEVICE_DEBUG("ADS7953 probing failed (%i)", ret);
+		PX4_DEBUG("ADS7953 probing failed (%i)", ret);
 		return PX4_ERROR;
 	}
 
@@ -85,6 +94,7 @@ int ADS7953::get_measurements()
 	int count = 0;
 	uint16_t mask = 0x00;
 	uint8_t idx = 0;
+
 
 	while (count < 16) {
 		if (rw_msg(&recv_data[0], idx, true) == PX4_OK) {
@@ -123,6 +133,4 @@ void ADS7953::RunImpl()
 	for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 		_adc_report.channel_id[i] = -1;
 	}
-
-	ScheduleDelayed(10_ms);
 }

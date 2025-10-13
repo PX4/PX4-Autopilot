@@ -7,10 +7,15 @@
 #include <lib/parameters/param.h>
 #include <uORB/topics/adc_report.h>
 #include <uORB/PublicationMulti.hpp>
+#include <lib/mixer_module/mixer_module.hpp>
+#include <px4_platform_common/module_params.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/Subscription.hpp>
+
 using namespace time_literals;
 
 
-class ADS7953 : public device::SPI, public I2CSPIDriver<ADS7953>
+class ADS7953 : public device::SPI, public I2CSPIDriver<ADS7953>, public ModuleParams
 {
 public:
 	ADS7953(const I2CSPIDriverConfig &config);
@@ -23,9 +28,16 @@ public:
 
 
 private:
-	uORB::PublicationMulti<adc_report_s> _to_adc_report{ORB_ID(adc_report)};
-
 	static const hrt_abstime SAMPLE_INTERVAL{50_ms};
+	uORB::PublicationMulti<adc_report_s> _to_adc_report{ORB_ID(adc_report)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	void parameters_update();
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::ADC_ADS7953_EN>) _adc_ads7953_en,
+		(ParamFloat<px4::params::ADC_ADS7953_REFV>) _adc_ads7953_refv
+	)
 
 	adc_report_s _adc_report{};
 
