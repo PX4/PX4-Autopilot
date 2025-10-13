@@ -28,9 +28,10 @@ public:
 
 
 private:
-	static const hrt_abstime SAMPLE_INTERVAL{50_ms};
-	uORB::PublicationMulti<adc_report_s> _to_adc_report{ORB_ID(adc_report)};
+	uORB::PublicationMulti<adc_report_s> _adc_report_pub{ORB_ID(adc_report)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	static const hrt_abstime SAMPLE_INTERVAL{50_ms};
 
 	void parameters_update();
 
