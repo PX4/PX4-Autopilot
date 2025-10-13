@@ -60,6 +60,7 @@ enum CRSF_PAYLOAD_SIZE {
 	CRSF_PAYLOAD_SIZE_LINK_STATISTICS_TX = -1,
 	CRSF_PAYLOAD_SIZE_RC_CHANNELS = 22,
 	CRSF_PAYLOAD_SIZE_ATTITUDE = 6,
+	CRSF_PAYLOAD_SIZE_MSP_WRITE = -1, // -1 means variable length
 	CRSF_PAYLOAD_SIZE_ELRS_STATUS = -1, // unclear how large this message is
 };
 
@@ -127,12 +128,18 @@ static bool ProcessChannelData(const uint8_t *data, const uint32_t size, CrsfPac
 static bool ProcessLinkStatistics(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
 static bool ProcessLinkStatisticsTx(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
 static bool ProcessElrsStatus(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
+#ifdef CONFIG_DRIVERS_VTX
+static bool ProcessMspWrite(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
+#endif
 
 static const CrsfPacketDescriptor_t crsf_packet_descriptors[] = {
 	{CRSF_PACKET_TYPE_RC_CHANNELS_PACKED, CRSF_PAYLOAD_SIZE_RC_CHANNELS, ProcessChannelData},
 	{CRSF_PACKET_TYPE_LINK_STATISTICS, CRSF_PAYLOAD_SIZE_LINK_STATISTICS, ProcessLinkStatistics},
 	{CRSF_PACKET_TYPE_LINK_STATISTICS_TX, CRSF_PAYLOAD_SIZE_LINK_STATISTICS_TX, ProcessLinkStatisticsTx},
 	{CRSF_PACKET_TYPE_ELRS_STATUS, CRSF_PAYLOAD_SIZE_ELRS_STATUS, ProcessElrsStatus},
+#ifdef CONFIG_DRIVERS_VTX
+	{CRSF_PACKET_TYPE_MSP_WRITE, CRSF_PAYLOAD_SIZE_MSP_WRITE, ProcessMspWrite},
+#endif
 };
 #define CRSF_PACKET_DESCRIPTOR_COUNT  (sizeof(crsf_packet_descriptors) / sizeof(CrsfPacketDescriptor_t))
 
@@ -258,6 +265,84 @@ static bool ProcessElrsStatus(const uint8_t *data, const uint32_t size, CrsfPack
 
 	return true;
 }
+
+#ifdef CONFIG_DRIVERS_VTX
+#include <px4_platform_common/param.h>
+
+static bool ProcessMspWrite(const uint8_t *data, const uint32_t size, CrsfPacket_t *const)
+{
+	// Write the band/channel into the parameters, so it is thread-safe
+	// data contains the following:
+	// 0: CRSF v3: destination
+	// 1: CRSF v3: origin
+	// 2: CRSF v3: status
+	// 3: MSP: size
+	// 4: MSP: command
+	// 5: MSP: data[≤57]
+	// Try: crsf_rc inject 0x7C 0xC8 0xEA 0x30 0x4 0x59 0x22 0x0 0x1 0x0
+
+	static param_t param_vtx_map_config{0};
+	static param_t param_vtx_band{0};
+	static param_t param_vtx_channel{0};
+	static param_t param_vtx_frequency{0};
+	static param_t param_vtx_power{0};
+	static param_t param_vtx_pit_mode{0};
+
+	if (param_vtx_map_config == 0) {
+		// find parameters only once
+		param_vtx_map_config = param_find("VTX_MAP_CONFIG");
+	}
+
+	int32_t map_config{};
+	param_get(param_vtx_map_config, &map_config);
+
+	if (map_config == 0) {
+		// no mapping, just return
+		return false;
+	}
+
+	if (param_vtx_band == 0) {
+		// find parameters only once
+		param_vtx_band = param_find("VTX_BAND");
+		param_vtx_channel = param_find("VTX_CHANNEL");
+		param_vtx_frequency = param_find("VTX_FREQUENCY");
+		param_vtx_power = param_find("VTX_POWER");
+		param_vtx_pit_mode = param_find("VTX_PIT_MODE");
+	}
+
+	if (data[2] == 0x30 && data[4] == 0x59) {
+		const uint8_t length = data[3];
+
+		if (map_config == 1 || map_config == 2) {
+			// Status = bit4=new frame, bit5,6=MSPv1
+			// MSP command 0x59 is MSP_SET_VTX_CONFIG
+			uint32_t frequency = (data[6] << 8) | data[5];
+
+			if (frequency <= 0x3f) {
+				// first byte contains band and channel: 0b00bb'bccc
+				const int32_t band = (data[5] >> 3) & 0x07;
+				const int32_t channel = data[5] & 0x07;
+
+				param_set_no_notification(param_vtx_band, &band);
+				param_set_no_notification(param_vtx_channel, &channel);
+				frequency = 0; // Disable the frequency override
+			}
+
+			param_set_no_notification(param_vtx_frequency, &frequency);
+		}
+
+		if (length > 2 && (map_config == 1 || map_config == 3)) {
+			const int32_t pit_mode = (data[8] || (data[7] == 0)) ? 1 : 0;
+			param_set_no_notification(param_vtx_pit_mode, &pit_mode);
+			const int32_t power{pit_mode ? 0 : data[7] - 1};
+			param_set_no_notification(param_vtx_power, &power);
+		}
+	}
+
+	// nothing else is implemented yet
+	return false;
+}
+#endif
 
 static CrsfPacketDescriptor_t *FindCrsfDescriptor(const enum CRSF_PACKET_TYPE packet_type)
 {
