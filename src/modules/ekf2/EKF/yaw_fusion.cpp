@@ -142,7 +142,7 @@ void Ekf::resetQuatStateYaw(const float yaw, const float yaw_variance)
 	propagateQuatReset(quat_before_reset);
 
 	// rotate horizontal velocity by the yaw change
-	const float yaw_diff = wrap_pi(getEulerYaw(quat_before_reset) - yaw);
+	const float yaw_diff = wrap_pi(yaw - getEulerYaw(quat_before_reset));
 	resetHorizontalVelocityToMatchYaw(yaw_diff);
 }
 
@@ -194,7 +194,7 @@ void Ekf::resetYawByFusion(const float yaw, const float yaw_variance)
 
 	propagateQuatReset(quat_before_reset);
 
-	resetHorizontalVelocityToMatchYaw(aid_src_status.innovation);
+	resetHorizontalVelocityToMatchYaw(-aid_src_status.innovation);
 }
 
 void Ekf::resetHorizontalVelocityToMatchYaw(const float delta_yaw)
