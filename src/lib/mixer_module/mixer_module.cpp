@@ -83,7 +83,7 @@ MixingOutput::MixingOutput(const char *param_prefix, uint8_t max_num_outputs, Ou
 	_armed.prearmed = false;
 	_armed.ready_to_arm = false;
 	_armed.lockdown = false;
-	_armed.force_failsafe = false;
+	_armed.termination = false;
 	_armed.in_esc_calibration_mode = false;
 
 	px4_sem_init(&_lock, 0, 1);
@@ -458,7 +458,7 @@ bool MixingOutput::update()
 
 	// Send output if any function mapped or one last disabling sample
 	if (!all_disabled || !_was_all_disabled) {
-		if (!_armed.armed && !_armed.manual_lockdown) {
+		if (!_armed.armed && !_armed.kill) {
 			_actuator_test.overrideValues(outputs, _max_num_outputs);
 		}
 
@@ -473,14 +473,14 @@ bool MixingOutput::update()
 void
 MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates)
 {
-	if (_armed.lockdown || _armed.manual_lockdown) {
+	if (_armed.lockdown || _armed.kill) {
 		// overwrite outputs in case of lockdown with disarmed values
 		for (size_t i = 0; i < _max_num_outputs; i++) {
 			_current_output_value[i] = _disarmed_value[i];
 		}
 
-	} else if (_armed.force_failsafe) {
-		// overwrite outputs in case of force_failsafe with _failsafe_value values
+	} else if (_armed.termination) {
+		// Overwrite outputs with _failsafe_value when terminated
 		for (size_t i = 0; i < _max_num_outputs; i++) {
 			_current_output_value[i] = actualFailsafeValue(i);
 		}

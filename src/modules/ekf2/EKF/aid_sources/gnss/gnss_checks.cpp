@@ -95,7 +95,7 @@ bool GnssChecks::runSimplifiedChecks(const gnssSample &gnss)
 	bool passed = true;
 
 	if (
-		_check_fail_status.flags.fix ||
+		(_check_fail_status.flags.fix     && isCheckEnabled(GnssChecksMask::kFix)) ||
 		(_check_fail_status.flags.hacc    && isCheckEnabled(GnssChecksMask::kHacc)) ||
 		(_check_fail_status.flags.vacc    && isCheckEnabled(GnssChecksMask::kVacc)) ||
 		(_check_fail_status.flags.sacc    && isCheckEnabled(GnssChecksMask::kSacc)) ||
@@ -110,7 +110,7 @@ bool GnssChecks::runSimplifiedChecks(const gnssSample &gnss)
 bool GnssChecks::runInitialFixChecks(const gnssSample &gnss)
 {
 	// Check the fix type
-	_check_fail_status.flags.fix = (gnss.fix_type < 3);
+	_check_fail_status.flags.fix = (gnss.fix_type < _params.ekf2_req_fix);
 
 	// Check the number of satellites
 	_check_fail_status.flags.nsats = (gnss.nsats < _params.ekf2_req_nsats);
@@ -143,7 +143,7 @@ bool GnssChecks::runInitialFixChecks(const gnssSample &gnss)
 
 	// if any user selected checks have failed, record the fail time
 	if (
-		_check_fail_status.flags.fix ||
+		(_check_fail_status.flags.fix     && isCheckEnabled(GnssChecksMask::kFix)) ||
 		(_check_fail_status.flags.nsats   && isCheckEnabled(GnssChecksMask::kNsats)) ||
 		(_check_fail_status.flags.pdop    && isCheckEnabled(GnssChecksMask::kPdop)) ||
 		(_check_fail_status.flags.hacc    && isCheckEnabled(GnssChecksMask::kHacc)) ||

@@ -529,10 +529,16 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	// Actuators
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
-	ret = _esc_controller.init();
+	int32_t uavcan_enable = -1;
+	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 
-	if (ret < 0) {
-		return ret;
+	if (uavcan_enable > 2) {
+
+		ret = _esc_controller.init();
+
+		if (ret < 0) {
+			return ret;
+		}
 	}
 
 #endif
@@ -606,10 +612,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	_param_getset_client.setCallback(GetSetCallback(this, &UavcanNode::cb_getset));
 	_param_opcode_client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
 	_param_restartnode_client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
-
-
-	int32_t uavcan_enable = 1;
-	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 
 	if (uavcan_enable > 1) {
 		_servers = new UavcanServers(_node, _node_info_retriever);
@@ -746,40 +748,9 @@ UavcanNode::Run()
 
 	_node.spinOnce(); // expected to be non-blocking
 
-	// Publish status
-	constexpr hrt_abstime status_pub_interval = 100_ms;
+	publish_can_interface_statuses();
 
-	if (hrt_absolute_time() - _last_can_status_pub >= status_pub_interval) {
-		_last_can_status_pub = hrt_absolute_time();
-
-		for (int i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
-			if (i > UAVCAN_NUM_IFACES) {
-				break;
-			}
-
-			auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
-
-			if (!iface) {
-				continue;
-			}
-
-			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
-			can_interface_status_s status{
-				.timestamp = hrt_absolute_time(),
-				.io_errors = iface_perf_cnt.errors,
-				.frames_tx = iface_perf_cnt.frames_tx,
-				.frames_rx = iface_perf_cnt.frames_rx,
-				.interface = static_cast<uint8_t>(i),
-			};
-
-			if (_can_status_pub_handles[i] == nullptr) {
-				int instance{0};
-				_can_status_pub_handles[i] = orb_advertise_multi(ORB_ID(can_interface_status), nullptr, &instance);
-			}
-
-			(void)orb_publish(ORB_ID(can_interface_status), _can_status_pub_handles[i], &status);
-		}
-	}
+	publish_node_statuses();
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
@@ -1011,11 +982,109 @@ UavcanNode::Run()
 	}
 }
 
+void UavcanNode::publish_can_interface_statuses()
+{
+	constexpr hrt_abstime status_pub_interval = 100_ms;
+
+	if (hrt_absolute_time() - _last_can_status_pub >= status_pub_interval) {
+		_last_can_status_pub = hrt_absolute_time();
+
+		for (int i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
+			if (i > UAVCAN_NUM_IFACES) {
+				break;
+			}
+
+			auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
+
+			if (!iface) {
+				continue;
+			}
+
+			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
+			can_interface_status_s status{
+				.timestamp = hrt_absolute_time(),
+				.io_errors = iface_perf_cnt.errors,
+				.frames_tx = iface_perf_cnt.frames_tx,
+				.frames_rx = iface_perf_cnt.frames_rx,
+				.interface = static_cast<uint8_t>(i),
+			};
+
+			if (_can_status_pub_handles[i] == nullptr) {
+				int instance{0};
+				_can_status_pub_handles[i] = orb_advertise_multi(ORB_ID(can_interface_status), nullptr, &instance);
+			}
+
+			(void)orb_publish(ORB_ID(can_interface_status), _can_status_pub_handles[i], &status);
+		}
+	}
+}
+
+void UavcanNode::publish_node_statuses()
+{
+	constexpr hrt_abstime status_pub_interval = 100_ms;
+
+	if (hrt_absolute_time() - _last_node_status_pub >= status_pub_interval) {
+		_last_node_status_pub = hrt_absolute_time();
+
+		_node_status_monitor.forEachNode([this](uavcan::NodeID node_id, uavcan::NodeStatusMonitor::NodeStatus node_status) {
+
+			if (node_id.get() == 0) {
+				return;
+			}
+
+			// See if we have NodeID <--> uORB_index mapped
+			int uorb_index = -1;
+
+			for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+				if (_node_status_uorb_index_map[i] == node_id.get()) {
+					uorb_index = i;
+					break;
+				}
+			}
+
+			if (uorb_index < 0) {
+				// use next available index
+				for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+					if (_node_status_uorb_index_map[i] == 0) {
+						_node_status_uorb_index_map[i] = node_id.get();
+						uorb_index = i;
+						// advertise
+						PX4_INFO("advertising node_id %u on index %u", node_id.get(), i);
+						int instance{0};
+						_node_status_pub_handles[i] = orb_advertise_multi(ORB_ID(dronecan_node_status), nullptr, &instance);
+						break;
+					}
+				}
+			}
+
+			if (uorb_index >= 0) {
+
+				dronecan_node_status_s status{
+					.timestamp = hrt_absolute_time(),
+					.uptime_sec = node_status.uptime_sec,
+					.node_id = node_id.get(),
+					.vendor_specific_status_code = node_status.vendor_specific_status_code,
+					.health = node_status.health,
+					.mode = node_status.mode,
+					.sub_mode = node_status.sub_mode,
+				};
+
+				(void)orb_publish(ORB_ID(dronecan_node_status), _node_status_pub_handles[uorb_index], &status);
+			}
+		});
+
+
+	}
+}
+
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 bool UavcanMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
-	_esc_controller.update_outputs(outputs, num_outputs);
+	if (_esc_controller.initialized()) {
+		_esc_controller.update_outputs(outputs, num_outputs);
+	}
+
 	return true;
 }
 

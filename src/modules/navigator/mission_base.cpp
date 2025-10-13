@@ -180,8 +180,10 @@ MissionBase::on_inactivation()
 	_navigator->disable_camera_trigger();
 
 	_navigator->stop_capturing_images();
-	_navigator->set_gimbal_neutral(); // point forward
-	_navigator->release_gimbal_control();
+
+	if (!_navigator->get_land_detected()->landed) {
+		_navigator->activate_set_gimbal_neutral_timer(hrt_absolute_time());
+	}
 
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
@@ -406,7 +408,7 @@ MissionBase::isLanding()
 			// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
 			const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
 					&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
-					_navigator->get_loiter_radius();
+					_navigator->get_default_loiter_rad();
 
 			on_landing_stage = d_current <= (_navigator->get_acceptance_radius() + mission_item_loiter_radius_abs);
 		}
@@ -554,7 +556,9 @@ void MissionBase::setEndOfMissionItems()
 		_mission_item.nav_cmd = NAV_CMD_IDLE;
 
 	} else {
-		if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+		if (pos_sp_triplet->current.valid &&
+		    (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
+		     pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)) {
 			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
 
 		} else {
@@ -698,10 +702,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
-			// set gimbal to neutral position (level with horizon) to reduce change of damage on landing
-			_navigator->acquire_gimbal_control();
-			_navigator->set_gimbal_neutral();
-			_navigator->release_gimbal_control();
+			_navigator->activate_set_gimbal_neutral_timer(hrt_absolute_time());
 
 		} else {
 
@@ -883,7 +884,7 @@ MissionBase::do_abort_landing()
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	_mission_item.altitude_is_relative = false;
 	_mission_item.altitude = alt_sp;
-	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.autocontinue = false;
 	_mission_item.origin = ORIGIN_ONBOARD;

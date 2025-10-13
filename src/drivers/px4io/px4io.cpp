@@ -791,20 +791,20 @@ PX4IO::io_set_arming_state()
 			clear |= PX4IO_P_SETUP_ARMING_FMU_PREARMED;
 		}
 
-		if ((armed.lockdown || armed.manual_lockdown) && !_lockdown_override) {
+		if ((armed.lockdown || armed.kill) && !_lockdown_override) {
 			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = true;
 
-		} else if (!(armed.lockdown || armed.manual_lockdown) && _lockdown_override) {
+		} else if (!(armed.lockdown || armed.kill) && _lockdown_override) {
 			clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = false;
 		}
 
-		if (armed.force_failsafe) {
-			set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+		if (armed.termination) {
+			set |= PX4IO_P_SETUP_ARMING_TERMINATION;
 
 		} else {
-			clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+			clear |= PX4IO_P_SETUP_ARMING_TERMINATION;
 		}
 
 		if (armed.ready_to_arm) {
@@ -988,7 +988,7 @@ int PX4IO::io_get_status()
 		status.arming_fmu_prearmed         = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FMU_PREARMED;
 		status.arming_failsafe_custom      = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;
 		status.arming_lockdown             = SETUP_ARMING & PX4IO_P_SETUP_ARMING_LOCKDOWN;
-		status.arming_force_failsafe       = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+		status.arming_termination          = SETUP_ARMING & PX4IO_P_SETUP_ARMING_TERMINATION;
 		status.arming_termination_failsafe = SETUP_ARMING & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
@@ -1030,7 +1030,10 @@ int PX4IO::io_publish_raw_rc()
 	const bool rc_updated = (rc_valid_update_count != _rc_valid_update_count);
 	_rc_valid_update_count = rc_valid_update_count;
 
-	if (!rc_updated) {
+	// only publish if the IO status indicates that the RC is OK
+	const uint16_t status_rc_ok = _status & PX4IO_P_STATUS_FLAGS_RC_OK;
+
+	if (!rc_updated | !status_rc_ok) {
 		return 0;
 	}
 
@@ -1227,8 +1230,8 @@ int PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint1
 int PX4IO::print_status()
 {
 	/* basic configuration */
-	printf("protocol %" PRIu32 " hardware %" PRIu32 " bootloader %" PRIu32 " buffer %" PRIu32 "B crc 0x%04" PRIu32 "%04"
-	       PRIu32 "\n",
+	printf("protocol %" PRIu32 " hardware %" PRIu32 " bootloader %" PRIu32 " buffer %" PRIu32 "B crc 0x%04" PRIx32 "%04"
+	       PRIx32 "\n",
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_BOOTLOADER_VERSION),

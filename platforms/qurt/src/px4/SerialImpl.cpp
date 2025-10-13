@@ -39,6 +39,11 @@
 
 #define MODULE_NAME "SerialImpl"
 
+extern "C" {
+	__EXPORT int fc_uart_rx_available(int fd, uint32_t *data);
+	__EXPORT int fc_uart_flush_rx(int fd);
+}
+
 namespace device
 {
 
@@ -158,6 +163,18 @@ bool SerialImpl::close()
 	return true;
 }
 
+ssize_t SerialImpl::bytesAvailable()
+{
+	if (!_open) {
+		PX4_ERR("Device not open!");
+		return -1;
+	}
+
+	uint32_t rx_bytes = 0;
+	(void) fc_uart_rx_available(_serial_fd, &rx_bytes);
+	return (ssize_t) rx_bytes;
+}
+
 ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 {
 	if (!_open) {
@@ -243,6 +260,12 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 
 ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 {
+	// TODO: Implement a non-blocking write in Qurt
+	return writeBlocking(buffer, buffer_size, 0);
+}
+
+ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
+{
 	if (!_open) {
 		PX4_ERR("Cannot write to serial device until it has been opened");
 		return -1;
@@ -260,7 +283,9 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 
 void SerialImpl::flush()
 {
-	// TODO: Flush not implemented yet on Qurt
+	if (_open) {
+		(void) fc_uart_flush_rx(_serial_fd);
+	}
 }
 
 const char *SerialImpl::getPort() const

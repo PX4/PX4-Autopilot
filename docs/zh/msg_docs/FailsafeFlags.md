@@ -2,7 +2,7 @@
 
 Input flags for the failsafe state machine set by the arming & health checks.
 
-Flags must be named such that false == no failure (e.g. _invalid, _unhealthy, _lost)
+Flags must be named such that false == no failure (e.g. \_invalid, \_unhealthy, \_lost)
 The flag comments are used as label for the failsafe state machine simulation
 
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/FailsafeFlags.msg)
@@ -22,6 +22,7 @@ uint32 mode_req_local_alt
 uint32 mode_req_local_position
 uint32 mode_req_local_position_relaxed
 uint32 mode_req_global_position
+uint32 mode_req_global_position_relaxed
 uint32 mode_req_mission
 uint32 mode_req_offboard_signal
 uint32 mode_req_home_position
@@ -39,6 +40,7 @@ bool local_position_invalid           # Local position estimate invalid
 bool local_position_invalid_relaxed   # Local position with reduced accuracy requirements invalid (e.g. flying with optical flow)
 bool local_velocity_invalid           # Local velocity estimate invalid
 bool global_position_invalid          # Global position estimate invalid
+bool global_position_invalid_relaxed  # Global position estimate invalid with relaxed accuracy requirements
 bool auto_mission_missing             # No mission available
 bool offboard_control_signal_lost     # Offboard signal lost
 bool home_position_invalid            # No home position available

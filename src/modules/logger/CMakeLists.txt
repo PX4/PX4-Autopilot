@@ -31,11 +31,20 @@
 #
 ############################################################################
 
+set(LOGGER_MODULE_PARAMS)
+
+if(PX4_CRYPTO)
+	list(APPEND LOGGER_MODULE_PARAMS module_params_crypto.yaml)
+endif()
+
 px4_add_module(
 	MODULE modules__logger
 	MAIN logger
 	PRIORITY "SCHED_PRIORITY_MAX-30"
 	STACK_MAIN 2500
+	MODULE_CONFIG
+		module.yaml
+		${LOGGER_MODULE_PARAMS}
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 		-Wno-cast-align # TODO: fix and enable

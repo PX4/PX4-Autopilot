@@ -8,6 +8,9 @@
 #                 End Setup for board specific configurations.                #
 ###############################################################################
 
+#
+# Set SD logging mode
+#
 if param compare SDLOG_MODE 1
 then
 	set LOGGER_ARGS "${LOGGER_ARGS} -e"
@@ -28,8 +31,28 @@ then
 	set LOGGER_ARGS "${LOGGER_ARGS} -a"
 fi
 
+#
+# Set logging backend
+#
+if param compare SDLOG_BACKEND 1
+then
+	set LOGGER_ARGS "${LOGGER_ARGS} -m file"
+fi
 
-if ! param compare SDLOG_MODE -1
+if param compare SDLOG_BACKEND 2
+then
+	set LOGGER_ARGS "${LOGGER_ARGS} -m mavlink"
+fi
+
+if param compare SDLOG_BACKEND 3
+then
+	set LOGGER_ARGS "${LOGGER_ARGS} -m all"
+fi
+
+#
+# Start logger if any logging backend is enabled
+#
+if ! param compare SDLOG_BACKEND 0
 then
 	logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
 fi

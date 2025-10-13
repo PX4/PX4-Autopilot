@@ -54,9 +54,9 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 
 		reporter.setIsPresent(health_component_t::differential_pressure);
 
-		const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_1
-						  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_2
-						  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_3;
+		const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_1
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_2
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_3;
 
 		const float airspeed_calibrated_from_sensor = airspeed_from_sensor ? airspeed_validated.calibrated_airspeed_m_s : NAN;
 
@@ -98,7 +98,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 					events::Log::Error, "Airspeed too high", airspeed_validated.calibrated_airspeed_m_s, arming_max_airspeed_allowed);
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed too high - check airspeed calibration");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed too high");
 			}
 		}
 

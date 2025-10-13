@@ -70,6 +70,8 @@ The specific configuration for sensors that do not have a separate page is liste
 
 Airspeed sensors should be calibrated by following the instructions: [Basic Configuration > Airspeed](../config/airspeed.md).
 
+For more advanced validation, configuration and debugging see [Airspeed Validation](../advanced_config/airspeed_validation.md).
+
 ## See Also
 
 - [Using PX4's Navigation Filter (EKF2) > Airspeed](../advanced_config/tuning_the_ecl_ekf.md#airspeed)
