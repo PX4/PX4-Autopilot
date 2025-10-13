@@ -388,8 +388,8 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 
 	_home_has_land_approach = hasVtolLandApproach(rtl_position);
 
-	if (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || (vtol_in_fw_mode && (_param_rtl_approach_force.get() == 1)
-			&& !_home_has_land_approach)) {
+	if (_vehicle_status_sub.get().is_vtol && (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || (vtol_in_fw_mode && (_param_rtl_approach_force.get() == 1)
+			&& !_home_has_land_approach))) {
 		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode or we forces approach landing for vtol in fw and it is not defined for home.
 		min_dist = FLT_MAX;
 
