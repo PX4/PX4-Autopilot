@@ -12,16 +12,6 @@ ADS7953::ADS7953(const I2CSPIDriverConfig &config) :
 {
 }
 
-
-void ADS7953::parameters_update()
-{
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
-		updateParams();
-	}
-}
-
 int ADS7953::init()
 {
 	int ret = SPI::init();
@@ -57,8 +47,8 @@ int ADS7953::probe()
 		return ret;
 	}
 
-	ret = rw_msg(&recv_data[0], 0, false);
-	ret = rw_msg(&recv_data[0], 0, true);
+	ret |= rw_msg(&recv_data[0], 0, false);
+	ret |= rw_msg(&recv_data[0], 0, true);
 
 	if (ret != PX4_OK || (recv_data[0] >> 4) != 1U) {
 		PX4_DEBUG("ADS7953 probing failed (%i)", ret);
@@ -68,7 +58,6 @@ int ADS7953::probe()
 	PX4_INFO("ADS7953 was found");
 	return PX4_OK;
 }
-
 
 int ADS7953::rw_msg(uint8_t *recv_data, uint8_t ch, bool change_channel)
 {
@@ -89,14 +78,13 @@ int ADS7953::rw_msg(uint8_t *recv_data, uint8_t ch, bool change_channel)
 int ADS7953::get_measurements()
 {
 	uint8_t recv_data[2];
-	uint8_t ch_id = 0;
-
 	int count = 0;
 	uint16_t mask = 0x00;
 	uint8_t idx = 0;
 
-
 	while (count < 16) {
+		static uint8_t ch_id = 0;
+
 		if (rw_msg(&recv_data[0], idx, true) == PX4_OK) {
 			ch_id = (recv_data[0] >> 4);
 
@@ -105,7 +93,7 @@ int ADS7953::get_measurements()
 				mask |= (1U << ch_id);
 				count++;
 				_adc_report.channel_id[ch_id] = ch_id;
-				_adc_report.raw_data[ch_id] = ((((uint16_t) recv_data[0]) & 0x0F) << 8) | recv_data[1];  //data_value;
+				_adc_report.raw_data[ch_id] = ((((uint16_t) recv_data[0]) & 0x0F) << 8) | recv_data[1];
 			}
 		}
 
@@ -123,12 +111,11 @@ int ADS7953::get_measurements()
 	return 0;
 }
 
-
 void ADS7953::RunImpl()
 {
 	get_measurements();
 	_adc_report.timestamp = hrt_absolute_time();
-	_to_adc_report.publish(_adc_report);
+	_adc_report_pub.publish(_adc_report);
 
 	for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 		_adc_report.channel_id[i] = -1;

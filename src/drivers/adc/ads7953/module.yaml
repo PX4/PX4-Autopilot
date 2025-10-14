@@ -14,8 +14,6 @@ parameters:
         reboot_required: true
         default: 0
 
-
-
       ADC_ADS7953_REFV:
         description:
             short: Applied reference Voltage.
