@@ -100,11 +100,15 @@ void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 	pthread_mutex_lock(&_node_mutex);
 
 	static const matrix::Quatf q_FLU_to_FRD = matrix::Quatf(0.0f, 1.0f, 0.0f, 0.0f);
+	static const matrix::Quatf q_ENU_to_NED = matrix::Quatf(0.0f, cosf(M_PI_4_F), cosf(M_PI_4_F), 0.0f);
+
+	// Get the gimbal orientation. Gimbal frame is FLU in Gazebo, reference frame is ENU in Gazebo
 	const matrix::Quatf q_gimbal_FLU = matrix::Quatf(IMU_data.orientation().w(),
 					   IMU_data.orientation().x(),
 					   IMU_data.orientation().y(),
 					   IMU_data.orientation().z());
-	_q_gimbal = q_FLU_to_FRD * q_gimbal_FLU * q_FLU_to_FRD.inversed();
+
+	_q_gimbal = q_ENU_to_NED * q_gimbal_FLU * q_FLU_to_FRD.inversed();
 
 	matrix::Vector3f rate = q_FLU_to_FRD.rotateVector(matrix::Vector3f(IMU_data.angular_velocity().x(),
 				IMU_data.angular_velocity().y(),
@@ -206,13 +210,11 @@ void GZGimbal::publishDeviceInfo()
 
 void GZGimbal::publishDeviceAttitude()
 {
-	// TODO handle flags
-
 	gimbal_device_attitude_status_s gimbal_att{};
 
 	gimbal_att.target_system = 0; // Broadcast
 	gimbal_att.target_component = 0; // Broadcast
-	gimbal_att.device_flags = 0;
+	gimbal_att.device_flags = gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
 	_q_gimbal.copyTo(gimbal_att.q);
 	gimbal_att.angular_velocity_x = _gimbal_rate[0];
 	gimbal_att.angular_velocity_y = _gimbal_rate[1];
