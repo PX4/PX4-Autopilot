@@ -100,19 +100,15 @@ void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 	pthread_mutex_lock(&_node_mutex);
 
 	static const matrix::Quatf q_FLU_to_FRD = matrix::Quatf(0.0f, 1.0f, 0.0f, 0.0f);
+	static const matrix::Quatf q_ENU_to_NED = matrix::Quatf(0.0f, cosf(M_PI_4_F), cosf(M_PI_4_F), 0.0f);
 
-	// Get the gimbal orientation in FLU frame
-	matrix::Quatf q_gimbal_FLU_raw = matrix::Quatf(IMU_data.orientation().w(),
+	// Get the gimbal orientation. Gimbal frame is FLU in Gazebo, reference frame is ENU in Gazebo
+	const matrix::Quatf q_gimbal_FLU = matrix::Quatf(IMU_data.orientation().w(),
 					 IMU_data.orientation().x(),
 					 IMU_data.orientation().y(),
 					 IMU_data.orientation().z());
 
-	// Correct Gimbal yaw. Gazebo is ENU and PX4 is NED.
-	float yaw_offset = -M_PI_F / 2.0f;
-	matrix::Quatf q_yaw_correction = matrix::Quatf(cosf(yaw_offset / 2), 0, 0, sinf(yaw_offset / 2));
-
-	matrix::Quatf q_gimbal_FLU = q_yaw_correction * q_gimbal_FLU_raw;
-	_q_gimbal = q_FLU_to_FRD * q_gimbal_FLU * q_FLU_to_FRD.inversed();
+	_q_gimbal = q_ENU_to_NED * q_gimbal_FLU * q_FLU_to_FRD.inversed();
 
 	matrix::Vector3f rate = q_FLU_to_FRD.rotateVector(matrix::Vector3f(IMU_data.angular_velocity().x(),
 				IMU_data.angular_velocity().y(),
