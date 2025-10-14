@@ -2,7 +2,7 @@
 
 ## Overview
 
-`gz_multi_vehicle.sh` is a script to easily launch multiple PX4 gz_x500 drones in Gazebo simulation with configurable positioning. Each drone instance runs in its own terminal window for easy monitoring.
+`gz_multi_vehicle.sh` is a script to easily launch multiple PX4 gz_x500 drones in Gazebo simulation with configurable positioning. All drone instances run in a tmux grid layout within your current terminal, making it easy to monitor all vehicles simultaneously.
 
 **Platform**: Ubuntu Linux only
 
@@ -15,13 +15,9 @@
 
 2. Gazebo (gz) must be installed (Harmonic, Ionic, or Jetty)
 
-3. A terminal emulator (terminator or gnome-terminal):
+3. **Required**: terminator and tmux:
    ```bash
-   # Recommended:
-   sudo apt install terminator
-
-   # Or use gnome-terminal:
-   sudo apt install gnome-terminal
+   sudo apt install terminator tmux
    ```
 
 ## Usage
@@ -54,20 +50,21 @@ Launch 2 drones (default configuration):
 
 ## What the Script Does
 
-1. **Validates** that PX4 SITL is built and terminal emulator is available
-2. **Cleans up** any existing PX4 and Gazebo instances
-3. **Launches the first vehicle in a new terminal** (instance 0):
-   - Starts Gazebo server and GUI
-   - Spawns x500_0 at position (0, 0, 0)
-   - MAV_SYS_ID = 1
-   - Terminal title: "PX4 Vehicle 0 (MAV_SYS_ID=1)"
-4. **Launches subsequent vehicles in separate terminals** (instances 1, 2, ...):
-   - Connects to running Gazebo instance
-   - Spawns x500_N at position (0, N×spacing, 0)
-   - MAV_SYS_ID = N+1
-   - Terminal title: "PX4 Vehicle N (MAV_SYS_ID=N+1)"
+1. **Validates** that PX4 SITL is built, terminator and tmux are installed
+2. **Prepares** working directories for all vehicle instances
+3. **Creates a tmux session** with a grid layout in your current terminal
+4. **Launches all vehicles** in separate tmux panes:
+   - **Instance 0** (first pane):
+     - Starts Gazebo server and GUI
+     - Spawns x500_0 at position (0, 0, 0)
+     - MAV_SYS_ID = 1
+   - **Instances 1+** (additional panes):
+     - Connect to running Gazebo instance
+     - Spawn x500_N at position (0, N×spacing, 0)
+     - MAV_SYS_ID = N+1
+     - Wait appropriately for Gazebo to be ready
 
-Each vehicle runs in its own terminal window, making it easy to monitor the output and debug individual drones.
+All vehicles are displayed in a tiled grid layout within the current terminal window, allowing you to see all outputs simultaneously.
 
 ## Vehicle Configuration
 
@@ -77,7 +74,7 @@ Each vehicle gets:
 - **Unique model name**: x500_0, x500_1, x500_2, ...
 - **Unique position**: Spaced along Y-axis
 - **Unique ROS 2 namespace** (if using ROS 2): px4_1, px4_2, px4_3, ...
-- **Dedicated terminal window**: Each instance displays its output in a separate terminal
+- **Dedicated tmux pane**: Each instance displays its output in a separate pane in the grid
 
 ## Using with QGroundControl
 
@@ -106,33 +103,48 @@ You should see topics namespaced by vehicle:
 
 ## Stopping the Simulation
 
-To stop all vehicles, you can either:
+To stop all vehicles:
 
-1. **Close the terminal windows** - Each terminal will prompt you to press Enter before closing
-2. **Kill all PX4 processes**:
+1. **Exit tmux session**: Press `Ctrl+B` then `D` to detach (vehicles keep running) or `Ctrl+C` in each pane to stop
+2. **Kill the tmux session**:
+   ```bash
+   tmux kill-session -t px4_multi_<timestamp>
+   ```
+   Or kill all PX4 multi-vehicle sessions:
+   ```bash
+   tmux list-sessions | grep px4_multi | cut -d: -f1 | xargs -I {} tmux kill-session -t {}
+   ```
+3. **Kill all PX4 processes**:
    ```bash
    pkill -x px4
    ```
 
-To stop Gazebo:
-```bash
-gz sim -k
-```
+## Tmux Navigation
+
+Useful tmux commands while in the session:
+- **Navigate panes**: `Ctrl+B` then arrow keys
+- **Zoom pane**: `Ctrl+B` then `Z` (toggle fullscreen for current pane)
+- **Scroll in pane**: `Ctrl+B` then `[`, then use arrow keys or Page Up/Down (press `q` to exit scroll mode)
+- **Detach from session**: `Ctrl+B` then `D`
+- **Reattach to session**: `tmux attach-session -t px4_multi_<timestamp>`
 
 ## Troubleshooting
 
 ### Vehicles not spawning
-- Check the terminal window for the specific vehicle - all output is displayed there
+- Check the tmux pane for the specific vehicle - all output is displayed there
 - Ensure Gazebo is installed: `gz sim --versions`
 - Make sure the first vehicle (instance 0) has fully started Gazebo before others spawn
+- Zoom into the first pane (`Ctrl+B` then `Z`) to see full output
 
 ### Gazebo GUI not appearing
-- Check if running in headless mode
+- Check the first pane (instance 0) for Gazebo startup messages
 - Try setting display: `export DISPLAY=:0`
 
-### Terminal emulator not found
-- Install terminator (recommended): `sudo apt install terminator`
-- Or install gnome-terminal: `sudo apt install gnome-terminal`
+### Missing terminator or tmux
+- Install required tools:
+  ```bash
+  sudo apt install terminator tmux
+  ```
 
 ### Port conflicts
 - The script automatically handles MAVLink ports (14540 + instance)
@@ -140,15 +152,21 @@ gz sim -k
 
 ## Monitoring Output
 
-Each vehicle displays its output in its own terminal window. The terminal title shows the vehicle instance and MAV_SYS_ID for easy identification. If a vehicle crashes or exits, the terminal will remain open and prompt you to press Enter before closing, allowing you to review any error messages.
+All vehicles are displayed in a grid layout using tmux panes. Each pane shows the output for one vehicle instance. You can:
+- View all vehicles simultaneously in the grid
+- Zoom into any pane for detailed viewing (`Ctrl+B` then `Z`)
+- Scroll through output history in any pane (`Ctrl+B` then `[`)
+- Navigate between panes using arrow keys (`Ctrl+B` then arrow key)
 
 ## Architecture Details
 
-The script implements the multi-vehicle pattern described in the PX4 docs:
-- First instance launches Gazebo server (no PX4_GZ_STANDALONE)
-- Subsequent instances connect to running server (PX4_GZ_STANDALONE=1)
-- Each instance uses PX4_GZ_MODEL_POSE for positioning
-- Automatic MAV_SYS_ID and UXRCE_DDS_KEY assignment based on instance number
+The script uses tmux for terminal multiplexing and implements the multi-vehicle pattern described in the PX4 docs:
+- **Tmux session**: Creates a single tmux session with multiple panes in a tiled grid layout
+- **Instance 0**: Launches Gazebo server (no PX4_GZ_STANDALONE)
+- **Instances 1+**: Connect to running Gazebo server (PX4_GZ_STANDALONE=1)
+- **Positioning**: Each instance uses PX4_GZ_MODEL_POSE for spawn location
+- **Identifiers**: Automatic MAV_SYS_ID and UXRCE_DDS_KEY assignment based on instance number
+- **Synchronization**: Sequential startup with delays to ensure Gazebo is ready
 
 ## References
 

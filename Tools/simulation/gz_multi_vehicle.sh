@@ -20,22 +20,22 @@ PX4_DIR="$SCRIPT_DIR/../.."
 # Build directory
 BUILD_DIR="${PX4_DIR}/build/px4_sitl_default"
 
-# Detect available terminal emulator (Ubuntu only)
-TERMINAL=""
-if command -v terminator &> /dev/null; then
-    TERMINAL="terminator"
-elif command -v gnome-terminal &> /dev/null; then
-    TERMINAL="gnome-terminal"
-else
-    echo "ERROR: No compatible terminal emulator found"
-    echo "Please install either terminator or gnome-terminal"
+# Check for required tools
+if ! command -v terminator &> /dev/null; then
+    echo "ERROR: terminator is required"
+    echo "Please install terminator:"
     echo "  sudo apt install terminator"
-    echo "  or"
-    echo "  sudo apt install gnome-terminal"
     exit 1
 fi
 
-echo "Using terminal: $TERMINAL"
+if ! command -v tmux &> /dev/null; then
+    echo "ERROR: tmux is required for grid layout"
+    echo "Please install tmux:"
+    echo "  sudo apt install tmux"
+    exit 1
+fi
+
+echo "Using terminator with tmux grid layout"
 
 # Validate inputs
 if ! [[ "$num_vehicles" =~ ^[0-9]+$ ]] || [ "$num_vehicles" -lt 1 ]; then
@@ -72,87 +72,19 @@ echo "PX4 Directory: $PX4_DIR"
 echo "=================================================="
 echo ""
 
-# # Kill any existing PX4 instances
-# echo "Cleaning up any existing PX4 instances..."
-# pkill -x px4 || true
-# sleep 1
+# Kill any existing PX4 instances (exact match only, won't kill this script)
+echo "Cleaning up any existing PX4 instances..."
+pkill -x px4 || true
 
-# # Kill any existing Gazebo instances
-# echo "Cleaning up any existing Gazebo instances..."
-# pkill -x ruby || true  # Gazebo uses ruby
-# pkill gz || true
-# sleep 2
+# Kill any existing Gazebo instances (use exact match to avoid killing this script)
+echo "Cleaning up any existing Gazebo instances..."
+pkill -x gz || true
 
 echo ""
 echo "Launching vehicles..."
 echo ""
 
-# Function to launch terminal based on type
-launch_terminal() {
-    local title="$1"
-    local instance="$2"
-    local working_dir="$3"
-    local y_pos="$4"
-
-    case "$TERMINAL" in
-        terminator)
-            terminator --title="$title" -x bash -c "
-                cd '$working_dir'
-                echo '=========================================='
-                echo '$title'
-                echo '=========================================='
-                echo 'Working directory: $working_dir'
-                echo 'Instance: $instance'
-                if [ $instance -eq 0 ]; then
-                    echo 'Mode: Primary (launching Gazebo)'
-                    export PX4_SYS_AUTOSTART=4001
-                    export PX4_SIM_MODEL=gz_x500
-                    '$BUILD_DIR/bin/px4' -i $instance -d '$BUILD_DIR/etc'
-                else
-                    echo 'Mode: Secondary (connecting to Gazebo)'
-                    echo 'Position: (0, $y_pos, 0)'
-                    export PX4_SYS_AUTOSTART=4001
-                    export PX4_SIM_MODEL=gz_x500
-                    export PX4_GZ_MODEL_POSE='0,$y_pos'
-                    export PX4_GZ_STANDALONE=1
-                    '$BUILD_DIR/bin/px4' -i $instance -d '$BUILD_DIR/etc'
-                fi
-                echo ''
-                echo 'PX4 exited. Press Enter to close this terminal...'
-                read
-            " &
-            ;;
-        gnome-terminal)
-            gnome-terminal --title="$title" -- bash -c "
-                cd '$working_dir'
-                echo '=========================================='
-                echo '$title'
-                echo '=========================================='
-                echo 'Working directory: $working_dir'
-                echo 'Instance: $instance'
-                if [ $instance -eq 0 ]; then
-                    echo 'Mode: Primary (launching Gazebo)'
-                    export PX4_SYS_AUTOSTART=4001
-                    export PX4_SIM_MODEL=gz_x500
-                    '$BUILD_DIR/bin/px4' -i $instance -d '$BUILD_DIR/etc'
-                else
-                    echo 'Mode: Secondary (connecting to Gazebo)'
-                    echo 'Position: (0, $y_pos, 0)'
-                    export PX4_SYS_AUTOSTART=4001
-                    export PX4_SIM_MODEL=gz_x500
-                    export PX4_GZ_MODEL_POSE='0,$y_pos'
-                    export PX4_GZ_STANDALONE=1
-                    '$BUILD_DIR/bin/px4' -i $instance -d '$BUILD_DIR/etc'
-                fi
-                echo ''
-                echo 'PX4 exited. Press Enter to close this terminal...'
-                read
-            " &
-            ;;
-    esac
-}
-
-# Launch each vehicle instance
+# Prepare all vehicle instances
 for i in $(seq 0 $((num_vehicles - 1))); do
     # Create working directory for this instance
     working_dir="${BUILD_DIR}/instance_${i}"
@@ -165,37 +97,82 @@ for i in $(seq 0 $((num_vehicles - 1))); do
 
     # Calculate Y position (spacing along Y-axis)
     y_pos=$(echo "$i * $spacing" | bc -l)
-
-    # MAV_SYS_ID will be instance + 1
     mav_sys_id=$((i + 1))
 
     echo "----------------------------------------"
-    echo "Launching Vehicle $i"
+    echo "Preparing Vehicle $i"
     echo "  Working directory: $working_dir"
     echo "  Position: (0, $y_pos, 0)"
     echo "  MAV_SYS_ID: $mav_sys_id"
     echo "  Model name: x500_${i}"
-
-    if [ $i -eq 0 ]; then
-        echo "  Mode: Primary (launching Gazebo)"
-    else
-        echo "  Mode: Secondary (connecting to Gazebo)"
-    fi
-
-    # Launch in new terminal
-    title="PX4 Vehicle $i (MAV_SYS_ID=$mav_sys_id)"
-    launch_terminal "$title" "$i" "$working_dir" "$y_pos"
-
-    echo "  Status: Terminal launched"
     echo "----------------------------------------"
-    echo ""
+done
 
-    # Wait for first instance to start Gazebo before launching others
+echo ""
+
+# Create tmux session with grid layout
+SESSION_NAME="px4_multi_$(date +%s)"
+
+echo "Creating tmux session with $num_vehicles panes in grid layout..."
+
+# Start tmux session with first pane
+working_dir_0="${BUILD_DIR}/instance_0"
+tmux new-session -d -s "$SESSION_NAME" -c "$working_dir_0"
+
+# Create additional panes (one for each vehicle after the first)
+for i in $(seq 1 $((num_vehicles - 1))); do
+    tmux split-window -t "$SESSION_NAME:0" -c "${BUILD_DIR}/instance_${i}"
+    tmux select-layout -t "$SESSION_NAME:0" tiled
+done
+
+# Send commands to each pane
+for i in $(seq 0 $((num_vehicles - 1))); do
+    working_dir="${BUILD_DIR}/instance_${i}"
+    y_pos=$(echo "$i * $spacing" | bc -l)
+    mav_sys_id=$((i + 1))
+
+    # Send commands to pane
+    tmux send-keys -t "$SESSION_NAME:0.$i" "cd '$working_dir'" C-m
+    tmux send-keys -t "$SESSION_NAME:0.$i" "echo '========================================='" C-m
+    tmux send-keys -t "$SESSION_NAME:0.$i" "echo 'PX4 Vehicle $i (MAV_SYS_ID=$mav_sys_id)'" C-m
+    tmux send-keys -t "$SESSION_NAME:0.$i" "echo '========================================='" C-m
+
     if [ $i -eq 0 ]; then
-        echo "Waiting for Gazebo to start (15 seconds)..."
-        sleep 15
+        tmux send-keys -t "$SESSION_NAME:0.$i" "echo 'Mode: Primary (launching Gazebo)'" C-m
+        tmux send-keys -t "$SESSION_NAME:0.$i" "export PX4_SYS_AUTOSTART=4001" C-m
+        tmux send-keys -t "$SESSION_NAME:0.$i" "export PX4_SIM_MODEL=gz_x500" C-m
+        tmux send-keys -t "$SESSION_NAME:0.$i" "'$BUILD_DIR/bin/px4' -i $i -d '$BUILD_DIR/etc'" C-m
+    else
+        tmux send-keys -t "$SESSION_NAME:0.$i" "echo 'Mode: Secondary (connecting to Gazebo)'" C-m
+        tmux send-keys -t "$SESSION_NAME:0.$i" "echo 'Position: (0, $y_pos, 0)'" C-m
+        # For secondary instances, wait for Gazebo to start
+        if [ $i -eq 1 ]; then
+            tmux send-keys -t "$SESSION_NAME:0.$i" "echo 'Waiting for Gazebo to start...'" C-m
+            tmux send-keys -t "$SESSION_NAME:0.$i" "sleep 15" C-m
+        else
+            tmux send-keys -t "$SESSION_NAME:0.$i" "sleep $((15 + (i-1) * 2))" C-m
+        fi
+        tmux send-keys -t "$SESSION_NAME:0.$i" "export PX4_SYS_AUTOSTART=4001" C-m
+        tmux send-keys -t "$SESSION_NAME:0.$i" "export PX4_SIM_MODEL=gz_x500" C-m
+        tmux send-keys -t "$SESSION_NAME:0.$i" "export PX4_GZ_MODEL_POSE='0,$y_pos'" C-m
+        tmux send-keys -t "$SESSION_NAME:0.$i" "export PX4_GZ_STANDALONE=1" C-m
+        tmux send-keys -t "$SESSION_NAME:0.$i" "'$BUILD_DIR/bin/px4' -i $i -d '$BUILD_DIR/etc'" C-m
     fi
 done
+
+echo ""
+echo "All vehicles configured in tmux session: $SESSION_NAME"
+echo "Attaching to tmux session..."
+echo ""
+echo "Tmux Commands:"
+echo "  - Detach from tmux: Ctrl+B then D"
+echo "  - Kill session: tmux kill-session -t $SESSION_NAME"
+echo "  - Navigate panes: Ctrl+B then arrow keys"
+echo "  - Zoom pane: Ctrl+B then Z (toggle)"
+echo ""
+
+# Attach to the session
+exec tmux attach-session -t "$SESSION_NAME"
 
 echo ""
 echo "=================================================="
@@ -218,9 +195,11 @@ done
 
 echo "Tips:"
 echo "-----"
-echo "- Each vehicle is running in its own terminal window"
+echo "- Each vehicle runs in its own tmux pane in the grid"
 echo "- QGroundControl should auto-connect to all vehicles"
 echo "- For ROS 2, start MicroXRCEAgent: MicroXRCEAgent udp4 -p 8888"
-echo "- To stop all vehicles, close the terminal windows or run: pkill -x px4"
+echo "- Navigate panes: Ctrl+B then arrow keys"
+echo "- Zoom pane: Ctrl+B then Z"
+echo "- To stop all: Ctrl+C in each pane or pkill -x px4"
 echo ""
 echo "=================================================="
