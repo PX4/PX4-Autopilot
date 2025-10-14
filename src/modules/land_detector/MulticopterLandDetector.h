@@ -129,7 +129,6 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
-		(ParamFloat<px4::params::LNDMC_TRIG_TIME>)   _param_lndmc_trig_time,
 		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
 		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
 		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max,
