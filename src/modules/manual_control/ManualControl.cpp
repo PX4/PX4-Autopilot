@@ -167,7 +167,6 @@ void ManualControl::processInput(hrt_abstime now)
 						     "ManualControl: R/C E-Stop: Overriding sticks with neutral until real movement");
 				}
 
-				setpoint.sticks_moving = true;
 				setpoint.roll = 0;
 				setpoint.pitch = 0;
 				setpoint.yaw = 0;
