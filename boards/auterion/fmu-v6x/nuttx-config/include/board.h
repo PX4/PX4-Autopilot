@@ -377,7 +377,11 @@
 #define GPIO_USART2_RTS  GPIO_USART2_RTS_2      /* PD4   */
 #define GPIO_USART2_CTS  GPIO_USART2_CTS_NSS_2  /* PD3   */
 
-#define GPIO_USART3_RX   GPIO_USART3_RX_3   /* PD9   */
+#ifdef PX4_RESTRICTED_BUILD
+# define GPIO_USART3_RX  0                  /* PD9   */
+#else
+# define GPIO_USART3_RX  GPIO_USART3_RX_3   /* PD9   */
+#endif /* PX4_RESTRICTED_BUILD */
 #define GPIO_USART3_TX   GPIO_USART3_TX_3   /* PD8   */
 
 #define GPIO_UART4_RX    GPIO_UART4_RX_6    /* PH14 */
