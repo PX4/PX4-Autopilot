@@ -3228,10 +3228,10 @@ MavlinkReceiver::run()
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink.get_channel(), buf[i], &msg, &_status)) {
 
-						/* check if we received version 2 and request a switch. */
+						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version
 						if (!(_mavlink.get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
-							/* this will only switch to proto version 2 if allowed in settings */
-							_mavlink.set_proto_version(2);
+							PX4_INFO("Upgrade to MAVLink v2 because of incoming packet");
+							_mavlink.set_protocol_version(2);
 						}
 
 						switch (_mavlink.get_mode()) {
