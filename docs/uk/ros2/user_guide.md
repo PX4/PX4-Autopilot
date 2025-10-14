@@ -156,7 +156,7 @@ To setup and start the agent:
 2. Введіть наступні команди для витягування та побудови агента з вихідного коду:
 
    ```sh
-   git clone -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+   git clone -b v2.4.3 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
    cd Micro-XRCE-DDS-Agent
    mkdir build
    cd build

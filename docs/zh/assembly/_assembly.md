@@ -72,7 +72,7 @@ The FCs have much the same ports with similar names, and core peripherals are co
 | Full GPS plus Safety Switch | GPS1                             | GPS&SAFETY   | Primary GNSS module (GPS, compass, safety switch, buzzer, LED)   |
 | Basic GPS                   | GPS2                             | GPS2                             | Secondary GNSS module (GNSS/compass)                             |
 | CAN                         | CAN1/CAN2                        | CAN1/CAN2                        | DroneCAN devices, such as GNSS modules, motors, etc                                 |
-| Telemetry                   | TELEM (1,2,3) | TELEM (1,2,3) | Telemetry radios, companion computers, MAVLink cameras, etc.        |
+| 数传                          | TELEM (1,2,3) | TELEM (1,2,3) | Telemetry radios, companion computers, MAVLink cameras, etc.        |
 | Analog Power                | POWER (1,2)   | POWER (1,2)   | SMbus (I2C) power modules                                        |
 | I2C                         | I2C                              | None                             | Other I2C peripherals                                                               |
 | SPI                         | SPI                              | SPI6                             | SPI devices (note: 11 pin, not 6 as in standard) |

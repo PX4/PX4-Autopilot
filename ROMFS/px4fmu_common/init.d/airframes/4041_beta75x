@@ -13,6 +13,10 @@
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
 # @board px4_fmu-v5x exclude
+# @board auterion_fmu-v6s exclude
+# @board ark_fmu-v6x exclude
+# @board px4_fmu-v6x exclude
+# @board px4_fmu-v6xrt exclude
 # @board bitcraze_crazyflie exclude
 #
 

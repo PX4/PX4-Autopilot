@@ -21,7 +21,7 @@ The diagram below shows the mode behaviour visually (for a [mode 2 transmitter](
 RC/manual mode like [Stabilized mode](../flight_modes_mc/manual_stabilized.md) but with _altitude stabilization_ (centred sticks level vehicle and hold it to fixed altitude).
 Горизонтальне положення транспортного засобу може змінюватися через вплив вітру (або наявного імпульсу).
 
-- Центровані палиці (в межах дедбенду):
+- Centered sticks:
   - Рівень RPY прикріплюється до транспортного засобу.
   - Дросель (~50%) утримує поточну висоту стабільно проти вітру.
 - Зовнішній центр:

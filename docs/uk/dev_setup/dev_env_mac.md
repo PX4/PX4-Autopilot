@@ -1,4 +1,4 @@
-# Середовище розробки MacOS
+# macOS Development Environment
 
 Наступні інструкції для встановлення середовища розробки PX4 для macOS.
 Це середовище може бути використане для збірки PX4 для:
@@ -22,8 +22,8 @@ To build other targets you will need to use a [different OS](../dev_setup/dev_en
 ### Налаштування середовища
 
 :::details
-Apple Silicon Macbook users!
-If you have an Apple M1, M2 etc. Macbook, make sure to run the terminal as x86 by setting up an x86 terminal:
+Apple Silicon MacBook users!
+If you have an Apple M1, M2 etc. MacBook, make sure to run the terminal as x86 by setting up an x86 terminal:
 
 1. Locate the Terminal application within the Utilities folder (**Finder > Go menu > Utilities**)
 2. Select _Terminal.app_ and right-click on it, then choose **Duplicate**.
@@ -50,7 +50,7 @@ If you have an Apple M1, M2 etc. Macbook, make sure to run the terminal as x86 b
 2. Enforce Python 3 by appending the following lines to `~/.zshenv`
 
    ```sh
-   # Point pip3 to MacOS system python 3 pip
+   # Point pip3 to macOS system python 3 pip
    alias pip3=/usr/bin/pip3
    ```
 

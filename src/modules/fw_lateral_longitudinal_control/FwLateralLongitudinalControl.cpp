@@ -607,7 +607,7 @@ void FwLateralLongitudinalControl::updateAirspeed() {
 		// do not use synthetic airspeed as this would create a thrust loop
 		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
 		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-		    && airspeed_validated.airspeed_source != airspeed_validated_s::SYNTHETIC) {
+		    && airspeed_validated.airspeed_source != airspeed_validated_s::SOURCE_SYNTHETIC) {
 
 			_time_airspeed_last_valid = airspeed_validated.timestamp;
 			_long_control_state.airspeed_eas = airspeed_validated.calibrated_airspeed_m_s;
@@ -826,6 +826,12 @@ void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const 
 		_long_configuration.sink_rate_target = math::max(0.0f, configuration_in.sink_rate_target);
 	} else {
 		_long_configuration.sink_rate_target = _param_sinkrate_target.get();
+	}
+
+	if (PX4_ISFINITE(configuration_in.speed_weight)) {
+		_long_configuration.speed_weight = math::constrain(configuration_in.speed_weight, 0.f, 2.f);
+	} else {
+		_long_configuration.speed_weight = _param_t_spdweight.get();
 	}
 }
 

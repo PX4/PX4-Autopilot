@@ -27,7 +27,7 @@
 - Кнопка безпеки
 - Зумер
 - Два роз'єми стандарту CAN для Pixhawk (4 контакти JST GH)
-- Роз'єм F9P "UART 2"
+- F9P `UART 2` Connector
   - 3-контактний JST-GH
   - TX, RX, GND
 - Роз'єм для відлагодження стандарту Pixhawk (6 контактів JST SH)
@@ -87,6 +87,25 @@ You need to set necessary [DroneCAN](index.md) parameters and define offsets if 
 - The parameters [EKF2_GPS_POS_X](../advanced_config/parameter_reference.md#EKF2_GPS_POS_X), [EKF2_GPS_POS_Y](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Y) and [EKF2_GPS_POS_Z](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Z) can be set to account for the offset of the ARK RTK GPS from the vehicles centre of gravity.
 - Set [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM) to `1` on the GPS if this it that last node on the CAN bus.
 
+### Setting Up Rover and Fixed Base
+
+Position of the rover is established using RTCM messages from the RTK base module (the base module is connected to QGC, which sends the RTCM information to PX4 via MAVLink).
+
+Параметри PX4 DroneCAN:
+
+- [UAVCAN_PUB_RTCM](../advanced_config/parameter_reference.md#UAVCAN_PUB_RTCM):
+  - Makes PX4 publish RTCM messages ([RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream)) to the bus (which it gets from the RTK base module via QGC).
+
+Rover module parameters (also [set using QGC](../dronecan/index.md#qgc-cannode-parameter-configuration)):
+
+- [CANNODE_SUB_RTCM](../advanced_config/parameter_reference.md#CANNODE_SUB_RTCM) tells the rover that it should subscribe to [RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream) RTCM messages on the bus (from the moving base).
+
+:::info
+Use [UAVCAN_PUB_MBD](../advanced_config/parameter_reference.md#UAVCAN_PUB_MBD) and [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD) instead if you want to implement moving base (see below) at the same time.
+:::
+
+For more information see [Rover and Fixed Base](../dronecan/index.md#rover-and-fixed-base) in the DroneCAN guide.
+
 ### Setting Up Moving Baseline & GPS Heading
 
 Найпростіший спосіб налаштування рухомого базису та напрямку GPS з двома модулями GPS ARK RTK відбувається через CAN, хоча можна зробити це через UART, щоб зменшити обсяг даних на шині CAN, якщо це потрібно.
@@ -128,10 +147,11 @@ You need to set necessary [DroneCAN](index.md) parameters and define offsets if 
 - On the _Moving Base_, set the following:
   - [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `2`.
 
+For more information see [Rover and Moving Base](../dronecan/index.md#rover-and-moving-base) in the DroneCAN guide.
+
 ## Значення LED індикаторів
 
 - Світлодіоди статусу GPS розташовані праворуч від роз'ємів
-
   - Миготіння зеленого - це фіксація GPS
   - Миготіння синього - це отримані корекції та RTK Float
   - Сталий синій - це RTK зафіксовано

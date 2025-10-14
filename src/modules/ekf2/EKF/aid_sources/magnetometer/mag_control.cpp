@@ -181,7 +181,8 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 							       && !_control_status.flags.mag_fault
 							       && !_control_status.flags.mag_field_disturbed
 							       && !_control_status.flags.ev_yaw
-							       && !_control_status.flags.gnss_yaw;
+							       && !_control_status.flags.gnss_yaw
+							       && (!_control_status.flags.yaw_manual || _control_status.flags.mag_aligned_in_flight);
 
 			_control_status.flags.mag_3D = common_conditions_passing
 						       && (_params.ekf2_mag_type == MagFuseType::AUTO)
@@ -210,7 +211,8 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-				if ((checkHaglYawResetReq() && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D))
+				if ((checkHaglYawResetReq() && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D
+								|| _control_status.flags.yaw_manual))
 				    || (wmm_updated && no_ne_aiding_or_not_moving)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
 					const bool reset_heading = _control_status.flags.mag_hdg || _control_status.flags.mag_3D;
@@ -448,7 +450,7 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 	}
 
 	// record the start time for the magnetic field alignment
-	if (_control_status.flags.in_air && reset_heading) {
+	if (_control_status.flags.in_air && (reset_heading || _control_status.flags.yaw_manual)) {
 		_control_status.flags.mag_aligned_in_flight = true;
 		_flt_mag_align_start_time = _time_delayed_us;
 	}
@@ -592,8 +594,6 @@ void Ekf::resetMagHeading(const Vector3f &mag)
 
 	// update quaternion states and corresponding covarainces
 	resetQuatStateYaw(yaw_new, yaw_new_variance);
-
-	_time_last_heading_fuse = _time_delayed_us;
 
 	_mag_heading_innov_lpf.reset(0.f);
 	_control_status.flags.mag_heading_consistent = true;
