@@ -147,13 +147,15 @@ void ManualControl::processInput(hrt_abstime now)
 			_time_last_sticks_actually_moved = hrt_absolute_time();
 		}
 
+		auto setpoint = _selector.setpoint();
+
 		if (_selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC) {
 			const bool fake_stick_movement = (_time_rc_estop_engaged != 0) &&
 							 (hrt_absolute_time() <= (_time_rc_estop_engaged + 2500_ms));
 
 			if (fake_stick_movement) {
 				_time_rc_estop_engaged_latch = _time_rc_estop_engaged;
-				_selector.setpoint().sticks_moving = true;
+				setpoint.sticks_moving = true;
 			}
 
 			if (_time_last_sticks_actually_moved < _time_rc_estop_engaged_latch) {
@@ -165,11 +167,11 @@ void ManualControl::processInput(hrt_abstime now)
 						     "ManualControl: R/C E-Stop: Overriding sticks with neutral until real movement");
 				}
 
-				_selector.setpoint().sticks_moving = true;
-				_selector.setpoint().roll = 0;
-				_selector.setpoint().pitch = 0;
-				_selector.setpoint().yaw = 0;
-				_selector.setpoint().throttle = 0;
+				setpoint.sticks_moving = true;
+				setpoint.roll = 0;
+				setpoint.pitch = 0;
+				setpoint.yaw = 0;
+				setpoint.throttle = 0;
 
 			} else {
 				if (_time_rc_estop_engaged_latch != 0) {
@@ -189,7 +191,8 @@ void ManualControl::processInput(hrt_abstime now)
 
 
 		_selector.setpoint().timestamp = now;
-		_manual_control_setpoint_pub.publish(_selector.setpoint());
+		setpoint.timestamp = now;
+		_manual_control_setpoint_pub.publish(setpoint);
 
 		// Attach scheduling to new samples of the chosen input
 		const int instance = _selector.instance();
