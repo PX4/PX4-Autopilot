@@ -109,22 +109,10 @@ class Mavlink final : public ModuleParams
 {
 
 public:
-	/**
-	 * Constructor
-	 */
 	Mavlink();
-
-	/**
-	 * Destructor, also kills the mavlinks task.
-	 */
 	~Mavlink();
 
-	/**
-	* Start the mavlink task.
-	 *
-	 * @return OK on success.
-	 */
-	static int		start(int argc, char *argv[]);
+	static int start(int argc, char *argv[]);
 
 	bool running() const { return _task_running.load(); }
 	bool should_exit() const { return _task_should_exit.load(); }
@@ -134,63 +122,40 @@ public:
 		_receiver.request_stop();
 	}
 
-	/**
-	 * Display the mavlink status.
-	 */
-	void			display_status();
+	void display_status();
+	void display_status_streams();
 
-	/**
-	 * Display the status of all enabled streams.
-	 */
-	void			display_status_streams();
+	static int stop_command(int argc, char *argv[]);
+	static int stream_command(int argc, char *argv[]);
 
-	static int		stop_command(int argc, char *argv[]);
-	static int		stream_command(int argc, char *argv[]);
+	static int instance_count();
+	static Mavlink *new_instance();
+	static Mavlink *get_instance_for_device(const char *device_name);
 
-	static int		instance_count();
+	mavlink_message_t *get_buffer() { return &_mavlink_buffer; }
+	mavlink_status_t *get_status() { return &_mavlink_status; }
 
-	static Mavlink		*new_instance();
+	void setProtocolVersion(uint8_t version);
+	uint8_t getProtocolVersion() const { return _protocol_version; };
 
-	static Mavlink 		*get_instance_for_device(const char *device_name);
+	static int destroy_all_instances();
+	static int get_status_all_instances(bool show_streams_status);
+	static bool serial_instance_exists(const char *device_name, Mavlink *self);
 
-	mavlink_message_t 	*get_buffer() { return &_mavlink_buffer; }
+	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
+	static void forward_message(const mavlink_message_t *msg, Mavlink *self);
 
-	mavlink_status_t 	*get_status() { return &_mavlink_status; }
+	bool check_events() const { return _should_check_events.load(); }
+	void check_events_enable() { _should_check_events.store(true); }
+	void check_events_disable() { _should_check_events.store(false); }
 
-	void			set_protocol_version(unsigned version);
+	bool sending_parameters() const { return _sending_parameters.load(); }
+	void set_sending_parameters(bool sending) { _sending_parameters.store(sending); }
 
-	static int		destroy_all_instances();
+	int get_uart_fd() const { return _uart_fd; }
 
-	static int		get_status_all_instances(bool show_streams_status);
-
-	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
-
-	static bool		component_was_seen(int system_id, int component_id, Mavlink &self);
-
-	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
-
-	bool			check_events() const { return _should_check_events.load(); }
-	void			check_events_enable() { _should_check_events.store(true); }
-	void			check_events_disable() { _should_check_events.store(false); }
-
-	bool			sending_parameters() const { return _sending_parameters.load(); }
-	void			set_sending_parameters(bool sending) { _sending_parameters.store(sending); }
-
-	int			get_uart_fd() const { return _uart_fd; }
-
-	/**
-	 * Get the MAVLink system id.
-	 *
-	 * @return The system ID of this vehicle
-	 */
-	int			get_system_id() const { return mavlink_system.sysid; }
-
-	/**
-	 * Get the MAVLink component id.
-	 *
-	 * @return The component ID of this vehicle
-	 */
-	int			get_component_id() const { return mavlink_system.compid; }
+	int get_system_id() const { return mavlink_system.sysid; }
+	int get_component_id() const { return mavlink_system.compid; }
 
 	const char *_device_name{DEFAULT_DEVICE_NAME};
 
@@ -613,7 +578,7 @@ private:
 	uint64_t		_last_write_success_time{0};
 	uint64_t		_last_write_try_time{0};
 	uint64_t		_mavlink_start_time{0};
-	int32_t _protocol_version = 0; ///< after initialization the only values are 1 and 2
+	uint8_t _protocol_version = 0; ///< after initialization the only values are 1 and 2
 
 	unsigned		_bytes_tx{0};
 	unsigned		_bytes_txerr{0};
