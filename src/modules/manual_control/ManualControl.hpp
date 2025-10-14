@@ -153,7 +153,7 @@ private:
 
 	uORB::Publication<debug_key_value_s> _debug_kv_pub{ORB_ID(debug_key_value)};
 	bool _rc_estop_published_last{false};
-	hrt_abstime _rc_estop_published_last_time;
+	hrt_abstime _rc_estop_published_last_time{0};
 
 
 
