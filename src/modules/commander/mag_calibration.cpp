@@ -520,12 +520,36 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 	const unsigned int calibration_points_maxcount = worker_data.calibration_sides * worker_data.calibration_points_perside;
 
+	uORB::SubscriptionMultiArray<sensor_mag_s, MAX_MAGS> mag_sub{ORB_ID::sensor_mag};
+	int mag_available_enabled_count = 0;
+
 	for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
-		uORB::SubscriptionData<sensor_mag_s> mag_sub{ORB_ID(sensor_mag), cur_mag};
+		if (!mag_sub[cur_mag].advertised()) {
+			continue;
+		}
 
-		if (mag_sub.advertised() && (mag_sub.get().device_id != 0) && (mag_sub.get().timestamp > 0)) {
-			worker_data.calibration[cur_mag].set_device_id(mag_sub.get().device_id);
+		sensor_mag_s mag_data;
+
+		if (!mag_sub[cur_mag].copy(&mag_data) || mag_data.device_id == 0) {
+			continue;
+		}
+
+		int calibration_index = calibration::FindCurrentCalibrationIndex("MAG", mag_data.device_id);
+
+		if (calibration_index >= 0) {
+			int priority = calibration::GetCalibrationParamInt32("MAG", "PRIO", calibration_index);
+
+			if (priority != 0) {
+				++mag_available_enabled_count;
+			}
+
+		} else {
+			++mag_available_enabled_count;
+		}
+
+		if ((mag_data.device_id != 0) && (mag_data.timestamp > 0)) {
+			worker_data.calibration[cur_mag].set_device_id(mag_data.device_id);
 		}
 
 		// reset calibration index to match uORB numbering
@@ -545,6 +569,11 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		} else {
 			break;
 		}
+	}
+
+	if (mag_available_enabled_count <= 0) {
+		calibration_log_critical(mavlink_log_pub, "Failed: No magnetometer available or enabled");
+		return calibrate_return_error;
 	}
 
 	if (result == calibrate_return_ok) {
