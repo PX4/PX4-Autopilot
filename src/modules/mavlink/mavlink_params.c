@@ -52,8 +52,8 @@ PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 /**
  * MAVLink protocol version
  * @group MAVLink
- * @value 1 v1, auto-upgrade to v2
- * @value 2 v2 only
+ * @value 1 Version 1 with auto-upgrade to v2 if detected
+ * @value 2 Version 2
  */
 PARAM_DEFINE_INT32(MAV_PROTO_VER, 2);
 
