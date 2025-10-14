@@ -19,7 +19,7 @@ At time of writing (PX4 v1.14):
 
 ## Failure System Command
 
-Failures can be injected using the [failure system command](../modules/modules_command.md#failure) from any PX4 [console/shell](../debug/consoles.md) (such as the [QGC MAVLink Console](../debug/mavlink_shell.html#qgroundcontrol-mavlink-console) or SITL _pxh shell_), specifying both the target and type of the failure.
+Failures can be injected using the [failure system command](../modules/modules_command.md#failure) from any PX4 [console/shell](../debug/consoles.md) (such as the [QGC MAVLink Console](../debug/mavlink_shell.md#qgroundcontrol-mavlink-console) or SITL _pxh shell_), specifying both the target and type of the failure.
 
 ### Syntax
 
