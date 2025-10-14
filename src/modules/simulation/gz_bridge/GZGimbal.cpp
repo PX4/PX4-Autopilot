@@ -104,9 +104,9 @@ void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 
 	// Get the gimbal orientation. Gimbal frame is FLU in Gazebo, reference frame is ENU in Gazebo
 	const matrix::Quatf q_gimbal_FLU = matrix::Quatf(IMU_data.orientation().w(),
-					 IMU_data.orientation().x(),
-					 IMU_data.orientation().y(),
-					 IMU_data.orientation().z());
+					   IMU_data.orientation().x(),
+					   IMU_data.orientation().y(),
+					   IMU_data.orientation().z());
 
 	_q_gimbal = q_ENU_to_NED * q_gimbal_FLU * q_FLU_to_FRD.inversed();
 
