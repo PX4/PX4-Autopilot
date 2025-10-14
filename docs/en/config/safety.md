@@ -305,18 +305,22 @@ The relevant parameters are shown below:
 
 ### Motor Failure Trigger
 
-If while armed one of the following events happens a motor failure is declared for which an action can be configured.
-- A 300 milisecond timeout occurs in telemetry from an ESC that was previously available.
-- The input current in the telemetry of an ESC which was previously positive gets too low according to the condition
-   `{esc current} < {parameter FD_ACT_MOT_C2T} * {motor command between 0 and 1}`
-   for more than `FD_ACT_MOT_TOUT` miliseconds.
+The failure detector can be configured to detect a motor failure while armed (and trigger an associated action) in the following conditions:
 
-| Parameter | Description |
-| - | - |
-| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN) | Enable/disable the motor failure trigger completely. |
-| <a id="FD_ACT_MOT_THR"></a>[FD_ACT_MOT_THR](../advanced_config/parameter_reference.md#FD_ACT_MOT_THR) | Minimum normalized [0,1] motor command below which motor under current is ignored. |
-| <a id="FD_ACT_MOT_C2T"></a>[FD_ACT_MOT_C2T](../advanced_config/parameter_reference.md#FD_ACT_MOT_C2T) | Scale between normalized [0,1] motor command and expected minimally reported currrent when the rotor is healthy. |
-| <a id="FD_ACT_MOT_TOUT"></a>[FD_ACT_MOT_TOUT](../advanced_config/parameter_reference.md#FD_ACT_MOT_TOUT) | Time in miliseconds for which the under current detection condition needs to stay true. |
+- A 300 ms timeout occurs in telemetry from an ESC that was previously available.
+- The input current in the telemetry of an ESC which was previously positive gets too low for more than [`FD_ACT_MOT_TOUT`](FD_ACT_MOT_TOUT) ms.
+  The "too low" condition is defined by:
+
+  ```text
+  {esc current} < {parameter FD_ACT_MOT_C2T} * {motor command between 0 and 1}
+  ```
+
+| Parameter                                                                                                | Description                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FD_ACT_EN"></a>[FD_ACT_EN](../advanced_config/parameter_reference.md#FD_ACT_EN)                   | Enable/disable the motor failure trigger completely.                                                                                                                                                                                      |
+| <a id="FD_ACT_MOT_THR"></a>[FD_ACT_MOT_THR](../advanced_config/parameter_reference.md#FD_ACT_MOT_THR)    | Minimum normalized [0,1] motor command below which motor under current is ignored.                                                                                                                                                        |
+| <a id="FD_ACT_MOT_C2T"></a>[FD_ACT_MOT_C2T](../advanced_config/parameter_reference.md#FD_ACT_MOT_C2T)    | Scale between normalized [0,1] motor command and expected minimally reported currrent when the rotor is healthy.                                                                                                                          |
+| <a id="FD_ACT_MOT_TOUT"></a>[FD_ACT_MOT_TOUT](../advanced_config/parameter_reference.md#FD_ACT_MOT_TOUT) | Time in miliseconds for which the under current detection condition needs to stay true.                                                                                                                                                   |
 | <a id="CA_FAILURE_MODE"></a>[CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) | Configure to not only warn about a motor failure but remove the first motor that detects a failure from the allocation effectiveness which turns off the motor and tries to operate the vehicle without it until disarming the next time. |
 
 ### External Automatic Trigger System (ATS)
