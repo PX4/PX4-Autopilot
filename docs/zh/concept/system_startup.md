@@ -1,7 +1,7 @@
 # 系统启动
 
 PX4 系统的启动由 shell 脚本文件控制。
-On NuttX they reside in the [ROMFS/px4fmu_common/init.d](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d) folder - some of these are also used on Posix (Linux/MacOS).
+On NuttX they reside in the [ROMFS/px4fmu_common/init.d](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d) folder - some of these are also used on Posix (Linux/macOS).
 The scripts that are only used on Posix are located in [ROMFS/px4fmu_common/init.d-posix](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d-posix).
 
 All files starting with a number and underscore (e.g. `10000_airplane`) are predefined airframe configurations.
@@ -13,7 +13,7 @@ The first executed file is the [init.d/rcS](https://github.com/PX4/PX4-Autopilot
 
 根据 PX4 运行的操作系统将本文后续内容分成了如下各小节。
 
-## POSIX (Linux/MacOS)
+## POSIX (Linux/macOS)
 
 On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being symlinked to dash on Ubuntu).
 为了使 PX4 可以在 Posix 中正常运行，需要做到以下几点：

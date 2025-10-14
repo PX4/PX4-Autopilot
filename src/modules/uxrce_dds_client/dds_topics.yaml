@@ -104,6 +104,10 @@ publications:
     type: px4_msgs::msg::Wind
     rate_limit: 1.
 
+  - topic: /fmu/out/gimbal_device_attitude_status
+    type: px4_msgs::msg::GimbalDeviceAttitudeStatus
+    rate_limit: 20.
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
