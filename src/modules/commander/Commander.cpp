@@ -511,6 +511,25 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_reason)
 {
+	static_assert((uint8_t)arm_disarm_reason_t::transition_to_standby ==
+		      vehicle_status_s::ARM_DISARM_REASON_TRANSITION_TO_STANDBY);
+	static_assert((uint8_t)arm_disarm_reason_t::stick_gesture == vehicle_status_s::ARM_DISARM_REASON_STICK_GESTURE);
+	static_assert((uint8_t)arm_disarm_reason_t::rc_switch == vehicle_status_s::ARM_DISARM_REASON_RC_SWITCH);
+	static_assert((uint8_t)arm_disarm_reason_t::command_internal == vehicle_status_s::ARM_DISARM_REASON_COMMAND_INTERNAL);
+	static_assert((uint8_t)arm_disarm_reason_t::command_external == vehicle_status_s::ARM_DISARM_REASON_COMMAND_EXTERNAL);
+	static_assert((uint8_t)arm_disarm_reason_t::mission_start == vehicle_status_s::ARM_DISARM_REASON_MISSION_START);
+	// static_assert((uint8_t)arm_disarm_reason_t:: == vehicle_status_s::ARM_DISARM_REASON_SAFETY_BUTTON);
+	static_assert((uint8_t)arm_disarm_reason_t::auto_disarm_land == vehicle_status_s::ARM_DISARM_REASON_AUTO_DISARM_LAND);
+	static_assert((uint8_t)arm_disarm_reason_t::auto_disarm_preflight ==
+		      vehicle_status_s::ARM_DISARM_REASON_AUTO_DISARM_PREFLIGHT);
+	static_assert((uint8_t)arm_disarm_reason_t::kill_switch == vehicle_status_s::ARM_DISARM_REASON_KILL_SWITCH);
+	static_assert((uint8_t)arm_disarm_reason_t::lockdown == vehicle_status_s::ARM_DISARM_REASON_LOCKDOWN);
+	static_assert((uint8_t)arm_disarm_reason_t::failure_detector == vehicle_status_s::ARM_DISARM_REASON_FAILURE_DETECTOR);
+	static_assert((uint8_t)arm_disarm_reason_t::shutdown == vehicle_status_s::ARM_DISARM_REASON_SHUTDOWN);
+	static_assert((uint8_t)arm_disarm_reason_t::unit_test == vehicle_status_s::ARM_DISARM_REASON_UNIT_TEST);
+	// static_assert((uint8_t)arm_disarm_reason_t::rc_button == vehicle_status_s::);
+	// static_assert((uint8_t)arm_disarm_reason_t::failsafe == vehicle_status_s::);
+
 	switch (calling_reason) {
 	case arm_disarm_reason_t::transition_to_standby: return "";
 
