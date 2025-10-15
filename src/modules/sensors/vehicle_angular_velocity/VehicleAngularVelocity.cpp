@@ -652,13 +652,14 @@ void VehicleAngularVelocity::UpdateDynamicNotchIceRpm(const hrt_abstime &time_no
 		const float bandwidth_hz = _param_imu_gyro_dnf_bw.get();
 		const float freq_min = math::max(_param_imu_gyro_dnf_min.get(), bandwidth_hz);
 
-		for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		for (unsigned i = 0; i < MAX_NUM_ICE_ENGINES; i++) {
 			internal_combustion_engine_status_s ice_status{};
 
 			if (_ice_status_sub[i].copy(&ice_status) &&
 			    (time_now_us < ice_status.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
 
-				const bool engine_running = (ice_status.state == internal_combustion_engine_status_s::STATE_RUNNING);
+				const bool engine_running = (ice_status.state == internal_combustion_engine_status_s::STATE_RUNNING
+							     || ice_status.state == internal_combustion_engine_status_s::STATE_STARTING);
 
 				if (engine_running && ice_status.engine_speed_rpm > 0.f) {
 					const float engine_hz = fabsf(ice_status.engine_speed_rpm) / 60.f;
@@ -695,7 +696,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchIceRpm(const hrt_abstime &time_no
 		}
 
 		// timeout handling
-		for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		for (unsigned i = 0; i < MAX_NUM_ICE_ENGINES; i++) {
 			if (_ice_available[i] && (time_now_us > _last_ice_rpm_notch_update[i] + DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
 				bool all_disabled = true;
 
