@@ -109,6 +109,7 @@ private:
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
+	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
 	uORB::SubscriptionMultiArray<internal_combustion_engine_status_s> _ice_status_sub{ORB_ID::internal_combustion_engine_status};
 
 	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
@@ -144,8 +145,8 @@ private:
 
 	enum DynamicNotch {
 		EscRpm = 1,
-		FFT    = 2,
-		IceRpm = 4,
+		IceRpm = 2,
+		FFT    = 4,
 	};
 
 	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 3_s;
@@ -156,24 +157,23 @@ private:
 	using NotchFilterHarmonic = math::NotchFilter<float>[3][MAX_NUM_ESCS];
 	NotchFilterHarmonic *_dynamic_notch_filter_esc_rpm{nullptr};
 
-	// Internal Combustion Engine (ICE) dynamic notch filters (separate storage)
-	static constexpr int MAX_NUM_ICE_ENGINES = 5;
-	using NotchFilterIceHarmonic = math::NotchFilter<float>[3][MAX_NUM_ICE_ENGINES];
-	NotchFilterIceHarmonic *_dynamic_notch_filter_ice_rpm{nullptr};
-
 	int _esc_rpm_harmonics{0};
-
-	int _ice_rpm_harmonics{0};
 	px4::Bitset<MAX_NUM_ESCS> _esc_available{};
 	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESCS] {};
-
-	// ICE availability/timeouts (separate from ESC)
-	px4::Bitset<MAX_NUM_ICE_ENGINES> _ice_available{};
-	hrt_abstime _last_ice_rpm_notch_update[MAX_NUM_ICE_ENGINES] {};
 
 	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_init_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
+
+	// ICE RPM
+	static constexpr int MAX_NUM_ICE_ENGINES = ORB_MULTI_MAX_INSTANCES;
+
+	using NotchFilterIceHarmonic = math::NotchFilter<float>[3][MAX_NUM_ICE_ENGINES];
+	NotchFilterIceHarmonic *_dynamic_notch_filter_ice_rpm{nullptr};
+
+	int _ice_rpm_harmonics{0};
+	px4::Bitset<MAX_NUM_ICE_ENGINES> _ice_available{};
+	hrt_abstime _last_ice_rpm_notch_update[MAX_NUM_ICE_ENGINES] {};
 
 	perf_counter_t _dynamic_notch_filter_ice_rpm_disable_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_ice_rpm_init_perf{nullptr};
