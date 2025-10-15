@@ -511,17 +511,27 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_reason)
 {
-	static_assert((uint8_t)arm_disarm_reason_t::stick_gesture == vehicle_status_s::ARM_DISARM_REASON_STICK_GESTURE);
-	static_assert((uint8_t)arm_disarm_reason_t::rc_switch == vehicle_status_s::ARM_DISARM_REASON_RC_SWITCH);
-	static_assert((uint8_t)arm_disarm_reason_t::command_internal == vehicle_status_s::ARM_DISARM_REASON_COMMAND_INTERNAL);
-	static_assert((uint8_t)arm_disarm_reason_t::command_external == vehicle_status_s::ARM_DISARM_REASON_COMMAND_EXTERNAL);
-	static_assert((uint8_t)arm_disarm_reason_t::mission_start == vehicle_status_s::ARM_DISARM_REASON_MISSION_START);
-	static_assert((uint8_t)arm_disarm_reason_t::landing == vehicle_status_s::ARM_DISARM_REASON_LANDING);
+	static_assert((uint8_t)arm_disarm_reason_t::stick_gesture == vehicle_status_s::ARM_DISARM_REASON_STICK_GESTURE,
+		      "(dis)arm enum mismatch");
+	static_assert((uint8_t)arm_disarm_reason_t::rc_switch == vehicle_status_s::ARM_DISARM_REASON_RC_SWITCH,
+		      "(dis)arm enum mismatch");
+	static_assert((uint8_t)arm_disarm_reason_t::command_internal == vehicle_status_s::ARM_DISARM_REASON_COMMAND_INTERNAL,
+		      "(dis)arm enum mismatch");
+	static_assert((uint8_t)arm_disarm_reason_t::command_external == vehicle_status_s::ARM_DISARM_REASON_COMMAND_EXTERNAL,
+		      "(dis)arm enum mismatch");
+	static_assert((uint8_t)arm_disarm_reason_t::mission_start == vehicle_status_s::ARM_DISARM_REASON_MISSION_START,
+		      "(dis)arm enum mismatch");
+	static_assert((uint8_t)arm_disarm_reason_t::landing == vehicle_status_s::ARM_DISARM_REASON_LANDING,
+		      "(dis)arm enum mismatch");
 	static_assert(
-		(uint8_t)arm_disarm_reason_t::preflight_inaction == vehicle_status_s::ARM_DISARM_REASON_PREFLIGHT_INACTION);
-	static_assert((uint8_t)arm_disarm_reason_t::kill_switch == vehicle_status_s::ARM_DISARM_REASON_KILL_SWITCH);
-	static_assert((uint8_t)arm_disarm_reason_t::rc_button == vehicle_status_s::ARM_DISARM_REASON_RC_BUTTON);
-	static_assert((uint8_t)arm_disarm_reason_t::failsafe == vehicle_status_s::ARM_DISARM_REASON_FAILSAFE);
+		(uint8_t)arm_disarm_reason_t::preflight_inaction == vehicle_status_s::ARM_DISARM_REASON_PREFLIGHT_INACTION,
+		"(dis)arm enum mismatch");
+	static_assert((uint8_t)arm_disarm_reason_t::kill_switch == vehicle_status_s::ARM_DISARM_REASON_KILL_SWITCH,
+		      "(dis)arm enum mismatch");
+	static_assert((uint8_t)arm_disarm_reason_t::rc_button == vehicle_status_s::ARM_DISARM_REASON_RC_BUTTON,
+		      "(dis)arm enum mismatch");
+	static_assert((uint8_t)arm_disarm_reason_t::failsafe == vehicle_status_s::ARM_DISARM_REASON_FAILSAFE,
+		      "(dis)arm enum mismatch");
 
 	switch (calling_reason) {
 	case arm_disarm_reason_t::stick_gesture: return "stick gesture";
