@@ -474,10 +474,6 @@
                             "name": "kill_switch",
                             "description": "kill switch"
                         },
-                        "9": {
-                            "name": "lockdown",
-                            "description": "lockdown"
-                        },
                         "13": {
                             "name": "rc_button",
                             "description": "RC button"

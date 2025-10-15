@@ -520,7 +520,6 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 	static_assert(
 		(uint8_t)arm_disarm_reason_t::preflight_inaction == vehicle_status_s::ARM_DISARM_REASON_PREFLIGHT_INACTION);
 	static_assert((uint8_t)arm_disarm_reason_t::kill_switch == vehicle_status_s::ARM_DISARM_REASON_KILL_SWITCH);
-	static_assert((uint8_t)arm_disarm_reason_t::lockdown == vehicle_status_s::ARM_DISARM_REASON_LOCKDOWN);
 	static_assert((uint8_t)arm_disarm_reason_t::rc_button == vehicle_status_s::ARM_DISARM_REASON_RC_BUTTON);
 	static_assert((uint8_t)arm_disarm_reason_t::failsafe == vehicle_status_s::ARM_DISARM_REASON_FAILSAFE);
 
@@ -540,8 +539,6 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 	case arm_disarm_reason_t::preflight_inaction: return "auto preflight disarming";
 
 	case arm_disarm_reason_t::kill_switch: return "kill-switch";
-
-	case arm_disarm_reason_t::lockdown: return "lockdown";
 
 	case arm_disarm_reason_t::rc_button: return "RC button";
 
@@ -2313,26 +2310,10 @@ void Commander::handleAutoDisarm()
 		}
 
 		// Auto disarm after 5 seconds if kill switch is engaged
-		bool auto_disarm = _actuator_armed.kill;
-
-		// auto disarm if locked down to avoid user confusion
-		//  skipped in HITL where lockdown is enabled for safety
-		if (_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) {
-			auto_disarm |= _actuator_armed.lockdown;
-		}
-
-		//don't disarm if throw launch is in progress
-		auto_disarm &= !_multicopter_throw_launch.isThrowLaunchInProgress();
-
-		_auto_disarm_killed.set_state_and_update(auto_disarm, hrt_absolute_time());
+		_auto_disarm_killed.set_state_and_update(_actuator_armed.kill, hrt_absolute_time());
 
 		if (_auto_disarm_killed.get_state()) {
-			if (_actuator_armed.kill) {
-				disarm(arm_disarm_reason_t::kill_switch, true);
-
-			} else {
-				disarm(arm_disarm_reason_t::lockdown, true);
-			}
+			disarm(arm_disarm_reason_t::kill_switch, true);
 		}
 
 	} else {
