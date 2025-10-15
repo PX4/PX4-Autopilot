@@ -14216,23 +14216,10 @@ Any motion of the remote stick will abort the signal
 injection and reset this parameter
 Best is to perform the identification in position or
 hold mode.
-Increase the amplitude of the injected signal using
-FW_AT_SYSID_AMP for more signal/noise ratio
 
 | Reboot | minValue | maxValue | increment | default      | unit |
 | ------ | -------- | -------- | --------- | ------------ | ---- |
 | &nbsp; |          |          |           | Disabled (0) |
-
-### FW_AT_SYSID_AMP (`FLOAT`) {#FW_AT_SYSID_AMP}
-
-Amplitude of the injected signal.
-
-This parameter scales the signal sent to the
-rate controller during system identification.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 6.0      |           | 1.0     |
 
 ### FW_AT_SYSID_F0 (`FLOAT`) {#FW_AT_SYSID_F0}
 
@@ -14252,7 +14239,7 @@ Can be set lower or higher than the start frequency
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 30.0     |           | 20.     | Hz   |
+| &nbsp; | 0.1      | 30.0     |           | 10.     | Hz   |
 
 ### FW_AT_SYSID_TIME (`FLOAT`) {#FW_AT_SYSID_TIME}
 
@@ -14278,7 +14265,7 @@ Type of signal used during system identification to excite the system.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |
+| &nbsp; |          |          |           | 1       |
 
 ### MC_AT_APPLY (`INT32`) {#MC_AT_APPLY}
 
@@ -16135,29 +16122,36 @@ The default value of 1000 requires the stick to be held in the arm or disarm pos
 
 ### COM_RC_IN_MODE (`INT32`) {#COM_RC_IN_MODE}
 
-RC control input mode.
+Manual control input source configuration.
 
-A value of 0 enables RC transmitter control (only). A valid RC transmitter calibration is required.
-A value of 1 allows joystick control only. RC input handling and the associated checks are disabled.
-A value of 2 allows either RC Transmitter or Joystick input. The first valid input is used, will fallback to other sources if the input stream becomes invalid.
-A value of 3 allows either input from RC or joystick. The first available source is selected and used until reboot.
-A value of 4 ignores any stick input.
-A value of 5 allows either RC Transmitter or Joystick input. But RC has priority and whenever avaiable is immedietely used.
-A value of 6 allows either RC Transmitter or Joystick input. But Joystick has priority and whenever avaiable is immedietely used.
+Selects stick input selection behavior:
+either a traditional remote control receiver (RC) or a MAVLink joystick (MANUAL_CONTROL message)
+Priority sources are immediately switched to whenever they get valid.
+0 RC only. Requires valid RC calibration.
+1 MAVLink only. RC and related checks are disabled.
+2 Switches only if current source becomes invalid.
+3 Locks to the first valid source until reboot.
+4 Ignores all sources.
+5 RC priority, then MAVLink (lower instance before higher)
+6 MAVLink priority (lower instance before higher), then RC
+7 RC priority, then MAVLink (higher instance before lower)
+8 MAVLink priority (higher instance before lower), then RC
 
 **Values:**
 
-- `0`: RC Transmitter only
-- `1`: Joystick only
-- `2`: RC and Joystick with fallback
-- `3`: RC or Joystick keep first
-- `4`: Stick input disabled
-- `5`: RC priority, Joystick fallback
-- `6`: Joystick priority, RC fallback
+- `0`: RC only
+- `1`: MAVLink only
+- `2`: RC or MAVLink with fallback
+- `3`: RC or MAVLink keep first
+- `4`: Disable manual control
+- `5`: Prio: RC > MAVL 1 > MAVL 2
+- `6`: Prio: MAVL 1 > MAVL 2 > RC
+- `7`: Prio: RC > MAVL 2 > MAVL 1
+- `8`: Prio: MAVL 2 > MAVL 1 > RC
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 4        |           | 3       |
+| &nbsp; | 0        | 8        |           | 3       |
 
 ### COM_RC_LOSS_T (`FLOAT`) {#COM_RC_LOSS_T}
 
@@ -17528,7 +17522,7 @@ If the vehicle is on ground, is not moving as determined by the motion test and 
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     |          |           | 0.1     | m    |
+| &nbsp; | 0.01     |          |           | 0.01    | m    |
 
 ### EKF2_MULTI_IMU (`INT32`) {#EKF2_MULTI_IMU}
 
@@ -24402,13 +24396,12 @@ MAVLink protocol version.
 
 **Values:**
 
-- `0`: Default to 1, switch to 2 if GCS sends version 2
-- `1`: Always use version 1
-- `2`: Always use version 2
+- `1`: Version 1 with auto-upgrade to v2 if detected
+- `2`: Version 2
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |
+| &nbsp; |          |          |           | 2       |
 
 ### MAV_RADIO_TOUT (`INT32`) {#MAV_RADIO_TOUT}
 
@@ -24442,6 +24435,36 @@ MAVLink system ID.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 1        | 250      |           | 1       |
+
+### MAV_S_FORWARD (`INT32`) {#MAV_S_FORWARD}
+
+Enable MAVLink forwarding on TELEM2.
+
+TELEM2 on Skynode only.
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
+
+### MAV_S_MODE (`INT32`) {#MAV_S_MODE}
+
+MAVLink Mode for SOM to FMU communication channel.
+
+The MAVLink Mode defines the set of streamed messages (for example the
+vehicle's attitude) and their sending rates.
+
+**Values:**
+
+- `0`: Normal
+- `2`: Onboard
+- `5`: Config
+- `7`: Minimal
+- `11`: Onboard Low Bandwidth
+- `13`: Low Bandwidth
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 11      |
 
 ### MAV_TYPE (`INT32`) {#MAV_TYPE}
 
@@ -26250,7 +26273,7 @@ Pitch rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = MC*PITCHRATE_K * (MC*PITCHRATE_P * error
+output = MC_PITCHRATE_K _ (MC_PITCHRATE_P _ error
 
 - MC_PITCHRATE_I \* error_integral
 - MC_PITCHRATE_D \* error_derivative)
@@ -26317,7 +26340,7 @@ Roll rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = MC*ROLLRATE_K * (MC*ROLLRATE_P * error
+output = MC_ROLLRATE_K _ (MC_ROLLRATE_P _ error
 
 - MC_ROLLRATE_I \* error_integral
 - MC_ROLLRATE_D \* error_derivative)
@@ -26384,7 +26407,7 @@ Yaw rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = MC*YAWRATE_K * (MC*YAWRATE_P * error
+output = MC_YAWRATE_K _ (MC_YAWRATE_P _ error
 
 - MC_YAWRATE_I \* error_integral
 - MC_YAWRATE_D \* error_derivative)
@@ -26618,7 +26641,7 @@ Thrust to motor control signal model parameter.
 
 Parameter used to model the nonlinear relationship between
 motor control signal (e.g. PWM) and static thrust.
-The model is: rel*thrust = factor * rel*signal^2 + (1-factor) * rel_signal,
+The model is: rel_thrust = factor _ rel_signal^2 + (1-factor) _ rel_signal,
 where rel_thrust is the normalized thrust between 0 and 1, and
 rel_signal is the relative motor control signal between 0 and 1.
 
@@ -26792,16 +26815,6 @@ Select your RC input protocol or auto to scan.
 
 ## Radio Calibration
 
-### RC10_DZ (`FLOAT`) {#RC10_DZ}
-
-RC channel 10 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 0.0     |
-
 ### RC10_MAX (`FLOAT`) {#RC10_MAX}
 
 RC channel 10 maximum.
@@ -26846,16 +26859,6 @@ Mid point value
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
-
-### RC11_DZ (`FLOAT`) {#RC11_DZ}
-
-RC channel 11 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 0.0     |
 
 ### RC11_MAX (`FLOAT`) {#RC11_MAX}
 
@@ -26902,16 +26905,6 @@ Mid point value
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
 
-### RC12_DZ (`FLOAT`) {#RC12_DZ}
-
-RC channel 12 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 0.0     |
-
 ### RC12_MAX (`FLOAT`) {#RC12_MAX}
 
 RC channel 12 maximum.
@@ -26956,16 +26949,6 @@ Mid point value
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
-
-### RC13_DZ (`FLOAT`) {#RC13_DZ}
-
-RC channel 13 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 0.0     |
 
 ### RC13_MAX (`FLOAT`) {#RC13_MAX}
 
@@ -27012,16 +26995,6 @@ Mid point value
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
 
-### RC14_DZ (`FLOAT`) {#RC14_DZ}
-
-RC channel 14 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 0.0     |
-
 ### RC14_MAX (`FLOAT`) {#RC14_MAX}
 
 RC channel 14 maximum.
@@ -27066,16 +27039,6 @@ Mid point value
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
-
-### RC15_DZ (`FLOAT`) {#RC15_DZ}
-
-RC channel 15 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 0.0     |
 
 ### RC15_MAX (`FLOAT`) {#RC15_MAX}
 
@@ -27122,16 +27085,6 @@ Mid point value
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
 
-### RC16_DZ (`FLOAT`) {#RC16_DZ}
-
-RC channel 16 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 0.0     |
-
 ### RC16_MAX (`FLOAT`) {#RC16_MAX}
 
 RC channel 16 maximum.
@@ -27176,16 +27129,6 @@ Mid point value
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
-
-### RC17_DZ (`FLOAT`) {#RC17_DZ}
-
-RC channel 17 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 0.0     |
 
 ### RC17_MAX (`FLOAT`) {#RC17_MAX}
 
@@ -27232,16 +27175,6 @@ Mid point value
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
 
-### RC18_DZ (`FLOAT`) {#RC18_DZ}
-
-RC channel 18 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 0.0     |
-
 ### RC18_MAX (`FLOAT`) {#RC18_MAX}
 
 RC channel 18 maximum.
@@ -27286,16 +27219,6 @@ Mid point value
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
-
-### RC1_DZ (`FLOAT`) {#RC1_DZ}
-
-RC channel 1 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 10.0    | us   |
 
 ### RC1_MAX (`FLOAT`) {#RC1_MAX}
 
@@ -27342,16 +27265,6 @@ Mid point value
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500.0  | us   |
 
-### RC2_DZ (`FLOAT`) {#RC2_DZ}
-
-RC channel 2 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 10.0    | us   |
-
 ### RC2_MAX (`FLOAT`) {#RC2_MAX}
 
 RC channel 2 maximum.
@@ -27396,16 +27309,6 @@ Mid point value
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500.0  | us   |
-
-### RC3_DZ (`FLOAT`) {#RC3_DZ}
-
-RC channel 3 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 10.0    | us   |
 
 ### RC3_MAX (`FLOAT`) {#RC3_MAX}
 
@@ -27452,16 +27355,6 @@ Mid point value
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
 
-### RC4_DZ (`FLOAT`) {#RC4_DZ}
-
-RC channel 4 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 10.0    | us   |
-
 ### RC4_MAX (`FLOAT`) {#RC4_MAX}
 
 RC channel 4 maximum.
@@ -27506,16 +27399,6 @@ Mid point value
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
-
-### RC5_DZ (`FLOAT`) {#RC5_DZ}
-
-RC channel 5 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 10.0    |
 
 ### RC5_MAX (`FLOAT`) {#RC5_MAX}
 
@@ -27562,16 +27445,6 @@ Mid point value
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
 
-### RC6_DZ (`FLOAT`) {#RC6_DZ}
-
-RC channel 6 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 10.0    |
-
 ### RC6_MAX (`FLOAT`) {#RC6_MAX}
 
 RC channel 6 maximum.
@@ -27616,16 +27489,6 @@ Mid point value
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
-
-### RC7_DZ (`FLOAT`) {#RC7_DZ}
-
-RC channel 7 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 10.0    |
 
 ### RC7_MAX (`FLOAT`) {#RC7_MAX}
 
@@ -27672,16 +27535,6 @@ Mid point value
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
 
-### RC8_DZ (`FLOAT`) {#RC8_DZ}
-
-RC channel 8 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 10.0    |
-
 ### RC8_MAX (`FLOAT`) {#RC8_MAX}
 
 RC channel 8 maximum.
@@ -27726,16 +27579,6 @@ Mid point value
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
-
-### RC9_DZ (`FLOAT`) {#RC9_DZ}
-
-RC channel 9 dead zone.
-
-The +- range of this value around the trim value will be considered as zero.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 100.0    |           | 0.0     |
 
 ### RC9_MAX (`FLOAT`) {#RC9_MAX}
 
@@ -29482,7 +29325,7 @@ Proportional gain for ground speed controller.
 
 Tuning parameter for the speed reduction based on the course error.
 
-Reduced*speed = RO_MAX_THR_SPEED * (1 - normalized*course_error * RO_SPEED_RED)
+Reduced_speed = RO_MAX_THR_SPEED _ (1 - normalized_course_error _ RO_SPEED_RED)
 The normalized course error is the angle between the current course and the bearing setpoint
 interpolated from [0, 180] -> [0, 1].
 Higher value -> More speed reduction.
@@ -29596,10 +29439,7 @@ Selects the algorithm used for logfile encryption
 
 Logging Backend (integer bitmask).
 
-If no logging is set the logger will not be started.
-Set bits true to enable:
-0: SD card logging
-1: Mavlink logging
+If no logging is set the logger will not be started. Set bits true to enable: 0: SD card logging 1: Mavlink logging
 
 **Bitmask:**
 
@@ -29614,11 +29454,7 @@ Set bits true to enable:
 
 Battery-only Logging.
 
-When enabled, logging will not start from boot if battery power is not detected
-(e.g. powered via USB on a test bench). This prevents extraneous flight logs from
-being created during bench testing.
-Note that this only applies to log-from-boot modes. This has no effect on arm-based
-modes.
+When enabled, logging will not start from boot if battery power is not detected (e.g. powered via USB on a test bench). This prevents extraneous flight logs from being created during bench testing. Note that this only applies to log-from-boot modes. This has no effect on arm-based modes.
 
 | Reboot | minValue | maxValue | increment | default      | unit |
 | ------ | -------- | -------- | --------- | ------------ | ---- |
@@ -29628,13 +29464,7 @@ modes.
 
 Maximum number of log directories to keep.
 
-If there are more log directories than this value,
-the system will delete the oldest directories during startup.
-In addition, the system will delete old logs if there is not enough free space left.
-The minimum amount is 300 MB.
-If this is set to 0, old directories will only be removed if the free space falls below
-the minimum.
-Note: this does not apply to mission log files.
+If there are more log directories than this value, the system will delete the oldest directories during startup. In addition, the system will delete old logs if there is not enough free space left. The minimum amount is 300 MB. If this is set to 0, old directories will only be removed if the free space falls below the minimum. Note: this does not apply to mission log files.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -29644,9 +29474,7 @@ Note: this does not apply to mission log files.
 
 Logfile Encryption key exchange key.
 
-If the logfile is encrypted using a symmetric key algorithm,
-the used encryption key is generated at logging start and stored
-on the sdcard RSA2048 encrypted using this key.
+If the logfile is encrypted using a symmetric key algorithm, the used encryption key is generated at logging start and stored on the sdcard RSA2048 encrypted using this key.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -29656,12 +29484,7 @@ on the sdcard RSA2048 encrypted using this key.
 
 Logfile Encryption key index.
 
-Selects the key in keystore, used for encrypting the log. When using
-a symmetric encryption algorithm, the key is generated at logging start
-and kept stored in this index. For symmetric algorithms, the key is
-volatile and valid only for the duration of logging. The key is stored
-in encrypted format on the sdcard alongside the logfile, using an RSA2048
-key defined by the SDLOG_EXCHANGE_KEY
+Selects the key in keystore, used for encrypting the log. When using a symmetric encryption algorithm, the key is generated at logging start and kept stored in this index. For symmetric algorithms, the key is volatile and valid only for the duration of logging. The key is stored in encrypted format on the sdcard alongside the logfile, using an RSA2048 key defined by the SDLOG_EXCHANGE_KEY
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -29671,14 +29494,7 @@ key defined by the SDLOG_EXCHANGE_KEY
 
 Mission Log.
 
-If enabled, a small additional "mission" log file will be written to the SD card.
-The log contains just those messages that are useful for tasks like
-generating flight statistics and geotagging.
-The different modes can be used to further reduce the logged data
-(and thus the log file size). For example, choose geotagging mode to
-only log data required for geotagging.
-Note that the normal/full log is still created, and contains all
-the data in the mission log (and more).
+If enabled, a small additional "mission" log file will be written to the SD card. The log contains just those messages that are useful for tasks like generating flight statistics and geotagging. The different modes can be used to further reduce the logged data (and thus the log file size). For example, choose geotagging mode to only log data required for geotagging. Note that the normal/full log is still created, and contains all the data in the mission log (and more).
 
 **Values:**
 
@@ -29694,11 +29510,7 @@ the data in the mission log (and more).
 
 Logging Mode.
 
-Determines when to start and stop logging. By default, logging is started
-when arming the system, and stopped when disarming.
-Note: The logging start/end points that can be configured here only apply to
-SD logging. The mavlink backend is started/stopped independently
-of these points.
+Determines when to start and stop logging. By default, logging is started when arming the system, and stopped when disarming. Note: The logging start/end points that can be configured here only apply to SD logging. The mavlink backend is started/stopped independently of these points.
 
 **Values:**
 
@@ -29716,23 +29528,7 @@ of these points.
 
 Logging topic profile (integer bitmask).
 
-This integer bitmask controls the set and rates of logged topics.
-The default allows for general log analysis while keeping the
-log file size reasonably small.
-Enabling multiple sets leads to higher bandwidth requirements and larger log
-files.
-Set bits true to enable:
-0 : Default set (used for general log analysis)
-1 : Full rate estimator (EKF2) replay topics
-2 : Topics for thermal calibration (high rate raw IMU and Baro sensor data)
-3 : Topics for system identification (high rate actuator control and IMU data)
-4 : Full rates for analysis of fast maneuvers (RC, attitude, rates and actuators)
-5 : Debugging topics (debug\_\*.msg topics, for custom code)
-6 : Topics for sensor comparison (low rate raw IMU, Baro and magnetometer data)
-7 : Topics for computer vision and collision prevention
-8 : Raw FIFO high-rate IMU (Gyro)
-9 : Raw FIFO high-rate IMU (Accel)
-10: Logging of mavlink tunnel message (useful for payload communication debugging)
+This integer bitmask controls the set and rates of logged topics. The default allows for general log analysis while keeping the log file size reasonably small. Enabling multiple sets leads to higher bandwidth requirements and larger log files. Set bits true to enable: 0 : Default set (used for general log analysis) 1 : Full rate estimator (EKF2) replay topics 2 : Topics for thermal calibration (high rate raw IMU and Baro sensor data) 3 : Topics for system identification (high rate actuator control and IMU data) 4 : Full rates for analysis of fast maneuvers (RC, attitude, rates and actuators) 5 : Debugging topics (debug\_\*.msg topics, for custom code) 6 : Topics for sensor comparison (low rate raw IMU, Baro and magnetometer data) 7 : Topics for computer vision and collision prevention 8 : Raw FIFO high-rate IMU (Gyro) 9 : Raw FIFO high-rate IMU (Accel) 10: Logging of mavlink tunnel message (useful for payload communication debugging)
 
 **Bitmask:**
 
@@ -29757,11 +29553,7 @@ Set bits true to enable:
 
 UTC offset (unit: min).
 
-the difference in hours and minutes from Coordinated
-Universal Time (UTC) for a your place and date.
-for example, In case of South Korea(UTC+09:00),
-UTC offset is 540 min (9\*60)
-refer to https://en.wikipedia.org/wiki/List_of_UTC_time_offsets
+the difference in hours and minutes from Coordinated Universal Time (UTC) for a your place and date. for example, In case of South Korea(UTC+09:00), UTC offset is 540 min (9\*60) refer to https://en.wikipedia.org/wiki/List_of_UTC_time_offsets
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -32374,331 +32166,423 @@ INA238 Power Monitor Shunt.
 
 ### MS_ACCEL_RANGE (`INT32`) {#MS_ACCEL_RANGE}
 
-Sets the range of the accelerometer.
+MicroStrain accelerometer range.
 
--1 = Will not be configured, and will use the device default range,
-Each adjustable range has a corresponding integer setting. Refer to the device's User Manual to check the available adjustment ranges.
-https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com
-Restart required
-This parameter is specific to the MicroStrain driver.
+-1 = Will not be configured, and will use the device default range.
+Ranges vary by device and map to integer codes. Check the device's [User Manual](https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com) for supported ranges and set the corresponding integer.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | -1      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | -1      |
 
 ### MS_ALIGNMENT (`INT32`) {#MS_ALIGNMENT}
 
-Alignment type.
+MicroStrain heading alignment type.
 
-Select the source of heading alignment
-This is a bitfield, you can use more than 1 source
-Bit 0 - Dual-antenna GNSS
-Bit 1 - GNSS kinematic (requires motion, e.g. a GNSS velocity)
-Bit 2 - Magnetometer
-Bit 3 - External Heading (first valid external heading will be used to initialize the filter)
-Restart required
-This parameter is specific to the MicroStrain driver.
+Select the source of heading alignment.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 2       |
+**Bitmask:**
+
+- `0`: Dual-antenna GNSS
+- `1`: GNSS kinematic (requires motion, e.g. a GNSS velocity)
+- `2`: Magnetometer
+- `3`: External Heading (first valid external heading will be used to initialize the filter)
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 1        | 15       |           | 2       |
 
 ### MS_BARO_RATE_HZ (`INT32`) {#MS_BARO_RATE_HZ}
 
-Barometer data rate.
+MicroStrain barometer data rate.
 
-Barometer data rate
-Max Limit: 1000
-0 - Disable barometer datastream
-The max limit should be divisible by the rate
-eg: 1000 % MS_BARO_RATE_HZ = 0
-Restart required
-This parameter is specific to the MicroStrain driver.
+Barometer data rate (Hz).
+Valid rates: 0 or any factor of 1000.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 50      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 50      |
+
+### MS_EHEAD_YAW (`FLOAT`) {#MS_EHEAD_YAW}
+
+MicroStrain External Heading Orientation (Yaw).
+
+The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+Requires MS_EXT_HEAD_EN to be enabled to be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
+
+### MS_EMAG_PTCH (`FLOAT`) {#MS_EMAG_PTCH}
+
+MicroStrain External Magnetometer Orientation (Pitch).
+
+The orientation of the device (Radians) with respect to the vehicle frame around the y axis.
+Requires MS_EXT_MAG_EN to be enabled to be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
+
+### MS_EMAG_ROLL (`FLOAT`) {#MS_EMAG_ROLL}
+
+MicroStrain External Magnetometer Orientation (Roll).
+
+The orientation of the device (Radians) with respect to the vehicle frame around the x axis.
+Requires MS_EXT_MAG_EN to be enabled to be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
+
+### MS_EMAG_UNCERT (`FLOAT`) {#MS_EMAG_UNCERT}
+
+MicroStrain external magnetometer uncertainty.
+
+The 1-sigma uncertainty (in Gauss) for all axes, which will remain constant across all aiding measurements.
+Requires MS_EXT_MAG_EN to be enabled to be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.1     |
+
+### MS_EMAG_YAW (`FLOAT`) {#MS_EMAG_YAW}
+
+MicroStrain External Magnetometer Orientation (Yaw).
+
+The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+Requires MS_EXT_MAG_EN to be enabled to be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
 
 ### MS_EXT_HEAD_EN (`INT32`) {#MS_EXT_HEAD_EN}
 
+Enable MicroStrain external heading aiding.
+
 Toggles external heading as an aiding measurement.
-
-0 = Disabled,
-1 = Enabled
 If enabled, the filter will be configured to accept external heading as an aiding meaurement.
-Restart required
-This parameter is specific to the MicroStrain driver.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
+
+### MS_EXT_MAG_EN (`INT32`) {#MS_EXT_MAG_EN}
+
+Enable MicroStrain external magnetometer aiding.
+
+Toggles external magnetometer aiding in the device filter.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
 
 ### MS_FILT_RATE_HZ (`INT32`) {#MS_FILT_RATE_HZ}
 
-EKF data Rate.
+MicroStrain EKF data rate.
 
-EKF data rate
-Max Limit: 1000
-0 - Disable EKF datastream
-The max limit should be divisible by the rate
-eg: 1000 % MS_FILT_RATE_HZ = 0
-Restart required
-This parameter is specific to the MicroStrain driver.
+The rate at which the INS data is published (Hz).
+Valid rates: 0 or any factor of 1000.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 250     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 250     |
 
 ### MS_GNSS_AID_SRC (`INT32`) {#MS_GNSS_AID_SRC}
 
-GNSS aiding source control.
+MicroStrain GNSS aiding source control.
 
-Select the source of gnss aiding (GNSS/INS)
-1 = All internal receivers,
-2 = External GNSS messages,
-3 = GNSS receiver 1 only
-4 = GNSS receiver 2 only
-Restart required
-This parameter is specific to the MicroStrain driver.
+Select the source of gnss aiding (GNSS/INS).
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 1       |
+**Values:**
+
+- `1`: All internal receivers
+- `2`: External GNSS messages
+- `3`: GNSS receiver 1 only
+- `4`: GNSS receiver 2 only
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 1       |
 
 ### MS_GNSS_OFF1_X (`FLOAT`) {#MS_GNSS_OFF1_X}
 
-GNSS lever arm offset 1 (X).
+MicroStrain GNSS lever arm offset 1 (X).
 
-Lever arm offset (m) in the X direction for the external GNSS receiver
-In the case of a dual antenna setup, this is antenna 1
-Restart required
-This parameter is specific to the MicroStrain driver.
+Lever arm offset (m) in the X direction for the external GNSS receiver.
+In the case of a dual antenna setup, this is antenna 1.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
 
 ### MS_GNSS_OFF1_Y (`FLOAT`) {#MS_GNSS_OFF1_Y}
 
-GNSS lever arm offset 1 (Y).
+MicroStrain GNSS lever arm offset 1 (Y).
 
-Lever arm offset (m) in the Y direction for the external GNSS receiver
-In the case of a dual antenna setup, this is antenna 1
-Restart required
-This parameter is specific to the MicroStrain driver.
+Lever arm offset (m) in the Y direction for the external GNSS receiver.
+In the case of a dual antenna setup, this is antenna 1.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
 
 ### MS_GNSS_OFF1_Z (`FLOAT`) {#MS_GNSS_OFF1_Z}
 
-GNSS lever arm offset 1 (Z).
+MicroStrain GNSS lever arm offset 1 (Z).
 
-Lever arm offset (m) in the Z direction for the external GNSS receiver
-In the case of a dual antenna setup, this is antenna 1
-Restart required
-This parameter is specific to the MicroStrain driver.
+Lever arm offset (m) in the Z direction for the external GNSS receiver.
+In the case of a dual antenna setup, this is antenna 1.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
 
 ### MS_GNSS_OFF2_X (`FLOAT`) {#MS_GNSS_OFF2_X}
 
-GNSS lever arm offset 2 (X).
+MicroStrain GNSS lever arm offset 2 (X).
 
 Lever arm offset (m) in the X direction for antenna 2
-This will only be used if the device supports a dual antenna setup
-Restart required
-This parameter is specific to the MicroStrain driver.
+This will only be used if the device supports a dual antenna setup.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
 
 ### MS_GNSS_OFF2_Y (`FLOAT`) {#MS_GNSS_OFF2_Y}
 
-GNSS lever arm offset 2 (Y).
+MicroStrain GNSS lever arm offset 2 (Y).
 
-Lever arm offset (m) in the Y direction for antenna 2
-This will only be used if the device supports a dual antenna setup
-Restart required
-This parameter is specific to the MicroStrain driver.
+Lever arm offset (m) in the Y direction for antenna 2.
+This will only be used if the device supports a dual antenna setup.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
 
 ### MS_GNSS_OFF2_Z (`FLOAT`) {#MS_GNSS_OFF2_Z}
 
-GNSS lever arm offset 2 (Z).
+MicroStrain GNSS lever arm offset 2 (Z).
 
-Lever arm offset (m) in the X direction for antenna 2
-This will only be used if the device supports a dual antenna setup
-Restart required
-This parameter is specific to the MicroStrain driver.
+Lever arm offset (m) in the X direction for antenna 2.
+This will only be used if the device supports a dual antenna setup.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
 
 ### MS_GNSS_RATE_HZ (`INT32`) {#MS_GNSS_RATE_HZ}
 
-GNSS data Rate.
+MicroStrain GNSS data rate.
 
-GNSS receiver 1 and 2 data rate
-Max Limit: 5
-The max limit should be divisible by the rate
-0 - Disable GNSS datastream
-eg: 5 % MS_GNSS_RATE_HZ = 0
-Restart required
-This parameter is specific to the MicroStrain driver.
+GNSS receiver 1 and 2 data rate (Hz).
+Valid rates: 0, 1 or 5.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 5       |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 5        |           | 5       |
 
 ### MS_GYRO_RANGE (`INT32`) {#MS_GYRO_RANGE}
 
-Sets the range of the gyro.
+MicroStrain gyroscope range.
 
--1 = Will not be configured, and will use the device default range,
-Each adjustable range has a corresponding integer setting. Refer to the device's User Manual to check the available adjustment ranges.
-https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com
-Restart required
-This parameter is specific to the MicroStrain driver.
+-1 = Will not be configured, and will use the device default range.
+Ranges vary by device and map to integer codes. Check the device's [User Manual](https://www.hbkworld.com/en/products/transducers/inertial-sensors#!ref_microstrain.com) for supported ranges and set the corresponding integer.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | -1      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | -1      |
 
 ### MS_IMU_RATE_HZ (`INT32`) {#MS_IMU_RATE_HZ}
 
-IMU Data Rate.
+MicroStrain IMU data rate.
 
-IMU (Accelerometer and Gyroscope) data rate
-The INS driver will be scheduled at a rate 2\*MS_IMU_RATE_HZ
-Max Limit: 1000
-0 - Disable IMU datastream
-The max limit should be divisible by the rate
-eg: 1000 % MS_IMU_RATE_HZ = 0
-Restart required
-This parameter is specific to the MicroStrain driver.
+Accelerometer and Gyroscope data rate (Hz).
+Valid rates: 0 or any factor of 1000.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 500     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 500     |
 
 ### MS_INT_HEAD_EN (`INT32`) {#MS_INT_HEAD_EN}
 
+Enable MicroStrain internal heading aiding.
+
 Toggles internal heading as an aiding measurement.
-
-0 = Disabled,
-1 = Enabled
 If dual antennas are supported (CV7-GNSS/INS). The filter will be configured to use dual antenna heading as an aiding measurement.
-Restart required
-This parameter is specific to the MicroStrain driver.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
 
 ### MS_INT_MAG_EN (`INT32`) {#MS_INT_MAG_EN}
 
+Enable MicroStrain internal magnetometer.
+
 Toggles internal magnetometer aiding in the device filter.
 
-0 = Disabled,
-1 = Enabled
-Restart required
-This parameter is specific to the MicroStrain driver.
+**Values:**
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
 
 ### MS_MAG_RATE_HZ (`INT32`) {#MS_MAG_RATE_HZ}
 
-Magnetometer Data Rate.
+MicroStrain magnetometer data rate.
 
-Magnetometer data rate
-Max Limit: 1000
-0 - Disable magnetometer datastream
-The max limit should be divisible by the rate
-eg: 1000 % MS_MAG_RATE_HZ = 0
-Restart required
-This parameter is specific to the MicroStrain driver.
+Magnetometer data rate (Hz).
+Valid rates: 0 or any factor of 1000.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 50      |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 50      |
 
 ### MS_MODE (`INT32`) {#MS_MODE}
 
-Toggles using the device as the primary EKF.
+MicroStrain device mode.
 
-Setting to 1 will publish data from the device to the vehicle topics (global_position, attitude, local_position, odometry), estimator_status and sensor_selection
-Setting to 0 will publish data from the device to the external_ins topics (global position, attitude, local position)
-Restart Required
-This parameter is specific to the MicroStrain driver.
+Sensor mode publishes raw IMU data to be used by EKF2. INS data from the device is published to the external INS topics.
+INS mode publishes the INS data to the vehicle topics to be used for navigation.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 1       |
+**Values:**
+
+- `0`: Sensor Mode
+- `1`: INS Mode
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
+
+### MS_OFLW_OFF_X (`FLOAT`) {#MS_OFLW_OFF_X}
+
+MicroStrain optical flow offset (X).
+
+Offset (m) in the X direction if an Optical Flow sensor is connected.
+Requires MS_OPT_FLOW_EN to be enabled to be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
+
+### MS_OFLW_OFF_Y (`FLOAT`) {#MS_OFLW_OFF_Y}
+
+MicroStrain optical flow offset (Y).
+
+Offset (m) in the Y direction if an Optical Flow sensor is connected.
+Requires MS_OPT_FLOW_EN to be enabled to be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
+
+### MS_OFLW_OFF_Z (`FLOAT`) {#MS_OFLW_OFF_Z}
+
+MicroStrain optical flow offset (Z).
+
+Offset (m) in the Z direction if an Optical Flow sensor is connected.
+Requires MS_OPT_FLOW_EN to be enabled to be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
+
+### MS_OFLW_UNCERT (`FLOAT`) {#MS_OFLW_UNCERT}
+
+MicroStrain optical flow uncertainty.
+
+The 1-sigma uncertainty (in m/s) for the X and Y axes, which will remain constant across all aiding measurements.
+The Z axis is not used for aiding.
+Requires MS_OPT_FLOW_EN to be enabled to be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.1     |
+
+### MS_OPT_FLOW_EN (`INT32`) {#MS_OPT_FLOW_EN}
+
+Enable MicroStrain optical flow aiding.
+
+Toggles body frame velocity as an aiding measurement.
+The driver uses the body frame velocity from the optical flow sensor as the aiding measurements.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
 
 ### MS_SENSOR_PTCH (`FLOAT`) {#MS_SENSOR_PTCH}
 
-Sensor to Vehicle Transform (Pitch).
+MicroStrain Sensor to Vehicle Transform (Pitch).
 
-The orientation of the device (Radians) with respect to the vehicle frame around the y axis
-Requires MS_SVT_EN to be enabled to be used
-Restart required
-This parameter is specific to the MicroStrain driver.
+The orientation of the device (Radians) with respect to the vehicle frame around the y axis.
+Requires MS_SVT_EN to be enabled to be used.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
 
 ### MS_SENSOR_ROLL (`FLOAT`) {#MS_SENSOR_ROLL}
 
-Sensor to Vehicle Transform (Roll).
+MicroStrain Sensor to vehicle transform (Roll).
 
-The orientation of the device (Radians) with respect to the vehicle frame around the x axis
-Requires MS_SVT_EN to be enabled to be used
-Restart required
-This parameter is specific to the MicroStrain driver.
+The orientation of the device (Radians) with respect to the vehicle frame around the x axis.
+Requires MS_SVT_EN to be enabled to be used.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
 
 ### MS_SENSOR_YAW (`FLOAT`) {#MS_SENSOR_YAW}
 
-Sensor to Vehicle Transform (Yaw).
+MicroStrain Sensor to Vehicle Transform (Yaw).
 
-The orientation of the device (Radians) with respect to the vehicle frame around the z axis
-Requires MS_SVT_EN to be enabled to be used
-Restart required
-This parameter is specific to the MicroStrain driver.
+The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+Requires MS_SVT_EN to be enabled to be used.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0.0     |
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0.0     |
 
 ### MS_SVT_EN (`INT32`) {#MS_SVT_EN}
 
-Enables sensor to vehicle transform.
+Enables Microstrain sensor to vehicle transform.
 
-0 = Disabled,
-1 = Enabled
 If the sensor has a different orientation with respect to the vehicle. This will enable a transform to correct itself.
-The transform is described by MS_SENSOR_ROLL, MS_SENSOR_PITCH, MS_SENSOR_YAW
-Restart required
-This parameter is specific to the MicroStrain driver.
+The transform is described by MS_SENSOR_ROLL, MS_SENSOR_PITCH, MS_SENSOR_YAW.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
 
 ### PCF8583_MAGNET (`INT32`) {#PCF8583_MAGNET}
 
@@ -33366,7 +33250,7 @@ Lightware SF1xx/SF20/LW20 laser rangefinder (i2c).
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 6        |           | 0       |
+| &check; | 0        | 7        |           | 0       |
 
 ### SENS_EN_SF45_CFG (`INT32`) {#SENS_EN_SF45_CFG}
 
@@ -34298,6 +34182,31 @@ This parameter defines the rotation of the Mappydot sensor relative to the platf
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 7        |           | 0       |
+
+### SENS_MS_CFG (`INT32`) {#SENS_MS_CFG}
+
+Serial Configuration for MICROSTRAIN.
+
+Configure on which serial port to run MICROSTRAIN.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
 
 ### SENS_OR_ADIS164X (`INT32`) {#SENS_OR_ADIS164X}
 
@@ -36261,7 +36170,7 @@ Pitch rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = SC*PITCHRATE_K * (SC*PITCHRATE_P * error
+output = SC_PITCHRATE_K _ (SC_PITCHRATE_P _ error
 
 - SC_PITCHRATE_I \* error_integral
 - SC_PITCHRATE_D \* error_derivative)
@@ -36328,7 +36237,7 @@ Roll rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = SC*ROLLRATE_K * (SC*ROLLRATE_P * error
+output = SC_ROLLRATE_K _ (SC_ROLLRATE_P _ error
 
 - SC_ROLLRATE_I \* error_integral
 - SC_ROLLRATE_D \* error_derivative)
@@ -36395,7 +36304,7 @@ Yaw rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = SC*YAWRATE_K * (SC*YAWRATE_P * error
+output = SC_YAWRATE_K _ (SC_YAWRATE_P _ error
 
 - SC_YAWRATE_I \* error_integral
 - SC_YAWRATE_D \* error_derivative)
