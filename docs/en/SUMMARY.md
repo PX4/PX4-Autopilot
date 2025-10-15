@@ -681,6 +681,7 @@
         - [SensorCombined](msg_docs/SensorCombined.md)
         - [SensorCorrection](msg_docs/SensorCorrection.md)
         - [SensorGnssRelative](msg_docs/SensorGnssRelative.md)
+        - [SensorGnssStatus](msg_docs/SensorGnssStatus.md)
         - [SensorGps](msg_docs/SensorGps.md)
         - [SensorGyro](msg_docs/SensorGyro.md)
         - [SensorGyroFft](msg_docs/SensorGyroFft.md)

@@ -615,6 +615,10 @@ div.frame_variant td, div.frame_variant th {
  <td><a href="https://www.axialadventure.com/product/1-10-scx10-ii-trail-honcho-4wd-rock-crawler-brushed-rtr/AXID9059.html">Axial SCX10 2 Trail Honcho</a></td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51001</p></td>
 </tr>
+<tr id="rover_rover_nxp_b3rb_rover_ackermann">
+ <td>NXP B3RB Rover Ackermann</td>
+ <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51002</p></td>
+</tr>
 <tr id="rover_rover_generic_rover_mecanum">
  <td>Generic Rover Mecanum</td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 52000</p></td>
