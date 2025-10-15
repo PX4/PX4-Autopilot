@@ -511,29 +511,21 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_reason)
 {
-	static_assert((uint8_t)arm_disarm_reason_t::transition_to_standby ==
-		      vehicle_status_s::ARM_DISARM_REASON_TRANSITION_TO_STANDBY);
 	static_assert((uint8_t)arm_disarm_reason_t::stick_gesture == vehicle_status_s::ARM_DISARM_REASON_STICK_GESTURE);
 	static_assert((uint8_t)arm_disarm_reason_t::rc_switch == vehicle_status_s::ARM_DISARM_REASON_RC_SWITCH);
 	static_assert((uint8_t)arm_disarm_reason_t::command_internal == vehicle_status_s::ARM_DISARM_REASON_COMMAND_INTERNAL);
 	static_assert((uint8_t)arm_disarm_reason_t::command_external == vehicle_status_s::ARM_DISARM_REASON_COMMAND_EXTERNAL);
 	static_assert((uint8_t)arm_disarm_reason_t::mission_start == vehicle_status_s::ARM_DISARM_REASON_MISSION_START);
-	// static_assert((uint8_t)arm_disarm_reason_t:: == vehicle_status_s::ARM_DISARM_REASON_SAFETY_BUTTON);
-	static_assert((uint8_t)arm_disarm_reason_t::auto_disarm_land == vehicle_status_s::ARM_DISARM_REASON_AUTO_DISARM_LAND);
-	static_assert((uint8_t)arm_disarm_reason_t::auto_disarm_preflight ==
-		      vehicle_status_s::ARM_DISARM_REASON_AUTO_DISARM_PREFLIGHT);
+	static_assert((uint8_t)arm_disarm_reason_t::landing == vehicle_status_s::ARM_DISARM_REASON_LANDING);
+	static_assert(
+		(uint8_t)arm_disarm_reason_t::preflight_inaction == vehicle_status_s::ARM_DISARM_REASON_PREFLIGHT_INACTION);
 	static_assert((uint8_t)arm_disarm_reason_t::kill_switch == vehicle_status_s::ARM_DISARM_REASON_KILL_SWITCH);
 	static_assert((uint8_t)arm_disarm_reason_t::lockdown == vehicle_status_s::ARM_DISARM_REASON_LOCKDOWN);
-	static_assert((uint8_t)arm_disarm_reason_t::failure_detector == vehicle_status_s::ARM_DISARM_REASON_FAILURE_DETECTOR);
-	static_assert((uint8_t)arm_disarm_reason_t::shutdown == vehicle_status_s::ARM_DISARM_REASON_SHUTDOWN);
-	static_assert((uint8_t)arm_disarm_reason_t::unit_test == vehicle_status_s::ARM_DISARM_REASON_UNIT_TEST);
-	// static_assert((uint8_t)arm_disarm_reason_t::rc_button == vehicle_status_s::);
-	// static_assert((uint8_t)arm_disarm_reason_t::failsafe == vehicle_status_s::);
+	static_assert((uint8_t)arm_disarm_reason_t::rc_button == vehicle_status_s::ARM_DISARM_REASON_RC_BUTTON);
+	static_assert((uint8_t)arm_disarm_reason_t::failsafe == vehicle_status_s::ARM_DISARM_REASON_FAILSAFE);
 
 	switch (calling_reason) {
-	case arm_disarm_reason_t::transition_to_standby: return "";
-
-	case arm_disarm_reason_t::stick_gesture: return "Stick gesture";
+	case arm_disarm_reason_t::stick_gesture: return "stick gesture";
 
 	case arm_disarm_reason_t::rc_switch: return "RC switch";
 
@@ -543,21 +535,15 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 
 	case arm_disarm_reason_t::mission_start: return "mission start";
 
-	case arm_disarm_reason_t::auto_disarm_land: return "landing";
+	case arm_disarm_reason_t::landing: return "landing";
 
-	case arm_disarm_reason_t::auto_disarm_preflight: return "auto preflight disarming";
+	case arm_disarm_reason_t::preflight_inaction: return "auto preflight disarming";
 
 	case arm_disarm_reason_t::kill_switch: return "kill-switch";
 
 	case arm_disarm_reason_t::lockdown: return "lockdown";
 
-	case arm_disarm_reason_t::failure_detector: return "failure detector";
-
-	case arm_disarm_reason_t::shutdown: return "shutdown request";
-
-	case arm_disarm_reason_t::unit_test: return "unit tests";
-
-	case arm_disarm_reason_t::rc_button: return "RC (button)";
+	case arm_disarm_reason_t::rc_button: return "RC button";
 
 	case arm_disarm_reason_t::failsafe: return "failsafe";
 	}
@@ -2318,10 +2304,10 @@ void Commander::handleAutoDisarm()
 
 			if (_auto_disarm_landed.get_state() && !_multicopter_throw_launch.isThrowLaunchInProgress()) {
 				if (_have_taken_off_since_arming) {
-					disarm(arm_disarm_reason_t::auto_disarm_land);
+					disarm(arm_disarm_reason_t::landing);
 
 				} else {
-					disarm(arm_disarm_reason_t::auto_disarm_preflight);
+					disarm(arm_disarm_reason_t::preflight_inaction);
 				}
 			}
 		}
