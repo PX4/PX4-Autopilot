@@ -125,7 +125,7 @@ To use the MicroStrain driver:
      - [MS_OFLW_UNCERT](../advanced_config/parameter_reference.md#MS_OFLW_UNCERT)
 
    ::: tip
-   1. When optical flow aiding is enabled, the sensor uses the vehicle_optical_flow_vel output from the flight controller as a body-frame velocity aiding measurement.
+   1. When optical flow aiding is enabled, the sensor uses the `vehicle_optical_flow_vel` output from the flight controller as a body-frame velocity aiding measurement.
    2. If the MicroStrain sensor does not support these aiding sources but they are enabled, sensor initialization will fail.
 
    :::
