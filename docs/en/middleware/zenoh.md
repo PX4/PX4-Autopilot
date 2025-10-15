@@ -99,7 +99,7 @@ Any changes to the network configuration require a PX4 system reboot to take eff
 
 ### PX4 Zenoh-pico Node configuration
 
-The **default configuration** is auto-generated from the [dds_topics.yaml](../middleware/dds_topics.htm) file in the PX4 repository.
+The **default configuration** is auto-generated from the [dds_topics.yaml](../middleware/dds_topics.md) file in the PX4 repository.
 This file specifies which uORB message definitions are to be published/subscribed by ROS 2 applications, and hence (indirectly) which topics are compiled into the zenoh module.
 
 To inspect the current Zenoh configuration:
