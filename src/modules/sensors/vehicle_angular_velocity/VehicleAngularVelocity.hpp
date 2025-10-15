@@ -111,8 +111,6 @@ private:
 	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
 	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
 	uORB::SubscriptionMultiArray<internal_combustion_engine_status_s> _ice_status_sub{ORB_ID::internal_combustion_engine_status};
-
-	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
 #endif // !CONSTRAINED_FLASH
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
