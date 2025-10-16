@@ -56,9 +56,11 @@ Before setting up the Zenoh communication, first make sure that your firmware co
 
 You can check if the module is present on your board by searching for the key `CONFIG_MODULES_ZENOH=y` in your board's `default.px4board` KConfig file.
 For example, you can see that the module is present in `px4_fmu-v6xrt` build targets from [/boards/px4/fmu-v6xrt/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6xrt/default.px4board#L91).
-If it is not present you can add this key to your board configuration and rebuild.
 
-The table below shows some of the PX4 targets that include this module (at time of writing).
+If `CONFIG_MODULES_ZENOH=y` is not preset you can add this key to your board configuration and rebuild.
+Note that due to flash constraints you may need to remove other components in order to include the module (such as the [`uxrce_dds_client` module](../modules/modules_system.md#uxrce-dds-client), which you will not need if you are using Zenoh).
+
+The table below shows some of the PX4 targets that include Zenoh by default.
 
 | PX4 Target             | Notes                                                                                       |
 | ---------------------- | ------------------------------------------------------------------------------------------- |
