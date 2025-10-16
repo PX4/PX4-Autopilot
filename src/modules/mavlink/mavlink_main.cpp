@@ -92,6 +92,17 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length) { mavlink_module_
 mavlink_status_t *mavlink_get_channel_status(uint8_t channel) { return mavlink_module_instances[channel]->get_status(); }
 mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel) { return mavlink_module_instances[channel]->get_buffer(); }
 
+static bool accept_unsigned_callback(const mavlink_status_t *status, uint32_t message_id)
+{
+	Mavlink *m = Mavlink::get_instance_for_status(status);
+
+	if (m != nullptr) {
+		return m -> accept_unsigned(m->sign_mode(), m -> is_usb_uart(), message_id);
+	}
+
+	return false;
+}
+
 static void usage();
 
 hrt_abstime Mavlink::_first_start_time = {0};
@@ -306,6 +317,20 @@ Mavlink::get_instance_for_device(const char *device_name)
 
 	for (Mavlink *inst : mavlink_module_instances) {
 		if (inst && (inst->_protocol == Protocol::SERIAL) && (strcmp(inst->_device_name, device_name) == 0)) {
+			return inst;
+		}
+	}
+
+	return nullptr;
+}
+
+Mavlink *
+Mavlink::get_instance_for_status(const mavlink_status_t *status)
+{
+	LockGuard lg{mavlink_module_mutex};
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (status == mavlink_get_channel_status(inst->get_instance_id())) {
 			return inst;
 		}
 	}
@@ -1017,6 +1042,12 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 	/*
 	 *  NOTE: this is called from the receiver thread
 	 */
+
+	if (is_usb_uart()) {
+		if (_sign_control.check_for_signing(msg)) {
+			return;
+		}
+	}
 
 	if (get_forwarding_on()) {
 		/* forward any messages to other mavlink instances */
@@ -1912,6 +1943,8 @@ Mavlink::task_main(int argc, char *argv[])
 			close(tmp);
 		}
 	}
+
+	_sign_control.start(_instance_id, get_status(), &accept_unsigned_callback);
 
 	int ch;
 	_baudrate = 57600;
