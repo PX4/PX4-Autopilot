@@ -5,10 +5,27 @@
 - voxl-px4-hitl-start: Should be able to fold this in to voxl-px4-start
 - voxl-px4-hitl-set-default-parameters.config: Could be moved to standard method
 
+- voxl-px4 -s is the new method to start
+
 # HITL parameters
 
-- HITL uses it's own parameter file
-	- Located at /data/px4/param/hitl_parameters
+- HITL uses it's own parameter file so that the actual parameter file doesn't
+get modified by HITL settings. It is located at /data/px4/param/hitl_parameters.
+
+## Non-product specific configuration
+- Stop voxl-px4
+- rm /data/px4/param/hitl_parameters*
+- voxl-px4 -s
+- voxl-configure-px4-params -p HITL --skip-cal --quiet --non-interactive
+- restart voxl-px4
+
+## Product specific configuration
+- Stop voxl-px4
+- rm /data/px4/param/hitl_parameters*
+- voxl-px4 -s
+- voxl-configure-px4-params -p <product type> --skip-cal --quiet --non-interactive
+- voxl-configure-px4-params -f /usr/share/modalai/px4_params/v1.14/platforms/HITL_Iris.params --quiet --non-interactive
+- restart voxl-px4
 
 # Using HITL with VFC
 
@@ -32,6 +49,8 @@
 - "vfc_ki_z_vio": 0.6
 - "vfc_kd_z_vio": 0.35
 
+- voxl-configure-vision-hub configure_hitl
+
 # Using joystick
 
 - Set MAV_RC_BRIDGE to 1
@@ -42,5 +61,10 @@
 - MAV_RC_FM3 - Set to 2 to use button 2. Set button 2 to rattitude flight mode on joystick setup in QGC
 - Put toggle arm on button 9 to use left bumper button on joystick setup in QGC
 
+- voxl-configure-px4-params -f /usr/share/modalai/px4_params/v1.14/other_helpers/hitl_joystick_vfc.params --quiet --non-interactive
+
 - Set backtrack_rc_chan to 6 in vfc.conf file. Chan6_raw is set to contents of aux4 which is turtle mode (backtrack) button
+
+- voxl-configure-vision-hub configure_hitl_joystick
+
 
