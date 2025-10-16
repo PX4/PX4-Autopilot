@@ -16,3 +16,23 @@
  * @group Mixer Output
  */
 PARAM_DEFINE_INT32(MC_AIRMODE, 0);
+
+/**
+ * Wing Deploy RC AUX Channel
+ *
+ * RC AUX channel to use for manual wing deployment control.
+ * Set to 0 to disable manual RC control of wing deployment.
+ * The wing deployment will still work automatically via rocket mode manager.
+ *
+ * @value 0 Disabled
+ * @value 1 RC_AUX1
+ * @value 2 RC_AUX2
+ * @value 3 RC_AUX3
+ * @value 4 RC_AUX4
+ * @value 5 RC_AUX5
+ * @value 6 RC_AUX6
+ * @min 0
+ * @max 6
+ * @group Mixer Output
+ */
+PARAM_DEFINE_INT32(WD_RC_AUX_CH, 2);
