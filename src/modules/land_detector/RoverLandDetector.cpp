@@ -44,6 +44,11 @@
 namespace land_detector
 {
 
+RoverLandDetector::RoverLandDetector()
+{
+	_landed_hysteresis.set_hysteresis_time_from(true, 500_ms);
+}
+
 bool RoverLandDetector::_get_ground_contact_state()
 {
 	return true;
@@ -73,11 +78,6 @@ bool RoverLandDetector::_get_landed_state()
 	}
 
 	return !_armed;  // If we are armed we are not landed.
-}
-
-void RoverLandDetector::_set_hysteresis_factor(const int factor)
-{
-	_landed_hysteresis.set_hysteresis_time_from(true, 500_ms);
 }
 
 } // namespace land_detector
