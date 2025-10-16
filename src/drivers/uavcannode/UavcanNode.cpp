@@ -829,13 +829,13 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 	param_get(param_find("CANNODE_NODE_ID"), &cannode_node_id);
 
 	// Check if the static node ID is in range
-	if (cannode_node_id < 0 || cannode_node_id > 127) {
+	if (cannode_node_id < 0 || cannode_node_id > uavcan::NodeID::Max) {
 		PX4_ERR("Invalid static node ID %ld, using dynamic allocation", cannode_node_id);
 		cannode_node_id = 0;
 	}
 
 	// Assign the static node ID if no dynamic allocation is used. Do wen't override a valid node ID from the bootloader?
-	if (node_id == 0 && cannode_node_id > 0 && cannode_node_id <= 127) {
+	if (node_id == 0 && cannode_node_id > 0 && cannode_node_id <= uavcan::NodeID::Max) {
 		node_id = cannode_node_id;
 	}
 
