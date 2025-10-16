@@ -744,6 +744,7 @@
         - [Standard Modes Protocol](mavlink/standard_modes.md)
     - [uXRCE-DDS (PX4-ROS 2/DDS Bridge)](middleware/uxrce_dds.md)
       - [UORB Bridged to ROS 2](middleware/dds_topics.md)
+    - [Zenoh (PX4 ROS 2)](middleware/zenoh.md)
   - [Modules & Commands](modules/modules_main.md)
     - [Autotune](modules/modules_autotune.md)
     - [Commands](modules/modules_command.md)
