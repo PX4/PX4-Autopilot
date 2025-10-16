@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <px4_platform_common/px4_config.h>
 #include <board_config.h>
 #include <stdint.h>
 #include <drivers/drv_adc.h>
@@ -206,7 +207,13 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 
 	/* run a single conversion right now - should take about 60 cycles (a few microseconds) max */
 	rSQR3(base_address) = channel;
+	/* on F1, set the ADON bit *again* to start a conversion (also used to start the ADC) */
+#ifdef CONFIG_STM32_STM32F10XX
+	rCR2(base_address) |= ADC_CR2_ADON;
+#else
+	/* on everything else, there's a dedicated start conversion bit */
 	rCR2(base_address) |= ADC_CR2_SWSTART;
+#endif
 
 	/* wait for the conversion to complete */
 	const hrt_abstime now = hrt_absolute_time();

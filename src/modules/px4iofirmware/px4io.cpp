@@ -51,8 +51,9 @@
 #include <crc32.h>
 #include <syslog.h>
 
-#include <drivers/drv_pwm_output.h>
+#include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 #include <drivers/drv_watchdog.h>
 
 #if defined(PX4IO_PERF)
@@ -88,6 +89,7 @@ static char msg[NUM_MSG][CONFIG_USART1_TXBUFSIZE];
 static void heartbeat_blink(void);
 static void ring_blink(void);
 static void update_mem_usage(void);
+static void update_adc(void);
 
 void atomic_modify_or(volatile uint16_t *target, uint16_t modification)
 {
@@ -165,6 +167,56 @@ update_mem_usage(void)
 		struct mallinfo minfo = mallinfo();
 		r_page_status[PX4IO_P_STATUS_FREEMEM] = minfo.fordblks;
 		last_mem_time = now;
+	}
+}
+
+/*
+ * sample the ADC at 5 Hz
+ */
+static void
+update_adc(void)
+{
+	static uint64_t last_adc_time = 0;
+	uint64_t now = hrt_absolute_time();
+
+	if (now - last_adc_time > (200 * 1000)) {
+#ifdef ADC_VSERVO
+		/* PX4IO_P_STATUS_VSERVO */
+		{
+			unsigned counts = px4_arch_adc_sample(SYSTEM_ADC_BASE, ADC_VSERVO);
+
+			if (counts != 0xffff)
+			{
+				// use 3:1 scaling on 3.3V ADC input
+				unsigned mV = counts * 9900 / 4096;
+				r_page_status[PX4IO_P_STATUS_VSERVO] = mV;
+			}
+		}
+
+		r_page_raw_adc_input[0] = px4_arch_adc_sample(SYSTEM_ADC_BASE, ADC_VSERVO);
+#else
+		r_page_status[PX4IO_P_STATUS_VSERVO] = mV;
+		r_page_raw_adc_input[0] = 0;
+#endif
+#ifdef ADC_RSSI
+		/* PX4IO_P_STATUS_VRSSI */
+		{
+			unsigned counts = px4_arch_adc_sample(SYSTEM_ADC_BASE, ADC_RSSI);
+
+			if (counts != 0xffff) {
+				// use 1:1 scaling on 3.3V ADC input
+				unsigned mV = counts * 3300 / 4096;
+				r_page_status[PX4IO_P_STATUS_VRSSI] = mV;
+			}
+		}
+
+		r_page_raw_adc_input[1] = px4_arch_adc_sample(SYSTEM_ADC_BASE, ADC_RSSI);
+#else
+		r_page_status[PX4IO_P_STATUS_VRSSI] = 0;
+		r_page_raw_adc_input[1] = 0;
+#endif
+
+		last_adc_time = now;
 	}
 }
 
@@ -319,7 +371,7 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 	controls_init();
 
 	/* set up the ADC */
-	adc_init();
+	px4_arch_adc_init(SYSTEM_ADC_BASE);
 
 	/* start the FMU interface */
 	interface_init();
@@ -407,6 +459,8 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 #endif /* HEATER_OUTPUT_EN */
 
 		update_mem_usage();
+
+		update_adc();
 
 		ring_blink();
 
