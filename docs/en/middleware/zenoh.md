@@ -86,17 +86,21 @@ Set the [ZENOH_ENABLE](../advanced_config/parameter_reference.md#ZENOH_ENABLE) p
 
 Set up PX4 to connect to the companion computer running `zenohd`.
 
-PX4's default IP address of the Zenoh daemon host is `192.168.1.104`.
+PX4's default IP address of the Zenoh daemon host is `10.41.10.1`.
 If you're using a different IP for the Zenoh daemon, run the following command (replacing the address) in a PX4 shell and then reboot:
 
 ```sh
-zenoh config net client tcp/192.168.1.104:7447#iface=eth0
+zenoh config net client tcp/10.41.10.1:7447#iface=eth0
 ```
 
 Note that for the simulation target with Zeroh (`px4_sitl_zenoh`) you won't need to make any changes because the default IP address of the Zenoh daemon is set to `localhost`.
 
 :::warning
 Any changes to the network configuration require a PX4 system reboot to take effect.
+:::
+
+:::tip
+For more information about PX4 ethernet configuration checkout the [PX4 Ethernet setup](../advanced_config/ethernet_setup.md) documentation
 :::
 
 ### PX4 Zenoh-pico Node configuration
