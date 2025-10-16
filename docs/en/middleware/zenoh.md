@@ -100,7 +100,7 @@ Any changes to the network configuration require a PX4 system reboot to take eff
 :::
 
 :::tip
-For more information about PX4 ethernet configuration checkout the [PX4 Ethernet setup](../advanced_config/ethernet_setup.md) documentation
+See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for more information about Ethernet configuration.
 :::
 
 ### PX4 Zenoh-pico Node configuration
