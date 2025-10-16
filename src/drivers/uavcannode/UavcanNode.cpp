@@ -586,11 +586,30 @@ void UavcanNode::Run()
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
+		PX4_INFO("params updated");
 		// clear update
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
+		int32_t cannode_node_id = 0;
+		param_get(param_find("CANNODE_NODE_ID"), &cannode_node_id);
+
+		if (_node.getNodeID().get() != (uint8_t)cannode_node_id) {
+			if (cannode_node_id > 0 && cannode_node_id <= uavcan::NodeID::Max) {
+				// Write new static node ID
+				PX4_INFO("Param changed - writing static node ID %ld to bootloader", cannode_node_id);
+				bootloader_app_shared_t shared_write = {};
+				shared_write.node_id = cannode_node_id;
+				shared_write.bus_speed = 0;  // Force autobaud on next boot (distinguishes from FW update request)
+				bootloader_app_shared_write(&shared_write, App);
+
+			} else if (cannode_node_id == 0) {
+				// User set to 0 to force DNA on next boot
+				PX4_INFO("CANNODE_NODE_ID set to 0 - invalidating shared memory to force DNA on next boot");
+				bootloader_app_shared_invalidate();
+			}
+		}
 	}
 
 	_node.spinOnce();
@@ -824,7 +843,7 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 		}
 	}
 
-	// Read the static node ID parameter and use it if no valid node_id from shared memory
+	// Read the static node ID parameter - this always takes precedence if set
 	int32_t cannode_node_id = 0;
 	param_get(param_find("CANNODE_NODE_ID"), &cannode_node_id);
 
@@ -834,16 +853,22 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 		cannode_node_id = 0;
 	}
 
-	// Assign the static node ID if no dynamic allocation is used. Do wen't override a valid node ID from the bootloader?
-	if (node_id == 0 && cannode_node_id > 0 && cannode_node_id <= uavcan::NodeID::Max) {
+	// Always prefer static node ID parameter if set (overrides bootloader's node_id)
+	if (cannode_node_id > 0 && cannode_node_id <= uavcan::NodeID::Max) {
 		node_id = cannode_node_id;
+		PX4_INFO("Using static node ID %ld from parameter", cannode_node_id);
+
+		bootloader_app_shared_t shared_write = {};
+		shared_write.node_id = node_id;
+		shared_write.bus_speed = 0;  // Force autobaud on next boot (distinguishes from FW update request)
+		PX4_INFO("Writing static node ID %ld to shared memory (bus_speed=0)", (int32_t)shared_write.node_id);
+		bootloader_app_shared_write(&shared_write, App);
+	} else {
+		PX4_INFO("No static node ID set (CANNODE_NODE_ID=%ld)", cannode_node_id);
 	}
 
-	// Persist the node ID for the bootloader
-	bootloader_app_shared_t shared_write = {};
-	shared_write.node_id = node_id;
-	shared_write.bus_speed = bitrate;
-	bootloader_app_shared_write(&shared_write, BootLoader);
+	// If no static node ID parameter, use what bootloader provided.
+	// Shared memory is invalidated above, so bootloader will do DNA on next boot.
 
 	if (
 #if defined(SUPPORT_ALT_CAN_BOOTLOADER)

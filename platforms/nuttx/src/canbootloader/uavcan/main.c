@@ -59,6 +59,47 @@
 #include <drivers/bootloaders/boot_alt_app_shared.h>
 #include <drivers/drv_watchdog.h>
 #include <lib/crc/crc.h>
+#include <stdio.h>
+
+/****************************************************************************
+ * Bootloader Debug Logging
+ *
+ * Bootloader bypasses stdio initialization, so we use arm_lowputc directly
+ * for debug output. These macros are similar to PX4_INFO/PX4_DEBUG.
+ *
+ * Enable by setting OPT_ENABLE_DEBUG=1 in boot_config.h or board config.
+ ****************************************************************************/
+extern void arm_lowputc(char ch);
+
+static inline void bl_puts(const char *str)
+{
+	while (*str) { arm_lowputc(*str++); }
+}
+
+static inline void bl_putnum(uint32_t val)
+{
+	char buf[12];
+	snprintf(buf, sizeof(buf), "%lu", val);
+	bl_puts(buf);
+}
+
+#if OPT_ENABLE_DEBUG
+#  define BL_DEBUG(fmt, ...) \
+	do { \
+		bl_puts("[BL] " fmt); \
+		__VA_ARGS__; \
+		bl_puts("\r\n"); \
+	} while (0)
+#  define BL_DEBUG_NUM(label, val) \
+	do { \
+		bl_puts("[BL] " label ": "); \
+		bl_putnum(val); \
+		bl_puts("\r\n"); \
+	} while (0)
+#else
+#  define BL_DEBUG(fmt, ...)
+#  define BL_DEBUG_NUM(label, val)
+#endif
 
 //#define DEBUG_APPLICATION_INPLACE    1 /* Never leave defined */
 #define DEBUG_NO_FW_UPDATE           1 /* With DEBUG_APPLICATION_INPLACE
@@ -1111,8 +1152,39 @@ __EXPORT int main(int argc, char *argv[])
 	 */
 	common.crc.valid = false;
 
-	/* Either way prevent Deja vu by invalidating the struct*/
+	/*
+	 * Check if Node ID has been previously assigned and skip DNA if so.
+	 * IMPORTANT: Read this BEFORE invalidating!
+	 */
+	bootloader_app_shared_t shared_data;
+	bool has_node_id = false;
+
+	if (bootloader_app_shared_read(&shared_data, App) == OK) {
+		/* We have valid shared_data data from a previous app run */
+		if (shared_data.node_id > 0 && shared_data.node_id <= 127) {
+			has_node_id = true;
+			common.node_id = shared_data.node_id;
+			BL_DEBUG_NUM("Read persisted node ID", shared_data.node_id);
+
+			/* Also restore the bus speed if we have it */
+			if (shared_data.bus_speed != 0) {
+				common.bus_speed = shared_data.bus_speed;
+				BL_DEBUG_NUM("Read persisted bus speed", shared_data.bus_speed);
+			}
+
+		} else {
+			BL_DEBUG("Shared data has invalid node ID",);
+		}
+
+	} else {
+		BL_DEBUG("No valid shared data found",);
+	}
+
+	BL_DEBUG_NUM("has_node_id", has_node_id);
+
+	/* Now invalidate to prevent deja vu (after we've read the static node ID) */
 	bootloader_app_shared_invalidate();
+
 
 	/* Set up the Timers */
 	bl_timer_cb_t p = null_cb;
@@ -1193,33 +1265,77 @@ __EXPORT int main(int argc, char *argv[])
 		 * or the Node allocation runs longer the tBoot
 		 */
 
-		/* Preferred Node Address */
+		BL_DEBUG("Regular boot - checking for static node ID",);
 
-		common.node_id = OPT_PREFERRED_NODE_ID;
-
-		if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, (can_speed_t *)&bootloader.bus_speed, &common.node_id)) {
+		/* Skip DNA if we already have a node ID from previously */
+		if (has_node_id) {
+			BL_DEBUG("Using persisted static node ID - skipping DNA",);
+			BL_DEBUG_NUM("Static node ID", common.node_id);
 
 			/*
-			 * It is OK that node ID is set to the preferred Node ID because
-			 *  common.crc.valid is not true yet
+			 * We have a saved node ID.
+			 * Only do autobaud if we don't have the bus speed.
+			 */
+			if (common.bus_speed == 0) {
+				BL_DEBUG("Bus speed unknown - performing autobaud only",);
+
+				bootloader.bus_speed = CAN_UNDEFINED;
+
+				if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, (can_speed_t *)&bootloader.bus_speed, &common.node_id)) {
+					goto boot;
+				}
+
+				common.bus_speed = can_speed2freq(bootloader.bus_speed);
+				BL_DEBUG_NUM("Autobaud completed - bus speed", common.bus_speed);
+
+			} else {
+				BL_DEBUG("Using both persisted node ID and bus speed",);
+				BL_DEBUG_NUM("Node ID", common.node_id);
+				BL_DEBUG_NUM("Bus speed", common.bus_speed);
+
+				/* We have both node ID and bus speed from shared data */
+				bootloader.bus_speed = can_freq2speed(common.bus_speed);
+				can_init(bootloader.bus_speed, CAN_Mode_Normal);
+			}
+
+			bootloader.uptime = 0;
+			common.crc.valid = true;
+
+		} else {
+			/* No node ID, do full DNA */
+			BL_DEBUG("No persisted node ID - performing full DNA",);
+
+			/* Preferred Node Address */
+			common.node_id = OPT_PREFERRED_NODE_ID;
+
+			if (CAN_OK != autobaud_and_get_dynamic_node_id(tboot, (can_speed_t *)&bootloader.bus_speed, &common.node_id)) {
+
+				/*
+				 * It is OK that node ID is set to the preferred Node ID because
+				 *  common.crc.valid is not true yet
+				 */
+				BL_DEBUG("DNA failed or timed out",);
+
+				goto boot;
+			}
+
+			BL_DEBUG("DNA completed successfully",);
+			BL_DEBUG_NUM("Allocated node ID", common.node_id);
+
+			/* We have autobauded and got a Node ID. So reset uptime
+			 * and save the speed and node_id in both the common and
+			 * and bootloader data sets
 			 */
 
-			goto boot;
+			bootloader.uptime = 0;
+			common.bus_speed = can_speed2freq(bootloader.bus_speed);
+
+			/*
+			 * Mark CRC to say this is from
+			 * auto baud and Node Allocation
+			 */
+			common.crc.valid = true;
 		}
-
-		/* We have autobauded and got a Node ID. So reset uptime
-		 * and save the speed and node_id in both the common and
-		 * and bootloader data sets
-		 */
-
-		bootloader.uptime = 0;
-		common.bus_speed = can_speed2freq(bootloader.bus_speed);
-
-		/*
-		 * Mark CRC to say this is from
-		 * auto baud and Node Allocation
-		 */
-		common.crc.valid = true;
 
 		/* Auto bauding may have taken a long time, so restart the tboot time*/
 
@@ -1229,6 +1345,8 @@ __EXPORT int main(int argc, char *argv[])
 
 
 	}
+
+	BL_DEBUG_NUM("Configuring UAVCAN with node ID", common.node_id);
 
 	/* Now that we have a node Id configure the uavcan library */
 	g_this_node_id = common.node_id;

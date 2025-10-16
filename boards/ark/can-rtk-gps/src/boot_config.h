@@ -128,3 +128,8 @@
  *
  */
 #define GPIO_GETNODEINFO_JUMPER (GPIO_BOOT_CONFIG & ~GPIO_EXTI)
+
+/* Debug output option - set to 1 to enable bootloader debug messages */
+#ifndef OPT_ENABLE_DEBUG
+#  define OPT_ENABLE_DEBUG 1
+#endif
