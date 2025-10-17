@@ -63,6 +63,12 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
 #include <uORB/topics/irlock_report.h>
+#include <uORB/topics/landing_target_pose.h>
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include <uORB/topics/fiducial_marker_pos_report.h>
+#include <uORB/topics/fiducial_marker_yaw_report.h>
+#include <uORB/topics/target_gnss.h>
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
@@ -227,6 +233,8 @@ private:
 	void handle_message_hil_sensor(const mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(const mavlink_message_t *msg);
 	void handle_message_landing_target(const mavlink_message_t *msg);
+	void handle_message_target_relative(const mavlink_message_t *msg);
+	void handle_message_target_absolute(const mavlink_message_t *msg);
 	void handle_message_odometry(const mavlink_message_t *msg);
 	void handle_message_optical_flow(const mavlink_message_t *msg);
 	void handle_message_rc_channels(const mavlink_message_t *msg);
@@ -252,6 +260,14 @@ private:
 	uORB::Publication<vehicle_global_position_s>	_gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>	_lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
+	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub {ORB_ID(fiducial_marker_pos_report)};
+	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
+	uORB::Publication<target_gnss_s>		_target_gnss_pub{ORB_ID(target_gnss)};
+	param_t _param_vte_en{PARAM_INVALID};
+	hrt_abstime _vte_en_invalid_warn_last{0};
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	//rpm
 	uORB::Publication<rpm_s>			_rpm_pub{ORB_ID(rpm)};
@@ -269,6 +285,8 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
+	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// hil map_ref data
 	MapProjection _global_local_proj_ref{};
