@@ -83,12 +83,15 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 {
 	const bool is_registering_info = (info != nullptr);
 
+	bool found_any_with_info = false;
+
 	for (size_t i = 0; i < _device_informations_size; ++i) {
 		if (is_registering_info) {
-			// Case 1: Check if this exact node already has node info - skip
+			// Case 1: Check if this entry already has node info - skip this specific entry
 			if (_device_informations[i].node_id == node_id &&
 			    _device_informations[i].has_node_info) {
-				return;
+				found_any_with_info = true;
+				continue;  // Continue to check other entries with same node_id
 			}
 
 			// Case 2: Check if node_id already exists with capability but no info - update that entry
@@ -98,6 +101,7 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 
 				populateDeviceInfoFields(_device_informations[i], *info);
 				publishDeviceInformationImmediate(i);
+				found_any_with_info = true;
 				// Continue to check for other entries with the same node_id but different capabilities.
 			}
 
@@ -129,6 +133,11 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 				return;
 			}
 		}
+	}
+
+	// break when node info already registered
+	if (is_registering_info && found_any_with_info) {
+		return;
 	}
 
 	// Case 3: extend array and add entry at the end
@@ -217,6 +226,11 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 	// Copy pre-populated fields directly from the struct
 	// Copy strings using memcpy and ensure null termination
 	static_assert(sizeof(msg.model_name) == sizeof(device_info.model_name), "Array size mismatch");
+	static_assert(sizeof(msg.vendor_name) == sizeof(device_info.vendor_name), "Array size mismatch");
+	static_assert(sizeof(msg.firmware_version) == sizeof(device_info.firmware_version), "Array size mismatch");
+	static_assert(sizeof(msg.hardware_version) == sizeof(device_info.hardware_version), "Array size mismatch");
+	static_assert(sizeof(msg.serial_number) == sizeof(device_info.serial_number), "Array size mismatch");
+
 	memcpy(msg.model_name, device_info.model_name, sizeof(msg.model_name));
 	msg.model_name[sizeof(msg.model_name) - 1] = '\0';
 

@@ -106,7 +106,7 @@ private:
 		char model_name[32];
 		char firmware_version[24];
 		char hardware_version[24];
-		char serial_number[32];
+		char serial_number[33];
 
 		DeviceInformation() : node_id(UINT8_MAX), device_id(UINT32_MAX), capability(DeviceCapability::NONE),
 			has_node_info(false)
