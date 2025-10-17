@@ -57,7 +57,8 @@ private:
 		Mission = (1 << 0),
 		Hold = (1 << 1),
 		Offboard = (1 << 2),
-		ExternalMode = (1 << 3)
+		ExternalMode = (1 << 3),
+		AltitudeCruise = (1 << 4)
 	};
 
 	enum class DatalinkLossExceptionBits : int32_t {
@@ -127,11 +128,15 @@ private:
 
 	// COM_RC_IN_MODE parameter values
 	enum class RcInMode : int32_t {
-		RcTransmitterOnly = 0, 		// RC Transmitter only
-		JoystickOnly = 1,		// Joystick only
-		RcAndJoystickWithFallback = 2,	// RC And Joystick with fallback
-		RcOrJoystickKeepFirst = 3,	// RC or Joystick keep first
-		StickInputDisabled = 4		// input disabled
+		RcOnly = 0,
+		MavLinkOnly = 1,
+		RcOrMavlinkWithFallback = 2,
+		RcOrMavlinkKeepFirst = 3,
+		DisableManualControl = 4,
+		PriorityRcThenMavlinkAscending = 5,
+		PriorityMavlinkAscendingThenRc = 6,
+		PriorityRcThenMavlinkDescending = 7,
+		PriorityMavlinkDescendingThenRc = 8
 	};
 
 	enum class command_after_high_wind_failsafe : int32_t {

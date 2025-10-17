@@ -823,6 +823,7 @@ void Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+		case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
 		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
@@ -1082,7 +1083,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("navigator",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_NAVIGATION,
-				      PX4_STACK_ADJUSTED(2200),
+				      PX4_STACK_ADJUSTED(2230),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 

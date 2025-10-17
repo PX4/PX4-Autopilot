@@ -57,4 +57,7 @@ private:
 					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
 					(ParamInt<px4::params::COM_POWER_COUNT>) _param_com_power_count
 				       )
+
+	float _latest_low_failure_val = 0.0f;
+	float _latest_high_failure_val = 0.0f;
 };

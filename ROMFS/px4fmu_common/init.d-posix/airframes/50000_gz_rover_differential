@@ -17,6 +17,7 @@ param set-default NAV_ACC_RAD 0.5
 param set-default RD_WHEEL_TRACK 0.6
 param set-default RD_TRANS_DRV_TRN 0.785398
 param set-default RD_TRANS_TRN_DRV 0.174533
+param set-default RD_YAW_STK_GAIN 0.6
 
 # Rate Control Parameters
 param set-default RO_YAW_RATE_I 0.01
@@ -25,6 +26,8 @@ param set-default RO_YAW_RATE_LIM 250
 param set-default RO_YAW_ACCEL_LIM 400
 param set-default RO_YAW_DECEL_LIM 800
 param set-default RO_YAW_RATE_CORR 1
+param set-default RO_YAW_EXPO 0.85
+param set-default RO_YAW_SUPEXPO 0.3
 
 # Attitude Control Parameters
 param set-default RO_YAW_P 5

@@ -92,7 +92,7 @@ constexpr size_t k_min_receiver_read_bytes = 32;
 */
 constexpr uint32_t k_septentrio_receiver_default_baud_rate = 115200;
 
-constexpr uint8_t k_max_command_size            = 120;
+constexpr uint8_t k_max_command_size            = 140;
 constexpr uint16_t k_timeout_5hz                = 500;
 constexpr uint32_t k_read_buffer_size           = 150;
 constexpr time_t k_gps_epoch_secs               = 1234567890ULL; // TODO: This seems wrong
@@ -112,7 +112,7 @@ constexpr const char *k_command_reset_hot = "erst,soft,none\n";
 constexpr const char *k_command_reset_warm = "erst,soft,PVTData\n";
 constexpr const char *k_command_reset_cold = "erst,hard,SatData\n";
 constexpr const char *k_command_sbf_output_pvt =
-	"sso,Stream%" PRIu32 ",%s,PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler+EndOfPVT+ReceiverStatus,%s\n";
+	"sso,Stream%lu,%s,PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler+EndOfPVT+ReceiverStatus+GALAuthStatus+RFStatus+QualityInd,%s\n";
 constexpr const char *k_command_set_sbf_output =
 	"sso,Stream%" PRIu32 ",%s,%s%s,%s\n";
 constexpr const char *k_command_clear_sbf = "sso,Stream%" PRIu32 ",%s,none,off\n";
@@ -967,7 +967,7 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 	}
 
 	// Output a set of SBF blocks on a given connection at a regular interval.
-	snprintf(msg, sizeof(msg), k_command_sbf_output_pvt, _receiver_stream_main, com_port, sbf_frequency);
+	snprintf(msg, sizeof(msg), k_command_sbf_output_pvt, (long unsigned int) _receiver_stream_main, com_port, sbf_frequency);
 	if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 		SEP_WARN("CONFIG: Failed to configure SBF");
 		return ConfigureResult::FailedCompletely;
@@ -1191,20 +1191,138 @@ int SeptentrioDriver::process_message()
 			if (_sbf_decoder.parse(&receiver_status) == PX4_OK) {
 				_sensor_gps.rtcm_msg_used = receiver_status.rx_state_diff_corr_in ? sensor_gps_s::RTCM_MSG_USED_USED : sensor_gps_s::RTCM_MSG_USED_NOT_USED;
 				_time_synced = receiver_status.rx_state_wn_set && receiver_status.rx_state_tow_set;
+
+				_sensor_gps.system_error = sensor_gps_s::SYSTEM_ERROR_OK;
+
+				if (receiver_status.rx_error_cpu_overload) {
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_CPU_OVERLOAD;
+				}
+				if (receiver_status.rx_error_antenna) {
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_ANTENNA;
+				}
+				if (receiver_status.ext_error_diff_corr_error) {
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_INCOMING_CORRECTIONS;
+				}
+				if (receiver_status.ext_error_setup_error) {
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_CONFIGURATION;
+				}
+				if (receiver_status.rx_error_software) {
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_SOFTWARE;
+				}
+				if (receiver_status.rx_error_congestion) {
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_OUTPUT_CONGESTION;
+				}
+				if (receiver_status.rx_error_missed_event) {
+					_sensor_gps.system_error |= sensor_gps_s::SYSTEM_ERROR_EVENT_CONGESTION;
+				}
 			}
 
 			break;
 		}
 		case BlockID::QualityInd: {
+			using Type = QualityIndicator::Type;
+
 			SEP_TRACE_PARSING("Processing QualityInd SBF message");
+
+			QualityInd quality_ind;
+
+			if (_sbf_decoder.parse(&quality_ind) == PX4_OK) {
+				_message_sensor_gnss_status.quality_available = true;
+				_message_sensor_gnss_status.device_id = get_device_id();
+
+				_message_sensor_gnss_status.quality_corrections = 255;
+				_message_sensor_gnss_status.quality_receiver = 255;
+				_message_sensor_gnss_status.quality_post_processing = 255;
+				_message_sensor_gnss_status.quality_gnss_signals = 255;
+
+				for (int i = 0; i < math::min(quality_ind.n, static_cast<uint8_t>(sizeof(quality_ind.indicators) / sizeof(quality_ind.indicators[0]))); i++) {
+					int quality = quality_ind.indicators[i].value;
+
+					switch (quality_ind.indicators[i].type) {
+					case Type::BaseStationMeasurements:
+						_message_sensor_gnss_status.quality_corrections = quality;
+						break;
+					case Type::Overall:
+						_message_sensor_gnss_status.quality_receiver = quality;
+						break;
+					case Type::RTKPostProcessing:
+						_message_sensor_gnss_status.quality_post_processing = quality;
+						break;
+					case Type::GNSSSignalsMainAntenna:
+						_message_sensor_gnss_status.quality_gnss_signals = quality;
+						break;
+					default:
+						break;
+					}
+				}
+
+
+				_message_sensor_gnss_status.timestamp = hrt_absolute_time();
+				_time_last_qualityind_received = hrt_absolute_time();
+				_sensor_gnss_status_pub.publish(_message_sensor_gnss_status);
+			}
+
 			break;
 		}
 		case BlockID::RFStatus: {
+			using InfoMode = RFBand::InfoMode;
+
 			SEP_TRACE_PARSING("Processing RFStatus SBF message");
+
+			RFStatus rf_status;
+
+			if (_sbf_decoder.parse(&rf_status) == PX4_OK) {
+				_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_OK;
+				_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_OK;
+
+				for (int i = 0; i < math::min(rf_status.n, static_cast<uint8_t>(sizeof(rf_status.rf_band) / sizeof(rf_status.rf_band[0]))); i++) {
+					InfoMode status = static_cast<InfoMode>(rf_status.rf_band[i].info_mode);
+
+					if(status == InfoMode::Interference){
+						_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_DETECTED;
+						break; // Worst case, we don't need to check the other bands
+					}
+
+					if(status == InfoMode::Suppressed || status == InfoMode::Mitigated){
+						_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_MITIGATED;
+					}
+				}
+
+				if (rf_status.flags_inauthentic_gnss_signals || rf_status.flags_inauthentic_navigation_message) {
+					_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_DETECTED;
+				}
+				_time_last_resilience_received = hrt_absolute_time();
+			}
+
 			break;
 		}
 		case BlockID::GALAuthStatus: {
+			using OSNMAStatus = GALAuthStatus::OSNMAStatus;
+
 			SEP_TRACE_PARSING("Processing GALAuthStatus SBF message");
+
+			GALAuthStatus gal_auth_status;
+
+			if (_sbf_decoder.parse(&gal_auth_status) == PX4_OK) {
+				switch (gal_auth_status.osnmaStatus()) {
+				case OSNMAStatus::Disabled:
+					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_DISABLED;
+					break;
+				case OSNMAStatus::AwaitingTrustedTimeInfo:
+				case OSNMAStatus::Initializing:
+					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_INITIALIZING;
+					break;
+				case OSNMAStatus::InitFailedInconsistentTime:
+				case OSNMAStatus::InitFailedKROOTInvalid:
+				case OSNMAStatus::InitFailedInvalidParam:
+					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_ERROR;
+					break;
+				case OSNMAStatus::Authenticating:
+					_sensor_gps.authentication_state = sensor_gps_s::AUTHENTICATION_STATE_OK;
+					break;
+				}
+			}
+
 			break;
 		}
 		case BlockID::EndOfPVT: {
@@ -1275,6 +1393,31 @@ int SeptentrioDriver::process_message()
 
 			break;
 		}
+		}
+
+		//Check for how recent the resilience data for reciever is, if outdated set to unknown
+		if ((_time_last_resilience_received != 0) && (hrt_elapsed_time(&_time_last_resilience_received) > 5_s)) {
+				_sensor_gps.jamming_state = sensor_gps_s::JAMMING_STATE_UNKNOWN;
+				_sensor_gps.spoofing_state = sensor_gps_s::SPOOFING_STATE_UNKNOWN;
+
+				_time_last_resilience_received = 0; // Reset
+		}
+
+		// Check for how recent the status data for receiver is, if outdated set to unknown
+		if ((_time_last_qualityind_received != 0) && (hrt_elapsed_time(&_time_last_qualityind_received) > 5_s)) {
+				_message_sensor_gnss_status.quality_available = false;
+				_message_sensor_gnss_status.device_id = get_device_id();
+				_message_sensor_gnss_status.timestamp = hrt_absolute_time();
+
+				_message_sensor_gnss_status.quality_corrections = 255;
+				_message_sensor_gnss_status.quality_receiver = 255;
+				_message_sensor_gnss_status.quality_post_processing = 255;
+				_message_sensor_gnss_status.quality_gnss_signals = 255;
+
+
+				_sensor_gnss_status_pub.publish(_message_sensor_gnss_status);
+
+				_time_last_qualityind_received = 0; // Reset
 		}
 
 		break;
@@ -1532,6 +1675,7 @@ void SeptentrioDriver::publish()
 	_sensor_gps.device_id = get_device_id();
 	_sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
 	_sensor_gps.rtcm_injection_rate = rtcm_injection_frequency();
+	_sensor_gps.timestamp = hrt_absolute_time();
 	_sensor_gps_pub.publish(_sensor_gps);
 }
 

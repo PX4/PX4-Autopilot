@@ -125,6 +125,31 @@ ilabs <command> [arguments...]
    status        Print driver status
 ```
 
+## sbgecom
+
+Source: [drivers/ins/sbgecom](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/ins/sbgecom)
+
+Description du module
+
+### Usage {#sbgecom_usage}
+
+```
+sbgecom <command> [arguments...]
+ Commands:
+   start         Start driver
+     [-d <val>]  Serial device
+                 default: /dev/ttyS0
+     [-b <val>]  Baudrate device
+                 default: 921600
+     [-f <val>]  Config JSON file path
+                 default: /etc/extras/sbg_settings\.json
+     [-s <val>]  Config JSON string
+
+   status        Driver status
+
+   stop          Stop driver
+```
+
 ## vectornav
 
 Source: [drivers/ins/vectornav](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/ins/vectornav)

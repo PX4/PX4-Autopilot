@@ -19,7 +19,7 @@ With _VScode_, configuration is stored in the PX4/PX4-Autopilot tree ([PX4-Autop
 
 You must already have installed the command line [PX4 developer environment](../dev_setup/dev_env.md) for your platform and downloaded the _Firmware_ source code repo.
 
-## Installation & Setup
+## 安装与设置
 
 1. [Download and install VSCode](https://code.visualstudio.com/) (you will be offered the correct version for your OS).
 

@@ -9,11 +9,12 @@ These are useful for applications including terrain following, precision hoverin
 
 The following models are supported by PX4, and can be connected to either the I2C or Serial bus (the tables below indicates what bus can be used for each model).
 
-| Model                                                      | Range (m) | Bus               | 描述                                                                                                            |
-| ---------------------------------------------------------- | ---------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------- |
-| [SF11/C](https://lightwarelidar.com/products/sf11-c-100-m) | 100                          | Serial or I2C bus |                                                                                                               |
-| [LW20/C](https://lightware.co.za/products/lw20-c-100-m)    | 100                          | I2C bus           | Waterproofed (IP67) with servo for sense-and-avoid applications                            |
-| [SF45/B](../sensor/sf45_rotating_lidar.md)                 | 50                           | Serial            | Rotary Lidar (Used for [Collision Prevention](../computer_vision/collision_prevention.md)) |
+| Model                                                   | Range (m) | Bus               | 描述                                                                                                            |
+| ------------------------------------------------------- | ---------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| [SF11/C](https://lightwarelidar.com/shop/sf11-c-100-m/) | 100                          | Serial or I2C bus |                                                                                                               |
+| [LW20/C](https://lightware.co.za/products/lw20-c-100-m) | 100                          | I2C bus           | Waterproofed (IP67) with servo for sense-and-avoid applications                            |
+| [SF30/D](https://lightwarelidar.com/shop/sf30-d-200-m/) | 200                          | I2C bus           | Waterproofed (IP67)                                                                        |
+| [SF45/B](../sensor/sf45_rotating_lidar.md)              | 50                           | Serial            | Rotary Lidar (Used for [Collision Prevention](../computer_vision/collision_prevention.md)) |
 
 :::details
 Discontinued

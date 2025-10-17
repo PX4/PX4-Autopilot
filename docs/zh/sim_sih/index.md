@@ -65,7 +65,7 @@ These include: [`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim), [`sens
 
 To check that these are present on your flight controller:
 
-1. Start QGroundControl.
+1. 启动QGroundControl。
 
 2. Open **Analyze Tools > Mavlink Console**.
 
