@@ -140,6 +140,10 @@ void Ekf::resetQuatStateYaw(const float yaw, const float yaw_variance)
 	_time_last_heading_fuse = _time_delayed_us;
 
 	propagateQuatReset(quat_before_reset);
+
+	// rotate horizontal velocity by the yaw change
+	const float yaw_diff = wrap_pi(yaw - getEulerYaw(quat_before_reset));
+	resetHorizontalVelocityToMatchYaw(yaw_diff);
 }
 
 void Ekf::propagateQuatReset(const Quatf &quat_before_reset)
@@ -189,4 +193,16 @@ void Ekf::resetYawByFusion(const float yaw, const float yaw_variance)
 	fuseYaw(aid_src_status, H_YAW, reset_yaw);
 
 	propagateQuatReset(quat_before_reset);
+
+	resetHorizontalVelocityToMatchYaw(-aid_src_status.innovation);
+}
+
+void Ekf::resetHorizontalVelocityToMatchYaw(const float delta_yaw)
+{
+	if (!isNorthEastAidingActive() && fabsf(delta_yaw) > 0.3f) {
+		const matrix::Dcm2f R_yaw(delta_yaw);
+		const Vector2f vel_rotated = R_yaw * Vector2f(_state.vel);
+		const float vel_var = fmaxf(P(State::vel.idx, State::vel.idx), P(State::vel.idx + 1, State::vel.idx + 1));
+		resetHorizontalVelocityTo(vel_rotated, vel_var);
+	}
 }
