@@ -34,7 +34,6 @@ private:
 	static const hrt_abstime SAMPLE_INTERVAL{50_ms};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::ADC_ADS7953_EN>) _adc_ads7953_en,
 		(ParamFloat<px4::params::ADC_ADS7953_REFV>) _adc_ads7953_refv
 	)
 	adc_report_s _adc_report{};

@@ -83,10 +83,8 @@ int ADS7953::get_measurements()
 	uint8_t idx = 0;
 
 	while (count < 16) {
-		static uint8_t ch_id = 0;
-
 		if (rw_msg(&recv_data[0], idx, true) == PX4_OK) {
-			ch_id = (recv_data[0] >> 4);
+			uint8_t ch_id = (recv_data[0] >> 4);
 
 			//check if we already have a measurement for the returned channel
 			if (!(mask & (1U << ch_id))) {
