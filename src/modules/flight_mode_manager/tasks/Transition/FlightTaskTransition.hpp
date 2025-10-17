@@ -61,8 +61,9 @@ public:
 	bool update() override;
 
 private:
-	static constexpr float VERTICAL_VELOCITY_TIME_CONSTANT = 2.0f;
-	static constexpr float DECELERATION_INTEGRATOR_LIMIT = .3f;
+	static constexpr float kVerticalVelocityTimeConstant = 2.0f;
+	static constexpr float kDecelerationIntegratorLimit = 0.3f;
+	static constexpr float kAccelerationFilterTimeConstant = 0.05f;
 
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_position_sp_triplet{ORB_ID(position_setpoint_triplet)};
@@ -71,8 +72,9 @@ private:
 	float _param_vt_b_dec_i{0.f};
 	float _param_vt_b_dec_mss{0.f};
 
-	AlphaFilter<float> _vel_z_filter{VERTICAL_VELOCITY_TIME_CONSTANT};
+	AlphaFilter<float> _vel_z_filter{kVerticalVelocityTimeConstant};
+	AlphaFilter<matrix::Vector2f> _accel_filter{kAccelerationFilterTimeConstant};
 	float _decel_error_bt_int{0.f}; ///< Backtransition deceleration error integrator value
 
-	float computeBackTranstionPitchSetpoint();
+	float computeBackTransitionTiltSetpoint();
 };
