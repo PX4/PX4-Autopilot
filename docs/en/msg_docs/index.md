@@ -15,7 +15,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 - [ActuatorMotors](ActuatorMotors.md) — Motor control message
 - [ActuatorServos](ActuatorServos.md) — Servo control message
-- [AirspeedValidated](AirspeedValidated.md)
+- [AirspeedValidated](AirspeedValidated.md) — Validated airspeed
 - [ArmingCheckReply](ArmingCheckReply.md) — Arming check reply
 - [ArmingCheckRequest](ArmingCheckRequest.md) — Arming check request
 - [BatteryStatus](BatteryStatus.md) — Battery status
@@ -70,7 +70,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleLandDetected](VehicleLandDetected.md)
 - [VehicleLocalPosition](VehicleLocalPosition.md) — Fused local position in NED.
   The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
-- [VehicleOdometry](VehicleOdometry.md) — Vehicle odometry data. Fits ROS REP 147 for aerial vehicles
+- [VehicleOdometry](VehicleOdometry.md) — Vehicle odometry data
 - [VehicleRatesSetpoint](VehicleRatesSetpoint.md)
 - [VehicleStatus](VehicleStatus.md) — Encodes the system state of the vehicle published by commander
 - [VtolVehicleStatus](VtolVehicleStatus.md) — VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE
@@ -87,7 +87,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [AdcReport](AdcReport.md)
 - [Airspeed](Airspeed.md) — Airspeed data from sensors
 - [AirspeedWind](AirspeedWind.md) — Wind estimate (from airspeed_selector)
-- [AutotuneAttitudeControlStatus](AutotuneAttitudeControlStatus.md)
+- [AutotuneAttitudeControlStatus](AutotuneAttitudeControlStatus.md) — Autotune attitude control status
 - [BatteryInfo](BatteryInfo.md) — Battery information
 - [ButtonEvent](ButtonEvent.md)
 - [CameraCapture](CameraCapture.md)
@@ -246,6 +246,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
   change with board revisions and sensor updates.
 - [SensorCorrection](SensorCorrection.md) — Sensor corrections in SI-unit form for the voted sensor
 - [SensorGnssRelative](SensorGnssRelative.md) — GNSS relative positioning information in NED frame. The NED frame is defined as the local topological system at the reference station.
+- [SensorGnssStatus](SensorGnssStatus.md) — Gnss quality indicators
 - [SensorGps](SensorGps.md) — GPS position in WGS84 coordinates.
   the field 'timestamp' is for the position & velocity (microseconds)
 - [SensorGyro](SensorGyro.md)
