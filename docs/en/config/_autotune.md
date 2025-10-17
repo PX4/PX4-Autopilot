@@ -98,8 +98,7 @@ The test steps are:
 
 </div><div v-else-if="$frontmatter.frame === 'Plane'">
 
-4. The drone will first start to perform quick roll motions followed by pitch and yaw motions. When [`FW_AT_SYSID_TYPE`](../advanced_config/parameter_reference.md#FW_AT_SYSID_TYPE) is set to linear/logarithmic sine sweep (recommended), the max rates are approximately 45 deg/s for roll and 30 deg/s for pitch and yaw.
-   The progress is shown in the progress bar, next to the _Autotune_ button.
+4. The drone will first start to perform quick roll motions followed by pitch and yaw motions. When [`FW_AT_SYSID_TYPE`](../advanced_config/parameter_reference.md#FW_AT_SYSID_TYPE) is set to linear/logarithmic sine sweep (recommended), the max rates reached during the maneuvers are 75% of the maximum configured roll (`FW_R_RMAX`), pitch (`FW_P_RMAX_NEG`, `FW_P_RMAX_POS`) and yaw (`FW_Y_RMAX`) rates. The progress is shown in the progress bar, next to the _Autotune_ button.
 
 </div>
 <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
@@ -194,7 +193,7 @@ Increase the [MC_AT_SYSID_AMP](../advanced_config/parameter_reference.md#MC_AT_S
 </div>
 <div v-else-if="$frontmatter.frame === 'Plane'">
 
-By default, the autotune maneuvers ensure that a sufficient angular rate is reached for system identification. The target rates are approximately 45 deg/s for roll and 30 deg/s for pitch and yaw.
+By default, the autotune maneuvers ensure that a sufficient angular rate is reached for system identification, corresponding to 75% of the configured maximum roll (`FW_R_RMAX`), pitch (`FW_P_RMAX_NEG`, `FW_P_RMAX_POS`) and yaw (`FW_Y_RMAX`) rates.
 
 If the signal-to-noise ratio of the vehicle is low, the system identification algorithm might have issues finding the correct coefficients. Ensure that there is no excessive noise and/or platform vibration.
 
