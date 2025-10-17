@@ -54,7 +54,7 @@ class UavcanBatteryBridge : public UavcanSensorBridgeBase, public ModuleParams
 public:
 	static const char *const NAME;
 
-	UavcanBatteryBridge(uavcan::INode &node);
+	UavcanBatteryBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 
