@@ -83,12 +83,15 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 {
 	const bool is_registering_info = (info != nullptr);
 
+	const DeviceInformation *multi_capability_info = nullptr;
+
 	for (size_t i = 0; i < _device_informations_size; ++i) {
 		if (is_registering_info) {
-			// Case 1: Check if this exact node already has node info - skip
+			// Case 1: Check if this entry already has node info - skip this specific entry
 			if (_device_informations[i].node_id == node_id &&
 			    _device_informations[i].has_node_info) {
-				return;
+
+				continue;  // Continue to check other entries with same node_id
 			}
 
 			// Case 2: Check if node_id already exists with capability but no info - update that entry
@@ -98,6 +101,7 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 
 				populateDeviceInfoFields(_device_informations[i], *info);
 				publishDeviceInformationImmediate(i);
+
 				// Continue to check for other entries with the same node_id but different capabilities.
 			}
 
@@ -105,8 +109,7 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 			// Case 1: Check if this exact capability already exists - skip
 			if (_device_informations[i].node_id == node_id &&
 			    _device_informations[i].device_id == device_id &&
-			    _device_informations[i].capability == capability &&
-			    _device_informations[i].capability != DeviceCapability::NONE) {
+			    _device_informations[i].capability == capability) {
 				return;
 			}
 
@@ -114,7 +117,11 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 			if (_device_informations[i].node_id == node_id &&
 			    _device_informations[i].capability != DeviceCapability::NONE  &&
 			    _device_informations[i].capability != capability) {
-
+				multi_capability_info->serial_number = _device_informations[i].serial_number;
+				multi_capability_info->firmware_version = _device_informations[i].firmware_version;
+				multi_capability_info->hardware_version = _device_informations[i].hardware_version;
+				multi_capability_info->model_name = _device_informations[i].model_name;
+				multi_capability_info->vendor_name = _device_informations[i].vendor_name;
 				continue;
 			}
 
@@ -131,6 +138,8 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 		}
 	}
 
+
+
 	// Case 3: extend array and add entry at the end
 	if (extendDeviceInformationsArray()) {
 		_device_informations[_device_informations_size - 1] = DeviceInformation();
@@ -142,6 +151,14 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 		} else {
 			_device_informations[_device_informations_size - 1].device_id = device_id;
 			_device_informations[_device_informations_size - 1].capability = capability;
+		}
+
+		if (multi_capability_info != nullptr) {
+			_device_informations[_device_informations_size - 1].model_name = multi_capability_info->model_name;
+			_device_informations[_device_informations_size - 1].vendor_name = multi_capability_info->vendor_name;
+			_device_informations[_device_informations_size - 1].firmware_version = multi_capability_info->firmware_version;
+			_device_informations[_device_informations_size - 1].hardware_version = multi_capability_info->hardware_version;
+			_device_informations[_device_informations_size - 1].serial_number = multi_capability_info->serial_number;
 		}
 
 	} else {
@@ -215,8 +232,12 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 	msg.device_id = device_info.device_id;
 
 	// Copy pre-populated fields directly from the struct
-	// Copy strings using memcpy and ensure null termination
 	static_assert(sizeof(msg.model_name) == sizeof(device_info.model_name), "Array size mismatch");
+	static_assert(sizeof(msg.vendor_name) == sizeof(device_info.vendor_name), "Array size mismatch");
+	static_assert(sizeof(msg.firmware_version) == sizeof(device_info.firmware_version), "Array size mismatch");
+	static_assert(sizeof(msg.hardware_version) == sizeof(device_info.hardware_version), "Array size mismatch");
+	static_assert(sizeof(msg.serial_number) == sizeof(device_info.serial_number), "Array size mismatch");
+
 	memcpy(msg.model_name, device_info.model_name, sizeof(msg.model_name));
 	msg.model_name[sizeof(msg.model_name) - 1] = '\0';
 
