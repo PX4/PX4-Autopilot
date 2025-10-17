@@ -547,7 +547,7 @@ void UavcanNode::Run()
 		 */
 
 		if (_dyn_node_id_client.isAllocationComplete()) {
-			PX4_INFO("Got node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
+			PX4_INFO("Assigned node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
 
 			_node.setNodeID(_dyn_node_id_client.getAllocatedNodeID());
 			_init_state = Allocated;
@@ -824,25 +824,22 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 		}
 	}
 
-	// Read the static node ID parameter and use it if no valid node_id from shared memory
+	// Use a static node ID if the parameter is set and in range
 	int32_t cannode_node_id = 0;
 	param_get(param_find("CANNODE_NODE_ID"), &cannode_node_id);
 
-	// Check if the static node ID is in range
 	if (cannode_node_id < 0 || cannode_node_id > uavcan::NodeID::Max) {
 		PX4_ERR("Invalid static node ID %ld, using dynamic allocation", cannode_node_id);
-		cannode_node_id = 0;
-	}
+		node_id = 0;
 
-	// Assign the static node ID if no dynamic allocation is used. Do wen't override a valid node ID from the bootloader?
-	if (node_id == 0 && cannode_node_id > 0 && cannode_node_id <= uavcan::NodeID::Max) {
+	} else {
 		node_id = cannode_node_id;
 	}
 
 	// Persist the node ID for the bootloader
 	bootloader_app_shared_t shared_write = {};
 	shared_write.node_id = node_id;
-	shared_write.bus_speed = bitrate;
+	shared_write.bus_speed = 0; // we always want to autobaud
 	bootloader_app_shared_write(&shared_write, BootLoader);
 
 	if (
