@@ -24,7 +24,7 @@ Experimental
 这些类对 PX4 所使用的内部设定点进行了抽象处理，因此可用于为未来的 PX4 和 ROS 版本提供统一的 ROS 2 接口。
 
 PX4 ROS 2 模式相较于 PX4 内部模式，更易于实现和维护，并且在处理能力与既有代码库资源方面，能为开发者提供更丰富的支持。
-除非该模式属于安全关键型、对时序有严格要求或需要极高的更新速率，或者你的飞行器没有搭载伴随计算机，否则你应优先[考虑使用 PX4 ROS 2 模式，而非 PX4 内部模式]（参考链接：../concept/flight_modes.md#internal-vs-external-modes）。
+除非该模式属于安全关键型、对时序有严格要求或需要极高的更新速率，或者你的飞行器没有搭载伴随计算机，否则你应优先[考虑使用 PX4 ROS 2 模式，而非 PX4 内部模式](../concept/flight_modes.md#internal-vs-external-modes)。
 
 ## 综述
 

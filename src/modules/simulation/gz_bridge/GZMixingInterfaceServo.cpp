@@ -117,8 +117,8 @@ bool GZMixingInterfaceServo::init(const std::string &model_name)
 			return false;
 		}
 
-		double min_val = get_servo_angle_min(i);
-		double max_val = get_servo_angle_max(i);
+		double min_val = (double)get_servo_angle_min(i);
+		double max_val = (double)get_servo_angle_max(i);
 		_angle_min_rad.push_back(min_val);
 		_angular_range_rad.push_back(max_val - min_val);
 	}

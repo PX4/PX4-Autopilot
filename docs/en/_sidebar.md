@@ -1,5 +1,4 @@
 <!-- GENERATED CONTENT: DO NOT EDIT -->
-
 - [Introduction](/index.md)
   - [Basic Concepts](/getting_started/px4_basic_concepts.md)
 
@@ -9,6 +8,7 @@
       - [Position Mode (MC)](/flight_modes_mc/position.md)
       - [Position Slow Mode (MC)](/flight_modes_mc/position_slow.md)
       - [Altitude Mode (MC)](/flight_modes_mc/altitude.md)
+      - [Altitude Cruise Mode (MC)](/flight_modes_mc/altitude_cruise.md)
       - [Stabilized Mode (MC)](/flight_modes_mc/manual_stabilized.md)
       - [Acro Mode (MC)](/flight_modes_mc/acro.md)
       - [Orbit Mode (MC)](/flight_modes_mc/orbit.md)
@@ -185,6 +185,7 @@
         - [Wiring Quickstart](/assembly/quick_start_holybro_pix32_v5.md)
       - [ModalAI VOXL 2](/flight_controller/modalai_voxl_2.md)
       - [mRo Control Zero F7](/flight_controller/mro_control_zero_f7.md)
+      - [Radiolink PIX6](/flight_controller/radiolink_pix6.md)
       - [Sky-Drones AIRLink](/flight_controller/airlink.md)
       - [SPRacing SPRacingH7EXTREME](/flight_controller/spracingh7extreme.md)
       - [ThePeach FCC-K1](/flight_controller/thepeach_k1.md)
@@ -284,6 +285,7 @@
       - [CubePilot Here+ (Discontined)](/gps_compass/rtk_gps_hex_hereplus.md)
     - [INS (Inertial Navigation/GNSS)](/sensor/inertial_navigation_systems.md)
       - [InertialLabs](/sensor/inertiallabs.md)
+      - [sbgECom](/sensor/sbgecom.md)
       - [VectorNav](/sensor/vectornav.md)
     - [Optical Flow](/sensor/optical_flow.md)
       - [ARK Flow](/dronecan/ark_flow.md)
@@ -415,6 +417,7 @@
       - [Attitude Tuning](/config_rover/attitude_tuning.md)
       - [Velocity Tuning](/config_rover/velocity_tuning.md)
       - [Position Tuning](/config_rover/position_tuning.md)
+    - [Apps & API](/flight_modes_rover/api.md)
     - [Complete Vehicles](/complete_vehicles_rover/index.md)
       - [Aion Robotics R1](/complete_vehicles_rover/aion_r1.md)
   - [Submarines (experimental)](/frames_sub/index.md)
@@ -852,6 +855,7 @@
     - [PX4 ROS 2 Interface Library](/ros2/px4_ros2_interface_lib.md)
       - [Control Interface](/ros2/px4_ros2_control_interface.md)
       - [Navigation Interface](/ros2/px4_ros2_navigation_interface.md)
+      - [Waypoint Missions](/ros2/px4_ros2_waypoint_missions.md)
     - [ROS 2 Message Translation Node](/ros2/px4_ros2_msg_translation_node.md)
   - [ROS 1 (Deprecated)](/ros/ros1.md)
     - [ROS/MAVROS Installation Guide](/ros/mavros_installation.md)

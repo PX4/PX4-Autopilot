@@ -1,7 +1,5 @@
 # ControlAllocatorStatus (UORB message)
 
-
-
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/ControlAllocatorStatus.msg)
 
 ```c
@@ -26,5 +24,6 @@ int8[16] actuator_saturation            # Indicates actuator saturation status.
                                         # Note 2: an actuator with limited dynamics can be indicated as upper-saturated even if it as not reached its maximum value.
 
 uint16 handled_motor_failure_mask        # Bitmask of failed motors that were removed from the allocation / effectiveness matrix. Not necessarily identical to the report from FailureDetector
+uint16 motor_stop_mask                   # Bitmaks of motors stopped by failure injection
 
 ```

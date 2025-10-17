@@ -35,7 +35,7 @@
 MEMORY
 {
   flash (rx)  : ORIGIN = 0x30020000, LENGTH = 4M-128K /* We have 64M but we do not want to wait to program it all */
-  sram  (rwx) : ORIGIN = 0x20240000, LENGTH = 2M-256k-512k
+  sram  (rwx) : ORIGIN = 0x20240000, LENGTH = 2M-256k
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 256K   /* TODO FlexRAM partition */
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 256K
 }
@@ -83,6 +83,7 @@ SECTIONS
         _sitcmfuncs = ABSOLUTE(.);
         FILL(0xFF)
         . = 0x40 ;
+        *(.ram_vectors)
         INCLUDE "itcm_static_functions.ld"
         INCLUDE "itcm_functions_includes.ld"
         . = ALIGN(8);
@@ -90,12 +91,6 @@ SECTIONS
     } > itcm AT > flash
 
     _fitcmfuncs = LOADADDR(.itcmfunc);
-
-    /* The RAM vector table (if present) should lie at the beginning of SRAM */
-
-    .ram_vectors (COPY) : {
-        *(.ram_vectors)
-    } > dtcm
 
     .text : ALIGN(4)
     {

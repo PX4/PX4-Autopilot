@@ -827,6 +827,12 @@ void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const 
 	} else {
 		_long_configuration.sink_rate_target = _param_sinkrate_target.get();
 	}
+
+	if (PX4_ISFINITE(configuration_in.speed_weight)) {
+		_long_configuration.speed_weight = math::constrain(configuration_in.speed_weight, 0.f, 2.f);
+	} else {
+		_long_configuration.speed_weight = _param_t_spdweight.get();
+	}
 }
 
 float FwLateralLongitudinalControl::getLoadFactor() const
