@@ -345,7 +345,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			}
 
 			const float abs_roll_rate = fabsf(_angular_velocity(0));
-			const float target = min(kTargetRollRate, math::radians(_param_fw_r_rmax.get()));
+			const float target = 0.75f * math::radians(_param_fw_r_rmax.get());
 
 			updateAmplitudeDetectionState(now, abs_roll_rate, target);
 
@@ -396,7 +396,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 			const float abs_pitch_rate = fabsf(_angular_velocity(1));
 			const float max_pitch_rate = min(_param_fw_p_rmax_pos.get(), _param_fw_p_rmax_neg.get());
-			const float target = min(kTargetPitchRate, math::radians(max_pitch_rate));
+			const float target = 0.75f * math::radians(max_pitch_rate);
 
 			updateAmplitudeDetectionState(now, abs_pitch_rate, target);
 
@@ -444,7 +444,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			}
 
 			const float abs_yaw_rate = fabsf(_angular_velocity(2));
-			const float target = min(kTargetYawRate, math::radians(_param_fw_y_rmax.get()));
+			const float target = 0.75f * math::radians(_param_fw_y_rmax.get());
 
 			updateAmplitudeDetectionState(now, abs_yaw_rate, target);
 
