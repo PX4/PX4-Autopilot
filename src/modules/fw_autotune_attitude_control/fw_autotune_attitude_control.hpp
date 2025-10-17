@@ -243,6 +243,6 @@ private:
 		(ParamInt<px4::params::FW_AT_SYSID_TYPE>) _param_fw_sysid_signal_type
 	)
 
-	static constexpr float _publishing_dt_s = 100e-3f;
-	static constexpr hrt_abstime _publishing_dt_hrt = 100_ms;
+	static constexpr float _publishing_dt_s = 20e-3f;
+	static constexpr hrt_abstime _publishing_dt_hrt = 20_ms;
 };
