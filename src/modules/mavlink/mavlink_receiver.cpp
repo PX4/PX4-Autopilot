@@ -3230,9 +3230,9 @@ MavlinkReceiver::run()
 
 						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version
 						if (!(_mavlink.get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)
-						    && (_mavlink.get_status()->flags & MAVLINK_STATUS_FLAG_OUT_MAVLINK1)) {
+						    && _mavlink.getProtocolVersion() != 2) {
 							PX4_INFO("Upgrade to MAVLink v2 because of incoming packet");
-							_mavlink.set_protocol_version(2);
+							_mavlink.setProtocolVersion(2);
 						}
 
 						switch (_mavlink.get_mode()) {
