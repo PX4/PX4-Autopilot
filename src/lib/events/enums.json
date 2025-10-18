@@ -442,13 +442,9 @@
                     "type": "uint8_t",
                     "description": "Reason for arming/disarming",
                     "entries": {
-                        "0": {
-                            "name": "transition_to_standby",
-                            "description": "Transition to standby"
-                        },
                         "1": {
                             "name": "stick_gesture",
-                            "description": "Stick gesture"
+                            "description": "stick gesture"
                         },
                         "2": {
                             "name": "rc_switch",
@@ -467,36 +463,20 @@
                             "description": "mission start"
                         },
                         "6": {
-                            "name": "auto_disarm_land",
+                            "name": "landing",
                             "description": "landing"
                         },
                         "7": {
-                            "name": "auto_disarm_preflight",
-                            "description": "auto preflight disarming"
+                            "name": "preflight_inaction",
+                            "description": "preflight inaction"
                         },
                         "8": {
                             "name": "kill_switch",
                             "description": "kill switch"
                         },
-                        "9": {
-                            "name": "lockdown",
-                            "description": "lockdown"
-                        },
-                        "10": {
-                            "name": "failure_detector",
-                            "description": "failure detector"
-                        },
-                        "11": {
-                            "name": "shutdown",
-                            "description": "shutdown request"
-                        },
-                        "12": {
-                            "name": "unit_test",
-                            "description": "unit tests"
-                        },
                         "13": {
                             "name": "rc_button",
-                            "description": "RC (button)"
+                            "description": "RC button"
                         },
                         "14": {
                             "name": "failsafe",
