@@ -172,16 +172,6 @@ private:
 	static constexpr float kSignalAmpMax{5.0f};
 	static constexpr float kSignalAmpStep{0.1f};
 
-	// Target maximum angular rates for the system identification signal.
-	// ~45 deg/s for roll, ~30 deg/s for pitch and yaw. These values are:
-	// - High enough to provide good signal-to-noise ratio for identification.
-	// - Low enough to keep pitch and yaw responses within the linear range
-	//   for most vehicles.
-
-	static constexpr float kTargetRollRate{0.8f};
-	static constexpr float kTargetPitchRate{0.5f};
-	static constexpr float kTargetYawRate{0.5f};
-
 	matrix::Vector3f _angular_velocity{};
 
 	bool _armed{false};
@@ -253,6 +243,6 @@ private:
 		(ParamInt<px4::params::FW_AT_SYSID_TYPE>) _param_fw_sysid_signal_type
 	)
 
-	static constexpr float _publishing_dt_s = 100e-3f;
-	static constexpr hrt_abstime _publishing_dt_hrt = 100_ms;
+	static constexpr float _publishing_dt_s = 20e-3f;
+	static constexpr hrt_abstime _publishing_dt_hrt = 20_ms;
 };
