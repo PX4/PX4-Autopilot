@@ -84,7 +84,7 @@ Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and
 
 2. (Optional) [RO_ACCEL_LIM](#RO_ACCEL_LIM) [m/s^2]: Maximum acceleration you want to allow for your rover.
 
-         <a id="RO_ACCEL_LIM_CONSIDERATIONS"></a>
+   <a id="RO_ACCEL_LIM_CONSIDERATIONS"></a>
 
    :::tip
    Your rover has a maximum possible acceleration which is determined by the maximum torque the motor can supply.
@@ -128,15 +128,15 @@ $$
 
 with:
 
- - $\delta \in [-1, 1]=$ Normalized steering setpoint.
- - $x \in [-1, 1]=$ Normalized stick input.
- - $f=$ [RO_YAW_EXPO](#RO_YAW_EXPO): `0` Purely linear input curve, `1` Purely cubic input curve.
- - $g=$ [RO_YAW_SUPEXPO](#RO_YAW_SUPEXPO): `0` Pure Expo function, `0.7` reasonable shape enhancement for intuitive stick feel, `0.95` very strong bent input curve only near maxima have effect.
+- $\delta \in [-1, 1]=$ Normalized steering setpoint.
+- $x \in [-1, 1]=$ Normalized stick input.
+- $f=$ [RO_YAW_EXPO](#RO_YAW_EXPO): `0` Purely linear input curve, `1` Purely cubic input curve.
+- $g=$ [RO_YAW_SUPEXPO](#RO_YAW_SUPEXPO): `0` Pure Expo function, `0.7` reasonable shape enhancement for intuitive stick feel, `0.95` very strong bent input curve only near maxima have effect.
 
 In [Manual mode](../flight_modes_rover/manual.md#manual-mode) we can additionally scale $\delta$ with an additional parameter $r$:
 
- - Differential Rover: $r=$ [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN)].
- - Mecanum Rover: $r=$ [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN)].
+- Differential Rover: $r=$ [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN), [RD_YAW_STK_GAIN](#RD_YAW_STK_GAIN)].
+- Mecanum Rover: $r=$ [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), which enables adjusting the slope of the input mapping. This leads to a normalized steering input $\hat{\delta} = \delta \cdot r \in$ [-[RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN), [RM_YAW_STK_GAIN](#RM_YAW_STK_GAIN)].
 
 This scaling is useful to limit the normalized steering setpoint, if it is too aggresive for your rover in manual mode.
 

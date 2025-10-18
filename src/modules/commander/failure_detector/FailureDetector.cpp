@@ -42,123 +42,6 @@
 
 using namespace time_literals;
 
-void FailureInjector::update()
-{
-	vehicle_command_s vehicle_command;
-
-	while (_vehicle_command_sub.update(&vehicle_command)) {
-		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
-			continue;
-		}
-
-		bool handled = false;
-		bool supported = false;
-
-		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
-		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
-		const int instance = static_cast<int>(vehicle_command.param3 + 0.5f);
-
-		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SYSTEM_MOTOR) {
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, motors ok");
-				supported = false;
-
-				// 0 to signal all
-				if (instance == 0) {
-					supported = true;
-
-					for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-						PX4_INFO("CMD_INJECT_FAILURE, motor %d ok", i);
-						_esc_blocked &= ~(1 << i);
-						_esc_wrong &= ~(1 << i);
-					}
-
-				} else if (instance >= 1 && instance <= esc_status_s::CONNECTED_ESC_MAX) {
-					supported = true;
-
-					PX4_INFO("CMD_INJECT_FAILURE, motor %d ok", instance - 1);
-					_esc_blocked &= ~(1 << (instance - 1));
-					_esc_wrong &= ~(1 << (instance - 1));
-				}
-			}
-
-			else if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, motors off");
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-						PX4_INFO("CMD_INJECT_FAILURE, motor %d off", i);
-						_esc_blocked |= 1 << i;
-					}
-
-				} else if (instance >= 1 && instance <= esc_status_s::CONNECTED_ESC_MAX) {
-					PX4_INFO("CMD_INJECT_FAILURE, motor %d off", instance - 1);
-					_esc_blocked |= 1 << (instance - 1);
-				}
-			}
-
-			else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
-				PX4_INFO("CMD_INJECT_FAILURE, motors wrong");
-				supported = true;
-
-				// 0 to signal all
-				if (instance == 0) {
-					for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-						PX4_INFO("CMD_INJECT_FAILURE, motor %d wrong", i);
-						_esc_wrong |= 1 << i;
-					}
-
-				} else if (instance >= 1 && instance <= esc_status_s::CONNECTED_ESC_MAX) {
-					PX4_INFO("CMD_INJECT_FAILURE, motor %d wrong", instance - 1);
-					_esc_wrong |= 1 << (instance - 1);
-				}
-			}
-		}
-
-		if (handled) {
-			vehicle_command_ack_s ack{};
-			ack.command = vehicle_command.command;
-			ack.from_external = false;
-			ack.result = supported ?
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-			ack.timestamp = hrt_absolute_time();
-			_command_ack_pub.publish(ack);
-		}
-	}
-
-}
-
-void FailureInjector::manipulateEscStatus(esc_status_s &status)
-{
-	if (_esc_blocked != 0 || _esc_wrong != 0) {
-		unsigned offline = 0;
-
-		for (int i = 0; i < status.esc_count; i++) {
-			const unsigned i_esc = status.esc[i].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
-
-			if (_esc_blocked & (1 << i_esc)) {
-				unsigned function = status.esc[i].actuator_function;
-				memset(&status.esc[i], 0, sizeof(status.esc[i]));
-				status.esc[i].actuator_function = function;
-				offline |= 1 << i;
-
-			} else if (_esc_wrong & (1 << i_esc)) {
-				// Create wrong rerport for this motor by scaling key values up and down
-				status.esc[i].esc_voltage *= 0.1f;
-				status.esc[i].esc_current *= 0.1f;
-				status.esc[i].esc_rpm *= 10.0f;
-			}
-		}
-
-		status.esc_online_flags &= ~offline;
-	}
-}
-
 FailureDetector::FailureDetector(ModuleParams *parent) :
 	ModuleParams(parent)
 {
@@ -372,10 +255,9 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 	// First wait for some ESC telemetry that has the required fields. Before that happens, don't check this ESC
 	// Then check
 
-	const hrt_abstime time_now = hrt_absolute_time();
-
 	// Only check while armed
 	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		const hrt_abstime now = hrt_absolute_time();
 		const int limited_esc_count = math::min(esc_status.esc_count, esc_status_s::CONNECTED_ESC_MAX);
 
 		actuator_motors_s actuator_motors{};
@@ -399,9 +281,7 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 			}
 
 			// Check for telemetry timeout
-			const hrt_abstime telemetry_age = time_now - cur_esc_report.timestamp;
-			const bool esc_timed_out = telemetry_age > 300_ms;
-
+			const bool esc_timed_out = now > cur_esc_report.timestamp + 300_ms;
 			const bool esc_was_valid = _motor_failure_esc_valid_current_mask & (1 << i_esc);
 			const bool esc_timeout_currently_flagged = _motor_failure_esc_timed_out_mask & (1 << i_esc);
 
@@ -432,7 +312,7 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 
 				if (throttle_above_threshold && current_too_low && !esc_timed_out) {
 					if (_motor_failure_undercurrent_start_time[i_esc] == 0) {
-						_motor_failure_undercurrent_start_time[i_esc] = time_now;
+						_motor_failure_undercurrent_start_time[i_esc] = now;
 					}
 
 				} else {
@@ -442,7 +322,7 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 				}
 
 				if (_motor_failure_undercurrent_start_time[i_esc] != 0
-				    && (time_now - _motor_failure_undercurrent_start_time[i_esc]) > _param_fd_motor_time_thres.get() * 1_ms
+				    && now > (_motor_failure_undercurrent_start_time[i_esc] + (_param_fd_motor_time_thres.get() * 1_ms))
 				    && (_motor_failure_esc_under_current_mask & (1 << i_esc)) == 0) {
 					// Set flag
 					_motor_failure_esc_under_current_mask |= (1 << i_esc);

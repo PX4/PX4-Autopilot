@@ -380,6 +380,9 @@ int Commander::custom_command(int argc, char *argv[])
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_POSCTL,
 						     PX4_CUSTOM_SUB_MODE_POSCTL_SLOW);
 
+			} else if (!strcmp(argv[1], "altitude_cruise")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_ALTITUDE_CRUISE);
+
 			} else if (!strcmp(argv[1], "auto:mission")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_MISSION);
@@ -458,6 +461,22 @@ int Commander::custom_command(int argc, char *argv[])
 			return 0;
 		}
 	}
+
+	if (!strcmp(argv[0], "set_heading")) {
+		if (argc > 1) {
+			const float heading = atof(argv[1]);
+			const float heading_accuracy = NAN;
+
+			bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE,
+							0.f, 0.f, heading, 0.f, 0.0, 0.0, heading_accuracy);
+			return (ret ? 0 : 1);
+
+		} else {
+			PX4_ERR("missing argument");
+			return 0;
+		}
+	}
+
 
 	if (!strcmp(argv[0], "poweroff")) {
 
@@ -793,6 +812,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ALTCTL) {
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ALTITUDE_CRUISE) {
+					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE;
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_POSCTL) {
 					switch (custom_sub_mode) {
@@ -1515,6 +1537,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_GRIPPER:
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_CAMERA_INFORMATION:
+	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1767,7 +1790,7 @@ void Commander::run()
 		_power_button_state_sub.copy(&button_state);
 
 		tune_control_s tune_control{};
-		button_state.timestamp = hrt_absolute_time();
+		tune_control.timestamp = hrt_absolute_time();
 		tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
 	}
 
@@ -1933,6 +1956,7 @@ void Commander::run()
 			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
 			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
+			fd_status.motor_stop_mask = _failure_detector.getMotorStopMask();
 			fd_status.timestamp = hrt_absolute_time();
 			_failure_detector_status_pub.publish(fd_status);
 		}
@@ -3026,7 +3050,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("land");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode", "Change flight mode");
-	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|position:slow|auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1",
+	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow|auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1",
 			"Flight mode", false);
 	PRINT_MODULE_USAGE_COMMAND("pair");
 	PRINT_MODULE_USAGE_COMMAND("termination");
@@ -3034,6 +3058,8 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("set_ekf_origin");
 	PRINT_MODULE_USAGE_ARG("lat, lon, alt", "Origin Latitude, Longitude, Altitude", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("lat|lon|alt", "Origin latitude longitude altitude");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("set_heading", "Set current heading");
+	PRINT_MODULE_USAGE_ARG("heading", "degrees from True North [0 360]", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("poweroff", "Power off board (if supported)");
 #endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();

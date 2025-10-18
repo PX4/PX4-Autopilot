@@ -32,6 +32,7 @@ The boards in this category are:
 - [Holybro Pix32 v5](../flight_controller/holybro_pix32_v5.md)
 - [ModalAI VOXL 2](../flight_controller/modalai_voxl_2.md)
 - [mRo Control Zero](../flight_controller/mro_control_zero_f7.md)
+- [Radiolink PIX6](../flight_controller/radiolink_pix6.md)
 - [Sky-Drones AIRLink](../flight_controller/airlink.md)
 - [SPRacing SPRacingH7EXTREME](../flight_controller/spracingh7extreme.md)
 - [ThePeach FCC-K1](../flight_controller/thepeach_k1.md)

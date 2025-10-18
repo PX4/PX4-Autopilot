@@ -30,23 +30,23 @@ Follow the instructions below to install jMAVSim on macOS.
 To setup the environment for [jMAVSim](../sim_jmavsim/index.md) simulation:
 
 1. Install a recent version of Java (e.g. Java 15).
-  You can download [Java 15 (or later) from Oracle](https://www.oracle.com/java/technologies/downloads/?er=221886) or use [Eclipse Temurin](https://adoptium.net):
+   You can download [Java 15 (or later) from Oracle](https://www.oracle.com/java/technologies/downloads/?er=221886) or use [Eclipse Temurin](https://adoptium.net):
 
-  ```sh
-  brew install --cask temurin
-  ```
+   ```sh
+   brew install --cask temurin
+   ```
 
 2. Install jMAVSim:
 
-  ```sh
-  brew install px4-sim-jmavsim
-  ```
+   ```sh
+   brew install px4-sim-jmavsim
+   ```
 
-  :::warning
-  PX4 v1.11 and beyond require at least JDK 15 for jMAVSim simulation.
+   :::warning
+   PX4 v1.11 and beyond require at least JDK 15 for jMAVSim simulation.
 
-  For earlier versions, macOS users might see the error `Exception in thread "main" java.lang.UnsupportedClassVersionError:`.
-  You can find the fix in the [jMAVSim with SITL > Troubleshooting](../sim_jmavsim/index.md#troubleshooting)).
+   For earlier versions, macOS users might see the error `Exception in thread "main" java.lang.UnsupportedClassVersionError:`.
+   You can find the fix in the [jMAVSim with SITL > Troubleshooting](../sim_jmavsim/index.md#troubleshooting)).
 
 :::
 

@@ -87,7 +87,7 @@ install(
 	DIRECTORY
 		${PROJECT_SOURCE_DIR}/posix-configs
 		${PROJECT_SOURCE_DIR}/test
-		${CMAKE_BINARY_DIR}/etc
+		${PX4_BINARY_DIR}/etc
 		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 	DESTINATION
 		${PROJECT_NAME}
@@ -199,6 +199,14 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 			${PX4_BINARY_DIR}/etc
 		DESTINATION
 			${PROJECT_NAME}/build/px4_sitl_default
+		)
+
+	# gazebo files
+	install(
+		FILES
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gz/server.config
+		DESTINATION
+			${PROJECT_NAME}/Tools/simulation/gz
 		)
 
 	# gazebo dirs

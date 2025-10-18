@@ -7,10 +7,15 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v8
+      - uses: actions/stale@v10
         with:
-          days-before-stale: 30
-          days-before-close: -1
+          operations-per-run: 250
+          days-before-stale: 90
+          days-before-close: 30
           stale-issue-label: 'stale'
           stale-pr-label: 'stale'
           remove-stale-when-updated: true
+          stale-issue-message: 'This issue has been marked as stale due to 90 days of inactivity. If no further activity occurs, it will be automatically closed in 30 days. Please leave a comment, add a reaction, make an update, or remove the stale label if you’d like to keep it open.'
+          close-issue-message: 'This issue has been closed due to prolonged inactivity after being marked as stale. If you believe this was closed in error or the topic is still relevant, please feel free to reopen it or create a new issue.'
+          stale-pr-message: 'This PR was identified as stale and it will be closed in 30 days unless any activity is detected.'
+          close-pr-message: 'This pull request has been closed after being marked as stale with no further activity. Thank you for the time and effort you put into this contribution. If you’d like to continue the discussion or update the work, please feel free to reopen it or submit a new PR.'
