@@ -54,6 +54,22 @@ if [[ ! -f "${DIR}/${REQUIREMENTS_FILE}" ]]; then
 	return 1
 fi
 
+# Linux Mint compatibility: use upstream Ubuntu values
+if [ -r /etc/upstream-release/lsb-release ]; then
+    . /etc/upstream-release/lsb-release
+    UBUNTU_CODENAME="${DISTRIB_CODENAME:-${UBUNTU_CODENAME:-}}"
+    UBUNTU_RELEASE="${DISTRIB_RELEASE:-${UBUNTU_RELEASE:-}}"
+
+    lsb_release() {
+        if [ "$1" = "-cs" ]; then
+            printf '%s' "$UBUNTU_CODENAME"
+        elif [ "$1" = "-rs" ]; then
+            printf '%s' "$UBUNTU_RELEASE"
+        else
+            command lsb_release "$@"
+        fi
+    }
+fi
 
 # check ubuntu version
 # otherwise warn and point to docker?

@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  issues: write # for JasonEtco/create-an-issue
 
 env:
   RUNS_IN_DOCKER: true

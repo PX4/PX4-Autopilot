@@ -50,6 +50,9 @@ publications:
     type: px4_msgs::msg::TimesyncStatus
     rate_limit: 10.
 
+  - topic: /fmu/out/transponder_report
+    type: px4_msgs::msg::TransponderReport
+ 
   # - topic: /fmu/out/vehicle_angular_velocity
   #   type: px4_msgs::msg::VehicleAngularVelocity
 
@@ -100,6 +103,10 @@ publications:
   - topic: /fmu/out/wind
     type: px4_msgs::msg::Wind
     rate_limit: 1.
+
+  - topic: /fmu/out/gimbal_device_attitude_status
+    type: px4_msgs::msg::GimbalDeviceAttitudeStatus
+    rate_limit: 20.
 
 # Create uORB::Publication
 subscriptions:

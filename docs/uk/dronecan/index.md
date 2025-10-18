@@ -276,6 +276,9 @@ If the rangefinder is connected via DroneCAN (whether inbuilt or separate), you 
 
 [DroneCAN ESCs and servos](../dronecan/escs.md) require the [motor order and servo outputs](../config/actuators.md) to be configured.
 
+Select the specific CAN interface(s) used for ESC data output using the [UAVCAN_ESC_IFACE](../advanced_config/parameter_reference.md#UAVCAN_ESC_IFACE) parameter (all that all interfaces are selected by default).
+Note that DroneCAN ESCs should be on their own dedicated CAN interface(s) because ESC messages can saturate the bus and starve other nodes of bandwidth.
+
 ## Налаштування параметрів CANNODE QGC
 
 QGroundControl може переглядати та змінювати параметри, що належать до пристроїв CAN, підключених до автопілота, за умови, що пристрої підключені до автопілота до запуску QGC.
@@ -313,7 +316,10 @@ If successful, the firmware binary will be removed from the root directory and t
 
 **Q**: The motors aren't spinning when armed.
 
-**A**: Make sure `UAVCAN_ENABLE` is set to `3` to enable DroneCAN ESC output.
+**A**:
+
+- Make sure `UAVCAN_ENABLE` is set to `3` to enable DroneCAN ESC output.
+- Make sure `UAVCAN_ESC_IFACE` is set to enable the CAN interface(s) used for ESCs.
 
 ---
 

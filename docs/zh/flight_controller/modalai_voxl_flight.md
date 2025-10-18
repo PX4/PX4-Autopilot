@@ -67,7 +67,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | microSD Card     | [Information on supported cards](../dev_log/logging.md#sd-cards) |
 | 输入               | GPS/Mag                                                          |
 |                  | Spektrum                                                         |
-|                  | Telemetry                                                        |
+|                  | 数传                                                               |
 |                  | CAN bus                                                          |
 |                  | PPM                                                              |
 | Outputs          | 6 LEDs (2xRGB)                                |
