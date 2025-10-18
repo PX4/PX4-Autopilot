@@ -72,7 +72,7 @@ Land::on_activation()
 	// reset cruising speed to default
 	_navigator->reset_cruising_speed();
 
-	_navigator->activate_set_gimbal_neutral_timer(hrt_absolute_time());
+	_navigator->gimbal_neutral_delayed();
 }
 
 void
