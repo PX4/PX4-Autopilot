@@ -48,9 +48,9 @@
 #include <map>
 #include <regex>
 
-// ROS2 includes
-#include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/int32.hpp>
+// Gazebo Transport includes
+#include <gz/transport/Node.hh>
+#include <gz/msgs/int32.pb.h>
 
 namespace gz
 {
@@ -62,7 +62,7 @@ inline namespace GZ_SIM_VERSION_NAMESPACE
 namespace systems
 {
 
-/// \brief This system subscribes to a ROS2 topic to receive motor failure
+/// \brief This system subscribes to a Gazebo Transport topic to receive motor failure
 /// commands and directly controls motor joints to simulate failures.
 /// This allows simulating motor failures in multirotor vehicles.
 class MotorFailureSystem:
@@ -88,8 +88,8 @@ public:
 		       gz::sim::EntityComponentManager &_ecm) override;
 
 private:
-	/// \brief Callback for ROS2 motor failure number subscription
-	void MotorFailureNumberCallback(const std_msgs::msg::Int32::SharedPtr _msg);
+	/// \brief Callback for Gazebo Transport motor failure number subscription
+	void MotorFailureNumberCallback(const gz::msgs::Int32 &_msg);
 
 	/// \brief Find all motor joints in the model
 	void FindMotorJoints(gz::sim::EntityComponentManager &_ecm);
@@ -97,11 +97,8 @@ private:
 	/// \brief Apply motor failure (set velocity to 0)
 	void ApplyMotorFailure(gz::sim::EntityComponentManager &_ecm);
 
-	/// \brief ROS2 node for communication
-	rclcpp::Node::SharedPtr ros_node_;
-
-	/// \brief ROS2 subscription for motor failure number
-	rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr motor_failure_sub_;
+	/// \brief Gazebo Transport node for communication
+	gz::transport::Node node_;
 
 	/// \brief Model entity
 	gz::sim::Entity model_entity_;
@@ -118,12 +115,9 @@ private:
 	/// \brief Previous motor failure number to detect changes
 	int32_t prev_motor_failure_number_{-1};
 
-	/// \brief ROS2 topic name for subscribing to motor failure commands
-	/// Defaults to /<robotNamespace>/motor_failure/motor_number if not specified in SDF
-	std::string ros_topic_{"/motor_failure/motor_number"};
-
-	/// \brief Robot namespace
-	std::string robot_namespace_;
+	/// \brief Gazebo Transport topic name for subscribing to motor failure commands
+	/// Defaults to /model/<model_name>/motor_failure/motor_number if not specified in SDF
+	std::string gz_topic_{"/motor_failure/motor_number"};
 
 	/// \brief Mutex to protect motor_failure_number_
 	std::mutex motor_failure_mutex_;
