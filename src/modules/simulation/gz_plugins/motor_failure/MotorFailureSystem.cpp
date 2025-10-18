@@ -54,26 +54,6 @@ MotorFailureSystem::MotorFailureSystem()
 //////////////////////////////////////////////////
 MotorFailureSystem::~MotorFailureSystem()
 {
-	// Clean up ROS2 resources safely
-	// If ROS2 has already been shutdown, reset() operations are safe
-	if (this->ros_node_) {
-		try {
-			// Reset subscription first
-			if (this->motor_failure_sub_) {
-				this->motor_failure_sub_.reset();
-			}
-
-			// Then reset the node
-			this->ros_node_.reset();
-
-			gzdbg << "[MotorFailureSystem] Cleaned up ROS2 resources" << std::endl;
-
-		} catch (const std::exception &e) {
-			// Ignore exceptions during shutdown - ROS2 may have already shut down
-			gzdbg << "[MotorFailureSystem] Exception during cleanup (expected if ROS2 already shutdown): "
-			      << e.what() << std::endl;
-		}
-	}
 }
 
 //////////////////////////////////////////////////
@@ -91,41 +71,26 @@ void MotorFailureSystem::Configure(const Entity &_entity,
 		return;
 	}
 
-	// Get robot namespace from SDF
-	if (_sdf->HasElement("robotNamespace")) {
-		this->robot_namespace_ = _sdf->Get<std::string>("robotNamespace");
+	// Get model name to use as namespace
+	std::string model_name = this->model_.Name(_ecm);
+
+	// Get Gazebo Transport topic name for motor failure number subscription
+	if (_sdf->HasElement("MotorFailureTopic")) {
+		this->gz_topic_ = _sdf->Get<std::string>("MotorFailureTopic");
 
 	} else {
-		gzwarn << "[MotorFailureSystem] No robotNamespace set, using entity name.\n";
-		this->robot_namespace_ = this->model_.Name(_ecm);
+		// Use Gazebo model-scoped topic naming convention
+		this->gz_topic_ = "/model/" + model_name + "/motor_failure/motor_number";
 	}
 
-	// Get ROS2 topic name for motor failure number subscription
-	if (_sdf->HasElement("ROSMotorNumSubTopic")) {
-		this->ros_topic_ = _sdf->Get<std::string>("ROSMotorNumSubTopic");
-
-	} else {
-		// Use namespace + default topic name
-		this->ros_topic_ = "/" + this->robot_namespace_ + "/motor_failure/motor_number";
+	// Subscribe to Gazebo Transport topic
+	if (!this->node_.Subscribe(this->gz_topic_, &MotorFailureSystem::MotorFailureNumberCallback, this)) {
+		gzerr << "[MotorFailureSystem] Error subscribing to topic [" << this->gz_topic_ << "]" << std::endl;
+		return;
 	}
 
-	// Initialize ROS2, if it has not already been initialized
-	if (!rclcpp::ok()) {
-		int argc = 0;
-		char **argv = nullptr;
-		rclcpp::init(argc, argv);
-	}
-
-	// Create ROS2 node
-	this->ros_node_ = rclcpp::Node::make_shared("motor_failure");
-
-	// Create ROS2 subscription
-	this->motor_failure_sub_ = this->ros_node_->create_subscription<std_msgs::msg::Int32>(
-					   this->ros_topic_, 10,
-					   std::bind(&MotorFailureSystem::MotorFailureNumberCallback, this, std::placeholders::_1));
-
-	gzmsg << "[MotorFailureSystem] Subscribed to ROS2 topic: " << this->ros_topic_ << std::endl;
-	gzmsg << "[MotorFailureSystem] Initialized for model: " << this->robot_namespace_ << std::endl;
+	gzmsg << "[MotorFailureSystem] Subscribed to Gazebo Transport topic: " << this->gz_topic_ << std::endl;
+	gzmsg << "[MotorFailureSystem] Initialized for model: " << model_name << std::endl;
 }
 
 //////////////////////////////////////////////////
@@ -239,12 +204,6 @@ void MotorFailureSystem::PreUpdate(const UpdateInfo &_info,
 		return;
 	}
 
-	// Spin ROS2 to process callbacks
-	// Check if ROS2 context is still valid before spinning
-	if (this->ros_node_ && rclcpp::ok()) {
-		rclcpp::spin_some(this->ros_node_);
-	}
-
 	// Find motor joints on first update
 	if (!this->joints_found_) {
 		this->FindMotorJoints(_ecm);
@@ -255,10 +214,10 @@ void MotorFailureSystem::PreUpdate(const UpdateInfo &_info,
 }
 
 //////////////////////////////////////////////////
-void MotorFailureSystem::MotorFailureNumberCallback(const std_msgs::msg::Int32::SharedPtr _msg)
+void MotorFailureSystem::MotorFailureNumberCallback(const gz::msgs::Int32 &_msg)
 {
 	std::lock_guard<std::mutex> lock(this->motor_failure_mutex_);
-	this->motor_failure_number_ = _msg->data;
+	this->motor_failure_number_ = _msg.data();
 	gzdbg << "[MotorFailureSystem] Received motor failure number: "
 	      << this->motor_failure_number_ << std::endl;
 }

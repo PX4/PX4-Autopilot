@@ -1,8 +1,5 @@
 ############################################################################
 #
-#   Copyright (c) 2017 Nuno Marques, PX4 Pro Dev Team, Lisbon
-#   Copyright (c) 2017 Siddharth Patel, NTU Singapore
-#   Copyright (c) 2022 SungTae Moon, KOREATECH Korea
 #   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,54 +31,38 @@
 #
 ############################################################################
 
+# Template for a new plugin project
+# Replace TemplatePlugin with your plugin name
 project(MotorFailurePlugin)
 
-# Save current BUILD_TESTING value
-if(DEFINED BUILD_TESTING)
-    set(_build_testing_backup ${BUILD_TESTING})
-endif()
+# Add external dependencies if needed
+# include(${CMAKE_CURRENT_SOURCE_DIR}/dependency.cmake)
 
-# Disable ament testing to avoid conflicts with PX4's test system
-set(BUILD_TESTING OFF CACHE BOOL "Disable ament testing" FORCE)
-
-# Find ROS2 packages
-find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-
-# Restore BUILD_TESTING value
-if(DEFINED _build_testing_backup)
-    set(BUILD_TESTING ${_build_testing_backup} CACHE BOOL "Enable testing" FORCE)
-    unset(_build_testing_backup)
-else()
-    unset(BUILD_TESTING CACHE)
-endif()
+# Find required packages
+# find_package(PackageName REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
+    # Add your source files here
     MotorFailureSystem.cpp
 )
 
-# Include ROS2 directories as SYSTEM to suppress warnings
-target_include_directories(${PROJECT_NAME}
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-    PUBLIC px4_gz_msgs
-    SYSTEM PUBLIC ${rclcpp_INCLUDE_DIRS}
-    SYSTEM PUBLIC ${std_msgs_INCLUDE_DIRS}
-)
-
-# Disable specific warnings for ROS2 headers compatibility
-target_compile_options(${PROJECT_NAME} PRIVATE
-    -Wno-shadow
-    -Wno-error=shadow
-)
-
-# Link libraries - follow Gazebo Classic approach
 target_link_libraries(${PROJECT_NAME}
     PUBLIC px4_gz_msgs
     PUBLIC ${GZ_SENSORS_TARGET}
     PUBLIC ${GZ_PLUGIN_TARGET}
     PUBLIC ${GZ_SIM_TARGET}
     PUBLIC ${GZ_TRANSPORT_TARGET}
-    PUBLIC ${rclcpp_LIBRARIES}
-    PUBLIC ${std_msgs_LIBRARIES}
+    # Add other dependencies as needed
+    # PUBLIC ${OtherLib_LIBS}
 )
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+    PUBLIC px4_gz_msgs
+    # Add other include directories as needed
+    # PUBLIC ${OtherLib_INCLUDE_DIRS}
+)
+
+# Add dependencies if needed
+# add_dependencies(${PROJECT_NAME} ExternalDependency)

@@ -4,11 +4,11 @@ This Gazebo plugin enables motor failure simulation for multirotor vehicles in P
 
 ## Overview
 
-The Motor Failure System plugin subscribes to a ROS2 topic to receive motor failure commands and directly controls motor joints to simulate failures. This allows simulating motor failures during flight testing.
+The Motor Failure System plugin subscribes to a Gazebo Transport topic to receive motor failure commands and directly controls motor joints to simulate failures. This allows simulating motor failures during flight testing.
 
 ## Features
 
-- ROS2 integration for receiving motor failure commands
+- Gazebo Transport integration for receiving motor failure commands
 - Automatic detection of motor joints (rotor_0_joint, rotor_1_joint, etc.)
 - Direct joint velocity override in PreUpdate cycle
 - Thread-safe motor failure number handling
@@ -18,12 +18,10 @@ The Motor Failure System plugin subscribes to a ROS2 topic to receive motor fail
 
 ### SDF Parameters
 
-- `<robotNamespace>` (optional): Robot namespace
-  - Default: entity/model name
-  - This namespace is automatically prepended to the ROS2 topic name
-- `<ROSMotorNumSubTopic>` (optional): ROS2 topic for receiving motor failure commands
-  - Default: `/<robotNamespace>/motor_failure/motor_number`
-  - If specified: Uses the exact topic name provided (no namespace prepended)
+- `<MotorFailureTopic>` (optional): Gazebo Transport topic for receiving motor failure commands
+  - Default: `/model/<model_name>/motor_failure/motor_number`
+  - Follows Gazebo model-scoped topic naming convention
+  - If specified: Uses the exact topic name provided
 
 ### Example SDF Usage
 
@@ -45,12 +43,11 @@ The Motor Failure System plugin subscribes to a ROS2 topic to receive motor fail
     name="gz::sim::systems::MotorFailureSystem">
 </plugin>
 
-<!-- Custom configuration -->
+<!-- Custom topic name -->
 <plugin
     filename="MotorFailurePlugin"
     name="gz::sim::systems::MotorFailureSystem">
-    <robotNamespace>x500</robotNamespace>
-    <ROSMotorNumSubTopic>/custom/topic/name</ROSMotorNumSubTopic>
+    <MotorFailureTopic>/custom/topic/name</MotorFailureTopic>
 </plugin>
 ```
 
@@ -58,19 +55,19 @@ The Motor Failure System plugin subscribes to a ROS2 topic to receive motor fail
 
 ### Publishing Motor Failure Commands
 
-To trigger a motor failure, publish a message to the ROS2 topic.
+To trigger a motor failure, publish a message to the Gazebo Transport topic.
 
 For a vehicle with namespace `x500_0`:
 
 ```bash
 # Fail motor 1 (motors are 1-indexed: 1, 2, 3, 4, ...)
-ros2 topic pub --once /x500_0/motor_failure/motor_number std_msgs/msg/Int32 "data: 1"
+gz topic -t /model/x500_0/motor_failure/motor_number -m gz.msgs.Int32 -p "data: 1"
 
 # Clear motor failure (restore normal operation)
-ros2 topic pub --once /x500_0/motor_failure/motor_number std_msgs/msg/Int32 "data: 0"
+gz topic -t /model/x500_0/motor_failure/motor_number -m gz.msgs.Int32 -p "data: 0"
 ```
 
-**Note**: Replace `x500_0` with your vehicle's namespace (robotNamespace parameter).
+**Note**: Replace `x500_0` with your vehicle's model name.
 
 **Motor Numbering**:
 - Motors are **1-indexed**: 1, 2, 3, 4, etc.
@@ -81,44 +78,8 @@ ros2 topic pub --once /x500_0/motor_failure/motor_number std_msgs/msg/Int32 "dat
 
 You can monitor the motor failure messages in the Gazebo console output.
 
-## Dependencies
-
-- Gazebo Garden or later
-- ROS2 (Humble or later)
-- rclcpp
-- std_msgs
-
-## Building
-
-This plugin requires ROS2 and is built conditionally using the `BUILD_ROS2_PLUGINS` CMake option.
-
-### Building with Motor Failure Plugin (ROS2 Required)
-
-1. Source your ROS2 installation:
-```bash
-source /opt/ros/humble/setup.bash  # or jazzy/rolling
-```
-
-2. Build PX4 with ROS2 plugins enabled:
-```bash
-cd PX4-Autopilot
-CMAKE_ARGS="-DBUILD_ROS2_PLUGINS=ON" make px4_sitl gz_x500
-```
-
-### Building without Motor Failure Plugin
-
-If you don't have ROS2 or don't need the motor failure plugin:
-
-```bash
-cd PX4-Autopilot
-make px4_sitl gz_x500
-```
-
-The motor failure plugin will not be built by default (BUILD_ROS2_PLUGINS=OFF).
 
 ## Notes
 
-- The plugin automatically initializes ROS2 if not already initialized
-- Motor failure number is thread-safe protected with a mutex
 - The plugin applies motor failure in the PreUpdate cycle by setting joint velocity to 0
 - **Plugin Declaration Order**: This plugin must be declared AFTER the MulticopterMotorModel plugin in the SDF file to ensure proper execution order
