@@ -123,18 +123,18 @@ The approach is similar to other vehicle types, but the allowed control mode com
 | [Actuator Setpoints](#actuator-setpoints)                                              | Direct actuator control | [ActuatorMotors](../msg_docs/ActuatorMotors.md), [ActuatorServos](../msg_docs/ActuatorServos.md)                                                                                                                                                                                                                                                                           |
 | (Deprecated) [Trajectory Setpoint](#deprecated-trajectory-setpoint) | General vehicle control | [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                                                                                                                                                                                                                                                                                                                    |
 
-#### Rover Setpoints
+#### Rover 设置点
 
-The rover modules use a hierarchical structure to propagate setpoints:
+滚动模块使用层次结构来传播设置点：
 
 ![Rover Control Structure](../../assets/middleware/ros2/px4_ros2_interface_lib/rover_control_structure.svg)
 
 The "highest" setpoint that is provided will be used within the PX4 rover modules to generate the setpoints that are below it (overriding them!).
-With this hierarchy there are clear rules for providing a valid control input:
+这个层次结构有提供有效控制输入的明确规则：
 
 - Provide a position setpoint **or**
-- One of the setpoints on the "left" (speed **or** throttle) **and** one of the setpoints on the "right" (attitude, rate **or** steering).
-  All combinations of "left" and "right" setpoints are valid.
+- “左”上的设置点之一(速度 **或** 节点) **和** “右”上的设置点之一(态度、速率 **或** 节点)。
+  所有“左”和“右”设置点的组合都是有效的。
 
 The following are all valid setpoint combinations and their respective control flags that must be set through [OffboardControlMode](../msg_docs/OffboardControlMode.md) (set all others to _false_).
 Additionally, for some combinations we require certain setpoints to be published with `NAN` values so that the setpoints of interest are not overridden by the rover module (due to the hierarchy above).

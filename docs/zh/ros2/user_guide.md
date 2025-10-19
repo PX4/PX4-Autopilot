@@ -9,7 +9,7 @@ ROS 2-PX4 架构在ROS 2和PX4之间进行了深度整合。 允许 ROS 2 订阅
 
 [migration guide](../middleware/uxrce_dds.md#fast-rtps-to-uxrce-dds-migration-guidelines) 解释您需要做什么来将ROS2 应用程序从 PX4 v1.13 迁移到 PX4 v1.14。
 
-如果您仍然在 PX4 v1.13 上工作，请按照[PX4 v1.13 文档](https://docs.px4.io/v1.13/en/ros/ros2_comm.html)中的说明操作。
+如果您仍然在 PX4 v1.13 上工作，请按照[PX4 v1.13 Docs](https://docs.px4.io/v1.13/en/ros/ros2_comm.html)中的说明操作。
 
 <!-- remove this when there are PX4 v1.14 docs for some months -->
 
@@ -17,17 +17,17 @@ ROS 2-PX4 架构在ROS 2和PX4之间进行了深度整合。 允许 ROS 2 订阅
 
 ## 综述
 
-得益于 uXRCE-DDS(../middleware/uxrce_dds.md) 通信中间件的使用，ROS 2 的应用流程非常简单直接。
+得益于 [uXRCE-DDS](../middleware/uxrce_dds.md) 通信中间件的使用，ROS 2 的应用流程非常简单直接。
 
 ![Architecture uXRCE-DDS with ROS 2](../../assets/middleware/xrce_dds/architecture_xrce-dds_ros2.svg)
 
 <!-- doc source: https://docs.google.com/drawings/d/1WcJOU-EcVOZRPQwNzMEKJecShii2G4U3yhA3U6C4EhE/edit?usp=sharing -->
 
-uXRCE-DDS 中间件由两部分组成：一部分是运行在 PX4 上的客户端，另一部分是运行在伴飞计算机上的代理；二者之间通过串口、UDP、TCP或自定义链路进行双向数据交换。
+uXRCE-DDS 中间件由两部分组成：一部分是运行在 PX4 上的客户端，另一部分是运行在机载计算机上的代理；二者之间通过串口、UDP、TCP或自定义链路进行双向数据交换。
 代理充当客户端的代理角色，以便在全局 DDS 数据空间中发布和订阅主题。
 
 PX4 [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) 是在构建时生成，并且默认包含在 PX4 固件中。
-它包含“通用”XRCE-DDS客户端代码和它用来发布到/来自uORB主题的 PX4 特定转换代码。
+它包含“通用”XRCE-DDS客户端代码和它用来发布到来自uORB主题的 PX4 特定转换代码。
 生成到客户端中的 uORB 消息子集在 [dds_topics.yaml](../middleware/dds_topics.md)中说明。
 生成器使用源代码树中的 uORB 消息定义：[PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg) 用于生成发送 ROS 2 消息的代码。
 
@@ -38,7 +38,7 @@ ROS 2 应用程序需要在一个工作空间中构建，该工作空间需包�
 这需要[ROS 2 Message Translation Node](../ros2/px4_ros2_msg_translation_node.md)运行ROS 2 消息转换节点，以确保消息能够正确转换和交互。
 
 需要注意的是，微型XRCE-DDS _agent_ 本身并不依赖客户端代码。
-它可以从 [source](https://github.com/eProsima/Micro-XRCE-DDS-Agent）中单独构建，或者作为ROS构建的一部分，或者作为snap包安装。
+它可以从 [source](https://github.com/eProsima/Micro-XRCE-DDS-Agent) 中单独构建，或者作为ROS构建的一部分，或者作为snap包安装。
 
 在使用 ROS 2 时，您通常需要同时启动客户端和代理。
 需要注意的是，uXRCE-DDS 客户端默认已内置到固件中，但除仿真器构建版本外，不会自动启动。
@@ -72,7 +72,7 @@ ROS 2 应用程序需要在一个工作空间中构建，该工作空间需包�
 若要使用该仿真器，你需要安装 PX4 开发工具链。
 
 :::info
-唯一依赖于ROS2的 PX4 是一组信息定义，它从 [px4_msgs](https://github.com/PX4/px4_msgs)获取。
+唯一依赖于ROS2的 PX4 是一组信息定义，它从[px4_msgs](https://github.com/PX4/px4_msgs)获取。
 您只需要安装 PX4 当您需要模拟器时(如我们在本指南中所做的那样)， 或者如果您正在创建一个发布自定义uORB主题的构建。
 :::
 
@@ -313,7 +313,7 @@ px4_msgs 代码仓库中的分支均以特定名称命名，这些名称与不�
 换句话说，它会让刚刚构建好的可执行文件在当前终端中可用。
 
 :::info
-[ROS2 beginner tutorials](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html#source-the-overlay)建议您 _open a new terminal_来运行您的可执行文件。
+[ROS2 初学者教程](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html#source-the-overlay)建议您_打开一个新的终端来运行您的可执行文件。
 :::
 
 在新终端中：
@@ -493,7 +493,7 @@ uXRCE-DDS 客户端的时间同步器随后会将 ROS 2 端的操作系统时钟
 #### ROS2 节点使用 Gazebo 时钟作为时间源
 
 在这种情况下，ROS2还使用Gazebo\`/时钟主题作为时间来源。
-若 Gazebo 仿真的实时因子（real time factor）不为 1，或 ROS 2 需直接与 Gazebo 交互，则该方法具有合理性。
+若 Gazebo 仿真的实时因子不为 1，或 ROS 2 需直接与 Gazebo 交互，则该方法具有合理性。
 在 ROS 2 端，可通过[ros_gz](https://github.com/gazebosim/ros_gz)代码仓库中的[ros_gz_bridge](https://github.com/gazebosim/ros_gz) 功能包，实现与 Gazebo 的直接交互。
 
 请使用以下命令，为 PX4 所支持的 ROS 2 和 Gazebo 版本安装正确的 ROS 2/gz 接口功能包（不仅限于桥接功能包）。
@@ -512,7 +512,7 @@ sudo apt install ros-humble-ros-gzharmonic
 :::tab foxy
 首先，您需要 [install Gazebo Garden](../sim_gazebo_gz/index.md#installation-ubuntu-linux)，因为默认情况下，Foxy预装的是 Gazebo Classic 11 <!-- note, garden is EOL Nov 2024 -->
 
-接下来，若要在 Ubuntu 20.04 系统上安装用于搭配 ROS 2 "Foxy"与 Gazebo的接口功能包，操作如下：
+接下来，若要在 Ubuntu 20.04 系统上安装用于搭配 ROS 2 "Foxy"与 Gazebo的桥接功能包，操作如下：
 
 ```sh
 sudo apt install ros-foxy-ros-gzgarden
