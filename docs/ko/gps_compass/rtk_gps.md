@@ -123,35 +123,35 @@ This should be set by default, but if not, follow the [MAVLink2 configuration in
 RTK GPS 연결은 기본적으로 플러그앤플레이입니다.
 
 1. Start _QGroundControl_ and attach the base RTK GPS via USB to the ground station.
-  장치가 자동으로 인식됩니다.
+   장치가 자동으로 인식됩니다.
 
 2. Start the vehicle and make sure it is connected to _QGroundControl_.
 
-  :::tip
-  _QGroundControl_ displays an RTK GPS status icon in the top icon bar while an RTK GPS device is connected (in addition to the normal GPS status icon).
-  RTK가 설정되는 동안 아이콘은 빨간색으로 표시되고, RTK GPS가 활성화되면 흰색으로 바뀝니다.
-  아이콘을 클릭하여 현재 상태와 RTK 정확도를 확인할 수 있습니다.
+   :::tip
+   _QGroundControl_ displays an RTK GPS status icon in the top icon bar while an RTK GPS device is connected (in addition to the normal GPS status icon).
+   RTK가 설정되는 동안 아이콘은 빨간색으로 표시되고, RTK GPS가 활성화되면 흰색으로 바뀝니다.
+   아이콘을 클릭하여 현재 상태와 RTK 정확도를 확인할 수 있습니다.
 
 :::
 
 3. _QGroundControl_ then starts the RTK setup process (known as "Survey-In").
 
-  Survey-In은 기지국의 정확한 위치 추정치를 획득을 위한 시작 절차입니다.
-  The process typically takes several minutes (it ends after reaching the minimum time and accuracy specified in the [RTK settings](#rtk-gps-settings)).
+   Survey-In은 기지국의 정확한 위치 추정치를 획득을 위한 시작 절차입니다.
+   The process typically takes several minutes (it ends after reaching the minimum time and accuracy specified in the [RTK settings](#rtk-gps-settings)).
 
-  RTK GPS 상태 아이콘을 클릭하여 진행 상황을 추적할 수 있습니다.
+   RTK GPS 상태 아이콘을 클릭하여 진행 상황을 추적할 수 있습니다.
 
-  ![survey-in](../../assets/qgc/setup/rtk/qgc_rtk_survey-in.png)
+   ![survey-in](../../assets/qgc/setup/rtk/qgc_rtk_survey-in.png)
 
 4. Survey-in이 완료되면 :
-  - The RTK GPS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
+   - The RTK GPS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
 
-    ![RTK streaming](../../assets/qgc/setup/rtk/qgc_rtk_streaming.png)
+     ![RTK streaming](../../assets/qgc/setup/rtk/qgc_rtk_streaming.png)
 
-  - 기체의 GPS가 RTK 모드로 전환됩니다.
-    The new mode is displayed in the _normal_ GPS status icon (`3D RTK GPS Lock`):
+   - 기체의 GPS가 RTK 모드로 전환됩니다.
+     The new mode is displayed in the _normal_ GPS status icon (`3D RTK GPS Lock`):
 
-    ![RTK GPS Status](../../assets/qgc/setup/rtk/qgc_rtk_gps_status.png)
+     ![RTK GPS Status](../../assets/qgc/setup/rtk/qgc_rtk_gps_status.png)
 
 ### GPS를 Yaw/Heading 소스로 설정
 
@@ -206,7 +206,7 @@ MAVLink2 프로토콜은 낮은 대역폭 채널을 보다 효율적으로 사�
 MAVLink2가 사용되는 지 확인하려면 :
 
 - Update the telemetry module firmware to the latest version (see [QGroundControl > Setup > Firmware](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/firmware.html)).
-- Set [MAV_PROTO_VER](../advanced_config/parameter_reference.md#MAV_PROTO_VER) to 2 (see [QGroundControl Setup > Parameters](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html))
+- Ensure [MAV_PROTO_VER](../advanced_config/parameter_reference.md#MAV_PROTO_VER) is set to 2 (see [QGroundControl Setup > Parameters](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html))
 
 #### 튜닝
 

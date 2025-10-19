@@ -1,3 +1,8 @@
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData();
+</script>
+
 <div style="float:right; padding:10px; margin-right:20px;"><a href="https://px4.io/"><img src="../assets/site/logo_pro_small.png" title="PX4 Logo" width="180px" /></a></div>
 
 # PX4 Autopilot 사용자 안내서
@@ -9,16 +14,21 @@ PX4 is the _Professional Autopilot_.
 세계 각국에서 활동중인 여러 단체들의 지원을 받을 수 있습니다. PX4는 레이싱 드론, 운송용 드론, 자동차와 선박 등의 다양한 운송체에 적용하여 사용할 수 있습니다.
 
 :::tip
-This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle. 이 프로젝트에 기여하시려면,  Check out the [Development](development/development.md) section.
-
+This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle.
+이 프로젝트에 기여하시려면,  Check out the [Development](development/development.md) section.
 :::
 
+<div v-if="site.title == 'PX4 Guide (main)'">
+
 :::warning
+
 This guide is for the _development_ version of PX4 (`main` branch).
 Use the **Version** selector to find the current _stable_ version.
 
 Documented changes since the stable release are captured in the evolving [release note](releases/main.md).
 :::
+
+</div>
 
 ## 시작하기
 
