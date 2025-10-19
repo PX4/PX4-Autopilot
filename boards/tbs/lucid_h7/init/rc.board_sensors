@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# tbs-lucid-h7 board-sensors init  (PX4)
+# --------------------------------------------------------------
+
+board_adc start
+
+# ───────────────────────────────────────────────────────────────
+# TBS Lucid H7 has DUAL ICM42688 IMUs
+# IMU 1 – ICM42688 on SPI1 (CS=PC15)
+icm42688 -s -b 1 start
+
+# IMU 2 – ICM42688 on SPI4 (CS=PE11)
+icm42688 -s -b 4 start
+
