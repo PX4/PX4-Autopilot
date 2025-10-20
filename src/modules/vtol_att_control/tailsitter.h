@@ -48,8 +48,8 @@
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
 
-// [rad] Pitch threshold required for completing transition to fixed-wing in automatic transitions
-static constexpr float PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW = -1.05f; // -60°
+// [rad] Tilt angle threshold (body z-axis to vertical) for completing transition to fixed-wing
+static constexpr float TILT_THRESHOLD_AUTO_TRANSITION_TO_FW = 2.09f; // 120° (60° forward from hover)
 
 // [rad] Pitch threshold required for completing transition to hover in automatic transitions
 static constexpr float PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC = -0.26f; // -15°

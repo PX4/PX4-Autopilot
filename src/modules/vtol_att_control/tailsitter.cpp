@@ -340,9 +340,12 @@ bool Tailsitter::isFrontTransitionCompletedBase()
 			&& _param_fw_use_airspd.get();
 
 	bool transition_to_fw = false;
-	const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-	if (pitch <= PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW) {
+	// Calculate tilt angle: angle between body z-axis and gravity (world z-axis)
+	const matrix::Dcmf R(matrix::Quatf(_v_att->q));
+	const float tilt = acosf(math::constrain(R(2, 2), -1.0f, 1.0f));
+
+	if (tilt <= TILT_THRESHOLD_AUTO_TRANSITION_TO_FW) {
 		if (airspeed_triggers_transition) {
 			transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get() ;
 
