@@ -34,6 +34,7 @@
 #pragma once
 
 #include <lib/rate_control/rate_control.hpp>
+#include <lib/rate_control/gain_compression.hpp>
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
@@ -208,6 +209,7 @@ private:
 	)
 
 	RateControl _rate_control; ///< class for rate control calculations
+	GainCompression3d _gain_compression{this};
 
 	void updateActuatorControlsStatus(float dt);
 
