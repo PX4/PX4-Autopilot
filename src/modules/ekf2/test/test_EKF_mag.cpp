@@ -244,8 +244,6 @@ TEST_F(EkfMagTest, velocityRotationOnYawReset)
 	const float new_mag_heading = yaw_before + M_PI_F / 2.f;
 	mag_data = Vector3f(0.2f * cosf(new_mag_heading), -0.2f * sinf(new_mag_heading), 0.4f);
 	_sensor_simulator._mag.setData(mag_data);
-
-	// Land to allow reset on ground, run long enough to trigger yaw reset
 	_sensor_simulator.runSeconds(8.f);
 
 	// THEN: the yaw should be reset to the new mag heading
