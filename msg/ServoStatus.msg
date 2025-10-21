@@ -9,8 +9,6 @@ uint8 SERVO_CONNECTION_TYPE_CAN = 4			# CAN-Bus
 uint8 SERVO_CONNECTION_TYPE_DSHOT = 5			# DShot
 
 uint16 counter  					# incremented by the writing thread everytime new data is stored
-uint16 temperature_counter 				# Incremented when new temperature data is stored
-uint16 power_counter 					# Incremented when new power data is stored
 uint8 servo_count					# number of connected servo's
 
 uint8 servo_connectiontype				# how SERVOs connected to the system. Currently only CAN supports servo telemtry

@@ -113,11 +113,17 @@ UavcanServoController::servo_temperature_sub_cb(const
 		uavcan::ReceivedDataStructure<uavcan::equipment::device::Temperature>
 		&msg)
 {
-	if (msg.device_id < servo_status_s::CONNECTED_SERVO_MAX) {
+	for (int i = 0; i < servo_status_s::CONNECTED_SERVO_MAX; i++) {
+		auto &ref = _servo_status.servo[i];
 
-		_last_temperature[msg.device_id] = msg.temperature;
-		_last_temperature_error_flag[msg.device_id] = msg.error_flags;
-		_servo_temperature_counter += 1; // Keep counter to monitor callbacks
+		const bool is_servo_online = _servo_status.servo_online_flags & (1 << i);
+		const bool is_servo_matching = ref.servo_node_id == msg.getSrcNodeID().get();
+
+		if (is_servo_online && is_servo_matching) {
+			_last_temperature[i] = msg.temperature;
+			_last_temperature_error_flag[i] = msg.error_flags;
+			break;
+		}
 	}
 }
 
@@ -126,12 +132,17 @@ UavcanServoController::servo_circuit_status_sub_cb(const
 		uavcan::ReceivedDataStructure<uavcan::equipment::power::CircuitStatus>
 		&msg)
 {
-	if (msg.circuit_id < servo_status_s::CONNECTED_SERVO_MAX) {
+	for (int i = 0; i < servo_status_s::CONNECTED_SERVO_MAX; i++) {
+		auto &ref = _servo_status.servo[i];
 
-		_last_voltage[msg.circuit_id] = msg.voltage;
-		_last_current[msg.circuit_id] = msg.current;
-		_last_power_error_flag[msg.circuit_id] = msg.error_flags;
-		_servo_power_counter += 1; // Keep counter to monitor callbacks
+		const bool is_servo_online = _servo_status.servo_online_flags & (1 << i);
+		const bool is_servo_matching = ref.servo_node_id == msg.getSrcNodeID().get();
+
+		if (is_servo_online && is_servo_matching) {
+			_last_voltage[msg.circuit_id] = msg.voltage;
+			_last_current[msg.circuit_id] = msg.current;
+			_last_power_error_flag[msg.circuit_id] = msg.error_flags;
+		}
 	}
 }
 
@@ -160,8 +171,6 @@ UavcanServoController::servo_status_sub_cb(const uavcan::ReceivedDataStructure<u
 		ref.servo_power_error_flags = _last_power_error_flag[msg.actuator_id];
 
 		_servo_status.counter += 1;
-		_servo_status.temperature_counter = _servo_temperature_counter;
-		_servo_status.power_counter = _servo_power_counter;
 		_servo_status.servo_count = _servo_count;
 		_servo_status.servo_connectiontype = servo_status_s::SERVO_CONNECTION_TYPE_CAN;
 		_servo_status.servo_online_flags = check_servos_status();
