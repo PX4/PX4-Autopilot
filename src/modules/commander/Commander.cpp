@@ -465,6 +465,14 @@ int Commander::custom_command(int argc, char *argv[])
 		return (ret ? 0 : 1);
 	}
 
+	if (!strcmp(argv[0], "apps-fail-sim")) {
+
+		// Trigger apps processor failure simulation
+		PX4_ERR("Triggering apps processor failure simulation!");
+		uORB::Manager::get_instance()->stop_communicator();
+
+		return 0;
+	}
 
 #endif
 

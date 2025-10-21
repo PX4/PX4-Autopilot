@@ -577,6 +577,14 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, i
 }
 
 #ifdef CONFIG_ORB_COMMUNICATOR
+
+void uORB::Manager::stop_communicator(void)
+{
+	if (_comm_channel != nullptr) {
+		_comm_channel->stop_communicator();
+	}
+}
+
 void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel)
 {
 	pthread_mutex_lock(&_communicator_mutex);

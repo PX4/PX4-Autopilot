@@ -466,6 +466,9 @@ public:
 #endif
 
 #ifdef CONFIG_ORB_COMMUNICATOR
+
+	void stop_communicator(void);
+
 	/**
 	 * Method to set the uORBCommunicator::IChannel instance.
 	 * @param comm_channel

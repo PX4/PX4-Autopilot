@@ -171,6 +171,16 @@ public:
 		_bytes_sent_since_last_status_check += length;
 	}
 
+	void stop_communicator(void)
+	{
+		_simulate_apps_proc_failure = true;
+	}
+
+	bool communicator_stopped(void)
+	{
+		return _simulate_apps_proc_failure;
+	}
+
 private:
 	/**
 	 * Data Members
@@ -182,6 +192,7 @@ private:
 	static pthread_mutex_t                      _tx_mutex;
 	static pthread_mutex_t                      _rx_mutex;
 	static bool                                 _debug;
+	static bool                                 _simulate_apps_proc_failure;
 
 	/*
 	 * Status
