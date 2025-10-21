@@ -104,10 +104,11 @@ __EXPORT extern void dshot_motor_data_set(unsigned channel, uint16_t throttle, b
  * @param channel	The channel to set.
  * @param throttle	The output dshot throttle value in [0 = DSHOT_DISARM_VALUE, 1 = DSHOT_MIN_THROTTLE, 1999 = DSHOT_MAX_THROTTLE].
  * @param telemetry	If true, request telemetry from that motor
+ * @param 3dmode	If true, do not add dshot min throttle cmd to throttle
  */
-static inline void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
+static inline void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry, bool is_3d_mode_en)
 {
-	dshot_motor_data_set(channel, throttle + DShot_cmd_MIN_throttle, telemetry);
+	dshot_motor_data_set(channel, throttle + ((unsigned int)DShot_cmd_MIN_throttle & ~(unsigned int)is_3d_mode_en), telemetry);
 }
 
 /**

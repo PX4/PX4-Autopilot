@@ -403,11 +403,12 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		} else {
 
 			if (_param_dshot_3d_enable.get() || (_reversible_outputs & (1u << i))) {
+				_is_mode_3d_en = true;
 				output = convert_output_to_3d_scaling(output);
 			}
 
 			up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
-						telemetry_index == requested_telemetry_index);
+						telemetry_index == requested_telemetry_index, _is_mode_3d_en);
 		}
 
 		telemetry_index += _mixing_output.isFunctionSet(i);
