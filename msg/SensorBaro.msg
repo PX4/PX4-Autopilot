@@ -1,4 +1,4 @@
-# Baro sensor
+# Barometer sensor
 # 
 # This is populated by barometer drivers and used by the EKF2 estimator.
 # The information is published in the `SCALED_PRESSURE_n` MAVLink messages (along with information from a corresponding `DifferentialPressure` instance).
