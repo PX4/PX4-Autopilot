@@ -50,6 +50,8 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	memset(_last_voltage, 0, sizeof(_last_voltage));
 	memset(_last_current, 0, sizeof(_last_current));
 	memset(_last_power_error_flag, 0, sizeof(_last_power_error_flag));
+	memset(_servo_temperature_counter, 0, sizeof(_servo_temperature_counter));
+	memset(_servo_power_counter, 0, sizeof(_servo_power_counter));
 }
 
 int
@@ -120,6 +122,7 @@ UavcanServoController::servo_temperature_sub_cb(const
 		const bool is_servo_matching = ref.servo_node_id == msg.getSrcNodeID().get();
 
 		if (is_servo_online && is_servo_matching) {
+			_servo_temperature_counter[i] += 1;
 			_last_temperature[i] = msg.temperature;
 			_last_temperature_error_flag[i] = msg.error_flags;
 			break;
@@ -139,9 +142,11 @@ UavcanServoController::servo_circuit_status_sub_cb(const
 		const bool is_servo_matching = ref.servo_node_id == msg.getSrcNodeID().get();
 
 		if (is_servo_online && is_servo_matching) {
-			_last_voltage[msg.circuit_id] = msg.voltage;
-			_last_current[msg.circuit_id] = msg.current;
-			_last_power_error_flag[msg.circuit_id] = msg.error_flags;
+			_servo_power_counter[i] += 1;
+			_last_voltage[i] = msg.voltage;
+			_last_current[i] = msg.current;
+			_last_power_error_flag[i] = msg.error_flags;
+			break;
 		}
 	}
 }
@@ -153,21 +158,23 @@ UavcanServoController::servo_status_sub_cb(const uavcan::ReceivedDataStructure<u
 	if (msg.actuator_id < servo_status_s::CONNECTED_SERVO_MAX) {
 		auto &ref = _servo_status.servo[msg.actuator_id];
 
-		ref.timestamp              = hrt_absolute_time();
-		ref.servo_node_id          = msg.getSrcNodeID().get();
-		ref.servo_actuator_id      = msg.actuator_id;
-		ref.servo_position         = msg.position;
-		ref.servo_force            = msg.force;
-		ref.servo_speed            = msg.speed;
+		ref.timestamp = hrt_absolute_time();
+		ref.servo_node_id = msg.getSrcNodeID().get();
+		ref.servo_actuator_id = msg.actuator_id;
+		ref.servo_position = msg.position;
+		ref.servo_force = msg.force;
+		ref.servo_speed = msg.speed;
 		ref.servo_power_rating_pct = msg.power_rating_pct;
 
 		// Add servo temperature data
-		ref.servo_temperature 	   = _last_temperature[msg.actuator_id];
+		ref.servo_temperature_counter = _servo_temperature_counter[msg.actuator_id];
+		ref.servo_temperature = _last_temperature[msg.actuator_id];
 		ref.servo_temperature_error_flags = _last_temperature_error_flag[msg.actuator_id];
 
 		// Add servo power data
-		ref.servo_voltage 	   = _last_voltage[msg.actuator_id];
-		ref.servo_current 	   = _last_current[msg.actuator_id];
+		ref.servo_power_counter = _servo_power_counter[msg.actuator_id];
+		ref.servo_voltage = _last_voltage[msg.actuator_id];
+		ref.servo_current = _last_current[msg.actuator_id];
 		ref.servo_power_error_flags = _last_power_error_flag[msg.actuator_id];
 
 		_servo_status.counter += 1;
@@ -190,7 +197,6 @@ UavcanServoController::check_servos_status()
 		if (_servo_status.servo[index].timestamp > 0 && now - _servo_status.servo[index].timestamp < 1200_ms) {
 			servo_status_flags |= (1 << index);
 		}
-
 	}
 
 	return servo_status_flags;

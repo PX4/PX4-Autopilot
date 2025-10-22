@@ -8,13 +8,14 @@ uint8 servo_power_rating_pct				# 0 - unloaded, 100 - full load
 
 uint8 servo_function					# servo output function
 
-
+uint16 servo_temperature_counter			# Incremented when new temperature data is stored
 float32 servo_temperature				# in kelvin
 uint8 servo_temperature_error_flags
 
 uint8 ERROR_FLAG_OVERHEATING = 1
 uint8 ERROR_FLAG_OVERCOOLING = 2
 
+uint16 servo_power_counter				# Incremented when new power data is stored
 float32 servo_voltage					# Volts
 float32 servo_current					# Amps
 uint8 servo_power_error_flags

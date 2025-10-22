@@ -120,7 +120,6 @@ private:
 	float _last_voltage[servo_status_s::CONNECTED_SERVO_MAX];
 	float _last_current[servo_status_s::CONNECTED_SERVO_MAX];
 	uint8_t _last_power_error_flag[servo_status_s::CONNECTED_SERVO_MAX];
-	int _servo_temperature_counter{0};
-	int _servo_power_counter{0};
-
+	uint16_t _servo_temperature_counter[servo_status_s::CONNECTED_SERVO_MAX];
+	uint16_t _servo_power_counter[servo_status_s::CONNECTED_SERVO_MAX];
 };
