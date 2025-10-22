@@ -608,6 +608,19 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				return TRANSITION_DENIED;
 			}
 
+			/* We need to check if 3d mode is enabled on rover, and if so check if the throttle is in b/w deadzone*/
+			if (_is_3d_mode_en && _is_ground_vehicle && !_vehicle_control_mode.flag_control_climb_rate_enabled
+			    && !_failsafe_flags.manual_control_signal_lost) {
+				if (_throttle_outside_deadband) {
+					mavlink_log_critical(&_mavlink_log_pub, "Arming denied: throttle outside of deadzone\t");
+					events::send(events::ID("commander_arm_denied_throttle_deadzone"), {events::Log::Critical, events::LogInternal::Info},
+						     "Arming denied: throttle outside of deadzone");
+					tune_negative(true);
+					return TRANSITION_DENIED;
+
+				}
+			}
+
 		} else if (calling_reason == arm_disarm_reason_t::stick_gesture
 			   || calling_reason == arm_disarm_reason_t::rc_switch
 			   || calling_reason == arm_disarm_reason_t::rc_button) {
@@ -1772,6 +1785,7 @@ void Commander::updateParameters()
 
 	} else if (is_ground) {
 		_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
+		_is_ground_vehicle = true;
 	}
 
 	_vehicle_status.is_vtol = is_vtol(_vehicle_status);

@@ -275,11 +275,20 @@ private:
 
 	bool _is_throttle_above_center{false};
 	bool _is_throttle_low{false};
+	bool _is_throttle_above_dead_h{false};
+	bool _is_throttle_above_dead_l{false};
+	bool _throttle_outside_deadband{false};
+
+	bool _is_3d_mode_en{false};
+	bool _is_ground_vehicle{false};
 
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
 	bool _mission_in_progress{false};
+
+	float _wrap_throttle_db_high{0.f};
+	float _wrap_throttle_db_low{0.f};
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
@@ -347,6 +356,9 @@ private:
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_com_takeoff_act,
+		(ParamBool<px4::params::DSHOT_3D_ENABLE>)   _param_dshot_3d_enable,
+		(ParamInt<px4::params::DSHOT_3D_DEAD_H>)    _param_dshot_3d_dead_h,
+		(ParamInt<px4::params::DSHOT_3D_DEAD_L>)    _param_dshot_3d_dead_l,
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
 	)
 };

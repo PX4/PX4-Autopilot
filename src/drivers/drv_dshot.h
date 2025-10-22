@@ -108,7 +108,7 @@ __EXPORT extern void dshot_motor_data_set(unsigned channel, uint16_t throttle, b
  */
 static inline void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry, bool is_3d_mode_en)
 {
-	dshot_motor_data_set(channel, throttle + ((unsigned int)DShot_cmd_MIN_throttle & ~(unsigned int)is_3d_mode_en), telemetry);
+	dshot_motor_data_set(channel, throttle + ((unsigned int)DShot_cmd_MIN_throttle * !is_3d_mode_en), telemetry);
 }
 
 /**
