@@ -1215,21 +1215,22 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
 			_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
-			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
-							   _param_fw_thr_idle.get() : NAN;
+			const float direct_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
+						      _param_fw_thr_pre_laun.get() : NAN;
+
 			const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 				.timestamp = now,
 				.altitude = NAN,
 				.height_rate = _param_fw_t_clmb_max.get(),
 				.equivalent_airspeed = takeoff_airspeed,
 				.pitch_direct = NAN,
-				.throttle_direct = NAN
+				.throttle_direct = direct_throttle
 			};
 
 			_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
 			_ctrl_configuration_handler.setPitchMin(radians(_takeoff_pitch_min.get()));
-			_ctrl_configuration_handler.setThrottleMax(max_takeoff_throttle);
+			_ctrl_configuration_handler.setThrottleMax(_param_fw_thr_max.get());
 			_ctrl_configuration_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
 			_ctrl_configuration_handler.setDisableUnderspeedProtection(true);
 
@@ -1245,7 +1246,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			fixed_wing_longitudinal_setpoint_s long_control_sp{empty_longitudinal_control_setpoint};
 			long_control_sp.timestamp = now;
 			long_control_sp.pitch_direct = radians(_takeoff_pitch_min.get());
-			long_control_sp.throttle_direct = _param_fw_thr_idle.get();
+			long_control_sp.throttle_direct = _param_fw_thr_pre_laun.get();
 			_longitudinal_ctrl_sp_pub.publish(long_control_sp);
 		}
 
@@ -1358,13 +1359,17 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 
 		const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
 						   _param_fw_thr_idle.get() : NAN;
+
+		const float direct_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
+					      _param_fw_thr_pre_laun.get() : NAN;
+
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = now,
 			.altitude = NAN,
 			.height_rate = _param_fw_t_clmb_max.get(),
 			.equivalent_airspeed = takeoff_airspeed,
 			.pitch_direct = NAN,
-			.throttle_direct = NAN
+			.throttle_direct = direct_throttle
 		};
 
 		_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
