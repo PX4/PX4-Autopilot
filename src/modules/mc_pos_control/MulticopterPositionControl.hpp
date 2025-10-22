@@ -85,6 +85,8 @@ public:
 
 	bool init();
 
+	static void trigger_blind_land(void);
+
 private:
 	void Run() override;
 
@@ -227,4 +229,6 @@ private:
 	 * This should only happen briefly when transitioning and never during mode operation or by design.
 	 */
 	trajectory_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states, bool warn);
+
+	static bool _blind_land;
 };

@@ -41,6 +41,10 @@
 
 using namespace matrix;
 
+bool MulticopterPositionControl::_blind_land = false;
+
+void MulticopterPositionControl::trigger_blind_land(void) { _blind_land = true; };
+
 MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
@@ -425,6 +429,10 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
+		if (_blind_land) {
+			_setpoint = generateFailsafeSetpoint(hrt_absolute_time(), states, true);
+		}
+
 		if (_vehicle_control_mode.flag_multicopter_position_control_enabled
 		    && (_setpoint.timestamp >= _time_position_control_enabled)) {
 
@@ -608,7 +616,7 @@ trajectory_setpoint_s MulticopterPositionControl::generateFailsafeSetpoint(const
 	trajectory_setpoint_s failsafe_setpoint = PositionControl::empty_trajectory_setpoint;
 	failsafe_setpoint.timestamp = now;
 
-	if (Vector2f(states.velocity).isAllFinite()) {
+	if (Vector2f(states.velocity).isAllFinite() && !_blind_land) {
 		// don't move along xy
 		failsafe_setpoint.velocity[0] = failsafe_setpoint.velocity[1] = 0.f;
 
@@ -626,7 +634,7 @@ trajectory_setpoint_s MulticopterPositionControl::generateFailsafeSetpoint(const
 		}
 	}
 
-	if (PX4_ISFINITE(states.velocity(2))) {
+	if (PX4_ISFINITE(states.velocity(2)) && !_blind_land) {
 		// don't move along z if we can stop in all dimensions
 		if (!PX4_ISFINITE(failsafe_setpoint.velocity[2])) {
 			failsafe_setpoint.velocity[2] = 0.f;
@@ -678,6 +686,15 @@ int MulticopterPositionControl::task_spawn(int argc, char *argv[])
 
 int MulticopterPositionControl::custom_command(int argc, char *argv[])
 {
+	if (!strcmp(argv[0], "trigger-blind-land")) {
+
+		// Trigger apps processor failure simulation
+		PX4_ERR("Triggering blind landing!");
+		trigger_blind_land();
+
+		return 0;
+	}
+
 	return print_usage("unknown command");
 }
 
