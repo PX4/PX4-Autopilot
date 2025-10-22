@@ -30,9 +30,35 @@ If needed, you can:
 - Change the selection order of barometers using the [CAL_BAROx_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO) parameters for each barometer.
 - Disable a barometer by setting its [CAL_BAROx_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO) value to `0`.
 
-## Calibration
+## Baro Auto-Calibration
 
-Barometers don't require calibration.
+Documentation of the automated calibration mechanisms to ensure accurate altitude measurements throughout flight operations. The system implements two complementary calibration approaches that work together to maintain altitude measurement precision. Both calibrations are initiated at the beginning after a system boot, where the GNSS-barometric calibration awaits the completion of the relative calibration.
+
+
+### Relative Calibration
+
+Relative baro calibration is **always enabled** and operates automatically during system initialization. This calibration establishes offset corrections for all secondary baro sensors relative to the primary (selected) sensor.
+
+- Eliminates altitude jumps when switching between baro sensors during flight
+- Ensures consistent altitude readings across all available baro sensors
+- Maintains seamless sensor redundancy and failover capability
+
+
+### GNSS-Baro Calibration
+
+GNSS-baro calibration adjusts baro sensor offsets to align with absolute altitude measurements from the GNSS receiver. This calibration is controlled by the `SENS_BAR_AUTOCAL` parameter (enabled by default).
+
+GNSS-baro calibration requires an operational GNSS receiver with vertical accuracy (EPV) ≤ 8 meters and completed relative calibration. The algorithm monitors GNSS quality, collects altitude differences over a 2-second filtered window, and verifies stability within 4m tolerance. Once stable, it uses binary search to calculate pressure offsets that align baro altitude with GNSS altitude (0.1m precision), then applies the offset to all sensors and saves the parameters.
+
+
+#### Important Notes
+
+- **EKF Independence**: GNSS-baro calibration operates independently of EKF2 altitude fusion settings
+- **Execution Timing**: Calibration runs even when `EKF2_GPS_CTRL` altitude fusion is disabled
+- **One-Time Process**: Each calibration session completes once per system startup
+- **Persistence**: Calibration offsets are saved to parameters and persist across reboots
+- **Faulty GNSS Vulnerability**: If GNSS data is faulty during boot, the calibration will use incorrect altitude reference. See "Faulty GNSS Data During Boot" in the GNSS fault detection documentation for mitigation strategies.
+
 
 <!-- Notes:
 - Absolute value isn't important since we just use the difference in altitude between "now" and the value when initializing EKF2
