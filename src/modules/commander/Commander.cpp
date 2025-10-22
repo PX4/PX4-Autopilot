@@ -2943,6 +2943,27 @@ void Commander::manualControlCheck()
 		_is_throttle_above_center = (manual_control_setpoint.throttle > 0.2f);
 		_is_throttle_low = (manual_control_setpoint.throttle < -0.8f);
 
+		_is_3d_mode_en = _param_dshot_3d_enable.get();
+
+		if (_is_3d_mode_en) {
+			const float dead_h = (_param_dshot_3d_dead_h.get() / 1000.f) - 0.5f;
+			const float dead_l = (_param_dshot_3d_dead_l.get() / 1000.f) - 0.5f;
+
+			_wrap_throttle_db_high = matrix::wrap(dead_h, -1.f, 1.f);
+			_wrap_throttle_db_low = matrix::wrap(dead_l, -1.f, 1.f);
+			PX4_INFO("Deadband thr hi: %f", (double)_wrap_throttle_db_high);
+			PX4_INFO("Deadband thr lo: %f", (double)_wrap_throttle_db_low);
+
+			if ((manual_control_setpoint.throttle > _wrap_throttle_db_high) || (manual_control_setpoint.throttle < _wrap_throttle_db_low)) {
+
+				_throttle_outside_deadband = true;
+
+			} else {
+				_throttle_outside_deadband = false;
+
+			}
+		}
+
 		if (isArmed()) {
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly
 			// but only if actually in air.
