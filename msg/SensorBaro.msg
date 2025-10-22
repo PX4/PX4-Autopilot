@@ -1,6 +1,7 @@
 # Baro sensor
 # 
-# ? This is used in the `SCALED_PRESSURE_n` MAVLink messages (values must be zero-filled).
+# This is populated by barometer drivers and used by the EKF2 estimator.
+# The information is published in the `SCALED_PRESSURE_n` MAVLink messages (along with information from a corresponding `DifferentialPressure` instance).
 
 uint64 timestamp         # [us] Time of publication (since system start)
 uint64 timestamp_sample  # [us] Time of raw data capture
