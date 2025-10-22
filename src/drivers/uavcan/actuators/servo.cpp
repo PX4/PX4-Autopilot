@@ -35,6 +35,8 @@
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
 using namespace time_literals;
 
 UavcanServoController::UavcanServoController(uavcan::INode &node) :
@@ -44,8 +46,20 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	_uavcan_sub_temperature(node),
 	_uavcan_sub_circuit_status(node)
 {
+	/* Ensure that future changes do not cause any out-of-bounds access */
+	static_assert(ARRAY_SIZE(_servo_status.servo) == servo_status_s::CONNECTED_SERVO_MAX);
+	static_assert(ARRAY_SIZE(_last_temperature) == servo_status_s::CONNECTED_SERVO_MAX);
+	static_assert(ARRAY_SIZE(_last_temperature_error_flag) == servo_status_s::CONNECTED_SERVO_MAX);
+	static_assert(ARRAY_SIZE(_last_voltage) == servo_status_s::CONNECTED_SERVO_MAX);
+	static_assert(ARRAY_SIZE(_last_current) == servo_status_s::CONNECTED_SERVO_MAX);
+	static_assert(ARRAY_SIZE(_last_power_error_flag) == servo_status_s::CONNECTED_SERVO_MAX);
+	static_assert(ARRAY_SIZE(_servo_temperature_counter) == servo_status_s::CONNECTED_SERVO_MAX);
+	static_assert(ARRAY_SIZE(_servo_power_counter) == servo_status_s::CONNECTED_SERVO_MAX);
+
 	_uavcan_pub_array_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
-	memset(_last_temperature, 0, sizeof(_last_temperature)); // Set bytes to 0
+
+	/* Init the arrays to zero */
+	memset(_last_temperature, 0, sizeof(_last_temperature));
 	memset(_last_temperature_error_flag, 0, sizeof(_last_temperature_error_flag));
 	memset(_last_voltage, 0, sizeof(_last_voltage));
 	memset(_last_current, 0, sizeof(_last_current));
@@ -74,8 +88,7 @@ UavcanServoController::init()
 	}
 
 	// Servo circuit status subscription
-	res = _uavcan_sub_circuit_status.start(CircuitStatusCbBinder(this,
-					       &UavcanServoController::servo_circuit_status_sub_cb));
+	res = _uavcan_sub_circuit_status.start(CircuitStatusCbBinder(this, &UavcanServoController::servo_circuit_status_sub_cb));
 
 	if (res < 0) {
 		PX4_ERR("Servo circuit status sub failed %i", res);
