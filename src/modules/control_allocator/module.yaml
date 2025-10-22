@@ -356,6 +356,15 @@ parameters:
             instance_start: 0
             default: 0
 
+        CA_SV_CS${i}_LAU_LK:
+            description:
+                short: Control surface ${i} launch lock enabled
+                long: If actuator launch lock is enabled, this surface is kept at the disarmed value.
+            type: boolean
+            num_instances: *max_num_servos
+            instance_start: 0
+            default: 0
+
         # Tilts
         CA_SV_TL_COUNT:
             description:
@@ -659,7 +668,7 @@ mixer:
 
     rules:
       - select_identifier: 'servo-type' # restrict torque based on servo type
-        apply_identifiers: ['servo-torque-roll', 'servo-torque-pitch', 'servo-torque-yaw', 'servo-scale-flap', 'servo-scale-spoiler']
+        apply_identifiers: ['servo-torque-roll', 'servo-torque-pitch', 'servo-torque-yaw', 'servo-scale-flap', 'servo-scale-spoiler', 'servo-launch-lock']
         items:
         # Convention: horizontal surfaces: up=positive, vertical: right=positive, mixed: up=positive.
         # By default the scale is set to 1/N, where N is the amount of actuators with an effect on
@@ -858,6 +867,10 @@ mixer:
                             label: 'Spoiler Scale'
                             advanced: true
                             identifier: 'servo-scale-spoiler'
+                          - name: 'CA_SV_CS${i}_LAU_LK'
+                            label: 'Launch Lock'
+                            advanced: true
+                            identifier: 'servo-launch-lock'
 
             2: # Standard VTOL
                 title: 'Standard VTOL'

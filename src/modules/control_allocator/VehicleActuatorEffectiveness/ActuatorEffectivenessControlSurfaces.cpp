@@ -57,6 +57,8 @@ ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(Modul
 		_param_handles[i].scale_flap = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_SPOIL", i);
 		_param_handles[i].scale_spoiler = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_LAU_LK", i);
+		_param_handles[i].launch_lock = param_find(buffer);
 	}
 
 	_flaps_setpoint_with_slewrate.setSlewRate(_param_ca_flap_slew.get());
@@ -138,6 +140,7 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 
 		param_get(_param_handles[i].scale_flap, &_params[i].scale_flap);
 		param_get(_param_handles[i].scale_spoiler, &_params[i].scale_spoiler);
+		param_get(_param_handles[i].launch_lock, &_params[i].launch_lock);
 
 		// TODO: enforce limits (note that tailsitter uses different limits)?
 		switch (_params[i].type) {
@@ -232,5 +235,15 @@ void ActuatorEffectivenessControlSurfaces::applySpoilers(float spoilers_control,
 	for (int i = 0; i < _count; ++i) {
 		// TODO: this currently only works for spoilerons, not dedicated spoilers
 		actuator_sp(i + first_actuator_idx) += _spoilers_setpoint_with_slewrate.getState() * _params[i].scale_spoiler;
+	}
+}
+
+void ActuatorEffectivenessControlSurfaces::applyLaunchLock(int first_actuator_idx,
+		ActuatorVector &actuator_sp)
+{
+	for (int i = 0; i < _count; ++i) {
+		if (_params[i].launch_lock) {
+			actuator_sp(i + first_actuator_idx) = NAN;
+		}
 	}
 }

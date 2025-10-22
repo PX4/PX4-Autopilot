@@ -75,6 +75,7 @@ public:
 		float trim;
 		float scale_flap;
 		float scale_spoiler;
+		int launch_lock;
 	};
 
 	ActuatorEffectivenessControlSurfaces(ModuleParams *parent);
@@ -90,6 +91,7 @@ public:
 
 	void applyFlaps(float flaps_control, int first_actuator_idx, float dt, ActuatorVector &actuator_sp);
 	void applySpoilers(float spoilers_control, int first_actuator_idx, float dt, ActuatorVector &actuator_sp);
+	void applyLaunchLock(int first_actuator_idx, ActuatorVector &actuator_sp);
 
 private:
 	void updateParams() override;
@@ -101,6 +103,7 @@ private:
 		param_t trim;
 		param_t scale_flap;
 		param_t scale_spoiler;
+		param_t launch_lock;
 	};
 	ParamHandles _param_handles[MAX_COUNT];
 	param_t _count_handle;
