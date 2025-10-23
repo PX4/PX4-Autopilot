@@ -121,18 +121,27 @@ PCA9685Wrapper::~PCA9685Wrapper()
 	perf_free(_cycle_perf);
 }
 
+/*The PCA9685 takes about 4 seconds to respond to I2C messages. When you try to send an I2C probe message before this time, you will receive a NACK. Upond receiving a NACK, this function simply sleeps for 0.5 seconds before it tries again.
+If no ACK is received within 10 seconds, we abort the initialization */
 int PCA9685Wrapper::init()
 {
-	int ret = pca9685->init();
+	int ret{-1};
 
-	if (ret != PX4_OK) { return ret; }
+	for (int i = 0; i < 20; i++) {
+		ret = pca9685->init();
+		if (ret == PX4_OK) { break; }
+		px4_usleep(500000);
+	}
+
+	if (ret != PX4_OK) {
+		PX4_ERR("PCA9685 polling failed after 10s");
+		return ret;
+	}
 
 	this->ChangeWorkQueue(px4::device_bus_to_wq(pca9685->get_device_id()));
 
 	PX4_INFO("running on I2C bus %d address 0x%.2x", pca9685->get_device_bus(), pca9685->get_device_address());
-
 	ScheduleNow();
-
 	return PX4_OK;
 }
 
