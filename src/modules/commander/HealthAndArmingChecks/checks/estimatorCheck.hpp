@@ -43,6 +43,7 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
 
@@ -72,6 +73,7 @@ private:
 				       const vehicle_local_position_s &lpos);
 	void checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const;
 	void lowPositionAccuracy(const Context &context, Report &reporter, const vehicle_local_position_s &lpos) const;
+	void deadReckoningTimeout(const Context &context, Report &reporter, const vehicle_local_position_s &lpos);
 
 	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
 				     bool pre_flt_fail_innov_vel_horiz, bool pre_flt_fail_innov_pos_horiz,
@@ -94,15 +96,19 @@ private:
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	hrt_abstime	_last_gpos_fail_time_us{0};	///< Last time that the global position validity recovery check failed (usec)
 	hrt_abstime	_last_gpos_relaxed_fail_time_us{0};	///< Last time that the global position relaxed validity recovery check failed (usec)
 	hrt_abstime	_last_lpos_fail_time_us{0};	///< Last time that the local position validity recovery check failed (usec)
 	hrt_abstime	_last_lpos_relaxed_fail_time_us{0};	///< Last time that the relaxed local position validity recovery check failed (usec)
 	hrt_abstime	_last_lvel_fail_time_us{0};	///< Last time that the local velocity validity recovery check failed (usec)
+	hrt_abstime	_last_initiated_dead_reckoning_time_us{0};	///< Last time that the dead reckoning initiated (usec)
 
 	bool _gps_was_fused{false};
 	bool _gnss_spoofed{false};
+	bool _in_air_valid{false};
+	bool _was_dead_reckoning{false};
 
 	bool _nav_failure_imminent_warned{false};
 
@@ -114,6 +120,8 @@ private:
 					(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
 					(ParamFloat<px4::params::COM_VEL_FS_EVH>) _param_com_vel_fs_evh,
 					(ParamFloat<px4::params::COM_POS_LOW_EPH>) _param_com_low_eph,
-					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act
+					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act,
+					(ParamInt<px4::params::COM_DR_TOUT_ACT>) _param_com_dead_reckoning_tout_act,
+					(ParamFloat<px4::params::COM_DR_TOUT_T>) _param_com_dead_reckoning_tout_t
 				       )
 };

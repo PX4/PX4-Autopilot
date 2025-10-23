@@ -131,6 +131,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 
 
 	lowPositionAccuracy(context, reporter, lpos);
+	deadReckoningTimeout(context, reporter, lpos);
 }
 
 void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &reporter,
@@ -643,6 +644,66 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 	}
 
 	reporter.failsafeFlags().position_accuracy_low = position_valid_but_low_accuracy;
+}
+
+void EstimatorChecks::deadReckoningTimeout(const Context &context, Report &reporter,
+		const vehicle_local_position_s &lpos)
+{
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	vehicle_land_detected_s vehicle_land_detected;
+	_vehicle_land_detected_sub.copy(&vehicle_land_detected);
+	_in_air_valid = (now < vehicle_land_detected.timestamp + 2_s) && !vehicle_land_detected.landed;
+
+	bool dead_reckoning_valid_but_timouted = false;
+	bool dead_reckoning_changed = _was_dead_reckoning != lpos.dead_reckoning;
+
+	if (dead_reckoning_changed && _in_air_valid) {
+		if (lpos.dead_reckoning) {
+			_last_initiated_dead_reckoning_time_us = now;
+
+		} else {
+			reporter.failsafeFlags().mode_req_dead_reckoning_invalid = true;
+			reporter.failsafeFlags().dead_reckoning_invalid = false;
+			_last_initiated_dead_reckoning_time_us = 0;
+		}
+	}
+
+
+	if (reporter.failsafeFlags().mode_req_dead_reckoning_invalid
+	    && !reporter.failsafeFlags().dead_reckoning_invalid) {
+
+		dead_reckoning_valid_but_timouted = (_param_com_dead_reckoning_tout_t.get() > FLT_EPSILON
+						     && lpos.dead_reckoning
+						     && now > _last_initiated_dead_reckoning_time_us + _param_com_dead_reckoning_tout_t.get() * 1_s);
+
+		reporter.failsafeFlags().dead_reckoning_invalid = dead_reckoning_valid_but_timouted;
+		reporter.failsafeFlags().mode_req_dead_reckoning_invalid = !dead_reckoning_valid_but_timouted;
+	}
+
+	if (dead_reckoning_valid_but_timouted && _param_com_dead_reckoning_tout_act.get()) {
+
+		// only report if armed
+		if (context.isArmed()) {
+			/* EVENT
+			 * @description Position estimates based on dead reckoning has surpassed the timeout for being trusted. Warn user.
+			 *
+			 * <profile name="dev">
+			 * This check can be configured via <param>COM_DR_TOUT_T</param> and <param>COM_DR_TOUT_ACT</param> parameters.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
+						    events::ID("check_estimator_dead_reckoning_invalid"),
+						    events::Log::Error, "Dead reckoning is too old to be trusted");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_warning(reporter.mavlink_log_pub(), "Dead reckoning is too old to be trusted\t");
+			}
+		}
+	}
+
+	_was_dead_reckoning = lpos.dead_reckoning;
 }
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,

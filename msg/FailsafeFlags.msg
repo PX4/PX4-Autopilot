@@ -8,6 +8,7 @@ uint64 timestamp				# time since system start (microseconds)
 # Per-mode requirements
 uint32 mode_req_angular_velocity
 uint32 mode_req_attitude
+uint32 mode_req_dead_reckoning_invalid
 uint32 mode_req_local_alt
 uint32 mode_req_local_position
 uint32 mode_req_local_position_relaxed
@@ -52,6 +53,7 @@ bool wind_limit_exceeded              # Wind limit exceeded
 bool flight_time_limit_exceeded       # Maximum flight time exceeded
 bool position_accuracy_low            # Position estimate has dropped below threshold, but is currently still declared valid
 bool navigator_failure        	      # Navigator failed to execute a mode
+bool dead_reckoning_invalid           # Postion estimate based on dead reckoning is too old to be trusted
 
 # Failure detector
 bool fd_critical_failure              # Critical failure (attitude/altitude limit exceeded, or external ATS)

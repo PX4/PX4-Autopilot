@@ -968,6 +968,40 @@ PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);
 PARAM_DEFINE_INT32(COM_POS_LOW_ACT, 3);
 
 /**
+ * Dead reckoning timeout failsafe threshold
+ *
+ * This triggers the action specified in COM_DR_TOUT_ACT if the dead reckoning has been active longer than this threshold.
+ *
+ * Set to -1 to disable.
+ *
+ * @min -1
+ * @max 1000
+ * @group Commander
+ * @unit s
+ */
+PARAM_DEFINE_FLOAT(COM_DR_TOUT_T, -1.0f);
+
+/**
+ * Dead reckoning timeout action
+ *
+ * Action the system takes when the dead reckoning has active for a specified time.
+ * See COM_DR_TOUT_ACT to set the failsafe threshold.
+ * The failsafe action is only executed if the vehicle is in auto mission,
+ * otherwise it is only a warning.
+ *
+ * @group Commander
+ *
+ * @value 0 None
+ * @value 1 Warning
+ * @value 2 Hold
+ * @value 3 Return
+ * @value 4 Terminate
+ * @value 5 Land
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(COM_DR_TOUT_ACT, 1);
+
+/**
  * Flag to allow arming
  *
  * Set 0 to prevent accidental use of the vehicle e.g. for safety or maintenance reasons.

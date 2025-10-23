@@ -49,6 +49,7 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	flags.mode_req_attitude = 0;
 	flags.mode_req_local_position = 0;
 	flags.mode_req_local_position_relaxed = 0;
+	flags.mode_req_dead_reckoning_invalid = 0;
 	flags.mode_req_global_position = 0;
 	flags.mode_req_global_position_relaxed = 0;
 	flags.mode_req_local_alt = 0;
@@ -97,6 +98,7 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_global_position_relaxed);
 		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_local_position_relaxed);
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_dead_reckoning_invalid);
 
 	} else {
 		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_global_position);
