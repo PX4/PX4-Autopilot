@@ -266,11 +266,9 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		Vector2f sticks_ne = sticks_xy;
 		Sticks::rotateIntoHeadingFrameXY(sticks_ne, _yaw, _land_heading);
 
-		const bool land_radius_enabled = _param_mpc_land_radius.get() > 0.0f;
-
 		float max_speed = INFINITY;
 
-		if (land_radius_enabled) {
+		if (_param_mpc_land_radius.get() > FLT_EPSILON) {
 
 			// = NaN if we are outside of the allowed circle and nudging does not point back towards it
 			const float distance_to_circle = math::trajectory::getMaxDistanceToCircle(_position.xy(), _initial_land_position.xy(),

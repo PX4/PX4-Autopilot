@@ -54,12 +54,11 @@ PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
  * User assisted landing radius
  *
  * When nudging is enabled (see MPC_LAND_RC_HELP), this defines the maximum
- * allowed horizontal displacement from the original landing point. Nudging in
- * FlightTaskAuto is then restricted as follows:
- *  - If the vehicle is inside of the allowed radius, only allow nudging inputs that do not move the vehicle outside of it.
- *  - If the vehicle is outside of the allowed radius, only allow nudging inputs that move the vehicle back towards it.
+ * allowed horizontal displacement from the original landing point.
+ *  - If inside of the radius, only allow nudging inputs that do not move the vehicle outside of it.
+ *  - If outside of the radius, only allow nudging inputs that move the vehicle back towards it.
  *
- * Setting MPC_LAND_RADIUS to -1 will disable this feature.
+ * Set it to -1 for infinite radius.
  *
  * @unit m
  * @min -1
