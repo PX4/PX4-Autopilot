@@ -44,11 +44,17 @@
  * TIM3_CH2  T FMU_CH6
  * TIM3_CH3  T FMU_CH7
  * TIM3_CH4  T FMU_CH8
+ *
+ * TIM5_CH1  T FMU_CH9
+ *
+ * TIM8_CH2  T FMU_CAP1 < Input Capture
  */
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 	initIOTimer(Timer::Timer1, DMA{DMA::Index1}),
 	initIOTimer(Timer::Timer3, DMA{DMA::Index1}),
+	initIOTimer(Timer::Timer5),
+	initIOTimer(Timer::Timer8),
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
@@ -60,6 +66,8 @@ constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel2}, {GPIO::PortB, GPIO::Pin5}),
 	initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel3}, {GPIO::PortB, GPIO::Pin0}),
 	initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel4}, {GPIO::PortC, GPIO::Pin9}),
+	initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
+	initIOTimerChannelCapture(io_timers, {Timer::Timer8, Timer::Channel2}, {GPIO::PortC, GPIO::Pin7}),
 };
 
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
