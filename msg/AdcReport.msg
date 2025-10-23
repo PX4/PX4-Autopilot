@@ -1,3 +1,6 @@
+# ADC raw data.
+#
+# Communicates raw data from an analog-to-digital converter (ADC) to other modules, such as battery status.
 uint64 timestamp		# time since system start (microseconds)
 uint32 device_id		# unique device ID for the sensor that does not change between power cycles
 int16[16] channel_id		# ADC channel IDs, negative for non-existent, TODO: should be kept same as array index
