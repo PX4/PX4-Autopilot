@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,11 +34,6 @@
 #include "rcCalibrationCheck.hpp"
 
 /**
- * Maximum deadzone value
- */
-#define RC_INPUT_MAX_DEADZONE_US	500
-
-/**
  * Minimum value
  */
 #define RC_INPUT_LOWEST_MIN_US	0
@@ -61,9 +56,6 @@ RcCalibrationChecks::RcCalibrationChecks()
 
 		snprintf(nbuf, sizeof(nbuf), "RC%d_MAX", i + 1);
 		_param_handles[i].max = param_find(nbuf);
-
-		snprintf(nbuf, sizeof(nbuf), "RC%d_DZ", i + 1);
-		_param_handles[i].dz = param_find(nbuf);
 	}
 
 	updateParams();
@@ -84,7 +76,6 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 		float param_min = _param_values[i].min;
 		float param_max = _param_values[i].max;
 		float param_trim = _param_values[i].trim;
-		float param_dz = _param_values[i].dz;
 
 		/* assert min..center..max ordering */
 		if (param_min < RC_INPUT_LOWEST_MIN_US) {
@@ -148,22 +139,6 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 						     (int)param_trim, (int)param_max);
 			}
 		}
-
-		/* assert deadzone is sane */
-		if (param_dz > RC_INPUT_MAX_DEADZONE_US) {
-			/* EVENT
-			 * @description
-			 * Recalibrate the RC.
-			 */
-			reporter.armingCheckFailure<uint8_t, uint16_t>(NavModes::All, health_component_t::remote_control,
-					events::ID("check_rc_dz_too_high"),
-					events::Log::Error, "RC calibration for channel {1} invalid: DZ greater than {2}", i + 1, RC_INPUT_MAX_DEADZONE_US);
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: RC ERROR: RC%d_DZ > %u", i + 1,
-						     RC_INPUT_MAX_DEADZONE_US);
-			}
-		}
 	}
 }
 
@@ -176,11 +151,9 @@ void RcCalibrationChecks::updateParams()
 		_param_values[i].min = 0.0f;
 		_param_values[i].max = 0.0f;
 		_param_values[i].trim = 0.0f;
-		_param_values[i].dz = RC_INPUT_MAX_DEADZONE_US * 2.0f;
 
 		param_get(_param_handles[i].min, &_param_values[i].min);
 		param_get(_param_handles[i].trim, &_param_values[i].trim);
 		param_get(_param_handles[i].max, &_param_values[i].max);
-		param_get(_param_handles[i].dz, &_param_values[i].dz);
 	}
 }

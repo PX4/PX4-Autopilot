@@ -185,7 +185,7 @@ make px4_sitl gz_tiltrotor
 [Differential Rover](../frames_rover/index.md#differential) uses the [rover world](../sim_gazebo_gz/worlds.md#rover) by default.
 
 ```sh
-make px4_sitl gz_r1_rover
+make px4_sitl gz_rover_differential
 ```
 
 ![Differential Rover in Gazebo](../../assets/simulation/gazebo/vehicles/rover_differential.png)
@@ -199,3 +199,13 @@ make px4_sitl gz_rover_ackermann
 ```
 
 ![Ackermann Rover in Gazebo](../../assets/simulation/gazebo/vehicles/rover_ackermann.png)
+
+### Mecanum Rover
+
+[Mecanum Rover](../frames_rover/index.md#mecanum) uses the [rover world](../sim_gazebo_gz/worlds.md#rover) by default.
+
+```sh
+make px4_sitl gz_rover_mecanum
+```
+
+![Mecanum Rover in Gazebo](../../assets/simulation/gazebo/vehicles/rover_mecanum.png)

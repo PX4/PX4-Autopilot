@@ -21,7 +21,7 @@ The supported frames can be seen in [Airframes Reference > Rover](../airframes/a
 
 ## Ackermann
 
-<0/> <1/>
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
 An Ackermann rover controls its direction by pointing the front wheels in the direction of travel — the [Ackermann steering geometry](https://en.wikipedia.org/wiki/Ackermann_steering_geometry) compensates for the fact that wheels on the inside and outside of the turn move at different rates.
 This kind of steering is used on most commercial vehicles, including cars, trucks etc.
@@ -34,7 +34,7 @@ PX4 does not require that the vehicle uses the Ackermann geometry and will work 
 
 ## Differential
 
-<0/> <1/>
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
 A differential rover's motion is controlled using a differential drive mechanism, where the left and right wheel speeds are adjusted independently to achieve the desired forward speed and yaw rate.
 Forward motion is achieved by driving both wheels at the same speed in the same direction.
@@ -48,7 +48,7 @@ The differential setup also work for rovers with skid or tank steering.
 
 ## Mecanum
 
-<0/> <1/>
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
 A Mecanum rover is a type of mobile robot that uses Mecanum wheels to achieve omnidirectional movement. These wheels are unique because they have rollers mounted at a 45-degree angle around their circumference, allowing the rover to move not only forward and backward but also side-to-side and diagonally without needing to rotate first.
 Each wheel is driven by its own motor, and by controlling the speed and direction of each motor, the rover can move in any direction or spin in place.
@@ -57,15 +57,17 @@ Each wheel is driven by its own motor, and by controlling the speed and directio
 
 ## See Also
 
-- [Drive Modes](../flight_modes_rover/index.md).
+- [Drive Modes](../flight_modes_rover/index.md)
 - [Configuration/Tuning](../config_rover/index.md)
+- [Apps & API](../flight_modes_rover/api.md)
 - [Complete Vehicles](../complete_vehicles_rover/index.md)
 
 ## 仿真
 
-[Gazebo](../sim_gazebo_gz/index.md) provides simulations for ackermann and differential rovers:
+PX4 provides synthetic simulation models for [Gazebo](../sim_gazebo_gz/index.md) of all three rover types to test the software and validate changes and new features:
 
 - [Ackermann rover](../sim_gazebo_gz/vehicles.md#ackermann-rover)
 - [Differential rover](../sim_gazebo_gz/vehicles.md#differential-rover)
+- [Mecanum rover](../sim_gazebo_gz/vehicles.md#mecanum-rover)
 
 ![Rover gazebo simulation](../../assets/airframes/rover/rover_simulation.png)

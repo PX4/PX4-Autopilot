@@ -1,7 +1,5 @@
 # FailureDetectorStatus (UORB message)
 
-
-
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/FailureDetectorStatus.msg)
 
 ```c
@@ -19,5 +17,6 @@ bool fd_motor
 
 float32 imbalanced_prop_metric      # Metric of the imbalanced propeller check (low-passed)
 uint16 motor_failure_mask           # Bit-mask with motor indices, indicating critical motor failures
+uint16 motor_stop_mask              # Bitmaks of motors stopped by failure injection
 
 ```

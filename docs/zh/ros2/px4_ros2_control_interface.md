@@ -24,7 +24,7 @@ Experimental
 这些类对 PX4 所使用的内部设定点进行了抽象处理，因此可用于为未来的 PX4 和 ROS 版本提供统一的 ROS 2 接口。
 
 PX4 ROS 2 模式相较于 PX4 内部模式，更易于实现和维护，并且在处理能力与既有代码库资源方面，能为开发者提供更丰富的支持。
-除非该模式属于安全关键型、对时序有严格要求或需要极高的更新速率，或者你的飞行器没有搭载伴随计算机，否则你应优先[考虑使用 PX4 ROS 2 模式，而非 PX4 内部模式]（参考链接：../concept/flight_modes.md#internal-vs-external-modes）。
+除非该模式属于安全关键型、对时序有严格要求或需要极高的更新速率，或者你的飞行器没有搭载伴随计算机，否则你应优先[考虑使用 PX4 ROS 2 模式，而非 PX4 内部模式](../concept/flight_modes.md#internal-vs-external-modes)。
 
 ## 综述
 
@@ -248,7 +248,7 @@ private:
 };
 ```
 
-- `[1]`: 首先创建一个从 [`px4_ros2:::ModeBase`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1ModeBase.html)继承的类。
+- `[1]`: 首先创建一个从 [`px4_ros2::ModeBase`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1ModeBase.html)继承的类。
 - `[2]`: 在构造函数中，我们传递模式名称。 这也使我们能够配置一些其他内容，例如替换飞行控制器的内置模式。
 - `[3]`：我们在此处创建后续想要使用的所有对象。
   这可以是 RC 输入、设置点类型(s)或遥测数据。 `*this` 作为`Context`传递给每个对象，将对象与模式联系起来。
@@ -327,7 +327,7 @@ private:
 };
 ```
 
-- `[1]`: 首先创建一个从 [`px4_ros2::ModeExecutorBase`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1ModeExecutorBase.html) 继承的类。
+- `[1]`: 首先创建一个继承 [`px4_ros2::ModeExecutorBase`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1ModeExecutorBase.html)。
 - `[2]`: 构造函数采用与执行器相关联的自定义模式，并传递给`ModeExecutorBase`的构造函数。
 - `[3]`: 我们为想要运行的状态定义一个枚举。
 - `[4]`: `onActivate` 在执行器激活时被调用。 此时，我们可以开始遍历这些状态了。
@@ -344,9 +344,10 @@ private:
 
 以下章节提供了支持的设置点类型列表：
 
-- [MulticopterGotoSetpointType](#go-to-setpoint-multicoptergotosetpointtype): <Badge type="warning" text="MC only" /> Smooth position and (optionally) heading control
-- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="warning" text="FW only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" /> Direct control of lateral and longitudinal fixed wing dynamics
+- [MulticopterGotoSetpointType](#go-to-setpoint-multicoptergotosetpointtype): <Badge type="warning" text="MC only" /> 平滑的位置控制以及（可选的）航向控制
+- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="warning" text="FW only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" /> 对横向和纵向固定翼动态的直接控制
 - [DirectActuatorsSetpointType](#direct-actuator-control-setpoint-directactuatorssetpointtype)：直接控制发动机和飞行地面servo setpoints
+- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="main (planned for: PX4 v1.17)" />直接访问火星车控制设定值（位置、速度、姿态、速率、油门和转向）。
 
 :::tip
 其他设置点类型目前是实验性的，可在以下网址找到：[px4_ros2/control/setpoint_types/experimental](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/experimental)。
@@ -354,18 +355,20 @@ private:
 您可以通过添加一个从 `px4_ros2::SetpointBase` 继承的类来添加您自己的 setpoint 类型， 根据设置点的要求设置配置标志，然后发布任何包含设置点的主题。
 :::
 
-#### Go-to Setpoint (MulticopterGotoSetpointType)
+#### 转到设置点 (MulticopterGotoSetpointType)
 
 <Badge type="warning" text="MC only" />
 
+<Badge type="warning" text="Multicopter only" />
+
 :::info
-This setpoint type is currently only supported for multicopters.
+当前，此设定点类型仅支持多旋翼飞行器。
 :::
 
-Smoothly control position and (optionally) heading setpoints with the [`px4_ros2::MulticopterGotoSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/multicopter/goto.hpp) setpoint type.
-The setpoint type is streamed to FMU based position and heading smoothers formulated with time-optimal, maximum-jerk trajectories, with velocity and acceleration constraints.
+可通过[`px4_ros2::MulticopterGotoSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/multicopter/goto.hpp) 设定点类型，对位置设定点以及（可选的）航向设定点进行平滑控制。
+设定点类型会被传输至飞控主模块（FMU），该模块基于采用时间最优、最大加加速度轨迹构建的位置及航向平滑器。
 
-There is also a [`px4_ros2::MulticopterGotoGlobalSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/multicopter/goto.hpp) class that allows to send setpoints in global coordinates.
+还有一个 [`px4_ros2::MulticopterGotoGlobalSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/multicopter/goto.hpp)， 该类支持在全局坐标系下发送设定点。
 
 最简单的用法就是直接向update method中输入一个3D 位置
 
@@ -418,7 +421,7 @@ _goto_setpoint->update(
 :::
 
 使用[`px4_ros2::FwLateralLongitudinalSetpointType`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1FwLateralLongitudinalSetpointType.html)直接控制固定翼飞行器的横向与纵向动力学特性，即分别控制其侧向运动（转弯 / 倾斜）和前向 / 垂直运动（加速及爬升 / 下降）。
-这个设置点被传输到 PX4 [_FwLateralLongitudinalControl_module](../modules/modules_controller.md#fw-lat-lon-control)，该模块会对横向与纵向输入进行解耦处理，同时确保不超出飞行器的各项限制范围。
+这个设置点被传输到 PX4 [_FwLateralLongitudinalControl_ module](../modules/modules_controller.md#fw-lat-lon-control)，该模块会对横向与纵向输入进行解耦处理，同时确保不超出飞行器的各项限制范围。
 
 为了控制载具，必须提供至少一个横向**和**一个纵向设定值：
 
@@ -510,7 +513,7 @@ _fw_lateral_longitudinal_sett->upate(settpoint_
 
 ##### 高级配置（可选）
 
-你还可以传递一个[`FwControlConfiguration`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1FwControlConfiguration.html) 结构体以及设定值，以覆盖默认的控制器设置和约束条件，例如俯仰角限制、油门限制以及目标下降 / 爬升速率。
+你还可以传递一个[`FwControlConfiguration`](https://auterion.github.io/px4-ros2-interface-lib/structpx4__ros2_1_1FwControlConfiguration.html)结构体以及设定值，以覆盖默认的控制器设置和约束条件，例如俯仰角限制、油门限制以及目标下降 / 爬升速率。
 这是针对高级用户的：
 
 ```cpp
@@ -532,24 +535,58 @@ _fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
 
 所有配置字段都定义为 `std::optional<float>`。
 未设置的值将默认采用 PX4 的配置。
-更多关于配置选项的信息，请参阅 [LateralControlConfiguration](../msg_docs/LateralControlConfiguration.md) 和 [FixedWingLongitudinalConfiguration](../msg_docs/LongitudinalControlConfiguration.md)。
+更多关于配置选项的信息，请参阅 [LateralControlConfiguration](../msg_docs/LateralControlConfiguration.md)和 [FixedWingLongitudinalConfiguration](../msg_docs/LongitudinalControlConfiguration.md)。
 
 :::info
 为保障安全，PX4 会自动将配置值限制在飞行器的约束范围内。
-例如，油门覆盖值会被限制在[`FW_THR_MIN`](../advanced_config/parameter_reference.md#FW_THR_MIN)
-和 [`FW_THR_MAX`](../advanced_config/parameter_reference.md#FW_THR_MAX)之间。
+例如，油门覆盖值会被限制在 [`FW_THR_MIN`](../advanced_config/parameter_reference.md#FW_THR_MIN)
+和[`FW_THR_MAX`](../advanced_config/parameter_reference.md#FW_THR_MAX)之间。
 :::
 
 #### 直接执行器控制设定点（DirectActuatorsSetpointType）
 
-可以使用 [px4_ros2::DirectActActorsSetpootType](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1DirectActuatorsSetpointType.html) 设置点类型直接控制执行器。
+可以使用 [px4_ros2::DirectActuatorsSetpointType](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1DirectActuatorsSetpointType.html) 设置点类型直接控制执行器。
 电机和舵机可独立设置。
 请注意，该分配（设置 / 指派）具有载具和配置特定性。
-例如，要控制一架四旋翼飞行器，你需要根据其 [输出配置] (../concept/control_allocation.md )来设置前 4 个电机。
+例如，要控制一架四旋翼飞行器，你需要根据其 [输出配置] (../concept/control_allocation.md)来设置前 4 个电机。
 
 :::info
 若你想控制的执行器并非用于控制飞行器的运动（例如，而是用于控制有效载荷舵机），请参阅 [below](#controlling-an-independent-actuator-servo)。
 :::
+
+#### Rover 设置点
+
+<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+
+滚动模块使用层次结构来传播设置点：
+
+![Rover Control Structure](../../assets/middleware/ros2/px4_ros2_interface_lib/rover_control_structure.svg)
+
+:::info
+所提供的“highest”设定值将被用于 PX4 机器人模块中，以生成低于该值的设定值（并对其进行覆盖！）。
+这个层次结构有提供有效控制输入的明确规则：
+
+- 提供一个位置集点，**or**
+- “左”上的设置点之一(速度 **或** 节点) **和** “右”上的设置点之一(态度、速率 **或** 节点)。 所有“左”和“右”设置点的组合都是有效的。
+
+为了便于使用，我们以新的 SettpointType 的形式揭示这些有效的组合。
+:::
+
+通过控制界面暴露的 RoverSetpointTypes 是这些设置点的组合，导致有效的控制输入：
+
+| SetpointType                                                                                                                        | 安装位置                        | Speed                                            | 油门                                               | Attitude                                         | 频率                                               | Steering                                         | Control Flags                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------ |
+| [RoverPosition](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverPositionSetpointType.html#details)         | &check; | (&check;) | (&check;) | (&check;) | (&check;) | (&check;) | Position, Velocity, Attitude, Rate, Control Allocation |
+| [RoverSpeedAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedAttitudeSetpointType.html)       |                             | &check;                      | (&check;) | &check;                      | (&check;) | (&check;) | Velocity, Attitude, Rate, Control Allocation           |
+| [RoverSpeedRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedRateSetpointType.html)               |                             | &check;                      | (&check;) |                                                  | &check;                      | (&check;) | Velocity, Rate, Control Allocation                     |
+| [RoverSpeedSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedSteeringSetpointType.html)       |                             | &check;                      | (&check;) |                                                  |                                                  | &check;                      | Velocity, Control Allocation                           |
+| [RoverThrottleAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleAttitudeSetpointType.html) |                             |                                                  | &check;                      | &check;                      | (&check;) | (&check;) | Attitude, Rate, Control Allocation                     |
+| [RoverThrottleRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleRateSetpointType.html)         |                             |                                                  | &check;                      |                                                  | &check;                      | (&check;) | Rate, Control Allocation                               |
+| [RoverThrottleSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleSteeringSetpointType.html) |                             |                                                  | &check;                      |                                                  |                                                  | &check;                      | Control Allocation                                     |
+
+&check; 是我们发布的设置点，(&check;) 是根据上面的层次结构由 PX4 旋转模块内部生成的。
+
+使用 `RoverSpeedAttitude SettpointType` 的特定驱动器模式示例为 [here](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/rover_velocity)。
 
 ### 控制VTOL
 
@@ -557,8 +594,8 @@ _fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
 
 要在外部飞行模式下控制VTOL，需确保根据当前飞行配置返回正确的设定值类型：
 
-- 多旋翼模式：使用与多旋翼控制兼容的设定值类型。 For example: either the [`MulticopterGotoSetpointType`](#go-to-setpoint-multicoptergotosetpointtype) or the [`TrajectorySetpointType`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1TrajectorySetpointType.html).
-- 固定翼形模式：使用 [`FwLateralLongitudinalSetpointType` ](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype)。
+- 多旋翼模式：使用与多旋翼控制兼容的设定值类型。 例如：要么[`MulticopterGotoSetpointType`](#go-to-setpoint-multicoptergotosetpointtype)要么[`TrajectorySetpointType`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1TrajectorySetpointType.html)。
+- 固定翼形模式：使用 [`FwLateralLongitudinalSetpointType`](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype)。
 
 只要VTOL在整个外部模式期间始终处于多旋翼模式或固定翼模式中的任意一种，就无需额外处理。
 
@@ -593,7 +630,7 @@ _fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
 
 要查询载具的当前状态，可在 px4_ros2::VTOL 对象上调用 getCurrentState() 方法。
 
-请参阅[此外部飞行模式实现](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/vtol)有关如何使用此 API 的实际示例。
+请参阅[此外部飞行模式实现](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/vtol) 有关如何使用此 API 的实际示例。
 
 ### 控制独立执行器/Servo
 

@@ -389,12 +389,12 @@ While most releases should support a very similar set of messages, to be certain
 
 Note that ROS 2/DDS needs to have the _same_ message definitions that were used to create the uXRCE-DDS client module in the PX4 Firmware in order to interpret the messages.
 The message definitions are stored in the ROS 2 interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs), and they are automatically synchronized by CI on the `main` and release branches.
-Note that all the messages from PX4 source code are present in the repository, but only those listed in `dds_topics.yaml` will be available as ROS 2 topics.
-Therefore,
+需要注意的是，PX4 源代码中的所有消息均存在于该代码仓库中，但只有在dds_topics.yaml文件中列出的消息，才会作为 ROS 2 话题可用。
+因此
 
-- If you're using a main or release version of PX4 you can get the message definitions by cloning the interface package [PX4/px4_msgs](https://github.com/PX4/px4_msgs) into your workspace.
-- If you're creating or modifying uORB messages you must manually update the messages in your workspace from your PX4 source tree.
-  Generally this means that you would update [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml), clone the interface package, and then manually synchronize it by copying the new/modified message definitions from [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg) to its `msg` folders.
+- 如果您正在使用 PX4 的主要版本或发布版本，您可以通过克隆接口包[PX4/px4_msgs](https://github.com/PX4/px4_msgs)获得消息定义。
+- 如果您要创建或修改 uORB 消息，必须从 PX4 源代码树中手动更新工作空间中的消息。
+  一般来说，这意味着您将更新 [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml)，克隆接口包。 然后手动同步，将新的/修改的消息定义从 [PX4-Autopilot/msg](https://github.com/PX4/PX4-Autopilot/tree/main/msg)复制到它的 `msg` 文件夹。
   Assuming that PX4-Autopilot is in your home directory `~`, while `px4_msgs` is in `~/px4_ros_com/src/`, then the command might be:
 
   ```sh
@@ -412,13 +412,13 @@ Therefore,
 
 Custom topic and service namespaces can be applied at build time (changing [dds_topics.yaml](../middleware/dds_topics.md)), at runtime, or through a parameter (which is useful for multi vehicle operations):
 
-- One possibility is to use the `-n` option when starting the [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) from command line.
-  This technique can be used both in simulation and real vehicles.
-- A custom namespace can be provided for simulations (only) by setting the environment variable `PX4_UXRCE_DDS_NS` before starting the simulation.
+- 一种可能性是在从命令行启动[uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client)时使用 "-n" 选项。
+  这种技术既可用于模拟，也可用于实际机体。
+- 在开始模拟前，可以通过设置环境变量 `PX4_UXRCE_DDS_NS`来提供自定义命名空间 (仅限)
 
 :::info
 Changing the namespace at runtime will append the desired namespace as a prefix to all `topic` fields in [dds_topics.yaml](../middleware/dds_topics.md) and all [service servers](#dds-ros-2-services).
-Therefore, commands like:
+因此，命令如下：
 
 ```sh
 uxrce_dds_client start -n uav_1
@@ -430,7 +430,7 @@ uxrce_dds_client start -n uav_1
 PX4_UXRCE_DDS_NS=uav_1 make px4_sitl gz_x500
 ```
 
-will generate topics under the namespaces:
+将在以下命名空间下生成话题：
 
 ```sh
 /uav_1/fmu/in/  # for subscribers
