@@ -620,7 +620,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		// Check command validity
 		if ((int)roundf(vehicle_command.param1) != 1 || (int)roundf(vehicle_command.param2) != 0) {
-			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 			send_ack = true;
 
 		} else {
