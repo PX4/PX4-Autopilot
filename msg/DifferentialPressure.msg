@@ -1,6 +1,6 @@
 # Differential-pressure (airspeed) sensor
 #
-# This is populated by airspeed sensor drivers and used by the EKF2 estimator.
+# This is populated by airspeed sensor drivers and used by the sensor module to calculate airspeed.
 # The information is published in the `SCALED_PRESSURE_n` MAVLink messages (along with information from a corresponding `SensorBaro` instance).
 
 uint64 timestamp         # [us] Time of publication (since system start)
