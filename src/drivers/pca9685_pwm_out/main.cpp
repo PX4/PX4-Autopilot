@@ -129,7 +129,9 @@ int PCA9685Wrapper::init()
 
 	for (int i = 0; i < 20; i++) {
 		ret = pca9685->init();
+
 		if (ret == PX4_OK) { break; }
+
 		px4_usleep(500000);
 	}
 
