@@ -32,24 +32,27 @@ If needed, you can:
 
 ## Baro Auto-Calibration
 
-Documentation of the automated calibration mechanisms to ensure accurate altitude measurements throughout flight operations. The system implements two complementary calibration approaches that work together to maintain altitude measurement precision. Both calibrations are initiated at the beginning after a system boot, where the GNSS-barometric calibration awaits the completion of the relative calibration.
-
+Documentation of the automated calibration mechanisms to ensure accurate altitude measurements throughout flight operations.
+The system implements two complementary calibration approaches that work together to maintain altitude measurement precision.
+Both calibrations are initiated at the beginning after a system boot, where the GNSS-barometric calibration awaits the completion of the relative calibration.
 
 ### Relative Calibration
 
-Relative baro calibration is **always enabled** and operates automatically during system initialization. This calibration establishes offset corrections for all secondary baro sensors relative to the primary (selected) sensor.
+Relative baro calibration is **always enabled** and operates automatically during system initialization.
+This calibration establishes offset corrections for all secondary baro sensors relative to the primary (selected) sensor.
 
 - Eliminates altitude jumps when switching between baro sensors during flight
 - Ensures consistent altitude readings across all available baro sensors
 - Maintains seamless sensor redundancy and failover capability
 
-
 ### GNSS-Baro Calibration
 
-GNSS-baro calibration adjusts baro sensor offsets to align with absolute altitude measurements from the GNSS receiver. This calibration is controlled by the `SENS_BAR_AUTOCAL` parameter (enabled by default).
+GNSS-baro calibration adjusts baro sensor offsets to align with absolute altitude measurements from the GNSS receiver.
+This calibration is controlled by the `SENS_BAR_AUTOCAL` parameter (enabled by default).
 
-GNSS-baro calibration requires an operational GNSS receiver with vertical accuracy (EPV) ≤ 8 meters and completed relative calibration. The algorithm monitors GNSS quality, collects altitude differences over a 2-second filtered window, and verifies stability within 4m tolerance. Once stable, it uses binary search to calculate pressure offsets that align baro altitude with GNSS altitude (0.1m precision), then applies the offset to all sensors and saves the parameters.
-
+GNSS-baro calibration requires an operational GNSS receiver with vertical accuracy (EPV) ≤ 8 meters and completed relative calibration.
+The algorithm monitors GNSS quality, collects altitude differences over a 2-second filtered window, and verifies stability within 4m tolerance.
+Once stable, it uses binary search to calculate pressure offsets that align baro altitude with GNSS altitude (0.1m precision), then applies the offset to all sensors and saves the parameters.
 
 #### Important Notes
 
@@ -57,12 +60,13 @@ GNSS-baro calibration requires an operational GNSS receiver with vertical accura
 - **Execution Timing**: Calibration runs even when `EKF2_GPS_CTRL` altitude fusion is disabled
 - **One-Time Process**: Each calibration session completes once per system startup
 - **Persistence**: Calibration offsets are saved to parameters and persist across reboots
-- **Faulty GNSS Vulnerability**: If GNSS data is faulty during boot, the calibration will use incorrect altitude reference. See "Faulty GNSS Data During Boot" in the GNSS fault detection documentation for mitigation strategies.
-
+- **Faulty GNSS Vulnerability**: If GNSS data is faulty during boot, the calibration will use incorrect altitude reference.
+  See "Faulty GNSS Data During Boot" in the GNSS fault detection documentation for mitigation strategies.
 
 <!-- Notes:
 - Absolute value isn't important since we just use the difference in altitude between "now" and the value when initializing EKF2
-- There is usually a scale factor error but it's compensated by the GNSS altitude using a bias estimator in EKF2 (we don't provide a way to calibrate that). This method is fine as long as the height change of the drone isn't too fast (below 200-300km/h probably; don't have real data on that).
+- There is usually a scale factor error but it's compensated by the GNSS altitude using a bias estimator in EKF2 (we don't provide a way to calibrate that).
+  This method is fine as long as the height change of the drone isn't too fast (below 200-300km/h probably; don't have real data on that).
 - The baro readings can be corrected using a param SENS_BARO_QNH (https://en.wikipedia.org/wiki/Altimeter_setting) parameter, but again, it is only necessary to adjust it if the absolute barometric altitude is required by the pilot.
 -->
 

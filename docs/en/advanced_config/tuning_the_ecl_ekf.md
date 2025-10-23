@@ -350,11 +350,13 @@ Note that `ekf2_gps_drift` is not logged!
 
 #### GNSS Fault Detection
 
-PX4's GNSS fault detection protects against malicious or erroneous GNSS signals through selective fusion control based on measurement validation. The detection logic is dependent on the `EKF2_GPS_MODE` parameter and operates separately for horizontal position and altitude measurements.
+PX4's GNSS fault detection protects against malicious or erroneous GNSS signals using selective fusion control based on measurement validation.
+The detection logic is dependent on the `EKF2_GPS_MODE` parameter, and operates separately for horizontal position and altitude measurements.
 
 ##### Configuration
 
 The fault detection is controlled by the [EKF2_GPS_MODE](../advanced_config/parameter_reference.md#EKF2_GPS_MODE) parameter:
+
 - **Automatic (0)**: Standard behavior, resets on fusion timeouts regardless of fault concerns
 - **Dead-reckoning (1)**: Enhanced fault protection, prevents resets when alternative sources are available
 
@@ -362,7 +364,9 @@ The fault detection is controlled by the [EKF2_GPS_MODE](../advanced_config/para
 
 ###### General Concept
 
-EKF2 decides data fusion based on measurement and state uncertainty metrics. When GNSS data fusion fails for a certain period, a reset is normally triggered. The fault detection modifies this behavior: if GNSS altitude OR horizontal position data drifts away in dead-reckoning mode, the system disables fusion of both measurements simultaneously (even if one would still pass validation) and avoids performing resets.
+EKF2 decides data fusion based on measurement and state uncertainty metrics.
+When GNSS data fusion fails for a certain period, a reset is normally triggered.
+The fault detection modifies this behavior: if GNSS altitude OR horizontal position data drifts away in dead-reckoning mode, the system disables fusion of both measurements simultaneously (even if one would still pass validation) and avoids performing resets.
 
 ###### Horizontal Position
 
@@ -384,15 +388,18 @@ If height reference is set to baro, GNSS-based height resets are prevented (exce
 
 The system cannot automatically detect faulty GNSS data during vehicle boot as no baseline comparison exists.
 
-If GNSS fusion is enabled (`EKF2_GPS_CTRL`), operators will observe incorrect positions on maps and should disable GNSS fusion, then manually set the correct position via ground control station. The global position gets corrected, and if `SENS_BAR_AUTOCAL` was enabled, baro offsets are automatically adjusted (through bias correction, not parameter changes).
+If GNSS fusion is enabled (`EKF2_GPS_CTRL`), operators will observe incorrect positions on maps and should disable GNSS fusion, then manually set the correct position via ground control station.
+The global position gets corrected, and if `SENS_BAR_AUTOCAL` was enabled, baro offsets are automatically adjusted (through bias correction, not parameter changes).
 
 ##### Enabling GNSS Fusion Mid-Flight
 
 ###### With Faulty GNSS Data
+
 **Automatic mode**: Vehicle will reset to faulty position - potentially dangerous.
 **Dead-reckoning mode**: Large measurement differences cause GNSS rejection and fault detection activation.
 
 ###### With Valid GNSS Data
+
 **Automatic mode**: Vehicle will reset to GNSS measurements.
 **Dead-reckoning mode**: If estimated position/altitude is close enough to measurements, fusion resumes; if too far apart, data gets labeled as faulty.
 
