@@ -49,7 +49,6 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	flags.mode_req_attitude = 0;
 	flags.mode_req_local_position = 0;
 	flags.mode_req_local_position_relaxed = 0;
-	flags.mode_req_dead_reckoning_invalid = 0;
 	flags.mode_req_global_position = 0;
 	flags.mode_req_global_position_relaxed = 0;
 	flags.mode_req_local_alt = 0;

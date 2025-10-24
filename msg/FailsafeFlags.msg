@@ -8,7 +8,6 @@ uint64 timestamp				# time since system start (microseconds)
 # Per-mode requirements
 uint32 mode_req_angular_velocity
 uint32 mode_req_attitude
-uint32 mode_req_dead_reckoning_invalid
 uint32 mode_req_local_alt
 uint32 mode_req_local_position
 uint32 mode_req_local_position_relaxed
