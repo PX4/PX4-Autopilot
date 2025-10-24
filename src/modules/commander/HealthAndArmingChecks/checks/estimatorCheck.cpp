@@ -656,7 +656,7 @@ void EstimatorChecks::deadReckoningTimeout(const Context &context, Report &repor
 	_vehicle_land_detected_sub.copy(&vehicle_land_detected);
 	_in_air_valid = (now < vehicle_land_detected.timestamp + 2_s) && !vehicle_land_detected.landed;
 
-	if (!lpos.dead_reckoning || !_in_air_valid) {
+	if (!lpos.dead_reckoning && _in_air_valid) {
 		_last_not_dead_reckoning_time_us = now;
 
 	}
