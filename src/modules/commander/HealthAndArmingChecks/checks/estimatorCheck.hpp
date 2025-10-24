@@ -107,7 +107,6 @@ private:
 
 	bool _gps_was_fused{false};
 	bool _gnss_spoofed{false};
-	bool _in_air_valid{false};
 
 	bool _nav_failure_imminent_warned{false};
 

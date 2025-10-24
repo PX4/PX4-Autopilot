@@ -654,25 +654,23 @@ void EstimatorChecks::deadReckoningTimeout(const Context &context, Report &repor
 
 	vehicle_land_detected_s vehicle_land_detected;
 	_vehicle_land_detected_sub.copy(&vehicle_land_detected);
-	_in_air_valid = (now < vehicle_land_detected.timestamp + 2_s) && !vehicle_land_detected.landed;
 
-	if (!lpos.dead_reckoning && _in_air_valid) {
+	if (!lpos.dead_reckoning) {
 		_last_not_dead_reckoning_time_us = now;
 
 	}
 
-	bool dead_reckoning_valid_but_timouted = false;
+	if (!vehicle_land_detected.landed && ((reporter.failsafeFlags().mode_req_global_position
+					       && !reporter.failsafeFlags().global_position_invalid) ||
+					      (reporter.failsafeFlags().mode_req_global_position_relaxed
+					       && !reporter.failsafeFlags().global_position_invalid_relaxed) ||
+					      (reporter.failsafeFlags().mode_req_local_position && !reporter.failsafeFlags().local_position_invalid))) {
 
-	if ((reporter.failsafeFlags().mode_req_global_position && !reporter.failsafeFlags().global_position_invalid) ||
-	    (reporter.failsafeFlags().mode_req_global_position_relaxed
-	     && !reporter.failsafeFlags().global_position_invalid_relaxed) ||
-	    (reporter.failsafeFlags().mode_req_local_position && !reporter.failsafeFlags().local_position_invalid)) {
-
-		dead_reckoning_valid_but_timouted = (_last_not_dead_reckoning_time_us != 0
-						     && now > _last_not_dead_reckoning_time_us + _param_com_dead_reckoning_tout_t.get() * 1_s);
+		reporter.failsafeFlags().dead_reckoning_invalid = (_last_not_dead_reckoning_time_us != 0
+				&& now > _last_not_dead_reckoning_time_us + _param_com_dead_reckoning_tout_t.get() * 1_s);
 	}
 
-	if (dead_reckoning_valid_but_timouted && _param_com_dead_reckoning_tout_act.get()) {
+	if (reporter.failsafeFlags().dead_reckoning_invalid && _param_com_dead_reckoning_tout_act.get()) {
 
 		// only report if armed
 		if (context.isArmed()) {
@@ -692,8 +690,6 @@ void EstimatorChecks::deadReckoningTimeout(const Context &context, Report &repor
 			}
 		}
 	}
-
-	reporter.failsafeFlags().dead_reckoning_invalid = dead_reckoning_valid_but_timouted;
 }
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
