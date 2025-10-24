@@ -103,12 +103,11 @@ private:
 	hrt_abstime	_last_lpos_fail_time_us{0};	///< Last time that the local position validity recovery check failed (usec)
 	hrt_abstime	_last_lpos_relaxed_fail_time_us{0};	///< Last time that the relaxed local position validity recovery check failed (usec)
 	hrt_abstime	_last_lvel_fail_time_us{0};	///< Last time that the local velocity validity recovery check failed (usec)
-	hrt_abstime	_last_initiated_dead_reckoning_time_us{0};	///< Last time that the dead reckoning initiated (usec)
+	hrt_abstime	_last_not_dead_reckoning_time_us{0};	///< Last time that the dead reckoning initiated (usec)
 
 	bool _gps_was_fused{false};
 	bool _gnss_spoofed{false};
 	bool _in_air_valid{false};
-	bool _was_dead_reckoning{false};
 
 	bool _nav_failure_imminent_warned{false};
 

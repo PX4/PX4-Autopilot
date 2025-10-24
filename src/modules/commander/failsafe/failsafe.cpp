@@ -550,7 +550,8 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	// trigger dead reckoning Timeout Failsafe (only in auto mission)
-	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
+	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
 		CHECK_FAILSAFE(status_flags, dead_reckoning_invalid, fromPosLowActParam(_param_com_dead_reckoning_tout_act.get()));
 	}
 

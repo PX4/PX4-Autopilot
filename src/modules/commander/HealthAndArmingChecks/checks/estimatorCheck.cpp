@@ -656,30 +656,20 @@ void EstimatorChecks::deadReckoningTimeout(const Context &context, Report &repor
 	_vehicle_land_detected_sub.copy(&vehicle_land_detected);
 	_in_air_valid = (now < vehicle_land_detected.timestamp + 2_s) && !vehicle_land_detected.landed;
 
-	bool dead_reckoning_valid_but_timouted = false;
-	bool dead_reckoning_changed = _was_dead_reckoning != lpos.dead_reckoning;
+	if (!lpos.dead_reckoning || !_in_air_valid) {
+		_last_not_dead_reckoning_time_us = now;
 
-	if (dead_reckoning_changed && _in_air_valid) {
-		if (lpos.dead_reckoning) {
-			_last_initiated_dead_reckoning_time_us = now;
-
-		} else {
-			reporter.failsafeFlags().mode_req_dead_reckoning_invalid = true;
-			reporter.failsafeFlags().dead_reckoning_invalid = false;
-			_last_initiated_dead_reckoning_time_us = 0;
-		}
 	}
 
+	bool dead_reckoning_valid_but_timouted = false;
 
-	if (reporter.failsafeFlags().mode_req_dead_reckoning_invalid
-	    && !reporter.failsafeFlags().dead_reckoning_invalid) {
+	if ((reporter.failsafeFlags().mode_req_global_position && !reporter.failsafeFlags().global_position_invalid) ||
+	    (reporter.failsafeFlags().mode_req_global_position_relaxed
+	     && !reporter.failsafeFlags().global_position_invalid_relaxed) ||
+	    (reporter.failsafeFlags().mode_req_local_position && !reporter.failsafeFlags().local_position_invalid)) {
 
-		dead_reckoning_valid_but_timouted = (_param_com_dead_reckoning_tout_t.get() > FLT_EPSILON
-						     && lpos.dead_reckoning
-						     && now > _last_initiated_dead_reckoning_time_us + _param_com_dead_reckoning_tout_t.get() * 1_s);
-
-		reporter.failsafeFlags().dead_reckoning_invalid = dead_reckoning_valid_but_timouted;
-		reporter.failsafeFlags().mode_req_dead_reckoning_invalid = !dead_reckoning_valid_but_timouted;
+		dead_reckoning_valid_but_timouted = (_last_not_dead_reckoning_time_us != 0
+						     && now > _last_not_dead_reckoning_time_us + _param_com_dead_reckoning_tout_t.get() * 1_s);
 	}
 
 	if (dead_reckoning_valid_but_timouted && _param_com_dead_reckoning_tout_act.get()) {
@@ -703,7 +693,7 @@ void EstimatorChecks::deadReckoningTimeout(const Context &context, Report &repor
 		}
 	}
 
-	_was_dead_reckoning = lpos.dead_reckoning;
+	reporter.failsafeFlags().dead_reckoning_invalid = dead_reckoning_valid_but_timouted;
 }
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
