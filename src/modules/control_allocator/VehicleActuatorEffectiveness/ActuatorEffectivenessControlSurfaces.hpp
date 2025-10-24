@@ -75,7 +75,7 @@ public:
 		float trim;
 		float scale_flap;
 		float scale_spoiler;
-		int launch_lock;
+		int32_t launch_lock;
 	};
 
 	ActuatorEffectivenessControlSurfaces(ModuleParams *parent);
