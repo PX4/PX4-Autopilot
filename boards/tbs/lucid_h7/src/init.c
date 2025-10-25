@@ -169,21 +169,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_BLUE);
 	}
 
+#ifdef CONFIG_MMCSD
+	/* Initialize SDMMC1-based SD card (TBS Lucid H7 uses SDIO, not SPI) */
+	int result = stm32_sdio_initialize();
 
-	/* Get the SPI port for the microSD slot */
-	struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
-
-	if (!spi_dev) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO: %d\n", result);
 		led_on(LED_BLUE);
 	}
 
-	/* Now bind the SPI interface to the MMCSD driver */
-	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_dev);
-
-	if (result != OK) {
-		syslog(LOG_ERR, "[boot] Could not bind MMCSD driver, expected on Kakute H7 V2\n");
-	}
+#endif
 
 	up_udelay(20);
 

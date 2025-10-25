@@ -360,30 +360,37 @@ CONFIG_STM32H7_UART7=y   → ttyS4
 
 */
 
-// #define GPIO_USART1_RX   GPIO_USART1_RX_2   /* PA10 */
-// #define GPIO_USART1_TX   GPIO_USART1_TX_2   /* PA9  */
+/* USART1 - DJI SBUS connector */
+#define GPIO_USART1_RX   GPIO_USART1_RX_2   /* PA10 */
+#define GPIO_USART1_TX   GPIO_USART1_TX_2   /* PA9  */
 
+/* USART2 - GPS1 */
 #define GPIO_USART2_RX   GPIO_USART2_RX_2   	/* PD6  */
 #define GPIO_USART2_TX   GPIO_USART2_TX_2   	/* PD5  */
 #define GPIO_USART2_RTS  GPIO_USART2_RTS_2  	/* PE9  */
 #define GPIO_USART2_CTS  GPIO_USART2_CTS_NSS_2  /* PE10 */
 
+/* USART3 - DJI O3 connector */
 #define GPIO_USART3_RX   GPIO_USART3_RX_3   /* PD9  */
 #define GPIO_USART3_TX   GPIO_USART3_TX_3   /* PD8  */
 
-#define GPIO_UART4_RX    GPIO_UART4_RX_2    /* PC11  */
-#define GPIO_UART4_TX    GPIO_UART4_TX_2    /* PC10  */
+/* UART4 - Telem1 (based on ArduPilot: PB8/PB9) */
+#define GPIO_UART4_RX    GPIO_UART4_RX_2    /* PB8  */
+#define GPIO_UART4_TX    GPIO_UART4_TX_2    /* PB9  */
 
-#define GPIO_UART5_RX    GPIO_UART5_RX_1    /* PD2  */
-#define GPIO_UART5_TX    GPIO_UART5_TX_1    /* PC12 */
+/* USART6 - RC Input */
+#define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7  */
+#define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
 
+/* UART7 - Telem2 */
 #define GPIO_UART7_RX    GPIO_UART7_RX_3    /* PE7  */
 #define GPIO_UART7_TX    GPIO_UART7_TX_3    /* PE8  */
 #define GPIO_UART7_RTS   GPIO_UART7_RTS_1   /* PE9  */
 #define GPIO_UART7_CTS   GPIO_UART7_CTS_1   /* PE10 */
 
-// #define GPIO_UART8_RX    GPIO_UART8_RX_1    /* PE0  */
-// #define GPIO_UART8_TX    GPIO_UART8_TX_1    /* PE1  */
+/* UART8 - ESC Telemetry */
+#define GPIO_UART8_RX    GPIO_UART8_RX_1    /* PE0  */
+#define GPIO_UART8_TX    GPIO_UART8_TX_1    /* PE1  */
 
 /* CAN
  *
@@ -420,9 +427,10 @@ CONFIG_STM32H7_UART7=y   → ttyS4
 #define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_1               /* PE14 */
 #define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_1) /* PE12 */
 
-#define GPIO_SPI6_MISO   GPIO_SPI6_MISO_2               /* PA6 */
-#define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_2               /* PA7 */
-#define GPIO_SPI6_SCK    ADJ_SLEW_RATE(GPIO_SPI6_SCK_2) /* PA5 */
+// SPI6 not used on TBS Lucid H7 (conflicts with SPI1 and ADC pins)
+// #define GPIO_SPI6_MISO   GPIO_SPI6_MISO_2               /* PA6 */
+// #define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_2               /* PA7 */
+// #define GPIO_SPI6_SCK    ADJ_SLEW_RATE(GPIO_SPI6_SCK_2) /* PA5 */
 
 /* I2C
  *
@@ -453,12 +461,12 @@ CONFIG_STM32H7_UART7=y   → ttyS4
  *      SDMMC1_CMD                         PD2
  */
 
-// #define GPIO_SDMMC1_D0   GPIO_SDMMC1_D0    /* PC8  */
-// #define GPIO_SDMMC1_D1   GPIO_SDMMC1_D1    /* PC9  */
-// #define GPIO_SDMMC1_D2   GPIO_SDMMC1_D2    /* PC10 */
-// #define GPIO_SDMMC1_D3   GPIO_SDMMC1_D3    /* PC11 */
-// #define GPIO_SDMMC1_CK   GPIO_SDMMC1_CK    /* PC12 */
-// #define GPIO_SDMMC1_CMD  GPIO_SDMMC1_CMD   /* PD2  */
+#define GPIO_SDMMC1_D0   (GPIO_ALT|GPIO_AF12|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN8)
+#define GPIO_SDMMC1_D1   (GPIO_ALT|GPIO_AF12|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN9)
+#define GPIO_SDMMC1_D2   (GPIO_ALT|GPIO_AF12|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN10)
+#define GPIO_SDMMC1_D3   (GPIO_ALT|GPIO_AF12|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN11)
+#define GPIO_SDMMC1_CK   (GPIO_ALT|GPIO_AF12|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN12)
+#define GPIO_SDMMC1_CMD  (GPIO_ALT|GPIO_AF12|GPIO_SPEED_50MHz|GPIO_PUSHPULL|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN2)
 
 
 /* USB
@@ -472,7 +480,7 @@ CONFIG_STM32H7_UART7=y   → ttyS4
 /* Board provides GPIO or other Hardware for signaling to timing analyzer */
 
 // #if defined(CONFIG_BOARD_USE_PROBES)
-// # include "stm32_gpio.h"
+# include "stm32_gpio.h"
 // # define PROBE_N(n) (1<<((n)-1))
 // # define PROBE_1    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTI|GPIO_PIN0)   /* PI0 AUX1 */
 // # define PROBE_2    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN12)  /* PH12 AUX2 */

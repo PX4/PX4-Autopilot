@@ -56,14 +56,14 @@
 #define FLASH_BASED_PARAMS
 
 
-/* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
+/* LEDs - Active LOW (based on ArduPilot hwdef) */
 
-#define GPIO_nLED_BLUE          /* PB2  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
-#define GPIO_nLED_GREEN         /* PB12 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN12)
+#define GPIO_nLED_BLUE          /* PE3  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
+#define GPIO_nLED_GREEN         /* PE4  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS   1
-#define BOARD_ARMED_STATE_LED           0 // Green LED
-#define BOARD_OVERLOAD_LED              0 // Blue LED
+#define BOARD_ARMED_STATE_LED           1 // Green LED on PE4
+#define BOARD_OVERLOAD_LED              0 // Blue LED on PE3
 
 /*
  * ADC channels
@@ -84,16 +84,16 @@
 #define PX4_ADC_GPIO  \
 	/* PC0  */  GPIO_ADC123_INP10, \
 	/* PC1  */  GPIO_ADC123_INP11, \
-	/* PC2  */  GPIO_ADC123_INP12, \
-	/* PC3  */  GPIO_ADC12_INP13,	\
+	/* PA4  */  GPIO_ADC12_INP18, \
+	/* PA7  */  GPIO_ADC12_INP7, \
 	/* PC4  */  GPIO_ADC12_INP4, \
 	/* PC5  */  GPIO_ADC12_INP8
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 #define ADC_BATTERY1_VOLTAGE_CHANNEL     	/* PC0  */  ADC1_CH(10)
 #define ADC_BATTERY1_CURRENT_CHANNEL     	/* PC1  */  ADC1_CH(11)
-#define ADC_BATTERY2_VOLTAGE_CHANNEL     	/* PC2  */  ADC1_CH(12)
-#define ADC_BATTERY2_CURRENT_CHANNEL     	/* PC3  */  ADC1_CH(13)
+#define ADC_BATTERY2_VOLTAGE_CHANNEL     	/* PA4  */  ADC1_CH(18)
+#define ADC_BATTERY2_CURRENT_CHANNEL     	/* PA7  */  ADC1_CH(7)
 #define ADC_SCALED_V5_CHANNEL     	 	/* PC4  */  ADC1_CH(4)
 #define ADC_SCALED_VDD_3V3_SENSORS_CHANNEL 	/* PC5  */  ADC1_CH(8)
 

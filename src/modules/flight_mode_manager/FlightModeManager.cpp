@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "FlightModeManager.hpp"
+#include "px4_platform_common/log.h"
 
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
@@ -249,11 +250,14 @@ void FlightModeManager::start_flight_task()
 		switch (_param_mpc_pos_mode.get()) {
 		case 0:
 			error = switchTask(FlightTaskIndex::ManualAltitude);
+			PX4_INFO("mpc = 0 menaul altitude control");
 			break;
 
 		case 3:
 		default:
 			error = switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
+			PX4_INFO("defult have altitude smooth");
+
 			break;
 		}
 

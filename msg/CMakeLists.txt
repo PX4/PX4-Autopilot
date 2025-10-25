@@ -61,6 +61,7 @@ set(msg_files
 	DatamanResponse.msg
 	DebugArray.msg
 	DebugKeyValue.msg
+	DebugFlag.msg
 	DebugValue.msg
 	DebugVect.msg
 	DifferentialPressure.msg

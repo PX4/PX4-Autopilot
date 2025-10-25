@@ -202,6 +202,9 @@ subscriptions:
   - topic: /fmu/in/vehicle_command_mode_executor
     type: px4_msgs::msg::VehicleCommand
 
+  - topic: /fmu/in/formic/debug_flag
+    type: px4_msgs::msg::DebugFlag
+
   # - topic: /fmu/in/vehicle_torque_setpoint
   #   type: px4_msgs::msg::VehicleTorqueSetpoint
 

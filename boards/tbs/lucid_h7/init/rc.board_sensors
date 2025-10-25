@@ -6,10 +6,14 @@
 board_adc start
 
 # ───────────────────────────────────────────────────────────────
-# TBS Lucid H7 has DUAL ICM42688 IMUs
-# IMU 1 – ICM42688 on SPI1 (CS=PC15)
-icm42688 -s -b 1 start
+# TBS Lucid H7 has DUAL ICM42688 IMUs (rotations match ArduPilot hwdef)
+# IMU 1 – ICM42688 on SPI1 (CS=PC15) - 270° Yaw rotation (ROTATION_YAW_270)
+icm42688 -s -b 1 -R 6 start
 
-# IMU 2 – ICM42688 on SPI4 (CS=PE11)
-icm42688 -s -b 4 start
+# IMU 2 – ICM42688 on SPI4 (CS=PE11) - 180° Yaw rotation (ROTATION_YAW_180)
+icm42688 -s -b 4 -R 4 start
+
+# ───────────────────────────────────────────────────────────────
+# Internal DPS310 Barometer on I2C2 at address 0x76 (118 decimal)
+dps310 -I start -a 118
 
