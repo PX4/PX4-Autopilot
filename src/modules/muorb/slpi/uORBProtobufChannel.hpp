@@ -181,7 +181,12 @@ public:
 		return _simulate_apps_proc_failure;
 	}
 
+	static void keepalive_thread_func(void *ptr);
+
+	static void keepalive() { _last_keepalive = hrt_absolute_time(); }
+
 private:
+
 	/**
 	 * Data Members
 	 */
@@ -202,6 +207,8 @@ private:
 	static uint32_t                             _total_bytes_received;
 	static uint32_t                             _bytes_received_since_last_status_check;
 	static hrt_abstime                          _last_status_check_time;
+	static hrt_abstime                          _last_keepalive;
+	static char                                 _keepalive_filename[];
 
 	/**
 	 * Class Members

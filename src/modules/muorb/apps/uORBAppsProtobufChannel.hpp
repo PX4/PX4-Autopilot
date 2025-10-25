@@ -39,6 +39,7 @@
 #include <map>
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
 
 #include "MUORBTest.hpp"
 #include "uORB/uORBCommunicator.hpp"
@@ -161,6 +162,9 @@ public:
 	void stop_communicator(void) {}
 
 private:
+
+	static void keepalive_task();
+
 	/**
 	 * Data Members
 	 */
@@ -180,6 +184,7 @@ private:
 	static uint32_t                             _total_bytes_received;
 	static uint32_t                             _bytes_received_since_last_status_check;
 	static hrt_abstime                          _last_status_check_time;
+	static hrt_abstime                          _last_keepalive;
 
 	bool                                        _Initialized;
 	uint32_t                                    _MessageCounter;
@@ -193,6 +198,7 @@ private:
 	bool Test(MUORBTestType test_type);
 
 	static bool test_flag;
+	static px4_task_t _task_handle;
 
 	static void ReceiveCallback(const char *topic,
 				    const uint8_t *data,
