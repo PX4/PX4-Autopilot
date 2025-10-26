@@ -85,7 +85,6 @@ enum class VtFwDifthrEnBits : int32_t {
 
 enum class QuadchuteReason {
 	None = 0,
-	TransitionTimeout,
 	ExternalCommand,
 	MinimumAltBreached,
 	UncommandedDescent,
@@ -192,13 +191,6 @@ public:
 	bool isRollExceeded();
 
 	/**
-	 *  @brief Indicates if the front transition duration has exceeded the timeout definded by VT_TRANS_TIMEOUT
-	 *
-	 * @return     true if exeeded
-	 */
-	bool isFrontTransitionTimeout();
-
-	/**
 	 *  @brief Special handling of QuadchuteReason::ReasonExternal
 	 */
 	void handleSpecialExternalCommandQuadchute();
@@ -226,11 +218,6 @@ public:
 	 * @return Minimum front transition time scaled for air density (if available) [s]
 	*/
 	float getMinimumFrontTransitionTime() const;
-
-	/**
-	 * @return Front transition timeout scaled for air density (if available) [s]
-	*/
-	float getFrontTransitionTimeout() const;
 
 	/**
 	* @return Minimum open-loop front transition time scaled for air density (if available) [s]
@@ -275,6 +262,7 @@ protected:
 	struct vehicle_attitude_setpoint_s *_mc_virtual_att_sp;	// virtual mc attitude setpoint
 	struct vehicle_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
+	struct vehicle_status_s			*_vehicle_status;	//vehicle status
 	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
 	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_mc;
 	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_fw;
@@ -339,7 +327,6 @@ protected:
 					(ParamFloat<px4::params::VT_F_TRANS_THR>) _param_vt_f_trans_thr,
 					(ParamFloat<px4::params::VT_ARSP_BLEND>) _param_vt_arsp_blend,
 					(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
-					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 					(ParamInt<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
 					(ParamFloat<px4::params::VT_FW_DIFTHR_S_Y>) _param_vt_fw_difthr_s_y,

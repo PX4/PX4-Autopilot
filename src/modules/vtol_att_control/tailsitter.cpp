@@ -90,10 +90,12 @@ void Tailsitter::update_vtol_state()
 			break;
 
 		case vtol_mode::TRANSITION_BACK:
-			const float pitch = Eulerf(Quatf(_v_att->q)).theta();
+			// Calculate tilt angle: angle between body z-axis and gravity (world z-axis)
+			const matrix::Dcmf R(matrix::Quatf(_v_att->q));
+			const float tilt = acosf(math::constrain(R(2, 2), -1.0f, 1.0f));
 
-			// check if we have reached pitch angle to switch to MC mode
-			if (pitch >= PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
+			// Check if we have reached tilt angle to switch to MC mode
+			if (tilt >= TILT_THRESHOLD_AUTO_TRANSITION_TO_MC || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
 				_vtol_mode = vtol_mode::MC_MODE;
 			}
 
@@ -102,19 +104,30 @@ void Tailsitter::update_vtol_state()
 
 	} else {  // user switchig to FW mode
 
+		// Check if in pure manual flight mode (not stabilized/altitude/position)
+		const bool in_manual_mode = (_vehicle_status->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL);
+
 		switch (_vtol_mode) {
 		case vtol_mode::MC_MODE:
-			// initialise a front transition
-			_vtol_mode = vtol_mode::TRANSITION_FRONT_P1;
-			resetTransitionStates();
+			if (in_manual_mode) {
+				// In manual mode, transition immediately to FW without waiting
+				_vtol_mode = vtol_mode::FW_MODE;
+				_trans_finished_ts = hrt_absolute_time();
+
+			} else {
+				// In auto/stabilized modes, do normal transition
+				_vtol_mode = vtol_mode::TRANSITION_FRONT_P1;
+				resetTransitionStates();
+			}
+
 			break;
 
 		case vtol_mode::FW_MODE:
 			break;
 
 		case vtol_mode::TRANSITION_FRONT_P1: {
-
-				if (isFrontTransitionCompleted()) {
+				// If manual flight mode is active, complete transition immediately
+				if (in_manual_mode || isFrontTransitionCompleted() || _time_since_trans_start > _param_vt_f_trans_dur.get()) {
 					_vtol_mode = vtol_mode::FW_MODE;
 					_trans_finished_ts = hrt_absolute_time();
 				}

@@ -145,20 +145,6 @@ PARAM_DEFINE_FLOAT(VT_ARSP_BLEND, 8.0f);
 PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 
 /**
- * Front transition timeout
- *
- * Time in seconds after which transition will be cancelled.
- *
- * @unit s
- * @min 0.1
- * @max 30.00
- * @increment 1
- * @decimal 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
-
-/**
  * Front transition minimum time
  *
  * Minimum time in seconds for front transition.
@@ -225,7 +211,7 @@ PARAM_DEFINE_FLOAT(VT_QC_ALT_LOSS, 0.0f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_QC_T_ALT_LOSS, 20.0f);
+PARAM_DEFINE_FLOAT(VT_QC_T_ALT_LOSS, 0.0f);
 
 /**
  * Quad-chute max pitch threshold

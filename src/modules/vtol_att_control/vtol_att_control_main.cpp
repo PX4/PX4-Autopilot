@@ -191,10 +191,6 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 		mavlink_log_critical(&_mavlink_log_pub, "Quad-chute triggered\t");
 
 		switch (reason) {
-		case QuadchuteReason::TransitionTimeout:
-			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical,
-				     "Quad-chute triggered due to transition timeout");
-			break;
 
 		case QuadchuteReason::ExternalCommand:
 			events::send(events::ID("vtol_att_ctrl_quadchute_ext_cmd"), events::Log::Critical,

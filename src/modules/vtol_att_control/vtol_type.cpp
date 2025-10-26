@@ -67,6 +67,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_mc_virtual_att_sp = _attc->get_mc_virtual_att_sp();
 	_fw_virtual_att_sp = _attc->get_fw_virtual_att_sp();
 	_v_control_mode = _attc->get_control_mode();
+	_vehicle_status = _attc->get_vehicle_status();
 	_vtol_vehicle_status = _attc->get_vtol_vehicle_status();
 	_vehicle_torque_setpoint_virtual_mc = _attc->get_vehicle_torque_setpoint_virtual_mc();
 	_vehicle_torque_setpoint_virtual_fw = _attc->get_vehicle_torque_setpoint_virtual_fw();
@@ -326,23 +327,6 @@ bool VtolType::isRollExceeded()
 	return false;
 }
 
-bool VtolType::isFrontTransitionTimeout()
-{
-	// check front transition timeout
-	if (_common_vtol_mode == mode::TRANSITION_TO_FW) {
-		// when we use airspeed, we can timeout earlier if airspeed is not increasing fast enough
-		if (_param_fw_use_airspd.get() && _time_since_trans_start > getOpenLoopFrontTransitionTime()
-		    && _airspeed_validated->calibrated_airspeed_m_s < getBlendAirspeed()) {
-			return true;
-
-		} else if (_time_since_trans_start > getFrontTransitionTimeout()) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 QuadchuteReason VtolType::getQuadchuteReason()
 {
 	if (isMinAltBreached()) {
@@ -363,10 +347,6 @@ QuadchuteReason VtolType::getQuadchuteReason()
 
 	if (isRollExceeded()) {
 		return QuadchuteReason::MaximumRollExceeded;
-	}
-
-	if (isFrontTransitionTimeout()) {
-		return QuadchuteReason::TransitionTimeout;
 	}
 
 	return QuadchuteReason::None;
@@ -565,11 +545,6 @@ float VtolType::getFrontTransitionTimeFactor() const
 float VtolType::getMinimumFrontTransitionTime() const
 {
 	return getFrontTransitionTimeFactor() * _param_vt_trans_min_tm.get();
-}
-
-float VtolType::getFrontTransitionTimeout() const
-{
-	return getFrontTransitionTimeFactor() * _param_vt_trans_timeout.get();
 }
 
 float VtolType::getOpenLoopFrontTransitionTime() const

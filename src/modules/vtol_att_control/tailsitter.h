@@ -51,8 +51,8 @@
 // [rad] Tilt angle threshold (body z-axis to vertical) for completing transition to fixed-wing
 static constexpr float TILT_THRESHOLD_AUTO_TRANSITION_TO_FW = 2.09f; // 120° (60° forward from hover)
 
-// [rad] Pitch threshold required for completing transition to hover in automatic transitions
-static constexpr float PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC = -0.26f; // -15°
+// [rad] Tilt angle threshold (body z-axis to vertical) for completing transition to multicopter
+static constexpr float TILT_THRESHOLD_AUTO_TRANSITION_TO_MC = 2.62f; // 150° (30° back from hover)
 
 // [s] Thrust blending duration from fixed-wing to back transition throttle
 static constexpr float B_TRANS_THRUST_BLENDING_DURATION = 0.5f;
