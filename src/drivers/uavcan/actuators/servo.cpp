@@ -34,6 +34,7 @@
 #include "servo.hpp"
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
+#include <lib/atmosphere/atmosphere.h>
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -131,12 +132,12 @@ UavcanServoController::servo_temperature_sub_cb(const
 	for (int i = 0; i < servo_status_s::CONNECTED_SERVO_MAX; i++) {
 		auto &ref = _servo_status.servo[i];
 
-		const bool is_servo_online = _servo_status.servo_online_flags & (1 << i);
-		const bool is_servo_matching = ref.servo_node_id == msg.getSrcNodeID().get();
+		const bool is_servo_online = _servo_status.online_flags & (1 << i);
+		const bool is_servo_matching = ref.node_id == msg.getSrcNodeID().get();
 
 		if (is_servo_online && is_servo_matching) {
 			_servo_temperature_counter[i] += 1;
-			_last_temperature[i] = msg.temperature;
+			_last_temperature[i] = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius;
 			_last_temperature_error_flag[i] = msg.error_flags;
 			break;
 		}
@@ -151,8 +152,8 @@ UavcanServoController::servo_circuit_status_sub_cb(const
 	for (int i = 0; i < servo_status_s::CONNECTED_SERVO_MAX; i++) {
 		auto &ref = _servo_status.servo[i];
 
-		const bool is_servo_online = _servo_status.servo_online_flags & (1 << i);
-		const bool is_servo_matching = ref.servo_node_id == msg.getSrcNodeID().get();
+		const bool is_servo_online = _servo_status.online_flags & (1 << i);
+		const bool is_servo_matching = ref.node_id == msg.getSrcNodeID().get();
 
 		if (is_servo_online && is_servo_matching) {
 			_servo_power_counter[i] += 1;
@@ -172,28 +173,26 @@ UavcanServoController::servo_status_sub_cb(const uavcan::ReceivedDataStructure<u
 		auto &ref = _servo_status.servo[msg.actuator_id];
 
 		ref.timestamp = hrt_absolute_time();
-		ref.servo_node_id = msg.getSrcNodeID().get();
-		ref.servo_actuator_id = msg.actuator_id;
-		ref.servo_position = msg.position;
-		ref.servo_force = msg.force;
-		ref.servo_speed = msg.speed;
-		ref.servo_power_rating_pct = msg.power_rating_pct;
+		ref.node_id = msg.getSrcNodeID().get();
+		ref.actuator_id = msg.actuator_id;
+		ref.position = msg.position;
+		ref.force = msg.force;
+		ref.speed = msg.speed;
+		ref.power_rating_pct = msg.power_rating_pct;
 
 		// Add servo temperature data
-		ref.servo_temperature_counter = _servo_temperature_counter[msg.actuator_id];
-		ref.servo_temperature = _last_temperature[msg.actuator_id];
-		ref.servo_temperature_error_flags = _last_temperature_error_flag[msg.actuator_id];
+		ref.temperature_counter = _servo_temperature_counter[msg.actuator_id];
+		ref.temperature = _last_temperature[msg.actuator_id];
+		ref.temperature_error_flags = _last_temperature_error_flag[msg.actuator_id];
 
 		// Add servo power data
-		ref.servo_power_counter = _servo_power_counter[msg.actuator_id];
-		ref.servo_voltage = _last_voltage[msg.actuator_id];
-		ref.servo_current = _last_current[msg.actuator_id];
-		ref.servo_power_error_flags = _last_power_error_flag[msg.actuator_id];
+		ref.power_counter = _servo_power_counter[msg.actuator_id];
+		ref.voltage = _last_voltage[msg.actuator_id];
+		ref.current = _last_current[msg.actuator_id];
+		ref.power_error_flags = _last_power_error_flag[msg.actuator_id];
 
-		_servo_status.counter += 1;
-		_servo_status.servo_count = _servo_count;
-		_servo_status.servo_connectiontype = servo_status_s::SERVO_CONNECTION_TYPE_CAN;
-		_servo_status.servo_online_flags = check_servos_status();
+		_servo_status.count = _servo_count;
+		_servo_status.online_flags = check_servos_status();
 		_servo_status.timestamp = hrt_absolute_time();
 		_servo_status_pub.publish(_servo_status);
 	}
