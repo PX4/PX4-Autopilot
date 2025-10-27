@@ -45,8 +45,9 @@
 #include <px4_platform_common/events.h>
 #include <systemlib/mavlink_log.h>
 
-PPSCapture::PPSCapture() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
+PPSCapture::PPSCapture(uint8_t gps) :
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	_sensor_gps_sub(ORB_ID(sensor_gps), gps)
 {
 	_pps_capture_pub.advertise();
 }
@@ -167,7 +168,11 @@ int PPSCapture::gpio_interrupt_callback(int irq, void *context, void *arg)
 
 int PPSCapture::task_spawn(int argc, char *argv[])
 {
-	PPSCapture *instance = new PPSCapture();
+	int32_t gps_param = 1;
+	param_get(param_find("PPS_CAP_GPS"), &gps_param);
+
+	/* Substract 1 since topic instances are 0-based */
+	PPSCapture *instance = new PPSCapture((uint8_t)(gps_param - 1));
 
 	if (instance) {
 		_object.store(instance);
