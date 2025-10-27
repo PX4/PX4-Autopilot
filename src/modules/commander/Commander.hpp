@@ -115,6 +115,8 @@ public:
 
 	void enable_hil();
 
+	static void force_disarm();
+
 private:
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 

@@ -228,6 +228,14 @@ static bool broadcast_vehicle_command(const uint32_t cmd, const float param1 = N
 }
 #endif
 
+void Commander::force_disarm() {
+	// 21196: force arming/disarming (e.g. allow arming to override preflight checks and disarming in flight)
+	send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+			     static_cast<float>(vehicle_command_s::ARMING_ACTION_DISARM),
+			     21196.f);
+}
+
+
 int Commander::custom_command(int argc, char *argv[])
 {
 	if (!is_running()) {

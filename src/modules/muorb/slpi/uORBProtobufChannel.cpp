@@ -50,6 +50,9 @@
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <qurt.h>
 
+#include <mc_pos_control/MulticopterPositionControl.hpp>
+#include <commander/Commander.hpp>
+
 #include "hrt_work.h"
 
 // Definition of test to run when in muorb test mode
@@ -117,6 +120,15 @@ void uORB::ProtobufChannel::keepalive_thread_func(void *ptr)
 {
 	PX4_INFO("muorb keepalive thread running");
 
+	px4_sleep(4);
+
+	int32_t force_land = 0;
+	param_get(param_find("MUORB_KAF_LAND"), &force_land);
+
+	hrt_abstime force_disarm_start = 0;
+	int32_t force_disarm_seconds = 0;
+	param_get(param_find("MUORB_KAF_DSRM"), &force_disarm_seconds);
+
 	// Delete any keepalive fail file that may exist from a previous error
 	struct stat buffer;
 	if (stat(_keepalive_filename, &buffer) == 0) {
@@ -149,6 +161,23 @@ void uORB::ProtobufChannel::keepalive_thread_func(void *ptr)
 					} else {
 						PX4_INFO("Created file %s", _keepalive_filename);
 						fclose(fptr);
+					}
+				}
+
+				// Force a blind descent / landing if the parameter is set
+				if (force_land) {
+					PX4_WARN("Forcing blind descent / land");
+					MulticopterPositionControl::trigger_blind_land();
+
+					// Cause a forced disarm if configured
+					if (force_disarm_seconds) {
+						hrt_abstime forced_disarm_timeout = force_disarm_seconds * 1000000;
+						if (! force_disarm_start) {
+							force_disarm_start = hrt_absolute_time();
+						} else if (hrt_elapsed_time(&force_disarm_start) > forced_disarm_timeout) {
+							PX4_WARN("Forcing disarm");
+							Commander::force_disarm();
+						}
 					}
 				}
 
