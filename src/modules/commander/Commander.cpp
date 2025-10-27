@@ -473,6 +473,7 @@ int Commander::custom_command(int argc, char *argv[])
 		return (ret ? 0 : 1);
 	}
 
+#ifdef CONFIG_ORB_COMMUNICATOR
 	if (!strcmp(argv[0], "apps-fail-sim")) {
 
 		// Trigger apps processor failure simulation
@@ -481,6 +482,7 @@ int Commander::custom_command(int argc, char *argv[])
 
 		return 0;
 	}
+#endif
 
 #endif
 
