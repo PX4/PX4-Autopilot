@@ -35,5 +35,6 @@ This category includes boards that are not fully compliant with the pixhawk stan
 - [Radiolink PIX6](../flight_controller/radiolink_pix6.md)
 - [Sky-Drones AIRLink](../flight_controller/airlink.md)
 - [SPRacing SPRacingH7EXTREME](../flight_controller/spracingh7extreme.md)
+- [Svehicle E2](../flight_controller/svehicle_e2.md)
 - [ThePeach FCC-K1](../flight_controller/thepeach_k1.md)
 - [ThePeach FCC-R1](../flight_controller/thepeach_r1.md)
