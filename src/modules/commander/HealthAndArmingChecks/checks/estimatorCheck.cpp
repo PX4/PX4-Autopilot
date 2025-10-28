@@ -654,11 +654,11 @@ void EstimatorChecks::deadReckoningTimeout(const Context &context, Report &repor
 
 	vehicle_land_detected_s vehicle_land_detected;
 
-	if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+	if (!lpos.dead_reckoning) {
+		_last_not_dead_reckoning_time_us = now;
+	}
 
-		if (!lpos.dead_reckoning) {
-			_last_not_dead_reckoning_time_us = now;
-		}
+	if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 
 		if (!vehicle_land_detected.landed && ((reporter.failsafeFlags().mode_req_global_position
 						       && !reporter.failsafeFlags().global_position_invalid) ||
