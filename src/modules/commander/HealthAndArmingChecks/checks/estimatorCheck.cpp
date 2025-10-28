@@ -653,21 +653,22 @@ void EstimatorChecks::deadReckoningTimeout(const Context &context, Report &repor
 	const hrt_abstime now = hrt_absolute_time();
 
 	vehicle_land_detected_s vehicle_land_detected;
-	_vehicle_land_detected_sub.copy(&vehicle_land_detected);
 
-	if (!lpos.dead_reckoning) {
-		_last_not_dead_reckoning_time_us = now;
+	if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 
-	}
+		if (!lpos.dead_reckoning) {
+			_last_not_dead_reckoning_time_us = now;
+		}
 
-	if (!vehicle_land_detected.landed && ((reporter.failsafeFlags().mode_req_global_position
-					       && !reporter.failsafeFlags().global_position_invalid) ||
-					      (reporter.failsafeFlags().mode_req_global_position_relaxed
-					       && !reporter.failsafeFlags().global_position_invalid_relaxed) ||
-					      (reporter.failsafeFlags().mode_req_local_position && !reporter.failsafeFlags().local_position_invalid))) {
+		if (!vehicle_land_detected.landed && ((reporter.failsafeFlags().mode_req_global_position
+						       && !reporter.failsafeFlags().global_position_invalid) ||
+						      (reporter.failsafeFlags().mode_req_global_position_relaxed
+						       && !reporter.failsafeFlags().global_position_invalid_relaxed) ||
+						      (reporter.failsafeFlags().mode_req_local_position && !reporter.failsafeFlags().local_position_invalid))) {
 
-		reporter.failsafeFlags().dead_reckoning_invalid = (_last_not_dead_reckoning_time_us != 0
-				&& now > _last_not_dead_reckoning_time_us + _param_com_dead_reckoning_tout_t.get() * 1_s);
+			reporter.failsafeFlags().dead_reckoning_invalid = (_last_not_dead_reckoning_time_us != 0
+					&& now > _last_not_dead_reckoning_time_us + _param_com_dead_reckoning_tout_t.get() * 1_s);
+		}
 	}
 
 	if (reporter.failsafeFlags().dead_reckoning_invalid && _param_com_dead_reckoning_tout_act.get()) {
