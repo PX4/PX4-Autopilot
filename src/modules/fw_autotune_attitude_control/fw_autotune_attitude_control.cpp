@@ -548,16 +548,47 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	}
 
 	// In case of convergence timeout
-	// the identification sequence is aborted immediately
+	// the identification sequence is aborted and the FSM moves on to the next axis
 	if (_state != state::wait_for_disarm && _state != state::idle && _state != state::fail && _state != state::complete) {
-		if (now - _state_start_time > 30_s
-		    || (_param_fw_at_man_aux.get() && !_aux_switch_en)
-		    || _start_flight_mode != _nav_state) {
-			orb_advert_t mavlink_log_pub = nullptr;
+
+		const bool timeout = (now - _state_start_time) > 30_s;
+		const bool mode_changed = (_start_flight_mode != _nav_state);
+		const bool aux_switched_off = (_param_fw_at_man_aux.get() && !_aux_switch_en);
+
+		orb_advert_t mavlink_log_pub = nullptr;
+
+		if (mode_changed || aux_switched_off) {
+			// Abort
 			mavlink_log_critical(&mavlink_log_pub, "Autotune aborted before finishing");
 			_state = state::fail;
-			_state_start_time = now;
+
+		} else if (timeout) {
+			// Skip to next axis
+			mavlink_log_critical(&mavlink_log_pub, "Autotune axis timeout, skipping to next axis");
+
+			switch (_state) {
+			case state::roll_amp_detection:
+			case state::roll:
+				_state = state::roll_pause;   // proceed to pitch
+				break;
+
+			case state::pitch_amp_detection:
+			case state::pitch:
+				_state = state::pitch_pause;  // proceed to yaw
+				break;
+
+			case state::yaw_amp_detection:
+			case state::yaw:
+				_state = state::yaw_pause;    // proceed to verification
+				break;
+
+			default:
+				_state = state::fail;         // safety fallback
+				break;
+			}
 		}
+
+		_state_start_time = now;
 	}
 }
 
