@@ -15,22 +15,7 @@ fi
 
 if simulator_sih start; then
 
-	if param compare -s SENS_EN_BAROSIM 1
-	then
-		sensor_baro_sim start
-	fi
-	if param compare -s SENS_EN_GPSSIM 1
-	then
-		sensor_gps_sim start
-	fi
-	if param compare -s SENS_EN_MAGSIM 1
-	then
-		sensor_mag_sim start
-	fi
-	if param compare -s SENS_EN_AGPSIM 1
-	then
-		sensor_agp_sim start
-	fi
+	sensor_sim_manager start
 
 else
 	echo "ERROR [init] simulator_sih failed to start"

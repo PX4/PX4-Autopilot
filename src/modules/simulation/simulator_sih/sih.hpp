@@ -63,8 +63,6 @@
 #include <conversion/rotation.h>    // math::radians,
 #include <lib/atmosphere/atmosphere.h>        // to get the physical constants
 #include <drivers/drv_hrt.h>        // to get the real time
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/geo/geo.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <lib/perf/perf_counter.h>
@@ -72,9 +70,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -110,19 +106,8 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
-	static float generate_wgn();    // generate white Gaussian noise sample
-
-	// generate white Gaussian noise sample as a 3D vector with specified std
-	static matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz);
-
 private:
 	void parameters_updated();
-
-	// simulated sensors
-	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	uORB::Publication<distance_sensor_s>  _distance_snsr_pub{ORB_ID(distance_sensor)};
-	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -135,11 +120,7 @@ private:
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
-	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
-	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
-	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
 	// Aerodynamic coefficients
-	static constexpr float RHO = 1.225f; 		// air density at sea level [kg/m^3]
 	static constexpr float SPAN = 0.86f; 	// wing span [m]
 	static constexpr float MAC = 0.21f; 	// wing mean aerodynamic chord [m]
 	static constexpr float RP = 0.1f; 	// radius of the propeller [m]
@@ -156,10 +137,6 @@ private:
 	// apply the equations of motion of a rigid body and integrate one step
 	void equations_of_motion(const float dt);
 
-	// reconstruct the noisy sensor signals
-	void reconstruct_sensors_signals(const hrt_abstime &time_now_us);
-	void send_airspeed(const hrt_abstime &time_now_us);
-	void send_dist_snsr(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust);
 	void generate_ts_aerodynamics();
@@ -194,8 +171,6 @@ private:
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _last_actuator_output_time{0};
-	hrt_abstime _airspeed_time{0};
-	hrt_abstime _dist_snsr_time{0};
 
 	bool        _grounded{true};// whether the vehicle is on the ground
 
@@ -275,7 +250,6 @@ private:
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 
-	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override;
 
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
@@ -297,9 +271,6 @@ private:
 		(ParamFloat<px4::params::SIH_LOC_LAT0>) _sih_lat0,
 		(ParamFloat<px4::params::SIH_LOC_LON0>) _sih_lon0,
 		(ParamFloat<px4::params::SIH_LOC_H0>) _sih_h0,
-		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
-		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
-		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
 	)

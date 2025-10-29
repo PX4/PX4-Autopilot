@@ -41,9 +41,11 @@ px4_add_module(
 	INCLUDES
 		${CMAKE_BINARY_DIR}/mavlink
 		${CMAKE_BINARY_DIR}/mavlink/${CONFIG_MAVLINK_DIALECT}
+		${CMAKE_CURRENT_SOURCE_DIR}/../failure_injection
 	SRCS
 		SimulatorMavlink.cpp
 		SimulatorMavlink.hpp
+		${CMAKE_CURRENT_SOURCE_DIR}/../failure_injection/failureInjection.cpp
 	DEPENDS
 		mavlink_c_generate
 		conversion
