@@ -419,10 +419,10 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			// Use _position_setpoint_previous_valid to determine if landing should be straight or circular.
-			// Straight landings are currently only possible in Missions, and there the previous WP
-			// is valid, and circular ones are used outside of Missions, as the land mode sets prev_valid=false.
-			if (_position_setpoint_previous_valid) {
+			// Straight landings are currently only possible in Missions (and RTLs that execute missions),
+			// and circular ones are used otherwise.
+			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
+			    || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 				_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT;
 
 			} else {
@@ -2319,29 +2319,12 @@ FixedWingModeManager::initializeAutoLanding(const hrt_abstime &now, const positi
 {
 	if (_time_started_landing == 0) {
 
-		float height_above_land_point;
-		Vector2f local_approach_entrance;
-
 		// set the landing approach entrance location when we have just started the landing and store it
 		// NOTE: the landing approach vector is relative to the land point. ekf resets may cause a local frame
 		// jump, so we reference to the land point, which is globally referenced and will update
-		if (_position_setpoint_previous_valid) {
-			height_above_land_point = pos_sp_prev.alt - land_point_altitude;
-			local_approach_entrance = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
 
-		} else {
-			// no valid previous waypoint, construct one from the glide slope and direction from current
-			// position to land point
-
-			// NOTE: this is not really a supported use case at the moment, this is just bandaiding any
-			// ill-advised usage of the current implementation
-
-			// TODO: proper handling of on-the-fly landing points would need to involve some more sophisticated
-			// landing pattern generation and corresponding logic
-
-			height_above_land_point = _current_altitude - land_point_altitude;
-			local_approach_entrance = local_position;
-		}
+		const float height_above_land_point = _current_altitude; // could be taken from the previous wp altitdue (if that one is consistenty set)
+		const Vector2f local_approach_entrance = local_position;
 
 		_landing_approach_entrance_rel_alt = math::max(height_above_land_point, FLT_EPSILON);
 
