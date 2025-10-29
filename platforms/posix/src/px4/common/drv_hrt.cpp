@@ -460,22 +460,12 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 	int rv = system_clock_gettime(clk_id, tp);
 
 #if PX4_SOC_ARCH_ID == PX4_SOC_ARCH_ID_VOXL2
-	hrt_abstime temp_abstime = ts_to_abstime(tp);
-	int apps_time_offset = fc_sensor_get_time_offset();
-
-	if (apps_time_offset < 0) {
-		hrt_abstime temp_offset = -apps_time_offset;
-
-		if (temp_offset >= temp_abstime) { temp_abstime = 0; }
-
-		else { temp_abstime -= temp_offset; }
-
-	} else {
-		temp_abstime += (hrt_abstime) apps_time_offset;
+	// On VOXL 2 use DSP clock as reference for MONOTONIC
+	if (clk_id == CLOCK_MONOTONIC) {
+		hrt_abstime temp_abstime = fc_sensor_get_dsp_timestamp_us();
+		tp->tv_sec = temp_abstime / 1000000;
+		tp->tv_nsec = (temp_abstime % 1000000) * 1000;
 	}
-
-	tp->tv_sec = temp_abstime / 1000000;
-	tp->tv_nsec = (temp_abstime % 1000000) * 1000;
 #endif
 
 	return rv;
