@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# @name Amewi Big Storm racing boat
+#
+# A generic boat with a thruster and a rudder (not thrust-vectored)
+#
+# @type Rover
+# @class Rover
+#
+# @output MAIN1 Thruster
+# @output MAIN5 Steering servo
+#
+# @maintainer Junwoo
+
+# Setup Rover default environment variables
+. ${R}etc/init.d/rc.rover_defaults
+
+# Enable control allocation
+param set-default SYS_CTRL_ALLOC 1
+# Set airframe as Ackermann Rover (Throttle & Steering)
+param set-default CA_AIRFRAME 5
+
+## Boat characteristics
+# Speed of the boat at around 50% throttle in manual mode
+param set-default GND_SPEED_TRIM 2
+
+# Cruise throttle (desired throttle during mission mode)
+param set-default GND_THR_CRUISE 0.5
+
+# Safeguard to prevent boat from going crazy on throttle
+param set-default GND_THR_MAX 0.6
+
+# Yaw rate of boat with full deflection at the trim speed (50% throttle)
+param set-default GND_RATE_MAX 0.4
+
+
+## Rate control tuning
+# With around 0.4 rad/s setpoint, we want to apply equivalent torque output
+param set GND_RATE_FF 1.0
+
+# With 0.4 rad/s error, we want to output about 0.4 torque to counter that
+param set GND_RATE_P 1.0
+
+## Attitude control tuning
+
+## Velocity control tuning
+
+## Position control tuning
+
+
+## L1 controller tuning
+
+
+## Ouput settings
+param set-default PWM_AUX_DIS5 1500 # Disarmed rudder position to middle
+param set-default COM_PREARM_MODE 2 # Enable Commander Pream Mode 'Always'
+
+## Power module CM4
+param set BAT1_V_DIV 18.1
+param set BAT1_N_CELLS 4
+param set BAT1_A_PER_V 36.4
