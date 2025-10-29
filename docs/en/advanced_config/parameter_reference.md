@@ -25550,12 +25550,16 @@ Used below MPC_LAND_ALT3 if distance sensor data is availabe.
 
 User assisted landing radius.
 
-When nudging is enabled (see MPC_LAND_RC_HELP), this controls
-the maximum allowed horizontal displacement from the original landing point.
+When nudging is enabled (see MPC_LAND_RC_HELP), this defines the maximum
+allowed horizontal displacement from the original landing point.
+
+- If inside of the radius, only allow nudging inputs that do not move the vehicle outside of it.
+- If outside of the radius, only allow nudging inputs that move the vehicle back towards it.
+  Set it to -1 for infinite radius.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        |          | 1         | 1000.   | m    |
+| &nbsp; | -1       |          | 1         | -1.0    | m    |
 
 ### MPC_LAND_RC_HELP (`INT32`) {#MPC_LAND_RC_HELP}
 
@@ -38833,6 +38837,14 @@ UAVCAN CAN bus bitrate.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 20000    | 1000000  |           | 1000000 |
 
+### CANNODE_NODE_ID (`INT32`) {#CANNODE_NODE_ID}
+
+UAVCAN CAN node ID (0 for dynamic allocation).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 127      |           | 0       |
+
 ### CANNODE_PUB_IMU (`INT32`) {#CANNODE_PUB_IMU}
 
 Enable RawIMU pub.
@@ -40859,13 +40871,15 @@ The encoder angle at which theta is zero. Adjust this number to change the locat
 
 ### ZENOH_ENABLE (`INT32`) {#ZENOH_ENABLE}
 
-Zenoh Enable.
+Enable Zenoh.
 
-Zenoh
+Set true (1) to start the Zenoh driver module (a.k.a the "Zenoh-Pico Node").
+See https://docs.px4.io/main/en/middleware/zenoh and
+https://docs.px4.io/main/en/modules/modules_driver.html#zenoh
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; |          |          |           | 0       |
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
 
 ## Miscellaneous
 
