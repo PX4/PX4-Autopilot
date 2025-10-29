@@ -667,6 +667,7 @@ void EstimatorChecks::deadReckoningTimeout(const Context &context, Report &repor
 						      (reporter.failsafeFlags().mode_req_local_position && !reporter.failsafeFlags().local_position_invalid))) {
 
 			reporter.failsafeFlags().dead_reckoning_invalid = (_last_not_dead_reckoning_time_us != 0
+					&& _param_com_dead_reckoning_tout_t.get() > FLT_EPSILON
 					&& now > _last_not_dead_reckoning_time_us + _param_com_dead_reckoning_tout_t.get() * 1_s);
 		}
 	}
