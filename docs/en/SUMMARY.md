@@ -820,6 +820,7 @@
       - [FlightGear Simulation](sim_flightgear/index.md)
         - [FlightGear Vehicles](sim_flightgear/vehicles.md)
         - [Multi-Vehicle Sim with FlightGear](sim_flightgear/multi_vehicle.md)
+      - [X-Plane Simulation](sim_xplane/index.md)
       - [jMAVSim Simulation](sim_jmavsim/index.md)
         - [Multi-Vehicle Sim with JMAVSim](sim_jmavsim/multi_vehicle.md)
       - [JSBSim Simulation](sim_jsbsim/index.md)
