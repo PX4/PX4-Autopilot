@@ -22,7 +22,7 @@ netman update_default -i eth0
 
 safety_button start
 
-# GPIO Expander driver on external I2C3
+ GPIO Expander driver on external I2C3
 if ver hwbasecmp 009 010 011
 then
 	# No USB
