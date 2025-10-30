@@ -55,13 +55,13 @@ int MCP23017::init(uint16_t direction, uint16_t state, uint16_t pull_up, uint16_
 	}
 
 	// buffer the new initial states
-	_iodirA = (uint8_t) (direction & 0x00FF);
-	_olatA = (uint8_t) (state & 0x00FF);
-	_gppuA = (uint8_t) (pull_up & 0x00FF);
+	_iodirA = (uint8_t)(direction & 0x00FF);
+	_olatA = (uint8_t)(state & 0x00FF);
+	_gppuA = (uint8_t)(pull_up & 0x00FF);
 
-	_iodirB = (uint8_t) (direction >> 8);
-	_olatB = (uint8_t) (state >> 8);
-	_gppuB = (uint8_t) (pull_up >> 8);
+	_iodirB = (uint8_t)(direction >> 8);
+	_olatB = (uint8_t)(state >> 8);
+	_gppuB = (uint8_t)(pull_up >> 8);
 
 	// Write the initial state to the device
 	ret = write_reg(Register::OLATA, _olatA);
@@ -87,7 +87,7 @@ int MCP23017::init(uint16_t direction, uint16_t state, uint16_t pull_up, uint16_
 	ret |= write_reg(Register::INTCONA, 0xFF);
 	ret |= write_reg(Register::INTCONB, 0xFF);
 
-	if(!split_int){
+	if (!split_int) {
 		ret |= write_reg(Register::IOCONA, 0x40);
 	}
 
@@ -122,11 +122,11 @@ int MCP23017::read(uint16_t *mask)
 int MCP23017::write(uint16_t mask_set, uint16_t mask_clear)
 {
 	// no need to read, we can use the buffered register value
-	uint8_t mask_setA = (uint8_t) (mask_set & 0x00FF);
-	uint8_t mask_clearA = (uint8_t) (mask_clear & 0x00FF);
+	uint8_t mask_setA = (uint8_t)(mask_set & 0x00FF);
+	uint8_t mask_clearA = (uint8_t)(mask_clear & 0x00FF);
 
-	uint8_t mask_setB = (uint8_t) (mask_set >> 8);
-	uint8_t mask_clearB = (uint8_t) (mask_clear >> 8);
+	uint8_t mask_setB = (uint8_t)(mask_set >> 8);
+	uint8_t mask_clearB = (uint8_t)(mask_clear >> 8);
 
 	_olatA = (_olatA & ~mask_clearA) | mask_setA;
 	_olatB = (_olatB & ~mask_clearB) | mask_setB;
@@ -139,8 +139,8 @@ int MCP23017::write(uint16_t mask_set, uint16_t mask_clear)
 
 int MCP23017::configure(uint16_t mask, PinType type)
 {
-	uint8_t maskA = (uint8_t) (mask & 0x00FF);
-	uint8_t maskB = (uint8_t) (mask >> 8);
+	uint8_t maskA = (uint8_t)(mask & 0x00FF);
+	uint8_t maskB = (uint8_t)(mask >> 8);
 
 	// no need to read, we can use the buffered register values
 	switch (type) {

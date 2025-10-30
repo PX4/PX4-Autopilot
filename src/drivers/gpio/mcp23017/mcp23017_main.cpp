@@ -193,6 +193,7 @@ extern "C" int mcp23017_main(int argc, char *argv[])
 		case 'U':
 			config_data.interval = atoi(cli.optArg());
 			break;
+
 		case 'R':
 			config_data.int_en = (int)strtol(cli.optArg(), nullptr, 0);
 			break;

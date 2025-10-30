@@ -133,11 +133,13 @@ static mcp23017_gpio_dev_s _gpio[NUM_GPIOS];
 // ----------------------------------------------------------------------------
 int mcp23017_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask)
 {
-	for(int i=0; i<NUM_GPIOS; i++){
+	for (int i = 0; i < NUM_GPIOS; i++) {
 		uint16_t mask = 1u << i;
-		if(dir_mask & mask){
+
+		if (dir_mask & mask) {
 			_gpio[i] = { {GPIO_INPUT_PIN, {}, &mcp23017_gpio_ops}, mask };
-		}else{
+
+		} else {
 			_gpio[i] = { {GPIO_OUTPUT_PIN, {}, &mcp23017_gpio_ops}, mask };
 		}
 	}
