@@ -98,8 +98,6 @@ void MCP23017::RunImpl()
 		write(output.state, output.mask);
 	}
 
-	//get_interrupts();
-
 	{
 		gpio_in_s _gpio_in;
 		_gpio_in.timestamp = hrt_absolute_time();
@@ -123,7 +121,6 @@ void MCP23017::print_usage()
 	PRINT_MODULE_USAGE_PARAM_INT('O', 0, 0, 65535, "Output", true);
 	PRINT_MODULE_USAGE_PARAM_INT('P', 0, 0, 65535, "Pullups", true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 65535, "Interrupt pins enable", true);
-	//PRINT_MODULE_USAGE_PARAM_INT('A', 0, 0, 65535, "Reference values for interrupts", true);
 	PRINT_MODULE_USAGE_PARAM_INT('U', 0, 0, 1000, "Update Interval [ms]", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -199,9 +196,6 @@ extern "C" int mcp23017_main(int argc, char *argv[])
 		case 'R':
 			config_data.int_en = (int)strtol(cli.optArg(), nullptr, 0);
 			break;
-		/*case 'A':
-			config_data.ref_vals = (int)strtol(cli.optArg(), nullptr, 0);
-			break;*/
 		}
 	}
 
