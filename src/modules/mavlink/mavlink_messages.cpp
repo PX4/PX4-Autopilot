@@ -108,7 +108,6 @@
 #include "streams/PING.hpp"
 #include "streams/POSITION_TARGET_GLOBAL_INT.hpp"
 #include "streams/POSITION_TARGET_LOCAL_NED.hpp"
-#include "streams/PROTOCOL_VERSION.hpp"
 #include "streams/RAW_RPM.hpp"
 #include "streams/RC_CHANNELS.hpp"
 #include "streams/SCALED_IMU.hpp"
@@ -471,9 +470,6 @@ static const StreamListItem streams_list[] = {
 #if defined(AUTOPILOT_VERSION_HPP)
 	create_stream_list_item<MavlinkStreamAutopilotVersion>(),
 #endif // AUTOPILOT_VERSION_HPP
-#if defined(PROTOCOL_VERSION_HPP)
-	create_stream_list_item<MavlinkStreamProtocolVersion>(),
-#endif // PROTOCOL_VERSION_HPP
 #if defined(FLIGHT_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamFlightInformation>(),
 #endif // FLIGHT_INFORMATION_HPP

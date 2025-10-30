@@ -371,10 +371,6 @@ public:
 	 */
 	bool 			send_autopilot_capabilities();
 
-	/**
-	 * Send the protocol version of MAVLink
-	 */
-	void			send_protocol_version();
 
 	List<MavlinkStream *> &get_streams() { return _streams; }
 
