@@ -289,7 +289,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		return ret;
 	}
 
-	int offset = 8; // This is the offset for the naming of the instatiated GPIO-DEVICES.
+	/*int offset = 8; // This is the offset for the naming of the instatiated GPIO-DEVICES.
 	uint16_t pin_types = 0x0000;// Set pin type. Set bit to 1 to mark pin as INPUT, set to 0 to mark as OUTPUT
 
 	ret = mcp23017_register_gpios(2, 0x27, offset, pin_types);
@@ -297,7 +297,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (ret != OK) {
 		led_on(LED_RED);
 		return ret;
-	}
+	}*/
 
 #endif /* !defined(BOOTLOADER) */
 
