@@ -156,6 +156,10 @@ param set-default FW_P_LIM_MIN -15.0     # Max pitch down
 param set-default FW_P_TC 0.45
 param set-default FW_PN_R_SLEW_MAX 50.0
 
+# Yaw Rate Control
+param set-default FW_YR_P 0.08           # P gain (increased for large GA)
+param set-default FW_YR_I 0.12           # I gain (better trim authority)
+
 
 ################################################################################
 # SECTION 4: AIRSPEED CONTROL
@@ -285,11 +289,6 @@ param set-default WEIGHT_GROSS 1000.0    # Gross weight (kg)
 ################################################################################
 # SECTION 11: ADVANCED FEATURES & SYSTEM CONFIGURATION
 ################################################################################
-
-# Manual Control
-param set-default MPC_MAN_Y_MAX 20.0
-param set-default MPC_JERK_AUTO 1.0
-param set-default MPC_JERK_MAX 3.0
 
 # Logging
 param set-default SDLOG_MODE 0           # Disabled for SITL

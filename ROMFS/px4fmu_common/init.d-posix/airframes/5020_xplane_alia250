@@ -405,6 +405,11 @@ param set-default FW_P_LIM_MIN -15.0
 param set-default FW_P_TC 0.45
 param set-default FW_PN_R_SLEW_MAX 50.0
 
+# Yaw Rate Control (High-speed cruise mode)
+param set-default FW_YR_P 0.1            # P gain (higher for 75 m/s cruise)
+param set-default FW_YR_I 0.12           # I gain (balanced authority)
+param set-default FW_Y_RMAX 60.0         # Max yaw rate (slightly higher for eVTOL)
+
 # Airspeed Control
 param set-default FW_AIRSPD_MIN 40.0     # Above stall
 param set-default FW_AIRSPD_MAX 75.0     # Cruise limit

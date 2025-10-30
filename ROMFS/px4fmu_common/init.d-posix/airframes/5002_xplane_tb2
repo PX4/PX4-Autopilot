@@ -180,6 +180,10 @@ param set-default FW_P_LIM_MIN -15.0     # Max pitch down
 param set-default FW_P_TC 0.45
 param set-default FW_PN_R_SLEW_MAX 50.0
 
+# Yaw Rate Control (V-tail configuration)
+param set-default FW_YR_P 0.06           # P gain (conservative for V-tail)
+param set-default FW_YR_I 0.15           # I gain (good trim for endurance)
+
 # Wheel Rate (Ground Steering)
 param set-default FW_WR_P 1.0
 param set-default FW_WR_I 0.2
