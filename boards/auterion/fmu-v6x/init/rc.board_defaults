@@ -32,3 +32,6 @@ if ver hwbasecmp 00a 008
 then
 	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -U 10
 fi
+
+mcp23017 start -b 2 -X -D 0x0000 -O 0x0000 -P 0x0000 -U 10 -R 0x0000 # set all pins to OUTPUT
+#mcp23017 start -b 2 -X -D 0xFFFF -O 0x0000 -P 0x0000 -U 10 -R 0x0101 # set all pins to INPUT and enable interrupts on pins 0 and 8
