@@ -1,0 +1,111 @@
+module_name: Rocket Mode Manager
+
+parameters:
+    - group: Rocket Mode Manager
+      definitions:
+        RKT_ALT_THRESH:
+            description:
+                short: Altitude threshold for wing deployment
+                long: |
+                  Deploy wings when descended this many meters below maximum altitude.
+                  Used as backup deployment criteria.
+            type: float
+            unit: m
+            default: 1.0
+
+        RKT_LAUNCH_A:
+            description:
+                short: Launch detection acceleration threshold
+                long: |
+                  Minimum acceleration magnitude for launch detection (m/s^2)
+            type: float
+            unit: m/s^2
+
+            default: 15.0
+
+        RKT_BOOST_A:
+            description:
+                short: Boost end acceleration threshold
+                long: |
+                  Acceleration threshold below which boost phase ends (m/s^2)
+            type: float
+            unit: m/s^2
+            default: 5.0
+
+        RKT_BOOST_T:
+            description:
+                short: Maximum boost phase duration
+                long: |
+                  Maximum time allowed in boost phase before switching to coast (s)
+            type: float
+            unit: s
+            default: 10.0
+
+        RKT_COAST_T:
+            description:
+                short: Maximum coast phase duration
+                long: |
+                  Maximum time allowed in coast phase before switching to wing deployment (s)
+            type: float
+            unit: s
+            default: 30.0
+
+        RKT_NAV_MASK:
+            description:
+                short: Navigation mask for available flight modes
+                long: |
+                    Navigation mask for restricting available flight modes in rocket phase.
+                    Set to -2147483648 during rocket phase to restrict to rocket roll only.
+                    Gets updated to allow all fixed-wing modes after wing deployment.
+            type: int32
+            min: -2147483648
+            max: 2147483647
+
+        # Rocket Phase CA_TRQ Matrix (6 servos × 3 components = 18 elements flattened)
+        # Individual elements accessed as RKT_CA_R0 through RKT_CA_R17
+        RKT_CA_R${i}:
+            description:
+                short: Rocket phase CA_TRQ element ${i}
+                long: |
+                    Rocket phase control allocation torque matrix element ${i}.
+                    Flattened 6x3 matrix: [S1_X,S1_Y,S1_Z, S2_X,S2_Y,S2_Z, ..., S6_X,S6_Y,S6_Z]
+            type: float
+            num_instances: 18
+            reboot_required: false
+
+        # Fixed-Wing Phase CA_TRQ Matrix (6 servos × 3 components = 18 elements flattened)
+        # Individual elements accessed as RKT_CA_F0 through RKT_CA_F17
+        RKT_CA_F${i}:
+            description:
+                short: Fixed-wing phase CA_TRQ element ${i}
+                long: |
+                    Fixed-wing phase control allocation torque matrix element ${i}.
+                    Flattened 6x3 matrix: [S1_X,S1_Y,S1_Z, S2_X,S2_Y,S2_Z, ..., S6_X,S6_Y,S6_Z]
+            type: float
+            num_instances: 18
+            reboot_required: false
+
+
+
+        # Control Surface Types for Rocket Phase (servos 1-6)
+        RKT_CS_R${i}:
+            description:
+                short: Rocket Mode Control Surface Type ${i}
+                long: |
+                    Control surface type for servo ${i} in rocket mode.
+                    (0=Not set, 1=LeftAileron, 2=RightAileron, 3=Elevator, 4=Rudder, 12=Custom)
+            type: int32
+            num_instances: 6
+            instance_start: 0
+
+        # Control Surface Types for Fixed-Wing Phase (servos 1-6)
+        RKT_CS_F${i}:
+            description:
+                short: Fixed-Wing Mode Control Surface Type ${i}
+                long: |
+                    Control surface type for servo ${i} in fixed-wing mode.
+                    (0=Not set, 1=LeftAileron, 2=RightAileron, 3=Elevator, 4=Rudder, 12=Custom)
+            type: int32
+            num_instances: 6
+            instance_start: 0
+

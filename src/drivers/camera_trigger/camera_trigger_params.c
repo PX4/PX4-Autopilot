@@ -163,3 +163,37 @@ PARAM_DEFINE_INT32(TRIG_PWM_SHOOT, 1900);
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(TRIG_PWM_NEUTRAL, 1500);
+
+/**
+ * Camera/Relay trigger RC channel
+ *
+ * RC AUX channel to monitor for manual camera/relay triggering.
+ * Set to the RC_AUX channel number (1-6) you want to use for manual trigger.
+ * Set to 0 to disable RC triggering.
+ *
+ * @value 0 Disabled
+ * @value 1 RC_AUX1
+ * @value 2 RC_AUX2
+ * @value 3 RC_AUX3
+ * @value 4 RC_AUX4
+ * @value 5 RC_AUX5
+ * @value 6 RC_AUX6
+ * @min 0
+ * @max 6
+ * @group Camera trigger
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(TRIG_RC_CHANNEL, 0);
+
+/**
+ * Camera/Relay trigger RC threshold
+ *
+ * RC channel value threshold for manual trigger activation.
+ * Trigger activates when RC input exceeds this value (rising edge).
+ *
+ * @min -1.0
+ * @max 1.0
+ * @decimal 2
+ * @group Camera trigger
+ */
+PARAM_DEFINE_FLOAT(TRIG_RC_THRESH, 0.5);

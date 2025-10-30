@@ -60,10 +60,12 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/pps_capture.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -191,10 +193,18 @@ private:
 	uORB::Subscription	_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_lpos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription	_pps_capture_sub{ORB_ID(pps_capture)};
+	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	orb_advert_t		_trigger_pub{nullptr};
 
 	uORB::Publication<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Subscription		_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+
+	// RC Trigger State
+	bool			_rc_trigger_enabled{false};
+	bool			_rc_last_state{false};
+	float			_rc_threshold{0.5f};
+	int32_t			_rc_channel{0};
 
 	param_t			_p_mode;
 	param_t			_p_activation_time;
@@ -202,6 +212,8 @@ private:
 	param_t			_p_min_interval;
 	param_t			_p_distance;
 	param_t			_p_interface;
+	param_t			_p_rc_channel;
+	param_t			_p_rc_threshold;
 
 	trigger_mode_t		_trigger_mode{TRIGGER_MODE_NONE};
 
@@ -266,6 +278,8 @@ CameraTrigger::CameraTrigger() :
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
 	_p_interface = param_find("TRIG_INTERFACE");
+	_p_rc_channel = param_find("TRIG_RC_CHANNEL");
+	_p_rc_threshold = param_find("TRIG_RC_THRESH");
 
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
@@ -273,6 +287,11 @@ CameraTrigger::CameraTrigger() :
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, (int32_t *)&_trigger_mode);
 	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
+	param_get(_p_rc_channel, &_rc_channel);
+	param_get(_p_rc_threshold, &_rc_threshold);
+
+	// Enable RC triggering if channel is configured
+	_rc_trigger_enabled = (_rc_channel > 0 && _rc_channel <= 6);
 
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX
@@ -418,6 +437,15 @@ CameraTrigger::toggle_power()
 void
 CameraTrigger::shoot_once()
 {
+	// Check if vehicle is armed before triggering
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+
+	if (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+		PX4_WARN("Camera/Relay trigger blocked - vehicle not armed");
+		return;
+	}
+
 	PX4_DEBUG("shoot once");
 
 	// schedule trigger on and off calls
@@ -507,6 +535,45 @@ CameraTrigger::Run()
 {
 	// default loop polling interval
 	int poll_interval_usec = 50000;
+
+	// Check for RC trigger input
+	if (_rc_trigger_enabled) {
+		// Check if vehicle is armed before allowing RC trigger
+		vehicle_status_s vehicle_status{};
+		_vehicle_status_sub.copy(&vehicle_status);
+
+		if (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+			// Vehicle not armed - skip RC trigger check but reset state
+			_rc_last_state = false;
+		} else {
+			manual_control_setpoint_s manual_control{};
+
+			if (_manual_control_setpoint_sub.update(&manual_control)) {
+			float rc_value = 0.0f;
+
+			// Get RC channel value based on configured channel (1-6 = aux1-aux6)
+			switch (_rc_channel) {
+				case 1: rc_value = manual_control.aux1; break;
+				case 2: rc_value = manual_control.aux2; break;
+				case 3: rc_value = manual_control.aux3; break;
+				case 4: rc_value = manual_control.aux4; break;
+				case 5: rc_value = manual_control.aux5; break;
+				case 6: rc_value = manual_control.aux6; break;
+				default: rc_value = 0.0f; break;
+			}
+
+			// Detect rising edge (trigger activation)
+			bool rc_current_state = (rc_value > _rc_threshold);
+			if (rc_current_state && !_rc_last_state) {
+				// RC trigger activated - shoot once
+				PX4_INFO("RC Relay/Camera trigger activated on AUX%" PRId32 " (%.2f > %.2f)",
+					 _rc_channel, (double)rc_value, (double)_rc_threshold);
+				shoot_once();
+			}
+			_rc_last_state = rc_current_state;
+		}
+		} // Close else block for armed check
+	}
 
 	vehicle_command_s cmd{};
 	unsigned cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
@@ -902,9 +969,23 @@ CameraTrigger::keep_alive_down(void *arg)
 void
 CameraTrigger::status()
 {
+	PX4_INFO("Camera/Relay Trigger Status:");
 	PX4_INFO("trigger enabled : %s", _trigger_enabled ? "enabled" : "disabled");
 	PX4_INFO("trigger paused : %s", _trigger_paused ? "paused" : "active");
 	PX4_INFO("mode : %d", static_cast<int>(_trigger_mode));
+
+	// RC trigger status
+	if (_rc_trigger_enabled) {
+		PX4_INFO("RC trigger : AUX%" PRId32 " (threshold: %.2f)", _rc_channel, (double)_rc_threshold);
+	} else {
+		PX4_INFO("RC trigger : disabled");
+	}
+
+	// Show arming requirement
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+	PX4_INFO("arming required : YES (currently %s)",
+		 vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED ? "ARMED" : "DISARMED");
 
 	if (_trigger_mode == TRIGGER_MODE_INTERVAL_ALWAYS_ON ||
 	    _trigger_mode == TRIGGER_MODE_INTERVAL_ON_CMD) {
@@ -929,10 +1010,11 @@ static int usage()
 		R"DESCR_STR(
 ### Description
 
-Camera trigger driver.
+Camera/Relay trigger driver.
 
 This module triggers cameras that are connected to the flight-controller outputs,
 or simple MAVLink cameras that implement the MAVLink trigger protocol.
+It can also be used as a generic GPIO relay controller for devices like parachutes.
 
 The driver responds to the following MAVLink trigger commands being found in missions or recieved over MAVLink:
 
@@ -940,6 +1022,13 @@ The driver responds to the following MAVLink trigger commands being found in mis
 - `MAV_CMD_DO_DIGICAM_CONTROL`
 - `MAV_CMD_DO_SET_CAM_TRIGG_DIST`
 - `MAV_CMD_OBLIQUE_SURVEY`
+
+Additionally, it supports RC channel triggering for manual camera/relay control:
+
+- Configure TRIG_RC_CHANNEL (1-6) to assign an RC AUX channel
+- Set TRIG_RC_THRESH for trigger activation threshold
+- Rising edge on RC channel will trigger one shot
+- **IMPORTANT: Vehicle must be armed before trigger will activate**
 
 The commands cause the driver to trigger camera image capture based on time or distance.
 Each time an image capture is triggered, the `CAMERA_TRIGGER` MAVLink message is emitted.

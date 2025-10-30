@@ -317,6 +317,14 @@ void CrsfRc::Run()
 						flight_mode = "Stabilized";
 						break;
 
+					case vehicle_status_s::NAVIGATION_STATE_ROCKET_ROLL:
+						flight_mode = "Rocket Roll";
+						break;
+
+					case vehicle_status_s::NAVIGATION_STATE_ROCKET_PASSIVE:
+						flight_mode = "Rocket Passive";
+						break;
+
 					default:
 						flight_mode = "Unknown";
 					}
