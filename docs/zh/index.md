@@ -1,3 +1,8 @@
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData();
+</script>
+
 <div style="float:right; padding:10px; margin-right:20px;"><a href="https://px4.io/"><img src="../assets/site/logo_pro_small.png" title="PX4 Logo" width="180px" /></a></div>
 
 # PX4 自动驾驶仪用户指南
@@ -8,16 +13,21 @@ _PX4_ 是一款专业级飞控。
 它由来自业界和学术界的世界级开发商开发，并得到活跃的全球社区的支持，为从竞速和物流无人机到地面车辆和潜水艇的各种载具提供动力。
 
 :::tip
-这份指南包含组装、配置、安全使用 PX4 的设备的各种只是。 对贡献感兴趣吗 查看 [Development](development/development.md) 部分。
-
+这份指南包含组装、配置、安全使用 PX4 的设备的各种只是。
+对贡献感兴趣吗 查看 [Development](development/development.md) 部分。
 :::
 
+<div v-if="site.title == 'PX4 Guide (main)'">
+
 :::warning
+
 本指南适用于_development_ version of PX4 (`main` 分支)。
 使用 **版本** 选择器查找当前的 _稳定_ 版本。
 
 自稳定版本发布以来的已记录变更，收录在不断更新的(releases/main.md ) 中。
 :::
+
+</div>
 
 ## 如何开始？
 

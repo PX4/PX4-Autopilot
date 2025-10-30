@@ -62,6 +62,7 @@ publications:
 
   - topic: /fmu/out/vehicle_attitude
     type: px4_msgs::msg::VehicleAttitude
+    rate_limit: 50.
 
   - topic: /fmu/out/vehicle_control_mode
     type: px4_msgs::msg::VehicleControlMode
@@ -84,6 +85,7 @@ publications:
 
   - topic: /fmu/out/vehicle_odometry
     type: px4_msgs::msg::VehicleOdometry
+    rate_limit: 100.
 
   - topic: /fmu/out/vehicle_status
     type: px4_msgs::msg::VehicleStatus

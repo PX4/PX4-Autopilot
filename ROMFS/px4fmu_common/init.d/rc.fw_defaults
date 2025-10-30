@@ -26,6 +26,7 @@ param set-default EKF2_MAG_ACCLIM 0
 param set-default EKF2_REQ_EPH 10
 param set-default EKF2_REQ_EPV 10
 param set-default EKF2_REQ_HDRIFT 0.5
+param set-default EKF2_REQ_PDOP 4
 param set-default EKF2_REQ_SACC 1
 param set-default EKF2_REQ_VDRIFT 1
 param set-default EKF2_RNG_QLTY_T 3

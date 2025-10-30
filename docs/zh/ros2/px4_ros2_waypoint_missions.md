@@ -36,7 +36,7 @@ There are some benefits and drawbacks to using ROS-based missions, which are pro
 
 - QGroundControl currently does not display the mission or progress during execution, and cannot upload or download a mission.
   Therefore you will need another mechanism to provide a mission, such as from a web server, a custom GCS, or by generating it directly inside the application.
-- The current implementation only supports multicopters (it uses the [GotoSetpointType](../ros2/px4_ros2_control_interface.md#go-to-setpoint-gotosetpointtype), which only works for multicopters, and VTOL in MC mode).
+- The current implementation only supports multicopters (it uses the [GotoSetpointType](../ros2/px4_ros2_control_interface.md#go-to-setpoint-multicoptergotosetpointtype), which only works for multicopters, and VTOL in MC mode).
   It is designed to be extendable to any other vehicle type.
 
 ## 综述

@@ -66,3 +66,7 @@ target_include_directories(${PROJECT_NAME}
 
 # Add dependencies if needed
 # add_dependencies(${PROJECT_NAME} ExternalDependency)
+
+if (NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib/px4_gz_plugins)
+endif()

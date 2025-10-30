@@ -1019,6 +1019,7 @@ private:
 	void resetQuatStateYaw(float yaw, float yaw_variance);
 	void propagateQuatReset(const Quatf &quat_before_reset);
 	void resetYawByFusion(float yaw, float yaw_variance);
+	void resetHorizontalVelocityToMatchYaw(float delta_yaw);
 
 	HeightSensor _height_sensor_ref{HeightSensor::UNKNOWN};
 	PositionSensor _position_sensor_ref{PositionSensor::GNSS};
