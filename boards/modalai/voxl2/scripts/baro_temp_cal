@@ -17,6 +17,7 @@ keep_going = 1
 def handler(signum, frame):
     global keep_going
     keep_going = 0
+    subprocess.run(["voxl-set-cpu-mode", "auto_with_pitmode"])
     print('\nCtrl+C was pressed. Exiting gracefully...')
     # keep_going flag doesn't seem reliable yet, just quit
     sys.exit(0)
@@ -106,6 +107,9 @@ if __name__ == '__main__':
     set_px4_parameters = (args.no_params != 1)
 
     signal.signal(signal.SIGINT, handler)
+
+    # disable cpu pitmode so we can get hot enough
+    subprocess.run(["voxl-set-cpu-mode", "perf"])
 
     for i in range(num_iterations):
         if keep_going==0:
@@ -387,9 +391,11 @@ if __name__ == '__main__':
             for s in range(nsleep):
                 time.sleep(1.0)
                 if keep_going==0:
+                    subprocess.run(["voxl-set-cpu-mode", "auto_with_pitmode"])
                     print('Exiting')
                     sys.exit(0)
 
             print('done sleeping')
 
+    subprocess.run(["voxl-set-cpu-mode", "auto_with_pitmode"])
     print('Barometer temperature calibration process ending')
