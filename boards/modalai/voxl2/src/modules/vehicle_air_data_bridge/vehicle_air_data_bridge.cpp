@@ -82,7 +82,7 @@ bool VehicleAirDataBridge::init()
 		return false;
 	}
 
-	char baro_pipe_name[] = "barometer";
+	char baro_pipe_name[] = "px4_vehicle_air_data";
 	baro_pipe_ch = MPA::PipeCreate(baro_pipe_name);
 	if (baro_pipe_ch == -1) {
 		PX4_ERR("Pipe create failed for %s", baro_pipe_name);
