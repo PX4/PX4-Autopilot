@@ -89,8 +89,8 @@ PX4 includes pre-configured airframes for X-Plane:
 
 Install PX4 development environment and build tools following the official PX4 documentation:
 
-- **General SITL setup**: [PX4 Simulation](https://docs.px4.io/main/en/simulation/)
-- **Development environment**: [PX4 Dev Environment Setup](https://docs.px4.io/main/en/dev_setup/dev_env)
+- **General SITL setup**: [PX4 Simulation](../simulation/)
+- **Development environment**: [PX4 Dev Environment Setup](../dev_setup/dev_env)
 
 ### Platform Configuration
 
