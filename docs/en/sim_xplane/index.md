@@ -150,10 +150,6 @@ The X-Plane SITL integration supports multiple platforms. Choose your setup:
    - Allow UDP port 4560 (inbound and outbound)
    - You may need to create a firewall rule or temporarily disable firewall for testing
 
-6. **Configure px4xplane plugin**:
-   - Edit plugin config to use WSL IP (the IP you found in step 3)
-   - Default port: 4560
-
 **Troubleshooting WSL connection**:
 
 - Verify WSL can reach Windows: `ping <Windows_IP>` from WSL
@@ -165,8 +161,9 @@ The X-Plane SITL integration supports multiple platforms. Choose your setup:
 
 The integration requires a bridge plugin that connects PX4 to X-Plane using the X-Plane SDK.
 
-1. Download the latest **px4xplane** plugin from:
-   - [https://github.com/alireza787b/px4xplane](https://github.com/alireza787b/px4xplane)
+1. Download the latest **px4xplane** plugin binary:
+   - [Download from Releases](https://github.com/alireza787b/px4xplane/releases)
+   - Repository: [https://github.com/alireza787b/px4xplane](https://github.com/alireza787b/px4xplane)
 
 2. Follow the installation instructions in the px4xplane repository:
    - Place the plugin in `X-Plane/Resources/plugins/`
@@ -197,14 +194,14 @@ This guide assumes you have completed the [Prerequisites](#prerequisites) setup.
 
 1. Start X-Plane 11 or 12
 2. Load the aircraft matching your desired PX4 airframe:
+   - **Alia-250** (for 5020_xplane_alia250) - **Recommended**: Included in X-Plane 12, easy to fly with QGC commands
    - Cessna 172 Skyhawk (for 5001_xplane_cessna172)
    - General aviation or UAV model (for 5002_xplane_tb2)
    - Quadcopter or Ehang 184 (for 5010_xplane_ehang184)
-   - VTOL or Alia-250 (for 5020_xplane_alia250)
    - Tailsitter or Quantix (for 5021_xplane_qtailsitter)
 3. Position aircraft:
    - **Runway**: For takeoff testing
-   - **In-flight**: For immediate flight control testing (set altitude, enable flight)
+   - **In-flight**: For immediate testing, position at 100m+ AGL (especially for VTOL transitions)
 4. Verify px4xplane plugin is loaded:
    - Check **Plugins → Plugin Admin** menu
    - Plugin should show as loaded and waiting for PX4 connection
@@ -218,11 +215,13 @@ Open a terminal (native Linux/macOS or WSL terminal on Windows):
 ```bash
 cd PX4-Autopilot
 
-# Choose your airframe:
+# Recommended: Alia-250 eVTOL (included in X-Plane 12, easy to fly)
+make px4_sitl xplane_alia250
+
+# Other airframes:
 make px4_sitl xplane_cessna172    # Cessna 172
 make px4_sitl xplane_tb2           # TB2 UAV
 make px4_sitl xplane_ehang184      # Ehang 184 Quadcopter
-make px4_sitl xplane_alia250       # Alia-250 eVTOL
 make px4_sitl xplane_qtailsitter   # Quantix Tailsitter
 ```
 
@@ -234,11 +233,13 @@ cd PX4-Autopilot
 # Set Windows IP (replace with your IP from Platform Configuration section)
 export PX4_SIM_HOSTNAME=172.24.176.1
 
-# Choose your airframe:
+# Recommended: Alia-250 eVTOL (included in X-Plane 12, easy to fly)
+make px4_sitl xplane_alia250
+
+# Other airframes:
 make px4_sitl xplane_cessna172    # Cessna 172
 make px4_sitl xplane_tb2           # TB2 UAV
 make px4_sitl xplane_ehang184      # Ehang 184 Quadcopter
-make px4_sitl xplane_alia250       # Alia-250 eVTOL
 make px4_sitl xplane_qtailsitter   # Quantix Tailsitter
 ```
 
@@ -252,6 +253,7 @@ make px4_sitl xplane_qtailsitter   # Quantix Tailsitter
 
 1. Launch QGroundControl (or your preferred GCS)
 2. GCS should auto-connect to PX4 via UDP on `localhost:14550`
+   - **For WSL users**: QGroundControl on Windows may need MAVLink routing. Refer to [PX4 WSL documentation](../dev_setup/dev_env_windows_wsl.md) for MAVLink broadcasting (typically port 18570) or use MAVLink router to forward from WSL to Windows
 3. Verify connection:
    - Check vehicle status in QGroundControl
    - Verify GPS position matches X-Plane location
@@ -370,7 +372,7 @@ Default connection settings:
 - **Symptom**: VTOL motors don't spin in X-Plane even when armed
 - **Cause**: Known X-Plane bug with some aircraft models where motors don't animate
 - **Impact**: Visual only - flight dynamics and control work normally
-- **Workaround**: Ignore visual issue, verify motor outputs in QGroundControl MAVLink Inspector
+- **Workaround**: Restart X-Plane to reset motor animation state, or ignore visual issue and verify motor outputs in QGroundControl MAVLink Inspector
 - **Note**: Does not affect actual simulation, only X-Plane rendering
 
 ### Lockstep Scheduler Error
@@ -398,9 +400,11 @@ Default connection settings:
 - **Symptoms**: Cannot arm, QGC shows "Preflight Fail" errors
 - **Common Issues**:
   1. **No GPS fix**: Wait for GPS initialization (30-60 seconds in X-Plane)
-  2. **EKF not initialized**: Wait for `EKF2` to converge (check console output)
+  2. **EKF not initialized**: Wait for `EKF2` to converge (check console output, verify good FPS)
   3. **Barometer not ready**: Verify barometer priority settings
-  4. **Mode switch failure**: Check RC calibration or use virtual joystick
+  4. **Wrong flight mode**: Manual modes require RC/joystick - switch to Position or Stabilized mode if no RC
+  5. **Airframe mismatch**: Verify correct airframe selected in px4xplane plugin menu matches PX4 SITL airframe
+  6. **Build mismatch**: Ensure you built the correct SITL airframe (e.g., `make px4_sitl xplane_alia250`)
 - **Quick fix for testing**: `commander arm force` (use only for debugging)
 
 ### EKF2 Height/Velocity Unstable
