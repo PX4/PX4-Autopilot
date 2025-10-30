@@ -79,7 +79,7 @@ int MCP23017::init(uint16_t direction, uint16_t state, uint16_t pull_up, uint16_
 	ret |= write_reg(Register::GPINTENA, (uint8_t)(int_en & 0x00FF));
 	ret |= write_reg(Register::GPINTENB, (uint8_t)(int_en >> 8));
 
-	//Write reference values
+	//Set reference values
 	ret |= write_reg(Register::DEFVALA, (uint8_t)(ref_vals & 0x00FF));
 	ret |= write_reg(Register::DEFVALB, (uint8_t)(ref_vals >> 8));
 
