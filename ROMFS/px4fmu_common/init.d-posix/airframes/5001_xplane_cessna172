@@ -3,71 +3,29 @@
 # PX4 SITL Configuration Script for Cessna 172 Skyhawk in X-Plane
 ################################################################################
 #
-# AIRFRAME INFORMATION
-# --------------------
-# Airframe:          Cessna 172 Skyhawk
-# Type:              Fixed-Wing (Standard Plane)
-# Configuration:     1 Propeller Motor + 4 Control Surfaces
-# Compatible Sim:    X-Plane 11/12
 # @name              Cessna 172 Skyhawk
 # @type              Standard Plane
 # @maintainer        alireza787b <p30planets@gmail.com>
 # @url               https://github.com/alireza787b/px4xplane/
-# Date:              November 2023 (Fully Updated: January 2025)
 #
-# AIRCRAFT SPECIFICATIONS
-# -----------------------
-# MTOW:              2,550 lb (1,157 kg) - Light General Aviation
-# Wingspan:          36 ft 1 in (11.0 m) - High-wing design
-# Length:            27 ft 2 in (8.28 m)
-# Height:            8 ft 11 in (2.72 m)
-# Cruise Speed:      124 ktas (64 m/s / 142 mph / 230 km/h)
-# Stall Speed:       48 kcas (25 m/s / 55 mph / 89 km/h)
-# Max Climb Rate:    730 fpm (3.7 m/s)
-# Service Ceiling:   14,000 ft (4,267 m)
-# Range:             640 nm (736 mi / 1,185 km)
-# Engine:            Lycoming IO-360-L2A, 180 HP (134 kW)
-# Propeller:         Fixed-pitch or constant-speed (2-blade)
-# Fuel Capacity:     56 gallons (212 liters)
-# Useful Load:       917 lb (416 kg)
-# Sensors:           Barometer, GPS, Magnetometer, Airspeed (pitot tube)
+# Aircraft:          Cessna 172 Skyhawk
+# Type:              Fixed-Wing (Standard Plane)
+# Configuration:     1 Propeller Motor + 4 Control Surfaces
+# Compatible Sim:    X-Plane 11/12
+# Date:              January 2025
 #
-# USAGE
-# -----
+# AIRCRAFT SPECIFICATIONS:
+# - MTOW: 2,550 lb (1,157 kg) - Light General Aviation
+# - Wingspan: 36 ft 1 in (11.0 m) - High-wing design
+# - Cruise Speed: 124 ktas (64 m/s)
+# - Stall Speed: 48 kcas (25 m/s)
+# - Engine: Lycoming IO-360-L2A, 180 HP
+# - Sensors: Barometer, GPS, Magnetometer, Airspeed
+#
+# USAGE:
 # 1. Place this file in: PX4-Autopilot/ROMFS/px4fmu_common/init.d-posix/airframes/
 # 2. Run: make px4_sitl xplane_cessna172
 # 3. Launch X-Plane with Cessna 172 aircraft model
-# 4. Connect via px4xplane plugin
-#
-# CHANGELOG
-# ---------
-# Jan 2025 - COMPLETE REWRITE WITH ALL LESSONS LEARNED:
-#   APPLIED OPTIMIZATIONS FROM EHANG 184 & ALIA-250:
-#   1. EKF2 Barometer: 0.1 (100mm) → 0.003 (3mm) for stable altitude
-#   2. Single Sensor Priority: CAL_BARO1_PRIO=0 prevents BARO switch errors
-#   3. Innovation Gates: Increased to 5.0 for FPS-independent robustness
-#   4. Airspeed Sensor: Proper SITL configuration with ASPD_DO_CHECKS=7
-#   5. TECS Complete: Added damping, integrators, energy management
-#   6. Modern NPFG: Replaces deprecated L1 controller (PX4 v1.14+)
-#   7. Correct Parameters: FW_THR_TRIM (not FW_THR_CRUISE), FW_T_THR_DAMPING
-#
-#   CESSNA 172-SPECIFIC TUNING (1,157 KG LIGHT GA AIRCRAFT):
-#   - Cruise: 64 m/s (124 ktas) - moderate speed
-#   - Loiter Radius: 600m (appropriate for light GA turning performance)
-#   - Climb Rate: 3.7 m/s (730 fpm) - realistic for 180 HP engine
-#   - Roll Limit: 35° (passenger comfort, standard GA operations)
-#   - NPFG_PERIOD: 30 (tighter turns than heavy VTOL)
-#   - Stall Speed: 25 m/s (48 kcas) - high-wing stability
-#
-#   PROFESSIONAL DOCUMENTATION:
-#   - 12 organized sections with complete parameter explanations
-#   - Comparison table: Cessna 172 vs Alia-250 vs Ehang 184
-#   - Formula derivations for loiter radius, climb performance
-#   - Troubleshooting guide for common GA aircraft issues
-#   - Parameter interdependency explanations
-#
-# Nov 2023 - Initial Configuration:
-#   Basic fixed-wing parameters for X-Plane integration
 #
 ################################################################################
 
@@ -77,704 +35,304 @@
 ################################################################################
 # SECTION 1: CONTROL ALLOCATION (CA) - FIXED-WING CONFIGURATION
 ################################################################################
-# Defines the physical layout of motor and control surfaces for Cessna 172.
-# This is a simple fixed-wing aircraft with TWO actuator groups:
-#
-# GROUP 1: PROPELLER MOTOR (1x front-mounted engine)
-#   Motor 0: Front propeller - Position: (+1.2, 0, 0), thrust axis: forward (AX=1)
-#
-# GROUP 2: CONTROL SURFACES (4x surfaces for flight control)
-#   CS0: Left Aileron (roll control)
-#   CS1: Right Aileron (roll control, opposite)
-#   CS2: Elevator (pitch control)
-#   CS3: Rudder (yaw control)
-#
-# DEVELOPER NOTES:
-# - DO NOT modify motor position without updating X-Plane model
-# - Control surfaces use standard servo outputs
-# - For new fixed-wing airframes: Start with these values, tune rates first
+# Motor: Front propeller (+1.2m from CG, thrust forward)
+# Control Surfaces: Left/Right Ailerons, Elevator, Rudder
 
-# ---- Core Control Allocation ----
-param set-default CA_AIRFRAME 1          # 1 = Fixed-wing configuration
-param set-default CA_METHOD 2            # 2 = Pseudo-inverse allocation
-param set-default CA_FAILURE_MODE 0      # 0 = No failsafe action
+param set-default CA_AIRFRAME 1          # Fixed-wing configuration
+param set-default CA_METHOD 2            # Pseudo-inverse allocation
+param set-default CA_FAILURE_MODE 0
 param set-default CA_ROTOR_COUNT 1       # 1 propeller motor
 
-# ---- Propeller Motor 0: Front Engine ----
-param set-default CA_ROTOR0_PX 1.2       # 1.2m forward of CG (engine position)
-param set-default CA_ROTOR0_AX 1.0       # Thrust forward (propeller)
-param set-default CA_ROTOR0_AZ 0.0       # No vertical thrust component
-param set-default CA_R0_SLEW 2.0         # Throttle slew rate limit (1/s)
-                                          # Smooth throttle changes for GA comfort
+# Propeller Motor 0
+param set-default CA_ROTOR0_PX 1.2       # 1.2m forward of CG
+param set-default CA_ROTOR0_AX 1.0       # Thrust forward
+param set-default CA_ROTOR0_AZ 0.0
+param set-default CA_R0_SLEW 2.0         # Smooth throttle changes
 
-# ---- Control Surface Allocation ----
-# CS0: Left Aileron (roll control)
-param set-default CA_SV_CS0_TRQ_R -0.5   # Roll torque authority (negative = left)
-param set-default CA_SV_CS0_TYPE 1       # Type 1 = Left aileron
+# Control Surfaces
+param set-default CA_SV_CS0_TRQ_R -0.5   # Left Aileron
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS1_TRQ_R 0.5    # Right Aileron
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS2_TRQ_P 1.0    # Elevator
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS3_TRQ_Y 1.0    # Rudder
+param set-default CA_SV_CS3_TYPE 4
+param set-default CA_SV_CS_COUNT 4
 
-# CS1: Right Aileron (roll control, opposite side)
-param set-default CA_SV_CS1_TRQ_R 0.5    # Roll torque authority (positive = right)
-param set-default CA_SV_CS1_TYPE 2       # Type 2 = Right aileron
-
-# CS2: Elevator (pitch control)
-param set-default CA_SV_CS2_TRQ_P 1.0    # Pitch torque authority
-param set-default CA_SV_CS2_TYPE 3       # Type 3 = Elevator
-
-# CS3: Rudder (yaw control)
-param set-default CA_SV_CS3_TRQ_Y 1.0    # Yaw torque authority
-param set-default CA_SV_CS3_TYPE 4       # Type 4 = Rudder
-
-param set-default CA_SV_CS_COUNT 4       # Total count of control surfaces
-
-# ---- PWM Output Mapping ----
-# Maps PX4 actuator outputs to X-Plane datarefs (via px4xplane plugin)
-# See config/config.ini [Cessna172] section for dataref mappings
-param set-default PWM_MAIN_FUNC1 201     # Control Surface 1 (left aileron)
-param set-default PWM_MAIN_FUNC2 202     # Control Surface 2 (right aileron)
-param set-default PWM_MAIN_FUNC3 203     # Control Surface 3 (elevator)
-param set-default PWM_MAIN_FUNC4 101     # Motor 1 (propeller/throttle)
-param set-default PWM_MAIN_FUNC5 204     # Control Surface 4 (rudder)
-param set-default PWM_MAIN_FUNC6 204     # Duplicate rudder output (optional)
-param set-default PWM_MAIN_REV 7         # PWM reversal configuration
+# PWM Output Mapping
+param set-default PWM_MAIN_FUNC1 201     # Left aileron
+param set-default PWM_MAIN_FUNC2 202     # Right aileron
+param set-default PWM_MAIN_FUNC3 203     # Elevator
+param set-default PWM_MAIN_FUNC4 101     # Propeller
+param set-default PWM_MAIN_FUNC5 204     # Rudder
+param set-default PWM_MAIN_FUNC6 204     # Duplicate rudder (optional)
+param set-default PWM_MAIN_REV 7
 
 
 ################################################################################
-# SECTION 2: EKF2 SENSOR FUSION - CRITICAL PARAMETERS (January 2025)
+# SECTION 2: EKF2 SENSOR FUSION - OPTIMIZED FOR X-PLANE SITL
 ################################################################################
-# Extended Kalman Filter configuration optimized for fixed-wing operations in SITL.
-#
-# DESIGN PHILOSOPHY - LIGHT GA AIRCRAFT:
-# ---------------------------------------
-# Cessna 172 presents different EKF2 characteristics than VTOL aircraft:
-#
-# 1. SINGLE FLIGHT REGIME:
-#    - Continuous forward flight (40-75 m/s airspeed range)
-#    - No hover mode or transitions to complicate sensor fusion
-#    - Simpler dynamics → more consistent sensor data
-#
-# 2. LIGHT AIRFRAME (1,157 KG):
-#    - Lighter than Alia-250 (2,721 kg) and Ehang 184 (600 kg)
-#    - More responsive to turbulence and control inputs
-#    - Faster acceleration response → moderate noise characteristics
-#
-# 3. AIRSPEED SENSOR CRITICAL:
-#    - Fixed-wing requires continuous airspeed measurement
-#    - Stall prevention depends on accurate airspeed
-#    - Must fuse with GPS velocity for wind estimation
-#
-# LESSONS APPLIED FROM EHANG 184 & ALIA-250:
-# -------------------------------------------
-# All barometer, GPS, and magnetometer optimizations from previous aircraft
-# have been applied here with fixed-wing-specific tuning.
+# Applied optimizations from Ehang 184 & Alia-250:
+# - Barometer: 0.003 (3mm noise, 33x improvement from default 0.1)
+# - Single sensor priority prevents BARO switch errors
+# - Innovation gates: 5.0 for FPS-independent robustness
 
-# ---- HIL Sensor Simulation Enablement ----
-# MUST be enabled for PX4 to accept HIL_SENSOR and HIL_GPS messages from X-Plane
-param set-default SENS_EN_GPSSIM 1       # Enable GPS simulation mode
-param set-default SENS_EN_BAROSIM 1      # Enable barometer simulation mode
-param set-default SENS_EN_ARSPDSIM 1     # Enable airspeed simulation mode (FW-specific)
-param set-default SYS_HAS_BARO 1         # System has barometer sensor
-param set-default SYS_HAS_GPS 1          # System has GPS sensor
+# Sensor Simulation Enables
+param set-default SENS_EN_GPSSIM 1       # GPS simulation
+param set-default SENS_EN_BAROSIM 1      # Barometer simulation
+param set-default SENS_EN_ARSPDSIM 1     # Airspeed simulation
+param set-default SYS_HAS_BARO 1
+param set-default SYS_HAS_GPS 1
 
-# ---- Barometer Sensor Priority (CRITICAL - Prevents BARO Switching) ----
-# SINGLE BAROMETER CONFIGURATION for SITL (same strategy as Ehang/Alia)
-#
-# WHY SINGLE SENSOR FOR FIXED-WING SITL:
-# - X-Plane provides ONE altitude source
-# - Setting CAL_BARO1_PRIO=0 prevents "BARO switch from #0 -> #1" errors
-# - Critical for stable altitude hold during long cruise flights
-# - Innovation gate (5.0) handles turbulence and FPS variations
-param set-default CAL_BARO0_PRIO 100     # Primary barometer (highest priority)
-param set-default CAL_BARO1_PRIO 0       # Backup barometer DISABLED
-                                          # CRITICAL: Prevents mid-flight sensor
-                                          # switching that causes altitude jumps
+# Barometer Priority (prevents mid-flight sensor switching)
+param set-default CAL_BARO0_PRIO 100     # Primary barometer
+param set-default CAL_BARO1_PRIO 0       # Backup disabled
 
-# ---- EKF2 Core Configuration ----
-param set-default EKF2_BARO_CTRL 1       # Barometer height fusion enabled
-param set-default EKF2_MULTI_IMU 1       # Single IMU for fixed-wing (simpler than VTOL)
+# EKF2 Core Configuration
+param set-default EKF2_BARO_CTRL 1
+param set-default EKF2_MULTI_IMU 1
 
-# ---- EKF2 Accelerometer Bias Estimation ----
-param set-default EKF2_ABIAS_INIT 0.4    # Initial accelerometer bias (m/s²)
-param set-default EKF2_ABL_LIM 1.2       # Max accel bias learning (m/s²)
-param set-default EKF2_ABL_TAU 0.1       # Accel bias learning time constant
-param set-default EKF2_ABL_ACCLIM 35.0   # Accel limit for bias learning (VTOL-specific)
-param set-default EKF2_ACC_NOISE 1.5     # Accelerometer noise (m/s²)
-param set-default EKF2_ACC_B_NOISE 0.0010 # Accelerometer bias noise - tuned for X-Plane SITL
+# Accelerometer Bias Estimation
+param set-default EKF2_ABIAS_INIT 0.4
+param set-default EKF2_ABL_LIM 1.2
+param set-default EKF2_ABL_TAU 0.1
+param set-default EKF2_ABL_ACCLIM 35.0
+param set-default EKF2_ACC_NOISE 1.5
+param set-default EKF2_ACC_B_NOISE 0.0010
 
-# ---- EKF2 Barometer Parameters (OPTIMIZED - January 2025) ----
-# Same optimization as Ehang 184 & Alia-250: 1mm noise sensor, 3.5mm EKF2 parameter
-# CRITICAL: This improvement provides rock-solid altitude hold
-param set-default EKF2_BARO_NOISE 0.0035 # Barometer noise std dev (3.5mm) - final tuning
-                                          # OPTIMIZED from 0.1 (100mm) → 29x improvement
-                                          # Result: Stable altitude in cruise, no drift
-param set-default EKF2_BARO_DELAY 0.0    # Barometer measurement delay (0 for SITL)
+# Barometer (optimized for stable altitude)
+param set-default EKF2_BARO_NOISE 0.0035 # 3.5mm - 33x improvement
+param set-default EKF2_BARO_DELAY 0.0
+param set-default EKF2_BARO_GATE 8.0     # FPS variability tolerance
 
-# ---- EKF2 Innovation Gates (Fixed-Wing Robustness) ----
-# Fixed-wing aircraft experience innovation spikes from:
-# - Turbulence during cruise flight
-# - Bank angles during turns (GPS velocity changes)
-# - Airspeed fluctuations in wind
-# - FPS variations (30-150 Hz range in X-Plane)
-#
-# Gates increased to prevent false faults during normal flight operations
-param set-default EKF2_BARO_GATE 8.0     # Barometer innovation gate (default 3.0)
-                                          # TUNED from 10.0 → 8.0 for better responsiveness
-                                          # With 3.5mm noise + timing jitter, 8.0 provides optimal balance
-param set-default EKF2_GPS_P_GATE 5.0    # GPS position innovation gate
-param set-default EKF2_GPS_V_GATE 5.0    # GPS velocity innovation gate
-                                          # Important for turns and wind conditions
+# GPS Parameters
+param set-default EKF2_GPS_DELAY 0.0
+param set-default EKF2_GPS_P_NOISE 0.15  # Matches vertical accuracy
+param set-default EKF2_GPS_V_NOISE 0.01
+param set-default EKF2_GPS_P_GATE 5.0
+param set-default EKF2_GPS_V_GATE 5.0
 
-# ---- EKF2 GPS Parameters (OPTIMIZED - January 2025) ----
-# CRITICAL FIX: GPS altitude noise increased to match sensor model (prevent height drift)
-param set-default EKF2_GPS_DELAY 0.0      # GPS measurement delay (no lag in SITL)
-param set-default EKF2_GPS_P_NOISE 0.15   # GPS position noise (15cm - matches vertical accuracy)
-                                           # INCREASED from 0.01 to match GPS alt noise (σ=0.15m)
-                                           # This tells EKF2: "GPS altitude has ±30cm uncertainty"
-                                           # Prevents height drift by favoring barometer (±3mm) over GPS
-param set-default EKF2_GPS_V_NOISE 0.01   # GPS velocity noise (1cm/s - horizontal is accurate)
+# Magnetometer
+param set-default EKF2_MAG_TYPE 0
+param set-default EKF2_HEAD_NOISE 0.3
+param set-default EKF2_MAG_NOISE 0.05
+param set-default EKF2_MAG_GATE 5.0
 
-# ---- EKF2 Magnetometer Parameters ----
-# Magnetometer fusion for heading stability
-param set-default EKF2_MAG_TYPE 0        # Magnetometer fusion type (0=auto)
-param set-default EKF2_HEAD_NOISE 0.3    # Magnetic heading noise (rad)
-param set-default EKF2_MAG_NOISE 0.05    # Magnetometer noise (gauss)
-param set-default EKF2_MAG_GATE 5.0      # Mag innovation gate
-                                          # Prevents compass faults during maneuvers
+# Airspeed & Additional Sensors
+param set-default EKF2_ASP_DELAY 0.0
+param set-default EKF2_TAS_GATE 5.0
+param set-default EKF2_AGP_CTRL 3
+param set-default EKF2_AVEL_DELAY 0.0
+param set-default EKF2_WIND_NSD 0.01
+param set-default EKF2_REQ_VDRIFT 1.0
 
-# ---- EKF2 Airspeed Parameters (FIXED-WING CRITICAL) ----
-# AIRSPEED SENSOR STRATEGY FOR CESSNA 172:
-# -----------------------------------------
-# Unlike VTOL (which can fly MC mode without airspeed), fixed-wing REQUIRES
-# continuous airspeed measurement for:
-# - Stall prevention (must stay above 25 m/s stall speed)
-# - Optimal cruise efficiency (50-64 m/s range)
-# - Landing approach speed control
-#
-# SITL Airspeed Configuration:
-# - We SEND diff_pressure in HIL_SENSOR (simulated pitot tube)
-# - PX4 is configured to USE airspeed for FW control
-# - Airspeed fusion enabled above threshold
-param set-default EKF2_ASP_DELAY 0.0     # Airspeed delay (0 for SITL)
-param set-default EKF2_TAS_GATE 5.0      # True airspeed innovation gate
-                                          # INCREASED from 3.0 for robustness
-
-# ---- EKF2 Additional Sensors ----
-param set-default EKF2_AGP_CTRL 3        # Altitude sensor control
-param set-default EKF2_AVEL_DELAY 0.0    # Angular velocity delay
-param set-default EKF2_WIND_NSD 0.01     # Wind noise spectral density
-                                          # Important for wind estimation in cruise
-param set-default EKF2_REQ_VDRIFT 1.0    # Required vertical drift
-
-# ---- IMU Configuration ----
-param set-default IMU_GYRO_RATEMAX 100   # Max gyro rate (Hz) - matches HIL_SENSOR
-param set-default IMU_INTEG_RATE 100     # IMU integration rate (Hz)
+# IMU Configuration
+param set-default IMU_GYRO_RATEMAX 100
+param set-default IMU_INTEG_RATE 100
 
 
 ################################################################################
-# SECTION 3: FIXED-WING RATE CONTROL - PID TUNING (INNER LOOP)
+# SECTION 3: FIXED-WING RATE CONTROL - PID TUNING
 ################################################################################
-# Attitude rate controllers (inner loop) for fixed-wing flight.
-# These PIDs control rotational rates (roll/pitch/yaw rates).
-#
-# CESSNA 172 TUNING PHILOSOPHY:
-# ------------------------------
-# Light GA aircraft (1,157 kg) requires different tuning than heavy VTOL:
-# - Faster response to control inputs (lighter airframe)
-# - Moderate rate limits for passenger comfort (not aerobatic)
-# - Good damping for stability in turbulence
-# - Coordinated turn capability (yaw damper important)
+# Attitude rate controllers (inner loop) for roll, pitch, yaw.
 
-# ---- Roll Rate Control ----
-param set-default FW_RR_P 0.47           # Roll rate P gain
-                                          # Moderate gain for light aircraft
-param set-default FW_RR_I 0.13           # Roll rate I gain
-                                          # Small integrator to eliminate steady-state error
-param set-default FW_RR_D 0.085          # Roll rate D gain
-                                          # Damping for smooth roll response
-param set-default FW_RR_FF 4.8           # Roll rate feedforward
-                                          # INCREASED from default for responsive aileron
+# Roll Rate
+param set-default FW_RR_P 0.47           # P gain
+param set-default FW_RR_I 0.13           # I gain
+param set-default FW_RR_D 0.085          # D gain
+param set-default FW_RR_FF 4.8           # Feedforward
 param set-default FW_R_RMAX 10.0         # Max roll rate (deg/s)
-                                          # CONSERVATIVE for GA operations (not aerobatic)
-param set-default FW_R_TC 0.6            # Roll time constant (s)
-param set-default FW_R_LIM 35.0          # Roll angle limit (deg)
-                                          # Standard GA bank angle limit
+param set-default FW_R_TC 0.6            # Time constant
+param set-default FW_R_LIM 35.0          # Roll angle limit
 
-# ---- Pitch Rate Control ----
-param set-default FW_PR_P 0.365          # Pitch rate P gain
-param set-default FW_PR_I 0.045          # Pitch rate I gain
-param set-default FW_PR_D 0.355          # Pitch rate D gain
-                                          # HIGH damping for pitch stability
-param set-default FW_PR_FF 3.4           # Pitch rate feedforward
-param set-default FW_P_LIM_MAX 20.0      # Max pitch up (deg)
-                                          # Prevents excessive climb angle
-param set-default FW_P_LIM_MIN -15.0     # Max pitch down (deg)
-                                          # Prevents excessive dive angle
-param set-default FW_P_TC 0.45           # Pitch time constant (s)
-param set-default FW_PN_R_SLEW_MAX 50.0  # Pitch rate slew limit (deg/s²)
-                                          # Smooth pitch changes
+# Pitch Rate
+param set-default FW_PR_P 0.365          # P gain
+param set-default FW_PR_I 0.045          # I gain
+param set-default FW_PR_D 0.355          # D gain (high damping)
+param set-default FW_PR_FF 3.4           # Feedforward
+param set-default FW_P_LIM_MAX 20.0      # Max pitch up
+param set-default FW_P_LIM_MIN -15.0     # Max pitch down
+param set-default FW_P_TC 0.45
+param set-default FW_PN_R_SLEW_MAX 50.0
 
 
 ################################################################################
-# SECTION 4: AIRSPEED CONTROL (CRITICAL FOR FIXED-WING)
+# SECTION 4: AIRSPEED CONTROL
 ################################################################################
-# Airspeed limits and sensor configuration for safe fixed-wing operation.
-#
-# CESSNA 172 FLIGHT ENVELOPE:
-# ---------------------------
-# Stall Speed:     25 m/s (48 kcas) - high-wing provides good stall characteristics
-# Takeoff Speed:   32 m/s (62 kcas) - rotation speed
-# Approach Speed:  36 m/s (70 kcas) - landing approach
-# Cruise Speed:    64 m/s (124 ktas) - normal cruise
-# Max Speed:       75 m/s (145 ktas) - never exceed (safety margin)
-#
-# DESIGN MARGINS:
-# - FW_AIRSPD_MIN set 5 m/s above stall (safety margin)
-# - FW_AIRSPD_TRIM set for efficient cruise (50 m/s)
-# - FW_AIRSPD_MAX set beyond cruise for headroom (75 m/s)
+# Flight envelope: Stall 25 m/s, Cruise 64 m/s, Max 75 m/s
 
-# ---- Airspeed Limits ----
-param set-default FW_AIRSPD_MIN 30.0     # Min airspeed (m/s)
-                                          # 5 m/s above stall speed (25 m/s)
-param set-default FW_AIRSPD_MAX 75.0     # Max airspeed (m/s)
-                                          # Beyond cruise for safety margin
-param set-default FW_AIRSPD_TRIM 50.0    # Trim airspeed (m/s)
-                                          # Efficient cruise speed
-param set-default FW_AIRSPD_STALL 25.0   # Stall speed (m/s)
-                                          # 48 kcas stall speed
+param set-default FW_AIRSPD_MIN 30.0     # Min airspeed (5 m/s above stall)
+param set-default FW_AIRSPD_MAX 75.0     # Max airspeed
+param set-default FW_AIRSPD_TRIM 50.0    # Efficient cruise
+param set-default FW_AIRSPD_STALL 25.0   # Stall speed
 
-# ---- Airspeed Sensor Configuration (SITL) ----
-# CESSNA 172 REQUIRES AIRSPEED SENSOR
-# Fixed-wing cannot fly safely without continuous airspeed measurement
-param set-default FW_USE_AIRSPD 1        # USE airspeed for FW control
-                                          # 1 = Use airspeed (REQUIRED for FW)
-param set-default ASPD_DO_CHECKS 7       # Disable physical sensor sanity checks (SITL)
-                                          # Validated on Alia-250, works correctly
-                                          # We send simulated data, don't validate hardware
-param set-default SYS_HAS_NUM_ASPD 1     # Tell PX4: we have 1 airspeed sensor (virtual)
+# Airspeed Sensor (SITL)
+param set-default FW_USE_AIRSPD 1        # Use airspeed for control
+param set-default ASPD_DO_CHECKS 7       # Disable hardware checks (SITL)
+param set-default SYS_HAS_NUM_ASPD 1     # 1 virtual airspeed sensor
 
 
 ################################################################################
-# SECTION 5: TECS (TOTAL ENERGY CONTROL SYSTEM) - ALTITUDE/AIRSPEED COUPLING
+# SECTION 5: TECS - TOTAL ENERGY CONTROL SYSTEM
 ################################################################################
-# Total Energy Control System manages the coupled relationship between
-# altitude and airspeed in fixed-wing flight.
-#
-# TECS THEORY:
-# ------------
-# Total Energy = Kinetic Energy + Potential Energy
+# Manages coupled altitude/airspeed control.
 # E_total = (1/2) × m × v² + m × g × h
-#
-# TECS simultaneously controls:
-# - Specific Total Energy (STE): Overall energy level (throttle primary)
-# - Specific Energy Balance (SEB): Energy distribution (pitch primary)
-#
-# For Cessna 172 (1,157 kg light GA):
-# - Slower energy response than heavy aircraft
-# - Need good damping to prevent altitude/airspeed oscillations
-# - Moderate climb/sink rates for passenger comfort
 
-# ---- TECS Core Parameters ----
-param set-default FW_T_ALT_TC 8.0        # Altitude time constant (s)
-                                          # Fast response for light aircraft
-param set-default FW_T_RLL2THR 8.0       # Roll to throttle scaling
-                                          # Maintains energy during turns
-param set-default FW_T_STE_R_TC 1.5      # Specific total energy rate time constant (s)
-                                          # Responsive energy management
+# Core Parameters
+param set-default FW_T_ALT_TC 8.0        # Altitude time constant
+param set-default FW_T_RLL2THR 8.0       # Roll to throttle
+param set-default FW_T_STE_R_TC 1.5      # Energy rate time constant
 
-# ---- TECS Climb/Sink Limits (Cessna 172 Performance) ----
-param set-default FW_T_CLMB_MAX 3.7      # Max climb rate (m/s)
-                                          # 730 fpm - realistic for 180 HP engine
-                                          # Based on actual Cessna 172 POH data
-param set-default FW_T_SINK_MIN 2.0      # Min sink rate (m/s)
-                                          # Gentle descents for GA comfort
-param set-default FW_T_SINK_MAX 4.0      # Max sink rate (m/s)
-                                          # Controlled descent limit
-param set-default FW_T_VERT_ACC 4.0      # Vertical acceleration limit (m/s²)
-                                          # Smooth for passenger comfort
+# Climb/Sink Limits (Cessna 172: 730 fpm = 3.7 m/s)
+param set-default FW_T_CLMB_MAX 3.7      # Max climb (180 HP)
+param set-default FW_T_SINK_MIN 2.0      # Min sink
+param set-default FW_T_SINK_MAX 4.0      # Max sink
+param set-default FW_T_VERT_ACC 4.0      # Vertical acceleration limit
 
-# ---- TECS Damping & Stability (CRITICAL - Prevents Oscillations) ----
-# These parameters prevent altitude/airspeed oscillations (porpoising)
-param set-default FW_T_THR_DAMPING 0.08  # Throttle damping time constant (s)
-                                          # CRITICAL: Smooth throttle changes
-                                          # Prevents throttle oscillation
-param set-default FW_T_PTCH_DAMP 0.1     # Pitch damping gain
-                                          # CRITICAL: Prevents pitch oscillations
-                                          # Essential for stable cruise
+# Damping (prevents oscillations)
+param set-default FW_T_THR_DAMPING 0.08  # Throttle damping
+param set-default FW_T_PTCH_DAMP 0.1     # Pitch damping
 
-# ---- TECS Integrators ----
-param set-default FW_T_I_GAIN_PIT 0.3    # Integrator gain for pitch
-                                          # Eliminates steady-state altitude error
-
+# Integrators
+param set-default FW_T_I_GAIN_PIT 0.3    # Pitch integrator
 
 
 ################################################################################
-# SECTION 6: THROTTLE MANAGEMENT (CORRECTED PARAMETERS)
+# SECTION 6: THROTTLE MANAGEMENT
 ################################################################################
-# Throttle control for propeller motor.
-#
-# CESSNA 172 POWER MANAGEMENT:
-# -----------------------------
-# Engine: Lycoming IO-360-L2A, 180 HP (134 kW)
-# - Idle: 0% throttle (engine idling)
-# - Cruise: 55-65% throttle (efficient cruise at 50-64 m/s)
-# - Climb: 75-100% throttle (maximum power for climb)
-#
-# CORRECTED PARAMETER NAMES (from Alia-250 lessons):
-# - FW_THR_TRIM (correct) instead of FW_THR_CRUISE (doesn't exist)
-# - FW_T_THR_DAMPING (correct) instead of FW_T_THR_DAMP (doesn't exist)
+# Engine: Lycoming IO-360-L2A, 180 HP
 
-# ---- Throttle Limits ----
-param set-default FW_THR_TRIM 0.55       # Trim/cruise throttle (0-1)
-                                          # 55% throttle for efficient cruise
-                                          # Lower than Alia (60%) - smaller engine
-param set-default FW_THR_MAX 1.0         # Max throttle limit (100%)
-param set-default FW_THR_MIN 0.10        # Min throttle limit (10%)
-param set-default FW_THR_IDLE 0.00       # Idle throttle (0% when not in use)
-param set-default FW_THR_SLEW_MAX 0.50   # Max throttle slew rate (1/s)
-                                          # Smooth throttle changes for GA comfort
-param set-default FW_THR_ASPD_MAX 0.00   # Throttle at max airspeed (0=not used)
-param set-default FW_THR_ASPD_MIN 0.00   # Throttle at min airspeed (0=not used)
+param set-default FW_THR_TRIM 0.55       # 55% cruise throttle
+param set-default FW_THR_MAX 1.0         # 100% max
+param set-default FW_THR_MIN 0.10        # 10% min
+param set-default FW_THR_IDLE 0.00       # Idle
+param set-default FW_THR_SLEW_MAX 0.50   # Throttle slew rate
+param set-default FW_THR_ASPD_MAX 0.00
+param set-default FW_THR_ASPD_MIN 0.00
 
 
 ################################################################################
-# SECTION 7: TAKEOFF & LANDING PARAMETERS
+# SECTION 7: TAKEOFF & LANDING
 ################################################################################
-# Takeoff and landing procedures for Cessna 172.
-#
-# CESSNA 172 TAKEOFF/LANDING PERFORMANCE:
-# ----------------------------------------
-# Takeoff Distance: 1,630 ft (497 m) at sea level
-# Landing Distance: 1,335 ft (407 m) at sea level
-# Rotation Speed:   32 m/s (62 kcas)
-# Approach Speed:   36 m/s (70 kcas)
-# Flare Altitude:   5 m (16 ft) - typical for GA aircraft
+# Takeoff: 1,630 ft (497 m), Landing: 1,335 ft (407 m)
 
-# ---- Takeoff Parameters ----
-param set-default FW_TKO_AIRSPD 32.0     # Takeoff airspeed / rotation speed (m/s)
-                                          # 62 kcas - typical Cessna 172 rotation
-param set-default FW_TKO_PITCH_MIN 20.0  # Min pitch angle during takeoff (deg)
-                                          # Positive pitch for liftoff
-param set-default MIS_TAKEOFF_ALT 100.0  # Default takeoff altitude (m)
-                                          # Initial climb altitude for pattern
+# Takeoff
+param set-default FW_TKO_AIRSPD 32.0     # Rotation speed (62 kcas)
+param set-default FW_TKO_PITCH_MIN 20.0  # Min pitch angle
+param set-default MIS_TAKEOFF_ALT 100.0  # Takeoff altitude
 
-# ---- Landing Parameters ----
-param set-default FW_LND_ABORT 0         # Landing abort mode (0=disabled)
-param set-default FW_LND_AIRSPD 36.0     # Landing approach airspeed (m/s)
-                                          # 70 kcas - approach speed
-param set-default FW_LND_FLALT 5.0       # Flare altitude (m)
-                                          # 16 ft - typical GA flare height
-param set-default FW_LND_FL_PMAX 35.0    # Max pitch during flare (deg)
-                                          # Nose-up limit during landing flare
-param set-default LNDFW_AIRSPD_MAX 30.0  # Max airspeed for FW landing (m/s)
-                                          # Speed must be below this to land
-param set-default LNDFW_VEL_XY_MAX 15.0  # Max XY velocity for FW landing (m/s)
-                                          # Horizontal speed limit for landing
+# Landing
+param set-default FW_LND_ABORT 0
+param set-default FW_LND_AIRSPD 36.0     # Approach speed (70 kcas)
+param set-default FW_LND_FLALT 5.0       # Flare altitude
+param set-default FW_LND_FL_PMAX 35.0    # Max pitch during flare
+param set-default LNDFW_AIRSPD_MAX 30.0
+param set-default LNDFW_VEL_XY_MAX 15.0
 
 
 ################################################################################
-# SECTION 8: NPFG GUIDANCE (MODERN PX4 v1.14+ FW POSITION CONTROL)
+# SECTION 8: NPFG GUIDANCE (Modern PX4 v1.14+)
 ################################################################################
-# Nonlinear Path Following Guidance - replaces deprecated L1 controller.
-# This section controls how the aircraft follows waypoints in fixed-wing mode.
-#
-# LOITER RADIUS CALCULATION FOR CESSNA 172:
-# ------------------------------------------
-# Formula (from PX4 source code):
-# L1_distance = (1/π) × NPFG_DAMPING × NPFG_PERIOD × groundspeed
-# L1_ratio = (1/π) × NPFG_DAMPING × NPFG_PERIOD
-#
-# For Cessna 172 (cruise 64 m/s, lighter than Alia-250):
-# With NPFG_PERIOD=30, NPFG_DAMPING=0.7:
-#   L1_ratio = (1/3.14159) × 0.7 × 30 = 6.69
-#   At 50 m/s: L1_distance = 334 m (moderate turns)
-#   At 64 m/s: L1_distance = 428 m (cruise turns)
-#
-# COMPARISON TO OTHER AIRCRAFT:
-# Aircraft      | Mass (kg) | Cruise (m/s) | NPFG_PERIOD | Loiter Radius
-# --------------|-----------|--------------|-------------|---------------
-# Cessna 172    | 1,157     | 64           | 30          | 600m
-# Alia-250      | 2,721     | 75           | 45          | 2000m
-# Ehang 184     | 600       | N/A (MC)     | N/A         | 50m (MC mode)
-#
-# DEVELOPER NOTES:
-# ----------------
-# - NPFG replaces L1 controller starting in PX4 v1.14
-# - L1 parameters (FW_L1_PERIOD, FW_L1_DAMPING) are deprecated
-# - If using older PX4 (<v1.14), use FW_L1_PERIOD=30 instead
+# Replaces deprecated L1 controller.
+# Formula: L1_distance = (1/π) × NPFG_DAMPING × NPFG_PERIOD × groundspeed
+# At 64 m/s cruise: ~428m turning radius
 
-# ---- NPFG Core Parameters ----
-param set-default NPFG_PERIOD 30.0       # NPFG period (s)
-                                          # Optimized for light GA aircraft
-                                          # Smaller than Alia-250 (45) for tighter turns
-                                          # At 64 m/s: ~428m turning radius
-param set-default NPFG_DAMPING 0.7       # NPFG damping ratio
-                                          # Standard value (0.6-0.9 range)
-                                          # Lower = tighter turns, higher = smoother
-param set-default NPFG_ROLL_TC 0.4       # Roll time constant (s)
-                                          # How quickly aircraft achieves commanded roll
+param set-default NPFG_PERIOD 30.0       # NPFG period (light GA)
+param set-default NPFG_DAMPING 0.7       # Damping ratio
+param set-default NPFG_ROLL_TC 0.4       # Roll time constant
 param set-default NPFG_SW_DST_MLT 1.0    # Switch distance multiplier
-                                          # Affects waypoint switching logic
-
 
 
 ################################################################################
-# SECTION 9: NAVIGATION & MISSION PARAMETERS
+# SECTION 9: NAVIGATION & MISSION
 ################################################################################
-# Navigation parameters for waypoint following and mission execution.
-#
-# CESSNA 172 NAVIGATION STRATEGY:
-# --------------------------------
-# As a light GA aircraft with moderate cruise speed:
-# - Waypoint acceptance: 300m radius (allows smooth tracking)
-# - Loiter radius: 600m (appropriate for 64 m/s cruise)
-# - Altitude acceptance: 50m (generous for turbulence)
-# - Yaw tolerance: 30° (passenger comfort, not precision aerobatics)
-#
-# COMPARISON TO OTHER AIRCRAFT:
-# Parameter          | Cessna 172 | Alia-250 | Reasoning
-# -------------------|------------|----------|---------------------------
-# NAV_ACC_RAD        | 300m       | 30m (MC) | FW needs wider radius
-# NAV_LOITER_RAD     | 600m       | 2000m    | Smaller/slower aircraft
-# NAV_FW_ALT_RAD     | 50m        | 50m      | Same altitude tolerance
-# MIS_YAW_ERR        | 30°        | 30°      | Passenger comfort
+# Light GA aircraft navigation strategy
 
-# ---- Mission Parameters ----
-param set-default MIS_YAW_ERR 30.0       # Max yaw error for waypoint (deg)
-                                          # Generous tolerance for smooth flight
-param set-default MIS_YAW_TMT 5.0        # Yaw timeout (s)
-param set-default MIS_TAKEOFF_ALT 100.0  # Default takeoff altitude (m)
-                                          # Pattern altitude for GA operations
-param set-default MIS_TKO_LAND_REQ 0     # Takeoff/landing required for mission
-param set-default MIS_DIST_1WP 5000.0    # Distance to first waypoint (m)
+# Mission Parameters
+param set-default MIS_YAW_ERR 30.0       # Yaw error tolerance
+param set-default MIS_YAW_TMT 5.0
+param set-default MIS_TAKEOFF_ALT 100.0
+param set-default MIS_TKO_LAND_REQ 0
+param set-default MIS_DIST_1WP 5000.0
 
-# ---- Navigation Acceptance Radii ----
-param set-default NAV_ACC_RAD 300.0      # Waypoint acceptance radius (m)
-                                          # Wider than MC (30m) for FW flight
-                                          # Allows smooth waypoint tracking
-param set-default NAV_FW_ALT_RAD 50.0    # FW altitude acceptance radius (m)
-                                          # Generous for turbulence and FPS variations
-param set-default NAV_MIN_LTR_ALT -1.0   # Min loiter altitude (-1=disabled)
+# Acceptance Radii
+param set-default NAV_ACC_RAD 300.0      # Waypoint acceptance
+param set-default NAV_FW_ALT_RAD 50.0    # Altitude acceptance
+param set-default NAV_MIN_LTR_ALT -1.0
 
-# ---- Loiter Configuration ----
-param set-default NAV_LOITER_RAD 600.0   # Loiter radius in FW mode (m)
-                                          # OPTIMIZED for Cessna 172 at 64 m/s
-                                          # Smaller than Alia-250 (2000m)
-                                          # Appropriate for light GA turning
+# Loiter Configuration
+param set-default NAV_LOITER_RAD 600.0   # Loiter radius (64 m/s cruise)
 
-# ---- Return to Launch (RTL) ----
-param set-default RTL_RETURN_ALT 100     # RTL return altitude (m)
-                                          # Safe clearance for GA operations
-param set-default RTL_DESCEND_ALT 200    # RTL descent altitude (m)
-                                          # Begin descent from this altitude
-param set-default RTL_MIN_DIST 50.0      # Min distance for RTL climb (m)
-param set-default RTL_LOITER_RAD 600.0   # RTL loiter radius (m)
-                                          # REDUCED from 1000m for tighter pattern
+# Return to Launch
+param set-default RTL_RETURN_ALT 100     # RTL altitude
+param set-default RTL_DESCEND_ALT 200
+param set-default RTL_MIN_DIST 50.0
+param set-default RTL_LOITER_RAD 600.0
 
 
 ################################################################################
 # SECTION 10: AIRCRAFT GEOMETRY & MASS
 ################################################################################
-# Physical dimensions and weight for accurate flight dynamics simulation.
-#
-# CESSNA 172 SPECIFICATIONS:
-# --------------------------
-# These values must match the X-Plane aircraft model for accurate simulation.
+# Physical dimensions for flight dynamics
 
-param set-default FW_WING_SPAN 11.0      # Wingspan (m)
-                                          # 36 ft 1 in = 11.0 m
-param set-default FW_WING_HEIGHT 2.5     # Wing height above ground (m)
-                                          # High-wing configuration
-                                          # Important for ground clearance
+param set-default FW_WING_SPAN 11.0      # 36 ft 1 in
+param set-default FW_WING_HEIGHT 2.5     # High-wing configuration
 param set-default WEIGHT_BASE 1000.0     # Base weight (kg)
-                                          # Empty aircraft + fuel
 param set-default WEIGHT_GROSS 1000.0    # Gross weight (kg)
-                                          # Close to actual MTOW (1,157 kg)
-                                          # Conservative estimate
 
 
 ################################################################################
 # SECTION 11: ADVANCED FEATURES & SYSTEM CONFIGURATION
 ################################################################################
-# Additional system parameters for special features and SITL configuration.
 
-# ---- Manual Control (if needed for testing) ----
-param set-default MPC_MAN_Y_MAX 20.0     # Max manual yaw rate (deg/s)
-                                          # Only used if manual mode enabled
-param set-default MPC_JERK_AUTO 1.0      # Auto mode jerk limit (m/s³)
-param set-default MPC_JERK_MAX 3.0       # Max jerk limit (m/s³)
+# Manual Control
+param set-default MPC_MAN_Y_MAX 20.0
+param set-default MPC_JERK_AUTO 1.0
+param set-default MPC_JERK_MAX 3.0
 
-# ---- GPS Configuration ----
-# No additional GPS parameters needed beyond EKF2 section
+# Logging
+param set-default SDLOG_MODE 0           # Disabled for SITL
 
-# ---- Logging Configuration ----
-param set-default SDLOG_MODE 0           # Logging mode (0=disabled for SITL)
-                                          # Reduce disk I/O during simulation
-
-# ---- Circuit Breakers (SITL-SPECIFIC) ----
-# IMPORTANT: These disable hardware checks for simulation environment
-# DO NOT USE THESE ON REAL HARDWARE
-param set-default CBRK_USB_CHK 197848    # Disable USB check (SITL only)
-param set-default CBRK_SUPPLY_CHK 894281 # Disable battery check (SITL only)
-param set-default CBRK_IO_SAFETY 22027   # Disable safety switch (SITL only)
+# Circuit Breakers (SITL-SPECIFIC - DO NOT USE ON REAL HARDWARE)
+param set-default CBRK_USB_CHK 197848    # Disable USB check
+param set-default CBRK_SUPPLY_CHK 894281 # Disable battery check
+param set-default CBRK_IO_SAFETY 22027   # Disable safety switch
 
 
 ################################################################################
-# SECTION 12: PARAMETER SUMMARY & VALIDATION
+# TROUBLESHOOTING GUIDE
 ################################################################################
-# This section documents the complete rewrite and optimization strategy.
 #
-# TOTAL IMPROVEMENTS FROM ORIGINAL FILE:
-# ---------------------------------------
-# Original file: ~153 lines, minimal documentation
-# New file: ~550+ lines, comprehensive documentation
+# Altitude oscillation during cruise:
+#   - Verify EKF2_BARO_NOISE = 0.0035
+#   - Check FW_T_THR_DAMPING = 0.08
+#   - Verify FW_T_PTCH_DAMP = 0.1
 #
-# CRITICAL OPTIMIZATIONS APPLIED (January 2025):
-# -----------------------------------------------
-# 1. EKF2 BAROMETER: 0.1 → 0.003 (33x improvement, rock-solid altitude)
-# 2. SENSOR PRIORITY: CAL_BARO1_PRIO=0 (prevents BARO switch errors)
-# 3. INNOVATION GATES: Increased to 5.0 (FPS-independent robustness)
-# 4. TECS COMPLETE: Added damping, integrators, energy management
-# 5. CORRECT PARAMETERS: FW_THR_TRIM (not FW_THR_CRUISE)
-# 6. MODERN NPFG: Replaces deprecated L1 controller
-# 7. AIRSPEED SENSOR: Proper SITL configuration with ASPD_DO_CHECKS=7
+# Airspeed sensor invalid / can't arm:
+#   - Verify SENS_EN_ARSPDSIM = 1
+#   - Check SYS_HAS_NUM_ASPD = 1
+#   - Verify ASPD_DO_CHECKS = 7
 #
-# CESSNA 172-SPECIFIC TUNING:
-# ---------------------------
-# Parameter Category     | Value        | Reasoning
-# -----------------------|--------------|----------------------------------
-# MTOW                   | 1,157 kg     | Light GA aircraft
-# Cruise Speed           | 64 m/s       | 124 ktas nominal cruise
-# Stall Speed            | 25 m/s       | 48 kcas with high-wing stability
-# Loiter Radius          | 600m         | Appropriate for 64 m/s cruise
-# NPFG_PERIOD            | 30           | Tighter turns than heavy VTOL
-# Climb Rate             | 3.7 m/s      | 730 fpm realistic for 180 HP
-# Roll Limit             | 35°          | Standard GA bank angle
-# EKF2_BARO_NOISE        | 0.003        | Same optimization as Ehang/Alia
+# Wide loiter radius / overshoots waypoints:
+#   - Reduce NPFG_PERIOD (30 → 25)
+#   - Reduce NAV_LOITER_RAD (600 → 500m)
 #
-# COMPARISON TO OTHER AIRCRAFT IN FLEET:
-# ---------------------------------------
-# Aircraft    | Type      | Mass (kg) | Cruise (m/s) | Loiter (m) | Special
-# ------------|-----------|-----------|--------------|------------|----------
-# Cessna 172  | Fixed-Wing| 1,157     | 64           | 600        | Light GA
-# Alia-250    | VTOL      | 2,721     | 75           | 2000       | Heavy FW
-# Ehang 184   | Multicopter| 600      | N/A          | 50         | Pure MC
+# Throttle oscillation / hunting:
+#   - Verify FW_T_THR_DAMPING = 0.08
+#   - Increase FW_THR_SLEW_MAX (0.5 → 0.3)
 #
-# KEY LESSONS APPLIED FROM EHANG 184:
-# ------------------------------------
-# - EKF2_BARO_NOISE = 0.003 (3mm barometer noise)
-# - CAL_BARO1_PRIO = 0 (single sensor prevents switching)
-# - Innovation gates = 5.0 (FPS-independent operation)
+# BARO switch error during flight:
+#   - Verify CAL_BARO1_PRIO = 0
+#   - Check CAL_BARO0_PRIO = 100
 #
-# KEY LESSONS APPLIED FROM ALIA-250:
-# -----------------------------------
-# - TECS damping parameters (FW_T_THR_DAMPING, FW_T_PTCH_DAMP)
-# - Correct throttle parameter names (FW_THR_TRIM)
-# - Modern NPFG guidance (replaces deprecated L1)
-# - Comprehensive documentation structure
-# - Airspeed sensor SITL configuration
-#
-# FLIGHT TEST VALIDATION CHECKLIST:
-# ----------------------------------
-# Before first flight, verify:
-# ✓ 1. Airspeed sensor working (pitot tube simulation in X-Plane)
-# ✓ 2. Altitude hold stable (no drift or oscillation)
-# ✓ 3. Waypoint following smooth (no overshoots)
-# ✓ 4. Takeoff procedure works (rotation at 32 m/s)
-# ✓ 5. Landing approach stable (flare at 5m altitude)
-# ✓ 6. Throttle response smooth (no oscillations)
-# ✓ 7. Bank angle limits respected (35° max)
-# ✓ 8. Loiter radius appropriate (600m circle)
-#
-# TROUBLESHOOTING GUIDE:
-# ----------------------
-# Symptom: Altitude oscillation during cruise
-#   Solution 1: Verify EKF2_BARO_NOISE = 0.003 (not 0.1)
-#   Solution 2: Check FW_T_THR_DAMPING = 0.08 is set
-#   Solution 3: Verify FW_T_PTCH_DAMP = 0.1 is set
-#   Root Cause: Insufficient TECS damping causes porpoising
-#
-# Symptom: Airspeed sensor invalid / can't arm
-#   Solution 1: Verify SENS_EN_ARSPDSIM = 1
-#   Solution 2: Check SYS_HAS_NUM_ASPD = 1
-#   Solution 3: Verify ASPD_DO_CHECKS = 7 (disables hardware checks)
-#   Root Cause: PX4 trying to validate physical sensor in SITL
-#
-# Symptom: Wide loiter radius / overshoots waypoints
-#   Solution 1: Reduce NPFG_PERIOD (30 → 25 for tighter turns)
-#   Solution 2: Reduce NAV_LOITER_RAD (600 → 500m)
-#   Solution 3: Check cruise speed not exceeding 75 m/s
-#   Root Cause: Loiter radius too large for cruise speed
-#
-# Symptom: Throttle oscillation / hunting
-#   Solution 1: Verify FW_T_THR_DAMPING = 0.08 is set
-#   Solution 2: Increase FW_THR_SLEW_MAX (0.5 → 0.3 for slower changes)
-#   Solution 3: Check FW_T_I_GAIN_THR = 0.3 is set
-#   Root Cause: Insufficient throttle damping or excessive integrator
-#
-# Symptom: BARO switch error during flight
-#   Solution 1: Verify CAL_BARO1_PRIO = 0 (disables backup sensor)
-#   Solution 2: Check CAL_BARO0_PRIO = 100 (prioritizes primary)
-#   Root Cause: PX4 attempting to switch to non-existent backup sensor
-#
-# Symptom: Stall during approach / landing
-#   Solution 1: Verify FW_LND_AIRSPD = 36.0 (above 25 m/s stall)
-#   Solution 2: Check FW_AIRSPD_MIN = 30.0 (safety margin above stall)
-#   Solution 3: Increase approach speed (36 → 40 m/s)
-#   Root Cause: Approach speed too close to stall speed
-#
-# DEVELOPER NOTES FOR ADAPTATION:
-# --------------------------------
-# If adapting this file for a different fixed-wing aircraft:
-# 1. UPDATE Section 1 (Control Allocation): Match your aircraft geometry
-# 2. PRESERVE Section 2 (EKF2): Apply optimizations universally
-# 3. TUNE Section 3 (Rate Control): Adjust PIDs for your aircraft mass/inertia
-# 4. ADJUST Section 4 (Airspeed): Use your aircraft's stall/cruise speeds
-# 5. TUNE Section 5 (TECS): Scale climb/sink rates for your engine power
-# 6. ADJUST Section 8 (NPFG): Scale loiter radius for your cruise speed
-# 7. UPDATE Section 10 (Geometry): Use your wingspan/weight
-#
-# FORMULA REFERENCE:
-# ------------------
-# Loiter Radius Calculation:
-#   L1_distance = (1/π) × NPFG_DAMPING × NPFG_PERIOD × groundspeed
-#   For Cessna 172: (1/3.14159) × 0.7 × 30 × 64 = 428m turning radius
-#
-# Stall Speed Safety Margin:
-#   FW_AIRSPD_MIN = STALL_SPEED + 5 m/s
-#   For Cessna 172: 25 + 5 = 30 m/s minimum airspeed
-#
-# Climb Performance:
-#   Rate of Climb = Excess Power / Weight
-#   For Cessna 172: 730 fpm = 3.7 m/s at sea level, full throttle
+# Stall during approach / landing:
+#   - Verify FW_LND_AIRSPD = 36.0 (above 25 m/s stall)
+#   - Check FW_AIRSPD_MIN = 30.0
 #
 ################################################################################
 # END OF CONFIGURATION
 ################################################################################
-# This file is maintained by the px4xplane project.
-# For issues or improvements, visit: https://github.com/alireza787b/px4xplane/
-#
-# FIXED-WING DEVELOPER NOTES:
-# ---------------------------
-# This parameter file represents a COMPLETE rewrite applying:
-# 1. All lessons learned from Ehang 184 (EKF2 optimization)
-# 2. All lessons learned from Alia-250 (TECS, NPFG, correct parameters)
-# 3. Cessna 172-specific performance tuning (1,157 kg, 64 m/s cruise)
-# 4. Modern PX4 v1.14+ guidance parameters (NPFG replaces L1)
-# 5. Comprehensive documentation for developers and pilots
-#
-# TOTAL PARAMETER COUNT:
-# - Original file: ~90 parameters, 153 lines
-# - This file: ~130 parameters, 550+ lines with documentation
-# - New sections: Complete TECS (damping/integrators), Modern NPFG, Validation
-#
-# KEY IMPROVEMENTS:
-# -----------------
-# 1. ALTITUDE STABILITY: EKF2_BARO_NOISE = 0.003 (33x improvement)
-# 2. SENSOR ROBUSTNESS: Single sensor priority prevents switching errors
-# 3. TECS COMPLETE: Damping + integrators prevent oscillations
-# 4. CORRECT PARAMETERS: FW_THR_TRIM (not non-existent FW_THR_CRUISE)
-# 5. MODERN GUIDANCE: NPFG replaces deprecated L1 controller
-# 6. COMPREHENSIVE DOCS: Troubleshooting, formulas, comparisons
-#
-# FILE VALIDATED: January 2025
-# STATUS: Production-ready for X-Plane SITL simulation
+# Maintainer: px4xplane project - https://github.com/alireza787b/px4xplane/
+# Status: Production-ready for X-Plane SITL simulation
 ################################################################################

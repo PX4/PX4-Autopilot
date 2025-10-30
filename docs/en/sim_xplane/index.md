@@ -13,11 +13,56 @@ This integration allows testing PX4 with highly realistic flight dynamics across
 
 The X-Plane SITL integration provides:
 
-- **Realistic aerodynamics**: X-Plane's industry-leading flight model
+- **Realistic aerodynamics**: X-Plane's industry-leading flight model based on Blade Element Theory
 - **Multiple vehicle types**: Fixed-wing, multicopter, and VTOL support
-- **Visual simulation**: 3D cockpit and external views
+- **Visual simulation**: 3D cockpit and external views, with VR support
 - **Weather simulation**: Wind, turbulence, and atmospheric conditions
 - **Sensor simulation**: GPS, IMU, barometer, and airspeed sensors
+- **Full-world environment**: Real-world terrain, buildings, and customizable scenery
+
+## Key Features
+
+### Blade Element Theory Physics
+
+X-Plane uses Blade Element Theory (BET) for flight dynamics modeling, which divides aircraft surfaces into small elements and calculates forces based on airflow over each element. This provides:
+
+- **Accurate aerodynamics**: Realistic stall behavior, ground effect, and control surface response
+- **Physics-based simulation**: Flight characteristics derived from aircraft geometry, not lookup tables
+- **Best suited for**: Larger aircraft, slower dynamics, and complex aerodynamic scenarios
+
+### Platform Support
+
+X-Plane SITL integration works across multiple platforms:
+
+- **Linux**: Native support (recommended for best performance)
+- **macOS**: Full support with native X-Plane installation
+- **Windows**: Via WSL (Windows Subsystem for Linux) - PX4 runs in WSL while X-Plane runs natively on Windows
+
+See [Prerequisites](#prerequisites) for WSL configuration details.
+
+### Full World Simulation
+
+X-Plane provides comprehensive environmental simulation:
+
+- **Global scenery**: Entire Earth with real-world terrain and elevation data
+- **Weather systems**: Dynamic weather including rain, snow, fog, and thunderstorms
+- **Atmospheric effects**: Turbulence, thermals, wind shear, and realistic atmosphere modeling
+- **Day/night cycles**: Full lighting simulation with realistic shadows
+- **Custom scenery**: Ability to add custom airports, buildings, and environmental objects
+- **VR support**: Immersive flight simulation with VR headsets
+
+All X-Plane visual and environmental features work seamlessly with PX4 flight control.
+
+### Custom Airframe Configuration
+
+Beyond the 5 pre-configured airframes, you can integrate any X-Plane aircraft:
+
+- **Flexible config.ini system**: Map any X-Plane aircraft to PX4 control channels
+- **Plane Maker integration**: Any vehicle modeled in X-Plane's Plane Maker can be controlled by PX4
+- **Vehicle type agnostic**: Fixed-wing, multicopter, VTOL, helicopter, or hybrid configurations
+- **Custom parameter tuning**: Full access to PX4's parameter system for flight controller optimization
+
+See [Custom Aircraft](#custom-aircraft) section and the [custom airframe guide](https://github.com/alireza787b/px4xplane/blob/master/docs/custom-airframe-config.md) for detailed configuration instructions.
 
 ## Supported Aircraft
 
@@ -38,6 +83,44 @@ PX4 includes pre-configured airframes for X-Plane:
 1. **X-Plane 11 or 12** (X-Plane 12 recommended)
 2. Purchase and install from [x-plane.com](https://www.x-plane.com)
 3. Ensure X-Plane runs properly on your system
+
+### Platform Setup
+
+The X-Plane SITL integration supports multiple platforms with different setup requirements:
+
+#### Linux (Recommended)
+
+- **Setup**: Install PX4 and X-Plane both on Linux
+- **Network**: Both run on same machine, use `localhost` (127.0.0.1)
+- **Performance**: Best performance, no network overhead
+
+#### macOS
+
+- **Setup**: Install PX4 and X-Plane both on macOS
+- **Network**: Both run on same machine, use `localhost` (127.0.0.1)
+- **Performance**: Native macOS performance
+
+#### Windows (WSL)
+
+- **Setup**: PX4 runs in WSL (Windows Subsystem for Linux), X-Plane runs natively on Windows
+- **Network**: Requires WSL to Windows IP address configuration
+- **Steps**:
+  1. Install WSL 2 with Ubuntu 20.04 or 22.04
+  2. Install PX4 development environment in WSL
+  3. Find Windows host IP from WSL:
+
+     ```bash
+     # Get Windows IP address from WSL
+     ip route | grep default | awk '{print $3}'
+     ```
+
+  4. Configure px4xplane plugin to use WSL IP (PX4 listens on WSL IP, not localhost)
+  5. Ensure Windows Firewall allows UDP traffic on port 4560
+
+- **Troubleshooting**: If connection fails, verify:
+  - WSL can ping Windows IP
+  - Firewall rules allow UDP 4560
+  - px4xplane plugin shows correct PX4 IP address
 
 ### px4xplane Bridge Plugin
 
@@ -61,42 +144,72 @@ make px4_sitl_default
 
 ## Quick Start
 
-### 1. Start X-Plane
+This guide assumes you have completed the [Prerequisites](#prerequisites) setup.
 
-- Launch X-Plane
-- Load the aircraft model matching your desired PX4 airframe
-- Position aircraft on runway or in flight
+### 1. Install and Configure px4xplane Plugin
 
-### 2. Start px4xplane Plugin
+1. Download the latest px4xplane plugin from [https://github.com/alireza787b/px4xplane](https://github.com/alireza787b/px4xplane)
+2. Extract and place the plugin folder in `X-Plane/Resources/plugins/`
+3. Configure network settings in the plugin configuration file:
+   - **Linux/macOS**: PX4 IP = `127.0.0.1` (localhost)
+   - **Windows (WSL)**: PX4 IP = WSL IP address (see [Platform Setup](#platform-setup))
+   - Default port: `4560`
 
-- The plugin should auto-load with X-Plane
-- Verify plugin is active in X-Plane's Plugin menu
-- Check that it's listening for PX4 connection
+### 2. Launch X-Plane and Load Aircraft
 
-### 3. Launch PX4 with X-Plane Airframe
+1. Start X-Plane 11 or 12
+2. Load the aircraft matching your desired PX4 airframe:
+   - Cessna 172 Skyhawk (for 5001_xplane_cessna172)
+   - General aviation or UAV model (for 5002_xplane_tb2)
+   - Quadcopter or Ehang 184 (for 5010_xplane_ehang184)
+   - VTOL or Alia-250 (for 5020_xplane_alia250)
+   - Tailsitter or Quantix (for 5021_xplane_qtailsitter)
+3. Position aircraft:
+   - **Runway**: For takeoff testing
+   - **In-flight**: For immediate flight control testing (set altitude, enable flight)
+4. Verify px4xplane plugin is loaded:
+   - Check **Plugins → Plugin Admin** menu
+   - Plugin should show as loaded and waiting for PX4 connection
+
+### 3. Launch PX4 SITL
+
+Open a terminal (or WSL terminal on Windows) and run:
 
 ```bash
-# Cessna 172
+cd PX4-Autopilot
+
+# Choose your airframe:
+
+# Cessna 172 Fixed-Wing
 make px4_sitl xplane_cessna172
 
 # TB2 Fixed-Wing UAV
 make px4_sitl xplane_tb2
 
-# Ehang 184 Airtaxi (Quadcopter)
+# Ehang 184 Quadcopter
 make px4_sitl xplane_ehang184
 
 # Alia-250 eVTOL
 make px4_sitl xplane_alia250
 
-# Quantix Tailsitter
+# Quantix Tailsitter VTOL
 make px4_sitl xplane_qtailsitter
 ```
 
+**Expected output:**
+
+- PX4 boots with selected airframe configuration
+- Plugin establishes connection (check plugin UI in X-Plane)
+- Sensor data flows from X-Plane to PX4
+
 ### 4. Connect Ground Control Station
 
-Connect QGroundControl or another GCS to PX4:
-
-- Default connection: UDP on localhost:14550
+1. Launch QGroundControl (or your preferred GCS)
+2. GCS should auto-connect to PX4 via UDP on `localhost:14550`
+3. Verify connection:
+   - Check vehicle status in QGroundControl
+   - Verify GPS position matches X-Plane location
+   - Check attitude indicators respond to X-Plane aircraft movement
 
 ## Configuration
 
@@ -191,17 +304,131 @@ Default connection settings:
 - **Solution**: Reduce X-Plane graphics settings
 - **Note**: EKF2 innovation gates increased to 5.0 for FPS tolerance
 
+### Connection Issues (No Data Flow)
+
+- **Symptoms**: PX4 starts but receives no sensor data, plugin shows disconnected
+- **Common Causes**:
+  - **WSL IP mismatch**: Plugin configured with wrong PX4 IP address
+  - **Firewall blocking**: Windows Firewall blocking UDP port 4560
+  - **Wrong startup order**: PX4 started before X-Plane/plugin ready
+- **Solutions**:
+  1. Verify IP configuration:
+     - **WSL**: Get IP with `ip route | grep default | awk '{print $3}'`
+     - **Linux/macOS**: Use `127.0.0.1`
+  2. Check firewall: Allow UDP port 4560 in Windows Firewall
+  3. Startup order: Start X-Plane first, wait for plugin to load, then start PX4
+  4. Verify connection in plugin UI (should show PX4 connected)
+
+### Motors Not Rotating (Alia-250 Specific)
+
+- **Symptom**: VTOL motors don't spin in X-Plane even when armed
+- **Cause**: Known X-Plane bug with some aircraft models where motors don't animate
+- **Impact**: Visual only - flight dynamics and control work normally
+- **Workaround**: Ignore visual issue, verify motor outputs in QGroundControl MAVLink Inspector
+- **Note**: Does not affect actual simulation, only X-Plane rendering
+
+### Lockstep Scheduler Error
+
+- **Symptom**: `[lockstep_scheduler] requested timestamp in the past` errors in console
+- **Cause**: X-Plane FPS drops below acceptable threshold, timing desynchronization
+- **Solutions**:
+  1. Reduce X-Plane graphics settings (render quality, objects, shadows)
+  2. Close other applications to free CPU/GPU resources
+  3. Ensure X-Plane maintains at least 20 FPS
+  4. If persistent, increase `LOCKSTEP_TIMEOUT` parameter
+
+### High Accelerometer Bias Errors
+
+- **Symptom**: `EKF2 IMU0 accel bias limit reached` warnings
+- **Cause**: Large accelerometer bias estimation exceeding safety limits
+- **Solutions**:
+  - Verify `EKF2_ABL_LIM = 1.2` (increased from default 0.4)
+  - Check `EKF2_ACC_B_NOISE = 0.0010` (enables bias learning)
+  - If errors persist, aircraft may have unrealistic acceleration in X-Plane
+  - Review X-Plane aircraft weight/CoG configuration
+
+### Preflight Fail: Not Ready to Fly
+
+- **Symptoms**: Cannot arm, QGC shows "Preflight Fail" errors
+- **Common Issues**:
+  1. **No GPS fix**: Wait for GPS initialization (30-60 seconds in X-Plane)
+  2. **EKF not initialized**: Wait for `EKF2` to converge (check console output)
+  3. **Barometer not ready**: Verify barometer priority settings
+  4. **Mode switch failure**: Check RC calibration or use virtual joystick
+- **Quick fix for testing**: `commander arm force` (use only for debugging)
+
+### EKF2 Height/Velocity Unstable
+
+- **Symptoms**: Altitude jumps, velocity estimates oscillate, "height above ground estimate not valid" warnings
+- **Causes**:
+  - Incorrect barometer noise settings
+  - GPS vertical accuracy issues
+  - Innovation gate rejections
+- **Solutions**:
+  1. Verify barometer configuration:
+     - `EKF2_BARO_NOISE = 0.0035` (3.5mm, not default 0.1)
+     - `EKF2_BARO_GATE = 8.0` (increased from default 5.0)
+  2. Check EKF2 status: `listener estimator_status`
+  3. Monitor innovations: `listener ekf2_innovations`
+  4. If GPS issues: Verify GPS quality in X-Plane settings
+  5. Increase innovation gates if needed (already set to 5.0 for X-Plane)
+
 ## Advanced Topics
 
 ### Custom Aircraft
 
-To add your own X-Plane aircraft:
+The X-Plane SITL integration supports any aircraft that can be modeled in X-Plane. The px4xplane plugin uses a flexible **config.ini** system that maps PX4 control outputs to X-Plane control surfaces and motors.
 
-1. Create a new airframe file in `ROMFS/px4fmu_common/init.d-posix/airframes/`
-2. Use 50xx numbering (X-Plane reserved range)
-3. Add entry to `sitl_targets_xplane.cmake`
-4. Tune EKF2 and flight controller parameters
-5. Reference existing airframes for parameter templates
+#### Flexible Configuration System
+
+**config.ini Channel Mapping:**
+
+- Maps PX4's 16 actuator outputs to X-Plane control datarefs
+- Supports any vehicle type: fixed-wing, multicopter, VTOL, helicopter, hybrid
+- Allows custom mixing and control allocation
+- No hardcoded assumptions about aircraft type
+
+**Example mapping** (from config.ini):
+
+```
+[ChannelMapping]
+channel_0 = sim/flightmodel/engine/ENGN_thro[0]  # Motor 1
+channel_1 = sim/cockpit2/controls/aileron_ratio   # Aileron
+channel_2 = sim/cockpit2/controls/elevator_ratio  # Elevator
+# ... up to channel_15
+```
+
+Any aircraft modeled in X-Plane's **Plane Maker** can be controlled by PX4 using appropriate channel mapping.
+
+#### Integration Steps
+
+**For PX4 developers** (contributing new airframe to PX4 repository):
+
+1. **Create airframe file**: `ROMFS/px4fmu_common/init.d-posix/airframes/50xx_xplane_youraircraft`
+   - Use 50xx numbering (X-Plane reserved range)
+   - Base on existing airframe templates (5001-5021)
+   - Include comprehensive parameter documentation
+
+2. **Add CMake target**: Update `src/modules/simulation/simulator_mavlink/sitl_targets_xplane.cmake`
+
+   ```cmake
+   add_xplane_target(xplane_youraircraft 50xx 50xx_xplane_youraircraft)
+   ```
+
+3. **Configure px4xplane plugin**: Edit `config.ini` to map PX4 outputs to X-Plane controls
+
+4. **Tune parameters**: EKF2, flight controller, control allocation (see Parameter Tuning section)
+
+5. **Test thoroughly**: Verify all flight modes, transitions (VTOL), edge cases
+
+**For end users** (using custom aircraft without modifying PX4):
+
+1. Use one of the 5 pre-configured airframes as base
+2. Modify only the px4xplane plugin's **config.ini** for your aircraft
+3. Tune PX4 parameters via QGroundControl
+4. No PX4 code changes required
+
+See the comprehensive [custom airframe configuration guide](https://github.com/alireza787b/px4xplane/blob/master/docs/custom-airframe-config.md) in the px4xplane repository for detailed instructions, examples, and troubleshooting.
 
 ### Parameter Tuning
 
@@ -214,14 +441,16 @@ Each airframe file contains detailed documentation:
 
 See airframe files for 700+ lines of inline documentation.
 
-### MAVLink HIL Protocol
+### Simulation Protocol
 
-The px4xplane plugin uses MAVLink Hardware-In-The-Loop protocol:
+The px4xplane plugin uses PX4's SITL (Software-In-The-Loop) protocol for custom simulators. This protocol leverages MAVLink HIL messages for data exchange:
 
 - `HIL_SENSOR`: IMU data from X-Plane → PX4
 - `HIL_GPS`: GPS data from X-Plane → PX4
-- `HIL_STATE_QUATERNION`: Ground truth for analysis
+- `HIL_STATE_QUATERNION`: Ground truth state for analysis and debugging
 - `HIL_ACTUATOR_CONTROLS`: PX4 control outputs → X-Plane
+
+Note: Despite using HIL message types, this is a SITL setup (no physical hardware). The HIL messages provide a standardized interface for external simulator integration.
 
 ## Known Limitations
 

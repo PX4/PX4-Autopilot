@@ -1,98 +1,35 @@
 #!/bin/sh
 ################################################################################
-# PX4 SITL Configuration Script for Ehang 184 Airtaxi (QuadCopter) in X-Plane
+# PX4 SITL Configuration for Ehang 184 Airtaxi (Quadcopter) in X-Plane
 ################################################################################
 #
-# AIRFRAME INFORMATION
-# --------------------
-# Airframe:          Ehang 184 Airtaxi
+# @name              Ehang 184 X-Plane SITL
+# @type              Quadrotor Wide
+# @maintainer        Alireza Ghaderi <p30planets@gmail.com>
+# @url               https://github.com/alireza787b/px4xplane/
+#
+# Aircraft:          Ehang 184 Electric Airtaxi
 # Type:              Quadrotor Wide (X configuration)
 # Compatible Sim:    X-Plane 11/12
-# @name              ehang4 (QuadCopter) X-Plane SITL
-# @type              Quadrotor Wide
-# @maintainer        alireza787b <p30planets@gmail.com>
-# @url               https://github.com/alireza787b/px4xplane/
-# Date:              November 2023 (Updated: October 2025)
+# Rotor Diameter:    5.2m (large manned aircraft)
+# MTOW:              ~600kg (2 passengers + batteries)
 #
-# USAGE
-# -----
-# 1. Place this file in: PX4-Autopilot/ROMFS/px4fmu_common/init.d-posix/airframes/
-# 2. Run: make px4_sitl xplane_ehang184
-# 3. Launch X-Plane with Ehang 184 aircraft model
-# 4. Connect via px4xplane plugin
+# USAGE:
+#   make px4_sitl xplane_ehang184
 #
-# CHANGELOG
-# ---------
-# Oct 2025 - Barometer Optimization:
-#   - EKF2_BARO_NOISE: 0.03 -> 0.0030 (10x reduction)
-#   - Added EKF2_BARO_DELAY: 0.0 (zero lag)
-#   - Result: Vertical velocity <0.3 m/s (was 0.5-1.5 m/s)
+# CONFIGURATION NOTES:
+# This airframe is optimized for large manned aircraft operations with focus on:
+# - Passenger comfort (smooth flight, gentle transitions)
+# - Urban air mobility safety margins
+# - Robust sensor fusion for variable X-Plane FPS (30-150 Hz)
+# - Production-ready parameter set for passenger operations
 #
-# Oct 2025 - FPS Independence & Robustness Improvements:
-#   PROBLEM SOLVED: "BARO switch from #0 -> #1" warnings and poor performance at low FPS
-#
-#   Changes Made:
-#   1. TIMING ROBUSTNESS (EKF2 Innovation Gates):
-#      - Increased EKF2_BARO_GATE: 3.0 -> 5.0 (tolerates FPS-induced timing gaps)
-#      - Increased EKF2_GPS_P_GATE: 3.0 -> 5.0 (GPS position innovation tolerance)
-#      - Increased EKF2_GPS_V_GATE: 3.0 -> 5.0 (GPS velocity innovation tolerance)
-#      - Increased EKF2_MAG_GATE: 3.0 -> 5.0 (prevents compass faults during FPS drops)
-#      - Increased EKF2_TAS_GATE: 3.0 -> 5.0 (airspeed innovation tolerance)
-#      - Set EKF2_MULTI_IMU=3 (enable multi-sensor support)
-#      - Root cause: Variable sensor rate (follows FPS) caused innovation spikes
-#        that triggered false sensor fault detection during mission/takeoff
-#
-#   2. LOCKSTEP TIMING (in px4xplane.cpp):
-#      - One sensor message per frame (maintains timestamp monotonicity)
-#      - Sensor rate follows X-Plane FPS (30-150Hz, PX4 handles variable rates)
-#      - NO catchup mechanism (would create duplicate timestamps)
-#      - Correct lockstep behavior: PX4 advances in sync with simulation time
-#
-#   Measured Results:
-#   - At 30 FPS: Sends ~30Hz to PX4 (EKF2 handles variable rates) ✓
-#   - At 60 FPS: Sends ~60Hz to PX4 (optimal performance) ✓
-#   - At 150 FPS: Sends ~150Hz to PX4 (PX4 decimates as needed) ✓
-#   - No more "BARO switch" warnings (increased innovation gates) ✓
-#   - Stable "ready for takeoff" flag even during remote desktop ✓
-#   - No IMU timestamp errors (strict timestamp monotonicity) ✓
-#
-# Oct 2025 - Large Manned Aircraft Tuning (Ehang 184 Airtaxi):
-#   PRODUCTION-READY PARAMETER SET for passenger-carrying operations
-#
-#   Changes Made:
-#   1. NAVIGATION & WAYPOINT ACCEPTANCE:
-#      - NAV_ACC_RAD: 20m -> 35m (smoother waypoint approach, user requested larger)
-#      - NAV_MC_ALT_RAD: 2m -> 3m (gentler vertical transitions)
-#      - MIS_YAW_ERR: 20° -> 30° (less aggressive yaw corrections)
-#      - MIS_TAKEOFF_ALT: Added 2.5m (safe default for passenger ops)
-#
-#   2. PASSENGER COMFORT OPTIMIZATION:
-#      - MPC_XY_CRUISE: 10 m/s -> 8 m/s (~29 km/h cruise for smooth ride)
-#      - MPC_JERK_AUTO: 1.0 -> 0.8 (reduced jerk for comfort)
-#      - MPC_JERK_MAX: 3.0 -> 2.5 (smoother acceleration changes)
-#
-#   3. BAROMETER SWITCHING FIX (CRITICAL):
-#      - Added CAL_BARO1_PRIO=0 (disables backup sensor, prevents switching)
-#      - Increased EKF2_BARO_GATE: 5.0 -> 6.0 (tolerates mission climb transients)
-#      - Root cause: PX4 tried switching to non-existent sensor #1 during climbs
-#      - Solution: Single sensor + larger gate = no false faults
-#
-#   4. MAGNETOMETER CLEANUP:
-#      - Removed EKF2_MAG_DECL_A (not found in PX4 version)
-#      - Removed EKF2_MAGB_K (not found in PX4 version)
-#      - Kept functional mag parameters (TYPE, NOISE, GATE)
-#
-#   Design Philosophy:
-#   This parameter set prioritizes PASSENGER SAFETY and COMFORT over
-#   aggressive performance. Suitable for urban air mobility operations
-#   where smooth flight is more important than racing-drone precision.
-#
-#   Developer Guide:
-#   For different aircraft scales, adjust these key parameters:
-#   - Small drone (<2kg): NAV_ACC_RAD=5m, MPC_JERK_AUTO=2.0, BARO_GATE=5.0
-#   - Medium drone (2-25kg): NAV_ACC_RAD=10m, MPC_JERK_AUTO=1.5, BARO_GATE=5.0
-#   - Large airtaxi (>100kg): NAV_ACC_RAD=35m, MPC_JERK_AUTO=0.8, BARO_GATE=6.0 ✓
-#   - Heavy cargo (>500kg): NAV_ACC_RAD=50m, MPC_JERK_AUTO=0.5, BARO_GATE=7.0
+# Key optimizations:
+# - Barometer noise: 3.5mm (10x reduction from default for stable altitude)
+# - Innovation gates: 5.0-8.0 (tolerates FPS variability)
+# - Navigation radii: 35m horizontal, 3m vertical (smooth waypoint transitions)
+# - Cruise speed: 8 m/s (~29 km/h) for passenger comfort
+# - Reduced jerk limits (0.8 m/s³) for smooth ride quality
 #
 ################################################################################
 
@@ -100,606 +37,406 @@
 
 
 ################################################################################
-# SECTION 1: CONTROL ALLOCATION (CA) - Motor Configuration
+# CONTROL ALLOCATION - Motor Configuration
 ################################################################################
-# Defines the physical layout and characteristics of the quadcopter motors.
-# This section maps PX4's logical motor outputs to the actual rotor positions
-# and characteristics on the Ehang 184.
+# Quadcopter X configuration with 5.2m diameter rotors
 #
-# MOTOR LAYOUT (X Configuration):
-#     Front
-#       ^
-#   1       0    CW=Clockwise, CCW=Counter-Clockwise
-#    \     /
-#     \   /
-#      \ /
-#      / \
-#     /   \
-#    /     \
-#   2       3
+# Motor Layout:        Front
+#                        ^
+#                    1       0    (CW/CCW)
+#                     \     /
+#                      \   /
+#                       \ /
+#                       / \
+#                      /   \
+#                     /     \
+#                    2       3
 #
-# Motor 0: Front-Right (CCW) - Position: (+1.4, -1.4, 0)
-# Motor 1: Front-Left  (CW)  - Position: (+1.4, +1.4, 0)
-# Motor 2: Rear-Left   (CCW) - Position: (-1.4, -1.4, 0)
-# Motor 3: Rear-Right  (CW)  - Position: (-1.4, +1.4, 0)
+# Motor 0: Front-Right (CCW) - Position: (+1.4, -1.4, 0)m from CG
+# Motor 1: Front-Left  (CW)  - Position: (+1.4, +1.4, 0)m from CG
+# Motor 2: Rear-Left   (CCW) - Position: (-1.4, -1.4, 0)m from CG
+# Motor 3: Rear-Right  (CW)  - Position: (-1.4, +1.4, 0)m from CG
 #
-# DEVELOPER NOTES:
-# - Positions (PX, PY, PZ) are in meters from center of gravity
-# - AZ=-1 means thrust direction is downward (normal for multicopter)
-# - CT (thrust coefficient) = 6.5 is tuned for Ehang's large rotors
-# - KM (moment coefficient) sign determines rotation direction:
-#   * Negative KM = Counter-Clockwise (CCW)
-#   * Positive KM = Clockwise (CW)
-# - For new airframes: Measure rotor positions from CAD or physical aircraft
+# CT=6.5: Thrust coefficient tuned for large rotors
+# KM=±0.05: Moment coefficient (sign determines rotation direction)
 
-param set-default CA_AIRFRAME 0          # 0 = Multicopter
-param set-default CA_ROTOR_COUNT 4       # Number of motors
-param set-default CA_METHOD 2            # 2 = Pseudo-inverse allocation
-param set-default CA_FAILURE_MODE 0      # 0 = No failsafe action
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_METHOD 2
+param set-default CA_FAILURE_MODE 0
 
-# Motor 0: Front-Right (CCW, -0.05 moment)
-param set-default CA_ROTOR0_PX 1.4       # 1.4m forward of CG
-param set-default CA_ROTOR0_PY -1.4      # 1.4m right of CG
-param set-default CA_ROTOR0_AZ -1        # Thrust downward
-param set-default CA_ROTOR0_CT 6.5       # Thrust coefficient
-param set-default CA_ROTOR0_KM -0.05     # CCW rotation (negative moment)
+# Motor 0: Front-Right (CCW)
+param set-default CA_ROTOR0_PX 1.4
+param set-default CA_ROTOR0_PY -1.4
+param set-default CA_ROTOR0_AZ -1
+param set-default CA_ROTOR0_CT 6.5
+param set-default CA_ROTOR0_KM -0.05
 
-# Motor 1: Front-Left (CW, +0.05 moment)
-param set-default CA_ROTOR1_AX 0
-param set-default CA_ROTOR1_AY 0
-param set-default CA_ROTOR1_AZ -1
+# Motor 1: Front-Left (CW)
 param set-default CA_ROTOR1_PX 1.4
 param set-default CA_ROTOR1_PY 1.4
-param set-default CA_ROTOR1_PZ 0
+param set-default CA_ROTOR1_AZ -1
 param set-default CA_ROTOR1_CT 6.5
-param set-default CA_ROTOR1_KM 0.05      # CW rotation (positive moment)
+param set-default CA_ROTOR1_KM 0.05
 
-# Motor 2: Rear-Left (CCW, +0.05 moment)
-param set-default CA_ROTOR2_AX 0
-param set-default CA_ROTOR2_AY 0
-param set-default CA_ROTOR2_AZ -1
+# Motor 2: Rear-Left (CCW)
 param set-default CA_ROTOR2_PX -1.4
 param set-default CA_ROTOR2_PY -1.4
-param set-default CA_ROTOR2_PZ 0
+param set-default CA_ROTOR2_AZ -1
 param set-default CA_ROTOR2_CT 6.5
 param set-default CA_ROTOR2_KM 0.05
 
-# Motor 3: Rear-Right (CW, -0.05 moment)
-param set-default CA_ROTOR3_AX 0
-param set-default CA_ROTOR3_AY 0
-param set-default CA_ROTOR3_AZ -1
+# Motor 3: Rear-Right (CW)
 param set-default CA_ROTOR3_PX -1.4
 param set-default CA_ROTOR3_PY 1.4
-param set-default CA_ROTOR3_PZ 0
+param set-default CA_ROTOR3_AZ -1
 param set-default CA_ROTOR3_CT 6.5
 param set-default CA_ROTOR3_KM -0.05
 
-# PWM Output Mapping (Maps PX4 channels to physical motor outputs)
-param set-default PWM_MAIN_FUNC1 101     # Motor 1 (Front-Right)
-param set-default PWM_MAIN_FUNC2 102     # Motor 2 (Front-Left)
-param set-default PWM_MAIN_FUNC3 103     # Motor 3 (Rear-Left)
-param set-default PWM_MAIN_FUNC4 104     # Motor 4 (Rear-Right)
+# PWM Output Mapping
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
 
 
 ################################################################################
-# SECTION 2: EKF2 SENSOR FUSION - CRITICAL PARAMETERS
+# EKF2 SENSOR FUSION
 ################################################################################
-# Extended Kalman Filter configuration for optimal sensor fusion in X-Plane SITL.
+# Optimized for X-Plane SITL with variable FPS (30-150 Hz)
 #
-# DESIGN PHILOSOPHY (October 2025 Optimization):
-# ----------------------------------------------
-# The barometer parameters were carefully tuned to match the actual sensor
-# implementation in MAVLinkManager.cpp:
+# BAROMETER TUNING:
+# - BARO_NOISE: 3.5mm (matches sensor implementation + safety margin)
+#   * Actual sensor noise: 1mm gaussian
+#   * 3.5x margin accounts for X-Plane physics + network jitter
+#   * Result: Vertical velocity <0.3 m/s (was 0.5-1.5 m/s with default)
+# - BARO_GATE: 8.0 (increased from default 3.0)
+#   * Tolerates FPS-induced timing gaps and altitude transients
+#   * Prevents false "BARO switch" errors during mission climbs
 #
-# 1. BAROMETER IMPLEMENTATION (src/MAVLinkManager.cpp:788-867):
-#    - Uses continuous pressure values (NO altitude quantization)
-#    - Gaussian noise: mean=0, sigma=1mm (0.001m)
-#    - Matches MS5611/BMP388 real-world characteristics
-#    - Measured results: sigma=0.997mm, 3-sigma rate=0.28%
+# GPS TUNING:
+# - GPS_P_NOISE: 0.15m (matches vertical GPS accuracy)
+#   * Prevents height drift by favoring barometer (±3.5mm) over GPS (±30cm)
+# - Horizontal noise: 0.01m (GPS horizontal is more accurate)
 #
-# 2. EKF2_BARO_NOISE TUNING:
-#    - Set to 0.003m (3mm) - conservative 3x safety margin
-#    - Previously was 0.03m (3cm) - caused loose vertical velocity
-#    - 10x reduction improved vertical velocity from 0.5-1.5 m/s to <0.3 m/s
+# INNOVATION GATES:
+# All gates increased to 5.0-8.0 (default 3.0) for FPS variability tolerance.
+# Prevents false sensor faults during:
+# - X-Plane FPS drops (timing jitter)
+# - Mission altitude changes (pressure transients)
+# - Waypoint transitions (acceleration spikes)
 #
-# 3. WHY 3mm NOT 1mm?
-#    - Sensor implementation: 1mm actual noise
-#    - EKF2 parameter: 3mm (includes margin for):
-#      * X-Plane physics uncertainty
-#      * Network jitter in HIL communication
-#      * Frame timing variations (target 100Hz, actual ~60Hz)
-#    - This 3x margin prevents EKF2 over-trusting barometer
-#
-# DEVELOPER GUIDE - TUNING FOR NEW AIRFRAMES:
-# --------------------------------------------
-# If you experience vertical velocity oscillations or drift:
-#
-# Step 1: Measure actual barometer noise from logs
-#   - Enable: debug_log_sensor_values = true in config.ini
-#   - Check X-Plane Log.txt for: "[BARO] Noise stats: sigma=X.XXmm"
-#   - Your target: sigma should be ~1mm with <0.3% 3-sigma rate
-#
-# Step 2: Set EKF2_BARO_NOISE = 3 × measured_sigma
-#   - Example: If measured sigma = 0.5mm, set EKF2_BARO_NOISE = 0.0015
-#   - Example: If measured sigma = 2mm, set EKF2_BARO_NOISE = 0.0060
-#
-# Step 3: Adjust MAVLinkManager.cpp if needed
-#   - Noise too high? Reduce std dev in setPressureData():
-#     static std::normal_distribution<float> distribution(0.0f, 0.001f);  // 1mm
-#   - Change 0.001f to desired sigma (e.g., 0.0005f for 0.5mm)
-#   - Rebuild: MSBuild.exe px4-xplane.vcxproj -p:Configuration=Release
-#
-# Step 4: Verify performance in flight
-#   - Check QGroundControl: vertical velocity when stationary
-#   - Target: <0.5 m/s variance
-#   - Perfect: <0.3 m/s variance (current Ehang 184 performance)
+# TROUBLESHOOTING:
+# If "BARO switch" errors occur:
+# 1. Verify CAL_BARO1_PRIO=0 (backup sensor disabled)
+# 2. Check only one barometer message per frame in px4xplane plugin
+# 3. Increase EKF2_BARO_GATE if needed (max 10.0)
 
-# ---- HIL Sensor Simulation Enablement ----
-# MUST be enabled for PX4 to accept HIL_SENSOR and HIL_GPS messages from X-Plane
-param set-default SENS_EN_GPSSIM 1       # Enable GPS simulation mode
-param set-default SENS_EN_BAROSIM 1      # Enable barometer simulation mode
-param set-default SYS_HAS_BARO 1         # System has barometer sensor
-param set-default SYS_HAS_GPS 1          # System has GPS sensor
+# Simulation mode enablement
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 1
+param set-default SYS_HAS_BARO 1
+param set-default SYS_HAS_GPS 1
 
-# ---- Barometer Sensor Priority (October 2025 - CRITICAL) ----
-# SINGLE BAROMETER CONFIGURATION for SITL
-#
-# DESIGN DECISION: Single Sensor vs Dual Sensor Strategy
-# -------------------------------------------------------
-# We use SINGLE barometer approach for PX4-XPlane SITL because:
-#
-# 1. SIMPLICITY: One sensor = no switching logic, no failover complexity
-# 2. SITL ACCURACY: X-Plane provides single altitude source, dual sensors would
-#    just add correlated noise without real redundancy benefit
-# 3. PREVENTS BARO SWITCHING: Setting CAL_BARO1_PRIO=0 completely disables
-#    sensor #1, preventing "BARO switch from #0 -> #1" mid-mission errors
-# 4. LOCKSTEP COMPATIBILITY: Single message per frame maintains timestamp
-#    monotonicity (critical lesson learned from Oct 2025 optimization)
-#
-# ALTERNATIVE: True Dual Barometer System
-# ----------------------------------------
-# For real redundancy, would require:
-# - Send TWO HIL_SENSOR messages per frame with different sensor_id
-# - Each with different fields_updated masks (baro-only for 2nd sensor)
-# - Set CAL_BARO0_PRIO=100, CAL_BARO1_PRIO=50
-# - Accept increased message rate (breaks one-msg-per-frame rule)
-#
-# This is NOT recommended for SITL - adds complexity without real benefit.
-# The dual sensor CAPABILITY exists in MAVLinkManager.cpp (independent RNG
-# per sensor_id) for future use, but SITL should use single sensor.
-#
-# DEVELOPER GUIDE - If You Get "BARO switch" Errors:
-# ---------------------------------------------------
-# 1. Verify CAL_BARO1_PRIO = 0 (sensor #1 disabled)
-# 2. Check only ONE sendHILSensor() call in px4xplane.cpp flight loop
-# 3. Increase EKF2_BARO_GATE if innovation spikes during maneuvers
-# 4. Enable debug_log_sensor_values to check noise statistics
-#
-param set-default CAL_BARO0_PRIO 100     # Primary barometer (highest priority)
-param set-default CAL_BARO1_PRIO 0       # Backup barometer DISABLED (prevents switching)
-                                          # CRITICAL: Must be 0 to prevent mid-mission
-                                          # "BARO switch from #0 -> #1" RTL emergencies
+# Barometer priority (single sensor for SITL simplicity)
+param set-default CAL_BARO0_PRIO 100
+param set-default CAL_BARO1_PRIO 0        # Backup disabled (prevents mid-mission switching)
 
-# ---- EKF2 Core Configuration ----
-param set-default EKF2_BARO_CTRL 1       # Barometer height fusion enabled
-param set-default EKF2_MULTI_IMU 1       # Enable multiple IMU/sensor support for voting
+# EKF2 core configuration
+param set-default EKF2_BARO_CTRL 1
+param set-default EKF2_MULTI_IMU 1
 
-# ---- EKF2 Accelerometer Bias Estimation ----
-param set-default EKF2_ABIAS_INIT 0.4    # Initial accelerometer bias (m/s²)
-param set-default EKF2_ABL_LIM 1.2       # Max accel bias learning (m/s²)
-param set-default EKF2_ABL_TAU 0.1       # Accel bias learning time constant
-param set-default EKF2_ABL_ACCLIM 35.0   # Accel limit for bias learning (VTOL-specific)
-param set-default EKF2_ACC_NOISE 1.5     # Accelerometer noise (m/s²)
-param set-default EKF2_ACC_B_NOISE 0.0010 # Accelerometer bias noise - tuned for X-Plane SITL
+# Accelerometer bias estimation
+param set-default EKF2_ABIAS_INIT 0.4
+param set-default EKF2_ABL_LIM 1.2        # Max accel bias learning (m/s²)
+param set-default EKF2_ABL_TAU 0.1
+param set-default EKF2_ABL_ACCLIM 35.0
+param set-default EKF2_ACC_NOISE 1.5
+param set-default EKF2_ACC_B_NOISE 0.0010 # Accel bias noise - enables bias learning
 
-# ---- EKF2 Barometer Parameters (CRITICAL - October 2025 Optimization) ----
-# See "DESIGN PHILOSOPHY" section above for detailed explanation
-param set-default EKF2_BARO_NOISE 0.0035 # Barometer noise std dev (3.5mm) - final tuning
-                                          # Tuned for 1mm sensor + 3x safety margin
-                                          # DO NOT increase unless vertical velocity unstable
-                                          # DO NOT decrease below 2x measured sigma
-param set-default EKF2_BARO_DELAY 0.0000 # Barometer measurement delay (seconds)
-                                          # Set to 0 for SITL - no physical sensor lag
+# Barometer parameters (CRITICAL)
+param set-default EKF2_BARO_NOISE 0.0035  # 3.5mm - optimized for X-Plane SITL
+param set-default EKF2_BARO_DELAY 0.0
+param set-default EKF2_BARO_GATE 8.0      # Innovation gate (tolerates FPS variability)
 
-# ---- EKF2 Innovation Gates (October 2025 - Mission Robustness) ----
-# Innovation gates control how much sensor measurements can deviate from EKF2
-# predictions before being rejected. Tuned for mission robustness.
-#
-# INNOVATION GATE PHILOSOPHY:
-# ---------------------------
-# Innovation = |measured_value - predicted_value|
-# If (innovation / sensor_noise) > GATE → sensor marked as faulty
-#
-# Why increase gates for SITL + Large Aircraft?
-# 1. FPS VARIABILITY: X-Plane FPS varies (30-150 Hz) → timing gaps → innovation spikes
-# 2. AGGRESSIVE MANEUVERS: Large airtaxi climbs/descents cause pressure transients
-# 3. MISSION PHASE CHANGES: Waypoint transitions cause brief acceleration spikes
-# 4. PREVENT FALSE FAULTS: Too-tight gates cause "BARO switch" mid-mission emergencies
-#
-# MEASURED REAL-WORLD BEHAVIOR (from flight logs):
-# - Normal operation: dt=13-15ms (67-77Hz), innovations within 2-sigma ✓
-# - FPS drops: dt=20-50ms (20-50Hz), innovations spike to 3-4 sigma
-# - Mission climbs: Vertical accel changes → baro innovation spike to 4-5 sigma
-# - Waypoint turns: Lateral accel → GPS velocity innovation spike to 3-4 sigma
-#
-# TUNING HISTORY:
-# - Default PX4: GATE=3.0 → Too tight, caused switching during FPS drops
-# - First fix: GATE=5.0 → Better, but still occasional switch during climbs
-# - Current: GATE=6.0 → Robust for mission operations, no false faults
-#
-# DEVELOPER GUIDE - Adjusting Gates:
-# ----------------------------------
-# If you see "BARO switch" or sensor faults during missions:
-# 1. Enable debug_log_sensor_values in config.ini
-# 2. Check X-Plane Log.txt for innovation values during fault
-# 3. Increase gate by 1.0 if innovations peak at current gate value
-# 4. CAUTION: Gates >10.0 may accept bad sensor data (defeats safety)
-#
-# For different mission profiles:
-# - Gentle missions (slow climbs): GATE=5.0 sufficient
-# - Aggressive missions (fast climbs): GATE=6.0-7.0 recommended ✓ (current)
-# - Emergency descents: GATE=8.0 may be needed
-param set-default EKF2_BARO_GATE 8.0    # Barometer innovation gate (tuned from 10.0, default 3.0)
-                                          # INCREASED from 8.0 → 10.0 for rare transient tolerance
-                                          # Prevents rejection of good baro data during:
-                                          # - Rapid altitude changes (climb/descent)
-                                          # - X-Plane FPS drops (timing jitter)
-                                          # - Turbulence or wind gusts
-param set-default EKF2_GPS_P_GATE 5.0    # GPS position innovation gate (default 3.0)
-param set-default EKF2_GPS_V_GATE 5.0    # GPS velocity innovation gate (default 3.0)
+# GPS parameters
+param set-default EKF2_GPS_DELAY 0.0
+param set-default EKF2_GPS_P_NOISE 0.15   # Position noise (matches vertical accuracy)
+param set-default EKF2_GPS_V_NOISE 0.01   # Velocity noise (horizontal)
+param set-default EKF2_GPS_P_GATE 5.0     # Innovation gate
+param set-default EKF2_GPS_V_GATE 5.0
 
-# ---- EKF2 GPS Parameters (OPTIMIZED - January 2025) ----
-# CRITICAL FIX: GPS altitude noise increased to match sensor model (prevent height drift)
-param set-default EKF2_GPS_DELAY 0.0      # GPS measurement delay (no lag in SITL)
-param set-default EKF2_GPS_P_NOISE 0.15   # GPS position noise (15cm - matches vertical accuracy)
-                                           # INCREASED from 0.01 to match GPS alt noise (σ=0.15m)
-                                           # This tells EKF2: "GPS altitude has ±30cm uncertainty"
-                                           # Prevents height drift by favoring barometer (±3mm) over GPS
-param set-default EKF2_GPS_V_NOISE 0.01   # GPS velocity noise (1cm/s - horizontal is accurate)
+# Magnetometer parameters
+param set-default EKF2_MAG_TYPE 0
+param set-default EKF2_HEAD_NOISE 0.3
+param set-default EKF2_MAG_NOISE 0.05
+param set-default EKF2_MAG_GATE 5.0       # Increased for FPS tolerance
 
-# ---- EKF2 Magnetometer Parameters ----
-# Magnetometer innovation gates increased for FPS variability tolerance
-# During takeoff/mission, FPS can drop → sensor rate drops → mag innovation spikes
-# Larger gates prevent false "Compass needs calibration" / "Compass 0 fault" errors
-param set-default EKF2_MAG_TYPE 0        # Magnetometer fusion type (0=auto, 5=no mag)
-param set-default EKF2_HEAD_NOISE 0.3    # Magnetic heading noise (rad) - default 0.3
-param set-default EKF2_MAG_NOISE 0.05    # Magnetometer noise (gauss) - default 0.05
+# Additional sensors
+param set-default EKF2_AGP_CTRL 3
+param set-default EKF2_ASP_DELAY 0.0
+param set-default EKF2_AVEL_DELAY 0.0
+param set-default EKF2_TAS_GATE 5.0
+param set-default EKF2_WIND_NSD 0.01
+param set-default EKF2_REQ_VDRIFT 1.0
 
-# CRITICAL: Increased innovation gates for variable FPS robustness
-param set-default EKF2_MAG_GATE 5.0      # Mag innovation gate (default 3.0)
-                                          # Prevents compass faults during FPS drops
-
-# ---- EKF2 Additional Sensors ----
-param set-default EKF2_AGP_CTRL 3        # Altitude sensor control
-param set-default EKF2_ASP_DELAY 0.0000  # Airspeed delay
-param set-default EKF2_AVEL_DELAY 0.0000 # Angular velocity delay
-param set-default EKF2_TAS_GATE 5.0      # True airspeed innovation gate (increased)
-param set-default EKF2_WIND_NSD 0.01     # Wind noise spectral density
-param set-default EKF2_REQ_VDRIFT 1.0000 # Required vertical drift
-
-# ---- IMU Configuration ----
-param set-default IMU_GYRO_RATEMAX 100   # Max gyro rate (Hz) - matches HIL_SENSOR
-param set-default IMU_INTEG_RATE 100     # IMU integration rate (Hz)
+# IMU configuration
+param set-default IMU_GYRO_RATEMAX 100
+param set-default IMU_INTEG_RATE 100
 
 
 ################################################################################
-# SECTION 3: MULTICOPTER RATE CONTROL - PID TUNING
+# MULTICOPTER RATE CONTROL (Inner Loop PID)
 ################################################################################
-# Attitude rate controllers (inner loop) for roll, pitch, and yaw.
-# These control how fast the aircraft rotates around each axis.
+# Attitude rate controllers for roll, pitch, yaw.
 #
 # TUNING GUIDE:
-# - P gain: Responsiveness (higher = faster response, but can cause oscillation)
-# - I gain: Steady-state error correction (too high causes overshoot)
-# - D gain: Damping (reduces oscillation, too high causes noise sensitivity)
-# - FF (feedforward): Improves tracking, reduces lag
-# - K gain: Overall loop gain multiplier
+# - P gain: Responsiveness (higher = faster, can cause oscillation)
+# - I gain: Steady-state error correction (too high = overshoot)
+# - D gain: Damping (reduces oscillation, sensitive to noise)
+# - FF: Feedforward (improves tracking, reduces lag)
+# - K: Loop gain multiplier
 #
-# FOR NEW AIRFRAMES:
+# For new airframes:
 # 1. Start with these conservative values
-# 2. Increase P gain gradually until slight oscillation appears
-# 3. Back off P gain by 20-30%
-# 4. Add D gain if needed for damping (typically P/10)
-# 5. Add I gain last (typically P/15)
+# 2. Increase P until slight oscillation, then back off 20-30%
+# 3. Add D for damping (typically P/10)
+# 4. Add I last (typically P/15)
 
-# ---- Roll Rate Control ----
-param set-default MC_ROLLRATE_P 0.15     # Proportional gain
-param set-default MC_ROLLRATE_I 0.1      # Integral gain
-param set-default MC_ROLLRATE_D 0.01     # Derivative gain (damping)
-param set-default MC_ROLLRATE_FF 0       # Feedforward gain
-param set-default MC_ROLLRATE_K 2.25     # Loop gain multiplier
-param set-default MC_ROLLRATE_MAX 220    # Max roll rate (deg/s)
-param set-default MC_RR_INT_LIM 0.3      # Integrator limit
+# Roll rate
+param set-default MC_ROLLRATE_P 0.15
+param set-default MC_ROLLRATE_I 0.1
+param set-default MC_ROLLRATE_D 0.01
+param set-default MC_ROLLRATE_FF 0
+param set-default MC_ROLLRATE_K 2.25
+param set-default MC_ROLLRATE_MAX 220
+param set-default MC_RR_INT_LIM 0.3
 
-# ---- Pitch Rate Control ----
-param set-default MC_PITCHRATE_P 0.15    # Proportional gain
-param set-default MC_PITCHRATE_I 0.1     # Integral gain
-param set-default MC_PITCHRATE_D 0.01    # Derivative gain (damping)
-param set-default MC_PITCHRATE_FF 0      # Feedforward gain
-param set-default MC_PITCHRATE_K 3       # Loop gain multiplier
-param set-default MC_PITCHRATE_MAX 220   # Max pitch rate (deg/s)
-param set-default MC_PR_INT_LIM 0.3      # Integrator limit
+# Pitch rate
+param set-default MC_PITCHRATE_P 0.15
+param set-default MC_PITCHRATE_I 0.1
+param set-default MC_PITCHRATE_D 0.01
+param set-default MC_PITCHRATE_FF 0
+param set-default MC_PITCHRATE_K 3
+param set-default MC_PITCHRATE_MAX 220
+param set-default MC_PR_INT_LIM 0.3
 
-# ---- Yaw Rate Control ----
-param set-default MC_YAWRATE_P 2         # Proportional gain (higher for yaw authority)
-param set-default MC_YAWRATE_I 0         # Integral gain (typically 0 for yaw)
-param set-default MC_YAWRATE_D 0         # Derivative gain
-param set-default MC_YAWRATE_FF 0.2      # Feedforward (improves yaw tracking)
-param set-default MC_YAWRATE_K 0.6       # Loop gain multiplier
-param set-default MC_YAWRATE_MAX 100     # Max yaw rate (deg/s)
-param set-default MC_YR_INT_LIM 0.3      # Integrator limit
-
-
-################################################################################
-# SECTION 4: MULTICOPTER ATTITUDE CONTROL - OUTER LOOP
-################################################################################
-# Attitude controllers (outer loop) for roll, pitch, and yaw angles.
-# These control the aircraft's orientation (tilt angles).
-
-param set-default MC_ROLL_P 0.3          # Roll angle P gain
-param set-default MC_PITCH_P 0.3         # Pitch angle P gain
-param set-default MC_YAW_P 0.6           # Yaw angle P gain (higher for stability)
-param set-default MC_YAW_WEIGHT 0.4      # Yaw priority vs roll/pitch
+# Yaw rate
+param set-default MC_YAWRATE_P 2
+param set-default MC_YAWRATE_I 0
+param set-default MC_YAWRATE_D 0
+param set-default MC_YAWRATE_FF 0.2
+param set-default MC_YAWRATE_K 0.6
+param set-default MC_YAWRATE_MAX 100
+param set-default MC_YR_INT_LIM 0.3
 
 
 ################################################################################
-# SECTION 5: POSITION & VELOCITY CONTROL
+# MULTICOPTER ATTITUDE CONTROL (Outer Loop)
 ################################################################################
-# Controls the aircraft's position and velocity in space.
-# These are the outermost control loops.
+# Attitude controllers for orientation angles.
 
-# ---- Position Control Gains ----
-param set-default MPC_XY_P 0.05          # Horizontal position P gain (conservative)
-param set-default MPC_Z_P 0.25           # Vertical position P gain
-
-# ---- Velocity Control Gains ----
-param set-default MPC_XY_VEL_P_ACC 1.2   # XY velocity P gain
-param set-default MPC_XY_VEL_I_ACC 0.2   # XY velocity I gain
-param set-default MPC_XY_VEL_D_ACC 1.5   # XY velocity D gain
-param set-default MPC_Z_VEL_P_ACC 3      # Z velocity P gain
-param set-default MPC_Z_VEL_I_ACC 2      # Z velocity I gain
-param set-default MPC_Z_VEL_D_ACC 0.2    # Z velocity D gain
-
-# ---- Velocity Limits ----
-# LARGE MANNED AIRCRAFT TUNING (Ehang 184 Airtaxi):
-# Conservative speeds for passenger comfort and safety
-param set-default MPC_XY_VEL_MAX 12      # Max horizontal velocity (m/s) ~43 km/h
-param set-default MPC_Z_VEL_MAX_UP 3     # Max ascent velocity (m/s) - smooth climb
-param set-default MPC_Z_VEL_MAX_DN 1.5   # Max descent velocity (m/s) - gentle descent
-param set-default MPC_VEL_MANUAL 10      # Max manual mode velocity (m/s)
-param set-default MPC_XY_CRUISE 8        # Cruise horizontal velocity (m/s) ~29 km/h
-                                          # Reduced from 10 for smoother passenger experience
-
-# ---- Trajectory & Jerk Limits ----
-# LARGE MANNED AIRCRAFT TUNING:
-# Reduced jerk limits for smooth, comfortable ride quality
-param set-default MPC_XY_TRAJ_P 0.5      # Trajectory tracking gain
-param set-default MPC_JERK_AUTO 0.8      # Auto mode jerk limit (m/s³)
-                                          # Reduced from 1.0 for smoother transitions
-param set-default MPC_JERK_MAX 2.5       # Max jerk limit (m/s³)
-                                          # Reduced from 3.0 for passenger comfort
-
-# ---- Error Limits ----
-param set-default MPC_XY_ERR_MAX 2       # Max horizontal position error (m)
+param set-default MC_ROLL_P 0.3
+param set-default MC_PITCH_P 0.3
+param set-default MC_YAW_P 0.6
+param set-default MC_YAW_WEIGHT 0.4
 
 
 ################################################################################
-# SECTION 6: MANUAL FLIGHT MODE PARAMETERS
+# POSITION & VELOCITY CONTROL
 ################################################################################
-# Parameters controlling manual flight characteristics and feel.
-
-
-# ---- Tilt & Attitude Limits ----
-param set-default MPC_MAN_TILT_MAX 35    # Max manual mode tilt (deg)
-param set-default MPC_TILTMAX_AIR 45     # Max tilt in air (deg)
-param set-default MPC_TILTMAX_LND 12     # Max tilt during landing (deg)
-
-# ---- Throttle Settings ----
-param set-default MPC_THR_HOVER 0.5      # Hover throttle (0-1, 0.5 = 50%)
-param set-default MPC_THR_MIN 0.12       # Min throttle
-param set-default MPC_THR_MAX 1          # Max throttle
-param set-default MPC_MANTHR_MIN 0.08    # Min manual throttle
-param set-default MPC_THR_CURVE 0        # Throttle curve type (0=linear)
-param set-default MPC_THR_XY_MARG 0.3    # Throttle margin for XY control
-
-# ---- Yaw Control ----
-param set-default MPC_MAN_Y_MAX 20       # Max manual yaw rate (deg/s)
-param set-default MPC_MAN_Y_TAU 0.08     # Yaw control time constant
-param set-default MPC_YAWRAUTO_ACC 20    # Auto yaw acceleration (deg/s²)
-param set-default MPC_YAWRAUTO_MAX 30    # Auto max yaw rate (deg/s)
-
-# ---- Position Hold ----
-param set-default MPC_HOLD_MAX_XY 0.8    # Max XY velocity in hold (m/s)
-param set-default MPC_HOLD_MAX_Z 0.6     # Max Z velocity in hold (m/s)
-
-# ---- Advanced Options ----
-param set-default MPC_POS_MODE 4         # Position control mode
-param set-default MPC_ALT_MODE 0         # Altitude control mode
-param set-default MPC_USE_HTE 1          # Use hover thrust estimator
-param set-default MPC_VELD_LP 5          # Velocity derivative low-pass filter
-param set-default MPC_VEL_MAN_BACK -1    # Backward velocity limit (-1=use XY_VEL_MAX)
-param set-default MPC_VEL_MAN_SIDE -1    # Sideways velocity limit
-param set-default MPC_XY_VEL_ALL -10     # All-direction velocity limit
-
-
-################################################################################
-# SECTION 7: TAKEOFF & LANDING
-################################################################################
-
-# ---- Takeoff Parameters ----
-param set-default MPC_TKO_SPEED 1.5      # Takeoff climb rate (m/s)
-param set-default MPC_TKO_RAMP_T 3       # Takeoff ramp time (seconds)
-
-# ---- Landing Parameters ----
-param set-default MPC_LAND_ALT1 10       # Landing phase 1 altitude (m)
-param set-default MPC_LAND_ALT2 5        # Landing phase 2 altitude (m)
-param set-default MPC_LAND_ALT3 1        # Landing phase 3 altitude (m)
-param set-default MPC_LAND_CRWL 0.3      # Land crawl speed (m/s)
-param set-default MPC_LAND_RADIUS 1000   # Landing acceptance radius (m)
-param set-default MPC_LAND_RC_HELP 1     # RC input assists landing
-
-# ---- Land Detector ----
-param set-default LNDMC_ALT_GND 2        # Ground altitude threshold (m)
-param set-default LNDMC_XY_VEL_MAX 1.5   # Max XY velocity to detect land (m/s)
-param set-default LNDMC_Z_VEL_MAX 0.25   # Max Z velocity to detect land (m/s)
-param set-default LNDMC_ROT_MAX 20       # Max rotation rate to detect land (deg/s)
-param set-default LNDMC_TRIG_TIME 1      # Landing detection trigger time (s)
-
-
-################################################################################
-# SECTION 8: ACRO MODE (RATE MODE)
-################################################################################
-# Advanced aerobatic mode for experienced pilots.
-
-param set-default MC_ACRO_P_MAX 100      # Max acro pitch rate (deg/s)
-param set-default MC_ACRO_R_MAX 100      # Max acro roll rate (deg/s)
-param set-default MC_ACRO_Y_MAX 100      # Max acro yaw rate (deg/s)
-param set-default MC_ACRO_EXPO 0         # Acro roll/pitch expo
-param set-default MC_ACRO_EXPO_Y 0       # Acro yaw expo
-param set-default MC_ACRO_SUPEXPO 0      # Super exponential for roll/pitch
-param set-default MC_ACRO_SUPEXPOY 0     # Super exponential for yaw
-
-
-################################################################################
-# SECTION 9: AUTO-TUNING & SYSTEM ID
-################################################################################
-# Automatic PID tuning parameters (experimental).
-
-param set-default MC_AT_APPLY 1          # Apply auto-tune results
-param set-default MC_AT_RISE_TIME 0.14   # Target rise time (s)
-param set-default MC_AT_START 0          # Auto-tune start flag
-param set-default MC_AT_SYSID_AMP 0.7    # System ID amplitude
-
-
-################################################################################
-# SECTION 10: NAVIGATION & MISSION
-################################################################################
-# LARGE MANNED AIRCRAFT CONFIGURATION (Ehang 184 Airtaxi)
+# Outermost control loops for position and velocity.
 #
-# DESIGN PHILOSOPHY:
-# This is a large passenger-carrying airtaxi (~600kg MTOW), NOT a small racing drone.
-# Navigation parameters are tuned for:
-# - Passenger comfort (smooth waypoint approach, no sharp turns)
-# - Safety margins (larger acceptance radii, conservative speeds)
-# - Operational efficiency (don't require pinpoint accuracy for large aircraft)
-#
-# COMPARISON: Small Drone vs Large Airtaxi
-# -----------------------------------------
-# Parameter          | Small Drone | Ehang 184 | Reason
-# -------------------|-------------|-----------|--------------------------------
-# NAV_ACC_RAD        | 5-10m       | 30m       | Large aircraft needs more space
-# NAV_MC_ALT_RAD     | 0.8-1.5m    | 3m        | Smoother vertical transitions
-# MIS_YAW_ERR        | 12-15°      | 30°       | Less aggressive yaw corrections
-# MPC_XY_CRUISE      | 10-15 m/s   | 8 m/s     | Passenger comfort priority
-# MPC_JERK_AUTO      | 1.5-2.5     | 0.8       | Reduced acceleration changes
-#
-# DEVELOPER GUIDE - TUNING FOR YOUR AIRFRAME:
-# If adapting for different aircraft size:
-# - Small racing drone (<2kg):    NAV_ACC_RAD=5m,  NAV_MC_ALT_RAD=0.8m
-# - Medium drone (2-25kg):        NAV_ACC_RAD=10m, NAV_MC_ALT_RAD=1.5m
-# - Large drone/airtaxi (>100kg): NAV_ACC_RAD=30m, NAV_MC_ALT_RAD=3m
-# - Heavy cargo (>500kg):         NAV_ACC_RAD=50m, NAV_MC_ALT_RAD=5m
+# LARGE AIRCRAFT TUNING:
+# Conservative speeds and gentle accelerations for passenger comfort.
 
-# ---- Mission Parameters ----
-param set-default MIS_YAW_ERR 30.0000    # Max yaw error for waypoint (deg)
-                                          # Increased from 20° for smoother yaw transitions
-                                          # Large aircraft doesn't need aggressive yaw tracking
-param set-default MIS_YAW_TMT 5.0000     # Yaw timeout (s)
-param set-default MIS_TAKEOFF_ALT 2.5    # Default takeoff altitude (m)
-                                          # Conservative for passenger operations
+# Position control
+param set-default MPC_XY_P 0.05           # Horizontal position P (conservative)
+param set-default MPC_Z_P 0.25            # Vertical position P
 
-# ---- Navigation Acceptance Radii (CRITICAL FOR LARGE AIRCRAFT) ----
-# These define how close the aircraft must get to a waypoint before accepting it
-# and moving to the next one. Larger values = smoother flight, less hovering.
-#
-# ACCEPTANCE RADIUS TUNING GUIDE:
-# --------------------------------
-# NAV_ACC_RAD directly impacts:
-# 1. Flight smoothness (larger = smoother arcs, no sharp corners)
-# 2. Mission time (larger = faster, less time hovering at waypoints)
-# 3. Positional accuracy (larger = less precise, but acceptable for large aircraft)
-# 4. Passenger comfort (larger = gentler turns, less aggressive maneuvers)
-#
-# For Ehang 184 airtaxi (5.2m rotor diameter, ~600kg):
-# - 35m radius = smooth urban flight, comfortable for passengers
-# - Allows aircraft to "cut corners" gracefully without stopping
-# - Still maintains safe separation from obstacles in urban environment
-# - Optimized for passenger experience over racing-drone precision
-param set-default NAV_ACC_RAD 35         # Waypoint acceptance radius (m)
-                                          # INCREASED from 30m → 35m for smoother flight
-                                          # User feedback: "bigger acceptance radius better"
-                                          # Reasoning:
-                                          # - Large aircraft (5.2m diameter) needs more space
-                                          # - Passengers prefer smooth arcs over sharp corners
-                                          # - 35m radius = ~115ft approach zone (comfortable)
-                                          # - Prevents hovering/slowing at each waypoint
-                                          # - Still safe for urban air mobility operations
-param set-default NAV_MC_ALT_RAD 3.0000  # Altitude acceptance radius (m)
-                                          # INCREASED from 2m for smoother vertical profile
-                                          # Large aircraft doesn't need tight altitude tracking
+# Velocity control
+param set-default MPC_XY_VEL_P_ACC 1.2
+param set-default MPC_XY_VEL_I_ACC 0.2
+param set-default MPC_XY_VEL_D_ACC 1.5
+param set-default MPC_Z_VEL_P_ACC 3
+param set-default MPC_Z_VEL_I_ACC 2
+param set-default MPC_Z_VEL_D_ACC 0.2
 
-# ---- Return to Launch (RTL) ----
-param set-default RTL_RETURN_ALT 30      # RTL return altitude (m)
-                                          # Safe clearance altitude for urban environment
-param set-default RTL_DESCEND_ALT 30     # RTL descent altitude (m)
-param set-default RTL_LAND_DELAY 0       # Delay before landing (s)
-                                          # 0 = immediate landing after reaching home
+# Velocity limits (passenger comfort priority)
+param set-default MPC_XY_VEL_MAX 12       # Max horizontal (m/s) ~43 km/h
+param set-default MPC_Z_VEL_MAX_UP 3      # Max ascent (m/s) - smooth climb
+param set-default MPC_Z_VEL_MAX_DN 1.5    # Max descent (m/s) - gentle
+param set-default MPC_VEL_MANUAL 10
+param set-default MPC_XY_CRUISE 8         # Cruise speed ~29 km/h (passenger comfort)
+
+# Trajectory & jerk limits (reduced for smooth ride)
+param set-default MPC_XY_TRAJ_P 0.5
+param set-default MPC_JERK_AUTO 0.8       # Auto jerk limit (reduced for comfort)
+param set-default MPC_JERK_MAX 2.5        # Max jerk (reduced for comfort)
+
+# Error limits
+param set-default MPC_XY_ERR_MAX 2
 
 
 ################################################################################
-# SECTION 11: ADVANCED FEATURES
+# MANUAL FLIGHT MODE
+################################################################################
+# Manual flight characteristics and feel.
+
+# Tilt & attitude limits
+param set-default MPC_MAN_TILT_MAX 35
+param set-default MPC_TILTMAX_AIR 45
+param set-default MPC_TILTMAX_LND 12
+
+# Throttle settings
+param set-default MPC_THR_HOVER 0.5
+param set-default MPC_THR_MIN 0.12
+param set-default MPC_THR_MAX 1
+param set-default MPC_MANTHR_MIN 0.08
+param set-default MPC_THR_CURVE 0
+param set-default MPC_THR_XY_MARG 0.3
+
+# Yaw control
+param set-default MPC_MAN_Y_MAX 20
+param set-default MPC_MAN_Y_TAU 0.08
+param set-default MPC_YAWRAUTO_ACC 20
+param set-default MPC_YAWRAUTO_MAX 30
+
+# Position hold
+param set-default MPC_HOLD_MAX_XY 0.8
+param set-default MPC_HOLD_MAX_Z 0.6
+
+# Advanced options
+param set-default MPC_POS_MODE 4
+param set-default MPC_ALT_MODE 0
+param set-default MPC_USE_HTE 1
+param set-default MPC_VELD_LP 5
+param set-default MPC_VEL_MAN_BACK -1
+param set-default MPC_VEL_MAN_SIDE -1
+param set-default MPC_XY_VEL_ALL -10
+
+
+################################################################################
+# TAKEOFF & LANDING
 ################################################################################
 
-# ---- Collision Prevention ----
-param set-default CP_DELAY 0.4           # Collision prevention delay (s)
-param set-default CP_DIST -1             # Min distance (-1=disabled)
-param set-default CP_GO_NO_DATA 0        # Continue on no data
-param set-default CP_GUIDE_ANG 30        # Guidance angle (deg)
+# Takeoff
+param set-default MPC_TKO_SPEED 1.5       # Climb rate (m/s)
+param set-default MPC_TKO_RAMP_T 3        # Ramp time (s)
 
-# ---- Follow Target ----
-param set-default FLW_TGT_ALT_M 0        # Follow target altitude mode
-param set-default FLW_TGT_DST 8          # Follow distance (m)
-param set-default FLW_TGT_FA 180         # Follow angle (deg)
-param set-default FLW_TGT_HT 8           # Follow height (m)
-param set-default FLW_TGT_MAX_VEL 5      # Max follow velocity (m/s)
-param set-default FLW_TGT_RS 0.1         # Follow responsiveness
+# Landing
+param set-default MPC_LAND_ALT1 10        # Phase 1 altitude (m)
+param set-default MPC_LAND_ALT2 5         # Phase 2 altitude (m)
+param set-default MPC_LAND_ALT3 1         # Phase 3 altitude (m)
+param set-default MPC_LAND_CRWL 0.3       # Crawl speed (m/s)
+param set-default MPC_LAND_RADIUS 1000
+param set-default MPC_LAND_RC_HELP 1
 
-# ---- Hover Thrust Estimator ----
-param set-default HTE_ACC_GATE 3         # Acceleration gate
-param set-default HTE_HT_ERR_INIT 0.1    # Initial hover thrust error
-param set-default HTE_HT_NOISE 0.0036    # Hover thrust noise
-param set-default HTE_THR_RANGE 0.2      # Throttle range
-param set-default HTE_VXY_THR 10         # XY velocity threshold
-param set-default HTE_VZ_THR 2           # Z velocity threshold
+# Land detector
+param set-default LNDMC_ALT_GND 2
+param set-default LNDMC_XY_VEL_MAX 1.5
+param set-default LNDMC_Z_VEL_MAX 0.25
+param set-default LNDMC_ROT_MAX 20
+param set-default LNDMC_TRIG_TIME 1
 
-# ---- Fixed-Wing (Unused for Quadcopter) ----
-param set-default FW_PSP_OFF 0           # Pitch setpoint offset
 
-# ---- GPS Configuration ----
-param set-default GPS_UBX_DYNMODEL 6     # GPS dynamic model (6=airborne <1g)
+################################################################################
+# ACRO MODE
+################################################################################
+# Aerobatic mode for experienced pilots.
 
-# ---- Orbit Mode ----
-param set-default MC_ORBIT_RAD_MAX 1000  # Max orbit radius (m)
+param set-default MC_ACRO_P_MAX 100
+param set-default MC_ACRO_R_MAX 100
+param set-default MC_ACRO_Y_MAX 100
+param set-default MC_ACRO_EXPO 0
+param set-default MC_ACRO_EXPO_Y 0
+param set-default MC_ACRO_SUPEXPO 0
+param set-default MC_ACRO_SUPEXPOY 0
 
-# ---- Manual Control ----
-param set-default MC_MAN_TILT_TAU 0      # Manual tilt time constant
 
-# ---- Battery Compensation ----
-param set-default MC_BAT_SCALE_EN 0      # Battery voltage scaling (disabled)
+################################################################################
+# AUTO-TUNING
+################################################################################
 
-# ---- System Response ----
-param set-default SYS_VEHICLE_RESP -0.4  # Vehicle responsiveness (-1=very smooth, 0=very responsive)
+param set-default MC_AT_APPLY 1
+param set-default MC_AT_RISE_TIME 0.14
+param set-default MC_AT_START 0
+param set-default MC_AT_SYSID_AMP 0.7
 
-# ---- Wave Following (Unused) ----
-param set-default WV_EN 0                # Wave following disabled
-param set-default WV_GAIN 1              # Wave following gain
-param set-default WV_ROLL_MIN 1          # Min roll for wave following
-param set-default WV_YRATE_MAX 90        # Max yaw rate for wave following
+
+################################################################################
+# NAVIGATION & MISSION
+################################################################################
+# LARGE MANNED AIRCRAFT CONFIGURATION
+#
+# Design philosophy: This is a passenger-carrying airtaxi (~600kg MTOW),
+# not a small racing drone. Parameters prioritize passenger comfort, safety
+# margins, and operational efficiency over pinpoint accuracy.
+#
+# TUNING BY AIRCRAFT SIZE:
+# - Small drone (<2kg):       NAV_ACC_RAD=5m,  ALT_RAD=0.8m, JERK=2.0
+# - Medium drone (2-25kg):    NAV_ACC_RAD=10m, ALT_RAD=1.5m, JERK=1.5
+# - Large airtaxi (>100kg):   NAV_ACC_RAD=35m, ALT_RAD=3m, JERK=0.8  ← Current
+# - Heavy cargo (>500kg):     NAV_ACC_RAD=50m, ALT_RAD=5m, JERK=0.5
+
+# Mission parameters
+param set-default MIS_YAW_ERR 30          # Max yaw error (deg) - gentle corrections
+param set-default MIS_YAW_TMT 5
+param set-default MIS_TAKEOFF_ALT 2.5     # Default takeoff alt (m)
+
+# Navigation acceptance radii (CRITICAL FOR LARGE AIRCRAFT)
+# Larger radii = smoother flight, less hovering at waypoints
+# 35m radius provides smooth urban flight comfortable for passengers
+param set-default NAV_ACC_RAD 35          # Horizontal acceptance radius (m)
+param set-default NAV_MC_ALT_RAD 3        # Vertical acceptance radius (m)
+
+# Return to launch
+param set-default RTL_RETURN_ALT 30       # RTL altitude (m)
+param set-default RTL_DESCEND_ALT 30
+param set-default RTL_LAND_DELAY 0
+
+
+################################################################################
+# ADVANCED FEATURES
+################################################################################
+
+# Collision prevention
+param set-default CP_DELAY 0.4
+param set-default CP_DIST -1              # Disabled
+param set-default CP_GO_NO_DATA 0
+param set-default CP_GUIDE_ANG 30
+
+# Follow target
+param set-default FLW_TGT_ALT_M 0
+param set-default FLW_TGT_DST 8
+param set-default FLW_TGT_FA 180
+param set-default FLW_TGT_HT 8
+param set-default FLW_TGT_MAX_VEL 5
+param set-default FLW_TGT_RS 0.1
+
+# Hover thrust estimator
+param set-default HTE_ACC_GATE 3
+param set-default HTE_HT_ERR_INIT 0.1
+param set-default HTE_HT_NOISE 0.0036
+param set-default HTE_THR_RANGE 0.2
+param set-default HTE_VXY_THR 10
+param set-default HTE_VZ_THR 2
+
+# GPS configuration
+param set-default GPS_UBX_DYNMODEL 6      # Airborne <1g
+
+# Orbit mode
+param set-default MC_ORBIT_RAD_MAX 1000
+
+# System response
+param set-default SYS_VEHICLE_RESP -0.4   # Smooth (-1=very smooth, 0=responsive)
+
+# Battery compensation
+param set-default MC_BAT_SCALE_EN 0
 
 
 ################################################################################
 # END OF CONFIGURATION
 ################################################################################
-# This file is maintained by the px4xplane project.
-# For issues or improvements, visit: https://github.com/alireza787b/px4xplane/
+# Maintainer: px4xplane project - https://github.com/alireza787b/px4xplane/
 ################################################################################
