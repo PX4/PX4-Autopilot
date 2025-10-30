@@ -12,6 +12,7 @@ This integration allows testing PX4 with highly realistic flight dynamics across
 ## Overview
 
 The X-Plane SITL integration provides:
+
 - **Realistic aerodynamics**: X-Plane's industry-leading flight model
 - **Multiple vehicle types**: Fixed-wing, multicopter, and VTOL support
 - **Visual simulation**: 3D cockpit and external views
@@ -22,22 +23,24 @@ The X-Plane SITL integration provides:
 
 PX4 includes pre-configured airframes for X-Plane:
 
-| Airframe ID | Name | Type | Description |
-|-------------|------|------|-------------|
-| 5001 | Cessna 172 | Fixed-Wing | General aviation trainer |
-| 5002 | TB2 | Fixed-Wing | UAV with A-tail configuration |
-| 5010 | Ehang 184 | Multicopter | Electric airtaxi (quadcopter) |
-| 5020 | Alia-250 | VTOL | eVTOL quad + pusher configuration |
-| 5021 | Quantix Tailsitter | VTOL | Quad tailsitter (differential thrust) |
+| Airframe ID | Name               | Type        | Description                           |
+| ----------- | ------------------ | ----------- | ------------------------------------- |
+| 5001        | Cessna 172         | Fixed-Wing  | General aviation trainer              |
+| 5002        | TB2                | Fixed-Wing  | UAV with A-tail configuration         |
+| 5010        | Ehang 184          | Multicopter | Electric airtaxi (quadcopter)         |
+| 5020        | Alia-250           | VTOL        | eVTOL quad + pusher configuration     |
+| 5021        | Quantix Tailsitter | VTOL        | Quad tailsitter (differential thrust) |
 
 ## Prerequisites
 
 ### X-Plane Installation
+
 1. **X-Plane 11 or 12** (X-Plane 12 recommended)
 2. Purchase and install from [x-plane.com](https://www.x-plane.com)
 3. Ensure X-Plane runs properly on your system
 
 ### px4xplane Bridge Plugin
+
 The integration requires a bridge plugin that connects PX4 to X-Plane using the X-Plane SDK.
 
 1. Download the latest **px4xplane** plugin from:
@@ -48,7 +51,9 @@ The integration requires a bridge plugin that connects PX4 to X-Plane using the 
    - Configure connection settings (default: localhost:4560)
 
 ### PX4 Build
+
 Build PX4 for SITL:
+
 ```bash
 cd PX4-Autopilot
 make px4_sitl_default
@@ -57,16 +62,19 @@ make px4_sitl_default
 ## Quick Start
 
 ### 1. Start X-Plane
+
 - Launch X-Plane
 - Load the aircraft model matching your desired PX4 airframe
 - Position aircraft on runway or in flight
 
 ### 2. Start px4xplane Plugin
+
 - The plugin should auto-load with X-Plane
 - Verify plugin is active in X-Plane's Plugin menu
 - Check that it's listening for PX4 connection
 
 ### 3. Launch PX4 with X-Plane Airframe
+
 ```bash
 # Cessna 172
 make px4_sitl xplane_cessna172
@@ -85,12 +93,15 @@ make px4_sitl xplane_qtailsitter
 ```
 
 ### 4. Connect Ground Control Station
+
 Connect QGroundControl or another GCS to PX4:
+
 - Default connection: UDP on localhost:14550
 
 ## Configuration
 
 ### Airframe Parameters
+
 Each X-Plane airframe has pre-tuned parameters optimized for X-Plane's flight dynamics:
 
 - **EKF2 sensor fusion**: Optimized barometer noise (0.003m), GPS configuration
@@ -99,7 +110,9 @@ Each X-Plane airframe has pre-tuned parameters optimized for X-Plane's flight dy
 - **VTOL transitions**: Transition airspeeds and durations tuned for each VTOL type
 
 ### Network Configuration
+
 Default connection settings:
+
 - **PX4 → X-Plane**: Sends actuator commands
 - **X-Plane → PX4**: Sends sensor data (IMU, GPS, barometer, airspeed)
 - **Port**: 4560 (configurable in px4xplane plugin)
@@ -107,6 +120,7 @@ Default connection settings:
 ## Flight Testing
 
 ### Pre-Flight Checks
+
 1. Verify X-Plane aircraft matches PX4 airframe
 2. Check px4xplane plugin is connected
 3. Verify PX4 receives sensor data (check `sensor combined` topic)
@@ -115,6 +129,7 @@ Default connection settings:
 ### Basic Flight Test Procedure
 
 #### Fixed-Wing (Cessna 172, TB2)
+
 1. Position aircraft on runway
 2. Arm vehicle in QGroundControl
 3. Set takeoff mission or use guided mode
@@ -123,6 +138,7 @@ Default connection settings:
 6. Execute landing approach
 
 #### Multicopter (Ehang 184)
+
 1. Position aircraft on ground or in hover
 2. Arm vehicle
 3. Test altitude hold and position hold
@@ -130,6 +146,7 @@ Default connection settings:
 5. Execute landing
 
 #### VTOL (Alia-250, Quantix)
+
 1. Start in multicopter mode
 2. Takeoff vertically to 50m+ AGL
 3. Trigger front transition (MC → FW)
@@ -140,23 +157,27 @@ Default connection settings:
 ## Troubleshooting
 
 ### PX4 Won't Arm
+
 - **Check**: px4xplane plugin is loaded and connected
 - **Check**: X-Plane aircraft matches PX4 airframe type
 - **Check**: GPS has 3D fix (may require simulating GPS in X-Plane)
 - **Solution**: Enable HIL mode or use `commander arm force`
 
 ### Altitude Oscillations
+
 - **Cause**: Barometer noise too high
 - **Solution**: Verify `EKF2_BARO_NOISE = 0.003` (not 0.1)
 - **Check**: Barometer priority (`CAL_BARO1_PRIO = 100`, `CAL_BARO0_PRIO = 0`)
 
 ### Aircraft Won't Follow Waypoints
+
 - **Check**: Flight mode is AUTO or MISSION
 - **Check**: Mission uploaded and validated
 - **Check**: Loiter radius `NAV_LOITER_RAD` matches aircraft performance
 - **Solution**: Increase loiter radius for larger/faster aircraft
 
 ### VTOL Transition Failures
+
 - **Altitude loss during front transition**:
   - Increase `VT_F_TRANS_THR` (more throttle)
   - Decrease `VT_F_TRANS_DUR` (faster transition)
@@ -165,6 +186,7 @@ Default connection settings:
   - Increase transition altitude (`VT_FW_MIN_ALT`)
 
 ### X-Plane FPS Impact
+
 - **Symptom**: Jerky flight or sensor delays
 - **Solution**: Reduce X-Plane graphics settings
 - **Note**: EKF2 innovation gates increased to 5.0 for FPS tolerance
@@ -172,7 +194,9 @@ Default connection settings:
 ## Advanced Topics
 
 ### Custom Aircraft
+
 To add your own X-Plane aircraft:
+
 1. Create a new airframe file in `ROMFS/px4fmu_common/init.d-posix/airframes/`
 2. Use 50xx numbering (X-Plane reserved range)
 3. Add entry to `sitl_targets_xplane.cmake`
@@ -180,7 +204,9 @@ To add your own X-Plane aircraft:
 5. Reference existing airframes for parameter templates
 
 ### Parameter Tuning
+
 Each airframe file contains detailed documentation:
+
 - Aircraft specifications
 - Parameter interdependencies
 - Tuning guidelines
@@ -189,7 +215,9 @@ Each airframe file contains detailed documentation:
 See airframe files for 700+ lines of inline documentation.
 
 ### MAVLink HIL Protocol
+
 The px4xplane plugin uses MAVLink Hardware-In-The-Loop protocol:
+
 - `HIL_SENSOR`: IMU data from X-Plane → PX4
 - `HIL_GPS`: GPS data from X-Plane → PX4
 - `HIL_STATE_QUATERNION`: Ground truth for analysis
@@ -217,5 +245,6 @@ The px4xplane plugin uses MAVLink Hardware-In-The-Loop protocol:
 ## Contributing
 
 Contributions welcome! Please submit pull requests to:
+
 - PX4 Autopilot (airframe configurations): [PX4/PX4-Autopilot](https://github.com/PX4/PX4-Autopilot)
 - px4xplane plugin: [alireza787b/px4xplane](https://github.com/alireza787b/px4xplane)
