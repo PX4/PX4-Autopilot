@@ -402,7 +402,7 @@ Default connection settings:
   1. **No GPS fix**: Wait for GPS initialization (30-60 seconds in X-Plane)
   2. **EKF not initialized**: Wait for `EKF2` to converge (check console output, verify good FPS)
   3. **Barometer not ready**: Verify barometer priority settings
-  4. **Wrong flight mode**: Manual modes require RC/joystick - switch to Position or Stabilized mode if no RC
+  4. **Wrong flight mode**: Manual/Position modes require RC/joystick - switch to Mission or Hold mode, or use QGC virtual joystick
   5. **Airframe mismatch**: Verify correct airframe selected in px4xplane plugin menu matches PX4 SITL airframe
   6. **Build mismatch**: Ensure you built the correct SITL airframe (e.g., `make px4_sitl xplane_alia250`)
 - **Quick fix for testing**: `commander arm force` (use only for debugging)
