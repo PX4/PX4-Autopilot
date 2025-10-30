@@ -82,45 +82,84 @@ PX4 includes pre-configured airframes for X-Plane:
 
 1. **X-Plane 11 or 12** (X-Plane 12 recommended)
 2. Purchase and install from [x-plane.com](https://www.x-plane.com)
+   - **Note**: A free demo version is available for testing with limited aircraft and flight time
 3. Ensure X-Plane runs properly on your system
 
-### Platform Setup
+### PX4 SITL Development Environment
 
-The X-Plane SITL integration supports multiple platforms with different setup requirements:
+Install PX4 development environment and build tools following the official PX4 documentation:
 
-#### Linux (Recommended)
+- **General SITL setup**: [PX4 Simulation](https://docs.px4.io/main/en/simulation/)
+- **Development environment**: [PX4 Dev Environment Setup](https://docs.px4.io/main/en/dev_setup/dev_env)
 
-- **Setup**: Install PX4 and X-Plane both on Linux
-- **Network**: Both run on same machine, use `localhost` (127.0.0.1)
-- **Performance**: Best performance, no network overhead
+### Platform Configuration
 
-#### macOS
+The X-Plane SITL integration supports multiple platforms. Choose your setup:
 
-- **Setup**: Install PX4 and X-Plane both on macOS
-- **Network**: Both run on same machine, use `localhost` (127.0.0.1)
-- **Performance**: Native macOS performance
+#### Option 1: Same System (Simplest)
 
-#### Windows (WSL)
+**Both X-Plane and PX4 SITL on the same computer:**
 
-- **Setup**: PX4 runs in WSL (Windows Subsystem for Linux), X-Plane runs natively on Windows
-- **Network**: Requires WSL to Windows IP address configuration
-- **Steps**:
-  1. Install WSL 2 with Ubuntu 20.04 or 22.04
-  2. Install PX4 development environment in WSL
-  3. Find Windows host IP from WSL:
+- **Linux**: Both run natively on Linux
+- **macOS**: Both run natively on macOS
+- **Windows**: Both run natively on Windows (if PX4 SITL builds on Windows)
+
+**Advantage**: No network configuration needed. Just run `make px4_sitl xplane_<airframe>` and everything works automatically.
+
+#### Option 2: Cross-System (Windows + WSL)
+
+**X-Plane on Windows, PX4 SITL in WSL (most common Windows setup):**
+
+1. **Install WSL 2** with Ubuntu 20.04 or 22.04 (follow PX4 dev setup guide above)
+
+2. **Install PX4 development environment in WSL** (follow PX4 dev setup guide above)
+
+3. **Find Windows IP address** (choose one method):
+   - **Method A - From WSL terminal**:
 
      ```bash
-     # Get Windows IP address from WSL
      ip route | grep default | awk '{print $3}'
      ```
 
-  4. Configure px4xplane plugin to use WSL IP (PX4 listens on WSL IP, not localhost)
-  5. Ensure Windows Firewall allows UDP traffic on port 4560
+     Example output: `172.24.176.1` (this is your Windows host IP)
 
-- **Troubleshooting**: If connection fails, verify:
-  - WSL can ping Windows IP
-  - Firewall rules allow UDP 4560
-  - px4xplane plugin shows correct PX4 IP address
+   - **Method B - From Windows Command Prompt**:
+     ```cmd
+     ipconfig
+     ```
+     Look for "Ethernet adapter vEthernet (WSL)" and note the IPv4 address (e.g., `172.24.176.1`)
+
+4. **Set environment variable before launching PX4**:
+
+   In your WSL terminal, run this before `make px4_sitl`:
+
+   ```bash
+   export PX4_SIM_HOSTNAME=<Windows_IP>
+   ```
+
+   Example:
+
+   ```bash
+   export PX4_SIM_HOSTNAME=172.24.176.1
+   make px4_sitl xplane_cessna172
+   ```
+
+   This tells PX4 to listen for X-Plane connections from the Windows host instead of localhost.
+
+5. **Configure Windows Firewall**:
+   - Allow UDP port 4560 (inbound and outbound)
+   - You may need to create a firewall rule or temporarily disable firewall for testing
+
+6. **Configure px4xplane plugin**:
+   - Edit plugin config to use WSL IP (the IP you found in step 3)
+   - Default port: 4560
+
+**Troubleshooting WSL connection**:
+
+- Verify WSL can reach Windows: `ping <Windows_IP>` from WSL
+- Verify firewall allows UDP 4560
+- Check px4xplane plugin shows "Connected" status
+- Ensure you set `PX4_SIM_HOSTNAME` before running `make px4_sitl`
 
 ### px4xplane Bridge Plugin
 
@@ -151,9 +190,8 @@ This guide assumes you have completed the [Prerequisites](#prerequisites) setup.
 1. Download the latest px4xplane plugin from [https://github.com/alireza787b/px4xplane](https://github.com/alireza787b/px4xplane)
 2. Extract and place the plugin folder in `X-Plane/Resources/plugins/`
 3. Configure network settings in the plugin configuration file:
-   - **Linux/macOS**: PX4 IP = `127.0.0.1` (localhost)
-   - **Windows (WSL)**: PX4 IP = WSL IP address (see [Platform Setup](#platform-setup))
-   - Default port: `4560`
+   - **Same System (Option 1)**: PX4 IP = `127.0.0.1` (localhost), Port = `4560`
+   - **Windows + WSL (Option 2)**: PX4 IP = Windows IP (see [Platform Configuration](#platform-configuration)), Port = `4560`
 
 ### 2. Launch X-Plane and Load Aircraft
 
@@ -173,27 +211,35 @@ This guide assumes you have completed the [Prerequisites](#prerequisites) setup.
 
 ### 3. Launch PX4 SITL
 
-Open a terminal (or WSL terminal on Windows) and run:
+Open a terminal (native Linux/macOS or WSL terminal on Windows):
+
+**For Same System (Option 1)** - both on same computer:
 
 ```bash
 cd PX4-Autopilot
 
 # Choose your airframe:
+make px4_sitl xplane_cessna172    # Cessna 172
+make px4_sitl xplane_tb2           # TB2 UAV
+make px4_sitl xplane_ehang184      # Ehang 184 Quadcopter
+make px4_sitl xplane_alia250       # Alia-250 eVTOL
+make px4_sitl xplane_qtailsitter   # Quantix Tailsitter
+```
 
-# Cessna 172 Fixed-Wing
-make px4_sitl xplane_cessna172
+**For Windows + WSL (Option 2)** - X-Plane on Windows, PX4 in WSL:
 
-# TB2 Fixed-Wing UAV
-make px4_sitl xplane_tb2
+```bash
+cd PX4-Autopilot
 
-# Ehang 184 Quadcopter
-make px4_sitl xplane_ehang184
+# Set Windows IP (replace with your IP from Platform Configuration section)
+export PX4_SIM_HOSTNAME=172.24.176.1
 
-# Alia-250 eVTOL
-make px4_sitl xplane_alia250
-
-# Quantix Tailsitter VTOL
-make px4_sitl xplane_qtailsitter
+# Choose your airframe:
+make px4_sitl xplane_cessna172    # Cessna 172
+make px4_sitl xplane_tb2           # TB2 UAV
+make px4_sitl xplane_ehang184      # Ehang 184 Quadcopter
+make px4_sitl xplane_alia250       # Alia-250 eVTOL
+make px4_sitl xplane_qtailsitter   # Quantix Tailsitter
 ```
 
 **Expected output:**
