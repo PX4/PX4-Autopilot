@@ -341,7 +341,7 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_P, 1.f);
 PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_Y, 0.1f);
 
 /**
- * Backtransition deceleration setpoint to pitch I gain.
+ * Backtransition deceleration setpoint to tilt I gain.
  *
  * @unit rad s/m
  * @min 0
