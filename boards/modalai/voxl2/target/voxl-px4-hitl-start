@@ -108,3 +108,4 @@ mavlink boot_complete
 
 mavlink_odometry_bridge start
 vfc_logger start
+vehicle_air_data_bridge start
