@@ -101,16 +101,17 @@ make px4_fmu-v6x boardconfig
    2. Select a [compatible airframe](#compatible_airframe) you want to test.
       Then click **Apply and Restart** on top-right of the _Airframe Setup_ page.
 
-3. Calibrate your RC or Joystick, if needed.
+3. Calibrate your [Manual Controller](../config/manual_control.md) (RC or Joystick), if needed.
 4. Setup UDP
    1. Under the _General_ tab of the settings menu, uncheck all _AutoConnect_ boxes except for **UDP**.
 
       ![QGC Auto-connect settings for HITL](../../assets/gcs/qgc_hitl_autoconnect.png)
 
 5. (Optional) Configure Joystick and Failsafe.
-   Set the following [parameters](../advanced_config/parameters.md) in order to use a joystick instead of an RC remote control transmitter:
-   - [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) to "Joystick/No RC Checks". This allows joystick input and disables RC input checks.
-   - [NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT) to "Disabled". This ensures that no RC failsafe actions interfere when not running HITL with a radio control.
+   - [Enable an COM_RC_IN_MODE mode that allows Joystick](../config/manual_control.md#px4-configuration).
+     The default `RC or MAVLink keep first` should work if you plan to only have a Joystick (no RC).
+   - Set [NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT) to `Disabled`.
+     This ensures that no RC failsafe actions interfere when not running HITL with a radio control.
 
    :::tip
    The _QGroundControl User Guide_ also has instructions on [Joystick](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/joystick.html) and [Virtual Joystick](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/virtual_joystick.html) setup.
@@ -131,7 +132,7 @@ Make sure _QGroundControl_ is not running!
 1. Build PX4 with [Gazebo Classic](../sim_gazebo_classic/index.md) (in order to build the Gazebo Classic plugins).
 
    ```sh
-   cd <Firmware_clone>
+   cd <PX4-Autopilot clone>
    DONT_RUN=1 make px4_sitl_default gazebo-classic
    ```
 
