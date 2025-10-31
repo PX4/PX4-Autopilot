@@ -64,11 +64,6 @@ private:
 	static constexpr uint8_t MAX_NUM_MSGS = MAX_ESC_OUTPUTS / ESCS_PER_MSG;
 	static constexpr hrt_abstime ESC_TIMEOUT = 100000;
 
-	// From #include <mixer_module/output_functions.hpp>
-	// We don't include the header here as to not introduce intermodule dependencies
-	static constexpr int OUTPUT_FUNCTION_MOTOR1 = 101;
-	static constexpr int OUTPUT_FUNCTION_MOTOR12 = 112;
-
 	struct EscStatus {
 		hrt_abstime timestamp;
 		int32_t rpm;
@@ -88,12 +83,12 @@ private:
 			if (_esc_status_subs[i].update(&esc)) {
 				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
 
-					bool is_motor = ((int)esc.esc[j].actuator_function >= OUTPUT_FUNCTION_MOTOR1) &&
-							((int)esc.esc[j].actuator_function <= OUTPUT_FUNCTION_MOTOR12);
+					bool is_motor = ((int)esc.esc[j].actuator_function >= esc_report_s::ACTUATOR_FUNCTION_MOTOR1) &&
+							((int)esc.esc[j].actuator_function <= esc_report_s::ACTUATOR_FUNCTION_MOTOR12);
 
 					if (is_motor) {
 						// Map OutputFunction number to index
-						int index = (int)esc.esc[j].actuator_function - OUTPUT_FUNCTION_MOTOR1;
+						int index = (int)esc.esc[j].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
 						_escs[index].timestamp = esc.esc[j].timestamp;
 						_escs[index].rpm = esc.esc[j].esc_rpm;
 						_escs[index].voltage = esc.esc[j].esc_voltage;

@@ -107,12 +107,12 @@ private:
 				_interface[i].esc_online_flags = 0;
 
 				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
-					bool is_motor = ((int)esc.esc[j].actuator_function >= OUTPUT_FUNCTION_MOTOR1) &&
-							((int)esc.esc[j].actuator_function <= OUTPUT_FUNCTION_MOTOR12);
+					bool is_motor = ((int)esc.esc[j].actuator_function >= esc_report_s::ACTUATOR_FUNCTION_MOTOR1) &&
+							((int)esc.esc[j].actuator_function <= esc_report_s::ACTUATOR_FUNCTION_MOTOR12);
 
 					if (is_motor) {
 						// Map OutputFunction number to index
-						int index = (int)esc.esc[j].actuator_function - OUTPUT_FUNCTION_MOTOR1;
+						int index = (int)esc.esc[j].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
 						_escs[index].online = online_flags & (1 << j);
 						_escs[index].failure_flags = esc.esc[j].failures;
 						_escs[index].error_count = esc.esc[j].esc_errorcount;
