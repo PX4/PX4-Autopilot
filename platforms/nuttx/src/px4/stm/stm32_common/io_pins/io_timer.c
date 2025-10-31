@@ -888,9 +888,12 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 #if !defined(BOARD_HAS_NO_CAPTURE)
 
 	case IOTimerChanMode_Capture:
+		setbits = CCMR_C1_CAPTURE_INIT;
+		break;
+
 	case IOTimerChanMode_CaptureDMA:
 		setbits = CCMR_C1_CAPTURE_INIT;
-		gpio = timer_io_channels[channel].gpio_in;
+		gpio = timer_io_channels[channel].gpio_in | GPIO_PULLUP;
 		break;
 #endif
 
@@ -980,7 +983,6 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_channel_allocation_t masks)
 {
-
 	struct action_cache_t {
 		uint32_t ccer_clearbits;
 		uint32_t ccer_setbits;
@@ -1064,7 +1066,6 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 	}
 
 	irqstate_t flags = px4_enter_critical_section();
-
 
 	for (unsigned actions = 0; actions < arraySize(action_cache); actions++) {
 		if (action_cache[actions].base != 0) {
