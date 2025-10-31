@@ -34,7 +34,9 @@
 #ifndef ESC_STATUS_HPP
 #define ESC_STATUS_HPP
 
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/esc_status.h>
+#include <mixer_module/output_functions.hpp>
 
 class MavlinkStreamESCStatus : public MavlinkStream
 {
@@ -49,46 +51,88 @@ public:
 
 	unsigned get_size() override
 	{
-		static constexpr unsigned size_per_batch = MAVLINK_MSG_ID_ESC_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-		return _esc_status_sub.advertised() ? size_per_batch * _number_of_batches : 0;
+		static constexpr unsigned message_size = MAVLINK_MSG_ID_ESC_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return _esc_status_subs.advertised_count() * message_size;
 	}
 
 private:
 	explicit MavlinkStreamESCStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
-	uint8_t _number_of_batches{0};
+	uORB::SubscriptionMultiArray<esc_status_s> _esc_status_subs{ORB_ID::esc_status};
+
+	static constexpr uint8_t MAX_ESC_OUTPUTS = 12; // See output_functions.hpp
+	static constexpr uint8_t ESCS_PER_MSG = MAVLINK_MSG_ESC_STATUS_FIELD_RPM_LEN;
+	static constexpr uint8_t MAX_NUM_MSGS = MAX_ESC_OUTPUTS / ESCS_PER_MSG;
+	static constexpr hrt_abstime ESC_TIMEOUT = 100000;
+
+	struct EscStatus {
+		hrt_abstime timestamp;
+		int32_t rpm;
+		float voltage;
+		float current;
+	};
+
+	EscStatus _escs[MAX_ESC_OUTPUTS] = {};;
+
+	void update_data() override
+	{
+		int subscriber_count = math::min(_esc_status_subs.size(), MAX_NUM_MSGS);
+
+		for (int i = 0; i < subscriber_count; i++) {
+			esc_status_s esc = {};
+
+			if (_esc_status_subs[i].update(&esc)) {
+				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
+
+					bool is_motor = ((int)esc.esc[j].actuator_function >= (int)OutputFunction::Motor1) &&
+							((int)esc.esc[j].actuator_function <= (int)OutputFunction::Motor12);
+
+					if (is_motor) {
+						// Map OutputFunction number to index
+						int index = (int)esc.esc[j].actuator_function - (int)OutputFunction::Motor1;
+						_escs[index].timestamp = esc.esc[j].timestamp;
+						_escs[index].rpm = esc.esc[j].esc_rpm;
+						_escs[index].voltage = esc.esc[j].esc_voltage;
+						_escs[index].current = esc.esc[j].esc_current;
+					}
+				}
+			}
+		}
+	}
 
 	bool send() override
 	{
-		static constexpr uint8_t batch_size = MAVLINK_MSG_ESC_STATUS_FIELD_RPM_LEN;
-		esc_status_s esc_status;
+		bool updated = false;
 
-		if (_esc_status_sub.update(&esc_status)) {
-			mavlink_esc_status_t msg{};
+		for (int i = 0; i < MAX_NUM_MSGS; i++) {
 
-			msg.time_usec = esc_status.timestamp;
+			hrt_abstime now = hrt_absolute_time();
 
-			// Ceil value of integer division. For 1-4 esc => 1 batch, 5-8 esc => 2 batches etc
-			_number_of_batches = ceilf((float)esc_status.esc_count / batch_size);
+			mavlink_esc_status_t msg = {};
+			msg.index = i * ESCS_PER_MSG;
+			msg.time_usec = now;
 
-			for (int batch_number = 0; batch_number < _number_of_batches; batch_number++) {
-				msg.index = batch_number * batch_size;
+			bool atleast_one_esc_updated = false;
 
-				for (int esc_index = 0; esc_index < batch_size
-				     && msg.index + esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
-					msg.rpm[esc_index] = esc_status.esc[msg.index + esc_index].esc_rpm;
-					msg.voltage[esc_index] = esc_status.esc[msg.index + esc_index].esc_voltage;
-					msg.current[esc_index] = esc_status.esc[msg.index + esc_index].esc_current;
+			for (int j = 0; j < ESCS_PER_MSG; j++) {
+
+				EscStatus &esc = _escs[i * ESCS_PER_MSG + j];
+
+				if ((esc.timestamp != 0) && (esc.timestamp + ESC_TIMEOUT) > now) {
+					msg.rpm[j] = esc.rpm;
+					msg.voltage[j] = esc.voltage;
+					msg.current[j] = esc.current;
+					atleast_one_esc_updated = true;
 				}
-
-				mavlink_msg_esc_status_send_struct(_mavlink->get_channel(), &msg);
 			}
 
-			return true;
+			if (atleast_one_esc_updated) {
+				mavlink_msg_esc_status_send_struct(_mavlink->get_channel(), &msg);
+				updated = true;
+			}
 		}
 
-		return false;
+		return updated;
 	}
 };
 
