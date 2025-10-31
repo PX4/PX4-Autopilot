@@ -762,6 +762,21 @@ PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
 PARAM_DEFINE_FLOAT(COM_CPU_MAX, 95.0f);
 
 /**
+ * Throttle deadzone for arming check
+ *
+ * Defines the throttle deadzone used for arming checks.
+ * For standard (unidirectional) motors, the throttle must be below -1.0 + COM_ARM_THR_DZ.
+ * For reversible/bidirectional motors (e.g. 3D DSHOT), the throttle must be within ±COM_ARM_THR_DZ around neutral.
+ *
+ * @group Commander
+ * @min 0.0
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_THR_DZ, 0.2f);
+
+/**
  * Maximum allowed RAM usage to pass checks
  *
  * The check fails if the RAM usage is above this threshold.

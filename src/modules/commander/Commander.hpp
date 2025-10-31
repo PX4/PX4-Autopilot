@@ -63,6 +63,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/action_request.h>
+#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
@@ -272,7 +273,6 @@ private:
 	bool _last_overload{false};
 	bool _mode_switch_mapped{false};
 
-	bool _is_throttle_above_center{false};
 	bool _is_throttle_low{false};
 
 	bool _arm_tune_played{false};
@@ -289,6 +289,7 @@ private:
 
 	// Subscriptions
 	uORB::Subscription					_action_request_sub{ORB_ID(action_request)};
+	uORB::Subscription					_actuator_motors_sub{ORB_ID(actuator_motors)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
@@ -345,6 +346,7 @@ private:
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_com_takeoff_act,
-		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
+		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
+		(ParamFloat<px4::params::COM_ARM_THR_DZ>)   _param_com_arm_thr_dz
 	)
 };
