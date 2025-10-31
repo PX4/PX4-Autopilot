@@ -277,6 +277,9 @@
 #define TROPIC_1   HW_FMUM_ID(0x1) // ICM42688
 #define TROPIC_2   HW_FMUM_ID(0x2) // ICM42686
 
+/* Flash instance for storage */
+#define NOR_INSTANCE      1
+
 __BEGIN_DECLS
 
 /****************************************************************************************************

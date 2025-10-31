@@ -25,7 +25,8 @@ MEMORY
   flash (rx)  : ORIGIN = 0x70020000, LENGTH = 4194304 - 256K
   sram  (rwx) : ORIGIN = 0x20200000, LENGTH = 512K
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 384K
-  dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
+  dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 127K
+  dtcm_nocache  (rwx) : ORIGIN = 0x2001FC00, LENGTH = 1K
 }
 
 OUTPUT_ARCH(arm)
@@ -56,6 +57,12 @@ SECTIONS
         __boot_hdr_end__ = ABSOLUTE(.) ;
         . = 0x2000 ;
     } >flash
+
+    /* Workaround for ethernet issue, by placing g_desc_pool into DTCM,
+       which effectively puts it into a no-cache region */
+    .dtcm_nocache : {
+        *(.bss.g_desc_pool)
+    } > dtcm_nocache
 
     .vectors :
     {

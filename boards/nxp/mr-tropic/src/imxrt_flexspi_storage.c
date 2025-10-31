@@ -46,7 +46,7 @@
  * i.e. W25Q32JV has a block size of 64KB
 */
 
-#define NOR_USED_SECTORS  (0x20U)   /* 32 * 4KB = 128KB */
+#define NOR_USED_SECTORS  (0x40U)   /* 64 * 4KB = 256KB */
 #define NOR_TOTAL_SECTORS (0x0400U)
 #define NOR_PAGE_SIZE     (0x0100U) /* 256 bytes */
 #define NOR_SECTOR_SIZE   (0x1000U) /* 4KB */
@@ -197,12 +197,12 @@ static ssize_t imxrt_flexspi_storage_bwrite(struct mtd_dev_s *dev,
 {
 	ssize_t ret;
 	struct flexspi_nor_config_s *pConfig = &g_bootConfig;
-	struct imxrt_flexspi_storage_dev_s *priv =
-		(struct imxrt_flexspi_storage_dev_s *)dev;
 	size_t len = nblocks * NOR_PAGE_SIZE;
 	off_t offset = (startblock + NOR_START_PAGE) * NOR_PAGE_SIZE;
 	uint8_t *src = (uint8_t *) buffer;
 #ifdef CONFIG_ARMV7M_DCACHE
+	struct imxrt_flexspi_storage_dev_s *priv =
+		(struct imxrt_flexspi_storage_dev_s *)dev;
 	uint8_t *dst = priv->ahb_base + startblock * NOR_PAGE_SIZE;
 #endif
 	int i;
@@ -224,7 +224,7 @@ static ssize_t imxrt_flexspi_storage_bwrite(struct mtd_dev_s *dev,
 		cpsid(); // Disable interrupts
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
-		volatile uint32_t status = ROM_FLEXSPI_NorFlash_ProgramPage(1, pConfig, offset, (const uint32_t *)src);
+		volatile uint32_t status = ROM_FLEXSPI_NorFlash_ProgramPage(NOR_INSTANCE, pConfig, offset, (const uint32_t *)src);
 #pragma GCC diagnostic pop
 		cpsie(); // Enable interrupts
 		usleep(0); // Yield to scheduler
@@ -251,10 +251,10 @@ static int imxrt_flexspi_storage_erase(struct mtd_dev_s *dev,
 				       size_t nblocks)
 {
 	struct flexspi_nor_config_s *pConfig = &g_bootConfig;
-	struct imxrt_flexspi_storage_dev_s *priv =
-		(struct imxrt_flexspi_storage_dev_s *)dev;
 	size_t blocksleft = nblocks;
 #ifdef CONFIG_ARMV7M_DCACHE
+	struct imxrt_flexspi_storage_dev_s *priv =
+		(struct imxrt_flexspi_storage_dev_s *)dev;
 	uint8_t *dst = priv->ahb_base + startblock * NOR_SECTOR_SIZE;
 #endif
 	ssize_t ret;
@@ -272,7 +272,7 @@ static int imxrt_flexspi_storage_erase(struct mtd_dev_s *dev,
 	while (blocksleft-- > 0) {
 		/* Erase each sector */
 		cpsid(); // Disable interrupts
-		volatile uint32_t status = ROM_FLEXSPI_NorFlash_Erase(1, pConfig,
+		volatile uint32_t status = ROM_FLEXSPI_NorFlash_Erase(NOR_INSTANCE, pConfig,
 					   (startblock * NOR_SECTOR_SIZE), NOR_SECTOR_SIZE);
 		cpsie(); // Enable interrupts
 		usleep(0); // Yield to scheduler

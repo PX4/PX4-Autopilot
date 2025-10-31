@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/nxp/nxp_tropic-community/include/board.h
+ * nuttx-configs/nxp/nxp_mr-tropic/include/board.h
  *
  *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
@@ -284,7 +284,6 @@
  */
 #define LPUART_IOMUX      (IOMUX_PULL_UP_22K | IOMUX_DRIVE_40OHM | IOMUX_SLEW_SLOW | IOMUX_SPEED_LOW | IOMUX_SCHMITT_TRIGGER)
 #define IOMUX_UART_CTS_DEFAULT (IOMUX_PULL_DOWN_100K | IOMUX_DRIVE_40OHM | IOMUX_SLEW_SLOW)
-
 
 /* Debug */
 

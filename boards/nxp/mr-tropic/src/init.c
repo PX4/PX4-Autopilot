@@ -163,8 +163,8 @@ void imxrt_flash_romapi_initialize(void)
 
 	ROM_API_Init();
 
-	ROM_FLEXSPI_NorFlash_Init(1, (struct flexspi_nor_config_s *)&g_bootConfig);
-	ROM_FLEXSPI_NorFlash_ClearCache(1);
+	ROM_FLEXSPI_NorFlash_Init(NOR_INSTANCE, (struct flexspi_nor_config_s *)&g_bootConfig);
+	ROM_FLEXSPI_NorFlash_ClearCache(NOR_INSTANCE);
 
 	ARM_DSB();
 	ARM_ISB();
