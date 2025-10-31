@@ -72,7 +72,7 @@ private:
 		float current;
 	};
 
-	EscStatus _escs[MAX_ESC_OUTPUTS] = {};;
+	EscStatus _escs[MAX_ESC_OUTPUTS] = {};
 
 	void update_data() override
 	{
