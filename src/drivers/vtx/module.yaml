@@ -1,0 +1,93 @@
+module_name: VTX SmartAudio
+serial_config:
+  - command: vtx start -d ${SERIAL_DEV}
+    port_config_param:
+      name: VTX_SER_CFG
+      group: VTX
+    label: VTX Serial Port
+
+parameters:
+  - group: VTX
+    definitions:
+      VTX_BAND:
+        description:
+          short: VTX band
+          long: VTX table band 1-8
+        type: enum
+        values:
+          0: Band 1
+          1: Band 2
+          2: Band 3
+          3: Band 4
+          4: Band 5
+          5: Band 6
+          6: Band 7
+          7: Band 8
+        default: 0
+      VTX_CHANNEL:
+        description:
+          short: VTX channel
+          long: VTX table channel 1-8
+        type: enum
+        values:
+          0: Channel 1
+          1: Channel 2
+          2: Channel 3
+          3: Channel 4
+          4: Channel 5
+          5: Channel 6
+          6: Channel 7
+          7: Channel 8
+        default: 0
+      VTX_FREQUENCY:
+        description:
+          short: VTX frequency in MHz
+          long: |
+            If the VTX frequency is set, it will overwrite the band and channel
+            settings. Set to 0 to use band and channel settings.
+        type: int32
+        min: 0
+        max: 32000
+        default: 0
+      VTX_POWER:
+        description:
+          short: VTX power level
+          long: VTX transmission power level
+        type: enum
+        values:
+          0: Level 1
+          1: Level 2
+          2: Level 3
+          3: Level 4
+          4: Level 5
+          5: Level 6
+          6: Level 7
+          7: Level 8
+        default: 0
+      VTX_PIT_MODE:
+        description:
+          short: VTX pit mode
+          long: VTX pit mode reduces power to the minimum
+        type: boolean
+        default: false
+      VTX_MAP_CONFIG:
+        description:
+          short: VTX mapping configuration
+        type: enum
+        values:
+          0: Disabled
+          1: MSP for Power, Band and Channel
+          2: MSP for Band and Channel, AUX for Power
+          3: MSP for Power, AUX for Band and Channel
+          4: AUX for Power, Band and Channel
+        default: 0
+      VTX_PROTOCOL:
+        description:
+          short: VTX protocol
+          long: VTX protocol version
+        type: enum
+        values:
+          0: SmartAudio
+          1: Tramp
+        default: 0
+        reboot_required: true

@@ -114,6 +114,10 @@ publications:
     type: px4_msgs::msg::InputRc
     rate_limit: 10.
 
+  - topic: /fmu/out/vtx
+    type: px4_msgs::msg::Vtx
+    rate_limit: 1.
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -229,6 +233,12 @@ subscriptions:
 
   - topic: /fmu/in/landing_gear
     type: px4_msgs::msg::LandingGear
+
+  - topic: /fmu/in/vtx_aux_map
+    type: px4_msgs::msg::VtxAuxMap
+
+  - topic: /fmu/in/vtx_table
+    type: px4_msgs::msg::VtxTable
 
 # Create uORB::PublicationMulti
 subscriptions_multi:
