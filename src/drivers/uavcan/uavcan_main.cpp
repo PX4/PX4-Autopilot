@@ -501,17 +501,12 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	fill_node_info();
 
-	// TODO: use module params
-	int32_t uavcan_enable = 1;
-	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
-
-	int32_t uavcan_pub_arm = 0;
-	param_get(param_find("UAVCAN_PUB_ARM"), &uavcan_pub_arm);
-
 	int ret;
 
 	// UAVCAN_PUB_ARM
 #if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
+	int32_t uavcan_pub_arm = 0;
+	param_get(param_find("UAVCAN_PUB_ARM"), &uavcan_pub_arm);
 
 	if (uavcan_pub_arm == 1) {
 		ret = _arming_status_controller.init();
