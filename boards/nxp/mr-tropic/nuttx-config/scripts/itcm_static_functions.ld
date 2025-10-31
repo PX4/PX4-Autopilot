@@ -22,7 +22,6 @@
 *(.text.imxrt_interrupt)
 *(.text.imxrt_gpio1_16_31_interrupt)
 *(.text.imxrt_gpio2_0_15_interrupt)
-*(.text.imxrt_gpio3_16_31_interrupt)
 *(.text.imxrt_lpi2c_isr)
 *(.text.imxrt_lpspi3select)
 *(.text.imxrt_lpspi4select)
