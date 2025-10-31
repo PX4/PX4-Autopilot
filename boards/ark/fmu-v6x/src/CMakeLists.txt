@@ -57,8 +57,6 @@ else()
 		mtd.cpp
 		sdio.c
 		spi.cpp
-		spix_sync.c
-		spix_sync.h
 		timer_config.cpp
 		usb.c
 	)
