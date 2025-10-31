@@ -213,7 +213,7 @@ void LoggedTopics::add_default_topics()
 	// add_optional_topic_multi("estimator_aid_src_ev_yaw", 100, MAX_ESTIMATOR_INSTANCES);
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
-	add_topic_multi("battery_status", 200, 2);
+	add_topic_multi("battery_status", 20, 2);
 	add_topic_multi("differential_pressure", 1000, 2);
 	add_topic("distance_sensor");
 	add_optional_topic_multi("sensor_accel", 1000, 4);
