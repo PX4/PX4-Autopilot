@@ -259,7 +259,7 @@ private:
 	uint8_t			_read_buf[READ_BUF_SIZE];
 
 	Battery			_battery;
-	static constexpr unsigned _battery_report_interval{100_ms};
+	static constexpr unsigned _battery_report_interval{20_ms};
 	hrt_abstime		_last_battery_report_time;
 	hrt_abstime		_last_uart_passthru{0};
 
