@@ -254,11 +254,11 @@ VOXLPM::print_status()
 
 	switch (_pm_type) {
 	case VOXLPM_TYPE_V2_LTC:
-		printf("- V2 (LTC2964)\n");
+		PX4_INFO("- V2 (LTC2964)");
 		break;
 
 	case VOXLPM_TYPE_V3_INA:
-		printf("- V3 (INA231)\n");
+		PX4_INFO("- V3 (INA231)");
 		break;
 
 	default:
@@ -267,27 +267,27 @@ VOXLPM::print_status()
 
 	switch (_ch_type) {
 	case VOXLPM_CH_TYPE_VBATT:
-		printf("- type: BATT\n");
+		PX4_INFO("- type: BATT");
 		break;
 
 	case VOXLPM_CH_TYPE_P5VDC:
-		printf("- type: P5VDC\n");
+		PX4_INFO("- type: P5VDC");
 		break;
 
 	case VOXLPM_CH_TYPE_P12VDC:
-		printf("- type: P12VDC\n");
+		PX4_INFO("- type: P12VDC");
 		break;
 
 	default:
-		printf("- type: UNKOWN\n");
+		PX4_INFO("- type: UNKOWN");
 		break;
 	}
 
-	printf("  - voltage: %9.4f VDC \n", (double)_voltage);
-	printf("  - current: %9.4f ADC \n", (double)_amperage);
-	printf("  - shunt: %9.4f mV, %9.4f mA\n", (double)_vshunt * 1000, (double)_vshuntamps * 1000);
-	printf("  - rsense: %9.6f ohm, cal: %i\n", (double)_rshunt, _cal);
-	printf("  - meas interval:  %u us \n", _meas_interval_us);
+	PX4_INFO("  - voltage: %9.4f VDC", (double)_voltage);
+	PX4_INFO("  - current: %9.4f ADC", (double)_amperage);
+	PX4_INFO("  - shunt: %9.4f mV, %9.4f mA", (double)_vshunt * 1000, (double)_vshuntamps * 1000);
+	PX4_INFO("  - rsense: %9.6f ohm, cal: %i", (double)_rshunt, _cal);
+	PX4_INFO("  - meas interval:  %u us", _meas_interval_us);
 }
 
 void
