@@ -112,7 +112,6 @@ private:
 						_escs[index].online = online_flags & (1 << j);
 						_escs[index].failure_flags = esc.esc[j].failures;
 						_escs[index].error_count = esc.esc[j].esc_errorcount;
-						_escs[index].temperature = -1;
 						_escs[index].timestamp = esc.esc[j].timestamp;
 						_escs[index].temperature = esc.esc[j].esc_temperature * 100.f;
 					}
