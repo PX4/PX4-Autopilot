@@ -156,6 +156,7 @@ private:
 	bool _outputs_initialized{false};
 	bool _outputs_on{false};
 	bool _bidirectional_dshot_enabled{false};
+	bool _is_mode_3d_en{false};
 
 	static constexpr unsigned _num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
 	uint32_t _output_mask{0};
