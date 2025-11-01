@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author David Sidrane <david_s5@nscdg.com>
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,65 +32,48 @@
  ****************************************************************************/
 
 /**
- * @file board_reset.cpp
- * Implementation of IMXRT based Board RESET API
+ * @file manifest.c
+ *
+ * This module supplies the interface to the manifest of hardware that is
+ * optional and dependent on the HW REV and HW VER IDs
+ *
+ * The manifest allows the system to know whether a hardware option
+ * say for example the PX4IO is an no-pop option vs it is broken.
+ *
  */
 
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/shutdown.h>
-#include <errno.h>
-#include <nuttx/board.h>
-#include <arm_internal.h>
+#include <stdbool.h>
+#include <syslog.h>
 
-#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
-#include <hardware/rt117x/imxrt117x_snvs.h>
-#elif defined CONFIG_ARCH_FAMILY_IMXRT106x
-#  include <hardware/imxrt_snvs.h>
-#  define SNVS_LPCR_GPR_Z_DIS             (1 << 24)  /* Bit 24: General Purpose Registers Zeroization Disable */
-#endif
+#include "systemlib/px4_macros.h"
+#include "px4_log.h"
 
-#ifdef BOARD_HAS_ISP_BOOTLOADER
-#include <px4_arch/imxrt_flexspi_nor_flash.h>
-#include <px4_arch/imxrt_romapi.h>
-#endif
+/****************************************************************************
+ * Pre-Processor Definitions
+ ****************************************************************************/
 
-#define BOOT_RTC_SIGNATURE                0xb007b007
-#define PX4_IMXRT_RTC_REBOOT_REG          3
-#define PX4_IMXRT_RTC_REBOOT_REG_ADDRESS  IMXRT_SNVS_LPGPR3
 
-#if CONFIG_IMXRT_RTC_MAGIC_REG == PX4_IMXRT_RTC_REBOOT_REG
-#  error CONFIG_IMXRT_RTC_MAGIC_REG can nt have the save value as PX4_IMXRT_RTC_REBOOT_REG
-#endif
+/************************************************************************************
+ * Name: board_query_manifest
+ *
+ * Description:
+ *   Optional returns manifest item.
+ *
+ * Input Parameters:
+ *   manifest_id - the ID for the manifest item to retrieve
+ *
+ * Returned Value:
+ *   0 - item is not in manifest => assume legacy operations
+ *   pointer to a manifest item
+ *
+ ************************************************************************************/
 
-static int board_reset_enter_bootloader()
+__EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 {
-	uint32_t regvalue = BOOT_RTC_SIGNATURE;
-	modifyreg32(IMXRT_SNVS_LPCR, 0, SNVS_LPCR_GPR_Z_DIS);
-	putreg32(regvalue, PX4_IMXRT_RTC_REBOOT_REG_ADDRESS);
-	return OK;
-}
-
-int board_reset(int status)
-{
-	if (status == REBOOT_TO_BOOTLOADER) {
-		board_reset_enter_bootloader();
-	}
-
-	else if (status == REBOOT_TO_ISP) {
-#ifdef BOARD_HAS_TEENSY_BOOTLOADER
-		asm("BKPT #251"); /* Enter Teensy MKL02 bootloader */
-#elif defined(BOARD_HAS_ISP_BOOTLOADER)
-		uint32_t arg = 0xeb100000;
-		ROM_API_Init();
-		ROM_RunBootloader(&arg);
-#endif
-	}
-
-
-#if defined(BOARD_HAS_ON_RESET)
-	board_on_reset(status);
-#endif
-
-	up_systemreset();
-	return 0;
+	return px4_hw_mft_unsupported;
 }
