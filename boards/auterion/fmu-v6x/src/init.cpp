@@ -75,6 +75,7 @@
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
 #include <px4_platform/gpio/mcp23009.hpp>
+#include <px4_platform/gpio/mcp23017.hpp>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -281,7 +282,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #  endif /* CONFIG_MMCSD */
-
 	ret = mcp23009_register_gpios(3, 0x25);
 
 	if (ret != OK) {
@@ -289,7 +289,19 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		return ret;
 	}
 
+	/*int offset = 8; // This is the offset for the naming of the instatiated GPIO-DEVICES.
+	uint16_t pin_types = 0x0000;// Set pin type. Set bit to 1 to mark pin as INPUT, set to 0 to mark as OUTPUT
+
+	ret = mcp23017_register_gpios(2, 0x27, offset, pin_types);
+
+	if (ret != OK) {
+		led_on(LED_RED);
+		return ret;
+	}*/
+
 #endif /* !defined(BOOTLOADER) */
 
 	return OK;
 }
+
+
