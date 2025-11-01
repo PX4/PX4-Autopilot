@@ -65,6 +65,7 @@ private:
 
 	uORB::Subscription _camera_trigger_sub{ORB_ID(camera_trigger)};
 	uORB::Subscription _camera_status_sub{ORB_ID(camera_status)};
+	uORB::Publication<vehicle_command_s> _vehicle_cmd_pub{ORB_ID(vehicle_command)};
 	camera_status_s _camera_status = {
 		0,	//timestamp
 		0,	//target_sys_id
@@ -102,7 +103,7 @@ private:
 					vcmd.target_system = mavlink_system.sysid;
 					vcmd.target_component = i_camera + MAV_COMP_ID_CAMERA;
 
-					MavlinkCommandSender::instance().handle_vehicle_command(vcmd, _mavlink->get_channel());
+					_vehicle_cmd_pub.publish(vcmd);
 
 
 					// TODO: move this camera_trigger and publish as a vehicle_command
