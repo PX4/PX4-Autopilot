@@ -126,22 +126,22 @@ param set-default EKF2_BARO_CTRL 1
 param set-default EKF2_MULTI_IMU 1
 
 # Accelerometer Bias Estimation
-param set-default EKF2_ABIAS_INIT 0.4
-param set-default EKF2_ABL_LIM 1.2
-param set-default EKF2_ABL_TAU 0.1
+param set-default EKF2_ABIAS_INIT 0.1
+param set-default EKF2_ABL_LIM 1.5
+param set-default EKF2_ABL_TAU 0.6
 param set-default EKF2_ABL_ACCLIM 35.0
-param set-default EKF2_ACC_NOISE 1.5
-param set-default EKF2_ACC_B_NOISE 0.0010
+param set-default EKF2_ACC_NOISE 1.0
+param set-default EKF2_ACC_B_NOISE 0.0007
 
 # Barometer (VTOL optimized)
-param set-default EKF2_BARO_NOISE 0.0035 # 3.5mm noise
+param set-default EKF2_BARO_NOISE 0.0065 # 6.5mm noise
 param set-default EKF2_BARO_DELAY 0.0
 param set-default EKF2_BARO_GATE 8.0     # FPS + transition tolerance
 
 # GPS Parameters
 param set-default EKF2_GPS_DELAY 0.0
-param set-default EKF2_GPS_P_NOISE 0.15  # Matches vertical accuracy
-param set-default EKF2_GPS_V_NOISE 0.01  # Horizontal accuracy
+param set-default EKF2_GPS_P_NOISE 0.18  # Matches vertical accuracy
+param set-default EKF2_GPS_V_NOISE 0.014  # Horizontal accuracy
 param set-default EKF2_GPS_P_GATE 5.0
 param set-default EKF2_GPS_V_GATE 5.0    # Critical for 75 m/s cruise
 
@@ -353,12 +353,12 @@ param set-default VT_TYPE 2              # Tailsitter VTOL type
 
 # Transition Airspeeds
 param set-default VT_ARSP_BLEND 25.0     # Airspeed to start blending
-param set-default VT_ARSP_TRANS 40.0     # Airspeed to complete transition
+param set-default VT_ARSP_TRANS 48.0     # Airspeed to complete transition
 
 # Front Transition (MC → FW) - Optimized
-param set-default VT_F_TRANS_DUR 18.0    # Duration (optimized)
-param set-default VT_F_TRANS_THR 0.95    # 95% throttle (prevents altitude loss)
-param set-default VT_F_TR_OL_TM 22.0     # Open-loop timeout (reduced)
+param set-default VT_F_TRANS_DUR 60.0    # Duration (optimized)
+param set-default VT_F_TRANS_THR 1.0    # 100% throttle (prevents altitude loss)
+param set-default VT_F_TR_OL_TM 70.0     # Open-loop timeout (reduced)
 
 # Back Transition (FW → MC) - Optimized
 param set-default VT_B_TRANS_DUR 35.0    # Duration (optimized)
@@ -367,15 +367,15 @@ param set-default VT_B_DEC_I 0.4         # Deceleration I gain (increased)
 param set-default VT_B_TRANS_RAMP 2.5    # Transition ramp time
 
 # Transition Safety
-param set-default VT_TRANS_MIN_TM 8.0    # Minimum transition time
-param set-default VT_TRANS_TIMEOUT 60.0  # Transition timeout
+param set-default VT_TRANS_MIN_TM 15.0    # Minimum transition time
+param set-default VT_TRANS_TIMEOUT 100.0  # Transition timeout
 param set-default VT_QC_T_ALT_LOSS 100.0 # Max altitude loss in QuadChute
 
 # Transition Control
 param set-default VT_ELEV_MC_LOCK 0
-param set-default VT_FWD_THRUST_EN 4     # Enable in all modes
+param set-default VT_FWD_THRUST_EN 4     # Enabled
 param set-default VTO_LOITER_ALT 1500.0
-param set-default VT_FW_MIN_ALT 50.0     # Min altitude for FW mode
+param set-default VT_FW_MIN_ALT 20.0     # Min altitude for FW mode
 param set-default VT_TILT_FW 1.0
 param set-default VT_TILT_MC 0.0
 param set-default VT_TILT_TRANS 0.5
@@ -389,19 +389,19 @@ param set-default VT_PITCH_MIN -5.0
 
 # Rate Control
 param set-default FW_RR_P 0.47
-param set-default FW_RR_I 0.13
-param set-default FW_RR_D 0.085
-param set-default FW_RR_FF 1.0
+param set-default FW_RR_I 0.05
+param set-default FW_RR_D 0.1
+param set-default FW_RR_FF 0.5
 param set-default FW_R_RMAX 20.0
 param set-default FW_R_TC 0.6
-param set-default FW_R_LIM 50.0          # Increased for tighter turns
+param set-default FW_R_LIM 30.0          # Increased for tighter turns
 
 param set-default FW_PR_P 0.365
 param set-default FW_PR_I 0.045
 param set-default FW_PR_D 0.355
-param set-default FW_PR_FF 3.4
-param set-default FW_P_LIM_MAX 20.0
-param set-default FW_P_LIM_MIN -15.0
+param set-default FW_PR_FF 2.0
+param set-default FW_P_LIM_MAX 15.0
+param set-default FW_P_LIM_MIN -5.0
 param set-default FW_P_TC 0.45
 param set-default FW_PN_R_SLEW_MAX 50.0
 
@@ -411,10 +411,10 @@ param set-default FW_YR_I 0.12           # I gain (balanced authority)
 param set-default FW_Y_RMAX 60.0         # Max yaw rate (slightly higher for eVTOL)
 
 # Airspeed Control
-param set-default FW_AIRSPD_MIN 40.0     # Above stall
+param set-default FW_AIRSPD_MIN 42.0     # Above stall
 param set-default FW_AIRSPD_MAX 75.0     # Cruise limit
 param set-default FW_AIRSPD_TRIM 52.0    # Efficient cruise
-param set-default FW_AIRSPD_STALL 38.0   # Stall speed
+param set-default FW_AIRSPD_STALL 40.0   # Stall speed
 
 # Airspeed Sensor (SITL - user validated)
 param set-default FW_USE_AIRSPD 1        # Use airspeed for control
@@ -422,19 +422,19 @@ param set-default ASPD_DO_CHECKS 7       # User validated: works in SITL
 param set-default SYS_HAS_NUM_ASPD 1     # 1 virtual airspeed sensor
 
 # TECS (Optimized)
-param set-default FW_T_ALT_TC 8.0
+param set-default FW_T_ALT_TC 4.0
 param set-default FW_T_RLL2THR 8.0
 param set-default FW_T_STE_R_TC 1.5
 param set-default FW_T_SINK_MIN 2.0
-param set-default FW_T_SINK_MAX 5.0
-param set-default FW_T_CLMB_MAX 5.0
-param set-default FW_T_VERT_ACC 5.0
-param set-default FW_T_THR_DAMPING 0.08  # Prevents oscillation
-param set-default FW_T_PTCH_DAMP 0.1     # Prevents oscillation
+param set-default FW_T_SINK_MAX 4.0
+param set-default FW_T_CLMB_MAX 4.0
+param set-default FW_T_VERT_ACC 4.0
+param set-default FW_T_THR_DAMPING 0.12  # Prevents oscillation
+param set-default FW_T_PTCH_DAMP 0.14     # Prevents oscillation
 param set-default FW_T_I_GAIN_PIT 0.3
 
 # Throttle Management
-param set-default FW_THR_TRIM 0.60       # 60% cruise throttle
+param set-default FW_THR_TRIM 0.80       # 80% cruise throttle
 param set-default FW_THR_MAX 1.0
 param set-default FW_THR_MIN 0.10
 param set-default FW_THR_IDLE 0.00
