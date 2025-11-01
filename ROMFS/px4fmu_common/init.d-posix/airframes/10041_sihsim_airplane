@@ -27,7 +27,6 @@ param set-default SIH_KDV 0.2
 param set-default SIH_VEHICLE_TYPE 1 	# sih as fixed wing
 param set-default RWTO_TKOFF 1  # enable takeoff from runway (as opposed to launched)
 
-param set-default CA_AIRFRAME 1
 param set-default CA_ROTOR_COUNT 1
 param set-default CA_ROTOR0_PX 0.3
 
