@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1082,7 +1082,16 @@ bool UavcanMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], un
 		unsigned num_control_groups_updated)
 {
 	if (_esc_controller.initialized()) {
-		_esc_controller.update_outputs(outputs, num_outputs);
+		uint8_t output_array_size = 0;
+
+		for (int i = MAX_ACTUATORS - 1; i >= 0; i--) {
+			if (mixingOutput().isFunctionSet(i)) {
+				output_array_size = i + 1;
+				break;
+			}
+		}
+
+		_esc_controller.update_outputs(outputs, num_outputs, output_array_size);
 	}
 
 	return true;
