@@ -130,8 +130,8 @@ jobs:
           load: false
           push: ${{ startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_to_registry) }}
           provenance: false
-          cache-from: type=gha,version=1
-          cache-to: type=gha,version=1,mode=max
+          cache-from: type=gha,version=1,scope=${{ matrix.arch }}
+          cache-to: type=gha,version=1,mode=max,scope=${{ matrix.arch }}
 
   deploy:
     name: Deploy To Registry

@@ -67,4 +67,8 @@ else()
         PRIVATE ${GSTREAMER_CFLAGS}
         PRIVATE ${GSTREAMER_APP_CFLAGS}
     )
+
+    if (NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+        install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib/px4_gz_plugins)
+    endif()
 endif()

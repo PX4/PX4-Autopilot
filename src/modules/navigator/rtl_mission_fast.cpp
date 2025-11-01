@@ -57,7 +57,7 @@ void RtlMissionFast::on_inactive()
 	MissionBase::on_inactive();
 	_vehicle_status_sub.update();
 	_mission_index_prior_rtl = _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ?
-				   _mission.current_seq : -1;
+				   _mission.current_seq : INT32_C(-1);
 }
 
 void RtlMissionFast::on_activation()
@@ -65,13 +65,30 @@ void RtlMissionFast::on_activation()
 	_home_pos_sub.update();
 
 	// set mission item to closest item if not already in mission
-	if (_mission_index_prior_rtl < 0) {
+	if (_mission_index_prior_rtl < INT32_C(0)) {
 		_is_current_planned_mission_item_valid = setMissionToClosestItem(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
 				_global_pos_sub.get().alt, _home_pos_sub.get().alt, _vehicle_status_sub.get()) == PX4_OK;
 
 	} else {
-		setMissionIndex(_mission_index_prior_rtl);
-		_is_current_planned_mission_item_valid = isMissionValid();
+		int32_t next_mission_item_index;
+		size_t num_found_items{0U};
+		getNextPositionItems(_mission_index_prior_rtl, &next_mission_item_index, num_found_items, UINT8_C(1));
+
+		if (num_found_items > 0U) {
+			setMissionIndex(next_mission_item_index);
+			_is_current_planned_mission_item_valid = isMissionValid();
+
+		} else {
+			// No more position items left. Set it to the land item if it exists
+			if (_mission.land_index > 0) {
+				setMissionIndex(_mission.land_index);
+				_is_current_planned_mission_item_valid = isMissionValid();
+
+			} else {
+				// Nothing we can do, set the validity to false to trigger end of mission reaction
+				_is_current_planned_mission_item_valid = false;
+			}
+		}
 	}
 
 	if (_land_detected_sub.get().landed) {

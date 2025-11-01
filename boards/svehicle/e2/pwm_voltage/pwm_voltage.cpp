@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,26 @@
  *
  ****************************************************************************/
 
-__BEGIN_DECLS
-void spix_sync_channel_init(unsigned channel);
-int spix_sync_servo_set(unsigned channel, uint8_t  value);
-unsigned spix_sync_servo_get(unsigned channel);
-int spix_sync_servo_init(unsigned rate);
-void spix_sync_servo_deinit(void);
-void spix_sync_servo_arm(bool armed);
-unsigned spix_sync_timer_get_period(unsigned timer);
-__END_DECLS
+#include <inttypes.h>
+#include <stdint.h>
+
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module_params.h>
+
+#include "board_config.h"
+
+extern "C" int pwm_voltage_apply_main(int argc, char *argv[])
+{
+	int32_t pwm_volt_sel = 0;
+
+	param_get(param_find("PWM_VOLT_SEL"), &pwm_volt_sel);
+
+	if (pwm_volt_sel != 0) {
+		PWM_5V_VOLT_SEL(true);
+
+	} else {
+		PWM_5V_VOLT_SEL(false);
+	}
+
+	return 0;
+}

@@ -77,7 +77,7 @@ void AdsbConflict::detect_traffic_conflict(double lat_now, double lon_now, float
 			&& (fabsf(_crosstrack_error.distance) < _conflict_detection_params.crosstrack_separation);
 
 	const bool _crosstrack_separation_check = (fabsf(alt_now - _transponder_report.altitude) <
-			_conflict_detection_params.crosstrack_separation);
+			_conflict_detection_params.vertical_separation);
 
 	bool collision_time_check = false;
 
