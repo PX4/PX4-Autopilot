@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# ARK FMUARKV6X specific board sensors init
+# ARK FMU V6X specific board sensors init
 #------------------------------------------------------------------------------
 set HAVE_PM2 yes
 set HAVE_PM3 yes
@@ -69,28 +69,25 @@ fi
 
 if ver hwtypecmp ARKV6X000
 then
-	# Internal SPI bus IIM42652 with SPIX measured frequency of 32.051kHz
-	iim42652 -R 3 -s -b 1 -C 32051 start
+	# Internal SPI bus IIM42652
+	iim42652 -R 3 -s -b 1 start
 
-	# Internal SPI bus ICM42688p with SPIX measured frequency of 32.051kHz
-	icm42688p -R 9 -s -b 2 -C 32051 start
+	# Internal SPI bus ICM42688p
+	icm42688p -R 9 -s -b 2 start
 
-	# Internal SPI bus ICM42688p with SPIX measured frequency of 32.051kHz
-	icm42688p -R 6 -s -b 3 -C 32051 start
+	# Internal SPI bus ICM42688p
+	icm42688p -R 6 -s -b 3 start
 fi
 
 if ver hwtypecmp ARKV6X001
 then
-	# Internal SPI bus IIM42653 with SPIX measured frequency of 32.051kHz
-	#iim42653 -R 3 -s -b 1 -C 32051 start
+	# Internal SPI bus IIM42653
 	iim42653 -R 3 -s -b 1 start
 
-	# Internal SPI bus IIM42653 with SPIX measured frequency of 32.051kHz
-	#iim42653 -R 9 -s -b 2 -C 32051 start
+	# Internal SPI bus IIM42653
 	iim42653 -R 9 -s -b 2 start
 
-	# Internal SPI bus IIM42653 with SPIX measured frequency of 32.051kHz
-	#iim42653 -R 6 -s -b 3 -C 32051 start
+	# Internal SPI bus IIM42653
 	iim42653 -R 6 -s -b 3 start
 fi
 
