@@ -494,9 +494,23 @@ void AirspeedModule::update_params()
 		param_get(_param_handle_fw_thr_max, &_param_fw_thr_max);
 	}
 
+	const float prev_scale[MAX_NUM_AIRSPEED_SENSORS] = {
+		_param_airspeed_scale[0],
+		_param_airspeed_scale[1],
+		_param_airspeed_scale[2]
+	};
+
 	_param_airspeed_scale[0] = _param_airspeed_scale_1.get();
 	_param_airspeed_scale[1] = _param_airspeed_scale_2.get();
 	_param_airspeed_scale[2] = _param_airspeed_scale_3.get();
+
+	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
+		if (fabsf(_param_airspeed_scale[i] - prev_scale[i]) > FLT_EPSILON) {
+			_airspeed_validator[i].set_scale_init(_param_airspeed_scale[i]);
+			_airspeed_validator[i].reset_scale_estimator();
+			_airspeed_validator[i].set_CAS_scale_validated(_param_airspeed_scale[i]);
+		}
+	}
 
 	_wind_estimator_sideslip.set_wind_process_noise_spectral_density(_param_aspd_wind_nsd.get());
 	_wind_estimator_sideslip.set_tas_scale_process_noise_spectral_density(_param_aspd_scale_nsd.get());
