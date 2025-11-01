@@ -109,3 +109,7 @@ src/systemcmds/topic_listener/listener_generated.cpp
 # colcon
 log/
 keys/
+
+# local env & toolchains
+.px4-venv/
+*.tar.bz2
