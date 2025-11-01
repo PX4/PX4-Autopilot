@@ -41,3 +41,17 @@
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(PPS_CAP_ENABLE, 0);
+
+/**
+ * PPS Capture GPS
+ *
+ * Sets which GPS receiver is linked to the PPS capture.
+ *
+ * @min 1
+ * @max 2
+ * @value 1 GPS_1
+ * @value 2 GPS_2
+ * @group GPS
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(PPS_CAP_GPS, 1);
