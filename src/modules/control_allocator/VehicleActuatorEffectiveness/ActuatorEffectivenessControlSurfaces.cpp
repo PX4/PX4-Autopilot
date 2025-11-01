@@ -62,6 +62,7 @@ ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(Modul
 	_spoilers_setpoint_with_slewrate.setSlewRate(kSpoilersSlewRate);
 
 	_count_handle = param_find("CA_SV_CS_COUNT");
+	_param_handle_ca_sv_lau_lk = param_find("CA_SV_LAU_LK");
 	updateParams();
 }
 
@@ -73,6 +74,8 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		PX4_ERR("param_get failed");
 		return;
 	}
+
+	param_get(_param_handle_ca_sv_lau_lk, &_param_ca_sv_lau_lk);
 
 	for (int i = 0; i < _count; i++) {
 		param_get(_param_handles[i].type, (int32_t *)&_params[i].type);
@@ -180,5 +183,16 @@ void ActuatorEffectivenessControlSurfaces::applySpoilers(float spoilers_control,
 	for (int i = 0; i < _count; ++i) {
 		// TODO: this currently only works for spoilerons, not dedicated spoilers
 		actuator_sp(i + first_actuator_idx) += _spoilers_setpoint_with_slewrate.getState() * _params[i].scale_spoiler;
+	}
+}
+
+void ActuatorEffectivenessControlSurfaces::applyLaunchLock(int first_actuator_idx,
+		ActuatorVector &actuator_sp)
+{
+	for (int i = 0; i < _count; ++i) {
+
+		if (_param_ca_sv_lau_lk & (1u << i)) {
+			actuator_sp(i + first_actuator_idx) = NAN;
+		}
 	}
 }
