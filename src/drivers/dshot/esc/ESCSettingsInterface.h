@@ -33,60 +33,21 @@
 
 #pragma once
 
-#include <px4_platform_common/Serial.hpp>
-#include <uORB/Publication.hpp>
-#include "DShotCommon.h"
-#include "esc/AM32Settings.h"
+enum class ESCType : uint8_t {
+	Unknown = 0,
+	AM32 = 1,
+};
 
-class DShotTelemetry
+class ESCSettingsInterface
 {
 public:
+	virtual ~ESCSettingsInterface() = default;
 
-	~DShotTelemetry();
+	virtual bool decodeInfoResponse(const uint8_t *buf, int size) = 0;
+	virtual int getExpectedResponseSize() = 0;
+	virtual void publish_latest() { /* no-op */};
 
-	int init(const char *uart_device, bool swap_rxtx);
-	void printStatus() const;
-
-	void startTelemetryRequest();
-	bool telemetryResponseFinished();
-
-	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
-
-	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
-	int parseCommandResponse();
-	bool commandResponseFinished();
-	void setExpectCommandResponse(int motor_index, uint16_t command);
-	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
-	void publish_esc_settings();
-
-private:
-	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 128;
-	static constexpr int COMMAND_RESPONSE_SETTINGS_SIZE = 49; // 48B for EEPROM + 1B for CRC
-	static constexpr int TELEMETRY_FRAME_SIZE = 10;
-	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
-
-	device::Serial _uart{};
-
-	// Command response
-	int _command_response_motor_index{-1};
-	uint16_t _command_response_command{0};
-	uint8_t _command_response_buffer[COMMAND_RESPONSE_MAX_SIZE];
-	int _command_response_position{0};
-	hrt_abstime _command_response_start{0};
-
-	// Telemetry packet
-	EscData _latest_data{};
-	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
-	int _frame_position{0};
-	hrt_abstime _telemetry_request_start{0};
-
-	// statistics
-	int _num_timeouts{0};
-	int _num_successful_responses{0};
-	int _num_checksum_errors{0};
-
-	// Settings
-	ESCSettingsInterface *_settings_handlers[DSHOT_MAXIMUM_CHANNELS] = {nullptr};
-	ESCType _esc_type{ESCType::Unknown};
-	bool _settings_initialized{false};
+	// TODO: function to read data
+	// TODO: function to write data
 };
+

@@ -33,60 +33,64 @@
 
 #pragma once
 
-#include <px4_platform_common/Serial.hpp>
-#include <uORB/Publication.hpp>
-#include "DShotCommon.h"
-#include "esc/AM32Settings.h"
+#include <drivers/drv_hrt.h>
+#include <uORB/topics/esc_status.h>
 
-class DShotTelemetry
-{
-public:
+static constexpr int DSHOT_MAXIMUM_CHANNELS = esc_status_s::CONNECTED_ESC_MAX;
 
-	~DShotTelemetry();
-
-	int init(const char *uart_device, bool swap_rxtx);
-	void printStatus() const;
-
-	void startTelemetryRequest();
-	bool telemetryResponseFinished();
-
-	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
-
-	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
-	int parseCommandResponse();
-	bool commandResponseFinished();
-	void setExpectCommandResponse(int motor_index, uint16_t command);
-	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
-	void publish_esc_settings();
-
-private:
-	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 128;
-	static constexpr int COMMAND_RESPONSE_SETTINGS_SIZE = 49; // 48B for EEPROM + 1B for CRC
-	static constexpr int TELEMETRY_FRAME_SIZE = 10;
-	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
-
-	device::Serial _uart{};
-
-	// Command response
-	int _command_response_motor_index{-1};
-	uint16_t _command_response_command{0};
-	uint8_t _command_response_buffer[COMMAND_RESPONSE_MAX_SIZE];
-	int _command_response_position{0};
-	hrt_abstime _command_response_start{0};
-
-	// Telemetry packet
-	EscData _latest_data{};
-	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
-	int _frame_position{0};
-	hrt_abstime _telemetry_request_start{0};
-
-	// statistics
-	int _num_timeouts{0};
-	int _num_successful_responses{0};
-	int _num_checksum_errors{0};
-
-	// Settings
-	ESCSettingsInterface *_settings_handlers[DSHOT_MAXIMUM_CHANNELS] = {nullptr};
-	ESCType _esc_type{ESCType::Unknown};
-	bool _settings_initialized{false};
+enum class TelemetrySource {
+	Serial = 0,
+	BDShot = 1,
 };
+
+struct EscData {
+	int motor_index;       // Motors 0-7
+	hrt_abstime timestamp; // Sample time
+	TelemetrySource source;
+
+	float temperature;     // [deg C]
+	float voltage;         // [0.01V]
+	float current;         // [0.01A]
+	int16_t erpm;          // [100ERPM]
+};
+
+enum class TelemetryStatus {
+	NotStarted = 0,
+	NotReady = 1,
+	Ready = 2,
+	Timeout = 3,
+	ParseError = 4,
+};
+
+inline int count_set_bits(int mask)
+{
+	int count = 0;
+
+	while (mask) {
+		mask &= mask - 1;
+		count++;
+	}
+
+	return count;
+}
+
+inline uint8_t crc8(const uint8_t *buf, unsigned len)
+{
+	auto update_crc8 = [](uint8_t crc, uint8_t crc_seed) {
+		uint8_t crc_u = crc ^ crc_seed;
+
+		for (unsigned i = 0; i < 8; ++i) {
+			crc_u = (crc_u & 0x80) ? 0x7 ^ (crc_u << 1) : (crc_u << 1);
+		}
+
+		return crc_u;
+	};
+
+	uint8_t crc = 0;
+
+	for (unsigned i = 0; i < len; ++i) {
+		crc = update_crc8(buf[i], crc);
+	}
+
+	return crc;
+}
