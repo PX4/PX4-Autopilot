@@ -170,6 +170,7 @@ if(CONFIG_MODULES_UUV_ATT_CONTROL)
 		60000_uuv_generic
 		60001_uuv_hippocampus
 		60002_uuv_bluerov2_heavy
+		60003_lodka_zanetowa
 	)
 endif()
 
