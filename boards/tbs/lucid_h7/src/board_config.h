@@ -197,6 +197,11 @@
 
 // #define GPIO_RSSI_IN            /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 
+/* Power Control GPIOs (must be LOW to enable power) */
+#define GPIO_VSW                 /* PD10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN10)
+#define GPIO_CAMSW               /* PD11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN11)
+#define GPIO_VPWR                /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
+
 /* SD Card */
 #define SDIO_SLOTNO             0  /* Only one slot */
 #define SDIO_MINOR              0
@@ -216,6 +221,9 @@
 		GPIO_nLED_BLUE, \
 		GPIO_nLED_GREEN, \
 		GPIO_TONE_ALARM_IDLE, \
+		GPIO_VSW, \
+		GPIO_CAMSW, \
+		GPIO_VPWR, \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER

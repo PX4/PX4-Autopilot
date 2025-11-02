@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# tbs-lucid-h7 board-sensors init  (PX4)
+s# tbs-lucid-h7 board-sensors init  (PX4)
 # --------------------------------------------------------------
 
 board_adc start
