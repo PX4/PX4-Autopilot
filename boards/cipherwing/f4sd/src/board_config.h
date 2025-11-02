@@ -10,6 +10,8 @@
 
 #pragma once
 
+#define BOARD_NUM_IO_TIMERS 3
+
 #include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
@@ -66,7 +68,7 @@
  *  - Do NOT define HRT_PPM_CHANNEL (let it be absent)
  *  - Ensure GPIO_PPM_IN is undefined
  */
-#define HRT_TIMER          4   // TIM4
+#define HRT_TIMER          5   // TIM5
 #define HRT_TIMER_CHANNEL  1   // CH1
 /* PPM disabled: */
 #undef GPIO_PPM_IN
@@ -96,4 +98,3 @@ extern void board_peripheral_reset(int ms);
 #include <px4_platform_common/board_common.h>
 
 __END_DECLS
-

@@ -197,8 +197,8 @@ stm32_boardinitialize(void)
 	// TODO: RSSI
 	//stm32_configgpio(GPIO_RSSI_IN);
 
-	#ifdef GPIO_PPM_IN
-    stm32_configgpio(GPIO_PPM_IN);
+#ifdef GPIO_PPM_IN
+	stm32_configgpio(GPIO_PPM_IN);
 #endif
 
 	/* configure SPI all interfaces GPIO */
