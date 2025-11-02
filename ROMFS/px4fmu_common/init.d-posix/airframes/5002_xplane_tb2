@@ -118,12 +118,12 @@ param set-default EKF2_BARO_CTRL 1
 param set-default EKF2_MULTI_IMU 1
 
 # Accelerometer Bias Estimation
-param set-default EKF2_ABIAS_INIT 0.4
-param set-default EKF2_ABL_LIM 1.2
-param set-default EKF2_ABL_TAU 0.1
+param set-default EKF2_ABIAS_INIT 0.1
+param set-default EKF2_ABL_LIM 1.5
+param set-default EKF2_ABL_TAU 0.6
 param set-default EKF2_ABL_ACCLIM 35.0
-param set-default EKF2_ACC_NOISE 1.5
-param set-default EKF2_ACC_B_NOISE 0.0010
+param set-default EKF2_ACC_NOISE 1.0
+param set-default EKF2_ACC_B_NOISE 0.0007
 
 # Barometer (critical for 27+ hour missions without drift)
 param set-default EKF2_BARO_NOISE 0.0035 # 3.5mm - enables long missions

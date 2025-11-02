@@ -140,12 +140,12 @@ param set-default EKF2_ASP_DELAY 0.0
 param set-default EKF2_WIND_NSD 0.01
 
 # Accelerometer Bias Estimation
-param set-default EKF2_ABIAS_INIT 0.4
-param set-default EKF2_ABL_LIM 1.2
-param set-default EKF2_ABL_TAU 0.1
+param set-default EKF2_ABIAS_INIT 0.1
+param set-default EKF2_ABL_LIM 1.5
+param set-default EKF2_ABL_TAU 0.6
 param set-default EKF2_ABL_ACCLIM 35.0
-param set-default EKF2_ACC_NOISE 1.5
-param set-default EKF2_ACC_B_NOISE 0.0010
+param set-default EKF2_ACC_NOISE 1.0
+param set-default EKF2_ACC_B_NOISE 0.0007
 
 # Multi-IMU Configuration
 param set-default EKF2_MULTI_IMU 1
