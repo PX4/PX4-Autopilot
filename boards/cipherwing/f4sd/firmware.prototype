@@ -1,0 +1,13 @@
+{
+    "board_id": 420,
+    "magic": "CIPHERWINGF4SD",
+    "description": "Firmware for the CipherWingF4SD board",
+    "image": "",
+    "build_time": 0,
+    "summary": "PX4/CipherWingF4",
+    "version": "1.0",
+    "image_size": 0,
+    "image_maxsize": 1032192,
+    "git_identity": "",
+    "board_revision": 0
+}
