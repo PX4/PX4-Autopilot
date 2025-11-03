@@ -128,7 +128,7 @@ param set-default EKF2_MULTI_IMU 1
 # Accelerometer Bias Estimation
 param set-default EKF2_ABIAS_INIT 0.1
 param set-default EKF2_ABL_LIM 1.5
-param set-default EKF2_ABL_TAU 0.6
+param set-default EKF2_ABL_TAU 0.5
 param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0
 param set-default EKF2_ACC_B_NOISE 0.0007
@@ -218,14 +218,14 @@ param set-default MC_YAW_WEIGHT 0.4
 
 # Position Control
 param set-default MPC_XY_P 0.05
-param set-default MPC_Z_P 0.25
+param set-default MPC_Z_P 0.65
 
 # Velocity Control (user-validated gains for heavy aircraft)
 param set-default MPC_XY_VEL_P_ACC 1.2
 param set-default MPC_XY_VEL_I_ACC 0.2
 param set-default MPC_XY_VEL_D_ACC 2.0   # User validated: better tracking
 param set-default MPC_Z_VEL_P_ACC 5.0    # User validated: more responsive
-param set-default MPC_Z_VEL_I_ACC 2.0
+param set-default MPC_Z_VEL_I_ACC 1.4
 param set-default MPC_Z_VEL_D_ACC 0.45   # User validated: better damping
 
 # Velocity Limits (heavy aircraft performance)

@@ -146,10 +146,10 @@ param set-default CAL_BARO1_PRIO 0        # Backup disabled (prevents mid-missio
 param set-default EKF2_BARO_CTRL 1
 param set-default EKF2_MULTI_IMU 1
 
-# Accelerometer bias estimation
+# Accelerometer Bias Estimation
 param set-default EKF2_ABIAS_INIT 0.1
 param set-default EKF2_ABL_LIM 1.5
-param set-default EKF2_ABL_TAU 0.6
+param set-default EKF2_ABL_TAU 0.5
 param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0
 param set-default EKF2_ACC_B_NOISE 0.0007
