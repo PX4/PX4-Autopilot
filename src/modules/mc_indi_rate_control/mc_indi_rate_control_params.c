@@ -43,6 +43,7 @@
  *
  * This parameter enables the INDI rate control.
  *
+ * @group MC INDI Rate Control
  * @min 0
  * @max 1
  * @decimal 0
@@ -55,9 +56,76 @@ PARAM_DEFINE_INT32(MC_INDI_EN, 1);
  *
  * This parameter enables the adaptation of the INDI effectiveness matrix.
  *
+ * @group MC INDI Rate Control
  * @min 0
  * @max 1
  * @decimal 0
  * @increment 1
  */
-PARAM_DEFINE_INT32(MC_INDI_ADAPT_EN, 0);
+PARAM_DEFINE_INT32(MC_INDI_ADAPT_EN, 1);
+
+/**
+ * Reduced attitude error gain
+ *
+ * Gain for the reduced attitude error term in the angular acceleration control law.
+ * Higher values increase attitude tracking stiffness.
+ *
+ * @group MC INDI Rate Control
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ * @unit 1/s^2
+ */
+PARAM_DEFINE_FLOAT(INDI_K_Q_RED, 5.0f);
+
+/**
+ * Yaw attitude error gain
+ *
+ * Specific gain for yaw attitude error correction.
+ *
+ * @group MC INDI Rate Control
+ * @min 0.0
+ * @max 100.0
+ * @decimal 2
+ * @unit 1/s^2
+ */
+PARAM_DEFINE_FLOAT(INDI_K_YAW, 2.0f);
+
+/**
+ * Angular rate feedback gain - Roll
+ *
+ * Proportional gain for roll rate error feedback.
+ *
+ * @group MC INDI Rate Control
+ * @min 0.0
+ * @max 50.0
+ * @decimal 2
+ * @unit 1/s
+ */
+PARAM_DEFINE_FLOAT(INDI_K_OMEGA_R, 1.0f);
+
+/**
+ * Angular rate feedback gain - Pitch
+ *
+ * Proportional gain for pitch rate error feedback.
+ *
+ * @group MC INDI Rate Control
+ * @min 0.0
+ * @max 50.0
+ * @decimal 2
+ * @unit 1/s
+ */
+PARAM_DEFINE_FLOAT(INDI_K_OMEGA_P, 1.0f);
+
+/**
+ * Angular rate feedback gain - Yaw
+ *
+ * Proportional gain for yaw rate error feedback.
+ *
+ * @group MC INDI Rate Control
+ * @min 0.0
+ * @max 50.0
+ * @decimal 2
+ * @unit 1/s
+ */
+PARAM_DEFINE_FLOAT(INDI_K_OMEGA_Y, 1.0f);
