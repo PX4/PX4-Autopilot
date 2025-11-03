@@ -1,8 +1,5 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 Nuno Marques, PX4 Pro Dev Team, Lisbon
- *   Copyright (c) 2017 Siddharth Patel, NTU Singapore
- *   Copyright (c) 2022 SungTae Moon, KOREATECH Korea
  *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,8 +34,6 @@
 #ifndef GZ_SIM_SYSTEMS_MOTORFAILURESYSTEM_HPP_
 #define GZ_SIM_SYSTEMS_MOTORFAILURESYSTEM_HPP_
 
-#pragma once
-
 #include <gz/sim/System.hh>
 #include <gz/sim/Model.hh>
 #include <memory>
@@ -71,12 +66,6 @@ class MotorFailureSystem:
 	public ISystemPreUpdate
 {
 public:
-	/// \brief Constructor
-	MotorFailureSystem();
-
-	/// \brief Destructor
-	~MotorFailureSystem() override;
-
 	// Documentation inherited
 	void Configure(const Entity &_entity,
 		       const std::shared_ptr<const sdf::Element> &_sdf,
@@ -98,32 +87,32 @@ private:
 	void ApplyMotorFailure(gz::sim::EntityComponentManager &_ecm);
 
 	/// \brief Gazebo Transport node for communication
-	gz::transport::Node node_;
+	gz::transport::Node _node;
 
 	/// \brief Model entity
-	gz::sim::Entity model_entity_;
+	gz::sim::Entity _model_entity;
 
 	/// \brief Model interface
-	gz::sim::Model model_;
+	gz::sim::Model _model;
 
 	/// \brief Vector of motor joint entities (indexed by motor number)
-	std::vector<gz::sim::Entity> motor_joints_;
+	std::vector<gz::sim::Entity> _motor_joints;
 
 	/// \brief Current motor failure number (-1 or 0 means no failure, 1-indexed motor number)
-	int32_t motor_failure_number_{-1};
+	int32_t _motor_failure_number{-1};
 
 	/// \brief Previous motor failure number to detect changes
-	int32_t prev_motor_failure_number_{-1};
+	int32_t _prev_motor_failure_number{-1};
 
 	/// \brief Gazebo Transport topic name for subscribing to motor failure commands
 	/// Defaults to /model/<model_name>/motor_failure/motor_number if not specified in SDF
-	std::string gz_topic_{"/motor_failure/motor_number"};
+	std::string _gz_topic{"/motor_failure/motor_number"};
 
-	/// \brief Mutex to protect motor_failure_number_
-	std::mutex motor_failure_mutex_;
+	/// \brief Mutex to protect _motor_failure_number
+	std::mutex _motor_failure_mutex;
 
 	/// \brief Flag to indicate if motor joints have been found
-	bool joints_found_{false};
+	bool _joints_found{false};
 };
 
 }  // namespace systems

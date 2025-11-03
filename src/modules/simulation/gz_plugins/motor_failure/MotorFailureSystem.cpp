@@ -1,8 +1,5 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 Nuno Marques, PX4 Pro Dev Team, Lisbon
- *   Copyright (c) 2017 Siddharth Patel, NTU Singapore
- *   Copyright (c) 2022 SungTae Moon, KOREATECH Korea
  *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,64 +44,54 @@ using namespace sim;
 using namespace systems;
 
 //////////////////////////////////////////////////
-MotorFailureSystem::MotorFailureSystem()
-{
-}
-
-//////////////////////////////////////////////////
-MotorFailureSystem::~MotorFailureSystem()
-{
-}
-
-//////////////////////////////////////////////////
 void MotorFailureSystem::Configure(const Entity &_entity,
 				   const std::shared_ptr<const sdf::Element> &_sdf,
 				   EntityComponentManager &_ecm,
 				   EventManager &/*_eventMgr*/)
 {
-	this->model_ = Model(_entity);
-	this->model_entity_ = _entity;
+	this->_model = Model(_entity);
+	this->_model_entity = _entity;
 
-	if (!this->model_.Valid(_ecm)) {
+	if (!this->_model.Valid(_ecm)) {
 		gzerr << "[MotorFailureSystem] plugin should be attached to a model "
 		      << "entity. Failed to initialize." << std::endl;
 		return;
 	}
 
 	// Get model name to use as namespace
-	std::string model_name = this->model_.Name(_ecm);
+	std::string model_name = this->_model.Name(_ecm);
 
 	// Get Gazebo Transport topic name for motor failure number subscription
 	if (_sdf->HasElement("MotorFailureTopic")) {
-		this->gz_topic_ = _sdf->Get<std::string>("MotorFailureTopic");
+		this->_gz_topic = _sdf->Get<std::string>("MotorFailureTopic");
 
 	} else {
 		// Use Gazebo model-scoped topic naming convention
-		this->gz_topic_ = "/model/" + model_name + "/motor_failure/motor_number";
+		this->_gz_topic = "/model/" + model_name + "/motor_failure/motor_number";
 	}
 
 	// Subscribe to Gazebo Transport topic
-	if (!this->node_.Subscribe(this->gz_topic_, &MotorFailureSystem::MotorFailureNumberCallback, this)) {
-		gzerr << "[MotorFailureSystem] Error subscribing to topic [" << this->gz_topic_ << "]" << std::endl;
+	if (!this->_node.Subscribe(this->_gz_topic, &MotorFailureSystem::MotorFailureNumberCallback, this)) {
+		gzerr << "[MotorFailureSystem] Error subscribing to topic [" << this->_gz_topic << "]" << std::endl;
 		return;
 	}
 
-	gzmsg << "[MotorFailureSystem] Subscribed to Gazebo Transport topic: " << this->gz_topic_ << std::endl;
+	gzmsg << "[MotorFailureSystem] Subscribed to Gazebo Transport topic: " << this->_gz_topic << std::endl;
 	gzmsg << "[MotorFailureSystem] Initialized for model: " << model_name << std::endl;
 }
 
 //////////////////////////////////////////////////
 void MotorFailureSystem::FindMotorJoints(EntityComponentManager &_ecm)
 {
-	if (this->joints_found_) {
+	if (this->_joints_found) {
 		return;
 	}
 
 	// Find all joints with "rotor_X_joint" pattern
-	this->motor_joints_.clear();
+	this->_motor_joints.clear();
 
 	// Get all joints in the model
-	auto joints = this->model_.Joints(_ecm);
+	auto joints = this->_model.Joints(_ecm);
 
 	// Regular expression to match rotor joints (e.g., "rotor_0_joint", "rotor_1_joint")
 	std::regex motorPattern("rotor_(\\d+)_joint");
@@ -139,17 +126,17 @@ void MotorFailureSystem::FindMotorJoints(EntityComponentManager &_ecm)
 	// Convert map to vector for indexed access
 	for (const auto &pair : motorMap) {
 		// Ensure vector is large enough
-		if (pair.first >= static_cast<int>(this->motor_joints_.size())) {
-			this->motor_joints_.resize(pair.first + 1, kNullEntity);
+		if (pair.first >= static_cast<int>(this->_motor_joints.size())) {
+			this->_motor_joints.resize(pair.first + 1, kNullEntity);
 		}
 
-		this->motor_joints_[pair.first] = pair.second;
+		this->_motor_joints[pair.first] = pair.second;
 	}
 
-	if (!this->motor_joints_.empty()) {
-		gzmsg << "[MotorFailureSystem] Found " << this->motor_joints_.size()
+	if (!this->_motor_joints.empty()) {
+		gzmsg << "[MotorFailureSystem] Found " << this->_motor_joints.size()
 		      << " motor joints" << std::endl;
-		this->joints_found_ = true;
+		this->_joints_found = true;
 
 	} else {
 		gzwarn << "[MotorFailureSystem] No motor joints found in model" << std::endl;
@@ -161,27 +148,27 @@ void MotorFailureSystem::ApplyMotorFailure(EntityComponentManager &_ecm)
 {
 	int32_t current_failure;
 	{
-		std::lock_guard<std::mutex> lock(this->motor_failure_mutex_);
-		current_failure = this->motor_failure_number_;
+		std::lock_guard<std::mutex> lock(this->_motor_failure_mutex);
+		current_failure = this->_motor_failure_number;
 	}
 
 	// Check if failure status changed
-	if (current_failure != this->prev_motor_failure_number_) {
+	if (current_failure != this->_prev_motor_failure_number) {
 		if (current_failure > 0) {
 			gzerr << "[MotorFailureSystem] Motor " << current_failure << " failed!" << std::endl;
 
-		} else if (current_failure == 0 && this->prev_motor_failure_number_ > 0) {
-			gzerr << "[MotorFailureSystem] Motor " << this->prev_motor_failure_number_
+		} else if (current_failure == 0 && this->_prev_motor_failure_number > 0) {
+			gzerr << "[MotorFailureSystem] Motor " << this->_prev_motor_failure_number
 			      << " recovered!" << std::endl;
 		}
 
-		this->prev_motor_failure_number_ = current_failure;
+		this->_prev_motor_failure_number = current_failure;
 	}
 
-	// Apply motor failure if active (1-indexed from ROS2, convert to 0-indexed)
-	if (current_failure > 0 && current_failure <= static_cast<int32_t>(this->motor_joints_.size())) {
+	// Apply motor failure if active (1-indexed motor number, convert to 0-indexed)
+	if (current_failure > 0 && current_failure <= static_cast<int32_t>(this->_motor_joints.size())) {
 		int motorIdx = current_failure - 1;
-		Entity jointEntity = this->motor_joints_[motorIdx];
+		Entity jointEntity = this->_motor_joints[motorIdx];
 
 		if (jointEntity != kNullEntity) {
 			// Force joint velocity command to 0
@@ -205,7 +192,7 @@ void MotorFailureSystem::PreUpdate(const UpdateInfo &_info,
 	}
 
 	// Find motor joints on first update
-	if (!this->joints_found_) {
+	if (!this->_joints_found) {
 		this->FindMotorJoints(_ecm);
 
 	} else {
@@ -216,10 +203,10 @@ void MotorFailureSystem::PreUpdate(const UpdateInfo &_info,
 //////////////////////////////////////////////////
 void MotorFailureSystem::MotorFailureNumberCallback(const gz::msgs::Int32 &_msg)
 {
-	std::lock_guard<std::mutex> lock(this->motor_failure_mutex_);
-	this->motor_failure_number_ = _msg.data();
+	std::lock_guard<std::mutex> lock(this->_motor_failure_mutex);
+	this->_motor_failure_number = _msg.data();
 	gzdbg << "[MotorFailureSystem] Received motor failure number: "
-	      << this->motor_failure_number_ << std::endl;
+	      << this->_motor_failure_number << std::endl;
 }
 
 // Register the plugin
