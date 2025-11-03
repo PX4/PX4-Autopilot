@@ -45,7 +45,8 @@ PARAM_DEFINE_INT32(PPS_CAP_ENABLE, 0);
 /**
  * PPS Capture GPS
  *
- * Sets which GPS receiver is linked to the PPS capture.
+ * Sets which GPS receiver is linked to the PPS capture. Note that this will only work reliably if all GPS sources
+ * use the GPS driver (i.e. GPS_n_CONFIG only, no Septentrio, Vectornav, or UAVCAN GPS)
  *
  * @min 1
  * @max 2
