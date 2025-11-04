@@ -3,7 +3,7 @@ __max_num_config_instances: &max_num_config_instances 1
 module_name: ADS7953
 
 parameters:
-  - group: ADC
+  - group: Sensors
     definitions:
       ADC_ADS7953_EN:
         description:
