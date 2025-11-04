@@ -34,6 +34,7 @@
 /**
  * Enable external ADS7953 ADC
  *
+ * @category driver
  * @boolean
  * @reboot_required true
  * @group Sensors
@@ -44,6 +45,7 @@ PARAM_DEFINE_INT32(ADC_ADS7953_EN, 0);
  * Reference voltage supplied to ADS7953 board
  *
  * @reboot_required true
+ * @category driver
  * @group Sensors
  * @unit V
  * @min 2.0
@@ -51,3 +53,6 @@ PARAM_DEFINE_INT32(ADC_ADS7953_EN, 0);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(ADC_ADS7953_REFV, 2.5f);
+
+@category system
+ * @group Sensors
