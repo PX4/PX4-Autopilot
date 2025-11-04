@@ -28,6 +28,7 @@ public:
 
 
 private:
+	static constexpr int NUM_CHANNELS = 16;
 	uORB::PublicationMulti<adc_report_s> _adc_report_pub{ORB_ID(adc_report)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

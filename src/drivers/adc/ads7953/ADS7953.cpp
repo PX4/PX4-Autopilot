@@ -10,6 +10,7 @@ ADS7953::ADS7953(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	ModuleParams(nullptr)
 {
+	static_assert(arraySize(adc_report_s::channel_id) >= NUM_CHANNELS, "ADS7953 reports 16 channels");
 }
 
 int ADS7953::init()
@@ -82,7 +83,7 @@ int ADS7953::get_measurements()
 	uint16_t mask = 0x00;
 	uint8_t idx = 0;
 
-	while (count < 16) {
+	while (count < NUM_CHANNELS) {
 		if (rw_msg(&recv_data[0], idx, true) == PX4_OK) {
 			uint8_t ch_id = (recv_data[0] >> 4);
 
@@ -96,8 +97,8 @@ int ADS7953::get_measurements()
 		}
 
 		// Find index to measure next
-		for (int i = 1; i <= 16; i++) {
-			uint8_t candidate_id = (idx + i) % 16;
+		for (int i = 1; i <= NUM_CHANNELS; i++) {
+			uint8_t candidate_id = (idx + i) % NUM_CHANNELS;
 
 			if (!(mask & (1U << candidate_id))) {
 				idx = candidate_id;
