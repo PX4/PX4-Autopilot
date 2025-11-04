@@ -57,6 +57,9 @@ bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 		_vel_z_filter.reset(_velocity(2));
 	}
 
+	const Vector2f acceleration_xy{_sub_vehicle_local_position.get().ax, _sub_vehicle_local_position.get().ay};
+	_accel_filter.reset(acceleration_xy);
+
 	if (_sub_vehicle_status.get().in_transition_to_fw) {
 		_gear.landing_gear = landing_gear_s::GEAR_UP;
 
@@ -132,13 +135,13 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 		deceleration_setpoint = math::min(deceleration_setpoint, 2.f * _param_vt_b_dec_mss);
 	}
 
-	// Pitch up to reach a negative accel_in_flight_direction otherwise we decelerate too slow
-	const Vector2f acceleration_xy{_sub_vehicle_local_position.get().ax, _sub_vehicle_local_position.get().ay};
+	const Vector2f acceleration_xy_raw{_sub_vehicle_local_position.get().ax, _sub_vehicle_local_position.get().ay};
+	const Vector2f acceleration_xy = _accel_filter.update(acceleration_xy_raw, _deltatime);
 	const float deceleration = -acceleration_xy.dot(velocity_xy_direction); // Zero when velocity invalid
 	const float deceleration_error = deceleration_setpoint - deceleration;
 
 	// Update back-transition deceleration error integrator
 	_decel_error_bt_int += (_param_vt_b_dec_i * deceleration_error) * _deltatime;
-	_decel_error_bt_int = math::constrain(_decel_error_bt_int, 0.f, DECELERATION_INTEGRATOR_LIMIT);
+	_decel_error_bt_int = math::constrain(_decel_error_bt_int, 0.f, kDecelerationIntegratorLimit);
 	return _decel_error_bt_int;
 }
