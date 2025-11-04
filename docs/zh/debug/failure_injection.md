@@ -19,7 +19,7 @@ At time of writing (PX4 v1.14):
 
 ## Failure System Command
 
-Failures can be injected using the [failure system command](../modules/modules_command.md#failure) from any PX4 console/shell, specifying both the target and type of the failure.
+Failures can be injected using the [failure system command](../modules/modules_command.md#failure) from any PX4 [console/shell](../debug/consoles.md) (such as the [QGC MAVLink Console](../debug/mavlink_shell.md#qgroundcontrol-mavlink-console) or SITL _pxh shell_), specifying both the target and type of the failure.
 
 ### Syntax
 
@@ -61,11 +61,18 @@ where:
 - _instance number_ (optional): Instance number of affected sensor.
   0 (default) indicates all sensors of specified type.
 
-### Example
+## MAVSDK Failure Plugin
+
+The [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html) can be used to programmatically inject failures.
+It is used in [PX4 Integration Testing](../test_and_ci/integration_testing_mavsdk.md) to simulate failure cases (for example, see [PX4-Autopilot/test/mavsdk_tests/autopilot_tester.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/autopilot_tester.cpp)).
+
+The plugin API is a direct mapping of the failure command shown above, with a few additional error signals related to the connection.
+
+## Example: RC signal
 
 To simulate losing RC signal without having to turn off your RC controller:
 
-1. Enable the parameter [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN). And specifically to turn off motors also [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE).
+1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
 2. Enter the following commands on the MAVLink console or SITL _pxh shell_:
 
    ```sh
@@ -76,9 +83,18 @@ To simulate losing RC signal without having to turn off your RC controller:
    failure rc_signal ok
    ```
 
-## MAVSDK Failure Plugin
+## Example: Motor
 
-The [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html) can be used to programmatically inject failures.
-It is used in [PX4 Integration Testing](../test_and_ci/integration_testing_mavsdk.md) to simulate failure cases (for example, see [PX4-Autopilot/test/mavsdk_tests/autopilot_tester.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/autopilot_tester.cpp)).
+To stop a motor mid-flight without the system anticipating it or excluding it from allocation effectiveness:
 
-The plugin API is a direct mapping of the failure command shown above, with a few additional error signals related to the connection.
+1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
+2. Enable [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) parameter to allow turning off motors.
+3. Enter the following commands on the MAVLink console or SITL _pxh shell_:
+
+   ```sh
+   # Turn off first motor
+   failure motor off -i 1
+
+   # Turn it back on
+   failure motor ok -i 1
+   ```

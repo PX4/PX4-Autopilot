@@ -39,7 +39,11 @@
 #include <future>
 #include <vector>
 
+
 #include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
+
+// Fix build until this is moved to common.xml
+#define MAVLINK_WIP
 #include <mavlink/development/mavlink_msg_figure_eight_execution_status.h>
 
 using namespace mavsdk::geometry;
