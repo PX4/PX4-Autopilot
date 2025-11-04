@@ -708,7 +708,7 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 		_gyro_integrator.set_reset_samples(gyro_integral_samples);
 
 		_backup_schedule_timeout_us = math::constrain((int)math::min(sensor_accel_s::ORB_QUEUE_LENGTH * accel_interval_us,
-					      sensor_gyro_s::ORB_QUEUE_LENGTH * gyro_interval_us) / 2, 1000, 20000);
+					      sensor_gyro_s::ORB_QUEUE_LENGTH * gyro_interval_us), 1000, 20000);
 
 		// gyro: find largest integer multiple of gyro_integral_samples
 		for (int n = sensor_gyro_s::ORB_QUEUE_LENGTH; n > 0; n--) {
