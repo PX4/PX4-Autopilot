@@ -219,6 +219,12 @@ then
 	pcf8583 start -X -a 0x51
 fi
 
+# ADC sensor ADS7953 external SPI
+if param compare -s ADC_ADS7953_EN 1
+then
+	ads7953 start -S
+fi
+
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then
