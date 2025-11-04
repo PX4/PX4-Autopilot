@@ -83,7 +83,7 @@ uint64_t PpsTimeSync::correct_gps_timestamp(uint64_t gps_fc_timestamp, uint64_t 
 			return gps_fc_timestamp;
 		}
 
-		// Additional sanity check: corrected timestamp should not be too far in the future
+		// Additional sanity check: corrected timestamp should not be too far in the future (0.1s)
 		uint64_t now = hrt_absolute_time();
 
 		if ((uint64_t)corrected_fc_timestamp > now + 100000) {
