@@ -180,7 +180,7 @@ void Standard::update_transition_state()
 			return;
 		}
 
-		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		*_v_att_sp = *_mc_virtual_att_sp;
 
 	} else {
 		// we need a recent incoming (fw virtual) attitude setpoint, otherwise return (means the previous setpoint stays active)
@@ -188,7 +188,7 @@ void Standard::update_transition_state()
 			return;
 		}
 
-		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		*_v_att_sp = *_fw_virtual_att_sp;
 		_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
 	}
 
