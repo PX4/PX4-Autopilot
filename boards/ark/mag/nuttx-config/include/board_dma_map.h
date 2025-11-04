@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,12 @@
  *
  ****************************************************************************/
 
-__BEGIN_DECLS
-void spix_sync_channel_init(unsigned channel);
-int spix_sync_servo_set(unsigned channel, uint8_t  value);
-unsigned spix_sync_servo_get(unsigned channel);
-int spix_sync_servo_init(unsigned rate);
-void spix_sync_servo_deinit(void);
-void spix_sync_servo_arm(bool armed);
-unsigned spix_sync_timer_get_period(unsigned timer);
-__END_DECLS
+#pragma once
+
+// DMA1 Channel/Stream Selections
+//--------------------------------------------//---------------------------//----------------
+#define DMACHAN_SPI2_RX    DMAMAP_SPI2_RX   // DMA1, Stream 3, Channel 0
+#define DMACHAN_SPI2_TX    DMAMAP_SPI2_TX   // DMA1, Stream 4, Channel 0
+
+//  DMA2 Channel/Stream Selections
+//--------------------------------------------//---------------------------//----------------

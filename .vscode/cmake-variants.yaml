@@ -241,6 +241,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_fpv_default
+    ark_mag_canbootloader:
+      short: ark_mag_canbootloader
+      buildType: MiniSizeRel
+      settings:
+        CONFIG: ark_mag_canbootloader
+    ark_mag_default:
+      short: ark_mag_default
+      buildType: MiniSizeRel
+      settings:
+        CONFIG: ark_mag_default
     ark_pi6x_bootloader:
       short: ark_pi6x_bootloader
       buildType: MinSizeRel

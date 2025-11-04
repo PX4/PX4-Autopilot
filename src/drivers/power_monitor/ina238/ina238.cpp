@@ -90,11 +90,10 @@ INA238::INA238(const I2CSPIDriverConfig &config, int battery_index) :
 	_register_cfg[2].clear_bits = ~_shunt_calibration;
 
 	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
-	_battery.setConnected(false);
-	_battery.updateVoltage(0.f);
-	_battery.updateCurrent(0.f);
-	_battery.updateTemperature(0.f);
+	setConnected(false);
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+
+	I2C::_retries = 5;
 }
 
 INA238::~INA238()
@@ -178,10 +177,7 @@ int INA238::probe()
 
 int INA238::Reset()
 {
-
 	int ret = PX4_ERROR;
-
-	_retries = 3;
 
 	if (RegisterWrite(Register::CONFIG, (uint16_t)(ADC_RESET_BIT)) != PX4_OK) {
 		return ret;
@@ -254,12 +250,10 @@ int INA238::collect()
 	success = success && (RegisterRead(Register::CURRENT, (uint16_t &)current) == PX4_OK);
 	success = success && (RegisterRead(Register::DIETEMP, (uint16_t &)temperature) == PX4_OK);
 
-	if (success) {
+	if (setConnected(success)) {
 		_battery.updateVoltage(static_cast<float>(bus_voltage * INA238_VSCALE));
 		_battery.updateCurrent(static_cast<float>(current * _current_lsb));
 		_battery.updateTemperature(static_cast<float>(temperature * INA238_TSCALE));
-
-		_battery.setConnected(success);
 
 		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 	}
@@ -276,8 +270,7 @@ int INA238::collect()
 			perf_count(_bad_register_perf);
 			success = false;
 
-			_battery.setConnected(success);
-
+			setConnected(false);
 			_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 		}
 	}
@@ -338,10 +331,7 @@ void INA238::RunImpl()
 		ScheduleDelayed(INA238_CONVERSION_INTERVAL);
 
 	} else {
-		_battery.setConnected(false);
-		_battery.updateVoltage(0.f);
-		_battery.updateCurrent(0.f);
-		_battery.updateTemperature(0.f);
+		setConnected(false);
 		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
 		if (init() != PX4_OK) {
@@ -352,6 +342,29 @@ void INA238::RunImpl()
 			start();
 		}
 	}
+}
+
+bool INA238::setConnected(bool state)
+{
+	// Filter out brief I2C failures for 2s
+	if (state) {
+		_connected = INA238_SAMPLE_FREQUENCY_HZ * 2;
+
+	} else if (_connected > 0) {
+		_connected--;
+	}
+
+	if (_connected > 0) {
+		_battery.setConnected(true);
+
+	} else {
+		_battery.setConnected(false);
+		_battery.updateVoltage(0);
+		_battery.updateCurrent(0);
+		_battery.updateTemperature(0);
+	}
+
+	return state;
 }
 
 void INA238::print_status()
