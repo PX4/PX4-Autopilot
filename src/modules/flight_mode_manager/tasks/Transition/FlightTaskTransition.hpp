@@ -76,5 +76,5 @@ private:
 	AlphaFilter<matrix::Vector2f> _accel_filter{kAccelerationFilterTimeConstant};
 	float _decel_error_bt_int{0.f}; ///< Backtransition deceleration error integrator value
 
-	float computeBackTranstionPitchSetpoint();
+	float computeBackTransitionTiltSetpoint();
 };

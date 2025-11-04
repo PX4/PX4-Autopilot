@@ -89,22 +89,27 @@ bool FlightTaskTransition::update()
 
 	// calculate a horizontal acceleration vector which corresponds to an attitude composed of pitch up by _param_fw_psp_off
 	// and zero roll angle
-	float pitch_setpoint = math::radians(_param_fw_psp_off);
+	float tilt_setpoint = math::radians(_param_fw_psp_off);
+	Vector2f horizontal_acceleration_direction;
 
 	if (!_sub_vehicle_status.get().in_transition_to_fw) {
-		pitch_setpoint = computeBackTranstionPitchSetpoint();
+		tilt_setpoint = computeBackTransitionTiltSetpoint();
+		const Vector2f velocity_xy{_velocity};
+		horizontal_acceleration_direction = -velocity_xy.unit_or_zero();
+
+	} else {
+		// Forward transition: use heading direction
+		horizontal_acceleration_direction = Dcm2f(_yaw) * Vector2f(-1.0f, 0.0f);
 	}
 
-	// Calculate horizontal acceleration components to follow a pitch setpoint with the current vehicle heading
-	const Vector2f horizontal_acceleration_direction = Dcm2f(_yaw) * Vector2f(-1.0f, 0.0f);
-	_acceleration_setpoint.xy() = tanf(pitch_setpoint) * CONSTANTS_ONE_G * horizontal_acceleration_direction;
+	_acceleration_setpoint.xy() = tanf(tilt_setpoint) * CONSTANTS_ONE_G * horizontal_acceleration_direction;
 
 	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.f;
 	return ret;
 }
 
-float FlightTaskTransition::computeBackTranstionPitchSetpoint()
+float FlightTaskTransition::computeBackTransitionTiltSetpoint()
 {
 	const Vector2f position_xy{_position};
 	const Vector2f velocity_xy{_velocity};
