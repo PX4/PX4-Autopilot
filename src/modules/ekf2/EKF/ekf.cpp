@@ -351,17 +351,17 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 
 			VectorState H;
 			VectorState K;
+			Vector2f innov_var_temp = Vector2f(getStateVariance<State::pos>()) + 0.1f;
 
 			for (unsigned index = 0; index < 2; index++) {
-				K = VectorState(P.row(State::pos.idx + index)) / innov_var(index);
+				K = VectorState(P.row(State::pos.idx + index)) / innov_var_temp(index);
 				H(State::pos.idx + index) = 1.f;
 
-				// Artificially set the position Kalman gain to 1 in order to force a reset
-				// of the position through fusion. This allows the EKF to use part of the information
-				// to continue learning the correlated states (e.g.: velocity, heading, wind) while
-				// performing a position reset.
-				K(State::pos.idx + index) = 1.f;
-				measurementUpdate(K, H, obs_var, innov(index));
+				clearInhibitedStateKalmanGains(K);
+				fuse(K, innov(index));
+
+				K = VectorState(P.row(State::pos.idx + index)) / innov_var(index);
+				measurementUpdate(K, H, obs_var, 0.f);
 				H(State::pos.idx + index) = 0.f; // Reset the whole vector to 0
 			}
 
