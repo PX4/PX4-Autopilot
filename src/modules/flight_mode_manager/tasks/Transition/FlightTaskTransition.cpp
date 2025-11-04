@@ -100,6 +100,7 @@ bool FlightTaskTransition::update()
 	_acceleration_setpoint.xy() = tanf(pitch_setpoint) * CONSTANTS_ONE_G * horizontal_acceleration_direction;
 
 	_yaw_setpoint = NAN;
+	_yawspeed_setpoint = 0.f;
 	return ret;
 }
 
