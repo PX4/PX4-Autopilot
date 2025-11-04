@@ -109,8 +109,11 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 
 	float deceleration_setpoint = _param_vt_b_dec_mss;
 
-	if (_sub_position_sp_triplet.get().current.valid && _sub_vehicle_local_position.get().xy_global
-	    && position_xy.isAllFinite() && velocity_xy.isAllFinite()) {
+	const float max_hor_pos_uncertainty_limit = 10.f;
+
+	if (_sub_vehicle_local_position.get().eph < max_hor_pos_uncertainty_limit
+	    && _sub_position_sp_triplet.get().current.valid
+	    && _sub_vehicle_local_position.get().xy_global && position_xy.isAllFinite() && velocity_xy.isAllFinite()) {
 		Vector2f position_setpoint_local;
 		_geo_projection.project(_sub_position_sp_triplet.get().current.lat, _sub_position_sp_triplet.get().current.lon,
 					position_setpoint_local(0), position_setpoint_local(1));
