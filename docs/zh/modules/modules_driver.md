@@ -106,6 +106,38 @@ ads1115 <command> [arguments...]
    status        print status info
 ```
 
+## ads7953
+
+Source: [drivers/adc/ads7953](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/adc/ads7953)
+
+### 描述
+
+Driver to enable an external [ADS7953](https://www.ti.com/product/ADS7953) ADC connected via SPI.
+
+
+It is enabled/disabled using the
+[ADC_ADS7953_EN](../advanced_config/parameter_reference.md#ADC_ADS7953_EN)
+parameter, and is disabled by default.
+If enabled, internal ADCs are not used.
+
+### Usage {#ads7953_usage}
+
+```
+ads1115 <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal SPI bus(es)
+     [-X]        External SPI bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-a <val>]  SPI address
+
+   stop
+
+   status        print status info
+```
+
 ## atxxxx
 
 Source: [drivers/osd/atxxxx](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/osd/atxxxx)
