@@ -64,6 +64,8 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -111,6 +113,13 @@ private:
 			float dt, const matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G1,
 			const matrix::Matrix<float, 3, ActuatorEffectiveness::NUM_ACTUATORS> &G2);
 
+	matrix::Vector3f computeDesiredAngularAcceleration(
+        const matrix::Quatf &q_current,
+        const matrix::Quatf &q_desired,
+        const matrix::Vector3f &angular_vel_body,
+        const matrix::Vector3f &angular_vel_desired,
+        const matrix::Vector3f &angular_accel_body);
+
 	RateControl _rate_control; ///< class for rate control calculations
 	ActuatorEffectivenessRotorsINDI _rotors;
 	ActuatorEffectiveness::Configuration _actuator_effectiveness_config;
@@ -118,6 +127,8 @@ private:
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
@@ -147,6 +158,8 @@ private:
 	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> _prev_esc_rad_per_sec_filtered;
 	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> _prev_esc_rad_per_sec_filtered_dot;
 	matrix::Vector3f _prev_angular_accel;
+	matrix::Vector3f _current_angular_accel{};
+    	matrix::Vector3f _current_angular_vel{};
 
 	bool _landed{true};
 	bool _maybe_landed{true};
@@ -210,6 +223,13 @@ private:
 
 		(ParamInt<px4::params::MC_INDI_ADAPT_EN>) _param_mc_indi_adapt_en,
 
-		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff
+		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
+
+		// NMPC desired angular accel params
+		(ParamFloat<px4::params::INDI_K_Q_RED>) _param_k_q_red,
+        	(ParamFloat<px4::params::INDI_K_YAW>) _param_k_e_yaw,
+        	(ParamFloat<px4::params::INDI_K_OMEGA_R>) _param_k_omega_r,
+        	(ParamFloat<px4::params::INDI_K_OMEGA_P>) _param_k_omega_p,
+        	(ParamFloat<px4::params::INDI_K_OMEGA_Y>) _param_k_omega_y
 	)
 };
