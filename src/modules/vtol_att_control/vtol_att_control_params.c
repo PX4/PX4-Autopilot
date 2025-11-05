@@ -365,7 +365,7 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
+PARAM_DEFINE_FLOAT(VT_PITCH_MIN, 0.0f);
 
 /**
  * Minimum pitch angle during hover landing.
@@ -380,7 +380,7 @@ PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, -5.0f);
+PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, 0.0f);
 
 /**
  * Spoiler setting while landing (hover)
