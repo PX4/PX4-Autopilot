@@ -179,5 +179,3 @@ int MCP23017::configure(uint16_t mask, PinType type)
 
 	return ret;
 }
-
-
