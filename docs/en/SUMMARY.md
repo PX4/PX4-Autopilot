@@ -182,6 +182,7 @@
         - [Wiring Quickstart](assembly/quick_start_durandal.md)
       - [Holybro Pix32 v5](flight_controller/holybro_pix32_v5.md)
         - [Wiring Quickstart](assembly/quick_start_holybro_pix32_v5.md)
+      - [MicoAir H743 Lite](flight_controller/micoair743-lite.md)
       - [ModalAI VOXL 2](flight_controller/modalai_voxl_2.md)
       - [mRo Control Zero F7](flight_controller/mro_control_zero_f7.md)
       - [Radiolink PIX6](flight_controller/radiolink_pix6.md)
