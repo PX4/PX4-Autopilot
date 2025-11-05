@@ -114,7 +114,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 		// Use presence of horizontal stick inputs as a transition criteria
 		float stick_xy = Vector2f(_sticks.getPitchRollExpo()).length();
-		bool stick_input = stick_xy > 0.001f;
+		bool stick_input = stick_xy > 0.05f;
 
 		if (_terrain_hold) {
 			bool too_fast = spd_xy > _param_mpc_hold_max_xy.get();
@@ -122,7 +122,6 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 			if (stick_input || too_fast || !PX4_ISFINITE(_dist_to_bottom)) {
 				// Stop using distance to ground
 				_terrain_hold = false;
-
 				// Adjust the setpoint to maintain the same height error to reduce control transients
 				if (PX4_ISFINITE(_dist_to_ground_lock) && PX4_ISFINITE(_dist_to_bottom)) {
 					_position_setpoint(2) = _position(2) - (_dist_to_ground_lock - _dist_to_bottom);
@@ -155,7 +154,6 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 	} else {
 		// normal mode where height is dependent on local frame
-
 		if (apply_brake && stopped && !PX4_ISFINITE(_position_setpoint(2))) {
 			// lock position
 			_position_setpoint(2) = _position(2);
@@ -164,6 +162,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 			// there is a distance sensor and distance to bottom is below minimum.
 			if (PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < _min_distance_to_ground) {
 				_terrainFollowing(apply_brake, stopped);
+
 
 			} else {
 				_dist_to_ground_lock = NAN;
