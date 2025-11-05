@@ -56,10 +56,10 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 	if (_Debug) { PX4_INFO("Got Receive callback for topic %s", topic); }
 
 	if (strcmp(topic, "slpi_debug") == 0) {
-		PX4_INFO("SLPI: %s", (const char *) data);
+		PX4_INFO("%s", (const char *) data);
 
 	} else if (strcmp(topic, "slpi_error") == 0) {
-		PX4_ERR("SLPI: %s", (const char *) data);
+		PX4_ERR("%s", (const char *) data);
 
 	} else if (IS_MUORB_TEST(topic)) {
 		// Validate the test data received

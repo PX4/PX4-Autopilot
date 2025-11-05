@@ -50,6 +50,7 @@ PARAM_DEFINE_INT32(SENS_EN_INA238, 0);
  * @max 327.68
  * @decimal 2
  * @increment 0.1
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(INA238_CURRENT, 327.68f);
 
@@ -61,5 +62,6 @@ PARAM_DEFINE_FLOAT(INA238_CURRENT, 327.68f);
  * @max 0.1
  * @decimal 10
  * @increment .000000001
+ * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(INA238_SHUNT, 0.0003f);
+PARAM_DEFINE_FLOAT(INA238_SHUNT, 0.0005f);

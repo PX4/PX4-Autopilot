@@ -97,7 +97,7 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 		imuSample imu_downsampled = _imu_down_sampler.getDownSampledImuAndTriggerReset();
 
 		// as a precaution constrain the integration delta time to prevent numerical problems
-		const float filter_update_period_s = _params.filter_update_interval_us * 1e-6f;
+		const float filter_update_period_s = _params.ekf2_predict_us * 1e-6f;
 		const float imu_min_dt = 0.5f * filter_update_period_s;
 		const float imu_max_dt = 2.0f * filter_update_period_s;
 
@@ -139,7 +139,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 	}
 
 	const int64_t time_us = mag_sample.time_us
-				- static_cast<int64_t>(_params.mag_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_mag_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost
@@ -178,7 +178,7 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 	}
 
 	const int64_t time_us = gnss_sample.time_us
-				- static_cast<int64_t>(_params.gps_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_gps_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	if (time_us >= static_cast<int64_t>(_gps_buffer->get_newest().time_us + _min_obs_interval_us)) {
@@ -225,7 +225,7 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 	}
 
 	const int64_t time_us = baro_sample.time_us
-				- static_cast<int64_t>(_params.baro_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_baro_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost
@@ -264,7 +264,7 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 	}
 
 	const int64_t time_us = airspeed_sample.time_us
-				- static_cast<int64_t>(_params.airspeed_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_asp_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost
@@ -302,7 +302,7 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 	}
 
 	const int64_t time_us = range_sample.time_us
-				- static_cast<int64_t>(_params.range_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_rng_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost
@@ -341,7 +341,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 	}
 
 	const int64_t time_us = flow.time_us
-				- static_cast<int64_t>(_params.flow_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_of_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost
@@ -380,7 +380,7 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 
 	// calculate the system time-stamp for the mid point of the integration period
 	const int64_t time_us = evdata.time_us
-				- static_cast<int64_t>(_params.ev_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_ev_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost
@@ -419,7 +419,7 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 	}
 
 	const int64_t time_us = auxvel_sample.time_us
-				- static_cast<int64_t>(_params.auxvel_delay_ms * 1000)
+				- static_cast<int64_t>(_params.ekf2_avel_delay * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	// limit data rate to prevent data being lost
@@ -477,7 +477,7 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 {
 	// down-sample the drag specific force data by accumulating and calculating the mean when
 	// sufficient samples have been collected
-	if (_params.drag_ctrl > 0) {
+	if (_params.ekf2_drag_ctrl > 0) {
 
 		// Allocate the required buffer size if not previously done
 		if (_drag_buffer == nullptr) {
@@ -538,15 +538,15 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
-	const float filter_update_period_ms = _params.filter_update_interval_us / 1000.f;
+	const float filter_update_period_ms = _params.ekf2_predict_us / 1000.f;
 
 	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
-	_imu_buffer_length = math::max(2, (int)ceilf(_params.delay_max_ms / filter_update_period_ms));
+	_imu_buffer_length = math::max(2, (int)ceilf(_params.ekf2_delay_max / filter_update_period_ms));
 
 	// set the observation buffer length to handle the minimum time of arrival between observations in combination
 	// with the worst case delay from current time to ekf fusion time
 	// allow for worst case 50% extension of the ekf fusion time horizon delay due to timing jitter
-	const float ekf_delay_ms = _params.delay_max_ms * 1.5f;
+	const float ekf_delay_ms = _params.ekf2_delay_max * 1.5f;
 	_obs_buffer_length = roundf(ekf_delay_ms / filter_update_period_ms);
 
 	// limit to be no longer than the IMU buffer (we can't process data faster than the EKF prediction rate)
@@ -601,11 +601,48 @@ bool EstimatorInterface::isOtherSourceOfHorizontalAidingThan(const bool aiding_f
 
 int EstimatorInterface::getNumberOfActiveHorizontalAidingSources() const
 {
-	return int(_control_status.flags.gps)
-	       + int(_control_status.flags.opt_flow)
+	return getNumberOfActiveHorizontalPositionAidingSources() + getNumberOfActiveHorizontalVelocityAidingSources();
+}
+
+bool EstimatorInterface::isOnlyActiveSourceOfHorizontalPositionAiding(const bool aiding_flag) const
+{
+	return aiding_flag && !isOtherSourceOfHorizontalPositionAidingThan(aiding_flag);
+}
+
+bool EstimatorInterface::isOtherSourceOfHorizontalPositionAidingThan(const bool aiding_flag) const
+{
+	const int nb_sources = getNumberOfActiveHorizontalPositionAidingSources();
+	return aiding_flag ? nb_sources > 1 : nb_sources > 0;
+}
+
+int EstimatorInterface::getNumberOfActiveHorizontalPositionAidingSources() const
+{
+	return int(_control_status.flags.gnss_pos)
 	       + int(_control_status.flags.ev_pos)
+	       + int(_control_status.flags.aux_gpos);
+}
+
+bool EstimatorInterface::isHorizontalPositionAidingActive() const
+{
+	return getNumberOfActiveHorizontalPositionAidingSources() > 0;
+}
+
+bool EstimatorInterface::isOnlyActiveSourceOfHorizontalVelocityAiding(const bool aiding_flag) const
+{
+	return aiding_flag && !isOtherSourceOfHorizontalVelocityAidingThan(aiding_flag);
+}
+
+bool EstimatorInterface::isOtherSourceOfHorizontalVelocityAidingThan(const bool aiding_flag) const
+{
+	const int nb_sources = getNumberOfActiveHorizontalVelocityAidingSources();
+	return aiding_flag ? nb_sources > 1 : nb_sources > 0;
+}
+
+int EstimatorInterface::getNumberOfActiveHorizontalVelocityAidingSources() const
+{
+	return int(_control_status.flags.gnss_vel)
+	       + int(_control_status.flags.opt_flow)
 	       + int(_control_status.flags.ev_vel)
-	       + int(_control_status.flags.aux_gpos)
 	       // Combined airspeed and sideslip fusion allows sustained wind relative dead reckoning
 	       // and so is treated as a single aiding source.
 	       + int(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta);
@@ -652,8 +689,15 @@ bool EstimatorInterface::isVerticalVelocityAidingActive() const
 
 int EstimatorInterface::getNumberOfActiveVerticalVelocityAidingSources() const
 {
-	return int(_control_status.flags.gps)
+	return int(_control_status.flags.gnss_vel)
 	       + int(_control_status.flags.ev_vel);
+}
+
+bool EstimatorInterface::isNorthEastAidingActive() const
+{
+	return _control_status.flags.gnss_pos
+	       || _control_status.flags.gnss_vel
+	       || _control_status.flags.aux_gpos;
 }
 
 void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)

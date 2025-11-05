@@ -6,6 +6,11 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_spacecraft:
+      short: px4_sitl_spacecraft
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_spacecraft
     px4_sitl_nolockstep:
       short: px4_sitl_nolockstep
       buildType: RelWithDebInfo
@@ -28,6 +33,11 @@ CONFIG:
         CONFIG: px4_sitl_replay
     px4_sitl_test:
       short: px4_sitl_test
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_test
+    px4_sitl_zenoh:
+      short: px4_sitl_zenoh
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_test
@@ -131,6 +141,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-flow_canbootloader
+    ark_can-flow-mr_default:
+      short: ark_can-flow-mr_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-flow-mr_default
+    ark_can-flow-mr_canbootloader:
+      short: ark_can-flow-mr_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-flow-mr_canbootloader
     ark_can-gps_default:
       short: ark_can-gps_default
       buildType: MinSizeRel
@@ -181,6 +201,26 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_cannode_canbootloader
+    ark_dist_default:
+      short: ark_dist_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_dist_default
+    ark_dist_canbootloader:
+      short: ark_dist_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_dist_canbootloader
+    ark_f9p-gps_default:
+      short: ark_f9p-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_f9p-gps_default
+    ark_f9p-gps_canbootloader:
+      short: ark_f9p-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_f9p-gps_canbootloader
     ark_fmu-v6x_bootloader:
       short: ark_fmu-v6x_bootloader
       buildType: MinSizeRel
@@ -201,6 +241,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_fpv_default
+    ark_mag_canbootloader:
+      short: ark_mag_canbootloader
+      buildType: MiniSizeRel
+      settings:
+        CONFIG: ark_mag_canbootloader
+    ark_mag_default:
+      short: ark_mag_default
+      buildType: MiniSizeRel
+      settings:
+        CONFIG: ark_mag_default
     ark_pi6x_bootloader:
       short: ark_pi6x_bootloader
       buildType: MinSizeRel
@@ -211,6 +261,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_pi6x_default
+    ark_x20-gps_default:
+      short: ark_x20-gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_x20-gps_default
+    ark_x20-gps_canbootloader:
+      short: ark_x20-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_x20-gps_canbootloader
     atl_mantis-edu_default:
       short: atl_mantis-edu
       buildType: MinSizeRel
@@ -226,6 +286,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: bitcraze_crazyflie_default
+    bluerobotics_navigator_default:
+      short: bluerobotics_navigator
+      buildType: MinSizeRel
+      settings:
+        CONFIG: bluerobotics_navigator_default
     cuav_can-gps-v1_default:
       short: cuav_can-gps-v1_default
       buildType: MinSizeRel
@@ -251,6 +316,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_7-nano_default
+    cuav_fmu-v6x_default:
+      short: cuav_fmu-v6x
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_fmu-v6x_default
+    cuav_x25_default:
+      short: cuav_x25-evo
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_x25-evo_default
     cubepilot_cubeorange_test:
       short: cubepilot_cubeorange
       buildType: MinSizeRel
@@ -291,6 +366,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: holybro_durandal-v1_default
+    holybro_kakuteh7-wing_default:
+      short: holybro_kakuteh7-wing
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_kakuteh7-wing_default
+    holybro_kakuteh7dualimu_default:
+      short: holybro_kakuteh7dualimu
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_kakuteh7dualimu_default
     matek_h743-slim_default:
       short: matek_h743-slim
       buildType: MinSizeRel
@@ -336,6 +421,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: micoair_h743-v2_default
+    micoair_h743-lite_bootloader:
+      short: micoair_h743-lite_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-lite_bootloader
+    micoair_h743-lite_default:
+      short: micoair_h743-lite
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-lite_default
     modalai_fc-v1_default:
       short: modalai_fc-v1
       buildType: MinSizeRel
@@ -416,3 +511,13 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: x-mav_ap-h743v2_default
+    svehicle_e2_bootloader:
+      short: svehicle_e2_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: svehicle_e2_bootloader
+    svehicle_e2_default:
+      short: svehicle_e2
+      buildType: MinSizeRel
+      settings:
+        CONFIG: svehicle_e2_default

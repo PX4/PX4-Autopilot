@@ -27,18 +27,17 @@ using namespace time_literals;
 class GZGimbal : public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
-	GZGimbal(gz::transport::Node &node, pthread_mutex_t &node_mutex) :
+	GZGimbal(gz::transport::Node &node) :
 		px4::ScheduledWorkItem(MODULE_NAME "-gimbal", px4::wq_configurations::rate_ctrl),
 		ModuleParams(nullptr),
-		_node(node),
-		_node_mutex(node_mutex)
+		_node(node)
 	{}
 
 private:
 	friend class GZBridge;
 
 	gz::transport::Node &_node;
-	pthread_mutex_t &_node_mutex;
+	pthread_mutex_t _node_mutex;
 
 	uORB::Subscription _gimbal_device_set_attitude_sub{ORB_ID(gimbal_device_set_attitude)};
 	uORB::Subscription _gimbal_controls_sub{ORB_ID(gimbal_controls)};
@@ -115,7 +114,7 @@ private:
 	const float _yaw_min = NAN; 		// infinite yaw
 	const float _yaw_max = NAN;		// infinite yaw
 
-	const uint8_t _gimbal_device_id = 154;	// TODO the implementation differs from the protocol
+	const uint8_t _gimbal_device_id = 1;	// Gimbal is implemented by the same component: options are 1..6
 	uint16_t _gimbal_device_flags = 0;  // GIMBAL_DEVICE_FLAGS
 
 	bool init(const std::string &world_name, const std::string &model_name);

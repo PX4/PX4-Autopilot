@@ -136,6 +136,7 @@ PARAM_DEFINE_FLOAT(ASPD_SCALE_3, 1.0f);
  * @value 1 First airspeed sensor
  * @value 2 Second airspeed sensor
  * @value 3 Third airspeed sensor
+ * @value 4 Thrust based airspeed
  *
  * @reboot_required true
  * @group Airspeed Validator
@@ -147,6 +148,8 @@ PARAM_DEFINE_INT32(ASPD_PRIMARY, 1);
  * Enable checks on airspeed sensors
  *
  * Controls which checks are run to check airspeed data for validity. Only applied if ASPD_PRIMARY > 0.
+ *
+ * Note: The missing data check (bit 0) is implicitly always enabled when ASPD_DO_CHECKS > 0, even if bit 0 is not explicitly set.
  *
  * @min 0
  * @max 31
@@ -160,17 +163,14 @@ PARAM_DEFINE_INT32(ASPD_PRIMARY, 1);
 PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 7);
 
 /**
- * Enable fallback to sensor-less airspeed estimation
+ * Fallback options
  *
- * If set to true and airspeed checks are enabled, it will use a sensor-less airspeed estimation based on groundspeed
- * minus windspeed if no other airspeed sensor available to fall back to.
- *
- * @value 0 Disable fallback to sensor-less estimation
- * @value 1 Enable fallback to sensor-less estimation
- * @boolean
+ * @value 0 Fallback only to other airspeed sensors
+ * @value 1 Fallback to groundspeed-minus-windspeed airspeed estimation
+ * @value 2 Fallback to thrust based airspeed estimation
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_FALLBACK_GW, 0);
+PARAM_DEFINE_INT32(ASPD_FALLBACK, 0);
 
 /**
  * Airspeed failure innovation threshold
@@ -228,18 +228,18 @@ PARAM_DEFINE_FLOAT(ASPD_FS_T_STOP, 1.f);
 PARAM_DEFINE_FLOAT(ASPD_FS_T_START, -1.f);
 
 /**
- * Horizontal wind uncertainty threshold for synthetic airspeed.
+ * Horizontal wind uncertainty threshold for valid ground-minus-wind
  *
- * The synthetic airspeed estimate (from groundspeed and heading) will be declared valid
+ * The airspeed alternative derived from groundspeed and heading will be declared valid
  * as soon and as long the horizontal wind uncertainty is below this value.
  *
  * @unit m/s
- * @min 0.001
+ * @min 0.01
  * @max 5
- * @decimal 3
+ * @decimal 2
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_WERR_THR, 0.55f);
+PARAM_DEFINE_FLOAT(ASPD_WERR_THR, 2.f);
 
 /**
  * First principle airspeed check time window

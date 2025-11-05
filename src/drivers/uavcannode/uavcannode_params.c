@@ -32,6 +32,15 @@
  ****************************************************************************/
 
 /**
+ * UAVCAN CAN node ID (0 for dynamic allocation).
+ *
+ * @min 0
+ * @max 127
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CANNODE_NODE_ID, 0);
+
+/**
  * UAVCAN CAN bus bitrate.
  *
  * @min 20000
@@ -76,3 +85,12 @@ PARAM_DEFINE_INT32(CANNODE_SUB_RTCM, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(CANNODE_PUB_MBD, 0);
+
+/**
+ * Enable RawIMU pub
+ *
+ * @boolean
+ * @max 1
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CANNODE_PUB_IMU, 0);

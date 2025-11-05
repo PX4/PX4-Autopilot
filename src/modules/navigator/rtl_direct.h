@@ -159,7 +159,7 @@ private:
 	 */
 	void publish_rtl_direct_navigator_mission_item();
 
-	RTLState getActivationLandState();
+	RTLState getActivationState();
 
 	void setLoiterPosition();
 

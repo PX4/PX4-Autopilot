@@ -263,6 +263,7 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_DO_LAND_START &&
 	    mission_item.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
 	    mission_item.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
+	    mission_item.nav_cmd != NAV_CMD_COMPONENT_ARM_DISARM &&
 	    mission_item.nav_cmd != NAV_CMD_IMAGE_START_CAPTURE &&
 	    mission_item.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
 	    mission_item.nav_cmd != NAV_CMD_VIDEO_START_CAPTURE &&

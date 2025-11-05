@@ -56,6 +56,14 @@ private:
 	enum class ManualControlLossExceptionBits : int32_t {
 		Mission = (1 << 0),
 		Hold = (1 << 1),
+		Offboard = (1 << 2),
+		ExternalMode = (1 << 3),
+		AltitudeCruise = (1 << 4)
+	};
+
+	enum class DatalinkLossExceptionBits : int32_t {
+		Mission = (1 << 0),
+		Hold = (1 << 1),
 		Offboard = (1 << 2)
 	};
 
@@ -76,11 +84,6 @@ private:
 		Hold_mode = 5,
 		Terminate = 6,
 		Disarm = 7,
-	};
-
-	enum class position_control_navigation_loss_response : int32_t {
-		Altitude_Manual = 0,
-		Land_Descend = 1,
 	};
 
 	enum class actuator_failure_failsafe_mode : int32_t {
@@ -125,11 +128,15 @@ private:
 
 	// COM_RC_IN_MODE parameter values
 	enum class RcInMode : int32_t {
-		RcTransmitterOnly = 0, 		// RC Transmitter only
-		JoystickOnly = 1,		// Joystick only
-		RcAndJoystickWithFallback = 2,	// RC And Joystick with fallback
-		RcOrJoystickKeepFirst = 3,	// RC or Joystick keep first
-		StickInputDisabled = 4		// input disabled
+		RcOnly = 0,
+		MavLinkOnly = 1,
+		RcOrMavlinkWithFallback = 2,
+		RcOrMavlinkKeepFirst = 3,
+		DisableManualControl = 4,
+		PriorityRcThenMavlinkAscending = 5,
+		PriorityMavlinkAscendingThenRc = 6,
+		PriorityRcThenMavlinkDescending = 7,
+		PriorityMavlinkDescendingThenRc = 8
 	};
 
 	enum class command_after_high_wind_failsafe : int32_t {
@@ -179,6 +186,10 @@ private:
 	bool _last_state_battery_warning_critical{false};
 	const int _caller_id_battery_warning_emergency{genCallerId()};
 	bool _last_state_battery_warning_emergency{false};
+	const int _caller_id_fd_esc_arming{genCallerId()};
+	bool _last_state_fd_esc_arming{false};
+	const int _caller_id_battery_unhealthy_spoolup{genCallerId()};
+	bool _last_state_battery_unhealthy_spoolup{false};
 
 	hrt_abstime _armed_time{0};
 	bool _was_armed{false};
@@ -189,8 +200,8 @@ private:
 					(ParamInt<px4::params::NAV_DLL_ACT>) 	_param_nav_dll_act,
 					(ParamInt<px4::params::NAV_RCL_ACT>) 	_param_nav_rcl_act,
 					(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
+					(ParamInt<px4::params::COM_DLL_EXCEPT>) _param_com_dll_except,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
-					(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 					(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,

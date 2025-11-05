@@ -127,6 +127,7 @@ PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
  *
  * The time in seconds without a new setpoint from RC or Joystick, after which the connection is considered lost.
  * This must be kept short as the vehicle will use the last supplied setpoint until the timeout triggers.
+ * Ensure the value is not set lower than the update interval of the RC or Joystick.
  *
  * @group Commander
  * @unit s
@@ -141,6 +142,10 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * Home position enabled
  *
  * Set home position automatically if possible.
+ *
+ * During missions, the latitude/longitude of the home position is locked and will not reset during intermediate landings.
+ * It will only update once the mission is complete or landed outside of a mission.
+ * However, the altitude is still being adjusted to correct for GNSS vertical drift in the first 2 minutes after takeoff.
  *
  * @group Commander
  * @reboot_required true
@@ -161,27 +166,40 @@ PARAM_DEFINE_INT32(COM_HOME_EN, 1);
 PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
 
 /**
- * RC control input mode
+ * Manual control input source configuration
  *
- * A value of 0 enables RC transmitter control (only). A valid RC transmitter calibration is required.
- * A value of 1 allows joystick control only. RC input handling and the associated checks are disabled.
- * A value of 2 allows either RC Transmitter or Joystick input. The first valid input is used, will fallback to other sources if the input stream becomes invalid.
- * A value of 3 allows either input from RC or joystick. The first available source is selected and used until reboot.
- * A value of 4 ignores any stick input.
+ * Selects stick input selection behavior:
+ * either a traditional remote control receiver (RC) or a MAVLink joystick (MANUAL_CONTROL message)
+ *
+ * Priority sources are immediately switched to whenever they get valid.
+ *
+ * 0 RC only. Requires valid RC calibration.
+ * 1 MAVLink only. RC and related checks are disabled.
+ * 2 Switches only if current source becomes invalid.
+ * 3 Locks to the first valid source until reboot.
+ * 4 Ignores all sources.
+ * 5 RC priority, then MAVLink (lower instance before higher)
+ * 6 MAVLink priority (lower instance before higher), then RC
+ * 7 RC priority, then MAVLink (higher instance before lower)
+ * 8 MAVLink priority (higher instance before lower), then RC
  *
  * @group Commander
  * @min 0
- * @max 4
- * @value 0 RC Transmitter only
- * @value 1 Joystick only
- * @value 2 RC and Joystick with fallback
- * @value 3 RC or Joystick keep first
- * @value 4 Stick input disabled
+ * @max 8
+ * @value 0 RC only
+ * @value 1 MAVLink only
+ * @value 2 RC or MAVLink with fallback
+ * @value 3 RC or MAVLink keep first
+ * @value 4 Disable manual control
+ * @value 5 Prio: RC > MAVL 1 > MAVL 2
+ * @value 6 Prio: MAVL 1 > MAVL 2 > RC
+ * @value 7 Prio: RC > MAVL 2 > MAVL 1
+ * @value 8 Prio: MAVL 2 > MAVL 1 > RC
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 3);
 
 /**
- * RC input arm/disarm command duration
+ * Manual control input arm/disarm command duration
  *
  * The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
  *
@@ -279,10 +297,10 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  *
  * Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
  * for the user to realize.
- * During that time the user cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
+ * During that time the user can switch modes, but cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
  * Afterwards the configured failsafe action is triggered and the user may use stick override.
  *
- * A zero value disables the delay and the user cannot take over via stick movements (switching modes is still allowed).
+ * A zero value disables the delay.
  *
  * @group Commander
  * @unit s
@@ -322,7 +340,7 @@ PARAM_DEFINE_INT32(COM_IMB_PROP_ACT, 0);
 PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
 
 /**
- * Set command after a quadchute
+ * Set action after a quadchute
  *
  * @value -1 Warning only
  * @value  0 Return mode
@@ -412,9 +430,9 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 60);
 PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
 
 /**
- * Enable RC stick override of auto and/or offboard modes
+ * Enable manual control stick override
  *
- * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV
+ * When enabled, moving the sticks more than COM_RC_STICK_OV
  * immediately gives control back to the pilot by switching to Position mode and
  * if position is unavailable Altitude mode.
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
@@ -428,7 +446,7 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 
 /**
- * RC stick override threshold
+ * Stick override threshold
  *
  * If COM_RC_OVERRIDE is enabled and the joystick input is moved more than this threshold
  * the autopilot the pilot takes over control.
@@ -451,18 +469,6 @@ PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 30.0f);
  * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
-
-/**
- * Position mode navigation loss response
- *
- * This sets the flight mode that will be used if navigation accuracy is no longer adequate for position control in manual Position mode.
- *
- * @value 0 Altitude mode
- * @value 1 Land mode (descend)
- *
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
 
 /**
  * Require arm authorization to arm
@@ -513,12 +519,13 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH_MET, 0);
 PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
 
 /**
- * Horizontal position error threshold.
+ * Horizontal position error threshold for hovering systems
  *
  * This is the horizontal position error (EPH) threshold that will trigger a failsafe.
- * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
  * If the previous position error was below this threshold, there is an additional
  * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
+ * Only used for multicopters and VTOLs in hover mode.
+ * Independent from estimator positioning data timeout threshold (see EKF2_NOAID_TOUT).
  *
  * Set to -1 to disable.
  *
@@ -591,11 +598,10 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
 PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 
 /**
- * Set RC loss failsafe mode
+ * Set manual control loss failsafe mode
  *
- * The RC loss failsafe will only be entered after a timeout,
- * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
- * by setting the COM_RC_IN_MODE param it will not be triggered.
+ * The manual control loss failsafe will only be entered after a timeout,
+ * set by COM_RC_LOSS_T in seconds.
  *
  * @value 1 Hold mode
  * @value 2 Return mode
@@ -610,18 +616,35 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 
 /**
- * RC loss exceptions
+ * Manual control loss exceptions
  *
- * Specify modes in which RC loss is ignored and the failsafe action not triggered.
+ * Specify modes where manual control loss is ignored and no failsafe is triggered.
+ * External modes requiring stick input will still failsafe.
  *
  * @min 0
  * @max 31
  * @bit 0 Mission
  * @bit 1 Hold
  * @bit 2 Offboard
+ * @bit 3 External Mode
+ * @bit 4 Altitude Cruise
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
+
+/**
+ * Datalink loss exceptions
+ *
+ * Specify modes in which datalink loss is ignored and the failsafe action not triggered.
+ *
+ * @min 0
+ * @max 7
+ * @bit 0 Mission
+ * @bit 1 Hold
+ * @bit 2 Offboard
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_DLL_EXCEPT, 0);
 
 /**
  * Set the actuator failure failsafe mode
@@ -639,14 +662,6 @@ PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_ACT_FAIL_ACT, 0);
-
-/**
- * Flag to enable obstacle avoidance.
- *
- * @boolean
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
 
 /**
  * Expect and require a healthy MAVLink parachute system
@@ -720,6 +735,8 @@ PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
 
 /**
  * Timeout value for disarming when kill switch is engaged
+ *
+ * Use RC_MAP_KILL_SW to map a kill switch.
  *
  * @group Commander
  * @unit s
@@ -1017,4 +1034,15 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
  * @value 3 Return
  * @increment 1
  */
-PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
+PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 0);
+
+/**
+ * Allow external mode registration while armed.
+ *
+ * By default disabled for safety reasons
+ *
+ * @group Commander
+ * @boolean
+ *
+ */
+PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);

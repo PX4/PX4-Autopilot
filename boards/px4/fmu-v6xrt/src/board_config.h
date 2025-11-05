@@ -297,9 +297,10 @@
 #define GPIO_HW_VER_SENSE     /* GPIO_AD_23 GPIO9 Pin 22 */  ADC_GPIO(5, 22)
 #define HW_INFO_INIT_PREFIX   "V6XRT"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2 // Rev 0 & 1
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3 // Rev 0, 1 & 2
 #define V6XRT_0             HW_FMUM_ID(0x0)  // First Release
 #define V6XRT_1             HW_FMUM_ID(0x1)  // Next Release
+#define V6XRT_2             HW_FMUM_ID(0x2)  // Next Release
 
 #define BOARD_I2C_LATEINIT 1 /* See Note about SE550 Eanable */
 
@@ -451,7 +452,6 @@
 #define HRT_PPM_CHANNEL         /* GPIO_EMC_B1_09 GPIO_GPT5_CAPTURE1_1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* GPIO_EMC_B1_09 GPT1_CAPTURE2 */ (GPIO_GPT5_CAPTURE1_1 | GENERAL_INPUT_IOMUX)
 
-#define RC_SERIAL_PORT                  "/dev/ttyS4"
 #define RC_SERIAL_SINGLEWIRE            1 // Suport Single wire wiring
 #define RC_SERIAL_SWAP_RXTX             1 // Set Swap (but not supported in HW) to use Single wire
 #define RC_SERIAL_SWAP_USING_SINGLEWIRE 1 // Set to use Single wire swap as HW does not support swap

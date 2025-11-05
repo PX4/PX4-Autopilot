@@ -237,6 +237,11 @@ void ManualControl::processSwitches(hrt_abstime &now)
 					}
 				}
 
+				if (switches.termination_switch != _previous_switches.termination_switch
+				    && switches.termination_switch == manual_control_switches_s::SWITCH_POS_ON) {
+					sendActionRequest(action_request_s::ACTION_TERMINATION, action_request_s::SOURCE_RC_SWITCH);
+				}
+
 				if (switches.gear_switch != _previous_switches.gear_switch
 				    && _previous_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) {
 
@@ -277,7 +282,8 @@ void ManualControl::processSwitches(hrt_abstime &now)
 					if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_ON) {
 						PAYLOAD_POWER_EN(true);
 
-					} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+					} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF
+						   || switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_MIDDLE) {
 						PAYLOAD_POWER_EN(false);
 					}
 				}
@@ -584,6 +590,7 @@ int8_t ManualControl::navStateFromParam(int32_t param_value)
 		case 13: return vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
 		case 14: return vehicle_status_s::NAVIGATION_STATE_ORBIT;
 		case 15: return vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+		case 16: return vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE;
 
 		case 100: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL1;
 		case 101: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL2;

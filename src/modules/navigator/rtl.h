@@ -105,6 +105,14 @@ private:
 	 */
 	bool hasMissionLandStart() const;
 
+
+	/**
+	 * @brief Check whether there are more waypoints between current waypoint
+	 *        and the takeoff location than the end/land location.
+	 * @return true if the reverse is more items away.
+	 */
+	bool reverseIsFurther() const;
+
 	/**
 	 * @brief function to call regularly to do background work
 	 */

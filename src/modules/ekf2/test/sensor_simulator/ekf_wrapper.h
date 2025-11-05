@@ -78,6 +78,8 @@ public:
 	void enableGpsFusion();
 	void disableGpsFusion();
 	bool isIntendingGpsFusion() const;
+	bool isGnssFaultDetected() const;
+	void setGnssDeadReckonMode();
 
 	void enableGpsHeadingFusion();
 	void disableGpsHeadingFusion();

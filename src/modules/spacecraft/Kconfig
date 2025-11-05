@@ -1,0 +1,12 @@
+menuconfig MODULES_SPACECRAFT
+	bool "SPACECRAFT"
+	default n
+	---help---
+		Enable support for spacecraft
+
+menuconfig USER_SPACECRAFT
+	bool "spacecraft running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_SPACECRAFT
+	---help---
+		Put SPACECRAFT in userspace memory

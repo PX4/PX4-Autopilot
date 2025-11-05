@@ -49,34 +49,25 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+static constexpr char NAMESPACE_PREFIX[] = "uav_";
 #define PARTICIPANT_XML_SIZE 512
 static constexpr uint8_t TIMESYNC_MAX_TIMEOUTS = 10;
 
 using namespace time_literals;
 
-static void on_time(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
-		    int64_t originate_timestamp, void *args)
+static void on_time(uxrSession *session, int64_t current_time, int64_t client_transmit_timestamp,
+		    int64_t agent_receive_timestamp, int64_t originate_timestamp, void *args)
 {
-	// latest round trip time (RTT)
-	int64_t rtt = current_time - originate_timestamp;
-
-	// HRT to AGENT
-	int64_t offset_1 = (received_timestamp - originate_timestamp) - (rtt / 2);
-	int64_t offset_2 = (transmit_timestamp - current_time) - (rtt / 2);
-
-	session->time_offset = (offset_1 + offset_2) / 2;
-
 	if (args) {
 		Timesync *timesync = static_cast<Timesync *>(args);
-		timesync->update(current_time / 1000, transmit_timestamp, originate_timestamp);
+		timesync->update(current_time / 1000, agent_receive_timestamp, originate_timestamp);
 
 		session->time_offset = -timesync->offset() * 1000; // us -> ns
 	}
 }
 
-static void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received_timestamp,
-			    int64_t transmit_timestamp,
-			    int64_t originate_timestamp, void *args)
+static void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t client_transmit_timestamp,
+			    int64_t agent_receive_timestamp, int64_t originate_timestamp, void *args)
 {
 	session->time_offset = 0;
 }
@@ -209,7 +200,7 @@ void UxrceddsClient::deinit()
 	_comm = nullptr;
 }
 
-bool UxrceddsClient::setup_session(uxrSession *session)
+bool UxrceddsClient::setupSession(uxrSession *session)
 {
 	_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
 	_synchronize_timestamps = (_param_uxrce_dds_synct.get() > 0);
@@ -366,6 +357,11 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 		return false;
 	}
 
+	if (!_subs->init(session, _reliable_out, reliable_in, best_effort_in, _participant_id, _client_namespace)) {
+		PX4_ERR("subs init failed");
+		return false;
+	}
+
 	// create VehicleCommand replier
 	if (_num_of_repliers < MAX_NUM_REPLIERS) {
 		if (add_replier(new VehicleCommandSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
@@ -379,18 +375,13 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 	return true;
 }
 
-void UxrceddsClient::delete_session(uxrSession *session)
+void UxrceddsClient::deleteSession(uxrSession *session)
 {
 	delete_repliers();
 
 	if (_session_created) {
 		uxr_delete_session_retries(session, _connected ? 1 : 0);
 		_session_created = false;
-	}
-
-	if (_subs_initialized) {
-		_subs->reset();
-		_subs_initialized = false;
 	}
 
 	_last_payload_tx_rate = 0;
@@ -472,6 +463,20 @@ static void fillMessageFormatResponse(const message_format_request_s &message_fo
 	message_format_response.timestamp = hrt_absolute_time();
 }
 
+void UxrceddsClient::calculateTxRxRate()
+{
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (now - _last_status_update > 1_s) {
+		float dt = (now - _last_status_update) / 1e6f;
+		_last_payload_tx_rate = (_subs->num_payload_sent - _last_num_payload_sent) / dt;
+		_last_payload_rx_rate = (_pubs->num_payload_received - _last_num_payload_received) / dt;
+		_last_num_payload_sent = _subs->num_payload_sent;
+		_last_num_payload_received = _pubs->num_payload_received;
+		_last_status_update = now;
+	}
+}
+
 void UxrceddsClient::handleMessageFormatRequest()
 {
 	message_format_request_s message_format_request;
@@ -481,6 +486,87 @@ void UxrceddsClient::handleMessageFormatRequest()
 		fillMessageFormatResponse(message_format_request, message_format_response);
 		_message_format_response_pub.publish(message_format_response);
 	}
+}
+
+void UxrceddsClient::checkConnectivity(uxrSession *session)
+{
+	// Reset TX zero counter, when data is sent
+	if (_last_payload_tx_rate > 0) {
+		_num_tx_rate_zero = 0;
+	}
+
+	// Reset RX zero counter, when data is received
+	if (_last_payload_rx_rate > 0) {
+		_num_rx_rate_zero = 0;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	// Start ping and tx/rx rate monitoring, unless we're actively sending & receiving payloads successfully
+	if ((_last_payload_tx_rate > 0) && (_last_payload_rx_rate > 0)) {
+		_connected = true;
+		_num_pings_missed = 0;
+		_last_ping = now;
+
+	} else {
+		if (hrt_elapsed_time(&_last_ping) > 1_s) {
+			// Check payload tx rate
+			if (_last_payload_tx_rate == 0) {
+				_num_tx_rate_zero++;
+			}
+
+			// Check payload rx rate
+			if (_last_payload_rx_rate == 0) {
+				_num_rx_rate_zero++;
+			}
+
+			// Check ping
+			_last_ping = now;
+
+			if (_had_ping_reply) {
+				_num_pings_missed = 0;
+
+			} else {
+				++_num_pings_missed;
+			}
+
+			int timeout_ms = 1'000; // 1 second
+			uint8_t attempts = 1;
+			uxr_ping_agent_session(session, timeout_ms, attempts);
+
+			_had_ping_reply = false;
+		}
+
+		if (_num_pings_missed >= 3) {
+			PX4_ERR("No ping response, disconnecting");
+			_connected = false;
+		}
+
+		int32_t tx_timeout = _param_uxrce_dds_tx_to.get();
+		int32_t rx_timeout = _param_uxrce_dds_rx_to.get();
+
+		if (tx_timeout > 0 && _num_tx_rate_zero >= tx_timeout) {
+			PX4_ERR("Payload TX rate zero for too long, disconnecting");
+			_connected = false;
+		}
+
+		if (rx_timeout > 0 && _num_rx_rate_zero >= rx_timeout) {
+			PX4_ERR("Payload RX rate zero for too long, disconnecting");
+			_connected = false;
+		}
+	}
+}
+
+void UxrceddsClient::resetConnectivityCounters()
+{
+	_last_status_update = hrt_absolute_time();
+	_last_ping = hrt_absolute_time();
+	_had_ping_reply = false;
+	_num_pings_missed = 0;
+	_last_num_payload_sent = 0;
+	_last_num_payload_received = 0;
+	_num_tx_rate_zero = 0;
+	_num_rx_rate_zero = 0;
 }
 
 void UxrceddsClient::syncSystemClock(uxrSession *session)
@@ -535,8 +621,8 @@ void UxrceddsClient::run()
 				continue;
 			}
 
-			if (!setup_session(&session)) {
-				delete_session(&session);
+			if (!setupSession(&session)) {
+				deleteSession(&session);
 				px4_usleep(1'000'000);
 				PX4_ERR("session setup failed, will retry now");
 				continue;
@@ -552,16 +638,8 @@ void UxrceddsClient::run()
 		}
 
 		hrt_abstime last_sync_session = 0;
-		hrt_abstime last_status_update = hrt_absolute_time();
-		hrt_abstime last_ping = hrt_absolute_time();
-		int num_pings_missed = 0;
-		bool had_ping_reply = false;
-		uint32_t last_num_payload_sent{};
-		uint32_t last_num_payload_received{};
 		int poll_error_counter = 0;
-
-		_subs->init();
-		_subs_initialized = true;
+		resetConnectivityCounters();
 
 		while (!should_exit() && _connected) {
 			perf_begin(_loop_perf);
@@ -606,7 +684,6 @@ void UxrceddsClient::run()
 			if (_synchronize_timestamps && hrt_elapsed_time(&last_sync_session) > 1_s) {
 
 				if (uxr_sync_session(&session, 10) && _timesync.sync_converged()) {
-					//PX4_INFO("synchronized with time offset %-5" PRId64 "ns", session.time_offset);
 					last_sync_session = hrt_absolute_time();
 
 					if (_param_uxrce_dds_syncc.get() > 0) {
@@ -615,10 +692,10 @@ void UxrceddsClient::run()
 				}
 
 				if (!_timesync_converged && _timesync.sync_converged()) {
-					PX4_INFO("time sync converged");
+					PX4_DEBUG("time sync converged");
 
 				} else if (_timesync_converged && !_timesync.sync_converged()) {
-					PX4_WARN("time sync no longer converged");
+					PX4_DEBUG("time sync no longer converged");
 				}
 
 				_timesync_converged = _timesync.sync_converged();
@@ -629,55 +706,19 @@ void UxrceddsClient::run()
 			// Check for a ping response
 			/* PONG_IN_SESSION_STATUS */
 			if (session.on_pong_flag == 1) {
-				had_ping_reply = true;
+				_had_ping_reply = true;
 			}
 
-			const hrt_abstime now = hrt_absolute_time();
+			// Calculate the payload tx/rx rate for connectivity monitoring
+			calculateTxRxRate();
 
-			if (now - last_status_update > 1_s) {
-				float dt = (now - last_status_update) / 1e6f;
-				_last_payload_tx_rate = (_subs->num_payload_sent - last_num_payload_sent) / dt;
-				_last_payload_rx_rate = (_pubs->num_payload_received - last_num_payload_received) / dt;
-				last_num_payload_sent = _subs->num_payload_sent;
-				last_num_payload_received = _pubs->num_payload_received;
-				last_status_update = now;
-			}
-
-			// Handle ping, unless we're actively sending & receiving payloads successfully
-			if ((_last_payload_tx_rate > 0) && (_last_payload_rx_rate > 0)) {
-				_connected = true;
-				num_pings_missed = 0;
-				last_ping = now;
-
-			} else {
-				if (hrt_elapsed_time(&last_ping) > 1_s) {
-					last_ping = now;
-
-					if (had_ping_reply) {
-						num_pings_missed = 0;
-
-					} else {
-						++num_pings_missed;
-					}
-
-					int timeout_ms = 1'000; // 1 second
-					uint8_t attempts = 1;
-					uxr_ping_agent_session(&session, timeout_ms, attempts);
-
-					had_ping_reply = false;
-				}
-
-				if (num_pings_missed >= 3) {
-					PX4_INFO("No ping response, disconnecting");
-					_connected = false;
-				}
-			}
+			// Check if there is still connectivity with the agent
+			checkConnectivity(&session);
 
 			perf_end(_loop_perf);
-
 		}
 
-		delete_session(&session);
+		deleteSession(&session);
 	}
 }
 
@@ -988,6 +1029,23 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
+	if (client_namespace == nullptr) {
+		int32_t ns_idx = -1;
+		param_get(param_find("UXRCE_DDS_NS_IDX"), &ns_idx);
+
+		if (ns_idx > -1) {
+			if (ns_idx < 10000) {
+				// Allocate buffer for prefix + '\0' + 4 digits
+				static char client_namespace_buf[sizeof(NAMESPACE_PREFIX) + 4];
+				snprintf(client_namespace_buf, sizeof client_namespace_buf, "%s%u", NAMESPACE_PREFIX, (uint16_t)ns_idx);
+				client_namespace = client_namespace_buf;
+
+			} else {
+				PX4_WARN("namespace index must be between 0 and 9999 inclusive; ignoring index-based namespace");
+			}
+		}
+	}
+
 #if defined(UXRCE_DDS_CLIENT_UDP)
 
 	if (port[0] == '\0') {
@@ -1052,7 +1110,7 @@ $ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('h', nullptr, "<IP>", "Agent IP. If not provided, defaults to UXRCE_DDS_AG_IP", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 65535, "Agent listening port. If not provided, defaults to UXRCE_DDS_PRT", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace. If not provided but UXRCE_DDS_NS_IDX is between 0 and 9999 inclusive, then uav_ + UXRCE_DDS_NS_IDX will be used", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

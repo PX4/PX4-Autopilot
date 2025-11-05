@@ -1,0 +1,131 @@
+# NOTE: this workflow is now running on Dronecode / PX4 AWS account.
+# - If you want to keep the tests running in GitHub Actions you need to uncomment the "runs-on: ubuntu-latest" lines
+#   and comment the "runs-on: [runs-on,runner=..." lines.
+# - If you would like to duplicate this setup try setting up "RunsOn" on your own AWS account try https://runs-on.com
+
+name: ROS Integration Tests
+
+on:
+  push:
+    branches:
+    - 'main'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    container:
+      image: px4io/px4-dev-ros2-galactic:2021-09-08
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Git Ownership Workaround
+      run: git config --system --add safe.directory '*'
+
+    - name: Update ROS Keys
+      run: |
+        sudo rm /etc/apt/sources.list.d/ros2.list && \
+        sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+    - name: Install gazebo
+      run: |
+        apt update && apt install -y gazebo11 libgazebo11-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer-plugins-base1.0-dev
+
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      shell: cmake -P {0}
+      run: |
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message("::set-output name=timestamp::${current_date}")
+    - name: ccache cache files
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ros_integration_tests-${{matrix.config.build_type}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: ros_integration_tests-${{matrix.config.build_type}}-ccache-
+    - name: setup ccache
+      run: |
+        mkdir -p ~/.ccache
+        echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+        echo "compression = true" >> ~/.ccache/ccache.conf
+        echo "compression_level = 6" >> ~/.ccache/ccache.conf
+        echo "max_size = 300M" >> ~/.ccache/ccache.conf
+        echo "hash_dir = false" >> ~/.ccache/ccache.conf
+        ccache -s
+        ccache -z
+
+    - name: Get and build micro-xrce-dds-agent
+      run: |
+        cd /opt
+        git clone --recursive https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+        cd Micro-XRCE-DDS-Agent
+        git checkout v2.2.1 # recent versions require cmake 3.22, but px4-dev-ros2-galactic:2021-09-08 is on 3.16
+        sed -i 's/_fastdds_tag 2.8.x/_fastdds_tag 2.8.2/g' CMakeLists.txt
+        mkdir build
+        cd build
+        cmake ..
+        make -j2
+    - name: ccache post-run micro-xrce-dds-agent
+      run: ccache -s
+
+    - name: Get and build the ros2 interface library
+      shell: bash
+      run: |
+        PX4_DIR="$(pwd)"
+        . /opt/ros/galactic/setup.bash
+        mkdir -p /opt/px4_ws/src
+        cd /opt/px4_ws/src
+        git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib.git
+        cd ..
+        # Copy messages to ROS workspace
+        "${PX4_DIR}/Tools/copy_to_ros_ws.sh" "$(pwd)"
+        rm -rf src/translation_node src/px4_msgs_old
+        colcon build --symlink-install
+    - name: ccache post-run ros workspace
+      run: ccache -s
+
+    - name: Build PX4
+      run: make px4_sitl_default
+    - name: ccache post-run px4/firmware
+      run: ccache -s
+    - name: Build SITL Gazebo
+      run: make px4_sitl_default sitl_gazebo-classic
+    - name: ccache post-run sitl_gazebo-classic
+      run: ccache -s
+
+    - name: Core dump settings
+      run: |
+        ulimit -c unlimited
+        echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
+
+    - name: Run tests
+      shell: bash
+      run: |
+        . /opt/px4_ws/install/setup.bash
+        /opt/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent udp4 localhost -p 8888 -v 0 &
+        test/ros_test_runner.py --verbose --model iris --upload --force-color
+      timeout-minutes: 45
+
+    - name: Upload failed logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: failed-logs.zip
+        path: |
+          logs/**/**/**/*.log
+          logs/**/**/**/*.ulg
+          build/px4_sitl_default/tmp_ros_tests/rootfs/log/**/*.ulg

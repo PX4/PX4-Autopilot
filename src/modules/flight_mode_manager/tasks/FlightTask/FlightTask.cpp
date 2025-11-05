@@ -11,6 +11,7 @@ bool FlightTask::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	_resetSetpoints();
 	_setDefaultConstraints();
+	initEkfResetCounters();
 	_time_stamp_activate = hrt_absolute_time();
 	_gear = empty_landing_gear_default_keep;
 	return true;
@@ -22,6 +23,16 @@ void FlightTask::reActivate()
 	trajectory_setpoint_s setpoint_preserve_vertical{empty_trajectory_setpoint};
 	setpoint_preserve_vertical.velocity[2] = _velocity_setpoint(2);
 	activate(setpoint_preserve_vertical);
+}
+
+void FlightTask::initEkfResetCounters()
+{
+	_reset_counters.xy = _sub_vehicle_local_position.get().xy_reset_counter;
+	_reset_counters.vxy = _sub_vehicle_local_position.get().vxy_reset_counter;
+	_reset_counters.z = _sub_vehicle_local_position.get().z_reset_counter;
+	_reset_counters.hagl = _sub_vehicle_local_position.get().dist_bottom_reset_counter;
+	_reset_counters.vz = _sub_vehicle_local_position.get().vz_reset_counter;
+	_reset_counters.heading = _sub_vehicle_local_position.get().heading_reset_counter;
 }
 
 bool FlightTask::updateInitialize()

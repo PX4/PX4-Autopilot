@@ -54,7 +54,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_test.h>
-#include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -230,7 +229,7 @@ private:
 		_health_and_arming_checks.externalChecks()
 #endif
 	};
-	UserModeIntention	_user_mode_intention {this, _vehicle_status, _health_and_arming_checks, &_mode_management};
+	UserModeIntention _user_mode_intention {_vehicle_status, _health_and_arming_checks, &_mode_management};
 
 	const failsafe_flags_s &_failsafe_flags{_health_and_arming_checks.failsafeFlags()};
 	HomePosition 		_home_position{_failsafe_flags};
@@ -241,7 +240,6 @@ private:
 	Hysteresis _auto_disarm_killed{false};
 
 	hrt_abstime _datalink_last_heartbeat_open_drone_id_system{0};
-	hrt_abstime _datalink_last_heartbeat_avoidance_system{0};
 	hrt_abstime _datalink_last_heartbeat_gcs{0};
 	hrt_abstime _datalink_last_heartbeat_onboard_controller{0};
 	hrt_abstime _datalink_last_heartbeat_parachute_system{0};
@@ -263,12 +261,11 @@ private:
 
 	hrt_abstime _last_health_and_arming_check{0};
 
-	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
+	uint8_t		_battery_warning{battery_status_s::WARNING_NONE};
 
 	bool _failsafe_user_override_request{false}; ///< override request due to stick movements
 
 	bool _open_drone_id_system_lost{true};
-	bool _avoidance_system_lost{false};
 	bool _onboard_controller_lost{false};
 	bool _parachute_system_lost{true};
 
@@ -281,6 +278,7 @@ private:
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
+	bool _mission_in_progress{false};
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
@@ -314,7 +312,6 @@ private:
 	// Publications
 	uORB::Publication<actuator_armed_s>			_actuator_armed_pub{ORB_ID(actuator_armed)};
 	uORB::Publication<actuator_test_s>			_actuator_test_pub{ORB_ID(actuator_test)};
-	uORB::Publication<failure_detector_status_s>		_failure_detector_status_pub{ORB_ID(failure_detector_status)};
 	uORB::Publication<vehicle_command_ack_s>		_vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_command_s>			_vehicle_command_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_control_mode_s>		_vehicle_control_mode_pub{ORB_ID(vehicle_control_mode)};
@@ -342,7 +339,6 @@ private:
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,
 		(ParamFloat<px4::params::COM_KILL_DISARM>)  _param_com_kill_disarm,
 		(ParamBool<px4::params::COM_MOT_TEST_EN>)   _param_com_mot_test_en,
-		(ParamBool<px4::params::COM_OBS_AVOID>)     _param_com_obs_avoid,
 		(ParamFloat<px4::params::COM_OBC_LOSS_T>)   _param_com_obc_loss_t,
 		(ParamInt<px4::params::COM_PREARM_MODE>)    _param_com_prearm_mode,
 		(ParamInt<px4::params::COM_RC_OVERRIDE>)    _param_com_rc_override,
