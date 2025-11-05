@@ -1,5 +1,7 @@
 # MicoAir743-Lite
 
+<Badge type="tip" text="main (planned for: PX4 v1.17)" />
+
 :::warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://micoair.com/) for hardware support or compliance issues.
@@ -99,21 +101,36 @@ All the connectors used on the board are SH1.0
 
 ## Building Firmware
 
-:::tip
-Most users will not need to build this firmware!
-It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
-:::
-
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
 make micoair_h743-lite_default
 ```
 
-## Radio Control
-A Radio Control (RC) system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+## Installing PX4 Firmware
 
-The RC port is connected to the FMU and you can attach a receiver that matches any of the protocols in [Radio Control](../modules/modules_driver_radio_control.md) page. Besides, you have to enable it by setting the corresponding parameter `RC_xxxx_PRT_CFG`.
+The firmware can be installed in any of the normal ways:
+
+- Build and upload the source
+
+  ```sh
+  make micoair_h743-lite_default upload
+  ```
+
+- [Load the firmware](../config/firmware.md) using _QGroundControl_.
+  You can use either pre-built firmware or your own custom firmware.
+
+  ::: info
+  At time of writing the only pre-built software is `PX4 main` (see [Installing PX4 Main, Beta or Custom Firmware](../config/firmware.md#installing-px4-main-beta-or-custom-firmware)).
+  Release builds will be supported for PX4 v1.17 and later.
+  :::
+
+## Radio Control
+
+A [Radio Control (RC) system](../getting_started/rc_transmitter_receiver.md) is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+
+The RC port is connected to the FMU and you can attach a receiver that uses the protocols `DSM`, `SBUS`, `CSRF`, `GHST`, or other protocol listed in [Radio Control modules](../modules/modules_driver_radio_control.md).
+You will need to enable the protocol by setting the corresponding parameter `RC_xxxx_PRT_CFG`, such as [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) for a [CRSF receiver](../telemetry/crsf_telemetry.md).
 
 ## Supported Platforms / Airframes
 
