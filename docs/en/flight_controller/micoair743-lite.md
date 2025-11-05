@@ -90,6 +90,7 @@ Pinouts definition can be found in the [MicoAir743-Lite_pinout.xlsx](https://raw
 ::: note
 All the connectors used on the board are SH1.0
 :::
+
 ![MicoAir743-Lite Interface Diagram](../../assets/flight_controller/micoair743_lite/interfaces_diagram.png)
 
 ## Sample Wiring Diagram
