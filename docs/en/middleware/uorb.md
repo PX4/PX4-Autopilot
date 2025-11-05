@@ -65,8 +65,8 @@ uint64 timestamp # [us] Time since system start.
 
 # absolute speeds, NAN means use default limit
 float32 horizontal_velocity # [m/s] Horizontal velocity.
-float32 vertical_velocity # [m/s] Vertical velocity.
-float32 yaw_rate # [rad/s] Yaw rate.
+float32 vertical_velocity   # [m/s] Vertical velocity.
+float32 yaw_rate            # [rad/s] Yaw rate.
 ```
 
 By default this message definition will be compiled to a single topic with an id `velocity_limits`, a direct conversion from the CamelCase name to a snake_case version.
@@ -279,6 +279,8 @@ For more information see: [Plotting uORB Topic Data in Real Time using PlotJuggl
 <video src="../../assets/debug/realtime_debugging/realtime_debugging.mp4" width="720" controls></video>
 
 ## See Also
+
+- [uORB Documentation Standard](../uorb/uorb_documentation.md)
 
 - _PX4 uORB Explained_ Blog series
   - [Part 1](https://px4.io/px4-uorb-explained-part-1/)

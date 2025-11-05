@@ -501,6 +501,7 @@
     - [PPS Time Synchronization](advanced/pps_time_sync.md)
   - [Middleware](middleware/index.md)
     - [uORB Messaging](middleware/uorb.md)
+    - [uORB Docs Standard](uorb/uorb_documentation.md)
     - [uORB Graph](middleware/uorb_graph.md)
     - [uORB Message Reference](msg_docs/index.md)
       - [Versioned](msg_docs/versioned_messages.md)
