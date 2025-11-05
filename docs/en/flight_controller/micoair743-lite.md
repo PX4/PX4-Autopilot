@@ -7,13 +7,17 @@ Contact the [manufacturer](https://micoair.com/) for hardware support or complia
 
 MicoAir743-Lite is an ultra-high performance H743 flight controller with an unbeatable price, featuring the ICM45686 IMU sensor and integrated Bluetooth telemetry.
 
+![MicoAir743-Lite Front View](../../assets/flight_controller/micoair743_lite/front_view.png)
+
 Equipped with a high-performance H7 processor, the MicoAir743-Lite features a compact form factor and a convenient SH1.0 connector for easy wiring, and, when paired with Bluetooth telemetry, allows convenient debugging with a phone or PC.
+
+::: info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
+:::
 
 ## MicoAir743-Lite (v1.1)
 
-![MicoAir743-Lite Front View](../../assets/flight_controller/micoair743-lite/MicoAir743-Lite_front_view.png)
-
-![MicoAir743-Lite Back View](../../assets/flight_controller/micoair743-lite/MicoAir743-Lite_back_view.png)
+![MicoAir743-Lite Back View](../../assets/flight_controller/micoair743_lite/back_view.png)
 
 ## Quick Summary
 
@@ -54,11 +58,11 @@ Equipped with a high-performance H7 processor, the MicoAir743-Lite features a co
 
 ### Mechanical data
 
- - Mounting: 30.5 x 30.5mm, Φ4mm
- - Dimensions: 36 x 36 x 8 mm
- - Weight: 10g
+- Mounting: 30.5 x 30.5mm, Φ4mm
+- Dimensions: 36 x 36 x 8 mm
+- Weight: 10g
 
-![MicoAir743-Lite Size](../../assets/flight_controller/micoair743-lite/MicoAir743-Lite_size.png)
+![MicoAir743-Lite Size](../../assets/flight_controller/micoair743_lite/size.png)
 
 ## Where to Buy
 
@@ -66,28 +70,28 @@ Order from [MicoAir Tech Store](https://store.micoair.com/product/micoair743-lit
 
 ## Pinouts
 
-Pinouts definition can be found in the [MicoAir743-Lite_pinout.xlsx](../../assets/flight_controller/micoair743-lite/MicoAir743-Lite_pinout.xlsx) file.
+Pinouts definition can be found in the [MicoAir743-Lite_pinout.xlsx](https://raw.githubusercontent.com/PX4/PX4-Autopilot/refs/heads/main/docs/assets/flight_controller/micoair743_lite/micoair743_lite_pinout.xlsx) file.
 
 ## Serial Port Mapping
 
-| UART   | Device     | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | TELEM1        |
-| USART2 | /dev/ttyS1 | GPS2          |
-| USART3 | /dev/ttyS2 | GPS1          |
-| UART4  | /dev/ttyS3 | TELEM2        |
-| UART5  | /dev/ttyS4 | TELEM3        |
-| USART6 | /dev/ttyS5 | RC            |
-| UART7  | /dev/ttyS6 | URT6          |
-| UART8  | /dev/ttyS7 | TELEM4        |
+| UART   | Device     | Port   |
+| ------ | ---------- | ------ |
+| USART1 | /dev/ttyS0 | TELEM1 |
+| USART2 | /dev/ttyS1 | GPS2   |
+| USART3 | /dev/ttyS2 | GPS1   |
+| UART4  | /dev/ttyS3 | TELEM2 |
+| UART5  | /dev/ttyS4 | TELEM3 |
+| USART6 | /dev/ttyS5 | RC     |
+| UART7  | /dev/ttyS6 | URT6   |
+| UART8  | /dev/ttyS7 | TELEM4 |
 
 ## Interfaces Diagram
 
-![MicoAir743-Lite Interface Diagram](../../assets/flight_controller/micoair743-lite/MicoAir743-Lite_interfaces_diagram.png)
+![MicoAir743-Lite Interface Diagram](../../assets/flight_controller/micoair743_lite/interfaces_diagram.png)
 
 ## Sample Wiring Diagram
 
-![MicoAir743-Lite Wiring Diagram](../../assets/flight_controller/micoair743-lite/MicoAir743-Lite_wiring_diagram.png)
+![MicoAir743-Lite Wiring Diagram](../../assets/flight_controller/micoair743_lite/wiring_diagram.png)
 
 ## Building Firmware
 
@@ -98,7 +102,7 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make micoair_h743-lite_default
 ```
 
