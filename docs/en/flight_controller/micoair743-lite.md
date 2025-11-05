@@ -11,7 +11,8 @@ MicoAir743-Lite is an ultra-high performance H743 flight controller with an unbe
 
 ![MicoAir743-Lite Front View](../../assets/flight_controller/micoair743_lite/front_view.png)
 
-Equipped with a high-performance H7 processor, the MicoAir743-Lite features a compact form factor and a convenient SH1.0 connector for easy wiring, and, when paired with Bluetooth telemetry, allows convenient debugging with a phone or PC.
+Equipped with a high-performance H7 processor, the MicoAir743-Lite features a compact form factor with SH1.0 connectors (which are more suitable than Pixhawk-standard GH1.25 for this board size).
+When paired with with Bluetooth telemetry, the board can be debugged with a phone or PC.
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
