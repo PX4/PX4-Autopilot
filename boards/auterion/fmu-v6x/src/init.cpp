@@ -274,7 +274,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	usleep(500 * 1000);
 
 #  ifdef CONFIG_MMCSD
-
 	int ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
