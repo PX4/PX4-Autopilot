@@ -87,6 +87,9 @@ Pinouts definition can be found in the [MicoAir743-Lite_pinout.xlsx](https://raw
 
 ## Interfaces Diagram
 
+::: note
+All the connectors used on the board are SH1.0
+:::
 ![MicoAir743-Lite Interface Diagram](../../assets/flight_controller/micoair743_lite/interfaces_diagram.png)
 
 ## Sample Wiring Diagram
@@ -105,6 +108,11 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 ```sh
 make micoair_h743-lite_default
 ```
+
+## Radio Control
+A Radio Control (RC) system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+
+The RC port is connected to the FMU and you can attach a receiver that matches any of the protocols in [Radio Control](../modules/modules_driver_radio_control.md) page. Besides, you have to enable it by setting the corresponding parameter `RC_xxxx_PRT_CFG`.
 
 ## Supported Platforms / Airframes
 
