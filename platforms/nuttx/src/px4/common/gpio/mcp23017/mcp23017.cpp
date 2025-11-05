@@ -116,8 +116,6 @@ static int mcp23017_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pinty
 	return toGpioConfig.publish(msg) ? OK : -ETIMEDOUT;
 }
 
-
-
 // ----------------------------------------------------------------------------
 static const struct gpio_operations_s mcp23017_gpio_ops {
 	mcp23017_read,
