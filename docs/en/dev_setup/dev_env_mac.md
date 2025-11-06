@@ -21,7 +21,8 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
 
 1. Install Homebrew by following these [installation instructions](https://brew.sh).
 
-2. Enable more open files by appending the following line to the `~/.bashrc` (or `~/.zshrc` for zsh)  file or creating it if necessary:
+2. Enable more files to be opened in the shell process by appending `echo ulimit -S -n 2048` to your `~/.bashrc` file (or `~/.zshrc` for zsh).
+   To append the line using the terminal enter:
 
    ```sh
    echo ulimit -S -n 2048 >> ~/.bashrc
