@@ -32,9 +32,8 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
    If you don't do this, the build toolchain may report the error: `"LD: too many open files"`
    :::
 
-3. Enforce Python 3 by appending the following lines to `~/.bashrc`(or `~/.zshrc` for zsh):
 
-   Ensure Python 3 is used by default, as some PX4 scripts require the `python3` and `pip3` executables to be available in your system `PATH`.
+3. Ensure Python 3 is used by default, as some PX4 scripts require the `python3` and `pip3` executables to be available in your system `PATH`.
 
    ::: tip
    If you need help installing an updated version of Python 3, we recommend the [pyenv project](https://github.com/pyenv/pyenv?tab=readme-ov-file), which gives you utmost flexibility by allowing you to set a global and local Python version at the per-directory level.
