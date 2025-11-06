@@ -317,12 +317,6 @@ available to other modules and communication bridges.
 - **Parameter Update:** Adjust sharing period, startup delay, and other parameters at runtime.
 - **Parameterization:** All key behaviors (such as sharing period, startup delay) are configurable via PX4 parameters.
 
-#### Use Cases
-
-- Multi-vehicle and swarm robotics, where each agent must be aware of the state of others.
-- Distributed estimation, control, or collaborative mission execution.
-- Real-time fleet monitoring and logging.
-
 #### Control Interface
 
 The module listens to the `state_sharing_control_msg` uORB topic for runtime commands. This allows external modules, scripts,
@@ -330,7 +324,7 @@ or ground control stations to start/stop state sharing or update parameters with
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("state_sharing", "state_sharing");
+	PRINT_MODULE_USAGE_NAME("state_sharing", "communication");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the execution of the module");
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Enable publishing of state sharing messages from the start.", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start_publishing", "Begin publishing of state sharing messages.");
