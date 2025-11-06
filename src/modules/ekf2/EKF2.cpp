@@ -2452,6 +2452,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
 
+		// if pps_compensation is active but not valid, the timestamp_sample will be equal to timestamp
 		const bool pps_compensation = vehicle_gps_position.timestamp_sample > 0
 					      && vehicle_gps_position.timestamp_sample != vehicle_gps_position.timestamp;
 
