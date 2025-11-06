@@ -47,20 +47,13 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
 
 ### Install Development Tools
 
-1. Install the PX4 development toolchain and simulation environment:
-
-   ```sh
-   brew tap PX4/px4
-   brew install px4-dev px4-sim
-   ```
-
-2. Download PX4 Source Code:
+1. Download PX4 Source Code:
 
    ```sh
    git clone https://github.com/PX4/PX4-Autopilot.git --recursive
    ```
 
-3. Run the [`macos.sh` setup script](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh):
+2. Run the [`macos.sh` setup script](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh):
 
    ```sh
    cd PX4-Autopilot
@@ -71,7 +64,7 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
 
 ## Gazebo Simulation
 
-Gazebo Harmonic simulation support is included with the `px4-sim` formula installed above.
+Gazebo Harmonic simulation support is included with the `px4-sim` formula installed above while executing [`macos.sh` setup script](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh).
 The simulation environment should be ready to use after the installation completes.
 
 ## Next Steps
