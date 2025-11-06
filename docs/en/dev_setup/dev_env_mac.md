@@ -40,7 +40,7 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
    If you need help installing an updated version of Python 3, we recommend the [pyenv project](https://github.com/pyenv/pyenv?tab=readme-ov-file), which gives you utmost flexibility by allowing you to set a global and local Python version at the per-directory level.
    :::
 
-4. Point pip3 to macOS system python 3 pip
+4. Point pip3 to macOS system python 3 pip:
 
    ```sh
    alias pip3=/usr/bin/pip3
@@ -55,22 +55,21 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
    brew install px4-dev px4-sim
    ```
 
-2. ### Download PX4 Source Code
-
-```sh
-git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-```
-
-4. Prerequisites setup
-
-   Use the [`macos.sh` setup script](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh) to automatically install all development dependencies:
+2. Download PX4 Source Code
 
    ```sh
-   git clone https://github.com/PX4/PX4-Autopilot.git --recursive   cd PX4-Autopilot
+   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+   ```
+
+4. Run the macOS setup script.
+
+   Run the [`macos.sh` setup script](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh) to automatically install all development dependencies (homebrew packages, python libraries, etc.):
+
+   ```sh
+   cd PX4-Autopilot
    ./Tools/setup/macos.sh
    ```
 
-   This script will install all required Homebrew packages, Python dependencies, and perform the necessary setup steps.
 
 ## Gazebo Simulation
 
