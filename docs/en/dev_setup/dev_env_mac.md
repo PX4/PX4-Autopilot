@@ -55,21 +55,20 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
    brew install px4-dev px4-sim
    ```
 
-2. Download PX4 Source Code
+2. Download PX4 Source Code:
 
    ```sh
    git clone https://github.com/PX4/PX4-Autopilot.git --recursive
    ```
 
-4. Run the macOS setup script.
-
-   Run the [`macos.sh` setup script](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh) to automatically install all development dependencies (homebrew packages, python libraries, etc.):
+3. Run the [`macos.sh` setup script](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh):
 
    ```sh
    cd PX4-Autopilot
    ./Tools/setup/macos.sh
    ```
 
+   The script automatically installs all development dependencies (homebrew packages, python libraries, and so on).
 
 ## Gazebo Simulation
 
