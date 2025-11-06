@@ -9,7 +9,7 @@ This page explains how PPS is integrated into PX4 and how to configure it.
 PPS (Pulse Per Second) is a timing signal provided by GNSS receivers that outputs an electrical pulse once per second, synchronized to UTC time.
 The PPS signal provides a highly accurate timing reference that PX4 can use to:
 
-- Refine GPS time measurements and compensate for clock drift
+- Refine GNSS time measurements and compensate for clock drift
 - Provide precise UTC timestamps for camera capture events (for photogrammetry and mapping applications)
 - Enable offline position refinement through accurate time correlation
 
