@@ -309,9 +309,13 @@ multi-agent coordination, distributed control, or fleet monitoring.
 - **State Aggregation:** Collects relevant state data from core uORB topics (vehicle_global_position, vehicle_odometry).
 - **uORB Publication:** Publishes the aggregated state using a dedicated uORB message (`state_sharing_msg`), making it
 available to other modules and communication bridges.
-- **External Sharing:** Facilitates sharing of state information with other agents or ground stations via MAVLink or custom
+- **External Sharing:** Facilitates sharing of state information with other agents or ground stations via MAVLink or
+custom
  communication layers.
-- **Runtime Control:** The module's operation can be dynamically managed using the `state_sharing_control_msg` uORB topic.
+- **Runtime Control:** The module's operation can be dynamically managed using the `state_sharing_control_msg` uORB
+topic.
+
+
  Supported commands include:
 - **Start/Stop:** Begin or halt state sharing.
 - **Parameter Update:** Adjust sharing period, startup delay, and other parameters at runtime.
@@ -319,8 +323,8 @@ available to other modules and communication bridges.
 
 #### Control Interface
 
-The module listens to the `state_sharing_control_msg` uORB topic for runtime commands. This allows external modules, scripts,
-or ground control stations to start/stop state sharing or update parameters without restarting the module.
+The module listens to the `state_sharing_control_msg` uORB topic for runtime commands. This allows external modules,
+scripts, or ground control stations to start/stop state sharing or update parameters without restarting the module.
 
 )DESCR_STR");
 
