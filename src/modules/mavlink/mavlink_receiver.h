@@ -111,6 +111,8 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/velocity_limits.h>
+#include <uORB/topics/state_sharing_msg.h>
+#include <uORB/topics/state_sharing_control.h>
 
 #if !defined(CONSTRAINED_FLASH)
 # include <uORB/topics/debug_array.h>
@@ -215,6 +217,13 @@ private:
 	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 #endif // !CONSTRAINED_FLASH
+
+#if defined(MAVLINK_MSG_ID_STATE_SHARING) && defined (CONFIG_MODULES_STATE_SHARING)
+	void handle_message_state_sharing(mavlink_message_t *msg);
+#endif //MAVLINK_MSG_ID_STATE_SHARING
+#if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL) && defined (CONFIG_MODULES_STATE_SHARING)
+	void handle_message_state_sharing_control(mavlink_message_t *msg);
+#endif //MAVLINK_MSG_ID_STATE_SHARING_CONTROL
 	void handle_message_request_event(mavlink_message_t *msg);
 
 	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
@@ -328,6 +337,8 @@ private:
 	uORB::Publication<vehicle_odometry_s>			_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};
 	uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Publication<state_sharing_msg_s>			_in_state_sharing_msg_pub{ORB_ID(incoming_state_sharing)};
+	uORB::Publication<state_sharing_control_s>		_in_state_sharing_control_msg_pub{ORB_ID(incoming_state_sharing_control)};
 
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};

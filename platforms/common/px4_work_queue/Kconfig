@@ -205,6 +205,20 @@ config WQ_UAVCAN_PRIORITY
 	help
 	  Sets the relative priority for the uavcan work queue.
 
+config WQ_STATE_SHARING_STACKSIZE
+	int "Stack size for state_sharing"
+	default 2240
+	range 1000 10000
+	help
+	  Sets the stack size for the state_sharing work queue.
+
+config WQ_STATE_SHARING_PRIORITY
+	int "Relative priority for wq:state_sharing"
+	default -40
+	range -255 0
+	help
+	  Sets the relative priority for the state_sharing work queue.
+
 menu "TTY Bus Work Queues"
 
 config WQ_TTY_STACKSIZE
