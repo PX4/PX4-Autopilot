@@ -66,11 +66,6 @@ private:
 
 	static constexpr hrt_abstime ESC_TIMEOUT = 100000;
 
-	// From #include <mixer_module/output_functions.hpp>
-	// We don't include the header here as to not introduce intermodule dependencies
-	static constexpr int OUTPUT_FUNCTION_MOTOR1 = 101;
-	static constexpr int OUTPUT_FUNCTION_MOTOR12 = 112;
-
 	struct EscOutputInterfaceInfo {
 		uint16_t counter;
 		uint8_t esc_count;
