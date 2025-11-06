@@ -74,4 +74,3 @@ protected:
 
 };
 #endif //MAVLINK_MSG_ID_STATE_SHARING
-
