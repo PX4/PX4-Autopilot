@@ -59,8 +59,8 @@ private:
 	uint64_t _pps_rtc_timestamp{0};	// GPS UTC time at PPS pulse (usec since Unix epoch)
 	int64_t _time_offset{0};
 
-	static constexpr uint64_t kPpsStaleTimeout = 5000000;
-	static constexpr int64_t kPpsMaxCorrection = 300000;	// max delay (max of EKF2_GPS_DELAY)
+	static constexpr uint64_t kPpsStaleTimeoutUs = 5'000'000;
+	static constexpr int64_t kPpsMaxCorrectionUs = 300'000;	// max delay (max of EKF2_GPS_DELAY)
 
 	bool _initialized{false};
 	bool _updated{false};

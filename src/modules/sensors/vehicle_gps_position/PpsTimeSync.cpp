@@ -47,21 +47,9 @@ void PpsTimeSync::process_pps(const pps_capture_s &pps)
 		return;
 	}
 
-	int64_t new_offset = (int64_t)pps.rtc_timestamp - (int64_t)pps.timestamp;
-
-	if (_initialized) {
-		int64_t old_offset = (int64_t)_pps_rtc_timestamp - (int64_t)_pps_hrt_timestamp;
-		int64_t offset_jump = new_offset - old_offset;
-
-		if (math::abs_t(offset_jump) > 5000) {
-			PX4_WARN("PPS: Offset jump detected: %" PRId64 " us (old: %" PRId64 ", new: %" PRId64 ")",
-				 offset_jump, old_offset, new_offset);
-		}
-	}
-
 	_pps_hrt_timestamp = pps.timestamp;
 	_pps_rtc_timestamp = pps.rtc_timestamp;
-	_time_offset = new_offset;
+	_time_offset = (int64_t)pps.rtc_timestamp - (int64_t)pps.timestamp;
 	_initialized = true;
 	_updated = true;
 }
@@ -72,19 +60,19 @@ uint64_t PpsTimeSync::correct_gps_timestamp(uint64_t gps_fc_timestamp, uint64_t 
 		return gps_fc_timestamp;
 	}
 
-	int64_t corrected_fc_timestamp = (int64_t)gps_utc_timestamp - _time_offset;
+	const int64_t corrected_fc_timestamp = (int64_t)gps_utc_timestamp - _time_offset;
 
 	if (_updated) {
-		int64_t correction_amount = corrected_fc_timestamp - (int64_t)gps_fc_timestamp;
+		const int64_t correction_amount = corrected_fc_timestamp - (int64_t)gps_fc_timestamp;
 
-		if (math::abs_t(correction_amount) > kPpsMaxCorrection) {
+		if (math::abs_t(correction_amount) > kPpsMaxCorrectionUs) {
 			PX4_DEBUG("PPS: Correction too large: %" PRId64 " us (%.1f ms), rejecting",
 				  correction_amount, (double)correction_amount / 1000.0);
 			return gps_fc_timestamp;
 		}
 
 		// Additional sanity check: corrected timestamp should not be too far in the future (0.1s)
-		uint64_t now = hrt_absolute_time();
+		const uint64_t now = hrt_absolute_time();
 
 		if ((uint64_t)corrected_fc_timestamp > now + 100000) {
 			return gps_fc_timestamp;
@@ -108,7 +96,7 @@ bool PpsTimeSync::is_valid() const
 		now = UINT64_MAX;
 	}
 
-	if (now - _pps_hrt_timestamp > kPpsStaleTimeout) {
+	if (now - _pps_hrt_timestamp > kPpsStaleTimeoutUs) {
 		return false;
 	}
 
