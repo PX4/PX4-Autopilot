@@ -74,13 +74,6 @@ Notes:
 - **Faulty GNSS Vulnerability**: If GNSS data is faulty during boot, the calibration will use incorrect altitude reference.
   See [Faulty GNSS Data During Boot](../advanced_config/tuning_the_ecl_ekf.md#faulty-gnss-data-during-boot) for mitigation strategies.
 
-<!-- Notes:
-- Absolute value isn't important since we just use the difference in altitude between "now" and the value when initializing EKF2
-- There is usually a scale factor error but it's compensated by the GNSS altitude using a bias estimator in EKF2 (we don't provide a way to calibrate that).
-  This method is fine as long as the height change of the drone isn't too fast (below 200-300km/h probably; don't have real data on that).
-- The baro readings can be corrected using a param SENS_BARO_QNH (https://en.wikipedia.org/wiki/Altimeter_setting) parameter, but again, it is only necessary to adjust it if the absolute barometric altitude is required by the pilot.
--->
-
 ## See Also
 
 - [Baro driver source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer)
