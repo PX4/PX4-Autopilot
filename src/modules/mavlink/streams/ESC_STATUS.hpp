@@ -36,6 +36,7 @@
 
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/esc_status.h>
+#include <mathlib/mathlib.h>
 
 class MavlinkStreamESCStatus : public MavlinkStream
 {
