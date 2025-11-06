@@ -351,33 +351,29 @@ Note that `ekf2_gps_drift` is not logged!
 #### GNSS Fault Detection
 
 PX4's GNSS fault detection protects against malicious or erroneous GNSS signals using selective fusion control based on measurement validation.
-The detection logic depends on the [EKF2_GPS_MODE](../advanced_config/parameter_reference.md#EKF2_GPS_MODE) parameter, and operates differently for horizontal position and altitude measurements.
 
-##### Configuration
+The fault detection logic depends on the GPS mode, and also operates differently for horizontal position and altitude measurements.
+The mode is set using the [EKF2_GPS_MODE](../advanced_config/parameter_reference.md#EKF2_GPS_MODE) parameter:
 
-The fault detection logic depends on the GPS mode, which is set using the [EKF2_GPS_MODE](../advanced_config/parameter_reference.md#EKF2_GPS_MODE) parameter:
-
-- **Automatic (`0`)** (Default): EKF2 resets on fusion timeouts if no other source of position is available.
-- **Dead-reckoning (`1`)**: EKF2 may reset if no other sources of position or velocity are available.
+- **Automatic (`0`)** (Default): Assumes that GNSS is generally reliable and is likely to be recovered.
+  EKF2 resets on fusion timeouts if no other source of position is available.
+- **Dead-reckoning (`1`)**: Assumes that GNSS might be lost indefinitely, so resets should be avoided while we have other estimates of position data.
+  EKF2 may reset if no other sources of position or velocity are available.
+  If GNSS altitude OR horizontal position data drifts, the system disables fusion of both measurements simultaneously (even if one would still pass validation) and avoids performing resets.
 
 ##### Detection Logic
 
-EKF2 performs data fusion based on measurement and state uncertainty metrics.
-- In automatic mode, if GNSS data fusion fails for a certain period, a reset is normally triggered.
-- In dead-reckoning mode, if GNSS altitude OR horizontal position data drifts, the system disables fusion of both measurements simultaneously (even if one would still pass validation) and avoids performing resets.
-
-###### Horizontal Position
+Horizontal Position:
 
 - **Automatic mode**: Horizontal position resets to GNSS data if no other horizontal position source is currently being fused (e.g., AGP).
 - **Dead-reckoning mode**: Horizontal position resets to GNSS data only if no other horizontal position OR velocity source is currently being fused (e.g., AGP, airspeed, optical flow).
 
-###### Altitude
+Altitude:
 
-The altitude logic is more complex due to the height reference sensor ([HGT_REF](../advanced_config/parameter_reference.md#HGT_REF)) parameter, which is typically set to GNSS or baro in GNSS-denied scenarios.
-
-If height reference is set to baro, GNSS-based height resets are prevented (except when baro fusion fails completely and height reference automatically switches to GNSS).
-
-- **Automatic mode**: When height reference is set to GNSS, resets occur on drifting GNSS altitude measurements.
+- The altitude logic is more complex due to the height reference sensor ([EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF)) parameter, which is typically set to GNSS or baro in GNSS-denied scenarios.
+- If height reference is set to baro, GNSS-based height resets are prevented (except when baro fusion fails completely and height reference automatically switches to GNSS).
+- When height reference is set to GNSS:
+- **Automatic mode**: Resets occur on drifting GNSS altitude measurements.
 - **Dead-reckoning mode**: When validation starts failing, the system prevents GNSS altitude resets and labels the GNSS data as faulty.
 
 ##### Faulty GNSS Data During Boot
