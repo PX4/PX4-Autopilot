@@ -115,7 +115,7 @@ Key features:
 
 See also:
 
-- [PPS Capture Driver Documentation](../modules/modules_driver.md#pps_capture)
+- [PPS Capture Driver Documentation](../modules/modules_driver.md#pps-capture)
 - [PpsCapture Message](../msg_docs/PpsCapture.md)
 
 ### Time Synchronization Flow
