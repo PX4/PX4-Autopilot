@@ -168,7 +168,7 @@ if __name__ == '__main__':
 
             #make sure we got new data
             if timestamp != tlast and timestamp is not None:
-                if device_id == 12018473:  #icp10100
+                if device_id == 12018473 or device_id == 12018433:  #icp10100 internal or external
                     sample_count += 1
                     ts.append(timestamp)
                     ps.append(pressure)
@@ -241,7 +241,9 @@ if __name__ == '__main__':
         # Figure out PX4 parameters only for first iteration
         enable_reference = False
         poly_fit_order = 1
-        baro_sensor_id = int(12018473)
+        baro_sensor_id1 = int(12018473)
+        baro_sensor_id2 = int(12018433)
+        baro_sensor_id = int(0)
         if i == 0:
             with open(fname, 'r') as fp:
                 nlines = len(fp.readlines())
@@ -261,15 +263,23 @@ if __name__ == '__main__':
                     nvals = nvals[[0,1,3,4]]
                     #print(nvals)
 
-                    if vals[2] == baro_sensor_id:
+                    if vals[2] == baro_sensor_id1:
                         data[:,ndata] = nvals
                         ndata += 1
+                        baro_sensor_id = baro_sensor_id1
+                    elif vals[2] == baro_sensor_id2:
+                        data[:,ndata] = nvals
+                        ndata += 1
+                        baro_sensor_id = baro_sensor_id2
                     else: # secondary barometer
                         data2[:,ndata2] = nvals
                         ndata2 += 1
                         #enable_reference = True
 
             data   = data[:,0:ndata]
+            if ndata == 0 or np.allclose(data[2:4, :], 0):      # add a simple check that will exit if the data is all 0s 
+                print("ERROR: captured baro pressure/temperature data is empty or all zeros, aborting calibration.")
+                sys.exit(1)
 
             ts_plot  = data[1,:]
             t_off    = ts_plot[0]
