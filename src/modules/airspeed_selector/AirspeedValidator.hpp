@@ -121,6 +121,7 @@ public:
 	void set_tas_scale_apply(int tas_scale_apply) { _tas_scale_apply = tas_scale_apply; }
 	void set_CAS_scale_validated(float scale) { _CAS_scale_validated = scale; }
 	void set_scale_init(float scale) { _wind_estimator.set_scale_init(scale); }
+	void reset_scale_estimator() { _wind_estimator.reset_scale_to_init(); }
 
 	void set_enable_data_stuck_check(bool enable) { _data_stuck_check_enabled = enable; }
 	void set_enable_innovation_check(bool enable) { _innovation_check_enabled = enable; }
