@@ -237,15 +237,22 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 {
+	const bool sub_like = sub_like_mode();
+
 	// Avoid accumulating absolute yaw error with arming stick gesture
 	float roll = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).phi();
 	float pitch = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).theta();
 	float yaw = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).psi();
 
-	// Integrate manual control inputs
+	float roll_setpoint = 0.0f;
+	float pitch_setpoint = 0.0f;
 	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_sgm_yaw.get();
-	float roll_setpoint = roll + _manual_control_setpoint.roll * dt * _param_sgm_roll.get();
-	float pitch_setpoint = pitch + -_manual_control_setpoint.pitch * dt * _param_sgm_pitch.get();
+
+	if (!sub_like) {
+		// Legacy multicopter: integrate roll/pitch from sticks
+		roll_setpoint = roll + _manual_control_setpoint.roll * dt * _param_sgm_roll.get();
+		pitch_setpoint = pitch + -_manual_control_setpoint.pitch * dt * _param_sgm_pitch.get();
+	}
 
 	// Generate target quaternion
 	Eulerf euler_sp(roll_setpoint, pitch_setpoint, yaw_setpoint);
@@ -256,21 +263,50 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 
 	q_sp.copyTo(_attitude_setpoint.q_d);
 
-	_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * _param_sgm_thrtl.get();
+	// Thrust mapping
+	const float g = _param_sgm_thrtl.get();
+	if (sub_like) {
+		// Sub mapping
+		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g; // surge +x
+		_attitude_setpoint.thrust_body[1] = _manual_control_setpoint.roll * g; // sway +y
+		_attitude_setpoint.thrust_body[2] = -_manual_control_setpoint.pitch * g; // heave +z down
+	} else {
+		// Legacy multicopter: throttle only on +x (surge)
+		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g;
+		_attitude_setpoint.thrust_body[1] = 0.f;
+		_attitude_setpoint.thrust_body[2] = 0.f;
+	}
 
 	_attitude_setpoint.timestamp = hrt_absolute_time();
 }
 
 void UUVAttitudeControl::generate_rates_setpoint(float dt)
 {
-	// Integrate manual control inputs
-	_rates_setpoint.roll = _manual_control_setpoint.roll * dt * _param_rgm_roll.get();
-	_rates_setpoint.pitch = -_manual_control_setpoint.pitch * dt * _param_rgm_pitch.get();
-	_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
+	const bool sub_like = sub_like_mode();
 
-	_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * _param_rgm_thrtl.get();
+	if (sub_like) {
+		// Hold level. Only yaw is a rate command.
+		_rates_setpoint.roll = 0.0f;
+		_rates_setpoint.pitch = 0.0f;
+		_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
+
+		const float g = _param_rgm_thrtl.get();
+		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g; // surge +x
+		_rates_setpoint.thrust_body[1] = _manual_control_setpoint.roll * g; // sway +y
+		_rates_setpoint.thrust_body[2] = -_manual_control_setpoint.pitch * g; // heave +z down
+	} else {
+		// Legacy multicopter: roll/pitch/yaw are rate commands; thrust only surge
+		_rates_setpoint.roll = _manual_control_setpoint.roll * dt * _param_rgm_roll.get();
+		_rates_setpoint.pitch = -_manual_control_setpoint.pitch * dt * _param_rgm_pitch.get();
+		_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
+
+		const float g = _param_rgm_thrtl.get();
+		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g;
+		_rates_setpoint.thrust_body[1] = 0.f;
+		_rates_setpoint.thrust_body[2] = 0.f;
+	}
+
 	_rates_setpoint.timestamp = hrt_absolute_time();
-
 }
 
 void UUVAttitudeControl::check_setpoint_validity(vehicle_attitude_s &v_att)
@@ -352,13 +388,34 @@ void UUVAttitudeControl::Run()
 
 			} else if (!_vcontrol_mode.flag_control_attitude_enabled
 				   && !_vcontrol_mode.flag_control_rates_enabled) {
+
 				/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
-				constrain_actuator_commands(_manual_control_setpoint.roll * _param_mgm_roll.get(),
-							    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
-							    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),
-							    _manual_control_setpoint.throttle * _param_mgm_thrtl.get(),
-							    0.f,
-							    0.f);
+				const bool sub_like = sub_like_mode();
+
+				if (sub_like) {
+					// Sub direct mapping: keep level, yaw torque, full XYZ thrust
+					const float tg = _param_mgm_thrtl.get();
+					const float yg = _param_mgm_yaw.get();
+
+					const float roll_u = 0.0f;
+					const float pitch_u = 0.0f;
+					const float yaw_u = _manual_control_setpoint.yaw * yg;
+
+					const float thrust_x = _manual_control_setpoint.throttle * tg; // surge
+					const float thrust_y = _manual_control_setpoint.roll * tg; // sway
+					const float thrust_z = -_manual_control_setpoint.pitch * tg; // heave
+
+					constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
+
+				} else {
+					// Legacy multicopter direct mapping: torques from sticks, thrust only surge
+					constrain_actuator_commands(_manual_control_setpoint.roll * _param_mgm_roll.get(),
+							    	    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
+							    	    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),
+							    	    _manual_control_setpoint.throttle * _param_mgm_thrtl.get(),
+							    	    0.f,
+							    	    0.f);
+				}
 			}
 
 		} else {
