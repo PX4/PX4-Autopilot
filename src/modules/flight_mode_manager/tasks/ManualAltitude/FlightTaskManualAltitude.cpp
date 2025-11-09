@@ -114,7 +114,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 		// Use presence of horizontal stick inputs as a transition criteria
 		float stick_xy = Vector2f(_sticks.getPitchRollExpo()).length();
-		bool stick_input = stick_xy > 0.05f;
+		bool stick_input = stick_xy > 0.001f;
 
 		if (_terrain_hold) {
 			bool too_fast = spd_xy > _param_mpc_hold_max_xy.get();

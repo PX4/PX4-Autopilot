@@ -12,17 +12,9 @@ publications:
     type: px4_msgs::msg::ArmingCheckRequest
     rate_limit: 5.
 
-  # - topic: /fmu/out/mode_completed
-  #   type: px4_msgs::msg::ModeCompleted
-  #   rate_limit: 50.
-
   - topic: /fmu/out/battery_status
     type: px4_msgs::msg::BatteryStatus
     rate_limit: 1.
-
-  # - topic: /fmu/out/collision_constraints
-  #   type: px4_msgs::msg::CollisionConstraints
-  #   rate_limit: 50.
 
   - topic: /fmu/out/estimator_status_flags
     type: px4_msgs::msg::EstimatorStatusFlags
@@ -35,9 +27,6 @@ publications:
   - topic: /fmu/out/manual_control_setpoint
     type: px4_msgs::msg::ManualControlSetpoint
     rate_limit: 25.
-
-  # - topic: /fmu/out/message_format_response
-  #   type: px4_msgs::msg::MessageFormatResponse
 
   - topic: /fmu/out/position_setpoint_triplet
     type: px4_msgs::msg::PositionSetpointTriplet
@@ -75,10 +64,6 @@ publications:
     type: px4_msgs::msg::EstimatorSensorBias
     rate_limit: 5.
 
-
-  # - topic: /fmu/out/vehicle_gps_position
-  #   type: px4_msgs::msg::SensorGps
-  #   rate_limit: 50.
 
   - topic: /fmu/out/vehicle_local_position
     type: px4_msgs::msg::VehicleLocalPosition
@@ -142,6 +127,7 @@ publications:
   - topic: /fmu/out/vehicle_local_position_setpoint
     type: px4_msgs::msg::VehicleLocalPositionSetpoint
     rate_limit: 50.
+
 
 
 # Create uORB::Publication
