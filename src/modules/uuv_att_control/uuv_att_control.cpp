@@ -265,11 +265,13 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 
 	// Thrust mapping
 	const float g = _param_sgm_thrtl.get();
+
 	if (sub_like) {
 		// Sub mapping
 		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g; // surge +x
 		_attitude_setpoint.thrust_body[1] = _manual_control_setpoint.roll * g; // sway +y
 		_attitude_setpoint.thrust_body[2] = -_manual_control_setpoint.pitch * g; // heave +z down
+
 	} else {
 		// Legacy multicopter: throttle only on +x (surge)
 		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g;
@@ -294,6 +296,7 @@ void UUVAttitudeControl::generate_rates_setpoint(float dt)
 		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g; // surge +x
 		_rates_setpoint.thrust_body[1] = _manual_control_setpoint.roll * g; // sway +y
 		_rates_setpoint.thrust_body[2] = -_manual_control_setpoint.pitch * g; // heave +z down
+
 	} else {
 		// Legacy multicopter: roll/pitch/yaw are rate commands; thrust only surge
 		_rates_setpoint.roll = _manual_control_setpoint.roll * dt * _param_rgm_roll.get();
@@ -410,11 +413,11 @@ void UUVAttitudeControl::Run()
 				} else {
 					// Legacy multicopter direct mapping: torques from sticks, thrust only surge
 					constrain_actuator_commands(_manual_control_setpoint.roll * _param_mgm_roll.get(),
-							    	    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
-							    	    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),
-							    	    _manual_control_setpoint.throttle * _param_mgm_thrtl.get(),
-							    	    0.f,
-							    	    0.f);
+								    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
+								    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),
+								    _manual_control_setpoint.throttle * _param_mgm_thrtl.get(),
+								    0.f,
+								    0.f);
 				}
 			}
 
