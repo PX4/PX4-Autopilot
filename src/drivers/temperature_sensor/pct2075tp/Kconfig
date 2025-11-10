@@ -1,0 +1,5 @@
+menuconfig DRIVERS_TEMPERATURE_SENSOR_PCT2075TP
+	bool "PCT2075TP temperature sensor"
+	default n
+	---help---
+		Enable support for PCT2075TP temperature sensor
