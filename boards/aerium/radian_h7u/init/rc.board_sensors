@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# aerium-radian-h7 board-sensors init  (PX4)
+# --------------------------------------------------------------
+
+board_adc start
+
+# ───────────────────────────────────────────────────────────────
+# IMU 1 – BMI270
+# PX4 enum: ROTATION_YAW_270 = 6
+bmi270    -R 6 -s start
+
+# Magnetometers
+# BMM150 (ArduPilot: I2C:0:0x10, ROTATION_YAW_180)
+# PX4 enum: ROTATION_YAW_180 = 4
+bmm150    -I -b 2 -R 4 start
+
+# LIS3MDL (ArduPilot: I2C:0:0x1C, ROTATION_ROLL_180_YAW_90)
+# PX4 enum: ROTATION_ROLL_180_YAW_270 = 14
+lis3mdl   -I -a 30 -b 2 -R 14 start
+
+# IMU 2 – ICM42688P
+icm42688p -s start
+
+# Barometers (ArduPilot lists DPS310 a.k.a. DPS368 and BMP388)
+dps310    -s start
+bmp388    -s start
