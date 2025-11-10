@@ -419,6 +419,7 @@ param set-default FW_AIRSPD_STALL 40.0   # Stall speed
 # Airspeed Sensor (SITL - user validated)
 param set-default FW_USE_AIRSPD 1        # Use airspeed for control
 param set-default ASPD_DO_CHECKS 7       # User validated: works in SITL
+param set-default ASPD_FALLBACK  1       # Fallback to G/S - W/S
 param set-default SYS_HAS_NUM_ASPD 1     # 1 virtual airspeed sensor
 
 # TECS (Optimized)
