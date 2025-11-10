@@ -8,6 +8,8 @@ for build_dir_path in build/*/ ; do
   build_dir=${build_dir_path#*/}
   mkdir artifacts/$build_dir
   find artifacts/ -maxdepth 1 -type f -name "*$build_dir*"
+  # Binaries
+  cp -r $build_dir_path/bin artifacts/$build_dir/
   # Airframe
   cp $build_dir_path/airframes.xml artifacts/$build_dir/
   # Parameters
