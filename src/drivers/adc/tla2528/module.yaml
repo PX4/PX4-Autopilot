@@ -5,7 +5,7 @@ module_name: tla2528
 parameters:
   - group: ADC
     definitions:
-      ADC_tla2528_EN:
+      ADC_TLA2528_EN:
         description:
             short: Enable tla2528
             long: |
@@ -15,3 +15,16 @@ parameters:
         default: 0
 
 
+      ADC_TLA2528_REFV:
+        description:
+            short: Applied reference Voltage.
+            long: |
+                The voltage applied to the TLA2528 board as reference
+        type: float
+        unit: V
+        min: 2.0
+        max: 3.0
+        decimal: 2
+        increment: 0.01
+        reboot_required: true
+        default: 2.5

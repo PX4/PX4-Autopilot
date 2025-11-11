@@ -34,10 +34,10 @@ TLA2528::TLA2528(const I2CSPIDriverConfig &config) :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
-	//static_assert(arraySize(adc_report_s::channel_id) >= NUM_CHANNELS, "TLA2528 reports 16 channels");
 }
 
-TLA2528::~TLA2528(){
+TLA2528::~TLA2528()
+{
 	ScheduleClear();
 	perf_free(_cycle_perf);
 	perf_free(_comms_errors);
@@ -52,8 +52,11 @@ int TLA2528::init()
 		return ret;
 	}
 
+	float ref_volt = 2.5f;
+	param_get(param_find("ADC_TLA2528_REFV"), &ref_volt);
+
 	_adc_report.device_id = this->get_device_id();
-	//_adc_report.v_ref = _adc_tla2528_refv.get();
+	_adc_report.v_ref = ref_volt;
 	_adc_report.resolution = 4096;
 
 	for (unsigned i = 0; i < 16; ++i) {
@@ -61,29 +64,27 @@ int TLA2528::init()
 	}
 
 	ret = probe();
+
 	if (ret != PX4_OK) {
 		PX4_DEBUG("TLA2528::probing failed (%i)", ret);
 		return ret;
 	}
 
 	ret = conf();
+
 	if (ret != PX4_OK) {
 		PX4_DEBUG("TLA2528::configuring failed (%i)", ret);
 		return ret;
 	}
 
 	calibrate();
-
 	ScheduleOnInterval(config_data.interval);
 
 	return PX4_OK;
 }
 
-
-
-
-
-int TLA2528::calibrate(){
+int TLA2528::calibrate()
+{
 	uint8_t send_data[3];
 	uint8_t recv_data;
 
@@ -96,7 +97,7 @@ int TLA2528::calibrate(){
 	send_data[1] = GENERAL_CFG;
 	transfer(&send_data[0], 2, &recv_data, 1);
 
-	if(recv_data & (1u << 1)){
+	if (recv_data & (1u << 1)) {
 		PX4_DEBUG("TLA2528::calibration failed");
 		return PX4_ERROR;
 	}
@@ -104,8 +105,8 @@ int TLA2528::calibrate(){
 	return PX4_OK;
 }
 
-
-int TLA2528::reset(){
+int TLA2528::reset()
+{
 	uint8_t send_data[3];
 	send_data[0] = SET_BIT;
 	send_data[1] = GENERAL_CFG;
@@ -115,22 +116,21 @@ int TLA2528::reset(){
 	return 0;
 }
 
-
-
-void TLA2528::adc_get(){
+void TLA2528::adc_get()
+{
 	//Start sequential adc read
 	uint8_t send_data[3] = {SET_BIT, SEQUENCE_CFG, 0x10};
 	transfer(&send_data[0], 3, nullptr, 0);
 	uint8_t recv_data[3];
 
 	//Read adc data
-	for(int i=0; i<config_data.num_pins; i++){
+	for (int i = 0; i < config_data.num_pins; i++) {
 		transfer(nullptr, 0, &recv_data[0], 2);
 
 		uint16_t tmp0 = ((uint16_t)recv_data[0]) << 8;
 		uint16_t measurement = (tmp0 | recv_data[1]) >> 4;
 		uint8_t ch_id = recv_data[1] & 0x0F;
-		//printf("45654: %02X, %02X \n", measurement, ch_id);
+
 		_adc_report.channel_id[i] = ch_id;
 		_adc_report.raw_data[i] = measurement;
 	}
@@ -146,7 +146,7 @@ void TLA2528::adc_get(){
 
 int TLA2528::probe()
 {
-	// Set device in debug mode (should respond with 0xA5A to all reads)
+	// Set device in debug mode (should respond with 0xA5AX to all reads)
 	uint8_t send_data[3] = {SET_BIT, DATA_CFG, 0x80};
 	transfer(&send_data[0], 3, nullptr, 0);
 
@@ -163,9 +163,10 @@ int TLA2528::probe()
 	send_data[2] = 0x80;
 	transfer(&send_data[0], 3, nullptr, 0);
 
-	if(recv_data[0] == 165 && recv_data[1] == 160){
+	if (recv_data[0] == 165) {
 		return PX4_OK;
 	}
+
 	return PX4_ERROR;
 }
 
@@ -223,5 +224,6 @@ void TLA2528::RunImpl()
 	for (unsigned i = 0; i < 16; ++i) {
 		_adc_report.channel_id[i] = -1;
 	}
+
 	perf_end(_cycle_perf);
 }
