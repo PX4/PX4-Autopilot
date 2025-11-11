@@ -72,5 +72,5 @@ private:
 	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
 
-	sensor_temp_s _sensor_temp;
+	sensor_temp_s _sensor_temp {};
 };
