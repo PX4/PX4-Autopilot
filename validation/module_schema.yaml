@@ -352,6 +352,28 @@ actuator_output:
                                         # ui only shows the param if this condition is true
                                         type: string
                                         regex: *condition_regex
+                            trim:
+                                type: dict
+                                schema:
+                                    min:
+                                        # Minimum trim value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    max:
+                                        # Maximum trim value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    default:
+                                        # Default trim value
+                                        type: integer
+                                        min: 0
+                                        max: 65536
+                                    show_if:
+                                        # ui only shows the param if this condition is true
+                                        type: string
+                                        regex: *condition_regex
                             failsafe:
                                 type: dict
                                 schema:

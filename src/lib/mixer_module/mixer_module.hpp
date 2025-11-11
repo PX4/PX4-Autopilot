@@ -167,16 +167,19 @@ public:
 	void setAllFailsafeValues(uint16_t value);
 	void setAllDisarmedValues(uint16_t value);
 	void setAllMinValues(uint16_t value);
+	void setAllTrimValues(uint16_t value);
 	void setAllMaxValues(uint16_t value);
 
 	/** Disarmed values: disarmedValue < minValue needs to hold */
 	uint16_t &disarmedValue(int index) { return _disarmed_value[index]; }
 	uint16_t &minValue(int index) { return _min_value[index]; }
+	uint16_t &trimValue(int index) { return _trim_value[index]; }
 	uint16_t &maxValue(int index) { return _max_value[index]; }
 
 	param_t functionParamHandle(int index) const { return _param_handles[index].function; }
 	param_t disarmedParamHandle(int index) const { return _param_handles[index].disarmed; }
 	param_t minParamHandle(int index) const { return _param_handles[index].min; }
+	param_t trimParamHandle(int index) const { return _param_handles[index].trim; }
 	param_t maxParamHandle(int index) const { return _param_handles[index].max; }
 
 	/**
@@ -228,6 +231,7 @@ private:
 		param_t function{PARAM_INVALID};
 		param_t disarmed{PARAM_INVALID};
 		param_t min{PARAM_INVALID};
+		param_t trim{PARAM_INVALID};
 		param_t max{PARAM_INVALID};
 		param_t failsafe{PARAM_INVALID};
 	};
@@ -240,6 +244,7 @@ private:
 	uint16_t _failsafe_value[MAX_ACTUATORS] {};
 	uint16_t _disarmed_value[MAX_ACTUATORS] {};
 	uint16_t _min_value[MAX_ACTUATORS] {};
+	uint16_t _trim_value[MAX_ACTUATORS] {};
 	uint16_t _max_value[MAX_ACTUATORS] {};
 	uint16_t _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
 	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction

@@ -120,6 +120,8 @@ void MixingOutput::initParamHandles(const uint8_t instance_start)
 		_param_handles[i].disarmed = param_find(param_name);
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MIN", i + instance_start);
 		_param_handles[i].min = param_find(param_name);
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "TRIM", i + instance_start);
+		_param_handles[i].trim = param_find(param_name);
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MAX", i + instance_start);
 		_param_handles[i].max = param_find(param_name);
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FAIL", i + instance_start);
@@ -142,9 +144,9 @@ void MixingOutput::printStatus() const
 	PX4_INFO_RAW("Channel Configuration:\n");
 
 	for (unsigned i = 0; i < _max_num_outputs; i++) {
-		PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
+		PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d, trim: %d\n", i,
 			     (int)_function_assignment[i], _current_output_value[i],
-			     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i]);
+			     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i], _trim_value[i]);
 	}
 }
 
@@ -173,6 +175,10 @@ void MixingOutput::updateParams()
 			_min_value[i] = val;
 		}
 
+		if (_param_handles[i].trim != PARAM_INVALID && param_get(_param_handles[i].trim, &val) == 0) {
+			_trim_value[i] = val;
+		}
+
 		if (_param_handles[i].max != PARAM_INVALID && param_get(_param_handles[i].max, &val) == 0) {
 			_max_value[i] = val;
 		}
@@ -181,6 +187,15 @@ void MixingOutput::updateParams()
 			uint16_t tmp = _min_value[i];
 			_min_value[i] = _max_value[i];
 			_max_value[i] = tmp;
+		}
+
+		// Trim needs to be clamped to min/max
+		if (_trim_value[i] < _min_value[i]) {
+			_trim_value[i] = _min_value[i];
+		}
+
+		if (_trim_value[i] > _max_value[i]) {
+			_trim_value[i] = _max_value[i];
 		}
 
 		if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
@@ -372,6 +387,14 @@ void MixingOutput::setAllMinValues(uint16_t value)
 	}
 }
 
+void MixingOutput::setAllTrimValues(uint16_t value)
+{
+	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		_param_handles[i].trim = PARAM_INVALID;
+		_trim_value[i] = value;
+	}
+}
+
 void MixingOutput::setAllMaxValues(uint16_t value)
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
@@ -528,10 +551,28 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 		value = -1.f * value;
 	}
 
-	const float output = math::interpolate(value, -1.f, 1.f,
-					       static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
+	float output = _disarmed_value[i];
+
+	if (_function_assignment[i] >= OutputFunction::Servo1
+	    && _function_assignment[i] <= OutputFunction::ServoMax) {
+
+		/* bi-linear interpolation */
+		if (value < 0.0f) {
+			output = math::interpolate(value, -1.f, 0.0f,
+						   static_cast<float>(_min_value[i]), static_cast<float>(_trim_value[i]));
+
+		} else {
+			output = math::interpolate(value, 0.0f, 1.0f,
+						   static_cast<float>(_trim_value[i]), static_cast<float>(_max_value[i]));
+		}
+
+	} else {
+		output = math::interpolate(value, -1.f, 1.f,
+					   static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
+	}
 
 	return math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX));
+
 }
 
 void

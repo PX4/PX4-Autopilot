@@ -575,6 +575,28 @@ Another way to test without using the sliders would be to set the [`COM_PREARM_M
 
 :::
 
+##### Split Servo Deflections
+
+::: info
+This method is experimental, but much faster.
+
+:::
+To facilitate setting the neutral point of the servos, a bilinear curve function can be defined using the following parameters `PWM_MAIM_TRIMx` / `PWM_AUX_TRIMx` for each servo. This allows for unequal deflections in the positive and negative direction:
+![Split Servo Deflections](../../assets/config/actuators/servo_pwm_trim.png)
+
+To set this up:
+
+1. Set all surface `Trim` to `0.00` for all surfaces:
+
+     ![Control Surface Trimming](../../assets/config/actuators/control_surface_trim.png)
+
+1. Set `Minimum`, `Maximum`, `Trim` and `Disarm` value so that the surface will stay at neutral position approximately.
+This is usually around `1500` for PWM servos (near the centre of the servo range).
+
+2. Gradualy increate the `Maximum` for each servo, while checking the deflection with the sliders or manual input with [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) parameter to `Always` until the desired deflection is reached.
+3. Gradualy decrease the `Minimum` for each servo, until the desired deflection is reached.
+4. Set `PWM_MAIN_TRIMx` / `PWM_AUX_TRIMx` to the neutral point of each servo.
+
 #### Control surfaces that move from neutral to full deflection
 
 Control surfaces that move only one direction from neutral include: airbrakes, spoilers, and flaps.
