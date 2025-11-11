@@ -52,7 +52,6 @@ PCT2075TP::~PCT2075TP()
 
 int PCT2075TP::init()
 {
-
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
