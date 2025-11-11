@@ -264,6 +264,8 @@
 #define DRV_ADC_DEVTYPE_TLA2528 0xEF
 
 
+#define DRV_TEMP_DEVTYPE_MCP9808	0xEE
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
