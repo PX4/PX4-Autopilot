@@ -36,6 +36,8 @@ px4_add_library(vehicle_gps_position
 	VehicleGPSPosition.hpp
 	gps_blending.cpp
 	gps_blending.hpp
+	PpsTimeSync.cpp
+	PpsTimeSync.hpp
 )
 target_link_libraries(vehicle_gps_position
 	PRIVATE
