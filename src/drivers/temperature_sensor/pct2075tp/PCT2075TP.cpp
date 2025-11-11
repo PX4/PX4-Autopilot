@@ -31,10 +31,6 @@
  *
  ****************************************************************************/
 
-/**
- * @file PCT2075TP.cpp
- * Driver for the PCT2075TP temperature sensor connected via I2C.
- */
 
 #include "PCT2075TP.hpp"
 
