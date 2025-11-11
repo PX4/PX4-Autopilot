@@ -254,14 +254,26 @@ static int gimbal_thread_main(int argc, char *argv[])
 				}
 			}
 
-			if (params.mnt_do_stab == 1) {
-				thread_data.output_obj->set_stabilize(true, true, true);
+			switch (params.mnt_do_stab) {
+			case MntDoStabilize::ALL_AXES: {
+					thread_data.output_obj->set_stabilize(true, true, true);
+					break;
+				}
 
-			} else if (params.mnt_do_stab == 2) {
-				thread_data.output_obj->set_stabilize(false, false, true);
+			case MntDoStabilize::YAW_LOCK: {
+					thread_data.output_obj->set_stabilize(false, false, true);
+					break;
+				}
 
-			} else {
-				thread_data.output_obj->set_stabilize(false, false, false);
+			case MntDoStabilize::PITCH_LOCK: {
+					thread_data.output_obj->set_stabilize(false, true, false);
+					break;
+				}
+
+			default: {
+					thread_data.output_obj->set_stabilize(false, false, false);
+					break;
+				}
 			}
 
 			if (thread_data.output_obj->check_and_handle_setpoint_timeout(thread_data.control_data, hrt_absolute_time())) {
