@@ -55,7 +55,7 @@ int PCT2075TP::init()
 	int ret = I2C::init();
 
 	if (ret != PX4_OK) {
-		DEVICE_DEBUG("I2C::init failed (%i)", ret);
+		PX4_WARN("I2C::init failed (%i)", ret);
 		return ret;
 	}
 
