@@ -141,7 +141,7 @@ int PCT2075TP::_write_config(uint8_t config)
 	config_data[0] = Register::CONFIGURATION;
 	config_data[1] = config;
 
-	return transfer(config_data, 2, nullptr, 0);
+	return transfer(config_data, sizeof(config_data), nullptr, 0);
 }
 
 int PCT2075TP::_read_sample(float *temperature)
