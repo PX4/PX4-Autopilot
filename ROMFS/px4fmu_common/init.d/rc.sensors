@@ -231,6 +231,12 @@ then
 	ads7953 start -S
 fi
 
+ ADC sensor tla2528 external I2C
+if param compare -s ADC_TLA2528_EN 1
+then
+	tla2528 start -X -b 2 -O 0xFF -U 1000
+fi
+
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then
