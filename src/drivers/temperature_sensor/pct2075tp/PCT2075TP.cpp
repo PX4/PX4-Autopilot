@@ -162,7 +162,7 @@ int PCT2075TP::_read_sample(float *temperature)
 	// Convert to temperature in Celsius
 	// Temperature is 11-bit in 16-bit register
 	// Formula: temp = raw * (0.125 / 32.0) = raw * 0.00390625
-	*temperature = raw_temp * TEMP_CONVERSION_FACTOR;
+	*temperature = (float)raw_temp * TEMP_CONVERSION_FACTOR;
 
 	return PX4_OK;
 }
