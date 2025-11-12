@@ -485,6 +485,7 @@
       - [UART/Serial Ports](uart/index.md)
         - [Port-Configurable Serial Drivers](uart/user_configurable_serial_driver.md)
     - [RTK GPS (Integration)](advanced/rtk_gps.md)
+    - [PPS Time Synchronization](advanced/pps_time_sync.md)
   - [Middleware](middleware/index.md)
     - [uORB Messaging](middleware/uorb.md)
     - [uORB Graph](middleware/uorb_graph.md)

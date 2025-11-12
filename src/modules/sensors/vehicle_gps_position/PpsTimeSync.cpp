@@ -31,68 +31,74 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file PpsTimeSync.cpp
+ *
+ * PPS-based time synchronization implementation
+ */
 
-#include <pthread.h>
+#include "PpsTimeSync.hpp"
+#include <px4_platform_common/log.h>
+#include <mathlib/mathlib.h>
 
-#include <px4_platform_common/atomic.h>
-#include <px4_platform_common/Serial.hpp>
-
-#include "data.h"
-
-namespace InertialLabs {
-
-constexpr uint16_t BUFFER_SIZE{512};
-
-class Sensor {
-public:
-	// Use C-style function pointer, because we can't use std::function on some platforms
-	using DataHandler = void (*)(void *, SensorsData *);
-
-	Sensor()                          = default;
-	Sensor(const Sensor &)            = delete;
-	Sensor &operator=(const Sensor &) = delete;
-	~Sensor();
-
-	bool init(const char *serialDeviceName, void *context, DataHandler dataHandler);
-	void deinit();
-	bool isInitialized() const;
-
-	void updateData();
-
-private:
-	static void *updateDataThreadHelper(void *context) {
-		if (!context) {
-			return nullptr;
-		}
-		Sensor *sensor = reinterpret_cast<Sensor *>(context);
-		sensor->updateData();
-		return nullptr;
+void PpsTimeSync::process_pps(const pps_capture_s &pps)
+{
+	if (pps.timestamp == 0 || pps.rtc_timestamp == 0) {
+		return;
 	}
 
-	bool initSerialPort(const char *serialDeviceName);
-	bool moveToBufferStart(const uint8_t *pos);
-	bool skipPackageInBufferStart();
-	bool movePackageHeaderToBufferStart();
-	bool moveValidPackageToBufferStart();
+	_pps_hrt_timestamp = pps.timestamp;
+	_pps_rtc_timestamp = pps.rtc_timestamp;
+	_time_offset = (int64_t)pps.rtc_timestamp - (int64_t)pps.timestamp;
+	_initialized = true;
+	_updated = true;
+}
 
-	bool parseUDDPayload();
+uint64_t PpsTimeSync::correct_gps_timestamp(uint64_t gps_fc_timestamp, uint64_t gps_utc_timestamp)
+{
+	if (!is_valid()) {
+		return gps_fc_timestamp;
+	}
 
-	device::Serial  *_serial{nullptr};
-	pthread_t        _threadId{0};
-	px4::atomic_bool _processInThread{false};
+	const int64_t corrected_fc_timestamp = (int64_t)gps_utc_timestamp - _time_offset;
 
-	// callback. C-style class method pointer
-	void       *_context{nullptr};
-	DataHandler _dataHandler{nullptr};
+	if (_updated) {
+		const int64_t correction_amount = corrected_fc_timestamp - (int64_t)gps_fc_timestamp;
 
-	px4::atomic_bool _isInitialized{false};
-	px4::atomic_bool _isDeinitInProcess{false};
+		if (math::abs_t(correction_amount) > kPpsMaxCorrectionUs) {
+			PX4_DEBUG("PPS: Correction too large: %" PRId64 " us (%.1f ms), rejecting",
+				  correction_amount, (double)correction_amount / 1000.0);
+			return gps_fc_timestamp;
+		}
 
-	uint8_t  _buf[BUFFER_SIZE]{};
-	uint16_t _bufOffset{0};
+		// Additional sanity check: corrected timestamp should not be too far in the future (0.1s)
+		const uint64_t now = hrt_absolute_time();
 
-	SensorsData _sensorData{};
-};
+		if ((uint64_t)corrected_fc_timestamp > now + 100000) {
+			return gps_fc_timestamp;
+		}
 
-}  // namespace InertialLabs
+		_updated = false;
+	}
+
+	return (uint64_t)corrected_fc_timestamp;
+}
+
+bool PpsTimeSync::is_valid() const
+{
+	if (!_initialized) {
+		return false;
+	}
+
+	uint64_t now = hrt_absolute_time();
+
+	if (now < _pps_hrt_timestamp) {
+		now = UINT64_MAX;
+	}
+
+	if (now - _pps_hrt_timestamp > kPpsStaleTimeoutUs) {
+		return false;
+	}
+
+	return true;
+}
