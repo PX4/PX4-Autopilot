@@ -279,6 +279,14 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	_respectGroundSlowdown();
 }
 
+
+void FlightTaskManualAltitude::_updateSetpointsNoLock()
+{
+	_updateYawSetpoint();
+	_updateXYSetpoint();
+}
+
+
 void FlightTaskManualAltitude::_updateYawSetpoint()
 {
 	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint,

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,104 +34,49 @@
 /**
  * @file FlightTaskNaor.hpp
  *
- * Flight task for NAOR manual control mode.
+ * Flight task for manual controlled altitude using the velocity smoothing library
  */
 
-#pragma once
+ #pragma once
 
-#include <lib/stick_yaw/StickYaw.hpp>
-#include <lib/sticks/Sticks.hpp>
-#include "FlightTask.hpp"
-#include "StickTiltXY.hpp"
+#include "FlightTaskManualAltitude.hpp"
+#include "../Utility/auxReader.hpp"
+#include <motion_planning/ManualVelocitySmoothingZ.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_odometry.h>
-#include <uORB/topics/naor_debug.h>
-#include <uORB/topics/super_hold_debug.h>
-#include <uORB/topics/pid_consts.h>
-#include <matrix/matrix/math.hpp>
-#include <lib/motion_planning/VelocitySmoothing.hpp>
-#include <uORB/Publication.hpp>
-#include <lib/pid/PID.hpp>
+#include <uORB/topics/estimator_status_flags.h>
+
+class FormicAltitude : public FlightTaskManualAltitude
+ {
+ public:
+	 FormicAltitude() = default;
+	 virtual ~FormicAltitude() = default;
+	 bool activate(const trajectory_setpoint_s &last_setpoint) override;
 
 
+ protected:
+	 virtual void _updateSetpoints() override;
 
-enum class SuperHoldMode_state {
-	init = 0,
-	operation =  1,
-	Error_close =  2,
+	 /** Reset position or velocity setpoints in case of EKF reset event */
+	 void _ekfResetHandlerPositionZ(float delta_z) override;
+	 void _ekfResetHandlerVelocityZ(float delta_vz) override;
 
-};
-
-#define map(x, in_min, in_max, out_min, out_max) ((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
-
-class FlightTaskNaor : public FlightTask
-{
-public:
-	FlightTaskNaor() = default;
-	virtual ~FlightTaskNaor() = default;
-	bool activate(const trajectory_setpoint_s &last_setpoint) override;
-	bool updateInitialize() override;
-	bool update() override;
-
-
-protected:
-
-	virtual void _updateSetpoints_acc(matrix::Vector2f acceleration_setpoint); /**< updates all setpoints */
-	virtual void _throttleToVelocity(); /**< scales sticks to velocity in z */
-
-
-	Sticks _sticks{this};
-	StickTiltXY _stick_tilt_xy{this};
-	StickYaw _stick_yaw{this};
-
-	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
+	 void _updateTrajConstraints();
+	 void _setOutputState();
+	ManualVelocitySmoothingZ _smoothing; ///< Smoothing in z direction
+	uORB::Subscription _estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
+	AuxReader _aux_reader;
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitude,
+					 (ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
+					 (ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+					 (ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
+					)
 
 
 
 private:
+	float _channel_values{0.f};
+	bool _terrain_hold_previous{false}; /**< true when vehicle was controlling height above a static ground position in the previous iteration */
+	bool _first_time{true};
+ };
 
-	void _updateTrajectoryBoundaries();
-	bool _updateYawCorrection();
-	void first_pid_init(pid_consts_s pid_data);
-	void update_pid_constants(pid_consts_s pid_data);
-	bool has_pid_constants_updated(pid_consts_s pid_data);
-	matrix::Vector3f pid_operation(matrix::Vector3f target_position);
-	void _execute_trajectory();
-	void _publish_debug_topics();
-	float total_Error_calc();
-	bool _checkTakeoff() override; /**< override to remove altitude constraints */
-	float zero_velocity_setpoint(float vel);
-	SuperHoldMode_state _super_hold_mode_state = SuperHoldMode_state::init;
-	vehicle_odometry_s _visual_odometry;
-	uORB::Subscription _visual_odometry_sub{ORB_ID(vehicle_visual_odometry)};
-	bool _check_timer(uint64_t _timestamp);
-	double _timer_threshold = 300000;  // 100ms = 100,000 microseconds
-
-
-	naor_debug_s _naor_debug;
-	uORB::Publication<naor_debug_s> _naor_debug_pub{ORB_ID(naor_debug)};
-	super_hold_debug_s _super_hold_debug;
-	uORB::Publication<super_hold_debug_s> _super_hold_debug_pub{ORB_ID(super_hold_debug)};
-	uORB::Subscription _pid_consts_sub{ORB_ID(pid_consts)};
-	VelocitySmoothing _velocity_smoothing_x;
-	VelocitySmoothing _velocity_smoothing_y;
-
-	PID _pid_x;
-	PID _pid_y;
-	PID _pid_altitude;
-	pid_consts_s _pid_consts;
-	uint64_t _last_pid_update_timestamp{0};
-
-	matrix::Vector3f _position_to_hold;
-
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
-		(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
-		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max
-	)
-	bool _first_time = true;
-	int init_counter = 200;
-
-
-};
-
+using FlightTaskNaor = FormicAltitude;

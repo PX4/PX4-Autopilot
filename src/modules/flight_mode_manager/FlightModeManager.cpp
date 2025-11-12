@@ -154,6 +154,7 @@ void FlightModeManager::start_flight_task()
 	bool matching_task_running = true;
 	bool task_failure = false;
 	const bool nav_state_descend = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
+	const bool nav_state_naor = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_NAOR);
 
 	// Follow me
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
@@ -230,33 +231,26 @@ void FlightModeManager::start_flight_task()
 		matching_task_running = matching_task_running && !task_failure;
 	}
 
-		// NAOR manual control mode
-	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_NAOR) {
-			found_some_task = true;
-			FlightTaskError error = FlightTaskError::NoError;
-
-			// Use Naor flight task
-			error = switchTask(FlightTaskIndex::Naor);
-
-			task_failure = (error != FlightTaskError::NoError);
-			matching_task_running = matching_task_running && !task_failure;
-		}
-
-	// Manual altitude control
-	if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL) || task_failure) {
+	// Manual altitude control (includes Naor mode)
+	if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL) || nav_state_naor || task_failure) {
 		found_some_task = true;
 		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_pos_mode.get()) {
 		case 0:
 			error = switchTask(FlightTaskIndex::ManualAltitude);
-			PX4_INFO("mpc = 0 menaul altitude control");
 			break;
 
 		case 3:
 		default:
-			error = switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
-			PX4_INFO("defult have altitude smooth");
+			if (_param_mpc_pos_mode.get() != 3) {
+				PX4_ERR("MPC_POS_MODE %" PRId32 " invalid for altitude mode, resetting", _param_mpc_pos_mode.get());
+				_param_mpc_pos_mode.set(3);
+				_param_mpc_pos_mode.commit();
+			}
+
+			const FlightTaskIndex altitude_task = nav_state_naor ? FlightTaskIndex::Naor : FlightTaskIndex::ManualAltitudeSmoothVel;
+			error = switchTask(altitude_task);
 
 			break;
 		}

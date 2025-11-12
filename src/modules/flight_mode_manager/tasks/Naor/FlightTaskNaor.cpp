@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,302 +36,114 @@
  */
 
 #include "FlightTaskNaor.hpp"
-#include <float.h>
-#include <mathlib/mathlib.h>
-#include <geo/geo.h>
-#include <px4_platform_common/log.h>
+#include "px4_platform_common/defines.h"
+
+ #include <float.h>
+
+ using namespace matrix;
+
+bool FormicAltitude::activate(const trajectory_setpoint_s &last_setpoint)
+ {
+	 bool ret = FlightTaskManualAltitude::activate(last_setpoint);
+
+	 // Check if the previous FlightTask provided setpoints
+	 estimator_status_flags_s estimator_status_flags{};
+	 _estimator_status_flags_sub.update(&estimator_status_flags);
 
 
+	 // If the position setpoint is unknown, set to the current postion
+	 float z_sp_last = PX4_ISFINITE(last_setpoint.position[2]) ? last_setpoint.position[2] : _position(2);
 
-#define MAZ_Z_VELOCITY 1.2f
+	 // If the velocity setpoint is unknown, set to the current velocity
+	 float vz_sp_last = PX4_ISFINITE(last_setpoint.velocity[2]) ? last_setpoint.velocity[2] : _velocity(2);
 
+	 // No acceleration estimate available, set to zero if the setpoint is NAN
+	 float az_sp_last = PX4_ISFINITE(last_setpoint.acceleration[2]) ? last_setpoint.acceleration[2] : 0.f;
 
-using namespace matrix;
+	 _smoothing.reset(az_sp_last, vz_sp_last, z_sp_last);
 
-bool FlightTaskNaor::updateInitialize()
-{
+	 return ret;
+ }
 
-	_visual_odometry_sub.update(&_visual_odometry);
-	_pid_consts_sub.update(&_pid_consts);
+void FormicAltitude::_ekfResetHandlerPositionZ(float delta_z)
+ {
+	 _smoothing.setCurrentPosition(_position(2));
+ }
 
-	_pid_consts_sub.update(&_pid_consts);
-	bool ret = FlightTask::updateInitialize();
+void FormicAltitude::_ekfResetHandlerVelocityZ(float delta_vz)
+ {
+	 _smoothing.setCurrentVelocity(_velocity(2));
+ }
 
-	_sticks.checkAndUpdateStickInputs();
+void FormicAltitude::_updateSetpoints()
+ {
+	 // Set max accel/vel/jerk
+	 // Has to be done before _updateTrajectories()
+	 _updateTrajConstraints();
 
-	if (_sticks_data_required) {
-		ret = ret && _sticks.isAvailable();
-	}
+	 _smoothing.setVelSpFeedback(_velocity_setpoint_feedback(2));
+	 _smoothing.setCurrentPositionEstimate(_position(2));
 
-	return ret;
-}
+	// Refresh RC/AUX channel used for terrain-hold decision.
+	_aux_reader.update();
+	const float aux_value = _aux_reader.getChannel(7);
+	_channel_values = PX4_ISFINITE(aux_value) ? aux_value : 0.f;
 
+	// Fetch latest estimator flags.
+	estimator_status_flags_s estimator_status_flags{};
+	_estimator_status_flags_sub.copy(&estimator_status_flags);
 
-bool FlightTaskNaor::activate(const trajectory_setpoint_s &last_setpoint)
-{
-	bool ret = FlightTask::activate(last_setpoint);
-	_yaw_setpoint = NAN;
-	_yawspeed_setpoint = 0.f;
-	_acceleration_setpoint = Vector3f(NAN, NAN, NAN); // altitude is controlled from position/velocity
-	// _position_setpoint(2) = NAN;
-	// _velocity_setpoint.setNaN();
-	_stick_yaw.reset(_yaw, _unaided_yaw);
-	_first_time = true;
+	// Get yaw setpoint, un-smoothed position setpoints.
+	if ((_channel_values > 0.f) && estimator_status_flags.cs_rng_terrain && PX4_ISFINITE(_position(2))) {
 
-	if (_first_time) {
-		// First time initialization - use defaults if no PID constants received yet
-		if (_pid_consts.timestamp == 0) {
-			// No PID constants received yet, use defaults
-			first_pid_init(_pid_consts);
-			// Set a timestamp so the PID controllers get initialized
-			_pid_consts.timestamp = hrt_absolute_time();
+		if (_first_time == true) {
+			_first_time = false;
+			_position_setpoint(2) = _position(2);
+			float dist_to_ground_lock = _dist_to_bottom - (_position_setpoint(2) - _position(2));
+			PX4_INFO("dist_to_ground_lock: %f", (double)dist_to_ground_lock);
+
+		}
+		else {
+		FlightTaskManualAltitude::_updateSetpointsNoLock();
+		_velocity_setpoint(2) = 0.f;
 		}
 
-		// Always apply the PID constants on first activation
-		_pid_x.setGains(_pid_consts.x_ned[0], _pid_consts.x_ned[1], _pid_consts.x_ned[2]);
-		_pid_y.setGains(_pid_consts.y_ned[0], _pid_consts.y_ned[1], _pid_consts.y_ned[2]);
-		_pid_x.setOutputLimit(_pid_consts.x_ned_max_output);
-		_pid_y.setOutputLimit(_pid_consts.y_ned_max_output);
-		_pid_x.setIntegralLimit(_pid_consts.x_ned_integral_max);
-		_pid_y.setIntegralLimit(_pid_consts.y_ned_integral_max);
-		_pid_x.resetIntegral();
-		_pid_y.resetIntegral();
-		_pid_x.resetDerivative();
-		_pid_y.resetDerivative();
-		_last_pid_update_timestamp = _pid_consts.timestamp;
-
-		PX4_INFO("PID controllers initialized");
-		PX4_INFO("X PID: P=%.3f, I=%.3f, D=%.3f, Max=%.3f",
-			 (double)_pid_consts.x_ned[0], (double)_pid_consts.x_ned[1],
-			 (double)_pid_consts.x_ned[2], (double)_pid_consts.x_ned_max_output);
-		PX4_INFO("Y PID: P=%.3f, I=%.3f, D=%.3f, Max=%.3f",
-			 (double)_pid_consts.y_ned[0], (double)_pid_consts.y_ned[1],
-			 (double)_pid_consts.y_ned[2], (double)_pid_consts.y_ned_max_output);
-
-		_position_to_hold(0) = 0.0f;
-		_position_to_hold(1) = 0.0f;
-		_position_to_hold(2) = -2.0f;
-		_first_time = false;
+	} else {
+		FlightTaskManualAltitude::_updateSetpoints();
+		_first_time = true;
 	}
-	return ret;
-}
+	_smoothing.update(_deltatime, _velocity_setpoint(2));
+
+	 // Fill the jerk, acceleration, velocity and position setpoint vectors
+	 _setOutputState();
+ }
+
+void FormicAltitude::_updateTrajConstraints()
+ {
+	 _smoothing.setMaxJerk(_param_mpc_jerk_max.get());
+
+	 _smoothing.setMaxAccelUp(_param_mpc_acc_up_max.get());
+	 _smoothing.setMaxVelUp(_constraints.speed_up);
+
+	 _smoothing.setMaxAccelDown(_param_mpc_acc_down_max.get());
+	 _smoothing.setMaxVelDown(_constraints.speed_down);
+ }
 
 
+void FormicAltitude::_setOutputState()
+ {
+	 _jerk_setpoint(2) = _smoothing.getCurrentJerk();
+	 _acceleration_setpoint(2) = _smoothing.getCurrentAcceleration();
+	 _velocity_setpoint(2) = _smoothing.getCurrentVelocity();
 
-void FlightTaskNaor::_throttleToVelocity()
-{
-	_velocity_setpoint(2) = map(_sticks.getThrottleZeroCenteredExpo(), -1.0f, 1.0f, -MAZ_Z_VELOCITY, MAZ_Z_VELOCITY);
-}
+	 if (!_terrain_hold) {
+		 if (_terrain_hold_previous) {
+			 // Reset position setpoint to current position when switching from terrain hold to non-terrain hold
+			 _smoothing.setCurrentPosition(_position(2));
+		 }
 
+		 _position_setpoint(2) = _smoothing.getCurrentPosition();
+	 }
 
-void FlightTaskNaor::_updateSetpoints_acc(Vector2f acceleration_setpoint)
-{
-	// Scale down yaw input for slower response
-	float scaled_yaw_input = _sticks.getYawExpo() * 0.5f; // Reduce to 50% of original input
-	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, scaled_yaw_input, _yaw, _deltatime, _unaided_yaw);
-	_acceleration_setpoint.xy() = acceleration_setpoint;
-	_position_setpoint(0) = NAN;
-	_position_setpoint(1) = NAN;
-	_velocity_setpoint(0) = NAN;
-	_velocity_setpoint(1) = NAN;
-}
-
-
-void FlightTaskNaor::first_pid_init(pid_consts_s pid_data){
-	// Initialize default PID constants in the struct
-	_pid_consts.x_ned[0] = 0.7f;	// P term
-	_pid_consts.x_ned[1] = 0.18f;  // I term
-	_pid_consts.x_ned[2] = 0.06f;  // D term
-	_pid_consts.y_ned[0] = 0.7f;	// P term
-	_pid_consts.y_ned[1] = 0.18f;  // I term
-	_pid_consts.y_ned[2] = 0.06f;  // D term
-	_pid_consts.altitude[0] = 1.0f;	// P term
-	_pid_consts.altitude[1] = 0.1f;	// I term
-	_pid_consts.altitude[2] = 0.02f;	// D term
-	_pid_consts.x_ned_integral_max = 0.1f;	// Integral limit
-	_pid_consts.y_ned_integral_max = 0.1f;	// Integral limit
-	_pid_consts.x_ned_max_output = 0.35f;  // Max velocity output
-	_pid_consts.y_ned_max_output = 0.35f;  // Max velocity output
-	_pid_consts.altitude_integral_max = 1.0f;	// Integral limit
-	_pid_consts.altitude_output = 0.5f;	// Max velocity output
-
-	_pid_x.setGains(pid_data.x_ned[0], pid_data.x_ned[1], pid_data.x_ned[2]);
-	_pid_y.setGains(pid_data.y_ned[0], pid_data.y_ned[1], pid_data.y_ned[2]);
-	_pid_x.setOutputLimit(pid_data.x_ned_max_output);
-	_pid_y.setOutputLimit(pid_data.y_ned_max_output);
-	_pid_x.setIntegralLimit(pid_data.x_ned_integral_max);
-	_pid_y.setIntegralLimit(pid_data.y_ned_integral_max);
-	_pid_x.resetIntegral();
-	_pid_y.resetIntegral();
-	_pid_x.resetDerivative();
-	_pid_y.resetDerivative();
-	_last_pid_update_timestamp = pid_data.timestamp;
-
-	PX4_INFO("X PID: P=%.1f, I=%.1f, D=%.1f, Max=%.1f",
-		 (double)_pid_consts.x_ned[0], (double)_pid_consts.x_ned[1],
-		 (double)_pid_consts.x_ned[2], (double)_pid_consts.x_ned_max_output);
-	PX4_INFO("Y PID: P=%.1f, I=%.1f, D=%.1f, Max=%.1f",
-		 (double)_pid_consts.y_ned[0], (double)_pid_consts.y_ned[1],
-		 (double)_pid_consts.y_ned[2], (double)_pid_consts.y_ned_max_output);
-	PX4_INFO("Altitude PID: P=%.1f, I=%.1f, D=%.1f, Max=%.1f",
-		 (double)_pid_consts.altitude[0], (double)_pid_consts.altitude[1],
-		 (double)_pid_consts.altitude[2], (double)_pid_consts.altitude_output);
-	_updateTrajectoryBoundaries();
-
-}
-
-bool FlightTaskNaor::has_pid_constants_updated(pid_consts_s pid_data){
-	// Use timestamp to detect if PID constants have been updated
-	// This is much more efficient than comparing all individual values
-	return (pid_data.timestamp > _last_pid_update_timestamp);
-}
-
-void FlightTaskNaor::update_pid_constants(pid_consts_s pid_data){
-
-
-	if (!has_pid_constants_updated(pid_data)){
-		return;
-	}
-
-	_pid_x.setGains(pid_data.x_ned[0], pid_data.x_ned[1], pid_data.x_ned[2]);
-	_pid_y.setGains(pid_data.y_ned[0], pid_data.y_ned[1], pid_data.y_ned[2]);
-	_pid_x.setOutputLimit(pid_data.x_ned_max_output);
-	_pid_y.setOutputLimit(pid_data.y_ned_max_output);
-	_pid_x.setIntegralLimit(pid_data.x_ned_integral_max);
-	_pid_y.setIntegralLimit(pid_data.y_ned_integral_max);
-	_pid_x.resetIntegral();
-	_pid_y.resetIntegral();
-	_pid_x.resetDerivative();
-	_pid_y.resetDerivative();
-	_last_pid_update_timestamp = pid_data.timestamp;
-
-	PX4_INFO("X PID: P=%.1f, I=%.1f, D=%.1f, Max=%.1f",
-		 (double)_pid_consts.x_ned[0], (double)_pid_consts.x_ned[1],
-		 (double)_pid_consts.x_ned[2], (double)_pid_consts.x_ned_max_output);
-	PX4_INFO("Y PID: P=%.1f, I=%.1f, D=%.1f, Max=%.1f",
-		 (double)_pid_consts.y_ned[0], (double)_pid_consts.y_ned[1],
-		 (double)_pid_consts.y_ned[2], (double)_pid_consts.y_ned_max_output);
-	PX4_INFO("Altitude PID: P=%.1f, I=%.1f, D=%.1f, Max=%.1f",
-		 (double)_pid_consts.altitude[0], (double)_pid_consts.altitude[1],
-		 (double)_pid_consts.altitude[2], (double)_pid_consts.altitude_output);
-	_updateTrajectoryBoundaries();
-
-
-}
-
-void FlightTaskNaor::_updateTrajectoryBoundaries()
-{
-	// update params of the position smoothing
-	_velocity_smoothing_x.setMaxVel(_pid_consts.x_ned_max_output);
-	_velocity_smoothing_y.setMaxVel(_pid_consts.y_ned_max_output);
-	_velocity_smoothing_x.setMaxAccel(0.1);
-	_velocity_smoothing_y.setMaxAccel(0.1);
-	_velocity_smoothing_x.setMaxJerk(0.2);
-	_velocity_smoothing_y.setMaxJerk(0.2);
-
-}
-
-float FlightTaskNaor::zero_velocity_setpoint(float vel){
-
-	if (fabsf(vel) < 0.07f){
-		return 0.0f;
-	}
-	return vel;
-}
-
-
-float FlightTaskNaor::total_Error_calc(){
-	matrix::Vector3f Error;
-	Error = _position_to_hold - _position;
-	return Error.length();
-}
-
-
-
-void FlightTaskNaor::_execute_trajectory(){
-	//velocity command from the camera
-	// Scale down yaw input for slower response
-	float scaled_yaw_input = _sticks.getYawExpo() * 0.2f; // Reduce to 50% of original input
-	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, scaled_yaw_input, _yaw, _deltatime, _unaided_yaw);
-	_velocity_setpoint = pid_operation(_position_to_hold);
-	PX4_INFO("velocity data x: %.3f y: %.3f z: %.3f", (double)_velocity_setpoint(0), (double)_velocity_setpoint(1), (double)_velocity_setpoint(2));
-	_position_setpoint(0) = NAN;
-	_position_setpoint(1) = NAN;
-
-	// _throttleToVelocity();
-}
-
-matrix::Vector3f FlightTaskNaor::pid_operation(matrix::Vector3f target_position){
-	matrix::Vector3f velocity_command;
-	_pid_x.setSetpoint(target_position(0));
-	_pid_y.setSetpoint(target_position(1));
-	_pid_altitude.setSetpoint(target_position(2));
-
-	float vel_sp_x = zero_velocity_setpoint(_pid_x.update(_position(0), _deltatime));
-	float vel_sp_y = zero_velocity_setpoint(_pid_y.update(_position(1), _deltatime));
-
-	velocity_command(0) = vel_sp_x;
-	velocity_command(1) = vel_sp_y;
-	velocity_command(2) = NAN;
-	return velocity_command;
-}
-
-bool FlightTaskNaor::_checkTakeoff()
-{
-	// Only use velocity-based takeoff detection, ignore position/altitude constraints
-	bool velocity_triggered_takeoff = false;
-
-	if (PX4_ISFINITE(_velocity_setpoint(2))) {
-		velocity_triggered_takeoff = _velocity_setpoint(2) < -0.3f;
-	}
-
-	return velocity_triggered_takeoff; // No altitude/position constraints
-}
-
-
-
-bool FlightTaskNaor::_check_timer(uint64_t _timestamp)
-{
-	uint64_t current_time = hrt_absolute_time();
-	uint64_t minus = (float)(current_time - _timestamp);
-	return minus < _timer_threshold; /// all the time here is at microseconds
-}
-
-void FlightTaskNaor::_publish_debug_topics()
-{
-
-	_super_hold_debug.timestamp = hrt_absolute_time();
-	_super_hold_debug.first_x = _position_to_hold(0);
-	_super_hold_debug.first_y = _position_to_hold(1);
-	_super_hold_debug.first_z = _position_to_hold(2);
-	_super_hold_debug.error_x = _position_to_hold(0) - _position(0);
-	_super_hold_debug.error_y = _position_to_hold(1) - _position(1);
-	_super_hold_debug.error_z = _position_to_hold(2) - _position(2);
-	_super_hold_debug.input_x = _position(0);
-	_super_hold_debug.input_y = _position(1);
-	_super_hold_debug.input_z = _position(2);
-	_super_hold_debug.integral_x = _pid_x.getIntegral();
-	_super_hold_debug.integral_y = _pid_y.getIntegral();
-	_super_hold_debug.integral_z = _pid_altitude.getIntegral();
-	_super_hold_debug.out_vel_x = _velocity_setpoint(0);
-	_super_hold_debug.out_vel_y = _velocity_setpoint(1);
-	_super_hold_debug.out_vel_z = _velocity_setpoint(2);
-	_super_hold_debug_pub.publish(_super_hold_debug);
-}
-
-
-bool FlightTaskNaor::update()
-{
-	bool ret = FlightTask::update();
-	update_pid_constants(_pid_consts);
-
-
-	_execute_trajectory();
-	_position_setpoint(2) = _position_to_hold(2);
-	_publish_debug_topics();
-	// bool _mode = _check_timer(_visual_odometry.timestamp);
-
-	_constraints.want_takeoff = _checkTakeoff();
-	// Don't override the speed constraints to NAN - let the base class handle them properly
-	return ret;
-}
+	 _terrain_hold_previous = _terrain_hold;
+ }

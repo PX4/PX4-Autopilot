@@ -1,0 +1,30 @@
+Metadata-Version: 2.1
+Name: numpy-quaternion
+Version: 2022.4.3
+Summary: Add a quaternion dtype to NumPy
+Home-page: https://github.com/moble/quaternion
+Author: Michael Boyle
+Author-email: mob22@cornell.edu
+License-File: LICENSE
+Requires-Dist: numpy (>=1.13)
+Provides-Extra: docs
+Requires-Dist: mkdocs ; extra == 'docs'
+Requires-Dist: mktheapidocs[plugin] ; extra == 'docs'
+Requires-Dist: pymdown-extensions ; extra == 'docs'
+Provides-Extra: numba
+Requires-Dist: numba (<0.49.0) ; (python_version < '3.6' and platform_python_implementation != 'PyPy') and extra == 'numba'
+Requires-Dist: llvmlite (<0.32.0) ; (python_version < '3.6' and platform_python_implementation != 'PyPy') and extra == 'numba'
+Requires-Dist: numba ; (python_version >= '3.6' and platform_python_implementation != 'PyPy') and extra == 'numba'
+Provides-Extra: scipy
+Requires-Dist: scipy ; extra == 'scipy'
+Provides-Extra: testing
+Requires-Dist: pytest ; extra == 'testing'
+Requires-Dist: pytest-cov ; extra == 'testing'
+
+This package creates a quaternion type in python, and further enables numpy to
+create and manipulate arrays of quaternions.  The usual algebraic operations
+(addition and multiplication) are available, along with numerous properties
+like norm and various types of distance measures between two quaternions.
+There are also additional functions like "squad" and "slerp" interpolation, and
+conversions to and from axis-angle, matrix, and Euler-angle representations of
+rotations.  The core of the code is written in C for speed.

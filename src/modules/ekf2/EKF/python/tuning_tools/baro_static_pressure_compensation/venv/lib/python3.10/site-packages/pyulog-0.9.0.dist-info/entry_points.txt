@@ -1,0 +1,8 @@
+[console_scripts]
+ulog2csv = pyulog.ulog2csv:main
+ulog2kml = pyulog.ulog2kml:main
+ulog_extract_gps_dump = pyulog.extract_gps_dump:main
+ulog_info = pyulog.info:main
+ulog_messages = pyulog.messages:main
+ulog_params = pyulog.params:main
+

@@ -35,7 +35,6 @@ px4_add_library(FlightTaskNaor
 	FlightTaskNaor.cpp
 
 )
-
-target_link_libraries(FlightTaskNaor PUBLIC FlightTask StickYaw FlightTaskUtility PID)
+target_link_libraries(FlightTaskNaor PUBLIC FlightTaskManualAltitude FlightTaskUtility)
 target_include_directories(FlightTaskNaor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(FlightTaskNaor PROPERTIES CXX_STANDARD 14)

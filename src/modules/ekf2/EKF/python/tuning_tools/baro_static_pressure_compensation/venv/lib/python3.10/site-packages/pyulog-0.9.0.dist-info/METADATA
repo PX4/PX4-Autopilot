@@ -1,0 +1,40 @@
+Metadata-Version: 2.1
+Name: pyulog
+Version: 0.9.0
+Summary: Python log parser for ULog.
+Home-page: https://github.com/PX4/pyulog
+Author: Beat Kueng
+Author-email: beat-kueng@gmx.net
+Maintainer: James Goppert
+Maintainer-email: james.goppert@gmail.com
+License: BSD 3-Clause
+Download-URL: https://github.com/PX4/pyulog
+Platform: Windows
+Platform: Linux
+Platform: Solaris
+Platform: Mac OS-X
+Platform: Unix
+Classifier: Development Status :: 1 - Planning
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Other
+Classifier: Topic :: Software Development
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Scientific/Engineering :: Mathematics
+Classifier: Topic :: Scientific/Engineering :: Physics
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Unix
+Classifier: Operating System :: MacOS
+Requires-Dist: numpy
+
+This module allows you to parse ULog files, which are used within the PX4
+autopilot middleware.
+
+The file format is documented on https://dev.px4.io/advanced-ulog-file-format.html
+
+
+
