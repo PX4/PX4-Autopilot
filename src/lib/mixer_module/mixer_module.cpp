@@ -190,13 +190,7 @@ void MixingOutput::updateParams()
 		}
 
 		// Trim needs to be clamped to min/max
-		if (_trim_value[i] < _min_value[i]) {
-			_trim_value[i] = _min_value[i];
-		}
-
-		if (_trim_value[i] > _max_value[i]) {
-			_trim_value[i] = _max_value[i];
-		}
+		_trim_value[i] = math::constrain(_trim_value[i], _min_value[i], _max_value[i]);
 
 		if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
 			_failsafe_value[i] = val;

@@ -593,7 +593,7 @@ To set this up:
 1. Set `Minimum`, `Maximum`, `Trim` and `Disarm` value so that the surface will stay at neutral position approximately.
 This is usually around `1500` for PWM servos (near the centre of the servo range).
 
-2. Gradualy increate the `Maximum` for each servo, while checking the deflection with the sliders or manual input with [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) parameter to `Always` until the desired deflection is reached.
+2. Gradualy increase the `Maximum` for each servo, while checking the deflection with the sliders or manual input with [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) parameter to `Always` until the desired deflection is reached.
 3. Gradualy decrease the `Minimum` for each servo, until the desired deflection is reached.
 4. Set `PWM_MAIN_TRIMx` / `PWM_AUX_TRIMx` to the neutral point of each servo.
 
