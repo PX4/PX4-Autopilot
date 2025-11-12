@@ -273,7 +273,7 @@ TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 	gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(45.f));
 	_sensor_simulator._gps.setYaw(gps_heading);
-	_sensor_simulator.runSeconds(8);
+	_sensor_simulator.runSeconds(4);
 
 	// THEN: the fusion should stop, reset to mag
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());

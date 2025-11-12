@@ -75,7 +75,7 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 
 				fuseGnssYaw(gnss_sample.yaw_offset);
 
-				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_max);
+				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_gps_yaw_max);
 
 				if (is_fusion_failing) {
 					stopGnssYawFusion();
@@ -123,7 +123,7 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 		}
 
 	} else if (_control_status.flags.gnss_yaw
-		   && !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push, _params.reset_timeout_max)) {
+		   && !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push, _params.reset_timeout_gps_yaw_max)) {
 
 		// No yaw data in the message anymore. Stop until it comes back.
 		stopGnssYawFusion();
