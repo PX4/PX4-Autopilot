@@ -1,3 +1,35 @@
+/****************************************************************************
+ *
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 #pragma once
 
 #include <stdint.h>
@@ -17,32 +49,21 @@ public:
 	~TLA2528() override;
 
 	static void print_usage();
-
 	int init() override;
 	void RunImpl();
 	int probe() override;
 
-	static void set_state(uint8_t state);
-	static void set_interval(uint16_t interval);
-
 private:
+	static const hrt_abstime SAMPLE_INTERVAL{50_ms};
+
 	perf_counter_t _cycle_perf;
 	perf_counter_t _comms_errors;
 
-	static constexpr int NUM_CHANNELS = 16;
 	uORB::PublicationMulti<adc_report_s> _adc_report_pub{ORB_ID(adc_report)};
-
-	struct init_config_t {
-		uint16_t interval;
-		uint8_t state;
-		uint8_t num_pins;
-	};
-
-	static init_config_t config_data;
 	adc_report_s _adc_report{};
 
 	void exit_and_cleanup() override;
-	int conf();
+	int configure();
 	int reset();
 	int calibrate();
 	void adc_get();
