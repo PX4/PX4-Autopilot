@@ -306,9 +306,14 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			} else {
 				// We don't know what this packet is, so we'll let the parser continue
 				// just so that we can dequeue it in one shot
-				working_segment_size = packet_size + PACKET_SIZE_TYPE_SIZE;
+				// packet_size includes type + payload + CRC
+				// We've already read size + type, and CRC will be read in PARSER_STATE_CRC
+				// So we need to read: packet_size - type_size - crc_size = packet_size - 2
+				working_segment_size = packet_size - PACKET_TYPE_SIZE - CRC_SIZE;
 
-				if (working_segment_size > CRSF_MAX_PACKET_LEN) {
+				if (packet_size > CRSF_MAX_PACKET_LEN) {
+					PX4_WARN("Unknown packet too large: type=0x%02x, size=%u (max=%u)",
+					         packet_type, packet_size, CRSF_MAX_PACKET_LEN);
 					parser_statistics->invalid_unknown_packet_sizes++;
 					parser_state = PARSER_STATE_HEADER;
 					working_segment_size = HEADER_SIZE;
@@ -333,8 +338,19 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			// Fetch the suspected packet as a contingous block of memory
 			QueueBuffer_PeekBuffer(&rx_queue, 0, process_buffer, working_index + CRC_SIZE);
 
-			// Verify checksum
-			if (Crc8Calc(process_buffer + PACKET_SIZE_SIZE, working_index - PACKET_SIZE_SIZE) == process_buffer[working_index]) {
+			// Calculate and verify checksum
+			uint8_t calculated_crc = Crc8Calc(process_buffer + PACKET_SIZE_SIZE, working_index - PACKET_SIZE_SIZE);
+			uint8_t received_crc = process_buffer[working_index];
+
+			if (calculated_crc == received_crc) {
+				// Copy raw frame data: header (0xC8) + size + type + payload + CRC
+				new_packet->raw_frame_len = working_index + CRC_SIZE + HEADER_SIZE;  // Total: header + (size + type + payload + CRC)
+				if (new_packet->raw_frame_len > 64) {
+					new_packet->raw_frame_len = 64;
+				}
+				new_packet->raw_frame[0] = CRSF_HEADER;  // Add the 0xC8 header byte
+				memcpy(&new_packet->raw_frame[1], process_buffer, working_index + CRC_SIZE);  // Copy size + type + payload + CRC
+
 				if (working_descriptor != NULL) {
 					if (working_descriptor->processor != NULL) {
 						if (working_descriptor->processor(process_buffer + PACKET_SIZE_TYPE_SIZE, working_index - PACKET_SIZE_TYPE_SIZE,
@@ -347,12 +363,15 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 				} else {
 					// No working_descriptor at this point means unknown packet
 					parser_statistics->crcs_valid_unknown_packets++;
+					valid_packet = true; // allow device_info packets to pass through even if not processed
 				}
 
 				// Remove the sucessfully processed data from the queue
 				QueueBuffer_Dequeue(&rx_queue, working_index + CRC_SIZE);
 
 			} else {
+				PX4_WARN("CRC failed: type=0x%02x, size=%u, calc=0x%02x, recv=0x%02x",
+				         packet_type, packet_size, calculated_crc, received_crc);
 				parser_statistics->crcs_invalid++;
 			}
 

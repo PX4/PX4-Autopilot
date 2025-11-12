@@ -243,6 +243,7 @@ load_mon start
 vfc_logger start
 vehicle_air_data_bridge start
 sensor_baro_bridge start
+crsf_bridge start
 
 # Start microdds_client for ros2 offboard messages from agent over localhost
 microdds_client start -t udp -h 127.0.0.1 -p 8888

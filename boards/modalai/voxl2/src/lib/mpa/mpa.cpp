@@ -47,6 +47,7 @@ MPA::pipe_client_set_disconnect_cb_t MPA::disconnect_cb = nullptr;
 MPA::pipe_client_open_t MPA::open_pipe = nullptr;
 MPA::pipe_server_create_t MPA::create_pipe = nullptr;
 MPA::pipe_server_write_t MPA::write_pipe = nullptr;
+MPA::pipe_server_set_control_cb_t MPA::set_control_cb = nullptr;
 MPA::mpa_data_cb_t MPA::data_cb[MAX_MPA_CLIENTS];
 
 // called whenever we connect or reconnect to the server
@@ -92,7 +93,7 @@ int MPA::PipeClient(const char *pipe_name, int size, mpa_data_cb_t cb)
 	return current_client - 1;
 }
 
-int MPA::PipeCreate(char *pipe_name)
+int MPA::PipeCreate(char *pipe_name, int flags)
 {
 	if (!initialized) {
 		PX4_ERR("Cannot open pipe %s before initialization", pipe_name);
@@ -108,7 +109,7 @@ int MPA::PipeCreate(char *pipe_name)
 	server_pipe.size_bytes  = MODAL_PIPE_DEFAULT_PIPE_SIZE;
 	server_pipe.server_pid  = 0;
 
-	if (create_pipe(current_server, server_pipe, 0) < 0) {
+	if (create_pipe(current_server, server_pipe, flags) < 0) {
 		// remove_pid_file(server_pipe.server_name);
 		PX4_ERR("Error opening pipe %s", pipe_name);
 		return -1;
@@ -121,6 +122,10 @@ int MPA::PipeCreate(char *pipe_name)
 
 int MPA::PipeWrite(int ch, const void* data, int bytes) {
 	return write_pipe(ch, data, bytes);
+}
+
+int MPA::PipeServerSetControlCb(int ch, mpa_control_cb_t cb, void* context) {
+	return set_control_cb(ch, cb, context);
 }
 
 int MPA::Initialize()
@@ -198,6 +203,16 @@ int MPA::Initialize()
 		return -1;
 	} else {
 		PX4_DEBUG("Successfully loaded function %s", write_pipe_name);
+	}
+
+	// Set control callback for server pipe
+	char set_control_cb_name[] = "pipe_server_set_control_cb";
+	set_control_cb = (pipe_server_set_control_cb_t) dlsym(handle, set_control_cb_name);
+	if (!set_control_cb) {
+		PX4_ERR("Error finding symbol %s: %s", set_control_cb_name, dlerror());
+		return -1;
+	} else {
+		PX4_DEBUG("Successfully loaded function %s", set_control_cb_name);
 	}
 
 	initialized = true;

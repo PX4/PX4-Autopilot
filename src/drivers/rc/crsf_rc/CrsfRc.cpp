@@ -244,6 +244,13 @@ void CrsfRc::Run()
 		CrsfPacket_t new_crsf_packet;
 
 		while (CrsfParser_TryParseCrsfPacket(&new_crsf_packet, &_packet_parser_statistics)) {
+			// Publish validated raw CRSF packet (RX from serial)
+			crsf_raw_s raw_msg{};
+			raw_msg.timestamp = time_now_us;
+			raw_msg.len = new_crsf_packet.raw_frame_len;
+			memcpy(raw_msg.data, new_crsf_packet.raw_frame, raw_msg.len);
+			_crsf_raw_rx_pub.publish(raw_msg);
+
 			switch (new_crsf_packet.message_type) {
 			case CRSF_MESSAGE_TYPE_RC_CHANNELS:
 				_input_rc.timestamp_last_signal = time_now_us;
@@ -396,6 +403,18 @@ void CrsfRc::Run()
 				} else {
 					_pwm_out[i].enabled = false;
 				}
+			}
+		}
+	}
+
+	// Check for TX data to send out serial (from external sources like crsf_bridge)
+	crsf_raw_s tx_msg;
+	if (_crsf_raw_tx_sub.update(&tx_msg)) {
+		// Write raw CRSF frame to serial port
+		if (_rc_fd >= 0 && tx_msg.len > 0 && tx_msg.len <= sizeof(tx_msg.data)) {
+			int bytes_written = qurt_uart_write(_rc_fd, (const char*)tx_msg.data, tx_msg.len);
+			if (bytes_written != (int)tx_msg.len) {
+				PX4_WARN("CRSF TX write failed: wrote %d of %d bytes", bytes_written, tx_msg.len);
 			}
 		}
 	}

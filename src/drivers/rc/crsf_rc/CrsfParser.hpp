@@ -84,6 +84,10 @@ typedef struct {
 		CrsfChannelData_t channel_data;
 		CrsfLinkStatistics_t link_statistics;
 	};
+
+	// Raw frame data for libmodal-pipe publishing
+	uint8_t raw_frame[64];
+	uint8_t raw_frame_len;
 } CrsfPacket_t;
 
 void CrsfParser_Init(void);

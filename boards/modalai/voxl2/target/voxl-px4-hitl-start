@@ -110,3 +110,4 @@ mavlink_odometry_bridge start
 vfc_logger start
 vehicle_air_data_bridge start
 sensor_baro_bridge start
+crsf_bridge start

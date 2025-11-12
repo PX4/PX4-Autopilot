@@ -44,10 +44,13 @@
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/crsf_raw.h>
 
 // telemetry
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_gps.h>
@@ -76,6 +79,8 @@ private:
 	void Run() override;
 
 	uORB::PublicationMulti<input_rc_s> _input_rc_pub{ORB_ID(input_rc)};
+	uORB::Publication<crsf_raw_s> _crsf_raw_rx_pub{ORB_ID(crsf_raw_rx)};
+	uORB::Subscription _crsf_raw_tx_sub{ORB_ID(crsf_raw_tx)};
 
 	input_rc_s _input_rc{};
 
