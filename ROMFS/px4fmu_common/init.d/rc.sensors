@@ -234,7 +234,7 @@ fi
 # ADC sensor tla2528 external I2C
 if param compare -s ADC_TLA2528_EN 1
 then
-	tla2528 start -X -b 2 -O 0xFF -U 1000
+	tla2528 start -X
 fi
 
 # probe for optional external I2C devices

@@ -30,41 +30,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include "tla2528.h"
 
 void TLA2528::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("tla2528", "driver");
+	PRINT_MODULE_USAGE_NAME("TLA2528", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("adc");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAM_INT('O', 255, 0, 255, "Activate Pins", true);
-	PRINT_MODULE_USAGE_PARAM_INT('U', 1, 1, 1000, "Update Interval [ms]", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-void TLA2528::set_state(uint8_t state)
-{
-
-	TLA2528::config_data.state = state;
-
-	int num_input = 0;
-
-	for (int i = 0; i < 8; i++) {
-		if (state & (1u << i)) {
-			num_input++;
-		}
-	}
-
-	TLA2528::config_data.num_pins = num_input;
-}
-
-void TLA2528::set_interval(uint16_t interval)
-{
-	TLA2528::config_data.interval = interval;
 }
 
 extern "C" int tla2528_main(int argc, char *argv[])
@@ -75,22 +51,7 @@ extern "C" int tla2528_main(int argc, char *argv[])
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = 0x10;
 	const char *name = MODULE_NAME;
-
-	int ch;
-
-	while ((ch = cli.getOpt(argc, argv, "O:U:")) != EOF) {
-		switch (ch) {
-		case 'O':
-			ThisDriver::set_state((int)strtol(cli.optArg(), nullptr, 0));
-			break;
-
-		case 'U':
-			ThisDriver::set_interval(atoi(cli.optArg()));
-			break;
-		}
-	}
-
-	const char *verb = cli.optArg();
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
 	if (!verb) {
 		ThisDriver::print_usage();

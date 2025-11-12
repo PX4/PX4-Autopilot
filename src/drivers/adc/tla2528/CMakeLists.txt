@@ -33,12 +33,10 @@
 
 px4_add_module(
 	MODULE drivers__adc__tla2528
-	#MODULE drivers__gpio__tla2528
 	MAIN tla2528
 	COMPILE_FLAGS
 	SRCS
 		tla2528.cpp
-		tla2528.h
 		tla2528_main.cpp
 	MODULE_CONFIG
 		module.yaml

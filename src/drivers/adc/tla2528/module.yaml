@@ -1,15 +1,15 @@
 __max_num_config_instances: &max_num_config_instances 1
 
-module_name: tla2528
+module_name: TLA2528
 
 parameters:
   - group: ADC
     definitions:
       ADC_TLA2528_EN:
         description:
-            short: Enable tla2528
+            short: Enable TLA2528
             long: |
-                Enable the driver for the tla2528
+                Enable the driver for the TLA2528
         type: boolean
         reboot_required: true
         default: 0
