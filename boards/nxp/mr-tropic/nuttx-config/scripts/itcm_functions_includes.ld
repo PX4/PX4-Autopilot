@@ -573,7 +573,6 @@
 *(.text._ZN4uORB12SubscriptionaSEOS0_)
 *(.text._ZN15TakeoffHandling18updateTakeoffStateEbbbfbRKy)
 *(.text._ZN10ModeChecks14checkAndReportERK7ContextR6Report)
-*(.text._ZN14FlightTaskAuto24_updateInternalWaypointsEv)
 *(.text._ZN8Failsafe17updateArmingStateERKybRK16failsafe_flags_s)
 *(.text.imxrt_lpi2c_modifyreg)
 *(.text.up_flush_dcache)

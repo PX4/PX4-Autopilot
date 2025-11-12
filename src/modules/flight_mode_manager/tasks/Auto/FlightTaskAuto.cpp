@@ -357,7 +357,11 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_yaw_setpoint = _yaw;
 		_yawspeed_setpoint = NAN;
 		_target_acceptance_radius = _sub_triplet_setpoint.get().current.acceptance_radius;
-		_updateInternalWaypoints();
+
+		_prev_wp = _triplet_prev_wp;
+		_target = _triplet_target;
+		_next_wp = _triplet_next_wp;
+
 		return true;
 	}
 
@@ -409,7 +413,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// to the internal _triplet_target.
 	// TODO This is a hack and it would be much better if the navigator only sends out a waypoints once they have changed.
 
-	bool triplet_update = true;
 	const bool prev_next_validity_changed = (_prev_was_valid != _sub_triplet_setpoint.get().previous.valid)
 						|| (_next_was_valid != _sub_triplet_setpoint.get().next.valid);
 
@@ -419,7 +422,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 	    && fabsf(_triplet_target(2) - tmp_target(2)) < 0.001f
 	    && !prev_next_validity_changed) {
 		// Nothing has changed: just keep old waypoints.
-		triplet_update = false;
 
 	} else {
 		_triplet_target = tmp_target;
@@ -462,18 +464,14 @@ bool FlightTaskAuto::_evaluateTriplets()
 		}
 
 		_next_was_valid = _sub_triplet_setpoint.get().next.valid;
+
+		_prev_wp = _triplet_prev_wp;
+		_target = _triplet_target;
+		_next_wp = _triplet_next_wp;
 	}
 
 	// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)
 	_weathervane.setNavigatorForceDisabled(PX4_ISFINITE(_sub_triplet_setpoint.get().current.yaw));
-
-	// Calculate the current vehicle state and check if it has updated.
-	State previous_state = _current_state;
-	_current_state = _getCurrentState();
-
-	if (triplet_update || (_current_state != previous_state) || _current_state == State::offtrack) {
-		_updateInternalWaypoints();
-	}
 
 	// set heading
 	_weathervane.update();
@@ -608,76 +606,6 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 
 	// check if everything is still finite
 	return PX4_ISFINITE(_reference_altitude) && PX4_ISFINITE(ref_lat) && PX4_ISFINITE(ref_lon);
-}
-
-State FlightTaskAuto::_getCurrentState()
-{
-	// Calculate the vehicle current state based on the Navigator triplets and the current position.
-	const Vector3f u_prev_to_target = (_triplet_target - _triplet_prev_wp).unit_or_zero();
-	const Vector3f prev_to_pos = _position - _triplet_prev_wp;
-	const Vector3f pos_to_target = _triplet_target - _position;
-
-	// Calculate the closest point to the vehicle position on the line prev_wp - target
-	_closest_pt = _triplet_prev_wp + u_prev_to_target * (prev_to_pos * u_prev_to_target);
-
-	State return_state = State::none;
-
-	if (!u_prev_to_target.longerThan(FLT_EPSILON)) {
-		// Previous and target are the same point, so we better don't try to do any special line following
-		return_state = State::none;
-
-	} else if (u_prev_to_target * pos_to_target < 0.0f) {
-		// Target is behind
-		return_state = State::target_behind;
-
-	} else if (u_prev_to_target * prev_to_pos < 0.0f && prev_to_pos.longerThan(_target_acceptance_radius)) {
-		// Previous is in front
-		return_state = State::previous_infront;
-
-	} else if (_type != WaypointType::land && (_position - _closest_pt).longerThan(_target_acceptance_radius)) {
-		// Vehicle too far from the track
-		return_state = State::offtrack;
-	}
-
-	return return_state;
-}
-
-void FlightTaskAuto::_updateInternalWaypoints()
-{
-	// The internal Waypoints might differ from _triplet_prev_wp, _triplet_target and _triplet_next_wp.
-	// The cases where it differs:
-	// 1. The vehicle already passed the target -> go straight to target
-	// 2. Previous waypoint is in front of the vehicle -> go straight to previous waypoint
-	// 3. The vehicle is far from track -> go straight to closest point on track
-	switch (_current_state) {
-	case State::target_behind:
-		_target = _triplet_target;
-		_prev_wp = _position;
-		_next_wp = _triplet_next_wp;
-		break;
-
-	case State::previous_infront:
-		_next_wp = _triplet_target;
-		_target = _triplet_prev_wp;
-		_prev_wp = _position;
-		break;
-
-	case State::offtrack:
-		_next_wp = _triplet_target;
-		_target = _closest_pt;
-		_prev_wp = _position;
-		break;
-
-	case State::none:
-		_target = _triplet_target;
-		_prev_wp = _triplet_prev_wp;
-		_next_wp = _triplet_next_wp;
-		break;
-
-	default:
-		break;
-
-	}
 }
 
 bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, Vector2f v)
