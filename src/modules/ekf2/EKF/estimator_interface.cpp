@@ -159,7 +159,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
+void EstimatorInterface::setGpsData(const gnssSample &gnss_sample, const bool pps_compensation)
 {
 	if (!_initialised) {
 		return;
@@ -177,8 +177,10 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 		}
 	}
 
+	const int64_t delay = pps_compensation ? 0 : static_cast<int64_t>(_params.ekf2_gps_delay * 1000);
+
 	const int64_t time_us = gnss_sample.time_us
-				- static_cast<int64_t>(_params.ekf2_gps_delay * 1000)
+				- delay
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	if (time_us >= static_cast<int64_t>(_gps_buffer->get_newest().time_us + _min_obs_interval_us)) {
