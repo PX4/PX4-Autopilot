@@ -67,6 +67,8 @@ static constexpr uint32_t SPI_SPEED_BURST = 1 * 1000 * 1000; // 1 MHz SPI serial
 
 static constexpr uint32_t SPI_STALL_PERIOD = 16; // 16 us Stall period between data
 
+static constexpr uint32_t SPI_CS_TO_SCK_PERIOD_NS = 200; // 200 ns delay from CS to SCK edge
+
 static constexpr uint16_t DIR_WRITE = 0x80;
 
 static constexpr uint16_t Product_identification = 0x4056;
