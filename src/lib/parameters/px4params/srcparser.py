@@ -363,7 +363,7 @@ class SourceParser(object):
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C',
                                 'N/(m/s)', 'Nm/rad', 'Nm/(rad/s)', 'Nm', 'N',
                                 'rpm',
-                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD',''])
+                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD', 'dBHz', ''])
         for group in self.GetParamGroups():
             for param in group.GetParams():
                 name  = param.GetName()
