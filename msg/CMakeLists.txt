@@ -116,7 +116,6 @@ set(msg_files
 	HealthReport.msg
 	HeaterStatus.msg
 	HoverThrustEstimate.msg
-	InputRc.msg
 	InternalCombustionEngineControl.msg
 	InternalCombustionEngineStatus.msg
 	IridiumsbdStatus.msg
@@ -251,6 +250,7 @@ set(msg_files
 	versioned/FixedWingLongitudinalSetpoint.msg
 	versioned/GotoSetpoint.msg
 	versioned/HomePosition.msg
+	versioned/InputRc.msg
 	versioned/LateralControlConfiguration.msg
 	versioned/LongitudinalControlConfiguration.msg
 	versioned/ManualControlSetpoint.msg
