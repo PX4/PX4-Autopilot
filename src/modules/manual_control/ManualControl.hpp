@@ -117,8 +117,16 @@ private:
 	ManualControlSelector _selector;
 
 	hrt_abstime _timestamp_last_loop{0};
+
+	enum class RCEStopNeutralStickState {
+		IDLE,
+		HOLD_NEUTRAL,
+		MOVEMENT_DETECTED
+	};
+	bool _rc_estop_engaged{false};
+	RCEStopNeutralStickState _rc_estop_neutral_stick_state{RCEStopNeutralStickState::IDLE};
 	hrt_abstime _time_rc_estop_engaged{0};
-	hrt_abstime _time_rc_estop_engaged_latch{0};
+	hrt_abstime _time_rc_estop_neutral_stick_override_engaged{0};
 	hrt_abstime _time_last_sticks_actually_moved{0};
 	hrt_abstime _time_last_neutral_sticks_msg{0};
 	int _previous_manual_control_input_instance{-1};

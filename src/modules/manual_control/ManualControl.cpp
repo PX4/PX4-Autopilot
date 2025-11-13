@@ -108,7 +108,7 @@ void ManualControl::processInput(hrt_abstime now)
 	}
 
 	const bool rc_estop_engaged = _selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC &&
-				      _time_rc_estop_engaged != 0;
+				      _rc_estop_engaged;
 
 	if (_rc_estop_published_last != rc_estop_engaged || hrt_elapsed_time(&_rc_estop_published_last_time) > 1000_ms) {
 		debug_key_value_s kv;
@@ -150,16 +150,15 @@ void ManualControl::processInput(hrt_abstime now)
 		auto setpoint = _selector.setpoint();
 
 		if (_selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC) {
-			const bool fake_stick_movement = (_time_rc_estop_engaged != 0) &&
+			const bool fake_stick_movement = _rc_estop_engaged &&
 							 (hrt_absolute_time() <= (_time_rc_estop_engaged + 2500_ms));
 
 			if (fake_stick_movement) {
-				_time_rc_estop_engaged_latch = _time_rc_estop_engaged;
 				setpoint.sticks_moving = true;
 			}
 
-			if (_time_last_sticks_actually_moved < _time_rc_estop_engaged_latch) {
-				if (hrt_elapsed_time(&_time_last_neutral_sticks_msg) > 2500_ms) {
+			auto neutralize_inputs = [&]() {
+				if (hrt_elapsed_time(&_time_last_neutral_sticks_msg) > 10000_ms) {
 					_time_last_neutral_sticks_msg = hrt_absolute_time();
 					orb_advert_t mavlink_log_pub = nullptr;
 					mavlink_log_info(&mavlink_log_pub, "R/C E-Stop: Overriding sticks with neutral until real movement");
@@ -171,21 +170,48 @@ void ManualControl::processInput(hrt_abstime now)
 				setpoint.pitch = 0;
 				setpoint.yaw = 0;
 				setpoint.throttle = 0;
+			};
 
-			} else {
-				if (_time_rc_estop_engaged_latch != 0) {
+			switch (_rc_estop_neutral_stick_state) {
+			case RCEStopNeutralStickState::IDLE:
+				if (_rc_estop_engaged) {
+					neutralize_inputs();
+					_rc_estop_neutral_stick_state = RCEStopNeutralStickState::HOLD_NEUTRAL;
+					_time_rc_estop_neutral_stick_override_engaged = _time_rc_estop_engaged;
+				}
+
+				break;
+
+			case RCEStopNeutralStickState::HOLD_NEUTRAL:
+				if (_time_last_sticks_actually_moved < _time_rc_estop_neutral_stick_override_engaged) {
+					//Sticks haven't moved since ESTOP switch engaged
+					neutralize_inputs();
+
+				} else {
+					_rc_estop_neutral_stick_state = RCEStopNeutralStickState::MOVEMENT_DETECTED;
 					orb_advert_t mavlink_log_pub = nullptr;
 					mavlink_log_info(&mavlink_log_pub, "R/C E-Stop stick movement detected. No longer overriding with neutral sticks");
 					events::send(events::ID("manual_control_rc_e_stop_movment"), {events::Log::Info, events::LogInternal::Info},
 						     "ManualControl: R/C E-Stop stick movement detected. No longer overriding with neutral sticks");
 				}
 
-				_time_rc_estop_engaged = 0;
-				_time_rc_estop_engaged_latch = 0;
+				break;
+
+			case RCEStopNeutralStickState::MOVEMENT_DETECTED:
+				if (_rc_estop_engaged && (_time_rc_estop_engaged != _time_rc_estop_neutral_stick_override_engaged)) {
+					//Somehow, the switch was re-engaged. Go back to HOLD_NEUTRAL
+					neutralize_inputs();
+					_rc_estop_neutral_stick_state = RCEStopNeutralStickState::HOLD_NEUTRAL;
+
+				} else if (!_rc_estop_engaged) {
+					_rc_estop_neutral_stick_state = RCEStopNeutralStickState::IDLE;
+				}
+
+				break;
 			}
 
 		} else {
-			_time_rc_estop_engaged_latch = 0;
+			_rc_estop_neutral_stick_state = RCEStopNeutralStickState::IDLE;
 		}
 
 
@@ -305,17 +331,20 @@ void ManualControl::processSwitches(hrt_abstime &now)
 							mavlink_log_info(&mavlink_log_pub, "R/C E-Stop engaged. Simulating stick movement for 2.5 seconds");
 							events::send(events::ID("manual_control_rc_e_stop"), {events::Log::Info, events::LogInternal::Info},
 								     "ManualControl: R/C E-stop engaged. Simulating stick movement for 2.5 seconds");
+							_rc_estop_engaged = true;
 							_time_rc_estop_engaged = hrt_absolute_time();
 						}
 						break;
 
 					case manual_control_switches_s::SWITCH_POS_OFF: {
+							_rc_estop_engaged = false;
 							_time_rc_estop_engaged = 0;
 							break;
 						}
 
 					case manual_control_switches_s::SWITCH_POS_NONE:
 					default:
+						_rc_estop_engaged = false;
 						_time_rc_estop_engaged = 0;
 						break;
 					}
@@ -389,6 +418,7 @@ void ManualControl::processSwitches(hrt_abstime &now)
 
 	} else {
 		// Don't react on switch changes while RC was not in use
+		_rc_estop_engaged = false;
 		_time_rc_estop_engaged = 0;
 		_previous_switches_initialized = false;
 	}
