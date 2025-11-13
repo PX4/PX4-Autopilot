@@ -20,8 +20,8 @@ parameters:
     EKF2_GPS_MODE:
       description:
         short: Fusion reset mode
-        long: 'Automatic: reset on fusion timeout if no other source of position is available
-          Dead-reckoning: reset on fusion timeout if no source of velocity is available'
+        long: 'Automatic: reset on fusion timeout if no other source of position is available.
+          Dead-reckoning: reset on fusion timeout if no source of velocity is available.'
       type: enum
       values:
         0: Automatic
