@@ -1,0 +1,151 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file FlightTaskFormicAltHold.cpp
+ */
+
+#include "FlightTaskFormicAltHold.hpp"
+#include "px4_platform_common/defines.h"
+
+ #include <float.h>
+
+ using namespace matrix;
+
+bool FormicAltitude::activate(const trajectory_setpoint_s &last_setpoint)
+ {
+	 bool ret = FlightTaskManualAltitude::activate(last_setpoint);
+
+	 // Check if the previous FlightTask provided setpoints
+	 estimator_status_flags_s estimator_status_flags{};
+	 _estimator_status_flags_sub.update(&estimator_status_flags);
+
+
+	 // If the position setpoint is unknown, set to the current postion
+	 float z_sp_last = PX4_ISFINITE(last_setpoint.position[2]) ? last_setpoint.position[2] : _position(2);
+
+	 // If the velocity setpoint is unknown, set to the current velocity
+	 float vz_sp_last = PX4_ISFINITE(last_setpoint.velocity[2]) ? last_setpoint.velocity[2] : _velocity(2);
+
+	 // No acceleration estimate available, set to zero if the setpoint is NAN
+	 float az_sp_last = PX4_ISFINITE(last_setpoint.acceleration[2]) ? last_setpoint.acceleration[2] : 0.f;
+
+	 _smoothing.reset(az_sp_last, vz_sp_last, z_sp_last);
+
+	 return ret;
+ }
+
+void FormicAltitude::_ekfResetHandlerPositionZ(float delta_z)
+ {
+	 _smoothing.setCurrentPosition(_position(2));
+ }
+
+void FormicAltitude::_ekfResetHandlerVelocityZ(float delta_vz)
+ {
+	 _smoothing.setCurrentVelocity(_velocity(2));
+ }
+
+void FormicAltitude::_updateSetpoints()
+ {
+	 // Set max accel/vel/jerk
+	 // Has to be done before _updateTrajectories()
+	 _updateTrajConstraints();
+
+	 _smoothing.setVelSpFeedback(_velocity_setpoint_feedback(2));
+	 _smoothing.setCurrentPositionEstimate(_position(2));
+
+	// Refresh RC/AUX channel used for terrain-hold decision.
+	_aux_reader.update();
+	const int32_t aux_channel = _param_formic_aux.get();
+	const float aux_value = _aux_reader.getChannel(aux_channel);
+	_channel_values = PX4_ISFINITE(aux_value) ? aux_value : 0.f;
+	PX4_INFO("aux_value: %f", (double)aux_value);
+
+	// Fetch latest estimator flags.
+	estimator_status_flags_s estimator_status_flags{};
+	_estimator_status_flags_sub.copy(&estimator_status_flags);
+
+	// Get yaw setpoint, un-smoothed position setpoints.
+	if ((_channel_values > 0.f) && estimator_status_flags.cs_rng_terrain && PX4_ISFINITE(_position(2))) {
+
+		if (_first_time == true) {
+			_first_time = false;
+			_position_setpoint(2) = _position(2);
+			float dist_to_ground_lock = _dist_to_bottom - (_position_setpoint(2) - _position(2));
+			PX4_INFO("dist_to_ground_lock: %f", (double)dist_to_ground_lock);
+
+		}
+		else {
+		FlightTaskManualAltitude::_updateSetpointsNoLock();
+		_velocity_setpoint(2) = 0.f;
+		}
+
+	} else {
+		FlightTaskManualAltitude::_updateSetpoints();
+		_first_time = true;
+	}
+	_smoothing.update(_deltatime, _velocity_setpoint(2));
+
+	 // Fill the jerk, acceleration, velocity and position setpoint vectors
+	 _setOutputState();
+ }
+
+void FormicAltitude::_updateTrajConstraints()
+ {
+	 _smoothing.setMaxJerk(_param_mpc_jerk_max.get());
+
+	 _smoothing.setMaxAccelUp(_param_mpc_acc_up_max.get());
+	 _smoothing.setMaxVelUp(_constraints.speed_up);
+
+	 _smoothing.setMaxAccelDown(_param_mpc_acc_down_max.get());
+	 _smoothing.setMaxVelDown(_constraints.speed_down);
+ }
+
+
+void FormicAltitude::_setOutputState()
+ {
+	 _jerk_setpoint(2) = _smoothing.getCurrentJerk();
+	 _acceleration_setpoint(2) = _smoothing.getCurrentAcceleration();
+	 _velocity_setpoint(2) = _smoothing.getCurrentVelocity();
+
+	 if (!_terrain_hold) {
+		 if (_terrain_hold_previous) {
+			 // Reset position setpoint to current position when switching from terrain hold to non-terrain hold
+			 _smoothing.setCurrentPosition(_position(2));
+		 }
+
+		 _position_setpoint(2) = _smoothing.getCurrentPosition();
+	 }
+
+	 _terrain_hold_previous = _terrain_hold;
+ }
