@@ -62,9 +62,19 @@ private:
 	uORB::PublicationMulti<adc_report_s> _adc_report_pub{ORB_ID(adc_report)};
 	adc_report_s _adc_report{};
 
-	void exit_and_cleanup() override;
+	int init_reset();
+	int poll_reset();
 	int configure();
-	int reset();
-	int calibrate();
+	int init_calibrate();
+	int poll_calibrate();
 	void adc_get();
+	void exit_and_cleanup() override;
+
+	enum class STATE : uint8_t {
+		INIT,
+		CONFIGURE,
+		CALIBRATE,
+		WORK
+	};
+	STATE _state{STATE::INIT};
 };
