@@ -112,6 +112,10 @@ const uint16_t osd_current_draw_pos = 2103;
 
 const uint16_t osd_numerical_vario_pos = LOCATION_HIDDEN;
 
+
+const uint16_t osd_range_finder_pos = 2075;
+const uint16_t osd_distance_sensor_pos = 2075;
+
 #define OSD_GRID_COL_MAX (59) // From betaflight-configurator OSD tab
 #define OSD_GRID_ROW_MAX (21) // From betaflight-configurator OSD tab
 
@@ -189,6 +193,10 @@ void MspOsd::SendConfig()
 
 	// the location of our crosshairs can change
 	msp_osd_config.osd_crosshairs_pos = LOCATION_HIDDEN;
+
+	msp_osd_config.osd_distance_sensor_pos = enabled(SymbolIndex::DISTANCE_SENSOR) ? osd_distance_sensor_pos : LOCATION_HIDDEN;
+
+
 
 	if (enabled(SymbolIndex::CROSSHAIRS)) {
 		msp_osd_config.osd_crosshairs_pos = osd_crosshairs_pos - 32 * _param_osd_ch_height.get();
@@ -463,6 +471,17 @@ void MspOsd::Run()
 
 		const auto msg = msp_osd::construct_MSP_STATUS(vehicle_status);
 		this->Send(MSP_STATUS, &msg, sizeof(msp_status_t));
+	}
+
+	// MSP_DISTANCE_SENSOR
+	{
+		if (enabled(SymbolIndex::DISTANCE_SENSOR)) {
+			estimator_aid_source1d_s estimator_aid_src_rng_hgt{};
+			_estimator_aid_src_rng_hgt_sub.copy(&estimator_aid_src_rng_hgt);
+
+			const auto msg = msp_osd::construct_rendor_DISTANCE_SENSOR(estimator_aid_src_rng_hgt);
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_distance_sensor_t));
+		}
 	}
 
 	subcmd = MSP_DP_DRAW_SCREEN;

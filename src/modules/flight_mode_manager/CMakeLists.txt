@@ -49,7 +49,8 @@ list(APPEND flight_tasks_all
 	ManualPosition
 	Transition
 	AltitudeCruise
-	Naor
+	FormicAltHold
+	Turtle_mode
 )
 
 if(NOT px4_constrained_flash_build)
@@ -104,7 +105,8 @@ px4_add_module(
 	INCLUDES
 		${CMAKE_CURRENT_SOURCE_DIR}
 		${CMAKE_CURRENT_BINARY_DIR}
-		${CMAKE_CURRENT_SOURCE_DIR}/tasks/Naor
+		${CMAKE_CURRENT_SOURCE_DIR}/tasks/FormicAltHold
+		${CMAKE_CURRENT_SOURCE_DIR}/tasks/Turtle_mode
 	SRCS
 		FlightModeManager.cpp
 		FlightModeManager.hpp

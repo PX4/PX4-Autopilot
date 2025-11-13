@@ -53,7 +53,8 @@ enum PX4_CUSTOM_MAIN_MODE {
 	PX4_CUSTOM_MAIN_MODE_SIMPLE, /* unused, but reserved for future use */
 	PX4_CUSTOM_MAIN_MODE_TERMINATION,
 	PX4_CUSTOM_MAIN_MODE_ALTITUDE_CRUISE,
-	PX4_CUSTOM_MAIN_MODE_NAOR
+	PX4_CUSTOM_MAIN_MODE_FORMIC_ALT_HOLD,
+	PX4_CUSTOM_MAIN_MODE_TURTLE
 };
 
 enum PX4_CUSTOM_SUB_MODE_AUTO {
@@ -163,8 +164,12 @@ static inline union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_STABILIZED;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_NAOR:
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_NAOR;
+	case vehicle_status_s::NAVIGATION_STATE_FORMIC_ALT_HOLD:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_FORMIC_ALT_HOLD;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_TURTLE:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_TURTLE;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:

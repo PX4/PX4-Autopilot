@@ -56,6 +56,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/log_message.h>
+#include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/estimator_aid_source1d.h>
 
 // PX4 events interface
 #include <px4_platform_common/events.h>
@@ -80,6 +82,9 @@ msp_fc_variant_t construct_FC_VARIANT();
 
 // construct an MSP_STATUS struct
 msp_status_BF_t construct_STATUS(const vehicle_status_s &vehicle_status);
+
+// construct an MSP_TOTAL_ARM_TIME struct
+msp_total_arm_time_t construct_TOTAL_ARM_TIME(const vehicle_status_s &vehicle_status);
 
 // construct an MSP_ANALOG struct
 msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const input_rc_s &input_rc);
@@ -131,5 +136,10 @@ msp_rc_t construct_MSP_RC(const input_rc_s &input_rc);
 
 // construct an MSP_STATUS struct
 msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status);
+
+// construct an MSP_DISTANCE_SENSOR struct
+msp_distance_sensor_t construct_DISTANCE_SENSOR(const distance_sensor_s &distance_sensor);
+
+msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_aid_source1d_s &estimator_aid_src_rng_hgt);
 
 } // namespace msp_osd

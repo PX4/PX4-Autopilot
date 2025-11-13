@@ -609,8 +609,12 @@
                             "description": "Altitude Cruise"
                         },
                         "25": {
-                            "name": "naor",
-                            "description": "Naor"
+                            "name": "formic_alt_hold",
+                            "description": "FormicAltHold"
+                        },
+                        "26": {
+                            "name": "turtle",
+                            "description": "Turtle"
                         },
                         "255": {
                             "name": "unknown",

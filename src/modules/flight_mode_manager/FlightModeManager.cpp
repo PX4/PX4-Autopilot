@@ -154,7 +154,8 @@ void FlightModeManager::start_flight_task()
 	bool matching_task_running = true;
 	bool task_failure = false;
 	const bool nav_state_descend = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
-	const bool nav_state_naor = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_NAOR);
+	const bool nav_state_formic_alt_hold = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_FORMIC_ALT_HOLD);
+	const bool nav_state_turtle = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE);
 
 	// Follow me
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
@@ -231,8 +232,16 @@ void FlightModeManager::start_flight_task()
 		matching_task_running = matching_task_running && !task_failure;
 	}
 
-	// Manual altitude control (includes Naor mode)
-	if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL) || nav_state_naor || task_failure) {
+	// Turtle mode
+	if (nav_state_turtle) {
+		found_some_task = true;
+		FlightTaskError error = switchTask(FlightTaskIndex::Turtle_mode);
+		task_failure = (error != FlightTaskError::NoError);
+		matching_task_running = matching_task_running && !task_failure;
+	}
+
+	// Manual altitude control (includes FormicAltHold mode)
+	if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL) || nav_state_formic_alt_hold || task_failure) {
 		found_some_task = true;
 		FlightTaskError error = FlightTaskError::NoError;
 
@@ -249,7 +258,7 @@ void FlightModeManager::start_flight_task()
 				_param_mpc_pos_mode.commit();
 			}
 
-			const FlightTaskIndex altitude_task = nav_state_naor ? FlightTaskIndex::Naor : FlightTaskIndex::ManualAltitudeSmoothVel;
+			const FlightTaskIndex altitude_task = nav_state_formic_alt_hold ? FlightTaskIndex::FormicAltHold : FlightTaskIndex::ManualAltitudeSmoothVel;
 			error = switchTask(altitude_task);
 
 			break;

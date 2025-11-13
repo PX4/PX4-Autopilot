@@ -338,6 +338,20 @@ struct msp_sonar_altitude_t {
 } __attribute__((packed));
 
 
+struct msp_distance_sensor_t {
+	float distance;
+} __attribute__((packed));
+
+struct msp_rendor_distance_sensor_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x72; // Distance sensor icon (using range finder icon)
+	char str[8]; // 9999.99 m
+} __attribute__((packed));
+
+
 // MSP_ANALOG reply
 struct msp_analog_t {
 	uint8_t  vbat;     // 0...255
@@ -825,6 +839,7 @@ struct msp_osd_config_t {
 	uint16_t osd_profile_name_pos;
 	uint16_t osd_rssi_dbm_value_pos;
 	uint16_t osd_rc_channels_pos;
+	uint16_t osd_distance_sensor_pos;
 	uint8_t osd_stat_count;                     //24
 	uint8_t osd_stat_rtc_date_time;
 	uint8_t osd_stat_timer_1;
@@ -897,6 +912,10 @@ struct msp_status_BF_t {
 	uint8_t arming_disable_flags_count;
 	uint32_t arming_disable_flags;
 	uint8_t  extra_flags;
+} __attribute__((packed));
+
+struct msp_total_arm_time_t {
+	uint32_t totalArmTime;
 } __attribute__((packed));
 
 struct msp_set_vtx_config_t {

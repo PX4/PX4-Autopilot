@@ -196,6 +196,17 @@ msp_status_BF_t construct_STATUS(const vehicle_status_s &vehicle_status)
 	return status_BF;
 }
 
+msp_total_arm_time_t construct_TOTAL_ARM_TIME(const vehicle_status_s &vehicle_status)
+{
+
+	// initialize result
+	msp_total_arm_time_t total_arm_time {0};
+
+	total_arm_time.totalArmTime = hrt_absolute_time() - vehicle_status.armed_time / 1000; // ms to seconds
+
+	return total_arm_time;
+}
+
 msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const input_rc_s &input_rc)
 {
 	// initialize result
@@ -587,6 +598,33 @@ msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status)
 	return status;
 }
 
+
+msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_aid_source1d_s &estimator_aid_src_rng_hgt)
+{
+	msp_rendor_distance_sensor_t distance;
+
+	distance.screenYPosition = 0x07;
+	distance.screenXPosition = 0x29;
+
+	// Use the observation from the estimator aid source (processed range finder height)
+	float dist = estimator_aid_src_rng_hgt.observation;
+
+
+	if (PX4_ISFINITE(dist) && estimator_aid_src_rng_hgt.fused) {
+		memset(&distance.str[0], 0, sizeof(distance.str));
+		snprintf(&distance.str[0], sizeof(distance.str), "%.2f", static_cast<double>(dist));
+	}
+	else if (PX4_ISFINITE(dist) && !estimator_aid_src_rng_hgt.fused) {
+		memset(&distance.str[0], 0, sizeof(distance.str));
+		snprintf(&distance.str[0], sizeof(distance.str), "no fused");
+	}
+	else {
+		memset(&distance.str[0], 0, sizeof(distance.str));
+		snprintf(&distance.str[0], sizeof(distance.str), "no data");
+	}
+
+	return distance;
+}
 
 
 } // namespace msp_osd
