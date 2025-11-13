@@ -4,12 +4,6 @@ The Jerk-limited trajectory type provides smooth motion in response to user stic
 It generates symmetric smooth S-curves where the jerk and acceleration limits are always guaranteed.
 
 This trajectory type is always enabled in [Mission mode](../flight_modes_mc/mission.md).
-To enable it in [Position mode](../flight_modes_mc/position.md) set the parameter [MPC_POS_MODE](../advanced_config/parameter_reference.md#MPC_POS_MODE) to `Smoothed velocity`.
-
-::: info
-The jerk-limited type is not used _by default_ in position mode.
-It may not be suitable for vehicles/use-cases that require a faster response - e.g. racer quads.
-:::
 
 ## Trajectory Generator
 
@@ -27,23 +21,6 @@ The constraints `jMax`, `aMax` are configurable by the user via parameters and c
 The resulting velocity profile is often called "S-Curve".
 
 ![Jerk-limited trajectory](../../assets/config/mc/jerk_limited_trajectory_1d.png)
-
-## Manual Mode
-
-In manual position mode, the sticks are mapped to velocity where a full XY-stick deflection corresponds to [MPC_VEL_MANUAL](../advanced_config/parameter_reference.md#MPC_VEL_MANUAL) and a full Z-stick deflection corresponds to [MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) (upward motion) or [MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) (downward motion).
-
-### Constraints
-
-XY-plane:
-
-- `jMax`: [MPC_JERK_MAX](../advanced_config/parameter_reference.md#MPC_JERK_MAX)
-- `aMax`: [MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)
-
-Z-axis:
-
-- `jMax`: [MPC_JERK_MAX](../advanced_config/parameter_reference.md#MPC_JERK_MAX)
-- `aMax` (upward motion): [MPC_ACC_UP_MAX](../advanced_config/parameter_reference.md#MPC_ACC_UP_MAX)
-- `aMax` (downward motion): [MPC_ACC_DOWN_MAX](../advanced_config/parameter_reference.md#MPC_ACC_DOWN_MAX)
 
 ## Auto Mode
 
