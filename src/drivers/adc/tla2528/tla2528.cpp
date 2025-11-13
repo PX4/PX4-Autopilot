@@ -30,7 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 #include "tla2528.h"
 
 #define READ 		0x10
@@ -83,10 +82,6 @@ int TLA2528::init()
 	_adc_report.v_ref = ref_volt;
 	_adc_report.resolution = 4096;
 
-	for (unsigned i = 0; i < 16; ++i) {
-		_adc_report.channel_id[i] = -1;
-	}
-
 	ret = probe();
 
 	if (ret != PX4_OK) {
@@ -94,24 +89,21 @@ int TLA2528::init()
 		return ret;
 	}
 
-	ret = reset();
-	ret |= configure();
-	ret |= calibrate();
+	ret = init_reset();
 
 	if (ret != PX4_OK) {
-		PX4_DEBUG("TLA2528::initializing failed (%i)", ret);
+		PX4_DEBUG("TLA2528::Initializing reset failed (%i)", ret);
 		return ret;
 	}
 
+	ScheduleClear();
 	ScheduleOnInterval(SAMPLE_INTERVAL / 4, SAMPLE_INTERVAL / 4);
 	return PX4_OK;
 }
 
-int TLA2528::calibrate()
+int TLA2528::init_calibrate()
 {
 	uint8_t send_data[3];
-	uint8_t recv_data;
-
 	send_data[0] = SET_BIT;
 	send_data[1] = GENERAL_CFG;
 	send_data[2] = 0x02;
@@ -119,28 +111,29 @@ int TLA2528::calibrate()
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("TLA2528::Initializing Calibration failed (%i)", ret);
-		return ret;
 	}
 
-	send_data[0] = READ;
-	send_data[1] = GENERAL_CFG;
-
-	for (int i = 0; i < 10; i++) {
-		ret = transfer(&send_data[0], 2, nullptr, 0);
-		ret |= transfer(nullptr, 0, &recv_data, 1);
-
-		if (ret == 0 && !(recv_data & 2u)) {
-			return PX4_OK;
-		}
-
-		px4_usleep(20000);
-	}
-
-	PX4_DEBUG("TLA2528::Calibration failed");
-	return PX4_ERROR;
+	return ret;
 }
 
-int TLA2528::reset()
+int TLA2528::poll_calibrate()
+{
+	uint8_t send_data[2];
+	uint8_t recv_data;
+	send_data[0] = READ;
+	send_data[1] = GENERAL_CFG;
+	int ret = transfer(&send_data[0], 2, nullptr, 0);
+	ret |= transfer(nullptr, 0, &recv_data, 1);
+
+	if (recv_data & 2u) {
+		PX4_DEBUG("TLA2528::Calibration not yet finished");
+		return PX4_ERROR;
+	}
+
+	return ret;
+}
+
+int TLA2528::init_reset()
 {
 	uint8_t send_data[3];
 	send_data[0] = SET_BIT;
@@ -148,28 +141,33 @@ int TLA2528::reset()
 	send_data[2] = 0x01;
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
 
-	uint8_t recv_data[2];
-	send_data[0] = READ;
-	send_data[0] = GENERAL_CFG;
-
-	for (int i = 0; i < 10; i++) {
-		ret = transfer(&send_data[0], 2, nullptr, 0);
-		ret |= transfer(nullptr, 0, &recv_data[0], 1);
-
-		if (ret == 0 && !(recv_data[0] & 1u)) {
-			return PX4_OK;
-		}
-
-		px4_usleep(20000);
+	if (ret != PX4_OK) {
+		PX4_DEBUG("TLA2528::Initializing Reset failed (%i)", ret);
 	}
 
-	PX4_DEBUG("TLA2528::resetting failed");
-	return PX4_ERROR;
+	return ret;
+}
+
+int TLA2528::poll_reset()
+{
+	uint8_t send_data[2];
+	uint8_t recv_data;
+	send_data[0] = READ;
+	send_data[0] = GENERAL_CFG;
+	int ret = transfer(&send_data[0], 2, nullptr, 0);
+	ret |= transfer(nullptr, 0, &recv_data, 1);
+
+	if (recv_data & 1u) {
+		PX4_DEBUG("TLA2528::Reset not finished");
+		return PX4_ERROR;
+	}
+
+	return ret;
 }
 
 void TLA2528::adc_get()
 {
-	//Start sequential adc read
+	//Start sequential read
 	uint8_t send_data[3] = {SET_BIT, SEQUENCE_CFG, 0x10};
 	uint8_t recv_data[3];
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
@@ -178,7 +176,7 @@ void TLA2528::adc_get()
 		return;
 	}
 
-	//Read adc data
+	//Read data
 	for (int i = 0; i < 8; i++) {
 		ret = transfer(nullptr, 0, &recv_data[0], 2);
 
@@ -192,12 +190,11 @@ void TLA2528::adc_get()
 		}
 	}
 
-	//Stop sequential adc read
+	//Stop sequential read
 	send_data[0] = CLEAR_BIT;
 	send_data[1] = SEQUENCE_CFG;
 	send_data[2] = 0x10;
 	transfer(&send_data[0], 3, nullptr, 0);
-
 	return;
 }
 
@@ -273,11 +270,46 @@ void TLA2528::RunImpl()
 		return;	// stop and return immediately to avoid unexpected schedule from stopping procedure
 	}
 
-	perf_begin(_cycle_perf);
-	adc_get();
-	_adc_report.timestamp = hrt_absolute_time();
-	_adc_report_pub.publish(_adc_report);
-	perf_end(_cycle_perf);
+	int ret;
+
+	switch (_state) {
+	case STATE::INIT:
+		ret = init();
+
+		if (ret == PX4_OK) {
+			_state = STATE::CONFIGURE;
+		}
+
+		break;
+
+	case STATE::CONFIGURE:
+		ret = poll_reset();
+		ret |= configure();
+		ret |= init_calibrate();
+
+		if (ret == PX4_OK) {
+			_state = STATE::CALIBRATE;
+		}
+
+		break;
+
+	case STATE::CALIBRATE:
+		ret = poll_calibrate();
+
+		if (ret == PX4_OK) {
+			_state = STATE::WORK;
+		}
+
+		break;
+
+	case STATE::WORK:
+		perf_begin(_cycle_perf);
+		adc_get();
+		_adc_report.timestamp = hrt_absolute_time();
+		_adc_report_pub.publish(_adc_report);
+		perf_end(_cycle_perf);
+		break;
+	}
 
 	for (unsigned i = 0; i < 16; ++i) {
 		_adc_report.channel_id[i] = -1;
