@@ -281,8 +281,18 @@ void FixedwingRateControl::Run()
 				_rate_control.resetIntegral();
 			}
 
+			launch_detection_status_s launch_detection_status{};
+			_launch_detection_status_sub.copy(&launch_detection_status);
+
+			bool control_surfaces_locked = false;
+
+			if (hrt_elapsed_time(&launch_detection_status.timestamp) < 200_ms
+			    && launch_detection_status.selected_control_surface_disarmed) {
+				control_surfaces_locked = true;
+			}
+
 			// Reset integrators if the aircraft is on ground or not in a state where the fw attitude controller is run
-			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition) {
+			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition || control_surfaces_locked) {
 
 				_rate_control.resetIntegral();
 			}
