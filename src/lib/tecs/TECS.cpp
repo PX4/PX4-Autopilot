@@ -482,8 +482,13 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 			pitch_integ_input = max(pitch_integ_input, 0.f);
 		}
 
-		// Update the pitch integrator state.
-		_pitch_integ_state = _pitch_integ_state + pitch_integ_input * dt;
+		// Guard against NaN integrator input
+		if (PX4_ISFINITE(pitch_integ_input)) {
+			_pitch_integ_state = _pitch_integ_state + pitch_integ_input * dt;
+
+		} else {
+			_pitch_integ_state = 0.f;
+		}
 
 	} else {
 		_pitch_integ_state = 0.0f;
