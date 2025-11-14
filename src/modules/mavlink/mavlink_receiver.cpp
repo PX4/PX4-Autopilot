@@ -1846,11 +1846,16 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 		p_shell_enable = param_find("MAV_SHELL_EN");
 	}
 
+	// If parameter not registered yet, default to disabled (secure default)
+	if (p_shell_enable == PARAM_INVALID) {
+		return;
+	}
+
 	int32_t shell_enabled = 0;
 	param_get(p_shell_enable, &shell_enabled);
 
 	if (shell_enabled == 0) {
-		return;  // Shell disabled (secure default)
+		return;  // Shell disabled
 	}
 
 	mavlink_serial_control_t serial_control_mavlink;
