@@ -89,13 +89,6 @@ int TLA2528::init()
 		return ret;
 	}
 
-	ret = init_reset();
-
-	if (ret != PX4_OK) {
-		PX4_DEBUG("TLA2528::Initializing reset failed (%i)", ret);
-		return ret;
-	}
-
 	ScheduleClear();
 	ScheduleOnInterval(SAMPLE_INTERVAL / 4, SAMPLE_INTERVAL / 4);
 	return PX4_OK;
@@ -275,6 +268,15 @@ void TLA2528::RunImpl()
 	switch (_state) {
 	case STATE::INIT:
 		ret = init();
+
+		if (ret == PX4_OK) {
+			_state = STATE::RESET;
+		}
+
+		break;
+
+	case STATE::RESET:
+		ret = init_reset();
 
 		if (ret == PX4_OK) {
 			_state = STATE::CONFIGURE;
