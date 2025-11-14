@@ -31,62 +31,55 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "AM32Settings.h"
+#include "../DShotCommon.h"
+#include <px4_platform_common/log.h>
 
-#include <px4_platform_common/Serial.hpp>
-#include <uORB/Publication.hpp>
-#include "DShotCommon.h"
-#include "esc/AM32Settings.h"
+static constexpr int EEPROM_SIZE = 48;  // AM32 sends raw eeprom data
+static constexpr int RESPONSE_SIZE = 49; // 48B data + 1B CRC
 
-class DShotTelemetry
+uORB::Publication<am32_eeprom_read_s> AM32Settings::_am32_eeprom_read_pub{ORB_ID(am32_eeprom_read)};
+
+AM32Settings::AM32Settings(int index)
+	: _esc_index(index)
+{}
+
+int AM32Settings::getExpectedResponseSize()
 {
-public:
+	return RESPONSE_SIZE;
+}
 
-	~DShotTelemetry();
+void AM32Settings::publish_latest()
+{
+	// PX4_INFO("publish_latest()");
+	am32_eeprom_read_s data = {};
+	data.timestamp = hrt_absolute_time();
+	data.index = _esc_index;
+	memcpy(data.data, &_eeprom_data, sizeof(data.data));
+	_am32_eeprom_read_pub.publish(data);
+}
 
-	int init(const char *uart_device, bool swap_rxtx);
-	void printStatus() const;
+bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
+{
+	if (size != RESPONSE_SIZE) {
+		return false;
+	}
 
-	void startTelemetryRequest();
-	bool telemetryResponseFinished();
+	uint8_t checksum = crc8(buf, EEPROM_SIZE);
+	uint8_t checksum_data = buf[EEPROM_SIZE];
 
-	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
+	if (checksum != checksum_data) {
+		PX4_WARN("Command Response checksum failed!");
+		return false;
+	}
 
-	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
-	int parseCommandResponse();
-	bool commandResponseFinished();
-	void setExpectCommandResponse(int motor_index, uint16_t command);
-	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
-	void publish_esc_settings();
+	// PX4_INFO("Successfully received AM32 settings from ESC%d", _esc_index + 1);
 
-private:
-	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 128;
-	static constexpr int COMMAND_RESPONSE_SETTINGS_SIZE = 49; // 48B for EEPROM + 1B for CRC
-	static constexpr int TELEMETRY_FRAME_SIZE = 10;
-	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
+	// Store data for retrieval later if requested
+	memcpy(&_eeprom_data, buf, EEPROM_SIZE);
 
-	device::Serial _uart{};
+	// Publish data immedietly
+	publish_latest();
 
-	// Command response
-	int _command_response_motor_index{-1};
-	uint16_t _command_response_command{0};
-	uint8_t _command_response_buffer[COMMAND_RESPONSE_MAX_SIZE];
-	int _command_response_position{0};
-	hrt_abstime _command_response_start{0};
-
-	// Telemetry packet
-	EscData _latest_data{};
-	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
-	int _frame_position{0};
-	hrt_abstime _telemetry_request_start{0};
-
-	// statistics
-	int _num_timeouts{0};
-	int _num_successful_responses{0};
-	int _num_checksum_errors{0};
-
-	// Settings
-	ESCSettingsInterface *_settings_handlers[DSHOT_MAXIMUM_CHANNELS] = {nullptr};
-	ESCType _esc_type{ESCType::Unknown};
-	bool _settings_initialized{false};
-};
+	return true;
+}

@@ -301,8 +301,11 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 }
 
 
-int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot)
+int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable,
+		  bool enable_extended_dshot_telemetry)
 {
+	(void)enable_extended_dshot_telemetry; // Not implemented
+
 	/* Calculate dshot timings based on dshot_pwm_freq */
 	dshot_tcmp = 0x2F00 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 3) / 2) - 1) & 0xFF);
 	bdshot_tcmp = 0x2900 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 5 / 4) / 2) - 3) & 0xFF);
@@ -340,7 +343,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 
 			imxrt_config_gpio(timer_io_channels[channel].dshot.pinmux | IOMUX_PULL_UP);
 
-			dshot_inst[channel].bdshot = enable_bidirectional_dshot;
+			dshot_inst[channel].bdshot = bdshot_enable;
 
 			flexio_dshot_output(channel, timer_io_channels[channel].dshot.flexio_pin, dshot_tcmp, dshot_inst[channel].bdshot);
 
@@ -418,7 +421,7 @@ void up_bdshot_erpm(void)
 }
 
 
-int up_bdshot_num_erpm_ready(void)
+int up_bdshot_num_channels_ready(void)
 {
 	int num_ready = 0;
 
@@ -433,6 +436,10 @@ int up_bdshot_num_erpm_ready(void)
 	return num_ready;
 }
 
+int up_bdshot_num_errors(uint8_t channel)
+{
+	return dshot_inst[channel].crc_error_cnt + dshot_inst[channel].frame_error_cnt + dshot_inst[channel].no_response_cnt;
+}
 
 int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 {
@@ -444,7 +451,13 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 	return -1;
 }
 
-int up_bdshot_channel_status(uint8_t channel)
+int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
+{
+	// NOT IMPLEMENTED
+	return -1;
+}
+
+int up_bdshot_channel_online(uint8_t channel)
 {
 	if (channel < DSHOT_TIMERS) {
 		return ((dshot_inst[channel].no_response_cnt - dshot_inst[channel].last_no_response_cnt) < BDSHOT_OFFLINE_COUNT);
@@ -459,7 +472,7 @@ void up_bdshot_status(void)
 	for (uint8_t channel = 0; (channel < DSHOT_TIMERS); channel++) {
 
 		if (dshot_inst[channel].init) {
-			PX4_INFO("Channel %i %s Last erpm %i value", channel, up_bdshot_channel_status(channel) ? "online" : "offline",
+			PX4_INFO("Channel %i %s Last erpm %i value", channel, up_bdshot_channel_online(channel) ? "online" : "offline",
 				 dshot_inst[channel].erpm);
 			PX4_INFO("CRC errors Frame error No response");
 			PX4_INFO("%10lu %11lu %11lu", dshot_inst[channel].crc_error_cnt, dshot_inst[channel].frame_error_cnt,
