@@ -173,5 +173,5 @@ private:
 	void reset_attitude_setpoint(vehicle_attitude_s &v_att);
 	void check_setpoint_validity(vehicle_attitude_s &v_att);
 
-	inline bool joystick_heave_sway_mode() const { return _param_stick_mode.get() == 1; }
+	inline bool joystick_heave_sway_mode() const { return _param_stick_mode.get() == 0; }
 };

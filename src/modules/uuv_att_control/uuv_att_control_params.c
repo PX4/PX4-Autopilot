@@ -241,10 +241,10 @@ PARAM_DEFINE_FLOAT(UUV_THRUST_SAT, 0.1f);
 PARAM_DEFINE_FLOAT(UUV_SP_MAX_AGE, 2.0f);
 
 /**
- * Stick mode selector (0=Pitch/roll control, 1=Heave/sway control; roll/pitch leveled)
+ * Stick mode selector (0=Heave/sway control, roll/pitch leveled; 1=Pitch/roll control)
  *
  * @group UUV Attitude Control
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_INT32(UUV_STICK_MODE, 1);
+PARAM_DEFINE_INT32(UUV_STICK_MODE, 0);
