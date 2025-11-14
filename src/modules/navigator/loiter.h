@@ -66,9 +66,9 @@ private:
 	 */
 	void set_loiter_position();
 
-		/**
-	 * Cache last applied loiter radius (from NAV_LOITER_RAD)
-	 */
+	/**
+	* Cache last applied loiter radius (from NAV_LOITER_RAD)
+	*/
 	float _loiter_radius_cached{NAN};
 
 	/**

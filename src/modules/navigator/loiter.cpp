@@ -51,71 +51,71 @@ Loiter::Loiter(Navigator *navigator) :
 void
 Loiter::on_activation()
 {
-    if (_navigator->get_reposition_triplet()->current.valid
-        && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
-        reposition();
+	if (_navigator->get_reposition_triplet()->current.valid
+	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
+		reposition();
 
-    } else {
-        set_loiter_position();
-    }
+	} else {
+		set_loiter_position();
+	}
 
-    // Initialize cache based on current setpoint
-    position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	// Initialize cache based on current setpoint
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-    if (pos_sp_triplet->current.valid
-        && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
-        && pos_sp_triplet->current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
+	if (pos_sp_triplet->current.valid
+	    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+	    && pos_sp_triplet->current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
 
-        const float r = _param_nav_loiter_rad.get();
-        _loiter_radius_cached = PX4_ISFINITE(r) ? r : NAN;
+		const float r = _param_nav_loiter_rad.get();
+		_loiter_radius_cached = PX4_ISFINITE(r) ? r : NAN;
 
-    } else {
-        _loiter_radius_cached = NAN;
-    }
+	} else {
+		_loiter_radius_cached = NAN;
+	}
 
-    _navigator->reset_cruising_speed();
+	_navigator->reset_cruising_speed();
 }
 
 void
 Loiter::on_active()
 {
-    // First, handle any fresh reposition commands
-    if (_navigator->get_reposition_triplet()->current.valid
-        && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
-        reposition();
-        return;
-    }
+	// First, handle any fresh reposition commands
+	if (_navigator->get_reposition_triplet()->current.valid
+	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
+		reposition();
+		return;
+	}
 
-    // Continuous monitoring of NAV_LOITER_RAD for FW/VTOL
-    if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING ||
-        _navigator->get_vstatus()->is_vtol) {
+	// Continuous monitoring of NAV_LOITER_RAD for FW/VTOL
+	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING ||
+	    _navigator->get_vstatus()->is_vtol) {
 
-        const float current_radius = _param_nav_loiter_rad.get();
+		const float current_radius = _param_nav_loiter_rad.get();
 
-        if (!PX4_ISFINITE(current_radius)) {
-            return; // don't propagate bad params
-        }
+		if (!PX4_ISFINITE(current_radius)) {
+			return; // don't propagate bad params
+		}
 
-        // If the param changed by a meaningful amount, update the active loiter setpoint
-        if (!PX4_ISFINITE(_loiter_radius_cached) ||
-            fabsf(current_radius - _loiter_radius_cached) > 0.1f) {
+		// If the param changed by a meaningful amount, update the active loiter setpoint
+		if (!PX4_ISFINITE(_loiter_radius_cached) ||
+		    fabsf(current_radius - _loiter_radius_cached) > 0.1f) {
 
-            _loiter_radius_cached = current_radius;
+			_loiter_radius_cached = current_radius;
 
-            position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-            if (pos_sp_triplet->current.valid &&
-                pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER &&
-                pos_sp_triplet->current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
+			if (pos_sp_triplet->current.valid &&
+			    pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER &&
+			    pos_sp_triplet->current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
 
-                // Preserve CW/CCW sign from existing radius
-                const float sign = (pos_sp_triplet->current.loiter_radius >= 0.f) ? 1.f : -1.f;
-                pos_sp_triplet->current.loiter_radius = sign * fabsf(current_radius);
+				// Preserve CW/CCW sign from existing radius
+				const float sign = (pos_sp_triplet->current.loiter_radius >= 0.f) ? 1.f : -1.f;
+				pos_sp_triplet->current.loiter_radius = sign * fabsf(current_radius);
 
-                _navigator->set_position_setpoint_triplet_updated();
-            }
-        }
-    }
+				_navigator->set_position_setpoint_triplet_updated();
+			}
+		}
+	}
 }
 
 void
