@@ -140,6 +140,9 @@ done
 param set MAV_SYS_ID $((px4_instance+1))
 param set UXRCE_DDS_KEY $((px4_instance+1))
 
+# Enable shell for SITL development (disabled by default on hardware)
+param set MAV_SHELL_EN 1
+
 if [ $AUTOCNF = yes ]
 then
 	param set SYS_AUTOSTART $SYS_AUTOSTART
