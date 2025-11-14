@@ -237,7 +237,7 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 {
-	const bool sub_like = sub_like_mode();
+	const bool js_heave_sway_mode = joystick_heave_sway_mode();
 
 	// Avoid accumulating absolute yaw error with arming stick gesture
 	float roll = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).phi();
@@ -248,8 +248,8 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 	float pitch_setpoint = 0.0f;
 	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_sgm_yaw.get();
 
-	if (!sub_like) {
-		// Legacy multicopter: integrate roll/pitch from sticks
+	if (!js_heave_sway_mode) {
+		// Integrate roll/pitch from sticks
 		roll_setpoint = roll + _manual_control_setpoint.roll * dt * _param_sgm_roll.get();
 		pitch_setpoint = pitch + -_manual_control_setpoint.pitch * dt * _param_sgm_pitch.get();
 	}
@@ -264,17 +264,17 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 	q_sp.copyTo(_attitude_setpoint.q_d);
 
 	// Thrust mapping
-	const float g = _param_sgm_thrtl.get();
+	const float throttle_manual_attitude_gain = _param_sgm_thrtl.get();
 
-	if (sub_like) {
-		// Sub mapping
-		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g; // surge +x
-		_attitude_setpoint.thrust_body[1] = _manual_control_setpoint.roll * g; // sway +y
-		_attitude_setpoint.thrust_body[2] = -_manual_control_setpoint.pitch * g; // heave +z down
+	if (js_heave_sway_mode) {
+		// XYZ thrust
+		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_attitude_gain; // surge +x
+		_attitude_setpoint.thrust_body[1] = _manual_control_setpoint.roll * throttle_manual_attitude_gain; // sway +y
+		_attitude_setpoint.thrust_body[2] = -_manual_control_setpoint.pitch * throttle_manual_attitude_gain; // heave +z down
 
 	} else {
-		// Legacy multicopter: throttle only on +x (surge)
-		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g;
+		// Throttle only on +x (surge)
+		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_attitude_gain;
 		_attitude_setpoint.thrust_body[1] = 0.f;
 		_attitude_setpoint.thrust_body[2] = 0.f;
 	}
@@ -284,27 +284,26 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 
 void UUVAttitudeControl::generate_rates_setpoint(float dt)
 {
-	const bool sub_like = sub_like_mode();
+	const bool js_heave_sway_mode = joystick_heave_sway_mode();
+	const float throttle_manual_rate_gain = _param_rgm_thrtl.get();
 
-	if (sub_like) {
-		// Hold level. Only yaw is a rate command.
+	if (js_heave_sway_mode) {
+		// Hold pitch/roll level. Only yaw is a rate command. XYZ thrust
 		_rates_setpoint.roll = 0.0f;
 		_rates_setpoint.pitch = 0.0f;
 		_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
 
-		const float g = _param_rgm_thrtl.get();
-		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g; // surge +x
-		_rates_setpoint.thrust_body[1] = _manual_control_setpoint.roll * g; // sway +y
-		_rates_setpoint.thrust_body[2] = -_manual_control_setpoint.pitch * g; // heave +z down
+		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_rate_gain; // surge +x
+		_rates_setpoint.thrust_body[1] = _manual_control_setpoint.roll * throttle_manual_rate_gain; // sway +y
+		_rates_setpoint.thrust_body[2] = -_manual_control_setpoint.pitch * throttle_manual_rate_gain; // heave +z down
 
 	} else {
-		// Legacy multicopter: roll/pitch/yaw are rate commands; thrust only surge
+		// Roll/pitch/yaw are rate commands; thrust only surge
 		_rates_setpoint.roll = _manual_control_setpoint.roll * dt * _param_rgm_roll.get();
 		_rates_setpoint.pitch = -_manual_control_setpoint.pitch * dt * _param_rgm_pitch.get();
 		_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
 
-		const float g = _param_rgm_thrtl.get();
-		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * g;
+		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_rate_gain;
 		_rates_setpoint.thrust_body[1] = 0.f;
 		_rates_setpoint.thrust_body[2] = 0.f;
 	}
@@ -393,25 +392,24 @@ void UUVAttitudeControl::Run()
 				   && !_vcontrol_mode.flag_control_rates_enabled) {
 
 				/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
-				const bool sub_like = sub_like_mode();
+				const bool js_heave_sway_mode = joystick_heave_sway_mode();
 
-				if (sub_like) {
-					// Sub direct mapping: keep level, yaw torque, full XYZ thrust
-					const float tg = _param_mgm_thrtl.get();
-					const float yg = _param_mgm_yaw.get();
+				if (js_heave_sway_mode) {
+					// Keep roll/pitch level, yaw torque, full XYZ thrust
+					const float throttle_manual_gain = _param_mgm_thrtl.get();
 
 					const float roll_u = 0.0f;
 					const float pitch_u = 0.0f;
-					const float yaw_u = _manual_control_setpoint.yaw * yg;
+					const float yaw_u = _manual_control_setpoint.yaw * _param_mgm_yaw.get();
 
-					const float thrust_x = _manual_control_setpoint.throttle * tg; // surge
-					const float thrust_y = _manual_control_setpoint.roll * tg; // sway
-					const float thrust_z = -_manual_control_setpoint.pitch * tg; // heave
+					const float thrust_x = _manual_control_setpoint.throttle * throttle_manual_gain; // surge
+					const float thrust_y = _manual_control_setpoint.roll * throttle_manual_gain; // sway
+					const float thrust_z = -_manual_control_setpoint.pitch * throttle_manual_gain; // heave
 
 					constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
 
 				} else {
-					// Legacy multicopter direct mapping: torques from sticks, thrust only surge
+					// Pitch/roll/yaw torques from sticks, thrust only surge
 					constrain_actuator_commands(_manual_control_setpoint.roll * _param_mgm_roll.get(),
 								    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
 								    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),

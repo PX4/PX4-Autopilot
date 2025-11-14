@@ -241,7 +241,7 @@ PARAM_DEFINE_FLOAT(UUV_THRUST_SAT, 0.1f);
 PARAM_DEFINE_FLOAT(UUV_SP_MAX_AGE, 2.0f);
 
 /**
- * Stick mode selector (0=legacy multicopter, 1=sub mapping w/ surge, sway, heave, and yaw; roll/pitch leveled)
+ * Stick mode selector (0=Pitch/roll control, 1=Heave/sway control; roll/pitch leveled)
  *
  * @group UUV Attitude Control
  * @min 0
