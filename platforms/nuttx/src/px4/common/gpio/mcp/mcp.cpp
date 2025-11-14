@@ -42,7 +42,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 
 static uint32_t DEVID{0};
-struct mcp23009_gpio_dev_s {
+struct mcp_gpio_dev_s {
 	struct gpio_dev_s gpio;
 	uint16_t mask;
 };
@@ -66,17 +66,17 @@ public:
 
 static uORB::Publication<px4::msg::GpioRequest> toGpioRequest{ORB_ID(gpio_request)};
 static ReadCallback fromGpioIn{ORB_ID(gpio_in)};
-static int mcp23009_read(struct gpio_dev_s *dev, bool *value)
+static int mcp_read(struct gpio_dev_s *dev, bool *value)
 {
-	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
+	mcp_gpio_dev_s *gpio = (struct mcp_gpio_dev_s *)dev;
 	*value = fromGpioIn.input & gpio->mask;
 	return OK;
 }
 
 static uORB::Publication<gpio_out_s> toGpioOut{ORB_ID(gpio_out)};
-static int mcp23009_write(struct gpio_dev_s *dev, bool value)
+static int mcp_write(struct gpio_dev_s *dev, bool value)
 {
-	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
+	mcp_gpio_dev_s *gpio = (struct mcp_gpio_dev_s *)dev;
 	gpio_out_s msg{
 		hrt_absolute_time(),
 		DEVID,
@@ -87,9 +87,9 @@ static int mcp23009_write(struct gpio_dev_s *dev, bool value)
 }
 
 static uORB::Publication<gpio_config_s> toGpioConfig{ORB_ID(gpio_config)};
-static int mcp23009_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pintype)
+static int mcp_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pintype)
 {
-	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
+	mcp_gpio_dev_s *gpio = (struct mcp_gpio_dev_s *)dev;
 	gpio_config_s msg{
 		hrt_absolute_time(),
 		DEVID,
@@ -117,33 +117,35 @@ static int mcp23009_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pinty
 }
 
 // ----------------------------------------------------------------------------
-static const struct gpio_operations_s mcp23009_gpio_ops {
-	mcp23009_read,
-	mcp23009_write,
+static const struct gpio_operations_s mcp_gpio_ops {
+	mcp_read,
+	mcp_write,
 	nullptr,
 	nullptr,
-	mcp23009_setpintype,
+	mcp_setpintype,
 };
 
 static constexpr uint8_t NUM_GPIOS = 16;
-static mcp23009_gpio_dev_s _gpio[NUM_GPIOS];
+static mcp_gpio_dev_s _gpio[NUM_GPIOS];
 
 // ----------------------------------------------------------------------------
-int mcp23009_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask)
+int mcp_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask)
 {
 	for (int i = 0; i < NUM_GPIOS; i++) {
 		uint16_t mask = 1u << i;
 
 		if (dir_mask & mask) {
-			_gpio[i] = { {GPIO_INPUT_PIN, {}, &mcp23009_gpio_ops}, mask };
+			_gpio[i] = { {GPIO_INPUT_PIN, {}, &mcp_gpio_ops}, mask };
 
 		} else {
-			_gpio[i] = { {GPIO_OUTPUT_PIN, {}, &mcp23009_gpio_ops}, mask };
+			_gpio[i] = { {GPIO_OUTPUT_PIN, {}, &mcp_gpio_ops}, mask };
 		}
 	}
 
 	const auto device_id = device::Device::DeviceId{
+		//device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, DRV_GPIO_DEVTYPE_MCP23017};
 		device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, DRV_GPIO_DEVTYPE_MCP23009};
+		//device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, DRV_GPIO_DEVTYPE_MCP};
 	DEVID = device_id.devid;
 
 	for (int i = 0; i < NUM_GPIOS; ++i) {
@@ -158,10 +160,10 @@ int mcp23009_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, 
 	return OK;
 }
 
-int mcp23009_unregister_gpios(int first_minor)
+int mcp_unregister_gpios(int first_minor)
 {
 	for (int i = 0; i < NUM_GPIOS; ++i) {
-		mcp23009_setpintype(&_gpio[i].gpio, GPIO_INPUT_PIN);
+		mcp_setpintype(&_gpio[i].gpio, GPIO_INPUT_PIN);
 		gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
 	}
 

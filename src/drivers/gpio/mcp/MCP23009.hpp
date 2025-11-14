@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,8 +32,58 @@
  ****************************************************************************/
 
 #pragma once
+#include "MCP.hpp"
 
 #include <stdint.h>
+#include <drivers/device/i2c.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/gpio_config.h>
+#include <uORB/topics/gpio_in.h>
+#include <uORB/topics/gpio_out.h>
+#include <uORB/topics/gpio_request.h>
+#include <uORB/Publication.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <lib/perf/perf_counter.h>
+#include <drivers/drv_hrt.h>
 
-int mcp23009_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor = 0, uint16_t dir_mask = 0x00);
-int mcp23009_unregister_gpios(int first_minor = 0);
+
+using namespace time_literals;
+
+
+class MCP23009 : public MCP
+{
+public:
+	MCP23009(const I2CSPIDriverConfig &config);
+	~MCP23009() override;
+
+	int init(uint16_t direction, uint16_t state, uint16_t pull_up);
+	int probe() override;
+
+private:
+
+	enum class
+	Register : uint8_t {
+		IODIR   = 0x00,
+		IPOL    = 0x01,
+		GPINTEN = 0x02,
+		DEFVAL  = 0x03,
+		INTCON  = 0x04,
+		IOCON   = 0x05,
+		GPPU    = 0x06,
+		INTF    = 0x07,
+		INTCAP  = 0x08,
+		GPIO    = 0x09,
+		OLAT    = 0x0a
+	};
+
+	uint8_t _olat;
+	uint8_t _iodir;
+	uint8_t _gppu;
+
+	int read(uint16_t *mask);
+	int write(uint16_t mask_set, uint16_t mask_clear);
+
+	int configure(uint16_t mask, PinType type);
+	int read_reg(Register address, uint8_t &data);
+	int write_reg(Register address, uint8_t data);
+};

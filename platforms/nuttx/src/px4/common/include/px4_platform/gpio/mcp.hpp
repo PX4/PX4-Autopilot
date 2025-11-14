@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,5 +35,5 @@
 
 #include <stdint.h>
 
-int mcp23009_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor = 0, uint16_t dir_mask = 0x00);
-int mcp23009_unregister_gpios(int first_minor = 0);
+int mcp_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor = 0, uint16_t dir_mask = 0x0000);
+int mcp_unregister_gpios(int first_minor = 0);

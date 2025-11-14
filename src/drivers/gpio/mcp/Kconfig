@@ -1,0 +1,5 @@
+menuconfig DRIVERS_GPIO_MCP
+	bool "mcp"
+	default n
+	---help---
+		Enable support for mcp

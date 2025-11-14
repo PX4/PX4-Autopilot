@@ -2,8 +2,7 @@ menu "GPIO"
     menuconfig COMMON_GPIO
         bool "Common GPIOs"
         default n
-        select DRIVERS_GPIO_MCP23009
-        select DRIVERS_GPIO_MCP23017
+        select DRIVERS_GPIO_MCP
         ---help---
             Enable default set of GPIO drivers
     rsource "*/Kconfig"
