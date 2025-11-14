@@ -66,4 +66,15 @@ private:
 	 */
 	void set_loiter_position();
 
+		/**
+	 * Cache last applied loiter radius (from NAV_LOITER_RAD)
+	 */
+	float _loiter_radius_cached{NAN};
+
+	/**
+	 * Handle NAV_LOITER_RAD
+	 */
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad
+	)
 };
