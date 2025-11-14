@@ -72,6 +72,7 @@ private:
 
 	enum class STATE : uint8_t {
 		INIT,
+		RESET,
 		CONFIGURE,
 		CALIBRATE,
 		WORK
