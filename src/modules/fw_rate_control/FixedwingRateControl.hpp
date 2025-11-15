@@ -37,6 +37,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -131,7 +132,9 @@ private:
 	perf_counter_t _loop_perf;
 
 	hrt_abstime _last_run{0};
+	hrt_abstime _last_airspeed_update{0};
 
+	AlphaFilter<float> _airspeed_filter_for_torque_scaling;
 	float _airspeed_scaling{1.0f};
 
 	bool _landed{true};
