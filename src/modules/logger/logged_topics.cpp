@@ -158,6 +158,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
 	add_optional_topic("fixed_wing_lateral_status", 100);
 	add_optional_topic("fixed_wing_runway_control", 100);
+	add_optional_topic("airspeed_filtered", 200);
+
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
