@@ -1135,22 +1135,6 @@ Mavlink::send_autopilot_capabilities()
 	return false;
 }
 
-void
-Mavlink::send_protocol_version()
-{
-	mavlink_protocol_version_t msg = {};
-
-	msg.version = _protocol_version * 100;
-	msg.min_version = 100;
-	msg.max_version = 203;
-	uint64_t mavlink_lib_git_version_binary = px4_mavlink_lib_version_binary();
-	// TODO add when available
-	//memcpy(&msg.spec_version_hash, &mavlink_spec_git_version_binary, sizeof(msg.spec_version_hash));
-	memcpy(&msg.library_version_hash, &mavlink_lib_git_version_binary, sizeof(msg.library_version_hash));
-
-	mavlink_msg_protocol_version_send_struct(get_channel(), &msg);
-}
-
 int
 Mavlink::configure_stream(const char *stream_name, const float rate)
 {
