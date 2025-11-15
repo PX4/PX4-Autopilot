@@ -1,0 +1,4 @@
+menuconfig MODULES_FORMIC_LOGGER_FLAG
+	bool "Formic Logger Flag Module"
+	default n
+

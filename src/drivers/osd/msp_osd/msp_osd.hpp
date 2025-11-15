@@ -42,6 +42,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/input_rc.h>
@@ -54,7 +55,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/estimator_aid_source1d.h>
 
 #include "MspV1.hpp"
 #include "MessageDisplay/MessageDisplay.hpp"
@@ -64,9 +64,6 @@ using namespace time_literals;
 
 // location to "hide" unused display elements
 #define LOCATION_HIDDEN 234;
-
-#define POWER_LEVEL_COUNT 5
-#define BAND_COUNT 7
 
 struct PerformanceData {
 	bool initialization_problems{false};
@@ -99,7 +96,7 @@ enum SymbolIndex : uint8_t {
 	AVG_CELL_VOLTAGE	= 19,
 	HORIZON_SIDEBARS	= 20,
 	POWER			= 21,
-	DISTANCE_SENSOR	= 22,
+	DISTANCE_SENSOR		= 22
 };
 
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
@@ -123,17 +120,12 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	int set_channel(char *new_channel);
-
 private:
 	void Run() override;
 
 	// update a single display element in the display
 	void Send(const unsigned int message_type, const void *payload);
 	void Send(const unsigned int message_type, const void *payload, int32_t payload_size);
-
-	// receive vtx data
-	void Receive();
 
 	// send full configuration to MSP (triggers the actual update)
 	void SendConfig();
@@ -165,6 +157,7 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _estimator_aid_src_rng_hgt_sub{ORB_ID(estimator_aid_src_rng_hgt)};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	// local heartbeat
@@ -176,19 +169,10 @@ private:
 		(ParamInt<px4::params::OSD_CH_HEIGHT>) _param_osd_ch_height,
 		(ParamInt<px4::params::OSD_SCROLL_RATE>) _param_osd_scroll_rate,
 		(ParamInt<px4::params::OSD_DWELL_TIME>) _param_osd_dwell_time,
-		(ParamInt<px4::params::OSD_LOG_LEVEL>) _param_osd_log_level,
-		(ParamInt<px4::params::OSD_RC_STICK>) _param_osd_rc_stick
+		(ParamInt<px4::params::OSD_LOG_LEVEL>) _param_osd_log_level
 	)
 
 	// metadata
 	char _device[64] {};
 	PerformanceData _performance_data{};
-
-	msp_set_vtx_config_t vtx_config;
-	msp_set_vtxtable_powerlevel_t power_levels[POWER_LEVEL_COUNT];
-	msp_set_vtxtable_band_t vtx_bands[BAND_COUNT] {};
-	bool has_vtx_config {false};
-	bool has_power_config {false};
-	bool has_vtx_bands {false};
-	bool change_channel {false};
 };

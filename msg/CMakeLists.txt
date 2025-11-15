@@ -61,7 +61,6 @@ set(msg_files
 	DatamanResponse.msg
 	DebugArray.msg
 	DebugKeyValue.msg
-	DebugFlag.msg
 	DebugValue.msg
 	DebugVect.msg
 	DifferentialPressure.msg
@@ -135,6 +134,7 @@ set(msg_files
 	ManualControlSwitches.msg
 	MavlinkLog.msg
 	naor_debug.msg
+	DebugFlag.msg
 	MavlinkTunnel.msg
 	MessageFormatRequest.msg
 	MessageFormatResponse.msg

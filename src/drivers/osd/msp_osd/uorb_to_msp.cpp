@@ -196,17 +196,6 @@ msp_status_BF_t construct_STATUS(const vehicle_status_s &vehicle_status)
 	return status_BF;
 }
 
-msp_total_arm_time_t construct_TOTAL_ARM_TIME(const vehicle_status_s &vehicle_status)
-{
-
-	// initialize result
-	msp_total_arm_time_t total_arm_time {0};
-
-	total_arm_time.totalArmTime = hrt_absolute_time() - vehicle_status.armed_time / 1000; // ms to seconds
-
-	return total_arm_time;
-}
-
 msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const input_rc_s &input_rc)
 {
 	// initialize result
@@ -225,8 +214,14 @@ msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc)
 	rssi.screenYPosition = 0x02;
 	rssi.screenXPosition = 0x02;
 
-	snprintf(&rssi.str[0], sizeof(rssi.str), "%3d", input_rc.link_quality);
-	rssi.str[3] = '%';
+	int len = snprintf(&rssi.str[0], sizeof(rssi.str) - 1, "%d", input_rc.link_quality);
+
+	if (len >= 3) {
+		rssi.str[3] = '%';
+
+	} else {
+		rssi.str[len] = '%';
+	}
 
 	return rssi;
 }
@@ -330,9 +325,13 @@ msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 	//raw_gps.hdop = vehicle_gps_position_struct.hdop
 	raw_gps.numSat = vehicle_gps_position.satellites_used;
 
-	if (airspeed_validated.airspeed_source >= airspeed_validated_s::GROUND_MINUS_WIND
+	const bool airspeed_sensor_measurement_valid =
+		(airspeed_validated.airspeed_source >= airspeed_validated_s::SENSOR_1)
+		&& (airspeed_validated.airspeed_source <= airspeed_validated_s::SENSOR_3);
+
+	if (airspeed_sensor_measurement_valid
 	    && PX4_ISFINITE(airspeed_validated.indicated_airspeed_m_s)
-	    && airspeed_validated.indicated_airspeed_m_s > 0.f) {
+	    && airspeed_validated.indicated_airspeed_m_s > 0) {
 		raw_gps.groundSpeed = airspeed_validated.indicated_airspeed_m_s * 100;
 
 	} else {
@@ -383,7 +382,6 @@ msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicl
 	num.screenYPosition = 0x08;
 	num.screenXPosition = 0x29;
 
-	memset(&num.str[0], 0, sizeof(num.str));
 	snprintf(&num.str[0], sizeof(num.str), "%d", vehicle_gps_position.satellites_used);
 
 	return num;
@@ -491,7 +489,6 @@ msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_att
 	double pitch_deg = (double)math::degrees(euler_attitude.theta());
 	// attitude.roll = math::degrees(euler_attitude.phi()) * 10;
 
-	memset(&pit.str[0], 0, sizeof(pit.str));
 	snprintf(&pit.str[0], sizeof(pit.str), "%.1f", pitch_deg);
 
 	return pit;
@@ -510,7 +507,6 @@ msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attit
 	// double pitch = (double)math::degrees(euler_attitude.theta());
 	double roll_deg = (double)math::degrees(euler_attitude.phi());
 
-	memset(&roll.str[0], 0, sizeof(roll.str));
 	snprintf(&roll.str[0], sizeof(roll.str), "%.1f", roll_deg);
 
 	return roll;
@@ -574,51 +570,28 @@ msp_esc_sensor_data_dji_t construct_ESC_SENSOR_DATA()
 	return esc_sensor_data;
 }
 
-msp_rc_t construct_MSP_RC(const input_rc_s &input_rc)
-{
-	// initialize result
-	msp_rc_t rc;
-
-	rc.channelValue[0] = input_rc.values[0]; // roll
-	rc.channelValue[1] = input_rc.values[1]; // pitch
-	rc.channelValue[2] = input_rc.values[3]; // yaw
-	rc.channelValue[3] = input_rc.values[2]; // Throttle
-	return rc;
-}
-
-msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status)
-{
-	// initialize result
-	msp_status_t status{0};
-
-	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-		status.flightModeFlags |= (1 << MSP_MODE_ARM);
-	}
-
-	return status;
-}
-
 
 msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_aid_source1d_s &estimator_aid_src_rng_hgt)
 {
-	msp_rendor_distance_sensor_t distance;
+	msp_rendor_distance_sensor_t distance {};
 
 	distance.screenYPosition = 0x07;
 	distance.screenXPosition = 0x29;
 
 	// Use the observation from the estimator aid source (processed range finder height)
 	float dist = estimator_aid_src_rng_hgt.observation;
+	const bool has_data = estimator_aid_src_rng_hgt.timestamp_sample != 0;
 
 
-	if (PX4_ISFINITE(dist) && estimator_aid_src_rng_hgt.fused) {
+	if (has_data && PX4_ISFINITE(dist) && estimator_aid_src_rng_hgt.fused) {
 		memset(&distance.str[0], 0, sizeof(distance.str));
 		snprintf(&distance.str[0], sizeof(distance.str), "%.2f", static_cast<double>(dist));
-	}
-	else if (PX4_ISFINITE(dist) && !estimator_aid_src_rng_hgt.fused) {
+
+	} else if (has_data && PX4_ISFINITE(dist) && !estimator_aid_src_rng_hgt.fused) {
 		memset(&distance.str[0], 0, sizeof(distance.str));
 		snprintf(&distance.str[0], sizeof(distance.str), "no fused");
-	}
-	else {
+
+	} else {
 		memset(&distance.str[0], 0, sizeof(distance.str));
 		snprintf(&distance.str[0], sizeof(distance.str), "no data");
 	}
