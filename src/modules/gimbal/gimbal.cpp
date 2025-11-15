@@ -254,14 +254,26 @@ static int gimbal_thread_main(int argc, char *argv[])
 				}
 			}
 
-			if (params.mnt_do_stab == 1) {
-				thread_data.output_obj->set_stabilize(true, true, true);
+			switch (params.mnt_do_stab) {
+			case MntDoStabilize::ALL_AXES: {
+					thread_data.output_obj->set_stabilize(true, true, true);
+					break;
+				}
 
-			} else if (params.mnt_do_stab == 2) {
-				thread_data.output_obj->set_stabilize(false, false, true);
+			case MntDoStabilize::YAW_LOCK: {
+					thread_data.output_obj->set_stabilize(false, false, true);
+					break;
+				}
 
-			} else {
-				thread_data.output_obj->set_stabilize(false, false, false);
+			case MntDoStabilize::PITCH_LOCK: {
+					thread_data.output_obj->set_stabilize(false, true, false);
+					break;
+				}
+
+			default: {
+					thread_data.output_obj->set_stabilize(false, false, false);
+					break;
+				}
 			}
 
 			if (thread_data.output_obj->check_and_handle_setpoint_timeout(thread_data.control_data, hrt_absolute_time())) {
@@ -533,9 +545,12 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mnt_man_roll, &params.mnt_man_roll);
 	param_get(param_handles.mnt_man_yaw, &params.mnt_man_yaw);
 	param_get(param_handles.mnt_do_stab, &params.mnt_do_stab);
-	param_get(param_handles.mnt_range_pitch, &params.mnt_range_pitch);
-	param_get(param_handles.mnt_range_roll, &params.mnt_range_roll);
-	param_get(param_handles.mnt_range_yaw, &params.mnt_range_yaw);
+	param_get(param_handles.mnt_max_pitch, &params.mnt_max_pitch);
+	param_get(param_handles.mnt_min_pitch, &params.mnt_min_pitch);
+	param_get(param_handles.mnt_max_roll, &params.mnt_max_roll);
+	param_get(param_handles.mnt_min_roll, &params.mnt_min_roll);
+	param_get(param_handles.mnt_max_yaw, &params.mnt_max_yaw);
+	param_get(param_handles.mnt_min_yaw, &params.mnt_min_yaw);
 	param_get(param_handles.mnt_off_pitch, &params.mnt_off_pitch);
 	param_get(param_handles.mnt_off_roll, &params.mnt_off_roll);
 	param_get(param_handles.mnt_off_yaw, &params.mnt_off_yaw);
@@ -558,9 +573,12 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_man_roll = param_find("MNT_MAN_ROLL");
 	param_handles.mnt_man_yaw = param_find("MNT_MAN_YAW");
 	param_handles.mnt_do_stab = param_find("MNT_DO_STAB");
-	param_handles.mnt_range_pitch = param_find("MNT_RANGE_PITCH");
-	param_handles.mnt_range_roll = param_find("MNT_RANGE_ROLL");
-	param_handles.mnt_range_yaw = param_find("MNT_RANGE_YAW");
+	param_handles.mnt_max_pitch = param_find("MNT_MAX_PITCH");
+	param_handles.mnt_min_pitch = param_find("MNT_MIN_PITCH");
+	param_handles.mnt_max_roll = param_find("MNT_MAX_ROLL");
+	param_handles.mnt_min_roll = param_find("MNT_MIN_ROLL");
+	param_handles.mnt_max_yaw = param_find("MNT_MAX_YAW");
+	param_handles.mnt_min_yaw = param_find("MNT_MIN_YAW");
 	param_handles.mnt_off_pitch = param_find("MNT_OFF_PITCH");
 	param_handles.mnt_off_roll = param_find("MNT_OFF_ROLL");
 	param_handles.mnt_off_yaw = param_find("MNT_OFF_YAW");
@@ -580,9 +598,12 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_man_roll == PARAM_INVALID ||
 	    param_handles.mnt_man_yaw == PARAM_INVALID ||
 	    param_handles.mnt_do_stab == PARAM_INVALID ||
-	    param_handles.mnt_range_pitch == PARAM_INVALID ||
-	    param_handles.mnt_range_roll == PARAM_INVALID ||
-	    param_handles.mnt_range_yaw == PARAM_INVALID ||
+	    param_handles.mnt_max_pitch == PARAM_INVALID ||
+	    param_handles.mnt_min_pitch == PARAM_INVALID ||
+	    param_handles.mnt_max_roll == PARAM_INVALID ||
+	    param_handles.mnt_min_roll == PARAM_INVALID ||
+	    param_handles.mnt_max_yaw == PARAM_INVALID ||
+	    param_handles.mnt_min_yaw == PARAM_INVALID ||
 	    param_handles.mnt_off_pitch == PARAM_INVALID ||
 	    param_handles.mnt_off_roll == PARAM_INVALID ||
 	    param_handles.mnt_off_yaw == PARAM_INVALID ||

@@ -67,18 +67,18 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 
 	// _angle_outputs are in radians, gimbal_controls are in [-1, 1]
 	gimbal_controls_s gimbal_controls{};
-	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = constrain(
-				(_angle_outputs[0] + math::radians(_parameters.mnt_off_roll)) *
-				(1.0f / (math::radians(_parameters.mnt_range_roll / 2.0f))),
-				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = constrain(
-				(_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch)) *
-				(1.0f / (math::radians(_parameters.mnt_range_pitch / 2.0f))),
-				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = constrain(
-				(_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw)) *
-				(1.0f / (math::radians(_parameters.mnt_range_yaw / 2.0f))),
-				-1.f, 1.f);
+	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = constrain(2.f *
+			(_angle_outputs[0] - math::radians(_parameters.mnt_min_roll))
+			/ math::radians(_parameters.mnt_max_roll - _parameters.mnt_min_roll) - 1.f,
+			-1.f, 1.f);
+	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = constrain(2.f *
+			(_angle_outputs[1] - math::radians(_parameters.mnt_min_pitch)) /
+			math::radians(_parameters.mnt_max_pitch - _parameters.mnt_min_pitch) - 1.f,
+			-1.f, 1.f);
+	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = constrain(2.f *
+			(_angle_outputs[2] - math::radians(_parameters.mnt_min_yaw))
+			/ math::radians(_parameters.mnt_max_yaw - _parameters.mnt_min_yaw) - 1.f,
+			-1.f, 1.f);
 	gimbal_controls.timestamp = hrt_absolute_time();
 	_gimbal_controls_pub.publish(gimbal_controls);
 

@@ -141,7 +141,9 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 
 			control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 			control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-			control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+			control_data.type_data.angle.frames[2] = (_parameters.mnt_do_stab == MntDoStabilize::ALL_AXES
+					|| _parameters.mnt_do_stab == MntDoStabilize::YAW_LOCK) ?
+					ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame : ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
 			control_data.type_data.angle.angular_velocity[0] = NAN;
 			control_data.type_data.angle.angular_velocity[1] = NAN;

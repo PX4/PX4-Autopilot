@@ -508,10 +508,10 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_information(const ControlData 
 			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_LOCK |
 			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_CAN_POINT_LOCATION_GLOBAL;
 
-		gimbal_manager_info.pitch_max = _parameters.mnt_range_pitch;
-		gimbal_manager_info.pitch_min = -_parameters.mnt_range_pitch;
-		gimbal_manager_info.yaw_max = _parameters.mnt_range_yaw;
-		gimbal_manager_info.yaw_min = -_parameters.mnt_range_yaw;
+		gimbal_manager_info.pitch_max = _parameters.mnt_max_pitch;
+		gimbal_manager_info.pitch_min = _parameters.mnt_min_pitch;
+		gimbal_manager_info.yaw_max = _parameters.mnt_max_yaw;
+		gimbal_manager_info.yaw_min = _parameters.mnt_min_yaw;
 
 		gimbal_manager_info.gimbal_device_id = control_data.device_compid;
 

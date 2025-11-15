@@ -66,13 +66,22 @@ private:
 	hrt_abstime _last_time_update;
 
 	// Mount parameters
-	param_t _mnt_range_pitch_handle = PARAM_INVALID;
-	param_t _mnt_range_roll_handle = PARAM_INVALID;
-	param_t _mnt_range_yaw_handle = PARAM_INVALID;
+	param_t _mnt_max_pitch_handle = PARAM_INVALID;
+	param_t _mnt_min_pitch_handle = PARAM_INVALID;
+	param_t _mnt_max_roll_handle = PARAM_INVALID;
+	param_t _mnt_min_roll_handle = PARAM_INVALID;
+	param_t _mnt_max_yaw_handle = PARAM_INVALID;
+	param_t _mnt_min_yaw_handle = PARAM_INVALID;
 	param_t _mnt_mode_out_handle = PARAM_INVALID;
-	float _mnt_range_pitch = 0.0f;
-	float _mnt_range_roll = 0.0f;
-	float _mnt_range_yaw = 0.0f;
+	float _mnt_max_pitch = 0.0f;
+	float _mnt_min_pitch = 0.0f;
+	float _mnt_max_roll = 0.0f;
+	float _mnt_min_roll = 0.0f;
+	float _mnt_max_yaw = 0.0f;
+	float _mnt_min_yaw = 0.0f;
+	float _mnt_off_roll = 0.0f;
+	float _mnt_off_pitch = 0.0f;
+	float _mnt_off_yaw = 0.0f;
 	int32_t _mnt_mode_out = 0;
 
 	matrix::Quatf _q_gimbal = matrix::Quatf(1.0f, 0.0f, 0.0f, 0.0f);
@@ -104,15 +113,6 @@ private:
 				    gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_FOLLOW |
 				    gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_SUPPORTS_INFINITE_YAW;
 	const uint16_t _custom_cap_flags = 0;
-
-	// This module act as the gimbal driver. In case of a Mavlink compatible gimbal, the driver is aware of
-	// its mechanical limits. So the values below have to match the characteristics of the simulated gimbal
-	const float _roll_min = -0.785398f;
-	const float _roll_max = 0.785398f;
-	const float _pitch_min = -2.35619f;
-	const float _pitch_max = 0.785398f;
-	const float _yaw_min = NAN; 		// infinite yaw
-	const float _yaw_max = NAN;		// infinite yaw
 
 	const uint8_t _gimbal_device_id = 1;	// Gimbal is implemented by the same component: options are 1..6
 	uint16_t _gimbal_device_flags = 0;  // GIMBAL_DEVICE_FLAGS
