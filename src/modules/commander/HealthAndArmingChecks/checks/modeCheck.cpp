@@ -39,10 +39,13 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		checkArmingRequirement(context, reporter);
 	}
 
+	// all mode requirements flags are setup by bitmask using the navigation state
+	const uint32_t mode_req_mask = (1u << context.status().nav_state);
+
 	// Failing mode requirements generally also clear the can_run bits which prevents mode switching and
 	// might trigger a failsafe if already in that mode.
 
-	if (reporter.failsafeFlags().angular_velocity_invalid && reporter.failsafeFlags().mode_req_angular_velocity != 0) {
+	if (reporter.failsafeFlags().angular_velocity_invalid && (reporter.failsafeFlags().mode_req_angular_velocity & mode_req_mask)) {
 		/* EVENT
 		 * @description
 		 * Make sure the gyroscope is providing valid data.
@@ -53,7 +56,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_angular_velocity);
 	}
 
-	if (reporter.failsafeFlags().attitude_invalid && reporter.failsafeFlags().mode_req_attitude != 0) {
+	if (reporter.failsafeFlags().attitude_invalid && (reporter.failsafeFlags().mode_req_attitude & mode_req_mask)) {
 		/* EVENT
 		 * @description
 		 * Wait until the estimator initialized
@@ -66,12 +69,12 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 
 	NavModes local_position_modes = NavModes::None;
 
-	if (reporter.failsafeFlags().local_position_invalid && reporter.failsafeFlags().mode_req_local_position != 0) {
+	if (reporter.failsafeFlags().local_position_invalid && (reporter.failsafeFlags().mode_req_local_position & mode_req_mask)) {
 		local_position_modes = (NavModes)reporter.failsafeFlags().mode_req_local_position;
 	}
 
 	if (reporter.failsafeFlags().local_position_invalid_relaxed
-	    && reporter.failsafeFlags().mode_req_local_position_relaxed != 0) {
+	    && (reporter.failsafeFlags().mode_req_local_position_relaxed & mode_req_mask)) {
 		local_position_modes = local_position_modes | (NavModes)reporter.failsafeFlags().mode_req_local_position_relaxed;
 	}
 
@@ -88,12 +91,12 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 
 	NavModes global_position_modes = NavModes::None;
 
-	if (reporter.failsafeFlags().global_position_invalid && reporter.failsafeFlags().mode_req_global_position != 0) {
+	if (reporter.failsafeFlags().global_position_invalid && (reporter.failsafeFlags().mode_req_global_position & mode_req_mask)) {
 		global_position_modes = (NavModes)reporter.failsafeFlags().mode_req_global_position;
 	}
 
 	if (reporter.failsafeFlags().global_position_invalid_relaxed
-	    && reporter.failsafeFlags().mode_req_global_position_relaxed != 0) {
+	    && (reporter.failsafeFlags().mode_req_global_position_relaxed & mode_req_mask)) {
 		global_position_modes = global_position_modes | (NavModes)reporter.failsafeFlags().mode_req_global_position_relaxed;
 	}
 
@@ -109,7 +112,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits(global_position_modes);
 	}
 
-	if (reporter.failsafeFlags().local_altitude_invalid && reporter.failsafeFlags().mode_req_local_alt != 0) {
+	if (reporter.failsafeFlags().local_altitude_invalid && (reporter.failsafeFlags().mode_req_local_alt & mode_req_mask)) {
 		/* EVENT
 		 * @description
 		 * The available positioning data is not sufficient to execute the selected mode.
@@ -141,7 +144,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_mission);
 	}
 
-	if (reporter.failsafeFlags().offboard_control_signal_lost && reporter.failsafeFlags().mode_req_offboard_signal != 0) {
+	if (reporter.failsafeFlags().offboard_control_signal_lost && (reporter.failsafeFlags().mode_req_offboard_signal & mode_req_mask)) {
 		/* EVENT
 		 * @description
 		 * The offboard component is not sending setpoints or the required estimate (e.g. position) is missing.
@@ -152,7 +155,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_offboard_signal);
 	}
 
-	if (reporter.failsafeFlags().home_position_invalid && reporter.failsafeFlags().mode_req_home_position != 0) {
+	if (reporter.failsafeFlags().home_position_invalid && (reporter.failsafeFlags().mode_req_home_position & mode_req_mask)) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_home_position, health_component_t::system,
@@ -161,7 +164,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_home_position);
 	}
 
-	if (reporter.failsafeFlags().manual_control_signal_lost && reporter.failsafeFlags().mode_req_manual_control != 0) {
+	if (reporter.failsafeFlags().manual_control_signal_lost && (reporter.failsafeFlags().mode_req_manual_control & mode_req_mask)) {
 		const bool rc_disabled = (_param_com_rc_in_mode.get() == 4);
 		NavModes nav_modes = rc_disabled ? (NavModes)reporter.failsafeFlags().mode_req_manual_control : NavModes::None;
 		events::LogLevel log_level = rc_disabled ? events::Log::Error : events::Log::Warning;
