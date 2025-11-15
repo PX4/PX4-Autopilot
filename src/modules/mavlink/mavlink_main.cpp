@@ -996,6 +996,24 @@ void Mavlink::init_udp()
 		return;
 	}
 
+#if defined(__PX4_POSIX)
+
+	/**
+	 * Enable multiple MAVLink sockets to bind to the same port (SO_REUSEADDR).
+	 * This allows multiple instances or tools (e.g., QGroundControl, loggers) to receive data via broadcast
+	 * or multicast on the same UDP port. Useful for SITL testing.
+	 */
+	if (broadcast_enabled() || multicast_enabled()) {
+		int reuse = 1;
+
+		if (setsockopt(_socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+			PX4_WARN("Failed to set SO_REUSEADDR");
+			return;
+		}
+	}
+
+#endif // __PX4_POSIX
+
 	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
 		PX4_WARN("bind failed: %s", strerror(errno));
 		return;
@@ -1637,6 +1655,18 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		//stream nothing
 		break;
 
+	case MAVLINK_MODE_STATE_SHARING:
+
+#if defined(CONFIG_MODULES_STATE_SHARING)
+#if defined(MAVLINK_MSG_ID_STATE_SHARING)
+		configure_stream_local("STATE_SHARING", unlimited_rate);
+#endif // MAVLINK_MSG_ID_STATE_SHARING
+#if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL)
+		configure_stream_local("STATE_SHARING_CONTROL", unlimited_rate);
+#endif // MAVLINK_MSG_ID_STATE_SHARING_CONTROL
+#endif // CONFIG_MODULES_STATE_SHARING
+		break;
+
 	case MAVLINK_MODE_CONFIG: // USB
 		// Note: streams requiring low latency come first
 		configure_stream_local("TIMESYNC", 10.0f);
@@ -2070,6 +2100,9 @@ Mavlink::task_main(int argc, char *argv[])
 					if (strcmp(myoptarg, "custom") == 0) {
 						_mode = MAVLINK_MODE_CUSTOM;
 
+					} else if (strcmp(myoptarg, "state_sharing") == 0) {
+						_mode = MAVLINK_MODE_STATE_SHARING;
+
 					} else if (strcmp(myoptarg, "camera") == 0) {
 						// left in here for compatibility
 						_mode = MAVLINK_MODE_ONBOARD;
@@ -2279,7 +2312,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	/* add default streams depending on mode */
-	if (_mode != MAVLINK_MODE_IRIDIUM) {
+	if (_mode != MAVLINK_MODE_IRIDIUM && _mode != MAVLINK_MODE_STATE_SHARING) {
 
 		/* HEARTBEAT is constant rate stream, rate never adjusted */
 		configure_stream("HEARTBEAT", 1.0f);
