@@ -284,6 +284,7 @@ void FixedwingRateControl::Run()
 			// Reset integrators if the aircraft is on ground or not in a state where the fw attitude controller is run
 			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition) {
 
+				_gain_compression.reset();
 				_rate_control.resetIntegral();
 			}
 
@@ -363,10 +364,11 @@ void FixedwingRateControl::Run()
 				_rate_control.setFeedForwardGain(scaled_gain_ff);
 
 				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
-				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
-						_landed);
+				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt, _landed);
 
-				Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling;
+				Vector3f control_u = _gain_compression.getGains().emult(angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling);
+
+				_gain_compression.update(control_u, dt);
 
 				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_EN is not set then don't rate-control yaw
 				if (!_vcontrol_mode.flag_control_attitude_enabled && _vcontrol_mode.flag_control_manual_enabled
@@ -410,6 +412,7 @@ void FixedwingRateControl::Run()
 
 		} else {
 			// full manual
+			_gain_compression.reset();
 			_rate_control.resetIntegral();
 		}
 
