@@ -454,6 +454,7 @@ uxrce_dds_client start -n fancy_uav
 ```
 
 This can be included in `etc/extras.txt` as part of a custom [System Startup](../concept/system_startup.md).
+:::
 
 ## PX4 ROS 2 QoS Settings
 
@@ -588,7 +589,7 @@ For a list of services, details and examples see the [service documentation](../
 These guidelines explain how to migrate from using PX4 v1.13 [Fast-RTPS](../middleware/micrortps.md) middleware to PX4 v1.14 `uXRCE-DDS` middleware.
 These are useful if you have [ROS 2 applications written for PX4 v1.13](https://docs.px4.io/v1.13/en/ros/ros2_comm.html), or you have used Fast-RTPS to interface your applications to PX4 [directly](https://docs.px4.io/v1.13/en/middleware/micrortps.html#agent-in-an-offboard-fast-dds-interface-ros-independent).
 
-::: info
+:::info
 This section contains migration-specific information.
 You should also read the rest of this page to properly understand uXRCE-DDS.
 :::
