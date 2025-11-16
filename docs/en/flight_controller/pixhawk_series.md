@@ -100,6 +100,23 @@ At very high level, the main differences are:
 
 <a id="licensing-and-trademarks"></a>
 
+### FMUv6 Comparison
+
+| Feature            | **FMUv6X-RT**         | **FMUv6X**        | **FMUv6XC**        |
+| ------------------ | --------------------- | ----------------- | ------------------ |
+| **FMU MCU**        | NXP i.MX RT1176       | STM32H753         | STM32H743V         |
+| **RAM**            | 2 MB                  | 1 MB              | 1 MB               |
+| **Flash**          | 64 MB QSPI            | 2 MB internal     | 2 MB internal      |
+| **IO MCU**         | Internal coprocessor  | STM32F103         | STM32F103          |
+| **Secure Element** | NXP SE051             | NXP SE051         | Not supported      |
+| **PAB Support**    | Supported             | Supported         | Not supported      |
+| **Ethernet**       | Supported             | Supported         | Not supported      |
+| **IMUs**           | 3×                    | 3×                | 3×                 |
+| **Barometers**     | 2×                    | 2×                | 1×                 |
+| **Magnetometer**   | 1×                    | 1×                | 1×                 |
+| **FMU PWM**        | 8×                    | 8×                | 8×                 |
+| **IO PWM**         | 4×                    | 8×                | 8×                 |
+
 ### Licensing and Trademarks
 
 Pixhawk project schematics and reference designs are licensed under [CC BY-SA 3](https://creativecommons.org/licenses/by-sa/3.0/legalcode).
