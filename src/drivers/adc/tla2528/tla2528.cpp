@@ -88,7 +88,7 @@ int TLA2528::init()
 	}
 
 	ScheduleClear();
-	ScheduleOnInterval(SAMPLE_INTERVAL / 4, SAMPLE_INTERVAL / 4);
+	ScheduleOnInterval(SAMPLE_INTERVAL, SAMPLE_INTERVAL);
 	return PX4_OK;
 }
 
