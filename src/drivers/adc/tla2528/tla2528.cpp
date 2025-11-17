@@ -80,13 +80,6 @@ int TLA2528::init()
 	_adc_report.v_ref = _adc_tla2528_refv.get();
 	_adc_report.resolution = 4096;
 
-	ret = probe();
-
-	if (ret != PX4_OK) {
-		PX4_DEBUG("TLA2528::probing failed (%i)", ret);
-		return ret;
-	}
-
 	ScheduleClear();
 	ScheduleOnInterval(SAMPLE_INTERVAL, SAMPLE_INTERVAL);
 	return PX4_OK;
@@ -151,7 +144,7 @@ int TLA2528::poll_reset()
 	int ret = transfer(&send_data[0], 2, nullptr, 0);
 	ret |= transfer(nullptr, 0, &recv_data, 1);
 
-	if(ret != PX4_OK){
+	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
 		return ret;
 	}
@@ -187,7 +180,8 @@ void TLA2528::adc_get()
 
 			_adc_report.channel_id[i] = ch_id;
 			_adc_report.raw_data[i] = measurement;
-		}else{
+
+		} else {
 			perf_count(_comms_errors);
 		}
 	}
@@ -201,7 +195,8 @@ void TLA2528::adc_get()
 }
 
 int TLA2528::probe()
-{	for(int i=0; i<3; i++){
+{
+	for (int i = 0; i < 3; i++) {
 		// Set device in debug mode (should respond with 0xA5AX to all reads)
 		uint8_t send_data[3] = {SET_BIT, DATA_CFG, 0x80};
 		int ret = transfer(&send_data[0], 3, nullptr, 0);
@@ -222,6 +217,7 @@ int TLA2528::probe()
 		if (recv_data[0] == 165 && recv_data[1] >= 160 && ret == PX4_OK) {
 			return PX4_OK;
 		}
+
 		px4_sleep(1);
 	}
 
@@ -278,15 +274,6 @@ void TLA2528::RunImpl()
 	int ret;
 
 	switch (_state) {
-	case STATE::INIT:
-		ret = init();
-
-		if (ret == PX4_OK) {
-			_state = STATE::RESET;
-		}
-
-		break;
-
 	case STATE::RESET:
 		ret = init_reset();
 
@@ -303,6 +290,9 @@ void TLA2528::RunImpl()
 
 		if (ret == PX4_OK) {
 			_state = STATE::CALIBRATE;
+
+		} else {
+			_state = STATE::RESET;
 		}
 
 		break;
@@ -312,6 +302,9 @@ void TLA2528::RunImpl()
 
 		if (ret == PX4_OK) {
 			_state = STATE::WORK;
+
+		} else {
+			_state = STATE::RESET;
 		}
 
 		break;

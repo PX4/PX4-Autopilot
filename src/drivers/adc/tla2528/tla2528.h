@@ -62,6 +62,10 @@ private:
 	uORB::PublicationMulti<adc_report_s> _adc_report_pub{ORB_ID(adc_report)};
 	adc_report_s _adc_report{};
 
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::ADC_TLA2528_REFV>) _adc_tla2528_refv
+	)
+
 	int init_reset();
 	int poll_reset();
 	int configure();
@@ -71,7 +75,6 @@ private:
 	void exit_and_cleanup() override;
 
 	enum class STATE : uint8_t {
-		INIT,
 		RESET,
 		CONFIGURE,
 		CALIBRATE,
