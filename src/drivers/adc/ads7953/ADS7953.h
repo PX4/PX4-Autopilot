@@ -42,10 +42,4 @@ private:
 
 	int get_measurements();
 	int rw_msg(uint8_t *recv_data, uint8_t ch, bool change_channel);
-
-	enum class STATE : uint8_t {
-		CONFIGURE,
-		WORK
-	};
-	STATE _state{STATE::CONFIGURE};
 };
