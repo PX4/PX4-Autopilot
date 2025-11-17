@@ -77,5 +77,5 @@ private:
 		CALIBRATE,
 		WORK
 	};
-	STATE _state{STATE::INIT};
+	STATE _state{STATE::RESET};
 };

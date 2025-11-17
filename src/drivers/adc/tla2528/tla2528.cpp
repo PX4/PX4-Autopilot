@@ -201,26 +201,28 @@ void TLA2528::adc_get()
 }
 
 int TLA2528::probe()
-{
-	// Set device in debug mode (should respond with 0xA5AX to all reads)
-	uint8_t send_data[3] = {SET_BIT, DATA_CFG, 0x80};
-	int ret = transfer(&send_data[0], 3, nullptr, 0);
+{	for(int i=0; i<3; i++){
+		// Set device in debug mode (should respond with 0xA5AX to all reads)
+		uint8_t send_data[3] = {SET_BIT, DATA_CFG, 0x80};
+		int ret = transfer(&send_data[0], 3, nullptr, 0);
 
-	// Read
-	uint8_t recv_data[2];
-	send_data[0] = SET_BIT;
-	send_data[0] = DATA_CFG;
-	ret |= transfer(&send_data[0], 2, nullptr, 0);
-	ret |= transfer(nullptr, 0, &recv_data[0], 2);
+		// Read
+		uint8_t recv_data[2];
+		send_data[0] = SET_BIT;
+		send_data[0] = DATA_CFG;
+		ret |= transfer(&send_data[0], 2, nullptr, 0);
+		ret |= transfer(nullptr, 0, &recv_data[0], 2);
 
-	// Turn debug mode off
-	send_data[0] = CLEAR_BIT;
-	send_data[1] = DATA_CFG;
-	send_data[2] = 0x80;
-	ret |= transfer(&send_data[0], 3, nullptr, 0);
+		// Turn debug mode off
+		send_data[0] = CLEAR_BIT;
+		send_data[1] = DATA_CFG;
+		send_data[2] = 0x80;
+		ret |= transfer(&send_data[0], 3, nullptr, 0);
 
-	if (recv_data[0] == 165 && ret == PX4_OK) {
-		return PX4_OK;
+		if (recv_data[0] == 165 && recv_data[1] >= 160 && ret == PX4_OK) {
+			return PX4_OK;
+		}
+		px4_sleep(1);
 	}
 
 	return PX4_ERROR;
