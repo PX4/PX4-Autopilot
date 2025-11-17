@@ -166,7 +166,7 @@ int TLA2528::poll_reset()
 
 void TLA2528::adc_get()
 {
-	//Start sequential read
+	// Start sequential read
 	uint8_t send_data[3] = {SET_BIT, SEQUENCE_CFG, 0x10};
 	uint8_t recv_data[3];
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
@@ -176,7 +176,7 @@ void TLA2528::adc_get()
 		return;
 	}
 
-	//Read data
+	// Read data
 	for (int i = 0; i < 8; i++) {
 		ret = transfer(nullptr, 0, &recv_data[0], 2);
 
@@ -192,7 +192,7 @@ void TLA2528::adc_get()
 		}
 	}
 
-	//Stop sequential read
+	// Stop sequential read
 	send_data[0] = CLEAR_BIT;
 	send_data[1] = SEQUENCE_CFG;
 	send_data[2] = 0x10;
@@ -237,19 +237,19 @@ int TLA2528::configure()
 	send_data[2] = 0x00;
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
 
-	//Append channel-id to measurements
+	// Append channel-id to measurements
 	send_data[0] = SET_BIT;
 	send_data[1] = DATA_CFG;
 	send_data[2] = 0x10;
 	ret |= transfer(&send_data[0], 3, nullptr, 0);
 
-	//Activate all pins
+	// Activate all pins
 	send_data[0] = SET_BIT;
 	send_data[1] = AUTO_SEQ_CH_SEL;
 	send_data[2] = 0xFF;
 	ret |= transfer(&send_data[0], 3, nullptr, 0);
 
-	//Set seq-mode
+	// Set seq-mode
 	send_data[0] = SET_BIT;
 	send_data[1] = SEQUENCE_CFG;
 	send_data[2] = 0x01;
