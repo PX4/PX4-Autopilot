@@ -60,7 +60,7 @@ public:
 
 	virtual int undeclare_publisher();
 
-	virtual int8_t update() = 0;
+	virtual z_result_t update() = 0;
 
 	virtual void print();
 
