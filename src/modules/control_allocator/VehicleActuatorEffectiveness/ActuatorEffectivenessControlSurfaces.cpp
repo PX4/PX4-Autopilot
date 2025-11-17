@@ -74,10 +74,10 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		return;
 	}
 
-	// Helper to check if a PWM trim parameter is set to non-default value (1500 µs)
-	auto check_pwm_trim = [](const char *prefix, int channel) -> bool {
+	// Helper to check if a PWM center parameter is set to non-default value (1500 µs)
+	auto check_pwm_center = [](const char *prefix, int channel) -> bool {
 		char param_name[20];
-		snprintf(param_name, sizeof(param_name), "%s_TRIM%d", prefix, channel);
+		snprintf(param_name, sizeof(param_name), "%s_CENT%d", prefix, channel);
 		param_t param = param_find(param_name);
 
 		if (param != PARAM_INVALID)
@@ -89,11 +89,11 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		return false;
 	};
 
-	// Check if any PWM_MAIN or PWM_AUX trim is configured
-	bool pwm_trim_set = false;
+	// Check if any PWM_MAIN or PWM_AUX center is configured
+	bool pwm_center_set = false;
 
-	for (int i = 1; i <= 8 && !pwm_trim_set; i++) {
-		pwm_trim_set = check_pwm_trim("PWM_MAIN", i) || check_pwm_trim("PWM_AUX", i);
+	for (int i = 1; i <= 8 && !pwm_center_set; i++) {
+		pwm_center_set = check_pwm_center("PWM_MAIN", i) || check_pwm_center("PWM_AUX", i);
 	}
 
 	for (int i = 0; i < _count; i++) {
@@ -107,9 +107,9 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 
 		param_get(_param_handles[i].trim, &_params[i].trim);
 
-		// If PWM trim is set and CA_SV_CS trim is non-zero, warn and reset to 0
-		if (pwm_trim_set && fabsf(_params[i].trim) > 0.001f) {
-			PX4_WARN("CA_SV_CS%d_TRIM (%.3f) should be 0 when PWM TRIM is used. Resetting to 0.",
+		// If PWM center is set and CA_SV_CS trim is non-zero, warn and reset to 0
+		if (pwm_center_set && fabsf(_params[i].trim) > 0.001f) {
+			PX4_WARN("CA_SV_CS%d_TRIM (%.3f) should be 0 when PWM CENTER is used. Resetting to 0.",
 				 i, (double)_params[i].trim);
 			_params[i].trim = 0.0f;
 			// Update the parameter storage

@@ -285,8 +285,8 @@ Note that non-motor outputs might already be active in prearm state if COM_PREAR
         minimum_description = \
 '''Minimum output value (when not disarmed).
 '''
-        trim_description = \
-'''Trim output value (when not disarmed).
+        center_description = \
+'''Center output value (when not disarmed).
 '''
         maximum_description = \
 '''Maxmimum output value (when not disarmed).
@@ -299,7 +299,7 @@ When set to -1 (default), the value depends on the function (see {:}).
         standard_params_array = [
             ( 'disarmed', 'Disarmed', 'DIS', disarmed_description ),
             ( 'min', 'Minimum', 'MIN', minimum_description ),
-            ( 'trim', 'Trim', 'TRIM', trim_description ),
+            ( 'center', 'Center', 'CENT', center_description ),
             ( 'max', 'Maximum', 'MAX', maximum_description ),
             ( 'failsafe', 'Failsafe', 'FAIL', failsafe_description ),
             ]

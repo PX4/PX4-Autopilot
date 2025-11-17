@@ -7,7 +7,7 @@ actuator_output:
       standard_params:
         disarmed: { min: 800, max: 2200, default: 1000 }
         min: { min: 800, max: 1400, default: 1000 }
-        trim: { min: 800, max: 2200, default: 1500 }
+        center: { min: 800, max: 2200, default: 1500 }
         max: { min: 1600, max: 2200, default: 2000 }
         failsafe: { min: 800, max: 2200 }
       extra_function_groups: [ pwm_fmu ]

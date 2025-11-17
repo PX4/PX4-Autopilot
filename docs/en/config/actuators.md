@@ -537,7 +537,7 @@ If a high rate servo is _really_ needed, DShot offers better value.
 
 ##### PWM: Control surfaces that move both directions about a neutral point
 
-To facilitate setting the neutral point of the servos, a bilinear curve function can be defined using the following parameters `PWM_MAIM_TRIMx` / `PWM_AUX_TRIMx` for each servo. This allows for unequal deflections in the positive and negative direction:
+To facilitate setting the neutral point of the servos, a bilinear curve function can be defined using the following parameters `PWM_MAIM_CENTx` / `PWM_AUX_CENTx` for each servo. This allows for unequal deflections in the positive and negative direction:
 ![Asymetric Servo Deflections](../../assets/config/actuators/servo_pwm_trim.png)
 
 To set this up:
@@ -546,7 +546,7 @@ To set this up:
 
      ![PWM Trimming](../../assets/config/actuators/trim_GS.png)
 
-1. Set the `PWM_MAIN_TRIMx` / `PWM_AUX_TRIMx` value so that the surface will stay at the neutral position.
+1. Set the `PWM_MAIN_CENTx` / `PWM_AUX_CENTx` value so that the surface will stay at the neutral position.
 This is usually around `1500` for PWM servos (near the center of the servo range).
 
 ![Control Surface Trimming](../../assets/config/actuators/control_surface_trim.png)
@@ -616,7 +616,7 @@ One approach for setting these up is:
    - If the value was increased towards `Max`, then set `Max` to match `Disarmed`.
 4. The value that you did _not_ set to match `Disarmed` controls the maximum amount that the control surface can extend.
    Set the slider to the top of the control, then change the value (`Max` or `Min`) so that the control surface is fully extended when the slider is at top.
-5. (Only PWM servos) Set the `Trim` value to the middle between `Min` and `Max`.
+5. (Only PWM servos) Set the `Center` value to the middle between `Min` and `Max`.
 
 ::: info Special note for flaps
 In some vehicle builds, flaps may be configured such that both flaps are controlled from a single output.
@@ -656,7 +656,7 @@ For each of the tilt servos:
   - Tailsitters do not turn off any motors in fixed-wing flight
 - The following formula can be used to migrate from surface trim to PWM trim:
 
-  `PWM_MAIN_TRIMx = ((PWM_MAX - PWM_MIN) / 2) * CA_SV_CSx_TRIM + TRIM_MIN + ((PWM_MAX - PWM_MIN) / 2)`
+  `PWM_MAIN_CENTx = ((PWM_MAX - PWM_MIN) / 2) * CA_SV_CSx_TRIM + PWM_MIN + ((PWM_MAX - PWM_MIN) / 2)`
 
 ### Reversing Motors
 
