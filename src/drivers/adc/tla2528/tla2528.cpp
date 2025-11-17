@@ -104,6 +104,7 @@ int TLA2528::init_calibrate()
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("TLA2528::Initializing Calibration failed (%i)", ret);
+		perf_count(_comms_errors);
 	}
 
 	return ret;
@@ -120,6 +121,7 @@ int TLA2528::poll_calibrate()
 
 	if (recv_data & 2u) {
 		PX4_DEBUG("TLA2528::Calibration not yet finished");
+		perf_count(_comms_errors);
 		return PX4_ERROR;
 	}
 
@@ -136,6 +138,7 @@ int TLA2528::init_reset()
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("TLA2528::Initializing Reset failed (%i)", ret);
+		perf_count(_comms_errors);
 	}
 
 	return ret;
@@ -149,6 +152,11 @@ int TLA2528::poll_reset()
 	send_data[0] = GENERAL_CFG;
 	int ret = transfer(&send_data[0], 2, nullptr, 0);
 	ret |= transfer(nullptr, 0, &recv_data, 1);
+
+	if(ret != PX4_OK){
+		perf_count(_comms_errors);
+		return ret;
+	}
 
 	if (recv_data & 1u) {
 		PX4_DEBUG("TLA2528::Reset not finished");
@@ -166,6 +174,7 @@ void TLA2528::adc_get()
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
 
 	if (ret != PX4_OK) {
+		perf_count(_comms_errors);
 		return;
 	}
 
@@ -180,6 +189,8 @@ void TLA2528::adc_get()
 
 			_adc_report.channel_id[i] = ch_id;
 			_adc_report.raw_data[i] = measurement;
+		}else{
+			perf_count(_comms_errors);
 		}
 	}
 
@@ -245,6 +256,7 @@ int TLA2528::configure()
 	ret |= transfer(&send_data[0], 3, nullptr, 0);
 
 	if (ret != PX4_OK) {
+		perf_count(_comms_errors);
 		PX4_DEBUG("TLA2528::Configuring failed (%i)", ret);
 	}
 
