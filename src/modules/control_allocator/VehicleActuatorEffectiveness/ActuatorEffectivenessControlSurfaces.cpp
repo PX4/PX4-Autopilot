@@ -80,7 +80,8 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		snprintf(param_name, sizeof(param_name), "%s_TRIM%d", prefix, channel);
 		param_t param = param_find(param_name);
 
-		if (param != PARAM_INVALID) {
+		if (param != PARAM_INVALID)
+		{
 			int32_t value;
 			return (param_get(param, &value) == PX4_OK && value != 1500);
 		}

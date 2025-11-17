@@ -654,6 +654,9 @@ For each of the tilt servos:
   - Standard VTOL : Motors defined as multicopter motors will be turned off
   - Tiltrotors : Motors that have no associated tilt servo will turn off
   - Tailsitters do not turn off any motors in fixed-wing flight
+- The following formula can be used to migrate from surface trim to PWM trim:
+
+  `PWM_MAIN_TRIMx = ((PWM_MAX - PWM_MIN) / 2) * CA_SV_CSx_TRIM + TRIM_MIN + ((PWM_MAX - PWM_MIN) / 2)`
 
 ### Reversing Motors
 
