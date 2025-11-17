@@ -19,6 +19,13 @@ param set-default SDLOG_BACKEND 2
 # 200kOhm/10kOhm voltage divider on V_BAT
 param set-default BAT1_V_DIV 21
 
+# Uncomment to use PWM9 as Analog input
+# param set-default PWM_MAIN_TIM2 -2
+
+# Uncomment to use PWM10 as PPS input
+# param set-default PWM_MAIN_TIM3 -2
+# param set-default PWM_MAIN_FUNC10 2064
+
 # Skynode: use the "custom participant", IP=10.41.10.1 config for uxrce_dds_client
 param set-default UXRCE_DDS_PTCFG 2
 param set-default UXRCE_DDS_AG_IP 170461697

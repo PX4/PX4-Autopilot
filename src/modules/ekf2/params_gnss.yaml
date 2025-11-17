@@ -29,7 +29,9 @@ parameters:
       default: 0
     EKF2_GPS_DELAY:
       description:
-        short: GPS measurement delay relative to IMU measurements
+        short: GPS measurement delay relative to IMU measurement
+        long: GPS measurement delay relative to IMU measurement if PPS time correction
+          is not available/enabled (PPS_CAP_ENABLE).
       type: float
       default: 110
       min: 0

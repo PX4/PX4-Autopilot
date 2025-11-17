@@ -89,7 +89,7 @@ public:
 	void setIMUData(const imuSample &imu_sample);
 
 #if defined(CONFIG_EKF2_GNSS)
-	void setGpsData(const gnssSample &gnss_sample);
+	void setGpsData(const gnssSample &gnss_sample, const bool pps_compensation = false);
 
 	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
