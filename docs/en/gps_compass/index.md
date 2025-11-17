@@ -200,7 +200,9 @@ EPH/EPV values therefore provide a more immediate and practical estimate of the 
 
 - GPS/RTK-GPS
   - [RTK-GPS](../advanced/rtk_gps.md)
+  - [PPS Time Synchronization](../advanced/pps_time_sync.md)
   - [GPS driver](../modules/modules_driver.md#gps)
+  - [PPS driver](../modules/modules_driver.md#pps-capture)
   - [DroneCAN Example](../dronecan/index.md)
 - Compass
   - [Driver source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer) (Compasses)

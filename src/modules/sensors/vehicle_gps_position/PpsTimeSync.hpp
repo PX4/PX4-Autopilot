@@ -31,68 +31,37 @@
  *
  ****************************************************************************/
 
+/**
+ * @file PpsTimeSync.hpp
+ *
+ * PPS-based time synchronization for GPS timestamp correction
+ */
+
 #pragma once
 
-#include <pthread.h>
+#include <stdint.h>
+#include <uORB/topics/pps_capture.h>
+#include <drivers/drv_hrt.h>
 
-#include <px4_platform_common/atomic.h>
-#include <px4_platform_common/Serial.hpp>
-
-#include "data.h"
-
-namespace InertialLabs {
-
-constexpr uint16_t BUFFER_SIZE{512};
-
-class Sensor {
+class PpsTimeSync
+{
 public:
-	// Use C-style function pointer, because we can't use std::function on some platforms
-	using DataHandler = void (*)(void *, SensorsData *);
+	PpsTimeSync() = default;
+	~PpsTimeSync() = default;
 
-	Sensor()                          = default;
-	Sensor(const Sensor &)            = delete;
-	Sensor &operator=(const Sensor &) = delete;
-	~Sensor();
-
-	bool init(const char *serialDeviceName, void *context, DataHandler dataHandler);
-	void deinit();
-	bool isInitialized() const;
-
-	void updateData();
+	void process_pps(const pps_capture_s &pps);
+	uint64_t correct_gps_timestamp(uint64_t gps_fc_timestamp, uint64_t gps_utc_timestamp);
 
 private:
-	static void *updateDataThreadHelper(void *context) {
-		if (!context) {
-			return nullptr;
-		}
-		Sensor *sensor = reinterpret_cast<Sensor *>(context);
-		sensor->updateData();
-		return nullptr;
-	}
+	bool is_valid() const;
 
-	bool initSerialPort(const char *serialDeviceName);
-	bool moveToBufferStart(const uint8_t *pos);
-	bool skipPackageInBufferStart();
-	bool movePackageHeaderToBufferStart();
-	bool moveValidPackageToBufferStart();
+	uint64_t _pps_hrt_timestamp{0};	// FC time when PPS pulse arrived (usec since boot)
+	uint64_t _pps_rtc_timestamp{0};	// GPS UTC time at PPS pulse (usec since Unix epoch)
+	int64_t _time_offset{0};
 
-	bool parseUDDPayload();
+	static constexpr uint64_t kPpsStaleTimeoutUs = 5'000'000;
+	static constexpr int64_t kPpsMaxCorrectionUs = 300'000;	// max delay (max of EKF2_GPS_DELAY)
 
-	device::Serial  *_serial{nullptr};
-	pthread_t        _threadId{0};
-	px4::atomic_bool _processInThread{false};
-
-	// callback. C-style class method pointer
-	void       *_context{nullptr};
-	DataHandler _dataHandler{nullptr};
-
-	px4::atomic_bool _isInitialized{false};
-	px4::atomic_bool _isDeinitInProcess{false};
-
-	uint8_t  _buf[BUFFER_SIZE]{};
-	uint16_t _bufOffset{0};
-
-	SensorsData _sensorData{};
+	bool _initialized{false};
+	bool _updated{false};
 };
-
-}  // namespace InertialLabs
