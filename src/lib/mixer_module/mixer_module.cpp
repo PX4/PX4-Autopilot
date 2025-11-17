@@ -548,7 +548,8 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 	float output = _disarmed_value[i];
 
 	if (_function_assignment[i] >= OutputFunction::Servo1
-	    && _function_assignment[i] <= OutputFunction::ServoMax) {
+	    && _function_assignment[i] <= OutputFunction::ServoMax
+	    && _param_handles[i].trim != PARAM_INVALID) {
 
 		/* bi-linear interpolation */
 		if (value < 0.0f) {

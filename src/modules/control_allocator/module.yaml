@@ -312,7 +312,11 @@ parameters:
         CA_SV_CS${i}_TRIM:
             description:
                 short: Control Surface ${i} trim
-                long: Can be used to add an offset to the servo control.
+                long: |
+                  Can be used to add an offset to the servo control.
+
+                  NOTE: Do not use for PWM servos. Use the PWM TRIM parameters instead (e.g., PWM_MAIN_TRIM, PWM_AUX_TRIM) instead.
+                  This parameter can only be set if all PWM Trim parameters are set to default.
             type: float
             decimal: 2
             min: -1.0

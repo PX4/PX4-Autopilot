@@ -535,7 +535,27 @@ If you're using PWM servos, PWM50 is far more common.
 If a high rate servo is _really_ needed, DShot offers better value.
 :::
 
-#### Control surfaces that move both directions about a neutral point
+##### PWM: Control surfaces that move both directions about a neutral point
+
+To facilitate setting the neutral point of the servos, a bilinear curve function can be defined using the following parameters `PWM_MAIM_TRIMx` / `PWM_AUX_TRIMx` for each servo. This allows for unequal deflections in the positive and negative direction:
+![Asymetric Servo Deflections](../../assets/config/actuators/servo_pwm_trim.png)
+
+To set this up:
+
+1. Set all surface `Trim` to `0.00` for all surfaces:
+
+     ![PWM Trimming](../../assets/config/actuators/trim_GS.png)
+
+1. Set the `PWM_MAIN_TRIMx` / `PWM_AUX_TRIMx` value so that the surface will stay at the neutral position.
+This is usually around `1500` for PWM servos (near the center of the servo range).
+
+![Control Surface Trimming](../../assets/config/actuators/control_surface_trim.png)
+
+2. Gradualy increase the `Maximum` for each servo, while checking the deflection with the sliders or manual input with [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) parameter to `Always` until the desired deflection is reached.
+3. Gradualy decrease the `Minimum` for each servo, until the desired deflection is reached.
+4. Set `Disarmed` value to the desired value. It is usually desirable to have it the same as the `Trim` value.
+
+#### Non-PWM: Control surfaces that move both directions about a neutral point
 
 Control surfaces that move either direction around a neutral point include: ailerons, elevons, V-tails, A-tails, and rudders.
 
@@ -575,27 +595,7 @@ Another way to test without using the sliders would be to set the [`COM_PREARM_M
 
 :::
 
-##### Split Servo Deflections
 
-::: info
-This method is experimental, but much faster.
-
-:::
-To facilitate setting the neutral point of the servos, a bilinear curve function can be defined using the following parameters `PWM_MAIM_TRIMx` / `PWM_AUX_TRIMx` for each servo. This allows for unequal deflections in the positive and negative direction:
-![Split Servo Deflections](../../assets/config/actuators/servo_pwm_trim.png)
-
-To set this up:
-
-1. Set all surface `Trim` to `0.00` for all surfaces:
-
-     ![Control Surface Trimming](../../assets/config/actuators/control_surface_trim.png)
-
-1. Set `Minimum`, `Maximum`, `Trim` and `Disarm` value so that the surface will stay at neutral position approximately.
-This is usually around `1500` for PWM servos (near the centre of the servo range).
-
-2. Gradualy increase the `Maximum` for each servo, while checking the deflection with the sliders or manual input with [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) parameter to `Always` until the desired deflection is reached.
-3. Gradualy decrease the `Minimum` for each servo, until the desired deflection is reached.
-4. Set `PWM_MAIN_TRIMx` / `PWM_AUX_TRIMx` to the neutral point of each servo.
 
 #### Control surfaces that move from neutral to full deflection
 
@@ -616,6 +616,7 @@ One approach for setting these up is:
    - If the value was increased towards `Max`, then set `Max` to match `Disarmed`.
 4. The value that you did _not_ set to match `Disarmed` controls the maximum amount that the control surface can extend.
    Set the slider to the top of the control, then change the value (`Max` or `Min`) so that the control surface is fully extended when the slider is at top.
+5. (Only PWM servos) Set the `Trim` value to the middle between `Min` and `Max`.
 
 ::: info Special note for flaps
 In some vehicle builds, flaps may be configured such that both flaps are controlled from a single output.
