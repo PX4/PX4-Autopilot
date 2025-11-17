@@ -159,7 +159,7 @@ The fields are:
 - `Yaw Torque`: Effectiveness of actuator around yaw axis (normalised: -1 to 1).
   [Generally you should use the default actuator value](#actuator-roll-pitch-and-yaw-scaling).
 - `Trim`: An offset added to the actuator so that it is centered without input.
-  This might be determined by trial and error.
+  This might be determined by trial and error. Do not use for PWM servos.
 - <a id="slew_rate"></a>(Advanced) `Slew Rate`: Limits the minimum time in which the motor/servo signal is allowed to pass through its full output range, in seconds.
   - The setting limits the rate of change of an actuator (if not specified then no rate limit is applied).
     It is intended for actuators that may be damaged or cause flight disturbance if they move too fast — such as the tilting actuators on a tiltrotor VTOL vehicle, or fast moving flaps, respectively.
@@ -538,18 +538,18 @@ If a high rate servo is _really_ needed, DShot offers better value.
 ##### PWM: Control surfaces that move both directions about a neutral point
 
 To facilitate setting the neutral point of the servos, a bilinear curve function can be defined using the following parameters `PWM_MAIM_CENTx` / `PWM_AUX_CENTx` for each servo. This allows for unequal deflections in the positive and negative direction:
-![Asymetric Servo Deflections](../../assets/config/actuators/servo_pwm_trim.png)
+![Asymetric Servo Deflections](../../assets/config/actuators/servo_pwm_center.png)
 
 To set this up:
 
 1. Set all surface `Trim` to `0.00` for all surfaces:
 
-     ![PWM Trimming](../../assets/config/actuators/trim_GS.png)
+     ![PWM Trimming](../../assets/config/actuators/control_surface_trim.png)
 
 1. Set the `PWM_MAIN_CENTx` / `PWM_AUX_CENTx` value so that the surface will stay at the neutral position.
 This is usually around `1500` for PWM servos (near the center of the servo range).
 
-![Control Surface Trimming](../../assets/config/actuators/control_surface_trim.png)
+![Control Surface Trimming](../../assets/config/actuators/pwm_center_output.png)
 
 2. Gradualy increase the `Maximum` for each servo, while checking the deflection with the sliders or manual input with [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) parameter to `Always` until the desired deflection is reached.
 3. Gradualy decrease the `Minimum` for each servo, until the desired deflection is reached.
