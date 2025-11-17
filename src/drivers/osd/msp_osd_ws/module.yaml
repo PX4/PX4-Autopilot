@@ -1,8 +1,8 @@
-module_name: MSP OSD
+module_name: MSP OSD WS
 serial_config:
-    - command: msp_osd start -d ${SERIAL_DEV}
+    - command: msp_osd_ws start -d ${SERIAL_DEV}
       port_config_param:
-        name: MSP_OSD_CONFIG
+        name: MSP_OSD_CFG_WS
         group: OSD
 
 parameters:

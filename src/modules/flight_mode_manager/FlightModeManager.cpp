@@ -154,6 +154,7 @@ void FlightModeManager::start_flight_task()
 	bool matching_task_running = true;
 	bool task_failure = false;
 	const bool nav_state_descend = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
+
 	const bool nav_state_formic_alt_hold = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_FORMIC_ALT_HOLD);
 	const bool nav_state_turtle = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE);
 
@@ -219,7 +220,7 @@ void FlightModeManager::start_flight_task()
 		case 4:
 		default:
 			if (_param_mpc_pos_mode.get() != 4) {
-				PX4_ERR("MPC_POS_MODE %" PRId32 " invalid, resetting", _param_mpc_pos_mode.get());
+				// PX4_ERR("MPC_POS_MODE %" PRId32 " invalid, resetting", _param_mpc_pos_mode.get());
 				_param_mpc_pos_mode.set(4);
 				_param_mpc_pos_mode.commit();
 			}
@@ -253,7 +254,7 @@ void FlightModeManager::start_flight_task()
 		case 3:
 		default:
 			if (_param_mpc_pos_mode.get() != 3) {
-				PX4_ERR("MPC_POS_MODE %" PRId32 " invalid for altitude mode, resetting", _param_mpc_pos_mode.get());
+				// PX4_ERR("MPC_POS_MODE %" PRId32 " invalid for altitude mode, resetting", _param_mpc_pos_mode.get());
 				_param_mpc_pos_mode.set(3);
 				_param_mpc_pos_mode.commit();
 			}

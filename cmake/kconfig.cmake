@@ -153,11 +153,17 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+[a-z0-9]+)_([a-z0-9]+_[a-z0-9]+).*$" "\\2" driver_p5_subfolder ${driver})
 			string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+[a-z0-9]+)_([a-z0-9]+_[a-z0-9]+).*$" "\\3" driver_p5_subsubfolder ${driver})
 
+			# Pattern 6 XXX / XXX_XXX_XXX (e.g., osd_msp_osd_ws -> osd/msp_osd_ws)
+			string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+_[a-z0-9]+).*$" "\\1" driver_p6_folder ${driver})
+			string(REGEX REPLACE "(^[a-z]+)_([a-z0-9]+_[a-z0-9]+_[a-z0-9]+).*$" "\\2" driver_p6_subfolder ${driver})
+
 			# Trick circumvent PX4 src naming problem with underscores and slashes
 			if(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver})
 				list(APPEND config_module_list drivers/${driver})
 			elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_path})
 				list(APPEND config_module_list drivers/${driver_path})
+			elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_p6_folder}/${driver_p6_subfolder})
+				list(APPEND config_module_list drivers/${driver_p6_folder}/${driver_p6_subfolder})
 			elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_p3_folder}/${driver_p3_subfolder}/${driver_p3_subsubfolder})
 				list(APPEND config_module_list drivers/${driver_p3_folder}/${driver_p3_subfolder}/${driver_p3_subsubfolder})
 			elseif(EXISTS ${PX4_SOURCE_DIR}/src/drivers/${driver_p1_folder}/${driver_p1_subfolder})

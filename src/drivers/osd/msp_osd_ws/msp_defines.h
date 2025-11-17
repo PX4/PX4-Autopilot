@@ -34,22 +34,23 @@
 #pragma once
 
 // requests & replies
-#define MSP_API_VERSION            1
-#define MSP_FC_VARIANT             2
-#define MSP_FC_VERSION             3
-#define MSP_BOARD_INFO             4
-#define MSP_BUILD_INFO             5
-#define MSP_CALIBRATION_DATA      14
-#define MSP_FEATURE               36
-#define MSP_BOARD_ALIGNMENT       38
-#define MSP_CURRENT_METER_CONFIG  40
-#define MSP_RX_CONFIG             44
-#define MSP_SONAR_ALTITUDE        58
-#define MSP_ARMING_CONFIG         61
-#define MSP_RX_MAP                64 // get channel map (also returns number of channels total)
-#define MSP_LOOP_TIME             73 // FC cycle time i.e looptime parameter
-#define MSP_GET_VTX_CONFIG        88
-#define MSP_SET_VTX_CONFIG        89
+#define MSP_API_VERSION          1
+#define MSP_FC_VARIANT           2
+#define MSP_FC_VERSION           3
+#define MSP_BOARD_INFO           4
+#define MSP_NAME                 10
+#define MSP_BUILD_INFO           5
+#define MSP_CALIBRATION_DATA     14
+#define MSP_FEATURE              36
+#define MSP_BOARD_ALIGNMENT      38
+#define MSP_CURRENT_METER_CONFIG 40
+#define MSP_RX_CONFIG            44
+#define MSP_SONAR_ALTITUDE       58
+#define MSP_ARMING_CONFIG        61
+#define MSP_RX_MAP               64
+#define MSP_LOOP_TIME            73
+#define MSP_GET_VTX_CONFIG       88
+#define MSP_SET_VTX_CONFIG       89
 #define MSP_STATUS               101
 #define MSP_RAW_IMU              102
 #define MSP_SERVO                103
@@ -116,6 +117,23 @@
 #define MSP_MODE_NAVLAUNCH   28
 #define MSP_MODE_AUTOTRIM    29
 #define MSP_CMD_DISPLAYPORT 182
+
+// DisplayPort subcommands (Betaflight-style)
+#define MSP_DP_HEARTBEAT    0
+#define MSP_DP_RELEASE      1
+#define MSP_DP_CLEAR_SCREEN 2
+#define MSP_DP_WRITE_STRING 3
+#define MSP_DP_DRAW_SCREEN  4
+#define MSP_DP_OPTIONS      5
+#define MSP_DP_SYS          6
+
+// Identity payload bytes (Betaflight-compatible)
+#define MSP_FC_VARIANT_BYTES  {'B', 'T', 'F', 'L'}
+#define MSP_FC_VERSION_BYTES  {4, 5, 0}
+#define MSP_API_VERSION_BYTES {1, 43, 0}
+
+
+
 
 struct msp_esc_sensor_data_t {
 	uint8_t motor_count;
@@ -756,7 +774,6 @@ struct msp_set_wp_t {
 } __attribute__((packed));
 
 #define MSP_OSD_CONFIG            84        //out message         Get osd settings - betaflight
-#define MSP_NAME                  10
 #define MSP_BATTERY_STATE         130       //out message         Connected/Disconnected, Voltage, Current Used
 
 struct msp_osd_config_t {

@@ -40,12 +40,11 @@ class MspV1
 {
 public:
 	MspV1(int fd);
-	int GetMessageSize(int message_type);
-	bool Send(const uint8_t message_id, const void *payload);
 	bool Send(const uint8_t message_id, const void *payload, uint32_t payload_size);
 	int Receive(uint8_t *payload, uint8_t *message_id);
 
 private:
+	void handleMspRequest(uint8_t cmd, const uint8_t *payload, uint8_t len);
 	int _fd{-1};
 	uint8_t header[MSP_FRAME_START_SIZE + MSP_CRC_SIZE];
 	bool has_header{false};

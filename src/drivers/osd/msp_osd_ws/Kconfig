@@ -1,0 +1,12 @@
+menuconfig DRIVERS_OSD_MSP_OSD_WS
+	bool "MSP Walksnail OSD (msp_osd_ws)"
+	default n
+	---help---
+		Enable support for msp_osd_ws
+
+menuconfig USER_MSP_OSD_WS
+	bool "msp_osd_ws running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && DRIVERS_OSD_MSP_OSD_WS
+	---help---
+		Put msp_osd_ws in userspace memory
