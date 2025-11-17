@@ -76,10 +76,8 @@ int TLA2528::init()
 		return ret;
 	}
 
-	float ref_volt = 2.5f;
-	param_get(param_find("ADC_TLA2528_REFV"), &ref_volt);
 	_adc_report.device_id = this->get_device_id();
-	_adc_report.v_ref = ref_volt;
+	_adc_report.v_ref = _adc_tla2528_refv.get();
 	_adc_report.resolution = 4096;
 
 	ret = probe();
