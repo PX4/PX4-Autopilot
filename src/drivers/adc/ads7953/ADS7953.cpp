@@ -39,7 +39,7 @@ int ADS7953::init()
 		_adc_report.channel_id[i] = -1;
 	}
 
-	ScheduleOnInterval(10_ms);
+	ScheduleOnInterval(SAMPLE_INTERVAL, SAMPLE_INTERVAL);
 	return PX4_OK;
 }
 
