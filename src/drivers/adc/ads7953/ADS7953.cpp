@@ -8,9 +8,18 @@
 ADS7953::ADS7953(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	ModuleParams(nullptr)
+	ModuleParams(nullptr),
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
 	static_assert(arraySize(adc_report_s::channel_id) >= NUM_CHANNELS, "ADS7953 reports 16 channels");
+}
+
+ADS7953::~ADS7953()
+{
+	ScheduleClear();
+	perf_free(_cycle_perf);
+	perf_free(_comms_errors);
 }
 
 int ADS7953::init()
@@ -56,7 +65,6 @@ int ADS7953::probe()
 		return PX4_ERROR;
 	}
 
-	PX4_INFO("ADS7953 was found");
 	return PX4_OK;
 }
 
@@ -94,6 +102,9 @@ int ADS7953::get_measurements()
 				_adc_report.channel_id[ch_id] = ch_id;
 				_adc_report.raw_data[ch_id] = ((((uint16_t) recv_data[0]) & 0x0F) << 8) | recv_data[1];
 			}
+
+		} else {
+			perf_count(_comms_errors);
 		}
 
 		// Find index to measure next
@@ -112,9 +123,11 @@ int ADS7953::get_measurements()
 
 void ADS7953::RunImpl()
 {
+	perf_begin(_cycle_perf);
 	get_measurements();
 	_adc_report.timestamp = hrt_absolute_time();
 	_adc_report_pub.publish(_adc_report);
+	perf_end(_cycle_perf);
 
 	for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 		_adc_report.channel_id[i] = -1;
