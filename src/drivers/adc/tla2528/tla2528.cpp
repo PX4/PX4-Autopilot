@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 #include "tla2528.h"
+#include <drivers/drv_adc.h>
 
 #define READ 		0x10
 #define WRITE 		0x08
@@ -58,6 +59,7 @@ TLA2528::TLA2528(const I2CSPIDriverConfig &config) :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
+	static_assert(arraySize(adc_report_s::channel_id) >= NUM_CHANNELS, "TLA2528 reports 8 channels");
 }
 
 TLA2528::~TLA2528()
@@ -161,7 +163,7 @@ void TLA2528::adc_get()
 {
 	// Start sequential read
 	uint8_t send_data[3] = {SET_BIT, SEQUENCE_CFG, 0x10};
-	uint8_t recv_data[3];
+	uint8_t recv_data[2];
 	int ret = transfer(&send_data[0], 3, nullptr, 0);
 
 	if (ret != PX4_OK) {
@@ -170,7 +172,7 @@ void TLA2528::adc_get()
 	}
 
 	// Read data
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < NUM_CHANNELS; i++) {
 		ret = transfer(nullptr, 0, &recv_data[0], 2);
 
 		if (ret == PX4_OK) {
@@ -318,7 +320,7 @@ void TLA2528::RunImpl()
 		break;
 	}
 
-	for (unsigned i = 0; i < 16; ++i) {
+	for (unsigned i = 0; i < arraySize(adc_report_s::channel_id); ++i) {
 		_adc_report.channel_id[i] = -1;
 	}
 }

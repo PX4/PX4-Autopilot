@@ -55,6 +55,7 @@ public:
 
 private:
 	static const hrt_abstime SAMPLE_INTERVAL{10_ms};
+	static constexpr int NUM_CHANNELS = 8;
 
 	perf_counter_t _cycle_perf;
 	perf_counter_t _comms_errors;
