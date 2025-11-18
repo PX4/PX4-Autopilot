@@ -97,7 +97,7 @@ private:
 	char _device[20] {}; ///< device / serial port path
 	bool _is_singlewire{false};
 
-	static constexpr size_t RC_MAX_BUFFER_SIZE{64};
+	static constexpr size_t RC_MAX_BUFFER_SIZE{256};  // 4*CRSF size
 	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};
 	uint32_t _bytes_rx{0};
 
@@ -155,6 +155,7 @@ private:
 
 	perf_counter_t	_cycle_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 	perf_counter_t	_publish_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval")};
+	perf_counter_t	_elapsed_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": elapsed")};
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::RC_CRSF_TEL_EN>) _param_rc_crsf_tel_en
