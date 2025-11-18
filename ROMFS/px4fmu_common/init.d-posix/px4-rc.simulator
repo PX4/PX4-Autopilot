@@ -11,6 +11,11 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
     # Run SIH
     . px4-rc.sihsim
 
+elif [ "$PX4_SIMULATOR" = "rotorpy" ]; then
+    # No simulator, possibly HITL
+    . px4-rc.mavlinksim
+    . px4-rc.rotorpy
+
 elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
     # Run Gazebo (gz)
     . px4-rc.gzsim
