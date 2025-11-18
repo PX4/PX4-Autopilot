@@ -22,8 +22,7 @@ jobs:
     strategy:
       matrix:
         config: [
-          px4_fmu-v5_default,
-          px4_sitl
+          px4_sitl gz_x500
           ]
     steps:
     - name: install Python 3.10
@@ -35,7 +34,7 @@ jobs:
 
     - name: setup
       run: |
-        ./Tools/setup/macos.sh
+        ./Tools/setup/macos.sh --sim-tools
 
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp
