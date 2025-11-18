@@ -18,7 +18,10 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-latest
+    matrix:
+      os: [macos-latest, macos-26]
+      environment: [Seqouia , Tahoe]
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         config: [
