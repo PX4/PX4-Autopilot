@@ -23,7 +23,7 @@ jobs:
       matrix:
         os: [macos-latest, macos-26]
         environment: [Sequoia, Tahoe]
-        config:[
+        config: [
           "px4_sitl gz_x500"
           ]
     steps:
