@@ -102,20 +102,21 @@ At very high level, the main differences are:
 
 ### FMUv6 Comparison
 
-| Feature            | **FMUv6X-RT**         | **FMUv6X**        | **FMUv6XC**        |
+| Feature            | **FMUv6X-RT**         | **FMUv6X**        | **FMUv6C**        |
 | ------------------ | --------------------- | ----------------- | ------------------ |
 | **FMU MCU**        | NXP i.MX RT1176       | STM32H753         | STM32H743V         |
 | **RAM**            | 2 MB                  | 1 MB              | 1 MB               |
-| **Flash**          | 64 MB QSPI            | 2 MB internal     | 2 MB internal      |
-| **IO MCU**         | Internal coprocessor  | STM32F103         | STM32F103          |
+| **Flash**          | 64 MB Octal SPI       | 2 MB internal     | 2 MB internal      |
+| **IO MCU**         | STM32F103             | STM32F103         | STM32F103          |
 | **Secure Element** | NXP SE051             | NXP SE051         | Not supported      |
-| **PAB Support**    | Supported             | Supported         | Not supported      |
+| **PAB Standard**   | Supported             | Supported         | Not supported      |
 | **Ethernet**       | Supported             | Supported         | Not supported      |
-| **IMUs**           | 3×                    | 3×                | 3×                 |
+| **IMUs**           | 3×                    | 3×                | 2×                 |
 | **Barometers**     | 2×                    | 2×                | 1×                 |
 | **Magnetometer**   | 1×                    | 1×                | 1×                 |
-| **FMU PWM**        | 8×                    | 8×                | 8×                 |
-| **IO PWM**         | 4×                    | 8×                | 8×                 |
+| **FMU PWM**        | 12×                   | 8×                | 8×                 |
+| **IO PWM**         | 8×                    | 8×                | 8×                 |
+| **CAN Bus**        | 3×                    | 2×                | 2×                 |
 
 ### Licensing and Trademarks
 
