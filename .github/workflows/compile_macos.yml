@@ -22,7 +22,6 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, macos-26]
-        environment: [Sequoia, Tahoe]
         config: [
           "px4_sitl gz_x500"
           ]
