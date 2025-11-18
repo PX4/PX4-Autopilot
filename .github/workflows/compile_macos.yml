@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         config: [
-          px4_sitl gz_x500
+          "px4_sitl gz_x500"
           ]
     steps:
     - name: install Python 3.10
@@ -31,7 +31,12 @@ jobs:
         python-version: "3.10"
 
     - uses: actions/checkout@v4
-
+    
+    - name: Initialize and update git submodules
+      run: |
+        git submodule sync --recursive
+        git submodule update --init --recursive --jobs 4
+    
     - name: setup
       run: |
         ./Tools/setup/macos.sh --sim-tools
