@@ -48,6 +48,7 @@ MPA::pipe_client_open_t MPA::open_pipe = nullptr;
 MPA::pipe_server_create_t MPA::create_pipe = nullptr;
 MPA::pipe_server_write_t MPA::write_pipe = nullptr;
 MPA::pipe_server_set_control_cb_t MPA::set_control_cb = nullptr;
+MPA::pipe_server_close_t MPA::close_pipe = nullptr;
 MPA::mpa_data_cb_t MPA::data_cb[MAX_MPA_CLIENTS];
 
 // called whenever we connect or reconnect to the server
@@ -126,6 +127,12 @@ int MPA::PipeWrite(int ch, const void* data, int bytes) {
 
 int MPA::PipeServerSetControlCb(int ch, mpa_control_cb_t cb, void* context) {
 	return set_control_cb(ch, cb, context);
+}
+
+void MPA::PipeServerClose(int ch) {
+	if (close_pipe) {
+		close_pipe(ch);
+	}
 }
 
 int MPA::Initialize()
@@ -213,6 +220,16 @@ int MPA::Initialize()
 		return -1;
 	} else {
 		PX4_DEBUG("Successfully loaded function %s", set_control_cb_name);
+	}
+
+	// Close server pipe
+	char close_pipe_name[] = "pipe_server_close";
+	close_pipe = (pipe_server_close_t) dlsym(handle, close_pipe_name);
+	if (!close_pipe) {
+		PX4_ERR("Error finding symbol %s: %s", close_pipe_name, dlerror());
+		return -1;
+	} else {
+		PX4_DEBUG("Successfully loaded function %s", close_pipe_name);
 	}
 
 	initialized = true;

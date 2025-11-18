@@ -46,6 +46,7 @@ public:
 	static int PipeCreate(char *pipe_name, int flags = 0);
 	static int PipeWrite(int ch, const void* data, int bytes);
 	static int PipeServerSetControlCb(int ch, mpa_control_cb_t cb, void* context);
+	static void PipeServerClose(int ch);
 
 private:
 	static void HelperCB( __attribute__((unused)) int ch, char* data, int bytes, __attribute__((unused)) void* context);
@@ -59,6 +60,7 @@ private:
 	typedef int (*pipe_server_create_t)(int ch, pipe_info_t info, int flags);
 	typedef int (*pipe_server_write_t)(int ch, const void* data, int bytes);
 	typedef int (*pipe_server_set_control_cb_t)(int ch, server_control_cb* cb, void* context);
+	typedef void (*pipe_server_close_t)(int ch);
 
 	static pipe_client_set_simple_helper_cb_t helper_cb;
 	static pipe_client_set_connect_cb_t connect_cb;
@@ -67,6 +69,7 @@ private:
 	static pipe_server_create_t create_pipe;
 	static pipe_server_write_t write_pipe;
 	static pipe_server_set_control_cb_t set_control_cb;
+	static pipe_server_close_t close_pipe;
 
 	static bool initialized;
 	static void *handle;

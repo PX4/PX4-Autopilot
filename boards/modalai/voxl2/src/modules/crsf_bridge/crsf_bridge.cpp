@@ -46,7 +46,9 @@ class CrsfBridge : public ModuleBase<CrsfBridge>, public px4::WorkItem
 public:
 
 	CrsfBridge();
-	~CrsfBridge() override = default;
+	~CrsfBridge() override;
+
+	void cleanup();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -81,6 +83,32 @@ CrsfBridge::CrsfBridge() :
 {
 }
 
+CrsfBridge::~CrsfBridge()
+{
+	cleanup();
+}
+
+void CrsfBridge::cleanup()
+{
+	PX4_INFO("Cleaning up CRSF bridge");
+
+	// Unregister callback
+	_crsf_raw_rx_sub.unregisterCallback();
+
+	// Close and destroy the MPA pipe
+	if (crsf_pipe_ch > 0) {
+		MPA::PipeServerClose(crsf_pipe_ch);
+		PX4_INFO("Closed pipe channel %d", crsf_pipe_ch);
+		crsf_pipe_ch = 0;
+	}
+
+	// Unadvertise publisher if it exists
+	if (_crsf_raw_tx_pub != nullptr) {
+		orb_unadvertise(_crsf_raw_tx_pub);
+		_crsf_raw_tx_pub = nullptr;
+	}
+}
+
 bool CrsfBridge::init()
 {
 	if (MPA::Initialize() == -1) {
@@ -113,12 +141,18 @@ bool CrsfBridge::init()
 void CrsfBridge::Run()
 {
 	if (should_exit()) {
-		_crsf_raw_rx_sub.unregisterCallback();
+		// cleanup() will be called by destructor
 		exit_and_cleanup();
 		return;
 	}
 
-	if (_crsf_raw_rx_sub.updated()) {
+	// Batch process ALL pending messages to prevent queue buildup
+	// This is critical when RC data streams at high frequency (50-150Hz)
+	// to ensure parameter/device responses aren't delayed behind RC frames
+	int processed = 0;
+	const int max_batch = 15; // Safety limit to prevent work queue starvation
+
+	while (_crsf_raw_rx_sub.updated() && processed < max_batch) {
 		if (_crsf_raw_rx_sub.update(&_crsf_raw_rx)) {
 			crsf_raw_data_t crsf;
 			memset(&crsf, 0, sizeof(crsf));
@@ -133,7 +167,14 @@ void CrsfBridge::Run()
 			if (MPA::PipeWrite(crsf_pipe_ch, (void*)&crsf, sizeof(crsf_raw_data_t)) == -1) {
 				PX4_ERR("Pipe %d write failed!", crsf_pipe_ch);
 			}
+
+			processed++;
 		}
+	}
+
+	// Log if we hit the batch limit (indicates potential issue)
+	if (processed >= max_batch) {
+		PX4_WARN("CRSF bridge hit max batch limit (%d msgs), more pending", max_batch);
 	}
 }
 
