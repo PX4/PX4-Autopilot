@@ -46,6 +46,7 @@ MCP23009 <command> [arguments...]
 
    status        print status info
 ```
+
 ## adc
 
 Source: [drivers/adc/board_adc](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/adc/board_adc)
