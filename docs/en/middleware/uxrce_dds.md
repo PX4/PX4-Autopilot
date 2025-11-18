@@ -541,7 +541,7 @@ Each (`topic`,`type`) pairs defines:
 5. **(Optional)**: An additional `rate_limit` field (only for publication entries), which specifies the maximum rate (Hz) at which messages will be published on this topic by PX4 to ROS 2.
    If left unspecified, the maximum publication rate limit is set to 100 Hz.
 6. **(Optional)**: An additional `instance` field (only for publication entries), which lets you select which instance of a [multi-instance topic](./uorb.md#multi-instance) you want to be published to ROS 2.
-   If provided, this option changes the ROS 2 topic name of the avdvertized uORB topic appending the instance number: `fmu/out/[uorb topic name][instance]` (plus eventual namespace and message version).
+   If provided, this option changes the ROS 2 topic name of the advertised uORB topic appending the instance number: `fmu/out/[uorb topic name][instance]` (plus eventual namespace and message version).
    In the example above the final topic name would be `/fmu/out/vehicle_imu1`.
 
 `subscriptions` and `subscriptions_multi` allow us to choose the uORB topic instance that ROS 2 topics are routed to: either a shared instance that may also be getting updates from internal PX4 uORB publishers, or a separate instance that is reserved for ROS2 publications, respectively.
