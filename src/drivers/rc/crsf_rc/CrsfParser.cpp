@@ -345,9 +345,9 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			if (calculated_crc == received_crc) {
 				// Copy raw frame data: header (0xC8) + size + type + payload + CRC
 				new_packet->raw_frame_len = working_index + CRC_SIZE + HEADER_SIZE;  // Total: header + (size + type + payload + CRC)
-				if (new_packet->raw_frame_len > 64) {
-					new_packet->raw_frame_len = 64;
-				}
+				// if (new_packet->raw_frame_len > 64) {
+				// 	new_packet->raw_frame_len = 64;
+				// }
 				new_packet->raw_frame[0] = CRSF_HEADER;  // Add the 0xC8 header byte
 				memcpy(&new_packet->raw_frame[1], process_buffer, working_index + CRC_SIZE);  // Copy size + type + payload + CRC
 
