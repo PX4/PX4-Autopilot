@@ -7,6 +7,6 @@ uint64 timestamp                    # time since system start (microseconds)
 uint8 len                           # Length of data
 uint8[64] data                      # Raw CRSF frame data
 
-uint8 ORB_QUEUE_LENGTH = 1
+uint8 ORB_QUEUE_LENGTH = 8
 
 # TOPICS crsf_raw_rx crsf_raw_tx
