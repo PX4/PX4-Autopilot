@@ -104,6 +104,10 @@ void InternalCombustionEngineControl::Run()
 	actuator_motors_s actuator_motors;
 	_actuator_motors.copy(&actuator_motors);
 
+	// use vtol vehicle status to know if we're in a transition or fixed-wing state
+	vtol_vehicle_status_s vtol_status;
+	_vtol_vehicle_status_sub.copy(&vtol_status);
+
 	const float throttle_in = actuator_motors.control[0];
 
 	const hrt_abstime now = hrt_absolute_time();
@@ -131,6 +135,14 @@ void InternalCombustionEngineControl::Run()
 
 			} else if (manual_control_setpoint.aux2 < -0.5f) {
 				_user_request = UserOnOffRequest::Off;
+			}
+		}
+		break;
+	case ICESource::VtolStatus: {
+			if ((vtol_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW ||
+				vtol_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW) &&
+				vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+					user_request = UserOnOffRequest::On;
 			}
 		}
 		break;
