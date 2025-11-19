@@ -676,7 +676,7 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	     user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW)
 	    && !modeCanRun(status_flags, user_intended_mode)) {
 		action = Action::FallbackAltCtrl;
-		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_FORMIC_ALT_HOLD;
 	}
 
 	// AltCtrl -> Stabilized

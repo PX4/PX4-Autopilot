@@ -372,12 +372,16 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	}
 
 	_connected = true;
+	publishDdsFlag();
 	return true;
 }
 
 void UxrceddsClient::deleteSession(uxrSession *session)
 {
 	delete_repliers();
+
+	// Check if we need to publish disconnected status before clearing session state
+	bool was_connected = _connected || _session_created;
 
 	if (_session_created) {
 		uxr_delete_session_retries(session, _connected ? 1 : 0);
@@ -386,6 +390,12 @@ void UxrceddsClient::deleteSession(uxrSession *session)
 
 	_last_payload_tx_rate = 0;
 	_timesync.reset_filter();
+
+	// Publish disconnected status when session is deleted
+	if (was_connected) {
+		_connected = false;
+		publishDdsFlag();
+	}
 }
 
 UxrceddsClient::~UxrceddsClient()
@@ -504,7 +514,10 @@ void UxrceddsClient::checkConnectivity(uxrSession *session)
 
 	// Start ping and tx/rx rate monitoring, unless we're actively sending & receiving payloads successfully
 	if ((_last_payload_tx_rate > 0) && (_last_payload_rx_rate > 0)) {
-		_connected = true;
+		if (!_connected) {
+			_connected = true;
+			publishDdsFlag();
+		}
 		_num_pings_missed = 0;
 		_last_ping = now;
 
@@ -539,7 +552,10 @@ void UxrceddsClient::checkConnectivity(uxrSession *session)
 
 		if (_num_pings_missed >= 3) {
 			PX4_ERR("No ping response, disconnecting");
-			_connected = false;
+			if (_connected) {
+				_connected = false;
+				publishDdsFlag();
+			}
 		}
 
 		int32_t tx_timeout = _param_uxrce_dds_tx_to.get();
@@ -547,14 +563,28 @@ void UxrceddsClient::checkConnectivity(uxrSession *session)
 
 		if (tx_timeout > 0 && _num_tx_rate_zero >= tx_timeout) {
 			PX4_ERR("Payload TX rate zero for too long, disconnecting");
-			_connected = false;
+			if (_connected) {
+				_connected = false;
+				publishDdsFlag();
+			}
 		}
 
 		if (rx_timeout > 0 && _num_rx_rate_zero >= rx_timeout) {
 			PX4_ERR("Payload RX rate zero for too long, disconnecting");
-			_connected = false;
+			if (_connected) {
+				_connected = false;
+				publishDdsFlag();
+			}
 		}
 	}
+}
+
+void UxrceddsClient::publishDdsFlag()
+{
+	dds_flag_s dds_flag{};
+	dds_flag.timestamp = hrt_absolute_time();
+	dds_flag.dds_connected = _connected || _session_created;
+	_dds_flag_pub.publish(dds_flag);
 }
 
 void UxrceddsClient::resetConnectivityCounters()
@@ -715,7 +745,19 @@ void UxrceddsClient::run()
 			// Check if there is still connectivity with the agent
 			checkConnectivity(&session);
 
+			// Publish DDS connection status periodically (every 1 second)
+			if (hrt_elapsed_time(&_last_status_update) > 1_s) {
+				publishDdsFlag();
+				_last_status_update = hrt_absolute_time();
+			}
+
 			perf_end(_loop_perf);
+		}
+
+		// Publish disconnected status when exiting the loop
+		if (_connected) {
+			_connected = false;
+			publishDdsFlag();
 		}
 
 		deleteSession(&session);

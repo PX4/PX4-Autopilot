@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,19 +33,24 @@
 
 #pragma once
 
-#define MSP_FRAME_START_SIZE 5
-#define MSP_CRC_SIZE 1
+#include "../Common.hpp"
 
-class MspV1
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/dds_flag.h>
+
+class DdsChecks : public HealthAndArmingCheckBase
 {
 public:
-	MspV1(int fd);
-	bool Send(const uint8_t message_id, const void *payload, uint32_t payload_size);
-	int Receive(uint8_t *payload, uint8_t *message_id);
+	DdsChecks() = default;
+	~DdsChecks() = default;
+
+	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	void handleMspRequest(uint8_t cmd, const uint8_t *payload, uint8_t len);
-	int _fd{-1};
-	uint8_t header[MSP_FRAME_START_SIZE + MSP_CRC_SIZE];
-	bool has_header{false};
+	uORB::Subscription _dds_flag_sub{ORB_ID(dds_flag)};
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::COM_ARM_DDS>) _param_com_arm_dds
+				       );
 };
+

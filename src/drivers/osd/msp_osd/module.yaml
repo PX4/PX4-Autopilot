@@ -40,6 +40,7 @@ parameters:
                 19: AVG_CELL_VOLTAGE
                 20: (unused) HORIZON_SIDEBARS
                 21: POWER
+                22: DISTANCE_SENSOR
             default: 16383
 
         # OSD Crosshairs Vertical Position

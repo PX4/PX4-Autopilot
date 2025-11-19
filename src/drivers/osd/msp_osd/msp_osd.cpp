@@ -109,6 +109,8 @@ const uint16_t osd_crosshairs_pos = 2319;
 const uint16_t osd_main_batt_voltage_pos = 2073;
 const uint16_t osd_current_draw_pos = 2103;
 
+const uint16_t osd_distance_sensor_pos = 2482;
+
 
 const uint16_t osd_numerical_vario_pos = LOCATION_HIDDEN;
 
@@ -186,6 +188,9 @@ void MspOsd::SendConfig()
 	msp_osd_config.osd_power_pos = enabled(SymbolIndex::POWER) ? osd_power_pos : LOCATION_HIDDEN;
 	msp_osd_config.osd_avg_cell_voltage_pos = enabled(SymbolIndex::AVG_CELL_VOLTAGE) ? osd_avg_cell_voltage_pos :
 			LOCATION_HIDDEN;
+
+
+	msp_osd_config.osd_distance_sensor_pos = enabled(SymbolIndex::DISTANCE_SENSOR) ? osd_distance_sensor_pos : LOCATION_HIDDEN;
 
 	// the location of our crosshairs can change
 	msp_osd_config.osd_crosshairs_pos = LOCATION_HIDDEN;
@@ -434,6 +439,18 @@ void MspOsd::Run()
 			const auto msg = msp_osd::construct_Rendor_ALTITUDE(vehicle_gps_position, vehicle_local_position);
 
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_altitude_t));
+		}
+	}
+
+	// MSP_DISTANCE_SENSOR
+	{
+		estimator_aid_source1d_s estimator_aid_src_rng_hgt{};
+		_estimator_aid_src_rng_hgt_sub.copy(&estimator_aid_src_rng_hgt);
+
+		if (enabled(SymbolIndex::DISTANCE_SENSOR)) {
+			const auto msg = msp_osd::construct_rendor_DISTANCE_SENSOR(estimator_aid_src_rng_hgt);
+
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_distance_sensor_t));
 		}
 	}
 

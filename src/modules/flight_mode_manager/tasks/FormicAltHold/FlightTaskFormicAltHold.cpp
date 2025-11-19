@@ -89,14 +89,14 @@ void FormicAltitude::_updateSetpoints()
 	const int32_t aux_channel = _param_formic_aux.get();
 	const float aux_value = _aux_reader.getChannel(aux_channel);
 	_channel_values = PX4_ISFINITE(aux_value) ? aux_value : 0.f;
-	PX4_INFO("aux_value: %f", (double)aux_value);
+	// PX4_INFO("aux_value: %f", (double)aux_value);
 
 	// Fetch latest estimator flags.
 	estimator_status_flags_s estimator_status_flags{};
 	_estimator_status_flags_sub.copy(&estimator_status_flags);
 
 	// Get yaw setpoint, un-smoothed position setpoints.
-	if ((_channel_values > 0.f) && estimator_status_flags.cs_rng_terrain && PX4_ISFINITE(_position(2))) {
+	if ((_channel_values > 0.f) && PX4_ISFINITE(_position(2))) {
 
 		if (_first_time == true) {
 			_first_time = false;

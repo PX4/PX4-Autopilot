@@ -835,6 +835,18 @@ PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
 PARAM_DEFINE_INT32(COM_ARM_ODID, 0);
 
 /**
+ * DDS connection required for arming
+ *
+ * Require DDS (Data Distribution Service) connection before allowing arming.
+ *
+ * @group Commander
+ * @value 0 Disabled (DDS connection not required)
+ * @value 1 Warning only (allow arming but warn if DDS not connected)
+ * @value 2 Required (prevent arming if DDS not connected)
+ */
+PARAM_DEFINE_INT32(COM_ARM_DDS, 0);
+
+/**
  * Enforced delay between arming and further navigation
  *
  * The minimal time from arming the motors until moving the vehicle is possible is COM_SPOOLUP_TIME seconds.

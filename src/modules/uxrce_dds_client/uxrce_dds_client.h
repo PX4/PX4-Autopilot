@@ -40,7 +40,10 @@
 
 #include <uORB/topics/message_format_request.h>
 #include <uORB/topics/message_format_response.h>
+#include <uORB/topics/dds_flag.h>
+
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 
 #include <lib/timesync/Timesync.hpp>
 
@@ -130,9 +133,12 @@ private:
 	void calculateTxRxRate();
 	void checkConnectivity(uxrSession *session);
 	void resetConnectivityCounters();
+	void publishDdsFlag();
 
 	uORB::Publication<message_format_response_s> _message_format_response_pub{ORB_ID(message_format_response)};
 	uORB::Subscription _message_format_request_sub{ORB_ID(message_format_request)};
+
+	uORB::Publication<dds_flag_s> _dds_flag_pub{ORB_ID(dds_flag)};
 
 	/** Synchronizes the system clock if the time is off by more than 5 seconds */
 	void syncSystemClock(uxrSession *session);
