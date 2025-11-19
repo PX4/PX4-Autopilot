@@ -1,0 +1,13 @@
+{
+    "board_id": 42,
+    "magic": "SPEEDYBEEF405WM",
+    "description": "Firmware for the SPEEDYBEEF405WM board",
+    "image": "",
+    "build_time": 0,
+    "summary": "PX4/SpeedybeeF405WM",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1032192,
+    "git_identity": "",
+    "board_revision": 0
+}

@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# system_power unavailable
+param set-default CBRK_SUPPLY_CHK 894281
+
+param set-default SYS_HAS_MAG 0

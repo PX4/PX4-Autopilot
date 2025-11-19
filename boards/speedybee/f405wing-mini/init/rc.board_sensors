@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Mamba F405 MK2 specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+icm42688p -s -R 4 start
+
+spl06 -b 1 start
