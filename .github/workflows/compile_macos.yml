@@ -40,7 +40,7 @@ jobs:
 
       - name: setup
         run: |
-          ./Tools/setup/macos.sh --sim-tools
+          ./Tools/setup/macos.sh --sim-tools --reinstall
 
       - name: Prepare ccache timestamp
         id: ccache_cache_timestamp
