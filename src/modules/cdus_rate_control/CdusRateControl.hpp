@@ -13,6 +13,8 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/parameter_update.h>
+
 
 #include <matrix/matrix/math.hpp>
 
@@ -47,11 +49,13 @@ public:
 
 private:
 	void reset_integrator();
+	void parameters_updated();
 
 	// uORB subscriptions
 	uORB::SubscriptionCallbackWorkItem _angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};	// params
 
 	// uORB publications
 	uORB::Publication<vehicle_torque_setpoint_s> _torque_sp_pub{ORB_ID(vehicle_torque_setpoint)};
@@ -67,11 +71,31 @@ private:
 
 	uint64_t _last_run{0};                  // last timestamp_sample [µs]
 
+	// PX4 parameters for PID gains
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::CDUS_P_ROLL>) _param_p_roll,
+		(ParamFloat<px4::params::CDUS_P_PITCH>) _param_p_pitch,
+		(ParamFloat<px4::params::CDUS_P_YAW>) _param_p_yaw,
+
+
+		(ParamFloat<px4::params::CDUS_I_ROLL>) _param_i_roll,
+		(ParamFloat<px4::params::CDUS_I_PITCH>) _param_i_pitch,
+		(ParamFloat<px4::params::CDUS_I_YAW>) _param_i_yaw,
+
+
+		(ParamFloat<px4::params::CDUS_D_ROLL>) _param_d_roll,
+		(ParamFloat<px4::params::CDUS_D_PITCH>) _param_d_pitch,
+		(ParamFloat<px4::params::CDUS_D_YAW>) _param_d_yaw,
+
+
+		(ParamFloat<px4::params::CDUS_INT_LIM>) _param_int_lim
+	);
+
 	// simple fixed gains (tune as needed)
-	const Vector3f _k_p{0.1f, 0.1f, 0.05f};   // P gains roll, pitch, yaw
-	const Vector3f _k_i{0.05f, 0.05f, 0.02f}; // I gains roll, pitch, yaw
-	const Vector3f _k_d{0.002f, 0.002f, 0.001f}; // D gains roll, pitch, yaw
+	Vector3f _k_p{0.1f, 0.1f, 0.05f};   // P gains roll, pitch, yaw
+	Vector3f _k_i{0.05f, 0.05f, 0.02f}; // I gains roll, pitch, yaw
+	Vector3f _k_d{0.002f, 0.002f, 0.001f}; // D gains roll, pitch, yaw
 
 	// integrator limit (absolute value for each axis)
-	const float _integrator_limit = 0.5f;
+	float _integrator_limit{0.5f};
 };

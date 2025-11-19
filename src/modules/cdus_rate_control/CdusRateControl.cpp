@@ -15,7 +15,7 @@ CdusRateControl::CdusRateControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
-	// nothing else to do here
+	parameters_updated();
 }
 
 CdusRateControl::~CdusRateControl()
@@ -34,6 +34,16 @@ bool CdusRateControl::init()
 	return true;
 }
 
+void CdusRateControl::parameters_updated()
+{
+	_k_p = Vector3f(_param_p_roll.get(), _param_p_pitch.get(), _param_p_yaw.get());
+	_k_i = Vector3f(_param_i_roll.get(), _param_i_pitch.get(), _param_i_yaw.get());
+	_k_d = Vector3f(_param_d_roll.get(), _param_d_pitch.get(), _param_d_yaw.get());
+
+
+	_integrator_limit = _param_int_lim.get();
+}
+
 void CdusRateControl::reset_integrator()
 {
 	_integral.setAll(0.f);
@@ -45,6 +55,17 @@ void CdusRateControl::Run()
 		_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
+	}
+
+	// Check for parameter changes
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update{};
+		_parameter_update_sub.copy(&param_update);
+
+		// this pulls the latest values from the param system
+		updateParams();
+		// and then we propagate them into our local variables
+		parameters_updated();
 	}
 
 	vehicle_angular_velocity_s angular_velocity{};
