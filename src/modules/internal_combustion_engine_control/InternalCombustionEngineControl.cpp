@@ -138,11 +138,12 @@ void InternalCombustionEngineControl::Run()
 			}
 		}
 		break;
+
 	case ICESource::VtolStatus: {
 			if ((vtol_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW ||
-				vtol_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW) &&
-				vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-					user_request = UserOnOffRequest::On;
+			     vtol_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW) &&
+			    vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				user_request = UserOnOffRequest::On;
 			}
 		}
 		break;
