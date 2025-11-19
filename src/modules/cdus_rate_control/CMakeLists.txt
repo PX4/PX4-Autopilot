@@ -6,6 +6,8 @@ px4_add_module(
 	SRCS
 		CdusRateControl.cpp
 		CdusRateControl.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		circuit_breaker
 		mathlib
