@@ -105,7 +105,7 @@ void InternalCombustionEngineControl::Run()
 	_actuator_motors.copy(&actuator_motors);
 
 	// use vtol vehicle status to know if we're in a transition or fixed-wing state
-	vtol_vehicle_status_s vtol_status;
+	vtol_vehicle_status_s vtol_status {};
 	_vtol_vehicle_status_sub.copy(&vtol_status);
 
 	const float throttle_in = actuator_motors.control[0];
