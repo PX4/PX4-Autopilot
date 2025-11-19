@@ -1,0 +1,12 @@
+menuconfig MODULES_CDUS_ALLOCATOR
+	bool "cdus_allocator"
+	default n
+	---help---
+		Enable support for custom_pid
+
+menuconfig USER_CDUS_ALLOCATOR
+	bool "cdus_allocator running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && CDUS_ALLOCATOR
+	---help---
+		Put cdus_allocator in userspace memory
