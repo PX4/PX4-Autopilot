@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,10 +36,11 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/am32_eeprom_write.h>
 
+#include "DShotCommon.h"
 #include "DShotTelemetry.h"
 
 using namespace time_literals;
@@ -48,14 +49,24 @@ using namespace time_literals;
 #  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
 
+static constexpr hrt_abstime ESC_INIT_TELEM_WAIT_TIME = 3_s;
+
 /** Dshot PWM frequency, Hz */
 static constexpr unsigned int DSHOT150  =  150000u;
 static constexpr unsigned int DSHOT300  =  300000u;
 static constexpr unsigned int DSHOT600  =  600000u;
 
-static constexpr int DSHOT_DISARM_VALUE = 0;
-static constexpr int DSHOT_MIN_THROTTLE = 1;
-static constexpr int DSHOT_MAX_THROTTLE = 1999;
+static constexpr uint16_t DSHOT_DISARM_VALUE = 0;
+static constexpr uint16_t DSHOT_MIN_THROTTLE = 1;
+static constexpr uint16_t DSHOT_MAX_THROTTLE = 1999;
+
+// We do this to avoid bringing in mavlink.h
+// #include <mavlink/common/mavlink.h>
+#define ACTUATOR_CONFIGURATION_BEEP 1
+#define ACTUATOR_CONFIGURATION_3D_MODE_OFF 2
+#define ACTUATOR_CONFIGURATION_3D_MODE_ON 3
+#define ACTUATOR_CONFIGURATION_SPIN_DIRECTION1 4
+#define ACTUATOR_CONFIGURATION_SPIN_DIRECTION2 5
 
 class DShot final : public ModuleBase<DShot>, public OutputModuleInterface
 {
@@ -63,122 +74,156 @@ public:
 	DShot();
 	~DShot() override;
 
-	/** @see ModuleBase */
+	// @see ModuleBase
 	static int custom_command(int argc, char *argv[]);
+
+	// @see ModuleBase
+	int print_status() override;
+
+	// @see ModuleBase
+	static int print_usage(const char *reason = nullptr);
+
+	// @see ModuleBase
+	static int task_spawn(int argc, char *argv[]);
 
 	int init();
 
 	void mixerChanged() override;
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	/**
-	 * Send a dshot command to one or all motors
-	 * This is expected to be called from another thread.
-	 * @param num_repetitions number of times to repeat, set at least to 1
-	 * @param motor_index index or -1 for all
-	 * @return 0 on success, <0 error otherwise
-	 */
-	int send_command_thread_safe(const dshot_command_t command, const int num_repetitions, const int motor_index);
-
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	bool telemetry_enabled() const { return _telemetry != nullptr; }
-
-	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
+
+	enum class State {
+		Disarmed,
+		Armed
+	} _state = State::Disarmed;
 
 	/** Disallow copy construction and move assignment. */
 	DShot(const DShot &) = delete;
 	DShot operator=(const DShot &) = delete;
 
-	enum class DShotConfig {
-		Disabled  = 0,
-		DShot150  = 150,
-		DShot300  = 300,
-		DShot600  = 600,
-	};
-
-	struct Command {
-		dshot_command_t command{};
-		int num_repetitions{0};
-		uint8_t motor_mask{0xff};
-		bool save{false};
-
-		bool valid() const { return num_repetitions > 0; }
-		void clear() { num_repetitions = 0; }
-	};
-
-	int _last_telemetry_index{-1};
-	uint8_t _actuator_functions[esc_status_s::CONNECTED_ESC_MAX] {};
-
-	void enable_dshot_outputs(const bool enabled);
-
+	bool initialize_dshot();
 	void init_telemetry(const char *device, bool swap_rxtx);
 
-	int handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data, bool ignore_rpm);
+	uint8_t esc_armed_mask(uint16_t *outputs, int num_outputs);
 
-	void publish_esc_status(void);
+	void update_motor_outputs(uint16_t *outputs, int num_outputs);
+	void update_motor_commands(int num_outputs);
+	void select_next_command();
 
-	int handle_new_bdshot_erpm(void);
+	bool set_next_telemetry_index(); // Returns true when the telemetry index has wrapped, indicating all configured motors have been sampled.
+	bool process_serial_telemetry();
+	bool process_bdshot_telemetry();
 
-	void Run() override;
+	void consume_esc_data(const EscData &data, TelemetrySource source);
 
-	void update_params();
-
-	void update_num_motors();
-
-	void handle_vehicle_commands();
-
+	uint16_t calculate_output_value(uint16_t raw, int index);
 	uint16_t convert_output_to_3d_scaling(uint16_t output);
 
+
+	void Run() override;
+	void update_params();
+
+	// Mavlink command handlers
+	void handle_vehicle_commands();
+	void handle_configure_actuator(const vehicle_command_s &command);
+	void handle_am32_request_eeprom(const vehicle_command_s &command);
+
+	// Mixer
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
-	uint32_t _reversible_outputs{};
+	uint32_t _output_mask{0}; // Configured outputs for this (shouldn't this live in OutputModuleInterface?)
 
-	DShotTelemetry *_telemetry{nullptr};
+	// uORB
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _am32_eeprom_write_sub{ORB_ID(am32_eeprom_write)};
 
-	uORB::PublicationMultiData<esc_status_s> esc_status_pub{ORB_ID(esc_status)};
+	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
+	esc_status_s _esc_status{};
+
+	// Status information
+	uint32_t _bdshot_telem_online_mask = 0; // Mask indicating telem receive status for bidirectional dshot telem
+	uint32_t _serial_telem_online_mask = 0; // Mask indicating telem receive status for serial telem
+	uint32_t _serial_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
+	uint32_t _bdshot_telem_errors[DSHOT_MAXIMUM_CHANNELS] = {};
+	uint8_t _bdshot_edt_requested_mask = 0;
+	uint8_t _settings_requested_mask = 0;
+
+	// Array of timestamps indicating when the telemetry came online
+	hrt_abstime _serial_telem_online_timestamps[DSHOT_MAXIMUM_CHANNELS] = {};
+	hrt_abstime _bdshot_telem_online_timestamps[DSHOT_MAXIMUM_CHANNELS] = {};
+
+	// Serial Telemetry
+	DShotTelemetry _telemetry;
 	static char _telemetry_device[20];
 	static bool _telemetry_swap_rxtx;
 	static px4::atomic_bool _request_telemetry_init;
+	int _telemetry_motor_index = 0;
+	uint32_t _telemetry_requested_mask = 0;
+	hrt_abstime _telem_delay_until = ESC_INIT_TELEM_WAIT_TIME;
 
-	px4::atomic<Command *> _new_command{nullptr};
-
-
-	bool _outputs_initialized{false};
-	bool _outputs_on{false};
-	bool _bidirectional_dshot_enabled{false};
-
-	static constexpr unsigned _num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
-	uint32_t _output_mask{0};
-
-	int _num_motors{0};
-
+	// Perf counters
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t	_bdshot_rpm_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot rpm")};
-	perf_counter_t	_dshot_telem_perf{perf_alloc(PC_COUNT, MODULE_NAME": dshot telem")};
+	perf_counter_t	_bdshot_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot success")};
+	perf_counter_t	_bdshot_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot error")};
+	perf_counter_t	_bdshot_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot timeout")};
+	perf_counter_t	_telem_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem success")};
+	perf_counter_t	_telem_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem error")};
+	perf_counter_t	_telem_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem timeout")};
+	perf_counter_t	_telem_allsampled_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem all sampled")};
 
-	Command _current_command{};
+	// Commands
+	struct DShotCommand {
+		uint16_t command{};
+		int num_repetitions{0};
+		uint8_t motor_mask{0xff};
+		bool save{false};
+		bool expect_response{false};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
-	uint16_t _esc_status_counter{0};
+		bool finished() const { return num_repetitions == 0; }
+		void clear()
+		{
+			command = 0;
+			num_repetitions = 0;
+			motor_mask = 0;
+			save = 0;
+			expect_response = 0;
+		}
+	};
 
+	DShotCommand _current_command{};
+
+	// DShot Programming Mode
+	enum class ProgrammingState {
+		Idle,
+		EnterMode,
+		SendAddress,
+		SendValue,
+		ExitMode
+	};
+
+	am32_eeprom_write_s _am32_eeprom_write{};
+	bool _dshot_programming_active = {};
+	uint32_t _settings_written_mask[2] = {};
+
+	ProgrammingState _programming_state{ProgrammingState::Idle};
+
+	uint16_t _programming_address{};
+	uint16_t _programming_value{};
+
+	// Parameters
 	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::DSHOT_ESC_TYPE>) _param_dshot_esc_type,
 		(ParamFloat<px4::params::DSHOT_MIN>)    _param_dshot_min,
 		(ParamBool<px4::params::DSHOT_3D_ENABLE>) _param_dshot_3d_enable,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
 		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count,
-		(ParamBool<px4::params::DSHOT_BIDIR_EN>) _param_bidirectional_enable
+		(ParamBool<px4::params::DSHOT_BIDIR_EN>) _param_dshot_bidir_en,
+		(ParamBool<px4::params::DSHOT_BIDIR_EDT>) _param_dshot_bidir_edt,
+		(ParamBool<px4::params::DSHOT_TEL_CFG>) _param_dshot_tel_cfg
 	)
 };

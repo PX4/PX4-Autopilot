@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,7 @@
 #include "DShotTelemetry.h"
 
 #include <px4_platform_common/log.h>
+#include <drivers/drv_dshot.h>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -47,6 +48,14 @@ using namespace time_literals;
 DShotTelemetry::~DShotTelemetry()
 {
 	_uart.close();
+
+	// Clean up settings handlers
+	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+		if (_settings_handlers[i]) {
+			delete _settings_handlers[i];
+			_settings_handlers[i] = nullptr;
+		}
+	}
 }
 
 int DShotTelemetry::init(const char *port, bool swap_rxtx)
@@ -76,105 +85,204 @@ int DShotTelemetry::init(const char *port, bool swap_rxtx)
 	return PX4_OK;
 }
 
-int DShotTelemetry::update(int num_motors)
+void DShotTelemetry::initSettingsHandlers(ESCType esc_type, uint8_t output_mask)
 {
-	if (_current_motor_index_request == -1) {
-		// nothing in progress, start a request
-		_current_motor_index_request = 0;
-		_current_request_start = 0;
-		_frame_position = 0;
+	if (_settings_initialized) {
+		return;
+	}
+
+	_esc_type = esc_type;
+
+	for (uint8_t i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+
+		bool output_enabled = (1 << i) & output_mask;
+
+		if (!output_enabled) {
+			continue;
+		}
+
+		ESCSettingsInterface *interface = nullptr;
+
+		switch (esc_type) {
+		case ESCType::AM32:
+			interface = new AM32Settings(i);
+			break;
+
+		default:
+			PX4_WARN("Unsupported ESC type for settings: %d", (int)esc_type);
+			break;
+		}
+
+		if (interface) {
+			_settings_handlers[i] = interface;
+		}
+	}
+
+	_settings_initialized = true;
+}
+
+int DShotTelemetry::parseCommandResponse()
+{
+	if (hrt_elapsed_time(&_command_response_start) > 1_s) {
+		PX4_WARN("Command response timed out: %d bytes received", _command_response_position);
+		_command_response_motor_index = -1;
+		_command_response_start = 0;
+		_command_response_position = 0;
 		return -1;
+	}
+
+	if (_uart.bytesAvailable() <= 0) {
+		return -1;
+	}
+
+	uint8_t buf[COMMAND_RESPONSE_MAX_SIZE];
+	int bytes = _uart.read(buf, sizeof(buf));
+
+	// Add bytes to buffer
+	for (int i = 0; i < bytes; i++) {
+		_command_response_buffer[_command_response_position++] = buf[i];
+	}
+
+	int index = -1;
+
+	switch (_command_response_command) {
+	case DSHOT_CMD_ESC_INFO: {
+			auto handler = _settings_handlers[_command_response_motor_index];
+
+			if (handler && _command_response_position == handler->getExpectedResponseSize()) {
+				if (handler->decodeInfoResponse(_command_response_buffer, _command_response_position)) {
+					index = _command_response_motor_index;
+				}
+
+				// Reset command state
+				_command_response_position = 0;
+				_command_response_start = 0;
+				_command_response_motor_index = -1;
+			}
+
+			break;
+		}
+
+	default:
+		break;
+	}
+
+	return index;
+}
+
+TelemetryStatus DShotTelemetry::parseTelemetryPacket(EscData *esc_data)
+{
+	if (telemetryResponseFinished()) {
+		return TelemetryStatus::NotStarted;
 	}
 
 	// read from the uart. This must be non-blocking, so check first if there is data available
-	int bytes_available = _uart.bytesAvailable();
+	if (_uart.bytesAvailable() <= 0) {
+		if (hrt_elapsed_time(&_telemetry_request_start) > 30_ms) {
+			// NOTE: this happens when sending commands, there's a window after an ESC receives
+			// a command where it will not respond to any telemetry requests
+			// PX4_INFO("ESC telemetry timeout: %d", esc_data->motor_index);
+			++_num_timeouts;
 
-	if (bytes_available <= 0) {
-		// no data available. Check for a timeout
-		const hrt_abstime now = hrt_absolute_time();
-
-		if (_current_request_start > 0 && now - _current_request_start > 30_ms) {
-			if (_redirect_output) {
-				// clear and go back to internal buffer
-				_redirect_output = nullptr;
-				_current_motor_index_request = -1;
-
-			} else {
-				PX4_DEBUG("ESC telemetry timeout for motor %i (frame pos=%i)", _current_motor_index_request, _frame_position);
-				++_num_timeouts;
-			}
-
-			requestNextMotor(num_motors);
-			return -2;
+			// Mark telemetry request as finished
+			_telemetry_request_start = 0;
+			_frame_position = 0;
+			return TelemetryStatus::Timeout;
 		}
 
-		return -1;
+		return TelemetryStatus::NotReady;
 	}
 
-	uint8_t buf[ESC_FRAME_SIZE];
+	uint8_t buf[TELEMETRY_FRAME_SIZE];
 	int bytes = _uart.read(buf, sizeof(buf));
 
-	int ret = -1;
-
-	for (int i = 0; i < bytes && ret == -1; ++i) {
-		if (_redirect_output) {
-			_redirect_output->buffer[_redirect_output->buf_pos++] = buf[i];
-
-			if (_redirect_output->buf_pos == sizeof(_redirect_output->buffer)) {
-				// buffer full: return & go back to internal buffer
-				_redirect_output = nullptr;
-				ret = _current_motor_index_request;
-				_current_motor_index_request = -1;
-				requestNextMotor(num_motors);
-			}
-
-		} else {
-			bool successful_decoding;
-
-			if (decodeByte(buf[i], successful_decoding)) {
-				if (successful_decoding) {
-					ret = _current_motor_index_request;
-				}
-
-				requestNextMotor(num_motors);
-			}
-		}
-	}
-
-	return ret;
+	return decodeTelemetryResponse(buf, bytes, esc_data);
 }
 
-bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
+TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data)
 {
-	_frame_buffer[_frame_position++] = byte;
-	successful_decoding = false;
+	auto status = TelemetryStatus::NotReady;
 
-	if (_frame_position == ESC_FRAME_SIZE) {
-		PX4_DEBUG("got ESC frame for motor %i", _current_motor_index_request);
-		uint8_t checksum = crc8(_frame_buffer, ESC_FRAME_SIZE - 1);
-		uint8_t checksum_data = _frame_buffer[ESC_FRAME_SIZE - 1];
+	for (int i = 0; i < length; i++) {
+		_frame_buffer[_frame_position++] = buffer[i];
 
-		if (checksum == checksum_data) {
-			_latest_data.time = hrt_absolute_time();
-			_latest_data.temperature = _frame_buffer[0];
-			_latest_data.voltage = (_frame_buffer[1] << 8) | _frame_buffer[2];
-			_latest_data.current = (_frame_buffer[3] << 8) | _frame_buffer[4];
-			_latest_data.consumption = (_frame_buffer[5]) << 8 | _frame_buffer[6];
-			_latest_data.erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
-			PX4_DEBUG("Motor %i: temp=%i, V=%i, cur=%i, consumpt=%i, rpm=%i", _current_motor_index_request,
-				  _latest_data.temperature, _latest_data.voltage, _latest_data.current, _latest_data.consumption,
-				  _latest_data.erpm);
-			++_num_successful_responses;
-			successful_decoding = true;
+		/*
+		 * ESC Telemetry Frame Structure (10 bytes total)
+		 * =============================================
+		 * Byte 0:     Temperature (uint8_t) [deg C]
+		 * Byte 1-2:   Voltage (uint16_t, big-endian) [0.01V]
+		 * Byte 3-4:   Current (uint16_t, big-endian) [0.01A]
+		 * Byte 5-6:   Consumption (uint16_t, big-endian) [mAh]
+		 * Byte 7-8:   eRPM (uint16_t, big-endian) [100ERPM]
+		 * Byte 9:     CRC8 Checksum
+		 */
 
-		} else {
-			++_num_checksum_errors;
+		if (_frame_position == TELEMETRY_FRAME_SIZE) {
+			uint8_t checksum = crc8(_frame_buffer, TELEMETRY_FRAME_SIZE - 1);
+			uint8_t checksum_data = _frame_buffer[TELEMETRY_FRAME_SIZE - 1];
+
+			if (checksum == checksum_data) {
+
+				uint8_t temperature = _frame_buffer[0];
+				int16_t voltage = (_frame_buffer[1] << 8) | _frame_buffer[2];
+				int16_t current = (_frame_buffer[3] << 8) | _frame_buffer[4];
+				// int16_t consumption = (_frame_buffer[5]) << 8 | _frame_buffer[6];
+				int16_t erpm = (_frame_buffer[7] << 8) | _frame_buffer[8];
+
+				esc_data->timestamp = hrt_absolute_time();
+				esc_data->temperature = (float)temperature;
+				esc_data->voltage = (float)voltage * 0.01f;
+				esc_data->current = (float)current * 0.01f;;
+				esc_data->erpm = erpm * 100;
+
+				++_num_successful_responses;
+				status = TelemetryStatus::Ready;
+				_uart.flush();
+
+			} else {
+				++_num_checksum_errors;
+				status = TelemetryStatus::ParseError;
+			}
+
+			// Mark telemetry request as finished
+			_telemetry_request_start = 0;
+			_frame_position = 0;
 		}
-
-		return true;
 	}
 
-	return false;
+	return status;
+}
+
+void DShotTelemetry::publish_esc_settings()
+{
+	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+		if (_settings_handlers[i]) {
+			_settings_handlers[i]->publish_latest();
+		}
+	}
+}
+
+void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
+{
+	_command_response_motor_index = motor_index;
+	_command_response_command = command;
+	_command_response_start = hrt_absolute_time();
+	_command_response_position = 0;
+}
+
+bool DShotTelemetry::commandResponseFinished()
+{
+	return _command_response_motor_index < 0;
+}
+
+void DShotTelemetry::startTelemetryRequest()
+{
+	_telemetry_request_start = hrt_absolute_time();
+}
+
+bool DShotTelemetry::telemetryResponseFinished()
+{
+	return _telemetry_request_start == 0;
 }
 
 void DShotTelemetry::printStatus() const
@@ -182,198 +290,4 @@ void DShotTelemetry::printStatus() const
 	PX4_INFO("Number of successful ESC frames: %i", _num_successful_responses);
 	PX4_INFO("Number of timeouts: %i", _num_timeouts);
 	PX4_INFO("Number of CRC errors: %i", _num_checksum_errors);
-}
-
-uint8_t DShotTelemetry::crc8(const uint8_t *buf, uint8_t len)
-{
-	auto update_crc8 = [](uint8_t crc, uint8_t crc_seed) {
-		uint8_t crc_u = crc ^ crc_seed;
-
-		for (int i = 0; i < 8; ++i) {
-			crc_u = (crc_u & 0x80) ? 0x7 ^ (crc_u << 1) : (crc_u << 1);
-		}
-
-		return crc_u;
-	};
-
-	uint8_t crc = 0;
-
-	for (int i = 0; i < len; ++i) {
-		crc = update_crc8(buf[i], crc);
-	}
-
-	return crc;
-}
-
-void DShotTelemetry::requestNextMotor(int num_motors)
-{
-	_current_motor_index_request = (_current_motor_index_request + 1) % num_motors;
-	_current_request_start = 0;
-	_frame_position = 0;
-}
-
-int DShotTelemetry::getRequestMotorIndex()
-{
-	if (_current_request_start != 0) {
-		// already in progress, do not send another request
-		return -1;
-	}
-
-	_current_request_start = hrt_absolute_time();
-	return _current_motor_index_request;
-}
-
-void DShotTelemetry::decodeAndPrintEscInfoPacket(const OutputBuffer &buffer)
-{
-	static constexpr int version_position = 12;
-	const uint8_t *data = buffer.buffer;
-
-	if (buffer.buf_pos < version_position) {
-		PX4_ERR("Not enough data received");
-		return;
-	}
-
-	enum class ESCVersionInfo {
-		BLHELI32,
-		KissV1,
-		KissV2,
-	};
-	ESCVersionInfo version;
-	int packet_length;
-
-	if (data[version_position] == 254) {
-		version = ESCVersionInfo::BLHELI32;
-		packet_length = esc_info_size_blheli32;
-
-	} else if (data[version_position] == 255) {
-		version = ESCVersionInfo::KissV2;
-		packet_length = esc_info_size_kiss_v2;
-
-	} else {
-		version = ESCVersionInfo::KissV1;
-		packet_length = esc_info_size_kiss_v1;
-	}
-
-	if (buffer.buf_pos != packet_length) {
-		PX4_ERR("Packet length mismatch (%i != %i)", buffer.buf_pos, packet_length);
-		return;
-	}
-
-	if (DShotTelemetry::crc8(data, packet_length - 1) != data[packet_length - 1]) {
-		PX4_ERR("Checksum mismatch");
-		return;
-	}
-
-	uint8_t esc_firmware_version = 0;
-	uint8_t esc_firmware_subversion = 0;
-	uint8_t esc_type = 0;
-
-	switch (version) {
-	case ESCVersionInfo::KissV1:
-		esc_firmware_version = data[12];
-		esc_firmware_subversion = (data[13] & 0x1f) + 97;
-		esc_type = (data[13] & 0xe0) >> 5;
-		break;
-
-	case ESCVersionInfo::KissV2:
-	case ESCVersionInfo::BLHELI32:
-		esc_firmware_version = data[13];
-		esc_firmware_subversion = data[14];
-		esc_type = data[15];
-		break;
-	}
-
-	const char *esc_type_str = "";
-
-	switch (version) {
-	case ESCVersionInfo::KissV1:
-	case ESCVersionInfo::KissV2:
-		switch (esc_type) {
-		case 1: esc_type_str = "KISS8A";
-			break;
-
-		case 2: esc_type_str = "KISS16A";
-			break;
-
-		case 3: esc_type_str = "KISS24A";
-			break;
-
-		case 5: esc_type_str = "KISS Ultralite";
-			break;
-
-		default: esc_type_str = "KISS (unknown)";
-			break;
-		}
-
-		break;
-
-	case ESCVersionInfo::BLHELI32: {
-			char *esc_type_mutable = (char *)(data + 31);
-			esc_type_mutable[32] = 0;
-			esc_type_str = esc_type_mutable;
-		}
-		break;
-	}
-
-	PX4_INFO("ESC Type: %s", esc_type_str);
-
-	PX4_INFO("MCU Serial Number: %02x%02x%02x-%02x%02x%02x-%02x%02x%02x-%02x%02x%02x",
-		 data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
-		 data[9], data[10], data[11]);
-
-	switch (version) {
-	case ESCVersionInfo::KissV1:
-	case ESCVersionInfo::KissV2:
-		PX4_INFO("Firmware version: %d.%d%c", esc_firmware_version / 100, esc_firmware_version % 100,
-			 (char)esc_firmware_subversion);
-		break;
-
-	case ESCVersionInfo::BLHELI32:
-		PX4_INFO("Firmware version: %d.%d", esc_firmware_version, esc_firmware_subversion);
-		break;
-	}
-
-	if (version == ESCVersionInfo::KissV2 || version == ESCVersionInfo::BLHELI32) {
-		PX4_INFO("Rotation Direction: %s", data[16] ? "reversed" : "normal");
-		PX4_INFO("3D Mode: %s", data[17] ? "on" : "off");
-	}
-
-	if (version == ESCVersionInfo::BLHELI32) {
-		uint8_t setting = data[18];
-
-		switch (setting) {
-		case 0:
-			PX4_INFO("Low voltage Limit: off");
-			break;
-
-		case 255:
-			PX4_INFO("Low voltage Limit: unsupported");
-			break;
-
-		default:
-			PX4_INFO("Low voltage Limit: %d.%01d V", setting / 10, setting % 10);
-			break;
-		}
-
-		setting = data[19];
-
-		switch (setting) {
-		case 0:
-			PX4_INFO("Current Limit: off");
-			break;
-
-		case 255:
-			PX4_INFO("Current Limit: unsupported");
-			break;
-
-		default:
-			PX4_INFO("Current Limit: %d A", setting);
-			break;
-		}
-
-		for (int i = 0; i < 4; ++i) {
-			setting = data[i + 20];
-			PX4_INFO("LED %d: %s", i, setting ? (setting == 255 ? "unsupported" : "on") : "off");
-		}
-	}
 }

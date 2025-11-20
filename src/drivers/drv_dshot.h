@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,11 +31,6 @@
  *
  ****************************************************************************/
 
-/**
- * @file drv_dshot.h
- *
- */
-
 #pragma once
 
 #include <px4_platform_common/defines.h>
@@ -48,39 +43,40 @@
 
 __BEGIN_DECLS
 
-typedef enum {
-	DShot_cmd_motor_stop = 0,
-	DShot_cmd_beacon1,
-	DShot_cmd_beacon2,
-	DShot_cmd_beacon3,
-	DShot_cmd_beacon4,
-	DShot_cmd_beacon5,
-	DShot_cmd_esc_info, // V2 includes settings
-	DShot_cmd_spin_direction_1,
-	DShot_cmd_spin_direction_2,
-	DShot_cmd_3d_mode_off,
-	DShot_cmd_3d_mode_on,
-	DShot_cmd_settings_request, // Currently not implemented
-	DShot_cmd_save_settings,
-	DShot_cmd_spin_direction_normal   = 20,
-	DShot_cmd_spin_direction_reversed = 21,
-	DShot_cmd_led0_on,      // BLHeli32 only
-	DShot_cmd_led1_on,      // BLHeli32 only
-	DShot_cmd_led2_on,      // BLHeli32 only
-	DShot_cmd_led3_on,      // BLHeli32 only
-	DShot_cmd_led0_off,     // BLHeli32 only
-	DShot_cmd_led1_off,     // BLHeli32 only
-	DShot_cmd_led2_off,     // BLHeli32 only
-	DShot_cmd_led4_off,     // BLHeli32 only
-	DShot_cmd_audio_stream_mode_on_off              = 30, // KISS audio Stream mode on/off
-	DShot_cmd_silent_mode_on_off                    = 31, // KISS silent Mode on/off
-	DShot_cmd_signal_line_telemetry_disable         = 32,
-	DShot_cmd_signal_line_continuous_erpm_telemetry = 33,
-	DShot_cmd_MAX          = 47,     // >47 are throttle values
-	DShot_cmd_MIN_throttle = 48,
-	DShot_cmd_MAX_throttle = 2047
-} dshot_command_t;
+// https://brushlesswhoop.com/dshot-and-bidirectional-dshot/#special-commands
+enum {
+	DSHOT_CMD_MOTOR_STOP = 0,
+	DSHOT_CMD_BEEP1 = 1,
+	DSHOT_CMD_ESC_INFO = 6,
+	DSHOT_CMD_SPIN_DIRECTION_1 = 7,
+	DSHOT_CMD_SPIN_DIRECTION_2 = 8,
+	DSHOT_CMD_3D_MODE_OFF = 9,
+	DSHOT_CMD_3D_MODE_ON = 10,
+	DSHOT_CMD_SAVE_SETTINGS = 12,
+	DSHOT_EXTENDED_TELEMETRY_ENABLE = 13,
+	DSHOT_CMD_ENTER_PROGRAMMING_MODE = 36,
+	DSHOT_CMD_EXIT_PROGRAMMING_MODE = 37,
+	DSHOT_CMD_MAX          = 47,     // >47 are throttle values
+	DSHOT_CMD_MIN_THROTTLE = 48,
+	DSHOT_CMD_MAX_THROTTLE = 2047
+};
 
+// Extended DShot Telemetry
+enum {
+	DSHOT_EDT_ERPM = 0x00,
+	DSHOT_EDT_TEMPERATURE = 0x02, // C
+	DSHOT_EDT_VOLTAGE = 0x04, // 0.25V per step
+	DSHOT_EDT_CURRENT = 0x06, // A
+	DSHOT_EDT_DEBUG1 = 0x08,
+	DSHOT_EDT_DEBUG2 = 0x0A,
+	DSHOT_EDT_DEBUG3 = 0x0C,
+	DSHOT_EDT_STATE_EVENT = 0x0E,
+};
+
+struct BDShotTelemetry {
+	int type;
+	int32_t value;
+};
 
 /**
  * Intialise the Dshot outputs using the specified configuration.
@@ -91,7 +87,8 @@ typedef enum {
  * @param dshot_pwm_freq	Frequency of DSHOT signal. Usually DSHOT150, DSHOT300, or DSHOT600
  * @return <0 on error, the initialized channels mask.
  */
-__EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot);
+__EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable,
+				  bool enable_extended_dshot_telemetry);
 
 /**
  * Set Dshot motor data, used by up_dshot_motor_data_set() and up_dshot_motor_command() (internal method)
@@ -107,7 +104,7 @@ __EXPORT extern void dshot_motor_data_set(unsigned channel, uint16_t throttle, b
  */
 static inline void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
 {
-	dshot_motor_data_set(channel, throttle + DShot_cmd_MIN_throttle, telemetry);
+	dshot_motor_data_set(channel, throttle + DSHOT_CMD_MIN_THROTTLE, telemetry);
 }
 
 /**
@@ -142,7 +139,6 @@ __EXPORT extern int up_dshot_arm(bool armed);
  */
 __EXPORT extern void up_bdshot_status(void);
 
-
 /**
  * Get how many bidirectional erpm channels are ready
  *
@@ -151,8 +147,14 @@ __EXPORT extern void up_bdshot_status(void);
  *
  * @return <0 on error, OK on succes
  */
-__EXPORT extern int up_bdshot_num_erpm_ready(void);
+__EXPORT extern int up_bdshot_num_channels_ready(void);
 
+/**
+ * Get the total number of errors for a channel
+ * @param channel	Dshot channel
+ * @return The total number of recorded errors
+ */
+__EXPORT extern int up_bdshot_num_errors(uint8_t channel);
 
 /**
  * Get bidrectional dshot erpm for a channel
@@ -162,6 +164,16 @@ __EXPORT extern int up_bdshot_num_erpm_ready(void);
  */
 __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
 
+/**
+ * Get bidrectional dshot extended telemetry for a channel
+ * @param channel	Dshot channel
+ * @param type		The type of telemetry value to get
+ * @param value		pointer to write the telemetry value
+ * @return <0 on error, OK on succes
+ */
+__EXPORT extern int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value);
+
+__EXPORT extern int up_bdshot_get_extended_telemetry_rate(uint8_t channel, int type, int *value);
 
 /**
  * Get bidrectional dshot status for a channel
@@ -169,7 +181,6 @@ __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
  * @param erpm		pointer to write the erpm value
  * @return <0 on error / not supported, 0 on offline, 1 on online
  */
-__EXPORT extern int up_bdshot_channel_status(uint8_t channel);
-
+__EXPORT extern int up_bdshot_channel_online(uint8_t channel);
 
 __END_DECLS

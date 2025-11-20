@@ -8,6 +8,15 @@ serial_config:
 parameters:
     - group: DShot
       definitions:
+        DSHOT_ESC_TYPE:
+          description:
+            short: ESC Type
+            long: The ESC firmware type
+          type: enum
+          values:
+            0: Unknown
+            1: AM32
+            2: TODO Check Ardupilot
         DSHOT_MIN:
             description:
                 short: Minimum DShot Motor Output
@@ -40,6 +49,16 @@ parameters:
                     This parameter enables bidirectional DShot which provides RPM feedback.
                     Note that this requires ESCs that support bidirectional DSHot, e.g. BlHeli32.
                     This is not the same as DShot telemetry which requires an additional serial connection.
+            type: boolean
+            default: 0
+            reboot_required: true
+        DSHOT_BIDIR_EDT:
+            description:
+                short: Enable Extended DShot Telemetry
+                long: |
+                    This parameter enables Extended DShot Telemetry which allows transmission of
+                    additional telemetry within the eRPM frame. The EDT data is interleaved with
+                    the eRPM frames at a low rate.
             type: boolean
             default: 0
             reboot_required: true
