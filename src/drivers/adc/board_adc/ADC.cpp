@@ -410,6 +410,7 @@ ADC driver.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("adc", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("adc");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_COMMAND("test");
 	PRINT_MODULE_USAGE_PARAM_FLAG('n', "Do not publish ADC report, only system power", true);
