@@ -79,8 +79,6 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 	elif [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
 		brew reinstall px4-sim
 	fi
-	echo "[macos.sh] Setting up Qt5 path for Gazebo"
-	export CMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@5:$CMAKE_PREFIX_PATH"
 fi
 
 echo "[macos.sh] All set! The PX4 Autopilot toolchain was installed."
