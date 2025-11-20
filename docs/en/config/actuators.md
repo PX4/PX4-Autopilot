@@ -159,7 +159,7 @@ The fields are:
 - `Yaw Torque`: Effectiveness of actuator around yaw axis (normalised: -1 to 1).
   [Generally you should use the default actuator value](#actuator-roll-pitch-and-yaw-scaling).
 - `Trim`: An offset added to the actuator so that it is centered without input.
-  This might be determined by trial and error. Do not use for PWM servos.
+  This might be determined by trial and error. Prefer using the improved `PWM_CENT` instead: [PWM control surfaces](./actuators.md#pwm-control-surfaces-that-move-both-directions-about-a-neutral-point)
 - <a id="slew_rate"></a>(Advanced) `Slew Rate`: Limits the minimum time in which the motor/servo signal is allowed to pass through its full output range, in seconds.
   - The setting limits the rate of change of an actuator (if not specified then no rate limit is applied).
     It is intended for actuators that may be damaged or cause flight disturbance if they move too fast — such as the tilting actuators on a tiltrotor VTOL vehicle, or fast moving flaps, respectively.
@@ -546,20 +546,22 @@ To set this up:
 
      ![PWM Trimming](../../assets/config/actuators/control_surface_trim.png)
 
-1. Set the `PWM_MAIN_CENTx` / `PWM_AUX_CENTx` value so that the surface will stay at the neutral position.
+1. Set the `PWM_MAIN_CENTx` / `PWM_AUX_CENTx` value so that the surface will stay at the neutral (aligned with airfoil) position.
 This is usually around `1500` for PWM servos (near the center of the servo range).
 
 ![Control Surface Trimming](../../assets/config/actuators/pwm_center_output.png)
 
-2. Gradualy increase the `Maximum` for each servo, while checking the deflection with the sliders or manual input with [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) parameter to `Always` until the desired deflection is reached.
+2. Gradualy increase the `Maximum` for each servo until the desired deflection is reached. Check the deflection with a remote manual mode while  [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) is set to `Always` or use the sliders.
 3. Gradualy decrease the `Minimum` for each servo, until the desired deflection is reached.
-4. Set `Disarmed` value to the desired value. It is usually desirable to have it the same as the `Trim` value.
+4. Set `Disarmed` value to the desired value. It is usually desirable to have it the same as the `Center` value.
 
 #### Non-PWM: Control surfaces that move both directions about a neutral point
 
 Control surfaces that move either direction around a neutral point include: ailerons, elevons, V-tails, A-tails, and rudders.
 
 To set these up:
+
+0. Set all `PWM_MAIN_CENTx` and `PWM_AUX_CENTx` to default, or trimming will not be possible.
 
 1. Set the `Disarmed` value so that the surfaces will stay at neutral position when disarmed.
    This is usually around `1500` for PWM servos (near the centre of the servo range).
@@ -607,6 +609,7 @@ For a flap, that is when the flap is fully retracted and flush with the wing.
 
 One approach for setting these up is:
 
+0. Set all `PWM_MAIN_CENTx` and `PWM_AUX_CENTx` to default, or trimming will not be possible.
 1. Set values `Disarmed` to `1500`, `Min` to `1200`, `Max` to `1700` so that the values are around the centre of the servo range.
 2. Move the corresponding slider up and check the control moves and that it is extending (moving away from the disarmed position).
    If not, click on the `Rev Range` checkbox to reverse the range.
