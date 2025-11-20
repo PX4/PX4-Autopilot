@@ -440,7 +440,7 @@
 *(.text._ZN23MavlinkStreamStatustext8get_sizeEv)
 *(.text._ZN11calibration13Accelerometer13set_device_idEm)
 *(.text._ZN3px46logger6Logger18start_stop_loggingEv)
-*(.text._ZN14FlightTaskAuto17_evaluateTripletsEv)
+*(.text._ZN14FlightTaskAuto32_evaluatePositionSetpointTripletEv)
 *(.text._ZN11calibration9Gyroscope23SensorCorrectionsUpdateEb)
 *(.text._ZN25MavlinkStreamMagCalReport4sendEv)
 *(.text.imxrt_config_gpio)
