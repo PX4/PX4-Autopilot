@@ -70,5 +70,6 @@ jobs:
       - name: make ${{matrix.config}}
         run: |
             ccache -z
+            export CMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@5:$CMAKE_PREFIX_PATH"
             make ${{matrix.config}}
             ccache -s
