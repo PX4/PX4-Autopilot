@@ -365,7 +365,7 @@ The mode is set using the [EKF2_GPS_MODE](../advanced_config/parameter_reference
 
 Horizontal Position:
 
-- **Automatic mode**: Horizontal position resets to GNSS data if no other horizontal position source is currently being fused (e.g., Alternate Global Position - AGP).
+- **Automatic mode**: Horizontal position resets to GNSS data if no other horizontal position source is currently being fused (e.g., Auxiliary Global Position - AGP).
 - **Dead-reckoning mode**: Horizontal position resets to GNSS data only if no other horizontal position OR velocity source is currently being fused (e.g., AGP, airspeed, optical flow).
 
 Altitude:
