@@ -243,9 +243,11 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
 /**
- * GPS preflight check
+ * Arming without GNSS configuration
  *
- * Measures taken when a check defined by EKF2_GPS_CHECK is failing.
+ * Configures whether arming is allowed without GNSS, for modes that require a global position
+ * (specifically, in those modes when a check defined by EKF2_GPS_CHECK fails).
+ * The settings deny arming, allow arming with a warning, or allow arming without a warning ('Disabled').
  *
  * @group Commander
  * @value 0 Deny arming
