@@ -6,7 +6,7 @@ It may or may not work with current versions of PX4 and may be removed in future
 See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
 :::
 
-X-Plane is a comprehensive flight simulator that can be used with PX4 for Software-In-The-Loop (SITL) simulation.
+X-Plane is a comprehensive flight simulator that can be used with PX4 for [Software-In-The-Loop (SITL)](../simulation/index.md#sitl-simulation-environment) simulation.
 This integration allows testing PX4 with highly realistic flight dynamics across multiple vehicle types.
 
 ## Overview
@@ -219,7 +219,7 @@ cd PX4-Autopilot
 make px4_sitl xplane_alia250
 
 # Other airframes:
-make px4_sitl xplane_cessna172    # Cessna 172
+make px4_sitl xplane_cessna172     # Cessna 172
 make px4_sitl xplane_tb2           # TB2 UAV
 make px4_sitl xplane_ehang184      # Ehang 184 Quadcopter
 make px4_sitl xplane_qtailsitter   # Quantix Tailsitter
@@ -237,7 +237,7 @@ export PX4_SIM_HOSTNAME=172.24.176.1
 make px4_sitl xplane_alia250
 
 # Other airframes:
-make px4_sitl xplane_cessna172    # Cessna 172
+make px4_sitl xplane_cessna172     # Cessna 172
 make px4_sitl xplane_tb2           # TB2 UAV
 make px4_sitl xplane_ehang184      # Ehang 184 Quadcopter
 make px4_sitl xplane_qtailsitter   # Quantix Tailsitter
