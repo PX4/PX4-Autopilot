@@ -114,11 +114,7 @@ protected:
 
 	void updateParams() override; /**< See ModuleParam class */
 
-	matrix::Vector3f _prev_prev_wp{}; /**< Pre-previous waypoint (local frame). This will be used for smoothing trajectories -> not used yet. */
-	matrix::Vector3f _prev_wp{}; /**< Previous waypoint  (local frame). If no previous triplet is available, the prev_wp is set to current position. */
 	bool _prev_was_valid{false};
-	matrix::Vector3f _target{}; /**< Target waypoint  (local frame).*/
-	matrix::Vector3f _next_wp{}; /**< The next waypoint after target (local frame). If no next setpoint is available, next is set to target. */
 	bool _next_was_valid{false};
 	float _mc_cruise_speed{NAN}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
@@ -176,12 +172,9 @@ private:
 
 	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_triplet_setpoint{ORB_ID(position_setpoint_triplet)};
 
-	matrix::Vector3f
-	_triplet_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */
-	matrix::Vector3f
-	_triplet_prev_wp; /**< previous triplet from navigator which may differ from the intenal one (_prev_wp) depending on the vehicle state.*/
-	matrix::Vector3f
-	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
+	matrix::Vector3f _triplet_previous; ///< previous waypoint in triplet from navigator
+	matrix::Vector3f _triplet_current; ///< current waypoint in triplet from navigator
+	matrix::Vector3f _triplet_next; ///< next waypoint in triplet from navigator
 
 	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overridden using DO_CHANGE_SPEED
 

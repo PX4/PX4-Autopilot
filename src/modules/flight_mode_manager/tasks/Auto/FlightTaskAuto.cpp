@@ -151,13 +151,13 @@ bool FlightTaskAuto::update()
 	case WaypointType::position:
 	default:
 		// Simple waypoint navigation: go to xyz target, with standard limitations
-		_position_setpoint = _target;
+		_position_setpoint = _triplet_current;
 		_velocity_setpoint.setNaN();
 		break;
 	}
 
 	_checkEmergencyBraking();
-	Vector3f waypoints[] = {_prev_wp, _position_setpoint, _next_wp};
+	Vector3f waypoints[] = {_triplet_previous, _position_setpoint, _triplet_next};
 
 	if (isTargetModified()) {
 		// In case the target has been modified, we take this as the next waypoints
@@ -239,12 +239,12 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	if (_type_previous != WaypointType::land) {
 		// initialize yaw and xy-position
 		_land_heading = _yaw_setpoint;
-		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
-		_initial_land_position = Vector3f(_target(0), _target(1), NAN);
+		_stick_acceleration_xy.resetPosition(Vector2f(_triplet_current));
+		_initial_land_position = Vector3f(_triplet_current(0), _triplet_current(1), NAN);
 	}
 
 	// Update xy-position in case of landing position changes (etc. precision landing)
-	_land_position = Vector3f(_target(0), _target(1), NAN);
+	_land_position = Vector3f(_triplet_current(0), _triplet_current(1), NAN);
 
 	// User input assisted landing
 	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
@@ -352,16 +352,11 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	if (!_sub_triplet_setpoint.get().current.valid || !PX4_ISFINITE(_sub_triplet_setpoint.get().current.alt)) {
 		// Best we can do is to just set all waypoints to current state
-		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
+		_triplet_previous = _triplet_current = _triplet_next = _position;
 		_type = WaypointType::loiter;
 		_yaw_setpoint = _yaw;
 		_yawspeed_setpoint = NAN;
 		_target_acceptance_radius = _sub_triplet_setpoint.get().current.acceptance_radius;
-
-		_prev_wp = _triplet_prev_wp;
-		_target = _triplet_target;
-		_next_wp = _triplet_next_wp;
-
 		return true;
 	}
 
@@ -410,64 +405,57 @@ bool FlightTaskAuto::_evaluateTriplets()
 	tmp_target(2) = -(_sub_triplet_setpoint.get().current.alt - _reference_altitude);
 
 	// Check if anything has changed. We do that by comparing the temporary target
-	// to the internal _triplet_target.
+	// to the internal _triplet_current.
 	// TODO This is a hack and it would be much better if the navigator only sends out a waypoints once they have changed.
 
 	const bool prev_next_validity_changed = (_prev_was_valid != _sub_triplet_setpoint.get().previous.valid)
 						|| (_next_was_valid != _sub_triplet_setpoint.get().next.valid);
 
-	if (_triplet_target.isAllFinite()
-	    && fabsf(_triplet_target(0) - tmp_target(0)) < 0.001f
-	    && fabsf(_triplet_target(1) - tmp_target(1)) < 0.001f
-	    && fabsf(_triplet_target(2) - tmp_target(2)) < 0.001f
+	if (_triplet_current.isAllFinite()
+	    && fabsf(_triplet_current(0) - tmp_target(0)) < 0.001f
+	    && fabsf(_triplet_current(1) - tmp_target(1)) < 0.001f
+	    && fabsf(_triplet_current(2) - tmp_target(2)) < 0.001f
 	    && !prev_next_validity_changed) {
 		// Nothing has changed: just keep old waypoints.
 
 	} else {
-		_triplet_target = tmp_target;
+		_triplet_current = tmp_target;
 		_target_acceptance_radius = _sub_triplet_setpoint.get().current.acceptance_radius;
 
-		if (!Vector2f(_triplet_target).isAllFinite()) {
+		if (!Vector2f(_triplet_current).isAllFinite()) {
 			// Horizontal target is not finite.
-			_triplet_target(0) = _position(0);
-			_triplet_target(1) = _position(1);
+			_triplet_current(0) = _position(0);
+			_triplet_current(1) = _position(1);
 		}
 
-		if (!PX4_ISFINITE(_triplet_target(2))) {
-			_triplet_target(2) = _position(2);
+		if (!PX4_ISFINITE(_triplet_current(2))) {
+			_triplet_current(2) = _position(2);
 		}
-
-		// If _triplet_target has updated, update also _triplet_prev_wp and _triplet_next_wp.
-		_prev_prev_wp = _triplet_prev_wp;
 
 		if (_isFinite(_sub_triplet_setpoint.get().previous) && _sub_triplet_setpoint.get().previous.valid) {
 			_reference_position.project(_sub_triplet_setpoint.get().previous.lat,
-						    _sub_triplet_setpoint.get().previous.lon, _triplet_prev_wp(0), _triplet_prev_wp(1));
-			_triplet_prev_wp(2) = -(_sub_triplet_setpoint.get().previous.alt - _reference_altitude);
+						    _sub_triplet_setpoint.get().previous.lon, _triplet_previous(0), _triplet_previous(1));
+			_triplet_previous(2) = -(_sub_triplet_setpoint.get().previous.alt - _reference_altitude);
 
 		} else {
-			_triplet_prev_wp = _triplet_target;
+			_triplet_previous = _triplet_current;
 		}
 
 		_prev_was_valid = _sub_triplet_setpoint.get().previous.valid;
 
 		if (_type == WaypointType::loiter) {
-			_triplet_next_wp = _triplet_target;
+			_triplet_next = _triplet_current;
 
 		} else if (_isFinite(_sub_triplet_setpoint.get().next) && _sub_triplet_setpoint.get().next.valid) {
 			_reference_position.project(_sub_triplet_setpoint.get().next.lat,
-						    _sub_triplet_setpoint.get().next.lon, _triplet_next_wp(0), _triplet_next_wp(1));
-			_triplet_next_wp(2) = -(_sub_triplet_setpoint.get().next.alt - _reference_altitude);
+						    _sub_triplet_setpoint.get().next.lon, _triplet_next(0), _triplet_next(1));
+			_triplet_next(2) = -(_sub_triplet_setpoint.get().next.alt - _reference_altitude);
 
 		} else {
-			_triplet_next_wp = _triplet_target;
+			_triplet_next = _triplet_current;
 		}
 
 		_next_was_valid = _sub_triplet_setpoint.get().next.valid;
-
-		_prev_wp = _triplet_prev_wp;
-		_target = _triplet_target;
-		_next_wp = _triplet_next_wp;
 	}
 
 	// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)
@@ -516,7 +504,7 @@ void FlightTaskAuto::_set_heading_from_mode()
 
 	case yaw_mode::towards_waypoint: // Heading points towards the current waypoint.
 	case yaw_mode::towards_waypoint_yaw_first: // Same as 0 but yaw first and then go
-		v = Vector2f(_target) - Vector2f(_position);
+		v = Vector2f(_triplet_current) - Vector2f(_position);
 		break;
 
 	case yaw_mode::towards_home: // Heading points towards home.
@@ -684,7 +672,7 @@ bool FlightTaskAuto::_generateHeadingAlongTraj()
 {
 	bool res = false;
 	Vector2f vel_sp_xy(_velocity_setpoint);
-	Vector2f traj_to_target = Vector2f(_target) - Vector2f(_position);
+	Vector2f traj_to_target = Vector2f(_triplet_current) - Vector2f(_position);
 
 	if ((vel_sp_xy.longerThan(.1f)) &&
 	    (traj_to_target.longerThan(2.f))) {
@@ -699,9 +687,9 @@ bool FlightTaskAuto::_generateHeadingAlongTraj()
 
 bool FlightTaskAuto::isTargetModified() const
 {
-	const bool xy_modified = (_target - _position_setpoint).xy().longerThan(FLT_EPSILON);
+	const bool xy_modified = (_triplet_current - _position_setpoint).xy().longerThan(FLT_EPSILON);
 	const bool z_valid = PX4_ISFINITE(_position_setpoint(2));
-	const bool z_modified =  z_valid && std::fabs((_target - _position_setpoint)(2)) > FLT_EPSILON;
+	const bool z_modified =  z_valid && std::fabs((_triplet_current - _position_setpoint)(2)) > FLT_EPSILON;
 
 	return xy_modified || z_modified;
 }
