@@ -247,12 +247,12 @@ PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
  *
  * Configures whether arming is allowed without GNSS, for modes that require a global position
  * (specifically, in those modes when a check defined by EKF2_GPS_CHECK fails).
- * The settings deny arming, allow arming with a warning, or allow arming without a warning ('Disabled').
+ * The settings deny arming and warn, allow arming and warn, or silently allow arming.
  *
  * @group Commander
  * @value 0 Deny arming
- * @value 1 Warning only
- * @value 2 Disabled
+ * @value 1 Allow arming (with warning)
+ * @value 2 Allow arming (no warning)
  */
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
