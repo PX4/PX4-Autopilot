@@ -237,8 +237,8 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
             ( 'function', 'Function', 'FUNC', False ),
             ( 'disarmed', 'Disarmed', 'DIS', False ),
             ( 'min', 'Minimum', 'MIN', False ),
-            ( 'center', 'Center', 'CENT', False ),
             ( 'max', 'Maximum', 'MAX', False ),
+            ( 'center', 'Center\n(for Servos)', 'CENT', False ),
             ( 'failsafe', 'Failsafe', 'FAIL', True ),
             ]
         for key, label, param_suffix, advanced in standard_params_array:

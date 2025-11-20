@@ -189,8 +189,6 @@ void MixingOutput::updateParams()
 			_max_value[i] = tmp;
 		}
 
-		// Center needs to be clamped to min/max
-		_center_value[i] = math::constrain(_center_value[i], _min_value[i], _max_value[i]);
 
 		if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
 			_failsafe_value[i] = val;
@@ -549,7 +547,9 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 
 	if (_function_assignment[i] >= OutputFunction::Servo1
 	    && _function_assignment[i] <= OutputFunction::ServoMax
-	    && _param_handles[i].center != PARAM_INVALID) {
+	    && _param_handles[i].center != PARAM_INVALID
+	    && _center_value[i] >= 800
+	    && _center_value[i] <= 2200) {
 
 		/* bi-linear interpolation */
 		if (value < 0.0f) {
@@ -561,7 +561,10 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 						   static_cast<float>(_center_value[i]), static_cast<float>(_max_value[i]));
 		}
 
-	} else {
+	}
+
+	// Everything except servos, or if center is not set
+	else {
 		output = math::interpolate(value, -1.f, 1.f,
 					   static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
 	}

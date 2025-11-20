@@ -74,7 +74,7 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		return;
 	}
 
-	// Helper to check if a PWM center parameter is set to non-default value (1500 µs)
+	// Helper to check if a PWM center parameter is enabled, and clamp it to valid range
 	auto check_pwm_center = [](const char *prefix, int channel) -> bool {
 		char param_name[20];
 		snprintf(param_name, sizeof(param_name), "%s_CENT%d", prefix, channel);
@@ -83,7 +83,17 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		if (param != PARAM_INVALID)
 		{
 			int32_t value;
-			return (param_get(param, &value) == PX4_OK && value != 1500);
+
+			if (param_get(param, &value) == PX4_OK && value != -1) {
+				// Clamp PWM center to valid range [800, 2200]
+				if (value < 800 || value > 2200) {
+					int32_t clamped = (value < 800) ? 800 : 2200;
+					PX4_WARN("%s_CENT%d (%d) out of range, clamping to %d", prefix, channel, (int)value, (int)clamped);
+					param_set(param, &clamped);
+				}
+
+				return true;
+			}
 		}
 
 		return false;
@@ -92,8 +102,10 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 	// Check if any PWM_MAIN or PWM_AUX center is configured
 	bool pwm_center_set = false;
 
-	for (int i = 1; i <= 8 && !pwm_center_set; i++) {
-		pwm_center_set = check_pwm_center("PWM_MAIN", i) || check_pwm_center("PWM_AUX", i);
+	for (int i = 1; i <= 8; i++) {
+		if (check_pwm_center("PWM_MAIN", i) || check_pwm_center("PWM_AUX", i)) {
+			pwm_center_set = true;
+		}
 	}
 
 	for (int i = 0; i < _count; i++) {
@@ -108,7 +120,7 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		param_get(_param_handles[i].trim, &_params[i].trim);
 
 		// If PWM center is set and CA_SV_CS trim is non-zero, warn and reset to 0
-		if (pwm_center_set && fabsf(_params[i].trim) > 0.001f) {
+		if (pwm_center_set && fabsf(_params[i].trim) > FLT_EPSILON) {
 			PX4_WARN("CA_SV_CS%d_TRIM (%.3f) should be 0 when PWM CENTER is used. Resetting to 0.",
 				 i, (double)_params[i].trim);
 			_params[i].trim = 0.0f;

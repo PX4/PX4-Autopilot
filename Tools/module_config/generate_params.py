@@ -286,7 +286,7 @@ Note that non-motor outputs might already be active in prearm state if COM_PREAR
 '''Minimum output value (when not disarmed).
 '''
         center_description = \
-'''Center output value (when not disarmed).
+'''Servo Center output value (when not disarmed).
 '''
         maximum_description = \
 '''Maxmimum output value (when not disarmed).
@@ -313,6 +313,10 @@ When set to -1 (default), the value depends on the function (see {:}).
                     raise Exception('maximum value for {:} expected <= {:} (got {:})'.format(key, 1<<16, standard_params[key]['max']))
 
                 if key == 'failsafe':
+                    standard_params[key]['default'] = -1
+                    standard_params[key]['min'] = -1
+
+                if key == 'center':
                     standard_params[key]['default'] = -1
                     standard_params[key]['min'] = -1
 
