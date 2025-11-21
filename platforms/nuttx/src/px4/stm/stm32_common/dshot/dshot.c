@@ -177,6 +177,7 @@ static struct hrt_call _cc_call;
 // decoding status for each channel
 static uint32_t read_ok[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_crc[MAX_NUM_CHANNELS_PER_TIMER] = {};
+static uint32_t read_no_data[MAX_NUM_CHANNELS_PER_TIMER] = {};
 
 static perf_counter_t hrt_callback_perf = NULL;
 static perf_counter_t capture_cycle_perf = NULL;
@@ -641,9 +642,18 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	checksum = checksum ^ (checksum >> 8);
 	checksum = checksum ^ (checksum >> NIBBLES_SIZE);
 
-	if ((checksum & 0xF) != 0xF) {
-		++read_fail_crc[output_channel];
+	bool checksum_failed = (checksum & 0xF) != 0xF;
+	bool value_zero = value == 0;
 
+	if (checksum_failed) {
+		++read_fail_crc[output_channel];
+	}
+
+	if (value_zero) {
+		++read_no_data[output_channel];
+	}
+
+	if (checksum_failed || value_zero) {
 		if (_consecutive_failures[output_channel]++ > BDSHOT_OFFLINE_COUNT) {
 			_consecutive_failures[output_channel] = BDSHOT_OFFLINE_COUNT;
 			_consecutive_successes[output_channel] = 0;
@@ -1025,9 +1035,10 @@ void up_bdshot_status(void)
 		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 		if (channel_initialized) {
-			PX4_INFO("Timer %u, Channel %u: read %lu, failed CRC %lu",
+			PX4_INFO("Timer %u, Channel %u: read %lu, nodata %lu, failed CRC %lu",
 				 timer_index, timer_channel_index,
 				 read_ok[timer_channel_index],
+				 read_no_data[timer_index],
 				 read_fail_crc[timer_channel_index]);
 		}
 	}
