@@ -766,7 +766,7 @@ uint32_t convert_edge_intervals_to_bitstream(uint8_t channel_index)
 
 		// This seemss to work with dshot 150, 300, 600, 1200
 		// The values were found by trial and error to get the quantization just right.
-		const uint32_t bits = (dshot_capture_buffer[channel_index][i] - previous + 5) / 20;
+		const uint32_t bits = (dshot_capture_buffer[channel_index][i] - previous + 5) / 21;
 
 		// Convert GCR encoded pulse train into value
 		for (unsigned bit = 0; bit < bits; ++bit) {
