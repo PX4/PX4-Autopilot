@@ -67,7 +67,6 @@ struct init_config_t {
 
 I2CSPIDriverBase *MCP230XX::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	printf("MCP_main: instatiate called \n");
 	auto *init = (const init_config_t *)config.custom_data;
 	MCP230XX *instance = nullptr;
 
@@ -124,7 +123,6 @@ extern "C" int mcp230xx_main(int argc, char *argv[])
 	while ((ch = cli.getOpt(argc, argv, "ABD:O:P:U:R:M:Q:")) != EOF) {
 		switch (ch) {
 		case 'A':
-			printf("you chose to use MCP23009 \n");
 			device_type = DRV_GPIO_DEVTYPE_MCP23009;
 			name = MODULE_NAME "23009";
 			cli.i2c_address = I2C_ADDRESS_MCP23009;
@@ -132,7 +130,6 @@ extern "C" int mcp230xx_main(int argc, char *argv[])
 			break;
 
 		case 'B':
-			printf("you chose to use MCP23017 \n");
 			device_type = DRV_GPIO_DEVTYPE_MCP23017;
 			name = MODULE_NAME "23017";
 			cli.i2c_address = I2C_ADDRESS_MCP23017;
