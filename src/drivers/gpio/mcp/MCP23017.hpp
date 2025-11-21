@@ -35,7 +35,7 @@
 
 using namespace time_literals;
 
-class MCP23017 : public MCP
+class MCP23017 : public MCP230XX
 {
 public:
 	MCP23017(const I2CSPIDriverConfig &config);

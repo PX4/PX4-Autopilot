@@ -32,7 +32,7 @@
  ****************************************************************************/
 #include "MCP.hpp"
 
-MCP::MCP(const I2CSPIDriverConfig &config) :
+MCP230XX::MCP230XX(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample")),
@@ -40,14 +40,14 @@ MCP::MCP(const I2CSPIDriverConfig &config) :
 {
 }
 
-MCP::~MCP()
+MCP230XX::~MCP230XX()
 {
 	ScheduleClear();
 	perf_free(_cycle_perf);
 	perf_free(_comms_errors);
 }
 
-int MCP::init_uorb()
+int MCP230XX::init_uorb()
 {
 	if (!_gpio_config_sub.registerCallback() ||
 	    !_gpio_request_sub.registerCallback() ||
@@ -59,16 +59,16 @@ int MCP::init_uorb()
 	return PX4_OK;
 }
 
-void MCP::exit_and_cleanup()
+void MCP230XX::exit_and_cleanup()
 {
 	_gpio_config_sub.unregisterCallback();
 	_gpio_request_sub.unregisterCallback();
 	_gpio_out_sub.unregisterCallback();
 
-	mcp_unregister_gpios(mcp_config.first_minor, mcp_config.num_pins, mcp_config._gpio_handle);
+	mcp230XX_unregister_gpios(mcp_config.first_minor, mcp_config.num_pins, mcp_config._gpio_handle);
 }
 
-int MCP::read(uint16_t *mask){
+int MCP230XX::read(uint16_t *mask){
 	*mask = 0;
 	int ret = PX4_OK;
 
@@ -89,7 +89,7 @@ int MCP::read(uint16_t *mask){
 	return ret;
 }
 
-int MCP::write(uint16_t mask_set, uint16_t mask_clear){
+int MCP230XX::write(uint16_t mask_set, uint16_t mask_clear){
 
 	int ret = PX4_OK;
 	_olat = (_olat & ~mask_clear) | mask_set;
@@ -117,20 +117,20 @@ int MCP::write(uint16_t mask_set, uint16_t mask_clear){
 	return ret;
 }
 
-int MCP::read_reg(uint8_t address, uint8_t &data)
+int MCP230XX::read_reg(uint8_t address, uint8_t &data)
 {
 	return transfer(&address, 1, &data, 1);
 }
 
 
-int MCP::write_reg(uint8_t address, uint8_t value)
+int MCP230XX::write_reg(uint8_t address, uint8_t value)
 {
 	uint8_t data[2] = {address, value};
 	return transfer(data, 2, nullptr, 0);
 }
 
 
-int MCP::configure(uint16_t mask, PinType type)
+int MCP230XX::configure(uint16_t mask, PinType type)
 {
 	switch (type) {
 	case PinType::Input:
@@ -180,7 +180,7 @@ int MCP::configure(uint16_t mask, PinType type)
 	return PX4_OK;
 }
 
-int MCP::init( ){
+int MCP230XX::init( ){
 
 	int ret = I2C::init();
 
@@ -193,13 +193,13 @@ int MCP::init( ){
 	return PX4_OK;
 }
 
-int MCP::init_communication(){
-	int ret = mcp_register_gpios(mcp_config.bus, mcp_config.i2c_addr, mcp_config.first_minor, _iodir, mcp_config.num_pins, mcp_config.device_type, mcp_config._gpio_handle);
+int MCP230XX::init_communication(){
+	int ret = mcp230XX_register_gpios(mcp_config.bus, mcp_config.i2c_addr, mcp_config.first_minor, _iodir, mcp_config.num_pins, mcp_config.device_type, mcp_config._gpio_handle);
 	ret |= init_uorb();
 	return ret;
 }
 
-int MCP::set_up(){
+int MCP230XX::set_up(){
 	int ret = PX4_OK;
 	uint8_t iodir_addr;
 	uint8_t olat_addr;
@@ -230,7 +230,7 @@ int MCP::set_up(){
 	return ret;
 }
 
-int MCP::sanity_check(){
+int MCP230XX::sanity_check(){
 	int ret = PX4_OK;
 
 	for(int i=0; i<mcp_config.num_banks; i++){
@@ -263,7 +263,7 @@ int MCP::sanity_check(){
 	return ret;
 }
 
-int MCP::probe()
+int MCP230XX::probe()
 {
 	// no whoami, try to read IOCONA
 	uint8_t data;
@@ -276,7 +276,7 @@ int MCP::probe()
 	return PX4_ERROR;
 }
 
-void MCP::RunImpl()
+void MCP230XX::RunImpl()
 {
 	if (should_exit()) {
 		exit_and_cleanup();
@@ -294,7 +294,7 @@ void MCP::RunImpl()
 			curr_state = STATE::CONFIGURE;
 			ScheduleNow();
 		}else{
-			PX4_ERR("MCP: INIT_COMMUNICATION (pin registration & uORB) failed, retrying...");
+			PX4_ERR("MCP230XX: INIT_COMMUNICATION (pin registration & uORB) failed, retrying...");
 			ScheduleDelayed(100000); // 100ms
 		}
 
@@ -316,7 +316,7 @@ void MCP::RunImpl()
 			curr_state = STATE::RUNNING;
 			ScheduleOnInterval(mcp_config.interval * 1000);
 		}else{
-			PX4_ERR("MCP: Sanity check failed, reconfiguring...");
+			PX4_ERR("MCP230XX: Sanity check failed, reconfiguring...");
 			curr_state = STATE::CONFIGURE;
 			ScheduleNow();
 		}
@@ -370,7 +370,7 @@ void MCP::RunImpl()
 	}
 }
 
-void MCP::print_status()
+void MCP230XX::print_status()
 {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_cycle_perf);

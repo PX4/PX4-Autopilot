@@ -62,7 +62,7 @@ public:
 
 static uORB::Publication<px4::msg::GpioRequest> toGpioRequest{ORB_ID(gpio_request)};
 static ReadCallback fromGpioIn{ORB_ID(gpio_in)};
-static int mcp_read(struct gpio_dev_s *dev, bool *value)
+static int mcp230XX_read(struct gpio_dev_s *dev, bool *value)
 {
 	mcp_gpio_dev_s *gpio = (struct mcp_gpio_dev_s *)dev;
 	*value = fromGpioIn.input & gpio->mask;
@@ -70,7 +70,7 @@ static int mcp_read(struct gpio_dev_s *dev, bool *value)
 }
 
 static uORB::Publication<gpio_out_s> toGpioOut{ORB_ID(gpio_out)};
-static int mcp_write(struct gpio_dev_s *dev, bool value)
+static int mcp230XX_write(struct gpio_dev_s *dev, bool value)
 {
 	mcp_gpio_dev_s *gpio = (struct mcp_gpio_dev_s *)dev;
 	gpio_out_s msg{
@@ -83,7 +83,7 @@ static int mcp_write(struct gpio_dev_s *dev, bool value)
 }
 
 static uORB::Publication<gpio_config_s> toGpioConfig{ORB_ID(gpio_config)};
-static int mcp_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pintype)
+static int mcp230XX_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pintype)
 {
 	mcp_gpio_dev_s *gpio = (struct mcp_gpio_dev_s *)dev;
 	gpio_config_s msg{
@@ -114,15 +114,15 @@ static int mcp_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pintype)
 
 // ----------------------------------------------------------------------------
 static const struct gpio_operations_s mcp_gpio_ops {
-	mcp_read,
-	mcp_write,
+	mcp230XX_read,
+	mcp230XX_write,
 	nullptr,
 	nullptr,
-	mcp_setpintype,
+	mcp230XX_setpintype,
 };
 
 // ----------------------------------------------------------------------------
-int mcp_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask, int num_pins, uint8_t device_type, mcp_gpio_dev_s *_gpio)
+int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask, int num_pins, uint8_t device_type, mcp_gpio_dev_s *_gpio)
 {
 	for (int i = 0; i < num_pins; i++) {
 		uint16_t mask = 1u << i;
@@ -151,10 +151,10 @@ int mcp_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint1
 	return OK;
 }
 
-int mcp_unregister_gpios(int first_minor, int num_pins, mcp_gpio_dev_s *_gpio)
+int mcp230XX_unregister_gpios(int first_minor, int num_pins, mcp_gpio_dev_s *_gpio)
 {
 	for (int i = 0; i < num_pins; ++i) {
-		mcp_setpintype(&_gpio[i].gpio, GPIO_INPUT_PIN);
+		mcp230XX_setpintype(&_gpio[i].gpio, GPIO_INPUT_PIN);
 		gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
 	}
 

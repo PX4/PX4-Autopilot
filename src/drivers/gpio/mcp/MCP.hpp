@@ -61,7 +61,7 @@ PinType : uint8_t {
 	InputPullUp,
 };
 
-struct MCP_config_t {
+struct MCP230XX_config_t {
   uint16_t device_type;
   uint8_t bus;
   uint8_t i2c_addr;
@@ -71,32 +71,27 @@ struct MCP_config_t {
   uint16_t interval;
   mcp_gpio_dev_s _gpio_handle[16];
 
-  //uint16_t direction = 0xFFFF; // READ ON ALL PINS
-  //uint16_t state = 0x0000;
-  //uint16_t pullup = 0x0000;
 };
 
 
-class MCP :  public device::I2C, public I2CSPIDriver<MCP> //public I2CSPIDriver<MCP> //, public device::I2C
+class MCP230XX :  public device::I2C, public I2CSPIDriver<MCP230XX> //public I2CSPIDriver<MCP> //, public device::I2C
 {
 public:
-	MCP(const I2CSPIDriverConfig &config);
-	virtual ~MCP();
-
+	MCP230XX(const I2CSPIDriverConfig &config);
+	virtual ~MCP230XX();
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();
 	void print_status() override;
 	int probe();
-	//virtual int init(uint16_t direction, uint16_t state, uint16_t pull_up);
 	virtual int init();
 
 
 protected:
 	void exit_and_cleanup() override;
 
-	MCP_config_t mcp_config;
+	MCP230XX_config_t mcp_config;
 
 
 private:

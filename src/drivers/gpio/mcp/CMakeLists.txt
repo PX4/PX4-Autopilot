@@ -32,7 +32,7 @@
 ############################################################################
 px4_add_module(
 	MODULE drivers__mcp
-	MAIN mcp
+	MAIN mcp230xx
 	COMPILE_FLAGS
 	SRCS
 		MCP.hpp

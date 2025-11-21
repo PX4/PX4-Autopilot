@@ -1,5 +1,5 @@
 menuconfig DRIVERS_GPIO_MCP
-	bool "mcp"
+	bool "mcp230xx"
 	default n
 	---help---
-		Enable support for mcp
+		Enable support for mcp230xx

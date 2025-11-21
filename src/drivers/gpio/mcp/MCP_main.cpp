@@ -36,9 +36,9 @@
 #include "MCP23009.hpp"
 #include "MCP23017.hpp"
 
-void MCP::print_usage()
+void MCP230XX::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("MCP", "driver");
+	PRINT_MODULE_USAGE_NAME("mcp230xx", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x27);
@@ -65,11 +65,11 @@ struct init_config_t {
 	uint8_t i2c_bus = 0;
 };
 
-I2CSPIDriverBase *MCP::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
+I2CSPIDriverBase *MCP230XX::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	printf("MCP_main: instatiate called \n");
 	auto *init = (const init_config_t *)config.custom_data;
-	MCP *instance = nullptr;
+	MCP230XX *instance = nullptr;
 
 	switch (config.devid_driver_index) {
 	case DRV_GPIO_DEVTYPE_MCP23009:
@@ -108,10 +108,10 @@ I2CSPIDriverBase *MCP::instantiate(const I2CSPIDriverConfig &config, int runtime
 	return instance;
 }
 
-extern "C" int mcp_main(int argc, char *argv[])
+extern "C" int mcp230xx_main(int argc, char *argv[])
 {
 
-	using ThisDriver = MCP;
+	using ThisDriver = MCP230XX;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = I2C_ADDRESS_MCP23009;

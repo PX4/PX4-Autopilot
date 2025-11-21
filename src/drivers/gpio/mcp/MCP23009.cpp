@@ -33,7 +33,7 @@
 #include "MCP23009.hpp"
 
 MCP23009::MCP23009(const I2CSPIDriverConfig &config) :
-	MCP(config)
+	MCP230XX(config)
 {
 }
 
