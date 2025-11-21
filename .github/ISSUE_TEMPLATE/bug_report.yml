@@ -20,14 +20,14 @@ body:
           3. Took off '....'
           4. See error
     validations:
-      required: true
+      required: false
 
   - type: textarea
     attributes:
       label: Expected behavior
       description: A clear and concise description of what you expected to happen.
     validations:
-      required: true
+      required: false
 
   - type: textarea
     attributes:
@@ -45,7 +45,7 @@ body:
       placeholder: |
           # PASTE HERE THE LINK TO THE LOG
     validations:
-      required: true
+      required: false
 
   - type: markdown
     attributes:
@@ -60,14 +60,14 @@ body:
       placeholder: |
           # If you don't know the version, paste the output of `ver all` in the MAVLink Shell of QGC
     validations:
-      required: true
+      required: false
 
   - type: input
     attributes:
       label: Flight controller
       description: Specify your flight controller model (what type is it, where was it bought from, ...).
     validations:
-      required: true
+      required: false
 
   - type: dropdown
     attributes:

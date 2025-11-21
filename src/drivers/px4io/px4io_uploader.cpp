@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file uploader.cpp
+ * @file px4io_uploader.cpp
  * Firmware uploader for PX4IO
  */
 

@@ -158,3 +158,24 @@ void SubscriptionManager::updateParams()
 	// Check for any newly-enabled subscriptions
 	updateDynamicSubscriptions();
 }
+
+void SubscriptionManager::fillSubjectIdList(uavcan_node_port_SubjectIDList_0_1 &subscribers_list)
+{
+	uavcan_node_port_SubjectIDList_0_1_select_sparse_list_(&subscribers_list);
+
+	UavcanDynamicPortSubscriber *dynsub = _dynsubscribers;
+
+	auto &sparse_list = subscribers_list.sparse_list;
+
+	while (dynsub != nullptr) {
+		int32_t instance_idx = 0;
+
+		while (dynsub->isValidPortId(dynsub->id(instance_idx))) {
+			sparse_list.elements[sparse_list.count].value = dynsub->id(instance_idx);
+			sparse_list.count++;
+			instance_idx++;
+		}
+
+		dynsub = dynsub->next();
+	}
+}

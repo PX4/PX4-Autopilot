@@ -64,6 +64,7 @@ int ExternalChecks::addRegistration(int8_t nav_mode_id, int8_t replaces_nav_stat
 		_active_registrations_mask |= 1 << free_registration_index;
 		_registrations[free_registration_index].nav_mode_id = nav_mode_id;
 		_registrations[free_registration_index].replaces_nav_state = replaces_nav_state;
+		_registrations[free_registration_index].waiting_for_first_response = true;
 		_registrations[free_registration_index].num_no_response = 0;
 		_registrations[free_registration_index].unresponsive = false;
 		_registrations[free_registration_index].total_num_unresponsive = 0;
@@ -172,6 +173,8 @@ void ExternalChecks::checkAndReport(const Context &context, Report &reporter)
 							  reporter.failsafeFlags().mode_req_local_position_relaxed);
 				setOrClearRequirementBits(reply.mode_req_global_position, nav_mode_id, replaces_nav_state,
 							  reporter.failsafeFlags().mode_req_global_position);
+				setOrClearRequirementBits(reply.mode_req_global_position_relaxed, nav_mode_id, replaces_nav_state,
+							  reporter.failsafeFlags().mode_req_global_position_relaxed);
 				setOrClearRequirementBits(reply.mode_req_mission, nav_mode_id, replaces_nav_state,
 							  reporter.failsafeFlags().mode_req_mission);
 				setOrClearRequirementBits(reply.mode_req_home_position, nav_mode_id, replaces_nav_state,
@@ -226,10 +229,13 @@ void ExternalChecks::update()
 	int max_num_updates = arming_check_reply_s::ORB_QUEUE_LENGTH;
 
 	while (_arming_check_reply_sub.update(&reply) && --max_num_updates >= 0) {
-		if (reply.registration_id < MAX_NUM_REGISTRATIONS && registrationValid(reply.registration_id)
-		    && _current_request_id == reply.request_id) {
+		const bool valid = reply.registration_id < MAX_NUM_REGISTRATIONS && registrationValid(reply.registration_id);
+		const bool timed_out = now > reply.timestamp + 300_ms;
+
+		if (!timed_out && valid && _current_request_id == reply.request_id) {
 			_reply_received_mask |= 1u << reply.registration_id;
 			_registrations[reply.registration_id].num_no_response = 0;
+			_registrations[reply.registration_id].waiting_for_first_response = false;
 
 			// Prevent toggling between unresponsive & responsive state
 			if (_registrations[reply.registration_id].total_num_unresponsive <= 3) {
@@ -253,7 +259,10 @@ void ExternalChecks::update()
 
 			for (int i = 0; i < MAX_NUM_REGISTRATIONS; ++i) {
 				if ((1u << i) & no_reply) {
-					if (!_registrations[i].unresponsive && ++_registrations[i].num_no_response >= NUM_NO_REPLY_UNTIL_UNRESPONSIVE) {
+					const int max_num_no_reply =
+						_registrations[i].waiting_for_first_response ? NUM_NO_REPLY_UNTIL_UNRESPONSIVE_INIT : NUM_NO_REPLY_UNTIL_UNRESPONSIVE;
+
+					if (!_registrations[i].unresponsive && ++_registrations[i].num_no_response > max_num_no_reply) {
 						// Clear immediately if not a mode
 						if (_registrations[i].nav_mode_id == -1) {
 							removeRegistration(i, -1);
@@ -284,6 +293,15 @@ void ExternalChecks::update()
 		arming_check_request_s request{};
 		request.request_id = ++_current_request_id;
 		request.timestamp = hrt_absolute_time();
+		request.valid_registrations_mask = _active_registrations_mask;
+
+		// Clear unresponsive ones
+		for (int i = 0; i < MAX_NUM_REGISTRATIONS; ++i) {
+			if (_registrations[i].unresponsive) {
+				request.valid_registrations_mask &= ~(1u << i);
+			}
+		}
+
 		_arming_check_request_pub.publish(request);
 	}
 }

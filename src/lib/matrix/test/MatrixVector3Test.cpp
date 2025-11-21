@@ -80,4 +80,13 @@ TEST(MatrixVector3Test, Vector3)
 	Vector3f m2(3.1f, 4.1f, 5.1f);
 	EXPECT_EQ(m2, m1 + 2.1f);
 	EXPECT_EQ(m2 - 2.1f, m1);
+
+	// Test Addition and Subtraction of Slices
+	Vector3f v1(3, 13, 0);
+	Vector3f v2(42, 6, 256);
+
+	EXPECT_EQ(v1.xy() - v2.xy(), Vector2f(-39, 7));
+	EXPECT_EQ(v1.xy() + v2.xy(), Vector2f(45, 19));
+	EXPECT_EQ(v1.xy() + 2.f, Vector2f(5, 15));
+	EXPECT_EQ(v1.xy() - 2.f, Vector2f(1, 11));
 }

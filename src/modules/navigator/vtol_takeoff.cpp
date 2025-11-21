@@ -43,7 +43,7 @@
 using matrix::wrap_pi;
 
 VtolTakeoff::VtolTakeoff(Navigator *navigator) :
-	MissionBlock(navigator),
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF),
 	ModuleParams(navigator)
 {
 }
@@ -116,9 +116,9 @@ VtolTakeoff::on_active()
 				// as the loiter is established. therefore, set a small loiter time so that the mission item will be reached quickly,
 				// however it will just continue loitering as there is no next mission item
 				_mission_item.time_inside = 1.f;
-				_mission_item.loiter_radius = _navigator->get_loiter_radius();
+				_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 				_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
-				_mission_item.altitude = _navigator->get_home_position()->alt + _param_loiter_alt.get();
+				_mission_item.altitude = _takeoff_alt_msl + _param_loiter_alt.get();
 
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 				pos_sp_triplet->current.lat = _loiter_location(0);
@@ -151,7 +151,7 @@ VtolTakeoff::on_active()
 				// the VTOL takeoff is done
 				_navigator->get_mission_result()->finished = true;
 				_navigator->set_mission_result_updated();
-				_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
+				_navigator->mode_completed(getNavigatorStateId());
 
 				break;
 			}
@@ -169,6 +169,8 @@ VtolTakeoff::set_takeoff_position()
 {
 	// set current mission item to takeoff
 	set_takeoff_item(&_mission_item, _transition_alt_amsl);
+
+	_takeoff_alt_msl = _navigator->get_global_position()->alt;
 
 	_mission_item.lat = _navigator->get_global_position()->lat;
 	_mission_item.lon = _navigator->get_global_position()->lon;

@@ -104,8 +104,8 @@ void Standard::update_vtol_state()
 				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
 				exit_backtransition_speed_condition = vel(0) < _param_mpc_xy_cruise.get();
 
-			} else if (PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
-				exit_backtransition_speed_condition = _airspeed_validated->calibrated_airspeed_m_s < _param_mpc_xy_cruise.get();
+			} else if (PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
+				exit_backtransition_speed_condition = _attc->get_calibrated_airspeed() < _param_mpc_xy_cruise.get();
 			}
 
 			const bool exit_backtransition_time_condition = _time_since_trans_start > _param_vt_b_trans_dur.get();
@@ -180,8 +180,7 @@ void Standard::update_transition_state()
 			return;
 		}
 
-		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+		*_v_att_sp = *_mc_virtual_att_sp;
 
 	} else {
 		// we need a recent incoming (fw virtual) attitude setpoint, otherwise return (means the previous setpoint stays active)
@@ -189,67 +188,84 @@ void Standard::update_transition_state()
 			return;
 		}
 
-		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		*_v_att_sp = *_fw_virtual_att_sp;
 		_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
 	}
 
+
+	const Eulerf attitude_setpoint_euler(Quatf(_v_att_sp->q_d));
+	float roll_body = attitude_setpoint_euler.phi();
+	float pitch_body = attitude_setpoint_euler.theta();
+	float yaw_body = attitude_setpoint_euler.psi();
+
 	if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
+
+		if (_v_control_mode->flag_control_climb_rate_enabled) {
+			roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
+		}
+
 		if (_param_vt_psher_slew.get() <= FLT_EPSILON) {
 			// just set the final target throttle value
 			_pusher_throttle = _param_vt_f_trans_thr.get();
 
 		} else if (_pusher_throttle <= _param_vt_f_trans_thr.get()) {
 			// ramp up throttle to the target throttle value
+			const float dt = math::min((now - _last_time_pusher_transition_update) / 1e6f, 0.05f);
 			_pusher_throttle = math::min(_pusher_throttle +
-						     _param_vt_psher_slew.get() * _dt, _param_vt_f_trans_thr.get());
+						     _param_vt_psher_slew.get() * dt, _param_vt_f_trans_thr.get());
+
+			_last_time_pusher_transition_update = now;
 		}
 
 		_airspeed_trans_blend_margin = getTransitionAirspeed() - getBlendAirspeed();
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
 		if (_airspeed_trans_blend_margin > 0.0f &&
-		    PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
-		    _airspeed_validated->calibrated_airspeed_m_s > 0.0f &&
-		    _airspeed_validated->calibrated_airspeed_m_s >= getBlendAirspeed() &&
+		    PX4_ISFINITE(_attc->get_calibrated_airspeed()) &&
+		    _attc->get_calibrated_airspeed() > 0.0f &&
+		    _attc->get_calibrated_airspeed() >= getBlendAirspeed() &&
 		    _time_since_trans_start > getMinimumFrontTransitionTime()) {
 
-			mc_weight = 1.0f - fabsf(_airspeed_validated->calibrated_airspeed_m_s - getBlendAirspeed()) /
+			mc_weight = 1.0f - fabsf(_attc->get_calibrated_airspeed() - getBlendAirspeed()) /
 				    _airspeed_trans_blend_margin;
 			// time based blending when no airspeed sensor is set
 
-		} else if (!_param_fw_use_airspd.get() || !PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
+		} else if (!PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
 			mc_weight = 1.0f - _time_since_trans_start / getMinimumFrontTransitionTime();
 			mc_weight = math::constrain(2.0f * mc_weight, 0.0f, 1.0f);
-
 		}
 
 		// ramp up FW_PSP_OFF
-		_v_att_sp->pitch_body = math::radians(_param_fw_psp_off.get()) * (1.0f - mc_weight);
-
+		pitch_body = math::radians(_param_fw_psp_off.get()) * (1.0f - mc_weight);
 		_v_att_sp->thrust_body[0] = _pusher_throttle;
-
-		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
+		const Quatf q_sp(Eulerf(roll_body, pitch_body, yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
+		mc_weight = math::constrain(mc_weight, 0.0f, 1.0f);
 
 	} else if (_vtol_mode == vtol_mode::TRANSITION_TO_MC) {
-
-		if (_v_control_mode->flag_control_climb_rate_enabled) {
-			// control backtransition deceleration using pitch.
-			_v_att_sp->pitch_body = update_and_get_backtransition_pitch_sp();
-		}
-
-		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
-		q_sp.copyTo(_v_att_sp->q_d);
-
-		_pusher_throttle = 0.0f;
 
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON) {
 			mc_weight = _time_since_trans_start / _param_vt_b_trans_ramp.get();
 		}
-	}
 
-	mc_weight = math::constrain(mc_weight, 0.0f, 1.0f);
+		mc_weight = math::constrain(mc_weight, 0.0f, 1.0f);
+
+		if (_v_control_mode->flag_control_climb_rate_enabled) {
+			// control backtransition deceleration using pitch.
+			pitch_body = Eulerf(Quatf(_mc_virtual_att_sp->q_d)).theta();
+
+			// blend roll setpoint between FW and MC
+			const float roll_body_fw = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
+			roll_body = mc_weight * roll_body + (1.0f - mc_weight) * roll_body_fw;
+		}
+
+		const Quatf q_sp(Eulerf(roll_body, pitch_body, yaw_body));
+
+		q_sp.copyTo(_v_att_sp->q_d);
+
+		_pusher_throttle = 0.0f;
+	}
 
 	_mc_roll_weight = mc_weight;
 	_mc_pitch_weight = mc_weight;
@@ -328,9 +344,9 @@ void Standard::fill_actuator_outputs()
 		_thrust_setpoint_0->xyz[2] = _vehicle_thrust_setpoint_virtual_mc->xyz[2] * _mc_throttle_weight;
 
 		// FW actuators
-		_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0] * (1.f - _mc_roll_weight);
-		_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1] * (1.f - _mc_pitch_weight);
-		_torque_setpoint_1->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2] * (1.f - _mc_yaw_weight);
+		_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0];
+		_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1];
+		_torque_setpoint_1->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2];
 		_thrust_setpoint_0->xyz[0] = _pusher_throttle;
 
 		break;

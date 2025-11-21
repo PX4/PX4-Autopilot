@@ -87,7 +87,7 @@ public:
 		  _node_mutex(node_mutex),
 		  _pub_manager(pub_manager) {}
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	void printInfo() { _mixing_output.printStatus(); }
@@ -136,6 +136,9 @@ private:
 
 	// Sends a heartbeat at 1s intervals
 	void sendHeartbeat();
+
+	// Sends a port.List at 3s intervals
+	void sendPortList();
 
 	px4::atomic_bool _task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 

@@ -52,6 +52,7 @@
 #define IMXRT_IPG_PODF_DIVIDER 5
 #define BOARD_GPT_FREQUENCY  24000000
 #define BOARD_XTAL_FREQUENCY 24000000
+#define BOARD_FLEXIO_PREQ    108000000
 
 /* SDIO *********************************************************************/
 
@@ -266,6 +267,10 @@
 /* ETH Disambiguation *******************************************************/
 
 // This is the ENET_1G interface.
+
+/* Dshot Disambiguation *******************************************************/
+
+#define IOMUX_DSHOT_DEFAULT             (IOMUX_DRIVE_HIGHSTRENGTH | IOMUX_SLEW_FAST)
 
 // Compile time selection
 #if defined(CONFIG_ETH0_PHY_TJA1103)

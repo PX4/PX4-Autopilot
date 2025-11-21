@@ -36,19 +36,27 @@
 #include <px4_platform_common/module.h>
 
 #include <lib/tinybson/tinybson.h>
+#include <libgen.h>
 
 #include <fcntl.h>
 
-static void print_usage(const char *reason = nullptr)
+static void print_usage(const char *reason = nullptr, const char *command = nullptr)
 {
 	if (reason) {
 		PX4_ERR("%s", reason);
 	}
 
-	PRINT_MODULE_DESCRIPTION("read BSON from a file and print in human form");
+	PRINT_MODULE_DESCRIPTION("Utility to read BSON from a file and print or output document size.");
 
-	PRINT_MODULE_USAGE_NAME_SIMPLE("bsondump", "command");
-	PRINT_MODULE_USAGE_ARG("<file>", "File name", false);
+	if (command == nullptr || strcmp(command, "docsize") == 0) {
+		PRINT_MODULE_USAGE_NAME_SIMPLE("bsondump docsize", "command");
+		PRINT_MODULE_USAGE_ARG("<file>", "The BSON file to decode for document size.", false);
+	}
+
+	if (command == nullptr) {
+		PRINT_MODULE_USAGE_NAME_SIMPLE("bsondump", "command");
+		PRINT_MODULE_USAGE_ARG("<file>", "The BSON file to decode and print.", false);
+	}
 }
 
 static int bson_print_callback(bson_decoder_t decoder, bson_node_t node)
@@ -82,58 +90,140 @@ static int bson_print_callback(bson_decoder_t decoder, bson_node_t node)
 	return -1;
 }
 
+static int
+bson_docsize_callback(bson_decoder_t decoder, bson_node_t node)
+{
+
+	if (node->type == BSON_EOO) {
+		PX4_DEBUG("end of parameters");
+		return 0;
+	}
+
+	return 1;
+}
+
 extern "C" __EXPORT int bsondump_main(int argc, char *argv[])
 {
-	if (argc != 2) {
-		print_usage();
+
+	if (argc < 2) {
+		print_usage("Invalid number of arguments.");
+		return -1;
+	}
+
+	const char *command = argv[1];
+
+	if (strcmp(command, "docsize") == 0) {
+
+		if (argc != 3) {
+			print_usage("Usage: bsondump docsize <file>", "docsize");
+			return -1;
+		}
+
+		const char *file_name = argv[2];
+		int source_fd = open(file_name, O_RDONLY);
+
+		if (source_fd < 0) {
+			PX4_ERR("open '%s' failed (%i)", file_name, errno);
+			return 1;
+		}
+
+		bson_decoder_s decoder{};
+		int result = -1;
+
+		if (bson_decoder_init_file(&decoder, source_fd, bson_docsize_callback) == 0) {
+
+			do {
+				result = bson_decoder_next(&decoder);
+
+			} while (result > 0);
+
+			PX4_INFO("DECODED_SIZE:%" PRId32 " SAVED_SIZE:%" PRId32 "\n",
+				 decoder.total_decoded_size, decoder.total_document_size);
+		}
+
+		close(source_fd);
+
+		if (decoder.total_decoded_size != decoder.total_document_size && decoder.total_document_size == 0) {
+
+			PX4_WARN("Mismatch in BSON sizes and saved size is zero. Setting document size to decoded size.");
+
+			source_fd = open(file_name, O_RDWR);
+
+			if (source_fd == -1) {
+				perror("Failed to re-open source file for reading and writing");
+				return -1;
+			}
+
+			// Modify the first 4 bytes with the correct decoded size
+			uint32_t corrected_size = decoder.total_decoded_size;
+
+			if (lseek(source_fd, 0, SEEK_SET) == (off_t) -1) {
+				perror("Failed to seek to the beginning of the file");
+				close(source_fd);
+				return -1;
+			}
+
+			if (write(source_fd, &corrected_size, sizeof(corrected_size)) != sizeof(corrected_size)) {
+				perror("Failed to write the corrected size to the file");
+				close(source_fd);
+				return -1;
+			}
+
+			close(source_fd);
+
+			return 1;
+		}
+
+		return 0;
+
 
 	} else {
-		char *file_name = argv[1];
 
-		if (file_name) {
-			int fd = open(file_name, O_RDONLY);
+		const char *file_name = argv[1];
 
-			if (fd < 0) {
-				PX4_ERR("open '%s' failed (%i)", file_name, errno);
-				return 1;
+		int fd = open(file_name, O_RDONLY);
 
-			} else {
-				PX4_INFO_RAW("[bsondump] reading from %s\n", file_name);
+		if (fd < 0) {
+			PX4_ERR("open '%s' failed (%i)", file_name, errno);
+			return 1;
 
-				bson_decoder_s decoder{};
+		} else {
+			PX4_INFO_RAW("[bsondump] reading from %s\n", file_name);
 
-				if (bson_decoder_init_file(&decoder, fd, bson_print_callback) == 0) {
-					PX4_INFO_RAW("BSON document size %" PRId32 "\n", decoder.total_document_size);
+			bson_decoder_s decoder{};
 
-					int result = -1;
+			if (bson_decoder_init_file(&decoder, fd, bson_print_callback) == 0) {
+				PX4_INFO_RAW("BSON document size %" PRId32 "\n", decoder.total_document_size);
 
-					do {
-						result = bson_decoder_next(&decoder);
+				int result = -1;
 
-					} while (result > 0);
+				do {
+					result = bson_decoder_next(&decoder);
 
-					close(fd);
+				} while (result > 0);
 
-					if (result == 0) {
-						PX4_INFO_RAW("BSON decoded %" PRId32 " bytes (double:%" PRIu16 ", string:%" PRIu16 ", bin:%" PRIu16 ", bool:%" PRIu16
-							     ", int32:%" PRIu16 ", int64:%" PRIu16 ")\n",
-							     decoder.total_decoded_size,
-							     decoder.count_node_double, decoder.count_node_string, decoder.count_node_bindata, decoder.count_node_bool,
-							     decoder.count_node_int32, decoder.count_node_int64);
+				close(fd);
 
-						return 0;
+				if (result == 0) {
+					PX4_INFO_RAW("BSON decoded %" PRId32 " bytes (double:%" PRIu16 ", string:%" PRIu16 ", bin:%" PRIu16 ", bool:%" PRIu16
+						     ", int32:%" PRIu16 ", int64:%" PRIu16 ")\n",
+						     decoder.total_decoded_size,
+						     decoder.count_node_double, decoder.count_node_string, decoder.count_node_bindata, decoder.count_node_bool,
+						     decoder.count_node_int32, decoder.count_node_int64);
 
-					} else if (result == -ENODATA) {
-						PX4_WARN("no data");
-						return -1;
+					return 0;
 
-					} else {
-						PX4_ERR("failed (%d)", result);
-						return -1;
-					}
+				} else if (result == -ENODATA) {
+					PX4_WARN("no data");
+					return -1;
+
+				} else {
+					PX4_ERR("failed (%d)", result);
+					return -1;
 				}
 			}
 		}
+
 	}
 
 	return -1;

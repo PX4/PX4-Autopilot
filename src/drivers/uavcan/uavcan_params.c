@@ -57,7 +57,7 @@ PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
 /**
  * UAVCAN Node ID.
  *
- * Read the specs at http://uavcan.org to learn more about Node ID.
+ * Read the specs at https://dronecan.github.io/ to learn more about Node ID.
  *
  * @min 1
  * @max 125
@@ -85,7 +85,7 @@ PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
  * @unit m
  * @group UAVCAN
  */
-PARAM_DEFINE_FLOAT(UAVCAN_RNG_MIN, 0.3f);
+PARAM_DEFINE_FLOAT(UAVCAN_RNG_MIN, 0.0f);
 
 /**
  * UAVCAN rangefinder maximum range
@@ -95,7 +95,41 @@ PARAM_DEFINE_FLOAT(UAVCAN_RNG_MIN, 0.3f);
  * @unit m
  * @group UAVCAN
  */
-PARAM_DEFINE_FLOAT(UAVCAN_RNG_MAX, 200.0f);
+PARAM_DEFINE_FLOAT(UAVCAN_RNG_MAX, 999.0f);
+
+/**
+ * UAVCAN fuel tank maximum capacity
+ *
+ * This parameter defines the maximum fuel capacity of the vehicle's fuel tank.
+ *
+ * @min 0.0
+ * @max 100000.0
+ * @unit liters
+ * @decimal 1
+ * @increment 0.1
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_ECU_MAXF, 15.0f);
+
+/**
+ * UAVCAN fuel tank fuel type
+ *
+ * This parameter defines the type of fuel used in the vehicle's fuel tank.
+ *
+ * 0: Unknown
+ * 1: Liquid (e.g., gasoline, diesel)
+ * 2: Gas (e.g., hydrogen, methane, propane)
+ *
+ * @min 0
+ * @max 2
+ * @value 0 Unknown
+ * @value 1 Liquid
+ * @value 2 Gas
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_ECU_FUELT, 1);
 
 /**
  * UAVCAN ANTI_COLLISION light operating mode
@@ -254,10 +288,11 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_BARO, 0);
  * Enable UAVCAN battery subscription.
  *  uavcan::equipment::power::BatteryInfo
  *  ardupilot::equipment::power::BatteryInfoAux
+ *  cuav::equipment::power::CBAT
  *
  *  0 - Disable
  *  1 - Use raw data. Recommended for Smart battery
- *  2 - Filter the data with internal battery library
+ *  2 - Filter the data with internal battery library (unsupported with CBAT)
  *
  * @min 0
  * @max 2
@@ -291,6 +326,17 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_DPRES, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_SUB_FLOW, 0);
+
+/**
+ * subscription fuel tank
+ *
+ * Enable UAVCAN fuel tank status subscription.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_FUEL, 0);
 
 /**
  * subscription GPS

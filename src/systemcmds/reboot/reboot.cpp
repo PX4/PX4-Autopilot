@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file reboot.c
+ * @file reboot.cpp
  * Tool similar to UNIX reboot command
  *
  * @author Lorenz Meier <lorenz@px4.io>

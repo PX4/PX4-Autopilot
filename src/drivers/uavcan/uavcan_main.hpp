@@ -68,6 +68,10 @@
 
 #include "logmessage.hpp"
 
+#if defined(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
+#include "remoteid.hpp"
+#endif
+
 #if defined(CONFIG_UAVCAN_RGB_CONTROLLER)
 #include "rgbled.hpp"
 #endif
@@ -97,6 +101,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/can_interface_status.h>
+#include <uORB/topics/dronecan_node_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
@@ -123,7 +128,7 @@ public:
 		  _node_mutex(node_mutex),
 		  _esc_controller(esc_controller) {}
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	void mixerChanged() override;
@@ -154,7 +159,7 @@ public:
 		  _node_mutex(node_mutex),
 		  _servo_controller(servo_controller) {}
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	MixingOutput &mixingOutput() { return _mixing_output; }
@@ -231,6 +236,9 @@ private:
 	void		fill_node_info();
 	int		init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
 
+	void publish_can_interface_statuses();
+	void publish_node_statuses();
+
 	int		print_params(uavcan::protocol::param::GetSet::Response &resp);
 	int		get_set_param(int nodeid, const char *name, uavcan::protocol::param::GetSet::Request &req);
 	void 		update_params();
@@ -268,6 +276,9 @@ private:
 #endif
 #if defined(CONFIG_UAVCAN_SAFETY_STATE_CONTROLLER)
 	UavcanSafetyState         	_safety_state_controller;
+#endif
+#if defined(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
+	UavcanRemoteIDController _remoteid_controller;
 #endif
 #if defined(CONFIG_UAVCAN_RGB_CONTROLLER)
 	UavcanRGBController             _rgbled_controller;
@@ -310,10 +321,15 @@ private:
 
 	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
-	uORB::PublicationMulti<can_interface_status_s> _can_status_pub{ORB_ID(can_interface_status)};
+
+	orb_advert_t _can_status_pub_handles[UAVCAN_NUM_IFACES] = {nullptr};
+
+	// array of NodeIDs, each index maps to uORB index
+	orb_advert_t _node_status_pub_handles[ORB_MULTI_MAX_INSTANCES] = {nullptr};
+	uint8_t _node_status_uorb_index_map[ORB_MULTI_MAX_INSTANCES] = {};
 
 	hrt_abstime _last_can_status_pub{0};
-	orb_advert_t _can_status_pub_handles[UAVCAN_NUM_IFACES] = {nullptr};
+	hrt_abstime _last_node_status_pub{0};
 
 	/*
 	 * The MAVLink parameter bridge needs to know the maximum parameter index

@@ -63,14 +63,14 @@ bool PPSCapture::init()
 {
 	bool success = false;
 
-	for (unsigned i = 0; i < 16; ++i) {
+	for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; ++i) {
 		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
 		param_t function_handle = param_find(param_name);
 		int32_t function;
 
 		if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
-			if (function == 2064) { // PPS_Input
+			if (function == 2064) { // PPS_Input see mixer_module/output_functions.yaml parameter metadata definition
 				_channel = i;
 			}
 		}

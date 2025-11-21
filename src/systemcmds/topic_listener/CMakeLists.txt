@@ -38,4 +38,3 @@ px4_add_module(
 	SRCS
 		listener_main.cpp
 	)
-

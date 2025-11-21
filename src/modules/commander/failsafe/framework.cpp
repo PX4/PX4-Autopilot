@@ -170,6 +170,10 @@ void FailsafeBase::removeActions(ClearCondition condition)
 
 void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action delayed_action, Cause cause)
 {
+	if (_on_notify_user_cb) {
+		_on_notify_user_cb(_on_notify_user_arg);
+	}
+
 	int delay_s = (_current_delay + 500_ms) / 1_s;
 	PX4_DEBUG("User notification: failsafe triggered (action=%i, delayed_action=%i, cause=%i, delay=%is)", (int)action,
 		  (int)delayed_action, (int)cause, delay_s);
@@ -224,6 +228,16 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				{events::Log::Warning, events::LogInternal::Warning},
 				"Failsafe warning:", mavlink_mode);
 
+			} else if (action == Action::Descend || action == Action::FallbackAltCtrl || action == Action::FallbackStab) {
+				/* EVENT
+				* @description Failsafe actions that disengage the autopilot (remove position control)
+				* @type append_health_and_arming_messages
+				*/
+				events::send<uint32_t, events::px4::enums::failsafe_action_t>(
+					events::ID("commander_failsafe_enter_autopilot_disengaged"),
+				{events::Log::Critical, events::LogInternal::Warning},
+				"Failsafe activated: Autopilot disengaged, switching to {2}", mavlink_mode, failsafe_action);
+
 			} else {
 				/* EVENT
 				* @type append_health_and_arming_messages
@@ -231,7 +245,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				events::send<uint32_t, events::px4::enums::failsafe_action_t>(
 					events::ID("commander_failsafe_enter_generic"),
 				{events::Log::Critical, events::LogInternal::Warning},
-				"Failsafe activated: Autopilot disengaged, switching to {2}", mavlink_mode, failsafe_action);
+				"Failsafe activated: switching to {2}", mavlink_mode, failsafe_action);
 			}
 
 		} else {
@@ -276,7 +290,9 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			}
 		}
 
-		mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
+		if (action != Action::Warn) {
+			mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
+		}
 	}
 
 #endif /* EMSCRIPTEN_BUILD */
@@ -380,7 +396,11 @@ bool FailsafeBase::checkFailsafe(int caller_id, bool last_state_failure, bool cu
 
 void FailsafeBase::removeAction(ActionOptions &action) const
 {
-	if (action.clear_condition == ClearCondition::WhenConditionClears) {
+	// If failsafes are being deferred and the action can be deferred, remove it immediately independent of the
+	// clear_condition to avoid triggering a failsafe after deferring is disabled.
+	const bool remove_while_deferring = _defer_failsafes && action.can_be_deferred;
+
+	if (action.clear_condition == ClearCondition::WhenConditionClears || remove_while_deferring) {
 		// Remove action
 		PX4_DEBUG("Caller %i: state changed to valid, removing action", action.id);
 		action.setInvalid();
@@ -423,7 +443,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	returned_state.updated_user_intended_mode = state.user_intended_mode;
 	returned_state.cause = Cause::Generic;
 
-	if (_selected_action == Action::Terminate) { // Terminate never clears
+	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_TERMINATION
+	    || _selected_action == Action::Terminate) { // Terminate never clears
 		returned_state.action = Action::Terminate;
 		return;
 	}
@@ -466,8 +487,13 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	}
 
 	// Check if we should enter delayed Hold
+	const bool action_can_be_delayed = selected_action != Action::None &&
+					   selected_action != Action::Disarm &&
+					   selected_action != Action::Terminate &&
+					   selected_action != Action::Hold;
+
 	if (_current_delay > 0 && !_user_takeover_active && allow_user_takeover <= UserTakeoverAllowed::AlwaysModeSwitchOnly
-	    && selected_action != Action::Disarm && selected_action != Action::Terminate) {
+	    && action_can_be_delayed) {
 		returned_state.delayed_action = selected_action;
 		selected_action = Action::Hold;
 		allow_user_takeover = UserTakeoverAllowed::AlwaysModeSwitchOnly;
@@ -598,6 +624,15 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		}
 	}
 
+	// If already in RTL, do not go into RTL again (would cause a Hold delay first, then re-start RTL)
+	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+		if ((selected_action == Action::RTL || returned_state.delayed_action == Action::RTL)
+		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)) {
+			selected_action = Action::Warn;
+			returned_state.delayed_action = Action::None;
+		}
+	}
+
 	// If already precision landing, do not go into RTL or Land
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) {
 		if ((selected_action == Action::RTL || selected_action == Action::Land ||
@@ -672,6 +707,7 @@ bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode
 		(!status_flags.local_position_invalid || ((status_flags.mode_req_local_position & mode_mask) == 0)) &&
 		(!status_flags.local_position_invalid_relaxed || ((status_flags.mode_req_local_position_relaxed & mode_mask) == 0)) &&
 		(!status_flags.global_position_invalid || ((status_flags.mode_req_global_position & mode_mask) == 0)) &&
+		(!status_flags.global_position_invalid_relaxed || ((status_flags.mode_req_global_position_relaxed & mode_mask) == 0)) &&
 		(!status_flags.local_altitude_invalid || ((status_flags.mode_req_local_alt & mode_mask) == 0)) &&
 		(!status_flags.auto_mission_missing || ((status_flags.mode_req_mission & mode_mask) == 0)) &&
 		(!status_flags.offboard_control_signal_lost || ((status_flags.mode_req_offboard_signal & mode_mask) == 0)) &&
@@ -683,6 +719,10 @@ bool FailsafeBase::deferFailsafes(bool enabled, int timeout_s)
 {
 	if (enabled && _selected_action > Action::Warn) {
 		return false;
+	}
+
+	if (!enabled && _defer_failsafes && _failsafe_defer_started == 0) {
+		_current_delay = 0;
 	}
 
 	if (timeout_s == 0) {

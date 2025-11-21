@@ -160,10 +160,11 @@ private:
 	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 
 	uint8_t _checked_register_bank0{0};
-	static constexpr uint8_t size_register_bank0_cfg{10};
+	static constexpr uint8_t size_register_bank0_cfg{11};
 	register_bank0_config_t _register_bank0_cfg[size_register_bank0_cfg] {
 		// Register                        | Set bits, Clear bits
 		{ Register::BANK_0::INT_CONFIG,    INT_CONFIG_BIT::INT1_MODE | INT_CONFIG_BIT::INT1_DRIVE_CIRCUIT, INT_CONFIG_BIT::INT1_POLARITY },
+		{ Register::BANK_0::INTF_CONFIG0,  INTF_CONFIG0_BIT::FIFO_COUNT_REC | INTF_CONFIG0_BIT::UI_SIFS_CFG_DISABLE_I2C, 0},
 		{ Register::BANK_0::FIFO_CONFIG,   FIFO_CONFIG_BIT::FIFO_MODE_STOP_ON_FULL, 0 },
 		{ Register::BANK_0::PWR_MGMT0,     PWR_MGMT0_BIT::GYRO_MODE_LOW_NOISE | PWR_MGMT0_BIT::ACCEL_MODE_LOW_NOISE, 0 },
 		{ Register::BANK_0::GYRO_CONFIG0,  GYRO_CONFIG0_BIT::GYRO_ODR_8kHz, Bit7 | Bit6 | Bit5 | Bit3 | Bit2 },

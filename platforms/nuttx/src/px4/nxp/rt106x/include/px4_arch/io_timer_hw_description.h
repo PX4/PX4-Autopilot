@@ -47,8 +47,8 @@
 #include <hardware/imxrt_pinmux.h>
 
 #include <board_config.h>
-#ifndef CONFIG_ARCH_CHIP_MIMXRT1062DVL6A
-# error "This code has only been validated with IMXRT1062. Make sure it is correct before using it on another board."
+#if !defined(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A) && !defined(CONFIG_ARCH_CHIP_MIMXRT1064DVL6A)
+# error "This code has only been validated with IMXRT1062 and IMXRT1064. Make sure it is correct before using it on another board."
 #endif
 
 
@@ -601,7 +601,28 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	return ret;
 }
 
+static inline constexpr timer_io_channels_t initIOTimerChannelDshot(const io_timers_t io_timers_conf[MAX_IO_TIMERS],
+		PWM::FlexPWMConfig pwm_config, IOMUX::Pad pad, uint32_t dshot_pinmux, uint32_t flexio_pin)
+{
+	timer_io_channels_t ret = initIOTimerChannel(io_timers_conf, pwm_config, pad);
+
+	ret.dshot.pinmux = dshot_pinmux;
+	ret.dshot.flexio_pin = flexio_pin;
+	return ret;
+}
+
 static inline constexpr io_timers_t initIOPWM(PWM::FlexPWM pwm, PWM::FlexPWMSubmodule sub)
+{
+	io_timers_t ret{};
+
+	ret.base = getFlexPWMBaseRegister(pwm);
+	ret.submodle = sub;
+	return ret;
+}
+
+
+
+static inline constexpr io_timers_t initIOPWMDshot(PWM::FlexPWM pwm, PWM::FlexPWMSubmodule sub)
 {
 	io_timers_t ret{};
 

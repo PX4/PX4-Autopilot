@@ -56,14 +56,13 @@ TEST(PositionControlTest, EmptySetpoint)
 
 	vehicle_attitude_setpoint_s attitude{};
 	position_control.getAttitudeSetpoint(attitude);
-	EXPECT_FLOAT_EQ(attitude.roll_body, 0.f);
-	EXPECT_FLOAT_EQ(attitude.pitch_body, 0.f);
-	EXPECT_FLOAT_EQ(attitude.yaw_body, 0.f);
+	Eulerf euler_att(Quatf(attitude.q_d));
+	EXPECT_FLOAT_EQ(euler_att.phi(), 0.f);
+	EXPECT_FLOAT_EQ(euler_att.theta(), 0.f);
+	EXPECT_FLOAT_EQ(euler_att.psi(), 0.f);
 	EXPECT_FLOAT_EQ(attitude.yaw_sp_move_rate, 0.f);
 	EXPECT_EQ(Quatf(attitude.q_d), Quatf(1.f, 0.f, 0.f, 0.f));
 	EXPECT_EQ(Vector3f(attitude.thrust_body), Vector3f(0.f, 0.f, 0.f));
-	EXPECT_EQ(attitude.reset_integral, false);
-	EXPECT_EQ(attitude.fw_control_yaw_wheel, false);
 }
 
 class PositionControlBasicTest : public ::testing::Test
@@ -184,7 +183,8 @@ TEST_F(PositionControlBasicTest, PositionControlMaxThrustLimit)
 	EXPECT_FLOAT_EQ(_attitude.thrust_body[2], -MAXIMUM_THRUST);
 
 	// Then the horizontal margin results in a tilt with the ratio of: horizontal margin / maximum thrust
-	EXPECT_FLOAT_EQ(_attitude.roll_body, asin((HORIZONTAL_THRUST_MARGIN / sqrt(2.f)) / MAXIMUM_THRUST));
+	Eulerf euler_att(Quatf(_attitude.q_d));
+	EXPECT_FLOAT_EQ(euler_att.phi(), asin((HORIZONTAL_THRUST_MARGIN / sqrt(2.f)) / MAXIMUM_THRUST));
 	// TODO: add this line back once attitude setpoint generation strategy does not align body yaw with heading all the time anymore
 	// EXPECT_FLOAT_EQ(_attitude.pitch_body, -asin((HORIZONTAL_THRUST_MARGIN / sqrt(2.f)) / MAXIMUM_THRUST));
 }
@@ -198,9 +198,10 @@ TEST_F(PositionControlBasicTest, PositionControlMinThrustLimit)
 	EXPECT_FLOAT_EQ(thrust.length(), 0.1f);
 
 	EXPECT_FLOAT_EQ(_attitude.thrust_body[2], -0.1f);
+	Eulerf euler_att(Quatf(_attitude.q_d));
 
-	EXPECT_FLOAT_EQ(_attitude.roll_body, 0.f);
-	EXPECT_FLOAT_EQ(_attitude.pitch_body, -1.f);
+	EXPECT_FLOAT_EQ(euler_att.phi(), 0.f);
+	EXPECT_FLOAT_EQ(euler_att.theta(), -1.f);
 }
 
 TEST_F(PositionControlBasicTest, FailsafeInput)
@@ -315,23 +316,62 @@ TEST_F(PositionControlBasicTest, SetpointValidityAllCombinations)
 	}
 }
 
-TEST_F(PositionControlBasicTest, InvalidState)
+TEST_F(PositionControlBasicTest, PositionSetpointInvalidState)
 {
-	Vector3f(.1f, .2f, .3f).copyTo(_input_setpoint.position);
+	Vector3f(.1f, .2f, .3f).copyTo(_input_setpoint.position); // Position setpoint
 
+	// All states valid - ok
 	PositionControlStates states{};
+	_position_control.setState(states);
+	EXPECT_TRUE(runController());
+
+	// Position invalid
 	states.position(0) = NAN;
 	_position_control.setState(states);
 	EXPECT_FALSE(runController());
 
+	// Position and velocity invalid
 	states.velocity(0) = NAN;
 	_position_control.setState(states);
 	EXPECT_FALSE(runController());
 
+	// Velocity invalid
 	states.position(0) = 0.f;
 	_position_control.setState(states);
 	EXPECT_FALSE(runController());
 
+	// Velocity derivative invalid
+	states.velocity(0) = 0.f;
+	states.acceleration(1) = NAN;
+	_position_control.setState(states);
+	EXPECT_FALSE(runController());
+}
+
+TEST_F(PositionControlBasicTest, VelocitySetpointInvalidState)
+{
+	Vector3f(.1f, .2f, .3f).copyTo(_input_setpoint.velocity); // Velocity setpoint
+
+	// All states valid - ok
+	PositionControlStates states{};
+	_position_control.setState(states);
+	EXPECT_TRUE(runController());
+
+	// Position invalid - ok
+	states.position(0) = NAN;
+	_position_control.setState(states);
+	EXPECT_TRUE(runController());
+
+	// Position and velocity invalid
+	states.velocity(0) = NAN;
+	_position_control.setState(states);
+	EXPECT_FALSE(runController());
+
+	// Velocity invalid
+	states.position(0) = 0.f;
+	_position_control.setState(states);
+	EXPECT_FALSE(runController());
+
+	// Velocity derivative invalid
 	states.velocity(0) = 0.f;
 	states.acceleration(1) = NAN;
 	_position_control.setState(states);
@@ -377,6 +417,7 @@ TEST_F(PositionControlBasicTest, IntegratorWindupWithInvalidSetpoint)
 	EXPECT_TRUE(runController());
 
 	// THEN: the integral did not wind up and produce unexpected deviation
-	EXPECT_FLOAT_EQ(_attitude.roll_body, 0.f);
-	EXPECT_FLOAT_EQ(_attitude.pitch_body, 0.f);
+	Eulerf euler_att(Quatf(_attitude.q_d));
+	EXPECT_FLOAT_EQ(euler_att.phi(), 0.f);
+	EXPECT_FLOAT_EQ(euler_att.theta(), 0.f);
 }

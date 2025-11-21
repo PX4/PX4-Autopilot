@@ -69,9 +69,6 @@ VehicleIMU::VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, co
 	// schedule conservatively until the actual accel & gyro rates are known
 	_sensor_gyro_sub.set_required_updates(sensor_gyro_s::ORB_QUEUE_LENGTH / 2);
 #endif
-
-	_notify_clipping = _param_sens_imu_notify_clipping.get();
-
 	// advertise immediately to ensure consistent ordering
 	_vehicle_imu_pub.advertise();
 	_vehicle_imu_status_pub.advertise();
@@ -126,6 +123,8 @@ bool VehicleIMU::ParametersUpdate(bool force)
 		const auto gyro_calibration_count = _gyro_calibration.calibration_count();
 		_accel_calibration.ParametersUpdate();
 		_gyro_calibration.ParametersUpdate();
+
+		_notify_clipping = _param_sens_imu_notify_clipping.get();
 
 		if (accel_calibration_count != _accel_calibration.calibration_count()) {
 			// if calibration changed reset any existing learned calibration
@@ -707,8 +706,8 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 		_gyro_integrator.set_reset_interval(roundf((gyro_integral_samples - 0.5f) * gyro_interval_us));
 		_gyro_integrator.set_reset_samples(gyro_integral_samples);
 
-		_backup_schedule_timeout_us = math::constrain((int)math::min(sensor_accel_s::ORB_QUEUE_LENGTH * accel_interval_us,
-					      sensor_gyro_s::ORB_QUEUE_LENGTH * gyro_interval_us) / 2, 1000, 20000);
+		_backup_schedule_timeout_us = math::constrain((int)math::min((sensor_accel_s::ORB_QUEUE_LENGTH - 1) * accel_interval_us,
+					      (sensor_gyro_s::ORB_QUEUE_LENGTH - 1) * gyro_interval_us), 1000, 20000);
 
 		// gyro: find largest integer multiple of gyro_integral_samples
 		for (int n = sensor_gyro_s::ORB_QUEUE_LENGTH; n > 0; n--) {
@@ -717,6 +716,12 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 			}
 
 			if (gyro_integral_samples % n == 0) {
+				// Make sure _backup_schedule_timeout_us is not smaller than normal scheduling interval
+
+				if (_backup_schedule_timeout_us < n * gyro_interval_us) {
+					_backup_schedule_timeout_us = (n + 1) * gyro_interval_us;
+				}
+
 				_sensor_gyro_sub.set_required_updates(n);
 				_sensor_gyro_sub.registerCallback();
 

@@ -251,12 +251,6 @@ public:
 
 	virtual void parameters_update() = 0;
 
-	/**
-	 * @brief Set current time delta
-	 *
-	 * @param dt Current time delta [s]
-	 */
-	void setDt(float dt) {_dt = dt; }
 
 	/**
 	 * @brief Resets the transition timer states.
@@ -305,6 +299,7 @@ protected:
 	// motors spinning up or cutting too fast when doing transitions.
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 	float _last_thr_in_fw_mode = 0.0f;
+	float _last_thr_in_mc = 0.f;
 
 	hrt_abstime _trans_finished_ts = 0;
 	hrt_abstime _transition_start_timestamp{0};
@@ -318,15 +313,10 @@ protected:
 
 	float _quadchute_ref_alt{NAN};	// altitude (AMSL) reference to compute quad-chute altitude loss condition
 
-	float _accel_to_pitch_integ = 0;
-
 	bool _quadchute_command_treated{false};
 
-	float update_and_get_backtransition_pitch_sp();
 	bool isFrontTransitionCompleted();
 	virtual bool isFrontTransitionCompletedBase();
-
-	float _dt{0.0025f}; // time step [s]
 
 	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
 
@@ -348,7 +338,6 @@ protected:
 					(ParamFloat<px4::params::VT_ARSP_TRANS>) _param_vt_arsp_trans,
 					(ParamFloat<px4::params::VT_F_TRANS_THR>) _param_vt_f_trans_thr,
 					(ParamFloat<px4::params::VT_ARSP_BLEND>) _param_vt_arsp_blend,
-					(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 					(ParamInt<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
@@ -372,7 +361,6 @@ protected:
 private:
 	hrt_abstime _throttle_blend_start_ts{0};	// time at which we start blending between transition throttle and fixed wing throttle
 
-	void resetAccelToPitchPitchIntegrator() { _accel_to_pitch_integ = 0.f; }
 	bool shouldBlendThrottleAfterFrontTransition() { return _throttle_blend_start_ts != 0; };
 
 	void stopBlendingThrottleAfterFrontTransition() { _throttle_blend_start_ts = 0; }

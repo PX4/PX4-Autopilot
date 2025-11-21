@@ -71,11 +71,17 @@ void Ekf::reset()
 #if defined(CONFIG_EKF2_WIND)
 	_state.wind_vel.setZero();
 #endif // CONFIG_EKF2_WIND
+	//
+#if defined(CONFIG_EKF2_TERRAIN)
+	// assume a ground clearance
+	_state.terrain = -_gpos.altitude() + _params.ekf2_min_rng;
+#endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
+	_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
-	_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
+	_range_sensor.setQualityHysteresis(_params.ekf2_rng_qlty_t);
+	_range_sensor.setMaxFogDistance(_params.ekf2_rng_fog);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	_control_status.value = 0;
@@ -84,16 +90,13 @@ void Ekf::reset()
 	_control_status.flags.in_air = true;
 	_control_status_prev.flags.in_air = true;
 
-	_ang_rate_delayed_raw.zero();
-
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
 
 #if defined(CONFIG_EKF2_GNSS)
-	resetGpsDriftCheckFilters();
-	_gps_checks_passed = false;
+	_gnss_checks.resetHard();
 #endif // CONFIG_EKF2_GNSS
-	_gps_alt_ref = NAN;
+	_local_origin_alt = NAN;
 
 	_output_predictor.reset();
 
@@ -107,10 +110,9 @@ void Ekf::reset()
 	_time_last_hor_vel_fuse = 0;
 	_time_last_ver_vel_fuse = 0;
 	_time_last_heading_fuse = 0;
+	_time_last_terrain_fuse = 0;
 
-	_last_known_pos.setZero();
-
-	_time_acc_bias_check = 0;
+	_last_known_gpos.setZero();
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	_baro_counter = 0;
@@ -122,68 +124,18 @@ void Ekf::reset()
 
 	_time_bad_vert_accel = 0;
 	_time_good_vert_accel = 0;
-	_clip_counter = 0;
 
-#if defined(CONFIG_EKF2_BAROMETER)
-	resetEstimatorAidStatus(_aid_src_baro_hgt);
-#endif // CONFIG_EKF2_BAROMETER
-#if defined(CONFIG_EKF2_AIRSPEED)
-	resetEstimatorAidStatus(_aid_src_airspeed);
-#endif // CONFIG_EKF2_AIRSPEED
-#if defined(CONFIG_EKF2_SIDESLIP)
-	resetEstimatorAidStatus(_aid_src_sideslip);
-#endif // CONFIG_EKF2_SIDESLIP
-
-	resetEstimatorAidStatus(_aid_src_fake_pos);
-	resetEstimatorAidStatus(_aid_src_fake_hgt);
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	resetEstimatorAidStatus(_aid_src_ev_hgt);
-	resetEstimatorAidStatus(_aid_src_ev_pos);
-	resetEstimatorAidStatus(_aid_src_ev_vel);
-	resetEstimatorAidStatus(_aid_src_ev_yaw);
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-#if defined(CONFIG_EKF2_GNSS)
-	resetEstimatorAidStatus(_aid_src_gnss_hgt);
-	resetEstimatorAidStatus(_aid_src_gnss_pos);
-	resetEstimatorAidStatus(_aid_src_gnss_vel);
-
-# if defined(CONFIG_EKF2_GNSS_YAW)
-	resetEstimatorAidStatus(_aid_src_gnss_yaw);
-# endif // CONFIG_EKF2_GNSS_YAW
-#endif // CONFIG_EKF2_GNSS
-
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-	resetEstimatorAidStatus(_aid_src_mag);
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_AUXVEL)
-	resetEstimatorAidStatus(_aid_src_aux_vel);
-#endif // CONFIG_EKF2_AUXVEL
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	resetEstimatorAidStatus(_aid_src_optical_flow);
-	resetEstimatorAidStatus(_aid_src_terrain_optical_flow);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	resetEstimatorAidStatus(_aid_src_rng_hgt);
-#endif // CONFIG_EKF2_RANGE_FINDER
+	for (auto &clip_count : _clip_counter) {
+		clip_count = 0;
+	}
 
 	_zero_velocity_update.reset();
+
+	updateParameters();
 }
 
 bool Ekf::update()
 {
-	if (!_filter_initialised) {
-		_filter_initialised = initialiseFilter();
-
-		if (!_filter_initialised) {
-			return false;
-		}
-	}
-
 	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
 		_imu_updated = false;
@@ -192,11 +144,38 @@ bool Ekf::update()
 		// TODO: explicitly pop at desired time horizon
 		const imuSample imu_sample_delayed = _imu_buffer.get_oldest();
 
+		// protect against zero data
+		if (imu_sample_delayed.delta_vel_dt < 1e-4f || imu_sample_delayed.delta_ang_dt < 1e-4f) {
+			return false;
+		}
+
 		// calculate an average filter update time
-		//  filter and limit input between -50% and +100% of nominal value
-		float input = 0.5f * (imu_sample_delayed.delta_vel_dt + imu_sample_delayed.delta_ang_dt);
-		float filter_update_s = 1e-6f * _params.filter_update_interval_us;
-		_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * math::constrain(input, 0.5f * filter_update_s, 2.f * filter_update_s);
+		// limit input between -50% and +100% of nominal value
+		const float filter_update_s = 1e-6f * _params.ekf2_predict_us;
+		const float input = math::constrain(0.5f * (imu_sample_delayed.delta_vel_dt + imu_sample_delayed.delta_ang_dt),
+						    0.5f * filter_update_s,
+						    2.f * filter_update_s);
+
+		if (_is_first_imu_sample) {
+			_accel_lpf.reset(imu_sample_delayed.delta_vel / imu_sample_delayed.delta_vel_dt);
+			_gyro_lpf.reset(imu_sample_delayed.delta_ang / imu_sample_delayed.delta_ang_dt);
+			_dt_ekf_avg = input;
+
+			_is_first_imu_sample = false;
+
+		} else {
+			_accel_lpf.update(imu_sample_delayed.delta_vel / imu_sample_delayed.delta_vel_dt);
+			_gyro_lpf.update(imu_sample_delayed.delta_ang / imu_sample_delayed.delta_ang_dt);
+			_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
+		}
+
+		if (!_filter_initialised) {
+			_filter_initialised = initialiseFilter();
+
+			if (!_filter_initialised) {
+				return false;
+			}
+		}
 
 		updateIMUBiasInhibit(imu_sample_delayed);
 
@@ -207,12 +186,8 @@ bool Ekf::update()
 		// control fusion of observation data
 		controlFusionModes(imu_sample_delayed);
 
-#if defined(CONFIG_EKF2_TERRAIN)
-		// run a separate filter for terrain estimation
-		runTerrainEstimator(imu_sample_delayed);
-#endif // CONFIG_EKF2_TERRAIN
-
-		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _state.pos, _state.gyro_bias, _state.accel_bias);
+		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _gpos,
+						      _state.gyro_bias, _state.accel_bias);
 
 		return true;
 	}
@@ -222,24 +197,6 @@ bool Ekf::update()
 
 bool Ekf::initialiseFilter()
 {
-	// Filter accel for tilt initialization
-	const imuSample &imu_init = _imu_buffer.get_newest();
-
-	// protect against zero data
-	if (imu_init.delta_vel_dt < 1e-4f || imu_init.delta_ang_dt < 1e-4f) {
-		return false;
-	}
-
-	if (_is_first_imu_sample) {
-		_accel_lpf.reset(imu_init.delta_vel / imu_init.delta_vel_dt);
-		_gyro_lpf.reset(imu_init.delta_ang / imu_init.delta_ang_dt);
-		_is_first_imu_sample = false;
-
-	} else {
-		_accel_lpf.update(imu_init.delta_vel / imu_init.delta_vel_dt);
-		_gyro_lpf.update(imu_init.delta_ang / imu_init.delta_ang_dt);
-	}
-
 	if (!initialiseTilt()) {
 		return false;
 	}
@@ -247,13 +204,8 @@ bool Ekf::initialiseFilter()
 	// initialise the state covariance matrix now we have starting values for all the states
 	initialiseCovariance();
 
-#if defined(CONFIG_EKF2_TERRAIN)
-	// Initialise the terrain estimator
-	initHagl();
-#endif // CONFIG_EKF2_TERRAIN
-
 	// reset the output predictor state history to match the EKF initial values
-	_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _state.pos);
+	_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _gpos);
 
 	return true;
 }
@@ -278,6 +230,11 @@ bool Ekf::initialiseTilt()
 
 void Ekf::predictState(const imuSample &imu_delayed)
 {
+	if (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)) {
+		_earth_rate_lat_ref_rad = _gpos.latitude_rad();
+		_earth_rate_NED = calcEarthRateNED((float)_earth_rate_lat_ref_rad);
+	}
+
 	// apply imu bias corrections
 	const Vector3f delta_ang_bias_scaled = getGyroBias() * imu_delayed.delta_ang_dt;
 	Vector3f corrected_delta_ang = imu_delayed.delta_ang - delta_ang_bias_scaled;
@@ -302,53 +259,152 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// calculate the increment in velocity using the current orientation
 	_state.vel += corrected_delta_vel_ef;
 
-	// compensate for acceleration due to gravity
-	_state.vel(2) += CONSTANTS_ONE_G * imu_delayed.delta_vel_dt;
+	// compensate for acceleration due to gravity, Coriolis and transport rate
+	const Vector3f gravity_acceleration(0.f, 0.f, CONSTANTS_ONE_G); // simplistic model
+	const Vector3f coriolis_acceleration = -2.f * _earth_rate_NED.cross(vel_last);
+	const Vector3f transport_rate = -_gpos.computeAngularRateNavFrame(vel_last).cross(vel_last);
+	_state.vel += (gravity_acceleration + coriolis_acceleration + transport_rate) * imu_delayed.delta_vel_dt;
 
 	// predict position states via trapezoidal integration of velocity
-	_state.pos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
+	_gpos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
+	_state.pos(2) = -_gpos.altitude();
 
 	// constrain states
-	_state.vel = matrix::constrain(_state.vel, -1000.f, 1000.f);
-	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
+	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
 
-	// some calculations elsewhere in code require a raw angular rate vector so calculate here to avoid duplication
-	// protect against possible small timesteps resulting from timing slip on previous frame that can drive spikes into the rate
-	// due to insufficient averaging
-	if (imu_delayed.delta_ang_dt > 0.25f * _dt_ekf_avg) {
-		_ang_rate_delayed_raw = imu_delayed.delta_ang / imu_delayed.delta_ang_dt;
-	}
-
-
-	// calculate a filtered horizontal acceleration with a 1 sec time constant
-	// this are used for manoeuvre detection elsewhere
-	const float alpha = 1.0f - imu_delayed.delta_vel_dt;
-	_accel_lpf_NE = _accel_lpf_NE * alpha + corrected_delta_vel_ef.xy();
-
-	// Calculate low pass filtered height rate
-	float alpha_height_rate_lpf = 0.1f * imu_delayed.delta_vel_dt; // 10 seconds time constant
-	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
+	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
+	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
 }
 
-void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation)
+bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const double longitude, const float altitude,
+		const float eph,
+		const float epv, uint64_t timestamp_observation)
 {
-
-	if (!_pos_ref.isInitialized()) {
-		return;
+	if (!checkLatLonValidity(latitude, longitude)) {
+		return false;
 	}
 
-	// apply a first order correction using velocity at the delated time horizon and the delta time
-	timestamp_observation = math::min(_time_latest_us, timestamp_observation);
-	const float dt = _time_delayed_us > timestamp_observation ? static_cast<float>(_time_delayed_us - timestamp_observation)
-			 * 1e-6f : -static_cast<float>(timestamp_observation - _time_delayed_us) * 1e-6f;
+	if (!_local_origin_lat_lon.isInitialized()) {
+		if (!resetLatLonTo(latitude, longitude, sq(eph))) {
+			return false;
+		}
 
-	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg) + _state.vel.xy() * dt;
+		initialiseAltitudeTo(altitude, sq(epv));
 
-	resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
+		return true;
+	}
+
+	Vector3f pos_correction;
+
+	// apply a first order correction using velocity at the delayed time horizon and the delta time
+	if ((timestamp_observation > 0) && isLocalHorizontalPositionValid()) {
+
+		timestamp_observation = math::min(_time_latest_us, timestamp_observation);
+
+		float dt_us;
+
+		if (_time_delayed_us >= timestamp_observation) {
+			dt_us = static_cast<float>(_time_delayed_us - timestamp_observation);
+
+		} else {
+			dt_us = -static_cast<float>(timestamp_observation - _time_delayed_us);
+		}
+
+		const float dt_s = dt_us * 1e-6f;
+		pos_correction = _state.vel * dt_s;
+	}
+
+	LatLonAlt gpos(latitude, longitude, altitude);
+	bool alt_valid = true;
+
+	if (!checkAltitudeValidity(gpos.altitude())) {
+		gpos.setAltitude(_gpos.altitude());
+		alt_valid = false;
+	}
+
+	const LatLonAlt gpos_corrected = gpos + pos_correction;
+
+	{
+		const float obs_var = math::max(sq(eph), sq(0.01f));
+
+		const Vector2f innov = (_gpos - gpos_corrected).xy();
+		const Vector2f innov_var = Vector2f(getStateVariance<State::pos>()) + obs_var;
+
+		const float sq_gate = sq(5.f); // magic hardcoded gate
+		const float test_ratio = sq(innov(0)) / (sq_gate * innov_var(0)) + sq(innov(1)) / (sq_gate * innov_var(1));
+
+		const bool innov_rejected = (test_ratio > 1.f);
+
+		if (!_control_status.flags.in_air || (eph > 0.f && eph < 1.f) || innov_rejected) {
+			// When on ground or accuracy chosen to be very low, we hard reset position
+			// this allows the user to still send hard resets at any time
+			// Also reset when another position source is active as it it would otherwise have almost no
+			// visible effect to the position estimate.
+			ECL_INFO("reset position to external observation");
+			_information_events.flags.reset_pos_to_ext_obs = true;
+
+			resetHorizontalPositionTo(gpos_corrected.latitude_deg(), gpos_corrected.longitude_deg(), obs_var);
+			_last_known_gpos.setLatLon(gpos_corrected);
+
+		} else {
+			ECL_INFO("fuse external observation as position measurement");
+
+			VectorState H;
+			VectorState K;
+
+			for (unsigned index = 0; index < 2; index++) {
+				K = VectorState(P.row(State::pos.idx + index)) / innov_var(index);
+				H(State::pos.idx + index) = 1.f;
+
+				// Artificially set the position Kalman gain to 1 in order to force a reset
+				// of the position through fusion. This allows the EKF to use part of the information
+				// to continue learning the correlated states (e.g.: velocity, heading, wind) while
+				// performing a position reset.
+				K(State::pos.idx + index) = 1.f;
+				measurementUpdate(K, H, obs_var, innov(index));
+				H(State::pos.idx + index) = 0.f; // Reset the whole vector to 0
+			}
+
+			// Use the reset counters to inform the controllers about a position jump
+			updateHorizontalPositionResetStatus(-innov);
+
+			// Reset the positon of the output predictor to avoid a transient that would disturb the
+			// position controller
+			_output_predictor.resetLatLonTo(_gpos.latitude_deg(), _gpos.longitude_deg());
+
+			_time_last_hor_pos_fuse = _time_delayed_us;
+			_last_known_gpos.setLatLon(gpos_corrected);
+		}
+	}
+
+	if (alt_valid) {
+		const float obs_var = math::max(sq(epv), sq(0.01f));
+
+		ECL_INFO("reset height to external observation");
+		initialiseAltitudeTo(gpos_corrected.altitude(), obs_var);
+		_last_known_gpos.setAltitude(gpos_corrected.altitude());
+	}
+
+	return true;
 }
 
 void Ekf::updateParameters()
 {
+	_params.ekf2_gyr_noise = math::constrain(_params.ekf2_gyr_noise, 0.f, 1.f);
+	_params.ekf2_acc_noise = math::constrain(_params.ekf2_acc_noise, 0.f, 1.f);
+
+	_params.ekf2_gyr_b_noise = math::constrain(_params.ekf2_gyr_b_noise, 0.f, 1.f);
+	_params.ekf2_acc_b_noise = math::constrain(_params.ekf2_acc_b_noise, 0.f, 1.f);
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	_params.ekf2_mag_e_noise = math::constrain(_params.ekf2_mag_e_noise, 0.f, 1.f);
+	_params.ekf2_mag_b_noise = math::constrain(_params.ekf2_mag_b_noise, 0.f, 1.f);
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_WIND)
+	_params.ekf2_wind_nsd = math::constrain(_params.ekf2_wind_nsd, 0.f, 1.f);
+#endif // CONFIG_EKF2_WIND
+
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 	_aux_global_position.updateParameters();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
@@ -370,40 +426,50 @@ void Ekf::print_status()
 	printf("\nStates: (%.4f seconds ago)\n", (_time_latest_us - _time_delayed_us) * 1e-6);
 	printf("Orientation (%d-%d): [%.3f, %.3f, %.3f, %.3f] (Euler [%.1f, %.1f, %.1f] deg) var: [%.1e, %.1e, %.1e]\n",
 	       State::quat_nominal.idx, State::quat_nominal.idx + State::quat_nominal.dof - 1,
-	       (double)_state.quat_nominal(0), (double)_state.quat_nominal(1), (double)_state.quat_nominal(2), (double)_state.quat_nominal(3),
-	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).phi()), (double)math::degrees(matrix::Eulerf(_state.quat_nominal).theta()), (double)math::degrees(matrix::Eulerf(_state.quat_nominal).psi()),
-	       (double)getStateVariance<State::quat_nominal>()(0), (double)getStateVariance<State::quat_nominal>()(1), (double)getStateVariance<State::quat_nominal>()(2)
+	       (double)_state.quat_nominal(0), (double)_state.quat_nominal(1), (double)_state.quat_nominal(2),
+	       (double)_state.quat_nominal(3),
+	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).phi()),
+	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).theta()),
+	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).psi()),
+	       (double)getStateVariance<State::quat_nominal>()(0), (double)getStateVariance<State::quat_nominal>()(1),
+	       (double)getStateVariance<State::quat_nominal>()(2)
 	      );
 
 	printf("Velocity (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
 	       State::vel.idx, State::vel.idx + State::vel.dof - 1,
 	       (double)_state.vel(0), (double)_state.vel(1), (double)_state.vel(2),
-	       (double)getStateVariance<State::vel>()(0), (double)getStateVariance<State::vel>()(1), (double)getStateVariance<State::vel>()(2)
+	       (double)getStateVariance<State::vel>()(0), (double)getStateVariance<State::vel>()(1),
+	       (double)getStateVariance<State::vel>()(2)
 	      );
 
+	const Vector3f position = getPosition();
 	printf("Position (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
 	       State::pos.idx, State::pos.idx + State::pos.dof - 1,
-	       (double)_state.pos(0), (double)_state.pos(1), (double)_state.pos(2),
-	       (double)getStateVariance<State::pos>()(0), (double)getStateVariance<State::pos>()(1), (double)getStateVariance<State::pos>()(2)
+	       (double)position(0), (double)position(1), (double) position(2),
+	       (double)getStateVariance<State::pos>()(0), (double)getStateVariance<State::pos>()(1),
+	       (double)getStateVariance<State::pos>()(2)
 	      );
 
 	printf("Gyro Bias (%d-%d): [%.6f, %.6f, %.6f] var: [%.1e, %.1e, %.1e]\n",
 	       State::gyro_bias.idx, State::gyro_bias.idx + State::gyro_bias.dof - 1,
 	       (double)_state.gyro_bias(0), (double)_state.gyro_bias(1), (double)_state.gyro_bias(2),
-	       (double)getStateVariance<State::gyro_bias>()(0), (double)getStateVariance<State::gyro_bias>()(1), (double)getStateVariance<State::gyro_bias>()(2)
+	       (double)getStateVariance<State::gyro_bias>()(0), (double)getStateVariance<State::gyro_bias>()(1),
+	       (double)getStateVariance<State::gyro_bias>()(2)
 	      );
 
 	printf("Accel Bias (%d-%d): [%.6f, %.6f, %.6f] var: [%.1e, %.1e, %.1e]\n",
 	       State::accel_bias.idx, State::accel_bias.idx + State::accel_bias.dof - 1,
 	       (double)_state.accel_bias(0), (double)_state.accel_bias(1), (double)_state.accel_bias(2),
-	       (double)getStateVariance<State::accel_bias>()(0), (double)getStateVariance<State::accel_bias>()(1), (double)getStateVariance<State::accel_bias>()(2)
+	       (double)getStateVariance<State::accel_bias>()(0), (double)getStateVariance<State::accel_bias>()(1),
+	       (double)getStateVariance<State::accel_bias>()(2)
 	      );
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	printf("Magnetic Field (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
 	       State::mag_I.idx, State::mag_I.idx + State::mag_I.dof - 1,
 	       (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2),
-	       (double)getStateVariance<State::mag_I>()(0), (double)getStateVariance<State::mag_I>()(1), (double)getStateVariance<State::mag_I>()(2)
+	       (double)getStateVariance<State::mag_I>()(0), (double)getStateVariance<State::mag_I>()(1),
+	       (double)getStateVariance<State::mag_I>()(2)
 	      );
 
 	printf("Magnetic Bias (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
@@ -421,6 +487,14 @@ void Ekf::print_status()
 	       (double)getStateVariance<State::wind_vel>()(0), (double)getStateVariance<State::wind_vel>()(1)
 	      );
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	printf("Terrain position (%d): %.3f var: %.1e\n",
+	       State::terrain.idx,
+	       (double)_state.terrain,
+	       (double)getStateVariance<State::terrain>()(0)
+	      );
+#endif // CONFIG_EKF2_TERRAIN
 
 	printf("\nP:\n");
 	P.print();

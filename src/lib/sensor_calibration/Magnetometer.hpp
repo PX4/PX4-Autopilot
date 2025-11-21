@@ -85,6 +85,7 @@ public:
 	int8_t calibration_index() const { return _calibration_index; }
 	uint32_t device_id() const { return _device_id; }
 	bool enabled() const { return (_priority > 0); }
+	void disable() { _priority = 0; }
 	bool external() const { return _external; }
 	const matrix::Vector3f &offset() const { return _offset; }
 	const int32_t &priority() const { return _priority; }
@@ -103,7 +104,7 @@ public:
 	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
 	{
 		// updated calibration offset = existing offset + bias rotated to sensor frame and unscaled
-		return _offset + (_scale.I() * _rotation.I() * bias);
+		return _offset + (_scale.I() * _rotation.T() * bias);
 	}
 
 	bool ParametersLoad();

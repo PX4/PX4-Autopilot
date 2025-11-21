@@ -213,10 +213,6 @@ void FlightModeManager::start_flight_task()
 			error = switchTask(FlightTaskIndex::ManualPosition);
 			break;
 
-		case 3:
-			error = switchTask(FlightTaskIndex::ManualPositionSmoothVel);
-			break;
-
 		case 4:
 		default:
 			if (_param_mpc_pos_mode.get() != 4) {
@@ -248,6 +244,17 @@ void FlightModeManager::start_flight_task()
 			error = switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
 			break;
 		}
+
+		task_failure = (error != FlightTaskError::NoError);
+		matching_task_running = matching_task_running && !task_failure;
+	}
+
+	// Altitude cruise
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE) {
+		found_some_task = true;
+		FlightTaskError error = FlightTaskError::NoError;
+
+		error = switchTask(FlightTaskIndex::AltitudeCruise);
 
 		task_failure = (error != FlightTaskError::NoError);
 		matching_task_running = matching_task_running && !task_failure;
@@ -378,11 +385,9 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 
 	// Save current setpoints for the next FlightTask
 	trajectory_setpoint_s last_setpoint = FlightTask::empty_trajectory_setpoint;
-	ekf_reset_counters_s last_reset_counters{};
 
 	if (isAnyTaskActive()) {
 		last_setpoint = _current_task.task->getTrajectorySetpoint();
-		last_reset_counters = _current_task.task->getResetCounters();
 	}
 
 	if (_initTask(new_task_index)) {
@@ -403,7 +408,6 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 		return FlightTaskError::ActivationFailed;
 	}
 
-	_current_task.task->setResetCounters(last_reset_counters);
 	_command_failed = false;
 
 	return FlightTaskError::NoError;

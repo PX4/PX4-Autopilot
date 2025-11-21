@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 /**
  * @file sih_params.c
- * Parameters for quadcopter X simulator in hardware.
+ * Parameters for simulator in hardware.
  *
  * @author Romain Chiappinelli <romain.chiap@gmail.com>
  * February 2019
@@ -235,33 +235,31 @@ PARAM_DEFINE_FLOAT(SIH_KDW, 0.025f);
  * Initial geodetic latitude
  *
  * This value represents the North-South location on Earth where the simulation begins.
- * A value of 45 deg should be written 450000000.
  *
  * LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
  * to represent a physical ground location on Earth.
  *
- * @unit deg*1e7
- * @min -850000000
- * @max  850000000
+ * @unit deg
+ * @min -90
+ * @max  90
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_INT32(SIH_LOC_LAT0, 454671160);
+PARAM_DEFINE_FLOAT(SIH_LOC_LAT0, 47.397742f);
 
 /**
  * Initial geodetic longitude
  *
  * This value represents the East-West location on Earth where the simulation begins.
- * A value of 45 deg should be written 450000000.
  *
  * LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
  * to represent a physical ground location on Earth.
  *
- * @unit deg*1e7
- * @min -1800000000
- * @max  1800000000
+ * @unit deg
+ * @min -180
+ * @max  180
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_INT32(SIH_LOC_LON0, -737578370);
+PARAM_DEFINE_FLOAT(SIH_LOC_LON0, 8.545594f);
 
 /**
  * Initial AMSL ground altitude
@@ -282,7 +280,7 @@ PARAM_DEFINE_INT32(SIH_LOC_LON0, -737578370);
  * @increment 0.01
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_LOC_H0, 32.34f);
+PARAM_DEFINE_FLOAT(SIH_LOC_H0, 489.4f);
 
 /**
  * distance sensor minimum range
@@ -331,9 +329,12 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
 /**
  * Vehicle type
  *
- * @value 0 Multicopter
+ * @value 0 Quadcopter
  * @value 1 Fixed-Wing
  * @value 2 Tailsitter
+ * @value 3 Standard VTOL
+ * @value 4 Hexacopter
+ * @value 5 Rover Ackermann
  * @reboot_required true
  * @group Simulation In Hardware
  */

@@ -1,0 +1,69 @@
+module_name: Rover Ackermann
+
+parameters:
+  - group: Rover Ackermann
+    definitions:
+      RA_WHEEL_BASE:
+        description:
+          short: Wheel base
+          long: Distance from the front to the rear axle.
+        type: float
+        unit: m
+        min: 0
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 0
+
+      RA_MAX_STR_ANG:
+        description:
+          short: Maximum steering angle
+        type: float
+        unit: rad
+        min: 0
+        max: 1.5708
+        increment: 0.01
+        decimal: 2
+        default: 0
+
+      RA_STR_RATE_LIM:
+        description:
+          short: Steering rate limit
+          long: Set to -1 to disable.
+        type: float
+        unit: deg/s
+        min: -1
+        max: 1000
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_ACC_RAD_MAX:
+        description:
+          short: Maximum acceptance radius for the waypoints
+          long: |
+            The controller scales the acceptance radius based on the angle between
+            the previous, current and next waypoint.
+            Higher value -> smoother trajectory at the cost of how close the rover gets
+            to the waypoint (Set to -1 to disable corner cutting).
+        type: float
+        unit: m
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_ACC_RAD_GAIN:
+        description:
+          short: Tuning parameter for corner cutting
+          long: |
+            The geometric ideal acceptance radius is multiplied by this factor
+            to account for kinematic and dynamic effects.
+            Higher value -> The rover starts to cut the corner earlier.
+        type: float
+        min: 1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file blocks.h
+ * @file BlockPD.hpp
  *
  * Controller library code
  */

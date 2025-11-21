@@ -104,7 +104,7 @@ void Geofence::run()
 			_initiate_fence_updated = false;
 			_dataman_state	= DatamanState::Read;
 
-			geofence_status_s status;
+			geofence_status_s status{};
 			status.timestamp = hrt_absolute_time();
 			status.geofence_id = _opaque_id;
 			status.status = geofence_status_s::GF_STATUS_LOADING;
@@ -159,7 +159,7 @@ void Geofence::run()
 				_dataman_state = DatamanState::UpdateRequestWait;
 				_fence_updated = true;
 
-				geofence_status_s status;
+				geofence_status_s status{};
 				status.timestamp = hrt_absolute_time();
 				status.geofence_id = _opaque_id;
 				status.status = geofence_status_s::GF_STATUS_READY;
@@ -179,7 +179,7 @@ void Geofence::run()
 			_updateFence();
 			_fence_updated = true;
 
-			geofence_status_s status;
+			geofence_status_s status{};
 			status.timestamp = hrt_absolute_time();
 			status.geofence_id = _opaque_id;
 			status.status = geofence_status_s::GF_STATUS_READY;
@@ -406,17 +406,25 @@ bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double
 {
 	bool checksPass = true;
 
-	if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
+	switch (polygon.fence_type) {
+	case NAV_CMD_FENCE_CIRCLE_INCLUSION:
 		checksPass &= insideCircle(polygon, lat, lon, altitude);
+		break;
 
-	} else if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+	case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
 		checksPass &= !insideCircle(polygon, lat, lon, altitude);
+		break;
 
-	} else if (polygon.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
+	case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
 		checksPass &= insidePolygon(polygon, lat, lon, altitude);
+		break;
 
-	} else if (polygon.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
+	case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 		checksPass &= !insidePolygon(polygon, lat, lon, altitude);
+		break;
+
+	default:  // unknown fence type
+		break;
 	}
 
 	return checksPass;
@@ -452,12 +460,18 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 			break;
 		}
 
-		if (temp_vertex_i.frame != NAV_FRAME_GLOBAL && temp_vertex_i.frame != NAV_FRAME_GLOBAL_INT
-		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
-		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+		switch (temp_vertex_i.frame) {
+		case NAV_FRAME_GLOBAL:
+		case NAV_FRAME_GLOBAL_INT:
+		case NAV_FRAME_GLOBAL_RELATIVE_ALT:
+		case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+			break;
+
+		default:
 			// TODO: handle different frames
 			PX4_ERR("Frame type %i not supported", (int)temp_vertex_i.frame);
-			break;
+			return c;
+
 		}
 
 		if (((double)temp_vertex_i.lon >= lon) != ((double)temp_vertex_j.lon >= lon) &&
@@ -482,16 +496,22 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 		return false;
 	}
 
-	if (circle_point.frame != NAV_FRAME_GLOBAL && circle_point.frame != NAV_FRAME_GLOBAL_INT
-	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
-	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+	switch (circle_point.frame) {
+	case NAV_FRAME_GLOBAL:
+	case NAV_FRAME_GLOBAL_INT:
+	case NAV_FRAME_GLOBAL_RELATIVE_ALT:
+	case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+		break;
+
+	default:
 		// TODO: handle different frames
 		PX4_ERR("Frame type %i not supported", (int)circle_point.frame);
 		return false;
+
 	}
 
 	if (!_projection_reference.isInitialized()) {
-		_projection_reference.initReference(lat, lon);
+		_projection_reference.initReference(lat, lon, hrt_absolute_time());
 	}
 
 	float x1, y1, x2, y2;
@@ -648,7 +668,7 @@ Geofence::loadFromFile(const char *filename)
 
 	} else {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence: import error\t");
-		events::send(events::ID("navigator_geofence_import_failed"), events::Log::Error, "Geofence: import error");
+		events::send(events::ID("navigator_geofence_import_failed"), events::Log::Critical, "Geofence: import error");
 	}
 
 	updateFence();
@@ -675,20 +695,26 @@ void Geofence::printStatus()
 	for (int i = 0; i < _num_polygons; ++i) {
 		total_num_vertices += _polygons[i].vertex_count;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
+		switch (_polygons[i].fence_type) {
+		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
 			++num_inclusion_polygons;
-		}
+			break;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
+		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 			++num_exclusion_polygons;
-		}
+			break;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
+		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
 			++num_inclusion_circles;
-		}
+			break;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+		case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
 			++num_exclusion_circles;
+			break;
+
+		default:  // unknown fence type
+			break;
+
 		}
 	}
 

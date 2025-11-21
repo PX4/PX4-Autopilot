@@ -47,13 +47,6 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 	int num_enabled_and_valid_calibration = 0;
 
 	for (int instance = 0; instance < _sensor_mag_sub.size(); instance++) {
-		bool is_mag_fault = false;
-		const bool is_required = instance == 0 || isMagRequired(instance, is_mag_fault);
-
-		if (!is_required) {
-			continue;
-		}
-
 		const bool exists = _sensor_mag_sub[instance].advertised();
 		bool is_valid = false;
 		bool is_calibration_valid = false;
@@ -81,6 +74,13 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 			}
 
 			reporter.setIsPresent(health_component_t::magnetometer);
+		}
+
+		// Do not raise errors if a mag is not required
+		bool is_mag_fault = false;
+
+		if (!isMagRequired(instance, is_mag_fault)) {
+			continue;
 		}
 
 		const bool is_sensor_ok = is_valid && is_calibration_valid && !is_mag_fault;

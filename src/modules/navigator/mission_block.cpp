@@ -55,8 +55,8 @@
 
 using matrix::wrap_pi;
 
-MissionBlock::MissionBlock(Navigator *navigator) :
-	NavigatorMode(navigator)
+MissionBlock::MissionBlock(Navigator *navigator, uint8_t navigator_state_id) :
+	NavigatorMode(navigator, navigator_state_id)
 {
 
 }
@@ -81,8 +81,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_DO_CONTROL_VIDEO:
 	case NAV_CMD_DO_MOUNT_CONFIGURE:
 	case NAV_CMD_DO_MOUNT_CONTROL:
-	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
 	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
+	case NAV_CMD_COMPONENT_ARM_DISARM:
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_DO_SET_ROI_LOCATION:
 	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
@@ -91,10 +91,13 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_OBLIQUE_SURVEY:
 	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 	case NAV_CMD_SET_CAMERA_MODE:
+	case NAV_CMD_SET_CAMERA_SOURCE:
 	case NAV_CMD_SET_CAMERA_ZOOM:
 	case NAV_CMD_SET_CAMERA_FOCUS:
 	case NAV_CMD_DO_CHANGE_SPEED:
 	case NAV_CMD_DO_SET_HOME:
+	case NAV_CMD_RETURN_TO_LAUNCH:
+
 		return true;
 
 	// Indefinite Waypoints
@@ -141,40 +144,14 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 		break;
 
-	case NAV_CMD_DO_WINCH: {
-			const float payload_deploy_elasped_time_s = (now - _payload_deployed_time) *
-					1E-6f; // TODO: Add proper microseconds_to_seconds function
-
-			if (_payload_deploy_ack_successful) {
-				PX4_DEBUG("Winch Deploy Ack received! Resuming mission");
-				return true;
-
-			} else if (payload_deploy_elasped_time_s > _payload_deploy_timeout_s) {
-				PX4_DEBUG("Winch Deploy Timed out, resuming mission!");
-				return true;
-
-			}
-
-			// We are still waiting for the acknowledgement / execution of deploy
-			return false;
+	case NAV_CMD_DO_WINCH:
+	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+	case NAV_CMD_DO_GRIPPER:
+		if (now > _timestamp_command_timeout + (_command_timeout * 1_s)) {
+			return true;
 		}
 
-	case NAV_CMD_DO_GRIPPER: {
-			const float payload_deploy_elasped_time_s = (now - _payload_deployed_time) * 1E-6f;
-
-			if (_payload_deploy_ack_successful) {
-				PX4_DEBUG("Gripper Deploy Ack received! Resuming mission");
-				return true;
-
-			} else if (payload_deploy_elasped_time_s > _payload_deploy_timeout_s) {
-				PX4_DEBUG("Gripper Deploy Timed out, resuming mission!");
-				return true;
-
-			}
-
-			// We are still waiting for the acknowledgement / execution of deploy
-			return false;
-		}
+		return false; // Still waiting
 
 	default:
 		/* do nothing, this is a 3D waypoint */
@@ -193,7 +170,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 		// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
 		const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
 				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
-				_navigator->get_loiter_radius();
+				_navigator->get_default_loiter_rad();
 
 		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
 				_navigator->get_global_position()->lat,
@@ -444,7 +421,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 		/* check if the MAV was long enough inside the waypoint orbit */
 		if ((get_time_inside(_mission_item) < FLT_EPSILON) ||
-		    (now - _time_wp_reached >= (hrt_abstime)(get_time_inside(_mission_item) * 1e6f))) {
+		    (now >= (hrt_abstime)(get_time_inside(_mission_item) * 1_s) + _time_wp_reached)) {
 			time_inside_reached = true;
 		}
 
@@ -548,53 +525,37 @@ MissionBlock::issue_command(const mission_item_s &item)
 		return;
 	}
 
-	if (item.nav_cmd == NAV_CMD_DO_WINCH ||
-	    item.nav_cmd == NAV_CMD_DO_GRIPPER) {
-		// Initiate Payload Deployment
-		vehicle_command_s vcmd = {};
-		vcmd.command = item.nav_cmd;
-		vcmd.param1 = item.params[0];
-		vcmd.param2 = item.params[1];
-		vcmd.param3 = item.params[2];
-		vcmd.param4 = item.params[3];
-		vcmd.param5 = static_cast<double>(item.params[4]);
-		vcmd.param6 = static_cast<double>(item.params[5]);
-		_navigator->publish_vehicle_cmd(&vcmd);
+	// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
+	if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL) {
+		_navigator->acquire_gimbal_control();
+	}
 
-		// Reset payload deploy flag & data to get ready to receive deployment ack result
-		_payload_deploy_ack_successful = false;
-		_payload_deployed_time = hrt_absolute_time();
+	// Mission item's NAV_CMD enums directly map to the according vehicle command
+	// So set the raw value directly (MAV_FRAME_MISSION mission item)
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = item.nav_cmd;
+	vehicle_command.param1 = item.params[0];
+	vehicle_command.param2 = item.params[1];
+	vehicle_command.param3 = item.params[2];
+	vehicle_command.param4 = item.params[3];
+	vehicle_command.param5 = static_cast<double>(item.params[4]);
+	vehicle_command.param6 = static_cast<double>(item.params[5]);
+	vehicle_command.param7 = item.params[6];
 
-	} else {
+	if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION) {
+		// We need to send out the ROI location that was parsed potentially with double precision to lat/lon because mission item parameters 5 and 6 only have float precision
+		vehicle_command.param5 = item.lat;
+		vehicle_command.param6 = item.lon;
 
-		// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
-		if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL) {
-			_navigator->acquire_gimbal_control();
+		if (item.altitude_is_relative) {
+			vehicle_command.param7 = item.altitude + _navigator->get_home_position()->alt;
 		}
+	}
 
-		// Mission item's NAV_CMD enums directly map to the according vehicle command
-		// So set the raw value directly (MAV_FRAME_MISSION mission item)
-		vehicle_command_s vcmd = {};
-		vcmd.command = item.nav_cmd;
-		vcmd.param1 = item.params[0];
-		vcmd.param2 = item.params[1];
-		vcmd.param3 = item.params[2];
-		vcmd.param4 = item.params[3];
-		vcmd.param5 = static_cast<double>(item.params[4]);
-		vcmd.param6 = static_cast<double>(item.params[5]);
-		vcmd.param7 = item.params[6];
+	_navigator->publish_vehicle_command(vehicle_command);
 
-		if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION) {
-			// We need to send out the ROI location that was parsed potentially with double precision to lat/lon because mission item parameters 5 and 6 only have float precision
-			vcmd.param5 = item.lat;
-			vcmd.param6 = item.lon;
-
-			if (item.altitude_is_relative) {
-				vcmd.param7 = item.altitude + _navigator->get_home_position()->alt;
-			}
-		}
-
-		_navigator->publish_vehicle_cmd(&vcmd);
+	if (item_has_timeout(item)) {
+		_timestamp_command_timeout = hrt_absolute_time();
 	}
 }
 
@@ -618,10 +579,13 @@ MissionBlock::get_time_inside(const mission_item_s &item) const
 // and shouldn't have a timeout defined as it is a DO_* command. It should rather be defined as CONDITION_GRIPPER
 // or so, and have a function named 'item_is_conditional'
 // Reference: https://mavlink.io/en/services/mission.html#mavlink_commands
+// A similar condition applies to DO_GIMBAL_MANAGER_PITCHYAW
 bool
 MissionBlock::item_has_timeout(const mission_item_s &item)
 {
-	return item.nav_cmd == NAV_CMD_DO_WINCH || item.nav_cmd == NAV_CMD_DO_GRIPPER;
+	return item.nav_cmd == NAV_CMD_DO_WINCH ||
+	       item.nav_cmd == NAV_CMD_DO_GRIPPER ||
+	       item.nav_cmd == NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW;
 }
 
 bool
@@ -661,17 +625,21 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->lon = item.lon;
 	sp->alt = get_absolute_altitude_for_item(item);
 	sp->yaw = item.yaw;
-	sp->loiter_radius = (fabsf(item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item.loiter_radius) :
-			    _navigator->get_loiter_radius();
+	sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
+			    _navigator->get_default_loiter_rad();
 	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
-	if (item.acceptance_radius > 0.001f && PX4_ISFINITE(item.acceptance_radius)) {
+	if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
 		// if the mission item has a specified acceptance radius, overwrite the default one from parameters
 		sp->acceptance_radius = item.acceptance_radius;
 
 	} else {
 		sp->acceptance_radius = _navigator->get_default_acceptance_radius();
 	}
+
+	// by default, FW guidance logic will take alt acceptance from NAV_FW_ALT_RAD, in some special cases
+	// we override it after this
+	sp->alt_acceptance_radius = NAN;
 
 	sp->cruising_speed = _navigator->get_cruising_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
@@ -762,19 +730,19 @@ MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
 	}
 
 	item->altitude = loiter_altitude_amsl;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->yaw = NAN;
 }
 
 void
-MissionBlock::setLoiterItemFromCurrentPositionWithBreaking(struct mission_item_s *item)
+MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item)
 {
 	setLoiterItemCommonFields(item);
 
-	_navigator->calculate_breaking_stop(item->lat, item->lon);
+	_navigator->preproject_stop_point(item->lat, item->lon);
 
 	item->altitude = _navigator->get_global_position()->alt;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->yaw = NAN;
 }
 
@@ -805,7 +773,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 	item->altitude_is_relative = false;
 
 	item->acceptance_radius = _navigator->get_acceptance_radius();
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
 }
@@ -816,24 +784,31 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 	/* VTOL transition to RW before landing */
 	if (_navigator->force_vtol()) {
 
-		vehicle_command_s vcmd = {};
-		vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		vcmd.param2 = 0.0f;
-		_navigator->publish_vehicle_cmd(&vcmd);
+		vehicle_command_s vehicle_command{};
+		vehicle_command.command = NAV_CMD_DO_VTOL_TRANSITION;
+		vehicle_command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		vehicle_command.param2 = 0.f; // normal unforced transition
+		_navigator->publish_vehicle_command(vehicle_command);
 	}
 
 	/* set the land item */
 	item->nav_cmd = NAV_CMD_LAND;
 
 	// set land item to current position
-	item->lat = _navigator->get_global_position()->lat;
-	item->lon = _navigator->get_global_position()->lon;
+	if (_navigator->get_local_position()->xy_global) {
+		item->lat = _navigator->get_global_position()->lat;
+		item->lon = _navigator->get_global_position()->lon;
+
+	} else {
+		item->lat = (double)NAN;
+		item->lon = (double)NAN;
+	}
+
 	item->yaw = NAN;
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
@@ -849,7 +824,7 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->altitude_is_relative = false;
 	item->altitude = _navigator->get_home_position()->alt;
 	item->yaw = NAN;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
@@ -921,7 +896,7 @@ MissionBlock::initialize()
 	_mission_item.lat = (double)NAN;
 	_mission_item.lon = (double)NAN;
 	_mission_item.yaw = NAN;
-	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.time_inside = 0.0f;
 	_mission_item.autocontinue = true;
@@ -1006,8 +981,67 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 		_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
 		_navigator->get_precland()->on_activation();
 
-	} else { //_mission_item.land_precision == 2
+	} else if (_mission_item.land_precision == 2) {
 		_navigator->get_precland()->set_mode(PrecLandMode::Required);
 		_navigator->get_precland()->on_activation();
+	}
+}
+
+void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(mission_item_s mission_item)
+{
+	// Avoid flying into terrain using the distance sensor. Enable through the parameter NAV_MIN_GND_DIST.
+	// Only active during commanded descents with vz>0 (to prevent climb-aways), excluding landing and VTOL transitions.
+	// It changes the altitude setpoint in the triplet to maintain the current altitude and republish the triplet.
+	// We also change the mission item altitude used for acceptance calculations to prevent getting stuck in a loop.
+
+	// This threshold is needed to prevent the check from re-triggering due to small altitude over-shoots while
+	// tracking the new altitude setpoint.
+	static constexpr float kAltitudeDifferenceForDescentCondition = 2.f;
+
+
+	if (_navigator->get_nav_min_gnd_dist_param() > FLT_EPSILON && _mission_item.nav_cmd != NAV_CMD_LAND
+	    && _mission_item.nav_cmd != NAV_CMD_VTOL_LAND && _mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION
+	    && _mission_item.nav_cmd != NAV_CMD_IDLE
+	    && _navigator->get_local_position()->dist_bottom_valid
+	    && _navigator->get_local_position()->dist_bottom < _navigator->get_nav_min_gnd_dist_param()
+	    && _navigator->get_local_position()->vz > FLT_EPSILON
+	    && _navigator->get_global_position()->alt - get_absolute_altitude_for_item(mission_item) >
+	    kAltitudeDifferenceForDescentCondition) {
+
+		_navigator->sendWarningDescentStoppedDueToTerrain();
+
+		struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
+		curr_sp->alt = _navigator->get_global_position()->alt;
+		_navigator->set_position_setpoint_triplet_updated();
+
+		_mission_item.altitude = _navigator->get_global_position()->alt;
+		_mission_item.altitude_is_relative = false;
+	}
+}
+
+void MissionBlock::updateFailsafeChecks()
+{
+	updateMaxHaglFailsafe();
+}
+
+void MissionBlock::updateMaxHaglFailsafe()
+{
+	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
+
+	if (_navigator->get_global_position()->terrain_alt_valid
+	    && ((target_alt - _navigator->get_global_position()->terrain_alt)
+		> math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy))) {
+		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
+		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");
+
+		_navigator->trigger_hagl_failsafe(getNavigatorStateId());
+
+		// While waiting for a failsafe action from commander, keep the curren position
+		setLoiterItemFromCurrentPosition(&_mission_item);
+
+		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+
+		_navigator->set_position_setpoint_triplet_updated();
 	}
 }

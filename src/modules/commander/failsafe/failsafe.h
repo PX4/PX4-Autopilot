@@ -57,8 +57,16 @@ private:
 		Mission = (1 << 0),
 		Hold = (1 << 1),
 		Offboard = (1 << 2),
-		RTL = (1 << 3),
-		Land = (1 << 4)
+		ExternalMode = (1 << 3),
+		AltitudeCruise = (1 << 4),
+		RTL = (1 << 5),
+		Land = (1 << 6)
+	};
+
+	enum class DatalinkLossExceptionBits : int32_t {
+		Mission = (1 << 0),
+		Hold = (1 << 1),
+		Offboard = (1 << 2)
 	};
 
 	// COM_LOW_BAT_ACT parameter values
@@ -72,17 +80,12 @@ private:
 	enum class offboard_loss_failsafe_mode : int32_t {
 		Position_mode = 0,
 		Altitude_mode = 1,
-		Manual = 2,
+		Stabilized = 2,
 		Return_mode = 3,
 		Land_mode = 4,
 		Hold_mode = 5,
 		Terminate = 6,
 		Disarm = 7,
-	};
-
-	enum class position_control_navigation_loss_response : int32_t {
-		Altitude_Manual = 0,
-		Land_Descend = 1,
 	};
 
 	enum class actuator_failure_failsafe_mode : int32_t {
@@ -127,14 +130,27 @@ private:
 
 	// COM_RC_IN_MODE parameter values
 	enum class RcInMode : int32_t {
-		RcTransmitterOnly = 0, 		// RC Transmitter only
-		JoystickOnly = 1,		// Joystick only
-		RcAndJoystickWithFallback = 2,	// RC And Joystick with fallback
-		RcOrJoystickKeepFirst = 3,	// RC or Joystick keep first
-		StickInputDisabled = 4		// input disabled
+		RcOnly = 0,
+		MavLinkOnly = 1,
+		RcOrMavlinkWithFallback = 2,
+		RcOrMavlinkKeepFirst = 3,
+		DisableManualControl = 4,
+		PriorityRcThenMavlinkAscending = 5,
+		PriorityMavlinkAscendingThenRc = 6,
+		PriorityRcThenMavlinkDescending = 7,
+		PriorityMavlinkDescendingThenRc = 8
 	};
 
 	enum class command_after_high_wind_failsafe : int32_t {
+		None = 0,
+		Warning = 1,
+		Hold_mode = 2,
+		Return_mode = 3,
+		Terminate = 4,
+		Land_mode = 5
+	};
+
+	enum class command_after_pos_low_failsafe : int32_t {
 		None = 0,
 		Warning = 1,
 		Hold_mode = 2,
@@ -158,6 +174,7 @@ private:
 	static ActionOptions fromQuadchuteActParam(int param_value);
 	static Action fromOffboardLossActParam(int param_value, uint8_t &user_intended_mode);
 	static ActionOptions fromHighWindLimitActParam(int param_value);
+	static ActionOptions fromPosLowActParam(int param_value);
 	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
 
 	const int _caller_id_mode_fallback{genCallerId()};
@@ -171,17 +188,22 @@ private:
 	bool _last_state_battery_warning_critical{false};
 	const int _caller_id_battery_warning_emergency{genCallerId()};
 	bool _last_state_battery_warning_emergency{false};
+	const int _caller_id_fd_esc_arming{genCallerId()};
+	bool _last_state_fd_esc_arming{false};
+	const int _caller_id_battery_unhealthy_spoolup{genCallerId()};
+	bool _last_state_battery_unhealthy_spoolup{false};
 
 	hrt_abstime _armed_time{0};
 	bool _was_armed{false};
 	bool _manual_control_lost_at_arming{false}; ///< true if manual control was lost at arming time
+	uint8_t _battery_warning_at_arming{0}; ///< low battery state at arming time
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FailsafeBase,
 					(ParamInt<px4::params::NAV_DLL_ACT>) 	_param_nav_dll_act,
 					(ParamInt<px4::params::NAV_RCL_ACT>) 	_param_nav_rcl_act,
 					(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
+					(ParamInt<px4::params::COM_DLL_EXCEPT>) _param_com_dll_except,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
-					(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 					(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
@@ -192,8 +214,8 @@ private:
 					(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 					(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 					(ParamInt<px4::params::COM_WIND_MAX_ACT>) _param_com_wind_max_act,
-					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act
+					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act,
+					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act
 				       );
 
 };
-

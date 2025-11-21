@@ -614,7 +614,7 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 		}
 
 		if (svr.validity.surfHeading) {
-			t.heading = matrix::wrap_pi((float)svr.surface.heading * (M_PI_F / 180.0f) + M_PI_F);
+			t.heading = matrix::wrap_2pi((float)svr.surface.heading * (M_PI_F / 180.0f));
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
 		}
 	}
@@ -622,7 +622,7 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 	if (svr.type == svrAirborne) {
 		if (svr.validity.airSpeed) {
 			t.hor_velocity = (svr.airborne.speed * SAGETECH_SCALE_KNOTS_TO_M_PER_SEC);	//Convert from knots to meters/second
-			t.heading = matrix::wrap_pi((float)svr.airborne.heading * (M_PI_F / 180.0f) + M_PI_F);
+			t.heading = matrix::wrap_2pi((float)svr.airborne.heading * (M_PI_F / 180.0f));
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
 		}

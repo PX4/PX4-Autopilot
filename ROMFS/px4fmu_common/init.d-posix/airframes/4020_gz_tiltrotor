@@ -1,0 +1,107 @@
+#!/bin/sh
+#
+# @name VTOL Tiltrotor
+#
+# @type VTOL Tiltrotor
+#
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=tiltrotor}
+
+param set-default SIM_GZ_EN 1 # Gazebo bridge
+
+param set-default MAV_TYPE 21
+
+param set-default CA_AIRFRAME 3
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.1515
+param set-default CA_ROTOR0_PY 0.245
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -0.1515
+param set-default CA_ROTOR1_PY -0.1875
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR2_PX 0.1515
+param set-default CA_ROTOR2_PY -0.245
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.1515
+param set-default CA_ROTOR3_PY 0.1875
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default CA_ROTOR0_TILT 1
+param set-default CA_ROTOR2_TILT 2
+param set-default CA_SV_TL0_MAXA 90
+param set-default CA_SV_TL0_MINA 0
+param set-default CA_SV_TL0_TD 0
+param set-default CA_SV_TL0_CT 1
+param set-default CA_SV_TL1_MAXA 90
+param set-default CA_SV_TL1_MINA 0
+param set-default CA_SV_TL1_TD 0
+param set-default CA_SV_TL1_CT 1
+
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS2_TRQ_P 1
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS_COUNT 3
+param set-default CA_SV_TL_COUNT 2
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_FUNC3 103
+param set-default SIM_GZ_EC_FUNC4 104
+
+param set-default SIM_GZ_EC_MIN1 10
+param set-default SIM_GZ_EC_MIN2 10
+param set-default SIM_GZ_EC_MIN3 10
+param set-default SIM_GZ_EC_MIN4 10
+
+param set-default SIM_GZ_EC_MAX1 1500
+param set-default SIM_GZ_EC_MAX2 1500
+param set-default SIM_GZ_EC_MAX3 1500
+param set-default SIM_GZ_EC_MAX4 1500
+
+param set-default SIM_GZ_SV_FUNC1 201
+param set-default SIM_GZ_SV_FUNC2 202
+param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_FUNC4 204
+param set-default SIM_GZ_SV_FUNC5 205
+
+param set-default SIM_GZ_SV_MAXA4 90
+param set-default SIM_GZ_SV_MINA4 0
+param set-default SIM_GZ_SV_MAXA5 90
+param set-default SIM_GZ_SV_MINA5 0
+
+param set-default NPFG_PERIOD 12
+param set-default FW_PR_FF 0.2
+param set-default FW_PR_P 0.9
+param set-default FW_PSP_OFF 2
+param set-default FW_P_LIM_MIN -15
+param set-default FW_RR_FF 0.1
+param set-default FW_RR_P 0.3
+param set-default FW_THR_TRIM 0.38
+param set-default FW_THR_MAX 0.6
+param set-default FW_THR_MIN 0.05
+param set-default FW_T_CLMB_MAX 8
+param set-default FW_T_SINK_MAX 2.7
+param set-default FW_T_SINK_MIN 2.2
+
+param set-default MC_AIRMODE 1
+param set-default MC_YAWRATE_P 0.4
+param set-default MC_YAWRATE_I 0.1
+
+param set-default MPC_XY_VEL_P_ACC 3
+param set-default MPC_XY_VEL_I_ACC 4
+param set-default MPC_XY_VEL_D_ACC 0.1
+
+param set-default MIS_TAKEOFF_ALT 10
+
+param set-default VT_FWD_THRUST_EN 4
+param set-default VT_FWD_THRUST_SC 0.6
+param set-default VT_TILT_TRANS 0.6
+param set-default VT_TYPE 1

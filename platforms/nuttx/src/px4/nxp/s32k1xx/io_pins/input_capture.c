@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file drv_input_capture.c
+ * @file input_capture.c
  *
  * Servo driver supporting input capture connected to STM32 timer blocks.
  *

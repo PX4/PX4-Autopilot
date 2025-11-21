@@ -237,11 +237,8 @@ static float get_sphere_radius()
 
 		if (gps_sub.copy(&gps)) {
 			if (hrt_elapsed_time(&gps.timestamp) < 100_s && (gps.fix_type >= 2) && (gps.eph < 1000)) {
-				const double lat = gps.latitude_deg;
-				const double lon = gps.longitude_deg;
-
 				// magnetic field data returned by the geo library using the current GPS position
-				return get_mag_strength_gauss(lat, lon);
+				return get_mag_strength_gauss(gps.latitude_deg, gps.longitude_deg);
 			}
 		}
 	}
@@ -523,12 +520,36 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 	const unsigned int calibration_points_maxcount = worker_data.calibration_sides * worker_data.calibration_points_perside;
 
+	uORB::SubscriptionMultiArray<sensor_mag_s, MAX_MAGS> mag_sub{ORB_ID::sensor_mag};
+	int mag_available_enabled_count = 0;
+
 	for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
-		uORB::SubscriptionData<sensor_mag_s> mag_sub{ORB_ID(sensor_mag), cur_mag};
+		if (!mag_sub[cur_mag].advertised()) {
+			continue;
+		}
 
-		if (mag_sub.advertised() && (mag_sub.get().device_id != 0) && (mag_sub.get().timestamp > 0)) {
-			worker_data.calibration[cur_mag].set_device_id(mag_sub.get().device_id);
+		sensor_mag_s mag_data;
+
+		if (!mag_sub[cur_mag].copy(&mag_data) || mag_data.device_id == 0) {
+			continue;
+		}
+
+		int calibration_index = calibration::FindCurrentCalibrationIndex("MAG", mag_data.device_id);
+
+		if (calibration_index >= 0) {
+			int priority = calibration::GetCalibrationParamInt32("MAG", "PRIO", calibration_index);
+
+			if (priority != 0) {
+				++mag_available_enabled_count;
+			}
+
+		} else {
+			++mag_available_enabled_count;
+		}
+
+		if ((mag_data.device_id != 0) && (mag_data.timestamp > 0)) {
+			worker_data.calibration[cur_mag].set_device_id(mag_data.device_id);
 		}
 
 		// reset calibration index to match uORB numbering
@@ -548,6 +569,11 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		} else {
 			break;
 		}
+	}
+
+	if (mag_available_enabled_count <= 0) {
+		calibration_log_critical(mavlink_log_pub, "Failed: No magnetometer available or enabled");
+		return calibrate_return_error;
 	}
 
 	if (result == calibrate_return_ok) {
@@ -906,9 +932,18 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		bool param_save = false;
 		bool failed = true;
 
+		bool external_mag_available = false;
+
+		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
+			if (worker_data.calibration[cur_mag].external() && worker_data.calibration[cur_mag].enabled()) {
+				external_mag_available = true;
+				break;
+			}
+		}
+
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
-			auto &current_cal = worker_data.calibration[cur_mag];
+			calibration::Magnetometer &current_cal = worker_data.calibration[cur_mag];
 
 			if (current_cal.device_id() != 0) {
 				if (worker_data.append_to_existing_calibration) {
@@ -922,6 +957,11 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					current_cal.set_offset(sphere[cur_mag]);
 					current_cal.set_scale(diag[cur_mag]);
 					current_cal.set_offdiagonal(offdiag[cur_mag]);
+				}
+
+				if (external_mag_available && !current_cal.external()) {
+					// automatically disable the internal mags as they should not be used for navigation
+					current_cal.disable();
 				}
 
 				current_cal.PrintStatus();
@@ -954,13 +994,14 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	return result;
 }
 
-int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radians, float latitude, float longitude)
+int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radians,
+			     float latitude_deg, float longitude_deg)
 {
 	// magnetometer quick calibration
 	//  if GPS available use world magnetic model to zero mag offsets
 	bool mag_earth_available = false;
 
-	if (PX4_ISFINITE(latitude) && PX4_ISFINITE(longitude)) {
+	if (PX4_ISFINITE(latitude_deg) && PX4_ISFINITE(longitude_deg)) {
 		mag_earth_available = true;
 
 	} else {
@@ -969,8 +1010,8 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 		if (vehicle_gps_position_sub.copy(&gps)) {
 			if ((gps.timestamp != 0) && (gps.eph < 1000)) {
-				latitude = (float)gps.latitude_deg;
-				longitude = (float)gps.longitude_deg;
+				latitude_deg = (float)gps.latitude_deg;
+				longitude_deg = (float)gps.longitude_deg;
 				mag_earth_available = true;
 			}
 		}
@@ -981,14 +1022,13 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 		return PX4_ERROR;
 
 	} else {
-
 		// magnetic field data returned by the geo library using the current GPS position
-		const float mag_declination_gps = get_mag_declination_radians(latitude, longitude);
-		const float mag_inclination_gps = get_mag_inclination_radians(latitude, longitude);
-		const float mag_strength_gps = get_mag_strength_gauss(latitude, longitude);
+		const float declination_rad = math::radians(get_mag_declination_degrees(latitude_deg, longitude_deg));
+		const float inclination_rad = math::radians(get_mag_inclination_degrees(latitude_deg, longitude_deg));
+		const float field_strength_gauss = get_mag_strength_gauss(latitude_deg, longitude_deg);
 
-		const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -mag_inclination_gps, mag_declination_gps)) * Vector3f(mag_strength_gps,
-						0, 0);
+		const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -inclination_rad, declination_rad))
+						* Vector3f(field_strength_gauss, 0, 0);
 
 		uORB::Subscription vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 		vehicle_attitude_s attitude{};

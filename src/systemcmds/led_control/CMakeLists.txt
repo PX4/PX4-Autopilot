@@ -38,4 +38,3 @@ px4_add_module(
 		led_control.cpp
 	DEPENDS
 	)
-

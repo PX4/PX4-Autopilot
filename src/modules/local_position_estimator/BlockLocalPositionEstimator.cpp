@@ -643,7 +643,8 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().vxy_max = INFINITY;
 		_pub_lpos.get().vz_max = INFINITY;
 		_pub_lpos.get().hagl_min = INFINITY;
-		_pub_lpos.get().hagl_max = INFINITY;
+		_pub_lpos.get().hagl_max_z = INFINITY;
+		_pub_lpos.get().hagl_max_xy = INFINITY;
 		_pub_lpos.get().timestamp = hrt_absolute_time();;
 		_pub_lpos.update();
 	}

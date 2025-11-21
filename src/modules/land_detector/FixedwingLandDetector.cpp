@@ -64,16 +64,20 @@ bool FixedwingLandDetector::_get_landed_state()
 	_launch_detection_status_sub.copy(&launch_detection_status);
 
 	// force the landed state to stay landed if we're currently in the catapult/hand-launch launch process. Detect that we are in this state
-	// by checking if the last publication of launch_detection_status is less than 0.5s old, and we're not yet in the flying state.
+	// by checking if the last publication of launch_detection_status is less than 0.5s old, and we're still in the wait for launch state.
 	if (_landed_hysteresis.get_state() &&  hrt_elapsed_time(&launch_detection_status.timestamp) < 500_ms
-	    && launch_detection_status.launch_detection_state < launch_detection_status_s::STATE_FLYING) {
+	    && launch_detection_status.launch_detection_state == launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 		landDetected = true;
 
 	} else if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) {
 
-		// Horizontal velocity complimentary filter.
-		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
-				_vehicle_local_position.vy * _vehicle_local_position.vy);
+		float val = 0.0f;
+
+		if (_vehicle_local_position.v_xy_valid) {
+			// Horizontal velocity complimentary filter.
+			val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
+					_vehicle_local_position.vy * _vehicle_local_position.vy);
+		}
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
@@ -89,10 +93,15 @@ bool FixedwingLandDetector::_get_landed_state()
 		airspeed_validated_s airspeed_validated{};
 		_airspeed_validated_sub.copy(&airspeed_validated);
 
+		const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_1
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_2
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_3;
+
 		bool airspeed_invalid = false;
 
-		// set _airspeed_filtered to 0 if airspeed data is invalid
-		if (!PX4_ISFINITE(airspeed_validated.true_airspeed_m_s) || hrt_elapsed_time(&airspeed_validated.timestamp) > 1_s) {
+		// set _airspeed_filtered to 0 if airspeed data is invalid or not from an actual airspeed sensor
+		if (!airspeed_from_sensor || !PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
+		    || hrt_elapsed_time(&airspeed_validated.timestamp) > 1_s) {
 			_airspeed_filtered = 0.0f;
 			airspeed_invalid = true;
 
@@ -105,15 +114,28 @@ bool FixedwingLandDetector::_get_landed_state()
 		const float acc_hor = matrix::Vector2f(_acceleration).norm();
 		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
 
+		// Check for angular velocity
+		const float rot_vel_hor = _angular_velocity.norm();
+		val = _velocity_rot_filtered * 0.95f + rot_vel_hor * 0.05f;
+
+		if (PX4_ISFINITE(val)) {
+			_velocity_rot_filtered = val;
+		}
+
 		// make groundspeed threshold tighter if airspeed is invalid
-		const float vel_xy_max_threshold = airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
-						   _param_lndfw_vel_xy_max.get();
+		const float vel_xy_max_threshold   = airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
+						     _param_lndfw_vel_xy_max.get();
+
+		// only use the max rotational threshold if neither airspeed nor groundspeed can be used for landing detection
+		const float max_rotation_threshold = (!_vehicle_local_position.v_xy_valid
+						      && airspeed_invalid) ? math::radians(_param_lndfw_rot_max.get()) : INFINITY;
 
 		// Crude land detector for fixedwing.
-		landDetected = _airspeed_filtered       < _param_lndfw_airspd.get()
-			       && _velocity_xy_filtered < vel_xy_max_threshold
-			       && _velocity_z_filtered  < _param_lndfw_vel_z_max.get()
-			       && _xy_accel_filtered    < _param_lndfw_xyaccel_max.get();
+		landDetected = _airspeed_filtered         < _param_lndfw_airspd.get()
+			       && _velocity_xy_filtered   < vel_xy_max_threshold
+			       && _velocity_z_filtered    < _param_lndfw_vel_z_max.get()
+			       && _xy_accel_filtered      < _param_lndfw_xyaccel_max.get()
+			       && _velocity_rot_filtered  < max_rotation_threshold;
 
 	} else {
 		// Control state topic has timed out and we need to assume we're landed.

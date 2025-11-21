@@ -126,6 +126,15 @@ then
 	set AUTOCNF yes
 fi
 
+# Allow overriding parameters via env variables: export PX4_PARAM_{name}={value}
+env | while IFS='=' read -r line; do
+  value=${line#*=}
+  name=${line%%=*}
+  case $name in
+    "PX4_PARAM_"*) param set "${name#PX4_PARAM_}" "$value" ;;
+  esac
+done
+
 # multi-instance setup
 # shellcheck disable=SC2154
 param set MAV_SYS_ID $((px4_instance+1))
@@ -153,10 +162,9 @@ fi
 
 param set-default BAT1_N_CELLS 4
 
-param set-default CBRK_SUPPLY_CHK 894281
-
 # disable check, no CPU load reported on posix yet
 param set-default COM_CPU_MAX -1
+param set-default COM_RAM_MAX -1
 
 # Don't require RC calibration and configuration
 param set-default COM_RC_IN_MODE 1
@@ -165,7 +173,6 @@ param set-default COM_RC_IN_MODE 1
 param set-default EKF2_REQ_GPS_H 0.5
 
 param set-default IMU_GYRO_FFT_EN 1
-param set-default MAV_PROTO_VER 2 # Ensures QGC does not drop the first few packets after a SITL restart due to MAVLINK 1 packets
 
 param set-default -s MC_AT_EN 1
 
@@ -180,7 +187,10 @@ param set-default TRIG_INTERFACE 3
 param set-default SYS_FAILURE_EN 1
 # Enable low-battery actions by default for (automated) testing. Battery sim
 # does not go below 50% by default, but failure injection can trigger failsafes.
-param set-default COM_LOW_BAT_ACT 2
+param set-default COM_LOW_BAT_ACT 3
+
+# set default IP to localhost
+param set-default UXRCE_DDS_AG_IP 2130706433  # 127.0.0.1
 
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
@@ -189,11 +199,11 @@ if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
 	echo "COM_DL_LOSS_T set to $COM_DL_LOSS_T_LONGER"
 	param set COM_DL_LOSS_T $COM_DL_LOSS_T_LONGER
 
-	COM_RC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 0.5" | bc)
+	COM_RC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 1.0" | bc)
 	echo "COM_RC_LOSS_T set to $COM_RC_LOSS_T_LONGER"
 	param set COM_RC_LOSS_T $COM_RC_LOSS_T_LONGER
 
-	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 0.5" | bc)
+	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 1.0" | bc)
 	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
 	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
 
@@ -228,9 +238,6 @@ then
 	exit 1
 fi
 
-#user defined params for instances can be in PATH
-. px4-rc.params
-
 dataman start
 
 # only start the simulator if not in replay mode, as both control the lockstep time
@@ -245,6 +252,8 @@ if param compare SIM_BAT_ENABLE 1
 then
 	battery_simulator start
 fi
+
+system_power_simulator start
 
 tone_alarm start
 rc_update start
@@ -288,10 +297,15 @@ then
 	# for multi intances setup, add namespace prefix
 	uxrce_dds_ns="-n px4_$px4_instance"
 fi
-if [ -n "$PX4_UXRCE_DDS_NS" ]
-then
-	# Override namespace if environment variable is defined
-	uxrce_dds_ns="-n $PX4_UXRCE_DDS_NS"
+if [ "${PX4_UXRCE_DDS_NS+x}" ]; then
+	# Override, as variable is set (empty or not)
+	if [ -n "$PX4_UXRCE_DDS_NS" ]; then
+		# Override namespace if environment variable is non-empty
+		uxrce_dds_ns="-n $PX4_UXRCE_DDS_NS"
+	else
+		# Clear namespace if variable is empty
+		uxrce_dds_ns=""
+	fi
 fi
 if [ -n "$ROS_DOMAIN_ID" ]
 then
@@ -307,7 +321,12 @@ then
 	uxrce_dds_port="$PX4_UXRCE_DDS_PORT"
 fi
 
-uxrce_dds_client start -t udp -h 127.0.0.1 -p $uxrce_dds_port $uxrce_dds_ns
+uxrce_dds_client start -t udp -p $uxrce_dds_port $uxrce_dds_ns
+
+if param greater -s ZENOH_ENABLE 0
+then
+	zenoh start
+fi
 
 if param greater -s MNT_MODE_IN -1
 then
@@ -330,10 +349,11 @@ then
 	gyro_calibration start
 fi
 
-# Payload deliverer module if gripper is enabled
-if param compare -s PD_GRIPPER_EN 1
+payload_deliverer start
+
+if param compare -s ICE_EN 1
 then
-	payload_deliverer start
+	internal_combustion_engine_control start
 fi
 
 #user defined mavlink streams for instances can be in PATH

@@ -44,6 +44,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <drivers/drv_hrt.h>
 
 using namespace time_literals;
@@ -60,18 +61,20 @@ public:
 	bool update() override;
 
 private:
-
-	static constexpr float _vel_z_filter_time_const = 2.0f;
-
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	static constexpr float kVerticalVelocityTimeConstant = 2.0f;
+	static constexpr float kDecelerationIntegratorLimit = 0.3f;
+	static constexpr float kAccelerationFilterTimeConstant = 0.05f;
 
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
+	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_position_sp_triplet{ORB_ID(position_setpoint_triplet)};
 
-	param_t _param_handle_pitch_cruise_degrees{PARAM_INVALID};
-	float _param_pitch_cruise_degrees{0.f};
+	float _param_fw_psp_off{0.f};
+	float _param_vt_b_dec_i{0.f};
+	float _param_vt_b_dec_mss{0.f};
 
-	AlphaFilter<float> _vel_z_filter;
+	AlphaFilter<float> _vel_z_filter{kVerticalVelocityTimeConstant};
+	AlphaFilter<matrix::Vector2f> _accel_filter{kAccelerationFilterTimeConstant};
+	float _decel_error_bt_int{0.f}; ///< Backtransition deceleration error integrator value
 
-	void updateParameters();
-
+	float computeBackTransitionTiltSetpoint();
 };

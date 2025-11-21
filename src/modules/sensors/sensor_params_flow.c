@@ -60,7 +60,7 @@ PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
  * @min 0.0
  * @max 1.0
  * @increment 0.1
- * @decimal 1
+ * @decimal 2
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_FLOW_MINHGT, 0.08f);
@@ -77,7 +77,7 @@ PARAM_DEFINE_FLOAT(SENS_FLOW_MINHGT, 0.08f);
  * @min 1.0
  * @max 100.0
  * @increment 0.1
- * @decimal 1
+ * @decimal 2
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_FLOW_MAXHGT, 100.f);
@@ -111,3 +111,13 @@ PARAM_DEFINE_FLOAT(SENS_FLOW_MAXR, 8.f);
  *
  */
 PARAM_DEFINE_FLOAT(SENS_FLOW_RATE, 70.0f);
+
+/**
+ * Optical flow scale factor
+ *
+ * @min 0.5
+ * @max 1.5
+ * @decimal 2
+ * @group Sensors
+ */
+PARAM_DEFINE_FLOAT(SENS_FLOW_SCALE, 1.f);

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file temperature_compensation.h
+ * @file TemperatureCompensation.h
  *
  * Sensor correction methods
  *

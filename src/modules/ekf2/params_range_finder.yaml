@@ -1,0 +1,155 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_RNG_CTRL:
+      description:
+        short: Range sensor height aiding
+        long: 'WARNING: Range finder measurements are less reliable and can experience
+          unexpected errors. For these reasons, if accurate control of height relative
+          to ground is required, it is recommended to use the MPC_ALT_MODE parameter
+          instead, unless baro errors are severe enough to cause problems with landing
+          and takeoff. If this parameter is enabled then the estimator
+          will make use of the range finder measurements to estimate its height in
+          addition to other height sources (if activated). Range sensor aiding can
+          be enabled (i.e.: always use) or set in "conditional" mode. Conditional
+          mode: This enables the range finder to be used during low speed (< EKF2_RNG_A_VMAX)
+          and low altitude (< EKF2_RNG_A_HMAX) operation, eg takeoff and landing,
+          where baro interference from rotor wash is excessive and can corrupt EKF
+          state estimates. It is intended to be used where a vertical takeoff and
+          landing is performed, and horizontal flight does not occur until above EKF2_RNG_A_HMAX.'
+      type: enum
+      values:
+        0: Disable range fusion
+        1: Enabled (conditional mode)
+        2: Enabled
+      default: 1
+    EKF2_RNG_DELAY:
+      description:
+        short: Range finder measurement delay relative to IMU measurements
+      type: float
+      default: 5
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_RNG_GATE:
+      description:
+        short: Gate size for range finder fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_RNG_NOISE:
+      description:
+        short: Measurement noise for range finder fusion
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m
+      decimal: 2
+    EKF2_RNG_PITCH:
+      description:
+        short: Range sensor pitch offset
+      type: float
+      default: 0.0
+      min: -0.75
+      max: 0.75
+      unit: rad
+      decimal: 3
+    EKF2_RNG_A_VMAX:
+      description:
+        short: Maximum horizontal velocity allowed for conditional range aid mode
+        long: If the vehicle horizontal speed exceeds this value then the estimator
+          will not fuse range measurements to estimate its height. This only applies
+          when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
+      type: float
+      default: 1.0
+      min: 0.1
+      max: 2
+      unit: m/s
+    EKF2_RNG_A_HMAX:
+      description:
+        short: Maximum height above ground allowed for conditional range aid mode
+        long: If the vehicle absolute altitude exceeds this value then the estimator
+          will not fuse range measurements to estimate its height. This only applies
+          when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
+      type: float
+      default: 5.0
+      min: 1.0
+      max: 10.0
+      unit: m
+    EKF2_RNG_QLTY_T:
+      description:
+        short: Minumum range validity period
+        long: Minimum duration during which the reported range finder signal quality
+          needs to be non-zero in order to be declared valid (s)
+      type: float
+      default: 1.0
+      unit: s
+      min: 0.1
+      max: 5
+    EKF2_RNG_K_GATE:
+      description:
+        short: Gate size used for range finder kinematic consistency check
+        long: 'To be used, the time derivative of the distance sensor measurements
+          projected on the vertical axis needs to be statistically consistent with
+          the estimated vertical velocity of the drone. Decrease this value to make
+          the filter more robust against range finder faulty data (stuck, reflections,
+          ...). Note: tune the range finder noise parameters (EKF2_RNG_NOISE and EKF2_RNG_SFE)
+          before tuning this gate.'
+      type: float
+      default: 1.0
+      unit: SD
+      min: 0.1
+      max: 5.0
+    EKF2_RNG_SFE:
+      description:
+        short: Range finder range dependent noise scaler
+        long: Specifies the increase in range finder noise with range.
+      type: float
+      default: 0.05
+      min: 0.0
+      max: 0.2
+      unit: m/m
+    EKF2_RNG_POS_X:
+      description:
+        short: X position of range finder origin in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_RNG_POS_Y:
+      description:
+        short: Y position of range finder origin in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_RNG_POS_Z:
+      description:
+        short: Z position of range finder origin in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_RNG_FOG:
+      description:
+        short: Maximum distance at which the range finder could detect fog (m)
+        long: Limit for fog detection. If the range finder measures a distance greater
+          than this value, the measurement is considered to not be blocked by fog or rain.
+          If there's a jump from larger than RNG_FOG to smaller than EKF2_RNG_FOG, the
+          measurement may gets rejected. 0 - disabled
+      type: float
+      default: 3.0
+      min: 0.0
+      max: 20.0
+      unit: m
+      decimal: 1

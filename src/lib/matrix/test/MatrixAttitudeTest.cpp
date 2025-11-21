@@ -200,8 +200,8 @@ TEST(MatrixAttitudeTest, Attitude)
 	}
 
 	// constants
-	double deg2rad = M_PI_PRECISE / 180.0;
-	double rad2deg = 180.0 / M_PI_PRECISE;
+	double deg2rad = M_PI / 180.0;
+	double rad2deg = 180.0 / M_PI;
 
 	// euler dcm round trip check
 	for (double roll = -90; roll <= 90; roll += 90) {

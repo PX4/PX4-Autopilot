@@ -6,7 +6,7 @@ function check_git_submodule {
 if [[ -f $1"/.git" || -d $1"/.git" ]]; then
 
 	# always update within CI environment or configuring withing VSCode CMake where you can't interact
-	if [ "$CI" == "true" ] || [ -n "${VSCODE_PID+set}" ]; then
+	if [ "$CI" == "true" ] || [ -n "${VSCODE_PID+set}" ] || [ -n "${CLION_IDE+set}" ]; then
 		git submodule --quiet sync --recursive -- $1
 		git submodule --quiet update --init --recursive --jobs=8 -- $1  || true
 		git submodule --quiet sync --recursive -- $1

@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# Forward is where the MIPI and ESC connectors are
+#
+# Auterion FMUv6S specific board sensors init
+#------------------------------------------------------------------------------
+
+# For system_power and battery_status
+board_adc start
+
+# IMU3 on SPI3, ROTATION_NONE=0
+bmi088 -A -R 0 -s start
+bmi088 -G -R 0 -s start
+
+# MAG on I2C4, ROTATION_ROLL_180=8
+if ver hwtypecmp V6S013 V6S015
+then
+	bmm150 -I -R 8 start
+else
+	bmm350 -I -R 8 start
+fi
+
+# BARO on I2C4
+bmp388 -I -b 4 -a 0x77 start
+
+
+# External sensors on I2C1
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	# Disable analog monitoring
+	param set BAT1_V_CHANNEL -2
+
+	set INA_CONFIGURED yes
+fi
+
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+
+	# Disable analog monitoring
+	param set BAT1_V_CHANNEL -2
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+
+	# Disable analog monitoring
+	param set BAT1_V_CHANNEL -2
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare BAT1_V_CHANNEL -2
+then
+	if [ "$INA_CONFIGURED" != "yes" ]
+	then
+		param set BAT1_V_CHANNEL -1
+	fi
+fi
+
+# External compass IST8310 on I2C1
+ist8310 -X -b 1 -R 10 start
+
+# Start an external PWM generator
+if param greater PCA9685_EN_BUS 0
+then
+	pca9685_pwm_out start -b 1
+fi

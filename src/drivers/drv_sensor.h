@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,9 +62,10 @@
 #define DRV_MAG_DEVTYPE_VCM1193L 0x0A
 
 #define DRV_MAG_DEVTYPE_IST8308  0x0B
-#define DRV_MAG_DEVTYPE_LIS2MDL  0x0C
 #define DRV_MAG_DEVTYPE_MMC5983MA  0x0D
 #define DRV_MAG_DEVTYPE_IIS2MDC  0x0E
+
+#define DRV_MAG_DEVTYPE_QMC5883P 0x0F
 
 #define DRV_IMU_DEVTYPE_LSM303D  0x11
 
@@ -133,6 +134,8 @@
 #define DRV_IMU_DEVTYPE_ADIS16477	0x59
 #define DRV_IMU_DEVTYPE_ADIS16507	0x5A
 
+#define DRV_IMU_DEVTYPE_SCH16T		0x5B
+
 #define DRV_BARO_DEVTYPE_MPC2520	0x5F
 #define DRV_BARO_DEVTYPE_LPS22HB	0x60
 
@@ -149,6 +152,7 @@
 #define DRV_ACC_DEVTYPE_BMI085          0x6C
 #define DRV_GYR_DEVTYPE_BMI085          0x6D
 #define DRV_BARO_DEVTYPE_BMP390         0x6E
+#define DRV_BARO_DEVTYPE_BMP581		0x6F
 
 #define DRV_DIST_DEVTYPE_LL40LS       0x70
 #define DRV_DIST_DEVTYPE_MAPPYDOT     0x71
@@ -162,6 +166,7 @@
 #define DRV_LED_DEVTYPE_RGBLED_NCP5623C 0x7b
 #define DRV_LED_DEVTYPE_RGBLED_IS31FL3195    0xbf
 #define DRV_LED_DEVTYPE_RGBLED_LP5562    0xc0
+#define DRV_LED_DEVTYPE_RGBLED_AW2023    0xe9
 
 #define DRV_BAT_DEVTYPE_SMBUS         0x7c
 #define DRV_SENS_DEVTYPE_IRLOCK       0x7d
@@ -209,6 +214,8 @@
 #define DRV_GPS_DEVTYPE_UBX_8   0xA8
 #define DRV_GPS_DEVTYPE_UBX_9   0xA9
 #define DRV_GPS_DEVTYPE_UBX_F9P 0xAA
+#define DRV_GPS_DEVTYPE_UBX_10  0xAC
+#define DRV_GPS_DEVTYPE_UBX_20  0xAD
 #define DRV_GPS_DEVTYPE_NMEA 0xAB
 
 #define DRV_GPS_DEVTYPE_SIM 0xAF
@@ -237,7 +244,27 @@
 #define DRV_INS_DEVTYPE_VN100 0xE1
 #define DRV_INS_DEVTYPE_VN200 0xE2
 #define DRV_INS_DEVTYPE_VN300 0xE3
+
 #define DRV_DIFF_PRESS_DEVTYPE_ASP5033  0xE4
+
+#define DRV_MAG_DEVTYPE_BMM350      	0xE5
+
+#define DRV_DIFF_PRESS_DEVTYPE_AUAV	0xE6
+#define DRV_BARO_DEVTYPE_AUAV		0xE7
+#define DRV_BARO_DEVTYPE_SPA06          0xE8
+
+#define DRV_INS_DEVTYPE_ILABS           0xE9
+
+#define DRV_INS_DEVTYPE_MICROSTRAIN	0xEA
+#define DRV_INS_DEVTYPE_BAHRS           0xEB
+
+#define DRV_INS_DEVTYPE_SBG		0xEC
+
+#define DRV_ADC_DEVTYPE_ADS7953 0xED
+#define DRV_ADC_DEVTYPE_TLA2528 0xEF
+
+
+#define DRV_TEMP_DEVTYPE_MCP9808	0xEE
 
 #define DRV_DEVTYPE_UNUSED		0xff
 

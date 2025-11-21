@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file hrt_test_start_posix.cpp
+ * @file hrt_test_start.cpp
  *
  * @author Mark Charlebois <mcharleb@gmail.com>
  */

@@ -66,15 +66,12 @@ void FakeMagnetometer::Run()
 		if (_vehicle_gps_position_sub.copy(&gps)) {
 			if (gps.eph < 1000) {
 
-				const double lat = gps.latitude_deg;
-				const double lon = gps.longitude_deg;
-
 				// magnetic field data returned by the geo library using the current GPS position
-				const float mag_declination_gps = get_mag_declination_radians(lat, lon);
-				const float mag_inclination_gps = get_mag_inclination_radians(lat, lon);
-				const float mag_strength_gps = get_mag_strength_gauss(lat, lon);
+				const float declination_rad = math::radians(get_mag_declination_degrees(gps.latitude_deg, gps.longitude_deg));
+				const float inclination_rad = math::radians(get_mag_inclination_degrees(gps.latitude_deg, gps.longitude_deg));
+				const float field_strength_gauss = get_mag_strength_gauss(gps.latitude_deg, gps.longitude_deg);
 
-				_mag_earth_pred = Dcmf(Eulerf(0, -mag_inclination_gps, mag_declination_gps)) * Vector3f(mag_strength_gps, 0, 0);
+				_mag_earth_pred = Dcmf(Eulerf(0, -inclination_rad, declination_rad)) * Vector3f(field_strength_gauss, 0, 0);
 
 				_mag_earth_available = true;
 			}

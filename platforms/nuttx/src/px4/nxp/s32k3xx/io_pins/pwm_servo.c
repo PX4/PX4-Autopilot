@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file drv_pwm_servo.c
+ * @file pwm_servo.c
  *
  * Servo driver supporting PWM servos connected to S32K1XX FlexTimer blocks.
  */
@@ -128,13 +128,13 @@ int up_pwm_servo_set_rate_group_update(unsigned channel, unsigned rate)
 
 	if (rate != 0) {
 
-		/* limit update rate to 1..10000Hz; somewhat arbitrary but safe */
+		/* limit update rate to 1..20000Hz; somewhat arbitrary but safe */
 
 		if (rate < 1) {
 			return -ERANGE;
 		}
 
-		if (rate > 10000) {
+		if (rate > 20000) {
 			return -ERANGE;
 		}
 	}

@@ -53,22 +53,32 @@ InputTest::UpdateResult InputTest::update(unsigned int timeout_ms, ControlData &
 	}
 
 	control_data.type = ControlData::Type::Angle;
+	control_data.timestamp_last_update = hrt_absolute_time();
 
-	control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-	control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-	control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+	if (PX4_ISFINITE(_roll_deg) && PX4_ISFINITE(_pitch_deg) && PX4_ISFINITE(_yaw_deg)) {
+		control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+		control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+		control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+		matrix::Eulerf euler(
+			math::radians((float)_roll_deg),
+			math::radians((float)_pitch_deg),
+			math::radians((float)_yaw_deg));
+		matrix::Quatf q(euler);
+		q.copyTo(control_data.type_data.angle.q);
 
-	matrix::Eulerf euler(
-		math::radians((float)_roll_deg),
-		math::radians((float)_pitch_deg),
-		math::radians((float)_yaw_deg));
-	matrix::Quatf q(euler);
+	} else {
+		control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
+		control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
+		control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
+		control_data.type_data.angle.q[0] = NAN;
+		control_data.type_data.angle.q[1] = NAN;
+		control_data.type_data.angle.q[2] = NAN;
+		control_data.type_data.angle.q[3] = NAN;
+		control_data.type_data.angle.angular_velocity[0] = math::radians(_rollrate_deg_s);
+		control_data.type_data.angle.angular_velocity[1] = math::radians(_pitchrate_deg_s);
+		control_data.type_data.angle.angular_velocity[2] = math::radians(_yawrate_deg_s);
+	}
 
-	q.copyTo(control_data.type_data.angle.q);
-
-	control_data.type_data.angle.angular_velocity[0] = NAN;
-	control_data.type_data.angle.angular_velocity[1] = NAN;
-	control_data.type_data.angle.angular_velocity[2] = NAN;
 
 	// For testing we mark ourselves as in control.
 	control_data.sysid_primary_control = _parameters.mav_sysid;
@@ -86,17 +96,32 @@ int InputTest::initialize()
 void InputTest::print_status() const
 {
 	PX4_INFO("Input: Test");
-	PX4_INFO_RAW("  roll : % 3d deg\n", _roll_deg);
-	PX4_INFO_RAW("  pitch: % 3d deg\n", _pitch_deg);
-	PX4_INFO_RAW("  yaw  : % 3d deg\n", _yaw_deg);
+	PX4_INFO_RAW("  roll : % .1f deg\n", (double)_roll_deg);
+	PX4_INFO_RAW("  pitch: % .1f deg\n", (double)_pitch_deg);
+	PX4_INFO_RAW("  yaw  : % .1f deg\n", (double)_yaw_deg);
+	PX4_INFO_RAW("  rollrate : % .1f deg/s\n", (double)_rollrate_deg_s);
+	PX4_INFO_RAW("  pitchrate: % .1f deg/s\n", (double)_pitchrate_deg_s);
+	PX4_INFO_RAW("  yawrate  : % .1f deg/s\n", (double)_yawrate_deg_s);
 }
 
-void InputTest::set_test_input(int roll_deg, int pitch_deg, int yaw_deg)
+void InputTest::set_test_input_angles(float roll_deg, float pitch_deg, float yaw_deg)
 {
 	_roll_deg = roll_deg;
 	_pitch_deg = pitch_deg;
 	_yaw_deg = yaw_deg;
-
+	_rollrate_deg_s = NAN;
+	_pitchrate_deg_s = NAN;
+	_yawrate_deg_s = NAN;
+	_has_been_set.store(true);
+}
+void InputTest::set_test_input_angle_rates(float rollrate_deg_s, float pitchrate_deg_s, float yawrate_deg_s)
+{
+	_roll_deg = NAN;
+	_pitch_deg = NAN;
+	_yaw_deg = NAN;
+	_rollrate_deg_s = rollrate_deg_s;
+	_pitchrate_deg_s = pitchrate_deg_s;
+	_yawrate_deg_s = yawrate_deg_s;
 	_has_been_set.store(true);
 }
 

@@ -21,8 +21,10 @@ then
 fi
 
 # Internal magnetometer on I2C
-# TODO: Write a driver for the MMC5983MA
-mmc5983ma -I -b 4 start
+if ! iis2mdc -R 4 -I -b 4 start
+then
+	mmc5983ma -I -b 4 start
+fi
 
 # Internal Baro on I2C
 bmp388 -I -b 4 start

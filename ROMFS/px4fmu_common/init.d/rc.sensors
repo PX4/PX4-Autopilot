@@ -71,12 +71,6 @@ then
 fi
 
 
-# Heater driver for temperature regulated IMUs.
-if param compare -s SENS_EN_THERMAL 1
-then
-	heater start
-fi
-
 # Teraranger one tof sensor
 if param greater -s SENS_EN_TRANGER 0
 then
@@ -138,6 +132,12 @@ then
 	adis16507 -S start
 fi
 
+# SCH16T spi external IMU
+if param compare -s SENS_EN_SCH16T 1
+then
+	sch16t -S start
+fi
+
 # Eagle Tree airspeed sensor external I2C
 if param compare -s SENS_EN_ETSASPD 1
 then
@@ -152,6 +152,12 @@ then
 		# try another common address
 		sdp3x start -X -a 0x22
 	fi
+fi
+
+# Microchip MCP9808 temperature sensor external I2C
+if param compare -s SENS_EN_MCP9808 1
+then
+	mcp9808 start -X
 fi
 
 # TE MS4515 differential pressure sensor external I2C
@@ -178,6 +184,13 @@ then
 	asp5033 start -X
 fi
 
+# AUAV absolute/differential pressure sensor external I2C
+if param greater -s SENS_EN_AUAVX 0
+then
+	auav start -D -X
+	auav start -A -X
+fi
+
 # SHT3x temperature and hygrometer sensor, external I2C
 if param compare -s SENS_EN_SHT3X 1
 then
@@ -198,11 +211,30 @@ then
 	spl06 -X -a 0x77 start
 fi
 
+# SPA06 sensor external I2C
+if param compare -s SENS_EN_SPA06 1
+then
+	spa06 -X start
+	spa06 -X -a 0x77 start
+fi
+
 # PCF8583 counter (RPM sensor)
 if param compare -s SENS_EN_PCF8583 1
 then
 	pcf8583 start -X
 	pcf8583 start -X -a 0x51
+fi
+
+# ADC sensor ADS7953 external SPI
+if param compare -s ADC_ADS7953_EN 1
+then
+	ads7953 start -S
+fi
+
+# ADC sensor tla2528 external I2C
+if param compare -s ADC_TLA2528_EN 1
+then
+	tla2528 start -X
 fi
 
 # probe for optional external I2C devices
@@ -212,15 +244,18 @@ then
 
 	# compasses
 	hmc5883 -T -X -q start
+	iis2mdc -X -q start
 	ist8308 -X -q start
 	ist8310 -X -q start
-	lis2mdl -X -q start
 	if ! lis3mdl -X -q start
 	then
 		lis3mdl -X -q -a 0x1c start
 	fi
 	qmc5883l -X -q start
+	qmc5883p -X -q start
 	rm3100 -X -q start
+	bmm350 -X -q start
+	iis2mdc -X -q start
 
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start

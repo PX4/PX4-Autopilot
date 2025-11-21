@@ -151,14 +151,17 @@ TEST_F(PositionSmoothingTest, reachesTargetVelocityIntegration)
 
 TEST_F(PositionSmoothingTest, reachesTargetInitialVelocity)
 {
-	const int N_ITER = 2000;
+	const int N_ITER = 20000;
 	const float DELTA_T = 0.02f;
 	const Vector3f INITIAL_POSITION{0.f, 0.f, 0.f};
 	const Vector3f TARGET{12.f, 17.f, 8.f};
 	const Vector3f NEXT_TARGET{8.f, 12.f, 80.f};
 
+	const float XY_ACC_RAD = 10.f;
+	const float Z_ACC_RAD = 0.8f;
 
-	Vector3f waypoints[3] = {INITIAL_POSITION, TARGET, NEXT_TARGET};
+
+	Vector3f waypoints[3] = {INITIAL_POSITION, TARGET, TARGET};
 	Vector3f ff_velocity{1.f, 0.1f, 0.3f};
 
 	Vector3f position{0.f, 0.f, 0.f};
@@ -180,12 +183,13 @@ TEST_F(PositionSmoothingTest, reachesTargetInitialVelocity)
 		ff_velocity = {0.f, 0.f, 0.f};
 		expectDynamicsLimitsRespected(out);
 
-		if (position == TARGET) {
+		if (Vector2f(position.xy() - TARGET.xy()).norm() < XY_ACC_RAD && fabsf(position(2) - TARGET(2)) < Z_ACC_RAD) {
 			printf("Converged in %d iterations\n", iteration);
 			break;
 		}
 	}
 
-	EXPECT_EQ(TARGET, position);
+	EXPECT_LT(Vector2f(position.xy() - TARGET.xy()).norm(), XY_ACC_RAD);
+	EXPECT_LT(fabsf(position(2) - TARGET(2)), Z_ACC_RAD);
 	EXPECT_LT(iteration, N_ITER) << "Took too long to converge\n";
 }

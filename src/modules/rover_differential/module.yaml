@@ -1,0 +1,57 @@
+module_name: Rover Differential
+
+parameters:
+  - group: Rover Differential
+    definitions:
+      RD_WHEEL_TRACK:
+          description:
+            short: Wheel track
+            long: Distance from the center of the right wheel to the center of the left wheel.
+          type: float
+          unit: m
+          min: 0
+          max: 100
+          increment: 0.001
+          decimal: 3
+          default: 0
+
+      RD_TRANS_TRN_DRV:
+        description:
+            short: Yaw error threshhold to switch from spot turning to driving
+            long: |
+              This threshold is used for the state machine to switch from turning to driving based on the
+              error between the desired and actual yaw.
+        type: float
+        unit: rad
+        min: 0.001
+        max: 3.14159
+        increment: 0.01
+        decimal: 3
+        default: 0.0872665
+
+      RD_TRANS_DRV_TRN:
+        description:
+            short: Yaw error threshhold to switch from driving to spot turning
+            long: |
+              This threshold is used for the state machine to switch from driving to turning based on the
+              error between the desired and actual yaw. It is also used as the threshold whether the rover should come
+              to a smooth stop at the next waypoint. This slow down effect is active if the angle between the
+              line segments from prevWP-currWP and currWP-nextWP is smaller then 180 - RD_TRANS_DRV_TRN.
+        type: float
+        unit: rad
+        min: 0.001
+        max: 3.14159
+        increment: 0.01
+        decimal: 3
+        default: 0.174533
+
+      RD_YAW_STK_GAIN:
+        description:
+            short: Yaw stick gain for Manual mode
+            long: Assign value <1.0 to decrease stick response for yaw control.
+        type: float
+        min: 0.1
+        max: 1
+        increment: 0.01
+        decimal: 3
+        default: 1

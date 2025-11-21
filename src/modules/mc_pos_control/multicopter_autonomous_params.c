@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_DN, 1.5f);
 /**
  * Acceleration for autonomous and for manual modes
  *
- * When piloting manually, this parameter is only used in MPC_POS_MODE 4.
+ * When piloting manually, this parameter is only used in MPC_POS_MODE Acceleration based.
  *
  * @unit m/s^2
  * @min 2
@@ -145,7 +145,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.f);
  * @increment 5
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.f);
+PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 60.f);
 
 /**
  * Maximum yaw acceleration in autonomous modes
@@ -160,7 +160,7 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.f);
  * @increment 5
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_ACC, 60.f);
+PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_ACC, 20.f);
 
 /**
  * Heading behavior in autonomous modes

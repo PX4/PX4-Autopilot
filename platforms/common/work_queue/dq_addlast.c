@@ -70,4 +70,3 @@ void dq_addlast(dq_entry_t *node, dq_queue_t *queue)
 		queue->tail        = node;
 	}
 }
-

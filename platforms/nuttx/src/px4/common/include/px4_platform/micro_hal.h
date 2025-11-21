@@ -54,4 +54,3 @@ __BEGIN_DECLS
 #include <arch/board/board.h>
 
 __END_DECLS
-

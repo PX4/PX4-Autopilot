@@ -19,7 +19,6 @@ param set-default NAV_ACC_RAD 2
 param set-default RTL_DESCEND_ALT 10
 param set-default RTL_RETURN_ALT 30
 
-
 param set-default CA_ROTOR_COUNT 12
 # Bottom motors
 param set-default CA_ROTOR0_PX 0
@@ -66,4 +65,3 @@ param set-default CA_ROTOR11_PX -0.344
 param set-default CA_ROTOR11_PY -0.25
 param set-default CA_ROTOR11_PZ -0.05
 param set-default CA_ROTOR11_KM -0.05
-

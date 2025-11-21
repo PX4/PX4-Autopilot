@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu_init.c
+ * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
  * board_app_initializ() function that is called early by nsh during startup.

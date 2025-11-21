@@ -95,7 +95,7 @@
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 #define ADC_BATTERY_VOLTAGE_CHANNEL             ADC12_CH(4)
-#define ADC_BATTERY_CURRENT_CHANNEL             ADC12_CH(5)
+#define ADC_BATTERY_CURRENT_CHANNEL             ADC12_CH(8)
 
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \

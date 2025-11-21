@@ -69,19 +69,29 @@ bool Serial::close()
 	return _impl.close();
 }
 
+ssize_t Serial::bytesAvailable()
+{
+	return _impl.bytesAvailable();
+}
+
 ssize_t Serial::read(uint8_t *buffer, size_t buffer_size)
 {
 	return _impl.read(buffer, buffer_size);
 }
 
-ssize_t Serial::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count, uint32_t timeout_us)
+ssize_t Serial::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count, uint32_t timeout_ms)
 {
-	return _impl.readAtLeast(buffer, buffer_size, character_count, timeout_us);
+	return _impl.readAtLeast(buffer, buffer_size, character_count, timeout_ms);
 }
 
 ssize_t Serial::write(const void *buffer, size_t buffer_size)
 {
 	return _impl.write(buffer, buffer_size);
+}
+
+ssize_t Serial::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
+{
+	return _impl.writeBlocking(buffer, buffer_size, timeout_ms);
 }
 
 void Serial::flush()

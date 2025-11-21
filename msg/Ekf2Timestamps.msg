@@ -14,6 +14,7 @@ int16 RELATIVE_TIMESTAMP_INVALID = 32767 # (0x7fff) If one of the relative times
 # difference of +-3.2s to the sensor_combined topic.
 
 int16 airspeed_timestamp_rel
+int16 airspeed_validated_timestamp_rel
 int16 distance_sensor_timestamp_rel
 int16 optical_flow_timestamp_rel
 int16 vehicle_air_data_timestamp_rel

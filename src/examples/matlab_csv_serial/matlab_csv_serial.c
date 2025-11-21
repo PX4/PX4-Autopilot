@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file matlab_csv_serial_main.c
+ * @file matlab_csv_serial.c
  *
  * Matlab CSV / ASCII format interface at 921600 baud, 8 data bits,
  * 1 stop bit, no parity

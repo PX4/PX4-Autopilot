@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file blocks.h
+ * @file BlockPID.hpp
  *
  * Controller library code
  */

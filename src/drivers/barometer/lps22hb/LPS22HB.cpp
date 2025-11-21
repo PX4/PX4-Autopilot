@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file lps22hb.cpp
+ * @file LPS22HB.cpp
  *
  * Driver for the LPS22HB barometer connected via I2C or SPI.
  */

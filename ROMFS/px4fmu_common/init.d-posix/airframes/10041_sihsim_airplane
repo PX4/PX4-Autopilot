@@ -16,16 +16,6 @@ param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_MAGSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 
-# disable some checks to allow to fly:
-# - with usb
-param set-default CBRK_USB_CHK 197848
-# - without real battery
-param set-default CBRK_SUPPLY_CHK 894281
-# - without safety switch
-param set-default CBRK_IO_SAFETY 22027
-
-param set-default BAT_N_CELLS 3
-
 param set-default SIH_T_MAX 6
 param set-default SIH_MASS 0.3
 param set-default SIH_IXX 0.00402
@@ -37,19 +27,40 @@ param set-default SIH_KDV 0.2
 param set-default SIH_VEHICLE_TYPE 1 	# sih as fixed wing
 param set-default RWTO_TKOFF 1  # enable takeoff from runway (as opposed to launched)
 
-
-param set-default CA_AIRFRAME 1
-
 param set-default CA_ROTOR_COUNT 1
+param set-default CA_ROTOR0_PX 0.3
 
+# SIH for now hardcodes this configuration which we need to match in the airframe files.
 param set-default CA_SV_CS_COUNT 3
-param set-default CA_SV_CS0_TRQ_R -0.5
-param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS0_TRQ_R 1
+param set-default CA_SV_CS0_TYPE 15  # single channel aileron
 param set-default CA_SV_CS1_TRQ_P 1
-param set-default CA_SV_CS1_TYPE 3
+param set-default CA_SV_CS1_TYPE 3  # elevator
 param set-default CA_SV_CS2_TRQ_Y 1
-param set-default CA_SV_CS2_TYPE 4
-param set-default PWM_MAIN_FUNC3 201
-param set-default PWM_MAIN_FUNC4 202
-param set-default PWM_MAIN_FUNC5 203
-param set-default PWM_MAIN_FUNC6 101
+param set-default CA_SV_CS2_TYPE 4  # rudder
+
+param set-default PWM_MAIN_FUNC1 201
+param set-default PWM_MAIN_FUNC2 202
+param set-default PWM_MAIN_FUNC3 203
+param set-default PWM_MAIN_FUNC4 101
+
+param set-default EKF2_GPS_DELAY 0
+
+# Rate controllers
+param set-default FW_RR_P 0.0500
+param set-default FW_RR_I 2.0000
+param set-default FW_RR_D 0.0000
+param set-default FW_RR_FF 0.0000
+param set-default FW_RR_IMAX 1.0000
+
+param set-default FW_PR_P 0.0800
+param set-default FW_PR_I 2.5000
+param set-default FW_PR_D 0.0000
+param set-default FW_PR_FF 0.0000
+param set-default FW_PR_IMAX 1.0000
+
+param set-default FW_YR_P 0.0500
+param set-default FW_YR_I 3.0000
+param set-default FW_YR_D 0.0000
+param set-default FW_YR_FF 0.0000
+param set-default FW_YR_IMAX 1.0000

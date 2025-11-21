@@ -51,12 +51,33 @@ bool RoverLandDetector::_get_ground_contact_state()
 
 bool RoverLandDetector::_get_landed_state()
 {
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
-		return true; // If Landing has been requested then say we have landed.
+	// If Landing has been requested then say we have landed.
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+	    || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
+		return true;
 
-	} else {
-		return !_armed;  // If we are armed we are not landed.
 	}
+
+	// If we are in RTL and have reached the last valid waypoint then we are landed.
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+		vehicle_global_position_s vehicle_global_position{};
+		_vehicle_global_position_sub.copy(&vehicle_global_position);
+		position_setpoint_triplet_s position_setpoint_triplet{};
+		_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
+
+		const float distance_to_curr_wp = get_distance_to_next_waypoint(vehicle_global_position.lat,
+						  vehicle_global_position.lon,
+						  position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
+		return distance_to_curr_wp < _param_nav_acc_rad.get() && !position_setpoint_triplet.next.valid;
+
+	}
+
+	return !_armed;  // If we are armed we are not landed.
+}
+
+void RoverLandDetector::_set_hysteresis_factor(const int factor)
+{
+	_landed_hysteresis.set_hysteresis_time_from(true, 500_ms);
 }
 
 } // namespace land_detector

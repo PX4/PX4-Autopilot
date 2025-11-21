@@ -277,7 +277,7 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 					// if no gyro was selected use the first valid sensor_gyro_fifo
 					if (!device_id_valid) {
 						device_id = sensor_gyro_fifo_sub.get().device_id;
-						PX4_WARN("no gyro selected, using sensor_gyro_fifo:%" PRIu8 " %" PRIu32, i, sensor_gyro_fifo_sub.get().device_id);
+						PX4_DEBUG("no gyro selected, using sensor_gyro_fifo:%" PRIu8 " %" PRIu32, i, sensor_gyro_fifo_sub.get().device_id);
 					}
 
 					if (sensor_gyro_fifo_sub.get().device_id == device_id) {
@@ -319,7 +319,7 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 					// if no gyro was selected use the first valid sensor_gyro
 					if (!device_id_valid) {
 						device_id = sensor_gyro_sub.get().device_id;
-						PX4_WARN("no gyro selected, using sensor_gyro:%" PRIu8 " %" PRIu32, i, sensor_gyro_sub.get().device_id);
+						PX4_DEBUG("no gyro selected, using sensor_gyro:%" PRIu8 " %" PRIu32, i, sensor_gyro_sub.get().device_id);
 					}
 
 					if (sensor_gyro_sub.get().device_id == device_id) {

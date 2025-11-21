@@ -82,6 +82,46 @@ public:
 	Vector4(const Slice<Type, 1, 4, P, Q> &slice_in) : Vector<Type, 4>(slice_in)
 	{
 	}
+
+	/**
+	 * Override matrix ops so Vector4 type is returned
+	 */
+
+	Vector4 operator+(Vector4 other) const
+	{
+		return Matrix41::operator+(other);
+	}
+
+	Vector4 operator+(Type scalar) const
+	{
+		return Matrix41::operator+(scalar);
+	}
+
+	Vector4 operator-(Vector4 other) const
+	{
+		return Matrix41::operator-(other);
+	}
+
+	Vector4 operator-(Type scalar) const
+	{
+		return Matrix41::operator-(scalar);
+	}
+
+	Vector4 operator-() const
+	{
+		return Matrix41::operator-();
+	}
+
+	Vector4 operator*(Type scalar) const
+	{
+		return Matrix41::operator*(scalar);
+	}
+
+	Type operator*(Vector4 b) const
+	{
+		return Vector<Type, 4>::operator*(b);
+	}
+
 };
 
 using Vector4f = Vector4<float>;

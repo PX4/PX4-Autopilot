@@ -46,8 +46,8 @@
 #include "mission_feasibility_checker.h"
 #include "navigator.h"
 
-MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed) :
-	MissionBlock(navigator),
+MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed, uint8_t navigator_state_id) :
+	MissionBlock(navigator, navigator_state_id),
 	ModuleParams(navigator),
 	_dataman_cache_size_signed(dataman_cache_size_signed)
 {
@@ -180,8 +180,10 @@ MissionBase::on_inactivation()
 	_navigator->disable_camera_trigger();
 
 	_navigator->stop_capturing_images();
-	_navigator->set_gimbal_neutral(); // point forward
-	_navigator->release_gimbal_control();
+
+	if (!_navigator->get_land_detected()->landed) {
+		_navigator->activate_set_gimbal_neutral_timer(hrt_absolute_time());
+	}
 
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
@@ -218,6 +220,8 @@ MissionBase::on_activation()
 
 	int32_t resume_index = _inactivation_index > 0 ? _inactivation_index : 0;
 
+	bool resume_mission_on_previous = false;
+
 	if (_inactivation_index > 0 && cameraWasTriggering()) {
 		size_t num_found_items{0U};
 		getPreviousPositionItems(_inactivation_index - 1, &resume_index, num_found_items, 1U);
@@ -229,12 +233,24 @@ MissionBase::on_activation()
 			setMissionIndex(resume_index);
 
 			_align_heading_necessary = true;
+			resume_mission_on_previous = true;
 		}
+	}
+
+	if (!resume_mission_on_previous) {
+		// Only replay speed changes immediately if we are not resuming the mission at the previous position item.
+		// Otherwise it must be handled in the on_active() method once we reach the previous position item.
+		replayCachedSpeedChangeItems();
+		_speed_replayed_on_activation = true;
+
+	} else {
+		_speed_replayed_on_activation = false;
 	}
 
 	checkClimbRequired(_mission.current_seq);
 	set_mission_items();
 
+	_mission_activation_index = _mission.current_seq;
 	_inactivation_index = -1; // reset
 
 	// reset cruise speed
@@ -293,17 +309,28 @@ MissionBase::on_active()
 		_align_heading_necessary = false;
 	}
 
-	// replay gimbal and camera commands immediately after resuming mission
-	if (haveCachedGimbalOrCameraItems()) {
-		replayCachedGimbalCameraItems();
+	// Replay camera mode commands immediately upon mission resume
+	if (haveCachedCameraModeItems()) {
+		replayCachedCameraModeItems();
 	}
 
-	// replay trigger commands upon raching the resume waypoint if the trigger relay flag is set
-	if (cameraWasTriggering() && is_mission_item_reached_or_completed()) {
-		replayCachedTriggerItems();
+	// Replay cached gimbal commands immediately upon mission resume, but only after the vehicle has reached the final target altitude
+	if (haveCachedGimbalItems() && _work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+		replayCachedGimbalItems();
 	}
 
-	replayCachedSpeedChangeItems();
+	// Replay cached trigger commands once the last mission waypoint is re-reached after the mission resume
+	if (_mission.current_seq > _mission_activation_index) {
+		// replay trigger commands
+		if (cameraWasTriggering()) {
+			replayCachedTriggerItems();
+		}
+	}
+
+	if (!_speed_replayed_on_activation && _mission.current_seq > _mission_activation_index) {
+		// replay speed change items if not already done on mission (re-)activation
+		replayCachedSpeedChangeItems();
+	}
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MissionType::MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
@@ -351,6 +378,45 @@ MissionBase::on_active()
 
 	} else if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
+	}
+
+	updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
+}
+
+bool
+MissionBase::isLanding()
+{
+	if (hasMissionLandStart() && (_mission.current_seq > _mission.land_start_index)
+	    && (_mission.current_seq <= _mission.land_index)) {
+		static constexpr size_t max_num_next_items{1u};
+		int32_t next_mission_items_index[max_num_next_items];
+		size_t num_found_items;
+
+		getNextPositionItems(_mission.land_start_index + 1, next_mission_items_index, num_found_items, max_num_next_items);
+
+		// vehicle is currently landing if
+		//  mission valid, still flying, and in the landing portion of mission (past land start marker)
+		bool on_landing_stage = (num_found_items > 0U) &&  _mission.current_seq > next_mission_items_index[0U];
+
+		// special case: if the land start index is at a LOITER_TO_ALT WP, then we're in the landing sequence already when the
+		// distance to the WP is below the loiter radius + acceptance.
+		if ((num_found_items > 0U) && _mission.current_seq == next_mission_items_index[0U]
+		    && _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
+			const float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+						_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+
+			// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
+			const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
+					&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
+					_navigator->get_default_loiter_rad();
+
+			on_landing_stage = d_current <= (_navigator->get_acceptance_radius() + mission_item_loiter_radius_abs);
+		}
+
+		return _navigator->get_mission_result()->valid && on_landing_stage;
+
+	} else {
+		return false;
 	}
 }
 
@@ -463,7 +529,7 @@ MissionBase::set_mission_items()
 
 	if (set_end_of_mission) {
 		setEndOfMissionItems();
-		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+		_navigator->mode_completed(getNavigatorStateId());
 	}
 }
 
@@ -490,7 +556,9 @@ void MissionBase::setEndOfMissionItems()
 		_mission_item.nav_cmd = NAV_CMD_IDLE;
 
 	} else {
-		if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+		if (pos_sp_triplet->current.valid &&
+		    (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
+		     pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)) {
 			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
 
 		} else {
@@ -552,6 +620,13 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				  (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
 				  (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND) &&
 				  !_land_detected_sub.get().landed;
+
+	/* ignore yaw for landing items */
+	/* XXX: if specified heading for landing is desired we could add another step before the descent
+		* that aligns the vehicle first */
+	if (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
+		_mission_item.yaw = NAN;
+	}
 
 	/* move to land wp as fixed wing */
 	if (needs_vtol_landing) {
@@ -627,10 +702,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
-			// set gimbal to neutral position (level with horizon) to reduce change of damage on landing
-			_navigator->acquire_gimbal_control();
-			_navigator->set_gimbal_neutral();
-			_navigator->release_gimbal_control();
+			_navigator->activate_set_gimbal_neutral_timer(hrt_absolute_time());
 
 		} else {
 
@@ -640,13 +712,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				startPrecLand(_mission_item.land_precision);
 			}
 		}
-	}
-
-	/* ignore yaw for landing items */
-	/* XXX: if specified heading for landing is desired we could add another step before the descent
-		* that aligns the vehicle first */
-	if (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
-		_mission_item.yaw = NAN;
 	}
 }
 
@@ -819,7 +884,7 @@ MissionBase::do_abort_landing()
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	_mission_item.altitude_is_relative = false;
 	_mission_item.altitude = alt_sp;
-	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.autocontinue = false;
 	_mission_item.origin = ORIGIN_ONBOARD;
@@ -852,23 +917,20 @@ MissionBase::do_abort_landing()
 	}
 
 	// send reposition cmd to get out of mission
-	vehicle_command_s vcmd = {};
-
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
-	vcmd.param1 = -1;
-	vcmd.param2 = 1;
-	vcmd.param5 = _mission_item.lat;
-	vcmd.param6 = _mission_item.lon;
-	vcmd.param7 = alt_sp;
-
-	_navigator->publish_vehicle_cmd(&vcmd);
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+	vehicle_command.param1 = -1.f; // Default speed
+	vehicle_command.param2 = 1.f; // Modes should switch, not setting this is unsupported
+	vehicle_command.param5 = _mission_item.lat;
+	vehicle_command.param6 = _mission_item.lon;
+	vehicle_command.param7 = alt_sp;
+	_navigator->publish_vehicle_command(vehicle_command);
 }
 
 void MissionBase::publish_navigator_mission_item()
 {
 	navigator_mission_item_s navigator_mission_item{};
 
-	navigator_mission_item.instance_count = _navigator->mission_instance_count();
 	navigator_mission_item.sequence_current = _mission.current_seq;
 	navigator_mission_item.nav_cmd = _mission_item.nav_cmd;
 	navigator_mission_item.latitude = _mission_item.lat;
@@ -1254,7 +1316,7 @@ void MissionBase::cacheItem(const mission_item_s &mission_item)
 	}
 }
 
-void MissionBase::replayCachedGimbalCameraItems()
+void MissionBase::replayCachedGimbalItems()
 {
 	if (_last_gimbal_configure_item.nav_cmd > 0) {
 		issue_command(_last_gimbal_configure_item);
@@ -1265,7 +1327,10 @@ void MissionBase::replayCachedGimbalCameraItems()
 		issue_command(_last_gimbal_control_item);
 		_last_gimbal_control_item = {}; // delete cached item
 	}
+}
 
+void MissionBase::replayCachedCameraModeItems()
+{
 	if (_last_camera_mode_item.nav_cmd > 0) {
 		issue_command(_last_camera_mode_item);
 		_last_camera_mode_item = {}; // delete cached item
@@ -1296,11 +1361,15 @@ void MissionBase::resetItemCache()
 	_last_camera_trigger_item = {};
 }
 
-bool MissionBase::haveCachedGimbalOrCameraItems()
+bool MissionBase::haveCachedGimbalItems()
 {
 	return _last_gimbal_configure_item.nav_cmd > 0 ||
-	       _last_gimbal_control_item.nav_cmd > 0 ||
-	       _last_camera_mode_item.nav_cmd > 0;
+	       _last_gimbal_control_item.nav_cmd > 0;
+}
+
+bool MissionBase::haveCachedCameraModeItems()
+{
+	return _last_camera_mode_item.nav_cmd > 0;
 }
 
 bool MissionBase::cameraWasTriggering()

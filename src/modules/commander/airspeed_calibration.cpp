@@ -168,7 +168,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 					/* do not allow negative values */
 					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)",
 								 (int)differential_pressure_pa);
-					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
+					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports or set SENS_DPRES_REV");
 
 					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
 					diff_pres_offset = 0.0f;
@@ -178,10 +178,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 						return PX4_ERROR;
 					}
 
-					/* save */
 					calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
-					param_save_default(true);
-
 					feedback_calibration_failed(mavlink_log_pub);
 					return PX4_ERROR;
 				}
@@ -201,6 +198,14 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		}
 
 		if (hrt_elapsed_time(&calibration_started) > 90_s) {
+			diff_pres_offset = 0.0f;
+
+			if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
+				calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
+				return PX4_ERROR;
+			}
+
+			calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
 			feedback_calibration_failed(mavlink_log_pub);
 			return PX4_ERROR;
 		}
@@ -209,6 +214,14 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	if (calibration_counter == maxcount) {
+		diff_pres_offset = 0.0f;
+
+		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
+			return PX4_ERROR;
+		}
+
+		calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
 		feedback_calibration_failed(mavlink_log_pub);
 		return PX4_ERROR;
 	}

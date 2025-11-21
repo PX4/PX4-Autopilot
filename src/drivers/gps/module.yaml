@@ -13,4 +13,3 @@ serial_config:
         group: GPS
         default: GPS1
       label: Main GPS
-

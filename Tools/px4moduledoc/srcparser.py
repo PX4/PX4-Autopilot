@@ -12,11 +12,11 @@ class ModuleDocumentation(object):
     """
 
     # If you add categories or subcategories, they also need to be added to the
-    # TOC in https://github.com/PX4/PX4-user_guide/blob/main/en/SUMMARY.md
+    # TOC in https://github.com/PX4/PX4-Autopilot/blob/main/docs/en/SUMMARY.md
     valid_categories = ['driver', 'estimator', 'controller', 'system',
                         'communication', 'command', 'template', 'simulation', 'autotune']
-    valid_subcategories = ['', 'distance_sensor', 'imu', 'ins', 'airspeed_sensor',
-                           'magnetometer', 'baro', 'optical_flow', 'rpm_sensor', 'transponder']
+    valid_subcategories = ['', 'adc', 'camera', 'distance_sensor', 'imu', 'ins', 'airspeed_sensor',
+                           'magnetometer', 'baro', 'optical_flow', 'radio_control','rpm_sensor', 'transponder']
 
     max_line_length = 80 # wrap lines that are longer than this
 
@@ -442,7 +442,7 @@ class SourceParser(object):
                    re.findall(r"\bstrcmp\b.*\bverb\b.*\"(.+)\"", contents)
 
         doc_commands = module_doc.all_commands() + \
-                [x for value in module_doc.all_values() for x in value.split('|')]
+                [x for value in module_doc.all_values() for x in value.replace(' ', '|').split('|')]
 
         for command in commands:
             if len(command) == 2 and command[0] == '-':

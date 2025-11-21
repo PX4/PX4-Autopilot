@@ -54,7 +54,7 @@ def calculate_sensor_metrics(
     # calculates peak, mean, percentage above 0.5 std, and percentage above std metrics for
     # estimator status variables
     for signal, result_id in [('hgt_test_ratio', 'hgt'),
-                              ('mag_test_ratio', 'mag'),
+                              ('hdg_test_ratio', 'mag'),
                               ('vel_test_ratio', 'vel'),
                               ('pos_test_ratio', 'pos'),
                               ('tas_test_ratio', 'tas'),

@@ -14,6 +14,7 @@ enum class Register : uint8_t {
 	ADCCONFIG = 0x01, // ADC Configuration Register
 	SHUNT_CAL = 0x02, // Shunt Calibration Register
 	VS_BUS = 0x05,
+	DIETEMP = 0x06,
 	CURRENT = 0x07,
 	MANUFACTURER_ID = 0x3e,
 	DEVICE_ID = 0x3f

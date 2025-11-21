@@ -56,6 +56,7 @@
 #include <termios.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 
 // TODO: include RSSI dBm to percentage conversion for ghost receiver
 #include "spektrum_rssi.h"
@@ -69,6 +70,7 @@
 #define GHST_FRAME_CRC_SIZE			(1U)
 #define GHST_FRAME_TYPE_SIZE			(1U)
 #define GHST_TYPE_DATA_CRC_SIZE			(12U)
+#define GHST_ADDR_FC				(130U)
 #define GHST_MAX_NUM_CHANNELS			(16)
 
 enum class ghst_parser_state_t : uint8_t {
@@ -76,8 +78,8 @@ enum class ghst_parser_state_t : uint8_t {
 	synced
 };
 
-// only RSSI frame contains value of RSSI, if it is not received, send last received RSSI
-static int8_t ghst_rssi = -1;
+// only RSSI frame contains value of RSSI, if it is not received, send last received RSSI/LQ
+static ghstLinkStatistics_t last_link_stats = { .rssi_pct = -1, .rssi_dbm = NAN, .link_quality = 0 };
 
 static ghst_frame_t &ghst_frame = rc_decode_buf.ghst_frame;
 static uint32_t current_frame_position = 0U;
@@ -88,7 +90,8 @@ static uint16_t prev_rc_vals[GHST_MAX_NUM_CHANNELS];
 /**
  * parse the current ghst_frame buffer
  */
-static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_values, uint16_t max_channels);
+static bool ghst_parse_buffer(uint16_t *values, ghstLinkStatistics_t *link_stats, uint16_t *num_values,
+			      uint16_t max_channels);
 
 int ghst_config(int uart_fd)
 {
@@ -113,7 +116,7 @@ static uint16_t convert_channel_value(unsigned chan_value);
 
 
 bool ghst_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t *values,
-		int8_t *rssi, uint16_t *num_values, uint16_t max_channels)
+		ghstLinkStatistics_t *link_stats, uint16_t *num_values, uint16_t max_channels)
 {
 	bool success = false;
 	uint8_t *ghst_frame_ptr = (uint8_t *)&ghst_frame;
@@ -144,7 +147,7 @@ bool ghst_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t
 			len -= current_len;
 			frame += current_len;
 
-			if (ghst_parse_buffer(values, rssi, num_values, max_channels)) {
+			if (ghst_parse_buffer(values, link_stats, num_values, max_channels)) {
 				success = true;
 			}
 		}
@@ -181,7 +184,8 @@ static uint16_t convert_channel_value(unsigned int chan_value)
 	return converted_chan_value;
 }
 
-static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_values, uint16_t max_channels)
+static bool ghst_parse_buffer(uint16_t *values, ghstLinkStatistics_t *link_stats, uint16_t *num_values,
+			      uint16_t max_channels)
 {
 	uint8_t *ghst_frame_ptr = (uint8_t *)&ghst_frame;
 
@@ -251,7 +255,8 @@ static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_valu
 
 	if ((ghst_frame.type >= static_cast<uint8_t>(ghstFrameType::frameTypeFirst)) &&
 	    (ghst_frame.type <= static_cast<uint8_t>(ghstFrameType::frameTypeLast)) &&
-	    (ghst_frame.header.length == GHST_TYPE_DATA_CRC_SIZE)) {
+	    (ghst_frame.header.length == GHST_TYPE_DATA_CRC_SIZE) &&
+	    (ghst_frame.header.device_address == GHST_ADDR_FC)) {
 		const uint8_t crc = ghst_frame.payload[ghst_frame.header.length - 2U];
 
 		if (crc == ghst_frame_CRC(ghst_frame)) {
@@ -297,13 +302,16 @@ static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_valu
 			} else if (ghst_frame.type == static_cast<uint8_t>(ghstFrameType::frameTypeRssi)) {
 				const ghstPayloadRssi_t *const rssiValues = (ghstPayloadRssi_t *)&ghst_frame.payload;
 				// TODO: call function for RSSI dBm to percentage conversion for ghost receiver
-				ghst_rssi = spek_dbm_to_percent(static_cast<int8_t>(rssiValues->rssidBm));
+				last_link_stats.rssi_pct = spek_dbm_to_percent(static_cast<int8_t>
+							   (rssiValues->rssidBm));	// rssidBm sign inverted (90 = -90dBm)
+				last_link_stats.rssi_dbm = -rssiValues->rssidBm;
+				last_link_stats.link_quality = rssiValues->lq;						// 0 - 100
 
 			} else {
 				GHST_DEBUG("Frame type: %u", ghst_frame.type);
 			}
 
-			*rssi = ghst_rssi;
+			*link_stats = last_link_stats;
 
 			memcpy(prev_rc_vals, values, sizeof(uint16_t) * GHST_MAX_NUM_CHANNELS);
 
@@ -428,4 +436,3 @@ bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t ground_speed, uint16_
 
 	return write(uart_fd, buf, offset) == offset;
 }
-

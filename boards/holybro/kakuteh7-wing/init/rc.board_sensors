@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# PX4 FMUv6C specific board sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+# Internal SPI bus ICM42688p
+icm42688p -R 2 -s start
+
+# Internal baro
+if ! bmp280 -I -b 4 -q start
+then
+	spa06 -I -b 4 start
+fi
+
+# MAX7456 OSD
+if ! param compare OSD_ATXXXX_CFG 0
+then
+	atxxxx start -s
+fi

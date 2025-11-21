@@ -85,14 +85,32 @@ void IST8310::print_status()
 
 int IST8310::probe()
 {
-	const uint8_t WAI = RegisterRead(Register::WAI);
+	// Reading the WAI register is not always reliable, it can return 0xff or
+	// other values if the sensor has been powered up in a certain way. In
+	// addition, the I2C address is not always correct, sometimes it boots with
+	// 0x0C rather than 0x0E.
+	const auto start_time = hrt_absolute_time();
+	const uint8_t start_addr = get_device_address();
 
-	if (WAI != Device_ID) {
-		DEVICE_DEBUG("unexpected WAI 0x%02x", WAI);
-		return PX4_ERROR;
+	while (hrt_elapsed_time(&start_time) < 50_ms) {
+		set_device_address(start_addr);
+		const int WAI = RegisterRead(Register::WAI);
+
+		if (WAI == Device_ID) {
+			// Device has the right I2C address and register content
+			return PX4_OK;
+		}
+
+		// send reset command to all four possible addresses
+		for (uint8_t addr = 0x0C; addr <= 0x0F; addr++) {
+			set_device_address(addr);
+			RegisterWrite(Register::CNTL2, CNTL2_BIT::SRST);
+		}
+
+		px4_usleep(10'000);
 	}
 
-	return PX4_OK;
+	return PX4_ERROR;
 }
 
 void IST8310::RunImpl()
@@ -273,11 +291,14 @@ bool IST8310::RegisterCheck(const register_config_t &reg_cfg)
 	return success;
 }
 
-uint8_t IST8310::RegisterRead(Register reg)
+int IST8310::RegisterRead(Register reg)
 {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer{};
-	transfer(&cmd, 1, &buffer, 1);
+	const int ret = transfer(&cmd, 1, &buffer, 1);
+
+	if (ret != OK) { return -1; }
+
 	return buffer;
 }
 

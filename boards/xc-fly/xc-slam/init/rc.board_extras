@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# board specific extras init
+#------------------------------------------------------------------------------
+
+# DShot telemetry is always on UART7
+# dshot telemetry -d /dev/ttyS5

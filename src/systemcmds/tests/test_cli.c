@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file test_uart_send.c
+ * @file test_cli.c
  * Tests the uart send functionality.
  *
  * @author Lorenz Meier <lorenz@px4.io>

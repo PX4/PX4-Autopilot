@@ -14,12 +14,7 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=px4vision}
 
 param set-default SIM_GZ_EN 1
 
-param set-default SENS_EN_GPSSIM 1
-param set-default SENS_EN_BAROSIM 0
-param set-default SENS_EN_MAGSIM 1
-
 # Commander Parameters
-param set-default COM_OBS_AVOID 0
 param set-default COM_DISARM_LAND 0.5
 
 # EKF2 parameters
@@ -75,7 +70,6 @@ param set-default MPC_Z_VEL_P_ACC 5
 param set-default MPC_Z_VEL_I_ACC 3
 param set-default MPC_LAND_ALT1 3
 param set-default MPC_LAND_ALT2 1
-param set-default MPC_POS_MODE 3
 param set-default CP_GO_NO_DATA 1
 
 # Navigator Parameters
@@ -97,11 +91,6 @@ param set-default IMU_GYRO_CUTOFF 100
 
 # Power Parameters
 param set-default BAT1_N_CELLS 4
-# param set-default BAT1_A_PER_V 36.364		Not found
-# param set-default BAT1_V_DIV 18.182		Not found
-
-# Circuit breakers
-param set-default CBRK_IO_SAFETY 22027
 
 param set-default THR_MDL_FAC 0.3
 
@@ -132,3 +121,5 @@ param set-default SIM_GZ_EC_MAX1 1100
 param set-default SIM_GZ_EC_MAX2 1100
 param set-default SIM_GZ_EC_MAX3 1100
 param set-default SIM_GZ_EC_MAX4 1100
+
+param set-default NAV_DLL_ACT 2

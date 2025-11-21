@@ -47,7 +47,7 @@ class RCOutput():
                     continue
 
                 if post_start:
-                    # Path to post-start sript
+                    # Path to post-start script
                     path = airframe.GetPostPath()
                 else:
                     # Path to start script
@@ -79,12 +79,6 @@ class RCOutput():
         result += "then\n"
         result += "\techo \"Loading airframe: /etc/init.d/airframes/${AIRFRAME}\"\n"
         result += "\t. /etc/init.d/airframes/${AIRFRAME}\n"
-        if not post_start:
-            result += "else\n"
-            result += "\techo \"ERROR [init] No file matches SYS_AUTOSTART value found in : /etc/init.d/airframes\"\n"
-            # Reset the configuration
-            result += "\tparam set SYS_AUTOSTART 0\n"
-            result += "\ttone_alarm ${TUNE_ERR}\n"
         result += "fi\n"
         result += "unset AIRFRAME"
         self.output = result

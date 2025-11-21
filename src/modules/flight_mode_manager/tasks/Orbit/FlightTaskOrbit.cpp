@@ -90,7 +90,14 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command, b
 
 	// commanded heading behaviour
 	if (PX4_ISFINITE(command.param3)) {
-		_yaw_behaviour = command.param3;
+		if (static_cast<uint8_t>(command.param3 + .5f) == vehicle_command_s::ORBIT_YAW_BEHAVIOUR_UNCHANGED) {
+			if (!_currently_orbiting) {	// only change the yaw behaviour if we are not actively orbiting
+				_yaw_behaviour = _param_mc_orbit_yaw_mod.get();
+			}
+
+		} else {
+			_yaw_behaviour = command.param3;
+		}
 	}
 
 	// save current yaw estimate for ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING
@@ -133,9 +140,11 @@ bool FlightTaskOrbit::sendTelemetry()
 	orbit_status.yaw_behaviour = _yaw_behaviour;
 
 	if (_geo_projection.isInitialized()) {
+		// While chainging altitude by stick _position_setpoint(2) is not set (NAN)
+		float local_altitude = PX4_ISFINITE(_position_setpoint(2)) ? _position_setpoint(2) : _position(2);
 		// local -> global
 		_geo_projection.reproject(_center(0), _center(1), orbit_status.x, orbit_status.y);
-		orbit_status.z = _global_local_alt0 - _position_setpoint(2);
+		orbit_status.z = _global_local_alt0 - local_altitude;
 
 	} else {
 		return false; // don't send the message if the transformation failed
@@ -151,7 +160,7 @@ void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 {
 	// clip the radius to be within range
 	radius = math::constrain(radius, _radius_min, _param_mc_orbit_rad_max.get());
-	velocity = math::constrain(velocity, -fabsf(_velocity_max), fabsf(_velocity_max));
+	velocity = math::constrain(velocity, -fabsf(_param_mpc_xy_vel_max.get()), fabsf(_param_mpc_xy_vel_max.get()));
 
 	bool exceeds_maximum_acceleration = (velocity * velocity) >= _acceleration_max * radius;
 
@@ -165,12 +174,14 @@ void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
+	_currently_orbiting = false;
 	_orbit_radius = _radius_min;
 	_orbit_velocity = 1.f;
 	_center = _position;
 	_initial_heading = _yaw;
-	_slew_rate_yaw.setForcedValue(_yaw);
-	_slew_rate_yaw.setSlewRate(math::radians(_param_mpc_yawrauto_max.get()));
+	_heading_smoothing.reset(PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw,
+				 PX4_ISFINITE(last_setpoint.yawspeed) ? last_setpoint.yawspeed : 0.f);
+	_slew_rate_velocity.setSlewRate(_param_mpc_acc_hor.get());
 
 	// need a valid position and velocity
 	ret = ret && _position.isAllFinite() && _velocity.isAllFinite();
@@ -199,12 +210,14 @@ bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 bool FlightTaskOrbit::update()
 {
 	bool ret = true;
+	_currently_orbiting = true;
 	_updateTrajectoryBoundaries();
 	_adjustParametersByStick();
 
 	if (_is_position_on_circle()) {
 		if (_in_circle_approach) {
 			_in_circle_approach = false;
+			_slew_rate_velocity.setForcedValue(0.f); // reset the slew rate when moving between orbits.
 			FlightTaskManualAltitudeSmoothVel::_smoothing.reset(
 				PX4_ISFINITE(_acceleration_setpoint(2)) ? _acceleration_setpoint(2) : 0.f,
 				PX4_ISFINITE(_velocity_setpoint(2)) ? _velocity_setpoint(2) : _velocity(2),
@@ -225,7 +238,14 @@ bool FlightTaskOrbit::update()
 	}
 
 	// Apply yaw smoothing
-	_yaw_setpoint = _slew_rate_yaw.update(_yaw_setpoint, _deltatime);
+	_heading_smoothing.setMaxHeadingRate(math::radians(_param_mpc_yawrauto_max.get()));
+	_heading_smoothing.setMaxHeadingAccel(math::radians(_param_mpc_yawrauto_acc.get()));
+	_heading_smoothing.update(_yaw_setpoint, _deltatime);
+	_yaw_setpoint = _heading_smoothing.getSmoothedHeading();
+
+	if (_in_circle_approach) { // don't override feed-forward which is already calculated for circling
+		_yawspeed_setpoint = _heading_smoothing.getSmoothedHeadingRate();
+	}
 
 	// publish information to UI
 	sendTelemetry();
@@ -272,8 +292,8 @@ void FlightTaskOrbit::_adjustParametersByStick()
 
 	switch (_yaw_behaviour) {
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:
-		radius -= signFromBool(_started_clockwise) * _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_xy_cruise.get();
-		velocity += signFromBool(_started_clockwise) * _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_acc_hor.get();
+		radius -= signFromBool(_started_clockwise) * _sticks.getRollExpo() * _deltatime * _param_mpc_xy_cruise.get();
+		velocity += signFromBool(_started_clockwise) * _sticks.getPitchExpo() * _deltatime * _param_mpc_acc_hor.get();
 		break;
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING:
@@ -282,8 +302,8 @@ void FlightTaskOrbit::_adjustParametersByStick()
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER:
 	default:
 		// stick input adjusts parameters within a fixed time frame
-		radius -= _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_xy_cruise.get();
-		velocity -= _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_acc_hor.get();
+		radius -= _sticks.getPitchExpo() * _deltatime * _param_mpc_xy_cruise.get();
+		velocity -= _sticks.getRollExpo() * _deltatime * _param_mpc_acc_hor.get();
 		break;
 	}
 
@@ -318,15 +338,20 @@ void FlightTaskOrbit::_generate_circle_setpoints()
 	Vector3f center_to_position = _position - _center;
 	// xy velocity to go around in a circle
 	Vector2f velocity_xy(-center_to_position(1), center_to_position(0));
+
+	// slew rate is used to reduce the jerk when starting an orbit.
+	_slew_rate_velocity.update(_orbit_velocity, _deltatime);
+
 	velocity_xy = velocity_xy.unit_or_zero();
-	velocity_xy *= _orbit_velocity;
+	velocity_xy *= _slew_rate_velocity.getState();
 
 	// xy velocity adjustment to stay on the radius distance
 	velocity_xy += (_orbit_radius - center_to_position.xy().norm()) * Vector2f(center_to_position).unit_or_zero();
 
 	_position_setpoint(0) = _position_setpoint(1) = NAN;
 	_velocity_setpoint.xy() = velocity_xy;
-	_acceleration_setpoint.xy() = -Vector2f(center_to_position.unit_or_zero()) * _orbit_velocity * _orbit_velocity /
+	_acceleration_setpoint.xy() = -Vector2f(center_to_position.unit_or_zero()) * _slew_rate_velocity.getState() *
+				      _slew_rate_velocity.getState() /
 				      _orbit_radius;
 }
 
@@ -344,7 +369,7 @@ void FlightTaskOrbit::_generate_circle_yaw_setpoints()
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_UNCONTROLLED:
 		// no yaw setpoint
 		_yaw_setpoint = NAN;
-		_yawspeed_setpoint = NAN;
+		_yawspeed_setpoint = 0.f; // No yaw setpoint is invalid -> just brake to 0°/s
 		break;
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:

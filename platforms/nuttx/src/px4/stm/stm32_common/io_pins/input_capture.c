@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file drv_input_capture.c
+ * @file input_capture.c
  *
  * Servo driver supporting input capture connected to STM32 timer blocks.
  *
@@ -365,8 +365,10 @@ int up_input_capture_set_trigger(unsigned channel,  input_capture_edge edge)
 		rv = -ENXIO;
 
 		/* Any pins in capture mode */
+		int mode = io_timer_get_channel_mode(channel);
 
-		if (io_timer_get_channel_mode(channel) == IOTimerChanMode_Capture) {
+		if (mode == IOTimerChanMode_Capture ||
+		    mode == IOTimerChanMode_CaptureDMA) {
 
 			uint16_t edge_bits = 0xffff;
 

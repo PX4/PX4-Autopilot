@@ -49,10 +49,10 @@
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
 
 /**
- * Hover thrust estimator
+ * Use hover thrust estimate for altitude control
  *
- * Disable to use the fixed parameter MPC_THR_HOVER
- * Enable to use the hover thrust estimator
+ * Disable to use the fixed parameter MPC_THR_HOVER instead of the hover thrust estimate in the position controller.
+ * This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
  *
  * @boolean
  * @group Multicopter Position Control
@@ -75,11 +75,56 @@ PARAM_DEFINE_INT32(MPC_USE_HTE, 1);
 PARAM_DEFINE_FLOAT(MPC_THR_XY_MARG, 0.3f);
 
 /**
- * Numerical velocity derivative low pass cutoff frequency
+ * Velocity low pass cutoff frequency
+ *
+ * A value of 0 disables the filter.
  *
  * @unit Hz
  * @min 0
- * @max 10
+ * @max 50
+ * @decimal 1
+ * @increment 0.5
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_LP, 0.0f);
+
+/**
+ * Velocity notch filter frequency
+ *
+ * The center frequency for the 2nd order notch filter on the velocity.
+ * A value of 0 disables the filter.
+ *
+ * @unit Hz
+ * @min 0
+ * @max 50
+ * @decimal 1
+ * @increment 0.5
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_NF_FRQ, 0.0f);
+
+/**
+ * Velocity notch filter bandwidth
+ *
+ * A value of 0 disables the filter.
+ *
+ * @unit Hz
+ * @min 0
+ * @max 50
+ * @decimal 1
+ * @increment 0.5
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_NF_BW, 5.0f);
+
+/**
+ * Velocity derivative low pass cutoff frequency
+ *
+ * A value of 0 disables the filter.
+ *
+ * @unit Hz
+ * @min 0
+ * @max 50
  * @decimal 1
  * @increment 0.5
  * @group Multicopter Position Control

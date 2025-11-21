@@ -43,9 +43,6 @@ import em
 import yaml
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-m", "--topic-msg-dir", dest='msgdir', type=str,
-                    help="Topics message, by default using relative path 'msg/'", default="msg")
-
 parser.add_argument("-y", "--dds-topics-file", dest='yaml_file', type=str,
                     help="Setup topics file path, by default using 'dds_topics.yaml'")
 
@@ -82,10 +79,16 @@ if not os.path.exists(folder_name):
 with open(args.yaml_file, 'r') as file:
     msg_map = yaml.safe_load(file)
 
+# Get DDS namespace from environment, default to empty string
+namespace = os.getenv('PX4_UXRCE_DDS_NS', '')
+
 merged_em_globals = {}
 all_type_includes = []
 
 def process_message_type(msg_type):
+    # Add namespace to topic
+    msg_type['topic'] = f"/{namespace}{msg_type['topic']}" if namespace else msg_type['topic']
+
     # eg TrajectoryWaypoint from px4_msgs::msg::TrajectoryWaypoint
     simple_base_type = msg_type['type'].split('::')[-1]
 
@@ -99,10 +102,24 @@ def process_message_type(msg_type):
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
 
+def process_message_instance(msg_type):
+    if 'instance' in msg_type:
+        # if instance is given, check if it is a non negative integer
+        if not (type(msg_type['instance']) is int and msg_type['instance'] >= 0) :
+            raise TypeError("`instance` must be a non negative integer")
+        # add trailing instance to topic name
+        msg_type['topic'] = f"{msg_type['topic']}{msg_type['instance']}"
+    else:
+        # if instance is not given,
+        msg_type['instance'] = 0
+
+merged_em_globals['namespace'] = namespace
+
 pubs_not_empty = msg_map['publications'] is not None
 if pubs_not_empty:
     for p in msg_map['publications']:
         process_message_type(p)
+        process_message_instance(p)
 
 merged_em_globals['publications'] = msg_map['publications'] if pubs_not_empty else []
 

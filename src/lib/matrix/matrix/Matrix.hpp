@@ -55,6 +55,16 @@ public:
 		}
 	}
 
+	template<typename S>
+	Matrix(const Matrix<S, M, N> &aa)
+	{
+		for (size_t i = 0; i < M; i++) {
+			for (size_t j = 0; j < N; j++) {
+				_data[i][j] = static_cast<Type>(aa(i, j));
+			}
+		}
+	}
+
 	template<size_t P, size_t Q>
 	Matrix(const Slice<Type, M, N, P, Q> &in_slice)
 	{
@@ -402,6 +412,7 @@ public:
 		}
 
 		const Matrix<Type, M, N> &self = *this;
+		bool is_prev_symmetric = true; // assume symmetric until one element is not
 
 		for (unsigned i = 0; i < M; i++) {
 			printf("%2u|", i); // print row numbering
@@ -410,7 +421,7 @@ public:
 				double d = static_cast<double>(self(i, j));
 
 				// if symmetric don't print upper triangular elements
-				if ((M == N) && (j > i) && (i < N) && (j < M)
+				if (is_prev_symmetric && (M == N) && (j > i) && (i < N) && (j < M)
 				    && (fabs(d - static_cast<double>(self(j, i))) < (double)eps)
 				   ) {
 					// print empty space
@@ -428,6 +439,8 @@ public:
 					} else {
 						printf("% 6.5f ", d);
 					}
+
+					is_prev_symmetric = false; // not symmetric if once inside here
 				}
 			}
 

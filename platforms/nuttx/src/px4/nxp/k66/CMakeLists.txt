@@ -40,6 +40,3 @@ add_subdirectory(../kinetis/hrt hrt)
 add_subdirectory(../kinetis/io_pins io_pins)
 add_subdirectory(../kinetis/tone_alarm tone_alarm)
 add_subdirectory(../kinetis/version version)
-
-
-

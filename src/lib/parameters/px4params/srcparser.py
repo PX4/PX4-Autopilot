@@ -184,7 +184,6 @@ class SourceParser(object):
     re_cut_type_specifier = re.compile(r'[a-z]+$')
     re_is_a_number = re.compile(r'^-?[0-9\.]')
     re_remove_dots = re.compile(r'\.+$')
-    re_remove_carriage_return = re.compile('\n+')
 
     valid_tags = set(["group", "board", "min", "max", "unit", "decimal", "increment", "reboot_required", "value", "boolean", "bit", "category", "volatile"])
 
@@ -311,7 +310,6 @@ class SourceParser(object):
                                 raise Exception('short description too long (150 max, is {:}, parameter: {:})'.format(len(short_desc), name))
                             param.SetField("short_desc", self.re_remove_dots.sub('', short_desc))
                         if long_desc is not None:
-                            long_desc = self.re_remove_carriage_return.sub(' ', long_desc)
                             param.SetField("long_desc", long_desc)
                         for tag in tags:
                             if tag == "group":
@@ -356,7 +354,7 @@ class SourceParser(object):
                                 'rad', '%/rad', 'rad/s', 'rad/s^2', '%/rad/s', 'rad s^2/m', 'rad s/m',
                                 'bit/s', 'B/s',
                                 'deg', 'deg*1e7', 'deg/s', 'deg/s^2',
-                                'celcius', 'gauss', 'gauss/s', 'gauss^2',
+                                'celcius', 'gauss', 'gauss/s', 'gauss^2', 'liters',
                                 'hPa', 'kg', 'kg/m^2', 'kg m^2', 'kg/m^3',
                                 'mm', 'm', 'm/s', 'm^2', 'm/s^2', 'm/s^3', 'm/s^2/sqrt(Hz)', '1/s/sqrt(Hz)', 'm/s/rad', 'g0',
                                 'Ohm', 'V', 'A',

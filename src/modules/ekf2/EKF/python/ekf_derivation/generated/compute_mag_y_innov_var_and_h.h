@@ -16,20 +16,20 @@ namespace sym {
  * Symbolic function: compute_mag_y_innov_var_and_h
  *
  * Args:
- *     state: Matrix24_1
- *     P: Matrix23_23
+ *     state: Matrix25_1
+ *     P: Matrix24_24
  *     R: Scalar
  *     epsilon: Scalar
  *
  * Outputs:
  *     innov_var: Scalar
- *     H: Matrix23_1
+ *     H: Matrix24_1
  */
 template <typename Scalar>
-void ComputeMagYInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
-                             const matrix::Matrix<Scalar, 23, 23>& P, const Scalar R,
+void ComputeMagYInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
+                             const matrix::Matrix<Scalar, 24, 24>& P, const Scalar R,
                              const Scalar epsilon, Scalar* const innov_var = nullptr,
-                             matrix::Matrix<Scalar, 23, 1>* const H = nullptr) {
+                             matrix::Matrix<Scalar, 24, 1>* const H = nullptr) {
   // Total ops: 159
 
   // Unused inputs
@@ -85,7 +85,7 @@ void ComputeMagYInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 23, 1>& _h = (*H);
+    matrix::Matrix<Scalar, 24, 1>& _h = (*H);
 
     _h.setZero();
 

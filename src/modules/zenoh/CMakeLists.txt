@@ -42,28 +42,59 @@ set(BUILD_SHARED_LIBS OFF)
 set(BUILD_TESTING OFF)
 set(CHECK_THREADS NO)
 set(MESSAGE_QUIET ON)
-set(ZENOH_DEBUG ${CONFIG_ZENOH_DEBUG})
+set(ZENOH_DEBUG ${CONFIG_ZENOH_DEBUG} CACHE STRING "Debug print level" FORCE)
+set(PICO_STATIC ON)
+if(NOT DEFINED CONFIG_NET_TCPPROTO_OPTIONS AND CONFIG_PLATFORM_NUTTX)
+    set(Z_FEATURE_TCP_NODELAY 0 CACHE STRING "Toggle TCP_NODELAY")
+endif()
+
+if(NOT DEFINED CONFIG_PTHREAD_MUTEX_TYPES AND CONFIG_PLATFORM_NUTTX)
+    message( SEND_ERROR "Pthread mutex is diabled, Zenoh will not function." )
+endif()
+
+set(Z_TRANSPORT_LEASE 60000 CACHE STRING "Link lease duration in milliseconds to announce to other zenoh nodes") # Match ROS2 RMW_ZENOH
+
+set(FRAG_MAX_SIZE 512 CACHE STRING "Use this to override the maximum size for fragmented messages")
+set(BATCH_UNICAST_SIZE 256 CACHE STRING "Use this to override the maximum unicast batch size")
+set(BATCH_MULTICAST_SIZE 256 CACHE STRING "Use this to override the maximum multicast batch size")
+
+set(Z_FEATURE_UNSTABLE_API 1 CACHE STRING "Toggle unstable Zenoh-C API")
 
 px4_add_git_submodule(TARGET git_zenoh-pico PATH "zenoh-pico")
 add_subdirectory(zenoh-pico)
 unset(MESSAGE_QUIET)
-add_dependencies(zenohpico git_zenoh-pico px4_platform)
-target_compile_options(zenohpico PUBLIC -Wno-cast-align
+add_dependencies(zenohpico_static git_zenoh-pico px4_platform)
+target_compile_options(zenohpico_static PUBLIC -Wno-cast-align
 			-Wno-narrowing
 			-Wno-stringop-overflow
 			-Wno-stringop-truncation
 			-Wno-unused-result
-			-DZ_BATCH_SIZE_RX=512
-			-DZ_BATCH_SIZE_TX=512
-			-DZ_FRAG_MAX_SIZE=1024)
+			-Wno-type-limits
+			-Wno-unused-variable
+			-Wno-maybe-uninitialized
+			-Wno-conversion)
 
+target_compile_options(zenohpico_static PRIVATE -Wno-missing-prototypes)
 if(CONFIG_PLATFORM_NUTTX)
-    target_compile_options(zenohpico PRIVATE -DUNIX_NO_MULTICAST_IF)
+    target_compile_options(zenohpico_static PRIVATE -DUNIX_NO_MULTICAST_IF)
 endif()
 
 if(CONFIG_ZENOH_SERIAL)
-    target_compile_options(zenohpico PRIVATE -DZ_LINK_SERIAL)
+    target_compile_options(zenohpico_static PRIVATE -DZ_LINK_SERIAL)
 endif()
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/default_topics.c
+COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../uxrce_dds_client/generate_dds_topics.py
+	--client-outdir ${CMAKE_CURRENT_BINARY_DIR}
+	--dds-topics-file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
+	--template_file ${CMAKE_CURRENT_SOURCE_DIR}/default_topics.c.em
+DEPENDS
+	${CMAKE_CURRENT_SOURCE_DIR}/../uxrce_dds_client/generate_dds_topics.py
+	${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
+	${CMAKE_CURRENT_SOURCE_DIR}/default_topics.c.em
+COMMENT "Generating Default config"
+)
+add_custom_target(default_topics_config DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/default_topics.c)
 
 
 px4_add_module(
@@ -72,18 +103,19 @@ px4_add_module(
 		SRCS
 		zenoh.cpp
 		zenoh_config.cpp
-		zenoh.h
 		publishers/zenoh_publisher.cpp
 		subscribers/zenoh_subscriber.cpp
+		${CMAKE_CURRENT_BINARY_DIR}/default_topics.c
 		MODULE_CONFIG
 			module.yaml
 		DEPENDS
 			cdr
 			uorb_msgs
 			px4_work_queue
-			zenohpico
+			zenohpico_static
 			zenoh_topics
 			git_zenoh-pico
+			default_topics_config
 		INCLUDES
 			${PX4_BINARY_DIR}/msg
 			zenoh-pico/include
@@ -96,6 +128,5 @@ px4_add_module(
 			-Wno-double-promotion
 			-Wno-unused
 			-DZENOH_LINUX
-			-DZENOH_NO_STDATOMIC
 			-D_Bool=int8_t
 )

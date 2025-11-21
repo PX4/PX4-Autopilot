@@ -9,4 +9,4 @@ float32 innov			# innovation of the last measurement fusion (m)
 float32 innov_var		# innovation variance of the last measurement fusion (m^2)
 float32 innov_test_ratio	# normalized innovation squared test ratio
 
-# TOPICS estimator_baro_bias estimator_gnss_hgt_bias estimator_rng_hgt_bias
+# TOPICS estimator_baro_bias estimator_gnss_hgt_bias

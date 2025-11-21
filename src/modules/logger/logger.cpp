@@ -176,7 +176,7 @@ int Logger::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("logger",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_LOG_CAPTURE,
-				      PX4_STACK_ADJUSTED(3700),
+				      PX4_STACK_ADJUSTED(CONFIG_LOGGER_STACK_SIZE),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -1037,6 +1037,12 @@ void Logger::publish_logger_status()
 	if (hrt_elapsed_time(&_logger_status_last) >= 1_s) {
 		for (int i = 0; i < (int)LogType::Count; ++i) {
 
+			logger_status_s status = {};
+			status.type = i;
+			status.backend = _writer.backend();
+			status.num_messages = _num_subscriptions;
+			status.timestamp = hrt_absolute_time();
+
 			const LogType log_type = static_cast<LogType>(i);
 
 			if (_writer.is_started(log_type)) {
@@ -1046,19 +1052,16 @@ void Logger::publish_logger_status()
 				const float kb_written = _writer.get_total_written_file(log_type) / 1024.0f;
 				const float seconds = hrt_elapsed_time(&_statistics[i].start_time_file) * 1e-6f;
 
-				logger_status_s status;
-				status.type = i;
-				status.backend = _writer.backend();
+				status.is_logging = true;
 				status.total_written_kb = kb_written;
 				status.write_rate_kb_s = kb_written / seconds;
 				status.dropouts = _statistics[i].write_dropouts;
 				status.message_gaps = _message_gaps;
 				status.buffer_used_bytes = buffer_fill_count_file;
 				status.buffer_size_bytes = _writer.get_buffer_size_file(log_type);
-				status.num_messages = _num_subscriptions;
-				status.timestamp = hrt_absolute_time();
-				_logger_status_pub[i].publish(status);
 			}
+
+			_logger_status_pub[i].publish(status);
 		}
 
 		_logger_status_last = hrt_absolute_time();
@@ -1304,10 +1307,10 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 #if defined(PX4_CRYPTO)
 
 	if (_param_sdlog_crypto_algorithm.get() != 0) {
-		crypto_suffix = "c";
+		crypto_suffix = "e";
 	}
 
-#endif
+#endif // PX4_CRYPTO
 
 	char *log_file_name = _file_name[(int)type].log_file_name;
 
@@ -1416,7 +1419,7 @@ void Logger::start_log_file(LogType type)
 		(px4_crypto_algorithm_t)_param_sdlog_crypto_algorithm.get(),
 		_param_sdlog_crypto_key.get(),
 		_param_sdlog_crypto_exchange_key.get());
-#endif
+#endif // PX4_CRYPTO
 
 	if (_writer.start_log_file(type, file_name)) {
 		_writer.select_write_backend(LogWriter::BackendFile);
@@ -1612,6 +1615,11 @@ void Logger::initialize_load_output(PrintLoadReason reason)
 {
 	// If already in progress, don't try to start again
 	if (_next_load_print != 0) {
+		// To never miss watchdog triggers due to load measuring in progress, overwrite the measurement reason
+		if (reason == PrintLoadReason::Watchdog) {
+			_print_load_reason = reason;
+		}
+
 		return;
 	}
 
@@ -1632,7 +1640,13 @@ void Logger::write_load_output()
 	_writer.set_need_reliable_transfer(true, _print_load_reason != PrintLoadReason::Watchdog);
 
 	if (_print_load_reason == PrintLoadReason::Watchdog) {
-		PX4_ERR("Writing watchdog data"); // this is just that we see it easily in the log
+		// This is just that we see it easily in the log
+		PX4_ERR("Writing watchdog data...");
+#ifdef __PX4_NUTTX
+		bool cycle_trigger = _timer_callback_data.watchdog_data.triggered_by_cycle_delay;
+		bool ready_trigger = _timer_callback_data.watchdog_data.triggered_by_ready_delay;
+		PX4_ERR("Watchdog triggers - cycle trigger: %d, ready trigger: %d", cycle_trigger, ready_trigger);
+#endif
 		write_perf_data(PrintLoadReason::Watchdog);
 	}
 
@@ -1976,6 +1990,11 @@ void Logger::write_info(LogType type, const char *name, uint32_t value)
 	write_info_template<uint32_t>(type, name, value, "uint32_t");
 }
 
+void Logger::write_info(LogType type, const char *name, uint64_t value)
+{
+	write_info_template<uint64_t>(type, name, value, "uint64_t");
+}
+
 
 template<typename T>
 void Logger::write_info_template(LogType type, const char *name, T value, const char *type_str)
@@ -2107,6 +2126,12 @@ void Logger::write_version(LogType type)
 #endif /* BOARD_HAS_NO_UUID */
 
 	write_info(type, "time_ref_utc", _param_sdlog_utc_offset.get() * 60);
+
+	uint64_t boot_time_utc_us;
+
+	if (util::get_log_time(boot_time_utc_us, _param_sdlog_utc_offset.get() * 60, true)) {
+		write_info(type, "boot_time_utc_us", boot_time_utc_us);
+	}
 
 	if (_replay_file_name) {
 		write_info(type, "replay", _replay_file_name);

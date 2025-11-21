@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu2_init.c
+ * @file init.c
  *
  * PX4FMUv2-specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
@@ -300,7 +300,7 @@ __EXPORT int board_get_hw_revision()
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/

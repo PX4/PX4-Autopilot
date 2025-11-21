@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file test_search_min.c
+ * @file test_search_min.cpp
  * Tests arithmetic search algorithms.
  */
 

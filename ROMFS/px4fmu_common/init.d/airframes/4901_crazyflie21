@@ -13,10 +13,11 @@
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
 # @board px4_fmu-v5x exclude
+# @board auterion_fmu-v6x exclude
+# @board px4_fmu-v6x exclude
 # @board diatone_mamba-f405-mk2 exclude
 #
 . ${R}etc/init.d/rc.mc_defaults
-
 
 param set-default SYS_HAS_MAG 0
 param set-default EKF2_OF_CTRL 1
@@ -83,7 +84,6 @@ param set-default PWM_MAIN_MAX2 255
 param set-default PWM_MAIN_MAX3 255
 
 param set-default SENS_FLOW_MINRNG 0.05
-
 
 syslink start
 mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000

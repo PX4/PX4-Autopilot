@@ -73,6 +73,9 @@ using namespace ina238;
 #define INA238_DN_MAX                        32768.0f   /* 2^15 */
 #define INA238_CONST                         819.2e6f  /* is an internal fixed value used to ensure scaling is maintained properly  */
 #define INA238_VSCALE                        3.125e-03f  /* LSB of voltage is 3.1255 mV/LSB */
+#define INA238_TSCALE                        7.8125e-03f /* LSB of temperature is 7.8125 mDegC/LSB */
+
+#define INA238_ADCRANGE_LOW_V_SENSE          0.04096f // ± 40.96 mV
 
 #define DEFAULT_MAX_CURRENT                  327.68f    /* Amps */
 #define DEFAULT_SHUNT                        0.0003f   /* Shunt is 300 uOhm */
@@ -151,6 +154,9 @@ private:
 
 	Battery _battery;
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uint8_t _connected{0};
+	// returns state unchanged
+	bool setConnected(bool state);
 
 	int read(uint8_t address, uint16_t &data);
 	int write(uint8_t address, uint16_t data);

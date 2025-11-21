@@ -54,6 +54,9 @@ static constexpr float PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW = -1.05f; // -60°
 // [rad] Pitch threshold required for completing transition to hover in automatic transitions
 static constexpr float PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC = -0.26f; // -15°
 
+// [s] Thrust blending duration from fixed-wing to back transition throttle
+static constexpr float B_TRANS_THRUST_BLENDING_DURATION = 0.5f;
+
 class Tailsitter : public VtolType
 {
 
@@ -66,6 +69,8 @@ public:
 	void update_fw_state() override;
 	void fill_actuator_outputs() override;
 	void waiting_on_tecs() override;
+	void blendThrottleAfterFrontTransition(float scale) override;
+	void blendThrottleBeginningBackTransition(float scale);
 
 private:
 	enum class vtol_mode {

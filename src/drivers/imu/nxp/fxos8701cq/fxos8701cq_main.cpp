@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file fxos8701cq.cpp
+ * @file fxos8701cq_main.cpp
  * Driver for the NXP FXOS8701CQ 6-axis sensor with integrated linear accelerometer and
  * magnetometer connected via SPI.
  */

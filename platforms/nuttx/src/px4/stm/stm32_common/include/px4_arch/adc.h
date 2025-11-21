@@ -54,4 +54,3 @@
 #endif
 
 #include <px4_platform/adc.h>
-

@@ -33,7 +33,7 @@
 
 
 /**
- * @file SRF05.c
+ * @file SRF05.cpp
  * @author David Sidrane <david.sidrane@nscdg.com>
  *
  * Interface for the HY-SRF05 / HC-SR05 and HC-SR04.

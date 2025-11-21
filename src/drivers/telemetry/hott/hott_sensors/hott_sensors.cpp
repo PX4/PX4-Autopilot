@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file hott_sensors.c
+ * @file hott_sensors.cpp
  * @author Simon Wilks <sjwilks@gmail.com>
  *
  * Graupner HoTT sensor driver implementation.

@@ -72,20 +72,19 @@ bool file_exist(const char *filename)
 	return stat(filename, &buffer) == 0;
 }
 
-bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
+bool get_log_time(uint64_t &utc_time_usec, int utc_offset_sec, bool boot_time)
 {
 	uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 
-	time_t utc_time_sec;
 	bool use_clock_time = true;
 
 	/* Get the latest GPS publication */
 	sensor_gps_s gps_pos;
 
 	if (vehicle_gps_position_sub.copy(&gps_pos)) {
-		utc_time_sec = gps_pos.time_utc_usec / 1e6;
+		utc_time_usec = gps_pos.time_utc_usec;
 
-		if (gps_pos.fix_type >= 2 && utc_time_sec >= GPS_EPOCH_SECS) {
+		if (gps_pos.fix_type >= 2 && utc_time_usec >= (uint64_t) GPS_EPOCH_SECS * 1000000ULL) {
 			use_clock_time = false;
 		}
 	}
@@ -94,22 +93,30 @@ bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
 		/* take clock time if there's no fix (yet) */
 		struct timespec ts = {};
 		px4_clock_gettime(CLOCK_REALTIME, &ts);
-		utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
+		utc_time_usec = ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000ULL;
 
-		if (utc_time_sec < GPS_EPOCH_SECS) {
+		if (utc_time_usec < (uint64_t) GPS_EPOCH_SECS * 1000000ULL) {
 			return false;
 		}
 	}
 
 	/* strip the time elapsed since boot */
 	if (boot_time) {
-		utc_time_sec -= hrt_absolute_time() / 1e6;
+		utc_time_usec -= hrt_absolute_time();
 	}
 
 	/* apply utc offset */
-	utc_time_sec += utc_offset_sec;
+	utc_time_usec += (int64_t) utc_offset_sec * 1000000LL;
 
-	return gmtime_r(&utc_time_sec, tt) != nullptr;
+	return true;
+}
+
+bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
+{
+	uint64_t utc_time_usec;
+	bool result = get_log_time(utc_time_usec, utc_offset_sec, boot_time);
+	time_t utc_time_sec = static_cast<time_t>(utc_time_usec / 1000000ULL);
+	return result && gmtime_r(&utc_time_sec, tt) != nullptr;
 }
 
 int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub,

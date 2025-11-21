@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file flashparam.c
+ * @file flashfs.c
  *
  * Global flash based parameter store.
  *

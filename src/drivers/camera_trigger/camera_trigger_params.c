@@ -47,7 +47,7 @@
 *
 * @value 1 GPIO
 * @value 2 Seagull MAP2 (over PWM)
-* @value 3 MAVLink (forward via MAV_CMD_IMAGE_START_CAPTURE)
+* @value 3 MAVLink (Camera Protocol v1)
 * @value 4 Generic PWM (IR trigger, servo)
 *
 * @reboot_required true
@@ -163,4 +163,3 @@ PARAM_DEFINE_INT32(TRIG_PWM_SHOOT, 1900);
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(TRIG_PWM_NEUTRAL, 1500);
-

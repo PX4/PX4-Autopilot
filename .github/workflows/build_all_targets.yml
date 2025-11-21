@@ -1,0 +1,242 @@
+# NOTE: this workflow is now running on Dronecode / PX4 AWS account.
+# - If you want to keep the tests running in GitHub Actions you need to uncomment the "runs-on: ubuntu-latest" lines
+#   and comment the "runs-on: [runs-on,runner=..." lines.
+# - If you would like to duplicate this setup try setting up "RunsOn" on your own AWS account try https://runs-on.com
+
+name: Build all targets
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - 'main'
+      - 'stable'
+      - 'beta'
+      - 'release/**'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  group_targets:
+    name: Scan for Board Targets
+    # runs-on: ubuntu-latest
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
+      branchname: ${{ steps.set-branch.outputs.branchname }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Python pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**./Tools/setup/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Update python packaging to avoid canonicalize_version() error
+        run: |
+            pip3 install -U packaging
+
+      - name: Install Python Dependencies
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "./Tools/setup/requirements.txt"
+
+      - id: set-matrix
+        name: Generate Build Matrix
+        run: echo "matrix=$(./Tools/ci/generate_board_targets_json.py --group)" >> $GITHUB_OUTPUT
+
+      - id: set-timestamp
+        name: Save Current Timestamp
+        run: echo "timestamp=$(date +"%Y%m%d%H%M%S")" >> $GITHUB_OUTPUT
+
+      - id: set-branch
+        name: Save Current Branch Name
+        run: |
+          echo "branchname=${{
+            github.event_name == 'pull_request' &&
+            format('pr-{0}', github.event.pull_request.number) ||
+            github.head_ref ||
+            github.ref_name
+          }}" >> $GITHUB_OUTPUT
+
+      - name: Debug Matrix Output
+        if: runner.debug == '1'
+        run: |
+          echo "${{ steps.set-timestamp.outputs.timestamp }}"
+          echo "${{ steps.set-branch.outputs.branchname }}"
+          echo "$(./Tools/ci/generate_board_targets_json.py --group --verbose)"
+
+  setup:
+    name: Build [${{ matrix.runner }}][${{ matrix.group }}]
+    # runs-on: ubuntu-latest
+    runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",spot=false]
+    needs: group_targets
+    strategy:
+      matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
+      fail-fast: false
+    container:
+      image: ${{ matrix.container }}
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Git ownership workaround
+        run: git config --system --add safe.directory '*'
+
+      # ccache key breakdown:
+      # ccache-<system os>-<system arch>-<builder group>-
+      # ccache-<linux>-<arm64>-<aarch64-0>-
+      # ccache-<linux>-<x64>-<nuttx-0>-
+      - name: Cache Restore from Key
+        id: cc_restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.ccache
+          key: ${{ format('ccache-{0}-{1}-{2}', runner.os, matrix.runner, matrix.group) }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ matrix.runner }}-${{ matrix.group }}-
+            ccache-${{ runner.os }}-${{ matrix.runner }}-
+            ccache-${{ runner.os }}-${{ matrix.runner }}-
+            ccache-${{ runner.os }}-
+            ccache-
+
+      - name: Cache Config and Stats
+        run: |
+            mkdir -p ~/.ccache
+            echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+            echo "compression = true" >> ~/.ccache/ccache.conf
+            echo "compression_level = 6" >> ~/.ccache/ccache.conf
+            echo "max_size = 120M" >> ~/.ccache/ccache.conf
+            echo "hash_dir = false" >> ~/.ccache/ccache.conf
+            echo "compiler_check = content" >> ~/.ccache/ccache.conf
+            ccache -s
+            ccache -z
+
+      - name: Building Artifacts for [${{ matrix.targets }}]
+        run: |
+            ./Tools/ci/build_all_runner.sh ${{matrix.targets}} ${{matrix.arch}}
+
+      - name: Arrange Build Artifacts
+        run: |
+          ./Tools/ci/package_build_artifacts.sh
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: px4_${{matrix.group}}_build_artifacts
+          path: artifacts/
+
+      - name: Cache Post Build Stats
+        if: always()
+        run: |
+            ccache -s
+            ccache -z
+
+      - name: Cache Save
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.ccache
+          key: ${{ steps.cc_restore.outputs.cache-primary-key }}
+
+  artifacts:
+    name: Upload Artifacts
+    # runs-on: ubuntu-latest
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    needs: [setup, group_targets]
+    if: startsWith(github.ref, 'refs/tags/v') || contains(fromJSON('["main","stable","beta"]'), needs.group_targets.outputs.branchname)
+    outputs:
+      uploadlocation: ${{ steps.upload-location.outputs.uploadlocation }}
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: true
+
+      - name: Choose Upload Location
+        id: upload-location
+        run: |
+          # Determine upload location based on branch or tag with the following considerations:
+          # Destination: AWS S3 bucket px4-travis in folder Firmware/
+          # - If branch is main -> upload to master/
+          #   - Older versions of QGC are hardocded to look for master/
+          # - If branch is stable or beta -> upload to stable/ or beta/
+          # - If a tag vX.Y.Z -> upload to vX.Y.Z/
+          #   - Also update stable/ to point to the same version
+          #.  - Older versions of QGC are hardocded to look for stable/
+          # - If a pull request -> do not upload
+          set -euo pipefail
+
+          ref="${GITHUB_REF}"
+          branch=${{ needs.group_targets.outputs.branchname  }}
+          location="$branch"
+
+          if [[ "$branch" == "main" ]]; then
+            location="master"
+          fi
+
+          if [[ "$ref" == refs/tags/v[0-9]* ]]; then
+            tag="${ref#refs/tags/}"
+            location="$tag"
+          fi
+
+          echo "uploadlocation=$location" >> $GITHUB_OUTPUT
+
+      - name: Uploading Artifacts to S3 [${{ steps.upload-location.outputs.uploadlocation }}]
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --acl public-read
+        env:
+          AWS_S3_BUCKET: 'px4-travis'
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-west-1'
+          SOURCE_DIR: artifacts/
+          DEST_DIR: Firmware/${{ steps.upload-location.outputs.uploadlocation }}/
+
+      # if we are uploading artifacts to a versioned folder
+      # we should also update the stable folder in the s3 bucket
+      - name: Uploading Artifacts to S3 [stable]
+        uses: jakejarvis/s3-sync-action@master
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          args: --acl public-read
+        env:
+          AWS_S3_BUCKET: 'px4-travis'
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-west-1'
+          SOURCE_DIR: artifacts/
+          DEST_DIR: Firmware/stable/
+
+      # if build is a release triggered by a versioned tag then create a github release
+      # and upload the build artifacts. A draft release is created so that the release
+      # can be reviewed before publishing
+      - name: Upload Artifacts to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          draft: true
+          files: artifacts/*.px4
+          name: ${{ steps.upload-location.outputs.uploadlocation }}

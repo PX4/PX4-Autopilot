@@ -21,25 +21,14 @@ set R /
 #
 ver all
 
-if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
-then
-	set PARAM_FILE /fs/mtd_params
-fi
-
-if mft query -q -k MTD -s MTD_PARAMETERS -v /dev/eeeprom0
-then
-	set PARAM_FILE /dev/eeeprom0
-fi
-
-if mft query -q -k MTD -s MTD_PARAMETERS -v /mnt/qspi/params
-then
-	set PARAM_FILE /mnt/qspi/params
-fi
+# Load param file location from kconfig
+. ${R}etc/init.d/rc.filepaths
 
 #
 # Load parameters.
 #
 param select $PARAM_FILE
+
 if ! param load
 then
 	param reset_all
@@ -66,6 +55,17 @@ then
 	. $BOARD_RC_DEFAULTS
 fi
 unset BOARD_RC_DEFAULTS
+
+#
+# Optional additional init file: rc.additional_init
+#
+set BOARD_RC_ADDITIONAL_INIT ${R}etc/init.d/rc.additional_init
+if [ -f $BOARD_RC_ADDITIONAL_INIT ]
+then
+	echo "Board additional init: ${BOARD_RC_ADDITIONAL_INIT}"
+	. $BOARD_RC_ADDITIONAL_INIT
+fi
+unset BOARD_RC_ADDITIONAL_INIT
 
 #
 # Start system state indicator.

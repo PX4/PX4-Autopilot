@@ -161,7 +161,7 @@ void VehicleOpticalFlow::Run()
 			}
 
 			Vector3f delta_angle{NAN, NAN, NAN};
-			uint16_t delta_angle_dt;
+			uint32_t delta_angle_dt;
 
 			if (_gyro_integrator.reset(delta_angle, delta_angle_dt)) {
 				_delta_angle += delta_angle;
@@ -226,6 +226,7 @@ void VehicleOpticalFlow::Run()
 			vehicle_optical_flow.timestamp_sample = sensor_optical_flow.timestamp_sample;
 			vehicle_optical_flow.device_id = sensor_optical_flow.device_id;
 
+			_flow_integral *= _param_sens_flow_scale.get();
 			_flow_integral.copyTo(vehicle_optical_flow.pixel_flow);
 			_delta_angle.copyTo(vehicle_optical_flow.delta_angle);
 

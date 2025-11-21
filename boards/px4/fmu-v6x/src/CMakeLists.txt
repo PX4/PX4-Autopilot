@@ -34,7 +34,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 	add_compile_definitions(BOOTLOADER)
 	add_library(drivers_board
 		bootloader_main.c
-		init.c
+		init.cpp
 		usb.c
 		timer_config.cpp
 	)
@@ -52,7 +52,7 @@ else()
 	add_library(drivers_board
 		can.c
 		i2c.cpp
-		init.c
+		init.cpp
 		led.c
 		mtd.cpp
 		sdio.c

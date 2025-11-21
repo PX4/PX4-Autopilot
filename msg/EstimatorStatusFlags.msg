@@ -6,16 +6,16 @@ uint64 timestamp_sample                   # the timestamp of the raw data (micro
 uint32 control_status_changes # number of filter control status (cs) changes
 bool cs_tilt_align            #  0 - true if the filter tilt alignment is complete
 bool cs_yaw_align             #  1 - true if the filter yaw alignment is complete
-bool cs_gps                   #  2 - true if GPS measurement fusion is intended
+bool cs_gnss_pos              #  2 - true if GNSS position measurement fusion is intended
 bool cs_opt_flow              #  3 - true if optical flow measurements fusion is intended
 bool cs_mag_hdg               #  4 - true if a simple magnetic yaw heading fusion is intended
 bool cs_mag_3d                #  5 - true if 3-axis magnetometer measurement fusion is intended
 bool cs_mag_dec               #  6 - true if synthetic magnetic declination measurements fusion is intended
 bool cs_in_air                #  7 - true when the vehicle is airborne
 bool cs_wind                  #  8 - true when wind velocity is being estimated
-bool cs_baro_hgt              #  9 - true when baro height is being fused as a primary height reference
-bool cs_rng_hgt               # 10 - true when range finder height is being fused as a primary height reference
-bool cs_gps_hgt               # 11 - true when GPS height is being fused as a primary height reference
+bool cs_baro_hgt              #  9 - true when baro data is being fused
+bool cs_rng_hgt               # 10 - true when range finder data is being fused for height aiding
+bool cs_gps_hgt               # 11 - true when GPS altitude is being fused
 bool cs_ev_pos                # 12 - true when local position data fusion from external vision is intended
 bool cs_ev_yaw                # 13 - true when yaw data from external vision measurements fusion is intended
 bool cs_ev_hgt                # 14 - true when height data from external vision measurements is being fused
@@ -26,12 +26,12 @@ bool cs_mag_fault             # 18 - true when the magnetometer has been declare
 bool cs_fuse_aspd             # 19 - true when airspeed measurements are being fused
 bool cs_gnd_effect            # 20 - true when protection from ground effect induced static pressure rise is active
 bool cs_rng_stuck             # 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
-bool cs_gps_yaw               # 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
+bool cs_gnss_yaw              # 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
 bool cs_mag_aligned_in_flight # 23 - true when the in-flight mag field alignment has been completed
 bool cs_ev_vel                # 24 - true when local frame velocity data fusion from external vision measurements is intended
 bool cs_synthetic_mag_z       # 25 - true when we are using a synthesized measurement for the magnetometer Z component
 bool cs_vehicle_at_rest       # 26 - true when the vehicle is at rest
-bool cs_gps_yaw_fault         # 27 - true when the GNSS heading has been declared faulty and is no longer being used
+bool cs_gnss_yaw_fault        # 27 - true when the GNSS heading has been declared faulty and is no longer being used
 bool cs_rng_fault             # 28 - true when the range finder has been declared faulty and is no longer being used
 bool cs_inertial_dead_reckoning # 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
 bool cs_wind_dead_reckoning     # 30 - true if we are navigationg reliant on wind relative measurements
@@ -43,6 +43,15 @@ bool cs_mag                     # 35 - true if 3-axis magnetometer measurement f
 bool cs_ev_yaw_fault            # 36 - true when the EV heading has been declared faulty and is no longer being used
 bool cs_mag_heading_consistent  # 37 - true when the heading obtained from mag data is declared consistent with the filter
 bool cs_aux_gpos                # 38 - true if auxiliary global position measurement fusion is intended
+bool cs_rng_terrain             # 39 - true if we are fusing range finder data for terrain
+bool cs_opt_flow_terrain        # 40 - true if we are fusing flow data for terrain
+bool cs_valid_fake_pos          # 41 - true if a valid constant position is being fused
+bool cs_constant_pos            # 42 - true if the vehicle is at a constant position
+bool cs_baro_fault	        # 43 - true when the current baro has been declared faulty and is no longer being used
+bool cs_gnss_vel                # 44 - true if GNSS velocity measurement fusion is intended
+bool cs_gnss_fault              # 45 - true if GNSS true if GNSS measurements (lat, lon, vel) have been declared faulty
+bool cs_yaw_manual              # 46 - true if yaw has been set manually
+bool cs_gnss_hgt_fault          # 47 - true if GNSS true if GNSS measurements (alt) have been declared faulty
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes
@@ -55,7 +64,6 @@ bool fs_bad_airspeed          #  5 - true if fusion of the airspeed has encounte
 bool fs_bad_sideslip          #  6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
 bool fs_bad_optflow_x         #  7 - true if fusion of the optical flow X axis has encountered a numerical error
 bool fs_bad_optflow_y         #  8 - true if fusion of the optical flow Y axis has encountered a numerical error
-bool fs_bad_acc_bias          #  9 - true if bad delta velocity bias estimates have been detected
 bool fs_bad_acc_vertical      # 10 - true if bad vertical accelerometer data has been detected
 bool fs_bad_acc_clipping      # 11 - true if delta velocity data contains clipping (asymmetric railing)
 

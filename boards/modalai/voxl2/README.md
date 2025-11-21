@@ -9,7 +9,7 @@ When running PX4 directly on the QRB5165 SoC it runs partially on the Sensor Low
 The portion running on the DSP hosts the flight critical portions of PX4 such as
 the IMU, barometer, magnetometer, GPS, ESC, and power management drivers, and the
 state estimation. The DSP acts as the real time portion of the system. Non flight
-critical applications such as Mavlink, logging, and commander are running on the
+critical applications such as Mavlink, and logging are running on the
 ARM CPU cluster (aka apps proc). The DSP and ARM CPU cluster communicate via a
 Qualcomm proprietary shared memory interface.
 
@@ -27,6 +27,7 @@ The full instructions are available here:
 ```
 px4$ boards/modalai/voxl2/scripts/run-docker.sh
 root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/clean.sh
+root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/build-deps.sh
 root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/build-apps.sh
 root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/build-slpi.sh
 root@9373fa1401b8:/usr/local/workspace# exit
@@ -69,16 +70,15 @@ pxh>
 ## Notes
 
 You cannot cleanly shutdown PX4 with the shutdown command on VOXL 2. You have
-to power cycle the board and restart everything.
+to power cycle the board and restart everything. Starting with SDK 1.3.0 it is possible
+to cleanly shutdown PX4 on VOXL 2.
 
 ## Tips
 
-Start with a VOXL 2 that only has the system image installed, not the SDK
-
-Run the command ```voxl-px4 -s``` on target to run the self-test
+Always use the latest SDK release
 
 In order to see DSP specific debug messages the mini-dm tool in the Hexagon SDK
-can be used:
+can be used (Most messages are passed to the apps proc but certain low level messages are not):
 ```
 modalai@modalai-XPS-15-9570:/local/mnt/workspace/Qualcomm/Hexagon_SDK/4.1.0.4/tools/debug/mini-dm/Ubuntu18$ sudo ./mini-dm
 [sudo] password for modalai:

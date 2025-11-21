@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file drv_io_timer.h
+ * @file io_timer.h
  *
  * stm32-specific PWM output data.
  */
@@ -45,7 +45,7 @@
 #pragma once
 __BEGIN_DECLS
 /* configuration limits */
-#define MAX_IO_TIMERS			1
+#define MAX_IO_TIMERS			8
 #define MAX_TIMER_IO_CHANNELS		8
 
 #define MAX_LED_TIMERS			2
@@ -63,7 +63,8 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_Dshot   = 6,
 	IOTimerChanMode_LED     = 7,
 	IOTimerChanMode_PPS     = 8,
-	IOTimerChanMode_Other   = 9,
+	IOTimerChanMode_RPM     = 9,
+	IOTimerChanMode_Other   = 10,
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
@@ -87,6 +88,7 @@ typedef struct io_timers_t {
 	uint32_t	vectorno_12_15;      /* IRQ number */
 	uint32_t	vectorno_16_19;      /* IRQ number */
 	uint32_t	vectorno_20_23;      /* IRQ number */
+	uint32_t        channel;
 } io_timers_t;
 
 typedef struct io_timers_channel_mapping_element_t {

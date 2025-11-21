@@ -1,0 +1,91 @@
+#!/bin/sh
+#
+# @name Quadrotor + Tailsitter
+#
+# @type VTOL Quad Tailsitter
+#
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=quadtailsitter}
+
+param set-default SIM_GZ_EN 1 # Gazebo bridge
+
+param set-default MAV_TYPE 20
+
+param set-default CA_AIRFRAME 4
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.23
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.23
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.23
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.23
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default CA_SV_CS_COUNT 0
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_FUNC3 103
+param set-default SIM_GZ_EC_FUNC4 104
+
+param set-default SIM_GZ_EC_MIN1 10
+param set-default SIM_GZ_EC_MIN2 10
+param set-default SIM_GZ_EC_MIN3 10
+param set-default SIM_GZ_EC_MIN4 10
+
+param set-default SIM_GZ_EC_MAX1 1500
+param set-default SIM_GZ_EC_MAX2 1500
+param set-default SIM_GZ_EC_MAX3 1500
+param set-default SIM_GZ_EC_MAX4 1500
+
+param set-default FD_FAIL_R 70
+
+param set-default FW_P_TC 0.6
+
+param set-default FW_PR_I 0.3
+param set-default FW_PR_P 0.5
+param set-default FW_PSP_OFF 2
+param set-default FW_RR_FF 0.1
+param set-default FW_RR_I 0.1
+param set-default FW_RR_P 0.2
+param set-default FW_YR_FF 0 # make yaw rate controller very weak, only keep default P
+param set-default FW_YR_I 0
+param set-default FW_THR_TRIM 0.35
+param set-default FW_THR_MAX 0.8
+param set-default FW_THR_MIN 0.05
+param set-default FW_T_CLMB_MAX 6
+param set-default FW_T_HRATE_FF 0.5
+param set-default FW_T_SINK_MAX 3
+param set-default FW_T_SINK_MIN 1.6
+param set-default FW_AIRSPD_STALL 10
+param set-default FW_AIRSPD_MIN 14
+param set-default FW_AIRSPD_TRIM 18
+param set-default FW_AIRSPD_MAX 22
+
+param set-default MC_AIRMODE 2
+param set-default MAN_ARM_GESTURE 0 # required for yaw airmode
+param set-default MC_ROLL_P 3
+param set-default MC_PITCH_P 3
+param set-default MC_ROLLRATE_P 0.3
+param set-default MC_PITCHRATE_P 0.3
+
+param set-default VT_ARSP_TRANS 15
+param set-default VT_B_TRANS_DUR 5
+param set-default VT_FW_DIFTHR_EN 7
+param set-default VT_FW_DIFTHR_S_Y 1
+param set-default VT_F_TRANS_DUR 1.5
+param set-default VT_TYPE 0
+
+param set-default WV_EN 0
+
+param set-default EKF2_FUSE_BETA 0

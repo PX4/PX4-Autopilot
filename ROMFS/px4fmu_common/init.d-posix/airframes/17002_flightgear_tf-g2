@@ -44,11 +44,9 @@ param set-default FW_R_LIM 30
 
 param set-default FW_MAN_R_MAX 30
 
-param set-default FW_THR_CRUISE 0.8
+param set-default FW_THR_TRIM 0.8
 param set-default FW_THR_IDLE 0
 param set-default COM_DISARM_PRFLT 0
-
-param set-default CA_AIRFRAME 1
 
 param set-default CA_ROTOR_COUNT 1
 param set-default CA_ROTOR0_PX 0.3
@@ -69,4 +67,3 @@ param set-default PWM_MAIN_FUNC4 203
 param set-default PWM_MAIN_FUNC5 407
 param set-default PWM_MAIN_FUNC6 408
 param set-default PWM_MAIN_FUNC7 409
-

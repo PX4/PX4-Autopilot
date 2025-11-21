@@ -379,4 +379,3 @@ dma_reset(void)
 	stm32_dmastart(rx_dma, rx_dma_callback, NULL, false);
 	rCR3 |= USART_CR3_DMAR;
 }
-

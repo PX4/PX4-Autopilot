@@ -237,6 +237,11 @@ void ManualControl::processSwitches(hrt_abstime &now)
 					}
 				}
 
+				if (switches.termination_switch != _previous_switches.termination_switch
+				    && switches.termination_switch == manual_control_switches_s::SWITCH_POS_ON) {
+					sendActionRequest(action_request_s::ACTION_TERMINATION, action_request_s::SOURCE_RC_SWITCH);
+				}
+
 				if (switches.gear_switch != _previous_switches.gear_switch
 				    && _previous_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) {
 
@@ -270,6 +275,20 @@ void ManualControl::processSwitches(hrt_abstime &now)
 						send_video_command();
 					}
 				}
+
+#if defined(PAYLOAD_POWER_EN)
+
+				if (switches.payload_power_switch != _previous_switches.payload_power_switch) {
+					if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						PAYLOAD_POWER_EN(true);
+
+					} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF
+						   || switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_MIDDLE) {
+						PAYLOAD_POWER_EN(false);
+					}
+				}
+
+#endif // PAYLOAD_POWER_EN
 
 			} else if (!_armed) {
 				// Directly initialize mode using RC switch but only before arming
@@ -316,7 +335,7 @@ void ManualControl::updateParams()
 				/* EVENT
 				* @description <param>MAN_ARM_GESTURE</param> is now set to disable arm/disarm stick gesture.
 				*/
-				events::send(events::ID("rc_update_arm_stick_gesture_disabled_with_switch"), {events::Log::Info, events::LogInternal::Disabled},
+				events::send(events::ID("stick_gesture_disabled_by_arm_switch"), {events::Log::Info, events::LogInternal::Disabled},
 					     "Arm stick gesture disabled if arm switch in use");
 			}
 		}
@@ -356,7 +375,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	_stick_arm_hysteresis.set_state_and_update(left_stick_lower_right && right_stick_centered, input.timestamp);
 
 	if (_param_man_arm_gesture.get() && !previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
-		sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_RC_STICK_GESTURE);
+		sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_STICK_GESTURE);
 	}
 
 	// Disarm gesture
@@ -366,7 +385,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);
 
 	if (_param_man_arm_gesture.get() && !previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
-		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_RC_STICK_GESTURE);
+		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_STICK_GESTURE);
 	}
 
 	// Kill gesture
@@ -377,7 +396,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 		_stick_kill_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_lower_right, input.timestamp);
 
 		if (!previous_stick_kill_hysteresis && _stick_kill_hysteresis.get_state()) {
-			sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_RC_STICK_GESTURE);
+			sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_STICK_GESTURE);
 		}
 	}
 }
@@ -453,7 +472,7 @@ void ManualControl::send_camera_mode_command(CameraMode camera_mode)
 	command.command = vehicle_command_s::VEHICLE_CMD_SET_CAMERA_MODE;
 	command.param2 = static_cast<float>(camera_mode);
 	command.target_system = _system_id;
-	command.target_component = 100; // any camera
+	command.target_component = 100; // MAV_COMP_ID_CAMERA
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
@@ -467,7 +486,7 @@ void ManualControl::send_photo_command()
 	command.param3 = 1; // one picture
 	command.param4 = _image_sequence++;
 	command.target_system = _system_id;
-	command.target_component = 100; // any camera
+	command.target_component = 100; // MAV_COMP_ID_CAMERA
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
@@ -571,6 +590,7 @@ int8_t ManualControl::navStateFromParam(int32_t param_value)
 		case 13: return vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
 		case 14: return vehicle_status_s::NAVIGATION_STATE_ORBIT;
 		case 15: return vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+		case 16: return vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE;
 
 		case 100: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL1;
 		case 101: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL2;

@@ -191,6 +191,13 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 
 			if (calibration_updated) {
 				_last_calibration_update = hrt_absolute_time();
+
+				for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
+					// avoid mixing data currected using old calibration
+					_timestamp_sample_sum[instance] = 0;
+					_data_sum[instance].zero();
+					_data_sum_count[instance] = 0;
+				}
 			}
 		}
 
@@ -208,6 +215,19 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 
 		if (_magnetometer_bias_estimate_sub.copy(&mag_bias_est)) {
 			bool parameters_notify = false;
+
+			bool external_mag_available = false;
+
+			for (unsigned mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
+				if (_calibration[mag_index].external()
+				    && _calibration[mag_index].enabled()
+				    && mag_bias_est.valid[mag_index]
+				    && mag_bias_est.stable[mag_index]) {
+
+					external_mag_available = true;
+					break;
+				}
+			}
 
 			for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
 				if (mag_bias_est.valid[mag_index] && (mag_bias_est.timestamp > _last_calibration_update)) {
@@ -228,6 +248,11 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 						const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
 
 						if (_calibration[mag_index].set_offset(offset)) {
+							if (external_mag_available && !_calibration[mag_index].external()) {
+								// automatically disable the internal mags as they should not be used for navigation
+								_calibration[mag_index].disable();
+							}
+
 							// save parameters with preferred calibration slot to current sensor index
 							_calibration[mag_index].ParametersSave(mag_index);
 

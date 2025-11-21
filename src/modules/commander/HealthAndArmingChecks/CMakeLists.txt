@@ -42,6 +42,7 @@ px4_add_library(health_and_arming_checks
 	checks/batteryCheck.cpp
 	checks/cpuResourceCheck.cpp
 	checks/distanceSensorChecks.cpp
+	checks/opticalFlowCheck.cpp
 	checks/escCheck.cpp
 	checks/estimatorCheck.cpp
 	checks/failureDetectorCheck.cpp
@@ -50,10 +51,12 @@ px4_add_library(health_and_arming_checks
 	checks/gyroCheck.cpp
 	checks/homePositionCheck.cpp
 	checks/imuConsistencyCheck.cpp
+	checks/loggerCheck.cpp
 	checks/magnetometerCheck.cpp
 	checks/manualControlCheck.cpp
 	checks/missionCheck.cpp
 	checks/modeCheck.cpp
+	checks/navigatorCheck.cpp
 	checks/offboardCheck.cpp
 	checks/openDroneIDCheck.cpp
 	checks/parachuteCheck.cpp

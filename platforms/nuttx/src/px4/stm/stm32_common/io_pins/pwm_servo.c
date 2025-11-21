@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file drv_pwm_servo.c
+ * @file pwm_servo.c
  *
  * Servo driver supporting PWM servos connected to STM32 timer blocks.
  *

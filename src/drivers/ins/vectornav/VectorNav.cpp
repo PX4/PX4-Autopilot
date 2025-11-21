@@ -328,7 +328,8 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			local_position.vxy_max = INFINITY;
 			local_position.vz_max = INFINITY;
 			local_position.hagl_min = INFINITY;
-			local_position.hagl_max = INFINITY;
+			local_position.hagl_max_z = INFINITY;
+			local_position.hagl_max_xy = INFINITY;
 
 			local_position.unaided_heading = NAN;
 			local_position.timestamp = hrt_absolute_time();
@@ -368,7 +369,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 				test_ratio = 0.1f;
 			}
 
-			estimator_status.mag_test_ratio = test_ratio;
+			estimator_status.hdg_test_ratio = test_ratio;
 			estimator_status.vel_test_ratio = test_ratio;
 			estimator_status.pos_test_ratio = test_ratio;
 			estimator_status.hgt_test_ratio = test_ratio;
@@ -441,10 +442,11 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			sensor_gps.altitude_msl_m = positionGpsLla.c[2];
 			sensor_gps.altitude_ellipsoid_m = sensor_gps.altitude_msl_m;
 
-			sensor_gps.vel_ned_valid = true;
+			sensor_gps.vel_m_s = matrix::Vector3f(velocityGpsNed.c).length();
 			sensor_gps.vel_n_m_s = velocityGpsNed.c[0];
 			sensor_gps.vel_e_m_s = velocityGpsNed.c[1];
 			sensor_gps.vel_d_m_s = velocityGpsNed.c[2];
+			sensor_gps.vel_ned_valid = true;
 
 			sensor_gps.hdop = dop.hDOP;
 			sensor_gps.vdop = dop.vDOP;
@@ -831,7 +833,7 @@ Serial bus driver for the VectorNav VN-100, VN-200, VN-300.
 
 Most boards are configured to enable/start the driver on a specified UART using the SENS_VN_CFG parameter.
 
-Setup/usage information: https://docs.px4.io/master/en/sensor/vectornav.html
+Setup/usage information: https://docs.px4.io/main/en/sensor/vectornav.html
 
 ### Examples
 

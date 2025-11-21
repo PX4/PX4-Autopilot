@@ -62,6 +62,8 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 			if (system_flags_delayed.gnd_effect) {
 				set_gnd_effect();
 			}
+
+			set_constant_pos(system_flags_delayed.constant_pos);
 		}
 	}
 
@@ -102,7 +104,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control use of observations for aiding
-	controlMagFusion();
+	controlMagFusion(imu_delayed);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -137,19 +139,24 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// Additional data odometry data from an external estimator can be fused.
-	controlExternalVisionFusion();
+	controlExternalVisionFusion(imu_delayed);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// Additional horizontal velocity data from an auxiliary sensor can be fused
-	controlAuxVelFusion();
+	controlAuxVelFusion(imu_delayed);
 #endif // CONFIG_EKF2_AUXVEL
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	controlTerrainFakeFusion();
+	updateTerrainValidity();
+#endif // CONFIG_EKF2_TERRAIN
 
 	controlZeroInnovationHeadingUpdate();
 
 	_zero_velocity_update.update(*this, imu_delayed);
 
-	if (_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias)) {
+	if (_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias)) {
 		_zero_gyro_update.update(*this, imu_delayed);
 	}
 

@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# @name Gazebo x500 gimbal
+#
+# @type Quadrotor
+#
+
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=x500_gimbal}
+
+. ${R}etc/init.d-posix/airframes/4001_gz_x500
+
+# Gimbal settings
+param set-default MNT_MODE_IN 4
+param set-default MNT_MODE_OUT 2
+param set-default MNT_RC_IN_MODE 1
+
+param set-default MNT_MAN_ROLL 1
+param set-default MNT_MAN_PITCH 2
+param set-default MNT_MAN_YAW 3
+
+param set-default MNT_RANGE_ROLL 180
+param set-default MNT_RANGE_PITCH 180
+param set-default MNT_RANGE_YAW 720

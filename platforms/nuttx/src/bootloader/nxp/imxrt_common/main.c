@@ -9,13 +9,24 @@
 #include "hw_config.h"
 #include <px4_arch/imxrt_flexspi_nor_flash.h>
 #include <px4_arch/imxrt_romapi.h>
-#include <hardware/rt117x/imxrt117x_ocotp.h>
-#include <hardware/rt117x/imxrt117x_anadig.h>
-#include <hardware/rt117x/imxrt117x_snvs.h>
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
+#  include <hardware/rt117x/imxrt117x_ocotp.h>
+#  include <hardware/rt117x/imxrt117x_anadig.h>
+#  include <hardware/rt117x/imxrt117x_snvs.h>
+#else
+#  include <chip.h>
+#  include <hardware/imxrt_usb_analog.h>
+#  include <hardware/imxrt_snvs.h>
+#  include <hardware/imxrt_ocotp.h>
+#  include "hardware/imxrt_ccm.h"
+#  include "imxrt_periphclks.h"
+#  define SNVS_LPCR_GPR_Z_DIS             (1 << 24)  /* Bit 24: General Purpose Registers Zeroization Disable */
+#endif
 #include <hardware/imxrt_usb_analog.h>
 #include "imxrt_clockconfig.h"
 
 #include <nvic.h>
+#include <mpu.h>
 #include <lib/systick.h>
 #include <lib/flash_cache.h>
 
@@ -29,14 +40,31 @@
 
 #define APP_SIZE_MAX			(BOARD_FLASH_SIZE - (BOOTLOADER_RESERVATION_SIZE + APP_RESERVATION_SIZE))
 
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
 #define CHIP_TAG     "i.MX RT11?0,r??"
-#define CHIP_TAG_LEN sizeof(CHIP_TAG)-1
-
 #define SI_REV(n)             ((n & 0x7000000) >> 24)
 #define DIFPROG_TYPE(n)       ((n & 0xF000) >> 12)
 #define DIFPROG_REV_MAJOR(n)  ((n & 0xF0) >> 4)
 #define DIFPROG_REV_MINOR(n)  ((n & 0xF))
+#elif defined(CONFIG_ARCH_FAMILY_IMXRT106x)
+#define CHIP_TAG     "i.MX RT10?? r?.?"
+#define DIGPROG_MINOR_SHIFT           0
+#define DIGPROG_MINOR_MASK            (0xff << DIGPROG_MINOR_SHIFT)
+#define DIGPROG_MINOR(info)           (((info) & DIGPROG_MINOR_MASK) >> DIGPROG_MINOR_SHIFT)
+#define DIGPROG_MAJOR_LOWER_SHIFT     8
+#define DIGPROG_MAJOR_LOWER_MASK      (0xff << DIGPROG_MAJOR_LOWER_SHIFT)
+#define DIGPROG_MAJOR_LOWER(info)     (((info) & DIGPROG_MAJOR_LOWER_MASK) >> DIGPROG_MAJOR_LOWER_SHIFT)
+#define DIGPROG_MAJOR_UPPER_SHIFT     16
+#define DIGPROG_MAJOR_UPPER_MASK      (0xff << DIGPROG_MAJOR_UPPER_SHIFT)
+#define DIGPROG_MAJOR_UPPER(info)     (((info) & DIGPROG_MAJOR_UPPER_MASK) >> DIGPROG_MAJOR_UPPER_SHIFT)
+#endif
+#define CHIP_TAG_LEN sizeof(CHIP_TAG)-1
 
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
+#define FLASH_BASE IMXRT_FLEXSPI1_CIPHER_BASE
+#elif defined(CONFIG_ARCH_CHIP_MIMXRT1064DVL6A)
+#define FLASH_BASE IMXRT_FLEX2CIPHER_BASE
+#endif
 
 /* context passed to cinit */
 #if INTERFACE_USART
@@ -286,6 +314,27 @@ board_deinit(void)
 	px4_arch_configgpio(MK_GPIO_INPUT(BOARD_PIN_LED_BOOTLOADER));
 #endif
 
+#ifdef CONFIG_ARCH_FAMILY_IMXRT106x
+
+	// Restore CCM registers to ROM state
+	putreg32(0x00000001, IMXRT_CCM_CACRR);
+	putreg32(0x000A8200, IMXRT_CCM_CBCDR);
+	putreg32(0x06490B03, IMXRT_CCM_CSCDR1);
+	putreg32(0x75AE8104, IMXRT_CCM_CBCMR);
+	putreg32(0x67930001, IMXRT_CCM_CSCMR1);
+
+	imxrt_clockoff_lpuart3();
+	imxrt_clockoff_usboh3();
+	imxrt_clockoff_timer3();
+	imxrt_clockoff_xbar1();
+	imxrt_clockoff_xbar3();
+
+	up_disable_icache();
+	up_disable_dcache();
+
+#endif
+
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
 	const uint32_t dnfw[] = {
 		CCM_CR_M7,
 		CCM_CR_BUS,
@@ -308,6 +357,8 @@ board_deinit(void)
 			putreg32(CCM_CR_CTRL_OFF, IMXRT_CCM_CR_CTRL(i));
 		}
 	}
+
+#endif
 }
 
 inline void arch_systic_init(void)
@@ -364,7 +415,7 @@ ssize_t arch_flash_write(uintptr_t address, const void *buffer, size_t buflen)
 		j++;
 	}
 
-	uintptr_t offset = ((uintptr_t) address) - IMXRT_FLEXSPI1_CIPHER_BASE;
+	uintptr_t offset = ((uintptr_t) address) - FLASH_BASE;
 
 	volatile uint32_t status = ROM_FLEXSPI_NorFlash_ProgramPage(1, pConfig, offset, (const uint32_t *)buffer);
 	up_invalidate_dcache((uintptr_t)address,
@@ -395,6 +446,24 @@ flash_func_sector_size(unsigned sector)
 	return 0;
 }
 
+/* imxRT uses Flash lib, not up_progmem so let's stub it here */
+ssize_t up_progmem_ispageerased(unsigned sector)
+{
+	const uint32_t bytes_per_sector =  flash_func_sector_size(sector);
+	uint32_t *address = (uint32_t *)(FLASH_BASE + (sector * bytes_per_sector));
+	const uint32_t uint32_per_sector =  bytes_per_sector / sizeof(*address);
+
+	int blank = 0; /* Assume it is Bank */
+
+	for (uint32_t i = 0; i < uint32_per_sector; i++) {
+		if (address[i] != 0xffffffff) {
+			blank = -1;  /* It is not blank */
+			break;
+		}
+	}
+
+	return blank;
+}
 
 /*!
  * @name Configuration Option
@@ -407,40 +476,26 @@ flash_func_sector_size(unsigned sector)
  * */
 locate_code(".ramfunc")
 void
-flash_func_erase_sector(unsigned sector)
+flash_func_erase_sector(unsigned sector, bool force)
 {
-
 	if (sector > BOARD_FLASH_SECTORS || (int)sector < BOARD_FIRST_FLASH_SECTOR_TO_ERASE) {
 		return;
 	}
 
-	/* blank-check the sector */
-	const uint32_t bytes_per_sector =  flash_func_sector_size(sector);
-	uint32_t *address = (uint32_t *)(IMXRT_FLEXSPI1_CIPHER_BASE + (sector * bytes_per_sector));
-	const uint32_t uint32_per_sector =  bytes_per_sector / sizeof(*address);
-	bool blank = true;
+	if (force || up_progmem_ispageerased(sector) != 0) {
 
-	for (uint32_t i = 0; i < uint32_per_sector; i++) {
-		if (address[i] != 0xffffffff) {
-			blank = false;
-			break;
-		}
-	}
+		struct flexspi_nor_config_s *pConfig = &g_bootConfig;
 
+		const uint32_t bytes_per_sector =  flash_func_sector_size(sector);
+		uint32_t *address = (uint32_t *)(FLASH_BASE + (sector * bytes_per_sector));
 
-	struct flexspi_nor_config_s *pConfig = &g_bootConfig;
-
-	/* erase the sector if it failed the blank check */
-	if (!blank) {
-		uintptr_t offset = ((uintptr_t) address) - IMXRT_FLEXSPI1_CIPHER_BASE;
+		uintptr_t offset = ((uintptr_t) address) - FLASH_BASE;
 		irqstate_t flags;
 		flags = enter_critical_section();
 		volatile uint32_t  status = ROM_FLEXSPI_NorFlash_Erase(1, pConfig, (uintptr_t) offset, bytes_per_sector);
 		leave_critical_section(flags);
 		UNUSED(status);
 	}
-
-
 }
 
 void
@@ -468,6 +523,8 @@ flash_func_read_otp(uintptr_t address)
 	return 0;
 }
 
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
+
 uint32_t get_mcu_id(void)
 {
 	// ??? is DEBUGMCU get able
@@ -493,6 +550,36 @@ int get_mcu_desc(int max, uint8_t *revstr)
 
 	return  strp - revstr;
 }
+
+#elif defined(CONFIG_ARCH_FAMILY_IMXRT106x)
+
+uint32_t get_mcu_id(void)
+{
+	return getreg32(IMXRT_OCOTP_UNIQUE_ID_LSB);
+}
+
+int get_mcu_desc(int max, uint8_t *revstr)
+{
+	uint32_t info = getreg32(IMXRT_USB_ANALOG_DIGPROG);
+	// CHIP_TAG     "i.MX RT10?? r?.?"
+	static uint8_t chip[sizeof(CHIP_TAG) + 1] = CHIP_TAG;
+	chip[CHIP_TAG_LEN - 1] = '0' +  DIGPROG_MINOR(info);
+	chip[CHIP_TAG_LEN - 3] = '1' + DIGPROG_MAJOR_LOWER(info);
+	chip[CHIP_TAG_LEN - 6] = getreg32(0x401F867C) == 0x10 ? '4' : '2';
+	chip[CHIP_TAG_LEN - 7] = DIGPROG_MAJOR_UPPER(info)  == 0x6a ? '5' : '6';
+
+	uint8_t *endp = &revstr[max - 1];
+	uint8_t *strp = revstr;
+	uint8_t *des = chip;
+
+	while (strp < endp && *des) {
+		*strp++ = *des++;
+	}
+
+	return  strp - revstr;
+}
+
+#endif
 
 
 int check_silicon(void)
@@ -577,6 +664,21 @@ led_toggle(unsigned led)
 void
 arch_do_jump(const uint32_t *app_base)
 {
+	/* The MPU configuration after booting has ITCM set to MPU_RASR_AP_RORO
+	 * We add this overlaping region to allow the Application to copy code into
+	 * the ITCM when it is booted. With CONFIG_ARM_MPU_RESET defined. The mpu
+	 * init will clear any added regions (after the copy)
+	 */
+
+	mpu_configure_region(IMXRT_ITCM_BASE, 256 * 1024,
+			     /* Instruction access Enabled */
+			     MPU_RASR_AP_RWRW  | /* P:RW   U:RW                */
+			     MPU_RASR_TEX_NOR    /* Normal                     */
+			     /* Not Cacheable              */
+			     /* Not Bufferable             */
+			     /* Not Shareable              */
+			     /* No Subregion disable       */
+			    );
 
 	/* extract the stack and entrypoint from the app vector table and go */
 	uint32_t stacktop = app_base[APP_VECTOR_OFFSET_WORDS];
@@ -697,6 +799,7 @@ bootloader_main(void)
 	 * Returns -  0 if connected.
 	 *
 	 ************************************************************************************/
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
 #undef IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT
 #define USB1_VBUS_DET_STAT_OFFSET               0xd0
 #define IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT (IMXRT_USBPHY1_BASE + USB1_VBUS_DET_STAT_OFFSET)
@@ -707,6 +810,17 @@ bootloader_main(void)
 		try_boot = false;
 	}
 
+#elif defined(CONFIG_ARCH_FAMILY_IMXRT106x)
+#undef IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT
+#define IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT (IMXRT_ANATOP_BASE + IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT_OFFSET)
+
+	if ((getreg32(IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT) & USB_ANALOG_USB_VBUS_DETECT_STAT_VBUS_VALID) != 0) {
+		usb_connected = true;
+		/* don't try booting before we set up the bootloader */
+		try_boot = false;
+	}
+
+#endif
 #endif
 
 #if INTERFACE_USART

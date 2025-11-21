@@ -24,13 +24,14 @@ float64 lon			# longitude, in deg
 float32 alt			# altitude AMSL, in m
 float32 yaw			# yaw (only in hover), in rad [-PI..PI), NaN = leave to flight task
 
-float32 loiter_radius		# loiter major axis radius in m
-float32 loiter_minor_radius	# loiter minor axis radius (used for non-circular loiter shapes) in m
+float32 loiter_radius		# [m] [@range 0, INF] loiter major axis radius
+float32 loiter_minor_radius	# [m] [@range 0, INF] loiter minor axis radius (used for non-circular loiter shapes)
 bool loiter_direction_counter_clockwise # loiter direction is clockwise by default and can be changed using this field
-float32 loiter_orientation 	# Orientation of the major axis with respect to true north in rad [-pi,pi)
+float32 loiter_orientation 	# [rad] [@range -pi, pi] orientation of the major axis with respect to true north
 uint8 	loiter_pattern		# loitern pattern to follow
 
-float32 acceptance_radius   # navigation acceptance_radius if we're doing waypoint navigation
+float32 acceptance_radius   # horizontal acceptance_radius (meters)
+float32 alt_acceptance_radius # vertical acceptance radius, only used for fixed wing guidance, NAN = let guidance choose (meters)
 
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
 bool gliding_enabled		# commands the vehicle to glide if the capability is available (fixed wing only)

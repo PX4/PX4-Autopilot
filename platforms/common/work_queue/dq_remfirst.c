@@ -78,4 +78,3 @@ dq_entry_t *dq_remfirst(dq_queue_t *queue)
 
 	return ret;
 }
-

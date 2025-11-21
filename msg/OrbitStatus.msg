@@ -4,6 +4,7 @@ uint8 ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING = 1
 uint8 ORBIT_YAW_BEHAVIOUR_UNCONTROLLED = 2
 uint8 ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE = 3
 uint8 ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED = 4
+uint8 ORBIT_YAW_BEHAVIOUR_UNCHANGED = 5
 
 uint64 timestamp # time since system start (microseconds)
 float32 radius   # Radius of the orbit circle. Positive values orbit clockwise, negative values orbit counter-clockwise. [m]

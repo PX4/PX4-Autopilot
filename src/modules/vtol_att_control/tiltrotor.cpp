@@ -104,8 +104,8 @@ void Tiltrotor::update_vtol_state()
 				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
 				exit_backtransition_speed_condition = vel(0) < _param_mpc_xy_cruise.get() ;
 
-			} else if (PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
-				exit_backtransition_speed_condition = _airspeed_validated->calibrated_airspeed_m_s < _param_mpc_xy_cruise.get() ;
+			} else if (PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
+				exit_backtransition_speed_condition = _attc->get_calibrated_airspeed() < _param_mpc_xy_cruise.get() ;
 			}
 
 			const bool exit_backtransition_time_condition = _time_since_trans_start > _param_vt_b_trans_dur.get() ;
@@ -212,7 +212,6 @@ void Tiltrotor::update_transition_state()
 		}
 
 		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
 		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
 
 	} else {
@@ -225,6 +224,15 @@ void Tiltrotor::update_transition_state()
 		_thrust_transition = _fw_virtual_att_sp->thrust_body[0];
 	}
 
+
+	const Eulerf attitude_setpoint_euler(Quatf(_v_att_sp->q_d));
+	float roll_body = attitude_setpoint_euler.phi();
+	float pitch_body = attitude_setpoint_euler.theta();
+	float yaw_body = attitude_setpoint_euler.psi();
+
+	if (_v_control_mode->flag_control_climb_rate_enabled) {
+		roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
+	}
 
 	if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P1) {
 		// for the first part of the transition all rotors are enabled
@@ -243,14 +251,14 @@ void Tiltrotor::update_transition_state()
 		_mc_roll_weight = 1.0f;
 		_mc_yaw_weight = 1.0f;
 
-		if (_param_fw_use_airspd.get()  && PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
-		    _airspeed_validated->calibrated_airspeed_m_s >= getBlendAirspeed()) {
-			_mc_roll_weight = 1.0f - (_airspeed_validated->calibrated_airspeed_m_s - getBlendAirspeed()) /
+		if (PX4_ISFINITE(_attc->get_calibrated_airspeed()) &&
+		    _attc->get_calibrated_airspeed() >= getBlendAirspeed()) {
+			_mc_roll_weight = 1.0f - (_attc->get_calibrated_airspeed() - getBlendAirspeed()) /
 					  (getTransitionAirspeed()  - getBlendAirspeed());
 		}
 
 		// without airspeed do timed weight changes
-		if ((!_param_fw_use_airspd.get() || !PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) &&
+		if ((!PX4_ISFINITE(_attc->get_calibrated_airspeed())) &&
 		    _time_since_trans_start > getMinimumFrontTransitionTime()) {
 			_mc_roll_weight = 1.0f - (_time_since_trans_start - getMinimumFrontTransitionTime()) /
 					  (getOpenLoopFrontTransitionTime() - getMinimumFrontTransitionTime());
@@ -290,7 +298,7 @@ void Tiltrotor::update_transition_state()
 
 		// control backtransition deceleration using pitch.
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
-			_v_att_sp->pitch_body = update_and_get_backtransition_pitch_sp();
+			pitch_body = Eulerf(Quatf(_mc_virtual_att_sp->q_d)).theta();
 		}
 
 		if (_time_since_trans_start < BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) {
@@ -321,7 +329,7 @@ void Tiltrotor::update_transition_state()
 
 	_v_att_sp->thrust_body[2] = -_thrust_transition;
 
-	const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
+	const Quatf q_sp(Eulerf(roll_body, pitch_body, yaw_body));
 	q_sp.copyTo(_v_att_sp->q_d);
 
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);

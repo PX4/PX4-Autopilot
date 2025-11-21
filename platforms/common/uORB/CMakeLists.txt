@@ -47,6 +47,7 @@ set(SRCS_COMMON
 	Subscription.cpp
 	Subscription.hpp
 	SubscriptionCallback.hpp
+	SubscriptionInterval.cpp
 	SubscriptionInterval.hpp
 	SubscriptionMultiArray.hpp
 	uORB.cpp
@@ -111,4 +112,6 @@ if(PX4_TESTING)
 	add_subdirectory(uORB_tests)
 endif()
 
-px4_add_functional_gtest(SRC uORBMessageFieldsTest.cpp LINKLIBS uORB)
+if(PX4_TESTING)
+	add_subdirectory(test)
+endif()

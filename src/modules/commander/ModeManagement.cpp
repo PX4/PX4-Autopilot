@@ -364,17 +364,11 @@ void ModeManagement::checkUnregistrations(uint8_t user_intended_nav_state, Updat
 	}
 }
 
-void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, bool failsafe_action_active,
-			    UpdateRequest &update_request)
+void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request)
 {
-	_failsafe_action_active = failsafe_action_active;
 	_external_checks.update();
 
-	bool allow_update_while_armed = false;
-#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
-	// For simulation, allow registering modes while armed for developer convenience
-	allow_update_while_armed = true;
-#endif
+	bool allow_update_while_armed = _external_checks.allowUpdateWhileArmed();
 
 	if (armed && !allow_update_while_armed) {
 		// Reject registration requests
@@ -408,7 +402,8 @@ void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, bool fa
 			}
 		}
 
-		// As we're disarmed we can use the user intended mode, as no failsafe will be active
+		// As we're disarmed we can use the user intended mode, as no failsafe will be active.
+		// Note that this might not be true if COM_MODE_ARM_CHK is set
 		checkNewRegistrations(update_request);
 		checkUnregistrations(user_intended_nav_state, update_request);
 	}
@@ -476,6 +471,29 @@ uint8_t ModeManagement::getReplacedModeIfAny(uint8_t nav_state)
 	}
 
 	return nav_state;
+}
+
+uint8_t ModeManagement::onDisarm(uint8_t stored_nav_state)
+{
+	// Switch to the owned mode if an executor is active
+	uint8_t returned_nav_state = stored_nav_state;
+
+	if (_mode_executors.valid(_mode_executor_in_charge)) {
+		returned_nav_state = _mode_executors.executor(_mode_executor_in_charge).owned_nav_state;
+	}
+
+	// Switch to Hold if the mode is unresponsive
+	if (_modes.valid(returned_nav_state)) {
+		if (_external_checks.isUnresponsive(_modes.mode(returned_nav_state).arming_check_registration_id)) {
+			returned_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+		}
+	}
+
+	// Update _mode_executor_in_charge if needed (in case stored_nav_state belongs to an executor
+	// that is currently not active)
+	onUserIntendedNavStateChange(ModeChangeSource::User, returned_nav_state);
+
+	return returned_nav_state;
 }
 
 void ModeManagement::removeModeExecutor(int mode_executor_id)
