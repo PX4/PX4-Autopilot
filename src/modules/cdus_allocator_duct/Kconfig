@@ -1,0 +1,12 @@
+menuconfig MODULES_CDUS_ALLOCATOR_DUCT
+	bool "cdus_allocator_duct"
+	default n
+	---help---
+		Enable support for duct drone control allocator
+
+menuconfig USER_CDUS_ALLOCATOR_DUCT
+	bool "cdus_allocator_duct running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && CDUS_ALLOCATOR_DUCT
+	---help---
+		Put cdus_allocator_duct in userspace memory
