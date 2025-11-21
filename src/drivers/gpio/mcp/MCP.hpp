@@ -125,10 +125,7 @@ private:
 	uint16_t _iodir;
 	uint16_t _gppu;
 
-	//uint16_t test_interval;
 	uint16_t checking_freq = 10;
-
-
 
 	enum class STATE : uint8_t {
 		INIT_COMMUNICATION,
