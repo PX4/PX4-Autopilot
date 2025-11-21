@@ -65,6 +65,7 @@ AUAV::AUAV(const I2CSPIDriverConfig &config) :
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
+	I2C::_retries = 5;
 }
 
 AUAV::~AUAV()
@@ -130,15 +131,21 @@ int AUAV::init()
 
 int AUAV::probe()
 {
-	uint8_t res_data = 0;
-	int status = transfer(nullptr, 0, &res_data, sizeof(res_data));
+	uint8_t res_data;
 
-	/* Check that the sensor is active. Reported in bit 6 of the status byte */
-	if ((res_data & 0x40) == 0) {
-		status = PX4_ERROR;
+	for (unsigned i = 0; i < 10; i++) {
+		res_data = 0;
+		int status = transfer(nullptr, 0, &res_data, 1);
+
+		/* Check that the sensor is active. Reported in bit 6 of the status byte */
+		if (status == PX4_OK && (res_data & 0x40)) {
+			return PX4_OK;
+		}
+
+		px4_usleep(10'000);
 	}
 
-	return status;
+	return PX4_ERROR;
 }
 
 void AUAV::handle_state_read_calibdata()
@@ -190,15 +197,14 @@ void AUAV::handle_state_gather_measurement()
 {
 	perf_begin(_sample_perf);
 
-	uint8_t res_data[7];
+	uint8_t res_data[7] {};
 	int status = transfer(nullptr, 0, res_data, sizeof(res_data));
+	const uint32_t pressure_raw = (res_data[1] << 16) | (res_data[2] << 8) | (res_data[3]);
+	const uint32_t temperature_raw = (res_data[4] << 16) | (res_data[5] << 8) | (res_data[6]);
 
 	/* Continue processing if the transfer was a success and bit 5 of the status is set to 0 (indicating the sensor is finished) */
-	if (status == PX4_OK && (res_data[0] & 0x20) == 0) {
+	if (status == PX4_OK && (res_data[0] & 0x20) == 0 && !(pressure_raw == 0 && temperature_raw == 0)) {
 		const hrt_abstime timestamp_sample = hrt_absolute_time();
-
-		const uint32_t pressure_raw = (res_data[1] << 16) | (res_data[2] << 8) | (res_data[3]);
-		const uint32_t temperature_raw = (res_data[4] << 16) | (res_data[5] << 8) | (res_data[6]);
 
 		const float pressure_dig = correct_pressure(pressure_raw, temperature_raw);
 		const float pressure_p = process_pressure_dig(pressure_dig);
