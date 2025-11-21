@@ -25,13 +25,12 @@ CdusAllocatorDuct::CdusAllocatorDuct() :
 void CdusAllocatorDuct::init_effectiveness_matrix()
 {
 	//Experimentally derived effectiveness matrix
-	_B(0,0) = -0.175623f; _B(0,1) =  0.293600f; _B(0,2) =  0.769231f; _B(0,3) = -1.0f;
-	_B(1,0) =  0.175623f; _B(1,1) = -0.293600f; _B(1,2) =  0.769231f; _B(1,3) = -1.0f;
-	_B(2,0) =  0.175623f; _B(2,1) =  0.293600f; _B(2,2) = -0.769231f; _B(2,3) = -1.0f;
-	_B(3,0) = -0.175623f; _B(3,1) = -0.293600f; _B(3,2) = -0.769231f; _B(3,3) = -1.0f;
-
+	_B(0,0) =  0.00000f; _B(0,1) =  0.00000f; _B(0,2) = -0.00031f; _B(0,3) =  0.00135f;
+	_B(1,0) =  0.00000f; _B(1,1) =  0.00000f; _B(1,2) =  0.00055f; _B(1,3) =  0.00074f;
+	_B(2,0) =  0.00030f; _B(2,1) = -0.00030f; _B(2,2) =  0.00000f; _B(2,3) =  0.00000f;
+	_B(3,0) =  0.01037f; _B(3,1) =  0.00967f; _B(3,2) =  0.00000f; _B(3,3) =  0.00000f;
 	matrix::geninv(_B,_B_pinv);
-	normalize_allocation_matrix();
+	// normalize_allocation_matrix();
 
 }
 
@@ -123,43 +122,71 @@ void CdusAllocatorDuct::Run()
 	vehicle_thrust_setpoint_s thrust_sp{};
 	_thrust_sp_sub.copy(&thrust_sp);
 
-	manual_control_setpoint_s manual_control_input;
-	_manual_control_setpoint_sub.update(&manual_control_input);
+	if(_manual_control_setpoint_sub.updated()){
+		_manual_control_setpoint_sub.copy(&_manual_control_input);
+	}
+
+	// PX4_INFO("Manual cmds: %.3f %.3f %.3f %.3f",
+    //      (double)_manual_control_input.roll,
+    //      (double)_manual_control_input.pitch,
+    //      (double)_manual_control_input.yaw,
+    //      (double)_manual_control_input.throttle
+	// );
 
 
 	// Build desired vector
 	Vector<float, 4> desired{};
-	desired(0) = torque_sp.xyz[0];
+	desired(0) = -torque_sp.xyz[0];
 	desired(1) = torque_sp.xyz[1];
-	desired(2) = torque_sp.xyz[2];
-	desired(3) = thrust_sp.xyz[2];
+	desired(2) = -torque_sp.xyz[2];
+	desired(3) = -thrust_sp.xyz[2];
 
 	if(_manual_torque_test) {
-		desired(0) = 0.1f * manual_control_input.roll;
-		desired(1) = 0.1f * manual_control_input.pitch;
-		desired(2) = 0.1f * manual_control_input.yaw;
-		desired(3) = 0.1f * manual_control_input.throttle;
+		desired(0) = -0.1f * _manual_control_input.roll;
+		desired(1) = -0.1f * _manual_control_input.pitch;
+		desired(2) = -0.1f * _manual_control_input.yaw;
+		desired(3) = 0.5f * _manual_control_input.throttle;
 	}
+
+	// PX4_INFO("Torques: %.3f %.3f %.3f %.3f",
+    //      (double)desired(0),
+    //      (double)desired(1),
+	// 	 (double)desired(2),
+	// 	 (double)desired(3)
+	// );
 
 	// Generate delta PWM for each actuator and normalize
 	Vector4f d_PWM = _B_pinv * desired;
-	d_PWM(0) /= 800.f;
-	d_PWM(1) /= 800.f;
-	d_PWM(2) /= 200.f;
-	d_PWM(3) /= 200.f;
 
-	for (int i = 0; i < NUM_MOTORS; i++) {
-		float cmd = d_PWM(i);
-		if (!PX4_ISFINITE(cmd)) cmd = 0.f;
-		if (cmd < 0.f) cmd = 0.f;
-		if (cmd > 1.f) cmd = 1.f;
-		d_PWM(i) = cmd;
-	}
 
-	Vector4f actuator_trim(0.65, 0.65, 0.5, 0.5);
+
+	// for (int i = 0; i < NUM_MOTORS; i++) {
+	// 	float cmd = d_PWM(i);
+	// 	if (!PX4_ISFINITE(cmd)) cmd = 0.f;
+	// 	if (cmd < 0.f) cmd = 0.f;
+	// 	if (cmd > 1.f) cmd = 1.f;
+	// 	d_PWM(i) = cmd;
+	// }
+
+	Vector4f actuator_trim(1570.f, 1570.f, 1450.f, 1450.f);
 
 	// Solve using pseudo-inverse
 	Vector<float, NUM_MOTORS> u = actuator_trim + d_PWM;
+
+	const float s_max = 1650.f;
+	const float s_min = 1250.f;
+
+	const float m_max = 2000.f;
+	const float m_min = 1000.f;
+
+	// normalize
+	for(int i=0; i < 2; i++) {
+		u(i) = (u(i) - m_min) / (m_max - m_min);
+	}
+
+	for(int i=2; i < 4; i++) {
+		u(i) = (u(i) - s_min) / (s_max - s_min);
+	}
 
 	actuator_motors_s out{};
 	out.timestamp = hrt_absolute_time();
@@ -172,12 +199,11 @@ void CdusAllocatorDuct::Run()
 		out.control[i] = cmd;
 	}
 
-	// PX4_INFO("Motor cmds: %.3f %.3f %.3f %.3f %.3f",
+	// PX4_INFO("Motor cmds: %.3f %.3f %.3f %.3f",
     //      (double)out.control[0],
     //      (double)out.control[1],
     //      (double)out.control[2],
-    //      (double)out.control[3],
-	//  (double)_hover_thrust
+    //      (double)out.control[3]
 	// );
 
 
