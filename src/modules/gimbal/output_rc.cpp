@@ -71,10 +71,10 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 				(_angle_outputs[0] + math::radians(_parameters.mnt_off_roll)) *
 				(1.0f / (math::radians(_parameters.mnt_range_roll / 2.0f))),
 				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = constrain(
-				(_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch)) *
-				(1.0f / (math::radians(_parameters.mnt_range_pitch / 2.0f))),
-				-1.f, 1.f);
+	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = constrain(2.f *
+			(_angle_outputs[1] - math::radians(_parameters.mnt_min_pitch)) /
+			math::radians(_parameters.mnt_max_pitch - _parameters.mnt_min_pitch) - 1.f,
+			-1.f, 1.f);
 	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = constrain(
 				(_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw)) *
 				(1.0f / (math::radians(_parameters.mnt_range_yaw / 2.0f))),
