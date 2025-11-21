@@ -497,6 +497,16 @@ struct msp_rendor_distance_sensor_t {
 	char str[8]; // distance in meters (e.g., "12.34")
 } __attribute__((packed));
 
+struct msp_rendor_armtime_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x00; // no icon
+
+	char str[8]; // mm:ss format (e.g., "12:34")
+} __attribute__((packed));
+
 
 // values for msp_nav_status_t.mode
 #define MSP_NAV_STATUS_MODE_NONE   0
@@ -579,6 +589,15 @@ struct msp_uid_t {
 	uint32_t uid2;
 } __attribute__((packed));
 
+struct msp_rendor_formic_ring_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x00; // no icon
+
+	char str[4]; // V or X character
+} __attribute__((packed));
 
 // MSP_FEATURE mask
 #define MSP_FEATURE_RX_PPM              (1 <<  0)
@@ -811,6 +830,7 @@ struct msp_osd_config_t {
 	uint16_t osd_home_dir_pos;
 	uint16_t osd_home_dist_pos;
 	uint16_t osd_distance_sensor_pos;
+	uint16_t osd_arm_time_pos;
 	uint16_t osd_numerical_heading_pos;
 	uint16_t osd_numerical_vario_pos;
 	uint16_t osd_compass_bar_pos;

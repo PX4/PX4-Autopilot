@@ -4,6 +4,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/debug_flag.h>
 #include <uORB/topics/input_rc.h>
@@ -30,9 +31,10 @@ private:
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
+	uORB::Publication<debug_flag_s> _debug_flag_pub{ORB_ID(debug_flag)};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::FLF_RC_CH>) _param_flf_rc_ch
+		(ParamInt<px4::params::FORMIC_LGR_RC_CH>) _param_formic_logger_flag_rc_ch
 	)
 
 	int32_t _active_rc_channel{-1};

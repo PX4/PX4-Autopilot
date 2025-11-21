@@ -41,7 +41,11 @@
 
 #include "FlightTaskManualAltitude.hpp"
 #include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include "StickTiltXY.hpp"
+#include "auxReader.hpp"
+
 
 class TurtleMode : public FlightTaskManualAltitude
 {
@@ -55,6 +59,7 @@ protected:
 
 private:
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	void _publishMotorOutputs();
 };
 
 // Alias for template system - the generated code expects FlightTaskTurtle_mode
