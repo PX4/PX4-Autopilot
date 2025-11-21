@@ -721,9 +721,10 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 		return;
 	}
 
-	double latitude = msg.latitude_deg();
-	double longitude = msg.longitude_deg();
-	double altitude = msg.altitude();
+	double latitude;
+	double longitude;
+	_pos_ref.reproject(_position_prev(0), _position_prev(1), latitude, longitude);
+	double altitude = _alt_ref + (-_position_prev(2));
 	float vel_north = msg.velocity_north();
 	float vel_east = msg.velocity_east();
 	float vel_down = -msg.velocity_up();
