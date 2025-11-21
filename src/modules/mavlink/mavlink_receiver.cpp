@@ -444,7 +444,6 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 	switch (command) {
 
 	case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
-	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
 		/* broadcast and ignore component */
 		target_ok = (target_system == 0) || (target_system == mavlink_system.sysid);
 		break;
@@ -568,9 +567,6 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	// the generic MAV_CMD_REQUEST_MESSAGE.
 	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
 		result = handle_request_message_command(MAVLINK_MSG_ID_AUTOPILOT_VERSION);
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_PROTOCOL_VERSION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_PROTOCOL_VERSION);
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
 		result = handle_request_message_command(MAVLINK_MSG_ID_HOME_POSITION);
