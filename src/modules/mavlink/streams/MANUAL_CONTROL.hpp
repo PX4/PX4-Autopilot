@@ -83,7 +83,7 @@ private:
 				msg.buttons |= (manual_control_switches.return_switch << (shift * 1));
 				msg.buttons |= (manual_control_switches.loiter_switch << (shift * 3));
 				msg.buttons |= (manual_control_switches.offboard_switch << (shift * 5));
-				msg.buttons |= (manual_control_switches.kill_switch << (shift * 6));
+				msg.buttons |= (manual_control_switches.emergency_stop_switch << (shift * 6));
 			}
 
 			if (PX4_ISFINITE(manual_control_setpoint.aux1)) {

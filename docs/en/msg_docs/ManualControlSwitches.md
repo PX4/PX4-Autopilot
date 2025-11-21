@@ -27,7 +27,7 @@ uint8 arm_switch                 # arm/disarm switch: _DISARMED_, ARMED
 uint8 return_switch              # return to launch 2 position switch (mandatory): _NORMAL_, RTL
 uint8 loiter_switch              # loiter 2 position switch (optional): _MISSION_, LOITER
 uint8 offboard_switch            # offboard 2 position switch (optional): _NORMAL_, OFFBOARD
-uint8 kill_switch                # throttle kill: _NORMAL_, KILL
+uint8 emergency_stop_switch                # throttle kill: _NORMAL_, KILL
 uint8 termination_switch         # trigger termination which cannot be undone
 uint8 gear_switch                # landing gear switch: _DOWN_, UP
 uint8 transition_switch          # VTOL transition switch: _HOVER, FORWARD_FLIGHT

@@ -526,7 +526,7 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 	static_assert(
 		(uint8_t)arm_disarm_reason_t::preflight_inaction == vehicle_status_s::ARM_DISARM_REASON_PREFLIGHT_INACTION,
 		"(dis)arm enum mismatch");
-	static_assert((uint8_t)arm_disarm_reason_t::kill_switch == vehicle_status_s::ARM_DISARM_REASON_KILL_SWITCH,
+	static_assert((uint8_t)arm_disarm_reason_t::emergency_stop_switch == vehicle_status_s::ARM_DISARM_REASON_emergency_stop_switch,
 		      "(dis)arm enum mismatch");
 	static_assert((uint8_t)arm_disarm_reason_t::rc_button == vehicle_status_s::ARM_DISARM_REASON_RC_BUTTON,
 		      "(dis)arm enum mismatch");
@@ -548,7 +548,7 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 
 	case arm_disarm_reason_t::preflight_inaction: return "auto preflight disarming";
 
-	case arm_disarm_reason_t::kill_switch: return "kill-switch";
+	case arm_disarm_reason_t::emergency_stop_switch: return "emergency-stop";
 
 	case arm_disarm_reason_t::rc_button: return "RC button";
 
@@ -1696,30 +1696,30 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 		break;
 
-	case action_request_s::ACTION_UNKILL:
+	case action_request_s::ACTION_REVERT_EMERGENGY_STOP:
 		if (_actuator_armed.kill) {
-			mavlink_log_info(&_mavlink_log_pub, "Kill disengaged\t");
-			events::send(events::ID("commander_kill_sw_disengaged"), events::Log::Info, "Kill disengaged");
+			mavlink_log_info(&_mavlink_log_pub, "Emergency Stop Disengaged\t");
+			events::send(events::ID("commander_emergency_stop_disengaged"), events::Log::Info, "Emergency Stop Disengaged");
 			_status_changed = true;
 			_actuator_armed.kill = false;
 		}
 
 		break;
 
-	case action_request_s::ACTION_KILL:
+	case action_request_s::ACTION_EMERGENGY_STOP:
 		if (!_actuator_armed.kill) {
-			const char kill_switch_string[] = "Kill engaged\t";
+			const char emergency_stop_switch_string[] = "Emergency Stop Engaged\t";
 			events::LogLevels log_levels{events::Log::Info};
 
 			if (_vehicle_land_detected.landed) {
-				mavlink_log_info(&_mavlink_log_pub, kill_switch_string);
+				mavlink_log_info(&_mavlink_log_pub, emergency_stop_switch_string);
 
 			} else {
-				mavlink_log_critical(&_mavlink_log_pub, kill_switch_string);
+				mavlink_log_critical(&_mavlink_log_pub, emergency_stop_switch_string);
 				log_levels.external = events::Log::Critical;
 			}
 
-			events::send(events::ID("commander_kill_sw_engaged"), log_levels, "Kill engaged");
+			events::send(events::ID("commander_emergency_stop_engaged"), log_levels, "Emergency Stop Engaged");
 
 			_status_changed = true;
 			_actuator_armed.kill = true;
@@ -1931,7 +1931,7 @@ void Commander::run()
 		_actuator_armed.prearmed = getPrearmState();
 		_actuator_armed.ready_to_arm = _vehicle_status.pre_flight_checks_pass || isArmed();
 		_actuator_armed.lockdown = _multicopter_throw_launch.isThrowLaunchInProgress();
-		// _actuator_armed.kill // action_request_s::ACTION_KILL
+		// _actuator_armed.kill // action_request_s::ACTION_EMERGENGY_STOP
 		_actuator_armed.termination = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
 		// _actuator_armed.in_esc_calibration_mode // VEHICLE_CMD_PREFLIGHT_CALIBRATION
 
@@ -2309,7 +2309,7 @@ void Commander::handleAutoDisarm()
 		_auto_disarm_killed.set_state_and_update(_actuator_armed.kill, hrt_absolute_time());
 
 		if (_auto_disarm_killed.get_state()) {
-			disarm(arm_disarm_reason_t::kill_switch, true);
+			disarm(arm_disarm_reason_t::emergency_stop_switch, true);
 		}
 
 	} else {
