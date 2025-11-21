@@ -169,8 +169,34 @@ bool SerialImpl::configure()
 	//
 	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
-	/* no parity, one stop bit, disable flow control */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+	// Control modes
+	uart_config.c_cflag = 0;
+
+	switch (_bytesize) {
+	case ByteSize::FiveBits:  uart_config.c_cflag |= CS5; break;
+
+	case ByteSize::SixBits:   uart_config.c_cflag |= CS6; break;
+
+	case ByteSize::SevenBits: uart_config.c_cflag |= CS7; break;
+
+	case ByteSize::EightBits: uart_config.c_cflag |= CS8; break;
+	}
+
+	if (_flowcontrol == FlowControl::Enabled) {
+		uart_config.c_cflag |= CRTSCTS;
+	}
+
+	if (_parity != Parity::None) {
+		uart_config.c_cflag |= PARENB;
+	}
+
+	if (_parity == Parity::Odd) {
+		uart_config.c_cflag |= PARODD;
+	}
+
+	if (_stopbits == StopBits::Two) {
+		uart_config.c_cflag |= CSTOPB;
+	}
 
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
@@ -445,7 +471,6 @@ uint32_t SerialImpl::getBaudrate() const
 
 bool SerialImpl::setBaudrate(uint32_t baudrate)
 {
-	// check if already configured
 	if ((baudrate == _baudrate) && _open) {
 		return true;
 	}
@@ -467,7 +492,17 @@ ByteSize SerialImpl::getBytesize() const
 
 bool SerialImpl::setBytesize(ByteSize bytesize)
 {
-	return bytesize == ByteSize::EightBits;
+	if ((bytesize == _bytesize) && _open) {
+		return true;
+	}
+
+	_bytesize = bytesize;
+
+	if (_open) {
+		return configure();
+	}
+
+	return true;
 }
 
 Parity SerialImpl::getParity() const
@@ -477,7 +512,17 @@ Parity SerialImpl::getParity() const
 
 bool SerialImpl::setParity(Parity parity)
 {
-	return parity == Parity::None;
+	if ((parity == _parity) && _open) {
+		return true;
+	}
+
+	_parity = parity;
+
+	if (_open) {
+		return configure();
+	}
+
+	return true;
 }
 
 StopBits SerialImpl::getStopbits() const
@@ -487,7 +532,17 @@ StopBits SerialImpl::getStopbits() const
 
 bool SerialImpl::setStopbits(StopBits stopbits)
 {
-	return stopbits == StopBits::One;
+	if ((stopbits == _stopbits) && _open) {
+		return true;
+	}
+
+	_stopbits = stopbits;
+
+	if (_open) {
+		return configure();
+	}
+
+	return true;
 }
 
 FlowControl SerialImpl::getFlowcontrol() const
@@ -497,7 +552,17 @@ FlowControl SerialImpl::getFlowcontrol() const
 
 bool SerialImpl::setFlowcontrol(FlowControl flowcontrol)
 {
-	return flowcontrol == FlowControl::Disabled;
+	if ((flowcontrol == _flowcontrol) && _open) {
+		return true;
+	}
+
+	_flowcontrol = flowcontrol;
+
+	if (_open) {
+		return configure();
+	}
+
+	return true;
 }
 
 bool SerialImpl::getSingleWireMode() const
