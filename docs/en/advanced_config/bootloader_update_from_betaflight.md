@@ -85,7 +85,7 @@ Flight controllers that have bootloader PX4-Autopilot `make` targets, can build 
 The list of controllers for which this applies can be obtained by running the following `make` command, and noting the `make` targets that end in `_bootloader`
 
 ```
-$make list_config_targets
+$ make list_config_targets
 
 ...
 cuav_nora_bootloader

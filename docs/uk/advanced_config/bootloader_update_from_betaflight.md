@@ -89,7 +89,7 @@ dfu-util -a 0 --dfuse-address 0x08000000 -D  build/<target>/<target>.bin
 Список контролерів, яких це стосується, можна отримати, виконавши наступну команду `make` і зазначивши цілі `make`, які закінчуються на `_bootloader`
 
 ```
-$make list_config_targets
+$ make list_config_targets
 
 ...
 cuav_nora_bootloader
