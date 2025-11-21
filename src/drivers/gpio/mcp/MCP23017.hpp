@@ -30,10 +30,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 #pragma once
 #include "MCP.hpp"
-
 #include <stdint.h>
 #include <drivers/device/i2c.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -46,7 +44,6 @@
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 
-
 using namespace time_literals;
 
 
@@ -56,12 +53,7 @@ public:
 	MCP23017(const I2CSPIDriverConfig &config);
 	~MCP23017() override;
 
-	int init();
-	int init(uint16_t direction, uint16_t state, uint16_t pull_up);
-	int probe() override;
-
 private:
-
 	enum class
 	Register : uint8_t {
 		IODIRA   = 0x00,
@@ -88,24 +80,10 @@ private:
 		OLATB    = 0x15
 	};
 
-
-
-
-	uint8_t _olatA;
-	uint8_t _olatB;
-	uint8_t _iodirA;
-	uint8_t _iodirB;
-	uint8_t _gppuA;
-	uint8_t _gppuB;
-
-	//int read(uint16_t *mask) const override;
-	int read(uint16_t *mask) override;
-	//int write(uint16_t mask_set, uint16_t mask_clear) const override;
-	int write(uint16_t mask_set, uint16_t mask_clear) override;
-
-
-
-	int configure(uint16_t mask, PinType type) override;
-	int read_reg(Register address, uint8_t &data);
-	int write_reg(Register address, uint8_t data);
+	void set_params() override;
+	int get_olat(int bank, uint8_t *addr) override;
+	int get_gppu(int bank, uint8_t *addr) override;
+	int get_iodir(int bank, uint8_t *addr) override;
+	int get_gpio(int bank, uint8_t *addr) override;
+	int get_probe_reg(uint8_t *addr) override;
 };

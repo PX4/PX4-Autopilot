@@ -30,31 +30,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-
 #include "MCP.hpp"
 #include "MCP23009.hpp"
 #include "MCP23017.hpp"
 #include <px4_platform_common/module.h>
 
-
-
-
-
-
 MCP::MCP(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
-
-
 }
 
 MCP::~MCP()
 {
 	ScheduleClear();
 	perf_free(_cycle_perf);
+	perf_free(_comms_errors);
 }
 
 int MCP::init_uorb()
@@ -74,65 +67,315 @@ void MCP::exit_and_cleanup()
 	_gpio_config_sub.unregisterCallback();
 	_gpio_request_sub.unregisterCallback();
 	_gpio_out_sub.unregisterCallback();
+
+	mcp_unregister_gpios(mcp_config.first_minor, mcp_config.num_pins, mcp_config._gpio_handle);
+}
+
+int MCP::read(uint16_t *mask){
+	*mask = 0;
+	int ret = PX4_OK;
+
+	for(int i=0; i<mcp_config.num_banks; i++){
+		uint8_t gpio_addr;
+		uint8_t data;
+
+		ret |= get_gpio(i, &gpio_addr);
+		ret |= read_reg(gpio_addr, data);
+
+		*mask |=  (((uint16_t)data & 0x00FF) << (8*i));
+	}
+
+	if(ret != PX4_OK){
+		perf_count(_comms_errors);
+	}
+
+	return ret;
+}
+
+int MCP::write(uint16_t mask_set, uint16_t mask_clear){
+
+	int ret = PX4_OK;
+	_olat = (_olat & ~mask_clear) | mask_set;
+
+	for(int i=0; i<mcp_config.num_banks; i++){
+		uint8_t reg_addr;
+		uint8_t data;
+		uint8_t curr_olat = (uint8_t)( (_olat >> (8*i)) & 0x00FF );
+
+		ret = get_olat(i, &reg_addr);
+
+		if(ret != PX4_OK){
+			return ret;
+		}
+
+		ret |= write_reg(reg_addr, curr_olat);
+		ret |= read_reg(reg_addr, data);
+
+		if(ret != PX4_OK || data != curr_olat){
+			perf_count(_comms_errors);
+			return PX4_ERROR;
+		}
+	}
+
+	return ret;
+}
+
+int MCP::read_reg(uint8_t address, uint8_t &data)
+{
+	return transfer(&address, 1, &data, 1);
+}
+
+
+int MCP::write_reg(uint8_t address, uint8_t value)
+{
+	uint8_t data[2] = {address, value};
+	return transfer(data, 2, nullptr, 0);
+}
+
+
+int MCP::configure(uint16_t mask, PinType type)
+{
+	switch (type) {
+	case PinType::Input:
+		_iodir |= mask;
+		_gppu &= ~mask;
+		break;
+
+	case PinType::InputPullUp:
+		_iodir |= mask;
+		_gppu |= mask;
+		break;
+
+	case PinType::Output:
+		_iodir &= ~mask;
+		break;
+
+	default:
+		return -EINVAL;
+	}
+
+	int ret = PX4_OK;
+
+	for(int i=0; i<mcp_config.num_banks; i++){
+		uint8_t curr_iodir = (uint8_t)( (_iodir >> (8*i)) & 0x00FF );
+		uint8_t curr_gppu = (uint8_t)( (_gppu >> (8*i)) & 0x00FF );
+		uint8_t iodir_addr;
+		uint8_t gppu_addr;
+
+		ret = get_iodir(i, &iodir_addr);
+		ret |= get_gppu(i, &gppu_addr);
+
+		if(ret != PX4_OK){
+			perf_count(_comms_errors);
+			return ret;
+		}
+
+		ret = write_reg(iodir_addr, curr_iodir);
+		ret |= write_reg(gppu_addr, curr_gppu);
+
+		if(ret != PX4_OK){
+			PX4_ERR("MCP configure failed \n");
+			perf_count(_comms_errors);
+			return ret;
+		}
+	}
+
+	return PX4_OK;
+}
+
+int MCP::init( ){
+
+	int ret = I2C::init();
+
+	if (ret != PX4_OK) {
+		PX4_ERR("I2C init failed");
+		return ret;
+	}
+
+	ScheduleNow();
+	return PX4_OK;
+}
+
+int MCP::init_communication(){
+	int ret = mcp_register_gpios(mcp_config.bus, mcp_config.i2c_addr, mcp_config.first_minor, _iodir, mcp_config.num_pins, mcp_config.device_type, mcp_config._gpio_handle);
+	ret |= init_uorb();
+	return ret;
+}
+
+int MCP::set_up(){
+	int ret = PX4_OK;
+	uint8_t iodir_addr;
+	uint8_t olat_addr;
+	uint8_t gppu_addr;
+
+	for(int i=0; i<mcp_config.num_banks; i++){
+		uint8_t curr_iodir = (uint8_t)( (_iodir >> (8*i)) & 0x00FF );
+		uint8_t curr_olat = (uint8_t)( (_olat >> (8*i)) & 0x00FF );
+		uint8_t curr_gppu = (uint8_t)( (_gppu >> (8*i)) & 0x00FF );
+
+		ret |= get_olat(i, &olat_addr);
+		ret |= get_iodir(i, &iodir_addr);
+		ret |= get_gppu(i, &gppu_addr);
+
+		if(ret != PX4_OK){
+			return ret;
+		}
+
+		ret |= write_reg(iodir_addr, curr_iodir);
+		ret |= write_reg(olat_addr, curr_olat);
+		ret |= write_reg(gppu_addr, curr_gppu);
+
+		if(ret != PX4_OK){
+			perf_count(_comms_errors);
+			return ret;
+		}
+	}
+	return ret;
+}
+
+int MCP::sanity_check(){
+	int ret = PX4_OK;
+
+	for(int i=0; i<mcp_config.num_banks; i++){
+		uint8_t curr_iodir = (uint8_t)( (_iodir >> (8*i)) & 0x00FF );
+		uint8_t curr_olat = (uint8_t)( (_olat >> (8*i)) & 0x00FF );
+		uint8_t curr_gppu = (uint8_t)( (_gppu >> (8*i)) & 0x00FF );
+
+		uint8_t iodir_addr;
+		uint8_t olat_addr;
+		uint8_t gppu_addr;
+
+		uint8_t read_iodir;
+		uint8_t read_olat;
+		uint8_t read_gppu;
+
+		ret |= get_olat(i, &olat_addr);
+		ret |= get_iodir(i, &iodir_addr);
+		ret |= get_gppu(i, &gppu_addr);
+
+		ret |= read_reg(iodir_addr, read_iodir);
+		ret |= read_reg(olat_addr, read_olat);
+		ret |= read_reg(gppu_addr, read_gppu);
+
+		if(read_iodir != curr_iodir || read_olat != curr_olat || read_gppu != curr_gppu){
+			PX4_ERR("Sanity check failed on bank %d.", i);
+			perf_count(_comms_errors);
+			return PX4_ERROR;
+		}
+	}
+	return ret;
+}
+
+int MCP::probe()
+{
+	// no whoami, try to read IOCONA
+	uint8_t data;
+	uint8_t addr;
+	int ret = get_probe_reg(&addr);
+	if(ret == PX4_OK){
+		return read_reg(addr, data);
+	}
+
+	return PX4_ERROR;
 }
 
 void MCP::RunImpl()
 {
-	perf_begin(_cycle_perf);
+	if (should_exit()) {
+		exit_and_cleanup();
+		return;
+	}
 
-	gpio_config_s config;
+	static int count = 0;
+	int ret = PX4_OK;
 
-	//printf("my: %ld, given: %ld \n", config.device_id, get_device_id());
-
-	if (_gpio_config_sub.update(&config) && config.device_id == get_device_id()) {
-		printf("CONFIG UPDATE \n");
-		PinType type = PinType::Input;
-
-		switch (config.config) {
-		case config.INPUT_PULLUP:	type = PinType::InputPullUp; break;
-
-		case config.OUTPUT:		type = PinType::Output; break;
+	switch (curr_state) {
+	case STATE::INIT_COMMUNICATION:
+		set_params();
+		ret = init_communication();
+		if(ret == PX4_OK){
+			curr_state = STATE::CONFIGURE;
+			ScheduleNow();
+		}else{
+			PX4_ERR("MCP: INIT_COMMUNICATION (pin registration & uORB) failed, retrying...");
+			ScheduleDelayed(100000); // 100ms
 		}
 
-		write(config.state, config.mask);
-		printf("12321: MCP configure should be called \n");
-		configure(config.mask, type);
+		break;
+	case STATE::CONFIGURE:
+		ScheduleClear();
+		ret = set_up();
+		if(ret == PX4_OK){
+			curr_state = STATE::CHECK;
+		}
+		ScheduleNow();
+		break;
 
+	case STATE::CHECK:
+		ScheduleClear();
+		ret = sanity_check();
+
+		if(ret == PX4_OK){
+			curr_state = STATE::RUNNING;
+			ScheduleOnInterval(mcp_config.interval * 1000);
+		}else{
+			PX4_ERR("MCP: Sanity check failed, reconfiguring...");
+			curr_state = STATE::CONFIGURE;
+			ScheduleNow();
+		}
+		break;
+
+	case STATE::RUNNING:
+		perf_begin(_cycle_perf);
+		gpio_config_s config;
+
+		if (_gpio_config_sub.update(&config) && config.device_id == get_device_id()) {
+
+			PinType type = PinType::Input;
+
+			switch (config.config) {
+			case config.INPUT_PULLUP:	type = PinType::InputPullUp; break;
+
+			case config.OUTPUT:		type = PinType::Output; break;
+			}
+
+			ret |= write(config.state, config.mask);
+			ret |= configure(config.mask, type);
+		}
+
+		gpio_out_s output;
+
+		if (_gpio_out_sub.update(&output) && output.device_id == get_device_id()) {
+			ret |= write(output.state, output.mask);
+		}
+
+		{
+			gpio_in_s _gpio_in;
+			_gpio_in.timestamp = hrt_absolute_time();
+			_gpio_in.device_id = get_device_id();
+			uint16_t input = 0;
+			if(read(&input) == PX4_OK){
+				_gpio_in.state = input;
+				_to_gpio_in.publish(_gpio_in);
+			}
+		}
+
+		perf_end(_cycle_perf);
+
+		if(count < checking_freq && ret == PX4_OK){
+			count++;
+		}else{
+			curr_state = STATE::CHECK;
+			count = 0;
+			ScheduleNow();
+		}
+		break;
 	}
-
-	gpio_out_s output;
-
-	if (_gpio_out_sub.update(&output) && output.device_id == get_device_id()) {
-		printf("OUTPUT UPDATE \n");
-		write(output.state, output.mask);
-	}
-
-	{
-		gpio_in_s _gpio_in;
-		_gpio_in.timestamp = hrt_absolute_time();
-		_gpio_in.device_id = get_device_id();
-		uint16_t input;
-		read(&input);
-		_gpio_in.state = input;
-		_to_gpio_in.publish(_gpio_in);
-	}
-
-	perf_end(_cycle_perf);
 }
 
 void MCP::print_status()
 {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_cycle_perf);
+	perf_print_counter(_comms_errors);
 }
-
-
-struct init_config_t {
-	uint16_t interval;
-	uint16_t direction;
-	uint16_t state;
-	uint16_t pullup;
-	uint16_t int_en;
-	uint16_t ref_vals;
-	bool split_int;
-};

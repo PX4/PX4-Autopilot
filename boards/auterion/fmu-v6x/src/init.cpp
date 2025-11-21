@@ -284,14 +284,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #  endif /* CONFIG_MMCSD */
 
-	ret = mcp23009_register_gpios(3, 0x25, 0, 0x0000);
-	ret |= mcp23017_register_gpios(2, 0x27, 8, 0x0000);
-
-	if (ret != OK) {
-		led_on(LED_RED);
-		return ret;
-	}
-
 #endif /* !defined(BOOTLOADER) */
 
 	return OK;

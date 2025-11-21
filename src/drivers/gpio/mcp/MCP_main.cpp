@@ -30,13 +30,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 #include "MCP.hpp"
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
 #include "MCP23009.hpp"
 #include "MCP23017.hpp"
-
+#include <px4_platform/gpio/mcp23017.hpp>
 
 void MCP::print_usage()
 {
@@ -47,21 +46,24 @@ void MCP::print_usage()
 	PRINT_MODULE_USAGE_PARAM_INT('D', 0, 0, 65535, "Direction (1=Input, 0=Output)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('O', 0, 0, 65535, "Output", true);
 	PRINT_MODULE_USAGE_PARAM_INT('P', 0, 0, 65535, "Pullups", true);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 65535, "Interrupt pins enable", true);
 	PRINT_MODULE_USAGE_PARAM_INT('U', 0, 0, 1000, "Update Interval [ms]", true);
+	PRINT_MODULE_USAGE_PARAM_INT('M', 0, 0, 255, "First minor number", true);
+	PRINT_MODULE_USAGE_PARAM_INT('Q', 0, 0, 255, "I2C Bus", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('A', "Use MCP23009", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('B', "Use MCP23017", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
 struct init_config_t {
-	uint16_t interval;
-	uint16_t direction;
-	uint16_t state;
-	uint16_t pullup;
-	uint16_t int_en;
-	uint16_t ref_vals;
-	bool split_int;
+	uint16_t device_type;
+
+	uint16_t direction = 0xFFFF; // READ ON ALL PINS
+	uint16_t state = 0x0000;
+	uint16_t pullup = 0x0000;
+	uint16_t interval = 1;
+	int first_minor = 0;
+	uint8_t i2c_addr = 0;
+	uint8_t i2c_bus = 0;
 };
 
 I2CSPIDriverBase *MCP::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
@@ -70,13 +72,18 @@ I2CSPIDriverBase *MCP::instantiate(const I2CSPIDriverConfig &config, int runtime
 	auto *init = (const init_config_t *)config.custom_data;
 	MCP *instance = nullptr;
 
-	if(config.devid_driver_index == DRV_GPIO_DEVTYPE_MCP23009){
-
+	switch (config.devid_driver_index) {
+	case DRV_GPIO_DEVTYPE_MCP23009:
 		instance = new MCP23009(config);
+		break;
 
-	} else if (config.devid_driver_index == DRV_GPIO_DEVTYPE_MCP23017){
-
+	case DRV_GPIO_DEVTYPE_MCP23017:
 		instance = new MCP23017(config);
+		break;
+
+	default:
+		instance = nullptr;
+		break;
 	}
 
 	if (!instance) {
@@ -84,48 +91,47 @@ I2CSPIDriverBase *MCP::instantiate(const I2CSPIDriverConfig &config, int runtime
 		return nullptr;
 	}
 
-	if (OK != instance->init(init->direction, init->state, init->pullup)) {
+	if (OK != instance->init()) {
 		delete instance;
 		return nullptr;
 	}
 
-	if (init->interval) {
-		instance->ScheduleOnInterval(init->interval * 1000);
-	}
+	instance->_iodir = init->direction;
+	instance->_olat = init->state;
+	instance->_gppu = init->pullup;
 
-	instance->init_uorb();
+	instance->mcp_config.bus = init->i2c_bus;
+	instance->mcp_config.i2c_addr = init->i2c_addr;
+	instance->mcp_config.device_type = init->device_type;
+	instance->mcp_config.first_minor = init->first_minor;
+	instance->mcp_config.interval = init->interval;
 
 	return instance;
 }
 
 
+
 extern "C" int mcp_main(int argc, char *argv[])
 {
-	printf("MCP_main: main called \n");
+
 	using ThisDriver = MCP;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = I2C_ADDRESS_MCP23009;
 	init_config_t config_data{};
 
-	config_data.split_int = false;
-	config_data.ref_vals = 0x0000;
-
 	int ch;
 	uint16_t device_type = 0;
 	const char *name = MODULE_NAME;
 
-	printf("name: %s \n", name);
-
-
-
-	while ((ch = cli.getOpt(argc, argv, "ABD:O:P:U:R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "ABD:O:P:U:R:M:Q:")) != EOF) {
 		switch (ch) {
 		case 'A':
 			printf("you chose to use MCP23009 \n");
 			device_type = DRV_GPIO_DEVTYPE_MCP23009;
 			name = MODULE_NAME "23009";
 			cli.i2c_address = I2C_ADDRESS_MCP23009;
+			config_data.i2c_addr = I2C_ADDRESS_MCP23009;
 			break;
 
 		case 'B':
@@ -133,6 +139,7 @@ extern "C" int mcp_main(int argc, char *argv[])
 			device_type = DRV_GPIO_DEVTYPE_MCP23017;
 			name = MODULE_NAME "23017";
 			cli.i2c_address = I2C_ADDRESS_MCP23017;
+			config_data.i2c_addr = I2C_ADDRESS_MCP23017;
 			break;
 		case 'D':
 			config_data.direction = (int)strtol(cli.optArg(), nullptr, 0);
@@ -150,20 +157,25 @@ extern "C" int mcp_main(int argc, char *argv[])
 			config_data.interval = atoi(cli.optArg());
 			break;
 
-		case 'R':
-			config_data.int_en = (int)strtol(cli.optArg(), nullptr, 0);
+		case 'M':
+			config_data.first_minor = (uint8_t)atoi(cli.optArg());
 			break;
+
+		case 'Q':
+			int tmp_bus = (int)atoi(cli.optArg());
+			cli.requested_bus = tmp_bus;
+			config_data.i2c_bus = (uint8_t) tmp_bus;
+			break;
+
 		}
 	}
 
 	const char *verb = cli.optArg();
 
-	if (!verb || device_type == 0) {
+	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
 	}
-
-	printf("12321: Name: %s, device_type: %d \n", name, device_type);
 
 	cli.custom_data = &config_data;
 	BusInstanceIterator iterator(name, cli, device_type);

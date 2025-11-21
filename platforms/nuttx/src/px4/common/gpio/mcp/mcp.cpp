@@ -34,6 +34,7 @@
 #include <nuttx/ioexpander/gpio.h>
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
+#include <px4_platform/gpio/mcp.hpp>
 #include <uORB/topics/gpio_config.h>
 #include <uORB/topics/gpio_in.h>
 #include <uORB/topics/gpio_out.h>
@@ -42,10 +43,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 
 static uint32_t DEVID{0};
-struct mcp_gpio_dev_s {
-	struct gpio_dev_s gpio;
-	uint16_t mask;
-};
 
 /* Copy the read input data */
 class ReadCallback : public uORB::SubscriptionCallback
@@ -125,13 +122,10 @@ static const struct gpio_operations_s mcp_gpio_ops {
 	mcp_setpintype,
 };
 
-static constexpr uint8_t NUM_GPIOS = 16;
-static mcp_gpio_dev_s _gpio[NUM_GPIOS];
-
 // ----------------------------------------------------------------------------
-int mcp_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask)
+int mcp_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask, int num_pins, uint8_t device_type, mcp_gpio_dev_s *_gpio)
 {
-	for (int i = 0; i < NUM_GPIOS; i++) {
+	for (int i = 0; i < num_pins; i++) {
 		uint16_t mask = 1u << i;
 
 		if (dir_mask & mask) {
@@ -143,12 +137,10 @@ int mcp_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint1
 	}
 
 	const auto device_id = device::Device::DeviceId{
-		//device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, DRV_GPIO_DEVTYPE_MCP23017};
-		device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, DRV_GPIO_DEVTYPE_MCP23009};
-		//device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, DRV_GPIO_DEVTYPE_MCP};
+		device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, device_type};
 	DEVID = device_id.devid;
 
-	for (int i = 0; i < NUM_GPIOS; ++i) {
+	for (int i = 0; i < num_pins; ++i) {
 		int ret = gpio_pin_register(&_gpio[i].gpio, first_minor + i);
 
 		if (ret != OK) {
@@ -160,9 +152,9 @@ int mcp_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint1
 	return OK;
 }
 
-int mcp_unregister_gpios(int first_minor)
+int mcp_unregister_gpios(int first_minor, int num_pins, mcp_gpio_dev_s *_gpio)
 {
-	for (int i = 0; i < NUM_GPIOS; ++i) {
+	for (int i = 0; i < num_pins; ++i) {
 		mcp_setpintype(&_gpio[i].gpio, GPIO_INPUT_PIN);
 		gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
 	}

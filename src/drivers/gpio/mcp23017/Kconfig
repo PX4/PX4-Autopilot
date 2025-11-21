@@ -1,5 +1,0 @@
-menuconfig DRIVERS_GPIO_MCP23017
-	bool "mcp23017"
-	default n
-	---help---
-		Enable support for mcp23017

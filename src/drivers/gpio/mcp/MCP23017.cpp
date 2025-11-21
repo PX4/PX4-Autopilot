@@ -30,191 +30,89 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 #include "MCP23017.hpp"
-
 #include <drivers/device/i2c.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
-
 MCP23017::MCP23017(const I2CSPIDriverConfig &config) :
-	//I2C(config),
-	//I2CSPIDriver(config),
 	MCP(config)
-	//_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample"))
 {
-
-
 }
 
 MCP23017::~MCP23017()
 {
 	ScheduleClear();
-	//perf_free(_cycle_perf);
 }
 
-
-int MCP23017::read_reg(Register address, uint8_t &data)
+void MCP23017::set_params()
 {
-	int ret = transfer((uint8_t *)&address, 1, &data, 1);
-	return ret;
+	mcp_config.num_pins = 16;
+	mcp_config. num_banks = 2;
+	mcp_config.device_type = DRV_GPIO_DEVTYPE_MCP23017;
+	mcp_config.i2c_addr = I2C_ADDRESS_MCP23017;
+	return;
 }
 
-int MCP23017::write_reg(Register address, uint8_t value)
+int MCP23017::get_olat(int bank, uint8_t *addr)
 {
-	uint8_t data[2] = {(uint8_t)address, value};
-	return transfer(data, 2, nullptr, 0);
-}
-
-
-
-int MCP23017::init()
-{
-	printf("MCP23017.cpp: init_dummy called \n");
-    // Provide default values for direction, state, pull_up
-    uint16_t default_direction = 0xFFFF; // all pins input by default
-    uint16_t default_state = 0x0000;     // all outputs low
-    uint16_t default_pull_up = 0x0000;   // no pull-ups
-
-    return init(default_direction, default_state, default_pull_up);
-}
-
-int MCP23017::init(uint16_t direction, uint16_t state, uint16_t pull_up)
-{
-	printf("MCP23017.cpp: init called \n");
-	int ret = I2C::init();
-
-	if (ret != PX4_OK) {
-		PX4_ERR("I2C init failed");
-		return ret;
+	switch (bank) {
+		case 0:
+			*addr = (uint8_t) Register::OLATA;
+			return PX4_OK;
+		case 1:
+			*addr = (uint8_t) Register::OLATB;
+			return PX4_OK;
+		default:
+			return PX4_ERROR;
 	}
+}
 
-	// buffer the new initial states
-	_iodirA = (uint8_t)(direction & 0x00FF);
-	_olatA = (uint8_t)(state & 0x00FF);
-	_gppuA = (uint8_t)(pull_up & 0x00FF);
-
-	_iodirB = (uint8_t)(direction >> 8);
-	_olatB = (uint8_t)(state >> 8);
-	_gppuB = (uint8_t)(pull_up >> 8);
-
-	// Write the initial state to the device
-	ret = write_reg(Register::OLATA, _olatA);
-	ret |= write_reg(Register::OLATB, _olatB);
-
-	//Set pins as input/output
-	ret |= write_reg(Register::IODIRA, _iodirA);
-	ret |= write_reg(Register::IODIRB, _iodirB);
-
-	//Set pins as pullup/pulldown
-	ret |= write_reg(Register::GPPUA, _gppuA);
-	ret |= write_reg(Register::GPPUB, _gppuB);
-
-	//Enable interrupts
-	//ret |= write_reg(Register::GPINTENA, (uint8_t)(int_en & 0x00FF));
-	//ret |= write_reg(Register::GPINTENB, (uint8_t)(int_en >> 8));
-
-	//Set reference values
-	//ret |= write_reg(Register::DEFVALA, (uint8_t)(ref_vals & 0x00FF));
-	//ret |= write_reg(Register::DEFVALB, (uint8_t)(ref_vals >> 8));
-
-	//Set interrupt type
-	//ret |= write_reg(Register::INTCONA, 0xFF);
-	//ret |= write_reg(Register::INTCONB, 0xFF);
-
-	//if (!split_int) {
-	//	ret |= write_reg(Register::IOCONA, 0x40);
-	//}
-
-	if (ret != PX4_OK) {
-		PX4_ERR("Device init failed (%i)", ret);
-		return ret;
+int MCP23017::get_gppu(int bank, uint8_t *addr)
+{
+	switch (bank) {
+		case 0:
+			*addr = (uint8_t) Register::GPPUA;
+			return PX4_OK;
+		case 1:
+			*addr = (uint8_t) Register::GPPUB;
+			return PX4_OK;
+		default:
+			return PX4_ERROR;
 	}
-
-	return PX4_OK;//init_uorb();
 }
 
-int MCP23017::probe()
+int MCP23017::get_iodir(int bank, uint8_t *addr)
 {
-	printf("MCP23017.cpp: probe called \n");
-	// no whoami, try to read IOCONA
-	uint8_t data;
-	return read_reg(Register::IOCONA, data);
-}
+	switch (bank) {
+		case 0:
+			*addr = (uint8_t) Register::IODIRA;
+			return PX4_OK;
 
-int MCP23017::read(uint16_t *mask)
-{
-	//printf("MCP23017.cpp: read called \n");
-	uint8_t maskA;
-	uint8_t maskB;
-
-	int ret = read_reg(Register::GPIOA, maskA);
-	ret |= read_reg(Register::GPIOB, maskB);
-
-	*mask = ((uint16_t) maskA & 0x00FF) | ((uint16_t) maskB << 8);
-
-	return ret;
-}
-
-int MCP23017::write(uint16_t mask_set, uint16_t mask_clear)
-{
-	printf("MCP23017.cpp: write called \n");
-	// no need to read, we can use the buffered register value
-	uint8_t mask_setA = (uint8_t)(mask_set & 0x00FF);
-	uint8_t mask_clearA = (uint8_t)(mask_clear & 0x00FF);
-
-	uint8_t mask_setB = (uint8_t)(mask_set >> 8);
-	uint8_t mask_clearB = (uint8_t)(mask_clear >> 8);
-
-	_olatA = (_olatA & ~mask_clearA) | mask_setA;
-	_olatB = (_olatB & ~mask_clearB) | mask_setB;
-
-	int ret = write_reg(Register::OLATA, _olatA);
-	ret |= write_reg(Register::OLATB, _olatB);
-
-	return ret;
-}
-
-int MCP23017::configure(uint16_t mask, PinType type)
-{
-	printf("MCP23017.cpp: configure called \n");
-	uint8_t maskA = (uint8_t)(mask & 0x00FF);
-	uint8_t maskB = (uint8_t)(mask >> 8);
-
-	// no need to read, we can use the buffered register values
-	switch (type) {
-	case PinType::Input:
-		_iodirA |= maskA;
-		_iodirB |= maskB;
-		_gppuA &= ~maskA;
-		_gppuB &= ~maskB;
-		break;
-
-	case PinType::InputPullUp:
-		_iodirA |= maskA;
-		_iodirB |= maskB;
-		_gppuA |= maskA;
-		_gppuB |= maskB;
-		break;
-
-	case PinType::Output:
-		_iodirA &= ~maskA;
-		_iodirB &= ~maskB;
-		break;
-
-	default:
-		return -EINVAL;
+		case 1:
+			*addr = (uint8_t) Register::IODIRB;
+			return PX4_OK;
+		default:
+			return PX4_ERROR;
 	}
+}
 
-	int ret = write_reg(Register::GPPUA, _gppuA);
-	ret |= write_reg(Register::GPPUB, _gppuB);
-	ret |= write_reg(Register::IODIRA, _iodirA);
-	ret |= write_reg(Register::IODIRB, _iodirB);
+int MCP23017::get_gpio(int bank, uint8_t *addr)
+{
+	switch (bank) {
+		case 0:
+			*addr = (uint8_t) Register::GPIOA;
+			return PX4_OK;
 
-	if (ret != 0) {
-		PX4_ERR("Configuring MCP23017 failed");
-		return ret;
+		case 1:
+			*addr = (uint8_t) Register::GPIOB;
+			return PX4_OK;
+		default:
+			return PX4_ERROR;
 	}
+}
 
-	return ret;
+int MCP23017::get_probe_reg(uint8_t *addr)
+{
+	*addr = (uint8_t) Register::IOCONA;
+	return PX4_OK;
 }
