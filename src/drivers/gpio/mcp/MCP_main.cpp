@@ -35,7 +35,6 @@
 #include <px4_platform_common/getopt.h>
 #include "MCP23009.hpp"
 #include "MCP23017.hpp"
-#include <px4_platform/gpio/mcp23017.hpp>
 
 void MCP::print_usage()
 {
@@ -108,8 +107,6 @@ I2CSPIDriverBase *MCP::instantiate(const I2CSPIDriverConfig &config, int runtime
 
 	return instance;
 }
-
-
 
 extern "C" int mcp_main(int argc, char *argv[])
 {

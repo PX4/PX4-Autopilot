@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include <nuttx/ioexpander/gpio.h>
-#include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
 #include <px4_platform/gpio/mcp.hpp>
 #include <uORB/topics/gpio_config.h>

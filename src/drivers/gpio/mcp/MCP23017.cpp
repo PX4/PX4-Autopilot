@@ -31,8 +31,6 @@
  *
  ****************************************************************************/
 #include "MCP23017.hpp"
-#include <drivers/device/i2c.h>
-#include <px4_platform_common/i2c_spi_buses.h>
 
 MCP23017::MCP23017(const I2CSPIDriverConfig &config) :
 	MCP(config)

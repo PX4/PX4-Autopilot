@@ -31,9 +31,6 @@
  *
  ****************************************************************************/
 #include "MCP.hpp"
-#include "MCP23009.hpp"
-#include "MCP23017.hpp"
-#include <px4_platform_common/module.h>
 
 MCP::MCP(const I2CSPIDriverConfig &config) :
 	I2C(config),

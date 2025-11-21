@@ -32,17 +32,6 @@
  ****************************************************************************/
 #pragma once
 #include "MCP.hpp"
-#include <stdint.h>
-#include <drivers/device/i2c.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/topics/gpio_config.h>
-#include <uORB/topics/gpio_in.h>
-#include <uORB/topics/gpio_out.h>
-#include <uORB/topics/gpio_request.h>
-#include <uORB/Publication.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <lib/perf/perf_counter.h>
-#include <drivers/drv_hrt.h>
 
 using namespace time_literals;
 
