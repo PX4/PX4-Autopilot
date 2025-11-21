@@ -96,13 +96,6 @@ public:
 	int init() override;
 
 	/*
-	 * Write new PWM value to device
-	 *
-	 * *output: pulse width, us
-	 */
-	int updatePWM(const uint16_t *outputs, unsigned num_outputs);
-
-	/*
 	 * Set PWM frequency to new value.
 	 *
 	 * Only a few of precious frequency can be set, while others will be rounded to the nearest possible value.
@@ -150,11 +143,14 @@ public:
 	int wake();
 
 	/*
-	 * If PCA9685 is put into sleep without clearing all the outputs,
-	 * then the restart command will be available, and it can bring back PWM output without the
-	 * need of updatePWM() call.
-	 */
-	int doRestart();
+	* Configure the PCA9685 device with necessary settings. e.g. MODE1 or MODE2
+	*/
+	int configure();
+
+	/*
+	* Verfy whether the registers of PCA9685 are in a consistent state
+	*/
+	void registers_check(bool *transfer_ok, bool *registers_ok);
 
 protected:
 	int probe() override;

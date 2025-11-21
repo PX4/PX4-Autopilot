@@ -57,59 +57,69 @@ PCA9685::PCA9685(int bus, int addr):
 
 int PCA9685::init()
 {
-	int ret = I2C::init();
+	return I2C::init();
+}
 
-	if (ret != PX4_OK) { return ret; }
-
+int PCA9685::configure()
+{
 	uint8_t buf[2] = {};
 
 	buf[0] = PCA9685_REG_MODE1;
 	buf[1] = PCA9685_DEFAULT_MODE1_CFG | PCA9685_MODE1_SLEEP_MASK;  // put into sleep mode
-	ret = transfer(buf, 2, nullptr, 0);
-
-	if (OK != ret) {
-		PX4_ERR("init: i2c::transfer returned %d", ret);
-		return ret;
-	}
+	int ret = transfer(buf, 2, nullptr, 0);
 
 #ifdef CONFIG_PCA9685_USE_EXTERNAL_CRYSTAL
+	/* EXTCLK is sticky, so writing it once is enough. Its not a problem when its written to 0 later. */
 	buf[1] = PCA9685_DEFAULT_MODE1_CFG | PCA9685_MODE1_SLEEP_MASK | PCA9685_MODE1_EXTCLK_MASK;
-	ret = transfer(buf, 2, nullptr, 0); // enable EXTCLK if possible
-
-	if (OK != ret) {
-		PX4_ERR("init: i2c::transfer returned %d", ret);
-		return ret;
-	}
-
+	ret |= transfer(buf, 2, nullptr, 0);
 #endif
 
 	buf[0] = PCA9685_REG_MODE2;
 	buf[1] = PCA9685_DEFAULT_MODE2_CFG;
-	ret = transfer(buf, 2, nullptr, 0);
+	ret |= transfer(buf, 2, nullptr, 0);
 
-	if (OK != ret) {
-		PX4_ERR("init: i2c::transfer returned %d", ret);
-		return ret;
+	if (ret != PX4_OK) {
+		PX4_ERR("PCA9685 configure fail");
 	}
 
-	return PX4_OK;
+	return ret;
 }
 
-int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
+void PCA9685::registers_check(bool *transfer_ok, bool *registers_ok)
 {
-	if (num_outputs > PCA9685_PWM_CHANNEL_COUNT) {
-		num_outputs = PCA9685_PWM_CHANNEL_COUNT;
-		PX4_DEBUG("PCA9685 can only drive up to 16 channels");
+	*transfer_ok = true;
+	*registers_ok = true;
+
+	/* Check MODE1 register */
+	uint8_t send_buf = PCA9685_REG_MODE1;
+	uint8_t recv_buf;
+
+	int ret = transfer(&send_buf, 1, &recv_buf, 1);
+	uint8_t ignore_extclk_mask = ~PCA9685_MODE1_EXTCLK_MASK;
+
+	if (ret != PX4_OK) {
+		*transfer_ok = false;
+		return;
 	}
 
-	uint16_t out[PCA9685_PWM_CHANNEL_COUNT];
-	memcpy(out, outputs, sizeof(uint16_t) * num_outputs);
-
-	for (unsigned i = 0; i < num_outputs; ++i) {
-		out[i] = calcRawFromPulse(out[i]);
+	if ((recv_buf & ignore_extclk_mask) != (PCA9685_DEFAULT_MODE1_CFG & ignore_extclk_mask)) {
+		*registers_ok = false;
+		return;
 	}
 
-	return writePWM(0, out, num_outputs);
+	/* Check MODE2 register */
+	send_buf = PCA9685_REG_MODE2;
+	ret = transfer(&send_buf, 1, &recv_buf, 1);
+
+	if (ret != PX4_OK) {
+		*transfer_ok = false;
+		return;
+	}
+
+	if (recv_buf != PCA9685_DEFAULT_MODE2_CFG) {
+		*registers_ok = false;
+		return;
+	}
 }
 
 int PCA9685::updateFreq(float freq)
@@ -160,20 +170,33 @@ int PCA9685::sleep()
 
 int PCA9685::wake()
 {
-	uint8_t buf[2] = {
-		PCA9685_REG_MODE1,
-		PCA9685_DEFAULT_MODE1_CFG
-	};
-	return transfer(buf, 2, nullptr, 0);
-}
+	uint8_t send_buf[2];
+	uint8_t recv_buf;
 
-int PCA9685::doRestart()
-{
-	uint8_t buf[2] = {
-		PCA9685_REG_MODE1,
-		PCA9685_DEFAULT_MODE1_CFG | PCA9685_MODE1_RESTART_MASK
-	};
-	return transfer(buf, 2, nullptr, 0);
+	send_buf[0] = PCA9685_REG_MODE1;
+	int ret = transfer(&send_buf[0], 1, &recv_buf, 1);
+
+	if (ret != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	send_buf[1] = recv_buf & ~PCA9685_MODE1_SLEEP_MASK; // Clear sleep bit
+	ret |= transfer(&send_buf[0], 2, nullptr, 0);
+	px4_usleep(500); // wait for oscillator to stabilize
+
+	if (recv_buf & PCA9685_MODE1_RESTART_MASK) { // Check if reset bit is set
+		send_buf[1] |= PCA9685_MODE1_RESTART_MASK; // Set restart bit
+		ret |= transfer(&send_buf[0], 2, nullptr, 0);
+	}
+
+	ret |= transfer(&send_buf[0], 1, &recv_buf, 1);
+
+	if (ret != PX4_OK || recv_buf & PCA9685_MODE1_RESTART_MASK || recv_buf & PCA9685_MODE1_SLEEP_MASK) {
+		PX4_ERR("PCA9685 wake failed: Ret: %d MODE1 REG after wake: %d", ret, recv_buf);
+		return PX4_ERROR;
+	}
+
+	return ret;
 }
 
 int PCA9685::probe()

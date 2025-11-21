@@ -80,12 +80,14 @@ protected:
 
 private:
 	perf_counter_t	_cycle_perf;
+	perf_counter_t _comms_errors;
+	perf_counter_t _registers_invalid;
 
 	enum class STATE : uint8_t {
+		CONFIGURE,
 		INIT,
-		WAIT_FOR_OSC,
 		RUNNING
-	} state{STATE::INIT};
+	} _state{STATE::CONFIGURE};
 
 	PCA9685 *pca9685 = nullptr;
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -99,14 +101,21 @@ private:
 
 	float param_pwm_freq, previous_pwm_freq;
 	float param_schd_rate, previous_schd_rate;
+	bool param_update_failed = false;
 	uint32_t param_duty_mode;
 
+	static constexpr uint8_t transfer_fails_threshold = 10;
+	uint8_t _register_transfer_fails = 0;
+
 	void Run() override;
+	void registers_check();
 };
 
 PCA9685Wrapper::PCA9685Wrapper() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors")),
+	_registers_invalid(perf_alloc(PC_COUNT, MODULE_NAME": registers invalid"))
 {
 }
 
@@ -119,6 +128,8 @@ PCA9685Wrapper::~PCA9685Wrapper()
 	}
 
 	perf_free(_cycle_perf);
+	perf_free(_comms_errors);
+	perf_free(_registers_invalid);
 }
 
 int PCA9685Wrapper::init()
@@ -139,7 +150,7 @@ int PCA9685Wrapper::init()
 bool PCA9685Wrapper::updateOutputs(uint16_t *outputs, unsigned num_outputs,
 				   unsigned num_control_groups_updated)
 {
-	if (state != STATE::RUNNING) { return false; }
+	if (_state != STATE::RUNNING) { return false; }
 
 	uint16_t low_level_outputs[PCA9685_PWM_CHANNEL_COUNT] = {};
 	num_outputs = num_outputs > PCA9685_PWM_CHANNEL_COUNT ? PCA9685_PWM_CHANNEL_COUNT : num_outputs;
@@ -154,6 +165,7 @@ bool PCA9685Wrapper::updateOutputs(uint16_t *outputs, unsigned num_outputs,
 	}
 
 	if (pca9685->updateRAW(low_level_outputs, num_outputs) != PX4_OK) {
+		perf_count(_comms_errors);
 		PX4_ERR("Failed to write PWM to PCA9685");
 		return false;
 	}
@@ -176,66 +188,120 @@ void PCA9685Wrapper::Run()
 		return;
 	}
 
-	switch (state) {
-	case STATE::INIT:
-		updateParams();
-		pca9685->updateFreq(param_pwm_freq);
-		previous_pwm_freq = param_pwm_freq;
-		previous_schd_rate = param_schd_rate;
+	switch (_state) {
+	case STATE::CONFIGURE: {
+			int ret = pca9685->configure();
 
-		pca9685->wake();
-		state = STATE::WAIT_FOR_OSC;
-		ScheduleDelayed(500);
-		break;
+			if (ret == PX4_OK) {
+				_state = STATE::INIT;
 
-	case STATE::WAIT_FOR_OSC: {
-			state = STATE::RUNNING;
-			ScheduleOnInterval(1000000 / param_schd_rate, 0);
-		}
-		break;
-
-	case STATE::RUNNING:
-		perf_begin(_cycle_perf);
-
-		_mixing_output.update();
-
-		// check for parameter updates
-		if (_parameter_update_sub.updated()) {
-			// clear update
-			parameter_update_s pupdate;
-			_parameter_update_sub.copy(&pupdate);
-
-			// update parameters from storage
-			updateParams();
-
-			// apply param updates
-			if ((float)fabs(previous_pwm_freq - param_pwm_freq) > 0.01f) {
-				previous_pwm_freq = param_pwm_freq;
-
-				ScheduleClear();
-
-				pca9685->sleep();
-				pca9685->updateFreq(param_pwm_freq);
-				pca9685->wake();
-
-				// update of PWM freq will always trigger scheduling change
-				previous_schd_rate = param_schd_rate;
-
-				state = STATE::WAIT_FOR_OSC;
-				ScheduleDelayed(500);
-
-			} else if ((float)fabs(previous_schd_rate - param_schd_rate) > 0.01f) {
-				// case when PWM freq not changed but scheduling rate does
-				previous_schd_rate = param_schd_rate;
-				ScheduleClear();
-				ScheduleOnInterval(1000000 / param_schd_rate, 1000000 / param_schd_rate);
+			} else {
+				perf_count(_comms_errors);
 			}
+
+			ScheduleNow();
+			break;
 		}
 
-		_mixing_output.updateSubscriptions(false);
+	case STATE::INIT: {
+			updateParams();
+			int ret = pca9685->updateFreq(param_pwm_freq);
+			ret |= pca9685->wake();
 
-		perf_end(_cycle_perf);
-		break;
+			if (ret == PX4_OK) {
+				previous_pwm_freq = param_pwm_freq;
+				previous_schd_rate = param_schd_rate;
+				_state = STATE::RUNNING;
+				ScheduleOnInterval(1000000 / param_schd_rate, 0);
+
+			} else {
+				perf_count(_comms_errors);
+				_state = STATE::CONFIGURE;
+				ScheduleNow();
+			}
+
+			break;
+		}
+
+	case STATE::RUNNING: {
+			perf_begin(_cycle_perf);
+			_mixing_output.update();
+
+			// check for parameter updates
+			if (_parameter_update_sub.updated() || param_update_failed) {
+				// clear update
+				parameter_update_s pupdate;
+				_parameter_update_sub.copy(&pupdate);
+
+				// update parameters from storage
+				updateParams();
+
+				// apply param updates
+				if ((float)fabs(previous_pwm_freq - param_pwm_freq) > 0.01f) {
+					ScheduleClear();
+
+					int ret = pca9685->sleep();
+					ret |= pca9685->updateFreq(param_pwm_freq);
+					ret |= pca9685->wake();
+
+					if (ret == PX4_OK) {
+						// update of PWM freq will always trigger scheduling change
+						param_update_failed = false;
+						previous_schd_rate = param_schd_rate;
+						previous_pwm_freq = param_pwm_freq;
+						ScheduleOnInterval(1000000 / param_schd_rate, 0);
+
+					} else {
+						param_update_failed = true;
+						perf_count(_comms_errors);
+						ScheduleNow();
+						break;
+					}
+
+				} else if ((float)fabs(previous_schd_rate - param_schd_rate) > 0.01f) {
+					// case when PWM freq not changed but scheduling rate does
+					previous_schd_rate = param_schd_rate;
+					ScheduleClear();
+					ScheduleOnInterval(1000000 / param_schd_rate, 1000000 / param_schd_rate);
+				}
+			}
+
+			registers_check();
+			_mixing_output.updateSubscriptions(false);
+
+			perf_end(_cycle_perf);
+			break;
+		}
+	}
+}
+
+void PCA9685Wrapper::registers_check()
+{
+	bool transfer_ok = true;
+	bool registers_ok = true;
+	pca9685->registers_check(&transfer_ok, &registers_ok);
+
+	if (transfer_ok) {
+		_register_transfer_fails = 0;
+
+	} else {
+		_register_transfer_fails++;
+	}
+
+	if (!registers_ok) {
+		PX4_ERR("PCA9685 in inconsistent state, will reconfigure");
+		perf_count(_registers_invalid);
+		_state = STATE::CONFIGURE;
+		ScheduleClear();
+		ScheduleNow();
+	}
+
+	if (_register_transfer_fails > transfer_fails_threshold) {
+		PX4_ERR("PCA9685 not reachable, will reconfigure");
+		_register_transfer_fails = 0;
+		_state = STATE::CONFIGURE;
+		ScheduleClear();
+		ScheduleNow();
 	}
 }
 
