@@ -56,6 +56,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <mathlib/mathlib.h>
@@ -86,8 +87,6 @@ public:
 private:
 	void Run() override;
 
-	void reset();
-
 	void checkFilters();
 
 	void updateStateMachine(hrt_abstime now);
@@ -109,6 +108,7 @@ private:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	uORB::PublicationData<autotune_attitude_control_status_s> _autotune_attitude_control_status_pub{ORB_ID(autotune_attitude_control_status)};
 
@@ -137,6 +137,9 @@ private:
 	int8_t _signal_sign{0};
 
 	bool _armed{false};
+	uint8_t _nav_state{0};
+	uint8_t _start_flight_mode{0};
+	bool _vehicle_cmd_start_autotune{false};
 
 	matrix::Vector3f _kid{};
 	matrix::Vector3f _rate_k{};
@@ -177,7 +180,6 @@ private:
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::MC_AT_START>) _param_mc_at_start,
 		(ParamFloat<px4::params::MC_AT_SYSID_AMP>) _param_mc_at_sysid_amp,
 		(ParamInt<px4::params::MC_AT_APPLY>) _param_mc_at_apply,
 		(ParamFloat<px4::params::MC_AT_RISE_TIME>) _param_mc_at_rise_time,
