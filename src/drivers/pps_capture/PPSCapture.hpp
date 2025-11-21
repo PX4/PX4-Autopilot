@@ -47,7 +47,7 @@ using namespace time_literals;
 class PPSCapture : public ModuleBase<PPSCapture>, public px4::ScheduledWorkItem
 {
 public:
-	PPSCapture();
+	PPSCapture(uint8_t gps);
 	virtual ~PPSCapture();
 
 	/** @see ModuleBase */
@@ -72,13 +72,13 @@ private:
 	int _channel{-1};
 	uint32_t _pps_capture_gpio{0};
 	uORB::Publication<pps_capture_s>	_pps_capture_pub{ORB_ID(pps_capture)};
-	uORB::Subscription								_sensor_gps_sub{ORB_ID(sensor_gps)};
-	orb_advert_t											_mavlink_log_pub{nullptr};
+	uORB::Subscription			_sensor_gps_sub;
+	orb_advert_t				_mavlink_log_pub{nullptr};
 
 	hrt_abstime _hrt_timestamp{0};
 
 	hrt_abstime	_last_gps_timestamp{0};
-	uint64_t		_last_gps_utc_timestamp{0};
-	uint8_t			_pps_rate_exceeded_counter{0};
+	uint64_t	_last_gps_utc_timestamp{0};
+	uint8_t		_pps_rate_exceeded_counter{0};
 	px4::atomic<bool>			_pps_rate_failure{false};
 };
