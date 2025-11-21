@@ -92,6 +92,8 @@ static constexpr wq_config_t ttyS9{"wq:ttyS9", CONFIG_WQ_TTY_STACKSIZE, (int8_t)
 static constexpr wq_config_t ttyACM0{"wq:ttyACM0", CONFIG_WQ_TTY_STACKSIZE, (int8_t)CONFIG_WQ_TTY_ACM0_PRIORITY};
 static constexpr wq_config_t ttyUnknown{"wq:ttyUnknown", CONFIG_WQ_TTY_STACKSIZE, (int8_t)CONFIG_WQ_TTY_UNKNOWN_PRIORITY};
 
+static constexpr wq_config_t state_sharing{"wq:state_sharing", CONFIG_WQ_STATE_SHARING_STACKSIZE, (int8_t)CONFIG_WQ_STATE_SHARING_PRIORITY};
+
 static constexpr wq_config_t lp_default{"wq:lp_default", CONFIG_WQ_LP_DEFAULT_STACKSIZE, (int8_t)CONFIG_WQ_LP_DEFAULT_PRIORITY};
 
 static constexpr wq_config_t test1{"wq:test1", 2000, 0};
