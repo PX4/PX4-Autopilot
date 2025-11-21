@@ -25,6 +25,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/hover_thrust_estimate.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 #include <lib/matrix/matrix/math.hpp>
 
@@ -64,6 +65,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _hover_thrust_sub{ORB_ID(hover_thrust_estimate)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
 	// Publication
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
@@ -78,6 +80,8 @@ private:
 
 	float _last_u[NUM_MOTORS] {0.f, 0.f, 0.f, 0.f};
 	hrt_abstime _last_run{0};
+
+	bool _manual_torque_test{false};
 
 };
 

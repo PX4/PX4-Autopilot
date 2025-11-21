@@ -123,12 +123,23 @@ void CdusAllocatorDuct::Run()
 	vehicle_thrust_setpoint_s thrust_sp{};
 	_thrust_sp_sub.copy(&thrust_sp);
 
+	manual_control_setpoint_s manual_control_input;
+	_manual_control_setpoint_sub.update(&manual_control_input);
+
+
 	// Build desired vector
 	Vector<float, 4> desired{};
 	desired(0) = torque_sp.xyz[0];
 	desired(1) = torque_sp.xyz[1];
 	desired(2) = torque_sp.xyz[2];
 	desired(3) = thrust_sp.xyz[2];
+
+	if(_manual_torque_test) {
+		desired(0) = 0.1f * manual_control_input.roll;
+		desired(1) = 0.1f * manual_control_input.pitch;
+		desired(2) = 0.1f * manual_control_input.yaw;
+		desired(3) = 0.1f * manual_control_input.throttle;
+	}
 
 	// Generate delta PWM for each actuator and normalize
 	Vector4f d_PWM = _B_pinv * desired;
@@ -168,6 +179,7 @@ void CdusAllocatorDuct::Run()
     //      (double)out.control[3],
 	//  (double)_hover_thrust
 	// );
+
 
 	_actuator_motors_pub.publish(out);
 }
