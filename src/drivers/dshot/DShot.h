@@ -49,7 +49,7 @@ using namespace time_literals;
 #  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
 
-static constexpr hrt_abstime ESC_INIT_TELEM_WAIT_TIME = 3_s;
+static constexpr hrt_abstime ESC_INIT_TELEM_WAIT_TIME = 5_s;
 
 /** Dshot PWM frequency, Hz */
 static constexpr unsigned int DSHOT150  =  150000u;
