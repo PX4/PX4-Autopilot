@@ -91,6 +91,7 @@ public:
 
 	void applyFlaps(float flaps_control, int first_actuator_idx, float dt, ActuatorVector &actuator_sp);
 	void applySpoilers(float spoilers_control, int first_actuator_idx, float dt, ActuatorVector &actuator_sp);
+	void applyLaunchLock(int first_actuator_idx, ActuatorVector &actuator_sp);
 
 private:
 	void updateParams() override;
@@ -105,9 +106,11 @@ private:
 	};
 	ParamHandles _param_handles[MAX_COUNT];
 	param_t _count_handle;
+	param_t _param_handle_ca_sv_lau_lk;
 
 	Params _params[MAX_COUNT] {};
 	int32_t _count{0};
+	int32_t _param_ca_sv_lau_lk{0};
 
 	SlewRate<float> _flaps_setpoint_with_slewrate;
 	SlewRate<float> _spoilers_setpoint_with_slewrate;
