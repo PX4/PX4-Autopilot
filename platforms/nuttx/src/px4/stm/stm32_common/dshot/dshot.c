@@ -147,6 +147,12 @@ static bool _bdshot_processed[MAX_TIMER_IO_CHANNELS] = {};
 static int _consecutive_failures[MAX_TIMER_IO_CHANNELS] = {};
 static int _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
 
+// Adaptive base interval per channel (ticks per bit)
+// Initialized to nominal 21 ticks/bit, then adapted based on measured timing
+static float _base_interval[MAX_TIMER_IO_CHANNELS] = {
+	[0 ... (MAX_TIMER_IO_CHANNELS - 1)] = 21.0f
+};
+
 // ePRM data
 typedef struct erpm_data_t {
 	int32_t erpm;
@@ -177,7 +183,6 @@ static struct hrt_call _cc_call;
 // decoding status for each channel
 static uint32_t read_ok[MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_crc[MAX_NUM_CHANNELS_PER_TIMER] = {};
-static uint32_t read_no_data[MAX_NUM_CHANNELS_PER_TIMER] = {};
 
 static perf_counter_t hrt_callback_perf = NULL;
 static perf_counter_t capture_cycle_perf = NULL;
@@ -642,18 +647,9 @@ void process_capture_results(uint8_t timer_index, uint8_t channel_index)
 	checksum = checksum ^ (checksum >> 8);
 	checksum = checksum ^ (checksum >> NIBBLES_SIZE);
 
-	bool checksum_failed = (checksum & 0xF) != 0xF;
-	bool value_zero = value == 0;
-
-	if (checksum_failed) {
+	if ((checksum & 0xF) != 0xF) {
 		++read_fail_crc[output_channel];
-	}
 
-	if (value_zero) {
-		++read_no_data[output_channel];
-	}
-
-	if (checksum_failed || value_zero) {
 		if (_consecutive_failures[output_channel]++ > BDSHOT_OFFLINE_COUNT) {
 			_consecutive_failures[output_channel] = BDSHOT_OFFLINE_COUNT;
 			_consecutive_successes[output_channel] = 0;
@@ -756,47 +752,94 @@ float calculate_rate_hz(uint64_t last_timestamp, float last_rate_hz, uint64_t ti
 // Converts captured edge timestamps into a raw bit stream.
 // Measures the time intervals between signal edges to determine how many consecutive
 // 1s or 0s to shift in, alternating the bit value with each edge transition.
+// Uses adaptive per-channel timing calibration to handle ESC oscillator variation.
 // Returns a 20 bit raw value that still needs RLL and GCR decoding.
 uint32_t convert_edge_intervals_to_bitstream(uint8_t channel_index)
 {
-	uint32_t value = 0;
-	uint32_t high = 1; // We start off with high
-	unsigned shifted = 0;
+	// First pass: collect all intervals
+	uint32_t intervals[CHANNEL_CAPTURE_BUFF_SIZE];
+	unsigned interval_count = 0;
 
 	// We can ignore the very first data point as it's the pulse before it starts.
 	unsigned previous = dshot_capture_buffer[channel_index][1];
 
-	// Loop through the capture buffer for the specified channel
 	for (unsigned i = 2; i < CHANNEL_CAPTURE_BUFF_SIZE; ++i) {
-
 		if (dshot_capture_buffer[channel_index][i] == 0) {
 			// Once we get zeros we're through
 			break;
 		}
 
-		// This seemss to work with dshot 150, 300, 600, 1200
-		// The values were found by trial and error to get the quantization just right.
-		const uint32_t bits = (dshot_capture_buffer[channel_index][i] - previous + 5) / 21;
+		uint32_t interval = dshot_capture_buffer[channel_index][i] - previous;
 
-		// Convert GCR encoded pulse train into value
+		// Filter out noise: reject intervals <10 or >100 ticks
+		if (interval >= 10 && interval <= 100) {
+			intervals[interval_count++] = interval;
+		}
+
+		previous = dshot_capture_buffer[channel_index][i];
+	}
+
+	if (interval_count == 0) {
+		return 0;
+	}
+
+	// Calibrate base interval using minimum interval (always 1 bit in GCR)
+	// The shortest valid interval in the frame represents a single bit period
+	uint32_t min_interval = intervals[0];
+
+	for (unsigned i = 1; i < interval_count; i++) {
+		if (intervals[i] < min_interval) {
+			min_interval = intervals[i];
+		}
+	}
+
+	// Update base interval with low-pass filter (10% weight on new measurement)
+	// This adapts to each ESC's actual timing while filtering transient noise
+	_base_interval[channel_index] = 0.9f * _base_interval[channel_index] + 0.1f * (float)min_interval;
+
+	// Second pass: decode bits using adaptive threshold
+	uint32_t value = 0;
+	uint32_t high = 1;
+	unsigned shifted = 0;
+
+	float base = _base_interval[channel_index];
+
+	for (unsigned i = 0; i < interval_count; i++) {
+		// Convert interval to bit count using relative threshold
+		// Round to nearest: 0.5-1.5 → 1, 1.5-2.5 → 2, 2.5-3.5 → 3, etc.
+		float interval_f = (float)intervals[i];
+		uint32_t bits = (uint32_t)((interval_f / base) + 0.5f);
+
+		// Clamp to valid range (1-4 bits typical in GCR encoding)
+		if (bits < 1) {
+			bits = 1;
+		} else if (bits > 4) {
+			bits = 4;
+		}
+
+		// Shift in the bits
 		for (unsigned bit = 0; bit < bits; ++bit) {
 			value = (value << 1) | high;
 			++shifted;
 		}
 
-		// The next edge toggles.
 		high = !high;
-
-		previous = dshot_capture_buffer[channel_index][i];
 	}
 
-	if (shifted == 0) {
-		// no data yet, or this time
+	// Flexible frame validation: accept 18-24 bits instead of forcing exactly 21
+	// This handles ESC timing variation and incomplete frames
+	if (shifted < 18 || shifted > 24) {
+		// Frame too short or too long - likely corrupted
 		return 0;
 	}
 
-	// We need to make sure we shifted 21 times. We might have missed some low "pulses" at the very end.
-	value <<= (21 - shifted);
+	// Pad to 21 bits for GCR decoder (which expects exactly 21 bits)
+	if (shifted < 21) {
+		value <<= (21 - shifted);
+	} else if (shifted > 21) {
+		// Trim excess bits (shouldn't happen often with proper decoding)
+		value >>= (shifted - 21);
+	}
 
 	return value;
 }
@@ -1035,10 +1078,9 @@ void up_bdshot_status(void)
 		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
 
 		if (channel_initialized) {
-			PX4_INFO("Timer %u, Channel %u: read %lu, nodata %lu, failed CRC %lu",
+			PX4_INFO("Timer %u, Channel %u: read %lu, failed CRC %lu",
 				 timer_index, timer_channel_index,
 				 read_ok[timer_channel_index],
-				 read_no_data[timer_index],
 				 read_fail_crc[timer_channel_index]);
 		}
 	}
