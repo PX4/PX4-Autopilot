@@ -48,6 +48,9 @@ DShot::DShot() :
 
 	// Avoid using the PWM failsafe params
 	_mixing_output.setAllFailsafeValues(UINT16_MAX);
+
+	// Advertise early to ensure we beat uavcan
+	_esc_status_pub.advertise();
 }
 
 DShot::~DShot()
@@ -58,7 +61,6 @@ DShot::~DShot()
 	perf_free(_cycle_perf);
 	perf_free(_bdshot_success_perf);
 	perf_free(_bdshot_error_perf);
-	perf_free(_bdshot_timeout_perf);
 	perf_free(_telem_success_perf);
 	perf_free(_telem_error_perf);
 	perf_free(_telem_timeout_perf);
@@ -68,6 +70,10 @@ DShot::~DShot()
 int DShot::init()
 {
 	update_params();
+
+	_serial_telemetry_enabled = _param_dshot_tel_cfg.get();
+	_bdshot_telemetry_enabled = _param_dshot_bidir_en.get();
+	_bdshot_edt_enabled = _param_dshot_bidir_edt.get();
 
 	if (initialize_dshot()) {
 		ScheduleNow();
@@ -196,7 +202,7 @@ void DShot::select_next_command()
 
 	_current_command.clear();
 
-	if (_param_dshot_bidir_en.get() && _param_dshot_bidir_edt.get() && needs_edt_request_mask) {
+	if (_bdshot_telemetry_enabled && _bdshot_edt_enabled && needs_edt_request_mask) {
 		// EDT Request first
 		int next_motor_index = 0;
 
@@ -214,7 +220,7 @@ void DShot::select_next_command()
 		_bdshot_edt_requested_mask |= (1 << next_motor_index);
 		PX4_INFO("ESC%d: requesting EDT at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
 
-	} else if (_param_dshot_tel_cfg.get() && _param_dshot_esc_type.get() && needs_settings_request_mask) {
+	} else if (_serial_telemetry_enabled && _bdshot_telemetry_enabled && needs_settings_request_mask) {
 		// Settings Request next
 		int next_motor_index = 0;
 
@@ -293,7 +299,7 @@ void DShot::select_next_command()
 				// _serial_telem_online_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
 				_settings_requested_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
 
-				_telem_delay_until = hrt_absolute_time() + 100_ms;
+				_serial_telem_delay_until = hrt_absolute_time() + 100_ms;
 			}
 		}
 
@@ -344,8 +350,8 @@ void DShot::update_motor_outputs(uint16_t outputs[MAX_ACTUATORS], int num_output
 		bool set_telemetry_bit = false;
 
 		if (_telemetry_motor_index == i) {
-			if (_param_dshot_tel_cfg.get() && _telemetry.telemetryResponseFinished() && _telemetry.commandResponseFinished()) {
-				if (hrt_absolute_time() > _telem_delay_until) {
+			if (_serial_telemetry_enabled && _telemetry.telemetryResponseFinished() && _telemetry.commandResponseFinished()) {
+				if (hrt_absolute_time() > _serial_telem_delay_until) {
 					set_telemetry_bit = true;
 					_telemetry.startTelemetryRequest();
 				}
@@ -431,7 +437,7 @@ uint16_t DShot::calculate_output_value(uint16_t raw, int index)
 
 bool DShot::process_serial_telemetry()
 {
-	if (!_param_dshot_tel_cfg.get()) {
+	if (!_serial_telemetry_enabled) {
 		return false;
 	}
 
@@ -497,7 +503,7 @@ bool DShot::process_serial_telemetry()
 			// Consume an empty EscData to zero the data
 			consume_esc_data(esc, TelemetrySource::Serial);
 			all_telem_sampled = set_next_telemetry_index();
-			_telem_delay_until = hrt_absolute_time() + 100_ms; // TODO: how long do we need to wait?
+			_serial_telem_delay_until = hrt_absolute_time() + 100_ms;
 			perf_count(_telem_error_perf);
 			break;
 		}
@@ -536,14 +542,14 @@ bool DShot::set_next_telemetry_index()
 
 bool DShot::process_bdshot_telemetry()
 {
-	if (!_param_dshot_bidir_en.get()) {
+	if (!_bdshot_telemetry_enabled) {
 		return false;
 	}
 
 	hrt_abstime now = hrt_absolute_time();
 
 	// Don't try to process any telem data until after ESCs have been given time to boot
-	if (now < _telem_delay_until) {
+	if (now < ESC_INIT_TELEM_DELAY) {
 		return false;
 	}
 
@@ -556,10 +562,6 @@ bool DShot::process_bdshot_telemetry()
 		if (!_mixing_output.isMotor(output_channel)) {
 			continue;
 		}
-
-		// TODO: handle Extended Telemetry -- Volt/Curr/Temp
-		// We won't want to zero out the EscData, and instead
-		// use the previously set values.
 
 		EscData esc = {};
 
@@ -588,13 +590,12 @@ bool DShot::process_bdshot_telemetry()
 				}
 
 				// Extended DShot Telemetry
-				if (_param_dshot_bidir_edt.get()) {
+				if (_bdshot_edt_enabled) {
 
 					uint8_t value = 0;
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_TEMPERATURE, &value) == PX4_OK) {
 						esc.temperature = value; // BDShot temperature is in C
-						// PX4_INFO("ESC%d: temperature: %f", motor_index, (double)esc.temperature);
 
 					} else {
 						esc.temperature = _esc_status.esc[motor_index].esc_temperature; // use previous
@@ -602,7 +603,6 @@ bool DShot::process_bdshot_telemetry()
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
 						esc.voltage = value * 0.25f; // BDShot voltage is in 0.25V
-						// PX4_INFO("ESC%d: voltage: %f", motor_index, (double)esc.voltage);
 
 					} else {
 						esc.voltage = _esc_status.esc[motor_index].esc_voltage; // use previous
@@ -610,7 +610,6 @@ bool DShot::process_bdshot_telemetry()
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
 						esc.current = value * 0.5f; // BDShot current is in 0.5V
-						// PX4_INFO("ESC%d: current: %f", motor_index, (double)esc.current);
 
 					} else {
 						esc.current = _esc_status.esc[motor_index].esc_current;  // use previous
@@ -634,9 +633,6 @@ bool DShot::process_bdshot_telemetry()
 
 void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 {
-	bool bdshot_telemetry_enabled = _param_dshot_bidir_en.get();
-	bool serial_telemetry_enabled = _param_dshot_tel_cfg.get();
-
 	if (esc.motor_index >= esc_status_s::CONNECTED_ESC_MAX) {
 		return;
 	}
@@ -644,11 +640,11 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 	// Require both sources online when enabled
 	uint8_t online_mask = 0xFF;
 
-	if (bdshot_telemetry_enabled) {
+	if (_bdshot_telemetry_enabled) {
 		online_mask &= _bdshot_telem_online_mask;
 	}
 
-	if (serial_telemetry_enabled) {
+	if (_serial_telemetry_enabled) {
 		online_mask &= _serial_telem_online_mask;
 	}
 
@@ -660,7 +656,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 
 	if (source == TelemetrySource::Serial) {
 		// Only use SerialTelemetry eRPM when BDShot is disabled
-		if (!bdshot_telemetry_enabled) {
+		if (!_bdshot_telemetry_enabled) {
 			_esc_status.esc[esc.motor_index].timestamp = esc.timestamp;
 			_esc_status.esc[esc.motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
 		}
@@ -674,7 +670,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 		_esc_status.esc[esc.motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
 
 		// Only use BDShot Volt/Curr/Temp when Serial Telemetry is disabled
-		if (!serial_telemetry_enabled) {
+		if (!_serial_telemetry_enabled) {
 			_esc_status.esc[esc.motor_index].esc_voltage = esc.voltage;
 			_esc_status.esc[esc.motor_index].esc_current = esc.current;
 			_esc_status.esc[esc.motor_index].esc_temperature = esc.temperature;
@@ -765,26 +761,26 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 
 
 		switch (type) {
-		case ACTUATOR_CONFIGURATION_BEEP:
+		case vehicle_command_s::ACTUATOR_CONFIGURATION_BEEP:
 			_current_command.command = DSHOT_CMD_BEEP1;
 			break;
 
-		case ACTUATOR_CONFIGURATION_3D_MODE_OFF:
+		case vehicle_command_s::ACTUATOR_CONFIGURATION_3D_MODE_OFF:
 			_current_command.command = DSHOT_CMD_3D_MODE_OFF;
 			_current_command.save = true;
 			break;
 
-		case ACTUATOR_CONFIGURATION_3D_MODE_ON:
+		case vehicle_command_s::ACTUATOR_CONFIGURATION_3D_MODE_ON:
 			_current_command.command = DSHOT_CMD_3D_MODE_ON;
 			_current_command.save = true;
 			break;
 
-		case ACTUATOR_CONFIGURATION_SPIN_DIRECTION1:
+		case vehicle_command_s::ACTUATOR_CONFIGURATION_SPIN_DIRECTION1:
 			_current_command.command = DSHOT_CMD_SPIN_DIRECTION_1;
 			_current_command.save = true;
 			break;
 
-		case ACTUATOR_CONFIGURATION_SPIN_DIRECTION2:
+		case vehicle_command_s::ACTUATOR_CONFIGURATION_SPIN_DIRECTION2:
 			_current_command.command = DSHOT_CMD_SPIN_DIRECTION_2;
 			_current_command.save = true;
 			break;
@@ -928,7 +924,7 @@ bool DShot::initialize_dshot()
 		}
 	}
 
-	int ret = up_dshot_init(_output_mask, dshot_frequency, _param_dshot_bidir_en.get(), _param_dshot_bidir_edt.get());
+	int ret = up_dshot_init(_output_mask, dshot_frequency, _bdshot_telemetry_enabled, _bdshot_edt_enabled);
 
 	if (ret < 0) {
 		PX4_ERR("up_dshot_init failed (%i)", ret);
@@ -965,40 +961,40 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 		return;
 	}
 
+	if (!_serial_telemetry_enabled) {
+		PX4_ERR("serial telemetry not enabled");
+		return;
+	}
+
 	if (_telemetry.init(device, swap_rxtx) != PX4_OK) {
 		PX4_ERR("telemetry init failed");
+		return;
 	}
 
 	// Initialize ESC settings handlers based on ESC type
 	ESCType esc_type = static_cast<ESCType>(_param_dshot_esc_type.get());
 	_telemetry.initSettingsHandlers(esc_type, _output_mask);
-
-	// TODO: enforce uavcan init ordering in some way
-	// Advertise early to ensure we beat uavcan
-	_esc_status_pub.advertise();
 }
 
 int DShot::print_status()
 {
-	PX4_INFO("Outputs used: 0x%" PRIx32, _output_mask);
+	_mixing_output.printStatus();
+
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_bdshot_success_perf);
 	perf_print_counter(_bdshot_error_perf);
-	perf_print_counter(_bdshot_timeout_perf);
 
 	perf_print_counter(_telem_success_perf);
 	perf_print_counter(_telem_error_perf);
 	perf_print_counter(_telem_timeout_perf);
 	perf_print_counter(_telem_allsampled_perf);
 
-	_mixing_output.printStatus();
-
-	if (_param_dshot_tel_cfg.get()) {
+	if (_serial_telemetry_enabled) {
 		PX4_INFO("telemetry on: %s", _telemetry_device);
 		_telemetry.printStatus();
 	}
 
-	if (_param_dshot_bidir_en.get()) {
+	if (_bdshot_telemetry_enabled) {
 		up_bdshot_status();
 	}
 

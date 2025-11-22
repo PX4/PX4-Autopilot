@@ -49,9 +49,9 @@ using namespace time_literals;
 #  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
 
-static constexpr hrt_abstime ESC_INIT_TELEM_WAIT_TIME = 5_s;
+static constexpr hrt_abstime ESC_INIT_TELEM_DELAY = 5_s;
 
-/** Dshot PWM frequency, Hz */
+/// Dshot PWM frequency (Hz)
 static constexpr unsigned int DSHOT150  =  150000u;
 static constexpr unsigned int DSHOT300  =  300000u;
 static constexpr unsigned int DSHOT600  =  600000u;
@@ -59,14 +59,6 @@ static constexpr unsigned int DSHOT600  =  600000u;
 static constexpr uint16_t DSHOT_DISARM_VALUE = 0;
 static constexpr uint16_t DSHOT_MIN_THROTTLE = 1;
 static constexpr uint16_t DSHOT_MAX_THROTTLE = 1999;
-
-// We do this to avoid bringing in mavlink.h
-// #include <mavlink/common/mavlink.h>
-#define ACTUATOR_CONFIGURATION_BEEP 1
-#define ACTUATOR_CONFIGURATION_3D_MODE_OFF 2
-#define ACTUATOR_CONFIGURATION_3D_MODE_ON 3
-#define ACTUATOR_CONFIGURATION_SPIN_DIRECTION1 4
-#define ACTUATOR_CONFIGURATION_SPIN_DIRECTION2 5
 
 class DShot final : public ModuleBase<DShot>, public OutputModuleInterface
 {
@@ -99,7 +91,7 @@ private:
 		Armed
 	} _state = State::Disarmed;
 
-	/** Disallow copy construction and move assignment. */
+	// Disallow copy construction and move assignment
 	DShot(const DShot &) = delete;
 	DShot operator=(const DShot &) = delete;
 
@@ -120,7 +112,6 @@ private:
 
 	uint16_t calculate_output_value(uint16_t raw, int index);
 	uint16_t convert_output_to_3d_scaling(uint16_t output);
-
 
 	void Run() override;
 	void update_params();
@@ -163,13 +154,17 @@ private:
 	static px4::atomic_bool _request_telemetry_init;
 	int _telemetry_motor_index = 0;
 	uint32_t _telemetry_requested_mask = 0;
-	hrt_abstime _telem_delay_until = ESC_INIT_TELEM_WAIT_TIME;
+	hrt_abstime _serial_telem_delay_until = ESC_INIT_TELEM_DELAY;
+
+	// Parameters we must load only at init
+	bool _serial_telemetry_enabled = false;
+	bool _bdshot_telemetry_enabled = false;
+	bool _bdshot_edt_enabled = false;
 
 	// Perf counters
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_bdshot_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot success")};
 	perf_counter_t	_bdshot_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot error")};
-	perf_counter_t	_bdshot_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": bdshot timeout")};
 	perf_counter_t	_telem_success_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem success")};
 	perf_counter_t	_telem_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem error")};
 	perf_counter_t	_telem_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": telem timeout")};

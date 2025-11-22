@@ -130,6 +130,13 @@ uint8 VEHICLE_ROI_LOCATION = 3 # Point toward fixed location.
 uint8 VEHICLE_ROI_TARGET = 4 # Point toward target.
 uint8 VEHICLE_ROI_ENUM_END = 5
 
+uint8 ACTUATOR_CONFIGURATION_NONE = 0 # Do nothing.
+uint8 ACTUATOR_CONFIGURATION_BEEP = 1 # Command the actuator to beep now.
+uint8 ACTUATOR_CONFIGURATION_3D_MODE_ON = 2 # Permanently set the actuator (ESC) to 3D mode (reversible thrust).
+uint8 ACTUATOR_CONFIGURATION_3D_MODE_OFF = 3 # Permanently set the actuator (ESC) to non 3D mode (non-reversible thrust).
+uint8 ACTUATOR_CONFIGURATION_SPIN_DIRECTION1 = 4 # Permanently set the actuator (ESC) to spin direction 1 (which can be clockwise or counter-clockwise).
+uint8 ACTUATOR_CONFIGURATION_SPIN_DIRECTION2 = 5 # Permanently set the actuator (ESC) to spin direction 2 (opposite of direction 1).
+
 uint8 PARACHUTE_ACTION_DISABLE = 0
 uint8 PARACHUTE_ACTION_ENABLE = 1
 uint8 PARACHUTE_ACTION_RELEASE = 2

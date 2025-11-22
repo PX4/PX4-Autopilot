@@ -150,7 +150,7 @@ static int _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
 // Adaptive base interval per channel (ticks per bit)
 // Initialized to nominal 21 ticks/bit, then adapted based on measured timing
 static float _base_interval[MAX_TIMER_IO_CHANNELS] = {
-	[0 ... (MAX_TIMER_IO_CHANNELS - 1)] = 21.0f
+	[0 ...(MAX_TIMER_IO_CHANNELS - 1)] = 21.0f
 };
 
 // ePRM data
@@ -813,6 +813,7 @@ uint32_t convert_edge_intervals_to_bitstream(uint8_t channel_index)
 		// Clamp to valid range (1-4 bits typical in GCR encoding)
 		if (bits < 1) {
 			bits = 1;
+
 		} else if (bits > 4) {
 			bits = 4;
 		}
@@ -836,6 +837,7 @@ uint32_t convert_edge_intervals_to_bitstream(uint8_t channel_index)
 	// Pad to 21 bits for GCR decoder (which expects exactly 21 bits)
 	if (shifted < 21) {
 		value <<= (21 - shifted);
+
 	} else if (shifted > 21) {
 		// Trim excess bits (shouldn't happen often with proper decoding)
 		value >>= (shifted - 21);
