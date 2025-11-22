@@ -126,7 +126,11 @@ The following parameters also affect preflight checks.
 
 #### COM_ARM_WO_GPS
 
-The [COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS) parameter controls whether or not arming is allowed without a global position estimate.
+The [COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS) parameter controls whether or not arming is allowed when there isn't a valid global position estimate from GNSS, for those modes that require a valid position estimate.
 
-- `1` (default): Arming _is_ allowed without a position estimate for flight modes that do not require position information (only).
-- `0`: Arming is allowed only if EKF is providing a global position estimate and EFK GPS quality checks are passing
+The values are:
+
+- `0`: Deny arming. Arming is denied if there is no valid EKF2 GNSS estimate (EFK GPS quality checks are failing)
+- `1`: Warning only (default). Arming _is_ allowed for all modes without a valid estimate, but a warning event will be sent for those modes that rely on GNSS.
+  This can be used for cases where there is another source of valid position estimate, such as VIO or optical flow.
+- `2`: Disabled. Arming is allowed for all modes, and no warning is emitted.
