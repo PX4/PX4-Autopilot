@@ -41,360 +41,360 @@
  *
  */
 
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/posix.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <math.h>
-#include <string.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/led_control.h>
-#include <uORB/topics/tune_control.h>
-#include <systemlib/err.h>
-#include <parameters/param.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_tone_alarm.h>
-
-#include "commander_helper.h"
-
-#define VEHICLE_TYPE_FIXED_WING 1
-#define VEHICLE_TYPE_QUADROTOR 2
-#define VEHICLE_TYPE_COAXIAL 3
-#define VEHICLE_TYPE_HELICOPTER 4
-#define VEHICLE_TYPE_GROUND_ROVER 10
-#define VEHICLE_TYPE_BOAT 11
-#define VEHICLE_TYPE_SUBMARINE 12
-#define VEHICLE_TYPE_HEXAROTOR 13
-#define VEHICLE_TYPE_OCTOROTOR 14
-#define VEHICLE_TYPE_TRICOPTER 15
-#define VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR 19
-#define VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR 20
-#define VEHICLE_TYPE_VTOL_TILTROTOR 21
-#define VEHICLE_TYPE_VTOL_FIXEDROTOR 22 // VTOL standard
-#define VEHICLE_TYPE_VTOL_TAILSITTER 23
-
-#define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
-
-bool is_multirotor(const vehicle_status_s &current_status)
-{
-	return ((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
-		(current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
-		(current_status.system_type == VEHICLE_TYPE_OCTOROTOR) ||
-		(current_status.system_type == VEHICLE_TYPE_TRICOPTER));
-}
-
-bool is_rotary_wing(const vehicle_status_s &current_status)
-{
-	return is_multirotor(current_status)
-	       || (current_status.system_type == VEHICLE_TYPE_HELICOPTER)
-	       || (current_status.system_type == VEHICLE_TYPE_COAXIAL);
-}
-
-bool is_vtol(const vehicle_status_s &current_status)
-{
-	return (current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_FIXEDROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER);
-}
-
-bool is_vtol_tailsitter(const vehicle_status_s &current_status)
-{
-	return (current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER);
-}
-
-bool is_fixed_wing(const vehicle_status_s &current_status)
-{
-	return current_status.system_type == VEHICLE_TYPE_FIXED_WING;
-}
-
-bool is_ground_vehicle(const vehicle_status_s &current_status)
-{
-	return (current_status.system_type == VEHICLE_TYPE_BOAT ||
-		current_status.system_type == VEHICLE_TYPE_GROUND_ROVER);
-}
-
-// End time for currently blinking LED message, 0 if no blink message
-static hrt_abstime blink_msg_end = 0;
-static int fd_leds{-1};
-
-static led_control_s led_control {};
-static orb_advert_t led_control_pub = nullptr;
-
-// Static array that defines the duration of each tune, 0 if it's a repeating tune (therefore no fixed duration)
-static unsigned int tune_durations[tune_control_s::NUMBER_OF_TUNES] {};
-
-// End time of currently played tune, 0 for repeating tunes or silence
-static hrt_abstime tune_end = 0;
-
-// currently playing tune, can be interrupted after tune_end
-static uint8_t tune_current = tune_control_s::TUNE_ID_STOP;
-
-static tune_control_s tune_control {};
-static orb_advert_t tune_control_pub = nullptr;
-
-
-int buzzer_init()
-{
-	tune_durations[tune_control_s::TUNE_ID_NOTIFY_POSITIVE] = 800000;
-	tune_durations[tune_control_s::TUNE_ID_NOTIFY_NEGATIVE] = 900000;
-	tune_durations[tune_control_s::TUNE_ID_NOTIFY_NEUTRAL] = 500000;
-	tune_durations[tune_control_s::TUNE_ID_ARMING_WARNING] = 3000000;
-	tune_durations[tune_control_s::TUNE_ID_HOME_SET] = 800000;
-	tune_durations[tune_control_s::TUNE_ID_BATTERY_WARNING_FAST] = 800000;
-	tune_durations[tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW] = 800000;
-	tune_durations[tune_control_s::TUNE_ID_SINGLE_BEEP] = 300000;
-
-	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
-
-	return PX4_OK;
-}
-
-void buzzer_deinit()
-{
-	orb_unadvertise(tune_control_pub);
-}
-
-void set_tune_override(const int tune_id)
-{
-	tune_control.tune_id = tune_id;
-	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
-	tune_control.tune_override = true;
-	tune_control.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
-}
-
-void set_tune(const int tune_id)
-{
-	const hrt_abstime current_time = hrt_absolute_time();
-	const unsigned int new_tune_duration = tune_durations[tune_id];
-	const bool current_tune_is_repeating = (tune_end == 0);
-	const bool new_tune_is_repeating = (new_tune_duration == 0);
-
-	bool set_new_tune = false;
-
-	if (!current_tune_is_repeating) {
-		// Current non repeating tune has ended
-		if (current_time > tune_end) {
-			set_new_tune = true;
-		}
-
-		// Allow non repeating tune to interrupt current non repeating tune, if it's different
-		if (!new_tune_is_repeating && (tune_id != tune_current)) {
-			set_new_tune = true;
-		}
-
-	} else {
-		// Allow interrupting repeating tune as long as it's a different tune
-		if (tune_id != tune_current) {
-			set_new_tune = true;
-		}
-	}
-
-	if (set_new_tune) {
-		tune_control.tune_id = tune_id;
-		tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
-		tune_control.tune_override = false;
-		tune_control.timestamp = current_time;
-		orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
-
-		tune_current = tune_id;
-
-		if (new_tune_duration != 0) {
-			// Set tune ending time for a finite duration tunes
-			tune_end = current_time + new_tune_duration;
-
-		} else {
-			// Set tune ending time as 0 to indicate it's a repeating tune
-			tune_end = 0;
-		}
-	}
-}
-
-void tune_home_set(bool use_buzzer)
-{
-	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
-
-	if (use_buzzer) {
-		set_tune(tune_control_s::TUNE_ID_HOME_SET);
-	}
-}
-
-void tune_mission_ok(bool use_buzzer)
-{
-	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
-
-	if (use_buzzer) {
-		set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
-	}
-}
-
-void tune_mission_warn(bool use_buzzer)
-{
-	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_YELLOW, led_control_s::MODE_BLINK_FAST);
-
-	if (use_buzzer) {
-		set_tune(tune_control_s::TUNE_ID_NOTIFY_NEUTRAL);
-	}
-}
-
-void tune_mission_fail(bool use_buzzer)
-{
-	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_RED, led_control_s::MODE_BLINK_FAST);
-
-	if (use_buzzer) {
-		set_tune(tune_control_s::TUNE_ID_NOTIFY_NEGATIVE);
-	}
-}
-
-/**
- * Blink green LED and play positive tune (if use_buzzer == true).
- */
-void tune_positive(bool use_buzzer)
-{
-	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
-
-	if (use_buzzer) {
-		set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
-	}
-}
-
-/**
- * Blink white LED and play neutral tune (if use_buzzer == true).
- */
-void tune_neutral(bool use_buzzer)
-{
-	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST);
-
-	if (use_buzzer) {
-		set_tune(tune_control_s::TUNE_ID_NOTIFY_NEUTRAL);
-	}
-}
-
-/**
- * Blink red LED and play negative tune (if use_buzzer == true).
- */
-void tune_negative(bool use_buzzer)
-{
-	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_RED, led_control_s::MODE_BLINK_FAST);
-
-	if (use_buzzer) {
-		set_tune(tune_control_s::TUNE_ID_NOTIFY_NEGATIVE);
-	}
-}
-
-void tune_failsafe(bool use_buzzer)
-{
-	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_PURPLE, led_control_s::MODE_BLINK_FAST);
-
-	if (use_buzzer) {
-		set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_FAST);
-	}
-}
-
-int blink_msg_state()
-{
-	if (blink_msg_end == 0) {
-		return 0;
-
-	} else if (hrt_absolute_time() > blink_msg_end) {
-		blink_msg_end = 0;
-		return 2;
-
-	} else {
-		return 1;
-	}
-}
-
-int led_init()
-{
-	blink_msg_end = 0;
-
-	led_control.led_mask = 0xff;
-	led_control.mode = led_control_s::MODE_OFF;
-	led_control.priority = 0;
-	led_control.timestamp = hrt_absolute_time();
-	led_control_pub = orb_advertise(ORB_ID(led_control), &led_control);
-
-	/* first open normal LEDs */
-	fd_leds = px4_open(LED0_DEVICE_PATH, O_RDWR);
-
-	if (fd_leds < 0) {
-		// there might not be an LED available, so don't make this an error
-		PX4_INFO("LED: open %s failed (%i)", LED0_DEVICE_PATH, errno);
-		return -errno;
-	}
-
-	/* the green LED is only available on FMUv5 */
-	px4_ioctl(fd_leds, LED_ON, LED_GREEN);
-
-	/* the blue LED is only available on AeroCore but not FMUv2 */
-	px4_ioctl(fd_leds, LED_ON, LED_BLUE);
-
-	/* switch blue off */
-	led_off(LED_BLUE);
-
-	/* we consider the amber led mandatory */
-	if (px4_ioctl(fd_leds, LED_ON, LED_AMBER)) {
-		PX4_WARN("Amber LED: ioctl fail");
-		return PX4_ERROR;
-	}
-
-	/* switch amber off */
-	led_off(LED_AMBER);
-
-	return 0;
-}
-
-void led_deinit()
-{
-	orb_unadvertise(led_control_pub);
-	px4_close(fd_leds);
-}
-
-int led_toggle(int led)
-{
-	return px4_ioctl(fd_leds, LED_TOGGLE, led);
-}
-
-int led_on(int led)
-{
-	return px4_ioctl(fd_leds, LED_ON, led);
-}
-
-int led_off(int led)
-{
-	return px4_ioctl(fd_leds, LED_OFF, led);
-}
-
-void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint8_t prio)
-{
-	led_control.mode = mode;
-	led_control.color = color;
-	led_control.num_blinks = blinks;
-	led_control.priority = prio;
-	led_control.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
-}
-
-void rgbled_set_color_and_mode(uint8_t color, uint8_t mode)
-{
-	rgbled_set_color_and_mode(color, mode, 0, 0);
-}
+ #include <px4_platform_common/defines.h>
+ #include <px4_platform_common/posix.h>
+ #include <stdio.h>
+ #include <unistd.h>
+ #include <stdint.h>
+ #include <stdbool.h>
+ #include <fcntl.h>
+ #include <math.h>
+ #include <string.h>
+ 
+ #include <uORB/uORB.h>
+ #include <uORB/topics/vehicle_status.h>
+ #include <uORB/topics/vehicle_control_mode.h>
+ #include <uORB/topics/led_control.h>
+ #include <uORB/topics/tune_control.h>
+ #include <systemlib/err.h>
+ #include <parameters/param.h>
+ #include <drivers/drv_hrt.h>
+ #include <drivers/drv_tone_alarm.h>
+ 
+ #include "commander_helper.h"
+ 
+ #define VEHICLE_TYPE_FIXED_WING 1
+ #define VEHICLE_TYPE_QUADROTOR 2
+ #define VEHICLE_TYPE_COAXIAL 3
+ #define VEHICLE_TYPE_HELICOPTER 4
+ #define VEHICLE_TYPE_GROUND_ROVER 10
+ #define VEHICLE_TYPE_BOAT 11
+ #define VEHICLE_TYPE_SUBMARINE 12
+ #define VEHICLE_TYPE_HEXAROTOR 13
+ #define VEHICLE_TYPE_OCTOROTOR 14
+ #define VEHICLE_TYPE_TRICOPTER 15
+ #define VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR 19
+ #define VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR 20
+ #define VEHICLE_TYPE_VTOL_TILTROTOR 21
+ #define VEHICLE_TYPE_VTOL_FIXEDROTOR 22 // VTOL standard
+ #define VEHICLE_TYPE_VTOL_TAILSITTER 23
+ 
+ #define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
+ 
+ bool is_multirotor(const vehicle_status_s &current_status)
+ {
+	 return ((current_status.system_type == VEHICLE_TYPE_QUADROTOR) ||
+		 (current_status.system_type == VEHICLE_TYPE_HEXAROTOR) ||
+		 (current_status.system_type == VEHICLE_TYPE_OCTOROTOR) ||
+		 (current_status.system_type == VEHICLE_TYPE_TRICOPTER));
+ }
+ 
+ bool is_rotary_wing(const vehicle_status_s &current_status)
+ {
+	 return is_multirotor(current_status)
+		|| (current_status.system_type == VEHICLE_TYPE_HELICOPTER)
+		|| (current_status.system_type == VEHICLE_TYPE_COAXIAL);
+ }
+ 
+ bool is_vtol(const vehicle_status_s &current_status)
+ {
+	 return (current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR ||
+		 current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR ||
+		 current_status.system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
+		 current_status.system_type == VEHICLE_TYPE_VTOL_FIXEDROTOR ||
+		 current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER);
+ }
+ 
+ bool is_vtol_tailsitter(const vehicle_status_s &current_status)
+ {
+	 return (current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR ||
+		 current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR ||
+		 current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER);
+ }
+ 
+ bool is_fixed_wing(const vehicle_status_s &current_status)
+ {
+	 return current_status.system_type == VEHICLE_TYPE_FIXED_WING;
+ }
+ 
+ bool is_ground_vehicle(const vehicle_status_s &current_status)
+ {
+	 return (current_status.system_type == VEHICLE_TYPE_BOAT ||
+		 current_status.system_type == VEHICLE_TYPE_GROUND_ROVER);
+ }
+ 
+ // End time for currently blinking LED message, 0 if no blink message
+ static hrt_abstime blink_msg_end = 0;
+ static int fd_leds{-1};
+ 
+ static led_control_s led_control {};
+ static orb_advert_t led_control_pub = nullptr;
+ 
+ // Static array that defines the duration of each tune, 0 if it's a repeating tune (therefore no fixed duration)
+ static unsigned int tune_durations[tune_control_s::NUMBER_OF_TUNES] {};
+ 
+ // End time of currently played tune, 0 for repeating tunes or silence
+ static hrt_abstime tune_end = 0;
+ 
+ // currently playing tune, can be interrupted after tune_end
+ static uint8_t tune_current = tune_control_s::TUNE_ID_STOP;
+ 
+ static tune_control_s tune_control {};
+ static orb_advert_t tune_control_pub = nullptr;
+ 
+ 
+ int buzzer_init()
+ {
+	 tune_durations[tune_control_s::TUNE_ID_NOTIFY_POSITIVE] = 800000;
+	 tune_durations[tune_control_s::TUNE_ID_NOTIFY_NEGATIVE] = 900000;
+	 tune_durations[tune_control_s::TUNE_ID_NOTIFY_NEUTRAL] = 500000;
+	 tune_durations[tune_control_s::TUNE_ID_ARMING_WARNING] = 3000000;
+	 tune_durations[tune_control_s::TUNE_ID_HOME_SET] = 800000;
+	 tune_durations[tune_control_s::TUNE_ID_BATTERY_WARNING_FAST] = 800000;
+	 tune_durations[tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW] = 800000;
+	 tune_durations[tune_control_s::TUNE_ID_SINGLE_BEEP] = 300000;
+ 
+	 tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+ 
+	 return PX4_OK;
+ }
+ 
+ void buzzer_deinit()
+ {
+	 orb_unadvertise(tune_control_pub);
+ }
+ 
+ void set_tune_override(const int tune_id)
+ {
+	 tune_control.tune_id = tune_id;
+	 tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+	 tune_control.tune_override = true;
+	 tune_control.timestamp = hrt_absolute_time();
+	 orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
+ }
+ 
+ void set_tune(const int tune_id)
+ {
+	 const hrt_abstime current_time = hrt_absolute_time();
+	 const unsigned int new_tune_duration = tune_durations[tune_id];
+	 const bool current_tune_is_repeating = (tune_end == 0);
+	 const bool new_tune_is_repeating = (new_tune_duration == 0);
+ 
+	 bool set_new_tune = false;
+ 
+	 if (!current_tune_is_repeating) {
+		 // Current non repeating tune has ended
+		 if (current_time > tune_end) {
+			 set_new_tune = true;
+		 }
+ 
+		 // Allow non repeating tune to interrupt current non repeating tune, if it's different
+		 if (!new_tune_is_repeating && (tune_id != tune_current)) {
+			 set_new_tune = true;
+		 }
+ 
+	 } else {
+		 // Allow interrupting repeating tune as long as it's a different tune
+		 if (tune_id != tune_current) {
+			 set_new_tune = true;
+		 }
+	 }
+ 
+	 if (set_new_tune) {
+		 tune_control.tune_id = tune_id;
+		 tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
+		 tune_control.tune_override = false;
+		 tune_control.timestamp = current_time;
+		 orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
+ 
+		 tune_current = tune_id;
+ 
+		 if (new_tune_duration != 0) {
+			 // Set tune ending time for a finite duration tunes
+			 tune_end = current_time + new_tune_duration;
+ 
+		 } else {
+			 // Set tune ending time as 0 to indicate it's a repeating tune
+			 tune_end = 0;
+		 }
+	 }
+ }
+ 
+ void tune_home_set(bool use_buzzer)
+ {
+	 blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	 rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
+ 
+	 if (use_buzzer) {
+		 set_tune(tune_control_s::TUNE_ID_HOME_SET);
+	 }
+ }
+ 
+ void tune_mission_ok(bool use_buzzer)
+ {
+	 blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	 rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
+ 
+	 if (use_buzzer) {
+		 set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
+	 }
+ }
+ 
+ void tune_mission_warn(bool use_buzzer)
+ {
+	 blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	 rgbled_set_color_and_mode(led_control_s::COLOR_YELLOW, led_control_s::MODE_BLINK_FAST);
+ 
+	 if (use_buzzer) {
+		 set_tune(tune_control_s::TUNE_ID_NOTIFY_NEUTRAL);
+	 }
+ }
+ 
+ void tune_mission_fail(bool use_buzzer)
+ {
+	 blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	 rgbled_set_color_and_mode(led_control_s::COLOR_RED, led_control_s::MODE_BLINK_FAST);
+ 
+	 if (use_buzzer) {
+		 set_tune(tune_control_s::TUNE_ID_NOTIFY_NEGATIVE);
+	 }
+ }
+ 
+ /**
+  * Blink green LED and play positive tune (if use_buzzer == true).
+  */
+ void tune_positive(bool use_buzzer)
+ {
+	 blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	 rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
+ 
+	 if (use_buzzer) {
+		 set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
+	 }
+ }
+ 
+ /**
+  * Blink white LED and play neutral tune (if use_buzzer == true).
+  */
+ void tune_neutral(bool use_buzzer)
+ {
+	 blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	 rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST);
+ 
+	 if (use_buzzer) {
+		 set_tune(tune_control_s::TUNE_ID_NOTIFY_NEUTRAL);
+	 }
+ }
+ 
+ /**
+  * Blink red LED and play negative tune (if use_buzzer == true).
+  */
+ void tune_negative(bool use_buzzer)
+ {
+	 blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	 rgbled_set_color_and_mode(led_control_s::COLOR_RED, led_control_s::MODE_BLINK_FAST);
+ 
+	 if (use_buzzer) {
+		 set_tune(tune_control_s::TUNE_ID_NOTIFY_NEGATIVE);
+	 }
+ }
+ 
+ void tune_failsafe(bool use_buzzer)
+ {
+	 blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	 rgbled_set_color_and_mode(led_control_s::COLOR_PURPLE, led_control_s::MODE_BLINK_FAST);
+ 
+	 if (use_buzzer) {
+		 set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_FAST);
+	 }
+ }
+ 
+ int blink_msg_state()
+ {
+	 if (blink_msg_end == 0) {
+		 return 0;
+ 
+	 } else if (hrt_absolute_time() > blink_msg_end) {
+		 blink_msg_end = 0;
+		 return 2;
+ 
+	 } else {
+		 return 1;
+	 }
+ }
+ 
+ int led_init()
+ {
+	 blink_msg_end = 0;
+ 
+	 led_control.led_mask = 0xff;
+	 led_control.mode = led_control_s::MODE_OFF;
+	 led_control.priority = 0;
+	 led_control.timestamp = hrt_absolute_time();
+	 led_control_pub = orb_advertise(ORB_ID(led_control), &led_control);
+ 
+	 /* first open normal LEDs */
+	 fd_leds = px4_open(LED0_DEVICE_PATH, O_RDWR);
+ 
+	 if (fd_leds < 0) {
+		 // there might not be an LED available, so don't make this an error
+		 PX4_INFO("LED: open %s failed (%i)", LED0_DEVICE_PATH, errno);
+		 return -errno;
+	 }
+ 
+	 /* the green LED is only available on FMUv5 */
+	 px4_ioctl(fd_leds, LED_ON, LED_GREEN);
+ 
+	 /* the blue LED is only available on AeroCore but not FMUv2 */
+	 px4_ioctl(fd_leds, LED_ON, LED_BLUE);
+ 
+	 /* switch blue off */
+	 led_off(LED_BLUE);
+ 
+	 /* we consider the amber led mandatory */
+	 if (px4_ioctl(fd_leds, LED_ON, LED_AMBER)) {
+		 PX4_WARN("Amber LED: ioctl fail");
+		 return PX4_ERROR;
+	 }
+ 
+	 /* switch amber off */
+	 led_off(LED_AMBER);
+ 
+	 return 0;
+ }
+ 
+ void led_deinit()
+ {
+	 orb_unadvertise(led_control_pub);
+	 px4_close(fd_leds);
+ }
+ 
+ int led_toggle(int led)
+ {
+	 return px4_ioctl(fd_leds, LED_TOGGLE, led);
+ }
+ 
+ int led_on(int led)
+ {
+	 return px4_ioctl(fd_leds, LED_ON, led);
+ }
+ 
+ int led_off(int led)
+ {
+	 return px4_ioctl(fd_leds, LED_OFF, led);
+ }
+ 
+ void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint8_t prio)
+ {
+	 led_control.mode = mode;
+	 led_control.color = color;
+	 led_control.num_blinks = blinks;
+	 led_control.priority = prio;
+	 led_control.timestamp = hrt_absolute_time();
+	 orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
+ }
+ 
+ void rgbled_set_color_and_mode(uint8_t color, uint8_t mode)
+ {
+	 rgbled_set_color_and_mode(color, mode, 0, 0);
+ }

@@ -45,6 +45,7 @@
 
 // clock access
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 using namespace time_literals;
 
 #include "uorb_to_msp.hpp"
@@ -593,8 +594,8 @@ msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_ai
 
 
 
-	distance.screenYPosition = 0x07;
-	distance.screenXPosition = 0x29;
+	distance.screenYPosition = 0x05;
+	distance.screenXPosition = 0x02;
 
 	// Use the observation from the estimator aid source (processed range finder height)
 	float dist = estimator_aid_src_rng_hgt.observation;
@@ -604,17 +605,36 @@ msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_ai
 		snprintf(&distance.str[0], sizeof(distance.str), "%.2f", static_cast<double>(dist));
 	}
 	else if (PX4_ISFINITE(dist) && !estimator_aid_src_rng_hgt.fused) {
-		memset(&distance.str[0], 0, sizeof(distance.str));
-		snprintf(&distance.str[0], sizeof(distance.str), "no fused");
+		snprintf(&distance.str[0], sizeof(distance.str), "N.A");
 	}
 	else {
-		memset(&distance.str[0], 0, sizeof(distance.str));
-		snprintf(&distance.str[0], sizeof(distance.str), "no data");
+		snprintf(&distance.str[0], sizeof(distance.str), "N.A");
 	}
-	PX4_INFO("Distance: %f", dist);
-
 	return distance;
 }
+
+msp_rendor_total_arm_time_t construct_rendor_TOTAL_ARM_TIME(const total_arm_time_s &total_arm_time)
+{
+	msp_rendor_total_arm_time_t render_total_arm_time;
+
+	render_total_arm_time.screenYPosition = 0x06;
+	render_total_arm_time.screenXPosition = 0x02;
+
+	// Convert milliseconds to mm:ss format
+	uint64_t total_seconds = total_arm_time.total_arm_time_ms / 1000;
+	uint64_t minutes = total_seconds / 60;
+	uint64_t seconds = total_seconds % 60;
+
+	// Format as "mm:ss" (e.g., "05:23" for 5 minutes 23 seconds)
+	snprintf(&render_total_arm_time.str[0], sizeof(render_total_arm_time.str), "%02llu:%02llu", minutes, seconds);
+	PX4_INFO("Total arm time mm:ss: %s", render_total_arm_time.str);
+
+	return render_total_arm_time;
+}
+
+
+
+
 
 
 

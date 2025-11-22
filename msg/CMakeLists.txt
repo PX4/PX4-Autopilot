@@ -276,6 +276,7 @@ set(msg_files
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg
 	ddsFlag.msg
+	totalArmTime.msg
 )
 list(SORT msg_files)
 

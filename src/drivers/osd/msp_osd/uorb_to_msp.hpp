@@ -41,6 +41,8 @@
 // basic types
 #include <cmath>
 
+#include <px4_platform_common/px4_config.h>
+
 // UORB topic structs
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
@@ -57,6 +59,7 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/estimator_aid_source1d.h>
+#include <uORB/topics/total_arm_time.h>
 
 // PX4 events interface
 #include <px4_platform_common/events.h>
@@ -124,15 +127,17 @@ msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_
 msp_rendor_distanceToHome_t construct_rendor_distanceToHome(const home_position_s &home_position,
 		const vehicle_global_position_s &vehicle_global_position);
 
-msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_aid_source1d_s &estimator_aid_src_rng_hgt);
-
+		
 // construct an MSP_ESC_SENSOR_DATA struct
 msp_esc_sensor_data_dji_t construct_ESC_SENSOR_DATA();
-
+		
 // construct an MSP_RC struct
 msp_rc_t construct_MSP_RC(const input_rc_s &input_rc);
-
+		
 // construct an MSP_STATUS struct
 msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status);
 
+msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_aid_source1d_s &estimator_aid_src_rng_hgt);
+
+msp_rendor_total_arm_time_t construct_rendor_TOTAL_ARM_TIME(const total_arm_time_s &total_arm_time);
 } // namespace msp_osd

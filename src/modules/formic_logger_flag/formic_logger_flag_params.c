@@ -7,8 +7,10 @@
  * Set via QGroundControl so the module knows which RC channel
  * should trigger its behavior (1-18, 0 disables).
  *
- * @group Formic Debug
+ * @min 0
+ * @max 18
  * @value 0 Disabled
+ * @group Formic Debug
  */
 PARAM_DEFINE_INT32(FLF_RC_CH, 0);
 

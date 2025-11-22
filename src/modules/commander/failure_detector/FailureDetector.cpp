@@ -472,3 +472,21 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 		_status.flags.motor = false;
 	}
 }
+
+void FailureDetector::publishStatus()
+{
+	failure_detector_status_s failure_detector_status{};
+	failure_detector_status.timestamp = hrt_absolute_time();
+	failure_detector_status.fd_roll = _status.flags.roll;
+	failure_detector_status.fd_pitch = _status.flags.pitch;
+	failure_detector_status.fd_alt = _status.flags.alt;
+	failure_detector_status.fd_ext = _status.flags.ext;
+	failure_detector_status.fd_arm_escs = _status.flags.arm_escs;
+	failure_detector_status.fd_battery = _status.flags.battery;
+	failure_detector_status.fd_imbalanced_prop = _status.flags.imbalanced_prop;
+	failure_detector_status.fd_motor = _status.flags.motor;
+	failure_detector_status.imbalanced_prop_metric = _imbalanced_prop_lpf.getState();
+	failure_detector_status.motor_failure_mask = getMotorFailures();
+
+	_failure_detector_status_pub.publish(failure_detector_status);
+}
