@@ -581,6 +581,20 @@ PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
 PARAM_DEFINE_INT32(FW_LAUN_DETCN_ON, 0);
 
 /**
+ * Pre-launch throttle
+ *
+ * Throttle value set before launch detection and until the motor delay is up.
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Auto Takeoff
+ */
+PARAM_DEFINE_FLOAT(FW_THR_PRE_LAUN, 0.0f);
+
+/**
  * Flaps setting during take-off
  *
  * Sets a fraction of full flaps during take-off.
