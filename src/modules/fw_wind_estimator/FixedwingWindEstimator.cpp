@@ -1,0 +1,241 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+#include "FixedwingWindEstimator.hpp"
+
+using namespace time_literals;
+using namespace matrix;
+
+using math::constrain;
+using math::interpolate;
+using math::radians;
+
+FixedwingWindEstimator::FixedwingWindEstimator(bool vtol) :
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+{
+	_handle_param_vt_fw_difthr_en = param_find("VT_FW_DIFTHR_EN");
+
+	/* fetch initial parameter values */
+	parameters_update();
+
+}
+
+FixedwingWindEstimator::~FixedwingWindEstimator()
+{
+	perf_free(_loop_perf);
+}
+
+bool
+FixedwingWindEstimator::init()
+{
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
+	return true;
+}
+
+int
+FixedwingWindEstimator::parameters_update()
+{
+	if (_handle_param_vt_fw_difthr_en != PARAM_INVALID) {
+		param_get(_handle_param_vt_fw_difthr_en, &_param_vt_fw_difthr_en);
+	}
+
+
+	return PX4_OK;
+}
+
+void
+FixedwingWindEstimator::vehicle_land_detected_poll()
+{
+	if (_vehicle_land_detected_sub.updated()) {
+		vehicle_land_detected_s vehicle_land_detected {};
+
+		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+			_landed = vehicle_land_detected.landed;
+		}
+	}
+}
+
+float FixedwingWindEstimator::get_airspeed_and_update_scaling()
+{
+	_airspeed_validated_sub.update();
+	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
+				    && (hrt_elapsed_time(&_airspeed_validated_sub.get().timestamp) < 1_s);
+
+	// if no airspeed measurement is available out best guess is to use the trim airspeed
+	float airspeed = _param_fw_airspd_trim.get();
+
+	if (airspeed_valid) {
+		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
+		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
+
+	} else {
+		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
+		// this assumption is good as long as the vehicle is not hovering in a headwind which is much larger
+		// than the stall airspeed
+		if (_vehicle_status.is_vtol && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    && !_vehicle_status.in_transition_mode) {
+			airspeed = _param_fw_airspd_stall.get();
+		}
+	}
+
+	return airspeed;
+}
+
+void FixedwingWindEstimator::Run()
+{
+	if (should_exit()) {
+		_vehicle_angular_velocity_sub.unregisterCallback();
+		exit_and_cleanup();
+		return;
+	}
+
+	perf_begin(_loop_perf);
+
+	// only run controller if angular velocity changed
+	if (_vehicle_angular_velocity_sub.updated() || (hrt_elapsed_time(&_last_run) > 20_ms)) { //TODO rate!
+
+		// only update parameters if they changed
+		bool params_updated = _parameter_update_sub.updated();
+
+		// check for parameter updates
+		if (params_updated) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
+
+			// update parameters from storage
+			updateParams();
+			parameters_update();
+		}
+
+		float dt = 0.f;
+
+		static constexpr float DT_MIN = 0.002f;
+		static constexpr float DT_MAX = 0.04f;
+
+		vehicle_angular_velocity_s vehicle_angular_velocity{};
+
+		if (_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity)) {
+			dt = math::constrain((vehicle_angular_velocity.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
+			_last_run = vehicle_angular_velocity.timestamp_sample;
+		}
+
+		if (dt < DT_MIN || dt > DT_MAX) {
+			const hrt_abstime time_now_us = hrt_absolute_time();
+			dt = math::constrain((time_now_us - _last_run) * 1e-6f, DT_MIN, DT_MAX);
+			_last_run = time_now_us;
+		}
+
+		_vehicle_control_mode_sub.update(&_vcontrol_mode);
+
+		vehicle_land_detected_poll();
+
+		/* if we are in rotary wing mode, do nothing */
+		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
+			perf_end(_loop_perf);
+			return;
+		}
+	}
+	// backup schedule
+	ScheduleDelayed(20_ms);
+
+	perf_end(_loop_perf);
+}
+
+int FixedwingWindEstimator::task_spawn(int argc, char *argv[])
+{
+	bool vtol = false;
+
+	if (argc > 1) {
+		if (strcmp(argv[1], "vtol") == 0) {
+			vtol = true;
+		}
+	}
+
+	FixedwingWindEstimator *instance = new FixedwingWindEstimator(vtol);
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
+}
+
+int FixedwingWindEstimator::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int FixedwingWindEstimator::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+fw_rate_control is the fixed-wing rate controller.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("fw_rate_control", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+extern "C" __EXPORT int fw_wind_estimator_main(int argc, char *argv[])
+{
+	return FixedwingWindEstimator::main(argc, argv);
+}
