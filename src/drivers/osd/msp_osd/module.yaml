@@ -41,6 +41,8 @@ parameters:
                 20: (unused) HORIZON_SIDEBARS
                 21: POWER
                 22: DISTANCE_SENSOR
+                23: ARM_TIME
+                24: FORMIC_RING
             default: 16383
 
         # OSD Crosshairs Vertical Position

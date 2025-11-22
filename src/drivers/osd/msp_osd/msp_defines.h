@@ -589,6 +589,15 @@ struct msp_uid_t {
 	uint32_t uid2;
 } __attribute__((packed));
 
+struct msp_rendor_formic_ring_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x00; // no icon
+
+	char str[4]; // V or X character
+} __attribute__((packed));
 
 // MSP_FEATURE mask
 #define MSP_FEATURE_RX_PPM              (1 <<  0)

@@ -34,14 +34,10 @@
 /**
  * @file FlightTaskTurtle_mode.hpp
  *
- * Wrapper header for turtle mode flight task
- * This file is required by the template system which expects FlightTaskTurtle_mode
+ * Alias header for the generated code - includes TurtelMode.hpp
  */
 
 #pragma once
 
 #include "TurtelMode.hpp"
-
-// The template system expects FlightTaskTurtle_mode class name
-// This is already defined in TurtelMode.hpp via the typedef
 

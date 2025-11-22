@@ -75,11 +75,27 @@ bool TurtleMode::update()
 {
 	bool ret = FlightTaskManualAltitude::update();
 
+
+
 	// In turtle mode, we want full manual control without altitude lock
 	// The base class handles most of the work, but we ensure no position locking
-	_terrain_hold = false;
 
+	_publishMotorOutputs();
 	return ret;
+}
+
+
+void TurtleMode::_publishMotorOutputs(){
+
+	actuator_motors_s motor_outputs;
+	motor_outputs.timestamp = hrt_absolute_time();
+	motor_outputs.control[0] = 0.2f;
+	motor_outputs.control[1] = 0.2f;
+	motor_outputs.control[2] = 0.2f;
+	motor_outputs.control[3] = 0.2f;
+
+	PX4_INFO("Publishing motor outputs: %f, %f, %f, %f", (double)motor_outputs.control[0], (double)motor_outputs.control[1], (double)motor_outputs.control[2], (double)motor_outputs.control[3]);
+	_actuator_motors_pub.publish(motor_outputs);
 }
 
 

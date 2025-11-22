@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/total_arm_time.h>
+#include <uORB/topics/dds_flag.h>
 
 #include "MspV1.hpp"
 #include "MessageDisplay/MessageDisplay.hpp"
@@ -101,7 +102,8 @@ enum SymbolIndex : uint8_t {
 	HORIZON_SIDEBARS	= 20,
 	POWER			= 21,
 	DISTANCE_SENSOR	= 22,
-	TOTAL_ARM_TIME		= 23
+	TOTAL_ARM_TIME		= 23,
+	FORMIC_RING		= 24,
 };
 
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
@@ -169,6 +171,7 @@ private:
 	uORB::Subscription _estimator_aid_src_rng_hgt_sub{ORB_ID(estimator_aid_src_rng_hgt)};
 	uORB::Subscription _total_arm_time_sub{ORB_ID(total_arm_time)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _dds_flag_sub{ORB_ID(dds_flag)};
 
 	// local heartbeat
 	bool _heartbeat{false};

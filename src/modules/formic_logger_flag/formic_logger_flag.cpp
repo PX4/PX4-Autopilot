@@ -17,6 +17,7 @@ bool FormicLoggerFlag::init()
 {
 	ScheduleOnInterval(100_ms);
 	return true;
+	parameters_update();
 }
 
 void FormicLoggerFlag::parameters_update(bool force)
@@ -36,7 +37,6 @@ void FormicLoggerFlag::Run()
 		return;
 	}
 
-	parameters_update();
 	run_once();
 }
 
@@ -91,7 +91,7 @@ FormicLoggerFlag *FormicLoggerFlag::instantiate(int argc, char *argv[])
 
 void FormicLoggerFlag::run_once()
 {
-	const int32_t selected_channel = _param_flf_rc_ch.get();
+	const int32_t selected_channel = _param_formic_logger_flag_rc_ch.get();
 
 	if (selected_channel != _active_rc_channel) {
 		_active_rc_channel = selected_channel;
