@@ -37,6 +37,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -54,6 +55,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls_status.h>
+#include <uORB/topics/airspeed_filtered.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
@@ -114,6 +116,7 @@ private:
 	uORB::SubscriptionData<airspeed_validated_s> _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
 	uORB::Publication<actuator_controls_status_s>	_actuator_controls_status_pub;
+	uORB::Publication<airspeed_filtered_s>		_airspeed_filtered_pub{ORB_ID(airspeed_filtered)};
 	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub;
@@ -131,6 +134,9 @@ private:
 	perf_counter_t _loop_perf;
 
 	hrt_abstime _last_run{0};
+	hrt_abstime _last_airspeed_update{0};
+
+	AlphaFilter<float> _airspeed_filter_for_torque_scaling;
 
 	float _airspeed_scaling{1.0f};
 
