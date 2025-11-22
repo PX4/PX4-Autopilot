@@ -53,21 +53,14 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/control_allocator_status.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
-#include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_acceleration.h>
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -101,30 +94,28 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};     	// linear acceleration
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
-	uORB::SubscriptionMultiArray<control_allocator_status_s, 2> _control_allocator_status_subs{ORB_ID::control_allocator_status};
-
-	uORB::SubscriptionData<airspeed_validated_s> _airspeed_validated_sub{ORB_ID(airspeed_validated)};
-
-	manual_control_setpoint_s		_manual_control_setpoint{};
 	vehicle_control_mode_s			_vcontrol_mode{};
-	vehicle_thrust_setpoint_s		_vehicle_thrust_setpoint{};
-	vehicle_torque_setpoint_s		_vehicle_torque_setpoint{};
-	vehicle_rates_setpoint_s		_rates_sp{};
 	vehicle_status_s			_vehicle_status{};
+	vehicle_attitude_s 			_vehicle_attitude{};
 
 	perf_counter_t _loop_perf;
 
 	hrt_abstime _last_run{0};
 
 	float _airspeed_scaling{1.0f};
+	float _calibrated_airspeed{1.0f};
+	float _true_airspeed{1.0f};
+	matrix::Quatf 				_attitude{};
+	matrix::Vector3f	_acceleration{};
+	matrix::Vector3f _gravity{0.f, 0.f, 9.81f};
 
 	bool _landed{true};
 
@@ -197,5 +188,8 @@ private:
 	int		parameters_update();
 	void		vehicle_land_detected_poll();
 
-	float 		get_airspeed_and_update_scaling();
+	void 		airspeed_poll();
+	void		vehicle_acceleration_poll();
+	void		vehicle_attitude_poll();
+	matrix::Vector3f	compute_wind_estimate();
 };

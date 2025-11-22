@@ -91,30 +91,59 @@ FixedwingWindEstimator::vehicle_land_detected_poll()
 	}
 }
 
-float FixedwingWindEstimator::get_airspeed_and_update_scaling()
+void FixedwingWindEstimator::airspeed_poll()
 {
-	_airspeed_validated_sub.update();
-	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
-				    && (hrt_elapsed_time(&_airspeed_validated_sub.get().timestamp) < 1_s);
+	airspeed_validated_s airspeed_validated;
 
-	// if no airspeed measurement is available out best guess is to use the trim airspeed
-	float airspeed = _param_fw_airspd_trim.get();
-
-	if (airspeed_valid) {
-		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
-
-	} else {
-		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
-		// this assumption is good as long as the vehicle is not hovering in a headwind which is much larger
-		// than the stall airspeed
-		if (_vehicle_status.is_vtol && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-		    && !_vehicle_status.in_transition_mode) {
-			airspeed = _param_fw_airspd_stall.get();
-		}
+	if (_airspeed_validated_sub.update(&airspeed_validated)) {
+		_calibrated_airspeed = math::max(0.5f, airspeed_validated.calibrated_airspeed_m_s);
+		_true_airspeed = math::max(0.5f, airspeed_validated.true_airspeed_m_s);
 	}
+}
 
-	return airspeed;
+
+void
+FixedwingWindEstimator::vehicle_attitude_poll()
+{
+	if (_vehicle_attitude_sub.update(&_vehicle_attitude)) {
+		// get rotation between NED frames
+		_attitude = Quatf(_vehicle_attitude.q);
+	}
+}
+
+void
+FixedwingWindEstimator::vehicle_acceleration_poll()
+{
+	//vehicle_local_position_s pos;
+	///TODO: We should probably get it from the imu, not the local one?
+	vehicle_acceleration_s vehicle_acceleration;
+	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)){
+		Dcmf R_ib(_attitude);
+		_acceleration = R_ib*Vector3f(vehicle_acceleration.xyz) - _gravity;
+	}
+}
+
+matrix::Vector3f FixedwingWindEstimator::compute_wind_estimate()
+{
+	float _stall_airspeed{1.0f};
+	float _rho{1.225};
+	float _area{1.0};
+	float _C_B1{1.0};
+	float _mass{1.0};
+
+	Dcmf R_ib(_attitude);
+	Dcmf R_bi(R_ib.transpose());
+	// compute expected AoA from g-forces:
+	matrix::Vector3f body_force = _mass * R_bi * (_acceleration + _gravity);
+
+	// ***************** NEW COMPUTATION FROM MATLAB CALIBRATION **********************
+	float speed = fmaxf(_calibrated_airspeed, _stall_airspeed);
+	float u_approx = _true_airspeed;
+	float v_approx = body_force(1) * _true_airspeed / (0.5f * _rho * powf(speed, 2) * _area * _C_B1);
+	float w_approx = (-body_force(2) * _true_airspeed / (0.5f * _rho * powf(speed, 2) * _area) - 0.1949f) / 3.5928f;
+	matrix::Vector3f vel_air = R_ib * (matrix::Vector3f{u_approx, v_approx, w_approx});
+
+	return vel_air;
 }
 
 void FixedwingWindEstimator::Run()
@@ -165,6 +194,15 @@ void FixedwingWindEstimator::Run()
 		_vehicle_control_mode_sub.update(&_vcontrol_mode);
 
 		vehicle_land_detected_poll();
+		airspeed_poll();
+		vehicle_attitude_poll();
+
+		matrix::Vector3f air_velocity = compute_wind_estimate();
+
+		// compute wind from wind triangle
+		matrix::Vector3f _vehcile_local_velocity;
+		matrix::Vector3f wind = _vehcile_local_velocity - air_velocity;
+		PX4_INFO("wind estimate: \t%.1f, \t%.1f, \t%.1f", (double)wind(0), (double)wind(1), (double)wind(2));
 
 		/* if we are in rotary wing mode, do nothing */
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
@@ -172,6 +210,7 @@ void FixedwingWindEstimator::Run()
 			return;
 		}
 	}
+
 	// backup schedule
 	ScheduleDelayed(20_ms);
 
