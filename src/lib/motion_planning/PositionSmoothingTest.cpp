@@ -46,6 +46,7 @@ public:
 		_position_smoothing.setMaxJerk(MAX_JERK);
 		_position_smoothing.setMaxAcceleration({MAX_ACCELERATION, MAX_ACCELERATION, MAX_ACCELERATION});
 		_position_smoothing.setMaxVelocity({MAX_VELOCITY, MAX_VELOCITY, MAX_VELOCITY});
+		_position_smoothing.setMaxSpeedAndAccelerationZ(MAX_VELOCITY, MAX_VELOCITY, MAX_ACCELERATION, MAX_ACCELERATION);
 		_position_smoothing.setMaxAllowedHorizontalError(MAX_ALLOWED_HOR_ERR);
 		_position_smoothing.setVerticalAcceptanceRadius(VERTICAL_ACCEPTANCE_RADIUS);
 		_position_smoothing.setCruiseSpeed(CRUISE_SPEED);
