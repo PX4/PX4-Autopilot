@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__mcp23009
-	MAIN mcp23009
-	COMPILE_FLAGS
-	SRCS
-		mcp23009_main.cpp
-		mcp23009.cpp
-	DEPENDS
+px4_add_library(platform_gpio_mcp23017
+		mcp23017.cpp
 	)
+target_link_libraries(platform_gpio_mcp23017 PRIVATE drivers__device) # device::I2C

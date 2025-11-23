@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,145 +30,111 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/**
- * Driver for the MCP23009 connected via I2C.
- */
-
-#include "mcp23009.h"
+#include "MCP.hpp"
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/getopt.h>
+#include "MCP23009.hpp"
+#include "MCP23017.hpp"
 
-MCP23009::MCP23009(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample"))
+void MCP230XX::print_usage()
 {
-}
-
-MCP23009::~MCP23009()
-{
-	ScheduleClear();
-	perf_free(_cycle_perf);
-}
-
-int MCP23009::init_uorb()
-{
-	if (!_gpio_config_sub.registerCallback() ||
-	    !_gpio_request_sub.registerCallback() ||
-	    !_gpio_out_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return -1;
-	}
-
-	return PX4_OK;
-}
-
-void MCP23009::exit_and_cleanup()
-{
-	_gpio_config_sub.unregisterCallback();
-	_gpio_request_sub.unregisterCallback();
-	_gpio_out_sub.unregisterCallback();
-}
-
-void MCP23009::RunImpl()
-{
-	perf_begin(_cycle_perf);
-
-	gpio_config_s config;
-
-	if (_gpio_config_sub.update(&config) && config.device_id == get_device_id()) {
-		PinType type = PinType::Input;
-
-		switch (config.config) {
-		case config.INPUT_PULLUP:	type = PinType::InputPullUp; break;
-
-		case config.OUTPUT:		type = PinType::Output; break;
-		}
-
-		write(config.state, config.mask);
-		configure(config.mask, type);
-	}
-
-	gpio_out_s output;
-
-	if (_gpio_out_sub.update(&output) && output.device_id == get_device_id()) {
-		write(output.state, output.mask);
-	}
-
-	// read every time we run, either when requested or when scheduled on interval
-	{
-		gpio_in_s _gpio_in;
-		_gpio_in.timestamp = hrt_absolute_time();
-		_gpio_in.device_id = get_device_id();
-		uint8_t input;
-		read(&input);
-		_gpio_in.state = input;
-		_to_gpio_in.publish(_gpio_in);
-	}
-
-	perf_end(_cycle_perf);
-}
-
-void MCP23009::print_usage()
-{
-	PRINT_MODULE_USAGE_NAME("MCP23009", "driver");
+	PRINT_MODULE_USAGE_NAME("mcp230xx", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x25);
-	PRINT_MODULE_USAGE_PARAM_INT('D', 0, 0, 255, "Direction", true);
-	PRINT_MODULE_USAGE_PARAM_INT('O', 0, 0, 255, "Output", true);
-	PRINT_MODULE_USAGE_PARAM_INT('P', 0, 0, 255, "Pullups", true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x27);
+	PRINT_MODULE_USAGE_PARAM_INT('D', 0, 0, 65535, "Direction (1=Input, 0=Output)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('O', 0, 0, 65535, "Output", true);
+	PRINT_MODULE_USAGE_PARAM_INT('P', 0, 0, 65535, "Pullups", true);
 	PRINT_MODULE_USAGE_PARAM_INT('U', 0, 0, 1000, "Update Interval [ms]", true);
+	PRINT_MODULE_USAGE_PARAM_INT('M', 0, 0, 255, "First minor number", true);
+	PRINT_MODULE_USAGE_PARAM_INT('Q', 0, 0, 255, "I2C Bus", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('A', "Use MCP23009", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('B', "Use MCP23017", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-void MCP23009::print_status()
-{
-	I2CSPIDriverBase::print_status();
-	perf_print_counter(_cycle_perf);
-}
-
 struct init_config_t {
-	uint16_t interval;
-	uint8_t direction;
-	uint8_t state;
-	uint8_t pullup;
+	uint16_t device_type;
+
+	uint16_t direction = 0xFFFF; // READ ON ALL PINS
+	uint16_t state = 0x0000;
+	uint16_t pullup = 0x0000;
+	uint16_t interval = 1;
+	int first_minor = 0;
+	uint8_t i2c_addr = 0;
+	uint8_t i2c_bus = 0;
 };
 
-I2CSPIDriverBase *MCP23009::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
+I2CSPIDriverBase *MCP230XX::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	auto *init = (const init_config_t *)config.custom_data;
-	auto *instance = new MCP23009(config);
+	MCP230XX *instance = nullptr;
+
+	switch (config.devid_driver_index) {
+	case DRV_GPIO_DEVTYPE_MCP23009:
+		instance = new MCP23009(config);
+		break;
+
+	case DRV_GPIO_DEVTYPE_MCP23017:
+		instance = new MCP23017(config);
+		break;
+
+	default:
+		instance = nullptr;
+		break;
+	}
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
 		return nullptr;
 	}
 
-	if (OK != instance->init(init->direction, init->state, init->pullup)) {
+	if (OK != instance->init()) {
 		delete instance;
 		return nullptr;
 	}
 
-	if (init->interval) {
-		instance->ScheduleOnInterval(init->interval * 1000);
-	}
+	instance->_iodir = init->direction;
+	instance->_olat = init->state;
+	instance->_gppu = init->pullup;
+
+	instance->mcp_config.bus = init->i2c_bus;
+	instance->mcp_config.i2c_addr = init->i2c_addr;
+	instance->mcp_config.device_type = init->device_type;
+	instance->mcp_config.first_minor = init->first_minor;
+	instance->mcp_config.interval = init->interval;
 
 	return instance;
 }
 
-extern "C" int mcp23009_main(int argc, char *argv[])
+extern "C" int mcp230xx_main(int argc, char *argv[])
 {
-	using ThisDriver = MCP23009;
+
+	using ThisDriver = MCP230XX;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
-	cli.i2c_address = 0x25;
+	cli.i2c_address = I2C_ADDRESS_MCP23009;
 	init_config_t config_data{};
 
 	int ch;
+	uint16_t device_type = 0;
+	const char *name = MODULE_NAME;
 
-	while ((ch = cli.getOpt(argc, argv, "D:O:P:U:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "ABD:O:P:U:R:M:Q:")) != EOF) {
 		switch (ch) {
+		case 'A':
+			device_type = DRV_GPIO_DEVTYPE_MCP23009;
+			name = MODULE_NAME "23009";
+			cli.i2c_address = I2C_ADDRESS_MCP23009;
+			config_data.i2c_addr = I2C_ADDRESS_MCP23009;
+			break;
+
+		case 'B':
+			device_type = DRV_GPIO_DEVTYPE_MCP23017;
+			name = MODULE_NAME "23017";
+			cli.i2c_address = I2C_ADDRESS_MCP23017;
+			config_data.i2c_addr = I2C_ADDRESS_MCP23017;
+			break;
 		case 'D':
 			config_data.direction = (int)strtol(cli.optArg(), nullptr, 0);
 			break;
@@ -184,10 +150,19 @@ extern "C" int mcp23009_main(int argc, char *argv[])
 		case 'U':
 			config_data.interval = atoi(cli.optArg());
 			break;
+
+		case 'M':
+			config_data.first_minor = (uint8_t)atoi(cli.optArg());
+			break;
+
+		case 'Q':
+			int tmp_bus = (int)atoi(cli.optArg());
+			cli.requested_bus = tmp_bus;
+			config_data.i2c_bus = (uint8_t) tmp_bus;
+			break;
+
 		}
 	}
-
-	cli.custom_data = &config_data;
 
 	const char *verb = cli.optArg();
 
@@ -196,7 +171,8 @@ extern "C" int mcp23009_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_GPIO_DEVTYPE_MCP23009);
+	cli.custom_data = &config_data;
+	BusInstanceIterator iterator(name, cli, device_type);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

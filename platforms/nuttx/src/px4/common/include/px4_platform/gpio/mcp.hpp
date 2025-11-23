@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,13 @@
 #pragma once
 
 #include <stdint.h>
+#include <nuttx/config.h>
+#include <nuttx/ioexpander/gpio.h>
 
-int mcp23009_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor = 0, uint16_t dir_mask = 0x00);
-int mcp23009_unregister_gpios(int first_minor = 0);
+struct mcp_gpio_dev_s {
+	struct gpio_dev_s gpio;
+	uint16_t mask;
+};
+
+int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor = 0, uint16_t dir_mask = 0x0000, int num_pins = 8, uint8_t device_type = 0, mcp_gpio_dev_s *_gpio = nullptr);
+int mcp230XX_unregister_gpios(int first_minor = 0, int num_pins = 0, mcp_gpio_dev_s *_gpio = nullptr);

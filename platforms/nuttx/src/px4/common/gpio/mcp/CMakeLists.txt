@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,47 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
-	add_compile_definitions(BOOTLOADER)
-	add_library(drivers_board
-		bootloader_main.c
-		init.cpp
-		timer_config.cpp
+px4_add_library(platform_gpio_mcp
+		mcp.cpp
 	)
-	target_link_libraries(drivers_board
-		PRIVATE
-			nuttx_arch # sdio
-			nuttx_drivers # sdio
-			px4_layer #gpio
-			arch_io_pins # iotimer
-			bootloader
-	)
-	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
-
-else()
-	add_library(drivers_board
-		can.c
-		i2c.cpp
-		init.cpp
-		led.c
-		mtd.cpp
-		sdio.c
-		spi.cpp
-		timer_config.cpp
-	)
-	add_dependencies(drivers_board arch_board_hw_info)
-
-	target_link_libraries(drivers_board
-		PRIVATE
-			arch_io_pins
-			arch_spi
-			arch_board_hw_info
-			drivers__led # drv_led_start
-			nuttx_arch # sdio
-			nuttx_drivers # sdio
-			px4_layer
-			platform_gpio_mcp23009
-			platform_gpio_mcp23017
-			platform_gpio_mcp
-	)
-endif()
+target_link_libraries(platform_gpio_mcp PRIVATE drivers__device) # device::I2C

@@ -30,94 +30,77 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include "MCP23009.hpp"
 
-#include "mcp23009.h"
-
-int MCP23009::read_reg(Register address, uint8_t &data)
+MCP23009::MCP23009(const I2CSPIDriverConfig &config) :
+	MCP230XX(config)
 {
-	return transfer((uint8_t *)&address, 1, &data, 1);
 }
 
-int MCP23009::write_reg(Register address, uint8_t value)
+MCP23009::~MCP23009()
 {
-	uint8_t data[2] = {(uint8_t)address, value};
-	return transfer(data, sizeof(data), nullptr, 0);
+	ScheduleClear();
 }
 
-int MCP23009::init(uint8_t direction, uint8_t state, uint8_t pull_up)
+void MCP23009::set_params()
 {
-	// do I2C init (and probe) first
-	int ret = I2C::init();
+	mcp_config.num_banks = 1;
+	mcp_config.device_type = DRV_GPIO_DEVTYPE_MCP23009;
+	mcp_config.num_pins = 8;
+	mcp_config.i2c_addr = I2C_ADDRESS_MCP23009;
+	return;
+}
 
-	if (ret != PX4_OK) {
-		PX4_ERR("I2C init failed");
-		return ret;
+int MCP23009::get_olat(int bank, uint8_t *addr)
+{
+	switch (bank) {
+		case 0:
+			*addr = (uint8_t) Register::OLAT;
+			return PX4_OK;
+
+		default:
+			return PX4_ERROR;
 	}
+}
 
-	// buffer the new initial states
-	_iodir = direction;
-	_olat = state;
-	_gppu = pull_up;
+int MCP23009::get_gppu(int bank, uint8_t *addr)
+{
+	switch (bank) {
+		case 0:
+			*addr = (uint8_t) Register::GPPU;
+			return PX4_OK;
 
-	// Write the initial state to the device
-	ret = write_reg(Register::OLAT, _olat);
-	ret |= write_reg(Register::IODIR, _iodir);
-	ret |= write_reg(Register::GPPU, _gppu);
-
-	if (ret != PX4_OK) {
-		PX4_ERR("Device init failed (%i)", ret);
-		return ret;
+		default:
+			return PX4_ERROR;
 	}
-
-	return init_uorb();
 }
 
-int MCP23009::probe()
+int MCP23009::get_iodir(int bank, uint8_t *addr)
 {
-	// no whoami, try to read IOCON
-	uint8_t data;
-	return read_reg(Register::IOCON, data);
-}
+	switch (bank) {
+		case 0:
+			*addr = (uint8_t) Register::IODIR;
+			return PX4_OK;
 
-int MCP23009::read(uint8_t *mask)
-{
-	return read_reg(Register::GPIO, *mask);
-}
-
-int MCP23009::write(uint8_t mask_set, uint8_t mask_clear)
-{
-	// no need to read, we can use the buffered register value
-	_olat = (_olat & ~mask_clear) | mask_set;
-	return write_reg(Register::OLAT, _olat);
-}
-
-int MCP23009::configure(uint8_t mask, PinType type)
-{
-	// no need to read, we can use the buffered register values
-	switch (type) {
-	case PinType::Input:
-		_iodir |= mask;
-		_gppu &= ~mask;
-		break;
-
-	case PinType::InputPullUp:
-		_iodir |= mask;
-		_gppu |= mask;
-		break;
-
-	case PinType::Output:
-		_iodir &= ~mask;
-		break;
-
-	default:
-		return -EINVAL;
+		default:
+			return PX4_ERROR;
 	}
+}
 
-	int ret = write_reg(Register::GPPU, _gppu);
+int MCP23009::get_gpio(int bank, uint8_t *addr)
+{
+	switch (bank) {
+		case 0:
+			*addr = (uint8_t) Register::GPIO;
+			return PX4_OK;
 
-	if (ret != 0) {
-		return ret;
+		default:
+			return PX4_ERROR;
 	}
+}
 
-	return write_reg(Register::IODIR, _iodir);
+int MCP23009::get_probe_reg(uint8_t *addr)
+{
+	*addr = (uint8_t) Register::IOCON;
+	return PX4_OK;
 }
