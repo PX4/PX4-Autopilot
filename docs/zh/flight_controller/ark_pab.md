@@ -320,6 +320,6 @@ For information about using this port see:
 
 ![ARKPAB Bottom Photo](../../assets/flight_controller/arkpab/ark_pab_back.jpg)
 
-## See Also
+## 另见
 
 - [ARK Pixhawk Autopilot Bus Carrier](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-pixhawk-autopilot-bus-carrier) (ARK Docs)

@@ -33,7 +33,7 @@
 - [Bootloader 更新](../advanced_config/bootloader_update.md)
   - [通过 USB 更新 FMUv6X-RT bootloader](../advanced_config/bootloader_update_v6xrt.md)
 
-## See Also
+## 另见
 
 - [标准配置](../config/index.md) - 大多数 PX4 机体所需要的基本传感器/功能配置。
 - [飞控外设](../peripherals/index.md) - 设置特定传感器、可选传感器、执行器等。

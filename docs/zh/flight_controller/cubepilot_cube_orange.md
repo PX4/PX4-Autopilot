@@ -204,14 +204,14 @@ The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopi
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| USART2 | /dev/ttyS0 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS1 | TELEM2 (flow control) |
-| UART4  | /dev/ttyS2 | GPS1                                     |
-| USART6 | /dev/ttyS3 | PX4IO                                    |
-| UART7  | /dev/ttyS4 | CONSOLE/ADSB-IN                          |
-| UART8  | /dev/ttyS5 | GPS2                                     |
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| USART2 | UART       | TELEM1 (流控) |
+| USART3 | /dev/ttyS1 | TELEM2 (流控) |
+| UART4  | /dev/ttyS2 | GPS1                           |
+| USART6 | /dev/ttyS3 | PX4IO                          |
+| UART7  | /dev/ttyS4 | CONSOLE/ADSB-IN                |
+| UART8  | /dev/ttyS5 | GPS2                           |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
 

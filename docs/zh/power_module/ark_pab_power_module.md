@@ -48,6 +48,6 @@ Order this module from:
 - Enable the SENS_EN_INA226 parameter if it not enabled.
 - Reboot the flight controller.
 
-## See Also
+## 另见
 
 - [ARK PAB Power Module Documentation](https://arkelectron.gitbook.io/ark-documentation/power/ark-pab-power-module) (ARK Docs)

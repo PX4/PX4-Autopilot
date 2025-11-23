@@ -61,7 +61,7 @@ The others are relevant if the destination is a rally point or the home location
 | <a id="RTL_LOITER_RAD"></a>[RTL_LOITER_RAD](../advanced_config/parameter_reference.md#RTL_LOITER_RAD)                            | [Fixed-wing Only] The radius of the loiter circle (at [RTL_LAND_DELAY](#RTL_LAND_DELAY)).                                                                                                                                     |
 | <a id="MIS_TKO_LAND_REQ"></a>[MIS_TKO_LAND_REQ](../advanced_config/parameter_reference.md#MIS_TKO_LAND_REQ) | Specify whether a mission landing or takeoff pattern is required. Fixed wings generally require this.                                                                                                                                                                                                                          |
 
-## See Also
+## 另见
 
 - [Return Mode (Generic)](../flight_modes/return.md)
 - [Return Mode (Multicopter)](../flight_modes_mc/return.md)

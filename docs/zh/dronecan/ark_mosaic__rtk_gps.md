@@ -44,6 +44,6 @@ Order this module from:
   - USA Built
   - Supports DroneCAN Firmware Updating
 
-## See Also
+## 另见
 
 - [ARK MOSAIC-X5 RTK GPS Documentation](https://arkelectron.gitbook.io/ark-documentation/sensors/ark-mosaic-x5-rtk-gps) (ARK Docs)

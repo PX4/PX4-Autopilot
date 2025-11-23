@@ -56,8 +56,8 @@ It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4
 
 | UART   | 设备         | Port                                          |
 | ------ | ---------- | --------------------------------------------- |
-| USART1 | /dev/ttyS0 | IO Processor Debug                            |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control)      |
+| USART1 | UART       | IO Processor Debug                            |
+| USART2 | /dev/ttyS1 | TELEM1 (流控)                |
 | USART3 | /dev/ttyS2 | TELEM2 (Raspberry pi cm3+) |
 | UART4  | /dev/ttyS3 | GPS1                                          |
 | USART6 | /dev/ttyS4 | PX4IO                                         |

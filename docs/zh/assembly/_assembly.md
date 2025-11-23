@@ -421,7 +421,7 @@ They recommend sensors, power systems, and other components from the same manufa
 - [Pixracer Wiring Quickstart](../assembly/quick_start_pixracer.md)
 - [mRo (3DR) Pixhawk Wiring Quickstart](../assembly/quick_start_pixhawk.md)
 
-## See Also
+## 另见
 
 - [Drone Components & Parts](../getting_started/px4_basic_concepts.md#drone-components-parts) (Basic Concepts)
 - [Payloads](../getting_started/px4_basic_concepts.md#payloads) (Basic Concepts)

@@ -1329,7 +1329,7 @@ You should see high frequency sensor messages as the output:
 [sensor_combined_listener-1] accelerometer_integral_dt: 4999
 ```
 
-## See Also
+## 另见
 
 - [Jetson carrier board Holybro Docs](https://docs.holybro.com/autopilot/pixhawk-baseboards/pixhawk-jetson-baseboard)
 - [PX4 Middleware docs](../middleware/uxrce_dds.md#starting-the-client)

@@ -278,7 +278,7 @@ For more information see: [Plotting uORB Topic Data in Real Time using PlotJuggl
 
 <video src="../../assets/debug/realtime_debugging/realtime_debugging.mp4" width="720" controls></video>
 
-## See Also
+## 另见
 
 - _PX4 uORB Explained_ Blog series
   - [Part 1](https://px4.io/px4-uorb-explained-part-1/)

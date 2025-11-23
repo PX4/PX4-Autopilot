@@ -186,6 +186,6 @@ There are different clients that support ulog streaming:
   Also make sure `txerr` stays at 0.
   Also make sure <code>txerr</code> stays at 0. If this goes up, either the NuttX sending buffer is too small, the physical link is saturated or the hardware is too slow to handle the data.
 
-## See Also
+## 另见
 
 - [Encrypted logging](../dev_log/log_encryption.md)

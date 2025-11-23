@@ -110,15 +110,15 @@ The [Pixhawk 6C Wiring Quick Start](../assembly/quick_start_pixhawk6c.md) provid
 
 ## 串口映射
 
-| UART   | 设备         | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | GPS1          |
-| USART2 | /dev/ttyS1 | TELEM3        |
-| USART3 | /dev/ttyS2 | Debug Console |
-| UART5  | /dev/ttyS3 | TELEM2        |
-| USART6 | /dev/ttyS4 | PX4IO         |
-| UART7  | /dev/ttyS5 | TELEM1        |
-| UART8  | /dev/ttyS6 | GPS2          |
+| UART   | 设备         | Port   |
+| ------ | ---------- | ------ |
+| USART1 | UART       | GPS1   |
+| USART2 | /dev/ttyS1 | TELEM3 |
+| USART3 | /dev/ttyS2 | 调试控制台  |
+| UART5  | /dev/ttyS3 | TELEM2 |
+| USART6 | /dev/ttyS4 | PX4IO  |
+| UART7  | /dev/ttyS5 | TELEM1 |
+| UART8  | /dev/ttyS6 | GPS2   |
 
 ## 尺寸
 

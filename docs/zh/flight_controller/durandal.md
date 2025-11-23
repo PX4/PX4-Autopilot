@@ -168,15 +168,15 @@ make holybro_durandal-v1_default
 
 ## 串口映射
 
-| UART   | 设备         | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | GPS1          |
-| USART2 | /dev/ttyS1 | TELEM1        |
-| USART3 | /dev/ttyS2 | TELEM2        |
-| UART4  | /dev/ttyS3 | TELEM4/GPS2   |
-| USART6 | /dev/ttyS4 | TELEM3        |
-| UART7  | /dev/ttyS5 | Debug Console |
-| UART8  | /dev/ttyS6 | PX4IO         |
+| UART   | 设备         | Port        |
+| ------ | ---------- | ----------- |
+| USART1 | UART       | GPS1        |
+| USART2 | /dev/ttyS1 | TELEM1      |
+| USART3 | /dev/ttyS2 | TELEM2      |
+| UART4  | /dev/ttyS3 | TELEM4/GPS2 |
+| USART6 | /dev/ttyS4 | TELEM3      |
+| UART7  | /dev/ttyS5 | 调试控制台       |
+| UART8  | /dev/ttyS6 | PX4IO       |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
 
