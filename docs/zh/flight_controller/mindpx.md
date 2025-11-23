@@ -111,15 +111,15 @@ You can also find MindRacer at Amazon<sup>&reg;</sup> or eBay<sup>&reg;</sup>.
 
 ## 串口映射
 
-| UART   | 设备         | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | RC            |
-| USART2 | /dev/ttyS1 | TELEM1        |
-| USART3 | /dev/ttyS2 | TELEM2        |
-| UART4  | /dev/ttyS3 | GPS1          |
-| USART6 | /dev/ttyS4 | ?             |
-| UART7  | /dev/ttyS5 | Debug Console |
-| UART8  | /dev/ttyS6 | ?             |
+| UART   | 设备         | Port   |
+| ------ | ---------- | ------ |
+| USART1 | UART       | RC     |
+| USART2 | /dev/ttyS1 | TELEM1 |
+| USART3 | /dev/ttyS2 | TELEM2 |
+| UART4  | /dev/ttyS3 | GPS1   |
+| USART6 | /dev/ttyS4 | ?      |
+| UART7  | /dev/ttyS5 | 调试控制台  |
+| UART8  | /dev/ttyS6 | ?      |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
 

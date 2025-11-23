@@ -69,6 +69,6 @@ Order this module from:
 | 5          | FMU_SWCLK | 3.3V |
 | 6          | GND                            | GND                  |
 
-## See Also
+## 另见
 
 - [ARK TESEO GPS Documentation](https://arkelectron.gitbook.io/ark-documentation/sensors/ark-teseo-gps) (ARK Docs)

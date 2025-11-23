@@ -107,7 +107,7 @@ The logged topic will depend on whether or not the camera capture pin is enabled
 
 Note that camera capture events are not logged when using the [MAVLink cameras that support Camera Protocol v2](../camera/mavlink_v2_camera.md), because the corresponding trigger events are not generated within PX4.
 
-## See Also
+## 另见
 
 - Camera trigger driver: [source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger) <!-- no module doc -->
 - Camera capture driver: [source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_capture) <!-- no module doc -->
