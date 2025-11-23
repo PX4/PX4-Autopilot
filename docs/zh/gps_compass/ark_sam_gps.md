@@ -56,6 +56,6 @@ The module should be plug-n-play when used with the `GPS2` port on most flight c
 | 5          | SDA         | 3.3V |
 | 6          | GND         | GND                  |
 
-## See Also
+## 另见
 
 - [ARK SAM GPS Documentation](https://arkelectron.gitbook.io/ark-documentation/gps/ark-sam-gps) (ARK Docs)

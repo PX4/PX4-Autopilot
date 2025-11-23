@@ -75,13 +75,13 @@ For information about wiring and using this port see:
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| UART1  | /dev/ttyS0 | WiFi                                     |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  |            |                                          |
-| UART7  | CONSOLE    |                                          |
-| UART8  | SERIAL4    |                                          |
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| UART   | UART       | WiFi                           |
+| USART2 | /dev/ttyS1 | TELEM1 (流控) |
+| USART3 | /dev/ttyS2 | TELEM2 (流控) |
+| UART4  |            |                                |
+| UART7  | CONSOLE    |                                |
+| UART8  | SERIAL4    |                                |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->

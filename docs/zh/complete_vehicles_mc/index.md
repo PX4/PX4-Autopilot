@@ -40,7 +40,7 @@ These may or may not be updatable to run "vanilla" PX4.
 - [Yuneec H520](https://px4.io/project/yuneec-h520-hexacopter/)
 - [AeroSense Aerobo (AS-MC02-P)](https://px4.io/project/aerosense-aerobo/)
 
-## See Also
+## 另见
 
 - [Kits (MC)](../frames_multicopter/kits.md)
 - [DIY Builds](../frames_multicopter/diy_builds.md)
