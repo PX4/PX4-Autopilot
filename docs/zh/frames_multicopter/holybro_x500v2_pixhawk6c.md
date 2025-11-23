@@ -84,7 +84,7 @@ Note that the ESC connectors are color-coded and must be inserted in the PWM out
 
 ![esc_connector_pixhawk6c](../../assets/airframes/multicopter/x500_v2_holybro_pixhawk6c/esc_connector.jpg)
 
-### Arms
+### 机臂
 
 **Screw-** Socket Cap Screw M3\*38 16pcs | Flange Locknut M3 16pcs
 
@@ -207,7 +207,7 @@ Ideally you should also do:
 ## 调试
 
 Airframe selection sets _default_ autopilot parameters for the frame.
-These are good enough to fly with, but it is a good idea to tune the parameters for a specific frame build.
+这些足以让它起飞，但是为你的特定框架调整专有参数是一个好主意。
 
 For instructions on how, start from [Auto-tune](../config/autotune_mc.md).
 

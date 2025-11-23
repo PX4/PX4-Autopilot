@@ -228,7 +228,7 @@ If a mission with no takeoff mission item is started, the vehicle will ascend to
 
 If the vehicle is already flying when the mission is started, a takeoff mission item is treated as a normal waypoint.
 
-## See Also
+## 另见
 
 - [Missions](../flying/missions.md)
   - [包裹投递任务](../flying/package_delivery_mission.md)

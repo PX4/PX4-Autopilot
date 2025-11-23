@@ -50,15 +50,15 @@ It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| USART1 | /dev/ttyS0 | IO Processor Debug                       |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  | /dev/ttyS3 | GPS1                                     |
-| USART6 | /dev/ttyS4 | PX4IO                                    |
-| UART7  | /dev/ttyS5 | Debug Console                            |
-| UART8  | /dev/ttyS6 | TELEM4                                   |
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| USART1 | UART       | IO Processor Debug             |
+| USART2 | /dev/ttyS1 | TELEM1 (流控) |
+| USART3 | /dev/ttyS2 | TELEM2 (流控) |
+| UART4  | /dev/ttyS3 | GPS1                           |
+| USART6 | /dev/ttyS4 | PX4IO                          |
+| UART7  | /dev/ttyS5 | 调试控制台                          |
+| UART8  | /dev/ttyS6 | TELEM4                         |
 
 ## 额定电压
 
