@@ -155,6 +155,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("fixed_wing_longitudinal_setpoint");
 	add_topic("longitudinal_control_configuration");
 	add_topic("lateral_control_configuration");
+	add_topic("airflow");
 	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
 	add_optional_topic("fixed_wing_lateral_status", 100);
 	add_optional_topic("fixed_wing_runway_control", 100);
@@ -222,6 +223,7 @@ void LoggedTopics::add_default_topics()
 	param_get(param_find("SYS_HITL"), &sys_hitl);
 
 	if (sys_hitl >= 1) {
+		add_topic("airflow_groundtruth", 10);
 		add_topic("vehicle_angular_velocity_groundtruth", 10);
 		add_topic("vehicle_attitude_groundtruth", 10);
 		add_topic("vehicle_global_position_groundtruth", 100);
