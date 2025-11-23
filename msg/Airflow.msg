@@ -11,3 +11,5 @@ float32 w               	 # [m/s] Body-relative air relative velocity component 
 float32 windspeed_north	# [m/s] Wind component in north / X direction
 float32 windspeed_east # [m/s] Wind component in east / Y direction
 float32 windspeed_down # [m/s] Wind component in down / Z direction
+
+# TOPICS airflow airflow_groundtruth
