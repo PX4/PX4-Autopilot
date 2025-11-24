@@ -7,7 +7,7 @@ parameters:
         short: Vehicle Mass
       type: float
       default: 1.0
-      unit: '%/rad/s'
+      unit: 'kg'
       min: 0.0
       max: 25
       decimal: 3
@@ -17,37 +17,37 @@ parameters:
         short: Vehicle Mass
       type: float
       default: 0.34
-      unit: '%/rad/s'
+      unit: 'm^2'
       min: 0.0
       max: 25
       decimal: 3
       increment: 0.01
     FW_W_C_B1:
       description:
-        short: Vehicle Aerodynamic coefficient
+        short: Vehicle Aerodynamic coefficient (side slip)
       type: float
       default: 1.0
-      unit: '%/rad/s'
+      unit: ''
       min: 0.0
       max: 4
       decimal: 3
       increment: 0.01
     FW_W_C_A0:
       description:
-        short: Vehicle Aerodynamic coefficient
+        short: Vehicle Aerodynamic coefficient (zero angle of attack)
       type: float
       default: 0.15188
-      unit: '%/rad/s'
+      unit: ''
       min: 0.0
       max: 4
       decimal: 3
       increment: 0.01
     FW_W_C_A1:
       description:
-        short: Vehicle Aerodynamic coefficient
+        short: Vehicle Aerodynamic coefficient (angle of attack)
       type: float
       default: 5.015
-      unit: '%/rad/s'
+      unit: ''
       min: 0.0
       max: 10
       decimal: 3
