@@ -976,27 +976,120 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 	_telemetry.initSettingsHandlers(esc_type, _output_mask);
 }
 
+static void print_spacer()
+{
+	for (int i = 0; i < 64; i++) {
+		PX4_INFO_RAW("-");
+	}
+
+	PX4_INFO_RAW("\n");
+}
+
 int DShot::print_status()
 {
-	_mixing_output.printStatus();
+	print_spacer();
+	PX4_INFO("DShot Driver Status");
+	print_spacer();
 
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_bdshot_success_perf);
-	perf_print_counter(_bdshot_error_perf);
+	// Configuration
+	PX4_INFO("Configuration:");
+	PX4_INFO("  Output Mask:        0x%02lx (%d channels)", (unsigned long)_output_mask, count_set_bits(_output_mask));
+	PX4_INFO("  Bidirectional:      %s", _bdshot_telemetry_enabled ? "Enabled" : "Disabled");
+	PX4_INFO("  Serial Telemetry:   %s%s", _serial_telemetry_enabled ? "Enabled" : "Disabled",
+		 _serial_telemetry_enabled ? (strlen(_telemetry_device) ? "" : " (no device)") : "");
 
-	perf_print_counter(_telem_success_perf);
-	perf_print_counter(_telem_error_perf);
-	perf_print_counter(_telem_timeout_perf);
-	perf_print_counter(_telem_allsampled_perf);
+	if (_serial_telemetry_enabled && strlen(_telemetry_device)) {
+		PX4_INFO("    Device: %s", _telemetry_device);
+	}
 
+	PX4_INFO("  Extended DShot:     %s", _bdshot_edt_enabled ? "Enabled" : "Disabled");
+
+	const char *esc_type_str = "Unknown";
+
+	switch (_param_dshot_esc_type.get()) {
+	case 1: esc_type_str = "AM32"; break;
+
+	default: break;
+	}
+
+	PX4_INFO("  ESC Type:           %s (%ld)", esc_type_str, _param_dshot_esc_type.get());
+	PX4_INFO("  Motor Poles:        %ld", _param_mot_pole_count.get());
+	PX4_INFO("  3D Mode:            %s", _param_dshot_3d_enable.get() ? "Enabled" : "Disabled");
+
+	// Telemetry Status
+	if (_bdshot_telemetry_enabled || _serial_telemetry_enabled) {
+		print_spacer();
+		PX4_INFO("Telemetry Status:");
+		PX4_INFO("  %-6s %-8s %-8s %-12s %-12s", "Motor", "BDShot", "Serial", "BDShot Err", "Serial Err");
+
+		for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+			if (!(_output_mask & (1 << i))) {
+				continue;
+			}
+
+			const char *bdshot_status = "-";
+			const char *serial_status = "-";
+
+			if (_bdshot_telemetry_enabled) {
+				bdshot_status = (_bdshot_telem_online_mask & (1 << i)) ? "Online" : "Offline";
+			}
+
+			if (_serial_telemetry_enabled) {
+				serial_status = (_serial_telem_online_mask & (1 << i)) ? "Online" : "Offline";
+			}
+
+			PX4_INFO("  %-6d %-8s %-8s %-12lu %-12lu",
+				 i + 1,
+				 bdshot_status,
+				 serial_status,
+				 (unsigned long)_bdshot_telem_errors[i],
+				 (unsigned long)_serial_telem_errors[i]);
+		}
+
+		if (_bdshot_telemetry_enabled && _bdshot_edt_enabled) {
+			PX4_INFO("  EDT Requested Mask: 0x%02x", _bdshot_edt_requested_mask);
+		}
+
+		if (_serial_telemetry_enabled) {
+			PX4_INFO("  Settings Requested Mask: 0x%02x", _settings_requested_mask);
+		}
+	}
+
+	// Bidirectional DShot hardware status
+	if (_bdshot_telemetry_enabled) {
+		print_spacer();
+		PX4_INFO("Bidirectional DShot Hardware:");
+		up_bdshot_status();
+	}
+
+	// Serial telemetry stats
 	if (_serial_telemetry_enabled) {
-		PX4_INFO("telemetry on: %s", _telemetry_device);
+		print_spacer();
+		PX4_INFO("Serial Telemetry Stats:");
 		_telemetry.printStatus();
 	}
 
+	print_spacer();
+	PX4_INFO("Mixer Information:");
+	_mixing_output.printStatus();
+
+	print_spacer();
+	PX4_INFO("Performance Counters:");
+	perf_print_counter(_cycle_perf);
+
 	if (_bdshot_telemetry_enabled) {
-		up_bdshot_status();
+		perf_print_counter(_bdshot_success_perf);
+		perf_print_counter(_bdshot_error_perf);
 	}
+
+	if (_serial_telemetry_enabled) {
+		perf_print_counter(_telem_success_perf);
+		perf_print_counter(_telem_error_perf);
+		perf_print_counter(_telem_timeout_perf);
+		perf_print_counter(_telem_allsampled_perf);
+	}
+
+	print_spacer();
 
 	return 0;
 }
