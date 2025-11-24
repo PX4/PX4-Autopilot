@@ -563,6 +563,10 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 			current_overrides.disable_auto_disarm = true;
 		}
 
+		if (executor_overrides.disable_auto_set_home) {
+			current_overrides.disable_auto_set_home = true;
+		}
+
 		if (executor_overrides.defer_failsafes) {
 			current_overrides.defer_failsafes = true;
 			current_overrides.defer_failsafes_timeout_s = executor_overrides.defer_failsafes_timeout_s;
