@@ -142,9 +142,9 @@ void CdusAllocatorDuct::Run()
 	desired(3) = -thrust_sp.xyz[2];
 
 	if(_manual_torque_test) {
-		desired(0) = -0.3f * _manual_control_input.roll;
-		desired(1) = -0.3f * _manual_control_input.pitch;
-		desired(2) = -0.3f * _manual_control_input.yaw;
+		desired(0) = -0.15f * _manual_control_input.roll;
+		desired(1) = -0.15f * _manual_control_input.pitch;
+		desired(2) = -0.15f * _manual_control_input.yaw;
 		desired(3) = 1.0f * _manual_control_input.throttle;
 	}
 
