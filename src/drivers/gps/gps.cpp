@@ -178,6 +178,7 @@ private:
 	char				_port[20] {};					///< device / serial port path
 
 	bool				_healthy{false};				///< flag to signal if the GPS is ok
+	bool				_cfg_wiped{false};				///< flag to signal if the config was already wiped
 	bool				_mode_auto;					///< if true, auto-detect which GPS is attached
 
 	gps_driver_mode_t		_mode;						///< current mode
@@ -939,7 +940,7 @@ GPS::run()
 			param_get(handle, &gps_cfg_wipe);
 		}
 
-		gpsConfig.cfg_wipe = static_cast<bool>(gps_cfg_wipe);
+		gpsConfig.cfg_wipe = static_cast<bool>(gps_cfg_wipe) && !_cfg_wiped;
 
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
@@ -1067,6 +1068,11 @@ GPS::run()
 //
 //						PX4_WARN("module found: %s", mode_str);
 					_healthy = true;
+				}
+
+				/* Do not wipe the FLASH config multiple times. */
+				if (!_cfg_wiped) {
+					_cfg_wiped = true;
 				}
 			}
 
