@@ -13,7 +13,6 @@ Subcategories:
 - [Radio Control](modules_driver_radio_control.md)
 - [Rpm Sensor](modules_driver_rpm_sensor.md)
 - [Transponder](modules_driver_transponder.md)
-- [ADC](modules_driver_adc.md)
 
 ## MCP23009
 
