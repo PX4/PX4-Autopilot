@@ -206,8 +206,7 @@ void FixedwingWindEstimator::Run()
 		if (_calibrated_airspeed > _stall_airspeed) {
 			matrix::Vector3f air_velocity_body = compute_wind_estimate();
 
-			Dcmf R_ib(_attitude);
-			matrix::Vector3f air_velocity_local = R_ib * air_velocity_body;
+			matrix::Vector3f air_velocity_local = _attitude.rotateVector(air_velocity_body);
 
 			// compute wind from wind triangle
 			matrix::Vector3f wind = _local_velocity - air_velocity_local;
