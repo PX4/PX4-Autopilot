@@ -1,0 +1,54 @@
+module_name: fw_wind_estimator
+parameters:
+- group: FW Wind Estimator
+  definitions:
+    FW_W_MASS:
+      description:
+        short: Vehicle Mass
+      type: float
+      default: 1.0
+      unit: '%/rad/s'
+      min: 0.0
+      max: 25
+      decimal: 3
+      increment: 0.01
+    FW_W_AREA:
+      description:
+        short: Vehicle Mass
+      type: float
+      default: 0.34
+      unit: '%/rad/s'
+      min: 0.0
+      max: 25
+      decimal: 3
+      increment: 0.01
+    FW_W_C_B1:
+      description:
+        short: Vehicle Aerodynamic coefficient
+      type: float
+      default: 1.0
+      unit: '%/rad/s'
+      min: 0.0
+      max: 4
+      decimal: 3
+      increment: 0.01
+    FW_W_C_A0:
+      description:
+        short: Vehicle Aerodynamic coefficient
+      type: float
+      default: 0.15188
+      unit: '%/rad/s'
+      min: 0.0
+      max: 4
+      decimal: 3
+      increment: 0.01
+    FW_W_C_A1:
+      description:
+        short: Vehicle Aerodynamic coefficient
+      type: float
+      default: 5.015
+      unit: '%/rad/s'
+      min: 0.0
+      max: 10
+      decimal: 3
+      increment: 0.01
