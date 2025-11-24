@@ -73,12 +73,6 @@ FixedwingWindEstimator::parameters_update()
 	_mass = _param_fw_w_mass.get();
 	_stall_airspeed = _param_fw_airspd_stall.get();
 
-	// Get Aerodynamic coefficients
-	_wing_area = _param_fw_w_area.get();
-	_C_B1 = _param_fw_w_c_b1.get();
-	_C_A0 = _param_fw_w_c_a0.get();
-	_C_A1 = _param_fw_w_c_a1.get();
-
 	return PX4_OK;
 }
 
@@ -128,10 +122,7 @@ FixedwingWindEstimator::vehicle_local_position_poll()
 void
 FixedwingWindEstimator::vehicle_acceleration_poll()
 {
-	//vehicle_local_position_s pos;
-	///TODO: We should probably get it from the imu, not the local one?
 	vehicle_acceleration_s vehicle_acceleration;
-
 	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
 		_acceleration = Vector3f(vehicle_acceleration.xyz);
 	}
@@ -139,15 +130,21 @@ FixedwingWindEstimator::vehicle_acceleration_poll()
 
 matrix::Vector3f FixedwingWindEstimator::compute_wind_estimate()
 {
-	float _rho{1.225};
+	// Get Aerodynamic coefficients
+	const float wing_area = _param_fw_w_area.get();
+	const float C_B1 = _param_fw_w_c_b1.get();
+	const float C_A0 = _param_fw_w_c_a0.get();
+	const float C_A1 = _param_fw_w_c_a1.get();
 
 	// compute expected AoA from g-forces:
 	matrix::Vector3f body_force = _mass * (_acceleration + _attitude.rotateVectorInverse(_gravity));
 
-	float speed = fmaxf(_calibrated_airspeed, _stall_airspeed);
+	float _rho{1.225};
+	const float speed = fmaxf(_calibrated_airspeed, _stall_airspeed);
+	const float dynamic_force = 0.5f * _rho * powf(speed, 2) * wing_area;
 	float u_approx = _true_airspeed;
-	float v_approx = -body_force(1) * _true_airspeed / (0.5f * _rho * powf(speed, 2) * _wing_area * _C_B1);
-	float w_approx = (body_force(2) * _true_airspeed / (0.5f * _rho * powf(speed, 2) * _wing_area) + _C_A0) / _C_A1;
+	float v_approx = -body_force(1) * _true_airspeed / (dynamic_force * C_B1);
+	float w_approx = (body_force(2) * _true_airspeed / dynamic_force  + C_A0) / C_A1;
 	Vector3f vel_air(u_approx, v_approx, w_approx);
 	return vel_air;
 }
