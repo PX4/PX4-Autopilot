@@ -72,7 +72,7 @@ The video below shows most of the calibration process (it uses an older version 
 
 If you need help with the configuration you can ask for help on the [QGroundControl Support forum](https://discuss.px4.io/c/qgroundcontrol/qgroundcontrol-usage/18).
 
-## See Also
+## 另见
 
 - [QGroundControl > Setup](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/setup_view.html)
 - [飞控外设](../peripherals/index.md) - 设置特定传感器、可选传感器、执行器等。
