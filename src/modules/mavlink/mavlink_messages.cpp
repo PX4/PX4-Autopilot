@@ -62,7 +62,6 @@
 #include "streams/ATTITUDE_QUATERNION.hpp"
 #include "streams/ATTITUDE_TARGET.hpp"
 #include "streams/AUTOPILOT_VERSION.hpp"
-#include "streams/AM32_EEPROM.hpp"
 #include "streams/BATTERY_STATUS.hpp"
 #include "streams/CAMERA_IMAGE_CAPTURED.hpp"
 #include "streams/CAMERA_TRIGGER.hpp"
@@ -136,6 +135,10 @@
 #ifdef MAVLINK_MSG_ID_AVAILABLE_MODES // Only defined if development.xml is used
 #include "streams/AVAILABLE_MODES.hpp"
 #include "streams/CURRENT_MODE.hpp"
+#endif
+
+#ifdef MAVLINK_MSG_ID_AM32_EEPROM // Only defined if development.xml is used
+#include "streams/AM32_EEPROM.hpp"
 #endif
 
 #if !defined(CONSTRAINED_FLASH)
