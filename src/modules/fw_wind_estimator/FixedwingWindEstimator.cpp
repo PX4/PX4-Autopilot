@@ -226,9 +226,9 @@ void FixedwingWindEstimator::Run()
 			airflow_msg.windspeed_east = wind(1);
 			airflow_msg.windspeed_down = wind(2);
 			_airflow_pub.publish(airflow_msg);
-			PX4_INFO("airspeed estimate: \t%.1f, \t%.1f, \t%.1f", (double)air_velocity_body(0), (double)air_velocity_body(1),
-				 (double)air_velocity_body(2));
-			PX4_INFO("  - wind estimate: \t%.1f, \t%.1f, \t%.1f", (double)wind(0), (double)wind(1), (double)wind(2));
+			// PX4_INFO("airspeed estimate: \t%.1f, \t%.1f, \t%.1f", (double)air_velocity_body(0), (double)air_velocity_body(1),
+			// 	 (double)air_velocity_body(2));
+			// PX4_INFO("  - wind estimate: \t%.1f, \t%.1f, \t%.1f", (double)wind(0), (double)wind(1), (double)wind(2));
 		}
 
 		/* if we are in rotary wing mode, do nothing */
