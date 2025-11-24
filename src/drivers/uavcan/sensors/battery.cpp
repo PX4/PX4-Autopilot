@@ -100,6 +100,11 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 		}
 	}
 
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				msg.battery_id, NodeInfoPublisher::DeviceCapability::BATTERY);
+	}
+
 	if (instance >= battery_status_s::MAX_INSTANCES
 	    || _batt_update_mod[instance] == BatteryDataType::CBAT) {
 		return;
@@ -128,7 +133,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	_battery_status[instance].source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
 	_battery_status[instance].full_charge_capacity_wh = msg.full_charge_capacity_wh;
 	_battery_status[instance].remaining_capacity_wh = msg.remaining_capacity_wh;
-	_battery_status[instance].id = msg.getSrcNodeID().get();
+	_battery_status[instance].id = msg.battery_id;
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		// Mavlink 2 needs individual cell voltages or cell[0] if cell voltages are not available.
@@ -151,10 +156,6 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 			_battery_info_pub[instance].publish(_battery_info[instance]);
 		}
 
-		if (_node_info_publisher != nullptr) {
-			_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-					_battery_status[instance].id, NodeInfoPublisher::DeviceCapability::BATTERY);
-		}
 	}
 }
 

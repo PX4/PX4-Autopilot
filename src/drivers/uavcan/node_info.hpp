@@ -97,10 +97,10 @@ private:
 	};
 
 	struct DeviceInformation {
-		uint8_t node_id;
-		uint32_t device_id;
-		DeviceCapability capability;
-		bool has_node_info;
+		uint8_t node_id{UINT8_MAX};
+		uint32_t device_id{UINT32_MAX};
+		DeviceCapability capability{DeviceCapability::NONE};
+		bool has_node_info{false};
 
 		char vendor_name[32];
 		char model_name[32];
@@ -143,7 +143,6 @@ private:
 	void registerDevice(uint8_t node_id, const NodeInfo *info, uint32_t device_id, DeviceCapability capability);
 
 	// Publishing methods
-	void publishDeviceInformationImmediate(size_t device_index);
 	void publishDeviceInformationPeriodic();
 	void publishSingleDeviceInformation(const DeviceInformation &device_info);
 

@@ -56,7 +56,7 @@ void NodeInfoPublisher::handleNodeInfoRetrieved(uavcan::NodeID node_id,
 		const uavcan::protocol::GetNodeInfo_::Response &node_info)
 {
 	const NodeInfo info(node_id, node_info);
-	registerDevice(info.node_id.get(), &info, 0, DeviceCapability::NONE);
+	registerDevice(info.node_id.get(), &info, UINT32_MAX, DeviceCapability::NONE);
 
 	startTimerIfNotRunning();
 }
@@ -83,7 +83,7 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 {
 	const bool is_registering_info = (info != nullptr);
 
-	const DeviceInformation *multi_capability_info = nullptr;
+	int multi_capability_index = -1;
 
 	for (size_t i = 0; i < _device_informations_size; ++i) {
 		if (is_registering_info) {
@@ -96,13 +96,11 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 
 			// Case 2: Check if node_id already exists with capability but no info - update that entry
 			if (_device_informations[i].node_id == node_id &&
-			    _device_informations[i].capability != DeviceCapability::NONE  &&
+			    _device_informations[i].capability != DeviceCapability::NONE &&
 			    !_device_informations[i].has_node_info) {
-
 				populateDeviceInfoFields(_device_informations[i], *info);
-				publishDeviceInformationImmediate(i);
-
-				// Continue to check for other entries with the same node_id but different capabilities.
+				publishSingleDeviceInformation(_device_informations[i]);
+				continue;
 			}
 
 		} else { // registering capabilities
@@ -117,11 +115,7 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 			if (_device_informations[i].node_id == node_id &&
 			    _device_informations[i].capability != DeviceCapability::NONE  &&
 			    _device_informations[i].capability != capability) {
-				multi_capability_info->serial_number = _device_informations[i].serial_number;
-				multi_capability_info->firmware_version = _device_informations[i].firmware_version;
-				multi_capability_info->hardware_version = _device_informations[i].hardware_version;
-				multi_capability_info->model_name = _device_informations[i].model_name;
-				multi_capability_info->vendor_name = _device_informations[i].vendor_name;
+				multi_capability_index = i;
 				continue;
 			}
 
@@ -129,10 +123,9 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 			if (_device_informations[i].node_id == node_id &&
 			    _device_informations[i].has_node_info &&
 			    _device_informations[i].capability == DeviceCapability::NONE) {
-
 				_device_informations[i].device_id = device_id;
 				_device_informations[i].capability = capability;
-				publishDeviceInformationImmediate(i);
+				publishSingleDeviceInformation(_device_informations[i]);
 				return;
 			}
 		}
@@ -145,20 +138,17 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 		_device_informations[_device_informations_size - 1] = DeviceInformation();
 		_device_informations[_device_informations_size - 1].node_id = node_id;
 
+		if (multi_capability_index >= 0) {
+			_device_informations[_device_informations_size - 1] = _device_informations[multi_capability_index];
+			_device_informations[_device_informations_size - 1].node_id = node_id;
+		}
+
 		if (is_registering_info) {
 			populateDeviceInfoFields(_device_informations[_device_informations_size - 1], *info);
 
 		} else {
 			_device_informations[_device_informations_size - 1].device_id = device_id;
 			_device_informations[_device_informations_size - 1].capability = capability;
-		}
-
-		if (multi_capability_info != nullptr) {
-			_device_informations[_device_informations_size - 1].model_name = multi_capability_info->model_name;
-			_device_informations[_device_informations_size - 1].vendor_name = multi_capability_info->vendor_name;
-			_device_informations[_device_informations_size - 1].firmware_version = multi_capability_info->firmware_version;
-			_device_informations[_device_informations_size - 1].hardware_version = multi_capability_info->hardware_version;
-			_device_informations[_device_informations_size - 1].serial_number = multi_capability_info->serial_number;
 		}
 
 	} else {
@@ -170,27 +160,6 @@ void NodeInfoPublisher::registerDevice(uint8_t node_id, const NodeInfo *info, ui
 void NodeInfoPublisher::registerDeviceCapability(uint8_t node_id, uint32_t device_id, DeviceCapability capability)
 {
 	registerDevice(node_id, nullptr, device_id, capability);
-}
-
-void NodeInfoPublisher::publishDeviceInformationImmediate(size_t device_index)
-{
-	if (device_index >= _device_informations_size) {
-		return;
-	}
-
-	const auto &device_info = _device_informations[device_index];
-
-	const uint64_t now = hrt_absolute_time();
-
-	// Rate limit immediate publishing to prevent spam
-	if (now < _last_device_info_publish + DEVICE_INFO_PUBLISH_RATE_LIMIT_US) {
-		PX4_DEBUG("Immediate publish for node %d rate limited",
-			  device_info.node_id);
-		return;
-	}
-
-	_last_device_info_publish = now;
-	publishSingleDeviceInformation(device_info);
 }
 
 void NodeInfoPublisher::publishDeviceInformationPeriodic()
