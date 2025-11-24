@@ -215,7 +215,7 @@ Predefined information messages are:
 | `char[value_len] ver_sw_branch`     | git branch                                  | "master"           |
 | `uint32_t ver_sw_release`           | Software version (see below)                | 0x010401ff         |
 | `char[value_len] sys_os_name`       | Operating System Name                       | "Linux"            |
-| `char[value_len] sys_os_ve`r        | OS version (git tag)                        | "9f82919"          |
+| `char[value_len] sys_os_ver`        | OS version (git tag)                        | "9f82919"          |
 | `uint32_t ver_os_release`           | OS version (see below)                      | 0x010401ff         |
 | `char[value_len] sys_toolchain`     | Toolchain Name                              | "GNU GCC"          |
 | `char[value_len] sys_toolchain_ver` | Toolchain Version                           | "6.2.1"            |
