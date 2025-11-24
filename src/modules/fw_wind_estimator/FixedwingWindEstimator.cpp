@@ -123,6 +123,7 @@ void
 FixedwingWindEstimator::vehicle_acceleration_poll()
 {
 	vehicle_acceleration_s vehicle_acceleration;
+
 	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
 		_acceleration = Vector3f(vehicle_acceleration.xyz);
 	}
@@ -137,7 +138,7 @@ matrix::Vector3f FixedwingWindEstimator::compute_wind_estimate()
 	const float C_A1 = _param_fw_w_c_a1.get();
 
 	// compute expected AoA from g-forces:
-	matrix::Vector3f body_force = _mass * (_acceleration + _attitude.rotateVectorInverse(_gravity));
+	matrix::Vector3f body_force = _mass * (_acceleration + _attitude.rotateVectorInverse(matrix::Vector3f(0.f, 0.f, CONSTANTS_ONE_G)));
 
 	float _rho{1.225};
 	const float speed = fmaxf(_calibrated_airspeed, _stall_airspeed);
