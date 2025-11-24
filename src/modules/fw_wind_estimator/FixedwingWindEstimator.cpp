@@ -134,7 +134,7 @@ FixedwingWindEstimator::vehicle_acceleration_poll()
 
 	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
 		Dcmf R_ib(_attitude);
-		_acceleration = R_ib * Vector3f(vehicle_acceleration.xyz);
+		_acceleration = _attitude.rotateVector(Vector3f(vehicle_acceleration.xyz));
 	}
 }
 
@@ -145,14 +145,14 @@ matrix::Vector3f FixedwingWindEstimator::compute_wind_estimate()
 	Dcmf R_ib(_attitude);
 	Dcmf R_bi(R_ib.transpose());
 	// compute expected AoA from g-forces:
-	matrix::Vector3f body_force = _mass * R_bi * (_acceleration + _gravity);
+	matrix::Vector3f body_force = _mass * _attitude.rotateVectorInverse(_acceleration + _gravity);
 
 	// ***************** NEW COMPUTATION FROM MATLAB CALIBRATION **********************
 	float speed = fmaxf(_calibrated_airspeed, _stall_airspeed);
 	float u_approx = _true_airspeed;
 	float v_approx = body_force(1) * _true_airspeed / (0.5f * _rho * powf(speed, 2) * _wing_area * _C_B1);
 	float w_approx = (-body_force(2) * _true_airspeed / (0.5f * _rho * powf(speed, 2) * _wing_area) - _C_A0) / _C_A1;
-	matrix::Vector3f vel_air = matrix::Vector3f{u_approx, v_approx, w_approx};
+	Vector3f vel_air(u_approx, v_approx, w_approx);
 	return vel_air;
 }
 

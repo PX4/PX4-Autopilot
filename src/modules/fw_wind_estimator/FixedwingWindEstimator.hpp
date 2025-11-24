@@ -64,8 +64,6 @@
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_local_position.h>
 
-using matrix::Eulerf;
-using matrix::Quatf;
 
 using uORB::SubscriptionData;
 
