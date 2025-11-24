@@ -353,17 +353,35 @@
 
 /* Alternate function pin selections ************************************************/
 
-#define GPIO_USART1_RX   GPIO_USART1_RX_2     	/* PBA10 */
+#define GPIO_USART1_RX   GPIO_USART1_RX_2     	/* PA10 */
 #define GPIO_USART1_TX   GPIO_USART1_TX_2      	/* PA9 */
-#define GPIO_USART1_CK   GPIO_USART1_CK      	/* PB8 NC */
+// #define GPIO_USART1_CK   GPIO_USART1_CK      	/* PB8 NC */
+#undef GPIO_USART1_CTS
+#define GPIO_USART1_CTS	0xffffffff
+#undef GPIO_USART1_RTS
+#define GPIO_USART1_RTS	0xffffffff
+#undef GPIO_USART1_CK
+#define GPIO_USART1_CK 	0xffffffff
 
 #define GPIO_USART2_RX   GPIO_USART2_RX_2       /* PD6 */
 #define GPIO_USART2_TX   GPIO_USART2_TX_2       /* PD5 */
-#define GPIO_USART2_CK   GPIO_USART2_CK_2     	/* PD7 NC */
+// #define GPIO_USART2_CK   GPIO_USART2_CK_2     	/* PD7 NC */
+#undef GPIO_USART2_CTS
+#define GPIO_USART2_CTS	0xffffffff
+#undef GPIO_USART2_RTS
+#define GPIO_USART2_RTS	0xffffffff
+#undef GPIO_USART2_CK
+#define GPIO_USART2_CK 	0xffffffff
 
 #define GPIO_USART3_RX   GPIO_USART3_RX_3   	/* PD9   */
 #define GPIO_USART3_TX   GPIO_USART3_TX_3   	/* PD8   */
-#define GPIO_USART3_CK   GPIO_USART3_CK_3   	/* PD10 NC */
+// #define GPIO_USART3_CK   GPIO_USART3_CK_3   	/* PD10 NC */
+#undef GPIO_USART3_CK
+#define GPIO_USART3_CK 	0xffffffff
+#undef GPIO_USART3_CTS
+#define GPIO_USART3_CTS	0xffffffff
+#undef GPIO_USART3_RTS
+#define GPIO_USART3_RTS	0xffffffff
 
 #define GPIO_UART4_RX    GPIO_UART4_RX_3    	/* PB8 */
 #define GPIO_UART4_TX    GPIO_UART4_TX_3    	/* PB9 */
@@ -382,7 +400,6 @@
 
 /* SPI
  *
-
  */
 
 #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
@@ -404,8 +421,6 @@
 #define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_2) /* PE2 */
 
 /* I2C
- *
-
  *
  */
 
@@ -432,12 +447,12 @@
  *      SDMMC1_CMD                         PD2
  */
 
-// #define GPIO_SDMMC1_D0   GPIO_SDMMC1_D0    /* PC8  */
-// #define GPIO_SDMMC1_D1   GPIO_SDMMC1_D1    /* PC9  */
-// #define GPIO_SDMMC1_D2   GPIO_SDMMC1_D2    /* PC10 */
-// #define GPIO_SDMMC1_D3   GPIO_SDMMC1_D3    /* PC11 */
-// #define GPIO_SDMMC1_CK   GPIO_SDMMC1_CK    /* PC12 */
-// #define GPIO_SDMMC1_CMD  GPIO_SDMMC1_CMD   /* PD2  */
+#define GPIO_SDMMC1_D0   GPIO_SDMMC1_D0    /* PC8  */
+#define GPIO_SDMMC1_D1   GPIO_SDMMC1_D1    /* PC9  */
+#define GPIO_SDMMC1_D2   GPIO_SDMMC1_D2    /* PC10 */
+#define GPIO_SDMMC1_D3   GPIO_SDMMC1_D3    /* PC11 */
+#define GPIO_SDMMC1_CK   GPIO_SDMMC1_CK    /* PC12 */
+#define GPIO_SDMMC1_CMD  GPIO_SDMMC1_CMD   /* PD2  */
 
 
 /* USB
