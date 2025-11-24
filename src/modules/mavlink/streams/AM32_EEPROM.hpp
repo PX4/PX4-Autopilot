@@ -57,16 +57,6 @@ private:
 
 	uORB::Subscription _am32_eeprom_read_sub{ORB_ID(am32_eeprom_read)};
 
-	bool request_message(float param2, float param3, float param4, float param5, float param6, float param7) override
-	{
-		emit_message(true)
-	}
-
-	bool send() override
-	{
-		emit_message(false);
-	}
-
 	bool emit_message(bool force)
 	{
 		am32_eeprom_read_s eeprom = {};
@@ -80,8 +70,8 @@ private:
 			msg.length = sizeof(eeprom.data);
 
 			PX4_INFO("Sending AM32_EEPROM on channel %d", _mavlink->get_channel());
-			PX4_INFO("ESC%d", msg.index + 1);
-			PX4_INFO("index %d", msg.index);
+			PX4_INFO("ESC%d", msg.esc_index + 1);
+			PX4_INFO("index %d", msg.esc_index);
 			PX4_INFO("length %d", msg.length);
 
 			mavlink_msg_am32_eeprom_send_struct(_mavlink->get_channel(), &msg);
@@ -91,6 +81,17 @@ private:
 
 		return false;
 	}
+
+	bool request_message(float param2, float param3, float param4, float param5, float param6, float param7) override
+	{
+		return emit_message(true);
+	}
+
+	bool send() override
+	{
+		return emit_message(false);
+	}
+
 };
 
 #endif // AM32_EEPROM_HPP

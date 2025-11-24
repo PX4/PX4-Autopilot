@@ -1319,14 +1319,9 @@ MavlinkReceiver::handle_message_am32_eeprom(mavlink_message_t *msg)
 	mavlink_am32_eeprom_t message;
 	mavlink_msg_am32_eeprom_decode(msg, &message);
 
-	// Only handle write requests
-	if (message.mode == 0) {
-		return;
-	}
-
 	am32_eeprom_write_s eeprom{};
 	eeprom.timestamp = hrt_absolute_time();
-	eeprom.index = message.index;
+	eeprom.index = message.esc_index;
 
 	uint8_t min_length = sizeof(eeprom.data);
 	int length = message.length;
