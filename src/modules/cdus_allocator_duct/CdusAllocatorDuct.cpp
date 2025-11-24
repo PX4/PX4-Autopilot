@@ -142,10 +142,10 @@ void CdusAllocatorDuct::Run()
 	desired(3) = -thrust_sp.xyz[2];
 
 	if(_manual_torque_test) {
-		desired(0) = -0.1f * _manual_control_input.roll;
-		desired(1) = -0.1f * _manual_control_input.pitch;
-		desired(2) = -0.1f * _manual_control_input.yaw;
-		desired(3) = 0.5f * _manual_control_input.throttle;
+		desired(0) = -0.15f * _manual_control_input.roll;
+		desired(1) = -0.15f * _manual_control_input.pitch;
+		desired(2) = -0.15f * _manual_control_input.yaw;
+		desired(3) = 1.0f * _manual_control_input.throttle;
 	}
 
 	// PX4_INFO("Torques: %.3f %.3f %.3f %.3f",
@@ -179,6 +179,38 @@ void CdusAllocatorDuct::Run()
 	const float m_max = 2000.f;
 	const float m_min = 1000.f;
 
+	// clamp before normalization
+	if(u(2) > s_max) {
+		const float ratio = u(3) / u(2);
+		u(3) = ratio * s_max;
+		u(2) = s_max;
+	}
+
+	if(u(2) < s_min) {
+		const float ratio = u(3) / u(2);
+		u(3) = ratio * s_min;
+		u(2) = s_min;
+	}
+
+	if(u(3) > s_max) {
+		const float ratio = u(2) / u(3);
+		u(2) = ratio * s_max;
+		u(3) = s_max;
+	}
+
+	if(u(3) < s_min) {
+		const float ratio = u(2) / u(3);
+		u(2) = ratio * s_min;
+		u(3) = s_min;
+	}
+
+	// PX4_INFO("Motor cmds: %.3f %.3f %.3f %.3f",
+    //      (double)u(0),
+    //      (double)u(1),
+    //      (double)u(2),
+    //      (double)u(3)
+	// );
+
 	// normalize
 	for(int i=0; i < 2; i++) {
 		u(i) = (u(i) - m_min) / (m_max - m_min);
@@ -198,6 +230,8 @@ void CdusAllocatorDuct::Run()
 		if (cmd > 1.f) cmd = 1.f;
 		out.control[i] = cmd;
 	}
+
+
 
 	// PX4_INFO("Motor cmds: %.3f %.3f %.3f %.3f",
     //      (double)out.control[0],
