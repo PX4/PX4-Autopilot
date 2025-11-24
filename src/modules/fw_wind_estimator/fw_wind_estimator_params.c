@@ -61,7 +61,7 @@ PARAM_DEFINE_FLOAT(FW_W_MASS, 1.00f);
 * @increment 0.01
 * @group FW Wind Estimator
 */
-PARAM_DEFINE_FLOAT(FW_W_AREA, 1.00f);
+PARAM_DEFINE_FLOAT(FW_W_AREA, 0.34f);
 
 /**
 * Vehicle Aerodynamic coefficient
@@ -73,7 +73,7 @@ PARAM_DEFINE_FLOAT(FW_W_AREA, 1.00f);
 * @increment 0.01
 * @group FW Wind Estimator
 */
-PARAM_DEFINE_FLOAT(FW_W_C_B1, 1.00f);
+PARAM_DEFINE_FLOAT(FW_W_C_B1, 1.0f);
 
 /**
 * Vehicle Aerodynamic coefficient
@@ -85,16 +85,16 @@ PARAM_DEFINE_FLOAT(FW_W_C_B1, 1.00f);
 * @increment 0.01
 * @group FW Wind Estimator
 */
-PARAM_DEFINE_FLOAT(FW_W_C_A0, 0.1949f);
+PARAM_DEFINE_FLOAT(FW_W_C_A0, 0.15188f);
 
 /**
 * Vehicle Aerodynamic coefficient
 *
 * @unit %/rad/s
 * @min 0.0
-* @max 4
+* @max 10
 * @decimal 3
 * @increment 0.01
 * @group FW Wind Estimator
 */
-PARAM_DEFINE_FLOAT(FW_W_C_A1, 3.5928f);
+PARAM_DEFINE_FLOAT(FW_W_C_A1, 5.015f);
