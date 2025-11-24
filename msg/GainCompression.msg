@@ -1,6 +1,5 @@
 uint64 timestamp                # Time since system start (microseconds)
 
-float32[3] compression_gains	# [-] Multiplicative gain to modify the output of the controller per axis [@frame FRD], [@range 0, 1]
-float32[3] spectral_damper_hpf  # Squared output of the spectral damper’s high-pass filter [@frame FRD]
-float32[3] spectral_damper_out  # Spectral damper's output squared [@frame FRD]
-float32[3] input                # Torque input [@frame FRD]
+float32[3] compression_gains	# [-] [@frame FRD] [@range 0, 1] Multiplicative gain to modify the output of the controller per axis
+float32[3] spectral_damper_hpf  # [-] [@frame FRD] Squared output of spectral damper high-pass filter
+float32[3] spectral_damper_out  # [-] [@frame FRD] Spectral damper output squared
