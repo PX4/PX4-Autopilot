@@ -329,6 +329,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_SET_VELOCITY_LIMITS:
 		handle_message_set_velocity_limits(msg);
 		break;
+
+#endif
+
+#if defined(MAVLINK_MSG_ID_AM32_EEPROM) // For now only defined if development.xml is used
+
+	case MAVLINK_MSG_ID_AM32_EEPROM:
+		handle_message_am32_eeprom(msg);
+		break;
 #endif
 
 	default:
@@ -1303,6 +1311,49 @@ void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
 	_velocity_limits_pub.publish(velocity_limits);
 }
 #endif // MAVLINK_MSG_ID_SET_VELOCITY_LIMITS
+
+#if defined(MAVLINK_MSG_ID_AM32_EEPROM) // For now only defined if development.xml is used
+void
+MavlinkReceiver::handle_message_am32_eeprom(mavlink_message_t *msg)
+{
+	mavlink_am32_eeprom_t message;
+	mavlink_msg_am32_eeprom_decode(msg, &message);
+
+	// Only handle write requests
+	if (message.mode == 0) {
+		return;
+	}
+
+	am32_eeprom_write_s eeprom{};
+	eeprom.timestamp = hrt_absolute_time();
+	eeprom.index = message.index;
+
+	uint8_t min_length = sizeof(eeprom.data);
+	int length = message.length;
+
+	if (length > min_length) {
+		length = min_length;
+	}
+
+	for (int i = 0; i < length && i < min_length; i++) {
+		int mask_index = i / 32;  // Which uint32_t in the write_mask array
+		int bit_index = i % 32;   // Which bit within that uint32_t
+
+		if (message.write_mask[mask_index] & (1U << bit_index)) {
+			eeprom.data[i] = message.data[i];
+		}
+	}
+
+	// Copy the write mask (only first 2 uint32_t needed for 48 bytes)
+	eeprom.write_mask[0] = message.write_mask[0];
+	eeprom.write_mask[1] = message.write_mask[1];
+
+	PX4_INFO("AM32 EEPROM write request for ESC%d, mask: 0x%08" PRIx32 "%08" PRIx32,
+		 eeprom.index + 1, eeprom.write_mask[1], eeprom.write_mask[0]);
+
+	_am32_eeprom_write_pub.publish(eeprom);
+}
+#endif // MAVLINK_MSG_ID_AM32_EEPROM
 
 void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
