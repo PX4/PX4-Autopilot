@@ -39,6 +39,6 @@ px4_add_module(
 		FixedwingWindEstimator.hpp
 	DEPENDS
 		px4_work_queue
-		RateControl
-		SlewRate
+	MODULE_CONFIG
+		module.yaml
 	)
