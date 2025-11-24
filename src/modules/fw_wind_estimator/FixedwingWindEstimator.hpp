@@ -63,7 +63,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_local_position.h>
-
+#include <geo/geo.h> // CONSTANTS_ONE_G
 
 using uORB::SubscriptionData;
 
@@ -118,7 +118,6 @@ private:
 	matrix::Quatf 				_attitude{};
 	matrix::Vector3f	_acceleration{0.f, 0.f, 0.f};
 	matrix::Vector3f _local_velocity{0.f, 0.f, 0.f};
-	matrix::Vector3f _gravity{0.f, 0.f, 9.81f};
 
 	bool _landed{true};
 
