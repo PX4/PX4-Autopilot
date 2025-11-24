@@ -374,7 +374,7 @@ In landing mode, the distance sensor is used to determine proximity to the groun
 | [FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)     | Wing span of the airframe.                                                   |
 | [FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT) | Height of wing from bottom of gear (or belly if no gear). |
 
-## See Also
+## 另见
 
 - [Missions](../flying/missions.md)
   - [包裹投递任务](../flying/package_delivery_mission.md)

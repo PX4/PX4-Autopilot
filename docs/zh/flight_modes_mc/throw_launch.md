@@ -95,7 +95,7 @@ The following parameters can be used to enable and configure throw launch:
 - [COM_THROW_SPEED](../advanced_config/parameter_reference.md#COM_THROW_SPEED) determines the minimum speed the aircraft should reach to detect the throw.
   If it is not reached, the engines will not turn on.
 
-## See Also
+## 另见
 
 - [Takeoff Mode (Fixed-Wing) > Catapult/Hand Launch](../flight_modes_fw/takeoff.md#catapult-hand-launch).
 

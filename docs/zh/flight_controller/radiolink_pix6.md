@@ -302,14 +302,14 @@ Recommended modules include:
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| UART1  | /dev/ttyS0 | GPS1                                     |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  | /dev/ttyS3 | GPS2                                     |
-| UART7  | /dev/ttyS4 | Debug Console                            |
-| UART8  | /dev/ttyS5 | PX4IO                                    |
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| UART   | UART       | GPS1                           |
+| USART2 | /dev/ttyS1 | TELEM1 (流控) |
+| USART3 | /dev/ttyS2 | TELEM2 (流控) |
+| UART4  | /dev/ttyS3 | GPS2                           |
+| UART7  | /dev/ttyS4 | 调试控制台                          |
+| UART8  | /dev/ttyS5 | PX4IO                          |
 
 ## Analog inputs
 

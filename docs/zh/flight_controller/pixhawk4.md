@@ -75,15 +75,15 @@ The exception is the [debug port(s)](#debug_port) (pin 1 is the right-most, as s
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| UART1  | /dev/ttyS0 | GPS                                      |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  | /dev/ttyS3 | TELEM4                                   |
-| USART6 | /dev/ttyS4 | RC SBUS                                  |
-| UART7  | /dev/ttyS5 | Debug Console                            |
-| UART8  | /dev/ttyS6 | PX4IO                                    |
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| UART   | UART       | GPS                            |
+| USART2 | /dev/ttyS1 | TELEM1 (流控) |
+| USART3 | /dev/ttyS2 | TELEM2 (流控) |
+| UART4  | /dev/ttyS3 | TELEM4                         |
+| USART6 | /dev/ttyS4 | RC SBUS                        |
+| UART7  | /dev/ttyS5 | 调试控制台                          |
+| UART8  | /dev/ttyS6 | PX4IO                          |
 
 ## 尺寸
 
