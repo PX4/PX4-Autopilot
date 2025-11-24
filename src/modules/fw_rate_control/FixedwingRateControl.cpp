@@ -150,7 +150,7 @@ FixedwingRateControl::vehicle_land_detected_poll()
 	}
 }
 
-float FixedwingRateControl::get_airspeed_and_update_scaling()
+float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 {
 	_airspeed_validated_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
@@ -163,27 +163,11 @@ float FixedwingRateControl::get_airspeed_and_update_scaling()
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
 
-		const float timestamp = _airspeed_validated_sub.get().timestamp;
-		const float dt = static_cast<float>(timestamp - _last_airspeed_update) * 1e-6f;
-
-		_last_airspeed_update = timestamp;
-
 		if (dt > 1.f) {
 			_airspeed_filter_for_torque_scaling.reset(airspeed);
 
 		} else {
-			// Update the filter with airspeed_sensor frequency / 20
-			const float unfiltered_airspeed = airspeed;
-			_airspeed_filter_for_torque_scaling.setParameters(dt, 1.f);
-			_airspeed_filter_for_torque_scaling.update(airspeed);
-			airspeed = _airspeed_filter_for_torque_scaling.getState();
-
-			// Publish the filtered airspeed for debugging
-			airspeed_filtered_s airspeed_filtered;
-			airspeed_filtered.timestamp = hrt_absolute_time();
-			airspeed_filtered.filtered_airspeed_m_s = airspeed;
-			airspeed_filtered.unfiltered_airspeed_m_s = unfiltered_airspeed;
-			_airspeed_filtered_pub.publish(airspeed_filtered);
+			airspeed = _airspeed_filter_for_torque_scaling.update(airspeed, dt);
 		}
 
 	} else {
@@ -297,7 +281,7 @@ void FixedwingRateControl::Run()
 
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
-			const float airspeed = get_airspeed_and_update_scaling();
+			const float airspeed = get_airspeed_and_update_scaling(dt);
 
 			/* reset integrals where needed */
 			if (_rates_sp.reset_integral) {
