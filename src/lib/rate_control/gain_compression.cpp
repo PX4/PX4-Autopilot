@@ -88,7 +88,6 @@ void GainCompression3d::update(const Vector3f &input, const float dt)
 		_gains.copyTo(msg.compression_gains);
 		hpf.copyTo(msg.spectral_damper_hpf);
 		lpf.copyTo(msg.spectral_damper_out);
-		input.copyTo(msg.input);
 		_gain_compression_pub.publish(msg);
 
 		_time_last_publication = now;

@@ -56,6 +56,8 @@
     - [DJI F450 (CUAV v5 nano)](frames_multicopter/dji_f450_cuav_5nano.md)
 
 - [Planes (Fixed-Wing)](frames_plane/index.md)
+  - [Features](features_fw/index.md)
+    - [Gain compression](features_fw/gain_compression.md)
   - [Assembly](assembly/assembly_fw.md)
   - [Config/Tuning](config_fw/index.md)
     - [Auto-tune](config/autotune_fw.md)
