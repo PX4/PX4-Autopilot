@@ -336,6 +336,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cubepilot_cubeorangeplus_test
+    damiao_dm-fc01:
+      short: damiao_dm-fc01
+      buildType: MinSizeRel
+      settings:
+        CONFIG: damiao_dm-fc01
     emlid_navio2_default:
       short: emlid_navio2
       buildType: MinSizeRel
