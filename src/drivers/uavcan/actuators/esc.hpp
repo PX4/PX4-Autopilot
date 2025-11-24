@@ -89,9 +89,6 @@ private:
 	 */
 	void esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg);
 
-	/**
-	 * ESC extended status message reception will be reported via this callback.
-	 */
 	void esc_status_extended_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg);
 
 	/**
@@ -125,14 +122,9 @@ private:
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
 	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder>	_uavcan_sub_status_extended;
-	float _last_motor_temperature[esc_status_s::CONNECTED_ESC_MAX];
-	uint16_t _motor_temperature_counter{0};
-
-	/*
-	* Temperature check values
-	*/
-	float _param_warn_esc_temp{0.0f};
-	float _param_over_esc_temp{0.0f};
-	float _param_warn_motor_temp{0.0f};
-	float _param_over_motor_temp{0.0f};
+	float _last_motor_temperature[esc_status_s::CONNECTED_ESC_MAX] {};
+	float _param_uavcan_esc_w_temp{0.0f};
+	float _param_uavcan_esc_o_temp{0.0f};
+	float _param_uavcan_mot_w_temp{0.0f};
+	float _param_uavcan_mot_o_temp{0.0f};
 };

@@ -9,7 +9,6 @@ uint8 ESC_CONNECTION_TYPE_CAN = 4			# CAN-Bus
 uint8 ESC_CONNECTION_TYPE_DSHOT = 5			# DShot
 
 uint16 counter  					# incremented by the writing thread everytime new data is stored
-uint16 motor_temperature_counter			# incremented by the writing thread everytime new motor temperature data is stored
 
 uint8 esc_count						# number of connected ESCs
 uint8 esc_connectiontype				# how ESCs connected to the system
