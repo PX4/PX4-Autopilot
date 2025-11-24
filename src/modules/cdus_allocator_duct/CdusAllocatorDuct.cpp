@@ -142,9 +142,9 @@ void CdusAllocatorDuct::Run()
 	desired(3) = -thrust_sp.xyz[2];
 
 	if(_manual_torque_test) {
-		desired(0) = -0.15f * _manual_control_input.roll;
-		desired(1) = -0.15f * _manual_control_input.pitch;
-		desired(2) = -0.15f * _manual_control_input.yaw;
+		desired(0) = -0.3f * _manual_control_input.roll;
+		desired(1) = -0.3f * _manual_control_input.pitch;
+		desired(2) = -0.3f * _manual_control_input.yaw;
 		desired(3) = 1.0f * _manual_control_input.throttle;
 	}
 
@@ -157,6 +157,39 @@ void CdusAllocatorDuct::Run()
 
 	// Generate delta PWM for each actuator and normalize
 	Vector4f d_PWM = _B_pinv * desired;
+	float d_s1 = d_PWM(2);
+	float d_s2 = d_PWM(3);
+	const float d_s1_lim = 200.f;
+	const float d_s2_lim = 200.f;
+
+	//clip and preserve ratios of servo d_PWM vals
+	if(std::fabs(d_s2) > 1e-3f) {
+		const float r = d_PWM(0) / d_PWM(1);
+
+		if(std::fabs(d_s1) > d_s1_lim) {
+			d_PWM(3) = d_s1_lim / r;
+			d_PWM(2) = d_s1_lim * (d_s1 / std::fabs(d_s1));
+			// PX4_INFO("1");
+		} 
+
+		else if(std::fabs(d_s2) > d_s2_lim) {
+			d_PWM(2) = d_s2_lim * r;
+			d_PWM(3) = d_s2_lim * (d_s2 / std::fabs(d_s2));
+			// PX4_INFO("2");
+		}
+
+		else if(std::fabs(d_s2) > d_s2_lim && std::fabs(d_s1) > d_s1_lim) {
+			if(std::fabs(r) >= std::fabs(d_s1_lim/d_s2_lim)) {
+				d_PWM(3) = d_s1_lim / r;
+				d_PWM(2) = d_s1_lim * (d_s1 / std::fabs(d_s1));
+				// PX4_INFO("3");
+			} else {
+				d_PWM(2) = d_s2_lim * r;
+				d_PWM(3) = d_s2_lim * (d_s2 / std::fabs(d_s2));
+				// PX4_INFO("4");
+			}
+		}
+	}
 
 
 
@@ -179,30 +212,30 @@ void CdusAllocatorDuct::Run()
 	const float m_max = 2000.f;
 	const float m_min = 1000.f;
 
-	// clamp before normalization
-	if(u(2) > s_max) {
-		const float ratio = u(3) / u(2);
-		u(3) = ratio * s_max;
-		u(2) = s_max;
-	}
+	// // clamp before normalization
+	// if(u(2) > s_max) {
+	// 	const float ratio = u(3) / u(2);
+	// 	u(3) = ratio * s_max;
+	// 	u(2) = s_max;
+	// }
 
-	if(u(2) < s_min) {
-		const float ratio = u(3) / u(2);
-		u(3) = ratio * s_min;
-		u(2) = s_min;
-	}
+	// if(u(2) < s_min) {
+	// 	const float ratio = u(3) / u(2);
+	// 	u(3) = ratio * s_min;
+	// 	u(2) = s_min;
+	// }
 
-	if(u(3) > s_max) {
-		const float ratio = u(2) / u(3);
-		u(2) = ratio * s_max;
-		u(3) = s_max;
-	}
+	// if(u(3) > s_max) {
+	// 	const float ratio = u(2) / u(3);
+	// 	u(2) = ratio * s_max;
+	// 	u(3) = s_max;
+	// }
 
-	if(u(3) < s_min) {
-		const float ratio = u(2) / u(3);
-		u(2) = ratio * s_min;
-		u(3) = s_min;
-	}
+	// if(u(3) < s_min) {
+	// 	const float ratio = u(2) / u(3);
+	// 	u(2) = ratio * s_min;
+	// 	u(3) = s_min;
+	// }
 
 	// PX4_INFO("Motor cmds: %.3f %.3f %.3f %.3f",
     //      (double)u(0),
