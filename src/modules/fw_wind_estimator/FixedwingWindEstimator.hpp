@@ -125,10 +125,6 @@ private:
 	//Vehicle parameters
 	float _mass{1.0};
 	float _stall_airspeed{10.0f};
-	float _wing_area{1.0};
-	float _C_B1{1.0}; // Sideslip
-	float _C_A0{0.1949f};
-	float _C_A1{3.5928f};
 
 
 	DEFINE_PARAMETERS(
