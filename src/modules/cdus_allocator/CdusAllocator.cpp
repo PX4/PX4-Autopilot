@@ -5,6 +5,8 @@
 #include "CdusAllocator.hpp"
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
+#include <px4_platform_common/defines.h>
+using namespace time_literals;
 
 CdusAllocator::CdusAllocator() :
 	ModuleParams(nullptr),

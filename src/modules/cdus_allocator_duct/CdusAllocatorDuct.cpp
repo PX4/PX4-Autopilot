@@ -5,6 +5,7 @@
 #include "CdusAllocatorDuct.hpp"
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
+using namespace time_literals;
 
 CdusAllocatorDuct::CdusAllocatorDuct() :
 	ModuleParams(nullptr),
@@ -148,12 +149,12 @@ void CdusAllocatorDuct::Run()
 		desired(3) = 1.0f * _manual_control_input.throttle;
 	}
 
-	// PX4_INFO("Torques: %.3f %.3f %.3f %.3f",
-    //      (double)desired(0),
-    //      (double)desired(1),
-	// 	 (double)desired(2),
-	// 	 (double)desired(3)
-	// );
+	PX4_INFO("Torques: %.3f %.3f %.3f %.3f",
+         (double)desired(0),
+         (double)desired(1),
+		 (double)desired(2),
+		 (double)desired(3)
+	);
 
 	// Generate delta PWM for each actuator and normalize
 	Vector4f d_PWM = _B_pinv * desired;
@@ -211,6 +212,13 @@ void CdusAllocatorDuct::Run()
 
 	const float m_max = 2000.f;
 	const float m_min = 1000.f;
+
+	PX4_INFO("Actuators: %.3f %.3f %.3f %.3f",
+         (double)u(0),
+         (double)u(1),
+		 (double)u(2),
+		 (double)u(3)
+	);
 
 	// // clamp before normalization
 	// if(u(2) > s_max) {
