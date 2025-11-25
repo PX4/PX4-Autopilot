@@ -73,7 +73,7 @@ class FixedwingWindEstimator final : public ModuleBase<FixedwingWindEstimator>, 
 	public px4::ScheduledWorkItem
 {
 public:
-	FixedwingWindEstimator(bool vtol = false);
+	FixedwingWindEstimator();
 	~FixedwingWindEstimator() override;
 
 	/** @see ModuleBase */
@@ -107,7 +107,6 @@ private:
 
 	vehicle_control_mode_s			_vcontrol_mode{};
 	vehicle_status_s			_vehicle_status{};
-	vehicle_attitude_s 			_vehicle_attitude{};
 
 	perf_counter_t _loop_perf;
 
@@ -115,15 +114,13 @@ private:
 
 	float _calibrated_airspeed{0.0f};
 	float _true_airspeed{15.0f};
-	matrix::Quatf 				_attitude{};
-	matrix::Vector3f	_acceleration{0.f, 0.f, 0.f};
+	matrix::Quatf _attitude{};
+	matrix::Vector3f _acceleration{0.f, 0.f, 0.f};
 	matrix::Vector3f _local_velocity{0.f, 0.f, 0.f};
 
 	bool _landed{true};
 
 	//Vehicle parameters
-	float _mass{1.0};
-	float _stall_airspeed{10.0f};
 
 
 	DEFINE_PARAMETERS(
@@ -138,12 +135,12 @@ private:
 	/**
 	 * Update our local parameter cache.
 	 */
-	int		parameters_update();
-	void		vehicle_land_detected_poll();
+	int parameters_update();
+	void vehicle_land_detected_poll();
 
-	void 		airspeed_poll();
-	void		vehicle_acceleration_poll();
-	void		vehicle_attitude_poll();
-	void		vehicle_local_position_poll();
-	matrix::Vector3f	compute_wind_estimate();
+	void airspeed_poll();
+	void vehicle_acceleration_poll();
+	void vehicle_attitude_poll();
+	void vehicle_local_position_poll();
+	matrix::Vector3f predictBodyAirVelocity();
 };
