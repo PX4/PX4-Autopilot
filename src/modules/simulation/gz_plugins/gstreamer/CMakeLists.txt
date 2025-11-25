@@ -45,6 +45,11 @@ else()
         GstCameraSystem.cpp
     )
 
+    target_link_directories(${PROJECT_NAME}
+        PUBLIC ${GSTREAMER_LIBRARY_DIRS}
+        PUBLIC ${GSTREAMER_APP_LIBRARY_DIRS}
+    )
+
     target_link_libraries(${PROJECT_NAME}
         PUBLIC px4_gz_msgs
         PUBLIC ${GZ_SENSORS_TARGET}
