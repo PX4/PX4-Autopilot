@@ -1,29 +1,30 @@
-# ARK SAM GPS
+# ARK DAN GPS
 
-[ARK SAM GPS](https://arkelectron.gitbook.io/ark-documentation/gps/ark-sam-gps) is a made in the USA and NDAA-compliant [GNSS/GPS](../gps_compass/index.md) u-blox SAM-M10Q GPS and industrial magnetometer.
+[ARK DAN GPS](https://arkelectron.gitbook.io/ark-documentation/gps/ark-dan-gps) is a made in the USA and NDAA-compliant [GNSS/GPS](../gps_compass/index.md) u-blox DAN-F10N GPS and industrial magnetometer.
 
-![ARK SAM GPS](../../assets/hardware/gps/ark/ark_sam_gps.jpg)
+![ARK DAN GPS](../../assets/hardware/gps/ark/ark_dan_gps.jpg)
 
 ## Where to Buy
 
 Order this module from:
 
-- [ARK Electronics](https://arkelectron.com/product/ark-sam-gps/) (US)
+- [ARK Electronics](https://arkelectron.com/product/ark-dan-gps/) (US)
 
 ## Hardware Specifications
 
-- [Open Source Schematic and BOM](https://github.com/ARK-Electronics/ARK_SAM_GPS/tree/main)
+- [Open Source Schematic and BOM](https://github.com/ARK-Electronics/ARK_DAN_GPS)
 - Sensors
-  - [u-blox SAM-M10Q](https://www.u-blox.com/en/product/sam-m10q-module)
-    - Less than 38 mW power consumption without compromising GNSS performance
-    - Maximum position availability with 4 concurrent GNSS reception
-    - Advanced spoofing and jamming detection
+  - [u-blox DAN-F10N](https://www.u-blox.com/en/product/dan-f10n-module)
+    - L1/L5/E5a/B2a bands
+    - Consistently strong performance regardless of installation
+    - Integrated SAW-LNA-SAW for exceptional out-of-band jamming immunity
+    - u-blox F10 proprietary dual-band multipath mitigation technology
   - [ST IIS2MDC Magnetometer](https://www.st.com/en/mems-and-sensors/iis2mdc.html)
 - Pixhawk Standard UART/I2C Connector (6 Pin JST SH)
 - Power Requirements
   - 5V
-  - 15mA Average
-  - 20mA Max
+  - 25mA Average
+  - 44mA Max
 - LED Indicators
   - GPS Fix
 - USA Built
@@ -58,4 +59,4 @@ The module should be plug-n-play when used with the `GPS2` port on most flight c
 
 ## See Also
 
-- [ARK SAM GPS Documentation](https://arkelectron.gitbook.io/ark-documentation/gps/ark-sam-gps) (ARK Docs)
+- [ARK DAN GPS Documentation](https://arkelectron.gitbook.io/ark-documentation/gps/ark-dan-gps) (ARK Docs)
