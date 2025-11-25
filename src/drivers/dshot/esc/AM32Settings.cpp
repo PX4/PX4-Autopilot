@@ -73,7 +73,7 @@ bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
 		return false;
 	}
 
-	// PX4_INFO("Successfully received AM32 settings from ESC%d", _esc_index + 1);
+	PX4_INFO("Successfully received AM32 settings from ESC%d", _esc_index + 1);
 
 	// Store data for retrieval later if requested
 	memcpy(&_eeprom_data, buf, EEPROM_SIZE);

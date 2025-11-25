@@ -602,7 +602,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
 
-		if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
+		if (message_id == MAVLINK_MSG_ID_AM32_EEPROM) {
+			PX4_INFO("publishing MAV_CMD_REQUEST_MESSAGE for MAVLINK_MSG_ID_AM32_EEPROM");
+			_cmd_pub.publish(vehicle_command);
+
+		} else if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
 			get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
 
 		} else {

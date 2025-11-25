@@ -200,6 +200,8 @@ void DShot::select_next_command()
 	// Settings Request mask
 	uint8_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
 
+	bool serial_telem_delay_elapsed = hrt_absolute_time() > _serial_telem_delay_until;
+
 	_current_command.clear();
 
 	if (_bdshot_telemetry_enabled && _bdshot_edt_enabled && needs_edt_request_mask) {
@@ -220,7 +222,7 @@ void DShot::select_next_command()
 		_bdshot_edt_requested_mask |= (1 << next_motor_index);
 		PX4_INFO("ESC%d: requesting EDT at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
 
-	} else if (_serial_telemetry_enabled && _bdshot_telemetry_enabled && needs_settings_request_mask) {
+	} else if (_serial_telemetry_enabled && _bdshot_telemetry_enabled && needs_settings_request_mask && serial_telem_delay_elapsed) {
 		// Settings Request next
 		int next_motor_index = 0;
 
@@ -282,7 +284,8 @@ void DShot::select_next_command()
 
 			} else {
 				// All settings have been written
-				PX4_INFO("All settings written!");
+				PX4_INFO("All settings written at time %.2fs", (double)hrt_absolute_time() / 1000000.);
+
 				_dshot_programming_active = false;
 				// _programming_state = ProgrammingState::Save;
 				_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
@@ -290,7 +293,6 @@ void DShot::select_next_command()
 				_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
 				_programming_state = ProgrammingState::Idle;
 
-				// TODO: do we want to re-request and compare?
 				// Clear the written mask for this motor for next time
 				_settings_written_mask[0] = 0;
 				_settings_written_mask[1] = 0;
@@ -299,7 +301,7 @@ void DShot::select_next_command()
 				// _serial_telem_online_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
 				_settings_requested_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
 
-				_serial_telem_delay_until = hrt_absolute_time() + 100_ms;
+				_serial_telem_delay_until = hrt_absolute_time() + 500_ms;
 			}
 		}
 
@@ -444,7 +446,9 @@ bool DShot::process_serial_telemetry()
 	bool all_telem_sampled = false;
 
 	if (!_telemetry.commandResponseFinished()) {
-		_telemetry.parseCommandResponse();
+		if (_telemetry.commandResponseStarted()) {
+			_telemetry.parseCommandResponse();
+		}
 
 	} else {
 
@@ -723,6 +727,10 @@ void DShot::handle_vehicle_commands()
 			handle_am32_request_eeprom(command);
 			break;
 
+		case vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE:
+			PX4_INFO("VEHICLE_CMD_REQUEST_MESSAGE: param1: %f", (double)command.param1);
+			handle_am32_request_eeprom(command);
+
 		default:
 			break;
 		}
@@ -803,16 +811,18 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 void DShot::handle_am32_request_eeprom(const vehicle_command_s &command)
 {
 	PX4_INFO("Received AM32_REQUEST_EEPROM");
-	PX4_INFO("index: %d", (int)command.param1);
+	PX4_INFO("esc_index: %d", (int)command.param2);
 
-	int index = command.param1;
+	int esc_index = command.param2;
 
 	// Mark as unread to re-trigger settings request
-	if (index == 255) {
+	if (esc_index == 255) {
+		PX4_INFO("mark all unread");
 		_settings_requested_mask = 0;
 
 	} else {
-		_settings_requested_mask &= ~(1 << index);
+		PX4_INFO("mark one unread");
+		_settings_requested_mask &= ~(1 << esc_index);
 	}
 
 	vehicle_command_ack_s command_ack = {};

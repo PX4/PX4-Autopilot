@@ -125,6 +125,8 @@ int DShotTelemetry::parseCommandResponse()
 {
 	if (hrt_elapsed_time(&_command_response_start) > 1_s) {
 		PX4_WARN("Command response timed out: %d bytes received", _command_response_position);
+		PX4_WARN("At time %.2fs", (double)hrt_absolute_time() / 1000000.);
+
 		_command_response_motor_index = -1;
 		_command_response_start = 0;
 		_command_response_position = 0;
@@ -273,6 +275,11 @@ void DShotTelemetry::setExpectCommandResponse(int motor_index, uint16_t command)
 bool DShotTelemetry::commandResponseFinished()
 {
 	return _command_response_motor_index < 0;
+}
+
+bool DShotTelemetry::commandResponseStarted()
+{
+	return _command_response_start > 0;
 }
 
 void DShotTelemetry::startTelemetryRequest()

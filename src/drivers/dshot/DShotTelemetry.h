@@ -55,6 +55,8 @@ public:
 	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
 	int parseCommandResponse();
 	bool commandResponseFinished();
+	bool commandResponseStarted();
+
 	void setExpectCommandResponse(int motor_index, uint16_t command);
 	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
 	void publish_esc_settings();
