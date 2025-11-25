@@ -15,6 +15,12 @@ This is a subset of the rangefinders that can be used with PX4.
 There may also be other DroneCAN rangefinders than those listed here.
 :::
 
+### ARK DIST SR & ARK DIST MR
+
+[ARK DIST SR](../dronecan/ark_dist.md) and [ARK DIST MR](../dronecan/ark_dist_mr.md) are open-source Time-of-Flight (ToF) rangefinder modules, which are capable of measuring distances from 8cm to 30m and from 8cm to 50m, respectively.
+It can be connected to the flight controller via its CAN1 port, allowing additional sensors to connect through its CAN2 port.
+It supports [DroneCAN](../dronecan/index.md), runs [PX4 DroneCAN Firmware](../dronecan/px4_cannode_fw.md), and is packed into a tiny form factor.
+
 ### ARK Flow & AKR Flow MR
 
 [ARK Flow](../dronecan/ark_flow.md) and [ARK Flow MR](../dronecan/ark_flow_mr.md) are open-source Time-of-Flight (ToF) and optical flow sensor modules, which are capable of measuring distances from 8cm to 30m and from 8cm to 50m, respectively.
