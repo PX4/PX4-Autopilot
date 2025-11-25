@@ -60,7 +60,7 @@ The driver tracks these intervals, but with the "MAVLink backend" does not need 
 When the camera would trigger the driver publishes a [CameraTrigger](../msg_docs/CameraTrigger.md) topic (with `feedback` field set to `false`) that causes a [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) MAVLink message to be emitted.
 The `camera_feedback` module should then log a corresponding `CameraCapture` topic.
 
-## Camera Commands in Missions
+## 任务中的相机命令
 
 PX4 re-emits camera items found in missions as MAVLink commands for all supported [Camera Protocol v2](https://mavlink.io/en/services/camera.html) and [Camera Protocol v1](https://mavlink.io/en/services/camera.html) commands.
 The system id of the emitted commands is the same as the ID of the autopilot.
@@ -107,7 +107,7 @@ The logged topic will depend on whether or not the camera capture pin is enabled
 
 Note that camera capture events are not logged when using the [MAVLink cameras that support Camera Protocol v2](../camera/mavlink_v2_camera.md), because the corresponding trigger events are not generated within PX4.
 
-## See Also
+## 另见
 
 - Camera trigger driver: [source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger) <!-- no module doc -->
 - Camera capture driver: [source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_capture) <!-- no module doc -->

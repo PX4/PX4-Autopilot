@@ -36,7 +36,7 @@ For these kinds of changes we suggest using the same approach as for _code_:
 1. Use the _git_ toolchain to get the PX4 source code onto your local computer.
 1. Modify the documentation as needed (add, change, delete).
 1. _Test_ that it builds properly using Vitepress.
-1. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot.git) repo.
+1. Create a branch for your changes and create a pull request (PR) to pull it back into the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) repo.
 
 The following explain how to get the source code, build locally (to test), and modify the code.
 
@@ -55,8 +55,8 @@ To get the library(s) sources onto your local computer you will need to use the 
 The instructions below explain how to get git and use it on your local computer.
 
 1. Download git for your computer from [https://git-scm.com/downloads](https://git-scm.com/downloads)
-1. [Sign up](https://github.com/join) for Github if you haven't already
-1. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/get-started/quickstart/fork-a-repo)).
+1. [Sign up](https://github.com/signup) for Github if you haven't already
+1. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)).
 1. Clone (copy) your forked repository to your local computer:
 
    ```sh
@@ -127,7 +127,6 @@ Within the repository you created above:
 6. Go to your forked repository on Github in a web browser, e.g.: `https://github.com/<your git name>/PX4-Autopilot.git`.
    There you should see the message that a new branch has been pushed to your forked repository.
 7. Create a pull request (PR):
-
    - On the right hand side of the "new branch message" (see one step before), you should see a green button saying "Compare & Create Pull Request".
      Press it.
    - A pull request template will be created.
@@ -145,7 +144,6 @@ Within the repository you created above:
 Build the library locally to test that any changes you have made have rendered properly:
 
 1. Install the [Vitepress prerequisites](https://vitepress.dev/guide/getting-started#prerequisites):
-
    - [Nodejs 18+](https://nodejs.org/en)
    - [Yarn classic](https://classic.yarnpkg.com/en/docs/install)
 
@@ -174,11 +172,18 @@ Build the library locally to test that any changes you have made have rendered p
 1. Open previewed pages in your local editor:
 
    First specify a local text editor file using the `EDITOR` environment variable, before calling `yarn start` to preview the library.
-   For example, on Windows command line you can enable VSCode as your default editor by entering:
+   For example, you can enable VSCode as your default editor by entering:
+   - Windows:
 
-   ```sh
-   set EDITOR=code
-   ```
+     ```sh
+     set EDITOR=code
+     ```
+
+   - Linux:
+
+     ```sh
+     export EDITOR=code
+     ```
 
    The **Open in your editor** link at the bottom of each page will then open the current page in the editor (this replaces the _Open in GitHub_ link).
 
@@ -215,7 +220,6 @@ In overview:
 - All pages must be in an appropriately named sub-folder of `/en` (e.g. this page is in folder `en/contribute/`).
   - This makes linking easier because other pages and images are always as the same relative levels
 - The _structure_ of the book is defined in `SUMMARY.md`.
-
   - If you add a new page to the guide you must also add an entry to this file!
 
     :::tip
@@ -239,7 +243,6 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
 ## Style Guide
 
 1. Files/file names
-
    - Put new markdown files in an appropriate sub-folder of `/en/`, such as `/en/contribute/`.
      Do not further nest folders.
    - Put new image files in an appropriate nested sub-folder of `/assets/`.
@@ -249,14 +252,12 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
    - Use lower case filenames and separate words using underscores (`_`).
 
 2. Images
-
    - Use the smallest size and lowest resolution that makes the image still useful (this reduces download cost for users with poor bandwidth).
    - New images should be created in a sub-folder of `/assets/` (so they can be shared between translations).
    - SVG files are preferred for diagrams.
      PNG files are preferred over JPG for screenshots.
 
 3. Content:
-
    - Use "style" (**bold**, _emphasis_, etc.) consistently and sparingly (as little as possible).
      - **Bold** for button presses and menu definitions.
      - _Emphasis_ for tool names such as _QGroundControl_ or _prettier_.
@@ -271,7 +272,6 @@ When you add a new page you must also add it to `en/SUMMARY.md`!
    - Format using _prettier_ (_VSCode_ is a has extensions can be used for this).
 
 4. Videos:
-
    - Youtube videos can be added using the format `<lite-youtube videoid="<youtube-video-id>" title="your title"/>` (supported via the [https://www.npmjs.com/package/lite-youtube-embed](https://www.npmjs.com/package/lite-youtube-embed) custom element, which has other parameters you can pass).
      - Use instructional videos sparingly as they date badly, and are hard to maintain.
      - Cool videos of airframes in flight are always welcome.

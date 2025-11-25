@@ -116,7 +116,7 @@ VtolTakeoff::on_active()
 				// as the loiter is established. therefore, set a small loiter time so that the mission item will be reached quickly,
 				// however it will just continue loitering as there is no next mission item
 				_mission_item.time_inside = 1.f;
-				_mission_item.loiter_radius = _navigator->get_loiter_radius();
+				_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 				_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
 				_mission_item.altitude = _takeoff_alt_msl + _param_loiter_alt.get();
 

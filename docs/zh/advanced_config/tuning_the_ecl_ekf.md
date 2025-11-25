@@ -157,29 +157,29 @@ Three axis body fixed magnetometer data at a minimum rate of 5Hz is required to 
 Magnetometer data fusion can be configured using [EKF2_MAG_TYPE](../advanced_config/parameter_reference.md#EKF2_MAG_TYPE):
 
 0. Automatic:
-  - The magnetometer readings only affect the heading estimate before arming, and the whole attitude after arming.
-  - Heading and tilt errors are compensated when using this method.
-  - Incorrect magnetic field measurements can degrade the tilt estimate.
-  - The magnetometer biases are estimated whenever observable.
+   - The magnetometer readings only affect the heading estimate before arming, and the whole attitude after arming.
+   - Heading and tilt errors are compensated when using this method.
+   - Incorrect magnetic field measurements can degrade the tilt estimate.
+   - The magnetometer biases are estimated whenever observable.
 1. Magnetic heading:
-  - Only the heading is corrected.
-    The tilt estimate is never affected by incorrect magnetic field measurements.
-  - Tilt errors that could arise when flying without velocity/position aiding are not corrected when using this method.
-  - The magnetometer biases are estimated whenever observable.
+   - Only the heading is corrected.
+     The tilt estimate is never affected by incorrect magnetic field measurements.
+   - Tilt errors that could arise when flying without velocity/position aiding are not corrected when using this method.
+   - The magnetometer biases are estimated whenever observable.
 2. Deprecated
 3. Deprecated
 4. Deprecated
 5. None:
-  - Magnetometer data is never used.
-    This is useful when the data can never be trusted (e.g.: high current close to the sensor, external anomalies).
-  - The estimator will use other sources of heading: [GPS heading](#yaw-measurements) or external vision.
-  - When using GPS measurements without another source of heading, the heading can only be initialized after sufficient horizontal acceleration.
-    See [Estimate yaw from vehicle movement](#yaw-from-gps-velocity) below.
+   - Magnetometer data is never used.
+     This is useful when the data can never be trusted (e.g.: high current close to the sensor, external anomalies).
+   - The estimator will use other sources of heading: [GPS heading](#yaw-measurements) or external vision.
+   - When using GPS measurements without another source of heading, the heading can only be initialized after sufficient horizontal acceleration.
+     See [Estimate yaw from vehicle movement](#yaw-from-gps-velocity) below.
 6. Init only:
-  - Magnetometer data is only used to initialize the heading estimate.
-    This is useful when the data can be used before arming but not afterwards (e.g.: high current after the vehicle is armed).
-  - After initialization, the heading is constrained using other observations.
-  - Unlike mag type `None`, when combined with GPS measurements, this method allows position controlled modes to run directly during takeoff.
+   - Magnetometer data is only used to initialize the heading estimate.
+     This is useful when the data can be used before arming but not afterwards (e.g.: high current after the vehicle is armed).
+   - After initialization, the heading is constrained using other observations.
+   - Unlike mag type `None`, when combined with GPS measurements, this method allows position controlled modes to run directly during takeoff.
 
 The following selection tree can be used to select the right option:
 
@@ -241,8 +241,8 @@ EKF2模块将误差建模为与机体固连的椭球体，在将其转换为高�
 
 2. Extract the `.ulg` log file using, for example, [QGroundControl: Analyze > Log Download](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/log_download.html)
 
-  ::: info
-  The same log file can be used to tune the [multirotor wind estimator](#mc_wind_estimation_using_drag).
+   ::: info
+   The same log file can be used to tune the [multirotor wind estimator](#mc_wind_estimation_using_drag).
 
 :::
 
@@ -276,7 +276,7 @@ For more details about the configuration of height sources, [click here](#height
 
 #### 偏航角测量
 
-Some GPS receivers such as the [Trimble MB-Two RTK GPS receiver](https://www.trimble.com/Precision-GNSS/MB-Two-Board.aspx) can be used to provide a heading measurement that replaces the use of magnetometer data.
+Some GPS receivers such as the [Trimble MB-Two RTK GPS receiver](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) can be used to provide a heading measurement that replaces the use of magnetometer data.
 在存在大型磁场异常的环境中工作时，或在高纬度地区，地球磁场具有很大的磁倾角时，这可能是一个重要的优势。
 Use of GPS yaw measurements is enabled by setting bit position 3 to 1 (adding 8) in the [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter.
 
@@ -388,7 +388,6 @@ It is further configured using the `EKF2_RNG_A_` parameters:
 
 - [EKF2_RNG_A_VMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_VMAX): Maximum horizontal speed, above which range aid is disabled.
 - [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX): Maximum height, above which range aid is disabled.
-- [EKF2_RNG_A_IGATE](../advanced_config/parameter_reference.md#EKF2_RNG_A_IGATE): Range aid consistency checks "gate" (a measure of the error before range aid is disabled).
 
 #### Range height fusion
 
@@ -446,9 +445,7 @@ Airspeed data will be used when it exceeds the threshold set by a positive value
 Fixed-wing platforms can take advantage of an assumed sideslip observation of zero to improve wind speed estimation and also enable wind speed estimation without an airspeed sensor.
 This is enabled by setting the [EKF2_FUSE_BETA](../advanced_config/parameter_reference.md#EKF2_FUSE_BETA) parameter to 1.
 
-<a id="mc_wind_estimation_using_drag"></a>
-
-### 基于阻力比力的多旋翼风场估计
+### Multicopter Wind Estimation using Drag Specific Forces {#mc_wind_estimation_using_drag}
 
 多旋翼平台可以利用沿 X 和 Y 机体轴的空速和阻力之间的关系来估计风速的北/东分量。
 This can be enabled using [EKF2_DRAG_CTRL](../advanced_config/parameter_reference.md#EKF2_DRAG_CTRL).
@@ -460,8 +457,8 @@ The amount of specific force observation noise is set by the [EKF2_DRAG_NOISE](.
 
 1. Fly once in [Position mode](../flight_modes_mc/position.md) repeatedly forwards/backwards/left/right/up/down between rest and maximum speed (best results are obtained when this testing is conducted in still conditions).
 2. Extract the **.ulg** log file using, for example, [QGroundControl: Analyze > Log Download](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/log_download.html)
-  ::: info
-  The same **.ulg** log file can also be used to tune the [static pressure position error coefficients](#correction-for-static-pressure-position-error).
+   ::: info
+   The same **.ulg** log file can also be used to tune the [static pressure position error coefficients](#correction-for-static-pressure-position-error).
 
 :::
 3. Use the log with the [mc_wind_estimator_tuning.py](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/ekf2/EKF/python/tuning_tools/mc_wind_estimator) Python script to obtain the optimal set of parameters.
@@ -484,11 +481,11 @@ Position, velocity or orientation measurements from an external vision system, e
 
 The measurements that are fused are configured by setting the appropriate bits of [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL) to `true`:
 
-- `0`: Horizontal position data
+- `0`: 水平位置数据
 - `1`: Vertical position data.
   Height sources may additionally be configured using [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) (see section [Height](#height)).
-- `2`: Velocity data
-- `3`: Yaw data
+- `2`：速度数据
+- `3`:偏航角数据
 
 Note that if yaw data is used (bit 3) the heading is with respect to the external vision frame; otherwise the heading is relative to North.
 
@@ -541,9 +538,9 @@ When this has been done, the performance metadata files can be processed to prov
 
 ### 输出数据
 
-- Attitude output data is found in the [VehicleAttitude](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAttitude.msg) message.
-- Local position output data is found in the [VehicleLocalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleLocalPosition.msg) message.
-- Global \(WGS-84\) output data is found in the [VehicleGlobalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleGlobalPosition.msg) message.
+- Attitude output data is found in the [VehicleAttitude](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitude.msg) message.
+- Local position output data is found in the [VehicleLocalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleLocalPosition.msg) message.
+- Global \(WGS-84\) output data is found in the [VehicleGlobalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleGlobalPosition.msg) message.
 - Wind velocity output data is found in the [Wind.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Wind.msg) message.
 
 ### 状态

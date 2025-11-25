@@ -9,23 +9,24 @@ These are useful for applications including terrain following, precision hoverin
 
 The following models are supported by PX4, and can be connected to either the I2C or Serial bus (the tables below indicates what bus can be used for each model).
 
-| Model                                                      | Range (m) | Bus               | Description                                                                                |
-| ---------------------------------------------------------- | --------- | ----------------- | ------------------------------------------------------------------------------------------ |
-| [SF11/C](https://lightwarelidar.com/products/sf11-c-100-m) | 100       | Serial or I2C bus |
-| [LW20/C](https://lightware.co.za/products/lw20-c-100-m)    | 100       | I2C bus           | Waterproofed (IP67) with servo for sense-and-avoid applications                            |
-| [SF45/B](../sensor/sf45_rotating_lidar.md)                 | 50        | Serial            | Rotary Lidar (Used for [Collision Prevention](../computer_vision/collision_prevention.md)) |
+| Model                                                   | Range (m) | Bus               | Description                                                                                |
+| ------------------------------------------------------- | --------- | ----------------- | ------------------------------------------------------------------------------------------ |
+| [SF11/C](https://lightwarelidar.com/shop/sf11-c-100-m/) | 100       | Serial or I2C bus |
+| [LW20/C](https://lightware.co.za/products/lw20-c-100-m) | 100       | I2C bus           | Waterproofed (IP67) with servo for sense-and-avoid applications                            |
+| [SF30/D](https://lightwarelidar.com/shop/sf30-d-200-m/) | 200       | I2C bus           | Waterproofed (IP67)                                                                        |
+| [SF45/B](../sensor/sf45_rotating_lidar.md)              | 50        | Serial            | Rotary Lidar (Used for [Collision Prevention](../computer_vision/collision_prevention.md)) |
 
 ::: details Discontinued
 
 The following models are supported by PX4 but are no longer available from the manufacturer.
 
-| Model                                                                                              | Range | Bus           |                                                                 |
-| -------------------------------------------------------------------------------------------------- | ----- | ------------- | --------------------------------------------------------------- |
-| [SF02](http://documents.lightware.co.za/SF02%20-%20Laser%20Rangefinder%20Manual%20-%20Rev%208.pdf) | 50    | Serial        |                                                                 |
-| [SF10/A](http://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 25    | Serial or I2C |                                                                 |
-| [SF10/B](http://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 50    | Serial or I2C |                                                                 |
-| SF10/C                                                                                             | 100m  | Serial or I2C |                                                                 |
-| LW20/B                                                                                             | 50    | I2C bus       | Waterproofed (IP67) with servo for sense-and-avoid applications |
+| Model                                                                                               | Range | Bus           |                                                                 |
+| --------------------------------------------------------------------------------------------------- | ----- | ------------- | --------------------------------------------------------------- |
+| [SF02](https://documents.lightware.co.za/SF02%20-%20Laser%20Rangefinder%20Manual%20-%20Rev%208.pdf) | 50    | Serial        |                                                                 |
+| [SF10/A](https://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 25    | Serial or I2C |                                                                 |
+| [SF10/B](https://documents.lightware.co.za/SF10%20-%20Laser%20Altimeter%20Manual%20-%20Rev%206.pdf) | 50    | Serial or I2C |                                                                 |
+| SF10/C                                                                                              | 100m  | Serial or I2C |                                                                 |
+| LW20/B                                                                                              | 50    | I2C bus       | Waterproofed (IP67) with servo for sense-and-avoid applications |
 
 :::
 

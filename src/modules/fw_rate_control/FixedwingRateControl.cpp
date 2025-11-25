@@ -44,8 +44,8 @@ FixedwingRateControl::FixedwingRateControl(bool vtol) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_actuator_controls_status_pub(vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0)),
-	_vehicle_torque_setpoint_pub(vtol ? ORB_ID(vehicle_torque_setpoint_virtual_fw) : ORB_ID(vehicle_torque_setpoint)),
 	_vehicle_thrust_setpoint_pub(vtol ? ORB_ID(vehicle_thrust_setpoint_virtual_fw) : ORB_ID(vehicle_thrust_setpoint)),
+	_vehicle_torque_setpoint_pub(vtol ? ORB_ID(vehicle_torque_setpoint_virtual_fw) : ORB_ID(vehicle_torque_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_handle_param_vt_fw_difthr_en = param_find("VT_FW_DIFTHR_EN");
@@ -368,8 +368,9 @@ void FixedwingRateControl::Run()
 
 				Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling;
 
-				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
-				if (!_vcontrol_mode.flag_control_attitude_enabled && !_param_fw_acro_yaw_en.get()) {
+				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_EN is not set then don't rate-control yaw
+				if (!_vcontrol_mode.flag_control_attitude_enabled && _vcontrol_mode.flag_control_manual_enabled
+				    && !_param_fw_acro_yaw_en.get()) {
 					control_u(2) = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
 					_rate_control.resetIntegral(2);
 				}

@@ -41,7 +41,7 @@ The [Pixhawk project](https://pixhawk.org/) creates open hardware designs in the
 Manufacturers are encouraged to take the [open designs](https://github.com/pixhawk/Hardware) and create products that are best suited to a particular market or use case (the physical layout/form factor not part of the open specification). 동일한 디자인의 보드는 바이너리 수준에서 호환이 가능합니다.
 
 :::info
-While a physical connector standard is not mandated, newer products generally follow the [Pixhawk Connector Standard](https://pixhawk.org/pixhawk-connector-standard/).
+While a physical connector standard is not mandated, newer products generally follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 :::
 
 The project also creates reference autopilot boards based on the open designs, and shares them under the same [licence](#licensing-and-trademarks).
@@ -99,6 +99,24 @@ PX4 _developers_ need to know the FMU version of their board, as this is require
   ([Holybro Pixhawk 6X-RT](../flight_controller/pixhawk6x-rt.md))
 
 <a id="licensing-and-trademarks"></a>
+
+### FMUv6 Comparison
+
+| 기능                 | **FMUv6X-RT**                   | **FMUv6X**    | **FMUv6C**    |
+| ------------------ | ------------------------------- | ------------- | ------------- |
+| **FMU MCU**        | NXP i.MX RT1176 | STM32H753     | STM32H743V    |
+| **RAM**            | 2 MB                            | 1 MB          | 1 MB          |
+| **Flash**          | 64 MB Octal SPI                 | 2 MB internal | 2 MB internal |
+| **IO MCU**         | STM32F103                       | STM32F103     | STM32F103     |
+| **Secure Element** | NXP SE051                       | NXP SE051     | Not supported |
+| **PAB Standard**   | Supported                       | Supported     | Not supported |
+| **Ethernet**       | Supported                       | Supported     | Not supported |
+| **IMUs**           | 3×                              | 3×            | 2×            |
+| **Barometers**     | 2×                              | 2×            | 1×            |
+| **Magnetometer**   | 1×                              | 1×            | 1×            |
+| **FMU PWM**        | 12×                             | 8×            | 8×            |
+| **IO PWM**         | 8×                              | 8×            | 8×            |
+| **CAN Bus**        | 3×                              | 2×            | 2×            |
 
 ### 라이선스와 상표
 

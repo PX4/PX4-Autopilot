@@ -111,7 +111,7 @@ Please refer to the [Pixhawk 4 Mini Wiring Quick Start](../assembly/quick_start_
 
 | UART   | 设备         | QGC Parameter Description | Port Label on FC |
 | ------ | ---------- | ------------------------- | ---------------- |
-| USART1 | /dev/ttyS0 | GPS1                      | GPS1             |
+| USART1 | UART       | GPS1                      | GPS1             |
 | USART2 | /dev/ttyS1 | TELEM3                    | N/A              |
 | USART3 | /dev/ttyS2 | N/A                       | FMU Debug        |
 | UART5  | /dev/ttyS3 | TELEM2                    | TELEM2           |
@@ -119,7 +119,7 @@ Please refer to the [Pixhawk 4 Mini Wiring Quick Start](../assembly/quick_start_
 | UART7  | /dev/ttyS5 | TELEM1                    | TELEM1           |
 | UART8  | /dev/ttyS6 | GPS2                      | GPS2             |
 
-<!-- See http://docs.px4.io/main/en/hardware/serial_port_mapping.html#serial-port-mapping -->
+<!-- See https://docs.px4.io/main/en/hardware/serial_port_mapping.html#serial-port-mapping -->
 
 ## 尺寸
 
@@ -193,7 +193,7 @@ For information about using this port see:
 
 ## 外部设备
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](../telemetry/index.md):
   - [Holybro Telemetry Radio](../telemetry/holybro_sik_radio.md)
   - [Holybro Microhard P900 Radio](../telemetry/holybro_microhard_p900_radio.md)
@@ -205,7 +205,7 @@ For information about using this port see:
 Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
 The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
 
-## See Also
+## 另见
 
 - [Holybro Docs](https://docs.holybro.com/) (Holybro)
 - [Pixhawk 4 Mini Wiring Quick Start](../assembly/quick_start_pixhawk4_mini.md) (and [Pixhawk 6C Wiring QuickStart](../assembly/quick_start_pixhawk6c.md))
@@ -213,5 +213,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 - [PM06 Power Module](../power_module/holybro_pm06_pixhawk4mini_power_module.md)
 - [PM07 Power Module](../power_module/holybro_pm07_pixhawk4_power_module.md)
 - [PM08 Power Module](https://holybro.com/products/pm08-power-module-14s-200a)
-- FMUv6C reference design pinout.
+- [FMUv6C reference design pinout](https://docs.google.com/spreadsheets/d/1FcmWRKd6zjdz3-cnjEDYEmANKZOFzNSc/edit?usp=sharing&ouid=113251442407318461574&rtpof=true&sd=true).
 - [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).

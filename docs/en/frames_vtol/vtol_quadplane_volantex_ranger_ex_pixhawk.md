@@ -7,7 +7,7 @@ The plasic fuselage and 2 meter EPO wing makes it a rugged airframe with a lot o
 
 Key information:
 
-- **Frame:** Volantex Ranger-Ex or *Quanum Observer*
+- **Frame:** Volantex Ranger-Ex or _Quanum Observer_
 - **Flight controller:** Pixhawk
 
 ![QuadRanger](../../assets/airframes/vtol/quadranger_rangerex_pixhawk/quadranger_vtol_complete_build.jpg)
@@ -19,7 +19,6 @@ This leaves enough payload capacity for payloads like FPV gear and cameras.
 
 The conversion is designed to minimize impact on the aerodynamics and provide additional strength minimize wing flexing.
 
-
 ## Bill of Materials
 
 - Volantex Ranger-Ex or Quanum Observer
@@ -30,11 +29,11 @@ The conversion is designed to minimize impact on the aerodynamics and provide ad
 
 ## Conversion kit
 
--   The basic parts required are;
--   Pixhawk or compatible
--   Digital airspeed sensor
--   3DR Power module or compatible
--   GPS
+- The basic parts required are;
+- Pixhawk or compatible
+- Digital airspeed sensor
+- 3DR Power module or compatible
+- GPS
 
 For a full parts list with links to Hobbyking EU and International warehouse see:
 [QuadRanger-VTOL-partslist](https://px4.io/wp-content/uploads/2016/01/QuadRanger-VTOL-partslist-1.xlsx)
@@ -43,22 +42,21 @@ The image below depicts the parts required for one wing.
 
 ![QuadRanger Parts](../../assets/airframes/vtol/quadranger_rangerex_pixhawk/quadranger_vtol_parts_for_one_wing.jpg)
 
- 
 The tools required for the conversion are;
 
--   A Dremel or similar rotary tool
--   A hobby knife
--   UHU POR glue
--   CA glue
--   Tape-line
--   Tape
+- A Dremel or similar rotary tool
+- A hobby knife
+- UHU POR glue
+- CA glue
+- Tape-line
+- Tape
 
 ![QuadRanger conversion tools](../../assets/airframes/vtol/quadranger_rangerex_pixhawk/quadranger_vtol_conversion_tools.jpg)
 
 ## Wing conversion
 
 ::: info
-Please note that the conversion in this build log is performed on a wing that shows damage from a previous conversion. 
+Please note that the conversion in this build log is performed on a wing that shows damage from a previous conversion.
 :::
 
 Cut both 800mm square carbon tubes to a length of 570mm and 230mm.
@@ -87,39 +85,31 @@ When using the Afro ESC be sure to connect at least signal and ground wire.
 
 ![QuadRanger motor and esc](../../assets/airframes/vtol/quadranger_rangerex_pixhawk/quadranger_vtol_motor_and_esc.jpg)
 
-## Wiring 
+## Wiring
 
 The outputs of Pixhawk should be wired like this (orientation as seen
 like "sitting in the plane").
 
-Port | Connection
---- | ---
-MAIN 1   | Front right motor, CCW
-MAIN 2   | Back left motor, CCW
-MAIN 3   | Front left motor, CW
-MAIN 4   | Back right motor, CW
-AUX  1   | Left aileron
-AUX  2   | Right aileron 
-AUX  3   | Elevator
-AUX  4   | Rudder
-AUX  5   | Throttle
-
+| Port   | Connection             |
+| ------ | ---------------------- |
+| MAIN 1 | Front right motor, CCW |
+| MAIN 2 | Back left motor, CCW   |
+| MAIN 3 | Front left motor, CW   |
+| MAIN 4 | Back right motor, CW   |
+| AUX 1  | Left aileron           |
+| AUX 2  | Right aileron          |
+| AUX 3  | Elevator               |
+| AUX 4  | Rudder                 |
+| AUX 5  | Throttle               |
 
 ::: info
-The servo direction can be reversed using the PWM\_REV parameters in the PWM\_OUTPUT group of QGroundControl (cogwheel tab, last item in the left menu)
+The servo direction can be reversed using the PWM_REV parameters in the PWM_OUTPUT group of QGroundControl (cogwheel tab, last item in the left menu)
 :::
-  
-For further instructions on wiring and configurations please see: [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md)
 
+For further instructions on wiring and configurations please see: [Standard VTOL Wiring and Configuration](../config_vtol/vtol_quad_configuration.md)
 
 ## Configuration
 
 Configure the frame as shown in QGroundControl below (do not forget to click **Apply and Restart** in the top).
 
 ![QGC - select firmware for standard VTOL](../../assets/airframes/vtol/funcub_pixhawk/qgc_firmware_standard_vtol_fun_cub_quad.png)
-
-
-## Support
-
-If you have any questions regarding your VTOL conversion or configuration please visit <https://discuss.px4.io/c/px4/vtol>.
-

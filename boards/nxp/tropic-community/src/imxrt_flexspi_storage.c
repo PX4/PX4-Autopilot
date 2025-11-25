@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/px4/fmu-v6xrt/src/imxrt_flexspi_storage.c
+ * boards/nxp/tropic-community/src/imxrt_flexspi_storage.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -36,104 +36,28 @@
 #include <px4_platform_common/px4_mtd.h>
 #include "px4_log.h"
 
-#include "imxrt_flexspi.h"
+#include <px4_arch/imxrt_flexspi_nor_flash.h>
+#include <px4_arch/imxrt_romapi.h>
 #include "board_config.h"
 #include "hardware/imxrt_pinmux.h"
-
-#ifdef CONFIG_IMXRT_FLEXSPI
+#include "barriers.h"
 
 /* Used sectors must be multiple of the flash block size
  * i.e. W25Q32JV has a block size of 64KB
 */
 
-#define NOR_USED_SECTORS  (0x20U)   /* 32 * 4KB = 128KB */
+#define NOR_USED_SECTORS  (0x40U)   /* 64 * 4KB = 256KB */
 #define NOR_TOTAL_SECTORS (0x0800U)
 #define NOR_PAGE_SIZE     (0x0100U) /* 256 bytes */
 #define NOR_SECTOR_SIZE   (0x1000U) /* 4KB */
 #define NOR_START_SECTOR  (NOR_TOTAL_SECTORS - NOR_USED_SECTORS)
 #define NOR_START_PAGE    ((NOR_START_SECTOR * NOR_SECTOR_SIZE) / NOR_PAGE_SIZE)
 #define NOR_STORAGE_ADDR  (IMXRT_FLEXCIPHER_BASE + NOR_START_SECTOR * NOR_SECTOR_SIZE)
+#define NOR_STORAGE_END   (IMXRT_FLEXCIPHER_BASE + (NOR_START_SECTOR + NOR_TOTAL_SECTORS) * NOR_SECTOR_SIZE)
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-enum {
-	/* SPI instructions */
-
-	READ_FAST = 0,
-	READ_STATUS_REG = 1,
-	WRITE_STATUS_REG = 3,
-	WRITE_ENABLE = 4,
-	SECTOR_ERASE_4K = 5,
-	READ_FAST_QUAD_OUTPUT = 6,
-	PAGE_PROGRAM_QUAD_INPUT = 7,
-	PAGE_PROGRAM = 9,
-	CHIP_ERASE = 11,
-};
-
-static const uint32_t g_flexspi_nor_lut[][4] = {
-	[READ_FAST] =
-	{
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0xeb,
-				FLEXSPI_COMMAND_RADDR_SDR, FLEXSPI_4PAD, 0x18),
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_DUMMY_SDR, FLEXSPI_4PAD, 0x06,
-				FLEXSPI_COMMAND_READ_SDR,  FLEXSPI_4PAD, 0x04),
-	},
-
-	[READ_STATUS_REG] =
-	{
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x05,
-				FLEXSPI_COMMAND_READ_SDR,  FLEXSPI_1PAD, 0x04),
-	},
-
-	[WRITE_STATUS_REG] =
-	{
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x01,
-				FLEXSPI_COMMAND_WRITE_SDR, FLEXSPI_1PAD, 0x04),
-	},
-
-	[WRITE_ENABLE] =
-	{
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x06,
-				FLEXSPI_COMMAND_STOP,      FLEXSPI_1PAD, 0),
-	},
-
-	[SECTOR_ERASE_4K] =
-	{
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x20,
-				FLEXSPI_COMMAND_RADDR_SDR, FLEXSPI_1PAD, 0x18),
-	},
-
-	[CHIP_ERASE] =
-	{
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0xc7,
-				FLEXSPI_COMMAND_STOP,      FLEXSPI_1PAD, 0),
-	},
-
-	[PAGE_PROGRAM] =
-	{
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x02,
-				FLEXSPI_COMMAND_RADDR_SDR, FLEXSPI_1PAD, 0x18),
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_WRITE_SDR, FLEXSPI_1PAD, 0x04,
-				FLEXSPI_COMMAND_STOP,  FLEXSPI_1PAD, 0x0),
-	},
-
-	[READ_FAST_QUAD_OUTPUT] =
-	{
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x6b,
-				FLEXSPI_COMMAND_RADDR_SDR, FLEXSPI_1PAD, 0x18),
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_DUMMY_SDR, FLEXSPI_4PAD, 0x08,
-				FLEXSPI_COMMAND_READ_SDR,  FLEXSPI_4PAD, 0x04),
-	},
-
-	[PAGE_PROGRAM_QUAD_INPUT] =
-	{
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x32,
-				FLEXSPI_COMMAND_RADDR_SDR, FLEXSPI_1PAD, 0x18),
-		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_WRITE_SDR, FLEXSPI_4PAD, 0x04,
-				FLEXSPI_COMMAND_STOP,      FLEXSPI_1PAD, 0),
-	},
-
-};
+extern struct flexspi_nor_config_s g_bootConfig;
 
 /****************************************************************************
  * Private Types
@@ -143,10 +67,7 @@ static const uint32_t g_flexspi_nor_lut[][4] = {
 
 struct imxrt_flexspi_storage_dev_s {
 	struct mtd_dev_s mtd;
-	struct flexspi_dev_s *flexspi;   /* Saved FlexSPI interface instance */
 	uint8_t *ahb_base;
-	enum flexspi_port_e port;
-	struct flexspi_device_config_s *config;
 };
 
 /****************************************************************************
@@ -178,26 +99,6 @@ static int imxrt_flexspi_storage_ioctl(struct mtd_dev_s *dev,
  * Private Data
  ****************************************************************************/
 
-static struct flexspi_device_config_s g_flexspi_device_config = {
-	.flexspi_root_clk = 4000000,
-	.is_sck2_enabled = 0,
-	.flash_size = NOR_USED_SECTORS * NOR_SECTOR_SIZE / 4,
-	.cs_interval_unit = FLEXSPI_CS_INTERVAL_UNIT1_SCK_CYCLE,
-	.cs_interval = 0,
-	.cs_hold_time = 3,
-	.cs_setup_time = 3,
-	.data_valid_time = 0,
-	.columnspace = 0,
-	.enable_word_address = 0,
-	.awr_seq_index = 0,
-	.awr_seq_number = 0,
-	.ard_seq_index = READ_FAST,
-	.ard_seq_number = 1,
-	.ahb_write_wait_unit = FLEXSPI_AHB_WRITE_WAIT_UNIT2_AHB_CYCLE,
-	.ahb_write_wait_interval = 0,
-	.rx_sample_clock = FLEXSPI_READ_SAMPLE_CLK_LOOPBACK_FROM_DQS_PAD,
-};
-
 static struct imxrt_flexspi_storage_dev_s g_flexspi_nor = {
 	.mtd =
 	{
@@ -211,89 +112,16 @@ static struct imxrt_flexspi_storage_dev_s g_flexspi_nor = {
 #endif
 		.name   = "imxrt_flexspi_storage"
 	},
-	.flexspi = (void *)0,
 	.ahb_base = (uint8_t *) NOR_STORAGE_ADDR,
-	.port = FLEXSPI_PORT_A1,
-	.config = &g_flexspi_device_config
 };
+
+/* Ensure exclusive access to the driver */
+
+static sem_t g_exclsem = SEM_INITIALIZER(1);
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-static int imxrt_flexspi_storage_read_status(
-	const struct imxrt_flexspi_storage_dev_s *dev,
-	uint32_t *status)
-{
-	int stat;
-
-	struct flexspi_transfer_s transfer = {
-		.device_address = 0,
-		.port = dev->port,
-		.cmd_type = FLEXSPI_READ,
-		.seq_number = 1,
-		.seq_index = READ_STATUS_REG,
-		.data = status,
-		.data_size = 1,
-	};
-
-	stat = FLEXSPI_TRANSFER(dev->flexspi, &transfer);
-
-	if (stat != 0) {
-		return -EIO;
-	}
-
-	return 0;
-}
-
-static int imxrt_flexspi_storage_write_enable(
-	const struct imxrt_flexspi_storage_dev_s *dev)
-{
-	int stat;
-
-	struct flexspi_transfer_s transfer = {
-		.device_address = 0,
-		.port = dev->port,
-		.cmd_type = FLEXSPI_COMMAND,
-		.seq_number = 1,
-		.seq_index = WRITE_ENABLE,
-		.data = NULL,
-		.data_size = 0,
-	};
-
-	stat = FLEXSPI_TRANSFER(dev->flexspi, &transfer);
-
-	if (stat != 0) {
-		return -EIO;
-	}
-
-	return 0;
-}
-
-static int imxrt_flexspi_storage_erase_sector(
-	const struct imxrt_flexspi_storage_dev_s *dev,
-	off_t offset)
-{
-	int stat;
-	struct flexspi_transfer_s transfer = {
-		.device_address = offset,
-		.port = dev->port,
-		.cmd_type = FLEXSPI_COMMAND,
-		.seq_number = 1,
-		.seq_index = SECTOR_ERASE_4K,
-		.data = NULL,
-		.data_size = 0,
-	};
-
-	stat = FLEXSPI_TRANSFER(dev->flexspi, &transfer);
-
-	if (stat != 0) {
-		return -EIO;
-	}
-
-
-	return 0;
-}
 
 static int imxrt_flexspi_storage_erase_chip(
 	const struct imxrt_flexspi_storage_dev_s *dev)
@@ -302,68 +130,37 @@ static int imxrt_flexspi_storage_erase_chip(
 	return -EINVAL;
 }
 
-static int imxrt_flexspi_storage_page_program(
-	const struct imxrt_flexspi_storage_dev_s *dev,
-	off_t offset,
-	const void *buffer,
-	size_t len)
-{
-	int stat;
-
-	struct flexspi_transfer_s transfer = {
-		.device_address = offset,
-		.port = dev->port,
-		.cmd_type = FLEXSPI_WRITE,
-		.seq_number = 1,
-		.seq_index = PAGE_PROGRAM_QUAD_INPUT,
-		.data = (uint32_t *) buffer,
-		.data_size = len,
-	};
-
-	stat = FLEXSPI_TRANSFER(dev->flexspi, &transfer);
-
-	if (stat != 0) {
-		return -EIO;
-	}
-
-	return 0;
-}
-
-static int imxrt_flexspi_storage_wait_bus_busy(
-	const struct imxrt_flexspi_storage_dev_s *dev)
-{
-	uint32_t status = 0;
-	int ret;
-
-	do {
-		ret = imxrt_flexspi_storage_read_status(dev, &status);
-
-		if (ret) {
-			return ret;
-		}
-	} while (status & 1);
-
-	return 0;
-}
-
 static ssize_t imxrt_flexspi_storage_read(struct mtd_dev_s *dev,
 		off_t offset,
 		size_t nbytes,
 		uint8_t *buffer)
 {
+	ssize_t ret;
 	struct imxrt_flexspi_storage_dev_s *priv =
 		(struct imxrt_flexspi_storage_dev_s *)dev;
 	uint8_t *src;
 
 	finfo("offset: %08lx nbytes: %d\n", (long)offset, (int)nbytes);
 
-	if (priv->port >= FLEXSPI_PORT_COUNT) {
+	if (offset < 0) {
 		return -EIO;
 	}
 
 	src = priv->ahb_base + offset;
 
+	if (src + nbytes > (uint8_t *)NOR_STORAGE_END) {
+		return -EIO;
+	}
+
+	ret = nxsem_wait(&g_exclsem);
+
+	if (ret < 0) {
+		return ret;
+	}
+
 	memcpy(buffer, src, nbytes);
+
+	nxsem_post(&g_exclsem);
 
 	finfo("return nbytes: %d\n", (int)nbytes);
 	return (ssize_t)nbytes;
@@ -392,85 +189,102 @@ static ssize_t imxrt_flexspi_storage_bread(struct mtd_dev_s *dev,
 	return nbytes;
 }
 
+locate_code(".ramfunc")
 static ssize_t imxrt_flexspi_storage_bwrite(struct mtd_dev_s *dev,
 		off_t startblock,
 		size_t nblocks,
 		const uint8_t *buffer)
 {
-	struct imxrt_flexspi_storage_dev_s *priv =
-		(struct imxrt_flexspi_storage_dev_s *)dev;
+	ssize_t ret;
+	struct flexspi_nor_config_s *pConfig = &g_bootConfig;
 	size_t len = nblocks * NOR_PAGE_SIZE;
 	off_t offset = (startblock + NOR_START_PAGE) * NOR_PAGE_SIZE;
 	uint8_t *src = (uint8_t *) buffer;
 #ifdef CONFIG_ARMV7M_DCACHE
+	struct imxrt_flexspi_storage_dev_s *priv =
+		(struct imxrt_flexspi_storage_dev_s *)dev;
 	uint8_t *dst = priv->ahb_base + startblock * NOR_PAGE_SIZE;
 #endif
 	int i;
 
+	if (((uintptr_t)buffer % 4) != 0) {
+		return -EINVAL; // Byte aligned write not supported
+	}
+
 	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
-	FLEXSPI_CONFIGURE_PREFETCH(priv->flexspi, false);
+	ret = nxsem_wait(&g_exclsem);
 
-	irqstate_t flags = enter_critical_section();
+	if (ret < 0) {
+		return ret;
+	}
 
 	while (len) {
 		i = MIN(NOR_PAGE_SIZE, len);
-		imxrt_flexspi_storage_write_enable(priv);
-		imxrt_flexspi_storage_page_program(priv, offset, src, i);
-		imxrt_flexspi_storage_wait_bus_busy(priv);
+		cpsid(); // Disable interrupts
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
+		volatile uint32_t status = ROM_FLEXSPI_NorFlash_ProgramPage(NOR_INSTANCE, pConfig, offset, (const uint32_t *)src);
+#pragma GCC diagnostic pop
+		cpsie(); // Enable interrupts
+		usleep(0); // Yield to scheduler
+		UNUSED(status);
+
 		offset += i;
 		src += i;
 		len -= i;
 	}
-
-	FLEXSPI_CONFIGURE_PREFETCH(priv->flexspi, true);
-
-	leave_critical_section(flags);
 
 #ifdef CONFIG_ARMV7M_DCACHE
 	up_invalidate_dcache((uintptr_t)dst,
 			     (uintptr_t)dst + nblocks * NOR_PAGE_SIZE);
 #endif
 
+	nxsem_post(&g_exclsem);
+
 	return nblocks;
 }
 
+locate_code(".ramfunc")
 static int imxrt_flexspi_storage_erase(struct mtd_dev_s *dev,
 				       off_t startblock,
 				       size_t nblocks)
 {
-	struct imxrt_flexspi_storage_dev_s *priv =
-		(struct imxrt_flexspi_storage_dev_s *)dev;
+	struct flexspi_nor_config_s *pConfig = &g_bootConfig;
 	size_t blocksleft = nblocks;
 #ifdef CONFIG_ARMV7M_DCACHE
+	struct imxrt_flexspi_storage_dev_s *priv =
+		(struct imxrt_flexspi_storage_dev_s *)dev;
 	uint8_t *dst = priv->ahb_base + startblock * NOR_SECTOR_SIZE;
 #endif
+	ssize_t ret;
 
 	startblock += NOR_START_SECTOR;
 
 	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
-	FLEXSPI_CONFIGURE_PREFETCH(priv->flexspi, false);
+	ret = nxsem_wait(&g_exclsem);
 
-	irqstate_t flags = enter_critical_section();
+	if (ret < 0) {
+		return ret;
+	}
 
 	while (blocksleft-- > 0) {
 		/* Erase each sector */
-
-		imxrt_flexspi_storage_write_enable(priv);
-		imxrt_flexspi_storage_erase_sector(priv, startblock * NOR_SECTOR_SIZE);
-		imxrt_flexspi_storage_wait_bus_busy(priv);
+		cpsid(); // Disable interrupts
+		volatile uint32_t status = ROM_FLEXSPI_NorFlash_Erase(NOR_INSTANCE, pConfig,
+					   (startblock * NOR_SECTOR_SIZE), NOR_SECTOR_SIZE);
+		cpsie(); // Enable interrupts
+		usleep(0); // Yield to scheduler
+		UNUSED(status);
 		startblock++;
 	}
-
-	FLEXSPI_CONFIGURE_PREFETCH(priv->flexspi, true);
-
-	leave_critical_section(flags);
 
 #ifdef CONFIG_ARMV7M_DCACHE
 	up_invalidate_dcache((uintptr_t)dst,
 			     (uintptr_t)dst + nblocks * NOR_SECTOR_SIZE);
 #endif
+	nxsem_post(&g_exclsem);
 
 	return (int)nblocks;
 }
@@ -530,9 +344,7 @@ static int imxrt_flexspi_storage_ioctl(struct mtd_dev_s *dev,
 	case MTDIOC_BULKERASE: {
 			/* Erase the entire device */
 
-			imxrt_flexspi_storage_write_enable(priv);
 			imxrt_flexspi_storage_erase_chip(priv);
-			imxrt_flexspi_storage_wait_bus_busy(priv);
 			ret               = OK;
 		}
 		break;
@@ -569,20 +381,6 @@ int imxrt_flexspi_storage_initialize(void)
 	struct mtd_dev_s *mtd_dev = &g_flexspi_nor.mtd;
 	int ret = -ENODEV;
 
-	/* Select FlexSPI1 */
-
-	g_flexspi_nor.flexspi = imxrt_flexspi_initialize(0);
-
-	if (g_flexspi_nor.flexspi) {
-		ret = OK;
-
-
-		FLEXSPI_UPDATE_LUT(g_flexspi_nor.flexspi,
-				   0,
-				   (const uint32_t *)g_flexspi_nor_lut,
-				   sizeof(g_flexspi_nor_lut) / 4);
-	}
-
 	/* Register the MTD driver so that it can be accessed from the
 	 * VFS.
 	 */
@@ -611,4 +409,3 @@ int imxrt_flexspi_storage_initialize(void)
 
 	return ret;
 }
-#endif /* CONFIG_IMXRT_FLEXSPI */

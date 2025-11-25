@@ -16,15 +16,13 @@ Source: [templates/template_module](https://github.com/PX4/PX4-Autopilot/tree/ma
 
 ### Приклади
 
-Приклад використання CLI:
+CLI usage example:
 
 ```
 module start -f -p 42
 ```
 
-<a id="module_usage"></a>
-
-### Використання
+### Usage {#module_usage}
 
 ```
 module <command> [arguments...]
@@ -47,9 +45,7 @@ Source: [examples/work_item](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 
 Приклад простого модуля, який виконується з черги завдань.
 
-<a id="work_item_example_usage"></a>
-
-### Використання
+### Usage {#work_item_example_usage}
 
 ```
 work_item_example <command> [arguments...]

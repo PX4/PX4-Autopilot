@@ -1,13 +1,13 @@
-# Payloads and Cameras
+# 有效载荷和摄像机
 
-Payloads are equipment carried by the vehicle to meet user or mission objectives.
-PX4 supports a wide range of vehicle payloads, including cameras of various types, cargo, instrumentation, and so on.
+载荷是指载具为达到用户或任务目标而携带的设备。
+PX4支持广泛的载具有效载荷，包括各类照相机、货物、仪器等等。
 
-Payloads are connected to [Flight Controller outputs](../getting_started/px4_basic_concepts.md#outputs-motors-servos-actuators), and can be triggered automatically in missions, manually from an RC Controller or Joystick, or from a Ground Station (via MAVLink/MAVSDK commands).
+有效载荷连接到飞行控制器输出端口，并且可以在任务中自动触发，也能通过遥控控制器或操纵杆手动触发，还能从地面站（通过 MAVLink/MAVSDK 命令）触发。
 
-- [Payload Use Cases](../payloads/use_cases.md)
-- [Package Delivery Mission](../flying/package_delivery_mission.md)
-- [Generic Actuator Control](../payloads/generic_actuator_control.md)
-- [Camera](../camera/index.md)
-- [Gimbal \(Mount\) Configuration](../advanced/gimbal_control.md)
-- [Grippers](../peripherals/gripper.md)
+- [有效载荷使用案例](../payloads/use_cases.md)
+- [包裹投递任务](../flying/package_delivery_mission.md)
+- [通用执行器控制](../payloads/generic_actuator_control.md)
+- [相机](../camera/index.md)
+- [云台 \(挂载\) 配置](../advanced/gimbal_control.md)
+- [机械臂](../peripherals/gripper.md)

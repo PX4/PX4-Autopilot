@@ -32,15 +32,21 @@
 ############################################################################
 
 if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}" STREQUAL "harmonic")
-    find_package(gz-transport NAMES gz-transport14 gz-transport13)
+    find_package(gz-transport NAMES gz-transport gz-transport14 gz-transport13)
 else()
     find_package(gz-transport NAMES gz-transport13)
 endif()
 
-file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
-file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
-
 if (gz-transport_FOUND)
+	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
+
+	file(GLOB gz_worlds ${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf)
+	file(GLOB gz_airframes ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*)
+    if (gz-transport_VERSION VERSION_LESS "15")
+        set(GZ_TRANSPORT_TARGET "gz-transport${gz-transport_VERSION_MAJOR}::core")
+    else()
+        set(GZ_TRANSPORT_TARGET "gz-transport::core")
+    endif()
 	px4_add_module(
 		MODULE modules__simulation__gz_bridge
 		MAIN gz_bridge
@@ -60,7 +66,7 @@ if (gz-transport_FOUND)
 		DEPENDS
 			mixer_module
 			px4_work_queue
-			gz-transport${gz-transport_VERSION_MAJOR}::core
+			${GZ_TRANSPORT_TARGET}
 		MODULE_CONFIG
 			module.yaml
 	)
@@ -73,7 +79,6 @@ if (gz-transport_FOUND)
 	target_include_directories(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 	target_link_libraries(modules__simulation__gz_bridge PUBLIC px4_gz_msgs)
 
-	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
 	include(ExternalProject)
 	ExternalProject_Add(gz
 		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz

@@ -7,7 +7,7 @@
 "files": [
   {
     "source": "docs/en/**/*.md",
-    "ignore": ["/docs/en/_sidebar.md"],
+    "ignore": ["/docs/en/_sidebar.md","docs/en/advanced_config/parameter_reference.md"],
     "translation": "docs/%two_letters_code%/**/%original_file_name%"
   }
 ]

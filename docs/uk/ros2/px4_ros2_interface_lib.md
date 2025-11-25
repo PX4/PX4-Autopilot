@@ -9,15 +9,12 @@
 
 [PX4 ROS 2 Інтерфейс бібліотеки](https://github.com/Auterion/px4-ros2-interface-lib) є бібліотекою C+++, яка спрощує контроль і взаємодіє з PX4 з ROS 2.
 
-Бібліотека надає два інтерфейси високого рівня для розробників:
+The library provides three high-level interfaces for developers:
 
 1. [Control Interface](./px4_ros2_interface.md) дозволяє розробникам створювати та динамічно реєструвати режими, написані з використанням ROS 2.
    Бібліотека також надає класи для надсилання різних типів налаштувань, починаючи від багаторівневих навігаційних завдань на високому рівні аж до прямого контролю приводу.
 2. [Навігаційний інтерфейс](./px4_ros2_navigation_interface.md) дозволяє надсилати позицію автомобіля з позиції PX4 з ROS 2 додатків, таких як система VIO.
-
-<!--
-## Overview
--->
+3. [Waypoint Missions](./px4_ros2_waypoint_missions.md) allows waypoint missions to run entirely in ROS 2.
 
 ## Встановлення в робочому просторі ROS 2
 
@@ -54,20 +51,4 @@
 
 При відкритті запиту на PX4, CI запускає тест з інтеграції до бібліотеки.
 
-Тести можуть також бути виконані локально з PX4:
-
-```sh
-./test/ros_test_runner.py
-```
-
-І щоб керувати лише одним випадком:
-
-```sh
-./test/ros_test_runner.py --verbose --case <case>
-```
-
-Ви можете скласти список доступних тестових кейсів з:
-
-```sh
-./test/ros_test_runner.py --list-cases
-```
+For more information see [PX4 ROS2 Interface Library Integration Testing](../test_and_ci/integration_testing_px4_ros2_interface.md).

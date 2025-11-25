@@ -148,9 +148,9 @@ The [Pixhawk 6X Wiring Quick Start](../assembly/quick_start_pixhawk6x.md) provid
 
 | UART   | 设备         | Port                            |
 | ------ | ---------- | ------------------------------- |
-| USART1 | /dev/ttyS0 | GPS                             |
+| USART1 | UART       | GPS                             |
 | USART2 | /dev/ttyS1 | TELEM3                          |
-| USART3 | /dev/ttyS2 | Debug Console                   |
+| USART3 | /dev/ttyS2 | 调试控制台                           |
 | UART4  | /dev/ttyS3 | UART4 & I2C |
 | UART5  | /dev/ttyS4 | TELEM2                          |
 | USART6 | /dev/ttyS5 | PX4IO/RC                        |
@@ -165,7 +165,7 @@ The [Pixhawk 6X Wiring Quick Start](../assembly/quick_start_pixhawk6x.md) provid
 
 _Pixhawk 6X Pro_ can be triple-redundant on the power supply if three power sources are supplied.
 The three power rails are: **POWER1**, **POWER2** and **USB**.
-The **POWER1** & **POWER2** ports on the Pixhawk 6X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/molex/products/part-detail/pcb_receptacles/5024430670).
+The **POWER1** & **POWER2** ports on the Pixhawk 6X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/en-us/products/part-detail/5024430670).
 
 **Normal Operation Maximum Ratings**
 
@@ -244,7 +244,7 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 
 Download [here](https://docs.holybro.com/autopilot/pixhawk-6x-pro/download).
 
-## See Also
+## 另见
 
 - [Holybro Docs](https://docs.holybro.com/autopilot/pixhawk-6x-pro) (Holybro)
 - [Pixhawk 6X Wiring QuickStart](../assembly/quick_start_pixhawk6x.md)

@@ -25,7 +25,7 @@ On Windows, one option is to use _Melody Master_ within _Dosbox_.
 
 소프트웨어 사용 절차는 다음과 같습니다.
 
-1. Download [DosBox](http://www.dosbox.com/) and install the app
+1. Download [DosBox](https://www.dosbox.com/) and install the app
 
 2. Download [Melody Master](ftp://archives.thebbs.org/ansi_utilities/melody21.zip) and unzip into a new directory
 

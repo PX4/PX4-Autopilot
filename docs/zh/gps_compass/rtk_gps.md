@@ -14,46 +14,47 @@ Some RTK GNSS setups can provide yaw/heading information, as an alternative to t
 
 ## 支持的 RTK 设备
 
-PX4 supports the [u-blox M8P](https://www.u-blox.com/en/product/neo-m8p), [u-blox F9P](https://www.u-blox.com/en/product/zed-f9p-module) and the [Trimble MB-Two](https://www.trimble.com/Precision-GNSS/MB-Two-Board.aspx) GPS, and products that incorporate them.
+PX4 supports the [u-blox M8P](https://www.u-blox.com/en/product/neo-m8p), [u-blox F9P](https://www.u-blox.com/en/product/zed-f9p-module) and the [Trimble MB-Two](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) GPS, and products that incorporate them.
 
 The RTK compatible devices below that are expected to work with PX4 (it omits discontined devices).
 The table indicates devices that also output yaw, and that can provide yaw when two on-vehicle units are used.
 It also highlights devices that connect via the CAN bus, and those which support PPK (Post-Processing Kinematic).
 
-| 设备                                                                                                                   |          GPS         |              罗盘             | [DroneCAN](../dronecan/index.md) | [GPS Yaw](#configuring-gps-as-yaw-heading-source) |             PPK             |
-| :------------------------------------------------------------------------------------------------------------------- | :------------------: | :-------------------------: | :------------------------------: | :-----------------------------------------------: | :-------------------------: |
-| [ARK RTK GPS](../dronecan/ark_rtk_gps.md)                                                                            |          F9P         |            BMM150           |    &check;   |                [Dual F9P][DualF9P]                |                             |
-| [ARK MOSAIC-X5 RTK GPS](../dronecan/ark_mosaic__rtk_gps.md)                                                          |       Mosaic-X5      |           IIS2MDC           |    &check;   |       [Septentrio Dual Antenna][SeptDualAnt]      |                             |
-| [CUAV C-RTK GPS](../gps_compass/rtk_gps_cuav_c-rtk.md)                                                               |        M8P/M8N       | &check; |                                  |                                                   |                             |
-| [CUAV C-RTK2](../gps_compass/rtk_gps_cuav_c-rtk2.md)                                                                 |          F9P         | &check; |                                  |                [Dual F9P][DualF9P]                |                             |
-| [CUAV C-RTK 9Ps GPS](../gps_compass/rtk_gps_cuav_c-rtk-9ps.md)                                                       |          F9P         |            RM3100           |                                  |                [Dual F9P][DualF9P]                |                             |
-| [CUAV C-RTK2 PPK/RTK GNSS](../gps_compass/rtk_gps_cuav_c-rtk.md)                                                     |          F9P         |            RM3100           |                                  |                                                   | &check; |
-| [CubePilot Here+ RTK GPS](../gps_compass/rtk_gps_hex_hereplus.md)                                                    |          M8P         |           HMC5983           |                                  |                                                   |                             |
-| [CubePilot Here3 CAN GNSS GPS (M8N)](https://www.cubepilot.org/#/here/here3)                      |          M8P         |           ICM20948          |    &check;   |                                                   |                             |
-| [Drotek SIRIUS RTK GNSS ROVER (F9P)](https://store-drotek.com/911-sirius-rtk-gnss-rover-f9p.html) |          F9P         |            RM3100           |                                  |                [Dual F9P][DualF9P]                |                             |
-| [DATAGNSS GEM1305 RTK Receiver][DATAGNSS GEM1305 RTK]                                                                |        TAU951M       |              ✘              |                                  |                         ✘                         |                             |
-| [Femtones MINI2 Receiver](../gps_compass/rtk_gps_fem_mini2.md)                                                       |     FB672, FB6A0     | &check; |                                  |                                                   |                             |
-| [Freefly RTK GPS](../gps_compass/rtk_gps_freefly.md)                                                                 |          F9P         |           IST8310           |                                  |                                                   |                             |
-| [Holybro H-RTK ZED-F9P RTK Rover (DroneCAN variant)](../dronecan/holybro_h_rtk_zed_f9p_gps.md)    |          F9P         |            RM3100           |    &check;   |                [Dual F9P][DualF9P]                |                             |
-| [Holybro H-RTK ZED-F9P RTK Rover](https://holybro.com/collections/h-rtk-gps/products/h-rtk-zed-f9p-rover)            |          F9P         |            RM3100           |                                  |                [Dual F9P][DualF9P]                |                             |
-| [Holybro H-RTK F9P Ultralight](https://holybro.com/products/h-rtk-f9p-ultralight)                                    |          F9P         |           IST8310           |                                  |                [Dual F9P][DualF9P]                |                             |
-| [Holybro H-RTK F9P Helical or Base](../gps_compass/rtk_gps_holybro_h-rtk-f9p.md)                                     |          F9P         |           IST8310           |                                  |                [Dual F9P][DualF9P]                |                             |
-| [Holybro DroneCAN H-RTK F9P Helical](https://holybro.com/products/dronecan-h-rtk-f9p-helical)                        |          F9P         |            BMM150           |    &check;   |                [Dual F9P][DualF9P]                |                             |
-| [Holybro H-RTK F9P Rover Lite](../gps_compass/rtk_gps_holybro_h-rtk-f9p.md)                                          |          F9P         |           IST8310           |                                  |                                                   |                             |
-| [Holybro DroneCAN H-RTK F9P Rover](https://holybro.com/products/dronecan-h-rtk-f9p-rover)                            |          F9P         |            BMM150           |                                  |                [Dual F9P][DualF9P]                |                             |
-| [Holybro H-RTK M8P GNSS](../gps_compass/rtk_gps_holybro_h-rtk-m8p.md)                                                |          M8P         |           IST8310           |                                  |                                                   |                             |
-| [Holybro H-RTK Unicore UM982 GPS](../gps_compass/rtk_gps_holybro_unicore_um982.md)                                   |         UM982        |           IST8310           |                                  |       [Unicore Dual Antenna][UnicoreDualAnt]      |                             |
-| [LOCOSYS Hawk R1](../gps_compass/rtk_gps_locosys_r1.md)                                                              |      MC-1612-V2b     |                             |                                  |                                                   |                             |
-| [LOCOSYS Hawk R2](../gps_compass/rtk_gps_locosys_r2.md)                                                              |      MC-1612-V2b     |           IST8310           |                                  |                                                   |                             |
-| [mRo u-blox ZED-F9 RTK L1/L2 GPS](https://store.mrobotics.io/product-p/m10020d.htm)                                  |          F9P         | &check; |                                  |                [Dual F9P][DualF9P]                |                             |
-| [Navisys L1/L2 ZED-F9P RTK - Base only](https://www.navisys.com.tw/productdetail?name=GR901&class=RTK)         |          F9P         |                             |                                  |                                                   |                             |
-| [RaccoonLab L1/L2 ZED-F9P][RaccoonLab L1/L2 ZED-F9P]                                                                 |          F9P         |            RM3100           |    &check;   |                                                   |                             |
-| [RaccoonLab L1/L2 ZED-F9P with external antenna][RaccnLabL1L2ZED-F9P ext_ant]                                        |          F9P         |            RM3100           |    &check;   |                                                   |                             |
-| [Septentrio AsteRx-m3 Pro](../gps_compass/septentrio_asterx-rib.md)                                                  |        AsteRx        | &check; |                                  |       [Septentrio Dual Antenna][SeptDualAnt]      | &check; |
-| [Septentrio mosaic-go](../gps_compass/septentrio_mosaic-go.md)                                                       | mosaic X5 / mosaic H | &check; |                                  |       [Septentrio Dual Antenna][SeptDualAnt]      | &check; |
-| [SIRIUS RTK GNSS ROVER (F9P)](https://store-drotek.com/911-sirius-rtk-gnss-rover-f9p.html)        |          F9P         | &check; |                                  |                [Dual F9P][DualF9P]                |                             |
-| [SparkFun GPS-RTK2 Board - ZED-F9P](https://www.sparkfun.com/products/15136)                                         |          F9P         | &check; |                                  |                [Dual F9P][DualF9P]                |                             |
-| [Trimble MB-Two](../gps_compass/rtk_gps_trimble_mb_two.md)                                                           |          F9P         | &check; |                                  |            &check;            |                             |
+| 设备                                                                                                                   |                             GPS                             |              罗盘             | [DroneCAN](../dronecan/index.md) | [GPS Yaw](#configuring-gps-as-yaw-heading-source) |             PPK             |
+| :------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------: | :-------------------------: | :------------------------------: | :-----------------------------------------------: | :-------------------------: |
+| [ARK RTK GPS](../dronecan/ark_rtk_gps.md)                                                                            |                             F9P                             |            BMM150           |    &check;   |                [Dual F9P][DualF9P]                |                             |
+| [ARK MOSAIC-X5 RTK GPS](../dronecan/ark_mosaic__rtk_gps.md)                                                          |                          Mosaic-X5                          |           IIS2MDC           |    &check;   |       [Septentrio Dual Antenna][SeptDualAnt]      |                             |
+| [CUAV C-RTK GPS](../gps_compass/rtk_gps_cuav_c-rtk.md)                                                               |                           M8P/M8N                           | &check; |                                  |                                                   |                             |
+| [CUAV C-RTK2](../gps_compass/rtk_gps_cuav_c-rtk2.md)                                                                 |                             F9P                             | &check; |                                  |                [Dual F9P][DualF9P]                |                             |
+| [CUAV C-RTK 9Ps GPS](../gps_compass/rtk_gps_cuav_c-rtk-9ps.md)                                                       |                             F9P                             |            RM3100           |                                  |                [Dual F9P][DualF9P]                |                             |
+| [CUAV C-RTK2 PPK/RTK GNSS](../gps_compass/rtk_gps_cuav_c-rtk.md)                                                     |                             F9P                             |            RM3100           |                                  |                                                   | &check; |
+| [CubePilot Here+ RTK GPS](../gps_compass/rtk_gps_hex_hereplus.md)                                                    |                             M8P                             |           HMC5983           |                                  |                                                   |                             |
+| [CubePilot Here3 CAN GNSS GPS (M8N)](https://www.cubepilot.org/#/here/here3)                      |                             M8P                             |           ICM20948          |    &check;   |                                                   |                             |
+| [Drotek SIRIUS RTK GNSS ROVER (F9P)](https://store-drotek.com/911-sirius-rtk-gnss-rover-f9p.html) |                             F9P                             |            RM3100           |                                  |                [Dual F9P][DualF9P]                |                             |
+| [DATAGNSS NANO HRTK Receiver](../gps_compass/rtk_gps_datagnss_nano_hrtk.md)                                          | [D10P](https://docs.datagnss.com/gnss/gnss_module/D10P_RTK) |           IST8310           |                                  |                         ✘                         |                             |
+| [DATAGNSS GEM1305 RTK Receiver](../gps_compass/rtk_gps_gem1305.md)                                                   |                           TAU951M                           |           IST8310           |                                  |                         ✘                         |                             |
+| [Femtones MINI2 Receiver](../gps_compass/rtk_gps_fem_mini2.md)                                                       |                         FB672, FB6A0                        | &check; |                                  |                                                   |                             |
+| [Freefly RTK GPS](../gps_compass/rtk_gps_freefly.md)                                                                 |                             F9P                             |           IST8310           |                                  |                                                   |                             |
+| [Holybro H-RTK ZED-F9P RTK Rover (DroneCAN variant)](../dronecan/holybro_h_rtk_zed_f9p_gps.md)    |                             F9P                             |            RM3100           |    &check;   |                [Dual F9P][DualF9P]                |                             |
+| [Holybro H-RTK ZED-F9P RTK Rover](https://holybro.com/collections/h-rtk-gps/products/h-rtk-zed-f9p-rover)            |                             F9P                             |            RM3100           |                                  |                [Dual F9P][DualF9P]                |                             |
+| [Holybro H-RTK F9P Ultralight](https://holybro.com/products/h-rtk-f9p-ultralight)                                    |                             F9P                             |           IST8310           |                                  |                [Dual F9P][DualF9P]                |                             |
+| [Holybro H-RTK F9P Helical or Base](../gps_compass/rtk_gps_holybro_h-rtk-f9p.md)                                     |                             F9P                             |           IST8310           |                                  |                [Dual F9P][DualF9P]                |                             |
+| [Holybro DroneCAN H-RTK F9P Helical](https://holybro.com/products/dronecan-h-rtk-f9p-helical)                        |                             F9P                             |            BMM150           |    &check;   |                [Dual F9P][DualF9P]                |                             |
+| [Holybro H-RTK F9P Rover Lite](../gps_compass/rtk_gps_holybro_h-rtk-f9p.md)                                          |                             F9P                             |           IST8310           |                                  |                                                   |                             |
+| [Holybro DroneCAN H-RTK F9P Rover](https://holybro.com/products/dronecan-h-rtk-f9p-rover)                            |                             F9P                             |            BMM150           |                                  |                [Dual F9P][DualF9P]                |                             |
+| [Holybro H-RTK M8P GNSS](../gps_compass/rtk_gps_holybro_h-rtk-m8p.md)                                                |                             M8P                             |           IST8310           |                                  |                                                   |                             |
+| [Holybro H-RTK Unicore UM982 GPS](../gps_compass/rtk_gps_holybro_unicore_um982.md)                                   |                            UM982                            |           IST8310           |                                  |       [Unicore Dual Antenna][UnicoreDualAnt]      |                             |
+| [LOCOSYS Hawk R1](../gps_compass/rtk_gps_locosys_r1.md)                                                              |                         MC-1612-V2b                         |                             |                                  |                                                   |                             |
+| [LOCOSYS Hawk R2](../gps_compass/rtk_gps_locosys_r2.md)                                                              |                         MC-1612-V2b                         |           IST8310           |                                  |                                                   |                             |
+| [mRo u-blox ZED-F9 RTK L1/L2 GPS](https://store.mrobotics.io/product-p/m10020d.htm)                                  |                             F9P                             | &check; |                                  |                [Dual F9P][DualF9P]                |                             |
+| [Navisys L1/L2 ZED-F9P RTK - Base only](https://www.navisys.com.tw/productdetail?name=GR901&class=RTK)         |                             F9P                             |                             |                                  |                                                   |                             |
+| [RaccoonLab L1/L2 ZED-F9P][RaccoonLab L1/L2 ZED-F9P]                                                                 |                             F9P                             |            RM3100           |    &check;   |                                                   |                             |
+| [RaccoonLab L1/L2 ZED-F9P with external antenna][RaccnLabL1L2ZED-F9P ext_ant]                                        |                             F9P                             |            RM3100           |    &check;   |                                                   |                             |
+| [Septentrio AsteRx-m3 Pro](../gps_compass/septentrio_asterx-rib.md)                                                  |                            AsteRx                           | &check; |                                  |       [Septentrio Dual Antenna][SeptDualAnt]      | &check; |
+| [Septentrio mosaic-go](../gps_compass/septentrio_mosaic-go.md)                                                       |                     mosaic X5 / mosaic H                    | &check; |                                  |       [Septentrio Dual Antenna][SeptDualAnt]      | &check; |
+| [SIRIUS RTK GNSS ROVER (F9P)](https://store-drotek.com/911-sirius-rtk-gnss-rover-f9p.html)        |                             F9P                             | &check; |                                  |                [Dual F9P][DualF9P]                |                             |
+| [SparkFun GPS-RTK2 Board - ZED-F9P](https://www.sparkfun.com/products/15136)                                         |                             F9P                             | &check; |                                  |                [Dual F9P][DualF9P]                |                             |
+| [Trimble MB-Two](../gps_compass/rtk_gps_trimble_mb_two.md)                                                           |                             F9P                             | &check; |                                  |            &check;            |                             |
 
 <!-- links used in above table -->
 
@@ -121,36 +122,35 @@ This should be set by default, but if not, follow the [MAVLink2 configuration in
 The RTK GPS connection is essentially plug and play:
 
 1. Start _QGroundControl_ and attach the base RTK GPS via USB to the ground station.
-  电脑会自动识别设备。
+   电脑会自动识别设备。
 
 2. Start the vehicle and make sure it is connected to _QGroundControl_.
 
-  :::tip
-  _QGroundControl_ displays an RTK GPS status icon in the top icon bar while an RTK GPS device is connected (in addition to the normal GPS status icon).
-  The icon is red while RTK is being set up, and then changes to white once RTK GPS is active.
-  You can click the icon to see the current state and RTK accuracy.
+   :::tip
+   _QGroundControl_ displays an RTK GPS status icon in the top icon bar while an RTK GPS device is connected (in addition to the normal GPS status icon).
+   The icon is red while RTK is being set up, and then changes to white once RTK GPS is active.
+   You can click the icon to see the current state and RTK accuracy.
 
 :::
 
 3. _QGroundControl_ then starts the RTK setup process (known as "Survey-In").
 
-  测量是一个获得基站准确位置的设置过程。
-  The process typically takes several minutes (it ends after reaching the minimum time and accuracy specified in the [RTK settings](#rtk-gps-settings)).
+   测量是一个获得基站准确位置的设置过程。
+   The process typically takes several minutes (it ends after reaching the minimum time and accuracy specified in the [RTK settings](#rtk-gps-settings)).
 
-  你也可以点击 RTK状态按钮查看。
+   你也可以点击 RTK状态按钮查看。
 
-  ![survey-in](../../assets/qgc/setup/rtk/qgc_rtk_survey-in.png)
+   ![survey-in](../../assets/qgc/setup/rtk/qgc_rtk_survey-in.png)
 
 4. 测量完成：
+   - The RTK GPS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
 
-  - The RTK GPS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
+     ![RTK streaming](../../assets/qgc/setup/rtk/qgc_rtk_streaming.png)
 
-    ![RTK streaming](../../assets/qgc/setup/rtk/qgc_rtk_streaming.png)
+   - Vehicle GPS switches to RTK mode.
+     The new mode is displayed in the _normal_ GPS status icon (`3D RTK GPS Lock`):
 
-  - Vehicle GPS switches to RTK mode.
-    The new mode is displayed in the _normal_ GPS status icon (`3D RTK GPS Lock`):
-
-    ![RTK GPS Status](../../assets/qgc/setup/rtk/qgc_rtk_gps_status.png)
+     ![RTK GPS Status](../../assets/qgc/setup/rtk/qgc_rtk_gps_status.png)
 
 ### Configuring GPS as Yaw/Heading Source
 
@@ -205,7 +205,7 @@ This should be enabled by default on recent builds.
 To ensure MAVLink2 is used:
 
 - Update the telemetry module firmware to the latest version (see [QGroundControl > Setup > Firmware](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/firmware.html)).
-- Set [MAV_PROTO_VER](../advanced_config/parameter_reference.md#MAV_PROTO_VER) to 2 (see [QGroundControl Setup > Parameters](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html))
+- Ensure [MAV_PROTO_VER](../advanced_config/parameter_reference.md#MAV_PROTO_VER) is set to 2 (see [QGroundControl Setup > Parameters](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html))
 
 #### 调试
 

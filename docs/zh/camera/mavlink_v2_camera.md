@@ -48,7 +48,7 @@ These parameters cannot directly be set in missions and have no specific setter 
 A ground station can use any feature exposed by the camera.
 PX4 has no role in this interaction other than forwarding MAVLink traffic between the camera and ground station or SDK, if needed.
 
-### Camera Commands in Missions
+### 任务中的相机命令
 
 PX4 allows the following subset of [Camera Protocol v2](https://mavlink.io/en/services/camera.html) commands in missions:
 
@@ -112,7 +112,7 @@ The linked document explains how, but in summary:
 
 1. Modify an unused `MAV_n_CONFIG` parameter, such as [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG), so that it is assigned to port to which you connected the camera/companion computer.
 2. 将对应的 [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) 设置为 `2` (板载)。
-  This ensures that the right set of MAVLink messages are emitted for a companion computer (or camera).
+   This ensures that the right set of MAVLink messages are emitted for a companion computer (or camera).
 3. Set [MAV_2_FORWARD](../advanced_config/parameter_reference.md#MAV_2_FORWARD) to enable forwarding of communications from the port to other ports, such as the one that is connected to the ground station.
 4. You may need to set some of the other parameters, depending on your connection type and any particular requirements of the camera on the expected baud rate, and so on.
 
@@ -137,9 +137,9 @@ Generic/extensible camera managers:
 - [MAVLink Camera Manager](https://github.com/mavlink/mavlink-camera-manager) - Extensible cross-platform MAVLink Camera Server built on top of GStreamer and Rust-MAVLink.
 - [Dronecode Camera Manager](https://camera-manager.dronecode.org/en/) - Adds Camera Protocol interface for cameras connected to Linux computer.
 
-Camera-specfic camera managers:
+Camera-specific camera managers:
 
-- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - MAVSDK-plugin based camera manager for the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini) (includes tutorial).
+- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - MAVSDK-plugin based camera manager for the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini-gimbal-camera) (includes tutorial).
 
   ::: tip
   This is a good example of how MAVSDK can be used to create a MAVLink camera protocol interface for a particular camera.
@@ -150,6 +150,6 @@ When using a camera manager you connect the companion computer to the flight con
 
 More information about camera manager and companion computer setups can be found in:
 
-- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Tutorial for integrating with the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini) using a MAVSDK-based camera manager running on a Raspberry Pi companion computer.
+- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Tutorial for integrating with the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini-gimbal-camera) using a MAVSDK-based camera manager running on a Raspberry Pi companion computer.
 - [Using a Companion Computer with Pixhawk Controllers](../companion_computer/pixhawk_companion.md)
 - [Companion Computers > Companion Computer Software](../companion_computer/index.md#companion-computer-software): In particular note [MAVLink-Router](https://github.com/mavlink-router/mavlink-router), which you can setup to route MAVLink traffic between a serial port and an IP link (or other camera manager interface).

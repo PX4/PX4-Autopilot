@@ -23,7 +23,7 @@ Data can be gathered using the following sequence:
 5) Move to a warm dry, still air, constant pressure environment.
 6) Apply power for 45 minutes, keeping the board still.
 7) Remove power and extract the .ulog file
-8) Open a terminal window in the Firmware/Tools directory and run the python calibration script script file: 'python process_sensor_caldata.py <full path name to .ulog file>
+8) Open a terminal window in the Firmware/Tools directory and run the python calibration script script file: 'python3 process_sensor_caldata.py <full path name to .ulog file>
 9) Power the board, connect QGC and load the parameter from the generated .params file onto the board using QGC. Due to the number of parameters, loading them may take some time.
 10) TODO - we need a way for user to reliably tell when parameters have all been changed and saved.
 11) After parameters have finished loading, set SDLOG_MODE and SDLOG_PROFILE to their respective values prior to step 4) and remove power.
@@ -1656,9 +1656,9 @@ sensor_baro_0['pressure'] = median_filter(sensor_baro_0['pressure'])
 # fit data
 median_pressure = np.median(sensor_baro_0['pressure'])
 if noResample:
-    coef_baro_0_x = np.polyfit(temp_rel,100*(sensor_baro_0['pressure']-median_pressure),5) # convert from hPa to Pa
+    coef_baro_0_x = np.polyfit(temp_rel,(sensor_baro_0['pressure']-median_pressure),5) # pressure in Pascal
 else:
-    temperature, baro = resampleWithDeltaX(temp_rel,100*(sensor_baro_0['pressure']-median_pressure)) # convert from hPa to Pa
+    temperature, baro = resampleWithDeltaX(temp_rel,(sensor_baro_0['pressure']-median_pressure)) # pressure in Pascal
     coef_baro_0_x = np.polyfit(temperature,baro,5)
 
 baro_0_params['TC_B0_X5'] = coef_baro_0_x[0]
@@ -1717,9 +1717,9 @@ if num_baros >= 2:
     # fit data
     median_pressure = np.median(sensor_baro_1['pressure'])
     if noResample:
-        coef_baro_1_x = np.polyfit(temp_rel,100*(sensor_baro_1['pressure']-median_pressure),5) # convert from hPa to Pa
+        coef_baro_1_x = np.polyfit(temp_rel,(sensor_baro_1['pressure']-median_pressure),5) # pressure in Pascal
     else:
-        temperature, baro = resampleWithDeltaX(temp_rel,100*(sensor_baro_1['pressure']-median_pressure)) # convert from hPa to Pa
+        temperature, baro = resampleWithDeltaX(temp_rel,(sensor_baro_1['pressure']-median_pressure)) # pressure in Pascal
         coef_baro_1_x = np.polyfit(temperature,baro,5)
 
     baro_1_params['TC_B1_X5'] = coef_baro_1_x[0]
@@ -1778,9 +1778,9 @@ if num_baros >= 3:
     # fit data
     median_pressure = np.median(sensor_baro_2['pressure'])
     if noResample:
-        coef_baro_2_x = np.polyfit(temp_rel,100*(sensor_baro_2['pressure']-median_pressure),5) # convert from hPa to Pa
+        coef_baro_2_x = np.polyfit(temp_rel,(sensor_baro_2['pressure']-median_pressure),5) # pressure in Pascal
     else:
-        temperature, baro = resampleWithDeltaX(temp_rel,100*(sensor_baro_2['pressure']-median_pressure)) # convert from hPa to Pa
+        temperature, baro = resampleWithDeltaX(temp_rel,(sensor_baro_2['pressure']-median_pressure)) # pressure in Pascal
         coef_baro_2_x = np.polyfit(temperature,baro,5)
 
     baro_2_params['TC_B2_X5'] = coef_baro_2_x[0]
@@ -1838,7 +1838,7 @@ if num_baros >= 4:
 
     # fit data
     median_pressure = np.median(sensor_baro_3['pressure'])
-    coef_baro_3_x = np.polyfit(temp_rel,100*(sensor_baro_3['pressure']-median_pressure),5) # convert from hPa to Pa
+    coef_baro_3_x = np.polyfit(temp_rel,(sensor_baro_3['pressure']-median_pressure),5) # pressure in Pascal
     baro_3_params['TC_B3_X5'] = coef_baro_3_x[0]
     baro_3_params['TC_B3_X4'] = coef_baro_3_x[1]
     baro_3_params['TC_B3_X3'] = coef_baro_3_x[2]

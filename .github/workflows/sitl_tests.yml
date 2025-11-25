@@ -11,18 +11,20 @@ on:
     - 'main'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
   pull_request:
     branches:
-      - '**'
+    - '**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     name: Testing PX4 ${{ matrix.config.model }}
-    runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
     container:
       image: px4io/px4-dev-simulation-focal:2021-09-08
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
@@ -116,7 +118,7 @@ jobs:
           PX4_HOME_LON: ${{matrix.config.longitude}}
           PX4_HOME_ALT: ${{matrix.config.altitude}}
           PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
-        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json --verbose --force-color
+        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --model ${{matrix.config.model}} test/mavsdk_tests/configs/sitl.json --verbose --force-color
         timeout-minutes: 45
 
       - name: Upload failed logs

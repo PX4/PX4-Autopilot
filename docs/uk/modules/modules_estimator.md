@@ -8,9 +8,7 @@ Source: [modules/attitude_estimator_q](https://github.com/PX4/PX4-Autopilot/tree
 
 Оцінювач висоти q.
 
-<a id="AttitudeEstimatorQ_usage"></a>
-
-### Використання
+### Usage {#AttitudeEstimatorQ_usage}
 
 ```
 AttitudeEstimatorQ <command> [arguments...]
@@ -34,9 +32,7 @@ Source: [modules/airspeed_selector](https://github.com/PX4/PX4-Autopilot/tree/ma
 оцінки масштабного коефіцієнта від IAS до CAS, вона запускає кілька оцінювачів вітру
 а також публікує їх.
 
-<a id="airspeed_estimator_usage"></a>
-
-### Використання
+### Usage {#airspeed_estimator_usage}
 
 ```
 airspeed_estimator <command> [arguments...]
@@ -61,9 +57,7 @@ The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.p
 ekf2 can be started in replay mode (`-r`): in this mode, it does not access the system time, but only uses the
 timestamps from the sensor topics.
 
-<a id="ekf2_usage"></a>
-
-### Використання
+### Usage {#ekf2_usage}
 
 ```
 ekf2 <command> [arguments...]
@@ -88,9 +82,7 @@ Source: [modules/local_position_estimator](https://github.com/PX4/PX4-Autopilot/
 
 Оцінювач відношення та позиції за допомогою розширеного фільтра Калмана.
 
-<a id="local_position_estimator_usage"></a>
-
-### Використання
+### Usage {#local_position_estimator_usage}
 
 ```
 local_position_estimator <command> [arguments...]
@@ -108,9 +100,7 @@ Source: [modules/mc_hover_thrust_estimator](https://github.com/PX4/PX4-Autopilot
 
 ### Опис
 
-<a id="mc_hover_thrust_estimator_usage"></a>
-
-### Використання
+### Usage {#mc_hover_thrust_estimator_usage}
 
 ```
 mc_hover_thrust_estimator <command> [arguments...]

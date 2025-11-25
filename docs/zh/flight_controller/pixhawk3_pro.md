@@ -36,14 +36,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Where to buy
 
-From [Drotek store](https://store.drotek.com/) (EU) :
-
-- [Pixhawk 3 Pro (Pack)](https://store.drotek.com/autopilots/844-pixhawk-3-pro-pack.html)
-- [Pixhawk 3 Pro](https://store.drotek.com/autopilots/821-pixhawk-pro-autopilot-8944595120557.html)
-
-From [readymaderc](https://www.readymaderc.com) (USA) :
-
-- [Pixhawk 3 Pro](https://www.readymaderc.com/products/details/pixhawk-3-pro-flight-controller)
+No longer available.
 
 ## 编译固件
 
@@ -82,13 +75,13 @@ For information about wiring and using this port see:
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| UART1  | /dev/ttyS0 | WiFi                                     |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  |            |                                          |
-| UART7  | CONSOLE    |                                          |
-| UART8  | SERIAL4    |                                          |
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| UART   | UART       | WiFi                           |
+| USART2 | /dev/ttyS1 | TELEM1 (流控) |
+| USART3 | /dev/ttyS2 | TELEM2 (流控) |
+| UART4  |            |                                |
+| UART7  | CONSOLE    |                                |
+| UART8  | SERIAL4    |                                |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->

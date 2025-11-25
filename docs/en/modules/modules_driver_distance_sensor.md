@@ -1,7 +1,8 @@
 # Modules Reference: Distance Sensor (Driver)
-## afbrs50
-Source: [drivers/distance_sensor/broadcom/afbrs50](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/broadcom/afbrs50)
 
+## afbrs50
+
+Source: [drivers/distance_sensor/broadcom/afbrs50](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/broadcom/afbrs50)
 
 ### Description
 
@@ -10,16 +11,19 @@ Driver for the Broadcom AFBRS50.
 ### Examples
 
 Attempt to start driver on a specified serial device.
+
 ```
 afbrs50 start
 ```
+
 Stop driver
+
 ```
 afbrs50 stop
 ```
 
-<a id="afbrs50_usage"></a>
-### Usage
+### Usage {#afbrs50_usage}
+
 ```
 afbrs50 <command> [arguments...]
  Commands:
@@ -28,15 +32,15 @@ afbrs50 <command> [arguments...]
      [-r <val>]  Sensor rotation - downward facing by default
                  default: 25
 
-   test          Test driver
-
    stop          Stop driver
 ```
+
 ## gy_us42
+
 Source: [drivers/distance_sensor/gy_us42](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/gy_us42)
 
-<a id="gy_us42_usage"></a>
-### Usage
+### Usage {#gy_us42_usage}
+
 ```
 gy_us42 <command> [arguments...]
  Commands:
@@ -54,9 +58,10 @@ gy_us42 <command> [arguments...]
 
    status        print status info
 ```
-## leddar_one
-Source: [drivers/distance_sensor/leddar_one](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/leddar_one)
 
+## leddar_one
+
+Source: [drivers/distance_sensor/leddar_one](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/leddar_one)
 
 ### Description
 
@@ -69,16 +74,19 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/leddar_one.html
 ### Examples
 
 Attempt to start driver on a specified serial device.
+
 ```
 leddar_one start -d /dev/ttyS1
 ```
+
 Stop driver
+
 ```
 leddar_one stop
 ```
 
-<a id="leddar_one_usage"></a>
-### Usage
+### Usage {#leddar_one_usage}
+
 ```
 leddar_one <command> [arguments...]
  Commands:
@@ -89,18 +97,19 @@ leddar_one <command> [arguments...]
 
    stop          Stop driver
 ```
-## lightware_laser_i2c
-Source: [drivers/distance_sensor/lightware_laser_i2c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_laser_i2c)
 
+## lightware_laser_i2c
+
+Source: [drivers/distance_sensor/lightware_laser_i2c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_laser_i2c)
 
 ### Description
 
-I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20.
+I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20, SF30/d.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 
-<a id="lightware_laser_i2c_usage"></a>
-### Usage
+### Usage {#lightware_laser_i2c_usage}
+
 ```
 lightware_laser_i2c <command> [arguments...]
  Commands:
@@ -120,9 +129,10 @@ lightware_laser_i2c <command> [arguments...]
 
    status        print status info
 ```
-## lightware_laser_serial
-Source: [drivers/distance_sensor/lightware_laser_serial](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_laser_serial)
 
+## lightware_laser_serial
+
+Source: [drivers/distance_sensor/lightware_laser_serial](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_laser_serial)
 
 ### Description
 
@@ -135,16 +145,19 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 ### Examples
 
 Attempt to start driver on a specified serial device.
+
 ```
 lightware_laser_serial start -d /dev/ttyS1
 ```
+
 Stop driver
+
 ```
 lightware_laser_serial stop
 ```
 
-<a id="lightware_laser_serial_usage"></a>
-### Usage
+### Usage {#lightware_laser_serial_usage}
+
 ```
 lightware_laser_serial <command> [arguments...]
  Commands:
@@ -155,28 +168,31 @@ lightware_laser_serial <command> [arguments...]
 
    stop          Stop driver
 ```
-## lightware_sf45_serial
-Source: [drivers/distance_sensor/lightware_sf45_serial](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_sf45_serial)
 
+## lightware_sf45_serial
+
+Source: [drivers/distance_sensor/lightware_sf45_serial](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_sf45_serial)
 
 ### Description
 
 Serial bus driver for the Lightware SF45/b Laser rangefinder.
 
-
 ### Examples
 
 Attempt to start driver on a specified serial device.
+
 ```
 lightware_sf45_serial start -d /dev/ttyS1
 ```
+
 Stop driver
+
 ```
 lightware_sf45_serial stop
 ```
 
-<a id="lightware_sf45_serial_usage"></a>
-### Usage
+### Usage {#lightware_sf45_serial_usage}
+
 ```
 lightware_sf45_serial <command> [arguments...]
  Commands:
@@ -185,9 +201,10 @@ lightware_sf45_serial <command> [arguments...]
 
    stop          Stop driver
 ```
-## ll40ls
-Source: [drivers/distance_sensor/ll40ls](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/ll40ls)
 
+## ll40ls
+
+Source: [drivers/distance_sensor/ll40ls](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/ll40ls)
 
 ### Description
 
@@ -197,8 +214,8 @@ The sensor/driver must be enabled using the parameter SENS_EN_LL40LS.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/lidar_lite.html
 
-<a id="ll40ls_usage"></a>
-### Usage
+### Usage {#ll40ls_usage}
+
 ```
 ll40ls <command> [arguments...]
  Commands:
@@ -220,11 +237,39 @@ ll40ls <command> [arguments...]
 
    status        print status info
 ```
+
+## ll40ls_pwm
+
+Source: [drivers/distance_sensor/ll40ls_pwm](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/ll40ls_pwm)
+
+### Description
+
+PWM driver for LidarLite rangefinders.
+
+The sensor/driver must be enabled using the parameter SENS_EN_LL40LS.
+
+Setup/usage information: https://docs.px4.io/main/en/sensor/lidar_lite.html
+
+### Usage {#ll40ls_pwm_usage}
+
+```
+ll40ls_pwm <command> [arguments...]
+ Commands:
+   start         Start driver
+     [-R <val>]  Sensor rotation - downward facing by default
+                 default: 25
+
+   status        Print driver status information
+
+   stop          Stop driver
+```
+
 ## mappydot
+
 Source: [drivers/distance_sensor/mappydot](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/mappydot)
 
-<a id="mappydot_usage"></a>
-### Usage
+### Usage {#mappydot_usage}
+
 ```
 mappydot <command> [arguments...]
  Commands:
@@ -240,11 +285,13 @@ mappydot <command> [arguments...]
 
    status        print status info
 ```
+
 ## mb12xx
+
 Source: [drivers/distance_sensor/mb12xx](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/mb12xx)
 
-<a id="mb12xx_usage"></a>
-### Usage
+### Usage {#mb12xx_usage}
+
 ```
 mb12xx <command> [arguments...]
  Commands:
@@ -264,9 +311,10 @@ mb12xx <command> [arguments...]
 
    status        print status info
 ```
-## pga460
-Source: [drivers/distance_sensor/pga460](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/pga460)
 
+## pga460
+
+Source: [drivers/distance_sensor/pga460](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/pga460)
 
 ### Description
 
@@ -280,8 +328,8 @@ running. A simple algorithm to detect false readings is implemented at the drive
 the quality of data that is being published. The driver will not publish data at all if it deems the sensor data
 to be invalid or unstable.
 
-<a id="pga460_usage"></a>
-### Usage
+### Usage {#pga460_usage}
+
 ```
 pga460 <command> [arguments...]
  Commands:
@@ -294,11 +342,13 @@ pga460 <command> [arguments...]
 
    help
 ```
+
 ## srf02
+
 Source: [drivers/distance_sensor/srf02](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/srf02)
 
-<a id="srf02_usage"></a>
-### Usage
+### Usage {#srf02_usage}
+
 ```
 srf02 <command> [arguments...]
  Commands:
@@ -318,19 +368,19 @@ srf02 <command> [arguments...]
 
    status        print status info
 ```
+
 ## srf05
+
 Source: [drivers/distance_sensor/srf05](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/srf05)
 
+### Description
 
-  ### Description
+Driver for HY-SRF05 / HC-SR05 and HC-SR04 rangefinders.
 
-  Driver for HY-SRF05 / HC-SR05 and HC-SR04 rangefinders.
+The sensor/driver must be enabled using the parameter SENS_EN_HXSRX0X.
 
-  The sensor/driver must be enabled using the parameter SENS_EN_HXSRX0X.
+### Usage {#srf05_usage}
 
-  
-<a id="srf05_usage"></a>
-### Usage
 ```
 srf05 <command> [arguments...]
  Commands:
@@ -346,9 +396,10 @@ srf05 <command> [arguments...]
 
    status        print status info
 ```
-## teraranger
-Source: [drivers/distance_sensor/teraranger](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/teraranger)
 
+## teraranger
+
+Source: [drivers/distance_sensor/teraranger](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/teraranger)
 
 ### Description
 
@@ -358,8 +409,8 @@ The sensor/driver must be enabled using the parameter SENS_EN_TRANGER.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/rangefinders.html#teraranger-rangefinders
 
-<a id="teraranger_usage"></a>
-### Usage
+### Usage {#teraranger_usage}
+
 ```
 teraranger <command> [arguments...]
  Commands:
@@ -379,11 +430,13 @@ teraranger <command> [arguments...]
 
    status        print status info
 ```
+
 ## tf02pro
+
 Source: [drivers/distance_sensor/tf02pro](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/tf02pro)
 
-<a id="tf02pro_usage"></a>
-### Usage
+### Usage {#tf02pro_usage}
+
 ```
 tf02pro <command> [arguments...]
  Commands:
@@ -403,9 +456,10 @@ tf02pro <command> [arguments...]
 
    status        print status info
 ```
-## tfmini
-Source: [drivers/distance_sensor/tfmini](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/tfmini)
 
+## tfmini
+
+Source: [drivers/distance_sensor/tfmini](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/tfmini)
 
 ### Description
 
@@ -418,16 +472,19 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/tfmini.html
 ### Examples
 
 Attempt to start driver on a specified serial device.
+
 ```
 tfmini start -d /dev/ttyS1
 ```
+
 Stop driver
+
 ```
 tfmini stop
 ```
 
-<a id="tfmini_usage"></a>
-### Usage
+### Usage {#tfmini_usage}
+
 ```
 tfmini <command> [arguments...]
  Commands:
@@ -440,13 +497,12 @@ tfmini <command> [arguments...]
 
    stop          Stop driver
 
-   test          Test driver (basic functional tests)
-
    status        Print driver status
 ```
-## ulanding_radar
-Source: [drivers/distance_sensor/ulanding_radar](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/ulanding_radar)
 
+## ulanding_radar
+
+Source: [drivers/distance_sensor/ulanding_radar](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/ulanding_radar)
 
 ### Description
 
@@ -457,16 +513,19 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/ulanding_radar.html
 ### Examples
 
 Attempt to start driver on a specified serial device.
+
 ```
 ulanding_radar start -d /dev/ttyS1
 ```
+
 Stop driver
+
 ```
 ulanding_radar stop
 ```
 
-<a id="ulanding_radar_usage"></a>
-### Usage
+### Usage {#ulanding_radar_usage}
+
 ```
 ulanding_radar <command> [arguments...]
  Commands:
@@ -478,11 +537,13 @@ ulanding_radar <command> [arguments...]
 
    stop          Stop driver
 ```
+
 ## vl53l0x
+
 Source: [drivers/distance_sensor/vl53l0x](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/vl53l0x)
 
-<a id="vl53l0x_usage"></a>
-### Usage
+### Usage {#vl53l0x_usage}
+
 ```
 vl53l0x <command> [arguments...]
  Commands:
@@ -502,11 +563,13 @@ vl53l0x <command> [arguments...]
 
    status        print status info
 ```
+
 ## vl53l1x
+
 Source: [drivers/distance_sensor/vl53l1x](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/vl53l1x)
 
-<a id="vl53l1x_usage"></a>
-### Usage
+### Usage {#vl53l1x_usage}
+
 ```
 vl53l1x <command> [arguments...]
  Commands:

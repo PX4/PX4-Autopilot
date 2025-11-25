@@ -1,15 +1,17 @@
-# VOXL 2 Зоряний PX4 Розробка Дрону
+# ModalAI Starling (PX4 Autonomy Developer Kit)
 
-[Starling](https://modalai.com/starling) - це SLAM розроблений дрон, підсиленний [VOXL 2](../flight_controller/modalai_voxl_2.md) та PX4 з оптимізованими датчиками та навантаженнями для внутрішньої та зовнішньої автономної навігації.
+The [Starlings](https://www.modalai.com/pages/starlings) are SLAM development drones supercharged by [VOXL 2](../flight_controller/modalai_voxl_2.md) and PX4 with SWAP-optimized sensors and payloads optimized for indoor and outdoor autonomous navigation.
 За допомогою автопілота Blue UAS Framework, VOXL 2, Starling важить всього 275 г і має вражаючі 30 хвилин автономного польоту в приміщенні.
 
 ![Огляд](../../assets/hardware/complete_vehicles/modalai_starling/starling_front_hero.jpg)
 
-VOXL 2 Starling - це розробницький безпілотник PX4, який містить супутній комп'ютер [VOXL 2](../flight_controller/modalai_voxl_2.md) та керування польотом PX4, сенсори зображення, GPS, модем підключення і готовий до польоту прямо з коробки.
-Starling має [відкрите SDK](https://docs.modalai.com/voxl-developer-bootcamp/) від ModalAI, яке має попередньо налаштовані моделі автономії для польотів з допомогою комп'ютерного зору.
+The ModalAI PX4 Autonomy Developer Kit is a Starling-based development drone.
+It houses a [VOXL 2](../flight_controller/modalai_voxl_2.md), which is a powerful companion computer and PX4 flight controller in one small package, image sensors, GPS, and connectivity modem, and is ready-to-fly out-of-the-box.
+The Starling features ModalAI's [open SDK](https://docs.modalai.com/voxl-developer-bootcamp/) that has pre-configured autonomy models for computer vision assisted flight.
 Цей розвивальний дрон призначений, щоб допомогти вам швидше вийти на ринок та прискорити розробку та прототипування вашої програми.
 
-Цей посібник пояснює мінімальну додаткову настройку, необхідну для підготовки БПЛА до польоту. Він також охоплює огляд апаратного забезпечення, перший польот, налаштування WiFi та інше.
+Цей посібник пояснює мінімальну додаткову настройку, необхідну для підготовки БПЛА до польоту.
+Він також охоплює огляд апаратного забезпечення, перший польот, налаштування WiFi та інше.
 
 :::info
 Для повного та регулярно оновлюваного документування відвідайте <https://docs.modalai.com/starling-v2>.
@@ -21,7 +23,7 @@ Starling має [відкрите SDK](https://docs.modalai.com/voxl-developer-b
 
 ## Де купити
 
-[modalai.com/starling](https://modalai.com/starling)
+[ModalAI PX4 Autonomy Developer Kit](https://www.modalai.com/products/px4-autonomy-developer-kit?variant=46969885950256)
 
 ## Налаштування обладнання
 
@@ -82,26 +84,26 @@ Starling має [відкрите SDK](https://docs.modalai.com/voxl-developer-b
 #### Налаштування відображення
 
 1. **Увімкніть приймач**: Як тільки ваш квадрокоптер увімкнено, ви помітите, що синій світлодіод приймача ELRS мигає.
-  Це свідчить про те, що отримувач увімкнений, але ще не встановив зв'язок з передавачем.
+   Це свідчить про те, що отримувач увімкнений, але ще не встановив зв'язок з передавачем.
 
-  ![Приймач Starling](../../assets/hardware/complete_vehicles/modalai_starling/starling-photo.png)
+   ![Приймач Starling](../../assets/hardware/complete_vehicles/modalai_starling/starling-photo.png)
 
 2. **Увійдіть в режим зв'язку**: Для ініціювання зв'язку відкрийте термінал та виконайте команди `adb shell` та `voxl-elrs -bind`.
-  Ви побачите, що світлодіод приймача перемикається на миготливий в режимі миттєвого реагування, сигналізуючи, що тепер він у режимі зв'язку.
+   Ви побачите, що світлодіод приймача перемикається на миготливий в режимі миттєвого реагування, сигналізуючи, що тепер він у режимі зв'язку.
 
-  ![Boot Screenshot](../../assets/hardware/complete_vehicles/modalai_starling/screenshot-boot.png)
+   ![Boot Screenshot](../../assets/hardware/complete_vehicles/modalai_starling/screenshot-boot.png)
 
 #### Налаштування передавача
 
 1. **Отримайте доступ до меню**: На вашому передавачі радіо Commando 8, включеному в комплект, натисніть ліву кнопку режиму, щоб відкрити систему меню.
 
-  ![Натисніть Меню на ПДУ](../../assets/hardware/complete_vehicles/modalai_starling/radio-1.png)
+   ![Натисніть Меню на ПДУ](../../assets/hardware/complete_vehicles/modalai_starling/radio-1.png)
 
 2. **Перейдіть до ExpressLRS**: Використовуйте праву кнопку, щоб вибрати перший пункт меню, який повинен бути "ExpressLRS."
 
 3. **Знайдіть опцію Bind**: Після вибору опції "ExpressLRS" прокрутіть вниз до нижньої частини меню, щоб знайти розділ "Bind". Це можна зробити, натиснувши праву кнопку донизу, поки ви не досягнете опцію "Прив'язка".
 
-  ![Press Binding on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-2.png)
+   ![Press Binding on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-2.png)
 
 4. **Ініціювати Прив'язку**: Виберіть "Прив'язати", щоб перевести передавач у режим прив'язки. Ви будете знати, що процес був успішним, коли передавач видасть сигнал, вказуючи на успішне зв'язування.
 
@@ -121,3 +123,5 @@ Starling має [відкрите SDK](https://docs.modalai.com/voxl-developer-b
 - [Огляд апаратного забезпечення VOXL 2 Starling](https://youtu.be/M9OiMpbEYOg)
 - [Посібник з першого польоту VOXL 2 Starling](https://youtu.be/Cpbbye3Z6co)
 - [VOXL 2 Starling Налаштування ELRS](https://youtu.be/7OwGS-kcFVg)
+
+<!--  @katzfey - ModalAI reviewer -->

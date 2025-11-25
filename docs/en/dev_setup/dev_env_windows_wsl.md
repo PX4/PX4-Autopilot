@@ -1,6 +1,6 @@
 # Windows Development Environment (WSL2-Based)
 
-The following instructions explain how to set up a PX4 development environment on Windows 10 or 11, running on Ubuntu Linux within [WSL2](https://docs.microsoft.com/en-us/windows/wsl/about).
+The following instructions explain how to set up a PX4 development environment on Windows 10 or 11, running on Ubuntu Linux within [WSL2](https://learn.microsoft.com/en-us/windows/wsl/about).
 
 This environment can be used to build PX4 for:
 
@@ -16,7 +16,7 @@ The list above are those targets that are regularly tested.
 
 ## Overview
 
-The [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/about) ([WSL2](https://docs.microsoft.com/en-us/windows/wsl/compare-versions)) allows users to install and run the [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) on Windows, _almost_ as though we were running it on a Linux computer.
+The [Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/about) ([WSL2](https://learn.microsoft.com/en-us/windows/wsl/compare-versions)) allows users to install and run the [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) on Windows, _almost_ as though we were running it on a Linux computer.
 
 With this environment developers can:
 
@@ -33,7 +33,7 @@ _QGroundControl for Windows_ is additionally required if you need to:
   Note that you can also use it to monitor a simulation, but you must manually [connect to the simulation running in WSL](#qgroundcontrol-on-windows).
 
 ::: info
-Connecting to a USB device from within WSL is not supported, so you can't update firmware using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) option when building on the command line, or from _QGroundControl for Linux_.
+Connecting to an USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
 :::
 
 ::: info
@@ -52,7 +52,6 @@ To install WSL2 with Ubuntu on a new installation of Windows 10 or 11:
 1. Open _cmd.exe_ as administrator.
    This can be done by pressing the start key, typing `cmd`, right-clicking on the _Command prompt_ entry and selecting **Run as administrator**.
 1. Execute the following commands to install WSL2 and a particular Ubuntu version:
-
    - Default version (Ubuntu 22.04):
 
      ```sh
@@ -91,7 +90,6 @@ If you're using [Windows Terminal](https://learn.microsoft.com/en-us/windows/ter
 To open a WSL shell using a command prompt:
 
 1. Open a command prompt:
-
    - Press the Windows **Start** key.
    - Type `cmd` and press **Enter** to open the prompt.
 
@@ -156,7 +154,6 @@ To install the development toolchain:
 
    ::: info
    This installs tools to build PX4 for Pixhawk and either Gazebo or Gazebo Classic targets:
-
    - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
    - Other Linux build targets are untested (you can try these by entering the appropriate commands in [Ubuntu Development Environment](../dev_setup/dev_env_linux_ubuntu.md) into the WSL shell).
      :::
@@ -328,3 +325,9 @@ sudo add-apt-repository ppa:kisak/kisak-mesa
 sudo apt update
 sudo apt upgrade
 ```
+
+### QGroundControl not connecting to PX4 SITL
+
+- The connection between PX4 SITL on WSL2 and QGroundControl on Windows requires [broadcasting](../simulation/index.md#enable-udp-broadcasting) or [streaming to a specific address](../simulation/index.md#enable-streaming-to-specific-address) to be enabled.
+  Streaming to a specific address should be enabled by default, but is something to check if a connection can't be established.
+- Network traffic might be blocked by firewall or antivirus on you system.

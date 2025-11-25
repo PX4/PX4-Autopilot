@@ -33,7 +33,7 @@
         "editor.insertSpaces": false,
         "editor.minimap.maxColumn": 120,
         "editor.minimap.renderCharacters": false,
-        "editor.minimap.showSlider": "always",
+        "editor.minimap.showSlider": "mouseover",
         "editor.suggest.localityBonus": true,
         "editor.tabSize": 8,
         "editor.wordWrapColumn": 120,
@@ -43,7 +43,7 @@
         "files.watcherExclude": {
                 "**/build/**": true
         },
-        "git.detectSubmodulesLimit": 20,
+        "git.detectSubmodulesLimit": 25,
         "git.ignoreLimitWarning": true,
         "githubPullRequests.defaultMergeMethod": "squash",
         "githubPullRequests.telemetry.enabled": false,

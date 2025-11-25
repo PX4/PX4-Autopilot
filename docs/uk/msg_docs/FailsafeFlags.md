@@ -2,8 +2,8 @@
 
 Input flags for the failsafe state machine set by the arming & health checks.
 
-Прапорці повинні мати назви такі, що false == відсутність відмови (наприклад, _invalid, _unhealthy, _lost)
-Коментарі до прапорців використовуються як мітка для симуляції аварійного стану машини
+Flags must be named such that false == no failure (e.g. \_invalid, \_unhealthy, \_lost)
+The flag comments are used as label for the failsafe state machine simulation
 
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/FailsafeFlags.msg)
 
@@ -22,6 +22,7 @@ uint32 mode_req_local_alt
 uint32 mode_req_local_position
 uint32 mode_req_local_position_relaxed
 uint32 mode_req_global_position
+uint32 mode_req_global_position_relaxed
 uint32 mode_req_mission
 uint32 mode_req_offboard_signal
 uint32 mode_req_home_position
@@ -39,6 +40,7 @@ bool local_position_invalid           # Local position estimate invalid
 bool local_position_invalid_relaxed   # Local position with reduced accuracy requirements invalid (e.g. flying with optical flow)
 bool local_velocity_invalid           # Local velocity estimate invalid
 bool global_position_invalid          # Global position estimate invalid
+bool global_position_invalid_relaxed  # Global position estimate invalid with relaxed accuracy requirements
 bool auto_mission_missing             # No mission available
 bool offboard_control_signal_lost     # Offboard signal lost
 bool home_position_invalid            # No home position available
@@ -58,7 +60,7 @@ bool mission_failure                  # Mission failure
 bool vtol_fixed_wing_system_failure   # vehicle in fixed-wing system failure failsafe mode (after quad-chute)
 bool wind_limit_exceeded              # Wind limit exceeded
 bool flight_time_limit_exceeded       # Maximum flight time exceeded
-bool local_position_accuracy_low      # Local position estimate has dropped below threshold, but is currently still declared valid
+bool position_accuracy_low            # Position estimate has dropped below threshold, but is currently still declared valid
 bool navigator_failure        	      # Navigator failed to execute a mode
 
 # Failure detector

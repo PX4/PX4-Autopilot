@@ -4,7 +4,6 @@ on:
   push:
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
 
 jobs:
   unit_tests:
@@ -20,7 +19,7 @@ jobs:
     - name: main test
       uses: addnab/docker-run-action@v3
       with:
-        image: px4io/px4-dev-base-focal:2021-09-08
+        image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
         options: -v ${{ github.workspace }}:/workspace
         run: |
           cd /workspace

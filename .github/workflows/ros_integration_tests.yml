@@ -17,9 +17,13 @@ on:
     paths-ignore:
       - 'docs/**'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
     container:
       image: px4io/px4-dev-ros2-galactic:2021-09-08
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
@@ -85,7 +89,7 @@ jobs:
         . /opt/ros/galactic/setup.bash
         mkdir -p /opt/px4_ws/src
         cd /opt/px4_ws/src
-        git clone --recursive --branch release/1.16 https://github.com/Auterion/px4-ros2-interface-lib.git
+        git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib.git
         cd ..
         # Copy messages to ROS workspace
         "${PX4_DIR}/Tools/copy_to_ros_ws.sh" "$(pwd)"

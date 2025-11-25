@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# By disabling all 3 INA modules, we use the
+# i2c_launcher instead.
+param set-default SENS_EN_INA238 0
+param set-default SENS_EN_INA228 0
+param set-default SENS_EN_INA226 0
+
+# Skynode: use the "custom participant", IP=10.41.10.1 config for uxrce_dds_client
+param set-default UXRCE_DDS_PTCFG 2
+param set-default UXRCE_DDS_AG_IP 170461697
+param set-default UXRCE_DDS_CFG 1000
+
+# The buzzer draws too much power (0.2A) on the GPS power rail (limit 0.45A).
+param set-default CBRK_BUZZER 782097
+
+# Update default IP config if needed
+netman update_default -i eth0
+
+safety_button start
+
+# GPIO Expander driver on external I2C3
+if ver hwbasecmp 009 010 011
+then
+	# No USB
+	mcp23009 start -b 3 -X -D 0xf0 -O 0xf0 -P 0x0f -U 10
+fi
+if ver hwbasecmp 00a 008
+then
+	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -U 10
+fi

@@ -54,6 +54,30 @@ The following topics explain how to start on-target debugging:
 - [MCU Eclipse/J-Link Debugging for PX4](eclipse_jlink.md).
 - [Visual Studio Code IDE (VSCode)](../dev_setup/vscode.md).
 
+## 비디오
+
+The following video provides an overview of the tooling available for advanced debugging of PX4 via GDB.
+It was presented at the PX4 Developer Conference 2023.
+
+<lite-youtube videoid="1c4TqEn3MZ0" title="Debugging PX4 - Niklas Hauser, Auterion AG"/>
+
+**Overview:** The inspection tools built into PX4 via Mavlink Shell (NSH) as well as interpretation of the PX4 uLog after a flight require PX4 to still be functioning. However, the most problematic bugs often manifest themselves in a (partially) hanging or crashed system. Therefore, we present the open-source Embedded Debug Tools project, which manages and configures probe, debugging and analysis tools for PX4 and NuttX:
+
+- Debug interfaces (SWD) and the associated debug probes (J-Link, STLink) and libraries (JLinkGDBServer, OpenOCD).
+- How to install and configure `arm-none-eabi-gdb(-py3)` for debugging your ELF.
+- Commonly used GDB commands and scripts.
+- Advanced GDB scripting via its Python API.
+- Inspection of NuttX RTOS component internals: tasks, semaphores, scheduler.
+- Inspecting peripheral state with CMSIS-SVD files and custom visualizations.
+- Coredumping for post-mortem debugging via CrashDebug.
+- Hardfault analysis in a live system and via the hardfault log.
+- Remote GDB scripting via the Machine Interface.
+- Automated HiL testing of PX4 via combined GDB and NSH scripting.
+- ITM profiling over SWO pin using Orbuculum.
+- Thread/IRQ/Workqueue/Heap visualization and latency analysis using perfetto.
+- High-bandwidth ETM tracing over TRACE pins: J-Trace and ORBtrace mini.
+- We conclude with an overview of interesting related project and an outlook on the future of PX4 debugging.
+
 ## Embedded Debug Tools
 
 The [Embedded Debug Tools](https://pypi.org/project/emdbg/) connect several software and hardware debugging tools together in a user friendly Python package to more easily enable advanced use cases for ARM Cortex-M microcontrollers and related devices.

@@ -94,7 +94,7 @@ The following three modes are highly recommended for new users:
 You can also engage automatic modes on the _QGroundControl_ main flight screen.
 :::
 
-## See Also
+## 另见
 
 - [Terrain Follow/Hold & Range Assistance](../flying/terrain_following_holding.md) — How to enable terrain following
 - [Missions](../flying/missions.md)

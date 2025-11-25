@@ -25,7 +25,7 @@ The most suitable one for UAV development is currently the [Rascal RC plane](htt
 
 ![Rascal plane in FlightGear](../../assets/simulation/flightgear/vehicles/rascal110.jpg)
 
-The variants differ mainly by the [FDM](http://wiki.flightgear.org/Flight_Dynamics_Model) model.
+The variants differ mainly by the [FDM](https://wiki.flightgear.org/Flight_Dynamics_Model) model.
 All variants have a common feature selection table that can be activated by pressing the `=` key on the computer keyboard.
 
 Є спливаюче вікно, яке може бути використане для активації розширених функцій.
@@ -119,7 +119,7 @@ This directory contains an control channel definition [JSON file](https://github
 
 - `FgModel` - a precise case sensitive name of the FlightGear model corresponding to "XXXX-set.xml" in the model directory (where XXXX is the model name).
 - `Url` is optional and it is not currently used. Призначено для майбутнього використання для автоматичного завантаження моделей з Інтернету
-- `Controls` - the most important part of the process of adding a vehicle. This section contains the mapping between the PX4 mixer file and [FlightGear property tree](http://wiki.flightgear.org/Property_tree).
+- `Controls` - the most important part of the process of adding a vehicle. This section contains the mapping between the PX4 mixer file and [FlightGear property tree](https://wiki.flightgear.org/Property_tree).
   - Перше число у списку вибирає вихід змішувача PX4.
   - Рядок шляху - це змінна FlightGear, яка знаходиться в дереві властивостей.
 - Останній номер у списку є множником, що дозволяє інвертування або масштабування входу мікшера.

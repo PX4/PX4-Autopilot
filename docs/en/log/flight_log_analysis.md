@@ -20,7 +20,7 @@ Before analyzing a flight log it is important to establish its context:
 
 If a log file ends mid-air, two main causes are possible: a power failure _or_ a hard fault of the operating system.
 
-On autopilots based on the [STM32 series](http://www.st.com/en/microcontrollers/stm32-32-bit-arm-cortex-mcus.html), hard faults are logged to the SD card.
+On autopilots based on the [STM32 series](https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html), hard faults are logged to the SD card.
 These are located on the top level of the SD card and named _fault_date.log_, e.g. **fault_2017_04_03_00_26_05.log**.
 You should check for the presence of this file if a flight log ends abruptly.
 
@@ -28,7 +28,7 @@ You should check for the presence of this file if a flight log ends abruptly.
 
 ### Flight Review (Online Tool)
 
-[Flight Review](http://logs.px4.io) is the successor of _Log Muncher_.
+[Flight Review](https://logs.px4.io/) is the successor of _Log Muncher_.
 It is used in combination with the new [ULog](../dev_log/ulog_file_format.md) logging format.
 
 Key features:

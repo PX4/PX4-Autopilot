@@ -1,6 +1,6 @@
 # CUAV v5 (Discontinued)
 
-<Badge type="info" text="Discontinued" />
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
 
 :::warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
@@ -27,7 +27,6 @@ It is intended primarily for academic and commercial developers.
   - 32 位 Arm® Cortex®-M3，24MHz，8KB SRAM
 
 - 内置传感器：
-
   - 加速度计/陀螺仪：ICM-20689
   - 加速度计/陀螺仪：BMI055
   - 磁力计：IST8310
@@ -123,12 +122,12 @@ The pinout is as shown.
 
 | UART   | 设备         | Port                                                       |
 | ------ | ---------- | ---------------------------------------------------------- |
-| UART1  | /dev/ttyS0 | GPS                                                        |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control)                   |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control)                   |
+| UART   | UART       | GPS                                                        |
+| USART2 | /dev/ttyS1 | TELEM1 (流控)                             |
+| USART3 | /dev/ttyS2 | TELEM2 (流控)                             |
 | UART4  | /dev/ttyS3 | TELEM4                                                     |
 | USART6 | /dev/ttyS4 | TX is RC input from SBUS_RC connector |
-| UART7  | /dev/ttyS5 | Debug Console                                              |
+| UART7  | /dev/ttyS5 | 调试控制台                                                      |
 | UART8  | /dev/ttyS6 | PX4IO                                                      |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
@@ -147,5 +146,4 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## 更多信息
 
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165).
-- [CUAV v5 docs](http://doc.cuav.net/flight-controller/v5-autopilot/en/v5.html)
 - [CUAV Github](https://github.com/cuav)

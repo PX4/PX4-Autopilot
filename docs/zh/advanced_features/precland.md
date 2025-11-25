@@ -38,14 +38,14 @@ If it is not visible the vehicle immediately performs a _normal_ landing at the 
 A precision landing has three phases:
 
 1. **Horizontal approach:** The vehicle approaches the target horizontally while keeping its current altitude.
-  Once the position of the target relative to the vehicle is below a threshold ([PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD)), the next phase is entered.
-  If the target is lost during this phase (not visible for longer than [PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)), a search procedure is initiated (during a required precision landing) or the vehicle does a normal landing (during an opportunistic precision landing).
+   Once the position of the target relative to the vehicle is below a threshold ([PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD)), the next phase is entered.
+   If the target is lost during this phase (not visible for longer than [PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)), a search procedure is initiated (during a required precision landing) or the vehicle does a normal landing (during an opportunistic precision landing).
 
 2. **Descent over target:** The vehicle descends, while remaining centered over the target.
-  If the target is lost during this phase (not visible for longer than `PLD_BTOUT`), a search procedure is initiated (during a required precision landing) or the vehicle does a normal landing (during an opportunistic precision landing).
+   If the target is lost during this phase (not visible for longer than `PLD_BTOUT`), a search procedure is initiated (during a required precision landing) or the vehicle does a normal landing (during an opportunistic precision landing).
 
 3. **Final approach:** When the vehicle is close to the ground (closer than [PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)), it descends while remaining centered over the target.
-  If the target is lost during this phase, the descent is continued independent of the kind of precision landing.
+   If the target is lost during this phase, the descent is continued independent of the kind of precision landing.
 
 Search procedures are initiated in the first and second steps, and will run at most [PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH) times.
 Landing Phases Flow Diagram
@@ -56,9 +56,7 @@ A flow diagram showing the phases can be found in [landing phases flow Diagram](
 
 Precision landing can be used in missions, during the landing phase in _Return mode_, or by entering the _Precision Land_ mode.
 
-<a id="mission"></a>
-
-### Mission Precision Landing
+### Mission Precision Landing {#mission}
 
 Precision landing can be initiated as part of a [mission](../flying/missions.md) using [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) with `param2` set appropriately:
 
@@ -103,10 +101,10 @@ At time of writing is no _convenient_ way to directly invoke precision landing (
 
 ### IR Sensor/Beacon Setup
 
-The IR sensor/landing beacon solution requires an [IR-LOCK Sensor](https://irlock.com/products/ir-lock-sensor-precision-landing-kit) and downward facing [distance sensor](../sensor/rangefinders.md) connected to the flight controller, and an IR beacon as a target (e.g. [IR-LOCK MarkOne](https://irlock.com/collections/markone)).
+The IR sensor/landing beacon solution requires an [IR-LOCK Sensor](https://irlock.com/products/ir-lock-sensor-precision-landing-kit) and downward facing [distance sensor](../sensor/rangefinders.md) connected to the flight controller, and an IR beacon as a target (e.g. [IR-LOCK MarkOne](https://irlock.com/collections/ir-markers)).
 This enables landing with a precision of roughly 10 cm (GPS precision, by contrast, may be as large as several meters).
 
-Install the IR-LOCK sensor by following the [official guide](https://irlock.readme.io/v2.0/docs).
+Install the IR-LOCK sensor by following the [official guide](https://irlock.readme.io/docs/getting-started).
 Ensure that the sensor's x axis is aligned with the vehicle's y axis and the sensor's y axis aligned with the vehicle's -x direction (this is the case if the camera is pitched down 90 degrees from facing forward).
 
 Install a [range/distance sensor](../sensor/rangefinders.md) (the _LidarLite v3_ has been found to work well).

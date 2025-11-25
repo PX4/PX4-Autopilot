@@ -1,7 +1,7 @@
 # Maintainer Role
 
 Dronecode maintainers have technical leadership and responsibility for specific areas of PX4, and for other ecosystem components such as MAVLink, MAVSDK, QGroundControl, and others.
-The maintainer role is defined by the community with help and supervision from the [Dronecode Foundation](https://www.dronecode.org/).
+The maintainer role is defined by the community with help and supervision from the [Dronecode Foundation](https://dronecode.org/).
 
 To find the most up-to-date maintainers list, visit [PX4-Autopilot README](https://github.com/PX4/PX4-Autopilot#maintenance-team).
 
@@ -22,7 +22,7 @@ Once accepted every maintainers will go through the following process:
 1. **Discord** server admin will grant you the `dev team` role, which gives you:
    1. Basic admin privileges on discord.
    2. Access to the `#maintainers` channel.
-2. You will be given access to the GitHub team: "[`Dev Team`](https://github.com/orgs/PX4/teams/dev-team)"  which grants you:
+2. You will be given access to the GitHub team: "[`Dev Team`](https://github.com/orgs/PX4/teams/dev-team)" which grants you:
    1. Permission to merge the PR of any of PX4 workspace repositories after it's approved
    2. Permission to trigger GitHub actions when a new contributor opens a PR.
    3. Permission to edit Issue/PR contents.

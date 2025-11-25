@@ -53,7 +53,7 @@ To run `qconfig` you may need to install additional Qt dependencies.
 
 - STM32H7: 부트로더는 NuttX를 기반으로 하며, PX4 펌웨어에 포함되어 있습니다.
   See [here](https://github.com/PX4/PX4-Autopilot/tree/main/boards/holybro/durandal-v1/nuttx-config/bootloader) for an example.
-- 다른 대상의 경우 https://github.com/PX4/Bootloader가 사용됩니다. See [here](https://github.com/PX4/Bootloader/pull/155/files) for an example how to add a new target.
+- For all other targets, https://github.com/PX4/PX4-Bootloader is used. See [here](https://github.com/PX4/PX4-Bootloader/pull/155/files) for an example how to add a new target.
   Then checkout the [building and flashing instructions](../software_update/stm32_bootloader.md).
 
 ### 펌웨어 포팅 단계

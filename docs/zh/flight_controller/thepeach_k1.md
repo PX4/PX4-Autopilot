@@ -14,21 +14,17 @@ It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4
 ## 产品规格
 
 - Main Processor: STM32F427VIT6
-
   - 32bit ARM Cortex-M4, 168 MHz 256 KB RAM 2 MB Flash memory
 
 - IO Processor: STM32F100C8T6
-
   - ARM Cortex-M3, 32bit ARM Cortex-M3, 24 MHz, 8KB SRAM
 
 - On-board sensors
-
   - 加速度计 / 陀螺仪：ICM-20602
   - Accel/Gyro/Mag: MPU-9250
   - 气压计：MS5611
 
 - 接口
-
   - 8+5 PWM output (8 from IO, 5 from FMU)
   - Spektrum DSM / DSM2 / DSM-X Satellite compatible input
   - Futaba S.BUS compatible input and output
@@ -54,15 +50,15 @@ It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| USART1 | /dev/ttyS0 | IO Processor Debug                       |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  | /dev/ttyS3 | GPS1                                     |
-| USART6 | /dev/ttyS4 | PX4IO                                    |
-| UART7  | /dev/ttyS5 | Debug Console                            |
-| UART8  | /dev/ttyS6 | TELEM4                                   |
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| USART1 | UART       | IO Processor Debug             |
+| USART2 | /dev/ttyS1 | TELEM1 (流控) |
+| USART3 | /dev/ttyS2 | TELEM2 (流控) |
+| UART4  | /dev/ttyS3 | GPS1                           |
+| USART6 | /dev/ttyS4 | PX4IO                          |
+| UART7  | /dev/ttyS5 | 调试控制台                          |
+| UART8  | /dev/ttyS6 | TELEM4                         |
 
 ## 额定电压
 
@@ -98,4 +94,4 @@ make thepeach_k1_default
 
 ## Where to buy
 
-Order from [ThePeach](http://thepeach.shop/)
+Order from [ThePeach](https://thepeach.shop/)

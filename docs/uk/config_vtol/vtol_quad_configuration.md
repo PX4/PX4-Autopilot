@@ -11,7 +11,7 @@ For airframe specific documentation and build instructions see [VTOL Framebuilds
 2. Flash the firmware for your current release or master (PX4 `main` branch build).
 3. In the [Frame setup](../config/airframe.md) section select the appropriate VTOL airframe.
 
-  If your airframe is not listed select the [Generic Standard VTOL](../airframes/airframe_reference.md#vtol_standard_vtol_generic_standard_vtol) frame.
+   If your airframe is not listed select the [Generic Standard VTOL](../airframes/airframe_reference.md#vtol_standard_vtol_generic_standard_vtol) frame.
 
 ### Перемикач режимів польоту / переходу
 
@@ -156,7 +156,3 @@ When transitioning from **multirotor to fixed-wing** (transition switch is on/fi
 When transitioning from **fixed-wing to multirotor** for this type of VTOL the switch is immediate so there isn’t really a backing out option here, unlike for tilt rotor VTOLs.
 Якщо ви хочете, щоб він повернувся у режим фіксованих крил, вам потрібно буде пройти повний перехід.
 Якщо він все ще рухається швидко, це має відбутися швидко.
-
-### Підтримка
-
-If you have any questions regarding your VTOL conversion or configuration please see [discuss.px4.io/c/px4/vtol](https://discuss.px4.io/c/px4/vtol).

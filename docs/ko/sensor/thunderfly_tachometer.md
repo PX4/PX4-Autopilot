@@ -31,7 +31,7 @@ TFRPM01A 전자 장치에는 프로브가 연결 여부를 표시하는 LED가 �
 홀 효과 센서 (자기 적으로 작동)는 먼지, 먼지 및 물이 감지된 로터에 접촉할 수있는 열악한 환경에 이상적입니다.
 
 다양한 홀 효과 센서가 시판중입니다.
-For example, a 55100 Miniature Flange Mounting Proximity Sensor is a good choice.
+For example, a [55100 Miniature Flange Mounting Proximity Sensor](https://m.littelfuse.com/media?resourcetype=datasheets&itemid=6d69d457-770e-46ba-9998-012c5e0aedd7&filename=littelfuse-hall-effect-sensors-55100-datasheet) is a good choice.
 
 ![Example of Hall effect probe](../../assets/hardware/sensors/tfrpm/hall_probe.jpg)
 

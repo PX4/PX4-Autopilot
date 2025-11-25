@@ -119,9 +119,8 @@ Links to setup instructions for specific MAVLink components:
 - [MAVLink Cameras (Camera Protocol v2) > PX4 Configuration](../camera/mavlink_v2_camera.md#px4-configuration)
 - [Gimbal Configuration > MAVLink Gimbal (MNT_MODE_OUT=MAVLINK)](../advanced/gimbal_control.md#mavlink-gimbal-mnt-mode-out-mavlink)
 
-## See Also
+## 另见
 
 - [Serial Port Configuration](../peripherals/serial_configuration.md)
 - [PX4 Ethernet Setup > PX4 MAVLink Serial Port Configuration](../advanced_config/ethernet_setup.md#px4-mavlink-serial-port-configuration)
 - [Serial Port Mapping](../hardware/serial_port_mapping.md)
-

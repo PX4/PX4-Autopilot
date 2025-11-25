@@ -411,6 +411,8 @@ perf_reset(perf_counter_t handle)
 			pce->time_total = 0;
 			pce->time_least = 0;
 			pce->time_most = 0;
+			pce->mean = 0.0f;
+			pce->M2 = 0.0f;
 			break;
 		}
 
@@ -422,6 +424,8 @@ perf_reset(perf_counter_t handle)
 			pci->time_last = 0;
 			pci->time_least = 0;
 			pci->time_most = 0;
+			pci->mean = 0.0f;
+			pci->M2 = 0.0f;
 			break;
 		}
 	}

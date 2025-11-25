@@ -1,11 +1,11 @@
 # 系统启动
 
 PX4 系统的启动由 shell 脚本文件控制。
-On NuttX they reside in the [ROMFS/px4fmu_common/init.d](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d) folder - some of these are also used on Posix (Linux/MacOS).
+On NuttX they reside in the [ROMFS/px4fmu_common/init.d](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d) folder - some of these are also used on Posix (Linux/macOS).
 The scripts that are only used on Posix are located in [ROMFS/px4fmu_common/init.d-posix](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d-posix).
 
 All files starting with a number and underscore (e.g. `10000_airplane`) are predefined airframe configurations.
-They are exported at build-time into an `airframes.xml` file which is parsed by [QGroundControl](http://qgroundcontrol.com) for the airframe selection UI.
+They are exported at build-time into an `airframes.xml` file which is parsed by [QGroundControl](https://qgroundcontrol.com) for the airframe selection UI.
 Adding a new configuration is covered [here](../dev_airframes/adding_a_new_frame.md).
 
 其它的文件则是系统常规启动逻辑的一部分。
@@ -13,9 +13,9 @@ The first executed file is the [init.d/rcS](https://github.com/PX4/PX4-Autopilot
 
 根据 PX4 运行的操作系统将本文后续内容分成了如下各小节。
 
-## Posix (Linux/MacOS)
+## POSIX (Linux/macOS)
 
-在 Posix 操作系统上，系统的 shell 将会作为脚本文件的解释器（例如， 在 Ubuntu 中 /bin/sh 与 Dash 建立了符号链接）。
+On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being symlinked to dash on Ubuntu).
 为了使 PX4 可以在 Posix 中正常运行，需要做到以下几点：
 
 - PX4 的各个模块需要看起来像系统的单个可执行文件。
@@ -33,7 +33,7 @@ The first executed file is the [init.d/rcS](https://github.com/PX4/PX4-Autopilot
 
 - Shell 将每个模块作为一个新的 (客户端) 进程进行启动，
   每个客户端进程都需要与 PX4 主实例（服务器）进行通讯，实际的模块以线程的形式运行。
-  This is done through a [UNIX socket](http://man7.org/linux/man-pages/man7/unix.7.html).
+  This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   服务器侦听一个 socket，然后客户端将连接该 socket 并通过它发送指令。
   服务器收到客户端的指令后将指令运行的输出结果及返回代码重新发送给客户端。
 
@@ -59,7 +59,7 @@ cd <PX4-Autopilot>/build/px4_sitl_default/bin
 ### Dynamic Modules
 
 通常，所有模块都被编入一个 PX4 可执行程序。
-However, on Posix, there's the option of compiling a module into a separate file, which can be loaded into PX4 using the `dyn` command.
+However, on POSIX, there's the option of compiling a module into a separate file, which can be loaded into PX4 using the `dyn` command.
 
 ```sh
 dyn ./test.px4mod
@@ -95,6 +95,8 @@ The whole boot can be replaced by creating a file `/etc/rc.txt` on the microSD c
 The best way to customize the system startup is to introduce a [new frame configuration](../dev_airframes/adding_a_new_frame.md).
 机架配置文件可以在固件中，也可以在SD卡上。
 
+#### Dynamic Customization
+
 If you only need to "tweak" the existing configuration, such as starting one more application or setting the value of a few parameters, you can specify these by creating two files in the `/etc/` directory of the SD Card:
 
 - [/etc/config.txt](#customizing-the-configuration-config-txt): modify parameter values
@@ -111,7 +113,7 @@ The system boot files are UNIX FILES which require UNIX LINE ENDINGS.
 These files are referenced in PX4 code as `/fs/microsd/etc/config.txt` and `/fs/microsd/etc/extras.txt`, where the root folder of the microsd card is identified by the path `/fs/microsd`.
 :::
 
-#### 自定义配置（config.txt）
+##### 自定义配置（config.txt）
 
 The `config.txt` file can be used to modify parameters.
 It is loaded after the main system has been configured and _before_ it is booted.
@@ -123,7 +125,7 @@ param set-default PWM_MAIN_DIS3 1000
 param set-default PWM_MAIN_MIN3 1120
 ```
 
-#### 启动附加应用程序 (extras.txt)
+##### 启动附加应用程序 (extras.txt)
 
 The `extras.txt` can be used to start additional applications after the main system boot.
 通常，额外启动的将是有效载荷控制器或类似的可选自定义组件。
@@ -149,4 +151,38 @@ Calling an unknown command in system boot files may result in boot failure.
   set -e
 
   mandatory_app start     # Will abort boot if mandatory_app is unknown or fails
+  ```
+
+#### Additional Init-File Customization
+
+In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization, you can add a script that will be compiled into the binary for a particular `make` target build variant.
+
+:::warning
+In almost all cases, you should use a frame configuration.
+This method should only be used for edge-cases such as customizing `cannode` based boards.
+:::
+
+步骤如下：
+
+- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup.
+  例如：
+
+  ```sh
+  # File: boards/<vendor>/<board>/init/rc.additional
+  param set-default <param> <value>
+  ```
+
+- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script.
+  例如：
+
+  ```sh
+  # File: boards/<vendor>/<board>/var.px4board
+  CONFIG_BOARD_ADDITIONAL_INIT="rc.additional"
+  ```
+
+- Compile the firmware with your new variant by appending the variant name to the compile target.
+  例如：
+
+  ```sh
+  make <target>_var
   ```

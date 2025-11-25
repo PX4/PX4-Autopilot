@@ -30,23 +30,23 @@ Follow the instructions below to install jMAVSim on macOS.
 To setup the environment for [jMAVSim](../sim_jmavsim/index.md) simulation:
 
 1. Install a recent version of Java (e.g. Java 15).
-  You can download [Java 15 (or later) from Oracle](https://www.oracle.com/java/technologies/javase-downloads.html) or use [Eclipse Temurin](https://adoptium.net):
+   You can download [Java 15 (or later) from Oracle](https://www.oracle.com/java/technologies/downloads/?er=221886) or use [Eclipse Temurin](https://adoptium.net):
 
-  ```sh
-  brew install --cask temurin
-  ```
+   ```sh
+   brew install --cask temurin
+   ```
 
 2. Install jMAVSim:
 
-  ```sh
-  brew install px4-sim-jmavsim
-  ```
+   ```sh
+   brew install px4-sim-jmavsim
+   ```
 
-  :::warning
-  PX4 v1.11 and beyond require at least JDK 15 for jMAVSim simulation.
+   :::warning
+   PX4 v1.11 and beyond require at least JDK 15 for jMAVSim simulation.
 
-  For earlier versions, macOS users might see the error `Exception in thread "main" java.lang.UnsupportedClassVersionError:`.
-  You can find the fix in the [jMAVSim with SITL > Troubleshooting](../sim_jmavsim/index.md#troubleshooting)).
+   For earlier versions, macOS users might see the error `Exception in thread "main" java.lang.UnsupportedClassVersionError:`.
+   You can find the fix in the [jMAVSim with SITL > Troubleshooting](../sim_jmavsim/index.md#troubleshooting)).
 
 :::
 
@@ -136,7 +136,7 @@ To run at double real-time:
 PX4_SIM_SPEED_FACTOR=2 make px4_sitl_default jmavsim
 ```
 
-Запустити в половину реального часу:
+To run at half real-time:
 
 ```sh
 PX4_SIM_SPEED_FACTOR=0.5  make px4_sitl_default jmavsim
@@ -194,18 +194,18 @@ Lockstep makes it possible to [change the simulation speed](#change-simulation-s
 
 #### Lockstep Sequence
 
-Послідовність кроків для lockstep наступна:
+The sequence of steps for lockstep are:
 
 1. The simulation sends a sensor message [HIL_SENSOR](https://mavlink.io/en/messages/common.html#HIL_SENSOR) including a timestamp `time_usec` to update the sensor state and time of PX4.
 2. PX4 receives this and does one iteration of state estimation, controls, etc. and eventually sends an actuator message [HIL_ACTUATOR_CONTROLS](https://mavlink.io/en/messages/common.html#HIL_ACTUATOR_CONTROLS).
-3. Симуляція чекає, поки не отримає повідомлення від приводу/двигуна, потім моделює фізику і обчислює наступне повідомлення від датчика, яке знову надсилається до PX4.
+3. The simulation waits until it receives the actuator/motor message, then simulates the physics and calculates the next sensor message to send to PX4 again.
 
-Система починається з "вільного ходу", під час якого симуляція надсилає повідомлення від датчиків, зокрема про час, і, таким чином, запускає PX4, доки він не ініціалізується і не надішле відповідне повідомлення від приводу.
+The system starts with a "freewheeling" period where the simulation sends sensor messages including time and therefore runs PX4 until it has initialized and responds with an actuator message.
 
 #### Disabling Lockstep
 
-Lockstep симуляцію можна вимкнути, якщо, наприклад, SITL потрібно використовувати з тренажером, який не підтримує цю функцію.
-У цьому випадку симулятор і PX4 використовують системний час хоста і не чекають один на одного.
+The lockstep simulation can be disabled if, for example, SITL is to be used with a simulator that does not support this feature.
+In this case the simulator and PX4 use the host system time and do not wait on each other.
 
 To disable lockstep in:
 
@@ -314,7 +314,7 @@ sudo gedit /etc/java-8-openjdk/accessibility.properties
 ```
 
 For more info, check [this GitHub issue](https://github.com/PX4/PX4-Autopilot/issues/9557).
-A contributor found the fix in [askubuntu.com](https://askubuntu.com/questions/695560).
+A contributor found the fix in [askubuntu.com](https://askubuntu.com/questions/695560/assistive-technology-not-found-awterror).
 
 ### Виняток у потоці "main" java.lang.UnsupportedClassVersionError
 
