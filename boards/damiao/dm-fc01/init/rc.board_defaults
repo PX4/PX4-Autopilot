@@ -22,3 +22,7 @@ param set-default MAV_TYPE 2
 param set-default CA_AIRFRAME 0
 param set-default CA_ROTOR_COUNT 4
 param set-default CBRK_SUPPLY_CHK 894281
+
+param set-default UAVCAN_ENABLE 1
+ifup can0
+

@@ -252,7 +252,7 @@
 
 /* FDCAN 1 clock source */
 
-// #define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE   /* FDCAN 1 2 clock source */
+#define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE   /* FDCAN 1 2 clock source */
 
 #define STM32_FDCANCLK               STM32_HSE_FREQUENCY
 
@@ -437,6 +437,12 @@
 #define GPIO_I2C4_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN13)
 
 
+/* CAN */
+
+#define GPIO_CAN1_RX  GPIO_CAN1_RX_3    /* PD0 */
+#define GPIO_CAN1_TX  GPIO_CAN1_TX_3    /* PD1 */
+
+
 /* SDMMC1
  *
  *      SDMMC1_D0                          PC8
@@ -447,12 +453,12 @@
  *      SDMMC1_CMD                         PD2
  */
 
-#define GPIO_SDMMC1_D0   GPIO_SDMMC1_D0    /* PC8  */
-#define GPIO_SDMMC1_D1   GPIO_SDMMC1_D1    /* PC9  */
-#define GPIO_SDMMC1_D2   GPIO_SDMMC1_D2    /* PC10 */
-#define GPIO_SDMMC1_D3   GPIO_SDMMC1_D3    /* PC11 */
-#define GPIO_SDMMC1_CK   GPIO_SDMMC1_CK    /* PC12 */
-#define GPIO_SDMMC1_CMD  GPIO_SDMMC1_CMD   /* PD2  */
+// #define GPIO_SDMMC1_D0   GPIO_SDMMC1_D0    /* PC8  */
+// #define GPIO_SDMMC1_D1   GPIO_SDMMC1_D1    /* PC9  */
+// #define GPIO_SDMMC1_D2   GPIO_SDMMC1_D2    /* PC10 */
+// #define GPIO_SDMMC1_D3   GPIO_SDMMC1_D3    /* PC11 */
+// #define GPIO_SDMMC1_CK   GPIO_SDMMC1_CK    /* PC12 */
+// #define GPIO_SDMMC1_CMD  GPIO_SDMMC1_CMD   /* PD2  */
 
 
 /* USB
