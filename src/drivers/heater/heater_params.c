@@ -38,7 +38,14 @@
  * @author Mark Sauder <mcsauder@gmail.com>
  * @author Alex Klimaj <alexklimaj@gmail.com>
  * @author Jake Dahl <dahl.jakejacob@gmail.com>
+ * @author CaFeZn <1837781998@qq.com>
  */
+
+/****************************************************************************
+ *  多 IMU 独立加热参数组（PX4 v1.16+ 自定义扩展）
+ *  改造后支持最多 2 颗 IMU 独立加热（BMI088 + ICM45686）
+ *  每颗 IMU 使用独立的 device_id、目标温度、PID 参数和 PWM 通道
+ ****************************************************************************/
 
 /**
  * Target IMU device ID to regulate temperature.
@@ -46,7 +53,8 @@
  * @category system
  * @group Sensors
  */
-PARAM_DEFINE_INT32(SENS_TEMP_ID, 0);
+PARAM_DEFINE_INT32(IMU_1_ID, 2818058);        // BMI088 标准 device_id
+PARAM_DEFINE_INT32(IMU_2_ID, 3014666);        // ICM45686 标准 device_id
 
 /**
  * Target IMU temperature.
@@ -58,7 +66,8 @@ PARAM_DEFINE_INT32(SENS_TEMP_ID, 0);
  * @max 85.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP, 55.0f);
+PARAM_DEFINE_FLOAT(IMU_1_TEMP, 48.0f);        // BMI088 推荐温度
+PARAM_DEFINE_FLOAT(IMU_2_TEMP, 42.0f);        // ICM45686 推荐温度（不能太高）
 
 /**
  * IMU heater controller feedforward value.
@@ -70,7 +79,8 @@ PARAM_DEFINE_FLOAT(SENS_IMU_TEMP, 55.0f);
  * @max 1.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_FF, 0.05f);
+PARAM_DEFINE_FLOAT(IMU_1_TEMP_FF, 0.05f);
+PARAM_DEFINE_FLOAT(IMU_2_TEMP_FF, 0.05f);
 
 /**
  * IMU heater controller integrator gain value.
@@ -82,7 +92,8 @@ PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_FF, 0.05f);
  * @max 1.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_I, 0.025f);
+PARAM_DEFINE_FLOAT(IMU_1_TEMP_I, 0.025f);
+PARAM_DEFINE_FLOAT(IMU_2_TEMP_I, 0.025f);
 
 /**
  * IMU heater controller proportional gain value.
@@ -94,4 +105,5 @@ PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_I, 0.025f);
  * @max 2.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_P, 1.0f);
+PARAM_DEFINE_FLOAT(IMU_1_TEMP_P, 1.0f);
+PARAM_DEFINE_FLOAT(IMU_2_TEMP_P, 1.0f);

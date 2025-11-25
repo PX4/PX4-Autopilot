@@ -129,4 +129,7 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
+        "[cpp]": {
+                "editor.defaultFormatter": "ms-vscode.cpptools"
+        },
 }

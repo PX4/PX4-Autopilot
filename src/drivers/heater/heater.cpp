@@ -39,6 +39,7 @@
  * @author Jake Dahl <dahl.jakejacob@gmail.com>
  * @author Mohammed Kabir <mhkabir@mit.edu>
  * @author Jacob Crabill <jacob@flyvoly.com>
+ * @author CaFeZn <1837781998@qq.com>
  */
 
 #include "heater.h"
@@ -60,10 +61,42 @@
 #  define HEATER_GPIO
 #endif
 
-Heater::Heater() :
+// 多 IMU 加热引脚（必须在 board_config.h 中定义）
+#ifndef GPIO_HEATER1
+#  error "Please define GPIO_HEATER1 in board_config.h"
+#endif
+#ifndef GPIO_HEATER2
+#  error "Please define GPIO_HEATER2 in board_config.h"
+#endif
+
+#ifdef HEATER_GPIO
+#    define HEATER_OUTPUT_EN_1(state) px4_arch_gpiowrite(GPIO_HEATER1, state)
+#    define HEATER_OUTPUT_EN_2(state) px4_arch_gpiowrite(GPIO_HEATER2, state)
+#    define HEATER_OUTPUT_EN(state) \
+       do { if (_instance == 1) HEATER_OUTPUT_EN_1(state); \
+            else if (_instance == 2) HEATER_OUTPUT_EN_2(state); } while(0)
+#endif
+
+Heater::Heater(int instance) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
+	_heater_status_pub(ORB_ID(heater_status)),
+	_instance(instance)
 {
+	// 根据实例选择对应引脚并初始化
+	if (_instance == 1) {
+		px4_arch_configgpio(GPIO_HEATER1);
+		px4_arch_gpiowrite(GPIO_HEATER1, 0);  // 初始关
+	} else if (_instance == 2) {
+		px4_arch_configgpio(GPIO_HEATER2);
+		px4_arch_gpiowrite(GPIO_HEATER2, 0);
+	}
+	_param_sens_imu_temp_ff = (_instance == 1) ? param_find("IMU_1_TEMP_FF") : param_find("IMU_2_TEMP_FF");
+	_param_sens_imu_temp_i = (_instance == 1) ? param_find("IMU_1_I") : param_find("IMU_2_I");
+	_param_sens_imu_temp_p = (_instance == 1) ? param_find("IMU_1_P") : param_find("IMU_2_P");
+	_param_sens_imu_temp = (_instance == 1) ? param_find("IMU_1_TEMP") : param_find("IMU_1_TEMP");
+	_param_sens_temp_id =  (_instance == 1) ? param_find("IMU_1_ID") : param_find("IMU_2_ID");
+
 	_heater_status_pub.advertise();
 }
 
@@ -94,7 +127,13 @@ void Heater::disable_heater()
 #endif
 
 #ifdef HEATER_GPIO
-	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
+	if (_instance == 1) {
+		px4_arch_configgpio(GPIO_HEATER1);
+		px4_arch_gpiowrite(GPIO_HEATER1, 0);
+	} else if (_instance == 2) {
+		px4_arch_configgpio(GPIO_HEATER2);
+		px4_arch_gpiowrite(GPIO_HEATER2, 0);
+	}
 #endif
 }
 
@@ -113,7 +152,14 @@ void Heater::initialize_heater_io()
 #endif
 
 #ifdef HEATER_GPIO
-	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
+	// 多 IMU：根据实例初始化对应引脚
+	if (_instance == 1) {
+		px4_arch_configgpio(GPIO_HEATER1);
+		px4_arch_gpiowrite(GPIO_HEATER1, 0);
+	} else if (_instance == 2) {
+		px4_arch_configgpio(GPIO_HEATER2);
+		px4_arch_gpiowrite(GPIO_HEATER2, 0);
+	}
 #endif
 }
 
@@ -156,8 +202,12 @@ bool Heater::initialize_topics()
 		    sensor_accel_sub.get().device_id != 0 &&
 		    PX4_ISFINITE(sensor_accel_sub.get().temperature)) {
 
-			// If the correct ID is found, exit the for-loop with _sensor_accel_sub pointing to the correct instance.
-			if (sensor_accel_sub.get().device_id == (uint32_t)_param_sens_temp_id.get()) {
+			// 根据实例选择对应 IMU 的 device_id
+			param_t id_param = (_instance == 1) ? param_find("IMU_1_ID") : param_find("IMU_2_ID");
+			int32_t target_id = 0;
+			param_get(id_param, &target_id);
+
+			if (sensor_accel_sub.get().device_id == (uint32_t)target_id) {
 				_sensor_accel_sub.ChangeInstance(i);
 				_sensor_device_id = sensor_accel_sub.get().device_id;
 				initialize_heater_io();
@@ -207,17 +257,26 @@ void Heater::Run()
 
 		// Update the current IMU sensor temperature if valid.
 		if (PX4_ISFINITE(sensor_accel.temperature)) {
-			temperature_delta = _param_sens_imu_temp.get() - sensor_accel.temperature;
+			// 根据实例读取对应目标温度
+			param_t temp_param = (_instance == 1) ? param_find("IMU_1_TEMP") : param_find("IMU_2_TEMP");
+			float target_temp = 45.0f;
+			param_get(temp_param, &target_temp);
+			temperature_delta = target_temp - sensor_accel.temperature;
 			_temperature_last = sensor_accel.temperature;
 		}
 
-		_proportional_value = temperature_delta * _param_sens_imu_temp_p.get();
-		_integrator_value += temperature_delta * _param_sens_imu_temp_i.get();
+		param_t p_param = (_instance == 1) ? param_find("IMU_1_TEMP_P") : param_find("IMU_2_TEMP_P");
+		param_t i_param = (_instance == 1) ? param_find("IMU_1_TEMP_I") : param_find("IMU_2_TEMP_I");
+		param_t ff_param = (_instance == 1) ? param_find("IMU_1_TEMP_FF") : param_find("IMU_2_TEMP_FF");
+		float p_gain = 1.0f, i_gain = 0.025f, ff_val = 0.05f;
+		param_get(p_param, &p_gain);
+		param_get(i_param, &i_gain);
+		param_get(ff_param, &ff_val);
 
 		_integrator_value = math::constrain(_integrator_value, -0.25f, 0.25f);
 
-		_controller_time_on_usec = static_cast<int>((_param_sens_imu_temp_ff.get() + _proportional_value +
-					   _integrator_value) * static_cast<float>(CONTROLLER_PERIOD_DEFAULT));
+		_controller_time_on_usec = static_cast<int>((ff_val + _proportional_value +
+ 					   _integrator_value) * static_cast<float>(CONTROLLER_PERIOD_DEFAULT));
 
 		_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, CONTROLLER_PERIOD_DEFAULT);
 
@@ -250,13 +309,13 @@ void Heater::publish_status()
 	status.device_id               = _sensor_device_id;
 	status.heater_on               = _heater_on;
 	status.temperature_sensor      = _temperature_last;
-	status.temperature_target      = _param_sens_imu_temp.get();
+	status.temperature_target      = (_instance == 1) ? param_find("HTR_1_TEMP") : param_find("HTR_2_TEMP");
 	status.temperature_target_met  = _temperature_target_met;
 	status.controller_period_usec  = CONTROLLER_PERIOD_DEFAULT;
 	status.controller_time_on_usec = _controller_time_on_usec;
 	status.proportional_value      = _proportional_value;
 	status.integrator_value        = _integrator_value;
-	status.feed_forward_value      = _param_sens_imu_temp_ff.get();
+	status.feed_forward_value      = _param_sens_imu_temp_ff;
 
 #ifdef HEATER_PX4IO
 	status.mode = heater_status_s::MODE_PX4IO;
@@ -271,12 +330,6 @@ void Heater::publish_status()
 
 int Heater::start()
 {
-	// Exit the driver if the sensor ID does not match the desired sensor.
-	if (_param_sens_temp_id.get() == 0) {
-		PX4_ERR("Valid SENS_TEMP_ID required");
-		request_stop();
-		return PX4_ERROR;
-	}
 
 	update_params(true);
 	ScheduleNow();
@@ -285,7 +338,12 @@ int Heater::start()
 
 int Heater::task_spawn(int argc, char *argv[])
 {
-	Heater *heater = new Heater();
+	int instance = 1;
+	if (argc >= 3 && strcmp(argv[1], "-i") == 0) {
+		instance = atoi(argv[2]);
+		if (instance != 1 && instance != 2) instance = 1;
+	}
+	Heater *heater = new Heater(instance);
 
 	if (!heater) {
 		PX4_ERR("driver allocation failed");

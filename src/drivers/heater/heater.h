@@ -63,7 +63,7 @@ using namespace time_literals;
 class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	Heater();
+	explicit Heater(int instance = 1);
 
 	virtual ~Heater();
 
@@ -149,6 +149,8 @@ private:
 
 	uORB::Publication<heater_status_s> _heater_status_pub{ORB_ID(heater_status)};
 
+	int _instance = 1;  	// 1 或 2，表示是第几个 heater 实例
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)};
@@ -157,11 +159,9 @@ private:
 
 	float _temperature_last{NAN};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SENS_IMU_TEMP_FF>) _param_sens_imu_temp_ff,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _param_sens_imu_temp_i,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _param_sens_imu_temp_p,
-		(ParamFloat<px4::params::SENS_IMU_TEMP>)    _param_sens_imu_temp,
-		(ParamInt<px4::params::SENS_TEMP_ID>)       _param_sens_temp_id
-	)
+	float _param_sens_imu_temp_ff;
+	float _param_sens_imu_temp_i;
+	float _param_sens_imu_temp_p;
+	float _param_sens_imu_temp;
+	int _param_sens_temp_id;
 };

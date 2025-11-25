@@ -443,6 +443,8 @@
 #define GPIO_CAN1_TX  GPIO_CAN1_TX_3    /* PD1 */
 
 
+
+
 /* SDMMC1
  *
  *      SDMMC1_D0                          PC8
