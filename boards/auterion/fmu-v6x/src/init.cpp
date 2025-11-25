@@ -288,6 +288,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #  endif /* CONFIG_MMCSD */
 
+	skynode_system_initialize();
+
 #endif /* !defined(BOOTLOADER) */
 
 	return OK;
