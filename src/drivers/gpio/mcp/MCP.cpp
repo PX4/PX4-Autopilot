@@ -31,6 +31,9 @@
  *
  ****************************************************************************/
 #include "MCP.hpp"
+#include "MCP23009.hpp"
+#include "MCP23017.hpp"
+
 
 MCP230XX::MCP230XX(const I2CSPIDriverConfig &config) :
 	I2C(config),
@@ -375,4 +378,60 @@ void MCP230XX::print_status()
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_comms_errors);
+}
+
+void MCP230XX::print_usage()
+{
+	PRINT_MODULE_USAGE_NAME("mcp230xx", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x27);
+	PRINT_MODULE_USAGE_PARAM_INT('D', 0, 0, 65535, "Direction (1=Input, 0=Output)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('O', 0, 0, 65535, "Output", true);
+	PRINT_MODULE_USAGE_PARAM_INT('P', 0, 0, 65535, "Pullups", true);
+	PRINT_MODULE_USAGE_PARAM_INT('U', 0, 0, 1000, "Update Interval [ms]", true);
+	PRINT_MODULE_USAGE_PARAM_INT('M', 0, 0, 255, "First minor number", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
+
+I2CSPIDriverBase *MCP230XX::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
+{
+	auto *init = (const init_config_t *)config.custom_data;
+	MCP230XX *instance = nullptr;
+
+	switch (config.devid_driver_index) {
+	case DRV_GPIO_DEVTYPE_MCP23009:
+		instance = new MCP23009(config);
+		break;
+
+	case DRV_GPIO_DEVTYPE_MCP23017:
+		instance = new MCP23017(config);
+		break;
+
+	default:
+		instance = nullptr;
+		break;
+	}
+
+	if (!instance) {
+		PX4_ERR("alloc failed");
+		return nullptr;
+	}
+
+	if (OK != instance->init()) {
+		delete instance;
+		return nullptr;
+	}
+
+	instance->_iodir = init->direction;
+	instance->_olat = init->state;
+	instance->_gppu = init->pullup;
+
+	instance->mcp_config.bus = init->i2c_bus;
+	instance->mcp_config.i2c_addr = init->i2c_addr;
+	instance->mcp_config.device_type = init->device_type;
+	instance->mcp_config.first_minor = init->first_minor;
+	instance->mcp_config.interval = init->interval;
+
+	return instance;
 }

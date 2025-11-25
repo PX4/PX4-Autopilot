@@ -48,6 +48,9 @@
 #include <px4_platform/gpio/mcp23017.hpp>
 #include <px4_platform/gpio/mcp.hpp>
 
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/getopt.h>
+
 
 using namespace time_literals;
 
@@ -71,6 +74,18 @@ struct MCP230XX_config_t {
   uint16_t interval;
   mcp_gpio_dev_s _gpio_handle[16];
 
+};
+
+struct init_config_t {
+	uint16_t device_type;
+
+	uint16_t direction = 0xFFFF; // READ ON ALL PINS
+	uint16_t state = 0x0000;
+	uint16_t pullup = 0x0000;
+	uint16_t interval = 1;
+	int first_minor = 0;
+	uint8_t i2c_addr = 0;
+	uint8_t i2c_bus = 0;
 };
 
 

@@ -31,16 +31,27 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__mcp
-	MAIN mcp230xx
+	MODULE drivers__mcp23009
+	MAIN mcp23009
 	COMPILE_FLAGS
 	SRCS
 		MCP.hpp
 		MCP.cpp
-		MCP_main.cpp
-		MCP23017.hpp
 		MCP23009.hpp
-		MCP23017.cpp
 		MCP23009.cpp
+		MCP23009_main.cpp
+	DEPENDS
+	)
+
+px4_add_module(
+	MODULE drivers__mcp23017
+	MAIN mcp23017
+	COMPILE_FLAGS
+	SRCS
+		MCP.hpp
+		MCP.cpp
+		MCP23017.hpp
+		MCP23017.cpp
+		MCP23017_main.cpp
 	DEPENDS
 	)
