@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 
 # By disabling INA modules, we use the
-# i2c_launcher instead.
+# auterion launcher instead.
 param set-default SENS_EN_INA226 0
 param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA238 0
