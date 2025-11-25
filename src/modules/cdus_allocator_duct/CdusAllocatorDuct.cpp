@@ -137,7 +137,7 @@ void CdusAllocatorDuct::Run()
 
 	// Build desired vector
 	Vector<float, 4> desired{};
-	desired(0) = -torque_sp.xyz[0];
+	desired(0) = torque_sp.xyz[0];
 	desired(1) = torque_sp.xyz[1];
 	desired(2) = -torque_sp.xyz[2];
 	desired(3) = -thrust_sp.xyz[2];
@@ -149,12 +149,12 @@ void CdusAllocatorDuct::Run()
 		desired(3) = 1.0f * _manual_control_input.throttle;
 	}
 
-	PX4_INFO("Torques: %.3f %.3f %.3f %.3f",
-         (double)desired(0),
-         (double)desired(1),
-		 (double)desired(2),
-		 (double)desired(3)
-	);
+	// PX4_INFO("Torques: %.3f %.3f %.3f %.3f",
+    //      (double)desired(0),
+    //      (double)desired(1),
+	// 	 (double)desired(2),
+	// 	 (double)desired(3)
+	// );
 
 	// Generate delta PWM for each actuator and normalize
 	Vector4f d_PWM = _B_pinv * desired;
@@ -168,24 +168,24 @@ void CdusAllocatorDuct::Run()
 		const float r = d_PWM(2) / d_PWM(3);
 
 		if(std::fabs(d_s1) > d_s1_lim && std::fabs(d_s2) < d_s2_lim) {
-			d_PWM(3) = d_s1_lim / r;
+			d_PWM(3) = (d_s1_lim / r) * (d_s2 / std::fabs(d_s2));
 			d_PWM(2) = d_s1_lim * (d_s1 / std::fabs(d_s1));
 			// PX4_INFO("1");
 		} 
 
 		else if(std::fabs(d_s2) > d_s2_lim && std::fabs(d_s1) < d_s1_lim) {
-			d_PWM(2) = d_s2_lim * r;
+			d_PWM(2) = (d_s2_lim * r) * (d_s1 / std::fabs(d_s1));
 			d_PWM(3) = d_s2_lim * (d_s2 / std::fabs(d_s2));
 			// PX4_INFO("2");
 		}
 
 		else if(std::fabs(d_s2) > d_s2_lim && std::fabs(d_s1) > d_s1_lim) {
 			if(std::fabs(r) >= std::fabs(d_s1_lim/d_s2_lim)) {
-				d_PWM(3) = d_s1_lim / r;
+				d_PWM(3) = (d_s1_lim / r) * (d_s2 / std::fabs(d_s2));
 				d_PWM(2) = d_s1_lim * (d_s1 / std::fabs(d_s1));
 				// PX4_INFO("3");
 			} else {
-				d_PWM(2) = d_s2_lim * r;
+				d_PWM(2) = (d_s2_lim * r) * (d_s1 / std::fabs(d_s1));
 				d_PWM(3) = d_s2_lim * (d_s2 / std::fabs(d_s2));
 				// PX4_INFO("4");
 			}
@@ -213,12 +213,12 @@ void CdusAllocatorDuct::Run()
 	const float m_max = 2000.f;
 	const float m_min = 1000.f;
 
-	PX4_INFO("Actuators: %.3f %.3f %.3f %.3f",
-         (double)u(0),
-         (double)u(1),
-		 (double)u(2),
-		 (double)u(3)
-	);
+	// PX4_INFO("Actuators: %.3f %.3f %.3f %.3f",
+    //      (double)u(0),
+    //      (double)u(1),
+	// 	 (double)u(2),
+	// 	 (double)u(3)
+	// );
 
 	// // clamp before normalization
 	// if(u(2) > s_max) {
