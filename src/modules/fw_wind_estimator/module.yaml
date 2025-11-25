@@ -27,7 +27,6 @@ parameters:
         short: Vehicle Aerodynamic coefficient (side slip)
       type: float
       default: 1.0
-      unit: ''
       min: 0.0
       max: 4
       decimal: 3
@@ -37,7 +36,6 @@ parameters:
         short: Vehicle Aerodynamic coefficient (zero angle of attack)
       type: float
       default: 0.15188
-      unit: ''
       min: 0.0
       max: 4
       decimal: 3
@@ -47,7 +45,6 @@ parameters:
         short: Vehicle Aerodynamic coefficient (angle of attack)
       type: float
       default: 5.015
-      unit: ''
       min: 0.0
       max: 10
       decimal: 3
