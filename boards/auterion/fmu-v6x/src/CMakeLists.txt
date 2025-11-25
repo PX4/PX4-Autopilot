@@ -57,6 +57,7 @@ else()
 		sdio.c
 		spi.cpp
 		timer_config.cpp
+		system.cpp
 	)
 	add_dependencies(drivers_board arch_board_hw_info)
 
