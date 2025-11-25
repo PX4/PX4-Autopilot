@@ -175,3 +175,19 @@ Key features:
 You can use the online version of the tool for small log files (< 32Mb), or run it locally in order to analyze longer flights.
 
 ![Data Comets](../../assets/flight_log_analysis/data_comets/data_comets_overview.gif)
+
+### Foxglove
+
+[Foxglove](https://foxglove.dev/) is a purpose-built robotics observation platform that works natively with ULog. It allows you to replay your flights and scrub through the timeline to find data of interest.
+
+Key features:
+
+- Native support for ULog files - open files by dragging and dropping or using the file dialog
+- Multiple visualization panels, including Raw Messages, Plot, 3D, and Map panels
+- [PX4 Converter extension](https://github.com/foxglove/px4_converter) that translates selected uORB messages and creates Foxglove Schemas for enhanced visualizations
+- Save and share custom layouts with panels and their settings
+- Cross-platform desktop application (Windows, macOS, Linux)
+
+To learn more about the integration, check out [Foxglove PX4 Docs](https://docs.foxglove.dev/docs/getting-started/frameworks/px4)
+
+![Foxglove](../../assets/flight_log_analysis/foxglove/foxglove_px4.png)
