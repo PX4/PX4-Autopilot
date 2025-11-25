@@ -33,6 +33,8 @@
 
 #include "FixedwingWindEstimator.hpp"
 
+#include <lib/atmosphere/atmosphere.h>
+
 using namespace time_literals;
 using namespace matrix;
 
@@ -40,7 +42,7 @@ using math::constrain;
 using math::interpolate;
 using math::radians;
 
-FixedwingWindEstimator::FixedwingWindEstimator(bool vtol) :
+FixedwingWindEstimator::FixedwingWindEstimator() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
@@ -69,10 +71,6 @@ FixedwingWindEstimator::init()
 int
 FixedwingWindEstimator::parameters_update()
 {
-
-	_mass = _param_fw_w_mass.get();
-	_stall_airspeed = _param_fw_airspd_stall.get();
-
 	return PX4_OK;
 }
 
@@ -102,9 +100,11 @@ void FixedwingWindEstimator::airspeed_poll()
 void
 FixedwingWindEstimator::vehicle_attitude_poll()
 {
-	if (_vehicle_attitude_sub.update(&_vehicle_attitude)) {
+	vehicle_attitude_s vehicle_attitude{};
+
+	if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
 		// get rotation between NED frames
-		_attitude = Quatf(_vehicle_attitude.q);
+		_attitude = Quatf(vehicle_attitude.q);
 	}
 }
 
@@ -129,20 +129,21 @@ FixedwingWindEstimator::vehicle_acceleration_poll()
 	}
 }
 
-matrix::Vector3f FixedwingWindEstimator::compute_wind_estimate()
+matrix::Vector3f FixedwingWindEstimator::predictBodyAirVelocity()
 {
 	// Get Aerodynamic coefficients
 	const float wing_area = _param_fw_w_area.get();
 	const float C_B1 = _param_fw_w_c_b1.get();
 	const float C_A0 = _param_fw_w_c_a0.get();
 	const float C_A1 = _param_fw_w_c_a1.get();
+	const float mass = _param_fw_w_mass.get();
+	const float stall_airspeed = _param_fw_airspd_stall.get();
 
 	// compute expected AoA from g-forces:
-	matrix::Vector3f body_force = _mass * (_acceleration + _attitude.rotateVectorInverse(matrix::Vector3f(0.f, 0.f, CONSTANTS_ONE_G)));
+	Vector3f body_force = mass * (_acceleration + _attitude.rotateVectorInverse(Vector3f(0.f, 0.f, CONSTANTS_ONE_G)));
 
-	float _rho{1.225};
-	const float speed = fmaxf(_calibrated_airspeed, _stall_airspeed);
-	const float dynamic_force = 0.5f * _rho * powf(speed, 2) * wing_area;
+	const float speed = fmaxf(_calibrated_airspeed, stall_airspeed);
+	const float dynamic_force = 0.5f * atmosphere::kAirDensitySeaLevelStandardAtmos * powf(speed, 2) * wing_area;
 	float u_approx = _true_airspeed;
 	float v_approx = -body_force(1) * _true_airspeed / (dynamic_force * C_B1);
 	float w_approx = (body_force(2) * _true_airspeed / dynamic_force  + C_A0) / C_A1;
@@ -202,9 +203,11 @@ void FixedwingWindEstimator::Run()
 		vehicle_attitude_poll();
 		vehicle_local_position_poll();
 
+		const float stall_airspeed = _param_fw_airspd_stall.get();
+
 		// Do not compute wind estimate under stall speed
-		if (_calibrated_airspeed > _stall_airspeed) {
-			matrix::Vector3f air_velocity_body = compute_wind_estimate();
+		if (_calibrated_airspeed > stall_airspeed) {
+			matrix::Vector3f air_velocity_body = predictBodyAirVelocity();
 
 			matrix::Vector3f air_velocity_local = _attitude.rotateVector(air_velocity_body);
 
@@ -219,9 +222,6 @@ void FixedwingWindEstimator::Run()
 			airflow_msg.windspeed_east = wind(1);
 			airflow_msg.windspeed_down = wind(2);
 			_airflow_pub.publish(airflow_msg);
-			// PX4_INFO("airspeed estimate: \t%.1f, \t%.1f, \t%.1f", (double)air_velocity_body(0), (double)air_velocity_body(1),
-			// 	 (double)air_velocity_body(2));
-			// PX4_INFO("  - wind estimate: \t%.1f, \t%.1f, \t%.1f", (double)wind(0), (double)wind(1), (double)wind(2));
 		}
 
 		/* if we are in rotary wing mode, do nothing */
@@ -239,15 +239,7 @@ void FixedwingWindEstimator::Run()
 
 int FixedwingWindEstimator::task_spawn(int argc, char *argv[])
 {
-	bool vtol = false;
-
-	if (argc > 1) {
-		if (strcmp(argv[1], "vtol") == 0) {
-			vtol = true;
-		}
-	}
-
-	FixedwingWindEstimator *instance = new FixedwingWindEstimator(vtol);
+	FixedwingWindEstimator *instance = new FixedwingWindEstimator();
 
 	if (instance) {
 		_object.store(instance);
@@ -282,7 +274,7 @@ int FixedwingWindEstimator::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-fw_rate_control is the fixed-wing rate controller.
+fw_wind_estimator is a 3D wind estimator for fixed-wing vehicles.
 
 )DESCR_STR");
 
