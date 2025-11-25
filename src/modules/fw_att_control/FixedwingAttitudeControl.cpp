@@ -48,6 +48,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	/* fetch initial parameter values */
 	parameters_update();
 	_landing_gear_wheel_pub.advertise();
+	_attitude_sp_pub.advertise();
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
