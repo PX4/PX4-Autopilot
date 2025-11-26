@@ -1,6 +1,6 @@
 module_name: CRSF RC Input Driver
 serial_config:
-    - command: "crsf_rc start -d ${SERIAL_DEV} -b ${BAUD_PARAM}"
+    - command: "crsf_rc start -d ${SERIAL_DEV}"
       port_config_param:
         name: RC_CRSF_PRT_CFG
         group: Serial
