@@ -1,5 +1,4 @@
-#
-ARK SAM GPS MINI
+# ARK SAM GPS MINI
 
 [ARK SAM GPS MINI](https://arkelectron.gitbook.io/ark-documentation/gps/ark-sam-gps) is a made in the USA and NDAA-compliant [GNSS/GPS](../gps_compass/index.md) u-blox SAM-M10Q GPS and industrial magnetometer.
 

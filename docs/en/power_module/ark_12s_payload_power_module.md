@@ -1,6 +1,6 @@
 # ARK 12S Payload Power Module
 
-The [ARK 12S Payload Power Module](https://arkelectron.com/product/ark-12s-payload-power-module/)  is a dual 5V 6A and 12V 6A power supply and digital power monitor designed for the Pixhawk Autopilot Bus Carrier boards.
+The [ARK 12S Payload Power Module](https://arkelectron.com/product/ark-12s-payload-power-module/) is a dual 5V 6A and 12V 6A power supply and digital power monitor designed for the Pixhawk Autopilot Bus Carrier boards.
 
 ![ARK 12S Payload Power Module](../../assets/hardware/power_module/ark_power_modules//ark_12s_payload_power.jpg)
 
@@ -13,24 +13,20 @@ Order this module from:
 ## Hardware Specifications
 
 - **TI INA238 Digital Power Monitor**
-
   - 0.0001 Ohm Shunt
   - I2C Interface
 
 - **5.2V 6A Step-Down Regulator**
-
   - 10V Minimum Input Voltage at 6A Out
   - Output Over-Current Protection
 
 - **12.0V 6A Step-Down Regulator**
-
   - 15V Minimum Input Voltage at 6A Out
   - Output Over-Current Protection
 
 - **75V Maximum Input Voltage**
 
 - **Connections**
-
   - Solder Pads Battery Input
   - Solder Pads Battery Output
   - 6 Pin Molex CLIK-Mate Output
@@ -38,7 +34,6 @@ Order this module from:
   - 4 Pin Molex CLIK-Mate 12V Output
 
 - **Other**
-
   - USA Built
   - Includes 6 Pin Molex CLIK-Mate Cable
 
