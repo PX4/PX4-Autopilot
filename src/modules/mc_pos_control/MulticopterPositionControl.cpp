@@ -493,24 +493,31 @@ void MulticopterPositionControl::Run()
 			bool skip_takeoff = _param_com_throw_en.get();
 			// handle smooth takeoff
 			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.ground_contact, _vehicle_land_detected.landed,
-						    _vehicle_constraints.want_takeoff, _vehicle_constraints.speed_up, skip_takeoff, vehicle_local_position.timestamp_sample);
+						    _vehicle_constraints.want_takeoff, skip_takeoff, vehicle_local_position.timestamp_sample);
 
 			if (!_takeoff.getInFlight() && !_takeoff.getRampdown()) {
 				_control.setHoverThrust(_param_mpc_thr_hover.get());
 			}
 
 			// make sure takeoff ramp is not amended by acceleration feed-forward
-			if (_takeoff.getTakeoffState() == TakeoffState::rampup && PX4_ISFINITE(_setpoint.velocity[2])) {
+			if (_takeoff.getRamping() && PX4_ISFINITE(_setpoint.velocity[2])) {
 				_setpoint.acceleration[2] = NAN;
 			}
 
-			if (!_takeoff.getRampup() && !_takeoff.getInFlight()) {
-				// we are not flying and need to avoid any corrections
-				_setpoint = PositionControl::empty_trajectory_setpoint;
-				_setpoint.timestamp = vehicle_local_position.timestamp_sample;
-				Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
+			if (!_takeoff.getInFlight()) {
+				_control.resetIntegralXY(); // during ramp down we need the downwards integrator
+			}
 
-				// prevent any integrator windup
+			if (!_takeoff.getRampup() && !_takeoff.getInFlight()) {
+				// we are not flying and need to avoid any horizontal corrections
+				_setpoint.velocity[0] = _setpoint.velocity[1] = _setpoint.position[0] = _setpoint.position[1] = NAN;
+				_setpoint.acceleration[0] = _setpoint.acceleration[1] = 0.f;
+			}
+
+			if (!_takeoff.getRamping() && !_takeoff.getInFlight()) {
+				// we need to cut the thrust outside of ramping and flying
+				_setpoint.velocity[2] = _setpoint.position[2] = NAN;
+				_setpoint.acceleration[2] = 100.f; // High downwards acceleration to make sure there's no thrust
 				_control.resetIntegral();
 			}
 
@@ -609,7 +616,7 @@ void MulticopterPositionControl::Run()
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skipped with non-altitude-controlled modes
 			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.ground_contact, _vehicle_land_detected.landed, false,
-						    10.f, true, vehicle_local_position.timestamp_sample);
+						    true, vehicle_local_position.timestamp_sample);
 			_control.resetIntegral();
 		}
 

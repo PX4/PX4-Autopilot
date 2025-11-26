@@ -50,23 +50,24 @@ TEST(TakeoffTest, RegularTakeoffRamp)
 	takeoff.generateInitialRampValue(CONSTANTS_ONE_G / 0.5f);
 
 	// disarmed, landed, don't want takeoff
-	takeoff.updateTakeoffState(false, true, false, 1.f, false, 0);
+	takeoff.updateTakeoffState(false, true, true, false, false, 0);
 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::disarmed);
 
 	// armed, not landed anymore, don't want takeoff
-	takeoff.updateTakeoffState(true, false, false, 1.f, false, 500_ms);
+	takeoff.updateTakeoffState(true, false, false, false, false, 500_ms);
 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::spoolup);
 
 	// armed, not landed, don't want takeoff yet, spoolup time passed
-	takeoff.updateTakeoffState(true, false, false, 1.f, false, 2_s);
+	takeoff.updateTakeoffState(true, false, false, false, false, 2_s);
 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::ready_for_takeoff);
 
 	// armed, not landed, want takeoff
-	takeoff.updateTakeoffState(true, false, true, 1.f, false, 3_s);
+	takeoff.updateTakeoffState(true, false, false, true, false, 3_s);
 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::rampup);
 
 	// armed, not landed, want takeoff, ramping up
-	takeoff.updateTakeoffState(true, false, true, 1.f, false, 4_s);
+	takeoff.updateTakeoffState(true, false, false, true, false, 4_s);
+	EXPECT_FLOAT_EQ(takeoff.updateRamp(0.f, 1.5f), -.5f);
 	EXPECT_FLOAT_EQ(takeoff.updateRamp(.5f, 1.5f), 0.f);
 	EXPECT_FLOAT_EQ(takeoff.updateRamp(.5f, 1.5f), .5f);
 	EXPECT_FLOAT_EQ(takeoff.updateRamp(.5f, 1.5f), 1.f);
@@ -74,6 +75,23 @@ TEST(TakeoffTest, RegularTakeoffRamp)
 	EXPECT_FLOAT_EQ(takeoff.updateRamp(.5f, 1.5f), 1.5f);
 
 	// armed, not landed, want takeoff, rampup time passed
-	takeoff.updateTakeoffState(true, false, true, 1.f, false, 6500_ms);
+	takeoff.updateTakeoffState(true, false, false, true, false, 6500_ms);
 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::flight);
+
+	// armed, ground contact, not landed, don't want takeoff
+	takeoff.updateTakeoffState(true, true, false, false, false, 10_s);
+	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::rampdown);
+
+	// armed, ground contact, not landed, don't want takeoff, ramping down
+	takeoff.updateTakeoffState(true, true, false, false, false, 11_s);
+	EXPECT_FLOAT_EQ(takeoff.updateRamp(0.f, 1.5f), 1.5f);
+	EXPECT_FLOAT_EQ(takeoff.updateRamp(.5f, 1.5f), 1.f);
+	EXPECT_FLOAT_EQ(takeoff.updateRamp(.5f, 1.5f), .5f);
+	EXPECT_FLOAT_EQ(takeoff.updateRamp(.5f, 1.5f), 0.f);
+	EXPECT_FLOAT_EQ(takeoff.updateRamp(.5f, 1.5f), -.5f);
+	EXPECT_FLOAT_EQ(takeoff.updateRamp(.5f, 1.5f), -.5f);
+
+	// armed, ground contact, landed, don't want takeoff
+	takeoff.updateTakeoffState(true, true, true, false, false, 18_s);
+	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::ready_for_takeoff);
 }

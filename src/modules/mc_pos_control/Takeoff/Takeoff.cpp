@@ -46,7 +46,7 @@ void TakeoffHandling::generateInitialRampValue(float velocity_p_gain)
 }
 
 void TakeoffHandling::updateTakeoffState(const bool armed, const bool ground_contact, const bool landed, const bool want_takeoff,
-		const float takeoff_desired_vz, const bool skip_takeoff, const hrt_abstime &now_us)
+		const bool skip_takeoff, const hrt_abstime &now_us)
 {
 	_spoolup_time_hysteresis.set_state_and_update(armed, now_us);
 
@@ -91,6 +91,7 @@ void TakeoffHandling::updateTakeoffState(const bool armed, const bool ground_con
 	case TakeoffState::flight:
 		if (ground_contact) {
 			_takeoff_state = TakeoffState::rampdown;
+			_takeoff_ramp_progress = 1.f;
 		}
 
 		break;
@@ -138,8 +139,19 @@ float TakeoffHandling::updateRamp(const float dt, const float takeoff_desired_vz
 		}
 
 		if (_takeoff_ramp_progress < 1.f) {
-			upwards_velocity_limit = _takeoff_ramp_vz_init + _takeoff_ramp_progress * (takeoff_desired_vz - _takeoff_ramp_vz_init);
+			upwards_velocity_limit = math::interpolate(_takeoff_ramp_progress, 0.f, 1.f, _takeoff_ramp_vz_init, takeoff_desired_vz);
 		}
+	}
+
+	if (_takeoff_state == TakeoffState::rampdown) {
+		if (_takeoff_ramp_time > dt) {
+			_takeoff_ramp_progress -= dt / _takeoff_ramp_time;
+
+		} else {
+			_takeoff_ramp_progress = 0.f;
+		}
+
+		upwards_velocity_limit = math::interpolate(_takeoff_ramp_progress, 0.f, 1.f, _takeoff_ramp_vz_init, takeoff_desired_vz);
 	}
 
 	return upwards_velocity_limit;

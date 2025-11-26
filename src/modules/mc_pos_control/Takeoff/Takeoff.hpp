@@ -76,8 +76,8 @@ public:
 	 * Update the state for the takeoff.
 	 * Has to be called also when not flying altitude controlled to skip the takeoff and not do it in flight when switching mode.
 	 */
-	void updateTakeoffState(const bool armed, const bool ground_contact, const bool landed, const bool want_takeoff,
-				const float takeoff_desired_vz, const bool skip_takeoff, const hrt_abstime &now_us);
+	void updateTakeoffState(const bool armed, const bool ground_contact, const bool landed, const bool want_takeoff, const bool skip_takeoff,
+				const hrt_abstime &now_us);
 
 	/**
 	 * Update and return the velocity constraint ramp value during takeoff.
@@ -93,6 +93,7 @@ public:
 	bool getRampup() const { return _takeoff_state == TakeoffState::rampup; }
 	bool getInFlight() const { return _takeoff_state == TakeoffState::flight; }
 	bool getRampdown() const { return _takeoff_state == TakeoffState::rampdown; }
+	bool getRamping() const { return getRampup() || getRampdown(); }
 
 private:
 	TakeoffState _takeoff_state = TakeoffState::disarmed;
