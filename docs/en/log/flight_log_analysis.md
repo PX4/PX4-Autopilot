@@ -44,7 +44,7 @@ See [Log Analysis using Flight Review](../log/flight_review.md) for an introduct
 ### Foxglove
 
 [Foxglove](https://foxglove.dev/) is a purpose-built robotics observation platform that works natively with ULog.
-It allows you to replay your flights and scrub through the timeline to find data of interest.
+It allows you to replay your flights and seek through the timeline to find data of interest.
 
 Key features:
 
