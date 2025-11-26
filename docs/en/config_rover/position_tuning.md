@@ -19,7 +19,6 @@ To tune the position controller configure the [parameters](../advanced_config/pa
    $v*{max} = v*{full throttle} \cdot (1 - \theta\_{normalized} \cdot k) $
 
    with
-
    - $v_{max}:$ Maximum speed
    - $v_{full throttle}:$ Speed at maximum throttle [RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED).
    - $\theta_{normalized}:$ Course error (Course - bearing setpoint) normalized from $[0\degree, 180\degree]$ to $[0, 1]$
@@ -34,14 +33,13 @@ To tune the position controller configure the [parameters](../advanced_config/pa
 
    ::: tip
    Plan a mission for the rover to drive a square and observe how it slows down when approaching a waypoint:
-
    - If the rover decelerates too quickly decrease the [RO_DECEL_LIM](../advanced_config/parameter_reference.md#RO_DECEL_LIM) parameter, if it starts slowing down too early increase the parameter.
    - If you observe a jerking motion as the rover slows down, decrease the [RO_JERK_LIM](../advanced_config/parameter_reference.md#RO_JERK_LIM) parameter otherwise increase it as much as possible as it can interfere with the tuning of [RO_DECEL_LIM](../advanced_config/parameter_reference.md#RO_DECEL_LIM).
 
    These two parameters have to be tuned as a pair, repeat until you are satisfied with the behaviour.
    :::
 
-3. Plot the `adjusted_speed_body_x_setpoint` and `measured_speed_body_x` from the [RoverVelocityStatus](../msg_docs/RoverVelocityStatus.md) message over each other.
+3. Plot the `adjusted_speed_body_x_setpoint` and `measured_speed_body_x` from the [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md) message over each other.
    If the tracking of these setpoints is not satisfactory adjust the values for [RO_SPEED_P](../advanced_config/parameter_reference.md#RO_SPEED_P) and [RO_SPEED_I](../advanced_config/parameter_reference.md#RO_SPEED_I).
 
 ## Path Following
@@ -57,7 +55,6 @@ The following parameters are used to tune the algorithm:
    Decreasing the parameter makes it more aggressive but can lead to oscillations.
 
    To tune this:
-
    1. Start with a value of 1 for [PP_LOOKAHD_GAIN](#PP_LOOKAHD_GAIN)
    2. Put the rover in [Position mode](../flight_modes_rover/manual.md#position-mode) and while driving a straight line at approximately half the maximum speed observe its behaviour.
    3. If the rover does not drive in a straight line, reduce the value of the parameter, if it oscillates around the path increase the value.
