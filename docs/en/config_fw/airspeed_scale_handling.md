@@ -7,6 +7,8 @@ This section complements the existing [Airspeed Validation](../advanced_config/a
 The airspeed scale is used by PX4 to convert the measured airspeed (indicated airspeed) to the calibrated airspeed.
 This scale can be set by [ASPD_SCALE_n](../advanced_config/parameter_reference.md#ASPD_SCALE_1) (where `n` is the sensor number), and logged in [AirspeedWind.msg](../msg_docs/AirspeedWind.md).
 
+Note that the airspeed scale is different from the airspeed sensor offset calibration done on the ground at 0 m/s. The airspeed scale accounts for errors in the airspeed measurement during flight, such as those caused by sensor placement or installation effects.
+
 This topic describes how to set an initial airspeed scale for a new fixed-wing vehicle during its first flight. Correct scale calibration ensures reliable airspeed data, accurate TAS calculation, robust PX4 airspeed validation, and consistent controller performance.
 
 ## Airspeed in PX4
@@ -32,7 +34,7 @@ A GNSS is required for scale estimation.
 
 PX4 uses a two-stage approach to robustly estimate the scale:
 
-1. **Continuous EKF2 Estimation**: A wind estimator constantly compares your measured airspeed against what it expects based on ground velocity (from GPS) and estimated wind.
+1. **Continuous EKF Estimation**: A wind estimator constantly compares your measured airspeed against what it expects based on ground velocity (from GPS) and estimated wind.
    If there's a consistent bias, it adjusts the scale estimate.
    The estimated scale is logged in the `AirspeedWind.msg` as the `tas_scale_raw`.
 2. **Validation**: To ensure robustness, PX4 collects airspeed and ground speed data across 12 different heading segments (every 30°).
@@ -54,7 +56,7 @@ The primary factor influencing the airspeed scale is **sensor placement**.
 
 Biased readings can be reflected in the scale estimate for pitot tubes installed:
 
-- In turbulent regions
+- In regions experiencing disturbed flow (commonly near blunt aircraft noses)
 - Near propellers
 - Under aerodynamic surfaces
 - At an angle with respect to the airflow
@@ -63,6 +65,7 @@ Biased readings can be reflected in the scale estimate for pitot tubes installed
 
 Symptoms of an incorrectly scaled airspeed measurement include:
 
+- Stalling or overspeeding
 - Persistent under- or overestimation of the TAS relative to wind-corrected groundspeed
 - False positives or missed detections in [airspeed innovation checks](../advanced_config/airspeed_validation.md#innovation-check)
 - Degraded tracking of the rate controllers
