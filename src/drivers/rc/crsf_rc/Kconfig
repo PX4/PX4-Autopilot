@@ -4,8 +4,12 @@ menuconfig DRIVERS_RC_CRSF_RC
 	---help---
 		Enable support for crsf rc
 
-config DRIVERS_RC_CRSF_RC_INJECT
+if DRIVERS_RC_CRSF_RC
+
+config RC_CRSF_INJECT
 	bool "Inject CRSF RC"
 	default n
 	---help---
 		Enable this to inject CRSF RC commands.
+
+endif # DRIVERS_RC_CRSF_RC

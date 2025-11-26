@@ -143,7 +143,7 @@ static uint32_t working_segment_size = HEADER_SIZE;
 #define RX_QUEUE_BUFFER_SIZE 200
 static QueueBuffer_t rx_queue;
 static uint8_t rx_queue_buffer[RX_QUEUE_BUFFER_SIZE];
-#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+#ifdef CONFIG_RC_CRSF_INJECT
 static QueueBuffer_t inject_queue;
 static uint8_t inject_queue_buffer[RX_QUEUE_BUFFER_SIZE];
 static uint8_t temp_queue_buffer[RX_QUEUE_BUFFER_SIZE];
@@ -156,7 +156,7 @@ static CrsfPacketDescriptor_t *FindCrsfDescriptor(const enum CRSF_PACKET_TYPE pa
 void CrsfParser_Init(void)
 {
 	QueueBuffer_Init(&rx_queue, rx_queue_buffer, RX_QUEUE_BUFFER_SIZE);
-#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+#ifdef CONFIG_RC_CRSF_INJECT
 	QueueBuffer_Init(&inject_queue, inject_queue_buffer, RX_QUEUE_BUFFER_SIZE);
 #endif
 }
@@ -277,7 +277,7 @@ bool CrsfParser_LoadBuffer(const uint8_t *buffer, const uint32_t size)
 	return QueueBuffer_AppendBuffer(&rx_queue, buffer, size);
 }
 
-#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+#ifdef CONFIG_RC_CRSF_INJECT
 bool CrsfParser_InjectBuffer(const uint8_t *buffer, const uint32_t size)
 {
 	return QueueBuffer_AppendBuffer(&inject_queue, buffer, size);
@@ -406,7 +406,7 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			parser_state = PARSER_STATE_HEADER;
 
 			if (valid_packet) {
-#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+#ifdef CONFIG_RC_CRSF_INJECT
 
 				if (!QueueBuffer_IsEmpty(&inject_queue)) {
 					// copy the remaining bytes from the rx queue to the temp buffer

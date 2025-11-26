@@ -545,7 +545,7 @@ int CrsfRc::print_status()
 
 int CrsfRc::custom_command(int argc, char *argv[])
 {
-#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+#ifdef CONFIG_RC_CRSF_INJECT
 
 	if (!strcmp(argv[0], "start")) {
 		if (is_running()) {
@@ -602,7 +602,7 @@ This module parses the CRSF RC uplink protocol and generates CRSF downlink telem
 	PRINT_MODULE_USAGE_SUBCATEGORY("radio_control");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "RC device", true);
-#ifdef CONFIG_DRIVERS_RC_CRSF_RC_INJECT
+#ifdef CONFIG_RC_CRSF_INJECT
 	PRINT_MODULE_USAGE_COMMAND_DESCR("inject", "Inject frame data bytes (for testing)");
 #endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
