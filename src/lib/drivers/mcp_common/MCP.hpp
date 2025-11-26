@@ -44,13 +44,10 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
-
 #include <px4_platform/gpio/mcp23017.hpp>
 #include <px4_platform/gpio/mcp.hpp>
-
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
-
 
 using namespace time_literals;
 
@@ -71,25 +68,23 @@ struct MCP230XX_config_t {
   uint8_t first_minor = 0;
   uint8_t num_pins = 8;
   int num_banks = 1;
-  uint16_t interval;
+  uint16_t interval = 10;
   mcp_gpio_dev_s _gpio_handle[16];
-
 };
 
 struct init_config_t {
 	uint16_t device_type;
 
-	uint16_t direction = 0xFFFF; // READ ON ALL PINS
+	uint16_t direction = 0xFFFF;
 	uint16_t state = 0x0000;
 	uint16_t pullup = 0x0000;
-	uint16_t interval = 1;
+	uint16_t interval = 10;
 	int first_minor = 0;
 	uint8_t i2c_addr = 0;
 	uint8_t i2c_bus = 0;
 };
 
-
-class MCP230XX :  public device::I2C, public I2CSPIDriver<MCP230XX> //public I2CSPIDriver<MCP> //, public device::I2C
+class MCP230XX :  public device::I2C, public I2CSPIDriver<MCP230XX>
 {
 public:
 	MCP230XX(const I2CSPIDriverConfig &config);
@@ -102,18 +97,13 @@ public:
 	int probe();
 	virtual int init();
 
-
 protected:
-	void exit_and_cleanup() override;
-
 	MCP230XX_config_t mcp_config;
-
 
 private:
 	uORB::SubscriptionCallbackWorkItem _gpio_out_sub{this, ORB_ID(gpio_out)};
 	uORB::SubscriptionCallbackWorkItem _gpio_request_sub{this, ORB_ID(gpio_request)};
 	uORB::SubscriptionCallbackWorkItem _gpio_config_sub{this, ORB_ID(gpio_config)};
-
 	uORB::Publication<gpio_in_s> _to_gpio_in{ORB_ID(gpio_in)};
 
 	perf_counter_t _cycle_perf;
@@ -128,6 +118,7 @@ private:
 	int sanity_check();
 	int init_communication();
 	int init_uorb();
+	void cleanup_uorb();
 
 	virtual void set_params() = 0;
 	virtual int get_olat(int bank, uint8_t *addr) = 0;
@@ -147,5 +138,5 @@ private:
 		CONFIGURE,
 		CHECK,
 		RUNNING
-	} curr_state{STATE::INIT_COMMUNICATION};
+	} curr_state {STATE::INIT_COMMUNICATION};
 };

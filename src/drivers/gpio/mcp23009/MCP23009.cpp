@@ -37,11 +37,6 @@ MCP23009::MCP23009(const I2CSPIDriverConfig &config) :
 {
 }
 
-MCP23009::~MCP23009()
-{
-	ScheduleClear();
-}
-
 void MCP23009::set_params()
 {
 	mcp_config.num_banks = 1;

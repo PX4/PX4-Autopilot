@@ -39,7 +39,6 @@ class MCP23017 : public MCP230XX
 {
 public:
 	MCP23017(const I2CSPIDriverConfig &config);
-	~MCP23017() override;
 
 private:
 	enum class

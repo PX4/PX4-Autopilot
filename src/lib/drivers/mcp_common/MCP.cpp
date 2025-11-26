@@ -34,7 +34,6 @@
 #include <drivers/gpio/mcp23009/MCP23009.hpp>
 #include <drivers/gpio/mcp23017/MCP23017.hpp>
 
-
 MCP230XX::MCP230XX(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
@@ -62,7 +61,7 @@ int MCP230XX::init_uorb()
 	return PX4_OK;
 }
 
-void MCP230XX::exit_and_cleanup()
+void MCP230XX::cleanup_uorb()
 {
 	_gpio_config_sub.unregisterCallback();
 	_gpio_request_sub.unregisterCallback();
@@ -282,6 +281,7 @@ int MCP230XX::probe()
 void MCP230XX::RunImpl()
 {
 	if (should_exit()) {
+		cleanup_uorb();
 		exit_and_cleanup();
 		return;
 	}
@@ -298,17 +298,19 @@ void MCP230XX::RunImpl()
 			ScheduleNow();
 		}else{
 			PX4_ERR("MCP230XX: INIT_COMMUNICATION (pin registration & uORB) failed, retrying...");
-			ScheduleDelayed(100000); // 100ms
+			ScheduleDelayed(10000); // 10ms
 		}
 
 		break;
 	case STATE::CONFIGURE:
-		ScheduleClear();
 		ret = set_up();
 		if(ret == PX4_OK){
 			curr_state = STATE::CHECK;
+			ScheduleNow();
+		}else{
+			ScheduleDelayed(10000); // 10ms
 		}
-		ScheduleNow();
+
 		break;
 
 	case STATE::CHECK:

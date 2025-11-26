@@ -39,10 +39,8 @@ class MCP23009 : public MCP230XX
 {
 public:
 	MCP23009(const I2CSPIDriverConfig &config);
-	~MCP23009() override;
 
 private:
-
 	void set_params() override;
 	int get_olat(int bank, uint8_t *addr) override;
 	int get_gppu(int bank, uint8_t *addr) override;

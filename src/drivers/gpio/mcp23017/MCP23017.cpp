@@ -37,11 +37,6 @@ MCP23017::MCP23017(const I2CSPIDriverConfig &config) :
 {
 }
 
-MCP23017::~MCP23017()
-{
-	ScheduleClear();
-}
-
 void MCP23017::set_params()
 {
 	mcp_config.num_pins = 16;
