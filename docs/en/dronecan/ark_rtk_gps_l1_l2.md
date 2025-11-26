@@ -139,24 +139,24 @@ ARK RTK GPS L1 L5 comes with the Ublox F9P module up to date with version 1.13 o
 
 The steps are:
 
-- [Download u-center from u-blox.com](https://www.u-blox.com/en/product/u-center) and install on your PC (Windows only)
-- Open the [u-blox ZED-F9P website](https://www.u-blox.com/en/product/zed-f9p-module#tab-documentation-resources)
-- Scroll down and click on the "Show Legacy Documents" box
-- Scroll down again to Firmware Update and download your desired firmware (at least version 1.13 is needed)
-- While holding down the safety switch on the ARK RTK GPS L1 L5, connect it to power via one of its CAN ports and hold until all 3 LEDs blink rapidly
-- Connect the ARK RTK GPS L1 L5 to your PC via its debug port with a cable such as the Black Magic Probe or an FTDI
-- Open u-center, select the COM port for the ARK RTK GPS L1 L5 and connect
-  ![U-Center Connect](../../assets/hardware/gps/ark/ark_rtk_gps_ucenter_connect.png)
-- Check the current firmware version by selecting View, Messages View, UBX, MON, VER
-  ![Check Version](../../assets/hardware/gps/ark/ark_rtk_gps_ublox_version.png)
-- To update the firmware:
-  - Select Tools, Firmware Update
-  - The Firmware image field should be the .bin file downloaded from the u-blox ZED-F9P website
-  - Check the "Use this baudrate for update" checkbox and select 115200 from the drop-down
-  - Ensure the other checkboxes are as shown below
-  - Push the green GO button on the bottom left
-  - "Firmware Update SUCCESS" should be displayed if it updated successfully
-    ![Firmware Update](../../assets/hardware/gps/ark/ark_rtk_gps_ublox_f9p_firmware_update.png)
+1. [Download u-center from u-blox.com](https://www.u-blox.com/en/product/u-center) and install on your PC (Windows only)
+2. Open the [u-blox ZED-F9P website](https://www.u-blox.com/en/product/zed-f9p-module#tab-documentation-resources)
+3. Scroll down and click on the "Show Legacy Documents" box
+4. Scroll down again to Firmware Update and download your desired firmware (at least version 1.13 is needed)
+5. While holding down the safety switch on the ARK RTK GPS L1 L5, connect it to power via one of its CAN ports and hold until all 3 LEDs blink rapidly
+6. Connect the ARK RTK GPS L1 L5 to your PC via its debug port with a cable such as the Black Magic Probe or an FTDI
+7. Open u-center, select the COM port for the ARK RTK GPS L1 L5 and connect
+   ![U-Center Connect](../../assets/hardware/gps/ark/ark_rtk_gps_ucenter_connect.png)
+8. Check the current firmware version by selecting View, Messages View, UBX, MON, VER
+   ![Check Version](../../assets/hardware/gps/ark/ark_rtk_gps_ublox_version.png)
+9. To update the firmware:
+   1. Select Tools, Firmware Update
+   2. The Firmware image field should be the .bin file downloaded from the u-blox ZED-F9P website
+   3. Check the "Use this baudrate for update" checkbox and select 115200 from the drop-down
+   4. Ensure the other checkboxes are as shown below
+   5. Push the green GO button on the bottom left
+   6. "Firmware Update SUCCESS" should be displayed if it updated successfully
+      ![Firmware Update](../../assets/hardware/gps/ark/ark_rtk_gps_ublox_f9p_firmware_update.png)
 
 ## See Also
 
