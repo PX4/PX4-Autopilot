@@ -30,20 +30,20 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include "MCP.hpp"
-#include "MCP23009.hpp"
+#include <lib/drivers/mcp_common/MCP.hpp>
+#include "MCP23017.hpp"
 
-extern "C" int mcp23009_main(int argc, char *argv[])
+extern "C" int mcp23017_main(int argc, char *argv[])
 {
-	using ThisDriver = MCP23009;
+	using ThisDriver = MCP23017;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
-	cli.i2c_address = 0x25;
+	cli.i2c_address = 0x27;
 	init_config_t config_data{};
 
 	int ch;
-	uint16_t device_type = DRV_GPIO_DEVTYPE_MCP23009;
-	const char *name = "MCP23009";
+	uint16_t device_type = DRV_GPIO_DEVTYPE_MCP23017;
+	const char *name = "MCP23017";
 
 	while ((ch = cli.getOpt(argc, argv, "D:O:P:U:R:M:")) != EOF) {
 		switch (ch) {

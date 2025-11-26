@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 #include "MCP.hpp"
-#include "MCP23009.hpp"
-#include "MCP23017.hpp"
+#include <drivers/gpio/mcp23009/MCP23009.hpp>
+#include <drivers/gpio/mcp23017/MCP23017.hpp>
 
 
 MCP230XX::MCP230XX(const I2CSPIDriverConfig &config) :

@@ -30,28 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__mcp23009
-	MAIN mcp23009
-	COMPILE_FLAGS
-	SRCS
-		MCP.hpp
-		MCP.cpp
-		MCP23009.hpp
-		MCP23009.cpp
-		MCP23009_main.cpp
-	DEPENDS
-	)
 
-px4_add_module(
-	MODULE drivers__mcp23017
-	MAIN mcp23017
-	COMPILE_FLAGS
-	SRCS
-		MCP.hpp
-		MCP.cpp
-		MCP23017.hpp
-		MCP23017.cpp
-		MCP23017_main.cpp
-	DEPENDS
-	)
+px4_add_library(mcp_common
+	MCP.cpp
+	../../../drivers/gpio/mcp23009/MCP23009.cpp
+	../../../drivers/gpio/mcp23017/MCP23017.cpp
+)
