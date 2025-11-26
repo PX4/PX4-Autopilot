@@ -8,6 +8,7 @@ uint8 TAKEOFF_STATE_SPOOLUP           = 2
 uint8 TAKEOFF_STATE_READY_FOR_TAKEOFF = 3
 uint8 TAKEOFF_STATE_RAMPUP            = 4
 uint8 TAKEOFF_STATE_FLIGHT            = 5
+uint8 TAKEOFF_STATE_RAMPDOWN          = 6
 
 uint8 takeoff_state
 

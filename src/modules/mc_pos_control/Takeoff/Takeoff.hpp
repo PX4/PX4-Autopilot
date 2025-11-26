@@ -50,7 +50,8 @@ enum class TakeoffState {
 	spoolup = takeoff_status_s::TAKEOFF_STATE_SPOOLUP,
 	ready_for_takeoff = takeoff_status_s::TAKEOFF_STATE_READY_FOR_TAKEOFF,
 	rampup = takeoff_status_s::TAKEOFF_STATE_RAMPUP,
-	flight = takeoff_status_s::TAKEOFF_STATE_FLIGHT
+	flight = takeoff_status_s::TAKEOFF_STATE_FLIGHT,
+	rampdown = takeoff_status_s::TAKEOFF_STATE_RAMPDOWN
 };
 
 class TakeoffHandling
@@ -75,7 +76,7 @@ public:
 	 * Update the state for the takeoff.
 	 * Has to be called also when not flying altitude controlled to skip the takeoff and not do it in flight when switching mode.
 	 */
-	void updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
+	void updateTakeoffState(const bool armed, const bool ground_contact, const bool landed, const bool want_takeoff,
 				const float takeoff_desired_vz, const bool skip_takeoff, const hrt_abstime &now_us);
 
 	/**
@@ -88,7 +89,10 @@ public:
 	 */
 	float updateRamp(const float dt, const float takeoff_desired_vz);
 
-	TakeoffState getTakeoffState() { return _takeoff_state; }
+	TakeoffState getTakeoffState() const { return _takeoff_state; }
+	bool getRampup() const { return _takeoff_state == TakeoffState::rampup; }
+	bool getInFlight() const { return _takeoff_state == TakeoffState::flight; }
+	bool getRampdown() const { return _takeoff_state == TakeoffState::rampdown; }
 
 private:
 	TakeoffState _takeoff_state = TakeoffState::disarmed;

@@ -492,15 +492,10 @@ void MulticopterPositionControl::Run()
 
 			bool skip_takeoff = _param_com_throw_en.get();
 			// handle smooth takeoff
-			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed,
-						    _vehicle_constraints.want_takeoff,
-						    _vehicle_constraints.speed_up, skip_takeoff, vehicle_local_position.timestamp_sample);
+			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.ground_contact, _vehicle_land_detected.landed,
+						    _vehicle_constraints.want_takeoff, _vehicle_constraints.speed_up, skip_takeoff, vehicle_local_position.timestamp_sample);
 
-			const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
-			const bool flying                    = (_takeoff.getTakeoffState() >= TakeoffState::flight);
-			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
-
-			if (!flying) {
+			if (!_takeoff.getInFlight() && !_takeoff.getRampdown()) {
 				_control.setHoverThrust(_param_mpc_thr_hover.get());
 			}
 
@@ -509,8 +504,8 @@ void MulticopterPositionControl::Run()
 				_setpoint.acceleration[2] = NAN;
 			}
 
-			if (not_taken_off || flying_but_ground_contact) {
-				// we are not flying yet and need to avoid any corrections
+			if (!_takeoff.getRampup() && !_takeoff.getInFlight()) {
+				// we are not flying and need to avoid any corrections
 				_setpoint = PositionControl::empty_trajectory_setpoint;
 				_setpoint.timestamp = vehicle_local_position.timestamp_sample;
 				Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
@@ -530,7 +525,7 @@ void MulticopterPositionControl::Run()
 						 _param_mpc_z_vel_max_dn.get();
 
 			// Allow ramping from zero thrust on takeoff
-			const float minimum_thrust = flying ? _param_mpc_thr_min.get() : 0.f;
+			const float minimum_thrust = _takeoff.getInFlight() ? _param_mpc_thr_min.get() : 0.f;
 			_control.setThrustLimits(minimum_thrust, _param_mpc_thr_max.get());
 
 			float max_speed_xy = _param_mpc_xy_vel_max.get();
@@ -613,8 +608,8 @@ void MulticopterPositionControl::Run()
 
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skipped with non-altitude-controlled modes
-			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true,
-						    vehicle_local_position.timestamp_sample);
+			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.ground_contact, _vehicle_land_detected.landed, false,
+						    10.f, true, vehicle_local_position.timestamp_sample);
 			_control.resetIntegral();
 		}
 
