@@ -159,10 +159,17 @@ private:
 
 	float _temperature_last{NAN};
 
-	float _param_sens_imu_temp_ff;
-	float _param_sens_imu_temp_i;
-	float _param_sens_imu_temp_p;
-	float _param_sens_imu_temp;
-	int _param_sens_temp_id;
+	// 参数句柄（在构造函数中获取一次）
+	param_t _param_imu_temp_ff{PARAM_INVALID};
+	param_t _param_imu_temp_i{PARAM_INVALID};
+	param_t _param_imu_temp_p{PARAM_INVALID};
+	param_t _param_imu_temp{PARAM_INVALID};
+	param_t _param_sens_temp_id{PARAM_INVALID};
 
+	// 参数缓存值（在update_params中更新）
+	float _param_cached_temp_ff{0.05f};
+	float _param_cached_temp_i{0.025f};
+	float _param_cached_temp_p{1.0f};
+	float _param_cached_temp{45.0f};
+	int32_t _param_cached_sens_id{0};
 };

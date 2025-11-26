@@ -91,11 +91,24 @@ Heater::Heater(int instance) :
 		px4_arch_configgpio(GPIO_HEATER2);
 		px4_arch_gpiowrite(GPIO_HEATER2, 0);
 	}
-	_param_sens_imu_temp_ff = (_instance == 1) ? param_find("IMU_1_TEMP_FF") : param_find("IMU_2_TEMP_FF");
-	_param_sens_imu_temp_i = (_instance == 1) ? param_find("IMU_1_I") : param_find("IMU_2_I");
-	_param_sens_imu_temp_p = (_instance == 1) ? param_find("IMU_1_P") : param_find("IMU_2_P");
-	_param_sens_imu_temp = (_instance == 1) ? param_find("IMU_1_TEMP") : param_find("IMU_2_TEMP");
-	_param_sens_temp_id =  (_instance == 1) ? param_find("IMU_1_ID") : param_find("IMU_2_ID");
+
+	// 根据实例获取参数句柄（只执行一次）
+	if (_instance == 1) {
+		_param_imu_temp_ff = param_find("IMU_1_TEMP_FF");
+		_param_imu_temp_i = param_find("IMU_1_TEMP_I");
+		_param_imu_temp_p = param_find("IMU_1_TEMP_P");
+		_param_imu_temp = param_find("IMU_1_TEMP");
+		_param_sens_temp_id = param_find("IMU_1_ID");
+	} else if (_instance == 2) {
+		_param_imu_temp_ff = param_find("IMU_2_TEMP_FF");
+		_param_imu_temp_i = param_find("IMU_2_TEMP_I");
+		_param_imu_temp_p = param_find("IMU_2_TEMP_P");
+		_param_imu_temp = param_find("IMU_2_TEMP");
+		_param_sens_temp_id = param_find("IMU_2_ID");
+	}
+
+	// 初始化参数缓存值
+	update_params(true);
 
 	_heater_status_pub.advertise();
 }
@@ -203,9 +216,7 @@ bool Heater::initialize_topics()
 		    PX4_ISFINITE(sensor_accel_sub.get().temperature)) {
 
 			// 根据实例选择对应 IMU 的 device_id
-			param_t id_param = (_instance == 1) ? param_find("IMU_1_ID") : param_find("IMU_2_ID");
-			int32_t target_id = 0;
-			param_get(id_param, &target_id);
+			int32_t target_id = _param_cached_sens_id;
 
 			if (sensor_accel_sub.get().device_id == (uint32_t)target_id) {
 				_sensor_accel_sub.ChangeInstance(i);
@@ -257,26 +268,23 @@ void Heater::Run()
 
 		// Update the current IMU sensor temperature if valid.
 		if (PX4_ISFINITE(sensor_accel.temperature)) {
-			// 根据实例读取对应目标温度
-			param_t temp_param = (_instance == 1) ? param_find("IMU_1_TEMP") : param_find("IMU_2_TEMP");
-			float target_temp = 45.0f;
-			param_get(temp_param, &target_temp);
-			temperature_delta = target_temp - sensor_accel.temperature;
+			temperature_delta = _param_cached_temp - sensor_accel.temperature;
 			_temperature_last = sensor_accel.temperature;
 		}
 
-		param_t p_param = (_instance == 1) ? param_find("IMU_1_TEMP_P") : param_find("IMU_2_TEMP_P");
-		param_t i_param = (_instance == 1) ? param_find("IMU_1_TEMP_I") : param_find("IMU_2_TEMP_I");
-		param_t ff_param = (_instance == 1) ? param_find("IMU_1_TEMP_FF") : param_find("IMU_2_TEMP_FF");
-		float p_gain = 1.0f, i_gain = 0.025f, ff_val = 0.05f;
-		param_get(p_param, &p_gain);
-		param_get(i_param, &i_gain);
-		param_get(ff_param, &ff_val);
+		// 使用缓存的参数值（高效）
+		float p_gain = _param_cached_temp_p;
+		float i_gain = _param_cached_temp_i;
+		float ff_val = _param_cached_temp_ff;
 
+		// PID积分项计算
+		_integrator_value += i_gain * temperature_delta;
 		_integrator_value = math::constrain(_integrator_value, -0.25f, 0.25f);
 
+		_proportional_value = p_gain * temperature_delta;
+
 		_controller_time_on_usec = static_cast<int>((ff_val + _proportional_value +
- 					   _integrator_value) * static_cast<float>(CONTROLLER_PERIOD_DEFAULT));
+					   _integrator_value) * static_cast<float>(CONTROLLER_PERIOD_DEFAULT));
 
 		_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, CONTROLLER_PERIOD_DEFAULT);
 
@@ -284,7 +292,6 @@ void Heater::Run()
 			_temperature_target_met = true;
 
 		} else {
-
 			_temperature_target_met = false;
 		}
 
@@ -309,13 +316,13 @@ void Heater::publish_status()
 	status.device_id               = _sensor_device_id;
 	status.heater_on               = _heater_on;
 	status.temperature_sensor      = _temperature_last;
-	status.temperature_target      = (_instance == 1) ? param_find("IMU_1_TEMP") : param_find("IMU_2_TEMP");
+	status.temperature_target      = _param_cached_temp;
 	status.temperature_target_met  = _temperature_target_met;
 	status.controller_period_usec  = CONTROLLER_PERIOD_DEFAULT;
 	status.controller_time_on_usec = _controller_time_on_usec;
 	status.proportional_value      = _proportional_value;
 	status.integrator_value        = _integrator_value;
-	status.feed_forward_value      = _param_sens_imu_temp_ff;
+	status.feed_forward_value      = _param_cached_temp_ff;
 
 #ifdef HEATER_PX4IO
 	status.mode = heater_status_s::MODE_PX4IO;
@@ -330,7 +337,6 @@ void Heater::publish_status()
 
 int Heater::start()
 {
-
 	update_params(true);
 	ScheduleNow();
 	return PX4_OK;
@@ -366,6 +372,23 @@ void Heater::update_params(const bool force)
 
 		// update parameters from storage
 		ModuleParams::updateParams();
+
+		// 更新缓存的参数值
+		if (_param_imu_temp_ff != PARAM_INVALID) {
+			param_get(_param_imu_temp_ff, &_param_cached_temp_ff);
+		}
+		if (_param_imu_temp_i != PARAM_INVALID) {
+			param_get(_param_imu_temp_i, &_param_cached_temp_i);
+		}
+		if (_param_imu_temp_p != PARAM_INVALID) {
+			param_get(_param_imu_temp_p, &_param_cached_temp_p);
+		}
+		if (_param_imu_temp != PARAM_INVALID) {
+			param_get(_param_imu_temp, &_param_cached_temp);
+		}
+		if (_param_sens_temp_id != PARAM_INVALID) {
+			param_get(_param_sens_temp_id, &_param_cached_sens_id);
+		}
 	}
 }
 
