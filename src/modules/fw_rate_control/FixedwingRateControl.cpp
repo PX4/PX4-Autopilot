@@ -150,7 +150,7 @@ FixedwingRateControl::vehicle_land_detected_poll()
 	}
 }
 
-float FixedwingRateControl::get_airspeed_and_update_scaling()
+float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 {
 	_airspeed_validated_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
@@ -162,6 +162,13 @@ float FixedwingRateControl::get_airspeed_and_update_scaling()
 	if (_param_fw_use_airspd.get() && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
+
+		if (dt > 1.f) {
+			_airspeed_filter_for_torque_scaling.reset(airspeed);
+
+		} else {
+			airspeed = _airspeed_filter_for_torque_scaling.update(airspeed, dt);
+		}
 
 	} else {
 		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
@@ -274,7 +281,7 @@ void FixedwingRateControl::Run()
 
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
-			const float airspeed = get_airspeed_and_update_scaling();
+			const float airspeed = get_airspeed_and_update_scaling(dt);
 
 			/* reset integrals where needed */
 			if (_rates_sp.reset_integral) {
