@@ -26,7 +26,6 @@ This section provides information about a number of power modules and power dist
   - [Sky-Drones SmartAP PDB](../power_module/sky-drones_smartap-pdb.md)
 - Digital (I2C) voltage and current power modules (for Pixhawk FMUv6X and FMUv5X derived controllers):
   - [ARK PAB Power Module](../power_module/ark_pab_power_module.md)
-  - [ARK PAB Power Module No Connector](../power_module/ark_pab_power_module_no_connector.md)
   - [ARK 12S PAB Power Module](../power_module/ark_12s_pab_power_module.md)
   - [ARK 12S Payload Power Module](../power_module/ark_12s_payload_power_module.md)
   - [Holybro PM02D](../power_module/holybro_pm02d.md)
