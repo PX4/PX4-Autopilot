@@ -2,6 +2,8 @@
 
 The [ARK 12S Payload Power Module](https://arkelectron.com/product/ark-12s-payload-power-module/) is a dual 5V 6A and 12V 6A power supply and digital power monitor designed for the Pixhawk Autopilot Bus Carrier boards.
 
+This is similar to the [ARK 12S PAB Power Module](../power_module/ark_12s_pab_power_module.md) except that the additional 12V 6A supply allows easier powering of a payload.
+
 ![ARK 12S Payload Power Module](../../assets/hardware/power_module/ark_power_modules//ark_12s_payload_power.jpg)
 
 ## Where to Buy
