@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/events.h>
 
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 
@@ -121,8 +122,12 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 
 		// If PWM center is set and CA_SV_CS trim is non-zero, warn and reset to 0
 		if (pwm_center_set && fabsf(_params[i].trim) > FLT_EPSILON) {
-			PX4_WARN("CA_SV_CS%d_TRIM (%.3f) should be 0 when PWM CENTER is used. Resetting to 0.",
-				 i, (double)_params[i].trim);
+			/* EVENT
+			* @description Display warning in GCS when TRIM settings were present and now CENTER are set.
+			*/
+			events::send<uint8_t, float>(events::ID("control_surfaces_reset_trim"), events::Log::Warning,
+						     "CA_SV_CS{1}_TRIM ({2}) is reset to 0 as PWM CENTER is used", i, _params[i].trim);
+
 			_params[i].trim = 0.0f;
 			// Update the parameter storage
 			param_set(_param_handles[i].trim, &_params[i].trim);
