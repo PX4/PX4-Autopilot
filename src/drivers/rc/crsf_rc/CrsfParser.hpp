@@ -109,7 +109,7 @@ typedef struct {
 
 void CrsfParser_Init(void);
 bool CrsfParser_LoadBuffer(const uint8_t *buffer, const uint32_t size);
-#ifdef DRIVERS_RC_CRSF_RC_INJECT
+#ifdef CONFIG_RC_CRSF_INJECT
 bool CrsfParser_InjectBuffer(const uint8_t *buffer, const uint32_t size);
 #endif
 uint32_t CrsfParser_FreeQueueSize(void);
