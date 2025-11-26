@@ -63,7 +63,7 @@ using namespace time_literals;
 class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	explicit Heater(int instance = 1);
+	explicit Heater(int instance);
 
 	virtual ~Heater();
 
@@ -164,4 +164,5 @@ private:
 	float _param_sens_imu_temp_p;
 	float _param_sens_imu_temp;
 	int _param_sens_temp_id;
+
 };

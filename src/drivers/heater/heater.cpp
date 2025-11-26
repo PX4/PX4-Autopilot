@@ -94,7 +94,7 @@ Heater::Heater(int instance) :
 	_param_sens_imu_temp_ff = (_instance == 1) ? param_find("IMU_1_TEMP_FF") : param_find("IMU_2_TEMP_FF");
 	_param_sens_imu_temp_i = (_instance == 1) ? param_find("IMU_1_I") : param_find("IMU_2_I");
 	_param_sens_imu_temp_p = (_instance == 1) ? param_find("IMU_1_P") : param_find("IMU_2_P");
-	_param_sens_imu_temp = (_instance == 1) ? param_find("IMU_1_TEMP") : param_find("IMU_1_TEMP");
+	_param_sens_imu_temp = (_instance == 1) ? param_find("IMU_1_TEMP") : param_find("IMU_2_TEMP");
 	_param_sens_temp_id =  (_instance == 1) ? param_find("IMU_1_ID") : param_find("IMU_2_ID");
 
 	_heater_status_pub.advertise();
@@ -309,7 +309,7 @@ void Heater::publish_status()
 	status.device_id               = _sensor_device_id;
 	status.heater_on               = _heater_on;
 	status.temperature_sensor      = _temperature_last;
-	status.temperature_target      = (_instance == 1) ? param_find("HTR_1_TEMP") : param_find("HTR_2_TEMP");
+	status.temperature_target      = (_instance == 1) ? param_find("IMU_1_TEMP") : param_find("IMU_2_TEMP");
 	status.temperature_target_met  = _temperature_target_met;
 	status.controller_period_usec  = CONTROLLER_PERIOD_DEFAULT;
 	status.controller_time_on_usec = _controller_time_on_usec;
