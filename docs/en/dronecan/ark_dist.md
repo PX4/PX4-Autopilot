@@ -1,6 +1,7 @@
 # ARK DIST SR
 
 ARK DIST SR is a low range, open source [DroneCAN](index.md) [distance sensor](../sensor/rangefinders.md).
+It has an approximate range of between 8cm to 30m.
 
 ![ARK DIST SR](../../assets/hardware/sensors/optical_flow/ark_dist.jpg)
 
@@ -50,7 +51,11 @@ The ARK DIST can also be connected with UART and communicates over MAVLink sendi
 ARK DIST SR runs the [PX4 DroneCAN Firmware](px4_cannode_fw.md).
 As such, it supports firmware update over the CAN bus and [dynamic node allocation](index.md#node-id-allocation).
 
-### Enable DroneCAN
+## PX4 Configuration
+
+### DroneCAN
+
+#### Enable DroneCAN
 
 The steps are:
 
@@ -58,13 +63,11 @@ The steps are:
 - Connect ARK DIST SR CAN to the Pixhawk CAN.
 
 Once enabled, the module will be detected on boot.
-Distance sensor data should arrive at 40Hz
+Distance sensor data should arrive at 40Hz.
 
 DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enabling DroneCAN](../dronecan/index.md#enabling-dronecan).
 
-### PX4 Configuration
-
-#### CAN Configuration\
+#### CAN Configuration
 
 First set the parameters to [Enable DroneCAN](#enable-dronecan) (as shown above).
 
@@ -77,15 +80,18 @@ Set the following parameters in _QGroundControl_:
 - Set [UAVCAN_RNG_MIN](../advanced_config/parameter_reference.md#UAVCAN_RNG_MIN) to `0.08`.
 - Set [UAVCAN_RNG_MAX](../advanced_config/parameter_reference.md#UAVCAN_RNG_MAX) to `30`.
 
-#### UART/MAVLink Configuration
+See also [Distance Sensor/Range Finder in _DroneCAN > Subscriptions and Publications_](../dronecan/#distance-sensor-range-finder).
+
+### UART/MAVLink Configuration
+
+If connecting via a UART set the following parameters in _QGroundControl_:
 
 - Set [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) to the port the sensor is connected to.
-- Set [MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_X_FORWARD) to `0` (off).
-- Set [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_X_MODE) to `7` or `13` to (Minimal or Low Bandwidth) to reduce memory usage.
-- Set [SER_X_BAUD](../advanced_config/parameter_reference.md#SER_X_BAUD) to `115200`.
+- Set [MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_0_FORWARD) to `0` (off).
+- Set [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) to `7` or `13` to (Minimal or Low Bandwidth) to reduce memory usage.
+- Set `SER_XXX_BAUD` to `115200`, where `XXX` is specific to the port you are using (such as [SER_GPS2_BAUD](../advanced_config/parameter_reference.md#SER_GPS2_BAUD)).
 - Set [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX) to `30`.
 - Set [EKF2_RNG_QLTY_T](../advanced_config/parameter_reference.md#EKF2_RNG_QLTY_T) to `0.2`.
-
 
 ## See Also
 
