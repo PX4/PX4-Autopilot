@@ -54,6 +54,7 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
 
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/events.h>
 
 #include <uORB/topics/event.h>
@@ -82,6 +83,8 @@
 
 static pthread_mutex_t mavlink_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t mavlink_event_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
+static px4::atomic<int> mavlink_instance_count {0};
+
 events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
@@ -161,6 +164,7 @@ Mavlink::~Mavlink()
 
 	if (_instance_id >= 0) {
 		mavlink_module_instances[_instance_id] = nullptr;
+		mavlink_instance_count.fetch_sub(1);
 	}
 
 	// if this instance was responsible for checking events then select a new mavlink instance
@@ -265,6 +269,7 @@ Mavlink::set_instance_id()
 		if (mavlink_module_instances[instance_id] == nullptr) {
 			mavlink_module_instances[instance_id] = this;
 			_instance_id = instance_id;
+			mavlink_instance_count.fetch_add(1);
 			return true;
 		}
 	}
@@ -461,6 +466,11 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
 			target_component_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_component_ofs]);
 		}
+	}
+
+	// Avoid locking/iteration when there is no instance to forward to.
+	if (mavlink_instance_count.load() <= 1) {
+		return;
 	}
 
 	// If it's a message only for us, we keep it
