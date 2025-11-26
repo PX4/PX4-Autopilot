@@ -10,17 +10,13 @@ By default, the [Missing Data](#missing-data-check), [Data Stuck](#data-stuck-ch
 You can configure which checks are active using the [ASPD_DO_CHECKS](#aspd_do_checks_table) parameter.
 :::
 
-
 ## CAS Scale Estimation
 
-::: info
-Refer to the documentation on the Airspeed Scale [here](../config_fw/airspeed_scale_handling.md).
-:::
-
-The CAS scaling plays an important role in keeping the [innovation check](#innovation-check) reliable, since a well-estimated CAS is key to spotting inconsistencies between measured and predicted airspeed.
+Calibrated Airspeed (CAS) is the measured Indicated Airspeed (IAS) scaled to correct for sensor-specific and installation-related errors.
+CAS scaling plays an important role in keeping the [innovation check](#innovation-check) reliable, since a well-estimated CAS is key to spotting inconsistencies between measured and predicted airspeed.
 If the estimated CAS scale is inaccurate, it can mask real airspeed faults or trigger false positives.
 
-If you observe that the CAS scale estimate is consistently off, or if it is converging too slowly, follow the steps outlined [here](../config_fw/airspeed_scale_handling.md#recommended-first-flight-process).
+If you observe that the CAS scale estimate is consistently off, or if it is converging too slowly, follow the steps outlined in [Airspeed Scale Handling](../config_fw/airspeed_scale_handling.md#recommended-first-flight-process).
 
 ## Validation Checks
 
