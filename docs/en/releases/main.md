@@ -76,6 +76,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - TBD
 
+### RC
+
+- Parse ELRS Status and Link Statistics TX messages in the CRSF parser.
+
 ### Multi-Rotor
 
 - Removed parameters `MPC_{XY/Z/YAW}_MAN_EXPO` and use default value instead, as they were not deemed necessary anymore. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise](https://github.com/PX4/PX4-Autopilot/pull/25435)).

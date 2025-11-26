@@ -10,6 +10,48 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
 
 <!-- markdown generator: src/lib/parameters/px4params/markdownout.py -->
 
+## ADC
+
+### ADC_ADS7953_EN (`INT32`) {#ADC_ADS7953_EN}
+
+Enable ADS7953.
+
+Enable the driver for the ADS7953 board
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
+
+### ADC_ADS7953_REFV (`FLOAT`) {#ADC_ADS7953_REFV}
+
+Applied reference Voltage.
+
+The voltage applied to the ADS7953 board as reference
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 2.0      | 3.0      | 0.01      | 2.5     | V    |
+
+### ADC_TLA2528_EN (`INT32`) {#ADC_TLA2528_EN}
+
+Enable TLA2528.
+
+Enable the driver for the TLA2528
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
+
+### ADC_TLA2528_REFV (`FLOAT`) {#ADC_TLA2528_REFV}
+
+Applied reference Voltage.
+
+The voltage applied to the TLA2528 board as reference
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 2.0      | 3.0      | 0.01      | 2.5     | V    |
+
 ## ADSB
 
 ### ADSB_CALLSIGN_1 (`INT32`) {#ADSB_CALLSIGN_1}
@@ -13955,9 +13997,9 @@ Scale of airspeed sensor 1.
 
 This is the scale IAS --> CAS of the first airspeed sensor instance
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0.5      | 2.0      |           | 1.0     |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.5      | 2.0      |           | 1.0     |
 
 ### ASPD_SCALE_2 (`FLOAT`) {#ASPD_SCALE_2}
 
@@ -13965,9 +14007,9 @@ Scale of airspeed sensor 2.
 
 This is the scale IAS --> CAS of the second airspeed sensor instance
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0.5      | 2.0      |           | 1.0     |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.5      | 2.0      |           | 1.0     |
 
 ### ASPD_SCALE_3 (`FLOAT`) {#ASPD_SCALE_3}
 
@@ -13975,9 +14017,9 @@ Scale of airspeed sensor 3.
 
 This is the scale IAS --> CAS of the third airspeed sensor instance
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0.5      | 2.0      |           | 1.0     |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.5      | 2.0      |           | 1.0     |
 
 ### ASPD_SCALE_APPLY (`INT32`) {#ASPD_SCALE_APPLY}
 
@@ -17165,7 +17207,9 @@ Set bits in the following positions to enable: 0 : Longitude and latitude fusion
 
 ### EKF2_GPS_DELAY (`FLOAT`) {#EKF2_GPS_DELAY}
 
-GPS measurement delay relative to IMU measurements.
+GPS measurement delay relative to IMU measurement.
+
+GPS measurement delay relative to IMU measurement if PPS time correction is not available/enabled (PPS_CAP_ENABLE).
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -17175,7 +17219,7 @@ GPS measurement delay relative to IMU measurements.
 
 Fusion reset mode.
 
-Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+Automatic: reset on fusion timeout if no other source of position is available. Dead-reckoning: reset on fusion timeout if no source of velocity is available.
 
 **Values:**
 
@@ -33105,6 +33149,14 @@ Maxbotix Sonar (mb12xx).
 | ------- | -------- | -------- | --------- | ------------ | ---- |
 | &check; |          |          |           | Disabled (0) |
 
+### SENS_EN_MCP9808 (`INT32`) {#SENS_EN_MCP9808}
+
+Enable MCP9808 temperature sensor (external I2C).
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
+
 ### SENS_EN_MPDT (`INT32`) {#SENS_EN_MPDT}
 
 Enable Mappydot rangefinder (i2c).
@@ -39432,6 +39484,14 @@ Maximum time (in seconds) before resetting setpoint.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 2.0     |
 
+### UUV_STICK_MODE (`INT32`) {#UUV_STICK_MODE}
+
+Stick mode selector (0=Heave/sway control, roll/pitch leveled; 1=Pitch/roll control).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1        |           | 0       |
+
 ### UUV_THRUST_SAT (`FLOAT`) {#UUV_THRUST_SAT}
 
 UUV Thrust setpoint Saturation.
@@ -40135,7 +40195,7 @@ Time in seconds it takes to tilt form VT_TILT_FW to VT_TILT_MC.
 
 ### VT_B_DEC_I (`FLOAT`) {#VT_B_DEC_I}
 
-Backtransition deceleration setpoint to pitch I gain.
+Backtransition deceleration setpoint to tilt I gain.
 
 | Reboot | minValue | maxValue | increment | default | unit    |
 | ------ | -------- | -------- | --------- | ------- | ------- |
@@ -40353,7 +40413,7 @@ During landing it can be beneficial to reduce the pitch angle to reduce the gene
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -10.0    | 45.0     | 0.1       | -5.0    | deg  |
+| &nbsp; | -10.0    | 45.0     | 0.1       | 0.0     | deg  |
 
 ### VT_PITCH_MIN (`FLOAT`) {#VT_PITCH_MIN}
 
@@ -40364,7 +40424,7 @@ VT_FWD_TRHUST_EN is set.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -10.0    | 45.0     | 0.1       | -5.0    | deg  |
+| &nbsp; | -10.0    | 45.0     | 0.1       | 0.0     | deg  |
 
 ### VT_PSHER_SLEW (`FLOAT`) {#VT_PSHER_SLEW}
 

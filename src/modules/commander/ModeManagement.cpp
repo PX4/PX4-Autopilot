@@ -232,6 +232,7 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 		static_assert(sizeof(request.name) == sizeof(reply.name), "size mismatch");
 		memcpy(reply.name, request.name, sizeof(request.name));
 		reply.request_id = request.request_id;
+		reply.not_user_selectable = request.not_user_selectable;
 		reply.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
 
 		// validate
