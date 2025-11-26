@@ -199,18 +199,6 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 3);
 
 /**
- * Manual control input arm/disarm command duration
- *
- * The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
- *
- * @group Commander
- * @min 100
- * @max 1500
- * @unit ms
- */
-PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
-
-/**
  * Time-out for auto disarm after landing
  *
  * A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
@@ -260,8 +248,7 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
  * Arm switch is a momentary button
  *
  * 0: Arming/disarming triggers on switch transition.
- * 1: Arming/disarming triggers when holding the momentary button down
- * for COM_RC_ARM_HYST like the stick gesture.
+ * 1: Arming/disarming triggers when holding the momentary button down like the stick gesture.
  *
  * @group Commander
  * @boolean
