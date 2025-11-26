@@ -28,3 +28,7 @@ param set-default IMU_2_ID 3014666 # ICM45686
 
 param set-default IMU_1_TEMP 48.0
 param set-default IMU_2_TEMP 42.0 # ICM45686 high temperature will accelerate oldering
+
+# run two heater instances
+heater start -i 1
+heater start -i 2
