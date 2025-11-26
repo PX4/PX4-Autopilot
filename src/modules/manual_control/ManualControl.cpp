@@ -309,9 +309,9 @@ void ManualControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
-	_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
-	_button_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+	_stick_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
+	_stick_disarm_hysteresis.set_hysteresis_time_from(false, 1_s);
+	_button_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
 	_stick_kill_hysteresis.set_hysteresis_time_from(false, _param_man_kill_gest_t.get() * 1_s);
 
 	_selector.setRcInMode(_param_com_rc_in_mode.get());
