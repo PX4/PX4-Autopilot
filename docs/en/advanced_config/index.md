@@ -32,6 +32,7 @@ This topic lists configuration topics that are not particularly vehicle specific
 
 - [Bootloader Update](../advanced_config/bootloader_update.md)
   - [Bootloader Update FMUv6X-RT via USB](../advanced_config/bootloader_update_v6xrt.md)
+  - [Secure Boot and Firmware Signature Verification](../advanced_config/bootloader_secure_boot.md)
 
 ## See Also
 
