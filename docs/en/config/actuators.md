@@ -159,7 +159,8 @@ The fields are:
 - `Yaw Torque`: Effectiveness of actuator around yaw axis (normalised: -1 to 1).
   [Generally you should use the default actuator value](#actuator-roll-pitch-and-yaw-scaling).
 - `Trim`: An offset added to the actuator so that it is centered without input.
-  This might be determined by trial and error. Prefer using the improved `PWM_CENT` instead: [PWM control surfaces](./actuators.md#pwm-control-surfaces-that-move-both-directions-about-a-neutral-point)
+  This might be determined by trial and error.
+  Prefer using the improved `PWM_CENT` instead: [PWM control surfaces](actuators.md#pwm-control-surfaces-that-move-both-directions-about-a-neutral-point).
 - <a id="slew_rate"></a>(Advanced) `Slew Rate`: Limits the minimum time in which the motor/servo signal is allowed to pass through its full output range, in seconds.
   - The setting limits the rate of change of an actuator (if not specified then no rate limit is applied).
     It is intended for actuators that may be damaged or cause flight disturbance if they move too fast — such as the tilting actuators on a tiltrotor VTOL vehicle, or fast moving flaps, respectively.
@@ -537,26 +538,27 @@ If a high rate servo is _really_ needed, DShot offers better value.
 
 ##### PWM: Control surfaces that move both directions about a neutral point
 
-To facilitate setting the neutral point of the servos, a bilinear curve function can be defined using the following parameters `PWM_MAIM_CENTx` / `PWM_AUX_CENTx` for each servo. This allows for unequal deflections in the positive and negative direction:
-![Asymetric Servo Deflections](../../assets/config/actuators/servo_pwm_center.png)
+To facilitate setting the neutral point of the servos, a bilinear curve function can be defined using the following parameters `PWM_MAIN_CENTx` / `PWM_AUX_CENTx` for each servo. This allows for unequal deflections in the positive and negative direction:
+
+![Asymmetric Servo Deflections](../../assets/config/actuators/servo_pwm_center.png)
 
 To set this up:
 
 1. Set all surface `Trim` to `0.00` for all surfaces:
 
-     ![PWM Trimming](../../assets/config/actuators/control_surface_trim.png)
+   ![PWM Trimming](../../assets/config/actuators/control_surface_trim.png)
 
-1. Set the `PWM_MAIN_CENTx` / `PWM_AUX_CENTx` value so that the surface will stay at the neutral (aligned with airfoil) position.
-This is usually around `1500` for PWM servos (near the center of the servo range).
+2. Set the `PWM_MAIN_CENTx` / `PWM_AUX_CENTx` value so that the surface will stay at the neutral (aligned with airfoil) position.
+   This is usually around `1500` for PWM servos (near the center of the servo range).
 
-![Control Surface Trimming](../../assets/config/actuators/pwm_center_output.png)
+   ![Control Surface Trimming](../../assets/config/actuators/pwm_center_output.png)
 
-2. Gradualy increase the `Maximum` for each servo until the desired deflection is reached. Check the deflection with a remote manual mode while  [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) is set to `Always` or use the sliders.
-3. Gradualy decrease the `Minimum` for each servo, until the desired deflection is reached.
-4. Set `Disarmed` value to the desired value. It is usually desirable to have it the same as the `Center` value.
+3. Gradually increase the `Maximum` for each servo until the desired deflection is reached. Check the deflection with a remote manual mode while [`COM_PREARM_MODE`](../advanced_config/parameter_reference.md#COM_PREARM_MODE) is set to `Always` or use the sliders.
+4. Gradually decrease the `Minimum` for each servo, until the desired deflection is reached.
+5. Set `Disarmed` value to the desired value. It is usually desirable to have it the same as the `Center` value.
 
 ::: info
-If you want to retain the linear behaviour of the servo after setting the `Center`, make sure to adjust the `Minimum` or `Maximum`, such that both invervals (`min` to `cent` & `cent` to `max`) are equally lare.
+If you want to retain the linear behaviour of the servo after setting the `Center`, make sure to adjust the `Minimum` or `Maximum`, such that both intervals (`min` to `cent` & `cent` to `max`) are equally large.
 
 ![Linear PWM Adjustment](../../assets/config/actuators/servo_pwm_linear.png)
 :::
@@ -587,15 +589,12 @@ To set these up:
 3. Move the slider again to the middle and check if the Control Surfaces are aligned in the neutral position of the wing.
    - If it is not aligned, you can set the **Trim** value for the control surface.
 
-    ::: info
-    This is done in the `Trim` setting of the Geometry panel, usually by "trial and error".
-    ![Control Surface Trimming](../../assets/config/actuators/control_surface_trim.png)
-    :::
-
+   ::: info
+   This is done in the `Trim` setting of the Geometry panel, usually by "trial and error".
+   ![Control Surface Trimming](../../assets/config/actuators/control_surface_trim.png)
+   :::
    - After setting the trim for a control surface, move its slider away from the centre, release, and then back into disarmed (middle) position.
      Confirm that surface is in the neutral position.
-
-
 
 ::: tip
 If any servo has a `PWM_MAIN_CENTx` or `PWM_AUX_CENTx` not set to default (-1), the system will automatically remove `Trim` from all surfaces. This is done to prevent mixing of old and new trimming tools.
@@ -608,8 +607,6 @@ Another way to test without using the sliders would be to set the [`COM_PREARM_M
 - You can try setting different values for the Trim and check the alignment, and then settle on the value you are happy with.
 
 :::
-
-
 
 #### Control surfaces that move from neutral to full deflection
 
@@ -671,7 +668,9 @@ For each of the tilt servos:
   - Tailsitters do not turn off any motors in fixed-wing flight
 - The following formula can be used to migrate from surface trim to PWM trim:
 
-  `PWM_MAIN_CENTx = ((PWM_MAX - PWM_MIN) / 2) * CA_SV_CSx_TRIM + PWM_MIN + ((PWM_MAX - PWM_MIN) / 2)`
+  ```plain
+  PWM_MAIN_CENTx = ((PWM_MAX - PWM_MIN) / 2) * CA_SV_CSx_TRIM + PWM_MIN + ((PWM_MAX - PWM_MIN) / 2)
+  ```
 
 ### Reversing Motors
 
