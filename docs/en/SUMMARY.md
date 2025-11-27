@@ -61,6 +61,7 @@
     - [Auto-tune](config/autotune_fw.md)
     - [Rate/Attitude Controller Tuning Guide](config_fw/pid_tuning_guide_fixedwing.md)
     - [Altitude/Position Controller Tuning Guide](config_fw/position_tuning_guide_fixedwing.md)
+    - [Airspeed Scale Estimate Handling](config_fw/airspeed_scale_handling.md)
     - [Weight & Altitude Tuning](config_fw/weight_and_altitude_tuning.md)
     - [Trimming Guide](config_fw/trimming_guide_fixedwing.md)
   - [Flying (Basics)](flying/basic_flying_fw.md)
