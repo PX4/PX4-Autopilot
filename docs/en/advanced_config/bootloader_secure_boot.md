@@ -310,7 +310,7 @@ The secure boot implementation consists of:
 
 - [Bootloader Update](bootloader_update.md) - Updating the bootloader itself
 - [Building PX4 Software](../dev_setup/building_px4.md) - Build system information
-- [Board Support Packages](../dev_setup/board_support_packages.md) - Creating custom boards
+- [Board Support Guide](../hardware/board_support_guide.md) - Creating custom boards
 
 ## References
 
