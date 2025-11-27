@@ -45,6 +45,7 @@ extern "C" int mcp23017_main(int argc, char *argv[])
 	const char *name = "MCP23017";
 
 	int ch;
+
 	while ((ch = cli.getOpt(argc, argv, "D:O:P:U:R:M:")) != EOF) {
 		switch (ch) {
 
