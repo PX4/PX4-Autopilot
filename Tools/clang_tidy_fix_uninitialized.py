@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fix uninitialized member variables using clang-tidy.
+Zero initialize and default construct variables using clang-tidy.
 Only modifies files within the specified directory.
 
 Usage: ./Tools/clang_tidy_fix_uninitialized.py <path>
