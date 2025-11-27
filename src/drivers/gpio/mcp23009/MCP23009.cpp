@@ -49,48 +49,48 @@ void MCP23009::set_params()
 int MCP23009::get_olat(int bank, uint8_t *addr)
 {
 	switch (bank) {
-		case 0:
-			*addr = (uint8_t) Register::OLAT;
-			return PX4_OK;
+	case 0:
+		*addr = (uint8_t) Register::OLAT;
+		return PX4_OK;
 
-		default:
-			return PX4_ERROR;
+	default:
+		return PX4_ERROR;
 	}
 }
 
 int MCP23009::get_gppu(int bank, uint8_t *addr)
 {
 	switch (bank) {
-		case 0:
-			*addr = (uint8_t) Register::GPPU;
-			return PX4_OK;
+	case 0:
+		*addr = (uint8_t) Register::GPPU;
+		return PX4_OK;
 
-		default:
-			return PX4_ERROR;
+	default:
+		return PX4_ERROR;
 	}
 }
 
 int MCP23009::get_iodir(int bank, uint8_t *addr)
 {
 	switch (bank) {
-		case 0:
-			*addr = (uint8_t) Register::IODIR;
-			return PX4_OK;
+	case 0:
+		*addr = (uint8_t) Register::IODIR;
+		return PX4_OK;
 
-		default:
-			return PX4_ERROR;
+	default:
+		return PX4_ERROR;
 	}
 }
 
 int MCP23009::get_gpio(int bank, uint8_t *addr)
 {
 	switch (bank) {
-		case 0:
-			*addr = (uint8_t) Register::GPIO;
-			return PX4_OK;
+	case 0:
+		*addr = (uint8_t) Register::GPIO;
+		return PX4_OK;
 
-		default:
-			return PX4_ERROR;
+	default:
+		return PX4_ERROR;
 	}
 }
 

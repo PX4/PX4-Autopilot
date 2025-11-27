@@ -39,38 +39,41 @@ extern "C" int mcp23017_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = 0x27;
-	init_config_t config_data{};
 
-	int ch;
+	MCP230XX_config_t mcp_config{};
 	uint16_t device_type = DRV_GPIO_DEVTYPE_MCP23017;
 	const char *name = "MCP23017";
 
+	int ch;
 	while ((ch = cli.getOpt(argc, argv, "D:O:P:U:R:M:")) != EOF) {
 		switch (ch) {
 
 		case 'D':
-			config_data.direction = (int)strtol(cli.optArg(), nullptr, 0);
+			mcp_config.direction = (int)strtol(cli.optArg(), nullptr, 0);
 			break;
 
 		case 'O':
-			config_data.state = (int)strtol(cli.optArg(), nullptr, 0);
+			mcp_config.state = (int)strtol(cli.optArg(), nullptr, 0);
 			break;
 
 		case 'P':
-			config_data.pullup = (int)strtol(cli.optArg(), nullptr, 0);
+			mcp_config.pullup = (int)strtol(cli.optArg(), nullptr, 0);
 			break;
 
 		case 'U':
-			config_data.interval = atoi(cli.optArg());
+			mcp_config.interval = (uint16_t)atoi(cli.optArg());
 			break;
 
 		case 'M':
-			config_data.first_minor = (uint8_t)atoi(cli.optArg());
+			mcp_config.first_minor = (uint8_t)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	config_data.i2c_bus = cli.requested_bus;
+	mcp_config.i2c_bus = cli.requested_bus;
+	mcp_config.i2c_addr = cli.i2c_address;
+	mcp_config.device_type = device_type;
+
 	const char *verb = cli.optArg();
 
 	if (!verb) {
@@ -78,7 +81,8 @@ extern "C" int mcp23017_main(int argc, char *argv[])
 		return -1;
 	}
 
-	cli.custom_data = &config_data;
+	cli.custom_data = &mcp_config;
+
 	BusInstanceIterator iterator(name, cli, device_type);
 
 	if (!strcmp(verb, "start")) {

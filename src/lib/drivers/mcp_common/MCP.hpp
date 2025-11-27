@@ -30,7 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 #pragma once
 
 #include <stdint.h>
@@ -41,6 +40,7 @@
 #include <uORB/topics/gpio_out.h>
 #include <uORB/topics/gpio_request.h>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
@@ -62,26 +62,18 @@ PinType : uint8_t {
 };
 
 struct MCP230XX_config_t {
-  uint16_t device_type;
-  uint8_t bus;
-  uint8_t i2c_addr;
-  uint8_t first_minor = 0;
-  uint8_t num_pins = 8;
-  int num_banks = 1;
-  uint16_t interval = 10;
-  mcp_gpio_dev_s _gpio_handle[16];
-};
-
-struct init_config_t {
 	uint16_t device_type;
+	uint8_t i2c_addr = 0;
+	uint8_t i2c_bus = 0;
+	uint8_t first_minor = 0;
+	uint8_t num_pins = 8;
+	int num_banks = 1;
+	uint16_t interval = 10;
+	mcp_gpio_dev_s _gpio_handle[16];
 
 	uint16_t direction = 0xFFFF;
 	uint16_t state = 0x0000;
 	uint16_t pullup = 0x0000;
-	uint16_t interval = 10;
-	int first_minor = 0;
-	uint8_t i2c_addr = 0;
-	uint8_t i2c_bus = 0;
 };
 
 class MCP230XX :  public device::I2C, public I2CSPIDriver<MCP230XX>
@@ -104,7 +96,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _gpio_out_sub{this, ORB_ID(gpio_out)};
 	uORB::SubscriptionCallbackWorkItem _gpio_request_sub{this, ORB_ID(gpio_request)};
 	uORB::SubscriptionCallbackWorkItem _gpio_config_sub{this, ORB_ID(gpio_config)};
-	uORB::Publication<gpio_in_s> _to_gpio_in{ORB_ID(gpio_in)};
+	uORB::PublicationMulti<gpio_in_s> _to_gpio_in{ORB_ID(gpio_in)};
 
 	perf_counter_t _cycle_perf;
 	perf_counter_t _comms_errors;

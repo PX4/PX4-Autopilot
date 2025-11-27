@@ -122,7 +122,8 @@ static const struct gpio_operations_s mcp_gpio_ops {
 };
 
 // ----------------------------------------------------------------------------
-int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask, int num_pins, uint8_t device_type, mcp_gpio_dev_s *_gpio)
+int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask, int num_pins, uint8_t device_type,
+			    mcp_gpio_dev_s *_gpio)
 {
 	for (int i = 0; i < num_pins; i++) {
 		uint16_t mask = 1u << i;

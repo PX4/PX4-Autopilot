@@ -49,58 +49,64 @@ void MCP23017::set_params()
 int MCP23017::get_olat(int bank, uint8_t *addr)
 {
 	switch (bank) {
-		case 0:
-			*addr = (uint8_t) Register::OLATA;
-			return PX4_OK;
-		case 1:
-			*addr = (uint8_t) Register::OLATB;
-			return PX4_OK;
-		default:
-			return PX4_ERROR;
+	case 0:
+		*addr = (uint8_t) Register::OLATA;
+		return PX4_OK;
+
+	case 1:
+		*addr = (uint8_t) Register::OLATB;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
 	}
 }
 
 int MCP23017::get_gppu(int bank, uint8_t *addr)
 {
 	switch (bank) {
-		case 0:
-			*addr = (uint8_t) Register::GPPUA;
-			return PX4_OK;
-		case 1:
-			*addr = (uint8_t) Register::GPPUB;
-			return PX4_OK;
-		default:
-			return PX4_ERROR;
+	case 0:
+		*addr = (uint8_t) Register::GPPUA;
+		return PX4_OK;
+
+	case 1:
+		*addr = (uint8_t) Register::GPPUB;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
 	}
 }
 
 int MCP23017::get_iodir(int bank, uint8_t *addr)
 {
 	switch (bank) {
-		case 0:
-			*addr = (uint8_t) Register::IODIRA;
-			return PX4_OK;
+	case 0:
+		*addr = (uint8_t) Register::IODIRA;
+		return PX4_OK;
 
-		case 1:
-			*addr = (uint8_t) Register::IODIRB;
-			return PX4_OK;
-		default:
-			return PX4_ERROR;
+	case 1:
+		*addr = (uint8_t) Register::IODIRB;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
 	}
 }
 
 int MCP23017::get_gpio(int bank, uint8_t *addr)
 {
 	switch (bank) {
-		case 0:
-			*addr = (uint8_t) Register::GPIOA;
-			return PX4_OK;
+	case 0:
+		*addr = (uint8_t) Register::GPIOA;
+		return PX4_OK;
 
-		case 1:
-			*addr = (uint8_t) Register::GPIOB;
-			return PX4_OK;
-		default:
-			return PX4_ERROR;
+	case 1:
+		*addr = (uint8_t) Register::GPIOB;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
 	}
 }
 
