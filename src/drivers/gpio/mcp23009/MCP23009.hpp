@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,13 +41,6 @@ public:
 	MCP23009(const I2CSPIDriverConfig &config);
 
 private:
-	void set_params() override;
-	int get_olat(int bank, uint8_t *addr) override;
-	int get_gppu(int bank, uint8_t *addr) override;
-	int get_iodir(int bank, uint8_t *addr) override;
-	int get_gpio(int bank, uint8_t *addr) override;
-	int get_probe_reg(uint8_t *addr) override;
-
 	enum class
 	Register : uint8_t {
 		IODIR   = 0x00,
@@ -63,4 +56,10 @@ private:
 		OLAT    = 0x0a
 	};
 
+	void set_params() override;
+	int get_olat(int bank, uint8_t *addr) override;
+	int get_gppu(int bank, uint8_t *addr) override;
+	int get_iodir(int bank, uint8_t *addr) override;
+	int get_gpio(int bank, uint8_t *addr) override;
+	int get_probe_reg(uint8_t *addr) override;
 };

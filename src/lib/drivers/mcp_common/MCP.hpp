@@ -47,7 +47,6 @@
 #include <px4_platform/gpio/mcp23017.hpp>
 #include <px4_platform/gpio/mcp.hpp>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/getopt.h>
 
 using namespace time_literals;
 

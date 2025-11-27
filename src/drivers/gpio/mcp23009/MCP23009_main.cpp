@@ -30,7 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <lib/drivers/mcp_common/MCP.hpp>
 #include "MCP23009.hpp"
 
 extern "C" int mcp23009_main(int argc, char *argv[])

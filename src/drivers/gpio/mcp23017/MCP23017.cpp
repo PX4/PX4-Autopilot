@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@ MCP23017::MCP23017(const I2CSPIDriverConfig &config) :
 void MCP23017::set_params()
 {
 	mcp_config.num_pins = 16;
-	mcp_config. num_banks = 2;
+	mcp_config.num_banks = 2;
 	mcp_config.device_type = DRV_GPIO_DEVTYPE_MCP23017;
 	mcp_config.i2c_addr = I2C_ADDRESS_MCP23017;
 	return;
