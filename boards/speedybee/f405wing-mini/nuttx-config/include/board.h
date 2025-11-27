@@ -325,7 +325,15 @@
  *   reset the bus to clear stuck slaves.  They match the pin configuration,
  *   but are normally-high GPIOs.
  */
-#define GPIO_I2C1_SCL		GPIO_I2C1_SCL_2
-#define GPIO_I2C1_SDA		GPIO_I2C1_SDA_2
+#define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */
+#define GPIO_I2C1_SDA GPIO_I2C1_SDA_2       /* PB9  */
+
+#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN8)
+#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN9)
+
+# define PROBE_INIT(mask)
+# define PROBE(n,s)
+# define PROBE_MARK(n)
+
 
 #endif  /* __CONFIG_OMNIBUSF4SD_INCLUDE_BOARD_H */

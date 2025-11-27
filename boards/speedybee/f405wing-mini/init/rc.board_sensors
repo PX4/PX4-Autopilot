@@ -7,4 +7,8 @@ board_adc start
 
 icm42688p -s -R 4 start
 
-spl06 -b 1 start
+spl06 -I -a 0x76 start
+
+#rm3100 -X -q start
+
+ms4525do start -I
