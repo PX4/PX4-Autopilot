@@ -5,8 +5,12 @@
 # @type VTOL Tailsitter
 # @class VTOL
 #
+# @maintainer Manas Rajendran <rmanas@tamu.edu>
+#
 
 . ${R}etc/init.d/rc.vtol_defaults
+
+
 
 param set-default EKF2_FUSE_BETA 0 # side slip fusion is currently not supported for tailsitters
 
