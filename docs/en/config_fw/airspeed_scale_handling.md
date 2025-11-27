@@ -34,7 +34,7 @@ A GNSS is required for scale estimation.
 
 PX4 uses a two-stage approach to robustly estimate the scale:
 
-1. **Continuous EKF Estimation**: A wind estimator constantly compares your measured airspeed against what it expects based on ground velocity (from GPS) and estimated wind.
+1. **Continuous EKF Estimation**: A wind estimator constantly compares your measured airspeed against what it expects based on ground velocity (from GNSS) and estimated wind.
    If there's a consistent bias, it adjusts the scale estimate.
    The estimated scale is logged in the `AirspeedWind.msg` as the `tas_scale_raw`.
 2. **Validation**: To ensure robustness, PX4 collects airspeed and ground speed data across 12 different heading segments (every 30°).
