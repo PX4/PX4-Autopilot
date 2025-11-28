@@ -932,6 +932,11 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	mavlink_set_mode_t new_mode;
 	mavlink_msg_set_mode_decode(msg, &new_mode);
 
+	// Check target
+	if (new_mode.target_system != 0 && new_mode.target_system != _mavlink.get_system_id()) {
+		return;
+	}
+
 	union px4_custom_mode custom_mode;
 	custom_mode.data = new_mode.custom_mode;
 
