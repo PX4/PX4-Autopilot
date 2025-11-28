@@ -30,16 +30,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 #pragma once
 
 #include <stdint.h>
 #include <nuttx/config.h>
 #include <nuttx/ioexpander/gpio.h>
+#include <lib/drivers/mcp_common/CallbackHandler.hpp>
 
 struct mcp_gpio_dev_s {
 	struct gpio_dev_s gpio;
 	uint16_t mask;
+	CallbackHandler *callback_handler;
 };
 
 int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor = 0, uint16_t dir_mask = 0x0000, int num_pins = 8,

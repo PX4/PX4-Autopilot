@@ -52,7 +52,6 @@ MCP230XX::~MCP230XX()
 int MCP230XX::init_uorb()
 {
 	if (!_gpio_config_sub.registerCallback() ||
-	    !_gpio_request_sub.registerCallback() ||
 	    !_gpio_out_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return -1;
@@ -64,9 +63,7 @@ int MCP230XX::init_uorb()
 void MCP230XX::cleanup_uorb()
 {
 	_gpio_config_sub.unregisterCallback();
-	_gpio_request_sub.unregisterCallback();
 	_gpio_out_sub.unregisterCallback();
-
 	mcp230XX_unregister_gpios(mcp_config.first_minor, mcp_config.num_pins, mcp_config._gpio_handle);
 }
 

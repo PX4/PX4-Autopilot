@@ -38,17 +38,13 @@
 #include <uORB/topics/gpio_config.h>
 #include <uORB/topics/gpio_in.h>
 #include <uORB/topics/gpio_out.h>
-#include <uORB/topics/gpio_request.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
-#include <px4_platform/gpio/mcp23017.hpp>
 #include <px4_platform/gpio/mcp.hpp>
 #include <px4_platform_common/module.h>
-
-using namespace time_literals;
 
 static constexpr uint8_t I2C_ADDRESS_MCP23009 = 0x25;
 static constexpr uint8_t I2C_ADDRESS_MCP23017 = 0x27;
@@ -69,6 +65,7 @@ struct MCP230XX_config_t {
 	int num_banks = 1;
 	uint16_t interval = 10;
 	mcp_gpio_dev_s _gpio_handle[16];
+	CallbackHandler *_callback_handler = nullptr;
 
 	uint16_t direction = 0xFFFF;
 	uint16_t state = 0x0000;
@@ -93,7 +90,6 @@ protected:
 
 private:
 	uORB::SubscriptionCallbackWorkItem _gpio_out_sub{this, ORB_ID(gpio_out)};
-	uORB::SubscriptionCallbackWorkItem _gpio_request_sub{this, ORB_ID(gpio_request)};
 	uORB::SubscriptionCallbackWorkItem _gpio_config_sub{this, ORB_ID(gpio_config)};
 	uORB::PublicationMulti<gpio_in_s> _to_gpio_in{ORB_ID(gpio_in)};
 

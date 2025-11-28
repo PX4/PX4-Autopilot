@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,10 +30,32 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 #pragma once
 
 #include <stdint.h>
+#include <uORB/topics/gpio_in.h>
+#include <uORB/SubscriptionCallback.hpp>
 
-int mcp23009_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor = 0, uint16_t dir_mask = 0x00);
-int mcp23009_unregister_gpios(int first_minor = 0);
+class CallbackHandler : public uORB::SubscriptionCallback
+{
+public:
+	uint32_t dev_id;
+	uint16_t input;
+
+	CallbackHandler(orb_id_t id) : uORB::SubscriptionCallback(id) {}
+	virtual ~CallbackHandler() {}
+
+	void call() override
+	{
+		px4::msg::GpioIn new_input;
+		for(int i=0; i<new_input.MAX_INSTANCES; i++){
+			ChangeInstance(i);
+			if (update(&new_input) && new_input.device_id == dev_id) {
+				input = new_input.state;
+			}
+		}
+	}
+};
+
+
+

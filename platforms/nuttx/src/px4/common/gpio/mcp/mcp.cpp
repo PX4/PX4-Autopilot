@@ -30,65 +30,41 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 #include <nuttx/ioexpander/gpio.h>
 #include <lib/drivers/device/Device.hpp>
 #include <px4_platform/gpio/mcp.hpp>
 #include <uORB/topics/gpio_config.h>
-#include <uORB/topics/gpio_in.h>
 #include <uORB/topics/gpio_out.h>
-#include <uORB/topics/gpio_request.h>
-#include <uORB/Publication.hpp>
-#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <drivers/drv_hrt.h>
 
-static uint32_t DEVID{0};
-
-/* Copy the read input data */
-class ReadCallback : public uORB::SubscriptionCallback
-{
-public:
-	using SubscriptionCallback::SubscriptionCallback;
-
-	void call() override
-	{
-		px4::msg::GpioIn new_input;
-
-		if (update(&new_input) && new_input.device_id == DEVID) {
-			input = new_input.state;
-		}
-	}
-	uint16_t input;
-};
-
-static uORB::Publication<px4::msg::GpioRequest> toGpioRequest{ORB_ID(gpio_request)};
-static ReadCallback fromGpioIn{ORB_ID(gpio_in)};
 static int mcp230XX_read(struct gpio_dev_s *dev, bool *value)
 {
 	mcp_gpio_dev_s *gpio = (struct mcp_gpio_dev_s *)dev;
-	*value = fromGpioIn.input & gpio->mask;
+	*value = gpio->callback_handler->input & gpio->mask;
 	return OK;
 }
 
-static uORB::Publication<gpio_out_s> toGpioOut{ORB_ID(gpio_out)};
+static uORB::PublicationMulti<gpio_out_s> toGpioOut{ORB_ID(gpio_out)};
 static int mcp230XX_write(struct gpio_dev_s *dev, bool value)
 {
 	mcp_gpio_dev_s *gpio = (struct mcp_gpio_dev_s *)dev;
 	gpio_out_s msg{
 		hrt_absolute_time(),
-		DEVID,
+		gpio->callback_handler->dev_id,
 		gpio->mask,			// clear mask
 		value ? gpio->mask : 0u,	// set mask
 	};
 	return toGpioOut.publish(msg) ? OK : -ETIMEDOUT;
 }
 
-static uORB::Publication<gpio_config_s> toGpioConfig{ORB_ID(gpio_config)};
+static uORB::PublicationMulti<gpio_config_s> toGpioConfig{ORB_ID(gpio_config)};
 static int mcp230XX_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pintype)
 {
 	mcp_gpio_dev_s *gpio = (struct mcp_gpio_dev_s *)dev;
 	gpio_config_s msg{
 		hrt_absolute_time(),
-		DEVID,
+		gpio->callback_handler->dev_id,
 		gpio->mask,
 	};
 
@@ -112,7 +88,6 @@ static int mcp230XX_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pinty
 	return toGpioConfig.publish(msg) ? OK : -ETIMEDOUT;
 }
 
-// ----------------------------------------------------------------------------
 static const struct gpio_operations_s mcp_gpio_ops {
 	mcp230XX_read,
 	mcp230XX_write,
@@ -121,24 +96,24 @@ static const struct gpio_operations_s mcp_gpio_ops {
 	mcp230XX_setpintype,
 };
 
-// ----------------------------------------------------------------------------
 int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask, int num_pins, uint8_t device_type,
 			    mcp_gpio_dev_s *_gpio)
 {
+	const auto device_id = device::Device::DeviceId{device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, device_type};
+	CallbackHandler *callback_handler = new CallbackHandler(ORB_ID(gpio_in));
+	callback_handler->dev_id = device_id.devid;
+
 	for (int i = 0; i < num_pins; i++) {
 		uint16_t mask = 1u << i;
 
 		if (dir_mask & mask) {
-			_gpio[i] = { {GPIO_INPUT_PIN, {}, &mcp_gpio_ops}, mask };
+			_gpio[i] = { {GPIO_INPUT_PIN, {}, &mcp_gpio_ops}, mask, callback_handler };
 
 		} else {
-			_gpio[i] = { {GPIO_OUTPUT_PIN, {}, &mcp_gpio_ops}, mask };
+			_gpio[i] = { {GPIO_OUTPUT_PIN, {}, &mcp_gpio_ops}, mask, callback_handler };
 		}
 	}
 
-	const auto device_id = device::Device::DeviceId{
-		device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, device_type};
-	DEVID = device_id.devid;
 
 	for (int i = 0; i < num_pins; ++i) {
 		int ret = gpio_pin_register(&_gpio[i].gpio, first_minor + i);
@@ -148,7 +123,7 @@ int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, 
 		}
 	}
 
-	fromGpioIn.registerCallback();
+	callback_handler->registerCallback();
 	return OK;
 }
 
@@ -159,6 +134,15 @@ int mcp230XX_unregister_gpios(int first_minor, int num_pins, mcp_gpio_dev_s *_gp
 		gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
 	}
 
-	fromGpioIn.unregisterCallback();
+	if(_gpio[0].callback_handler){
+		_gpio[0].callback_handler->unregisterCallback();
+		delete _gpio[0].callback_handler;
+		_gpio[0].callback_handler = nullptr;
+	}
+
+	for(int i=1; i<num_pins; i++){
+		_gpio[i].callback_handler = nullptr;
+	}
+
 	return OK;
 }
