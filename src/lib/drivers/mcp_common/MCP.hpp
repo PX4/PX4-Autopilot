@@ -38,9 +38,7 @@
 #include <uORB/topics/gpio_config.h>
 #include <uORB/topics/gpio_in.h>
 #include <uORB/topics/gpio_out.h>
-#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform/gpio/mcp.hpp>

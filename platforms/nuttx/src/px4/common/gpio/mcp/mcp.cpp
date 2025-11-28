@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -134,13 +134,13 @@ int mcp230XX_unregister_gpios(int first_minor, int num_pins, mcp_gpio_dev_s *_gp
 		gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
 	}
 
-	if(_gpio[0].callback_handler){
+	if (_gpio[0].callback_handler) {
 		_gpio[0].callback_handler->unregisterCallback();
 		delete _gpio[0].callback_handler;
 		_gpio[0].callback_handler = nullptr;
 	}
 
-	for(int i=1; i<num_pins; i++){
+	for (int i = 1; i < num_pins; i++) {
 		_gpio[i].callback_handler = nullptr;
 	}
 
