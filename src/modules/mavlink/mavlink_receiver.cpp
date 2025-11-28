@@ -332,10 +332,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 #endif
 
-#if defined(MAVLINK_MSG_ID_AM32_EEPROM) // For now only defined if development.xml is used
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
 
-	case MAVLINK_MSG_ID_AM32_EEPROM:
-		handle_message_am32_eeprom(msg);
+	case MAVLINK_MSG_ID_ESC_EEPROM:
+		handle_message_esc_eeprom(msg);
 		break;
 #endif
 
@@ -602,8 +602,9 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
 
-		if (message_id == MAVLINK_MSG_ID_AM32_EEPROM) {
-			PX4_INFO("publishing MAV_CMD_REQUEST_MESSAGE for MAVLINK_MSG_ID_AM32_EEPROM");
+		// NOTE: ESC_EEPROM message request handling is deferred - DShot driver handles and triggers reading
+		if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
+			PX4_INFO("publishing MAV_CMD_REQUEST_MESSAGE for MAVLINK_MSG_ID_ESC_EEPROM");
 			_cmd_pub.publish(vehicle_command);
 
 		} else if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
@@ -1316,15 +1317,16 @@ void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
 }
 #endif // MAVLINK_MSG_ID_SET_VELOCITY_LIMITS
 
-#if defined(MAVLINK_MSG_ID_AM32_EEPROM) // For now only defined if development.xml is used
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
 void
-MavlinkReceiver::handle_message_am32_eeprom(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_esc_eeprom(mavlink_message_t *msg)
 {
-	mavlink_am32_eeprom_t message;
-	mavlink_msg_am32_eeprom_decode(msg, &message);
+	mavlink_esc_eeprom_t message;
+	mavlink_msg_esc_eeprom_decode(msg, &message);
 
-	am32_eeprom_write_s eeprom{};
+	esc_eeprom_write_s eeprom{};
 	eeprom.timestamp = hrt_absolute_time();
+	eeprom.firmware = message.firmware;
 	eeprom.index = message.esc_index;
 
 	uint8_t min_length = sizeof(eeprom.data);
@@ -1343,16 +1345,14 @@ MavlinkReceiver::handle_message_am32_eeprom(mavlink_message_t *msg)
 		}
 	}
 
-	// Copy the write mask (only first 2 uint32_t needed for 48 bytes)
-	eeprom.write_mask[0] = message.write_mask[0];
-	eeprom.write_mask[1] = message.write_mask[1];
+	eeprom.length = length;
+	memcpy(eeprom.write_mask, message.write_mask, sizeof(eeprom.write_mask));
 
-	PX4_INFO("AM32 EEPROM write request for ESC%d, mask: 0x%08" PRIx32 "%08" PRIx32,
-		 eeprom.index + 1, eeprom.write_mask[1], eeprom.write_mask[0]);
+	PX4_INFO("ESC EEPROM write request for ESC%d firmware %d", eeprom.index + 1, eeprom.firmware);
 
-	_am32_eeprom_write_pub.publish(eeprom);
+	_esc_eeprom_write_pub.publish(eeprom);
 }
-#endif // MAVLINK_MSG_ID_AM32_EEPROM
+#endif // MAVLINK_MSG_ID_ESC_EEPROM
 
 void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)

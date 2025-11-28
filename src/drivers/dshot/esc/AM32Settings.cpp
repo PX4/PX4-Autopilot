@@ -38,7 +38,7 @@
 static constexpr int EEPROM_SIZE = 48;  // AM32 sends raw eeprom data
 static constexpr int RESPONSE_SIZE = 49; // 48B data + 1B CRC
 
-uORB::Publication<am32_eeprom_read_s> AM32Settings::_am32_eeprom_read_pub{ORB_ID(am32_eeprom_read)};
+uORB::Publication<esc_eeprom_read_s> AM32Settings::_esc_eeprom_read_pub{ORB_ID(esc_eeprom_read)};
 
 AM32Settings::AM32Settings(int index)
 	: _esc_index(index)
@@ -52,11 +52,13 @@ int AM32Settings::getExpectedResponseSize()
 void AM32Settings::publish_latest()
 {
 	// PX4_INFO("publish_latest()");
-	am32_eeprom_read_s data = {};
+	esc_eeprom_read_s data = {};
 	data.timestamp = hrt_absolute_time();
+	data.firmware = 1; // ESC_FIRMWARE_AM32
 	data.index = _esc_index;
-	memcpy(data.data, &_eeprom_data, sizeof(data.data));
-	_am32_eeprom_read_pub.publish(data);
+	memcpy(data.data, &_eeprom_data, sizeof(_eeprom_data));
+	data.length = sizeof(_eeprom_data);
+	_esc_eeprom_read_pub.publish(data);
 }
 
 bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)

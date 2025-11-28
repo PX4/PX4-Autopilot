@@ -38,7 +38,7 @@
 #include <px4_platform_common/module.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/am32_eeprom_write.h>
+#include <uORB/topics/esc_eeprom_write.h>
 
 #include "DShotCommon.h"
 #include "DShotTelemetry.h"
@@ -119,7 +119,7 @@ private:
 	// Mavlink command handlers
 	void handle_vehicle_commands();
 	void handle_configure_actuator(const vehicle_command_s &command);
-	void handle_am32_request_eeprom(const vehicle_command_s &command);
+	void handle_esc_request_eeprom(const vehicle_command_s &command);
 
 	// Mixer
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
@@ -128,7 +128,7 @@ private:
 	// uORB
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Subscription _am32_eeprom_write_sub{ORB_ID(am32_eeprom_write)};
+	uORB::Subscription _esc_eeprom_write_sub{ORB_ID(esc_eeprom_write)};
 
 	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
@@ -200,7 +200,7 @@ private:
 		ExitMode
 	};
 
-	am32_eeprom_write_s _am32_eeprom_write{};
+	esc_eeprom_write_s _esc_eeprom_write{};
 	bool _dshot_programming_active = {};
 	uint32_t _settings_written_mask[2] = {};
 

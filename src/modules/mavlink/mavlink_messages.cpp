@@ -137,8 +137,8 @@
 #include "streams/CURRENT_MODE.hpp"
 #endif
 
-#ifdef MAVLINK_MSG_ID_AM32_EEPROM // Only defined if development.xml is used
-#include "streams/AM32_EEPROM.hpp"
+#ifdef MAVLINK_MSG_ID_ESC_EEPROM // Only defined if development.xml is used
+#include "streams/ESC_EEPROM.hpp"
 #endif
 
 #if !defined(CONSTRAINED_FLASH)
@@ -472,9 +472,9 @@ static const StreamListItem streams_list[] = {
 #if defined(ESC_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamESCStatus>(),
 #endif // ESC_STATUS_HPP
-#if defined(AM32_EEPROM_HPP)
-	create_stream_list_item<MavlinkStreamAM32Eeprom>(),
-#endif // AM32_EEPROM_HPP
+#if defined(ESC_EEPROM_HPP)
+	create_stream_list_item<MavlinkStreamEscEeprom>(),
+#endif // ESC_EEPROM_HPP
 #if defined(AUTOPILOT_VERSION_HPP)
 	create_stream_list_item<MavlinkStreamAutopilotVersion>(),
 #endif // AUTOPILOT_VERSION_HPP

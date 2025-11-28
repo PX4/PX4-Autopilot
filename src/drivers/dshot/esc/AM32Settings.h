@@ -35,7 +35,7 @@
 
 #include "ESCSettingsInterface.h"
 #include <uORB/Publication.hpp>
-#include <uORB/topics/am32_eeprom_read.h>
+#include <uORB/topics/esc_eeprom_read.h>
 
 class AM32Settings : public ESCSettingsInterface
 {
@@ -99,5 +99,5 @@ private:
 	int _esc_index{};
 	EEPROMData _eeprom_data{};
 
-	static uORB::Publication<am32_eeprom_read_s> _am32_eeprom_read_pub;
+	static uORB::Publication<esc_eeprom_read_s> _esc_eeprom_read_pub;
 };

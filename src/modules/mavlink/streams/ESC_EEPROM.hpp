@@ -31,50 +31,50 @@
  *
  ****************************************************************************/
 
-#ifndef AM32_EEPROM_HPP
-#define AM32_EEPROM_HPP
+#ifndef ESC_EEPROM_HPP
+#define ESC_EEPROM_HPP
 
-#include <uORB/topics/am32_eeprom_read.h>
+#include <uORB/topics/esc_eeprom_read.h>
 
-class MavlinkStreamAM32Eeprom : public MavlinkStream
+class MavlinkStreamEscEeprom : public MavlinkStream
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamAM32Eeprom(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamEscEeprom(mavlink); }
 
-	static constexpr const char *get_name_static() { return "AM32_EEPROM"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_AM32_EEPROM; }
+	static constexpr const char *get_name_static() { return "ESC_EEPROM"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_ESC_EEPROM; }
 
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
 	unsigned get_size() override
 	{
-		return _am32_eeprom_read_sub.advertised() ? MAVLINK_MSG_ID_AM32_EEPROM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return _esc_eeprom_read_sub.advertised() ? MAVLINK_MSG_ID_ESC_EEPROM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
-	explicit MavlinkStreamAM32Eeprom(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamEscEeprom(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _am32_eeprom_read_sub{ORB_ID(am32_eeprom_read)};
+	uORB::Subscription _esc_eeprom_read_sub{ORB_ID(esc_eeprom_read)};
 
 	bool emit_message(bool force)
 	{
-		am32_eeprom_read_s eeprom = {};
+		esc_eeprom_read_s eeprom = {};
 
-		if (_am32_eeprom_read_sub.update(&eeprom) || force) {
-			mavlink_am32_eeprom_t msg = {};
+		if (_esc_eeprom_read_sub.update(&eeprom) || force) {
+			mavlink_esc_eeprom_t msg = {};
+			msg.firmware = eeprom.firmware;
 			msg.esc_index = eeprom.index;
 			msg.msg_index = 0;
 			msg.msg_count = 1;
 			memcpy(msg.data, eeprom.data, sizeof(eeprom.data));
-			msg.length = sizeof(eeprom.data);
+			msg.length = eeprom.length;
 
-			PX4_INFO("Sending AM32_EEPROM on channel %d", _mavlink->get_channel());
-			PX4_INFO("ESC%d", msg.esc_index + 1);
-			PX4_INFO("index %d", msg.esc_index);
+			PX4_INFO("Sending ESC_EEPROM on channel %d", _mavlink->get_channel());
+			PX4_INFO("ESC%d firmware %d", msg.esc_index + 1, msg.firmware);
 			PX4_INFO("length %d", msg.length);
 
-			mavlink_msg_am32_eeprom_send_struct(_mavlink->get_channel(), &msg);
+			mavlink_msg_esc_eeprom_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
 		}
@@ -94,4 +94,4 @@ private:
 
 };
 
-#endif // AM32_EEPROM_HPP
+#endif // ESC_EEPROM_HPP

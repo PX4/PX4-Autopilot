@@ -143,7 +143,7 @@ bool DShot::updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_
 
 			// Select next command to send (if any)
 			if (_telemetry.telemetryResponseFinished() &&
-			    _current_command.finished() && _telemetry.commandResponseFinished()) {
+				_current_command.finished() && _telemetry.commandResponseFinished()) {
 				select_next_command();
 			}
 
@@ -173,18 +173,18 @@ void DShot::select_next_command()
 	if (!_dshot_programming_active) {
 
 		// Get the next update from the queue?
-		if (_am32_eeprom_write_sub.updated()) {
+		if (_esc_eeprom_write_sub.updated()) {
 
 			// TODO: because uORB can't queue?? (what is the point of the ORB_QUEUE_LENGTH then??)
-			auto last = _am32_eeprom_write_sub.get_last_generation();
-			_am32_eeprom_write_sub.copy(&_am32_eeprom_write);
-			auto current = _am32_eeprom_write_sub.get_last_generation();
+			auto last = _esc_eeprom_write_sub.get_last_generation();
+			_esc_eeprom_write_sub.copy(&_esc_eeprom_write);
+			auto current = _esc_eeprom_write_sub.get_last_generation();
 
 			if (current != last + 1) {
-				PX4_ERR("am32_eeprom_write lost, generation %u -> %u", last, current);
+				PX4_ERR("esc_eeprom_write lost, generation %u -> %u", last, current);
 			}
 
-			PX4_INFO("ESC%u: starting programming mode", _am32_eeprom_write.index + 1);
+			PX4_INFO("ESC%u: starting programming mode", _esc_eeprom_write.index + 1);
 			_dshot_programming_active = true;
 		}
 	}
@@ -248,11 +248,11 @@ void DShot::select_next_command()
 			int next_index = -1;
 
 			// Find settings that need to be written but haven't been yet
-			for (int i = 0; i < 48; i++) {
+			for (int i = 0; i < _esc_eeprom_write.length; i++) {
 				int array_index = i / 32;
 				int bit_index = i % 32;
 
-				bool needs_write = _am32_eeprom_write.write_mask[array_index] & (1 << bit_index);
+				bool needs_write = _esc_eeprom_write.write_mask[array_index] & (1 << bit_index);
 				bool already_written = _settings_written_mask[array_index] & (1 << bit_index);
 
 				if (needs_write && !already_written) {
@@ -263,18 +263,18 @@ void DShot::select_next_command()
 
 			if (next_index >= 0) {
 				// Set up the motor mask based on the index in the write request
-				if (_am32_eeprom_write.index == 255) {
+				if (_esc_eeprom_write.index == 255) {
 					// _current_command.motor_mask = 0xFF;  // Apply to all ESCs
-					PX4_INFO("ESC ALL: Writing setting at index %d, value %u", next_index, _am32_eeprom_write.data[next_index]);
+					PX4_INFO("ESC ALL: Writing setting at index %d, value %u", next_index, _esc_eeprom_write.data[next_index]);
 
 				} else {
-					// _current_command.motor_mask = (1 << _am32_eeprom_write.index);
-					PX4_INFO("ESC%d: Writing setting at index %d, value %u", _am32_eeprom_write.index + 1, next_index,
-						 _am32_eeprom_write.data[next_index]);
+					// _current_command.motor_mask = (1 << _esc_eeprom_write.index);
+					PX4_INFO("ESC%d: Writing setting at index %d, value %u", _esc_eeprom_write.index + 1, next_index,
+						 _esc_eeprom_write.data[next_index]);
 				}
 
 				_programming_address = next_index;
-				_programming_value = _am32_eeprom_write.data[next_index];
+				_programming_value = _esc_eeprom_write.data[next_index];
 				_programming_state = ProgrammingState::EnterMode;
 
 				// Pre-emptively Mark this setting as written
@@ -290,7 +290,7 @@ void DShot::select_next_command()
 				// _programming_state = ProgrammingState::Save;
 				_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
 				_current_command.num_repetitions = 6;
-				_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+				_current_command.motor_mask = _esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index);
 				_programming_state = ProgrammingState::Idle;
 
 				// Clear the written mask for this motor for next time
@@ -298,8 +298,8 @@ void DShot::select_next_command()
 				_settings_written_mask[1] = 0;
 
 				// Mark as offline and unread so that we read again
-				// _serial_telem_online_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
-				_settings_requested_mask &= ~(_am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index));
+				// _serial_telem_online_mask &= ~(_esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index));
+				_settings_requested_mask &= ~(_esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index));
 
 				_serial_telem_delay_until = hrt_absolute_time() + 500_ms;
 			}
@@ -309,28 +309,28 @@ void DShot::select_next_command()
 		case ProgrammingState::EnterMode:
 			_current_command.command = DSHOT_CMD_ENTER_PROGRAMMING_MODE;
 			_current_command.num_repetitions = 6;
-			_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+			_current_command.motor_mask = _esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index);
 			_programming_state = ProgrammingState::SendAddress;
 			break;
 
 		case ProgrammingState::SendAddress:
 			_current_command.command = _programming_address;
 			_current_command.num_repetitions = 1;
-			_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+			_current_command.motor_mask = _esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index);
 			_programming_state = ProgrammingState::SendValue;
 			break;
 
 		case ProgrammingState::SendValue:
 			_current_command.command = _programming_value;
 			_current_command.num_repetitions = 1;
-			_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+			_current_command.motor_mask = _esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index);
 			_programming_state = ProgrammingState::ExitMode;
 			break;
 
 		case ProgrammingState::ExitMode:
 			_current_command.command = DSHOT_CMD_EXIT_PROGRAMMING_MODE;
 			_current_command.num_repetitions = 1;
-			_current_command.motor_mask = _am32_eeprom_write.index == 255 ? 255 : (1 << _am32_eeprom_write.index);
+			_current_command.motor_mask = _esc_eeprom_write.index == 255 ? 255 : (1 << _esc_eeprom_write.index);
 			_programming_state = ProgrammingState::Idle;
 			break;
 
@@ -723,13 +723,13 @@ void DShot::handle_vehicle_commands()
 			handle_configure_actuator(command);
 			break;
 
-		case vehicle_command_s::VEHICLE_CMD_AM32_REQUEST_EEPROM:
-			handle_am32_request_eeprom(command);
+		case vehicle_command_s::VEHICLE_CMD_ESC_REQUEST_EEPROM:
+			handle_esc_request_eeprom(command);
 			break;
 
 		case vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE:
 			PX4_INFO("VEHICLE_CMD_REQUEST_MESSAGE: param1: %f", (double)command.param1);
-			handle_am32_request_eeprom(command);
+			handle_esc_request_eeprom(command);
 
 		default:
 			break;
@@ -808,9 +808,9 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	_command_ack_pub.publish(command_ack);
 }
 
-void DShot::handle_am32_request_eeprom(const vehicle_command_s &command)
+void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 {
-	PX4_INFO("Received AM32_REQUEST_EEPROM");
+	PX4_INFO("Received ESC_REQUEST_EEPROM");
 	PX4_INFO("esc_index: %d", (int)command.param2);
 
 	int esc_index = command.param2;
