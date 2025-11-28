@@ -718,20 +718,28 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	if (!_pos_ref.isInitialized()) {
 		_pos_ref.initReference(msg.latitude_deg(), msg.longitude_deg(), timestamp);
 		_alt_ref = msg.altitude();
+		_gpos = LatLonAlt(msg.latitude_deg(), msg.longitude_deg(), msg.altitude());
 		return;
 	}
 
-	double latitude;
-	double longitude;
-	_pos_ref.reproject(_position_prev(0), _position_prev(1), latitude, longitude);
-	double altitude = _alt_ref + (-_position_prev(2));
 	float vel_north = msg.velocity_north();
 	float vel_east = msg.velocity_east();
 	float vel_down = -msg.velocity_up();
 
-	vehicle_global_position_s gps_truth{};
+	const double dt = math::constrain((timestamp - _navsat_timestamp_prev) * 1e-6, 0.001, 0.1);
+	_navsat_timestamp_prev = timestamp;
+
+	// Velocity trapezoidal integration on the ellipsoid
+	const matrix::Vector3f vel_ned(vel_north, vel_east, vel_down);
+	_gpos += (vel_ned + _vel_ned_prev) * dt * 0.5f;
+	_vel_ned_prev = vel_ned;
+
+	double latitude = _gpos.latitude_deg();
+	double longitude = _gpos.longitude_deg();
+	double altitude = _gpos.altitude();
 
 	// Publish GPS groundtruth
+	vehicle_global_position_s gps_truth{};
 	gps_truth.timestamp = timestamp;
 	gps_truth.timestamp_sample = timestamp;
 	gps_truth.lat = latitude;

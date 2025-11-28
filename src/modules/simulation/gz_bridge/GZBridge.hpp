@@ -46,6 +46,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/geo/geo.h>
+#include <lib/lat_lon_alt/lat_lon_alt.hpp>
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -164,7 +165,10 @@ private:
 	GZGimbal _gimbal{_node};
 
 	MapProjection _pos_ref{};
+	LatLonAlt _gpos{0.0, 0.0, 0.f};
 	double _alt_ref{};
+	matrix::Vector3f _vel_ned_prev{};
+	hrt_abstime _navsat_timestamp_prev{};
 
 	matrix::Vector3d _position_prev{};
 	matrix::Vector3d _velocity_prev{};
