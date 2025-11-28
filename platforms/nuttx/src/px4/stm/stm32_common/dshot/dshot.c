@@ -46,6 +46,7 @@
 
 #include <px4_platform_common/log.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include <drivers/drv_input_capture.h>
 
 #include <lib/perf/perf_counter.h>
@@ -670,20 +671,25 @@ void up_bdshot_status(void)
 	if (_bidirectional) {
 		PX4_INFO("Bidirectional DShot enabled on %u timer(s)", _num_bidi_timers);
 
-		for (uint8_t i = 0; i < _num_bidi_timers; i++) {
-			uint8_t timer_index = _bidi_timer_indices[i];
+		// Iterate in output channel order for user-friendly display
+		for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
+			uint8_t timer_index = timer_io_channels[output_channel].timer_index;
+			uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
 
-			for (uint8_t timer_channel_index = 0; timer_channel_index < MAX_NUM_CHANNELS_PER_TIMER; timer_channel_index++) {
-				bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
+			if (timer_channel == 0 || timer_channel > 4) {
+				continue;
+			}
 
-				if (channel_initialized) {
-					PX4_INFO("Timer %u, Channel %u: read %lu, failed nibble %lu, failed CRC %lu, invalid/zero %lu",
-						 timer_index, timer_channel_index,
-						 read_ok[timer_index][timer_channel_index],
-						 read_fail_nibble[timer_index][timer_channel_index],
-						 read_fail_crc[timer_index][timer_channel_index],
-						 read_fail_zero[timer_index][timer_channel_index]);
-				}
+			uint8_t timer_channel_index = timer_channel - 1;
+
+			if (timer_configs[timer_index].initialized_channels[timer_channel_index]) {
+				PX4_INFO("Output %u: eRPM %" PRId32 ", read %lu, failed nibble %lu, failed CRC %lu, invalid/zero %lu",
+					 output_channel,
+					 _erpms[output_channel],
+					 read_ok[timer_index][timer_channel_index],
+					 read_fail_nibble[timer_index][timer_channel_index],
+					 read_fail_crc[timer_index][timer_channel_index],
+					 read_fail_zero[timer_index][timer_channel_index]);
 			}
 		}
 	}
