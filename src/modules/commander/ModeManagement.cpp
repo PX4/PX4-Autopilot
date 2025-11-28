@@ -232,6 +232,7 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 		static_assert(sizeof(request.name) == sizeof(reply.name), "size mismatch");
 		memcpy(reply.name, request.name, sizeof(request.name));
 		reply.request_id = request.request_id;
+		reply.not_user_selectable = request.not_user_selectable;
 		reply.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
 
 		// validate
@@ -560,6 +561,10 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 
 		if (executor_overrides.disable_auto_disarm) {
 			current_overrides.disable_auto_disarm = true;
+		}
+
+		if (executor_overrides.disable_auto_set_home) {
+			current_overrides.disable_auto_set_home = true;
 		}
 
 		if (executor_overrides.defer_failsafes) {

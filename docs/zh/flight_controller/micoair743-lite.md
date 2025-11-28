@@ -79,7 +79,7 @@ Pinouts definition can be found in the [MicoAir743-Lite_pinout.xlsx](https://raw
 
 | UART   | 设备         | Port   |
 | ------ | ---------- | ------ |
-| USART1 | /dev/ttyS0 | TELEM1 |
+| USART1 | UART       | TELEM1 |
 | USART2 | /dev/ttyS1 | GPS2   |
 | USART3 | /dev/ttyS2 | GPS1   |
 | UART4  | /dev/ttyS3 | TELEM2 |

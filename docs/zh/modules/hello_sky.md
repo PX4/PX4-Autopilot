@@ -440,6 +440,7 @@ The [complete example code](https://github.com/PX4/PX4-Autopilot/blob/main/src/e
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
 #include <unistd.h>
