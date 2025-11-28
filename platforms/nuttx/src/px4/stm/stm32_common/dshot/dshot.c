@@ -143,6 +143,9 @@ static uint32_t read_fail_nibble[MAX_IO_TIMERS][MAX_NUM_CHANNELS_PER_TIMER] = {}
 static uint32_t read_fail_crc[MAX_IO_TIMERS][MAX_NUM_CHANNELS_PER_TIMER] = {};
 static uint32_t read_fail_zero[MAX_IO_TIMERS][MAX_NUM_CHANNELS_PER_TIMER] = {};
 
+// Mask of output channels with motors assigned (for skipping capture on unused channels)
+static uint32_t _bdshot_active_channels = 0xFFFFFFFF; // default: all active
+
 static perf_counter_t hrt_callback_perf = NULL;
 
 static void init_timer_config(uint32_t channel_mask)
@@ -391,22 +394,21 @@ void up_dshot_trigger()
 
 static void select_next_capture_channel(uint8_t timer_index)
 {
-	bool found = false;
-	int next_index = timer_configs[timer_index].capture_channel_index;
+	int current = timer_configs[timer_index].capture_channel_index;
 
-	while (!found) {
-		next_index++;
+	// Try each of the 4 possible channels, starting from current+1
+	for (int i = 1; i <= 4; i++) {
+		int next = (current + i) % 4;
 
-		if (next_index > 3) {
-			next_index = 0;
-		}
+		if (timer_configs[timer_index].initialized_channels[next]) {
+			uint8_t output_channel = output_channel_from_timer_channel(timer_index, next);
 
-		if (timer_configs[timer_index].initialized_channels[next_index]) {
-			found = true;
+			if (_bdshot_active_channels & (1 << output_channel)) {
+				timer_configs[timer_index].capture_channel_index = next;
+				return;
+			}
 		}
 	}
-
-	timer_configs[timer_index].capture_channel_index = next_index;
 }
 
 static uint8_t output_channel_from_timer_channel(uint8_t timer_index, uint8_t timer_channel_index)
@@ -662,6 +664,11 @@ int up_bdshot_channel_status(uint8_t channel)
 	}
 
 	return 0;
+}
+
+void up_bdshot_set_active_channels(uint32_t mask)
+{
+	_bdshot_active_channels = mask;
 }
 
 void up_bdshot_status(void)

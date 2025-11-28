@@ -182,15 +182,20 @@ void DShot::enable_dshot_outputs(const bool enabled)
 void DShot::update_num_motors()
 {
 	int motor_count = 0;
+	uint32_t active_channels_mask = 0;
 
 	for (unsigned i = 0; i < _num_outputs; ++i) {
 		if (_mixing_output.isFunctionSet(i)) {
 			_actuator_functions[motor_count] = (uint8_t)_mixing_output.outputFunction(i);
 			++motor_count;
+			active_channels_mask |= (1 << i);
 		}
 	}
 
 	_num_motors = motor_count;
+
+	// Tell bidirectional DShot which channels have motors assigned
+	up_bdshot_set_active_channels(active_channels_mask);
 }
 
 void DShot::init_telemetry(const char *device, bool swap_rxtx)
