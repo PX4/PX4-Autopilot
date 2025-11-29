@@ -108,7 +108,7 @@ param set-default PWM_MAIN_FUNC4 104     # Motor 4
 
 # Barometer Configuration (CRITICAL)
 param set-default EKF2_BARO_CTRL 1
-param set-default EKF2_BARO_NOISE 0.0035 # 3.5mm noise (33x improvement)
+param set-default EKF2_BARO_NOISE 0.0065 # 3.5mm noise (33x improvement)
 param set-default EKF2_BARO_GATE 8.0     # FPS variability tolerance
 param set-default EKF2_HGT_REF 1         # Barometer primary height
 

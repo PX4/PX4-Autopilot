@@ -155,7 +155,7 @@ param set-default EKF2_ACC_NOISE 1.0
 param set-default EKF2_ACC_B_NOISE 0.0007
 
 # Barometer parameters (CRITICAL)
-param set-default EKF2_BARO_NOISE 0.0035  # 3.5mm - optimized for X-Plane SITL
+param set-default EKF2_BARO_NOISE 0.0065  # 3.5mm - optimized for X-Plane SITL
 param set-default EKF2_BARO_DELAY 0.0
 param set-default EKF2_BARO_GATE 8.0      # Innovation gate (tolerates FPS variability)
 
