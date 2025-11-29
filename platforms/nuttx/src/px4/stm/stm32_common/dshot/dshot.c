@@ -289,7 +289,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 	}
 
 	// NOTE: Bidirectional DShot uses round-robin capture (1 channel per timer per cycle).
-	// Each timer needs 2 DMA channels: 1 for burst transmit, 1 for capture.
+	// Each timer needs 1 DMA channel, re-used for burst transmit and then capture.
 	// Multiple timers are processed in parallel for low latency.
 
 	// Initialize timer_config data based on enabled channels
