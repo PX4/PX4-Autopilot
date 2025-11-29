@@ -1,7 +1,6 @@
-# Airspeed data from sensors
+# Estimated airflow around the vehicle
 #
-# This is published by airspeed sensor drivers, CAN airspeed sensors, simulators.
-# It is subscribed by the airspeed selector module, which validates the data from multiple sensors and passes on a single estimation to the EKF, controllers and telemetry providers.
+# This is published by the fw_wind_estimator module.
 
 uint64 timestamp                 # [us] Time since system start
 uint64 timestamp_sample          # [us] Timestamp of the raw data
