@@ -84,7 +84,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ActuatorOutputs](ActuatorOutputs.md)
 - [ActuatorServosTrim](ActuatorServosTrim.md) — Servo trims, added as offset to servo outputs
 - [ActuatorTest](ActuatorTest.md)
-- [AdcReport](AdcReport.md)
+- [AdcReport](AdcReport.md) — ADC raw data.
 - [Airspeed](Airspeed.md) — Airspeed data from sensors
 - [AirspeedWind](AirspeedWind.md) — Wind estimate (from airspeed_selector)
 - [AutotuneAttitudeControlStatus](AutotuneAttitudeControlStatus.md) — Autotune attitude control status
@@ -259,6 +259,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
   The topic will not be updated when the vehicle is armed
 - [SensorSelection](SensorSelection.md) — Sensor ID's for the voted sensors output on the sensor_combined topic.
   Will be updated on startup of the sensor module and when sensor selection changes
+- [SensorTemp](SensorTemp.md)
 - [SensorUwb](SensorUwb.md) — UWB distance contains the distance information measured by an ultra-wideband positioning system,
   such as Pozyx or NXP Rddrone.
 - [SensorsStatus](SensorsStatus.md) — Sensor check metrics. Це значення буде нульовим для датчика, який є первинним або незаповненим.
