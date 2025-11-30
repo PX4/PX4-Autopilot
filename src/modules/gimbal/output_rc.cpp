@@ -82,11 +82,9 @@ float OutputRC::anglesMappedToOutput(const uint8_t index)
 	float value = 0.f;
 	float min_value = 0.f;
 	float max_value = 0.f;
-	float offset = 0.f;
 
 	switch (index) {
 	case gimbal_controls_s::INDEX_ROLL: {
-			offset = math::radians(_parameters.mnt_off_roll);
 			value = _angle_outputs[0];
 			max_value = math::radians(_parameters.mnt_range_roll) * 0.5f;
 			min_value = -math::radians(_parameters.mnt_range_roll) * 0.5f;
@@ -95,7 +93,6 @@ float OutputRC::anglesMappedToOutput(const uint8_t index)
 
 	case gimbal_controls_s::INDEX_PITCH: {
 			value = _angle_outputs[1];
-			offset = math::radians(_parameters.mnt_off_pitch);
 			max_value = math::radians(_parameters.mnt_max_pitch);
 			min_value = math::radians(_parameters.mnt_min_pitch);
 			break;
@@ -103,7 +100,6 @@ float OutputRC::anglesMappedToOutput(const uint8_t index)
 
 	case gimbal_controls_s::INDEX_YAW: {
 			value = _angle_outputs[2];
-			offset = math::radians(_parameters.mnt_off_yaw);
 			max_value = math::radians(_parameters.mnt_range_yaw) * 0.5f;
 			min_value = -math::radians(_parameters.mnt_range_yaw) * 0.5f;
 			break;
@@ -115,11 +111,11 @@ float OutputRC::anglesMappedToOutput(const uint8_t index)
 		}
 	}
 
-	if (value + offset >= FLT_EPSILON) {
-		return math::interpolate(value + offset, 0.f, max_value + offset, 0.f, 1.f);
+	if (value >= FLT_EPSILON) {
+		return math::interpolate(value, 0.f, max_value, 0.f, 1.f);
 
 	} else {
-		return math::interpolate(value + offset, min_value + offset, 0.f, -1.f, 0.f);
+		return math::interpolate(value, min_value, 0.f, -1.f, 0.f);
 	}
 }
 
