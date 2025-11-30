@@ -89,6 +89,10 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	if (!subscribeWind(false)) {
+		return PX4_ERROR;
+	}
+
 	// OPTIONAL:
 	if (_sim_gz_en_gps.get()) {
 		if (!subscribeNavsat(false)) {
@@ -322,6 +326,18 @@ bool GZBridge::subscribeOpticalFlow(bool required)
 
 	if (!_node.Subscribe(flow_topic, &GZBridge::opticalFlowCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", flow_topic.c_str());
+		return required ? false : true;
+	}
+
+	return true;
+}
+
+bool GZBridge::subscribeWind(bool required)
+{
+	std::string wind_topic = "/world/" + _world_name + "/wind_info";
+
+	if (!_node.Subscribe(wind_topic, &GZBridge::windCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", wind_topic.c_str());
 		return required ? false : true;
 	}
 
@@ -644,6 +660,18 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 
 	// report.reset_counter = vpe.reset_counter;
 	_visual_odometry_pub.publish(report);
+}
+
+void GZBridge::windCallback(const gz::msgs::Wind &msg)
+{
+	// define quaternion for rotation between ENU to NED
+	static const auto q_ENU_to_NED = gz::math::Quaterniond(0, 0.70711, 0.70711, 0);
+
+	gz::math::Vector3d wind_velocity = q_ENU_to_NED.RotateVector(gz::math::Vector3d(
+			msg.linear_velocity().x(),
+			msg.linear_velocity().y(),
+			msg.linear_velocity().z()));
+	_wind_velocity = matrix::Vector3d(wind_velocity[0], wind_velocity[1], wind_velocity[2]);
 }
 
 float GZBridge::generate_wgn()

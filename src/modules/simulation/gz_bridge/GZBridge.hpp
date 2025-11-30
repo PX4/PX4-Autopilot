@@ -79,6 +79,8 @@
 #include <gz/msgs/laserscan.pb.h>
 #include <gz/msgs/stringmsg.pb.h>
 #include <gz/msgs/scene.pb.h>
+#include <gz/msgs/wind.pb.h>
+
 // Custom PX4 proto
 #include <opticalflow.pb.h>
 
@@ -119,6 +121,7 @@ private:
 	bool subscribeAirPressure(bool required);
 	bool subscribeNavsat(bool required);
 	bool subscribeOpticalFlow(bool required);
+	bool subscribeWind(bool required);
 
 	void clockCallback(const gz::msgs::Clock &msg);
 	void airspeedCallback(const gz::msgs::AirSpeed &msg);
@@ -131,6 +134,7 @@ private:
 	void laserScanCallback(const gz::msgs::LaserScan &msg);
 	void opticalFlowCallback(const px4::msgs::OpticalFlow &msg);
 	void magnetometerCallback(const gz::msgs::Magnetometer &msg);
+	void windCallback(const gz::msgs::Wind &msg);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 
@@ -170,6 +174,7 @@ private:
 	matrix::Vector3d _velocity_prev{};
 	matrix::Vector3f _euler_prev{};
 	hrt_abstime _timestamp_prev{};
+	matrix::Vector3d _wind_velocity{};
 
 	const std::string _world_name;
 	const std::string _model_name;
