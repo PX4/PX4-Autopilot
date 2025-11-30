@@ -76,6 +76,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - TBD
 
+### RC
+
+- Parse ELRS Status and Link Statistics TX messages in the CRSF parser.
+
 ### Multi-Rotor
 
 - Removed parameters `MPC_{XY/Z/YAW}_MAN_EXPO` and use default value instead, as they were not deemed necessary anymore. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise](https://github.com/PX4/PX4-Autopilot/pull/25435)).
@@ -89,6 +93,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - [Fixed Wing Takeoff mode](../flight_modes_fw/takeoff.md) will now keep climbing with level wings on position loss.
   A target takeoff waypoint can be set to control takeoff course and loiter altitude. ([PX4-Autopilot#25083](https://github.com/PX4/PX4-Autopilot/pull/25083)).
+- Automatically suppress angular rate oscillations using [Gain compression](../features_fw/gain_compression.md). ([PX4-Autopilot#25840: FW rate control: add gain compression algorithm](https://github.com/PX4/PX4-Autopilot/pull/25840))
 
 ### 无人车
 

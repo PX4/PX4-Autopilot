@@ -2,6 +2,7 @@
 
 子分类
 
+- [Adc](modules_driver_adc.md)
 - [Airspeed Sensor](modules_driver_airspeed_sensor.md)
 - [Baro](modules_driver_baro.md)
 - [Camera](modules_driver_camera.md)
@@ -40,66 +41,6 @@ MCP23009 <command> [arguments...]
                  default: 0
      [-U <val>]  Update Interval [ms]
                  default: 0
-
-   stop
-
-   status        print status info
-```
-
-## adc
-
-Source: [drivers/adc/board_adc](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/adc/board_adc)
-
-### 描述
-
-ADC driver.
-
-### Usage {#adc_usage}
-
-```
-adc <command> [arguments...]
- Commands:
-   start
-
-   test
-     [-n]        Do not publish ADC report, only system power
-
-   stop
-
-   status        print status info
-```
-
-## ads1115
-
-Source: [drivers/adc/ads1115](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/adc/ads1115)
-
-### 描述
-
-Driver to enable an external [ADS1115](https://www.adafruit.com/product/1085) ADC connected via I2C.
-
-The driver is included by default in firmware for boards that do not have an internal analog to digital converter,
-such as [PilotPi](../flight_controller/raspberry_pi_pilotpi.md) or [CUAV Nora](../flight_controller/cuav_nora.md)
-(search for `CONFIG_DRIVERS_ADC_ADS1115` in board configuration files).
-
-It is enabled/disabled using the
-[ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN)
-parameter, and is disabled by default.
-If enabled, internal ADCs are not used.
-
-### Usage {#ads1115_usage}
-
-```
-ads1115 <command> [arguments...]
- Commands:
-   start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
-                 (default=1))
-     [-f <val>]  bus frequency in kHz
-     [-q]        quiet startup (no message if no device found)
-     [-a <val>]  I2C address
-                 default: 72
 
    stop
 
@@ -802,6 +743,30 @@ lsm303agr <command> [arguments...]
      [-q]        quiet startup (no message if no device found)
      [-R <val>]  Rotation
                  default: 0
+
+   stop
+
+   status        print status info
+```
+
+## mcp9808
+
+Source: [drivers/temperature_sensor/mcp9808](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/temperature_sensor/mcp9808)
+
+### Usage {#mcp9808_usage}
+
+```
+mcp9808 <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 24
 
    stop
 
