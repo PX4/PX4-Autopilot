@@ -203,12 +203,16 @@ private:
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 
+	enum class Ctrl : uint8_t {
+		kTimestampSync  = (1 << 0),
+		kSystemClockSync  = (1 << 1)
+	};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UXRCE_DDS_DOM_ID>) _param_uxrce_dds_dom_id,
 		(ParamInt<px4::params::UXRCE_DDS_KEY>) _param_uxrce_key,
 		(ParamInt<px4::params::UXRCE_DDS_PTCFG>) _param_uxrce_dds_ptcfg,
-		(ParamInt<px4::params::UXRCE_DDS_SYNCC>) _param_uxrce_dds_syncc,
-		(ParamInt<px4::params::UXRCE_DDS_SYNCT>) _param_uxrce_dds_synct,
+		(ParamInt<px4::params::UXRCE_DDS_CTRL>) _param_uxrce_dds_ctrl,
 		(ParamInt<px4::params::UXRCE_DDS_TX_TO>) _param_uxrce_dds_tx_to,
 		(ParamInt<px4::params::UXRCE_DDS_RX_TO>) _param_uxrce_dds_rx_to
 	)

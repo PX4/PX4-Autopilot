@@ -203,7 +203,7 @@ void UxrceddsClient::deinit()
 bool UxrceddsClient::setupSession(uxrSession *session)
 {
 	_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
-	_synchronize_timestamps = (_param_uxrce_dds_synct.get() > 0);
+	_synchronize_timestamps = (_param_uxrce_dds_ctrl.get() & static_cast<int32_t>(Ctrl::kTimestampSync));
 
 	bool got_response = false;
 
@@ -331,7 +331,7 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 			if (_timesync.sync_converged()) {
 				PX4_INFO("synchronized with time offset %-5" PRId64 "us", session->time_offset / 1000);
 
-				if (_param_uxrce_dds_syncc.get() > 0) {
+				if (_param_uxrce_dds_ctrl.get() & static_cast<int32_t>(Ctrl::kSystemClockSync)) {
 					syncSystemClock(session);
 				}
 
@@ -686,7 +686,7 @@ void UxrceddsClient::run()
 				if (uxr_sync_session(&session, 10) && _timesync.sync_converged()) {
 					last_sync_session = hrt_absolute_time();
 
-					if (_param_uxrce_dds_syncc.get() > 0) {
+					if (_param_uxrce_dds_ctrl.get() & static_cast<int32_t>(Ctrl::kSystemClockSync)) {
 						syncSystemClock(&session);
 					}
 				}
