@@ -103,3 +103,6 @@
 [submodule "src/drivers/ins/sbgecom/sbgECom"]
 	path = src/drivers/ins/sbgecom/sbgECom
 	url = https://github.com/PX4/sbgECom.git
+[submodule "src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3"]
+	path = src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3
+	url = https://github.com/PX4/Micro-XRCE-DDS-Client.git

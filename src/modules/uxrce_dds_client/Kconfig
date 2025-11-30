@@ -3,3 +3,10 @@ menuconfig MODULES_UXRCE_DDS_CLIENT
 	default n
 	---help---
 		Enable support for the UXRCE-DDS Client
+
+menuconfig UXRCE_DDS_CLIENT_USE_DDS_V3
+depends on MODULES_UXRCE_DDS_CLIENT
+	bool "use DDS v3"
+	default n
+	---help---
+		Enabel support for Micro-XRCE-DDS-Client version 3.
