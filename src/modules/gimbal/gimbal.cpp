@@ -549,9 +549,6 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mnt_min_pitch, &params.mnt_min_pitch);
 	param_get(param_handles.mnt_range_roll, &params.mnt_range_roll);
 	param_get(param_handles.mnt_range_yaw, &params.mnt_range_yaw);
-	param_get(param_handles.mnt_off_pitch, &params.mnt_off_pitch);
-	param_get(param_handles.mnt_off_roll, &params.mnt_off_roll);
-	param_get(param_handles.mnt_off_yaw, &params.mnt_off_yaw);
 	param_get(param_handles.mav_sysid, &params.mav_sysid);
 	param_get(param_handles.mav_compid, &params.mav_compid);
 	param_get(param_handles.mnt_rate_pitch, &params.mnt_rate_pitch);
@@ -575,9 +572,6 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_min_pitch = param_find("MNT_MIN_PITCH");
 	param_handles.mnt_range_roll = param_find("MNT_RANGE_ROLL");
 	param_handles.mnt_range_yaw = param_find("MNT_RANGE_YAW");
-	param_handles.mnt_off_pitch = param_find("MNT_OFF_PITCH");
-	param_handles.mnt_off_roll = param_find("MNT_OFF_ROLL");
-	param_handles.mnt_off_yaw = param_find("MNT_OFF_YAW");
 	param_handles.mav_sysid = param_find("MAV_SYS_ID");
 	param_handles.mav_compid = param_find("MAV_COMP_ID");
 	param_handles.mnt_rate_pitch = param_find("MNT_RATE_PITCH");
@@ -598,9 +592,6 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_min_pitch == PARAM_INVALID ||
 	    param_handles.mnt_range_roll == PARAM_INVALID ||
 	    param_handles.mnt_range_yaw == PARAM_INVALID ||
-	    param_handles.mnt_off_pitch == PARAM_INVALID ||
-	    param_handles.mnt_off_roll == PARAM_INVALID ||
-	    param_handles.mnt_off_yaw == PARAM_INVALID ||
 	    param_handles.mav_sysid == PARAM_INVALID ||
 	    param_handles.mav_compid == PARAM_INVALID ||
 	    param_handles.mnt_rate_pitch == PARAM_INVALID ||
