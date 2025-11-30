@@ -33,3 +33,4 @@
 
 
 add_subdirectory(mcp23009)
+add_subdirectory(mcp23017)
