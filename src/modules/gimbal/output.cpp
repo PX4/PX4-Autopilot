@@ -267,8 +267,12 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 	// constrain angle outputs to [-range/2, range/2]
 	_angle_outputs[0] = math::constrain(_angle_outputs[0], math::radians(-_parameters.mnt_range_roll / 2),
 					    math::radians(_parameters.mnt_range_roll / 2));
-	_angle_outputs[1] = math::constrain(_angle_outputs[1], math::radians(-_parameters.mnt_range_pitch / 2),
-					    math::radians(_parameters.mnt_range_pitch / 2));
+
+	// constrain angle outputs to [min, max] to allow for asymmetrical angular ranges
+	_angle_outputs[1] = math::constrain(_angle_outputs[1],
+					    math::radians(_parameters.mnt_min_pitch),
+					    math::radians(_parameters.mnt_max_pitch));
+	// constrain angle outputs to [-range/2, range/2]
 	_angle_outputs[2] = math::constrain(_angle_outputs[2], math::radians(-_parameters.mnt_range_yaw / 2),
 					    math::radians(_parameters.mnt_range_yaw / 2));
 

@@ -64,7 +64,8 @@ struct Parameters {
 	int32_t mnt_man_roll;
 	int32_t mnt_man_yaw;
 	int32_t mnt_do_stab;
-	float mnt_range_pitch;
+	float mnt_max_pitch;
+	float mnt_min_pitch;
 	float mnt_range_roll;
 	float mnt_range_yaw;
 	float mnt_off_pitch;
@@ -88,7 +89,8 @@ struct ParameterHandles {
 	param_t mnt_man_roll;
 	param_t mnt_man_yaw;
 	param_t mnt_do_stab;
-	param_t mnt_range_pitch;
+	param_t mnt_max_pitch;
+	param_t mnt_min_pitch;
 	param_t mnt_range_roll;
 	param_t mnt_range_yaw;
 	param_t mnt_off_pitch;

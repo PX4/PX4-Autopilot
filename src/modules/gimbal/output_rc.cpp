@@ -67,22 +67,60 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 
 	// _angle_outputs are in radians, gimbal_controls are in [-1, 1]
 	gimbal_controls_s gimbal_controls{};
-	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = constrain(
-				(_angle_outputs[0] + math::radians(_parameters.mnt_off_roll)) *
-				(1.0f / (math::radians(_parameters.mnt_range_roll / 2.0f))),
-				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = constrain(
-				(_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch)) *
-				(1.0f / (math::radians(_parameters.mnt_range_pitch / 2.0f))),
-				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = constrain(
-				(_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw)) *
-				(1.0f / (math::radians(_parameters.mnt_range_yaw / 2.0f))),
-				-1.f, 1.f);
+	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = anglesMappedToOutput(gimbal_controls_s::INDEX_ROLL);
+	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = anglesMappedToOutput(gimbal_controls_s::INDEX_PITCH);
+	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = anglesMappedToOutput(gimbal_controls_s::INDEX_YAW);
 	gimbal_controls.timestamp = hrt_absolute_time();
 	_gimbal_controls_pub.publish(gimbal_controls);
 
 	_last_update = now;
+}
+
+float OutputRC::anglesMappedToOutput(const uint8_t index)
+{
+
+	float value = 0.f;
+	float min_value = 0.f;
+	float max_value = 0.f;
+	float offset = 0.f;
+
+	switch (index) {
+	case gimbal_controls_s::INDEX_ROLL: {
+			offset = math::radians(_parameters.mnt_off_roll);
+			value = _angle_outputs[0];
+			max_value = math::radians(_parameters.mnt_range_roll) * 0.5f;
+			min_value = -math::radians(_parameters.mnt_range_roll) * 0.5f;
+			break;
+		}
+
+	case gimbal_controls_s::INDEX_PITCH: {
+			value = _angle_outputs[1];
+			offset = math::radians(_parameters.mnt_off_pitch);
+			max_value = math::radians(_parameters.mnt_max_pitch);
+			min_value = math::radians(_parameters.mnt_min_pitch);
+			break;
+		}
+
+	case gimbal_controls_s::INDEX_YAW: {
+			value = _angle_outputs[2];
+			offset = math::radians(_parameters.mnt_off_yaw);
+			max_value = math::radians(_parameters.mnt_range_yaw) * 0.5f;
+			min_value = -math::radians(_parameters.mnt_range_yaw) * 0.5f;
+			break;
+		}
+
+	default: {
+			PX4_WARN("INDEX does not exist");
+			break;
+		}
+	}
+
+	if (value + offset >= FLT_EPSILON) {
+		return math::interpolate(value + offset, 0.f, max_value + offset, 0.f, 1.f);
+
+	} else {
+		return math::interpolate(value + offset, min_value + offset, 0.f, -1.f, 0.f);
+	}
 }
 
 void OutputRC::print_status() const
