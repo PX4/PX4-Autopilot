@@ -41,8 +41,10 @@ parameters:
                 20: (unused) HORIZON_SIDEBARS
                 21: POWER
                 22: DISTANCE_SENSOR
-                23: ARM_TIME
+                23: TOTAL_ARM_TIME
                 24: FORMIC_RING
+                25: BATTERY_FULL_VOLTAGE
+                26: FORMIC_CROSSHAIRS
             default: 16383
 
         # OSD Crosshairs Vertical Position
@@ -111,3 +113,15 @@ parameters:
             min: 0
             max: 1
             default: 1
+        
+        # OSD FORMAT
+        OSD_FORMAT:
+            description:
+                short: OSD Format
+                long: |
+                    Format of the OSD. 0 = Ardupilotconfig, 1 = Autoconfig
+            type: enum
+            values:
+                0: Ardupilotconfig
+                1: Autoconfig
+            default: 0

@@ -617,6 +617,11 @@ else
 	unset RC_LOGGING
 
 	#
+	# Start the formic logger flag module.
+	#
+	formic_logger_flag start
+
+	#
 	# Set additional parameters and env variables for selected AUTOSTART.
 	#
 	if ! param compare SYS_AUTOSTART 0

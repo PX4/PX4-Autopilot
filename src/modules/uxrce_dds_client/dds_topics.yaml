@@ -44,7 +44,7 @@ publications:
 
   - topic: /fmu/out/vehicle_land_detected
     type: px4_msgs::msg::VehicleLandDetected
-    rate_limit: 5.
+    rate_limit: 50.
 
   - topic: /fmu/out/vehicle_attitude
     type: px4_msgs::msg::VehicleAttitude

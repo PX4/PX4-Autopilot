@@ -104,6 +104,8 @@ enum SymbolIndex : uint8_t {
 	DISTANCE_SENSOR	= 22,
 	TOTAL_ARM_TIME		= 23,
 	FORMIC_RING		= 24,
+	BATTERY_FULL_VOLTAGE	= 25,
+	FORMIC_CROSSHAIRS	= 26,
 };
 
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
@@ -175,6 +177,9 @@ private:
 
 	// local heartbeat
 	bool _heartbeat{false};
+	
+	// Track last config send time for periodic updates
+	hrt_abstime _last_config_send_time{0};
 
 	// parameters
 	DEFINE_PARAMETERS(
@@ -183,7 +188,8 @@ private:
 		(ParamInt<px4::params::OSD_SCROLL_RATE>) _param_osd_scroll_rate,
 		(ParamInt<px4::params::OSD_DWELL_TIME>) _param_osd_dwell_time,
 		(ParamInt<px4::params::OSD_LOG_LEVEL>) _param_osd_log_level,
-		(ParamInt<px4::params::OSD_RC_STICK>) _param_osd_rc_stick
+		(ParamInt<px4::params::OSD_RC_STICK>) _param_osd_rc_stick,
+		(ParamInt<px4::params::OSD_FORMAT>) _param_osd_format
 	)
 
 	// metadata

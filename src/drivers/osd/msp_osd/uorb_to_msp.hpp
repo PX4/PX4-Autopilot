@@ -60,7 +60,7 @@
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/total_arm_time.h>
-
+#include <uORB/topics/dds_flag.h>
 // PX4 events interface
 #include <px4_platform_common/events.h>
 
@@ -94,6 +94,8 @@ msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc);
 msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_status);
 
 msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s &battery_status);
+
+msp_rendor_battery_state_t construct_rendor_BATTERY_FULL_VOLTAGE(const battery_status_s &battery_status);
 
 // construct an MSP_RAW_GPS struct
 msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
@@ -140,4 +142,9 @@ msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status);
 msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_aid_source1d_s &estimator_aid_src_rng_hgt);
 
 msp_rendor_total_arm_time_t construct_rendor_TOTAL_ARM_TIME(const total_arm_time_s &total_arm_time);
+
+msp_rendor_formic_ring_t construct_rendor_FORMIC_RING(const dds_flag_s &dds_flag);
+
+msp_rendor_formic_crosshairs_t construct_rendor_FORMIC_CROSSHAIRS(int osd_format);
+
 } // namespace msp_osd

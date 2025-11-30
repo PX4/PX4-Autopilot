@@ -644,9 +644,11 @@
 	 _vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
 	 _vehicle_status.latest_arming_reason = (uint8_t)calling_reason;
 
-	 // Store the current total arm time at the start of this arm session
+	 // Store the cumulative base time at the start of this arm session
+	 // This ensures we continue accumulating from the previous total
+	 _total_arm_time_sub.update();
 	 total_arm_time_s total_arm_time_msg = _total_arm_time_sub.get();
-	 _total_arm_time_at_session_start_ms = total_arm_time_msg.total_arm_time_ms;
+	 _total_arm_time_at_session_start_ms = total_arm_time_msg.cumulative_base_ms;
  
 	 mavlink_log_info(&_mavlink_log_pub, "Armed by %s\t", arm_disarm_reason_str(calling_reason));
 	 events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_armed_by"), events::Log::Info,
@@ -690,8 +692,19 @@
 	 }
  
 	 // Update total arm time before resetting armed_time
+	 // Save the final total to cumulative_base_ms so it persists across arm/disarm cycles
 	 if (_vehicle_status.armed_time > 0) {
 		 updateTotalArmTime(_vehicle_status.armed_time);
+		 
+		 // Get the final total and save it as the cumulative base
+		 _total_arm_time_sub.update();
+		 total_arm_time_s final_msg = _total_arm_time_sub.get();
+		 
+		 total_arm_time_s cumulative_update{};
+		 cumulative_update.timestamp = hrt_absolute_time();
+		 cumulative_update.cumulative_base_ms = final_msg.total_arm_time_ms;
+		 cumulative_update.total_arm_time_ms = final_msg.total_arm_time_ms;
+		 _total_arm_time_pub.publish(cumulative_update);
 	 }
 
 	 _vehicle_status.armed_time = 0;
@@ -1836,6 +1849,7 @@
 	 // Initialize total arm time topic
 	 total_arm_time_s total_arm_time_init{};
 	 total_arm_time_init.timestamp = _boot_timestamp;
+	 total_arm_time_init.cumulative_base_ms = 0;
 	 total_arm_time_init.total_arm_time_ms = 0;
 	 _total_arm_time_pub.publish(total_arm_time_init);
 	 _total_arm_time_at_session_start_ms = 0;
@@ -3087,26 +3101,15 @@ void Commander::updateTotalArmTime(hrt_abstime arm_time_us)
 	 // Calculate current arm session duration in microseconds
 	 uint64_t current_arm_time_us = now - arm_time_us;
 
-	 // Get the latest published total arm time from uORB to maintain cumulative total
-	 // This ensures continuity across arm/disarm cycles
-	 // Always update subscription first to get the latest published value
-	 _total_arm_time_sub.update();
-	 total_arm_time_s latest_msg = _total_arm_time_sub.get();
-	 
-	 // Use the latest published value as base, or session start if it's greater
-	 // This ensures we accumulate across multiple arm/disarm cycles
-	 uint64_t base_total_ms = (latest_msg.total_arm_time_ms > _total_arm_time_at_session_start_ms) 
-				   ? latest_msg.total_arm_time_ms 
-				   : _total_arm_time_at_session_start_ms;
-	 
-	 // Add current session time to the base total (convert to milliseconds)
-	 uint64_t total_arm_time_ms = base_total_ms + (current_arm_time_us / 1000);
+	 // Use the cumulative base (from session start) and add current session time
+	 // This ensures smooth accumulation without double-counting
+	 uint64_t total_arm_time_ms = _total_arm_time_at_session_start_ms + (current_arm_time_us / 1000);
 
 	 // Create and publish updated total arm time message
+	 // Preserve the cumulative_base_ms so it persists across updates
 	 total_arm_time_s total_arm_time_msg{};
 	 total_arm_time_msg.timestamp = now;
+	 total_arm_time_msg.cumulative_base_ms = _total_arm_time_at_session_start_ms;
 	 total_arm_time_msg.total_arm_time_ms = total_arm_time_ms;
-	 PX4_INFO("Total arm time: %llu ms", total_arm_time_ms);
-
 	 _total_arm_time_pub.publish(total_arm_time_msg);
 }

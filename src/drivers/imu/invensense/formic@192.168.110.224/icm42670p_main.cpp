@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,52 +31,59 @@
  *
  ****************************************************************************/
 
-/**
- * @file TurtelMode.hpp
- *
- * Flight task for turtle mode - allows manual control for flipping a crashed drone
- */
+#include "ICM42670P.hpp"
 
-#pragma once
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-#include "FlightTaskManualAltitude.hpp"
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_test.h>
-#include <uORB/topics/vehicle_command.h>
-#include "StickTiltXY.hpp"
-#include "auxReader.hpp"
-
-
-class TurtleMode : public FlightTaskManualAltitude
+void ICM42670P::print_usage()
 {
-public:
-	TurtleMode() = default;
-	virtual ~TurtleMode();
-	bool activate(const trajectory_setpoint_s &last_setpoint) override;
-	bool update() override;
+	PRINT_MODULE_USAGE_NAME("icm42670p", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
 
-	/**
-	 * Force arm the drone (bypasses preflight checks)
-	 * @return true if command was sent successfully
-	 */
-	bool forceArm();
 
-	/**
-	 * Disarm the drone
-	 * @param force if true, forces disarm even in flight
-	 * @return true if command was sent successfully
-	 */
-	bool disarm(bool force = false);
+extern "C" int icm42670p_main(int argc, char *argv[])
+{
+	int ch;
+	using ThisDriver = ICM42670P;
+	BusCLIArguments cli{false, true};
+	cli.default_spi_frequency = SPI_SPEED;
 
-protected:
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
+		switch (ch) {
+		case 'R':
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
+			break;
 
-private:
-	uORB::Publication<actuator_test_s> _actuator_test_pub{ORB_ID(actuator_test)};
-	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
-	void _publishMotorOutputs();
-	void _sendVehicleCommand(uint32_t command, float param1 = 0.0f, float param2 = 0.0f);
-};
+		}
+	}
 
-// Alias for template system - the generated code expects FlightTaskTurtle_mode
-using FlightTaskTurtle_mode = TurtleMode;
+	const char *verb = cli.optArg();
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_ICM42670P);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
+}

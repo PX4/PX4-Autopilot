@@ -275,6 +275,7 @@ msp_rendor_battery_state_t construct_rendor_BATTERY_STATE(const battery_status_s
 }
 
 
+
 msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 				const airspeed_validated_s &airspeed_validated)
 {
@@ -371,7 +372,7 @@ msp_rendor_satellites_used_t construct_rendor_GPS_NUM(const sensor_gps_s &vehicl
 	msp_rendor_satellites_used_t num;
 
 	num.screenYPosition = 0x08;
-	num.screenXPosition = 0x29;
+	num.screenXPosition = 0x30;
 
 	memset(&num.str[0], 0, sizeof(num.str));
 	snprintf(&num.str[0], sizeof(num.str), "%d", vehicle_gps_position.satellites_used);
@@ -474,7 +475,7 @@ msp_rendor_pitch_t  construct_rendor_PITCH(const vehicle_attitude_s &vehicle_att
 	msp_rendor_pitch_t pit;
 
 	pit.screenYPosition = 0x0D;
-	pit.screenXPosition = 0x29;
+	pit.screenXPosition = 0x30;
 
 	// convert from quaternion to RPY
 	matrix::Eulerf euler_attitude(matrix::Quatf(vehicle_attitude.q));
@@ -493,7 +494,7 @@ msp_rendor_roll_t  construct_rendor_ROLL(const vehicle_attitude_s &vehicle_attit
 	msp_rendor_roll_t roll;
 
 	roll.screenYPosition = 0x0E;
-	roll.screenXPosition = 0x29;
+	roll.screenXPosition = 0x30;
 
 	// convert from quaternion to RPY
 	matrix::Eulerf euler_attitude(matrix::Quatf(vehicle_attitude.q));
@@ -577,7 +578,7 @@ msp_rc_t construct_MSP_RC(const input_rc_s &input_rc)
 }
 
 msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status)
-{
+{	
 	// initialize result
 	msp_status_t status{0};
 
@@ -588,50 +589,126 @@ msp_status_t construct_MSP_STATUS(const vehicle_status_s &vehicle_status)
 	return status;
 }
 
+
+
+msp_rendor_battery_state_t construct_rendor_BATTERY_FULL_VOLTAGE(const battery_status_s &battery_status)
+{
+	// initialize result
+	msp_rendor_battery_state_t battery_state = {0};
+
+	battery_state.subCommand = MSP_DP_WRITE_STRING; // 3 write string. fixed
+	battery_state.screenYPosition = 0x05; // Position below single cell voltage
+	battery_state.screenXPosition = 0x02;
+	battery_state.iconAttrs = 0x00;
+	battery_state.iconIndex = 0x91; // Full battery icon (same as single cell full battery)(145 dec)
+
+	// Display full battery voltage (e.g., "14.8V" for 4S battery)
+	snprintf(&battery_state.str[0], sizeof(battery_state.str), "%.1fV", (double)battery_status.voltage_v);
+	return battery_state;
+}
+
+
 msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_aid_source1d_s &estimator_aid_src_rng_hgt)
 {
-	msp_rendor_distance_sensor_t distance;
+	msp_rendor_distance_sensor_t distance = {0}; // Initialize all fields to zero
 
-
-
-	distance.screenYPosition = 0x05;
+	distance.subCommand = MSP_DP_WRITE_STRING; // 0x03 Write string
+	distance.screenYPosition = 0x06;
 	distance.screenXPosition = 0x02;
+	distance.iconAttrs = 0x00;
+	distance.iconIndex = 0xB1; // Use altitude icon (similar to distance/height measurement)
 
 	// Use the observation from the estimator aid source (processed range finder height)
-	float dist = estimator_aid_src_rng_hgt.observation;
 
-	if (PX4_ISFINITE(dist) && estimator_aid_src_rng_hgt.fused) {
+	uint64_t time_diff = hrt_absolute_time() - estimator_aid_src_rng_hgt.time_last_fuse;
+	if ( time_diff > 1000_ms ) {
 		memset(&distance.str[0], 0, sizeof(distance.str));
-		snprintf(&distance.str[0], sizeof(distance.str), "%.2f", static_cast<double>(dist));
-	}
-	else if (PX4_ISFINITE(dist) && !estimator_aid_src_rng_hgt.fused) {
 		snprintf(&distance.str[0], sizeof(distance.str), "N.A");
 	}
 	else {
-		snprintf(&distance.str[0], sizeof(distance.str), "N.A");
+		float dist = estimator_aid_src_rng_hgt.observation;
+		if (PX4_ISFINITE(dist) && estimator_aid_src_rng_hgt.fused) {
+			memset(&distance.str[0], 0, sizeof(distance.str));
+			snprintf(&distance.str[0], sizeof(distance.str), "%.2f", static_cast<double>(dist));
+		}
+		else {
+			memset(&distance.str[0], 0, sizeof(distance.str));
+			snprintf(&distance.str[0], sizeof(distance.str), "N.A");
+		}
 	}
 	return distance;
 }
 
 msp_rendor_total_arm_time_t construct_rendor_TOTAL_ARM_TIME(const total_arm_time_s &total_arm_time)
 {
-	msp_rendor_total_arm_time_t render_total_arm_time;
+	msp_rendor_total_arm_time_t render_total_arm_time = {}; // Initialize all fields to zero
 
-	render_total_arm_time.screenYPosition = 0x06;
+	render_total_arm_time.subCommand = MSP_DP_WRITE_STRING; // 0x03 Write string
+	render_total_arm_time.screenYPosition = 0x07;
 	render_total_arm_time.screenXPosition = 0x02;
+	render_total_arm_time.iconAttrs = 0x00;
+	render_total_arm_time.iconIndex = MCP_TIMER_ICON; // Timer/clock icon (common Betaflight timer icon index)
+
+	// if (osd_format == 0) {
+	// 	crosshairs.iconIndex = MCP_ARDUPILOT(MSP_ICON_AUTOCONFIG_CROSSHAIRS); // ardupilotconfig
+	// } else {
+	// 	crosshairs.iconIndex = MSP_ICON_AUTOCONFIG_CROSSHAIRS; // autoconfig
+	// }
+
+
+	// render_total_arm_time.iconIndex = 0xBC; // Timer/clock icon (common Betaflight timer icon index)
 
 	// Convert milliseconds to mm:ss format
 	uint64_t total_seconds = total_arm_time.total_arm_time_ms / 1000;
-	uint64_t minutes = total_seconds / 60;
-	uint64_t seconds = total_seconds % 60;
+	int minutes = total_seconds / 60;
+	int seconds = total_seconds % 60;
 
 	// Format as "mm:ss" (e.g., "05:23" for 5 minutes 23 seconds)
-	snprintf(&render_total_arm_time.str[0], sizeof(render_total_arm_time.str), "%02llu:%02llu", minutes, seconds);
-	PX4_INFO("Total arm time mm:ss: %s", render_total_arm_time.str);
+	memset(&render_total_arm_time.str[0], 0, sizeof(render_total_arm_time.str));
+	snprintf(&render_total_arm_time.str[0], sizeof(render_total_arm_time.str), "%02d:%02d", minutes, seconds);
 
 	return render_total_arm_time;
 }
 
+msp_rendor_formic_ring_t construct_rendor_FORMIC_RING(const dds_flag_s &dds_flag)
+{
+	msp_rendor_formic_ring_t formic_ring{};
+
+	formic_ring.subCommand = MSP_DP_WRITE_STRING; // 0x03 subcommand write string. fixed
+	formic_ring.screenYPosition = 0x02;
+	formic_ring.screenXPosition = 0x01;
+	formic_ring.iconAttrs = 0x00;
+	formic_ring.iconIndex = 0x00; // no icon
+
+	// PX4_INFO("DDS connected: %d\n", (int)dds_flag.dds_connected);
+	
+	// Set str to "FORMIC: V" if DDS is connected, "FORMIC: X" if not connected
+	if (dds_flag.dds_connected) {
+		snprintf(&formic_ring.str[0], sizeof(formic_ring.str), "FORMIC:V");
+	} else {
+		snprintf(&formic_ring.str[0], sizeof(formic_ring.str), "FORMIC:X");
+	}
+
+	return formic_ring;
+}
+
+msp_rendor_formic_crosshairs_t construct_rendor_FORMIC_CROSSHAIRS(int osd_format)
+{
+	msp_rendor_formic_crosshairs_t crosshairs = {0}; // Initialize all fields to zero
+
+	crosshairs.subCommand = MSP_DP_WRITE_STRING; // 0x06 Display system element
+	crosshairs.screenYPosition = 0x09; // Center vertically (10 = 21/2 rounded down)
+	crosshairs.screenXPosition = 0x19; // Center horizontally (29 = 59/2 rounded down)
+	crosshairs.systemElement = 0x00; // Crosshairs system element ID (0x00 = CROSSHAIR)
+	
+	if (osd_format == 0) {
+		crosshairs.iconIndex = MCP_ARDUPILOT(MSP_ICON_AUTOCONFIG_CROSSHAIRS); // ardupilotconfig
+	} else {
+		crosshairs.iconIndex = MSP_ICON_AUTOCONFIG_CROSSHAIRS; // autoconfig
+	}
+
+	return crosshairs;
+}
 
 
 

@@ -117,6 +117,17 @@
 #define MSP_MODE_AUTOTRIM    29
 #define MSP_CMD_DISPLAYPORT 182
 
+
+
+// #define MSP_ICON_ARDUPILOT_CROSSHAIRS 0x7E
+#define MSP_ICON_AUTOCONFIG_CROSSHAIRS 0x73
+
+// #define MCP_TIMER_ICON 0xBC
+#define MCP_TIMER_ICON 0xBC
+
+
+#define MCP_ARDUPILOT(value) (11+value)
+
 struct msp_esc_sensor_data_t {
 	uint8_t motor_count;
 	uint8_t temperature;
@@ -492,7 +503,7 @@ struct msp_rendor_distance_sensor_t {
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
 	uint8_t iconAttrs = 0x00;
-	uint8_t iconIndex = 0x7E; // distance sensor icon
+	uint8_t iconIndex = 0x7F; // distance sensor icon (using altitude icon)
 
 	char str[8]; // distance in meters (e.g., "12.34")
 } __attribute__((packed));
@@ -502,9 +513,28 @@ struct msp_rendor_total_arm_time_t {
 	uint8_t screenYPosition;
 	uint8_t screenXPosition;
 	uint8_t iconAttrs = 0x00;
-	uint8_t iconIndex = 0x6F; // total arm time icon
+	uint8_t iconIndex = 0x1A; // total arm time icon (timer icon)
 
 	char str[8]; // total arm time in mm:ss format (e.g., "05:23")
+} __attribute__((packed));
+
+struct msp_rendor_formic_ring_t {
+	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t iconAttrs = 0x00;
+	uint8_t iconIndex = 0x00; // ring - no icon
+	char str[10]; // "FORMIC: V" or "FORMIC: X"
+	
+} __attribute__((packed));
+
+
+struct msp_rendor_formic_crosshairs_t {
+	uint8_t subCommand = 0x06; // 0x06 MSP_DP_SYS - Display system element
+	uint8_t screenYPosition;
+	uint8_t screenXPosition;
+	uint8_t systemElement = 0x00; // Crosshairs system element ID (0x00 = CROSSHAIR)
+	uint8_t iconIndex = 0x7E; // no icon
 } __attribute__((packed));
 
 
@@ -587,16 +617,6 @@ struct msp_uid_t {
 	uint32_t uid0;
 	uint32_t uid1;
 	uint32_t uid2;
-} __attribute__((packed));
-
-struct msp_rendor_formic_ring_t {
-	uint8_t subCommand = 0x03; // 0x03 subcommand write string. fixed
-	uint8_t screenYPosition;
-	uint8_t screenXPosition;
-	uint8_t iconAttrs = 0x00;
-	uint8_t iconIndex = 0x00; // no icon
-
-	char str[4]; // V or X character
 } __attribute__((packed));
 
 // MSP_FEATURE mask
