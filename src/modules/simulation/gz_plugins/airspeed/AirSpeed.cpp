@@ -117,7 +117,10 @@ void AirSpeed::PreUpdate(const gz::sim::UpdateInfo &_info,
 	// Calculate differential pressure + noise in hPa
 	const float diff_pressure_noise = standard_normal_distribution_(random_generator_) * diff_pressure_stddev_;
 	// Body-relateive air velocity
-	gz::math::Vector3d body_velocity = _vehicle_attitude.RotateVectorReverse(_vehicle_velocity);
+	///TODO: Subscribe to wind velocity from the world
+	gz::math::Vector3d _wind_velocity{0.0, 0.0, 0.0};
+	gz::math::Vector3d air_relative_velocity = _vehicle_velocity - _wind_velocity;
+	gz::math::Vector3d body_velocity = _vehicle_attitude.RotateVectorReverse(air_relative_velocity);
 	double diff_pressure = sign(body_velocity.X()) * 0.005 * (double)air_density  * body_velocity.X() * body_velocity.X() +
 			       (double)diff_pressure_noise;
 	// Calculate differential pressure in hPa
