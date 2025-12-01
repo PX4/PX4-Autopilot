@@ -171,7 +171,7 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 		# Set camera offset
 		${gz_command} topic -t /gui/track -m gz.msgs.CameraTrack \
 				-p "track_mode: FOLLOW, follow_target: {name: '${MODEL_NAME_INSTANCE}'},\
-				 follow_offset: {x: ${follow_x}, y: ${follow_y}, z: ${follow_z}}, follow_pgain: 1.0, track_pgain: 1.0"
+				 follow_offset: {x: ${follow_x}, y: ${follow_y}, z: ${follow_z}}, follow_pgain: 0.1, track_pgain: 1.0"
 
 		echo "INFO  [init] Camera follow offset set to ${follow_x}, ${follow_y}, ${follow_z}"
 	fi
