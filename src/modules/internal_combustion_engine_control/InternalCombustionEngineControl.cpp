@@ -134,6 +134,12 @@ void InternalCombustionEngineControl::Run()
 			}
 		}
 		break;
+
+	case ICESource::VtolStatus: {
+			_user_request = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+					 || vehicle_status.in_transition_to_fw) ? UserOnOffRequest::On : UserOnOffRequest::Off;
+		}
+		break;
 	}
 
 	switch (_state) {
