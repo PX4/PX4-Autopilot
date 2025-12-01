@@ -178,6 +178,7 @@ private:
 
 	bool _realtime_clock_set{false};
 	gz::transport::Node _node;
+	gz::transport::Node::Publisher _camera_pub;
 
 	// GPS noise model
 	float _gps_pos_noise_n = 0.0f;
