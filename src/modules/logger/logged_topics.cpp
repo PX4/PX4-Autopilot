@@ -155,7 +155,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("fixed_wing_longitudinal_setpoint");
 	add_topic("longitudinal_control_configuration");
 	add_topic("lateral_control_configuration");
-	add_topic("airflow");
+	add_topic("airflow", 50);
 	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
 	add_optional_topic("fixed_wing_lateral_status", 100);
 	add_optional_topic("fixed_wing_runway_control", 100);

@@ -587,9 +587,7 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 			airflow_s airflow_groundtruth;
 			airflow_groundtruth.timestamp = timestamp;
 			// Body-relateive air velocity
-			matrix::Dcmf Rib(matrix::Quatf{(float)q_nb.W(), (float)q_nb.X(), (float)q_nb.Y(), (float)q_nb.Z()});
-			matrix::Vector3f velocity_f = matrix::Vector3f{(float)velocity(0), (float)velocity(1), (float)velocity(2)};
-			matrix::Vector3f body_velocity = Rib.transpose() * velocity_f;
+			matrix::Vector3f body_velocity = matrix::Quatf(vehicle_attitude_groundtruth.q).rotateVectorInverse(matrix::Vector3f(velocity));
 			airflow_groundtruth.u = body_velocity(0);
 			airflow_groundtruth.v = body_velocity(1);
 			airflow_groundtruth.w = body_velocity(2);

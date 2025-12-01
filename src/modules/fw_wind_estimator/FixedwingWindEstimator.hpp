@@ -39,7 +39,6 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/slew_rate/SlewRate.hpp>
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -121,8 +120,6 @@ private:
 	bool _landed{true};
 
 	//Vehicle parameters
-
-
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_W_MASS>) _param_fw_w_mass,
 		(ParamFloat<px4::params::FW_W_AREA>) _param_fw_w_area,
