@@ -47,7 +47,6 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/rpm.h>
 #include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/vtol_vehicle_status.h>
 
 #include <lib/slew_rate/SlewRate.hpp>
 
@@ -82,7 +81,6 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
 	uORB::Subscription _actuator_motors{ORB_ID(actuator_motors)};
-	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
 	uORB::Publication<internal_combustion_engine_control_s> _internal_combustion_engine_control_pub{ORB_ID(internal_combustion_engine_control)};
 	uORB::Publication<internal_combustion_engine_status_s> _internal_combustion_engine_status_pub{ORB_ID(internal_combustion_engine_status)};
