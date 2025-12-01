@@ -159,14 +159,9 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 	fi
 
 	# Set up camera to follow the model if requested
-	if [ -n "${PX4_GZ_FOLLOW}" ]; then
+	if [ -z "${PX4_GZ_NO_FOLLOW}" ]; then
 
 		echo "INFO  [init] Setting camera to follow ${MODEL_NAME_INSTANCE}"
-
-		# Set camera to follow the model
-		${gz_command} service -s "/gui/follow" --reqtype gz.msgs.StringMsg \
-				--reptype gz.msgs.Boolean --timeout 5000 \
-				--req "data: \"${MODEL_NAME_INSTANCE}\"" > /dev/null 2>&1
 
 		# Set default camera offset if not specified
 		follow_x=${PX4_GZ_FOLLOW_OFFSET_X:--2.0}
@@ -174,9 +169,9 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 		follow_z=${PX4_GZ_FOLLOW_OFFSET_Z:-2.0}
 
 		# Set camera offset
-		${gz_command} service -s "/gui/follow/offset" --reqtype gz.msgs.Vector3d \
-				--reptype gz.msgs.Boolean --timeout 5000 \
-				--req "x: ${follow_x}, y: ${follow_y}, z: ${follow_z}" > /dev/null 2>&1
+		${gz_command} topic -t /gui/track -m gz.msgs.CameraTrack \
+				-p "track_mode: FOLLOW, follow_target: {name: '${MODEL_NAME_INSTANCE}'},\
+				 follow_offset: {x: ${follow_x}, y: ${follow_y}, z: ${follow_z}}, track_pgain: 1.0"
 
 		echo "INFO  [init] Camera follow offset set to ${follow_x}, ${follow_y}, ${follow_z}"
 	fi
