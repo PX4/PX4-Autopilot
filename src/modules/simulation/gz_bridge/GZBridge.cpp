@@ -508,7 +508,7 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 			const double dt = math::constrain((timestamp - _timestamp_prev) * 1e-6, 0.001, 0.1);
 			_timestamp_prev = timestamp;
 
-			gz::math::Pose3d model_pose = gz::msgs::Convert(msg);
+			gz::math::Pose3d model_pose = gz::msgs::Convert(msg.pose(p));
 			gz::math::Vector3d offset = gz::math::Vector3d(5.0, 5.0, 5.0);
 			double offset_yaw = 0.1;
 			gz::math::Vector3d offset_world = model_pose.Rot().RotateVector(offset);
@@ -520,8 +520,8 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 			gz::msgs::GUICamera camera_msg;
 			gz::msgs::Set(camera_msg.mutable_pose()->mutable_position(), camera_position);
 			gz::msgs::Set(camera_msg.mutable_pose()->mutable_orientation(), camera_orientation);
-			camera_msg.duration = 0.1;
-			_camera_pub.publish(camera_msg);
+			// camera_msg.set_duration(0.1);
+			_camera_pub.Publish(camera_msg);
 
 			gz::msgs::Vector3d pose_position = msg.pose(p).position();
 			gz::msgs::Quaternion pose_orientation = msg.pose(p).orientation();
