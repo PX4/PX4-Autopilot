@@ -108,6 +108,7 @@ private:
 		ArmingState,
 		Aux1,
 		Aux2,
+		VtolStatus,
 	};
 
 	hrt_abstime _state_start_time{0};
