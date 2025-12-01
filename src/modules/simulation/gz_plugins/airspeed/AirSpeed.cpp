@@ -63,6 +63,7 @@ void AirSpeed::Configure(const gz::sim::Entity &entity,
 	const std::string link_name = sdf->Get<std::string>("link_name");
 	_link_entity = _model.LinkByName(ecm, link_name);
 	std::string model_name = _model.Name(ecm);
+
 	if (!_link_entity) {
 		throw std::runtime_error("Airspeed::Configure: Link \"" + link_name + "\" was not found. "
 					 "Please ensure that your model contains the corresponding link.");
