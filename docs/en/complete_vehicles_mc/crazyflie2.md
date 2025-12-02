@@ -212,13 +212,17 @@ make venv
 :::
 
 ::: info
-To use Joystick, set `COM_RC_IN_MODE` in QGroundControl to "Joystick/No RC Checks".
-Calibrate the Joystick and set the Joystick message frequency in QGroundControl to any value between 5 to 14 Hz (10 Hz is recommended).
-To be able to set the frequency, the advanced option should be enabled.
-This is the rate at which Joystick commands are sent from QGroundControl to Crazyflie 2.0 (to do this, you will need to follow the instructions [here](https://github.com/mavlink/qgroundcontrol) to obtain the latest QGroundControl source code (master) and build it).
-:::
+To use a [Joystick](../config/joystick.md):
 
-![](../../assets/hardware/joystick-message-frequency.png)
+- Make sure you're using a [`COM_RC_IN_MODE` that allows Joystick](../config/manual_control.md#px4-configuration).
+- Calibrate the Joystick and set the Joystick message frequency in QGroundControl to any value between 5 to 14 Hz (10 Hz is recommended).
+  To be able to set the frequency, the advanced option should be enabled.
+
+  ![QGC UI for setting message frequency](../../assets/hardware/joystick-message-frequency.png)
+
+  This is the rate at which Joystick commands are sent from QGroundControl to Crazyflie 2.0 (to do this, you will need to follow the instructions [here](https://github.com/mavlink/qgroundcontrol) to obtain the latest QGroundControl source code (master) and build it).
+
+:::
 
 ## Hardware Setup
 

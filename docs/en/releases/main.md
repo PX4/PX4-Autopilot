@@ -41,12 +41,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Common
 
 - [QGroundControl Bootloader Update](../advanced_config/bootloader_update.md#qgc-bootloader-update-sys-bl-update) via the [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) parameter has been re-enabled after being broken for a number of releases. ([PX4-Autopilot#25032: build: romf: fix generation of rc.board_bootloader_upgrade](https://github.com/PX4/PX4-Autopilot/pull/25032)).
+- [Feature: Allow prioritization of manual control inputs based on their instance number in ascending or descending order](../config/manual_control.md#px4-configuration). ([PX4-Autopilot#25602: Ascending and descending manual control input priorities](https://github.com/PX4/PX4-Autopilot/pull/25602)).
 
 ### Control
 
 - Added new flight mode(s): [Altitude Cruise (MC)](../flight_modes_mc/altitude_cruise.md), Altitude Cruise (FW).
-  For fixed-wing the mode behaves the same as Altitude mode but you can disable the manual control loss failsafe. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise
-  ](https://github.com/PX4/PX4-Autopilot/pull/25435)).
+  For fixed-wing the mode behaves the same as Altitude mode but you can disable the manual control loss failsafe. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise](https://github.com/PX4/PX4-Autopilot/pull/25435)).
 
 ### Estimation
 
