@@ -49,7 +49,7 @@ After transitioning the vehicle heads towards the 3D position defined in the mis
 
 A VTOL mission requires a `VTOL Takeoff` mission item (`MAV_CMD_NAV_VTOL_TAKEOFF`) to takeoff (or a `MAV_CMD_NAV_TAKEOFF` when the vehicle is in MC mode); if however the vehicle is already flying when the mission is started the takeoff item will be treated as a normal waypoint.
 
-## See Also
+## 另见
 
 - [Mission Mode (MC)](../flight_modes_mc/mission.md)
 - [Mission Mode (FW)](../flight_modes_fw/mission.md)

@@ -515,12 +515,8 @@ float VtolType::pusher_assist()
 		// limit forward actuation to [0, 0.9]
 		forward_thrust = math::constrain(forward_thrust, 0.0f, 0.9f);
 
-		// Set the pitch to 0 if the pitch limit is negative (pitch down), but allow a positive (pitch up) pitch.
-		// This can be used for tiltrotor to make them hover with a positive angle of attack
-		const float pitch_new = pitch_setpoint_min > 0.f ? pitch_setpoint_min : 0.f;
-
 		// create corrected desired body z axis in heading frame
-		const Dcmf R_tmp = Eulerf(roll_new, pitch_new, 0.0f);
+		const Dcmf R_tmp = Eulerf(roll_new, pitch_setpoint_min, 0.0f);
 		Vector3f tilt_new(R_tmp(0, 2), R_tmp(1, 2), R_tmp(2, 2));
 
 		// rotate the vector into a new frame which is rotated in z by the desired heading

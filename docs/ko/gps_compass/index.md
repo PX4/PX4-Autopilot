@@ -145,21 +145,21 @@ To ensure the port is set up correctly perform a [Serial Port Configuration](../
 The following steps show how to configure a secondary GPS on the `GPS 2` port in _QGroundControl_:
 
 1. [Find and set](../advanced_config/parameters.md) the parameter [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to **GPS 2**.
-  - Open _QGroundControl_ and navigate to the **Vehicle Setup > Parameters** section.
-  - Select the **GPS** tab, then open the [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) parameter and select `GPS 2` from the dropdown list.
+   - Open _QGroundControl_ and navigate to the **Vehicle Setup > Parameters** section.
+   - Select the **GPS** tab, then open the [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) parameter and select `GPS 2` from the dropdown list.
 
-    ![QGC Serial Example](../../assets/peripherals/qgc_serial_config_example.png)
+     ![QGC Serial Example](../../assets/peripherals/qgc_serial_config_example.png)
 
 2. 다른 매개변수를 표시하려면 기체를 재부팅하십시오.
 
 3. Select the **Serial** tab, and open the [SER_GPS2_BAUD](../advanced_config/parameter_reference.md#SER_GPS2_BAUD) parameter (`GPS 2` port baud rate): set it to _Auto_ (or 115200 for the Trimble).
 
-  ![QGC Serial Baudrate Example](../../assets/peripherals/qgc_serial_baudrate_example.png)
+   ![QGC Serial Baudrate Example](../../assets/peripherals/qgc_serial_baudrate_example.png)
 
 보조 GPS 포트를 설정 후 :
 
 1. 두 GPS 시스템의 데이터를 혼합하도록 ECL/EKF2 추정기를 설정합니다.
-  For detailed instructions see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
+   For detailed instructions see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
 
 ### DroneCAN GNSS Configuration
 
@@ -197,11 +197,21 @@ It is possible to have low DOP (good satellite geometry) but still have high EPH
 
 EPH/EPV values therefore provide a more immediate and practical estimate of the actual GPS accuracy you can expect under current conditions.
 
+### GNSS Position Fusion
+
+GNSS position fusion will not begin until yaw alignment is established.
+If a magnetometer is available, the EKF aligns yaw using the magnetic heading, allowing GPS position fusion to start soon after boot.
+If no magnetometer is present, the system must rely on GPS yaw (from a dual-antenna setup) or movement-based yaw estimation.
+Until one of these provides a valid heading, the EKF will not start GPS position fusion, and the vehicle will remain in a “no position” state even though attitude data is valid.
+This behavior prevents large position errors that could occur when the yaw reference is uncertain.
+
 ## 개발자 정보
 
 - GPS/RTK-GPS
   - [RTK-GPS](../advanced/rtk_gps.md)
+  - [PPS Time Synchronization](../advanced/pps_time_sync.md)
   - [GPS driver](../modules/modules_driver.md#gps)
+  - [PPS driver](../modules/modules_driver.md#pps-capture)
   - [DroneCAN Example](../dronecan/index.md)
 - 나침반
   - [Driver source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer) (Compasses)

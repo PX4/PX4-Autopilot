@@ -346,6 +346,7 @@ bootloaders_update: \
         micoair_h743_bootloader \
         micoair_h743-aio_bootloader \
 	micoair_h743-v2_bootloader \
+	micoair_h743-lite_bootloader \
 	modalai_fc-v2_bootloader \
 	mro_ctrl-zero-classic_bootloader \
 	mro_ctrl-zero-h7_bootloader \

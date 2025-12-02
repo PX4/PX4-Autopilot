@@ -94,6 +94,14 @@ public:
 	void set_beta_gate(uint8_t gate_size) {_beta_gate = gate_size; }
 	void set_scale_init(float scale_init) {_scale_init = 1.f / math::constrain(scale_init, 0.1f, 10.f); }
 
+	void reset_scale_to_init()
+	{
+		_state(INDEX_TAS_SCALE) = _scale_init;
+		auto P_wind = _P.slice<2, 2>(0, 0);
+		_P.setZero();
+		_P.slice<2, 2>(0, 0) = P_wind;
+	}
+
 private:
 	enum {
 		INDEX_W_N = 0,

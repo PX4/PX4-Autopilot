@@ -80,7 +80,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | ------- | --------- | ------ | ---------- |
 | SERIAL1 | Telem1    | UART7  | /dev/ttyS6 |
 | SERIAL2 | Telem2    | UART5  | /dev/ttyS4 |
-| SERIAL3 | GPS1      | USART1 | /dev/ttyS0 |
+| SERIAL3 | GPS1      | USART1 | UART       |
 | SERIAL4 | GPS2      | UART8  | /dev/ttyS7 |
 | SERIAL5 | Telem3    | USART2 | /dev/ttyS1 |
 | SERIAL6 | UART4     | UART4  | /dev/ttyS3 |

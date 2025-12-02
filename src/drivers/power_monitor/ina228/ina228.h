@@ -356,6 +356,9 @@ private:
 
 	Battery 		  _battery;
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uint8_t _connected{0};
+	// returns state unchanged
+	bool setConnected(bool state);
 
 	int read(uint8_t address, int16_t &data);
 	int write(uint8_t address, int16_t data);

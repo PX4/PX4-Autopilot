@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,31 @@
  *
  ****************************************************************************/
 
-__BEGIN_DECLS
-void spix_sync_channel_init(unsigned channel);
-int spix_sync_servo_set(unsigned channel, uint8_t  value);
-unsigned spix_sync_servo_get(unsigned channel);
-int spix_sync_servo_init(unsigned rate);
-void spix_sync_servo_deinit(void);
-void spix_sync_servo_arm(bool armed);
-unsigned spix_sync_timer_get_period(unsigned timer);
-__END_DECLS
+/**
+ * @file bootloader_main.c
+ *
+ * FMU-specific early startup code for bootloader
+*/
+
+#include "board_config.h"
+#include "bl.h"
+
+#include <nuttx/config.h>
+#include <nuttx/board.h>
+#include <chip.h>
+#include <arch/board/board.h>
+#include "arm_internal.h"
+#include <px4_platform_common/init.h>
+
+extern int sercon_main(int c, char **argv);
+
+void board_late_initialize(void)
+{
+	sercon_main(0, NULL);
+}
+
+extern void sys_tick_handler(void);
+void board_timerhook(void)
+{
+	sys_tick_handler();
+}
