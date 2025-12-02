@@ -82,7 +82,7 @@ private:
 	float _last_u[NUM_MOTORS] {0.f, 0.f, 0.f, 0.f};
 	hrt_abstime _last_run{0};
 
-	bool _manual_torque_test{true};
+	bool _manual_torque_test{false};
 
 	manual_control_setpoint_s _manual_control_input;
 

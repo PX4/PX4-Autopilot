@@ -107,6 +107,7 @@ void CdusAllocatorDuct::Run()
 	}
 
 	// Disarmed or not in rate control => publish zero motors
+	// When using backstepping controller make sure not to flag _rate_control_enabled as there will be no rate control
 	if (!_armed || !_rate_control_enabled) {
 		actuator_motors_s out{};
 		out.timestamp = hrt_absolute_time();
@@ -115,33 +116,30 @@ void CdusAllocatorDuct::Run()
 		return;
 	}
 
+	// Get torque setpoint from controllers
 	vehicle_torque_setpoint_s torque_sp{};
 	if (!_torque_sp_sub.update(&torque_sp)) {
 		return;
 	}
 
+	// Get thrust setpoint from controllers
 	vehicle_thrust_setpoint_s thrust_sp{};
 	_thrust_sp_sub.copy(&thrust_sp);
 
+	// For open loop testing get manual control setpoint
 	if(_manual_control_setpoint_sub.updated()){
 		_manual_control_setpoint_sub.copy(&_manual_control_input);
 	}
 
-	// PX4_INFO("Manual cmds: %.3f %.3f %.3f %.3f",
-    //      (double)_manual_control_input.roll,
-    //      (double)_manual_control_input.pitch,
-    //      (double)_manual_control_input.yaw,
-    //      (double)_manual_control_input.throttle
-	// );
-
 
 	// Build desired vector
 	Vector<float, 4> desired{};
-	desired(0) = torque_sp.xyz[0];
+	desired(0) = -torque_sp.xyz[0];
 	desired(1) = torque_sp.xyz[1];
 	desired(2) = -torque_sp.xyz[2];
 	desired(3) = -thrust_sp.xyz[2];
 
+	// Set _manual_torque_test true in header for open loop testing
 	if(_manual_torque_test) {
 		desired(0) = -0.15f * _manual_control_input.roll;
 		desired(1) = -0.15f * _manual_control_input.pitch;
@@ -170,37 +168,23 @@ void CdusAllocatorDuct::Run()
 		if(std::fabs(d_s1) > d_s1_lim && std::fabs(d_s2) < d_s2_lim) {
 			d_PWM(3) = (d_s1_lim / r) * (d_s2 / std::fabs(d_s2));
 			d_PWM(2) = d_s1_lim * (d_s1 / std::fabs(d_s1));
-			// PX4_INFO("1");
 		} 
 
 		else if(std::fabs(d_s2) > d_s2_lim && std::fabs(d_s1) < d_s1_lim) {
 			d_PWM(2) = (d_s2_lim * r) * (d_s1 / std::fabs(d_s1));
 			d_PWM(3) = d_s2_lim * (d_s2 / std::fabs(d_s2));
-			// PX4_INFO("2");
 		}
 
 		else if(std::fabs(d_s2) > d_s2_lim && std::fabs(d_s1) > d_s1_lim) {
 			if(std::fabs(r) >= std::fabs(d_s1_lim/d_s2_lim)) {
 				d_PWM(3) = (d_s1_lim / r) * (d_s2 / std::fabs(d_s2));
 				d_PWM(2) = d_s1_lim * (d_s1 / std::fabs(d_s1));
-				// PX4_INFO("3");
 			} else {
 				d_PWM(2) = (d_s2_lim * r) * (d_s1 / std::fabs(d_s1));
 				d_PWM(3) = d_s2_lim * (d_s2 / std::fabs(d_s2));
-				// PX4_INFO("4");
 			}
 		}
 	}
-
-
-
-	// for (int i = 0; i < NUM_MOTORS; i++) {
-	// 	float cmd = d_PWM(i);
-	// 	if (!PX4_ISFINITE(cmd)) cmd = 0.f;
-	// 	if (cmd < 0.f) cmd = 0.f;
-	// 	if (cmd > 1.f) cmd = 1.f;
-	// 	d_PWM(i) = cmd;
-	// }
 
 	Vector4f actuator_trim(1570.f, 1570.f, 1450.f, 1450.f);
 
@@ -212,45 +196,6 @@ void CdusAllocatorDuct::Run()
 
 	const float m_max = 2000.f;
 	const float m_min = 1000.f;
-
-	// PX4_INFO("Actuators: %.3f %.3f %.3f %.3f",
-    //      (double)u(0),
-    //      (double)u(1),
-	// 	 (double)u(2),
-	// 	 (double)u(3)
-	// );
-
-	// // clamp before normalization
-	// if(u(2) > s_max) {
-	// 	const float ratio = u(3) / u(2);
-	// 	u(3) = ratio * s_max;
-	// 	u(2) = s_max;
-	// }
-
-	// if(u(2) < s_min) {
-	// 	const float ratio = u(3) / u(2);
-	// 	u(3) = ratio * s_min;
-	// 	u(2) = s_min;
-	// }
-
-	// if(u(3) > s_max) {
-	// 	const float ratio = u(2) / u(3);
-	// 	u(2) = ratio * s_max;
-	// 	u(3) = s_max;
-	// }
-
-	// if(u(3) < s_min) {
-	// 	const float ratio = u(2) / u(3);
-	// 	u(2) = ratio * s_min;
-	// 	u(3) = s_min;
-	// }
-
-	// PX4_INFO("Motor cmds: %.3f %.3f %.3f %.3f",
-    //      (double)u(0),
-    //      (double)u(1),
-    //      (double)u(2),
-    //      (double)u(3)
-	// );
 
 	// normalize
 	for(int i=0; i < 2; i++) {
@@ -264,6 +209,7 @@ void CdusAllocatorDuct::Run()
 	actuator_motors_s out{};
 	out.timestamp = hrt_absolute_time();
 
+	// Ensure motor actuator commands stay [0,1]
 	for (int i = 0; i < NUM_MOTORS; i++) {
 		float cmd = u(i);
 		if (!PX4_ISFINITE(cmd)) cmd = 0.f;
@@ -281,7 +227,7 @@ void CdusAllocatorDuct::Run()
     //      (double)out.control[3]
 	// );
 
-
+	// Publish normalized acutator setpoints
 	_actuator_motors_pub.publish(out);
 }
 
