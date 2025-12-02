@@ -8,4 +8,10 @@ param set-default CBRK_SUPPLY_CHK 894281
 
 param set-default SYS_HAS_MAG 0
 
-# param set-default CA_AIRFRAME 4
+param set-default SYS_AUTOSTART 3000
+param set-default SYS_AUTOCONFIG 1
+
+param set-default BAT1_V_DIV 11
+param set-default BAT1_A_PER_V 19.5
+
+# param set-default OSD_ATXXXX_CFG 1

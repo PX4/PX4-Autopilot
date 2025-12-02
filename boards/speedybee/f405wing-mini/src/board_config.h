@@ -68,20 +68,24 @@
  *
  * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
  */
+
+#define ADC1_CH(n)                  (n)
+
+#define PX4_ADC_GPIO  \
+	/* PC0 */  GPIO_ADC1_IN10,   \
+	/* PC2 */  GPIO_ADC1_IN12,   \
+	/* PC3 */  GPIO_ADC1_IN13
+
+#define ADC_BATTERY_VOLTAGE_CHANNEL  ADC1_CH(10)
+#define ADC_BATTERY_CURRENT_CHANNEL  ADC1_CH(11)
+// #define ADC_BATTERY_VOLTAGE_CHANNEL  12
+// #define ADC_BATTERY_CURRENT_CHANNEL  11
+#define ADC_RC_RSSI_CHANNEL          ADC1_CH(14)
+
 #define ADC_CHANNELS \
-    ((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
-     (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
-     (1 << ADC_RC_RSSI_CHANNEL) | \
-     (1 << ADC_AIRSPEED_CHANNEL))
-
-#define ADC_BATTERY_VOLTAGE_CHANNEL  10
-#define ADC_BATTERY_CURRENT_CHANNEL  11
-#define ADC_RC_RSSI_CHANNEL          14
-#define ADC_AIRSPEED_CHANNEL         15 // PC5 - AIRSPEED
-
-/* Define Battery Voltage Divider and A per V */
-#define BOARD_BATTERY1_V_DIV         (11.0f)
-#define BOARD_BATTERY1_A_PER_V       (19.5f)
+	((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
+	 (1 << ADC_BATTERY_CURRENT_CHANNEL) | \
+	 (1 << ADC_RC_RSSI_CHANNEL))
 
 /* User GPIOs
  *
@@ -200,6 +204,9 @@ extern void stm32_spiinitialize(void);
 extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
+
+extern int stm32_spi_bus_initialize(void);
+
 
 #include <px4_platform_common/board_common.h>
 

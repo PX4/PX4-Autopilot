@@ -167,7 +167,7 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN10);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN11);	/* BATT_CURRENT_SENS */
 	stm32_configgpio(GPIO_ADC1_IN14);	/* RSSI*/
-	stm32_configgpio(GPIO_ADC1_IN15);	/* arispeed*/
+	//stm32_configgpio(GPIO_ADC1_IN15);	/* arispeed*/
 
 	// TODO: power peripherals
 	///* configure power supply control/sense pins */
@@ -232,8 +232,8 @@ stm32_boardinitialize(void)
  ****************************************************************************/
 
 static struct spi_dev_s *spi1;
-static struct spi_dev_s *spi2;
-// static struct spi_dev_s *spi3;
+// static struct spi_dev_s *spi2;
+static struct spi_dev_s *spi3;
 
 __EXPORT int board_read_VBUS_state(void)
 {
@@ -284,45 +284,45 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	// SPI2: SDCard
 	/* Get the SPI port for the microSD slot */
-	// spi3 = stm32_spibus_initialize(3);
 
-	// if (!spi3) {
-	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
+	// SPI3: OSD / Baro
+	// spi2 = stm32_spibus_initialize(2);
+
+	// if (!spi2) {
+	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
 	// 	led_on(LED_BLUE);
 	// 	return -ENODEV;
 	// }
 
-	/* Now bind the SPI interface to the MMCSD driver */
-	// int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi2);
+	// /* Copied from fmu-v4
+	//  * Default SPI3 to 12MHz and de-assert the known chip selects.
+	//  * MS5611 has max SPI clock speed of 20MHz
+	//  */
 
-	// if (result != OK) {
-	// 	led_on(LED_BLUE);
-	// 	syslog(LOG_ERR, "[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
-	// 	return -ENODEV;
-	// }
+	// // BMP280 max SPI speed is 10 MHz
+	// SPI_SETFREQUENCY(spi2, 10 * 1000 * 1000);
+	// SPI_SETBITS(spi2, 8);
+	// SPI_SETMODE(spi2, SPIDEV_MODE3);
 
 	// up_udelay(20);
 
-	int result;
+	spi3 = stm32_spibus_initialize(3);
 
-	// SPI3: OSD / Baro
-	spi2 = stm32_spibus_initialize(2);
-
-	if (!spi2) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
+	if (!spi3) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
 		led_on(LED_BLUE);
 		return -ENODEV;
 	}
 
-	/* Copied from fmu-v4
-	 * Default SPI3 to 12MHz and de-assert the known chip selects.
-	 * MS5611 has max SPI clock speed of 20MHz
-	 */
+	/* Now bind the SPI interface to the MMCSD driver */
+	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi3);
 
-	// BMP280 max SPI speed is 10 MHz
-	SPI_SETFREQUENCY(spi2, 10 * 1000 * 1000);
-	SPI_SETBITS(spi2, 8);
-	SPI_SETMODE(spi2, SPIDEV_MODE0);
+	if (result != OK) {
+		led_on(LED_BLUE);
+		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
+		return -ENODEV;
+	}
+
 	up_udelay(20);
 
 #if defined(FLASH_BASED_PARAMS)
@@ -337,7 +337,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (result != OK) {
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 		led_on(LED_AMBER);
-		return -ENODEV;
 	}
 
 #endif
