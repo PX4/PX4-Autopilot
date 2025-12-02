@@ -1,4 +1,5 @@
 <!-- GENERATED CONTENT: DO NOT EDIT -->
+
 - [Introduction](/index.md)
   - [Basic Concepts](/getting_started/px4_basic_concepts.md)
 
@@ -224,7 +225,6 @@
     - [Bootloader Update](/advanced_config/bootloader_update.md)
       - [Bootloader Update FMUv6X-RT via USB](/advanced_config/bootloader_update_v6xrt.md)
       - [Bootloader Flashing onto Betaflight Systems](/advanced_config/bootloader_update_from_betaflight.md)
-      - [Secure Boot and Firmware Signature Verification](/advanced_config/bootloader_secure_boot.md)
   - [Airframe Selection](/config/airframe.md)
   - [Sensors](/sensor/index.md)
     - [Accelerometer](/sensor/accelerometer.md)
