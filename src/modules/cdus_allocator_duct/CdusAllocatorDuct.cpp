@@ -166,21 +166,21 @@ void CdusAllocatorDuct::Run()
 		const float r = d_PWM(2) / d_PWM(3);
 
 		if(std::fabs(d_s1) > d_s1_lim && std::fabs(d_s2) < d_s2_lim) {
-			d_PWM(3) = (d_s1_lim / r) * (d_s2 / std::fabs(d_s2));
+			d_PWM(3) = (d_s1_lim / std::fabs(r)) * (d_s2 / std::fabs(d_s2));
 			d_PWM(2) = d_s1_lim * (d_s1 / std::fabs(d_s1));
 		} 
 
 		else if(std::fabs(d_s2) > d_s2_lim && std::fabs(d_s1) < d_s1_lim) {
-			d_PWM(2) = (d_s2_lim * r) * (d_s1 / std::fabs(d_s1));
+			d_PWM(2) = (d_s2_lim * std::fabs(r)) * (d_s1 / std::fabs(d_s1));
 			d_PWM(3) = d_s2_lim * (d_s2 / std::fabs(d_s2));
 		}
 
 		else if(std::fabs(d_s2) > d_s2_lim && std::fabs(d_s1) > d_s1_lim) {
 			if(std::fabs(r) >= std::fabs(d_s1_lim/d_s2_lim)) {
-				d_PWM(3) = (d_s1_lim / r) * (d_s2 / std::fabs(d_s2));
+				d_PWM(3) = (d_s1_lim / std::fabs(r)) * (d_s2 / std::fabs(d_s2));
 				d_PWM(2) = d_s1_lim * (d_s1 / std::fabs(d_s1));
 			} else {
-				d_PWM(2) = (d_s2_lim * r) * (d_s1 / std::fabs(d_s1));
+				d_PWM(2) = (d_s2_lim * std::fabs(r)) * (d_s1 / std::fabs(d_s1));
 				d_PWM(3) = d_s2_lim * (d_s2 / std::fabs(d_s2));
 			}
 		}
