@@ -72,8 +72,8 @@ then
 	# Internal magnetometer on I2c
 	bmm150 -I -R 6 start
 
-	# Auto start power monitors
-	pm_selector_auterion start
+	# Auterion auto starter
+	auterion_autostarter start
 
 	# Auterion's INA238 uses a shunt value of 0.0003 instead of 0.0005.
 	param set-default INA238_SHUNT 0.0003

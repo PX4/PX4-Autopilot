@@ -31,10 +31,10 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__power_monitor_pm_selector_auterion
-	MAIN pm_selector_auterion
+	MODULE drivers__auterion_autostarter
+	MAIN auterion_autostarter
 	SRCS
-		PowerMonitorSelectorAuterion.cpp
+		AuterionAutostarter.cpp
 	DEPENDS
 		px4_work_queue
 	)
