@@ -310,35 +310,6 @@ class Tester:
                 else:
                     world_name = 'empty.world'
 
-                gzserver_runner = ph.GzserverRunner(
-                    os.getcwd(),
-                    log_dir,
-                    test['vehicle'],
-                    case,
-                    self.get_max_speed_factor(test),
-                    self.verbose,
-                    self.build_dir,
-                    world_name)
-                self.active_runners.append(gzserver_runner)
-
-                gzmodelspawn_runner = ph.GzmodelspawnRunner(
-                    os.getcwd(),
-                    log_dir,
-                    test['vehicle'],
-                    case,
-                    self.verbose,
-                    self.build_dir)
-                self.active_runners.append(gzmodelspawn_runner)
-
-                if self.gui:
-                    gzclient_runner = ph.GzclientRunner(
-                        os.getcwd(),
-                        log_dir,
-                        test['model'],
-                        case,
-                        self.verbose)
-                    self.active_runners.append(gzclient_runner)
-
                 # We must start the PX4 instance at the end, as starting
                 # it in the beginning, then connecting Gazebo server freaks
                 # out the PX4 (it needs to have data coming in when started),
