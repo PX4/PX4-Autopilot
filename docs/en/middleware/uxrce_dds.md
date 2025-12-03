@@ -321,7 +321,7 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
   - [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT): Bridge time synchronization enable.
     The uXRCE-DDS client module can synchronize the timestamp of the messages exchanged over the bridge.
     This is the default configuration. In certain situations, for example during [simulations](../ros2/user_guide.md#ros-gazebo-and-px4-time-synchronization), this feature may be disabled.
-  - <Badge type="tip" text="planned for: PX4 v1.17" /> [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX): Index-based namespace definition
+  - <Badge type="tip" text="PX4 v1.17" /> [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX): Index-based namespace definition
     Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
     See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
 
