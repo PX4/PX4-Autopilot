@@ -168,7 +168,7 @@ class Px4Runner(Runner):
                 os.path.join(workspace_dir, "test_data"),
                 "-d"
             ]
-        self.env["PX4_SIM_MODEL"] = "gazebo-classic_" + self.model
+        self.env["PX4_SIM_MODEL"] = "sihsim_quadx"
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.debugger = debugger
         self.clear_rootfs()

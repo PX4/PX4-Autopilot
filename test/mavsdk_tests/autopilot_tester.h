@@ -298,7 +298,7 @@ private:
 
 	Telemetry::GroundTruth _home{NAN, NAN, NAN};
 
-	mavsdk::Telemetry::PositionHandle _check_altitude_handle{};
+	mavsdk::Telemetry::PositionVelocityNedHandle _check_altitude_handle{};
 
 	std::atomic<bool> _should_exit {false};
 	std::thread _real_time_report_thread {};

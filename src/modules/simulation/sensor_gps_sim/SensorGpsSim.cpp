@@ -118,7 +118,7 @@ void SensorGpsSim::Run()
 		double longitude = vehicle_global_position.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
 		double altitude = (double)(vehicle_global_position.alt + (generate_wgn() * 0.5f));
 
-		Vector3f gps_vel = Vector3f{vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
+		Vector3f gps_vel = Vector3f{vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz};// + noiseGauss3f(0.06f, 0.077f, 0.158f);
 
 		// device id
 		device::Device::DeviceId device_id;

@@ -246,16 +246,16 @@ if(gazebo_FOUND)
 
 	add_custom_target(gazebo-classic DEPENDS gazebo-classic_iris) # alias
 	add_custom_target(gazebo DEPENDS gazebo-classic_iris) # alias
-
-	# mavsdk tests currently depend on sitl_gazebo
-	ExternalProject_Add(mavsdk_tests
-		SOURCE_DIR ${PX4_SOURCE_DIR}/test/mavsdk_tests
-		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-		BINARY_DIR ${PX4_BINARY_DIR}/mavsdk_tests
-		INSTALL_COMMAND ""
-		USES_TERMINAL_CONFIGURE true
-		USES_TERMINAL_BUILD true
-		EXCLUDE_FROM_ALL true
-		BUILD_ALWAYS 1
-	)
 endif()
+
+# mavsdk tests DO NOT depend on sitl_gazebo
+ExternalProject_Add(mavsdk_tests
+	SOURCE_DIR ${PX4_SOURCE_DIR}/test/mavsdk_tests
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+	BINARY_DIR ${PX4_BINARY_DIR}/mavsdk_tests
+	INSTALL_COMMAND ""
+	USES_TERMINAL_CONFIGURE true
+	USES_TERMINAL_BUILD true
+	EXCLUDE_FROM_ALL true
+	BUILD_ALWAYS 1
+)
