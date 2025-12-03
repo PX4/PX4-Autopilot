@@ -12,59 +12,12 @@ Improper configuration can brick your device.
 
 The PX4 secure boot implementation provides:
 
-- **Firmware signature verification**: The bootloader verifies cryptographic signatures before executing firmware
-- **Tamper protection**: Unsigned or improperly signed firmware will not be executed
-- **Key-based authentication**: Uses cryptographic keys stored in the device
-- **Table of Contents (TOC)**: A structured format for organizing firmware components with security metadata
+- **Firmware signature verification**: The bootloader verifies cryptographic signatures before executing firmware.
+- **Tamper protection**: Unsigned or improperly signed firmware will not be executed.
+- **Key-based authentication**: Uses cryptographic keys stored in the device.
+- **Table of Contents (TOC)**: A structured format for organizing firmware components with security metadata.
 
-The secure boot feature was contributed by Technology Innovation Institute and is available on NuttX-based flight controllers.
-
-## How It Works
-
-### Boot Process
-
-1. **Bootloader starts**: The secure bootloader runs first after power-on or reset
-2. **TOC validation**: Locates and validates the Table of Contents (TOC) structure in flash
-3. **Signature verification**: Verifies the cryptographic signature of the firmware using stored keys
-4. **Boot decision**: 
-   - If verification succeeds, the firmware is executed
-   - If verification fails, the bootloader remains active and waits for a valid firmware upload
-
-### Table of Contents (TOC)
-
-The TOC is a data structure embedded in the firmware that describes:
-
-- Firmware components and their locations in flash memory
-- Signature information for each component
-- Encryption settings (if used)
-- Boot flags indicating which component should be executed
-
-The TOC format is defined in `src/include/image_toc.h`:
-
-```c
-typedef struct image_toc_entry {
-    unsigned char name[4];      // Name of the section
-    const void *start;          // Start address in flash
-    const void *end;            // End address in flash
-    void *target;               // Copy target address (for RAM execution)
-    uint8_t signature_idx;      // Index to signature in TOC
-    uint8_t signature_key;      // Key index for signature verification
-    uint8_t encryption_key;     // Key index for encryption (future)
-    uint8_t flags1;             // Control flags
-    uint32_t reserved;          // Reserved for future use
-} image_toc_entry_t;
-```
-
-### Supported Cryptographic Algorithms
-
-PX4's crypto backend supports multiple algorithms (defined in `platforms/common/include/px4_platform_common/crypto_algorithms.h`):
-
-- **ED25519**: EdDSA signatures using Curve25519 (recommended for signatures)
-- **RSA-OAEP**: RSA with Optimal Asymmetric Encryption Padding
-- **XCHACHA20**: Stream cipher for encryption (future use)
-- **AES**: Block cipher for encryption (future use)
-
-The bootloader uses ED25519 by default for signature verification due to its security, performance, and small signature size.
+The secure boot feature is available on NuttX-based flight controllers.
 
 ## Enabling Secure Boot
 
@@ -83,7 +36,7 @@ To enable secure boot on your board:
 
 1. **Enable security in bootloader**: Add to your board's bootloader configuration file (e.g., `boards/[vendor]/[board]/nuttx-config/bootloader/defconfig`):
 
-   ```
+   ```sh
    CONFIG_BOOTLOADER_USE_SECURITY=y
    ```
 
@@ -94,26 +47,26 @@ To enable secure boot on your board:
    ```
 
 3. **Configure key storage**: Implement or configure the keystore backend for your board
-
 4. **Build bootloader with crypto support**: Ensure `PX4_CRYPTO` is defined in your board's CMake configuration
 
 ### Key Management
 
-::: warning
-**CRITICAL**: Keep your private keys secure! If private keys are lost, you cannot sign new firmware. If private keys are compromised, unauthorized firmware can be created.
+::: warning CRITICAL
+Keep your private keys secure! If private keys are lost, you cannot sign new firmware. If private keys are compromised, unauthorized firmware can be created.
 :::
 
 Key management involves:
 
 1. **Key generation**: Generate cryptographic key pairs (public and private keys)
-2. **Key storage**: 
+2. **Key storage**:
    - Private keys: Store securely on your build/signing server (never on the device)
    - Public keys: Store in the device's keystore (accessible to bootloader)
 3. **Key indices**: Each key has an index (0-15) used to reference it in the TOC
 
 #### Generating ED25519 Keys
 
-You can use various tools to generate ED25519 keys. Example using Python with the `cryptography` library:
+You can use various tools to generate ED25519 keys.
+Example using Python with the `cryptography` library:
 
 ```python
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -141,7 +94,7 @@ public_bytes = public_key.public_bytes(
 # Save keys to files
 with open('private_key.bin', 'wb') as f:
     f.write(private_bytes)
-    
+
 with open('public_key.bin', 'wb') as f:
     f.write(public_bytes)
 ```
@@ -250,10 +203,10 @@ The update process through QGroundControl or other tools works the same way, but
 
 If signature verification fails:
 
-- The bootloader will not execute the firmware
-- The bootloader remains active and accepts new firmware uploads
-- The device will not be bricked (bootloader always runs)
-- You can upload a correctly signed firmware to recover
+- The bootloader will not execute the firmware.
+- The bootloader remains active and accepts new firmware uploads.
+- The device will not be bricked (bootloader always runs).
+- You can upload a correctly signed firmware to recover.
 
 Check bootloader logs (if available) to diagnose signature failures.
 
@@ -261,18 +214,21 @@ Check bootloader logs (if available) to diagnose signature failures.
 
 ### Common Issues
 
-**Firmware won't boot after enabling secure boot**
+#### Firmware won't boot after enabling secure boot
+
 - Ensure the firmware is properly signed
 - Verify the TOC structure is correct
 - Check that the key index in TOC matches the keystore
 
-**Signature verification always fails**
+#### Signature verification always fails
+
 - Confirm public key is correctly installed in keystore
 - Verify the signature was created with the matching private key
 - Check that the signature algorithm matches (e.g., ED25519)
 - Ensure the signature covers the correct data range
 
-**Device appears bricked**
+#### Device appears bricked
+
 - The bootloader should always be accessible
 - Use a debug probe to reprogram the bootloader if needed
 - Check that BOOTLOADER_USE_SECURITY is defined correctly
@@ -285,6 +241,53 @@ To debug secure boot issues:
 2. Use a debug probe to examine memory and execution flow
 3. Verify TOC parsing with debug tools
 4. Check return values from `verify_app()` function
+
+## How It Works
+
+### Boot Process
+
+1. **Bootloader starts**: The secure bootloader runs first after power-on or reset.
+2. **TOC validation**: Locates and validates the Firmware Table of Contents (TOC) structure in flash.
+3. **Signature verification**: Verifies the cryptographic signature of the firmware using stored keys.
+4. **Boot decision**:
+   - If verification succeeds, the firmware is executed.
+   - If verification fails, the bootloader remains active and waits for a valid firmware upload.
+
+### Firmware Table of Contents (TOC)
+
+The firmware TOC is a data structure embedded in the firmware that describes:
+
+- Firmware components and their locations in flash memory
+- Signature information for each component
+- Encryption settings (if used)
+- Boot flags indicating which component should be executed
+
+The TOC format is defined in `src/include/image_toc.h`:
+
+```c
+typedef struct image_toc_entry {
+    unsigned char name[4];      // Name of the section
+    const void *start;          // Start address in flash
+    const void *end;            // End address in flash
+    void *target;               // Copy target address (for RAM execution)
+    uint8_t signature_idx;      // Index to signature in TOC
+    uint8_t signature_key;      // Key index for signature verification
+    uint8_t encryption_key;     // Key index for encryption (future)
+    uint8_t flags1;             // Control flags
+    uint32_t reserved;          // Reserved for future use
+} image_toc_entry_t;
+```
+
+### Supported Cryptographic Algorithms
+
+PX4's crypto backend supports multiple algorithms (defined in `platforms/common/include/px4_platform_common/crypto_algorithms.h`):
+
+- **ED25519**: EdDSA signatures using Curve25519 (recommended for signatures)
+- **RSA-OAEP**: RSA with Optimal Asymmetric Encryption Padding
+- **XCHACHA20**: Stream cipher for encryption (future use)
+- **AES**: Block cipher for encryption (future use)
+
+The bootloader uses ED25519 by default for signature verification due to its security, performance, and small signature size.
 
 ## Implementation Details
 
@@ -301,7 +304,7 @@ The secure boot implementation consists of:
 - **Keystore**: `src/drivers/stub_keystore/` (or board-specific implementations)
   - Key storage and retrieval
 
-- **Headers**: 
+- **Headers**:
   - `src/include/image_toc.h`: TOC structure definitions
   - `platforms/common/include/px4_platform_common/crypto_backend.h`: Crypto API
   - `platforms/common/include/px4_platform_common/crypto_algorithms.h`: Algorithm definitions
