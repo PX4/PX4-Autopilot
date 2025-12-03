@@ -39,8 +39,6 @@
 
 using namespace matrix;
 
-ModuleBase::Descriptor SensorGpsSim::desc{task_spawn, custom_command, print_usage};
-
 SensorGpsSim::SensorGpsSim() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -89,54 +87,11 @@ float SensorGpsSim::generate_wgn()
 	return X;
 }
 
-void SensorGpsSim::check_failure_injections()
-{
-	vehicle_command_s vehicle_command;
-
-	while (_vehicle_command_sub.update(&vehicle_command)) {
-		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
-			continue;
-		}
-
-		bool handled = false;
-		bool supported = false;
-
-		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
-		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
-
-		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_GPS) {
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, GPS off");
-				supported = true;
-				_gps_blocked = true;
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, GPS ok");
-				supported = true;
-				_gps_blocked = false;
-			}
-		}
-
-		if (handled) {
-			vehicle_command_ack_s ack{};
-			ack.command = vehicle_command.command;
-			ack.from_external = false;
-			ack.result = supported ?
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-			ack.timestamp = hrt_absolute_time();
-			_command_ack_pub.publish(ack);
-		}
-	}
-}
-
 void SensorGpsSim::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup(desc);
+		exit_and_cleanup();
 		return;
 	}
 
@@ -151,13 +106,6 @@ void SensorGpsSim::Run()
 		updateParams();
 	}
 
-	check_failure_injections();
-
-	if (_gps_blocked) {
-		perf_end(_loop_perf);
-		return;
-	}
-
 	if (_vehicle_local_position_groundtruth_sub.updated() && _vehicle_global_position_groundtruth_sub.updated()) {
 
 		vehicle_local_position_s vehicle_local_position{};
@@ -166,30 +114,11 @@ void SensorGpsSim::Run()
 		vehicle_global_position_s vehicle_global_position{};
 		_vehicle_global_position_groundtruth_sub.copy(&vehicle_global_position);
 
-		// Correlated Markov process position noise (matching GZBridge model)
-		_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
-				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude;
+		double latitude = vehicle_global_position.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+		double longitude = vehicle_global_position.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+		double altitude = (double)(vehicle_global_position.alt + (generate_wgn() * 0.5f));
 
-		_gps_pos_noise_e = _pos_markov_time * _gps_pos_noise_e +
-				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude;
-
-		_gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
-				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f;
-
-		const double latitude = vehicle_global_position.lat + math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
-		const double longitude = vehicle_global_position.lon + math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
-		const double altitude = (double)(vehicle_global_position.alt + _gps_pos_noise_d);
-
-		_gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
-				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
-
-		_gps_vel_noise_e = _vel_markov_time * _gps_vel_noise_e +
-				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
-
-		_gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
-				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
-
-		const Vector3f gps_vel = Vector3f{vehicle_local_position.vx + _gps_vel_noise_n, vehicle_local_position.vy + _gps_vel_noise_e, vehicle_local_position.vz + _gps_vel_noise_d};
+		Vector3f gps_vel = Vector3f{vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz};// + noiseGauss3f(0.06f, 0.077f, 0.158f);
 
 		// device id
 		device::Device::DeviceId device_id;
@@ -258,8 +187,8 @@ int SensorGpsSim::task_spawn(int argc, char *argv[])
 	SensorGpsSim *instance = new SensorGpsSim();
 
 	if (instance) {
-		desc.object.store(instance);
-		desc.task_id = task_id_is_work_queue;
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -270,8 +199,8 @@ int SensorGpsSim::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	desc.object.store(nullptr);
-	desc.task_id = -1;
+	_object.store(nullptr);
+	_task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -303,5 +232,5 @@ int SensorGpsSim::print_usage(const char *reason)
 
 extern "C" __EXPORT int sensor_gps_sim_main(int argc, char *argv[])
 {
-	return ModuleBase::main(SensorGpsSim::desc, argc, argv);
+	return SensorGpsSim::main(argc, argv);
 }
