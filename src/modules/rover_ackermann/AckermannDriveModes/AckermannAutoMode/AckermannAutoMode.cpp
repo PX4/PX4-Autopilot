@@ -139,8 +139,7 @@ float AckermannAutoMode::arrivalSpeed(const float cruising_speed, const float mi
 				      const int curr_wp_type, const float waypoint_transition_angle, const float max_yaw_rate)
 {
 	if (!PX4_ISFINITE(waypoint_transition_angle)
-	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND
-	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 		return 0.f; // Stop at the waypoint
 
 	} else if (_param_ro_speed_red.get() > FLT_EPSILON) {

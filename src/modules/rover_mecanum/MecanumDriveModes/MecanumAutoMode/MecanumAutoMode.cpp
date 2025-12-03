@@ -97,8 +97,7 @@ float MecanumAutoMode::arrivalSpeed(const float cruising_speed, const float wayp
 				    const float max_speed, const float speed_red, int curr_wp_type)
 {
 	// Upcoming stop
-	if (!PX4_ISFINITE(waypoint_transition_angle) || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND
-	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+	if (!PX4_ISFINITE(waypoint_transition_angle) || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 		return 0.f;
 	}
 
