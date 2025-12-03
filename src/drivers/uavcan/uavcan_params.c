@@ -132,6 +132,36 @@ PARAM_DEFINE_FLOAT(UAVCAN_ECU_MAXF, 15.0f);
 PARAM_DEFINE_INT32(UAVCAN_ECU_FUELT, 1);
 
 /**
+ * UAVCAN ESC over temperature value
+ *
+ * This parameter defines the temperature at which the esc over temperature bit is set in esc_status.failures. Should be higher than UAVCAN_ESC_W_TMP.
+ *
+ * @min 40.0
+ * @max 180.0
+ * @unit celcius
+ * @decimal 1
+ * @increment 1.0
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_ESC_O_TMP, 90.0f);
+
+/**
+ * UAVCAN ESC warning temperature value.
+ *
+ * This parameter defines the temperature at which the esc warning temperature bit is set in esc_status.failures. Should be lower than UAVCAN_ESC_O_TMP.
+ *
+ * @min 40.0
+ * @max 180.0
+ * @unit celcius
+ * @decimal 1
+ * @increment 1.0
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_ESC_W_TMP, 70.0f);
+
+/**
  * UAVCAN ANTI_COLLISION light operating mode
  *
  * This parameter defines the minimum condition under which the system will command
@@ -218,6 +248,36 @@ PARAM_DEFINE_INT32(UAVCAN_LGT_NAV, 3);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_LGT_LAND, 0);
+
+/**
+ * UAVCAN motor over temperature value
+ *
+ * This parameter defines the temperature at which the motor over temperature bit is set in esc_status.failures. Should be higher than UAVCAN_MOT_W_TMP.
+ *
+ * @min 40.0
+ * @max 180.0
+ * @unit celcius
+ * @decimal 1
+ * @increment 1.0
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_MOT_O_TMP, 90.0f);
+
+/**
+ * UAVCAN motor warning temperature value.
+ *
+ * This parameter defines the temperature at which the motor warning temperature bit is set in esc_status.failures. Should be lower than UAVCAN_MOT_O_TMP.
+ *
+ * @min 40.0
+ * @max 180.0
+ * @unit celcius
+ * @decimal 1
+ * @increment 1.0
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_MOT_W_TMP, 70.0f);
 
 /**
  * publish Arming Status stream
