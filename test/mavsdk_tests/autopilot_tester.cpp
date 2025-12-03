@@ -226,13 +226,13 @@ void AutopilotTester::wait_until_hovering()
 
 void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout, float delta)
 {
-	auto prom = std::promise<void> {};
+	auto prom = std::promise<void>{};
 	auto fut = prom.get_future();
 
-	Telemetry::PositionHandle handle = _telemetry->subscribe_position([&prom, rel_altitude_m, delta, &handle,
-	       this](Telemetry::Position new_position) {
-		if (fabs(rel_altitude_m - new_position.relative_altitude_m) <= delta) {
-			_telemetry->unsubscribe_position(handle);
+	Telemetry::PositionVelocityNedHandle handle = _telemetry->subscribe_position_velocity_ned([&prom, rel_altitude_m, delta, &handle,
+	       this](Telemetry::PositionVelocityNed new_position) {
+		if (fabs(rel_altitude_m + new_position.position.down_m) <= delta) {
+			_telemetry->unsubscribe_position_velocity_ned(handle);
 			prom.set_value();
 		}
 	});
@@ -641,16 +641,16 @@ void AutopilotTester::start_checking_altitude(const float max_deviation_m)
 	std::array<float, 3> initial_position = get_current_position_ned();
 	float target_altitude = initial_position[2];
 
-	_check_altitude_handle = _telemetry->subscribe_position([target_altitude, max_deviation_m,
-			 this](Telemetry::Position new_position) {
-		const float current_deviation = fabs((-target_altitude) - new_position.relative_altitude_m);
+	_check_altitude_handle = _telemetry->subscribe_position_velocity_ned([target_altitude, max_deviation_m,
+			 this](Telemetry::PositionVelocityNed new_position) {
+		const float current_deviation = fabs(target_altitude - new_position.position.down_m);
 		CHECK(current_deviation <= max_deviation_m);
 	});
 }
 
 void AutopilotTester::stop_checking_altitude()
 {
-	_telemetry->unsubscribe_position(_check_altitude_handle);
+	_telemetry->unsubscribe_position_velocity_ned(_check_altitude_handle);
 }
 
 void AutopilotTester::check_tracks_mission_raw(float corridor_radius_m, bool reverse)
