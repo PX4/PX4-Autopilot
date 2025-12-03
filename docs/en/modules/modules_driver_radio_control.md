@@ -16,8 +16,6 @@ crsf_rc <command> [arguments...]
    start
      [-d <val>]  RC device
                  values: <file:dev>, default: /dev/ttyS3
-     [-b <val>]  RC baudrate
-                 default: 420000
 
    inject        Inject frame data bytes (for testing)
 
