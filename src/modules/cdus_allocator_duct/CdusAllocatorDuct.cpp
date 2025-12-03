@@ -154,8 +154,23 @@ void CdusAllocatorDuct::Run()
 	// 	 (double)desired(3)
 	// );
 
+	// Get motor trim values from thrust
+	float m_trim = 1.f * desired(3);
+
+	// Convert motor trim to PWM
+	const float max = 1900.f;
+	const float min = 1100.f;
+	m_trim = m_trim * (max - min) + min;
+
+	// Take out thrust contribution to delta actuator calculation
+	_B_pinv(0,3) = 0.f;
+	_B_pinv(1,3) = 0.f;
+	_B_pinv(2,3) = 0.f;
+	_B_pinv(3,3) = 0.f;
+
 	// Generate delta PWM for each actuator and normalize
 	Vector4f d_PWM = _B_pinv * desired;
+
 	float d_s1 = d_PWM(2);
 	float d_s2 = d_PWM(3);
 	const float d_s1_lim = 200.f;
@@ -186,7 +201,8 @@ void CdusAllocatorDuct::Run()
 		}
 	}
 
-	Vector4f actuator_trim(1570.f, 1570.f, 1450.f, 1450.f);
+	// Vector4f actuator_trim(1570.f, 1570.f, 1450.f, 1450.f);
+	Vector4f actuator_trim(m_trim, m_trim, 1450.f, 1450.f);
 
 	// Solve using pseudo-inverse
 	Vector<float, NUM_MOTORS> u = actuator_trim + d_PWM;
@@ -194,8 +210,8 @@ void CdusAllocatorDuct::Run()
 	const float s_max = 1650.f;
 	const float s_min = 1250.f;
 
-	const float m_max = 2000.f;
-	const float m_min = 1000.f;
+	const float m_max = 1900.f;
+	const float m_min = 1100.f;
 
 	// normalize
 	for(int i=0; i < 2; i++) {
