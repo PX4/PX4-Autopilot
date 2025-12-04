@@ -93,23 +93,30 @@ param set-default CAL_BARO1_PRIO 0       # Backup disabled
 param set-default EKF2_BARO_CTRL 1
 param set-default EKF2_MULTI_IMU 1
 
-# Accelerometer Bias Estimation
-param set-default EKF2_ABIAS_INIT 0.1
-param set-default EKF2_ABL_LIM 1.5
-param set-default EKF2_ABL_TAU 0.5
+# Accelerometer Bias Estimation (v3.2.0 - standardized from Alia250)
+param set-default EKF2_ABIAS_INIT 0.2    # Tighter initial bias estimate
+param set-default EKF2_ABL_LIM 1.5       # More bias learning headroom
+param set-default EKF2_ABL_TAU 0.5       # Slower bias adaptation (stability)
 param set-default EKF2_ABL_ACCLIM 35.0
-param set-default EKF2_ACC_NOISE 1.0
-param set-default EKF2_ACC_B_NOISE 0.0007
+param set-default EKF2_ACC_NOISE 1.0     # Better accelerometer trust
+param set-default EKF2_ACC_B_NOISE 0.001
 
-# Barometer (optimized for stable altitude)
-param set-default EKF2_BARO_NOISE 0.0065 # 3.5mm - 33x improvement
+# NOTE: COM_ARM_EKF_AB was removed - parameter does not exist in current PX4
+# Plugin now uses runtime accelerometer calibration to fix "High Accelerometer Bias" error
+
+# Gyroscope Noise (v3.2.0 - added for bias estimation stability)
+param set-default EKF2_GYR_NOISE 0.015   # Gyro measurement noise (rad/s)
+param set-default EKF2_GYR_B_NOISE 0.001 # Gyro bias process noise (rad/s)
+
+# Barometer (v3.2.0 - optimized for stable altitude)
+param set-default EKF2_BARO_NOISE 0.003  # 3mm - matches plugin sensor noise
 param set-default EKF2_BARO_DELAY 0.0
-param set-default EKF2_BARO_GATE 8.0     # FPS variability tolerance
+param set-default EKF2_BARO_GATE 10.0    # Increased for FPS/transition tolerance
 
 # GPS Parameters
 param set-default EKF2_GPS_DELAY 0.0
 param set-default EKF2_GPS_P_NOISE 0.15  # Matches vertical accuracy
-param set-default EKF2_GPS_V_NOISE 0.01
+param set-default EKF2_GPS_V_NOISE 0.15  # Realistic GPS velocity noise (was 0.01)
 param set-default EKF2_GPS_P_GATE 5.0
 param set-default EKF2_GPS_V_GATE 5.0
 
@@ -156,10 +163,6 @@ param set-default FW_P_LIM_MIN -15.0     # Max pitch down
 param set-default FW_P_TC 0.45
 param set-default FW_PN_R_SLEW_MAX 50.0
 
-# Yaw Rate Control
-param set-default FW_YR_P 0.08           # P gain (increased for large GA)
-param set-default FW_YR_I 0.12           # I gain (better trim authority)
-
 
 ################################################################################
 # SECTION 4: AIRSPEED CONTROL
@@ -174,7 +177,6 @@ param set-default FW_AIRSPD_STALL 25.0   # Stall speed
 # Airspeed Sensor (SITL)
 param set-default FW_USE_AIRSPD 1        # Use airspeed for control
 param set-default ASPD_DO_CHECKS 7       # Disable hardware checks (SITL)
-param set-default ASPD_FALLBACK  1       # Fallback to G/S - W/S
 param set-default SYS_HAS_NUM_ASPD 1     # 1 virtual airspeed sensor
 
 
@@ -290,6 +292,11 @@ param set-default WEIGHT_GROSS 1000.0    # Gross weight (kg)
 ################################################################################
 # SECTION 11: ADVANCED FEATURES & SYSTEM CONFIGURATION
 ################################################################################
+
+# Manual Control
+param set-default MPC_MAN_Y_MAX 20.0
+param set-default MPC_JERK_AUTO 1.0
+param set-default MPC_JERK_MAX 3.0
 
 # Logging
 param set-default SDLOG_MODE 0           # Disabled for SITL

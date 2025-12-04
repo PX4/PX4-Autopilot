@@ -126,22 +126,30 @@ param set-default EKF2_BARO_CTRL 1
 param set-default EKF2_MULTI_IMU 1
 
 # Accelerometer Bias Estimation
-param set-default EKF2_ABIAS_INIT 0.1
+param set-default EKF2_ABIAS_INIT 0.2
 param set-default EKF2_ABL_LIM 1.5
 param set-default EKF2_ABL_TAU 0.5
 param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0
-param set-default EKF2_ACC_B_NOISE 0.0007
+param set-default EKF2_ACC_B_NOISE 0.001
+
+# NOTE: COM_ARM_EKF_AB was removed - parameter does not exist in current PX4
+# Plugin now uses runtime accelerometer calibration to fix "High Accelerometer Bias" error
+# See config.ini: accel_auto_calibrate option
+
+# Gyroscope Noise (critical for bias estimation - Gazebo defaults)
+param set-default EKF2_GYR_NOISE 0.015    # Gyro measurement noise (rad/s)
+param set-default EKF2_GYR_B_NOISE 0.001  # Gyro bias process noise (rad/s)
 
 # Barometer (VTOL optimized)
-param set-default EKF2_BARO_NOISE 0.0065 # 6.5mm noise
+param set-default EKF2_BARO_NOISE 0.003  # 3mm - matches plugin sensor noise (CRITICAL FIX)
 param set-default EKF2_BARO_DELAY 0.0
-param set-default EKF2_BARO_GATE 8.0     # FPS + transition tolerance
+param set-default EKF2_BARO_GATE 10.0    # Increased tolerance for VTOL transitions (prevents false BARO switch)
 
 # GPS Parameters
 param set-default EKF2_GPS_DELAY 0.0
 param set-default EKF2_GPS_P_NOISE 0.18  # Matches vertical accuracy
-param set-default EKF2_GPS_V_NOISE 0.014  # Horizontal accuracy
+param set-default EKF2_GPS_V_NOISE 0.15   # Realistic GPS velocity noise (Gazebo: 0.06-0.16 m/s)
 param set-default EKF2_GPS_P_GATE 5.0
 param set-default EKF2_GPS_V_GATE 5.0    # Critical for 75 m/s cruise
 
@@ -164,8 +172,8 @@ param set-default EKF2_REQ_VDRIFT 1.0
 param set-default EKF2_SYNT_MAG_Z 1
 
 # IMU Configuration
-param set-default IMU_GYRO_RATEMAX 100
-param set-default IMU_INTEG_RATE 100
+param set-default IMU_GYRO_RATEMAX 200
+param set-default IMU_INTEG_RATE 200
 
 
 ################################################################################
@@ -540,10 +548,19 @@ param set-default MC_BAT_SCALE_EN 0
 # TROUBLESHOOTING GUIDE
 ################################################################################
 #
+# EKF2 ERRORS (Critical - must fix before flight):
+#   "High accelerometer bias":
+#     - Verify IMU_INTEG_RATE matches mavlink_sensor_rate_hz (200Hz)
+#     - Check EKF2_ABIAS_INIT = 0.2, EKF2_ACC_B_NOISE = 0.001
+#   "Height estimate not stable":
+#     - Verify EKF2_BARO_NOISE = 0.003 (matches plugin 3mm noise)
+#     - Check EKF2_GPS_V_NOISE = 0.15 (not 0.014!)
+#   "Vertical velocity unstable":
+#     - Same as height estimate - check baro/GPS noise params
+#
 # Altitude drop during front transition (MC → FW):
 #   - Increase VT_F_TRANS_THR (0.95 → 1.0)
 #   - Reduce VT_F_TRANS_DUR (18 → 15s)
-#   - Verify EKF2_BARO_NOISE = 0.0035
 #
 # Aircraft overshoots landing point:
 #   - Increase VT_B_DEC_MSS (3.0 → 3.5 m/s²)
