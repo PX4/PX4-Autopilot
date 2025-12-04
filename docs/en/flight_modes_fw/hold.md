@@ -77,6 +77,8 @@ You can test it in [Gazebo](../sim_gazebo_gz/index.md) using a fixed wing frame:
 make px4_sitl gz_rc_cessna
 ```
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_auto_loiter.md-->
+
 ## Parameters
 
 Hold mode behaviour can be configured using the parameters below.

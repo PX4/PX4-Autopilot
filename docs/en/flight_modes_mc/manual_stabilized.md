@@ -13,7 +13,7 @@ When sticks are outside the centre, the roll and pitch sticks control the _angle
 
 As soon as you release the control sticks they will return to the center deadzone.
 The multicopter will level out and stop once the roll and pitch sticks are centered.
-The vehicle will then hover in place/maintain altitude - provided it is properly balanced, throttle is set appropriately (see [below](#params)), and no external forces are applied (e.g. wind).
+The vehicle will then hover in place/maintain altitude - provided it is properly balanced, throttle is set appropriately (see [below](#parameters)), and no external forces are applied (e.g. wind).
 The craft will drift in the direction of any wind and you have to control the throttle to hold altitude.
 
 ![MC Manual Flight](../../assets/flight_modes/stabilized_mc.png)
@@ -27,7 +27,7 @@ RC mode where centered sticks level vehicle.
 :::
 
 The pilot's inputs are passed as roll and pitch angle commands and a yaw rate command.
-Throttle is rescaled (see [below](#params)) and passed directly to control allocation.
+Throttle is rescaled (see [below](#parameters)) and passed directly to control allocation.
 The autopilot controls the attitude, meaning it regulates the roll and pitch angles to zero when the RC sticks are centered inside the controller deadzone (consequently leveling-out the attitude).
 The autopilot does not compensate for drift due to wind (or other sources).
 
@@ -44,7 +44,7 @@ The autopilot does not compensate for drift due to wind (or other sources).
   - Yaw: Assistance from autopilot to stabilize the attitude rate.
     Position of RC stick maps to the rate of rotation of vehicle in that orientation.
 
-<a id="params"></a>
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_stab.md-->
 
 ## Parameters
 

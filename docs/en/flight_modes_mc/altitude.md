@@ -39,6 +39,8 @@ The horizontal position of the vehicle can move due to wind (or pre-existing mom
   - Yaw: Assistance from autopilot to stabilize the attitude rate.
     Position of RC stick maps to the rate of rotation of vehicle in that orientation.
 
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_altctl.md-->
+
 ## Parameters
 
 The mode is affected by the following parameters:

@@ -17,6 +17,8 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 
 :::
 
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_auto_mission.md-->
+
 ## Description
 
 Missions are usually created in a ground control station (e.g. [QGroundControl](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/plan_view/plan_view.html)) and uploaded prior to launch.

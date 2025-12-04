@@ -14,6 +14,8 @@ The velocity limits can be set using parameters, from an [RC Controller](../gett
 Limits set using an RC controller override those set by MAVLink, which in turn override those set using parameters.
 The limits can only be reduced below those for normal _Position_ mode.
 
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_position_slow.md-->
+
 ## Set Limits using Parameters
 
 The maximum values for slow mode horizontal velocity, vertical velocity, and yaw rate can be set using parameters.

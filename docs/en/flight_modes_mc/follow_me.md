@@ -20,6 +20,8 @@ _Follow Me_ mode allows a multicopter to autonomously hold position and altitude
 
 :::
 
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_auto_follow_target.md-->
+
 ## Overview
 
 ![Follow-me Concept](../../assets/flight_modes/followme_concept.png)

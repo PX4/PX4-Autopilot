@@ -37,6 +37,8 @@ The vehicle will flare if configured to do so (see [Flaring](../flight_modes_fw/
 
 [Manual nudging](../flight_modes_fw/mission.md#automatic-abort) and [automatic land abort](../flight_modes_fw/mission.md#nudging) are not available in land mode.
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_descend.md-->
+
 ### Parameters
 
 Land mode behaviour can be configured using the parameters below.

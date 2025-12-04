@@ -15,8 +15,6 @@ The _Takeoff_ flight mode causes the vehicle to take off to a specified height a
 - Stick movement will [by default](#MAN_OVERRIDE_SPD) change the vehicle to [Position mode](../flight_modes_mc/position.md) unless prevented by the active failsafe state.
 - The [Failure Detector](../config/safety.md#failure-detector) will automatically stop the engines if there is a problem on takeoff.
 
-<!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
-
 :::
 
 ## Technical Summary
@@ -24,6 +22,8 @@ The _Takeoff_ flight mode causes the vehicle to take off to a specified height a
 A multi rotor ascends vertically to the altitude defined in [MIS_TAKEOFF_ALT](../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT) and holds position.
 
 Stick movement will change the vehicle to [Position mode](../flight_modes_mc/position.md) (by [default](#MAN_OVERRIDE_SPD)).
+
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_auto_takeoff.md-->
 
 ### Parameters
 

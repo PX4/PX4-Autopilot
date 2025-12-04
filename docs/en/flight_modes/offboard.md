@@ -31,6 +31,9 @@ The stream should be active before switching to Offboard mode, and PX4 will trig
 
 :::
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_offboard.md-->
+<!-- DUPLICATE currently: ../flight_modes_mc/mode_requirements_rotary_wing_offboard.md -->
+
 ## Description
 
 Offboard mode is used for controlling vehicle movement and attitude, by setting position, velocity, acceleration, attitude, attitude rates or thrust/torque setpoints.
