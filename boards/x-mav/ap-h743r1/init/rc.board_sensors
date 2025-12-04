@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# IMU
+if ! icm42688p -s -b 1 -R 4 start
+then
+	bmi270 -s -b 1 -R 4 start
+fi
+
+if ! icm42688p -s -b 4 -R 4 start
+then
+	bmi270 -s -b 4 -R 4 start
+fi
+
+# baro
+if ! dps310 -I start -a 0x76
+then
+	spl06 -I  start -a 0x76
+fi
+
+# internal mag
+ist8310 -I -R 6 start
