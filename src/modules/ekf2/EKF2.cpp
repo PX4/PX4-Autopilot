@@ -2641,9 +2641,14 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)
 		    && (ekf2_timestamps.timestamp < vehicle_land_detected.timestamp + 3_s)) {
 
+			const bool armed = flags.in_air;
+
 			flags.at_rest = vehicle_land_detected.at_rest;
 			flags.in_air = !vehicle_land_detected.landed;
 			flags.gnd_effect = vehicle_land_detected.in_ground_effect;
+
+			// Enable constant position fusion for engine warmup when landed and armed
+			flags.constant_pos = _param_ekf2_en_ice_wrm.get() && !flags.in_air && armed;
 		}
 
 		launch_detection_status_s launch_detection_status;
