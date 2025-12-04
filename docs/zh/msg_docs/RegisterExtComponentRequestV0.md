@@ -1,13 +1,13 @@
-# RegisterExtComponentRequest (UORB message)
+# RegisterExtComponentRequestV0 (UORB message)
 
 Request to register an external component
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/RegisterExtComponentRequest.msg)
+[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/RegisterExtComponentRequestV0.msg)
 
 ```c
 # Request to register an external component
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -26,7 +26,7 @@ bool register_mode_executor        # registering an executor also requires a mod
 bool enable_replace_internal_mode  # set to true if an internal mode should be replaced
 uint8 replace_internal_mode        # vehicle_status::NAVIGATION_STATE_*
 bool activate_mode_immediately     # switch to the registered mode (can only be set in combination with an executor)
-bool not_user_selectable           # mode cannot be selected by the user
+
 
 uint8 ORB_QUEUE_LENGTH = 2
 
