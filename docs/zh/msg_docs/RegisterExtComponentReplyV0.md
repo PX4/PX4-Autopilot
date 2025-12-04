@@ -1,9 +1,9 @@
-# RegisterExtComponentReply (UORB message)
+# RegisterExtComponentReplyV0 (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/RegisterExtComponentReply.msg)
+[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/RegisterExtComponentReplyV0.msg)
 
 ```c
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -16,8 +16,6 @@ bool success
 int8 arming_check_id      # arming check registration ID (-1 if invalid)
 int8 mode_id              # assigned mode ID (-1 if invalid)
 int8 mode_executor_id     # assigned mode executor ID (-1 if invalid)
-
-bool not_user_selectable  # mode cannot be selected by the user
 
 uint8 ORB_QUEUE_LENGTH = 2
 
