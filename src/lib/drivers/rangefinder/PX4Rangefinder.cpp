@@ -35,6 +35,8 @@
 
 #include <lib/drivers/device/Device.hpp>
 
+using namespace time_literals;
+
 PX4Rangefinder::PX4Rangefinder(const uint32_t device_id, const uint8_t device_orientation)
 {
 	set_device_id(device_id);
@@ -66,6 +68,14 @@ void PX4Rangefinder::set_orientation(const uint8_t device_orientation)
 	_distance_sensor_pub.get().orientation = device_orientation;
 }
 
+void PX4Rangefinder::update_quaternion(const float (&quat)[4])
+{
+	memcpy(_quat, quat, sizeof(float) * 4);
+	_q_update_now = hrt_absolute_time();
+	_quat_updated = true;
+
+}
+
 void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality)
 {
 	distance_sensor_s &report = _distance_sensor_pub.get();
@@ -81,5 +91,15 @@ void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float dis
 		}
 	}
 
+	// Update the quaternion in the sample update if we have set the update flag to true and the quaternion is fresh
+	if (_quat_updated && (_q_update_now - timestamp_sample < 10_ms)) {
+		for (uint8_t i = 0; i < 4; ++i) {
+			report.q[i] = _quat[i];
+
+		}
+
+	}
+
 	_distance_sensor_pub.update();
+	_quat_updated = false;
 }
