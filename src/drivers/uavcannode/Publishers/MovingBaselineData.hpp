@@ -70,44 +70,62 @@ public:
 
 	void BroadcastAnyUpdates() override
 	{
-		using ardupilot::gnss::MovingBaselineData;
+		// Check for dropped messages before we start reading
+		if (_last_generation != 0) {
+			unsigned current_generation = uORB::SubscriptionCallbackWorkItem::get_last_generation();
+			unsigned expected_generation = _last_generation + 1;
 
-		// gps_inject_data -> ardupilot::gnss::MovingBaselineData
-		gps_inject_data_s inject_data;
-
-		if (uORB::SubscriptionCallbackWorkItem::update(&inject_data)) {
-			// Prevent republishing rtcm data we received from uavcan
-			union device::Device::DeviceId device_id;
-			device_id.devid = inject_data.device_id;
-
-			if (device_id.devid_s.bus_type != device::Device::DeviceBusType::DeviceBusType_UAVCAN) {
-				ardupilot::gnss::MovingBaselineData movingbaselinedata{};
-
-				const size_t capacity = movingbaselinedata.data.capacity();
-				size_t written = 0;
-				int result = 0;
-
-				while ((result >= 0) && written < inject_data.len) {
-					size_t chunk_size = inject_data.len - written;
-
-					if (chunk_size > capacity) {
-						chunk_size = capacity;
-					}
-
-					for (size_t i = 0; i < chunk_size; ++i) {
-						movingbaselinedata.data.push_back(inject_data.data[written]);
-						written += 1;
-					}
-
-					result = uavcan::Publisher<ardupilot::gnss::MovingBaselineData>::broadcast(movingbaselinedata);
-
-					// ensure callback is registered
-					uORB::SubscriptionCallbackWorkItem::registerCallback();
-
-					movingbaselinedata.data.clear();
-				}
+			if (current_generation > expected_generation) {
+				unsigned messages_lost = current_generation - expected_generation;
+				PX4_ERR("MovingBaselineData: dropped %u messages (queue overflow)", messages_lost);
 			}
 		}
+
+		// gps_inject_data -> ardupilot::gnss::MovingBaselineData
+		gps_inject_data_s gps_inject_data;
+
+		// Drain all available messages from the queue
+		while (uORB::SubscriptionCallbackWorkItem::update(&gps_inject_data)) {
+			// Prevent republishing rtcm data we received from uavcan
+			union device::Device::DeviceId device_id;
+			device_id.devid = gps_inject_data.device_id;
+
+			if (device_id.devid_s.bus_type == device::Device::DeviceBusType::DeviceBusType_UAVCAN) {
+				continue;
+			}
+
+			ardupilot::gnss::MovingBaselineData mbd = {};
+
+			const size_t capacity = mbd.data.capacity();
+			size_t written = 0;
+			int result = 0;
+
+			while ((result >= 0) && written < gps_inject_data.len) {
+				size_t chunk_size = gps_inject_data.len - written;
+
+				if (chunk_size > capacity) {
+					chunk_size = capacity;
+				}
+
+				for (size_t i = 0; i < chunk_size; i++) {
+					mbd.data.push_back(gps_inject_data.data[written]);
+					written += 1;
+				}
+
+				result = uavcan::Publisher<ardupilot::gnss::MovingBaselineData>::broadcast(mbd);
+
+				mbd.data.clear();
+			}
+		}
+
+		// Store the generation for next time
+		_last_generation = uORB::SubscriptionCallbackWorkItem::get_last_generation();
+
+		// ensure callback is registered
+		uORB::SubscriptionCallbackWorkItem::registerCallback();
 	}
+
+private:
+	unsigned _last_generation{0};
 };
 } // namespace uavcannode

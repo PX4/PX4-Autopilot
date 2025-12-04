@@ -436,3 +436,15 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_RNG, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_SUB_BTN, 0);
+
+/**
+ * subscription MovingBaselineData
+ *
+ * Enable UAVCAN MovingBaselineData subscription.
+ *  ardupilot::gnss::MovingBaselineData
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_MBD, 0);
