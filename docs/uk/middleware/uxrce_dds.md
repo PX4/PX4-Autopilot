@@ -332,7 +332,7 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
   - [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT): Bridge time synchronization enable.
     Клієнтський модуль uXRCE-DDS може синхронізувати мітку часу повідомлень, якими обмінюються через міст.
     Це стандартна конфігурація. In certain situations, for example during [simulations](../ros2/user_guide.md#ros-gazebo-and-px4-time-synchronization), this feature may be disabled.
-  - [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX): Index-based namespace definition
+  - <Badge type="tip" text="PX4 v1.17" /> [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX): Index-based namespace definition
     Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
     See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
 
@@ -553,7 +553,7 @@ Each (`topic`,`type`) pairs defines:
 4. The message type (`VehicleOdometry`, `VehicleStatus`, `OffboardControlMode`, etc.) and the ROS 2 package (`px4_msgs`) that is expected to provide the message definition.
 5. **(Optional)**: An additional `rate_limit` field (only for publication entries), which specifies the maximum rate (Hz) at which messages will be published on this topic by PX4 to ROS 2.
    If left unspecified, the maximum publication rate limit is set to 100 Hz.
-6. **(Optional)**: An additional `instance` field (only for publication entries), which lets you select which instance of a [multi-instance topic](./uorb.md#multi-instance) you want to be published to ROS 2.
+6. <Badge type="tip" text="main (planned for: PX4 v1.18)" /> **(Optional)**: An additional `instance` field (only for publication entries), which lets you select which instance of a [multi-instance topic](./uorb.md#multi-instance) you want to be published to ROS 2.
    If provided, this option changes the ROS 2 topic name of the advertised uORB topic appending the instance number: `fmu/out/[uorb topic name][instance]` (plus eventual namespace and message version).
    In the example above the final topic name would be `/fmu/out/vehicle_imu1`.
 
