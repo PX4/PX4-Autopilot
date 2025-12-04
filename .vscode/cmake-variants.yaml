@@ -486,3 +486,13 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: x-mav_ap-h743v2_default
+    x-mav_ap-h743r1_bootloader:
+      short: x-mav_ap-h743r1-boot
+      buildType: MinSizeRel
+      settings:
+        CONFIG: x-mav_ap-h743r1_bootloader
+    x-mav_ap-h743r1_default:
+      short: x-mav_ap-h743r1
+      buildType: MinSizeRel
+      settings:
+        CONFIG: x-mav_ap-h743r1_default

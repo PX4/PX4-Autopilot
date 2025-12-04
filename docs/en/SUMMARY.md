@@ -189,6 +189,7 @@
       - [SPRacing SPRacingH7EXTREME](flight_controller/spracingh7extreme.md)
       - [ThePeach FCC-K1](flight_controller/thepeach_k1.md)
       - [ThePeach FCC-R1](flight_controller/thepeach_r1.md)
+      - [AP-H743-R1](flight_controller/x-mav_ap-h743r1.md)
     - [Experimental Autopilots](flight_controller/autopilot_experimental.md)
       - [BeagleBone Blue](flight_controller/beaglebone_blue.md)
       - [Raspberry Pi 2/3 Navio2](flight_controller/raspberry_pi_navio2.md)
