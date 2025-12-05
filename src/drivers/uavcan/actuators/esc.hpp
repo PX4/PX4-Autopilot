@@ -52,7 +52,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/esc_status.h>
 #include <drivers/drv_hrt.h>
-#include <lib/mixer_module/mixer_module.hpp>
+#include <drivers/uavcan/node_info.hpp>
 #include <parameters/param.h>
 
 class UavcanEscController
@@ -77,6 +77,8 @@ public:
 	 * Sets the number of rotors and enable timer
 	 */
 	void set_rotor_count(uint8_t count);
+
+	void set_node_info_publisher(NodeInfoPublisher *publisher) { _node_info_publisher = publisher; }
 
 	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
 
@@ -114,4 +116,6 @@ private:
 	uavcan::INode								&_node;
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
+
+	NodeInfoPublisher *_node_info_publisher{nullptr};
 };
