@@ -98,12 +98,13 @@ private:
 	 * @param min_speed Minimum speed setpoint [m/s].
 	 * @param acc_rad Acceptance radius of the current waypoint [m].
 	 * @param curr_wp_type Type of the current waypoint.
+	 * @param curr_wp_valid Validity flag of the current waypoint.
 	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	 * @param max_yaw_rate Maximum yaw rate setpoint [rad/s]
 	 * @return Speed setpoint [m/s].
 	 */
-	float arrivalSpeed(float cruising_speed, float min_speed, float acc_rad, int curr_wp_type,
-			   float waypoint_transition_angle, float max_yaw_rate);
+	float arrivalSpeed(const float cruising_speed, const float min_speed, const float acc_rad, const int curr_wp_type, const bool curr_wp_valid,
+			   const float waypoint_transition_angle, const float max_yaw_rate);
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -125,6 +126,7 @@ private:
 	float _max_yaw_rate{NAN};
 	float _min_speed{NAN}; // Speed at which the maximum yaw rate limit is enforced given the maximum steer angle and wheel base.
 	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_POSITION};
+	int _curr_wp_valid{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
