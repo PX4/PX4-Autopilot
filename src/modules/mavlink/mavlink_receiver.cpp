@@ -2001,11 +2001,6 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	mavlink_rc_channels_override_t man;
 	mavlink_msg_rc_channels_override_decode(msg, &man);
 
-	// Check target
-	if (man.target_system != 0 && man.target_system != _mavlink.get_system_id()) {
-		return;
-	}
-
 	// fill uORB message
 	input_rc_s rc{};
 	// metadata
@@ -2087,11 +2082,6 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 {
 	mavlink_manual_control_t mavlink_manual_control;
 	mavlink_msg_manual_control_decode(msg, &mavlink_manual_control);
-
-	// Check target
-	if (mavlink_manual_control.target != 0 && mavlink_manual_control.target != _mavlink.get_system_id()) {
-		return;
-	}
 
 	manual_control_setpoint_s manual_control_setpoint{};
 
