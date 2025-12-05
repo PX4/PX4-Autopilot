@@ -1,0 +1,35 @@
+menuconfig DRIVERS_VTX
+	bool "VTX Driver"
+	default n
+	---help---
+		Control VTX devices via serial interface.
+
+if DRIVERS_VTX
+
+	config VTX_UORB_CONFIG
+		bool "Use uORB Messages to configure the VTX table and AUX map"
+		default n
+		---help---
+			Enable uORB based VTX configuration interface.
+			Allows setting VTX table and AUX map via uORB messages.
+
+	config VTX_CRSF_MSP_SUPPORT
+		bool "Support using CRSF MSP commands to configure VTX"
+		depends on DRIVERS_RC_CRSF_RC
+		default n
+		---help---
+			Set VTX frequency and power via CRSF MSP messages.
+
+	config VTX_CONFIG_FILE
+		string "VTX Configuration File Path"
+		default "/fs/microsd/vtx_config"
+		---help---
+			Allows saving/loading the VTX table and aux config
+			from a file system.
+
+	config VTX_USE_STORAGE
+		bool
+		default y if VTX_CONFIG_FILE != ""
+		default n if !(VTX_CONFIG_FILE != "")
+
+endif # DRIVERS_VTX
