@@ -63,6 +63,9 @@ The following list provides an _overview_ of the different implementations of ho
 
 Analogously to [position mode implementations](#position-mode-implementations) these are the implementations for interpreting vertical stick input:
 
+- [Jerk-limited](../config_mc/mc_jerk_limited_type_trajectory.md)
+  - Smoothed vertical input.
+  - Set in altitude mode with `MPC_POS_MODE` Smoothed velocity or Acceleration based.
 - **Simple altitude control**
   - Unsmoothed vertical input.
   - Set in altitude mode only when using `MPC_POS_MODE=Direct velocity`.

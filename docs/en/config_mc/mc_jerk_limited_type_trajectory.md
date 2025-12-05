@@ -1,9 +1,9 @@
 # Jerk-limited Type Trajectory for Multicopters
 
-The Jerk-limited trajectory type provides smooth motion in response to user stick input or mission changes (e.g.: for filming, mapping, cargo).
+The Jerk-limited trajectory type provides smooth motion to setpoint changes (e.g.: for filming, mapping, cargo).
 It generates symmetric smooth S-curves where the jerk and acceleration limits are always guaranteed.
 
-This trajectory type is always enabled in [Mission mode](../flight_modes_mc/mission.md).
+This trajectory type is always enabled in autonomous modes like [Mission mode](../flight_modes_mc/mission.md).
 
 ## Trajectory Generator
 
@@ -21,6 +21,17 @@ The constraints `jMax`, `aMax` are configurable by the user via parameters and c
 The resulting velocity profile is often called "S-Curve".
 
 ![Jerk-limited trajectory](../../assets/config/mc/jerk_limited_trajectory_1d.png)
+
+## Manual Mode
+
+In manual position mode, jerk limiting is only done for the verical axis. A full throttle stick deflection corresponds to [MPC_Z_VEL_MAX_UP](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_UP) (upward motion) or [MPC_Z_VEL_MAX_DN](../advanced_config/parameter_reference.md#MPC_Z_VEL_MAX_DN) (downward motion).
+
+### Constraints
+
+Z-axis
+- `jMax`: [MPC_JERK_MAX](../advanced_config/parameter_reference.md#MPC_JERK_MAX)
+- `aMax` (upward motion): [MPC_ACC_UP_MAX](../advanced_config/parameter_reference.md#MPC_ACC_UP_MAX)
+- `aMax` (downward motion): [MPC_ACC_DOWN_MAX](../advanced_config/parameter_reference.md#MPC_ACC_DOWN_MAX)
 
 ## Auto Mode
 
