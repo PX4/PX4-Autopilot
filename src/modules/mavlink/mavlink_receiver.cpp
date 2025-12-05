@@ -1834,6 +1834,25 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 {
+	// Security gate: check if shell is enabled
+	static param_t p_shell_enable = PARAM_INVALID;
+
+	if (p_shell_enable == PARAM_INVALID) {
+		p_shell_enable = param_find("MAV_SHELL_EN");
+	}
+
+	// If parameter not registered yet, default to disabled (secure default)
+	if (p_shell_enable == PARAM_INVALID) {
+		return;
+	}
+
+	int32_t shell_enabled = 0;
+	param_get(p_shell_enable, &shell_enabled);
+
+	if (shell_enabled == 0) {
+		return;  // Shell disabled
+	}
+
 	mavlink_serial_control_t serial_control_mavlink;
 	mavlink_msg_serial_control_decode(msg, &serial_control_mavlink);
 
