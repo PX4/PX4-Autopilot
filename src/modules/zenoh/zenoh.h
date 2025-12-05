@@ -97,11 +97,12 @@ private:
 	Zenoh_Config _config;
 
 	int _pub_count;
-	uORB_Zenoh_Publisher **_zenoh_publishers;
+	uORB_Zenoh_Publisher **_zenoh_publishers = nullptr;
 	int _sub_count;
-	Zenoh_Subscriber **_zenoh_subscribers;
+	Zenoh_Subscriber **_zenoh_subscribers = nullptr;
 
 	z_owned_session_t _s;
+	bool connected = false;
 
 	px4_guid_t _px4_guid{};
 
