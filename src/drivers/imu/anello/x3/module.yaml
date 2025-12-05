@@ -1,0 +1,45 @@
+module_name: Anello X3 IMU
+serial_config:
+    - command: anello_x3 start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_ANELLX3_CFG
+        group: Sensors
+
+parameters:
+    - group: X3
+      definitions:
+        X3_ODATA_RATE:
+            description:
+                short: Anello X3 Output Data Rate
+
+            type: int32
+            min: 20
+            max: 200
+            default: [100]
+
+        X3_LPA:
+            description:
+                short: Anello X3 Accelerometer Low-Pass Filter Cutoff Frequency
+
+            type: int32
+            min: 0
+            max: 200
+            default: [45]
+
+        X3_LPW:
+            description:
+                short: Anello X3 Gyroscope Low-Pass Filter Cutoff Frequency
+
+            type: int32
+            min: 0
+            max: 200
+            default: [45]
+
+        X3_LPO:
+            description:
+                short: Anello X3 Optical Gyroscope Low-Pass Filter Cutoff Frequency
+
+            type: int32
+            min: 0
+            max: 200
+            default: [45]
