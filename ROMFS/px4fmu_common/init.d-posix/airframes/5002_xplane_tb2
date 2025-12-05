@@ -13,7 +13,7 @@
 # Type:              Fixed-Wing MALE UAV (A-Tail / Inverted V-Tail)
 # Configuration:     1 Propeller Motor + 7 Control Surfaces (V-tail + Flaps)
 # Compatible Sim:    X-Plane 11/12
-# Date:              January 2025
+# Date:              December 2025
 #
 # AIRCRAFT SPECIFICATIONS:
 # - MTOW: 650 kg (1,433 lb) - Medium UAV
@@ -169,25 +169,33 @@ param set-default IMU_INTEG_RATE 100
 # SECTION 3: FIXED-WING RATE CONTROL - PID TUNING
 ################################################################################
 # Tuned for medium UAV (650 kg) with V-tail configuration.
+# December 2025: Reduced extreme gains (P/I/D/FF were 5-100x defaults)
+# for ISR sensor platform stability. Added explicit yaw rate control.
 
-# Roll Rate
-param set-default FW_RR_P 0.47           # P gain
-param set-default FW_RR_I 0.13           # I gain
-param set-default FW_RR_D 0.085          # D gain
-param set-default FW_RR_FF 4.8           # Feedforward
-param set-default FW_R_RMAX 10.0         # Max roll rate
+# Roll Rate (moderate gains for ISR stability)
+param set-default FW_RR_P 0.15           # P gain (was 0.47 - 9x default!)
+param set-default FW_RR_I 0.10           # I gain (standard)
+param set-default FW_RR_D 0.01           # D gain (was 0.085 - 28x default!)
+param set-default FW_RR_FF 0.6           # Feedforward (was 4.8 - 10x default!)
+param set-default FW_R_RMAX 10.0         # Max roll rate (slow ISR maneuvers)
 param set-default FW_R_TC 0.6            # Time constant
 param set-default FW_R_LIM 45.0          # Roll limit (UAV operations)
 
-# Pitch Rate
-param set-default FW_PR_P 0.365          # P gain
-param set-default FW_PR_I 0.045          # I gain
-param set-default FW_PR_D 0.355          # D gain (high damping)
-param set-default FW_PR_FF 3.4           # Feedforward
+# Pitch Rate (reduced for smooth ISR platform)
+param set-default FW_PR_P 0.12           # P gain (was 0.365 - 4.5x default!)
+param set-default FW_PR_I 0.08           # I gain (increased for steady-state)
+param set-default FW_PR_D 0.01           # D gain (was 0.355 - 118x default!)
+param set-default FW_PR_FF 0.5           # Feedforward (was 3.4 - 10x default!)
 param set-default FW_P_LIM_MAX 20.0      # Max pitch up
 param set-default FW_P_LIM_MIN -15.0     # Max pitch down
 param set-default FW_P_TC 0.45
 param set-default FW_PN_R_SLEW_MAX 50.0
+
+# Yaw Rate (V-tail requires explicit yaw control)
+param set-default FW_YR_P 0.08           # P gain (V-tail yaw authority)
+param set-default FW_YR_I 0.05           # I gain (steady-state tracking)
+param set-default FW_YR_D 0.003          # D gain (yaw damping)
+param set-default FW_YR_FF 0.3           # Feedforward (coordinated turn)
 
 # Wheel Rate (Ground Steering)
 param set-default FW_WR_P 1.0
@@ -227,9 +235,10 @@ param set-default SYS_HAS_NUM_ASPD 1     # 1 virtual airspeed sensor
 # SECTION 6: TECS - TOTAL ENERGY CONTROL SYSTEM
 ################################################################################
 # Optimized for 27+ hour endurance and ISR sensor platform stability
+# December 2025: Increased damping (lesson from Alia 250 tuning)
 
 # Core Parameters
-param set-default FW_T_ALT_TC 8.0        # Altitude time constant
+param set-default FW_T_ALT_TC 8.0        # Altitude time constant (slow for ISR)
 param set-default FW_T_RLL2THR 8.0       # Roll to throttle (ISR loiter)
 param set-default FW_T_STE_R_TC 1.5      # Energy rate time constant
 
@@ -240,11 +249,11 @@ param set-default FW_T_SINK_MAX 4.0      # Max sink
 param set-default FW_T_VERT_ACC 4.0      # Vertical acceleration limit
 
 # Damping (critical for stable ISR sensor platform)
-param set-default FW_T_THR_DAMPING 0.08  # Throttle damping
-param set-default FW_T_PTCH_DAMP 0.1     # Pitch damping
+param set-default FW_T_THR_DAMPING 0.15  # Throttle damping (was 0.08)
+param set-default FW_T_PTCH_DAMP 0.15    # Pitch damping (was 0.1)
 
 # Integrators
-param set-default FW_T_I_GAIN_PIT 0.3    # Pitch integrator
+param set-default FW_T_I_GAIN_PIT 0.25   # Pitch integrator (was 0.3)
 
 
 ################################################################################
@@ -284,12 +293,13 @@ param set-default LNDFW_VEL_XY_MAX 15.0
 # SECTION 9: NPFG GUIDANCE (Modern PX4 v1.14+)
 ################################################################################
 # Optimized for medium UAV ISR missions
+# December 2025: Increased damping for stable orbit tracking
 # Formula: L1_distance = (1/π) × NPFG_DAMPING × NPFG_PERIOD × groundspeed
-# At 28 m/s cruise: ~218m turning radius
+# At 28 m/s cruise: ~250m turning radius
 
-param set-default NPFG_PERIOD 35.0       # Between Cessna (30) and Alia (45)
-param set-default NPFG_DAMPING 0.7       # Damping ratio
-param set-default NPFG_ROLL_TC 0.4       # Roll time constant
+param set-default NPFG_PERIOD 35.0       # Large for ISR loiter (TB2 specialty)
+param set-default NPFG_DAMPING 0.80      # Damping ratio (was 0.7)
+param set-default NPFG_ROLL_TC 0.5       # Roll time constant (was 0.4)
 param set-default NPFG_SW_DST_MLT 1.0    # Switch distance multiplier
 
 
@@ -348,24 +358,32 @@ param set-default CBRK_IO_SAFETY 22027   # Disable safety switch
 # TROUBLESHOOTING GUIDE
 ################################################################################
 #
+# Roll/pitch oscillation or jittery control:
+#   - Verify FW_RR_P = 0.15, FW_RR_FF = 0.6 (reduced from extreme values)
+#   - Verify FW_PR_P = 0.12, FW_PR_FF = 0.5 (reduced from extreme values)
+#   - Check D-gains are low: FW_RR_D = 0.01, FW_PR_D = 0.01
+#   - High D-gains amplify sensor noise (was 118x default!)
+#
+# V-tail yaw control issues:
+#   - Verify FW_YR_P = 0.08, FW_YR_I = 0.05, FW_YR_D = 0.003
+#   - V-tail mixing: CA_SV_CS2_TRQ_P = 0.5, CA_SV_CS2_TRQ_Y = -0.5
+#   - V-tail mixing: CA_SV_CS3_TRQ_P = 0.5, CA_SV_CS3_TRQ_Y = 0.5
+#   - Check PWM_MAIN_REV = 15
+#
 # Altitude drift during long mission (27+ hours):
-#   - Verify EKF2_BARO_NOISE = 0.0035
+#   - Verify EKF2_BARO_NOISE = 0.003
 #   - Check CAL_BARO1_PRIO = 0
 #   - Verify innovation gates = 5.0
 #
-# V-tail control coupling / unexpected yaw when pitching:
-#   - Verify CA_SV_CS2_TRQ_P = 0.5, CA_SV_CS2_TRQ_Y = -0.5
-#   - Verify CA_SV_CS3_TRQ_P = 0.5, CA_SV_CS3_TRQ_Y = 0.5
-#   - Check PWM_MAIN_REV = 15
-#
 # Altitude oscillation during ISR loiter:
-#   - Verify FW_T_THR_DAMPING = 0.08
-#   - Check FW_T_PTCH_DAMP = 0.1
-#   - Increase damping if needed
+#   - Verify FW_T_THR_DAMPING = 0.15 (increased from 0.08)
+#   - Verify FW_T_PTCH_DAMP = 0.15 (increased from 0.1)
+#   - Increase further if needed
 #
-# Wide loiter radius / overshoots ISR target:
-#   - Reduce NPFG_PERIOD (35 → 30)
-#   - Reduce NAV_LOITER_RAD (900 → 700m)
+# Wide loiter radius / orbit tracking issues:
+#   - Verify NPFG_DAMPING = 0.80 (increased from 0.7)
+#   - Reduce NPFG_PERIOD (35 → 30) for tighter orbits
+#   - Reduce NAV_LOITER_RAD (900 → 700m) if needed
 #
 # Flaps not deploying during landing:
 #   - Verify PWM_MAIN_FUNC7 = 206 (left flap)
@@ -382,4 +400,5 @@ param set-default CBRK_IO_SAFETY 22027   # Disable safety switch
 # Maintainer: px4xplane project - https://github.com/alireza787b/px4xplane/
 # Status: Production-ready for X-Plane SITL simulation
 # Mission Profile: MALE UAV, ISR/Strike, Long-Endurance (27+ hours)
+# Tuning: December 2025 - Reduced extreme gains, added V-tail yaw control
 ################################################################################
