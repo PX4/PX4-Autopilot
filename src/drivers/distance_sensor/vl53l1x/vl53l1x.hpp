@@ -48,7 +48,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
-
+#include <matrix/math.hpp>
 /* ST */
 #define SOFT_RESET                                          0x0000
 #define VL53L1_I2C_SLAVE__DEVICE_ADDRESS                    0x0001
@@ -157,7 +157,7 @@ private:
 	int8_t VL53L1X_SetROICenter(uint8_t data);
 	int8_t VL53L1X_SetROI(uint16_t x, uint16_t y);
 	PX4Rangefinder    _px4_rangefinder;
-
+	uint8_t _sensor_orientation{25};
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 };
