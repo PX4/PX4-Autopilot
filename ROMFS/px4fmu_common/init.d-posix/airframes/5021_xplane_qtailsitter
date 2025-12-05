@@ -17,11 +17,11 @@
 #
 # Airframe: Control-Surface-Less Quad Tailsitter
 # Compatible Simulator: X-Plane 12
-# Date: January 2025
+# Date: December 2025
 #
 # AIRCRAFT SPECIFICATIONS:
 # - Wingspan: 1.0 m
-# - Mass: ~3-5 kg (small experimental UAV)
+# - Mass: ~4-7 kg (small experimental UAV)
 # - Motor Count: 4 (X-configuration quad)
 # - Control Surfaces: NONE (100% differential thrust control in FW mode)
 # - Cruise Speed: 30 m/s (108 km/h)
@@ -221,16 +221,16 @@ param set-default FW_THR_ASPD_MIN 0.00
 # Critical for stable FW flight, especially during transitions
 
 # Time Constants
-param set-default FW_T_ALT_TC 5.0        # Altitude time constant (responsive)
+param set-default FW_T_ALT_TC 6.0        # Increased from 5.0 for smoother altitude
 param set-default FW_T_RLL2THR 5.0       # Roll-to-throttle compensation
 param set-default FW_T_STE_R_TC 1.0      # Energy rate time constant
 
-# Damping Parameters (CRITICAL FOR STABILITY)
-param set-default FW_T_THR_DAMPING 0.10  # Throttle damping (higher for small UAV)
-param set-default FW_T_PTCH_DAMP 0.12    # Pitch damping (higher for agility)
+# Damping Parameters (CRITICAL FOR STABILITY - lesson from Alia 250)
+param set-default FW_T_THR_DAMPING 0.15  # Increased from 0.10 for better damping
+param set-default FW_T_PTCH_DAMP 0.15    # Increased from 0.12 for better damping
 
 # Integrator Gains
-param set-default FW_T_I_GAIN_PIT 0.35   # Pitch integrator
+param set-default FW_T_I_GAIN_PIT 0.25   # Reduced from 0.35 to prevent overshoot
 
 # Vertical Acceleration
 param set-default FW_T_VERT_ACC 6.0      # Max vertical acceleration
@@ -246,24 +246,24 @@ param set-default FW_T_SPD_STD 0.5
 ################################################################################
 # Aggressive tuning for differential-thrust-only control
 
-# Pitch Control
+# Pitch Control - Tuned for differential thrust only
 param set-default FW_P_TC 0.2            # Pitch time constant
-param set-default FW_PR_P 0.15           # Pitch rate P (higher for diff thrust)
-param set-default FW_PR_I 0.03           # Pitch rate I
+param set-default FW_PR_P 0.12           # Reduced from 0.15 for diff-thrust stability
+param set-default FW_PR_I 0.05           # Increased from 0.03 for steady-state
 param set-default FW_PR_D 0.002          # Pitch rate D
 param set-default FW_PR_IMAX 0.4         # Pitch integrator limit
 
-# Roll Control
+# Roll Control - Tuned for differential thrust only
 param set-default FW_R_TC 0.4            # Roll time constant
-param set-default FW_RR_P 0.15           # Roll rate P (higher for diff thrust)
-param set-default FW_RR_I 0.03           # Roll rate I
+param set-default FW_RR_P 0.12           # Reduced from 0.15 for diff-thrust stability
+param set-default FW_RR_I 0.05           # Increased from 0.03 for steady-state
 param set-default FW_RR_D 0.002          # Roll rate D
 param set-default FW_RR_IMAX 0.4         # Roll integrator limit
 
-# Yaw Control (Differential Thrust Only)
-param set-default FW_YR_P 0.12           # Yaw rate P (higher for diff thrust)
-param set-default FW_YR_I 0.02           # Yaw rate I
-param set-default FW_YR_D 0.0            # Yaw rate D
+# Yaw Control (Differential Thrust Only - NO RUDDER)
+param set-default FW_YR_P 0.10           # Reduced from 0.12 for stability
+param set-default FW_YR_I 0.03           # Increased from 0.02 for steady-state
+param set-default FW_YR_D 0.002          # Added damping (was 0 - lesson from EHang)
 param set-default FW_YR_IMAX 0.3         # Yaw integrator limit
 
 # Maximum Rates
@@ -280,10 +280,10 @@ param set-default FW_YR_FF 0.3
 # SECTION 10: NPFG PATH FOLLOWING (Modern PX4 v1.14+)
 ################################################################################
 # Formula: L1_distance = (1/π) × NPFG_DAMPING × NPFG_PERIOD × groundspeed
-# At 30 m/s cruise: ~180m turning radius
+# At 30 m/s cruise with PERIOD=10, DAMPING=0.75: ~72m turning radius
 
-param set-default NPFG_PERIOD 8.0        # Small agile aircraft
-param set-default NPFG_DAMPING 0.70      # Damping ratio
+param set-default NPFG_PERIOD 10.0       # Increased from 8.0 for smoother path
+param set-default NPFG_DAMPING 0.75      # Increased from 0.70 (lesson from Alia)
 param set-default NPFG_ROLL_TC 0.5       # Roll time constant
 
 # Loiter Radius
@@ -299,31 +299,48 @@ param set-default NAV_LOITER_RAD 180.0   # Tight loiter pattern
 param set-default MC_AIRMODE 2           # Always enabled
 
 # Attitude Control (P gains)
-param set-default MC_ROLL_P 6.5          # High for fast response
+param set-default MC_ROLL_P 6.5          # Default - good for small agile drone
 param set-default MC_PITCH_P 6.5
-param set-default MC_YAW_P 5.0
+param set-default MC_YAW_P 4.0           # Reduced from 5.0 to prevent yaw overshoot
 
-# Rate Control (PID gains)
-param set-default MC_ROLLRATE_P 0.22
-param set-default MC_ROLLRATE_I 0.10
+# Rate Control (PID gains) - Tuned for small agile tailsitter
+param set-default MC_ROLLRATE_P 0.18      # Reduced from 0.22 for stability
+param set-default MC_ROLLRATE_I 0.12      # Increased for steady-state
 param set-default MC_ROLLRATE_D 0.005
 
-param set-default MC_PITCHRATE_P 0.22
-param set-default MC_PITCHRATE_I 0.10
+param set-default MC_PITCHRATE_P 0.18     # Reduced from 0.22 for stability
+param set-default MC_PITCHRATE_I 0.12     # Increased for steady-state
 param set-default MC_PITCHRATE_D 0.005
 
 param set-default MC_YAWRATE_P 0.18
-param set-default MC_YAWRATE_I 0.08
-param set-default MC_YAWRATE_D 0.0
+param set-default MC_YAWRATE_I 0.1        # Increased for steady-state
+param set-default MC_YAWRATE_D 0.003      # Added damping (prevents overshoot)
 
 # Maximum Rates
 param set-default MC_ROLLRATE_MAX 220.0
 param set-default MC_PITCHRATE_MAX 220.0
 param set-default MC_YAWRATE_MAX 180.0
 
-# Feedforward Gains
-param set-default MC_ROLLRATE_FF 0.5
-param set-default MC_PITCHRATE_FF 0.5
+# Feedforward Gains - Reduced to prevent oscillation
+param set-default MC_ROLLRATE_FF 0.2      # Reduced from 0.5 (was too aggressive)
+param set-default MC_PITCHRATE_FF 0.2     # Reduced from 0.5 (was too aggressive)
+
+
+################################################################################
+# SECTION 11B: POSITION & VELOCITY CONTROL
+################################################################################
+# Explicit MPC gains for small agile drone
+
+# Position control
+param set-default MPC_XY_P 0.95           # Standard for small drone
+param set-default MPC_Z_P 1.0             # Standard vertical
+
+# Velocity control
+param set-default MPC_XY_VEL_P_ACC 1.8    # Standard
+param set-default MPC_XY_VEL_I_ACC 0.4    # Good wind rejection
+param set-default MPC_XY_VEL_D_ACC 0.2    # Standard
+param set-default MPC_Z_VEL_P_ACC 4.0     # Responsive vertical
+param set-default MPC_Z_VEL_I_ACC 2.0     # Standard
 
 
 ################################################################################
@@ -337,13 +354,13 @@ param set-default VT_ARSP_TRANS 26.0     # Transition airspeed (26 m/s)
 param set-default VT_ARSP_BLEND 24.0     # Airspeed blend start (24 m/s)
 
 # Front Transition (MC → FW)
-param set-default VT_F_TRANS_DUR 2.0     # Duration (2s - very fast)
-param set-default VT_F_TRANS_THR 0.90    # Transition throttle (90%)
+param set-default VT_F_TRANS_DUR 2.5     # Increased from 2.0 for stability
+param set-default VT_F_TRANS_THR 0.85    # Reduced from 0.90 (was too aggressive)
 param set-default VT_F_TR_OL_TM 4.0      # Open-loop timeout (4s)
 
 # Back Transition (FW → MC)
 param set-default VT_B_TRANS_DUR 3.0     # Duration (3s)
-param set-default VT_B_DEC_MSS 4.0       # Expected deceleration (4.0 m/s²)
+param set-default VT_B_DEC_MSS 3.5       # Reduced from 4.0 for gentler deceleration
 param set-default VT_B_DEC_I 0.5         # Deceleration integrator gain
 param set-default VT_B_TRANS_RAMP 1.5    # Transition ramp time (1.5s)
 
@@ -376,46 +393,52 @@ param set-default FD_FAIL_R 70           # Failsafe return altitude
 # TROUBLESHOOTING GUIDE
 ################################################################################
 #
-# Altitude drops during FW flight:
-#   - Verify EKF2_BARO_NOISE = 0.0035
-#   - Increase FW_THR_TRIM by 5%
+# MC MODE OSCILLATION (pitch/roll):
+#   - Verify MC_ROLLRATE_FF = 0.2 (was 0.5 - too aggressive)
+#   - Verify MC_PITCHRATE_FF = 0.2 (was 0.5 - too aggressive)
+#   - Check MC_ROLLRATE_P = 0.18, MC_PITCHRATE_P = 0.18
+#   - If still oscillating, reduce FF further to 0.15
 #
-# Oscillations in roll/pitch during FW flight:
-#   - Reduce FW_RR_P/FW_PR_P by 10-20%
-#   - Verify FW_T_PTCH_DAMP = 0.12
-#   - Reduce DIFTHR_S_* to 0.8
+# YAW OVERSHOOT (MC mode):
+#   - Verify MC_YAWRATE_D = 0.003 (provides damping)
+#   - Check MC_YAW_P = 4.0 (reduced from 5.0)
+#   - Verify MC_YAWRATE_I = 0.1
 #
-# Altitude drop during front transition:
-#   - Increase VT_F_TRANS_THR to 0.95
-#   - Decrease VT_F_TRANS_DUR to 1.5s
+# ALTITUDE DROPS DURING FW FLIGHT:
+#   - Verify FW_T_THR_DAMPING = 0.15
+#   - Check FW_T_PTCH_DAMP = 0.15
+#   - Increase FW_THR_TRIM by 5% if needed
 #
-# Overshoot during back transition landing:
-#   - Increase VT_B_DEC_MSS to 5.0 m/s²
+# OSCILLATIONS IN FW FLIGHT:
+#   - Verify FW_RR_P = 0.12, FW_PR_P = 0.12
+#   - Check FW_YR_D = 0.002 (yaw damping)
+#   - Reduce differential thrust scaling if needed
 #
-# Poor yaw control in FW mode:
-#   - Verify VT_FW_DIFTHR_EN = 7
-#   - Verify VT_FW_DIFTHR_S_Y = 1.0
-#   - Increase FW_YR_P by 20%
+# PATH/ORBIT TRACKING ISSUES:
+#   - Verify NPFG_PERIOD = 10.0
+#   - Check NPFG_DAMPING = 0.75
+#   - FW_T_ALT_TC = 6.0 for smooth altitude
 #
-# Unstable hover in MC mode:
-#   - Reduce MC_ROLLRATE_P/MC_PITCHRATE_P by 10%
-#   - Add D gain (MC_*RATE_D = 0.01)
-#   - Try MC_AIRMODE = 1 instead of 2
+# TRANSITION ISSUES:
+#   - Front transition unstable: Reduce VT_F_TRANS_THR (current: 0.85)
+#   - Back transition overshoot: Reduce VT_B_DEC_MSS (current: 3.5)
+#   - Altitude drop: Increase VT_F_TRANS_DUR (current: 2.5)
 #
 # DIFFERENTIAL THRUST CONTROL STRATEGY:
 # - Roll: Increase left motors (1,3), decrease right motors (2,4)
 # - Pitch: Increase front motors (1,3), decrease rear motors (2,4)
 # - Yaw: Increase CW motors (1,2), decrease CCW motors (3,4)
 #
-# CONTROL LIMITATIONS:
-# - Roll authority limited - avoid aggressive bank angles (>45°)
-# - Yaw-roll coupling significant - use coordinated turns
-# - High throttle required for control authority
+# VALIDATED SETTINGS (December 2025):
+# - MC: ROLLRATE_P=0.18, ROLLRATE_I=0.12, ROLLRATE_FF=0.2, YAW_P=4.0
+# - FW: RR_P=0.12, PR_P=0.12, YR_D=0.002, T_THR_DAMPING=0.15
+# - NPFG: PERIOD=10.0, DAMPING=0.75
+# - Transitions: F_TRANS_THR=0.85, F_TRANS_DUR=2.5, B_DEC_MSS=3.5
 #
 ################################################################################
 # END OF PARAMETER FILE
 ################################################################################
 # Maintainer: px4xplane project - https://github.com/alireza787b/px4xplane/
 # Status: Production-ready for X-Plane SITL simulation
-# Note: Smallest and fastest-transitioning aircraft in fleet
+# Aircraft: Quantix-style quad tailsitter (4-7 kg, no control surfaces)
 ################################################################################
