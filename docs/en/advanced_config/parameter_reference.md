@@ -486,6 +486,16 @@ The integer refers to the I2C bus number where PCA9685 is connected.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 10       |           | 0       |
 
+### PCA9685_I2C_ADDR (`INT32`) {#PCA9685_I2C_ADDR}
+
+I2C address of PCA9685.
+
+The default address is 0x40 (64).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 127      |           | 64      |
+
 ### PCA9685_FAIL1 (`INT32`) {#PCA9685_FAIL1}
 
 PCA9685 Output Channel 1 Failsafe Value.
