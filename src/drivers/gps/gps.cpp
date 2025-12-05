@@ -583,7 +583,7 @@ void GPS::handleInjectDataTopic()
 	// Looking at 8 packets thus guarantees, that at least a full injection
 	// data set is evaluated.
 	// Moving Base reuires a higher rate, so we allow up to 8 packets.
-	const size_t max_num_injections = gps_inject_data_s::ORB_QUEUE_LENGTH;
+	const size_t max_num_injections = 8;
 	size_t num_injections = 0;
 
 	do {
@@ -1033,6 +1033,9 @@ GPS::run()
 				}
 
 				reset_if_scheduled();
+
+				// Another pass at injection after read/publish
+				handleInjectDataTopic();
 
 				const hrt_abstime now = hrt_absolute_time();
 
