@@ -891,7 +891,7 @@ GPS::run()
 				.dynamic_model = (uint8_t)gps_ubx_dynmodel,
 				.heading_offset = heading_offset,
 				.uart2_baudrate = f9p_uart2_baudrate,
-				.ppk_output = (bool)ppk_output,
+				.ppk_output = ppk_output > 0,
 				.mode = ubx_mode,
 			};
 
