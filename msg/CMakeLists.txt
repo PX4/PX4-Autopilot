@@ -277,6 +277,17 @@ set(msg_files
 )
 list(SORT msg_files)
 
+if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
+	list(APPEND msg_files
+		TargetGnss.msg
+		VisionTargetEstInput.msg
+		VisionTargetEstPosition.msg
+		VisionTargetEstOrientation.msg
+		FiducialMarkerPosReport.msg
+		FiducialMarkerYawReport.msg
+		PrecLandStatus.msg)
+endif()
+
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
@@ -290,6 +301,32 @@ if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 		endforeach()
 	endif()
 endif()
+
+set(uorb_generator_defines)
+foreach(msg_path ${msg_files})
+	if(EXISTS ${msg_path})
+		file(STRINGS ${msg_path} _guarded_topic_lines REGEX "^# TOPICS.*\\[")
+		foreach(_guarded_line ${_guarded_topic_lines})
+			string(REGEX MATCHALL "\\[([^]]+)\\]" _config_matches ${_guarded_line})
+			foreach(_config_match ${_config_matches})
+				string(REGEX REPLACE "\\[|\\]" "" _config ${_config_match})
+				if(DEFINED ${_config})
+					if(${_config})
+						list(APPEND uorb_generator_defines ${_config})
+					endif()
+				endif()
+			endforeach()
+		endforeach()
+	endif()
+endforeach()
+if(uorb_generator_defines)
+	list(REMOVE_DUPLICATES uorb_generator_defines)
+endif()
+
+set(uorb_generator_define_args)
+foreach(define ${uorb_generator_defines})
+	list(APPEND uorb_generator_define_args --define ${define})
+endforeach()
 
 # headers
 set(msg_out_path ${PX4_BINARY_DIR}/uORB/topics)
@@ -323,6 +360,7 @@ add_custom_command(
 		${uorb_headers}
 		${msg_out_path}/uORBTopics.hpp
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		${uorb_generator_define_args}
 		--headers
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
@@ -344,6 +382,7 @@ add_custom_command(
 	OUTPUT
 		${uorb_json_files}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		${uorb_generator_define_args}
 		--json
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
@@ -382,6 +421,7 @@ add_custom_command(
 add_custom_command(
 	OUTPUT ${uorb_ucdr_headers}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		${uorb_generator_define_args}
 		--headers
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
@@ -404,6 +444,7 @@ add_custom_command(
 		${uorb_sources}
 		${msg_source_out_path}/uORBTopics.cpp
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		${uorb_generator_define_args}
 		--sources
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
@@ -521,8 +562,9 @@ if(CONFIG_LIB_CDRSTREAM)
 
 	add_custom_target(
 		uorb_idl_header
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
-			--uorb-idl-header
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		${uorb_generator_define_args}
+		--uorb-idl-header
 			-f ${msg_files}
 			-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
 			-o ${idl_uorb_path}
@@ -551,6 +593,7 @@ if(CONFIG_MODULES_ZENOH)
 			-f ${msg_files}
 			-o ${PX4_SOURCE_DIR}/src/modules/zenoh/
 			-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
+			${uorb_generator_define_args}
 		)
 	add_custom_command(
 		OUTPUT
@@ -561,6 +604,7 @@ if(CONFIG_MODULES_ZENOH)
 			-o ${PX4_BINARY_DIR}/src/modules/zenoh/
 			-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
 			--rihs ${idl_rihs01_out_path}
+			${uorb_generator_define_args}
 		DEPENDS
 			${msg_files}
 			${uorb_cdr_hash}
