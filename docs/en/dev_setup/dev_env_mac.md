@@ -4,109 +4,68 @@ The following instructions set up a PX4 development environment for macOS.
 This environment can be used to build PX4 for:
 
 - Pixhawk and other NuttX-based hardware
-- [Gazebo Classic Simulation](../sim_gazebo_classic/index.md)
+- [Gazebo Simulation](../sim_gazebo_gz/index.md) (Gazebo Harmonic)
 
-:::tip
+::: tip
 This setup is supported by the PX4 dev team.
-To build other targets you will need to use a [different OS](../dev_setup/dev_env.md#supported-targets) (or an [unsupported development environment](../advanced/community_supported_dev_env.md)).
+To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will need to use a [different OS](../dev_setup/dev_env.md#supported-targets) or an [unsupported development environment](../advanced/community_supported_dev_env.md).
 :::
 
-## Video Guide
+<!-- ## Video Guide
 
-<lite-youtube videoid="tMbMGiMs1cQ" title="Setting up your PX4 development environment on macOS"/>
+> **Note:** The video guide previously available here is now outdated. Please follow the updated instructions below for the latest setup process. If you are referencing the YouTube video, be aware that some steps may have changed. -->
 
-## Base Setup
+## Development Environment Setup
 
-The "base" macOS setup installs the tools needed for building firmware, and includes the common tools that will be needed for installing/using the simulators.
+### Prerequisites
 
-### Environment Setup
+1. Install Homebrew by following these [installation instructions](https://brew.sh).
 
-:::details Apple Silicon MacBook users!
-If you have an Apple M1, M2 etc. MacBook, make sure to run the terminal as x86 by setting up an x86 terminal:
-
-1. Locate the Terminal application within the Utilities folder (**Finder > Go menu > Utilities**)
-2. Select _Terminal.app_ and right-click on it, then choose **Duplicate**.
-3. Rename the duplicated Terminal app, e.g. to _x86 Terminal_
-4. Now select the renamed _x86 Terminal_ app and right-click and choose \*_Get Info_
-5. Check the box for **Open using Rosetta**, then close the window
-6. Run the _x86 Terminal_ as usual, which will fully support the current PX4 toolchain
-   :::
-
-First set up the environment
-
-1. Enable more open files by appending the following line to the `~/.zshenv` file (creating it if necessary):
+2. Enable more files to be opened in the shell process by appending `echo ulimit -S -n 2048` to your `~/.bashrc` file (or `~/.zshrc` for zsh).
+   To append the line using the terminal enter:
 
    ```sh
-   echo ulimit -S -n 2048 >> ~/.zshenv
+   echo ulimit -S -n 2048 >> ~/.bashrc
    ```
 
    ::: info
    If you don't do this, the build toolchain may report the error: `"LD: too many open files"`
    :::
 
-1. Enforce Python 3 by appending the following lines to `~/.zshenv`
+
+3. Ensure Python 3 is used by default, as some PX4 scripts require the `python3` and `pip3` executables to be available in your system `PATH`.
+
+   ::: tip
+   If you need help installing an updated version of Python 3, we recommend the [pyenv project](https://github.com/pyenv/pyenv?tab=readme-ov-file), which gives you utmost flexibility by allowing you to set a global and local Python version at the per-directory level.
+   :::
+
+4. Point pip3 to macOS system python 3 pip:
 
    ```sh
-   # Point pip3 to macOS system python 3 pip
    alias pip3=/usr/bin/pip3
    ```
 
-### Common Tools
+### Install Development Tools
 
-To setup the environment to be able to build for Pixhawk/NuttX hardware (and install the common tools for using simulators):
-
-1. Install Homebrew by following these [installation instructions](https://brew.sh).
-1. Run these commands in your shell to install the common tools:
-
-   ```sh
-   brew tap PX4/px4
-   brew install px4-dev
-   ```
-
-1. Install the required Python packages:
-
-   ```sh
-   # install required packages using pip3
-   python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
-   # if this fails with a permissions error, your Python install is in a system path - use this command instead:
-   sudo -H python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
-   ```
-
-## Gazebo Classic Simulation
-
-To setup the environment for [Gazebo Classic](../sim_gazebo_classic/index.md) simulation:
-
-1. Run the following commands in your shell:
-
-   ```sh
-   brew unlink tbb
-   sed -i.bak '/disable! date:/s/^/  /; /disable! date:/s/./#/3' $(brew --prefix)/Library/Taps/homebrew/homebrew-core/Formula/tbb@2020.rb
-   brew install tbb@2020
-   brew link tbb@2020
-   ```
-
-   ::: info
-   September 2021: The commands above are a workaround to this bug: [PX4-Autopilot#17644](https://github.com/PX4/PX4-Autopilot/issues/17644).
-   They can be removed once it is fixed (along with this note).
-   :::
-
-1. To install SITL simulation with Gazebo Classic:
-
-   ```sh
-   brew install --cask temurin
-   brew install --cask xquartz
-   brew install px4-sim-gazebo
-   ```
-
-1. Run the macOS setup script: `PX4-Autopilot/Tools/setup/macos.sh`
-   The easiest way to do this is to clone the PX4 source, and then run the script from the directory, as shown:
+1. Download PX4 Source Code:
 
    ```sh
    git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-   cd PX4-Autopilot/Tools/setup
-   sh macos.sh
    ```
 
+2. Run the [`macos.sh` setup script](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh):
+
+   ```sh
+   cd PX4-Autopilot
+   ./Tools/setup/macos.sh
+   ```
+
+   The script automatically installs all development dependencies (homebrew packages, python libraries, and so on).
+
+## Gazebo Simulation
+
+Gazebo Harmonic simulation support is included with the `px4-sim` formula installed above while executing [`macos.sh` setup script](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/macos.sh).
+The simulation environment should be ready to use after the installation completes.
 
 ## Next Steps
 
