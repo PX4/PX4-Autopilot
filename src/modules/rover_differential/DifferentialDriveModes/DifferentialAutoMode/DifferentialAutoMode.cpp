@@ -51,7 +51,8 @@ void DifferentialAutoMode::autoControl()
 	if (_position_setpoint_triplet_sub.updated()) {
 		position_setpoint_triplet_s position_setpoint_triplet{};
 		_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
-		int curr_wp_type = position_setpoint_triplet.current.type;
+		const int curr_wp_type = position_setpoint_triplet.current.type;
+		const bool curr_wp_valid = position_setpoint_triplet.current.valid;
 
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
@@ -85,7 +86,7 @@ void DifferentialAutoMode::autoControl()
 		rover_position_setpoint.start_ned[0] = prev_wp_ned(0);
 		rover_position_setpoint.start_ned[1] = prev_wp_ned(1);
 		rover_position_setpoint.arrival_speed = arrivalSpeed(cruising_speed, waypoint_transition_angle,
-							_param_ro_speed_limit.get(), _param_rd_trans_drv_trn.get(), _param_ro_speed_red.get(), curr_wp_type);
+							_param_ro_speed_limit.get(), _param_rd_trans_drv_trn.get(), _param_ro_speed_red.get(), curr_wp_type, curr_wp_valid);
 		rover_position_setpoint.cruising_speed = cruising_speed;
 		rover_position_setpoint.yaw = NAN;
 		_rover_position_setpoint_pub.publish(rover_position_setpoint);
@@ -93,11 +94,11 @@ void DifferentialAutoMode::autoControl()
 }
 
 float DifferentialAutoMode::arrivalSpeed(const float cruising_speed, const float waypoint_transition_angle,
-		const float max_speed, const float trans_drv_trn, const float speed_red, int curr_wp_type)
+		const float max_speed, const float trans_drv_trn, const float speed_red, const int curr_wp_type, const bool curr_wp_valid)
 {
 	// Upcoming stop
 	if (!PX4_ISFINITE(waypoint_transition_angle) || waypoint_transition_angle < M_PI_F - trans_drv_trn
-	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND || !curr_wp_valid) {
 		return 0.f;
 	}
 
