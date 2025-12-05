@@ -371,6 +371,11 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 		gps_dump_s dump = {};
 		dump.timestamp = hrt_absolute_time();
 
+		DeviceId device_id = {};
+		device_id.devid_s.address = static_cast<uint8_t>(msg.getSrcNodeID().get());
+		device_id.devid_s.bus_type = DeviceBusType::DeviceBusType_UAVCAN;
+		dump.device_id = device_id.devid;
+
 		size_t remaining = total_bytes - written;
 		size_t write_len = remaining < sizeof(dump.data) ? remaining : sizeof(dump.data);
 
