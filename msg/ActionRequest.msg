@@ -10,8 +10,8 @@ uint8 action                                     # [@enum ACTION] Requested acti
 uint8 ACTION_DISARM = 0                          # Disarm vehicle
 uint8 ACTION_ARM = 1                             # Arm vehicle
 uint8 ACTION_TOGGLE_ARMING = 2                   # Toggle arming
-uint8 ACTION_UNKILL = 3                          # Revert a kill action
-uint8 ACTION_KILL = 4                            # Kill vehicle (instantly stop the motors)
+uint8 ACTION_REVERT_EMERGENGY_STOP = 3           # Revert a emergency stop action
+uint8 ACTION_EMERGENGY_STOP = 4                  # emergency stop the vehicle
 uint8 ACTION_SWITCH_MODE = 5                     # Switch mode. The target mode is set in the `mode` field.
 uint8 ACTION_VTOL_TRANSITION_TO_MULTICOPTER = 6  # Transition to hover flight
 uint8 ACTION_VTOL_TRANSITION_TO_FIXEDWING = 7    # Transition to fast forward flight

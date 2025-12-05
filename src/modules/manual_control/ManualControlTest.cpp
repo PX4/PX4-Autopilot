@@ -36,8 +36,8 @@
 
 static constexpr uint64_t SOME_TIME = 12345678;
 
-static constexpr uint8_t ACTION_KILL = action_request_s::ACTION_KILL;
-static constexpr uint8_t ACTION_UNKILL = action_request_s::ACTION_UNKILL;
+static constexpr uint8_t ACTION_EMERGENGY_STOP = action_request_s::ACTION_EMERGENGY_STOP;
+static constexpr uint8_t ACTION_REVERT_EMERGENGY_STOP = action_request_s::ACTION_REVERT_EMERGENGY_STOP;
 static constexpr uint8_t ACTION_VTOL_TRANSITION_TO_FIXEDWING = action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING;
 static constexpr uint8_t ACTION_VTOL_TRANSITION_TO_MULTICOPTER =
 	action_request_s::ACTION_VTOL_TRANSITION_TO_MULTICOPTER;
@@ -93,12 +93,12 @@ public:
 };
 
 
-TEST_F(SwitchTest, KillSwitch)
+TEST_F(SwitchTest, EmergencyStopSwitch)
 {
 	// GIVEN: valid stick input from RC
 	_manual_control_input_pub.publish({.timestamp_sample = _timestamp, .valid = true, .data_source = manual_control_setpoint_s::SOURCE_RC});
 	// and kill switch in off position
-	_manual_control_switches_pub.publish({.timestamp_sample = _timestamp, .kill_switch = manual_control_switches_s::SWITCH_POS_ON});
+	_manual_control_switches_pub.publish({.timestamp_sample = _timestamp, .emergency_stop_switch = manual_control_switches_s::SWITCH_POS_ON});
 	_manual_control.processInput(_timestamp += 100_ms);
 
 	// THEN: the stick input is published for use
@@ -108,20 +108,20 @@ TEST_F(SwitchTest, KillSwitch)
 	EXPECT_FALSE(_action_request_sub.update());
 
 	// WHEN: the kill switch is switched on
-	_manual_control_switches_pub.publish({.timestamp_sample = _timestamp, .kill_switch = manual_control_switches_s::SWITCH_POS_OFF});
+	_manual_control_switches_pub.publish({.timestamp_sample = _timestamp, .emergency_stop_switch = manual_control_switches_s::SWITCH_POS_OFF});
 	_manual_control.processInput(_timestamp += 100_ms);
 
 	// THEN: a kill action request is published
 	EXPECT_TRUE(_action_request_sub.update());
-	EXPECT_EQ(_action_request_sub.get().action, ACTION_UNKILL);
+	EXPECT_EQ(_action_request_sub.get().action, ACTION_REVERT_EMERGENGY_STOP);
 
 	// WHEN: the kill switch is switched off again
-	_manual_control_switches_pub.publish({.timestamp_sample = _timestamp, .kill_switch = manual_control_switches_s::SWITCH_POS_ON});
+	_manual_control_switches_pub.publish({.timestamp_sample = _timestamp, .emergency_stop_switch = manual_control_switches_s::SWITCH_POS_ON});
 	_manual_control.processInput(_timestamp += 100_ms);
 
 	// THEN: an unkill action request is published
 	EXPECT_TRUE(_action_request_sub.update());
-	EXPECT_EQ(_action_request_sub.get().action, ACTION_KILL);
+	EXPECT_EQ(_action_request_sub.get().action, ACTION_EMERGENGY_STOP);
 }
 
 TEST_F(SwitchTest, TransitionSwitch)

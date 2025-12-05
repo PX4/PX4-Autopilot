@@ -58,15 +58,15 @@ void ManualControlChecks::checkAndReport(const Context &context, Report &reporte
 			}
 		}
 
-		if (manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
+		if (manual_control_switches.emergency_stop_switch == manual_control_switches_s::SWITCH_POS_ON) {
 			/* EVENT
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
-						    events::ID("check_man_control_kill_engaged"),
-						    events::Log::Error, "Kill switch engaged");
+						    events::ID("check_man_control_emergency_stop_engaged"),
+						    events::Log::Error, "Emergency Stop Engaged");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Kill switch engaged");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Emergency Stop Engaged");
 			}
 		}
 
