@@ -77,12 +77,17 @@ Follow these steps:
 
 1. **Set an Initial Scale**
 
-   Use a conservative starting point: set the CAS scale (`ASPD_SCALE_n`) slightly under 1.0 (for example 0.95).
-   This biases the system toward over-speed rather than under-speed, reducing stall risk.
+   Set the CAS scale (`ASPD_SCALE_n`) to 1.0 (the default value).
+   When the scale is at exactly 1.0, PX4 automatically accelerates the learning process during the first 5 minutes of flight, allowing faster convergence to the correct scale value.
 
 2. **Perform a Flight**
 
    After takeoff, place the vehicle in loiter for about 15 minutes to allow the scale estimation to converge.
+
+   ::: tip
+   Flying in circles (loiter/hold mode) is important as the scale-validation algorithm requires the aircraft to pass through multiple heading segments (12 segments covering all compass directions).
+   If these heading segments aren’t completed, PX4 cannot validate the estimated scale.
+   :::
 
 3. **Check Scale Convergence**
 
