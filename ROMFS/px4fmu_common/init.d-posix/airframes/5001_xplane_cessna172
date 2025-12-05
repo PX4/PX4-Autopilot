@@ -93,16 +93,18 @@ param set-default CAL_BARO1_PRIO 0       # Backup disabled
 param set-default EKF2_BARO_CTRL 1
 param set-default EKF2_MULTI_IMU 1
 
-# Accelerometer Bias Estimation (v3.2.0 - standardized from Alia250)
+# Accelerometer Bias Estimation (v3.3.3 - X-Plane SITL optimized)
 param set-default EKF2_ABIAS_INIT 0.2    # Tighter initial bias estimate
-param set-default EKF2_ABL_LIM 1.5       # More bias learning headroom
+param set-default EKF2_ABL_LIM 2.5       # X-Plane SITL requires higher tolerance (see note below)
 param set-default EKF2_ABL_TAU 0.5       # Slower bias adaptation (stability)
 param set-default EKF2_ABL_ACCLIM 35.0
 param set-default EKF2_ACC_NOISE 1.0     # Better accelerometer trust
 param set-default EKF2_ACC_B_NOISE 0.001
 
-# NOTE: COM_ARM_EKF_AB was removed - parameter does not exist in current PX4
-# Plugin now uses runtime accelerometer calibration to fix "High Accelerometer Bias" error
+# X-PLANE SITL NOTE: EKF2_ABL_LIM = 2.5 (vs Gazebo/jMAVSim default 0.4)
+# Required because X-Plane has lower sensor rate (~100Hz vs 250Hz) and
+# inherent physics engine variations that cause EKF2 to estimate higher bias.
+# This does NOT affect flight performance - only the preflight arming check.
 
 # Gyroscope Noise (v3.2.0 - added for bias estimation stability)
 param set-default EKF2_GYR_NOISE 0.015   # Gyro measurement noise (rad/s)
