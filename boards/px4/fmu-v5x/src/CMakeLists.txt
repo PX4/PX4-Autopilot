@@ -43,8 +43,6 @@ add_library(drivers_board
 	usb.c
 )
 
-add_dependencies(drivers_board platform_gpio_mcp23009)
-
 target_link_libraries(drivers_board
 	PRIVATE
 		arch_io_pins
@@ -54,5 +52,4 @@ target_link_libraries(drivers_board
 		nuttx_arch # sdio
 		nuttx_drivers # sdio
 		px4_layer
-		platform_gpio_mcp23009
 )

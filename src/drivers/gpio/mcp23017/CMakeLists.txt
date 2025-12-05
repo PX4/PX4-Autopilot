@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,12 @@
 #
 ############################################################################
 
-add_subdirectory(accelerometer)
-add_subdirectory(device)
-add_subdirectory(gyroscope)
-add_subdirectory(led)
-add_subdirectory(magnetometer)
-add_subdirectory(mcp_common)
-add_subdirectory(rangefinder)
-add_subdirectory(smbus)
-add_subdirectory(smbus_sbs)
+px4_add_module(
+	MODULE drivers__gpio__mcp23017
+	MAIN mcp23017
+	SRCS
+		MCP23017_main.cpp
+		MCP23017.cpp
+	DEPENDS
+		mcp_common
+	)

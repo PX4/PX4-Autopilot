@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,10 +30,88 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include "MCP23017.hpp"
 
-#pragma once
+MCP23017::MCP23017(const I2CSPIDriverConfig &config) :
+	MCP230XX(config)
+{
+}
 
-#include <stdint.h>
+void MCP23017::set_params()
+{
+	mcp_config.num_pins = 16;
+	mcp_config.num_banks = 2;
+	mcp_config.device_type = DRV_GPIO_DEVTYPE_MCP23017;
+	mcp_config.i2c_addr = I2C_ADDRESS_MCP23017;
+	return;
+}
 
-int mcp23009_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor = 0);
-int mcp23009_unregister_gpios(int first_minor = 0);
+int MCP23017::get_olat(int bank, uint8_t *addr)
+{
+	switch (bank) {
+	case 0:
+		*addr = (uint8_t) Register::OLATA;
+		return PX4_OK;
+
+	case 1:
+		*addr = (uint8_t) Register::OLATB;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
+	}
+}
+
+int MCP23017::get_gppu(int bank, uint8_t *addr)
+{
+	switch (bank) {
+	case 0:
+		*addr = (uint8_t) Register::GPPUA;
+		return PX4_OK;
+
+	case 1:
+		*addr = (uint8_t) Register::GPPUB;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
+	}
+}
+
+int MCP23017::get_iodir(int bank, uint8_t *addr)
+{
+	switch (bank) {
+	case 0:
+		*addr = (uint8_t) Register::IODIRA;
+		return PX4_OK;
+
+	case 1:
+		*addr = (uint8_t) Register::IODIRB;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
+	}
+}
+
+int MCP23017::get_gpio(int bank, uint8_t *addr)
+{
+	switch (bank) {
+	case 0:
+		*addr = (uint8_t) Register::GPIOA;
+		return PX4_OK;
+
+	case 1:
+		*addr = (uint8_t) Register::GPIOB;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
+	}
+}
+
+int MCP23017::get_probe_reg(uint8_t *addr)
+{
+	*addr = (uint8_t) Register::IOCONA;
+	return PX4_OK;
+}

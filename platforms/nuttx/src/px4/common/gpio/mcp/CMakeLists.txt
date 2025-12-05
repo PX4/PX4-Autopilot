@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(accelerometer)
-add_subdirectory(device)
-add_subdirectory(gyroscope)
-add_subdirectory(led)
-add_subdirectory(magnetometer)
-add_subdirectory(mcp_common)
-add_subdirectory(rangefinder)
-add_subdirectory(smbus)
-add_subdirectory(smbus_sbs)
+px4_add_library(platform_gpio_mcp
+		mcp.cpp
+	)
+target_link_libraries(platform_gpio_mcp PRIVATE drivers__device) # device::I2C
