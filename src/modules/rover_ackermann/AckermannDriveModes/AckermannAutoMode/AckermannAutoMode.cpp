@@ -76,7 +76,7 @@ void AckermannAutoMode::autoControl()
 		rover_position_setpoint.position_ned[1] = _curr_wp_ned(1);
 		rover_position_setpoint.start_ned[0] = _prev_wp_ned(0);
 		rover_position_setpoint.start_ned[1] = _prev_wp_ned(1);
-		rover_position_setpoint.arrival_speed = arrivalSpeed(_cruising_speed, _min_speed, _acceptance_radius, _curr_wp_type,
+		rover_position_setpoint.arrival_speed = arrivalSpeed(_cruising_speed, _min_speed, _acceptance_radius, _curr_wp_type, _curr_wp_valid,
 							_waypoint_transition_angle, _max_yaw_rate);
 		rover_position_setpoint.cruising_speed = _cruising_speed;
 		rover_position_setpoint.yaw = NAN;
@@ -90,6 +90,8 @@ void AckermannAutoMode::updateWaypointsAndAcceptanceRadius()
 	position_setpoint_triplet_s position_setpoint_triplet{};
 	_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
 	_curr_wp_type = position_setpoint_triplet.current.type;
+	_curr_wp_valid = position_setpoint_triplet.current.valid;
+
 
 	RoverControl::globalToLocalSetpointTriplet(_curr_wp_ned, _prev_wp_ned, _next_wp_ned, position_setpoint_triplet,
 			_curr_pos_ned, _global_ned_proj_ref);
@@ -136,10 +138,10 @@ float AckermannAutoMode::updateAcceptanceRadius(const float waypoint_transition_
 }
 
 float AckermannAutoMode::arrivalSpeed(const float cruising_speed, const float min_speed, const float acc_rad,
-				      const int curr_wp_type, const float waypoint_transition_angle, const float max_yaw_rate)
+				      const int curr_wp_type, const bool curr_wp_valid, const float waypoint_transition_angle, const float max_yaw_rate)
 {
 	if (!PX4_ISFINITE(waypoint_transition_angle)
-	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND || !curr_wp_valid) {
 		return 0.f; // Stop at the waypoint
 
 	} else if (_param_ro_speed_red.get() > FLT_EPSILON) {
