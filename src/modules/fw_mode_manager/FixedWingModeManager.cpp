@@ -1034,47 +1034,6 @@ void FixedWingModeManager::publishFigureEightStatus(const position_setpoint_s po
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 void
-FixedWingModeManager::control_auto_path(const float control_interval, const Vector2d &curr_pos,
-					const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
-{
-	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
-
-	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
-
-	// Navigate directly on position setpoint and path tangent
-	const matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
-	const float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 /
-				_pos_sp_triplet.current.loiter_radius :
-				0.0f;
-	const DirectionalGuidanceOutput sp = navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(),
-					     ground_speed, _wind_vel, curvature);
-
-	fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
-	fw_lateral_ctrl_sp.timestamp = hrt_absolute_time();
-	fw_lateral_ctrl_sp.course = sp.course_setpoint;
-	fw_lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
-	_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
-
-	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
-		.timestamp = hrt_absolute_time(),
-		.altitude = pos_sp_curr.alt,
-		.height_rate = NAN,
-		.equivalent_airspeed = target_airspeed,
-		.pitch_direct = NAN,
-		.throttle_direct = NAN
-	};
-
-	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
-
-	if (pos_sp_curr.gliding_enabled) {
-		_ctrl_configuration_handler.setThrottleMin(0.0f);
-		_ctrl_configuration_handler.setThrottleMax(0.0f);
-		_ctrl_configuration_handler.setSpeedWeight(2.0f);
-	}
-}
-
-void
 FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float control_interval,
 		const Vector2d &global_position, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
 {
@@ -2052,80 +2011,22 @@ FixedWingModeManager::Run()
 							     _local_pos.ref_timestamp);
 		}
 
-		if (_control_mode.flag_control_offboard_enabled) {
-			trajectory_setpoint_s trajectory_setpoint;
+		if (_pos_sp_triplet_sub.update(&_pos_sp_triplet)) {
 
-			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
-				bool valid_setpoint = false;
-				_pos_sp_triplet = {}; // clear any existing
-				_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
-				_pos_sp_triplet.current.timestamp = trajectory_setpoint.timestamp;
-				_pos_sp_triplet.current.cruising_speed = NAN; // ignored
-				_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
-				_pos_sp_triplet.current.vx = NAN;
-				_pos_sp_triplet.current.vy = NAN;
-				_pos_sp_triplet.current.vz = NAN;
-				_pos_sp_triplet.current.lat = static_cast<double>(NAN);
-				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
-				_pos_sp_triplet.current.alt = NAN;
+			_position_setpoint_previous_valid = PX4_ISFINITE(_pos_sp_triplet.previous.lat)
+								&& PX4_ISFINITE(_pos_sp_triplet.previous.lon)
+								&& PX4_ISFINITE(_pos_sp_triplet.previous.alt);
 
-				if (Vector3f(trajectory_setpoint.position).isAllFinite()) {
-					if (_global_local_proj_ref.isInitialized()) {
-						double lat;
-						double lon;
-						_global_local_proj_ref.reproject(trajectory_setpoint.position[0], trajectory_setpoint.position[1], lat, lon);
-						valid_setpoint = true;
-						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-						_pos_sp_triplet.current.lat = lat;
-						_pos_sp_triplet.current.lon = lon;
-						_pos_sp_triplet.current.alt = _reference_altitude - trajectory_setpoint.position[2];
-					}
+			_position_setpoint_current_valid = PX4_ISFINITE(_pos_sp_triplet.current.lat)
+								&& PX4_ISFINITE(_pos_sp_triplet.current.lon)
+								&& PX4_ISFINITE(_pos_sp_triplet.current.alt);
 
-				}
+			_position_setpoint_next_valid = PX4_ISFINITE(_pos_sp_triplet.next.lat)
+							&& PX4_ISFINITE(_pos_sp_triplet.next.lon)
+							&& PX4_ISFINITE(_pos_sp_triplet.next.alt);
 
-				if (Vector3f(trajectory_setpoint.velocity).isAllFinite()) {
-					valid_setpoint = true;
-					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-					_pos_sp_triplet.current.vx = trajectory_setpoint.velocity[0];
-					_pos_sp_triplet.current.vy = trajectory_setpoint.velocity[1];
-					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
-
-					if (Vector3f(trajectory_setpoint.acceleration).isAllFinite()) {
-						Vector2f velocity_sp_2d(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
-						Vector2f normalized_velocity_sp_2d = velocity_sp_2d.normalized();
-						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
-						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(normalized_velocity_sp_2d) *
-									       normalized_velocity_sp_2d;
-						float direction = -normalized_velocity_sp_2d.cross(acceleration_normal.normalized());
-						_pos_sp_triplet.current.loiter_radius = direction * velocity_sp_2d.norm() * velocity_sp_2d.norm() /
-											acceleration_normal.norm();
-
-					} else {
-						_pos_sp_triplet.current.loiter_radius = NAN;
-					}
-				}
-
-				_position_setpoint_current_valid = valid_setpoint;
-			}
-
-		} else {
-			if (_pos_sp_triplet_sub.update(&_pos_sp_triplet)) {
-
-				_position_setpoint_previous_valid = PX4_ISFINITE(_pos_sp_triplet.previous.lat)
-								    && PX4_ISFINITE(_pos_sp_triplet.previous.lon)
-								    && PX4_ISFINITE(_pos_sp_triplet.previous.alt);
-
-				_position_setpoint_current_valid = PX4_ISFINITE(_pos_sp_triplet.current.lat)
-								   && PX4_ISFINITE(_pos_sp_triplet.current.lon)
-								   && PX4_ISFINITE(_pos_sp_triplet.current.alt);
-
-				_position_setpoint_next_valid = PX4_ISFINITE(_pos_sp_triplet.next.lat)
-								&& PX4_ISFINITE(_pos_sp_triplet.next.lon)
-								&& PX4_ISFINITE(_pos_sp_triplet.next.alt);
-
-				// reset the altitude foh (first order hold) logic
-				_min_current_sp_distance_xy = FLT_MAX;
-			}
+			// reset the altitude foh (first order hold) logic
+			_min_current_sp_distance_xy = FLT_MAX;
 		}
 
 		airspeed_poll();
@@ -2211,7 +2112,6 @@ FixedWingModeManager::Run()
 			}
 
 		case FW_POSCTRL_MODE_AUTO_PATH: {
-				control_auto_path(control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
 

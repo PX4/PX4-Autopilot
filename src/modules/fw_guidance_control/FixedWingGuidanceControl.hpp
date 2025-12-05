@@ -33,15 +33,13 @@
 
 
 /**
- * @file FixedWingModeManager.hpp
+ * @file FixedWingGuidanceControl.hpp
  * Implementation of various fixed-wing control modes.
  */
 
-#ifndef FIXEDWINGMODEMANAGER_HPP_
-#define FIXEDWINGMODEMANAGER_HPP_
+#ifndef FIXEDWINGGUIDANCECONTROL_HPP_
+#define FIXEDWINGGUIDANCECONTROL_HPP_
 
-#include "launchdetection/LaunchDetector.h"
-#include "runway_takeoff/RunwayTakeoff.h"
 #include "ControllerConfigurationHandler.hpp"
 
 #include <float.h>
@@ -77,6 +75,7 @@
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -90,13 +89,6 @@
 #include <uORB/topics/wind.h>
 #include <uORB/topics/orbit_status.h>
 
-#ifdef CONFIG_FIGURE_OF_EIGHT
-#include "figure_eight/FigureEight.hpp"
-#include <uORB/topics/figure_eight_status.h>
-#endif // CONFIG_FIGURE_OF_EIGHT
-
-using namespace launchdetection;
-using namespace runwaytakeoff;
 using namespace time_literals;
 
 using matrix::Vector2d;
@@ -150,12 +142,12 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 // [] Stick deadzon
 static constexpr float kStickDeadBand = 0.06f;
 
-class FixedWingModeManager final : public ModuleBase<FixedWingModeManager>, public ModuleParams,
+class FixedWingGuidanceControl final : public ModuleBase<FixedWingGuidanceControl>, public ModuleParams,
 	public px4::WorkItem
 {
 public:
-	FixedWingModeManager();
-	~FixedWingModeManager() override;
+	FixedWingGuidanceControl();
+	~FixedWingGuidanceControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -180,6 +172,7 @@ private:
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
@@ -287,9 +280,6 @@ private:
 	// [m] ground altitude AMSL where the plane was launched
 	float _takeoff_ground_alt{0.0f};
 
-	// class handling launch detection methods for fixed-wing takeoff
-	LaunchDetector _launchDetector;
-
 	// true if a launch, specifically using the launch detector, has been detected
 	bool _launch_detected{false};
 
@@ -298,9 +288,6 @@ private:
 
 	// [rad] current vehicle yaw at the time the launch is detected
 	float _launch_current_yaw{0.f};
-
-	// class handling runway takeoff for fixed-wing UAVs with steerable wheels
-	RunwayTakeoff _runway_takeoff;
 
 	bool _skipping_takeoff_detection{false};
 
@@ -317,7 +304,6 @@ private:
 	// orbit to altitude only when the aircraft has entered the final *straight approach.
 	hrt_abstime _time_started_landing{0};
 
-	Vector2f _local_landing_orbit_center{NAN, NAN};
 	// [m] lateral touchdown position offset manually commanded during landing
 	float _lateral_touchdown_position_offset{0.0f};
 
@@ -390,24 +376,6 @@ private:
 
 	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
 	float _min_current_sp_distance_xy{FLT_MAX};
-
-#ifdef CONFIG_FIGURE_OF_EIGHT
-	/* Loitering */
-	FigureEight _figure_eight;
-	uORB::Publication<figure_eight_status_s> _figure_eight_status_pub {ORB_ID(figure_eight_status)};
-	/**
-	 * Vehicle control for the autonomous figure 8 mode.
-	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos the current 2D absolute position of the vehicle in [deg].
-	 * @param ground_speed the 2D ground speed of the vehicle in [m/s].
-	 * @param pos_sp_curr the current position setpoint.
-	 */
-	void controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				    const position_setpoint_s &pos_sp_curr);
-
-	void publishFigureEightStatus(const position_setpoint_s pos_sp);
-#endif // CONFIG_FIGURE_OF_EIGHT
 
 	// Update our local parameter cache.
 	void parameters_update();
@@ -482,169 +450,6 @@ private:
 
 	/* automatic control methods */
 
-	/**
-	 * @brief Automatic position control for waypoints, orbits, and velocity control
-	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
-	 * @param pos_sp_curr current position setpoint
-	 * @param pos_sp_next next position setpoint
-	 */
-	void control_auto(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-			  const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-
-	/**
-	 * @brief Controls altitude and airspeed for a fixed-bank loiter.
-	 *
-	 * Used as a failsafe mode after a lateral position estimate failure.
-	 */
-	void control_auto_fixed_bank_alt_hold();
-
-	/**
-	 * @brief Control airspeed with a fixed descent rate and roll angle.
-	 *
-	 * Used as a failsafe mode after a lateral position estimate failure.
-	 */
-	void control_auto_descend();
-
-	/**
-	 * @brief Vehicle control for position waypoints.
-	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
-	 * @param pos_sp_curr current position setpoint
-	 */
-	void control_auto_position(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				   const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-
-	/**
-	 * @brief Vehicle control for loiter waypoints.
-	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_curr current position setpoint
-	 * @param pos_sp_next next position setpoint
-	 */
-	void control_auto_loiter(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-
-
-	/**
-	 * @brief Vehicle control for following a path.
-	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
-	 * @param pos_sp_curr current position setpoint
-	 */
-	void control_auto_path(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-			       const position_setpoint_s &pos_sp_curr);
-
-	/**
-	 * @brief Controls a desired airspeed, bearing, and height rate.
-	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_curr current position setpoint
-	 */
-	void control_auto_velocity(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				   const position_setpoint_s &pos_sp_curr);
-
-	/**
-	 * @brief Controls automatic takeoff.
-	 *
-	 * @param now Current system time [us]
-	 * @param control_interval Time since last position control call [s]
-	 * @param global_position Vechile global position [deg]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_curr current position setpoint
-	 */
-	void control_auto_takeoff(const hrt_abstime &now, const float control_interval, const Vector2d &global_position,
-				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr);
-
-	/**
-	 * @brief Controls automatic takeoff without navigation.
-	 *
-	 * @param now Current system time [us]
-	 * @param control_interval Time since last position control call [s]
-	 * @param altitude_setpoint_amsl Altitude setpoint, AMSL [m]
-	 */
-	void control_auto_takeoff_no_nav(const hrt_abstime &now, const float control_interval,
-					 const float altitude_setpoint_amsl);
-
-	/**
-	 * @brief Controls automatic landing with straight approach.
-	 *
-	 * To be used in Missions that contain a loiter down followed by a land waypoint.
-	 *
-	 * @param now Current system time [us]
-	 * @param control_interval Time since last position control call [s]
-	 * @param control_interval Time since the last position control update [s]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
-	 * @param pos_sp_curr current position setpoint
-	 */
-	void control_auto_landing_straight(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
-					   const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-
-	/**
-	 * @brief Controls automatic landing with circular final appraoch.
-	 *
-	 * To be used outside of Mission landings. Vehicle will orbit down around the landing position setpoint until flaring.
-	 *
-	 * @param now Current system time [us]
-	 * @param control_interval Time since last position control call [s]
-	 * @param control_interval Time since the last position control update [s]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_curr current position setpoint
-	 */
-	void control_auto_landing_circular(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
-					   const position_setpoint_s &pos_sp_curr);
-
-	/* manual control methods */
-
-	/**
-	 * @brief Controls altitude and airspeed, user commands roll setpoint.
-	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 */
-	void control_manual_altitude(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
-
-	/**
-	 * @brief Controls user commanded altitude, airspeed, and bearing.
-	 *
-	 * @param now Current system time [us]
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 */
-	void control_manual_position(const hrt_abstime now, const float control_interval, const Vector2d &curr_pos,
-				     const Vector2f &ground_speed);
-
-	/**
-	 * @brief Holds the initial heading during the course of a transition to hover. Used when there is no local
-	 * position to do line following.
-	 */
-	void control_backtransition_heading_hold();
-
-	/**
-	 * @brief Controls flying towards a transition waypoint and then transitioning to MC mode.
-	 *
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_curr current position setpoint
-	 */
-	void control_backtransition_line_follow(const Vector2f &ground_speed,
-						const position_setpoint_s &pos_sp_curr);
-
 	float get_manual_airspeed_setpoint();
 
 	void reset_takeoff_state();
@@ -657,7 +462,7 @@ private:
 	 *
 	 * @param now Current system time [us]
 	 */
-	void set_control_mode_current(const hrt_abstime &now);
+	// void set_control_mode_current(const hrt_abstime &now);
 
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
 
@@ -881,4 +686,4 @@ private:
 	)
 };
 
-#endif // FIXEDWINGMODEMANAGER_HPP_
+#endif // FIXEDWINGGUIDANCECONTROL_HPP_
