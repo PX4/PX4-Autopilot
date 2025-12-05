@@ -144,6 +144,8 @@ else()
 			vehicle_command_srv.h
 			srv_base.cpp
 			srv_base.h
+			parameter_srv.cpp
+			parameter_srv.h
 		DEPENDS
 			git_micro_xrce_dds_client
 			libmicroxrceddsclient_project
