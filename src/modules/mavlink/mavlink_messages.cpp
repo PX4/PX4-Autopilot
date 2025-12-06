@@ -63,7 +63,9 @@
 #include "streams/ATTITUDE_TARGET.hpp"
 #include "streams/AUTOPILOT_VERSION.hpp"
 #include "streams/BATTERY_STATUS.hpp"
+#if defined(MAVLINK_MSG_ID_BATTERY_STATUS_V2)
 #include "streams/BATTERY_STATUS_V2.hpp"
+#endif
 #include "streams/CAMERA_IMAGE_CAPTURED.hpp"
 #include "streams/CAMERA_TRIGGER.hpp"
 #include "streams/COMMAND_LONG.hpp"
