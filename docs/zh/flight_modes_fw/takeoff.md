@@ -93,7 +93,7 @@ To launch in this mode:
 1. Arm the vehicle
 2. Put the vehicle into _Takeoff mode_
 3. Launch/throw the vehicle (firmly) directly into the wind.
-  You can also shake the vehicle first, wait till the motor spins up and then throw it
+   You can also shake the vehicle first, wait till the motor spins up and then throw it
 
 ### Parameters (Launch Detector)
 
@@ -142,7 +142,7 @@ Runway takeoff is affected by the following parameters:
 | <a id="FW_WING_SPAN"></a>[FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)          | The wingspan of the vehicle. Used to prevent wingstrikes.                                                                                                                                    |
 | <a id="FW_WING_HEIGHT"></a>[FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT)    | The height of the wings above ground (ground clearance). Used to prevent wingstrikes.                                                                                     |
 
-## See Also
+## 另见
 
 - [Takeoff Mode (MC)](../flight_modes_mc/takeoff.md)
 - [Planning a mission takeoff](../flight_modes_fw/mission.md#mission-takeoff)

@@ -267,6 +267,7 @@ struct systemFlagUpdate {
 	bool is_fixed_wing{false};
 	bool gnd_effect{false};
 	bool constant_pos{false};
+	bool in_transition_to_fw{false};
 };
 
 struct parameters {
@@ -341,7 +342,7 @@ struct parameters {
 
 	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
 	// good enough to set a local origin and commence aiding
-	int32_t ekf2_gps_check{21};             ///< bitmask used to control which GPS quality checks are used
+	int32_t ekf2_gps_check{1045};             ///< bitmask used to control which GPS quality checks are used
 	float ekf2_req_eph{5.0f};               ///< maximum acceptable horizontal position error (m)
 	float ekf2_req_epv{8.0f};               ///< maximum acceptable vertical position error (m)
 	float ekf2_req_sacc{1.0f};              ///< maximum acceptable speed error (m/s)
@@ -349,6 +350,7 @@ struct parameters {
 	float ekf2_req_pdop{2.0f};              ///< maximum acceptable position dilution of precision
 	float ekf2_req_hdrift{0.3f};            ///< maximum acceptable horizontal drift speed (m/s)
 	float ekf2_req_vdrift{0.5f};            ///< maximum acceptable vertical drift speed (m/s)
+	int32_t ekf2_req_fix{3};                ///< minimum acceptable GPS fix type
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
@@ -606,7 +608,12 @@ uint64_t mag_heading_consistent  :
 		uint64_t baro_fault              : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
 		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
 uint64_t gnss_fault              :
-		1; ///< 45 - true if GNSS measurements have been declared faulty and are no longer used
+		1; ///< 45 - true if GNSS measurements (lat, lon, vel) have been declared faulty and are no longer used
+		uint64_t yaw_manual              : 1; ///< 46 - true if yaw has been reset manually
+uint64_t gnss_hgt_fault              :
+		1; ///< 47 - true if GNSS measurements (alt) have been declared faulty and are no longer used
+		uint64_t in_transition_to_fw 	 : 1; ///< 48 - true if the vehicle is in transition to fw
+
 	} flags;
 	uint64_t value;
 };

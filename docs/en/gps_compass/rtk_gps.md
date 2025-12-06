@@ -23,7 +23,9 @@ It also highlights devices that connect via the CAN bus, and those which support
 | Device                                                                                                    |                             GPS                             | Compass  | [DroneCAN](../dronecan/index.md) | [GPS Yaw](#configuring-gps-as-yaw-heading-source) | PPK |
 | :-------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------: | :------: | :------------------------------: | :-----------------------------------------------: | :-: |
 | [ARK RTK GPS](../dronecan/ark_rtk_gps.md)                                                                 |                             F9P                             |  BMM150  |                ✓                 |                [Dual F9P][DualF9P]                |
+| [ARK RTK GPS L1 L5](../dronecan/ark_rtk_gps_l1_l2.md)                                                     |                             F9P                             |  BMM150  |                ✓                 |                              |
 | [ARK MOSAIC-X5 RTK GPS](../dronecan/ark_mosaic__rtk_gps.md)                                               |                          Mosaic-X5                          | IIS2MDC  |                ✓                 |      [Septentrio Dual Antenna][SeptDualAnt]       |
+| [ARK X20 RTK GPS](../dronecan/ark_x20_rtk_gps.md)                                                         |                             X20P                            |  BMP390  |                ✓                 |                                |
 | [CUAV C-RTK GPS](../gps_compass/rtk_gps_cuav_c-rtk.md)                                                    |                           M8P/M8N                           |    ✓     |                                  |                                                   |
 | [CUAV C-RTK2](../gps_compass/rtk_gps_cuav_c-rtk2.md)                                                      |                             F9P                             |    ✓     |                                  |                [Dual F9P][DualF9P]                |
 | [CUAV C-RTK 9Ps GPS](../gps_compass/rtk_gps_cuav_c-rtk-9ps.md)                                            |                             F9P                             |  RM3100  |                                  |                [Dual F9P][DualF9P]                |
@@ -203,7 +205,7 @@ This should be enabled by default on recent builds.
 To ensure MAVLink2 is used:
 
 - Update the telemetry module firmware to the latest version (see [QGroundControl > Setup > Firmware](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/firmware.html)).
-- Set [MAV_PROTO_VER](../advanced_config/parameter_reference.md#MAV_PROTO_VER) to 2 (see [QGroundControl Setup > Parameters](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html))
+- Ensure [MAV_PROTO_VER](../advanced_config/parameter_reference.md#MAV_PROTO_VER) is set to 2 (see [QGroundControl Setup > Parameters](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/parameters.html))
 
 #### Tuning
 

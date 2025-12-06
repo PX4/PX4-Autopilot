@@ -13,7 +13,7 @@ This section lists drone kits that are intended as platforms for further develop
 They may come either fully assembled or in parts.
 
 - [PX4 Vision DevKit](../complete_vehicles_mc/px4_vision_kit.md) - Multicopter used for PX4 computer vision development
-- ~[ModalAI VOXL 2 Starling PX4 Development Drone](../complete_vehicles_mc/modalai_starling.md)~ (Discontinued/superseded) - SLAM development drone supercharged by VOXL 2 and PX4.
+- [ModalAI VOXL 2 Starling PX4 Development Drone](../complete_vehicles_mc/modalai_starling.md) - SLAM development drone supercharged by VOXL 2 and PX4.
 
 ## PX4 Preinstalled
 
@@ -40,7 +40,7 @@ These may or may not be updatable to run "vanilla" PX4.
 - [Yuneec H520](https://px4.io/project/yuneec-h520-hexacopter/)
 - [AeroSense Aerobo (AS-MC02-P)](https://px4.io/project/aerosense-aerobo/)
 
-## See Also
+## 另见
 
 - [Kits (MC)](../frames_multicopter/kits.md)
 - [DIY Builds](../frames_multicopter/diy_builds.md)

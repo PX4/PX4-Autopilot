@@ -35,6 +35,7 @@
 
 #include <pthread.h>
 
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/Serial.hpp>
 
 #include "data.h"
@@ -61,12 +62,15 @@ public:
 
 private:
 	static void *updateDataThreadHelper(void *context) {
+		if (!context) {
+			return nullptr;
+		}
 		Sensor *sensor = reinterpret_cast<Sensor *>(context);
 		sensor->updateData();
 		return nullptr;
 	}
-	void resetSerial();
 
+	bool initSerialPort(const char *serialDeviceName);
 	bool moveToBufferStart(const uint8_t *pos);
 	bool skipPackageInBufferStart();
 	bool movePackageHeaderToBufferStart();
@@ -74,15 +78,16 @@ private:
 
 	bool parseUDDPayload();
 
-	device::Serial *_serial{nullptr};
-	pthread_t       _threadId;
-	bool            _processInThread{false};
+	device::Serial  *_serial{nullptr};
+	pthread_t        _threadId{0};
+	px4::atomic_bool _processInThread{false};
 
 	// callback. C-style class method pointer
 	void       *_context{nullptr};
 	DataHandler _dataHandler{nullptr};
 
-	bool _isInitialized{false};
+	px4::atomic_bool _isInitialized{false};
+	px4::atomic_bool _isDeinitInProcess{false};
 
 	uint8_t  _buf[BUFFER_SIZE]{};
 	uint16_t _bufOffset{0};

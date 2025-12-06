@@ -20,8 +20,8 @@ parameters:
     EKF2_GPS_MODE:
       description:
         short: Fusion reset mode
-        long: 'Automatic: reset on fusion timeout if no other source of position is available
-          Dead-reckoning: reset on fusion timeout if no source of velocity is available'
+        long: 'Automatic: reset on fusion timeout if no other source of position is available.
+          Dead-reckoning: reset on fusion timeout if no source of velocity is available.'
       type: enum
       values:
         0: Automatic
@@ -29,7 +29,9 @@ parameters:
       default: 0
     EKF2_GPS_DELAY:
       description:
-        short: GPS measurement delay relative to IMU measurements
+        short: GPS measurement delay relative to IMU measurement
+        long: GPS measurement delay relative to IMU measurement if PPS time correction
+          is not available/enabled (PPS_CAP_ENABLE).
       type: float
       default: 110
       min: 0
@@ -125,9 +127,10 @@ parameters:
         7: Horizontal speed offset (EKF2_REQ_HDRIFT)
         8: Vertical speed offset (EKF2_REQ_VDRIFT)
         9: Spoofing
-      default: 1023
+        10: GPS fix type (EKF2_REQ_FIX)
+      default: 2047
       min: 0
-      max: 1023
+      max: 2047
     EKF2_REQ_EPH:
       description:
         short: Required EPH to use GPS
@@ -188,6 +191,20 @@ parameters:
       max: 1.5
       decimal: 2
       unit: m/s
+    EKF2_REQ_FIX:
+      description:
+        short: Required GPS fix
+        long: Minimum GPS fix type required for GPS usage.
+      type: enum
+      values:
+        0: No fix required
+        2: 2D fix
+        3: 3D fix
+        4: RTCM code differential
+        5: RTK float
+        6: RTK fixed
+        8: Extrapolated
+      default: 3
     EKF2_REQ_GPS_H:
       description:
         short: Required GPS health time on startup

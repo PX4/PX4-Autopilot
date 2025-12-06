@@ -29,32 +29,32 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
 
 1. If no mission is stored, or if PX4 has finished executing all mission commands, or if the [mission is not feasible](#mission-feasibility-checks):
 
-  - If flying the vehicle will loiter.
-  - If landed the vehicle will "wait".
+   - If flying the vehicle will loiter.
+   - If landed the vehicle will "wait".
 
 2. If a mission is stored and PX4 is flying it will execute the [mission/flight plan](../flying/missions.md) from the current step.
-  - A takeoff mission item will be treated as a normal waypoint.
+   - A takeoff mission item will be treated as a normal waypoint.
 
 3. If a mission is stored and the vehicle is landed it will only takeoff if the active waypoint is a `Takeoff`.
-  If configured for catapult launch, the vehicle must also be launched (see [FW Takeoff/Landing in Mission](#mission-takeoff)).
+   If configured for catapult launch, the vehicle must also be launched (see [FW Takeoff/Landing in Mission](#mission-takeoff)).
 
 4. If no mission is stored, or if PX4 has finished executing all mission commands:
-  - If flying the vehicle will loiter.
-  - If landed the vehicle will "wait".
+   - If flying the vehicle will loiter.
+   - If landed the vehicle will "wait".
 
 5. You can manually change the current mission command by selecting it in _QGroundControl_.
 
-  ::: info
-  If you have a _Jump to item_ command in the mission, moving to another item will **not** reset the loop counter.
-  One implication is that if you change the current mission command to 1 this will not "fully restart" the mission.
+   ::: info
+   If you have a _Jump to item_ command in the mission, moving to another item will **not** reset the loop counter.
+   One implication is that if you change the current mission command to 1 this will not "fully restart" the mission.
 
 :::
 
 6. The mission will only reset when the vehicle is disarmed or when a new mission is uploaded.
 
-  :::tip
-  To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
-  Enter the time to wait after landing before disarming the vehicle.
+   :::tip
+   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
+   Enter the time to wait after landing before disarming the vehicle.
 
 :::
 
@@ -261,7 +261,7 @@ This pattern results in the following landing sequence:
 
 1. **Fly to landing location**: The aircraft flies at its current altitude towards the loiter waypoint.
 2. **Descending orbit to approach altitude**: On reaching the loiter radius of the waypoint, the vehicle performs a descending orbit until it reaches the "approach altitude" (the altitude of the loiter waypoint).
-  The vehicle continues to orbit at this altitude until it has a tanjential path towards the land waypoint, at which point the landing approach is initiated.
+   The vehicle continues to orbit at this altitude until it has a tanjential path towards the land waypoint, at which point the landing approach is initiated.
 3. **Landing approach**: The aircraft follows the landing approach slope towards the land waypoint until the flare altitude is reached.
 4. **Flare**: The vehicle flares until it touches down.
 
@@ -374,7 +374,7 @@ In landing mode, the distance sensor is used to determine proximity to the groun
 | [FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)     | Wing span of the airframe.                                                   |
 | [FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT) | Height of wing from bottom of gear (or belly if no gear). |
 
-## See Also
+## 另见
 
 - [Missions](../flying/missions.md)
   - [包裹投递任务](../flying/package_delivery_mission.md)

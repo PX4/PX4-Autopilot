@@ -19,6 +19,7 @@ parameters:
           0: On arming - disarming
           1: Aux1
           2: Aux2
+          3: On Vtol Transitions
 
       ICE_CHOKE_ST_DUR:
         description:

@@ -63,29 +63,35 @@ bool Gimbal::checkForTelemetry(const hrt_abstime now)
 
 void Gimbal::acquireGimbalControlIfNeeded()
 {
-	if (!_have_gimbal_control) {
-		_have_gimbal_control = true;
+	gimbal_manager_status_s gimbal_manager_status;
 
-		vehicle_command_s vehicle_command{};
-		vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
-		vehicle_command.param1 = _param_mav_sys_id.get();
-		vehicle_command.param2 = _param_mav_comp_id.get();
-		vehicle_command.param3 = -1.0f; // Leave unchanged.
-		vehicle_command.param4 = -1.0f; // Leave unchanged.
-		vehicle_command.timestamp = hrt_absolute_time();
-		vehicle_command.source_system = _param_mav_sys_id.get();
-		vehicle_command.source_component = _param_mav_comp_id.get();
-		vehicle_command.target_system = _param_mav_sys_id.get();
-		vehicle_command.target_component = _param_mav_sys_id.get();
-		vehicle_command.from_external = false;
-		_vehicle_command_pub.publish(vehicle_command);
+	if (_gimbal_manager_status_sub.updated()) {
+		_gimbal_manager_status_sub.copy(&gimbal_manager_status);
+
+		if (gimbal_manager_status.primary_control_compid != _param_mav_comp_id.get() ||
+		    gimbal_manager_status.primary_control_sysid != _param_mav_sys_id.get()) {
+			_tried_to_have_gimbal_control = true;
+			vehicle_command_s vehicle_command{};
+			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
+			vehicle_command.param1 = _param_mav_sys_id.get();
+			vehicle_command.param2 = _param_mav_comp_id.get();
+			vehicle_command.param3 = -1.0f; // Leave unchanged.
+			vehicle_command.param4 = -1.0f; // Leave unchanged.
+			vehicle_command.timestamp = hrt_absolute_time();
+			vehicle_command.source_system = _param_mav_sys_id.get();
+			vehicle_command.source_component = _param_mav_comp_id.get();
+			vehicle_command.target_system = _param_mav_sys_id.get();
+			vehicle_command.target_component = _param_mav_sys_id.get();
+			vehicle_command.from_external = false;
+			_vehicle_command_pub.publish(vehicle_command);
+		}
 	}
 }
 
 void Gimbal::releaseGimbalControlIfNeeded()
 {
-	if (_have_gimbal_control) {
-		_have_gimbal_control = false;
+	if (_tried_to_have_gimbal_control) {
+		_tried_to_have_gimbal_control = false;
 
 		// Restore default flags, setting rate setpoints to NAN lead to unexpected behavior
 		publishGimbalManagerSetAttitude(FLAGS_ROLL_PITCH_LOCKED,

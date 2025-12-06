@@ -53,13 +53,17 @@ PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
 /**
  * User assisted landing radius
  *
- * When nudging is enabled (see MPC_LAND_RC_HELP), this controls
- * the maximum allowed horizontal displacement from the original landing point.
+ * When nudging is enabled (see MPC_LAND_RC_HELP), this defines the maximum
+ * allowed horizontal displacement from the original landing point.
+ *  - If inside of the radius, only allow nudging inputs that do not move the vehicle outside of it.
+ *  - If outside of the radius, only allow nudging inputs that move the vehicle back towards it.
+ *
+ * Set it to -1 for infinite radius.
  *
  * @unit m
- * @min 0
+ * @min -1
  * @decimal 0
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_RADIUS, 1000.f);
+PARAM_DEFINE_FLOAT(MPC_LAND_RADIUS, -1.0f);

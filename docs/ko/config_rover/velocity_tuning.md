@@ -28,7 +28,7 @@ To tune the velocity controller configure the following [parameters](../advanced
    1. Set [RO_SPEED_P](#RO_SPEED_P) and [RO_SPEED_I](#RO_SPEED_I) to zero.
       This way the speed is only controlled by the feed-forward term, which makes it easier to tune.
    2. Put the rover in [Position mode](../flight_modes_rover/manual.md#position-mode) and then move the left stick of your controller up and/or down and hold it at a few different levels for a couple of seconds each.
-   3. Disarm the rover and from the flight log plot the `adjusted_speed_body_x_setpoint` and the `measured_speed_body_x` from the [RoverVelocityStatus](../msg_docs/RoverVelocityStatus.md) message over each other.
+   3. Disarm the rover and from the flight log plot the `adjusted_speed_body_x_setpoint` and the `measured_speed_body_x` from the [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md) message over each other.
    4. If the actual speed of the rover is higher than the speed setpoint, increase [RO_MAX_THR_SPEED](#RO_MAX_THR_SPEED).
       If it is the other way around decrease the parameter and repeat until you are satisfied with the setpoint tracking.
 
@@ -94,7 +94,7 @@ These steps are only necessary if you are tuning/want to unlock the manual [Posi
 
 The rover is now ready to drive in [Position mode](../flight_modes_rover/manual.md#position-mode) and the configuration can be continued with [position tuning](position_tuning.md).
 
-## Attitude Controller Structure (Info Only)
+## Velocity Controller Structure (Info Only)
 
 This section provides additional information for developers and people with experience in control system design.
 

@@ -652,6 +652,10 @@ void Navigator::run()
 
 				_vtol_takeoff.setTransitionAltitudeAbsolute(cmd.param7);
 
+				if (std::fabs(cmd.param2 - 3.0f) < FLT_EPSILON) { // Specified transition direction
+					_vtol_takeoff.setTransitionDirection(cmd.param4);
+				}
+
 				// after the transition the vehicle will establish on a loiter at this position
 				_vtol_takeoff.setLoiterLocation(matrix::Vector2d(cmd.param5, cmd.param6));
 
@@ -755,6 +759,21 @@ void Navigator::run()
 				reset_cruising_speed();
 				set_cruising_throttle();
 			}
+
+			else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE) {
+
+
+				if (fabsf(cmd.param1 - 1.f) > FLT_EPSILON) {
+					// only support enabling autotune (consistent with autotune module)
+					events::send(events::ID("navigator_autotune_unsupported_input"), {events::Log::Warning, events::LogInternal::Warning},
+						     "Provided autotune command is not supported. To enable autotune in mission, set param1 to 1");
+
+				} else if (fabsf(cmd.param2) > FLT_EPSILON) {
+					// warn user about axis selection
+					events::send(events::ID("navigator_autotune_unsupported_ax"), {events::Log::Warning, events::LogInternal::Info},
+						     "Autotune axis selection not supported through Mission. Use FW_AT_AXES to set axes for fixed-wing vehicles");
+				}
+			}
 		}
 
 #if CONFIG_NAVIGATOR_ADSB
@@ -823,6 +842,7 @@ void Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+		case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
 		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
@@ -903,6 +923,8 @@ void Navigator::run()
 		if (_mission_result_updated) {
 			publish_mission_result();
 		}
+
+		neutralize_gimbal_if_control_activated();
 
 		publish_navigator_status();
 
@@ -1080,7 +1102,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("navigator",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_NAVIGATION,
-				      PX4_STACK_ADJUSTED(2200),
+				      PX4_STACK_ADJUSTED(2230),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -1627,6 +1649,27 @@ void Navigator::set_gimbal_neutral()
 	vehicle_command.param4 = NAN;
 	vehicle_command.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
 	publish_vehicle_command(vehicle_command);
+}
+
+void Navigator::activate_set_gimbal_neutral_timer(const hrt_abstime timestamp)
+{
+	if (_gimbal_neutral_activation_time == UINT64_MAX) {
+		_gimbal_neutral_activation_time = timestamp;
+	}
+}
+
+void Navigator::neutralize_gimbal_if_control_activated()
+{
+	const hrt_abstime now{hrt_absolute_time()};
+
+	// The time delay must be sufficiently long to allow flight tasks to complete its
+	// destruction and release gimbal control before the navigator takes control of the gimbal.
+	if (_gimbal_neutral_activation_time != UINT64_MAX && now > _gimbal_neutral_activation_time + 250_ms) {
+		acquire_gimbal_control();
+		set_gimbal_neutral();
+		release_gimbal_control();
+		_gimbal_neutral_activation_time = UINT64_MAX;
+	}
 }
 
 void Navigator::sendWarningDescentStoppedDueToTerrain()

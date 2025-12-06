@@ -218,7 +218,7 @@ A key defined in the Information message must be unique. Meaning there must not 
 | `char[value_len] ver_sw_branch`     | git branch                                                                    | "master"                                                          |
 | `uint32_t ver_sw_release`           | 软件版本 (见下文)                                                 | 0x010401ff                                                        |
 | `char[value_len] sys_os_name`       | 操作系统名称                                                                        | "Linux"                                                           |
-| `char[value_len] sys_os_ve`r        | 操作系统版本 (git 标签)                                            | "9f82919"                                                         |
+| `char[value_len] sys_os_ver`        | 操作系统版本 (git 标签)                                            | "9f82919"                                                         |
 | `uint32_t ver_os_release`           | 操作系统版本 (见下文)                                               | 0x010401ff                                                        |
 | `char[value_len] sys_toolchain`     | 工具链名称                                                                         | "GNU GCC"                                                         |
 | `char[value_len] sys_toolchain_ver` | 工具链版本                                                                         | "6.2.1"                           |
@@ -491,6 +491,7 @@ Since the Definitions and Data Sections use the same message header format, they
   - [replay module](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/replay)
   - [hardfault_log module](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hardfault_log): append hardfault crash data.
 - [pyulog](https://github.com/PX4/pyulog): python, ULog reader and writer library with CLI scripts.
+  The project also has tools to convert ULog to rosbag and other formats.
 - [ulog_cpp](https://github.com/PX4/ulog_cpp): C++, ULog reader and writer library.
 - [FlightPlot](https://github.com/PX4/FlightPlot): Java, log plotter.
 - [MAVLink](https://github.com/mavlink/mavlink): Messages for ULog streaming via MAVLink (note that appending data is not supported, at least not for cut off messages).
@@ -501,6 +502,7 @@ Since the Definitions and Data Sections use the same message header format, they
 - [ulogreader](https://github.com/maxsun/ulogreader): Javascript, ULog reader and parser outputs log in JSON object format.
 - [Foxglove](https://foxglove.dev): an integrated visualization and diagnosis tool for robotics data that supports ULog files.
 - [TypeScript ULog parser](https://github.com/foxglove/ulog): TypeScript, ULog reader that outputs JS objects.
+- [yule_log](https://crates.io/crates/yule_log): A streaming ULog parser written in Rust.
 
 ## 文件格式版本历史
 

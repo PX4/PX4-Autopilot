@@ -86,7 +86,7 @@ PX4 重新使用与自驾仪相同的系统 ID 和组件 ID [MAV_COMP_ID_ALL](ht
 
 1. 修改一个未使用的 `MAV_n_CONFIG` 参数，例如[MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG)，使其分配给相机连接的端口。
 2. 将对应的 [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) 设置为 `2` (板载)。
-  这确保正确的 MAVLink 消息集被发出和转发。
+   这确保正确的 MAVLink 消息集被发出和转发。
 3. 您可能需要设置一些其他参数，取决于您的连接 - 例如波特率。
 
 然后按照其用户指南中的建议连接和配置相机。

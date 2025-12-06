@@ -37,7 +37,6 @@ using namespace time_literals;
 
 void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	// RC
 	manual_control_setpoint_s manual_control_setpoint;
 
 	if (!_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
@@ -45,7 +44,7 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 		reporter.failsafeFlags().manual_control_signal_lost = true;
 	}
 
-	// Check if RC is valid
+	// Check if manual control is valid
 	if (!manual_control_setpoint.valid
 	    || hrt_elapsed_time(&manual_control_setpoint.timestamp) > _param_com_rc_loss_t.get() * 1_s) {
 
@@ -77,14 +76,14 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 
 	if (reporter.failsafeFlags().gcs_connection_lost) {
 
-		// Prevent arming if we neither have RC nor a GCS connection. TODO: disabled for now due to MAVROS tests
+		// Prevent arming if we neither have manual control nor a GCS connection. TODO: disabled for now due to MAVROS tests
 		bool gcs_connection_required =  _param_nav_dll_act.get() > 0
 						/*|| (rc_is_optional && reporter.failsafeFlags().manual_control_signal_lost) */;
 		NavModes affected_modes = gcs_connection_required ? NavModes::All : NavModes::None;
 		events::LogLevel log_level = gcs_connection_required ? events::Log::Error : events::Log::Info;
 		/* EVENT
 		 * @description
-		 * To arm, at least a data link or manual control (RC) must be present.
+		 * To arm, at least a data link or RC must be present.
 		 *
 		 * <profile name="dev">
 		 * This check can be configured via <param>NAV_DLL_ACT</param> parameter.

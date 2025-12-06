@@ -593,9 +593,15 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
-		result = handle_request_message_command(message_id,
-							vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
-							vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+
+		if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
+			get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+
+		} else {
+			result = handle_request_message_command(message_id,
+								vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
+								vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink.failure_injection_enabled()) {
@@ -616,46 +622,37 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		autotune_attitude_control_status_s status{};
 		_autotune_attitude_control_status_sub.copy(&status);
 
-		// if not busy enable via the parameter
-		// do not check the return value of the uORB copy above because the module
-		// starts publishing only when MC_AT_START is set
+		// publish vehicle command once if:
+		// - autotune is not already running
+		// - we are not in transition
+		// - autotune module is enabled
 		if (status.state == autotune_attitude_control_status_s::STATE_IDLE) {
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
 
 			if (!vehicle_status.in_transition_mode) {
-				param_t atune_start;
 
 				switch (vehicle_status.vehicle_type) {
 				case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
-					atune_start = param_find("FW_AT_START");
-
+					has_module = param_find("FW_AT_APPLY");
 					break;
 
 				case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
-					atune_start = param_find("MC_AT_START");
-
+					has_module = param_find("MC_AT_APPLY");
 					break;
 
 				default:
-					atune_start = PARAM_INVALID;
+					has_module = false;
 					break;
 				}
 
-				if (atune_start == PARAM_INVALID) {
-					has_module = false;
-
-				} else {
-					int32_t start = 1;
-					param_set(atune_start, &start);
+				if (has_module) {
+					_cmd_pub.publish(vehicle_command);
 				}
-
-			} else {
-				has_module = false;
 			}
 		}
 
-		if (has_module) {
+		if (has_module && fabsf(vehicle_command.param1 - 1.f) <= FLT_EPSILON && fabsf(vehicle_command.param2) < FLT_EPSILON) {
 
 			// most are in progress
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS;
@@ -708,6 +705,10 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 				break;
 			}
+
+		} else if (has_module && (fabsf(vehicle_command.param1 - 1.f) > FLT_EPSILON || fabsf(vehicle_command.param2) > FLT_EPSILON)) {
+
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 
 		} else {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
@@ -2287,7 +2288,7 @@ MavlinkReceiver::set_message_interval(int msgId, float interval, float param3, f
 void
 MavlinkReceiver::get_message_interval(int msgId)
 {
-	unsigned interval = 0;
+	int interval = -1;
 
 	for (const auto &stream : _mavlink.get_streams()) {
 		if (stream->get_id() == msgId) {
@@ -3222,10 +3223,11 @@ MavlinkReceiver::run()
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink.get_channel(), buf[i], &msg, &_status)) {
 
-						/* check if we received version 2 and request a switch. */
-						if (!(_mavlink.get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
-							/* this will only switch to proto version 2 if allowed in settings */
-							_mavlink.set_proto_version(2);
+						// If we receive a complete MAVLink 2 packet, also switch the outgoing protocol version
+						if (!(_mavlink.get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)
+						    && _mavlink.getProtocolVersion() != 2) {
+							PX4_INFO("Upgrade to MAVLink v2 because of incoming packet");
+							_mavlink.setProtocolVersion(2);
 						}
 
 						switch (_mavlink.get_mode()) {
@@ -3291,6 +3293,7 @@ MavlinkReceiver::run()
 
 			if (_mavlink.get_mode() != Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM) {
 				_parameters_manager.send();
+				_mavlink.set_sending_parameters(_parameters_manager.send_active());
 			}
 
 			if (_mavlink.ftp_enabled()) {

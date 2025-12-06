@@ -89,7 +89,7 @@ public:
 	void setIMUData(const imuSample &imu_sample);
 
 #if defined(CONFIG_EKF2_GNSS)
-	void setGpsData(const gnssSample &gnss_sample);
+	void setGpsData(const gnssSample &gnss_sample, const bool pps_compensation = false);
 
 	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
@@ -199,6 +199,8 @@ public:
 
 	// set vehicle is fixed wing status
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
+
+	void set_in_transition_to_fw(bool in_transition) { _control_status.flags.in_transition_to_fw = in_transition; }
 
 	// set flag if static pressure rise due to ground effect is expected
 	// use _params.ekf2_gnd_eff_dz to adjust for expected rise in static pressure
@@ -415,6 +417,7 @@ protected:
 			   _params.ekf2_req_sacc,
 			   _params.ekf2_req_hdrift,
 			   _params.ekf2_req_vdrift,
+			   _params.ekf2_req_fix,
 			   _params.ekf2_vel_lim,
 			   _min_gps_health_time_us,
 			   _control_status};

@@ -104,13 +104,15 @@ Set the following parameters in _QGroundControl_:
 
 You may need to [configure the following parameters](../dronecan/index.md#qgc-cannode-parameter-configuration) on the ARK Flow MR itself:
 
-| Параметр                                                                                                             | Опис                                           |
-| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM) | Вбудована завершення шини CAN. |
+| Параметр                                                                                                                                           | Опис                                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID. |
+| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)                               | Вбудована завершення шини CAN.                                                                                                                                                                              |
 
 ## Значення LED індикаторів
 
-You will see both red and blue LEDs on the ARK Flow MR when it is being flashed, and a solid blue LED if it is running properly.
+- Blinking green is normal operation
+- Rapid blinking blue and red is firmware update
 
 Якщо ви бачите червоний світлодіод, це означає, що виникла помилка, і вам слід перевірити наступне:
 

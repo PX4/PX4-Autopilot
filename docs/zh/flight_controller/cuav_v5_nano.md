@@ -134,12 +134,12 @@ For more information see [Using JTAG for hardware debugging](#using-jtag-for-har
 
 | UART   | 设备         | Port                                                       |
 | ------ | ---------- | ---------------------------------------------------------- |
-| UART1  | /dev/ttyS0 | GPS                                                        |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control)                   |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control)                   |
+| UART   | UART       | GPS                                                        |
+| USART2 | /dev/ttyS1 | TELEM1 (流控)                             |
+| USART3 | /dev/ttyS2 | TELEM2 (流控)                             |
 | UART4  | /dev/ttyS3 | TELEM4                                                     |
 | USART6 | /dev/ttyS4 | TX is RC input from SBUS_RC connector |
-| UART7  | /dev/ttyS5 | Debug Console                                              |
+| UART7  | /dev/ttyS5 | 调试控制台                                                      |
 | UART8  | /dev/ttyS6 | Not connected (no PX4IO)                |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
