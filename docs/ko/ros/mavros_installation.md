@@ -148,21 +148,21 @@ Now you are ready to do the build:
 2. 릴리스 또는 최신 버전을 사용하여 소스에서 MAVROS를 설치합니다.
    - 출시/안정
 
-      ```sh
-      rosinstall_generator --upstream mavros | tee -a /tmp/mavros.rosinstall
-      ```
+     ```sh
+     rosinstall_generator --upstream mavros | tee -a /tmp/mavros.rosinstall
+     ```
 
    - 최신 소스
 
-      ```sh
-      rosinstall_generator --upstream-development mavros | tee -a /tmp/mavros.rosinstall
-      ```
+     ```sh
+     rosinstall_generator --upstream-development mavros | tee -a /tmp/mavros.rosinstall
+     ```
 
-      ```sh
-      # For fetching all the dependencies into your catkin_ws,
-      # just add '--deps' to the above scripts, E.g.:
-      #   rosinstall_generator --upstream mavros --deps | tee -a /tmp/mavros.rosinstall
-      ```
+     ```sh
+     # For fetching all the dependencies into your catkin_ws,
+     # just add '--deps' to the above scripts, E.g.:
+     #   rosinstall_generator --upstream mavros --deps | tee -a /tmp/mavros.rosinstall
+     ```
 
 3. Create workspace & deps
 
