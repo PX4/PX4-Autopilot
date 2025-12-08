@@ -85,6 +85,7 @@ bool GZMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsign
 		}
 
 		if (_actuators_pub.Valid()) {
+			PX4_INFO("Update complete");
 			return _actuators_pub.Publish(rotor_velocity_message);
 		}
 	}

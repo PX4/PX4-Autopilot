@@ -50,7 +50,7 @@
 #define PARAM_PREFIX "HIL_ACT"
 #endif
 
-static constexpr int MAX_NUM_OUTPUTS = 8;
+static constexpr int MAX_NUM_OUTPUTS = 16;
 static constexpr int DISARMED_VALUE = 900;
 static constexpr int FAILSAFE_VALUE = 800;
 static constexpr int MIN_VALUE = 1000;
