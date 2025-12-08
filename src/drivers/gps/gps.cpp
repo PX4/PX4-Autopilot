@@ -208,8 +208,6 @@ private:
 
 	// UART buffer profiling statistics
 	ssize_t				_rx_buf_high_water{0};				///< high water mark of RX buffer usage
-	uint64_t			_rx_buf_samples{0};				///< number of RX buffer samples for averaging
-	uint64_t			_rx_buf_sum{0};					///< sum of RX buffer values for averaging
 
 	const Instance 			_instance;
 
@@ -483,14 +481,9 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 		ssize_t bytes_available = _uart.bytesAvailable();
 
-		// Track RX buffer statistics for profiling
-		if (bytes_available > 0) {
-			_rx_buf_samples++;
-			_rx_buf_sum += bytes_available;
-
-			if (bytes_available > _rx_buf_high_water) {
-				_rx_buf_high_water = bytes_available;
-			}
+		// Track RX high water mark
+		if (bytes_available > _rx_buf_high_water) {
+			_rx_buf_high_water = bytes_available;
 		}
 
 		// handle injection data before read if caught up
@@ -933,21 +926,21 @@ GPS::run()
 			_mode = gps_driver_mode_t::UBX;
 
 		/* FALLTHROUGH */
-		case gps_driver_mode_t::UBX:
-		{
-			GPSDriverUBX::Settings settings = {
-				.dynamic_model = (uint8_t)gps_ubx_dynmodel,
-				.heading_offset = heading_offset,
-				.uart2_baudrate = f9p_uart2_baudrate,
-				.ppk_output = ppk_output > 0,
-				.mode = ubx_mode,
-			};
+		case gps_driver_mode_t::UBX: {
+				GPSDriverUBX::Settings settings = {
+					.dynamic_model = (uint8_t)gps_ubx_dynmodel,
+					.heading_offset = heading_offset,
+					.uart2_baudrate = f9p_uart2_baudrate,
+					.ppk_output = ppk_output > 0,
+					.mode = ubx_mode,
+				};
 
-			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_sensor_gps, _p_report_sat_info, settings);
+				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_sensor_gps, _p_report_sat_info, settings);
 
-			set_device_type(DRV_GPS_DEVTYPE_UBX);
-			break;
-		}
+				set_device_type(DRV_GPS_DEVTYPE_UBX);
+				break;
+			}
+
 #ifndef CONSTRAINED_FLASH
 
 		case gps_driver_mode_t::MTK:
@@ -1085,7 +1078,7 @@ GPS::run()
 				healthy_timeout += TIMEOUT_DUMP_ADD;
 			}
 
-			PX4_INFO("GPS device configured @ %u baud", _baudrate)
+			PX4_INFO("GPS device configured @ %u baud", _baudrate);
 
 			while ((helper_ret = _helper->receive(receive_timeout)) > 0 && !should_exit()) {
 
@@ -1119,26 +1112,18 @@ GPS::run()
 					_helper->storeUpdateRates();
 					_helper->resetUpdateRates();
 
-					// Print and reset RX buffer profiling statistics
-					if (_rx_buf_samples > 0) {
-						float rx_buf_avg = (float)_rx_buf_sum / (float)_rx_buf_samples;
-						PX4_INFO("RX buf: high water %d, avg %.1f (%llu samples)",
-							  (int)_rx_buf_high_water, (double)rx_buf_avg, (unsigned long long)_rx_buf_samples);
+					PX4_INFO("RX buf: high water %d", (int)_rx_buf_high_water);
 
-						// Get and print iTOW gap statistics from UBX driver
-						if (_mode == gps_driver_mode_t::UBX) {
-							GPSDriverUBX *ubx = static_cast<GPSDriverUBX *>(_helper);
-							uint32_t checksum_errors = ubx->getChecksumErrorCount();
+					if (_mode == gps_driver_mode_t::UBX) {
+						GPSDriverUBX *ubx = static_cast<GPSDriverUBX *>(_helper);
+						uint32_t checksum_errors = ubx->getChecksumErrorCount();
 
-							if (checksum_errors > 0) {
-								PX4_INFO("GPS: checksum errors %lu", checksum_errors);
-							}
+						if (checksum_errors > 0) {
+							PX4_INFO("GPS: checksum errors %lu", checksum_errors);
 						}
 					}
 
 					_rx_buf_high_water = 0;
-					_rx_buf_samples = 0;
-					_rx_buf_sum = 0;
 				}
 
 				if (!_healthy) {
