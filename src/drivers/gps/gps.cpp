@@ -1085,6 +1085,8 @@ GPS::run()
 				healthy_timeout += TIMEOUT_DUMP_ADD;
 			}
 
+			PX4_INFO("GPS device configured @ %u baud", _baudrate)
+
 			while ((helper_ret = _helper->receive(receive_timeout)) > 0 && !should_exit()) {
 
 				if (helper_ret & 1) {
