@@ -84,6 +84,16 @@ public:
 		// gps_inject_data -> ardupilot::gnss::MovingBaselineData
 		gps_inject_data_s gps_inject_data;
 
+		// TODO: The GpsInjectData uORB topic is published multiple times from the gps.cpp driver such that the whole RTCM message
+		// received from the module arrives at the Node publisher back-to-back. So basically we want
+		// to take that uorb data and assemble it into as few MovingBaselineData messages as possible. We also want to make sure the
+		// entire message is published onto the CAN bus without delay. Perhaps our CAN bus message emitter (this code right here)
+		// should parse the gps_inject_data into a buffer and emit bursts of MovingBaselineData messages which contain the full
+		// RTCM message. This way every burst of data onto the CAN bus is an atomic RTCM message. In the case that we get corrupted
+		// data, our parser should be able to detect/recover from this without overflowing its buffer. So yeah, we basically just
+		// need a parser that properly decodes (detects the framing, doesn't need a full decode) RTCM messages so that we can be sure
+		// we emit the data fragments for the messages back to back.
+
 		// Drain all available messages from the queue
 		while (uORB::SubscriptionCallbackWorkItem::update(&gps_inject_data)) {
 			// Prevent republishing rtcm data we received from uavcan

@@ -206,6 +206,11 @@ private:
 	hrt_abstime			_last_rtcm_injection_time{0};			///< time of last rtcm injection
 	uint8_t				_selected_rtcm_instance{0};			///< uorb instance that is being used for RTCM corrections
 
+	// UART buffer profiling statistics
+	ssize_t				_rx_buf_high_water{0};				///< high water mark of RX buffer usage
+	uint64_t			_rx_buf_samples{0};				///< number of RX buffer samples for averaging
+	uint64_t			_rx_buf_sum{0};					///< sum of RX buffer values for averaging
+
 	const Instance 			_instance;
 
 	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
@@ -476,8 +481,20 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 		const ssize_t read_at_least = math::min(character_count, buf_length);
 
+		ssize_t bytes_available = _uart.bytesAvailable();
+
+		// Track RX buffer statistics for profiling
+		if (bytes_available > 0) {
+			_rx_buf_samples++;
+			_rx_buf_sum += bytes_available;
+
+			if (bytes_available > _rx_buf_high_water) {
+				_rx_buf_high_water = bytes_available;
+			}
+		}
+
 		// handle injection data before read if caught up
-		if (_uart.bytesAvailable() < read_at_least) {
+		if (bytes_available < read_at_least) {
 			handleInjectDataTopic();
 		}
 
@@ -576,46 +593,77 @@ void GPS::handleInjectDataTopic()
 		}
 	}
 
-	bool updated = already_copied;
-
 	// Limit maximum number of GPS injections to 8 since usually
 	// GPS injections should consist of 1-4 packets (GPS, Glonass, BeiDou, Galileo).
 	// Looking at 8 packets thus guarantees, that at least a full injection
 	// data set is evaluated.
-	// Moving Base reuires a higher rate, so we allow up to 8 packets.
+	// Moving Base requires a higher rate, so we allow up to 8 packets.
 	const size_t max_num_injections = 8;
 	size_t num_injections = 0;
 
-	do {
-		if (updated) {
-			num_injections++;
+	auto &gps_inject_data_sub = _orb_inject_data_sub[_selected_rtcm_instance];
 
-			// Prevent injection of data from self
-			if (msg.device_id != get_device_id()) {
-				/* Write the message to the gps device. Note that the message could be fragmented.
-				* But as we don't write anywhere else to the device during operation, we don't
-				* need to assemble the message first.
-				*/
-				injectData(msg.data, msg.len);
+	while (num_injections < max_num_injections) {
 
-				++_rtcm_injection_rate_message_count;
-				_last_rtcm_injection_time = hrt_absolute_time();
+		bool have_message = false;
+
+		if (already_copied) {
+			// We already have a valid message from the instance selection above
+			have_message = true;
+			already_copied = false;
+
+		} else if (gps_inject_data_sub.updated()) {
+			// Peek at the next message without consuming it
+			if (gps_inject_data_sub.copy(&msg)) {
+				have_message = true;
 			}
 		}
 
-		auto &gps_inject_data_sub = _orb_inject_data_sub[_selected_rtcm_instance];
+		if (!have_message) {
+			break;
+		}
 
+		// Skip messages from self
+		if (msg.device_id == get_device_id()) {
+			// Consume and discard
+			const unsigned last_generation = gps_inject_data_sub.get_last_generation();
+			bool updated = gps_inject_data_sub.update(&msg);
+
+			if (updated && (gps_inject_data_sub.get_last_generation() != last_generation + 1)) {
+				PX4_WARN("inject lost1, %u -> %u", last_generation,
+					 gps_inject_data_sub.get_last_generation());
+			}
+
+			continue;
+		}
+
+		// Check if there's room in the TX buffer for this message
+		if (_interface == GPSHelper::Interface::UART) {
+			ssize_t tx_available = _uart.txSpaceAvailable();
+
+			if (msg.len > (size_t)tx_available) {
+				// Not enough space in TX buffer, stop injecting and let it drain
+				PX4_WARN("TX FULL: avail %d", tx_available);
+				break;
+			}
+		}
+
+		// Now consume the message
 		const unsigned last_generation = gps_inject_data_sub.get_last_generation();
+		bool updated = gps_inject_data_sub.update(&msg);
 
-		updated = gps_inject_data_sub.update(&msg);
-
-		if (updated) {
-			if (gps_inject_data_sub.get_last_generation() != last_generation + 1) {
-				PX4_WARN("gps_inject_data lost, generation %u -> %u", last_generation, gps_inject_data_sub.get_last_generation());
-			}
+		if (updated && (gps_inject_data_sub.get_last_generation() != last_generation + 1)) {
+			PX4_WARN("inject lost2, %u -> %u", last_generation,
+				 gps_inject_data_sub.get_last_generation());
 		}
 
-	} while (updated && num_injections < max_num_injections);
+		// Write the message to the gps device
+		injectData(msg.data, msg.len);
+
+		num_injections++;
+		_rtcm_injection_rate_message_count++;
+		_last_rtcm_injection_time = hrt_absolute_time();
+	}
 }
 
 bool GPS::injectData(uint8_t *data, size_t len)
@@ -1068,6 +1116,27 @@ GPS::run()
 					_num_bytes_read = 0;
 					_helper->storeUpdateRates();
 					_helper->resetUpdateRates();
+
+					// Print and reset RX buffer profiling statistics
+					if (_rx_buf_samples > 0) {
+						float rx_buf_avg = (float)_rx_buf_sum / (float)_rx_buf_samples;
+						PX4_INFO("RX buf: high water %d, avg %.1f (%llu samples)",
+							  (int)_rx_buf_high_water, (double)rx_buf_avg, (unsigned long long)_rx_buf_samples);
+
+						// Get and print iTOW gap statistics from UBX driver
+						if (_mode == gps_driver_mode_t::UBX) {
+							GPSDriverUBX *ubx = static_cast<GPSDriverUBX *>(_helper);
+							uint32_t checksum_errors = ubx->getChecksumErrorCount();
+
+							if (checksum_errors > 0) {
+								PX4_INFO("GPS: checksum errors %lu", checksum_errors);
+							}
+						}
+					}
+
+					_rx_buf_high_water = 0;
+					_rx_buf_samples = 0;
+					_rx_buf_sum = 0;
 				}
 
 				if (!_healthy) {

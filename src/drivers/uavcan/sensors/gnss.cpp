@@ -372,8 +372,11 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 		dump.timestamp = hrt_absolute_time();
 
 		DeviceId device_id = {};
-		device_id.devid_s.address = static_cast<uint8_t>(msg.getSrcNodeID().get());
 		device_id.devid_s.bus_type = DeviceBusType::DeviceBusType_UAVCAN;
+		device_id.devid_s.bus = 0; // TODO: better way to do this whole devid thing?
+		device_id.devid_s.address = static_cast<uint8_t>(msg.getSrcNodeID().get());
+		device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
+
 		dump.device_id = device_id.devid;
 
 		size_t remaining = total_bytes - written;

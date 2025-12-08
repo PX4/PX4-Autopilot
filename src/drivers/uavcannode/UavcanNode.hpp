@@ -115,7 +115,8 @@ class UavcanNode : public px4::ScheduledWorkItem
 	 */
 
 	// TODO: We should prioritize integrity over RAM savings (ensure no data loss due to insufficient buffer size)
-	static constexpr unsigned RxQueueLenPerIface = FramePerMSecond * ScheduleIntervalMs;
+	// static constexpr unsigned RxQueueLenPerIface = FramePerMSecond * ScheduleIntervalMs;
+	static constexpr unsigned RxQueueLenPerIface = FramePerMSecond * ScheduleIntervalMs * 2;
 
 public:
 	typedef UAVCAN_DRIVER::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
