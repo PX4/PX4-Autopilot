@@ -37,6 +37,10 @@
 #include <nuttx/ioexpander/gpio.h>
 #include <lib/drivers/mcp_common/CallbackHandler.hpp>
 
+#ifndef CONFIG_DEV_GPIO
+#  error "CONFIG_DEV_GPIO is required to use MCP GPIO expander, enable it in your NuttX config"
+#endif
+
 struct mcp_gpio_dev_s {
 	struct gpio_dev_s gpio;
 	uint16_t mask;
