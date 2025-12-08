@@ -58,6 +58,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 			set_in_air_status(system_flags_delayed.in_air);
 
 			set_is_fixed_wing(system_flags_delayed.is_fixed_wing);
+			set_in_transition_to_fw(system_flags_delayed.in_transition_to_fw);
 
 			if (system_flags_delayed.gnd_effect) {
 				set_gnd_effect();

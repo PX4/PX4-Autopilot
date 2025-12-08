@@ -54,6 +54,7 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
 
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/events.h>
 
 #include <uORB/topics/event.h>
@@ -82,6 +83,8 @@
 
 static pthread_mutex_t mavlink_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t mavlink_event_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
+static px4::atomic<int> mavlink_instance_count {0};
+
 events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
@@ -161,6 +164,7 @@ Mavlink::~Mavlink()
 
 	if (_instance_id >= 0) {
 		mavlink_module_instances[_instance_id] = nullptr;
+		mavlink_instance_count.fetch_sub(1);
 	}
 
 	// if this instance was responsible for checking events then select a new mavlink instance
@@ -265,6 +269,7 @@ Mavlink::set_instance_id()
 		if (mavlink_module_instances[instance_id] == nullptr) {
 			mavlink_module_instances[instance_id] = this;
 			_instance_id = instance_id;
+			mavlink_instance_count.fetch_add(1);
 			return true;
 		}
 	}
@@ -461,6 +466,11 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
 			target_component_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_component_ofs]);
 		}
+	}
+
+	// Avoid locking/iteration when there is no instance to forward to.
+	if (mavlink_instance_count.load() <= 1) {
+		return;
 	}
 
 	// If it's a message only for us, we keep it
@@ -1194,8 +1204,8 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	}
 
 	// if we reach here, the stream list does not contain the stream.
-	// flash constrained target's don't include all streams, and some are only available for the development dialect
-#if defined(CONSTRAINED_FLASH) || !defined(MAVLINK_DEVELOPMENT_H)
+	// flash constrained target's don't include all streams
+#if defined(CONSTRAINED_FLASH)
 	return PX4_OK;
 #else
 	PX4_WARN("stream %s not found", stream_name);
@@ -1425,9 +1435,13 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
 		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+#if defined(MAVLINK_MSG_ID_GLOBAL_POSITION)
 		configure_stream_local("GLOBAL_POSITION", 5.0f);
+#endif
 		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
 		configure_stream_local("GNSS_INTEGRITY", 1.0f);
+#endif
 		configure_stream_local("GPS2_RAW", 1.0f);
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS_RAW_INT", 5.0f);
@@ -1500,7 +1514,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
 		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
 		configure_stream_local("GLOBAL_POSITION_INT", 50.0f);
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
 		configure_stream_local("GNSS_INTEGRITY", 1.0f);
+#endif
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
@@ -1661,7 +1677,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ESTIMATOR_STATUS", 5.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
 		configure_stream_local("GNSS_INTEGRITY", 1.0f);
+#endif
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
@@ -1760,10 +1778,14 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
+#if defined(MAVLINK_MSG_ID_GLOBAL_POSITION)
 		configure_stream_local("GLOBAL_POSITION", 10.0f);
+#endif
 		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
 		configure_stream_local("GNSS_INTEGRITY", 1.0f);
+#endif
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
 		configure_stream_local("HOME_POSITION", 0.5f);
@@ -1824,7 +1846,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 0.5f);
 		configure_stream_local("GLOBAL_POSITION_INT", 2.0f);
+#if defined(MAVLINK_MSG_ID_GLOBAL_POSITION)
 		configure_stream_local("GLOBAL_POSITION", 2.0f);
+#endif
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS2_RAW", 2.0f);
 		configure_stream_local("GPS_RAW_INT", 2.0f);
