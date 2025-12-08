@@ -1,0 +1,61 @@
+name: Sync ROS2 messages to px4_msgs
+on:
+  push:
+    branches:
+      - 'main'
+      - 'stable'
+      - 'beta'
+      - 'release/**'
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync_to_px4_msgs:
+    if: github.repository == 'PX4/PX4-Autopilot'
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    steps:
+      - name: Checkout PX4 repo
+        uses: actions/checkout@v4
+
+      - name: Setup git credentials
+        run: |
+          git config --global user.name "${{ secrets.PX4BUILDBOT_USER }}"
+          git config --global user.email "${{ secrets.PX4BUILDBOT_EMAIL }}"
+
+      - name: Clone PX4_msgs repo
+        run: |
+          git clone https://${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}@github.com/PX4/px4_msgs.git
+
+      - name: Check out the same branch as the PX4 repo
+        run: |
+          cd px4_msgs
+          if git checkout ${{ github.ref_name }}; then
+            echo "Checked out existing branch"
+          else
+            git checkout -b ${{ github.ref_name }}
+          fi
+
+      - name: Copy ROS2 messages
+        run: |
+          rm px4_msgs/msg/*.msg
+          rm -f px4_msgs/msg/versioned/*.msg
+          rm px4_msgs/srv/*.srv
+          rm -f px4_msgs/srv/versioned/*.srv
+          cp msg/*.msg px4_msgs/msg/
+          cp msg/versioned/*.msg px4_msgs/msg/ || true
+          cp srv/*.srv px4_msgs/srv/
+          cp srv/versioned/*.srv px4_msgs/srv/ || true
+
+      - name: Commit and push changes
+        run: |
+          cd px4_msgs
+          git status
+          git add .
+          git commit -a -m "Update to PX4 ${{ github.sha }}" || true
+          git push origin ${{ github.ref_name }} || true
+          cd ..
+          rm -rf px4_msgs
