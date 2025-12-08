@@ -51,54 +51,54 @@ After setting up the PX4 development environment, follow these steps to install 
 
 1. Download the source code of the PX4 Bootloader:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Bootloader.git
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Bootloader.git
+   ```
 
 2. Navigate into the top directory of the source code and compile it using:
 
-  ```sh
-  make crazyflie_bl
-  ```
+   ```sh
+   make crazyflie_bl
+   ```
 
 3. Put the Crazyflie 2.0 into DFU mode by following these steps:
-  - Ensure it is initially unpowered.
-  - Hold down the reset button (see figure below...).
-    ![Crazyflie2 Reset Button](../../assets/flight_controller/crazyflie/crazyflie_reset_button.jpg)
-  - Plug into computer's USB port.
-  - After a second, the blue LED should start blinking and after 5 seconds should start blinking faster.
-  - Release button.
+   - Ensure it is initially unpowered.
+   - Hold down the reset button (see figure below...).
+     ![Crazyflie2 Reset Button](../../assets/flight_controller/crazyflie/crazyflie_reset_button.jpg)
+   - Plug into computer's USB port.
+   - After a second, the blue LED should start blinking and after 5 seconds should start blinking faster.
+   - Release button.
 
 4. Install _dfu-util_:
 
-  ```sh
-  sudo apt-get update
-  sudo apt-get install dfu-util
-  ```
+   ```sh
+   sudo apt-get update
+   sudo apt-get install dfu-util
+   ```
 
 5. Flash bootloader using _dfu-util_ and unplug Crazyflie 2.0 when done:
 
-  ```sh
-  sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D ./build/crazyflie_bl/crazyflie_bl.bin
-  ```
+   ```sh
+   sudo dfu-util -d 0483:df11 -a 0 -s 0x08000000 -D ./build/crazyflie_bl/crazyflie_bl.bin
+   ```
 
-  When powering on the Crazyflie 2.0 the yellow LED should blink.
+   When powering on the Crazyflie 2.0 the yellow LED should blink.
 
 6. Download the source code of the PX4 autopilot:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git
+   ```
 
 7. Navigate into the top directory of the source code and compile it using:
 
-  ```sh
-  make bitcraze_crazyflie_default upload
-  ```
+   ```sh
+   make bitcraze_crazyflie_default upload
+   ```
 
 8. When prompted to plug in device, plug in Crazyflie 2.0.
-  The yellow LED should start blinking indicating bootloader mode.
-  Then the red LED should turn on indicating that the flashing process has started.
+   The yellow LED should start blinking indicating bootloader mode.
+   Then the red LED should turn on indicating that the flashing process has started.
 
 9. Wait for completion.
 

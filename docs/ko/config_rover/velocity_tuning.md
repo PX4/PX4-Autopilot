@@ -20,7 +20,7 @@ To tune the velocity controller configure the following [parameters](../advanced
 2. [RO_MAX_THR_SPEED](#RO_MAX_THR_SPEED) [m/s]: This parameter is used to calculate the feed-forward term of the closed loop speed control which linearly maps desired speeds to normalized motor commands.
    As mentioned in the [Manual mode](../flight_modes_rover/manual.md#manual-mode) configuration , a good starting point is the observed ground speed when the rover drives at maximum throttle in [Manual mode](../flight_modes_rover/manual.md#manual-mode).
 
-         <a id="RA_SPEED_TUNING"></a>
+   <a id="RA_SPEED_TUNING"></a>
 
    ::: tip
    To further tune this parameter:
@@ -28,7 +28,7 @@ To tune the velocity controller configure the following [parameters](../advanced
    1. Set [RO_SPEED_P](#RO_SPEED_P) and [RO_SPEED_I](#RO_SPEED_I) to zero.
       This way the speed is only controlled by the feed-forward term, which makes it easier to tune.
    2. Put the rover in [Position mode](../flight_modes_rover/manual.md#position-mode) and then move the left stick of your controller up and/or down and hold it at a few different levels for a couple of seconds each.
-   3. Disarm the rover and from the flight log plot the `adjusted_speed_body_x_setpoint` and the `measured_speed_body_x` from the [RoverVelocityStatus](../msg_docs/RoverVelocityStatus.md) message over each other.
+   3. Disarm the rover and from the flight log plot the `adjusted_speed_body_x_setpoint` and the `measured_speed_body_x` from the [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md) message over each other.
    4. If the actual speed of the rover is higher than the speed setpoint, increase [RO_MAX_THR_SPEED](#RO_MAX_THR_SPEED).
       If it is the other way around decrease the parameter and repeat until you are satisfied with the setpoint tracking.
 

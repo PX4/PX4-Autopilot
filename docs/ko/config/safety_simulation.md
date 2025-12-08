@@ -14,7 +14,7 @@ To use it:
 2. Set the vehicle type
 3. Set the other values in the **State** or any of the flags under **Conditions**
    - The **Intended Mode** corresponds to the commanded mode via RC or GCS (or external script).
-      The failsafe state machine can override this in case of a failsafe.
+     The failsafe state machine can override this in case of a failsafe.
 4. Check the action under **Output**
 5. Check what happens when changing mode or **Move the RC sticks**
 6. Play with different settings and conditions!
