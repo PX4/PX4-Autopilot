@@ -104,9 +104,10 @@ int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, 
 	for (int i = 0; i < num_pins; i++) {
 		uint16_t mask = 1u << i;
 
-		if(!_gpio[i].registered) {
+		if (!_gpio[i].registered) {
 			if (dir_mask & mask) {
 				_gpio[i] = { {GPIO_INPUT_PIN, {}, &mcp_gpio_ops}, mask, false, nullptr};
+
 			} else {
 				_gpio[i] = { {GPIO_OUTPUT_PIN, {}, &mcp_gpio_ops}, mask, false, nullptr};
 			}
@@ -126,17 +127,18 @@ int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, 
 
 	if (!all_registered || !callback_registered) {
 		for (int i = 0; i < num_pins; i++) {
-			if(_gpio[i].registered) {
+			if (_gpio[i].registered) {
 				gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
 				_gpio[i].registered = false;
 			}
 		}
+
 		callback_handler->unregisterCallback();
 		delete callback_handler;
 		return ERROR;
 	}
 
-	for(int i=0; i<num_pins; i++) {
+	for (int i = 0; i < num_pins; i++) {
 		_gpio[i].callback_handler = callback_handler;
 	}
 
@@ -145,14 +147,14 @@ int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, 
 
 int mcp230XX_unregister_gpios(int first_minor, int num_pins, mcp_gpio_dev_s *_gpio)
 {
-	if(_gpio[0].callback_handler){
-		CallbackHandler* callback_handler = _gpio[0].callback_handler;
+	if (_gpio[0].callback_handler) {
+		CallbackHandler *callback_handler = _gpio[0].callback_handler;
 		callback_handler->unregisterCallback();
 		delete callback_handler;
 	}
 
 	for (int i = 0; i < num_pins; ++i) {
-		if(_gpio[i].registered){
+		if (_gpio[i].registered) {
 			mcp230XX_setpintype(&_gpio[i].gpio, GPIO_INPUT_PIN);
 			gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
 			_gpio[i].registered = false;

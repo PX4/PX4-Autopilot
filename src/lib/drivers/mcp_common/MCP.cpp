@@ -118,7 +118,7 @@ int MCP230XX::read_reg(uint8_t address, uint8_t &data)
 {
 	int ret = transfer(&address, 1, &data, 1);
 
-	if(ret != PX4_OK) {
+	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
 	}
 
@@ -130,7 +130,7 @@ int MCP230XX::write_reg(uint8_t address, uint8_t value)
 	uint8_t data[2] = {address, value};
 	int ret = transfer(data, 2, nullptr, 0);
 
-	if(ret != PX4_OK) {
+	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
 	}
 
@@ -279,7 +279,7 @@ int MCP230XX::probe()
 	uint8_t addr;
 	int ret = 0;
 
-	for(int i=0; i<10; i++){
+	for (int i = 0; i < 10; i++) {
 		ret = get_probe_reg(&addr);
 
 		if (ret == PX4_OK) {
@@ -289,6 +289,7 @@ int MCP230XX::probe()
 				return PX4_OK;
 			}
 		}
+
 		px4_usleep(10'000);
 	}
 
@@ -383,7 +384,7 @@ void MCP230XX::RunImpl()
 
 		_count++;
 
-		if(_count >= _checking_freq || ret != PX4_OK) {
+		if (_count >= _checking_freq || ret != PX4_OK) {
 			_curr_state = STATE::CHECK;
 			_count = 0;
 			ScheduleClear();
