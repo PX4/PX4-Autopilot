@@ -33,8 +33,8 @@
 
 px4_add_library(mcp_common
 	MCP.cpp
-	../../../drivers/gpio/mcp23009/MCP23009.cpp
-	../../../drivers/gpio/mcp23017/MCP23017.cpp
+	${PX4_SOURCE_DIR}/src/drivers/gpio/mcp23009/MCP23009.cpp
+	${PX4_SOURCE_DIR}/src/drivers/gpio/mcp23017/MCP23017.cpp
 )
 
 target_link_libraries(mcp_common PUBLIC platform_gpio_mcp)
