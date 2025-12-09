@@ -44,6 +44,7 @@
 struct mcp_gpio_dev_s {
 	struct gpio_dev_s gpio;
 	uint16_t mask;
+	bool registered = false;
 	CallbackHandler *callback_handler;
 };
 
