@@ -26,11 +26,11 @@ If you are looking for more resources to learn about the module, a website has b
 
 ## Neural Network PX4 Firmware
 
-The module has been tested on a number of configurations, which can be build locally using the commands:
-
 ::: warning
 This module requires Ubuntu 24.04 or newer (it is not supported in Ubuntu 22.04).
 :::
+
+The module has been tested on a number of configurations, which can be build locally using the commands:
 
 ```sh
 make px4_sitl_neural
