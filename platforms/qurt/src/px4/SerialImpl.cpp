@@ -171,8 +171,7 @@ ssize_t SerialImpl::txSpaceAvailable()
 		return -1;
 	}
 
-	// QURT doesn't have a direct way to query TX buffer space
-	// Return a large value to indicate space is available
+	// QURT doesn't have a direct equivalent to NuttX's FIONSPACE.
 	return 4096;
 }
 
