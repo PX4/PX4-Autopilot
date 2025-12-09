@@ -3,7 +3,7 @@
 # PX4 SITL Configuration Script for Cessna 172 Skyhawk in X-Plane
 ################################################################################
 #
-# @name              Cessna 172 Skyhawk
+# @name              Xplane Cessna 172 Skyhawk
 # @type              Standard Plane
 # @maintainer        alireza787b <p30planets@gmail.com>
 # @url               https://github.com/alireza787b/px4xplane/
