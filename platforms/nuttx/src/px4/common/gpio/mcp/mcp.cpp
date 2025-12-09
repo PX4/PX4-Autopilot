@@ -99,46 +99,65 @@ static const struct gpio_operations_s mcp_gpio_ops {
 int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, uint16_t dir_mask, int num_pins, uint8_t device_type,
 			    mcp_gpio_dev_s *_gpio)
 {
-	const auto device_id = device::Device::DeviceId{device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, device_type};
-	CallbackHandler *callback_handler = new CallbackHandler(ORB_ID(gpio_in));
-	callback_handler->dev_id = device_id.devid;
+	bool all_registered = true;
 
 	for (int i = 0; i < num_pins; i++) {
 		uint16_t mask = 1u << i;
 
-		if (dir_mask & mask) {
-			_gpio[i] = { {GPIO_INPUT_PIN, {}, &mcp_gpio_ops}, mask, callback_handler };
+		if(!_gpio[i].registered) {
+			if (dir_mask & mask) {
+				_gpio[i] = { {GPIO_INPUT_PIN, {}, &mcp_gpio_ops}, mask, false, nullptr};
+			} else {
+				_gpio[i] = { {GPIO_OUTPUT_PIN, {}, &mcp_gpio_ops}, mask, false, nullptr};
+			}
 
-		} else {
-			_gpio[i] = { {GPIO_OUTPUT_PIN, {}, &mcp_gpio_ops}, mask, callback_handler };
-		}
+			int ret = gpio_pin_register(&_gpio[i].gpio, first_minor + i);
 
-		int ret = gpio_pin_register(&_gpio[i].gpio, first_minor + i);
-
-		if (ret != OK) {
-			return ret;
+			if (ret != OK) {
+				all_registered = false;
+			}
 		}
 	}
 
-	callback_handler->registerCallback();
+	const auto device_id = device::Device::DeviceId{device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, device_type};
+	CallbackHandler *callback_handler = new CallbackHandler(ORB_ID(gpio_in));
+	callback_handler->dev_id = device_id.devid;
+	bool callback_registered = callback_handler->registerCallback();
+
+	if (!all_registered || !callback_registered) {
+		for (int i = 0; i < num_pins; i++) {
+			if(_gpio[i].registered) {
+				gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
+				_gpio[i].registered = false;
+			}
+		}
+		callback_handler->unregisterCallback();
+		delete callback_handler;
+		return ERROR;
+	}
+
+	for(int i=0; i<num_pins; i++) {
+		_gpio[i].callback_handler = callback_handler;
+	}
+
 	return OK;
 }
 
 int mcp230XX_unregister_gpios(int first_minor, int num_pins, mcp_gpio_dev_s *_gpio)
 {
+	if(_gpio[0].callback_handler){
+		CallbackHandler* callback_handler = _gpio[0].callback_handler;
+		callback_handler->unregisterCallback();
+		delete callback_handler;
+	}
+
 	for (int i = 0; i < num_pins; ++i) {
-		mcp230XX_setpintype(&_gpio[i].gpio, GPIO_INPUT_PIN);
-		gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
-	}
-
-	if (_gpio[0].callback_handler) {
-		_gpio[0].callback_handler->unregisterCallback();
-		delete _gpio[0].callback_handler;
-		_gpio[0].callback_handler = nullptr;
-	}
-
-	for (int i = 1; i < num_pins; i++) {
-		_gpio[i].callback_handler = nullptr;
+		if(_gpio[i].registered){
+			mcp230XX_setpintype(&_gpio[i].gpio, GPIO_INPUT_PIN);
+			gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
+			_gpio[i].registered = false;
+			_gpio[i].callback_handler = nullptr;
+		}
 	}
 
 	return OK;
