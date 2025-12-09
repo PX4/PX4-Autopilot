@@ -199,12 +199,13 @@ int VL53L1X::collect()
 	uint8_t ret = 0;
 	uint8_t rangeStatus = VL53L1X_RANGE_STATUS_OK;
 	uint16_t distance_mm = 0;
-
+	static constexpr float DOWNWARD_FACING_THETA = -1.57f;
+	static constexpr float RIGHT_PSI = 0.117809725;
+	static constexpr float LEFT_PSI = -0.117809725;
 	perf_begin(_sample_perf);
 
 
-
-	ret = VL53L1X_GetRangeStatus(&rangeStatus);
+	const int8_t quality = VL53L1X_GetRangeStatus(&rangeStatus);
 
 	if ((ret != PX4_OK) | (rangeStatus == VL53L1X_RANGE_STATUS_OUT_OF_BOUNDS)) {
 		perf_count(_comms_errors);
@@ -236,8 +237,8 @@ int VL53L1X::collect()
 	float psi = 0.f;
 	float theta = 0.f;
 
-	if (_sensor_orientation == (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING) {
-		theta = -1.57f;
+	if (_sensor_orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
+		theta = DOWNWARD_FACING_THETA;
 	}
 
 	float phi = 0.f;
@@ -245,11 +246,11 @@ int VL53L1X::collect()
 	switch (roi_center[_zone_index]) {
 
 	case VL53L1X_ROI_MID_RIGHT:
-		psi = 0.117809725; // Approximately 7 degrees;
+		psi = RIGHT_PSI; // Approximately 7 degrees;
 		break;
 
 	case VL53L1X_ROI_MID_LEFT:
-		psi = -0.117809725;
+		psi = LEFT_PSI;
 		break;
 
 	default:
@@ -259,8 +260,8 @@ int VL53L1X::collect()
 	Quaternionf quat_e = Eulerf(phi, theta, psi);
 
 	float dist_q[] {quat_e(0), quat_e(1), quat_e(2), quat_e(3)};
-	_px4_rangefinder.update_quaternion(dist_q);
-	_px4_rangefinder.update(timestamp_sample, distance_m);
+
+	_px4_rangefinder.update(timestamp_sample, distance_m, quality, dist_q);
 
 	return PX4_OK;
 }
@@ -312,10 +313,8 @@ int VL53L1X::init()
 	}
 
 	// Spad width (x) & height (y)
-
 	uint8_t x = 8;
 	uint8_t y = 16;
-
 
 	ret |= VL53L1X_SensorInit();
 	ret |= VL53L1X_ConfigBig(_distance_mode, VL53L1X_SAMPLE_RATE);

@@ -62,17 +62,13 @@ public:
 
 	void set_mode(const uint8_t mode) { _distance_sensor_pub.get().mode = mode; }
 
-	// update quaterion sensor orientation with respect to the vehicle body frame (only called explicitly via method, not by the constructor when object created)
-	void update_quaternion(const float (&quat)[4]);
-
-	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1);
+	// update with quaterion sensor orientation with respect to the vehicle body frame
+	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1, const float (&quat)[4] = {1.0, 0.0, 0.0, 0.0});
 
 	int get_instance() { return _distance_sensor_pub.get_instance(); };
 	uint32_t get_device_id() { return _distance_sensor_pub.get().device_id; };
 
 private:
 	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
-	bool _quat_updated{false};
-	float _quat[4] {1.0, 0.0, 0.0, 0.0};
 	hrt_abstime _q_update_now;
 };
