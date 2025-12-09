@@ -289,6 +289,17 @@ ssize_t SerialImpl::bytesAvailable()
 	return ret >= 0 ? bytes_available : 0;
 }
 
+ssize_t SerialImpl::txSpaceAvailable()
+{
+	if (!_open) {
+		PX4_ERR("Device not open!");
+		return -1;
+	}
+
+	// POSIX/Linux doesn't have a direct equivalent to NuttX's FIONSPACE.
+	return 4096;
+}
+
 ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 {
 	if (!_open) {

@@ -301,6 +301,18 @@ ssize_t SerialImpl::bytesAvailable()
 	return ret >= 0 ? bytes_available : 0;
 }
 
+ssize_t SerialImpl::txSpaceAvailable()
+{
+	if (!_open) {
+		PX4_ERR("Device not open!");
+		return -1;
+	}
+
+	ssize_t space_available = 0;
+	int ret = ioctl(_serial_fd, FIONSPACE, &space_available);
+	return ret >= 0 ? space_available : 0;
+}
+
 ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 {
 	if (!_open) {
