@@ -333,7 +333,6 @@ void MCP230XX::RunImpl()
 			ScheduleOnInterval(mcp_config.interval * 1000);
 
 		} else {
-			PX4_ERR("MCP230XX: Sanity check failed, reconfiguring...");
 			curr_state = STATE::CONFIGURE;
 			ScheduleDelayed(mcp_config.interval * 1000);
 		}
