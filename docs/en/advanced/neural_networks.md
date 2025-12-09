@@ -29,7 +29,7 @@ If you are looking for more resources to learn about the module, a website has b
 The module has been tested on a number of configurations, which can be build locally using the commands:
 
 ::: warning
-This module requires Ubuntu 24 or newer, for older versions of Ubuntu please refer to this [guide](https://ntnu-arl.github.io/aerial_gym_simulator/9_sim2real/#installing-px4).
+This module requires Ubuntu 24.04 or newer (it is not supported in Ubuntu 22.04).
 :::
 
 ```sh
