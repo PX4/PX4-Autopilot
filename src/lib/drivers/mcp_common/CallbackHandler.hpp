@@ -54,6 +54,7 @@ public:
 
 			if (update(&new_input) && new_input.device_id == dev_id) {
 				input = new_input.state;
+				break;
 			}
 		}
 	}
