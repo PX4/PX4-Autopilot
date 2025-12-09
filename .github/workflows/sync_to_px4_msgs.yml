@@ -41,9 +41,9 @@ jobs:
 
       - name: Copy ROS2 messages
         run: |
-          rm px4_msgs/msg/*.msg
+          rm -f px4_msgs/msg/*.msg
           rm -f px4_msgs/msg/versioned/*.msg
-          rm px4_msgs/srv/*.srv
+          rm -f px4_msgs/srv/*.srv
           rm -f px4_msgs/srv/versioned/*.srv
           cp msg/*.msg px4_msgs/msg/
           cp msg/versioned/*.msg px4_msgs/msg/ || true
