@@ -112,10 +112,7 @@ int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, 
 		} else {
 			_gpio[i] = { {GPIO_OUTPUT_PIN, {}, &mcp_gpio_ops}, mask, callback_handler };
 		}
-	}
 
-
-	for (int i = 0; i < num_pins; ++i) {
 		int ret = gpio_pin_register(&_gpio[i].gpio, first_minor + i);
 
 		if (ret != OK) {

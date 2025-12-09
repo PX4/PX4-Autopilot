@@ -114,13 +114,25 @@ int MCP230XX::write(uint16_t mask_set, uint16_t mask_clear)
 
 int MCP230XX::read_reg(uint8_t address, uint8_t &data)
 {
-	return transfer(&address, 1, &data, 1);
+	int ret = transfer(&address, 1, &data, 1);
+
+	if(ret != PX4_OK) {
+		perf_count(_comms_errors);
+	}
+
+	return ret;
 }
 
 int MCP230XX::write_reg(uint8_t address, uint8_t value)
 {
 	uint8_t data[2] = {address, value};
-	return transfer(data, 2, nullptr, 0);
+	int ret = transfer(data, 2, nullptr, 0);
+
+	if(ret != PX4_OK) {
+		perf_count(_comms_errors);
+	}
+
+	return ret;
 }
 
 int MCP230XX::configure(uint16_t mask, PinType type)
@@ -293,8 +305,6 @@ void MCP230XX::RunImpl()
 			ScheduleNow();
 
 		} else {
-			PX4_ERR("MCP230XX: INIT_COMMUNICATION (pin registration & uORB) failed, retrying...");
-			perf_count(_comms_errors);
 			ScheduleDelayed(mcp_config.interval * 1000);
 		}
 
@@ -308,7 +318,6 @@ void MCP230XX::RunImpl()
 			ScheduleNow();
 
 		} else {
-			perf_count(_comms_errors);
 			ScheduleDelayed(mcp_config.interval * 1000);
 		}
 
@@ -323,7 +332,6 @@ void MCP230XX::RunImpl()
 
 		} else {
 			PX4_ERR("MCP230XX: Sanity check failed, reconfiguring...");
-			perf_count(_comms_errors);
 			curr_state = STATE::CONFIGURE;
 			ScheduleDelayed(mcp_config.interval * 1000);
 		}
@@ -378,7 +386,6 @@ void MCP230XX::RunImpl()
 			ScheduleNow();
 
 		} else {
-			perf_count(_comms_errors);
 			curr_state = STATE::CHECK;
 			count = 0;
 			ScheduleClear();
