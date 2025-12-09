@@ -37,15 +37,6 @@ MCP23017::MCP23017(const I2CSPIDriverConfig &config) :
 {
 }
 
-void MCP23017::set_params()
-{
-	mcp_config.num_pins = 16;
-	mcp_config.num_banks = 2;
-	mcp_config.device_type = DRV_GPIO_DEVTYPE_MCP23017;
-	mcp_config.i2c_addr = I2C_ADDRESS_MCP23017;
-	return;
-}
-
 int MCP23017::get_olat(int bank, uint8_t *addr)
 {
 	switch (bank) {

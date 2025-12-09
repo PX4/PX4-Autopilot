@@ -67,7 +67,6 @@ private:
 		OLATB    = 0x15
 	};
 
-	void set_params() override;
 	int get_olat(int bank, uint8_t *addr) override;
 	int get_gppu(int bank, uint8_t *addr) override;
 	int get_iodir(int bank, uint8_t *addr) override;

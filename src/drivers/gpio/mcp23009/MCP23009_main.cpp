@@ -32,16 +32,21 @@
  ****************************************************************************/
 #include "MCP23009.hpp"
 
+constexpr MCP230XX_config_t def_mcp_config{
+	.device_type = DRV_GPIO_DEVTYPE_MCP23009,
+	.i2c_addr = I2C_ADDRESS_MCP23009,
+	.num_pins = 8,
+	.num_banks = 1,
+};
+
 extern "C" int mcp23009_main(int argc, char *argv[])
 {
 	using ThisDriver = MCP23009;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = 0x25;
-
-	MCP230XX_config_t mcp_config{};
-	uint16_t device_type = DRV_GPIO_DEVTYPE_MCP23009;
-	const char *name = "MCP23009";
+	MCP230XX_config_t mcp_config = def_mcp_config;
+	mcp_config.i2c_bus = cli.requested_bus;
 
 	int ch;
 
@@ -70,10 +75,6 @@ extern "C" int mcp23009_main(int argc, char *argv[])
 		}
 	}
 
-	mcp_config.i2c_bus = cli.requested_bus;
-	mcp_config.i2c_addr = cli.i2c_address;
-	mcp_config.device_type = device_type;
-
 	const char *verb = cli.optArg();
 
 	if (!verb) {
@@ -83,7 +84,7 @@ extern "C" int mcp23009_main(int argc, char *argv[])
 
 	cli.custom_data = &mcp_config;
 
-	BusInstanceIterator iterator(name, cli, device_type);
+	BusInstanceIterator iterator("MCP23009", cli, mcp_config.device_type);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

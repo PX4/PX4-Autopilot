@@ -37,15 +37,6 @@ MCP23009::MCP23009(const I2CSPIDriverConfig &config) :
 {
 }
 
-void MCP23009::set_params()
-{
-	mcp_config.num_banks = 1;
-	mcp_config.device_type = DRV_GPIO_DEVTYPE_MCP23009;
-	mcp_config.num_pins = 8;
-	mcp_config.i2c_addr = I2C_ADDRESS_MCP23009;
-	return;
-}
-
 int MCP23009::get_olat(int bank, uint8_t *addr)
 {
 	switch (bank) {

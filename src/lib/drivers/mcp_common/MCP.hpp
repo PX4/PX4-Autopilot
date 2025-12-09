@@ -106,7 +106,6 @@ private:
 	int init_uorb();
 	void cleanup_uorb();
 
-	virtual void set_params() = 0;
 	virtual int get_olat(int bank, uint8_t *addr) = 0;
 	virtual int get_gppu(int bank, uint8_t *addr) = 0;
 	virtual int get_iodir(int bank, uint8_t *addr) = 0;

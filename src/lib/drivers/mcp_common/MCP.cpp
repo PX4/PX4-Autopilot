@@ -307,7 +307,6 @@ void MCP230XX::RunImpl()
 
 	switch (_curr_state) {
 	case STATE::INIT_COMMUNICATION:
-		set_params();
 		ret = init_communication();
 
 		if (ret == PX4_OK) {
