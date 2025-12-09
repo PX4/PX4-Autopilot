@@ -118,11 +118,12 @@ private:
 	uint16_t _gppu;
 
 	uint16_t checking_freq = 10;
+	int _count = 0;
 
 	enum class STATE : uint8_t {
 		INIT_COMMUNICATION,
 		CONFIGURE,
 		CHECK,
 		RUNNING
-	} curr_state {STATE::INIT_COMMUNICATION};
+	} _curr_state {STATE::INIT_COMMUNICATION};
 };

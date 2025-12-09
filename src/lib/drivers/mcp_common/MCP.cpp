@@ -56,7 +56,7 @@ int MCP230XX::init_uorb()
 	if (!_gpio_config_sub.registerCallback() ||
 	    !_gpio_out_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
-		return -1;
+		return PX4_ERROR;
 	}
 
 	return PX4_OK;
@@ -177,7 +177,7 @@ int MCP230XX::configure(uint16_t mask, PinType type)
 		ret |= write_reg(gppu_addr, curr_gppu);
 
 		if (ret != PX4_OK) {
-			PX4_ERR("MCP configure failed \n");
+			PX4_ERR("MCP configure failed");
 			return ret;
 		}
 	}
@@ -294,16 +294,15 @@ void MCP230XX::RunImpl()
 		return;
 	}
 
-	static int count = 0;
 	int ret = PX4_OK;
 
-	switch (curr_state) {
+	switch (_curr_state) {
 	case STATE::INIT_COMMUNICATION:
 		set_params();
 		ret = init_communication();
 
 		if (ret == PX4_OK) {
-			curr_state = STATE::CONFIGURE;
+			_curr_state = STATE::CONFIGURE;
 			ScheduleNow();
 
 		} else {
@@ -316,7 +315,7 @@ void MCP230XX::RunImpl()
 		ret = set_up();
 
 		if (ret == PX4_OK) {
-			curr_state = STATE::CHECK;
+			_curr_state = STATE::CHECK;
 			ScheduleNow();
 
 		} else {
@@ -329,11 +328,11 @@ void MCP230XX::RunImpl()
 		ret = sanity_check();
 
 		if (ret == PX4_OK) {
-			curr_state = STATE::RUNNING;
+			_curr_state = STATE::RUNNING;
 			ScheduleOnInterval(mcp_config.interval * 1000);
 
 		} else {
-			curr_state = STATE::CONFIGURE;
+			_curr_state = STATE::CONFIGURE;
 			ScheduleDelayed(mcp_config.interval * 1000);
 		}
 
@@ -344,7 +343,6 @@ void MCP230XX::RunImpl()
 		gpio_config_s config;
 
 		if (_gpio_config_sub.update(&config) && config.device_id == get_device_id()) {
-
 			PinType type = PinType::Input;
 
 			switch (config.config) {
@@ -375,23 +373,23 @@ void MCP230XX::RunImpl()
 			}
 		}
 
-		perf_end(_cycle_perf);
-
-		if (count < checking_freq && ret == PX4_OK) {
-			count++;
+		if (_count < checking_freq && ret == PX4_OK) {
+			_count++;
 
 		} else if (ret == PX4_OK) {
-			curr_state = STATE::CHECK;
-			count = 0;
+			_curr_state = STATE::CHECK;
+			_count = 0;
 			ScheduleClear();
 			ScheduleNow();
 
 		} else {
-			curr_state = STATE::CHECK;
-			count = 0;
+			_curr_state = STATE::CHECK;
+			_count = 0;
 			ScheduleClear();
 			ScheduleNow();
 		}
+
+		perf_end(_cycle_perf);
 	}
 }
 
