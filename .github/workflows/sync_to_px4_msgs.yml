@@ -1,4 +1,4 @@
-name: Sync ROS2 messages to px4_msgs
+name: Sync ROS 2 messages to px4_msgs
 on:
   push:
     branches:
