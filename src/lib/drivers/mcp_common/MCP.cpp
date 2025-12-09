@@ -382,16 +382,9 @@ void MCP230XX::RunImpl()
 			}
 		}
 
-		if (_count < checking_freq && ret == PX4_OK) {
-			_count++;
+		_count++;
 
-		} else if (ret == PX4_OK) {
-			_curr_state = STATE::CHECK;
-			_count = 0;
-			ScheduleClear();
-			ScheduleNow();
-
-		} else {
+		if(_count >= _checking_freq || ret != PX4_OK) {
 			_curr_state = STATE::CHECK;
 			_count = 0;
 			ScheduleClear();

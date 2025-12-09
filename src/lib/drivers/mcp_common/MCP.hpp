@@ -117,7 +117,7 @@ private:
 	uint16_t _iodir;
 	uint16_t _gppu;
 
-	uint16_t checking_freq = 10;
+	uint16_t _checking_freq = 10;
 	int _count = 0;
 
 	enum class STATE : uint8_t {
