@@ -93,6 +93,7 @@ private:
 
 	perf_counter_t _cycle_perf;
 	perf_counter_t _comms_errors;
+	perf_counter_t _register_check;
 
 	virtual int configure(uint16_t mask, PinType type);
 	virtual int read(uint16_t *mask);

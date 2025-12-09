@@ -38,7 +38,8 @@ MCP230XX::MCP230XX(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": single-sample")),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors")),
+	_register_check(perf_alloc(PC_COUNT, MODULE_NAME": register check"))
 {
 }
 
@@ -47,6 +48,7 @@ MCP230XX::~MCP230XX()
 	ScheduleClear();
 	perf_free(_cycle_perf);
 	perf_free(_comms_errors);
+	perf_free(_register_check);
 }
 
 int MCP230XX::init_uorb()
@@ -262,7 +264,7 @@ int MCP230XX::sanity_check()
 		ret |= read_reg(gppu_addr, read_gppu);
 
 		if (read_iodir != curr_iodir || read_olat != curr_olat || read_gppu != curr_gppu) {
-			PX4_ERR("Sanity check failed on bank %d.", i);
+			perf_count(_register_check);
 			return PX4_ERROR;
 		}
 	}
@@ -399,6 +401,7 @@ void MCP230XX::print_status()
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_comms_errors);
+	perf_print_counter(_register_check);
 }
 
 void MCP230XX::print_usage()
