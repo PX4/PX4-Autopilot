@@ -35,6 +35,7 @@
 
 #include <SerialImpl.hpp>
 
+#include <px4_platform_common/posix.h>
 #include <px4_platform_common/SerialCommon.hpp>
 
 using device::SerialConfig::ByteSize;
@@ -60,6 +61,8 @@ public:
 	bool isOpen() const;
 
 	bool close();
+
+	bool getPollFd(const px4_pollevent_t events, px4_pollfd_struct_t *pfd);
 
 	ssize_t bytesAvailable();
 	ssize_t read(uint8_t *buffer, size_t buffer_size);
