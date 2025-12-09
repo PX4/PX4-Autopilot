@@ -43,8 +43,6 @@ add_library(drivers_board
 	usb.c
 )
 
-add_dependencies(drivers_board platform_gpio_mcp)
-
 target_link_libraries(drivers_board
 	PRIVATE
 		arch_io_pins
