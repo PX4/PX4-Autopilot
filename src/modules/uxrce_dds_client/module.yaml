@@ -143,7 +143,7 @@ parameters:
             reboot_required: true
             default: -1
 
-        UXRCE_DDS_FL_CTRL:
+        UXRCE_DDS_FLCTRL:
             description:
                 short: Enable serial flow control for UXRCE interface
                 long: |

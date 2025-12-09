@@ -27293,7 +27293,7 @@ table {
  <td></td>
 </tr>
 <tr>
- <td><strong id="UXRCE_DDS_FL_CTRL">UXRCE_DDS_FL_CTRL</strong> (INT32)</td>
+ <td><strong id="UXRCE_DDS_FLCTRL">UXRCE_DDS_FLCTRL</strong> (INT32)</td>
  <td>Enable serial flow control for UXRCE interface <p><strong>Comment:</strong> This is used to enable flow control on for the the uxrce instance.</p>   <p><b>Reboot required:</b> True</p>
 </td>
  <td></td>

@@ -40011,7 +40011,7 @@ A value less than one disables the TX rate timeout.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 3       | s    |
 
-### UXRCE_DDS_FL_CTRL (`INT32`) {#UXRCE_DDS_FL_CTRL}
+### UXRCE_DDS_FLCTRL (`INT32`) {#UXRCE_DDS_FLCTRL}
 
 Enable serial flow control for UXRCE interface.
 
