@@ -39,7 +39,7 @@ jobs:
             git checkout -b ${{ github.ref_name }}
           fi
 
-      - name: Copy ROS2 messages
+      - name: Copy ROS 2 messages
         run: |
           rm -f px4_msgs/msg/*.msg
           rm -f px4_msgs/msg/versioned/*.msg
