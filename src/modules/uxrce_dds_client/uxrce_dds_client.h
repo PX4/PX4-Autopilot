@@ -210,6 +210,7 @@ private:
 		(ParamInt<px4::params::UXRCE_DDS_SYNCC>) _param_uxrce_dds_syncc,
 		(ParamInt<px4::params::UXRCE_DDS_SYNCT>) _param_uxrce_dds_synct,
 		(ParamInt<px4::params::UXRCE_DDS_TX_TO>) _param_uxrce_dds_tx_to,
-		(ParamInt<px4::params::UXRCE_DDS_RX_TO>) _param_uxrce_dds_rx_to
+		(ParamInt<px4::params::UXRCE_DDS_RX_TO>) _param_uxrce_dds_rx_to,
+		(ParamInt<px4::params::UXRCE_DDS_FL_CTRL>) _param_uxrce_dds_fl_ctrl
 	)
 };

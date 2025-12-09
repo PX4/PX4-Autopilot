@@ -385,6 +385,7 @@ param set UXRCE_DDS_PRT    8888        # Set uXRCE-DDS UDP port
 param set UXRCE_DDS_PTCFG  0           # Set uXRCE-DDS participant configuration
 param set UXRCE_DDS_SYNCC  0           # Disable uXRCE-DDS system clock synchronization
 param set UXRCE_DDS_SYNCT  1           # Enable uXRCE-DDS timestamp synchronization
+param set UXRCE_DDS_FL_CTRL  0       # Enable serial flow control for UXRCE interface
 ```
 
 Then run the Agent:
