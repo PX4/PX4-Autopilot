@@ -277,10 +277,19 @@ int MCP230XX::probe()
 	// no whoami, try to read IOCONA
 	uint8_t data;
 	uint8_t addr;
-	int ret = get_probe_reg(&addr);
+	int ret = 0;
 
-	if (ret == PX4_OK) {
-		return read_reg(addr, data);
+	for(int i=0; i<10; i++){
+		ret = get_probe_reg(&addr);
+
+		if (ret == PX4_OK) {
+			ret = read_reg(addr, data);
+
+			if (ret == PX4_OK) {
+				return PX4_OK;
+			}
+		}
+		px4_usleep(10'000);
 	}
 
 	return PX4_ERROR;
