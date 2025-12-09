@@ -157,7 +157,7 @@ private:
 	int8_t VL53L1X_SetROICenter(uint8_t data);
 	int8_t VL53L1X_SetROI(uint16_t x, uint16_t y);
 	PX4Rangefinder    _px4_rangefinder;
-	uint8_t _sensor_orientation{25};
+	Rotation _sensor_orientation{ROTATION_PITCH_270};
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 };
