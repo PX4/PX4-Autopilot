@@ -63,6 +63,7 @@ public:
 			uint16_t hspeed : 1; ///< 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
 			uint16_t vspeed : 1; ///< 9 - true if vertical speed error is excessive
 			uint16_t spoofed: 1; ///< 10 - true if the GNSS data is spoofed
+			uint16_t jammed : 1; ///< 11 - true if the GNSS data is jammed
 		} flags;
 		uint16_t value;
 	};
@@ -108,7 +109,8 @@ private:
 		kHspd    = (1 << 7),
 		kVspd    = (1 << 8),
 		kSpoofed = (1 << 9),
-		kFix     = (1 << 10)
+		kJammed  = (1 << 10),
+		kFix     = (1 << 11)
 	};
 
 	bool isCheckEnabled(GnssChecksMask check) { return (_params.check_mask & static_cast<int32_t>(check)); }

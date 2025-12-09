@@ -127,10 +127,11 @@ parameters:
         7: Horizontal speed offset (EKF2_REQ_HDRIFT)
         8: Vertical speed offset (EKF2_REQ_VDRIFT)
         9: Spoofing
-        10: GPS fix type (EKF2_REQ_FIX)
-      default: 2047
+        10: Jamming
+        11: GPS fix type (EKF2_REQ_FIX)
+      default: 4095
       min: 0
-      max: 2047
+      max: 4095
     EKF2_REQ_EPH:
       description:
         short: Required EPH to use GPS
