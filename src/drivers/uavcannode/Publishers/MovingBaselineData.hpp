@@ -38,7 +38,6 @@
 #include <ardupilot/gnss/MovingBaselineData.hpp>
 
 #include <lib/drivers/device/Device.hpp>
-#include <lib/gnss/rtcm.h>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/gps_inject_data.h>
 
@@ -85,9 +84,9 @@ public:
 		// gps_inject_data -> ardupilot::gnss::MovingBaselineData
 		gps_inject_data_s gps_inject_data;
 
-		// Feed all incoming gps_inject_data chunks into the RTCM3 frame parser.
-		// The parser buffers data and detects RTCM message boundaries, allowing us to
-		// emit complete RTCM messages as atomic bursts onto the CAN bus.
+		// Drain all available messages from the queue and forward to CAN.
+		// The GPS driver publishes complete RTCM messages as back-to-back fragments,
+		// so forwarding them in order preserves message integrity.
 		while (uORB::SubscriptionCallbackWorkItem::update(&gps_inject_data)) {
 			// Prevent republishing rtcm data we received from uavcan
 			union device::Device::DeviceId device_id;
@@ -97,19 +96,28 @@ public:
 				continue;
 			}
 
-			size_t added = _rtcm_parser.addData(gps_inject_data.data, gps_inject_data.len);
+			ardupilot::gnss::MovingBaselineData mbd = {};
 
-			if (added < gps_inject_data.len) {
-				PX4_WARN("MovingBaselineData: parser buffer full, %zu bytes dropped",
-					 gps_inject_data.len - added);
+			const size_t capacity = mbd.data.capacity();
+			size_t written = 0;
+			int result = 0;
+
+			while ((result >= 0) && written < gps_inject_data.len) {
+				size_t chunk_size = gps_inject_data.len - written;
+
+				if (chunk_size > capacity) {
+					chunk_size = capacity;
+				}
+
+				for (size_t i = 0; i < chunk_size; i++) {
+					mbd.data.push_back(gps_inject_data.data[written]);
+					written += 1;
+				}
+
+				result = uavcan::Publisher<ardupilot::gnss::MovingBaselineData>::broadcast(mbd);
+
+				mbd.data.clear();
 			}
-		}
-
-		uint8_t rtcm_frame[gnss::RTCM3_MAX_FRAME_LEN] = {};
-		size_t rtcm_len = {};
-
-		while (_rtcm_parser.getNextMessage(rtcm_frame, &rtcm_len)) {
-			broadcastRtcmMessage(rtcm_frame, rtcm_len);
 		}
 
 		// Store the generation for next time
@@ -120,37 +128,6 @@ public:
 	}
 
 private:
-	/**
-	 * Broadcast a complete RTCM message as a burst of MovingBaselineData CAN frames.
-	 * This ensures the entire RTCM message is sent atomically without interleaving
-	 * with other messages.
-	 */
-	void broadcastRtcmMessage(const uint8_t *data, size_t len)
-	{
-		ardupilot::gnss::MovingBaselineData mbd = {};
-		const size_t capacity = mbd.data.capacity();
-		size_t written = 0;
-		int result = 0;
-
-		while ((result >= 0) && written < len) {
-			size_t chunk_size = len - written;
-
-			if (chunk_size > capacity) {
-				chunk_size = capacity;
-			}
-
-			for (size_t i = 0; i < chunk_size; i++) {
-				mbd.data.push_back(data[written]);
-				written += 1;
-			}
-
-			result = uavcan::Publisher<ardupilot::gnss::MovingBaselineData>::broadcast(mbd);
-
-			mbd.data.clear();
-		}
-	}
-
 	unsigned _last_generation{0};
-	gnss::Rtcm3Parser _rtcm_parser;
 };
 } // namespace uavcannode

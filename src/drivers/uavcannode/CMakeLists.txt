@@ -155,7 +155,6 @@ px4_add_module(
 		drivers_bootloaders
 		version
 		conversion
-		gnss
 
 		git_uavcan_dsdl
 		git_uavcan_pydronecan
