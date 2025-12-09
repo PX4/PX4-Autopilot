@@ -6,8 +6,9 @@ on:
       - 'stable'
       - 'beta'
       - 'release/**'
-    paths-ignore:
-      - 'docs/**'
+    paths:
+      - 'msg/**'
+      - 'srv/**'
   workflow_dispatch:
 
 permissions:
