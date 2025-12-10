@@ -9,7 +9,6 @@ parameters:
       default: 1.0
       unit: 'kg'
       min: 0.0
-      max: 25
       decimal: 3
       increment: 0.01
     FW_W_AREA:
