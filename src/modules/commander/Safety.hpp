@@ -47,7 +47,7 @@ public:
 	Safety();
 	~Safety() = default;
 
-	bool safetyButtonHandler();
+	bool safetyButtonHandler(bool is_toggle = false);
 	void activateSafety();
 	void deactivateSafety();
 	bool isButtonAvailable() const { return _button_available; }

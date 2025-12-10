@@ -695,7 +695,8 @@ PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 0);
  *
  * @value 0 Disabled
  * @value 1 Safety button
- * @value 2 Always
+ * @value 2 Toggle button
+ * @value 3 Always
  *
  * @group Commander
  */
