@@ -38,6 +38,7 @@
 #include <ardupilot/gnss/MovingBaselineData.hpp>
 
 #include <lib/drivers/device/Device.hpp>
+#include <drivers/drv_hrt.h>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/gps_inject_data.h>
 
@@ -116,8 +117,27 @@ public:
 
 				result = uavcan::Publisher<ardupilot::gnss::MovingBaselineData>::broadcast(mbd);
 
+				if (result >= 0) {
+					_msg_count++;
+					_msg_count_per_interval++;
+					_bytes_count += chunk_size;
+				}
+
 				mbd.data.clear();
 			}
+		}
+
+		// Print stats every 5 seconds
+		hrt_abstime now = hrt_absolute_time();
+
+		if (now > _last_stats_time + 5000000ULL) {
+			float dt = (now - _last_stats_time) / 1e6f;
+			PX4_INFO("MBD TX: %u msgs (%.1f/s), %u bytes",
+				 (unsigned)_msg_count,
+				 (double)(_msg_count_per_interval / dt),
+				 (unsigned)_bytes_count);
+			_last_stats_time = now;
+			_msg_count_per_interval = 0;
 		}
 
 		// Store the generation for next time
@@ -129,5 +149,10 @@ public:
 
 private:
 	unsigned _last_generation{0};
+
+	uint32_t _msg_count{0};
+	uint32_t _msg_count_per_interval{0};
+	uint32_t _bytes_count{0};
+	hrt_abstime _last_stats_time{0};
 };
 } // namespace uavcannode

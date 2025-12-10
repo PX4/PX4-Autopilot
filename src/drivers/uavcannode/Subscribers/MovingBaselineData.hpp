@@ -38,6 +38,7 @@
 #include <ardupilot/gnss/MovingBaselineData.hpp>
 
 #include <lib/drivers/device/Device.hpp>
+#include <drivers/drv_hrt.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/gps_inject_data.h>
 
@@ -83,6 +84,23 @@ private:
 	{
 		// Don't republish a message from ourselves
 		if (msg.getSrcNodeID().get() != getNode().getNodeID().get()) {
+			_msg_count++;
+			_msg_count_per_interval++;
+			_bytes_count += msg.data.size();
+
+			// Print stats every 5 seconds
+			hrt_abstime now = hrt_absolute_time();
+
+			if (now > _last_stats_time + 5000000ULL) {
+				float dt = (now - _last_stats_time) / 1e6f;
+				PX4_INFO("MBD RX: %u msgs (%.1f/s), %u bytes",
+					 (unsigned)_msg_count,
+					 (double)(_msg_count_per_interval / dt),
+					 (unsigned)_bytes_count);
+				_last_stats_time = now;
+				_msg_count_per_interval = 0;
+			}
+
 			gps_inject_data_s gps_inject_data{};
 
 			gps_inject_data.len = msg.data.size();
@@ -104,5 +122,10 @@ private:
 	}
 
 	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
+
+	uint32_t _msg_count{0};
+	uint32_t _msg_count_per_interval{0};
+	uint32_t _bytes_count{0};
+	hrt_abstime _last_stats_time{0};
 };
 } // namespace uavcannode

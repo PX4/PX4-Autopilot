@@ -364,6 +364,23 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 {
 	perf_count(_moving_baseline_data_sub_perf);
 
+	_mbd_rx_msg_count++;
+	_mbd_rx_msg_count_per_interval++;
+	_mbd_rx_bytes_count += msg.data.size();
+
+	// Print stats every 5 seconds
+	hrt_abstime now = hrt_absolute_time();
+
+	if (now > _last_mbd_stats_time + 5_s) {
+		float dt = (now - _last_mbd_stats_time) / 1e6f;
+		PX4_INFO("MBD RX: %u msgs (%.1f/s), %u bytes",
+			 (unsigned)_mbd_rx_msg_count,
+			 (double)(_mbd_rx_msg_count_per_interval / dt),
+			 (unsigned)_mbd_rx_bytes_count);
+		_last_mbd_stats_time = now;
+		_mbd_rx_msg_count_per_interval = 0;
+	}
+
 	size_t total_bytes = msg.data.size();
 	size_t written = 0;
 

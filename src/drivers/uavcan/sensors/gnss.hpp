@@ -167,4 +167,10 @@ private:
 	hrt_abstime _last_rate_measurement{0};
 	float _rtcm_injection_rate{0.f}; ///< RTCM message injection rate
 	unsigned _rtcm_injection_rate_message_count{0}; ///< number of RTCM messages since last rate calculation
+
+	// MovingBaselineData subscription stats
+	hrt_abstime _last_mbd_stats_time{0};
+	uint32_t _mbd_rx_msg_count{0};
+	uint32_t _mbd_rx_msg_count_per_interval{0};
+	uint32_t _mbd_rx_bytes_count{0};
 };
