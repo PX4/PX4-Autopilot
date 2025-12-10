@@ -281,6 +281,45 @@ ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32
 	return ret_write;
 }
 
+device::SerialConfig::PollStatus SerialImpl::poll(bool want_read, bool want_write, uint32_t timeout_ms)
+{
+	device::SerialConfig::PollStatus status{};
+
+	if (!_open) {
+		PX4_ERR("Cannot poll serial device until it has been opened");
+		status.error = true;
+		return status;
+	}
+
+	// QURT doesn't have poll() support, so we emulate it with bytesAvailable checks
+	const hrt_abstime start_time_us = hrt_absolute_time();
+	const hrt_abstime timeout_us = timeout_ms * 1000ULL;
+
+	while (hrt_elapsed_time(&start_time_us) < timeout_us) {
+		if (want_read) {
+			ssize_t avail = bytesAvailable();
+
+			if (avail > 0) {
+				status.readable = true;
+			}
+		}
+
+		if (want_write) {
+			// QURT uart writes are blocking, so always report writable
+			status.writable = true;
+		}
+
+		if (status.readable || status.writable) {
+			return status;
+		}
+
+		// Sleep a bit before checking again
+		px4_usleep(1000);
+	}
+
+	return status;
+}
+
 void SerialImpl::flush()
 {
 	if (_open) {

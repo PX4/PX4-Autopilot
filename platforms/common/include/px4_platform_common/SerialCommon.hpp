@@ -66,5 +66,12 @@ enum class FlowControl {
 	Enabled  = 1,
 };
 
+// PollStatus: result of a poll() operation
+struct PollStatus {
+	bool readable{false};   // Data available to read (POLLIN)
+	bool writable{false};   // Space available to write (POLLOUT)
+	bool error{false};      // Error condition (POLLERR/POLLHUP/POLLNVAL)
+};
+
 } // namespace SerialConfig
 } // namespace device
