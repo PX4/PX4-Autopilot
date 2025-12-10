@@ -71,6 +71,7 @@ if (gz-transport_FOUND)
     add_subdirectory(buoyancy)
     add_subdirectory(spacecraft_thruster)
     add_subdirectory(motor_failure)
+    add_subdirectory(advanced_liftdrag)
     add_subdirectory(airspeed)
 
     # Add an alias target for each plugin
