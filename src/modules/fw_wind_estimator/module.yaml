@@ -1,6 +1,6 @@
 module_name: fw_wind_estimator
 parameters:
-- group: FW Wind Estimator
+- group: 3D Wind Estimator
   definitions:
     FW_W_MASS:
       description:
