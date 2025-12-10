@@ -517,6 +517,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 					if ((size_t)tx_available < frame_len) {
 						// TX buffer doesn't have enough space, wait for next poll cycle
+						PX4_WARN("tx_available < frame_len");
 						break;
 					}
 
@@ -727,6 +728,7 @@ void GPS::drainRTCMFromORB()
 			if (exists && _orb_inject_data_sub[instance].copy(&msg)) {
 				if (msg.device_id != get_device_id()) {
 					if (now < msg.timestamp + 5_s) {
+						PX4_INFO("selected rtcm instance: %d", instance);
 						_selected_rtcm_instance = instance;
 						break;
 					}
