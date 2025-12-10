@@ -225,7 +225,7 @@ void FixedwingWindEstimator::Run()
 		}
 
 		/* if we are in rotary wing mode, do nothing */
-		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
+		if (_vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			perf_end(_loop_perf);
 			return;
 		}
