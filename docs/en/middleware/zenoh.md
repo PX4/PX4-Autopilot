@@ -1,6 +1,6 @@
 # Zenoh (PX4 ROS 2 rmw_zenoh)
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="main (PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
 
 :::warning Experimental
 At the time of writing, PX4 Zenoh-pico is experimental, and hence subject to change.
