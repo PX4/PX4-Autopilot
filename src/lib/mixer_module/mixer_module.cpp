@@ -358,6 +358,7 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 	unlock();
 
 	_interface.mixerChanged();
+
 	return true;
 }
 
