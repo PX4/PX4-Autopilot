@@ -130,3 +130,14 @@ PARAM_DEFINE_FLOAT(MPC_VEL_NF_BW, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
+
+/**
+ * Disable horizontal position lock in manual position mode
+ *
+ * Disable horizontal position lock when the sticks are centered in position controlled modes
+ * and when the vehicle is not moving.
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_VEL_ONLY, 0);
