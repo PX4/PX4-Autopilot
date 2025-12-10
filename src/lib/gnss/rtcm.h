@@ -96,6 +96,15 @@ inline size_t rtcm3_payload_length(const uint8_t *frame)
 }
 
 /**
+ * RTCM3 parser statistics.
+ */
+struct Rtcm3ParserStats {
+	uint32_t messages_parsed;   ///< Messages successfully parsed and consumed
+	uint32_t crc_errors;        ///< Messages with CRC failures
+	uint32_t bytes_discarded;   ///< Bytes discarded while searching for valid frames
+};
+
+/**
  * RTCM3 frame parser for detecting message boundaries in a byte stream.
  *
  * This parser is designed for scenarios where RTCM data arrives in arbitrary
@@ -107,11 +116,13 @@ inline size_t rtcm3_payload_length(const uint8_t *frame)
  *   parser.addData(chunk1, len1);
  *   parser.addData(chunk2, len2);
  *
- *   uint8_t frame[RTCM3_MAX_FRAME_LEN];
  *   size_t frame_len;
- *   while (parser.getNextMessage(frame, &frame_len)) {
+ *   const uint8_t *frame;
+ *   while ((frame = parser.getNextMessage(&frame_len)) != nullptr) {
  *       // Process complete RTCM message
  *       uint16_t msg_type = rtcm3_message_type(frame);
+ *       // ... use the frame ...
+ *       parser.consumeMessage(frame_len);
  *   }
  */
 class Rtcm3Parser
@@ -132,15 +143,31 @@ public:
 	size_t addData(const uint8_t *data, size_t len);
 
 	/**
-	 * Try to extract the next complete RTCM3 message from the buffer.
+	 * Get a pointer to the next complete RTCM3 message without consuming it.
 	 *
-	 * @param out_data   Buffer to store the complete RTCM message
-	 *                   (must be at least RTCM3_MAX_FRAME_LEN bytes)
-	 * @param out_len    Set to the length of the complete message
-	 * @return           true if a complete message was extracted,
-	 *                   false if more data needed
+	 * Returns a pointer directly into the parser's internal buffer where the
+	 * valid frame starts. Invalid bytes at the buffer start are discarded
+	 * during the search. The returned pointer remains valid until the next
+	 * call to addData(), consumeMessage(), or reset().
+	 *
+	 * After processing the message, call consumeMessage() to remove it from
+	 * the buffer.
+	 *
+	 * @param out_len    Set to the total frame length
+	 * @return           Pointer to the frame in internal buffer, or nullptr
+	 *                   if no complete valid frame is available
 	 */
-	bool getNextMessage(uint8_t *out_data, size_t *out_len);
+	const uint8_t *getNextMessage(size_t *out_len);
+
+	/**
+	 * Consume (remove) the next message from the buffer.
+	 *
+	 * Call this after successfully processing a message obtained via
+	 * peekNextMessage(). The length should match what peekNextMessage returned.
+	 *
+	 * @param len   Number of bytes to remove from the buffer
+	 */
+	void consumeMessage(size_t len);
 
 	/**
 	 * Get the number of bytes currently buffered.
@@ -148,16 +175,12 @@ public:
 	size_t bufferedBytes() const { return _buffer_len; }
 
 	/**
-	 * Get statistics for debugging.
+	 * Get parser statistics.
 	 */
-	uint32_t messagesParsed() const { return _messages_parsed; }
-	uint32_t crcErrors() const { return _crc_errors; }
-	uint32_t bytesDiscarded() const { return _bytes_discarded; }
-
-	/**
-	 * Reset the parser state and statistics.
-	 */
-	void reset();
+	Rtcm3ParserStats getStats() const
+	{
+		return {_messages_parsed, _crc_errors, _bytes_discarded};
+	}
 
 private:
 	/**

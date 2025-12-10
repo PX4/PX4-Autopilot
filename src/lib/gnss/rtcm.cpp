@@ -75,7 +75,7 @@ size_t Rtcm3Parser::addData(const uint8_t *data, size_t len)
 	return to_copy;
 }
 
-bool Rtcm3Parser::getNextMessage(uint8_t *out_data, size_t *out_len)
+const uint8_t *Rtcm3Parser::getNextMessage(size_t *out_len)
 {
 	while (_buffer_len > 0) {
 		// Find preamble
@@ -88,7 +88,7 @@ bool Rtcm3Parser::getNextMessage(uint8_t *out_data, size_t *out_len)
 
 		// Need at least header to check length
 		if (_buffer_len < RTCM3_HEADER_LEN) {
-			return false; // Wait for more data
+			return nullptr; // Wait for more data
 		}
 
 		// Extract length (lower 10 bits of bytes 1-2)
@@ -116,7 +116,7 @@ bool Rtcm3Parser::getNextMessage(uint8_t *out_data, size_t *out_len)
 
 		// Check if we have the complete frame
 		if (_buffer_len < frame_len) {
-			return false; // Wait for more data
+			return nullptr; // Wait for more data
 		}
 
 		// Validate CRC
@@ -132,26 +132,18 @@ bool Rtcm3Parser::getNextMessage(uint8_t *out_data, size_t *out_len)
 			continue;
 		}
 
-		// Valid frame found! Copy to output
-		memcpy(out_data, _buffer, frame_len);
+		// Valid frame found - return pointer to it
 		*out_len = frame_len;
-
-		// Remove frame from buffer
-		discardBytes(frame_len);
-
-		_messages_parsed++;
-		return true;
+		return _buffer;
 	}
 
-	return false;
+	return nullptr;
 }
 
-void Rtcm3Parser::reset()
+void Rtcm3Parser::consumeMessage(size_t len)
 {
-	_buffer_len = 0;
-	_messages_parsed = 0;
-	_crc_errors = 0;
-	_bytes_discarded = 0;
+	discardBytes(len);
+	_messages_parsed++;
 }
 
 void Rtcm3Parser::discardBytes(size_t count)
