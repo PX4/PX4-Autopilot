@@ -67,6 +67,8 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
 
+#include <rtcm.h>
+
 #ifndef CONSTRAINED_FLASH
 # include "devices/src/ashtech.h"
 # include "devices/src/emlid_reach.h"
@@ -218,6 +220,8 @@ private:
 	gps_dump_s			     *_dump_from_device{nullptr};
 	gps_dump_comm_mode_t                 _dump_communication_mode{gps_dump_comm_mode_t::Disabled};
 
+	gnss::Rtcm3Parser		     _rtcm_parser{};				///< RTCM3 parser for frame-aligned injection
+
 	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
 	/// and thus we wait until the first one publishes at least one message.
 
@@ -258,16 +262,21 @@ private:
 	int pollOrRead(uint8_t *buf, size_t buf_length, int timeout);
 
 	/**
-	 * check for new messages on the inject data topic & handle them
+	 * check for new messages on the inject data topic & handle them (legacy method)
 	 */
 	void handleInjectDataTopic();
+
+	/**
+	 * Drain RTCM data from uORB into the RTCM parser buffer
+	 */
+	void drainRTCMFromORB();
 
 	/**
 	 * send data to the device, such as an RTCM stream
 	 * @param data
 	 * @param len
 	 */
-	inline bool injectData(uint8_t *data, size_t len);
+	inline bool injectData(const uint8_t *data, size_t len);
 
 	/**
 	 * set the Baudrate
@@ -288,7 +297,7 @@ private:
 	 * @param mode calling source
 	 * @param msg_to_gps_device if true, this is a message sent to the gps device, otherwise it's from the device
 	 */
-	void dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device);
+	void dumpGpsData(const uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device);
 
 	void initializeCommunicationDump();
 
@@ -475,36 +484,82 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	const int max_timeout = 50;
 	int timeout_adjusted = math::min(max_timeout, timeout);
 
-	handleInjectDataTopic();
-
 	if (_interface == GPSHelper::Interface::UART) {
 
-		const ssize_t read_at_least = math::min(character_count, buf_length);
+		hrt_abstime start_time = hrt_absolute_time();
+		int total_read = 0;
 
-		ssize_t bytes_available = _uart.bytesAvailable();
+		while (hrt_elapsed_time(&start_time) < (hrt_abstime)timeout_adjusted * 1000ULL) {
 
-		// Track RX high water mark
-		if (bytes_available > _rx_buf_high_water) {
-			_rx_buf_high_water = bytes_available;
+			// Drain RTCM data from uORB into parser buffer at the start of each iteration
+			drainRTCMFromORB();
+
+			int remaining_ms = math::max(1, (int)(((hrt_abstime)timeout_adjusted * 1000ULL - hrt_elapsed_time(&start_time)) / 1000ULL));
+
+			// Check if we have RTCM data buffered that could contain complete frames
+			bool want_write = _helper->shouldInjectRTCM() && (_rtcm_parser.bufferedBytes() > 0);
+
+			// Poll for read readiness, and write readiness if we have RTCM data buffered
+			PollStatus status = _uart.poll(true, want_write, remaining_ms);
+
+			if (status.error) {
+				return -1;
+			}
+
+			// Inject complete RTCM frames if TX is ready
+			if (status.writable) {
+				size_t frame_len;
+				const uint8_t *frame_ptr;
+
+				// Try to inject complete frames while TX has space
+				while ((frame_ptr = _rtcm_parser.getNextMessage(&frame_len)) != nullptr) {
+					ssize_t tx_available = _uart.txSpaceAvailable();
+
+					if ((size_t)tx_available < frame_len) {
+						// TX buffer doesn't have enough space, wait for next poll cycle
+						break;
+					}
+
+					// Inject directly from parser buffer (no copy needed)
+					injectData(frame_ptr, frame_len);
+					_rtcm_parser.consumeMessage(frame_len);
+					_rtcm_injection_rate_message_count++;
+					_last_rtcm_injection_time = hrt_absolute_time();
+				}
+			}
+
+			// Read GPS data if available
+			if (status.readable) {
+				ssize_t bytes_available = _uart.bytesAvailable();
+
+				// Track RX high water mark
+				if (bytes_available > _rx_buf_high_water) {
+					_rx_buf_high_water = bytes_available;
+				}
+
+				int n = _uart.read(buf + total_read, buf_length - total_read);
+
+				if (n > 0) {
+					total_read += n;
+					_num_bytes_read += n;
+				}
+			}
+
+			// Return early if we have enough GPS data
+			if (total_read >= (int)character_count) {
+				break;
+			}
 		}
 
-		ret = _uart.readAtLeast(buf, buf_length, read_at_least, timeout_adjusted);
-
-		if (ret > 0) {
-			_num_bytes_read += ret;
-		}
+		ret = total_read > 0 ? total_read : 0;
 
 // SPI is only supported on LInux
 #if defined(__PX4_LINUX)
 
 	} else if ((_interface == GPSHelper::Interface::SPI) && (_spi_fd >= 0)) {
 
-		//Poll only for the SPI data. In the same thread we also need to handle orb messages,
-		//so ideally we would poll on both, the SPI fd and orb subscription. Unfortunately the
-		//two pollings use different underlying mechanisms (at least under posix), which makes this
-		//impossible. Instead we limit the maximum polling interval and regularly check for new orb
-		//messages.
-		//FIXME: add a unified poll() API
+		// For SPI, use legacy injection method since we can't do unified poll
+		handleInjectDataTopic();
 
 		pollfd fds[1];
 		fds[0].fd = _spi_fd;
@@ -618,7 +673,7 @@ void GPS::handleInjectDataTopic()
 			bool updated = gps_inject_data_sub.update(&msg);
 
 			if (updated && (gps_inject_data_sub.get_last_generation() != last_generation + 1)) {
-				PX4_WARN("inject lost1, %u -> %u", last_generation,
+				PX4_WARN("inject lost, %u -> %u", last_generation,
 					 gps_inject_data_sub.get_last_generation());
 			}
 
@@ -641,7 +696,7 @@ void GPS::handleInjectDataTopic()
 		bool updated = gps_inject_data_sub.update(&msg);
 
 		if (updated && (gps_inject_data_sub.get_last_generation() != last_generation + 1)) {
-			PX4_WARN("inject lost2, %u -> %u", last_generation,
+			PX4_WARN("inject lost, %u -> %u", last_generation,
 				 gps_inject_data_sub.get_last_generation());
 		}
 
@@ -654,7 +709,78 @@ void GPS::handleInjectDataTopic()
 	}
 }
 
-bool GPS::injectData(uint8_t *data, size_t len)
+void GPS::drainRTCMFromORB()
+{
+	if (!_helper->shouldInjectRTCM()) {
+		return;
+	}
+
+	gps_inject_data_s msg;
+	const hrt_abstime now = hrt_absolute_time();
+
+	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
+	if (now > _last_rtcm_injection_time + 5_s) {
+
+		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
+			const bool exists = _orb_inject_data_sub[instance].advertised();
+
+			if (exists && _orb_inject_data_sub[instance].copy(&msg)) {
+				if (msg.device_id != get_device_id()) {
+					if (now < msg.timestamp + 5_s) {
+						_selected_rtcm_instance = instance;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	auto &gps_inject_data_sub = _orb_inject_data_sub[_selected_rtcm_instance];
+
+	// Drain all available messages into the RTCM parser buffer
+	const size_t max_messages = gps_inject_data_s::ORB_QUEUE_LENGTH;
+	size_t messages_drained = 0;
+
+	while (messages_drained < max_messages && gps_inject_data_sub.updated()) {
+		if (!gps_inject_data_sub.copy(&msg)) {
+			break;
+		}
+
+		// Skip messages from self
+		if (msg.device_id == get_device_id()) {
+			// Consume and discard
+			const unsigned last_generation = gps_inject_data_sub.get_last_generation();
+			bool updated = gps_inject_data_sub.update(&msg);
+
+			if (updated && gps_inject_data_sub.get_last_generation() != last_generation + 1) {
+				PX4_WARN("inject lost, %u -> %u", last_generation,
+					 gps_inject_data_sub.get_last_generation());
+			}
+
+			continue;
+		}
+
+		// Add data to the RTCM parser for frame reassembly
+		size_t added = _rtcm_parser.addData(msg.data, msg.len);
+
+		if (added < msg.len) {
+			PX4_WARN("RTCM buffer full, dropped %zu bytes", msg.len - added);
+		}
+
+		// Consume the message
+		const unsigned last_generation = gps_inject_data_sub.get_last_generation();
+		bool updated = gps_inject_data_sub.update(&msg);
+
+		if (updated && gps_inject_data_sub.get_last_generation() != last_generation + 1) {
+			PX4_WARN("inject lost, %u -> %u", last_generation,
+				 gps_inject_data_sub.get_last_generation());
+		}
+
+		messages_drained++;
+	}
+}
+
+bool GPS::injectData(const uint8_t *data, size_t len)
 {
 	dumpGpsData(data, len, gps_dump_comm_mode_t::Full, true);
 
@@ -723,7 +849,7 @@ void GPS::initializeCommunicationDump()
 	_dump_communication_mode = (gps_dump_comm_mode_t)param_dump_comm;
 }
 
-void GPS::dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device)
+void GPS::dumpGpsData(const uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device)
 {
 	gps_dump_s *dump_data  = msg_to_gps_device ? _dump_to_device : _dump_from_device;
 
@@ -1104,18 +1230,12 @@ GPS::run()
 					_helper->storeUpdateRates();
 					_helper->resetUpdateRates();
 
-					PX4_INFO("RX buf: high water %d", (int)_rx_buf_high_water);
-
-					if (_mode == gps_driver_mode_t::UBX) {
-						GPSDriverUBX *ubx = static_cast<GPSDriverUBX *>(_helper);
-						uint32_t checksum_errors = ubx->getChecksumErrorCount();
-
-						if (checksum_errors > 0) {
-							PX4_INFO("GPS: checksum errors %lu", checksum_errors);
-						}
-					}
-
-					_rx_buf_high_water = 0;
+					gnss::Rtcm3ParserStats rtcm_stats = _rtcm_parser.getStats();
+					PX4_INFO("RX hwm: %d, RTCM: %u ok, %u crc err, %u dropped",
+						 (int)_rx_buf_high_water,
+						 (unsigned)rtcm_stats.messages_parsed,
+						 (unsigned)rtcm_stats.crc_errors,
+						 (unsigned)rtcm_stats.bytes_discarded);
 				}
 
 				if (!_healthy) {
