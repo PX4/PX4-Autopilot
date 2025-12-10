@@ -68,7 +68,7 @@ void UavcanArmingStatus::periodic_update(const uavcan::TimerEvent &)
 
 		bool lockdown_active = actuator_armed.lockdown || actuator_armed.termination || actuator_armed.kill;
 
-		if (!lockdown_active && actuator_armed.armed) {
+		if (!lockdown_active && (actuator_armed.armed || _is_actuator_test_running)) {
 			cmd.status = cmd.STATUS_FULLY_ARMED;
 
 		} else {
