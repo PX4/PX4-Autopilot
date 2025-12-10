@@ -109,9 +109,9 @@ void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuato
 	pthread_mutex_lock(&_node_mutex);
 
 	esc_status_s esc_status{};
-	esc_status.esc_count = actuators.velocity_size();
 	// Limit to max supported ESCs while allowing for a larger number of system actuators
 	int actuators_size = math::min(actuators.velocity_size(), static_cast<int>(esc_status_s::CONNECTED_ESC_MAX));
+	esc_status.esc_count = actuators_size;
 
 	for (int i = 0; i < actuators_size; i++) {
 		esc_status.esc[i].timestamp = hrt_absolute_time();
