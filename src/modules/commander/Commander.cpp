@@ -515,6 +515,7 @@ int Commander::custom_command(int argc, char *argv[])
 int Commander::print_status()
 {
 	PX4_INFO("%s", isArmed() ? "Armed" : "Disarmed");
+	PX4_INFO("prearm safety: %s", _safety.isSafetyOff() ? "Off" : "On");
 	PX4_INFO("navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state]);
 	PX4_INFO("user intended navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state_user_intention]);
 	PX4_INFO("in failsafe: %s", _failsafe.inFailsafe() ? "yes" : "no");
