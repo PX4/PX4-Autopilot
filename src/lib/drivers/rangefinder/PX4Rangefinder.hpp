@@ -70,5 +70,5 @@ public:
 
 private:
 	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
-	hrt_abstime _q_update_now;
+	hrt_abstime _q_update_now {};
 };
