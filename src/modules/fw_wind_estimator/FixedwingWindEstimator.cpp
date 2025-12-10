@@ -162,7 +162,7 @@ void FixedwingWindEstimator::Run()
 	perf_begin(_loop_perf);
 
 	// only run controller if angular velocity changed
-	if (_vehicle_angular_velocity_sub.updated() || (hrt_elapsed_time(&_last_run) > 20_ms)) { //TODO rate!
+	if (_vehicle_angular_velocity_sub.updated() || (hrt_elapsed_time(&_last_run) > 20_ms)) {
 
 		// only update parameters if they changed
 		bool params_updated = _parameter_update_sub.updated();
