@@ -204,8 +204,8 @@ private:
 	enum class PrearmedMode {
 		DISABLED = 0,
 		SAFETY_BUTTON = 1,
-		TOGGLE_BUTTON = 2,
-		ALWAYS = 3
+		ALWAYS = 2,
+		TOGGLE_BUTTON = 3
 	};
 
 	enum class RcOverrideBits : int32_t {
