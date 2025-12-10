@@ -71,17 +71,6 @@ public:
 
 	void BroadcastAnyUpdates() override
 	{
-		// Check for dropped messages before we start reading
-		if (_last_generation != 0) {
-			unsigned current_generation = uORB::SubscriptionCallbackWorkItem::get_last_generation();
-			unsigned expected_generation = _last_generation + 1;
-
-			if (current_generation > expected_generation) {
-				unsigned messages_lost = current_generation - expected_generation;
-				PX4_ERR("MovingBaselineData: dropped %u messages (queue overflow)", messages_lost);
-			}
-		}
-
 		// gps_inject_data -> ardupilot::gnss::MovingBaselineData
 		gps_inject_data_s gps_inject_data;
 
@@ -89,6 +78,15 @@ public:
 		// The GPS driver publishes complete RTCM messages as back-to-back fragments,
 		// so forwarding them in order preserves message integrity.
 		while (uORB::SubscriptionCallbackWorkItem::update(&gps_inject_data)) {
+			// Check for dropped messages after reading
+			unsigned current_generation = uORB::SubscriptionCallbackWorkItem::get_last_generation();
+
+			if (_last_generation != 0 && current_generation != _last_generation + 1) {
+				PX4_ERR("MovingBaselineData: dropped %u messages (queue overflow)",
+					current_generation - _last_generation - 1);
+			}
+
+			_last_generation = current_generation;
 			// Prevent republishing rtcm data we received from uavcan
 			union device::Device::DeviceId device_id;
 			device_id.devid = gps_inject_data.device_id;
@@ -139,9 +137,6 @@ public:
 			_last_stats_time = now;
 			_msg_count_per_interval = 0;
 		}
-
-		// Store the generation for next time
-		_last_generation = uORB::SubscriptionCallbackWorkItem::get_last_generation();
 
 		// ensure callback is registered
 		uORB::SubscriptionCallbackWorkItem::registerCallback();
