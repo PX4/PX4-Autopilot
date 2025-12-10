@@ -14357,22 +14357,6 @@ Defines which RC_MAP_AUXn parameter maps the manual control channel used to enab
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 6        |           | 0       |
 
-### FW_AT_START (`INT32`) {#FW_AT_START}
-
-Start the autotuning sequence.
-
-WARNING: this will inject steps to the rate controller
-and can be dangerous. Only activate if you know what you
-are doing, and in a safe environment.
-Any motion of the remote stick will abort the signal
-injection and reset this parameter
-Best is to perform the identification in position or
-hold mode.
-
-| Reboot | minValue | maxValue | increment | default      | unit |
-| ------ | -------- | -------- | --------- | ------------ | ---- |
-| &nbsp; |          |          |           | Disabled (0) |
-
 ### FW_AT_SYSID_F0 (`FLOAT`) {#FW_AT_SYSID_F0}
 
 Start frequency of the injected signal.
@@ -14455,24 +14439,6 @@ Desired angular rate closed-loop rise time.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.01     | 0.5      |           | 0.14    | s    |
-
-### MC_AT_START (`INT32`) {#MC_AT_START}
-
-Start the autotuning sequence.
-
-WARNING: this will inject steps to the rate controller
-and can be dangerous. Only activate if you know what you
-are doing, and in a safe environment.
-Any motion of the remote stick will abort the signal
-injection and reset this parameter
-Best is to perform the identification in position or
-hold mode.
-Increase the amplitude of the injected signal using
-MC_AT_SYSID_AMP for more signal/noise ratio
-
-| Reboot | minValue | maxValue | increment | default      | unit |
-| ------ | -------- | -------- | --------- | ------------ | ---- |
-| &nbsp; |          |          |           | Disabled (0) |
 
 ### MC_AT_SYSID_AMP (`FLOAT`) {#MC_AT_SYSID_AMP}
 
@@ -17096,6 +17062,16 @@ EKF2 enable.
 | Reboot | minValue | maxValue | increment | default     | unit |
 | ------ | -------- | -------- | --------- | ----------- | ---- |
 | &nbsp; |          |          |           | Enabled (1) |
+
+### EKF2_ENGINE_WRM (`INT32`) {#EKF2_ENGINE_WRM}
+
+Enable constant position fusion during engine warmup.
+
+When enabled, constant position fusion is enabled when the vehicle is landed and armed. This is intended for IC engine warmup (e.g., fuel engines on catapult) to allow mode transitions to auto/takeoff despite vibrations from running engines.
+
+| Reboot | minValue | maxValue | increment | default      | unit |
+| ------ | -------- | -------- | --------- | ------------ | ---- |
+| &nbsp; |          |          |           | Disabled (0) |
 
 ### EKF2_EVA_NOISE (`FLOAT`) {#EKF2_EVA_NOISE}
 
