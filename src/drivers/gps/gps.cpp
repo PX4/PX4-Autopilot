@@ -240,7 +240,6 @@ private:
 	// RTCM diagnostic counters (reset every stats interval)
 	uint32_t			_rtcm_uorb_messages{0};				///< uORB messages received
 	uint32_t			_rtcm_tx_not_ready{0};				///< poll cycles where TX not writable
-	uint32_t			_rtcm_tx_blocked{0};				///< times tx_available < frame_len
 
 	// CPU load tracking
 	uint64_t			_last_cpu_runtime{0};
@@ -531,46 +530,23 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 		while (hrt_elapsed_time(&start_time) < (hrt_abstime)timeout_adjusted * 1000ULL) {
 
-			// Drain RTCM data from uORB into parser buffer at the start of each iteration
-			drainRTCMFromORB();
+			if (_helper->shouldInjectRTCM()) {
 
-			int remaining_ms = math::max(1, (int)(((hrt_abstime)timeout_adjusted * 1000ULL - hrt_elapsed_time(&start_time)) / 1000ULL));
+				drainRTCMFromORB();
 
-			// Check if we have RTCM data buffered that could contain complete frames
-			bool want_write = _helper->shouldInjectRTCM() && (_rtcm_parser.bufferedBytes() > 0);
-
-			// Poll for read readiness, and write readiness if we have RTCM data buffered
-			PollStatus status = _uart.poll(true, want_write, remaining_ms);
-
-			if (status.error) {
-				return -1;
-			}
-
-#ifdef DEBUG_RTCM_INJECT
-			// Track TX not ready when we wanted to write
-			if (want_write && !status.writable) {
-				_rtcm_tx_not_ready++;
-			}
-#endif // DEBUG_RTCM_INJECT
-
-			// Inject complete RTCM frames if TX is ready
-			if (status.writable) {
 				size_t frame_len;
 				const uint8_t *frame_ptr;
 
-				// Try to inject complete frames while TX has space
+				// Inject all available RTCM messages
 				while ((frame_ptr = _rtcm_parser.getNextMessage(&frame_len)) != nullptr) {
 					ssize_t tx_available = _uart.txSpaceAvailable();
 
-					if ((size_t)tx_available < frame_len) {
-						// TX buffer doesn't have enough space, wait for next poll cycle
-#ifdef DEBUG_RTCM_INJECT
-						_rtcm_tx_blocked++;
-#endif // DEBUG_RTCM_INJECT
+					if (tx_available < (ssize_t)frame_len) {
+						// TX buffer doesn't have enough space - will retry next iteration
+						// This should be rare if baud rate is adequate for RTCM rate
 						break;
 					}
 
-					// Inject directly from parser buffer (no copy needed)
 					injectData(frame_ptr, frame_len);
 					_rtcm_parser.consumeMessage(frame_len);
 					_rtcm_injection_rate_message_count++;
@@ -578,15 +554,21 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 				}
 			}
 
-			// Read GPS data if available
+			int remaining_ms = math::max(1, (int)(((hrt_abstime)timeout_adjusted * 1000ULL - hrt_elapsed_time(&start_time)) / 1000ULL));
+			PollStatus status = _uart.poll(true, false, remaining_ms);
+
+			if (status.error) {
+				return -1;
+			}
+
 			if (status.readable) {
 #ifdef DEBUG_RTCM_INJECT
 				ssize_t bytes_available = _uart.bytesAvailable();
 
-				// Track RX high water mark
 				if (bytes_available > _rx_buf_high_water) {
 					_rx_buf_high_water = bytes_available;
 				}
+
 #endif // DEBUG_RTCM_INJECT
 
 				int n = _uart.read(buf + total_read, buf_length - total_read);
@@ -1440,20 +1422,18 @@ GPS::run()
 
 					// Print RTCM diagnostic counters
 					if (_rtcm_uorb_messages > 0 || _rtcm_uorb_gaps > 0 || _rtcm_parser_bytes_dropped > 0
-					    || _rtcm_tx_not_ready > 0 || _rtcm_tx_blocked > 0) {
-						PX4_INFO("RTCM diag: uorb=%u gaps=%u drop=%u tx_nr=%u tx_blk=%u",
+					    || _rtcm_tx_not_ready > 0) {
+						PX4_INFO("RTCM diag: uorb=%u gaps=%u drop=%u tx_nr=%u",
 							 (unsigned)_rtcm_uorb_messages,
 							 (unsigned)_rtcm_uorb_gaps,
 							 (unsigned)_rtcm_parser_bytes_dropped,
-							 (unsigned)_rtcm_tx_not_ready,
-							 (unsigned)_rtcm_tx_blocked);
+							 (unsigned)_rtcm_tx_not_ready);
 
 						// Reset counters for next interval
 						_rtcm_uorb_messages = 0;
 						_rtcm_uorb_gaps = 0;
 						_rtcm_parser_bytes_dropped = 0;
 						_rtcm_tx_not_ready = 0;
-						_rtcm_tx_blocked = 0;
 					}
 
 #endif // DEBUG_RTCM_INJECT
