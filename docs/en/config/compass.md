@@ -98,6 +98,12 @@ It is designed for large or heavy vehicles where full-axis rotation is impractic
 The calibration accepts an optional heading argument, allowing you to specify the vehicle's current true heading.
 This means you can perform a valid magnetometer calibration while the vehicle is pointed in any direction, not just North.
 
+::: tip
+The [complete calibration](#complete-calibration) is more reliable, and should be used if you can physically rotate the vehicle through all required orientations.
+
+If the large vehicle calibration fails (magnetometer readings are inconsistent, or if yaw is unstable or incorrect) you will need to [recalibrate](#recalibration) using the complete calibration.
+:::
+
 ::: details Implementation details
 
 This implementation replaces an earlier version (PX4 v1.15 - PX4 v1.16) that required the vehicle to be facing True North.
@@ -157,15 +163,6 @@ After calibration:
 1. Check that the heading indicator in QGroundControl is stable.
 2. Rotate the vehicle to cardinal directions (N/E/S/W) and verify the compass heading matches.
 3. If using multiple magnetometers, confirm the correct sensor priority is set.
-
-#### When to Use Complete Calibration Instead
-
-Use the [complete calibration](#complete-calibration) when:
-
-- The compass module or its mounting orientation has changed.
-- The vehicle experienced a strong magnetic interference event.
-- Structural, wiring, or payload changes may have introduced soft-iron distortions.
-- Magnetometer readings appear inconsistent or yaw is unstable after quick calibration.
 
 ## Recalibration
 
