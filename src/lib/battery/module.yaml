@@ -111,7 +111,7 @@ parameters:
                     measurements read from the board's ADC channels, typically from an onboard
                     voltage divider and current shunt, or an external analog power module.
                     I2C power monitors are digital sensors on the I2C bus.
-                    If the value is set to 'External' then the system expects to receive mavlink
+                    If the value is set to 'External' then the system expects to receive MAVLink
                     battery status messages or the battery data is published by an external driver.
                     If the value is set to 'ESCs', the battery information are taken from the esc_status message.
                     This requires the ESC to provide both voltage as well as current (via ESC telemetry).
