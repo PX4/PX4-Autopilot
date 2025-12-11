@@ -132,6 +132,7 @@ private:
 				_last_stats_time = now;
 				_msg_count_per_interval = 0;
 			}
+
 #endif // DEBUG_RTCM_INJECT
 
 			gps_inject_data_s gps_inject_data{};
