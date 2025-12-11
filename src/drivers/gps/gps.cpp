@@ -523,69 +523,31 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	const int max_timeout = 50;
 	int timeout_adjusted = math::min(max_timeout, timeout);
 
-	if (_interface == GPSHelper::Interface::UART) {
+	// Drain RTCM data from uORB and inject complete frames before reading GPS data
+	if (_helper->shouldInjectRTCM()) {
 
-		hrt_abstime start_time = hrt_absolute_time();
-		int total_read = 0;
+		drainRTCMFromORB();
 
-		while (hrt_elapsed_time(&start_time) < (hrt_abstime)timeout_adjusted * 1000ULL) {
+		size_t frame_len;
+		const uint8_t *frame_ptr;
 
-			if (_helper->shouldInjectRTCM()) {
-
-				drainRTCMFromORB();
-
-				size_t frame_len;
-				const uint8_t *frame_ptr;
-
-				// Inject all available RTCM messages
-				while ((frame_ptr = _rtcm_parser.getNextMessage(&frame_len)) != nullptr) {
-					ssize_t tx_available = _uart.txSpaceAvailable();
-
-					if (tx_available < (ssize_t)frame_len) {
-						// TX buffer doesn't have enough space - will retry next iteration
-						// This should be rare if baud rate is adequate for RTCM rate
-						break;
-					}
-
-					injectData(frame_ptr, frame_len);
-					_rtcm_parser.consumeMessage(frame_len);
-					_rtcm_injection_rate_message_count++;
-					_last_rtcm_injection_time = hrt_absolute_time();
-				}
-			}
-
-			int remaining_ms = math::max(1, (int)(((hrt_abstime)timeout_adjusted * 1000ULL - hrt_elapsed_time(&start_time)) / 1000ULL));
-			PollStatus status = _uart.poll(true, false, remaining_ms);
-
-			if (status.error) {
-				return -1;
-			}
-
-			if (status.readable) {
-#ifdef DEBUG_RTCM_INJECT
-				ssize_t bytes_available = _uart.bytesAvailable();
-
-				if (bytes_available > _rx_buf_high_water) {
-					_rx_buf_high_water = bytes_available;
-				}
-
-#endif // DEBUG_RTCM_INJECT
-
-				int n = _uart.read(buf + total_read, buf_length - total_read);
-
-				if (n > 0) {
-					total_read += n;
-					_num_bytes_read += n;
-				}
-			}
-
-			// Return early if we have enough GPS data
-			if (total_read >= (int)character_count) {
-				break;
-			}
+		// Inject all available complete RTCM messages
+		while ((frame_ptr = _rtcm_parser.getNextMessage(&frame_len)) != nullptr) {
+			injectData(frame_ptr, frame_len);
+			_rtcm_parser.consumeMessage(frame_len);
+			_rtcm_injection_rate_message_count++;
+			_last_rtcm_injection_time = hrt_absolute_time();
 		}
+	}
 
-		ret = total_read > 0 ? total_read : 0;
+	if (_interface == GPSHelper::Interface::UART) {
+		// readAtLeast blocks and yields to the scheduler, allowing other tasks
+		// (like the CAN driver) to run and publish RTCM data to uORB
+		ret = _uart.readAtLeast(buf, buf_length, math::min(character_count, buf_length), timeout_adjusted);
+
+		if (ret > 0) {
+			_num_bytes_read += ret;
+		}
 
 // SPI is only supported on LInux
 #if defined(__PX4_LINUX)
