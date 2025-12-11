@@ -1280,7 +1280,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 			_launch_current_yaw = _yaw;
 		}
 
-		if (_skipping_takeoff_detection) {
+		if (_skipping_takeoff_detection && _runway_takeoff.getState() > RunwayTakeoffState::CLAMPED_TO_RUNWAY) {
 			_runway_takeoff.forceSetFlyState();
 		}
 
