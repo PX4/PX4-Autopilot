@@ -169,6 +169,7 @@ private:
 	float _rtcm_injection_rate{0.f}; ///< RTCM message injection rate
 	unsigned _rtcm_injection_rate_message_count{0}; ///< number of RTCM messages since last rate calculation
 
+#ifdef DEBUG_RTCM_INJECT
 	// MovingBaselineData subscription stats
 	hrt_abstime _last_mbd_stats_time{0};
 	uint32_t _mbd_rx_msg_count{0};
@@ -181,4 +182,5 @@ private:
 	uint32_t _rtcm_log_frame_count_interval{0};
 	uint32_t _rtcm_log_frame_bytes{0};
 	uint32_t _rtcm_log_frame_bytes_interval{0};
+#endif
 };
