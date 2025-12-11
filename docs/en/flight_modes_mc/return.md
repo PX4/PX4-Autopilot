@@ -38,6 +38,8 @@ For this return type the copter:
 - It waits for a configurable time ([RTL_LAND_DELAY](#RTL_LAND_DELAY)), which may be used for deploying landing gear.
 - Then lands.
 
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_auto_rtl.md-->
+
 ### Minimum Return Altitude
 
 By default the _minimum return altitude_ is set using [RTL_RETURN_ALT](#RTL_RETURN_ALT), and the vehicle will just return at the higher of `RTL_RETURN_ALT` or the initial vehicle altitude.

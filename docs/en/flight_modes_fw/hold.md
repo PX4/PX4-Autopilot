@@ -31,6 +31,8 @@ The vehicle will first ascend to [NAV_MIN_LTR_ALT](#NAV_MIN_LTR_ALT) if the mode
 
 RC stick movement is ignored.
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_auto_loiter.md-->
+
 ### Parameters
 
 Hold mode behaviour can be configured using the parameters below.

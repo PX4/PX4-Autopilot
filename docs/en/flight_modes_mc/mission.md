@@ -16,6 +16,8 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 
 :::
 
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_auto_mission.md-->
+
 ## Description
 
 Missions are usually created in a ground control station (e.g. [QGroundControl](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/plan_view/plan_view.html)) and uploaded prior to launch.
@@ -30,7 +32,6 @@ Missions are uploaded onto a SD card that needs to be inserted **before** bootin
 At high level all vehicle types behave in the same way when MISSION mode is engaged:
 
 1. If no mission is stored, or if PX4 has finished executing all mission commands, or if the [mission is not feasible](#mission-feasibility-checks):
-
    - If flying the vehicle will hold.
    - If landed the vehicle will "wait".
 

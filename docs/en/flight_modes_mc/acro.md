@@ -25,6 +25,8 @@ Manual control input is required (such as RC control, joystick):
 - Throttle: Manual control via RC sticks.
   RC input is sent directly to control allocation.
 
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_acro.md-->
+
 ## Stick Input Mapping
 
 The default values for expo and rate [parameters](#parameters) are _beginner friendly_, reducing the chance that users will flip the vehicle when first trying this mode, or when using Acro mode for manual rate tuning.

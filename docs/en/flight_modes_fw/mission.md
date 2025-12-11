@@ -8,11 +8,13 @@ The mission is typically created and uploaded with a Ground Control Station (GCS
 ::: info
 
 - This mode requires a global 3d position estimate (from GPS or inferred from a [local position](../ros/external_position_estimation.md#enabling-auto-modes-with-a-local-position)).
-- The vehicle must be armed before this mode can be engaged.
+- The mission will start once the vehicle is armed.
 - This mode is automatic - no user intervention is _required_ to control the vehicle.
-- RC control switches can be used to change flight modes on any vehicle.
+- RC control switches can be used to switch out of mission mode on any vehicle.
 
 :::
+
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_auto_mission.md-->
 
 ## Description
 
@@ -28,7 +30,6 @@ Missions are uploaded onto a SD card that needs to be inserted **before** bootin
 At high level all vehicle types behave in the same way when MISSION mode is engaged:
 
 1. If no mission is stored, or if PX4 has finished executing all mission commands, or if the [mission is not feasible](#mission-feasibility-checks):
-
    - If flying the vehicle will loiter.
    - If landed the vehicle will "wait".
 
