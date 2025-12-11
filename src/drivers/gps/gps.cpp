@@ -244,11 +244,10 @@ private:
 	// CPU load tracking
 	uint64_t			_last_cpu_runtime{0};
 	hrt_abstime			_last_cpu_check_time{0};
-#endif // DEBUG_RTCM_INJECT
 
-	// Always-enabled diagnostic counters (detect real issues)
-	uint32_t			_rtcm_uorb_gaps{0};				///< generation counter gaps detected
 	uint32_t			_rtcm_parser_bytes_dropped{0};			///< bytes dropped due to buffer full
+
+#endif // DEBUG_RTCM_INJECT
 
 	const Instance 			_instance;
 
@@ -631,7 +630,9 @@ void GPS::handleInjectDataTopic()
 				size_t added = _rtcm_parser.addData(msg.data, msg.len);
 
 				if (added < msg.len) {
+#ifdef DEBUG_RTCM_INJECT
 					_rtcm_parser_bytes_dropped += (msg.len - added);
+#endif
 					PX4_WARN("RTCM buffer full, dropped %zu bytes", msg.len - added);
 				}
 
@@ -1279,17 +1280,15 @@ GPS::run()
 					}
 
 					// Print RTCM diagnostic counters
-					if (_rtcm_uorb_messages > 0 || _rtcm_uorb_gaps > 0 || _rtcm_parser_bytes_dropped > 0
+					if (_rtcm_uorb_messages > 0 || _rtcm_parser_bytes_dropped > 0
 					    || _rtcm_tx_not_ready > 0) {
-						PX4_INFO("RTCM diag: uorb=%u gaps=%u drop=%u tx_nr=%u",
+						PX4_INFO("RTCM diag: uorb=%u drop=%u tx_nr=%u",
 							 (unsigned)_rtcm_uorb_messages,
-							 (unsigned)_rtcm_uorb_gaps,
 							 (unsigned)_rtcm_parser_bytes_dropped,
 							 (unsigned)_rtcm_tx_not_ready);
 
 						// Reset counters for next interval
 						_rtcm_uorb_messages = 0;
-						_rtcm_uorb_gaps = 0;
 						_rtcm_parser_bytes_dropped = 0;
 						_rtcm_tx_not_ready = 0;
 					}
