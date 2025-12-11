@@ -75,6 +75,7 @@
 #include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
 #include <px4_platform/gpio/mcp23009.hpp>
+#include <px4_platform/gpio/mcp23017.hpp>
 
 /****************************************************************************
  * Pre-Processor Definitions
