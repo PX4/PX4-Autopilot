@@ -109,8 +109,8 @@ private:
 		kHspd    = (1 << 7),
 		kVspd    = (1 << 8),
 		kSpoofed = (1 << 9),
-		kJammed  = (1 << 10),
-		kFix     = (1 << 11)
+		kFix     = (1 << 10),
+		kJammed  = (1 << 11)
 	};
 
 	bool isCheckEnabled(GnssChecksMask check) { return (_params.check_mask & static_cast<int32_t>(check)); }
