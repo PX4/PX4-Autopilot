@@ -63,7 +63,11 @@
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <geo/geo.h> // CONSTANTS_ONE_G
+/*
+3D wind model-based wind estimation for fixed-wing aerial vehicles. The formulation of the model can be found in
 
+- Harms, M., Lim, J., Rohr, D., Rockenbauer, F., Lawrance, N. and Siegwart, R., 2025. Robust Optimization-based Autonomous Dynamic Soaring with a Fixed-Wing UAV. arXiv preprint arXiv:2512.06610.
+*/
 using uORB::SubscriptionData;
 
 using namespace time_literals;
