@@ -211,6 +211,31 @@ private:
 	// UART buffer profiling statistics
 	ssize_t				_rx_buf_high_water{0};				///< high water mark of RX buffer usage
 
+	// RTCM TX injection statistics (for debugging)
+	static constexpr size_t		INJECT_LOG_SIZE{128};				///< number of injection events to track per interval
+	struct InjectionEvent {
+		hrt_abstime timestamp;
+		uint16_t bytes;
+	};
+	InjectionEvent			_inject_log[INJECT_LOG_SIZE]{};			///< circular buffer of injection events
+	size_t				_inject_log_idx{0};				///< next write index
+	size_t				_inject_log_count{0};				///< events in current interval
+	unsigned			_inject_bytes_total{0};				///< total bytes injected in interval
+	hrt_abstime			_last_inject_stats_time{0};			///< last stats print time
+
+	// RTCM TX statistics (for MovingBase - frames published to uORB)
+	uint32_t			_rtcm_tx_frame_count{0};			///< cumulative RTCM frames transmitted
+	uint32_t			_rtcm_tx_frame_bytes{0};			///< cumulative bytes in RTCM frames transmitted
+	uint32_t			_rtcm_tx_frame_count_interval{0};		///< frames in current interval
+	uint32_t			_rtcm_tx_frame_bytes_interval{0};		///< bytes in current interval
+
+	// Latency tracking (for Rover - uORB timestamp to serial TX)
+	hrt_abstime			_last_inject_orb_timestamp{0};			///< timestamp from last uORB message
+	hrt_abstime			_inject_latency_min{UINT64_MAX};		///< min latency in interval
+	hrt_abstime			_inject_latency_max{0};				///< max latency in interval
+	uint64_t			_inject_latency_sum{0};				///< sum for averaging
+	uint32_t			_inject_latency_count{0};			///< count for averaging
+
 	const Instance 			_instance;
 
 	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
@@ -762,6 +787,12 @@ void GPS::drainRTCMFromORB()
 			continue;
 		}
 
+		// Track timestamp from uORB message for latency measurement
+		// Use the oldest timestamp if we haven't set one yet this cycle
+		if (_last_inject_orb_timestamp == 0) {
+			_last_inject_orb_timestamp = msg.timestamp;
+		}
+
 		// Add data to the RTCM parser for frame reassembly
 		size_t added = _rtcm_parser.addData(msg.data, msg.len);
 
@@ -797,6 +828,35 @@ bool GPS::injectData(const uint8_t *data, size_t len)
 		written = ::write(_spi_fd, data, len);
 		::fsync(_spi_fd);
 #endif
+	}
+
+	// Log injection event for timing analysis
+	if (written > 0) {
+		hrt_abstime now = hrt_absolute_time();
+		_inject_log[_inject_log_idx].timestamp = now;
+		_inject_log[_inject_log_idx].bytes = (uint16_t)written;
+		_inject_log_idx = (_inject_log_idx + 1) % INJECT_LOG_SIZE;
+		_inject_log_count++;
+		_inject_bytes_total += written;
+
+		// Track latency from uORB receive to serial TX
+		if (_last_inject_orb_timestamp > 0 && now > _last_inject_orb_timestamp) {
+			hrt_abstime latency = now - _last_inject_orb_timestamp;
+
+			if (latency < _inject_latency_min) {
+				_inject_latency_min = latency;
+			}
+
+			if (latency > _inject_latency_max) {
+				_inject_latency_max = latency;
+			}
+
+			_inject_latency_sum += latency;
+			_inject_latency_count++;
+		}
+
+		// Reset timestamp for next cycle
+		_last_inject_orb_timestamp = 0;
 	}
 
 	return written == len;
@@ -1233,11 +1293,123 @@ GPS::run()
 					_helper->resetUpdateRates();
 
 					gnss::Rtcm3ParserStats rtcm_stats = _rtcm_parser.getStats();
-					PX4_INFO("RX hwm: %d, RTCM: %u ok, %u crc err, %u dropped",
-						 (int)_rx_buf_high_water,
-						 (unsigned)rtcm_stats.messages_parsed,
-						 (unsigned)rtcm_stats.crc_errors,
-						 (unsigned)rtcm_stats.bytes_discarded);
+
+					// RTCM TX stats (MovingBase publishing frames to uORB)
+					if (_rtcm_tx_frame_count_interval > 0) {
+						float tx_frame_rate = _rtcm_tx_frame_count_interval / dt;
+						float tx_byte_rate = _rtcm_tx_frame_bytes_interval / dt;
+						PX4_INFO("RTCM TX: %u frames (%.1f/s), %u B (%.0f B/s)",
+							 (unsigned)_rtcm_tx_frame_count,
+							 (double)tx_frame_rate,
+							 (unsigned)_rtcm_tx_frame_bytes,
+							 (double)tx_byte_rate);
+						_rtcm_tx_frame_count_interval = 0;
+						_rtcm_tx_frame_bytes_interval = 0;
+					}
+
+					// RTCM INJ stats (Rover injecting frames to serial)
+					if (rtcm_stats.messages_parsed > 0) {
+						PX4_INFO("RTCM INJ: %u frames (%.1f/s), %u B (%.0f B/s)",
+							 (unsigned)rtcm_stats.messages_parsed,
+							 (double)(rtcm_stats.messages_parsed / (now / 1e6)),  // approximate rate
+							 (unsigned)rtcm_stats.total_frame_bytes,
+							 (double)(rtcm_stats.total_frame_bytes / (now / 1e6)));
+					}
+
+					// Parser health stats (for debugging)
+					if (rtcm_stats.crc_errors > 0 || rtcm_stats.bytes_discarded > 0 || _rx_buf_high_water > 0) {
+						PX4_INFO("RX hwm: %d, RTCM crc err: %u, dropped: %u",
+							 (int)_rx_buf_high_water,
+							 (unsigned)rtcm_stats.crc_errors,
+							 (unsigned)rtcm_stats.bytes_discarded);
+					}
+
+					// Print TX injection statistics
+					if (_inject_log_count > 0) {
+						float inject_rate = _inject_log_count / dt;
+						float bytes_rate = _inject_bytes_total / dt;
+
+						// Calculate timing stats from logged events
+						hrt_abstime min_interval = UINT64_MAX;
+						hrt_abstime max_interval = 0;
+						uint64_t sum_interval = 0;
+						size_t interval_count = 0;
+
+						// Get the actual number of events to process (up to buffer size)
+						size_t events_to_process = (_inject_log_count < INJECT_LOG_SIZE) ?
+									   _inject_log_count : INJECT_LOG_SIZE;
+
+						if (events_to_process > 1) {
+							// Find the start index for reading chronologically
+							size_t start_idx = (_inject_log_count >= INJECT_LOG_SIZE) ?
+									   _inject_log_idx : 0;
+
+							for (size_t i = 1; i < events_to_process; i++) {
+								size_t curr = (start_idx + i) % INJECT_LOG_SIZE;
+								size_t prev = (start_idx + i - 1) % INJECT_LOG_SIZE;
+
+								hrt_abstime interval = _inject_log[curr].timestamp -
+										       _inject_log[prev].timestamp;
+
+								if (interval < min_interval) { min_interval = interval; }
+
+								if (interval > max_interval) { max_interval = interval; }
+
+								sum_interval += interval;
+								interval_count++;
+							}
+						}
+
+						float avg_interval_ms = (interval_count > 0) ?
+									(sum_interval / interval_count) / 1000.0f : 0.0f;
+						float min_interval_ms = (min_interval != UINT64_MAX) ?
+									min_interval / 1000.0f : 0.0f;
+						float max_interval_ms = (max_interval > 0) ?
+									max_interval / 1000.0f : 0.0f;
+
+						PX4_INFO("TX inj: %u msgs (%.1f/s), %u B (%.0f B/s)",
+							 (unsigned)_inject_log_count,
+							 (double)inject_rate,
+							 _inject_bytes_total,
+							 (double)bytes_rate);
+						PX4_INFO("TX interval ms: min=%.1f avg=%.1f max=%.1f",
+							 (double)min_interval_ms,
+							 (double)avg_interval_ms,
+							 (double)max_interval_ms);
+
+						// Print parseable format for Python tool:
+						// INJECT_STATS,<timestamp_us>,<count>,<bytes>,<min_ms>,<avg_ms>,<max_ms>
+						PX4_INFO("INJECT_STATS,%llu,%u,%u,%.1f,%.1f,%.1f",
+							 (unsigned long long)now,
+							 (unsigned)_inject_log_count,
+							 _inject_bytes_total,
+							 (double)min_interval_ms,
+							 (double)avg_interval_ms,
+							 (double)max_interval_ms);
+
+						// Reset for next interval
+						_inject_log_count = 0;
+						_inject_bytes_total = 0;
+						_inject_log_idx = 0;
+					}
+
+					// Print latency statistics (uORB receive to serial TX)
+					if (_inject_latency_count > 0) {
+						float min_latency_ms = _inject_latency_min / 1000.0f;
+						float avg_latency_ms = (_inject_latency_sum / _inject_latency_count) / 1000.0f;
+						float max_latency_ms = _inject_latency_max / 1000.0f;
+
+						PX4_INFO("RTCM latency ms: min=%.1f avg=%.1f max=%.1f",
+							 (double)min_latency_ms,
+							 (double)avg_latency_ms,
+							 (double)max_latency_ms);
+
+						// Reset for next interval
+						_inject_latency_min = UINT64_MAX;
+						_inject_latency_max = 0;
+						_inject_latency_sum = 0;
+						_inject_latency_count = 0;
+					}
 				}
 
 				if (!_healthy) {
@@ -1502,6 +1674,12 @@ GPS::publishRTCMCorrections(uint8_t *data, size_t len)
 
 		written = written + gps_inject_data.len;
 	}
+
+	// Count RTCM frame (this is called once per complete RTCM frame from F9P)
+	_rtcm_tx_frame_count++;
+	_rtcm_tx_frame_count_interval++;
+	_rtcm_tx_frame_bytes += len;
+	_rtcm_tx_frame_bytes_interval += len;
 }
 
 void

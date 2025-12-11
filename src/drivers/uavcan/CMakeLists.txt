@@ -188,6 +188,7 @@ px4_add_module(
 
 		button_publisher
 		drivers_rangefinder
+		gnss
 		led
 		mixer_module
 		version

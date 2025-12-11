@@ -144,6 +144,7 @@ void Rtcm3Parser::consumeMessage(size_t len)
 {
 	discardBytes(len);
 	_messages_parsed++;
+	_total_frame_bytes += len;
 }
 
 void Rtcm3Parser::discardBytes(size_t count)

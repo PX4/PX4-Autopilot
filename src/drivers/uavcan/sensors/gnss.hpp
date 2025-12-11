@@ -60,6 +60,7 @@
 #include <uavcan/equipment/gnss/RTCMStream.hpp>
 
 #include <lib/perf/perf_counter.h>
+#include <lib/gnss/rtcm.h>
 
 #include "sensor_bridge.hpp"
 
@@ -173,4 +174,11 @@ private:
 	uint32_t _mbd_rx_msg_count{0};
 	uint32_t _mbd_rx_msg_count_per_interval{0};
 	uint32_t _mbd_rx_bytes_count{0};
+
+	// RTCM frame counting for PPK logging
+	gnss::Rtcm3Parser _mbd_rtcm_counter{};
+	uint32_t _rtcm_log_frame_count{0};
+	uint32_t _rtcm_log_frame_count_interval{0};
+	uint32_t _rtcm_log_frame_bytes{0};
+	uint32_t _rtcm_log_frame_bytes_interval{0};
 };

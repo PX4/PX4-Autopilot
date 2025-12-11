@@ -41,6 +41,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/gps_inject_data.h>
+#include <rtcm.h>
 
 namespace uavcannode
 {
@@ -88,11 +89,40 @@ private:
 			_msg_count_per_interval++;
 			_bytes_count += msg.data.size();
 
+			// Feed data to RTCM parser for frame counting
+			_rtcm_counter.addData(&msg.data[0], msg.data.size());
+
+			// Count complete RTCM frames
+			size_t frame_len;
+
+			while (_rtcm_counter.getNextMessage(&frame_len) != nullptr) {
+				_rtcm_frame_count++;
+				_rtcm_frame_count_interval++;
+				_rtcm_frame_bytes += frame_len;
+				_rtcm_frame_bytes_interval += frame_len;
+				_rtcm_counter.consumeMessage(frame_len);
+			}
+
 			// Print stats every 5 seconds
 			hrt_abstime now = hrt_absolute_time();
 
 			if (now > _last_stats_time + 5000000ULL) {
 				float dt = (now - _last_stats_time) / 1e6f;
+
+				// RTCM frame stats (primary metric)
+				if (_rtcm_frame_count > 0) {
+					float rtcm_rate = _rtcm_frame_count_interval / dt;
+					float rtcm_byte_rate = _rtcm_frame_bytes_interval / dt;
+					PX4_INFO("RTCM RX: %u frames (%.1f/s), %u B (%.0f B/s)",
+						 (unsigned)_rtcm_frame_count,
+						 (double)rtcm_rate,
+						 (unsigned)_rtcm_frame_bytes,
+						 (double)rtcm_byte_rate);
+					_rtcm_frame_count_interval = 0;
+					_rtcm_frame_bytes_interval = 0;
+				}
+
+				// MBD message stats (secondary)
 				PX4_INFO("MBD RX: %u msgs (%.1f/s), %u bytes",
 					 (unsigned)_msg_count,
 					 (double)(_msg_count_per_interval / dt),
@@ -123,9 +153,17 @@ private:
 
 	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
 
+	// MBD message stats
 	uint32_t _msg_count{0};
 	uint32_t _msg_count_per_interval{0};
 	uint32_t _bytes_count{0};
 	hrt_abstime _last_stats_time{0};
+
+	// RTCM frame counting
+	gnss::Rtcm3Parser _rtcm_counter{};
+	uint32_t _rtcm_frame_count{0};
+	uint32_t _rtcm_frame_count_interval{0};
+	uint32_t _rtcm_frame_bytes{0};
+	uint32_t _rtcm_frame_bytes_interval{0};
 };
 } // namespace uavcannode

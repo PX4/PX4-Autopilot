@@ -102,6 +102,7 @@ struct Rtcm3ParserStats {
 	uint32_t messages_parsed;   ///< Messages successfully parsed and consumed
 	uint32_t crc_errors;        ///< Messages with CRC failures
 	uint32_t bytes_discarded;   ///< Bytes discarded while searching for valid frames
+	uint32_t total_frame_bytes; ///< Total bytes in successfully parsed frames
 };
 
 /**
@@ -179,7 +180,7 @@ public:
 	 */
 	Rtcm3ParserStats getStats() const
 	{
-		return {_messages_parsed, _crc_errors, _bytes_discarded};
+		return {_messages_parsed, _crc_errors, _bytes_discarded, _total_frame_bytes};
 	}
 
 private:
@@ -195,6 +196,7 @@ private:
 	uint32_t _messages_parsed {0};
 	uint32_t _crc_errors {0};
 	uint32_t _bytes_discarded {0};
+	uint32_t _total_frame_bytes {0};
 };
 
 } // namespace gnss

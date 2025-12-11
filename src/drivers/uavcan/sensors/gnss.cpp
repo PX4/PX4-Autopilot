@@ -368,11 +368,40 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 	_mbd_rx_msg_count_per_interval++;
 	_mbd_rx_bytes_count += msg.data.size();
 
+	// Feed data to RTCM parser for frame counting
+	_mbd_rtcm_counter.addData(msg.data.begin(), msg.data.size());
+
+	// Count complete RTCM frames
+	size_t frame_len;
+
+	while (_mbd_rtcm_counter.getNextMessage(&frame_len) != nullptr) {
+		_rtcm_log_frame_count++;
+		_rtcm_log_frame_count_interval++;
+		_rtcm_log_frame_bytes += frame_len;
+		_rtcm_log_frame_bytes_interval += frame_len;
+		_mbd_rtcm_counter.consumeMessage(frame_len);
+	}
+
 	// Print stats every 5 seconds
 	hrt_abstime now = hrt_absolute_time();
 
 	if (now > _last_mbd_stats_time + 5_s) {
 		float dt = (now - _last_mbd_stats_time) / 1e6f;
+
+		// RTCM frame stats (primary metric)
+		if (_rtcm_log_frame_count > 0) {
+			float rtcm_rate = _rtcm_log_frame_count_interval / dt;
+			float rtcm_byte_rate = _rtcm_log_frame_bytes_interval / dt;
+			PX4_INFO("RTCM LOG: %u frames (%.1f/s), %u B (%.0f B/s)",
+				 (unsigned)_rtcm_log_frame_count,
+				 (double)rtcm_rate,
+				 (unsigned)_rtcm_log_frame_bytes,
+				 (double)rtcm_byte_rate);
+			_rtcm_log_frame_count_interval = 0;
+			_rtcm_log_frame_bytes_interval = 0;
+		}
+
+		// MBD message stats (secondary)
 		PX4_INFO("MBD RX: %u msgs (%.1f/s), %u bytes",
 			 (unsigned)_mbd_rx_msg_count,
 			 (double)(_mbd_rx_msg_count_per_interval / dt),
