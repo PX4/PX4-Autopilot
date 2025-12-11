@@ -6,6 +6,6 @@ uint16 len                       # length of data
 uint8 flags                     # LSB: 1=fragmented
 uint8[300] data                 # data to write to GPS device (RTCM message)
 
-uint8 ORB_QUEUE_LENGTH = 32
+uint8 ORB_QUEUE_LENGTH = 8
 
 uint8 MAX_INSTANCES = 2
