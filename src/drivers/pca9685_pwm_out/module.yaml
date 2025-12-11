@@ -36,6 +36,8 @@ parameters:
             I2C address of PCA9685.
             The default address is 0x40 (64).
         type: int32
+        min: 0
+        max: 127
         default: 64
       PCA9685_SCHD_HZ:
         description:
