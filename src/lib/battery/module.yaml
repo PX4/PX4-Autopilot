@@ -105,7 +105,7 @@ parameters:
             description:
                 short: Battery ${i} monitoring source.
                 long: |
-                    This parameter controls the source of battery data. The value 'Power Module'
+                    This parameter controls the source of battery data. The value 'Power Module / Analog'
                     means that measurements are expected to come from either analog (ADC) inputs
                     or an I2C power monitor (e.g. INA226). Analog inputs are voltage and current
                     measurements read from the board's ADC channels, typically from an onboard
