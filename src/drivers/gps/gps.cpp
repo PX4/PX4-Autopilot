@@ -218,7 +218,7 @@ private:
 		hrt_abstime timestamp;
 		uint16_t bytes;
 	};
-	InjectionEvent			_inject_log[INJECT_LOG_SIZE]{};			///< circular buffer of injection events
+	InjectionEvent			_inject_log[INJECT_LOG_SIZE] {};			///< circular buffer of injection events
 	size_t				_inject_log_idx{0};				///< next write index
 	size_t				_inject_log_count{0};				///< events in current interval
 	unsigned			_inject_bytes_total{0};				///< total bytes injected in interval
@@ -584,15 +584,22 @@ void GPS::handleInjectDataTopic()
 	bool already_copied = false;
 	gps_inject_data_s msg;
 
+	const hrt_abstime now = hrt_absolute_time();
+
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if (hrt_absolute_time() > (_last_rtcm_injection_time + 5_s)) {
+	if (now > _last_rtcm_injection_time + 5_s) {
 
 		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
 			const bool exists = _orb_inject_data_sub[instance].advertised();
 
-			if (exists) {
-				if (_orb_inject_data_sub[instance].copy(&msg)) {
-					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
+			if (exists && _orb_inject_data_sub[instance].copy(&msg)) {
+				/* Don't select the own RTCM instance. In case it has a lower
+				 * instance number, it will be selected and will be rejected
+				 * later in the code, resulting in no RTCM injection at all.
+				 */
+				if (msg.device_id != get_device_id()) {
+					// Only use the message if it is up to date
+					if (now < msg.timestamp + 5_s) {
 						// Remember that we already did a copy on this instance.
 						already_copied = true;
 						_selected_rtcm_instance = instance;
@@ -605,7 +612,12 @@ void GPS::handleInjectDataTopic()
 
 	bool updated = already_copied;
 
-	// Limit maximum number of GPS injections to the queue length
+	// Limit maximum number of GPS injections to 8 since usually
+	// GPS injections should consist of 1-4 packets (GPS, Glonass, BeiDou, Galileo).
+	// Looking at 8 packets thus guarantees, that at least a full injection
+	// data set is evaluated.
+	// Moving Base reuires a higher rate, so we allow up to 8 packets.
+	// Drain uORB messages into RTCM parser and inject full messages after draining the queue.
 	const size_t max_num_injections = gps_inject_data_s::ORB_QUEUE_LENGTH;
 	size_t num_injections = 0;
 
@@ -627,14 +639,16 @@ void GPS::handleInjectDataTopic()
 			}
 		}
 
-		// Get next message with generation tracking
-		const unsigned last_generation = _orb_inject_data_sub[_selected_rtcm_instance].get_last_generation();
-		updated = _orb_inject_data_sub[_selected_rtcm_instance].update(&msg);
+		auto &gps_inject_data_sub = _orb_inject_data_sub[_selected_rtcm_instance];
 
-		if (updated && (_orb_inject_data_sub[_selected_rtcm_instance].get_last_generation() != last_generation + 1)) {
-			_rtcm_uorb_gaps++;
-			PX4_WARN("inject lost, %u -> %u", last_generation,
-				 _orb_inject_data_sub[_selected_rtcm_instance].get_last_generation());
+		const unsigned last_generation = gps_inject_data_sub.get_last_generation();
+
+		updated = gps_inject_data_sub.update(&msg);
+
+		if (updated) {
+			if (gps_inject_data_sub.get_last_generation() != last_generation + 1) {
+				PX4_WARN("gps_inject_data lost, generation %u -> %u", last_generation, gps_inject_data_sub.get_last_generation());
+			}
 		}
 
 	} while (updated && num_injections < max_num_injections);
@@ -650,6 +664,7 @@ void GPS::handleInjectDataTopic()
 
 			if ((ssize_t)frame_len > tx_available) {
 				// TX buffer full, stop and let it drain - frames stay in parser buffer
+				PX4_WARN("TX buffer full!");
 				break;
 			}
 		}
@@ -678,6 +693,7 @@ bool GPS::injectData(const uint8_t *data, size_t len)
 	}
 
 #ifdef DEBUG_RTCM_INJECT
+
 	// Log injection event for timing analysis
 	if (written > 0) {
 		hrt_abstime now = hrt_absolute_time();
@@ -706,6 +722,7 @@ bool GPS::injectData(const uint8_t *data, size_t len)
 		// Reset timestamp for next cycle
 		_last_inject_orb_timestamp = 0;
 	}
+
 #endif // DEBUG_RTCM_INJECT
 
 	return written == len;
