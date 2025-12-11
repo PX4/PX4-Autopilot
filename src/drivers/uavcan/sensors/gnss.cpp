@@ -364,6 +364,7 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 {
 	perf_count(_moving_baseline_data_sub_perf);
 
+#ifdef DEBUG_RTCM_INJECT
 	_mbd_rx_msg_count++;
 	_mbd_rx_msg_count_per_interval++;
 	_mbd_rx_bytes_count += msg.data.size();
@@ -409,6 +410,8 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 		_last_mbd_stats_time = now;
 		_mbd_rx_msg_count_per_interval = 0;
 	}
+
+#endif
 
 	size_t total_bytes = msg.data.size();
 	size_t written = 0;
