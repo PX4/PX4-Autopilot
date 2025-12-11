@@ -16,7 +16,7 @@ Upload the RAPTOR checkpoint to the "SD card": Separate terminal
 ```
 mavproxy.py --master udp:127.0.0.1:14540
 ftp mkdir /raptor # for the real FMU use: /fs/microsd/raptor
-ftp put policy.tar /raptor/policy.tar
+ftp put src/modules/mc_raptor/blob/policy.tar /raptor/policy.tar
 ```
 restart (ctrl+c)
 ```

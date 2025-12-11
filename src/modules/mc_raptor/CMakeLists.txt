@@ -1,5 +1,7 @@
 include(px4_add_library)
 
+px4_add_git_submodule(TARGET git_raptor_blob PATH "blob")
+
 px4_add_module(
 	MODULE modules__mc_raptor
 	MAIN mc_raptor
@@ -11,12 +13,9 @@ px4_add_module(
 	DEPENDS
 		px4_work_queue
 		rl_tools
+		git_raptor_blob
 	EXTERNAL
 	)
 
 target_compile_features(modules__mc_raptor PRIVATE cxx_std_17)
 target_compile_options(modules__mc_raptor PRIVATE -Wno-unused-result)
-
-
-
-

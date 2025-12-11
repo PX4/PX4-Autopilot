@@ -63,6 +63,8 @@ namespace rlt = rl_tools;
 
 
 
+
+
 using namespace time_literals;
 
 class Raptor : public ModuleBase<Raptor>, public ModuleParams, public px4::ScheduledWorkItem
@@ -85,12 +87,12 @@ public:
 	int print_status() override;
 
 private:
-	#ifdef __PX4_POSIX
-		using DEVICE = rlt::devices::DefaultCPU;
-	#else
-		using DEV_SPEC = rlt::devices::DefaultARMSpecification;
-		using DEVICE = rlt::devices::arm::OPT<DEV_SPEC>;
-	#endif
+#ifdef __PX4_POSIX
+	using DEVICE = rlt::devices::DefaultCPU;
+#else
+	using DEV_SPEC = rlt::devices::DefaultARMSpecification;
+	using DEVICE = rlt::devices::arm::OPT<DEV_SPEC>;
+#endif
 	using TI = typename DEVICE::index_t;
 	using RNG = DEVICE::SPEC::RANDOM::ENGINE<>;
 	using T = float;
@@ -106,10 +108,6 @@ private:
 	static constexpr T RESET_PREVIOUS_ACTION_VALUE = 0; // -1 to 1
 	static constexpr bool ENABLE_CONTROL_FREQUENCY_INFO = false;
 
-	T min(T a, T b) {
-		return a < b ? a : b;
-	}
-
 	T max_position_error = 0.5;
 	T max_velocity_error = 1.0;
 
@@ -118,7 +116,7 @@ private:
 	decltype(register_ext_component_reply_s::mode_id) ext_component_mode_id;
 	decltype(register_ext_component_reply_s::arming_check_id) ext_component_arming_check_id;
 
-	enum class FlightModeState: TI{
+	enum class FlightModeState : TI {
 		UNREGISTERED = 0,
 		REGISTERED = 1,
 		CONFIGURED = 2
@@ -133,8 +131,10 @@ private:
 	vehicle_attitude_s _vehicle_attitude{};
 	vehicle_status_s _vehicle_status{};
 	trajectory_setpoint_s _trajectory_setpoint{};
-	hrt_abstime timestamp_last_local_position, timestamp_last_angular_velocity, timestamp_last_attitude, timestamp_last_trajectory_setpoint, timestamp_last_manual_control_input, timestamp_last_vehicle_status;
-	bool timestamp_last_local_position_set = false, timestamp_last_angular_velocity_set = false, timestamp_last_attitude_set = false, timestamp_last_trajectory_setpoint_set = false, timestamp_last_manual_control_input_set = false, timestamp_last_vehicle_status_set = false;
+	hrt_abstime timestamp_last_local_position, timestamp_last_angular_velocity, timestamp_last_attitude, timestamp_last_trajectory_setpoint,
+		    timestamp_last_manual_control_input, timestamp_last_vehicle_status;
+	bool timestamp_last_local_position_set = false, timestamp_last_angular_velocity_set = false, timestamp_last_attitude_set = false,
+	     timestamp_last_trajectory_setpoint_set = false, timestamp_last_manual_control_input_set = false, timestamp_last_vehicle_status_set = false;
 	bool timeout_message_sent = false;
 	bool previous_trajectory_setpoint_stale = false;
 	bool previous_active = false;
@@ -162,7 +162,7 @@ private:
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 	perf_counter_t	_loop_interval_policy_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval_policy")};
 
-	struct EXECUTOR_CONFIG{
+	struct EXECUTOR_CONFIG {
 		static constexpr TI ACTION_HISTORY_LENGTH = 1;
 		static constexpr TI CONTROL_INTERVAL_INTERMEDIATE_NS = 2.5 * 1000 * 1000; // Inference is at 500hz
 		static constexpr TI CONTROL_INTERVAL_NATIVE_NS = 10 * 1000 * 1000; // Training is 100hz
@@ -182,9 +182,9 @@ private:
 #endif
 		using TYPE_POLICY = typename POLICY::TYPE_POLICY;
 
-		#if defined(__PX4_POSIX)
+#if defined(__PX4_POSIX)
 		// Relax warning levels for Gazebo sitl. Because Gazebo SITL runs at 250Hz IMU rate, it is not a clean multiple of the training frequency (100hz), hence if the thresholds are set too strict, warnings will be triggered all the time. Generally, Raptor is quite robuts agains control frequency deviations.
-		struct WARNING_LEVELS: rlt::inference::executor::WarningLevelsDefault<TYPE_POLICY>{
+		struct WARNING_LEVELS: rlt::inference::executor::WarningLevelsDefault<TYPE_POLICY> {
 			using T = typename TYPE_POLICY::DEFAULT;
 			static constexpr T INTERMEDIATE_TIMING_JITTER_HIGH_THRESHOLD_NS = 2.0;
 			static constexpr T INTERMEDIATE_TIMING_JITTER_LOW_THRESHOLD_NS = 0.5;
@@ -195,21 +195,22 @@ private:
 			static constexpr T NATIVE_TIMING_BIAS_HIGH_THRESHOLD = 2.0;
 			static constexpr T NATIVE_TIMING_BIAS_LOW_THRESHOLD = 0.5;
 		};
-		#else
+#else
 		using WARNING_LEVELS = rlt::inference::executor::WarningLevelsDefault<TYPE_POLICY>;
-		#endif
+#endif
 		using TIMESTAMP = hrt_abstime;
 		static constexpr TI OUTPUT_DIM = 4;
 		static constexpr TI TEST_SEQUENCE_LENGTH_ACTUAL = 5;
 		static constexpr TI TEST_BATCH_SIZE_ACTUAL = 2;
 
-		using EXECUTOR_SPEC = rl_tools::inference::applications::l2f::Specification<TYPE_POLICY, TI, TIMESTAMP, ACTION_HISTORY_LENGTH, OUTPUT_DIM, POLICY, CONTROL_INTERVAL_INTERMEDIATE_NS, CONTROL_INTERVAL_NATIVE_NS, FORCE_SYNC_INTERMEDIATE, FORCE_SYNC_NATIVE, FORCE_SYNC_NATIVE_RUNTIME, WARNING_LEVELS, DYNAMIC_ALLOCATION>;
+		using EXECUTOR_SPEC =
+			rl_tools::inference::applications::l2f::Specification<TYPE_POLICY, TI, TIMESTAMP, ACTION_HISTORY_LENGTH, OUTPUT_DIM, POLICY, CONTROL_INTERVAL_INTERMEDIATE_NS, CONTROL_INTERVAL_NATIVE_NS, FORCE_SYNC_INTERMEDIATE, FORCE_SYNC_NATIVE, FORCE_SYNC_NATIVE_RUNTIME, WARNING_LEVELS, DYNAMIC_ALLOCATION>;
 		using EXECUTOR_STATUS = rlt::inference::executor::Status<EXECUTOR_SPEC::EXECUTOR_SPEC>;
 	};
 	using EXECUTOR_SPEC = EXECUTOR_CONFIG::EXECUTOR_SPEC;
 	rl_tools::inference::applications::L2F<EXECUTOR_SPEC> executor;
 #ifdef MC_RAPTOR_EMBED_POLICY
-	const decltype(MC_RAPTOR_POLICY_NAMESPACE ::module)& policy = MC_RAPTOR_POLICY_NAMESPACE::module;
+	const decltype(MC_RAPTOR_POLICY_NAMESPACE ::module) &policy = MC_RAPTOR_POLICY_NAMESPACE::module;
 #else
 	EXECUTOR_CONFIG::POLICY policy;
 #endif
@@ -223,9 +224,10 @@ private:
 #endif
 
 	void reset();
-	void observe(rl_tools::inference::applications::l2f::Observation<EXECUTOR_SPEC>& observation);
+	void observe(rl_tools::inference::applications::l2f::Observation<EXECUTOR_SPEC> &observation);
 
-	static constexpr bool REMAP_FROM_CRAZYFLIE = true; // Policy (Crazyflie assignment) => Quadrotor (PX4 Quadrotor X assignment) PX4 SIH assumes the Quadrotor X configuration, which assumes different rotor positions than the crazyflie mapping (from crazyflie outputs to PX4): 1=>1, 2=>4, 3=>2, 4=>3
+	static constexpr bool REMAP_FROM_CRAZYFLIE =
+		true; // Policy (Crazyflie assignment) => Quadrotor (PX4 Quadrotor X assignment) PX4 SIH assumes the Quadrotor X configuration, which assumes different rotor positions than the crazyflie mapping (from crazyflie outputs to PX4): 1=>1, 2=>4, 3=>2, 4=>3
 	// controller state
 
 	// messaging state
@@ -235,7 +237,8 @@ private:
 	static constexpr TI POLICY_CONTROL_FREQUENCY_TRAINING = 100;
 
 	TI num_statii;
-	TI num_healthy_executor_statii_intermediate, num_non_healthy_executor_statii_intermediate, num_healthy_executor_statii_native, num_non_healthy_executor_statii_native;
+	TI num_healthy_executor_statii_intermediate, num_non_healthy_executor_statii_intermediate, num_healthy_executor_statii_native,
+	num_non_healthy_executor_statii_native;
 	EXECUTOR_CONFIG::EXECUTOR_STATUS last_intermediate_status, last_native_status;
 	bool last_intermediate_status_set, last_native_status_set;
 
