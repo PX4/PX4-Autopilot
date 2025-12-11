@@ -69,19 +69,13 @@ then
 	set INA_CONFIGURED yes
 fi
 
-#Start Auterion Power Module selector for Skynode boards
-if ver hwbasecmp 009 010
+if [ $INA_CONFIGURED = no ]
 then
-	pm_selector_auterion start
-else
-	if [ $INA_CONFIGURED = no ]
+	# INA226, INA228, INA238 auto-start
+	i2c_launcher start -b 1
+	if [ $HAVE_PM2 = yes ]
 	then
-		# INA226, INA228, INA238 auto-start
-		i2c_launcher start -b 1
-		if [ $HAVE_PM2 = yes ]
-		then
-			i2c_launcher start -b 2
-		fi
+		i2c_launcher start -b 2
 	fi
 fi
 

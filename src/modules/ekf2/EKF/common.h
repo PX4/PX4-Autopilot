@@ -267,6 +267,7 @@ struct systemFlagUpdate {
 	bool is_fixed_wing{false};
 	bool gnd_effect{false};
 	bool constant_pos{false};
+	bool in_transition_to_fw{false};
 };
 
 struct parameters {
@@ -607,7 +608,12 @@ uint64_t mag_heading_consistent  :
 		uint64_t baro_fault              : 1; ///< 43 - true when the baro has been declared faulty and is no longer being used
 		uint64_t gnss_vel                : 1; ///< 44 - true if GNSS velocity measurement fusion is intended
 uint64_t gnss_fault              :
-		1; ///< 45 - true if GNSS measurements have been declared faulty and are no longer used
+		1; ///< 45 - true if GNSS measurements (lat, lon, vel) have been declared faulty and are no longer used
+		uint64_t yaw_manual              : 1; ///< 46 - true if yaw has been reset manually
+uint64_t gnss_hgt_fault              :
+		1; ///< 47 - true if GNSS measurements (alt) have been declared faulty and are no longer used
+		uint64_t in_transition_to_fw 	 : 1; ///< 48 - true if the vehicle is in transition to fw
+
 	} flags;
 	uint64_t value;
 };

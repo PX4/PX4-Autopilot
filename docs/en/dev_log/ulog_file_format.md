@@ -215,7 +215,7 @@ Predefined information messages are:
 | `char[value_len] ver_sw_branch`     | git branch                                  | "master"           |
 | `uint32_t ver_sw_release`           | Software version (see below)                | 0x010401ff         |
 | `char[value_len] sys_os_name`       | Operating System Name                       | "Linux"            |
-| `char[value_len] sys_os_ve`r        | OS version (git tag)                        | "9f82919"          |
+| `char[value_len] sys_os_ver`        | OS version (git tag)                        | "9f82919"          |
 | `uint32_t ver_os_release`           | OS version (see below)                      | 0x010401ff         |
 | `char[value_len] sys_toolchain`     | Toolchain Name                              | "GNU GCC"          |
 | `char[value_len] sys_toolchain_ver` | Toolchain Version                           | "6.2.1"            |
@@ -486,6 +486,7 @@ A valid ULog parser must fulfill the following requirements:
   - [replay module](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/replay)
   - [hardfault_log module](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hardfault_log): append hardfault crash data.
 - [pyulog](https://github.com/PX4/pyulog): python, ULog reader and writer library with CLI scripts.
+  The project also has tools to convert ULog to rosbag and other formats.
 - [ulog_cpp](https://github.com/PX4/ulog_cpp): C++, ULog reader and writer library.
 - [FlightPlot](https://github.com/PX4/FlightPlot): Java, log plotter.
 - [MAVLink](https://github.com/mavlink/mavlink): Messages for ULog streaming via MAVLink (note that appending data is not supported, at least not for cut off messages).
@@ -496,6 +497,7 @@ A valid ULog parser must fulfill the following requirements:
 - [ulogreader](https://github.com/maxsun/ulogreader): Javascript, ULog reader and parser outputs log in JSON object format.
 - [Foxglove](https://foxglove.dev): an integrated visualization and diagnosis tool for robotics data that supports ULog files.
 - [TypeScript ULog parser](https://github.com/foxglove/ulog): TypeScript, ULog reader that outputs JS objects.
+- [yule_log](https://crates.io/crates/yule_log): A streaming ULog parser written in Rust.
 
 ## File Format Version History
 

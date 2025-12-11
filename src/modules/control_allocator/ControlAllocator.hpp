@@ -201,6 +201,7 @@ private:
 	// Reflects motor failures that are currently handled, not motor failures that are reported.
 	// For example, the system might report two motor failures, but only the first one is handled by CA
 	uint16_t _handled_motor_failure_bitmask{0};
+	uint16_t _motor_stop_mask{0};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 

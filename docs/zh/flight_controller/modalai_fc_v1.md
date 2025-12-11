@@ -40,7 +40,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | microSD Card     | [Information on supported cards](../dev_log/logging.md#sd-cards) |
 | 输入               | GPS/Mag                                                          |
 |                  | Spektrum                                                         |
-|                  | Telemetry                                                        |
+|                  | 数传                                                               |
 |                  | CAN bus                                                          |
 |                  | PPM                                                              |
 | Outputs          | 6 LEDs (2xRGB)                                |
@@ -130,7 +130,7 @@ make modalai_fc-v1
 
 | UART   | 设备         | Port                                                        |
 | ------ | ---------- | ----------------------------------------------------------- |
-| USART1 | /dev/ttyS0 | GPS1 (J10)                               |
+| USART1 | UART       | GPS1 (J10)                               |
 | USART2 | /dev/ttyS1 | TELEM3 (J4)                              |
 | USART3 | /dev/ttyS2 | Debug Console (J2)                       |
 | UART4  | /dev/ttyS3 | Expansion UART (J6)                      |

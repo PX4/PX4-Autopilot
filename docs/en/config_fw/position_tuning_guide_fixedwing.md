@@ -9,7 +9,7 @@ A pilot tuning the TECS gains should therefore be able to fly and land the plane
 :::
 
 :::tip
-All parameters are documented in the [Parameter Reference](../advanced_config/parameter_reference.md#fw-tecs).
+All parameters are documented in the Parameter Reference [FW Performance](../advanced_config/parameter_reference.md#fw-performance) and [FW NPFG Control](../advanced_config/parameter_reference.md#fw-npfg-control) sections.
 The most important parameters are covered in this guide.
 :::
 
@@ -78,7 +78,7 @@ Furthermore, these two values define the height rate limits commanded by the use
 
 ### FW Path Control Tuning (Position)
 
-All path control parameters are described [here](../advanced_config/parameter_reference.md#fw-path-control).
+All path control parameters are described in [FW NPFG Control (Parameter Reference)](../advanced_config/parameter_reference.md#fw-npfg-control).
 
 - [NPFG_PERIOD](../advanced_config/parameter_reference.md#NPFG_PERIOD) - This is the previously called L1 distance and defines the tracking point ahead of the aircraft it's following.
   A value of 10-20 meters works for most aircraft.

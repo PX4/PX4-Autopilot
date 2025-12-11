@@ -104,6 +104,12 @@ void VehicleGPSPosition::Run()
 	perf_begin(_cycle_perf);
 	ParametersUpdate();
 
+	pps_capture_s pps_capture;
+
+	if (_pps_capture_sub.update(&pps_capture)) {
+		_pps_time_sync.process_pps(pps_capture);
+	}
+
 	// Check all GPS instance
 	bool any_gps_updated = false;
 	bool gps_updated = false;
@@ -136,6 +142,7 @@ void VehicleGPSPosition::Run()
 				gps_output.device_id = 0;
 			}
 
+			gps_output.timestamp_sample = _pps_time_sync.correct_gps_timestamp(gps_output.timestamp, gps_output.time_utc_usec);
 			_vehicle_gps_position_pub.publish(gps_output);
 		}
 	}

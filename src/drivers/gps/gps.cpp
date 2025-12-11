@@ -84,9 +84,11 @@
 using namespace device;
 using namespace time_literals;
 
-#define TIMEOUT_1HZ		1300	//!< Timeout time in mS, 1000 mS (1Hz) + 300 mS delta for error
-#define TIMEOUT_5HZ		500	//!< Timeout time in mS,  200 mS (5Hz) + 300 mS delta for error
-#define TIMEOUT_DUMP_ADD	450	//!< Additional time in mS to account for RTCM3 parsing and dumping
+#define TIMEOUT_1HZ		1300 //!< Timeout time in mS, 1000 mS (1Hz) + 300 mS delta for error
+#define TIMEOUT_5HZ		500 //!< Timeout time in mS,  200 mS (5Hz) + 300 mS delta for error
+#define TIMEOUT_INIT_1HZ	(3 * TIMEOUT_1HZ) //!< Timeout time in mS, used until GPS is healthy
+#define TIMEOUT_INIT_5HZ	(3 * TIMEOUT_5HZ) //!< Timeout time in mS, used until GPS is healthy
+#define TIMEOUT_DUMP_ADD	450 //!< Additional time in mS to account for RTCM3 parsing and dumping
 
 enum class gps_driver_mode_t {
 	None = 0,
@@ -178,6 +180,7 @@ private:
 	char				_port[20] {};					///< device / serial port path
 
 	bool				_healthy{false};				///< flag to signal if the GPS is ok
+	bool				_cfg_wiped{false};				///< flag to signal if the config was already wiped
 	bool				_mode_auto;					///< if true, auto-detect which GPS is attached
 
 	gps_driver_mode_t		_mode;						///< current mode
@@ -469,10 +472,16 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	const int max_timeout = 50;
 	int timeout_adjusted = math::min(max_timeout, timeout);
 
-	handleInjectDataTopic();
-
 	if (_interface == GPSHelper::Interface::UART) {
-		ret = _uart.readAtLeast(buf, buf_length, math::min(character_count, buf_length), timeout_adjusted);
+
+		const ssize_t read_at_least = math::min(character_count, buf_length);
+
+		// handle injection data before read if caught up
+		if (_uart.bytesAvailable() < read_at_least) {
+			handleInjectDataTopic();
+		}
+
+		ret = _uart.readAtLeast(buf, buf_length, read_at_least, timeout_adjusted);
 
 		if (ret > 0) {
 			_num_bytes_read += ret;
@@ -482,6 +491,8 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 #if defined(__PX4_LINUX)
 
 	} else if ((_interface == GPSHelper::Interface::SPI) && (_spi_fd >= 0)) {
+
+		handleInjectDataTopic();
 
 		//Poll only for the SPI data. In the same thread we also need to handle orb messages,
 		//so ideally we would poll on both, the SPI fd and orb subscription. Unfortunately the
@@ -592,7 +603,17 @@ void GPS::handleInjectDataTopic()
 			}
 		}
 
-		updated = _orb_inject_data_sub[_selected_rtcm_instance].update(&msg);
+		auto &gps_inject_data_sub = _orb_inject_data_sub[_selected_rtcm_instance];
+
+		const unsigned last_generation = gps_inject_data_sub.get_last_generation();
+
+		updated = gps_inject_data_sub.update(&msg);
+
+		if (updated) {
+			if (gps_inject_data_sub.get_last_generation() != last_generation + 1) {
+				PX4_WARN("gps_inject_data lost, generation %u -> %u", last_generation, gps_inject_data_sub.get_last_generation());
+			}
+		}
 
 	} while (updated && num_injections < max_num_injections);
 }
@@ -921,7 +942,7 @@ GPS::run()
 			param_get(handle, &gps_cfg_wipe);
 		}
 
-		gpsConfig.cfg_wipe = static_cast<bool>(gps_cfg_wipe);
+		gpsConfig.cfg_wipe = static_cast<bool>(gps_cfg_wipe) && !_cfg_wiped;
 
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
@@ -961,6 +982,14 @@ GPS::run()
 						set_device_type(DRV_GPS_DEVTYPE_UBX_F9P);
 						break;
 
+					case GPSDriverUBX::Board::u_blox10_L1L5:
+						set_device_type(DRV_GPS_DEVTYPE_UBX_10);
+						break;
+
+					case GPSDriverUBX::Board::u_blox_X20:
+						set_device_type(DRV_GPS_DEVTYPE_UBX_20);
+						break;
+
 					default:
 						set_device_type(DRV_GPS_DEVTYPE_UBX);
 						break;
@@ -969,19 +998,26 @@ GPS::run()
 			}
 
 			int helper_ret;
-			unsigned receive_timeout = TIMEOUT_5HZ;
+
+			/* After being configured (especially in combination with FLASH wipes) the GPS may require
+			 * additional time before outputting the first navigation data. To account for this, there is
+			 * an init timeout. As soon as the GPS is healthy, the timeout is decreased. This allows for
+			 * a quick reaction to a connection loss. */
+			unsigned receive_timeout = TIMEOUT_INIT_5HZ;
+			unsigned healthy_timeout = TIMEOUT_5HZ;
 
 			if ((ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase)
 			    || (ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1)) {
 				/* The MB rover will wait as long as possible to compute a navigation solution,
 				 * possibly lowering the navigation rate all the way to 1 Hz while doing so. */
-				receive_timeout = TIMEOUT_1HZ;
+				receive_timeout = TIMEOUT_INIT_1HZ;
+				healthy_timeout = TIMEOUT_1HZ;
 			}
 
 			if (_dump_communication_mode != gps_dump_comm_mode_t::Disabled) {
 				/* Dumping the RTCM3/UBX data requires additional parsing and storing of data via uORB.
 				 * Without additional time this can lead to timeouts. */
-				receive_timeout += TIMEOUT_DUMP_ADD;
+				healthy_timeout += TIMEOUT_DUMP_ADD;
 			}
 
 			while ((helper_ret = _helper->receive(receive_timeout)) > 0 && !should_exit()) {
@@ -1041,6 +1077,12 @@ GPS::run()
 //
 //						PX4_WARN("module found: %s", mode_str);
 					_healthy = true;
+					receive_timeout = healthy_timeout;
+				}
+
+				/* Do not wipe the FLASH config multiple times. */
+				if (!_cfg_wiped) {
+					_cfg_wiped = true;
 				}
 			}
 

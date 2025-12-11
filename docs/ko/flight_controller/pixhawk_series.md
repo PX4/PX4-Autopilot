@@ -100,6 +100,24 @@ PX4 _developers_ need to know the FMU version of their board, as this is require
 
 <a id="licensing-and-trademarks"></a>
 
+### FMUv6 Comparison
+
+| 기능                 | **FMUv6X-RT**                   | **FMUv6X**    | **FMUv6C**    |
+| ------------------ | ------------------------------- | ------------- | ------------- |
+| **FMU MCU**        | NXP i.MX RT1176 | STM32H753     | STM32H743V    |
+| **RAM**            | 2 MB                            | 1 MB          | 1 MB          |
+| **Flash**          | 64 MB Octal SPI                 | 2 MB internal | 2 MB internal |
+| **IO MCU**         | STM32F103                       | STM32F103     | STM32F103     |
+| **Secure Element** | NXP SE051                       | NXP SE051     | Not supported |
+| **PAB Standard**   | Supported                       | Supported     | Not supported |
+| **Ethernet**       | Supported                       | Supported     | Not supported |
+| **IMUs**           | 3×                              | 3×            | 2×            |
+| **Barometers**     | 2×                              | 2×            | 1×            |
+| **Magnetometer**   | 1×                              | 1×            | 1×            |
+| **FMU PWM**        | 12×                             | 8×            | 8×            |
+| **IO PWM**         | 8×                              | 8×            | 8×            |
+| **CAN Bus**        | 3×                              | 2×            | 2×            |
+
 ### 라이선스와 상표
 
 Pixhawk project schematics and reference designs are licensed under [CC BY-SA 3](https://creativecommons.org/licenses/by-sa/3.0/legalcode).

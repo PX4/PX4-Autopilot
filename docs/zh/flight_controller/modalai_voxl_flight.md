@@ -67,7 +67,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | microSD Card     | [Information on supported cards](../dev_log/logging.md#sd-cards) |
 | 输入               | GPS/Mag                                                          |
 |                  | Spektrum                                                         |
-|                  | Telemetry                                                        |
+|                  | 数传                                                               |
 |                  | CAN bus                                                          |
 |                  | PPM                                                              |
 | Outputs          | 6 LEDs (2xRGB)                                |
@@ -186,7 +186,7 @@ _Note: mappings shown are for the PX4 controlled interfaces only_
 
 | UART   | 设备         | Port                                     |
 | ------ | ---------- | ---------------------------------------- |
-| USART1 | /dev/ttyS0 | GPS1 (J1012)          |
+| USART1 | UART       | GPS1 (J1012)          |
 | USART2 | /dev/ttyS1 | TELEM3 (J1002)        |
 | USART3 | /dev/ttyS2 | Debug Console (J1001) |
 | UART4  | /dev/ttyS3 | Expansion UART (J6)   |

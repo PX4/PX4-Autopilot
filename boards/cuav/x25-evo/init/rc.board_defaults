@@ -15,10 +15,6 @@ param set-default MAV_2_UDP_PRT 14550
 param set-default BAT1_V_DIV 18
 param set-default BAT1_A_PER_V 24
 
-param set-default SENS_EN_INA238 0
-param set-default SENS_EN_INA228 0
-param set-default SENS_EN_INA226 0
-
 param set-default USB_MAV_MODE 5
 
 param set-default UAVCAN_SUB_GPS 1

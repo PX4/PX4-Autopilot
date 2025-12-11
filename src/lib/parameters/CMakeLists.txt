@@ -123,7 +123,6 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--xml ${parameters_xml}
 		--json ${parameters_json}
 		--compress
-		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
 		--board ${PX4_BOARD}
 		#--verbose
@@ -136,13 +135,11 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		${param_src_files}
 		${generated_serial_params_file}
 		${generated_module_params_file}
-		parameters_injected.xml
 		px4params/srcparser.py
 		px4params/srcscanner.py
 		px4params/jsonout.py
 		px4params/xmlout.py
 		px_process_params.py
-		parameters_injected.xml
 	COMMENT "Generating parameters.xml"
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
@@ -161,7 +158,7 @@ add_custom_target(parameters_header DEPENDS px4_parameters.hpp)
 set(SRCS)
 
 list(APPEND SRCS
-	parameters.cpp 
+	parameters.cpp
 	atomic_transaction.cpp
 	autosave.cpp
 )

@@ -1656,9 +1656,9 @@ sensor_baro_0['pressure'] = median_filter(sensor_baro_0['pressure'])
 # fit data
 median_pressure = np.median(sensor_baro_0['pressure'])
 if noResample:
-    coef_baro_0_x = np.polyfit(temp_rel,100*(sensor_baro_0['pressure']-median_pressure),5) # convert from hPa to Pa
+    coef_baro_0_x = np.polyfit(temp_rel,(sensor_baro_0['pressure']-median_pressure),5) # pressure in Pascal
 else:
-    temperature, baro = resampleWithDeltaX(temp_rel,100*(sensor_baro_0['pressure']-median_pressure)) # convert from hPa to Pa
+    temperature, baro = resampleWithDeltaX(temp_rel,(sensor_baro_0['pressure']-median_pressure)) # pressure in Pascal
     coef_baro_0_x = np.polyfit(temperature,baro,5)
 
 baro_0_params['TC_B0_X5'] = coef_baro_0_x[0]
@@ -1675,7 +1675,7 @@ baro_0_x_resample = fit_coef_baro_0_x(temp_rel_resample)
 plt.figure(13,figsize=(20,13))
 
 # draw plots
-plt.plot(sensor_baro_0['temperature'],100*sensor_baro_0['pressure']-100*median_pressure,'b')
+plt.plot(sensor_baro_0['temperature'],sensor_baro_0['pressure']-median_pressure,'b')
 plt.plot(temp_resample,baro_0_x_resample,'r')
 plt.title('Baro 0 ({}) Bias vs Temperature'.format(baro_0_params['TC_B0_ID']))
 plt.ylabel('Z bias (Pa)')
@@ -1717,9 +1717,9 @@ if num_baros >= 2:
     # fit data
     median_pressure = np.median(sensor_baro_1['pressure'])
     if noResample:
-        coef_baro_1_x = np.polyfit(temp_rel,100*(sensor_baro_1['pressure']-median_pressure),5) # convert from hPa to Pa
+        coef_baro_1_x = np.polyfit(temp_rel,(sensor_baro_1['pressure']-median_pressure),5) # pressure in Pascal
     else:
-        temperature, baro = resampleWithDeltaX(temp_rel,100*(sensor_baro_1['pressure']-median_pressure)) # convert from hPa to Pa
+        temperature, baro = resampleWithDeltaX(temp_rel,(sensor_baro_1['pressure']-median_pressure)) # pressure in Pascal
         coef_baro_1_x = np.polyfit(temperature,baro,5)
 
     baro_1_params['TC_B1_X5'] = coef_baro_1_x[0]
@@ -1736,7 +1736,7 @@ if num_baros >= 2:
     plt.figure(14,figsize=(20,13))
 
     # draw plots
-    plt.plot(sensor_baro_1['temperature'],100*sensor_baro_1['pressure']-100*median_pressure,'b')
+    plt.plot(sensor_baro_1['temperature'],sensor_baro_1['pressure']-median_pressure,'b')
     plt.plot(temp_resample,baro_1_x_resample,'r')
     plt.title('Baro 1 ({}) Bias vs Temperature'.format(baro_1_params['TC_B1_ID']))
     plt.ylabel('Z bias (Pa)')
@@ -1778,9 +1778,9 @@ if num_baros >= 3:
     # fit data
     median_pressure = np.median(sensor_baro_2['pressure'])
     if noResample:
-        coef_baro_2_x = np.polyfit(temp_rel,100*(sensor_baro_2['pressure']-median_pressure),5) # convert from hPa to Pa
+        coef_baro_2_x = np.polyfit(temp_rel,(sensor_baro_2['pressure']-median_pressure),5) # pressure in Pascal
     else:
-        temperature, baro = resampleWithDeltaX(temp_rel,100*(sensor_baro_2['pressure']-median_pressure)) # convert from hPa to Pa
+        temperature, baro = resampleWithDeltaX(temp_rel,(sensor_baro_2['pressure']-median_pressure)) # pressure in Pascal
         coef_baro_2_x = np.polyfit(temperature,baro,5)
 
     baro_2_params['TC_B2_X5'] = coef_baro_2_x[0]
@@ -1797,7 +1797,7 @@ if num_baros >= 3:
     plt.figure(15,figsize=(20,13))
 
     # draw plots
-    plt.plot(sensor_baro_2['temperature'],100*sensor_baro_2['pressure']-100*median_pressure,'b')
+    plt.plot(sensor_baro_2['temperature'],sensor_baro_2['pressure']-median_pressure,'b')
     plt.plot(temp_resample,baro_2_x_resample,'r')
     plt.title('Baro 2 ({}) Bias vs Temperature'.format(baro_2_params['TC_B2_ID']))
     plt.ylabel('Z bias (Pa)')
@@ -1838,7 +1838,7 @@ if num_baros >= 4:
 
     # fit data
     median_pressure = np.median(sensor_baro_3['pressure'])
-    coef_baro_3_x = np.polyfit(temp_rel,100*(sensor_baro_3['pressure']-median_pressure),5) # convert from hPa to Pa
+    coef_baro_3_x = np.polyfit(temp_rel,(sensor_baro_3['pressure']-median_pressure),5) # pressure in Pascal
     baro_3_params['TC_B3_X5'] = coef_baro_3_x[0]
     baro_3_params['TC_B3_X4'] = coef_baro_3_x[1]
     baro_3_params['TC_B3_X3'] = coef_baro_3_x[2]
@@ -1853,7 +1853,7 @@ if num_baros >= 4:
     plt.figure(16,figsize=(20,13))
 
     # draw plots
-    plt.plot(sensor_baro_3['temperature'],100*sensor_baro_3['pressure']-100*median_pressure,'b')
+    plt.plot(sensor_baro_3['temperature'],sensor_baro_3['pressure']-median_pressure,'b')
     plt.plot(temp_resample,baro_3_x_resample,'r')
     plt.title('Baro 3 ({}) Bias vs Temperature'.format(baro_3_params['TC_B3_ID']))
     plt.ylabel('Z bias (Pa)')

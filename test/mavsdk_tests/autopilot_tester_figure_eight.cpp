@@ -1,7 +1,7 @@
 
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,8 +39,9 @@
 #include <future>
 #include <vector>
 
+
 #include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
-#include <mavlink/development/mavlink_msg_figure_eight_execution_status.h>
+
 
 using namespace mavsdk::geometry;
 

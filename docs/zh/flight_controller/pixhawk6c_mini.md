@@ -111,7 +111,7 @@ Please refer to the [Pixhawk 4 Mini Wiring Quick Start](../assembly/quick_start_
 
 | UART   | 设备         | QGC Parameter Description | Port Label on FC |
 | ------ | ---------- | ------------------------- | ---------------- |
-| USART1 | /dev/ttyS0 | GPS1                      | GPS1             |
+| USART1 | UART       | GPS1                      | GPS1             |
 | USART2 | /dev/ttyS1 | TELEM3                    | N/A              |
 | USART3 | /dev/ttyS2 | N/A                       | FMU Debug        |
 | UART5  | /dev/ttyS3 | TELEM2                    | TELEM2           |
@@ -205,7 +205,7 @@ For information about using this port see:
 Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
 The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
 
-## See Also
+## 另见
 
 - [Holybro Docs](https://docs.holybro.com/) (Holybro)
 - [Pixhawk 4 Mini Wiring Quick Start](../assembly/quick_start_pixhawk4_mini.md) (and [Pixhawk 6C Wiring QuickStart](../assembly/quick_start_pixhawk6c.md))

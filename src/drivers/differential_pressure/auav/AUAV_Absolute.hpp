@@ -51,6 +51,8 @@ static constexpr uint8_t EEPROM_ABS_ES		= 0x38;
 /* Measurement rate is 50Hz */
 static constexpr unsigned ABS_MEAS_RATE = 50;
 static constexpr int64_t ABS_CONVERSION_INTERVAL = (1000000 / ABS_MEAS_RATE); /* microseconds */
+/* reading too fast can yield all zero data -> incorrect sensor reading */
+static_assert(ABS_CONVERSION_INTERVAL >= 7000, "Conversion interval is too fast");
 
 /* Conversions */
 static constexpr float MBAR_TO_PA = 100.0f;

@@ -1,3 +1,8 @@
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData();
+</script>
+
 <div style="float:right; padding:10px; margin-right:20px;"><a href="https://px4.io/"><img src="../assets/site/logo_pro_small.png" title="PX4 Logo" width="180px" /></a></div>
 
 # Посібник користувача автопілота PX4
@@ -8,16 +13,21 @@ PX4 is the _Professional Autopilot_.
 Розроблений розробниками світового класу з дрон індустрії та наукових закладів і активно підтримується спільнотою у світі. Він дозволяє працювати з різними типами безпілотних транспортних засобів від гоночних, вантажних дронів до сухопутних автомобілів та надводних човнів.
 
 :::tip
-This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle. Хочете зробити внесок? Check out the [Development](development/development.md) section.
-
+This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle.
+Хочете зробити внесок? Check out the [Development](development/development.md) section.
 :::
 
+<div v-if="site.title == 'PX4 Guide (main)'">
+
 :::warning
+
 This guide is for the _development_ version of PX4 (`main` branch).
 Use the **Version** selector to find the current _stable_ version.
 
 Documented changes since the stable release are captured in the evolving [release note](releases/main.md).
 :::
+
+</div>
 
 ## Як почати?
 

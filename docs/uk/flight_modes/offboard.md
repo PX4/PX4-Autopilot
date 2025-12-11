@@ -62,6 +62,11 @@ bool thrust_and_torque
 bool direct_actuator
 ```
 
+:::warning
+The following list shows the `OffboardControlMode` options for copter, fixed-wing, and VTOL.
+For rovers see the [rover section](#rover).
+:::
+
 The fields are ordered in terms of priority such that `position` takes precedence over `velocity` and later fields, `velocity` takes precedence over `acceleration`, and so on.
 Перше поле, яке має ненульове значення (зверху вниз), визначає, яка допустима оцінка необхідна для використання режиму безпілотного керування, а також повідомлення заданих значень, які можуть бути використані.
 For example, if the `acceleration` field is the first non-zero value, then PX4 requires a valid `velocity estimate`, and the setpoint must be specified using the `TrajectorySetpoint` message.
@@ -90,20 +95,93 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
     - Velocity setpoint (`velocity` different from `NaN` and `position` set to `NaN`). Non-`NaN` values acceleration are used as feedforward terms for the inner loop controllers.
     - Acceleration setpoint (`acceleration` different from `NaN` and `position` and `velocity` set to `NaN`)
 
-  - Всі значення інтерпретуються в NED (Nord, East, Down) координатну систему і одиниці вимірювання, є \[m/s\] і \[m/s^2\] для позиції, швидкості і прискорення, відповідно.
+  - All values are interpreted in NED (Nord, East, Down) coordinate system and the units are `[m]`, `[m/s]` and `[m/s^2]` for position, velocity and acceleration, respectively.
 
 - [px4_msgs::msg::VehicleAttitudeSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitudeSetpoint.msg)
   - Підтримується наступна комбінація введення:
     - quaternion `q_d` + thrust setpoint `thrust_body`.
-      Non-`NaN` values of `yaw_sp_move_rate` are used as feedforward terms expressed in Earth frame and in \[rad/s\].
+      Non-`NaN` values of `yaw_sp_move_rate` are used as feedforward terms expressed in Earth frame and in `[rad/s]`.
 
-  - Кватерніон представляє обертання між корпусом дрона у системі координат FRD (перед, праворуч, вниз) та системою координат NED. Тяга у корпусі дрона виражена у системі координат FRD та у нормалізованих значеннях.
+  - Кватерніон представляє обертання між корпусом дрона у системі координат FRD (перед, праворуч, вниз) та системою координат NED.
+    Тяга у корпусі дрона виражена у системі координат FRD та у нормалізованих значеннях.
 
 - [px4_msgs::msg::VehicleRatesSetpoint](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleRatesSetpoint.msg)
   - Підтримується наступна комбінація введення:
     - `roll`, `pitch`, `yaw` and `thrust_body`.
 
-  - Всі значення подані в для дрона в системі FRD. Значення в \[rad/s\] і thrust_body нормалізовано в \[-1, 1\].
+  - Всі значення подані в для дрона в системі FRD.
+    The rates are in `[rad/s]` while thrust_body is normalized in `[-1, 1]`.
+
+### Ровер
+
+Rover modules must set the control mode using `OffboardControlMode` and use the appropriate messages to configure the corresponding setpoints.
+The approach is similar to other vehicle types, but the allowed control mode combinations and setpoints are different:
+
+| Category                                                                               | Використання            | Setpoints                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (Recommended) [Rover Setpoints](#rover-setpoints)                   | General rover control   | [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md), [RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md), [RoverAttitudeSetpoint](../msg_docs/RoverAttitudeSetpoint.md), [RoverRateSetpoint](../msg_docs/RoverRateSetpoint.md), [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md), [RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md) |
+| [Actuator Setpoints](#actuator-setpoints)                                              | Direct actuator control | [ActuatorMotors](../msg_docs/ActuatorMotors.md), [ActuatorServos](../msg_docs/ActuatorServos.md)                                                                                                                                                                                                                                                                           |
+| (Deprecated) [Trajectory Setpoint](#deprecated-trajectory-setpoint) | General vehicle control | [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                                                                                                                                                                                                                                                                                                                    |
+
+#### Rover Setpoints
+
+The rover modules use a hierarchical structure to propagate setpoints:
+
+![Rover Control Structure](../../assets/middleware/ros2/px4_ros2_interface_lib/rover_control_structure.svg)
+
+The "highest" setpoint that is provided will be used within the PX4 rover modules to generate the setpoints that are below it (overriding them!).
+With this hierarchy there are clear rules for providing a valid control input:
+
+- Provide a position setpoint **or**
+- One of the setpoints on the "left" (speed **or** throttle) **and** one of the setpoints on the "right" (attitude, rate **or** steering).
+  All combinations of "left" and "right" setpoints are valid.
+
+The following are all valid setpoint combinations and their respective control flags that must be set through [OffboardControlMode](../msg_docs/OffboardControlMode.md) (set all others to _false_).
+Additionally, for some combinations we require certain setpoints to be published with `NAN` values so that the setpoints of interest are not overridden by the rover module (due to the hierarchy above).
+&check; are the relevant setpoints we publish, and &cross; are the setpoint that need to be published with `NAN` values.
+
+| Setpoint Combination | Control Flag                                                | [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md) | [RoverSpeedSetpoint](../msg_docs/RoverSpeedSetpoint.md) | [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md) | [RoverAttitudeSetpoint](../msg_docs/RoverAttitudeSetpoint.md) | [RoverRateSetpoint](../msg_docs/RoverRateSetpoint.md) | [RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md) |
+| -------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
+| Положення            | положення                                                   | &check;                                   |                                                         |                                                               |                                                               |                                                       |                                                               |
+| Speed + Attitude     | швидкість                                                   |                                                               | &check;                             |                                                               | &check;                                   |                                                       |                                                               |
+| Speed + Rate         | швидкість                                                   |                                                               | &check;                             |                                                               | &cross;                                   | &check;                           |                                                               |
+| Speed + Steering     | швидкість                                                   |                                                               | &check;                             |                                                               | &cross;                                   | &cross;                           | &check;                                   |
+| Throttle + Attitude  | attitude                                                    |                                                               |                                                         | &check;                                   | &check;                                   |                                                       |                                                               |
+| Throttle + Rate      | body_rate                              |                                                               |                                                         | &check;                                   |                                                               | &check;                           |                                                               |
+| Throttle + Steering  | thrust_and_torque |                                                               |                                                         | &check;                                   |                                                               |                                                       | &check;                                   |
+
+:::info
+If you intend to use the rover setpoints, we recommend using the [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) instead since it simplifies the publishing of these setpoints.
+:::
+
+#### Actuator Setpoints
+
+Instead of controlling the vehicle using position, speed, rate and other setpoints, you can directly control the motors and actuators using [ActuatorMotors](../msg_docs/ActuatorMotors.md) and [ActuatorServos](../msg_docs/ActuatorServos.md).
+In [OffboardControlMode](../msg_docs/OffboardControlMode.md) set `direct_actuator` to _true_ and all other flags to _false_.
+
+:::info
+This bypasses the rover modules including any limits on steering rates or accelerations and the inverse kinematics step.
+We recommend using [RoverSteeringSetpoint](../msg_docs/RoverSteeringSetpoint.md) and [RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md) instead for low level control (see [Rover Setpoints](#rover-setpoints)).
+:::
+
+#### (Deprecated) Trajectory Setpoint
+
+:::warning
+The [Rover Setpoints](#rover-setpoints) are a replacement for the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) and we highly recommend using those instead as they have a well defined behaviour and offer more flexibility.
+:::
+
+The rover modules support the _position_, _velocity_ and _yaw_ fields of the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md).
+However, only one of the fields is active at a time and is defined by the flags of [OffboardControlMode](../msg_docs/OffboardControlMode.md):
+
+| Control Mode Flag | Active Trajectory Setpoint Field |
+| ----------------- | -------------------------------- |
+| положення         | положення                        |
+| швидкість         | швидкість                        |
+| attitude          | yaw                              |
+
+:::info
+Ackermann rovers do not support the yaw setpoint.
+:::
 
 ### Універсальний апарат
 
@@ -116,8 +194,10 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 
 - [px4_msgs::msg::ActuatorMotors](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ActuatorMotors.msg) + [px4_msgs::msg::ActuatorServos](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ActuatorServos.msg)
   - Ви безпосередньо керуєте вихідними сигналами моторів та/або сервоприводів.
-  - Currently works at lower level than then `control_allocator` module. Do not publish these messages when not in offboard mode.
-  - Усі значення нормалізовані у діапазоні \[-1, 1\]. For outputs that do not support negative values, negative entries map to `NaN`.
+  - Currently works at lower level than then `control_allocator` module.
+    Do not publish these messages when not in offboard mode.
+  - All the values normalized in `[-1, 1]`.
+    For outputs that do not support negative values, negative entries map to `NaN`.
   - `NaN` maps to disarmed.
 
 ## Повідомлення MAVLink
@@ -206,41 +286,7 @@ Before using offboard mode with ROS 2, please spend a few minutes understanding 
 
 ### Ровер
 
-- [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
-  - The following input combinations are supported (in `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
-    - Position setpoint (only `x`, `y`, `z`)
-      - Specify the _type_ of the setpoint in `type_mask`:
-
-        ::: info
-        The _setpoint type_ values below are not part of the MAVLink standard for the `type_mask` field.
-        ::
-
-        Значення:
-
-        - 12288: задане значення Loiter (пристрій зупиняється, коли вже достатньо близько, щоб встановити точку).
-
-    - Velocity setpoint (only `vx`, `vy`, `vz`)
-
-  - PX4 supports the coordinate frames (`coordinate_frame` field): [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) and [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED).
-
-- [SET_POSITION_TARGET_GLOBAL_INT](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT)
-  - The following input combinations are supported (in `type_mask`): <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/FlightTasks/tasks/Offboard/FlightTaskOffboard.cpp#L166-L170 -->
-    - Position setpoint (only `lat_int`, `lon_int`, `alt`)
-
-  - Specify the _type_ of the setpoint in `type_mask` (not part of the MAVLink standard).
-    Значення:
-    - Якщо наступні біти не встановлені, то виконується звичайна поведінка.
-    - 12288: задане значення Loiter (пристрій зупиняється, коли вже достатньо близько, щоб встановити точку).
-
-  - PX4 supports the coordinate frames (`coordinate_frame` field): [MAV_FRAME_GLOBAL](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL).
-
-- [SET_ATTITUDE_TARGET](https://mavlink.io/en/messages/common.html#SET_ATTITUDE_TARGET)
-  - Підтримуються наступні вхідні комбінації:
-    - Attitude/orientation (`SET_ATTITUDE_TARGET.q`) with thrust setpoint (`SET_ATTITUDE_TARGET.thrust`).
-      ::: info
-      Only the yaw setting is actually used/extracted.
-
-:::
+Rover does not support a MAVLink offboard API (ROS2 is supported).
 
 ## Параметри для відключення
 

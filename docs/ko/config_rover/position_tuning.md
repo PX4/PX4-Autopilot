@@ -43,7 +43,7 @@ To tune the position controller configure the [parameters](../advanced_config/pa
 
 :::
 
-3. Plot the `adjusted_speed_body_x_setpoint` and `measured_speed_body_x` from the [RoverVelocityStatus](../msg_docs/RoverVelocityStatus.md) message over each other.
+3. Plot the `adjusted_speed_body_x_setpoint` and `measured_speed_body_x` from the [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md) message over each other.
    If the tracking of these setpoints is not satisfactory adjust the values for [RO_SPEED_P](../advanced_config/parameter_reference.md#RO_SPEED_P) and [RO_SPEED_I](../advanced_config/parameter_reference.md#RO_SPEED_I).
 
 ## Path Following

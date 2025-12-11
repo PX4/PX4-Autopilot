@@ -104,9 +104,10 @@ Set the following parameters in _QGroundControl_:
 
 You may need to [configure the following parameters](../dronecan/index.md#qgc-cannode-parameter-configuration) on the ARK Flow MR itself:
 
-| 参数                                                                                                                   | 描述                                            |
-| -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM) | CAN built-in bus termination. |
+| 参数                                                                                                                                                 | 描述                                                                                                                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID. |
+| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)                               | CAN built-in bus termination.                                                                                                                                                                               |
 
 ## LED含义
 
@@ -127,6 +128,6 @@ If you see a solid red LED there is an error and you should check the following:
 
 _PX4 holding position using the ARK Flow MR sensor for velocity estimation (in [Position Mode](../flight_modes_mc/position.md))._
 
-## See Also
+## 另见
 
 - [ARK Flow MR](https://arkelectron.gitbook.io/ark-documentation/sensors/ark-flow-mr) (ARK Docs)

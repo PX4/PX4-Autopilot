@@ -55,22 +55,13 @@ then
 	set INA_CONFIGURED yes
 fi
 
-#Start Auterion Power Module selector for Skynode boards
-if ver hwbasecmp 009 010 011
+if [ $INA_CONFIGURED = no ]
 then
-	pm_selector_auterion start
-
-	# Auterion's INA238 uses a shunt value of 0.0003 instead of 0.0005.
-	param set-default INA238_SHUNT 0.0003
-else
-	if [ $INA_CONFIGURED = no ]
+	# INA226, INA228, INA238 auto-start
+	i2c_launcher start -b 1
+	if [ $HAVE_PM2 = yes ]
 	then
-		# INA226, INA228, INA238 auto-start
-		i2c_launcher start -b 1
-		if [ $HAVE_PM2 = yes ]
-		then
-			i2c_launcher start -b 2
-		fi
+		i2c_launcher start -b 2
 	fi
 fi
 
@@ -96,33 +87,22 @@ else
 		icm20649 -s -R 6 start
 	else
 		# Internal SPI BMI088
-		if ver hwbasecmp 009 010 011
+		if ver hwtypecmp V6X010
 		then
-			bmi088 -A -R 6 -s start
-			bmi088 -G -R 6 -s start
+			bmi088 -A -R 0 -s start
+			bmi088 -G -R 0 -s start
 		else
-			if ver hwtypecmp V6X010
-			then
-				bmi088 -A -R 0 -s start
-				bmi088 -G -R 0 -s start
-			else
-				bmi088 -A -R 4 -s start
-				bmi088 -G -R 4 -s start
-			fi
+			bmi088 -A -R 4 -s start
+			bmi088 -G -R 4 -s start
 		fi
 	fi
 
 	# Internal SPI bus ICM42688p
-	if ver hwbasecmp 009 010 011
+	if ver hwtypecmp V6X010
 	then
-		icm42688p -R 12 -s start
+		icm42688p -R 14 -s start
 	else
-		if ver hwtypecmp V6X010
-		then
-			icm42688p -R 14 -s start
-		else
-			icm42688p -R 6 -s start
-		fi
+		icm42688p -R 6 -s start
 	fi
 
 	if ver hwtypecmp V6X003 V6X004
@@ -130,13 +110,8 @@ else
 		# Internal SPI bus ICM-42670-P (hard-mounted)
 		icm42670p -R 10 -s start
 	else
-		if ver hwbasecmp 009 010 011
-		then
-			icm20602 -R 6 -s start
-		else
-			# Internal SPI bus ICM-20649 (hard-mounted)
-			icm20649 -R 14 -s start
-		fi
+		# Internal SPI bus ICM-20649 (hard-mounted)
+		icm20649 -R 14 -s start
 	fi
 fi
 

@@ -325,6 +325,8 @@ bootloaders_update: \
 	ark_fmu-v6x_bootloader \
 	ark_fpv_bootloader \
 	ark_pi6x_bootloader \
+	auterion_fmu-v6s_bootloader \
+	auterion_fmu-v6x_bootloader \
 	cuav_nora_bootloader \
 	cuav_x7pro_bootloader \
 	cuav_7-nano_bootloader \
@@ -344,6 +346,7 @@ bootloaders_update: \
         micoair_h743_bootloader \
         micoair_h743-aio_bootloader \
 	micoair_h743-v2_bootloader \
+	micoair_h743-lite_bootloader \
 	modalai_fc-v2_bootloader \
 	mro_ctrl-zero-classic_bootloader \
 	mro_ctrl-zero-h7_bootloader \

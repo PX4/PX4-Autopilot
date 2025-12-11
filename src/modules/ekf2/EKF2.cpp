@@ -580,6 +580,24 @@ void EKF2::Run()
 				command_ack.timestamp = hrt_absolute_time();
 				_vehicle_command_ack_pub.publish(command_ack);
 			}
+
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE) {
+				if (PX4_ISFINITE(vehicle_command.param3)) {
+					const float heading = wrap_pi(math::radians(vehicle_command.param3));
+					static constexpr float kDefaultHeadingAccuracyDeg = 20.f;
+					const float heading_accuracy = math::radians(PX4_ISFINITE(vehicle_command.param7)
+								       ? vehicle_command.param7
+								       : kDefaultHeadingAccuracyDeg);
+					_ekf.resetHeadingToExternalObservation(heading, heading_accuracy);
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+				} else {
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+				}
+
+				command_ack.timestamp = hrt_absolute_time();
+				_vehicle_command_ack_pub.publish(command_ack);
+			}
 		}
 	}
 
@@ -1935,6 +1953,9 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_constant_pos        = _ekf.control_status_flags().constant_pos;
 		status_flags.cs_baro_fault	    = _ekf.control_status_flags().baro_fault;
 		status_flags.cs_gnss_vel            = _ekf.control_status_flags().gnss_vel;
+		status_flags.cs_gnss_fault          = _ekf.control_status_flags().gnss_fault;
+		status_flags.cs_yaw_manual          = _ekf.control_status_flags().yaw_manual;
+		status_flags.cs_gnss_hgt_fault      = _ekf.control_status_flags().gnss_hgt_fault;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -2065,10 +2086,10 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 		if (_airspeed_validated_sub.update(&airspeed_validated)) {
 
 			if (PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-			    && (airspeed_validated.airspeed_source > airspeed_validated_s::GROUND_MINUS_WIND)
+			    && (airspeed_validated.airspeed_source > airspeed_validated_s::SOURCE_GROUND_MINUS_WIND)
 			   ) {
 
-				_ekf.setSyntheticAirspeed(airspeed_validated.airspeed_source == airspeed_validated_s::SYNTHETIC);
+				_ekf.setSyntheticAirspeed(airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SYNTHETIC);
 
 				float cas2tas = 1.f;
 
@@ -2431,8 +2452,12 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
 
+		// if pps_compensation is active but not valid, the timestamp_sample will be equal to timestamp
+		const bool pps_compensation = vehicle_gps_position.timestamp_sample > 0
+					      && vehicle_gps_position.timestamp_sample != vehicle_gps_position.timestamp;
+
 		gnssSample gnss_sample{
-			.time_us = vehicle_gps_position.timestamp,
+			.time_us = pps_compensation ? vehicle_gps_position.timestamp_sample : vehicle_gps_position.timestamp,
 			.lat = vehicle_gps_position.latitude_deg,
 			.lon = vehicle_gps_position.longitude_deg,
 			.alt = altitude_amsl,
@@ -2447,10 +2472,10 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.yaw = vehicle_gps_position.heading, //TODO: move to different message
 			.yaw_acc = vehicle_gps_position.heading_accuracy,
 			.yaw_offset = vehicle_gps_position.heading_offset,
-			.spoofed = vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_MULTIPLE,
+			.spoofed = vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED,
 		};
 
-		_ekf.setGpsData(gnss_sample);
+		_ekf.setGpsData(gnss_sample, pps_compensation);
 
 		const float geoid_height = altitude_ellipsoid - altitude_amsl;
 
@@ -2589,14 +2614,18 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 		// vehicle_status
 		vehicle_status_s vehicle_status;
 
+		bool armed = false;
+
 		if (_status_sub.copy(&vehicle_status)
 		    && (ekf2_timestamps.timestamp < vehicle_status.timestamp + 3_s)) {
 
 			// initially set in_air from arming_state (will be overridden if land detector is available)
-			flags.in_air = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			flags.in_air = armed;
 
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 			flags.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+			flags.in_transition_to_fw = vehicle_status.in_transition_to_fw;
 
 #if defined(CONFIG_EKF2_SIDESLIP)
 
@@ -2618,6 +2647,9 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 			flags.at_rest = vehicle_land_detected.at_rest;
 			flags.in_air = !vehicle_land_detected.landed;
 			flags.gnd_effect = vehicle_land_detected.in_ground_effect;
+
+			// Enable constant position fusion for engine warmup when landed and armed
+			flags.constant_pos = _param_ekf2_engine_wrm.get() && !flags.in_air && armed;
 		}
 
 		launch_detection_status_s launch_detection_status;

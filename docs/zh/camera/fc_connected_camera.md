@@ -97,13 +97,13 @@ For more information see [Finding/Updating Parameters > Parameters Not In Firmwa
 
 Four different modes are supported, controlled by the [TRIG_MODE](../advanced_config/parameter_reference.md#TRIG_MODE) parameter:
 
-| Mode | 描述                                                                                                                                                                                                                                             |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Camera triggering is disabled.                                                                                                                                                                                                 |
-| 1    | Works like a basic intervalometer that can be enabled and disabled by using the MAVLink command `MAV_CMD_DO_TRIGGER_CONTROL`. See [command interface](#mavlink-command-interface) for more details.            |
-| 2    | Switches the intervalometer constantly on.                                                                                                                                                                                     |
-| 3    | Triggers based on distance. A shot is taken every time the set horizontal distance is exceeded. The minimum time interval between two shots is however limited by the set triggering interval. |
-| 4    | Triggers automatically when flying a survey in Mission mode.                                                                                                                                                                   |
+| 模式 | 描述                                                                                                                                                                                                                                             |
+| -- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0  | Camera triggering is disabled.                                                                                                                                                                                                 |
+| 1  | Works like a basic intervalometer that can be enabled and disabled by using the MAVLink command `MAV_CMD_DO_TRIGGER_CONTROL`. See [command interface](#mavlink-command-interface) for more details.            |
+| 2  | Switches the intervalometer constantly on.                                                                                                                                                                                     |
+| 3  | Triggers based on distance. A shot is taken every time the set horizontal distance is exceeded. The minimum time interval between two shots is however limited by the set triggering interval. |
+| 4  | Triggers automatically when flying a survey in Mission mode.                                                                                                                                                                   |
 
 :::info
 If it is your first time enabling the camera trigger app, remember to reboot after changing the `TRIG_MODE` parameter.
@@ -188,16 +188,16 @@ The following sections are out of date and need retesting.
 
 1. On the PX4 console:
 
-  ```shell
-  camera_trigger test
-  ```
+   ```shell
+   camera_trigger test
+   ```
 
 2. From _QGroundControl_:
 
-  Click on **Trigger Camera** in the main instrument panel.
-  These shots are not logged or counted for geotagging.
+   Click on **Trigger Camera** in the main instrument panel.
+   These shots are not logged or counted for geotagging.
 
-  ![QGC Test Camera](../../assets/camera/qgc_test_camera.png)
+   ![QGC Test Camera](../../assets/camera/qgc_test_camera.png)
 
 ## Sony QX-1 example (Photogrammetry)
 
@@ -310,7 +310,7 @@ Wire up your cameras to your AUX port by connecting the ground and signal pins t
 You will have to modify your driver to follow the sequence diagram above.
 Public reference implementations for [IDS Imaging UEye](https://github.com/ProjectArtemis/ueye_cam) cameras and for [IEEE1394 compliant](https://github.com/andre-nguyen/camera1394) cameras are available.
 
-## See Also
+## 另见
 
 - Camera trigger driver: [source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger) <!-- no module doc -->
 - Camera capture driver: [source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_capture) <!-- no module doc -->

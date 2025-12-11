@@ -154,6 +154,12 @@ then
 	fi
 fi
 
+# Microchip MCP9808 temperature sensor external I2C
+if param compare -s SENS_EN_MCP9808 1
+then
+	mcp9808 start -X
+fi
+
 # TE MS4515 differential pressure sensor external I2C
 if param compare -s SENS_EN_MS4515 1
 then
@@ -217,6 +223,18 @@ if param compare -s SENS_EN_PCF8583 1
 then
 	pcf8583 start -X
 	pcf8583 start -X -a 0x51
+fi
+
+# ADC sensor ADS7953 external SPI
+if param compare -s ADC_ADS7953_EN 1
+then
+	ads7953 start -S
+fi
+
+# ADC sensor tla2528 external I2C
+if param compare -s ADC_TLA2528_EN 1
+then
+	tla2528 start -X
 fi
 
 # probe for optional external I2C devices

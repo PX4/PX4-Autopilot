@@ -20,6 +20,26 @@ make ark_can-flow_default
 
 This will create an output in **build/ark_can-flow_default** named **XX-X.X.XXXXXXXX.uavcan.bin**. Follow the instructions at [DroneCAN firmware update](index.md#firmware-update) to flash the firmware.
 
+## Configuration
+
+### Static Node ID
+
+By default, DroneCAN devices use [Dynamic Node Allocation (DNA)](index.md#node-id-allocation) to automatically obtain a unique node ID from the flight controller.
+However, you can configure a static node ID using the [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) parameter.
+
+To configure a static node ID:
+
+1. Set [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) to a value between 1-127 using [QGroundControl](index.md#qgc-cannode-parameter-configuration)
+2. Reboot the device
+
+To return to dynamic allocation, set `CANNODE_NODE_ID` back to 0.
+Note that when switching back to dynamic allocation, the flight controller will typically continue to allocate the same node ID that was previously used (this is normal DNA behavior).
+
+:::warning
+When using static node IDs, you must ensure that each device on the CAN bus has a unique node ID.
+Configuring two devices with the same ID will cause communication conflicts.
+:::
+
 ## Developer Information
 
 This section has information that is relevant to developers who want to add support for new DroneCAN hardware to the PX4 Autopilot.
