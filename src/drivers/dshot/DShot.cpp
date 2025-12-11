@@ -526,7 +526,7 @@ void DShot::Run()
 
 	handle_vehicle_commands();
 
-	if (!_mixing_output.armed().armed) {
+	if (!_mixing_output.motorsActive()) {
 		if (_reversible_outputs != _mixing_output.reversibleOutputs()) {
 			_reversible_outputs = _mixing_output.reversibleOutputs();
 			update_params();

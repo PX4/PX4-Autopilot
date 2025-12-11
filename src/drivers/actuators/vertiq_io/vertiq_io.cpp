@@ -139,14 +139,6 @@ void VertiqIo::Run()
 	_mixing_output.update();
 	_mixing_output.updateSubscriptions(true);
 
-	//Go ahead and check to see if our actuator test has gotten anything new
-	if (_actuator_test_sub.updated()) {
-		_actuator_test_sub.copy(&_actuator_test);
-
-		//Our test is active if anyone is giving us commands through the actuator test
-		_actuator_test_active = _actuator_test.action == actuator_test_s::ACTION_DO_CONTROL;
-	}
-
 	//stop our timer
 	perf_end(_loop_perf);
 }
@@ -200,8 +192,7 @@ bool VertiqIo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outpu
 {
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 
-	if (_mixing_output.armed().armed) {
-
+	if (_mixing_output.motorsActive()) {
 		if (_param_vertiq_arm_behavior.get() == FORCE_ARMING && _send_forced_arm) {
 			_broadcast_arming_handler.motor_armed_.set(*_serial_interface.GetIquartInterface(), 1);
 			_send_forced_arm = false;
@@ -213,9 +204,6 @@ bool VertiqIo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outpu
 		//So, here we'll set the telem request ID to something that no one will respond to. Another function will take charge of setting it to a
 		//proper value when necessary
 		_transmission_message.telem_byte = _impossible_module_id;
-
-	} else if (_actuator_test_active) {
-		OutputControls(outputs);
 
 	} else {
 		//Put the modules into coast
@@ -240,8 +228,6 @@ bool VertiqIo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outpu
 		if (!_send_forced_arm) {
 			_send_forced_arm = true;
 		}
-
-		_actuator_test_active = false;
 	}
 
 	//Publish our esc status to uORB

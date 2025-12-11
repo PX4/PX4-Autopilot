@@ -544,7 +544,7 @@ void Voxl2IO::Run()
 	_mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
 
 	/* update PWM status if armed or if disarmed PWM values are set */
-	_pwm_on = _mixing_output.armed().armed;
+	_pwm_on = _mixing_output.motorsActive();
 
 	//receive packets from voxl_io board
 	receive_uart_packets();

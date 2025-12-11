@@ -427,10 +427,6 @@ bool MixingOutput::update()
 		if (_ignore_lockdown) {
 			_armed.lockdown = false;
 		}
-
-		/* Update the armed status and check that we're not locked down.
-		 * We also need to arm throttle for the ESC calibration. */
-		_throttle_armed = (_armed.armed && !_armed.lockdown) || _armed.in_esc_calibration_mode;
 	}
 
 	// only used for sitl with lockstep
@@ -502,7 +498,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 
 	} else {
 		// the output limit call takes care of out of band errors, NaN and constrains
-		output_limit_calc(_throttle_armed || _actuator_test.inTestMode(), _max_num_outputs, outputs);
+		output_limit_calc(motorsActive(), _max_num_outputs, outputs);
 	}
 
 	// We must calibrate the PWM and Oneshot ESCs to a consistent range of 1000-2000us (gets mapped to 125-250us for Oneshot)

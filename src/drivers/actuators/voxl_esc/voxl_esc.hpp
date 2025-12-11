@@ -211,7 +211,6 @@ private:
 	uORB::Subscription	_vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription	_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription	_actuator_test_sub{ORB_ID(actuator_test)};
 	uORB::Subscription	_led_update_sub{ORB_ID(led_control)};
 	uORB::Subscription	_esc_serial_passthru_sub{ORB_ID(esc_serial_passthru)};
 

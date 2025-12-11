@@ -162,7 +162,12 @@ public:
 
 	void setMaxTopicUpdateRate(unsigned max_topic_update_interval_us);
 
-	const actuator_armed_s &armed() const { return _armed; }
+	bool motorsActive() const
+	{
+		const bool lockdown = _armed.lockdown || _armed.termination || _armed.kill;
+		const bool need_to_activate = _armed.armed || _armed.in_esc_calibration_mode || _actuator_test.inTestMode();
+		return !lockdown && need_to_activate;
+	}
 
 	void setAllFailsafeValues(uint16_t value);
 	void setAllDisarmedValues(uint16_t value);
@@ -266,7 +271,6 @@ private:
 
 	unsigned _max_topic_update_interval_us{0}; ///< max topic update interval (0=unlimited)
 
-	bool _throttle_armed{false};
 	bool _ignore_lockdown{false}; ///< if true, ignore the _armed.lockdown flag (for HIL outputs)
 
 	const SchedulingPolicy _scheduling_policy;

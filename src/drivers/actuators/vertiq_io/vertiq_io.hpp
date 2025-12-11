@@ -162,16 +162,11 @@ private:
 	uint32_t _telemetry_ids_2 = 0;
 
 	bool _send_forced_arm = true;
-	bool _actuator_test_active = false;
 
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)}; //We want to publish our ESC Status to anyone who will listen
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	//We need to know what's going on with the actuator test to make sure we handle it properly
-	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
-	actuator_test_s _actuator_test;
 
 	//We need to bring in the parameters that we define in module.yaml in order to view them in the
 	//control station, as well as to use them in the firmware

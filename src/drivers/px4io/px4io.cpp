@@ -542,7 +542,7 @@ void PX4IO::Run()
 		// TODO: throttle
 	}
 
-	if (!_mixing_output.armed().armed) {
+	if (!_mixing_output.motorsActive()) {
 		/* vehicle command */
 		if (_t_vehicle_command.updated()) {
 			vehicle_command_s cmd{};
@@ -693,8 +693,7 @@ void PX4IO::update_params()
 
 	updateParams();
 
-	if (!_mixing_output.armed().armed) {
-
+	if (!_mixing_output.motorsActive()) {
 		// Automatically set the PWM rate and disarmed value when a channel is first set to a servo
 		if (!_first_update_cycle) {
 			for (size_t i = 0; i < _max_actuators; i++) {

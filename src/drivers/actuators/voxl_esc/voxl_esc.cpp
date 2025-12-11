@@ -1392,7 +1392,7 @@ void VoxlEsc::Run()
 	_mixing_output.update();  //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
 
 	/* update output status if armed */
-	_outputs_on = _mixing_output.armed().armed;
+	_outputs_on = _mixing_output.motorsActive();
 
 	/* check for parameter updates */
 	if (!_outputs_on && _parameter_update_sub.updated()) {
@@ -1488,13 +1488,6 @@ void VoxlEsc::Run()
 			} else {
 				_gpio_ctl_high = true;
 			}
-		}
-	}
-
-	if (!_outputs_on) {
-		if (_actuator_test_sub.updated()) {
-			// values are set in ActuatorTest::update, we just need to enable outputs to let them through
-			_outputs_on = true;
 		}
 	}
 
