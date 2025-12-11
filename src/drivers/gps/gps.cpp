@@ -39,10 +39,6 @@
 #ifdef __PX4_NUTTX
 #include <nuttx/clock.h>
 #include <nuttx/arch.h>
-#if defined(CONFIG_SCHED_INSTRUMENTATION)
-#include <px4_platform/cpuload.h>
-extern struct system_load_s system_load;
-#endif
 #endif
 
 #ifndef __PX4_QURT
