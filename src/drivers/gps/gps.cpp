@@ -301,7 +301,7 @@ private:
 	int pollOrRead(uint8_t *buf, size_t buf_length, int timeout);
 
 	/**
-	 * check for new messages on the inject data topic & handle them (legacy method)
+	 * check for new messages on the inject data topic & handle them
 	 */
 	void handleInjectDataTopic();
 
@@ -310,7 +310,7 @@ private:
 	 * @param data
 	 * @param len
 	 */
-	inline bool injectData(const uint8_t *data, size_t len);
+	inline bool injectData(uint8_t *data, size_t len);
 
 	/**
 	 * set the Baudrate
@@ -331,7 +331,7 @@ private:
 	 * @param mode calling source
 	 * @param msg_to_gps_device if true, this is a message sent to the gps device, otherwise it's from the device
 	 */
-	void dumpGpsData(const uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device);
+	void dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device);
 
 	void initializeCommunicationDump();
 
@@ -675,7 +675,7 @@ void GPS::handleInjectDataTopic()
 	}
 }
 
-bool GPS::injectData(const uint8_t *data, size_t len)
+bool GPS::injectData(uint8_t *data, size_t len)
 {
 	dumpGpsData(data, len, gps_dump_comm_mode_t::Full, true);
 
@@ -777,7 +777,7 @@ void GPS::initializeCommunicationDump()
 	_dump_communication_mode = (gps_dump_comm_mode_t)param_dump_comm;
 }
 
-void GPS::dumpGpsData(const uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device)
+void GPS::dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device)
 {
 	gps_dump_s *dump_data  = msg_to_gps_device ? _dump_to_device : _dump_from_device;
 

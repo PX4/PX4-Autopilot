@@ -372,7 +372,7 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 	_mbd_rtcm_counter.addData(msg.data.begin(), msg.data.size());
 
 	// Count complete RTCM frames
-	size_t frame_len;
+	size_t frame_len = {};
 
 	while (_mbd_rtcm_counter.getNextMessage(&frame_len) != nullptr) {
 		_rtcm_log_frame_count++;
