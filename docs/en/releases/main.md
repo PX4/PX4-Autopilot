@@ -55,6 +55,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Sensors
 
 - Add [sbgECom INS driver](../sensor/sbgecom.md) ([PX4-Autopilot#24137](https://github.com/PX4/PX4-Autopilot/pull/24137))
+- Quick magnetometer calibration now supports specifying an arbitrary initial heading ([PX4-Autopilot#24637](https://github.com/PX4/PX4-Autopilot/pull/24637))
 
 ### Simulation
 
