@@ -67,22 +67,56 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 
 	// _angle_outputs are in radians, gimbal_controls are in [-1, 1]
 	gimbal_controls_s gimbal_controls{};
-	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = constrain(
-				(_angle_outputs[0] + math::radians(_parameters.mnt_off_roll)) *
-				(1.0f / (math::radians(_parameters.mnt_range_roll / 2.0f))),
-				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = constrain(
-				(_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch)) *
-				(1.0f / (math::radians(_parameters.mnt_range_pitch / 2.0f))),
-				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = constrain(
-				(_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw)) *
-				(1.0f / (math::radians(_parameters.mnt_range_yaw / 2.0f))),
-				-1.f, 1.f);
+	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = anglesMappedToOutput(gimbal_controls_s::INDEX_ROLL);
+	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = anglesMappedToOutput(gimbal_controls_s::INDEX_PITCH);
+	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = anglesMappedToOutput(gimbal_controls_s::INDEX_YAW);
 	gimbal_controls.timestamp = hrt_absolute_time();
 	_gimbal_controls_pub.publish(gimbal_controls);
 
 	_last_update = now;
+}
+
+float OutputRC::anglesMappedToOutput(const uint8_t index)
+{
+
+	float value = 0.f;
+	float min_value = 0.f;
+	float max_value = 0.f;
+
+	switch (index) {
+	case gimbal_controls_s::INDEX_ROLL: {
+			value = _angle_outputs[0];
+			max_value = math::radians(_parameters.mnt_range_roll) * 0.5f;
+			min_value = -math::radians(_parameters.mnt_range_roll) * 0.5f;
+			break;
+		}
+
+	case gimbal_controls_s::INDEX_PITCH: {
+			value = _angle_outputs[1];
+			max_value = math::radians(_parameters.mnt_max_pitch);
+			min_value = math::radians(_parameters.mnt_min_pitch);
+			break;
+		}
+
+	case gimbal_controls_s::INDEX_YAW: {
+			value = _angle_outputs[2];
+			max_value = math::radians(_parameters.mnt_range_yaw) * 0.5f;
+			min_value = -math::radians(_parameters.mnt_range_yaw) * 0.5f;
+			break;
+		}
+
+	default: {
+			PX4_WARN("INDEX does not exist");
+			break;
+		}
+	}
+
+	if (value >= FLT_EPSILON) {
+		return math::interpolate(value, 0.f, max_value, 0.f, 1.f);
+
+	} else {
+		return math::interpolate(value, min_value, 0.f, -1.f, 0.f);
+	}
 }
 
 void OutputRC::print_status() const
@@ -98,20 +132,46 @@ void OutputRC::_stream_device_attitude_status()
 	attitude_status.target_component = 0;
 	attitude_status.device_flags = 0;
 
-	if (_absolute_angle[0]) {
-		attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_ROLL_LOCK;
+	matrix::Quatf q;
+
+	switch (_parameters.mnt_do_stab) {
+	case MntDoStabilize::PITCH_LOCK: {
+			// Report device attitude in relative frame as external apps are dependent
+			attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
+			matrix::AxisAnglef angle_axis(matrix::Vector3f(0.f, 1.f, 0.f), _angle_outputs[1]);
+			q = matrix::Quaternionf(angle_axis);
+			break;
+		}
+
+	case MntDoStabilize::YAW_LOCK:
+	case MntDoStabilize::ALL_AXES:
+	default: {
+			if (_absolute_angle[0]) {
+				attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_ROLL_LOCK;
+			}
+
+			if (_absolute_angle[1]) {
+				attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_PITCH_LOCK;
+			}
+
+			if (_absolute_angle[2]) {
+				attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_LOCK;
+				// absolute frame
+				q = matrix::Quaternionf(_last_valid_setpoint);
+
+			} else {
+				attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
+				// yaw vehicle frame
+				q = matrix::Quaternionf(_last_valid_setpoint);
+			}
+
+
+			break;
+		}
 	}
 
-	if (_absolute_angle[1]) {
-		attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_PITCH_LOCK;
-	}
 
-	if (_absolute_angle[2]) {
-		attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_LOCK;
-	}
 
-	matrix::Eulerf euler(_angle_outputs[0], _angle_outputs[1], _angle_outputs[2]);
-	matrix::Quatf q(euler);
 	q.copyTo(attitude_status.q);
 
 	attitude_status.failure_flags = 0;
