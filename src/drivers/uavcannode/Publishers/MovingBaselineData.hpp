@@ -115,16 +115,19 @@ public:
 
 				result = uavcan::Publisher<ardupilot::gnss::MovingBaselineData>::broadcast(mbd);
 
+#ifdef DEBUG_RTCM_INJECT
 				if (result >= 0) {
 					_msg_count++;
 					_msg_count_per_interval++;
 					_bytes_count += chunk_size;
 				}
+#endif // DEBUG_RTCM_INJECT
 
 				mbd.data.clear();
 			}
 		}
 
+#ifdef DEBUG_RTCM_INJECT
 		// Print stats every 5 seconds
 		hrt_abstime now = hrt_absolute_time();
 
@@ -137,6 +140,7 @@ public:
 			_last_stats_time = now;
 			_msg_count_per_interval = 0;
 		}
+#endif // DEBUG_RTCM_INJECT
 
 		// ensure callback is registered
 		uORB::SubscriptionCallbackWorkItem::registerCallback();
@@ -145,9 +149,11 @@ public:
 private:
 	unsigned _last_generation{0};
 
+#ifdef DEBUG_RTCM_INJECT
 	uint32_t _msg_count{0};
 	uint32_t _msg_count_per_interval{0};
 	uint32_t _bytes_count{0};
 	hrt_abstime _last_stats_time{0};
+#endif // DEBUG_RTCM_INJECT
 };
 } // namespace uavcannode

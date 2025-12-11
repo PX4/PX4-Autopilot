@@ -39,6 +39,10 @@
 #ifdef __PX4_NUTTX
 #include <nuttx/clock.h>
 #include <nuttx/arch.h>
+#if defined(CONFIG_SCHED_INSTRUMENTATION)
+#include <px4_platform/cpuload.h>
+extern struct system_load_s system_load;
+#endif
 #endif
 
 #ifndef __PX4_QURT
@@ -208,6 +212,7 @@ private:
 	hrt_abstime			_last_rtcm_injection_time{0};			///< time of last rtcm injection
 	uint8_t				_selected_rtcm_instance{0};			///< uorb instance that is being used for RTCM corrections
 
+#ifdef DEBUG_RTCM_INJECT
 	// UART buffer profiling statistics
 	ssize_t				_rx_buf_high_water{0};				///< high water mark of RX buffer usage
 
@@ -235,6 +240,20 @@ private:
 	hrt_abstime			_inject_latency_max{0};				///< max latency in interval
 	uint64_t			_inject_latency_sum{0};				///< sum for averaging
 	uint32_t			_inject_latency_count{0};			///< count for averaging
+
+	// RTCM diagnostic counters (reset every stats interval)
+	uint32_t			_rtcm_uorb_messages{0};				///< uORB messages received
+	uint32_t			_rtcm_tx_not_ready{0};				///< poll cycles where TX not writable
+	uint32_t			_rtcm_tx_blocked{0};				///< times tx_available < frame_len
+
+	// CPU load tracking
+	uint64_t			_last_cpu_runtime{0};
+	hrt_abstime			_last_cpu_check_time{0};
+#endif // DEBUG_RTCM_INJECT
+
+	// Always-enabled diagnostic counters (detect real issues)
+	uint32_t			_rtcm_uorb_gaps{0};				///< generation counter gaps detected
+	uint32_t			_rtcm_parser_bytes_dropped{0};			///< bytes dropped due to buffer full
 
 	const Instance 			_instance;
 
@@ -531,6 +550,13 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 				return -1;
 			}
 
+#ifdef DEBUG_RTCM_INJECT
+			// Track TX not ready when we wanted to write
+			if (want_write && !status.writable) {
+				_rtcm_tx_not_ready++;
+			}
+#endif // DEBUG_RTCM_INJECT
+
 			// Inject complete RTCM frames if TX is ready
 			if (status.writable) {
 				size_t frame_len;
@@ -542,7 +568,9 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 					if ((size_t)tx_available < frame_len) {
 						// TX buffer doesn't have enough space, wait for next poll cycle
-						PX4_WARN("tx_available < frame_len");
+#ifdef DEBUG_RTCM_INJECT
+						_rtcm_tx_blocked++;
+#endif // DEBUG_RTCM_INJECT
 						break;
 					}
 
@@ -556,12 +584,14 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 			// Read GPS data if available
 			if (status.readable) {
+#ifdef DEBUG_RTCM_INJECT
 				ssize_t bytes_available = _uart.bytesAvailable();
 
 				// Track RX high water mark
 				if (bytes_available > _rx_buf_high_water) {
 					_rx_buf_high_water = bytes_available;
 				}
+#endif // DEBUG_RTCM_INJECT
 
 				int n = _uart.read(buf + total_read, buf_length - total_read);
 
@@ -750,7 +780,8 @@ void GPS::drainRTCMFromORB()
 		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
 			const bool exists = _orb_inject_data_sub[instance].advertised();
 
-			if (exists && _orb_inject_data_sub[instance].copy(&msg)) {
+			if (exists && _orb_inject_data_sub[instance].updated()) {
+				_orb_inject_data_sub[instance].copy(&msg);
 				if (msg.device_id != get_device_id()) {
 					if (now < msg.timestamp + 5_s) {
 						PX4_INFO("selected rtcm instance: %d", instance);
@@ -769,46 +800,43 @@ void GPS::drainRTCMFromORB()
 	size_t messages_drained = 0;
 
 	while (messages_drained < max_messages && gps_inject_data_sub.updated()) {
-		if (!gps_inject_data_sub.copy(&msg)) {
+		const unsigned last_generation = gps_inject_data_sub.get_last_generation();
+
+		if (!gps_inject_data_sub.update(&msg)) {
 			break;
+		}
+
+		// Check for generation gaps (indicates uORB queue overflow)
+		if (gps_inject_data_sub.get_last_generation() != last_generation + 1) {
+			_rtcm_uorb_gaps++;
+			PX4_WARN("inject lost, %u -> %u", last_generation,
+				 gps_inject_data_sub.get_last_generation());
 		}
 
 		// Skip messages from self
 		if (msg.device_id == get_device_id()) {
-			// Consume and discard
-			const unsigned last_generation = gps_inject_data_sub.get_last_generation();
-			bool updated = gps_inject_data_sub.update(&msg);
-
-			if (updated && gps_inject_data_sub.get_last_generation() != last_generation + 1) {
-				PX4_WARN("inject lost, %u -> %u", last_generation,
-					 gps_inject_data_sub.get_last_generation());
-			}
-
 			continue;
 		}
 
+#ifdef DEBUG_RTCM_INJECT
 		// Track timestamp from uORB message for latency measurement
 		// Use the oldest timestamp if we haven't set one yet this cycle
 		if (_last_inject_orb_timestamp == 0) {
 			_last_inject_orb_timestamp = msg.timestamp;
 		}
+#endif // DEBUG_RTCM_INJECT
 
 		// Add data to the RTCM parser for frame reassembly
 		size_t added = _rtcm_parser.addData(msg.data, msg.len);
 
 		if (added < msg.len) {
+			_rtcm_parser_bytes_dropped += (msg.len - added);
 			PX4_WARN("RTCM buffer full, dropped %zu bytes", msg.len - added);
 		}
 
-		// Consume the message
-		const unsigned last_generation = gps_inject_data_sub.get_last_generation();
-		bool updated = gps_inject_data_sub.update(&msg);
-
-		if (updated && gps_inject_data_sub.get_last_generation() != last_generation + 1) {
-			PX4_WARN("inject lost, %u -> %u", last_generation,
-				 gps_inject_data_sub.get_last_generation());
-		}
-
+#ifdef DEBUG_RTCM_INJECT
+		_rtcm_uorb_messages++;
+#endif // DEBUG_RTCM_INJECT
 		messages_drained++;
 	}
 }
@@ -830,6 +858,7 @@ bool GPS::injectData(const uint8_t *data, size_t len)
 #endif
 	}
 
+#ifdef DEBUG_RTCM_INJECT
 	// Log injection event for timing analysis
 	if (written > 0) {
 		hrt_abstime now = hrt_absolute_time();
@@ -858,6 +887,7 @@ bool GPS::injectData(const uint8_t *data, size_t len)
 		// Reset timestamp for next cycle
 		_last_inject_orb_timestamp = 0;
 	}
+#endif // DEBUG_RTCM_INJECT
 
 	return written == len;
 }
@@ -1292,6 +1322,7 @@ GPS::run()
 					_helper->storeUpdateRates();
 					_helper->resetUpdateRates();
 
+#ifdef DEBUG_RTCM_INJECT
 					gnss::Rtcm3ParserStats rtcm_stats = _rtcm_parser.getStats();
 
 					// RTCM TX stats (MovingBase publishing frames to uORB)
@@ -1410,6 +1441,26 @@ GPS::run()
 						_inject_latency_sum = 0;
 						_inject_latency_count = 0;
 					}
+
+					// Print RTCM diagnostic counters
+					if (_rtcm_uorb_messages > 0 || _rtcm_uorb_gaps > 0 || _rtcm_parser_bytes_dropped > 0
+					    || _rtcm_tx_not_ready > 0 || _rtcm_tx_blocked > 0) {
+						PX4_INFO("RTCM diag: uorb=%u gaps=%u drop=%u tx_nr=%u tx_blk=%u",
+							 (unsigned)_rtcm_uorb_messages,
+							 (unsigned)_rtcm_uorb_gaps,
+							 (unsigned)_rtcm_parser_bytes_dropped,
+							 (unsigned)_rtcm_tx_not_ready,
+							 (unsigned)_rtcm_tx_blocked);
+
+						// Reset counters for next interval
+						_rtcm_uorb_messages = 0;
+						_rtcm_uorb_gaps = 0;
+						_rtcm_parser_bytes_dropped = 0;
+						_rtcm_tx_not_ready = 0;
+						_rtcm_tx_blocked = 0;
+					}
+
+#endif // DEBUG_RTCM_INJECT
 				}
 
 				if (!_healthy) {
@@ -1675,11 +1726,13 @@ GPS::publishRTCMCorrections(uint8_t *data, size_t len)
 		written = written + gps_inject_data.len;
 	}
 
+#ifdef DEBUG_RTCM_INJECT
 	// Count RTCM frame (this is called once per complete RTCM frame from F9P)
 	_rtcm_tx_frame_count++;
 	_rtcm_tx_frame_count_interval++;
 	_rtcm_tx_frame_bytes += len;
 	_rtcm_tx_frame_bytes_interval += len;
+#endif // DEBUG_RTCM_INJECT
 }
 
 void

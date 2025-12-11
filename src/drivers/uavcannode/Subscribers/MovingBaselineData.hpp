@@ -85,6 +85,7 @@ private:
 	{
 		// Don't republish a message from ourselves
 		if (msg.getSrcNodeID().get() != getNode().getNodeID().get()) {
+#ifdef DEBUG_RTCM_INJECT
 			_msg_count++;
 			_msg_count_per_interval++;
 			_bytes_count += msg.data.size();
@@ -127,9 +128,11 @@ private:
 					 (unsigned)_msg_count,
 					 (double)(_msg_count_per_interval / dt),
 					 (unsigned)_bytes_count);
+
 				_last_stats_time = now;
 				_msg_count_per_interval = 0;
 			}
+#endif // DEBUG_RTCM_INJECT
 
 			gps_inject_data_s gps_inject_data{};
 
@@ -153,6 +156,7 @@ private:
 
 	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
 
+#ifdef DEBUG_RTCM_INJECT
 	// MBD message stats
 	uint32_t _msg_count{0};
 	uint32_t _msg_count_per_interval{0};
@@ -165,5 +169,6 @@ private:
 	uint32_t _rtcm_frame_count_interval{0};
 	uint32_t _rtcm_frame_bytes{0};
 	uint32_t _rtcm_frame_bytes_interval{0};
+#endif // DEBUG_RTCM_INJECT
 };
 } // namespace uavcannode
