@@ -41,7 +41,7 @@ Flight controllers and some GNSS modules have built in termination resistors for
 Otherwise, you can use a termination resistor such as [this one from Zubax Robotics](https://shop.zubax.com/products/uavcan-micro-termination-plug?variant=6007985111069), or solder one yourself if you have access to a JST-GH crimper.
 
 The following diagram shows an example of a CAN bus connecting a flight controller to 4 CAN ESCs and a GNSS.
-It includes a redundant bus connected to `CAN 2`
+It includes a redundant bus connected to `CAN 2`.
 
 ![CAN Wiring](../../assets/can/uavcan_wiring.svg)
 
