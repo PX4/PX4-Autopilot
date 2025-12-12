@@ -527,7 +527,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 #endif
 
-	// Actuators
+	// ESCs
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	int32_t uavcan_enable = -1;
 	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
@@ -542,6 +542,17 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 #endif
+
+	// Servos
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+	ret = _servo_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+#endif
+
 
 #if defined(CONFIG_UAVCAN_HARDPOINT_CONTROLLER)
 	ret = _hardpoint_controller.init();
@@ -1121,6 +1132,21 @@ void UavcanMixingInterfaceESC::mixerChanged()
 	}
 
 	_esc_controller.set_rotor_count(rotor_count);
+}
+
+void UavcanMixingInterfaceServo::mixerChanged()
+{
+	int servo_count = 0;
+
+	for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
+		servo_count += _mixing_output.isFunctionSet(i);
+
+		if (i < servo_status_s::CONNECTED_SERVO_MAX) {
+			_servo_controller.servo_status().servo[i].function = (uint8_t)_mixing_output.outputFunction(i);
+		}
+	}
+
+	_servo_controller.set_servo_count(servo_count);
 }
 
 bool UavcanMixingInterfaceServo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
