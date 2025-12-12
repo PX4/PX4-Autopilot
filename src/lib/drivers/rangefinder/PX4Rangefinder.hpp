@@ -65,6 +65,7 @@ public:
 	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1);
 
 	int get_instance() { return _distance_sensor_pub.get_instance(); };
+	uint32_t get_device_id() { return _distance_sensor_pub.get().device_id; };
 
 private:
 	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
