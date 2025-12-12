@@ -387,12 +387,7 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 			return;
 		}
 
-	} else if ((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled)
-		   && (_position_setpoint_current_valid
-		       || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
-
-		// Enter this mode only if the current waypoint has valid 3D position setpoints or is of type IDLE.
-		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
+	} else if (_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled && _position_setpoint_current_valid) {
 
 		if (doing_backtransition) {
 			_control_mode_current = FW_POSCTRL_MODE_TRANSITION_TO_HOVER_LINE_FOLLOW;
@@ -557,11 +552,6 @@ FixedWingModeManager::control_auto(const float control_interval, const Vector2d 
 	}
 
 	switch (position_sp_type) {
-	case position_setpoint_s::SETPOINT_TYPE_IDLE: {
-			control_idle();
-			break;
-		}
-
 	case position_setpoint_s::SETPOINT_TYPE_POSITION:
 		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		break;
@@ -599,24 +589,6 @@ FixedWingModeManager::control_auto(const float control_interval, const Vector2d 
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(current_sp);
 	}
-}
-
-void FixedWingModeManager::control_idle()
-{
-	const hrt_abstime  now = hrt_absolute_time();
-	fixed_wing_lateral_setpoint_s lateral_ctrl_sp {empty_lateral_control_setpoint};
-	lateral_ctrl_sp.timestamp = now;
-	lateral_ctrl_sp.lateral_acceleration = 0.0f;
-	_lateral_ctrl_sp_pub.publish(lateral_ctrl_sp);
-
-	fixed_wing_longitudinal_setpoint_s long_contrl_sp {empty_longitudinal_control_setpoint};
-	long_contrl_sp.timestamp = now;
-	long_contrl_sp.pitch_direct = 0.f;
-	long_contrl_sp.throttle_direct = 0.0f;
-	_longitudinal_ctrl_sp_pub.publish(long_contrl_sp);
-
-	_ctrl_configuration_handler.setThrottleMax(0.0f);
-	_ctrl_configuration_handler.setThrottleMin(0.0f);
 }
 
 void
@@ -788,7 +760,10 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 	float throttle_min = NAN;
 	float throttle_max = NAN;
 
-	if (pos_sp_curr.gliding_enabled) {
+	if (_landed) {
+		throttle_max = _param_fw_thr_idle.get();
+
+	} else if (pos_sp_curr.gliding_enabled) {
 		/* enable gliding with this waypoint */
 		throttle_min = 0.0;
 		throttle_max = 0.0;
@@ -848,7 +823,10 @@ FixedWingModeManager::control_auto_velocity(const float control_interval, const 
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	if (pos_sp_curr.gliding_enabled) {
+	if (_landed) {
+		_ctrl_configuration_handler.setThrottleMax(_param_fw_thr_idle.get());
+
+	} else if (pos_sp_curr.gliding_enabled) {
 		_ctrl_configuration_handler.setThrottleMin(0.0f);
 		_ctrl_configuration_handler.setThrottleMax(0.0f);
 		_ctrl_configuration_handler.setSpeedWeight(2.0f);
@@ -942,7 +920,10 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	if (pos_sp_curr.gliding_enabled) {
+	if (_landed) {
+		_ctrl_configuration_handler.setThrottleMax(_param_fw_thr_idle.get());
+
+	} else if (pos_sp_curr.gliding_enabled) {
 		_ctrl_configuration_handler.setThrottleMin(0.0f);
 		_ctrl_configuration_handler.setThrottleMax(0.0f);
 		_ctrl_configuration_handler.setSpeedWeight(2.0f);
@@ -990,7 +971,10 @@ FixedWingModeManager::controlAutoFigureEight(const float control_interval, const
 
 	_longitudinal_ctrl_sp_pub.publish(fw_longitudinal_control_sp);
 
-	if (pos_sp_curr.gliding_enabled) {
+	if (_landed) {
+		_ctrl_configuration_handler.setThrottleMax(_param_fw_thr_idle.get());
+
+	} else if (pos_sp_curr.gliding_enabled) {
 		_ctrl_configuration_handler.setThrottleMin(0.0f);
 		_ctrl_configuration_handler.setThrottleMax(0.0f);
 		_ctrl_configuration_handler.setSpeedWeight(2.0f);
