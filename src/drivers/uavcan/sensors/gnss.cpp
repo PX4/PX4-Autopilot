@@ -377,6 +377,7 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 		device_id.devid_s.address = msg.getSrcNodeID().get() & 0xFF;
 		device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
 
+		dump.instance = 0; // TODO: How can we determine the instance? Startup order of CANnodes is non-deterministic.
 		dump.device_id = device_id.devid;
 
 		size_t remaining = total_bytes - written;
