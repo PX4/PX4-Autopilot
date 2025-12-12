@@ -309,10 +309,10 @@ int Commander::custom_command(int argc, char *argv[])
 		}
 
 		if (!strcmp(argv[1], "on")) {
-			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_SAFETY_PREARM, vehicle_command_s::SAFETY_ON);
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_ON);
 
 		} else if (!strcmp(argv[1], "off")) {
-			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_SAFETY_PREARM, vehicle_command_s::SAFETY_OFF);
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_OFF);
 
 		} else {
 			PX4_ERR("invlaid argument, use [on|off]");
@@ -1529,7 +1529,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_SAFETY_PREARM: {
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE: {
 			// reject if armed, only allow pre or post flight for safety
 			if (isArmed()) {
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);

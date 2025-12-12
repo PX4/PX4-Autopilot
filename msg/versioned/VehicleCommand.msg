@@ -73,7 +73,6 @@ uint16 VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS = 242 # Set sensor offsets. This
 uint16 VEHICLE_CMD_PREFLIGHT_UAVCAN = 243 # UAVCAN configuration. If param 1 == 1 actuator mapping and direction assignment should be started.
 uint16 VEHICLE_CMD_PREFLIGHT_STORAGE = 245 # Request storage of different parameter values and logs. This command will be only accepted if in pre-flight mode. |Parameter storage: 0: READ FROM FLASH/EEPROM, 1: WRITE CURRENT TO FLASH/EEPROM|Mission storage: 0: READ FROM FLASH/EEPROM, 1: WRITE CURRENT TO FLASH/EEPROM|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN = 246 # Request the reboot or shutdown of system components. |0: Do nothing for autopilot, 1: Reboot autopilot, 2: Shutdown autopilot.|0: Do nothing for onboard computer, 1: Reboot onboard computer, 2: Shutdown onboard computer.|Unused|Unused|Unused|Unused|Unused|
-uint16 VEHICLE_CMD_PREFLIGHT_SAFETY_PREARM = 247 # Command safety on/off. |1 to activate safety, 0 to deactivate safety and allow control surface movements|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_OBLIQUE_SURVEY=260 # Mission command to set a Camera Auto Mount Pivoting Oblique Survey for this flight. |[m] Camera trigger distance|[ms] Shutter integration time|Camera minimum trigger interval|Number of positions|Roll|Pitch|Unused|
 uint16 VEHICLE_CMD_DO_SET_STANDARD_MODE=262 # Enable the specified standard MAVLink mode. |MAV_STANDARD_MODE|
 uint16 VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION = 283 # Command to ask information about a low level gimbal.
@@ -101,6 +100,7 @@ uint16 VEHICLE_CMD_LOGGING_START = 2510 # Start streaming ULog data.
 uint16 VEHICLE_CMD_LOGGING_STOP = 2511 # Stop streaming ULog data.
 uint16 VEHICLE_CMD_CONTROL_HIGH_LATENCY = 2600 # Control starting/stopping transmitting data over the high latency link.
 uint16 VEHICLE_CMD_DO_VTOL_TRANSITION = 3000 # Command VTOL transition.
+uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300 # Command safety on/off. |1 to activate safety, 0 to deactivate safety and allow control surface movements|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001 # Request arm authorization.
 uint16 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001 # Prepare a payload deployment in the flight plan.
 uint16 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002 # Control a pre-programmed payload deployment.
@@ -180,7 +180,7 @@ int8 ARMING_ACTION_ARM = 1
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
 
-# Used as param1 in PREFLIGHT_SAFETY_PREARM command.
+# Used as param1 in DO_SET_SAFETY_SWITCH_STATE command.
 uint8 SAFETY_OFF = 0
 uint8 SAFETY_ON = 1
 
