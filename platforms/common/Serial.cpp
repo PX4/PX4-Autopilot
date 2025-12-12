@@ -99,11 +99,6 @@ ssize_t Serial::writeBlocking(const void *buffer, size_t buffer_size, uint32_t t
 	return _impl.writeBlocking(buffer, buffer_size, timeout_ms);
 }
 
-PollStatus Serial::poll(bool want_read, bool want_write, uint32_t timeout_ms)
-{
-	return _impl.poll(want_read, want_write, timeout_ms);
-}
-
 void Serial::flush()
 {
 	return _impl.flush();

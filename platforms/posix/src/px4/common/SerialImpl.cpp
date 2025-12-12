@@ -34,7 +34,6 @@
 #include <SerialImpl.hpp>
 #include <string.h> // strncpy
 #include <termios.h>
-#include <sys/ioctl.h>
 #include <px4_log.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -343,7 +342,7 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 
 		if (elapsed_time_us > timeout_us) { break; }
 
-		int ret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), (timeout_us - elapsed_time_us) / 1000);
+		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), (timeout_us - elapsed_time_us) / 1000);
 
 		if (ret > 0) {
 			if (fds[0].revents & POLLIN) {
@@ -441,53 +440,6 @@ ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32
 	}
 
 	return total_written;
-}
-
-device::SerialConfig::PollStatus SerialImpl::poll(bool want_read, bool want_write, uint32_t timeout_ms)
-{
-	device::SerialConfig::PollStatus status{};
-
-	if (!_open) {
-		PX4_ERR("Cannot poll serial device until it has been opened");
-		status.error = true;
-		return status;
-	}
-
-	pollfd fds[1];
-	fds[0].fd = _serial_fd;
-	fds[0].events = 0;
-
-	if (want_read) {
-		fds[0].events |= POLLIN;
-	}
-
-	if (want_write) {
-		fds[0].events |= POLLOUT;
-	}
-
-	int result = ::poll(fds, 1, timeout_ms);
-
-	if (result < 0) {
-		PX4_ERR("poll error %d", errno);
-		status.error = true;
-		return status;
-	}
-
-	if (result > 0) {
-		if (fds[0].revents & POLLIN) {
-			status.readable = true;
-		}
-
-		if (fds[0].revents & POLLOUT) {
-			status.writable = true;
-		}
-
-		if (fds[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
-			status.error = true;
-		}
-	}
-
-	return status;
 }
 
 void SerialImpl::flush()

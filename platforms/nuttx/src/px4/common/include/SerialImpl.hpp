@@ -67,8 +67,6 @@ public:
 	ssize_t write(const void *buffer, size_t buffer_size);
 	ssize_t writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_us = 0);
 
-	device::SerialConfig::PollStatus poll(bool want_read, bool want_write, uint32_t timeout_ms);
-
 	void flush();
 
 	const char *getPort() const;

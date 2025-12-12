@@ -41,7 +41,6 @@ using device::SerialConfig::ByteSize;
 using device::SerialConfig::Parity;
 using device::SerialConfig::StopBits;
 using device::SerialConfig::FlowControl;
-using device::SerialConfig::PollStatus;
 
 namespace device __EXPORT
 {
@@ -69,16 +68,6 @@ public:
 
 	ssize_t write(const void *buffer, size_t buffer_size);
 	ssize_t writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms = 0);
-
-	/**
-	 * Poll for read/write readiness.
-	 *
-	 * @param want_read   Set to true to wait for data available to read
-	 * @param want_write  Set to true to wait for space available to write
-	 * @param timeout_ms  Timeout in milliseconds (0 = return immediately)
-	 * @return PollStatus indicating which conditions are ready
-	 */
-	PollStatus poll(bool want_read, bool want_write, uint32_t timeout_ms);
 
 	void flush();
 
