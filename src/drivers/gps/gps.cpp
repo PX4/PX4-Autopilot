@@ -50,6 +50,7 @@
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
 #include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <px4_platform_common/atomic.h>
@@ -219,6 +220,9 @@ private:
 
 	gnss::Rtcm3Parser		     _rtcm_parser{};
 
+	perf_counter_t _uart_tx_buffer_full_perf{perf_alloc(PC_COUNT, MODULE_NAME": tx buf full")};
+	perf_counter_t _rtcm_buffer_full_perf{perf_alloc(PC_COUNT, MODULE_NAME": rtcm buf full")};
+
 	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
 	/// and thus we wait until the first one publishes at least one message.
 
@@ -386,6 +390,9 @@ GPS::~GPS()
 			++i;
 		} while (_secondary_instance.load() && i < 100);
 	}
+
+	perf_free(_uart_tx_buffer_full_perf);
+	perf_free(_rtcm_buffer_full_perf);
 
 	delete _sat_info;
 	delete _dump_to_device;
@@ -589,7 +596,7 @@ void GPS::handleInjectDataTopic()
 				size_t added = _rtcm_parser.addData(msg.data, msg.len);
 
 				if (added < msg.len) {
-					PX4_WARN("RTCM buffer full, dropped %zu bytes", msg.len - added);
+					perf_count(_rtcm_buffer_full_perf);
 				}
 
 				_last_rtcm_injection_time = hrt_absolute_time();
@@ -621,7 +628,7 @@ void GPS::handleInjectDataTopic()
 
 			if ((ssize_t)frame_len > tx_available) {
 				// TX buffer full, stop and let it drain - frames stay in parser buffer
-				PX4_WARN("TX buffer full!");
+				perf_count(_uart_tx_buffer_full_perf);
 				break;
 			}
 		}
@@ -1239,6 +1246,9 @@ GPS::print_status()
 
 		print_message(ORB_ID(sensor_gps), _sensor_gps);
 	}
+
+	perf_print_counter(_uart_tx_buffer_full_perf);
+	perf_print_counter(_rtcm_buffer_full_perf);
 
 	if (_instance == Instance::Main && _secondary_instance.load()) {
 		GPS *secondary_instance = _secondary_instance.load();
