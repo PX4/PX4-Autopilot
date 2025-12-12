@@ -265,6 +265,8 @@
 #define GPIO_VDD_3V3_SD_CARD_EN         /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
 /* MCP23009 GPIO expander */
+#define BOARD_GPIO_VDD_5V_COMP_nEN             "/dev/gpio0"
+// #define BOARD_GPIO_VDD_5V_CAN1_GPS1_nEN     "/dev/gpio1" // connected to GPIO_VDD_5V_PERIPH_nEN instead
 #define BOARD_GPIO_VDD_5V_COMP_VALID           "/dev/gpio4"
 #define BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID      "/dev/gpio5"
 
@@ -502,6 +504,16 @@ __BEGIN_DECLS
  ****************************************************************************/
 
 int stm32_sdio_initialize(void);
+
+/****************************************************************************
+ * Name: skynode_system_initialize
+ *
+ * Description:
+ *   Initialize the system for the Skynode board
+ *
+ ****************************************************************************/
+
+int skynode_system_initialize(void);
 
 /****************************************************************************************************
  * Name: stm32_spiinitialize
