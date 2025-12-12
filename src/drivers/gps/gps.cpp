@@ -695,7 +695,7 @@ void GPS::dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool
 		return;
 	}
 
-	dump_data->instance = (uint8_t)_instance;
+	dump_data->device_id = get_device_id();
 
 	while (len > 0) {
 		size_t write_len = len;
