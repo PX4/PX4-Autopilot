@@ -176,6 +176,8 @@ protected:
 	uORB::PublicationMulti<manual_control_setpoint_s> _manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::Publication<manual_control_switches_s> _manual_control_switches_pub{ORB_ID(manual_control_switches)};
 
+	bool _rc_inputs_enabled{true};
+
 	manual_control_switches_s _manual_switches_previous{};
 	manual_control_switches_s _manual_switches_last_publish{};
 	rc_channels_s _rc{};
@@ -217,6 +219,7 @@ protected:
 
 		(ParamInt<px4::params::RC_MAP_FLAPS>) _param_rc_map_flaps,
 
+		(ParamInt<px4::params::RC_MAP_RC_ENABLE>) _param_rc_map_rc_enable,
 		(ParamInt<px4::params::RC_MAP_RETURN_SW>) _param_rc_map_return_sw,
 		(ParamInt<px4::params::RC_MAP_LOITER_SW>) _param_rc_map_loiter_sw,
 		(ParamInt<px4::params::RC_MAP_OFFB_SW>) _param_rc_map_offb_sw,
@@ -240,6 +243,7 @@ protected:
 
 		(ParamInt<px4::params::RC_MAP_PAY_SW>) _param_rc_map_pay_sw,
 
+		(ParamFloat<px4::params::RC_ENABLESW_TH>) _param_rc_enable_sw_th,
 		(ParamFloat<px4::params::RC_LOITER_TH>) _param_rc_loiter_th,
 		(ParamFloat<px4::params::RC_OFFB_TH>) _param_rc_offb_th,
 		(ParamFloat<px4::params::RC_KILLSWITCH_TH>) _param_rc_killswitch_th,
