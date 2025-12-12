@@ -38,7 +38,6 @@
 #include <ardupilot/gnss/MovingBaselineData.hpp>
 
 #include <lib/drivers/device/Device.hpp>
-#include <drivers/drv_hrt.h>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/gps_inject_data.h>
 
