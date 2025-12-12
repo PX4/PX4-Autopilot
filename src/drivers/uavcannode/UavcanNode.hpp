@@ -131,8 +131,6 @@ public:
 
 	void		PrintInfo();
 
-	void		shrink();
-
 	static UavcanNode	*instance() { return _instance; }
 	static int		 getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
 

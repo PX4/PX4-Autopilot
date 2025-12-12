@@ -1144,11 +1144,7 @@ UavcanNode::print_info()
 {
 	// Memory status
 	printf("Pool allocator status:\n");
-	printf("\tCapacity hard/soft: %" PRIu16 "/%" PRIu16 " blocks\n",
-	       _pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
-	printf("\tReserved:  %" PRIu16 " blocks\n", _pool_allocator.getNumReservedBlocks());
-	printf("\tAllocated: %" PRIu16 " blocks\n", _pool_allocator.getNumAllocatedBlocks());
-
+	printf("\tCapacity : %" PRIu16 " blocks\n", _pool_allocator.getBlockCapacity());
 	printf("\n");
 
 	// UAVCAN node perfcounters
@@ -1221,14 +1217,6 @@ UavcanNode::print_info()
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
-}
-
-void
-UavcanNode::shrink()
-{
-	(void)pthread_mutex_lock(&_node_mutex);
-	_pool_allocator.shrink();
-	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
 void
@@ -1447,7 +1435,7 @@ UavcanNode::get_next_dirty_node_id(uint8_t base)
 static void print_usage()
 {
 	PX4_INFO("usage: \n"
-		 "\tuavcan {start|status|stop|shrink|update}\n"
+		 "\tuavcan {start|status|stop|update}\n"
 		 "\t        param [set|get|list|save] <node-id> <name> <value>|reset <node-id>");
 }
 
@@ -1501,11 +1489,6 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 
 	if (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info")) {
 		inst->print_info();
-		::exit(0);
-	}
-
-	if (!std::strcmp(argv[1], "shrink")) {
-		inst->shrink();
 		::exit(0);
 	}
 
