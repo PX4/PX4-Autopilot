@@ -144,28 +144,32 @@ private:
 					// We don't know the cell count or we don't know the indpendent cell voltages,
 					// so we report the total voltage in the first cell, or cell(s) if the voltage
 					// doesn't "fit" in the UINT16.
-					if (battery_status.cell_count == 0 || battery_status.voltage_cell_v[0] < 0.0001f) {
+					const bool voltage_valid = PX4_ISFINITE(battery_status.voltage_v) && (battery_status.voltage_v > 0.f);
+
+					if ((battery_status.cell_count == 0 || battery_status.voltage_cell_v[0] < 0.0001f) && voltage_valid) {
 						// If it doesn't fit, we have to split it into UINT16-1 chunks and the remaining
 						// voltage for the subsequent field.
 						// This won't work for voltages of more than 655 volts.
-						const int num_fields_required = static_cast<int>(battery_status.voltage_v * 1000.f) / (UINT16_MAX - 1) + 1;
+						const int total_mv = (int)lroundf(battery_status.voltage_v * 1000.f);
+						const int num_fields_required = total_mv / (UINT16_MAX - 1) + 1;
 
 						if (num_fields_required <= mavlink_cell_slots) {
-							float remaining_voltage = battery_status.voltage_v * 1000.f;
+							float remaining_voltage = (float)total_mv;
 
 							for (int i = 0; i < num_fields_required - 1; ++i) {
 								bat_msg.voltages[i] = UINT16_MAX - 1;
 								remaining_voltage -= UINT16_MAX - 1;
 							}
 
-							bat_msg.voltages[num_fields_required - 1] = remaining_voltage;
+							bat_msg.voltages[num_fields_required - 1] =
+								(uint16_t)math::min((float)(UINT16_MAX - 1), math::max(0.f, remaining_voltage));
 
 						} else {
 							// Leave it default/unknown. We're out of spec.
 						}
 
 
-					} else {
+					} else if (battery_status.voltage_cell_v[0] >= 0.0001f) {
 						static constexpr int uorb_cell_slots =
 							(sizeof(battery_status.voltage_cell_v) / sizeof(battery_status.voltage_cell_v[0]));
 
