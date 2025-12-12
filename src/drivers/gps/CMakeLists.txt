@@ -55,5 +55,4 @@ px4_add_module(
 		module.yaml
 	DEPENDS
 		git_gps_devices
-		gnss
 	)
