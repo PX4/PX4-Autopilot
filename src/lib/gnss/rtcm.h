@@ -164,7 +164,7 @@ public:
 	 * Consume (remove) the next message from the buffer.
 	 *
 	 * Call this after successfully processing a message obtained via
-	 * peekNextMessage(). The length should match what peekNextMessage returned.
+	 * getNextMessage(). The length should match what getNextMessage returned.
 	 *
 	 * @param len   Number of bytes to remove from the buffer
 	 */
