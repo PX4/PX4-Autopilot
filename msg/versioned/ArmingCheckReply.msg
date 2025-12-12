@@ -42,4 +42,3 @@ bool mode_req_manual_control           # Requires a manual controller
 
 
 uint8 ORB_QUEUE_LENGTH = 16 
-
