@@ -156,6 +156,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("fixed_wing_longitudinal_setpoint");
 	add_topic("longitudinal_control_configuration");
 	add_topic("lateral_control_configuration");
+	add_topic("airflow", 50);
 	add_optional_topic("fixed_wing_lateral_guidance_status", 100);
 	add_optional_topic("fixed_wing_lateral_status", 100);
 	add_optional_topic("fixed_wing_runway_control", 100);
@@ -217,6 +218,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("actuator_servos", 100);
 	add_topic_multi("vehicle_thrust_setpoint", 20, 2);
 	add_topic_multi("vehicle_torque_setpoint", 20, 2);
+	add_topic("airflow_groundtruth", 10);
 
 	// SYS_HITL: default ground truth logging for simulation
 	int32_t sys_hitl = 0;
