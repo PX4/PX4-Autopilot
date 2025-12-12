@@ -156,11 +156,17 @@ ssize_t SerialImpl::bytesAvailable()
 {
 	if (!_open) {
 		PX4_ERR("Device not open!");
+		errno = EBADF;
 		return -1;
 	}
 
 	uint32_t rx_bytes = 0;
-	(void) fc_uart_rx_available(_serial_fd, &rx_bytes);
+	int ret = fc_uart_rx_available(_serial_fd, &rx_bytes);
+
+	if (ret < 0) {
+		return -1;
+	}
+
 	return (ssize_t) rx_bytes;
 }
 
@@ -168,11 +174,13 @@ ssize_t SerialImpl::txSpaceAvailable()
 {
 	if (!_open) {
 		PX4_ERR("Device not open!");
+		errno = EBADF;
 		return -1;
 	}
 
-	// QURT doesn't have a direct equivalent to NuttX's FIONSPACE.
-	return 4096;
+	// QURT doesn't have a direct equivalent to NuttX's FIONSPACE
+	errno = ENOSYS;
+	return -1;
 }
 
 ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
