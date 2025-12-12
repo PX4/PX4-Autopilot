@@ -72,7 +72,7 @@ private:
 		char name[sizeof(register_ext_component_reply_s::name)] {};
 	};
 	ExternalModeName *_external_mode_names{nullptr};
-	uint8_t _not_user_selectable_mask{0};
+	uint16_t _not_user_selectable_mask{0};
 	static_assert(MAX_NUM_EXTERNAL_MODES <= (sizeof(_not_user_selectable_mask) * CHAR_BIT), "Mask too small");
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
