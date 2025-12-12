@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,10 +30,63 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include "MCP23009.hpp"
 
-#pragma once
+MCP23009::MCP23009(const I2CSPIDriverConfig &config) :
+	MCP230XX(config)
+{
+}
 
-#include <stdint.h>
+int MCP23009::get_olat(int bank, uint8_t *addr)
+{
+	switch (bank) {
+	case 0:
+		*addr = (uint8_t) Register::OLAT;
+		return PX4_OK;
 
-int mcp23009_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor = 0);
-int mcp23009_unregister_gpios(int first_minor = 0);
+	default:
+		return PX4_ERROR;
+	}
+}
+
+int MCP23009::get_gppu(int bank, uint8_t *addr)
+{
+	switch (bank) {
+	case 0:
+		*addr = (uint8_t) Register::GPPU;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
+	}
+}
+
+int MCP23009::get_iodir(int bank, uint8_t *addr)
+{
+	switch (bank) {
+	case 0:
+		*addr = (uint8_t) Register::IODIR;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
+	}
+}
+
+int MCP23009::get_gpio(int bank, uint8_t *addr)
+{
+	switch (bank) {
+	case 0:
+		*addr = (uint8_t) Register::GPIO;
+		return PX4_OK;
+
+	default:
+		return PX4_ERROR;
+	}
+}
+
+int MCP23009::get_probe_reg(uint8_t *addr)
+{
+	*addr = (uint8_t) Register::IOCON;
+	return PX4_OK;
+}

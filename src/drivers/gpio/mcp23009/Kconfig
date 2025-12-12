@@ -1,5 +1,5 @@
 menuconfig DRIVERS_GPIO_MCP23009
-	bool "mcp23009"
+	bool "MCP23009"
 	default n
 	---help---
-		Enable support for mcp23009
+		Enable support for MCP23009 8-bit GPIO expander

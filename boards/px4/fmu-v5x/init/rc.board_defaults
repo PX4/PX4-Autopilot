@@ -29,9 +29,9 @@ safety_button start
 if ver hwbasecmp 009
 then
 	# No USB
-	mcp23009 start -b 3 -X -D 0xf0 -O 0xf0 -P 0x0f -U 10
+	mcp23009 start -b 3 -X -D 0xf0 -O 0xf0 -P 0x0f -M 0 -U 10
 fi
 if ver hwbasecmp 00a 008
 then
-	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -U 10
+	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -M 0 -U 10
 fi
