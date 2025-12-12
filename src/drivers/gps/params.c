@@ -145,15 +145,6 @@ PARAM_DEFINE_INT32(GPS_UBX_BAUD2, 230400);
 PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
 
 /**
- * Enable MSM7 message output for PPK workflow.
- *
- * @boolean
- * @reboot_required true
- * @group GPS
- */
-PARAM_DEFINE_INT32(GPS_UBX_PPK, 0);
-
-/**
  * Wipes the flash config of UBX modules.
  *
  * Some UBX modules have a FLASH that allows to store persistent configuration that will be loaded on start.

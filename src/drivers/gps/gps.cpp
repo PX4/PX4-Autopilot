@@ -67,8 +67,6 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
 
-#include <lib/gnss/rtcm.h>
-
 #ifndef CONSTRAINED_FLASH
 # include "devices/src/ashtech.h"
 # include "devices/src/emlid_reach.h"
@@ -217,8 +215,6 @@ private:
 	gps_dump_s			     *_dump_from_device{nullptr};
 	gps_dump_comm_mode_t                 _dump_communication_mode{gps_dump_comm_mode_t::Disabled};
 
-	gnss::Rtcm3Parser		     _rtcm_parser{};
-
 	static px4::atomic_bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
 	/// and thus we wait until the first one publishes at least one message.
 
@@ -268,7 +264,7 @@ private:
 	 * @param data
 	 * @param len
 	 */
-	inline bool injectData(const uint8_t *data, size_t len);
+	inline bool injectData(uint8_t *data, size_t len);
 
 	/**
 	 * set the Baudrate
@@ -289,7 +285,7 @@ private:
 	 * @param mode calling source
 	 * @param msg_to_gps_device if true, this is a message sent to the gps device, otherwise it's from the device
 	 */
-	void dumpGpsData(const uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device);
+	void dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device);
 
 	void initializeCommunicationDump();
 
@@ -476,15 +472,27 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	const int max_timeout = 50;
 	int timeout_adjusted = math::min(max_timeout, timeout);
 
-	handleInjectDataTopic();
-
 	if (_interface == GPSHelper::Interface::UART) {
-		ret = _uart.readAtLeast(buf, buf_length, math::min(character_count, buf_length), timeout_adjusted);
+
+		const ssize_t read_at_least = math::min(character_count, buf_length);
+
+		// handle injection data before read if caught up
+		if (_uart.bytesAvailable() < read_at_least) {
+			handleInjectDataTopic();
+		}
+
+		ret = _uart.readAtLeast(buf, buf_length, read_at_least, timeout_adjusted);
+
+		if (ret > 0) {
+			_num_bytes_read += ret;
+		}
 
 // SPI is only supported on LInux
 #if defined(__PX4_LINUX)
 
 	} else if ((_interface == GPSHelper::Interface::SPI) && (_spi_fd >= 0)) {
+
+		handleInjectDataTopic();
 
 		//Poll only for the SPI data. In the same thread we also need to handle orb messages,
 		//so ideally we would poll on both, the SPI fd and orb subscription. Unfortunately the
@@ -575,7 +583,6 @@ void GPS::handleInjectDataTopic()
 	// Looking at 8 packets thus guarantees, that at least a full injection
 	// data set is evaluated.
 	// Moving Base reuires a higher rate, so we allow up to 8 packets.
-	// Drain uORB messages into RTCM parser and inject full messages after draining the queue.
 	const size_t max_num_injections = gps_inject_data_s::ORB_QUEUE_LENGTH;
 	size_t num_injections = 0;
 
@@ -585,13 +592,13 @@ void GPS::handleInjectDataTopic()
 
 			// Prevent injection of data from self
 			if (msg.device_id != get_device_id()) {
-				// Add data to the RTCM parser buffer for frame reassembly
-				size_t added = _rtcm_parser.addData(msg.data, msg.len);
+				/* Write the message to the gps device. Note that the message could be fragmented.
+				* But as we don't write anywhere else to the device during operation, we don't
+				* need to assemble the message first.
+				*/
+				injectData(msg.data, msg.len);
 
-				if (added < msg.len) {
-					PX4_WARN("RTCM buffer full, dropped %zu bytes", msg.len - added);
-				}
-
+				++_rtcm_injection_rate_message_count;
 				_last_rtcm_injection_time = hrt_absolute_time();
 			}
 		}
@@ -609,30 +616,9 @@ void GPS::handleInjectDataTopic()
 		}
 
 	} while (updated && num_injections < max_num_injections);
-
-	// Now inject all complete RTCM frames from the parser buffer
-	size_t frame_len = {};
-	const uint8_t *frame_ptr = {};
-
-	while ((frame_ptr = _rtcm_parser.getNextMessage(&frame_len)) != nullptr) {
-		// Check TX buffer space before writing
-		if (_interface == GPSHelper::Interface::UART) {
-			ssize_t tx_available = _uart.txSpaceAvailable();
-
-			if ((ssize_t)frame_len > tx_available) {
-				// TX buffer full, stop and let it drain - frames stay in parser buffer
-				PX4_WARN("TX buffer full!");
-				break;
-			}
-		}
-
-		injectData(frame_ptr, frame_len);
-		_rtcm_parser.consumeMessage(frame_len);
-		_rtcm_injection_rate_message_count++;
-	}
 }
 
-bool GPS::injectData(const uint8_t *data, size_t len)
+bool GPS::injectData(uint8_t *data, size_t len)
 {
 	dumpGpsData(data, len, gps_dump_comm_mode_t::Full, true);
 
@@ -701,7 +687,7 @@ void GPS::initializeCommunicationDump()
 	_dump_communication_mode = (gps_dump_comm_mode_t)param_dump_comm;
 }
 
-void GPS::dumpGpsData(const uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device)
+void GPS::dumpGpsData(uint8_t *data, size_t len, gps_dump_comm_mode_t mode, bool msg_to_gps_device)
 {
 	gps_dump_s *dump_data  = msg_to_gps_device ? _dump_to_device : _dump_from_device;
 
@@ -709,7 +695,7 @@ void GPS::dumpGpsData(const uint8_t *data, size_t len, gps_dump_comm_mode_t mode
 		return;
 	}
 
-	dump_data->device_id = get_device_id();
+	dump_data->instance = (uint8_t)_instance;
 
 	while (len > 0) {
 		size_t write_len = len;
@@ -811,13 +797,6 @@ GPS::run()
 		param_get(handle, &f9p_uart2_baudrate);
 	}
 
-	handle = param_find("GPS_UBX_PPK");
-	int32_t ppk_output = 0;
-
-	if (handle != PARAM_INVALID) {
-		param_get(handle, &ppk_output);
-	}
-
 	int32_t gnssSystemsParam = static_cast<int32_t>(GPSHelper::GNSSSystemsMask::RECEIVER_DEFAULTS);
 
 	if (_instance == Instance::Main) {
@@ -899,21 +878,11 @@ GPS::run()
 			_mode = gps_driver_mode_t::UBX;
 
 		/* FALLTHROUGH */
-		case gps_driver_mode_t::UBX: {
-				GPSDriverUBX::Settings settings = {
-					.dynamic_model = (uint8_t)gps_ubx_dynmodel,
-					.heading_offset = heading_offset,
-					.uart2_baudrate = f9p_uart2_baudrate,
-					.ppk_output = ppk_output > 0,
-					.mode = ubx_mode,
-				};
-
-				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_sensor_gps, _p_report_sat_info, settings);
-
-				set_device_type(DRV_GPS_DEVTYPE_UBX);
-				break;
-			}
-
+		case gps_driver_mode_t::UBX:
+			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_sensor_gps, _p_report_sat_info,
+						   gps_ubx_dynmodel, heading_offset, f9p_uart2_baudrate, ubx_mode);
+			set_device_type(DRV_GPS_DEVTYPE_UBX);
+			break;
 #ifndef CONSTRAINED_FLASH
 
 		case gps_driver_mode_t::MTK:
@@ -1050,8 +1019,6 @@ GPS::run()
 				 * Without additional time this can lead to timeouts. */
 				healthy_timeout += TIMEOUT_DUMP_ADD;
 			}
-
-			PX4_INFO("GPS device configured @ %u baud", _baudrate);
 
 			while ((helper_ret = _helper->receive(receive_timeout)) > 0 && !should_exit()) {
 
