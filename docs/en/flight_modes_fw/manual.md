@@ -20,6 +20,8 @@ Manual mode where stick input is sent directly to control allocation (for "fully
 
 This is the only mode that overrides the FMU (commands are sent via the safety coprocessor). It provides a safety mechanism that allows full control of throttle, elevator, ailerons and rudder via RC in the event of an FMU firmware malfunction.
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_manual.md-->
+
 ## Parameters
 
 | Parameter                                                                                    | Description                                                                                                                                                                                |

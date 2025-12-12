@@ -46,6 +46,8 @@ When the destination is a rally point or the home location, on arrival the vehic
 The vehicle can be forced to land at the destination by changing [RTL_LAND_DELAY](#RTL_LAND_DELAY) so it is not -1.
 In this case the vehicle will land in the same way as [Land mode](../flight_modes_fw/land.md).
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_auto_rtl.md-->
+
 ## Parameters
 
 The RTL parameters are listed in [Parameter Reference > Return Mode](../advanced_config/parameter_reference.md#return-mode).
