@@ -549,6 +549,12 @@ void up_bdshot_status(void)
 	}
 }
 
+void up_bdshot_set_active_channels(uint32_t mask)
+{
+	// Not needed for IMXRT - all channels are captured in parallel
+	(void)mask;
+}
+
 void up_dshot_trigger(void)
 {
 	// Calc data now since we're not event driven
