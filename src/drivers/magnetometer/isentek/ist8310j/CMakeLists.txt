@@ -31,6 +31,16 @@
 #
 ############################################################################
 
-add_subdirectory(ist8308)
-add_subdirectory(ist8310)
-add_subdirectory(ist8310j)
+px4_add_module(
+	MODULE drivers__magnetometer__isentek__ist8310j
+	MAIN ist8310j
+	COMPILE_FLAGS
+	SRCS
+		IST8310J.cpp
+		IST8310J.hpp
+		ist8310j_main.cpp
+		iSentek_IST8310J_registers.hpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
+	)

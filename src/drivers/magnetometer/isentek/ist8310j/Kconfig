@@ -1,0 +1,5 @@
+menuconfig DRIVERS_MAGNETOMETER_ISENTEK_IST8310J
+	bool "IST8310J"
+	default n
+	---help---
+		Enable support for isentek IST8310J
