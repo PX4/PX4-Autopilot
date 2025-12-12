@@ -67,10 +67,6 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 			pos = R_ev_to_ekf * ev_sample.pos;
 			pos_cov = R_ev_to_ekf * matrix::diag(ev_sample.position_var) * R_ev_to_ekf.transpose();
 
-			// increase minimum variance to include EV orientation variance
-			// TODO: do this properly
-			const float orientation_var_max = math::max(ev_sample.orientation_var(0), ev_sample.orientation_var(1));
-			pos_cov(2, 2) = math::max(pos_cov(2, 2), orientation_var_max);
 		}
 	}
 
