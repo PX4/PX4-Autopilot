@@ -149,7 +149,7 @@ public:
 	 * Returns a pointer directly into the parser's internal buffer where the
 	 * valid frame starts. Invalid bytes at the buffer start are discarded
 	 * during the search. The returned pointer remains valid until the next
-	 * call to addData(), consumeMessage(), or reset().
+	 * call to addData() or consumeMessage().
 	 *
 	 * After processing the message, call consumeMessage() to remove it from
 	 * the buffer.
