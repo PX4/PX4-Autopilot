@@ -212,6 +212,8 @@ set(msg_files
 	SensorUwb.msg
 	SensorAirflow.msg
 	SystemPower.msg
+	StateSharingControl.msg
+	StateSharingMsg.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
 	TecsStatus.msg
