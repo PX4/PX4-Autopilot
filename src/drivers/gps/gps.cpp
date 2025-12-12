@@ -208,6 +208,10 @@ private:
 
 	const Instance 			_instance;
 
+	bool _data_injecting{false};
+	gps_inject_data_s _data_to_inject;
+	size_t _data_to_inject_transmitted{0};
+
 	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
 	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
 	uORB::Publication<gps_dump_s>	     _dump_communication_pub{ORB_ID(gps_dump)};
@@ -255,16 +259,26 @@ private:
 	int pollOrRead(uint8_t *buf, size_t buf_length, int timeout);
 
 	/**
-	 * check for new messages on the inject data topic & handle them
+	 * check if the current injection publisher is still functional
 	 */
-	void handleInjectDataTopic();
+	void checkInjectPublishers();
+
+	/**
+	 * check for new messages on the inject data topic
+	 */
+	void updateInjectData();
+
+	/**
+	 * handles the state of the RTCM stream injection
+	 */
+	void processInjectData();
 
 	/**
 	 * send data to the device, such as an RTCM stream
 	 * @param data
 	 * @param len
 	 */
-	inline bool injectData(uint8_t *data, size_t len);
+	inline size_t injectData(uint8_t *data, size_t len);
 
 	/**
 	 * set the Baudrate
@@ -468,20 +482,47 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 {
 	int ret = 0;
-	const size_t character_count = 32; // minimum bytes that we want to read
 	const int max_timeout = 50;
+	const int character_count = 32;
 	int timeout_adjusted = math::min(max_timeout, timeout);
 
+	checkInjectPublishers();
+	updateInjectData();
+
 	if (_interface == GPSHelper::Interface::UART) {
+		px4_pollfd_struct_t fds[2] = {0};
 
-		const ssize_t read_at_least = math::min(character_count, buf_length);
+		// UART read FD
+		bool poll_ok = _uart.getPollFd(POLLIN, &fds[0]);
+		int num_fds = 1;
 
-		// handle injection data before read if caught up
-		if (_uart.bytesAvailable() < read_at_least) {
-			handleInjectDataTopic();
+		if (poll_ok && _helper->shouldInjectRTCM()) {
+			if (_data_injecting) {
+				// UART write FD (during injection)
+				poll_ok = _uart.getPollFd(POLLOUT, &fds[1]);
+				num_fds++;
+			}
 		}
 
-		ret = _uart.readAtLeast(buf, buf_length, read_at_least, timeout_adjusted);
+		if (poll_ok) {
+			int poll_ret = px4_poll(fds, num_fds, timeout_adjusted);
+
+			if (poll_ret > 0) {
+				// UART read poll event
+				if (fds[0].revents & POLLIN) {
+					unsigned baudrate = _baudrate == 0 ? 115200 : _baudrate;
+					const unsigned sleeptime = character_count * 1000000 / (baudrate / 10);
+					px4_usleep(sleeptime);
+
+					ret = _uart.read(buf, buf_length);
+				}
+
+				// UART write FD poll event
+				if (num_fds >= 2 && fds[1].revents & POLLOUT) {
+					processInjectData();
+				}
+			}
+		}
 
 		if (ret > 0) {
 			_num_bytes_read += ret;
@@ -492,8 +533,6 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 	} else if ((_interface == GPSHelper::Interface::SPI) && (_spi_fd >= 0)) {
 
-		handleInjectDataTopic();
-
 		//Poll only for the SPI data. In the same thread we also need to handle orb messages,
 		//so ideally we would poll on both, the SPI fd and orb subscription. Unfortunately the
 		//two pollings use different underlying mechanisms (at least under posix), which makes this
@@ -501,11 +540,18 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 		//messages.
 		//FIXME: add a unified poll() API
 
-		pollfd fds[1];
+		pollfd fds[2];
 		fds[0].fd = _spi_fd;
 		fds[0].events = POLLIN;
+		int num_fds = 1;
 
-		ret = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout_adjusted);
+		if (_helper->shouldInjectRTCM() && _data_injecting) {
+			fds[1].fd = _spi_fd;
+			fds[1].events = POLLIN;
+			num_fds++;
+		}
+
+		ret = poll(fds, num_fds, timeout_adjusted);
 
 		if (ret > 0) {
 			/* if we have new data from GPS, go handle it */
@@ -528,8 +574,10 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 					_num_bytes_read += ret;
 				}
 
-			} else {
-				ret = -1;
+			}
+
+			if (num_fds >= 2 && fds[1].revents & POLLOUT) {
+				processInjectData();
 			}
 		}
 
@@ -539,86 +587,90 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	return ret;
 }
 
-void GPS::handleInjectDataTopic()
+void GPS::checkInjectPublishers()
 {
 	if (!_helper->shouldInjectRTCM()) {
 		return;
 	}
 
-	// We don't want to call copy again further down if we have already done a
-	// copy in the selection process.
-	bool already_copied = false;
-	gps_inject_data_s msg;
-
 	const hrt_abstime now = hrt_absolute_time();
 
-	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
-	if (now > _last_rtcm_injection_time + 5_s) {
+	// If there has been a valid RTCM message, stay on the link. Otherwise, try to switch to a different RTCM link
+	if (now <= _last_rtcm_injection_time + 5_s) {
+		return;
+	}
 
-		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
-			const bool exists = _orb_inject_data_sub[instance].advertised();
+	for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
+		if (!_orb_inject_data_sub[instance].advertised()) {
+			continue;
+		}
 
-			if (exists && _orb_inject_data_sub[instance].copy(&msg)) {
-				/* Don't select the own RTCM instance. In case it has a lower
-				 * instance number, it will be selected and will be rejected
-				 * later in the code, resulting in no RTCM injection at all.
-				 */
-				if (msg.device_id != get_device_id()) {
-					// Only use the message if it is up to date
-					if (now < msg.timestamp + 5_s) {
-						// Remember that we already did a copy on this instance.
-						already_copied = true;
-						_selected_rtcm_instance = instance;
-						break;
-					}
-				}
+		gps_inject_data_s inject_data;
+		const bool updated = _orb_inject_data_sub[instance].copy(&inject_data);
+
+		if (!updated) {
+			continue;
+		}
+
+		/* Don't select the own RTCM instance. In case it has a lower
+		 * instance number, it will be selected and will be rejected
+		 * later in the code, resulting in no RTCM injection at all.
+		 */
+		if (inject_data.device_id != get_device_id()) {
+			// Only use the message if it is up to date
+			if (now < inject_data.timestamp + 5_s) {
+				// Remember that we already did a copy on this instance.
+				_selected_rtcm_instance = instance;
+				_data_to_inject = inject_data;
+				_data_injecting = true;
+				break;
 			}
 		}
 	}
-
-	bool updated = already_copied;
-
-	// Limit maximum number of GPS injections to 8 since usually
-	// GPS injections should consist of 1-4 packets (GPS, Glonass, BeiDou, Galileo).
-	// Looking at 8 packets thus guarantees, that at least a full injection
-	// data set is evaluated.
-	// Moving Base reuires a higher rate, so we allow up to 8 packets.
-	const size_t max_num_injections = gps_inject_data_s::ORB_QUEUE_LENGTH;
-	size_t num_injections = 0;
-
-	do {
-		if (updated) {
-			num_injections++;
-
-			// Prevent injection of data from self
-			if (msg.device_id != get_device_id()) {
-				/* Write the message to the gps device. Note that the message could be fragmented.
-				* But as we don't write anywhere else to the device during operation, we don't
-				* need to assemble the message first.
-				*/
-				injectData(msg.data, msg.len);
-
-				++_rtcm_injection_rate_message_count;
-				_last_rtcm_injection_time = hrt_absolute_time();
-			}
-		}
-
-		auto &gps_inject_data_sub = _orb_inject_data_sub[_selected_rtcm_instance];
-
-		const unsigned last_generation = gps_inject_data_sub.get_last_generation();
-
-		updated = gps_inject_data_sub.update(&msg);
-
-		if (updated) {
-			if (gps_inject_data_sub.get_last_generation() != last_generation + 1) {
-				PX4_WARN("gps_inject_data lost, generation %u -> %u", last_generation, gps_inject_data_sub.get_last_generation());
-			}
-		}
-
-	} while (updated && num_injections < max_num_injections);
 }
 
-bool GPS::injectData(uint8_t *data, size_t len)
+void GPS::updateInjectData()
+{
+	if (_data_injecting) {
+		return;
+	}
+
+	gps_inject_data_s inject_data;
+	auto &gps_inject_data_sub = _orb_inject_data_sub[_selected_rtcm_instance];
+	const bool updated = gps_inject_data_sub.update(&inject_data);
+
+	if (!updated) {
+		return;
+	}
+
+	if (inject_data.device_id != get_device_id()) {
+		_data_to_inject = inject_data;
+		_data_injecting = true;
+	}
+}
+
+void GPS::processInjectData()
+{
+	if (!_data_injecting) {
+		return;
+	}
+
+	size_t max_write = math::max(_data_to_inject.len - (int)_data_to_inject_transmitted, 0);
+	int written = injectData(&_data_to_inject.data[_data_to_inject_transmitted], max_write);
+
+	if (written > 0) {
+		_data_to_inject_transmitted += written;
+	}
+
+	if (_data_to_inject_transmitted >= _data_to_inject.len) {
+		++_rtcm_injection_rate_message_count;
+		_last_rtcm_injection_time = hrt_absolute_time();
+		_data_to_inject_transmitted = 0;
+		_data_injecting = false;
+	}
+}
+
+size_t GPS::injectData(uint8_t *data, size_t len)
 {
 	dumpGpsData(data, len, gps_dump_comm_mode_t::Full, true);
 
@@ -635,7 +687,7 @@ bool GPS::injectData(uint8_t *data, size_t len)
 #endif
 	}
 
-	return written == len;
+	return written;
 }
 
 int GPS::setBaudrate(unsigned baud)

@@ -69,6 +69,11 @@ bool Serial::close()
 	return _impl.close();
 }
 
+bool Serial::getPollFd(const px4_pollevent_t events, px4_pollfd_struct_t *pfd)
+{
+	return _impl.getPollFd(events, pfd);
+}
+
 ssize_t Serial::bytesAvailable()
 {
 	return _impl.bytesAvailable();

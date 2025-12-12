@@ -289,6 +289,18 @@ bool SerialImpl::close()
 	return true;
 }
 
+bool SerialImpl::getPollFd(const px4_pollevent_t events, px4_pollfd_struct_t *pfd)
+{
+	if (!_open) {
+		PX4_ERR("Device not open!");
+		return false;
+	}
+
+	pfd->fd = _serial_fd;
+	pfd->events = events;
+	return true;
+}
+
 ssize_t SerialImpl::bytesAvailable()
 {
 	if (!_open) {
