@@ -81,6 +81,6 @@ All the parameters in the [Multicopter Position Control](../advanced_config/para
 If the estimate falls below acceptable levels, for example due to GPS loss, this may trigger a [Position (GPS) Loss Failsafe](../config/safety.md#position-gnss-loss-failsafe).
 如果估计值低于可接受的水平，例如由于 GPS 丢失，这可能会触发位置 (GPS) 丢失故障保护 根据配置，是否有遥控器，以及是否有足够的高度估计，PX4 可能会切换到高度模式、手动模式、降落模式或终止。
 
-## See Also
+## 另见
 
 - [Position Slow Mode](../flight_modes_mc/position_slow.md)

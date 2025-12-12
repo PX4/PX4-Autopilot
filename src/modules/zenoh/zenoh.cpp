@@ -270,6 +270,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 #ifdef Z_SUBSCRIBE
 	_zenoh_subscribers = (Zenoh_Subscriber **)malloc(sizeof(Zenoh_Subscriber *)*_sub_count);
+	memset(_zenoh_subscribers, 0x0, sizeof(Zenoh_Subscriber *)*_sub_count);
 
 	if (_zenoh_subscribers) {
 		char topic[TOPIC_INFO_SIZE];
@@ -305,6 +306,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 				} else {
+					_zenoh_subscribers[i] = NULL;
 					PX4_ERR("Could not create a subscriber for type %s", type);
 				}
 
@@ -325,6 +327,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 #ifdef Z_PUBLISH
 	_zenoh_publishers = (uORB_Zenoh_Publisher **)malloc(_pub_count * sizeof(uORB_Zenoh_Publisher *));
+	memset(_zenoh_publishers, 0x0, _pub_count * sizeof(uORB_Zenoh_Publisher *));
 
 	if (_zenoh_publishers) {
 		char topic[TOPIC_INFO_SIZE];
@@ -361,6 +364,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 				} else {
+					_zenoh_publishers[i] = NULL;
 					PX4_ERR("Could not create a publisher for type %s", type);
 				}
 
@@ -384,7 +388,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 void ZENOH::run()
 {
-	int8_t ret;
+	z_result_t ret;
 	int i;
 	_pub_count =  _config.getPubCount();
 	_sub_count =  _config.getSubCount();
@@ -394,6 +398,8 @@ void ZENOH::run()
 		PX4_ERR("Failed to setup Zenoh session");
 		return;
 	}
+
+	connected = true;
 
 	PX4_INFO("Starting reading/writing tasks...");
 
@@ -451,6 +457,8 @@ void ZENOH::run()
 	zp_stop_lease_task(z_session_loan_mut(&_s));
 
 	z_drop(z_session_move(&_s));
+
+	connected = false;
 	exit_and_cleanup();
 }
 
@@ -496,7 +504,12 @@ Zenoh demo bridge
 
 int ZENOH::print_status()
 {
-	PX4_INFO("running");
+	if (connected) {
+		PX4_INFO("Connected");
+
+	} else {
+		PX4_INFO("Connecting");
+	}
 
 	PX4_INFO("Publishers");
 

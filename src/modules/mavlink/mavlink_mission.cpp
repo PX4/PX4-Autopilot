@@ -1538,6 +1538,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->params[0] = (uint16_t)mavlink_mission_item->param1;
 			break;
 
+		case MAV_CMD_DO_AUTOTUNE_ENABLE:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->params[0] = (uint16_t)mavlink_mission_item->param1;
+			mission_item->params[1] = (uint16_t)mavlink_mission_item->param2;
+			break;
+
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
 			PX4_DEBUG("Unsupported command %d", mavlink_mission_item->command);
@@ -1627,6 +1633,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_CONDITION_DELAY:
 		case MAV_CMD_CONDITION_DISTANCE:
 		case MAV_CMD_DO_SET_ACTUATOR:
+		case MAV_CMD_DO_AUTOTUNE_ENABLE:
 		case MAV_CMD_COMPONENT_ARM_DISARM:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;

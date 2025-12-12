@@ -652,6 +652,10 @@ void Navigator::run()
 
 				_vtol_takeoff.setTransitionAltitudeAbsolute(cmd.param7);
 
+				if (std::fabs(cmd.param2 - 3.0f) < FLT_EPSILON) { // Specified transition direction
+					_vtol_takeoff.setTransitionDirection(cmd.param4);
+				}
+
 				// after the transition the vehicle will establish on a loiter at this position
 				_vtol_takeoff.setLoiterLocation(matrix::Vector2d(cmd.param5, cmd.param6));
 
@@ -754,6 +758,21 @@ void Navigator::run()
 				// reset cruise speed and throttle to default when transitioning (VTOL Takeoff handles it separately)
 				reset_cruising_speed();
 				set_cruising_throttle();
+			}
+
+			else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE) {
+
+
+				if (fabsf(cmd.param1 - 1.f) > FLT_EPSILON) {
+					// only support enabling autotune (consistent with autotune module)
+					events::send(events::ID("navigator_autotune_unsupported_input"), {events::Log::Warning, events::LogInternal::Warning},
+						     "Provided autotune command is not supported. To enable autotune in mission, set param1 to 1");
+
+				} else if (fabsf(cmd.param2) > FLT_EPSILON) {
+					// warn user about axis selection
+					events::send(events::ID("navigator_autotune_unsupported_ax"), {events::Log::Warning, events::LogInternal::Info},
+						     "Autotune axis selection not supported through Mission. Use FW_AT_AXES to set axes for fixed-wing vehicles");
+				}
 			}
 		}
 

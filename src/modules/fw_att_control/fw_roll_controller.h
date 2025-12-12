@@ -63,10 +63,10 @@ public:
 	float get_body_rate_setpoint() { return _body_rate_setpoint; }
 
 private:
-	float _tc;
-	float _max_rate;
-	float _euler_rate_setpoint;
-	float _body_rate_setpoint;
+	float _tc{};
+	float _max_rate{};
+	float _euler_rate_setpoint{};
+	float _body_rate_setpoint{};
 };
 
 #endif // FW_ROLL_CONTROLLER_H

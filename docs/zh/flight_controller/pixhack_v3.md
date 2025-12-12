@@ -78,11 +78,11 @@ make px4_fmu-v3_default
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| UART1  | /dev/ttyS0 | IO debug                                 |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  |            |                                          |
-| UART7  |            | CONSOLE                                  |
-| UART8  |            | SERIAL4                                  |
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| UART   | UART       | IO debug                       |
+| USART2 | /dev/ttyS1 | TELEM1 (流控) |
+| USART3 | /dev/ttyS2 | TELEM2 (流控) |
+| UART4  |            |                                |
+| UART7  |            | CONSOLE                        |
+| UART8  |            | SERIAL4                        |

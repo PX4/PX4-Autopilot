@@ -96,7 +96,7 @@ int TemperatureCalibrationBaro::update_sensor_instance(PerSensorData &data, int 
 
 	data.device_id = baro_data.device_id;
 
-	data.sensor_sample_filt[0] = 100.0f * baro_data.pressure; // convert from hPA to Pa
+	data.sensor_sample_filt[0] = baro_data.pressure;
 	data.sensor_sample_filt[1] = baro_data.temperature;
 
 

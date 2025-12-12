@@ -10,6 +10,48 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
 
 <!-- markdown generator: src/lib/parameters/px4params/markdownout.py -->
 
+## ADC
+
+### ADC_ADS7953_EN (`INT32`) {#ADC_ADS7953_EN}
+
+Enable ADS7953.
+
+Enable the driver for the ADS7953 board
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
+
+### ADC_ADS7953_REFV (`FLOAT`) {#ADC_ADS7953_REFV}
+
+Applied reference Voltage.
+
+The voltage applied to the ADS7953 board as reference
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 2.0      | 3.0      | 0.01      | 2.5     | V    |
+
+### ADC_TLA2528_EN (`INT32`) {#ADC_TLA2528_EN}
+
+Enable TLA2528.
+
+Enable the driver for the TLA2528
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
+
+### ADC_TLA2528_REFV (`FLOAT`) {#ADC_TLA2528_REFV}
+
+Applied reference Voltage.
+
+The voltage applied to the TLA2528 board as reference
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 2.0      | 3.0      | 0.01      | 2.5     | V    |
+
 ## ADSB
 
 ### ADSB_CALLSIGN_1 (`INT32`) {#ADSB_CALLSIGN_1}
@@ -443,6 +485,16 @@ The integer refers to the I2C bus number where PCA9685 is connected.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 10       |           | 0       |
+
+### PCA9685_I2C_ADDR (`INT32`) {#PCA9685_I2C_ADDR}
+
+I2C address of PCA9685.
+
+The default address is 0x40 (64).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 127      |           | 64      |
 
 ### PCA9685_FAIL1 (`INT32`) {#PCA9685_FAIL1}
 
@@ -2134,6 +2186,116 @@ output latency, or completely block I2C bus.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 50.0     | 400.0    |           | 50.0    |
+
+### PWM_AUX_CENT1 (`INT32`) {#PWM_AUX_CENT1}
+
+PWM Aux 1 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PWM_AUX_CENT10 (`INT32`) {#PWM_AUX_CENT10}
+
+PWM Capture 2 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PWM_AUX_CENT11 (`INT32`) {#PWM_AUX_CENT11}
+
+PWM Capture 3 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PWM_AUX_CENT2 (`INT32`) {#PWM_AUX_CENT2}
+
+PWM Aux 2 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PWM_AUX_CENT3 (`INT32`) {#PWM_AUX_CENT3}
+
+PWM Aux 3 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PWM_AUX_CENT4 (`INT32`) {#PWM_AUX_CENT4}
+
+PWM Aux 4 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PWM_AUX_CENT5 (`INT32`) {#PWM_AUX_CENT5}
+
+PWM Aux 5 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PWM_AUX_CENT6 (`INT32`) {#PWM_AUX_CENT6}
+
+PWM Aux 6 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PWM_AUX_CENT7 (`INT32`) {#PWM_AUX_CENT7}
+
+PWM Aux 7 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PWM_AUX_CENT8 (`INT32`) {#PWM_AUX_CENT8}
+
+PWM Aux 8 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PWM_AUX_CENT9 (`INT32`) {#PWM_AUX_CENT9}
+
+PWM Capture 1 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
 
 ### PWM_AUX_DIS1 (`INT32`) {#PWM_AUX_DIS1}
 
@@ -13955,9 +14117,9 @@ Scale of airspeed sensor 1.
 
 This is the scale IAS --> CAS of the first airspeed sensor instance
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0.5      | 2.0      |           | 1.0     |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.5      | 2.0      |           | 1.0     |
 
 ### ASPD_SCALE_2 (`FLOAT`) {#ASPD_SCALE_2}
 
@@ -13965,9 +14127,9 @@ Scale of airspeed sensor 2.
 
 This is the scale IAS --> CAS of the second airspeed sensor instance
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0.5      | 2.0      |           | 1.0     |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.5      | 2.0      |           | 1.0     |
 
 ### ASPD_SCALE_3 (`FLOAT`) {#ASPD_SCALE_3}
 
@@ -13975,9 +14137,9 @@ Scale of airspeed sensor 3.
 
 This is the scale IAS --> CAS of the third airspeed sensor instance
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0.5      | 2.0      |           | 1.0     |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.5      | 2.0      |           | 1.0     |
 
 ### ASPD_SCALE_APPLY (`INT32`) {#ASPD_SCALE_APPLY}
 
@@ -14205,22 +14367,6 @@ Defines which RC_MAP_AUXn parameter maps the manual control channel used to enab
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 6        |           | 0       |
 
-### FW_AT_START (`INT32`) {#FW_AT_START}
-
-Start the autotuning sequence.
-
-WARNING: this will inject steps to the rate controller
-and can be dangerous. Only activate if you know what you
-are doing, and in a safe environment.
-Any motion of the remote stick will abort the signal
-injection and reset this parameter
-Best is to perform the identification in position or
-hold mode.
-
-| Reboot | minValue | maxValue | increment | default      | unit |
-| ------ | -------- | -------- | --------- | ------------ | ---- |
-| &nbsp; |          |          |           | Disabled (0) |
-
 ### FW_AT_SYSID_F0 (`FLOAT`) {#FW_AT_SYSID_F0}
 
 Start frequency of the injected signal.
@@ -14303,24 +14449,6 @@ Desired angular rate closed-loop rise time.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.01     | 0.5      |           | 0.14    | s    |
-
-### MC_AT_START (`INT32`) {#MC_AT_START}
-
-Start the autotuning sequence.
-
-WARNING: this will inject steps to the rate controller
-and can be dangerous. Only activate if you know what you
-are doing, and in a safe environment.
-Any motion of the remote stick will abort the signal
-injection and reset this parameter
-Best is to perform the identification in position or
-hold mode.
-Increase the amplitude of the injected signal using
-MC_AT_SYSID_AMP for more signal/noise ratio
-
-| Reboot | minValue | maxValue | increment | default      | unit |
-| ------ | -------- | -------- | --------- | ------------ | ---- |
-| &nbsp; |          |          |           | Disabled (0) |
 
 ### MC_AT_SYSID_AMP (`FLOAT`) {#MC_AT_SYSID_AMP}
 
@@ -15304,8 +15432,7 @@ disabled, warn only or deny arming.
 Arm switch is a momentary button.
 
 0: Arming/disarming triggers on switch transition.
-1: Arming/disarming triggers when holding the momentary button down
-for COM_RC_ARM_HYST like the stick gesture.
+1: Arming/disarming triggers when holding the momentary button down like the stick gesture.
 
 | Reboot | minValue | maxValue | increment | default      | unit |
 | ------ | -------- | -------- | --------- | ------------ | ---- |
@@ -15313,15 +15440,17 @@ for COM_RC_ARM_HYST like the stick gesture.
 
 ### COM_ARM_WO_GPS (`INT32`) {#COM_ARM_WO_GPS}
 
-GPS preflight check.
+Arming without GNSS configuration.
 
-Measures taken when a check defined by EKF2_GPS_CHECK is failing.
+Configures whether arming is allowed without GNSS, for modes that require a global position
+(specifically, in those modes when a check defined by EKF2_GPS_CHECK fails).
+The settings deny arming and warn, allow arming and warn, or silently allow arming.
 
 **Values:**
 
 - `0`: Deny arming
-- `1`: Warning only
-- `2`: Disabled
+- `1`: Allow arming (with warning)
+- `2`: Allow arming (no warning)
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -16109,16 +16238,6 @@ External modes requiring stick input will still failsafe.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 31       |           | 0       |
-
-### COM_RC_ARM_HYST (`INT32`) {#COM_RC_ARM_HYST}
-
-Manual control input arm/disarm command duration.
-
-The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 100      | 1500     |           | 1000    | ms   |
 
 ### COM_RC_IN_MODE (`INT32`) {#COM_RC_IN_MODE}
 
@@ -16954,6 +17073,16 @@ EKF2 enable.
 | ------ | -------- | -------- | --------- | ----------- | ---- |
 | &nbsp; |          |          |           | Enabled (1) |
 
+### EKF2_ENGINE_WRM (`INT32`) {#EKF2_ENGINE_WRM}
+
+Enable constant position fusion during engine warmup.
+
+When enabled, constant position fusion is enabled when the vehicle is landed and armed. This is intended for IC engine warmup (e.g., fuel engines on catapult) to allow mode transitions to auto/takeoff despite vibrations from running engines.
+
+| Reboot | minValue | maxValue | increment | default      | unit |
+| ------ | -------- | -------- | --------- | ------------ | ---- |
+| &nbsp; |          |          |           | Disabled (0) |
+
 ### EKF2_EVA_NOISE (`FLOAT`) {#EKF2_EVA_NOISE}
 
 Measurement noise for vision angle measurements.
@@ -17165,7 +17294,9 @@ Set bits in the following positions to enable: 0 : Longitude and latitude fusion
 
 ### EKF2_GPS_DELAY (`FLOAT`) {#EKF2_GPS_DELAY}
 
-GPS measurement delay relative to IMU measurements.
+GPS measurement delay relative to IMU measurement.
+
+GPS measurement delay relative to IMU measurement if PPS time correction is not available/enabled (PPS_CAP_ENABLE).
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -17175,7 +17306,7 @@ GPS measurement delay relative to IMU measurements.
 
 Fusion reset mode.
 
-Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+Automatic: reset on fusion timeout if no other source of position is available. Dead-reckoning: reset on fusion timeout if no source of velocity is available.
 
 **Values:**
 
@@ -19302,6 +19433,24 @@ This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MIN.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | -0.5     | 0.5      | 0.01      | 0.0     |
+
+### FW_GC_EN (`INT32`) {#FW_GC_EN}
+
+Enable rate gain compression.
+
+| Reboot | minValue | maxValue | increment | default     | unit |
+| ------ | -------- | -------- | --------- | ----------- | ---- |
+| &nbsp; |          |          |           | Enabled (1) |
+
+### FW_GC_GAIN_MIN (`FLOAT`) {#FW_GC_GAIN_MIN}
+
+Compression gain lower limit.
+
+The range of the compression gain is between this parameter and 1.0
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 1.0      | 0.01      | 0.3     |
 
 ### FW_MAN_P_SC (`FLOAT`) {#FW_MAN_P_SC}
 
@@ -21945,6 +22094,8 @@ Control Surface 0 configuration as spoiler.
 Control Surface 0 trim.
 
 Can be used to add an offset to the servo control.
+NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+This parameter can only be set if all PWM Center parameters are set to default.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -22025,6 +22176,8 @@ Control Surface 1 configuration as spoiler.
 Control Surface 1 trim.
 
 Can be used to add an offset to the servo control.
+NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+This parameter can only be set if all PWM Center parameters are set to default.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -22105,6 +22258,8 @@ Control Surface 2 configuration as spoiler.
 Control Surface 2 trim.
 
 Can be used to add an offset to the servo control.
+NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+This parameter can only be set if all PWM Center parameters are set to default.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -22185,6 +22340,8 @@ Control Surface 3 configuration as spoiler.
 Control Surface 3 trim.
 
 Can be used to add an offset to the servo control.
+NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+This parameter can only be set if all PWM Center parameters are set to default.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -22265,6 +22422,8 @@ Control Surface 4 configuration as spoiler.
 Control Surface 4 trim.
 
 Can be used to add an offset to the servo control.
+NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+This parameter can only be set if all PWM Center parameters are set to default.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -22345,6 +22504,8 @@ Control Surface 5 configuration as spoiler.
 Control Surface 5 trim.
 
 Can be used to add an offset to the servo control.
+NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+This parameter can only be set if all PWM Center parameters are set to default.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -22425,6 +22586,8 @@ Control Surface 6 configuration as spoiler.
 Control Surface 6 trim.
 
 Can be used to add an offset to the servo control.
+NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+This parameter can only be set if all PWM Center parameters are set to default.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -22505,6 +22668,8 @@ Control Surface 7 configuration as spoiler.
 Control Surface 7 trim.
 
 Can be used to add an offset to the servo control.
+NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+This parameter can only be set if all PWM Center parameters are set to default.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -23118,6 +23283,7 @@ Engine start/stop input source.
 - `0`: On arming - disarming
 - `1`: Aux1
 - `2`: Aux2
+- `3`: On Vtol Transitions
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -33105,6 +33271,14 @@ Maxbotix Sonar (mb12xx).
 | ------- | -------- | -------- | --------- | ------------ | ---- |
 | &check; |          |          |           | Disabled (0) |
 
+### SENS_EN_MCP9808 (`INT32`) {#SENS_EN_MCP9808}
+
+Enable MCP9808 temperature sensor (external I2C).
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
+
 ### SENS_EN_MPDT (`INT32`) {#SENS_EN_MPDT}
 
 Enable Mappydot rangefinder (i2c).
@@ -39432,6 +39606,14 @@ Maximum time (in seconds) before resetting setpoint.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 2.0     |
 
+### UUV_STICK_MODE (`INT32`) {#UUV_STICK_MODE}
+
+Stick mode selector (0=Heave/sway control, roll/pitch leveled; 1=Pitch/roll control).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1        |           | 0       |
+
 ### UUV_THRUST_SAT (`FLOAT`) {#UUV_THRUST_SAT}
 
 UUV Thrust setpoint Saturation.
@@ -40135,7 +40317,7 @@ Time in seconds it takes to tilt form VT_TILT_FW to VT_TILT_MC.
 
 ### VT_B_DEC_I (`FLOAT`) {#VT_B_DEC_I}
 
-Backtransition deceleration setpoint to pitch I gain.
+Backtransition deceleration setpoint to tilt I gain.
 
 | Reboot | minValue | maxValue | increment | default | unit    |
 | ------ | -------- | -------- | --------- | ------- | ------- |
@@ -40353,7 +40535,7 @@ During landing it can be beneficial to reduce the pitch angle to reduce the gene
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -10.0    | 45.0     | 0.1       | -5.0    | deg  |
+| &nbsp; | -10.0    | 45.0     | 0.1       | 0.0     | deg  |
 
 ### VT_PITCH_MIN (`FLOAT`) {#VT_PITCH_MIN}
 
@@ -40364,7 +40546,7 @@ VT_FWD_TRHUST_EN is set.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -10.0    | 45.0     | 0.1       | -5.0    | deg  |
+| &nbsp; | -10.0    | 45.0     | 0.1       | 0.0     | deg  |
 
 ### VT_PSHER_SLEW (`FLOAT`) {#VT_PSHER_SLEW}
 

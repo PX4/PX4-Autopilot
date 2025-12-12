@@ -1,7 +1,7 @@
 # SensorSelection (UORB повідомлення)
 
 Ідентифікатори датчиків для вибраних датчиків, виведених на темі sensor_combined.
-Буде оновлено при запуску модуля датчика та при зміні вибору датчика
+Will be updated on startup of the sensor module and when sensor selection changes
 
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorSelection.msg)
 
