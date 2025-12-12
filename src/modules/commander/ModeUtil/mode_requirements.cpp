@@ -37,9 +37,9 @@
 namespace mode_util
 {
 
-static inline void setRequirement(uint8_t nav_state, uint32_t &mode_requirement)
+static inline void setRequirement(uint8_t nav_state, uint64_t &mode_requirement)
 {
-	mode_requirement |= 1u << nav_state;
+	mode_requirement |= 1ull << nav_state;
 }
 
 
@@ -216,7 +216,7 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 
 	// NAVIGATION_STATE_EXTERNALx: handled outside
 
-	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 31, "update mode requirements");
+	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 39, "update mode requirements");
 }
 
 } // namespace mode_util

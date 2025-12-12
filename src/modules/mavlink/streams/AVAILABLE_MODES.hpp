@@ -63,7 +63,7 @@ private:
 	static constexpr uint32_t MAX_DELAY_US = 2500000 / vehicle_status_s::NAVIGATION_STATE_MAX;
 	/* Only delay if the transmit of one mode takes at least 1ms, this avoids a lot of fast delay calls */
 	static constexpr uint32_t MIN_DELAY_THRESHOLD = 1000;
-	static constexpr int MAX_NUM_EXTERNAL_MODES = vehicle_status_s::NAVIGATION_STATE_EXTERNAL8 -
+	static constexpr int MAX_NUM_EXTERNAL_MODES = vehicle_status_s::NAVIGATION_STATE_EXTERNAL16 -
 			vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 + 1;
 
 	explicit MavlinkStreamAvailableModes(Mavlink *mavlink) : MavlinkStream(mavlink) {}
@@ -72,7 +72,7 @@ private:
 		char name[sizeof(register_ext_component_reply_s::name)] {};
 	};
 	ExternalModeName *_external_mode_names{nullptr};
-	uint8_t _not_user_selectable_mask{0};
+	uint16_t _not_user_selectable_mask{0};
 	static_assert(MAX_NUM_EXTERNAL_MODES <= (sizeof(_not_user_selectable_mask) * CHAR_BIT), "Mask too small");
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};

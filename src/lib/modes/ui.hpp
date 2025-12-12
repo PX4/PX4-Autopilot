@@ -64,7 +64,7 @@ static inline uint32_t getValidNavStates()
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
 
-	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "update valid nav states");
+	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 39, "update valid nav states");
 }
 
 const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
@@ -99,6 +99,14 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"External 6",
 	"External 7",
 	"External 8",
+	"External 9",
+	"External 10",
+	"External 11",
+	"External 12",
+	"External 13",
+	"External 14",
+	"External 15",
+	"External 16",
 };
 
 /**
@@ -128,6 +136,22 @@ static inline bool isAdvanced(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL7: return false;
 
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL8: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL9: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL10: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL11: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL12: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL13: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL14: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL15: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL16: return false;
 
 	}
 
