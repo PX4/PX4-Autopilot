@@ -9,6 +9,7 @@ on:
   push:
     branches:
     - 'main'
+    - 'fix-flaky-altitude-test'
     paths-ignore:
       - 'docs/**'
   pull_request:
