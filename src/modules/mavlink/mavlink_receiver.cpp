@@ -2867,7 +2867,7 @@ MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 	mavlink_msg_target_absolute_decode(msg, &target_absolute);
 
 	target_gnss_s target_GNSS_report{};
-	target_GNSS_report.timestamp = target_absolute.timestamp;
+	target_GNSS_report.timestamp = _mavlink_timesync.sync_stamp(target_absolute.timestamp);
 
 	bool updated = false;
 
@@ -2926,7 +2926,7 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 	// Unsupported measurement type
 	if (target_relative.type != LANDING_TARGET_TYPE_VISION_FIDUCIAL) {
 		mavlink_log_critical(&_mavlink_log_pub, "target relative: type %" PRIu8 " unsupported.\t",
-				     target_relative.frame);
+				     target_relative.type);
 		events::send<uint8_t>(events::ID("mavlink_rcv_target_rel_unsup_type"), events::Log::Error,
 				      "Target relative: unsupported type {1}", target_relative.type);
 		return;

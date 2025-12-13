@@ -301,9 +301,8 @@ PARAM_DEFINE_FLOAT(VTE_BIA_UNC_IN, 1.0f);
 /**
  * Initial Orientation uncertainty
  *
- * Initial variance of the orientation (yaw) of the target
+ * Initial variance of the orientation (yaw) of the target (rad^2)
  *
- * @unit m^2
  * @min 0.001
  * @decimal 3
  *
@@ -355,7 +354,8 @@ PARAM_DEFINE_FLOAT(VTE_GPS_P_NOISE, 0.5f);
 /**
  * Whether to set the external vision observation noise from the parameter or from vision message
  *
- * If set to true the observation noise is set from the parameters directly, if set to false the measurement noise is taken from the vision message and the parameter are used as a lower bound.
+ * If set to true the observation noise is set from the parameters directly,
+ * if set to false the measurement noise is taken from the vision message and the parameter are used as a lower bound.
  *
  * @boolean
  *
@@ -377,7 +377,8 @@ PARAM_DEFINE_FLOAT(VTE_EVA_NOISE, 0.05f);
 /**
  * Measurement noise for vision position observations used to lower bound or replace the uncertainty included in the message.
  *
- * If used to replace the uncertainty in the message, the measurement noise is lineraly scaled with the altitude i.e. unc = VTE_EVP_NOISE^2 * max(dist_bottom, 1)
+ * If used to replace the uncertainty in the message, the measurement noise is lineraly scaled with the altitude
+ * i.e. unc = max(VTE_EVP_NOISE * dist_bottom, VTE_EVP_NOISE^2)
  *
  * @min 0.01
  * @unit m

@@ -923,7 +923,7 @@ int VisionTargetEst::print_usage(const char *reason)
 ### Description
 Module to estimate the position and orientation of a target using relative sensors.
 
-The module runs periodically on the HP work queue.
+The module runs periodically on the px4::wq_configurations::vte queue.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("vision_target_estimator", "system");
@@ -937,4 +937,4 @@ extern "C" __EXPORT int vision_target_estimator_main(int argc, char *argv[])
 	return VisionTargetEst::main(argc, argv);
 }
 
-} // namespace vision_target_est
+} // namespace vision_target_estimator

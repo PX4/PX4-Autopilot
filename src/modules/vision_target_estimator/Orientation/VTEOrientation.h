@@ -94,7 +94,7 @@ public:
 	void set_vte_aid_mask(const uint16_t mask_value) {_vte_aid_mask.value = mask_value;};
 
 	bool timedOut() const {return _estimator_initialized && hasTimedOut(_last_update, _vte_timeout_us);};
-	bool fusionEnabled() const {return _vte_aid_mask.value != 0;};
+	bool fusionEnabled() const {return _vte_aid_mask.flags.use_vision_pos;}; // for now only vision measurements are handled
 
 protected:
 	/*
