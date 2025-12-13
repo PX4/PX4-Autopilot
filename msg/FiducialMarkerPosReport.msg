@@ -2,8 +2,6 @@
 
 uint64 timestamp		# time since system start (microseconds)
 
-bool rel_pos_valid		# Flag showing whether relative position is valid
-
 float32 x_rel_body			# X/Front position of target, relative to vehicle (body frame) [meters]
 float32 y_rel_body			# Y/Right position of target, relative to vehicle (body frame) [meters]
 float32 z_rel_body			# Z/Down position of target, relative to vehicle (body frame) [meters]
