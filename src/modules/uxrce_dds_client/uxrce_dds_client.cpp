@@ -39,6 +39,7 @@
 
 // services
 #include "vehicle_command_srv.h"
+#include "parameter_srv.h"
 
 #include <uxr/client/client.h>
 #include <uxr/client/util/ping.h>
@@ -366,7 +367,24 @@ bool UxrceddsClient::setupSession(uxrSession *session)
 	if (_num_of_repliers < MAX_NUM_REPLIERS) {
 		if (add_replier(new VehicleCommandSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
 						      _num_of_repliers))) {
-			PX4_ERR("replier init failed");
+			PX4_ERR("vehicle command replier init failed");
+			return false;
+		}
+	}
+
+	// create Parameter repliers
+	if (_num_of_repliers < MAX_NUM_REPLIERS) {
+		if (add_replier(new ParameterGetSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
+						 _num_of_repliers))) {
+			PX4_ERR("param get replier init failed");
+			return false;
+		}
+	}
+
+	if (_num_of_repliers < MAX_NUM_REPLIERS) {
+		if (add_replier(new ParameterSetSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
+						 _num_of_repliers))) {
+			PX4_ERR("param set replier init failed");
 			return false;
 		}
 	}
