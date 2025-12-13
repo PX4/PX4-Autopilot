@@ -202,6 +202,7 @@ struct gnssSample {
 	float       yaw_acc{};    ///< 1-std yaw error (rad)
 	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
 	bool        spoofed{};    ///< true if GNSS data is spoofed
+	bool        jammed{};     ///< true if GNSS data is jammed
 };
 
 struct magSample {
