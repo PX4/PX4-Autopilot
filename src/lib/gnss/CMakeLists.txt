@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,29 +31,6 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_gps_devices PATH "devices")
+px4_add_library(gnss rtcm.cpp)
 
-px4_add_module(
-	MODULE drivers__gps
-	MAIN gps
-	COMPILE_FLAGS
-		-Wno-stringop-overflow # due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91707
-	SRCS
-		gps.cpp
-		devices/src/crc.cpp
-		devices/src/gps_helper.cpp
-		devices/src/mtk.cpp
-		devices/src/ashtech.cpp
-		devices/src/ubx.cpp
-		devices/src/rtcm.cpp
-		devices/src/emlid_reach.cpp
-		devices/src/femtomes.cpp
-		devices/src/nmea.cpp
-		devices/src/unicore.cpp
-		devices/src/crc.cpp
-	MODULE_CONFIG
-		module.yaml
-	DEPENDS
-		git_gps_devices
-		gnss
-	)
+target_include_directories(gnss PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
