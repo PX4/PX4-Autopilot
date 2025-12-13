@@ -613,6 +613,16 @@ else
 	unset RC_LOGGING
 
 	#
+	# Start the VTX services.
+	#
+	set RC_VTXTABLE ${R}etc/init.d/rc.vtxtable
+	if [ -f ${RC_VTXTABLE} ]
+	then
+		. ${RC_VTXTABLE}
+	fi
+	unset RC_VTXTABLE
+
+	#
 	# Set additional parameters and env variables for selected AUTOSTART.
 	#
 	if ! param compare SYS_AUTOSTART 0
