@@ -952,20 +952,19 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 	_target_innov = {};
 	bool all_axis_fused = true;
 
-	_target_innov.time_last_fuse = _last_predict;
+	_target_innov.time_last_fuse = _last_predict; // log _last_predict to be able to recompute dt_sync_us from the log
 	_target_innov.timestamp_sample = target_obs.timestamp;
 	_target_innov.timestamp = hrt_absolute_time();
 
 	// Measurement's time delay (difference between state and measurement time on validity)
 	const int64_t dt_sync_us = signedTimeDiffUs(_last_predict, target_obs.timestamp);
+	const bool measurement_too_old = dt_sync_us > static_cast<int64_t>(_meas_recent_timeout_us);
+	// allow for a 5ms jitter because _last_predict is set to now before the measurements are updated
+	const bool measurement_in_the_future = dt_sync_us < 0 && -dt_sync_us > static_cast<int64_t>(5_ms);
 
 	// Reject old measurements or measurements in the "future" due to bad time sync
-	if (dt_sync_us > static_cast<int64_t>(_meas_recent_timeout_us) || dt_sync_us < 0) {
-
-		PX4_DEBUG("Obs type: %d too old or in the future. Time sync: %.2f [ms] (timeout: %.2f [ms])",
-			  static_cast<int>(target_obs.type),
-			  static_cast<double>(dt_sync_us) / 1000., static_cast<double>(_meas_recent_timeout_us) / 1000.);
-
+	if (measurement_too_old || measurement_in_the_future) {
+		// in the innovation toptic of the log, (time_last_fuse - timestamp_sample) provides dt_sync_us
 		_target_innov.fused = false;
 		perf_end(_vte_update_perf);
 		publishInnov(_target_innov, target_obs.type);

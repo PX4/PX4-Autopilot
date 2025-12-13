@@ -622,6 +622,7 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 void PrecLand::_publish_prec_land_status(const bool prec_land_ongoing)
 {
 	prec_land_status_s prec_land_status{};
+	prec_land_status.timestamp = hrt_absolute_time();
 
 	if (prec_land_ongoing) {
 		prec_land_status.state = prec_land_status_s::PREC_LAND_STATE_ONGOING;
