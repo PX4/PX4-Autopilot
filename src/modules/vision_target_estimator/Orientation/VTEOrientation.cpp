@@ -45,7 +45,7 @@
 
 #include "VTEOrientation.h"
 
-#define SEC2USEC_F 1e6f
+#define USEC2SEC_F 1e-6f
 
 namespace vision_target_estimator
 {
@@ -114,8 +114,8 @@ bool VTEOrientation::initEstimator(const ObsValidMaskU &fusion_mask,
 	matrix::Vector<float, State::size> state_var_init;
 	state_var_init.setAll(_yaw_unc);
 
-	_target_est_yaw.set_state(state_init);
-	_target_est_yaw.set_state_covariance(state_var_init);
+	_target_est_yaw.setState(state_init);
+	_target_est_yaw.setStateCovarianceDiag(state_var_init);
 
 	PX4_INFO("Orientation filter init yaw: %.2f [rad] yaw_rate: %.2f [rad/s]", (double)state_init(State::yaw),
 		 (double)state_init(State::yaw_rate));
@@ -131,7 +131,7 @@ bool VTEOrientation::initEstimator(const ObsValidMaskU &fusion_mask,
 void VTEOrientation::predictionStep()
 {
 	// Time since the last prediction
-	const float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC_F;
+	const float dt = (hrt_absolute_time() - _last_predict) * USEC2SEC_F;
 
 	_target_est_yaw.predictState(dt);
 	_target_est_yaw.predictCov(dt);
@@ -165,25 +165,8 @@ void VTEOrientation::resetObservations()
 void VTEOrientation::processObservations(ObsValidMaskU &fusion_mask,
 		TargetObs observations[kObsTypeCount])
 {
-	handleVisionData(fusion_mask, observations[obsIndex(ObsType::Fiducial_marker)]);
-}
-
-void VTEOrientation::handleVisionData(ObsValidMaskU &fusion_mask, TargetObs &vision_obs)
-{
-	if (!_vte_aid_mask.flags.use_vision_pos) {
-		return;
-	}
-
-	fiducial_marker_yaw_report_s fiducial_marker_yaw;
-
-	if (!_fiducial_marker_yaw_report_sub.update(&fiducial_marker_yaw)
-	    || !isVisionDataValid(fiducial_marker_yaw)) {
-		return;
-	}
-
-	if (processObsVision(fiducial_marker_yaw, vision_obs)) {
-		fusion_mask.flags.fuse_vision = true;
-	}
+	fusion_mask.flags.fuse_vision = _vte_aid_mask.flags.use_vision_pos
+					&& processObsVision(observations[obsIndex(ObsType::Fiducial_marker)]);
 }
 
 bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw) const
@@ -201,14 +184,20 @@ bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiduc
 	return true;
 }
 
-bool VTEOrientation::processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs) const
+bool VTEOrientation::processObsVision(TargetObs &obs)
 {
+	fiducial_marker_yaw_report_s fiducial_marker_yaw;
+
+	if (!_fiducial_marker_yaw_report_sub.update(&fiducial_marker_yaw)
+	    || !isVisionDataValid(fiducial_marker_yaw)) {
+		return false;
+	}
+
 	float yaw_unc = fmaxf(fiducial_marker_yaw.yaw_var_ned, _min_ev_angle_var);
 
 	if (_ev_noise_md) {
 		const float range = _range_sensor.valid ? fmaxf(_range_sensor.dist_bottom, 1.f) : kDefaultVisionYawDistance;
 		yaw_unc = _min_ev_angle_var * range;
-
 	}
 
 	obs.timestamp = fiducial_marker_yaw.timestamp;
@@ -261,21 +250,21 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 		return false;
 	}
 
-	const float dt_sync_s = static_cast<float>(dt_sync_us) / SEC2USEC_F;
+	const float dt_sync_s = static_cast<float>(dt_sync_us) * USEC2SEC_F;
 
 	_target_est_yaw.syncState(dt_sync_s);
-	_target_est_yaw.set_H(target_obs.meas_h_theta);
+	_target_est_yaw.setH(target_obs.meas_h_theta);
 	target_innov.innovation_variance = _target_est_yaw.computeInnovCov(target_obs.meas_unc);
 	target_innov.innovation = _target_est_yaw.computeInnov(target_obs.meas);
 
-	_target_est_yaw.set_nis_threshold(_nis_threshold);
+	_target_est_yaw.setNisThreshold(_nis_threshold);
 	const bool meas_fused = _target_est_yaw.update();
 
 	target_innov.innovation_rejected = !meas_fused;
 	target_innov.fused = meas_fused;
 	target_innov.observation = target_obs.meas;
 	target_innov.observation_variance = target_obs.meas_unc;
-	target_innov.test_ratio = _target_est_yaw.get_test_ratio();
+	target_innov.test_ratio = _target_est_yaw.getTestRatio();
 
 	_vte_aid_ev_yaw_pub.publish(target_innov);
 
@@ -287,8 +276,8 @@ void VTEOrientation::publishTarget()
 	vision_target_est_orientation_s &vision_target_orientation = _orientation_msg;
 	vision_target_orientation = {};
 
-	matrix::Vector<float, State::size> state = _target_est_yaw.get_state();
-	matrix::Vector<float, State::size> state_var = _target_est_yaw.get_state_covariance();
+	const matrix::Vector<float, State::size> &state = _target_est_yaw.getState();
+	const matrix::Vector<float, State::size> state_var = _target_est_yaw.getStateCovarianceDiag();
 
 	vision_target_orientation.timestamp = _last_predict;
 	vision_target_orientation.orientation_valid = !hasTimedOut(_last_update, _target_valid_timeout_us);
