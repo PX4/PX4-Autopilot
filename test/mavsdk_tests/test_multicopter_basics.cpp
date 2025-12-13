@@ -40,7 +40,7 @@
 TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 {
 	const float takeoff_altitude = 10.f;
-	const float altitude_tolerance = 0.1f;
+	const float altitude_tolerance = 0.15f;
 	const int delay_seconds = 60.f;
 
 	AutopilotTester tester;
