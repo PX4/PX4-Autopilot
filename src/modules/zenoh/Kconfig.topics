@@ -269,6 +269,10 @@ menu "Zenoh publishers/subscribers"
 		bool "fuel_tank_status"
 		default n
 
+	config ZENOH_PUBSUB_GAIN_COMPRESSION
+		bool "gain_compression"
+		default n
+
 	config ZENOH_PUBSUB_GENERATOR_STATUS
 		bool "generator_status"
 		default n
@@ -1017,6 +1021,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_FOLLOW_TARGET_ESTIMATOR
 	select ZENOH_PUBSUB_FOLLOW_TARGET_STATUS
 	select ZENOH_PUBSUB_FUEL_TANK_STATUS
+	select ZENOH_PUBSUB_GAIN_COMPRESSION
 	select ZENOH_PUBSUB_GENERATOR_STATUS
 	select ZENOH_PUBSUB_GEOFENCE_RESULT
 	select ZENOH_PUBSUB_GEOFENCE_STATUS
