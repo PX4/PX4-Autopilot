@@ -64,6 +64,8 @@ uint8 NAVIGATION_STATE_MAX = 31
 
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
 
+bool accepts_offboard_setpoints                 # True if the current mode accepts offboard trajectory setpoints via MAVLink
+
 uint32 valid_nav_states_mask                    # Bitmask for all valid nav_state values
 uint32 can_set_nav_states_mask                  # Bitmask for all modes that a user can select
 

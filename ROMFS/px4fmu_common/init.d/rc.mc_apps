@@ -41,3 +41,9 @@ if param compare -s MC_NN_EN 1
 then
 	mc_nn_control start
 fi
+
+
+if param compare -s MC_RAPTOR_ENABLE 1
+then
+	mc_raptor start
+fi
