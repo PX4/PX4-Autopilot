@@ -76,3 +76,10 @@ void Safety::activateSafety()
 		_safety_off = false;
 	}
 }
+
+void Safety::deactivateSafety()
+{
+	if (!_safety_disabled) {
+		_safety_off = true;
+	}
+}
