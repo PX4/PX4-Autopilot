@@ -49,6 +49,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/gps_inject_data.h>
+#include <uORB/topics/gps_dump.h>
 
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/gnss/Auxiliary.hpp>
@@ -84,6 +85,8 @@ private:
 	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
 	void gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg);
 	void gnss_relative_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg);
+	void moving_baseline_data_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &msg);
+
 
 	template <typename FixType>
 	void process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
@@ -119,12 +122,19 @@ private:
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &) >
 		RelPosHeadingCbBinder;
 
+	typedef uavcan::MethodBinder < UavcanGnssBridge *,
+		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &) >
+		MovingBaselineDataCbBinder;
+
 	uavcan::INode &_node;
 
 	uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary, AuxiliaryCbBinder> _sub_auxiliary;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix2, Fix2CbBinder> _sub_fix2;
 	uavcan::Subscriber<ardupilot::gnss::RelPosHeading, RelPosHeadingCbBinder> _sub_gnss_heading;
+
+	// Used for MSM7 logging for PPK workflows
+	uavcan::Subscriber<ardupilot::gnss::MovingBaselineData, MovingBaselineDataCbBinder> _sub_moving_baseline_data;
 
 	uavcan::Publisher<ardupilot::gnss::MovingBaselineData> _pub_moving_baseline_data;
 	uavcan::Publisher<uavcan::equipment::gnss::RTCMStream> _pub_rtcm_stream;
@@ -136,6 +146,8 @@ private:
 	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
 	hrt_abstime		_last_rtcm_injection_time{0};	///< time of last rtcm injection
 	uint8_t			_selected_rtcm_instance{0};	///< uorb instance that is being used for RTCM corrections
+
+	uORB::Publication<gps_dump_s> _gps_dump_pub{ORB_ID(gps_dump)}; // For PPK
 
 	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 
@@ -150,6 +162,7 @@ private:
 
 	perf_counter_t _rtcm_stream_pub_perf{nullptr};
 	perf_counter_t _moving_baseline_data_pub_perf{nullptr};
+	perf_counter_t _moving_baseline_data_sub_perf{nullptr};
 
 	hrt_abstime _last_rate_measurement{0};
 	float _rtcm_injection_rate{0.f}; ///< RTCM message injection rate
