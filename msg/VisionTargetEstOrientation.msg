@@ -1,8 +1,8 @@
-# Relative orientation of precision land target in navigation (body fixed, north aligned, NED) and inertial (world fixed, north aligned, NED) frames
+# Relative orientation of the target estimated by the vision target estimator
 
 uint64 timestamp		    # time since system start (microseconds)
 
-bool orientation_valid  # Flag showing whether relative position is valid
+bool orientation_valid  # Flag showing whether relative orientation is valid
 
 float32 theta           # Orientation of the target relative to navigation frame [rad] [-pi; pi]
 float32 cov_theta       # orientation uncertainty

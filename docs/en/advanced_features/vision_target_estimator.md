@@ -63,7 +63,7 @@ Set `CONFIG_MAVLINK_DIALECT="development"` so the [MAVLink messages](#mavlink-me
 
 Common build targets that already include the module are:
 - `make px4_fmu-v6c_visionTargetEst`
-- `make px4_sitl_visionTargetEst`
+- `make px4_sitl_default`
 
 Other boards provide the same `_visionTargetEst` suffix. Enable `CONFIG_VTEST_MOVING=y` in the board configuration if you need the experimental moving-target states. Orientation estimation can be enabled at runtime with [`VTE_YAW_EN`](../advanced_config/parameter_reference.md#VTE_YAW_EN), while [`VTE_POS_EN`](../advanced_config/parameter_reference.md#VTE_POS_EN) controls the position filter.
 

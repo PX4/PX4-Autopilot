@@ -52,8 +52,6 @@ namespace vision_target_estimator
 
 using namespace matrix;
 
-constexpr float kDefaultVisionYawDistance = 10.f;
-
 VTEOrientation::VTEOrientation() :
 	ModuleParams(nullptr)
 {
@@ -195,9 +193,11 @@ bool VTEOrientation::processObsVision(TargetObs &obs)
 
 	float yaw_unc = fmaxf(fiducial_marker_yaw.yaw_var_ned, _min_ev_angle_var);
 
+	static constexpr float kDefaultVisionYawDistance = 10.f;
+
 	if (_ev_noise_md) {
-		const float range = _range_sensor.valid ? fmaxf(_range_sensor.dist_bottom, 1.f) : kDefaultVisionYawDistance;
-		yaw_unc = _min_ev_angle_var * range;
+		const float range = _range_sensor.valid ? _range_sensor.dist_bottom : kDefaultVisionYawDistance;
+		yaw_unc = fmaxf(sqrtf(_min_ev_angle_var) * range, _min_ev_angle_var);
 	}
 
 	obs.timestamp = fiducial_marker_yaw.timestamp;

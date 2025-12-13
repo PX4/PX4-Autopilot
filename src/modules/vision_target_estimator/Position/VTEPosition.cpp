@@ -52,15 +52,6 @@ namespace vision_target_estimator
 
 using namespace matrix;
 
-// Geographic limits
-constexpr double kLatAbsMaxDeg =  90.0;
-constexpr double kLonAbsMaxDeg = 180.0;
-constexpr float kAltMinM = -350.f;
-constexpr float kAltMaxM = 10000.f;
-constexpr float kMinAbsMpcZVAutoDnMps = 1e-3f;
-constexpr float kDefaultVisionUncDistanceM = 10.f;
-constexpr float kMinTimesSyncNoInterpolationS = 0.1f;
-
 VTEPosition::VTEPosition() :
 	ModuleParams(nullptr)
 {
@@ -665,9 +656,10 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 
 	// Use uncertainty from parameters or from vision messages
 	if (_ev_noise_md) {
+		static constexpr float kDefaultVisionUncDistanceM = 10.f;
 		// Uncertainty proportional to the vertical distance
-		const float meas_unc = _range_sensor.valid ? (_min_ev_pos_var * fmaxf(_range_sensor.dist_bottom, 1.f)) :
-				       (_min_ev_pos_var * kDefaultVisionUncDistanceM);
+		const float range = _range_sensor.valid ? _range_sensor.dist_bottom : kDefaultVisionUncDistanceM;
+		const float meas_unc = fmaxf(sqrtf(_min_ev_pos_var) * range, _min_ev_pos_var);
 		cov_rotated = diag(Vector3f(meas_unc, meas_unc, meas_unc));
 
 	} else {
@@ -863,9 +855,10 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	const float dt_sync_s_abs = fabsf(dt_sync_s);
 	bool uav_position_interpolated = false;
 
+	static constexpr float kMinTimesSyncNoInterpolationS = 0.1f;
+
 	// Compensate UAV motion during the latency interval
-	if (dt_sync_s_abs > kMinTimesSyncNoInterpolationS &&
-	    _uav_gps_vel.valid
+	if (dt_sync_s_abs > kMinTimesSyncNoInterpolationS && _uav_gps_vel.valid
 	    && isTimeDifferenceWithin(_uav_gps_vel.timestamp, _uav_gps_position.timestamp, _meas_updated_timeout_us)) {
 		const matrix::Vector3f uav_vel_ned = _uav_gps_vel.xyz;
 		const float delta_n = uav_vel_ned(vtest::Axis::x) * dt_sync_s;
@@ -1173,6 +1166,8 @@ void VTEPosition::publishTarget()
 		// If the target is moving, move towards its expected location
 		float mpc_z_v_auto_dn = _mpc_z_v_auto_dn;
 
+		static constexpr float kMinAbsMpcZVAutoDnMps = 1e-3f;
+
 		if (fabsf(mpc_z_v_auto_dn) < kMinAbsMpcZVAutoDnMps) {
 			mpc_z_v_auto_dn = (mpc_z_v_auto_dn >= 0.f) ? kMinAbsMpcZVAutoDnMps : -kMinAbsMpcZVAutoDnMps;
 		}
@@ -1217,10 +1212,6 @@ void VTEPosition::checkMeasurementInputs()
 
 	if (_local_position.valid) {
 		_local_position.valid = isMeasUpdated(_local_position.timestamp);
-	}
-
-	if (_local_velocity.valid) {
-		_local_velocity.valid = isMeasUpdated(_local_velocity.timestamp);
 	}
 
 	if (_local_velocity.valid) {
@@ -1380,6 +1371,11 @@ void VTEPosition::updateParams()
 bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who,
 				   hrt_abstime *warn_last)
 {
+	static constexpr double kLatAbsMaxDeg =  90.0;
+	static constexpr double kLonAbsMaxDeg = 180.0;
+	static constexpr float kAltMinM = -350.f;
+	static constexpr float kAltMaxM = 10000.f;
+
 	// all finite
 	if (!PX4_ISFINITE(lat_deg) || !PX4_ISFINITE(lon_deg) || !PX4_ISFINITE(alt_m)) {
 		if (who && (!warn_last || shouldEmitWarning(*warn_last))) {
