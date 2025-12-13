@@ -245,5 +245,4 @@ private:
 		(ParamInt<px4::params::VTE_AID_MASK>) _param_vte_aid_mask
 	)
 };
-
 } // namespace vision_target_estimator

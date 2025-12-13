@@ -72,14 +72,12 @@
 #include <vtest_derivation/generated/state.h>
 #include "../common.h"
 
-
 namespace vision_target_estimator
 {
 
 class VTEPosition: public ModuleParams
 {
 public:
-
 	VTEPosition();
 	virtual ~VTEPosition();
 
@@ -109,7 +107,6 @@ public:
 	bool fusionEnabled() const {return _vte_aid_mask.value != 0;};
 
 protected:
-
 	/*
 	 * update parameters.
 	 */
@@ -232,14 +229,10 @@ private:
 			      hrt_abstime *warn_last = nullptr);
 
 	/* Vision data */
-	void handleVisionData(ObsValidMaskU &fusion_mask, TargetObs &vision_obs);
 	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose) const;
-	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, TargetObs &obs);
+	bool processObsVision(TargetObs &obs);
 
 	/* UAV GPS data */
-	void handleUavGpsData(ObsValidMaskU &fusion_mask,
-			      TargetObs &mission_pos_obs,
-			      TargetObs &uav_vel_obs);
 	bool updateUavGpsData();
 	bool isUavGpsPositionValid();
 	bool isUavGpsVelocityValid();
@@ -247,9 +240,6 @@ private:
 	bool processObsGNSSVelUav(TargetObs &obs) const;
 
 	/* Target GPS data */
-	void handleTargetGpsData(ObsValidMaskU &fusion_mask,
-				 TargetObs &target_pos_obs,
-				 TargetObs &target_vel_obs);
 	bool isTargetGpsPositionValid(const target_gnss_s &target_gnss);
 	bool isTargetGpsVelocityValid(const target_gnss_s &target_gnss);
 	bool processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs);

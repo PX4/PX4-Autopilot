@@ -52,8 +52,8 @@ namespace vision_target_estimator
 class KF_position
 {
 public:
-	KF_position() {};
-	~KF_position() {};
+	KF_position() = default;
+	~KF_position() = default;
 
 	void predictState(float dt, float acc);
 	void predictCov(float dt);
@@ -61,52 +61,47 @@ public:
 	bool update();
 
 	void syncState(float dt, float acc);
-	void set_H(const matrix::Vector<float, vtest::State::size> &h_meas) {_meas_matrix_row_vect = h_meas;}
-	void set_state(const matrix::Vector<float, vtest::State::size> &state) {_state = state;}
-	void set_state_covariance(const matrix::Vector<float, vtest::State::size> &var)
+	void setH(const matrix::Vector<float, vtest::State::size> &h_meas) { _meas_matrix_row_vect = h_meas; }
+	void setState(const matrix::Vector<float, vtest::State::size> &state) { _state = state; }
+	void setStateCovarianceDiag(const matrix::Vector<float, vtest::State::size> &var)
 	{
 		const matrix::SquareMatrix<float, vtest::State::size> var_mat = diag(var);
 		_state_covariance = var_mat;
 	};
 
-	matrix::Vector<float, vtest::State::size> get_state() { return _state;}
-	matrix::Vector<float, vtest::State::size> get_state_covariance()
-	{
-		const matrix::SquareMatrix<float, vtest::State::size> var_mat = _state_covariance;
-		return var_mat.diag();
-	};
+	const matrix::Vector<float, vtest::State::size> &getState() const { return _state; }
+	const matrix::SquareMatrix<float, vtest::State::size> &getStateCovariance() const { return _state_covariance; }
+	matrix::Vector<float, vtest::State::size> getStateCovarianceDiag() const { return _state_covariance.diag(); }
 
 	float computeInnovCov(float measUnc);
 	float computeInnov(float meas);
 
-	void set_nis_threshold(float nis_threshold) { _nis_threshold = nis_threshold; };
-	float get_test_ratio() {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
+	void setNisThreshold(float nis_threshold) { _nis_threshold = nis_threshold; }
 
-	void set_input_var(float var) { _input_var = var;};
-	void set_bias_var(float var) { _bias_var = var; };
-	void set_target_acc_var(float var) { _acc_var = var; };
+	float getTestRatio() const
+	{
+		if (fabsf(_innov_cov) < 1e-6f || _nis_threshold <= 0.f) {
+			return -1.f;
+		}
+
+		const float nis = math::sq(_innov) / _innov_cov;
+		return nis / _nis_threshold;
+	}
+
+	void setInputVar(float var) { _input_var = var; }
+	void setBiasVar(float var) { _bias_var = var; }
+	void setTargetAccVar(float var) { _acc_var = var; }
 
 private:
-
 	matrix::Vector<float, vtest::State::size> _state;
-
 	matrix::Vector<float, vtest::State::size> _sync_state;
-
 	matrix::Vector<float, vtest::State::size> _meas_matrix_row_vect;
-
-	matrix::Matrix<float, vtest::State::size, vtest::State::size> _state_covariance;
-
+	matrix::SquareMatrix<float, vtest::State::size> _state_covariance;
 	float _bias_var{0.f}; // target/UAV GPS bias variance
-
 	float _acc_var{0.f}; // Target acceleration variance
-
 	float _input_var{0.f}; // UAV acceleration variance
-
 	float _innov{0.0f}; // residual of last measurement update
-
 	float _innov_cov{0.0f}; // innovation covariance of last measurement update
-
 	float _nis_threshold{0.0f}; // Normalized innovation squared test threshold
-
 };
 } // namespace vision_target_estimator
