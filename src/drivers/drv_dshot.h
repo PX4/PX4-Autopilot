@@ -62,6 +62,8 @@ typedef enum {
 	DShot_cmd_3d_mode_on,
 	DShot_cmd_settings_request, // Currently not implemented
 	DShot_cmd_save_settings,
+	DShot_cmd_dshot_extended_telemetry_on = 13, // AM32 only
+	DShot_cmd_dshot_extended_telemetry_off = 14, // AM32 only
 	DShot_cmd_spin_direction_normal   = 20,
 	DShot_cmd_spin_direction_reversed = 21,
 	DShot_cmd_led0_on,      // BLHeli32 only
@@ -81,6 +83,28 @@ typedef enum {
 	DShot_cmd_MAX_throttle = 2047
 } dshot_command_t;
 
+
+typedef enum {
+	DShot_telemetry_ext_key_none = 0x0000, // Not extended telemetry, so it is a regular ERPM value
+	DShot_telemetry_ext_key_temperature = 0x0200, // Temperature in degrees Celsius
+	DShot_telemetry_ext_key_battery_voltage = 0x0400, // Battery voltage in 0.25V steps
+	DShot_telemetry_ext_key_current = 0x0600, // Current in 0.5A steps
+	DShot_telemetry_ext_key_debug_1 = 0x0800, // Debug value 1
+	DShot_telemetry_ext_key_debug_2 = 0x0A00, // Debug value 2
+	DShot_telemetry_ext_key_debug_3 = 0x0C00, // Debug value 3
+	DShot_telemetry_ext_key_evt = 0x0E00, // Event value
+} dshot_extended_telemetry_key_t;
+
+typedef enum {
+	DShot_telemetry_field_erpm = 0, // No extended telemetry
+	DShot_telemetry_field_temperature, // Temperature in degrees Celsius
+	DShot_telemetry_field_battery_voltage, // Battery voltage in 0.25V steps
+	DShot_telemetry_field_current, // Current in 0.5A steps
+	DShot_telemetry_field_debug_1, // Debug value 1
+	DShot_telemetry_field_debug_2, // Debug value 2
+	DShot_telemetry_field_debug_3, // Debug value 3
+	DShot_telemetry_field_evt, // Event value
+} dshot_telemetry_field_t;
 
 /**
  * Intialise the Dshot outputs using the specified configuration.
@@ -170,6 +194,16 @@ __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
  * @return <0 on error / not supported, 0 on offline, 1 on online
  */
 __EXPORT extern int up_bdshot_channel_status(uint8_t channel);
+
+
+/**
+ * Get the current bidirectional dshot telemetry data for a channel.
+ * @param channel	Dshot channel
+ * @param key		Extended telemetry key to get the value for.
+ * @param value		Pointer to write the value to.
+ * @return <0 on error, OK on success
+ */
+__EXPORT extern int up_bdshot_get_extended_telemetry(uint8_t channel, dshot_telemetry_field_t field, int32_t *value);
 
 
 __END_DECLS
