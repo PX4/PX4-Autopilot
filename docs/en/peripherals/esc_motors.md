@@ -5,6 +5,13 @@ The ESC takes a signal from the flight controller and uses it to set control the
 
 PX4 supports a number of common protocols for sending the signals to ESCs: [PWM ESCs](../peripherals/pwm_escs_and_servo.md), [OneShot ESCs](../peripherals/oneshot.md), [DShot ESCs](../peripherals/dshot.md), [DroneCAN ESCs](../dronecan/escs.md), PCA9685 ESC (via I2C), and some UART ESCs (from Yuneec).
 
+| ESC Device  | Protocols      | Firmwares    | Notes   |
+| :---------- | :------------- | :----------- | :------ |
+| [BobEsc](#) | Dshot, PWM     | AM32, BLHeli | -       |
+| [ESC 2](#)  | OneShot, Dshot | BLHeli, KISS | Example |
+| [ESC 3](#)  | PWM            | AM32         | Example |
+
+
 For more information see:
 
 - [PWM ESCs and Servos](../peripherals/pwm_escs_and_servo.md)
