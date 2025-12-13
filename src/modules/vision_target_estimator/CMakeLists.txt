@@ -202,7 +202,6 @@ if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 	px4_add_module(
 		MODULE modules__vision_target_estimator
 		MAIN vision_target_estimator
-		COMPILE_FLAGS
 		STACK_MAX
 			5000
 		SRCS
