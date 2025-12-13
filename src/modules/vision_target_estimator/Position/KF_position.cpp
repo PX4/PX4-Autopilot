@@ -62,7 +62,6 @@ void KF_position::predictCov(float dt)
 	_state_covariance = cov_updated;
 }
 
-
 bool KF_position::update()
 {
 	// Avoid zero-division
@@ -70,7 +69,7 @@ bool KF_position::update()
 		return false;
 	}
 
-	const float beta = _innov / _innov_cov * _innov;
+	const float beta = math::sq(_innov) / _innov_cov;
 
 	// Normalized innovation Squared threshold. Checks whether innovation is consistent with innovation covariance.
 	if (beta > _nis_threshold) {
@@ -80,7 +79,7 @@ bool KF_position::update()
 	const matrix::Matrix<float, vtest::State::size, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
-	_state_covariance = _state_covariance - kalmanGain * _meas_matrix_row_vect.transpose() * _state_covariance;
+	_state_covariance = _state_covariance - (kalmanGain * kalmanGain.transpose()) * _innov_cov;
 
 	return true;
 }

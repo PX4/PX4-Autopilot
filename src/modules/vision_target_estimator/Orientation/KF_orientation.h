@@ -59,9 +59,8 @@ static constexpr uint8_t size{2};
 class KF_orientation
 {
 public:
-
-	KF_orientation() {};
-	~KF_orientation() {};
+	KF_orientation() = default;
+	~KF_orientation() = default;
 
 	void predictState(float dt);
 	void predictCov(float dt);
@@ -70,32 +69,36 @@ public:
 
 	// Backwards state prediciton
 	void syncState(float dt);
-	void set_H(const matrix::Vector<float, State::size> &h_meas) {_meas_matrix_row_vect = h_meas;}
-	void set_state(const matrix::Vector<float, State::size> &state) {_state = state;}
-	void set_state_covariance(const matrix::Vector<float, State::size> &var)
+	void setH(const matrix::Vector<float, State::size> &h_meas) { _meas_matrix_row_vect = h_meas; }
+	void setState(const matrix::Vector<float, State::size> &state) { _state = state; }
+	void setStateCovarianceDiag(const matrix::Vector<float, State::size> &var)
 	{
 		const matrix::SquareMatrix<float, State::size> var_mat = diag(var);
 		_state_covariance = var_mat;
 	};
 
-	matrix::Vector<float, State::size> get_state() { return _state;}
-	matrix::Vector<float, State::size> get_state_covariance()
-	{
-		const matrix::SquareMatrix<float, State::size> var_mat = _state_covariance;
-		return var_mat.diag();
-	};
+	const matrix::Vector<float, State::size> &getState() const { return _state; }
+	const matrix::SquareMatrix<float, State::size> &getStateCovariance() const { return _state_covariance; }
+	matrix::Vector<float, State::size> getStateCovarianceDiag() const { return _state_covariance.diag(); }
 
 	float computeInnovCov(float measUnc);
 	float computeInnov(float meas);
 
-	void set_nis_threshold(float nis_threshold) { _nis_threshold = nis_threshold; };
-	float get_test_ratio() {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
+	void setNisThreshold(float nis_threshold) { _nis_threshold = nis_threshold; }
+
+	float getTestRatio() const
+	{
+		if (fabsf(_innov_cov) < 1e-6f || _nis_threshold <= 0.f) {
+			return -1.f;
+		}
+
+		const float nis = math::sq(_innov) / _innov_cov;
+		return nis / _nis_threshold;
+	}
 
 private:
-
-	matrix::SquareMatrix<float, State::size> getPhi(float dt)
+	matrix::SquareMatrix<float, State::size> getTransitionMatrix(float dt)
 	{
-
 		float data[State::size * State::size] = {
 			1, dt,
 			0, 1
@@ -105,18 +108,11 @@ private:
 	}
 
 	matrix::Vector<float, State::size> _state;
-
 	matrix::Vector<float, State::size> _sync_state;
-
 	matrix::Vector<float, State::size> _meas_matrix_row_vect;
-
-	matrix::Matrix<float, State::size, State::size> _state_covariance;
-
+	matrix::SquareMatrix<float, State::size> _state_covariance;
 	float _innov{0.0f}; // residual of last measurement update
-
 	float _innov_cov{0.0f}; // innovation covariance of last measurement update
-
 	float _nis_threshold{0.0f}; // Normalized innovation squared test threshold
-
 };
 } // namespace vision_target_estimator

@@ -83,7 +83,6 @@ VisionTargetEst::~VisionTargetEst()
 
 int VisionTargetEst::task_spawn(int argc, char *argv[])
 {
-
 #if !defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) || !CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	PX4_ERR("Vision Target Estimator cannot run without CONFIG_MODULES_VISION_TARGET_ESTIMATOR (missing topics).");
 	return PX4_ERROR;
@@ -441,7 +440,6 @@ void VisionTargetEst::printAidMask()
 
 	if (_vte_aid_mask.flags.use_uav_gps_vel) {PX4_INFO("    UAV GPS velocity fusion enabled");}
 
-
 	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
 }
 
@@ -617,7 +615,6 @@ void VisionTargetEst::stopAllEstimators()
 
 void VisionTargetEst::stopPosEst()
 {
-
 	PX4_INFO("Stopping Position Vision Target Estimator.");
 
 	if (_vte_position_enabled) {
@@ -630,7 +627,6 @@ void VisionTargetEst::stopPosEst()
 
 void VisionTargetEst::stopYawEst()
 {
-
 	PX4_INFO("Stopping Orientation Vision Target Estimator.");
 
 	if (_vte_orientation_enabled) {
@@ -643,7 +639,6 @@ void VisionTargetEst::stopYawEst()
 
 void VisionTargetEst::startEstIfNeeded()
 {
-
 	// Only start the estimator if fusion is enabled, otherwise it will timeout
 	if (!_position_estimator_running && _vte_position_enabled && _vte_position.fusionEnabled()) {
 		_position_estimator_running = startPosEst();
@@ -766,7 +761,6 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 
 void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local_pose_updated)
 {
-
 	if (!updateWhenIntervalElapsed(_last_update_yaw, _yaw_update_period_us)) {
 		return;
 	}
@@ -820,7 +814,6 @@ bool VisionTargetEst::computeGpsVelocityOffset(matrix::Vector3f &vel_offset_body
 
 bool VisionTargetEst::pollLocalPose(LocalPose &local_pose)
 {
-
 	vehicle_local_position_s vehicle_local_position;
 
 	if (!_vehicle_local_position_sub.update(&vehicle_local_position)) {
@@ -906,7 +899,6 @@ bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned,
 
 bool VisionTargetEst::updateWhenIntervalElapsed(hrt_abstime &last_time, const hrt_abstime interval) const
 {
-
 	if (hrt_elapsed_time(&last_time) > interval) {
 		last_time = hrt_absolute_time();
 		return true;
