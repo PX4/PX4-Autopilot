@@ -59,7 +59,7 @@ The work item re-schedules both filters at the rates commanded by [`VTE_POS_RATE
 
 The estimator is not part of the default PX4 board configurations. Build a board variant that enables the module, or add `CONFIG_MODULES_VISION_TARGET_ESTIMATOR=y` to a custom `.px4board` file.
 
-Set `CONFIG_MAVLINK_DIALECT="development"` so the [MAVLink messages](#mavlink-messages) for relative and absolute target measurements are available, and disable the legacy landing target estimator by adding `CONFIG_MODULES_LANDING_TARGET_ESTIMATOR=n` (both modules publish `landing_target_pose` and will conflict if enabled together).
+Set `CONFIG_MAVLINK_DIALECT="development"` so the [MAVLink messages](#mavlink-messages) for relative and absolute target measurements are available, and disable the landing target estimator by adding `CONFIG_MODULES_LANDING_TARGET_ESTIMATOR=n` (both modules publish `landing_target_pose` and will conflict if enabled together).
 
 Common build targets that already include the module are:
 - `make px4_fmu-v6c_visionTargetEst`
@@ -75,8 +75,8 @@ For a static target the per-axis state is $x = [ r, v^{uav}, b ]^T$, where $r$ i
 
 $$
 \begin{aligned}
-r_{k+1} &= r_k - dt\,v^{uav}_k - \tfrac{1}{2}\,dt^2\,a^{uav} \\
-v^{uav}_{k+1} &= v^{uav}_k + dt\,a^{uav} \\
+r_{k+1} &= r_k - dt\thinspace v^{uav}_k - \tfrac{1}{2}\thinspace dt^2\thinspace a^{uav} \\
+v^{uav}_{k+1} &= v^{uav}_k + dt\thinspace a^{uav} \\
 b_{k+1} &= b_k
 \end{aligned}
 $$
@@ -85,9 +85,9 @@ When `CONFIG_VTEST_MOVING` is enabled, two additional states capture the target 
 
 $$
 \begin{aligned}
-r_{k+1} &= r_k - dt\,(v^{uav}_k - v^{t}_k) - \tfrac{1}{2}\,dt^2\,(a^{uav} - a^{t}_k) \\
-v^{uav}_{k+1} &= v^{uav}_k + dt\,a^{uav} \\
-v^{t}_{k+1} &= v^{t}_k + dt\,a^{t}_k \\
+r_{k+1} &= r_k - dt\thinspace (v^{uav}_k - v^{t}_k) - \tfrac{1}{2}\thinspace dt^2\thinspace (a^{uav} - a^{t}_k) \\
+v^{uav}_{k+1} &= v^{uav}_k + dt\thinspace a^{uav} \\
+v^{t}_{k+1} &= v^{t}_k + dt\thinspace a^{t}_k \\
 a^{t}_{k+1} &= a^{t}_k \\
 b_{k+1} &= b_k
 \end{aligned}
@@ -101,7 +101,7 @@ The yaw filter tracks $x = [ \psi, \dot{\psi} ]^T$ and propagates it with a cons
 
 $$
 \begin{aligned}
-\psi_{k+1} &= \text{wrap}\!\left(\psi_k + dt\,\dot{\psi}_k\right) \\
+\psi_{k+1} &= \text{wrap}\negthinspace\left(\psi_k + dt\thinspace\dot{\psi}_k\right) \\
 \dot{\psi}_{k+1} &= \dot{\psi}_k
 \end{aligned}
 $$
@@ -120,8 +120,8 @@ For the static-target position model, letting $\Delta t = t_k - t_{\text{m}}$,
 
 $$
 \begin{aligned}
-r(t_{\text{m}}) &= r(t_k) + \Delta t\,v^{uav}(t_k) - \tfrac{1}{2}\,\Delta t^2\,a^{uav}, \\
-v^{uav}(t_{\text{m}}) &= v^{uav}(t_k) - \Delta t\,a^{uav}, \\
+r(t_{\text{m}}) &= r(t_k) + \Delta t\thinspace v^{uav}(t_k) - \tfrac{1}{2}\thinspace\Delta t^2\thinspace a^{uav}, \\
+v^{uav}(t_{\text{m}}) &= v^{uav}(t_k) - \Delta t\thinspace a^{uav}, \\
 b(t_{\text{m}}) &= b(t_k).
 \end{aligned}
 $$
@@ -130,9 +130,9 @@ When moving-target states are enabled,
 
 $$
 \begin{aligned}
-r(t_{\text{m}}) &= r(t_k) + \Delta t\,(v^{uav}(t_k) - v^{t}(t_k)) + \tfrac{1}{2}\,\Delta t^2\,(a^{t}(t_k) - a^{uav}), \\
-v^{uav}(t_{\text{m}}) &= v^{uav}(t_k) - \Delta t\,a^{uav}, \\
-v^{t}(t_{\text{m}}) &= v^{t}(t_k) - \Delta t\,a^{t}, \\
+r(t_{\text{m}}) &= r(t_k) + \Delta t\thinspace (v^{uav}(t_k) - v^{t}(t_k)) + \tfrac{1}{2}\thinspace\Delta t^2\thinspace (a^{t}(t_k) - a^{uav}), \\
+v^{uav}(t_{\text{m}}) &= v^{uav}(t_k) - \Delta t\thinspace a^{uav}, \\
+v^{t}(t_{\text{m}}) &= v^{t}(t_k) - \Delta t\thinspace a^{t}, \\
 a^{t}(t_{\text{m}}) &= a^{t}(t_k), \\
 b(t_{\text{m}}) &= b(t_k).
 \end{aligned}
@@ -142,7 +142,7 @@ For the orientation filter,
 
 $$
 \begin{aligned}
-\psi(t_{\text{m}}) &= \text{wrap}\!\left(\psi(t_k) - \Delta t\,\dot{\psi}(t_k)\right), \\
+\psi(t_{\text{m}}) &= \text{wrap}\negthinspace\left(\psi(t_k) - \Delta t\thinspace\dot{\psi}(t_k)\right), \\
 \dot{\psi}(t_{\text{m}}) &= \dot{\psi}(t_k).
 \end{aligned}
 $$

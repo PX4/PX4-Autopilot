@@ -46,18 +46,18 @@ namespace vision_target_estimator
 
 void KF_orientation::predictState(float dt)
 {
-
-	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
+	matrix::SquareMatrix<float, State::size> phi = getTransitionMatrix(dt);
 	_state = phi * _state;
 	_state(State::yaw) = matrix::wrap_pi(_state(State::yaw));
 }
 
 void KF_orientation::predictCov(float dt)
 {
-	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
+	matrix::SquareMatrix<float, State::size> phi = getTransitionMatrix(dt);
 	_state_covariance = phi * _state_covariance * phi.transpose();
 }
-
+// TODO: inside the vision_target_estimator folder, at several locations there are 2 white spaces between function definitions instead of one.
+// remove all the extra spaces
 
 bool KF_orientation::update()
 {
@@ -66,7 +66,7 @@ bool KF_orientation::update()
 		return false;
 	}
 
-	const float beta = _innov / _innov_cov * _innov;
+	const float beta = math::sq(_innov) / _innov_cov;
 
 	// Normalized innovation Squared threshold. Checks whether innovation is consistent with innovation covariance.
 	if (beta > _nis_threshold) {
@@ -78,15 +78,14 @@ bool KF_orientation::update()
 	_state = _state + kalmanGain * _innov;
 	_state(State::yaw) = matrix::wrap_pi(_state(State::yaw));
 
-	_state_covariance = _state_covariance - kalmanGain * _meas_matrix_row_vect.transpose() * _state_covariance;
+	_state_covariance = _state_covariance - (kalmanGain * kalmanGain.transpose()) * _innov_cov;
 
 	return true;
 }
 
 void KF_orientation::syncState(float dt)
 {
-
-	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
+	matrix::SquareMatrix<float, State::size> phi = getTransitionMatrix(dt);
 	_sync_state = matrix::inv(phi) * _state;
 	_sync_state(State::yaw) = matrix::wrap_pi(_sync_state(State::yaw));
 }

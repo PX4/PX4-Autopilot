@@ -116,7 +116,6 @@ PARAM_DEFINE_INT32(VTE_AID_MASK, 14);
  */
 PARAM_DEFINE_INT32(VTE_TASK_MASK, 1);
 
-
 /**
  * Vision Target Timeout
  *
@@ -260,7 +259,6 @@ PARAM_DEFINE_FLOAT(VTE_BIAS_UNC, 0.05f);
  */
 PARAM_DEFINE_FLOAT(VTE_BIAS_LIM, 1.f);
 
-
 /**
  * Initial target and drone relative position uncertainty
  *
@@ -389,7 +387,6 @@ PARAM_DEFINE_FLOAT(VTE_EVA_NOISE, 0.05f);
  */
 PARAM_DEFINE_FLOAT(VTE_EVP_NOISE, 0.1f);
 
-
 /**
  * Maximal time to estimate the future position of the target using the velocity estimation.
  *
@@ -404,7 +401,6 @@ PARAM_DEFINE_FLOAT(VTE_EVP_NOISE, 0.1f);
  * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_MOVING_T_MAX, 3.f);
-
 
 /**
  * Minimal time to estimate the future position of the target using the velocity estimation.
@@ -421,7 +417,6 @@ PARAM_DEFINE_FLOAT(VTE_MOVING_T_MAX, 3.f);
  * @group Vision Target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_MOVING_T_MIN, 2.f);
-
 
 /**
  * Normalized Innovation Squared (NIS) threshold for position estimator.

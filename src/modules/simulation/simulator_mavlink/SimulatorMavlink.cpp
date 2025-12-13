@@ -720,7 +720,7 @@ SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 		target_GNSS_report.vel_n_m_s = target_absolute.vel[0];
 		target_GNSS_report.vel_e_m_s = target_absolute.vel[1];
 		target_GNSS_report.vel_d_m_s = target_absolute.vel[2];
-		target_GNSS_report.s_variance_m_s = target_absolute.vel_std[0];
+		target_GNSS_report.s_acc_m_s = target_absolute.vel_std[0];
 		updated = true;
 	}
 

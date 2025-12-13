@@ -50,7 +50,7 @@ This section provides an overview of the topics and fields that matter during lo
 
 ### What to look for in logs
 
-1. **Estimator output vs. observations**: In all axis directions, overlay the estimator outputs position `vision_target_est_position.x_rel`, `vision_target_est_orientation.theta` with measurement observations `vte_aid_*.observation[0]` (e.g. `vte_aid_fiducial_marker.observation[0]` or the relevant GNSS observation). The traces should converge after a short transient. Large steady offsets point to calibration errors or incorrect body-to-NED transforms.
+1. **Estimator output vs. observations**: In all axis directions, overlay the estimator outputs position `vision_target_est_position.rel_pos[0]`, `vision_target_est_orientation.theta` with measurement observations `vte_aid_*.observation[0]` (e.g. `vte_aid_fiducial_marker.observation[0]` or the relevant GNSS observation). The traces should converge after a short transient. Large steady offsets point to calibration errors or incorrect body-to-NED transforms.
 2. **Innovation behaviour**: `vte_aid_*.innovation` (e.g. `vte_aid_fiducial_marker.innovation`) should be centred at zero and resemble white noise. Recall that the innovation is defined as the difference between the state prediction and the measurement observation of the state. It follows that the drifting innovations can come from
    - State prediction errors:
       - check the estimators state outputs which correspond to the prediction of the state when no measurements are fused
@@ -91,7 +91,7 @@ The next four dashboards provide hints on how to analyse logs of the Vision Targ
 
 **Estimator output and observation consistency**: Quick health check that the fused sensors agree with the estimated state before diving into per-axis innovations.
 - **Top row (observations and state output)**: For every axis, plot all the available observations `vte_aid_*.observation[0]` (in this example: vision/IRLock and target GNSS) alongside `vision_target_est_position`. Expect a smooth state trace following the trend of the most precise observations.
-- **Second row (GNSS bias estimate)**: Plot `vision_target_est_position.*_bias`. The bias should settle once both a GNSS observation and a relative observation are fused. A non-zero bias is expected; what matters is that it remains stable so the corrected GNSS still points to the pad if the relative measurement temporarily drops out.
+- **Second row (GNSS bias estimate)**: Plot `vision_target_est_position.bias[0]`, `vision_target_est_position.bias[1]`, `vision_target_est_position.bias[2]`. The bias should settle once both a GNSS observation and a relative observation are fused. A non-zero bias is expected; what matters is that it remains stable so the corrected GNSS still points to the pad if the relative measurement temporarily drops out.
 - **Third row (sensor variances)**: Compare `vte_aid_*.observation_variance[0]` across sensors. Large gaps mean one source is trusted far more than the others. Tune [`VTE_EVP_NOISE`](../advanced_config/parameter_reference.md#VTE_EVP_NOISE) or [`VTE_GPS_P_NOISE`](../advanced_config/parameter_reference.md#VTE_GPS_P_NOISE) until variances reflect the real-world accuracy.
 - **Bottom row (approach context)**: `vehicle_local_position.dist_bottom` indicates the descent phase and helps correlate changes in variance or bias with altitude.
 
@@ -107,8 +107,8 @@ The next four dashboards provide hints on how to analyse logs of the Vision Targ
 
 **Rejecting a Corrupted Measurement**: Demonstrates how the estimator isolates a faulty measurement dimension. The healthy axes continue to fuse while the outlier repeatedly fails the gate, making it easy to spot sensor degradations.
 
-- **Top row (y observation)**: `vte_aid_fiducial_marker.observation[1]` tracks `vision_target_est_position.y_rel`, showing how a healthy measurement pulls the estimate.
-- **Second row (z observation)**: `vte_aid_fiducial_marker.observation[2]` deviates strongly from `vision_target_est_position.z_rel`; the estimator sensibly refuses to follow it.
+- **Top row (y observation)**: `vte_aid_fiducial_marker.observation[1]` tracks `vision_target_est_position.rel_pos[1]`, showing how a healthy measurement pulls the estimate.
+- **Second row (z observation)**: `vte_aid_fiducial_marker.observation[2]` deviates strongly from `vision_target_est_position.rel_pos[2]`; the estimator sensibly refuses to follow it.
 - **Third row (fusion flag)**: `vte_aid_fiducial_marker.fused[2]` drops to zero whenever the vertical observation disagrees with the filter prediction, confirming that the gate is working.
 - **Bottom row (test ratios)**: `vte_aid_fiducial_marker.test_ratio[1]` stays near zero, while index 2 spikes above one, breaching [`VTE_POS_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE). Investigate the vision range estimate or adjust [`VTE_EVP_NOISE`](../advanced_config/parameter_reference.md#VTE_EVP_NOISE) if this pattern occurs frequently.
 

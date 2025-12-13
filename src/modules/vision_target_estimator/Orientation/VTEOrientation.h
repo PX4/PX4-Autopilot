@@ -66,7 +66,6 @@
 #include "KF_orientation.h"
 #include "../common.h"
 
-
 namespace vision_target_estimator
 {
 
@@ -75,7 +74,6 @@ using namespace time_literals;
 class VTEOrientation: public ModuleParams
 {
 public:
-
 	VTEOrientation();
 	virtual ~VTEOrientation();
 
@@ -99,7 +97,6 @@ public:
 	bool fusionEnabled() const {return _vte_aid_mask.value != 0;};
 
 protected:
-
 	/*
 	 * update parameters.
 	 */
@@ -163,9 +160,8 @@ private:
 	bool fuseActiveMeasurements(ObsValidMaskU &fusion_mask, const TargetObs observations[kObsTypeCount]);
 
 	/* Vision data */
-	void handleVisionData(ObsValidMaskU &fusion_mask, TargetObs &vision_obs);
 	bool isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw) const;
-	bool processObsVision(const fiducial_marker_yaw_report_s &fiducial_marker_yaw, TargetObs &obs) const;
+	bool processObsVision(TargetObs &obs);
 
 	bool fuseMeas(const TargetObs &target_pos_obs);
 	void publishTarget();
