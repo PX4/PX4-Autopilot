@@ -131,7 +131,7 @@ PrecLand::on_active()
 		if (_target_orientation_sub.update(&target_orientation) && target_orientation.orientation_valid) {
 			_target_yaw_valid = true;
 			_last_target_yaw_update = target_orientation.timestamp;
-			_target_yaw = target_orientation.theta;
+			_target_yaw = target_orientation.yaw;
 		}
 
 		if ((hrt_elapsed_time(&_last_target_yaw_update) / 1e6f) > _param_pld_btout.get()) {

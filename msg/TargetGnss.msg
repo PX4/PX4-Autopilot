@@ -2,9 +2,6 @@
 
 uint64 timestamp		# time since system start (microseconds)
 
-uint8 fix_type # 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time Kinematic, float, 6: Real-Time Kinematic, fixed, 8: Extrapolated. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.
-uint8 satellites_used		# Number of satellites used
-
 float64 latitude_deg		# Latitude in degrees, allows centimeter level RTK precision
 float64 longitude_deg		# Longitude in degrees, allows centimeter level RTK precision
 float32 altitude_msl_m		# Altitude above MSL, meters

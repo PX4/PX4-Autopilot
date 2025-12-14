@@ -166,7 +166,7 @@ All measurements are fused sequentially. For each observation `z` a one-row Jaco
 | --- | --- | --- | --- |
 | Target GNSS position | `target_gnss` | $z = r + b$ once the bias is observable, otherwise $z = r$ | The vehicle GNSS sample is interpolated to the target timestamp using the vehicle velocity so the two receivers share a common epoch. Requires [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 0. |
 | Mission landing waypoint | `position_setpoint_triplet` | $z = r$ | Provides a fallback absolute reference when target GNSS is unavailable. Enable [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 3 and avoid combining it with target GNSS because only one GNSS bias can be estimated. |
-| Vision pose | `fiducial_marker_pos_report` | $z = r$ after rotating the body-frame measurement into NED | Uses the message variances, or scales with altitude when [`VTE_EV_NOISE_MD`](../advanced_config/parameter_reference.md#VTE_EV_NOISE_MD)=1. Recent vision fusions are required for EKF aiding. |
+| Vision pose | `fiducial_marker_pos_report` | $z = r$ after rotating the measurement (`rel_pos`) into NED using `q` | Uses the message variances, or scales with altitude when [`VTE_EV_NOISE_MD`](../advanced_config/parameter_reference.md#VTE_EV_NOISE_MD)=1. Recent vision fusions are required for EKF aiding. |
 | Vehicle GNSS velocity | `sensor_gps` | $z = v^{uav}$ | Removes rotation-induced velocity using the EKF2 GPS offset (`EKF2_GPS_POS_*`). Enable [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 1. |
 | Target GNSS velocity (moving mode) | `target_gnss` | $z = v^{t}$ | Available only when `CONFIG_VTEST_MOVING=y` and [`VTE_AID_MASK`](../advanced_config/parameter_reference.md#VTE_AID_MASK) bit 4 is set. |
 | Vision yaw | `fiducial_marker_yaw_report` | $z = \psi$ | Variance taken from the message or scaled with altitude via [`VTE_EVA_NOISE`](../advanced_config/parameter_reference.md#VTE_EVA_NOISE). |
@@ -186,7 +186,7 @@ Two time horizons guard incoming data: [`VTE_M_REC_TOUT`](../advanced_config/par
 
 - [`VTE_EN`](../advanced_config/parameter_reference.md#VTE_EN) - global module enable (reboot required).
 - [`VTE_POS_EN`](../advanced_config/parameter_reference.md#VTE_POS_EN) / [`VTE_YAW_EN`](../advanced_config/parameter_reference.md#VTE_YAW_EN) - enable the position and orientation filters respectively (reboot required).
-- [`VTE_POS_RATE`](../advanced_config/parameter_reference.md#VTE_POS_RATE), [`VTE_YAW_RATE`](../advanced_config/parameter_reference.md#VTE_YAW_RATE) - desired update rates for the position and yaw filters; the work item adapts its scheduling to maintain these targets.
+- [`VTE_POS_RATE`](../advanced_config/parameter_reference.md#VTE_POS_RATE), [`VTE_YAW_RATE`](../advanced_config/parameter_reference.md#VTE_YAW_RATE) - desired update rates for the position and yaw filters; the work item adapts its scheduling to maintain these targets (and polls at a lower rate when no task is active).
 - [`VTE_BTOUT`](../advanced_config/parameter_reference.md#VTE_BTOUT), [`VTE_TGT_TOUT`](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) - timeouts for estimator shutdown and published validity flags.
 - [`VTE_M_REC_TOUT`](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT), [`VTE_M_UPD_TOUT`](../advanced_config/parameter_reference.md#VTE_M_UPD_TOUT) - maximum ages for measurements to be fused or retained.
 
@@ -251,14 +251,14 @@ To run the vision target estimator, `CONFIG_MAVLINK_DIALECT="development"` is re
 `mavlink_receiver` validates the frame/type and handles the message differently depending on the Vision Target Estimator status:
 
 - When `VTE_EN=0`, the measurement is rotated (using `q_sensor` or the vehicle attitude for body-frame reports) and published straight to `landing_target_pose` so precision-landing can operate without the estimator.
-- When `VTE_EN=1`, the message is split into `fiducial_marker_pos_report` and `fiducial_marker_yaw_report`, preserving the rotated pose and yaw variance. `VisionTargetEst` consumes these uORB topics to drive the position and orientation filters.
+- When `VTE_EN=1`, the message is split into `fiducial_marker_pos_report` and `fiducial_marker_yaw_report`. `VisionTargetEst` consumes these uORB topics to drive the position and orientation filters (using `fiducial_marker_pos_report.q` to rotate `fiducial_marker_pos_report.rel_pos` into NED at `timestamp_sample`).
 
 #### TARGET_ABSOLUTE (ID 510)
 
 `TARGET_ABSOLUTE` reports the target's absolute state when it carries its own GNSS (and optionally IMU). A capability bitmap advertises which fields are valid. PX4 maps the available content into the `target_gnss` uORB topic:
 
 - Bit 0 (position) triggers publication of latitude/longitude/altitude along with the horizontal and vertical accuracy estimates (`position_std`).
-- Bit 1 (velocity) forwards the body-frame velocity vector (`vel`) and its standard deviations (`vel_std`).
+- Bit 1 (velocity) forwards the NED velocity vector (`vel`) and its standard deviations (`vel_std`).
 - Additional fields (acceleration, quaternion `q_target`, rates, uncertainties) are not supported and reserved  for future fusion logic once flight testing is available.
 
 ### Moving-target projection parameters (experimental)
