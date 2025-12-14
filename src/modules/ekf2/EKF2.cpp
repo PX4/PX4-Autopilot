@@ -44,7 +44,7 @@ static constexpr float kDefaultExternalPosAccuracy = 50.0f; // [m]
 static constexpr float kMaxDelaySecondsExternalPosMeasurement = 15.0f; // [s]
 
 pthread_mutex_t ekf2_module_mutex = PTHREAD_MUTEX_INITIALIZER;
-static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
+static px4::atomic<EKF2 *> _objects[10] {};
 #if defined(CONFIG_EKF2_MULTI_INSTANCE)
 static px4::atomic<EKF2Selector *> _ekf2_selector {nullptr};
 #endif // CONFIG_EKF2_MULTI_INSTANCE
@@ -179,9 +179,39 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_evv_gate(_params->ekf2_evv_gate),
 	_param_ekf2_evp_gate(_params->ekf2_evp_gate),
 	_param_ekf2_ev_pos_x(_params->ev_pos_body(0)),
-	_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
-	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
-#endif // CONFIG_EKF2_EXTERNAL_VISION
+			_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
+			_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
+
+			// EKF2_3 Parameters
+			_param_ekf2_3_aid_mask(_params->ekf2_3_aid_mask),
+			_param_ekf2_3_ev_ctrl(_params->ekf2_3_ev_ctrl),
+			_param_ekf2_3_ev_delay(_params->ekf2_3_ev_delay),
+			_param_ekf2_3_ev_noise_md(_params->ekf2_3_ev_noise_md),
+			_param_ekf2_3_ev_qmin(_params->ekf2_3_ev_qmin),
+			_param_ekf2_3_eva_noise(_params->ekf2_3_eva_noise),
+			_param_ekf2_3_evp_gate(_params->ekf2_3_evp_gate),
+			_param_ekf2_3_evp_noise(_params->ekf2_3_evp_noise),
+			_param_ekf2_3_evv_gate(_params->ekf2_3_evv_gate),
+			_param_ekf2_3_evv_noise(_params->ekf2_3_evv_noise),
+			_param_ekf2_3_ev_pos_x(_params->ekf2_3_ev_pos_x),
+			_param_ekf2_3_ev_pos_y(_params->ekf2_3_ev_pos_y),
+			_param_ekf2_3_ev_pos_z(_params->ekf2_3_ev_pos_z),
+
+		// EKF2_3 Parameters
+		_param_ekf2_3_aid_mask(_params->ekf2_3_aid_mask),
+		_param_ekf2_3_ev_ctrl(_params->ekf2_3_ev_ctrl),
+		_param_ekf2_3_ev_delay(_params->ekf2_3_ev_delay),
+		_param_ekf2_3_ev_noise_md(_params->ekf2_3_ev_noise_md),
+		_param_ekf2_3_ev_qmin(_params->ekf2_3_ev_qmin),
+		_param_ekf2_3_eva_noise(_params->ekf2_3_eva_noise),
+		_param_ekf2_3_evp_gate(_params->ekf2_3_evp_gate),
+		_param_ekf2_3_evp_noise(_params->ekf2_3_evp_noise),
+		_param_ekf2_3_evv_gate(_params->ekf2_3_evv_gate),
+		_param_ekf2_3_evv_noise(_params->ekf2_3_evv_noise),
+		_param_ekf2_3_ev_pos_x(_params->ekf2_3_ev_pos_x),
+		_param_ekf2_3_ev_pos_y(_params->ekf2_3_ev_pos_y),
+		_param_ekf2_3_ev_pos_z(_params->ekf2_3_ev_pos_z),
+	#endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	_param_ekf2_of_ctrl(_params->ekf2_of_ctrl),
 	_param_ekf2_of_gyr_src(_params->ekf2_of_gyr_src),
@@ -476,7 +506,22 @@ void EKF2::Run()
 
 #endif // CONFIG_EKF2_AIRSPEED
 
-		_ekf.updateParameters();
+			if (_instance == 3) {
+				// EKF2_3 parameters (PhoneFusion)
+				_ekf.set_aid_mask(_param_ekf2_3_aid_mask.get());
+				_ekf.set_ev_ctrl(_param_ekf2_3_ev_ctrl.get());
+				_ekf.set_ev_delay(_param_ekf2_3_ev_delay.get());
+				_ekf.set_ev_noise_md(_param_ekf2_3_ev_noise_md.get());
+				_ekf.set_ev_qmin(_param_ekf2_3_ev_qmin.get());
+				_ekf.set_ev_pos_noise(_param_ekf2_3_evp_noise.get());
+				_ekf.set_ev_vel_noise(_param_ekf2_3_evv_noise.get());
+				_ekf.set_ev_ang_noise(_param_ekf2_3_eva_noise.get());
+				_ekf.set_ev_pos_gate(_param_ekf2_3_evp_gate.get());
+				_ekf.set_ev_vel_gate(_param_ekf2_3_evv_gate.get());
+				_ekf.set_ev_pos_body(matrix::Vector3f(_param_ekf2_3_ev_pos_x.get(), _param_ekf2_3_ev_pos_y.get(), _param_ekf2_3_ev_pos_z.get()));
+			}
+
+			_ekf.updateParameters();
 	}
 
 	if (!_callback_registered) {
@@ -2243,10 +2288,41 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 			if (velocity_frame_valid) {
 				ev_data.vel = ev_odom_vel;
 
-				const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
+				if (_instance == 3) {
+						const float evv_noise_var = sq(_param_ekf2_3_evv_noise.get());
+						if ((_param_ekf2_3_ev_noise_md.get() == 0) && ev_odom_vel_var.isAllFinite()) {
+
+
+						} else {
+							ev_data.velocity_var.setAll(evv_noise_var);
+						}
+
+					} else {
+						const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
 				// velocity measurement error from ev_data or parameters
-				if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_vel_var.isAllFinite()) {
+					if (_instance == 3) {
+						const float evv_noise_var = sq(_param_ekf2_3_evv_noise.get());
+						if ((_param_ekf2_3_ev_noise_md.get() == 0) && ev_odom_vel_var.isAllFinite()) {
+							ev_data.velocity_var(0) = fmaxf(evv_noise_var, ev_odom_vel_var(0));
+							ev_data.velocity_var(1) = fmaxf(evv_noise_var, ev_odom_vel_var(1));
+							ev_data.velocity_var(2) = fmaxf(evv_noise_var, ev_odom_vel_var(2));
+
+						} else {
+							ev_data.velocity_var.setAll(evv_noise_var);
+						}
+
+					} else {
+						const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
+						if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_vel_var.isAllFinite()) {
+							ev_data.velocity_var(0) = fmaxf(evv_noise_var, ev_odom_vel_var(0));
+							ev_data.velocity_var(1) = fmaxf(evv_noise_var, ev_odom_vel_var(1));
+							ev_data.velocity_var(2) = fmaxf(evv_noise_var, ev_odom_vel_var(2));
+
+						} else {
+							ev_data.velocity_var.setAll(evv_noise_var);
+						}
+					}
 
 					ev_data.velocity_var(0) = fmaxf(evv_noise_var, ev_odom_vel_var(0));
 					ev_data.velocity_var(1) = fmaxf(evv_noise_var, ev_odom_vel_var(1));
@@ -2282,10 +2358,41 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 			if (position_frame_valid) {
 				ev_data.pos = ev_odom_pos;
 
-				const float evp_noise_var = sq(_param_ekf2_evp_noise.get());
+				if (_instance == 3) {
+						const float evp_noise_var = sq(_param_ekf2_3_evp_noise.get());
+						if ((_param_ekf2_3_ev_noise_md.get() == 0) && ev_odom_pos_var.isAllFinite()) {
+
+
+						} else {
+							ev_data.position_var.setAll(evp_noise_var);
+						}
+
+					} else {
+						const float evp_noise_var = sq(_param_ekf2_evp_noise.get());
 
 				// position measurement error from ev_data or parameters
-				if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_pos_var.isAllFinite()) {
+					if (_instance == 3) {
+						const float evp_noise_var = sq(_param_ekf2_3_evp_noise.get());
+						if ((_param_ekf2_3_ev_noise_md.get() == 0) && ev_odom_pos_var.isAllFinite()) {
+							ev_data.position_var(0) = fmaxf(evp_noise_var, ev_odom_pos_var(0));
+							ev_data.position_var(1) = fmaxf(evp_noise_var, ev_odom_pos_var(1));
+							ev_data.position_var(2) = fmaxf(evp_noise_var, ev_odom_pos_var(2));
+
+						} else {
+							ev_data.position_var.setAll(evp_noise_var);
+						}
+
+					} else {
+						const float evp_noise_var = sq(_param_ekf2_evp_noise.get());
+						if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_pos_var.isAllFinite()) {
+							ev_data.position_var(0) = fmaxf(evp_noise_var, ev_odom_pos_var(0));
+							ev_data.position_var(1) = fmaxf(evp_noise_var, ev_odom_pos_var(1));
+							ev_data.position_var(2) = fmaxf(evp_noise_var, ev_odom_pos_var(2));
+
+						} else {
+							ev_data.position_var.setAll(evp_noise_var);
+						}
+					}
 
 					ev_data.position_var(0) = fmaxf(evp_noise_var, ev_odom_pos_var(0));
 					ev_data.position_var(1) = fmaxf(evp_noise_var, ev_odom_pos_var(1));
@@ -2318,9 +2425,36 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 			ev_data.quat.normalize();
 
 			// orientation measurement error from ev_data or parameters
-			const float eva_noise_var = sq(_param_ekf2_eva_noise.get());
+			if (_instance == 3) {
+					const float eva_noise_var = sq(_param_ekf2_3_eva_noise.get());
+					if ((_param_ekf2_3_ev_noise_md.get() == 0) && PX4_ISFINITE(ev_odom.pose_covariance[0])) {
+						ev_data.orientation_var = fmaxf(eva_noise_var, ev_odom.pose_covariance[0]);
 
-			if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_q_var.isAllFinite()) {
+					} else {
+						ev_data.orientation_var = eva_noise_var;
+					}
+
+				} else {
+					const float eva_noise_var = sq(_param_ekf2_eva_noise.get());
+
+				if (_instance == 3) {
+					const float eva_noise_var = sq(_param_ekf2_3_eva_noise.get());
+					if ((_param_ekf2_3_ev_noise_md.get() == 0) && PX4_ISFINITE(ev_odom.pose_covariance[0])) {
+						ev_data.orientation_var = fmaxf(eva_noise_var, ev_odom.pose_covariance[0]);
+
+					} else {
+						ev_data.orientation_var = eva_noise_var;
+					}
+
+				} else {
+					const float eva_noise_var = sq(_param_ekf2_eva_noise.get());
+					if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_q_var.isAllFinite()) {
+
+
+					} else {
+						ev_data.orientation_var.setAll(eva_noise_var);
+					}
+				}
 
 				ev_data.orientation_var(0) = fmaxf(eva_noise_var, ev_odom_q_var(0));
 				ev_data.orientation_var(1) = fmaxf(eva_noise_var, ev_odom_q_var(1));
@@ -2864,7 +2998,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();
-		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
+		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(10));
 		int multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming

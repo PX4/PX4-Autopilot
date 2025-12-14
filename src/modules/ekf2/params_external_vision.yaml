@@ -1,4 +1,9 @@
 module_name: ekf2
+# EKF2_3 Parameters for PhoneFusion ODOMETRY
+# These parameters are copied from the base EKF2_EV_* parameters and suffixed with _3
+# to be used exclusively by EKF2_3 instance.
+# EKF2_3 is isolated from GPS and other sensors, relying only on IMU and EV (ODOMETRY).
+
 parameters:
 - group: EKF2
   definitions:
@@ -87,9 +92,37 @@ parameters:
       unit: SD
       decimal: 1
     EKF2_EVV_NOISE:
+    EKF2_3_EVV_NOISE:
       description:
-        short: Measurement noise for vision velocity measurements
-        long:  Used to lower bound or replace the uncertainty included in the message
+        short: Measurement noise for vision velocity measurements for EKF2_3
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m/s
+      decimal: 2
+    EKF2_3_EV_POS_X:
+      description:
+        short: X position of VI sensor focal point in body frame for EKF2_3
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_3_EV_POS_Y:
+      description:
+        short: Y position of VI sensor focal point in body frame for EKF2_3
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_3_EV_POS_Z:
+      description:
+        short: Z position of VI sensor focal point in body frame for EKF2_3
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+
+
       type: float
       default: 0.1
       min: 0.01
@@ -112,10 +145,123 @@ parameters:
       unit: m
       decimal: 3
     EKF2_EV_POS_Z:
+    EKF2_3_AID_MASK:
       description:
-        short: Z position of VI sensor focal point in body frame
-        long: Forward axis with origin relative to vehicle centre of gravity
+        short: EKF2_3 Aiding Source Mask
+        long: 'Controls which sensor sources are used by EKF2_3. 0: GPS, 1: External Vision, 2: Optical Flow, 3: Range Finder, 4: Barometer, 5: Magnetometer. For EKF2_3, only External Vision (bit 1) should be enabled, and GPS (bit 0) must be disabled.'
+      type: bitmask
+      bit:
+        0: GPS
+        1: External Vision
+        2: Optical Flow
+        3: Range Finder
+        4: Barometer
+        5: Magnetometer
+      default: 2 # Only External Vision (bit 1)
+      min: 0
+      max: 63
+      reboot_required: true
+    EKF2_3_EV_CTRL:
+      description:
+        short: External vision (EV) sensor aiding for EKF2_3
+        long: 'Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion 2 : 3D velocity fusion 3 : Yaw'
+      type: bitmask
+      bit:
+        0: Horizontal position
+        1: Vertical position
+        2: 3D velocity
+        3: Yaw
+      default: 15 # All EV aiding enabled
+      min: 0
+      max: 15
+    EKF2_3_EV_DELAY:
+      description:
+        short: Vision Position Estimator delay relative to IMU measurements for EKF2_3
+      type: float
+      default: 0
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_3_EV_NOISE_MD:
+      description:
+        short: External vision (EV) noise mode for EKF2_3
+        long: If set to 0 (default) the measurement noise is taken from the vision message and the EV noise parameters are used as a lower bound. If set to 1 the observation noise is set from the parameters directly.
+      type: enum
+      values:
+        0: EV reported variance (parameter lower bound)
+        1: EV noise parameters
+      default: 0
+    EKF2_3_EV_QMIN:
+      description:
+        short: External vision (EV) minimum quality (optional) for EKF2_3
+        long: External vision will only be started and fused if the quality metric is above this threshold.
+      type: int32
+      default: 0
+      min: 0
+      max: 100
+      decimal: 1
+    EKF2_3_EVA_NOISE:
+      description:
+        short: Measurement noise for vision angle measurements for EKF2_3
+      type: float
+      default: 0.1
+      min: 0.05
+      unit: rad
+      decimal: 2
+    EKF2_3_EVP_GATE:
+      description:
+        short: Gate size for vision position fusion for EKF2_3
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_3_EVP_NOISE:
+      description:
+        short: Measurement noise for vision position measurements for EKF2_3
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m
+      decimal: 2
+    EKF2_3_EVV_GATE:
+      description:
+        short: Gate size for vision velocity estimate fusion for EKF2_3
+      type: float
+      default: 3.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_3_EVV_NOISE:
+      description:
+        short: Measurement noise for vision velocity measurements for EKF2_3
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m/s
+      decimal: 2
+    EKF2_3_EV_POS_X:
+      description:
+        short: X position of VI sensor focal point in body frame for EKF2_3
       type: float
       default: 0.0
       unit: m
       decimal: 3
+    EKF2_3_EV_POS_Y:
+      description:
+        short: Y position of VI sensor focal point in body frame for EKF2_3
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_3_EV_POS_Z:
+      description:
+        short: Z position of VI sensor focal point in body frame for EKF2_3
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+
+

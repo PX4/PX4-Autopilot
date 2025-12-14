@@ -59,7 +59,7 @@
 #if CONSTRAINED_MEMORY
 # define EKF2_MAX_INSTANCES 2
 #else
-# define EKF2_MAX_INSTANCES 9
+# define EKF2_MAX_INSTANCES 10
 #endif
 
 using namespace time_literals;
@@ -156,8 +156,9 @@ private:
 		{this, 4},
 		{this, 5},
 		{this, 6},
-		{this, 7},
-		{this, 8},
+			{this, 7},
+			{this, 8},
+			{this, 9},
 #endif
 #endif
 	};
