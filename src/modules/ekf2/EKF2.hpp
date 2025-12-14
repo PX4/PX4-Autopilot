@@ -400,6 +400,8 @@ private:
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		uORB::Subscription _vehicle_odometry_sub{ORB_ID(vehicle_odometry)};
+
+	// EKF2_3 PhoneFusion Test Comment - Added to confirm GitHub sync
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
