@@ -208,7 +208,8 @@ private:
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps);
+		bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps);
+		bool UpdateExtVisionSample(const vehicle_odometry_s &odom);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_GNSS)
 	float altEllipsoidToAmsl(float ellipsoid_alt) const;
@@ -395,7 +396,13 @@ private:
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
-	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
+		uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+		uORB::Subscription _vehicle_odometry_sub{ORB_ID(vehicle_odometry)};
+
+	// EKF2_3 PhoneFusion Test Comment - Added to confirm GitHub sync
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	hrt_abstime _status_rng_hgt_pub_last {0};
@@ -653,9 +660,41 @@ private:
 		_param_ekf2_ev_pos_x, ///< X position of VI sensor focal point in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>)
 		_param_ekf2_ev_pos_y, ///< Y position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
-		_param_ekf2_ev_pos_z, ///< Z position of VI sensor focal point in body frame (m)
-#endif // CONFIG_EKF2_EXTERNAL_VISION
+				(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
+				_param_ekf2_ev_pos_z, ///< Z position of VI sensor focal point in body frame (m)
+
+				// EKF2_3 Parameters
+				(ParamExtInt<px4::params::EKF2_3_AID_MASK>) _param_ekf2_3_aid_mask,
+				(ParamExtInt<px4::params::EKF2_3_EV_CTRL>) _param_ekf2_3_ev_ctrl,
+				(ParamExtFloat<px4::params::EKF2_3_EV_DELAY>) _param_ekf2_3_ev_delay,
+				(ParamInt<px4::params::EKF2_3_EV_NOISE_MD>) _param_ekf2_3_ev_noise_md,
+				(ParamExtInt<px4::params::EKF2_3_EV_QMIN>) _param_ekf2_3_ev_qmin,
+				(ParamExtFloat<px4::params::EKF2_3_EVA_NOISE>) _param_ekf2_3_eva_noise,
+				(ParamExtFloat<px4::params::EKF2_3_EVP_GATE>) _param_ekf2_3_evp_gate,
+				(ParamExtFloat<px4::params::EKF2_3_EVP_NOISE>) _param_ekf2_3_evp_noise,
+				(ParamExtFloat<px4::params::EKF2_3_EVV_GATE>) _param_ekf2_3_evv_gate,
+				(ParamExtFloat<px4::params::EKF2_3_EVV_NOISE>) _param_ekf2_3_evv_noise,
+				(ParamExtFloat<px4::params::EKF2_3_EV_POS_X>) _param_ekf2_3_ev_pos_x,
+				(ParamExtFloat<px4::params::EKF2_3_EV_POS_Y>) _param_ekf2_3_ev_pos_y,
+				(ParamExtFloat<px4::params::EKF2_3_EV_POS_Z>) _param_ekf2_3_ev_pos_z,
+		#endif // CONFIG_EKF2_EXTERNAL_VISION
+			_param_ekf2_ev_pos_z, ///< Z position of VI sensor focal point in body frame (m)
+
+			// EKF2_3 Parameters
+			(ParamExtInt<px4::params::EKF2_3_AID_MASK>) _param_ekf2_3_aid_mask,
+			(ParamExtInt<px4::params::EKF2_3_EV_CTRL>) _param_ekf2_3_ev_ctrl,
+			(ParamExtFloat<px4::params::EKF2_3_EV_DELAY>) _param_ekf2_3_ev_delay,
+			(ParamInt<px4::params::EKF2_3_EV_NOISE_MD>) _param_ekf2_3_ev_noise_md,
+			(ParamExtInt<px4::params::EKF2_3_EV_QMIN>) _param_ekf2_3_ev_qmin,
+			(ParamExtFloat<px4::params::EKF2_3_EVA_NOISE>) _param_ekf2_3_eva_noise,
+			(ParamExtFloat<px4::params::EKF2_3_EVP_GATE>) _param_ekf2_3_evp_gate,
+			(ParamExtFloat<px4::params::EKF2_3_EVP_NOISE>) _param_ekf2_3_evp_noise,
+			(ParamExtFloat<px4::params::EKF2_3_EVV_GATE>) _param_ekf2_3_evv_gate,
+			(ParamExtFloat<px4::params::EKF2_3_EVV_NOISE>) _param_ekf2_3_evv_noise,
+			(ParamExtFloat<px4::params::EKF2_3_EV_POS_X>) _param_ekf2_3_ev_pos_x,
+			(ParamExtFloat<px4::params::EKF2_3_EV_POS_Y>) _param_ekf2_3_ev_pos_y,
+			(ParamExtFloat<px4::params::EKF2_3_EV_POS_Z>) _param_ekf2_3_ev_pos_z,
+	#endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		// optical flow fusion
 		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
@@ -726,3 +765,7 @@ private:
 	)
 };
 #endif // !EKF2_HPP
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+# include <uORB/topics/vehicle_odometry.h>
+#endif // CONFIG_EKF2_EXTERNAL_VISION

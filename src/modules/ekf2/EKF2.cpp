@@ -44,7 +44,7 @@ static constexpr float kDefaultExternalPosAccuracy = 50.0f; // [m]
 static constexpr float kMaxDelaySecondsExternalPosMeasurement = 15.0f; // [s]
 
 pthread_mutex_t ekf2_module_mutex = PTHREAD_MUTEX_INITIALIZER;
-static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
+static px4::atomic<EKF2 *> _objects[10] {};
 #if defined(CONFIG_EKF2_MULTI_INSTANCE)
 static px4::atomic<EKF2Selector *> _ekf2_selector {nullptr};
 #endif // CONFIG_EKF2_MULTI_INSTANCE
@@ -179,9 +179,39 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_evv_gate(_params->ekf2_evv_gate),
 	_param_ekf2_evp_gate(_params->ekf2_evp_gate),
 	_param_ekf2_ev_pos_x(_params->ev_pos_body(0)),
-	_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
-	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
-#endif // CONFIG_EKF2_EXTERNAL_VISION
+			_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
+			_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
+
+			// EKF2_3 Parameters
+			_param_ekf2_3_aid_mask(_params->ekf2_3_aid_mask),
+			_param_ekf2_3_ev_ctrl(_params->ekf2_3_ev_ctrl),
+			_param_ekf2_3_ev_delay(_params->ekf2_3_ev_delay),
+			_param_ekf2_3_ev_noise_md(_params->ekf2_3_ev_noise_md),
+			_param_ekf2_3_ev_qmin(_params->ekf2_3_ev_qmin),
+			_param_ekf2_3_eva_noise(_params->ekf2_3_eva_noise),
+			_param_ekf2_3_evp_gate(_params->ekf2_3_evp_gate),
+			_param_ekf2_3_evp_noise(_params->ekf2_3_evp_noise),
+			_param_ekf2_3_evv_gate(_params->ekf2_3_evv_gate),
+			_param_ekf2_3_evv_noise(_params->ekf2_3_evv_noise),
+			_param_ekf2_3_ev_pos_x(_params->ekf2_3_ev_pos_x),
+			_param_ekf2_3_ev_pos_y(_params->ekf2_3_ev_pos_y),
+			_param_ekf2_3_ev_pos_z(_params->ekf2_3_ev_pos_z),
+
+		// EKF2_3 Parameters
+		_param_ekf2_3_aid_mask(_params->ekf2_3_aid_mask),
+		_param_ekf2_3_ev_ctrl(_params->ekf2_3_ev_ctrl),
+		_param_ekf2_3_ev_delay(_params->ekf2_3_ev_delay),
+		_param_ekf2_3_ev_noise_md(_params->ekf2_3_ev_noise_md),
+		_param_ekf2_3_ev_qmin(_params->ekf2_3_ev_qmin),
+		_param_ekf2_3_eva_noise(_params->ekf2_3_eva_noise),
+		_param_ekf2_3_evp_gate(_params->ekf2_3_evp_gate),
+		_param_ekf2_3_evp_noise(_params->ekf2_3_evp_noise),
+		_param_ekf2_3_evv_gate(_params->ekf2_3_evv_gate),
+		_param_ekf2_3_evv_noise(_params->ekf2_3_evv_noise),
+		_param_ekf2_3_ev_pos_x(_params->ekf2_3_ev_pos_x),
+		_param_ekf2_3_ev_pos_y(_params->ekf2_3_ev_pos_y),
+		_param_ekf2_3_ev_pos_z(_params->ekf2_3_ev_pos_z),
+	#endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	_param_ekf2_of_ctrl(_params->ekf2_of_ctrl),
 	_param_ekf2_of_gyr_src(_params->ekf2_of_gyr_src),
@@ -476,7 +506,22 @@ void EKF2::Run()
 
 #endif // CONFIG_EKF2_AIRSPEED
 
-		_ekf.updateParameters();
+			if (_instance == 3) {
+				// EKF2_3 parameters (PhoneFusion)
+				_ekf.set_aid_mask(_param_ekf2_3_aid_mask.get());
+				_ekf.set_ev_ctrl(_param_ekf2_3_ev_ctrl.get());
+				_ekf.set_ev_delay(_param_ekf2_3_ev_delay.get());
+				_ekf.set_ev_noise_md(_param_ekf2_3_ev_noise_md.get());
+				_ekf.set_ev_qmin(_param_ekf2_3_ev_qmin.get());
+				_ekf.set_ev_pos_noise(_param_ekf2_3_evp_noise.get());
+				_ekf.set_ev_vel_noise(_param_ekf2_3_evv_noise.get());
+				_ekf.set_ev_ang_noise(_param_ekf2_3_eva_noise.get());
+				_ekf.set_ev_pos_gate(_param_ekf2_3_evp_gate.get());
+				_ekf.set_ev_vel_gate(_param_ekf2_3_evv_gate.get());
+				_ekf.set_ev_pos_body(matrix::Vector3f(_param_ekf2_3_ev_pos_x.get(), _param_ekf2_3_ev_pos_y.get(), _param_ekf2_3_ev_pos_z.get()));
+			}
+
+			_ekf.updateParameters();
 	}
 
 	if (!_callback_registered) {
@@ -617,7 +662,18 @@ void EKF2::Run()
 			perf_count(_msg_missed_imu_perf);
 		}
 
-		if (imu_updated) {
+			if (imu_updated) {
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+				// check for new visual odometry data
+				if (_vehicle_odometry_sub.updated()) {
+					vehicle_odometry_s odom;
+
+					if (_vehicle_odometry_sub.copy(&odom)) {
+						UpdateExtVisionSample(odom);
+					}
+				}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 			imu_sample_new.time_us = imu.timestamp_sample;
 			imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
 			imu_sample_new.delta_ang = Vector3f{imu.delta_angle};
@@ -2165,7 +2221,11 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 #if defined(CONFIG_EKF2_BAROMETER)
 void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 {
-	// EKF baro sample
+		if (_instance == 3) {
+			return; // EKF2_3 is dedicated to PhoneFusion and must ignore Baro
+		}
+
+		// EKF baro sample
 	vehicle_air_data_s airdata;
 
 	if (_airdata_sub.update(&airdata)) {
@@ -2243,10 +2303,41 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 			if (velocity_frame_valid) {
 				ev_data.vel = ev_odom_vel;
 
-				const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
+				if (_instance == 3) {
+						const float evv_noise_var = sq(_param_ekf2_3_evv_noise.get());
+						if ((_param_ekf2_3_ev_noise_md.get() == 0) && ev_odom_vel_var.isAllFinite()) {
+
+
+						} else {
+							ev_data.velocity_var.setAll(evv_noise_var);
+						}
+
+					} else {
+						const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
 				// velocity measurement error from ev_data or parameters
-				if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_vel_var.isAllFinite()) {
+					if (_instance == 3) {
+						const float evv_noise_var = sq(_param_ekf2_3_evv_noise.get());
+						if ((_param_ekf2_3_ev_noise_md.get() == 0) && ev_odom_vel_var.isAllFinite()) {
+							ev_data.velocity_var(0) = fmaxf(evv_noise_var, ev_odom_vel_var(0));
+							ev_data.velocity_var(1) = fmaxf(evv_noise_var, ev_odom_vel_var(1));
+							ev_data.velocity_var(2) = fmaxf(evv_noise_var, ev_odom_vel_var(2));
+
+						} else {
+							ev_data.velocity_var.setAll(evv_noise_var);
+						}
+
+					} else {
+						const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
+						if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_vel_var.isAllFinite()) {
+							ev_data.velocity_var(0) = fmaxf(evv_noise_var, ev_odom_vel_var(0));
+							ev_data.velocity_var(1) = fmaxf(evv_noise_var, ev_odom_vel_var(1));
+							ev_data.velocity_var(2) = fmaxf(evv_noise_var, ev_odom_vel_var(2));
+
+						} else {
+							ev_data.velocity_var.setAll(evv_noise_var);
+						}
+					}
 
 					ev_data.velocity_var(0) = fmaxf(evv_noise_var, ev_odom_vel_var(0));
 					ev_data.velocity_var(1) = fmaxf(evv_noise_var, ev_odom_vel_var(1));
@@ -2282,10 +2373,41 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 			if (position_frame_valid) {
 				ev_data.pos = ev_odom_pos;
 
-				const float evp_noise_var = sq(_param_ekf2_evp_noise.get());
+				if (_instance == 3) {
+						const float evp_noise_var = sq(_param_ekf2_3_evp_noise.get());
+						if ((_param_ekf2_3_ev_noise_md.get() == 0) && ev_odom_pos_var.isAllFinite()) {
+
+
+						} else {
+							ev_data.position_var.setAll(evp_noise_var);
+						}
+
+					} else {
+						const float evp_noise_var = sq(_param_ekf2_evp_noise.get());
 
 				// position measurement error from ev_data or parameters
-				if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_pos_var.isAllFinite()) {
+					if (_instance == 3) {
+						const float evp_noise_var = sq(_param_ekf2_3_evp_noise.get());
+						if ((_param_ekf2_3_ev_noise_md.get() == 0) && ev_odom_pos_var.isAllFinite()) {
+							ev_data.position_var(0) = fmaxf(evp_noise_var, ev_odom_pos_var(0));
+							ev_data.position_var(1) = fmaxf(evp_noise_var, ev_odom_pos_var(1));
+							ev_data.position_var(2) = fmaxf(evp_noise_var, ev_odom_pos_var(2));
+
+						} else {
+							ev_data.position_var.setAll(evp_noise_var);
+						}
+
+					} else {
+						const float evp_noise_var = sq(_param_ekf2_evp_noise.get());
+						if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_pos_var.isAllFinite()) {
+							ev_data.position_var(0) = fmaxf(evp_noise_var, ev_odom_pos_var(0));
+							ev_data.position_var(1) = fmaxf(evp_noise_var, ev_odom_pos_var(1));
+							ev_data.position_var(2) = fmaxf(evp_noise_var, ev_odom_pos_var(2));
+
+						} else {
+							ev_data.position_var.setAll(evp_noise_var);
+						}
+					}
 
 					ev_data.position_var(0) = fmaxf(evp_noise_var, ev_odom_pos_var(0));
 					ev_data.position_var(1) = fmaxf(evp_noise_var, ev_odom_pos_var(1));
@@ -2318,9 +2440,36 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 			ev_data.quat.normalize();
 
 			// orientation measurement error from ev_data or parameters
-			const float eva_noise_var = sq(_param_ekf2_eva_noise.get());
+			if (_instance == 3) {
+					const float eva_noise_var = sq(_param_ekf2_3_eva_noise.get());
+					if ((_param_ekf2_3_ev_noise_md.get() == 0) && PX4_ISFINITE(ev_odom.pose_covariance[0])) {
+						ev_data.orientation_var = fmaxf(eva_noise_var, ev_odom.pose_covariance[0]);
 
-			if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_q_var.isAllFinite()) {
+					} else {
+						ev_data.orientation_var = eva_noise_var;
+					}
+
+				} else {
+					const float eva_noise_var = sq(_param_ekf2_eva_noise.get());
+
+				if (_instance == 3) {
+					const float eva_noise_var = sq(_param_ekf2_3_eva_noise.get());
+					if ((_param_ekf2_3_ev_noise_md.get() == 0) && PX4_ISFINITE(ev_odom.pose_covariance[0])) {
+						ev_data.orientation_var = fmaxf(eva_noise_var, ev_odom.pose_covariance[0]);
+
+					} else {
+						ev_data.orientation_var = eva_noise_var;
+					}
+
+				} else {
+					const float eva_noise_var = sq(_param_ekf2_eva_noise.get());
+					if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_q_var.isAllFinite()) {
+
+
+					} else {
+						ev_data.orientation_var.setAll(eva_noise_var);
+					}
+				}
 
 				ev_data.orientation_var(0) = fmaxf(eva_noise_var, ev_odom_q_var(0));
 				ev_data.orientation_var(1) = fmaxf(eva_noise_var, ev_odom_q_var(1));
@@ -2339,10 +2488,80 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 		ev_data.quality = ev_odom.quality;
 
 		if (new_ev_odom)  {
-			_ekf.setExtVisionData(ev_data);
+			return _ekf.setExtVisionData(ev_data);
+}
+
+bool EKF2::UpdateExtVisionSample(const vehicle_odometry_s &odom)
+{
+	// Only use the sample if it is for EKF2_3 (instance 3)
+		if (_instance != 3) {
+			return false;
 		}
 
-		ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
+		// Check if External Vision fusion is enabled for this instance
+		if (!(_param_ekf2_3_aid_mask.get() & (int32_t)AidMask::EV_POS) &&
+		    !(_param_ekf2_3_aid_mask.get() & (int32_t)AidMask::EV_VEL) &&
+		    !(_param_ekf2_3_aid_mask.get() & (int32_t)AidMask::EV_YAW)) {
+			return false;
+		}
+
+	// Check if the odometry message is valid for EKF fusion
+	if (odom.pose_frame != vehicle_odometry_s::POSE_FRAME_NED && odom.pose_frame != vehicle_odometry_s::POSE_FRAME_FRD) {
+		return false;
+	}
+
+	// Check if the odometry message is from the correct source (Visual Odometry)
+	// We assume that the MAVLink ODOMETRY message is published as Visual Odometry
+	// by mavlink_receiver.cpp
+	// The EKF will only use this data if EKF2_3_AID_MASK has the EV bit set.
+
+	ExtVisionSample ev_data{};
+	ev_data.time_us = odom.timestamp_sample;
+
+	// Position (NED)
+	ev_data.pos(0) = odom.position[0];
+	ev_data.pos(1) = odom.position[1];
+	ev_data.pos(2) = odom.position[2];
+
+	// Velocity (NED)
+	ev_data.vel(0) = odom.velocity[0];
+	ev_data.vel(1) = odom.velocity[1];
+	ev_data.vel(2) = odom.velocity[2];
+
+	// Orientation (Quaternion)
+	ev_data.quat(0) = odom.q[0];
+	ev_data.quat(1) = odom.q[1];
+	ev_data.quat(2) = odom.q[2];
+	ev_data.quat(3) = odom.q[3];
+
+	// Covariance (Position, Velocity, Orientation)
+	// EKF expects a 6x6 covariance matrix (pos, vel, att)
+	// vehicle_odometry_s provides separate variances for pos, vel, and att.
+	// We assume zero cross-covariance for simplicity, as is common practice.
+
+	// Position Covariance (diagonal)
+	ev_data.posVar(0) = odom.position_variance[0];
+	ev_data.posVar(1) = odom.position_variance[1];
+	ev_data.posVar(2) = odom.position_variance[2];
+
+	// Velocity Covariance (diagonal)
+	ev_data.velVar(0) = odom.velocity_variance[0];
+	ev_data.velVar(1) = odom.velocity_variance[1];
+	ev_data.velVar(2) = odom.velocity_variance[2];
+
+	// Orientation Covariance (diagonal)
+	ev_data.angVar(0) = odom.orientation_variance[0];
+	ev_data.angVar(1) = odom.orientation_variance[1];
+	ev_data.angVar(2) = odom.orientation_variance[2];
+
+		// Check for validity flags in the odometry message
+		ev_data.pos_consistent = (odom.pose_frame == vehicle_odometry_s::POSE_FRAME_NED || odom.pose_frame == vehicle_odometry_s::POSE_FRAME_FRD);
+		ev_data.vel_consistent = (odom.velocity_frame == vehicle_odometry_s::VELOCITY_FRAME_NED || odom.velocity_frame == vehicle_odometry_s::VELOCITY_FRAME_FRD);
+		ev_data.ang_consistent = true; // Quaternion is always provided
+
+		// Apply the sample to the EKF
+		return _ekf.setExtVisionData(ev_data);
+}kf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 
@@ -2424,7 +2643,11 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 #if defined(CONFIG_EKF2_GNSS)
 void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 {
-	// EKF GPS message
+		if (_instance == 3) {
+			return; // EKF2_3 is dedicated to PhoneFusion and must ignore GPS
+		}
+
+		// EKF GPS message
 	sensor_gps_s vehicle_gps_position;
 
 	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
@@ -2507,7 +2730,11 @@ float EKF2::altAmslToEllipsoid(float amsl_alt) const
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 {
-	vehicle_magnetometer_s magnetometer;
+		if (_instance == 3) {
+			return; // EKF2_3 is dedicated to PhoneFusion and must ignore Magnetometer
+		}
+
+		vehicle_magnetometer_s magnetometer;
 
 	if (_magnetometer_sub.update(&magnetometer)) {
 
@@ -2864,7 +3091,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();
-		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
+		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(10));
 		int multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
