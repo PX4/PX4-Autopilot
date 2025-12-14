@@ -662,7 +662,18 @@ void EKF2::Run()
 			perf_count(_msg_missed_imu_perf);
 		}
 
-		if (imu_updated) {
+			if (imu_updated) {
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+				// check for new visual odometry data
+				if (_vehicle_odometry_sub.updated()) {
+					vehicle_odometry_s odom;
+
+					if (_vehicle_odometry_sub.copy(&odom)) {
+						UpdateExtVisionSample(odom);
+					}
+				}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 			imu_sample_new.time_us = imu.timestamp_sample;
 			imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
 			imu_sample_new.delta_ang = Vector3f{imu.delta_angle};
@@ -2210,7 +2221,11 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 #if defined(CONFIG_EKF2_BAROMETER)
 void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 {
-	// EKF baro sample
+		if (_instance == 3) {
+			return; // EKF2_3 is dedicated to PhoneFusion and must ignore Baro
+		}
+
+		// EKF baro sample
 	vehicle_air_data_s airdata;
 
 	if (_airdata_sub.update(&airdata)) {
@@ -2473,10 +2488,80 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 		ev_data.quality = ev_odom.quality;
 
 		if (new_ev_odom)  {
-			_ekf.setExtVisionData(ev_data);
+			return _ekf.setExtVisionData(ev_data);
+}
+
+bool EKF2::UpdateExtVisionSample(const vehicle_odometry_s &odom)
+{
+	// Only use the sample if it is for EKF2_3 (instance 3)
+		if (_instance != 3) {
+			return false;
 		}
 
-		ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
+		// Check if External Vision fusion is enabled for this instance
+		if (!(_param_ekf2_3_aid_mask.get() & (int32_t)AidMask::EV_POS) &&
+		    !(_param_ekf2_3_aid_mask.get() & (int32_t)AidMask::EV_VEL) &&
+		    !(_param_ekf2_3_aid_mask.get() & (int32_t)AidMask::EV_YAW)) {
+			return false;
+		}
+
+	// Check if the odometry message is valid for EKF fusion
+	if (odom.pose_frame != vehicle_odometry_s::POSE_FRAME_NED && odom.pose_frame != vehicle_odometry_s::POSE_FRAME_FRD) {
+		return false;
+	}
+
+	// Check if the odometry message is from the correct source (Visual Odometry)
+	// We assume that the MAVLink ODOMETRY message is published as Visual Odometry
+	// by mavlink_receiver.cpp
+	// The EKF will only use this data if EKF2_3_AID_MASK has the EV bit set.
+
+	ExtVisionSample ev_data{};
+	ev_data.time_us = odom.timestamp_sample;
+
+	// Position (NED)
+	ev_data.pos(0) = odom.position[0];
+	ev_data.pos(1) = odom.position[1];
+	ev_data.pos(2) = odom.position[2];
+
+	// Velocity (NED)
+	ev_data.vel(0) = odom.velocity[0];
+	ev_data.vel(1) = odom.velocity[1];
+	ev_data.vel(2) = odom.velocity[2];
+
+	// Orientation (Quaternion)
+	ev_data.quat(0) = odom.q[0];
+	ev_data.quat(1) = odom.q[1];
+	ev_data.quat(2) = odom.q[2];
+	ev_data.quat(3) = odom.q[3];
+
+	// Covariance (Position, Velocity, Orientation)
+	// EKF expects a 6x6 covariance matrix (pos, vel, att)
+	// vehicle_odometry_s provides separate variances for pos, vel, and att.
+	// We assume zero cross-covariance for simplicity, as is common practice.
+
+	// Position Covariance (diagonal)
+	ev_data.posVar(0) = odom.position_variance[0];
+	ev_data.posVar(1) = odom.position_variance[1];
+	ev_data.posVar(2) = odom.position_variance[2];
+
+	// Velocity Covariance (diagonal)
+	ev_data.velVar(0) = odom.velocity_variance[0];
+	ev_data.velVar(1) = odom.velocity_variance[1];
+	ev_data.velVar(2) = odom.velocity_variance[2];
+
+	// Orientation Covariance (diagonal)
+	ev_data.angVar(0) = odom.orientation_variance[0];
+	ev_data.angVar(1) = odom.orientation_variance[1];
+	ev_data.angVar(2) = odom.orientation_variance[2];
+
+		// Check for validity flags in the odometry message
+		ev_data.pos_consistent = (odom.pose_frame == vehicle_odometry_s::POSE_FRAME_NED || odom.pose_frame == vehicle_odometry_s::POSE_FRAME_FRD);
+		ev_data.vel_consistent = (odom.velocity_frame == vehicle_odometry_s::VELOCITY_FRAME_NED || odom.velocity_frame == vehicle_odometry_s::VELOCITY_FRAME_FRD);
+		ev_data.ang_consistent = true; // Quaternion is always provided
+
+		// Apply the sample to the EKF
+		return _ekf.setExtVisionData(ev_data);
+}kf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 
@@ -2558,7 +2643,11 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 #if defined(CONFIG_EKF2_GNSS)
 void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 {
-	// EKF GPS message
+		if (_instance == 3) {
+			return; // EKF2_3 is dedicated to PhoneFusion and must ignore GPS
+		}
+
+		// EKF GPS message
 	sensor_gps_s vehicle_gps_position;
 
 	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
@@ -2641,7 +2730,11 @@ float EKF2::altAmslToEllipsoid(float amsl_alt) const
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 {
-	vehicle_magnetometer_s magnetometer;
+		if (_instance == 3) {
+			return; // EKF2_3 is dedicated to PhoneFusion and must ignore Magnetometer
+		}
+
+		vehicle_magnetometer_s magnetometer;
 
 	if (_magnetometer_sub.update(&magnetometer)) {
 

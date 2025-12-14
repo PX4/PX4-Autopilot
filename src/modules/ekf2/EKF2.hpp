@@ -208,7 +208,8 @@ private:
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps);
+		bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps);
+		bool UpdateExtVisionSample(const vehicle_odometry_s &odom);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_GNSS)
 	float altEllipsoidToAmsl(float ellipsoid_alt) const;
@@ -395,7 +396,11 @@ private:
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
-	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
+		uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+		uORB::Subscription _vehicle_odometry_sub{ORB_ID(vehicle_odometry)};
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	hrt_abstime _status_rng_hgt_pub_last {0};
@@ -758,3 +763,7 @@ private:
 	)
 };
 #endif // !EKF2_HPP
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+# include <uORB/topics/vehicle_odometry.h>
+#endif // CONFIG_EKF2_EXTERNAL_VISION
