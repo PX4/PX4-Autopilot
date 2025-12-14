@@ -57,11 +57,7 @@
 namespace vision_target_estimator
 {
 
-constexpr uint32_t kAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25Hz
 constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
-constexpr float kGravity = 9.80665f;  // m/s^2
-constexpr uint32_t kAccUpdatedTimeoutUs = 20_ms; // TODO: check if we can lower it
-constexpr float kMinGpsOffsetM = 0.01f; // Consider GNSS not offset below 1cm
 
 VisionTargetEst::VisionTargetEst() :
 	ModuleParams(nullptr),
@@ -132,9 +128,28 @@ void VisionTargetEst::Run()
 		stopAllEstimators();
 	}
 
-	// No task running, early return
+	// No task running: switch to a low-rate polling mode instead of waking up on every attitude update
 	if (noActiveTask()) {
+		static constexpr uint32_t kIdleUpdateIntervalUs = 200_ms;
+
+		if (_vehicle_attitude_sub.registered()) {
+			_vehicle_attitude_sub.unregisterCallback();
+			ScheduleOnInterval(kIdleUpdateIntervalUs);
+		}
+
 		return;
+	}
+
+	// Task is active: ensure we're callback-driven and not running a periodic timer
+	if (!_vehicle_attitude_sub.registered()) {
+		if (_vehicle_attitude_sub.registerCallback()) {
+			ScheduleClear();
+
+		} else {
+			const uint32_t estimator_update_period_us = static_cast<uint32_t>(math::min(_pos_update_period_us,
+					_yaw_update_period_us));
+			ScheduleOnInterval(estimator_update_period_us);
+		}
 	}
 
 	// Task is running, check if an estimator must be started or re-started
@@ -252,6 +267,7 @@ void VisionTargetEst::updateParams()
 		param_get(_param_ekf2_gps_pos_z, &gps_antenna_offset(2));
 	}
 
+	static constexpr float kMinGpsOffsetM = 0.01f; // Consider GNSS not offset below 1cm
 	_gps_pos_is_offset = (fabsf(gps_antenna_offset(0)) > kMinGpsOffsetM)
 			     || (fabsf(gps_antenna_offset(1)) > kMinGpsOffsetM)
 			     || (fabsf(gps_antenna_offset(2)) > kMinGpsOffsetM);
@@ -721,11 +737,14 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 				   const matrix::Vector3f &vel_offset_ned,
 				   const bool vel_offset_updated)
 {
-	/* If the acceleration has been averaged for too long, early return */
-	if (hasTimedOut(_last_acc_reset, kAccDownsampleTimeoutUs)) {
+	/* If the acceleration has been averaged for too long, reset the accumulator */
+	static constexpr uint32_t kMinAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25Hz
+	const uint32_t acc_downsample_timeout_us = math::max(static_cast<uint32_t>(_pos_update_period_us * 2),
+			kMinAccDownsampleTimeoutUs);
+
+	if (hasTimedOut(_last_acc_reset, acc_downsample_timeout_us)) {
 		PX4_DEBUG("Forced acc downsample reset");
 		resetAccDownsample();
-		return;
 	}
 
 	_vehicle_acc_ned_sum += vehicle_acc_ned;
@@ -863,6 +882,7 @@ bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned,
 		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp;
 	}
 
+	static constexpr uint32_t kAccUpdatedTimeoutUs = 20_ms; // TODO: check if we can lower it
 	_vehicle_acc_body.valid = (_vehicle_acc_body.timestamp != 0)
 				  && !hasTimedOut(_vehicle_acc_body.timestamp, kAccUpdatedTimeoutUs);
 	acc_valid = _vehicle_acc_body.valid;
@@ -873,6 +893,7 @@ bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned,
 
 	if (acc_valid) {
 		/* Compensate for gravity. */
+		static constexpr float kGravity = 9.80665f;  // m/s^2
 		const matrix::Vector3f gravity_ned(0, 0, kGravity);
 		vehicle_acc_ned = quat_att.rotateVector(_vehicle_acc_body.xyz) + gravity_ned;
 

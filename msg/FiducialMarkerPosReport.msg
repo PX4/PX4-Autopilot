@@ -1,13 +1,10 @@
-# Relative position of precision land target in body frame
+# Relative position of precision land target
 
 uint64 timestamp		# time since system start (microseconds)
 
-float32 x_rel_body			# X/Front position of target, relative to vehicle (body frame) [meters]
-float32 y_rel_body			# Y/Right position of target, relative to vehicle (body frame) [meters]
-float32 z_rel_body			# Z/Down position of target, relative to vehicle (body frame) [meters]
+uint64 timestamp_sample		# the timestamp of the observation (microseconds)
 
-float32 var_x_rel_body		# X/Front position variance [meters^2]
-float32 var_y_rel_body		# Y/Right position variance [meters^2]
-float32 var_z_rel_body		# Z/Down position variance [meters^2]
+float32[3] rel_pos		# [x,y,z] Target position relative to vehicle [m], expressed in the frame defined by q
+float32[3] cov_rel_pos		# [x,y,z] Position variance [m^2]
 
-float32[4] q            # Quaternion rotation from the sensor frame to the NED earth frame
+float32[4] q			# Quaternion rotation from the rel_pos frame to the NED earth frame

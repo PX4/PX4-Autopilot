@@ -315,11 +315,11 @@ void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 
 bool VTEPosition::isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose) const
 {
-	const bool finite_measurement = PX4_ISFINITE(fiducial_marker_pose.x_rel_body)
-					&& PX4_ISFINITE(fiducial_marker_pose.y_rel_body)
-					&& PX4_ISFINITE(fiducial_marker_pose.z_rel_body);
+	const bool finite_measurement = PX4_ISFINITE(fiducial_marker_pose.rel_pos[0])
+					&& PX4_ISFINITE(fiducial_marker_pose.rel_pos[1])
+					&& PX4_ISFINITE(fiducial_marker_pose.rel_pos[2]);
 
-	return finite_measurement && isMeasRecent(fiducial_marker_pose.timestamp);
+	return finite_measurement && isMeasRecent(fiducial_marker_pose.timestamp_sample);
 }
 
 bool VTEPosition::isUavGpsPositionValid()
@@ -633,7 +633,7 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 		return false;
 	}
 
-	// Rotate vision observation from body FRD to vc-NED
+	// Rotate vision observation into vc-NED using the reported attitude quaternion
 	const bool finite_q = PX4_ISFINITE(report.q[0])
 			      && PX4_ISFINITE(report.q[1])
 			      && PX4_ISFINITE(report.q[2])
@@ -648,8 +648,8 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 	}
 
 	const matrix::Quaternionf quat_att(report.q);
-	const Vector3f vision_body(report.x_rel_body, report.y_rel_body, report.z_rel_body);
-	const Vector3f vision_ned = quat_att.rotateVector(vision_body);
+	const Vector3f vision_rel(report.rel_pos);
+	const Vector3f vision_ned = quat_att.rotateVector(vision_rel);
 
 	// Rotate covariance matrix to vc-NED
 	SquareMatrix<float, vtest::Axis::size> cov_rotated;
@@ -664,9 +664,9 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 
 	} else {
 		const SquareMatrix<float, vtest::Axis::size> covMat = diag(Vector3f(
-					fmaxf(report.var_x_rel_body, _min_ev_pos_var),
-					fmaxf(report.var_y_rel_body, _min_ev_pos_var),
-					fmaxf(report.var_z_rel_body, _min_ev_pos_var)));
+					fmaxf(report.cov_rel_pos[0], _min_ev_pos_var),
+					fmaxf(report.cov_rel_pos[1], _min_ev_pos_var),
+					fmaxf(report.cov_rel_pos[2], _min_ev_pos_var)));
 		const matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
 		cov_rotated = R_att * covMat * R_att.transpose();
 	}
@@ -680,7 +680,7 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 		return false;
 	}
 
-	obs.timestamp = report.timestamp;
+	obs.timestamp = report.timestamp_sample;
 
 	obs.type = ObsType::Fiducial_marker;
 	obs.updated(vtest::Axis::x) = true;
