@@ -837,21 +837,26 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 		// Position report
 		fiducial_marker_pos_report_s fiducial_marker_pos_report{};
 
-		fiducial_marker_pos_report.timestamp = target_relative.timestamp;
-		fiducial_marker_pos_report.x_rel_body = target_relative.x;
-		fiducial_marker_pos_report.y_rel_body = target_relative.y;
-		fiducial_marker_pos_report.z_rel_body = target_relative.z;
+		const hrt_abstime now = hrt_absolute_time();
+		const hrt_abstime timestamp_sample = target_relative.timestamp;
 
-		fiducial_marker_pos_report.var_x_rel_body = target_relative.pos_std[0] * target_relative.pos_std[0];
-		fiducial_marker_pos_report.var_y_rel_body = target_relative.pos_std[1] * target_relative.pos_std[1];
-		fiducial_marker_pos_report.var_z_rel_body = target_relative.pos_std[2] * target_relative.pos_std[2];
+		fiducial_marker_pos_report.timestamp = now;
+		fiducial_marker_pos_report.timestamp_sample = timestamp_sample;
+		fiducial_marker_pos_report.rel_pos[0] = target_relative.x;
+		fiducial_marker_pos_report.rel_pos[1] = target_relative.y;
+		fiducial_marker_pos_report.rel_pos[2] = target_relative.z;
+
+		fiducial_marker_pos_report.cov_rel_pos[0] = target_relative.pos_std[0] * target_relative.pos_std[0];
+		fiducial_marker_pos_report.cov_rel_pos[1] = target_relative.pos_std[1] * target_relative.pos_std[1];
+		fiducial_marker_pos_report.cov_rel_pos[2] = target_relative.pos_std[2] * target_relative.pos_std[2];
 
 		q_sensor.copyTo(fiducial_marker_pos_report.q);
 		_fiducial_marker_pos_report_pub.publish(fiducial_marker_pos_report);
 
 		// Yaw report
 		fiducial_marker_yaw_report_s fiducial_marker_yaw_report{};
-		fiducial_marker_yaw_report.timestamp = target_relative.timestamp;
+		fiducial_marker_yaw_report.timestamp = now;
+		fiducial_marker_yaw_report.timestamp_sample = timestamp_sample;
 
 		// Transform quaternion from the target's frame to the TARGET_OBS_FRAME to the yaw relative to NED
 		const matrix::Quatf q_target(target_relative.q_target);

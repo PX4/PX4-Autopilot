@@ -56,8 +56,6 @@ void KF_orientation::predictCov(float dt)
 	matrix::SquareMatrix<float, State::size> phi = getTransitionMatrix(dt);
 	_state_covariance = phi * _state_covariance * phi.transpose();
 }
-// TODO: inside the vision_target_estimator folder, at several locations there are 2 white spaces between function definitions instead of one.
-// remove all the extra spaces
 
 bool KF_orientation::update()
 {

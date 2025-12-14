@@ -50,7 +50,7 @@ This section provides an overview of the topics and fields that matter during lo
 
 ### What to look for in logs
 
-1. **Estimator output vs. observations**: In all axis directions, overlay the estimator outputs position `vision_target_est_position.rel_pos[0]`, `vision_target_est_orientation.theta` with measurement observations `vte_aid_*.observation[0]` (e.g. `vte_aid_fiducial_marker.observation[0]` or the relevant GNSS observation). The traces should converge after a short transient. Large steady offsets point to calibration errors or incorrect body-to-NED transforms.
+1. **Estimator output vs. observations**: In all axis directions, overlay the estimator outputs position `vision_target_est_position.rel_pos[0]`, `vision_target_est_orientation.yaw` with measurement observations `vte_aid_*.observation[0]` (e.g. `vte_aid_fiducial_marker.observation[0]` or the relevant GNSS observation). The traces should converge after a short transient. Large steady offsets point to calibration errors or incorrect measurement-frame-to-NED transforms.
 2. **Innovation behaviour**: `vte_aid_*.innovation` (e.g. `vte_aid_fiducial_marker.innovation`) should be centred at zero and resemble white noise. Recall that the innovation is defined as the difference between the state prediction and the measurement observation of the state. It follows that the drifting innovations can come from
    - State prediction errors:
       - check the estimators state outputs which correspond to the prediction of the state when no measurements are fused
@@ -62,7 +62,7 @@ This section provides an overview of the topics and fields that matter during lo
       - Incorrect noise assumptions
 3. **Measurement acceptance**: Inspect the `fused` boolean alongside `test_ratio`. If the NIS gate rejected the measurements frequently, compare the observation variance being logged with the expected sensor accuracy and update the noise parameters. Remember that gaps longer than [`VTE_TGT_TOUT`](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) clear the validity flags, and exceeding [`VTE_BTOUT`](../advanced_config/parameter_reference.md#VTE_BTOUT) stops the estimator entirely until new data arrives.
 4. **Time alignment**: Compare `timestamp_sample` (measurement time of validity) with `time_last_fuse` (contains the prediction time) on the same `vte_aid_*` topic. The difference should stay within a few milliseconds of the estimator loop period. Persistent offsets are a sign of delayed sensor delivery or missing time synchronisation.
-5. **Coordinate transforms**: Plot the raw measurement (e.g. `fiducial_marker_pos_report.x_rel`) together with its processed observation `vte_aid_fiducial_marker.observation`. Ensure that there is no mistake in the rotation, range scaling, or offsets applied in the handler.
+5. **Coordinate transforms**: Plot the raw measurement (e.g. `fiducial_marker_pos_report.rel_pos[0]`) together with its processed observation `vte_aid_fiducial_marker.observation`. Ensure that there is no mistake in the rotation (`fiducial_marker_pos_report.q`), range scaling, or offsets applied in the handler.
 6. **Prediction inputs**: Use `vision_target_est_input` to track the downsampled acceleration and quaternion. Compare them to `vehicle_attitude.q` and `vehicle_acceleration` to ensure the estimator sees the expected attitude, especially when diagnosing timestamp mismatches.
 
 ### Troubleshooting checklist
@@ -74,7 +74,7 @@ Start by confirming that the estimator is running (`vision_target_estimator stat
 
 | Symptom | Likely cause | Remedy |
 | --- | --- | --- |
-| Vehicle misses the pad or ignores target yaw | Mission land waypoint not set to precision mode or yaw alignment disabled | In QGroundControl set the land waypoint `Precision landing` field (or `MAV_CMD_NAV_LAND` `param2`) to Opportunistic/Required as described in [Precision landing missions](../advanced_features/precland.md#mission), and enable [`PLD_YAW_EN`](../advanced_config/parameter_reference.md#PLD_YAW_EN). In logs verify that `trajectory_setpoint.x/y` converge to `landing_target_pose.x_abs/y_abs` and that `trajectory_setpoint.yaw` follows `vision_target_est_orientation.theta`. |
+| Vehicle misses the pad or ignores target yaw | Mission land waypoint not set to precision mode or yaw alignment disabled | In QGroundControl set the land waypoint `Precision landing` field (or `MAV_CMD_NAV_LAND` `param2`) to Opportunistic/Required as described in [Precision landing missions](../advanced_features/precland.md#mission), and enable [`PLD_YAW_EN`](../advanced_config/parameter_reference.md#PLD_YAW_EN). In logs verify that `trajectory_setpoint.x/y` converge to `landing_target_pose.x_abs/y_abs` and that `trajectory_setpoint.yaw` follows `vision_target_est_orientation.yaw`. |
 | Frequent innovation rejections | Incorrect noise floors or timestamp skew | Verify sensor variances, verify the NIS threholds ([`VTE_POS_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_POS_NIS_THRE) and [`VTE_YAW_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE)), compare timestamp_sample (measurement time of validity) with time_last_fuse (contains the prediction time) on the same vte_aid_* topic.. |
 | Bias does not converge | No secondary position source | Ensure vision fusion is enabled so the filter can observe GNSS bias. |
 | Orientation estimate drifts | Missing yaw measurements or low NIS gate | Enable [`VTE_YAW_EN`](../advanced_config/parameter_reference.md#VTE_YAW_EN) and ensure vision yaw data is present. Increase [`VTE_YAW_NIS_THRE`](../advanced_config/parameter_reference.md#VTE_YAW_NIS_THRE) if legitimate data is being rejected. |
@@ -118,14 +118,14 @@ The next four dashboards provide hints on how to analyse logs of the Vision Targ
 
 - **Top row (north alignment)**: Compare `landing_target_pose.x_abs` with `vehicle_local_position.x`. The curves should overlay once precision landing is triggered.
 - **Second row (east alignment)**: `landing_target_pose.y_abs` versus `vehicle_local_position.y` reveals lateral errors.
-- **Third row (yaw alignment)**: `vision_target_est_orientation.theta` should remain steady while `trajectory_setpoint.yaw` tracks it when [`PLD_YAW_EN`](../advanced_config/parameter_reference.md#PLD_YAW_EN) is enabled.
+- **Third row (yaw alignment)**: `vision_target_est_orientation.yaw` should remain steady while `trajectory_setpoint.yaw` tracks it when [`PLD_YAW_EN`](../advanced_config/parameter_reference.md#PLD_YAW_EN) is enabled.
 - **Bottom row (descent context)**: `vehicle_local_position.dist_bottom` indicates when the final approach begins, providing context for any transients above.
 
 ![VTEST precision landing](../../assets/vision_target_estimator/VtestPrecland.png)
 
 **Orientation Filter**: Validate that yaw aiding stays smooth yet responsive; this plot highlights whether orientation noise is properly tuned and whether the gating logic keeps unreliable observations out of the state.
 
-- **Top row (yaw observation vs. state)**: `vte_aid_ev_yaw.observation` compared with `vision_target_est_orientation.theta`. The smoothed state should stay close without mirroring the high-frequency noise; if it does, increase [`VTE_EVA_NOISE`](../advanced_config/parameter_reference.md#VTE_EVA_NOISE).
+- **Top row (yaw observation vs. state)**: `vte_aid_ev_yaw.observation` compared with `vision_target_est_orientation.yaw`. The smoothed state should stay close without mirroring the high-frequency noise; if it does, increase [`VTE_EVA_NOISE`](../advanced_config/parameter_reference.md#VTE_EVA_NOISE).
 - **Second row (innovation)**: `vte_aid_ev_yaw.innovation` should resemble white noise. Long biases indicate an incorrect camera-to-vehicle rotation.
 - **Third row (test ratio)**: `vte_aid_ev_yaw.test_ratio` highlights altitude-driven noise. Brief spikes near touchdown are acceptable, but sustained high ratios mean yaw gating might be too tight.
 - **Bottom row (fusion flag)**: `vte_aid_ev_yaw.fused` shows when yaw measurements actually update the state. Loss of fusion at high altitude is common; ensure it returns before `dist_bottom` goes below the final approach threshold.

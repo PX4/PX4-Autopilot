@@ -169,7 +169,7 @@ void VTEOrientation::processObservations(ObsValidMaskU &fusion_mask,
 
 bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw) const
 {
-	if (!isMeasRecent(fiducial_marker_yaw.timestamp)) {
+	if (!isMeasRecent(fiducial_marker_yaw.timestamp_sample)) {
 		PX4_DEBUG("Vision yaw is outdated!");
 		return false;
 	}
@@ -200,7 +200,7 @@ bool VTEOrientation::processObsVision(TargetObs &obs)
 		yaw_unc = fmaxf(sqrtf(_min_ev_angle_var) * range, _min_ev_angle_var);
 	}
 
-	obs.timestamp = fiducial_marker_yaw.timestamp;
+	obs.timestamp = fiducial_marker_yaw.timestamp_sample;
 	obs.updated = true;
 	obs.meas = wrap_pi(fiducial_marker_yaw.yaw_ned);
 	obs.meas_unc = yaw_unc;
@@ -276,11 +276,11 @@ void VTEOrientation::publishTarget()
 	vision_target_orientation.timestamp = _last_predict;
 	vision_target_orientation.orientation_valid = !hasTimedOut(_last_update, _target_valid_timeout_us);
 
-	vision_target_orientation.theta = state(State::yaw);
-	vision_target_orientation.cov_theta = state_var(State::yaw);
+	vision_target_orientation.yaw = state(State::yaw);
+	vision_target_orientation.cov_yaw = state_var(State::yaw);
 
-	vision_target_orientation.v_theta = state(State::yaw_rate);
-	vision_target_orientation.cov_v_theta =  state_var(State::yaw_rate);
+	vision_target_orientation.yaw_rate = state(State::yaw_rate);
+	vision_target_orientation.cov_yaw_rate =  state_var(State::yaw_rate);
 
 	_targetOrientationPub.publish(vision_target_orientation);
 }
