@@ -48,12 +48,14 @@ public:
 	void handle_message(const mavlink_message_t *msg);
 
 private:
+	static constexpr size_t LOG_FILEPATH_SIZE = 256;  // Buffer size for log file paths
+
 	struct LogEntry {
 		uint16_t id{0xffff};
 		uint32_t time_utc{};
 		uint32_t size_bytes{};
 		FILE *fp{nullptr};
-		char filepath[256];
+		char filepath[LOG_FILEPATH_SIZE];
 		uint32_t offset{};
 	};
 
