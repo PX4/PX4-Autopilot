@@ -116,6 +116,7 @@ int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, 
 
 			if (ret != OK) {
 				all_registered = false;
+
 			} else {
 				_gpio[i].registered = true;
 			}

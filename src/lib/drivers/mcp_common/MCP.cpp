@@ -81,13 +81,13 @@ int MCP230XX::read(uint16_t *mask)
 		ret |= get_gpio(i, &gpio_addr);
 		ret |= read_reg(gpio_addr, data);
 
-		*mask |= (((uint16_t)data & 0x00FF) << (8 * i));
+		*mask |= (((uint16_t) data) << (8 * i));
 	}
 
 	return ret;
 }
 
-int MCP230XX::write(uint16_t mask_set, uint16_t mask_clear)
+int MCP230XX::write(const uint16_t mask_set, const uint16_t mask_clear)
 {
 	int ret = PX4_OK;
 	_olat = (_olat & ~mask_clear) | mask_set;
@@ -114,7 +114,7 @@ int MCP230XX::write(uint16_t mask_set, uint16_t mask_clear)
 	return ret;
 }
 
-int MCP230XX::read_reg(uint8_t address, uint8_t &data)
+int MCP230XX::read_reg(const uint8_t address, uint8_t &data)
 {
 	int ret = transfer(&address, 1, &data, 1);
 
@@ -125,7 +125,7 @@ int MCP230XX::read_reg(uint8_t address, uint8_t &data)
 	return ret;
 }
 
-int MCP230XX::write_reg(uint8_t address, uint8_t value)
+int MCP230XX::write_reg(const uint8_t address, const uint8_t value)
 {
 	uint8_t data[2] = {address, value};
 	int ret = transfer(data, 2, nullptr, 0);
@@ -137,7 +137,7 @@ int MCP230XX::write_reg(uint8_t address, uint8_t value)
 	return ret;
 }
 
-int MCP230XX::configure(uint16_t mask, PinType type)
+int MCP230XX::configure(const uint16_t mask, PinType type)
 {
 	switch (type) {
 	case PinType::Input:
@@ -277,7 +277,7 @@ int MCP230XX::probe()
 	// no whoami, try to read IOCONA
 	uint8_t data;
 	uint8_t addr;
-	int ret = 0;
+	int ret = PX4_OK;
 
 	for (int i = 0; i < 10; i++) {
 		ret = get_probe_reg(&addr);
