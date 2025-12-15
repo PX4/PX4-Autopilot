@@ -40,7 +40,7 @@ class CallbackHandler : public uORB::SubscriptionCallback
 {
 public:
 	uint32_t dev_id;
-	uint16_t input;
+	uint16_t input{0};
 
 	CallbackHandler(orb_id_t id) : uORB::SubscriptionCallback(id) {}
 	virtual ~CallbackHandler() {}
