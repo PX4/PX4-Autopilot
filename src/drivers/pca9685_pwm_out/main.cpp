@@ -47,6 +47,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/sem.hpp>
+#include <lib/parameters/param.h>
 
 #include "PCA9685.h"
 
@@ -356,8 +357,30 @@ int PCA9685Wrapper::custom_command(int argc, char **argv) {
 
 int PCA9685Wrapper::task_spawn(int argc, char **argv) {
 	int ch;
-	int address=PCA9685_DEFAULT_ADDRESS;
-	int iicbus=PCA9685_DEFAULT_IICBUS;
+	int address = PCA9685_DEFAULT_ADDRESS;
+	int iicbus = PCA9685_DEFAULT_IICBUS;
+
+	int32_t en_bus = 0;
+	param_t param_handle = param_find("PCA9685_EN_BUS");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &en_bus);
+
+		if (en_bus > 0) {
+			iicbus = en_bus;
+		}
+	}
+
+	int32_t i2c_addr = 0;
+	param_handle = param_find("PCA9685_I2C_ADDR");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &i2c_addr);
+
+		if (i2c_addr > 0) {
+			address = i2c_addr;
+		}
+	}
 
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
