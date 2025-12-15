@@ -47,13 +47,8 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
-#include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/esc_status.h>
-#include <drivers/drv_hrt.h>
-#include <lib/mixer_module/mixer_module.hpp>
-#include <parameters/param.h>
 
 class UavcanEscController
 {
