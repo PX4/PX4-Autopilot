@@ -141,13 +141,13 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 		const bool roll_status = (max_roll > FLT_EPSILON) && (fabsf(roll) > max_roll);
 		const bool pitch_status = (max_pitch > FLT_EPSILON) && (fabsf(pitch) > max_pitch);
 
-		hrt_abstime time_now = hrt_absolute_time();
+		hrt_abstime now = hrt_absolute_time();
 
 		// Update hysteresis
 		_roll_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_r_ttri.get()));
 		_pitch_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_p_ttri.get()));
-		_roll_failure_hysteresis.set_state_and_update(roll_status, time_now);
-		_pitch_failure_hysteresis.set_state_and_update(pitch_status, time_now);
+		_roll_failure_hysteresis.set_state_and_update(roll_status, now);
+		_pitch_failure_hysteresis.set_state_and_update(pitch_status, now);
 
 		// Update status
 		_failure_detector_status.flags.roll = _roll_failure_hysteresis.get_state();
@@ -164,11 +164,9 @@ void FailureDetector::updateExternalAtsStatus()
 		uint32_t pulse_width = pwm_input.pulse_width;
 		bool ats_trigger_status = (pulse_width >= (uint32_t)_param_fd_ext_ats_trig.get()) && (pulse_width < 3_ms);
 
-		hrt_abstime time_now = hrt_absolute_time();
-
 		// Update hysteresis
 		_ext_ats_failure_hysteresis.set_hysteresis_time_from(false, 100_ms); // 5 consecutive pulses at 50hz
-		_ext_ats_failure_hysteresis.set_state_and_update(ats_trigger_status, time_now);
+		_ext_ats_failure_hysteresis.set_state_and_update(ats_trigger_status, hrt_absolute_time());
 
 		_failure_detector_status.flags.ext = _ext_ats_failure_hysteresis.get_state();
 	}
@@ -176,7 +174,7 @@ void FailureDetector::updateExternalAtsStatus()
 
 void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status)
 {
-	hrt_abstime time_now = hrt_absolute_time();
+	hrt_abstime now = hrt_absolute_time();
 
 	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		const int limited_esc_count = math::min(esc_status.esc_count, esc_status_s::CONNECTED_ESC_MAX);
@@ -190,7 +188,7 @@ void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status, c
 		}
 
 		_esc_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
-		_esc_failure_hysteresis.set_state_and_update(is_esc_failure, time_now);
+		_esc_failure_hysteresis.set_state_and_update(is_esc_failure, now);
 
 		if (_esc_failure_hysteresis.get_state()) {
 			_failure_detector_status.flags.arm_escs = true;
@@ -198,7 +196,7 @@ void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status, c
 
 	} else {
 		// reset ESC bitfield
-		_esc_failure_hysteresis.set_state_and_update(false, time_now);
+		_esc_failure_hysteresis.set_state_and_update(false, now);
 		_failure_detector_status.flags.arm_escs = false;
 	}
 }
