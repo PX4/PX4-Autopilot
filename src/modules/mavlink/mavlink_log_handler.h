@@ -53,7 +53,7 @@ private:
 		uint32_t time_utc{};
 		uint32_t size_bytes{};
 		FILE *fp{nullptr};
-		char filepath[60];
+		char filepath[256];
 		uint32_t offset{};
 	};
 

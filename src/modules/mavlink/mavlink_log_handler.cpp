@@ -174,7 +174,7 @@ void MavlinkLogHandler::state_listing()
 		char filepath[PX4_MAX_FILEPATH];
 
 		// If parsed lined successfully, send the entry
-		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %s", &time_utc, &size_bytes, filepath) != 3) {
+		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %1023s", &time_utc, &size_bytes, filepath) != 3) {
 			PX4_DEBUG("sscanf failed");
 			continue;
 		}
@@ -506,7 +506,7 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 			continue;
 		}
 
-		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %s", &(entry->time_utc), &(entry->size_bytes), entry->filepath) != 3) {
+		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %255s", &(entry->time_utc), &(entry->size_bytes), entry->filepath) != 3) {
 			PX4_DEBUG("sscanf failed");
 			continue;
 		}
