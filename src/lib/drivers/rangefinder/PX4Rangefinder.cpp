@@ -84,7 +84,11 @@ void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float dis
 	}
 
 	// Update the quaternion in the sample update
-	memcpy(report.q, q, sizeof(float) * q_len);
+	if (q != nullptr) {
+		memcpy(report.q, q, sizeof(float) * q_len);
+
+	}
+
 
 	_distance_sensor_pub.update();
 }
