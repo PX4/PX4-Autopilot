@@ -1535,17 +1535,20 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
 			} else {
-				if (((int)(cmd.param1)) == vehicle_command_s::SAFETY_OFF) {
+				int commanded_state = (int)cmd.param1;
+
+				if (commanded_state == vehicle_command_s::SAFETY_OFF) {
 					_safety.deactivateSafety();
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-				} else if (((int)(cmd.param1)) == vehicle_command_s::SAFETY_ON) {
+				} else if (commanded_state == vehicle_command_s::SAFETY_ON) {
 					_safety.activateSafety();
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+				} else {
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
 				}
 			}
-
-			answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
 		}
 		break;
 
