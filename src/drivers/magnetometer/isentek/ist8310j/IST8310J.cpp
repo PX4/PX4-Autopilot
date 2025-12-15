@@ -335,12 +335,14 @@ bool IST8310J::InitializeCrossAxisMatrix()
 	// Check OTP date validity
 	uint8_t otp_date[3];
 	uint8_t cmd = 0x99;
+
 	if (transfer(&cmd, 1, otp_date, 3) != PX4_OK) {
 		PX4_ERR("Failed to read OTP date");
 		return false;
 	}
 
 	_otp_data_valid = false;
+
 	if (otp_date[0] != 0xFF) {
 		if (otp_date[0] <= 0x12 && otp_date[1] <= 0x07) {
 			_otp_data_valid = true;
@@ -350,6 +352,7 @@ bool IST8310J::InitializeCrossAxisMatrix()
 	// Check if cross-axis calibration data is available
 	uint8_t crossaxis_check[2];
 	cmd = static_cast<uint8_t>(Register::XX_CROSS_L);
+
 	if (transfer(&cmd, 1, crossaxis_check, 2) != PX4_OK) {
 		PX4_ERR("Failed to read cross-axis check registers");
 		return false;
@@ -376,34 +379,41 @@ bool IST8310J::InitializeCrossAxisMatrix()
 	uint8_t crossx_buf[6], crossy_buf[6], crossz_buf[6];
 
 	cmd = static_cast<uint8_t>(Register::XX_CROSS_L);
+
 	if (transfer(&cmd, 1, crossx_buf, 6) != PX4_OK) {
 		PX4_ERR("Failed to read X cross-axis data");
 		return false;
 	}
+
 	// PX4_INFO("IST8310J XX_CROSS_L: 0x%02hhX, XX_CROSS_H: 0x%02hhX", crossx_buf[0], crossx_buf[1]);
 	// PX4_INFO("IST8310J XY_CROSS_L: 0x%02hhX, XY_CROSS_H: 0x%02hhX", crossx_buf[2], crossx_buf[3]);
 	// PX4_INFO("IST8310J XZ_CROSS_L: 0x%02hhX, XZ_CROSS_H: 0x%02hhX", crossx_buf[4], crossx_buf[5]);
 
 	cmd = static_cast<uint8_t>(Register::YX_CROSS_L);
+
 	if (transfer(&cmd, 1, crossy_buf, 6) != PX4_OK) {
 		PX4_ERR("Failed to read Y cross-axis data");
 		return false;
 	}
+
 	// PX4_INFO("IST8310J YX_CROSS_L: 0x%02hhX, YX_CROSS_H: 0x%02hhX", crossy_buf[0], crossy_buf[1]);
 	// PX4_INFO("IST8310J YX_CROSS_L: 0x%02hhX, YX_CROSS_H: 0x%02hhX", crossy_buf[2], crossy_buf[3]);
 	// PX4_INFO("IST8310J YZ_CROSS_L: 0x%02hhX, YZ_CROSS_H: 0x%02hhX", crossy_buf[4], crossy_buf[5]);
 
 	cmd = static_cast<uint8_t>(Register::ZX_CROSS_L);
+
 	if (transfer(&cmd, 1, crossz_buf, 6) != PX4_OK) {
 		PX4_ERR("Failed to read Z cross-axis data");
 		return false;
 	}
+
 	// PX4_INFO("IST8310J ZX_CROSS_L: 0x%02hhX, ZX_CROSS_H: 0x%02hhX", crossz_buf[0], crossz_buf[1]);
 	// PX4_INFO("IST8310J ZY_CROSS_L: 0x%02hhX, ZY_CROSS_H: 0x%02hhX", crossz_buf[2], crossz_buf[3]);
 	// PX4_INFO("IST8310J ZZ_CROSS_L: 0x%02hhX, ZZ_CROSS_H: 0x%02hhX", crossz_buf[4], crossz_buf[5]);
 
 	// Parse cross-axis matrix based on OTP data format
 	int16_t otp_crossaxis[9];
+
 	if (_otp_data_valid) {
 		// Before format
 		otp_crossaxis[0] = combine(crossx_buf[1], crossx_buf[0]);
@@ -415,6 +425,7 @@ bool IST8310J::InitializeCrossAxisMatrix()
 		otp_crossaxis[6] = combine(crossz_buf[1], crossz_buf[0]);
 		otp_crossaxis[7] = combine(crossz_buf[3], crossz_buf[2]);
 		otp_crossaxis[8] = combine(crossz_buf[5], crossz_buf[4]);
+
 	} else {
 		// After format
 		otp_crossaxis[0] = combine(crossx_buf[1], crossx_buf[0]);
@@ -427,6 +438,7 @@ bool IST8310J::InitializeCrossAxisMatrix()
 		otp_crossaxis[5] = combine(crossz_buf[3], crossz_buf[2]);
 		otp_crossaxis[8] = combine(crossz_buf[5], crossz_buf[4]);
 	}
+
 	// PX4_INFO("Cross-axis matrix from OTP:");
 	// PX4_INFO("[[%d, %d, %d],", otp_crossaxis[0], otp_crossaxis[1], otp_crossaxis[2]);
 	// PX4_INFO(" [%d, %d, %d],", otp_crossaxis[3], otp_crossaxis[4], otp_crossaxis[5]);
@@ -473,6 +485,7 @@ bool IST8310J::InitializeCrossAxisMatrix()
 	for (int i = 0; i < 9; i++) {
 		_crossaxis_inv[i] = (inv[i] << CROSSAXIS_INV_BITSHIFT) * OTP_SENSITIVITY;
 	}
+
 	// PX4_INFO("Inverse cross-axis matrix:");
 	// PX4_INFO("[[%lld, %lld, %lld],", _crossaxis_inv[0], _crossaxis_inv[1], _crossaxis_inv[2]);
 	// PX4_INFO(" [%lld, %lld, %lld],", _crossaxis_inv[3], _crossaxis_inv[4], _crossaxis_inv[5]);
@@ -490,6 +503,7 @@ void IST8310J::CrossAxisTransformation(int16_t *xyz)
 
 	// Check if crossaxis matrix is initialized
 	bool matrix_initialized = false;
+
 	for (int i = 0; i < 9; i++) {
 		if (_crossaxis_inv[i] != 0) {
 			matrix_initialized = true;

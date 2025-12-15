@@ -100,7 +100,7 @@ private:
 	static constexpr uint8_t IST8310J_AXES_NUM = 3;
 	static constexpr int32_t OTP_SENSITIVITY = 330;
 	static constexpr int CROSSAXIS_INV_BITSHIFT = 16;
-	int64_t _crossaxis_inv[9]{0};
+	int64_t _crossaxis_inv[9] {0};
 	int32_t _crossaxis_det{1};
 	bool _crossaxis_enabled{false};
 	bool _otp_data_valid{false};
