@@ -54,12 +54,9 @@ static const char *kLogDir = PX4_STORAGEDIR "/log";
 #define PX4_MAX_FILEPATH 	PATH_MAX
 #endif
 
-// Size for log file path buffers - must match MavlinkLogHandler::LOG_FILEPATH_SIZE
-#define LOG_FILEPATH_SIZE 256
-#define LOG_FILEPATH_MAX_CHARS (LOG_FILEPATH_SIZE - 1)  // Max chars that can be read (leave room for null terminator)
-
 // Ensure PX4_MAX_FILEPATH is large enough for our buffer sizes
-static_assert(PX4_MAX_FILEPATH >= LOG_FILEPATH_SIZE,
+// LogEntry.filepath uses MavlinkLogHandler::LOG_FILEPATH_SIZE
+static_assert(PX4_MAX_FILEPATH >= MavlinkLogHandler::LOG_FILEPATH_SIZE,
 	      "PX4_MAX_FILEPATH must be at least LOG_FILEPATH_SIZE bytes for log file paths");
 
 MavlinkLogHandler::MavlinkLogHandler(Mavlink &mavlink)
@@ -179,12 +176,11 @@ void MavlinkLogHandler::state_listing()
 		// We can send!
 		uint32_t size_bytes = 0;
 		uint32_t time_utc = 0;
-		char filepath[PX4_MAX_FILEPATH];
+		char filepath[MavlinkLogHandler::LOG_FILEPATH_SIZE];
 
 		// If parsed lined successfully, send the entry
 		// Note: Using width specifier to prevent buffer overflow
-		// %255s reads max 255 chars + null terminator = 256 bytes (LOG_FILEPATH_SIZE)
-		// This is safe across all platforms (static_assert ensures PX4_MAX_FILEPATH >= LOG_FILEPATH_SIZE)
+		// Width is LOG_FILEPATH_SIZE-1 (255) to leave room for null terminator
 		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %255s", &time_utc, &size_bytes, filepath) != 3) {
 			PX4_DEBUG("sscanf failed");
 			continue;
@@ -518,7 +514,7 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 		}
 
 		// Parse log entry with width specifier to prevent buffer overflow
-		// %255s = max 255 chars + null = 256 bytes (LOG_FILEPATH_SIZE)
+		// Width is LOG_FILEPATH_SIZE-1 (255) to leave room for null terminator
 		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %255s", &(entry->time_utc), &(entry->size_bytes), entry->filepath) != 3) {
 			PX4_DEBUG("sscanf failed");
 			continue;
