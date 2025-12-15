@@ -134,6 +134,7 @@ if(CONFIG_MODULES_VTOL_ATT_CONTROL)
 	px4_add_romfs_files(
 		# [13000, 13999] VTOL
 		13000_generic_vtol_standard
+		13001_vtol1
 		13100_generic_vtol_tiltrotor
 		13030_generic_vtol_quad_tiltrotor
 		13200_generic_vtol_tailsitter
