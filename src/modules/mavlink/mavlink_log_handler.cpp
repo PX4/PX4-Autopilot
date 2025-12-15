@@ -61,7 +61,9 @@ static_assert(PX4_MAX_FILEPATH >= MavlinkLogHandler::LOG_FILEPATH_SIZE,
 
 // Width specifier for sscanf - must be LOG_FILEPATH_SIZE - 1
 // This is hardcoded as 255 because preprocessor can't evaluate (256-1) in format strings
+// The static_assert below ensures this stays synchronized with LOG_FILEPATH_SIZE
 #define LOG_FILEPATH_SCANF_WIDTH "255"
+static_assert(MavlinkLogHandler::LOG_FILEPATH_SIZE == 256, "Update LOG_FILEPATH_SCANF_WIDTH if LOG_FILEPATH_SIZE changes");
 
 MavlinkLogHandler::MavlinkLogHandler(Mavlink &mavlink)
 	: _mavlink(mavlink)
