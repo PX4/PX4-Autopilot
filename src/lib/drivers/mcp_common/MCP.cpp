@@ -440,7 +440,9 @@ I2CSPIDriverBase *MCP230XX::instantiate(const I2CSPIDriverConfig &config, int ru
 		return nullptr;
 	}
 
-	instance->mcp_config = *static_cast<const MCP230XX_config_t *>(config.custom_data);
+	MCP230XX_config_t tmp_config = *static_cast<const MCP230XX_config_t *>(config.custom_data);
+	instance->mcp_config = tmp_config;
+	instance->mcp_config.i2c_bus = config.bus;
 
 	if (OK != instance->init()) {
 		delete instance;

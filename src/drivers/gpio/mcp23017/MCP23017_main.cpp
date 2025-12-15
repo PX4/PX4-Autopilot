@@ -46,7 +46,6 @@ extern "C" int mcp23017_main(int argc, char *argv[])
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = 0x27;
 	MCP230XX_config_t mcp_config = def_mcp_config;
-	mcp_config.i2c_bus = cli.requested_bus;
 
 	int ch;
 
