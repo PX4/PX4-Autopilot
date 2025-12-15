@@ -78,12 +78,24 @@ size_t Rtcm3Parser::addData(const uint8_t *data, size_t len)
 const uint8_t *Rtcm3Parser::getNextMessage(size_t *out_len)
 {
 	while (_buffer_len > 0) {
-		if (_buffer[0] != RTCM3_PREAMBLE) {
-			_bytes_discarded++;
-			discardBytes(1);
-			continue;
+		int to_drop = 0;
+
+		// Find preamble
+		for (size_t i = 0; i < _buffer_len; i++) {
+			if (_buffer[i] == RTCM3_PREAMBLE) {
+				break;
+			}
+
+			to_drop++;
 		}
 
+		// Drop everything not being the preamble
+		if (to_drop > 0) {
+			_bytes_discarded += to_drop;
+			discardBytes(to_drop);
+		}
+
+		// Need at least header to check length
 		if (_buffer_len < RTCM3_HEADER_LEN) {
 			return nullptr;
 		}
