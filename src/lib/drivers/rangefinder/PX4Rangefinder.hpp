@@ -63,7 +63,8 @@ public:
 	void set_mode(const uint8_t mode) { _distance_sensor_pub.get().mode = mode; }
 
 	// update with quaterion sensor orientation with respect to the vehicle body frame
-	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1, const float *q = nullptr, uint8_t q_len = 4);
+	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1, const float *q = nullptr,
+		    uint8_t q_len = 4);
 
 	int get_instance() { return _distance_sensor_pub.get_instance(); };
 	uint32_t get_device_id() { return _distance_sensor_pub.get().device_id; };
