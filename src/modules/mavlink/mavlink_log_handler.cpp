@@ -54,6 +54,10 @@ static const char *kLogDir = PX4_STORAGEDIR "/log";
 #define PX4_MAX_FILEPATH 	PATH_MAX
 #endif
 
+// Ensure PX4_MAX_FILEPATH is large enough for our buffer sizes
+// LogEntry.filepath is 256 bytes, so PX4_MAX_FILEPATH must be at least 256
+static_assert(PX4_MAX_FILEPATH >= 256, "PX4_MAX_FILEPATH must be at least 256 bytes for log file paths");
+
 MavlinkLogHandler::MavlinkLogHandler(Mavlink &mavlink)
 	: _mavlink(mavlink)
 {}
@@ -174,7 +178,9 @@ void MavlinkLogHandler::state_listing()
 		char filepath[PX4_MAX_FILEPATH];
 
 		// If parsed lined successfully, send the entry
-		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %1023s", &time_utc, &size_bytes, filepath) != 3) {
+		// Note: Using %255s to safely read into filepath buffer (max 255 chars + null terminator)
+		// This is conservative but safe across all platforms regardless of PX4_MAX_FILEPATH value
+		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %255s", &time_utc, &size_bytes, filepath) != 3) {
 			PX4_DEBUG("sscanf failed");
 			continue;
 		}
