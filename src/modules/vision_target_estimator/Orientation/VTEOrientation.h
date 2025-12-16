@@ -54,7 +54,7 @@
 #include <uORB/topics/vision_target_est_orientation.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/estimator_aid_source1d.h>
+#include <uORB/topics/vte_aid_source1d.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <matrix/math.hpp>
@@ -105,7 +105,7 @@ protected:
 	uORB::Publication<vision_target_est_orientation_s> _targetOrientationPub{ORB_ID(vision_target_est_orientation)};
 
 	// publish innovations target_estimator_gps_pos
-	uORB::Publication<estimator_aid_source1d_s> _vte_aid_ev_yaw_pub{ORB_ID(vte_aid_ev_yaw)};
+	uORB::Publication<vte_aid_source1d_s> _vte_aid_ev_yaw_pub{ORB_ID(vte_aid_ev_yaw)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -175,14 +175,12 @@ private:
 
 	KF_orientation _target_est_yaw{};
 	TargetObs _obs_buffer[kObsTypeCount] {};
-	estimator_aid_source1d_s _aid_src1d_buffer{};
 	vision_target_est_orientation_s _orientation_msg{};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 
 	void checkMeasurementInputs();
-	static constexpr float sq(float var) { return var * var; }
 
 	/* parameters from vision_target_estimator_params.c*/
 	uint32_t _vte_timeout_us{3_s};

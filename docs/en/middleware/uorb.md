@@ -84,15 +84,7 @@ For example, the [ActuatorOutputs](../msg_docs/ActuatorOutputs.md) message defin
 # TOPICS actuator_outputs actuator_outputs_sim actuator_outputs_debug
 ```
 
-If a topic should only be generated when a particular configuration option is enabled (for example a module that is only present on some boards), add the Kconfig symbol in square brackets immediately after `# TOPICS`.
-The build system scans all message definitions, determines which guarded topics are required for the currently selected `.px4board`, and automatically forwards the relevant `--define` flags to the uORB/Zenoh code generators.
-
-```text
-# TOPICS estimator_aid_src_ev_yaw
-# TOPICS[CONFIG_MODULES_VISION_TARGET_ESTIMATOR] vte_aid_ev_yaw
-```
-
-In the example above `estimator_aid_src_ev_yaw` is always generated, while `vte_aid_ev_yaw` only exists when `CONFIG_MODULES_VISION_TARGET_ESTIMATOR` is set to `y` in the board configuration.
+If a topic should only be generated when a particular configuration option is enabled (for example a module that is only present on some boards), conditionally include the corresponding `.msg` file in the build system (for example in `msg/CMakeLists.txt` under an `if(CONFIG_...)` guard).
 
 ### Nested Messages
 

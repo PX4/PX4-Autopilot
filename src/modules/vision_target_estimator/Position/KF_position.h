@@ -48,6 +48,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include "../common.h"
+
 namespace vision_target_estimator
 {
 
@@ -56,6 +58,13 @@ struct StateSample {
 	matrix::Vector<float, vtest::State::size> state{};
 	matrix::SquareMatrix<float, vtest::State::size> cov{};
 	float acc{0.f};
+};
+
+struct ScalarMeas {
+	uint64_t time_us;
+	float val;
+	float unc;
+	matrix::Vector<float, vtest::State::size> H;
 };
 
 class KF_position
@@ -72,13 +81,8 @@ public:
 	// Projected correction OOSM approximation:
 	// - Most accurate with bounded delays and when fusions are processed in timestamp order (oldest -> newest).
 	// - Does not replay intermediate measurement updates (unlike EKF2's delayed fusion horizon).
-	// Returns true if fused successfully.
-	// Populates out_innov and out_innov_var for logging.
-	bool fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us,
-			      float meas, float meas_unc,
-			      const matrix::Vector<float, vtest::State::size> &H,
-			      float nis_threshold,
-			      float &out_innov, float &out_innov_var);
+	// Returns FusionResult describing the result for logging.
+	FusionResult fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold);
 
 	// History Management
 	void pushHistory(const uint64_t time_us);
@@ -108,12 +112,10 @@ private:
 			     float innov, float S);
 
 	bool computeFusionGain(const matrix::Vector<float, vtest::State::size> &state,
-			       const matrix::SquareMatrix<float, vtest::State::size> &cov,
-			       float meas, float meas_unc,
-			       const matrix::Vector<float, vtest::State::size> &H,
-			       float nis_threshold,
-			       float &out_innov, float &out_innov_var,
+			       const matrix::SquareMatrix<float, vtest::State::size> &cov, const ScalarMeas &meas, float nis_threshold,
+			       FusionResult &out_res,
 			       matrix::Vector<float, vtest::State::size> &out_K);
+
 
 	matrix::Vector<float, vtest::State::size> _state{};
 	matrix::SquareMatrix<float, vtest::State::size> _state_covariance{};
