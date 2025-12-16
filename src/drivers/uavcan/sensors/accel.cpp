@@ -40,8 +40,8 @@
 
 const char *const UavcanAccelBridge::NAME = "accel";
 
-UavcanAccelBridge::UavcanAccelBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_accel", ORB_ID(sensor_accel)),
+UavcanAccelBridge::UavcanAccelBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_accel", ORB_ID(sensor_accel), node_info_publisher),
 	_sub_imu_data(node)
 { }
 
@@ -77,6 +77,12 @@ void UavcanAccelBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 
 	accel->set_error_count(0);
 	accel->update(timestamp_sample, msg.accelerometer_latest[0], msg.accelerometer_latest[1], msg.accelerometer_latest[2]);
+
+	// Register device capability if not already done
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), accel->get_device_id(),
+				NodeInfoPublisher::DeviceCapability::ACCELEROMETER);
+	}
 }
 
 int UavcanAccelBridge::init_driver(uavcan_bridge::Channel *channel)
