@@ -170,12 +170,17 @@ void VTEOrientation::processObservations(ObsValidMaskU &fusion_mask,
 bool VTEOrientation::isVisionDataValid(const fiducial_marker_yaw_report_s &fiducial_marker_yaw) const
 {
 	if (!isMeasRecent(fiducial_marker_yaw.timestamp_sample)) {
-		PX4_DEBUG("Vision yaw is outdated!");
+		PX4_DEBUG("Vision yaw is outdated!"); // TODO: throttle, similar to _vision_pos_warn_last
 		return false;
 	}
 
 	if (!PX4_ISFINITE(fiducial_marker_yaw.yaw_ned)) {
-		PX4_DEBUG("Vision yaw is corrupt!");
+		PX4_DEBUG("Vision yaw is corrupt!"); // TODO: throttle, similar to _vision_pos_warn_last
+		return false;
+	}
+
+	if (!_ev_noise_md && !PX4_ISFINITE(fiducial_marker_yaw.yaw_var_ned)) {
+		PX4_DEBUG("Vision yaw var is corrupt!"); // TODO: throttle, similar to _vision_pos_warn_last
 		return false;
 	}
 
@@ -197,7 +202,7 @@ bool VTEOrientation::processObsVision(TargetObs &obs)
 
 	if (_ev_noise_md) {
 		const float range = _range_sensor.valid ? _range_sensor.dist_bottom : kDefaultVisionYawDistance;
-		yaw_unc = fmaxf(sqrtf(_min_ev_angle_var) * range, _min_ev_angle_var);
+		yaw_unc = fmaxf(sq(sqrtf(_min_ev_angle_var) * range), _min_ev_angle_var);
 	}
 
 	obs.timestamp = fiducial_marker_yaw.timestamp_sample;

@@ -143,8 +143,25 @@ void VTEPosition::update(const Vector3f &acc_ned)
 	// Predict the target state using a constant relative-acceleration model.
 	if (_estimator_initialized) {
 		const hrt_abstime now_us = hrt_absolute_time();
-		const float dt = (now_us - _last_predict) * USEC2SEC_F;
 
+		if (now_us < _last_predict) {
+			resetFilter();
+			PX4_WARN("VTEposition invalid _last_predict time");
+			return;
+		}
+
+		const uint64_t dt_us = now_us - _last_predict;
+
+		// guard against large dt for which the constant acceleration assumption does not hold
+		static constexpr uint64_t kMaxValidDeltaTimeUs = 100_ms; // filter runs at 50Hz, expect dt = 20_ms
+
+		if (dt_us > kMaxValidDeltaTimeUs) {
+			resetFilter();
+			PX4_WARN("VTEposition stale, reseting filter");
+			return;
+		}
+
+		const float dt = dt_us * USEC2SEC_F;
 		perf_begin(_vte_predict_perf);
 		predictionStep(acc_ned, dt);
 		perf_end(_vte_predict_perf);
@@ -152,7 +169,8 @@ void VTEPosition::update(const Vector3f &acc_ned)
 		_last_predict = now_us;
 	}
 
-	// Update with the newest observations and publish any resulting innovations.
+	// Update with the newest observations, fuse if the filter is initialised,
+	// and publish any resulting innovations.
 	if (performUpdateStep(acc_ned)) {
 		_last_update = _last_predict;
 	}
@@ -321,13 +339,60 @@ void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 	}
 }
 
-bool VTEPosition::isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose) const
+bool VTEPosition::isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose)
 {
+	if (!isMeasRecent(fiducial_marker_pose.timestamp_sample)) {
+		if (shouldEmitWarning(_vision_pos_warn_last)) {
+			PX4_WARN("VTE: Vision data too old!");
+		}
+
+		return false;
+	}
+
 	const bool finite_measurement = PX4_ISFINITE(fiducial_marker_pose.rel_pos[0])
 					&& PX4_ISFINITE(fiducial_marker_pose.rel_pos[1])
 					&& PX4_ISFINITE(fiducial_marker_pose.rel_pos[2]);
 
-	return finite_measurement && isMeasRecent(fiducial_marker_pose.timestamp_sample);
+	if (!finite_measurement) {
+		if (shouldEmitWarning(_vision_pos_warn_last)) {
+			PX4_WARN("VTE: Vision meas is corrupt!");
+		}
+
+		return false;
+	}
+
+
+	// if vision relies on the reported covariance, check it
+	if (!_ev_noise_md) {
+
+		const bool finite_cov = PX4_ISFINITE(fiducial_marker_pose.cov_rel_pos[0])
+					&& PX4_ISFINITE(fiducial_marker_pose.cov_rel_pos[1])
+					&& PX4_ISFINITE(fiducial_marker_pose.cov_rel_pos[2]);
+
+		if (!finite_cov) {
+			if (shouldEmitWarning(_vision_pos_warn_last)) {
+				PX4_WARN("VTE: Vision cov is corrupt!");
+			}
+
+			return false;
+		}
+	}
+
+	// Rotate vision observation into vc-NED using the reported attitude quaternion
+	const bool finite_q = PX4_ISFINITE(fiducial_marker_pose.q[0])
+			      && PX4_ISFINITE(fiducial_marker_pose.q[1])
+			      && PX4_ISFINITE(fiducial_marker_pose.q[2])
+			      && PX4_ISFINITE(fiducial_marker_pose.q[3]);
+
+	if (!finite_q) {
+		if (shouldEmitWarning(_vision_pos_warn_last)) {
+			PX4_WARN("VTE: Vision attitude quaternion is corrupt!");
+		}
+
+		return false;
+	}
+
+	return true;
 }
 
 bool VTEPosition::isUavGpsPositionValid()
@@ -699,20 +764,6 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 		return false;
 	}
 
-	// Rotate vision observation into vc-NED using the reported attitude quaternion
-	const bool finite_q = PX4_ISFINITE(report.q[0])
-			      && PX4_ISFINITE(report.q[1])
-			      && PX4_ISFINITE(report.q[2])
-			      && PX4_ISFINITE(report.q[3]);
-
-	if (!finite_q) {
-		if (shouldEmitWarning(_vision_pos_warn_last)) {
-			PX4_WARN("VTE: Vision attitude quaternion is corrupt!");
-		}
-
-		return false;
-	}
-
 	const matrix::Quaternionf quat_att(report.q);
 	const Vector3f vision_rel(report.rel_pos);
 	const Vector3f vision_ned = quat_att.rotateVector(vision_rel);
@@ -725,7 +776,7 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 		static constexpr float kDefaultVisionUncDistanceM = 10.f;
 		// Uncertainty proportional to the vertical distance
 		const float range = _range_sensor.valid ? _range_sensor.dist_bottom : kDefaultVisionUncDistanceM;
-		const float meas_unc = fmaxf(sqrtf(_min_ev_pos_var) * range, _min_ev_pos_var);
+		const float meas_unc = fmaxf(math::sq(sqrtf(_min_ev_pos_var) * range), _min_ev_pos_var);
 		cov_rotated = diag(Vector3f(meas_unc, meas_unc, meas_unc));
 
 	} else {
@@ -1010,7 +1061,7 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 	perf_begin(_vte_update_perf);
 
 	_target_innov = {};
-	bool all_axis_fused = true;
+	bool all_axis_fused = true; // TODO: clean up once a new uorb message is created to replace EstimatorAidSource1d.msg
 
 	_target_innov.time_last_fuse = _last_predict;
 	_target_innov.timestamp_sample = target_obs.timestamp;

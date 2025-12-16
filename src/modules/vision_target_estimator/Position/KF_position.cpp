@@ -105,9 +105,6 @@ bool KF_position::fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us, float
 	static constexpr uint64_t kOosmMinTimeUs = 20_ms;
 	const uint64_t time_diff = (now_us >= meas_time_us) ? (now_us - meas_time_us) : (meas_time_us - now_us);
 
-	static constexpr float kMinMeasVar = 0.1f;
-	meas_unc = fmaxf(meas_unc, kMinMeasVar);
-
 	// No need for OOSM
 	if (time_diff < kOosmMinTimeUs) {
 		matrix::Vector<float, vtest::State::size> K;
