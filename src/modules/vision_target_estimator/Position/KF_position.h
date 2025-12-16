@@ -118,7 +118,7 @@ private:
 	matrix::Vector<float, vtest::State::size> _state{};
 	matrix::SquareMatrix<float, vtest::State::size> _state_covariance{};
 
-	float _bias_var{0.f};  // target/UAV GPS bias variance
+	float _bias_var{0.f};  // target/UAV GNSS bias variance
 	float _acc_var{0.f};   // target acceleration variance
 	float _input_var{0.f}; // UAV acceleration variance
 	float _last_acc{0.f}; // last UAV acceleration input
