@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -149,7 +149,7 @@ public:
 	 * Returns a pointer directly into the parser's internal buffer where the
 	 * valid frame starts. Invalid bytes at the buffer start are discarded
 	 * during the search. The returned pointer remains valid until the next
-	 * call to addData(), consumeMessage(), or reset().
+	 * call to addData() or consumeMessage().
 	 *
 	 * After processing the message, call consumeMessage() to remove it from
 	 * the buffer.
@@ -164,7 +164,7 @@ public:
 	 * Consume (remove) the next message from the buffer.
 	 *
 	 * Call this after successfully processing a message obtained via
-	 * peekNextMessage(). The length should match what peekNextMessage returned.
+	 * getNextMessage(). The length should match what getNextMessage returned.
 	 *
 	 * @param len   Number of bytes to remove from the buffer
 	 */

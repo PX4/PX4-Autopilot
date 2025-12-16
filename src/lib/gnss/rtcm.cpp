@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,32 +78,30 @@ size_t Rtcm3Parser::addData(const uint8_t *data, size_t len)
 const uint8_t *Rtcm3Parser::getNextMessage(size_t *out_len)
 {
 	while (_buffer_len > 0) {
+		int to_drop = 0;
+
 		// Find preamble
-		if (_buffer[0] != RTCM3_PREAMBLE) {
-			// Discard byte and search for preamble
-			_bytes_discarded++;
-			discardBytes(1);
-			continue;
+		for (size_t i = 0; i < _buffer_len; i++) {
+			if (_buffer[i] == RTCM3_PREAMBLE) {
+				break;
+			}
+
+			to_drop++;
+		}
+
+		// Drop everything not being the preamble
+		if (to_drop > 0) {
+			_bytes_discarded += to_drop;
+			discardBytes(to_drop);
 		}
 
 		// Need at least header to check length
 		if (_buffer_len < RTCM3_HEADER_LEN) {
-			return nullptr; // Wait for more data
+			return nullptr;
 		}
 
-		// Extract length (lower 10 bits of bytes 1-2)
-		uint16_t length_bytes = (static_cast<uint16_t>(_buffer[1]) << 8) | _buffer[2];
-		size_t payload_len = length_bytes & 0x3FF; // 10 bits
+		size_t payload_len = rtcm3_payload_length(_buffer);
 
-		// Validate reserved bits (upper 6 bits should be 0)
-		if ((length_bytes & 0xFC00) != 0) {
-			// Invalid reserved bits - not a valid frame, discard preamble
-			_bytes_discarded++;
-			discardBytes(1);
-			continue;
-		}
-
-		// Validate payload length
 		if (payload_len > RTCM3_MAX_PAYLOAD_LEN) {
 			// Invalid length - not a valid frame, discard preamble
 			_bytes_discarded++;
@@ -111,28 +109,24 @@ const uint8_t *Rtcm3Parser::getNextMessage(size_t *out_len)
 			continue;
 		}
 
-		// Calculate total frame size
 		size_t frame_len = RTCM3_HEADER_LEN + payload_len + RTCM3_CRC_LEN;
 
 		// Check if we have the complete frame
 		if (_buffer_len < frame_len) {
-			return nullptr; // Wait for more data
+			return nullptr;
 		}
 
-		// Validate CRC
 		uint32_t calculated_crc = rtcm3_crc24q(_buffer, RTCM3_HEADER_LEN + payload_len);
 		uint32_t received_crc = (static_cast<uint32_t>(_buffer[frame_len - 3]) << 16) |
 					(static_cast<uint32_t>(_buffer[frame_len - 2]) << 8) |
 					_buffer[frame_len - 1];
 
 		if (calculated_crc != received_crc) {
-			// CRC mismatch - not a valid frame, discard preamble and try again
 			_crc_errors++;
 			discardBytes(1);
 			continue;
 		}
 
-		// Valid frame found - return pointer to it
 		*out_len = frame_len;
 		return _buffer;
 	}

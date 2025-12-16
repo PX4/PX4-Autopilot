@@ -31,10 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(gnss rtcm.cpp)
-
-target_include_directories(gnss PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-if(BUILD_TESTING)
-	add_subdirectory(test)
-endif()
+px4_add_unit_gtest(SRC RtcmCrcTest.cpp LINKLIBS gnss)
+px4_add_unit_gtest(SRC RtcmParserTest.cpp LINKLIBS gnss)
+px4_add_unit_gtest(SRC RtcmBustedSenderTest.cpp LINKLIBS gnss)
+px4_add_unit_gtest(SRC RtcmStressTest.cpp LINKLIBS gnss)

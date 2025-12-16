@@ -1728,6 +1728,7 @@ void SeptentrioDriver::publish_rtcm_corrections(uint8_t *data, size_t len)
 void SeptentrioDriver::dump_gps_data(const uint8_t *data, size_t len, DataDirection data_direction)
 {
 	gps_dump_s *dump_data = data_direction == DataDirection::FromReceiver ? _message_data_from_receiver : _message_data_to_receiver;
+	dump_data->instance = _instance == Instance::Main ? gps_dump_s::INSTANCE_MAIN : gps_dump_s::INSTANCE_SECONDARY;
 	dump_data->device_id = get_device_id();
 
 	while (len > 0) {
