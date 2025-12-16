@@ -45,5 +45,5 @@ ms5611 -s -b 1 start
 if param compare SENS_EN_INA226 1
 then
 	# Start INA226 driver
-	ina226 -X -b 2 -t 1 -k start
+	ina226 -X -b 2 -t 2 -k start
 fi
