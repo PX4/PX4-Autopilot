@@ -182,6 +182,7 @@ private:
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 
 	void checkMeasurementInputs();
+	static constexpr float sq(float var) { return var * var; }
 
 	/* parameters from vision_target_estimator_params.c*/
 	uint32_t _vte_timeout_us{3_s};
