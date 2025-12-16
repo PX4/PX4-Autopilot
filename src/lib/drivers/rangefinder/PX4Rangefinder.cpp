@@ -68,7 +68,6 @@ void PX4Rangefinder::set_orientation(const uint8_t device_orientation)
 	_distance_sensor_pub.get().orientation = device_orientation;
 }
 
-
 void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality, const float *q, uint8_t q_len)
 {
 	distance_sensor_s &report = _distance_sensor_pub.get();
@@ -86,9 +85,7 @@ void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float dis
 	// Update the quaternion in the sample update
 	if (q != nullptr) {
 		memcpy(report.q, q, sizeof(float) * q_len);
-
 	}
-
 
 	_distance_sensor_pub.update();
 }
