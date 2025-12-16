@@ -404,7 +404,13 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    const uint8_t spoofing_state)
 {
 	sensor_gps_s sensor_gps{};
-	sensor_gps.device_id = get_device_id();
+
+	device::Device::DeviceId device_id;
+	device_id.devid_s.devtype = get_device_type();
+	device_id.devid_s.address = static_cast<uint8_t>(msg.getSrcNodeID().get());
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
+	device_id.devid_s.bus = 0;
+	sensor_gps.device_id = device_id.devid;
 
 	// Register GPS capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
