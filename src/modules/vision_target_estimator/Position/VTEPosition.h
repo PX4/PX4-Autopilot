@@ -229,7 +229,7 @@ private:
 			      hrt_abstime *warn_last = nullptr);
 
 	/* Vision data */
-	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose) const;
+	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose);
 	bool processObsVision(TargetObs &obs);
 
 	/* UAV GPS data */

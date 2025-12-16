@@ -151,16 +151,6 @@ $$P_{d|k} \approx P_{d|d^-}$$
 
 Justification and Impact: Calculating the exact $\hat{x}_{d|k}$ and $P_{d|k}$ would require the "retrodiction" or "backward smoothing" machinery described in the paper (Section 4.1), which necessitates storing all intermediate measurements and transition matrices. By using the stored snapshot, the implementation avoids this storage overhead. This approximation assumes that the measurements received between $t_{meas}$ and $t_{now}$ ($z_{d+1} \dots z_k$) would not have significantly altered the estimate of the state at $t_{meas}$ had they been available.
 
-**Second approximation:** Use a local predicted state at $t_{meas}$ instead of the retrodicted $x̂_{d∣k}$. Zhang’s innovation uses ​$x̂_{d∣k}$ (a smoothed estimate at time $d$ conditioned on measurements up to $k$). Computing $x̂_{d∣k}$ requires the backward/retrodiction machinery given in the paper. Instead, this implementation uses the nearest stored snapshot before $t_{meas}$ predicted to $t_{meas}$ so effectively $x̂_{d∣d^-}$ and similarly for $P_{d∣d^-}$. It follows that we are assuming that:
-
-$$
-x̂_{d∣k}​≈x̂_{d∣d^-} \\
-
-P_{d∣k}​≈P_{d∣d^-}
-
-$$
-
-so a "no smoothing" assumption
 ## Log analysis and expected plots
 
 This section provides an overview of the topics and fields that matter during log review: the published [estimator outputs](#estimator-outputs), the upstream [input feeds](#main-input-feeds). Then log analysis guidance is provided in [What to look for in logs](#what-to-look-for-in-logs) and the [troubleshooting checklist](#troubleshooting-checklist). The [plot examples](#plot-examples) at the end illustrate the expected convergence behaviour.
