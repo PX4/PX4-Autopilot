@@ -58,7 +58,7 @@
 #include <uORB/topics/vision_target_est_position.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/estimator_aid_source3d.h>
+#include <uORB/topics/vte_aid_source3d.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -116,11 +116,11 @@ protected:
 	uORB::Publication<vision_target_est_position_s> _targetEstimatorStatePub{ORB_ID(vision_target_est_position)};
 
 	// publish innovations target_estimator_gps_pos
-	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_pos_target_pub{ORB_ID(vte_aid_gps_pos_target)};
-	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_pos_mission_pub{ORB_ID(vte_aid_gps_pos_mission)};
-	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_vel_target_pub{ORB_ID(vte_aid_gps_vel_target)};
-	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_vel_uav_pub{ORB_ID(vte_aid_gps_vel_uav)};
-	uORB::Publication<estimator_aid_source3d_s> _vte_aid_fiducial_marker_pub{ORB_ID(vte_aid_fiducial_marker)};
+	uORB::Publication<vte_aid_source3d_s> _vte_aid_gps_pos_target_pub{ORB_ID(vte_aid_gps_pos_target)};
+	uORB::Publication<vte_aid_source3d_s> _vte_aid_gps_pos_mission_pub{ORB_ID(vte_aid_gps_pos_mission)};
+	uORB::Publication<vte_aid_source3d_s> _vte_aid_gps_vel_target_pub{ORB_ID(vte_aid_gps_vel_target)};
+	uORB::Publication<vte_aid_source3d_s> _vte_aid_gps_vel_uav_pub{ORB_ID(vte_aid_gps_vel_uav)};
+	uORB::Publication<vte_aid_source3d_s> _vte_aid_fiducial_marker_pub{ORB_ID(vte_aid_fiducial_marker)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -250,7 +250,7 @@ private:
 
 	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const TargetObs &target_pos_obs);
 	void publishTarget();
-	void publishInnov(const estimator_aid_source3d_s &target_innov, const ObsType type);
+	void publishInnov(const vte_aid_source3d_s &target_innov, const ObsType type);
 	void resetObservations();
 	bool shouldEmitWarning(hrt_abstime &last_warn);
 
@@ -263,7 +263,6 @@ private:
 	perf_counter_t _vte_fusion_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE fusion")};
 
 	TargetObs _obs_buffer[kObsTypeCount] {};
-	estimator_aid_source3d_s _target_innov{};
 	landing_target_pose_s _target_pose{};
 	vision_target_est_position_s _vte_state{};
 

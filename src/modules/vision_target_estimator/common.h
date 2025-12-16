@@ -57,6 +57,26 @@ static constexpr float kMinNisThreshold = 0.1f;
 
 constexpr hrt_abstime kWarnThrottleIntervalUs = 20_s;
 
+enum class FusionStatus : uint8_t {
+	IDLE = 0,
+	FUSED_CURRENT,
+	FUSED_OOSM,
+	REJECT_NIS,
+	REJECT_COV,
+	REJECT_TOO_OLD,
+	REJECT_TOO_NEW,
+	REJECT_STALE,
+	REJECT_EMPTY
+};
+
+struct FusionResult {
+	FusionStatus status{FusionStatus::IDLE};
+	float innov{0.f};
+	float innov_var{0.f};
+	float test_ratio{-1.f}; // Normalized NIS (beta / threshold)
+	uint8_t history_steps{0};
+};
+
 static inline bool hasTimedOut(const hrt_abstime ts, const uint32_t timeout_us)
 {
 	const hrt_abstime now = hrt_absolute_time();
@@ -73,6 +93,8 @@ constexpr inline int64_t signedTimeDiffUs(const hrt_abstime newer, const hrt_abs
 {
 	return static_cast<int64_t>(newer) - static_cast<int64_t>(older);
 }
+
+static constexpr float sq(float var) { return var * var; }
 
 union SensorFusionMaskU {
 	struct {

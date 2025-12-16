@@ -230,12 +230,13 @@ bool VTEOrientation::fuseActiveMeasurements(ObsValidMaskU &fusion_mask,
 
 bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 {
-	estimator_aid_source1d_s &target_innov = _aid_src1d_buffer;
-	target_innov = {};
+	vte_aid_source1d_s target_innov = {};
 
-	target_innov.time_last_fuse = _last_predict; // log _last_predict to be able to recompute dt_sync_us from the log
 	target_innov.timestamp_sample = target_obs.timestamp;
 	target_innov.timestamp = hrt_absolute_time();
+	target_innov.time_last_predict = _last_predict;
+
+	// TODO: implement OOSM similar to the position filter. Use FusionResult as output
 
 	const int64_t dt_sync_us = signedTimeDiffUs(_last_predict, target_obs.timestamp);
 	const bool measurement_too_old = dt_sync_us > static_cast<int64_t>(_meas_recent_timeout_us);
@@ -243,8 +244,17 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 	const bool measurement_in_the_future = dt_sync_us < 0 && -dt_sync_us > static_cast<int64_t>(5_ms);
 
 	if (measurement_too_old || measurement_in_the_future || !target_obs.updated) {
-		// in the innovation toptic of the log, (time_last_fuse - timestamp_sample) provides dt_sync_us
-		target_innov.fused = false;
+
+		if (!target_obs.updated) {
+			target_innov.fusion_status = static_cast<uint8_t>(FusionStatus::IDLE);
+
+		} else if (measurement_too_old) {
+			target_innov.fusion_status = static_cast<uint8_t>(FusionStatus::REJECT_TOO_OLD);
+
+		} else {
+			target_innov.fusion_status = static_cast<uint8_t>(FusionStatus::REJECT_TOO_NEW);
+		}
+
 		_vte_aid_ev_yaw_pub.publish(target_innov);
 		return false;
 	}
@@ -259,8 +269,7 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 	_target_est_yaw.setNisThreshold(_nis_threshold);
 	const bool meas_fused = _target_est_yaw.update();
 
-	target_innov.innovation_rejected = !meas_fused;
-	target_innov.fused = meas_fused;
+	target_innov.fusion_status = static_cast<uint8_t>(meas_fused ? FusionStatus::FUSED_CURRENT : FusionStatus::REJECT_NIS);
 	target_innov.observation = target_obs.meas;
 	target_innov.observation_variance = target_obs.meas_unc;
 	target_innov.test_ratio = _target_est_yaw.getTestRatio();
