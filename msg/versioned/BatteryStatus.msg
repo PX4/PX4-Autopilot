@@ -1,6 +1,6 @@
 # Battery status
 #
-# Battery status information for up to 4 battery instances.
+# Battery status information for up to 3 battery instances.
 # These are populated from power module and smart battery device drivers, and one battery updated from MAVLink.
 # Battery instance information is also logged and streamed in MAVLink telemetry.
 

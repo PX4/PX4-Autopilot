@@ -43,7 +43,7 @@ class UavcanHygrometerBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanHygrometerBridge(uavcan::INode &node);
+	UavcanHygrometerBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 
@@ -58,4 +58,5 @@ private:
 		HygroCbBinder;
 
 	uavcan::Subscriber<dronecan::sensors::hygrometer::Hygrometer, HygroCbBinder> _sub_hygro;
+
 };
