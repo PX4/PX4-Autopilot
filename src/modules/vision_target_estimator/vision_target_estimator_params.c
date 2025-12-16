@@ -195,28 +195,30 @@ PARAM_DEFINE_FLOAT(VTE_ACC_D_UNC, 1.0f);
  *
  * Variance of target acceleration (in NED frame) used for target position prediction.
  * Higher values results in tighter following of the measurements and more lenient outlier rejection
- *
- * @unit (m/s^2)^2
+ * Default value: 0.1 implies that the target acceleration can change sqrt(0.1) = 0.3 m/s² per second
+ * Unit: ((m/s^2)^2)/s
  * @min 0.01
  * @decimal 2
  *
  * @group Vision Target Estimator
  */
-PARAM_DEFINE_FLOAT(VTE_ACC_T_UNC, 1.0f);
+PARAM_DEFINE_FLOAT(VTE_ACC_T_UNC, 0.1f);
 
 /**
  * Bias uncertainty
  *
  * Variance of GPS bias used for target position prediction.
- * Higher values results in tighter following of the measurements and more lenient outlier rejection
+ * Higher values results in tighter following of the measurements and more lenient outlier rejection.
+ * Default value: 0.01 implies that the bias can drift roughly sqrt(0.01) = 0.1 m = 10 cm per second
+ * Min value: 0.001 implies that the bias can drift roughly sqrt(0.001) = 0.03 m = 3 cm per second
+ * Unit: m^2/s
  *
- * @unit m^2
- * @min 0.01
- * @decimal 2
+ * @min 0.001
+ * @decimal 3
  *
  * @group Vision Target Estimator
  */
-PARAM_DEFINE_FLOAT(VTE_BIAS_UNC, 0.05f);
+PARAM_DEFINE_FLOAT(VTE_BIAS_UNC, 0.01f);
 
 /**
  * Bias limit

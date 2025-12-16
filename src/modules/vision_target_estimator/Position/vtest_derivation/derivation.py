@@ -145,12 +145,14 @@ def predictCov(dt: sf.Scalar, input_var: sf.Scalar, bias_var: sf.Scalar, acc_var
     Phi, G = get_Phi_and_G(dt)
     Q = sf.Matrix.zeros(State.storage_dim(), State.storage_dim())
 
+    # Scale bias random walk by dt
     idx_bias = tangent_idx['bias'].idx
-    Q[idx_bias, idx_bias] = bias_var
+    Q[idx_bias, idx_bias] = bias_var * dt
 
     if moving:
+        # Scale target acceleration random walk by dt
         idx_a_target = tangent_idx['acc_target'].idx
-        Q[idx_a_target, idx_a_target] = acc_var
+        Q[idx_a_target, idx_a_target] = acc_var * dt
 
     return G * input_var * G.T + Q + Phi * covariance * Phi.T
 
