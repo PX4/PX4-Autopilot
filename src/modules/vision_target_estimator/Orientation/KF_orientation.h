@@ -46,6 +46,8 @@
 
 #pragma once
 
+#include "../common.h"
+
 namespace vision_target_estimator
 {
 
@@ -62,13 +64,28 @@ public:
 	KF_orientation() = default;
 	~KF_orientation() = default;
 
+	struct ScalarMeas {
+		uint64_t time_us;
+		float val;
+		float unc;
+		matrix::Vector<float, State::size> H;
+	};
+
 	void predictState(float dt);
 	void predictCov(float dt);
 
-	bool update();
+	// Primary Fusion Interface (history-consistent OOSM)
+	// Projected correction OOSM approximation:
+	// - Most accurate with bounded delays and when fusions are processed in timestamp order (oldest -> newest).
+	// - Does not replay intermediate measurement updates (unlike EKF2's delayed fusion horizon).
+	// Returns FusionResult describing the result for logging.
+	FusionResult fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold);
+
+	// History Management
+	void pushHistory(const uint64_t time_us);
+	void resetHistory();
 
 	// Backwards state prediciton
-	void syncState(float dt);
 	void setH(const matrix::Vector<float, State::size> &h_meas) { _meas_matrix_row_vect = h_meas; }
 	void setState(const matrix::Vector<float, State::size> &state) { _state = state; }
 	void setStateCovarianceDiag(const matrix::Vector<float, State::size> &var)
@@ -80,9 +97,6 @@ public:
 	const matrix::Vector<float, State::size> &getState() const { return _state; }
 	const matrix::SquareMatrix<float, State::size> &getStateCovariance() const { return _state_covariance; }
 	matrix::Vector<float, State::size> getStateCovarianceDiag() const { return _state_covariance.diag(); }
-
-	float computeInnovCov(float measUnc);
-	float computeInnov(float meas);
 
 	void setNisThreshold(float nis_threshold) { _nis_threshold = nis_threshold; }
 
@@ -97,6 +111,22 @@ public:
 	}
 
 private:
+	struct StateSample {
+		uint64_t time_us{0};
+		matrix::Vector<float, State::size> state{};
+		matrix::SquareMatrix<float, State::size> cov{};
+	};
+
+	void applyCorrection(matrix::Vector<float, State::size> &state,
+			     matrix::SquareMatrix<float, State::size> &cov,
+			     const matrix::Vector<float, State::size> &K,
+			     float innov, float S);
+
+	bool computeFusionGain(const matrix::Vector<float, State::size> &state,
+			       const matrix::SquareMatrix<float, State::size> &cov, const ScalarMeas &meas, float nis_threshold,
+			       FusionResult &out_res,
+			       matrix::Vector<float, State::size> &out_K);
+
 	matrix::SquareMatrix<float, State::size> getTransitionMatrix(float dt)
 	{
 		float data[State::size * State::size] = {
@@ -114,5 +144,13 @@ private:
 	float _innov{0.0f}; // residual of last measurement update
 	float _innov_cov{0.0f}; // innovation covariance of last measurement update
 	float _nis_threshold{0.0f}; // Normalized innovation squared test threshold
+
+	// History Buffer (fixed-size)
+	// 0.5s window @ 50Hz predict rate = 25 samples.
+	// Note that the 0.5s window is enforced with kOosmMaxTimeUs = 500_ms
+	static constexpr uint8_t kHistorySize = 25;
+	StateSample _history[kHistorySize] {};
+	uint8_t _history_head{0};
+	bool _history_valid{false};
 };
 } // namespace vision_target_estimator
