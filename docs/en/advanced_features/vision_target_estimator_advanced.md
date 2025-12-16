@@ -5,6 +5,9 @@ This guide expands on the [Vision Target Estimator module overview](../advanced_
 **Table of Contents**
 - [Vision Target Estimator Deep Dive](#vision-target-estimator-deep-dive)
   - [System architecture](#system-architecture)
+  - [Time alignment](#time-alignment)
+    - [OOSM implementation](#oosm-implementation)
+    - [OOSM approximation assumptions](#oosm-approximation-assumptions)
   - [Log analysis and expected plots](#log-analysis-and-expected-plots)
     - [Estimator outputs](#estimator-outputs)
     - [Main input feeds](#main-input-feeds)
@@ -27,6 +30,137 @@ The implementation is split across a scheduler and two independent estimators:
   - `Orientation/KF_orientation.cpp` implements the constant-turn-rate Kalman filter described in the [orientation-state model](../advanced_features/vision_target_estimator.md#orientation-state). Because the yaw filter only tracks heading and yaw rate, its state-transition matrix and innovation logic remain hand-written.
 - Shared utilities live in `common.h`.
 
+## Time alignment
+
+Vision and GNSS observations can arrive delayed due to transport and processing latency. The position filter therefore supports an **Out-of-Sequence Measurements (OOSM)** approximation which uses a **history-consistent projected correction** strategy.
+
+### OOSM implementation
+
+The filter maintains a fixed-size ring buffer of recent state snapshots $(t, x, P, a^{uav})$ spanning roughly the last half second of operation (25 samples ≈ 0.5 s at 50 Hz). When a delayed scalar measurement arrives with timestamp $t_{meas}$:
+
+1. **Retrieve**: fetch the closest $(x_{old}, P_{old}, a^{uav}_{old})$ before $t_{meas}$.
+
+$$
+t_{old} ≤ t_{meas}
+$$
+
+1. **Predict**: use the KF model to predict the state $(x_{meas}, P_{meas})$ using $\Delta t = t_{meas} - t_{old}$
+
+
+$$
+  x_{meas} = \Phi(\Delta t) x_{old} + G a^{uav}_{old} \\
+  P_{meas} = \Phi(\Delta t)P_{old}\Phi^T(\Delta t) + R
+$$
+
+
+3. **Innovate**: compute the innovation $y$ and innovation variance $S$:
+
+$$
+y = z - Hx_{meas} \\
+S = H P_{meas} H^T + R
+$$
+
+4. **Correct**: compute the optimal correction vector:
+
+$$
+  \delta x_{meas} = Ky  \\ \thickspace K = P_{meas} H^T S^{-1}
+$$
+5. **Project**: project this correction forward with the state transition matrix $\Phi(\Delta t)$:
+
+   $$
+   \delta x(t) = \Phi(t - t_{meas})\thinspace \delta x_{meas} = \Phi(t - t_{meas})\thinspace Ky \\
+
+   $$
+
+6. **Apply**: apply the projected correction to the current live state *and* to every stored history sample $i$ that occurred after $t_{meas}$ i.e. $t_{i} > t_{meas}$.
+
+   $$
+   K_{i} = \Phi(t_{i} - t_{meas})K \\
+   x_{i} = x_{i} + K_{i}y \\
+   P_{i} = P_{i} - K_{i}SK_{i}^T
+   $$
+
+Updating the history buffer keeps it self-consistent for subsequent delayed measurements and provides the practical benefits of a lag-smoother while remaining deterministic (fixed buffer, bounded runtime) and avoiding matrix inversion or backward retrodiction.
+
+Note that the state prediction is $x_{k+1} = \Phi x_k + G u_k$, however, when projecting the correction forward we don't explicitely use $Gu_{k}$ because we're projecting the correction and thus the $Gu_{k}$ term cancels out:
+
+$$
+(x'_{k+1} - x_{k+1}) = (\Phi x'_k + G u_k) - (\Phi x_k + G u_k) \\
+\Delta x_{k+1} = \Phi (x'_k - x_k) = \Phi \Delta x_k
+$$
+
+### OOSM approximation assumptions
+
+In the Algorithm I of *Zhang et al. Optimal Update with Out-of-Sequence Measurements*, the optimal gain for an Out-of-Sequence Measurement (OOSM) depends on $U_{k,d}$, which represents the cross-covariance between the current state $x_k$ and the past state error $\tilde{x}_{d|k}$
+
+$$
+
+x̂_{k|k,d} = x̂_{k|k} + K_d (z_d − H_d x̂_{d|k} ) \\
+K_d = U_{k,d} H_d' S_d^{−1}
+
+$$
+
+
+With the optimal recursion Eq. 5:
+
+$$
+U_{n+1,d} = (I − K_{n+1} H_{n+1} )F_{n+1,n} U_{n,d}
+$$
+
+
+$F_{n+1,n}$ propagates the correlation forward in time based on system dynamics.$(I - K_{n+1}H_{n+1})$ reduces the correlation based on the information gained from intermediate measurements processed between $t_d$ and $t_k$.
+
+**First Approximation:**
+To avoid the computational complexity and storage required to track every intermediate gain $K_n$ and measurement matrix $H_n$, we approximate the cross-covariance term. We assume that the reduction in correlation due to intermediate updates is negligible for the purpose of the OOSM projection. Mathematically, this assumes the update factor is close to the identity matrix:
+
+$$
+(I - K_{n}H_{n}) \approx I
+$$
+
+Under this assumption, the recursion in Eq. (5) simplifies to a pure dynamic propagation:
+
+$$U_{n+1,d} \approx F_{n+1,n} U_{n,d}$$
+
+By iterating this simplified recursion from the measurement time $d$ to the current time $k$, and recognizing that the initial cross-covariance $U_{d,d}$ corresponds to the prediction covariance $P_{d|d-1}$ (or $P_{d|k-l}$ in the paper's notation Eq. 6), we obtain:
+
+$$U_{k,d} \approx F_{k,d}​U_{d,d} \approx \Phi_{k,d} P_{d|d-1}$$
+
+Substituting this approximation back into the gain formula:
+$$K_d \approx (\Phi_{k,d} P_{d|d-1}) H_d^T S_d^{-1}$$
+
+Since the standard Kalman gain at time $d$ is $K = P_{d|d-1} H_d^T S_d^{-1}$, the OOSM gain simplifies to:
+
+$$K_d \approx \Phi_{k,d} K$$
+
+Effectively, this justifies the "Project" step in the implementation: we calculate the correction vector using the snapshot at $t_{meas}$ and propagate it forward using only the state transition matrix $\Phi(\Delta t)$ ($F_{k,d}$), ignoring the complex coupling effects of intermediate measurements described in the optimal recursion. This reduces storage complexity from $O(N)$ matrices to a simple circular buffer of snapshots while ensuring the correction remains consistent with the system's motion model.
+
+
+**Second Approximation:** No SmoothingContext:
+The paper’s globally optimal update uses the "retrodicted" (or smoothed) state estimate and covariance.
+- Optimal Innovation: The innovation in Eq. (3) is defined as
+  $$\tilde{z}_{d|k} = z_d - H_d \hat{x}_{d|k}$$
+  This $\hat{x}_{d|k}$ is the estimate of the state at time $d$ conditioned on all measurements up to time $k$.
+- Optimal Covariance: The innovation covariance $S_d$ in Eq. (4) uses $P_{d|k}$, which is the error covariance at time $d$ given all data up to $k$.
+
+The Approximation: The current implementation calculates the innovation using a "snapshot" retrieved from history ($x_{old}$) and predicted to the measurement time ($x_{meas}$). Since this snapshot was saved before the subsequent measurements ($z_{d+1} \dots z_k$) were processed, it only contains information available up to time $d$.
+
+- State Approximation: The predicted state $\hat{x}_{d|d^-}$ (or filtered state $\hat{x}_{d|d}$) is substituted for the smoothed state $\hat{x}_{d|k}$.
+  $$\hat{x}_{d|k} \approx \hat{x}_{d|d^-}$$
+- Covariance Approximation: Similarly, $S$ is calculated using $P_{meas}$ (which is $P_{d|d^-}$), substituting the prediction covariance for the smoothed covariance.
+$$P_{d|k} \approx P_{d|d^-}$$
+
+Justification and Impact: Calculating the exact $\hat{x}_{d|k}$ and $P_{d|k}$ would require the "retrodiction" or "backward smoothing" machinery described in the paper (Section 4.1), which necessitates storing all intermediate measurements and transition matrices. By using the stored snapshot, the implementation avoids this storage overhead. This approximation assumes that the measurements received between $t_{meas}$ and $t_{now}$ ($z_{d+1} \dots z_k$) would not have significantly altered the estimate of the state at $t_{meas}$ had they been available.
+
+**Second approximation:** Use a local predicted state at $t_{meas}$ instead of the retrodicted $x̂_{d∣k}$. Zhang’s innovation uses ​$x̂_{d∣k}$ (a smoothed estimate at time $d$ conditioned on measurements up to $k$). Computing $x̂_{d∣k}$ requires the backward/retrodiction machinery given in the paper. Instead, this implementation uses the nearest stored snapshot before $t_{meas}$ predicted to $t_{meas}$ so effectively $x̂_{d∣d^-}$ and similarly for $P_{d∣d^-}$. It follows that we are assuming that:
+
+$$
+x̂_{d∣k}​≈x̂_{d∣d^-} \\
+
+P_{d∣k}​≈P_{d∣d^-}
+
+$$
+
+so a "no smoothing" assumption
 ## Log analysis and expected plots
 
 This section provides an overview of the topics and fields that matter during log review: the published [estimator outputs](#estimator-outputs), the upstream [input feeds](#main-input-feeds). Then log analysis guidance is provided in [What to look for in logs](#what-to-look-for-in-logs) and the [troubleshooting checklist](#troubleshooting-checklist). The [plot examples](#plot-examples) at the end illustrate the expected convergence behaviour.
@@ -157,7 +291,7 @@ To integrate a new sensor:
 
 ### Regenerating the symbolic model
 
-The generated headers (`predictState.h`, `predictCov.h`, `computeInnovCov.h`, `syncState.h`, `state.h`) are copied into the build directory and should never be edited by hand. To regenerate them:
+The generated headers (`predictState.h`, `predictCov.h`, `computeInnovCov.h`, `getTransitionMatrix.h`, `state.h`) are copied into the build directory and should never be edited by hand. To regenerate them:
 
 1. Configure CMake with `-DVTEST_SYMFORCE_GEN=ON` (automatically enabled when `CONFIG_VTEST_MOVING=y`) and ensure SymForce is available in the Python environment.
 2. Reconfigure (`cmake --fresh ...`) so the custom command in `src/modules/vision_target_estimator/CMakeLists.txt` runs. The outputs land under `build/<target>/src/modules/vision_target_estimator/vtest_derivation/generated/`.

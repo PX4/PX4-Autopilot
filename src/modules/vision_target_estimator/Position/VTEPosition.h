@@ -171,7 +171,7 @@ private:
 	bool initEstimator(const matrix::Matrix <float, vtest::Axis::size, vtest::State::size>
 			   &state_init);
 	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned);
-	void predictionStep(const matrix::Vector3f &acc);
+	void predictionStep(const matrix::Vector3f &acc, float dt);
 
 	inline bool isMeasRecent(hrt_abstime ts) const
 	{
@@ -260,6 +260,7 @@ private:
 
 	perf_counter_t _vte_predict_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE prediction")};
 	perf_counter_t _vte_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE update")};
+	perf_counter_t _vte_fusion_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE fusion")};
 
 	TargetObs _obs_buffer[kObsTypeCount] {};
 	estimator_aid_source3d_s _target_innov{};
