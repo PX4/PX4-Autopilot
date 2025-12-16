@@ -58,6 +58,8 @@ namespace vision_target_estimator
 {
 
 constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
+constexpr uint64_t kPosUpdatePeriodUs{20_ms}; // 50 Hz
+constexpr uint64_t kYawUpdatePeriodUs{20_ms}; // 50 Hz
 
 VisionTargetEst::VisionTargetEst() :
 	ModuleParams(nullptr),
@@ -146,8 +148,8 @@ void VisionTargetEst::Run()
 			ScheduleClear();
 
 		} else {
-			const uint32_t estimator_update_period_us = static_cast<uint32_t>(math::min(_pos_update_period_us,
-					_yaw_update_period_us));
+			const uint32_t estimator_update_period_us = static_cast<uint32_t>(math::min(kPosUpdatePeriodUs,
+					kYawUpdatePeriodUs));
 			ScheduleOnInterval(estimator_update_period_us);
 		}
 	}
@@ -362,48 +364,6 @@ void VisionTargetEst::updateParams()
 		if (_vte_orientation_enabled) {
 			_vte_orientation.set_meas_updated_timeout(new_meas_updated_timeout_us);
 		}
-	}
-
-	const float new_pos_update_rate_hz = _param_vte_pos_rate.get();
-
-	if (PX4_ISFINITE(new_pos_update_rate_hz) && new_pos_update_rate_hz > 0.f) {
-
-		hrt_abstime new_pos_update_period_us = static_cast<hrt_abstime>(fmaxf(roundf(1e6f / new_pos_update_rate_hz), 1.f));
-
-		if ((fabsf(new_pos_update_rate_hz - _pos_update_rate_hz) > FLT_EPSILON)
-		    || (new_pos_update_period_us != _pos_update_period_us)) {
-			PX4_INFO("VTE position update rate: %.1f Hz (previous: %.1f Hz)",
-				 static_cast<double>(new_pos_update_rate_hz),
-				 static_cast<double>(_pos_update_rate_hz));
-		}
-
-		_pos_update_rate_hz = new_pos_update_rate_hz;
-		_pos_update_period_us = new_pos_update_period_us;
-
-	} else {
-		PX4_WARN("VTE_POS_RATE %.2f invalid, keeping previous value",
-			 static_cast<double>(new_pos_update_rate_hz));
-	}
-
-	const float new_yaw_update_rate_hz = _param_vte_yaw_rate.get();
-
-	if (PX4_ISFINITE(new_yaw_update_rate_hz) && new_yaw_update_rate_hz > 0.f) {
-
-		hrt_abstime new_yaw_update_period_us = static_cast<hrt_abstime>(fmaxf(roundf(1e6f / new_yaw_update_rate_hz), 1.f));
-
-		if ((fabsf(new_yaw_update_rate_hz - _yaw_update_rate_hz) > FLT_EPSILON)
-		    || (new_yaw_update_period_us != _yaw_update_period_us)) {
-			PX4_INFO("VTE yaw update rate: %.1f Hz (previous: %.1f Hz)",
-				 static_cast<double>(new_yaw_update_rate_hz),
-				 static_cast<double>(_yaw_update_rate_hz));
-		}
-
-		_yaw_update_rate_hz = new_yaw_update_rate_hz;
-		_yaw_update_period_us = new_yaw_update_period_us;
-
-	} else {
-		PX4_WARN("VTE_YAW_RATE %.2f invalid, keeping previous value",
-			 static_cast<double>(new_yaw_update_rate_hz));
 	}
 
 	if (_vte_position_enabled && _position_estimator_running
@@ -739,7 +699,7 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 {
 	/* If the acceleration has been averaged for too long, reset the accumulator */
 	static constexpr uint32_t kMinAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25Hz
-	const uint32_t acc_downsample_timeout_us = math::max(static_cast<uint32_t>(_pos_update_period_us * 2),
+	const uint32_t acc_downsample_timeout_us = math::max(static_cast<uint32_t>(kPosUpdatePeriodUs * 2),
 			kMinAccDownsampleTimeoutUs);
 
 	if (hasTimedOut(_last_acc_reset, acc_downsample_timeout_us)) {
@@ -750,7 +710,7 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 	_vehicle_acc_ned_sum += vehicle_acc_ned;
 	_acc_sample_count++;
 
-	if (!updateWhenIntervalElapsed(_last_update_pos, _pos_update_period_us)) {
+	if (!updateWhenIntervalElapsed(_last_update_pos, kPosUpdatePeriodUs)) {
 		return;
 	}
 
@@ -780,7 +740,7 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 
 void VisionTargetEst::updateYawEst(const LocalPose &local_pose, const bool local_pose_updated)
 {
-	if (!updateWhenIntervalElapsed(_last_update_yaw, _yaw_update_period_us)) {
+	if (!updateWhenIntervalElapsed(_last_update_yaw, kYawUpdatePeriodUs)) {
 		return;
 	}
 

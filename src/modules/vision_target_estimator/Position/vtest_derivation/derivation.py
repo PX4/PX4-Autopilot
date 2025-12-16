@@ -137,9 +137,9 @@ def predictState(dt: sf.Scalar, state: VState, acc: sf.Scalar) -> VState:
     Phi, G = get_Phi_and_G(dt)
     return Phi * state + G * acc
 
-def syncState(dt: sf.Scalar, state: VState, acc: sf.Scalar) -> VState:
-    Phi, G = get_Phi_and_G(dt)
-    return Phi.inv() * (state - G * acc)
+def getTransitionMatrix(dt: sf.Scalar, state: VState, acc: sf.Scalar) -> MState:
+    Phi, _ = get_Phi_and_G(dt)
+    return Phi
 
 def predictCov(dt: sf.Scalar, input_var: sf.Scalar, bias_var: sf.Scalar, acc_var: sf.Scalar, covariance: MState) -> MState:
     Phi, G = get_Phi_and_G(dt)
@@ -157,11 +157,27 @@ def predictCov(dt: sf.Scalar, input_var: sf.Scalar, bias_var: sf.Scalar, acc_var
 def computeInnovCov(meas_unc: sf.Scalar, covariance: MState, meas_matrix: VMeas) -> sf.Scalar:
     return (meas_matrix * covariance * meas_matrix.T)[0, 0] + meas_unc
 
+# OOSM correction
+def applyCorrection(state: VState, cov: MState, K: VState, innov: sf.Scalar, S: sf.Scalar) -> (VState, MState):
+
+    # Update State
+    state_new = state + K * innov
+
+    # Update Covariance
+    cov_update = K * S * K.T
+    cov_new = cov - cov_update
+
+    # Force Symmetry
+    cov_new = 0.5 * (cov_new + cov_new.T)
+
+    return state_new, cov_new
+
 # Generate functions
 print(f"Derive VTEST equations for {'moving' if moving else 'static'} targets...")
 generate_px4_function(predictState, output_names=["predict_state"])
-generate_px4_function(syncState, output_names=["sync_state"])
+generate_px4_function(getTransitionMatrix, output_names=["transition_matrix"])
 generate_px4_function(predictCov, output_names=["cov_updated"])
 generate_px4_function(computeInnovCov, output_names=["innov_cov_updated"])
+generate_px4_function(applyCorrection, output_names=["state_new", "cov_new"])
 
 generate_px4_state(State, tangent_idx)

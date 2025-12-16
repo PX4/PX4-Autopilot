@@ -50,7 +50,7 @@ VTEST is implemented as two tightly coupled, but independent, estimators managed
 - **Position filter (`VTEPosition`)** - three decoupled 1D Kalman filters (one per NED axis) that estimate relative position, vehicle velocity, and GNSS bias. When the firmware is built with `CONFIG_VTEST_MOVING`, target velocity and acceleration states are also estimated (experimental).
 - **Orientation filter (`VTEOrientation`)** - a planar yaw filter that estimates the target's heading and yaw rate.
 
-The work item re-schedules both filters at the rates commanded by [`VTE_POS_RATE`](../advanced_config/parameter_reference.md#VTE_POS_RATE) and [`VTE_YAW_RATE`](../advanced_config/parameter_reference.md#VTE_YAW_RATE) (default 50 Hz). Each cycle it provides vehicle acceleration (downsampled and rotated to NED), attitude, local position, local velocity, and range-sensor updates, while also enforcing timeouts, parameter reloads, and task activation.
+Both the position and the yaw filter run at a 50Hz rate commanded by `kPosUpdatePeriodUs = kYawUpdatePeriodUs = 20ms`; the work item adapts its scheduling to maintain these targets (and polls at a lower rate when no task is active). Each cycle it provides vehicle acceleration (downsampled and rotated to NED), attitude, local position, local velocity, and range-sensor updates, while also enforcing timeouts, parameter reloads, and task activation.
 
 > [!WARNING]
 > The moving-target mode `CONFIG_VTEST_MOVING=y` is experimental and has not yet been flight tested.
@@ -114,38 +114,7 @@ Measurement residuals are gated with the Normalized Innovation Squared (NIS) tes
 
 ### Time alignment
 
-Before fusing any measurement the filters rewind the state to the sample timestamp $t_m$ using the inverse dynamics.
-
-For the static-target position model, letting $\Delta t = t_k - t_{\text{m}}$,
-
-$$
-\begin{aligned}
-r(t_{\text{m}}) &= r(t_k) + \Delta t\thinspace v^{uav}(t_k) - \tfrac{1}{2}\thinspace\Delta t^2\thinspace a^{uav}, \\
-v^{uav}(t_{\text{m}}) &= v^{uav}(t_k) - \Delta t\thinspace a^{uav}, \\
-b(t_{\text{m}}) &= b(t_k).
-\end{aligned}
-$$
-
-When moving-target states are enabled,
-
-$$
-\begin{aligned}
-r(t_{\text{m}}) &= r(t_k) + \Delta t\thinspace (v^{uav}(t_k) - v^{t}(t_k)) + \tfrac{1}{2}\thinspace\Delta t^2\thinspace (a^{t}(t_k) - a^{uav}), \\
-v^{uav}(t_{\text{m}}) &= v^{uav}(t_k) - \Delta t\thinspace a^{uav}, \\
-v^{t}(t_{\text{m}}) &= v^{t}(t_k) - \Delta t\thinspace a^{t}, \\
-a^{t}(t_{\text{m}}) &= a^{t}(t_k), \\
-b(t_{\text{m}}) &= b(t_k).
-\end{aligned}
-$$
-
-For the orientation filter,
-
-$$
-\begin{aligned}
-\psi(t_{\text{m}}) &= \text{wrap}\negthinspace\left(\psi(t_k) - \Delta t\thinspace\dot{\psi}(t_k)\right), \\
-\dot{\psi}(t_{\text{m}}) &= \dot{\psi}(t_k).
-\end{aligned}
-$$
+Vision and GNSS observations can arrive delayed due to transport and processing latency. The position filter therefore supports an **Out-of-Sequence Measurements (OOSM)** approximation which uses a **history-consistent projected correction** strategy. More details can be found in [Vision Target Estimator deep dive](../advanced_features/vision_target_estimator_advanced.md)
 
 ## Estimator Lifecycle
 
@@ -186,7 +155,6 @@ Two time horizons guard incoming data: [`VTE_M_REC_TOUT`](../advanced_config/par
 
 - [`VTE_EN`](../advanced_config/parameter_reference.md#VTE_EN) - global module enable (reboot required).
 - [`VTE_POS_EN`](../advanced_config/parameter_reference.md#VTE_POS_EN) / [`VTE_YAW_EN`](../advanced_config/parameter_reference.md#VTE_YAW_EN) - enable the position and orientation filters respectively (reboot required).
-- [`VTE_POS_RATE`](../advanced_config/parameter_reference.md#VTE_POS_RATE), [`VTE_YAW_RATE`](../advanced_config/parameter_reference.md#VTE_YAW_RATE) - desired update rates for the position and yaw filters; the work item adapts its scheduling to maintain these targets (and polls at a lower rate when no task is active).
 - [`VTE_BTOUT`](../advanced_config/parameter_reference.md#VTE_BTOUT), [`VTE_TGT_TOUT`](../advanced_config/parameter_reference.md#VTE_TGT_TOUT) - timeouts for estimator shutdown and published validity flags.
 - [`VTE_M_REC_TOUT`](../advanced_config/parameter_reference.md#VTE_M_REC_TOUT), [`VTE_M_UPD_TOUT`](../advanced_config/parameter_reference.md#VTE_M_UPD_TOUT) - maximum ages for measurements to be fused or retained.
 
@@ -301,7 +269,7 @@ Run the SITL world `gazebo-classic_iris_irlock` to simulate precision landing us
 - When both `CONFIG_VTEST_MOVING` and SymForce are enabled, the moving-target Jacobians are generated on the fly so that a 5-state model is available.
 - Developers can refresh the committed reference outputs with `-DVTEST_UPDATE_COMMITTED_DERIVATION=ON`.
 
-The generated files (`predictState.h`, `predictCov.h`, `computeInnovCov.h`, `syncState.h`, `state.h`) are included through the build directory and must not be edited manually. See the [Vision Target Estimator deep dive](../advanced_features/vision_target_estimator_advanced.md#regenerating-the-symbolic-model) for regeneration prerequisites and troubleshooting tips.
+The generated files (`predictState.h`, `predictCov.h`, `computeInnovCov.h`, `getTransitionMatrix.h`, `state.h`) are included through the build directory and must not be edited manually. See the [Vision Target Estimator deep dive](../advanced_features/vision_target_estimator_advanced.md#regenerating-the-symbolic-model) for regeneration prerequisites and troubleshooting tips.
 
 ## Monitoring
 

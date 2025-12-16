@@ -60,7 +60,8 @@ set(VTEST_PREGENERATED_STATIC_FILES
 	${VTEST_PREGENERATED_STATIC_DIR}/predictCov.h
 	${VTEST_PREGENERATED_STATIC_DIR}/computeInnovCov.h
 	${VTEST_PREGENERATED_STATIC_DIR}/predictState.h
-	${VTEST_PREGENERATED_STATIC_DIR}/syncState.h
+	${VTEST_PREGENERATED_STATIC_DIR}/getTransitionMatrix.h
+	${VTEST_PREGENERATED_STATIC_DIR}/applyCorrection.h
 )
 
 set(VTEST_PREGENERATED_MOVING_FILES
@@ -68,7 +69,8 @@ set(VTEST_PREGENERATED_MOVING_FILES
 	${VTEST_PREGENERATED_MOVING_DIR}/predictCov.h
 	${VTEST_PREGENERATED_MOVING_DIR}/computeInnovCov.h
 	${VTEST_PREGENERATED_MOVING_DIR}/predictState.h
-	${VTEST_PREGENERATED_MOVING_DIR}/syncState.h
+	${VTEST_PREGENERATED_MOVING_DIR}/getTransitionMatrix.h
+	${VTEST_PREGENERATED_MOVING_DIR}/applyCorrection.h
 )
 
 set(VTEST_DERIVATION_DST_DIR ${CMAKE_CURRENT_BINARY_DIR}/vtest_derivation)
@@ -79,7 +81,8 @@ set(VTEST_GENERATED_FILE_LIST_DST
 	${VTEST_DERIVATION_DST_DIR}/generated/predictCov.h
 	${VTEST_DERIVATION_DST_DIR}/generated/computeInnovCov.h
 	${VTEST_DERIVATION_DST_DIR}/generated/predictState.h
-	${VTEST_DERIVATION_DST_DIR}/generated/syncState.h
+	${VTEST_DERIVATION_DST_DIR}/generated/getTransitionMatrix.h
+	${VTEST_DERIVATION_DST_DIR}/generated/applyCorrection.h
 )
 
 # Use one file as the dependency anchor. The custom_command OUTPUT will ensure all are generated.

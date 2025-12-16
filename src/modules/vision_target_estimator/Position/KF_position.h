@@ -32,36 +32,59 @@
  ****************************************************************************/
 
 /**
- * @file KF_position_moving.h
- * @brief Filter to estimate the pose of moving targets. State: [r, vd, b, at, vt]
+ * @file KF_position.h
+ * @brief Per-axis Kalman Filter for VTEST position states.
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
+#pragma once
+
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
-#include <matrix/Matrix.hpp>
-#include <matrix/Vector.hpp>
 #include <vtest_derivation/generated/state.h>
 
-#pragma once
+#include <cstdint>
+#include <cstring>
 
 namespace vision_target_estimator
 {
+
+struct StateSample {
+	uint64_t time_us{0};
+	matrix::Vector<float, vtest::State::size> state{};
+	matrix::SquareMatrix<float, vtest::State::size> cov{};
+	float acc{0.f};
+};
+
 class KF_position
 {
 public:
 	KF_position() = default;
 	~KF_position() = default;
 
+	// Core lifecycle
 	void predictState(float dt, float acc);
 	void predictCov(float dt);
 
-	bool update();
+	// Primary Fusion Interface (history-consistent OOSM)
+	// Projected correction OOSM approximation:
+	// - Most accurate with bounded delays and when fusions are processed in timestamp order (oldest -> newest).
+	// - Does not replay intermediate measurement updates (unlike EKF2's delayed fusion horizon).
+	// Returns true if fused successfully.
+	// Populates out_innov and out_innov_var for logging.
+	bool fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us,
+			      float meas, float meas_unc,
+			      const matrix::Vector<float, vtest::State::size> &H,
+			      float nis_threshold,
+			      float &out_innov, float &out_innov_var);
 
-	void syncState(float dt, float acc);
-	void setH(const matrix::Vector<float, vtest::State::size> &h_meas) { _meas_matrix_row_vect = h_meas; }
+	// History Management
+	void pushHistory(const uint64_t time_us);
+	void resetHistory();
+
+	// Setters / Getters
 	void setState(const matrix::Vector<float, vtest::State::size> &state) { _state = state; }
 	void setStateCovarianceDiag(const matrix::Vector<float, vtest::State::size> &var)
 	{
@@ -73,35 +96,39 @@ public:
 	const matrix::SquareMatrix<float, vtest::State::size> &getStateCovariance() const { return _state_covariance; }
 	matrix::Vector<float, vtest::State::size> getStateCovarianceDiag() const { return _state_covariance.diag(); }
 
-	float computeInnovCov(float measUnc);
-	float computeInnov(float meas);
-
-	void setNisThreshold(float nis_threshold) { _nis_threshold = nis_threshold; }
-
-	float getTestRatio() const
-	{
-		if (fabsf(_innov_cov) < 1e-6f || _nis_threshold <= 0.f) {
-			return -1.f;
-		}
-
-		const float nis = math::sq(_innov) / _innov_cov;
-		return nis / _nis_threshold;
-	}
-
 	void setInputVar(float var) { _input_var = var; }
 	void setBiasVar(float var) { _bias_var = var; }
 	void setTargetAccVar(float var) { _acc_var = var; }
 
 private:
-	matrix::Vector<float, vtest::State::size> _state;
-	matrix::Vector<float, vtest::State::size> _sync_state;
-	matrix::Vector<float, vtest::State::size> _meas_matrix_row_vect;
-	matrix::SquareMatrix<float, vtest::State::size> _state_covariance;
-	float _bias_var{0.f}; // target/UAV GPS bias variance
-	float _acc_var{0.f}; // Target acceleration variance
+	// Stabilized update (scalar measurement), floors diagonal.
+	void applyCorrection(matrix::Vector<float, vtest::State::size> &state,
+			     matrix::SquareMatrix<float, vtest::State::size> &cov,
+			     const matrix::Vector<float, vtest::State::size> &K,
+			     float innov, float S);
+
+	bool computeFusionGain(const matrix::Vector<float, vtest::State::size> &state,
+			       const matrix::SquareMatrix<float, vtest::State::size> &cov,
+			       float meas, float meas_unc,
+			       const matrix::Vector<float, vtest::State::size> &H,
+			       float nis_threshold,
+			       float &out_innov, float &out_innov_var,
+			       matrix::Vector<float, vtest::State::size> &out_K);
+
+	matrix::Vector<float, vtest::State::size> _state{};
+	matrix::SquareMatrix<float, vtest::State::size> _state_covariance{};
+
+	float _bias_var{0.f};  // target/UAV GPS bias variance
+	float _acc_var{0.f};   // target acceleration variance
 	float _input_var{0.f}; // UAV acceleration variance
-	float _innov{0.0f}; // residual of last measurement update
-	float _innov_cov{0.0f}; // innovation covariance of last measurement update
-	float _nis_threshold{0.0f}; // Normalized innovation squared test threshold
+	float _last_acc{0.f}; // last UAV acceleration input
+
+	// History Buffer (fixed-size)
+	// 0.5s window @ 50Hz predict rate = 25 samples.
+	// Note that the 0.5s window is enforced with kOosmMaxTimeUs = 500_ms
+	static constexpr uint8_t kHistorySize = 25;
+	StateSample _history[kHistorySize] {};
+	uint8_t _history_head{0};
+	bool _history_valid{false};
 };
 } // namespace vision_target_estimator
