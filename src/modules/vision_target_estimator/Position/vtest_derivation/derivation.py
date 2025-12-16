@@ -137,7 +137,7 @@ def predictState(dt: sf.Scalar, state: VState, acc: sf.Scalar) -> VState:
     Phi, G = get_Phi_and_G(dt)
     return Phi * state + G * acc
 
-def getTransitionMatrix(dt: sf.Scalar, state: VState, acc: sf.Scalar) -> MState:
+def getTransitionMatrix(dt: sf.Scalar) -> MState:
     Phi, _ = get_Phi_and_G(dt)
     return Phi
 
