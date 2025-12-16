@@ -776,7 +776,7 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 		static constexpr float kDefaultVisionUncDistanceM = 10.f;
 		// Uncertainty proportional to the vertical distance
 		const float range = _range_sensor.valid ? _range_sensor.dist_bottom : kDefaultVisionUncDistanceM;
-		const float meas_unc = fmaxf(math::sq(sqrtf(_min_ev_pos_var) * range), _min_ev_pos_var);
+		const float meas_unc = fmaxf(sq(sqrtf(_min_ev_pos_var) * range), _min_ev_pos_var);
 		cov_rotated = diag(Vector3f(meas_unc, meas_unc, meas_unc));
 
 	} else {
@@ -839,7 +839,7 @@ bool VTEPosition::processObsGNSSVelUav(TargetObs &obs) const
 	obs.meas_h_xyz(vtest::Axis::y, vtest::State::vel_uav) = 1;
 	obs.meas_h_xyz(vtest::Axis::z, vtest::State::vel_uav) = 1;
 
-	const float unc = fmaxf(math::sq(_uav_gps_vel.uncertainty), _min_gps_vel_var);
+	const float unc = fmaxf(sq(_uav_gps_vel.uncertainty), _min_gps_vel_var);
 	obs.meas_unc_xyz(vtest::Axis::x) = unc;
 	obs.meas_unc_xyz(vtest::Axis::y) = unc;
 	obs.meas_unc_xyz(vtest::Axis::z) = unc;
@@ -865,7 +865,7 @@ bool VTEPosition::ProcessObsGNSSVelTarget(const target_gnss_s &target_gnss, Targ
 	obs.meas_xyz(vtest::Axis::y) = target_gnss.vel_e_m_s;
 	obs.meas_xyz(vtest::Axis::z) = target_gnss.vel_d_m_s;
 
-	const float unc = fmaxf(math::sq(target_gnss.s_acc_m_s), _min_gps_vel_var);
+	const float unc = fmaxf(sq(target_gnss.s_acc_m_s), _min_gps_vel_var);
 
 	obs.meas_unc_xyz(vtest::Axis::x) = unc;
 	obs.meas_unc_xyz(vtest::Axis::y) = unc;
@@ -911,8 +911,8 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 		gps_relative_pos += _gps_pos_offset_ned.xyz;
 	}
 
-	const float gps_unc_horizontal = fmaxf(math::sq(_uav_gps_position.eph), _min_gps_pos_var);
-	const float gps_unc_vertical = fmaxf(math::sq(_uav_gps_position.epv), _min_gps_pos_var);
+	const float gps_unc_horizontal = fmaxf(sq(_uav_gps_position.eph), _min_gps_pos_var);
+	const float gps_unc_vertical = fmaxf(sq(_uav_gps_position.epv), _min_gps_pos_var);
 
 	// GPS already in NED, no rotation required.
 	// Obs: [pos_rel + bias]
@@ -954,9 +954,7 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 /*Target GNSS observation: [rx + bx, ry + by, rz + bz]*/
 bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs)
 {
-	// TODO: unsafe
-	const int64_t time_diff_us = static_cast<int64_t>(target_gnss.timestamp)
-				     - static_cast<int64_t>(_uav_gps_position.timestamp);
+	const int64_t time_diff_us = signedTimeDiffUs(target_gnss.timestamp, _uav_gps_position.timestamp);
 	const float dt_sync_us = fabsf(static_cast<float>(time_diff_us));
 
 	if (dt_sync_us > _meas_recent_timeout_us) {
@@ -1013,12 +1011,12 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 
 	// Var(aX - bY) = a^2 Var(X) + b^2Var(Y) - 2ab Cov(X,Y)
 	const float propagation_unc = uav_position_interpolated
-				      ? math::sq(_uav_gps_vel.uncertainty * dt_sync_s_abs) : 0.f;
-	const float gps_unc_horizontal = fmaxf(math::sq(_uav_gps_position.eph), _min_gps_pos_var)
-					 + fmaxf(math::sq(target_gnss.eph), _min_gps_pos_var)
+				      ? sq(_uav_gps_vel.uncertainty * dt_sync_s_abs) : 0.f;
+	const float gps_unc_horizontal = fmaxf(sq(_uav_gps_position.eph), _min_gps_pos_var)
+					 + fmaxf(sq(target_gnss.eph), _min_gps_pos_var)
 					 + propagation_unc;
-	const float gps_unc_vertical = fmaxf(math::sq(_uav_gps_position.epv), _min_gps_pos_var)
-				       + fmaxf(math::sq(target_gnss.epv), _min_gps_pos_var)
+	const float gps_unc_vertical = fmaxf(sq(_uav_gps_position.epv), _min_gps_pos_var)
+				       + fmaxf(sq(target_gnss.epv), _min_gps_pos_var)
 				       + propagation_unc;
 
 	// GPS already in NED, no rotation required.
@@ -1060,55 +1058,53 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 {
 	perf_begin(_vte_update_perf);
 
-	_target_innov = {};
-	bool all_axis_fused = true; // TODO: clean up once a new uorb message is created to replace EstimatorAidSource1d.msg
+	vte_aid_source3d_s target_innov = {};
+	target_innov.timestamp_sample = target_obs.timestamp;
+	target_innov.timestamp = hrt_absolute_time();
+	target_innov.time_last_predict = _last_predict;
+	target_innov.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(_last_predict, target_obs.timestamp)) * 1e-3f;
 
-	_target_innov.time_last_fuse = _last_predict;
-	_target_innov.timestamp_sample = target_obs.timestamp;
-	_target_innov.timestamp = hrt_absolute_time();
+	bool any_axis_fused = false;
+	uint8_t history_steps = 0;
 
 	for (int j = 0; j < vtest::Axis::size; j++) {
 
 		if (!target_obs.updated(j)) {
-			all_axis_fused = false;
+			target_innov.fusion_status[j] = static_cast<uint8_t>(FusionStatus::IDLE);
 			continue; // nothing to do for this axis
 		}
 
-		KF_position &est = _target_est_pos[j];
+		const ScalarMeas meas_input{target_obs.timestamp, target_obs.meas_xyz(j),
+					    target_obs.meas_unc_xyz(j), target_obs.meas_h_xyz.row(j)};
 
-		float innov = 0.f;
-		float innov_var = 0.f;
+		target_innov.observation[j] = meas_input.val;
+		target_innov.observation_variance[j] = meas_input.unc;
 
 		perf_begin(_vte_fusion_perf);
-		const bool fused = est.fuseScalarAtTime(target_obs.timestamp, _last_predict, target_obs.meas_xyz(j),
-							target_obs.meas_unc_xyz(j), target_obs.meas_h_xyz.row(j),
-							_nis_threshold, innov, innov_var);
+		const FusionResult result = _target_est_pos[j].fuseScalarAtTime(meas_input, _last_predict, _nis_threshold);
 		perf_end(_vte_fusion_perf);
 
-		_target_innov.innovation[j] = innov;
-		_target_innov.innovation_variance[j] = innov_var;
+		target_innov.innovation[j]          = result.innov;
+		target_innov.innovation_variance[j] = result.innov_var;
+		target_innov.test_ratio[j]          = result.test_ratio;
+		target_innov.fusion_status[j]       = static_cast<uint8_t>(result.status);
+		any_axis_fused |= (result.status == FusionStatus::FUSED_CURRENT ||
+				   result.status == FusionStatus::FUSED_OOSM);
 
-		if (!fused) {
-			all_axis_fused = false;
+		if (result.status == FusionStatus::FUSED_OOSM) {
+			history_steps = math::max(result.history_steps, history_steps);
 		}
-
-		_target_innov.observation[j] = target_obs.meas_xyz(j);
-		_target_innov.observation_variance[j] = target_obs.meas_unc_xyz(j);
-		_target_innov.test_ratio[j] = (fabsf(innov_var) < 1e-6f || _nis_threshold <= 0.f)
-					      ? -1.f
-					      : (math::sq(innov) / innov_var) / _nis_threshold;
 	}
 
-	_target_innov.fused = all_axis_fused;
-	_target_innov.innovation_rejected = !all_axis_fused;
+	target_innov.history_steps = history_steps;
 
 	perf_end(_vte_update_perf);
-	publishInnov(_target_innov, target_obs.type);
+	publishInnov(target_innov, target_obs.type);
 
-	return all_axis_fused;
+	return any_axis_fused;
 }
 
-void VTEPosition::publishInnov(const estimator_aid_source3d_s &target_innov, const ObsType type)
+void VTEPosition::publishInnov(const vte_aid_source3d_s &target_innov, const ObsType type)
 {
 	// Publish innovations
 	switch (type) {

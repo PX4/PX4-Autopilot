@@ -95,33 +95,29 @@ void KF_position::resetHistory()
 	}
 }
 
-bool KF_position::fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us, float meas, float meas_unc,
-				   const matrix::Vector<float, vtest::State::size> &H, float nis_threshold,
-				   float &out_innov, float &out_innov_var)
+FusionResult KF_position::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold)
 {
-	out_innov = 0.f;
-	out_innov_var = 0.f;
+	FusionResult res{};
 
 	static constexpr uint64_t kOosmMinTimeUs = 20_ms;
-	const uint64_t time_diff = (now_us >= meas_time_us) ? (now_us - meas_time_us) : (meas_time_us - now_us);
+	static constexpr uint64_t kOosmMaxTimeUs = 500_ms;
+	const uint64_t time_diff = (now_us >= meas.time_us) ? (now_us - meas.time_us) : (meas.time_us - now_us);
 
 	// No need for OOSM
 	if (time_diff < kOosmMinTimeUs) {
 		matrix::Vector<float, vtest::State::size> K;
 
-		// Use helper to compute K and Innov based on current state
-		if (computeFusionGain(_state, _state_covariance, meas, meas_unc, H, nis_threshold,
-				      out_innov, out_innov_var, K)) {
-
-			applyCorrection(_state, _state_covariance, K, out_innov, out_innov_var);
-			return true;
+		if (computeFusionGain(_state, _state_covariance, meas, nis_threshold, res, K)) {
+			applyCorrection(_state, _state_covariance, K, res.innov, res.innov_var);
+			res.status = FusionStatus::FUSED_CURRENT;
 		}
 
-		return false;
+		return res;
 	}
 
 	if (!_history_valid && _history_head == 0) {
-		return false; // Empty history
+		res.status = FusionStatus::REJECT_EMPTY;
+		return res;
 	}
 
 	// Newest sample is always just before the head
@@ -135,23 +131,24 @@ bool KF_position::fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us, float
 	// Reset history if:
 	// - newest history sample is too old (stale)
 	// - the caller's "now" is older than the newest history sample (time discontinuity).
-	static constexpr uint64_t kOosmMaxTimeUs = 500_ms;
 	const uint64_t time_since_newest = (now_us >= newest_time_us) ? (now_us - newest_time_us) : 0;
 
 	if (time_since_newest > kOosmMaxTimeUs || now_us < newest_time_us) {
-		// TODO: this needs to be logged somehow e.g. reset counter
 		resetHistory();
-		return false;
+		res.status = FusionStatus::REJECT_STALE;
+		return res;
 	}
 
-	// Reject fusion if:
-	// - measurement is too old
-	// - no OOSM possible because the measurement time is older than the oldest available history sample.
-	// - the measurement time is in the future beyond a small tolerance.
-	if (time_diff > kOosmMaxTimeUs ||
-	    meas_time_us < oldest_time_us ||
-	    meas_time_us > now_us + kOosmMinTimeUs) {
-		return false;
+	// Reject fusion if the measurement is too old.
+	if (time_diff > kOosmMaxTimeUs || meas.time_us < oldest_time_us) {
+		res.status = FusionStatus::REJECT_TOO_OLD;
+		return res;
+	}
+
+	// Reject fusion if the measurement time is in the future beyond a small tolerance.
+	if (meas.time_us > now_us + kOosmMinTimeUs) {
+		res.status = FusionStatus::REJECT_TOO_NEW;
+		return res;
 	}
 
 	// Most measurements are recent. Search backwards from newest.
@@ -159,7 +156,7 @@ bool KF_position::fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us, float
 	int curr_idx = newest_idx;
 
 	for (int i = 0; i < kHistorySize; i++) {
-		if (_history[curr_idx].time_us <= meas_time_us) {
+		if (_history[curr_idx].time_us <= meas.time_us) {
 			floor_idx = curr_idx;
 			break;
 		}
@@ -171,7 +168,8 @@ bool KF_position::fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us, float
 	}
 
 	if (floor_idx == -1) {
-		return false;
+		res.status = FusionStatus::REJECT_TOO_OLD;
+		return res;
 	}
 
 	// Measurement Update at t_meas (predict from floor sample to the exact measurement timestamp).
@@ -190,7 +188,7 @@ bool KF_position::fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us, float
 	}
 
 	// Predict from floor forward to the exact measurement time.
-	const float dt_meas = (meas_time_us - t_floor_us) * 1e-6f;
+	const float dt_meas = (meas.time_us - t_floor_us) * 1e-6f;
 
 	matrix::Vector<float, vtest::State::size> x_meas_pred = sample_floor.state;
 	matrix::SquareMatrix<float, vtest::State::size> P_meas_pred = sample_floor.cov;
@@ -202,9 +200,8 @@ bool KF_position::fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us, float
 
 	matrix::Vector<float, vtest::State::size> K_meas;
 
-	if (!computeFusionGain(x_meas_pred, P_meas_pred, meas, meas_unc, H, nis_threshold,
-			       out_innov, out_innov_var, K_meas)) {
-		return false;
+	if (!computeFusionGain(x_meas_pred, P_meas_pred, meas, nis_threshold, res, K_meas)) {
+		return res; // res contains the failure reason (NIS or COV)
 	}
 
 	// Project correction forward (OOSM approximation).
@@ -221,20 +218,21 @@ bool KF_position::fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us, float
 	matrix::SquareMatrix<float, vtest::State::size> cov_new;
 
 	// If the fusion time lands exactly on a history sample, update it directly.
-	if (meas_time_us == t_floor_us) {
+	if (meas.time_us == t_floor_us) {
 		StateSample &sample_at_meas = _history[floor_idx];
-		applyCorrection(sample_at_meas.state, sample_at_meas.cov, K_meas, out_innov, out_innov_var);
+		applyCorrection(sample_at_meas.state, sample_at_meas.cov, K_meas, res.innov, res.innov_var);
 	}
 
 	// Update History Buffer (samples strictly after t_meas)
 	matrix::Vector<float, vtest::State::size> prev_state_linearization = x_meas_pred;
-	uint64_t prev_time_us = meas_time_us;
+	uint64_t prev_time_us = meas.time_us;
 	int idx = (floor_idx + 1) % kHistorySize;
+	uint8_t history_steps = 0;
 
 	while (idx != _history_head) {
 		StateSample &sample = _history[idx];
 
-		if (sample.time_us <= meas_time_us) {
+		if (sample.time_us <= meas.time_us) {
 			idx = (idx + 1) % kHistorySize;
 			continue;
 		}
@@ -252,7 +250,8 @@ bool KF_position::fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us, float
 		const matrix::Vector<float, vtest::State::size> K_proj = Phi_cumulative * K_meas;
 		const matrix::Vector<float, vtest::State::size> curr_state_linearization = sample.state;
 
-		applyCorrection(sample.state, sample.cov, K_proj, out_innov, out_innov_var);
+		applyCorrection(sample.state, sample.cov, K_proj, res.innov, res.innov_var);
+		history_steps++;
 
 		prev_state_linearization = curr_state_linearization;
 		prev_time_us = curr_time_us;
@@ -268,41 +267,48 @@ bool KF_position::fuseScalarAtTime(uint64_t meas_time_us, uint64_t now_us, float
 	}
 
 	const matrix::Vector<float, vtest::State::size> K_proj_now = Phi_cumulative * K_meas;
-	applyCorrection(_state, _state_covariance, K_proj_now, out_innov, out_innov_var);
+	applyCorrection(_state, _state_covariance, K_proj_now, res.innov, res.innov_var);
 
-	return true;
+	res.history_steps = history_steps;
+	res.status = FusionStatus::FUSED_OOSM;
+	return res;
 }
 
 bool KF_position::computeFusionGain(const matrix::Vector<float, vtest::State::size> &state,
-				    const matrix::SquareMatrix<float, vtest::State::size> &cov,
-				    float meas, float meas_unc,
-				    const matrix::Vector<float, vtest::State::size> &H,
-				    float nis_threshold,
-				    float &out_innov, float &out_innov_var,
+				    const matrix::SquareMatrix<float, vtest::State::size> &cov, const ScalarMeas &meas, float nis_threshold,
+				    FusionResult &out_res,
 				    matrix::Vector<float, vtest::State::size> &out_K)
 {
-	const float innov = meas - (H.transpose() * state)(0, 0);
+	const float innov = meas.val - (meas.H.transpose() * state)(0, 0);
 
 	float innov_cov;
-	sym::Computeinnovcov(meas_unc, cov, H.transpose(), &innov_cov);
+	sym::Computeinnovcov(meas.unc, cov, meas.H.transpose(), &innov_cov);
+
+	out_res.innov = innov;
+	out_res.innov_var = innov_cov;
 
 	if (!PX4_ISFINITE(innov_cov) || innov_cov < 1e-6f) {
+		out_res.status = FusionStatus::REJECT_COV;
 		return false;
 	}
 
-	out_innov = innov;
-	out_innov_var = innov_cov;
+	// Calculate and store NIS
+	const float beta = sq(innov) / innov_cov;
 
-	// NIS Check
-	const float beta = (innov * innov) / innov_cov;
+	// Store normalized ratio directly (avoid division by zero check if threshold is sane)
+	if (nis_threshold > 0.0f) {
+		out_res.test_ratio = beta / nis_threshold;
+
+	} else {
+		out_res.test_ratio = -1.0f;
+	}
 
 	if ((nis_threshold > 0.f) && (beta > nis_threshold)) {
+		out_res.status = FusionStatus::REJECT_NIS;
 		return false;
 	}
 
-	// Compute Kalman Gain (K)
-	out_K = cov * H / innov_cov;
-
+	out_K = cov * meas.H / innov_cov;
 	return true;
 }
 
