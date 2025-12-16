@@ -177,34 +177,6 @@ PARAM_DEFINE_FLOAT(VTE_M_REC_TOUT, 1.0f);
 PARAM_DEFINE_FLOAT(VTE_M_UPD_TOUT, 0.1f);
 
 /**
- * Position estimator update rate
- *
- * Target loop rate for the position estimator when sufficient measurements are available.
- *
- * @unit Hz
- * @min 1
- * @max 200
- * @decimal 1
- *
- * @group Vision Target Estimator
- */
-PARAM_DEFINE_FLOAT(VTE_POS_RATE, 50.0f);
-
-/**
- * Yaw estimator update rate
- *
- * Target loop rate for the yaw estimator when sufficient measurements are available.
- *
- * @unit Hz
- * @min 1
- * @max 200
- * @decimal 1
- *
- * @group Vision Target Estimator
- */
-PARAM_DEFINE_FLOAT(VTE_YAW_RATE, 50.0f);
-
-/**
  * Drone acceleration uncertainty
  *
  * Variance of drone's acceleration used for target position prediction.

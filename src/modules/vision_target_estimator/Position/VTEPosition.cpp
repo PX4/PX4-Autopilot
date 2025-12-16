@@ -126,6 +126,10 @@ void VTEPosition::resetFilter()
 	_last_relative_meas_fused_time = 0;
 	_bias_set = false;
 	_mission_land_position.valid = false;
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		_target_est_pos[axis].resetHistory();
+	}
 }
 
 void VTEPosition::update(const Vector3f &acc_ned)
@@ -138,11 +142,14 @@ void VTEPosition::update(const Vector3f &acc_ned)
 
 	// Predict the target state using a constant relative-acceleration model.
 	if (_estimator_initialized) {
+		const hrt_abstime now_us = hrt_absolute_time();
+		const float dt = (now_us - _last_predict) * USEC2SEC_F;
+
 		perf_begin(_vte_predict_perf);
-		predictionStep(acc_ned);
+		predictionStep(acc_ned, dt);
 		perf_end(_vte_predict_perf);
 
-		_last_predict = hrt_absolute_time();
+		_last_predict = now_us;
 	}
 
 	// Update with the newest observations and publish any resulting innovations.
@@ -151,6 +158,11 @@ void VTEPosition::update(const Vector3f &acc_ned)
 	}
 
 	if (_estimator_initialized) {
+		// Store the post-fusion posterior snapshot at the current timestamp for OOSM fusion.
+		for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+			_target_est_pos[axis].pushHistory(_last_predict);
+		}
+
 		publishTarget();
 	}
 }
@@ -213,14 +225,10 @@ bool VTEPosition::initEstimator(const Matrix<float, vtest::Axis::size, vtest::St
 	return true;
 }
 
-void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned)
+void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned, const float dt)
 {
-	// Time since the last prediction
-	const float dt = (hrt_absolute_time() - _last_predict) * USEC2SEC_F;
-
 	//Decoupled dynamics, we neglect the off diag elements.
 	for (int i = 0; i < vtest::Axis::size; i++) {
-
 #if defined(CONFIG_VTEST_MOVING)
 		_target_est_pos[i].setTargetAccVar(_target_acc_unc);
 #endif // CONFIG_VTEST_MOVING
@@ -519,6 +527,11 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 	_estimator_initialized = true;
 	_last_update = hrt_absolute_time();
 	_last_predict = _last_update;
+
+	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
+		_target_est_pos[axis].resetHistory();
+	}
+
 	return true;
 }
 
@@ -572,6 +585,9 @@ void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 		state_var(vtest::State::bias) = bias_var;
 		state_var(vtest::State::pos_rel) = pos_var;
 		filter.setStateCovarianceDiag(state_var);
+
+		// Bias initialization is a state reset: restart OOSM history to avoid mixing pre/post-reset states.
+		filter.resetHistory();
 	}
 
 	PX4_INFO("Rel pos init %.2f %.2f %.2f", (double)initial_position(vtest::Axis::x),
@@ -586,40 +602,90 @@ void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 bool VTEPosition::fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
 		const TargetObs observations[kObsTypeCount])
 {
-	auto fuse_relative_obs = [&](ObsType type) {
-		if (!fuseMeas(vehicle_acc_ned, observations[obsIndex(type)])) {
-			return false;
+	struct FusionJob {
+		hrt_abstime timestamp{};
+		ObsType type{ObsType::Type_count};
+		const TargetObs *obs{nullptr};
+	};
+
+	FusionJob jobs[kObsTypeCount] {};
+	size_t job_count = 0;
+
+	auto add_job = [&](ObsType type) {
+		const TargetObs &obs = observations[obsIndex(type)];
+
+		if ((job_count >= kObsTypeCount) || (obs.timestamp == 0)) {
+			return;
 		}
 
-		_last_relative_meas_fused_time = hrt_absolute_time();
-		return true;
+		jobs[job_count++] = FusionJob{obs.timestamp, type, &obs};
 	};
 
 	bool position_fused = false;
 
 	if (fusion_mask.flags.fuse_target_gps_pos) {
-		position_fused |= fuseMeas(vehicle_acc_ned, observations[obsIndex(ObsType::Target_gps_pos)]);
+		add_job(ObsType::Target_gps_pos);
 	}
 
 	if (fusion_mask.flags.fuse_mission_pos) {
-		position_fused |= fuseMeas(vehicle_acc_ned, observations[obsIndex(ObsType::Mission_gps_pos)]);
+		add_job(ObsType::Mission_gps_pos);
 	}
 
 	if (fusion_mask.flags.fuse_vision) {
-		position_fused |= fuse_relative_obs(ObsType::Fiducial_marker);
+		add_job(ObsType::Fiducial_marker);
 	}
 
 	if (fusion_mask.flags.fuse_uav_gps_vel) {
-		fuseMeas(vehicle_acc_ned, observations[obsIndex(ObsType::Uav_gps_vel)]);
+		add_job(ObsType::Uav_gps_vel);
 	}
 
 #if defined(CONFIG_VTEST_MOVING)
 
 	if (fusion_mask.flags.fuse_target_gps_vel) {
-		fuseMeas(vehicle_acc_ned, observations[obsIndex(ObsType::Target_gps_vel)]);
+		add_job(ObsType::Target_gps_vel);
 	}
 
 #endif // CONFIG_VTEST_MOVING
+
+	// Fuse strictly in timestamp order (oldest -> newest) to keep the OOSM approximation consistent.
+	for (size_t i = 1; i < job_count; ++i) {
+		FusionJob key = jobs[i];
+		size_t j = i;
+
+		while ((j > 0) && (jobs[j - 1].timestamp > key.timestamp)) {
+			jobs[j] = jobs[j - 1];
+			--j;
+		}
+
+		jobs[j] = key;
+	}
+
+	for (size_t i = 0; i < job_count; ++i) {
+		const FusionJob &job = jobs[i];
+
+		const bool fused = (job.obs != nullptr) && fuseMeas(vehicle_acc_ned, *job.obs);
+
+		switch (job.type) {
+		case ObsType::Target_gps_pos:
+		case ObsType::Mission_gps_pos:
+			position_fused |= fused;
+			break;
+
+		case ObsType::Fiducial_marker:
+			position_fused |= fused;
+
+			if (fused) {
+				_last_relative_meas_fused_time = hrt_absolute_time();
+			}
+
+			break;
+
+		case ObsType::Uav_gps_vel:
+		case ObsType::Target_gps_vel:
+		case ObsType::Type_count:
+			break;
+		}
+	}
 
 	return position_fused;
 }
@@ -837,6 +903,7 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 /*Target GNSS observation: [rx + bx, ry + by, rz + bz]*/
 bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs)
 {
+	// TODO: unsafe
 	const int64_t time_diff_us = static_cast<int64_t>(target_gnss.timestamp)
 				     - static_cast<int64_t>(_uav_gps_position.timestamp);
 	const float dt_sync_us = fabsf(static_cast<float>(time_diff_us));
@@ -945,68 +1012,40 @@ bool VTEPosition::fuseMeas(const Vector3f &vehicle_acc_ned, const TargetObs &tar
 	_target_innov = {};
 	bool all_axis_fused = true;
 
-	_target_innov.time_last_fuse = _last_predict; // log _last_predict to be able to recompute dt_sync_us from the log
+	_target_innov.time_last_fuse = _last_predict;
 	_target_innov.timestamp_sample = target_obs.timestamp;
 	_target_innov.timestamp = hrt_absolute_time();
-
-	// Measurement's time delay (difference between state and measurement time on validity)
-	const int64_t dt_sync_us = signedTimeDiffUs(_last_predict, target_obs.timestamp);
-	const bool measurement_too_old = dt_sync_us > static_cast<int64_t>(_meas_recent_timeout_us);
-	// allow for a 5ms jitter because _last_predict is set to now before the measurements are updated
-	const bool measurement_in_the_future = dt_sync_us < 0 && -dt_sync_us > static_cast<int64_t>(5_ms);
-
-	// Reject old measurements or measurements in the "future" due to bad time sync
-	if (measurement_too_old || measurement_in_the_future) {
-		// in the innovation toptic of the log, (time_last_fuse - timestamp_sample) provides dt_sync_us
-		_target_innov.fused = false;
-		perf_end(_vte_update_perf);
-		publishInnov(_target_innov, target_obs.type);
-		return false;
-	}
-
-	if (!target_obs.updated(vtest::Axis::x) && !target_obs.updated(vtest::Axis::y) && !target_obs.updated(vtest::Axis::z)) {
-		all_axis_fused = false;
-		PX4_DEBUG("Obs i = %d: non-valid", target_obs.type);
-		_target_innov.fused = false;
-		perf_end(_vte_update_perf);
-		publishInnov(_target_innov, target_obs.type);
-		return false;
-	}
-
-	const float dt_sync_s = static_cast<float>(dt_sync_us) * USEC2SEC_F;
 
 	for (int j = 0; j < vtest::Axis::size; j++) {
 
 		if (!target_obs.updated(j)) {
-			continue; // nothing to do for this iteration
+			all_axis_fused = false;
+			continue; // nothing to do for this axis
 		}
 
 		KF_position &est = _target_est_pos[j];
 
-		const float meas_j     = target_obs.meas_xyz(j);
-		const float meas_unc_j = target_obs.meas_unc_xyz(j);
+		float innov = 0.f;
+		float innov_var = 0.f;
 
-		// Move state back to the measurement time of validity.
-		est.syncState(dt_sync_s, vehicle_acc_ned(j));
+		perf_begin(_vte_fusion_perf);
+		const bool fused = est.fuseScalarAtTime(target_obs.timestamp, _last_predict, target_obs.meas_xyz(j),
+							target_obs.meas_unc_xyz(j), target_obs.meas_h_xyz.row(j),
+							_nis_threshold, innov, innov_var);
+		perf_end(_vte_fusion_perf);
 
-		//Get the corresponding row of the H matrix.
-		const Vector<float, vtest::State::size> meas_h_row = target_obs.meas_h_xyz.row(j);
-		est.setH(meas_h_row);
+		_target_innov.innovation[j] = innov;
+		_target_innov.innovation_variance[j] = innov_var;
 
-		_target_innov.innovation_variance[j] = est.computeInnovCov(meas_unc_j);
-		_target_innov.innovation[j] = est.computeInnov(meas_j);
-
-		// Set the Normalized Innovation Squared (NIS) check threshold. Used to reject outlier measurements
-		est.setNisThreshold(_nis_threshold);
-
-		if (!est.update()) {
+		if (!fused) {
 			all_axis_fused = false;
-			PX4_DEBUG("Obs i = %d : not fused in direction: %d", static_cast<int>(target_obs.type), j);
 		}
 
-		_target_innov.observation[j] = meas_j;
-		_target_innov.observation_variance[j] = meas_unc_j;
-		_target_innov.test_ratio[j] = est.getTestRatio();
+		_target_innov.observation[j] = target_obs.meas_xyz(j);
+		_target_innov.observation_variance[j] = target_obs.meas_unc_xyz(j);
+		_target_innov.test_ratio[j] = (fabsf(innov_var) < 1e-6f || _nis_threshold <= 0.f)
+					      ? -1.f
+					      : (math::sq(innov) / innov_var) / _nis_threshold;
 	}
 
 	_target_innov.fused = all_axis_fused;
