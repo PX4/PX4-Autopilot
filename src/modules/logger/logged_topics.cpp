@@ -63,7 +63,6 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
-	// add_optional_topic("esc_status", 250);
 	add_topic("esc_status");
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
@@ -209,7 +208,6 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
 	add_topic("vehicle_optical_flow", 500);
 	add_topic("aux_global_position", 500);
-	//add_optional_topic("vehicle_optical_flow_vel", 100);
 	add_optional_topic("pps_capture");
 
 	// additional control allocation logging
