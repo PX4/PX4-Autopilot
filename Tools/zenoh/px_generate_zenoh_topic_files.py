@@ -154,7 +154,6 @@ def generate_topics_list_file_from_files(files, outputdir, template_filename, te
 
     topics = []
     datatypes_with_topics = dict()
-
     for msg_filename in files:
         datatype = re.sub(r'(?<!^)(?=[A-Z])', '_', os.path.basename(msg_filename)).lower().replace(".msg","")
         datatypes_with_topics[datatype] = get_topics(msg_filename)

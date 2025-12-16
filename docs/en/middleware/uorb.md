@@ -77,14 +77,12 @@ See the existing [`msg`](../msg_docs/index.md) files for other examples of how m
 ### Multi-Topic Messages
 
 Sometimes it is useful to use the same message definition for multiple topics.
-This can be specified at the end of the message using a line prefixed with `# TOPICS`, followed by space-separated topic ids.
+This can be specified at the end of the message using a line prefixed with `# TOPICS `, followed by space-separated topic ids.
 For example, the [ActuatorOutputs](../msg_docs/ActuatorOutputs.md) message definition is used to define the topic ids as shown:
 
 ```text
 # TOPICS actuator_outputs actuator_outputs_sim actuator_outputs_debug
 ```
-
-If a topic should only be generated when a particular configuration option is enabled (for example a module that is only present on some boards), conditionally include the corresponding `.msg` file in the build system (for example in `msg/CMakeLists.txt` under an `if(CONFIG_...)` guard).
 
 ### Nested Messages
 
