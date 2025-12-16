@@ -139,15 +139,15 @@ FusionResult KF_position::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_
 		return res;
 	}
 
-	// Reject fusion if the measurement is too old.
-	if (time_diff > kOosmMaxTimeUs || meas.time_us < oldest_time_us) {
-		res.status = FusionStatus::REJECT_TOO_OLD;
-		return res;
-	}
-
 	// Reject fusion if the measurement time is in the future beyond a small tolerance.
 	if (meas.time_us > now_us + kOosmMinTimeUs) {
 		res.status = FusionStatus::REJECT_TOO_NEW;
+		return res;
+	}
+
+	// Reject fusion if the measurement is too old.
+	if (time_diff > kOosmMaxTimeUs || meas.time_us < oldest_time_us) {
+		res.status = FusionStatus::REJECT_TOO_OLD;
 		return res;
 	}
 
@@ -212,10 +212,6 @@ FusionResult KF_position::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_
 	matrix::SquareMatrix<float, vtest::State::size> Phi_step; // from t_prev to t_current
 	matrix::SquareMatrix<float, vtest::State::size> Phi_cumulative; // from t_meas till t_prev
 	Phi_cumulative.setIdentity();
-
-	// Temp variables for SymForce output
-	matrix::Vector<float, vtest::State::size> state_new;
-	matrix::SquareMatrix<float, vtest::State::size> cov_new;
 
 	// If the fusion time lands exactly on a history sample, update it directly.
 	if (meas.time_us == t_floor_us) {

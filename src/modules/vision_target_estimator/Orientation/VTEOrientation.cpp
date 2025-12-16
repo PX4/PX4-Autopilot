@@ -66,12 +66,14 @@ VTEOrientation::~VTEOrientation() = default;
 bool VTEOrientation::init()
 {
 	_target_est_yaw = KF_orientation{};
+	_target_est_yaw.resetHistory();
 	return true;
 }
 
 void VTEOrientation::resetFilter()
 {
 	_estimator_initialized = false;
+	_target_est_yaw.resetHistory();
 }
 
 void VTEOrientation::update()
@@ -94,6 +96,8 @@ void VTEOrientation::update()
 	}
 
 	if (_estimator_initialized) {
+		// Store the post-fusion posterior snapshot at the current timestamp for OOSM fusion.
+		_target_est_yaw.pushHistory(_last_predict);
 		publishTarget();
 	}
 }
@@ -114,6 +118,7 @@ bool VTEOrientation::initEstimator(const ObsValidMaskU &fusion_mask,
 
 	_target_est_yaw.setState(state_init);
 	_target_est_yaw.setStateCovarianceDiag(state_var_init);
+	_target_est_yaw.resetHistory();
 
 	PX4_INFO("Orientation filter init yaw: %.2f [rad] yaw_rate: %.2f [rad/s]", (double)state_init(State::yaw),
 		 (double)state_init(State::yaw_rate));
@@ -235,48 +240,31 @@ bool VTEOrientation::fuseMeas(const TargetObs &target_obs)
 	target_innov.timestamp_sample = target_obs.timestamp;
 	target_innov.timestamp = hrt_absolute_time();
 	target_innov.time_last_predict = _last_predict;
+	target_innov.time_since_meas_ms = static_cast<float>(signedTimeDiffUs(_last_predict, target_obs.timestamp)) * 1e-3f;
 
-	// TODO: implement OOSM similar to the position filter. Use FusionResult as output
-
-	const int64_t dt_sync_us = signedTimeDiffUs(_last_predict, target_obs.timestamp);
-	const bool measurement_too_old = dt_sync_us > static_cast<int64_t>(_meas_recent_timeout_us);
-	// allow for a 5ms jitter because _last_predict is set to now before the measurements are updated
-	const bool measurement_in_the_future = dt_sync_us < 0 && -dt_sync_us > static_cast<int64_t>(5_ms);
-
-	if (measurement_too_old || measurement_in_the_future || !target_obs.updated) {
-
-		if (!target_obs.updated) {
-			target_innov.fusion_status = static_cast<uint8_t>(FusionStatus::IDLE);
-
-		} else if (measurement_too_old) {
-			target_innov.fusion_status = static_cast<uint8_t>(FusionStatus::REJECT_TOO_OLD);
-
-		} else {
-			target_innov.fusion_status = static_cast<uint8_t>(FusionStatus::REJECT_TOO_NEW);
-		}
-
+	if (!target_obs.updated) {
+		target_innov.fusion_status = static_cast<uint8_t>(FusionStatus::IDLE);
 		_vte_aid_ev_yaw_pub.publish(target_innov);
 		return false;
 	}
 
-	const float dt_sync_s = static_cast<float>(dt_sync_us) * USEC2SEC_F;
+	const KF_orientation::ScalarMeas meas_input{target_obs.timestamp, target_obs.meas, target_obs.meas_unc,
+			target_obs.meas_h_theta};
 
-	_target_est_yaw.syncState(dt_sync_s);
-	_target_est_yaw.setH(target_obs.meas_h_theta);
-	target_innov.innovation_variance = _target_est_yaw.computeInnovCov(target_obs.meas_unc);
-	target_innov.innovation = _target_est_yaw.computeInnov(target_obs.meas);
+	target_innov.observation = meas_input.val;
+	target_innov.observation_variance = meas_input.unc;
 
-	_target_est_yaw.setNisThreshold(_nis_threshold);
-	const bool meas_fused = _target_est_yaw.update();
+	const FusionResult result = _target_est_yaw.fuseScalarAtTime(meas_input, _last_predict, _nis_threshold);
 
-	target_innov.fusion_status = static_cast<uint8_t>(meas_fused ? FusionStatus::FUSED_CURRENT : FusionStatus::REJECT_NIS);
-	target_innov.observation = target_obs.meas;
-	target_innov.observation_variance = target_obs.meas_unc;
-	target_innov.test_ratio = _target_est_yaw.getTestRatio();
+	target_innov.innovation          = result.innov;
+	target_innov.innovation_variance = result.innov_var;
+	target_innov.test_ratio          = result.test_ratio;
+	target_innov.fusion_status       = static_cast<uint8_t>(result.status);
+	target_innov.history_steps       = result.history_steps;
 
 	_vte_aid_ev_yaw_pub.publish(target_innov);
 
-	return meas_fused;
+	return (result.status == FusionStatus::FUSED_CURRENT || result.status == FusionStatus::FUSED_OOSM);
 }
 
 void VTEOrientation::publishTarget()
