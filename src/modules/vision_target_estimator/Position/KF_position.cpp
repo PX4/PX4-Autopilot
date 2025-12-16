@@ -220,7 +220,6 @@ FusionResult KF_position::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_
 	}
 
 	// Update History Buffer (samples strictly after t_meas)
-	matrix::Vector<float, vtest::State::size> prev_state_linearization = x_meas_pred;
 	uint64_t prev_time_us = meas.time_us;
 	int idx = (floor_idx + 1) % kHistorySize;
 	uint8_t history_steps = 0;
@@ -237,28 +236,25 @@ FusionResult KF_position::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_
 		const float dt = (curr_time_us - prev_time_us) * 1e-6f;
 
 		// Keep linearization consistent: use the state at the interval start.
-		sym::Gettransitionmatrix(dt, prev_state_linearization, sample.acc, &Phi_step);
+		sym::Gettransitionmatrix(dt, &Phi_step);
 		Phi_cumulative = Phi_step * Phi_cumulative;
 
 		// Project the correction vector.
 		// Note: We only use Phi (and not G*acc) because we are projecting the error state (delta).
 		// The input (acc) is common to both the reference and corrected trajectories and cancels out.
 		const matrix::Vector<float, vtest::State::size> K_proj = Phi_cumulative * K_meas;
-		const matrix::Vector<float, vtest::State::size> curr_state_linearization = sample.state;
 
 		applyCorrection(sample.state, sample.cov, K_proj, res.innov, res.innov_var);
 		history_steps++;
 
-		prev_state_linearization = curr_state_linearization;
 		prev_time_us = curr_time_us;
-
 		idx = (idx + 1) % kHistorySize;
 	}
 
 	// Update Live State (Consistent with History Update)
 	if (now_us > prev_time_us) {
 		const float dt_now = (now_us - prev_time_us) * 1e-6f;
-		sym::Gettransitionmatrix(dt_now, prev_state_linearization, _last_acc, &Phi_step);
+		sym::Gettransitionmatrix(dt_now, &Phi_step);
 		Phi_cumulative = Phi_step * Phi_cumulative;
 	}
 
