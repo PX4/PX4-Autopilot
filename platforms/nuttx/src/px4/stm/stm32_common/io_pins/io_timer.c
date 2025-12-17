@@ -889,6 +889,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 
 	case IOTimerChanMode_Capture:
 		setbits = CCMR_C1_CAPTURE_INIT;
+		gpio = timer_io_channels[channel].gpio_in | GPIO_PULLUP;
 		break;
 
 	case IOTimerChanMode_CaptureDMA:
