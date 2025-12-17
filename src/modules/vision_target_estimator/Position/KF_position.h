@@ -48,17 +48,11 @@
 #include <cstdint>
 #include <cstring>
 
+#include "../VTEOosm.h"
 #include "../common.h"
 
 namespace vision_target_estimator
 {
-
-struct StateSample {
-	uint64_t time_us{0};
-	matrix::Vector<float, vtest::State::size> state{};
-	matrix::SquareMatrix<float, vtest::State::size> cov{};
-	float acc{0.f};
-};
 
 struct ScalarMeas {
 	uint64_t time_us;
@@ -70,12 +64,12 @@ struct ScalarMeas {
 class KF_position
 {
 public:
+	friend class OOSMManager<KF_position, vtest::State::size, float>;
+
 	KF_position() = default;
 	~KF_position() = default;
 
-	// Core lifecycle
-	void predictState(float dt, float acc);
-	void predictCov(float dt);
+	void predict(float dt, float acc_uav);
 
 	// Primary Fusion Interface (history-consistent OOSM)
 	// Projected correction OOSM approximation:
@@ -97,7 +91,6 @@ public:
 	};
 
 	const matrix::Vector<float, vtest::State::size> &getState() const { return _state; }
-	const matrix::SquareMatrix<float, vtest::State::size> &getStateCovariance() const { return _state_covariance; }
 	matrix::Vector<float, vtest::State::size> getStateCovarianceDiag() const { return _state_covariance.diag(); }
 
 	void setInputVar(float var) { _input_var = var; }
@@ -105,17 +98,22 @@ public:
 	void setTargetAccVar(float var) { _acc_var = var; }
 
 private:
-	// Stabilized update (scalar measurement), floors diagonal.
+	void getTransitionMatrix(float dt, matrix::SquareMatrix<float, vtest::State::size> &phi) const;
+
+	void predictState(float dt, float acc,
+			  const matrix::Vector<float, vtest::State::size> &x_in,
+			  const matrix::SquareMatrix<float, vtest::State::size> &P_in,
+			  matrix::Vector<float, vtest::State::size> &x_out,
+			  matrix::SquareMatrix<float, vtest::State::size> &P_out);
+
+	void computeInnovation(const matrix::Vector<float, vtest::State::size> &state,
+			       const matrix::SquareMatrix<float, vtest::State::size> &cov, const ScalarMeas &meas,
+			       float &innov, float &innov_var) const;
+
 	void applyCorrection(matrix::Vector<float, vtest::State::size> &state,
 			     matrix::SquareMatrix<float, vtest::State::size> &cov,
 			     const matrix::Vector<float, vtest::State::size> &K,
 			     float innov, float S);
-
-	bool computeFusionGain(const matrix::Vector<float, vtest::State::size> &state,
-			       const matrix::SquareMatrix<float, vtest::State::size> &cov, const ScalarMeas &meas, float nis_threshold,
-			       FusionResult &out_res,
-			       matrix::Vector<float, vtest::State::size> &out_K);
-
 
 	matrix::Vector<float, vtest::State::size> _state{};
 	matrix::SquareMatrix<float, vtest::State::size> _state_covariance{};
@@ -123,14 +121,12 @@ private:
 	float _bias_var{0.f};  // target/UAV GNSS bias variance
 	float _acc_var{0.f};   // target acceleration variance
 	float _input_var{0.f}; // UAV acceleration variance
-	float _last_acc{0.f}; // last UAV acceleration input
 
-	// History Buffer (fixed-size)
+	float _last_acc{0.f}; // last UAV acceleration input (also used as OOSM fallback input)
+
+	// OOSM history buffer:
 	// 0.5s window @ 50Hz predict rate = 25 samples.
-	// Note that the 0.5s window is enforced with kOosmMaxTimeUs = 500_ms
-	static constexpr uint8_t kHistorySize = 25;
-	StateSample _history[kHistorySize] {};
-	uint8_t _history_head{0};
-	bool _history_valid{false};
+	// Note that the 0.5s window is enforced with kOosmMaxTimeUs = 500_ms.
+	OOSMManager<KF_position, vtest::State::size, float> _oosm;
 };
 } // namespace vision_target_estimator

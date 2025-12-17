@@ -256,8 +256,7 @@ void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned, const float dt
 		_target_est_pos[i].setBiasVar(_bias_unc);
 		_target_est_pos[i].setInputVar(_uav_acc_unc);
 
-		_target_est_pos[i].predictState(dt, vehicle_acc_ned(i));
-		_target_est_pos[i].predictCov(dt);
+		_target_est_pos[i].predict(dt, vehicle_acc_ned(i));
 	}
 }
 

@@ -136,8 +136,7 @@ void VTEOrientation::predictionStep()
 	// Time since the last prediction
 	const float dt = (hrt_absolute_time() - _last_predict) * USEC2SEC_F;
 
-	_target_est_yaw.predictState(dt);
-	_target_est_yaw.predictCov(dt);
+	_target_est_yaw.predict(dt);
 }
 
 bool VTEOrientation::performUpdateStep()

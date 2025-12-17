@@ -41,267 +41,61 @@
 
 #include "KF_position.h"
 
-#include <px4_platform_common/defines.h>
-
 #include <vtest_derivation/generated/predictState.h>
 #include <vtest_derivation/generated/predictCov.h>
 #include <vtest_derivation/generated/computeInnovCov.h>
 #include <vtest_derivation/generated/applyCorrection.h>
 #include <vtest_derivation/generated/getTransitionMatrix.h>
-#include <drivers/drv_hrt.h>
-
-using namespace time_literals;
 
 namespace vision_target_estimator
 {
 
-void KF_position::predictState(float dt, float acc_uav)
+void KF_position::predict(float dt, float acc_uav)
 {
 	_last_acc = acc_uav;
-	matrix::Vector<float, vtest::State::size> state_updated;
-	sym::Predictstate(dt, _state, acc_uav, &state_updated);
-	_state = state_updated;
+	predictState(dt, acc_uav, _state, _state_covariance, _state, _state_covariance);
 }
 
-void KF_position::predictCov(float dt)
+void KF_position::getTransitionMatrix(float dt, matrix::SquareMatrix<float, vtest::State::size> &phi) const
 {
+	sym::Gettransitionmatrix(dt, &phi);
+}
+
+void KF_position::predictState(float dt, float acc,
+			       const matrix::Vector<float, vtest::State::size> &x_in,
+			       const matrix::SquareMatrix<float, vtest::State::size> &P_in,
+			       matrix::Vector<float, vtest::State::size> &x_out,
+			       matrix::SquareMatrix<float, vtest::State::size> &P_out)
+{
+	sym::Predictstate(dt, x_in, acc, &x_out);
+
 	matrix::Matrix<float, vtest::State::size, vtest::State::size> cov_updated;
-	sym::Predictcov(dt, _input_var, _bias_var, _acc_var, _state_covariance, &cov_updated);
-	_state_covariance = cov_updated;
+	sym::Predictcov(dt, _input_var, _bias_var, _acc_var, P_in, &cov_updated);
+	P_out = cov_updated;
+}
+
+void KF_position::computeInnovation(const matrix::Vector<float, vtest::State::size> &state,
+				    const matrix::SquareMatrix<float, vtest::State::size> &cov,
+				    const ScalarMeas &meas,
+				    float &innov, float &innov_var) const
+{
+	innov = meas.val - (meas.H.transpose() * state)(0, 0);
+	sym::Computeinnovcov(meas.unc, cov, meas.H.transpose(), &innov_var);
 }
 
 void KF_position::pushHistory(const uint64_t time_us)
 {
-	_history[_history_head].time_us = time_us;
-	_history[_history_head].state = _state;
-	_history[_history_head].cov = _state_covariance;
-	_history[_history_head].acc = _last_acc;
-
-	_history_head = (_history_head + 1) % kHistorySize;
-
-	if (_history_head == 0) {
-		_history_valid = true;
-	}
+	_oosm.push(time_us, _state, _state_covariance, _last_acc);
 }
 
 void KF_position::resetHistory()
 {
-	_history_head = 0;
-	_history_valid = false;
-
-	for (auto &sample : _history) {
-		sample.time_us = 0;
-		sample.acc = 0.f;
-	}
+	_oosm.reset();
 }
 
 FusionResult KF_position::fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold)
 {
-	FusionResult res{};
-
-	static constexpr uint64_t kOosmMinTimeUs = 20_ms;
-	static constexpr uint64_t kOosmMaxTimeUs = 500_ms;
-	const uint64_t time_diff = (now_us >= meas.time_us) ? (now_us - meas.time_us) : (meas.time_us - now_us);
-
-	// No need for OOSM
-	if (time_diff < kOosmMinTimeUs) {
-		matrix::Vector<float, vtest::State::size> K;
-
-		if (computeFusionGain(_state, _state_covariance, meas, nis_threshold, res, K)) {
-			applyCorrection(_state, _state_covariance, K, res.innov, res.innov_var);
-			res.status = FusionStatus::FUSED_CURRENT;
-		}
-
-		return res;
-	}
-
-	if (!_history_valid && _history_head == 0) {
-		res.status = FusionStatus::REJECT_EMPTY;
-		return res;
-	}
-
-	// Newest sample is always just before the head
-	const int newest_idx = (_history_head == 0) ? (kHistorySize - 1) : (_history_head - 1);
-	// Oldest sample is at head (if full) or at 0 (if filling)
-	const int oldest_idx = _history_valid ? _history_head : 0;
-
-	const uint64_t newest_time_us = _history[newest_idx].time_us;
-	const uint64_t oldest_time_us = _history[oldest_idx].time_us;
-
-	// Reset history if:
-	// - newest history sample is too old (stale)
-	// - the caller's "now" is older than the newest history sample (time discontinuity).
-	const uint64_t time_since_newest = (now_us >= newest_time_us) ? (now_us - newest_time_us) : 0;
-
-	if (time_since_newest > kOosmMaxTimeUs || now_us < newest_time_us) {
-		resetHistory();
-		res.status = FusionStatus::REJECT_STALE;
-		return res;
-	}
-
-	// Reject fusion if the measurement time is in the future beyond a small tolerance.
-	if (meas.time_us > now_us + kOosmMinTimeUs) {
-		res.status = FusionStatus::REJECT_TOO_NEW;
-		return res;
-	}
-
-	// Reject fusion if the measurement is too old.
-	if (time_diff > kOosmMaxTimeUs || meas.time_us < oldest_time_us) {
-		res.status = FusionStatus::REJECT_TOO_OLD;
-		return res;
-	}
-
-	// Most measurements are recent. Search backwards from newest.
-	int floor_idx = -1;
-	int curr_idx = newest_idx;
-
-	for (int i = 0; i < kHistorySize; i++) {
-		if (_history[curr_idx].time_us <= meas.time_us) {
-			floor_idx = curr_idx;
-			break;
-		}
-
-		curr_idx = (curr_idx == 0) ? (kHistorySize - 1) : (curr_idx - 1);
-
-		// If we wrapped all the way to newest (should be caught by oldest_time check above)
-		if (curr_idx == newest_idx) { break; }
-	}
-
-	if (floor_idx == -1) {
-		res.status = FusionStatus::REJECT_TOO_OLD;
-		return res;
-	}
-
-	// Measurement Update at t_meas (predict from floor sample to the exact measurement timestamp).
-	const StateSample &sample_floor = _history[floor_idx];
-	const uint64_t t_floor_us = sample_floor.time_us;
-
-	// Determine the input used to predict within the interval containing the measurement.
-	// We store the acceleration used to predict *to* each history sample, so the interval
-	// (t_k -> t_{k+1}) uses the input stored in sample k+1. If the floor sample is the newest
-	// sample, fall back to the last input used for the live prediction step.
-	float acc_interval = _last_acc;
-
-	if (t_floor_us != newest_time_us) {
-		const int next_idx = (floor_idx + 1) % kHistorySize;
-		acc_interval = _history[next_idx].acc;
-	}
-
-	// Predict from floor forward to the exact measurement time.
-	const float dt_meas = (meas.time_us - t_floor_us) * 1e-6f;
-
-	matrix::Vector<float, vtest::State::size> x_meas_pred = sample_floor.state;
-	matrix::SquareMatrix<float, vtest::State::size> P_meas_pred = sample_floor.cov;
-
-	if (dt_meas > 0.f) {
-		sym::Predictstate(dt_meas, sample_floor.state, acc_interval, &x_meas_pred);
-		sym::Predictcov(dt_meas, _input_var, _bias_var, _acc_var, sample_floor.cov, &P_meas_pred);
-	}
-
-	matrix::Vector<float, vtest::State::size> K_meas;
-
-	if (!computeFusionGain(x_meas_pred, P_meas_pred, meas, nis_threshold, res, K_meas)) {
-		return res; // res contains the failure reason (NIS or COV)
-	}
-
-	// Project correction forward (OOSM approximation).
-	// Keep the linearization points consistent with the predictions used:
-	// - For the sub-interval (t_meas -> t_next) we linearize at x_meas_pred and use the input stored in t_next.
-	// - For subsequent intervals we linearize at the original history state at the interval start.
-
-	matrix::SquareMatrix<float, vtest::State::size> Phi_step; // from t_prev to t_current
-	matrix::SquareMatrix<float, vtest::State::size> Phi_cumulative; // from t_meas till t_prev
-	Phi_cumulative.setIdentity();
-
-	// If the fusion time lands exactly on a history sample, update it directly.
-	if (meas.time_us == t_floor_us) {
-		StateSample &sample_at_meas = _history[floor_idx];
-		applyCorrection(sample_at_meas.state, sample_at_meas.cov, K_meas, res.innov, res.innov_var);
-	}
-
-	// Update History Buffer (samples strictly after t_meas)
-	uint64_t prev_time_us = meas.time_us;
-	int idx = (floor_idx + 1) % kHistorySize;
-	uint8_t history_steps = 0;
-
-	while (idx != _history_head) {
-		StateSample &sample = _history[idx];
-
-		if (sample.time_us <= meas.time_us) {
-			idx = (idx + 1) % kHistorySize;
-			continue;
-		}
-
-		const uint64_t curr_time_us = sample.time_us;
-		const float dt = (curr_time_us - prev_time_us) * 1e-6f;
-
-		// Keep linearization consistent: use the state at the interval start.
-		sym::Gettransitionmatrix(dt, &Phi_step);
-		Phi_cumulative = Phi_step * Phi_cumulative;
-
-		// Project the correction vector.
-		// Note: We only use Phi (and not G*acc) because we are projecting the error state (delta).
-		// The input (acc) is common to both the reference and corrected trajectories and cancels out.
-		const matrix::Vector<float, vtest::State::size> K_proj = Phi_cumulative * K_meas;
-
-		applyCorrection(sample.state, sample.cov, K_proj, res.innov, res.innov_var);
-		history_steps++;
-
-		prev_time_us = curr_time_us;
-		idx = (idx + 1) % kHistorySize;
-	}
-
-	// Update Live State (Consistent with History Update)
-	if (now_us > prev_time_us) {
-		const float dt_now = (now_us - prev_time_us) * 1e-6f;
-		sym::Gettransitionmatrix(dt_now, &Phi_step);
-		Phi_cumulative = Phi_step * Phi_cumulative;
-	}
-
-	const matrix::Vector<float, vtest::State::size> K_proj_now = Phi_cumulative * K_meas;
-	applyCorrection(_state, _state_covariance, K_proj_now, res.innov, res.innov_var);
-
-	res.history_steps = history_steps;
-	res.status = FusionStatus::FUSED_OOSM;
-	return res;
-}
-
-bool KF_position::computeFusionGain(const matrix::Vector<float, vtest::State::size> &state,
-				    const matrix::SquareMatrix<float, vtest::State::size> &cov, const ScalarMeas &meas, float nis_threshold,
-				    FusionResult &out_res,
-				    matrix::Vector<float, vtest::State::size> &out_K)
-{
-	const float innov = meas.val - (meas.H.transpose() * state)(0, 0);
-
-	float innov_cov;
-	sym::Computeinnovcov(meas.unc, cov, meas.H.transpose(), &innov_cov);
-
-	out_res.innov = innov;
-	out_res.innov_var = innov_cov;
-
-	if (!PX4_ISFINITE(innov_cov) || innov_cov < 1e-6f) {
-		out_res.status = FusionStatus::REJECT_COV;
-		return false;
-	}
-
-	// Calculate and store NIS
-	const float beta = sq(innov) / innov_cov;
-
-	// Store normalized ratio directly (avoid division by zero check if threshold is sane)
-	if (nis_threshold > 0.0f) {
-		out_res.test_ratio = beta / nis_threshold;
-
-	} else {
-		out_res.test_ratio = -1.0f;
-	}
-
-	if ((nis_threshold > 0.f) && (beta > nis_threshold)) {
-		out_res.status = FusionStatus::REJECT_NIS;
-		return false;
-	}
-
-	out_K = cov * meas.H / innov_cov;
-	return true;
+	return _oosm.fuse(*this, meas, now_us, nis_threshold, _state, _state_covariance, _last_acc);
 }
 
 void KF_position::applyCorrection(matrix::Vector<float, vtest::State::size> &state,
