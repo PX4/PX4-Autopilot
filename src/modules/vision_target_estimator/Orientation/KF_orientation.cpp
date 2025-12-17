@@ -48,7 +48,13 @@ namespace vision_target_estimator
 
 void KF_orientation::predict(float dt)
 {
-	predictState(dt, EmptyInput{}, _state, _state_covariance, _state, _state_covariance);
+	matrix::Vector<float, State::size> state_next;
+	matrix::SquareMatrix<float, State::size> cov_next;
+
+	predictState(dt, EmptyInput{}, _state, _state_covariance, state_next, cov_next);
+
+	_state = state_next;
+	_state_covariance = cov_next;
 }
 
 void KF_orientation::getTransitionMatrix(float dt, matrix::SquareMatrix<float, State::size> &phi) const

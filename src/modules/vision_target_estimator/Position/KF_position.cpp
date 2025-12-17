@@ -53,7 +53,14 @@ namespace vision_target_estimator
 void KF_position::predict(float dt, float acc_uav)
 {
 	_last_acc = acc_uav;
-	predictState(dt, acc_uav, _state, _state_covariance, _state, _state_covariance);
+
+	matrix::Vector<float, vtest::State::size> state_next;
+	matrix::SquareMatrix<float, vtest::State::size> cov_next;
+
+	predictState(dt, acc_uav, _state, _state_covariance, state_next, cov_next);
+
+	_state = state_next;
+	_state_covariance = cov_next;
 }
 
 void KF_position::getTransitionMatrix(float dt, matrix::SquareMatrix<float, vtest::State::size> &phi) const
