@@ -18,22 +18,15 @@ namespace sym
  *
  * Args:
  *     dt: Scalar
- *     state: Matrix51
- *     acc: Scalar
  *
  * Outputs:
  *     transition_matrix: Matrix55
  */
 template <typename Scalar>
-void Gettransitionmatrix(const Scalar dt, const matrix::Matrix<Scalar, 5, 1> &state,
-			 const Scalar acc,
+void Gettransitionmatrix(const Scalar dt,
 			 matrix::Matrix<Scalar, 5, 5> *const transition_matrix = nullptr)
 {
 	// Total ops: 3
-
-	// Unused inputs
-	(void)state;
-	(void)acc;
 
 	// Input arrays
 
