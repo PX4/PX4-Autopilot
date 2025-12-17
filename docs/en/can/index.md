@@ -71,8 +71,8 @@ Pixhawk flight controllers come with 2 CAN interfaces; if your peripherals suppo
 
 ### Flight Controllers with Multiple CAN Ports
 
-[Flight Controllers](../flight_controller/index.md) may have up to three CAN ports, such as `CAN1`, `CAN2`, `CAN3` (neither DroneCAN or Cyphal support more than three).
-The ports are independent, and you can't have both DroneCAN and Cyphal on the same bus.
+[Flight Controllers](../flight_controller/index.md) may have up to three independent CAN ports, such as `CAN1`, `CAN2`, `CAN3` (neither DroneCAN or Cyphal support more than three).
+Note that you can't have both DroneCAN and Cyphal running on PX4 at the same time.
 
 ::: tip
 You only _need_ one CAN port to support an arbitrary number of CAN devices using a particular CAN protocol.
