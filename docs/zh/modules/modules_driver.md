@@ -899,6 +899,8 @@ fetching the latest mixing result and write them to PCA9685 at its scheduling ti
 It can do full 12bits output as duty-cycle mode, while also able to output precious pulse width
 that can be accepted by most ESCs and servos.
 
+The I2C bus and address can be configured via parameters `PCA9685_EN_BUS` and `PCA9685_I2C_ADDR`, or via command line arguments.
+
 ### 示例
 
 It is typically started with:

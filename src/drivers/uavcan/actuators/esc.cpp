@@ -128,6 +128,13 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status_pub.publish(_esc_status);
 	}
+
+	// Register device capability for each ESC channel
+	if (_node_info_publisher != nullptr) {
+		uint8_t node_id = msg.getSrcNodeID().get();
+		uint32_t device_id = msg.esc_index;
+		_node_info_publisher->registerDeviceCapability(node_id, device_id, NodeInfoPublisher::DeviceCapability::ESC);
+	}
 }
 
 uint8_t
