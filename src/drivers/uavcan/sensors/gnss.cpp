@@ -405,7 +405,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 {
 	sensor_gps_s sensor_gps{};
 
-	device::Device::DeviceId device_id;
+	device::Device::DeviceId device_id{};
 	device_id.devid_s.devtype = get_device_type();
 	device_id.devid_s.address = static_cast<uint8_t>(msg.getSrcNodeID().get());
 	device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
