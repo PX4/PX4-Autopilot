@@ -44,7 +44,7 @@ Use Automatic (default) when:
 In Dead-reckoning mode, EKF2 stops fusing GNSS data when it becomes unreliable and prevents EKF2 resets, provided there are other sources of position or velocity data that can be fused.
 This ensures that the vehicle can continue flying missions and other position controlled modes when GNSS is lost.
 
-When GNSS is recovered the vehicle position estimate will be updated, which may cause jerky movements (in position controlled modes) if the estimate has drifted.
+When GNSS is recovered it will be fused with other measurements when tests indicate it can be trusted. This may cause jerky movements in position controlled modes if the estimate has drifted.
 This mode relies on having additional position or velocity sensors and must also have a reliable GNSS signal at boot.
 
 Use Dead-Reckoning when:
