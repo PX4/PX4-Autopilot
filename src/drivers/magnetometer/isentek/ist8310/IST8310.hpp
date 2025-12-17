@@ -83,6 +83,9 @@ private:
 	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
+	bool InitializeCrossAxisMatrix();
+	void CrossAxisTransformation(int16_t *xyz);
+
 	PX4Magnetometer _px4_mag;
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
@@ -92,6 +95,14 @@ private:
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
 	int _failure_count{0};
+
+	// Cross-axis calibration variables
+	static constexpr uint8_t IST8310_AXES_NUM = 3;
+	static constexpr int32_t OTP_SENSITIVITY = 330;
+	static constexpr int CROSSAXIS_INV_BITSHIFT = 16;
+	int64_t _crossaxis_inv[9] {0};
+	int32_t _crossaxis_det{1};
+	bool _crossaxis_enabled{false};
 
 	enum class STATE : uint8_t {
 		RESET,
