@@ -262,6 +262,8 @@ bool Raptor::init()
 	PX4_INFO("Setting force_sync_native = %d Hz / %d Hz = %d", (int)imu_gyro_ratemax, (int)POLICY_CONTROL_FREQUENCY_TRAINING,
 		 (int)force_sync_native);
 
+	this->use_internal_reference = _param_mc_raptor_intref.get();
+
 	this->reset();
 
 	return true;
@@ -515,7 +517,8 @@ void Raptor::Run()
 	status.timestamp_last_vehicle_attitude = timestamp_last_attitude;
 
 	trajectory_setpoint_s temp_trajectory_setpoint;
-	status.subscription_update_trajectory_setpoint = _trajectory_setpoint_sub.update(&temp_trajectory_setpoint);
+	bool use_external_reference = !use_internal_reference;
+	status.subscription_update_trajectory_setpoint = use_external_reference && _trajectory_setpoint_sub.update(&temp_trajectory_setpoint);
 
 	if (status.subscription_update_trajectory_setpoint) {
 		if (
@@ -637,10 +640,13 @@ void Raptor::Run()
 	can_arm = true;
 	updateArmingCheckReply();
 
-	if (!timestamp_last_trajectory_setpoint_set || (current_time - timestamp_last_trajectory_setpoint) > TRAJECTORY_SETPOINT_TIMEOUT) {
+	bool next_active = timestamp_last_vehicle_status_set && _vehicle_status.nav_state == ext_component_mode_id;
+
+	if (!timestamp_last_trajectory_setpoint_set || use_internal_reference
+	    || (current_time - timestamp_last_trajectory_setpoint) > TRAJECTORY_SETPOINT_TIMEOUT) {
 		status.trajectory_setpoint_stale = true;
 
-		if (!previous_trajectory_setpoint_stale) {
+		if (!previous_trajectory_setpoint_stale || (!previous_active && next_active)) {
 			_trajectory_setpoint.position[0] = position[0];
 			_trajectory_setpoint.position[1] = position[1];
 			_trajectory_setpoint.position[2] = position[2];
@@ -650,8 +656,15 @@ void Raptor::Run()
 			_trajectory_setpoint.velocity[1] = 0;
 			_trajectory_setpoint.velocity[2] = 0;
 			_trajectory_setpoint.yawspeed = 0;
-			PX4_WARN("trajectory_setpoint turned stale at: %f %f %f, yaw: %f", (double)position[0], (double)position[1], (double)position[2],
-				 (double)_trajectory_setpoint.yaw);
+
+			if (!previous_trajectory_setpoint_stale) {
+				PX4_WARN("trajectory_setpoint turned stale at: %f %f %f, yaw: %f", (double)position[0], (double)position[1], (double)position[2],
+					 (double)_trajectory_setpoint.yaw);
+
+			} else {
+				PX4_WARN("trajectory_setpoint reset due to activation at: %f %f %f, yaw: %f", (double)position[0], (double)position[1], (double)position[2],
+					 (double)_trajectory_setpoint.yaw);
+			}
 		}
 
 		previous_trajectory_setpoint_stale = true;
@@ -701,8 +714,6 @@ void Raptor::Run()
 		// Exit early if it is not time to control
 		return;
 	}
-
-	bool next_active = timestamp_last_vehicle_status_set && _vehicle_status.nav_state == ext_component_mode_id;
 
 	if (!previous_active && next_active) {
 		this->reset();

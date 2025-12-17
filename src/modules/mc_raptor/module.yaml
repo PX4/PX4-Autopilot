@@ -14,7 +14,7 @@ parameters:
             description:
                 short: Enable verbose output
                 long: |
-                    When enabled, the Raptor will print verbose output to the console.
+                    When enabled, the Raptor flight mode will print verbose output to the console.
             type: boolean
             default: false
             category: System
@@ -25,6 +25,15 @@ parameters:
                 long: |
                     When enabled, the Raptor mode will replace the Offboard mode.
                     If disabled, the Raptor mode will be available as a separate external mode. In the latter case, Raptor will just hold the position, without requiring external setpoints. When Raptor replaces the Offboard mode, it requires external setpoints to be activated.
+            type: boolean
+            default: false
+            category: System
+
+        MC_RAPTOR_INTREF:
+            description:
+                short: Use internal reference instead of trajectory_setpoint
+                long: |
+                    When enabled, instead of using the trajectory_setpoint, the position and yaw of the vehicle at the point when the Raptor mode is activated will be used as reference.
             type: boolean
             default: false
             category: System

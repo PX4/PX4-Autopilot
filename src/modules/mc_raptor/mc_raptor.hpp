@@ -247,10 +247,11 @@ private:
 	bool timestamp_last_policy_frequency_check_set = false;
 
 	float previous_action[EXECUTOR_SPEC::OUTPUT_DIM];
-
+	bool use_internal_reference = false;
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
-		(ParamBool<px4::params::MC_RAPTOR_OFFB>) _param_mc_raptor_offboard
+		(ParamBool<px4::params::MC_RAPTOR_OFFB>) _param_mc_raptor_offboard,
+		(ParamBool<px4::params::MC_RAPTOR_INTREF>) _param_mc_raptor_intref
 	)
 
 
