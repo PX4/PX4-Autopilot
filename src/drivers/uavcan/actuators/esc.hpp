@@ -54,6 +54,10 @@
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <parameters/param.h>
+#include <com/hobbywing/esc/RawCommand.hpp>
+#include <com/hobbywing/esc/StatusMsg1.hpp>
+#include <com/hobbywing/esc/StatusMsg2.hpp>
+#include <com/hobbywing/esc/StatusMsg3.hpp>
 
 class UavcanEscController
 {
@@ -87,6 +91,9 @@ private:
 	 * ESC status message reception will be reported via this callback.
 	 */
 	void esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg);
+	void esc_status_msg1_cb(const uavcan::ReceivedDataStructure<com::hobbywing::esc::StatusMsg1> &msg);
+	void esc_status_msg2_cb(const uavcan::ReceivedDataStructure<com::hobbywing::esc::StatusMsg2> &msg);
+	void esc_status_msg3_cb(const uavcan::ReceivedDataStructure<com::hobbywing::esc::StatusMsg3> &msg);
 
 	/**
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
@@ -99,6 +106,15 @@ private:
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
+	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<com::hobbywing::esc::StatusMsg1>&)> StatusMsg1Binder;
+
+	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<com::hobbywing::esc::StatusMsg2>&)> StatusMsg2Binder;
+
+	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<com::hobbywing::esc::StatusMsg3>&)> StatusMsg3Binder;
+
 	bool _initialized{};
 
 	esc_status_s	_esc_status{};
@@ -107,11 +123,17 @@ private:
 
 	uint8_t		_rotor_count{0};
 
+	int32_t		_esc_type;
+
 	/*
 	 * libuavcan related things
 	 */
 	uavcan::MonotonicTime							_prev_cmd_pub;   ///< rate limiting
 	uavcan::INode								&_node;
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
+	uavcan::Publisher<com::hobbywing::esc::RawCommand>			_uavcan_pub_hobbywing_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
+	uavcan::Subscriber<com::hobbywing::esc::StatusMsg1, StatusMsg1Binder>	_uavcan_hobbywing_status_msg1;
+	uavcan::Subscriber<com::hobbywing::esc::StatusMsg2, StatusMsg2Binder>	_uavcan_hobbywing_status_msg2;
+	uavcan::Subscriber<com::hobbywing::esc::StatusMsg3, StatusMsg3Binder>	_uavcan_hobbywing_status_msg3;
 };

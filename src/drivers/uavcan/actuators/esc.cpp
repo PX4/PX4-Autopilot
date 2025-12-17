@@ -50,28 +50,67 @@ using namespace time_literals;
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
-	_uavcan_sub_status(node)
+	_uavcan_pub_hobbywing_raw_cmd(node),
+	_uavcan_sub_status(node),
+	_uavcan_hobbywing_status_msg1(node),
+	_uavcan_hobbywing_status_msg2(node),
+	_uavcan_hobbywing_status_msg3(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin); // Highest priority
+	_uavcan_pub_hobbywing_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin);
 }
 
 int
 UavcanEscController::init()
 {
-	// ESC status subscription
-	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
-
-	if (res < 0) {
-		PX4_ERR("ESC status sub failed %i", res);
-		return res;
-	}
-
 	_esc_status_pub.advertise();
 
 	int32_t iface_mask{0xFF};
+	int res = 0;
 
-	if (param_get(param_find("UAVCAN_ESC_IFACE"), &iface_mask) == OK) {
-		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
+	if (param_get(param_find("UAVCAN_ESC_IFACE"), &iface_mask) == OK && param_get(param_find("UAVCAN_ESC_TYPE"), &_esc_type) == OK) {
+		switch (_esc_type) {
+		case 0:
+			res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
+
+			if (res < 0) {
+				PX4_ERR("ESC status sub failed %i", res);
+				return res;
+			}
+
+			_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
+			break;
+
+		case 1:
+			res = _uavcan_hobbywing_status_msg1.start(StatusMsg1Binder(this, &UavcanEscController::esc_status_msg1_cb));
+
+			if (res < 0) {
+				PX4_ERR("ESC status sub failed %i", res);
+				return res;
+			}
+
+			res = _uavcan_hobbywing_status_msg2.start(StatusMsg2Binder(this, &UavcanEscController::esc_status_msg2_cb));
+
+			if (res < 0) {
+				PX4_ERR("ESC status sub failed %i", res);
+				return res;
+			}
+
+			res = _uavcan_hobbywing_status_msg3.start(StatusMsg3Binder(this, &UavcanEscController::esc_status_msg3_cb));
+
+			if (res < 0) {
+				PX4_ERR("ESC status sub failed %i", res);
+				return res;
+			}
+
+			_uavcan_pub_hobbywing_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
+			break;
+
+		default:
+			PX4_ERR("ESC type failed");
+			return res;
+			break;
+		}
 	}
 
 	_initialized = true;
@@ -91,13 +130,35 @@ UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t out
 
 	_prev_cmd_pub = timestamp;
 
-	uavcan::equipment::esc::RawCommand msg = {};
+	switch (_esc_type) {
+	case 0: {
+			uavcan::equipment::esc::RawCommand msg = {};
 
-	for (unsigned i = 0; i < output_array_size; i++) {
-		msg.cmd.push_back(static_cast<int>(outputs[i]));
+			for (unsigned i = 0; i < output_array_size; i++) {
+				msg.cmd.push_back(static_cast<int>(outputs[i]));
+			}
+
+			_uavcan_pub_raw_cmd.broadcast(msg);
+			break;
+		}
+
+	case 1: {
+			com::hobbywing::esc::RawCommand msg = {};
+
+			for (unsigned i = 0; i < output_array_size; i++) {
+				msg.command.push_back(static_cast<int>(outputs[i]));
+			}
+
+			_uavcan_pub_hobbywing_raw_cmd.broadcast(msg);
+			break;
+		}
+
+	default: {
+			PX4_ERR("ESC type failed");
+			break;
+		}
 	}
 
-	_uavcan_pub_raw_cmd.broadcast(msg);
 }
 
 void
@@ -119,6 +180,67 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		ref.esc_temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 		ref.esc_rpm         = msg.rpm;
 		ref.esc_errorcount  = msg.error_count;
+
+		_esc_status.esc_count = _rotor_count;
+		_esc_status.counter += 1;
+		_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+		_esc_status.esc_online_flags = check_escs_status();
+		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
+		_esc_status.timestamp = hrt_absolute_time();
+		_esc_status_pub.publish(_esc_status);
+	}
+}
+
+void
+UavcanEscController::esc_status_msg1_cb(const uavcan::ReceivedDataStructure<com::hobbywing::esc::StatusMsg1> &msg)
+{
+	if (msg.getSrcNodeID().get() < esc_status_s::CONNECTED_ESC_MAX) {
+		auto &ref = _esc_status.esc[msg.getSrcNodeID().get() - 1];
+
+		ref.timestamp       = hrt_absolute_time();
+		ref.esc_address = msg.getSrcNodeID().get();
+		ref.esc_rpm         = msg.rpm;
+
+		_esc_status.esc_count = _rotor_count;
+		_esc_status.counter += 1;
+		_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+		_esc_status.esc_online_flags = check_escs_status();
+		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
+		_esc_status.timestamp = hrt_absolute_time();
+		_esc_status_pub.publish(_esc_status);
+	}
+}
+
+void
+UavcanEscController::esc_status_msg2_cb(const uavcan::ReceivedDataStructure<com::hobbywing::esc::StatusMsg2> &msg)
+{
+	if (msg.getSrcNodeID().get() < esc_status_s::CONNECTED_ESC_MAX) {
+		auto &ref = _esc_status.esc[msg.getSrcNodeID().get() - 1];
+
+		ref.timestamp       = hrt_absolute_time();
+		ref.esc_address = msg.getSrcNodeID().get();
+		ref.esc_voltage     = msg.input_voltage / 10;
+		ref.esc_current     = msg.current;
+		ref.esc_temperature = (float)msg.temperature / 100; // In the Mavlink system, the temperature is multiplied by 100.
+
+		_esc_status.esc_count = _rotor_count;
+		_esc_status.counter += 1;
+		_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+		_esc_status.esc_online_flags = check_escs_status();
+		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
+		_esc_status.timestamp = hrt_absolute_time();
+		_esc_status_pub.publish(_esc_status);
+	}
+}
+
+void
+UavcanEscController::esc_status_msg3_cb(const uavcan::ReceivedDataStructure<com::hobbywing::esc::StatusMsg3> &msg)
+{
+	if (msg.getSrcNodeID().get() < esc_status_s::CONNECTED_ESC_MAX) {
+		auto &ref = _esc_status.esc[msg.getSrcNodeID().get() - 1];
+
+		ref.timestamp       = hrt_absolute_time();
+		ref.esc_address = msg.getSrcNodeID().get();
 
 		_esc_status.esc_count = _rotor_count;
 		_esc_status.counter += 1;
