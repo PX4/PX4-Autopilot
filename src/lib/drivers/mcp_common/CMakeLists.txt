@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,10 @@
 #
 ############################################################################
 
-add_subdirectory(accelerometer)
-add_subdirectory(device)
-add_subdirectory(gyroscope)
-add_subdirectory(led)
-add_subdirectory(magnetometer)
-add_subdirectory(mcp_common)
-add_subdirectory(rangefinder)
-add_subdirectory(smbus)
-add_subdirectory(smbus_sbs)
+px4_add_library(mcp_common
+	MCP.cpp
+	${PX4_SOURCE_DIR}/src/drivers/gpio/mcp23009/MCP23009.cpp
+	${PX4_SOURCE_DIR}/src/drivers/gpio/mcp23017/MCP23017.cpp
+)
+
+target_link_libraries(mcp_common PUBLIC platform_gpio_mcp)
