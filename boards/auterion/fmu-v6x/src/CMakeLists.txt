@@ -69,6 +69,6 @@ else()
 			nuttx_arch # sdio
 			nuttx_drivers # sdio
 			px4_layer
-			platform_gpio_mcp23009
+			platform_gpio_mcp
 	)
 endif()
