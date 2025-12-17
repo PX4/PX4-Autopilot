@@ -658,8 +658,8 @@ void Raptor::Run()
 			_trajectory_setpoint.yawspeed = 0;
 
 			if (!previous_trajectory_setpoint_stale) {
-				PX4_WARN("trajectory_setpoint turned stale at: %f %f %f, yaw: %f", (double)position[0], (double)position[1], (double)position[2],
-					 (double)_trajectory_setpoint.yaw);
+				PX4_WARN("trajectory_setpoint turned stale at: %f %f %f, yaw: %f %llu / %llu us", (double)position[0], (double)position[1], (double)position[2],
+					 (double)_trajectory_setpoint.yaw, (unsigned long long)(current_time - timestamp_last_trajectory_setpoint), (unsigned long long)(TRAJECTORY_SETPOINT_TIMEOUT));
 
 			} else {
 				PX4_WARN("trajectory_setpoint reset due to activation at: %f %f %f, yaw: %f", (double)position[0], (double)position[1], (double)position[2],
@@ -729,7 +729,6 @@ void Raptor::Run()
 	input_msg.active = status.active;
 	static_assert(raptor_input_s::ACTION_DIM == EXECUTOR_CONFIG::OUTPUT_DIM);
 	input_msg.timestamp = current_time;
-	input_msg.timestamp_sample = current_time;
 	input_msg.timestamp_sample = _vehicle_angular_velocity.timestamp_sample;
 
 	for (TI dim_i = 0; dim_i < 3; dim_i++) {

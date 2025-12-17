@@ -4,7 +4,7 @@
 ## SITL
 #### Standalone Usage (Without External Trajectory Setpoint)
 Build PX4 SITL with Raptor, disable QGC requirement, and adjust the `IMU_GYRO_RATEMAX` to match the simulation IMU rate
-```
+```bash
 make px4_sitl_raptor gz_x500
 param set NAV_DLL_ACT 0
 param set COM_DISARM_LAND -1 # When taking off in offboard the landing detector can cause mid-air disarms
@@ -13,13 +13,13 @@ param set MC_RAPTOR_ENABLE 1
 param set MC_RAPTOR_OFFB 0
 ```
 Upload the RAPTOR checkpoint to the "SD card": Separate terminal
-```
+```bash
 mavproxy.py --master udp:127.0.0.1:14540
 ftp mkdir /raptor # for the real FMU use: /fs/microsd/raptor
 ftp put src/modules/mc_raptor/blob/policy.tar /raptor/policy.tar
 ```
 restart (ctrl+c)
-```
+```bash
 make px4_sitl_raptor gz_x500
 commander takeoff
 commander status
@@ -27,7 +27,7 @@ commander status
 
 Note the external mode ID of `RAPTOR` in the status report
 
-```
+```bash
 commander mode ext{RAPTOR_MODE_ID}
 ```
 
@@ -36,28 +36,28 @@ commander mode ext{RAPTOR_MODE_ID}
 
 
 Send Lissajous setpoints via Mavlink:
-```
+```bash
 pip install px4
 px4 udp:localhost:14540 track lissajous --A 2.0 --B 1.0 --duration 10 --ramp-duration 5 --takeoff 10.0 --iterations 2
 ```
 
 
 ## SIH
-```
+```bash
 make px4_fmu-v6c_raptor upload
 ```
 In QGroundControl:
 - Airframes => SIH Quadrotor X
 - Settings => Comm Links => Disable Pixhawk (disable automatic USB serial connection)
-```
+```bash
 mavproxy.py --master /dev/serial/by-id/usb-Auterion_PX4_FMU_v6C.x_0-if00 --out udp:localhost:14550 --out udp:localhost:13337 --out udp:localhost:13338
 ```
 New terminal (optional):
-```
+```bash
 ./Tools/mavlink_shell.py udp:localhost:13338
 ```
 
-```
+```bash
 param set SIH_IXX 0.005
 param set SIH_IYY 0.005
 param set SIH_IZZ 0.010
@@ -67,6 +67,19 @@ reboot
 ```
 
 New terminal:
-```
+```bash
 ./Tools/simulation/jmavsim/jmavsim_run.sh -u -p 13337 -o
+```
+
+
+## Real World
+Using a DroneBridge WiFi telemetry @ 921600 baud and maximum packet size = 16. It seems like larger maximum packet sizes can lead to delays in forwarding the `SET_POSITION_TARGET_LOCAL_NED` messages to `trajectory_setpoint`.
+```bash
+mavproxy.py --master tcp:192.168.2.1:5760 --out udp:localhost:14550 --out udp:localhost:13337 --out udp:localhost:13338
+```
+```bash
+./Tools/mavlink_shell.py udp:localhost:13337
+```
+```bash
+px4 udp:localhost:13338 track lissajous --A 0.5 --B 0.5 --duration 10 --ramp-duration 5 --takeoff 1.0 --iterations 2
 ```
