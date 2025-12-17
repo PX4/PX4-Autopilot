@@ -1,3 +1,4 @@
+__max_num_motors: &max_num_motors 12
 __max_num_servos: &max_num_servos 8
 __max_num_tilts: &max_num_tilts 4
 
@@ -18,7 +19,7 @@ actuator_output:
         min: { min: 0, max: 1000, default: 0 }
         max: { min: 0, max: 1000, default: 1000 }
         failsafe: { min: 0, max: 1000 }
-      num_channels: *max_num_servos
+      num_channels: *max_num_motors
     - param_prefix: SIM_GZ_SV
       group_label: 'Servos'
       channel_label: 'Servo'
