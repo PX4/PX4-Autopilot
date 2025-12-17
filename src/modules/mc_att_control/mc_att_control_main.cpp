@@ -141,7 +141,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 	// Avoid accumulating absolute yaw error with arming stick gesture
 	const bool arming_gesture = (_manual_control_setpoint.throttle < -.9f) && (_param_mc_airmode.get() != 2);
 
-	if (arming_gesture || !_heading_good_for_control) {
+	if (arming_gesture) {
 		_yaw_setpoint_stabilized = NAN;
 	}
 
@@ -278,7 +278,6 @@ MulticopterAttitudeControl::Run()
 			vehicle_local_position_s vehicle_local_position;
 
 			if (_vehicle_local_position_sub.copy(&vehicle_local_position)) {
-				_heading_good_for_control = vehicle_local_position.heading_good_for_control;
 				_unaided_heading = vehicle_local_position.unaided_heading;
 			}
 		}
