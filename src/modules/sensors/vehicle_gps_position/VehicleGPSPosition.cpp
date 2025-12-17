@@ -97,7 +97,7 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		_gps_blending.setBlendingUseVPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_VPOS_ACC);
 		_gps_blending.setBlendingTimeConstant(_param_sens_gps_tau.get());
 
-		const int32_t gps_prime = _param_sens_gps_prime.get();
+		const int gps_prime = _param_sens_gps_prime.get();
 
 		if (math::isInRange(gps_prime, -1, 1)) {
 			_gps_blending.setPrimaryInstance(gps_prime);
