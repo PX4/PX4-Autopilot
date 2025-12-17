@@ -114,7 +114,7 @@ Measurement residuals are gated with the Normalized Innovation Squared (NIS) tes
 
 ### Time alignment
 
-Vision and GNSS observations can arrive delayed due to transport and processing latency. The position filter therefore supports an **Out-of-Sequence Measurements (OOSM)** approximation which uses a **history-consistent projected correction** strategy. More details can be found in [Vision Target Estimator deep dive](../advanced_features/vision_target_estimator_advanced.md)
+Vision and GNSS observations can arrive delayed due to transport and processing latency. The position and orientation filters therefore support an **Out-of-Sequence Measurements (OOSM)** approximation which uses a **history-consistent projected correction** strategy. More details can be found in [Vision Target Estimator deep dive](../advanced_features/vision_target_estimator_advanced.md)
 
 ## Estimator Lifecycle
 
