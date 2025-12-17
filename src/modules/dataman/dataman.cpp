@@ -51,6 +51,7 @@
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <stdlib.h>
+#include <px4_platform_common/atomic.h>
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -126,7 +127,7 @@ static struct {
 			uint8_t *data_end;
 		} ram;
 	};
-	bool running;
+	px4::atomic_bool running{false};
 	bool silence = false;
 } dm_operations_data;
 
@@ -178,7 +179,7 @@ static bool g_task_should_exit;	/**< if true, dataman task should exit */
 
 static bool is_running()
 {
-	return dm_operations_data.running;
+	return dm_operations_data.running.load();
 }
 
 /* Calculate the offset in file of specific item */
@@ -607,7 +608,7 @@ _file_initialize(unsigned max_offset)
 		g_dm_ops->write(DM_KEY_SAFE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
 	}
 
-	dm_operations_data.running = true;
+	dm_operations_data.running.store(true);
 
 	return 0;
 }
@@ -627,7 +628,7 @@ _ram_initialize(unsigned max_offset)
 
 	memset(dm_operations_data.ram.data, 0, max_offset);
 	dm_operations_data.ram.data_end = &dm_operations_data.ram.data[max_offset - 1];
-	dm_operations_data.running = true;
+	dm_operations_data.running.store(true);
 
 	return 0;
 }
@@ -637,7 +638,7 @@ static void
 _file_shutdown()
 {
 	close(dm_operations_data.file.fd);
-	dm_operations_data.running = false;
+	dm_operations_data.running.store(false);
 }
 #endif
 
@@ -645,7 +646,7 @@ static void
 _ram_shutdown()
 {
 	free(dm_operations_data.ram.data);
-	dm_operations_data.running = false;
+	dm_operations_data.running.store(false);
 }
 
 static int
@@ -930,6 +931,10 @@ static int backend_check()
 	}
 
 	return 0;
+}
+
+bool dataman_check_is_running() {
+	return dm_operations_data.running.load();
 }
 
 int
