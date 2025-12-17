@@ -5,11 +5,14 @@ The ESC takes a signal from the flight controller and uses it to set control the
 
 PX4 supports a number of common protocols for sending the signals to ESCs: [PWM ESCs](../peripherals/pwm_escs_and_servo.md), [OneShot ESCs](../peripherals/oneshot.md), [DShot ESCs](../peripherals/dshot.md), [DroneCAN ESCs](../dronecan/escs.md), PCA9685 ESC (via I2C), and some UART ESCs (from Yuneec).
 
-| ESC Device  | Protocols      | Firmwares    | Notes   |
-| :---------- | :------------- | :----------- | :------ |
-| [BobEsc](#) | Dshot, PWM     | AM32, BLHeli | -       |
-| [ESC 2](#)  | OneShot, Dshot | BLHeli, KISS | Example |
-| [ESC 3](#)  | PWM            | AM32         | Example |
+| ESC Device                                               | Protocols                                                                                                                  | Firmwares              | Notes                                                                            |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------- |
+| [ARK 4IN1 ESC](../peripherals/ark_esc.md)               | [Dshot](../peripherals/dshot.md), [PWM](../peripherals/pwm_escs_and_servo.md)                                             | [AM32](https://am32.ca/) | Soldering pads for connection                                                    |
+| [ARK 4IN1 ESC CONS](../peripherals/ark_esc_con.md)      | [Dshot](../peripherals/dshot.md), [PWM](../peripherals/pwm_escs_and_servo.md)                                             | [AM32](https://am32.ca/) | MR30 Connector                                                                   |
+| [Holybro Kotleta 20](../dronecan/holybro_kotleta.md)    | [PWM](../peripherals/pwm_escs_and_servo.md), [DroneCAN](../dronecan/escs.md)                                              | PX4 Sapog ESC Firmware | Example                                                                          |
+| [Zubax Telega](../dronecan/zubax_telega.md)             | [PWM](../peripherals/pwm_escs_and_servo.md), [DroneCAN](../dronecan/escs.md)                                              | Telega-based           | ESC and Motor in one                                                             |
+| [Vertiq](../peripherals/vertiq.md)                      | [PWM](../peripherals/pwm_escs_and_servo.md), [Dshot](../peripherals/dshot.md), [OneShot](../peripherals/oneshot.md), Multishot | Vertiq firmware        | Vertiq's larger modules also support DroneCAN, ESC and Motor in one             |
+| [VESC ESCs](../peripherals/vesc.md)                     | [PWM](../peripherals/pwm_escs_and_servo.md), [DroneCAN](../dronecan/escs.md)                                              | VESC project firmware  | Example                                                                          |
 
 
 For more information see:
