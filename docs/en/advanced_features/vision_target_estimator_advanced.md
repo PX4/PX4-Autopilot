@@ -28,15 +28,15 @@ The implementation is split across a scheduler and two independent estimators:
   - `Position/vtest_derivation/derivation.py` defines the symbolic system that SymForce expands into C++; rerun the generator via CMake whenever the model changes as detailed in [Regenerating the symbolic model](#regenerating-the-symbolic-model).
 - `VTEOrientation` (`Orientation/VTEOrientation.cpp`) handles yaw fusion, using a simplified state vector but the same measurement staging helpers as the position filter.
   - `Orientation/KF_orientation.cpp` implements the constant-turn-rate Kalman filter described in the [orientation-state model](../advanced_features/vision_target_estimator.md#orientation-state). Because the yaw filter only tracks heading and yaw rate, its state-transition matrix and innovation logic remain hand-written.
-- Shared utilities live in `common.h`.
+- Shared utilities live in `common.h` and `VTEOosm.h` (templated OOSM manager).
 
 ## Time alignment
 
-Vision and GNSS observations can arrive delayed due to transport and processing latency. The position filter therefore supports an **Out-of-Sequence Measurements (OOSM)** approximation which uses a **history-consistent projected correction** strategy.
+Vision and GNSS observations can arrive delayed due to transport and processing latency. The position and orientation filters therefore support an **Out-of-Sequence Measurements (OOSM)** approximation which uses a **history-consistent projected correction** strategy.
 
 ### OOSM implementation
 
-The filter maintains a fixed-size ring buffer of recent state snapshots $(t, x, P, a^{uav})$ spanning roughly the last half second of operation (25 samples ≈ 0.5 s at 50 Hz). When a delayed scalar measurement arrives with timestamp $t_{meas}$:
+Each filter maintains a fixed-size ring buffer of recent state snapshots spanning roughly the last half second of operation (25 samples ≈ 0.5 s at 50 Hz). For the position filter the snapshot stores $(t, x, P, a^{uav})$; for the orientation filter it stores $(t, x, P)$. When a delayed scalar measurement arrives with timestamp $t_{meas}$:
 
 1. **Retrieve**: fetch the closest $(x_{old}, P_{old}, a^{uav}_{old})$ before $t_{meas}$.
 
@@ -44,7 +44,7 @@ $$
 t_{old} ≤ t_{meas}
 $$
 
-1. **Predict**: use the KF model to predict the state $(x_{meas}, P_{meas})$ using $\Delta t = t_{meas} - t_{old}$
+1. **Predict**: use the KF model to predict the state $(x_{meas}, P_{meas})$ using $\Delta t = t_{meas} - t_{old}$ (for the orientation filter the control-input term is omitted)
 
 
 $$
