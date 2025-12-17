@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.15" />
 
-PX4 implements the MAVLink [Standard Modes Protocol](https://mavlink.io/en/services/standard_modes.md) from PX4 v1.15, with a corresponding implementation in QGroundControl Daily builds (and future release builds).
+PX4 implements the MAVLink [Standard Modes Protocol](https://mavlink.io/en/services/standard_modes.html) from PX4 v1.15, with a corresponding implementation in QGroundControl Daily builds (and future release builds).
 
 The protocol allows you to discover all flight modes available to the vehicle, including PX4 External modes created using the [PX4 ROS 2 Control Interface](../ros2/px4_ros2_control_interface.md), and get or set the current mode.
 

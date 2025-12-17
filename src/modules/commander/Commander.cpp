@@ -302,6 +302,26 @@ int Commander::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[0], "safety")) {
+		if (argc < 2) {
+			PX4_ERR("missing argument");
+			return 1;
+		}
+
+		if (!strcmp(argv[1], "on")) {
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_ON);
+
+		} else if (!strcmp(argv[1], "off")) {
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_OFF);
+
+		} else {
+			PX4_ERR("invlaid argument, use [on|off]");
+			return 1;
+		}
+
+		return 0;
+	}
+
 	if (!strcmp(argv[0], "arm")) {
 		float param2 = 0.f;
 
@@ -495,6 +515,7 @@ int Commander::custom_command(int argc, char *argv[])
 int Commander::print_status()
 {
 	PX4_INFO("%s", isArmed() ? "Armed" : "Disarmed");
+	PX4_INFO("prearm safety: %s", _safety.isSafetyOff() ? "Off" : "On");
 	PX4_INFO("navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state]);
 	PX4_INFO("user intended navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state_user_intention]);
 	PX4_INFO("in failsafe: %s", _failsafe.inFailsafe() ? "yes" : "no");
@@ -1506,6 +1527,29 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ACTUATOR:
 		answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+		break;
+
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE: {
+			// reject if armed, only allow pre or post flight for safety
+			if (isArmed()) {
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+
+			} else {
+				int commanded_state = (int)cmd.param1;
+
+				if (commanded_state == vehicle_command_s::SAFETY_OFF) {
+					_safety.deactivateSafety();
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+				} else if (commanded_state == vehicle_command_s::SAFETY_ON) {
+					_safety.activateSafety();
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+				} else {
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
+				}
+			}
+		}
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
@@ -3026,6 +3070,8 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_ARG("mag|baro|accel|gyro|level|esc|airspeed", "Calibration type", false);
 	PRINT_MODULE_USAGE_ARG("quick", "Quick calibration [mag, accel (not recommended)]", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("safety", "Change prearm safety state");
+	PRINT_MODULE_USAGE_ARG("on|off", "[on] to activate safety, [off] to deactivate safety and allow control surface movements", false);
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
 	PRINT_MODULE_USAGE_COMMAND("disarm");

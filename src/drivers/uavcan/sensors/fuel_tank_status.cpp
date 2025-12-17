@@ -43,7 +43,7 @@
 const char *const UavcanFuelTankStatusBridge::NAME = "fuel_tank_status";
 
 UavcanFuelTankStatusBridge::UavcanFuelTankStatusBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_fuel_tank_status", ORB_ID(fuel_tank_status)),
+	UavcanSensorBridgeBase("uavcan_fuel_tank_status", ORB_ID(fuel_tank_status), nullptr),
 	_sub_fuel_tank_status_data(node)
 { }
 
