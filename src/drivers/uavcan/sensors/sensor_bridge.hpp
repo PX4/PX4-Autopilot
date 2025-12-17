@@ -140,6 +140,22 @@ protected:
 
 	uavcan_bridge::Channel *get_channel_for_node(int node_id);
 
+	/**
+	 * Builds a unique device ID from a UAVCAN message
+	 * @param msg UAVCAN message (must have getSrcNodeID() and getIfaceIndex() methods)
+	 * @return Complete device ID with node address and interface encoded
+	 */
+	template<typename T>
+	uint32_t make_uavcan_device_id(const uavcan::ReceivedDataStructure<T> &msg) const
+	{
+		device::Device::DeviceId device_id;
+		device_id.devid_s.devtype = get_device_type();
+		device_id.devid_s.address = static_cast<uint8_t>(msg.getSrcNodeID().get());
+		device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
+		device_id.devid_s.bus = msg.getIfaceIndex();
+		return device_id.devid;
+	}
+
 public:
 	virtual ~UavcanSensorBridgeBase();
 
