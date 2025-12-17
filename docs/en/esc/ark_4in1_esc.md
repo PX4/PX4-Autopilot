@@ -2,7 +2,7 @@
 
 4 in 1 Electronic Speed Controller (ESC) that is made in the USA, NDAA compliant, and DIU Blue Framework listed.
 
-The ESC comes in a variants without connectors that you can solder in place, and a variant that has built in motor and battery connectors (no soldering required).
+The ESC comes in variants without connectors that you can solder in place, and a variant that has built-in motor and battery connectors (no soldering required).
 
 ![ARK 4IN1 ESC without connectors ](../../assets/hardware/esc/ark/ark_4_in_1_esc.jpg)![ARK 4IN1 ESC with connectors](../../assets/hardware/esc/ark/ark_4_in_1_esc_with_connectors.jpg)
 
@@ -24,20 +24,14 @@ Order this module from:
 - Onboard Current Sensor, Serial Telemetry
   - 100V/A
 - Input Protocols
-  - Dshot (300, 600)
-  - Bi-directional Dshot
+  - DShot (300, 600)
+  - Bi-directional DShot
   - KISS Serial Telemetry
-    - PWM
+  - PWM
 - 8 Pin JST-SH Input/Output
 - 10 Pin JST-SH Debug
 
-- Made in the USA
-
-  - Open source AM32 firmware
-  - Dshot (300, 600)
-  - [DIU Blue Framework Listed](https://www.diu.mil/blue-uas/framework)
-
-- Motor & Battery Connectors (with connectors)
+- Motor & Battery Connectors (with-connector version)
 
   - MR30 Connector Limit Per Motor: 30A Continuous, 40A Burst
   - Four MR30 Motor Connectors
@@ -52,6 +46,12 @@ Order this module from:
   - Size: 43.00mm x 40.50mm x 7.60mm
   - Mounting Pattern: 30.5mm
   - Weight: 14.5g
+
+Other
+
+- Made in the USA
+- Open source AM32 firmware
+- [DIU Blue Framework Listed](https://www.diu.mil/blue-uas/framework)
 
 ## See Also
 
