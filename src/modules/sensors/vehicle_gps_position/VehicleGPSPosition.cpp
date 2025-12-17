@@ -99,7 +99,7 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 
 		const int32_t gps_prime = _param_sens_gps_prime.get();
 
-		if (gps_prime >= -1 && gps_prime <= 1) {
+		if (math::isInRange(gps_prime, -1, 1)) {
 			_gps_blending.setPrimaryInstance(gps_prime);
 		}
 	}
