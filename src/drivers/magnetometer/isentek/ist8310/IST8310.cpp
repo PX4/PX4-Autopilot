@@ -89,10 +89,12 @@ int IST8310::probe()
 	// 0x0C rather than 0x0E.
 	const auto start_time = hrt_absolute_time();
 	const uint8_t start_addr = get_device_address();
-	const uint8_t wai = RegisterRead(Register::WAI);
+
 
 	while (hrt_elapsed_time(&start_time) < 50_ms) {
 		set_device_address(start_addr);
+
+		const uint8_t wai = RegisterRead(Register::WAI);
 
 		if ((wai == IST8310_Device_ID) || (wai == IST8310J_Device_ID)) {
 
@@ -127,29 +129,31 @@ void IST8310::RunImpl()
 		ScheduleDelayed(50_ms); // Power On Reset: max 50ms
 		break;
 
-	case STATE::WAIT_FOR_RESET:
+	case STATE::WAIT_FOR_RESET: {
+			// SRST: This bit is automatically reset to zero after POR routine
+			const uint8_t wai = RegisterRead(Register::WAI);
 
-		// SRST: This bit is automatically reset to zero after POR routine
-		if (((RegisterRead(Register::WAI) == IST8310_Device_ID) || (RegisterRead(Register::WAI) == IST8310J_Device_ID))
-		    && ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SRST) == 0)) {
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
-			ScheduleDelayed(10_ms);
-
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
+			if (((wai == IST8310_Device_ID) || (wai == IST8310J_Device_ID))
+			    && ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SRST) == 0)) {
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(10_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
-			}
-		}
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
 
-		break;
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
+			}
+
+			break;
+		}
 
 	case STATE::CONFIGURE:
 		if (Configure()) {
@@ -198,15 +202,6 @@ void IST8310::RunImpl()
 					int16_t x = combine(buffer.DATAXH, buffer.DATAXL);
 					int16_t y = combine(buffer.DATAYH, buffer.DATAYL);
 					int16_t z = combine(buffer.DATAZH, buffer.DATAZL);
-
-					PX4_DEBUG("Raw mag data before cross-axis transformation: x=%d, y=%d, z=%d", x, y, z);
-					// Apply cross-axis transformation if enabled
-					int16_t xyz[3] = {x, y, z};
-					CrossAxisTransformation(xyz);
-					x = xyz[0];
-					y = xyz[1];
-					z = xyz[2];
-					PX4_DEBUG("Raw mag data after cross-axis transformation: x=%d, y=%d, z=%d", x, y, z);
 
 					// sensor's frame is +x forward, +y right, +z up
 					z = (z == INT16_MIN) ? INT16_MAX : -z; // flip z
@@ -276,12 +271,6 @@ bool IST8310::Configure()
 
 	_px4_mag.set_scale(1.f / 1320.f); // 1320 LSB/Gauss
 
-	// Initialize cross-axis calibration matrix
-	if (!InitializeCrossAxisMatrix()) {
-
-		PX4_WARN("Failed to initialize cross-axis calibration matrix");
-	}
-
 	return success;
 }
 
@@ -329,187 +318,4 @@ void IST8310::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cle
 	if (orig_val != val) {
 		RegisterWrite(reg, val);
 	}
-}
-
-bool IST8310::InitializeCrossAxisMatrix()
-{
-	// Check OTP date validity
-	uint8_t cmd = 0x9C;
-
-	// Check if cross-axis calibration data is available
-	uint8_t crossaxis_check[2];
-	cmd = static_cast<uint8_t>(Register::XX_CROSS_L);
-
-	if (transfer(&cmd, 1, crossaxis_check, 2) != PX4_OK) {
-		PX4_ERR("Failed to read cross-axis check registers");
-		return false;
-	}
-
-	_crossaxis_enabled = !((crossaxis_check[0] == 0xFF) && (crossaxis_check[1] == 0xFF));
-
-	if (!_crossaxis_enabled) {
-		// Set identity matrix
-		_crossaxis_inv[0] = (1 << CROSSAXIS_INV_BITSHIFT);
-		_crossaxis_inv[1] = 0;
-		_crossaxis_inv[2] = 0;
-		_crossaxis_inv[3] = 0;
-		_crossaxis_inv[4] = (1 << CROSSAXIS_INV_BITSHIFT);
-		_crossaxis_inv[5] = 0;
-		_crossaxis_inv[6] = 0;
-		_crossaxis_inv[7] = 0;
-		_crossaxis_inv[8] = (1 << CROSSAXIS_INV_BITSHIFT);
-		_crossaxis_det = 1;
-		return true;
-	}
-
-	// Read cross-axis matrix data
-	uint8_t crossx_buf[6], crossy_buf[6], crossz_buf[6];
-
-	cmd = static_cast<uint8_t>(Register::XX_CROSS_L);
-
-	if (transfer(&cmd, 1, crossx_buf, 6) != PX4_OK) {
-		PX4_ERR("Failed to read X cross-axis data");
-		return false;
-	}
-
-	PX4_DEBUG("IST8310 XX_CROSS_L: 0x%02hhX, XX_CROSS_H: 0x%02hhX", crossx_buf[0], crossx_buf[1]);
-	PX4_DEBUG("IST8310 XY_CROSS_L: 0x%02hhX, XY_CROSS_H: 0x%02hhX", crossx_buf[2], crossx_buf[3]);
-	PX4_DEBUG("IST8310 XZ_CROSS_L: 0x%02hhX, XZ_CROSS_H: 0x%02hhX", crossx_buf[4], crossx_buf[5]);
-
-	cmd = static_cast<uint8_t>(Register::YX_CROSS_L);
-
-	if (transfer(&cmd, 1, crossy_buf, 6) != PX4_OK) {
-		PX4_ERR("Failed to read Y cross-axis data");
-		return false;
-	}
-
-	PX4_DEBUG("IST8310 YX_CROSS_L: 0x%02hhX, YX_CROSS_H: 0x%02hhX", crossy_buf[0], crossy_buf[1]);
-	PX4_DEBUG("IST8310 YX_CROSS_L: 0x%02hhX, YX_CROSS_H: 0x%02hhX", crossy_buf[2], crossy_buf[3]);
-	PX4_DEBUG("IST8310 YZ_CROSS_L: 0x%02hhX, YZ_CROSS_H: 0x%02hhX", crossy_buf[4], crossy_buf[5]);
-
-	cmd = static_cast<uint8_t>(Register::ZX_CROSS_L);
-
-	if (transfer(&cmd, 1, crossz_buf, 6) != PX4_OK) {
-		PX4_ERR("Failed to read Z cross-axis data");
-		return false;
-	}
-
-	PX4_DEBUG("IST8310 ZX_CROSS_L: 0x%02hhX, ZX_CROSS_H: 0x%02hhX", crossz_buf[0], crossz_buf[1]);
-	PX4_DEBUG("IST8310 ZY_CROSS_L: 0x%02hhX, ZY_CROSS_H: 0x%02hhX", crossz_buf[2], crossz_buf[3]);
-	PX4_DEBUG("IST8310 ZZ_CROSS_L: 0x%02hhX, ZZ_CROSS_H: 0x%02hhX", crossz_buf[4], crossz_buf[5]);
-
-	// Parse cross-axis matrix based on OTP data format
-	int16_t otp_crossaxis[9];
-
-	otp_crossaxis[0] = combine(crossx_buf[1], crossx_buf[0]);
-	otp_crossaxis[3] = combine(crossx_buf[3], crossx_buf[2]);
-	otp_crossaxis[6] = combine(crossx_buf[5], crossx_buf[4]);
-	otp_crossaxis[1] = combine(crossy_buf[1], crossy_buf[0]);
-	otp_crossaxis[4] = combine(crossy_buf[3], crossy_buf[2]);
-	otp_crossaxis[7] = combine(crossy_buf[5], crossy_buf[4]);
-	otp_crossaxis[2] = combine(crossz_buf[1], crossz_buf[0]);
-	otp_crossaxis[5] = combine(crossz_buf[3], crossz_buf[2]);
-	otp_crossaxis[8] = combine(crossz_buf[5], crossz_buf[4]);
-	PX4_DEBUG("Cross-axis matrix from OTP:");
-	PX4_DEBUG("[[%d, %d, %d],", otp_crossaxis[0], otp_crossaxis[1], otp_crossaxis[2]);
-	PX4_DEBUG(" [%d, %d, %d],", otp_crossaxis[3], otp_crossaxis[4], otp_crossaxis[5]);
-	PX4_DEBUG(" [%d, %d, %d]]", otp_crossaxis[6], otp_crossaxis[7], otp_crossaxis[8]);
-
-	// Calculate matrix determinant
-	_crossaxis_det = ((int32_t)otp_crossaxis[0]) * otp_crossaxis[4] * otp_crossaxis[8] +
-			 ((int32_t)otp_crossaxis[1]) * otp_crossaxis[5] * otp_crossaxis[6] +
-			 ((int32_t)otp_crossaxis[2]) * otp_crossaxis[3] * otp_crossaxis[7] -
-			 ((int32_t)otp_crossaxis[0]) * otp_crossaxis[5] * otp_crossaxis[7] -
-			 ((int32_t)otp_crossaxis[2]) * otp_crossaxis[4] * otp_crossaxis[6] -
-			 ((int32_t)otp_crossaxis[1]) * otp_crossaxis[3] * otp_crossaxis[8];
-
-	PX4_DEBUG("Cross-axis matrix determinant: %d", _crossaxis_det);
-
-	if (_crossaxis_det == 0) {
-		PX4_WARN("Cross-axis determinant is zero, using identity matrix");
-		_crossaxis_enabled = false;
-		// Directly set identity matrix instead of recursive call
-		_crossaxis_inv[0] = (1 << CROSSAXIS_INV_BITSHIFT);
-		_crossaxis_inv[1] = 0;
-		_crossaxis_inv[2] = 0;
-		_crossaxis_inv[3] = 0;
-		_crossaxis_inv[4] = (1 << CROSSAXIS_INV_BITSHIFT);
-		_crossaxis_inv[5] = 0;
-		_crossaxis_inv[6] = 0;
-		_crossaxis_inv[7] = 0;
-		_crossaxis_inv[8] = (1 << CROSSAXIS_INV_BITSHIFT);
-		_crossaxis_det = 1;
-		return true;
-	}
-
-	// Calculate inverse matrix
-	int64_t inv[9];
-	inv[0] = (int64_t)otp_crossaxis[4] * otp_crossaxis[8] - (int64_t)otp_crossaxis[5] * otp_crossaxis[7];
-	inv[1] = (int64_t)otp_crossaxis[2] * otp_crossaxis[7] - (int64_t)otp_crossaxis[1] * otp_crossaxis[8];
-	inv[2] = (int64_t)otp_crossaxis[1] * otp_crossaxis[5] - (int64_t)otp_crossaxis[2] * otp_crossaxis[4];
-	inv[3] = (int64_t)otp_crossaxis[5] * otp_crossaxis[6] - (int64_t)otp_crossaxis[3] * otp_crossaxis[8];
-	inv[4] = (int64_t)otp_crossaxis[0] * otp_crossaxis[8] - (int64_t)otp_crossaxis[2] * otp_crossaxis[6];
-	inv[5] = (int64_t)otp_crossaxis[2] * otp_crossaxis[3] - (int64_t)otp_crossaxis[0] * otp_crossaxis[5];
-	inv[6] = (int64_t)otp_crossaxis[3] * otp_crossaxis[7] - (int64_t)otp_crossaxis[4] * otp_crossaxis[6];
-	inv[7] = (int64_t)otp_crossaxis[1] * otp_crossaxis[6] - (int64_t)otp_crossaxis[0] * otp_crossaxis[7];
-	inv[8] = (int64_t)otp_crossaxis[0] * otp_crossaxis[4] - (int64_t)otp_crossaxis[1] * otp_crossaxis[3];
-
-	for (int i = 0; i < 9; i++) {
-		_crossaxis_inv[i] = (inv[i] << CROSSAXIS_INV_BITSHIFT) * OTP_SENSITIVITY;
-	}
-
-	PX4_DEBUG("Inverse cross-axis matrix:");
-	PX4_DEBUG("[[%lld, %lld, %lld],", _crossaxis_inv[0], _crossaxis_inv[1], _crossaxis_inv[2]);
-	PX4_DEBUG(" [%lld, %lld, %lld],", _crossaxis_inv[3], _crossaxis_inv[4], _crossaxis_inv[5]);
-	PX4_DEBUG(" [%lld, %lld, %lld]]", _crossaxis_inv[6], _crossaxis_inv[7], _crossaxis_inv[8]);
-
-	PX4_INFO("Cross-axis calibration initialized successfully");
-	return true;
-}
-
-void IST8310::CrossAxisTransformation(int16_t *xyz)
-{
-	if (!_crossaxis_enabled) {
-		return;
-	}
-
-	// Check if crossaxis matrix is initialized
-	bool matrix_initialized = false;
-
-	for (int i = 0; i < 9; i++) {
-		if (_crossaxis_inv[i] != 0) {
-			matrix_initialized = true;
-			break;
-		}
-	}
-
-	if (!matrix_initialized) {
-		PX4_WARN("Cross-axis matrix not initialized, reinitializing");
-		InitializeCrossAxisMatrix();
-		return;
-	}
-
-	// Apply cross-axis transformation
-	int64_t output_tmp[3];
-
-	output_tmp[0] = (int64_t)xyz[0] * _crossaxis_inv[0] +
-			(int64_t)xyz[1] * _crossaxis_inv[1] +
-			(int64_t)xyz[2] * _crossaxis_inv[2];
-
-	output_tmp[1] = (int64_t)xyz[0] * _crossaxis_inv[3] +
-			(int64_t)xyz[1] * _crossaxis_inv[4] +
-			(int64_t)xyz[2] * _crossaxis_inv[5];
-
-	output_tmp[2] = (int64_t)xyz[0] * _crossaxis_inv[6] +
-			(int64_t)xyz[1] * _crossaxis_inv[7] +
-			(int64_t)xyz[2] * _crossaxis_inv[8];
-
-	// Apply determinant division and bit shift
-	for (int i = 0; i < IST8310_AXES_NUM; i++) {
-		output_tmp[i] = output_tmp[i] / _crossaxis_det;
-	}
-
-	xyz[0] = static_cast<int16_t>(output_tmp[0] >> CROSSAXIS_INV_BITSHIFT);
-	xyz[1] = static_cast<int16_t>(output_tmp[1] >> CROSSAXIS_INV_BITSHIFT);
-	xyz[2] = static_cast<int16_t>(output_tmp[2] >> CROSSAXIS_INV_BITSHIFT);
 }
