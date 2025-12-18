@@ -208,7 +208,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
 	add_topic("vehicle_optical_flow", 500);
-	add_topic("aux_global_position", 500);
+	add_topic_multi("aux_global_position", 500);
 	add_optional_topic("pps_capture");
 
 	// additional control allocation logging
@@ -317,7 +317,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
-	add_topic("aux_global_position");
+	add_topic_multi("aux_global_position");
 	add_topic_multi("distance_sensor");
 }
 
