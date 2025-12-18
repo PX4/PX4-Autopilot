@@ -748,7 +748,6 @@ void EKF2::Run()
 
 		// push imu data into estimator
 		_ekf.setIMUData(imu_sample_new);
-		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
 
 		// integrate time to monitor time slippage
 		if (_start_time_us > 0) {
@@ -854,6 +853,9 @@ void EKF2::Run()
 			UpdateMagCalibration(now);
 #endif // CONFIG_EKF2_MAGNETOMETER
 		}
+
+		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
+
 
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
