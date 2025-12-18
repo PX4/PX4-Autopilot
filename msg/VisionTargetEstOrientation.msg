@@ -1,11 +1,11 @@
-# Relative orientation of the target estimated by the vision target estimator
+# Vision Target Estimator orientation state
 
-uint64 timestamp		    # time since system start (microseconds)
+uint64 timestamp		    # [us] time since system start
 
-bool orientation_valid  # Flag showing whether relative orientation is valid
+bool orientation_valid  # [-] relative orientation estimate valid
 
-float32 yaw            # yaw of the target relative to the navigation frame [rad] [-pi; pi]
-float32 cov_yaw        # yaw variance [rad^2]
+float32 yaw            # [rad] [@frame NED] target yaw angle
+float32 cov_yaw        # [rad^2] variance of yaw
 
-float32 yaw_rate       # yaw rate of the target relative to the navigation frame [rad/s]
-float32 cov_yaw_rate   # yaw rate variance [(rad/s)^2]
+float32 yaw_rate       # [rad/s] [@frame NED] target yaw rate
+float32 cov_yaw_rate   # [(rad/s)^2] variance of yaw_rate
