@@ -45,6 +45,7 @@
 #include <px4_platform_common/defines.h>
 
 #include "common.h"
+#include <lib/ringbuffer/TimestampedRingBuffer.hpp>
 
 namespace vision_target_estimator
 {
@@ -75,12 +76,17 @@ public:
 		InputT input{}; // Input used to reach this state from the previous timestamp
 	};
 
+	static_assert(HistorySize > 0, "HistorySize must be > 0");
+	static_assert(HistorySize <= 255, "HistorySize must fit in uint8_t");
+	static constexpr uint8_t kHistorySize = static_cast<uint8_t>(HistorySize);
+
 	OOSMManager() = default;
 
 	void reset()
 	{
-		_head = 0;
-		_count = 0;
+		if (_history.valid()) {
+			_history.reset();
+		}
 	}
 
 	/**
@@ -89,16 +95,17 @@ public:
 	 */
 	void push(uint64_t time_us, const StateVec &state, const StateCov &cov, const InputT &input)
 	{
-		_history[_head].time_us = time_us;
-		_history[_head].state = state;
-		_history[_head].cov = cov;
-		_history[_head].input = input;
-
-		_head = (_head + 1) % HistorySize;
-
-		if (_count < HistorySize) {
-			_count++;
+		if (!_history.valid()) {
+			return;
 		}
+
+		Sample sample{};
+		sample.time_us = time_us;
+		sample.state = state;
+		sample.cov = cov;
+		sample.input = input;
+
+		_history.push(sample);
 	}
 
 	/**
@@ -135,15 +142,14 @@ public:
 		}
 
 		// OOSM checks
-		if (_count == 0) {
+		if (!_history.valid() || (_history.entries() == 0)) {
 			res.status = FusionStatus::REJECT_EMPTY;
 			return res;
 		}
 
-		const int newest_idx = (_head + HistorySize - 1) % HistorySize;
-		const int oldest_idx = (_head + HistorySize - _count) % HistorySize;
-		const uint64_t newest_time_us = _history[newest_idx].time_us;
-		const uint64_t oldest_time_us = _history[oldest_idx].time_us;
+		const uint8_t newest_idx = _history.get_newest_index();
+		const uint64_t newest_time_us = _history.get_newest().time_us;
+		const uint64_t oldest_time_us = _history.get_oldest().time_us;
 
 		// Check buffer consistency (reset if the "live" time jumped backwards or too far forward)
 		if (now_us < newest_time_us || (now_us - newest_time_us) > kOosmMaxTimeUs) {
@@ -165,19 +171,23 @@ public:
 		}
 
 		// Find the floor sample (sample immediately before or at meas time)
-		int floor_idx = -1;
-		int curr_idx = newest_idx;
+		bool floor_found = false;
+		uint8_t floor_idx = newest_idx;
+		uint8_t curr_idx = newest_idx;
 
-		for (int i = 0; i < _count; i++) {
+		const int history_count = _history.entries();
+
+		for (int i = 0; i < history_count; i++) {
 			if (_history[curr_idx].time_us <= meas.time_us) {
 				floor_idx = curr_idx;
+				floor_found = true;
 				break;
 			}
 
-			curr_idx = (curr_idx == 0) ? (HistorySize - 1) : (curr_idx - 1);
+			curr_idx = _history.prev(curr_idx);
 		}
 
-		if (floor_idx == -1) {
+		if (!floor_found) {
 			res.status = FusionStatus::REJECT_TOO_OLD;
 			return res;
 		}
@@ -193,7 +203,7 @@ public:
 		InputT input_interval = curr_input;
 
 		if (floor_idx != newest_idx) {
-			const int next_idx = (floor_idx + 1) % HistorySize;
+			const uint8_t next_idx = _history.next(floor_idx);
 			input_interval = _history[next_idx].input;
 		}
 
@@ -226,16 +236,17 @@ public:
 		Phi_cumulative.setIdentity();
 
 		uint64_t prev_time_us = meas.time_us;
-		int idx = (floor_idx + 1) % HistorySize;
+		const uint8_t end_idx = _history.next(newest_idx);
+		uint8_t idx = _history.next(floor_idx);
 		uint8_t steps = 0;
 
 		// Iterate from meas time up to newest sample
-		while (idx != _head) {
+		while (idx != end_idx) {
 			Sample &sample = _history[idx];
 
 			// Skip if this sample is older than measurement (shouldn't happen given finding logic, but safety)
 			if (sample.time_us <= meas.time_us) {
-				idx = (idx + 1) % HistorySize;
+				idx = _history.next(idx);
 				continue;
 			}
 
@@ -252,7 +263,7 @@ public:
 			filter.applyCorrection(sample.state, sample.cov, K_proj, res.innov, res.innov_var);
 
 			prev_time_us = sample.time_us;
-			idx = (idx + 1) % HistorySize;
+			idx = _history.next(idx);
 			steps++;
 		}
 
@@ -310,9 +321,7 @@ private:
 		return true;
 	}
 
-	Sample _history[HistorySize] {};
-	int _head{0};
-	int _count{0};
+	TimestampedRingBuffer<Sample, kHistorySize> _history;
 };
 
 } // namespace vision_target_estimator
