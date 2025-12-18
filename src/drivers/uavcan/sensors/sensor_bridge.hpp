@@ -92,6 +92,7 @@ struct Channel {
 	orb_advert_t orb_advert{nullptr};
 	int instance{-1};
 	void *h_driver{nullptr};
+	uint8_t iface_index{0};
 };
 } // namespace uavcan_bridge
 
@@ -138,7 +139,7 @@ protected:
 	 */
 	virtual int init_driver(uavcan_bridge::Channel *channel) { return PX4_OK; };
 
-	uavcan_bridge::Channel *get_channel_for_node(int node_id);
+	uavcan_bridge::Channel *get_channel_for_node(int node_id, uint8_t iface_index);
 
 	/**
 	 * Builds a unique device ID from a UAVCAN message
@@ -148,11 +149,22 @@ protected:
 	template<typename T>
 	uint32_t make_uavcan_device_id(const uavcan::ReceivedDataStructure<T> &msg) const
 	{
-		device::Device::DeviceId device_id;
+		return make_uavcan_device_id(msg.getSrcNodeID().get(), msg.getIfaceIndex());
+	}
+
+	/**
+	 * Builds a unique device ID from node ID and interface index
+	 * @param node_id UAVCAN node ID
+	 * @param iface_index CAN interface index (0 = CAN1, 1 = CAN2, etc.)
+	 * @return Complete device ID with node address and interface encoded
+	 */
+	uint32_t make_uavcan_device_id(uint8_t node_id, uint8_t iface_index) const
+	{
+		device::Device::DeviceId device_id{};
 		device_id.devid_s.devtype = get_device_type();
-		device_id.devid_s.address = static_cast<uint8_t>(msg.getSrcNodeID().get());
+		device_id.devid_s.address = node_id;
 		device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
-		device_id.devid_s.bus = msg.getIfaceIndex();
+		device_id.devid_s.bus = iface_index;
 		return device_id.devid;
 	}
 
