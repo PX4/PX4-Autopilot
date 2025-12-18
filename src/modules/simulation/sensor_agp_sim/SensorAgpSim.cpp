@@ -129,17 +129,16 @@ void SensorAgpSim::Run()
 					 CONSTANTS_RADIUS_OF_EARTH);
 		const double altitude = (double)(_measured_lla.altitude() + (generate_wgn() * 0.5f));
 
-		vehicle_global_position_s sample{};
+		aux_global_position_s sample{};
 
+		sample.id = 33;
 		sample.timestamp_sample = gpos.timestamp_sample;
 		sample.lat = latitude;
 		sample.lon = longitude;
 		sample.alt = altitude;
-		sample.lat_lon_valid = true;
-		sample.alt_ellipsoid = altitude;
-		sample.alt_valid = true;
 		sample.eph = 20.f;
 		sample.epv = 5.f;
+		sample.lat_lon_reset_counter = 0;
 
 		sample.timestamp = hrt_absolute_time();
 		_aux_global_position_pub.publish(sample);
