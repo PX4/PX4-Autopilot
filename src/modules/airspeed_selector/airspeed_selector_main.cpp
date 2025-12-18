@@ -184,7 +184,7 @@ private:
 	param_t _param_handle_fw_thr_max{PARAM_INVALID};
 	float _param_fw_thr_max{0.0f};
 
-	AlphaFilter<float> _throttle_filtered{_kThrottleFilterTimeConstant};
+	AlphaFilter<float> _tecs_throttle_sp_filtered{_kThrottleFilterTimeConstant};
 	uint64_t _t_last_throttle_fw{0};
 
 	DEFINE_PARAMETERS(
@@ -393,7 +393,7 @@ AirspeedModule::Run()
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
 		input_data.hdg_test_ratio = _estimator_status.hdg_test_ratio;
 		input_data.tecs_timestamp = _tecs_status.timestamp;
-		input_data.fixed_wing_throttle_filtered = _throttle_filtered.getState();
+		input_data.fixed_wing_throttle_filtered = _tecs_throttle_sp_filtered.getState();
 		input_data.fixed_wing_tecs_throttle_trim = _tecs_status.throttle_trim;
 
 		// iterate through all airspeed sensors, poll new data from them and update their validators
@@ -751,7 +751,7 @@ void AirspeedModule::select_airspeed_and_publish()
 
 	airspeed_validated.airspeed_derivative_filtered = _airspeed_validator[valid_airspeed_index -
 					     1].get_airspeed_derivative();
-	airspeed_validated.throttle_filtered = _throttle_filtered.getState();
+	airspeed_validated.throttle_filtered = _tecs_throttle_sp_filtered.getState();
 	airspeed_validated.pitch_filtered = _airspeed_validator[valid_airspeed_index - 1].get_pitch_filtered();
 
 	airspeed_validated.airspeed_source = valid_airspeed_index;
@@ -771,7 +771,7 @@ void AirspeedModule::select_airspeed_and_publish()
 		break;
 
 	case AirspeedSource::SYNTHETIC: {
-			airspeed_validated.throttle_filtered = _throttle_filtered.getState();
+			airspeed_validated.throttle_filtered = _tecs_throttle_sp_filtered.getState();
 			airspeed_validated.pitch_filtered = _airspeed_validator[0].get_pitch_filtered();
 			float synthetic_airspeed = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
 			airspeed_validated.calibrated_airspeed_m_s = synthetic_airspeed;
@@ -851,10 +851,10 @@ void AirspeedModule::update_throttle_filter(hrt_abstime now)
 		_t_last_throttle_fw = now;
 
 		if (dt < FLT_EPSILON || dt > 1.f) {
-			_throttle_filtered.reset(throttle_sp);
+			_tecs_throttle_sp_filtered.reset(throttle_sp);
 
 		} else {
-			_throttle_filtered.update(throttle_sp, dt);
+			_tecs_throttle_sp_filtered.update(throttle_sp, dt);
 		}
 	}
 }
