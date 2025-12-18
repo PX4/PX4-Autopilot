@@ -18,11 +18,11 @@ This section describes the configuration options, and the circumstances in which
 PX4's EKF2 navigation has two modes for handling when GNSS data is determined to be unreliable:
 
 - **Automatic mode** (the default): Used for flying outdoors in environments where a GNSS signal is expected to be largely reliable.
-- **Dead-reckoning mode**: Recommended when you want to fly missions or other position controlled mode when there is intermittent GNSS loss, such as when flying under a bridge, from outdoors into an indoor setting, or when there is GNSS jamming (it is not suitable for pure-indoor use, as a GNSS signal is required before arming).
+- **Dead-reckoning mode**: Recommended when you want to fly missions or other position controlled modes when there is intermittent GNSS loss, such as when flying under a bridge, from outdoors into an indoor setting, or when there is GNSS jamming (it is not suitable for pure-indoor use, as a GNSS signal is required before arming).
 
 ::: info
 Dead-reckoning mode helps for both Fixed-Wing and Multicopter vehicles.
-MC vehicles benefits more because it can hover when transitioning between sensor regimes.
+MC vehicles benefit more because they can hover when transitioning between sensor regimes.
 FW needs continuous accurate velocity/position during the entire mission arc, making sensor transitions trickier.
 :::
 
@@ -39,9 +39,9 @@ Use Automatic (default) when:
 - You want the EKF to reset to GNSS when it becomes available again.
 - Operating in environments where GNSS is either good or completely unavailable (binary state).
 
-### Dead-Reckoning mode
+### Dead-Reckoning Mode
 
-In Dead-reckoning mode, EKF2 stops fusing GNSS data when it becomes unreliable and prevents EKF2 resets, provided there are other sources of position or velocity data that can be fused.
+In dead-reckoning mode, EKF2 stops fusing GNSS data when it becomes unreliable and prevents EKF2 resets, provided there are other sources of position or velocity data that can be fused.
 This ensures that the vehicle can continue flying missions and other position controlled modes when GNSS is lost.
 
 When GNSS is recovered it will be fused with other measurements when tests indicate it can be trusted. This may cause jerky movements in position controlled modes if the estimate has drifted.
@@ -62,10 +62,10 @@ The vehicle must have an alternative source of position or velocity information,
 To enable dead-reckoning mode:
 
 1. Set [EKF2_GPS_MODE](../advanced_config/parameter_reference.md#EKF2_GPS_MODE) to `1`.
-2. Ensure that GNSS arming checks are enabled (a reliable GNSS signal is required before arming) :
+2. Ensure that GNSS arming checks are enabled (a reliable GNSS signal is required before arming):
    - [COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS) - set to `0`
    - [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) - set to default.
 
-## See also
+## See Also
 
 - [GNSS Fault Detection](../advanced_config/tuning_the_ecl_ekf.md#gnss-fault-detection)
