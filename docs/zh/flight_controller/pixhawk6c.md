@@ -112,7 +112,7 @@ The [Pixhawk 6C Wiring Quick Start](../assembly/quick_start_pixhawk6c.md) provid
 
 | UART   | 设备         | Port   |
 | ------ | ---------- | ------ |
-| USART1 | UART       | GPS1   |
+| USART1 | /dev/ttyS0 | GPS1   |
 | USART2 | /dev/ttyS1 | TELEM3 |
 | USART3 | /dev/ttyS2 | 调试控制台  |
 | UART5  | /dev/ttyS3 | TELEM2 |

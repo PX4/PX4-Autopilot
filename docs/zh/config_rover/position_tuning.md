@@ -133,11 +133,11 @@ $$
 
 | Symbol                              | 描述                                 | Unit |
 | ----------------------------------- | ---------------------------------- | ---- |
-| $\vec{a}$                           | Vector from current to previous WP | m    |
-| $\vec{b}$                           | Vector from current to next WP     | m    |
-| $r_{min}$      | Minimum turn radius                | m    |
-| $\delta_{max}$ | Maximum steer angle                | m    |
-| $r_{acc}$      | Acceptance radius                  | m    |
+| $\vec{a}$                           | Vector from current to previous WP | 米    |
+| $\vec{b}$                           | Vector from current to next WP     | 米    |
+| $r_{min}$      | Minimum turn radius                | 米    |
+| $\delta_{max}$ | Maximum steer angle                | 米    |
+| $r_{acc}$      | Acceptance radius                  | 米    |
 
 ## Differential Rover Only
 
@@ -187,14 +187,14 @@ The position controller uses the following structure:
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---- |
 | <a id="RO_SPEED_RED"></a>[RO_SPEED_RED](../advanced_config/parameter_reference.md#RO_SPEED_RED)          | (Optional) Tuning parameter for the speed reduction based on the course error | -    |
 | <a id="PP_LOOKAHD_GAIN"></a>[PP_LOOKAHD_GAIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_GAIN) | Pure pursuit: Main tuning parameter                                              | -    |
-| <a id="PP_LOOKAHD_MAX"></a>[PP_LOOKAHD_MAX](../advanced_config/parameter_reference.md#PP_LOOKAHD_MAX)    | Pure pursuit: Maximum value for the look ahead radius                            | m    |
-| <a id="PP_LOOKAHD_MIN"></a>[PP_LOOKAHD_MIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_MIN)    | Pure pursuit: Minimum value for the look ahead radius                            | m    |
+| <a id="PP_LOOKAHD_MAX"></a>[PP_LOOKAHD_MAX](../advanced_config/parameter_reference.md#PP_LOOKAHD_MAX)    | Pure pursuit: Maximum value for the look ahead radius                            | 米    |
+| <a id="PP_LOOKAHD_MIN"></a>[PP_LOOKAHD_MIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_MIN)    | Pure pursuit: Minimum value for the look ahead radius                            | 米    |
 
 ## Ackermann Specific
 
 | 参数                                                                                                                                                                      | 描述                                                                                  | Unit |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---- |
-| <a id="RA_ACC_RAD_MAX"></a>[RA_ACC_RAD_MAX](../advanced_config/parameter_reference.md#RA_ACC_RAD_MAX)    | (Optional) Maximum radius the acceptance radius can be scaled to | m    |
+| <a id="RA_ACC_RAD_MAX"></a>[RA_ACC_RAD_MAX](../advanced_config/parameter_reference.md#RA_ACC_RAD_MAX)    | (Optional) Maximum radius the acceptance radius can be scaled to | 米    |
 | <a id="RA_ACC_RAD_GAIN"></a>[RA_ACC_RAD_GAIN](../advanced_config/parameter_reference.md#RA_ACC_RAD_GAIN) | (Optional) Tuning parameter for the acceptance radius scaling    | -    |
 
 ## Differential Specific

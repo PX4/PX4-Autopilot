@@ -2,12 +2,12 @@
 
 无论对于模拟器还是硬件目标设备，PX4固件可以在控制台或者IDE中从源码构建
 
-You need to build PX4 in order to use [simulators](../simulation/index.md), or if you want to modify PX4 and create a custom build.
+若要使用[模拟器](../simulation/index.md)，或需要修改PX4并创建自定义构建，则必须自行构建PX4。
 如果您只想在实际硬件上试试 PX4，那么可以使用 QGroundControl[烧录预构建的二进制文件](../config/firmware.md)(无需跟着下面的指导)。
 
 :::info
 在跟着这些指导之前，你必须先为主机操作系统和目标硬件安装 [开发者工具链](../dev_setup/dev_env.md)。
-如果您在跟着这些步骤操作后有任何问题，请参阅下面的 [Troubleshooting](#troubleshooting)。
+如果您在跟着这些步骤操作后有任何问题，请参阅下面的 [故障排除](#troubleshooting)。
 :::
 
 ## 下载 PX4 源代码
@@ -20,12 +20,12 @@ PX4 源代码存储在 Github 上的 [PX4/PX4-Autopilot](https://github.com/PX4/
 git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 ```
 
-Note that you may already have done this when installing the [Developer Toolchain](../dev_setup/dev_env.md)
+注意，您可能在[安装开发工具链](../dev_setup/dev_env.md)时已经完成了这项操作
 
 :::info
-This is all you need to do in order to get the latest code.
-If needed you can also [get the source code specific to a particular release](../contribute/git_examples.md#get-a-specific-release).
-[GIT Examples](../contribute/git_examples.md) provides a lot more information working with releases and contributing to PX4.
+你只需要执行它就能够得到最新的代码。
+如果需要，您也可以[获取特定版本的源代码](../contribute/git_examples.md#get-a-specific-release)。
+[[GIT 示例](../contribute/git_examples.md) 提供了更多的信息，用于发布版本并对 PX4 作出贡献。
 :::
 
 ## 初次构建（使用模拟器）
@@ -33,15 +33,15 @@ If needed you can also [get the source code specific to a particular release](..
 首先我们要用控制台环境来构建一个模拟器目标
 这使我们能够在转移到真正的硬件和 IDE 之前验证系统设置。
 
-Navigate into the **PX4-Autopilot** directory and start [Gazebo SITL](../sim_gazebo_gz/index.md) using the following command:
+导航到 **PX4-Autopilot** 目录并使用以下命令启动 [Gazebo SITL](../sim_gazebo_gz/index.md)：
 
 ```sh
 make px4_sitl gz_x500
 ```
 
 :::details
-If you installed Gazebo Classic
-Start  [Gazebo Classic SITL](../sim_gazebo_classic/index.md) using the following command:
+如果您安装的是 Gazebo Classic
+使用以下命令启动 [Gazebo SITL](../sim_gazebo_classic/index.md)：
 
 ```sh
 make px4_sitl gazebo-classic
@@ -51,11 +51,11 @@ make px4_sitl gazebo-classic
 
 这将显示 PX4 控制台：
 
-![PX4 Console](../../assets/toolchain/console_gazebo.png)
+![PX4 控制台](../../assets/toolchain/console_gazebo.png)
 
 :::info
-You may need to start _QGroundControl_ before proceeding, as the default PX4 configuration requires a ground control connection before takeoff.
-This can be [downloaded from here](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html).
+您可能需要在继续之前启动 _QGroundControl_ ，因为默认的 PX4 配置需要在起飞前进行地面控制连接。
+可以[从这里下载](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html)。
 :::
 
 可以通过键入以下命令（如上方控制台中所示）来控制飞行器。
@@ -64,11 +64,11 @@ This can be [downloaded from here](https://docs.qgroundcontrol.com/master/en/qgc
 pxh> commander takeoff
 ```
 
-The vehicle will take off and you'll see this in the Gazebo simulator UI:
+该载具将起飞，您将在 Gazebo simulator UI 中看到：
 
-![Gazebo UI with vehicle taking off](../../assets/toolchain/gazebo_takeoff.png)
+![Gazebo UI 载具起飞](../../assets/toolchain/gazebo_takeoff.png)
 
-The drone can be landed by typing `commander land` and the whole simulation can be stopped by doing **CTRL+C** (or by entering `shutdown`).
+无人机可以通过输入 `Commander land` 来着陆，整个模拟可以通过 **CTRL+C** (或输入 `shutdown` )来停止。
 
 与地面站一起飞模拟器更接近飞机的实际运行。
 在飞机飞行时（Takeoff飞行模式），单击地图上的某个位置并启用滑块。
@@ -80,9 +80,9 @@ The drone can be landed by typing `commander land` and the whole simulation can 
 
 ### 为NuttX构建
 
-To build for NuttX- or Pixhawk- based boards, navigate into the **PX4-Autopilot** directory and then call `make` with the build target for your board.
+若要构建基于NuttX-或 Pixhawk的飞控板，请导航到 **PX4-Autopilot** 目录，然后调用 `make` ，并为您的板调用构建目标。
 
-For example, to build for [Pixhawk 4](../flight_controller/pixhawk4.md) hardware you could use the following command:
+例如，要为 [Pixhawk 4](../flight_controller/pixhawk4.md) 硬件构建，可使用以下命令：
 
 ```sh
 cd PX4-Autopilot
@@ -96,15 +96,15 @@ make px4_fmu-v5_default
 [954/954] Creating /home/youruser/src/PX4-Autopilot/build/px4_fmu-v4_default/px4_fmu-v4_default.px4
 ```
 
-The first part of the build target `px4_fmu-v4` indicates the target flight controller hardware for the firmware.
-The suffix, in this case `_default`, indicates a firmware _configuration_, such as supporting or omitting particular features.
+构建目标 `px4_fmu-v4` 的第一部分表示目标飞行控制器固件的硬件。
+后缀（此处为`_default`）表示固件的_配置_，例如支持或省略特定功能。
 
 :::info
-The `_default` suffix is optional.
-For example, `make px4_fmu-v5` and `px4_fmu-v5_default` result in the same firmware.
+`_default` 后缀是可选的。
+例如，`make px4_fmu-v5` 和 `px4_fmu-v5_default` 都会生成相同的固件。
 :::
 
-The following list shows the build commands for the [Pixhawk standard](../flight_controller/autopilot_pixhawk_standard.md) boards:
+以下列表显示了[Pixhawk标准](../flight_controller/autopilot_pixhawk_standard.md)飞行控制板的构建命令：
 
 - [Holybro Pixhawk 6X-RT (FMUv6X)](../flight_controller/pixhawk6x-rt.md): `make px4_fmu-v6xrt_default`
 
@@ -134,7 +134,7 @@ The following list shows the build commands for the [Pixhawk standard](../flight
 
 - [Pixhawk 2 (Cube Black) (FMUv3)](../flight_controller/pixhawk-2.md): `make px4_fmu-v3_default`
 
-- [mRo Pixhawk (FMUv3)](../flight_controller/mro_pixhawk.md): `make px4_fmu-v3_default` (supports 2MB Flash)
+- [mRo Pixhawk (FMUv3)](../flight_controller/mro_pixhawk.md): `make px4_fmu-v3_default` (支持 2MB Flash)
 
 - [Holybro pix32 (FMUv2)](../flight_controller/holybro_pix32.md): `make px4_fmu-v2_default`
 
@@ -145,17 +145,17 @@ The following list shows the build commands for the [Pixhawk standard](../flight
 - [Pixhawk 1 (FMUv2)](../flight_controller/pixhawk.md): `make px4_fmu-v2_default`
 
   :::warning
-  You **must** use a supported version of GCC to build this board (e.g. the same as used by [CI/docker](../test_and_ci/docker.md)) or remove modules from the build. Building with an unsupported GCC may fail, as PX4 is close to the board's 1MB flash limit.
+  您**必须**使用受支持的GCC版本来构建此开发板（例如与[CI/docker](../test_and_ci/docker.md)中使用的相同版本），否则需从构建中移除相关模块。 Building with an unsupported GCC may fail, as PX4 is close to the board's 1MB flash limit.
 
 :::
 
-- Pixhawk 1 with 2 MB flash: `make px4_fmu-v3_default`
+- 具有 2 MB flash 的 Pixhawk 1: `make px4_fmu-v3_default`
 
-Build commands for non-Pixhawk NuttX fight controllers (and for all other-boards) are provided in the documentation for the individual [flight controller boards](../flight_controller/index.md).
+非 Pixhawk NuttX 飞控的构建命令（以及所有其他主板的命令）均在各款[飞控主板](../flight_controller/index.md)的文档中提供。
 
 ### 将固件烧录到飞控板
 
-Append `upload` to the make commands to upload the compiled binary to the autopilot hardware via USB.
+在 make 命令后添加 `upload`，通过USB将编译后的二进制文件上传至 autopilot 硬件。
 例如
 
 ```sh
@@ -174,13 +174,13 @@ Rebooting.
 ```
 
 :::tip
-This is not supported when developing on WSL2.
-See [ Windows Development Environment (WSL2-Based) > Flash a Control Board](../dev_setup/dev_env_windows_wsl.md#flash-a-flight-control-board).
+在 WSL 2 上开发时不支持此操作。（其实也有办法，见 [WSL 2 连接 USB 设备](https://learn.microsoft.com/zh-cn/windows/wsl/connect-usb)）。
+参见[ Windows 开发环境 (WSL2-基于) > Flash控制板](../dev_setup/dev_env_windows_wsl.md#flash-a-flight-control-board)。
 :::
 
 ## 其他飞控板
 
-Build commands for other boards are given the [board-specific flight controller pages](../flight_controller/index.md) (usually under a heading _Building Firmware_).
+其他主板的构建命令详见[各主板专属飞行控制器页面](../flight_controller/index.md)（通常位于_构建固件_标题下）。
 
 您还可以使用以下命令列出所有配置目标：
 
@@ -190,15 +190,15 @@ make list_config_targets
 
 ## 用图形界面 IDE 编译
 
-[VSCode](../dev_setup/vscode.md) is the officially supported (and recommended) IDE for PX4 development.
-It is easy to set up and can be used to compile PX4 for both simulation and hardware environments.
+[VSCode](../dev_setup/vscode.md是官方支持 (且推荐) 的  用于 PX4 开发的 IDE。
+它很容易设置，可以用于编译模拟和硬件环境的 PX4。
 
 ## 故障处理
 
 ### 常规构建错误
 
 许多构建问题是由不匹配的子模块或未完全清理的构建环境引起的。
-Updating the submodules and doing a `distclean` can fix these kinds of errors:
+更新子模块并进行 `distclean` 可以修复这些类型的错误：
 
 ```sh
 git submodule update --recursive
@@ -207,11 +207,11 @@ make distclean
 
 ### 闪存溢出了 XXX 字节
 
-The `region 'flash' overflowed by XXXX bytes` error indicates that the firmware is too large for the target hardware platform.
-This is common for `make px4_fmu-v2_default` builds, where the flash size is limited to 1MB.
+`region 'flash' overflowed by XXXX bytes` 错误表明固件对目标硬件平台太大了。
+这对于`make px4_fmu-v2_default` 构建是常见的，它的 flash 大小被限制在 1MB。
 
-If you're building the _vanilla_ master branch, the most likely cause is using an unsupported version of GCC.
-In this case, install the version specified in the [Developer Toolchain](../dev_setup/dev_env.md) instructions.
+如果您正在构建_vanilla_master 分支，最可能的原因是使用不支持的 GCC版本。
+在这种情况下，安装[开发者工具链](../dev_setup/dev_env.md)说明中指定的版本。
 
 如果在构建自己的分支，您可能已将固件大小增加到超过1MB的限制。
 在这种情况下，您需要从构建中删除您不需要的任何驱动程序/模块。
@@ -221,16 +221,16 @@ In this case, install the version specified in the [Developer Toolchain](../dev_
 MacOS 默认允许在所有正在运行的进程中最多打开256个文件。
 PX4构建系统打开大量文件，因此您可能会超出此数量。
 
-The build toolchain will then report `Too many open files` for many files, as shown below:
+构建工具链为很多文件报 `Too many open files`，如下所示：
 
 ```sh
 /usr/local/Cellar/gcc-arm-none-eabi/20171218/bin/../lib/gcc/arm-none-eabi/7.2.1/../../../../arm-none-eabi/bin/ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
 ```
 
 解决方案是增加允许打开文件的最大数量（例如增加到300）。
-You can do this in the macOS _Terminal_ for each session:
+您可以在每个会话的 macOS _终端_ 中这样做：
 
-- Run this script [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh), or
+- 运行此脚本 [Tools/mac_set_ulimit.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mac_set_ulimit.sh)，或
 - 运行这个命令:
 
   ```sh
@@ -239,7 +239,7 @@ You can do this in the macOS _Terminal_ for each session:
 
 ### macOS Catalina：运行cmake时出现问题
 
-As of macOS Catalina 10.15.1 there may be problems when trying to build the simulator with _cmake_.
+对于 macOS Catalina 10.15.1 ，在尝试使用 _cmake _ 构建模拟器时可能会遇到问题。
 如果您在这个平台上遇到构建问题，请尝试在终端中运行以下命令：
 
 ```sh
@@ -249,7 +249,7 @@ sudo ln -s /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/* /us
 
 ### Ubuntu 18.04：涉及arm_none_eabi_gcc的编译错误
 
-Build issues related to `arm_none_eabi_gcc`may be due to a broken g++ toolchain installation.
+与 arm_none_eabi_gcc 相关的构建问题可能是由于损坏的g++工具链安装引起的。
 您可以通过检查缺少的依赖项来验证这一点：
 
 ```sh
@@ -266,15 +266,15 @@ arm-none-eabi-gdb --version
 arm-none-eabi-gdb: command not found
 ```
 
-This can be resolved by removing and [reinstalling the compiler](https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa).
+这个问题可以通过删除和[重新安装编译器](https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa)来解决。
 
 ### Ubuntu 18.04：Visual Studio Code 无法监视此大型工作区中的文件更改
 
-See [Visual Studio Code IDE (VSCode) > Troubleshooting](../dev_setup/vscode.md#troubleshooting).
+请参阅[Visual Studio 代码 IDE (VSCode) > 疑难解答](../dev_setup/vscode.md#troubleshooting)。
 
 ### 导入Python软件包失败
 
-"Failed to import" errors when running the `make px4_sitl jmavsim` command indicates that some Python packages are not installed (where expected).
+在运行 `make px4_sitl jmavsim` 命令时，“导入失败”错误表示某些Python 软件包未安装(如预期般安装)。
 
 ```sh
 Failed to import jinja2: No module named 'jinja2'
@@ -292,25 +292,25 @@ pip3 install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg 
 
 ## PX4 创建生成目标
 
-The previous sections showed how you can call _make_ to build a number of different targets, start simulators, use IDEs etc.
+前面的章节显示了您如何调用 _make_ 来构建一些不同的目标，启动模拟器，使用 IDE 等。
 This section shows how _make_ options are constructed and how to find the available choices.
 
-The full syntax to call _make_ with a particular configuration and initialization file is:
+使用特定配置和初始化文件调用 _make_ 的完整语法是：
 
 ```sh
 make [VENDOR_][MODEL][_VARIANT] [VIEWER_MODEL_DEBUGGER_WORLD]
 ```
 
-**VENDOR_MODEL_VARIANT**: (also known as `CONFIGURATION_TARGET`)
+**VENDOR_MODEL_VARIANT**: (也称为`CONFIGURATION_TARGET`)
 
-- **VENDOR:** The manufacturer of the board: `px4`, `aerotenna`, `airmind`, `atlflight`, `auav`, `beaglebone`, `intel`, `nxp`, etc.
-  The vendor name for Pixhawk series boards is `px4`.
-- **MODEL:** The _board model_ "model": `sitl`, `fmu-v2`, `fmu-v3`, `fmu-v4`, `fmu-v5`, `navio2`, etc.
-- **VARIANT:** Indicates particular configurations: e.g. `bootloader`, `cyphal`, which contain components that are not present in the `default` configuration.
-  Most commonly this is `default`, and may be omitted.
+- \*\*VENDOR：\*\*主板制造商：`px4`、`aerotenna`、`airmind`、`atlflight`、`auav`、`beaglebone`、`intel`、`nxp` 等。
+  Pixhawk 系列主板的供应商名称为 `px4`。
+- \*\*MODEL：\*\*飞控板型号 “model”：`sitl`、`fmu-v2`、`fmu-v3`、`fmu-v4`、`fmu-v5`、`navio2` 等。
+- **VARIANT:** 指示特定的配置：例如`bootloader`, `cyphal`, 其中包含不存在于“默认”配置中的组件。
+  最常见的情况是 `default`, 并且可能被省略。
 
 :::tip
-You can get a list of _all_ available `CONFIGURATION_TARGET` options using the command below:
+您可以使用下面的命令获取一个可用的`CONFIGURATION_TARGET`选项列表：
 
 ```sh
 make list_config_targets
@@ -318,29 +318,29 @@ make list_config_targets
 
 :::
 
-**VIEWER_MODEL_DEBUGGER_WORLD:**
+**VIEWER_MODEL_DEBUGER_WORLD:**
 
-- **VIEWER:** This is the simulator ("viewer") to launch and connect: `gz`, `gazebo`, `jmavsim`, `none` <!-- , ?airsim -->
+- **VIEWER:** 这是启动和连接的模拟器 ("查看器") : `gz`, `gzebo`, `jmavsim`, `none` <!-- , ?airsim -->
 
   :::tip
-  `none` can be used if you want to launch PX4 and wait for a simulator (jmavsim, Gazebo, Gazebo Classic, or some other simulator).
-  For example, `make px4_sitl none_iris` launches PX4 without a simulator (but with the iris airframe).
+  `none` 可以用于启动PX4并等待模拟器(jmavsim, Gazebo, Gazebo Classic, 或其他模拟器)。
+  例如，`make px4_sitl none_iris` 在没有模拟器的情况下启动 PX4 (但使用 iris 机架)。
 
 :::
 
-- **MODEL:** The _vehicle_ model to use (e.g. `iris` (_default_), `rover`, `tailsitter`, etc), which will be loaded by the simulator.
-  The environment variable `PX4_SIM_MODEL` will be set to the selected model, which is then used in the [startup script](../simulation/index.md#startup-scripts) to select appropriate parameters.
+- MODEL:要使用的 载具 模型（例如 iris (default)、rover、tailsitter 等），该模型将由模拟器加载。
+  环境变量 `PX4_SIM_MODEL` 将被设置为选中的模型，然后在[启动脚本](../simulation/index.md#startup-scripts)中使用以选择适当的参数。
 
-- **DEBUGGER:** Debugger to use: `none` (_default_), `ide`, `gdb`, `lldb`, `ddd`, `valgrind`, `callgrind`.
-  For more information see [Simulation Debugging](../debug/simulation_debugging.md).
+- **DEBUGER:** 调试器使用: `none` (_default_), `ide`, `gdb`, `lldb`, `ddd`, `valgrind`, `callgrind`.
+  更多信息请参阅[模拟调试](../debug/simulation_debugging.md)。
 
-- **WORLD:** (Gazebo Classic only).
-  Set the world ([PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds](https://github.com/PX4/PX4-SITL_gazebo-classic/tree/main/worlds)) that is loaded.
-  Default is [empty.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/empty.world).
-  For more information see [Gazebo Classic > Loading a Specific World](../sim_gazebo_classic/index.md#loading-a-specific-world).
+- **WORLD**: (仅限Gazebo Classic).
+  设置加载的世界（[PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds](https://github.com/PX4/PX4-SITL_gazebo-classic/tree/main/worlds)）。
+  默认为 [empty.world](https://github.com/PX4/PX4-SITL_gazebo-classic/blob/main/worlds/empty.world)。
+  欲了解更多信息，请参阅[Gazebo Classic > 加载特定世界](../sim_gazebo_classic/index.md#loading-a-specific-world)。
 
 :::tip
-You can get a list of _all_ available `VIEWER_MODEL_DEBUGGER_WORLD` options using the command below:
+您可以使用下面的命令获取_所有_可用的选项： `VIEWER_MODEBUGER_WORLD`
 
 ```sh
 make px4_sitl list_vmd_make_targets
@@ -350,33 +350,33 @@ make px4_sitl list_vmd_make_targets
 
 ::: info
 
-- Most of the values in the `CONFIGURATION_TARGET` and `VIEWER_MODEL_DEBUGGER` have defaults, and are hence optional.
-  For example, `gazebo-classic` is equivalent to `gazebo-classic_iris` or `gazebo-classic_iris_none`.
+- `CONFIGURATION_TARGET`和`VIEWER_MODEBUGER`中的大多数值都有默认值，因此是可选的。
+  例如，`gazebo-classic`等于`gazebo-classic_iris`或`gazebo-classic_iris_none`。
 - 如果要在其他两个设置之间指定默认值，可以使用三个下划线。
-  For example, `gazebo-classic___gdb` is equivalent to `gazebo-classic_iris_gdb`.
-- You can use a `none` value for `VIEWER_MODEL_DEBUGGER` to start PX4 and wait for a simulator.
-  For example start PX4 using `make px4_sitl_default none` and jMAVSim using `./Tools/simulation/jmavsim/jmavsim_run.sh -l`.
+  例如，`gazebo-classic___gdb`相当于`gazebo-classic_iris_gdb`。
+- 你可以使用 "none" 值为 "VIEWER_MODEBUGER" 来启动 PX4 并等待模拟器。
+  例如，使用 `make px4_sitl_default none` 和 jMAVSim 使用 `./Tools/simulation/jmavsim/jmavsim_run.sh -l` 启动 PX4。
 
 :::
 
-The `VENDOR_MODEL_VARIANT` options map to particular _px4board_ configuration files in the PX4 source tree under the [/boards](https://github.com/PX4/PX4-Autopilot/tree/main/boards) directory.
-Specifically `VENDOR_MODEL_VARIANT` maps to a configuration file **boards/VENDOR/MODEL/VARIANT.px4board**
-(e.g. `px4_fmu-v5_default` corresponds to [boards/px4/fmu-v5/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/default.px4board)).
+`VENDOR_MODEL_VARIANT`选项映射为 [/boards](https://github.com/PX4/PX4-Autopilot/tree/main/boards) 目录下的 PX4 源树中的特殊_px4board_ 配置文件。
+具体而言，`VENDOR_MODEL_VARIANT` 映射到配置文件 **boards/VENDOR/MODEL/VARIANT.px4board**
+（例如 `px4_fmu-v5_default` 对应 [boards/px4/fmu-v5/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/default.px4board)）。
 
 其他 make 目标在相关章节中讨论：
 
-- `bloaty_compare_master`: [Binary Size Profiling](../debug/binary_size_profiling.md)
+- `bloaty_compare_master`：[二进制大小分析](../debug/binary_size_profiling.md)
 - ...
 
-## Firmware Version & Git Tags
+## 固件版本和 Git 标签
 
-The _PX4 Firmware Version_ and _Custom Firmware Version_ are published using the MAVLink [AUTOPILOT_VERSION](https://mavlink.io/en/messages/common.html#AUTOPILOT_VERSION) message, and displayed in the _QGroundControl_ **Setup > Summary** airframe panel:
+_PX4固件版本_和_自定义固件版本_通过 MAVLink [AUTOPILOT_VERSION](https://mavlink.io/en/messages/common.html#AUTOPILOT_VERSION)消息发布，并在_QGroundControl_的**设置 > 摘要**机身面板中显示：
 
-![Firmware info](../../assets/gcs/qgc_setup_summary_airframe_firmware.jpg)
+![固件信息](../../assets/gcs/qgc_setup_summary_airframe_firmware.jpg)
 
-These are extracted at build time from the active _git tag_ for your repo tree.
-The git tag should be formatted as `<PX4-version>-<vendor-version>` (e.g. the tag in the image above was set to `v1.8.1-2.22.1`).
+这些是在构建时从您仓库树的活动_gi tag_中提取的。
+git 标签应该格式化为 `<PX4-version>-<vendor-version>` (例如上面图像中的标签被设置为 `v1.8.1-2.22.1`)。
 
 :::warning
-If you use a different git tag format, versions information may not be displayed properly.
+如果您使用不同的 git 标签格式，可能无法正确显示版本信息。
 :::
