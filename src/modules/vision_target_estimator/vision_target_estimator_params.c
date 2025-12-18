@@ -285,6 +285,19 @@ PARAM_DEFINE_FLOAT(VTE_BIA_UNC_IN, 1.0f);
 PARAM_DEFINE_FLOAT(VTE_YAW_UNC_IN, 1.0f);
 
 /**
+ * Yaw acceleration uncertainty
+ *
+ * Variance of the yaw acceleration that drives the yaw rate state.
+ * Unit: (rad/s^2)^2
+ *
+ * @min 0.0
+ * @decimal 3
+ *
+ * @group Vision Target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_YAW_ACC_UNC, 0.04f);
+
+/**
  * Initial target absolute acceleration uncertainty
  *
  * Initial variance of the relative target acceleration in x,y,z directions
