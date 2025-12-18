@@ -18,25 +18,25 @@ The [AirspeedValidated](../msg_docs/AirspeedValidated) message shown below is a 
 
 uint32 MESSAGE_VERSION = 1
 
-uint64 timestamp  # [us] Time since system start
+uint64 timestamp # [us] Time since system start
 
-float32 indicated_airspeed_m_s   # [m/s] [@invalid NaN] Indicated airspeed (IAS)
-float32 calibrated_airspeed_m_s  # [m/s] [@invalid NaN] Calibrated airspeed (CAS)
-float32 true_airspeed_m_s        # [m/s] [@invalid NaN] True airspeed (TAS)
+float32 indicated_airspeed_m_s # [m/s] [@invalid NaN] Indicated airspeed (IAS)
+float32 calibrated_airspeed_m_s # [m/s] [@invalid NaN] Calibrated airspeed (CAS)
+float32 true_airspeed_m_s # [m/s] [@invalid NaN] True airspeed (TAS)
 
-int8 airspeed_source               # [@enum SOURCE] Source of currently published airspeed values
-int8 SOURCE_DISABLED = -1          # Disabled
-int8 SOURCE_GROUND_MINUS_WIND = 0  # Ground speed minus wind
-int8 SOURCE_SENSOR_1 = 1           # Sensor 1
-int8 SOURCE_SENSOR_2 = 2           # Sensor 2
-int8 SOURCE_SENSOR_3 = 3           # Sensor 3
-int8 SOURCE_SYNTHETIC = 4          # Synthetic airspeed
+int8 airspeed_source # [@enum SOURCE] Source of currently published airspeed values
+int8 SOURCE_DISABLED = -1 # Disabled
+int8 SOURCE_GROUND_MINUS_WIND = 0 # Ground speed minus wind
+int8 SOURCE_SENSOR_1 = 1 # Sensor 1
+int8 SOURCE_SENSOR_2 = 2 # Sensor 2
+int8 SOURCE_SENSOR_3 = 3 # Sensor 3
+int8 SOURCE_SYNTHETIC = 4 # Synthetic airspeed
 
-float32 calibrated_ground_minus_wind_m_s  # [m/s] [@invalid NaN] CAS calculated from groundspeed - windspeed, where windspeed is estimated based on a zero-sideslip assumption
-float32 calibraded_airspeed_synth_m_s     # [m/s] [@invalid NaN] Synthetic airspeed
-float32 airspeed_derivative_filtered      # [m/s^2] Filtered indicated airspeed derivative
-float32 throttle_filtered                 # [-] Filtered fixed-wing throttle
-float32 pitch_filtered                    # [rad] Filtered pitch
+float32 calibrated_ground_minus_wind_m_s # [m/s] [@invalid NaN] CAS calculated from groundspeed - windspeed, where windspeed is estimated based on a zero-sideslip assumption
+float32 calibraded_airspeed_synth_m_s # [m/s] [@invalid NaN] Synthetic airspeed
+float32 airspeed_derivative_filtered # [m/s^2] Filtered indicated airspeed derivative
+float32 throttle_filtered # [-] Filtered fixed-wing throttle
+float32 pitch_filtered # [rad] Filtered pitch
 ```
 
 The main things to note are:
@@ -45,12 +45,14 @@ The main things to note are:
   Any text on a line after the `#` character is a comment, except for lines that start with the text `# TOPIC` (which indicates a multi-topic message).
 - The message starts with a comment block consisting of short description (mandatory), followed by a longer description and then a space.
 - Field and constants almost all have comments.
-  The comments are aligned within the block the field/constant is part of, with two spaces after the longest field or constant in the block.
+  The comments are added on the same line as the field/constant, separated by one space.
 - Fields:
   - Comments are all on the same line as the field (extra lines become internal comments).
-  - Comments start with metadata, such as the units (`m/s`, `rad/s`) or allowed values (`[@enum SOURCE]`), and can also list invalid values (`[@invalid NaN]`) and allowed ranges (`[@range min, max]`).
-  - Units are required except for boolean fields or for fields with an enum value. `[-]` is used to indicate unitless fields.
-  - Comments follow the metadata after a space. The line should not be terminated in a full stop.
+  - Comments start with metadata, such as the units (`[m/s]`, `[rad/s]`) or allowed values (`[@enum SOURCE]`), and can also list invalid values (`[@invalid NaN]`) and allowed ranges (`[@range min, max]`).
+  - Units are required except for boolean fields or for fields with an enum value.
+    `[-]` is used to indicate unitless fields.
+  - Comments follow the metadata after a space.
+    The line should not be terminated in a full stop.
 - Constants:
   - Don't have metadata: the description follows the comment marker after one space.
   - Some constants, such as `MESSAGE_VERSION`, don't need documentation because they are standardized.
@@ -98,7 +100,7 @@ Any subsequent comment lines are considered "internal comments".
 A typical field comment looks like this:
 
 ```py
-float32 indicated_airspeed_m_s  # [m/s] [@invalid NaN] Indicated airspeed (IAS)
+float32 indicated_airspeed_m_s # [m/s] [@invalid NaN] Indicated airspeed (IAS)
 ```
 
 Field comments include must all be on the same line as the field, and consist of optional metadata followed by a description:
@@ -110,6 +112,7 @@ Field comments include must all be on the same line as the field, and consist of
         - Allowed units include: `m`, `m/s`, `m/s^2`, `rad`, `rad/s`, `rpm` ,`V`, `A`, `mA`, `mAh`, `W`, `dBm`, `s`, `ms`, `us`, `Ohm`, `MB`, `Kb/s`, `degC`,`Pa`.
         - Units are required unless clearly invalid, such as when the field is a boolean, or is an enum value.
         - Unitless values should be specified as `[-]`.
+          Note thought that units are not required for boolean fields or enum fields.
     - `[@enum <enum_name>]`
       - The `enum_name` gives the prefix of constant values in the message that can be assigned to the field.
         Note that enums in uORB are just a naming convention: they are not explicitly declared.
@@ -134,21 +137,24 @@ Constants follow the documentation conventions as fields except they only have a
 Documentation for a constant might look like this:
 
 ```py
-int8 SOURCE_GROUND_MINUS_WIND = 0  # Ground speed minus wind
+int8 SOURCE_GROUND_MINUS_WIND = 0 # Ground speed minus wind
 ```
 
 Constants are often grouped together following a field as enum values.
 Note below how the prefix `SOURCE` for the values is specified as an enum against the _field_.
 
 ```py
-int8 airspeed_source               # [@enum SOURCE] Source of currently published airspeed values
-int8 SOURCE_DISABLED = -1          # Disabled
-int8 SOURCE_GROUND_MINUS_WIND = 0  # Ground speed minus wind
+int8 airspeed_source # [@enum SOURCE] Source of currently published airspeed values
+int8 SOURCE_DISABLED = -1 # Disabled
+int8 SOURCE_GROUND_MINUS_WIND = 0 # Ground speed minus wind
 ...
 ```
 
 A small number of constants have a standarized meaning and do not require documentation.
-These are: `ORB_QUEUE_LENGTH` and `MESSAGE_VERSION`.
+These are:
+
+- `ORB_QUEUE_LENGTH`
+- `MESSAGE_VERSION`
 
 ### `# TOPICS`
 
