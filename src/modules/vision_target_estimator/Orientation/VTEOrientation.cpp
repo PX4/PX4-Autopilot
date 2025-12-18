@@ -120,7 +120,7 @@ bool VTEOrientation::initEstimator(const ObsValidMaskU &fusion_mask,
 	_target_est_yaw.resetHistory();
 
 	PX4_DEBUG("Orientation filter init yaw: %.2f [rad] yaw_rate: %.2f [rad/s]", (double)state_init(State::yaw),
-		 (double)state_init(State::yaw_rate));
+		  (double)state_init(State::yaw_rate));
 
 	PX4_DEBUG("VTE Orientation Estimator properly initialized.");
 	_estimator_initialized = true;

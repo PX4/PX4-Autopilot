@@ -20,7 +20,7 @@ float32 cov_y_rel		# [m^2] Y/east position variance
 float32 cov_z_rel		# [m^2] Z/down position variance
 
 float32 cov_vx_rel		# [(m/s)^2] X/north velocity variance
-float32 cov_vy_rel		# [(m/s)^2] Y/east velocity variance]
+float32 cov_vy_rel		# [(m/s)^2] Y/east velocity variance
 float32 cov_vz_rel		# [(m/s)^2] Z/down velocity variance
 
 bool abs_pos_valid		# [-] Flag showing whether absolute position is valid

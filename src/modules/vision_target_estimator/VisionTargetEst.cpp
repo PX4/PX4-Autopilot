@@ -203,7 +203,7 @@ bool VisionTargetEst::init()
 
 	// Params with reboot required
 	if (_param_vte_pos_en.get()) {
-		PX4_INFO("VTE position estimator enabled.");
+		PX4_DEBUG("VTE position estimator enabled.");
 
 		if (_vte_position.init()) {
 			_vte_position_enabled = true;
@@ -214,7 +214,7 @@ bool VisionTargetEst::init()
 	}
 
 	if (_param_vte_yaw_en.get()) {
-		PX4_INFO("VTE yaw estimator enabled.");
+		PX4_DEBUG("VTE yaw estimator enabled.");
 
 		if (_vte_orientation.init()) {
 			_vte_orientation_enabled = true;
@@ -247,9 +247,9 @@ void VisionTargetEst::updateParams()
 			PX4_WARN("VTE no task, update VTE_TASK_MASK");
 
 		} else {
-			PX4_INFO("VTE VTE_TASK_MASK config: ");
+			PX4_DEBUG("VTE VTE_TASK_MASK config: ");
 
-			if (_vte_task_mask.flags.for_prec_land) { PX4_INFO("    Precision landing"); }
+			if (_vte_task_mask.flags.for_prec_land) { PX4_DEBUG("    Precision landing"); }
 
 			if (_vte_task_mask.flags.debug) { PX4_WARN("    DEBUG, always active"); }
 		}
@@ -295,8 +295,8 @@ void VisionTargetEst::updateParams()
 
 	if (new_vte_timeout_us != _vte_timeout_us) {
 
-		PX4_INFO("VTE timeout: %.1f [s] (previous: %.1f [s])", static_cast<double>(new_vte_timeout_us) / 1e6,
-			 static_cast<double>(_vte_timeout_us) / 1e6);
+		PX4_DEBUG("VTE timeout: %.1f [s] (previous: %.1f [s])", static_cast<double>(new_vte_timeout_us) / 1e6,
+			  static_cast<double>(_vte_timeout_us) / 1e6);
 
 		_vte_timeout_us = new_vte_timeout_us;
 
@@ -313,9 +313,9 @@ void VisionTargetEst::updateParams()
 
 	if (new_target_valid_timeout_us != _target_valid_timeout_us) {
 
-		PX4_INFO("VTE target validity timeout: %.2f [s] (previous: %.2f [s])",
-			 static_cast<double>(new_target_valid_timeout_us) / 1e6,
-			 static_cast<double>(_target_valid_timeout_us) / 1e6);
+		PX4_DEBUG("VTE target validity timeout: %.2f [s] (previous: %.2f [s])",
+			  static_cast<double>(new_target_valid_timeout_us) / 1e6,
+			  static_cast<double>(_target_valid_timeout_us) / 1e6);
 
 		_target_valid_timeout_us = new_target_valid_timeout_us;
 
@@ -332,9 +332,9 @@ void VisionTargetEst::updateParams()
 
 	if (new_meas_recent_timeout_us != _meas_recent_timeout_us) {
 
-		PX4_INFO("VTE measurement recent timeout: %.2f [s] (previous: %.2f [s])",
-			 static_cast<double>(new_meas_recent_timeout_us) / 1e6,
-			 static_cast<double>(_meas_recent_timeout_us) / 1e6);
+		PX4_DEBUG("VTE measurement recent timeout: %.2f [s] (previous: %.2f [s])",
+			  static_cast<double>(new_meas_recent_timeout_us) / 1e6,
+			  static_cast<double>(_meas_recent_timeout_us) / 1e6);
 
 		_meas_recent_timeout_us = new_meas_recent_timeout_us;
 
@@ -351,9 +351,9 @@ void VisionTargetEst::updateParams()
 
 	if (new_meas_updated_timeout_us != _meas_updated_timeout_us) {
 
-		PX4_INFO("VTE measurement updated timeout: %.3f [s] (previous: %.3f [s])",
-			 static_cast<double>(new_meas_updated_timeout_us) / 1e6,
-			 static_cast<double>(_meas_updated_timeout_us) / 1e6);
+		PX4_DEBUG("VTE measurement updated timeout: %.3f [s] (previous: %.3f [s])",
+			  static_cast<double>(new_meas_updated_timeout_us) / 1e6,
+			  static_cast<double>(_meas_updated_timeout_us) / 1e6);
 
 		_meas_updated_timeout_us = new_meas_updated_timeout_us;
 
@@ -368,13 +368,13 @@ void VisionTargetEst::updateParams()
 
 	if (_vte_position_enabled && _position_estimator_running
 	    && !_vte_position.fusionEnabled()) {
-		PX4_INFO("VTE position estimator stopped, no fusion source selected.");
+		PX4_DEBUG("VTE position estimator stopped, no fusion source selected.");
 		stopPosEst();
 	}
 
 	if (_vte_orientation_enabled && _orientation_estimator_running
 	    && !_vte_orientation.fusionEnabled()) {
-		PX4_INFO("VTE yaw estimator stopped, no fusion source selected.");
+		PX4_DEBUG("VTE yaw estimator stopped, no fusion source selected.");
 		stopYawEst();
 	}
 }
@@ -404,17 +404,17 @@ uint16_t VisionTargetEst::adjustAidMask(const int input_vte_aid_mask)
 
 void VisionTargetEst::printAidMask()
 {
-	PX4_INFO("VTE VTE_AID_MASK config: ");
+	PX4_DEBUG("VTE VTE_AID_MASK config: ");
 
-	if (_vte_aid_mask.flags.use_vision_pos) {PX4_INFO("    vision relative position fusion enabled");}
+	if (_vte_aid_mask.flags.use_vision_pos) {PX4_DEBUG("    vision relative position fusion enabled");}
 
-	if (_vte_aid_mask.flags.use_target_gps_pos) {PX4_INFO("    target GPS position fusion enabled");}
+	if (_vte_aid_mask.flags.use_target_gps_pos) {PX4_DEBUG("    target GPS position fusion enabled");}
 
-	if (_vte_aid_mask.flags.use_target_gps_vel) {PX4_INFO("    target GPS velocity fusion enabled");}
+	if (_vte_aid_mask.flags.use_target_gps_vel) {PX4_DEBUG("    target GPS velocity fusion enabled");}
 
-	if (_vte_aid_mask.flags.use_mission_pos) {PX4_INFO("    mission land position fusion enabled");}
+	if (_vte_aid_mask.flags.use_mission_pos) {PX4_DEBUG("    mission land position fusion enabled");}
 
-	if (_vte_aid_mask.flags.use_uav_gps_vel) {PX4_INFO("    UAV GPS velocity fusion enabled");}
+	if (_vte_aid_mask.flags.use_uav_gps_vel) {PX4_DEBUG("    UAV GPS velocity fusion enabled");}
 
 	if (_vte_aid_mask.value == 0) {PX4_WARN("    no data fusion. Modify VTE_AID_MASK");}
 }
@@ -476,12 +476,12 @@ const position_setpoint_s *VisionTargetEst::findLandSetpoint()
 	}
 
 	if (_pos_sp_triplet_buffer.next.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		PX4_INFO("VTE for precision landing, next sp is land.");
+		PX4_DEBUG("VTE for precision landing, next sp is land.");
 		return &_pos_sp_triplet_buffer.next;
 	}
 
 	if (_pos_sp_triplet_buffer.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		PX4_INFO("VTE for precision landing, current sp is land.");
+		PX4_DEBUG("VTE for precision landing, current sp is land.");
 		return &_pos_sp_triplet_buffer.current;
 	}
 
@@ -529,7 +529,7 @@ bool VisionTargetEst::isCurrentTaskComplete()
 	if (_current_task.flags.for_prec_land) {
 
 		if (!_vte_task_mask.flags.for_prec_land) {
-			PX4_INFO("VTE_TASK_MASK updated, precision landing task completed.");
+			PX4_DEBUG("VTE_TASK_MASK updated, precision landing task completed.");
 			return true;
 		}
 
@@ -537,21 +537,21 @@ bool VisionTargetEst::isCurrentTaskComplete()
 
 		// Stop computations once the drone has landed
 		if (_vehicle_land_detected_sub.update(&vehicle_land_detected) && vehicle_land_detected.landed) {
-			PX4_INFO("Land detected, precision landing task completed.");
+			PX4_DEBUG("Land detected, precision landing task completed.");
 			_is_in_prec_land = false;
 			return true;
 		}
 
 		// Stop computations once precision landing is over
 		if (!_is_in_prec_land) {
-			PX4_INFO("Precision landing task completed.");
+			PX4_DEBUG("Precision landing task completed.");
 			return true;
 		}
 
 	} else if (_current_task.flags.debug) {
 
 		if (!_vte_task_mask.flags.debug) {
-			PX4_INFO("VTE_TASK_MASK updated, DEBUG task completed.");
+			PX4_DEBUG("VTE_TASK_MASK updated, DEBUG task completed.");
 			return true;
 		}
 	}
