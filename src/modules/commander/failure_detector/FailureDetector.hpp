@@ -111,8 +111,9 @@ private:
 	hrt_abstime _imu_status_timestamp_prev{0};
 
 	// Motor failure check
-	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if some ESC had non-zero current (some don't support it)
+	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if ESC reported non-zero current before (some never report any)
 	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
+	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	uint16_t _motor_failure_mask = 0; // actuator function indexed
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};

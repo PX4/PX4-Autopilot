@@ -269,7 +269,7 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 
 	// Only check while armed
 	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-		actuator_motors_s actuator_motors{}; // Normalized motor thrust commands before thrust model factor is applied
+		actuator_motors_s actuator_motors{};
 		_actuator_motors_sub.copy(&actuator_motors);
 
 		// Check individual ESC reports
@@ -294,30 +294,36 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 				continue;
 			}
 
-			_motor_failure_mask &= ~(1u << actuator_function_index); // Reset bit in mask to be able to accumulate failures
+			_motor_failure_mask &= ~(1u << actuator_function_index); // Reset bit in mask to accumulate failures again
 			_motor_failure_mask |= (static_cast<uint16_t>(timeout) << actuator_function_index); // Telemetry timeout
 
-			// Current too low
-			if (_esc_has_reported_current[i]) {
-				float thrust = 0.f;
+			// Current limits
+			float thrust = 0.f;
 
-				if (PX4_ISFINITE(actuator_motors.control[actuator_function_index])) {
-					// NAN means motor is turned off -> 0 thrust
-					thrust = fabsf(actuator_motors.control[actuator_function_index]);
-				}
-
-				bool thrust_above_threshold = thrust > _param_fd_act_mot_thr.get();
-				bool current_too_low = current < thrust * _param_fd_act_mot_c2t.get();
-
-				_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
-
-				if (!_esc_undercurrent_hysteresis[i].get_state()) {
-					// Do not clear because a reaction could be to stop the motor and that would be conidered healty again
-					_esc_undercurrent_hysteresis[i].set_state_and_update(thrust_above_threshold && current_too_low && !timeout, now);
-				}
-
-				_motor_failure_mask |= (static_cast<uint16_t>(_esc_undercurrent_hysteresis[i].get_state()) << actuator_function_index);
+			if (PX4_ISFINITE(actuator_motors.control[actuator_function_index])) {
+				// Normalized motor thrust commands before thrust model factor is applied, NAN means motor is turned off -> 0 thrust
+				thrust = fabsf(actuator_motors.control[actuator_function_index]);
 			}
+
+			bool thrust_above_threshold = thrust > _param_fd_act_mot_thr.get();
+			bool current_too_low = current < (thrust * _param_fd_act_mot_c2t.get()) - _param_fd_act_low_off.get();
+			bool current_too_high = current > (thrust * _param_fd_act_mot_c2t.get()) + _param_fd_act_high_off.get();
+
+			_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
+			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
+
+			if (!_esc_undercurrent_hysteresis[i].get_state()) {
+				// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
+				_esc_undercurrent_hysteresis[i].set_state_and_update(thrust_above_threshold && current_too_low && !timeout, now);
+			}
+
+			if (!_esc_overcurrent_hysteresis[i].get_state()) {
+				// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
+				_esc_overcurrent_hysteresis[i].set_state_and_update(current_too_high && !timeout, now);
+			}
+
+			_motor_failure_mask |= (static_cast<uint16_t>(_esc_undercurrent_hysteresis[i].get_state()) << actuator_function_index);
+			_motor_failure_mask |= (static_cast<uint16_t>(_esc_overcurrent_hysteresis[i].get_state()) << actuator_function_index);
 		}
 
 		_failure_detector_status.flags.motor = (_motor_failure_mask != 0u);
@@ -325,6 +331,7 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 	} else { // Disarmed
 		for (uint8_t i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) {
 			_esc_undercurrent_hysteresis[i].set_state_and_update(false, now);
+			_esc_overcurrent_hysteresis[i].set_state_and_update(false, now);
 		}
 
 		_failure_detector_status.flags.motor = false;
