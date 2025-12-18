@@ -114,7 +114,7 @@ bool VTEPosition::init()
 #endif // CONFIG_VTEST_MOVING
 
 	for (int axis = 0; axis < vtest::Axis::size; ++axis) {
-		_target_est_pos[axis] = KF_position{};
+		_target_est_pos[axis].resetHistory();
 	}
 
 	return true;
@@ -219,25 +219,25 @@ bool VTEPosition::initEstimator(const Matrix<float, vtest::Axis::size, vtest::St
 	}
 
 	// Debug INFO
-	PX4_INFO("Rel pos init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x, vtest::State::pos_rel),
-		 (double)state_init(vtest::Axis::y, vtest::State::pos_rel), (double)state_init(vtest::Axis::z,
-				 vtest::State::pos_rel));
-	PX4_INFO("Vel uav init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x, vtest::State::vel_uav),
-		 (double)state_init(vtest::Axis::y, vtest::State::vel_uav), (double)state_init(vtest::Axis::z,
-				 vtest::State::vel_uav));
-	PX4_INFO("GNSS bias init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x, vtest::State::bias),
-		 (double)state_init(vtest::Axis::y, vtest::State::bias), (double)state_init(vtest::Axis::z,
-				 vtest::State::bias));
+	PX4_DEBUG("Rel pos init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x, vtest::State::pos_rel),
+		  (double)state_init(vtest::Axis::y, vtest::State::pos_rel), (double)state_init(vtest::Axis::z,
+				  vtest::State::pos_rel));
+	PX4_DEBUG("Vel uav init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x, vtest::State::vel_uav),
+		  (double)state_init(vtest::Axis::y, vtest::State::vel_uav), (double)state_init(vtest::Axis::z,
+				  vtest::State::vel_uav));
+	PX4_DEBUG("GNSS bias init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x, vtest::State::bias),
+		  (double)state_init(vtest::Axis::y, vtest::State::bias), (double)state_init(vtest::Axis::z,
+				  vtest::State::bias));
 
 #if defined(CONFIG_VTEST_MOVING)
-	PX4_INFO("Target acc init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x,
+	PX4_DEBUG("Target acc init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x,
 			vtest::State::acc_target),
-		 (double)state_init(vtest::Axis::y, vtest::State::acc_target), (double)state_init(vtest::Axis::z,
-				 vtest::State::acc_target));
-	PX4_INFO("Target vel init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x,
+		  (double)state_init(vtest::Axis::y, vtest::State::acc_target), (double)state_init(vtest::Axis::z,
+				  vtest::State::acc_target));
+	PX4_DEBUG("Target vel init %.2f %.2f %.2f", (double)state_init(vtest::Axis::x,
 			vtest::State::vel_target),
-		 (double)state_init(vtest::Axis::y, vtest::State::vel_target), (double)state_init(vtest::Axis::z,
-				 vtest::State::vel_target));
+		  (double)state_init(vtest::Axis::y, vtest::State::vel_target), (double)state_init(vtest::Axis::z,
+				  vtest::State::vel_target));
 #endif // CONFIG_VTEST_MOVING
 
 	return true;
@@ -550,7 +550,7 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 
 	// Compute initial bias if needed
 	if (shouldSetBias(fusion_mask)) {
-		PX4_INFO("VTE Position setting GNSS bias.");
+		PX4_DEBUG("VTE Position setting GNSS bias.");
 		initial_bias = _pos_rel_gnss.xyz - initial_position;
 		_bias_set = true;
 	}
@@ -587,7 +587,7 @@ bool VTEPosition::initializeEstimator(const ObsValidMaskU &fusion_mask,
 		return false;
 	}
 
-	PX4_INFO("VTE Position Estimator properly initialized.");
+	PX4_DEBUG("VTE Position Estimator properly initialized.");
 	_estimator_initialized = true;
 	_last_update = hrt_absolute_time();
 	_last_predict = _last_update;
@@ -654,11 +654,11 @@ void VTEPosition::updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 		filter.resetHistory();
 	}
 
-	PX4_INFO("Rel pos init %.2f %.2f %.2f", (double)initial_position(vtest::Axis::x),
-		 (double)initial_position(vtest::Axis::y), (double)initial_position(vtest::Axis::z));
+	PX4_DEBUG("Rel pos init %.2f %.2f %.2f", (double)initial_position(vtest::Axis::x),
+		  (double)initial_position(vtest::Axis::y), (double)initial_position(vtest::Axis::z));
 
-	PX4_INFO("GNSS bias init %.2f %.2f %.2f", (double)initial_bias(vtest::Axis::x),
-		 (double)initial_bias(vtest::Axis::y), (double)initial_bias(vtest::Axis::z));
+	PX4_DEBUG("GNSS bias init %.2f %.2f %.2f", (double)initial_bias(vtest::Axis::x),
+		  (double)initial_bias(vtest::Axis::y), (double)initial_bias(vtest::Axis::z));
 
 	_bias_set = true;
 }
@@ -957,8 +957,8 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 	const float dt_sync_us = fabsf(static_cast<float>(time_diff_us));
 
 	if (dt_sync_us > _meas_recent_timeout_us) {
-		PX4_INFO("Time diff between UAV GNSS and target GNNS too high: %.2f [ms] > timeout: %.2f [ms]",
-			 (double)(dt_sync_us / 1000), (double)(_meas_recent_timeout_us / 1000));
+		PX4_DEBUG("Time diff between UAV GNSS and target GNNS too high: %.2f [ms] > timeout: %.2f [ms]",
+			  (double)(dt_sync_us / 1000), (double)(_meas_recent_timeout_us / 1000));
 		return false;
 	}
 
