@@ -1,18 +1,18 @@
-# Target estimator Kalman Filter state
+# Vision Target Estimator position state
 
-uint64 timestamp		# time since system start (microseconds)
+uint64 timestamp		# [us] time since system start
 
-bool rel_pos_valid		# Flag showing whether relative position is valid
-bool rel_vel_valid		# Flag showing whether relative velocity is valid
+bool rel_pos_valid		# [-] relative position estimate valid
+bool rel_vel_valid		# [-] relative velocity estimate valid
 
-float32[3] rel_pos		# [x,y,z] NED position of target, relative to vehicle [m]
-float32[3] vel_uav		# [x,y,z] NED velocity of vehicle [m/s]
-float32[3] vel_target		# [x,y,z] NED velocity of target [m/s]
-float32[3] bias			# [x,y,z] NED GNSS bias between vehicle and target receivers [m]
-float32[3] acc_target		# [x,y,z] NED acceleration of target [m/s^2]
+float32[3] rel_pos		# [m] [@frame NED] target position relative to vehicle
+float32[3] vel_uav		# [m/s] [@frame NED] vehicle velocity
+float32[3] vel_target		# [m/s] [@frame NED] target velocity
+float32[3] bias			# [m] [@frame NED] GNSS bias between vehicle and target receivers
+float32[3] acc_target		# [m/s^2] [@frame NED] target acceleration
 
-float32[3] cov_rel_pos		# [x,y,z] Position variance [m^2]
-float32[3] cov_vel_uav		# [x,y,z] Vehicle velocity variance [(m/s)^2]
-float32[3] cov_bias		# [x,y,z] Bias variance [m^2]
-float32[3] cov_vel_target	# [x,y,z] Target velocity variance [(m/s)^2]
-float32[3] cov_acc_target	# [x,y,z] Target acceleration variance [(m/s^2)^2]
+float32[3] cov_rel_pos		# [m^2] [@frame NED] variance of rel_pos
+float32[3] cov_vel_uav		# [(m/s)^2] [@frame NED] variance of vel_uav
+float32[3] cov_bias		# [m^2] [@frame NED] variance of bias
+float32[3] cov_vel_target	# [(m/s)^2] [@frame NED] variance of vel_target
+float32[3] cov_acc_target	# [(m/s^2)^2] [@frame NED] variance of acc_target

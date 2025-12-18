@@ -10,7 +10,7 @@ uint8 PREC_LAND_NAV_STATE_SEARCH = 4
 uint8 PREC_LAND_NAV_STATE_FALLBACK = 5
 uint8 PREC_LAND_NAV_STATE_DONE = 6
 
-uint64 timestamp			# time since system start (microseconds)
+uint64 timestamp	# [us] time since system start
 
-uint8 state    # PX4 state of delivery (PREC_LAND_STATE_*)
-uint8 nav_state		# Precision delivery state (PREC_LAND_NAV_STATE_*)
+uint8 state    		# [-] PX4 state of delivery (PREC_LAND_STATE_*)
+uint8 nav_state		# [-] Precision delivery state (PREC_LAND_NAV_STATE_*)
