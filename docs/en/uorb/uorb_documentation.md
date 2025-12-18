@@ -8,7 +8,7 @@ At time of writing many topics have not been updated.
 
 ## Overview
 
-The [AirspeedValidated](../msg_docs/AirspeedValidated) message shown below is a good example of a uORB topic that has been documented to the current standard.
+The [AirspeedValidated](../msg_docs/AirspeedValidated.md) message shown below is a good example of a uORB topic that has been documented to the current standard.
 
 ```py
 # Validated airspeed
@@ -103,16 +103,16 @@ A typical field comment looks like this:
 float32 indicated_airspeed_m_s # [m/s] [@invalid NaN] Indicated airspeed (IAS)
 ```
 
-Field comments include must all be on the same line as the field, and consist of optional metadata followed by a description:
+Field comments must all be on the same line as the field, and consist of optional metadata followed by a description:
 
 - `metadata` (Optional)
   - Information about the field units and allowed values:
     - `[<unit>]`
       - The unit of measurement inside square brackets (note, no `@` delineator indicates a unit), such as `[m]` for metres.
-        - Allowed units include: `m`, `m/s`, `m/s^2`, `rad`, `rad/s`, `rpm` ,`V`, `A`, `mA`, `mAh`, `W`, `dBm`, `s`, `ms`, `us`, `Ohm`, `MB`, `Kb/s`, `degC`,`Pa`.
+        - Allowed units include: `m`, `m/s`, `m/s^2`, `rad`, `rad/s`, `rpm`, `V`, `A`, `mA`, `mAh`, `W`, `dBm`, `s`, `ms`, `us`, `Ohm`, `MB`, `Kb/s`, `degC`, `Pa`.
         - Units are required unless clearly invalid, such as when the field is a boolean, or is an enum value.
         - Unitless values should be specified as `[-]`.
-          Note thought that units are not required for boolean fields or enum fields.
+          Note though that units are not required for boolean fields or enum fields.
     - `[@enum <enum_name>]`
       - The `enum_name` gives the prefix of constant values in the message that can be assigned to the field.
         Note that enums in uORB are just a naming convention: they are not explicitly declared.
@@ -150,7 +150,7 @@ int8 SOURCE_GROUND_MINUS_WIND = 0 # Ground speed minus wind
 ...
 ```
 
-A small number of constants have a standarized meaning and do not require documentation.
+A small number of constants have a standardised meaning and do not require documentation.
 These are:
 
 - `ORB_QUEUE_LENGTH`
