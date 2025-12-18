@@ -103,7 +103,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 | UART   | 设备         | Port                            |
 | ------ | ---------- | ------------------------------- |
-| USART1 | UART       | GPS                             |
+| USART1 | /dev/ttyS0 | GPS                             |
 | USART2 | /dev/ttyS1 | TELEM3                          |
 | USART3 | /dev/ttyS2 | 调试控制台                           |
 | UART4  | /dev/ttyS3 | UART4 & I2C |

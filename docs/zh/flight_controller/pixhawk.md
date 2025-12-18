@@ -247,7 +247,7 @@ Due to space constraints two ports are on one connector.
 
 | UART   | 设备         | Port                           |
 | ------ | ---------- | ------------------------------ |
-| UART   | UART       | IO debug                       |
+| UART   | /dev/ttyS0 | IO debug                       |
 | USART2 | /dev/ttyS1 | TELEM1 (流控) |
 | USART3 | /dev/ttyS2 | TELEM2 (流控) |
 | UART4  |            |                                |

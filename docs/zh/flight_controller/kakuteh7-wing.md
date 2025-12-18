@@ -69,7 +69,7 @@ Firmware can be manually installed in any of the normal ways:
 
 | UART   | 设备         | Port                        | Default function |
 | ------ | ---------- | --------------------------- | ---------------- |
-| USART1 | UART       | GPS 1                       | GPS1             |
+| USART1 | /dev/ttyS0 | GPS 1                       | GPS1             |
 | USART2 | /dev/ttyS1 | R2, T2                      | GPS2             |
 | USART3 | /dev/ttyS2 | R3, T3                      | TELEM1           |
 | UART5  | /dev/ttyS3 | R5, T5                      | TELEM2           |

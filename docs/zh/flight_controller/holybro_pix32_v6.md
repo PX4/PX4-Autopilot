@@ -106,7 +106,7 @@ Order from [Holybro](https://holybro.com/products/pix32-v6).
 
 | UART   | 设备         | Port   |
 | ------ | ---------- | ------ |
-| USART1 | UART       | GPS1   |
+| USART1 | /dev/ttyS0 | GPS1   |
 | USART2 | /dev/ttyS1 | TELEM3 |
 | USART3 | /dev/ttyS2 | 调试控制台  |
 | UART5  | /dev/ttyS3 | TELEM2 |

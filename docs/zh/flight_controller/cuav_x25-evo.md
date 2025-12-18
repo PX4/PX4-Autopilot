@@ -101,7 +101,7 @@ Order from [CUAV](https://store.cuav.net/).
 
 | UART   | 设备         | Port   |
 | ------ | ---------- | ------ |
-| USART1 | UART       | GPS1   |
+| USART1 | /dev/ttyS0 | GPS1   |
 | USART2 | /dev/ttyS1 | GPS2   |
 | USART3 | /dev/ttyS2 | 调试控制台  |
 | UART4  | /dev/ttyS3 | UART4  |
