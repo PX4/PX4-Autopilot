@@ -68,8 +68,8 @@ struct airspeed_validator_update_data {
 	float vel_test_ratio;
 	float hdg_test_ratio;
 	bool in_fixed_wing_flight;
-	float fixed_wing_throttle_filtered;
-	float fixed_wing_tecs_throttle_trim;
+	float tecs_throttle_sp_filtered;
+	float tecs_throttle_trim;
 	uint64_t tecs_timestamp;
 };
 

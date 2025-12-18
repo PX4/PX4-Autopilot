@@ -393,8 +393,8 @@ AirspeedModule::Run()
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
 		input_data.hdg_test_ratio = _estimator_status.hdg_test_ratio;
 		input_data.tecs_timestamp = _tecs_status.timestamp;
-		input_data.fixed_wing_throttle_filtered = _tecs_throttle_sp_filtered.getState();
-		input_data.fixed_wing_tecs_throttle_trim = _tecs_status.throttle_trim;
+		input_data.tecs_throttle_sp_filtered = _tecs_throttle_sp_filtered.getState();
+		input_data.tecs_throttle_trim = _tecs_status.throttle_trim;
 
 		// iterate through all airspeed sensors, poll new data from them and update their validators
 		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
