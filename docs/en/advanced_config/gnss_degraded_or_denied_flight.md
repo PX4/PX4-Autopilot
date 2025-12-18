@@ -68,4 +68,5 @@ To enable dead-reckoning mode:
 
 ## See Also
 
-- [GNSS Fault Detection](../advanced_config/tuning_the_ecl_ekf.md#gnss-fault-detection)
+- [GNSS Fault Detection](../advanced_config/tuning_the_ecl_ekf.md#gnss-fault-detection) in _Using PX4's Navigation Filter (EKF2)_
+- [Fuse, Reset, or Reject? Handling Various Data-sources in EKF2](https://www.youtube.com/watch?v=CMGQJNPiTJg) - _PX4 Developer Summit 2025_, Marco Hauswirth, Auterion AG
