@@ -131,11 +131,30 @@ if subs_not_empty:
 merged_em_globals['subscriptions'] = msg_map['subscriptions'] if subs_not_empty else []
 
 subs_multi_not_empty = msg_map['subscriptions_multi'] is not None
+expanded_subs_multi = []
 if subs_multi_not_empty:
     for sm in msg_map['subscriptions_multi']:
-        process_message_type(sm)
+        if 'ros_topics' in sm and 'uorb_topic' in sm:
+            # Expand each DDS topic into a separate entry
+            # All entries for the same uorb_topic will use the same array
+            uorb_topic_name = sm['uorb_topic']
+            for idx, dds_topic in enumerate(sm['ros_topics']):
+                expanded_entry = {
+                    'type': sm['type'],
+                    'topic': dds_topic,
+                    'uorb_topic': uorb_topic_name,
+                    'instance': idx
+                }
+                process_message_type(expanded_entry)
+                expanded_entry['topic_simple'] = uorb_topic_name
+                expanded_subs_multi.append(expanded_entry)
+        else:
+            # Fallback for old-style single topic entries
+            process_message_type(sm)
+            sm['instance'] = 0
+            expanded_subs_multi.append(sm)
 
-merged_em_globals['subscriptions_multi'] = msg_map['subscriptions_multi'] if subs_multi_not_empty else []
+merged_em_globals['subscriptions_multi'] = expanded_subs_multi
 
 merged_em_globals['type_includes'] = sorted(set(all_type_includes))
 
