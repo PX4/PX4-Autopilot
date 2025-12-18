@@ -59,6 +59,8 @@
 #include <nuttx/spi/spi.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
+#include <nuttx/mtd/mtd.h>
+#include <nuttx/fs/fs.h>
 #include <chip.h>
 #include <stm32_uart.h>
 #include <arch/board/board.h>
@@ -77,6 +79,10 @@
 
 # if defined(FLASH_BASED_PARAMS)
 #  include <parameters/flashparams/flashfs.h>
+#endif
+
+#ifdef CONFIG_MTD_W25N
+extern FAR struct mtd_dev_s *w25n_initialize(FAR struct spi_dev_s *dev, uint32_t spi_devid);
 #endif
 
 
@@ -231,13 +237,48 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-	/* Get the SPI port for the microSD slot */
-	struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
+#ifdef CONFIG_MTD_W25N
+	/* Initialize W25N01GV NAND Flash on SPI1 */
+	struct spi_dev_s *spi1 = stm32_spibus_initialize(1);
 
-	if (!spi_dev) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
-		led_on(LED_BLUE);
+	if (!spi1) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI1 for W25N\n");
+		led_on(LED_RED);
+
+	} else {
+		struct mtd_dev_s *mtd = w25n_initialize(spi1, 0);
+
+		if (!mtd) {
+			syslog(LOG_ERR, "[boot] FAILED to initialize W25N MTD driver\n");
+			led_on(LED_RED);
+
+		} else {
+			int ret = register_mtddriver("/dev/mtd0", mtd, 0755, NULL);
+
+			if (ret < 0) {
+				syslog(LOG_ERR, "[boot] FAILED to register MTD driver: %d\n", ret);
+				led_on(LED_RED);
+
+			} else {
+				syslog(LOG_INFO, "[boot] W25N MTD registered at /dev/mtd0\n");
+
+#ifdef CONFIG_FS_LITTLEFS
+				ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, "autoformat");
+
+				if (ret < 0) {
+					syslog(LOG_ERR, "[boot] FAILED to mount littlefs: %d\n", ret);
+					led_on(LED_RED);
+
+				} else {
+					syslog(LOG_INFO, "[boot] LittleFS mounted at /fs/microsd\n");
+				}
+
+#endif
+			}
+		}
 	}
+
+#endif
 
 	up_udelay(20);
 
