@@ -93,7 +93,7 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 {
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get(), msg.getIfaceIndex());
 
 	if (channel == nullptr) {
 		// Something went wrong - no channel to publish on; return

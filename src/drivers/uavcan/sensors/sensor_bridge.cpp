@@ -315,7 +315,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 	(void)orb_publish(_orb_topic, channel->orb_advert, report);
 }
 
-uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id)
+uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id, uint8_t iface_index)
 {
 	uavcan_bridge::Channel *channel = nullptr;
 
@@ -353,6 +353,7 @@ uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id
 
 		// initialize the driver, which registers the class device name and uORB publisher
 		channel->node_id = node_id;
+		channel->iface_index = iface_index;
 		int ret = init_driver(channel);
 
 		if (ret != PX4_OK) {
