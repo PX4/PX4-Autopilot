@@ -844,26 +844,17 @@ float AirspeedModule::get_synthetic_airspeed(float throttle)
 void AirspeedModule::update_throttle_filter(hrt_abstime now)
 {
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		vehicle_thrust_setpoint_s vehicle_thrust_setpoint_0{};
-		_vehicle_thrust_setpoint_0_sub.copy(&vehicle_thrust_setpoint_0);
 
-		float forward_thrust = vehicle_thrust_setpoint_0.xyz[0];
-
-		// if VTOL, use the total thrust vector length (otherwise needs special handling for tailsitters and tiltrotors)
-		if (_vehicle_status.is_vtol) {
-			forward_thrust = sqrtf(vehicle_thrust_setpoint_0.xyz[0] * vehicle_thrust_setpoint_0.xyz[0] +
-					       vehicle_thrust_setpoint_0.xyz[1] * vehicle_thrust_setpoint_0.xyz[1] +
-					       vehicle_thrust_setpoint_0.xyz[2] * vehicle_thrust_setpoint_0.xyz[2]);
-		}
+		const float throttle_sp = _tecs_status.throttle_sp;
 
 		const float dt = static_cast<float>(now - _t_last_throttle_fw) * 1e-6f;
 		_t_last_throttle_fw = now;
 
 		if (dt < FLT_EPSILON || dt > 1.f) {
-			_throttle_filtered.reset(forward_thrust);
+			_throttle_filtered.reset(throttle_sp);
 
 		} else {
-			_throttle_filtered.update(forward_thrust, dt);
+			_throttle_filtered.update(throttle_sp, dt);
 		}
 	}
 }
