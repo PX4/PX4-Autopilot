@@ -845,16 +845,16 @@ void AirspeedModule::update_throttle_filter(hrt_abstime now)
 {
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
-		const float throttle_sp = _tecs_status.throttle_sp;
+		const float tecs_throttle_sp = _tecs_status.throttle_sp;
 
 		const float dt = static_cast<float>(now - _t_last_throttle_fw) * 1e-6f;
 		_t_last_throttle_fw = now;
 
 		if (dt < FLT_EPSILON || dt > 1.f) {
-			_tecs_throttle_sp_filtered.reset(throttle_sp);
+			_tecs_throttle_sp_filtered.reset(tecs_throttle_sp);
 
 		} else {
-			_tecs_throttle_sp_filtered.update(throttle_sp, dt);
+			_tecs_throttle_sp_filtered.update(tecs_throttle_sp, dt);
 		}
 	}
 }
