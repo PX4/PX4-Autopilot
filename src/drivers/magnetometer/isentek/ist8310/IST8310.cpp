@@ -30,7 +30,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 #include "IST8310.hpp"
+
 using namespace time_literals;
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
@@ -89,7 +91,6 @@ int IST8310::probe()
 	// 0x0C rather than 0x0E.
 	const auto start_time = hrt_absolute_time();
 	const uint8_t start_addr = get_device_address();
-
 
 	while (hrt_elapsed_time(&start_time) < 50_ms) {
 		set_device_address(start_addr);
