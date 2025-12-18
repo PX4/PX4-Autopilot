@@ -111,7 +111,7 @@ The board is documented on the mRo hardware repo: [x21_V2_schematic.pdf](https:/
 
 | UART   | 设备         | Port            |
 | ------ | ---------- | --------------- |
-| USART1 | UART       | IO debug        |
+| USART1 | /dev/ttyS0 | IO debug        |
 | USART2 | /dev/ttyS1 | SERIAL1         |
 | USART3 | /dev/ttyS2 | TELEM2          |
 | UART4  | /dev/ttyS3 | GPS/I2C         |

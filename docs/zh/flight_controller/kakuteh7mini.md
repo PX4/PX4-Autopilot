@@ -124,7 +124,7 @@ In addition to the [basic configuration](../config/index.md), the following para
 
 | UART   | 设备         | Port                                     |
 | ------ | ---------- | ---------------------------------------- |
-| USART1 | UART       | TELEM1                                   |
+| USART1 | /dev/ttyS0 | TELEM1                                   |
 | UART2  | /dev/ttyS1 | TELEM2                                   |
 | USART3 | /dev/ttyS2 | 调试控制台                                    |
 | UART4  | /dev/ttyS3 | GPS1                                     |
