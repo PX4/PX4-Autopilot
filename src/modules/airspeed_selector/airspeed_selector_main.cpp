@@ -72,7 +72,10 @@
 
 using namespace time_literals;
 
-static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};	/**< The schedule interval in usec (10 Hz) */
+// The schedule interval in (10 Hz)
+static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};
+
+// Used to low-pass filter throttle for both synthetic airspeed and airspeed validation (first principles check)
 static constexpr float _kThrottleFilterTimeConstant{0.5f};
 
 using matrix::Dcmf;
