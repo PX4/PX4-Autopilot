@@ -27,9 +27,9 @@ Several types of compass calibration are available:
 1. [Complete](#complete-calibration): This calibration is required after installing the autopilot on an airframe for the first time or when the configuration of the vehicle has changed significantly.
    It compensates for hard and soft iron effects by estimating an offset and a scale factor for each axis.
 1. [Partial](#partial-quick-calibration): This calibration can be performed as a routine when preparing the vehicle for a flight, after changing the payload, or simply when the compass rose seems inaccurate.
-   This type of calibration only estimates the offsets to compensate for a hard iron effect.
+   This type of calibration only estimates the offsets to compensate for a hard-iron effect.
 1. [Large vehicle](#large-vehicle-calibration): This calibration can be performed when the vehicle is too large or heavy to perform a complete calibration.
-   This type of calibration only estimates the offsets to compensate for a hard iron effect.
+   This type of calibration only estimates the offsets to compensate for a hard-iron effect.
 
 ## Performing the Calibration
 
