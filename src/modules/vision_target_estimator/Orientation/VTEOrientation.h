@@ -189,12 +189,14 @@ private:
 	uint32_t _meas_updated_timeout_us{100_ms};
 	SensorFusionMaskU _vte_aid_mask{};
 	float _yaw_unc{1.f};
+	float _yaw_acc_var{0.f};
 	float _min_ev_angle_var{0.025f};
 	bool  _ev_noise_md{false};
 	float _nis_threshold{3.84f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_YAW_UNC_IN>) _param_vte_yaw_unc_in,
+		(ParamFloat<px4::params::VTE_YAW_ACC_UNC>) _param_vte_yaw_acc_unc,
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
 		(ParamFloat<px4::params::VTE_EVA_NOISE>) _param_vte_ev_angle_noise,
 		(ParamInt<px4::params::VTE_EV_NOISE_MD>) _param_vte_ev_noise_md,

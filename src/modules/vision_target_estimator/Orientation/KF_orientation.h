@@ -98,6 +98,8 @@ public:
 	const matrix::Vector<float, State::size> &getState() const { return _state; }
 	matrix::Vector<float, State::size> getStateCovarianceDiag() const { return _state_covariance.diag(); }
 
+	void setYawAccVar(float var) { _yaw_acc_var = var; }
+
 private:
 	void getTransitionMatrix(float dt, matrix::SquareMatrix<float, State::size> &phi) const;
 
@@ -116,8 +118,10 @@ private:
 			     const matrix::Vector<float, State::size> &K,
 			     float innov, float S);
 
-	matrix::Vector<float, State::size> _state;
-	matrix::SquareMatrix<float, State::size> _state_covariance;
+	matrix::Vector<float, State::size> _state{};
+	matrix::SquareMatrix<float, State::size> _state_covariance{};
+
+	float _yaw_acc_var{0.f};
 
 	// OOSM history buffer:
 	// 0.5s window @ 50Hz predict rate = 25 samples.

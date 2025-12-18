@@ -65,7 +65,6 @@ VTEOrientation::~VTEOrientation() = default;
 
 bool VTEOrientation::init()
 {
-	_target_est_yaw = KF_orientation{};
 	_target_est_yaw.resetHistory();
 	return true;
 }
@@ -120,10 +119,10 @@ bool VTEOrientation::initEstimator(const ObsValidMaskU &fusion_mask,
 	_target_est_yaw.setStateCovarianceDiag(state_var_init);
 	_target_est_yaw.resetHistory();
 
-	PX4_INFO("Orientation filter init yaw: %.2f [rad] yaw_rate: %.2f [rad/s]", (double)state_init(State::yaw),
+	PX4_DEBUG("Orientation filter init yaw: %.2f [rad] yaw_rate: %.2f [rad/s]", (double)state_init(State::yaw),
 		 (double)state_init(State::yaw_rate));
 
-	PX4_INFO("VTE Orientation Estimator properly initialized.");
+	PX4_DEBUG("VTE Orientation Estimator properly initialized.");
 	_estimator_initialized = true;
 	_last_update = hrt_absolute_time();
 	_last_predict = _last_update;
@@ -301,9 +300,15 @@ void VTEOrientation::updateParams()
 	ModuleParams::updateParams();
 
 	_yaw_unc = _param_vte_yaw_unc_in.get();
+	const float new_yaw_acc_var = _param_vte_yaw_acc_unc.get();
 	const float new_ev_angle_noise = _param_vte_ev_angle_noise.get();
 	_ev_noise_md = _param_vte_ev_noise_md.get();
 	const float new_nis_threshold = _param_vte_yaw_nis_thre.get();
+
+	if (PX4_ISFINITE(new_yaw_acc_var) && (new_yaw_acc_var >= 0.f)) {
+		_yaw_acc_var = new_yaw_acc_var;
+		_target_est_yaw.setYawAccVar(_yaw_acc_var);
+	}
 
 	if (PX4_ISFINITE(new_ev_angle_noise) && new_ev_angle_noise > kMinObservationNoise) {
 		_min_ev_angle_var = new_ev_angle_noise * new_ev_angle_noise;
