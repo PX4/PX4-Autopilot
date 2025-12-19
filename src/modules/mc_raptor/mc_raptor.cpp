@@ -1,6 +1,8 @@
 #include "mc_raptor.hpp"
 #undef OK
 
+#include "trajectories/lissajous.hpp"
+
 #include <rl_tools/inference/applications/l2f/operations_generic.h>
 #include <rl_tools/persist/backends/tar/operations_generic.h>
 
@@ -27,6 +29,9 @@ Raptor::Raptor(): ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_
 	trajectory_setpoint_dts_full = false;
 	trajectory_setpoint_invalid_count = 0;
 	trajectory_setpoint_dt_max_since_reset = 0;
+	internal_reference_activation_position[0] = 0.0f;
+	internal_reference_activation_position[1] = 0.0f;
+	internal_reference_activation_position[2] = 0.0f;
 
 	_actuator_motors_pub.advertise();
 	_tune_control_pub.advertise();
@@ -674,6 +679,56 @@ void Raptor::Run()
 	}
 
 	// position and linear_velocity are guaranteed to be set after this point
+
+	if(use_internal_reference && internal_reference != InternalReference::NONE){
+		if(!previous_active && next_active){
+			internal_reference_activation_position[0] = position[0];
+			internal_reference_activation_position[1] = - position[1];
+			internal_reference_activation_position[2] = - position[2];
+			internal_reference_activation_orientation[0] = _vehicle_attitude.q[0];
+			internal_reference_activation_orientation[1] = _vehicle_attitude.q[1];
+			internal_reference_activation_orientation[2] = -_vehicle_attitude.q[2];
+			internal_reference_activation_orientation[3] = -_vehicle_attitude.q[3];
+			internal_reference_activation_time = current_time;
+			PX4_INFO("internal reference activated at: %f %f %f", (double)internal_reference_activation_position[0], (double)internal_reference_activation_position[1], (double)internal_reference_activation_position[2]);
+		}
+		Setpoint setpoint{};
+		if(internal_reference == InternalReference::LISSAJOUS){
+			LissajousParameters params;
+			params.A = 10.0f;
+			params.B = 20.0f;
+			params.C = 0.0f;
+			params.z_offset = 0.0f;
+			params.duration = 20.0f;
+			params.ramp_duration = 3.0f;
+			params.a = 1.0f;
+			params.b = 2.0f;
+			params.c = 1.0f;
+			setpoint = lissajous(static_cast<T>(current_time - internal_reference_activation_time) / 1000000, params);
+		}
+		else{
+			PX4_ERR("internal reference type not supported");
+		}
+		auto &q = internal_reference_activation_orientation;
+		_trajectory_setpoint.position[0] =  (internal_reference_activation_position[0] + setpoint.position[0]);
+		_trajectory_setpoint.position[1] = -(internal_reference_activation_position[1] + setpoint.position[1]);
+		_trajectory_setpoint.position[2] = -(internal_reference_activation_position[2] + setpoint.position[2]);
+		_trajectory_setpoint.yaw = - atan2f(2.0f * (q[1] * q[2] + q[0] * q[3]), 1.0f - 2.0f * (q[2] * q[2] + q[3] * q[3])) - setpoint.yaw;
+		_trajectory_setpoint.velocity[0] = setpoint.linear_velocity[0];
+		_trajectory_setpoint.velocity[1] = -setpoint.linear_velocity[1];
+		_trajectory_setpoint.velocity[2] = -setpoint.linear_velocity[2];
+		_trajectory_setpoint.yawspeed = -setpoint.yaw_rate;
+		timestamp_last_trajectory_setpoint_set = true;
+		status.timestamp_last_trajectory_setpoint = current_time;
+		timestamp_last_trajectory_setpoint = current_time;
+
+		status.internal_reference_position[0] = _trajectory_setpoint.position[0];
+		status.internal_reference_position[1] = _trajectory_setpoint.position[1];
+		status.internal_reference_position[2] = _trajectory_setpoint.position[2];
+		status.internal_reference_linear_velocity[0] = _trajectory_setpoint.velocity[0];
+		status.internal_reference_linear_velocity[1] = _trajectory_setpoint.velocity[1];
+		status.internal_reference_linear_velocity[2] = _trajectory_setpoint.velocity[2];
+	}
 
 	if ((current_time - timestamp_last_attitude) > OBSERVATION_TIMEOUT_ATTITUDE) {
 		status.exit_reason = raptor_status_s::EXIT_REASON_ATTITUDE_STALE;

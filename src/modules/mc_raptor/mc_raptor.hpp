@@ -261,6 +261,14 @@ private:
 
 	float previous_action[EXECUTOR_SPEC::OUTPUT_DIM];
 	bool use_internal_reference = false;
+	T internal_reference_activation_position[3];
+	T internal_reference_activation_orientation[4];
+	hrt_abstime internal_reference_activation_time;
+	enum class InternalReference: TI {
+		NONE = 0,
+		LISSAJOUS = 1
+	};
+	InternalReference internal_reference = InternalReference::LISSAJOUS;
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
 		(ParamBool<px4::params::MC_RAPTOR_OFFB>) _param_mc_raptor_offboard,

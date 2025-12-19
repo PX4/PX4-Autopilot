@@ -40,4 +40,7 @@ float32 trajectory_setpoint_dt_mean                      # The average trajector
 float32 trajectory_setpoint_dt_max                       # The max trajectory setpoint arrival time interval (since Raptor mode activation and within NUM_TRAJECTORY_SETPOINT_DTS received trajectory_setpoint messages)
 float32 trajectory_setpoint_dt_max_since_activation      # The max trajectory setpoint arrival time interval (since Raptor mode activation)
 
+float32[3] internal_reference_position
+float32[3] internal_reference_linear_velocity
+
 # TOPICS raptor_status
