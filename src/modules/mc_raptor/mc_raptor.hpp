@@ -104,7 +104,7 @@ private:
 	static constexpr TI OBSERVATION_TIMEOUT_ANGULAR_VELOCITY = 10 * 1000;
 	static constexpr TI OBSERVATION_TIMEOUT_LOCAL_POSITION = 100 * 1000;
 	static constexpr TI OBSERVATION_TIMEOUT_ATTITUDE = 50 * 1000;
-	static constexpr TI TRAJECTORY_SETPOINT_TIMEOUT = 100 * 1000;
+	static constexpr TI TRAJECTORY_SETPOINT_TIMEOUT = 200 * 1000;
 	static constexpr T RESET_PREVIOUS_ACTION_VALUE = 0; // -1 to 1
 	static constexpr bool ENABLE_CONTROL_FREQUENCY_INFO = false;
 

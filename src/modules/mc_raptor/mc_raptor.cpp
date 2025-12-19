@@ -533,7 +533,7 @@ void Raptor::Run()
 		) {
 			timestamp_last_trajectory_setpoint_set = true;
 			status.timestamp_last_trajectory_setpoint = current_time;
-			timestamp_last_trajectory_setpoint = temp_trajectory_setpoint.timestamp;
+			timestamp_last_trajectory_setpoint = current_time; //temp_trajectory_setpoint.timestamp;
 			_trajectory_setpoint = temp_trajectory_setpoint;
 		}
 	}
@@ -718,6 +718,11 @@ void Raptor::Run()
 	if (!previous_active && next_active) {
 		this->reset();
 		PX4_INFO("Resetting Inference Executor (Recurrent State)");
+	}
+	else{
+		if(previous_active && !next_active){
+			PX4_INFO("inactive");
+		}
 	}
 
 	status.active = next_active;
