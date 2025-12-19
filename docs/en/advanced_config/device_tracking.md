@@ -1,0 +1,68 @@
+# Device Tracking
+
+PX4 can track and log detailed information about external hardware devices connected to the flight controller.
+This enables unique identification of physical components throughout their operational lifetime using device IDs, serial numbers, and version information.
+
+## Overview
+
+Device tracking automatically collects and logs metadata from external devices, including:
+
+- **Device identification**: Vendor name, model name, device type
+- **Version information**: Firmware version, hardware version
+- **Unique identifiers**: Serial number, device ID
+- **Device capabilities**: ESC, GPS, magnetometer, barometer, etc.
+
+This information is published via the `device_information` uORB topic and logged to flight logs, enabling fleet management, maintenance tracking, and troubleshooting.
+
+::: info
+Device tracking is currently implemented for DroneCAN devices only.
+The functionality can be extended to other interfaces in the future.
+:::
+
+## Use Cases
+
+Device tracking helps you know exactly which hardware is installed on each vehicle and makes it easier to find and replace specific components by their serial number.
+You can check firmware and hardware versions across multiple vehicles, quickly see what versions you're running when debugging, and log component information for regulatory audits.
+
+## Viewing Device Information
+
+### Real-Time Monitoring
+
+You can view device information in real-time using the [MAVLink Shell](../debug/mavlink_shell.md) or console:
+
+```sh
+listener device_information
+```
+
+Example output for a CAN GPS module:
+
+```
+TOPIC: device_information
+ device_information
+    timestamp: 16258961403 (0.216525 seconds ago)
+    device_id: 8944643 (Type: 0x88, UAVCAN:0 (0x7C))
+    device_type: 5
+    vendor_name: "cubepilot"
+    model_name: "here4"
+    firmware_version: "1.14.3006590"
+    hardware_version: "4.19"
+    serial_number: "1c00410018513331"
+```
+
+Device information is published in a round-robin fashion approximately every second for each detected device.
+
+### Multi-Capability Devices
+
+Devices with multiple sensors (e.g., a CAN GPS/magnetometer combo module like the HERE4) register separate device information entries for each capability.
+Each entry shares the same serial number and base metadata but has a different `device_id` corresponding to the specific sensor capability.
+
+## Flight Log Analysis
+
+Device information is automatically logged to flight logs.
+You can extract it using [pyulog](https://github.com/PX4/pyulog), though note that fields like vendor name, model name, and serial number are stored as char arrays and require additional parsing.
+
+## See Also
+
+- [CAN (DroneCAN & Cyphal)](../can/index.md) - CAN bus configuration and setup
+- [DroneCAN](../dronecan/index.md) - DroneCAN-specific documentation
+- [Flight Log Analysis](../log/flight_log_analysis.md) - Analysing flight logs
