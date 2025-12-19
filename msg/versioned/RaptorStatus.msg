@@ -36,4 +36,8 @@ bool active                                              # True if the Raptor po
 uint8 substep                                            # The policy is trained at a fixed frequency (e.g. 100 Hz) but we might want to use it for control at higher frequencies (e.g. 400 Hz), which leads to a number of intermediate steps before the actual policy state is advanced (in this case 4 = 400 Hz / 100 Hz). This field provides the current substep (e.g. 0-3).
 float32 control_interval                                 # [s] Time interval between control updates
 
+float32 trajectory_setpoint_dt_mean                      # The average trajectory setpoint arrival time interval (since Raptor mode activation within NUM_TRAJECTORY_SETPOINT_DTS received trajectory_setpoint messages)
+float32 trajectory_setpoint_dt_max                       # The max trajectory setpoint arrival time interval (since Raptor mode activation and within NUM_TRAJECTORY_SETPOINT_DTS received trajectory_setpoint messages)
+float32 trajectory_setpoint_dt_max_since_activation      # The max trajectory setpoint arrival time interval (since Raptor mode activation)
+
 # TOPICS raptor_status

@@ -250,6 +250,15 @@ private:
 	hrt_abstime timestamp_last_policy_frequency_check;
 	bool timestamp_last_policy_frequency_check_set = false;
 
+	static constexpr TI NUM_TRAJECTORY_SETPOINT_DTS = 100;
+	int32_t trajectory_setpoint_dts[NUM_TRAJECTORY_SETPOINT_DTS];
+	TI trajectory_setpoint_dt_index = 0;
+	TI trajectory_setpoint_dt_max_since_reset = 0;
+	bool trajectory_setpoint_dts_full = false;
+
+	static constexpr TI TRAJECTORY_SETPOINT_INVALID_COUNT_WARNING_INTERVAL = 100;
+	TI trajectory_setpoint_invalid_count = 0;
+
 	float previous_action[EXECUTOR_SPEC::OUTPUT_DIM];
 	bool use_internal_reference = false;
 	DEFINE_PARAMETERS(

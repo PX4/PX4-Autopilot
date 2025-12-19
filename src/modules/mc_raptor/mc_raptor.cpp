@@ -23,12 +23,22 @@ Raptor::Raptor(): ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_
 	policy_frequency_check_counter = 0;
 	flightmode_state = FlightModeState::UNREGISTERED;
 	can_arm = false;
+	trajectory_setpoint_dt_index = 0;
+	trajectory_setpoint_dts_full = false;
+	trajectory_setpoint_invalid_count = 0;
+	trajectory_setpoint_dt_max_since_reset = 0;
 
 	_actuator_motors_pub.advertise();
 	_tune_control_pub.advertise();
 }
 void Raptor::reset()
 {
+
+	trajectory_setpoint_dt_index = 0;
+	trajectory_setpoint_dts_full = false;
+	trajectory_setpoint_invalid_count = 0;
+	trajectory_setpoint_dt_max_since_reset = 0;
+
 	for (TI action_i = 0; action_i < EXECUTOR_SPEC::OUTPUT_DIM; action_i++) {
 		this->previous_action[action_i] = RESET_PREVIOUS_ACTION_VALUE;
 	}
@@ -485,6 +495,45 @@ void Raptor::Run()
 	status.substep = 0;
 	status.active = false;
 	status.control_interval = NAN;
+	status.trajectory_setpoint_dt_mean = NAN;
+	status.trajectory_setpoint_dt_max = NAN;
+	status.trajectory_setpoint_dt_max_since_activation = NAN;
+	if(trajectory_setpoint_dts_full || trajectory_setpoint_dt_index > 0){
+		float trajectory_setpoint_dt_mean = 0;
+		float trajectory_setpoint_dt_max = 0;
+		for(TI i = 0; i < (trajectory_setpoint_dts_full ? NUM_TRAJECTORY_SETPOINT_DTS : trajectory_setpoint_dt_index); i++){
+			TI index = trajectory_setpoint_dts_full ? i : trajectory_setpoint_dt_index - 1 - i;
+			trajectory_setpoint_dt_mean += trajectory_setpoint_dts[index];
+			if(trajectory_setpoint_dts[index] > trajectory_setpoint_dt_max){
+				trajectory_setpoint_dt_max = trajectory_setpoint_dts[index];
+			}
+		}
+		if(trajectory_setpoint_dt_max > trajectory_setpoint_dt_max_since_reset){
+			trajectory_setpoint_dt_max_since_reset = trajectory_setpoint_dt_max;
+		}
+		trajectory_setpoint_dt_mean /= NUM_TRAJECTORY_SETPOINT_DTS;
+		status.trajectory_setpoint_dt_mean = trajectory_setpoint_dt_mean;
+		status.trajectory_setpoint_dt_max = trajectory_setpoint_dt_max;
+		status.trajectory_setpoint_dt_max_since_activation = trajectory_setpoint_dt_max_since_reset;
+	}
+
+	status.subscription_update_vehicle_status = _vehicle_status_sub.update(&_vehicle_status);
+
+	if (status.subscription_update_vehicle_status) {
+		timestamp_last_vehicle_status = current_time;
+		timestamp_last_vehicle_status_set = true;
+	}
+
+	bool next_active = timestamp_last_vehicle_status_set && _vehicle_status.nav_state == ext_component_mode_id;
+	if (!previous_active && next_active) {
+		this->reset();
+		PX4_INFO("Resetting Inference Executor (Recurrent State)");
+	}
+	else{
+		if(previous_active && !next_active){
+			PX4_INFO("inactive");
+		}
+	}
 
 	bool angular_velocity_update = false;
 	status.subscription_update_angular_velocity = _vehicle_angular_velocity_sub.update(&_vehicle_angular_velocity);
@@ -531,18 +580,28 @@ void Raptor::Run()
 			PX4_ISFINITE(temp_trajectory_setpoint.velocity[2]) &&
 			PX4_ISFINITE(temp_trajectory_setpoint.yawspeed)
 		) {
+			if(timestamp_last_trajectory_setpoint_set){
+				trajectory_setpoint_dts[trajectory_setpoint_dt_index] = current_time - timestamp_last_trajectory_setpoint;
+				trajectory_setpoint_dt_index++;
+				if(trajectory_setpoint_dt_index == NUM_TRAJECTORY_SETPOINT_DTS){
+					if(next_active && !trajectory_setpoint_dts_full){
+						PX4_INFO("trajectory_setpoint_dts_full");
+					}
+					trajectory_setpoint_dts_full = true;
+					trajectory_setpoint_dt_index = 0;
+				}
+			}
 			timestamp_last_trajectory_setpoint_set = true;
 			status.timestamp_last_trajectory_setpoint = current_time;
-			timestamp_last_trajectory_setpoint = current_time; //temp_trajectory_setpoint.timestamp;
+			timestamp_last_trajectory_setpoint = current_time;
 			_trajectory_setpoint = temp_trajectory_setpoint;
 		}
-	}
-
-	status.subscription_update_vehicle_status = _vehicle_status_sub.update(&_vehicle_status);
-
-	if (status.subscription_update_vehicle_status) {
-		timestamp_last_vehicle_status = current_time;
-		timestamp_last_vehicle_status_set = true;
+		else{
+			trajectory_setpoint_invalid_count++;
+			if(next_active && trajectory_setpoint_invalid_count % TRAJECTORY_SETPOINT_INVALID_COUNT_WARNING_INTERVAL == 0){
+				PX4_WARN("trajectory_setpoint invalid, count: %d", (int)trajectory_setpoint_invalid_count);
+			}
+		}
 	}
 
 	constexpr bool PUBLISH_NON_COMPLETE_STATUS = true;
@@ -640,8 +699,6 @@ void Raptor::Run()
 	can_arm = true;
 	updateArmingCheckReply();
 
-	bool next_active = timestamp_last_vehicle_status_set && _vehicle_status.nav_state == ext_component_mode_id;
-
 	if (!timestamp_last_trajectory_setpoint_set || use_internal_reference
 	    || (current_time - timestamp_last_trajectory_setpoint) > TRAJECTORY_SETPOINT_TIMEOUT) {
 		status.trajectory_setpoint_stale = true;
@@ -715,15 +772,6 @@ void Raptor::Run()
 		return;
 	}
 
-	if (!previous_active && next_active) {
-		this->reset();
-		PX4_INFO("Resetting Inference Executor (Recurrent State)");
-	}
-	else{
-		if(previous_active && !next_active){
-			PX4_INFO("inactive");
-		}
-	}
 
 	status.active = next_active;
 
