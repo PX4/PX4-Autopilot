@@ -1,6 +1,7 @@
 # landing target GNSS position in WGS84 coordinates.
 
 uint64 timestamp	# [us] time since system start
+uint64 timestamp_sample       # [us] timestamp of the raw observation
 
 float64 latitude_deg	# [deg] Latitude, allows centimeter level RTK precision
 float64 longitude_deg	# [deg] Longitude, allows centimeter level RTK precision

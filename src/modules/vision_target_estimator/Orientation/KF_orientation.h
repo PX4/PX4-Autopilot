@@ -96,6 +96,7 @@ public:
 	};
 
 	const matrix::Vector<float, State::size> &getState() const { return _state; }
+	const matrix::SquareMatrix<float, State::size> &getStateCovariance() const { return _state_covariance; }
 	matrix::Vector<float, State::size> getStateCovarianceDiag() const { return _state_covariance.diag(); }
 
 	void setYawAccVar(float var) { _yaw_acc_var = var; }
