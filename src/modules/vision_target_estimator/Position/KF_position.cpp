@@ -52,6 +52,11 @@ namespace vision_target_estimator
 
 void KF_position::predict(float dt, float acc_uav)
 {
+
+	if (!PX4_ISFINITE(dt) || (dt < 0.f) || !PX4_ISFINITE(acc_uav)) {
+		return;
+	}
+
 	_last_acc = acc_uav;
 
 	matrix::Vector<float, vtest::State::size> state_next;

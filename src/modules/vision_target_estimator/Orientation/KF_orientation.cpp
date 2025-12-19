@@ -48,6 +48,10 @@ namespace vision_target_estimator
 
 void KF_orientation::predict(float dt)
 {
+	if (!PX4_ISFINITE(dt) || (dt < 0.f)) {
+		return;
+	}
+
 	matrix::Vector<float, State::size> state_next;
 	matrix::SquareMatrix<float, State::size> cov_next;
 
@@ -104,8 +108,16 @@ void KF_orientation::computeInnovation(const matrix::Vector<float, State::size> 
 				       const ScalarMeas &meas,
 				       float &innov, float &innov_var) const
 {
-	innov = matrix::wrap_pi(meas.val - (meas.H.transpose() * state)(0, 0));
+
+	innov = meas.val - (meas.H.transpose() * state)(0, 0);
 	innov_var = (meas.H.transpose() * cov * meas.H)(0, 0) + meas.unc;
+
+	// Wrap innovations for yaw measurements
+	const bool is_yaw_meas = (fabsf(meas.H(State::yaw)) > 0.f) && (fabsf(meas.H(State::yaw_rate)) < FLT_EPSILON);
+
+	if (is_yaw_meas) {
+		innov = matrix::wrap_pi(innov);
+	}
 }
 
 void KF_orientation::pushHistory(const uint64_t time_us)
