@@ -75,11 +75,33 @@ New terminal:
 ## Real World
 Using a DroneBridge WiFi telemetry @ 1000000 baud (also set `SER_TEL1_BAUD=1000000`) and maximum packet size = 16. It seems like larger maximum packet sizes can lead to delays in forwarding the `SET_POSITION_TARGET_LOCAL_NED` messages to `trajectory_setpoint`.
 ```bash
-mavproxy.py --master tcp:192.168.2.1:5760 --out udp:localhost:14550 --out udp:localhost:13337 --out udp:localhost:13338
-```
-```bash
 ./Tools/mavlink_shell.py tcp:192.168.2.1:5760
 ```
 ```bash
 px4 tcp:192.168.2.1:5760 track lissajous --A 0.5 --B 0.5 --duration 10 --ramp-duration 5 --takeoff 1.0 --iterations 2
+```
+
+
+## Troubleshooting
+
+
+```bash
+cat > logger_topics.txt << EOF
+raptor_status 0
+raptor_input 0
+trajectory_setpoint 0
+vehicle_local_position 0
+vehicle_angular_velocity 0
+vehicle_attitude 0
+vehicle_status 0
+actuator_motors 0
+EOF
+```
+```bash
+mavproxy.py
+```
+```bash
+ftp mkdir /fs/microsd/etc
+ftp mkdir /fs/microsd/etc/logging
+ftp put logger_topics.txt /fs/microsd/etc/logging/logger_topics.txt
 ```

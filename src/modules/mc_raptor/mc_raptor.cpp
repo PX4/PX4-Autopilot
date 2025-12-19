@@ -38,6 +38,8 @@ void Raptor::reset()
 	trajectory_setpoint_dts_full = false;
 	trajectory_setpoint_invalid_count = 0;
 	trajectory_setpoint_dt_max_since_reset = 0;
+	timestamp_last_trajectory_setpoint_set = false;
+
 
 	for (TI action_i = 0; action_i < EXECUTOR_SPEC::OUTPUT_DIM; action_i++) {
 		this->previous_action[action_i] = RESET_PREVIOUS_ACTION_VALUE;
