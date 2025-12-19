@@ -299,11 +299,20 @@ void VTEOrientation::updateParams()
 
 	ModuleParams::updateParams();
 
-	_yaw_unc = _param_vte_yaw_unc_in.get();
+	const float new_yaw_unc = _param_vte_yaw_unc_in.get();
 	const float new_yaw_acc_var = _param_vte_yaw_acc_unc.get();
 	const float new_ev_angle_noise = _param_vte_ev_angle_noise.get();
 	_ev_noise_md = _param_vte_ev_noise_md.get();
 	const float new_nis_threshold = _param_vte_yaw_nis_thre.get();
+
+	if (PX4_ISFINITE(new_yaw_unc) && new_yaw_unc > 0.f) {
+		const bool yaw_unc_changed = PX4_ISFINITE(_yaw_unc) && (fabsf(new_yaw_unc - _yaw_unc) > 1e-3f);
+		_yaw_unc = new_yaw_unc;
+
+		if (_estimator_initialized && yaw_unc_changed) {
+			resetFilter();
+		}
+	}
 
 	if (PX4_ISFINITE(new_yaw_acc_var) && (new_yaw_acc_var >= 0.f)) {
 		_yaw_acc_var = new_yaw_acc_var;

@@ -2867,7 +2867,9 @@ MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 	mavlink_msg_target_absolute_decode(msg, &target_absolute);
 
 	target_gnss_s target_GNSS_report{};
-	target_GNSS_report.timestamp = _mavlink_timesync.sync_stamp(target_absolute.timestamp);
+
+	target_GNSS_report.timestamp = hrt_absolute_time();
+	target_GNSS_report.timestamp_sample = _mavlink_timesync.sync_stamp(target_absolute.timestamp);
 
 	bool updated = false;
 

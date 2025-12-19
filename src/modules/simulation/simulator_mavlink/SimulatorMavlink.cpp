@@ -694,6 +694,7 @@ SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 
 	target_gnss_s target_GNSS_report{};
 	target_GNSS_report.timestamp = hrt_absolute_time();
+	target_GNSS_report.timestamp_sample = target_GNSS_report.timestamp;
 
 	bool updated = false;
 

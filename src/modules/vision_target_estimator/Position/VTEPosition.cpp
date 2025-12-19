@@ -449,13 +449,13 @@ bool VTEPosition::updateUavGpsData()
 		_uav_gps_position.lat_deg = vehicle_gps_position.latitude_deg;
 		_uav_gps_position.lon_deg = vehicle_gps_position.longitude_deg;
 		_uav_gps_position.alt_m = (float)vehicle_gps_position.altitude_msl_m;
-		_uav_gps_position.timestamp = vehicle_gps_position.timestamp;
+		_uav_gps_position.timestamp = vehicle_gps_position.timestamp_sample;
 		_uav_gps_position.eph = vehicle_gps_position.eph;
 		_uav_gps_position.epv = vehicle_gps_position.epv;
 		_uav_gps_position.valid = isUavGpsPositionValid();
 
 		// Velocity
-		_uav_gps_vel.timestamp = vehicle_gps_position.timestamp;
+		_uav_gps_vel.timestamp = vehicle_gps_position.timestamp_sample;
 		_uav_gps_vel.xyz(vtest::Axis::x) = vehicle_gps_position.vel_n_m_s;
 		_uav_gps_vel.xyz(vtest::Axis::y) = vehicle_gps_position.vel_e_m_s;
 		_uav_gps_vel.xyz(vtest::Axis::z) = vehicle_gps_position.vel_d_m_s;
@@ -474,8 +474,8 @@ bool VTEPosition::updateUavGpsData()
 #if defined(CONFIG_VTEST_MOVING)
 void VTEPosition::updateTargetGpsVelocity(const target_gnss_s &target_gnss)
 {
-	_target_gps_vel.timestamp = target_gnss.timestamp;
-	_target_gps_vel.valid = isMeasRecent(target_gnss.timestamp);
+	_target_gps_vel.timestamp = target_gnss.timestamp_sample;
+	_target_gps_vel.valid = isMeasRecent(target_gnss.timestamp_sample);
 
 	_target_gps_vel.xyz(vtest::Axis::x) = target_gnss.vel_n_m_s;
 	_target_gps_vel.xyz(vtest::Axis::y) = target_gnss.vel_e_m_s;
@@ -485,7 +485,7 @@ void VTEPosition::updateTargetGpsVelocity(const target_gnss_s &target_gnss)
 
 bool VTEPosition::isTargetGpsPositionValid(const target_gnss_s &target_gnss)
 {
-	if (!isMeasRecent(target_gnss.timestamp)) {
+	if (!isMeasRecent(target_gnss.timestamp_sample)) {
 		return false;
 	}
 
@@ -499,7 +499,7 @@ bool VTEPosition::isTargetGpsPositionValid(const target_gnss_s &target_gnss)
 
 bool VTEPosition::isTargetGpsVelocityValid(const target_gnss_s &target_gnss)
 {
-	if (!isMeasRecent(target_gnss.timestamp)) {
+	if (!isMeasRecent(target_gnss.timestamp_sample)) {
 		return false;
 	}
 
@@ -874,7 +874,7 @@ bool VTEPosition::ProcessObsGNSSVelTarget(const target_gnss_s &target_gnss, Targ
 	obs.meas_h_xyz(vtest::Axis::y, vtest::State::vel_target) = 1;
 	obs.meas_h_xyz(vtest::Axis::z, vtest::State::vel_target) = 1;
 
-	obs.timestamp = target_gnss.timestamp;
+	obs.timestamp = target_gnss.timestamp_sample;
 
 	obs.type = ObsType::Target_gps_vel;
 
@@ -953,7 +953,7 @@ bool VTEPosition::processObsGNSSPosMission(TargetObs &obs)
 /*Target GNSS observation: [rx + bx, ry + by, rz + bz]*/
 bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs)
 {
-	const int64_t time_diff_us = signedTimeDiffUs(target_gnss.timestamp, _uav_gps_position.timestamp);
+	const int64_t time_diff_us = signedTimeDiffUs(target_gnss.timestamp_sample, _uav_gps_position.timestamp);
 	const float dt_sync_us = fabsf(static_cast<float>(time_diff_us));
 
 	if (dt_sync_us > _meas_recent_timeout_us) {
@@ -1030,7 +1030,7 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_gnss, Targ
 		obs.meas_h_xyz(vtest::Axis::z, vtest::State::bias) = 1;
 	}
 
-	obs.timestamp = target_gnss.timestamp;
+	obs.timestamp = target_gnss.timestamp_sample;
 
 	obs.meas_xyz = gps_relative_pos;
 

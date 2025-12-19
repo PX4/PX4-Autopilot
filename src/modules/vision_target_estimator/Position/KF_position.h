@@ -91,6 +91,7 @@ public:
 	};
 
 	const matrix::Vector<float, vtest::State::size> &getState() const { return _state; }
+	const matrix::SquareMatrix<float, vtest::State::size> &getStateCovariance() const { return _state_covariance; }
 	matrix::Vector<float, vtest::State::size> getStateCovarianceDiag() const { return _state_covariance.diag(); }
 
 	void setInputVar(float var) { _input_var = var; }
