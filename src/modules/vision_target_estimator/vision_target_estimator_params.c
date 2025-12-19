@@ -365,7 +365,7 @@ PARAM_DEFINE_FLOAT(VTE_EVA_NOISE, 0.05f);
  * Measurement noise for vision position observations used to lower bound or replace the uncertainty included in the message.
  *
  * If used to replace the uncertainty in the message, the measurement noise is lineraly scaled with the altitude
- * i.e. unc = max(VTE_EVP_NOISE * dist_bottom, VTE_EVP_NOISE^2)
+ * i.e. unc = max((VTE_EVP_NOISE * dist_bottom)^2, VTE_EVP_NOISE^2)
  *
  * @min 0.01
  * @unit m
