@@ -152,7 +152,7 @@ PARAM_DEFINE_INT32(MNT_MAN_YAW, 0);
 PARAM_DEFINE_INT32(MNT_DO_STAB, 0);
 
 /**
-* Max angle of pitch channel output in degrees (only in AUX output mode). Use PWM_CENT for zero-deflection and PWM_MAX for limits.
+* Max positive angle of pitch setpoint (only in MNT_MODE_OUT=AUX). Use output driver settings to calibrate (e.g. PWM_CENT/_MIN/_MAX).
 *
 * @unit deg
 * @decimal 1
@@ -161,7 +161,7 @@ PARAM_DEFINE_INT32(MNT_DO_STAB, 0);
 PARAM_DEFINE_FLOAT(MNT_MAX_PITCH, 45.0f);
 
 /**
-* Min angle of pitch channel output in degrees (only in AUX output mode). Use PWM_CENT for zero-deflection and PWM_MIN for limits.
+* Min negative angle of pitch setpoint (only in MNT_MODE_OUT=AUX). Use output driver settings to calibrate (e.g. PWM_CENT/_MIN/_MAX).
 *
 * @unit deg
 * @decimal 1
@@ -170,7 +170,7 @@ PARAM_DEFINE_FLOAT(MNT_MAX_PITCH, 45.0f);
 PARAM_DEFINE_FLOAT(MNT_MIN_PITCH, -45.0f);
 
 /**
-* Range of roll channel output in degrees (only in AUX output mode). Use PWM_CENT for zero-deflection and PWM_MIN / PWM_MAX for limits.
+* Range of roll channel output (only in MNT_MODE_OUT=AUX). Use output driver settings to calibrate (e.g. PWM_CENT/_MIN/_MAX). Note that only symmetric angular ranges are supported.
 *
 * @min 1.0
 * @max 720.0
@@ -181,7 +181,7 @@ PARAM_DEFINE_FLOAT(MNT_MIN_PITCH, -45.0f);
 PARAM_DEFINE_FLOAT(MNT_RANGE_ROLL, 90.0f);
 
 /**
-* Range of yaw channel output in degrees (only in AUX output mode). Use PWM_CENT for zero-deflection and PWM_MIN / PWM_MAX for limits.
+* Range of yaw channel output (only in MNT_MODE_OUT=AUX). Use output driver settings to calibrate (e.g. PWM_CENT/_MIN/_MAX). Note that only symmetric angular ranges are supported.
 *
 * @min 1.0
 * @max 720.0
