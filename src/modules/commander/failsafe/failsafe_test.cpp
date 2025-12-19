@@ -533,7 +533,7 @@ TEST_F(FailsafeTest, battery_unhealthy_during_spoolup)
 	failsafe.updateArmingState(time, true);
 
 	// Test 1: Battery unhealthy during spoolup phase (within 2 seconds of arming)
-	time += 500_ms; // 0.5 seconds after arming - still in spoolup
+	time += spoolup_time - 100_ms; // still in spoolup
 	failsafe_flags.battery_unhealthy = true;
 	uint8_t updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 
