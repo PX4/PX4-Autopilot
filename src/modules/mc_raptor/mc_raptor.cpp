@@ -147,11 +147,8 @@ bool Raptor::init()
 	}
 
 #ifndef MC_RAPTOR_EMBED_POLICY
-#ifdef __PX4_POSIX
-	const char *path = "raptor/policy.tar";
-#else
-	const char *path = "/fs/microsd/raptor/policy.tar";
-#endif
+	const char *path = PX4_STORAGEDIR "/raptor/policy.tar";
+
 	struct stat st;
 	bool file_exists = (stat(path, &st) == 0);
 
