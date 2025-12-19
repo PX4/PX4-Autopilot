@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file VTEOosmTest.cpp
+ * @file TEST_VTE_VTEOosm.cpp
  * @brief Unit test VTEOosm.h
  *
  * @author Jonas Perolini <jonspero@me.com>
@@ -91,8 +91,7 @@ public:
 	{
 		last_predict_input = input;
 
-		// x_{k+1} = F * x_k + B * u
-		// Linear model: x_new = x_old + input * dt
+		// Linear model: x_{k+1} = F * x_k + B * u
 		x_out = x_in;
 		x_out(0) += input * dt;
 
@@ -105,8 +104,7 @@ public:
 
 	void getTransitionMatrix(float dt, StateCov &phi) const
 	{
-		// Consistent with predictState: Phi is Identity (1.0)
-		// The error dynamics match the state dynamics for linear systems.
+		// Consistent with predictState
 		phi.setIdentity();
 	}
 
@@ -278,11 +276,6 @@ TEST_F(VTEOosmTest, FusesOosmAndProjectsCorrection)
 	curr_input = 9.f;
 
 	const ScalarMeas meas = makeMeas(150'000, 1.f, 1.f);
-	// Meas (150k) is fused. Floor is 100k. dt=0.05.
-	// Predict P to meas: P_meas = P_floor(4.0) + Q(0.1*0.05) = 4.005.
-	// K_meas = P H' / (H P H' + R) = 4.005 * 1 / (1 * 4.005 * 1 + 1) = 4.005 / 5.005 = 0.8001998...
-	// Phi = 1.0. K_proj = K_meas.
-
 	const vte::FusionResult res = oosm.fuse(filter, meas, 350'000, 10.f, state, cov, curr_input);
 
 	EXPECT_EQ(res.status, vte::FusionStatus::FUSED_OOSM);
@@ -291,6 +284,8 @@ TEST_F(VTEOosmTest, FusesOosmAndProjectsCorrection)
 	EXPECT_FLOAT_EQ(filter.last_predict_input, 2.f); // Input from floor sample (0.f was at 100k, next input is 2.f at 200k)
 
 	// We calculate expected K based on P at measurement time
+	// Meas (150k) is fused. Floor is 100k. dt=0.05.
+	// Predict P to meas: P_meas = P_floor(4.0) + Q(0.1*0.05) = 4.005.
 	const float P_meas = 4.f + 0.1f * 0.05f; // P_in + Q*dt
 	const float S = P_meas + 1.f;
 	const float k_meas = P_meas / S; // ~0.8002
@@ -360,7 +355,6 @@ TEST_F(VTEOosmTest, HandlesRingBufferWrapAroundAndBoundaries)
 	const ScalarMeas meas_edge_invalid = makeMeas(449'990, 4.5f, 1.f);
 	EXPECT_EQ(oosm.fuse(filter, meas_edge_invalid, 950'000, 10.f, state, cov, curr_input).status,
 		  vte::FusionStatus::REJECT_TOO_OLD) << "Failed invalid edge case (449.99k)";
-
 
 	// Tight Timestamp Verification
 	// We reset and use tiny time steps to prove that data is rejected
