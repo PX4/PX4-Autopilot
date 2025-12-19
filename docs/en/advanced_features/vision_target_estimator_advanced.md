@@ -17,6 +17,7 @@ This guide expands on the [Vision Target Estimator module overview](../advanced_
   - [Development and debugging tips](#development-and-debugging-tips)
     - [Adding new measurement sources](#adding-new-measurement-sources)
     - [Regenerating the symbolic model](#regenerating-the-symbolic-model)
+  - [Unit test suites](#unit-test-suites)
 
 ## System architecture
 
@@ -288,3 +289,22 @@ The generated headers (`predictState.h`, `predictCov.h`, `computeInnovCov.h`, `g
 3. If you need to refresh the committed defaults, set `-DVTEST_UPDATE_COMMITTED_DERIVATION=ON` and commit the regenerated files in `Position/vtest_derivation/generated*/` once vetted.
 
 If the build fails during regeneration, inspect the CMake output for the SymForce invocation and rerun it manually inside `Position/vtest_derivation/` to catch Python errors. After regenerating, rebuild the module to ensure the Jacobians and code stay in sync.
+
+## Unit test suites
+
+- `TEST_VTE_KF_position`: Kalman filter math for the position state (prediction, NIS gating, bias-aware H, OOSM gold standard). Static model (state size 3) by default, moving-target tests (state size 5) build only when `CONFIG_VTEST_MOVING` is enabled.
+- `TEST_VTE_KF_orientation`: Kalman filter math for yaw/yaw-rate (wrap logic, process noise, dt edge cases, covariance symmetry).
+- `TEST_VTE_VTEPosition`: Module logic for vision/GNSS fusion, offsets, interpolation, ordering, and uORB innovation topics (static + moving gated by `CONFIG_VTEST_MOVING`).
+- `TEST_VTE_VTEOrientation`: Module logic for yaw fusion, noise models, resets, and OOSM handling.
+- `TEST_VTE_VTEOosm`: Generic OOSM manager behavior.
+
+Run locally:
+
+```sh
+make tests TESTFILTER=TEST_VTE*
+```
+
+Timing constraints to keep in mind when exercising OOSM paths:
+
+- OOSM activates when measurement lag exceeds 20 ms.
+- History accepts measurements up to 500 ms old before rejecting them.
