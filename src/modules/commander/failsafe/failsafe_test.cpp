@@ -34,6 +34,7 @@
 #include <gtest/gtest.h>
 
 #include "framework.h"
+#include "failsafe.h"
 #include <uORB/topics/vehicle_status.h>
 
 // to run: make tests TESTFILTER=failsafe_test
@@ -463,27 +464,18 @@ TEST_F(FailsafeTest, battery_unhealthy_during_spoolup)
 	// Test that battery unhealthy during spoolup phase causes immediate disarm (existing behavior)
 
 	// Create a custom failsafe tester that includes battery unhealthy checks
-	class BatteryFailsafeTester : public FailsafeBase
+	class BatteryFailsafeTester : public Failsafe
 	{
 	public:
-		BatteryFailsafeTester(ModuleParams *parent) : FailsafeBase(parent)
+		param_t spoolup_param;
+		float spoolup_time;
+
+		BatteryFailsafeTester(ModuleParams *parent) : Failsafe(parent)
 		{
 			// Set spoolup time parameter for testing
-			param_t spoolup_param = param_handle(px4::params::COM_SPOOLUP_TIME);
-			float spoolup_time = 2.0f; // 2 seconds for testing
+			spoolup_param = param_handle(px4::params::COM_SPOOLUP_TIME);
+			spoolup_time = 2.0f; // 2 seconds for testing
 			param_set(spoolup_param, &spoolup_time);
-		}
-
-		void updateArmingState(const hrt_abstime &time_us, bool armed)
-		{
-			if (!_was_armed && armed) {
-				_armed_time = time_us;
-
-			} else if (!armed) {
-				_armed_time = 0;
-			}
-
-			_was_armed = armed;
 		}
 
 	protected:
@@ -491,8 +483,6 @@ TEST_F(FailsafeTest, battery_unhealthy_during_spoolup)
 				       const failsafe_flags_s &status_flags) override
 		{
 			// Simulate the battery unhealthy check logic from failsafe.cpp
-			param_t spoolup_param = param_handle(px4::params::COM_SPOOLUP_TIME);
-			float spoolup_time = 2.0f;
 			param_get(spoolup_param, &spoolup_time);
 
 			if ((_armed_time != 0)
@@ -514,10 +504,6 @@ TEST_F(FailsafeTest, battery_unhealthy_during_spoolup)
 		{
 			return Action::None;
 		}
-
-	private:
-		hrt_abstime _armed_time{0};
-		bool _was_armed{false};
 	};
 
 	BatteryFailsafeTester failsafe(nullptr);
@@ -530,10 +516,10 @@ TEST_F(FailsafeTest, battery_unhealthy_during_spoolup)
 	hrt_abstime time = 5_s;
 
 	// Update arming state
-	failsafe.updateArmingState(time, true);
+	failsafe.updateArmingState(time, true, failsafe_flags);
 
 	// Test 1: Battery unhealthy during spoolup phase (within 2 seconds of arming)
-	time += spoolup_time - 100_ms; // still in spoolup
+	time += failsafe.spoolup_time - 100_ms; // still in spoolup
 	failsafe_flags.battery_unhealthy = true;
 	uint8_t updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 
