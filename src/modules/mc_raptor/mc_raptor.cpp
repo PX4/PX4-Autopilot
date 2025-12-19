@@ -695,11 +695,11 @@ void Raptor::Run()
 		Setpoint setpoint{};
 		if(internal_reference == InternalReference::LISSAJOUS){
 			LissajousParameters params;
-			params.A = 10.0f;
-			params.B = 20.0f;
+			params.A = 15.0f;
+			params.B = 30.0f;
 			params.C = 0.0f;
 			params.z_offset = 0.0f;
-			params.duration = 20.0f;
+			params.duration = 30.0f;
 			params.ramp_duration = 3.0f;
 			params.a = 1.0f;
 			params.b = 2.0f;
