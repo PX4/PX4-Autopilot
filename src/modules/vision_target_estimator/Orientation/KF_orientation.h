@@ -126,6 +126,6 @@ private:
 	// OOSM history buffer:
 	// 0.5s window @ 50Hz predict rate = 25 samples.
 	// Note that the 0.5s window is enforced with kOosmMaxTimeUs = 500_ms.
-	OOSMManager<KF_orientation, State::size, EmptyInput> _oosm;
+	OOSMManager<KF_orientation, State::size, EmptyInput, 25> _oosm;
 };
 } // namespace vision_target_estimator
