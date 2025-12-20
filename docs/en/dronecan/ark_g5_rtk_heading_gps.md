@@ -1,6 +1,6 @@
 # ARK G5 RTK HEADING GPS
 
-[ARK G5 RTK HEADING GPS](https://arkelectron.com/product/ark-g5-rtk-gps/) is a made in the USA NDAA compliant [DroneCAN](index.md) quad-band dual antenna [RTK GPS](../gps_compass/rtk_gps.md), [Septentrio mosaic-G5 P3H Ultra-compact high-precision GPS/GNSS receiver module with heading capability](https://www.u-blox.com/en/product/zed-x20p-module), magnetometer, barometer, IMU, and buzzer module.
+[ARK G5 RTK HEADING GPS](https://arkelectron.com/product/ark-g5-rtk-gps/) is a made in the USA NDAA compliant [DroneCAN](index.md) quad-band dual antenna [RTK GPS](../gps_compass/rtk_gps.md), [Septentrio mosaic-G5 P3H Ultra-compact high-precision GPS/GNSS receiver module with heading capability](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-G5-P3H), magnetometer, barometer, IMU, and buzzer module.
 
 ![ARK G5 RTK HEADING GPS](../../assets/hardware/gps/ark/ark_g5_rtk_gps.png)
 
