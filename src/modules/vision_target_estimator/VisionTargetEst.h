@@ -104,6 +104,11 @@ public:
 	friend class ::VisionTargetEstTestable;
 
 protected:
+
+	static constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
+	static constexpr uint64_t kPosUpdatePeriodUs{20_ms}; // 50 Hz
+	static constexpr uint64_t kYawUpdatePeriodUs{20_ms}; // 50 Hz
+
 	struct LocalPose {
 		bool pos_valid = false;
 		matrix::Vector3f xyz{};
@@ -150,9 +155,7 @@ protected:
 	bool startYawEst();
 	void stopYawEst();
 	bool pollEstimatorInput(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att, matrix::Vector3f &gps_pos_offset,
-				matrix::Vector3f &vel_offset_ned,
-				bool vel_offset_updated,
-				bool &acc_valid);
+				matrix::Vector3f &vel_offset_ned, bool vel_offset_updated, bool &acc_valid);
 
 	perf_counter_t _cycle_perf_pos{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle pos")};
 	perf_counter_t _cycle_perf_yaw{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE cycle yaw")};
