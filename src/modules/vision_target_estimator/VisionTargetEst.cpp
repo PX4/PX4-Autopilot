@@ -57,10 +57,6 @@
 namespace vision_target_estimator
 {
 
-constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
-constexpr uint64_t kPosUpdatePeriodUs{20_ms}; // 50 Hz
-constexpr uint64_t kYawUpdatePeriodUs{20_ms}; // 50 Hz
-
 VisionTargetEst::VisionTargetEst() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::vte)
@@ -820,12 +816,9 @@ bool VisionTargetEst::pollLocalPose(LocalPose &local_pose)
 	return true;
 }
 
-bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned,
-		matrix::Quaternionf &quat_att,
-		matrix::Vector3f &gps_pos_offset_ned,
-		matrix::Vector3f &vel_offset_ned,
-		const bool vel_offset_updated,
-		bool &acc_valid)
+bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned, matrix::Quaternionf &quat_att,
+		matrix::Vector3f &gps_pos_offset_ned, matrix::Vector3f &vel_offset_ned,
+		const bool vel_offset_updated, bool &acc_valid)
 {
 	vehicle_attitude_s vehicle_attitude{};
 	vehicle_acceleration_s vehicle_acceleration{};
