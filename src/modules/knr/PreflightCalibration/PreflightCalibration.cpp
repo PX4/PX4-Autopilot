@@ -1,19 +1,3 @@
-/****************************************************************************
- *
- * This module is triggered by external mavlink command 'DO_PREFLIGHT' to perform preflight checks and calibration.
- * This ensures that the vehicle is properly calibrated before starting an autonomous mission.
- *
- * Remember to make with propoer hardware target => cubepilot_cubeorange
- *
- * SHOULD WE NAME ALL OOF THE CUSTOM MODULES WITH A PREFIX LIKE KNR_ ???
- *
- * Helpful CLI commands to test the module:
- * - To start the module: preflight_calibration start
- * - To see the status: preflight_calibration status
- * - To see actuator test values: listener actuator_test
- * - To see current servo values: listener actuator_outputs
- ****************************************************************************/
-
 #include "PreflightCalibration.hpp"
 
 using namespace time_literals;
@@ -46,38 +30,49 @@ bool PreflightCalibration::init()
 	return true;
 }
 
-void
-PreflightCalibration::parameters_updated()
-{
-	ModuleParams::updateParams();
-}
-
 void PreflightCalibration::Run()
 {
-	// Add business logic from docs
 	perf_count(_loop_interval_perf);
+
+	preflight_calibration_control_s control_msg{};
+
+	if(_preflight_calibration_control_sub.update(&control_msg)) {
+		if(control_msg.action == 1 && !_calibration_active) {
+			PX4_INFO("Preflight calibration triggered via uORB message.");
+			_calibration_active = true;
+			_last_calibration_update = 0;
+		}
+	}
+
+	// if (!_calibration_active) return;
 
 	if(_parameter_update_sub.updated()) {
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
-		parameters_updated();
+		_parameters_updated();
 	}
+
+	actuator_test_s actuator_test{};
+	actuator_outputs_s outputs{};
+	preflight_calibration_status_s status_msg{};
 
 	const hrt_abstime now = hrt_absolute_time();
 	if (now - _last_calibration_update < CAL_INTERVAL) {
 		return;
 	}
 
-	_last_calibration_update = now;
-
 	const float max = _sv_cal_max.get();
 	const float min = _sv_cal_min.get();
 	const float step = _sv_cal_step.get();
-	bool all_done{true};
+
+	status_msg.timestamp = now;
+	status_msg.in_progress = !_do_calibration_ended();
+	status_msg.calibration_successful = false;
 
 	for(int i=0; i<NUM_ACTUATORS; i++) {
 		auto &s = _sv_states[i];
 
+		s.status = static_cast<uint8_t>(ServoStatus::CALIBRATING);
 		s.value += s.forward ? step : -step;
 
 		if(!s.forward && s.value <= min) {
@@ -88,25 +83,26 @@ void PreflightCalibration::Run()
 		}
 
 		if (!(s.reached_min && s.reached_max)) {
-		all_done = false;
+			status_msg.in_progress = true;
+			status_msg.calibration_successful = false;
 		}
 
 		if(s.reached_min && s.reached_max) {
+			s.status = static_cast<uint8_t>(ServoStatus::CALIBRATED);
 			continue; // Skip this servo if done calibrating
 		}
 
-		actuator_test_s actuator_test{};
 		actuator_test.timestamp = now;
 		actuator_test.timeout_ms = CAL_TIMEOUT;
 		actuator_test.action = ACTION_DO_CONTROL;
 		actuator_test.function = FUNCTION_SERVO1 + i;
 		actuator_test.value = s.value;
-
 		_actuator_test_pub.publish(actuator_test);
+
+		status_msg.servo_status[i] = static_cast<uint8_t>(s.status);
 
 		PX4_INFO("Calibrating actuator %d to value %.3f", i+1, static_cast<double>(actuator_test.value));
 
-		actuator_outputs_s outputs;
 		if (_actuator_outputs.update(&outputs)) {
 
 		PX4_INFO("Current servos position: [%.3f, %.3f, %.3f, %.3f]",
@@ -115,16 +111,19 @@ void PreflightCalibration::Run()
 			(double)outputs.output[2],
 			(double)outputs.output[3]
 		);
-	}
+		}
 	}
 
-	if(all_done && !_calibration_done) {
+	status_msg.calibration_successful = _is_calibration_successful();
+	_preflight_calibration_status_pub.publish(status_msg);
+
+	if(_do_calibration_ended()) {
 		PX4_INFO("Preflight calibration completed for all actuators.");
-		_calibration_done = true;
 
 		 // Stop the scheduled work item
 		ScheduleClear();
 
+		_request_stop = true;
 		exit_and_cleanup();
 		return;
 	}
@@ -187,6 +186,34 @@ int PreflightCalibration::print_usage(const char *reason)
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
+}
+
+void PreflightCalibration::_parameters_updated()
+{
+	ModuleParams::updateParams();
+}
+
+bool PreflightCalibration::_is_calibration_successful()
+{
+	for (const auto &s : _sv_states) {
+		if (!(s.status == static_cast<uint8_t>(ServoStatus::CALIBRATED))) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool PreflightCalibration::_do_calibration_ended()
+{
+	bool all_done = true;
+	for(int i=0; i<NUM_ACTUATORS; i++) {
+
+		if(_sv_states[i].status != static_cast<uint8_t>(ServoStatus::CALIBRATED)) {
+			all_done = false;
+		}
+	}
+	return all_done;
 }
 
 extern "C" __EXPORT int preflight_calibration_main(int argc, char *argv[])
