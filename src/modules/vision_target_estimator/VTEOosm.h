@@ -79,6 +79,8 @@ public:
 	static_assert(HistorySize > 0, "HistorySize must be > 0");
 	static_assert(HistorySize <= 255, "HistorySize must fit in uint8_t");
 	static constexpr uint8_t kHistorySize = static_cast<uint8_t>(HistorySize);
+	static constexpr uint64_t kOosmMinTimeUs = 20_ms;
+	static constexpr uint64_t kOosmMaxTimeUs = 500_ms;
 
 	OOSMManager() = default;
 
@@ -124,8 +126,6 @@ public:
 			  StateVec &curr_state, StateCov &curr_cov, const InputT &curr_input)
 	{
 		FusionResult res{};
-		static constexpr uint64_t kOosmMinTimeUs = 20_ms;
-		static constexpr uint64_t kOosmMaxTimeUs = 500_ms;
 
 		const uint64_t time_diff = (now_us >= meas.time_us) ? (now_us - meas.time_us) : (meas.time_us - now_us);
 

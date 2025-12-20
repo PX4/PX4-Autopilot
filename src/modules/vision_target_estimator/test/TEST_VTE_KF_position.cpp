@@ -54,7 +54,6 @@ namespace
 using namespace time_literals;
 
 static constexpr float kTolerance = 1e-4f;
-static constexpr float kMinVar = 1e-9f;
 static constexpr hrt_abstime kNowOffset = 10_us;
 
 using StateVec = matrix::Vector<float, vtest::State::size>;
@@ -175,11 +174,15 @@ TEST(KFPositionTest, InnovationMatchesH)
 	static constexpr hrt_abstime kMeasTime = 1_s;
 	const vte::ScalarMeas meas = makeMeas(kMeasTime, 2.5f, 0.5f, H);
 
+	const StateVec state_before = filter.getState();
+	const StateVec cov_diag_before = filter.getStateCovarianceDiag();
 	const vte::FusionResult res = filter.fuseScalarAtTime(meas, kMeasTime + kNowOffset, 1e6f);
 
 	EXPECT_EQ(res.status, vte::FusionStatus::FUSED_CURRENT);
-	EXPECT_NEAR(res.innov, 1.5f, kTolerance);
-	EXPECT_NEAR(res.innov_var, 4.5f, kTolerance);
+	const float expected_innov = meas.val - state_before(vtest::State::pos_rel);
+	const float expected_innov_var = cov_diag_before(vtest::State::pos_rel) + meas.unc;
+	EXPECT_NEAR(res.innov, expected_innov, kTolerance);
+	EXPECT_NEAR(res.innov_var, expected_innov_var, kTolerance);
 }
 
 TEST(KFPositionTest, FusesCurrentMeasurement)
@@ -196,13 +199,21 @@ TEST(KFPositionTest, FusesCurrentMeasurement)
 	const hrt_abstime now = kMeasTime + kNowOffset;
 	const vte::ScalarMeas meas = makeMeas(kMeasTime, 5.f, 1.f, H);
 
+	const float state_pos = filter.getState()(vtest::State::pos_rel);
+	const float p00 = filter.getStateCovarianceDiag()(vtest::State::pos_rel);
+	const float innov = meas.val - state_pos;
+	const float innov_var = p00 + meas.unc;
+	const float k_pos = p00 / innov_var;
+	const float expected_pos = k_pos * innov;
+	const float expected_p00 = (1.f - k_pos) * p00;
+
 	const vte::FusionResult res = filter.fuseScalarAtTime(meas, now, 100.f);
 	const StateVec state = filter.getState();
 	const StateVec cov_diag = filter.getStateCovarianceDiag();
 
 	EXPECT_EQ(res.status, vte::FusionStatus::FUSED_CURRENT);
-	EXPECT_NEAR(state(vtest::State::pos_rel), 4.f, kTolerance);
-	EXPECT_NEAR(cov_diag(vtest::State::pos_rel), 0.8f, kTolerance);
+	EXPECT_NEAR(state(vtest::State::pos_rel), expected_pos, kTolerance);
+	EXPECT_NEAR(cov_diag(vtest::State::pos_rel), expected_p00, kTolerance);
 	EXPECT_NEAR(cov_diag(vtest::State::vel_uav), 1.f, kTolerance);
 	EXPECT_NEAR(cov_diag(vtest::State::bias), 1.f, kTolerance);
 
@@ -335,9 +346,9 @@ TEST(KFPositionTest, ClampCovarianceToMin)
 	const StateVec cov_diag = filter.getStateCovarianceDiag();
 
 	EXPECT_EQ(res.status, vte::FusionStatus::FUSED_CURRENT);
-	EXPECT_GE(cov_diag(vtest::State::pos_rel), kMinVar);
-	EXPECT_GE(cov_diag(vtest::State::vel_uav), kMinVar);
-	EXPECT_GE(cov_diag(vtest::State::bias), kMinVar);
+	EXPECT_GE(cov_diag(vtest::State::pos_rel), vte::KF_position::kMinVar);
+	EXPECT_GE(cov_diag(vtest::State::vel_uav), vte::KF_position::kMinVar);
+	EXPECT_GE(cov_diag(vtest::State::bias), vte::KF_position::kMinVar);
 }
 
 #endif // !defined(CONFIG_VTEST_MOVING)

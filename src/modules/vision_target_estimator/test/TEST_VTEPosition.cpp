@@ -46,7 +46,6 @@
 #include <memory>
 
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/time.h>
 #include <parameters/param.h>
 #include <uORB/uORBManager.hpp>
 #include <uORB/Publication.hpp>
@@ -73,6 +72,7 @@ static constexpr hrt_abstime kStepUs = 1_ms;
 static constexpr float kDefaultEvPosNoise = 0.2f;
 static constexpr float kDefaultGpsPosNoise = 0.1f;
 static constexpr float kDefaultGpsVelNoise = 0.2f;
+static constexpr float kDefaultBiasUnc = 0.5f;
 static constexpr float kDefaultEvPosVar = kDefaultEvPosNoise * kDefaultEvPosNoise;
 static constexpr float kDefaultGpsPosVar = kDefaultGpsPosNoise * kDefaultGpsPosNoise;
 static constexpr float kDefaultGpsVelVar = kDefaultGpsVelNoise * kDefaultGpsVelNoise;
@@ -94,6 +94,9 @@ enum class FusionMaskOption {
 class VTEPositionTestable : public vte::VTEPosition
 {
 public:
+	using vte::VTEPosition::kAltMaxM;
+	using vte::VTEPosition::kLatAbsMaxDeg;
+	using vte::VTEPosition::kLonAbsMaxDeg;
 	void updateParamsPublic() { updateParams(); }
 };
 
@@ -113,7 +116,7 @@ protected:
 
 		setParamFloat("VTE_POS_UNC_IN", 1.f);
 		setParamFloat("VTE_VEL_UNC_IN", 1.f);
-		setParamFloat("VTE_BIA_UNC_IN", 0.5f);
+		setParamFloat("VTE_BIA_UNC_IN", kDefaultBiasUnc);
 		setParamFloat("VTE_EVP_NOISE", kDefaultEvPosNoise);
 		setParamFloat("VTE_GPS_P_NOISE", kDefaultGpsPosNoise);
 		setParamFloat("VTE_GPS_V_NOISE", kDefaultGpsVelNoise);
@@ -173,25 +176,6 @@ protected:
 	void setParamInt(const char *name, int32_t value)
 	{
 		ASSERT_TRUE(_param_guard.setInt(name, value));
-	}
-
-	hrt_abstime advanceMicroseconds(hrt_abstime delta_us)
-	{
-		if (delta_us > 0) {
-			px4_usleep(static_cast<useconds_t>(delta_us));
-		}
-
-		return hrt_absolute_time();
-	}
-
-	hrt_abstime advanceStep()
-	{
-		return advanceMicroseconds(kStepUs);
-	}
-
-	hrt_abstime nowUs() const
-	{
-		return hrt_absolute_time();
 	}
 
 	void enableMask(std::initializer_list<FusionMaskOption> sources)
@@ -278,7 +262,7 @@ TEST_F(VTEPositionTest, InitRequiresVelocityEstimate)
 	enableMask({FusionMaskOption::VisionPos});
 
 	const matrix::Vector3f rel_pos(1.f, 2.f, -3.f);
-	const hrt_abstime vision_time = advanceStep();
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(rel_pos, vte_test::identityQuat(), kZeroVec, vision_time);
 
 	_vte->update(matrix::Vector3f{});
@@ -295,10 +279,10 @@ TEST_F(VTEPositionTest, InitWithVisionAndLocalVelocity)
 
 	const matrix::Vector3f rel_pos(4.f, -2.f, 1.f);
 	const matrix::Vector3f vel_ned(1.f, 2.f, 3.f);
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(vel_ned, vel_time);
 
-	const hrt_abstime vision_time = advanceStep();
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(rel_pos, vte_test::identityQuat(), kZeroVec, vision_time);
 	_vte->update(matrix::Vector3f{});
 
@@ -326,7 +310,7 @@ TEST_F(VTEPositionTest, InitialPositionUsesVisionFirst)
 	enableMask({FusionMaskOption::VisionPos, FusionMaskOption::TargetGpsPos});
 
 	const matrix::Vector3f vel_ned(0.1f, 0.2f, 0.3f);
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(vel_ned, vel_time);
 
 	setParamFloat("VTE_POS_NIS_THRE", 100.f);
@@ -334,7 +318,7 @@ TEST_F(VTEPositionTest, InitialPositionUsesVisionFirst)
 
 	static constexpr hrt_abstime kBaseAgeUs = 10_ms;
 	static constexpr hrt_abstime kGpsLagUs = 4_ms;
-	const hrt_abstime base_time = nowUs() - kBaseAgeUs;
+	const hrt_abstime base_time = vte_test::nowUs() - kBaseAgeUs;
 	const hrt_abstime vision_time = base_time;
 	const hrt_abstime gps_time = base_time + kGpsLagUs;
 
@@ -363,9 +347,9 @@ TEST_F(VTEPositionTest, RejectsOutlierNis)
 	// WHAT: Initialize with vision, then feed an outlier and expect REJECT_NIS.
 	enableMask({FusionMaskOption::VisionPos});
 
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
-	const hrt_abstime init_time = advanceStep();
+	const hrt_abstime init_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(matrix::Vector3f(0.f, 0.f, 0.f), vte_test::identityQuat(),
 			 kSmallVisionCov, init_time);
 	_vte->update(matrix::Vector3f{});
@@ -376,7 +360,7 @@ TEST_F(VTEPositionTest, RejectsOutlierNis)
 	setParamFloat("VTE_POS_NIS_THRE", 0.11f);
 	_vte->updateParamsPublic();
 
-	const hrt_abstime outlier_time = advanceStep();
+	const hrt_abstime outlier_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(matrix::Vector3f(100.f, -100.f, 50.f), vte_test::identityQuat(), kSmallVisionCov, outlier_time);
 	_vte->update(matrix::Vector3f{});
 
@@ -397,24 +381,31 @@ TEST_F(VTEPositionTest, RejectsInvalidTargetGnssData)
 	// WHAT: Feed out-of-range, sentinel, and altitude-invalid measurements and expect no aid update.
 	enableMask({FusionMaskOption::TargetGpsPos});
 
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
 
 	const matrix::Vector3f vel_ned(0.1f, 0.1f, 0.1f);
 
 	auto run_case = [&](double lat, double lon, float alt) {
-		const hrt_abstime uav_time = advanceStep();
+		const hrt_abstime uav_time = vte_test::advanceMicroseconds(kStepUs);
 		publishUavGps(kUavLat, kUavLon, kUavAltM, 0.2f, 0.2f, vel_ned, 0.1f, true, uav_time);
-		const hrt_abstime target_time = advanceStep();
+		const hrt_abstime target_time = vte_test::advanceMicroseconds(kStepUs);
 		publishTargetGnss(lat, lon, alt, 0.2f, 0.2f, target_time, true);
 		_vte->update(matrix::Vector3f{});
 		EXPECT_FALSE(_aid_gps_target_sub->update());
 		vte_test::flushSubscription(_aid_gps_target_sub);
 	};
 
-	run_case(91.0, kUavLon, kTargetAltM);
-	run_case(0.0, 0.0, kTargetAltM);
-	run_case(kUavLat, kUavLon, 20000.f);
+	const double invalid_lat = VTEPositionTestable::kLatAbsMaxDeg + 1.0;
+	const double invalid_lon = VTEPositionTestable::kLonAbsMaxDeg + 1.0;
+	const double sentinel_lat = 0.0;
+	const double sentinel_lon = 0.0;
+	const float invalid_alt = VTEPositionTestable::kAltMaxM + 1.f;
+
+	run_case(invalid_lat, kUavLon, kTargetAltM);
+	run_case(kUavLat, invalid_lon, kTargetAltM);
+	run_case(sentinel_lat, sentinel_lon, kTargetAltM);
+	run_case(kUavLat, kUavLon, invalid_alt);
 }
 
 TEST_F(VTEPositionTest, FusesMeasurementsInTimestampOrder)
@@ -432,13 +423,13 @@ TEST_F(VTEPositionTest, FusesMeasurementsInTimestampOrder)
 	_vte->updateParamsPublic();
 
 	const matrix::Vector3f vel_ned(0.f, 0.f, 0.f);
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(vel_ned, vel_time);
 
 	static constexpr double kMetersPerDegLat = 1.11111e5;
 	static constexpr double kTargetNorthMeters = 20.0;
 
-	const hrt_abstime init_time = advanceStep();
+	const hrt_abstime init_time = vte_test::advanceMicroseconds(kStepUs);
 	_vte->set_mission_position(kUavLat, kUavLon, kUavAltM);
 	publishUavGps(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, vel_ned, 0.1f, true, init_time);
 	publishVisionPos(matrix::Vector3f{}, vte_test::identityQuat(),
@@ -452,7 +443,7 @@ TEST_F(VTEPositionTest, FusesMeasurementsInTimestampOrder)
 
 	static constexpr hrt_abstime kBaseAgeUs = 10_ms;
 	static constexpr hrt_abstime kGpsLagUs = 5_ms;
-	const hrt_abstime base_time = nowUs() - kBaseAgeUs;
+	const hrt_abstime base_time = vte_test::nowUs() - kBaseAgeUs;
 	const hrt_abstime vision_time = base_time;
 	const hrt_abstime gps_time = base_time + kGpsLagUs;
 
@@ -493,31 +484,33 @@ TEST_F(VTEPositionTest, BiasSetWhenNonGpsArrives)
 	enableMask({FusionMaskOption::VisionPos, FusionMaskOption::MissionPos});
 
 	const matrix::Vector3f vel_ned(0.5f, -0.5f, 0.1f);
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(vel_ned, vel_time);
 
-	const hrt_abstime init_gps_time = advanceStep();
+	const hrt_abstime init_gps_time = vte_test::advanceMicroseconds(kStepUs);
 	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.2f, 0.2f, vel_ned, 0.1f, true, init_gps_time);
 	_vte->set_mission_position(kUavLat, kUavLon, kTargetAltM);
 
 	_vte->update(matrix::Vector3f{});
 
 	const matrix::Vector3f rel_pos(1.f, 2.f, 3.f);
-	const hrt_abstime gps_time = advanceStep();
+	const hrt_abstime gps_time = vte_test::advanceMicroseconds(kStepUs);
 	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.2f, 0.2f, vel_ned, 0.1f, true, gps_time);
-	const hrt_abstime vision_time = advanceStep();
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(rel_pos, vte_test::identityQuat(), kSmallVisionCov, vision_time);
 
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_vte_state_sub->update());
 	const auto state = _vte_state_sub->get();
-	EXPECT_NEAR(state.bias[0], -1.f, 0.1f);
-	EXPECT_NEAR(state.bias[1], -2.f, 0.1f);
-	EXPECT_NEAR(state.bias[2], 7.f, 0.1f);
-	EXPECT_NEAR(state.cov_bias[0], 0.5f, kTolerance);
-	EXPECT_NEAR(state.cov_bias[1], 0.5f, kTolerance);
-	EXPECT_NEAR(state.cov_bias[2], 0.5f, kTolerance);
+	const float altitude_bias = (kUavAltM - kTargetAltM) - rel_pos(2);
+	const matrix::Vector3f expected_bias(-rel_pos(0), -rel_pos(1), altitude_bias);
+	EXPECT_NEAR(state.bias[0], expected_bias(0), 0.1f);
+	EXPECT_NEAR(state.bias[1], expected_bias(1), 0.1f);
+	EXPECT_NEAR(state.bias[2], expected_bias(2), 0.1f);
+	EXPECT_NEAR(state.cov_bias[0], kDefaultBiasUnc, kTolerance);
+	EXPECT_NEAR(state.cov_bias[1], kDefaultBiasUnc, kTolerance);
+	EXPECT_NEAR(state.cov_bias[2], kDefaultBiasUnc, kTolerance);
 }
 
 TEST_F(VTEPositionTest, VisionNoiseFloorAndRotation)
@@ -527,26 +520,23 @@ TEST_F(VTEPositionTest, VisionNoiseFloorAndRotation)
 	enableMask({FusionMaskOption::VisionPos});
 
 	const matrix::Vector3f vel_ned(0.1f, 0.1f, 0.1f);
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(vel_ned, vel_time);
 
-	matrix::Quaternionf q;
-	q(0) = 0.f;
-	q(1) = 0.f;
-	q(2) = 0.f;
-	q(3) = 1.f;
+	const matrix::Quaternionf q{0.f, 0.f, 0.f, 1.f};
 
 	const matrix::Vector3f rel_pos(1.f, 2.f, 3.f);
-	const hrt_abstime vision_time = advanceStep();
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(rel_pos, q, kZeroVec, vision_time);
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_aid_fiducial_sub->update());
 	const auto aid = _aid_fiducial_sub->get();
 
-	EXPECT_NEAR(aid.observation[0], -1.f, kTolerance);
-	EXPECT_NEAR(aid.observation[1], -2.f, kTolerance);
-	EXPECT_NEAR(aid.observation[2], 3.f, kTolerance);
+	const matrix::Vector3f expected_obs = q.rotateVector(rel_pos);
+	EXPECT_NEAR(aid.observation[0], expected_obs(0), kTolerance);
+	EXPECT_NEAR(aid.observation[1], expected_obs(1), kTolerance);
+	EXPECT_NEAR(aid.observation[2], expected_obs(2), kTolerance);
 	EXPECT_NEAR(aid.observation_variance[0], kDefaultEvPosVar, kTolerance);
 	EXPECT_NEAR(aid.observation_variance[1], kDefaultEvPosVar, kTolerance);
 	EXPECT_NEAR(aid.observation_variance[2], kDefaultEvPosVar, kTolerance);
@@ -561,12 +551,12 @@ TEST_F(VTEPositionTest, RejectsVisionWithInvalidCovarianceWhenNoiseModeOff)
 	setParamInt("VTE_EV_NOISE_MD", 0);
 	_vte->updateParamsPublic();
 
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
 
 	const matrix::Vector3f rel_pos(1.f, 2.f, 3.f);
 	const matrix::Vector3f cov(NAN, NAN, NAN);
-	const hrt_abstime vision_time = advanceStep();
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(rel_pos, vte_test::identityQuat(), cov, vision_time);
 
 	_vte->update(matrix::Vector3f{});
@@ -581,13 +571,13 @@ TEST_F(VTEPositionTest, RejectsVisionWithInvalidQuaternion)
 	// WHAT: Publish NaN quaternion and ensure the measurement is rejected.
 	enableMask({FusionMaskOption::VisionPos});
 
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
 
 	matrix::Quaternionf q = vte_test::identityQuat();
 	q(0) = NAN;
 
-	const hrt_abstime vision_time = advanceStep();
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(matrix::Vector3f(1.f, 0.f, 0.f), q, kSmallVisionCov, vision_time);
 	_vte->update(matrix::Vector3f{});
 
@@ -601,13 +591,13 @@ TEST_F(VTEPositionTest, RejectsVisionWithInvalidPosition)
 	// WHAT: Publish NaN position and verify the update is rejected.
 	enableMask({FusionMaskOption::VisionPos});
 
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
 
 	matrix::Vector3f rel_pos = matrix::Vector3f(1.f, 2.f, 3.f);
 	rel_pos(1) = NAN;
 
-	const hrt_abstime vision_time = advanceStep();
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(rel_pos, vte_test::identityQuat(), kSmallVisionCov, vision_time);
 	_vte->update(matrix::Vector3f{});
 
@@ -622,10 +612,10 @@ TEST_F(VTEPositionTest, MissionGpsRelativePositionAndOffset)
 	enableMask({FusionMaskOption::MissionPos});
 
 	const matrix::Vector3f vel_ned(0.1f, 0.1f, 0.1f);
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(vel_ned, vel_time);
 
-	const hrt_abstime t0 = advanceStep();
+	const hrt_abstime t0 = vte_test::advanceMicroseconds(kStepUs);
 	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.01f, 0.01f, vel_ned, 0.1f, true, t0);
 	_vte->set_mission_position(kUavLat, kUavLon, kTargetAltM);
 
@@ -634,17 +624,18 @@ TEST_F(VTEPositionTest, MissionGpsRelativePositionAndOffset)
 	ASSERT_TRUE(_aid_gps_mission_sub->update());
 	const auto aid_no_offset = _aid_gps_mission_sub->get();
 
-	_vte->set_gps_pos_offset(matrix::Vector3f(1.f, 2.f, 3.f), true);
-	const hrt_abstime t1 = advanceStep();
+	const matrix::Vector3f gps_offset(1.f, 2.f, 3.f);
+	_vte->set_gps_pos_offset(gps_offset, true);
+	const hrt_abstime t1 = vte_test::advanceMicroseconds(kStepUs);
 	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.01f, 0.01f, vel_ned, 0.1f, true, t1);
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_aid_gps_mission_sub->update());
 	const auto aid_offset = _aid_gps_mission_sub->get();
 
-	EXPECT_NEAR(aid_offset.observation[0], aid_no_offset.observation[0] + 1.f, kTolerance);
-	EXPECT_NEAR(aid_offset.observation[1], aid_no_offset.observation[1] + 2.f, kTolerance);
-	EXPECT_NEAR(aid_offset.observation[2], aid_no_offset.observation[2] + 3.f, kTolerance);
+	EXPECT_NEAR(aid_offset.observation[0], aid_no_offset.observation[0] + gps_offset(0), kTolerance);
+	EXPECT_NEAR(aid_offset.observation[1], aid_no_offset.observation[1] + gps_offset(1), kTolerance);
+	EXPECT_NEAR(aid_offset.observation[2], aid_no_offset.observation[2] + gps_offset(2), kTolerance);
 	EXPECT_NEAR(aid_offset.observation_variance[0], kDefaultGpsPosVar, kTolerance);
 	EXPECT_NEAR(aid_offset.observation_variance[1], kDefaultGpsPosVar, kTolerance);
 	EXPECT_NEAR(aid_offset.observation_variance[2], kDefaultGpsPosVar, kTolerance);
@@ -657,14 +648,15 @@ TEST_F(VTEPositionTest, MissionGpsOffsetTimeoutRejectsMeasurement)
 	enableMask({FusionMaskOption::MissionPos});
 
 	const matrix::Vector3f vel_ned(0.1f, 0.1f, 0.1f);
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(vel_ned, vel_time);
 	_vte->set_meas_updated_timeout(1_ms);
 
-	_vte->set_gps_pos_offset(matrix::Vector3f(1.f, 2.f, 3.f), true);
+	const matrix::Vector3f gps_offset(1.f, 2.f, 3.f);
+	_vte->set_gps_pos_offset(gps_offset, true);
 	_vte->set_mission_position(kUavLat, kUavLon, kTargetAltM);
 
-	const hrt_abstime gps_time = advanceStep();
+	const hrt_abstime gps_time = vte_test::advanceMicroseconds(kStepUs);
 	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.01f, 0.01f, vel_ned, 0.1f, true, gps_time);
 	_vte->update(matrix::Vector3f{});
 
@@ -678,12 +670,12 @@ TEST_F(VTEPositionTest, UavGpsVelocityFusionAndSign)
 	enableMask({FusionMaskOption::VisionPos, FusionMaskOption::UavGpsVel});
 
 	const matrix::Vector3f init_vel(0.f, 0.f, 0.f);
-	const hrt_abstime init_vel_time = advanceStep();
+	const hrt_abstime init_vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(init_vel, init_vel_time);
-	const hrt_abstime init_pos_time = advanceStep();
+	const hrt_abstime init_pos_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalPosition(matrix::Vector3f{}, init_pos_time);
 
-	const hrt_abstime vision_time = advanceStep();
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(matrix::Vector3f(2.f, 0.f, -1.f), vte_test::identityQuat(), kSmallVisionCov, vision_time);
 	_vte->update(matrix::Vector3f{});
 
@@ -691,7 +683,7 @@ TEST_F(VTEPositionTest, UavGpsVelocityFusionAndSign)
 	const auto state_before = _vte_state_sub->get();
 
 	const matrix::Vector3f vel_ned(0.8f, -1.2f, 0.4f);
-	const hrt_abstime gps_time = advanceStep();
+	const hrt_abstime gps_time = vte_test::advanceMicroseconds(kStepUs);
 	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.2f, 0.2f, vel_ned, 0.1f, true, gps_time);
 	_vte->update(matrix::Vector3f{});
 
@@ -732,10 +724,10 @@ TEST_F(VTEPositionTest, TargetGpsInterpolationVariance)
 	_vte->updateParamsPublic();
 
 	const matrix::Vector3f vel_ned(10.f, 0.f, 0.f);
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(vel_ned, vel_time);
 
-	const hrt_abstime now = nowUs();
+	const hrt_abstime now = vte_test::nowUs();
 	const hrt_abstime uav_time = now - 300_ms;
 	const hrt_abstime target_time = now - 100_ms;
 	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.01f, 0.01f, vel_ned, 1.0f, true, uav_time);
@@ -746,7 +738,8 @@ TEST_F(VTEPositionTest, TargetGpsInterpolationVariance)
 	ASSERT_TRUE(_aid_gps_target_sub->update());
 	const auto aid = _aid_gps_target_sub->get();
 	const float base_var = 2.f * kGpsPosNoise * kGpsPosNoise;
-	const float expected_shift = -2.f; // 10 m/s north * 0.2 s => 2 m south
+	const float time_diff_s = (target_time - uav_time) * 1e-6f;
+	const float expected_shift = -vel_ned(0) * time_diff_s;
 
 	EXPECT_NEAR(aid.observation[0], expected_shift, 0.05f);
 	EXPECT_GT(aid.observation_variance[0], base_var);
@@ -760,12 +753,13 @@ TEST_F(VTEPositionTest, StaleMeasurementsIgnored)
 	// WHAT: Set a tiny timeout and ensure stale vision data is ignored.
 	enableMask({FusionMaskOption::VisionPos});
 
-	_vte->set_meas_recent_timeout(1_ms);
+	const hrt_abstime meas_timeout = 1_ms;
+	_vte->set_meas_recent_timeout(meas_timeout);
 
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
 
-	const hrt_abstime stale_time = nowUs() - 2_ms;
+	const hrt_abstime stale_time = vte_test::nowUs() - (meas_timeout + 1_ms);
 	publishVisionPos(matrix::Vector3f(1.f, 1.f, 1.f), vte_test::identityQuat(),
 			 kSmallVisionCov, stale_time);
 
@@ -783,16 +777,16 @@ TEST_F(VTEPositionTest, TargetVelocityFusionMoving)
 	enableMask({FusionMaskOption::VisionPos, FusionMaskOption::TargetGpsVel});
 
 	const matrix::Vector3f vel_ned(0.1f, 0.1f, 0.1f);
-	const hrt_abstime vel_time = advanceStep();
+	const hrt_abstime vel_time = vte_test::advanceMicroseconds(kStepUs);
 	setLocalVelocity(vel_ned, vel_time);
 
-	const hrt_abstime vision_time = advanceStep();
+	const hrt_abstime vision_time = vte_test::advanceMicroseconds(kStepUs);
 	publishVisionPos(matrix::Vector3f(0.f, 0.f, 0.f), vte_test::identityQuat(),
 			 kSmallVisionCov, vision_time);
 	_vte->update(matrix::Vector3f{});
 
 	const matrix::Vector3f target_vel(1.f, 2.f, 3.f);
-	const hrt_abstime target_time = advanceStep();
+	const hrt_abstime target_time = vte_test::advanceMicroseconds(kStepUs);
 	publishTargetGnss(kUavLat, kUavLon, kTargetAltM, 0.5f, 0.5f, target_time, true, true, target_vel, 0.1f);
 
 	_vte->update(matrix::Vector3f{});

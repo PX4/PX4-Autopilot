@@ -42,6 +42,7 @@
 #pragma once
 
 #include <parameters/param.h>
+#include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/fiducial_marker_pos_report.h>
@@ -182,6 +183,28 @@ void flushSubscription(std::unique_ptr<Subscription> &sub)
 	}
 
 	while (sub->update()) {}
+}
+
+template<typename Msg, typename Subscription>
+void flushSubscription(Subscription &sub)
+{
+	Msg msg{};
+
+	while (sub.update(&msg)) {}
+}
+
+inline hrt_abstime advanceMicroseconds(hrt_abstime delta_us)
+{
+	if (delta_us > 0) {
+		px4_usleep(static_cast<useconds_t>(delta_us));
+	}
+
+	return hrt_absolute_time();
+}
+
+inline hrt_abstime nowUs()
+{
+	return hrt_absolute_time();
 }
 
 inline bool publishVisionYaw(uORB::Publication<fiducial_marker_yaw_report_s> &pub,

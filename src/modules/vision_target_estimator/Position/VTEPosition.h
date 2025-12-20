@@ -107,6 +107,11 @@ public:
 	bool fusionEnabled() const {return _vte_aid_mask.value != 0;};
 
 protected:
+	static constexpr double kLatAbsMaxDeg = 90.0;
+	static constexpr double kLonAbsMaxDeg = 180.0;
+	static constexpr float kAltMinM = -350.f;
+	static constexpr float kAltMaxM = 10000.f;
+
 	/*
 	 * update parameters.
 	 */

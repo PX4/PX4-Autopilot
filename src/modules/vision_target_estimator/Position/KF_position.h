@@ -68,6 +68,7 @@ public:
 
 	KF_position() = default;
 	~KF_position() = default;
+	static constexpr float kMinVar = 1e-9f;
 
 	void predict(float dt, float acc_uav);
 

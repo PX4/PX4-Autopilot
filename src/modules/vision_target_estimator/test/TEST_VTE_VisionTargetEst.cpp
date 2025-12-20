@@ -45,7 +45,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
-#include <px4_platform_common/time.h>
 #include <uORB/uORBManager.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -81,7 +80,9 @@ static constexpr hrt_abstime kStepUs = 1_ms;
 class VisionTargetEstTestable : public vte::VisionTargetEst
 {
 public:
+	using vte::VisionTargetEst::kAccUpdatedTimeoutUs;
 	using vte::VisionTargetEst::kEstRestartTimeUs;
+	using vte::VisionTargetEst::kMinAccDownsampleTimeoutUs;
 	using vte::VisionTargetEst::kPosUpdatePeriodUs;
 	using vte::VisionTargetEst::kYawUpdatePeriodUs;
 	using vte::VisionTargetEst::LocalPose;
@@ -198,25 +199,6 @@ protected:
 		ASSERT_TRUE(_param_guard.setInt(name, value));
 	}
 
-	hrt_abstime advanceMicroseconds(hrt_abstime delta_us)
-	{
-		if (delta_us > 0) {
-			px4_usleep(static_cast<useconds_t>(delta_us));
-		}
-
-		return hrt_absolute_time();
-	}
-
-	hrt_abstime advanceStep()
-	{
-		return advanceMicroseconds(kStepUs);
-	}
-
-	hrt_abstime nowUs() const
-	{
-		return hrt_absolute_time();
-	}
-
 	void publishAttitude(const matrix::Quaternionf &q, hrt_abstime timestamp)
 	{
 		vehicle_attitude_s msg{};
@@ -268,24 +250,16 @@ protected:
 	}
 #endif
 
-	template<typename Msg, typename Subscription>
-	void flushSubscription(Subscription &sub)
-	{
-		Msg msg{};
-
-		while (sub.update(&msg)) {}
-	}
-
 	void flushInternalSubscriptions()
 	{
-		flushSubscription<vehicle_attitude_s>(_vte->_vehicle_attitude_sub);
-		flushSubscription<vehicle_acceleration_s>(_vte->_vehicle_acceleration_sub);
-		flushSubscription<vehicle_angular_velocity_s>(_vte->_vehicle_angular_velocity_sub);
-		flushSubscription<vehicle_local_position_s>(_vte->_vehicle_local_position_sub);
-		flushSubscription<position_setpoint_triplet_s>(_vte->_pos_sp_triplet_sub);
-		flushSubscription<vehicle_land_detected_s>(_vte->_vehicle_land_detected_sub);
+		vte_test::flushSubscription<vehicle_attitude_s>(_vte->_vehicle_attitude_sub);
+		vte_test::flushSubscription<vehicle_acceleration_s>(_vte->_vehicle_acceleration_sub);
+		vte_test::flushSubscription<vehicle_angular_velocity_s>(_vte->_vehicle_angular_velocity_sub);
+		vte_test::flushSubscription<vehicle_local_position_s>(_vte->_vehicle_local_position_sub);
+		vte_test::flushSubscription<position_setpoint_triplet_s>(_vte->_pos_sp_triplet_sub);
+		vte_test::flushSubscription<vehicle_land_detected_s>(_vte->_vehicle_land_detected_sub);
 #if !defined(CONSTRAINED_FLASH)
-		flushSubscription<prec_land_status_s>(_vte->_prec_land_status_sub);
+		vte_test::flushSubscription<prec_land_status_s>(_vte->_prec_land_status_sub);
 #endif
 	}
 
@@ -359,16 +333,19 @@ TEST_F(VisionTargetEstTest, ComputeGpsVelocityOffsetRequiresOffsetAndData)
 	matrix::Vector3f vel_offset{};
 	EXPECT_FALSE(_vte->computeGpsVelocityOffset(vel_offset));
 
+	const matrix::Vector3f gps_offset(1.f, 0.f, 0.f);
 	_vte->_gps_pos_is_offset = true;
-	_vte->_gps_pos_offset_xyz = matrix::Vector3f(1.f, 0.f, 0.f);
+	_vte->_gps_pos_offset_xyz = gps_offset;
 
 	EXPECT_FALSE(_vte->computeGpsVelocityOffset(vel_offset));
 
-	publishAngularVelocity(matrix::Vector3f(0.f, 0.f, 1.f), advanceStep());
+	const matrix::Vector3f ang_vel(0.f, 0.f, 1.f);
+	publishAngularVelocity(ang_vel, vte_test::advanceMicroseconds(kStepUs));
 	EXPECT_TRUE(_vte->computeGpsVelocityOffset(vel_offset));
-	EXPECT_NEAR(vel_offset(0), 0.f, kTolerance);
-	EXPECT_NEAR(vel_offset(1), 1.f, kTolerance);
-	EXPECT_NEAR(vel_offset(2), 0.f, kTolerance);
+	const matrix::Vector3f expected_offset = ang_vel.cross(gps_offset);
+	EXPECT_NEAR(vel_offset(0), expected_offset(0), kTolerance);
+	EXPECT_NEAR(vel_offset(1), expected_offset(1), kTolerance);
+	EXPECT_NEAR(vel_offset(2), expected_offset(2), kTolerance);
 }
 
 TEST_F(VisionTargetEstTest, PollEstimatorInputRequiresAttitude)
@@ -389,7 +366,7 @@ TEST_F(VisionTargetEstTest, PollEstimatorInputTransformsAccelerationAndOffsets)
 {
 	// WHY: Valid inputs should be rotated into NED and include gravity compensation.
 	// WHAT: Publish attitude/accel with offsets and verify transformed outputs.
-	const hrt_abstime timestamp = nowUs();
+	const hrt_abstime timestamp = vte_test::nowUs();
 	matrix::Quaternionf q{0.f, 0.f, 0.f, 1.f}; // 180 degrees rotation around z-axis
 	const matrix::Vector3f non_rotated_vec{1.f, 2.f, 3.f};
 	const matrix::Vector3f rotated_vec{-1.f, -2.f, 3.f};
@@ -426,7 +403,7 @@ TEST_F(VisionTargetEstTest, PollEstimatorInputNoOffsetZerosVectors)
 {
 	// WHY: With GPS offset disabled, offset vectors must be zeroed.
 	// WHAT: Disable offset and verify returned GNSSS/velocity offsets are zero.
-	const hrt_abstime timestamp = nowUs();
+	const hrt_abstime timestamp = vte_test::nowUs();
 	publishAttitude(vte_test::identityQuat(), timestamp);
 	publishAcceleration(matrix::Vector3f(0.1f, 0.2f, 0.3f), timestamp);
 
@@ -454,7 +431,7 @@ TEST_F(VisionTargetEstTest, PublishVteInputPopulatesMessage)
 {
 	// WHY: Published inputs must reflect the sampled accel and attitude data.
 	// WHAT: Populate sample timestamp and verify the published message fields.
-	const hrt_abstime sample_time = nowUs();
+	const hrt_abstime sample_time = vte_test::nowUs();
 	_vte->_vehicle_acc_body.timestamp = sample_time;
 
 	const matrix::Vector3f acc_ned(0.5f, -0.25f, 9.0f);
@@ -480,10 +457,10 @@ TEST_F(VisionTargetEstTest, UpdateWhenIntervalElapsedRespectsInterval)
 	// WHY: The update gate should only allow execution after the interval elapses.
 	// WHAT: Expect false before the interval and true after waiting.
 	const hrt_abstime interval = 10_ms;
-	hrt_abstime last_time = nowUs();
+	hrt_abstime last_time = vte_test::nowUs();
 	EXPECT_FALSE(_vte->updateWhenIntervalElapsed(last_time, interval));
 
-	advanceMicroseconds(12_ms);
+	vte_test::advanceMicroseconds(interval + 1_ms);
 	EXPECT_TRUE(_vte->updateWhenIntervalElapsed(last_time, interval));
 }
 
@@ -494,7 +471,7 @@ TEST_F(VisionTargetEstTest, FindLandSetpointSelectsCorrectSetpoint)
 	EXPECT_EQ(_vte->findLandSetpoint(), nullptr);
 
 	position_setpoint_triplet_s triplet{};
-	triplet.timestamp = advanceStep();
+	triplet.timestamp = vte_test::advanceMicroseconds(kStepUs);
 	triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 	triplet.next.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 	publishPositionSetpointTriplet(triplet);
@@ -504,7 +481,7 @@ TEST_F(VisionTargetEstTest, FindLandSetpointSelectsCorrectSetpoint)
 	EXPECT_EQ(current_sp, &_vte->_pos_sp_triplet_buffer.current);
 
 	triplet = {};
-	triplet.timestamp = advanceStep();
+	triplet.timestamp = vte_test::advanceMicroseconds(kStepUs);
 	triplet.current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 	triplet.next.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 	publishPositionSetpointTriplet(triplet);
@@ -526,7 +503,7 @@ TEST_F(VisionTargetEstTest, PrecisionLandTaskRequestAndCompletion)
 	EXPECT_TRUE(_vte->isNewTaskAvailable());
 	EXPECT_TRUE(_vte->_current_task.flags.for_prec_land);
 
-	publishLandDetected(true, advanceStep());
+	publishLandDetected(true, vte_test::advanceMicroseconds(kStepUs));
 	EXPECT_TRUE(_vte->isCurrentTaskComplete());
 	EXPECT_FALSE(_vte->_is_in_prec_land);
 }
@@ -540,11 +517,11 @@ TEST_F(VisionTargetEstTest, UpdateTaskTopicsTracksPrecisionLandState)
 	_vte->_vte_task_mask.flags.for_prec_land = true;
 	_vte->_is_in_prec_land = false;
 
-	publishPrecLandStatus(prec_land_status_s::PREC_LAND_STATE_ONGOING, advanceStep());
+	publishPrecLandStatus(prec_land_status_s::PREC_LAND_STATE_ONGOING, vte_test::advanceMicroseconds(kStepUs));
 	_vte->updateTaskTopics();
 	EXPECT_TRUE(_vte->_is_in_prec_land);
 
-	publishPrecLandStatus(prec_land_status_s::PREC_LAND_STATE_STOPPED, advanceStep());
+	publishPrecLandStatus(prec_land_status_s::PREC_LAND_STATE_STOPPED, vte_test::advanceMicroseconds(kStepUs));
 	_vte->updateTaskTopics();
 	EXPECT_FALSE(_vte->_is_in_prec_land);
 }
@@ -556,8 +533,9 @@ TEST_F(VisionTargetEstTest, UpdatePosEstResetsDownsampleOnTimeout)
 	// WHAT: Force a timeout and verify the accumulator resets on update.
 	_vte->_acc_sample_count = 3;
 	_vte->_vehicle_acc_ned_sum = matrix::Vector3f(50.f, 60.f, 70.f);
-	const hrt_abstime now = nowUs();
-	_vte->_last_acc_reset = now - 41_ms; // kMinAccDownsampleTimeoutUs = 40_ms
+	const hrt_abstime now = vte_test::nowUs();
+	const hrt_abstime acc_downsample_timeout = VisionTargetEstTestable::kMinAccDownsampleTimeoutUs;
+	_vte->_last_acc_reset = now - (acc_downsample_timeout + 1_ms);
 	_vte->_last_update_pos = now;
 
 	const matrix::Vector3f acc_sample(1.f, 2.f, 3.f);
@@ -575,7 +553,7 @@ TEST_F(VisionTargetEstTest, UpdatePosEstAveragesSamplesCorrectly)
 	// WHY: The averaged acceleration must reflect the mean of collected samples.
 	// WHAT: Feed multiple samples, trigger an update, and verify the published mean.
 	VisionTargetEstTestable::LocalPose local_pose{};
-	const hrt_abstime now = nowUs();
+	const hrt_abstime now = vte_test::nowUs();
 	_vte->_vehicle_acc_ned_sum.setAll(0.f);
 	_vte->_acc_sample_count = 0;
 	_vte->_last_acc_reset = now;
@@ -596,7 +574,7 @@ TEST_F(VisionTargetEstTest, UpdatePosEstAveragesSamplesCorrectly)
 	EXPECT_NEAR(_vte->_vehicle_acc_ned_sum(1), acc_sum(1), kTolerance);
 	EXPECT_NEAR(_vte->_vehicle_acc_ned_sum(2), acc_sum(2), kTolerance);
 
-	advanceMicroseconds(25_ms);
+	vte_test::advanceMicroseconds(VisionTargetEstTestable::kPosUpdatePeriodUs + 1_ms);
 	const matrix::Vector3f acc3(2.f, 6.f, 1.f);
 	_vte->updatePosEst(local_pose, false, acc3, gps_offset, vel_offset, false);
 
@@ -618,7 +596,7 @@ TEST_F(VisionTargetEstTest, StartEstimatorsEnforceRestartTimeout)
 	_vte->_vte_orientation_enabled = true;
 	_vte->_current_task.value = 0;
 
-	const hrt_abstime now = nowUs();
+	const hrt_abstime now = vte_test::nowUs();
 	const hrt_abstime past_time = now - (VisionTargetEstTestable::kEstRestartTimeUs + 1_ms);
 	_vte->_vte_position_stop_time = past_time;
 	_vte->_vte_orientation_stop_time = past_time;
@@ -632,13 +610,13 @@ TEST_F(VisionTargetEstTest, StartEstimatorsEnforceRestartTimeout)
 	EXPECT_FALSE(_vte->startPosEst());
 	EXPECT_FALSE(_vte->startYawEst());
 
-	_vte->_vte_position_stop_time = nowUs() - (VisionTargetEstTestable::kEstRestartTimeUs - 1_ms);
-	_vte->_vte_orientation_stop_time = nowUs() - (VisionTargetEstTestable::kEstRestartTimeUs - 1_ms);
+	_vte->_vte_position_stop_time = vte_test::nowUs() - (VisionTargetEstTestable::kEstRestartTimeUs - 1_ms);
+	_vte->_vte_orientation_stop_time = vte_test::nowUs() - (VisionTargetEstTestable::kEstRestartTimeUs - 1_ms);
 
 	EXPECT_FALSE(_vte->startPosEst());
 	EXPECT_FALSE(_vte->startYawEst());
 
-	advanceMicroseconds(2_ms);
+	vte_test::advanceMicroseconds(2_ms);
 	EXPECT_TRUE(_vte->startPosEst());
 	EXPECT_TRUE(_vte->startYawEst());
 }
@@ -653,6 +631,7 @@ TEST_F(VisionTargetEstTest, EstimatorUpdatePeriod)
 	// Other constants such as kAccUpdatedTimeoutUs or kMinAccDownsampleTimeoutUs
 	ASSERT_EQ(VisionTargetEstTestable::kPosUpdatePeriodUs, 20_ms);
 	ASSERT_EQ(VisionTargetEstTestable::kYawUpdatePeriodUs, 20_ms);
+	EXPECT_LT(VisionTargetEstTestable::kAccUpdatedTimeoutUs, VisionTargetEstTestable::kMinAccDownsampleTimeoutUs);
 }
 
 TEST_F(VisionTargetEstTest, AllEstStoppedDueToTimeoutStopsPositionEstimator)
@@ -668,7 +647,7 @@ TEST_F(VisionTargetEstTest, AllEstStoppedDueToTimeoutStopsPositionEstimator)
 	aid_mask.flags.use_vision_pos = 1;
 	_vte->_vte_position.set_vte_aid_mask(aid_mask.value);
 
-	const hrt_abstime timestamp = nowUs();
+	const hrt_abstime timestamp = vte_test::nowUs();
 	_vte->_vte_position.set_local_velocity(matrix::Vector3f{}, true, timestamp);
 
 	uORB::Publication<fiducial_marker_pos_report_s> vision_pub{ORB_ID(fiducial_marker_pos_report)};
@@ -677,11 +656,11 @@ TEST_F(VisionTargetEstTest, AllEstStoppedDueToTimeoutStopsPositionEstimator)
 					       matrix::Vector3f(0.01f, 0.01f, 0.01f), timestamp));
 
 	_vte->_vte_position.update(matrix::Vector3f{0.f, 0.f, 0.f});
-	const hrt_abstime time_param_update = nowUs();
+	const hrt_abstime time_param_update = vte_test::nowUs();
 	_vte->_vte_position.set_vte_timeout(1_ms);
 	EXPECT_LT(_vte->_vte_position_stop_time, time_param_update); // running
 
-	advanceMicroseconds(2_ms);
+	vte_test::advanceMicroseconds(2_ms);
 
 	EXPECT_TRUE(_vte->allEstStoppedDueToTimeout());
 	EXPECT_FALSE(_vte->_position_estimator_running);
@@ -695,11 +674,11 @@ TEST_F(VisionTargetEstTest, UpdateEstimatorsHandlesMissingLocalPose)
 	_vte->_vte_position_enabled = true;
 	_vte->_position_estimator_running = true;
 
-	const hrt_abstime timestamp = nowUs();
+	const hrt_abstime timestamp = vte_test::nowUs();
 	publishAttitude(vte_test::identityQuat(), timestamp);
 	publishAcceleration(matrix::Vector3f(0.1f, -0.2f, 9.5f), timestamp);
 
-	_vte->_last_update_pos = timestamp - 25_ms;
+	_vte->_last_update_pos = timestamp - (VisionTargetEstTestable::kPosUpdatePeriodUs + 1_ms);
 	_vte->_last_acc_reset = timestamp;
 
 	_vte->updateEstimators();
@@ -717,10 +696,10 @@ TEST_F(VisionTargetEstTest, UpdateEstimatorsWarnsOnStaleAcceleration)
 	_vte->_vehicle_acc_ned_sum = matrix::Vector3f(1.f, 2.f, 3.f);
 
 	const hrt_abstime warn_before = _vte->_acc_sample_warn_last;
-	const hrt_abstime timestamp = nowUs();
+	const hrt_abstime timestamp = vte_test::nowUs();
 	publishAttitude(vte_test::identityQuat(), timestamp);
 
-	const hrt_abstime stale_timestamp = timestamp - 50_ms;
+	const hrt_abstime stale_timestamp = timestamp - (VisionTargetEstTestable::kAccUpdatedTimeoutUs + 1_ms);
 	publishAcceleration(matrix::Vector3f(0.1f, -0.2f, 9.5f), stale_timestamp);
 
 	_vte->updateEstimators();

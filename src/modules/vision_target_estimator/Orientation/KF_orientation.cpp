@@ -149,8 +149,6 @@ void KF_orientation::applyCorrection(matrix::Vector<float, State::size> &state,
 		}
 	}
 
-	static constexpr float kMinVar = 1e-9f;
-
 	for (int i = 0; i < State::size; i++) {
 		cov(i, i) = fmaxf(cov(i, i), kMinVar);
 	}

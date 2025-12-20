@@ -694,7 +694,6 @@ void VisionTargetEst::updatePosEst(const LocalPose &local_pose, const bool local
 				   const bool vel_offset_updated)
 {
 	/* If the acceleration has been averaged for too long, reset the accumulator */
-	static constexpr uint32_t kMinAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25Hz
 	const uint32_t acc_downsample_timeout_us = math::max(static_cast<uint32_t>(kPosUpdatePeriodUs * 2),
 			kMinAccDownsampleTimeoutUs);
 
@@ -835,7 +834,6 @@ bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned, matr
 		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp;
 	}
 
-	static constexpr uint32_t kAccUpdatedTimeoutUs = 20_ms; // TODO: check if we can lower it
 	_vehicle_acc_body.valid = (_vehicle_acc_body.timestamp != 0)
 				  && !hasTimedOut(_vehicle_acc_body.timestamp, kAccUpdatedTimeoutUs);
 	acc_valid = _vehicle_acc_body.valid;
