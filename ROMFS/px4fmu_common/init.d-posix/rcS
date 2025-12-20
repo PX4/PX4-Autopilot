@@ -373,3 +373,6 @@ fi
 
 mavlink boot_complete
 replay trystart
+
+# Add own configuration
+# preflight_calibration start
