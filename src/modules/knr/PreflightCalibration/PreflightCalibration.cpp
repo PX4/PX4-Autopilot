@@ -6,6 +6,12 @@
  * Remember to make with propoer hardware target => cubepilot_cubeorange
  *
  * SHOULD WE NAME ALL OOF THE CUSTOM MODULES WITH A PREFIX LIKE KNR_ ???
+ *
+ * Helpful CLI commands to test the module:
+ * - To start the module: preflight_calibration start
+ * - To see the status: preflight_calibration status
+ * - To see actuator test values: listener actuator_test
+ * - To see current servo values: listener actuator_outputs
  ****************************************************************************/
 
 #include "PreflightCalibration.hpp"
@@ -32,6 +38,11 @@ bool PreflightCalibration::init()
 		return false;
 	}
 
+	for(int i=0;i<NUM_ACTUATORS;i++) {
+		_sv_states[i].value = _sv_cal_min.get();
+		_sv_states[i].forward = true;
+	}
+
 	return true;
 }
 
@@ -44,7 +55,6 @@ PreflightCalibration::parameters_updated()
 void PreflightCalibration::Run()
 {
 	// Add business logic from docs
-
 	perf_count(_loop_interval_perf);
 
 	if(_parameter_update_sub.updated()) {
@@ -53,6 +63,62 @@ void PreflightCalibration::Run()
 		parameters_updated();
 	}
 
+	const hrt_abstime now = hrt_absolute_time();
+	if (now - _last_calibration_update < CAL_INTERVAL) {
+		return;
+	}
+
+	_last_calibration_update = now;
+
+	const float max = _sv_cal_max.get();
+	const float min = _sv_cal_min.get();
+	const float step = _sv_cal_step.get();
+	bool all_done = true;
+
+	for(int i=0; i<NUM_ACTUATORS; i++) {
+		auto &s = _sv_states[i];
+
+		if(s.reached_min && s.reached_max) {
+			continue; // Skip this servo if done calibrating
+		}
+
+		s.value += s.forward ? step : -step;
+
+		if(!s.forward && s.value <= min) {
+			s.reached_min = true;
+		} else if(s.forward && s.value >= max) {
+			s.reached_max = true;
+			s.forward = false;
+		}
+
+		if (!(s.reached_min && s.reached_max)) {
+		all_done = false;
+		}
+
+		actuator_test_s actuator_test{};
+		actuator_test.timestamp = now;
+		actuator_test.timeout_ms = CAL_TIMEOUT;
+		actuator_test.action = ACTION_DO_CONTROL;
+		actuator_test.function = FUNCTION_SERVO1 + i;
+		actuator_test.value = s.value;
+
+		_actuator_test_pub.publish(actuator_test);
+
+		PX4_INFO("Calibrating actuator %d to value %.3f", i+1, static_cast<double>(actuator_test.value));
+	}
+
+	if(all_done && !_calibration_done) {
+		PX4_INFO("Preflight calibration completed for all actuators.");
+		_calibration_done = true;
+
+		 // Stop the scheduled work item
+		ScheduleClear();
+
+		exit_and_cleanup();
+		return;
+	}
+
+	perf_count(_calibration_updated_perf);
 }
 
 int PreflightCalibration::task_spawn(int argc, char *argv[])

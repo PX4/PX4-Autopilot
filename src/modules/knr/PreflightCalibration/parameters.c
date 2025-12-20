@@ -37,7 +37,7 @@
 * @reboot_required true
 * @group Actuators
 */
-PARAM_DEFINE_INT32(SV_CAL_MAX_VAL, 1);
+PARAM_DEFINE_FLOAT(SV_CAL_MAX_VAL, 1.0f);
 
 /**
 * Minimum value for servo calibration.
@@ -45,4 +45,12 @@ PARAM_DEFINE_INT32(SV_CAL_MAX_VAL, 1);
 * @reboot_required true
 * @group Actuators
 */
-PARAM_DEFINE_INT32(SV_CAL_MIN_VAL, -1);
+PARAM_DEFINE_FLOAT(SV_CAL_MIN_VAL, -1.0f);
+
+/**
+* Step value for servo calibration.
+*
+* @reboot_required true
+* @group Actuators
+*/
+PARAM_DEFINE_FLOAT(SV_CAL_STEP_VAL, 0.1f);
