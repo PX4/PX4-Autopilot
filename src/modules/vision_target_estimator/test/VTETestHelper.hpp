@@ -60,33 +60,6 @@
 namespace vte_test
 {
 
-class SimTime
-{
-public:
-	explicit SimTime(hrt_abstime start_us = 0) : _timestamp(start_us)
-	{
-	}
-
-	void reset(hrt_abstime start_us = 0)
-	{
-		_timestamp = start_us;
-	}
-
-	hrt_abstime now() const
-	{
-		return _timestamp;
-	}
-
-	hrt_abstime advanceMicroseconds(hrt_abstime delta_us)
-	{
-		_timestamp += delta_us;
-		return _timestamp;
-	}
-
-private:
-	hrt_abstime _timestamp{0};
-};
-
 class ParamGuard
 {
 public:
@@ -191,11 +164,7 @@ private:
 
 inline matrix::Quaternionf identityQuat()
 {
-	matrix::Quaternionf q;
-	q(0) = 1.f;
-	q(1) = 0.f;
-	q(2) = 0.f;
-	q(3) = 0.f;
+	matrix::Quaternionf q{1.f, 0.f, 0.f, 0.f};
 	return q;
 }
 
