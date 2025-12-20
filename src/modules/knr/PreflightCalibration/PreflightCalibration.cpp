@@ -73,14 +73,10 @@ void PreflightCalibration::Run()
 	const float max = _sv_cal_max.get();
 	const float min = _sv_cal_min.get();
 	const float step = _sv_cal_step.get();
-	bool all_done = true;
+	bool all_done{true};
 
 	for(int i=0; i<NUM_ACTUATORS; i++) {
 		auto &s = _sv_states[i];
-
-		if(s.reached_min && s.reached_max) {
-			continue; // Skip this servo if done calibrating
-		}
 
 		s.value += s.forward ? step : -step;
 
@@ -95,6 +91,10 @@ void PreflightCalibration::Run()
 		all_done = false;
 		}
 
+		if(s.reached_min && s.reached_max) {
+			continue; // Skip this servo if done calibrating
+		}
+
 		actuator_test_s actuator_test{};
 		actuator_test.timestamp = now;
 		actuator_test.timeout_ms = CAL_TIMEOUT;
@@ -105,6 +105,17 @@ void PreflightCalibration::Run()
 		_actuator_test_pub.publish(actuator_test);
 
 		PX4_INFO("Calibrating actuator %d to value %.3f", i+1, static_cast<double>(actuator_test.value));
+
+		actuator_outputs_s outputs;
+		if (_actuator_outputs.update(&outputs)) {
+
+		PX4_INFO("Current servos position: [%.3f, %.3f, %.3f, %.3f]",
+			(double)outputs.output[0],
+			(double)outputs.output[1],
+			(double)outputs.output[2],
+			(double)outputs.output[3]
+		);
+	}
 	}
 
 	if(all_done && !_calibration_done) {

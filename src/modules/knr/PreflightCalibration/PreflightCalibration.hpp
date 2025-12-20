@@ -27,7 +27,10 @@ using namespace time_literals;
 
 static constexpr hrt_abstime CAL_INTERVAL = 50_ms;
 static constexpr hrt_abstime CAL_TIMEOUT = 2000_ms;
-static constexpr int NUM_ACTUATORS = 4;
+
+// TODO - why when set to 4 controls only 1 servo and set to 8 then controls both?
+static constexpr int NUM_ACTUATORS = 8;
+
 static constexpr uint8_t ACTION_DO_CONTROL = 1;
 static constexpr uint8_t FUNCTION_SERVO1 = 201;
 
@@ -70,7 +73,11 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID::vehicle_status};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID::vehicle_control_mode};
-	uORB::SubscriptionCallbackWorkItem _actuator_outputs{this, ORB_ID(actuator_outputs)};
+	uORB::SubscriptionCallbackWorkItem _actuator_outputs{
+		this,
+		ORB_ID(actuator_outputs),
+		1	// Explicit instance setting for servos
+	};
 
 	uORB::Publication<actuator_test_s> _actuator_test_pub{ORB_ID(actuator_test)};
 
