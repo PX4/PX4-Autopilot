@@ -1,6 +1,6 @@
 # ARK G5 RTK GPS
 
-[ARK G5 RTK GPS](https://arkelectron.com/product/ark-g5-rtk-gps/) is made in the USA NDAA compliant [DroneCAN](index.md)  quad-band  [RTK GPS](../gps_compass/rtk_gps.md), [ Septentriomosaic-G5 P3 Ultra-compact high-precision GPS/GNSS receiver module](https://www.u-blox.com/en/product/zed-x20p-module), magnetometer, barometer, IMU, and buzzer module.
+[ARK G5 RTK GPS](https://arkelectron.com/product/ark-g5-rtk-gps/) is made in the USA NDAA compliant [DroneCAN](index.md)  quad-band  [RTK GPS](../gps_compass/rtk_gps.md), [ Septentrio mosaic-G5 P3 Ultra-compact high-precision GPS/GNSS receiver module](https://www.u-blox.com/en/product/zed-x20p-module), magnetometer, barometer, IMU, and buzzer module.
 
 ![ARK G5 RTK GPS](../../assets/hardware/gps/ark/ark_g5_rtk_gps.png)
 
