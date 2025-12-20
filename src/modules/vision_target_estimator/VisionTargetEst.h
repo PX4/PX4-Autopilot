@@ -108,6 +108,8 @@ protected:
 	static constexpr uint32_t kEstRestartTimeUs = 3_s; // Wait at least 3 second before re-starting the filter
 	static constexpr uint64_t kPosUpdatePeriodUs{20_ms}; // 50 Hz
 	static constexpr uint64_t kYawUpdatePeriodUs{20_ms}; // 50 Hz
+	static constexpr uint32_t kMinAccDownsampleTimeoutUs = 40_ms; // 40 ms -> 25 Hz
+	static constexpr uint32_t kAccUpdatedTimeoutUs = 20_ms; // TODO: check if we can lower it
 
 	struct LocalPose {
 		bool pos_valid = false;

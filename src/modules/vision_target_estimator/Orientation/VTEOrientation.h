@@ -97,6 +97,8 @@ public:
 	bool fusionEnabled() const {return _vte_aid_mask.flags.use_vision_pos;}; // for now only vision measurements are handled
 
 protected:
+	static constexpr float kDefaultVisionYawDistance = 10.f;
+
 	/*
 	 * update parameters.
 	 */

@@ -66,6 +66,7 @@ public:
 
 	KF_orientation() = default;
 	~KF_orientation() = default;
+	static constexpr float kMinVar = 1e-9f;
 
 	struct ScalarMeas {
 		uint64_t time_us;

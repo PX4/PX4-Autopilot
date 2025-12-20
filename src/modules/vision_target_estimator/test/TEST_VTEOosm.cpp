@@ -334,7 +334,8 @@ TEST_F(VTEOosmTest, FusesCurrentMeasurement)
 	// WHY: The OOSM manager must use the fast path for fresh measurements.
 	// WHAT: Ensure a current measurement updates state/covariance and returns FUSED_CURRENT.
 	const uint64_t now_us = 1_s;
-	const ScalarMeas meas = makeMeas(now_us - 10_ms, 2.f, 1.f);
+	const uint64_t current_offset = Manager::kOosmMinTimeUs - 1_ms;
+	const ScalarMeas meas = makeMeas(now_us - current_offset, 2.f, 1.f);
 
 	const vte::FusionResult res = fuseMeas(meas, now_us, 10.f);
 
@@ -351,7 +352,8 @@ TEST_F(VTEOosmTest, RejectsInvalidInnovationVariance)
 	const uint64_t now_us = 2_s;
 	state = 1.f;
 	cov = 0.f;
-	const ScalarMeas meas = makeMeas(now_us - 5_ms, 1.f, 0.f);
+	const uint64_t current_offset = Manager::kOosmMinTimeUs - 1_ms;
+	const ScalarMeas meas = makeMeas(now_us - current_offset, 1.f, 0.f);
 
 	const vte::FusionResult res = fuseMeas(meas, now_us, 10.f);
 
@@ -368,7 +370,8 @@ TEST_F(VTEOosmTest, RejectsNisForCurrentMeasurement)
 	const uint64_t now_us = 3_s;
 	state = 0.f;
 	cov = 0.1f;
-	const ScalarMeas meas = makeMeas(now_us - 1_ms, 10.f, 0.1f);
+	const uint64_t current_offset = Manager::kOosmMinTimeUs - 1_ms;
+	const ScalarMeas meas = makeMeas(now_us - current_offset, 10.f, 0.1f);
 
 	const vte::FusionResult res = fuseMeas(meas, now_us, 1.f);
 
@@ -406,11 +409,14 @@ TEST_F(VTEOosmTest, RejectsOosmOutOfRangeTimestamps)
 	pushSample(250_ms, 2.f, 4.f, 0.f);
 
 	const uint64_t now_us = 300_ms;
-	const ScalarMeas meas_too_new = makeMeas(now_us + 30_ms, 0.f, 1.f);
+	const uint64_t too_new_time = now_us + Manager::kOosmMinTimeUs + 1_us;
+	const ScalarMeas meas_too_new = makeMeas(too_new_time, 0.f, 1.f);
 	const vte::FusionResult too_new_res = fuseMeas(meas_too_new, now_us, 10.f);
 	EXPECT_EQ(too_new_res.status, vte::FusionStatus::REJECT_TOO_NEW);
 
-	const ScalarMeas meas_too_old = makeMeas(90_ms, 0.f, 1.f);
+	const uint64_t oldest_time = 100_ms;
+	const uint64_t too_old_time = oldest_time - 10_ms;
+	const ScalarMeas meas_too_old = makeMeas(too_old_time, 0.f, 1.f);
 	const vte::FusionResult too_old_res = fuseMeas(meas_too_old, now_us, 10.f);
 	EXPECT_EQ(too_old_res.status, vte::FusionStatus::REJECT_TOO_OLD);
 }
@@ -439,10 +445,11 @@ TEST_F(VTEOosmTest, RejectsStaleWhenNowExceedsHistoryWindow)
 	pushSample(t0, 0.f, 4.f, 0.f);
 
 	const ScalarMeas meas = makeMeas(t0 + 50_ms, 1.f, 1.f);
-	const vte::FusionResult stale_res = fuseMeas(meas, t0 + 700_ms, 10.f);
+	const uint64_t stale_now = t0 + Manager::kOosmMaxTimeUs + 1_ms;
+	const vte::FusionResult stale_res = fuseMeas(meas, stale_now, 10.f);
 	EXPECT_EQ(stale_res.status, vte::FusionStatus::REJECT_STALE);
 
-	const vte::FusionResult empty_res = fuseMeas(meas, t0 + 700_ms, 10.f);
+	const vte::FusionResult empty_res = fuseMeas(meas, stale_now, 10.f);
 	EXPECT_EQ(empty_res.status, vte::FusionStatus::REJECT_EMPTY);
 }
 
@@ -628,37 +635,42 @@ TEST_F(VTEOosmTest, HandlesRingBufferWrapAroundAndBoundaries)
 	// Newest: 900 ms (Index 0)
 	// Oldest: 200 ms (Index 1)
 	// Now:    950 ms
-	// Max OOSM Lag: 500 ms -> Cutoff: 450 ms
+	// Max OOSM Lag: kOosmMaxTimeUs -> Cutoff: (Now - kOosmMaxTimeUs)
+	const uint64_t now_us = 950_ms;
+	const uint64_t max_oosm_lag = Manager::kOosmMaxTimeUs;
+	const uint64_t cutoff_time = now_us - max_oosm_lag;
 
 	// Verify Valid Fusion in the middle
 	// This forces the search to traverse from Index 0 backwards to Index 4
 	// And the correction loop to traverse Index 4 -> 5 -> 6 -> 7 -> 0
-	const ScalarMeas meas_mid = makeMeas(550_ms, 5.5f, 1.f);
-	EXPECT_EQ(fuseMeas(meas_mid, 950_ms, 10.f).status,
+	const uint64_t mid_offset = 100_ms;
+	const ScalarMeas meas_mid = makeMeas(cutoff_time + mid_offset, 5.5f, 1.f);
+	EXPECT_EQ(fuseMeas(meas_mid, now_us, 10.f).status,
 		  vte::FusionStatus::FUSED_OOSM) << "Failed mid-buffer fusion";
 
-	// Verify Time Window Boundaries (The 500ms Timeout)
+	// Verify Time Window Boundaries (Max OOSM Timeout)
 
-	// Case A: Just inside the window (450 ms) -> Should Fuse (floor is 400 ms)
-	// Note: 950 ms - 450 ms = 500 ms. Code uses `if (diff > max)`, so 500 == 500 is OK.
-	const ScalarMeas meas_edge_valid = makeMeas(450_ms, 4.5f, 1.f);
-	EXPECT_EQ(fuseMeas(meas_edge_valid, 950_ms, 10.f).status,
-		  vte::FusionStatus::FUSED_OOSM) << "Failed valid edge case (450 ms)";
+	// Case A: Just inside the window (cutoff time) -> Should Fuse (floor is 400 ms)
+	// Note: now - cutoff_time = kOosmMaxTimeUs. Code uses `if (diff > max)`, so equal is OK.
+	const ScalarMeas meas_edge_valid = makeMeas(cutoff_time, 4.5f, 1.f);
+	EXPECT_EQ(fuseMeas(meas_edge_valid, now_us, 10.f).status,
+		  vte::FusionStatus::FUSED_OOSM) << "Failed valid edge case (cutoff time)";
 
-	// Case B: Just outside the window (449.99 ms) -> Reject Too Old
-	const ScalarMeas meas_edge_invalid = makeMeas(449990_us, 4.5f, 1.f);
-	EXPECT_EQ(fuseMeas(meas_edge_invalid, 950_ms, 10.f).status,
-		  vte::FusionStatus::REJECT_TOO_OLD) << "Failed invalid edge case (449.99 ms)";
+	// Case B: Just outside the window (cutoff - 10 us) -> Reject Too Old
+	const uint64_t edge_invalid_time = cutoff_time - 10_us;
+	const ScalarMeas meas_edge_invalid = makeMeas(edge_invalid_time, 4.5f, 1.f);
+	EXPECT_EQ(fuseMeas(meas_edge_invalid, now_us, 10.f).status,
+		  vte::FusionStatus::REJECT_TOO_OLD) << "Failed invalid edge case (cutoff - 10 us)";
 
 	// Tight Timestamp Verification
 	// We reset and use tiny time steps to prove that data is rejected
-	// because it fell off the ring buffer, NOT because of the 500ms timeout.
+	// because it fell off the ring buffer, NOT because of the max OOSM timeout.
 	oosm.reset();
 	filter.resetTracking();
 	state = 0.f;
 	cov = 4.f;
 
-	// We need time_diff > kOosmMinTimeUs (20ms) to force OOSM logic.
+	// We need time_diff > kOosmMinTimeUs to force OOSM logic.
 	// We use 1ms steps.
 	// Buffer: [10ms, 11ms, ..., 17ms] (Size 8)
 	const uint64_t base_t = 10_ms;
@@ -678,16 +690,15 @@ TEST_F(VTEOosmTest, HandlesRingBufferWrapAroundAndBoundaries)
 	// Newest: 18 ms
 	// Oldest: 11 ms (Index 1)
 
-	// Set 'now' such that (now - meas) > 20ms to avoid FUSED_CURRENT
-	// Let's set now to 50 ms.
-	// Lag to oldest (11 ms) is 39 ms (valid < 500 ms).
-	uint64_t tight_now = 50_ms;
+	// Set 'now' such that (now - meas) > kOosmMinTimeUs to avoid FUSED_CURRENT.
+	const uint64_t extra_margin = 10_ms;
+	const uint64_t tight_now = base_t + Manager::kOosmMinTimeUs + extra_margin;
 
-	// Case C: Try to fuse time=10.5 ms.
-	// Time diff = 50 ms - 10.5 ms = 39.5 ms (> 20 ms MinOosm).
+	// Case C: Try to fuse time=base_t + 500 us.
+	// Time diff = tight_now - meas_overwritten_time (> kOosmMinTimeUs).
 	// History Check: 10.5 ms < Oldest (11 ms).
 	// MUST return REJECT_TOO_OLD (buffer overwritten).
-	const uint64_t meas_overwritten_time = 10_ms + 500_us;
+	const uint64_t meas_overwritten_time = base_t + 500_us;
 	const ScalarMeas meas_overwritten = makeMeas(meas_overwritten_time, 0.f, 1.f);
 	vte::FusionResult res_over = fuseMeas(meas_overwritten, tight_now, 10.f);
 
@@ -695,7 +706,8 @@ TEST_F(VTEOosmTest, HandlesRingBufferWrapAroundAndBoundaries)
 			<< "Expected REJECT_TOO_OLD for overwritten sample. Got: " << (int)res_over.status;
 
 	// Case D: Verify boundary of new oldest (11 ms)
-	const ScalarMeas meas_oldest_valid = makeMeas(11_ms, 0.f, 1.f);
+	const uint64_t oldest_time = base_t + step_t;
+	const ScalarMeas meas_oldest_valid = makeMeas(oldest_time, 0.f, 1.f);
 	vte::FusionResult res_valid = fuseMeas(meas_oldest_valid, tight_now, 10.f);
 
 	EXPECT_EQ(res_valid.status, vte::FusionStatus::FUSED_OOSM)

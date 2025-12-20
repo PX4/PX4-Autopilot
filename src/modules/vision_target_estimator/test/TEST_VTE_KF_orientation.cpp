@@ -54,8 +54,8 @@ namespace
 using namespace time_literals;
 
 static constexpr float kTolerance = 1e-4f;
-static constexpr float kMinVar = 1e-9f;
 static constexpr float kPi = 3.14159265358979323846f;
+static constexpr float kYawNearPi = 3.13f;
 static constexpr hrt_abstime kNowOffset = 10_us;
 
 using StateVec = matrix::Vector<float, vte::State::size>;
@@ -100,16 +100,19 @@ TEST(KFOrientationTest, PredictWrapsYaw)
 	// WHY: Yaw must remain in [-pi, pi] to avoid discontinuities.
 	// WHAT: Predict across the wrap and ensure yaw is normalized.
 	vte::KF_orientation filter;
-	filter.setState(makeState(3.1f, 1.0f));
+	const float yaw = 3.1f;
+	const float yaw_rate = 1.0f;
+	const float dt = 1.0f;
+	filter.setState(makeState(yaw, yaw_rate));
 	filter.setStateCovarianceDiag(makeDiag(0.f, 0.f));
 
-	filter.predict(1.0f);
+	filter.predict(dt);
 
 	const StateVec state = filter.getState();
-	const float expected_yaw = matrix::wrap_pi(4.1f);
+	const float expected_yaw = matrix::wrap_pi(yaw + yaw_rate * dt);
 
 	EXPECT_NEAR(state(vte::State::yaw), expected_yaw, kTolerance);
-	EXPECT_NEAR(state(vte::State::yaw_rate), 1.0f, kTolerance);
+	EXPECT_NEAR(state(vte::State::yaw_rate), yaw_rate, kTolerance);
 }
 
 TEST(KFOrientationTest, PredictAddsProcessNoise)
@@ -225,15 +228,15 @@ TEST(KFOrientationTest, InnovationWrapsAcrossPi)
 	// WHY: Innovations across the wrap should be small, not ~2pi.
 	// WHAT: Check innovation for +pi to -pi transitions is wrapped.
 	vte::KF_orientation filter;
-	filter.setState(makeState(3.13f, 0.f));
+	filter.setState(makeState(kYawNearPi, 0.f));
 	filter.setStateCovarianceDiag(makeDiag(1.f, 1.f));
 
 	const StateVec H = makeH(vte::State::yaw);
 	static constexpr hrt_abstime kMeasTime = 1_s;
-	const vte::KF_orientation::ScalarMeas meas = makeMeas(kMeasTime, -3.13f, 0.1f, H);
+	const vte::KF_orientation::ScalarMeas meas = makeMeas(kMeasTime, -kYawNearPi, 0.1f, H);
 	const vte::FusionResult res = filter.fuseScalarAtTime(meas, kMeasTime + kNowOffset, 100.f);
 
-	const float expected_innov = matrix::wrap_pi(-3.13f - 3.13f);
+	const float expected_innov = matrix::wrap_pi(-kYawNearPi - kYawNearPi);
 
 	EXPECT_EQ(res.status, vte::FusionStatus::FUSED_CURRENT);
 	EXPECT_NEAR(res.innov, expected_innov, kTolerance);
@@ -244,15 +247,15 @@ TEST(KFOrientationTest, InnovationDoesNotWrapYawRateMeasurement)
 	// WHY: Only yaw innovations should be wrapped; yaw-rate is linear.
 	// WHAT: Ensure yaw-rate innovation uses the raw difference.
 	vte::KF_orientation filter;
-	filter.setState(makeState(0.f, 3.13f));
+	filter.setState(makeState(0.f, kYawNearPi));
 	filter.setStateCovarianceDiag(makeDiag(1.f, 1.f));
 
 	const StateVec H = makeH(vte::State::yaw_rate);
 	static constexpr hrt_abstime kMeasTime = 1500_ms;
-	const vte::KF_orientation::ScalarMeas meas = makeMeas(kMeasTime, -3.13f, 0.1f, H);
+	const vte::KF_orientation::ScalarMeas meas = makeMeas(kMeasTime, -kYawNearPi, 0.1f, H);
 	const vte::FusionResult res = filter.fuseScalarAtTime(meas, kMeasTime + kNowOffset, 100.f);
 
-	const float expected_innov = -3.13f - 3.13f;
+	const float expected_innov = -kYawNearPi - kYawNearPi;
 
 	EXPECT_EQ(res.status, vte::FusionStatus::FUSED_CURRENT);
 	EXPECT_NEAR(res.innov, expected_innov, kTolerance);
@@ -268,7 +271,7 @@ TEST(KFOrientationTest, RejectsOutlierNis)
 
 	const StateVec H = makeH(vte::State::yaw);
 	static constexpr hrt_abstime kMeasTime = 2_s;
-	const vte::KF_orientation::ScalarMeas meas = makeMeas(kMeasTime, 3.14f, 0.01f, H);
+	const vte::KF_orientation::ScalarMeas meas = makeMeas(kMeasTime, kPi, 0.01f, H);
 	const vte::FusionResult res = filter.fuseScalarAtTime(meas, kMeasTime + kNowOffset, 0.1f);
 
 	const StateVec state = filter.getState();
@@ -294,8 +297,8 @@ TEST(KFOrientationTest, ClampCovarianceToMin)
 	const StateVec cov_diag = filter.getStateCovarianceDiag();
 
 	EXPECT_EQ(res.status, vte::FusionStatus::FUSED_CURRENT);
-	EXPECT_GE(cov_diag(vte::State::yaw), kMinVar);
-	EXPECT_GE(cov_diag(vte::State::yaw_rate), kMinVar);
+	EXPECT_GE(cov_diag(vte::State::yaw), vte::KF_orientation::kMinVar);
+	EXPECT_GE(cov_diag(vte::State::yaw_rate), vte::KF_orientation::kMinVar);
 }
 
 TEST(KFOrientationTest, CorrectionWrapsYaw)
@@ -303,18 +306,18 @@ TEST(KFOrientationTest, CorrectionWrapsYaw)
 	// WHY: Correction should normalize yaw after applying the gain.
 	// WHAT: Force a correction that would exceed pi without wrapping.
 	vte::KF_orientation filter;
-	filter.setState(makeState(3.13f, 0.f));
+	filter.setState(makeState(kYawNearPi, 0.f));
 	filter.setStateCovarianceDiag(makeDiag(0.5f, 0.2f));
 
 	const StateVec H = makeH(vte::State::yaw);
 	static constexpr hrt_abstime kMeasTime = 4_s;
-	const vte::KF_orientation::ScalarMeas meas = makeMeas(kMeasTime, -3.13f, 0.2f, H);
+	const vte::KF_orientation::ScalarMeas meas = makeMeas(kMeasTime, -kYawNearPi, 0.2f, H);
 	const vte::FusionResult res = filter.fuseScalarAtTime(meas, kMeasTime + kNowOffset, 100.f);
 	const StateVec state = filter.getState();
 
-	const float expected_innov = matrix::wrap_pi(-3.13f - 3.13f);
+	const float expected_innov = matrix::wrap_pi(-kYawNearPi - kYawNearPi);
 	const float expected_k = 0.5f / (0.5f + 0.2f);
-	const float expected_yaw = matrix::wrap_pi(3.13f + expected_k * expected_innov);
+	const float expected_yaw = matrix::wrap_pi(kYawNearPi + expected_k * expected_innov);
 
 	EXPECT_EQ(res.status, vte::FusionStatus::FUSED_CURRENT);
 	EXPECT_NEAR(res.innov, expected_innov, kTolerance);
