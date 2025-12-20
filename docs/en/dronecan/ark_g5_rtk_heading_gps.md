@@ -66,16 +66,6 @@ The recommended mounting orientation is with the connectors on the board pointin
 
 The sensor can be mounted anywhere on the frame, but you will need to specify its position, relative to vehicle centre of gravity, during [PX4 configuration](#px4-configuration).
 
-#### SEP_OUT_RATE (enum)
-
-Configures the output rate for GNSS data messages.
-
-- -1: OnChange
-- 50: 50 ms
-- 100: 100 ms
-- 200: 200 ms
-- 500: 500 ms
-
 ## Firmware Setup
 
 The Septentrio G5 module firmware can be updated using the Septentrio [RxTools](https://www.septentrio.com/en/products/gps-gnss-receiver-software/rxtools) application.
@@ -125,6 +115,16 @@ Note that this can be interpreted as the "roll" angle in case the antennas are a
 - Min: -90
 - Max: 90
 - Unit: degree
+
+#### SEP_OUT_RATE (enum)
+
+Configures the output rate for GNSS data messages.
+
+- -1: OnChange
+- 50: 50 ms
+- 100: 100 ms
+- 200: 200 ms
+- 500: 500 ms
 
 ## LED Meanings
 
