@@ -46,7 +46,6 @@
 #include <matrix/math.hpp>
 
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/time.h>
 #include <parameters/param.h>
 #include <uORB/uORBManager.hpp>
 #include <uORB/Publication.hpp>
@@ -65,6 +64,8 @@ namespace
 using namespace time_literals;
 
 static constexpr float kTolerance = 1e-4f;
+static constexpr float kPi = 3.14159265358979323846f;
+static constexpr float kTwoPi = 2.f * kPi;
 static constexpr hrt_abstime kStepUs = 1_ms;
 static constexpr float kDefaultEvYawNoise = 0.5f;
 static constexpr float kDefaultEvYawVar = kDefaultEvYawNoise * kDefaultEvYawNoise;
@@ -72,6 +73,7 @@ static constexpr float kDefaultEvYawVar = kDefaultEvYawNoise * kDefaultEvYawNois
 class VTEOrientationTestable : public vte::VTEOrientation
 {
 public:
+	using vte::VTEOrientation::kDefaultVisionYawDistance;
 	void updateParamsPublic() { updateParams(); }
 };
 
@@ -128,25 +130,6 @@ protected:
 		ASSERT_TRUE(_param_guard.setInt(name, value));
 	}
 
-	hrt_abstime advanceMicroseconds(hrt_abstime delta_us)
-	{
-		if (delta_us > 0) {
-			px4_usleep(static_cast<useconds_t>(delta_us));
-		}
-
-		return hrt_absolute_time();
-	}
-
-	hrt_abstime advanceStep()
-	{
-		return advanceMicroseconds(kStepUs);
-	}
-
-	hrt_abstime nowUs() const
-	{
-		return hrt_absolute_time();
-	}
-
 	void publishVisionYaw(float yaw, float yaw_var, hrt_abstime timestamp)
 	{
 		ASSERT_TRUE(vte_test::publishVisionYaw(*_vision_pub, yaw, yaw_var, timestamp));
@@ -174,7 +157,7 @@ TEST_F(VTEOrientationTest, InitFromVisionYawPublishesOrientation)
 	enableVisionFusion();
 
 	const float yaw_meas = 0.5f;
-	publishVisionYaw(yaw_meas, 0.01f, advanceStep());
+	publishVisionYaw(yaw_meas, 0.01f, vte_test::advanceMicroseconds(kStepUs));
 
 	_vte->update();
 
@@ -196,7 +179,7 @@ TEST_F(VTEOrientationTest, DoesNotFuseWhenVisionDisabled)
 {
 	// WHY: Fusion should be disabled when the aid mask is empty.
 	// WHAT: Publish a valid yaw without enabling vision fusion and expect no output.
-	publishVisionYaw(0.2f, 0.01f, advanceStep());
+	publishVisionYaw(0.2f, 0.01f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
 	EXPECT_FALSE(_aid_sub->update());
@@ -209,7 +192,7 @@ TEST_F(VTEOrientationTest, RejectsInvalidYaw)
 	// WHAT: Publish NaN yaw and ensure no outputs are produced.
 	enableVisionFusion();
 
-	publishVisionYaw(NAN, 0.01f, advanceStep());
+	publishVisionYaw(NAN, 0.01f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
 	EXPECT_FALSE(_aid_sub->update());
@@ -225,7 +208,7 @@ TEST_F(VTEOrientationTest, RejectsInvalidYawVarianceWhenNoiseModeOff)
 	setParamInt("VTE_EV_NOISE_MD", 0);
 	_vte->updateParamsPublic();
 
-	publishVisionYaw(0.1f, NAN, advanceStep());
+	publishVisionYaw(0.1f, NAN, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
 	EXPECT_FALSE(_aid_sub->update());
@@ -238,8 +221,9 @@ TEST_F(VTEOrientationTest, RejectsStaleYaw)
 	// WHAT: Set a tiny timeout and verify stale data is ignored.
 	enableVisionFusion();
 
-	_vte->set_meas_recent_timeout(1_ms);
-	const hrt_abstime stale_time = nowUs() - 2_ms;
+	const hrt_abstime meas_timeout = 1_ms;
+	_vte->set_meas_recent_timeout(meas_timeout);
+	const hrt_abstime stale_time = vte_test::nowUs() - (meas_timeout + 1_ms);
 	publishVisionYaw(0.1f, 0.01f, stale_time);
 
 	_vte->update();
@@ -258,7 +242,7 @@ TEST_F(VTEOrientationTest, YawNoiseFloor)
 	setParamFloat("VTE_EVA_NOISE", kEvNoise);
 	_vte->updateParamsPublic();
 
-	publishVisionYaw(0.3f, 0.0f, advanceStep());
+	publishVisionYaw(0.3f, 0.0f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
 	ASSERT_TRUE(_aid_sub->update());
@@ -277,15 +261,16 @@ TEST_F(VTEOrientationTest, RangeScaledYawNoise)
 	setParamInt("VTE_EV_NOISE_MD", 1);
 	_vte->updateParamsPublic();
 
-	_vte->set_range_sensor(2.f, true, advanceStep());
-	publishVisionYaw(0.2f, 0.0f, advanceStep());
+	const float range = 2.f;
+	_vte->set_range_sensor(range, true, vte_test::advanceMicroseconds(kStepUs));
+	publishVisionYaw(0.2f, 0.0f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
 	ASSERT_TRUE(_aid_sub->update());
 	const auto aid = _aid_sub->get();
 
 	const float min_var = kEvNoise * kEvNoise;
-	const float expected_var = min_var * 4.f;
+	const float expected_var = min_var * range * range;
 	EXPECT_NEAR(aid.observation_variance, expected_var, kTolerance);
 }
 
@@ -300,14 +285,15 @@ TEST_F(VTEOrientationTest, RangeNoiseFallbackUsesDefaultDistance)
 	setParamInt("VTE_EV_NOISE_MD", 1);
 	_vte->updateParamsPublic();
 
-	_vte->set_range_sensor(NAN, true, advanceStep());
-	publishVisionYaw(0.2f, 0.0f, advanceStep());
+	_vte->set_range_sensor(NAN, true, vte_test::advanceMicroseconds(kStepUs));
+	publishVisionYaw(0.2f, 0.0f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
 	ASSERT_TRUE(_aid_sub->update());
 	const auto aid = _aid_sub->get();
 	const float min_var = kEvNoise * kEvNoise;
-	const float expected_var = min_var * 100.f;
+	const float default_range = VTEOrientationTestable::kDefaultVisionYawDistance;
+	const float expected_var = min_var * default_range * default_range;
 	EXPECT_NEAR(aid.observation_variance, expected_var, kTolerance);
 }
 
@@ -320,11 +306,11 @@ TEST_F(VTEOrientationTest, RejectsOutlierNis)
 	setParamFloat("VTE_YAW_NIS_THRE", 0.2f);
 	_vte->updateParamsPublic();
 
-	publishVisionYaw(0.f, 0.01f, advanceStep());
+	publishVisionYaw(0.f, 0.01f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 	ASSERT_TRUE(_state_sub->update());
 
-	publishVisionYaw(3.14f, 0.01f, advanceStep());
+	publishVisionYaw(kPi, 0.01f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
 	ASSERT_TRUE(_aid_sub->update());
@@ -342,15 +328,18 @@ TEST_F(VTEOrientationTest, WrapsAcrossZeroAndTwoPi)
 	// WHAT: Toggle measurements near 0 and 2pi and verify yaw stays near zero.
 	enableVisionFusion();
 
-	publishVisionYaw(0.01f, 0.01f, advanceStep());
+	const float yaw_near_zero = 0.01f;
+	const float yaw_near_two_pi = kTwoPi - 0.013f;
+
+	publishVisionYaw(yaw_near_zero, 0.01f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
-	publishVisionYaw(6.27f, 0.01f, advanceStep());
+	publishVisionYaw(yaw_near_two_pi, 0.01f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
 	ASSERT_TRUE(_state_sub->update());
 	const auto state = _state_sub->get();
-	const float expected = matrix::wrap_pi(6.27f);
+	const float expected = matrix::wrap_pi(yaw_near_two_pi);
 
 	EXPECT_NEAR(state.yaw, expected, 0.1f);
 	EXPECT_LT(fabsf(state.yaw), 0.2f);
@@ -367,14 +356,14 @@ TEST_F(VTEOrientationTest, ResetsOnYawUncChange)
 	setParamFloat("VTE_EVA_NOISE", kEvNoise);
 	_vte->updateParamsPublic();
 
-	publishVisionYaw(0.2f, kEvVar, advanceStep());
+	publishVisionYaw(0.2f, kEvVar, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 	ASSERT_TRUE(_state_sub->update());
 
 	setParamFloat("VTE_YAW_UNC_IN", 2.0f);
 	_vte->updateParamsPublic();
 
-	publishVisionYaw(0.2f, kEvVar, advanceStep());
+	publishVisionYaw(0.2f, kEvVar, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
 	ASSERT_TRUE(_state_sub->update());
@@ -395,7 +384,7 @@ TEST_F(VTEOrientationTest, FusesOosmYawMeasurement)
 	hrt_abstime first_predict_time = 0;
 
 	for (int i = 0; i < 3; ++i) {
-		const hrt_abstime sample_time = advanceStep();
+		const hrt_abstime sample_time = vte_test::advanceMicroseconds(kStepUs);
 
 		publishVisionYaw(0.1f, 0.01f, sample_time);
 		_vte->update();
@@ -409,7 +398,7 @@ TEST_F(VTEOrientationTest, FusesOosmYawMeasurement)
 
 	ASSERT_GT(first_predict_time, 0u);
 
-	advanceMicroseconds(30_ms);
+	vte_test::advanceMicroseconds(30_ms);
 	const hrt_abstime oosm_time = first_predict_time;
 	publishVisionYaw(0.12f, 0.01f, oosm_time);
 	_vte->update();
@@ -427,7 +416,7 @@ TEST_F(VTEOrientationTest, TargetValidityTimeout)
 	enableVisionFusion();
 	_vte->set_target_valid_timeout(0);
 
-	publishVisionYaw(0.1f, 0.01f, advanceStep());
+	publishVisionYaw(0.1f, 0.01f, vte_test::advanceMicroseconds(kStepUs));
 	_vte->update();
 
 	ASSERT_TRUE(_state_sub->update());

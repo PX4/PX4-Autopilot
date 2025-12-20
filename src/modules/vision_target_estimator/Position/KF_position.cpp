@@ -124,8 +124,6 @@ void KF_position::applyCorrection(matrix::Vector<float, vtest::State::size> &sta
 	cov = cov_new;
 
 	// Clamp diagonal assuming a small epsilon for stability:
-	static constexpr float kMinVar = 1e-9f;
-
 	for (int i = 0; i < vtest::State::size; i++) {
 		cov(i, i) = fmaxf(cov(i, i), kMinVar);
 	}

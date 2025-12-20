@@ -1460,11 +1460,6 @@ void VTEPosition::updateParams()
 bool VTEPosition::isLatLonAltValid(double lat_deg, double lon_deg, float alt_m, const char *who,
 				   hrt_abstime *warn_last)
 {
-	static constexpr double kLatAbsMaxDeg =  90.0;
-	static constexpr double kLonAbsMaxDeg = 180.0;
-	static constexpr float kAltMinM = -350.f;
-	static constexpr float kAltMaxM = 10000.f;
-
 	// all finite
 	if (!PX4_ISFINITE(lat_deg) || !PX4_ISFINITE(lon_deg) || !PX4_ISFINITE(alt_m)) {
 		if (who && (!warn_last || shouldEmitWarning(*warn_last))) {
