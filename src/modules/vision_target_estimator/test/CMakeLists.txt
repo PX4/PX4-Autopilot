@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_unit_gtest(
-	SRC TEST_VTE_VTEOosm.cpp
+	SRC TEST_VTEOosm.cpp
 	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/..
 	         ${CMAKE_CURRENT_SOURCE_DIR}/../Position
 )
@@ -52,7 +52,7 @@ px4_add_unit_gtest(
 )
 
 px4_add_functional_gtest(
-	SRC TEST_VTE_VTEPosition.cpp
+	SRC TEST_VTEPosition.cpp
 	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/..
 	         ${CMAKE_CURRENT_SOURCE_DIR}/../Position
 	LINKLIBS modules__vision_target_estimator
@@ -60,8 +60,16 @@ px4_add_functional_gtest(
 )
 
 px4_add_functional_gtest(
-	SRC TEST_VTE_VTEOrientation.cpp
+	SRC TEST_VTEOrientation.cpp
 	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/..
 	         ${CMAKE_CURRENT_SOURCE_DIR}/../Position
 	LINKLIBS modules__vision_target_estimator
+)
+
+px4_add_functional_gtest(
+	SRC TEST_VTE_VisionTargetEst.cpp
+	INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/..
+	         ${CMAKE_CURRENT_SOURCE_DIR}/../Position
+	LINKLIBS modules__vision_target_estimator
+	         geo
 )

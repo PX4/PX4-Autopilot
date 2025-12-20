@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file TEST_VTE_VTEOosm.cpp
+ * @file TEST_VTEOosm.cpp
  * @brief Unit test VTEOosm.h
  *
  * @author Jonas Perolini <jonspero@me.com>

@@ -72,6 +72,9 @@
 #include "Orientation/VTEOrientation.h"
 #include "common.h"
 
+class VisionTargetEstTest;
+class VisionTargetEstTestable;
+
 namespace vision_target_estimator
 {
 
@@ -97,7 +100,10 @@ public:
 
 	static int task_spawn(int argc, char *argv[]);
 
-private:
+	friend class ::VisionTargetEstTest;
+	friend class ::VisionTargetEstTestable;
+
+protected:
 	struct LocalPose {
 		bool pos_valid = false;
 		matrix::Vector3f xyz{};
@@ -228,6 +234,7 @@ private:
 	void resetAccDownsample();
 	position_setpoint_triplet_s _pos_sp_triplet_buffer{};
 
+private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
 		(ParamInt<px4::params::VTE_POS_EN>) _param_vte_pos_en,

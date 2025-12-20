@@ -74,8 +74,10 @@ VTEPosition::~VTEPosition()
 
 bool VTEPosition::shouldEmitWarning(hrt_abstime &last_warn)
 {
-	if ((last_warn == 0) || (hrt_elapsed_time(&last_warn) > kWarnThrottleIntervalUs)) {
-		last_warn = hrt_absolute_time();
+	const hrt_abstime now = hrt_absolute_time();
+
+	if ((last_warn == 0) || (now < last_warn) || ((now - last_warn) > kWarnThrottleIntervalUs)) {
+		last_warn = now;
 		return true;
 	}
 
@@ -1236,8 +1238,10 @@ void VTEPosition::publishTarget()
 
 	// If the target is static, valid and vision obs was fused recently, use the relative to aid the EKF2 state estimation.
 	// Check performed in EKF2 to use target vel: if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid)
+	const hrt_abstime now = hrt_absolute_time();
 	_target_pose.rel_vel_valid = _target_pose.is_static && _param_vte_ekf_aid.get() && _target_pose.rel_pos_valid &&
-				     (hrt_absolute_time() - _last_relative_meas_fused_time) < _meas_recent_timeout_us;
+				     (_last_relative_meas_fused_time != 0) && (now >= _last_relative_meas_fused_time) &&
+				     (now - _last_relative_meas_fused_time) < _meas_recent_timeout_us;
 
 	// Prec land does not check _target_pose.abs_pos_valid. Only send the target if abs pose valid.
 	if (_local_position.valid && _target_pose.rel_pos_valid) {

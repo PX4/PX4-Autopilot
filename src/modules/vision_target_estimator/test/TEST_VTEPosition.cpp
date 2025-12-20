@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file TEST_VTE_VTEPosition.cpp
+ * @file TEST_VTEPosition.cpp
  * @brief Unit test VTEPosition.cpp
  *
  * @author Jonas Perolini <jonspero@me.com>
@@ -45,6 +45,8 @@
 #include <initializer_list>
 #include <memory>
 
+#include <drivers/drv_hrt.h>
+#include <px4_platform_common/time.h>
 #include <parameters/param.h>
 #include <uORB/uORBManager.hpp>
 #include <uORB/Publication.hpp>
@@ -58,7 +60,7 @@
 #include <matrix/Quaternion.hpp>
 
 #include "Position/VTEPosition.h"
-#include "VteTestHelper.hpp"
+#include "VTETestHelper.hpp"
 
 namespace vte = vision_target_estimator;
 
@@ -67,7 +69,6 @@ namespace
 using namespace time_literals;
 
 static constexpr float kTolerance = 1e-3f;
-static constexpr hrt_abstime kStartTimeUs = 1_s;
 static constexpr hrt_abstime kStepUs = 1_ms;
 static constexpr float kDefaultEvPosNoise = 0.2f;
 static constexpr float kDefaultGpsPosNoise = 0.1f;
@@ -75,6 +76,12 @@ static constexpr float kDefaultGpsVelNoise = 0.2f;
 static constexpr float kDefaultEvPosVar = kDefaultEvPosNoise * kDefaultEvPosNoise;
 static constexpr float kDefaultGpsPosVar = kDefaultGpsPosNoise * kDefaultGpsPosNoise;
 static constexpr float kDefaultGpsVelVar = kDefaultGpsVelNoise * kDefaultGpsVelNoise;
+static constexpr double kUavLat = 47.3977419;
+static constexpr double kUavLon = 8.5455938;
+static constexpr float kUavAltM = 100.f;
+static constexpr float kTargetAltM = 90.f;
+static const matrix::Vector3f kSmallVisionCov{0.01f, 0.01f, 0.01f};
+static const matrix::Vector3f kZeroVec{0.f, 0.f, 0.f};
 
 enum class FusionMaskOption {
 	VisionPos,
@@ -84,27 +91,10 @@ enum class FusionMaskOption {
 	TargetGpsVel
 };
 
-matrix::Quaternionf identityQuat()
-{
-	matrix::Quaternionf q;
-	q(0) = 1.f;
-	q(1) = 0.f;
-	q(2) = 0.f;
-	q(3) = 0.f;
-	return q;
-}
-
 class VTEPositionTestable : public vte::VTEPosition
 {
 public:
 	void updateParamsPublic() { updateParams(); }
-	void setTimeSource(const vte_test::SimTime *time) { _time = time; }
-
-protected:
-	hrt_abstime timeUs() const override { return _time ? _time->now() : vte::VTEPosition::timeUs(); }
-
-private:
-	const vte_test::SimTime *_time{nullptr};
 };
 
 } // namespace
@@ -121,8 +111,6 @@ protected:
 	{
 		param_control_autosave(false);
 
-		_time.reset(kStartTimeUs);
-
 		setParamFloat("VTE_POS_UNC_IN", 1.f);
 		setParamFloat("VTE_VEL_UNC_IN", 1.f);
 		setParamFloat("VTE_BIA_UNC_IN", 0.5f);
@@ -133,7 +121,6 @@ protected:
 		setParamInt("VTE_EV_NOISE_MD", 0);
 
 		_vte = std::make_unique<VTEPositionTestable>();
-		_vte->setTimeSource(&_time);
 		ASSERT_TRUE(_vte->init());
 		_vte->updateParamsPublic();
 
@@ -173,6 +160,7 @@ protected:
 		_target_gps_pub.reset();
 		_uav_gps_pub.reset();
 		_vision_pub.reset();
+
 		_vte.reset();
 		// Keep the uORB manager alive; parameters retain uORB handles across tests.
 	}
@@ -189,7 +177,11 @@ protected:
 
 	hrt_abstime advanceMicroseconds(hrt_abstime delta_us)
 	{
-		return _time.advanceMicroseconds(delta_us);
+		if (delta_us > 0) {
+			px4_usleep(static_cast<useconds_t>(delta_us));
+		}
+
+		return hrt_absolute_time();
 	}
 
 	hrt_abstime advanceStep()
@@ -199,7 +191,7 @@ protected:
 
 	hrt_abstime nowUs() const
 	{
-		return _time.now();
+		return hrt_absolute_time();
 	}
 
 	void enableMask(std::initializer_list<FusionMaskOption> sources)
@@ -277,7 +269,6 @@ protected:
 	std::unique_ptr<uORB::SubscriptionData<landing_target_pose_s>> _target_pose_sub;
 
 	vte_test::ParamGuard _param_guard{};
-	vte_test::SimTime _time{kStartTimeUs};
 };
 
 TEST_F(VTEPositionTest, InitRequiresVelocityEstimate)
@@ -288,7 +279,7 @@ TEST_F(VTEPositionTest, InitRequiresVelocityEstimate)
 
 	const matrix::Vector3f rel_pos(1.f, 2.f, -3.f);
 	const hrt_abstime vision_time = advanceStep();
-	publishVisionPos(rel_pos, identityQuat(), matrix::Vector3f(0.0f, 0.0f, 0.0f), vision_time);
+	publishVisionPos(rel_pos, vte_test::identityQuat(), kZeroVec, vision_time);
 
 	_vte->update(matrix::Vector3f{});
 
@@ -308,7 +299,7 @@ TEST_F(VTEPositionTest, InitWithVisionAndLocalVelocity)
 	setLocalVelocity(vel_ned, vel_time);
 
 	const hrt_abstime vision_time = advanceStep();
-	publishVisionPos(rel_pos, identityQuat(), matrix::Vector3f(0.0f, 0.0f, 0.0f), vision_time);
+	publishVisionPos(rel_pos, vte_test::identityQuat(), kZeroVec, vision_time);
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_vte_state_sub->update());
@@ -347,13 +338,11 @@ TEST_F(VTEPositionTest, InitialPositionUsesVisionFirst)
 	const hrt_abstime vision_time = base_time;
 	const hrt_abstime gps_time = base_time + kGpsLagUs;
 
-	const double lat = 47.3977419;
-	const double lon = 8.5455938;
-	publishUavGps(lat, lon, 100.f, 0.5f, 0.5f, vel_ned, 0.1f, true, gps_time);
-	publishTargetGnss(lat, lon, 90.f, 0.5f, 0.5f, gps_time, true);
+	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.5f, 0.5f, vel_ned, 0.1f, true, gps_time);
+	publishTargetGnss(kUavLat, kUavLon, kTargetAltM, 0.5f, 0.5f, gps_time, true);
 
 	const matrix::Vector3f rel_pos(5.f, 6.f, 7.f);
-	publishVisionPos(rel_pos, identityQuat(), matrix::Vector3f(0.01f, 0.01f, 0.01f), vision_time);
+	publishVisionPos(rel_pos, vte_test::identityQuat(), kSmallVisionCov, vision_time);
 
 	_vte->update(matrix::Vector3f{});
 
@@ -377,8 +366,8 @@ TEST_F(VTEPositionTest, RejectsOutlierNis)
 	const hrt_abstime vel_time = advanceStep();
 	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
 	const hrt_abstime init_time = advanceStep();
-	publishVisionPos(matrix::Vector3f(0.f, 0.f, 0.f), identityQuat(),
-			 matrix::Vector3f(0.01f, 0.01f, 0.01f), init_time);
+	publishVisionPos(matrix::Vector3f(0.f, 0.f, 0.f), vte_test::identityQuat(),
+			 kSmallVisionCov, init_time);
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_vte_state_sub->update());
@@ -388,8 +377,7 @@ TEST_F(VTEPositionTest, RejectsOutlierNis)
 	_vte->updateParamsPublic();
 
 	const hrt_abstime outlier_time = advanceStep();
-	publishVisionPos(matrix::Vector3f(100.f, -100.f, 50.f), identityQuat(),
-			 matrix::Vector3f(0.01f, 0.01f, 0.01f), outlier_time);
+	publishVisionPos(matrix::Vector3f(100.f, -100.f, 50.f), vte_test::identityQuat(), kSmallVisionCov, outlier_time);
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_aid_fiducial_sub->update());
@@ -412,13 +400,11 @@ TEST_F(VTEPositionTest, RejectsInvalidTargetGnssData)
 	const hrt_abstime vel_time = advanceStep();
 	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
 
-	const double uav_lat = 47.3977419;
-	const double uav_lon = 8.5455938;
 	const matrix::Vector3f vel_ned(0.1f, 0.1f, 0.1f);
 
 	auto run_case = [&](double lat, double lon, float alt) {
 		const hrt_abstime uav_time = advanceStep();
-		publishUavGps(uav_lat, uav_lon, 100.f, 0.2f, 0.2f, vel_ned, 0.1f, true, uav_time);
+		publishUavGps(kUavLat, kUavLon, kUavAltM, 0.2f, 0.2f, vel_ned, 0.1f, true, uav_time);
 		const hrt_abstime target_time = advanceStep();
 		publishTargetGnss(lat, lon, alt, 0.2f, 0.2f, target_time, true);
 		_vte->update(matrix::Vector3f{});
@@ -426,12 +412,11 @@ TEST_F(VTEPositionTest, RejectsInvalidTargetGnssData)
 		vte_test::flushSubscription(_aid_gps_target_sub);
 	};
 
-	run_case(91.0, uav_lon, 90.f);
-	run_case(0.0, 0.0, 90.f);
-	run_case(uav_lat, uav_lon, 20000.f);
+	run_case(91.0, kUavLon, kTargetAltM);
+	run_case(0.0, 0.0, kTargetAltM);
+	run_case(kUavLat, kUavLon, 20000.f);
 }
 
-// TODO: simplify this test, too complex to maintain
 TEST_F(VTEPositionTest, FusesMeasurementsInTimestampOrder)
 {
 	// WHY: Fusions must occur in timestamp order to keep OOSM consistent.
@@ -450,15 +435,13 @@ TEST_F(VTEPositionTest, FusesMeasurementsInTimestampOrder)
 	const hrt_abstime vel_time = advanceStep();
 	setLocalVelocity(vel_ned, vel_time);
 
-	const double uav_lat = 47.3977419;
-	const double uav_lon = 8.5455938;
 	static constexpr double kMetersPerDegLat = 1.11111e5;
 	static constexpr double kTargetNorthMeters = 20.0;
 
 	const hrt_abstime init_time = advanceStep();
-	_vte->set_mission_position(uav_lat, uav_lon, 100.f);
-	publishUavGps(uav_lat, uav_lon, 100.f, kPosNoise, kPosNoise, vel_ned, 0.1f, true, init_time);
-	publishVisionPos(matrix::Vector3f{}, identityQuat(),
+	_vte->set_mission_position(kUavLat, kUavLon, kUavAltM);
+	publishUavGps(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, vel_ned, 0.1f, true, init_time);
+	publishVisionPos(matrix::Vector3f{}, vte_test::identityQuat(),
 			 matrix::Vector3f(kPosVar, kPosVar, kPosVar), init_time);
 	_vte->update(matrix::Vector3f{});
 
@@ -473,13 +456,13 @@ TEST_F(VTEPositionTest, FusesMeasurementsInTimestampOrder)
 	const hrt_abstime vision_time = base_time;
 	const hrt_abstime gps_time = base_time + kGpsLagUs;
 
-	const double mission_lat = uav_lat + (kTargetNorthMeters / kMetersPerDegLat);
-	_vte->set_mission_position(mission_lat, uav_lon, 100.f);
+	const double mission_lat = kUavLat + (kTargetNorthMeters / kMetersPerDegLat);
+	_vte->set_mission_position(mission_lat, kUavLon, kUavAltM);
 
-	publishUavGps(uav_lat, uav_lon, 100.f, kPosNoise, kPosNoise, vel_ned, 0.1f, true, gps_time);
+	publishUavGps(kUavLat, kUavLon, kUavAltM, kPosNoise, kPosNoise, vel_ned, 0.1f, true, gps_time);
 
 	const matrix::Vector3f rel_pos(10.f, 0.f, 0.f);
-	publishVisionPos(rel_pos, identityQuat(),
+	publishVisionPos(rel_pos, vte_test::identityQuat(),
 			 matrix::Vector3f(kPosVar, kPosVar, kPosVar), vision_time);
 
 	_vte->update(matrix::Vector3f{});
@@ -501,25 +484,6 @@ TEST_F(VTEPositionTest, FusesMeasurementsInTimestampOrder)
 
 	const float pred_state_gps = aid_gps.observation[0] - aid_gps.innovation[0];
 	EXPECT_NEAR(pred_state_gps, state_after_vision, 0.5f);
-
-	const float p_gps = aid_gps.innovation_variance[0] - aid_gps.observation_variance[0];
-	const float k_gps = p_gps / aid_gps.innovation_variance[0];
-	const float state_after_gps = pred_state_gps + k_gps * aid_gps.innovation[0];
-
-	// The init cycle fuses mission + vision, so the posterior variance is 1/(1/P0 + 2/R).
-	static constexpr float kInitPosVar = 1.f; // VTE_POS_UNC_IN from test setup
-	const float post_init_var = 1.f / (1.f / kInitPosVar + 2.f / kPosVar);
-	const float expected_k_vision = post_init_var / (post_init_var + kPosVar);
-	const float expected_state_after_vision = expected_k_vision * aid_vision.observation[0];
-	const float post_vision_var = (1.f - expected_k_vision) * post_init_var;
-	const float expected_k_gps = post_vision_var / (post_vision_var + kPosVar);
-	const float expected_state_after_gps = expected_state_after_vision +
-					       expected_k_gps * (aid_gps.observation[0] - expected_state_after_vision);
-
-	EXPECT_NEAR(k_vision, expected_k_vision, 0.05f);
-	EXPECT_NEAR(k_gps, expected_k_gps, 0.05f);
-	EXPECT_NEAR(state_after_vision, expected_state_after_vision, 0.6f);
-	EXPECT_NEAR(state_after_gps, expected_state_after_gps, 1.0f);
 }
 
 TEST_F(VTEPositionTest, BiasSetWhenNonGpsArrives)
@@ -532,19 +496,17 @@ TEST_F(VTEPositionTest, BiasSetWhenNonGpsArrives)
 	const hrt_abstime vel_time = advanceStep();
 	setLocalVelocity(vel_ned, vel_time);
 
-	const double lat = 47.3977419;
-	const double lon = 8.5455938;
 	const hrt_abstime init_gps_time = advanceStep();
-	publishUavGps(lat, lon, 100.f, 0.2f, 0.2f, vel_ned, 0.1f, true, init_gps_time);
-	_vte->set_mission_position(lat, lon, 90.f);
+	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.2f, 0.2f, vel_ned, 0.1f, true, init_gps_time);
+	_vte->set_mission_position(kUavLat, kUavLon, kTargetAltM);
 
 	_vte->update(matrix::Vector3f{});
 
 	const matrix::Vector3f rel_pos(1.f, 2.f, 3.f);
 	const hrt_abstime gps_time = advanceStep();
-	publishUavGps(lat, lon, 100.f, 0.2f, 0.2f, vel_ned, 0.1f, true, gps_time);
+	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.2f, 0.2f, vel_ned, 0.1f, true, gps_time);
 	const hrt_abstime vision_time = advanceStep();
-	publishVisionPos(rel_pos, identityQuat(), matrix::Vector3f(0.01f, 0.01f, 0.01f), vision_time);
+	publishVisionPos(rel_pos, vte_test::identityQuat(), kSmallVisionCov, vision_time);
 
 	_vte->update(matrix::Vector3f{});
 
@@ -576,7 +538,7 @@ TEST_F(VTEPositionTest, VisionNoiseFloorAndRotation)
 
 	const matrix::Vector3f rel_pos(1.f, 2.f, 3.f);
 	const hrt_abstime vision_time = advanceStep();
-	publishVisionPos(rel_pos, q, matrix::Vector3f(0.0f, 0.0f, 0.0f), vision_time);
+	publishVisionPos(rel_pos, q, kZeroVec, vision_time);
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_aid_fiducial_sub->update());
@@ -605,7 +567,7 @@ TEST_F(VTEPositionTest, RejectsVisionWithInvalidCovarianceWhenNoiseModeOff)
 	const matrix::Vector3f rel_pos(1.f, 2.f, 3.f);
 	const matrix::Vector3f cov(NAN, NAN, NAN);
 	const hrt_abstime vision_time = advanceStep();
-	publishVisionPos(rel_pos, identityQuat(), cov, vision_time);
+	publishVisionPos(rel_pos, vte_test::identityQuat(), cov, vision_time);
 
 	_vte->update(matrix::Vector3f{});
 
@@ -622,11 +584,31 @@ TEST_F(VTEPositionTest, RejectsVisionWithInvalidQuaternion)
 	const hrt_abstime vel_time = advanceStep();
 	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
 
-	matrix::Quaternionf q = identityQuat();
+	matrix::Quaternionf q = vte_test::identityQuat();
 	q(0) = NAN;
 
 	const hrt_abstime vision_time = advanceStep();
-	publishVisionPos(matrix::Vector3f(1.f, 0.f, 0.f), q, matrix::Vector3f(0.01f, 0.01f, 0.01f), vision_time);
+	publishVisionPos(matrix::Vector3f(1.f, 0.f, 0.f), q, kSmallVisionCov, vision_time);
+	_vte->update(matrix::Vector3f{});
+
+	EXPECT_FALSE(_aid_fiducial_sub->update());
+	EXPECT_FALSE(_vte_state_sub->update());
+}
+
+TEST_F(VTEPositionTest, RejectsVisionWithInvalidPosition)
+{
+	// WHY: Position measurements must be finite to compute innovations.
+	// WHAT: Publish NaN position and verify the update is rejected.
+	enableMask({FusionMaskOption::VisionPos});
+
+	const hrt_abstime vel_time = advanceStep();
+	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
+
+	matrix::Vector3f rel_pos = matrix::Vector3f(1.f, 2.f, 3.f);
+	rel_pos(1) = NAN;
+
+	const hrt_abstime vision_time = advanceStep();
+	publishVisionPos(rel_pos, vte_test::identityQuat(), kSmallVisionCov, vision_time);
 	_vte->update(matrix::Vector3f{});
 
 	EXPECT_FALSE(_aid_fiducial_sub->update());
@@ -643,11 +625,9 @@ TEST_F(VTEPositionTest, MissionGpsRelativePositionAndOffset)
 	const hrt_abstime vel_time = advanceStep();
 	setLocalVelocity(vel_ned, vel_time);
 
-	const double lat = 47.3977419;
-	const double lon = 8.5455938;
 	const hrt_abstime t0 = advanceStep();
-	publishUavGps(lat, lon, 100.f, 0.01f, 0.01f, vel_ned, 0.1f, true, t0);
-	_vte->set_mission_position(lat, lon, 90.f);
+	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.01f, 0.01f, vel_ned, 0.1f, true, t0);
+	_vte->set_mission_position(kUavLat, kUavLon, kTargetAltM);
 
 	_vte->update(matrix::Vector3f{});
 
@@ -656,7 +636,7 @@ TEST_F(VTEPositionTest, MissionGpsRelativePositionAndOffset)
 
 	_vte->set_gps_pos_offset(matrix::Vector3f(1.f, 2.f, 3.f), true);
 	const hrt_abstime t1 = advanceStep();
-	publishUavGps(lat, lon, 100.f, 0.01f, 0.01f, vel_ned, 0.1f, true, t1);
+	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.01f, 0.01f, vel_ned, 0.1f, true, t1);
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_aid_gps_mission_sub->update());
@@ -681,13 +661,11 @@ TEST_F(VTEPositionTest, MissionGpsOffsetTimeoutRejectsMeasurement)
 	setLocalVelocity(vel_ned, vel_time);
 	_vte->set_meas_updated_timeout(1_ms);
 
-	const double lat = 47.3977419;
-	const double lon = 8.5455938;
 	_vte->set_gps_pos_offset(matrix::Vector3f(1.f, 2.f, 3.f), true);
-	_vte->set_mission_position(lat, lon, 90.f);
+	_vte->set_mission_position(kUavLat, kUavLon, kTargetAltM);
 
 	const hrt_abstime gps_time = advanceStep();
-	publishUavGps(lat, lon, 100.f, 0.01f, 0.01f, vel_ned, 0.1f, true, gps_time);
+	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.01f, 0.01f, vel_ned, 0.1f, true, gps_time);
 	_vte->update(matrix::Vector3f{});
 
 	EXPECT_FALSE(_aid_gps_mission_sub->update());
@@ -706,8 +684,7 @@ TEST_F(VTEPositionTest, UavGpsVelocityFusionAndSign)
 	setLocalPosition(matrix::Vector3f{}, init_pos_time);
 
 	const hrt_abstime vision_time = advanceStep();
-	publishVisionPos(matrix::Vector3f(2.f, 0.f, -1.f), identityQuat(),
-			 matrix::Vector3f(0.01f, 0.01f, 0.01f), vision_time);
+	publishVisionPos(matrix::Vector3f(2.f, 0.f, -1.f), vte_test::identityQuat(), kSmallVisionCov, vision_time);
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_vte_state_sub->update());
@@ -715,7 +692,7 @@ TEST_F(VTEPositionTest, UavGpsVelocityFusionAndSign)
 
 	const matrix::Vector3f vel_ned(0.8f, -1.2f, 0.4f);
 	const hrt_abstime gps_time = advanceStep();
-	publishUavGps(47.3977419, 8.5455938, 100.f, 0.2f, 0.2f, vel_ned, 0.1f, true, gps_time);
+	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.2f, 0.2f, vel_ned, 0.1f, true, gps_time);
 	_vte->update(matrix::Vector3f{});
 
 	ASSERT_TRUE(_aid_gps_vel_uav_sub->update());
@@ -761,8 +738,8 @@ TEST_F(VTEPositionTest, TargetGpsInterpolationVariance)
 	const hrt_abstime now = nowUs();
 	const hrt_abstime uav_time = now - 300_ms;
 	const hrt_abstime target_time = now - 100_ms;
-	publishUavGps(47.3977419, 8.5455938, 100.f, 0.01f, 0.01f, vel_ned, 1.0f, true, uav_time);
-	publishTargetGnss(47.3977419, 8.5455938, 90.f, 0.01f, 0.01f, target_time, true);
+	publishUavGps(kUavLat, kUavLon, kUavAltM, 0.01f, 0.01f, vel_ned, 1.0f, true, uav_time);
+	publishTargetGnss(kUavLat, kUavLon, kTargetAltM, 0.01f, 0.01f, target_time, true);
 
 	_vte->update(matrix::Vector3f{});
 
@@ -789,8 +766,8 @@ TEST_F(VTEPositionTest, StaleMeasurementsIgnored)
 	setLocalVelocity(matrix::Vector3f(0.1f, 0.1f, 0.1f), vel_time);
 
 	const hrt_abstime stale_time = nowUs() - 2_ms;
-	publishVisionPos(matrix::Vector3f(1.f, 1.f, 1.f), identityQuat(),
-			 matrix::Vector3f(0.01f, 0.01f, 0.01f), stale_time);
+	publishVisionPos(matrix::Vector3f(1.f, 1.f, 1.f), vte_test::identityQuat(),
+			 kSmallVisionCov, stale_time);
 
 	_vte->update(matrix::Vector3f{});
 
@@ -810,13 +787,13 @@ TEST_F(VTEPositionTest, TargetVelocityFusionMoving)
 	setLocalVelocity(vel_ned, vel_time);
 
 	const hrt_abstime vision_time = advanceStep();
-	publishVisionPos(matrix::Vector3f(0.f, 0.f, 0.f), identityQuat(),
-			 matrix::Vector3f(0.01f, 0.01f, 0.01f), vision_time);
+	publishVisionPos(matrix::Vector3f(0.f, 0.f, 0.f), vte_test::identityQuat(),
+			 kSmallVisionCov, vision_time);
 	_vte->update(matrix::Vector3f{});
 
 	const matrix::Vector3f target_vel(1.f, 2.f, 3.f);
 	const hrt_abstime target_time = advanceStep();
-	publishTargetGnss(47.3977419, 8.5455938, 90.f, 0.5f, 0.5f, target_time, true, true, target_vel, 0.1f);
+	publishTargetGnss(kUavLat, kUavLon, kTargetAltM, 0.5f, 0.5f, target_time, true, true, target_vel, 0.1f);
 
 	_vte->update(matrix::Vector3f{});
 

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file TEST_VTE_VTEOrientation.cpp
+ * @file TEST_VTEOrientation.cpp
  * @brief Unit test VTEOrientation.cpp
  *
  * @author Jonas Perolini <jonspero@me.com>
@@ -46,6 +46,7 @@
 #include <matrix/math.hpp>
 
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/time.h>
 #include <parameters/param.h>
 #include <uORB/uORBManager.hpp>
 #include <uORB/Publication.hpp>
@@ -55,7 +56,7 @@
 #include <uORB/topics/vision_target_est_orientation.h>
 
 #include "Orientation/VTEOrientation.h"
-#include "VteTestHelper.hpp"
+#include "VTETestHelper.hpp"
 
 namespace vte = vision_target_estimator;
 
@@ -64,7 +65,6 @@ namespace
 using namespace time_literals;
 
 static constexpr float kTolerance = 1e-4f;
-static constexpr hrt_abstime kStartTimeUs = 1_s;
 static constexpr hrt_abstime kStepUs = 1_ms;
 static constexpr float kDefaultEvYawNoise = 0.5f;
 static constexpr float kDefaultEvYawVar = kDefaultEvYawNoise * kDefaultEvYawNoise;
@@ -73,13 +73,6 @@ class VTEOrientationTestable : public vte::VTEOrientation
 {
 public:
 	void updateParamsPublic() { updateParams(); }
-	void setTimeSource(const vte_test::SimTime *time) { _time = time; }
-
-protected:
-	hrt_abstime timeUs() const override { return _time ? _time->now() : vte::VTEOrientation::timeUs(); }
-
-private:
-	const vte_test::SimTime *_time{nullptr};
 };
 
 } // namespace
@@ -101,10 +94,7 @@ protected:
 		setParamFloat("VTE_YAW_NIS_THRE", 3.84f);
 		setParamInt("VTE_EV_NOISE_MD", 0);
 
-		_time.reset(kStartTimeUs);
-
 		_vte = std::make_unique<VTEOrientationTestable>();
-		_vte->setTimeSource(&_time);
 		ASSERT_TRUE(_vte->init());
 		_vte->updateParamsPublic();
 
@@ -123,6 +113,7 @@ protected:
 		_state_sub.reset();
 		_aid_sub.reset();
 		_vision_pub.reset();
+
 		_vte.reset();
 		// Keep the uORB manager alive; parameters retain uORB handles across tests.
 	}
@@ -139,7 +130,11 @@ protected:
 
 	hrt_abstime advanceMicroseconds(hrt_abstime delta_us)
 	{
-		return _time.advanceMicroseconds(delta_us);
+		if (delta_us > 0) {
+			px4_usleep(static_cast<useconds_t>(delta_us));
+		}
+
+		return hrt_absolute_time();
 	}
 
 	hrt_abstime advanceStep()
@@ -149,7 +144,7 @@ protected:
 
 	hrt_abstime nowUs() const
 	{
-		return _time.now();
+		return hrt_absolute_time();
 	}
 
 	void publishVisionYaw(float yaw, float yaw_var, hrt_abstime timestamp)
@@ -170,7 +165,6 @@ protected:
 	std::unique_ptr<uORB::SubscriptionData<vision_target_est_orientation_s>> _state_sub;
 
 	vte_test::ParamGuard _param_guard{};
-	vte_test::SimTime _time{kStartTimeUs};
 };
 
 TEST_F(VTEOrientationTest, InitFromVisionYawPublishesOrientation)
@@ -196,6 +190,17 @@ TEST_F(VTEOrientationTest, InitFromVisionYawPublishesOrientation)
 	const auto aid = _aid_sub->get();
 	EXPECT_NEAR(aid.observation_variance, kDefaultEvYawVar, kTolerance);
 	EXPECT_EQ(aid.fusion_status, static_cast<uint8_t>(vte::FusionStatus::FUSED_CURRENT));
+}
+
+TEST_F(VTEOrientationTest, DoesNotFuseWhenVisionDisabled)
+{
+	// WHY: Fusion should be disabled when the aid mask is empty.
+	// WHAT: Publish a valid yaw without enabling vision fusion and expect no output.
+	publishVisionYaw(0.2f, 0.01f, advanceStep());
+	_vte->update();
+
+	EXPECT_FALSE(_aid_sub->update());
+	EXPECT_FALSE(_state_sub->update());
 }
 
 TEST_F(VTEOrientationTest, RejectsInvalidYaw)
