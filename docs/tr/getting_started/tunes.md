@@ -1,185 +1,142 @@
-# Tune Meanings (Pixhawk Series)
+# Melodi Anlamları (Pixhawk Serisi)
 
-[Pixhawk-series flight controllers](../flight_controller/pixhawk_series.md) use audible tones/tunes from a [buzzer](../getting_started/px4_basic_concepts.md#buzzer) and colours/sequences from a [LED](../getting_started/led_meanings.md) to indicate vehicle state and events (e.g. arming success and failure, low battery warnings).
+[Pixhawk serisi uçuş kontrolcüleri](../flight_controller/pixhawk_series.md), araç durumunu ve olayları (örn. arm etme başarısı ve başarısızlığı, düşük pil uyarıları) belirtmek için bir [buzzer](../getting_started/px4_basic_concepts.md#buzzer)'dan gelen sesli tonları/melodileri ve bir [LED](../getting_started/led_meanings.md)'den gelen renkleri/dizileri kullanır.
 
-The set of standard sounds are listed below.
+Standart ses seti aşağıda listelenmiştir.
 
 ::: info
-**Developers:** Tunes are defined in [/lib/tunes/tune_definition.desc](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/tunes/tune_definition.desc) and can be tested using the [tune-control](../modules/modules_system.md#tune-control) module.
-You can search for tune use using the string `TUNE_ID_name`(e.g. `TUNE_ID_PARACHUTE_RELEASE)
+**Geliştiriciler:** Melodiler [/lib/tunes/tune_definition.desc](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/tunes/tune_definition.desc) içinde tanımlanmıştır ve [tune-control](../modules/modules_system.md#tune-control) modülü kullanılarak test edilebilir.
+`TUNE_ID_name` dizesini (örn. `TUNE_ID_PARACHUTE_RELEASE`) kullanarak melodi kullanımını arayabilirsiniz.
 :::
 
 
-## Boot/Startup
+## Önyükleme/Başlangıç (Boot/Startup)
 
-These tunes are played during the boot sequence.
-<!-- https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/rcS --> 
+Bu melodiler önyükleme (boot) sırası sırasında çalınır.
+#### Başlangıç Tonu
 
+<audio controls><source src="../../assets/tunes/1_startup_tone.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- microSD kart başarıyla bağlandı (mount edildi) (önyükleme sırasında).
 
-#### Startup Tone
+#### Hata Melodisi
 
-<audio controls><source src="../../assets/tunes/1_startup_tone.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- tune: 1, STARTUP -->
-
-- microSD card successfully mounted (during boot).
-
-#### Error Tune
-
-<audio controls><source src="../../assets/tunes/2_error_tune.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- tune 2, ERROR_TUNE -->
-
-- Hard fault has caused a system reboot.
-- System set to use PX4IO but no IO present.
-- UAVCAN is enabled but driver can't start.
-- SITL/HITL enabled but *pwm_out_sim* driver can't start.
-- FMU startup failed.
+<audio controls><source src="../../assets/tunes/2_error_tune.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Sert bir hata (Hard fault) sistemin yeniden başlatılmasına neden oldu.
+- Sistem PX4IO kullanacak şekilde ayarlandı ancak IO mevcut değil.
+- UAVCAN etkin ancak sürücü başlatılamıyor.
+- SITL/HITL etkin ancak *pwm_out_sim* sürücüsü başlatılamıyor.
+- FMU başlangıcı başarısız oldu.
 
 
-#### Make File System
+#### Dosya Sistemi Oluşturma
 
-<audio controls><source src="../../assets/tunes/16_make_fs.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 14, SD_INIT (previously tune 16) -->
-
-- Formatting microSD card. 
-- Mounting failed (if formatting succeeds boot sequence will try to mount again).
-- No microSD card.
+<audio controls><source src="../../assets/tunes/16_make_fs.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- microSD kart biçimlendiriliyor. 
+- Bağlama (mount) başarısız oldu (biçimlendirme başarılı olursa önyükleme sırası tekrar bağlamayı deneyecektir).
+- microSD kart yok.
 
 
-#### Format Failed
+#### Biçimlendirme Başarısız
 
-<audio controls><source src="../../assets/tunes/17_format_failed.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 15, SD_ERROR (previously 17) -->
-
-- Formatting microSD card failed (following previous attempt to mount card).
+<audio controls><source src="../../assets/tunes/17_format_failed.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- microSD kartı biçimlendirme başarısız oldu (önceki kart bağlama girişiminin ardından).
 
 
-####  Program PX4IO
+#### PX4IO Programlama
 
-<audio controls><source src="../../assets/tunes/18_program_px4io.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 16, PROG_PX4IO (previously id 18) -->
+<audio controls><source src="../../assets/tunes/18_program_px4io.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- PX4IO programlanmaya başlanıyor.
 
-- Starting to program PX4IO.
+#### PX4IO Programlama Başarılı
 
-#### Program PX4IO Success
+<audio controls><source src="../../assets/tunes/19_program_px4io_success.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- PX4IO programlama başarılı oldu.
 
-<audio controls><source src="../../assets/tunes/19_program_px4io_success.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 17, PROG_PX4IO_OK (previously tune 19) -->
+#### PX4IO Programlama Başarısız
 
-- PX4IO programming succeeded.
-
-#### Program PX4IO Fail
-
-<audio controls><source src="../../assets/tunes/20_program_px4io_fail.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 18, PROG_PX4IO_ERR (previously tune 20) -->
-
-- PX4IO programming failed.
-- PX4IO couldn't start.
-- AUX Mixer not found.
+<audio controls><source src="../../assets/tunes/20_program_px4io_fail.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- PX4IO programlama başarısız oldu.
+- PX4IO başlatılamadı.
+- AUX Mikser bulunamadı.
 
 
-## Operational
+## Operasyonel
 
-These tones/tunes are emitted during normal operation.
+Bu tonlar/melodiler normal çalışma sırasında çıkarılır.
 
 <a id="error_tune_operational"></a>
-#### Error Tune
+#### Hata Melodisi
 
-<audio controls><source src="../../assets/tunes/2_error_tune.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 2, ERROR_TUNE -->
+<audio controls><source src="../../assets/tunes/2_error_tune.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- RC (Kumanda) Kaybı
 
-- RC Loss
+#### Olumlu Bildirim Tonu
 
-#### Notify Positive Tone
+<audio controls><source src="../../assets/tunes/3_notify_positive_tone.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Kalibrasyon başarılı.
+- Başarılı mod değişikliği.
+- Komut kabul edildi (örn. MAVLink komut protokolünden).
+- Güvenlik anahtarı kapalı (araç arm edilebilir).
 
-<audio controls><source src="../../assets/tunes/3_notify_positive_tone.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 3, NOTIFY_POSITIVE -->
+#### Nötr Bildirim Tonu
 
-- Calibration succeeded.
-- Successful mode change.
-- Command accepted (e.g. from MAVLink command protocol).
-- Safety switch off (vehicle can be armed).
+<audio controls><source src="../../assets/tunes/4_notify_neutral_tone.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Görev geçerli ve uyarısı yok.
+- Hava hızı kalibrasyonu: daha fazla hava basıncı sağlayın veya kalibrasyon tamamlandı.
+- Güvenlik anahtarı açıldı/disarmed (araca yaklaşmak güvenli).
 
-#### Notify Neutral Tone
+#### Olumsuz Bildirim Tonu
 
-<audio controls><source src="../../assets/tunes/4_notify_neutral_tone.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 4, NOTIFY_NEUTRAL -->
+<audio controls><source src="../../assets/tunes/5_notify_negative_tone.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Kalibrasyon başarısız.
+- Kalibrasyon zaten tamamlandı.
+- Görev geçersiz.
+- Komut reddedildi, başarısız oldu, geçici olarak reddedildi (örn. MAVLink komut protokolünden).
+- Arm/disarm geçişi reddedildi (örn. uçuş öncesi kontroller başarısız, güvenlik devre dışı değil, sistem manuel modda değil).
+- Mod geçişi reddedildi.
 
-- Mission is valid and has no warnings.
-- Airspeed calibration: supply more air pressure, or calibration complete.
-- Safety switch turned on/disarmed (safe to approach vehicle).
+#### Arm Uyarısı
 
-#### Notify Negative Tone
+<audio controls><source src="../../assets/tunes/6_arming_warning.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Araç şu an armed (kurulu/etkin).
 
-<audio controls><source src="../../assets/tunes/5_notify_negative_tone.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 5, NOTIFY_NEGATIVE -->
+#### Arm Başarısız Melodisi
 
-- Calibration failed.
-- Calibration already completed.
-- Mission is invalid.
-- Command denied, failed, temporarily rejected (e.g. from MAVLink command protocol).
-- Arming/disarming transition denied (e.g. pre-flight checks failed, safety not disabled, system not in manual mode).
-- Reject mode transition.
+<audio controls><source src="../../assets/tunes/10_arming_failure_tune.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Arm işlemi başarısız oldu
 
-#### Arming Warning
+#### Pil Uyarısı Yavaş
 
-<audio controls><source src="../../assets/tunes/6_arming_warning.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 6, ARMING_WARNING -->
+<audio controls><source src="../../assets/tunes/7_battery_warning_slow.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Düşük pil uyarısı ([failsafe](../config/safety.md#battery-level-failsafe)).
 
-- Vehicle is now armed.
+#### Pil Uyarısı Hızlı
 
-#### Arming Failure Tune
-
-<audio controls><source src="../../assets/tunes/10_arming_failure_tune.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 10, ARMING_FAILURE -->
-
-- Arming failed
-
-#### Battery Warning Slow
-
-<audio controls><source src="../../assets/tunes/7_battery_warning_slow.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 7,  BATTERY_WARNING_SLOW -->
-
-- Low battery warning ([failsafe](../config/safety.md#battery-level-failsafe)).
-
-#### Battery Warning Fast
-
-<audio controls><source src="../../assets/tunes/8_battery_warning_fast.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 8, BATTERY_WARNING_FAST -->
-
-- Critical low battery warning ([failsafe](../config/safety.md#battery-level-failsafe)).
+<audio controls><source src="../../assets/tunes/8_battery_warning_fast.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Kritik düşük pil uyarısı ([failsafe](../config/safety.md#battery-level-failsafe)).
 
 
-#### GPS Warning Slow
+#### GPS Uyarısı Yavaş
 
-<audio controls><source src="../../assets/tunes/9_gps_warning_slow.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 9,  GPS_WARNING -->
+<audio controls><source src="../../assets/tunes/9_gps_warning_slow.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+#### Paraşüt Serbest Bırakma
 
-#### Parachute Release
-
-<audio controls><source src="../../assets/tunes/11_parachute_release.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 11, PARACHUTE_RELEASE -->
-
-- Parachute release triggered.
+<audio controls><source src="../../assets/tunes/11_parachute_release.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Paraşüt serbest bırakma tetiklendi.
 
 
-#### Single Beep
+#### Tek Bip
 
-<audio controls><source src="../../assets/tunes/14_single_beep.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 12, SINGLE_BEEP (previously was id 14 -->
+<audio controls><source src="../../assets/tunes/14_single_beep.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Manyetometre/Pusula kalibrasyonu: Kullanıcıya aracı döndürmeye başlamasını bildirir.
 
-- Magnetometer/Compass calibration: Notify user to start rotating vehicle.
+#### Ev Konumu Ayarlandı Melodisi
 
-#### Home Set Tune
+<audio controls><source src="../../assets/tunes/15_home_set_tune.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
+- Ev konumu (Home position) başlatıldı (yalnızca ilk seferde).
 
-<audio controls><source src="../../assets/tunes/15_home_set_tune.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-<!-- 13, HOME_SET (previously id 15) -->
+#### Güç Kapatma Melodisi
 
-- Home position initialised (first time only).
+<audio controls><source src="../../assets/tunes/power_off_tune.mp3" type="audio/mpeg">Tarayıcınız ses elementini desteklemiyor.</audio>
 
-#### Power Off Tune
-
-<audio controls><source src="../../assets/tunes/power_off_tune.mp3" type="audio/mpeg">Your browser does not support the audio element.</audio>
-
-- Vehicle powering off.
-
-<!--19, POWER_OFF -->
+- Araç gücü kapatılıyor.
