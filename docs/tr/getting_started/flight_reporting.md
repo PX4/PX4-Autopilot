@@ -1,54 +1,54 @@
-# Flight Reporting
+# Uçuş Raporlama
 
-PX4 logs detailed aircraft state and sensor data, which can be used to analyze performance issues.
-This topic explains how you can download and analyse logs, and share them with the development team for review.
+PX4, performans sorunlarını analiz etmek için kullanılabilecek ayrıntılı hava aracı durum ve sensör verilerini kaydeder (loglar).
+Bu konu, logları nasıl indirip analiz edebileceğinizi ve inceleme için geliştirme ekibiyle nasıl paylaşabileceğinizi açıklar.
 
 :::tip
-Keeping flight logs is a legal requirement in some jurisdictions.
+Uçuş kayıtlarını (loglarını) tutmak bazı yargı bölgelerinde yasal bir zorunluluktur.
 :::
 
-## Downloading Logs from the Flight Controller
+## Logları Uçuş Kontrolcüsünden İndirme
 
-Logs can be downloaded using [QGroundControl](https://qgroundcontrol.com/): **[Analyze View > Log Download](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/log_download.html)**.
+Loglar [QGroundControl](https://qgroundcontrol.com/) kullanılarak indirilebilir: **[Analyze View > Log Download](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/log_download.html)**.
 
 ![Flight Log Download](../../assets/qgc/analyze/log_download.jpg)
 
 ::: tip
-Encrypted logs cannot be downloaded with QGroundControl, or uploaded to the public Flight Review service.
-The easiest way to download and extract encrypted logs is to use the [Log Encryption Tools](../dev_log/log_encryption.md).
-You can also host a [private Flight Review server](../dev_log/log_encryption.md#flight-review-encrypted-logs) that automatically decrypts logs on upload using your private key.
+Şifrelenmiş loglar QGroundControl ile indirilemez veya herkese açık Flight Review hizmetine yüklenemez.
+Şifrelenmiş logları indirmenin ve ayıklamanın en kolay yolu [Log Şifreleme Araçlarını](../dev_log/log_encryption.md) kullanmaktır.
+Ayrıca, yükleme sırasında özel anahtarınızı kullanarak logların şifresini otomatik olarak çözen [özel bir Flight Review sunucusu](../dev_log/log_encryption.md#flight-review-encrypted-logs) da barındırabilirsiniz.
 :::
 
-## Analyzing the Logs
+## Logları Analiz Etme
 
-Upload the log file to the online [Flight Review](https://logs.px4.io/) tool.
-After upload you'll be emailed a link to the analysis page for the log.
+Log dosyasını çevrimiçi [Flight Review](https://logs.px4.io/) aracına yükleyin.
+Yüklemeden sonra, logun analiz sayfasına giden bir bağlantı size e-posta ile gönderilecektir.
 
-[Log Analysis using Flight Review](../log/flight_review.md) explains how to interpret the plots, and can help you to verify/reject the causes of common problems: excessive vibration, poor PID tuning, saturated controllers, imbalanced vehicles, GPS noise, etc.
+[Flight Review kullanarak Log Analizi](../log/flight_review.md), grafikleri nasıl yorumlayacağınızı açıklar ve yaygın sorunların nedenlerini doğrulamanıza/reddetmenize yardımcı olabilir: aşırı titreşim, kötü PID ayarı, doymuş kontrolcüler (saturated), dengesiz araçlar, GPS gürültüsü vb.
 
 ::: info
-There are many other great tools for visualising and analysing PX4 Logs.
-For more information see: [Flight Analysis](../dev_log/flight_log_analysis.md).
+PX4 Loglarını görselleştirmek ve analiz etmek için başka harika araçlar da vardır.
+Daha fazla bilgi için bkz: [Uçuş Analizi](../dev_log/flight_log_analysis.md).
 :::
 
 :::tip
-If you have a constant high-rate MAVLink connection to the vehicle (not just a telemetry link) then you can use _QGroundControl_ to automatically upload logs directly to _Flight Review_.
-For more information see [Settings > MAVLink Settings > MAVLink 2 Logging (PX4 only)](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/mavlink.html#logging).
+Araca (sadece bir telemetri bağlantısı değil) sürekli ve yüksek hızlı bir MAVLink bağlantınız varsa, logları doğrudan _Flight Review_'a otomatik olarak yüklemek için _QGroundControl_'u kullanabilirsiniz.
+Daha fazla bilgi için bkz. [Settings > MAVLink Settings > MAVLink 2 Logging (PX4 only)](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/mavlink.html#logging).
 :::
 
-## Sharing the Log Files for Review by PX4 Developers
+## Log Dosyalarını PX4 Geliştiricileri Tarafından İncelenmesi İçin Paylaşma
 
-The [Flight Review](https://logs.px4.io/) log file link can be shared for discussion in the [support forums](../contribute/support.md#forums-and-chat) or a [Github issue](../index.md#reporting-bugs-issues).
+[Flight Review](https://logs.px4.io/) log dosyası bağlantısı, [destek forumlarında](../contribute/support.md#forums-and-chat) veya bir [GitHub konusunda (issue)](../index.md#reporting-bugs-issues) tartışmak üzere paylaşılabilir.
 
-## Log Configuration
+## Log Yapılandırması
 
-The logging system is configured by default to collect sensible logs for use with [Flight Review](https://logs.px4.io/).
+Loglama sistemi, varsayılan olarak [Flight Review](https://logs.px4.io/) ile kullanım için mantıklı loglar toplayacak şekilde yapılandırılmıştır.
 
-Logging may further be configured using the [SD Logging](../advanced_config/parameter_reference.md#sd-logging) parameters or with a file on the SD card.
-Details on configuration can be found in the [logging configuration documentation](../dev_log/logging.md#configuration).
+Loglama, [SD Logging](../advanced_config/parameter_reference.md#sd-logging) parametreleri kullanılarak veya SD karttaki bir dosya ile daha fazla yapılandırılabilir.
+Yapılandırma ile ilgili ayrıntılar [loglama yapılandırması dokümantasyonunda](../dev_log/logging.md#configuration) bulunabilir.
 
-## Key Links
+## Önemli Bağlantılar
 
 - [Flight Review](https://logs.px4.io/)
-- [Log Analysis using Flight Review](../log/flight_review.md)
-- [Flight Log Analysis](../dev_log/flight_log_analysis.md)
+- [Flight Review kullanarak Log Analizi](../log/flight_review.md)
+- [Uçuş Log Analizi](../dev_log/flight_log_analysis.md)
