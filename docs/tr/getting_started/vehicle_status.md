@@ -1,12 +1,12 @@
-# Vehicle Status Notifications
+# Araç Durum Bildirimleri
 
-PX4 provides vehicle-based visual (LED) and audible (Buzzer) notifications of "high level" vehicle status and readiness to fly.
-These notifications indicate, for example, whether or not the vehicle is properly calibrated, has an SD card, has position lock, is safe to approach, whether or not it is armed, when it is ready to fly, etc.
+PX4, "üst düzey" araç durumu ve uçuşa hazır olma durumu hakkında araç tabanlı görsel (LED) ve sesli (Buzzer) bildirimler sağlar.
+Bu bildirimler, örneğin aracın düzgün kalibre edilip edilmediğini, bir SD karta sahip olup olmadığını, konum kilidine sahip olup olmadığını, yaklaşmanın güvenli olup olmadığını, arm edilip edilmediğini, ne zaman uçuşa hazır olduğunu vb. belirtir.
 
-In addition, PX4 provides more fine-grained information about readiness to fly in QGroundControl.
+Ek olarak, PX4 QGroundControl'de uçuşa hazır olma durumu hakkında daha ayrıntılı bilgi sağlar.
 
-The LED, tune, and GCS notifications are linked below:
+LED, melodi ve GCS (Yer Kontrol İstasyonu) bildirimleri aşağıda bağlantılanmıştır:
 
-* [LED Meanings](../getting_started/led_meanings.md)
-* [Tune/Sound Meanings](../getting_started/tunes.md)
-* [QGroundControl Flight-Readiness Status](../flying/pre_flight_checks.md)
+* [LED Anlamları](../getting_started/led_meanings.md)
+* [Melodi/Ses Anlamları](../getting_started/tunes.md)
+* [QGroundControl Uçuşa Hazır Olma Durumu](../flying/pre_flight_checks.md)
