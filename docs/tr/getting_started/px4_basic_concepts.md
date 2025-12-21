@@ -1,384 +1,383 @@
-# Basic Concepts
+# Temel Kavramlar
 
-This topic provides a basic introduction to drones and using PX4 (it is meant mostly for novice users but is also a good introduction for more experienced users).
+Bu konu, dronlara ve PX4 kullanımına temel bir giriş sağlar (çoğunlukla acemi kullanıcılar içindir ancak daha deneyimli kullanıcılar için de iyi bir giriş niteliğindedir).
 
-If you are already familiar with the basic concepts, you can move on to [Basic Assembly](../assembly/index.md) to learn how to wire your specific autopilot hardware.
-To load firmware and set up the vehicle with _QGroundControl_, see [Basic Configuration](../config/index.md).
+Temel kavramlara zaten aşinaysanız, kendi otopilot donanımınızın kablolamasını nasıl yapacağınızı öğrenmek için [Temel Montaj](../assembly/index.md) bölümüne geçebilirsiniz.
+Firmware (bellenim) yüklemek ve aracı _QGroundControl_ ile kurmak için [Temel Yapılandırma](../config/index.md) bölümüne bakın.
 
-## What is a Drone?
+## Drone Nedir?
 
-A drone, or Unmanned Vehicles (UV), is an unmanned "robotic" vehicle that can be manually or autonomously controlled.
-They can travel in air, on the ground, on/under the water, and are used for many [consumer, industrial, government and military applications](https://px4.io/ecosystem/commercial-systems/), including aerial photography/video, carrying cargo, racing, search and surveying, and so on.
+Bir drone veya İnsansız Araç (İA), manuel veya otonom olarak kontrol edilebilen insansız bir "robotik" araçtır.
+Havada, karada, suyun üzerinde/altında seyahat edebilirler ve hava fotoğrafçılığı/video, kargo taşıma, yarış, arama ve haritalama gibi birçok [tüketici, endüstriyel, hükümet ve askeri uygulamada](https://px4.io/ecosystem/commercial-systems/) kullanılırlar.
 
-Drones are more formally referred to as Unmanned Aerial Vehicles (UAV), Unmanned Ground Vehicles (UGV), Unmanned Surface Vehicles (USV), Unmanned Underwater Vehicles (UUV).
+Dronlar daha resmi olarak İnsansız Hava Aracı (İHA - UAV), İnsansız Kara Aracı (İKA - UGV), İnsansız Su Üstü Aracı (İSA - USV), İnsansız Su Altı Aracı (İSA - UUV) olarak adlandırılır.
 
 ::: info
-The term Unmanned Aerial System (UAS) typically refers to a UAV and all of the other components of a complete system, including a ground control station and/or radio controller, and any other systems used to control the drone, capture, and process data.
+İnsansız Hava Sistemi (İHS - UAS) terimi tipik olarak bir İHA'yı ve bir yer kontrol istasyonu ve/veya radyo kumandası dahil olmak üzere tam bir sistemin diğer tüm bileşenlerini ve dronu kontrol etmek, verileri yakalamak ve işlemek için kullanılan diğer sistemleri ifade eder.
 :::
 
-## Drone Types
+## Drone Türleri
 
-There are many different vehicle frames (types), and within the types there are many variations.
-Some of the types, along with the use cases for which they are most suited are listed below.
+Birçok farklı araç gövdesi (türü) vardır ve türlerin içinde de birçok varyasyon bulunur.
+Bazı türler ve en uygun oldukları kullanım durumları aşağıda listelenmiştir.
 
-- [Multicopters](../frames_multicopter/index.md) — Multi-rotors offer precision hovering and vertical takeoff, at the cost of shorter and generally slower flight.
-  They are the most popular type of flying vehicle, in part because they are easy to assemble, and PX4 has modes that make them easy to fly and very suitable as a camera platform.
-- [Helicopters](../frames_helicopter/index.md) — Helicopters similar benefits to Multicopters but are mechanically more complex and more efficient.
-  They are also much harder to fly.
-- [Planes (Fixed-wing)](../frames_plane/index.md) — Fixed-wing vehicles offer longer and faster flight than multicopters, and hence better coverage for ground surveys etc.
-  However they are harder to fly and land than multicopters, and aren't suitable if you need to hover or fly very slowly (e.g. when surveying vertical structures).
-- [VTOL](../frames_vtol/index.md) (Vertical Takeoff and Landing) - Hybrid Fixed-wing/Multicopter vehicles offer the best of both worlds: take off in vertical mode and hover like a multicopter but transition to forward flight like an airplane to cover more ground.
-  VTOL are often more expensive than either multicopters and fixed-wing aircraft, and harder to build and tune.
-  They come in a number of types: tiltrotors, tailsitters, quadplanes etc.
-- [Airships](../frames_airship/index.md)/[Balloons](../frames_balloon/index.md) — Lighter-than-air vehicles that typically offer high altitude long duration flight, often at the cost of having limited (or no) control over speed and direction of flight.
-- [Rovers](../frames_rover/index.md) — Car-like ground vehicles.
-  They are simple to control and often fun to use.
-  They can't travel as fast as most aircraft, but can carry heavier payloads, and don't use much power when still.
-- **Boats** — Water-surface vehicles.
-- [Submersibles](../frames_sub/index.md) — Underwater vehicles.
+- [Çok Rotorlular (Multicopters)](../frames_multicopter/index.md) — Çok rotorlular, daha kısa ve genellikle daha yavaş uçuş pahasına hassas havada asılı kalma (hover) ve dikey kalkış sunar.
+  En popüler uçan araç türüdürler, çünkü montajları kolaydır ve PX4'ün onları uçurmayı kolaylaştıran ve kamera platformu olarak çok uygun hale getiren modları vardır.
+- [Helikopterler](../frames_helicopter/index.md) — Helikopterler, Çok Rotorlulara benzer avantajlara sahiptir ancak mekanik olarak daha karmaşık ve daha verimlidirler.
+  Ayrıca uçurulmaları çok daha zordur.
+- [Uçaklar (Sabit Kanat)](../frames_plane/index.md) — Sabit kanatlı araçlar, çok rotorlulardan daha uzun ve daha hızlı uçuş sunar, bu nedenle yer haritalama vb. için daha iyi kapsama alanı sağlarlar.
+  Ancak uçurulmaları ve indirilmeleri çok rotorlulardan daha zordur ve havada asılı kalmanız veya çok yavaş uçmanız gerekiyorsa (örneğin dikey yapıları incelerken) uygun değildirler.
+- [VTOL](../frames_vtol/index.md) (Dikey Kalkış ve İniş) - Hibrit Sabit Kanat/Çok Rotorlu araçlar her iki dünyanın da en iyisini sunar: dikey modda kalkış yapıp bir çok rotorlu gibi havada asılı kalabilirler, ancak daha fazla alan taramak için bir uçak gibi ileri uçuşa geçiş yapabilirler.
+  VTOL'ler genellikle hem çok rotorlu hem de sabit kanatlı hava araçlarından daha pahalıdır ve yapımı ve ayarlanması daha zordur.
+  Tiltrotorlar, tailsitterlar, quadplaneler vb. gibi çeşitli türleri vardır.
+- [Hava Gemileri](../frames_airship/index.md)/[Balonlar](../frames_balloon/index.md) — Genellikle uçuş hızı ve yönü üzerinde sınırlı (veya hiç) kontrole sahip olma pahasına yüksek irtifa ve uzun süreli uçuş sunan havadan hafif araçlardır.
+- [Roverlar (Kara Araçları)](../frames_rover/index.md) — Araba benzeri kara araçlarıdır.
+  Kontrolleri basittir ve kullanımları genellikle eğlencelidir.
+  Çoğu hava aracı kadar hızlı gidemezler, ancak daha ağır yükler taşıyabilirler ve dururken çok fazla güç harcamazlar.
+- **Tekneler** — Su üstü araçları.
+- [Denizaltılar](../frames_sub/index.md) — Su altı araçları.
 
-For more information see:
+Daha fazla bilgi için bkz:
 
-- [Vehicle Types & Setup](../airframes/index.md)
-- [Airframe setup](../config/airframe.md)
-- [Airframe Reference](../airframes/airframe_reference.md).
+- [Araç Türleri ve Kurulum](../airframes/index.md)
+- [Gövde Kurulumu](../config/airframe.md)
+- [Gövde Referansı](../airframes/airframe_reference.md).
 
-## Autopilots
+## Otopilotlar
 
-The "brain" of the drone is called an autopilot.
+Dronun "beynine" otopilot denir.
 
-It minimally consists of _flight stack_ software running on a real time OS ("RTOS") on _flight controller_ (FC) hardware.
-The flight stack provides essential stabilisation and safety features, and usually also some level of pilot assistance for manual flight and automating common tasks, such as taking off, landing, and executing predefined missions.
+En azından _uçuş kontrolcüsü_ (FC) donanımı üzerinde gerçek zamanlı bir işletim sisteminde ("RTOS") çalışan _uçuş yığını_ (flight stack) yazılımından oluşur.
+Uçuş yığını, temel stabilizasyon ve güvenlik özelliklerini sağlar ve genellikle manuel uçuş için bir düzeyde pilot yardımı ve kalkış, iniş ve önceden tanımlanmış görevleri yürütme gibi yaygın görevleri otomatikleştirmeyi de içerir.
 
-Some autopilots also include a general-purpose computing system that can provide "higher level" command and control, and that can support more advanced networking, computer vision, and other features.
-This might be implemented as a separate [companion computer](#offboard-companion-computer), but in future it is increasingly likely to be a fully integrated component.
+Bazı otopilotlar ayrıca "daha üst düzey" komuta ve kontrol sağlayabilen ve daha gelişmiş ağ, bilgisayar görüşü ve diğer özellikleri destekleyebilen genel amaçlı bir bilgi işlem sistemi içerir.
+Bu, ayrı bir [eşlikçi bilgisayar (companion computer)](#offboard-companion-computer) olarak uygulanabilir, ancak gelecekte tamamen entegre bir bileşen olma ihtimali giderek artmaktadır.
 
-## PX4 Flight Stack
+## PX4 Uçuş Yığını (Flight Stack)
 
-[PX4](https://px4.io/) is powerful open source autopilot _flight stack_ running on the NuttX RTOS.
+[PX4](https://px4.io/), NuttX RTOS üzerinde çalışan güçlü bir açık kaynak otopilot _uçuş yığınıdır_.
 
-Some of PX4's key features are:
+PX4'ün temel özelliklerinden bazıları şunlardır:
 
-- Supports many different vehicle frames/types, including: [multicopters](../frames_multicopter/index.md), [fixed-wing aircraft](../frames_plane/index.md) (planes), [VTOLs](../frames_vtol/index.md) (hybrid multicopter/fixed-wing), [ground vehicles](../frames_rover/index.md), and [underwater vehicles](../frames_sub/index.md).
-- Great choice of drone components for [flight controller](#flight-controller), [sensors](#sensors), [payloads](#payloads), and other peripherals.
-- Flexible and powerful [flight modes](#flight-modes) and [safety features](#safety-settings-failsafe).
-- Robust and deep integration with [companion computers](#offboard-companion-computer) and [robotics APIs](../robotics/index.md) such as [ROS 2](../ros2/user_guide.md) and [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html).
+- [Çok rotorlular](../frames_multicopter/index.md), [sabit kanatlı uçaklar](../frames_plane/index.md), [VTOL'ler](../frames_vtol/index.md) (hibrit çok rotorlu/sabit kanatlı), [kara araçları](../frames_rover/index.md) ve [su altı araçları](../frames_sub/index.md) dahil olmak üzere birçok farklı araç gövdesini/türünü destekler.
+- [Uçuş kontrolcüsü](#flight-controller), [sensörler](#sensors), [faydalı yükler](#payloads) ve diğer çevre birimleri için harika drone bileşeni seçenekleri sunar.
+- Esnek ve güçlü [uçuş modları](#flight-modes) ve [güvenlik özellikleri](#safety-settings-failsafe).
+- [Eşlikçi bilgisayarlar](#offboard-companion-computer) ve [ROS 2](../ros2/user_guide.md) ve [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html) gibi [robotik API'leri](../robotics/index.md) ile sağlam ve derin entegrasyon.
 
-PX4 is a core part of a broader drone platform that includes the [QGroundControl](#qgc) ground station, [Pixhawk hardware](https://pixhawk.org/), and [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html) for integration with companion computers, cameras and other hardware using the MAVLink protocol.
-PX4 is supported by the [Dronecode Project](https://dronecode.org/).
+PX4; [QGroundControl](#qgc) yer istasyonunu, [Pixhawk donanımını](https://pixhawk.org/) ve MAVLink protokolünü kullanarak eşlikçi bilgisayarlar, kameralar ve diğer donanımlarla entegrasyon için [MAVSDK](https://mavsdk.mavlink.io/main/en/index.html)'yı içeren daha geniş bir drone platformunun temel bir parçasıdır.
+PX4, [Dronecode Project](https://dronecode.org/) tarafından desteklenmektedir.
 
-## Ground Control Stations
+## Yer Kontrol İstasyonları (GCS)
 
-Ground Control Stations (GCS) are ground based systems that allow UV operators to monitor and control a drone and its payloads.
-A subset of the products that are known to work with PX4 are listed below.
+Yer Kontrol İstasyonları (GCS), İA operatörlerinin bir dronu ve faydalı yüklerini izlemesini ve kontrol etmesini sağlayan yer tabanlı sistemlerdir.
+PX4 ile çalıştığı bilinen ürünlerin bir alt kümesi aşağıda listelenmiştir.
 
 ### QGroundControl {#qgc}
 
-The Dronecode GCS software is called [QGroundControl](https://qgroundcontrol.com/) ("QGC").
-It runs on Windows, Android, MacOS or Linux hardware, and supports a wide range of screen form factors.
-You can download it (for free) from [here](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html).
+Dronecode GCS yazılımının adı [QGroundControl](https://qgroundcontrol.com/) ("QGC")'dur.
+Windows, Android, MacOS veya Linux donanımlarında çalışır ve çok çeşitli ekran form faktörlerini destekler.
+[Buradan](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) (ücretsiz olarak) indirebilirsiniz.
 
-![QGC Main Screen](../../assets/concepts/qgc_fly_view.png)
+![QGC Ana Ekranı](../../assets/concepts/qgc_fly_view.png)
 
-QGroundControl communicates with the drone using a telemetry radio (a bidirectional data link), which allows you to get real-time flight and safety information, and to control the vehicle, camera, and other payloads using a point-and-click interface.
-On hardware that supports them, you can also manually fly the vehicle using joystick controllers.
-QGC can also be used to visually plan, execute, and monitor autonomous missions, set geofences, and much more.
+QGroundControl, gerçek zamanlı uçuş ve güvenlik bilgilerini almanızı ve işaretle-ve-tıkla arayüzünü kullanarak aracı, kamerayı ve diğer faydalı yükleri kontrol etmenizi sağlayan bir telemetri radyosu (iki yönlü veri bağlantısı) kullanarak dron ile iletişim kurar.
+Bunları destekleyen donanımlarda, joystick kumandalarını kullanarak aracı manuel olarak da uçurabilirsiniz.
+QGC ayrıca otonom görevleri görsel olarak planlamak, yürütmek ve izlemek, coğrafi çitler (geofence) ayarlamak ve çok daha fazlası için kullanılabilir.
 
-QGroundControl desktop versions are also used to install (flash) PX4 firmware and configure PX4 on the drone's autopilot/flight controller hardware.
+QGroundControl masaüstü sürümleri ayrıca PX4 bellenimini (firmware) yüklemek (flashlamak) ve dronun otopilot/uçuş kontrol donanımında PX4'ü yapılandırmak için kullanılır.
 
 ### Auterion Mission Control (AMC) {#amc}
 
-[Auterion Mission Control](https://auterion.com/product/mission-control/) is a powerful and fully featured ground control station application that is optimized for _pilots_ rather than vehicle configuration.
-While designed to work with Auterion products, it can be used with "vanilla" PX4.
+[Auterion Mission Control](https://auterion.com/product/mission-control/), araç yapılandırmasından ziyade _pilotlar_ için optimize edilmiş güçlü ve tam özellikli bir yer kontrol istasyonu uygulamasıdır.
+Auterion ürünleriyle çalışmak üzere tasarlanmış olsa da, "saf" (vanilla) PX4 ile de kullanılabilir.
 
-For more information see:
+Daha fazla bilgi için bkz:
 
-- [AMC docs](https://docs.auterion.com/vehicle-operation/auterion-mission-control)
-- [Download from Auterion Suite](https://suite.auterion.com/)
+- [AMC dokümanları](https://docs.auterion.com/vehicle-operation/auterion-mission-control)
+- [Auterion Suite'ten İndir](https://suite.auterion.com/)
 
-## Drone Components & Parts
+## Drone Bileşenleri ve Parçaları
 
-### Flight Controller
+### Uçuş Kontrolcüsü (Flight Controller)
 
-Flight controllers (FC) are the hardware onto which the PX4 flight stack firmware is loaded and run.
-They are connected to sensors from which PX4 determines its state, and to the actuators/motors that it uses to stabilise and move the vehicle.
+Uçuş kontrolcüleri (FC), PX4 uçuş yığını belleniminin yüklendiği ve çalıştırıldığı donanımlardır.
+PX4'ün durumunu belirlediği sensörlere ve aracı stabilize etmek ve hareket ettirmek için kullandığı aktüatörlere/motorlara bağlanırlar.
 
 <img src="../../assets/flight_controller/cuav_pixhawk_v6x/pixhawk_v6x.jpg" width="230px" title="CUAV Pixhawk 6X" >
 
-PX4 can run on many different types of [Flight Controller Hardware](../flight_controller/index.md), ranging from [Pixhawk Series](../flight_controller/pixhawk_series.md) controllers to Linux computers.
-These include [Pixhawk Standard](../flight_controller/autopilot_pixhawk_standard.md) and [manufacturer-supported](../flight_controller/autopilot_manufacturer_supported.md) boards.
-You should select a board that suits the physical constraints of your vehicle, the activities you wish to perform, and cost.
+PX4, [Pixhawk Serisi](../flight_controller/pixhawk_series.md) kontrolcülerden Linux bilgisayarlara kadar birçok farklı türde [Uçuş Kontrol Donanımında](../flight_controller/index.md) çalışabilir.
+Bunlar arasında [Pixhawk Standart](../flight_controller/autopilot_pixhawk_standard.md) ve [üretici destekli](../flight_controller/autopilot_manufacturer_supported.md) kartlar bulunur.
+Aracınızın fiziksel kısıtlamalarına, gerçekleştirmek istediğiniz faaliyetlere ve maliyete uygun bir kart seçmelisiniz.
 
-For more information see: [Flight Controller Selection](flight_controller_selection.md)
+Daha fazla bilgi için bkz: [Uçuş Kontrolcüsü Seçimi](flight_controller_selection.md)
 
-### Sensors
+### Sensörler
 
-PX4 uses sensors to determine vehicle state, which it needs in order to stablise the vehicle and enable autonomous control.
-The vehicle states include: position/altitude, heading, speed, airspeed, orientation (attitude), rates of rotation in different axes, battery level, and so on.
+PX4, aracı stabilize etmek ve otonom kontrolü sağlamak için ihtiyaç duyduğu araç durumunu belirlemek üzere sensörleri kullanır.
+Araç durumları şunları içerir: konum/irtifa, istikamet (heading), hız, hava hızı, yönelim (attitude), farklı eksenlerdeki dönüş oranları, pil seviyesi vb.
 
-PX4 _minimally requires_ a [gyroscope](../sensor/gyroscope.md), [accelerometer](../sensor/accelerometer.md), [magnetometer](../gps_compass/magnetometer.md) (compass) and [barometer](../sensor/barometer.md).
-This minimal set of sensors is incorporated into [Pixhawk Series](../flight_controller/pixhawk_series.md) flight controllers (and may also be in other controller platforms).
+PX4 _asgari olarak_ bir [jiroskop](../sensor/gyroscope.md), [ivmeölçer](../sensor/accelerometer.md), [manyetometre](../gps_compass/magnetometer.md) (pusula) ve [barometre](../sensor/barometer.md) gerektirir.
+Bu asgari sensör seti, [Pixhawk Serisi](../flight_controller/pixhawk_series.md) uçuş kontrolcülerine entegre edilmiştir (ve diğer kontrolcü platformlarında da bulunabilir).
 
-Additional/external sensors can be attached to the controller.
-The following sensors are recommended:
+Kontrolcüye ek/harici sensörler takılabilir.
+Aşağıdaki sensörler önerilir:
 
-- A [GNSS/GPS](../gps_compass/index.md) or other source of global position is needed to enable all automatic modes, and some manual/assisted modes.
+- Tüm otomatik modları ve bazı manuel/destekli modları etkinleştirmek için bir [GNSS/GPS](../gps_compass/index.md) veya başka bir küresel konum kaynağına ihtiyaç vardır.
 
-  Typically a module that combines a GNSS and Compass is used, as an external compass can be made less susceptible to electromomagnetic interference than the internal compass in the flight controller.
+  Genellikle bir GNSS ve Pusulayı birleştiren bir modül kullanılır, çünkü harici bir pusula, uçuş kontrolcüsündeki dahili pusuladan elektromanyetik girişime karşı daha az duyarlı hale getirilebilir.
 
-- [Airspeed sensors](../sensor/airspeed.md) are highly recommended for fixed-wing and VTOL-vehicles.
-- [Distance Sensors \(Rangefinders\)](../sensor/rangefinders.md) are highly recommended for all vehicle types, as they allow smoother and more robust landings, and enable features such as terrain following on multicopters.
-- [Optical Flow Sensors](../sensor/optical_flow.md) can be used with distance sensors on multcopters and VTOL to support navigation in GNSS-denied environments.
+- [Hava hızı sensörleri](../sensor/airspeed.md), sabit kanatlı ve VTOL araçlar için şiddetle tavsiye edilir.
+- [Mesafe Sensörleri \(Rangefinders\)](../sensor/rangefinders.md), tüm araç türleri için şiddetle tavsiye edilir, çünkü daha yumuşak ve daha sağlam inişler sağlarlar ve çok rotorlular üzerinde arazi takibi gibi özellikleri mümkün kılarlar.
+- [Optik Akış (Optical Flow) Sensörleri](../sensor/optical_flow.md), GNSS olmayan ortamlarda navigasyonu desteklemek için çok rotorlular ve VTOL üzerinde mesafe sensörleriyle birlikte kullanılabilir.
 
-For more information about sensors see: [Sensor Hardware & Setup](../sensor/index.md).
+Sensörler hakkında daha fazla bilgi için bkz: [Sensör Donanımı ve Kurulumu](../sensor/index.md).
 
-### Outputs: Motors, Servos, Actuators
+### Çıkışlar: Motorlar, Servolar, Eyleyiciler
 
-PX4 uses _outputs_ to control: motor speed (e.g. via [ESC](#escs-motors)), flight surfaces like ailerons and flaps, camera triggers, parachutes, grippers, and many other types of payloads.
+PX4 _çıkışları_ şunları kontrol etmek için kullanır: motor hızı (örn. [ESC](#escs-motors) aracılığıyla), kanatçıklar (aileron) ve flaplar gibi uçuş yüzeyleri, kamera tetikleyicileri, paraşütler, tutucular (grippers) ve diğer birçok faydalı yük türü.
 
-The outputs may be PWM ports or DroneCAN nodes (e.g. DroneCAN [motor controllers](../dronecan/escs.md)).
-The images below show the PWM output ports for [Pixhawk 4](../flight_controller/pixhawk4.md) and [Pixhawk 4 mini](../flight_controller/pixhawk4_mini.md).
+Çıkışlar PWM portları veya DroneCAN düğümleri (örn. DroneCAN [motor kontrolcüleri](../dronecan/escs.md)) olabilir.
+Aşağıdaki resimler [Pixhawk 4](../flight_controller/pixhawk4.md) ve [Pixhawk 4 mini](../flight_controller/pixhawk4_mini.md) için PWM çıkış portlarını göstermektedir.
 
-![Pixhawk 4 output ports](../../assets/flight_controller/pixhawk4/pixhawk4_main_aux_ports.jpg) ![Pixhawk4 mini MAIN ports](../../assets/flight_controller/pixhawk4mini/pixhawk4mini_pwm.png)
+![Pixhawk 4 çıkış portları](../../assets/flight_controller/pixhawk4/pixhawk4_main_aux_ports.jpg) ![Pixhawk4 mini MAIN portları](../../assets/flight_controller/pixhawk4mini/pixhawk4mini_pwm.png)
 
-The outputs are divided into `MAIN` and `AUX` outputs, and individually numbered (i.e. `MAINn` and `AUXn`, where `n` is 1 to usually 6 or 8).
-They might also be marked as `IO PWM Out` and `FMU PWM OUT` (or similar).
+Çıkışlar `MAIN` ve `AUX` çıkışları olarak ikiye ayrılır ve ayrı ayrı numaralandırılır (yani `MAINn` ve `AUXn`, burada `n` 1'den genellikle 6 veya 8'e kadardır).
+Ayrıca `IO PWM Out` ve `FMU PWM OUT` (veya benzeri) olarak da işaretlenmiş olabilirler.
 
 :::warning
-A flight controller may only have `MAIN` PWM outputs (like the _Pixhawk 4 Mini_), or may have only 6 outputs on either `MAIN` or `AUX`.
-Ensure that you select a controller that has enough ports/outputs for your [airframe](../airframes/airframe_reference.md).
+Bir uçuş kontrolcüsü yalnızca `MAIN` PWM çıkışlarına sahip olabilir (örneğin _Pixhawk 4 Mini_ gibi) veya `MAIN` veya `AUX` üzerinde yalnızca 6 çıkışa sahip olabilir.
+[Gövdeniz](../airframes/airframe_reference.md) için yeterli porta/çıkışa sahip bir kontrolcü seçtiğinizden emin olun.
 :::
 
-You can connect almost any output to any motor or other actuator, by assigning the associated function ("Motor 1") to the desired output ("AUX1") in QGroundControl: [Actuator Configuration and Testing](../config/actuators.md).
-Note that the functions (motor and control surface actuator positions) for each frame are given in the [Airframe Reference](../airframes/airframe_reference.md).
+QGroundControl'de ilgili işlevi ("Motor 1") istenen çıkışa ("AUX1") atayarak hemen hemen her çıkışı herhangi bir motora veya diğer eyleyiciye bağlayabilirsiniz: [Eyleyici Yapılandırması ve Testi](../config/actuators.md).
+Her gövde için işlevlerin (motor ve kontrol yüzeyi eyleyici konumlarının) [Gövde Referansında](../airframes/airframe_reference.md) verildiğini unutmayın.
 
-**Notes:**
+**Notlar:**
 
-- Pixhawk controllers have an FMU board and _may_ have a separate IO board.
-  If there is an IO board, the `AUX` ports are connected directly to the FMU and the `MAIN` ports are connected to the IO board.
-  Otherwise the `MAIN` ports are connected to the FMU, and there are no `AUX` ports.
-- The FMU output ports can use [D-shot](../peripherals/dshot.md) or _One-shot_ protocols (as well as PWM), which provide much lower-latency behaviour.
-  This can be useful for racers and other airframes that require better performance.
-- There are only 6-8 outputs in `MAIN` and `AUX` because most flight controllers only have this many PWM/Dshot/Oneshot outputs.
-  In theory there can be many more outputs if the bus supports it (i.e. a UAVCAN bus is not limited to this few nodes).
+- Pixhawk kontrolcülerinde bir FMU kartı bulunur ve ayrı bir IO kartı _olabilir_.
+  Bir IO kartı varsa, `AUX` portları doğrudan FMU'ya ve `MAIN` portları IO kartına bağlanır.
+  Aksi takdirde `MAIN` portları FMU'ya bağlanır ve `AUX` portları yoktur.
+- FMU çıkış portları, çok daha düşük gecikmeli davranış sağlayan [D-shot](../peripherals/dshot.md) veya _One-shot_ protokollerini (PWM'in yanı sıra) kullanabilir.
+  Bu, yarışçılar ve daha iyi performans gerektiren diğer gövdeler için yararlı olabilir.
+- `MAIN` ve `AUX` içinde yalnızca 6-8 çıkış vardır, çünkü çoğu uçuş kontrolcüsü yalnızca bu kadar PWM/Dshot/Oneshot çıkışına sahiptir.
+  Teorik olarak veri yolu destekliyorsa çok daha fazla çıkış olabilir (yani bir UAVCAN veri yolu bu kadar az düğümle sınırlı değildir).
 
-### ESCs & Motors
+### ESC'ler ve Motorlar
 
-Many PX4 drones use brushless motors that are driven by the flight controller via an Electronic Speed Controller (ESC)
-(the ESC converts a signal from the flight controller to an appropriate level of power delivered to the motor).
+Birçok PX4 dronu, bir Elektronik Hız Kontrolcüsü (ESC) aracılığıyla uçuş kontrolcüsü tarafından sürülen fırçasız motorlar kullanır.
+(ESC, uçuş kontrolcüsünden gelen bir sinyali motora iletilen uygun bir güç seviyesine dönüştürür).
 
-For information about what ESC/Motors are supported by PX4 see:
+PX4 tarafından hangi ESC/Motorların desteklendiği hakkında bilgi için bkz:
 
-- [ESC & Motors](../peripherals/esc_motors.md)
-- [ESC Calibration](../advanced_config/esc_calibration.md)
-- [ESC Firmware and Protocols Overview](https://oscarliang.com/esc-firmware-protocols/) (oscarliang.com)
+- [ESC ve Motorlar](../peripherals/esc_motors.md)
+- [ESC Kalibrasyonu](../advanced_config/esc_calibration.md)
+- [ESC Firmware ve Protokollerine Genel Bakış](https://oscarliang.com/esc-firmware-protocols/) (oscarliang.com)
 
-### Battery/Power
+### Pil/Güç
 
-PX4 drones are mostly commonly powered from Lithium-Polymer (LiPo) batteries.
-The battery is typically connected to the system using a [Power Module](../power_module/index.md) or _Power Management Board_, which provide separate power for the flight controller and to the ESCs (for the motors).
+PX4 dronları çoğunlukla Lityum-Polimer (LiPo) pillerden güç alır.
+Pil genellikle sisteme bir [Güç Modülü](../power_module/index.md) veya _Güç Yönetim Kartı_ kullanılarak bağlanır; bu, uçuş kontrolcüsü ve (motorlar için) ESC'lere ayrı güç sağlar.
 
-Information about batteries and battery configuration can be found in [Battery Estimation Tuning](../config/battery.md) and the guides in [Basic Assembly](../assembly/index.md) (e.g. [Pixhawk 4 Wiring Quick Start > Power](../assembly/quick_start_pixhawk4.md#power)).
+Piller ve pil yapılandırması hakkında bilgi [Pil Tahmini Ayarlama](../config/battery.md) bölümünde ve [Temel Montaj](../assembly/index.md) kılavuzlarında (örn. [Pixhawk 4 Kablolama Hızlı Başlangıç > Güç](../assembly/quick_start_pixhawk4.md#power)) bulunabilir.
 
-### Manual Control
+### Manuel Kontrol
 
-Pilots can control a vehicle manually using either a [Radio Control (RC) System](../getting_started/rc_transmitter_receiver.md) or a [Joystick/Gamepad](../config/joystick.md) controller connected via QGroundControl.
+Pilotlar, bir [Radyo Kontrol (RC) Sistemi](../getting_started/rc_transmitter_receiver.md) veya QGroundControl aracılığıyla bağlanan bir [Joystick/Gamepad](../config/joystick.md) kontrolcüsü kullanarak aracı manuel olarak kontrol edebilir.
 
-![Taranis X9D Transmitter](../../assets/hardware/transmitters/frsky_taranis_x9d_transmitter.jpg) <img src="../../assets/peripherals/joystick/micronav.jpg" alt="Photo of MicroNav, a ground controller with integrated joysticks" width="400px">
+![Taranis X9D Verici](../../assets/hardware/transmitters/frsky_taranis_x9d_transmitter.jpg) <img src="../../assets/peripherals/joystick/micronav.jpg" alt="Photo of MicroNav, a ground controller with integrated joysticks" width="400px">
 
-RC systems use a dedicated ground-based radio transmitter and vehicle-based receiver for sending control information.
-They should always be used when first tuning/testing a new frame design, or when flying racers/acrobatically (and in other cases where low latency is important).
+RC sistemleri, kontrol bilgilerini göndermek için özel bir yer tabanlı radyo vericisi ve araç tabanlı alıcı kullanır.
+Yeni bir gövde tasarımını ilk kez ayarlarken/test ederken veya yarış/akrobasi uçuşları yaparken (ve düşük gecikmenin önemli olduğu diğer durumlarda) her zaman kullanılmalıdırlar.
 
-Joystick systems use QGroundControl to encode the control information from a "standard" computer gaming joystick into MAVLink messages, and sent it to the vehicle using the (shared) telemetry radio channel.
-They can be used for most manual flight use cases such as taking off, surveys, and so on, provided your telemetry channel has a high enough bandwidth/low latency.
+Joystick sistemleri, "standart" bir bilgisayar oyun joystick'inden gelen kontrol bilgilerini MAVLink mesajlarına kodlamak ve (paylaşılan) telemetri radyo kanalını kullanarak araca göndermek için QGroundControl'ü kullanır.
+Telemetri kanalınız yeterince yüksek bir bant genişliğine/düşük gecikmeye sahip olması koşuluyla, kalkış, haritalama vb. gibi çoğu manuel uçuş kullanım durumu için kullanılabilirler.
 
-Joysticks are often used in integrated GCS/manual control systems because it is cheaper and easier to integrate a joystick than a separate radio system, and for the majority of use cases, the lower latency does not matter.
-They are also perfect for flying the PX4 simulator, because you can plug them directly into your ground control computer.
+Joystickler genellikle entegre GCS/manuel kontrol sistemlerinde kullanılır çünkü bir joystick'i entegre etmek ayrı bir radyo sisteminden daha ucuz ve daha kolaydır ve çoğu kullanım durumu için düşük gecikme önemli değildir.
+Ayrıca PX4 simülatörünü uçurmak için de mükemmeldirler, çünkü onları doğrudan yer kontrol bilgisayarınıza takabilirsiniz.
 
 ::: info
-PX4 does not _require_ a manual control system for autonomous flight modes.
+PX4, otonom uçuş modları için bir manuel kontrol sistemi _gerektirmez_.
 :::
 
-### Safety Switch
+### Güvenlik Anahtarı (Safety Switch)
 
-Vehicles may include a _safety switch_ that must be engaged before the vehicle can be [armed](#arming-and-disarming) (when armed, motors are powered and propellers can turn).
+Araçlar, araç [arm edilmeden](#arming-and-disarming) (arm edildiğinde motorlara güç verilir ve pervaneler dönebilir) önce basılması gereken bir _güvenlik anahtarı_ içerebilir.
 
-This switch is almost always integrated into the [GPS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [buzzer](#buzzer) and [UI LED](#leds).
+Bu anahtar neredeyse her zaman Pixhawk `GPS1` portuna bağlanan [GPS](../gps_compass/index.md) modülüne entegre edilmiştir — [buzzer](#buzzer) ve [UI LED](#leds) ile birlikte.
 
-The switch may be disabled by default, though this depends on the particular flight controller and airframe configuration.
-You can disable/enable use of the switch with the [CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY) parameter.
+Bu anahtar varsayılan olarak devre dışı olabilir, ancak bu durum belirli uçuş kontrolcüsü ve gövde yapılandırmasına bağlıdır.
+Anahtarın kullanımını [CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY) parametresi ile devre dışı bırakabilir/etkinleştirebilirsiniz.
 
 ::: info
-Safety switches are optional.
-Many argue that it is safer for users never to approach a powered system, even to enable/disable this interlock.
+Güvenlik anahtarları isteğe bağlıdır.
+Birçok kişi, kullanıcıların bu kilidi etkinleştirmek/devre dışı bırakmak için bile olsa güç verilmiş bir sisteme asla yaklaşmamasının daha güvenli olduğunu savunur.
 :::
 
-### Buzzer
+### Buzzer (Sesli İkaz)
 
-Vehicles commonly include a buzzer for providing audible notification of vehicle state and readiness to fly (see [Tune meanings](../getting_started/tunes.md)).
+Araçlar genellikle araç durumunu ve uçuşa hazır olup olmadığını sesli olarak bildirmek için bir buzzer içerir (bkz. [Melodi anlamları](../getting_started/tunes.md)).
 
-This buzzer is almost always integrated into the [GPS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [safety switch](#safety-switch) and [UI LED](#leds).
-You can disable the notification tunes using the parameter [CBRK_BUZZER](../advanced_config/parameter_reference.md#CBRK_BUZZER).
+Bu buzzer neredeyse her zaman Pixhawk `GPS1` portuna bağlanan [GPS](../gps_compass/index.md) modülüne entegre edilmiştir — [güvenlik anahtarı](#safety-switch) ve [UI LED](#leds) ile birlikte.
+Bildirim melodilerini [CBRK_BUZZER](../advanced_config/parameter_reference.md#CBRK_BUZZER) parametresini kullanarak devre dışı bırakabilirsiniz.
 
-### LEDs
+### LED'ler
 
-Vehicles should have a superbright [UI RGB LED](../getting_started/led_meanings.md#ui-led) that indicates the current readiness for flight.
+Araçlar, mevcut uçuşa hazır olma durumunu gösteren süper parlak bir [UI RGB LED](../getting_started/led_meanings.md#ui-led)'e sahip olmalıdır.
 
-Historically this was included in the flight controller board.
-On more recent flight controllers this is almost always an [I2C peripheral](../sensor_bus/i2c_general.md) integrated into the [GPS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [safety switch](#safety-switch) and [buzzer](#buzzer).
+Tarihsel olarak bu, uçuş kontrol kartına dahil edilirdi.
+Daha yeni uçuş kontrolcülerinde bu neredeyse her zaman Pixhawk `GPS1` portuna bağlanan [GPS](../gps_compass/index.md) modülüne entegre edilmiş bir [I2C çevresel birimidir](../sensor_bus/i2c_general.md) — [güvenlik anahtarı](#safety-switch) ve [buzzer](#buzzer) ile birlikte.
 
-### Data/Telemetry Radios
+### Veri/Telemetri Radyoları
 
-[Data/Telemetry Radios](../telemetry/index.md) can provide a wireless MAVLink connection between a ground control station like _QGroundControl_ and a vehicle running PX4.
-This makes it possible to tune parameters while a vehicle is in flight, inspect telemetry in real-time, change a mission on the fly, etc.
+[Veri/Telemetri Radyoları](../telemetry/index.md), _QGroundControl_ gibi bir yer kontrol istasyonu ile PX4 çalıştıran bir araç arasında kablosuz bir MAVLink bağlantısı sağlayabilir.
+Bu, bir araç uçuş halindeyken parametreleri ayarlamayı, telemetriyi gerçek zamanlı olarak incelemeyi, uçuş sırasında bir görevi değiştirmeyi vb. mümkün kılar.
 
-### Offboard/Companion Computer
+### Offboard/Eşlikçi Bilgisayar (Companion Computer)
 
-A [Companion Computer](../companion_computer/index.md) (also referred to as "mission computer" or "offboard computer"), is a separate on-vehicle computer that communicates with PX4 to provide higher level command and control.
+Bir [Eşlikçi Bilgisayar](../companion_computer/index.md) ("görev bilgisayarı" veya "offboard bilgisayar" olarak da adlandırılır), daha üst düzey komuta ve kontrol sağlamak için PX4 ile iletişim kuran ayrı bir araç üstü bilgisayardır.
 
-The companion computer usually runs Linux, as this is a much better platform for "general" software development, and allows drones to leverage pre-existing software for computer vision, networking, and so on.
+Eşlikçi bilgisayar genellikle Linux çalıştırır, çünkü bu "genel" yazılım geliştirme için çok daha iyi bir platformdur ve dronların bilgisayar görüşü, ağ oluşturma vb. için önceden var olan yazılımlardan yararlanmasını sağlar.
 
-The flight controller and companion computer may be pre-integrated into a single baseboard, simplifying hardware development, or may be separate, and are connected via a serial cable, Ethernet cable, or wifi.
-The companion computer typically communicates with PX4 using a high level Robotics API such as [MAVSDK](https://mavsdk.mavlink.io/) or [ROS 2](../ros2/user_guide.md).
+Uçuş kontrolcüsü ve eşlikçi bilgisayar, donanım geliştirmeyi basitleştirmek için tek bir taban kartına önceden entegre edilebilir veya ayrı olabilir ve bir seri kablo, Ethernet kablosu veya wifi ile bağlanır.
+Eşlikçi bilgisayar tipik olarak PX4 ile [MAVSDK](https://mavsdk.mavlink.io/) veya [ROS 2](../ros2/user_guide.md) gibi üst düzey bir Robotik API kullanarak iletişim kurar.
 
-Relevant topics include:
+İlgili konular şunlardır:
 
-- [Companion Computers](../companion_computer/index.md)
-- [Off-board Mode](../flight_modes/offboard.md) - Flight mode for offboard control of PX4 from a GCS or companion computer.
-- [Robotics APIs](../robotics/index.md)
+- [Eşlikçi Bilgisayarlar](../companion_computer/index.md)
+- [Offboard Modu](../flight_modes/offboard.md) - Bir GCS veya eşlikçi bilgisayardan PX4'ün offboard kontrolü için uçuş modu.
+- [Robotik API'leri](../robotics/index.md)
 
-### SD Cards (Removable Memory)
+### SD Kartlar (Çıkarılabilir Bellek)
 
-PX4 uses SD memory cards for storing [flight logs](../getting_started/flight_reporting.md), and they are also required in order to use UAVCAN peripherals and fly [missions](../flying/missions.md).
+PX4, [uçuş loglarını](../getting_started/flight_reporting.md) saklamak için SD hafıza kartlarını kullanır ve ayrıca UAVCAN çevre birimlerini kullanmak ve [görevleri](../flying/missions.md) uçurmak için de gereklidir.
 
-By default, if no SD card is present PX4 will play the [format failed (2-beep)](../getting_started/tunes.md#format-failed) tune twice during boot (and none of the above features will be available).
+Varsayılan olarak, SD kart yoksa PX4 önyükleme sırasında [biçimlendirme başarısız (2 bip)](../getting_started/tunes.md#format-failed) melodisini iki kez çalar (ve yukarıdaki özelliklerin hiçbiri kullanılamaz).
 
 ::: tip
-The maximum supported SD card size on Pixhawk boards is 32GB.
-The _SanDisk Extreme U3 32GB_ and _Samsung EVO Plus 32_ are [highly recommended](../dev_log/logging.md#sd-cards).
+Pixhawk kartlarında desteklenen maksimum SD kart boyutu 32GB'dır.
+_SanDisk Extreme U3 32GB_ ve _Samsung EVO Plus 32_ [şiddetle tavsiye edilir](../dev_log/logging.md#sd-cards).
 :::
 
-SD cards are never-the-less optional.
-Flight controllers that do not include an SD Card slot may:
+SD kartlar yine de isteğe bağlıdır.
+SD Kart yuvası içermeyen uçuş kontrolcüleri şunları yapabilir:
 
-- Disable notification beeps are disabled using the parameter [CBRK_BUZZER](../advanced_config/parameter_reference.md#CBRK_BUZZER).
-- [Stream logs](../dev_log/logging.md#log-streaming) to another component (companion).
-- Store missions in RAM/FLASH.
+- Bildirim bipleri [CBRK_BUZZER](../advanced_config/parameter_reference.md#CBRK_BUZZER) parametresi kullanılarak devre dışı bırakılır.
+- [Logları](../dev_log/logging.md#log-streaming) başka bir bileşene (eşlikçi) aktarır.
+- Görevleri RAM/FLASH'ta saklar.
 
-## Payloads
+## Faydalı Yükler (Payloads)
 
-Payloads are equipment carried by the vehicle to meet user or mission objectives, such as cameras in surveying missions, instruments used in for inspections such as radiation detectors, and cargo that needs to be delivered.
-PX4 supports many cameras and a wide range of payloads.
+Faydalı yükler; haritalama görevlerindeki kameralar, radyasyon dedektörleri gibi denetimlerde kullanılan aletler ve teslim edilmesi gereken kargolar gibi kullanıcı veya görev hedeflerini karşılamak için araç tarafından taşınan ekipmanlardır.
+PX4 birçok kamerayı ve çok çeşitli faydalı yükleri destekler.
 
-Payloads are connected to [Flight Controller outputs](#outputs-motors-servos-actuators), and can be triggered automatically in missions, or manually from an RC Controller or Joystick, or from a Ground Station (via MAVLink/MAVSDK commands).
+Faydalı yükler [Uçuş Kontrolcüsü çıkışlarına](#outputs-motors-servos-actuators) bağlanır ve görevlerde otomatik olarak veya bir RC Kumanda veya Joystick'ten veya bir Yer İstasyonundan (MAVLink/MAVSDK komutları aracılığıyla) manuel olarak tetiklenebilir.
 
-For more information see: [Payloads & Cameras](../payloads/index.md)
+Daha fazla bilgi için bkz: [Faydalı Yükler ve Kameralar](../payloads/index.md)
 
-## Arming and Disarming
+## Arm ve Disarm İşlemi (Motorları Başlatma ve Kapatma)
 
-A vehicle is said to be _armed_ when all motors and actuators are powered, and _disarmed_ when nothing is powered.
-There is also a _prearmed_ state when only servo actuators are powered, which is primarily used for testing.
+Tüm motorlara ve eyleyicilere güç verildiğinde bir aracın _armed_ (kurulu/etkin), hiçbir şeye güç verilmediğinde ise _disarmed_ (devre dışı) olduğu söylenir.
+Ayrıca, yalnızca servo eyleyicilere güç verildiği bir _prearmed_ (ön-kurulum) durumu da vardır, bu öncelikle test için kullanılır.
 
-A vehicle is usually disarmed on the ground, and must be armed before taking off in the current flight mode.
+Bir araç genellikle yerdeyken disarmed durumdadır ve mevcut uçuş modunda kalkış yapmadan önce arm edilmelidir.
 
 :::warning
-Armed vehicles are dangerous because propellers can start spinning at any time without further user input, and in many cases will start spinning immediately.
+Arm edilmiş araçlar tehlikelidir çünkü pervaneler daha fazla kullanıcı girişi olmadan herhangi bir zamanda dönmeye başlayabilir ve çoğu durumda hemen dönmeye başlayacaktır.
 :::
 
-Arming and disarming are triggered by default using RC stick _gestures_.
-On Mode 2 transmitters you arm by holding the RC throttle/yaw stick on the _bottom right_ for one second, and to disarm you hold the stick on bottom left for one second.
-It is alternatively possible to configure PX4 to arm using an RC switch or button (and arming MAVLink commands can also be sent from a ground station).
+Arm ve disarm işlemleri varsayılan olarak RC çubuk _hareketleri_ kullanılarak tetiklenir.
+Mod 2 vericilerde, arm etmek için RC gaz/yaw çubuğunu (sol çubuk) bir saniye boyunca _sağ altta_ tutarsınız ve disarm etmek için çubuğu bir saniye boyunca sol altta tutarsınız.
+Alternatif olarak PX4'ü bir RC anahtarı veya düğmesi kullanarak arm edecek şekilde yapılandırmak mümkündür (ve arm etme MAVLink komutları bir yer istasyonundan da gönderilebilir).
 
-To reduce accidents, vehicles should be armed as little as possible when the vehicle is on the ground.
-By default, vehicles are:
+Kazaları azaltmak için, araç yerdeyken mümkün olduğunca az arm edilmiş halde tutulmalıdır.
+Varsayılan olarak araçlar:
 
-- _Disarmed_ or _Prearmed_ (motors unpowered) when not in use, and must be explicitly _armed_ before taking off.
-- Automatically disarm/prearm if the vehicle does not take off quickly enough after arming (the disarm time is configurable).
-- Automatically disarm/prearm shortly after landing (the time is configurable).
-- Arming is prevented if the vehicle is not in a "healthy" state.
-- Arming is prevented if the vehicle has a [safety switch](#safety-switch) that has not been engaged.
-- Arming is prevented if a VTOL vehicle is in fixed-wing mode ([by default](../advanced_config/parameter_reference.md#CBRK_VTOLARMING)).
-- Arming may be prevented due to a number of other optional [arming pre-condition settings](../config/safety.md#arming-pre-conditions), such as low battery.
+- Kullanılmadığında _Disarmed_ veya _Prearmed_ (motorlara güç verilmez) durumdadır ve kalkıştan önce açıkça _armed_ durumuna getirilmelidir.
+- Arm edildikten sonra araç yeterince hızlı kalkış yapmazsa otomatik olarak disarm/prearm olur (disarm süresi yapılandırılabilir).
+- İnişten kısa bir süre sonra otomatik olarak disarm/prearm olur (süre yapılandırılabilir).
+- Araç "sağlıklı" bir durumda değilse arm işlemi engellenir.
+- Araçta devreye sokulmamış bir [güvenlik anahtarı](#safety-switch) varsa arm işlemi engellenir.
+- Bir VTOL aracı sabit kanat modundaysa arm işlemi engellenir ([varsayılan olarak](../advanced_config/parameter_reference.md#CBRK_VTOLARMING)).
+- Arm işlemi, düşük pil gibi bir dizi başka isteğe bağlı [arm ön koşulu ayarı](../config/safety.md#arming-pre-conditions) nedeniyle engellenebilir.
 
-When prearmed you can still use actuators, while disarming unpowers everything.
-Prearmed and disarmed should both be safe, and a particular vehicle may support either or both.
+Prearmed durumundayken eyleyicileri (servoları) kullanabilirsiniz, disarm ise her şeyin gücünü keser.
+Prearmed ve disarmed durumlarının ikisi de güvenli olmalıdır ve belirli bir araç bunlardan birini veya her ikisini de destekleyebilir.
 
 :::tip
-Sometimes a vehicle will not arm for reasons that are not obvious.
-QGC v4.2.0 (Daily build at time of writing) and later provide an arming check report in [Fly View > Arming and Preflight Checks](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view.html#arm).
-From PX4 v1.14 this provides comprehensive information about arming problems along with possible solutions.
+Bazen bir araç bariz olmayan nedenlerle arm olmayabilir.
+QGC v4.2.0 (yazım sırasındaki Günlük sürüm) ve sonrası, [Fly View > Arming and Preflight Checks](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view.html#arm) bölümünde bir arm kontrol raporu sağlar.
+PX4 v1.14'ten itibaren bu, arm sorunları hakkında olası çözümlerle birlikte kapsamlı bilgi sağlar.
 :::
 
-A detailed overview of arming and disarming configuration can be found here: [Prearm, Arm, Disarm Configuration](../advanced_config/prearm_arm_disarm.md).
+Arm ve disarm yapılandırmasının ayrıntılı bir özeti burada bulunabilir: [Prearm, Arm, Disarm Yapılandırması](../advanced_config/prearm_arm_disarm.md).
 
-## Flight Modes
+## Uçuş Modları
 
-Modes are special operational states that provide different types/levels of vehicle automation and autopilot assistance to the user (pilot).
+Modlar, kullanıcıya (pilota) farklı türde/seviyelerde araç otomasyonu ve otopilot yardımı sağlayan özel operasyonel durumlardır.
 
-_Autonomous modes_ are fully controlled by the autopilot, and require no pilot/remote control input.
-These are used, for example, to automate common tasks like takeoff, returning to the home position, and landing.
-Other autonomous modes execute pre-programmed missions, follow a GPS beacon, or accept commands from an offboard computer or ground station.
+_Otonom modlar_ tamamen otopilot tarafından kontrol edilir ve pilot/uzaktan kumanda girişi gerektirmez.
+Bunlar, örneğin kalkış, ana konuma dönüş ve iniş gibi yaygın görevleri otomatikleştirmek için kullanılır.
+Diğer otonom modlar önceden programlanmış görevleri yürütür, bir GPS işaretini (beacon) takip eder veya bir offboard bilgisayardan veya yer istasyonundan gelen komutları kabul eder.
 
-_Manual modes_ are controlled by the user (via the RC control sticks/joystick) with assistance from the autopilot.
-Different manual modes enable different flight characteristics - for example, some modes enable acrobatic tricks,
-while others are impossible to flip and will hold position/course against wind.
+_Manuel modlar_, otopilotun yardımıyla kullanıcı tarafından (RC kontrol çubukları/joystick aracılığıyla) kontrol edilir.
+Farklı manuel modlar farklı uçuş özelliklerini mümkün kılar - örneğin, bazı modlar akrobatik hareketlere izin verirken, diğerlerinde takla atmak imkansızdır ve araç rüzgara karşı konumunu/rotasını korur.
 
 :::tip
-Not all modes are available on all vehicle types, and some modes can only be used when specific conditions have been met (e.g. many modes require a global position estimate).
+Tüm modlar tüm araç türlerinde mevcut değildir ve bazı modlar yalnızca belirli koşullar karşılandığında kullanılabilir (örneğin, birçok mod küresel bir konum tahmini gerektirir).
 :::
 
-An overview of the flight modes implemented within PX4 for each vehicle can be found below:
+Her araç için PX4 içinde uygulanan uçuş modlarına genel bir bakış aşağıda bulunabilir:
 
-- [Flight Modes (Multicopter)](../flight_modes_mc/index.md)
-- [Flight Modes (Fixed-Wing)](../flight_modes_fw/index.md)
-- [Flight Modes (VTOL)](../flight_modes_vtol/index.md)
-- [Drive Modes (Rover)](../flight_modes_rover/index.md)
+- [Uçuş Modları (Çok Rotorlu)](../flight_modes_mc/index.md)
+- [Uçuş Modları (Sabit Kanat)](../flight_modes_fw/index.md)
+- [Uçuş Modları (VTOL)](../flight_modes_vtol/index.md)
+- [Sürüş Modları (Rover)](../flight_modes_rover/index.md)
 
-Instructions for how to set up your remote control switches to enable different flight modes is provided in [Flight Mode Configuration](../config/flight_mode.md).
+Farklı uçuş modlarını etkinleştirmek için uzaktan kumanda anahtarlarınızı nasıl ayarlayacağınıza dair talimatlar [Uçuş Modu Yapılandırması](../config/flight_mode.md) bölümünde verilmiştir.
 
-PX4 also supports external modes implemented in [ROS 2](../ros2/index.md) using the [PX4 ROS 2 Control Interface](../ros2/px4_ros2_control_interface.md).
-These are indistinguishable from PX4 internal modes, and can be used to override internal modes with a more advanced version, or to create entirely new functionality.
-Note that these depend on ROS 2 and can therefore only run on systems that have a [companion computer](#offboard-companion-computer).
+PX4 ayrıca [PX4 ROS 2 Kontrol Arayüzü](../ros2/px4_ros2_control_interface.md) kullanılarak [ROS 2](../ros2/index.md)'de uygulanan harici modları da destekler.
+Bunlar PX4 dahili modlarından ayırt edilemez ve dahili modları daha gelişmiş bir sürümle geçersiz kılmak veya tamamen yeni işlevler oluşturmak için kullanılabilir.
+Bunların ROS 2'ye bağlı olduğunu ve bu nedenle yalnızca bir [eşlikçi bilgisayara](#offboard-companion-computer) sahip sistemlerde çalışabileceğini unutmayın.
 
-## Safety Settings (Failsafe)
+## Güvenlik Ayarları (Failsafe / Arıza Koruma)
 
-PX4 has configurable failsafe systems to protect and recover your vehicle if something goes wrong!
-These allow you to specify areas and conditions under which you can safely fly, and the action that will be performed if a failsafe is triggered (for example, landing, holding position, or returning to a specified point).
+PX4, bir şeyler ters giderse aracınızı korumak ve kurtarmak için yapılandırılabilir failsafe sistemlerine sahiptir!
+Bunlar, güvenli bir şekilde uçabileceğiniz alanları ve koşulları ve bir failsafe tetiklenirse gerçekleştirilecek eylemi (örneğin, iniş, konumu koruma veya belirtilen bir noktaya dönüş) belirlemenize olanak tanır.
 
 ::: info
-You can only specify the action for the _first_ failsafe event.
-Once a failsafe occurs the system will enter special handling code, such that subsequent failsafe triggers are managed by separate system level and vehicle specific code.
+Yalnızca _ilk_ failsafe olayı için eylemi belirleyebilirsiniz.
+Bir failsafe meydana geldiğinde sistem özel bir işleme koduna girer, böylece sonraki failsafe tetikleyicileri ayrı sistem seviyesi ve araca özel kod tarafından yönetilir.
 :::
 
-The main failsafe areas are listed below:
+Ana failsafe alanları aşağıda listelenmiştir:
 
-- Low Battery
-- Remote Control (RC) Loss
-- Position Loss (global position estimate quality is too low).
-- Offboard Loss (e.g. lose connection to companion computer)
-- Data Link Loss (e.g. lose telemetry connection to GCS).
-- Geofence Breach (restrict vehicle to flight within a virtual cylinder).
-- Mission Failsafe (prevent a previous mission being run at a new takeoff location).
-- Traffic avoidance (triggered by transponder data from e.g. ADSB transponders).
+- Düşük Pil
+- Uzaktan Kumanda (RC) Kaybı
+- Konum Kaybı (küresel konum tahmini kalitesi çok düşük).
+- Offboard Kaybı (ör. eşlikçi bilgisayara bağlantı kaybı)
+- Veri Bağlantısı Kaybı (ör. GCS'ye telemetri bağlantısı kaybı).
+- Coğrafi Çit (Geofence) İhlali (aracı sanal bir silindir içinde uçuşla sınırlandırma).
+- Görev Failsafe'i (önceki bir görevin yeni bir kalkış konumunda çalıştırılmasını önleme).
+- Trafik kaçınma (ör. ADSB transponderlarından gelen transponder verileriyle tetiklenir).
 
-For more information see: [Safety](../config/safety.md) (Basic Configuration).
+Daha fazla bilgi için bkz: [Güvenlik](../config/safety.md) (Temel Yapılandırma).
 
-## Heading and Directions
+## İstikamet ve Yönler (Heading)
 
-All the vehicles, boats and aircraft have a heading direction or an orientation based on their forward motion.
+Tüm araçların, teknelerin ve hava araçlarının ileri hareketlerine dayalı bir istikamet yönü veya yönelimi vardır.
 
-![Frame Heading](../../assets/concepts/frame_heading.png)
+![Gövde İstikameti](../../assets/concepts/frame_heading.png)
 
 ::: info
-For a VTOL Tailsitter the heading is relative to the multirotor configuration (i.e. vehicle pose during takeoff, hovering, landing).
+Bir VTOL Tailsitter için istikamet, çok rotorlu konfigürasyona göredir (yani kalkış, havada asılı kalma, iniş sırasındaki araç duruşu).
 :::
 
-It is important to know the vehicle heading direction in order to align the autopilot with the vehicle vector of movement.
-Multicopters have a heading even when they are symmetrical from all sides!
-Usually manufacturers use a coloured props or coloured arms to indicate the heading.
+Otopilotu aracın hareket vektörüyle hizalamak için aracın istikamet yönünü bilmek önemlidir.
+Çok rotorluların her taraftan simetrik olsalar bile bir istikameti vardır!
+Genellikle üreticiler istikameti belirtmek için renkli pervaneler veya renkli kollar kullanırlar.
 
-![Frame Heading TOP](../../assets/concepts/frame_heading_top.png)
+![Gövde İstikameti ÜST](../../assets/concepts/frame_heading_top.png)
 
-In our illustrations we will use red colouring for the front propellers of multicopter to show heading.
+Çizimlerimizde çok rotorlunun ön pervaneleri için istikameti göstermek amacıyla kırmızı renk kullanacağız.
 
-You can read in depth about heading in [Flight Controller Orientation](../config/flight_controller_orientation.md)
+İstikamet hakkında derinlemesine bilgiyi [Uçuş Kontrolcüsü Yönelimi](../config/flight_controller_orientation.md) bölümünde okuyabilirsiniz.
