@@ -1,166 +1,164 @@
-# Radio Control Systems
+# Radyo Kontrol (RC) Sistemleri
 
-A Radio Control (RC) system can be used to _manually_ control your vehicle from a handheld RC controller.
-This topic provides an overview of how RC works, how to choose an appropriate radio system for your vehicle, and how to connect it to your flight controller.
+Bir Radyo Kontrol (RC) sistemi, aracınızı elde taşınan bir RC kontrolcüsü (kumanda) ile _manuel_ olarak kontrol etmek için kullanılabilir.
+Bu konu, RC'nin nasıl çalıştığına, aracınız için uygun bir radyo sisteminin nasıl seçileceğine ve uçuş kontrolcüsüne nasıl bağlanacağına dair genel bir bakış sağlar.
 
 :::tip
-PX4 can also be manually controlled using a [Joystick](../config/joystick.md) or gamepad-like controller: this is different to an RC system!
-The [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) parameter [can be set](../advanced_config/parameters.md) to choose whether RC (default), Joystick, both, or neither, are enabled.
+PX4 ayrıca bir [Joystick](../config/joystick.md) veya gamepad benzeri bir kontrolcü kullanılarak da manuel olarak kontrol edilebilir: bu bir RC sisteminden farklıdır!
+[COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) parametresi, RC'nin mi (varsayılan), Joystick'in mi, her ikisinin mi yoksa hiçbirinin mi etkinleştirileceğini seçmek için [ayarlanabilir](../advanced_config/parameters.md).
 :::
 
 ::: info
-PX4 does not require a remote control system for autonomous flight modes.
+PX4, otonom uçuş modları için bir uzaktan kontrol sistemi gerektirmez.
 :::
 
-## How do RC Systems Work?
+## RC Sistemleri Nasıl Çalışır?
 
-An _RC system_ has a ground-based _remote control unit_ that is used by the operator to command the vehicle.
-The remote has physical controls that can be used to specify vehicle movement (e.g. speed, direction, throttle, yaw, pitch, roll, etc.) and to enable autopilot [flight modes](../flight_modes/index.md) (e.g. takeoff, land, return to land, mission etc.).
-On _telemetry-enabled_ RC systems, the remote control unit can also receive and display information from the vehicle, such as battery level, flight mode, and warnings.
+Bir _RC sistemi_, operatör tarafından araca komut vermek için kullanılan yer tabanlı bir _uzaktan kontrol ünitesine_ (kumanda) sahiptir.
+Kumanda, araç hareketini (örn. hız, yön, gaz/throttle, yaw, pitch, roll vb.) belirtmek ve otopilot [uçuş modlarını](../flight_modes/index.md) (örn. kalkış, iniş, kalkış yerine dönüş, görev vb.) etkinleştirmek için kullanılabilen fiziksel kontrollere sahiptir.
+_Telemetri özellikli_ RC sistemlerinde, uzaktan kontrol ünitesi araçtan pil seviyesi, uçuş modu ve uyarılar gibi bilgileri de alabilir ve görüntüleyebilir.
 
-![Taranis X9D Transmitter](../../assets/hardware/transmitters/frsky_taranis_x9d_transmitter.jpg)
+![Taranis X9D Verici](../../assets/hardware/transmitters/frsky_taranis_x9d_transmitter.jpg)
 
-The ground based RC controller contains a radio module that is bound to, and communicates with, a (compatible) radio module on the vehicle.
-The vehicle-based unit is connected to the flight controller.
-The flight controller determines how to interpret the commands based on the current autopilot flight mode and vehicle state, and drives the vehicle motors and actuators appropriately.
-
-<!-- image showing the different parts here would be nice -->
+Yer tabanlı RC kontrolcüsü, araç üzerindeki (uyumlu) bir radyo modülü ile eşleşen ve iletişim kuran bir radyo modülü içerir.
+Araç tabanlı ünite (alıcı), uçuş kontrolcüsüne bağlanır.
+Uçuş kontrolcüsü, mevcut otopilot uçuş moduna ve araç durumuna göre komutların nasıl yorumlanacağını belirler ve araç motorlarını ve eyleyicilerini uygun şekilde sürer.
 
 ::: info
-The ground- and vehicle- based radio modules are referred to as the transmitter and receiver respectively (even if they support bidirectional communication) and are collectively referred to as a _transmitter/receiver pair_.
-The RC controller and it's included radio module are commonly referred to as a "transmitter".
+Yer ve araç tabanlı radyo modülleri sırasıyla verici (transmitter) ve alıcı (receiver) olarak adlandırılır (çift yönlü iletişimi destekleseler bile) ve topluca bir _verici/alıcı çifti_ olarak anılırlar.
+RC kontrolcüsü ve içerdiği radyo modülü genellikle "verici" veya "kumanda" olarak adlandırılır.
 :::
 
-An important quality of an RC system is how many "channels" it supports.
-The number of channels defines how many different physical controls on the remote control can be used to send commands to the vehicle (e.g. how many switches, dials, control sticks can actually be used).
+Bir RC sisteminin önemli bir niteliği, kaç "kanalı" desteklediğidir.
+Kanal sayısı, kumanda üzerindeki kaç farklı fiziksel kontrolün araca komut göndermek için kullanılabileceğini tanımlar (örn. kaç anahtar, kadran, kontrol çubuğu gerçekten kullanılabilir).
 
-An aircraft must use a system that supports at least 4 channels (for roll, pitch, yaw, thrust).
-Ground vehicles need at least two channels (steering + throttle). An 8 or 16 channel transmitter provides additional channels that can be used to control other mechanisms or activate different [flight modes](../flight_modes/index.md) provided by the autopilot.
+Bir hava aracı en az 4 kanalı destekleyen bir sistem kullanmalıdır (roll, pitch, yaw, thrust/gaz için).
+Kara araçları en az iki kanala ihtiyaç duyar (direksiyon + gaz). 8 veya 16 kanallı bir verici, diğer mekanizmaları kontrol etmek veya otopilot tarafından sağlanan farklı [uçuş modlarını](../flight_modes/index.md) etkinleştirmek için kullanılabilecek ek kanallar sağlar.
 
-## Types of Remote Controllers
+## Uzaktan Kontrol Ünitesi (Kumanda) Türleri
 
 <a id="transmitter_modes"></a>
 
-### Remote Control Units for Aircraft
+### Hava Araçları için Uzaktan Kontrol Üniteleri
 
-The most popular _form_ of remote control unit for UAVs is shown below.
-It has separate control sticks for controlling roll/pitch and for throttle/yaw as shown (i.e. aircraft need at least 4 channels).
+İHA'lar için en popüler uzaktan kontrol ünitesi _formu_ aşağıda gösterilmiştir.
+Gösterildiği gibi roll/pitch ve throttle/yaw kontrolü için ayrı kontrol çubuklarına (stick) sahiptir (yani hava araçları en az 4 kanala ihtiyaç duyar).
 
-![RC Basic Commands](../../assets/flying/rc_basic_commands.png)
+![RC Temel Komutlar](../../assets/flying/rc_basic_commands.png)
 
-There are numerous possible layouts for the control sticks, switches, etc.
-The more common layouts have been given specific "Mode" numbers. _Mode 1_ and _Mode 2_ (shown below) differ only in the placement of the throttle.
+Kontrol çubukları, anahtarlar vb. için çok sayıda olası düzen (layout) vardır.
+Daha yaygın düzenlere belirli "Mod" numaraları verilmiştir. _Mod 1_ ve _Mod 2_ (aşağıda gösterilmiştir) yalnızca gazın (throttle) yerleşiminde farklılık gösterir.
 
-![Mode1-Mode2](../../assets/concepts/mode1_mode2.png)
-
-::: info
-The choice of mode is largely one of taste (_Mode 2_ is more popular).
-:::
-
-## Remote Control Units for Ground Vehicles
-
-An Unmanned Ground Vehicle (UGV)/car minimally requires a 2 channel transmitter in order to send the values for steering and speed.
-Commonly transmitters set these values using a wheel and trigger, two single-axis control sticks, or a single dual-axis control stick.
-
-There is nothing to stop you using more channels/control mechanisms, and these can be very useful for engaging additional actuators and autopilot modes.
-
-## Choosing RC System Components
-
-You will need to select a transmitter/receiver pair that are compatible with each other.
-In addition, receivers have to be [compatible with PX4](#compatible_receivers) and the flight controller hardware.
-
-Compatible radio systems are often sold together.
-For example, [FrSky Taranis X9D and FrSky X8R](https://hobbyking.com/en_us/frsky-2-4ghz-accst-taranis-x9d-plus-and-x8r-combo-digital-telemetry-radio-system-mode-2.html?___store=en_us) are a popular combination.
-
-### Transmitter/Receiver Pairs
-
-One of the most popular RC units is the _FrSky Taranis X9D_.
-It has an internal transmitter module can be used with the recommended _FrSky X4R-SB_ (S-BUS, low delay) or _X4R_ (PPM-Sum, legacy) receivers out of the box.
-It also has a custom radio transmitter module slot and customizable open source OpenTX Firmware.
+![Mod1-Mod2](../../assets/concepts/mode1_mode2.png)
 
 ::: info
-This remote control unit can display vehicle telemetry when used with [FrSky](../peripherals/frsky_telemetry.md) or [TBS Crossfire](../telemetry/crsf_telemetry.md) radio modules.
+Mod seçimi büyük ölçüde bir zevk meselesidir (_Mod 2_ daha popülerdir).
 :::
 
-Other popular transmitter/receiver pairs
+## Kara Araçları için Uzaktan Kontrol Üniteleri
 
-- Turnigy remote using, for example, the FrSky transmitter/receiver modules.
-- Futaba Transmitters and compatible Futaba S-Bus receivers.
-- Long range ~900MHz, low latency: "Team Black Sheep Crossfire" or "Crossfire Micro" set with a compatible remote (e.g. Taranis)
-- Long Range ~433MHz: ImmersionRC EzUHF set with a compatible remote (e.g. Taranis)
+Bir İnsansız Kara Aracı (İKA - UGV)/araba, direksiyon ve hız değerlerini göndermek için minimum 2 kanallı bir verici gerektirir.
+Yaygın vericiler bu değerleri bir tekerlek ve tetik, iki tek eksenli kontrol çubuğu veya tek bir çift eksenli kontrol çubuğu kullanarak ayarlar.
 
-### PX4-Compatible Receivers {#compatible_receivers}
+Daha fazla kanal/kontrol mekanizması kullanmanıza engel hiçbir şey yoktur ve bunlar ek eyleyicileri ve otopilot modlarını devreye sokmak için çok yararlı olabilir.
 
-In addition to the transmitter/receiver pairs being compatible, the receiver must also be compatible with PX4 and the flight controller hardware.
+## RC Sistemi Bileşenlerini Seçme
 
-_PX4_ and _Pixhawk_ have been validated with:
+Birbiriyle uyumlu bir verici/alıcı çifti seçmeniz gerekecektir.
+Ek olarak, alıcılar [PX4 ile](#compatible_receivers) ve uçuş kontrol donanımı ile uyumlu olmalıdır.
 
-- PPM sum receivers
-- S.BUS and S.BUS2 receivers from:
+Uyumlu radyo sistemleri genellikle birlikte satılır.
+Örneğin, [FrSky Taranis X9D ve FrSky X8R](https://hobbyking.com/en_us/frsky-2-4ghz-accst-taranis-x9d-plus-and-x8r-combo-digital-telemetry-radio-system-mode-2.html?___store=en_us) popüler bir kombinasyondur.
+
+### Verici/Alıcı Çiftleri
+
+En popüler RC ünitelerinden biri _FrSky Taranis X9D_'dir.
+Dahili bir verici modülüne sahiptir ve önerilen _FrSky X4R-SB_ (S-BUS, düşük gecikme) veya _X4R_ (PPM-Sum, eski tip) alıcılarla kutudan çıktığı gibi kullanılabilir.
+Ayrıca özel bir radyo verici modülü yuvasına ve özelleştirilebilir açık kaynaklı OpenTX Firmware'e sahiptir.
+
+::: info
+Bu uzaktan kontrol ünitesi, [FrSky](../peripherals/frsky_telemetry.md) veya [TBS Crossfire](../telemetry/crsf_telemetry.md) radyo modülleri ile kullanıldığında araç telemetrisini görüntüleyebilir.
+:::
+
+Diğer popüler verici/alıcı çiftleri:
+
+- Örneğin FrSky verici/alıcı modüllerini kullanan Turnigy kumandaları.
+- Futaba Vericileri ve uyumlu Futaba S-Bus alıcıları.
+- Uzun menzilli ~900MHz, düşük gecikmeli: Uyumlu bir kumanda (örn. Taranis) ile "Team Black Sheep Crossfire" veya "Crossfire Micro" seti.
+- Uzun Menzilli ~433MHz: Uyumlu bir kumanda (örn. Taranis) ile ImmersionRC EzUHF seti.
+
+### PX4 Uyumlu Alıcılar {#compatible_receivers}
+
+Verici/alıcı çiftlerinin uyumlu olmasının yanı sıra, alıcının PX4 ve uçuş kontrol donanımıyla da uyumlu olması gerekir.
+
+_PX4_ ve _Pixhawk_ şunlarla doğrulanmıştır:
+
+- PPM sum (toplam) alıcıları
+- Aşağıdakilerden S.BUS ve S.BUS2 alıcıları:
   - Futaba
-  - FrSky S.BUS and PPM models
-  - TBS Crossfire with SBUS as output protocol
+  - FrSky S.BUS ve PPM modelleri
+  - Çıkış protokolü olarak SBUS kullanan TBS Crossfire
   - Herelink
 
-- TBS Crossfire with ([CRSF protocol](../telemetry/crsf_telemetry.md))
-- Express LRS with ([CRSF protocol](../telemetry/crsf_telemetry.md))
+- ([CRSF protokolü](../telemetry/crsf_telemetry.md)) ile TBS Crossfire
+- ([CRSF protokolü](../telemetry/crsf_telemetry.md)) ile Express LRS
 
-- TBS Ghost with (GHST protocol)
+- (GHST protokolü) ile TBS Ghost
 - Spektrum DSM
 - Graupner HoTT
 
-Receivers from other vendors that use a supported protocol are likely to work but have not been tested.
+Desteklenen bir protokolü kullanan diğer satıcıların alıcılarının çalışması muhtemeldir ancak test edilmemiştir.
 
 ::: info
-Historically there were differences and incompatibilities between receiver models, largely due to a lack of detailed specification of protocols.
-The receivers we have tested all now appear to be compatible, but it is possible that others may not be.
+Tarihsel olarak, büyük ölçüde protokollerin ayrıntılı spesifikasyon eksikliği nedeniyle alıcı modelleri arasında farklılıklar ve uyumsuzluklar vardı.
+Test ettiğimiz alıcıların hepsi artık uyumlu görünüyor, ancak diğerlerinin olmaması mümkündür.
 :::
 
-## Connecting Receivers
+## Alıcıları Bağlama
 
-As general guidance, receivers connect to the flight controller using the port appropriate to their supported protocol:
+Genel bir rehber olarak, alıcılar destekledikleri protokole uygun portu kullanarak uçuş kontrolcüsüne bağlanır:
 
-- Spektrum/DSM receivers connect to the "DSM" input.
-  Pixhawk flight controllers variously label this as: `SPKT/DSM`, `DSM`, `DSM/SBUS RC`, `DSM RC`, `DSM/SBUS/RSSI`.
-- Graupner HoTT receivers: SUMD output must connect to a **SPKT/DSM** input (as above).
-- PPM-Sum and S.BUS receivers must connect directly to the **RC** ground, power and signal pins.
-  This is typically labeled: `RC IN`, `RCIN` or `RC`, but has in some FCs has been labeled `PPM RC` or `PPM`.
-- PPM receivers that have an individual wire for each channel must connect to the RCIN channel _via_ a PPM encoder [like this one](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
-- TBS Crossfire/Express LRS Receivers using [CRSF Telemetry](../telemetry/crsf_telemetry.md) connect via a spare UART.
+- Spektrum/DSM alıcıları "DSM" girişine bağlanır.
+  Pixhawk uçuş kontrolcüleri bunu çeşitli şekillerde etiketler: `SPKT/DSM`, `DSM`, `DSM/SBUS RC`, `DSM RC`, `DSM/SBUS/RSSI`.
+- Graupner HoTT alıcıları: SUMD çıkışı bir **SPKT/DSM** girişine bağlanmalıdır (yukarıdaki gibi).
+- PPM-Sum ve S.BUS alıcıları doğrudan **RC** toprak, güç ve sinyal pinlerine bağlanmalıdır.
+  Bu genellikle şöyle etiketlenir: `RC IN`, `RCIN` veya `RC`, ancak bazı FC'lerde `PPM RC` veya `PPM` olarak etiketlenmiştir.
+- Her kanal için ayrı bir kabloya sahip olan PPM alıcıları, RCIN kanalına [bunun gibi](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) bir PPM kodlayıcı (encoder) _aracılığıyla_ bağlanmalıdır (PPM-Sum alıcıları tüm kanallar için tek bir sinyal kablosu kullanır).
+- [CRSF Telemetri](../telemetry/crsf_telemetry.md) kullanan TBS Crossfire/Express LRS Alıcıları boş bir UART üzerinden bağlanır.
 
-Flight controllers usually include appropriate cables for connecting common receiver types.
+Uçuş kontrolcüleri genellikle yaygın alıcı türlerini bağlamak için uygun kabloları içerir.
 
-Instructions for connecting to specific flight controllers are given in their [quick-start](../assembly/index.md) guides (such as [CUAV Pixhawk V6X Wiring Quick Start: Radio Control](../assembly/quick_start_cuav_pixhawk_v6x.md#radio-control) or [Holybro Pixhawk 6X Wiring Quick Start: Radio Control](../assembly/quick_start_pixhawk6x.md#radio-control)).
+Belirli uçuş kontrolcülerine bağlantı talimatları, onların [hızlı başlangıç](../assembly/index.md) kılavuzlarında verilmiştir (örneğin [CUAV Pixhawk V6X Kablolama Hızlı Başlangıç: Radyo Kontrol](../assembly/quick_start_cuav_pixhawk_v6x.md#radio-control) veya [Holybro Pixhawk 6X Kablolama Hızlı Başlangıç: Radyo Kontrol](../assembly/quick_start_pixhawk6x.md#radio-control)).
 
 :::tip
-See the manufacturer's flight controller setup guide for additional information.
+Ek bilgi için üreticinin uçuş kontrolcüsü kurulum kılavuzuna bakın.
 :::
 
 <a id="binding"></a>
 
-## Binding Transmitter/Receiver
+## Verici/Alıcı Eşleştirme (Binding)
 
-Before you can calibrate/use a radio system you must _bind_ the receiver and transmitter so that they communicate only with each other.
-The process for binding a transmitter and receiver pair is hardware specific (see your manual for instructions).
+Bir radyo sistemini kalibre etmeden/kullanmadan önce, alıcı ve vericiyi birbirleriyle iletişim kuracak şekilde _eşleştirmeniz_ (bind etmeniz) gerekir.
+Bir verici ve alıcı çiftini eşleştirme işlemi donanıma özgüdür (talimatlar için kılavuzunuza bakın).
 
-If you are using a _Spektrum_ receiver, you can put it into bind mode using _QGroundControl_: [Radio Setup > Spectrum Bind](../config/radio.md#spectrum-bind).
+Bir _Spektrum_ alıcı kullanıyorsanız, _QGroundControl_ kullanarak onu eşleştirme moduna (bind mode) alabilirsiniz: [Radyo Kurulumu > Spectrum Eşleştirme](../config/radio.md#spectrum-bind).
 
-## Set Signal-Loss Behaviour
+## Sinyal Kaybı Davranışını Ayarlama
 
-RC receivers have different ways of indicating signal loss:
+RC alıcılarının sinyal kaybını belirtmek için farklı yolları vardır:
 
-- Output nothing (automatically detected by PX4)
-- Output a low throttle value (you can [configure PX4 to detect this](../config/radio.md#rc-loss-detection)).
-- Output the last received signal (PX4 cannot handle this case!)
+- Hiçbir şey göndermemek (PX4 tarafından otomatik olarak algılanır)
+- Düşük bir gaz (throttle) değeri göndermek (PX4'ü [bunu algılayacak şekilde yapılandırabilirsiniz](../config/radio.md#rc-loss-detection)).
+- Son alınan sinyali göndermek (PX4 bu durumu yönetemez!)
 
-Choose a receiver that can emit nothing (preferred) when RC is lost, or a low throttle value.
-This behaviour may require hardware configuration of the receiver (check the manual).
+RC kaybolduğunda hiçbir şey yaymayan (tercih edilen) veya düşük bir gaz değeri gönderen bir alıcı seçin.
+Bu davranış, alıcının donanım yapılandırmasını gerektirebilir (kılavuzu kontrol edin).
 
-For more information see [Radio Control Setup > RC Loss Detection](../config/radio.md#rc-loss-detection).
+Daha fazla bilgi için bkz. [Radyo Kontrol Kurulumu > RC Kaybı Algılama](../config/radio.md#rc-loss-detection).
 
-## Related Topics
+## İlgili Konular
 
-- [Radio Control Setup](../config/radio.md) - Configuring your radio with PX4.
-- Manual Flying on [multicopter](../flying/basic_flying_mc.md) or [fixed wing](../flying/basic_flying_fw.md) - Learn how to fly with a remote control.
-- [TBS Crossfire (CRSF) Telemetry](../telemetry/crsf_telemetry.md)
-- [FrSky Telemetry](../peripherals/frsky_telemetry.md)
+- [Radyo Kontrol Kurulumu](../config/radio.md) - Radyonuzu PX4 ile yapılandırma.
+- [Çok rotorlu](../flying/basic_flying_mc.md) veya [sabit kanatlı](../flying/basic_flying_fw.md) araçlarda Manuel Uçuş - Uzaktan kumanda ile nasıl uçulacağını öğrenin.
+- [TBS Crossfire (CRSF) Telemetrisi](../telemetry/crsf_telemetry.md)
+- [FrSky Telemetrisi](../peripherals/frsky_telemetry.md)
