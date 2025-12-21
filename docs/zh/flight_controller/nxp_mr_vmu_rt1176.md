@@ -182,7 +182,7 @@ _MR-VMU-RT1176_ connectors (following [Pixhawk Connector Standard](https://githu
 
 | UART   | 设备         | Port     |
 | ------ | ---------- | -------- |
-| UART   | /dev/ttyS0 | Debug    |
+| UART1  | /dev/ttyS0 | Debug    |
 | UART3  | /dev/ttyS1 | GPS      |
 | UART4  | /dev/ttyS2 | TELEM1   |
 | UART5  | /dev/ttyS3 | GPS2     |

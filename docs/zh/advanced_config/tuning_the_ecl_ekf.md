@@ -276,7 +276,7 @@ EKF2 模块将误差建模为一个机体固定的椭球体，该椭球体指定
 #### 偏航角测量
 
 某些 GPS 接收机，例如 [Trimble MB-Two RTK GPS 接收机](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two)，可用于提供航向测量，以替代磁力计数据的使用。
-当在存在大磁异常的环境中或在地球磁场倾角较大的纬度地区运行时，这可能是一个显著的优势。
+当在存在大型磁异常的环境中或在地球磁场倾角较大的纬度地区运行时，这可能是一个显著的优势。
 通过将 [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) 参数中的第 3 位设置为 1（加 8）来启用 GPS 偏航测量。
 
 #### 从 GPS 速度数据获取偏航角
