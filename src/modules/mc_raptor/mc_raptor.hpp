@@ -264,7 +264,7 @@ private:
 	T internal_reference_activation_position[3];
 	T internal_reference_activation_orientation[4];
 	hrt_abstime internal_reference_activation_time;
-	enum class InternalReference: TI {
+	enum class InternalReference : TI {
 		NONE = 0,
 		LISSAJOUS = 1
 	};

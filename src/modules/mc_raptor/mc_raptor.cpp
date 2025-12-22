@@ -502,19 +502,24 @@ void Raptor::Run()
 	status.trajectory_setpoint_dt_mean = NAN;
 	status.trajectory_setpoint_dt_max = NAN;
 	status.trajectory_setpoint_dt_max_since_activation = NAN;
-	if(trajectory_setpoint_dts_full || trajectory_setpoint_dt_index > 0){
+
+	if (trajectory_setpoint_dts_full || trajectory_setpoint_dt_index > 0) {
 		float trajectory_setpoint_dt_mean = 0;
 		float trajectory_setpoint_dt_max = 0;
-		for(TI i = 0; i < (trajectory_setpoint_dts_full ? NUM_TRAJECTORY_SETPOINT_DTS : trajectory_setpoint_dt_index); i++){
+
+		for (TI i = 0; i < (trajectory_setpoint_dts_full ? NUM_TRAJECTORY_SETPOINT_DTS : trajectory_setpoint_dt_index); i++) {
 			TI index = trajectory_setpoint_dts_full ? i : trajectory_setpoint_dt_index - 1 - i;
 			trajectory_setpoint_dt_mean += trajectory_setpoint_dts[index];
-			if(trajectory_setpoint_dts[index] > trajectory_setpoint_dt_max){
+
+			if (trajectory_setpoint_dts[index] > trajectory_setpoint_dt_max) {
 				trajectory_setpoint_dt_max = trajectory_setpoint_dts[index];
 			}
 		}
-		if(trajectory_setpoint_dt_max > trajectory_setpoint_dt_max_since_reset){
+
+		if (trajectory_setpoint_dt_max > trajectory_setpoint_dt_max_since_reset) {
 			trajectory_setpoint_dt_max_since_reset = trajectory_setpoint_dt_max;
 		}
+
 		trajectory_setpoint_dt_mean /= NUM_TRAJECTORY_SETPOINT_DTS;
 		status.trajectory_setpoint_dt_mean = trajectory_setpoint_dt_mean;
 		status.trajectory_setpoint_dt_max = trajectory_setpoint_dt_max;
@@ -529,12 +534,13 @@ void Raptor::Run()
 	}
 
 	bool next_active = timestamp_last_vehicle_status_set && _vehicle_status.nav_state == ext_component_mode_id;
+
 	if (!previous_active && next_active) {
 		this->reset();
 		PX4_INFO("Resetting Inference Executor (Recurrent State)");
-	}
-	else{
-		if(previous_active && !next_active){
+
+	} else {
+		if (previous_active && !next_active) {
 			PX4_INFO("inactive");
 		}
 	}
@@ -584,25 +590,29 @@ void Raptor::Run()
 			PX4_ISFINITE(temp_trajectory_setpoint.velocity[2]) &&
 			PX4_ISFINITE(temp_trajectory_setpoint.yawspeed)
 		) {
-			if(timestamp_last_trajectory_setpoint_set){
+			if (timestamp_last_trajectory_setpoint_set) {
 				trajectory_setpoint_dts[trajectory_setpoint_dt_index] = current_time - timestamp_last_trajectory_setpoint;
 				trajectory_setpoint_dt_index++;
-				if(trajectory_setpoint_dt_index == NUM_TRAJECTORY_SETPOINT_DTS){
-					if(next_active && !trajectory_setpoint_dts_full){
+
+				if (trajectory_setpoint_dt_index == NUM_TRAJECTORY_SETPOINT_DTS) {
+					if (next_active && !trajectory_setpoint_dts_full) {
 						PX4_INFO("trajectory_setpoint_dts_full");
 					}
+
 					trajectory_setpoint_dts_full = true;
 					trajectory_setpoint_dt_index = 0;
 				}
 			}
+
 			timestamp_last_trajectory_setpoint_set = true;
 			status.timestamp_last_trajectory_setpoint = current_time;
 			timestamp_last_trajectory_setpoint = current_time;
 			_trajectory_setpoint = temp_trajectory_setpoint;
-		}
-		else{
+
+		} else {
 			trajectory_setpoint_invalid_count++;
-			if(next_active && trajectory_setpoint_invalid_count % TRAJECTORY_SETPOINT_INVALID_COUNT_WARNING_INTERVAL == 0){
+
+			if (next_active && trajectory_setpoint_invalid_count % TRAJECTORY_SETPOINT_INVALID_COUNT_WARNING_INTERVAL == 0) {
 				PX4_WARN("trajectory_setpoint invalid, count: %d", (int)trajectory_setpoint_invalid_count);
 			}
 		}
@@ -680,8 +690,8 @@ void Raptor::Run()
 
 	// position and linear_velocity are guaranteed to be set after this point
 
-	if(use_internal_reference && internal_reference != InternalReference::NONE){
-		if(!previous_active && next_active){
+	if (use_internal_reference && internal_reference != InternalReference::NONE) {
+		if (!previous_active && next_active) {
 			internal_reference_activation_position[0] = position[0];
 			internal_reference_activation_position[1] = - position[1];
 			internal_reference_activation_position[2] = - position[2];
@@ -690,10 +700,13 @@ void Raptor::Run()
 			internal_reference_activation_orientation[2] = -_vehicle_attitude.q[2];
 			internal_reference_activation_orientation[3] = -_vehicle_attitude.q[3];
 			internal_reference_activation_time = current_time;
-			PX4_INFO("internal reference activated at: %f %f %f", (double)internal_reference_activation_position[0], (double)internal_reference_activation_position[1], (double)internal_reference_activation_position[2]);
+			PX4_INFO("internal reference activated at: %f %f %f", (double)internal_reference_activation_position[0],
+				 (double)internal_reference_activation_position[1], (double)internal_reference_activation_position[2]);
 		}
+
 		Setpoint setpoint{};
-		if(internal_reference == InternalReference::LISSAJOUS){
+
+		if (internal_reference == InternalReference::LISSAJOUS) {
 			LissajousParameters params;
 			params.A = 15.0f;
 			params.B = 30.0f;
@@ -705,12 +718,13 @@ void Raptor::Run()
 			params.b = 2.0f;
 			params.c = 1.0f;
 			setpoint = lissajous(static_cast<T>(current_time - internal_reference_activation_time) / 1000000, params);
-		}
-		else{
+
+		} else {
 			PX4_ERR("internal reference type not supported");
 		}
+
 		auto &q = internal_reference_activation_orientation;
-		_trajectory_setpoint.position[0] =  (internal_reference_activation_position[0] + setpoint.position[0]);
+		_trajectory_setpoint.position[0] = (internal_reference_activation_position[0] + setpoint.position[0]);
 		_trajectory_setpoint.position[1] = -(internal_reference_activation_position[1] + setpoint.position[1]);
 		_trajectory_setpoint.position[2] = -(internal_reference_activation_position[2] + setpoint.position[2]);
 		_trajectory_setpoint.yaw = - atan2f(2.0f * (q[1] * q[2] + q[0] * q[3]), 1.0f - 2.0f * (q[2] * q[2] + q[3] * q[3])) - setpoint.yaw;
@@ -769,8 +783,10 @@ void Raptor::Run()
 			_trajectory_setpoint.yawspeed = 0;
 
 			if (!previous_trajectory_setpoint_stale) {
-				PX4_WARN("trajectory_setpoint turned stale at: %f %f %f, yaw: %f %llu / %llu us", (double)position[0], (double)position[1], (double)position[2],
-					 (double)_trajectory_setpoint.yaw, (unsigned long long)(current_time - timestamp_last_trajectory_setpoint), (unsigned long long)(TRAJECTORY_SETPOINT_TIMEOUT));
+				PX4_WARN("trajectory_setpoint turned stale at: %f %f %f, yaw: %f %llu / %llu us", (double)position[0], (double)position[1],
+					 (double)position[2],
+					 (double)_trajectory_setpoint.yaw, (unsigned long long)(current_time - timestamp_last_trajectory_setpoint),
+					 (unsigned long long)(TRAJECTORY_SETPOINT_TIMEOUT));
 
 			} else {
 				PX4_WARN("trajectory_setpoint reset due to activation at: %f %f %f, yaw: %f", (double)position[0], (double)position[1], (double)position[2],

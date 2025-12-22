@@ -15,10 +15,11 @@ struct LissajousParameters {
 	float c = 1.0f;
 };
 
-inline Setpoint lissajous(float time, const LissajousParameters &params) {
+inline Setpoint lissajous(float time, const LissajousParameters &params)
+{
 	float time_velocity = (params.ramp_duration > 0.0f)
-		? fminf(time, params.ramp_duration) / params.ramp_duration
-		: 1.0f;
+			      ? fminf(time, params.ramp_duration) / params.ramp_duration
+			      : 1.0f;
 
 	float ramp_time = time_velocity * fminf(time, params.ramp_duration) / 2.0f;
 	float progress = (ramp_time + fmaxf(0.0f, time - params.ramp_duration)) * 2.0f * static_cast<float>(M_PI) / params.duration;
