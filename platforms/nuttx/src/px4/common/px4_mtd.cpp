@@ -60,6 +60,7 @@
 
 extern "C" {
 	struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
+	struct mtd_dev_s *w25_initialize(FAR struct spi_dev_s *dev);
 	struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
 					off_t firstblock, off_t nblocks);
 }
@@ -125,6 +126,41 @@ static int ramtron_attach(mtd_instance_s &instance)
 		// that but setting the bus speed does fail all the time. Which was then exiting and the board would
 		// not run correctly. So changed to PX4_WARN.
 		PX4_WARN("failed to set bus speed");
+	}
+
+	return 0;
+#endif
+}
+
+
+static int w25_attach(mtd_instance_s &instance)
+{
+#if !defined(CONFIG_MTD_W25)
+	PX4_ERR("Misconfiguration CONFIG_MTD_W25 not set");
+	return -ENXIO;
+#else
+	/* W25 supports up to 50MHz, start at 20MHz */
+	unsigned long spi_speed_hz = 20'000'000;
+
+	struct spi_dev_s *spi = px4_spibus_initialize(px4_find_spi_bus(instance.devid));
+
+	if (spi == nullptr) {
+		PX4_ERR("failed to locate spi bus");
+		return -ENXIO;
+	}
+
+	SPI_LOCK(spi, true);
+	SPI_SETFREQUENCY(spi, spi_speed_hz);
+	SPI_SETBITS(spi, 8);
+	SPI_SETMODE(spi, SPIDEV_MODE0);  /* W25 uses MODE0 */
+	SPI_SELECT(spi, instance.devid, false);
+	SPI_LOCK(spi, false);
+
+	instance.mtd_dev = w25_initialize(spi);
+
+	if (instance.mtd_dev == nullptr) {
+		PX4_ERR("failed to initialize W25 mtd driver");
+		return -EIO;
 	}
 
 	return 0;
@@ -350,7 +386,13 @@ memoryout:
 			rv = at24xxx_attach(*instances[i]);
 
 		} else if (mtd_list->entries[num_entry]->device->bus_type == px4_mft_device_t::SPI) {
-			rv = ramtron_attach(*instances[i]);
+			/* Try W25 first, then RAMTRON */
+			rv = w25_attach(*instances[i]);
+
+			if (rv != 0) {
+				rv = ramtron_attach(*instances[i]);
+			}
+
 #if defined(HAS_FLEXSPI)
 
 		} else if (mtd_list->entries[num_entry]->device->bus_type == px4_mft_device_t::FLEXSPI) {

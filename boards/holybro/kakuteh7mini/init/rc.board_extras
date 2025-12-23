@@ -10,3 +10,16 @@ fi
 
 # DShot telemetry is always on UART7
 dshot telemetry -d /dev/ttyS5
+
+# Create logger config for flash logging (W25Q128)
+if [ ! -f /fs/microsd/etc/logging/logger_topics.txt ]; then
+    mkdir -p /fs/microsd/etc/logging
+    echo "vehicle_attitude 500" > /fs/microsd/etc/logging/logger_topics.txt
+    echo "vehicle_local_position 1000" >> /fs/microsd/etc/logging/logger_topics.txt
+    echo "vehicle_global_position 1000" >> /fs/microsd/etc/logging/logger_topics.txt
+    echo "battery_status 2000" >> /fs/microsd/etc/logging/logger_topics.txt
+    echo "vehicle_status 1000" >> /fs/microsd/etc/logging/logger_topics.txt
+    echo "failsafe_flags 1000" >> /fs/microsd/etc/logging/logger_topics.txt
+    echo "vehicle_land_detected 1000" >> /fs/microsd/etc/logging/logger_topics.txt
+    echo "actuator_outputs 500" >> /fs/microsd/etc/logging/logger_topics.txt
+fi
