@@ -309,7 +309,7 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 	}
 
 	// Final check: if still not enough space, refuse to log
-	if (avail_bytes < 1ULL * 1024ULL * 1024ULL) {  // Less than 1 MiB is critical
+	if (avail_bytes < 10ULL * 1024ULL * 1024ULL) {  // Less than 10 MiB is critical
 		mavlink_log_critical(&mavlink_log_pub, "[logger] Storage full: %u MiB free\t",
 				     (unsigned)(avail_bytes / 1024U / 1024U));
 		/* EVENT

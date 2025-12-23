@@ -52,6 +52,7 @@
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <syslog.h>
 
 #include <nuttx/config.h>
@@ -304,8 +305,18 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	/* Configure the HW based on the manifest */
-
 	px4_platform_configure();
+
+	/* Mount LittleFS on W25Q128 flash for logging */
+	mkdir("/fs/microsd", 0777);
+
+	if (nx_mount("/dev/mtdblock0", "/fs/microsd", "littlefs", 0, "autoformat") != 0) {
+		syslog(LOG_ERR, "[boot] FAILED to mount littlefs on mtdblock0\n");
+		led_on(LED_BLUE);
+
+	} else {
+		syslog(LOG_INFO, "[boot] LittleFS mounted on /fs/microsd\n");
+	}
 
 	return OK;
 }
