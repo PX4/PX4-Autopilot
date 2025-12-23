@@ -62,7 +62,7 @@ CRSF receiver must be wired to a spare port (UART) on the Flight Controller. The
 
 | UART   | 设备         | Port    |
 | ------ | ---------- | ------- |
-| USART1 | UART       | GPS     |
+| USART1 | /dev/ttyS0 | GPS     |
 | USART2 | /dev/ttyS1 | GPS2    |
 | USART3 | /dev/ttyS2 | TELEM1  |
 | UART4  | /dev/ttyS3 | TELEM2  |

@@ -48,7 +48,6 @@ FixedwingLandDetector::FixedwingLandDetector()
 {
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndfw_trig_time.get() * 1_s);
-	_landed_hysteresis.set_hysteresis_time_from(true, FLYING_TRIGGER_TIME_US);
 }
 
 bool FixedwingLandDetector::_get_landed_state()

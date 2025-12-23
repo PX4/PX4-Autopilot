@@ -111,7 +111,7 @@ Please refer to the [Pixhawk 4 Mini Wiring Quick Start](../assembly/quick_start_
 
 | UART   | 设备         | QGC Parameter Description | Port Label on FC |
 | ------ | ---------- | ------------------------- | ---------------- |
-| USART1 | UART       | GPS1                      | GPS1             |
+| USART1 | /dev/ttyS0 | GPS1                      | GPS1             |
 | USART2 | /dev/ttyS1 | TELEM3                    | N/A              |
 | USART3 | /dev/ttyS2 | N/A                       | FMU Debug        |
 | UART5  | /dev/ttyS3 | TELEM2                    | TELEM2           |

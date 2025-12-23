@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,10 +30,73 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include "MCP23009.hpp"
 
-#pragma once
+constexpr MCP230XX_config_t def_mcp_config{
+	.device_type = DRV_GPIO_DEVTYPE_MCP23009,
+	.i2c_addr = I2C_ADDRESS_MCP23009,
+	.num_pins = 8,
+	.num_banks = 1,
+};
 
-#include <stdint.h>
+extern "C" int mcp23009_main(int argc, char *argv[])
+{
+	using ThisDriver = MCP23009;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 400000;
+	cli.i2c_address = 0x25;
+	MCP230XX_config_t mcp_config = def_mcp_config;
 
-int mcp23009_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor = 0);
-int mcp23009_unregister_gpios(int first_minor = 0);
+	int ch;
+
+	while ((ch = cli.getOpt(argc, argv, "D:O:P:U:R:M:")) != EOF) {
+		switch (ch) {
+
+		case 'D':
+			mcp_config.direction = (int)strtol(cli.optArg(), nullptr, 0);
+			break;
+
+		case 'O':
+			mcp_config.state = (int)strtol(cli.optArg(), nullptr, 0);
+			break;
+
+		case 'P':
+			mcp_config.pullup = (int)strtol(cli.optArg(), nullptr, 0);
+			break;
+
+		case 'U':
+			mcp_config.interval = (uint16_t)atoi(cli.optArg());
+			break;
+
+		case 'M':
+			mcp_config.first_minor = (uint8_t)atoi(cli.optArg());
+			break;
+		}
+	}
+
+	const char *verb = cli.optArg();
+
+	if (!verb) {
+		MCP230XX::print_usage();
+		return -1;
+	}
+
+	cli.custom_data = &mcp_config;
+
+	BusInstanceIterator iterator("MCP23009", cli, mcp_config.device_type);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	MCP230XX::print_usage();
+	return -1;
+}

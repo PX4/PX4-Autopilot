@@ -146,8 +146,5 @@ else
 	bmp388 -X start
 fi
 
-# Don't try to start external baro on I2C3 as it can conflict with the MS5525DSO airspeed sensor.
-#ms5611 -X start
-
 unset INA_CONFIGURED
 unset HAVE_PM2

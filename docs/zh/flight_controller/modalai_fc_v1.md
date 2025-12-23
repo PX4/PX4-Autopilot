@@ -130,7 +130,7 @@ make modalai_fc-v1
 
 | UART   | 设备         | Port                                                        |
 | ------ | ---------- | ----------------------------------------------------------- |
-| USART1 | UART       | GPS1 (J10)                               |
+| USART1 | /dev/ttyS0 | GPS1 (J10)                               |
 | USART2 | /dev/ttyS1 | TELEM3 (J4)                              |
 | USART3 | /dev/ttyS2 | Debug Console (J2)                       |
 | UART4  | /dev/ttyS3 | Expansion UART (J6)                      |
