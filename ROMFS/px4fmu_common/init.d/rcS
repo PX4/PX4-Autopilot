@@ -622,6 +622,12 @@ else
 	formic_logger_flag start
 
 	#
+	# Start the flip after crash module.
+	# Module stays running and waits for aux switch to be pressed.
+	#
+	flip_after_crash start
+
+	#
 	# Set additional parameters and env variables for selected AUTOSTART.
 	#
 	if ! param compare SYS_AUTOSTART 0
