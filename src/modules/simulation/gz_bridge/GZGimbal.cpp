@@ -214,7 +214,7 @@ void GZGimbal::publishDeviceAttitude()
 
 	gimbal_att.target_system = 0; // Broadcast
 	gimbal_att.target_component = 0; // Broadcast
-	gimbal_att.device_flags = gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
+	gimbal_att.device_flags = gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_EARTH_FRAME;
 	_q_gimbal.copyTo(gimbal_att.q);
 	gimbal_att.angular_velocity_x = _gimbal_rate[0];
 	gimbal_att.angular_velocity_y = _gimbal_rate[1];
