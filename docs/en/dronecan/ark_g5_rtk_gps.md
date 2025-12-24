@@ -13,7 +13,7 @@ Order this module from:
 ## Hardware Specifications
 
 - [DroneCAN](index.md) RTK GNSS, Magnetometer, Barometer, IMU, and Buzzer Module
-- [Supports Dronecan Firmware Updating](https://docs.px4.io/main/en/dronecan/#firmware-update)
+- [Supports Dronecan Firmware Updating](../dronecan/index.md#firmware-update)
 - Sensors
   - [Septentrio mosaic-G5 P3 Ultra-compact high-precision GPS/GNSS receiver module](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-G5-P3)
     - All-band all constellation GNSS receiver
