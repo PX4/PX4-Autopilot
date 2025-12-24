@@ -3,26 +3,23 @@
 PX4 can track and log detailed information about external hardware devices connected to the flight controller.
 This enables unique identification of physical components throughout their operational lifetime using device IDs, serial numbers, and version information.
 
+::: info
+Device tracking is currently implemented for [DroneCAN](../dronecan/index.md) devices only.
+:::
+
 ## Overview
 
-Device tracking automatically collects and logs metadata from external devices, including:
+Device tracking allows you to determine exactly which hardware is installed on a vehicle, and makes it easier to find and replace specific components by providing their serial number.
+You can check firmware and hardware versions across multiple vehicles, quickly see what versions you're running when debugging, and log component information for regulatory audits.
+
+Device tracking automatically collects and logs the following metadata from external devices:
 
 - **Device identification**: Vendor name, model name, device type
 - **Version information**: Firmware version, hardware version
 - **Unique identifiers**: Serial number, device ID
 - **Device capabilities**: ESC, GPS, magnetometer, barometer, etc.
 
-This information is published via the `device_information` uORB topic and logged to flight logs, enabling fleet management, maintenance tracking, and troubleshooting.
-
-::: info
-Device tracking is currently implemented for DroneCAN devices only.
-The functionality can be extended to other interfaces in the future.
-:::
-
-## Use Cases
-
-Device tracking helps you know exactly which hardware is installed on each vehicle and makes it easier to find and replace specific components by their serial number.
-You can check firmware and hardware versions across multiple vehicles, quickly see what versions you're running when debugging, and log component information for regulatory audits.
+This information is published via the [`device_information`](?) uORB topic and logged to flight logs, enabling fleet management, maintenance tracking, and troubleshooting.
 
 ## Viewing Device Information
 
@@ -36,7 +33,7 @@ listener device_information
 
 Example output for a CAN GPS module:
 
-```
+```plain
 TOPIC: device_information
  device_information
     timestamp: 16258961403 (0.216525 seconds ago)
@@ -59,10 +56,10 @@ Each entry shares the same serial number and base metadata but has a different `
 ## Flight Log Analysis
 
 Device information is automatically logged to flight logs.
-You can extract it using [pyulog](https://github.com/PX4/pyulog), though note that fields like vendor name, model name, and serial number are stored as char arrays and require additional parsing.
+You can extract it using [pyulog](../log/flight_log_analysis.md#pyulog), though note that fields like vendor name, model name, and serial number are stored as `char` arrays and require additional parsing.
 
 ## See Also
 
-- [CAN (DroneCAN & Cyphal)](../can/index.md) - CAN bus configuration and setup
-- [DroneCAN](../dronecan/index.md) - DroneCAN-specific documentation
-- [Flight Log Analysis](../log/flight_log_analysis.md) - Analysing flight logs
+- [CAN (DroneCAN & Cyphal)](../can/index.md) — CAN bus configuration and setup
+- [DroneCAN](../dronecan/index.md) — DroneCAN-specific documentation
+- [Flight Log Analysis](../log/flight_log_analysis.md) — Analysing flight logs
