@@ -24,9 +24,9 @@
 
 ## 串口/以太网配置
 
-- [Serial Port Configuration](../peripherals/serial_configuration.md)
+- [串口配置](../peripherals/serial_configuration.md)
 - [MAVLink Telemetry (OSD/GCS)](../peripherals/mavlink_peripherals.md)
-- [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md)
+- [PX4 以太网设置](../advanced_config/ethernet_setup.md)
 
 ## 其它选项
 

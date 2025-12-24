@@ -129,7 +129,7 @@ The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhaw
 
 |  UART  |     设备     | QGC Parameter Description |               Port Label on FC              |
 | :----: | :--------: | :-----------------------: | :-----------------------------------------: |
-|  UART  | /dev/ttyS0 |            GPS1           |                  GPS Module                 |
+|  UART1 | /dev/ttyS0 |            GPS1           |                  GPS Module                 |
 | USART2 | /dev/ttyS1 |           TELEM1          |                    TELEM1                   |
 | USART3 | /dev/ttyS2 |           TELEM2          |                     N/A                     |
 |  UART4 | /dev/ttyS3 |       TELEM/SERIAL4       |                  UART/l2C B                 |
