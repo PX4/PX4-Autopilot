@@ -1,5 +1,7 @@
 # Device Tracking
 
+<Badge type="tip" text="main (planned for: PX4 v1.18)" />
+
 PX4 can track and log detailed information about external hardware devices connected to the flight controller.
 This enables unique identification of physical components throughout their operational lifetime using device IDs, serial numbers, and version information.
 
@@ -19,7 +21,7 @@ Device tracking automatically collects and logs the following metadata from exte
 - **Unique identifiers**: Serial number, device ID
 - **Device capabilities**: ESC, GPS, magnetometer, barometer, etc.
 
-This information is published via the [`device_information`](?) uORB topic and logged to flight logs, enabling fleet management, maintenance tracking, and troubleshooting.
+This information is published via the [`device_information`](../msg_docs/DeviceInformation.md) uORB topic and logged to flight logs, enabling fleet management, maintenance tracking, and troubleshooting.
 
 ## Viewing Device Information
 
