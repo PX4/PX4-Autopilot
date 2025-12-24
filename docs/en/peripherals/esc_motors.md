@@ -9,13 +9,14 @@ PX4 supports a number of [common protocols](../esc/esc_protocols.md) for sending
 
 The following list is non-exhaustive.
 
-| ESC Device                   | Protocols                            | Firmwares                | Notes                                                 |
-| ---------------------------- | ------------------------------------ | ------------------------ | ----------------------------------------------------- |
-| [ARK 4IN1 ESC]               | [Dshot], [PWM]                       | [AM32]                   | Has versions with/without connnectors                 |
-| [Holybro Kotleta 20]         | [DroneCAN], [PWM]                    | [PX4 Sapog ESC Firmware] |                                                       |
-| [Vertiq Motor & ESC modules] | [Dshot], [OneShot], Multishot, [PWM] | Vertiq firmware          | Larger modules support DroneCAN, ESC and Motor in one |
-| [VESC ESCs]                  | [DroneCAN], [PWM]                    | VESC project firmware    |                                                       |
-| [Zubax Telega]               | [DroneCAN], [PWM]                    | Telega-based             | ESC and Motor in one                                  |
+| ESC Device                     | Protocols                            | Firmwares                | Notes                                                 |
+| ------------------------------ | ------------------------------------ | ------------------------ | ----------------------------------------------------- |
+| [ARK 4IN1 ESC]                 | [Dshot], [PWM]                       | [AM32]                   | Has versions with/without connnectors                 |
+| [Holybro Kotleta 20]           | [DroneCAN], [PWM]                    | [PX4 Sapog ESC Firmware] |                                                       |
+| [Vertiq Motor & ESC modules]   | [Dshot], [OneShot], Multishot, [PWM] | Vertiq firmware          | Larger modules support DroneCAN, ESC and Motor in one |
+| [RaccoonLab CAN PWM ESC nodes] | [DroneCAN], Cyphal                   |                          | Cyphal and DroneCAN notes for PWM ESC                 |
+| [VESC ESCs]                    | [DroneCAN], [PWM]                    | VESC project firmware    |                                                       |
+| [Zubax Telega]                 | [DroneCAN], [PWM]                    | Telega-based             | ESC and Motor in one                                  |
 
 <!-- Links for table above -->
 
@@ -29,6 +30,7 @@ The following list is non-exhaustive.
 [PWM]: ../peripherals/pwm_escs_and_servo.md
 [Holybro Kotleta 20]: ../dronecan/holybro_kotleta.md
 [Vertiq Motor & ESC modules]: ../peripherals/vertiq.md
+[RaccoonLab CAN PWM nodes]: ../dronecan/raccoonlab_nodes.md
 [Zubax Telega]: ../dronecan/zubax_telega.md
 
 ## See Also
