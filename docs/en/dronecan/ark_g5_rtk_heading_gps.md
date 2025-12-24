@@ -29,7 +29,7 @@ Order this module from:
 - Safety Button
 - Buzzer
 - Two Pixhawk Standard CAN Connectors (4 Pin JST GH)
-- G5 “UART 2” Connector
+- G5 "UART 2" Connector
   - 4 Pin JST GH
   - TX, RX, PPS, GND
 - G5 USB C
@@ -58,7 +58,8 @@ Order this module from:
 
 ### Wiring
 
-The ARK G5 RTK HEADING GPS is connected to the CAN bus using a Pixhawk standard 4 pin JST GH cable. For more information, refer to the [CAN Wiring](../can/index.md#wiring) instructions.
+The ARK G5 RTK HEADING GPS is connected to the CAN bus using a Pixhawk standard 4 pin JST GH cable.
+For more information, refer to the [CAN Wiring](../can/index.md#wiring) instructions.
 
 ### Mounting
 
