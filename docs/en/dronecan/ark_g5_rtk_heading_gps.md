@@ -135,10 +135,11 @@ Configures the output rate for GNSS data messages.
 
 ## LED Meanings
 
-- The GPS status lights are located to the right of the connectors
-  - Blinking green is GPS fix
-  - Blinking blue is received corrections and RTK Float
-  - Solid blue is RTK Fixed
+The GPS status lights are located to the right of the connectors:
+
+- Blinking green is GPS fix
+- Blinking blue is received corrections and RTK Float
+- Solid blue is RTK Fixed
 
 ## See Also
 
