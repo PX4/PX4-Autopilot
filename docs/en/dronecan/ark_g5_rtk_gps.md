@@ -1,6 +1,12 @@
 # ARK G5 RTK GPS
 
-[ARK G5 RTK GPS](https://arkelectron.com/product/ark-g5-rtk-gps/) is made in the USA NDAA compliant [DroneCAN](index.md) quad-band [RTK GPS](../gps_compass/rtk_gps.md), [Septentrio mosaic-G5 P3 Ultra-compact high-precision GPS/GNSS receiver module](https://www.u-blox.com/en/product/zed-x20p-module), magnetometer, barometer, IMU, and buzzer module.
+::: info
+This GPS module is made in the USA and NDAA compliant.
+:::
+
+[ARK G5 RTK GPS](https://arkelectron.com/product/ark-g5-rtk-gps/) is a [DroneCAN](index.md) quad-band [RTK GPS](../gps_compass/rtk_gps.md).
+
+The module incorporates the [Septentrio mosaic-G5 P3 Ultra-compact high-precision GPS/GNSS receiver module](https://www.u-blox.com/en/product/zed-x20p-module), magnetometer, barometer, IMU, and buzzer module.
 
 ![ARK G5 RTK GPS](../../assets/hardware/gps/ark/ark_g5_rtk_gps.png)
 
@@ -13,7 +19,7 @@ Order this module from:
 ## Hardware Specifications
 
 - [DroneCAN](index.md) RTK GNSS, Magnetometer, Barometer, IMU, and Buzzer Module
-- [Supports Dronecan Firmware Updating](../dronecan/index.md#firmware-update)
+- [Dronecan Firmware Updating](../dronecan/index.md#firmware-update)
 - Sensors
   - [Septentrio mosaic-G5 P3 Ultra-compact high-precision GPS/GNSS receiver module](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-G5-P3)
     - All-band all constellation GNSS receiver
@@ -28,12 +34,12 @@ Order this module from:
 - STM32F412VGH6 MCU
 - Safety Button
 - Buzzer
-- Two Pixhawk Standard CAN Connectors (4 Pin JST GH)
+- Two CAN Connectors (Pixhawk Connector Standard 4-pin JST GH)
 - G5 "UART 2" Connector
-  - 4 Pin JST GH
+  - 4-pin JST GH
   - TX, RX, PPS, GND
 - G5 USB C
-- Pixhawk Standard Debug Connector (6 Pin JST SH)
+- Debug Connector (Pixhawk Connector Standard 6-pin JST SH)
 - LED Indicators
   - GPS Fix
   - RTK Status
@@ -51,14 +57,14 @@ Order this module from:
     - 48.0mm x 40.0mm x 51.0mm
     - 43.5g
 - Includes
-  - 4 Pin Pixhawk Standard CAN Cable
+  - CAN Cable (Pixhawk Connector Standard 4-pin)
   - Full-Frequency Helical GPS Antenna
 
 ## Hardware Setup
 
 ### Wiring
 
-The ARK G5 RTK GPS is connected to the CAN bus using a Pixhawk standard 4 pin JST GH cable.
+The ARK G5 RTK GPS is connected to the CAN bus using a [Pixhawk connector standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) 4-pin JST GH cable.
 For more information, refer to the [CAN Wiring](../can/index.md#wiring) instructions.
 
 ### Mounting
@@ -89,7 +95,7 @@ Once enabled, the module will be detected on boot.
 You need to set necessary [DroneCAN](index.md) parameters and define offsets if the sensor is not centred within the vehicle:
 
 - Enable [UAVCAN_SUB_GPS](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS), [UAVCAN_SUB_MAG](../advanced_config/parameter_reference.md#UAVCAN_SUB_MAG), and [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO).
-- The parameters [EKF2_GPS_POS_X](../advanced_config/parameter_reference.md#EKF2_GPS_POS_X), [EKF2_GPS_POS_Y](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Y) and [EKF2_GPS_POS_Z](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Z) can be set to account for the offset of the ARK G5 RTK GPS from the vehicles centre of gravity.
+- The parameters [EKF2_GPS_POS_X](../advanced_config/parameter_reference.md#EKF2_GPS_POS_X), [EKF2_GPS_POS_Y](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Y) and [EKF2_GPS_POS_Z](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Z) can be set to account for the offset of the ARK G5 RTK GPS from the vehicle's centre of gravity.
 
 ## LED Meanings
 
