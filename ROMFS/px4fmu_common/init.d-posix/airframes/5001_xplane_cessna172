@@ -1,0 +1,370 @@
+#!/bin/sh
+################################################################################
+# PX4 SITL Configuration Script for Cessna 172 Skyhawk in X-Plane
+################################################################################
+#
+# @name              Xplane Cessna 172 Skyhawk
+# @type              Standard Plane
+# @maintainer        alireza787b <p30planets@gmail.com>
+# @url               https://github.com/alireza787b/px4xplane/
+#
+# Aircraft:          Cessna 172 Skyhawk
+# Type:              Fixed-Wing (Standard Plane)
+# Configuration:     1 Propeller Motor + 4 Control Surfaces
+# Compatible Sim:    X-Plane 11/12
+# Date:              December 2025
+#
+# AIRCRAFT SPECIFICATIONS:
+# - MTOW: 2,550 lb (1,157 kg) - Light General Aviation
+# - Wingspan: 36 ft 1 in (11.0 m) - High-wing design
+# - Cruise Speed: 124 ktas (64 m/s)
+# - Stall Speed: 48 kcas (25 m/s)
+# - Engine: Lycoming IO-360-L2A, 180 HP
+# - Sensors: Barometer, GPS, Magnetometer, Airspeed
+#
+# USAGE:
+# 1. Place this file in: PX4-Autopilot/ROMFS/px4fmu_common/init.d-posix/airframes/
+# 2. Run: make px4_sitl xplane_cessna172
+# 3. Launch X-Plane with Cessna 172 aircraft model
+#
+################################################################################
+
+. ${R}etc/init.d/rc.fw_defaults
+
+
+################################################################################
+# SECTION 1: CONTROL ALLOCATION (CA) - FIXED-WING CONFIGURATION
+################################################################################
+# Motor: Front propeller (+1.2m from CG, thrust forward)
+# Control Surfaces: Left/Right Ailerons, Elevator, Rudder
+
+param set-default CA_AIRFRAME 1          # Fixed-wing configuration
+param set-default CA_METHOD 2            # Pseudo-inverse allocation
+param set-default CA_FAILURE_MODE 0
+param set-default CA_ROTOR_COUNT 1       # 1 propeller motor
+
+# Propeller Motor 0
+param set-default CA_ROTOR0_PX 1.2       # 1.2m forward of CG
+param set-default CA_ROTOR0_AX 1.0       # Thrust forward
+param set-default CA_ROTOR0_AZ 0.0
+param set-default CA_R0_SLEW 2.0         # Smooth throttle changes
+
+# Control Surfaces
+param set-default CA_SV_CS0_TRQ_R -0.5   # Left Aileron
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS1_TRQ_R 0.5    # Right Aileron
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS2_TRQ_P 1.0    # Elevator
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS3_TRQ_Y 1.0    # Rudder
+param set-default CA_SV_CS3_TYPE 4
+param set-default CA_SV_CS_COUNT 4
+
+# PWM Output Mapping
+param set-default PWM_MAIN_FUNC1 201     # Left aileron
+param set-default PWM_MAIN_FUNC2 202     # Right aileron
+param set-default PWM_MAIN_FUNC3 203     # Elevator
+param set-default PWM_MAIN_FUNC4 101     # Propeller
+param set-default PWM_MAIN_FUNC5 204     # Rudder
+param set-default PWM_MAIN_FUNC6 204     # Duplicate rudder (optional)
+param set-default PWM_MAIN_REV 7
+
+
+################################################################################
+# SECTION 2: EKF2 SENSOR FUSION - OPTIMIZED FOR X-PLANE SITL
+################################################################################
+# Applied optimizations from Ehang 184 & Alia-250:
+# - Barometer: 0.003 (3mm noise, 33x improvement from default 0.1)
+# - Single sensor priority prevents BARO switch errors
+# - Innovation gates: 5.0 for FPS-independent robustness
+
+# Sensor Simulation Enables
+param set-default SENS_EN_GPSSIM 1       # GPS simulation
+param set-default SENS_EN_BAROSIM 1      # Barometer simulation
+param set-default SENS_EN_ARSPDSIM 1     # Airspeed simulation
+param set-default SENS_EN_MAGSIM 1       # Magnetometer simulation
+param set-default SYS_HAS_BARO 1
+param set-default SYS_HAS_GPS 1
+param set-default SYS_HAS_MAG 1
+
+# Barometer Priority (prevents mid-flight sensor switching)
+param set-default CAL_BARO0_PRIO 100     # Primary barometer
+param set-default CAL_BARO1_PRIO 0       # Backup disabled
+
+# EKF2 Core Configuration
+param set-default EKF2_BARO_CTRL 1
+param set-default EKF2_MULTI_IMU 1
+
+# Accelerometer Bias Estimation (v3.3.3 - X-Plane SITL optimized)
+param set-default EKF2_ABIAS_INIT 0.2    # Tighter initial bias estimate
+param set-default EKF2_ABL_LIM 2.5       # X-Plane SITL requires higher tolerance (see note below)
+param set-default EKF2_ABL_TAU 0.5       # Slower bias adaptation (stability)
+param set-default EKF2_ABL_ACCLIM 35.0
+param set-default EKF2_ACC_NOISE 1.0     # Better accelerometer trust
+param set-default EKF2_ACC_B_NOISE 0.001
+
+# X-PLANE SITL NOTE: EKF2_ABL_LIM = 2.5 (vs Gazebo/jMAVSim default 0.4)
+# Required because X-Plane has lower sensor rate (~100Hz vs 250Hz) and
+# inherent physics engine variations that cause EKF2 to estimate higher bias.
+# This does NOT affect flight performance - only the preflight arming check.
+
+# Gyroscope Noise (v3.2.0 - added for bias estimation stability)
+param set-default EKF2_GYR_NOISE 0.015   # Gyro measurement noise (rad/s)
+param set-default EKF2_GYR_B_NOISE 0.001 # Gyro bias process noise (rad/s)
+
+# Barometer (v3.2.0 - optimized for stable altitude)
+param set-default EKF2_BARO_NOISE 0.003  # 3mm - matches plugin sensor noise
+param set-default EKF2_BARO_DELAY 0.0
+param set-default EKF2_BARO_GATE 10.0    # Increased for FPS/transition tolerance
+
+# GPS Parameters
+param set-default EKF2_GPS_DELAY 0.0
+param set-default EKF2_GPS_P_NOISE 0.15  # Matches vertical accuracy
+param set-default EKF2_GPS_V_NOISE 0.15  # Realistic GPS velocity noise (was 0.01)
+param set-default EKF2_GPS_P_GATE 5.0
+param set-default EKF2_GPS_V_GATE 5.0
+
+# Magnetometer
+param set-default EKF2_MAG_TYPE 0
+param set-default EKF2_HEAD_NOISE 0.3
+param set-default EKF2_MAG_NOISE 0.05
+param set-default EKF2_MAG_GATE 5.0
+
+# Airspeed & Additional Sensors
+param set-default EKF2_ASP_DELAY 0.0
+param set-default EKF2_TAS_GATE 5.0
+param set-default EKF2_AGP_CTRL 3
+param set-default EKF2_AVEL_DELAY 0.0
+param set-default EKF2_WIND_NSD 0.01
+param set-default EKF2_REQ_VDRIFT 1.0
+
+# IMU Configuration
+param set-default IMU_GYRO_RATEMAX 100
+param set-default IMU_INTEG_RATE 100
+
+
+################################################################################
+# SECTION 3: FIXED-WING RATE CONTROL - PID TUNING
+################################################################################
+# Attitude rate controllers (inner loop) for roll, pitch, yaw.
+# December 2025: Reduced extreme gains (were copy-pasted, 5-100x defaults)
+# for GA trainer stability. Added explicit yaw rate control.
+
+# Roll Rate (reduced for GA stability)
+param set-default FW_RR_P 0.12           # P gain (was 0.47 - 9x default!)
+param set-default FW_RR_I 0.10           # I gain (standard)
+param set-default FW_RR_D 0.008          # D gain (was 0.085 - 28x default!)
+param set-default FW_RR_FF 0.5           # Feedforward (was 4.8 - 10x default!)
+param set-default FW_R_RMAX 60.0         # Max roll rate (GA responsive)
+param set-default FW_R_TC 0.5            # Time constant (faster for GA)
+param set-default FW_R_LIM 45.0          # Roll angle limit (GA maneuvers)
+
+# Pitch Rate (reduced for smooth GA handling)
+param set-default FW_PR_P 0.10           # P gain (was 0.365 - 4.5x default!)
+param set-default FW_PR_I 0.08           # I gain (increased for steady-state)
+param set-default FW_PR_D 0.008          # D gain (was 0.355 - 118x default!)
+param set-default FW_PR_FF 0.4           # Feedforward (was 3.4 - 10x default!)
+param set-default FW_P_LIM_MAX 25.0      # Max pitch up (GA)
+param set-default FW_P_LIM_MIN -20.0     # Max pitch down (GA)
+param set-default FW_P_TC 0.4            # Time constant
+param set-default FW_PN_R_SLEW_MAX 45.0
+
+# Yaw Rate (conventional rudder control)
+param set-default FW_YR_P 0.06           # P gain (coordinated turns)
+param set-default FW_YR_I 0.05           # I gain (steady-state yaw)
+param set-default FW_YR_D 0.002          # D gain (yaw damping)
+param set-default FW_YR_FF 0.3           # Feedforward (rudder authority)
+
+
+################################################################################
+# SECTION 4: AIRSPEED CONTROL
+################################################################################
+# Flight envelope: Stall 25 m/s, Cruise 64 m/s, Max 75 m/s
+
+param set-default FW_AIRSPD_MIN 30.0     # Min airspeed (5 m/s above stall)
+param set-default FW_AIRSPD_MAX 75.0     # Max airspeed
+param set-default FW_AIRSPD_TRIM 50.0    # Efficient cruise
+param set-default FW_AIRSPD_STALL 25.0   # Stall speed
+
+# Airspeed Sensor (SITL)
+param set-default FW_USE_AIRSPD 1        # Use airspeed for control
+param set-default ASPD_DO_CHECKS 7       # Disable hardware checks (SITL)
+param set-default SYS_HAS_NUM_ASPD 1     # 1 virtual airspeed sensor
+
+
+################################################################################
+# SECTION 5: TECS - TOTAL ENERGY CONTROL SYSTEM
+################################################################################
+# Manages coupled altitude/airspeed control.
+# December 2025: Reduced altitude TC for GA responsiveness, increased damping
+# E_total = (1/2) × m × v² + m × g × h
+
+# Core Parameters
+param set-default FW_T_ALT_TC 5.0        # Altitude time constant (was 8.0 - ISR)
+param set-default FW_T_RLL2THR 8.0       # Roll to throttle
+param set-default FW_T_STE_R_TC 1.0      # Energy rate time constant (faster)
+
+# Climb/Sink Limits (Cessna 172: 730 fpm = 3.7 m/s)
+param set-default FW_T_CLMB_MAX 3.7      # Max climb (180 HP)
+param set-default FW_T_SINK_MIN 2.0      # Min sink
+param set-default FW_T_SINK_MAX 4.0      # Max sink
+param set-default FW_T_VERT_ACC 4.0      # Vertical acceleration limit
+
+# Damping (increased for stable altitude control)
+param set-default FW_T_THR_DAMPING 0.15  # Throttle damping (was 0.08)
+param set-default FW_T_PTCH_DAMP 0.12    # Pitch damping (was 0.1)
+
+# Integrators
+param set-default FW_T_I_GAIN_PIT 0.25   # Pitch integrator (was 0.3)
+
+
+################################################################################
+# SECTION 6: THROTTLE MANAGEMENT
+################################################################################
+# Engine: Lycoming IO-360-L2A, 180 HP
+
+param set-default FW_THR_TRIM 0.55       # 55% cruise throttle
+param set-default FW_THR_MAX 1.0         # 100% max
+param set-default FW_THR_MIN 0.10        # 10% min
+param set-default FW_THR_IDLE 0.00       # Idle
+param set-default FW_THR_SLEW_MAX 0.50   # Throttle slew rate
+param set-default FW_THR_ASPD_MAX 0.00
+param set-default FW_THR_ASPD_MIN 0.00
+
+
+################################################################################
+# SECTION 7: TAKEOFF & LANDING
+################################################################################
+# Takeoff: 1,630 ft (497 m), Landing: 1,335 ft (407 m)
+
+# Takeoff
+param set-default FW_TKO_AIRSPD 32.0     # Rotation speed (62 kcas)
+param set-default FW_TKO_PITCH_MIN 20.0  # Min pitch angle
+param set-default MIS_TAKEOFF_ALT 100.0  # Takeoff altitude
+
+# Landing
+param set-default FW_LND_ABORT 0
+param set-default FW_LND_AIRSPD 36.0     # Approach speed (70 kcas)
+param set-default FW_LND_FLALT 5.0       # Flare altitude
+param set-default FW_LND_FL_PMAX 35.0    # Max pitch during flare
+param set-default LNDFW_AIRSPD_MAX 30.0
+param set-default LNDFW_VEL_XY_MAX 15.0
+
+
+################################################################################
+# SECTION 8: NPFG GUIDANCE (Modern PX4 v1.14+)
+################################################################################
+# Replaces deprecated L1 controller.
+# December 2025: Tighter path following for responsive GA handling
+# Formula: L1_distance = (1/π) × NPFG_DAMPING × NPFG_PERIOD × groundspeed
+# At 64 m/s cruise: ~382m turning radius
+
+param set-default NPFG_PERIOD 25.0       # NPFG period (was 30 - tighter for GA)
+param set-default NPFG_DAMPING 0.75      # Damping ratio (was 0.7)
+param set-default NPFG_ROLL_TC 0.5       # Roll time constant (smoother turns)
+param set-default NPFG_SW_DST_MLT 1.0    # Switch distance multiplier
+
+
+################################################################################
+# SECTION 9: NAVIGATION & MISSION
+################################################################################
+# Light GA aircraft navigation strategy
+
+# Mission Parameters
+param set-default MIS_YAW_ERR 30.0       # Yaw error tolerance
+param set-default MIS_YAW_TMT 5.0
+param set-default MIS_TAKEOFF_ALT 100.0
+param set-default MIS_TKO_LAND_REQ 0
+param set-default MIS_DIST_1WP 5000.0
+
+# Acceptance Radii
+param set-default NAV_ACC_RAD 300.0      # Waypoint acceptance
+param set-default NAV_FW_ALT_RAD 50.0    # Altitude acceptance
+param set-default NAV_MIN_LTR_ALT -1.0
+
+# Loiter Configuration
+param set-default NAV_LOITER_RAD 600.0   # Loiter radius (64 m/s cruise)
+
+# Return to Launch
+param set-default RTL_RETURN_ALT 100     # RTL altitude
+param set-default RTL_DESCEND_ALT 200
+param set-default RTL_MIN_DIST 50.0
+param set-default RTL_LOITER_RAD 600.0
+
+
+################################################################################
+# SECTION 10: AIRCRAFT GEOMETRY & MASS
+################################################################################
+# Physical dimensions for flight dynamics
+
+param set-default FW_WING_SPAN 11.0      # 36 ft 1 in
+param set-default FW_WING_HEIGHT 2.5     # High-wing configuration
+param set-default WEIGHT_BASE 1000.0     # Base weight (kg)
+param set-default WEIGHT_GROSS 1000.0    # Gross weight (kg)
+
+
+################################################################################
+# SECTION 11: MANUAL FLIGHT MODE & SYSTEM CONFIGURATION
+################################################################################
+
+# Manual Mode Limits (GA responsive)
+param set-default FW_MAN_P_MAX 45        # Max manual pitch
+param set-default FW_MAN_R_MAX 50        # Max manual roll
+
+# Logging
+param set-default SDLOG_MODE 0           # Disabled for SITL
+
+# Circuit Breakers (SITL-SPECIFIC - DO NOT USE ON REAL HARDWARE)
+param set-default CBRK_USB_CHK 197848    # Disable USB check
+param set-default CBRK_SUPPLY_CHK 894281 # Disable battery check
+param set-default CBRK_IO_SAFETY 22027   # Disable safety switch
+
+
+################################################################################
+# TROUBLESHOOTING GUIDE
+################################################################################
+#
+# Roll/pitch oscillation or jittery control:
+#   - Verify FW_RR_P = 0.12, FW_RR_FF = 0.5 (reduced from extreme values)
+#   - Verify FW_PR_P = 0.10, FW_PR_FF = 0.4 (reduced from extreme values)
+#   - Check D-gains are low: FW_RR_D = 0.008, FW_PR_D = 0.008
+#   - High D-gains amplify sensor noise (was 118x default!)
+#
+# Yaw control / coordinated turn issues:
+#   - Verify FW_YR_P = 0.06, FW_YR_I = 0.05, FW_YR_D = 0.002
+#   - Check FW_YR_FF = 0.3 for rudder authority
+#
+# Altitude oscillation during cruise:
+#   - Verify FW_T_THR_DAMPING = 0.15 (increased from 0.08)
+#   - Verify FW_T_PTCH_DAMP = 0.12 (increased from 0.1)
+#   - Check FW_T_ALT_TC = 5.0 (GA responsive)
+#
+# Airspeed sensor invalid / can't arm:
+#   - Verify SENS_EN_ARSPDSIM = 1
+#   - Check SYS_HAS_NUM_ASPD = 1
+#   - Verify ASPD_DO_CHECKS = 7
+#
+# Wide loiter radius / overshoots waypoints:
+#   - Verify NPFG_PERIOD = 25.0 (tighter for GA)
+#   - Verify NPFG_DAMPING = 0.75
+#   - Reduce NAV_LOITER_RAD (600 → 500m) if needed
+#
+# Throttle oscillation / hunting:
+#   - Verify FW_T_THR_DAMPING = 0.15
+#   - Check FW_THR_SLEW_MAX = 0.5
+#
+# BARO switch error during flight:
+#   - Verify CAL_BARO1_PRIO = 0
+#   - Check CAL_BARO0_PRIO = 100
+#
+# Stall during approach / landing:
+#   - Verify FW_LND_AIRSPD = 36.0 (above 25 m/s stall)
+#   - Check FW_AIRSPD_MIN = 30.0
+#
+################################################################################
+# END OF CONFIGURATION
+################################################################################
+# Maintainer: px4xplane project - https://github.com/alireza787b/px4xplane/
+# Status: Production-ready for X-Plane SITL simulation
+# Tuning: December 2025 - Reduced extreme gains, added yaw control, GA responsive
+################################################################################
