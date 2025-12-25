@@ -24,6 +24,7 @@ Where possible, instead use [Return mode](../flight_modes_fw/return.md) with a p
 - The mode can be triggered using the [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) MAVLink command, or by explicitly switching to Land mode.
 
 <!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
+
 :::
 
 ## Technical Summary
@@ -36,16 +37,18 @@ The vehicle will flare if configured to do so (see [Flaring](../flight_modes_fw/
 
 [Manual nudging](../flight_modes_fw/mission.md#automatic-abort) and [automatic land abort](../flight_modes_fw/mission.md#nudging) are not available in land mode.
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_descend.md-->
+
 ### Parameters
 
 Land mode behaviour can be configured using the parameters below.
 
-| Parameter                                                                                             | Description                                                                  |
-| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| <a id="NAV_LOITER_RAD"></a>[NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD) | The loiter radius that the controller tracks for the whole landing sequence. |
-| <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)             | The flight path angle setpoint.                                              |
-| <a id="FW_LND_AIRSPD"></a>[FW_LND_AIRSPD](../advanced_config/parameter_reference.md#FW_LND_AIRSPD)    | The airspeed setpoint.                                                       |
-| <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC](../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC)    | Factor applied to the minimum airspeed when flaps are fully deployed. Necessary if FW_LND_AIRSPD is below FW_AIRSPD_MIN.
+| Parameter                                                                                                   | Description                                                                                                              |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| <a id="NAV_LOITER_RAD"></a>[NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)       | The loiter radius that the controller tracks for the whole landing sequence.                                             |
+| <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)                   | The flight path angle setpoint.                                                                                          |
+| <a id="FW_LND_AIRSPD"></a>[FW_LND_AIRSPD](../advanced_config/parameter_reference.md#FW_LND_AIRSPD)          | The airspeed setpoint.                                                                                                   |
+| <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC](../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC) | Factor applied to the minimum airspeed when flaps are fully deployed. Necessary if FW_LND_AIRSPD is below FW_AIRSPD_MIN. |
 
 ## See Also
 

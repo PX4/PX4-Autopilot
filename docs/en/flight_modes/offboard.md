@@ -19,6 +19,9 @@ PX4 enables offboard control only after receiving the signal for more than a sec
 
 :::
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_offboard.md-->
+<!-- DUPLICATE currently: ../flight_modes_mc/mode_requirements_rotary_wing_offboard.md -->
+
 ## Description
 
 Offboard mode is used for controlling vehicle movement and attitude, by setting position, velocity, acceleration, attitude, attitude rates or thrust/torque setpoints.

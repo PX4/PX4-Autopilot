@@ -56,6 +56,8 @@ Centered sticks level vehicle and hold it to fixed altitude and position against
   - Yaw: Assistance from autopilot to stabilize the attitude rate.
     Position of RC stick maps to the rate of rotation of vehicle in that orientation.
 
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_posctl.md-->
+
 ### Parameters
 
 All the parameters in the [Multicopter Position Control](../advanced_config/parameter_reference.md#multicopter-position-control) group are relevant. A few parameters of particular note are listed below.

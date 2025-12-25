@@ -8,17 +8,14 @@ The _Orbit_ guided flight mode allows you to command a multicopter (or VTOL in m
 
 - Mode is automatic - no user intervention is _required_ to control the vehicle.
 - Mode requires at least a valid local position estimate (does not require a global position).
-  - Flying vehicles can't switch to this mode without valid local position.
   - Flying vehicles will failsafe if they lose the position estimate.
-- Mode prevents arming (vehicle must be armed when switching to this mode).
-- Mode requires wind and flight time are within allowed limits (specified via parameters).
 - This mode is currently only supported on multicopter (or VTOL in MC mode).
 - RC stick movement can control ascent/descent and orbit speed and direction.
 - The mode can be triggered using the [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MMAV_CMD_DO_ORBIT) MAVLink command.
 
-<!-- https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/mode_requirements.cpp -->
-
 :::
+
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_orbit.md-->
 
 ## Overview
 

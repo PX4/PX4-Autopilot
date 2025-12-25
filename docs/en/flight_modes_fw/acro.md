@@ -16,6 +16,8 @@ Manual mode for performing acrobatic maneuvers e.g. rolls, flips, stalls and acr
 Roll-pitch-yaw stick inputs are translated to angular rate commands that are stabilized by autopilot.
 Throttle is passed directly to control allocation.
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_acro.md-->
+
 ## Parameters
 
 | Parameter                                                                                             | Description                                                                                                                                              |

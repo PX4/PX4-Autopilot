@@ -31,6 +31,8 @@ The vehicle will first ascend to [NAV_MIN_LTR_ALT](#NAV_MIN_LTR_ALT) if the mode
 
 RC stick movement will change the vehicle to [Position mode](../flight_modes_mc/position.md) (by [default](#COM_RC_OVERRIDE)).
 
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_auto_loiter.md-->
+
 ### Parameters
 
 Hold mode behaviour can be configured using the parameters below.
