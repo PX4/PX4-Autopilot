@@ -114,6 +114,8 @@ Navigator::Navigator() :
 	_distance_sensor_mode_change_request_pub.get().request_on_off = distance_sensor_mode_change_request_s::REQUEST_OFF;
 	_distance_sensor_mode_change_request_pub.update();
 
+	_gimbal_neutral_hysteresis.set_hysteresis_time_from(false, 250_ms);
+
 	reset_triplets();
 }
 
@@ -239,6 +241,8 @@ void Navigator::run()
 		_position_controller_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 
+		const hrt_abstime now = hrt_absolute_time();
+
 		// Handle Vehicle commands
 		int vehicle_command_updates = 0;
 
@@ -266,7 +270,7 @@ void Navigator::run()
 				// which can lead to dangerous and unexpected behaviors (see loiter.cpp, there is an if(armed) in there too)
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
-				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				_wait_for_vehicle_status_timestamp = now;
 
 				vehicle_global_position_s position_setpoint{};
 
@@ -395,10 +399,10 @@ void Navigator::run()
 						rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
 					}
 
-					rep->previous.timestamp = hrt_absolute_time();
+					rep->previous.timestamp = now;
 
 					rep->current.valid = true;
-					rep->current.timestamp = hrt_absolute_time();
+					rep->current.timestamp = now;
 
 					rep->next.valid = false;
 
@@ -428,7 +432,7 @@ void Navigator::run()
 				position_setpoint.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
-				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				_wait_for_vehicle_status_timestamp = now;
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -476,10 +480,10 @@ void Navigator::run()
 
 					rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
 
-					rep->previous.timestamp = hrt_absolute_time();
+					rep->previous.timestamp = now;
 
 					rep->current.valid = true;
-					rep->current.timestamp = hrt_absolute_time();
+					rep->current.timestamp = now;
 
 					rep->next.valid = false;
 
@@ -504,7 +508,7 @@ void Navigator::run()
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
-				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				_wait_for_vehicle_status_timestamp = now;
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -533,7 +537,7 @@ void Navigator::run()
 					rep->current.alt = position_setpoint.alt;
 
 					rep->current.valid = true;
-					rep->current.timestamp = hrt_absolute_time();
+					rep->current.timestamp = now;
 
 					_time_loitering_after_gf_breach = 0; // have to manually reset this in all LOITER cases
 
@@ -552,7 +556,7 @@ void Navigator::run()
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
-				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				_wait_for_vehicle_status_timestamp = now;
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -585,7 +589,7 @@ void Navigator::run()
 					rep->current.alt = position_setpoint.alt;
 
 					rep->current.valid = true;
-					rep->current.timestamp = hrt_absolute_time();
+					rep->current.timestamp = now;
 
 					_time_loitering_after_gf_breach = 0; // have to manually reset this in all LOITER cases
 
@@ -612,7 +616,7 @@ void Navigator::run()
 				if (home_global_position_valid()) {
 
 					rep->previous.valid = true;
-					rep->previous.timestamp = hrt_absolute_time();
+					rep->previous.timestamp = now;
 
 				} else {
 					rep->previous.valid = false;
@@ -636,7 +640,7 @@ void Navigator::run()
 				rep->current.alt = cmd.param7;
 
 				rep->current.valid = true;
-				rep->current.timestamp = hrt_absolute_time();
+				rep->current.timestamp = now;
 
 				rep->next.valid = false;
 
@@ -747,8 +751,7 @@ void Navigator::run()
 					break;
 				}
 
-				_vroi.timestamp = hrt_absolute_time();
-
+				_vroi.timestamp = now;
 				_vehicle_roi_pub.publish(_vroi);
 
 				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
@@ -917,14 +920,29 @@ void Navigator::run()
 		}
 
 		if (_pos_sp_triplet_updated) {
-			publish_position_setpoint_triplet();
+			_pos_sp_triplet.timestamp = hrt_absolute_time();
+			_pos_sp_triplet_pub.publish(_pos_sp_triplet);
+			_pos_sp_triplet_updated = false;
 		}
 
 		if (_mission_result_updated) {
-			publish_mission_result();
+			_mission_result.timestamp = hrt_absolute_time();
+			_mission_result_pub.publish(_mission_result);
+			_mission_result.item_do_jump_changed = false;
+			_mission_result.item_changed_index = 0;
+			_mission_result.item_do_jump_remaining = 0;
+			_mission_result_updated = false;
 		}
 
-		neutralize_gimbal_if_control_activated();
+		// Set gimbal neutral if requested and delay is over
+		_gimbal_neutral_hysteresis.update(now);
+
+		if (_gimbal_neutral_hysteresis.get_state()) {
+			acquire_gimbal_control();
+			set_gimbal_neutral();
+			release_gimbal_control();
+			_gimbal_neutral_hysteresis.set_state_and_update(false, now);
+		}
 
 		publish_navigator_status();
 
@@ -1131,13 +1149,6 @@ int Navigator::print_status()
 
 	_geofence.printStatus();
 	return 0;
-}
-
-void Navigator::publish_position_setpoint_triplet()
-{
-	_pos_sp_triplet.timestamp = hrt_absolute_time();
-	_pos_sp_triplet_pub.publish(_pos_sp_triplet);
-	_pos_sp_triplet_updated = false;
 }
 
 float Navigator::get_default_acceptance_radius()
@@ -1356,21 +1367,6 @@ int Navigator::custom_command(int argc, char *argv[])
 	}
 
 	return print_usage("unknown command");
-}
-
-void Navigator::publish_mission_result()
-{
-	_mission_result.timestamp = hrt_absolute_time();
-
-	/* lazily publish the mission result only once available */
-	_mission_result_pub.publish(_mission_result);
-
-	/* reset some of the flags */
-	_mission_result.item_do_jump_changed = false;
-	_mission_result.item_changed_index = 0;
-	_mission_result.item_do_jump_remaining = 0;
-
-	_mission_result_updated = false;
 }
 
 void Navigator::set_mission_failure_heading_timeout()
@@ -1649,27 +1645,6 @@ void Navigator::set_gimbal_neutral()
 	vehicle_command.param4 = NAN;
 	vehicle_command.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
 	publish_vehicle_command(vehicle_command);
-}
-
-void Navigator::activate_set_gimbal_neutral_timer(const hrt_abstime timestamp)
-{
-	if (_gimbal_neutral_activation_time == UINT64_MAX) {
-		_gimbal_neutral_activation_time = timestamp;
-	}
-}
-
-void Navigator::neutralize_gimbal_if_control_activated()
-{
-	const hrt_abstime now{hrt_absolute_time()};
-
-	// The time delay must be sufficiently long to allow flight tasks to complete its
-	// destruction and release gimbal control before the navigator takes control of the gimbal.
-	if (_gimbal_neutral_activation_time != UINT64_MAX && now > _gimbal_neutral_activation_time + 250_ms) {
-		acquire_gimbal_control();
-		set_gimbal_neutral();
-		release_gimbal_control();
-		_gimbal_neutral_activation_time = UINT64_MAX;
-	}
 }
 
 void Navigator::sendWarningDescentStoppedDueToTerrain()
