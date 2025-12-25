@@ -141,7 +141,6 @@ The instructions below might be used to create a task named _MyTask_:
      ```c
      ...
       * @value 0 Direct velocity
-      * @value 3 Smoothed velocity
       * @value 4 Acceleration based
       * @value 5 My task
       * @group Multicopter Position Control
