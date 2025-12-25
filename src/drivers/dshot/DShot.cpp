@@ -326,6 +326,37 @@ int DShot::handle_new_bdshot_erpm(void)
 				esc_status.esc[telemetry_index].actuator_function = _actuator_functions[telemetry_index];
 			}
 
+
+			int32_t value = 0;
+			if(up_bdshot_get_extended_telemetry(i, DShot_telemetry_field_temperature, &value) == PX4_OK) {
+				esc_status.esc[telemetry_index].esc_temperature = static_cast<float>(value); // temperature is in Celsius
+			}
+			else
+			{
+				esc_status.esc[telemetry_index].esc_temperature = NAN; // No telemetry data available
+			}
+			value = 0;
+			if(up_bdshot_get_extended_telemetry(i, DShot_telemetry_field_battery_voltage, &value) == PX4_OK) {
+				esc_status.esc[telemetry_index].esc_voltage = static_cast<float>(value) * 0.25f; // voltage is 0.25V per unit
+			}
+			else
+			{
+				esc_status.esc[telemetry_index].esc_voltage = NAN; // No telemetry data available
+			}
+			value = 0;
+			if(up_bdshot_get_extended_telemetry(i, DShot_telemetry_field_current, &value) == PX4_OK) {
+				esc_status.esc[telemetry_index].esc_current = static_cast<float>(value) * 0.5f; // current is 0.5A per unit
+			}
+			else
+			{
+				esc_status.esc[telemetry_index].esc_current = NAN; // No telemetry data available
+			}
+
+			// esc_status.esc[telemetry_index].esc_current = 0.5; // These values show up exactly like this in QGroundControl, so it works
+			// esc_status.esc[telemetry_index].esc_voltage = 0.25; // These values show up exactly like this in QGroundControl, so it works
+
+			// No support for debug_1, debug_2, debug_3, evt telemetry keys yet
+
 			++telemetry_index;
 		}
 	}
@@ -694,6 +725,8 @@ int DShot::custom_command(int argc, char *argv[])
 		{"beep3", DShot_cmd_beacon3, 1},
 		{"beep4", DShot_cmd_beacon4, 1},
 		{"beep5", DShot_cmd_beacon5, 1},
+		{"dse_on", DShot_cmd_dshot_extended_telemetry_on, 10},
+		{"dse_off", DShot_cmd_dshot_extended_telemetry_off, 10}
 	};
 
 	for (unsigned i = 0; i < sizeof(commands) / sizeof(commands[0]); ++i) {
@@ -796,6 +829,10 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 	PRINT_MODULE_USAGE_COMMAND_DESCR("beep4", "Send Beep pattern 4");
 	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("beep5", "Send Beep pattern 5");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("dse_on", "Enable DShot Extended Telemetry (AM32 only)");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("dse_off", "Disable DShot Extended Telemetry (AM32 only)");
 	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
