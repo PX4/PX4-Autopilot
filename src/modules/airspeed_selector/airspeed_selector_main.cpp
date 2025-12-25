@@ -66,13 +66,15 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/airspeed_wind.h>
 #include <uORB/topics/flight_phase_estimation.h>
 
 using namespace time_literals;
 
-static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};	/**< The schedule interval in usec (10 Hz) */
+// The schedule interval in (10 Hz)
+static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};
+
+// Used to low-pass filter throttle for both synthetic airspeed and airspeed validation (first principles check)
 static constexpr float _kThrottleFilterTimeConstant{0.5f};
 
 using matrix::Dcmf;
@@ -127,7 +129,6 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _position_setpoint_sub{ORB_ID(position_setpoint)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
@@ -181,7 +182,7 @@ private:
 	param_t _param_handle_fw_thr_max{PARAM_INVALID};
 	float _param_fw_thr_max{0.0f};
 
-	AlphaFilter<float> _throttle_filtered{_kThrottleFilterTimeConstant};
+	AlphaFilter<float> _tecs_throttle_sp_filtered{_kThrottleFilterTimeConstant};
 	uint64_t _t_last_throttle_fw{0};
 
 	DEFINE_PARAMETERS(
@@ -390,8 +391,8 @@ AirspeedModule::Run()
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
 		input_data.hdg_test_ratio = _estimator_status.hdg_test_ratio;
 		input_data.tecs_timestamp = _tecs_status.timestamp;
-		input_data.fixed_wing_throttle_filtered = _throttle_filtered.getState();
-		input_data.fixed_wing_tecs_throttle_trim = _tecs_status.throttle_trim;
+		input_data.tecs_throttle_sp_filtered = _tecs_throttle_sp_filtered.getState();
+		input_data.tecs_throttle_trim = _tecs_status.throttle_trim;
 
 		// iterate through all airspeed sensors, poll new data from them and update their validators
 		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
@@ -748,7 +749,7 @@ void AirspeedModule::select_airspeed_and_publish()
 
 	airspeed_validated.airspeed_derivative_filtered = _airspeed_validator[valid_airspeed_index -
 					     1].get_airspeed_derivative();
-	airspeed_validated.throttle_filtered = _throttle_filtered.getState();
+	airspeed_validated.throttle_filtered = _tecs_throttle_sp_filtered.getState();
 	airspeed_validated.pitch_filtered = _airspeed_validator[valid_airspeed_index - 1].get_pitch_filtered();
 
 	airspeed_validated.airspeed_source = valid_airspeed_index;
@@ -768,7 +769,7 @@ void AirspeedModule::select_airspeed_and_publish()
 		break;
 
 	case AirspeedSource::SYNTHETIC: {
-			airspeed_validated.throttle_filtered = _throttle_filtered.getState();
+			airspeed_validated.throttle_filtered = _tecs_throttle_sp_filtered.getState();
 			airspeed_validated.pitch_filtered = _airspeed_validator[0].get_pitch_filtered();
 			float synthetic_airspeed = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
 			airspeed_validated.calibrated_airspeed_m_s = synthetic_airspeed;
@@ -841,26 +842,17 @@ float AirspeedModule::get_synthetic_airspeed(float throttle)
 void AirspeedModule::update_throttle_filter(hrt_abstime now)
 {
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		vehicle_thrust_setpoint_s vehicle_thrust_setpoint_0{};
-		_vehicle_thrust_setpoint_0_sub.copy(&vehicle_thrust_setpoint_0);
 
-		float forward_thrust = vehicle_thrust_setpoint_0.xyz[0];
-
-		// if VTOL, use the total thrust vector length (otherwise needs special handling for tailsitters and tiltrotors)
-		if (_vehicle_status.is_vtol) {
-			forward_thrust = sqrtf(vehicle_thrust_setpoint_0.xyz[0] * vehicle_thrust_setpoint_0.xyz[0] +
-					       vehicle_thrust_setpoint_0.xyz[1] * vehicle_thrust_setpoint_0.xyz[1] +
-					       vehicle_thrust_setpoint_0.xyz[2] * vehicle_thrust_setpoint_0.xyz[2]);
-		}
+		const float tecs_throttle_sp = _tecs_status.throttle_sp;
 
 		const float dt = static_cast<float>(now - _t_last_throttle_fw) * 1e-6f;
 		_t_last_throttle_fw = now;
 
 		if (dt < FLT_EPSILON || dt > 1.f) {
-			_throttle_filtered.reset(forward_thrust);
+			_tecs_throttle_sp_filtered.reset(tecs_throttle_sp);
 
 		} else {
-			_throttle_filtered.update(forward_thrust, dt);
+			_tecs_throttle_sp_filtered.update(tecs_throttle_sp, dt);
 		}
 	}
 }
