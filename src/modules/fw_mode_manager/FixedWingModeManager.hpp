@@ -858,6 +858,8 @@ private:
 		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
 		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_t_spdweight,
 
+		(ParamFloat<px4::params::FW_THR_PRE_LAUN>) _param_fw_thr_pre_laun,
+
 		// external parameters
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
