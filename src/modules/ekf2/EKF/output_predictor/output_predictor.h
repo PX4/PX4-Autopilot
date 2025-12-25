@@ -36,7 +36,7 @@
 
 #include <matrix/math.hpp>
 
-#include "../RingBuffer.h"
+#include <lib/ringbuffer/TimestampedRingBuffer.hpp>
 
 #include <lib/geo/geo.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
@@ -165,8 +165,8 @@ private:
 
 	LatLonAlt _global_ref{0.0, 0.0, 0.f};
 
-	RingBuffer<outputSample> _output_buffer{12};
-	RingBuffer<outputVert> _output_vert_buffer{12};
+	TimestampedRingBuffer<outputSample> _output_buffer{12};
+	TimestampedRingBuffer<outputVert> _output_vert_buffer{12};
 
 	matrix::Vector3f _accel_bias{};
 	matrix::Vector3f _gyro_bias{};

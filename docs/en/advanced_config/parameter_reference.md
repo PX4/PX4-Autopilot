@@ -14587,11 +14587,6 @@ This is the scale IAS --> CAS of the second airspeed sensor instance
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.5      | 2.0      |           | 1.0     |
 
-### ASPD_SCALE_3 (`FLOAT`) {#ASPD_SCALE_3}
-
-Scale of airspeed sensor 3.
-
-This is the scale IAS --> CAS of the third airspeed sensor instance
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -14599,17 +14594,12 @@ This is the scale IAS --> CAS of the third airspeed sensor instance
 
 ### ASPD_SCALE_APPLY (`INT32`) {#ASPD_SCALE_APPLY}
 
-Controls when to apply the new estimated airspeed scale(s).
 
 **Values:**
 
-- `0`: Do not automatically apply the estimated scale
-- `1`: Apply the estimated scale after disarm
-- `2`: Apply the estimated scale in air
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 2       |
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 2 |
 
 ### ASPD_SCALE_NSD (`FLOAT`) {#ASPD_SCALE_NSD}
 
@@ -16743,12 +16733,6 @@ Priority sources are immediately switched to whenever they get valid.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 8        |           | 3       |
 
-### COM_RC_LOSS_T (`FLOAT`) {#COM_RC_LOSS_T}
-
-Manual control loss timeout.
-
-The time in seconds without a new setpoint from RC or Joystick, after which the connection is considered lost.
-This must be kept short as the vehicle will use the last supplied setpoint until the timeout triggers.
 Ensure the value is not set lower than the update interval of the RC or Joystick.
 
 | Reboot | minValue | maxValue | increment | default | unit |
@@ -18127,11 +18111,6 @@ If the vehicle is on ground, is not moving as determined by the motion test and 
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0.01     |          |           | 0.01    | m    |
 
-### EKF2_MULTI_IMU (`INT32`) {#EKF2_MULTI_IMU}
-
-Multi-EKF IMUs.
-
-Maximum number of IMUs to use for Multi-EKF. Set 0 to disable. Requires SENS_IMU_MODE 0.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -27555,19 +27534,6 @@ Mid point value
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
 
-### RC12_MAX (`FLOAT`) {#RC12_MAX}
-
-RC channel 12 maximum.
-
-Maximum value for this channel.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 1500.0   | 2200.0   |           | 2000    | us   |
-
-### RC12_MIN (`FLOAT`) {#RC12_MIN}
-
-RC channel 12 minimum.
 
 Minimum value for this channel.
 
@@ -27645,25 +27611,10 @@ Mid point value
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 800.0    | 2200.0   |           | 1500    | us   |
 
-### RC14_MAX (`FLOAT`) {#RC14_MAX}
+### RC14_DZ (`FLOAT`) {#RC14_DZ}
 
-RC channel 14 maximum.
-
-Maximum value for this channel.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 1500.0   | 2200.0   |           | 2000    | us   |
-
-### RC14_MIN (`FLOAT`) {#RC14_MIN}
-
-RC channel 14 minimum.
-
-Minimum value for this channel.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 800.0    | 1500.0   |           | 1000    | us   |
+RC channel 14 dead zone.
+&nbsp; | 800.0 | 1500.0 |  | 1000 | us
 
 ### RC14_REV (`FLOAT`) {#RC14_REV}
 
@@ -32920,7 +32871,6 @@ If enabled, the filter will be configured to accept external heading as an aidin
 - `0`: Disabled
 - `1`: Enabled
 
-| Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |
 
@@ -32939,22 +32889,12 @@ Toggles external magnetometer aiding in the device filter.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |
 
-### MS_FILT_RATE_HZ (`INT32`) {#MS_FILT_RATE_HZ}
-
-MicroStrain EKF data rate.
-
-The rate at which the INS data is published (Hz).
 Valid rates: 0 or any factor of 1000.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 1000     |           | 250     |
 
-### MS_GNSS_AID_SRC (`INT32`) {#MS_GNSS_AID_SRC}
-
-MicroStrain GNSS aiding source control.
-
-Select the source of gnss aiding (GNSS/INS).
 
 **Values:**
 
@@ -32978,11 +32918,6 @@ In the case of a dual antenna setup, this is antenna 1.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0.0     |
 
-### MS_GNSS_OFF1_Y (`FLOAT`) {#MS_GNSS_OFF1_Y}
-
-MicroStrain GNSS lever arm offset 1 (Y).
-
-Lever arm offset (m) in the Y direction for the external GNSS receiver.
 In the case of a dual antenna setup, this is antenna 1.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
@@ -33001,14 +32936,9 @@ In the case of a dual antenna setup, this is antenna 1.
 | &check; |          |          |           | 0.0     |
 
 ### MS_GNSS_OFF2_X (`FLOAT`) {#MS_GNSS_OFF2_X}
-
 MicroStrain GNSS lever arm offset 2 (X).
 
 Lever arm offset (m) in the X direction for antenna 2
-This will only be used if the device supports a dual antenna setup.
-
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0.0     |
 
 ### MS_GNSS_OFF2_Y (`FLOAT`) {#MS_GNSS_OFF2_Y}
@@ -33054,10 +32984,6 @@ Ranges vary by device and map to integer codes. Check the device's [User Manual]
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | -1      |
-
-### MS_IMU_RATE_HZ (`INT32`) {#MS_IMU_RATE_HZ}
-
-MicroStrain IMU data rate.
 
 Accelerometer and Gyroscope data rate (Hz).
 Valid rates: 0 or any factor of 1000.
@@ -33120,7 +33046,6 @@ INS mode publishes the INS data to the vehicle topics to be used for navigation.
 - `0`: Sensor Mode
 - `1`: INS Mode
 
-| Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |
 
@@ -33185,11 +33110,6 @@ The driver uses the body frame velocity from the optical flow sensor as the aidi
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |
 
-### MS_SENSOR_PTCH (`FLOAT`) {#MS_SENSOR_PTCH}
-
-MicroStrain Sensor to Vehicle Transform (Pitch).
-
-The orientation of the device (Radians) with respect to the vehicle frame around the y axis.
 Requires MS_SVT_EN to be enabled to be used.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
@@ -33207,11 +33127,6 @@ Requires MS_SVT_EN to be enabled to be used.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0.0     |
 
-### MS_SENSOR_YAW (`FLOAT`) {#MS_SENSOR_YAW}
-
-MicroStrain Sensor to Vehicle Transform (Yaw).
-
-The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
 Requires MS_SVT_EN to be enabled to be used.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
@@ -36897,19 +36812,6 @@ Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
 output = SC_ROLLRATE_K _ (SC_ROLLRATE_P _ error
 
-- SC_ROLLRATE_I \* error_integral
-- SC_ROLLRATE_D \* error_derivative)
-  Set SC_ROLLRATE_P=1 to implement a PID in the ideal form.
-  Set SC_ROLLRATE_K=1 to implement a PID in the parallel form.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     | 5.0      | 0.0005    | 1.0     |
-
-### SC_ROLLRATE_P (`FLOAT`) {#SC_ROLLRATE_P}
-
-Roll rate P gain.
-
 Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
 
 | Reboot | minValue | maxValue | increment | default | unit |
@@ -36962,16 +36864,15 @@ Yaw rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
+
 output = SC_YAWRATE_K _ (SC_YAWRATE_P _ error
+Set SC_YAWRATE_P=1 to implement a PID in the ideal form.
+Set SC_YAWRATE_K=1 to implement a PID in the parallel form.
 
-- SC_YAWRATE_I \* error_integral
-- SC_YAWRATE_D \* error_derivative)
-  Set SC_YAWRATE_P=1 to implement a PID in the ideal form.
-  Set SC_YAWRATE_K=1 to implement a PID in the parallel form.
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 5.0      | 0.0005    | 1.0     |
+Reboot | minValue | maxValue | increment | default | unit
+--- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 5.0 | 0.0005 | 1.0 |
 
 ### SC_YAWRATE_P (`FLOAT`) {#SC_YAWRATE_P}
 

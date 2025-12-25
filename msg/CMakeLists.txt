@@ -278,6 +278,19 @@ set(msg_files
 )
 list(SORT msg_files)
 
+if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
+	list(APPEND msg_files
+		TargetGnss.msg
+		VisionTargetEstInput.msg
+		VisionTargetEstPosition.msg
+		VisionTargetEstOrientation.msg
+		VteAidSource1d.msg
+		VteAidSource3d.msg
+		FiducialMarkerPosReport.msg
+		FiducialMarkerYawReport.msg
+		PrecLandStatus.msg)
+endif()
+
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
@@ -522,7 +535,8 @@ if(CONFIG_LIB_CDRSTREAM)
 
 	add_custom_target(
 		uorb_idl_header
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		COMMAND ${PYTHON_EXECUTABLE}
+	${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 			--uorb-idl-header
 			-f ${msg_files}
 			-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
