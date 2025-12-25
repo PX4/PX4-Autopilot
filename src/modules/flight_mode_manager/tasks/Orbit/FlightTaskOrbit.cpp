@@ -303,7 +303,7 @@ void FlightTaskOrbit::_adjustParametersByStick()
 	default:
 		// stick input adjusts parameters within a fixed time frame
 		radius -= _sticks.getPitchExpo() * _deltatime * _param_mpc_xy_cruise.get();
-		velocity -= _sticks.getRollExpo() * _deltatime * _param_mpc_acc_hor.get();
+		velocity += _sticks.getRollExpo() * _deltatime * _param_mpc_acc_hor.get();
 		break;
 	}
 
