@@ -106,9 +106,12 @@ void SensorBaroSim::Run()
 	}
 
 	if (_vehicle_global_position_sub.updated()) {
+
+		check_failure_injection();
+
 		vehicle_global_position_s gpos;
 
-		if (_vehicle_global_position_sub.copy(&gpos)) {
+		if (_vehicle_global_position_sub.copy(&gpos) && !_baro_blocked) {
 
 			const float dt = math::constrain((gpos.timestamp - _last_update_time) * 1e-6f, 0.001f, 0.1f);
 
@@ -151,7 +154,8 @@ void SensorBaroSim::Run()
 			}
 
 			// Apply noise and drift
-			const float abs_pressure_noise = 1.f * (float)y1;  // 1 Pa RMS noise
+			float _noise_scale = _sih_noise_scale.get();
+			const float abs_pressure_noise = _noise_scale * (float) y1;  // 1 Pa RMS noise
 			_baro_drift_pa += _baro_drift_pa_per_sec * dt;
 			const float absolute_pressure_noisy = absolute_pressure + abs_pressure_noise + _baro_drift_pa;
 
@@ -161,12 +165,17 @@ void SensorBaroSim::Run()
 			// calculate temperature in Celsius
 			float temperature = temperature_local - 273.0f + _sim_baro_off_t.get();
 
+			if (!_baro_stuck) {
+				_last_baro_pressure = pressure;
+				_last_baro_temperature = temperature;
+			}
+
 			// publish
 			sensor_baro_s sensor_baro{};
 			sensor_baro.timestamp_sample = gpos.timestamp;
 			sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-			sensor_baro.pressure = pressure;
-			sensor_baro.temperature = temperature;
+			sensor_baro.pressure = _last_baro_pressure;
+			sensor_baro.temperature = _last_baro_temperature;
 			sensor_baro.timestamp = hrt_absolute_time();
 			_sensor_baro_pub.publish(sensor_baro);
 
@@ -176,6 +185,58 @@ void SensorBaroSim::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+
+void SensorBaroSim::check_failure_injection()
+{
+	vehicle_command_s vehicle_command;
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+			continue;
+		}
+
+		bool handled = false;
+		bool supported = false;
+
+		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+
+		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_BARO) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, BARO off");
+				supported = true;
+				_baro_stuck = false;
+				_baro_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				PX4_WARN("CMD_INJECT_FAILURE, baro stuck");
+				supported = true;
+				_baro_stuck = true;
+				_baro_blocked = false;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, BARO ok");
+				supported = true;
+				_baro_stuck = false;
+				_baro_blocked = false;
+			}
+		}
+
+		if (handled) {
+			vehicle_command_ack_s ack{};
+			ack.command = vehicle_command.command;
+			ack.from_external = false;
+			ack.result = supported ?
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(ack);
+		}
+	}
 }
 
 int SensorBaroSim::task_spawn(int argc, char *argv[])

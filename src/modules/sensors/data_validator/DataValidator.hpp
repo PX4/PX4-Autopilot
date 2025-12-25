@@ -44,12 +44,22 @@
 #include <math.h>
 #include <stdint.h>
 
-class DataValidator
+#include <px4_platform_common/module_params.h>
+
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/parameter_update.h>
+
+using namespace time_literals;
+
+
+
+class DataValidator : public ModuleParams
 {
 public:
 	static const unsigned dimensions = 3;
 
-	DataValidator() = default;
+
+	DataValidator();
 	~DataValidator() = default;
 
 	/**
@@ -182,6 +192,8 @@ private:
 	float _rms[dimensions] {};  /**< root mean square error */
 	float _value[dimensions] {}; /**< last value */
 
+	float _noise_scale{1.};
+
 	unsigned _value_equal_count{0}; /**< equal values in a row */
 	unsigned _value_equal_count_threshold{
 		VALUE_EQUAL_COUNT_DEFAULT}; /**< when to consider an equal count as a problem */
@@ -197,4 +209,13 @@ private:
 	/* we don't want this class to be copied */
 	DataValidator(const DataValidator &) = delete;
 	DataValidator operator=(const DataValidator &) = delete;
+
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SIH_NOISE_SCALE>) _sih_noise_scale
+	)
+
+
+
 };
