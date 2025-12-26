@@ -901,6 +901,7 @@ bool DShot::initialize_dshot()
 			continue;
 		}
 
+		// TODO: allow BDSHOT options
 		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
 

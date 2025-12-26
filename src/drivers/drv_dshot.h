@@ -87,8 +87,7 @@ struct BDShotTelemetry {
  * @param dshot_pwm_freq	Frequency of DSHOT signal. Usually DSHOT150, DSHOT300, or DSHOT600
  * @return <0 on error, the initialized channels mask.
  */
-__EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable,
-				  bool edt_enable);
+__EXPORT extern int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned dshot_pwm_freq, bool edt_enable);
 
 /**
  * Set Dshot motor data, used by up_dshot_motor_data_set() and up_dshot_motor_command() (internal method)
