@@ -321,8 +321,7 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 }
 
 
-int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable,
-		  bool edt_enable)
+int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned dshot_pwm_freq, bool edt_enable)
 {
 	(void)edt_enable; // Not implemented
 
@@ -363,7 +362,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_en
 
 			imxrt_config_gpio(timer_io_channels[channel].dshot.pinmux | IOMUX_PULL_UP);
 
-			if (enable_bidirectional_dshot) {
+			if (bdshot_channel_mask & (channel << 1)) {
 				dshot_inst[channel].bdshot = true;
 				dshot_inst[channel].bdshot_training_mask = 0;
 				dshot_inst[channel].bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
