@@ -98,7 +98,7 @@ private:
 	bool initialize_dshot();
 	void init_telemetry(const char *device, bool swap_rxtx);
 
-	uint8_t esc_armed_mask(uint16_t *outputs, int num_outputs);
+	uint8_t esc_armed_mask(uint16_t *outputs, uint8_t num_outputs);
 
 	void update_motor_outputs(uint16_t *outputs, int num_outputs);
 	void update_motor_commands(int num_outputs);

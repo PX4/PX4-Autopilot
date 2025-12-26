@@ -92,7 +92,7 @@ __EXPORT extern int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel
 /**
  * Set Dshot motor data, used by up_dshot_motor_data_set() and up_dshot_motor_command() (internal method)
  */
-__EXPORT extern void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry);
+__EXPORT extern void dshot_motor_data_set(uint8_t channel, uint16_t throttle, bool telemetry);
 
 /**
  * Set the current dshot throttle value for a channel (motor).
@@ -101,7 +101,7 @@ __EXPORT extern void dshot_motor_data_set(unsigned channel, uint16_t throttle, b
  * @param throttle	The output dshot throttle value in [0 = DSHOT_DISARM_VALUE, 1 = DSHOT_MIN_THROTTLE, 1999 = DSHOT_MAX_THROTTLE].
  * @param telemetry	If true, request telemetry from that motor
  */
-static inline void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
+static inline void up_dshot_motor_data_set(uint8_t channel, uint16_t throttle, bool telemetry)
 {
 	dshot_motor_data_set(channel, throttle + DSHOT_CMD_MIN_THROTTLE, telemetry);
 }
@@ -171,8 +171,6 @@ __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
  * @return <0 on error, OK on succes
  */
 __EXPORT extern int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value);
-
-__EXPORT extern int up_bdshot_get_extended_telemetry_rate(uint8_t channel, int type, int *value);
 
 /**
  * Get bidrectional dshot status for a channel

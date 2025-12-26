@@ -107,7 +107,7 @@ typedef struct timer_config_t {
 	bool initialized;               // Timer initialized
 	bool initialized_channels[4];   // Timer channels initialized (successfully started)
 	bool bidirectional;             // Timer in bidir (inverted) mode
-	int capture_channel_index;      // Timer channel currently being catured in bidirectional mode
+	int capture_channel;            // Timer channel currently being catured in bidirectional mode
 	uint8_t timer_index;            // Timer index. Necessary to have memory for passing pointer to hrt callback
 } timer_config_t;
 
@@ -186,7 +186,7 @@ static perf_counter_t capture_cycle_perf2 = NULL;
 static void init_timer_config(uint32_t channel_mask)
 {
 	// Mark timers in use, channels in use, and timers for bdshot
-	for (unsigned output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
+	for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
 		if (channel_mask & (1 << output_channel)) {
 			uint8_t timer_index = timer_io_channels[output_channel].timer_index;
 
@@ -296,7 +296,7 @@ static int32_t init_timer_channels(uint8_t timer_index)
 			timer_configs[timer_index].initialized_channels[timer_channel_index] = true;
 			channels_init_mask |= (1 << output_channel);
 
-			PX4_DEBUG("%cDShot initialized OutputChannel %u", timer_configs[timer_index].bidirectional ? "B" : "", output_channel);
+			PX4_DEBUG("%sDShot initialized OutputChannel %u", timer_configs[timer_index].bidirectional ? "B" : "", output_channel);
 		}
 	}
 
@@ -335,7 +335,7 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 
 	unsigned output_buffer_offset = 0;
 
-	for (unsigned timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
+	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
 		if (timer_configs[timer_index].initialized) {
 			if (io_timers[timer_index].base == 0) { // no more timers configured
 				break;
@@ -445,7 +445,7 @@ void up_dshot_trigger()
 
 static void select_next_capture_channel(uint8_t timer_index)
 {
-	int current = timer_configs[timer_index].capture_channel_index;
+	int current = timer_configs[timer_index].capture_channel;
 
 	// Try each of the 4 possible channels, starting from current+1
 	for (int i = 1; i <= 4; i++) {
@@ -455,7 +455,7 @@ static void select_next_capture_channel(uint8_t timer_index)
 			uint8_t output_channel = output_channel_from_timer_channel(timer_index, next);
 
 			if (_bdshot_channel_mask & (1 << output_channel)) {
-				timer_configs[timer_index].capture_channel_index = next;
+				timer_configs[timer_index].capture_channel = next;
 				return;
 			}
 		}
@@ -501,9 +501,6 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	up_clean_dcache((uintptr_t) dshot_capture_buffer[timer_index],
 			(uintptr_t) dshot_capture_buffer[timer_index] + DSHOT_CAPTURE_BUFFER_SIZE(MAX_NUM_CHANNELS_PER_TIMER));
 
-	// Unallocate timer channel for currently selected capture_channel
-	uint8_t capture_channel = timer_configs[timer_index].capture_channel_index;
-
 	// Re-initialize all output channels on this timer as CaptureDMA to ensure all lines idle high
 	for (uint8_t channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
 
@@ -523,7 +520,7 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	select_next_capture_channel(timer_index);
 
 	// Allocate DMA for currently selected capture_channel
-	capture_channel = timer_configs[timer_index].capture_channel_index;
+	uint8_t capture_channel = timer_configs[timer_index].capture_channel;
 	timer_configs[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_ch[capture_channel]);
 
 	// If DMA handler is valid, start DMA
@@ -573,7 +570,7 @@ static void capture_complete_callback(void *arg)
 	// Unallocate the timer as CaptureDMA
 	io_timer_unallocate_timer(timer_index);
 
-	uint8_t capture_channel = timer_configs[timer_index].capture_channel_index;
+	uint8_t capture_channel = timer_configs[timer_index].capture_channel;
 
 	// Disable capture DMA
 	io_timer_capture_dma_req(timer_index, capture_channel, false);
@@ -849,8 +846,8 @@ void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *packet)
 
 		packet->type = DSHOT_EDT_ERPM;
 
-		if (period == 65408) {
-			// Special case for zero motion (e.g., stationary motor)
+		if (period == 65408 || period == 0) {
+			// 65408 is a special case for zero motion (e.g., stationary motor)
 			packet->value = 0;
 
 		} else {
@@ -862,7 +859,7 @@ void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *packet)
 // bits  1-11  - throttle value (0-47 are reserved for commands, 48-2047 give 2000 steps of throttle resolution)
 // bit   12    - dshot telemetry enable/disable
 // bits  13-16 - XOR checksum
-void dshot_motor_data_set(unsigned channel, uint16_t data, bool telemetry)
+void dshot_motor_data_set(uint8_t channel, uint16_t data, bool telemetry)
 {
 	uint8_t timer_index = timer_io_channels[channel].timer_index;
 	uint8_t timer_channel_index = timer_io_channels[channel].timer_channel - 1;
@@ -922,7 +919,7 @@ int up_bdshot_num_channels_ready(void)
 {
 	int num_ready = 0;
 
-	for (unsigned i = 0; i < MAX_TIMER_IO_CHANNELS; ++i) {
+	for (uint8_t i = 0; i < MAX_TIMER_IO_CHANNELS; ++i) {
 		if (_bdshot_processed[i]) {
 			++num_ready;
 		}
@@ -982,42 +979,6 @@ int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
 		if (_edt_curr[channel].ready) {
 			*value = _edt_curr[channel].value;
 			_edt_curr[channel].ready = false;
-			result = PX4_OK;
-		}
-
-		break;
-
-	default:
-		break;
-	}
-
-	return result;
-}
-
-int up_bdshot_get_extended_telemetry_rate(uint8_t channel, int type, int *value)
-{
-	int result = PX4_ERROR;
-
-	switch (type) {
-	case DSHOT_EDT_TEMPERATURE:
-		if (_bdshot_online[channel]) {
-			*value = 0;
-			result = PX4_OK;
-		}
-
-		break;
-
-	case DSHOT_EDT_VOLTAGE:
-		if (_bdshot_online[channel]) {
-			*value = 0;
-			result = PX4_OK;
-		}
-
-		break;
-
-	case DSHOT_EDT_CURRENT:
-		if (_bdshot_online[channel]) {
-			*value = 0;
 			result = PX4_OK;
 		}
 

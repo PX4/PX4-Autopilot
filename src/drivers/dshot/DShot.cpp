@@ -408,11 +408,11 @@ void DShot::update_motor_commands(int num_outputs)
 	}
 }
 
-uint8_t DShot::esc_armed_mask(uint16_t *outputs, int num_outputs)
+uint8_t DShot::esc_armed_mask(uint16_t *outputs, uint8_t num_outputs)
 {
 	uint8_t mask = 0;
 
-	for (int i = 0; i < num_outputs; i++) {
+	for (uint8_t i = 0; i < num_outputs; i++) {
 		if (_mixing_output.isMotor(i)) {
 			if (outputs[i] != DSHOT_DISARM_VALUE) {
 				mask |= (1 << i);
@@ -562,7 +562,7 @@ bool DShot::process_bdshot_telemetry()
 		return false;
 	}
 
-	for (unsigned output_channel = 0; output_channel < DSHOT_MAXIMUM_CHANNELS; output_channel++) {
+	for (uint8_t output_channel = 0; output_channel < DSHOT_MAXIMUM_CHANNELS; output_channel++) {
 		if (!_mixing_output.isMotor(output_channel)) {
 			continue;
 		}
@@ -848,7 +848,7 @@ void DShot::update_params()
 	_mixing_output.setAllMinValues(dshot_min_value);
 
 	// Do not use the minimum parameter for reversible outputs
-	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+	for (uint8_t i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		if (_mixing_output.reversibleOutputs() & (1 << i)) {
 			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
 		}
@@ -951,7 +951,7 @@ bool DShot::initialize_dshot()
 	}
 
 	// Set our mixer to explicitly disable channels we do not control
-	for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+	for (uint8_t i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		if (((1 << i) & _output_mask) == 0) {
 			_mixing_output.disableFunction(i);
 		}
