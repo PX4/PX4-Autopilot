@@ -507,7 +507,7 @@ bool DShot::process_serial_telemetry()
 			// Consume an empty EscData to zero the data
 			consume_esc_data(esc, TelemetrySource::Serial);
 			all_telem_sampled = set_next_telemetry_index();
-			_serial_telem_delay_until = hrt_absolute_time() + 100_ms;
+			_serial_telem_delay_until = hrt_absolute_time() + 1_s;
 			perf_count(_telem_error_perf);
 			break;
 		}
