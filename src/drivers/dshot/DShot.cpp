@@ -143,7 +143,7 @@ bool DShot::updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_
 
 			// Select next command to send (if any)
 			if (_telemetry.telemetryResponseFinished() &&
-				_current_command.finished() && _telemetry.commandResponseFinished()) {
+			    _current_command.finished() && _telemetry.commandResponseFinished()) {
 				select_next_command();
 			}
 
@@ -935,7 +935,8 @@ bool DShot::initialize_dshot()
 		}
 	}
 
-	int ret = up_dshot_init(_output_mask, dshot_frequency, _bdshot_telemetry_enabled, _bdshot_edt_enabled);
+	// TODO: use bdshot_channel_mask
+	int ret = up_dshot_init(_output_mask, _output_mask, dshot_frequency, _bdshot_edt_enabled);
 
 	if (ret < 0) {
 		PX4_ERR("up_dshot_init failed (%i)", ret);
