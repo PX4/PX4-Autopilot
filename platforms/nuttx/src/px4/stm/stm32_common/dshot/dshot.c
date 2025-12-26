@@ -101,13 +101,13 @@ static void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *pac
 
 // Timer configuration struct
 typedef struct timer_config_t {
-	DMA_HANDLE dma_handle;       	// DMA stream for DMA update and eRPM Capture Compare
+	DMA_HANDLE dma_handle;          // DMA stream for DMA update and eRPM Capture Compare
 	bool enabled;                   // Timer enabled
 	bool enabled_channels[4];       // Timer Channels enabled (requested)
 	bool initialized;               // Timer initialized
 	bool initialized_channels[4];   // Timer channels initialized (successfully started)
 	bool bidirectional;             // Timer in bidir (inverted) mode
-	int capture_channel_index;		// Timer channel currently being catured in bidirectional mode
+	int capture_channel_index;      // Timer channel currently being catured in bidirectional mode
 	uint8_t timer_index;            // Timer index. Necessary to have memory for passing pointer to hrt callback
 } timer_config_t;
 
@@ -134,10 +134,11 @@ static const uint32_t gcr_decode[32] = {
 // and thus delay the processing of the data. This should never happen in a properly working system, as the
 // jitter would have to be longer than the control allocator update interval. A warning is issued if this
 // ever does occur.
-static bool 	_bdshot_cycle_complete = true;
 static uint32_t _bdshot_channel_mask = 0xFFFFFFFF;
 static uint32_t _dshot_frequency = 0;
 static bool     _edt_enabled = false; // Extended DShot Telemetry
+
+static bool _bdshot_cycle_complete[MAX_IO_TIMERS] = { [0 ...(MAX_IO_TIMERS - 1)] = true };
 
 // Online flags, set if ESC is reponding with valid BDShot frames
 #define BDSHOT_OFFLINE_COUNT 200
@@ -177,9 +178,6 @@ static struct hrt_call _cc_calls[MAX_IO_TIMERS];
 // decoding status for each channel
 static uint32_t read_ok[MAX_TIMER_IO_CHANNELS] = {};
 static uint32_t read_fail_crc[MAX_TIMER_IO_CHANNELS] = {};
-
-// Mask of output channels with motors assigned (for skipping capture on unused channels)
-static uint32_t _bdshot_active_channels = 0xFFFFFFFF; // default: all active
 
 static perf_counter_t hrt_callback_perf = NULL;
 static perf_counter_t capture_cycle_perf = NULL;
@@ -246,18 +244,20 @@ static void init_timers_dma_up(void)
 		timer_configs[timer_index].initialized = true;
 	}
 
-	// // Bidirectional DShot will free/allocate DMA stream on every update event. This is required
-	// // in order to reconfigure the DMA stream between Timer Burst and CaptureCompare.
-	// if (_bdshot_channel_mask) {
-	// 	// Free the allocated DMA channels
-	// 	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
-	// 		if (timer_configs[timer_index].dma_handle != NULL) {
-	// 			stm32_dmafree(timer_configs[timer_index].dma_handle);
-	// 			timer_configs[timer_index].dma_handle = NULL;
-	// 			PX4_INFO("Freed DMA UP Timer Index %u", timer_index);
-	// 		}
-	// 	}
-	// }
+	// Bidirectional DShot will free/allocate DMA stream on every update event. This is required
+	// in order to reconfigure the DMA stream between Timer Burst and CaptureCompare.
+	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
+
+		if (!timer_configs[timer_index].bidirectional) {
+			continue;
+		}
+
+		if (timer_configs[timer_index].dma_handle != NULL) {
+			stm32_dmafree(timer_configs[timer_index].dma_handle);
+			timer_configs[timer_index].dma_handle = NULL;
+			PX4_INFO("Freed DMA UP Timer Index %u", timer_index);
+		}
+	}
 }
 
 static int32_t init_timer_channels(uint8_t timer_index)
@@ -363,41 +363,47 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 void up_dshot_trigger()
 {
 	if (_bdshot_channel_mask) {
-		if (!_bdshot_cycle_complete) {
-			PX4_WARN("Cylce not complete! Check system jitter");
-			return;
+		bool all_complete = true;
+
+		for (int i = 0; i < MAX_IO_TIMERS; i++) {
+			if (!_bdshot_cycle_complete[i]) {
+				all_complete = false;
+			}
 		}
 
-		_bdshot_cycle_complete = false;
+		if (!all_complete) {
+			PX4_WARN("BDShot cycle not complete! Check system jitter");
+			return;
+		}
 	}
 
 	// For each timer, begin DMA transmit
 	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
 
-		timer_config_t timer = timer_configs[timer_index];
+		timer_config_t *timer = &timer_configs[timer_index];
 
-		io_timer_channel_mode_t mode = timer.bidirectional ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot;
+		io_timer_channel_mode_t mode = timer->bidirectional ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot;
 
 		io_timer_set_enable(true, mode, io_timer_get_group(timer_index));
 
-		if (timer.enabled && timer.initialized) {
+		if (timer->enabled && timer->initialized) {
 
 			uint32_t channel_count = io_timers_channel_mapping.element[timer_index].channel_count_including_gaps;
 
 			io_timer_set_dshot_burst_mode(timer_index, _dshot_frequency, channel_count);
 
-			if (timer.bidirectional) {
+			if (timer->bidirectional) {
 				// Deallocate DMA from previous transaction
-				if (timer.dma_handle != NULL) {
-					stm32_dmastop(timer.dma_handle);
-					stm32_dmafree(timer.dma_handle);
-					timer.dma_handle = NULL;
+				if (timer->dma_handle != NULL) {
+					stm32_dmastop(timer->dma_handle);
+					stm32_dmafree(timer->dma_handle);
+					timer->dma_handle = NULL;
 				}
 
 				// Allocate DMA
-				timer.dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_up);
+				timer->dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dma_map_up);
 
-				if (timer.dma_handle == NULL) {
+				if (timer->dma_handle == NULL) {
 					PX4_WARN("DMA allocation for timer %u failed", timer_index);
 					continue;
 				}
@@ -408,7 +414,7 @@ void up_dshot_trigger()
 					(uintptr_t) dshot_output_buffer[timer_index] +
 					DSHOT_OUTPUT_BUFFER_SIZE(channel_count));
 
-			px4_stm32_dmasetup(timer.dma_handle,
+			px4_stm32_dmasetup(timer->dma_handle,
 					   io_timers[timer_index].base + STM32_GTIM_DMAR_OFFSET,
 					   (uint32_t)(dshot_output_buffer[timer_index]),
 					   channel_count * CHANNEL_OUTPUT_BUFF_SIZE,
@@ -418,16 +424,16 @@ void up_dshot_trigger()
 			io_timer_update_dma_req(timer_index, false);
 
 			// Trigger DMA (DShot Outputs). Only capture compare after the system has had time to boot.
-			if (timer.bidirectional && (hrt_absolute_time() > 3000000)) {
+			if (timer->bidirectional && (hrt_absolute_time() > 3000000)) {
 
 				perf_begin(capture_cycle_perf);
-				stm32_dmastart(timer.dma_handle, dma_burst_finished_callback, &timer.timer_index, false);
+				stm32_dmastart(timer->dma_handle, dma_burst_finished_callback, &timer->timer_index, false);
 
 			} else {
-				stm32_dmastart(timer.dma_handle,  NULL, NULL, false);
+				stm32_dmastart(timer->dma_handle,  NULL, NULL, false);
 
-				if (timer.bidirectional) {
-					_bdshot_cycle_complete = true;
+				if (timer->bidirectional) {
+					_bdshot_cycle_complete[timer_index] = true;
 				}
 			}
 
@@ -448,7 +454,7 @@ static void select_next_capture_channel(uint8_t timer_index)
 		if (timer_configs[timer_index].initialized_channels[next]) {
 			uint8_t output_channel = output_channel_from_timer_channel(timer_index, next);
 
-			if (_bdshot_active_channels & (1 << output_channel)) {
+			if (_bdshot_channel_mask & (1 << output_channel)) {
 				timer_configs[timer_index].capture_channel_index = next;
 				return;
 			}
@@ -601,7 +607,7 @@ static void capture_complete_callback(void *arg)
 
 	perf_end(hrt_callback_perf);
 
-	_bdshot_cycle_complete = true;
+	_bdshot_cycle_complete[timer_index] = true;
 }
 
 void process_capture_results(uint8_t timer_index, uint8_t channel_index)
@@ -740,7 +746,7 @@ uint32_t convert_edge_intervals_to_bitstream(uint8_t timer_index, uint8_t channe
 	unsigned previous = dshot_capture_buffer[timer_index][channel_index][1];
 
 	for (unsigned i = 2; i < CHANNEL_CAPTURE_BUFF_SIZE; ++i) {
-		if (dshot_capture_buffer[channel_index][i] == 0) {
+		if (dshot_capture_buffer[timer_index][channel_index][i] == 0) {
 			// Once we get zeros we're through
 			break;
 		}
@@ -773,7 +779,7 @@ uint32_t convert_edge_intervals_to_bitstream(uint8_t timer_index, uint8_t channe
 
 	// Update base interval with low-pass filter (10% weight on new measurement)
 	// This adapts to each ESC's actual timing while filtering transient noise
-	_base_interval[output_channel] = 0.9f * _base_interval[channel_index] + 0.1f * (float)min_interval;
+	_base_interval[output_channel] = 0.9f * _base_interval[output_channel] + 0.1f * (float)min_interval;
 
 	// Second pass: decode bits using adaptive threshold
 	uint32_t value = 0;
@@ -905,8 +911,7 @@ int up_dshot_arm(bool armed)
 	int ret = PX4_OK;
 
 	for (int timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
-		io_timer_channel_mode_t mode = timer_configs[timer_index].bidirectional ? IOTimerChanMode_Dshot : IOTimerChanMode_DshotInverted;
-
+		io_timer_channel_mode_t mode = timer_configs[timer_index].bidirectional ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot;
 		ret |= io_timer_set_enable(armed, mode, io_timer_get_group(timer_index));
 	}
 
@@ -1042,11 +1047,10 @@ void up_bdshot_status(void)
 		PX4_INFO("BDShot channel mask: 0x%2x", (unsigned)_bdshot_channel_mask);
 	}
 
-	for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
+	if (_edt_enabled) {
+		PX4_INFO("BDShot EDT rates");
 
-		if (_edt_enabled) {
-			PX4_INFO("BDShot EDT rates");
-
+		for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
 			if (_bdshot_online[i]) {
 				PX4_INFO("Ch%d:  eRPM: %dHz  Temp: %.2fHz  Volt: %.2fHz  Curr: %.2fHz",
 					 i,
@@ -1055,9 +1059,9 @@ void up_bdshot_status(void)
 					 (double)_edt_volt[i].rate_hz,
 					 (double)_edt_curr[i].rate_hz);
 			}
-	}
 
-		PX4_INFO("Output %u: read %lu, failed CRC %lu", i, read_ok[i], read_fail_crc[i]);
+			PX4_INFO("Output %u: read %lu, failed CRC %lu", i, read_ok[i], read_fail_crc[i]);
+		}
 	}
 }
 

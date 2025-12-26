@@ -362,7 +362,7 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 
 			imxrt_config_gpio(timer_io_channels[channel].dshot.pinmux | IOMUX_PULL_UP);
 
-			if (bdshot_channel_mask & (channel << 1)) {
+			if (bdshot_channel_mask & (1 << channel)) {
 				dshot_inst[channel].bdshot = true;
 				dshot_inst[channel].bdshot_training_mask = 0;
 				dshot_inst[channel].bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
