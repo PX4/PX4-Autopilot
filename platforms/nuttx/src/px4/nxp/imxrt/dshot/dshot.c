@@ -322,9 +322,9 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 
 
 int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable,
-		  bool enable_extended_dshot_telemetry)
+		  bool edt_enable)
 {
-	(void)enable_extended_dshot_telemetry; // Not implemented
+	(void)edt_enable; // Not implemented
 
 	/* Calculate dshot timings based on dshot_pwm_freq */
 	dshot_tcmp = 0x2F00 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 3) / 2) - 1) & 0xFF);

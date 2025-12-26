@@ -136,9 +136,9 @@ static const uint32_t gcr_decode[32] = {
 // ever does occur.
 static bool 	_bdshot_cycle_complete = true;
 static bool     _bdshot_enabled = false;
-static bool     _extended_dshot_telem = false;
-static uint8_t  _bidi_timer_index = 0; // TODO: BDSHOT_TIM param to select timer index?
+static uint8_t  _bdshot_timer_index = 0; // TODO: BDSHOT_TIM param to select timer index?
 static uint32_t _dshot_frequency = 0;
+static bool     _edt_enabled = false; // Extended DShot Telemetry
 
 // Online flags, set if ESC is reponding with valid BDShot frames
 #define BDSHOT_OFFLINE_COUNT 200
@@ -190,7 +190,7 @@ static perf_counter_t capture_cycle_perf2 = NULL;
 
 static void init_timer_config(uint32_t channel_mask)
 {
-	// Mark timers in use, channels in use, and timers for bidir dshot
+	// Mark timers in use, channels in use, and timers for bdshot
 	for (unsigned output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
 		if (channel_mask & (1 << output_channel)) {
 			uint8_t timer_index = timer_io_channels[output_channel].timer_index;
@@ -210,7 +210,7 @@ static void init_timer_config(uint32_t channel_mask)
 			}
 
 			// NOTE: only 1 timer can be used if Bidirectional DShot is enabled
-			if (_bdshot_enabled && (timer_index != _bidi_timer_index)) {
+			if (_bdshot_enabled && (timer_index != _bdshot_timer_index)) {
 				continue;
 			}
 
@@ -222,7 +222,7 @@ static void init_timer_config(uint32_t channel_mask)
 			timer_configs[timer_index].enabled_channels[timer_channel_index] = true;
 
 			// Mark timer as bidirectional
-			if (_bdshot_enabled && timer_index == _bidi_timer_index) {
+			if (_bdshot_enabled && timer_index == _bdshot_timer_index) {
 				timer_configs[timer_index].bidirectional = true;
 			}
 		}
@@ -245,7 +245,7 @@ static void init_timers_dma_up(void)
 		}
 
 		// NOTE: only 1 timer can be used if Bidirectional DShot is enabled
-		if (_bdshot_enabled && (timer_index != _bidi_timer_index)) {
+		if (_bdshot_enabled && (timer_index != _bdshot_timer_index)) {
 			continue;
 		}
 
@@ -311,12 +311,7 @@ static int32_t init_timer_channels(uint8_t timer_index)
 			timer_configs[timer_index].initialized_channels[timer_channel_index] = true;
 			channels_init_mask |= (1 << output_channel);
 
-			if (timer_configs[timer_index].bidirectional) {
-				PX4_DEBUG("DShot initialized OutputChannel %u (bidirectional)", output_channel);
-
-			} else {
-				PX4_DEBUG("DShot initialized OutputChannel %u", output_channel);
-			}
+			PX4_DEBUG("%cDShot initialized OutputChannel %u", timer_configs[timer_index].bidirectional ? "B" : "", output_channel);
 		}
 	}
 
@@ -324,11 +319,11 @@ static int32_t init_timer_channels(uint8_t timer_index)
 }
 
 int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool bdshot_enable,
-		  bool enable_extended_dshot_telemetry)
+		  bool edt_enable)
 {
 	_dshot_frequency = dshot_pwm_freq;
 	_bdshot_enabled = bdshot_enable;
-	_extended_dshot_telem = enable_extended_dshot_telemetry;
+	_edt_enabled = edt_enable;
 
 	if (_bdshot_enabled) {
 		PX4_INFO("Bidirectional DShot enabled, only one timer will be used");
@@ -849,7 +844,7 @@ uint32_t convert_edge_intervals_to_bitstream(uint8_t channel_index)
 void decode_dshot_telemetry(uint32_t payload, struct BDShotTelemetry *packet)
 {
 	// Extended DShot Telemetry
-	bool edt_enabled = _extended_dshot_telem;
+	bool edt_enabled = _edt_enabled;
 	uint32_t mantissa = payload & 0x01FF;
 	bool is_telemetry = (mantissa & 0x0100) ==
 			    0; // if the msb of the mantissa is zero, then this is an extended telemetry packet
@@ -1058,7 +1053,7 @@ void up_bdshot_status(void)
 		PX4_INFO("BDShot enabled");
 	}
 
-	if (_extended_dshot_telem) {
+	if (_edt_enabled) {
 		PX4_INFO("BDShot EDT rates");
 
 		for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
@@ -1074,7 +1069,7 @@ void up_bdshot_status(void)
 		}
 	}
 
-	uint8_t timer_index = _bidi_timer_index;
+	uint8_t timer_index = _bdshot_timer_index;
 
 	for (uint8_t timer_channel_index = 0; timer_channel_index < MAX_NUM_CHANNELS_PER_TIMER; timer_channel_index++) {
 		bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
