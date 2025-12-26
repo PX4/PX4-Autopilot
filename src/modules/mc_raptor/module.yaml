@@ -34,6 +34,10 @@ parameters:
                 short: Use internal reference instead of trajectory_setpoint
                 long: |
                     When enabled, instead of using the trajectory_setpoint, the position and yaw of the vehicle at the point when the Raptor mode is activated will be used as reference.
-            type: boolean
-            default: false
+                    Use 'mc_raptor intref lissajous <A> <B> <C> <fa> <fb> <fc> <duration> <ramp>' to configure the trajectory.
+            type: enum
+            values:
+                0: None
+                1: Lissajous
+            default: 0
             category: System

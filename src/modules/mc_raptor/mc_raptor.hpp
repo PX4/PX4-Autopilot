@@ -1,5 +1,7 @@
 #pragma once
 
+#include "trajectories/lissajous.hpp"
+
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -261,18 +263,20 @@ private:
 
 	float previous_action[EXECUTOR_SPEC::OUTPUT_DIM];
 	bool use_internal_reference = false;
+	bool internal_reference_params_changed = false;
 	T internal_reference_activation_position[3];
 	T internal_reference_activation_orientation[4];
 	hrt_abstime internal_reference_activation_time;
-	enum class InternalReference : TI {
+	enum class InternalReference : TI { // make sure this corresponds to the enum values for MC_RAPTOR_INTREF in module.yaml
 		NONE = 0,
 		LISSAJOUS = 1
 	};
-	InternalReference internal_reference = InternalReference::LISSAJOUS;
+	InternalReference internal_reference = InternalReference::NONE;
+	LissajousParameters lissajous_params{}; // Set via 'mc_raptor intref lissajous ...' command
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
 		(ParamBool<px4::params::MC_RAPTOR_OFFB>) _param_mc_raptor_offboard,
-		(ParamBool<px4::params::MC_RAPTOR_INTREF>) _param_mc_raptor_intref
+		(ParamInt<px4::params::MC_RAPTOR_INTREF>) _param_mc_raptor_intref
 	)
 
 

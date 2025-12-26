@@ -1,8 +1,6 @@
 #include "mc_raptor.hpp"
 #undef OK
 
-#include "trajectories/lissajous.hpp"
-
 #include <rl_tools/inference/applications/l2f/operations_generic.h>
 #include <rl_tools/persist/backends/tar/operations_generic.h>
 
@@ -32,6 +30,7 @@ Raptor::Raptor(): ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_
 	internal_reference_activation_position[0] = 0.0f;
 	internal_reference_activation_position[1] = 0.0f;
 	internal_reference_activation_position[2] = 0.0f;
+	internal_reference_params_changed = false;
 
 	_actuator_motors_pub.advertise();
 	_tune_control_pub.advertise();
@@ -689,9 +688,15 @@ void Raptor::Run()
 	}
 
 	// position and linear_velocity are guaranteed to be set after this point
+	auto previous_internal_reference = internal_reference;
+	internal_reference = static_cast<InternalReference>(_param_mc_raptor_intref.get());
+	bool internal_reference_changed = previous_internal_reference != internal_reference;
+	if (internal_reference_changed) {
+		PX4_INFO("internal reference changed from %d to %d", (int)previous_internal_reference, (int)internal_reference);
+	}
 
 	if (use_internal_reference && internal_reference != InternalReference::NONE) {
-		if (!previous_active && next_active) {
+		if (next_active && (!previous_active || internal_reference_changed || internal_reference_params_changed)) {
 			internal_reference_activation_position[0] = position[0];
 			internal_reference_activation_position[1] = - position[1];
 			internal_reference_activation_position[2] = - position[2];
@@ -702,35 +707,30 @@ void Raptor::Run()
 			internal_reference_activation_time = current_time;
 			PX4_INFO("internal reference activated at: %f %f %f", (double)internal_reference_activation_position[0],
 				 (double)internal_reference_activation_position[1], (double)internal_reference_activation_position[2]);
+			internal_reference_params_changed = false;
 		}
 
 		Setpoint setpoint{};
 
 		if (internal_reference == InternalReference::LISSAJOUS) {
-			LissajousParameters params;
-			params.A = 15.0f;
-			params.B = 30.0f;
-			params.C = 0.0f;
-			params.z_offset = 0.0f;
-			params.duration = 30.0f;
-			params.ramp_duration = 3.0f;
-			params.a = 1.0f;
-			params.b = 2.0f;
-			params.c = 1.0f;
-			setpoint = lissajous(static_cast<T>(current_time - internal_reference_activation_time) / 1000000, params);
+			setpoint = lissajous(static_cast<T>(current_time - internal_reference_activation_time) / 1000000, lissajous_params);
 
 		} else {
 			PX4_ERR("internal reference type not supported");
 		}
 
 		auto &q = internal_reference_activation_orientation;
-		_trajectory_setpoint.position[0] = (internal_reference_activation_position[0] + setpoint.position[0]);
-		_trajectory_setpoint.position[1] = -(internal_reference_activation_position[1] + setpoint.position[1]);
-		_trajectory_setpoint.position[2] = -(internal_reference_activation_position[2] + setpoint.position[2]);
+		matrix::Quatf q_activation_frame(q[0], q[1], q[2], q[3]);
+		matrix::Vector3f position_activation_frame = q_activation_frame.rotateVector(matrix::Vector3f(setpoint.position[0], setpoint.position[1], setpoint.position[2]));
+		matrix::Vector3f linear_velocity_activation_frame = q_activation_frame.rotateVector(matrix::Vector3f(setpoint.linear_velocity[0], setpoint.linear_velocity[1], setpoint.linear_velocity[2]));
+
+		_trajectory_setpoint.position[0] = +(internal_reference_activation_position[0] + position_activation_frame(0));
+		_trajectory_setpoint.position[1] = -(internal_reference_activation_position[1] + position_activation_frame(1));
+		_trajectory_setpoint.position[2] = -(internal_reference_activation_position[2] + position_activation_frame(2));
 		_trajectory_setpoint.yaw = - atan2f(2.0f * (q[1] * q[2] + q[0] * q[3]), 1.0f - 2.0f * (q[2] * q[2] + q[3] * q[3])) - setpoint.yaw;
-		_trajectory_setpoint.velocity[0] = setpoint.linear_velocity[0];
-		_trajectory_setpoint.velocity[1] = -setpoint.linear_velocity[1];
-		_trajectory_setpoint.velocity[2] = -setpoint.linear_velocity[2];
+		_trajectory_setpoint.velocity[0] = +linear_velocity_activation_frame(0);
+		_trajectory_setpoint.velocity[1] = -linear_velocity_activation_frame(1);
+		_trajectory_setpoint.velocity[2] = -linear_velocity_activation_frame(2);
 		_trajectory_setpoint.yawspeed = -setpoint.yaw_rate;
 		timestamp_last_trajectory_setpoint_set = true;
 		status.timestamp_last_trajectory_setpoint = current_time;
@@ -824,13 +824,6 @@ void Raptor::Run()
 			PX4_ERR("RLtools executor error: Last control timestamp %llu greater than last observation timestamp %llu",
 				(unsigned long long)executor.executor.last_control_timestamp, (unsigned long long)executor.executor.last_observation_timestamp);
 		}
-
-		// if(!executor_status.timing_jitter.OK){
-		// 	PX4_ERR("    timing jitter %fx", (double)executor_status.timing_jitter.MAGNITUDE);
-		// }
-		// if(!executor_status.timing_bias.OK){
-		// 	PX4_ERR("    timing bias %fx", (double)executor_status.timing_bias.MAGNITUDE);
-		// }
 	}
 
 	if (executor_status.source != decltype(executor_status.source)::CONTROL) {
@@ -1003,6 +996,46 @@ int Raptor::print_status()
 
 int Raptor::custom_command(int argc, char *argv[])
 {
+	if (argc >= 2 && strcmp(argv[0], "intref") == 0) {
+		if (strcmp(argv[1], "lissajous") == 0) {
+			// Usage: mc_raptor intref lissajous <A> <B> <C> <fa> <fb> <fc> <duration> <ramp>
+			if (argc != 10) {
+				PX4_ERR("Usage: mc_raptor intref lissajous <A> <B> <C> <fa> <fb> <fc> <duration> <ramp>");
+				return PX4_ERROR;
+			}
+
+			Raptor *instance = get_instance();
+
+			if (instance == nullptr) {
+				PX4_ERR("mc_raptor is not running");
+				return PX4_ERROR;
+			}
+
+			instance->lissajous_params.A = strtof(argv[2], nullptr);
+			instance->lissajous_params.B = strtof(argv[3], nullptr);
+			instance->lissajous_params.C = strtof(argv[4], nullptr);
+			instance->lissajous_params.a = strtof(argv[5], nullptr);
+			instance->lissajous_params.b = strtof(argv[6], nullptr);
+			instance->lissajous_params.c = strtof(argv[7], nullptr);
+			instance->lissajous_params.duration = strtof(argv[8], nullptr);
+			instance->lissajous_params.ramp_duration = strtof(argv[9], nullptr);
+			instance->internal_reference_params_changed = true;
+
+			PX4_INFO("Lissajous params set: A=%.2f B=%.2f C=%.2f fa=%.2f fb=%.2f fc=%.2f duration=%.2f ramp=%.2f \n",
+				 (double)instance->lissajous_params.A,
+				 (double)instance->lissajous_params.B,
+				 (double)instance->lissajous_params.C,
+				 (double)instance->lissajous_params.a,
+				 (double)instance->lissajous_params.b,
+				 (double)instance->lissajous_params.c,
+				 (double)instance->lissajous_params.duration,
+				 (double)instance->lissajous_params.ramp_duration);
+
+
+			return PX4_OK;
+		}
+	}
+
 	return print_usage("unknown command");
 }
 
@@ -1021,6 +1054,15 @@ RAPTOR Policy Flight Mode
 
 	PRINT_MODULE_USAGE_NAME("mc_raptor", "template");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("intref lissajous", "Set Lissajous trajectory parameters");
+	PRINT_MODULE_USAGE_ARG("<A>", "Amplitude X [m]", false);
+	PRINT_MODULE_USAGE_ARG("<B>", "Amplitude Y [m]", false);
+	PRINT_MODULE_USAGE_ARG("<C>", "Amplitude Z [m]", false);
+	PRINT_MODULE_USAGE_ARG("<fa>", "Frequency a", false);
+	PRINT_MODULE_USAGE_ARG("<fb>", "Frequency b", false);
+	PRINT_MODULE_USAGE_ARG("<fc>", "Frequency c", false);
+	PRINT_MODULE_USAGE_ARG("<duration>", "Total duration [s]", false);
+	PRINT_MODULE_USAGE_ARG("<ramp>", "Ramp duration [s]", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

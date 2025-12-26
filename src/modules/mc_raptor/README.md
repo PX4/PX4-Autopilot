@@ -11,6 +11,7 @@ param set COM_DISARM_LAND -1 # When taking off in offboard the landing detector 
 param set IMU_GYRO_RATEMAX 250 # Just for SITL. Tested with IMU_GYRO_RATEMAX=400 on real FCUs
 param set MC_RAPTOR_ENABLE 1
 param set MC_RAPTOR_OFFB 0
+param save
 ```
 Upload the RAPTOR checkpoint to the "SD card": Separate terminal
 ```bash
@@ -104,4 +105,12 @@ mavproxy.py
 ftp mkdir /fs/microsd/etc
 ftp mkdir /fs/microsd/etc/logging
 ftp put logger_topics.txt /fs/microsd/etc/logging/logger_topics.txt
+```
+
+For SITL:
+
+```bash
+ftp mkdir etc
+ftp mkdir logging
+ftp put logger_topics.txt etc/logging/logger_topics.txt
 ```

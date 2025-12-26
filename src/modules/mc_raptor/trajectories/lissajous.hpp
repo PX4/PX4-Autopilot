@@ -4,15 +4,14 @@
 #include <math.h>
 
 struct LissajousParameters {
-	float A = 1.0f;
-	float B = 0.5f;
-	float C = 0.0f;
-	float z_offset = 1.0f;
+	float A = 0.5f; // amplitude a
+	float B = 1.0f; // amplitude b
+	float C = 0.0f; // amplitude c
+	float a = 2.0f; // frequency a
+	float b = 1.0f; // frequency b
+	float c = 1.0f; // frequency c
 	float duration = 10.0f;
 	float ramp_duration = 3.0f;
-	float a = 1.0f;
-	float b = 2.0f;
-	float c = 1.0f;
 };
 
 inline Setpoint lissajous(float time, const LissajousParameters &params)
@@ -28,7 +27,7 @@ inline Setpoint lissajous(float time, const LissajousParameters &params)
 	Setpoint setpoint{};
 	setpoint.position[0] = params.A * sinf(params.a * progress);
 	setpoint.position[1] = params.B * sinf(params.b * progress);
-	setpoint.position[2] = params.z_offset + (params.C * sinf(params.c * progress));
+	setpoint.position[2] = params.C * sinf(params.c * progress);
 	setpoint.yaw = 0.0f;
 	setpoint.linear_velocity[0] = params.A * cosf(params.a * progress) * params.a * d_progress;
 	setpoint.linear_velocity[1] = params.B * cosf(params.b * progress) * params.b * d_progress;
