@@ -84,7 +84,7 @@ protected:
 
 	void _handle_position_update(const ControlData &control_data, bool force_update = false);
 
-	float _q_setpoint[4] = { NAN, NAN, NAN, NAN }; ///< can be NAN if not specifically set
+	float _q_setpoint[4] = {1.f, 0.f, 0.f, 0.f }; ///< can be NAN if not specifically set
 	float _angle_velocity[3] = { NAN, NAN, NAN }; //< [rad/s], can be NAN if not specifically set
 
 	bool _stabilize[3] = { false, false, false };
@@ -95,8 +95,12 @@ protected:
 
 	/** calculate the _angle_outputs (with speed) and stabilize if needed */
 	void _calculate_angle_output(const hrt_abstime &t);
+	void set_last_valid_setpoint(const bool compensate[3], const matrix::Eulerf euler_vehicle);
 
 	float _angle_outputs[3] = { 0.f, 0.f, 0.f }; ///< calculated output angles (roll, pitch, yaw) [rad]
+
+	// Quaternion float setpoint (Can be in different frames of references)
+	matrix::Eulerf _last_valid_setpoint;
 	hrt_abstime _last_update;
 
 private:

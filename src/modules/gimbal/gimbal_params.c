@@ -146,25 +146,31 @@ PARAM_DEFINE_INT32(MNT_MAN_YAW, 0);
 * @value 0 Disable
 * @value 1 Stabilize all axis
 * @value 2 Stabilize yaw for absolute/lock mode.
-* @min 0
-* @max 2
+* @value 3 Stabilize pitch for absolute/lock mode.
 * @group Mount
 */
 PARAM_DEFINE_INT32(MNT_DO_STAB, 0);
 
 /**
-* Range of pitch channel output in degrees (only in AUX output mode).
+* Max positive angle of pitch setpoint (only in MNT_MODE_OUT=AUX). Use output driver settings to calibrate (e.g. PWM_CENT/_MIN/_MAX).
 *
-* @min 1.0
-* @max 720.0
 * @unit deg
 * @decimal 1
 * @group Mount
 */
-PARAM_DEFINE_FLOAT(MNT_RANGE_PITCH, 90.0f);
+PARAM_DEFINE_FLOAT(MNT_MAX_PITCH, 45.0f);
 
 /**
-* Range of roll channel output in degrees (only in AUX output mode).
+* Min negative angle of pitch setpoint (only in MNT_MODE_OUT=AUX). Use output driver settings to calibrate (e.g. PWM_CENT/_MIN/_MAX).
+*
+* @unit deg
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_MIN_PITCH, -45.0f);
+
+/**
+* Range of roll channel output (only in MNT_MODE_OUT=AUX). Use output driver settings to calibrate (e.g. PWM_CENT/_MIN/_MAX). Note that only symmetric angular ranges are supported.
 *
 * @min 1.0
 * @max 720.0
@@ -175,7 +181,7 @@ PARAM_DEFINE_FLOAT(MNT_RANGE_PITCH, 90.0f);
 PARAM_DEFINE_FLOAT(MNT_RANGE_ROLL, 90.0f);
 
 /**
-* Range of yaw channel output in degrees (only in AUX output mode).
+* Range of yaw channel output (only in MNT_MODE_OUT=AUX). Use output driver settings to calibrate (e.g. PWM_CENT/_MIN/_MAX). Note that only symmetric angular ranges are supported.
 *
 * @min 1.0
 * @max 720.0
@@ -185,38 +191,6 @@ PARAM_DEFINE_FLOAT(MNT_RANGE_ROLL, 90.0f);
 */
 PARAM_DEFINE_FLOAT(MNT_RANGE_YAW, 360.0f);
 
-/**
-* Offset for pitch channel output in degrees.
-*
-* @min -360.0
-* @max 360.0
-* @unit deg
-* @decimal 1
-* @group Mount
-*/
-PARAM_DEFINE_FLOAT(MNT_OFF_PITCH, 0.0f);
-
-/**
-* Offset for roll channel output in degrees.
-*
-* @min -360.0
-* @max 360.0
-* @unit deg
-* @decimal 1
-* @group Mount
-*/
-PARAM_DEFINE_FLOAT(MNT_OFF_ROLL, 0.0f);
-
-/**
-* Offset for yaw channel output in degrees.
-*
-* @min -360.0
-* @max 360.0
-* @unit deg
-* @decimal 1
-* @group Mount
-*/
-PARAM_DEFINE_FLOAT(MNT_OFF_YAW, 0.0f);
 
 /**
  * Angular pitch rate for manual input in degrees/second.

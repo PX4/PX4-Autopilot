@@ -146,6 +146,9 @@ void OutputBase::_set_angle_setpoints(const ControlData &control_data)
 		_angle_velocity[0] = NAN;
 		_angle_velocity[1] = NAN;
 		_angle_velocity[2] = NAN;
+		_absolute_angle[0] = false;
+		_absolute_angle[1] = false;
+		_absolute_angle[2] = false;
 		break;
 	}
 }
@@ -238,15 +241,17 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 
 	const matrix::Quatf q_setpoint(_q_setpoint);
 	const bool q_setpoint_valid = q_setpoint.isAllFinite();
-	matrix::Eulerf euler_gimbal{};
+	matrix::Eulerf euler_gimbal(_last_valid_setpoint);
 
 	if (q_setpoint_valid) {
-		euler_gimbal = q_setpoint;
+		_last_valid_setpoint = q_setpoint;
 	}
+
+	euler_gimbal = _last_valid_setpoint;
 
 	for (int i = 0; i < 3; ++i) {
 
-		if (q_setpoint_valid && PX4_ISFINITE(euler_gimbal(i))) {
+		if (PX4_ISFINITE(euler_gimbal(i))) {
 			_angle_outputs[i] = euler_gimbal(i);
 		}
 
@@ -264,11 +269,17 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 		}
 	}
 
+	set_last_valid_setpoint(compensate, euler_vehicle);
+
 	// constrain angle outputs to [-range/2, range/2]
 	_angle_outputs[0] = math::constrain(_angle_outputs[0], math::radians(-_parameters.mnt_range_roll / 2),
 					    math::radians(_parameters.mnt_range_roll / 2));
-	_angle_outputs[1] = math::constrain(_angle_outputs[1], math::radians(-_parameters.mnt_range_pitch / 2),
-					    math::radians(_parameters.mnt_range_pitch / 2));
+
+	// constrain angle outputs to [min, max] to allow for asymmetrical angular ranges
+	_angle_outputs[1] = math::constrain(_angle_outputs[1],
+					    math::radians(_parameters.mnt_min_pitch),
+					    math::radians(_parameters.mnt_max_pitch));
+	// constrain angle outputs to [-range/2, range/2]
 	_angle_outputs[2] = math::constrain(_angle_outputs[2], math::radians(-_parameters.mnt_range_yaw / 2),
 					    math::radians(_parameters.mnt_range_yaw / 2));
 
@@ -287,6 +298,50 @@ void OutputBase::set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool y
 	_stabilize[0] = roll_stabilize;
 	_stabilize[1] = pitch_stabilize;
 	_stabilize[2] = yaw_stabilize;
+}
+
+void OutputBase::set_last_valid_setpoint(const bool compensate[3], const matrix::Eulerf euler_vehicle)
+{
+
+	_last_valid_setpoint.phi() = _angle_outputs[0];
+	_last_valid_setpoint.theta() = _angle_outputs[1];
+	_last_valid_setpoint.psi() = _angle_outputs[2];
+
+	switch (_parameters.mnt_do_stab) {
+
+	case MntDoStabilize::ALL_AXES: {
+
+			for (int i = 0; i < 3; i++) {
+				if (compensate[i]) {
+					_last_valid_setpoint(i) += euler_vehicle(i);
+				}
+			}
+
+			break;
+		}
+
+	case MntDoStabilize::YAW_LOCK: {
+			if (compensate[2]) {
+				_last_valid_setpoint.psi() += euler_vehicle(2);
+			}
+
+			break;
+		}
+
+	case MntDoStabilize::PITCH_LOCK: {
+
+			if (compensate[1]) {
+				_last_valid_setpoint.theta() += euler_vehicle(1);
+			}
+
+			break;
+		}
+
+	default: {
+			// Dont add anything
+			break;
+		}
+	}
 }
 
 } /* namespace gimbal */
