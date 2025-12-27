@@ -74,6 +74,14 @@ enum PX4_CUSTOM_SUB_MODE_AUTO {
 	PX4_CUSTOM_SUB_MODE_EXTERNAL6,
 	PX4_CUSTOM_SUB_MODE_EXTERNAL7,
 	PX4_CUSTOM_SUB_MODE_EXTERNAL8,
+	PX4_CUSTOM_SUB_MODE_EXTERNAL9,
+	PX4_CUSTOM_SUB_MODE_EXTERNAL10,
+	PX4_CUSTOM_SUB_MODE_EXTERNAL11,
+	PX4_CUSTOM_SUB_MODE_EXTERNAL12,
+	PX4_CUSTOM_SUB_MODE_EXTERNAL13,
+	PX4_CUSTOM_SUB_MODE_EXTERNAL14,
+	PX4_CUSTOM_SUB_MODE_EXTERNAL15,
+	PX4_CUSTOM_SUB_MODE_EXTERNAL16
 };
 
 enum PX4_CUSTOM_SUB_MODE_POSCTL {
@@ -230,6 +238,46 @@ static inline union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL8:
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_EXTERNAL8;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL9:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_EXTERNAL9;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL10:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_EXTERNAL10;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL11:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_EXTERNAL11;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL12:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_EXTERNAL12;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL13:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_EXTERNAL13;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL14:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_EXTERNAL14;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL15:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_EXTERNAL15;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL16:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_EXTERNAL16;
 		break;
 	}
 

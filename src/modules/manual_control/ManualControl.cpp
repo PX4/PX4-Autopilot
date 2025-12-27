@@ -600,6 +600,14 @@ int8_t ManualControl::navStateFromParam(int32_t param_value)
 		case 105: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL6;
 		case 106: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL7;
 		case 107: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL8;
+		case 108: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL9;
+		case 109: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL10;
+		case 110: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL11;
+		case 111: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL12;
+		case 112: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL13;
+		case 113: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL14;
+		case 114: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL15;
+		case 115: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL16;
 	}
 	return -1;
 }

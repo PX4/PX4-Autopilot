@@ -95,9 +95,25 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL7: return navigation_mode_t::external7;
 
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL8: return navigation_mode_t::external8;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL9: return navigation_mode_t::external9;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL10: return navigation_mode_t::external10;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL11: return navigation_mode_t::external11;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL12: return navigation_mode_t::external12;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL13: return navigation_mode_t::external13;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL14: return navigation_mode_t::external14;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL15: return navigation_mode_t::external15;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL16: return navigation_mode_t::external16;
 	}
 
-	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 31, "update navigation mode map");
+	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 39, "update navigation mode map");
 
 	return navigation_mode_t::unknown;
 }
