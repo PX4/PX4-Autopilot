@@ -171,5 +171,14 @@ __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
  */
 __EXPORT extern int up_bdshot_channel_status(uint8_t channel);
 
+/**
+ * Set the mask of channels for bidirectional dshot erpm capture.
+ * Only channels with motors assigned should be set in the mask.
+ * This allows skipping capture on unused channels.
+ *
+ * @param mask		Bitmask of channels (LSB = channel 0) to capture eRPM from.
+ */
+__EXPORT extern void up_bdshot_set_active_channels(uint32_t mask);
+
 
 __END_DECLS
