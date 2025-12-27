@@ -424,8 +424,9 @@ void up_dshot_trigger()
 			io_timer_update_dma_req(timer_index, false);
 
 			// Trigger DMA (DShot Outputs). Only capture compare after the system has had time to boot.
-			if (timer->bidirectional && (hrt_absolute_time() > 3000000)) {
+			static const uint64_t ESC_BOOT_DELAY_US = 3000000;
 
+			if (timer->bidirectional && (hrt_absolute_time() > ESC_BOOT_DELAY_US)) {
 				perf_begin(capture_cycle_perf);
 				stm32_dmastart(timer->dma_handle, dma_burst_finished_callback, &timer->timer_index, false);
 

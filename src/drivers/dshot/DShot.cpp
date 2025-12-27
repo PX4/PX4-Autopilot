@@ -72,7 +72,6 @@ int DShot::init()
 	update_params();
 
 	_serial_telemetry_enabled = _param_dshot_tel_cfg.get();
-	_bdshot_telemetry_enabled = _param_dshot_bidir_en.get();
 	_bdshot_edt_enabled = _param_dshot_bidir_edt.get();
 
 	if (initialize_dshot()) {
@@ -172,16 +171,13 @@ void DShot::select_next_command()
 	// NOTE: only update when we're not actively programming an ESC
 	if (!_dshot_programming_active) {
 
-		// Get the next update from the queue?
 		if (_esc_eeprom_write_sub.updated()) {
-
-			// TODO: because uORB can't queue?? (what is the point of the ORB_QUEUE_LENGTH then??)
-			auto last = _esc_eeprom_write_sub.get_last_generation();
+			auto last_generation = _esc_eeprom_write_sub.get_last_generation();
 			_esc_eeprom_write_sub.copy(&_esc_eeprom_write);
-			auto current = _esc_eeprom_write_sub.get_last_generation();
+			auto current_generation = _esc_eeprom_write_sub.get_last_generation();
 
-			if (current != last + 1) {
-				PX4_ERR("esc_eeprom_write lost, generation %u -> %u", last, current);
+			if (current_generation != last_generation + 1) {
+				PX4_ERR("esc_eeprom_write lost, generation %u -> %u", last_generation, current_generation);
 			}
 
 			PX4_INFO("ESC%u: starting programming mode", _esc_eeprom_write.index + 1);
@@ -204,12 +200,14 @@ void DShot::select_next_command()
 
 	_current_command.clear();
 
-	if (_bdshot_telemetry_enabled && _bdshot_edt_enabled && needs_edt_request_mask) {
+	if (_bdshot_output_mask && _bdshot_edt_enabled && needs_edt_request_mask) {
 		// EDT Request first
 		int next_motor_index = 0;
 
 		for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-			if (needs_edt_request_mask & (1 << i)) {
+			bool is_bdshot = _bdshot_output_mask & (1 << i);
+
+			if (is_bdshot && (needs_edt_request_mask & (1 << i))) {
 				next_motor_index = i;
 				break;
 			}
@@ -222,12 +220,14 @@ void DShot::select_next_command()
 		_bdshot_edt_requested_mask |= (1 << next_motor_index);
 		PX4_INFO("ESC%d: requesting EDT at time %.2fs", next_motor_index + 1, (double)now / 1000000.);
 
-	} else if (_serial_telemetry_enabled && _bdshot_telemetry_enabled && needs_settings_request_mask && serial_telem_delay_elapsed) {
+	} else if (_serial_telemetry_enabled && _bdshot_output_mask && needs_settings_request_mask && serial_telem_delay_elapsed) {
 		// Settings Request next
 		int next_motor_index = 0;
 
 		for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-			if (needs_settings_request_mask & (1 << i)) {
+			bool is_bdshot = _bdshot_output_mask & (1 << i);
+
+			if (is_bdshot && (needs_settings_request_mask & (1 << i))) {
 				next_motor_index = i;
 				break;
 			}
@@ -546,7 +546,7 @@ bool DShot::set_next_telemetry_index()
 
 bool DShot::process_bdshot_telemetry()
 {
-	if (!_bdshot_telemetry_enabled) {
+	if (!_bdshot_output_mask) {
 		return false;
 	}
 
@@ -563,7 +563,10 @@ bool DShot::process_bdshot_telemetry()
 	}
 
 	for (uint8_t output_channel = 0; output_channel < DSHOT_MAXIMUM_CHANNELS; output_channel++) {
-		if (!_mixing_output.isMotor(output_channel)) {
+		bool is_motor = _mixing_output.isMotor(output_channel);
+		bool is_bdshot = _bdshot_output_mask & (1 << output_channel);
+
+		if (!is_motor || !is_bdshot) {
 			continue;
 		}
 
@@ -606,14 +609,14 @@ bool DShot::process_bdshot_telemetry()
 					}
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
-						esc.voltage = value * 0.25f; // BDShot voltage is in 0.25V
+						esc.voltage = value / 4.f; // BDShot voltage is in 0.25V
 
 					} else {
 						esc.voltage = _esc_status.esc[motor_index].esc_voltage; // use previous
 					}
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
-						esc.current = value * 0.5f; // BDShot current is in 0.5V
+						esc.current = value / 2.f; // BDShot current is in 0.5A
 
 					} else {
 						esc.current = _esc_status.esc[motor_index].esc_current;  // use previous
@@ -641,10 +644,12 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 		return;
 	}
 
+	bool is_bdshot = _bdshot_output_mask & (1 << esc.motor_index);
+
 	// Require both sources online when enabled
 	uint8_t online_mask = 0xFF;
 
-	if (_bdshot_telemetry_enabled) {
+	if (is_bdshot) {
 		online_mask &= _bdshot_telem_online_mask;
 	}
 
@@ -660,7 +665,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 
 	if (source == TelemetrySource::Serial) {
 		// Only use SerialTelemetry eRPM when BDShot is disabled
-		if (!_bdshot_telemetry_enabled) {
+		if (!is_bdshot) {
 			_esc_status.esc[esc.motor_index].timestamp = esc.timestamp;
 			_esc_status.esc[esc.motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
 		}
@@ -730,6 +735,7 @@ void DShot::handle_vehicle_commands()
 		case vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE:
 			PX4_INFO("VEHICLE_CMD_REQUEST_MESSAGE: param1: %f", (double)command.param1);
 			handle_esc_request_eeprom(command);
+			break;
 
 		default:
 			break;
@@ -759,7 +765,7 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	command_ack.target_component = command.source_component;
 	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
-	if ((motor_index >= 0) || (motor_index < DSHOT_MAXIMUM_CHANNELS)) {
+	if ((motor_index >= 0) && (motor_index < DSHOT_MAXIMUM_CHANNELS)) {
 		int type = (int)(command.param1 + 0.5f);
 		PX4_INFO("motor_index: %i type: %i", motor_index, type);
 		_current_command.clear();
@@ -882,7 +888,8 @@ void DShot::mixerChanged()
 		}
 	}
 
-	// TODO: re-init dshot.c output channels and stuff
+	// TODO: verify that this works
+	initialize_dshot();
 }
 
 bool DShot::initialize_dshot()
@@ -891,36 +898,40 @@ bool DShot::initialize_dshot()
 	uint32_t dshot_frequency_param = 0;
 
 	_output_mask = 0;
+	_bdshot_output_mask = 0;
 
-	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
+	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
 
 		// Get mask of actuator channels associated with this timer group
-		uint32_t channels = io_timer_get_group(timer);
+		uint32_t channels = io_timer_get_group(timer_index);
 
 		if (channels == 0) {
 			continue;
 		}
 
-		// TODO: allow BDSHOT options
 		char param_name[17];
-		snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
+		snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer_index);
 
 		int32_t tim_config = 0;
 		param_t handle = param_find(param_name);
 		param_get(handle, &tim_config);
 		unsigned int dshot_frequency_request = 0;
 
-		if (tim_config == -5) {
+		if (tim_config == -5 || tim_config == -8) {
 			dshot_frequency_request = DSHOT150;
 			_output_mask |= channels;
 
-		} else if (tim_config == -4) {
+		} else if (tim_config == -4 || tim_config == -7) {
 			dshot_frequency_request = DSHOT300;
 			_output_mask |= channels;
 
-		} else if (tim_config == -3) {
+		} else if (tim_config == -3 || tim_config == -6) {
 			dshot_frequency_request = DSHOT600;
 			_output_mask |= channels;
+		}
+
+		if (tim_config < -5) {
+			_bdshot_output_mask |= io_timer_get_group(timer_index);
 		}
 
 		if (dshot_frequency_request != 0) {
@@ -935,8 +946,8 @@ bool DShot::initialize_dshot()
 		}
 	}
 
-	// TODO: use bdshot_channel_mask
-	int ret = up_dshot_init(_output_mask, _output_mask, dshot_frequency, _bdshot_edt_enabled);
+	_bdshot_output_mask &= _output_mask;
+	int ret = up_dshot_init(_output_mask, _bdshot_output_mask, dshot_frequency, _bdshot_edt_enabled);
 
 	if (ret < 0) {
 		PX4_ERR("up_dshot_init failed (%i)", ret);
@@ -1006,7 +1017,7 @@ int DShot::print_status()
 	// Configuration
 	PX4_INFO("Configuration:");
 	PX4_INFO("  Output Mask:        0x%02lx (%d channels)", (unsigned long)_output_mask, count_set_bits(_output_mask));
-	PX4_INFO("  Bidirectional:      %s", _bdshot_telemetry_enabled ? "Enabled" : "Disabled");
+	PX4_INFO("  BDShot Telemetry:   %s", _bdshot_output_mask ? "Enabled" : "Disabled");
 	PX4_INFO("  Serial Telemetry:   %s%s", _serial_telemetry_enabled ? "Enabled" : "Disabled",
 		 _serial_telemetry_enabled ? (strlen(_telemetry_device) ? "" : " (no device)") : "");
 
@@ -1029,7 +1040,7 @@ int DShot::print_status()
 	PX4_INFO("  3D Mode:            %s", _param_dshot_3d_enable.get() ? "Enabled" : "Disabled");
 
 	// Telemetry Status
-	if (_bdshot_telemetry_enabled || _serial_telemetry_enabled) {
+	if (_bdshot_output_mask || _serial_telemetry_enabled) {
 		print_spacer();
 		PX4_INFO("Telemetry Status:");
 		PX4_INFO("  %-6s %-8s %-8s %-12s %-12s", "Motor", "BDShot", "Serial", "BDShot Err", "Serial Err");
@@ -1042,7 +1053,7 @@ int DShot::print_status()
 			const char *bdshot_status = "-";
 			const char *serial_status = "-";
 
-			if (_bdshot_telemetry_enabled) {
+			if (_bdshot_output_mask) {
 				bdshot_status = (_bdshot_telem_online_mask & (1 << i)) ? "Online" : "Offline";
 			}
 
@@ -1058,7 +1069,7 @@ int DShot::print_status()
 				 (unsigned long)_serial_telem_errors[i]);
 		}
 
-		if (_bdshot_telemetry_enabled && _bdshot_edt_enabled) {
+		if (_bdshot_output_mask && _bdshot_edt_enabled) {
 			PX4_INFO("  EDT Requested Mask: 0x%02x", _bdshot_edt_requested_mask);
 		}
 
@@ -1068,7 +1079,7 @@ int DShot::print_status()
 	}
 
 	// Bidirectional DShot hardware status
-	if (_bdshot_telemetry_enabled) {
+	if (_bdshot_output_mask) {
 		print_spacer();
 		PX4_INFO("Bidirectional DShot Hardware:");
 		up_bdshot_status();
@@ -1089,7 +1100,7 @@ int DShot::print_status()
 	PX4_INFO("Performance Counters:");
 	perf_print_counter(_cycle_perf);
 
-	if (_bdshot_telemetry_enabled) {
+	if (_bdshot_output_mask) {
 		perf_print_counter(_bdshot_success_perf);
 		perf_print_counter(_bdshot_error_perf);
 	}

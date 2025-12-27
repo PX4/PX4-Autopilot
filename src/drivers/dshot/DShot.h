@@ -124,6 +124,7 @@ private:
 	// Mixer
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uint32_t _output_mask{0}; // Configured outputs for this (shouldn't this live in OutputModuleInterface?)
+	uint32_t _bdshot_output_mask{0};
 
 	// uORB
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -158,7 +159,7 @@ private:
 
 	// Parameters we must load only at init
 	bool _serial_telemetry_enabled = false;
-	bool _bdshot_telemetry_enabled = false;
+
 	bool _bdshot_edt_enabled = false;
 
 	// Perf counters
@@ -217,7 +218,6 @@ private:
 		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
 		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count,
-		(ParamBool<px4::params::DSHOT_BIDIR_EN>) _param_dshot_bidir_en,
 		(ParamBool<px4::params::DSHOT_BIDIR_EDT>) _param_dshot_bidir_edt,
 		(ParamBool<px4::params::DSHOT_TEL_CFG>) _param_dshot_tel_cfg
 	)

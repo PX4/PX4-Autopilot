@@ -137,8 +137,13 @@ int DShotTelemetry::parseCommandResponse()
 		return -1;
 	}
 
-	uint8_t buf[COMMAND_RESPONSE_MAX_SIZE];
+	uint8_t buf[COMMAND_RESPONSE_MAX_SIZE] = {};
 	int bytes = _uart.read(buf, sizeof(buf));
+
+	// Handle potential overflow
+	if (_command_response_position + bytes >= COMMAND_RESPONSE_MAX_SIZE) {
+		_command_response_position = 0;
+	}
 
 	// Add bytes to buffer
 	for (int i = 0; i < bytes; i++) {
@@ -234,7 +239,7 @@ TelemetryStatus DShotTelemetry::decodeTelemetryResponse(uint8_t *buffer, int len
 				esc_data->timestamp = hrt_absolute_time();
 				esc_data->temperature = (float)temperature;
 				esc_data->voltage = (float)voltage * 0.01f;
-				esc_data->current = (float)current * 0.01f;;
+				esc_data->current = (float)current * 0.01f;
 				esc_data->erpm = erpm * 100;
 
 				++_num_successful_responses;
