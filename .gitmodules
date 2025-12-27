@@ -103,3 +103,6 @@
 [submodule "src/drivers/ins/sbgecom/sbgECom"]
 	path = src/drivers/ins/sbgecom/sbgECom
 	url = https://github.com/PX4/sbgECom.git
+[submodule "src/lib/osqp"]
+	path = src/lib/osqp
+	url = git@github.com:Gromiusz/osqp.git
