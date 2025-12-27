@@ -295,6 +295,8 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 						mode.replaces_nav_state = request.replace_internal_mode;
 					}
 
+					mode.request_offboard_setpoints = request.request_offboard_setpoints;
+
 					nav_mode_id = _modes.addExternalMode(mode);
 					reply.mode_id = nav_mode_id;
 				}
@@ -657,6 +659,21 @@ void ModeManagement::getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can
 			valid_nav_state_mask |= 1u << i;
 		}
 	}
+}
+
+bool ModeManagement::currentModeAcceptsOffboardSetpoints(uint8_t nav_state) const
+{
+	// OFFBOARD mode always accepts offboard setpoints
+	if (nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+		return true;
+	}
+
+	// Check if it's an external mode that requests offboard setpoints
+	if (_modes.valid(nav_state)) {
+		return _modes.mode(nav_state).request_offboard_setpoints;
+	}
+
+	return false;
 }
 
 #endif /* CONSTRAINED_FLASH */

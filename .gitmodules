@@ -103,3 +103,9 @@
 [submodule "src/drivers/ins/sbgecom/sbgECom"]
 	path = src/drivers/ins/sbgecom/sbgECom
 	url = https://github.com/PX4/sbgECom.git
+[submodule "src/modules/mc_raptor/blob"]
+	path = src/modules/mc_raptor/blob
+	url = https://github.com/rl-tools/px4-blob
+[submodule "src/lib/rl_tools/rl_tools"]
+	path = src/lib/rl_tools/rl_tools
+	url = https://github.com/rl-tools/rl-tools.git

@@ -1,6 +1,6 @@
 # Request to register an external component
 
-uint32 MESSAGE_VERSION = 2
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -20,6 +20,5 @@ bool enable_replace_internal_mode  # set to true if an internal mode should be r
 uint8 replace_internal_mode        # vehicle_status::NAVIGATION_STATE_*
 bool activate_mode_immediately     # switch to the registered mode (can only be set in combination with an executor)
 bool not_user_selectable           # mode cannot be selected by the user
-bool request_offboard_setpoints    # set to true if the registered mode wants to receive offboard trajectory setpoints via MAVLink
 
 uint8 ORB_QUEUE_LENGTH = 2
