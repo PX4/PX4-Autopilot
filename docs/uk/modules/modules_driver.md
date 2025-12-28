@@ -15,38 +15,6 @@
 - [Rpm Sensor](modules_driver_rpm_sensor.md)
 - [Transponder](modules_driver_transponder.md)
 
-## MCP23009
-
-Source: [drivers/gpio/mcp23009](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/gpio/mcp23009)
-
-### Usage {#MCP23009_usage}
-
-```
-MCP23009 <command> [arguments...]
- Commands:
-   start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
-                 (default=1))
-     [-f <val>]  bus frequency in kHz
-     [-q]        quiet startup (no message if no device found)
-     [-a <val>]  I2C address
-                 default: 37
-     [-D <val>]  Direction
-                 default: 0
-     [-O <val>]  Output
-                 default: 0
-     [-P <val>]  Pullups
-                 default: 0
-     [-U <val>]  Update Interval [ms]
-                 default: 0
-
-   stop
-
-   status        print status info
-```
-
 ## atxxxx
 
 Source: [drivers/osd/atxxxx](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/osd/atxxxx)
@@ -749,6 +717,40 @@ lsm303agr <command> [arguments...]
    status        print status info
 ```
 
+## mcp230xx
+
+Source: [lib/drivers/mcp_common](https://github.com/PX4/PX4-Autopilot/tree/main/src/lib/drivers/mcp_common)
+
+### Usage {#mcp230xx_usage}
+
+```
+mcp230xx <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 39
+     [-D <val>]  Direction (1=Input, 0=Output)
+                 default: 0
+     [-O <val>]  Output
+                 default: 0
+     [-P <val>]  Pullups
+                 default: 0
+     [-U <val>]  Update Interval [ms]
+                 default: 0
+     [-M <val>]  First minor number
+                 default: 0
+
+   stop
+
+   status        print status info
+```
+
 ## mcp9808
 
 Source: [drivers/temperature_sensor/mcp9808](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/temperature_sensor/mcp9808)
@@ -898,8 +900,6 @@ fetching the latest mixing result and write them to PCA9685 at its scheduling ti
 
 It can do full 12bits output as duty-cycle mode, while also able to output precious pulse width
 that can be accepted by most ESCs and servos.
-
-The I2C bus and address can be configured via parameters `PCA9685_EN_BUS` and `PCA9685_I2C_ADDR`, or via command line arguments.
 
 ### Приклади
 
