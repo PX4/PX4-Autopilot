@@ -117,6 +117,30 @@ MavlinkReceiver::MavlinkReceiver(Mavlink &parent) :
 	_mavlink_timesync(parent)
 {
 }
+void
+MavlinkReceiver::handle_message_winch_control_custom(mavlink_message_t *msg)
+{
+    mavlink_winch_control_custom_t mavlink_winch_ctrl;
+    mavlink_msg_winch_control_custom_decode(msg, &mavlink_winch_ctrl);
+
+    winch_control_s winch_control{};
+    winch_control.timestamp = hrt_absolute_time();
+    winch_control.command = mavlink_winch_ctrl.command;
+    winch_control.release_hook = mavlink_winch_ctrl.release_hook;
+    winch_control.comm_mode = mavlink_winch_ctrl.comm_mode;
+    winch_control.led_control = mavlink_winch_ctrl.led_control;
+    winch_control.rope_cut = mavlink_winch_ctrl.rope_cut;
+    winch_control.fuse_check = mavlink_winch_ctrl.fuse_check;
+    winch_control.clear_rope_length = mavlink_winch_ctrl.clear_rope_length;
+    winch_control.clear_weight = mavlink_winch_ctrl.clear_weight;
+    winch_control.fixed_rope_up_length = mavlink_winch_ctrl.fixed_rope_up_length;
+    winch_control.fixed_rope_down_length = mavlink_winch_ctrl.fixed_rope_down_length;
+    winch_control.calibration_factor = mavlink_winch_ctrl.calibration_factor;
+    winch_control.target_address = mavlink_winch_ctrl.target_address;
+    winch_control.priority = mavlink_winch_ctrl.priority;
+
+    _winch_control_pub.publish(winch_control);
+}
 
 void
 MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress)
@@ -323,6 +347,9 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS:
 		handle_message_gimbal_device_attitude_status(msg);
 		break;
+	case MAVLINK_MSG_ID_WINCH_CONTROL_CUSTOM:
+                handle_message_winch_control_custom(msg);
+                break;
 
 #if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
 

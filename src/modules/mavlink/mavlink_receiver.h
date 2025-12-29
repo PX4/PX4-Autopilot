@@ -42,7 +42,7 @@
  */
 
 #pragma once
-
+#include <uORB/topics/winch_control.h>
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
 #include "mavlink_mission.h"
@@ -57,6 +57,8 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/topics/winch_control.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -142,6 +144,8 @@ private:
 	static void *start_trampoline(void *context);
 	void run();
 
+
+
 	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
 
 	/**
@@ -154,6 +158,7 @@ private:
 	uint8_t handle_request_message_command(uint16_t message_id, float param2 = 0.0f, float param3 = 0.0f,
 					       float param4 = 0.0f, float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
 
+	void handle_message_winch_control_custom(mavlink_message_t *msg);
 	void handle_message(mavlink_message_t *msg);
 	void handle_messages_in_gimbal_mode(mavlink_message_t &msg);
 
@@ -295,6 +300,7 @@ private:
 	uint16_t _mavlink_status_last_packet_rx_drop_count{0};
 
 	// ORB publications
+	uORB::Publication<winch_control_s>                      _winch_control_pub{ORB_ID(winch_control)};
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};

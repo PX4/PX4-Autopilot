@@ -52,10 +52,13 @@
 #include <px4_platform_common/time.h>
 #include <math.h>
 
+#include <uORB/topics/winch_status.h>
+//#include <v2.0/winch/mavlink.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/vehicle_status.h>
 
+#include "streams/WINCH_STATUS_CUSTOM.hpp"
 #include "streams/ACTUATOR_OUTPUT_STATUS.hpp"
 #include "streams/ALTITUDE.hpp"
 #include "streams/ATTITUDE.hpp"
@@ -522,6 +525,9 @@ static const StreamListItem streams_list[] = {
 #if defined(GLOBAL_POSITION_HPP)
 	create_stream_list_item<MavlinkStreamGLobalPosition>(),
 #endif // GLOBAL_POSITION_HPP
+#if defined(WINCH_STATUS_CUSTOM_HPP)
+    create_stream_list_item<MavlinkStreamWinchStatusCustom>(),
+#endif
 };
 
 const char *get_stream_name(const uint16_t msg_id)

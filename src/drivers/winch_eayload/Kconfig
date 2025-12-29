@@ -1,0 +1,5 @@
+menuconfig DRIVERS_WINCH_EAYLOAD
+    bool "winch_eayload"
+    default n
+    ---help---
+        Enable support for EayLoad-50/80 Winch Driver

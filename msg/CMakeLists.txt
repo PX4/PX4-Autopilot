@@ -241,6 +241,8 @@ set(msg_files
 	VehicleTorqueSetpoint.msg
 	VelocityLimits.msg
 	WheelEncoders.msg
+	WinchControl.msg
+        WinchStatus.msg
 	YawEstimatorStatus.msg
 	versioned/ActuatorMotors.msg
 	versioned/ActuatorServos.msg
