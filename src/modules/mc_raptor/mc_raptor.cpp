@@ -691,6 +691,7 @@ void Raptor::Run()
 	auto previous_internal_reference = internal_reference;
 	internal_reference = static_cast<InternalReference>(_param_mc_raptor_intref.get());
 	bool internal_reference_changed = previous_internal_reference != internal_reference;
+
 	if (internal_reference_changed) {
 		PX4_INFO("internal reference changed from %d to %d", (int)previous_internal_reference, (int)internal_reference);
 	}
@@ -721,8 +722,10 @@ void Raptor::Run()
 
 		auto &q = internal_reference_activation_orientation;
 		matrix::Quatf q_activation_frame(q[0], q[1], q[2], q[3]);
-		matrix::Vector3f position_activation_frame = q_activation_frame.rotateVector(matrix::Vector3f(setpoint.position[0], setpoint.position[1], setpoint.position[2]));
-		matrix::Vector3f linear_velocity_activation_frame = q_activation_frame.rotateVector(matrix::Vector3f(setpoint.linear_velocity[0], setpoint.linear_velocity[1], setpoint.linear_velocity[2]));
+		matrix::Vector3f position_activation_frame = q_activation_frame.rotateVector(matrix::Vector3f(setpoint.position[0], setpoint.position[1],
+				setpoint.position[2]));
+		matrix::Vector3f linear_velocity_activation_frame = q_activation_frame.rotateVector(matrix::Vector3f(setpoint.linear_velocity[0],
+				setpoint.linear_velocity[1], setpoint.linear_velocity[2]));
 
 		_trajectory_setpoint.position[0] = +(internal_reference_activation_position[0] + position_activation_frame(0));
 		_trajectory_setpoint.position[1] = -(internal_reference_activation_position[1] + position_activation_frame(1));
