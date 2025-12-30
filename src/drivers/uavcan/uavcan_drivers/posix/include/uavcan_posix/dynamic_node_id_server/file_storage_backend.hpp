@@ -126,11 +126,13 @@ protected:
 		}
 
 		DIR *const dir = opendir(base_path.c_str());
+
 		if (!dir) {
 			return -uavcan::ErrFailure;
 		}
 
 		struct dirent *ent = nullptr;
+
 		while ((ent = readdir(dir)) != nullptr) {
 			if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0) {
 				continue;
@@ -161,6 +163,7 @@ protected:
 		path += key;
 
 		struct stat sb;
+
 		if (stat(path.c_str(), &sb) != 0) {
 			out_time_usec = 0;
 			return -uavcan::ErrFailure;
@@ -170,17 +173,17 @@ protected:
 		uint64_t nsec = 0;
 
 		// st_mtim is POSIX.1-2008; st_mtimespec is used on some BSDs.
-		#if defined(__APPLE__) || defined(__MACH__)
+#if defined(__APPLE__) || defined(__MACH__)
 		sec = static_cast<uint64_t>(sb.st_mtimespec.tv_sec);
 		nsec = static_cast<uint64_t>(sb.st_mtimespec.tv_nsec);
-		#else
+#else
 		sec = static_cast<uint64_t>(sb.st_mtime);
-		#if defined(_POSIX_C_SOURCE) && (_POSIX_C_SOURCE >= 200809L)
+#if defined(_POSIX_C_SOURCE) && (_POSIX_C_SOURCE >= 200809L)
 		nsec = static_cast<uint64_t>(sb.st_mtim.tv_nsec);
-		#else
+#else
 		nsec = 0;
-		#endif
-		#endif
+#endif
+#endif
 
 		out_time_usec = sec * 1000000ULL + (nsec / 1000ULL);
 		return 0;
