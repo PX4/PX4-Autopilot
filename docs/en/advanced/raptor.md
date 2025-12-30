@@ -145,3 +145,41 @@ We also tested the linear velocity in a straight line and found that the RAPTOR 
 ![Linear Oscillation](../../assets/advanced/raptor_results_line.svg)
 
 
+
+### Troubleshooting
+
+
+#### Logging
+
+Use this logging configuration to log all relevant topics at maximum rate:
+
+```sh
+cat > logger_topics.txt << EOF
+raptor_status 0
+raptor_input 0
+trajectory_setpoint 0
+vehicle_local_position 0
+vehicle_angular_velocity 0
+vehicle_attitude 0
+vehicle_status 0
+actuator_motors 0
+EOF
+```
+Use mavproxy FTP to upload it:
+```sh
+mavproxy.py
+```
+##### Real
+```sh
+ftp mkdir /fs/microsd/etc
+ftp mkdir /fs/microsd/etc/logging
+ftp put logger_topics.txt /fs/microsd/etc/logging/logger_topics.txt
+```
+
+##### SITL
+
+```sh
+ftp mkdir etc
+ftp mkdir logging
+ftp put logger_topics.txt etc/logging/logger_topics.txt
+```
