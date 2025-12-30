@@ -71,7 +71,7 @@ For more information, refer to the [CAN Wiring](../can/index.md#wiring) instruct
 
 The recommended mounting orientation is with the connectors on the board pointing towards the **back of vehicle**.
 
-The sensor can be mounted anywhere on the frame, but you will need to specify its position, relative to vehicle centre of gravity, during [PX4 configuration](#px4-configuration).
+The sensor can be mounted anywhere on the frame, but you will need to specify its position, relative to vehicle centre of gravity, during [PX4 Configuration](#px4-configuration).
 
 ## Firmware Setup
 
