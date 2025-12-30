@@ -819,6 +819,7 @@
     - [Neural Networks](advanced/neural_networks.md)
       - [Neural Network Module Utilities](advanced/nn_module_utilities.md)
       - [TensorFlow Lite Micro (TFLM)](advanced/tflm.md)
+    - [RAPTOR: A Foundation Policy for Quadrotor Control](advanced/raptor.md)
     - [Installing driver for Intel RealSense R200](advanced/realsense_intel_driver.md)
     - [Switching State Estimators](advanced/switching_state_estimators.md)
     - [Out-of-Tree Modules](advanced/out_of_tree_modules.md)
