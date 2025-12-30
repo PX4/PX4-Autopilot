@@ -116,6 +116,12 @@ make px4_fmu-v6c_raptor upload
 
 We recommend initially testing the RAPTOR mode using a dead man's switch. For this we configure the mode selection to be e.g. connected to a push button or a switch with a spring that automatically switches back. In the default position we configure e.g. `Stabilized Mode` and in the pressed configuration we select `External Mode 1` (since the name of the external mode is only transmitted at runtime). This allows to takeoff manually and then just trigger the RAPTOR mode for a split-second to see how it behaves. In our experiments it has been exceptionally stable (zero crashes) but we still think progressively activating it for longer is the safest way to build confidence.
 
+::: warning
+Make sure that your platform uses the standard PX4 quadrotor motor layout:
+
+1: front-right, 2: back-left, 3: front-left, 4: back-right
+:::
+
 
 ##### Other Platforms
 
