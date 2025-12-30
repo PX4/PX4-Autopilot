@@ -82,7 +82,17 @@ class Server : public AbstractServer
             }
             else
             {
-                UAVCAN_TRACE("dynamic_node_id_server::distributed::Server", "Request ignored - no free node ID left");
+                // No never-before-used node IDs left: reuse oldest allocations (oldest -> newest).
+                const NodeID reused_node_id = storage_.reuseOldestAllocatedNodeID(node_.getNodeID(), unique_id);
+
+                if (reused_node_id.isUnicast())
+                {
+                    tryPublishAllocationResult(reused_node_id, unique_id);
+                }
+                else
+                {
+                    UAVCAN_TRACE("dynamic_node_id_server::centralized::Server", "Request ignored - no node ID available");
+                }
             }
         }
     }

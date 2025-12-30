@@ -243,8 +243,7 @@ struct UAVCAN_EXPORT IsDynamicallyAllocatable
 {
     static void check()
     {
-        char dummy[(sizeof(T) <= MemPoolBlockSize) ? 1 : -1] = { '0' };
-        (void)dummy;
+        static_assert(sizeof(T) <= MemPoolBlockSize, "Type is too large to be allocated using the UAVCAN memory pool");
     }
 };
 

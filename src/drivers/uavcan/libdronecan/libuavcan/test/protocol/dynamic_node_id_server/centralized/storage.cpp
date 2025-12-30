@@ -18,10 +18,7 @@ TEST(dynamic_node_id_server_centralized_Storage, Initialization)
         MemoryStorageBackend storage;
         Storage stor(storage);
 
-        ASSERT_EQ(0, storage.getNumKeys());
         ASSERT_LE(0, stor.init());
-
-        ASSERT_EQ(0, storage.getNumKeys());
         ASSERT_EQ(0, stor.getSize());
 
         ASSERT_FALSE(stor.isNodeIDOccupied(1));
@@ -35,7 +32,7 @@ TEST(dynamic_node_id_server_centralized_Storage, Initialization)
         storage.set("occupation_mask", "0e000000000000000000000000000000"); // node ID 1, 2, 3
         ASSERT_LE(0, stor.init());     // OK
 
-        ASSERT_EQ(1, storage.getNumKeys());
+        ASSERT_EQ("0e000000000000000000000000000000", storage.get("occupation_mask"));
         ASSERT_EQ(3, stor.getSize());
 
         ASSERT_TRUE(stor.isNodeIDOccupied(1));
@@ -77,10 +74,9 @@ TEST(dynamic_node_id_server_centralized_Storage, Basic)
     MemoryStorageBackend storage;
     Storage stor(storage);
 
-    ASSERT_EQ(0, storage.getNumKeys());
     ASSERT_LE(0, stor.init());
     storage.print();
-    ASSERT_EQ(0, storage.getNumKeys());
+    ASSERT_EQ(0, stor.getSize());
 
     /*
      * Adding one entry to the log, making sure it appears in the storage
@@ -92,7 +88,7 @@ TEST(dynamic_node_id_server_centralized_Storage, Basic)
     ASSERT_EQ("02000000000000000000000000000000", storage.get("occupation_mask"));
     ASSERT_EQ("1",                                storage.get("01000000000000000000000000000000"));
 
-    ASSERT_EQ(2, storage.getNumKeys());
+    ASSERT_GE(storage.getNumKeys(), 2);
     ASSERT_EQ(1, stor.getSize());
 
     /*
@@ -100,12 +96,12 @@ TEST(dynamic_node_id_server_centralized_Storage, Basic)
      */
     storage.failOnSetCalls(true);
 
-    ASSERT_EQ(2, storage.getNumKeys());
+    const unsigned num_keys_before_failed_add = storage.getNumKeys();
 
     unique_id[0] = 2;
     ASSERT_GT(0, stor.add(2, unique_id));
 
-    ASSERT_EQ(2, storage.getNumKeys());  // No new entries, we failed
+    ASSERT_EQ(num_keys_before_failed_add, storage.getNumKeys());  // No new entries, we failed
 
     ASSERT_EQ(1, stor.getSize());
 

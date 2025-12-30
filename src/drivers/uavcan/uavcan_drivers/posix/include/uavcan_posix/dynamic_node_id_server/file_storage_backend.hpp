@@ -17,6 +17,7 @@
 #include <cerrno>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #include <uavcan/protocol/dynamic_node_id_server/storage_backend.hpp>
 
@@ -90,6 +91,13 @@ protected:
 		using namespace std;
 		PathString path = base_path.c_str();
 		path += key;
+
+		// Per IStorageBackend contract: empty value requests deletion
+		if (value.empty()) {
+			(void)unlink(path.c_str());
+			return;
+		}
+
 		int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, FilePermissions);
 
 		if (fd >= 0) {
@@ -109,6 +117,73 @@ protected:
 			(void)fsync(fd);
 			(void)close(fd);
 		}
+	}
+
+	virtual int forEachKey(ForEachKeyCallback cb, void *user_data) const
+	{
+		if (cb == nullptr) {
+			return -uavcan::ErrInvalidParam;
+		}
+
+		DIR *const dir = opendir(base_path.c_str());
+		if (!dir) {
+			return -uavcan::ErrFailure;
+		}
+
+		struct dirent *ent = nullptr;
+		while ((ent = readdir(dir)) != nullptr) {
+			if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0) {
+				continue;
+			}
+
+			// Skip non-regular entries (best-effort; some filesystems report DT_UNKNOWN)
+			if (ent->d_type != DT_REG && ent->d_type != DT_UNKNOWN) {
+				continue;
+			}
+
+			// Enforce key length constraint
+			if (strlen(ent->d_name) > MaxStringLength) {
+				continue;
+			}
+
+			String key;
+			key = ent->d_name;
+			cb(key, user_data);
+		}
+
+		(void)closedir(dir);
+		return 0;
+	}
+
+	virtual int getKeyUpdateTimeUSec(const String &key, uint64_t &out_time_usec) const
+	{
+		PathString path = base_path.c_str();
+		path += key;
+
+		struct stat sb;
+		if (stat(path.c_str(), &sb) != 0) {
+			out_time_usec = 0;
+			return -uavcan::ErrFailure;
+		}
+
+		uint64_t sec = 0;
+		uint64_t nsec = 0;
+
+		// st_mtim is POSIX.1-2008; st_mtimespec is used on some BSDs.
+		#if defined(__APPLE__) || defined(__MACH__)
+		sec = static_cast<uint64_t>(sb.st_mtimespec.tv_sec);
+		nsec = static_cast<uint64_t>(sb.st_mtimespec.tv_nsec);
+		#else
+		sec = static_cast<uint64_t>(sb.st_mtime);
+		#if defined(_POSIX_C_SOURCE) && (_POSIX_C_SOURCE >= 200809L)
+		nsec = static_cast<uint64_t>(sb.st_mtim.tv_nsec);
+		#else
+		nsec = 0;
+		#endif
+		#endif
+
+		out_time_usec = sec * 1000000ULL + (nsec / 1000ULL);
+		return 0;
 	}
 
 public:

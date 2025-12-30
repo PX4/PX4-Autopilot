@@ -120,6 +120,8 @@ if (DEBUG_BUILD)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wzero-as-null-pointer-constant -Wnon-virtual-dtor")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wsign-promo -Wold-style-cast")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations")
+        # Some toolchains warn on upstream googletest code; don't fail the build on that.
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=maybe-uninitialized")
         set(optim_flags "-O3 -DNDEBUG -g0")
     else ()
         message(STATUS "Compiler ID: ${CMAKE_CXX_COMPILER_ID}")
@@ -136,6 +138,29 @@ if (DEBUG_BUILD)
         message(STATUS "GTest found, tests will be built and run.")
         add_libuavcan_test(libuavcan_test       uavcan       "")                 # Default
         add_libuavcan_test(libuavcan_test_optim uavcan_optim "${optim_flags}")   # Max optimization
+
+        # Focused subset: dynamic node ID server tests only.
+        # This is useful for PX4 where we want regression coverage for allocator/storage changes
+        # without depending on the entire legacy test tree building cleanly on newer compilers.
+        find_package(Threads REQUIRED)
+        set(DNID_TEST_SOURCES
+            test/test_main.cpp
+            test/protocol/dynamic_node_id_server/event.cpp
+            test/protocol/dynamic_node_id_server/storage_marshaller.cpp
+            test/protocol/dynamic_node_id_server/allocation_request_manager.cpp
+            test/protocol/dynamic_node_id_server/node_discoverer.cpp
+            test/protocol/dynamic_node_id_server/centralized/storage.cpp
+            test/protocol/dynamic_node_id_server/centralized/server.cpp
+        )
+        add_executable(libuavcan_dynamic_node_id_server_test ${DNID_TEST_SOURCES})
+        add_dependencies(libuavcan_dynamic_node_id_server_test uavcan)
+        target_link_libraries(libuavcan_dynamic_node_id_server_test uavcan gtest ${CMAKE_THREAD_LIBS_INIT})
+        if (${UAVCAN_PLATFORM} STREQUAL "linux")
+            target_link_libraries(libuavcan_dynamic_node_id_server_test rt)
+        endif()
+        add_test(NAME libuavcan_dynamic_node_id_server_test
+                 COMMAND libuavcan_dynamic_node_id_server_test
+                 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     else (GTEST_FOUND)
         message(STATUS "GTest was not found, tests will not be built")
     endif (GTEST_FOUND)

@@ -6,7 +6,10 @@
 #define UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_SERVER_STORAGE_BACKEND_HPP_INCLUDED
 
 #include <uavcan/build_config.hpp>
+#include <uavcan/error.hpp>
 #include <uavcan/marshal/types.hpp>
+
+#include <stdint.h>
 
 namespace uavcan
 {
@@ -52,6 +55,34 @@ public:
      * Failures will be ignored.
      */
     virtual void set(const String& key, const String& value) = 0;
+
+    /**
+     * Optional extension: enumerate all keys currently present in the backend.
+     *
+     * This is used for storage migration and maintenance tasks (e.g., rebuilding reverse indices).
+     * Implementations that cannot support enumeration may keep the default implementation.
+     */
+    typedef void (*ForEachKeyCallback)(const String& key, void* user_data);
+
+    virtual int forEachKey(ForEachKeyCallback cb, void* user_data) const
+    {
+        (void)cb;
+        (void)user_data;
+        return -ErrFailure;
+    }
+
+    /**
+     * Optional extension: return an approximate "last update" timestamp for the given key.
+     * Units: microseconds since Unix epoch.
+     *
+     * Implementations that cannot support timestamps may keep the default implementation.
+     */
+    virtual int getKeyUpdateTimeUSec(const String& key, uint64_t& out_time_usec) const
+    {
+        (void)key;
+        out_time_usec = 0;
+        return -ErrFailure;
+    }
 
     virtual ~IStorageBackend() { }
 };
