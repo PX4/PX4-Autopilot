@@ -78,8 +78,26 @@ commander mode ext{RAPTOR_MODE_ID}
 ```
 
 
+#### Internal Reference
+
+To use the internal reference generator (Position and Lissajous only for now):
+
+```sh
+param set MC_RAPTOR_INTREF 1
+```
+Restart (ctrl+c)
+
+```sh
+commander takeoff
+commander mode ext{RAPTOR_MODE_ID}
+mc_raptor intref lissajous 0.5 1 0 2 1 1 10 3
+```
+
+
+You can adjust the parameters of the trajectory with the following tool. Make sure to copy the generated CLI string at the end:
 
 
 <iframe src="https://rl-tools.github.io/mc-raptor-trajectory-tool" width="100%" height="1700" style="border: none;"></iframe>
 
-test
+
+### Real-World
