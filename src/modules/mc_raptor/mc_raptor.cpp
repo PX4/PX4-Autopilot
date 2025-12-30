@@ -1054,7 +1054,8 @@ RAPTOR Policy Flight Mode
 
 	PRINT_MODULE_USAGE_NAME("mc_raptor", "template");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("intref lissajous", "Set Lissajous trajectory parameters");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("intref", "Modify internal reference");
+	PRINT_MODULE_USAGE_ARG("lissajous", "Set Lissajous trajectory parameters", false);
 	PRINT_MODULE_USAGE_ARG("<A>", "Amplitude X [m]", false);
 	PRINT_MODULE_USAGE_ARG("<B>", "Amplitude Y [m]", false);
 	PRINT_MODULE_USAGE_ARG("<C>", "Amplitude Z [m]", false);
