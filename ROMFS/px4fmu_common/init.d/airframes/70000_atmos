@@ -20,6 +20,9 @@
 
 . ${R}etc/init.d/rc.sc_defaults
 
+# Overwrite DDS AG IP
+param set-default UXRCE_DDS_AG_IP -1062731775
+
 param set-default CA_AIRFRAME 14
 param set-default MAV_TYPE 45
 
