@@ -9,7 +9,7 @@ Use at your own risk.
 
 RAPTOR is a tiny reinforcement-learning based neural network module for quadrotor control that can be used to control a wide variety of quadrotors without retuning.
 
-This topic provides an overview of the fundamental comments, and explains how you can use the module in simulation and real hardware.
+This topic provides an overview of the fundamental concepts, and explains how you can use the module in simulation and real hardware.
 
 ## Overview
 
@@ -85,7 +85,7 @@ ftp mkdir /raptor # for the real FMU use: /fs/microsd/raptor
 ftp put src/modules/mc_raptor/blob/policy.tar /raptor/policy.tar
 ```
 
-restart (<kbd>Ctrl+C</kbd>)
+Restart (<kbd>Ctrl+C</kbd>)
 
 ```sh
 make px4_sitl_raptor gz_x500
@@ -99,9 +99,14 @@ Note the external mode ID of `RAPTOR` in the status report
 commander mode ext{RAPTOR_MODE_ID}
 ```
 
-#### Internal Reference
+#### Internal Reference Trajectory Generation
 
-To use the internal reference generator (Position and Lissajous only for now):
+In our experience, feeding the `trajectory_setpoint` via MAVLink (even via WiFi telemetry) is unreliable. But we do not want to constrain this module to only platforms that bear a companion board. Hence, we integrate a simple internal reference trajectory generator for testing and benchmarking purposes. It supports position (constant position and yaw setpoint) as well as configurable [Lissajous trajectories](https://en.wikipedia.org/wiki/Lissajous_curve).
+
+The Lissajous generator can e.g. generate smooth figure-eight trajectories that contain interesting accelerations for benchmarking and testing purposes.
+Please refer to the embedded configurator later in this section to explore the Lissajous parameters and view the resulting trajectories.
+
+To use the internal reference generator, select the mode: 0: Off/activation position tracking, 1: Lissajous
 
 ```sh
 param set MC_RAPTOR_INTREF 1
@@ -135,7 +140,7 @@ make px4_fmu-v6c_raptor upload
 We recommend initially testing the RAPTOR mode using a dead man's switch.
 For this we configure the mode selection to be e.g. connected to a push button or a switch with a spring that automatically switches back.
 In the default position we configure e.g. `Stabilized Mode` and in the pressed configuration we select `External Mode 1` (since the name of the external mode is only transmitted at runtime).
-This allows to takeoff manually and then just trigger the RAPTOR mode for a split-second to see how it behaves.
+This allows to take off manually and then just trigger the RAPTOR mode for a split-second to see how it behaves.
 In our experiments it has been exceptionally stable (zero crashes) but we still think progressively activating it for longer is the safest way to build confidence.
 
 ::: warning
