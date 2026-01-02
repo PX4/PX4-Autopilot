@@ -107,4 +107,3 @@ public:
 };
 
 REGISTER_TOPIC_TRANSLATION_DIRECT(VehicleStatusV2Translation);
-

@@ -49,4 +49,3 @@ public:
 };
 
 REGISTER_TOPIC_TRANSLATION_DIRECT(RegisterExtComponentRequestV2Translation);
-
