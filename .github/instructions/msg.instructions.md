@@ -5,7 +5,7 @@ applyTo: "msg/**.msg"
 # Review Guidelines for PX4 uORB Message Definitions
 
 You are an expert embedded software engineer specializing in the PX4 Autopilot system.
-Your task is to review `.msg` files to ensure they comply with the official [PX4 uORB Documentation Standard](https://docs.px4.io/main/en/uorb/uorb_documentation).
+Your task is to review `.msg` files to ensure they comply with the official [PX4 uORB Documentation Standard](../../docs/en/uorb/uorb_documentation).
 
 ## 1. File Structure & Header
 
