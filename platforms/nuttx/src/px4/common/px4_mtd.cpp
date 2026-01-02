@@ -51,6 +51,7 @@
 
 #include <inttypes.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include "systemlib/px4_macros.h"
 
@@ -298,7 +299,10 @@ int px4_mtd_config(const px4_mtd_manifest_t *mft_mtd)
 		return rv;
 	}
 
-	for (uint8_t i = num_instances, num_entry = 0u; i < total_new_instances; ++i, ++num_entry) {
+	uint8_t i;
+	uint8_t num_entry;
+
+	for (i = num_instances, num_entry = 0u; i < total_new_instances; ++i, ++num_entry) {
 
 		instances[i] = new mtd_instance_s;
 
@@ -414,9 +418,9 @@ memoryout:
 
 			/* Now create a character device on the block device */
 
-			rv = bchdev_register(blockname, instances[i]->partition_names[part], false);
+		rv = bchdev_register(blockname, instances[i]->partition_names[part], O_RDWR);
 
-			if (rv < 0) {
+		if (rv < 0) {
 				PX4_ERR("bchdev_register %s failed: %d", instances[i]->partition_names[part], rv);
 				goto errout;
 			}
