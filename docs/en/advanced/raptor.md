@@ -1,26 +1,30 @@
-# RAPTOR: A Foundation Policy for Quadrotor Control
+# RAPTOR: A Neural Network Module for Quadrotor Control
 
-<Badge type="tip" text="main (planned for PX4 v1.18)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="main (planned for PX4 v1.18)" /> <Badge type="info" text="Multicopter" /> <Badge type="warning" text="Experimental" />
 
 ::: warning
 This is an experimental module.
 Use at your own risk.
 :::
 
+RAPTOR is a tiny reinforcement-learning based neural network module for quadrotor control that can be used to control a wide variety of quadrotors without retuning.
+
+This topic provides an overview of the fundamental comments, and explains how you can use the module in simulation and real hardware.
+
 ## Overview
 
 ![Visual Abstract](../../assets/advanced/neural_networks/raptor/raptor_visual_abstract.jpg)
 
 RAPTOR is a foundation policy for end-to-end quadrotor control.
-It is motivated by the adaptability of humans exemplified e.g. when driving cars.
-Upfront humans require a couple hours of driving experience to be able to smoothly control the car and blend into traffic.
-But when facing a new car (e.g. rental) they do not need to re-learn driving they only need to experience a few rough braking/acceleration/steering responses to adjust their previously learned behavior.
+It is motivated by the human ability to adapt learned behaviours to similar situations.
+For example, while humans may initially require many hours of driving experience to be able to smoothly control the car and blend into traffic, when faced with a new vehicle they do not need to re-learn how to drive — they only need to experience a few rough braking/acceleration/steering responses to adjust their previously learned behavior.
 
-Reinforcement Learning (RL) is a machine learning technique that, like humans, is using trial and error to learn decision making/control behaviors.
-(Deep) RL is interesting for controlling robots (and particularly UAVs) because it overcomes some fundamental limitations of classic, modular control architectures (information loss at module boundaries, requirement for expert tuning, etc.).
-RL has, e.g., been very successful in [high-performance quadrotor flight](https://doi.org/10.1038/s41586-023-06419-4) but the aforementioned quality of adaptive transfer is not present in current RL-based methods.
+Reinforcement Learning (RL) is a machine learning technique that uses trial and error to learn decision making/control behaviors, which is similar to the way that humans learn to drive.
+RL is interesting for controlling robots (and particularly UAVs) because it overcomes some fundamental limitations of classic, modular control architectures (information loss at module boundaries, requirement for expert tuning, etc).
+RL has been very successful in [high-performance quadrotor flight](https://doi.org/10.1038/s41586-023-06419-4), but previous designs have not been particularly adaptable to new frames and vehicle types.
 
 RAPTOR fills this gap and demonstrates a single, tiny neural-network control policy that can control a wide variety of quadrotors (tested on real quadrotors from 32 g to 2.4 kg).
+
 For more details please refer to this video:
 
 <lite-youtube videoid="hVzdWRFTX3k" title="RAPTOR: A Foundation Policy for Quadrotor Control"/>
@@ -124,7 +128,7 @@ Make sure to copy the generated CLI string at the end:
 
 The `mc_raptor` module has been mostly tested with the Holybro X500 V2 but it should also work out-of-the-box with other platforms (cf. the [Other Platforms](#other-platforms) section).
 
-```
+```sh
 make px4_fmu-v6c_raptor upload
 ```
 
