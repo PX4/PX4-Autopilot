@@ -45,6 +45,10 @@ add_dependencies(px4 git_nuttx)
 # Get module libraries from global properties
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 if (NOT CONFIG_BUILD_FLAT)
+	add_executable(px4_kernel ${PX4_SOURCE_DIR}/platforms/common/empty.c)
+	set(KERNEL_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}_kernel.elf)
+	set_target_properties(px4_kernel PROPERTIES OUTPUT_NAME ${KERNEL_NAME})
+	add_dependencies(px4_kernel git_nuttx)
 	get_property(kernel_module_libraries GLOBAL PROPERTY PX4_KERNEL_MODULE_LIBRARIES)
 endif()
 
