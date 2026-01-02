@@ -1,4 +1,4 @@
-# RAPTOR: A Neural Network Module for Quadrotor Control
+# RAPTOR: A Neural Network Module for Adaptive Quadrotor Control
 
 <Badge type="tip" text="main (planned for PX4 v1.18)" /> <Badge type="info" text="Multicopter" /> <Badge type="warning" text="Experimental" />
 
