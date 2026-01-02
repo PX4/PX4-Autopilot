@@ -90,6 +90,8 @@ The steps are:
 
 Once enabled, the module will be detected on boot.
 
+There is also CAN built-in bus termination via [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)
+
 ### PX4 Configuration
 
 You need to set necessary [DroneCAN](index.md) parameters and define offsets if the sensor is not centred within the vehicle:
@@ -100,6 +102,8 @@ You need to set necessary [DroneCAN](index.md) parameters and define offsets if 
 - The parameters [EKF2_GPS_POS_X](../advanced_config/parameter_reference.md#EKF2_GPS_POS_X), [EKF2_GPS_POS_Y](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Y) and [EKF2_GPS_POS_Z](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Z) can be set to account for the offset of the ARK G5 RTK HEADING GPS from the vehicle's centre of gravity.
 
 ### Parameter references
+
+This GPS is using ARK's private driver, the prameters below only exist on the firmware we ship the GPS with. You can set these params either in QGC or using the DroneCAN GUI Tool.
 
 #### SEP_OFFS_YAW (float)
 
@@ -127,7 +131,7 @@ Note that this can be interpreted as the "roll" angle in case the antennas are a
 
 Configures the output rate for GNSS data messages.
 
-- -1: OnChange
+- -1: OnChange (Default)
 - 50: 50 ms
 - 100: 100 ms
 - 200: 200 ms

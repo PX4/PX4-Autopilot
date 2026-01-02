@@ -90,6 +90,8 @@ The steps are:
 
 Once enabled, the module will be detected on boot.
 
+There is also CAN built-in bus termination via [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)
+
 ### PX4 Configuration
 
 You need to set necessary [DroneCAN](index.md) parameters and define offsets if the sensor is not centred within the vehicle:
