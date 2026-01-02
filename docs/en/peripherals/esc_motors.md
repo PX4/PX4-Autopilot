@@ -30,7 +30,7 @@ The following list is non-exhaustive.
 [PWM]: ../peripherals/pwm_escs_and_servo.md
 [Holybro Kotleta 20]: ../dronecan/holybro_kotleta.md
 [Vertiq Motor & ESC modules]: ../peripherals/vertiq.md
-[RaccoonLab CAN PWM nodes]: ../dronecan/raccoonlab_nodes.md
+[RaccoonLab CAN PWM ESC nodes]: ../dronecan/raccoonlab_nodes.md
 [Zubax Telega]: ../dronecan/zubax_telega.md
 
 ## See Also
