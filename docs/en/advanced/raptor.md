@@ -15,7 +15,7 @@ This topic provides an overview of the fundamental concepts, and explains how yo
 
 ![Visual Abstract](../../assets/advanced/neural_networks/raptor/raptor_visual_abstract.jpg)
 
-RAPTOR is a foundation policy for end-to-end quadrotor control.
+RAPTOR is an adaptive policy for end-to-end quadrotor control.
 It is motivated by the human ability to adapt learned behaviours to similar situations.
 For example, while humans may initially require many hours of driving experience to be able to smoothly control the car and blend into traffic, when faced with a new vehicle they do not need to re-learn how to drive — they only need to experience a few rough braking/acceleration/steering responses to adjust their previously learned behavior.
 
@@ -41,7 +41,7 @@ For more information please refer to the paper at [https://arxiv.org/abs/2509.11
 
 ## Structure
 
-The RAPTOR foundation policy is an end-to-end policy that takes position, orientation, linear velocity and angular velocity as inputs and outputs motor commands (`actuator_motors`).
+The RAPTOR control policy is an end-to-end policy that takes position, orientation, linear velocity and angular velocity as inputs and outputs motor commands (`actuator_motors`).
 To integrate it into PX4 we use the external mode registration facilities in PX4 (which also works well for internal modes as demonstrated in `mc_nn_control`).
 Because of this architecture the `mc_raptor` module is completely decoupled from all other PX4 logic.
 
