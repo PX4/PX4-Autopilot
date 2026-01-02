@@ -57,7 +57,19 @@ constexpr char DEFAULT_NETMAN_CONFIG[] = CONFIG_BOARD_ROOT_PATH "/net.cfg";
 #  define DEFAULT_IP      CONFIG_NETMAN_FALLBACK_IPADDR
 #else
 #  define DEFAULT_PROTO   IPv4PROTO_STATIC
+#  ifndef CONFIG_NETINIT_IPADDR
+#    define CONFIG_NETINIT_IPADDR 0xC0A80004  /* 192.168.0.4 fallback */
+#  endif
 #  define DEFAULT_IP      CONFIG_NETINIT_IPADDR
+#endif
+#ifndef CONFIG_NETINIT_NETMASK
+#  define CONFIG_NETINIT_NETMASK 0xFFFFFF00  /* 255.255.255.0 fallback */
+#endif
+#ifndef CONFIG_NETINIT_DRIPADDR
+#  define CONFIG_NETINIT_DRIPADDR 0xC0A80001  /* 192.168.0.1 fallback */
+#endif
+#ifndef CONFIG_NETINIT_DNSIPADDR
+#  define CONFIG_NETINIT_DNSIPADDR 0xC0A80001  /* 192.168.0.1 fallback */
 #endif
 #define DEFAULT_NETMASK   CONFIG_NETINIT_NETMASK
 #define DEFAULT_ROUTER    CONFIG_NETINIT_DRIPADDR
@@ -375,7 +387,7 @@ write_reboot:
 
 	sleep(1);
 
-	px4_reboot_request(REBOOT_REQUEST);
+	px4_reboot_request(REBOOT_REQUEST, 0);
 
 	while (1) { px4_usleep(1); } // this command should not return on success
 

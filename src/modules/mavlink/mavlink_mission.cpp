@@ -53,7 +53,7 @@
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
-#include <crc32.h>
+#include <nuttx/crc32.h>
 
 using matrix::wrap_2pi;
 

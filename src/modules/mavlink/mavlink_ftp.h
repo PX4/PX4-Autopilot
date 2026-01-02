@@ -37,7 +37,7 @@
 ///     @author px4dev, Don Gagne <don@thegagnes.com>
 
 #include <dirent.h>
-#include <queue.h>
+#include <sys/queue.h>
 
 #include <px4_platform_common/defines.h>
 #include <systemlib/err.h>

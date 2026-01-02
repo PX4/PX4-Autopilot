@@ -58,7 +58,7 @@
 #include <termios.h>
 #include <sys/stat.h>
 #include <nuttx/arch.h>
-#include <crc32.h>
+#include <nuttx/crc32.h>
 #include <drivers/drv_hrt.h>
 #include <sys/ioctl.h>
 

@@ -35,7 +35,7 @@
 ///	@author Don Gagne <don@thegagnes.com>
 
 #include <sys/stat.h>
-#include <crc32.h>
+#include <nuttx/crc32.h>
 #include <stdio.h>
 #include <fcntl.h>
 

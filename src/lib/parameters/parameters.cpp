@@ -47,7 +47,7 @@
 #include <parameters/px4_parameters.hpp>
 #include <lib/tinybson/tinybson.h>
 
-#include <crc32.h>
+#include <nuttx/crc32.h>
 #include <float.h>
 #include <math.h>
 

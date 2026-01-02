@@ -88,9 +88,9 @@ typedef enum {
  * @param delay_us optional delay in microseconds
  * @return 0 on success, <0 on error
  */
-#if defined(CONFIG_BOARDCTL_RESET)
+#if defined(__PX4_NUTTX) || defined(CONFIG_BOARDCTL_RESET)
 __EXPORT int px4_reboot_request(reboot_request_t request = REBOOT_REQUEST, uint32_t delay_us = 0);
-#endif // CONFIG_BOARDCTL_RESET
+#endif // __PX4_NUTTX || CONFIG_BOARDCTL_RESET
 
 
 /**

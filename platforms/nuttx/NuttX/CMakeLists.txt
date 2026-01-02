@@ -34,6 +34,12 @@
 set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config)
 set(APPS_DIR ${NUTTX_SRC_DIR}/apps)
 
+# Get module libraries from global properties
+get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
+if (NOT CONFIG_BUILD_FLAT)
+	get_property(kernel_module_libraries GLOBAL PROPERTY PX4_KERNEL_MODULE_LIBRARIES)
+endif()
+
 ###############################################################################
 # NuttX build
 ###############################################################################
@@ -87,7 +93,7 @@ add_custom_target(nuttx_context DEPENDS ${NUTTX_DIR}/include/nuttx/config.h)
 # builtins
 set(builtin_apps_string)
 set(builtin_apps_decl_string)
-if(CONFIG_NSH_LIBRARY)
+if(CONFIG_SYSTEM_NSH OR CONFIG_NSH_LIBRARY)
 	list(SORT module_libraries)
 	foreach(module ${module_libraries})
 		get_target_property(MAIN ${module} MAIN)
@@ -177,7 +183,7 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra target)
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		COMMAND find ${nuttx_lib_dir} -type f -name \*.o -delete
-		COMMAND make -C ${nuttx_lib_dir} --no-print-directory --silent ${nuttx_lib_target} TOPDIR="${NUTTX_DIR}" KERNEL=${kernel} EXTRAFLAGS=${extra}
+		COMMAND make -C ${nuttx_lib_dir} --no-print-directory --silent ${nuttx_lib_target} TOPDIR="${NUTTX_DIR}" KERNEL=${kernel} EXTRAFLAGS=${extra} CONFIG_APPS_DIR=
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		DEPENDS
 			${nuttx_lib_files}

@@ -47,7 +47,7 @@
 #include <assert.h>
 #include <debug.h>
 #include <time.h>
-#include <queue.h>
+#include <sys/queue.h>
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>

@@ -41,6 +41,8 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 		console_buffer.cpp
 		cpuload.cpp
 		gpio.c
+		nsh_stub.c
+		nuttx_stubs.c
 		print_load.cpp
 		tasks.cpp
 		px4_nuttx_impl.cpp

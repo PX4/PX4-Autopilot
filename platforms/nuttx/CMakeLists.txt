@@ -42,15 +42,15 @@ set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
 add_dependencies(px4 git_nuttx)
 
+# Get module libraries from global properties
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
-
 if (NOT CONFIG_BUILD_FLAT)
-	add_executable(px4_kernel ${PX4_SOURCE_DIR}/platforms/common/empty.c)
-	set(KERNEL_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}_kernel.elf)
-	set_target_properties(px4_kernel PROPERTIES OUTPUT_NAME ${KERNEL_NAME})
-	add_dependencies(px4_kernel git_nuttx)
 	get_property(kernel_module_libraries GLOBAL PROPERTY PX4_KERNEL_MODULE_LIBRARIES)
 endif()
+
+message(STATUS "PX4 module_libraries count: ${module_libraries}")
+list(LENGTH module_libraries module_count)
+message(STATUS "PX4 module count: ${module_count}")
 
 # build NuttX
 add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
@@ -355,6 +355,15 @@ else()
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
 
+	# Force PX4 module entry points to be included
+	set(force_link_flags "")
+	foreach(module ${module_libraries})
+		get_target_property(MAIN ${module} MAIN)
+		if(MAIN)
+			list(APPEND force_link_flags "-Wl,--undefined=${MAIN}_main")
+		endif()
+	endforeach()
+
 	target_link_libraries(px4 PRIVATE
 
 		-nostartfiles
@@ -370,8 +379,11 @@ else()
 		-Wl,--warn-common
 		-Wl,--gc-sections
 
+		${force_link_flags}
+
 		-Wl,--start-group
 			${nuttx_libs}
+			${module_libraries}
 		-Wl,--end-group
 
 		m
@@ -381,8 +393,6 @@ else()
 	if(NOT USE_LD_GOLD)
 		target_link_libraries(px4 PRIVATE -Wl,--print-memory-usage)
 	endif()
-
-	target_link_libraries(px4 PRIVATE ${module_libraries})
 
 	if(config_romfs_root)
 		add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)

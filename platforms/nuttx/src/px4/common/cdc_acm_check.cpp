@@ -305,18 +305,13 @@ static void mavlink_usb_check(void *arg)
 								else if (launch_passthru) {
 									sched_lock();
 									exec_argv = (char **)gps_argv;
-									exec_builtin(exec_argv[0], exec_argv, nullptr, 0);
-									sched_unlock();
-									exec_argv = (char **)passthru_argv;
-								}
+							exec_builtin(exec_argv[0], exec_argv, nullptr);
 
 #endif
 
 								sched_lock();
 
-								if (exec_builtin(exec_argv[0], exec_argv, nullptr, 0) > 0) {
-									usb_auto_start_state = UsbAutoStartState::connected;
-
+					if (exec_builtin(exec_argv[0], exec_argv, nullptr) > 0) {
 								} else {
 									usb_auto_start_state = UsbAutoStartState::disconnecting;
 								}

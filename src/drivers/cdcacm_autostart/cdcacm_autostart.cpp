@@ -164,7 +164,7 @@ void CdcAcmAutostart::state_connected()
 		sched_lock();
 		static const char app[] {"mavlink"};
 		static const char *stop_argv[] {"mavlink", "stop", "-d", USB_DEVICE_PATH, NULL};
-		exec_builtin(app, (char **)stop_argv, NULL, 0);
+		exec_builtin(app, (char **)stop_argv, NULL);
 		sched_unlock();
 		_state = UsbAutoStartState::disconnecting;
 	}
@@ -544,7 +544,7 @@ int CdcAcmAutostart::execute_process(char **argv)
 	int pid = -1;
 	sched_lock();
 
-	pid = exec_builtin(argv[0], argv, nullptr, 0);
+	pid = exec_builtin(argv[0], argv, nullptr);
 
 	sched_unlock();
 	return pid;

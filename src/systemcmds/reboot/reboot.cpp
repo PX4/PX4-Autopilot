@@ -109,7 +109,7 @@ extern "C" __EXPORT int reboot_main(int argc, char *argv[])
 		return ret;
 	}
 
-	int ret = px4_reboot_request(request);
+	int ret = px4_reboot_request(request, 0);
 
 	if (ret < 0) {
 		PX4_ERR("reboot failed (%i)", ret);

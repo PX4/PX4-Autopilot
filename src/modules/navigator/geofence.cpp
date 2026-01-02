@@ -43,7 +43,7 @@
 #include "navigation.h"
 
 #include <ctype.h>
-#include <crc32.h>
+#include <nuttx/crc32.h>
 
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>

@@ -55,7 +55,7 @@
 #include <sys/stat.h>
 #include <nuttx/arch.h>
 
-#include <crc32.h>
+#include <nuttx/crc32.h>
 
 #include "uploader.h"
 
