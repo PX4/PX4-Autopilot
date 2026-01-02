@@ -78,8 +78,6 @@ FixedwingPositionINDIControl::init()
 	}
 
 	PX4_INFO("Starting FW_DYN_SOAR_CONTROLLER");
-	char filename[] = "trajectory0.csv";
-	_read_trajectory_coeffs_csv(filename);
 
 	// initialize transformations
 	_R_ned_to_enu *= 0.f;
@@ -107,9 +105,6 @@ FixedwingPositionINDIControl::init()
 
 	// fix sitl mode on startup (no switch at runtime)
 	_switch_sitl = _param_switch_sitl.get();
-
-	// initialize transform to trajec frame
-	_compute_trajectory_transform();
 
 	return true;
 }
@@ -197,7 +192,6 @@ FixedwingPositionINDIControl::parameters_update()
 	if (_switch_origin_hardcoded) {
 		_shear_heading = _param_shear_heading.get() / 180.f * M_PI_F + M_PI_2_F;
 		_shear_h_ref = _param_shear_height.get();
-		_select_loiter_trajectory();
 	}
 
 
@@ -340,47 +334,6 @@ FixedwingPositionINDIControl::actuator_controls_poll()
 	_actuator_controls_sub.update(&_actuators);
 }
 
-void
-FixedwingPositionINDIControl::soaring_controller_status_poll()
-{
-	if (_soaring_controller_status_sub.update(&_soaring_controller_status)) {
-		if (!_soaring_controller_status.soaring_controller_running) {
-			//PX4_INFO("Soaring controller turned off");
-		}
-
-		if (_soaring_controller_status.timeout_detected) {
-			//PX4_INFO("Controller timeout detected");
-		}
-	}
-}
-
-void
-FixedwingPositionINDIControl::soaring_estimator_shear_poll()
-{
-	if (!_switch_origin_hardcoded) {
-		if (_soaring_estimator_shear_sub.update(&_soaring_estimator_shear)) {
-			// update the shear estimate, only if we are flying in manual feedthrough for safety reasons
-			_shear_v_max = _soaring_estimator_shear.v_max;
-			_shear_alpha = _soaring_estimator_shear.alpha;
-			_shear_h_ref = _soaring_estimator_shear.h_ref;
-			_shear_heading = _soaring_estimator_shear.psi - M_PI_2_F;
-			_soaring_feasible =  _soaring_estimator_shear.soaring_feasible;
-			// the initial speed of the target trajectory can safely be updated during soaring :)
-			_shear_aspd = _soaring_estimator_shear.aspd;
-		}
-
-	}
-}
-
-void
-FixedwingPositionINDIControl::_compute_trajectory_transform()
-{
-	Eulerf e(0.f, 0.f, _shear_heading);
-	_R_enu_to_trajec = Dcmf(e);
-	_R_trajec_to_enu = _R_enu_to_trajec.transpose();
-	_vec_enu_to_trajec = Vector3f{0.f, 0.f, _shear_h_ref};
-}
-
 Vector3f
 FixedwingPositionINDIControl::_compute_wind_estimate()
 {
@@ -519,232 +472,6 @@ FixedwingPositionINDIControl::_float_to_str(float n, char *res, int afterpoint)
 }
 
 void
-FixedwingPositionINDIControl::_select_loiter_trajectory()
-{
-
-	// select loiter trajectory for loiter test
-	char filename[16];
-
-	switch (_loiter) {
-	case 0:
-		strcpy(filename, "trajectory0.csv");
-		break;
-
-	case 1:
-		strcpy(filename, "trajectory1.csv");
-		break;
-
-	case 2:
-		strcpy(filename, "trajectory2.csv");
-		break;
-
-	case 3:
-		strcpy(filename, "trajectory3.csv");
-		break;
-
-	case 4:
-		strcpy(filename, "trajectory4.csv");
-		break;
-
-	case 5:
-		strcpy(filename, "trajectory5.csv");
-		break;
-
-	case 6:
-		strcpy(filename, "trajectory6.csv");
-		break;
-
-	case 7:
-		strcpy(filename, "trajectory7.csv");
-		break;
-
-	default:
-		strcpy(filename, "trajectory0.csv");
-	}
-
-	/*
-	Also, we need to place the current trajectory, centered around zero height and assuming wind from the west, into the soaring frame.
-	Since the necessary computations for position, velocity and acceleration require the basis coefficients, which are not easy to transform,
-	we choose to transform our position in soaring frame into the "trajectory frame", compute position vector and it's derivatives from the basis coeffs
-	in the trajectory frame, and then transform these back to soaring frame for control purposes.
-	Therefore we define a new transform between the soaring frame and the trajectory frame.
-	*/
-
-	_read_trajectory_coeffs_csv(filename);
-}
-
-void
-FixedwingPositionINDIControl::_select_soaring_trajectory()
-{
-	/*
-	We read a trajectory based on initial energy available at the beginning of the trajectory.
-	So the trajectory is selected based on two criteria, first the correct wind shear params (alpha and V_max) and the initial energy (potential + kinetic).
-
-	The filename structure of the trajectories is the following:
-	trajec_<type>_<V_max>_<alpha>_<energy>_
-	with
-	<type> in {nominal, robust}
-	<V_max> in [08,12]
-	<alpha> in [020, 100]
-	<energy> in [E_min, E_max]
-	*/
-
-	char file[40] = "robust/coeffs_robust";
-	char v_str[3];
-	char a_str[3];
-	char e_str[3];
-	// get the correct filename
-	_float_to_str(_shear_v_max, v_str, 0);
-	_float_to_str(_shear_alpha * 100.f, a_str, 0);
-	_float_to_str(_shear_aspd, e_str, 0);
-
-	strcat(file, "_");
-	strcat(file, v_str);
-	strcat(file, "_");
-	strcat(file, a_str);
-	strcat(file, "_");
-	strcat(file, e_str);
-	strcat(file, ".csv");
-	PX4_INFO("filename: \t%.40s", file);
-	// get the basis coeffs from file
-	_read_trajectory_coeffs_csv(file);
-}
-
-void
-FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
-{
-
-	// =======================================================================
-	bool error = false;
-
-	char home_dir[200] = "/home/jaeyoung/src/PX4-Autopilot/src/modules/fw_dyn_soar_control/trajectories/";
-	// char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
-	//PX4_ERR(home_dir);
-	strcat(home_dir, filename);
-	FILE *fp = fopen(home_dir, "r");
-
-	if (fp == nullptr) {
-		PX4_ERR("Can't open file");
-		error = true;
-
-	} else {
-		// Here we have taken size of
-		// array 1024 you can modify it
-		const uint buffersize = _num_basis_funs * 32;
-		char buffer[buffersize];
-
-		int row = 0;
-		int column = 0;
-
-		// loop over rows
-		while (fgets(buffer,
-			     buffersize, fp)) {
-			column = 0;
-
-			// Splitting the data
-			char *value = strtok(buffer, ",");
-
-			// loop over columns
-			while (value) {
-				if (*value == '\0' || *value == ' ') {
-					// simply skip extra characters
-					continue;
-				}
-
-				switch (row) {
-				case 0:
-					_basis_coeffs_x(column) = (float)atof(value);
-					break;
-
-				case 1:
-					_basis_coeffs_y(column) = (float)atof(value);
-					break;
-
-				case 2:
-					_basis_coeffs_z(column) = (float)atof(value);
-					break;
-
-				default:
-					break;
-				}
-
-				//PX4_INFO("row: %d, col: %d, read value: %.3f", row, column, (double)atof(value));
-				value = strtok(NULL, ",");
-				column++;
-
-			}
-
-			row++;
-		}
-
-		int failure = fclose(fp);
-
-		if (failure == -1) {
-			PX4_ERR("Can't close file");
-		}
-	}
-
-	// =======================================================================
-
-
-	// go back to safety mode loiter circle in 30m height
-	if (error) {
-		// 100m radius circle trajec
-		_basis_coeffs_x(0) = 0.000038f;
-		_basis_coeffs_x(1) = 1812.140143f;
-		_basis_coeffs_x(2) = -6365.976106f;
-		_basis_coeffs_x(3) = 10773.875378f;
-		_basis_coeffs_x(4) = -9441.287977f;
-		_basis_coeffs_x(5) = 1439.744061f;
-		_basis_coeffs_x(6) = 6853.112823f;
-		_basis_coeffs_x(7) = -7433.361925f;
-		_basis_coeffs_x(8) = -72.566660f;
-		_basis_coeffs_x(9) = 7518.521784f;
-		_basis_coeffs_x(10) = -6807.858677f;
-		_basis_coeffs_x(11) = -1586.021605f;
-		_basis_coeffs_x(12) = 9599.405711f;
-		_basis_coeffs_x(13) = -10876.256865f;
-		_basis_coeffs_x(14) = 6406.017620f;
-		_basis_coeffs_x(15) = -1819.600542f;
-
-		_basis_coeffs_y(0) = -59.999852f;
-		_basis_coeffs_y(1) = -2811.660383f;
-		_basis_coeffs_y(2) = 13178.399227f;
-		_basis_coeffs_y(3) = -30339.925641f;
-		_basis_coeffs_y(4) = 43145.286828f;
-		_basis_coeffs_y(5) = -37009.839292f;
-		_basis_coeffs_y(6) = 9438.328009f;
-		_basis_coeffs_y(7) = 23631.637452f;
-		_basis_coeffs_y(8) = -38371.559953f;
-		_basis_coeffs_y(9) = 23715.306334f;
-		_basis_coeffs_y(10) = 9316.038368f;
-		_basis_coeffs_y(11) = -36903.451639f;
-		_basis_coeffs_y(12) = 43082.749551f;
-		_basis_coeffs_y(13) = -30315.482005f;
-		_basis_coeffs_y(14) = 13172.915247f;
-		_basis_coeffs_y(15) = -2811.186858f;
-
-		_basis_coeffs_z(0) = 30.0f;
-		_basis_coeffs_z(1) = 0.0f;
-		_basis_coeffs_z(2) = 0.0f;
-		_basis_coeffs_z(3) = 0.0f;
-		_basis_coeffs_z(4) = 0.0f;
-		_basis_coeffs_z(5) = 0.0f;
-		_basis_coeffs_z(6) = 0.0f;
-		_basis_coeffs_z(7) = 0.0f;
-		_basis_coeffs_z(8) = 0.0f;
-		_basis_coeffs_z(9) = 0.0f;
-		_basis_coeffs_z(10) = 0.0f;
-		_basis_coeffs_z(11) = 0.0f;
-		_basis_coeffs_z(12) = 0.0f;
-		_basis_coeffs_z(13) = 0.0f;
-		_basis_coeffs_z(14) = 0.0f;
-		_basis_coeffs_z(15) = 0.0f;
-	}
-
-}
-
-void
 FixedwingPositionINDIControl::Run()
 {
 	if (should_exit()) {
@@ -814,13 +541,6 @@ FixedwingPositionINDIControl::Run()
 		vehicle_attitude_poll();
 		vehicle_acceleration_poll();
 		vehicle_angular_velocity_poll();
-		soaring_controller_status_poll();
-
-		// update the shear estimate, only target airspeed is updated in soaring mode
-		soaring_estimator_shear_poll();
-
-		// update transform from trajectory frame to ENU frame (soaring frame)
-		_compute_trajectory_transform();
 
 		// ===============================
 		// compute wind pseudo-measurement
@@ -836,39 +556,15 @@ FixedwingPositionINDIControl::Run()
 			actuator_controls_poll();
 		}
 
-		// =================================
-		// get reference point on trajectory
-		// =================================
-		float t_ref = _get_closest_t(_pos);
-
-		// =================================================================
-		// possibly select a new trajectory, if we are finishing the old one
-		// =================================================================
-		if (!_switch_origin_hardcoded && t_ref >= 0.97f && (hrt_absolute_time() - _last_time_trajec) > 1000000) {
-			_select_soaring_trajectory();
-			_last_time_trajec = hrt_absolute_time();
-		}
-
-		// ============================
-		// compute reference kinematics
-		// ============================
-		// downscale velocity to match current one,
-		// terminal time is determined such that current velocity is met
-		Vector3f v_ref_ = _get_velocity_ref(t_ref, 1.0f);
-		float T = sqrtf((v_ref_ * v_ref_) / (_vel * _vel + 0.001f));
-		Vector3f pos_ref = _get_position_ref(t_ref);                    // in inertial ENU
-		// PX4_INFO("Reference Position: %f, %f, %f", double(pos_ref(0)), double(pos_ref(1)), double(pos_ref(2)));
-		Vector3f vel_ref = _get_velocity_ref(t_ref, T);                 // in inertial ENU
-		Vector3f acc_ref = _get_acceleration_ref(t_ref, T);             // gravity-corrected acceleration (ENU)
-		Quatf q = _get_attitude_ref(t_ref, T);
-		Vector3f omega_ref = _get_angular_velocity_ref(t_ref, T);       // body angular velocity
-		Vector3f alpha_ref = _get_angular_acceleration_ref(t_ref, T);   // body angular acceleration
-
 		// =====================
 		// compute control input
 		// =====================
-		Vector3f acc_command = path_following_control(pos_ref, vel_ref, acc_ref);
+		// Vector3f acc_command = path_following_control(pos_ref, vel_ref, acc_ref);
+		Vector3f acc_command; ///TODO: Fill this up with command
+		Vector3f vel_ref; ///TODO: Fill this up with command
+
 		Dcmf R_ref;
+
 		// ====================================
 		// manual attitude setpoint feedthrough
 		// ====================================
@@ -882,10 +578,13 @@ FixedwingPositionINDIControl::Run()
 			Dcmf R_enu_frd_ref(_R_ned_to_enu * R_ned_frd_ref);
 			Quatf att_ref(R_enu_frd_ref);
 			R_ref = Dcmf(att_ref);
-			omega_ref = Vector3f{0.f, 0.f, 0.f};
+
 		} else {
 			R_ref = compute_indi_acc(acc_command, vel_ref);
 		}
+
+		Vector3f omega_ref = Vector3f{0.f, 0.f, 0.f};
+		Vector3f alpha_ref = Vector3f{0.f, 0.f, 0.f};
 
 		Vector3f ang_acc_command = attitude_control(R_ref, omega_ref, alpha_ref);
 		Vector3f moment_command = compute_indi_rot(ang_acc_command);
@@ -901,35 +600,6 @@ FixedwingPositionINDIControl::Run()
 		// Publish actuator controls only once in OFFBOARD
 		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
 
-			// ========================================
-			// publish controller position in ENU frame
-			// ========================================
-			_soaring_controller_position.timestamp = hrt_absolute_time();
-
-			for (int i = 0; i < 3; i++) {
-				_soaring_controller_position.pos[i] = _pos(i);
-				_soaring_controller_position.vel[i] = _vel(i);
-				_soaring_controller_position.acc[i] = _acc(i);
-			}
-
-			_soaring_controller_position_pub.publish(_soaring_controller_position);
-
-			// ====================================
-			// publish controller position setpoint
-			// ====================================
-			_soaring_controller_position_setpoint.timestamp = hrt_absolute_time();
-
-			for (int i = 0; i < 3; i++) {
-				_soaring_controller_position_setpoint.pos[i] = pos_ref(i);
-				_soaring_controller_position_setpoint.vel[i] = vel_ref(i);
-				_soaring_controller_position_setpoint.acc[i] = acc_ref(i);
-				_soaring_controller_position_setpoint.f_command[i] = _f_command(i);
-				_soaring_controller_position_setpoint.m_command[i] = _m_command(i);
-				_soaring_controller_position_setpoint.w_err[i] = _w_err(i);
-			}
-
-			_soaring_controller_position_setpoint_pub.publish(_soaring_controller_position_setpoint);
-
 			// =====================
 			// publish control input
 			// =====================
@@ -940,18 +610,6 @@ FixedwingPositionINDIControl::Run()
 			_angular_accel_sp.xyz[1] = ang_acc_command(1);
 			_angular_accel_sp.xyz[2] = ang_acc_command(2);
 			_angular_accel_sp_pub.publish(_angular_accel_sp);
-
-			// =========================
-			// publish attitude setpoint
-			// =========================
-			//_attitude_sp = {};
-			Quatf q_sp(_R_enu_to_ned * Dcmf(q));
-			_attitude_sp.timestamp = hrt_absolute_time();
-			_attitude_sp.q_d[0] = q_sp(0);
-			_attitude_sp.q_d[1] = q_sp(1);
-			_attitude_sp.q_d[2] = q_sp(2);
-			_attitude_sp.q_d[3] = q_sp(3);
-			_attitude_sp_pub.publish(_attitude_sp);
 
 			// ======================
 			// publish rates setpoint
@@ -975,45 +633,6 @@ FixedwingPositionINDIControl::Run()
 			_thrust_sp_pub.publish(_thrust_sp);
 			//print_message(_actuators);
 
-			// =====================
-			// publish wind estimate
-			// =====================
-			//_soaring_controller_wind = {};
-			_soaring_controller_wind.timestamp = hrt_absolute_time();
-			_soaring_controller_wind.wind_estimate[0] = wind(0);
-			_soaring_controller_wind.wind_estimate[1] = wind(1);
-			_soaring_controller_wind.wind_estimate[2] = wind(2);
-			_soaring_controller_wind.wind_estimate_filtered[0] = _wind_estimate_EKF(0);
-			_soaring_controller_wind.wind_estimate_filtered[1] = _wind_estimate_EKF(1);
-			_soaring_controller_wind.wind_estimate_filtered[2] = _wind_estimate_EKF(2);
-			_soaring_controller_wind.position[0] = _pos(0);
-			_soaring_controller_wind.position[1] = _pos(1);
-			_soaring_controller_wind.position[2] = _pos(2);
-			_soaring_controller_wind.airspeed = _true_airspeed;
-
-			if (_switch_cl_soaring) {
-				// always update shear params in closed loop soaring mode
-				_soaring_controller_wind.lock_params = false;
-
-			} else {
-				// only update in manual feedthrough in open loop soaring
-				_soaring_controller_wind.lock_params = !_switch_manual;
-			}
-
-			//Eulerf e(Quatf(_attitude.q));
-			//float bank = e(0);
-			// only declare wind estimate valid for shear estimator, if we are close to the soaring center
-			if ((float)sqrtf(powf(_pos(0), 2) + powf(_pos(1), 2)) < 100.f) {
-				_soaring_controller_wind.valid = true;
-
-			} else {
-				_soaring_controller_wind.valid = false;
-			}
-
-			_soaring_controller_wind_pub.publish(_soaring_controller_wind);
-
-
-
 			if (_counter == 100) {
 				_counter = 0;
 				//PX4_INFO("Feedthrough switch: \t%.2f", (double)(_rc_channels.channels[5]));
@@ -1035,14 +654,6 @@ FixedwingPositionINDIControl::Run()
 		rate_ctrl_status.yawspeed_integ = 0.0f;
 		_rate_ctrl_status_pub.publish(rate_ctrl_status);
 
-		// ==============================
-		// publish soaring control status
-		// ==============================
-		//_soaring_controller_heartbeat_s _soaring_controller_heartbeat{};
-		_soaring_controller_heartbeat.timestamp = hrt_absolute_time();
-		_soaring_controller_heartbeat.heartbeat = hrt_absolute_time();
-		_soaring_controller_heartbeat_pub.publish(_soaring_controller_heartbeat);
-
 		// ====================
 		// publish debug values
 		// ====================
@@ -1057,246 +668,6 @@ FixedwingPositionINDIControl::Run()
 		perf_end(_loop_perf);
 	}
 
-}
-
-Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
-FixedwingPositionINDIControl::_get_basis_funs(float t)
-{
-	Vector<float, _num_basis_funs> vec;
-	vec(0) = 1.0f;
-	float sigma = 1.0f / _num_basis_funs;
-
-	for (uint i = 1; i < _num_basis_funs; i++) {
-		float fun1 = sinf(M_PI_F * t);
-		float fun2 = exp(-powf((t - float(i) / float(_num_basis_funs)), 2) / sigma);
-		vec(i) = fun1 * fun2;
-	}
-
-	return vec;
-}
-
-Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
-FixedwingPositionINDIControl::_get_d_dt_basis_funs(float t)
-{
-	Vector<float, _num_basis_funs> vec;
-	vec(0) = 0.0f;
-	float sigma = 1.0f / _num_basis_funs;
-
-	for (uint i = 1; i < _num_basis_funs; i++) {
-		float fun1 = sinf(M_PI_F * t);
-		float fun2 = exp(-powf((t - float(i) / _num_basis_funs), 2) / sigma);
-		vec(i) = fun2 * (M_PI_F * sigma * cosf(M_PI_F * t) - 2 * (t - float(i) / _num_basis_funs) * fun1) / sigma;
-	}
-
-	return vec;
-}
-
-Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
-FixedwingPositionINDIControl::_get_d2_dt2_basis_funs(float t)
-{
-	Vector<float, _num_basis_funs> vec;
-	vec(0) = 0.0f;
-	float sigma = 1.0f / _num_basis_funs;
-
-	for (uint i = 1; i < _num_basis_funs; i++) {
-		float fun1 = sinf(M_PI_F * t);
-		float fun2 = exp(-powf((t - float(i) / _num_basis_funs), 2) / sigma);
-		vec(i) = fun2 * (fun1 * (4 * powf((float(i) / _num_basis_funs - t), 2) - \
-					 sigma * (powf(M_PI_F, 2) * sigma + 2)) + 4 * M_PI_F * sigma * (float(i) / _num_basis_funs - t) * cosf(M_PI_F * t)) /
-			 (powf(sigma, 2));
-
-	}
-
-	return vec;
-}
-
-Vector3f
-FixedwingPositionINDIControl::_get_position_ref(float t)
-{
-	Vector<float, _num_basis_funs> basis = _get_basis_funs(t);
-	float x = _basis_coeffs_x * basis;
-	float y = _basis_coeffs_y * basis;
-	float z = _basis_coeffs_z * basis;
-	return _R_trajec_to_enu * Vector3f{x, y, z} + _vec_enu_to_trajec;
-}
-
-Vector3f
-FixedwingPositionINDIControl::_get_velocity_ref(float t, float T)
-{
-	Vector<float, _num_basis_funs> basis = _get_d_dt_basis_funs(t);
-	float x = _basis_coeffs_x * basis;
-	float y = _basis_coeffs_y * basis;
-	float z = _basis_coeffs_z * basis;
-	return _R_trajec_to_enu * (Vector3f{x, y, z} / T);
-}
-
-Vector3f
-FixedwingPositionINDIControl::_get_acceleration_ref(float t, float T)
-{
-	Vector<float, _num_basis_funs> basis = _get_d2_dt2_basis_funs(t);
-	float x = _basis_coeffs_x * basis;
-	float y = _basis_coeffs_y * basis;
-	float z = _basis_coeffs_z * basis;
-	return _R_trajec_to_enu * (Vector3f{x, y, z} / powf(T, 2));
-}
-
-Quatf
-FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
-{
-	Vector3f vel = _get_velocity_ref(t, T);
-	Vector3f vel_air = vel - _wind_estimate;
-	Vector3f acc = _get_acceleration_ref(t, T);
-	// add gravity
-	acc(2) += 9.81f;
-	// compute required force
-	Vector3f f = _mass * acc;
-	// compute force component projected onto lift axis
-	Vector3f vel_normalized = vel_air.normalized();
-	Vector3f f_lift = f - (f * vel_normalized) * vel_normalized;
-	Vector3f lift_normalized = f_lift.normalized();
-	Vector3f wing_normalized = -vel_normalized.cross(lift_normalized);
-	// compute rotation matrix between ENU and FRD frame
-	Dcmf R_bi;
-	R_bi(0, 0) = vel_normalized(0);
-	R_bi(0, 1) = vel_normalized(1);
-	R_bi(0, 2) = vel_normalized(2);
-	R_bi(1, 0) = wing_normalized(0);
-	R_bi(1, 1) = wing_normalized(1);
-	R_bi(1, 2) = wing_normalized(2);
-	R_bi(2, 0) = lift_normalized(0);
-	R_bi(2, 1) = lift_normalized(1);
-	R_bi(2, 2) = lift_normalized(2);
-	R_bi.renormalize();
-	// compute actual air density to be used with true airspeed
-	float rho_corrected;
-
-	if (_cal_airspeed >= _stall_speed) {
-		rho_corrected = _rho * powf(_cal_airspeed / _true_airspeed, 2);
-
-	} else {
-		rho_corrected = _rho;
-	}
-
-	// compute required AoA
-	Vector3f f_phi = R_bi * f_lift;
-	float AoA = ((2.f * f_phi(2)) / (rho_corrected * _area * (vel_air * vel_air) + 0.001f) - _C_L0) / _C_L1 - _aoa_offset;
-	// compute final rotation matrix
-	Eulerf e(0.f, AoA, 0.f);
-	Dcmf R_pitch(e);
-	Dcmf Rotation(R_pitch * R_bi);
-	// switch from FRD to ENU frame
-	Rotation(1, 0) *= -1.f;
-	Rotation(1, 1) *= -1.f;
-	Rotation(1, 2) *= -1.f;
-	Rotation(2, 0) *= -1.f;
-	Rotation(2, 1) *= -1.f;
-	Rotation(2, 2) *= -1.f;
-	// plausibility check
-	/*
-	float determinant = Rotation(0,0)*(Rotation(1,1)*Rotation(2,2)-Rotation(2,1)*Rotation(1,2)) -
-	                    Rotation(1,0)*(Rotation(0,1)*Rotation(2,2)-Rotation(2,1)*Rotation(0,2)) +
-	                    Rotation(2,0)*(Rotation(0,1)*Rotation(1,2)-Rotation(1,1)*Rotation(0,2));
-	PX4_INFO("determinant: %.2f", (double)determinant);
-	PX4_INFO("length: %.2f", (double)(wing_normalized*wing_normalized));
-	*/
-
-
-
-	Quatf q(Rotation.transpose());
-	return q;
-}
-
-Vector3f
-FixedwingPositionINDIControl::_get_angular_velocity_ref(float t, float T)
-{
-	float dt = 0.001;
-	float t_lower = fmaxf(0.f, t - dt);
-	float t_upper = fminf(t + dt, 1.f);
-	Dcmf R_i0(_get_attitude_ref(t_lower, T));
-	Dcmf R_i1(_get_attitude_ref(t_upper, T));
-	Dcmf R_10 = R_i1.transpose() * R_i0;
-	AxisAnglef w_01(R_10);
-	return -w_01.axis() * w_01.angle() / (T * (t_upper - t_lower));
-}
-
-Vector3f
-FixedwingPositionINDIControl::_get_angular_acceleration_ref(float t, float T)
-{
-	float dt = 0.001;
-	float t_lower = fmaxf(0.f, t - dt);
-	float t_upper = fminf(t + dt, 1.f);
-	// compute roational velocity in inertial frame
-	Dcmf R_i0(_get_attitude_ref(t_lower, T));
-	AxisAnglef w_0(R_i0 * _get_angular_velocity_ref(t_lower, T));
-	// compute roational velocity in inertial frame
-	Dcmf R_i1(_get_attitude_ref(t_upper, T));
-	AxisAnglef w_1(R_i1 * _get_angular_velocity_ref(t_upper, T));
-	// compute gradient via finite differences
-	Vector3f dw_dt = (w_1.axis() * w_1.angle() - w_0.axis() * w_0.angle()) / (T * (t_upper - t_lower));
-	// transform back to body frame
-	return R_i0.transpose() * dw_dt;
-}
-
-float
-FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
-{
-	// multi-stage computation of the closest point on the reference path
-
-	const uint n_1 = 20;
-	Vector<float, n_1> distances;
-	float t_ref;
-
-	// =======
-	// STAGE 1
-	// =======
-	// STAGE 1: compute all distances
-	for (uint i = 0; i < n_1; i++) {
-		t_ref = float(i) / float(n_1);
-		Vector3f pos_ref = _get_position_ref(t_ref);
-		distances(i) = (pos_ref - pos) * (pos_ref - pos);
-	}
-
-	// STAGE 1: get index of smallest distance
-	float t_1 = 0.f;
-	float min_dist = distances(0);
-
-	for (uint i = 1; i < n_1; i++) {
-		if (distances(i) < min_dist) {
-			min_dist = distances(i);
-			t_1 = float(i);
-		}
-	}
-
-	t_1 = t_1 / float(n_1);
-
-	// =======
-	// STAGE 2
-	// =======
-	const uint n_2 = 2 * n_1 - 1;
-	Vector < float, n_2 + 1 > distances_2;
-	float t_lower = fmod(t_1 - 1.0f / n_1, 1.0f);
-
-	// STAGE 2: compute all distances
-	for (uint i = 0; i <= n_2; i++) {
-		t_ref = fmod(t_lower + float(i) * 2.f / float(n_1 * n_2), 1.0f);
-		Vector3f pos_ref = _get_position_ref(t_ref);
-		distances_2(i) = (pos_ref - pos) * (pos_ref - pos);
-	}
-
-	// STAGE 2: get index of smallest distance
-	float t_2 = 0.f;
-	min_dist = distances_2(0);
-
-	for (uint i = 1; i <= n_2; i++) {
-		if (distances_2(i) < min_dist) {
-			min_dist = distances_2(i);
-			t_2 = float(i);
-		}
-	}
-
-	t_2 = fmod(t_lower + float(t_2) * 2.f / (float(n_2) * float(n_1)), 1.0f);
-
-	return t_2;
 }
 
 Quatf

@@ -263,8 +263,6 @@ private:
 	void		vehicle_command_poll();
 	void		vehicle_control_mode_poll();
 	void		vehicle_status_poll();
-	void		soaring_controller_status_poll();
-	void		soaring_estimator_shear_poll();
 
 	//
 	void		status_publish();
@@ -272,35 +270,10 @@ private:
 	const static size_t _num_basis_funs = 16;		// number of basis functions used for the trajectory approximation
 
 	// controller methods
-	void _compute_trajectory_transform();			// compute the transform between trajectory frame and ENU frame (soaring frame) based on shear params
-	void _select_loiter_trajectory();				// select the correct loiter trajectory based on available energy
-	void _select_soaring_trajectory();				// select the correct loiter trajectory based on available energy
-	void _read_trajectory_coeffs_csv(char *filename);				// read in the correct coefficients of the appropriate trajectory
-	float _get_closest_t(Vector3f
-			     pos);				// get the normalized time, at which the reference path is closest to the current position
 	Vector3f _compute_wind_estimate();				// compute a wind estimate to be used only inside the controller
 	Vector3f _compute_wind_estimate_EKF();			// compute a wind estimate to be used only as a measurement for the shear estimator
 	void _set_wind_estimate(Vector3f wind);
 	void _set_wind_estimate_EKF(Vector3f wind);
-	Vector<float, _num_basis_funs> _get_basis_funs(float t =
-				0);			// compute the vector of basis functions at normalized time t in [0,1]
-	Vector<float, _num_basis_funs> _get_d_dt_basis_funs(float t =
-				0);		// compute the vector of basis function gradients at normalized time t in [0,1]
-	Vector<float, _num_basis_funs> _get_d2_dt2_basis_funs(float t =
-				0);	// compute the vector of basis function curvatures at normalized time t in [0,1]
-	void _load_basis_coefficients();									// load the coefficients of the current path approximation
-	Vector3f _get_position_ref(float t =
-					   0);								// get the reference position on the current path, at normalized time t in [0,1]
-	Vector3f _get_velocity_ref(float t = 0,
-				   float T = 1);					// get the reference velocity on the current path, at normalized time t in [0,1], with an intended cycle time of T
-	Vector3f _get_acceleration_ref(float t = 0,
-				       float T = 1);				// get the reference acceleration on the current path, at normalized time t in [0,1], with an intended cycle time of T
-	Quatf _get_attitude_ref(float t = 0,
-				float T = 1);						// get the reference attitude on the current path, at normalized time t in [0,1], with an intended cycle time of T
-	Vector3f _get_angular_velocity_ref(float t = 0,
-					   float T = 1);			// get the reference angular velocity on the current path, at normalized time t in [0,1], with an intended cycle time of T
-	Vector3f _get_angular_acceleration_ref(float t = 0,
-					       float T = 1);		// get the reference angular acceleration on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Quatf _get_attitude(Vector3f vel, Vector3f
 			    f);						// get the attitude to produce force f while flying with velocity vel
 	/**
