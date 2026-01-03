@@ -34,11 +34,12 @@
 /**
  * @file dma_alloc.c
  *
- * DMA memory allocation stubs for FAT filesystem
+ * DMA memory allocation for FAT filesystem
  */
 
 #include <nuttx/config.h>
 #include <stdlib.h>
+#include <px4_platform/board_dma_alloc.h>
 
 /****************************************************************************
  * Public Functions
@@ -46,23 +47,13 @@
 
 void *fat_dma_alloc(size_t size)
 {
-	return malloc(size);
+	return board_dma_alloc(size);
 }
 
 void fat_dma_free(void *memory, size_t size)
 {
-	free(memory);
+	board_dma_free(memory, size);
 }
-
-/****************************************************************************
- * Name: g_cromfs_image
- *
- * Description:
- *   Stub for CROMFS image
- *
- ****************************************************************************/
-
-const unsigned char g_cromfs_image[1];
 
 /****************************************************************************
  * Name: unregister_blockdriver

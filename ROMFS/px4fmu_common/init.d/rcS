@@ -75,23 +75,12 @@ then
 		then
 			echo "INFO [init] card formatted"
 
-			# Add delay after format for SD card to be ready (NuttX 12)
-			usleep 100000
-
 			if mount -t vfat /dev/mmcsd0 /fs/microsd
 			then
 				set STORAGE_AVAILABLE yes
 				set STARTUP_TUNE 14 # tune 14 = SD_INIT
 			else
 				echo "ERROR [init] card mount failed"
-				# Try one more time with additional delay
-				usleep 200000
-				if mount -t vfat /dev/mmcsd0 /fs/microsd
-				then
-					set STORAGE_AVAILABLE yes
-					set STARTUP_TUNE 14 # tune 14 = SD_INIT
-					echo "INFO [init] card mounted on retry"
-				fi
 			fi
 		else
 			echo "ERROR [init] format failed"
