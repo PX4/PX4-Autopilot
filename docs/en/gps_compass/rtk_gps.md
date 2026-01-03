@@ -23,7 +23,7 @@ It also highlights devices that connect via the CAN bus, and those which support
 | Device                                                                                                    |         GPS          | Compass  | [DroneCAN] |         [GPS Yaw]         | PPK |
 | :-------------------------------------------------------------------------------------------------------- | :------------------: | :------: | :--------: | :-----------------------: | :-: |
 | [ARK G5 RTK GPS](../dronecan/ark_g5_rtk_gps.md)                                                           |    [mosaic-G5 P3]    | IIS2MDC  |     ✓      |                           |     |
-| [ARK G5 RTK HEADING GPS](../dronecan/ark_g5_rtk_heading_gps.md)                                           |   [mosaic-G5 P3H]    | IIS2MDC  |     ✓      | [Heading Capability](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-G5-P3H)  |     |
+| [ARK G5 RTK HEADING GPS](../dronecan/ark_g5_rtk_heading_gps.md)                                           |   [mosaic-G5 P3H]    | IIS2MDC  |     ✓      | [Heading Capability][mosaic-G5 P3H]  |     |
 | [ARK RTK GPS](../dronecan/ark_rtk_gps.md)                                                                 |         F9P          |  BMM150  |     ✓      |        [Dual F9P]         |     |
 | [ARK RTK GPS L1 L5](../dronecan/ark_rtk_gps_l1_l2.md)                                                     |         F9P          |  BMM150  |     ✓      |                           |     |
 | [ARK MOSAIC-X5 RTK GPS](../dronecan/ark_mosaic__rtk_gps.md)                                               |      Mosaic-X5       | IIS2MDC  |     ✓      | [Septentrio Dual Antenna] |     |
