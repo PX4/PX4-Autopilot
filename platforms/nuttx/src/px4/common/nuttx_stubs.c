@@ -49,33 +49,33 @@
 __attribute__((weak))
 int unregister_blockdriver(const char *path)
 {
-return -1;
+	return -1;
 }
 
 /* NSH console main */
 __attribute__((weak))
 int nsh_consolemain(int argc, char **argv)
 {
-return -1;
+	return -1;
 }
 
 /* NSH system with controlling TTY */
 __attribute__((weak))
 int nsh_system_ctty(const char *cmd)
 {
-return -1;
+	return -1;
 }
 
 /* Network library functions */
 __attribute__((weak))
 int netlib_obtain_ipv4addr(const char *ifname, void *addr)
 {
-return -1;
+	return -1;
 }
 
 /* Board hardfault init */
 __attribute__((weak))
 int board_hardfault_init(int rl, bool enable)
 {
-return 0;
+	return 0;
 }

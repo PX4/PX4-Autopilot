@@ -97,7 +97,7 @@ static int ramtron_attach(mtd_instance_s &instance)
 		SPI_SELECT(spi, instance.devid, false);
 		SPI_LOCK(spi, false);
 
-	instance.mtd_dev = ramtron_initialize(spi, instance.devid);
+		instance.mtd_dev = ramtron_initialize(spi, instance.devid);
 
 		if (instance.mtd_dev) {
 			/* abort on first valid result */
@@ -418,9 +418,9 @@ memoryout:
 
 			/* Now create a character device on the block device */
 
-		rv = bchdev_register(blockname, instances[i]->partition_names[part], O_RDWR);
+			rv = bchdev_register(blockname, instances[i]->partition_names[part], O_RDWR);
 
-		if (rv < 0) {
+			if (rv < 0) {
 				PX4_ERR("bchdev_register %s failed: %d", instances[i]->partition_names[part], rv);
 				goto errout;
 			}

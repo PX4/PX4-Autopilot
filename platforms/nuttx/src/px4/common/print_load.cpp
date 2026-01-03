@@ -202,7 +202,7 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 
 		if (system_load.tasks[i].tcb->pid == 0) {
 			stack_size = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
-		stack_free = stack_size - up_check_intstack(0, stack_size);
+			stack_free = stack_size - up_check_intstack(0, stack_size);
 
 		} else {
 			stack_free = stack_size - up_check_tcbstack(system_load.tasks[i].tcb, stack_size);
@@ -223,8 +223,9 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 		uint8_t tcb_sched_priority = system_load.tasks[i].tcb->sched_priority;
 
 		unsigned int tcb_num_used_fds = 0; // number of used file descriptors
-	struct fdlist *fdlist = &system_load.tasks[i].tcb->group->tg_fdlist;
-	tcb_num_used_fds = fdlist_count(fdlist);
+		struct fdlist *fdlist = &system_load.tasks[i].tcb->group->tg_fdlist;
+		tcb_num_used_fds = fdlist_count(fdlist);
+
 		switch (tcb_task_state) {
 		case TSTATE_TASK_PENDING:
 		case TSTATE_TASK_READYTORUN:
