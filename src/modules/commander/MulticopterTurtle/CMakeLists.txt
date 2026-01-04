@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskTurtle_mode
-	TurtelMode.cpp
+px4_add_library(MulticopterTurtleMode
+	MulticopterTurtleMode.cpp
 )
-target_link_libraries(FlightTaskTurtle_mode PUBLIC FlightTaskManualAltitude FlightTaskUtility)
-target_include_directories(FlightTaskTurtle_mode PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-set_target_properties(FlightTaskTurtle_mode PROPERTIES CXX_STANDARD 14)

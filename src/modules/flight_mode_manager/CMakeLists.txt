@@ -50,7 +50,6 @@ list(APPEND flight_tasks_all
 	Transition
 	AltitudeCruise
 	FormicAltHold
-	Turtle_mode
 )
 
 if(NOT px4_constrained_flash_build)

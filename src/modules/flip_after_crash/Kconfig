@@ -1,6 +1,0 @@
-menuconfig MODULES_FLIP_AFTER_CRASH
-	bool "flip_after_crash"
-	default n
-	---help---
-		Enable support for flip_after_crash module
-

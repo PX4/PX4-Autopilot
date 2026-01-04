@@ -1008,6 +1008,8 @@ PARAM_DEFINE_FLOAT(COM_ARM_BAT_MIN, -1.f);
  */
 PARAM_DEFINE_INT32(COM_THROW_EN, 0);
 
+
+
 /**
  * Minimum speed for the throw start
  *
@@ -1049,3 +1051,31 @@ PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 0);
  *
  */
 PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);
+
+
+
+
+/**
+ * Enable turtle mode
+ *
+ * Allows to flip the vehicle over using motors when landed and disarmed (turtle mode / flip recovery).
+ *
+ * @group Commander
+ * @boolean
+ */
+ PARAM_DEFINE_INT32(COM_TURTLE_EN, 0);
+
+
+
+
+/**
+ * Turtle mode aux channel
+ *
+ * The aux channel to use for turtle mode.
+ *
+ * @group Commander
+ * @min 0
+ * @max 10
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(TURTLE_AUX_CHN, 0);

@@ -156,7 +156,6 @@ void FlightModeManager::start_flight_task()
 	const bool nav_state_descend = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
 
 	const bool nav_state_formic_alt_hold = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_FORMIC_ALT_HOLD);
-	const bool nav_state_turtle = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE);
 
 	// Follow me
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
@@ -229,14 +228,6 @@ void FlightModeManager::start_flight_task()
 			break;
 		}
 
-		task_failure = (error != FlightTaskError::NoError);
-		matching_task_running = matching_task_running && !task_failure;
-	}
-
-	// Turtle mode
-	if (nav_state_turtle) {
-		found_some_task = true;
-		FlightTaskError error = switchTask(FlightTaskIndex::Turtle_mode);
 		task_failure = (error != FlightTaskError::NoError);
 		matching_task_running = matching_task_running && !task_failure;
 	}

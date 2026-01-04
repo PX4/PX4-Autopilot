@@ -1884,6 +1884,27 @@
 		 safetyButtonUpdate();
  
 		 _multicopter_throw_launch.update(isArmed());
+
+		 _multicopter_turtle.update(isArmed());
+		 
+		 // Handle turtle mode arming/disarming (bypass preflight checks for turtle mode)
+		 if (_multicopter_turtle.shouldArm() && !isArmed()) {
+			 arm(arm_disarm_reason_t::command_internal, false); // Bypass preflight checks
+		 } else if (_multicopter_turtle.shouldDisarm() && isArmed()) {
+			 disarm(arm_disarm_reason_t::command_internal, false);
+			 _multicopter_turtle.clearDisarmFlag(); // Clear the flag after disarming
+		 }
+		 
+		 // Handle turtle mode nav_state changes (only when ACTIVE or leaving ACTIVE)
+		 const uint8_t turtle_desired_nav_state = _multicopter_turtle.getDesiredNavState();
+		 if (turtle_desired_nav_state != vehicle_status_s::NAVIGATION_STATE_MAX && 
+		     _user_mode_intention.get() != turtle_desired_nav_state) {
+			 if (_user_mode_intention.change(turtle_desired_nav_state, ModeChangeSource::User, false, true)) {
+				 // Mark that we've requested the nav_state change to prevent repeated requests
+				 _multicopter_turtle.markNavStateChangeRequested();
+			 }
+		 }
+		 
  
 		 vtolStatusUpdate();
  
@@ -2395,8 +2416,16 @@
 	 _mode_management.setFailsafeState(_failsafe.selectedAction() > FailsafeBase::Action::Warn);
 	 _vehicle_status.nav_state_user_intention = _mode_management.getNavStateReplacementIfValid(_user_mode_intention.get(),
 			 false);
-	 _vehicle_status.nav_state = _mode_management.getNavStateReplacementIfValid(FailsafeBase::modeFromAction(
+	 uint8_t computed_nav_state = _mode_management.getNavStateReplacementIfValid(FailsafeBase::modeFromAction(
 					     _failsafe.selectedAction(), _user_mode_intention.get()));
+	 
+	 // Debug: log if turtle mode is requested but nav_state is different
+	 if (_user_mode_intention.get() == vehicle_status_s::NAVIGATION_STATE_TURTLE && 
+	     computed_nav_state != vehicle_status_s::NAVIGATION_STATE_TURTLE) {
+		 PX4_WARN("Turtle mode: user_intended=TURTLE but nav_state computed=%d (replaced?)", computed_nav_state);
+	 }
+	 
+	 _vehicle_status.nav_state = computed_nav_state;
 	 _vehicle_status.executor_in_charge = _mode_management.modeExecutorInCharge(); // Set this in sync with nav_state
  
 	 switch (_failsafe.selectedAction()) {

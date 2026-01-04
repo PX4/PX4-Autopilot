@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_AERIUM_RADIAN_H7_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_AERIUM_RADIAN_H7_INCLUDE_BOARD_H
+#ifndef __NUTTX_CONFIG_TBS_LUCID_H7_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_TBS_LUCID_H7_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -55,7 +55,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The Aerium Radian H7  board provides the following clock sources:
+/* The TBS Lucid H7  board provides the following clock sources:
  *
  *   X1: 8 MHz crystal for HSE
  *
@@ -513,4 +513,4 @@ CONFIG_STM32H7_UART7=y   → ttyS4
 // # define PROBE_MARK(n)
 // #endif
 
-#endif  /*__NUTTX_CONFIG_AERIUM_RADIAN_H7_INCLUDE_BOARD_H  */
+#endif  /*__NUTTX_CONFIG_TBS_LUCID_H7_INCLUDE_BOARD_H  */

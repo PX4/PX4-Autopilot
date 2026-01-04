@@ -189,7 +189,11 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_TURTLE:
-		vehicle_control_mode.flag_control_manual_enabled = true;
+		// Disable manual control to prevent throttle from affecting motors
+		// Motors will be controlled directly by turtle mode or user code
+		vehicle_control_mode.flag_control_manual_enabled = false;
+		vehicle_control_mode.flag_control_rates_enabled = false;
+		vehicle_control_mode.flag_control_allocation_enabled = false;
 		break;
 
 	// vehicle_status_s::NAVIGATION_STATE_EXTERNALx: handled in ModeManagement

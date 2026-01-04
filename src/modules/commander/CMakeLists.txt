@@ -37,6 +37,7 @@ add_subdirectory(failure_detector)
 add_subdirectory(HealthAndArmingChecks)
 add_subdirectory(ModeUtil)
 add_subdirectory(MulticopterThrowLaunch)
+add_subdirectory(MulticopterTurtle)
 
 px4_add_module(
 	MODULE modules__commander
@@ -73,6 +74,7 @@ px4_add_module(
 		hysteresis
 		mode_util
 		MulticopterThrowLaunch
+		MulticopterTurtleMode
 		sensor_calibration
 		world_magnetic_model
         atmosphere
