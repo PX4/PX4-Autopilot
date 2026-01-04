@@ -145,7 +145,7 @@ make px4_fmu-v5_default
 - [Pixhawk 1 (FMUv2)](../flight_controller/pixhawk.md): `make px4_fmu-v2_default`
 
   :::warning
-  您**必须**使用受支持的GCC版本来构建此开发板（例如与[CI/docker](../test_and_ci/docker.md)中使用的相同版本），否则需从构建中移除相关模块。 Building with an unsupported GCC may fail, as PX4 is close to the board's 1MB flash limit.
+  您**必须**使用受支持的GCC版本来构建此开发板（例如与[CI/docker](../test_and_ci/docker.md)中使用的相同版本），否则需从构建中移除相关模块。 使用不受支持的GCC进行构建可能会失败，因为PX4接近板载1MB闪存的容量限制。
 
 :::
 
@@ -174,8 +174,8 @@ Rebooting.
 ```
 
 :::tip
-在 WSL 2 上开发时不支持此操作。（其实也有办法，见 [WSL 2 连接 USB 设备](https://learn.microsoft.com/zh-cn/windows/wsl/connect-usb)）。
-参见[ Windows 开发环境 (WSL2-基于) > Flash控制板](../dev_setup/dev_env_windows_wsl.md#flash-a-flight-control-board)。
+在 WSL2 上开发时不支持此操作。
+参见[ Windows 开发环境 (WSL2-基于) > 烧录主板](../dev_setup/dev_env_windows_wsl.md#flash-a-flight-control-board)。
 :::
 
 ## 其他飞控板
