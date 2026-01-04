@@ -13,7 +13,7 @@ This topic provides an overview of the fundamental concepts, and explains how yo
 
 ## Overview
 
-![Visual Abstract](../../assets/advanced/neural_networks/raptor/raptor_visual_abstract.jpg)
+![Visual Abstract](../../assets/advanced/neural_networks/raptor/visual_abstract.jpg)
 
 RAPTOR is an adaptive policy for end-to-end quadrotor control.
 It is motivated by the human ability to adapt learned behaviours to similar situations.
@@ -31,7 +31,7 @@ For more details please refer to this video:
 
 The method we developed for training the RAPTOR policy is called Meta-Imitation Learning:
 
-![Diagram showing the Method Overview](../../assets/advanced/neural_networks/raptor/raptor_method.jpg)
+![Diagram showing the Method Overview](../../assets/advanced/neural_networks/raptor/method.jpg)
 
 You can torture test the RAPTOR policy in your browser at [https://raptor.rl.tools](https://raptor.rl.tools) or in the embedded app here:
 
@@ -169,11 +169,11 @@ To enable the `mc_raptor` module in other platforms, just add `CONFIG_MODULES_MC
 
 Even though there were moderate winds (~ 5 m/s) during the test, we found good figure-eight tracking performance at velocities up to 12 m/s
 
-![Lissajous](../../assets/advanced/neural_networks/raptor/raptor_results_figure_eight.svg)
+![Lissajous](../../assets/advanced/neural_networks/raptor/results_figure_eight.svg)
 
 We also tested the linear velocity in a straight line and found that the RAPTOR policy can reliably fly at > 17 m/s (the wind direction was orthogonal to the line)
 
-![Linear Oscillation](../../assets/advanced/neural_networks/raptor/raptor_results_line.svg)
+![Linear Oscillation](../../assets/advanced/neural_networks/raptor/results_line.svg)
 
 ### Troubleshooting
 
