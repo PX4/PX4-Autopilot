@@ -126,6 +126,11 @@ public:
 	void set_align_mission_item(struct mission_item_s *const mission_item,
 				    const struct mission_item_s *const mission_item_next) const;
 
+	/**
+	 * Updates the heading of the vehicle. Rotary wings only.
+	 */
+	void heading_sp_update();
+
 	void updateFailsafeChecks() override;
 
 protected:
