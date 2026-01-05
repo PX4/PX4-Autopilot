@@ -863,6 +863,8 @@ void DShot::update_params()
 
 void DShot::mixerChanged()
 {
+	PX4_INFO("mixerChanged");
+
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 
 	int motor_count = 0;
@@ -888,12 +890,13 @@ void DShot::mixerChanged()
 		}
 	}
 
-	// TODO: verify that this works
-	initialize_dshot();
+	// TODO: we should only re-initialize if we gain/lose outputs
+	// initialize_dshot();
 }
 
 bool DShot::initialize_dshot()
 {
+	PX4_INFO("initialize_dshot");
 	unsigned int dshot_frequency = 0;
 	uint32_t dshot_frequency_param = 0;
 
