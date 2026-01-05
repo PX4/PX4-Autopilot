@@ -202,14 +202,14 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 
 		if (system_load.tasks[i].tcb->pid == 0) {
 			stack_size = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
-			stack_free = up_check_intstack_remain();
+			stack_free = stack_size - up_check_intstack(0, stack_size);
 
 		} else {
-			stack_free = up_check_tcbstack_remain(system_load.tasks[i].tcb);
+			stack_free = stack_size - up_check_tcbstack(system_load.tasks[i].tcb, stack_size);
 		}
 
 #else
-		stack_free = up_check_tcbstack_remain(system_load.tasks[i].tcb);
+		stack_free = stack_size - up_check_tcbstack(system_load.tasks[i].tcb, stack_size);
 #endif
 
 #if CONFIG_ARCH_BOARD_SIM || !defined(CONFIG_PRIORITY_INHERITANCE)
@@ -223,17 +223,8 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 		uint8_t tcb_sched_priority = system_load.tasks[i].tcb->sched_priority;
 
 		unsigned int tcb_num_used_fds = 0; // number of used file descriptors
-		struct filelist *filelist = &system_load.tasks[i].tcb->group->tg_filelist;
-
-		for (int fdr = 0; fdr < filelist->fl_rows; fdr++) {
-			for (int fdc = 0; fdc < CONFIG_NFILE_DESCRIPTORS_PER_BLOCK; fdc++) {
-				if (filelist->fl_files[fdr][fdc].f_inode) {
-					++tcb_num_used_fds;
-				}
-			}
-		}
-
-		sched_unlock();
+		struct fdlist *fdlist = &system_load.tasks[i].tcb->group->tg_fdlist;
+		tcb_num_used_fds = fdlist_count(fdlist);
 
 		switch (tcb_task_state) {
 		case TSTATE_TASK_PENDING:

@@ -95,7 +95,7 @@ __BEGIN_DECLS
 
 #define px4_savepanic(fileno, context, length)  progmem_dump_savepanic(fileno, context, length)
 
-#if defined(CONFIG_ARCH_HAVE_PROGMEM) && defined(CONFIG_BOARD_CRASHDUMP)
+#if defined(CONFIG_ARCH_HAVE_PROGMEM) && defined(CONFIG_BOARD_CRASHDUMP_CUSTOM)
 #  define HAS_PROGMEM 1
 #endif
 

@@ -47,7 +47,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <queue.h>
+#include <sys/queue.h>
 #include <pthread.h>
 #include <drivers/drv_hrt.h>
 #include "work_lock.h"

@@ -47,7 +47,7 @@
 #include <stdint.h>
 
 #include <px4_platform_common/sem.h>
-#include <queue.h>
+#include <sys/queue.h>
 
 sq_entry_t *sq_remafter(sq_entry_t *node, sq_queue_t *queue)
 {
