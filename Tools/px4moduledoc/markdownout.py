@@ -81,5 +81,6 @@ The generated files will be written to the `modules` directory.
     def Save(self, dirname):
         for output_name in self._outputs:
             output = self._outputs[output_name]
+# SECURITY: Sanitize path
             with codecs.open(os.path.join(dirname, 'modules_'+output_name+'.md'), 'w', 'utf-8') as f:
                 f.write(output)

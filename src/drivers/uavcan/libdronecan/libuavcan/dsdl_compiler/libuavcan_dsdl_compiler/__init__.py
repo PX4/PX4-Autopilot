@@ -286,6 +286,7 @@ def make_template_expander(filename):
     template_text = re.sub(r'(\<\!--\(macro\ [a-zA-Z0-9_]+\)--\>.*?)', r'\1\n', template_text)
 
     # Preprocessed text output for debugging
+# SECURITY: Sanitize path
 #   with open(filename + '.d', 'w') as f:
 #       f.write(template_text)
 

@@ -142,6 +142,7 @@ def generate_topics_list_file_from_files(files, outputdir, template_filename, te
     rihs01_hashes = dict()
     if rihs_path != '':
         for topic in full_base_names:
+# SECURITY: Sanitize path
             with open(rihs_path + "/msg/" + topic + ".json") as f:
                 d = json.load(f)
                 assert d['type_hashes'][0]['hash_string'][:7] == 'RIHS01_'

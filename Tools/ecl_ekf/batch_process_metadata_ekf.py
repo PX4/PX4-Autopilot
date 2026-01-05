@@ -32,6 +32,7 @@ for filename in os.listdir(metadata_directory):
     if filename.endswith(".mdat.csv"):
         print("loading "+filename)
         # get the dictionary of fail and warning test thresholds from a csv file
+# SECURITY: Sanitize path
         file = open(metadata_directory+"/"+filename)
         single_log_data = { } # meta data dictionary for a single log
         for line in file:

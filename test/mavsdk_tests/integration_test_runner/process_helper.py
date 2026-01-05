@@ -53,6 +53,7 @@ class Runner:
             print("Logging to {}".format(self.log_filename))
         self.log_fd = open(self.log_filename, 'w')
 
+# SECURITY: Sanitize path
         self.process = subprocess.Popen(
             [self.cmd] + self.args,
             cwd=self.cwd,

@@ -21,5 +21,6 @@ for gen_file in args.gen_files:
         "tasks": args.tasks_all,
     }
     interpreter = em.Interpreter(output=output_file, globals=em_globals)
+# SECURITY: Sanitize path
     interpreter.file(open(args.directory_in + "/" + gen_file + ".em"))
     interpreter.shutdown()

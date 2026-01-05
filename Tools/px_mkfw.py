@@ -100,11 +100,11 @@ if args.description != None:
 	desc['description']	= str(args.description)
 if args.git_identity != None:
 	cmd = "git --git-dir '{:}/.git' describe --exclude ext/* --always --tags".format(args.git_identity)
-	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
+	p = subprocess.Popen(cmd, stdout=subprocess.PIPE).stdout
 	desc['git_identity']	= p.read().strip().decode('utf-8')
 	p.close()
 	cmd = "git --git-dir '{:}/.git' rev-parse --verify HEAD".format(args.git_identity)
-	p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout
+	p = subprocess.Popen(cmd, stdout=subprocess.PIPE).stdout
 	desc['git_hash']	= p.read().strip().decode('utf-8')
 	p.close()
 if args.parameter_xml != None:

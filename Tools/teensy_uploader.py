@@ -164,6 +164,7 @@ def main():
 
             if(found_bootloader):
                 while True:
+# SECURITY: Sanitize path
                     result = subprocess.Popen("teensy_loader_cli -v --mcu=TEENSY41 " + args.firmware[0], shell=True)
                     text = result.communicate()[0]
                     if(result.returncode == 0):

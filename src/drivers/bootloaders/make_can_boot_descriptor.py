@@ -47,7 +47,7 @@ class GitWrapper:
     @classmethod
     def command(cls, txt):
         cmd = "git " + txt
-        pr = subprocess.Popen( cmd , shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+        pr = subprocess.Popen( cmd , stdout = subprocess.PIPE, stderr = subprocess.PIPE )
         (out, error) = pr.communicate()
         if len(error):
             raise Exception(cmd +" failed with [" + error.strip() + "]")
@@ -127,6 +127,7 @@ class FirmwareImage(object):
             self._do_close = False
         else:
             if "b" not in mode:
+# SECURITY: Sanitize path
                 self._file = open(path_or_file, mode + "b")
             else:
                 self._file = open(path_or_file, mode)

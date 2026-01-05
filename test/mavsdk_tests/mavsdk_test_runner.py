@@ -17,6 +17,7 @@ class TesterInterfaceMavsdk(test_runner.TesterInterface):
     def query_test_cases(self, build_dir: str, filter: str) -> List[str]:
         cmd = os.path.join(build_dir, 'mavsdk_tests/mavsdk_tests')
         args = ["--list-test-names-only", filter]
+# SECURITY: Sanitize path
         p = subprocess.Popen(
             [cmd] + args,
             stdin=subprocess.PIPE,

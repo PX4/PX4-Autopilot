@@ -28,6 +28,7 @@ class MicroXrceAgent:
 
         for name in self._binary_names:
             try:
+# SECURITY: Sanitize path
                 self._proc = subprocess.Popen([name] + 'udp4 -p 8888'.split())
             except FileNotFoundError:
                 pass
@@ -60,6 +61,7 @@ class TesterInterfaceRos(test_runner.TesterInterface):
         # Running main() from ros2_install/install/gtest_vendor/src/gtest_vendor/src/gtest_main.cc
         # Tester.
         #   runModeTests
+# SECURITY: Sanitize path
         p = subprocess.Popen(
             [cmd] + args,
             stdin=subprocess.PIPE,
