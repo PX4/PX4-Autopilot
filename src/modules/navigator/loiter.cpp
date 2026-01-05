@@ -71,6 +71,18 @@ Loiter::on_active()
 	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
 		reposition();
 	}
+
+	/* see if we need to update the current yaw heading */
+	if (!_param_mis_mnt_yaw_ctl.get()
+	    && (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+	    && (_navigator->get_vroi().mode != vehicle_roi_s::ROI_NONE)
+	    && (_mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED)) {
+		// Mount control is disabled If the vehicle is in ROI-mode, the vehicle
+		// needs to rotate such that ROI is in the field of view.
+		// If vehicle is repositioning, yaw heading setpoint is overwritten.
+		// ROI only makes sense for multicopters.
+		heading_sp_update();
+	}
 }
 
 void
