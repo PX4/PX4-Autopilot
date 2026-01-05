@@ -210,6 +210,7 @@ msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const inpu
 }
 
 msp_rendor_rssi_t construct_rendor_RSSI(const input_rc_s &input_rc)
+// print the rssi of the rc as a percentage in the top left corner
 {
 	msp_rendor_rssi_t rssi;
 	rssi.screenYPosition = 0x02;
@@ -711,7 +712,29 @@ msp_rendor_formic_crosshairs_t construct_rendor_FORMIC_CROSSHAIRS(int osd_format
 }
 
 
+msp_rendor_total_arm_time_t construct_rendor_TOTAL_ACTIVATED_TIME(const vehicle_status_s &vehicle_status)
+// print the time from system start to the current time in mm:ss format
+{
+	msp_rendor_total_arm_time_t render_total_arm_time = {}; // Initialize all fields to zero
 
+	render_total_arm_time.subCommand = MSP_DP_WRITE_STRING; // 0x03 Write string
+	render_total_arm_time.screenYPosition = 0x08;
+	render_total_arm_time.screenXPosition = 0x02;
+	render_total_arm_time.iconAttrs = 0x00;
+	render_total_arm_time.iconIndex = MCP_TIMER_ICON; // Timer/clock icon (common Betaflight timer icon index)
+
+	// Convert microseconds to mm:ss format
+	// timestamp is in microseconds since system start
+	uint64_t total_seconds = vehicle_status.timestamp / 1000000ULL; // Convert microseconds to seconds
+	int minutes = total_seconds / 60;
+	int seconds = total_seconds % 60;
+
+	// Format as "mm:ss" (e.g., "05:23" for 5 minutes 23 seconds)
+	memset(&render_total_arm_time.str[0], 0, sizeof(render_total_arm_time.str));
+	snprintf(&render_total_arm_time.str[0], sizeof(render_total_arm_time.str), "%02d:%02d", minutes, seconds);
+
+	return render_total_arm_time;
+}
 
 
 

@@ -851,6 +851,7 @@ struct msp_osd_config_t {
 	uint16_t osd_home_dist_pos;
 	uint16_t osd_distance_sensor_pos;
 	uint16_t osd_total_arm_time_pos;
+	uint16_t osd_total_activated_time_pos;
 	uint16_t osd_numerical_heading_pos;
 	uint16_t osd_numerical_vario_pos;
 	uint16_t osd_compass_bar_pos;

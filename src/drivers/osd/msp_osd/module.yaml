@@ -45,6 +45,7 @@ parameters:
                 24: FORMIC_RING
                 25: BATTERY_FULL_VOLTAGE
                 26: FORMIC_CROSSHAIRS
+                27: TOTAL_ACTIVATED_TIME
             default: 16383
 
         # OSD Crosshairs Vertical Position

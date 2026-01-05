@@ -5,7 +5,6 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/time.h>
 #include <lib/mathlib/math/Limits.hpp>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_motors.h>
 #include <parameters/param.h>
 #include <inttypes.h>
@@ -24,33 +23,20 @@ MulticopterTurtleMode::MulticopterTurtleMode(ModuleParams *parent) :
 void MulticopterTurtleMode::update(const bool armed)
 {
 	// Check if we need to send 3d_off command after disarming
-	if (_pending_dshot_disable && !armed) {
-		// Now that we're disarmed, send the 3d_off command
-		PX4_INFO("Turtle mode: Sending 3d_off command now that motors are disarmed");
-		const char *cmd_str = "3d_off";
-		char *cmd_argv[] = { 
-			(char*)"dshot", 
-			(char*)cmd_str,
-			nullptr 
-		};
-		
-		int result = dshot_main(2, cmd_argv);
-		if (result == 0) {
-			PX4_INFO("Turtle mode: DShot 3d_off command sent successfully");
-		} else {
-			PX4_WARN("Turtle mode: DShot 3d_off command failed with code %d", result);
-		}
-		
-		_pending_dshot_disable = false;
-	}
+	// Only send if ESC state is ON but we're disarmed and not in ACTIVE_TURTLE
+	// This handles the case when exiting ACTIVE_TURTLE - 3d_off will be sent after disarm completes
+	// PX4_INFO("turtle mode state: %d", (int)_turtle_mode_state);
+	// PX4_INFO("turtle mode esc internal state: %d", (int)_turtle_mode_esc_internal_state);
 
+	if (_turtle_mode_esc_internal_state == TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_ON && 
+	    !armed && 
+	    _turtle_mode_state != TurtleModeState::ACTIVE_TURTLE) {
+
+	}
 	if (_param_com_turtle_en.get()) {
-		// If armed but not by turtle mode, disable turtle mode to allow normal flight
-		if (armed && !_turtle_mode_armed && _turtle_mode_state != TurtleModeState::FLYING_DISABLED) {
-			setState(TurtleModeState::FLYING_DISABLED);
-			updateDshot3dParameter(false);
-			return;
-		}
+
+		// check if the TURTLE MODE need to be enabled
+		// Allow regular arming even when in turtle mode - don't force exit from turtle mode
 
 		const float aux_channel_value = getAuxChannelValue();
 		const bool aux_triggered = (aux_channel_value > AUX_CHANNEL_THRESHOLD);
@@ -58,9 +44,10 @@ void MulticopterTurtleMode::update(const bool armed)
 		switch (_turtle_mode_state) {
 		case TurtleModeState::FLYING_DISABLED:
 			if (!armed || _turtle_mode_armed) {
-				if (aux_triggered) {
+				// Don't allow entering ACTIVE_TURTLE while waiting for disarm
+				if (aux_triggered && !_should_disarm_on_exit) {
 					setState(TurtleModeState::ACTIVE_TURTLE);
-					updateDshot3dParameter(true);
+					updateDshot3dParameter(true, armed);
 				} else {
 					setState(TurtleModeState::OPTIONAL_TURTLE);
 				}
@@ -68,11 +55,16 @@ void MulticopterTurtleMode::update(const bool armed)
 			break;
 
 		case TurtleModeState::OPTIONAL_TURTLE:
-			if (aux_triggered) {
+			// Don't allow entering ACTIVE_TURTLE while waiting for disarm
+			if (aux_triggered && !_should_disarm_on_exit) {
 				setState(TurtleModeState::ACTIVE_TURTLE);
-				updateDshot3dParameter(true);
+				updateDshot3dParameter(true, armed);
+			}
+			else {
+				updateDshot3dParameter(false, armed);
 			}
 			break;
+
 
 		case TurtleModeState::ACTIVE_TURTLE:
 			if (!aux_triggered) {
@@ -83,41 +75,36 @@ void MulticopterTurtleMode::update(const bool armed)
 				_should_disarm_on_exit = was_turtle_armed;
 				_nav_state_change_requested = false;
 				_waiting_for_dshot_command = false;
-				// Set flag to send 3d_off command after disarming
-				_pending_dshot_disable = true;
-				// Update parameter immediately
-				updateDshot3dParameter(false);
+				// Don't send 3d_off here if armed - it will be sent after disarming by the check at the top
+				// The check at lines 28-32 will handle sending 3d_off after disarming
 			} else {
-				// While in ACTIVE_TURTLE: publish disabled motors continuously
-				// This prevents control allocator from taking control
-				// User can override by calling publishMotorCommands() at higher rate
-				const float disabled_motors[12] = {0.1, 0.1, 0.1, 0.1, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN};
-				publishMotorCommands(disabled_motors);
-				
-				// Rate-limited debug print to show continuous operation
-				const hrt_abstime now = hrt_absolute_time();
-				if (now - _last_debug_print_time >= DEBUG_PRINT_INTERVAL) {
-					PX4_INFO("Turtle mode: ACTIVE - publishing disabled motors (call publishMotorCommands() to control)");
-					_last_debug_print_time = now;
-				}
+				// While in ACTIVE_TURTLE: publish motor commands continuously
+				// ESC internal state should already be ON (set when enable command succeeded)
+				const MotorCommands motor_cmds = getMotorCommands();
+				const float motor_commands[12] = {motor_cmds.roll, motor_cmds.pitch, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN};
+				publishMotorCommands(motor_commands);
 			}
 			break;
 		}
 
 		// Continue publishing disabled motors while waiting to disarm after leaving turtle mode
 		// This prevents the control allocator from controlling motors until disarm completes
+
 		if (_should_disarm_on_exit && armed) {
 			const float disabled_motors[12] = {NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN};
 			publishMotorCommands(disabled_motors);
-			PX4_INFO("Turtle mode: Publishing disabled motors");
+		} else if (!armed && _should_disarm_on_exit) {
+			// Disarm completed, clear the flag
+			_should_disarm_on_exit = false;
 		}
 
 	} else if (_turtle_mode_state != TurtleModeState::FLYING_DISABLED) {
 		// Feature disabled: reset to FLYING_DISABLED
 		setState(TurtleModeState::FLYING_DISABLED);
-		// Set flag to send 3d_off command after disarming
-		_pending_dshot_disable = true;
-		updateDshot3dParameter(false);
+		// Disable 3D mode if it was enabled
+		if (_turtle_mode_esc_internal_state == TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_ON) {
+			updateDshot3dParameter(false, armed);
+		}
 	}
 }
 
@@ -127,13 +114,16 @@ void MulticopterTurtleMode::setState(TurtleModeState new_state)
 	_turtle_mode_state = new_state;
 }
 
-
-
-void MulticopterTurtleMode::updateDshot3dParameter(bool enable)
+void MulticopterTurtleMode::updateDshot3dParameter(bool enable, bool armed)
 {
 	// DShot commands only execute when motors are disarmed (output == 0)
 	// For enable: we'll delay arming until command completes (300ms)
 	// For disable: command will be sent after disarming
+
+	if (armed) {
+		PX4_WARN("Turtle mode: Cannot update DSHOT_3D_ENABLE while armed");
+		return;
+	}
 	
 	param_t param_handle = param_find("DSHOT_3D_ENABLE");
 	int result_param = PX4_ERROR;
@@ -143,38 +133,38 @@ void MulticopterTurtleMode::updateDshot3dParameter(bool enable)
 		result_param = param_set(param_handle, &value);
 	}
 	
-	if (enable) {
-		// Send 3d_on command (will execute when motors are at 0, before arming)
-		const char *cmd_str = "3d_on";
-		char *cmd_argv[] = { 
-			(char*)"dshot", 
-			(char*)cmd_str,
-			nullptr 
-		};
+	usleep(1000000);
+	// Send DShot command to change ESC direction
+	const char *cmd_str = enable ? "3d_on" : "3d_off";
+	char *cmd_argv[] = { 
+		(char*)"dshot", 
+		(char*)cmd_str,
+		nullptr 
+	};
 
-		PX4_INFO("Turtle mode: Sending DShot %s command (motors must be disarmed)", cmd_str);
+	int result_dshot = dshot_main(2, cmd_argv);
+
+	if (result_dshot == 0 && result_param == PX4_OK) {
+		// Command succeeded - update internal state
+		_turtle_mode_esc_internal_state = enable ? 
+			TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_ON : 
+			TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_OFF;
 		
-		int result_dshot = dshot_main(2, cmd_argv);
-
-		if (result_dshot == 0 && result_param == PX4_OK) {
-			// Mark that we're waiting for the command to complete
-			// The command needs ~200ms to complete (10 repetitions at ~20ms each)
-			// We'll delay arming in shouldArm() until this time has passed
+		if (enable) {
+			// For enable: delay arming until command completes
 			_waiting_for_dshot_command = true;
 			_dshot_command_start_time = hrt_absolute_time();
-			PX4_INFO("Turtle mode: DShot %s command queued, waiting 300ms for completion before arming", cmd_str);
 		} else {
-			PX4_WARN("Turtle mode: DShot %s command failed (param: %d, dshot: %d)", cmd_str, result_param, result_dshot);
-			// If the command fails, transition to OPTIONAL_TURTLE state
-			setState(TurtleModeState::OPTIONAL_TURTLE);
+			return;
 		}
 	} else {
-		// For disable: parameter is updated, command will be sent after disarming
-		if (result_param == PX4_OK) {
-			PX4_INFO("Turtle mode: DSHOT_3D_ENABLE parameter set to 0");
-		} else {
+		if (result_param != PX4_OK) {
 			PX4_WARN("Turtle mode: Failed to set DSHOT_3D_ENABLE parameter: %d", result_param);
 		}
+		if (result_dshot != 0) {
+			PX4_WARN("Turtle mode: Failed to send DShot %s command: %d", cmd_str, result_dshot);
+		}
+		// On failure, don't update internal state - keep it as is
 	}
 }
 
@@ -261,18 +251,36 @@ float MulticopterTurtleMode::getAuxChannelValue()
 }
 
 
+float MulticopterTurtleMode::Threshold(float value, float threshold){
+
+	if (value < threshold && value > -threshold) {
+		return NAN;
+	}
+	return value;
+}
+
+MulticopterTurtleMode::MotorCommands MulticopterTurtleMode::getMotorCommands()
+{
+	manual_control_setpoint_s manual_control_setpoint;
+	// Update manual control setpoint from subscription
+	if (!_manual_control_setpoint_sub.copy(&manual_control_setpoint) || !manual_control_setpoint.valid) {
+		MotorCommands cmds{};
+		cmds.roll = NAN;
+		cmds.pitch = NAN;
+		return cmds;
+	}
+
+	float threshold = 0.1f;
+	MotorCommands cmds{};
+	cmds.roll = Threshold(manual_control_setpoint.roll, threshold);
+	cmds.pitch = Threshold(manual_control_setpoint.pitch, threshold);
+	PX4_INFO("ROLL PITCH PRINT: %f, %f", (double)cmds.roll, (double)cmds.pitch);
+	return cmds;
+}
+
+
 void MulticopterTurtleMode::publishMotorCommands(const float throttle[12])
 {
-	// Publish motor commands with custom throttle values for each motor
-	// throttle values should be in range [-1, 1] where:
-	//   1 = maximum positive thrust
-	//  -1 = maximum negative thrust (requires DShot 3D enabled)
-	//  NAN = motor disabled
-	// 
-	// IMPORTANT: This function must be called at a high rate (250Hz recommended)
-	// from your own code while in ACTIVE_TURTLE state to control motors.
-	
-	// Ensure publication is advertised
 	if (!_actuator_motors_pub.advertised()) {
 		_actuator_motors_pub.advertise();
 	}

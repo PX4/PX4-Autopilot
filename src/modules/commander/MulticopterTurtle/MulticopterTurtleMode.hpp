@@ -47,8 +47,12 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/vehicle_status.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
+
+
+using namespace std;
 
 class MulticopterTurtleMode : public ModuleParams
 {
@@ -57,6 +61,12 @@ public:
 		FLYING_DISABLED = 0,
 		OPTIONAL_TURTLE = 1,
 		ACTIVE_TURTLE = 2,
+	};
+
+
+	enum class TurtleModeESCInternalState {
+		TURTLE_MODE_ESC_INTERNAL_STATE_3D_ON = 0,
+		TURTLE_MODE_ESC_INTERNAL_STATE_3D_OFF = 1,
 	};
 
 	explicit MulticopterTurtleMode(ModuleParams *parent);
@@ -68,6 +78,15 @@ public:
 	bool isTurtleModeEnabled() const
 	{
 		return _turtle_mode_state == TurtleModeState::ACTIVE_TURTLE;
+	}
+
+	/**
+	 * Check if in ACTIVE_TURTLE state (should block regular arming)
+	 * @return true if in ACTIVE_TURTLE state and feature is enabled
+	 */
+	bool isInTurtleMode() const
+	{
+		return _param_com_turtle_en.get() && _turtle_mode_state == TurtleModeState::ACTIVE_TURTLE;
 	}
 
 	/**
@@ -108,30 +127,33 @@ public:
 	 * Publish motor commands with custom throttle values for each motor
 	 * @param throttle array of 12 throttle values in range [-1, 1] where 1 = max forward, -1 = max reverse, NAN = disabled
 	 */
-	 
-	 
-	 private:
+
+private:
 	void publishMotorCommands(const float throttle[12]);
 	float getAuxChannel() const;
 	float getAuxChannelValue();
-	void updateDshot3dParameter(bool enable);
+	void updateDshot3dParameter(bool enable, bool armed);
 	void setState(TurtleModeState new_state);
 
 	TurtleModeState _turtle_mode_state{TurtleModeState::FLYING_DISABLED};
+	TurtleModeESCInternalState _turtle_mode_esc_internal_state{TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_OFF};
 	TurtleModeState _previous_state{TurtleModeState::FLYING_DISABLED};
 	bool _turtle_mode_armed{false}; // Track if turtle mode was responsible for arming
 	bool _should_disarm_on_exit{false}; // Flag to disarm when exiting turtle mode
-	bool _throttle_enabled_in_turtle{false}; // Flag to enable throttle control in turtle mode
 	bool _nav_state_change_requested{false}; // Track if we've already requested nav_state change to STAB
 	bool _waiting_for_dshot_command{false}; // Flag to delay arming until DShot command completes
 	hrt_abstime _dshot_command_start_time{0}; // Time when DShot command was sent
-	bool _pending_dshot_disable{false}; // Flag to send 3d_off command after disarming
-	hrt_abstime _last_debug_print_time{0}; // Time of last debug print
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	
+	struct MotorCommands {
+		float roll;
+		float pitch;
+	};
+	float Threshold(float value, float threshold);
+	MotorCommands getMotorCommands();
 	static constexpr float AUX_CHANNEL_THRESHOLD{0.5f};
 	static constexpr uint16_t ALL_MOTORS_REVERSIBLE{0xFFFF};
-	static constexpr hrt_abstime DEBUG_PRINT_INTERVAL{10000}; // 1 second
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::COM_TURTLE_EN>) _param_com_turtle_en,

@@ -106,6 +106,7 @@ enum SymbolIndex : uint8_t {
 	FORMIC_RING		= 24,
 	BATTERY_FULL_VOLTAGE	= 25,
 	FORMIC_CROSSHAIRS	= 26,
+	TOTAL_ACTIVATED_TIME	= 27,
 };
 
 class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem

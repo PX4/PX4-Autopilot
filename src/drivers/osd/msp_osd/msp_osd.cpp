@@ -111,6 +111,7 @@ const uint16_t osd_current_draw_pos = 2103;
 
 const uint16_t osd_distance_sensor_pos = 2482;
 const uint16_t osd_total_arm_time_pos = 2484;
+const uint16_t osd_total_activated_time_pos = 2485;
 
 
 const uint16_t osd_numerical_vario_pos = LOCATION_HIDDEN;
@@ -193,6 +194,7 @@ void MspOsd::SendConfig()
 
 	msp_osd_config.osd_distance_sensor_pos = enabled(SymbolIndex::DISTANCE_SENSOR) ? osd_distance_sensor_pos : LOCATION_HIDDEN;
 	msp_osd_config.osd_total_arm_time_pos = enabled(SymbolIndex::TOTAL_ARM_TIME) ? osd_total_arm_time_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_total_activated_time_pos = enabled(SymbolIndex::TOTAL_ACTIVATED_TIME) ? osd_total_activated_time_pos : LOCATION_HIDDEN;
 
 	// the location of our crosshairs can change
 	msp_osd_config.osd_crosshairs_pos = LOCATION_HIDDEN;
@@ -469,6 +471,18 @@ void MspOsd::Run()
 
 		if (enabled(SymbolIndex::TOTAL_ARM_TIME)) {
 			const auto msg = msp_osd::construct_rendor_TOTAL_ARM_TIME(total_arm_time);
+
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_total_arm_time_t));
+		}
+	}
+
+	// MSP_TOTAL_ACTIVATED_TIME
+	{
+		vehicle_status_s vehicle_status{};
+		_vehicle_status_sub.copy(&vehicle_status);
+
+		if (enabled(SymbolIndex::TOTAL_ACTIVATED_TIME)) {
+			const auto msg = msp_osd::construct_rendor_TOTAL_ACTIVATED_TIME(vehicle_status);
 
 			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_total_arm_time_t));
 		}

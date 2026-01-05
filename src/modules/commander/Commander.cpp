@@ -570,21 +570,31 @@
  
  transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks)
  {
+	 // Prevent double arming if already armed in turtle mode (check before general isArmed() check)
+	 // if armeng at the turtle moode it cuse a problem with the 3d_off command
+	 if (isArmed() && _multicopter_turtle.isInTurtleMode() && calling_reason != arm_disarm_reason_t::command_internal) {
+		 mavlink_log_critical(&_mavlink_log_pub, "Arming denied: already armed in turtle mode\t");
+		 events::send(events::ID("commander_arm_denied_turtle_armed"), {events::Log::Critical, events::LogInternal::Info},
+			      "Arming denied: already armed in turtle mode");
+		 tune_negative(true);
+		 return TRANSITION_DENIED;
+	 }
+
 	 if (isArmed()) {
 		 return TRANSITION_NOT_CHANGED;
 	 }
- 
+
 	 if (_vehicle_status.calibration_enabled
 	     || _vehicle_status.rc_calibration_in_progress
 	     || _actuator_armed.in_esc_calibration_mode) {
- 
+
 		 mavlink_log_critical(&_mavlink_log_pub, "Arming denied: calibrating\t");
 		 events::send(events::ID("commander_arm_denied_calibrating"), {events::Log::Critical, events::LogInternal::Info},
 			      "Arming denied: calibrating");
 		 tune_negative(true);
 		 return TRANSITION_DENIED;
 	 }
- 
+
 	 // allow a grace period for re-arming: preflight checks don't need to pass during that time, for example for accidental in-air disarming
 	 if (calling_reason == arm_disarm_reason_t::rc_switch
 	     && ((_last_disarmed_timestamp != 0) && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s))) {
@@ -1885,7 +1895,7 @@
  
 		 _multicopter_throw_launch.update(isArmed());
 
-		 _multicopter_turtle.update(isArmed());
+		 _multicopter_turtle.update(isArmed()); 
 		 
 		 // Handle turtle mode arming/disarming (bypass preflight checks for turtle mode)
 		 if (_multicopter_turtle.shouldArm() && !isArmed()) {

@@ -723,6 +723,7 @@ int DShot::print_status()
 	PX4_INFO("Outputs initialized: %s", _outputs_initialized ? "yes" : "no");
 	PX4_INFO("Outputs used: 0x%" PRIx32, _output_mask);
 	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
+	PX4_INFO("3D mode parameter (DSHOT_3D_ENABLE): %s", _param_dshot_3d_enable.get() ? "enabled" : "disabled");
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_bdshot_rpm_perf);
 	perf_print_counter(_dshot_telem_perf);

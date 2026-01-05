@@ -143,6 +143,8 @@ msp_rendor_distance_sensor_t construct_rendor_DISTANCE_SENSOR(const estimator_ai
 
 msp_rendor_total_arm_time_t construct_rendor_TOTAL_ARM_TIME(const total_arm_time_s &total_arm_time);
 
+msp_rendor_total_arm_time_t construct_rendor_TOTAL_ACTIVATED_TIME(const vehicle_status_s &vehicle_status);
+
 msp_rendor_formic_ring_t construct_rendor_FORMIC_RING(const dds_flag_s &dds_flag);
 
 msp_rendor_formic_crosshairs_t construct_rendor_FORMIC_CROSSHAIRS(int osd_format);
