@@ -305,72 +305,66 @@ static void mavlink_usb_check(void *arg)
 								else if (launch_passthru) {
 									sched_lock();
 									exec_argv = (char **)gps_argv;
-									exec_builtin(exec_argv[0], exec_argv, nullptr, 0);
-									sched_unlock();
-									exec_argv = (char **)passthru_argv;
-								}
+									exec_builtin(exec_argv[0], exec_argv, nullptr);
 
 #endif
 
-								sched_lock();
+									sched_lock();
 
-								if (exec_builtin(exec_argv[0], exec_argv, nullptr, 0) > 0) {
-									usb_auto_start_state = UsbAutoStartState::connected;
+									if (exec_builtin(exec_argv[0], exec_argv, nullptr) > 0) {
+									} else {
+										usb_auto_start_state = UsbAutoStartState::disconnecting;
+									}
 
-								} else {
-									usb_auto_start_state = UsbAutoStartState::disconnecting;
+									sched_unlock();
 								}
-
-								sched_unlock();
 							}
 						}
 					}
+
+				} else {
+					// cleanup
+					if (ttyacm_fd >= 0) {
+						close(ttyacm_fd);
+						ttyacm_fd = -1;
+					}
+
+					usb_auto_start_state = UsbAutoStartState::disconnecting;
 				}
 
-			} else {
-				// cleanup
-				if (ttyacm_fd >= 0) {
-					close(ttyacm_fd);
-					ttyacm_fd = -1;
+				break;
+
+			case UsbAutoStartState::connected:
+				if (!vbus_present && !vbus_present_prev) {
+					sched_lock();
+					static const char app[] {"mavlink"};
+					static const char *stop_argv[] {"mavlink", "stop", "-d", USB_DEVICE_PATH, NULL};
+					exec_builtin(app, (char **)stop_argv, NULL, 0);
+					sched_unlock();
+
+					usb_auto_start_state = UsbAutoStartState::disconnecting;
 				}
 
-				usb_auto_start_state = UsbAutoStartState::disconnecting;
+				break;
+
+			case UsbAutoStartState::disconnecting:
+				// serial disconnect if unused
+				serdis_main(0, NULL);
+				usb_auto_start_state = UsbAutoStartState::disconnected;
+				break;
 			}
+		}
 
-			break;
+		vbus_present_prev = vbus_present;
 
-		case UsbAutoStartState::connected:
-			if (!vbus_present && !vbus_present_prev) {
-				sched_lock();
-				static const char app[] {"mavlink"};
-				static const char *stop_argv[] {"mavlink", "stop", "-d", USB_DEVICE_PATH, NULL};
-				exec_builtin(app, (char **)stop_argv, NULL, 0);
-				sched_unlock();
-
-				usb_auto_start_state = UsbAutoStartState::disconnecting;
-			}
-
-			break;
-
-		case UsbAutoStartState::disconnecting:
-			// serial disconnect if unused
-			serdis_main(0, NULL);
-			usb_auto_start_state = UsbAutoStartState::disconnected;
-			break;
+		if (rescheduled != PX4_OK) {
+			work_queue(LPWORK, &usb_serial_work, mavlink_usb_check, NULL, USEC2TICK(1000000));
 		}
 	}
 
-	vbus_present_prev = vbus_present;
 
-	if (rescheduled != PX4_OK) {
-		work_queue(LPWORK, &usb_serial_work, mavlink_usb_check, NULL, USEC2TICK(1000000));
+	void cdcacm_init(void) {
+		work_queue(LPWORK, &usb_serial_work, mavlink_usb_check, nullptr, 0);
 	}
-}
-
-
-void cdcacm_init(void)
-{
-	work_queue(LPWORK, &usb_serial_work, mavlink_usb_check, nullptr, 0);
-}
 
 #endif // CONFIG_SYSTEM_CDCACM
