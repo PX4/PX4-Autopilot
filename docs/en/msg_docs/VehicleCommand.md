@@ -69,6 +69,7 @@ uint16 VEHICLE_CMD_DO_PARACHUTE=208 # Mission command to trigger a parachute. |a
 uint16 VEHICLE_CMD_DO_MOTOR_TEST=209 # Motor test command. |Instance (@range 1, )|throttle type|throttle|timeout [s]|Motor count|Test order|Unused|
 uint16 VEHICLE_CMD_DO_INVERTED_FLIGHT=210 # Change to/from inverted flight. |inverted (0=normal, 1=inverted)|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GRIPPER = 211 # Command to operate a gripper.
+uint16 VEHICLE_CMD_DO_AUTOTUNE_ENABLE = 212 # Enable autotune module. |1 to enable|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL=214 # Mission command to set TRIG_INTERVAL for this flight. |[m] Camera trigger distance|Shutter integration time (ms)|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT=220 # Mission command to control a camera or antenna mount, using a quaternion as reference. |q1 - quaternion param #1, w (1 in null-rotation)|q2 - quaternion param #2, x (0 in null-rotation)|q3 - quaternion param #3, y (0 in null-rotation)|q4 - quaternion param #4, z (0 in null-rotation)|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GUIDED_MASTER=221 # Set id of master controller. |System ID|Component ID|Unused|Unused|Unused|Unused|Unused|
@@ -107,6 +108,7 @@ uint16 VEHICLE_CMD_LOGGING_START = 2510 # Start streaming ULog data.
 uint16 VEHICLE_CMD_LOGGING_STOP = 2511 # Stop streaming ULog data.
 uint16 VEHICLE_CMD_CONTROL_HIGH_LATENCY = 2600 # Control starting/stopping transmitting data over the high latency link.
 uint16 VEHICLE_CMD_DO_VTOL_TRANSITION = 3000 # Command VTOL transition.
+uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300 # Command safety on/off. |1 to activate safety, 0 to deactivate safety and allow control surface movements|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001 # Request arm authorization.
 uint16 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001 # Prepare a payload deployment in the flight plan.
 uint16 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002 # Control a pre-programmed payload deployment.
@@ -185,6 +187,10 @@ int8 ARMING_ACTION_ARM = 1
 # param2 in VEHICLE_CMD_DO_GRIPPER.
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
+
+# Used as param1 in DO_SET_SAFETY_SWITCH_STATE command.
+uint8 SAFETY_OFF = 0
+uint8 SAFETY_ON = 1
 
 uint8 ORB_QUEUE_LENGTH = 8
 

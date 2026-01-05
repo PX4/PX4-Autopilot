@@ -186,7 +186,7 @@ _Note: mappings shown are for the PX4 controlled interfaces only_
 
 | UART   | 设备         | Port                                     |
 | ------ | ---------- | ---------------------------------------- |
-| USART1 | UART       | GPS1 (J1012)          |
+| USART1 | /dev/ttyS0 | GPS1 (J1012)          |
 | USART2 | /dev/ttyS1 | TELEM3 (J1002)        |
 | USART3 | /dev/ttyS2 | Debug Console (J1001) |
 | UART4  | /dev/ttyS3 | Expansion UART (J6)   |

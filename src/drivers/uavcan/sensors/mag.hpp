@@ -47,7 +47,7 @@ class UavcanMagnetometerBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanMagnetometerBridge(uavcan::INode &node);
+	UavcanMagnetometerBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 

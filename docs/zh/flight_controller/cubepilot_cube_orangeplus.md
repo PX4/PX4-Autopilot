@@ -207,7 +207,7 @@ The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopi
 
 | UART   | 设备         | Port                           |
 | ------ | ---------- | ------------------------------ |
-| USART2 | UART       | TELEM1 (流控) |
+| USART2 | /dev/ttyS0 | TELEM1 (流控) |
 | USART3 | /dev/ttyS1 | TELEM2 (流控) |
 | UART4  | /dev/ttyS2 | GPS1                           |
 | USART6 | /dev/ttyS3 | PX4IO                          |

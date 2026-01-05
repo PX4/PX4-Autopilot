@@ -59,11 +59,11 @@ void LoggedTopics::add_default_topics()
 	add_topic("config_overrides");
 	add_topic("cpuload");
 	add_topic("distance_sensor_mode_change_request");
+	add_topic("device_information", 900);
 	add_topic_multi("dronecan_node_status", 250);
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
-	// add_optional_topic("esc_status", 250);
 	add_topic("esc_status");
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
@@ -76,7 +76,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("gain_compression", 100);
 	add_topic("gimbal_manager_set_attitude", 500);
 	add_optional_topic("generator_status");
-	add_optional_topic("gps_dump");
+	add_topic("gps_dump");
 	add_optional_topic("gimbal_controls", 200);
 	add_optional_topic("gripper");
 	add_optional_topic("heater_status");
@@ -209,7 +209,6 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
 	add_topic("vehicle_optical_flow", 500);
 	add_topic("aux_global_position", 500);
-	//add_optional_topic("vehicle_optical_flow_vel", 100);
 	add_optional_topic("pps_capture");
 
 	// additional control allocation logging

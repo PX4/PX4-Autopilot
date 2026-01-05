@@ -1283,8 +1283,6 @@ MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 		vcmd.timestamp = hrt_absolute_time();
 		_cmd_pub.publish(vcmd);
 	}
-
-	handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN);
 }
 
 #if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
@@ -3160,7 +3158,7 @@ MavlinkReceiver::run()
 	ssize_t nread = 0;
 	hrt_abstime last_send_update = 0;
 
-	while (!_mavlink.should_exit()) {
+	while (!_should_exit.load()) {
 
 		// check for parameter updates
 		if (_parameter_update_sub.updated()) {
