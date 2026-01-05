@@ -41,7 +41,11 @@
  * Included Files
  ************************************************************/
 
+#if defined(__PX4_NUTTX)
 #include <sys/queue.h>
+#elif defined(__PX4_POSIX)
+#include <queue.h>
+#endif
 
 /************************************************************
  * Public Functions

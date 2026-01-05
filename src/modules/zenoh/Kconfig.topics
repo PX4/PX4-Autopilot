@@ -133,6 +133,10 @@ menu "Zenoh publishers/subscribers"
 		bool "debug_vect"
 		default n
 
+	config ZENOH_PUBSUB_DEVICE_INFORMATION
+		bool "device_information"
+		default n
+
 	config ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
 		bool "differential_pressure"
 		default n
@@ -267,6 +271,10 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_FUEL_TANK_STATUS
 		bool "fuel_tank_status"
+		default n
+
+	config ZENOH_PUBSUB_GAIN_COMPRESSION
+		bool "gain_compression"
 		default n
 
 	config ZENOH_PUBSUB_GENERATOR_STATUS
@@ -983,6 +991,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_DEBUG_KEY_VALUE
 	select ZENOH_PUBSUB_DEBUG_VALUE
 	select ZENOH_PUBSUB_DEBUG_VECT
+	select ZENOH_PUBSUB_DEVICE_INFORMATION
 	select ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
 	select ZENOH_PUBSUB_DISTANCE_SENSOR
 	select ZENOH_PUBSUB_DISTANCE_SENSOR_MODE_CHANGE_REQUEST
@@ -1017,6 +1026,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_FOLLOW_TARGET_ESTIMATOR
 	select ZENOH_PUBSUB_FOLLOW_TARGET_STATUS
 	select ZENOH_PUBSUB_FUEL_TANK_STATUS
+	select ZENOH_PUBSUB_GAIN_COMPRESSION
 	select ZENOH_PUBSUB_GENERATOR_STATUS
 	select ZENOH_PUBSUB_GEOFENCE_RESULT
 	select ZENOH_PUBSUB_GEOFENCE_STATUS

@@ -35,7 +35,11 @@
 ///	@author Don Gagne <don@thegagnes.com>
 
 #include <sys/stat.h>
+#if defined(__PX4_NUTTX)
 #include <nuttx/crc32.h>
+#else
+#include <crc32.h>
+#endif
 #include <stdio.h>
 #include <fcntl.h>
 

@@ -43,7 +43,11 @@
 #include "navigation.h"
 
 #include <ctype.h>
+#if defined(__PX4_NUTTX)
 #include <nuttx/crc32.h>
+#else
+#include <crc32.h>
+#endif
 
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>

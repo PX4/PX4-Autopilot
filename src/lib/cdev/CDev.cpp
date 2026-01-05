@@ -288,9 +288,19 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 			fds->revents |= fds->events & poll_state(filep);
 
 			/* yes? invoke the callback */
+#ifdef __PX4_NUTTX
+
 			if (fds->revents != 0 && fds->cb != nullptr) {
 				fds->cb(fds);
 			}
+
+#else
+
+			if (fds->revents != 0) {
+				px4_sem_post(fds->sem);
+			}
+
+#endif
 
 		}
 
@@ -335,9 +345,19 @@ CDev::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events)
 
 	PX4_DEBUG(" Events fds=%p %0x %0x %0x", fds, fds->revents, fds->events, events);
 
+#ifdef __PX4_NUTTX
+
 	if (fds->revents != 0 && fds->cb != nullptr) {
 		fds->cb(fds);
 	}
+
+#else
+
+	if (fds->revents != 0) {
+		px4_sem_post(fds->sem);
+	}
+
+#endif
 }
 
 int

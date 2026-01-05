@@ -53,7 +53,11 @@
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#if defined(__PX4_NUTTX)
 #include <nuttx/crc32.h>
+#else
+#include <crc32.h>
+#endif
 
 using matrix::wrap_2pi;
 

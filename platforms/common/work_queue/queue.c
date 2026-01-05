@@ -35,7 +35,11 @@
  ************************************************************************/
 
 // FIXME - need px4_queue
+#if defined(__PX4_NUTTX)
 #include <sys/queue.h>
+#elif defined(__PX4_POSIX)
+#include <queue.h>
+#endif
 #include <stddef.h>
 
 void sq_rem(sq_entry_t *node, sq_queue_t *queue)

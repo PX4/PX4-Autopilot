@@ -45,7 +45,11 @@
 #include <inttypes.h>
 
 #include <px4_platform_common/time.h>
+#if defined(__PX4_NUTTX)
 #include <sys/queue.h>
+#else
+#include <queue.h>
+#endif
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
 #include <px4_platform/board_ctrl.h>
