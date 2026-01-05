@@ -165,8 +165,6 @@ void FwLateralLongitudinalControl::Run()
 			_landed = landed.landed;
 		}
 
-		_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
-
 		_vehicle_status_sub.update();
 		_control_mode_sub.update();
 
@@ -420,8 +418,13 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_DESCEND;
 
 		} else {
-			//We can't infer the flight phase , do nothing, estimation is reset at each step
+			// We can't infer the flight phase , do nothing, estimation is reset at each step
+			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
+
 		}
+
+		_flight_phase_estimation_pub.get().timestamp = hrt_absolute_time();
+		_flight_phase_estimation_pub.update();
 	}
 }
 
