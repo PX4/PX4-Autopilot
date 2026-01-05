@@ -18,10 +18,10 @@ int8 SOURCE_GROUND_MINUS_WIND = 0  # Ground speed minus wind
 int8 SOURCE_SENSOR_1 = 1           # Sensor 1
 int8 SOURCE_SENSOR_2 = 2           # Sensor 2
 int8 SOURCE_SENSOR_3 = 3           # Sensor 3
-int8 SOURCE_SYNTHETIC = 4          # Synthetic airspeed 
+int8 SOURCE_SYNTHETIC = 4          # Synthetic airspeed
 
 float32 calibrated_ground_minus_wind_m_s  # [m/s] [@invalid NaN] CAS calculated from groundspeed - windspeed, where windspeed is estimated based on a zero-sideslip assumption
-float32 calibraded_airspeed_synth_m_s     # [m/s] [@invalid NaN] Synthetic airspeed
-float32 airspeed_derivative_filtered      # [m/s^2] Filtered indicated airspeed derivative 
-float32 throttle_filtered                 # [-] Filtered fixed-wing throttle 
-float32 pitch_filtered                    # [rad] Filtered pitch 
+float32 calibrated_airspeed_synth_m_s     # [m/s] [@invalid NaN] Synthetic airspeed
+float32 airspeed_derivative_filtered      # [m/s^2] Filtered indicated airspeed derivative
+float32 throttle_filtered                 # [-] Filtered fixed-wing throttle
+float32 pitch_filtered                    # [rad] Filtered pitch

@@ -742,7 +742,7 @@ void AirspeedModule::select_airspeed_and_publish()
 	airspeed_validated_s airspeed_validated = {};
 	airspeed_validated.timestamp = _time_now_usec;
 	airspeed_validated.calibrated_ground_minus_wind_m_s = NAN;
-	airspeed_validated.calibraded_airspeed_synth_m_s = NAN;
+	airspeed_validated.calibrated_airspeed_synth_m_s = NAN;
 	airspeed_validated.indicated_airspeed_m_s = NAN;
 	airspeed_validated.calibrated_airspeed_m_s = NAN;
 	airspeed_validated.true_airspeed_m_s = NAN;
@@ -764,7 +764,7 @@ void AirspeedModule::select_airspeed_and_publish()
 		airspeed_validated.calibrated_airspeed_m_s = _ground_minus_wind_CAS;
 		airspeed_validated.true_airspeed_m_s = _ground_minus_wind_TAS;
 		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
-		airspeed_validated.calibraded_airspeed_synth_m_s = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
+		airspeed_validated.calibrated_airspeed_synth_m_s = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
 
 		break;
 
@@ -774,7 +774,7 @@ void AirspeedModule::select_airspeed_and_publish()
 			float synthetic_airspeed = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
 			airspeed_validated.calibrated_airspeed_m_s = synthetic_airspeed;
 			airspeed_validated.indicated_airspeed_m_s = synthetic_airspeed;
-			airspeed_validated.calibraded_airspeed_synth_m_s = synthetic_airspeed;
+			airspeed_validated.calibrated_airspeed_synth_m_s = synthetic_airspeed;
 			airspeed_validated.true_airspeed_m_s =
 				calc_true_from_calibrated_airspeed(synthetic_airspeed, _vehicle_air_data.rho);
 			break;
@@ -785,7 +785,7 @@ void AirspeedModule::select_airspeed_and_publish()
 		airspeed_validated.calibrated_airspeed_m_s = _airspeed_validator[valid_airspeed_index - 1].get_CAS();
 		airspeed_validated.true_airspeed_m_s = _airspeed_validator[valid_airspeed_index - 1].get_TAS();
 		airspeed_validated.calibrated_ground_minus_wind_m_s = _ground_minus_wind_CAS;
-		airspeed_validated.calibraded_airspeed_synth_m_s = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
+		airspeed_validated.calibrated_airspeed_synth_m_s = get_synthetic_airspeed(airspeed_validated.throttle_filtered);
 		break;
 	}
 
