@@ -40015,7 +40015,7 @@ A value less than one disables the TX rate timeout.
 
 Enable serial flow control for UXRCE interface.
 
-This is used to enable flow control on for the the uxrce instance.
+This is used to enable flow control for the serial uxrce instance. Used for reliable high bandwidth communication.
 
 | Reboot  | minValue | maxValue | increment | default      | unit |
 | ------- | -------- | -------- | --------- | ------------ | ---- |

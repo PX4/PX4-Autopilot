@@ -837,10 +837,14 @@ bool UxrceddsClient::setBaudrate(int fd, unsigned baud)
 	//
 	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
-	/* no parity, one stop bit, disable flow control */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+	/* no parity, one stop bit */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+	/* enable flow control if needed */
 	if (_param_uxrce_dds_flctrl.get() > 0) {
 		uart_config.c_cflag |= CRTSCTS;
+	} else {
+		uart_config.c_cflag &= ~CRTSCTS;
 	}
 
 	/* set baud rate */
