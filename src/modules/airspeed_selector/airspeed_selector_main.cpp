@@ -225,7 +225,7 @@ private:
 	void update_ground_minus_wind_airspeed(); /**< update airspeed estimate based on groundspeed minus windspeed */
 	void select_airspeed_and_publish(); /**< select airspeed sensor (or groundspeed-windspeed) */
 	float get_synthetic_airspeed(float throttle);
-	void update_throttle_filter(hrt_abstime t_now);
+	void update_throttle_filter();
 };
 
 AirspeedModule::AirspeedModule():
@@ -364,7 +364,6 @@ AirspeedModule::Run()
 	poll_topics();
 	update_wind_estimator_sideslip();
 	update_ground_minus_wind_airspeed();
-	update_throttle_filter(_time_now_usec);
 
 	if (_number_of_airspeed_sensors > 0) {
 
@@ -571,7 +570,9 @@ void AirspeedModule::poll_topics()
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 	_position_setpoint_sub.update(&_position_setpoint);
 
-	_tecs_status_sub.update(&_tecs_status);
+	if (_tecs_status_sub.update(&_tecs_status)) {
+		update_throttle_filter();
+	}
 
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude;
@@ -817,7 +818,8 @@ float AirspeedModule::get_synthetic_airspeed(float throttle)
 	_flight_phase_estimation_sub.update();
 	flight_phase_estimation_s flight_phase_estimation = _flight_phase_estimation_sub.get();
 
-	if (flight_phase_estimation.flight_phase != flight_phase_estimation_s::FLIGHT_PHASE_LEVEL
+	if (_vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+	    || flight_phase_estimation.flight_phase != flight_phase_estimation_s::FLIGHT_PHASE_LEVEL
 	    || _time_now_usec - flight_phase_estimation.timestamp > 1_s) {
 		synthetic_airspeed = _param_fw_airspd_trim.get();
 
@@ -838,30 +840,18 @@ float AirspeedModule::get_synthetic_airspeed(float throttle)
 	return synthetic_airspeed;
 }
 
-void AirspeedModule::update_throttle_filter(hrt_abstime now)
+void AirspeedModule::update_throttle_filter()
 {
-	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		vehicle_thrust_setpoint_s vehicle_thrust_setpoint_0{};
-		_vehicle_thrust_setpoint_0_sub.copy(&vehicle_thrust_setpoint_0);
+	const float throttle_sp = _tecs_status.throttle_sp;
 
-		float forward_thrust = vehicle_thrust_setpoint_0.xyz[0];
+	const float dt = static_cast<float>(_time_now_usec - _t_last_throttle_fw) * 1e-6f;
+	_t_last_throttle_fw = _time_now_usec;
 
-		// if VTOL, use the total thrust vector length (otherwise needs special handling for tailsitters and tiltrotors)
-		if (_vehicle_status.is_vtol) {
-			forward_thrust = sqrtf(vehicle_thrust_setpoint_0.xyz[0] * vehicle_thrust_setpoint_0.xyz[0] +
-					       vehicle_thrust_setpoint_0.xyz[1] * vehicle_thrust_setpoint_0.xyz[1] +
-					       vehicle_thrust_setpoint_0.xyz[2] * vehicle_thrust_setpoint_0.xyz[2]);
-		}
+	if (dt < FLT_EPSILON || dt > 1.f) {
+		_throttle_filtered.reset(throttle_sp);
 
-		const float dt = static_cast<float>(now - _t_last_throttle_fw) * 1e-6f;
-		_t_last_throttle_fw = now;
-
-		if (dt < FLT_EPSILON || dt > 1.f) {
-			_throttle_filtered.reset(forward_thrust);
-
-		} else {
-			_throttle_filtered.update(forward_thrust, dt);
-		}
+	} else {
+		_throttle_filtered.update(throttle_sp, dt);
 	}
 }
 
