@@ -132,7 +132,7 @@ void VehicleGPSPosition::Run()
 			_sensor_gps_sub[i].copy(&gps_data);
 			_gps_blending.setGpsData(gps_data, i);
 
-			if (math::isInRange(gps_prime, 2, 127)) {
+			if (math::isInRange(static_cast<int>(gps_prime), 2, 127)) {
 				device::Device::DeviceId device_id{};
 				device_id.devid = gps_data.device_id;
 
