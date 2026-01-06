@@ -564,6 +564,7 @@
         - [DebugKeyValue](msg_docs/DebugKeyValue.md)
         - [DebugValue](msg_docs/DebugValue.md)
         - [DebugVect](msg_docs/DebugVect.md)
+        - [DeviceInformation](msg_docs/DeviceInformation.md)
         - [DifferentialPressure](msg_docs/DifferentialPressure.md)
         - [DistanceSensor](msg_docs/DistanceSensor.md)
         - [DistanceSensorModeChangeRequest](msg_docs/DistanceSensorModeChangeRequest.md)

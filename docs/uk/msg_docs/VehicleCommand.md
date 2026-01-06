@@ -108,6 +108,7 @@ uint16 VEHICLE_CMD_LOGGING_START = 2510 # Start streaming ULog data.
 uint16 VEHICLE_CMD_LOGGING_STOP = 2511 # Stop streaming ULog data.
 uint16 VEHICLE_CMD_CONTROL_HIGH_LATENCY = 2600 # Control starting/stopping transmitting data over the high latency link.
 uint16 VEHICLE_CMD_DO_VTOL_TRANSITION = 3000 # Command VTOL transition.
+uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300 # Command safety on/off. |1 to activate safety, 0 to deactivate safety and allow control surface movements|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001 # Request arm authorization.
 uint16 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001 # Prepare a payload deployment in the flight plan.
 uint16 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002 # Control a pre-programmed payload deployment.
@@ -186,6 +187,10 @@ int8 ARMING_ACTION_ARM = 1
 # param2 in VEHICLE_CMD_DO_GRIPPER.
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
+
+# Used as param1 in DO_SET_SAFETY_SWITCH_STATE command.
+uint8 SAFETY_OFF = 0
+uint8 SAFETY_ON = 1
 
 uint8 ORB_QUEUE_LENGTH = 8
 
