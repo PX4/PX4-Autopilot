@@ -28,7 +28,7 @@ Connecting peripherals over DroneCAN has many benefits:
 - Setup is easier as you configure ESC numbering by manually spinning each motor.
 - It allows users to configure and update the firmware of all CAN-connected devices centrally through PX4.
 - PX4 automatically tracks device information (vendor, model, versions, serial numbers) for maintenance and fleet management.
-  See [Device Tracking](../advanced_config/device_tracking.md).
+  See [Asset Tracking](../debug/asset_tracking.md).
 
 ## Supported Hardware
 

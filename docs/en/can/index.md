@@ -12,7 +12,7 @@ CAN also allows status feedback from peripherals and convenient firmware upgrade
 
 PX4 has the ability to track and log detailed information from CAN devices, including firmware versions, hardware versions, and serial numbers.
 This enables unique identification and lifecycle tracking of components.
-See [Device Tracking](../advanced_config/device_tracking.md) for more information.
+See [Asset Tracking](../debug/asset_tracking.md) for more information.
 
 PX4 supports two software protocols for communicating with CAN devices:
 
