@@ -821,6 +821,12 @@ float AirspeedModule::get_synthetic_airspeed(float throttle)
 	if (_vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING
 	    || flight_phase_estimation.flight_phase != flight_phase_estimation_s::FLIGHT_PHASE_LEVEL
 	    || _time_now_usec - flight_phase_estimation.timestamp > 1_s) {
+
+		// When climbing, sinking, or in transition, we supply trim
+		// airspeed. This could be optimised -- but as synthetic
+		// airspeed is only a last resort for failed airspeed sensor,
+		// and airspeed dead-reckoning is itself already not expected to
+		// be accurate, it is probably not worth it.
 		synthetic_airspeed = _param_fw_airspd_trim.get();
 
 	} else if (throttle < _param_fw_thr_trim.get() && _param_fw_thr_aspd_min.get() > 0.f) {
