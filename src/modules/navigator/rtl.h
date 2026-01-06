@@ -134,6 +134,13 @@ private:
 				uint8_t &safe_point_index);
 
 	/**
+	 * @brief Find RTL destination if only safe points are considered
+	 *
+	 */
+	void findClosestSafePoint(PositionYawSetpoint &rtl_position, float &rtl_alt,
+				  uint8_t &safe_point_index);
+
+	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
 	 *
 	 */
