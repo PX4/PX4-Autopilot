@@ -10,7 +10,7 @@ CAN it is designed to be democratic and uses differential signaling.
 For this reason it is very robust even over longer cable lengths (on large vehicles), and avoids a single point of failure.
 CAN also allows status feedback from peripherals and convenient firmware upgrades over the bus.
 
-PX4 has the ability to  track and log detailed information from CAN devices, including firmware versions, hardware versions, and serial numbers.
+PX4 has the ability to track and log detailed information from CAN devices, including firmware versions, hardware versions, and serial numbers.
 This enables unique identification and lifecycle tracking of components.
 See [Device Tracking](../advanced_config/device_tracking.md) for more information.
 
