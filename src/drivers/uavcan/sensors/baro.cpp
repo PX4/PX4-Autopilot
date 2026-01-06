@@ -111,7 +111,7 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 
 	// Register barometer capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
-		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), device_id.devid,
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), device_id,
 				NodeInfoPublisher::DeviceCapability::BAROMETER);
 	}
 
