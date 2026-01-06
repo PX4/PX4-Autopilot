@@ -219,6 +219,13 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 		_next_tune++;
 
 		switch (c) {
+
+		case 'V':	// Select volume.
+		    // Consume volume if specified in tune but ignore
+			// MML compatibility
+			next_number();
+			break;
+
 		case 'L':	// Select note length.
 			_note_length = next_number();
 
