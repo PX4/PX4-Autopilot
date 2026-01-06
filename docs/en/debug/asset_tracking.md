@@ -1,4 +1,4 @@
-# Device Tracking
+# Asset Tracking
 
 <Badge type="tip" text="main (planned for: PX4 v1.18)" />
 
@@ -6,22 +6,23 @@ PX4 can track and log detailed information about external hardware devices conne
 This enables unique identification of physical components throughout their operational lifetime using device IDs, serial numbers, and version information.
 
 ::: info
-Device tracking is currently implemented for [DroneCAN](../dronecan/index.md) devices only.
+Asset tracking is currently implemented for [DroneCAN](../dronecan/index.md) devices only.
 :::
 
 ## Overview
 
-Device tracking allows you to determine exactly which hardware is installed on a vehicle, and makes it easier to find and replace specific components by providing their serial number.
+Asset tracking allows you to determine exactly which hardware is installed on a vehicle, and makes it easier to find and replace specific components by providing their serial number.
 You can check firmware and hardware versions across multiple vehicles, quickly see what versions you're running when debugging, and log component information for regulatory audits.
 
-Device tracking automatically collects and logs the following metadata from external devices:
+Asset tracking automatically collects and logs the following metadata from external devices:
 
 - **Device identification**: Vendor name, model name, device type
 - **Version information**: Firmware version, hardware version
 - **Unique identifiers**: Serial number, device ID
 - **Device capabilities**: ESC, GPS, magnetometer, barometer, etc.
 
-This information is published via the [`device_information`](../msg_docs/DeviceInformation.md) uORB topic and logged to flight logs, enabling fleet management, maintenance tracking, and troubleshooting.
+This information is published via the [`device_information`](../msg_docs/DeviceInformation.md) uORB topic and logged to flight logs.
+This enables fleet management, maintenance tracking, and troubleshooting.
 
 ## Viewing Device Information
 

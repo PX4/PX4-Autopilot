@@ -64,6 +64,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   - Add synthetic mecanum rover model: [PX4-gazebo-models#113](https://github.com/PX4/PX4-gazebo-models/pull/113)
   - Update synthetic ackermann rover model: [PX4-gazebo-models#117](https://github.com/PX4/PX4-gazebo-models/pull/117)
 
+### Debug & Logging
+
+- [Asset Tracking](../debug/asset_tracking.md): Automatic tracking and logging of external device information including vendor name, firmware and hardware version, serial numbers. Currently supports DroneCAN devices. ([PX4-Autopilot#25617](https://github.com/PX4/PX4-Autopilot/pull/25617))
+
 ### Ethernet
 
 - TBD
