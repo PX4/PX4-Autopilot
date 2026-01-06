@@ -173,6 +173,7 @@ private:
 	)
 
 	hrt_abstime _last_time_loop_ran{};
+	hrt_abstime _now{};
 	uint8_t _z_reset_counter{UINT8_C(0)};
 	uint64_t _time_airspeed_last_valid{UINT64_C(0)};
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};

@@ -145,6 +145,8 @@ void FwLateralLongitudinalControl::Run()
 					       0.001f, 0.1f);
 		_last_time_loop_ran = _local_pos.timestamp;
 
+		_now = hrt_absolute_time();
+
 		updateControllerConfiguration();
 
 		_tecs.set_speed_weight(_long_configuration.speed_weight);
@@ -283,7 +285,7 @@ void FwLateralLongitudinalControl::Run()
 			roll_sp = mapLateralAccelerationToRollAngle(lateral_accel_sp);
 
 			fixed_wing_lateral_status_s fixed_wing_lateral_status{};
-			fixed_wing_lateral_status.timestamp = hrt_absolute_time();
+			fixed_wing_lateral_status.timestamp = _now;
 			fixed_wing_lateral_status.lateral_acceleration_setpoint = lateral_accel_sp;
 			fixed_wing_lateral_status.can_run_factor = _can_run_factor;
 
@@ -305,7 +307,7 @@ void FwLateralLongitudinalControl::Run()
 			// roll slew rate
 			roll_body = _roll_slew_rate.update(roll_body, control_interval);
 
-			_att_sp.timestamp = hrt_absolute_time();
+			_att_sp.timestamp = _now;
 			const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
 			q.copyTo(_att_sp.q_d);
 
@@ -423,7 +425,7 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 
 		}
 
-		_flight_phase_estimation_pub.get().timestamp = hrt_absolute_time();
+		_flight_phase_estimation_pub.get().timestamp = _now;
 		_flight_phase_estimation_pub.update();
 	}
 }
@@ -461,7 +463,7 @@ FwLateralLongitudinalControl::tecs_status_publish(float alt_sp, float equivalent
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 	tecs_status.fast_descend_ratio = debug_output.fast_descend;
 
-	tecs_status.timestamp = hrt_absolute_time();
+	tecs_status.timestamp = _now;
 
 	_tecs_status_pub.publish(tecs_status);
 }
@@ -552,14 +554,14 @@ void FwLateralLongitudinalControl::updateWind() {
 		_wind_valid = PX4_ISFINITE(wind.windspeed_north)
 			      && PX4_ISFINITE(wind.windspeed_east);
 
-		_time_wind_last_received = hrt_absolute_time();
+		_time_wind_last_received = _now;
 
 		_lateral_control_state.wind_speed(0) = wind.windspeed_north;
 		_lateral_control_state.wind_speed(1) = wind.windspeed_east;
 
 	} else {
 		// invalidate wind estimate usage (and correspondingly NPFG, if enabled) after subscription timeout
-		_wind_valid = _wind_valid && (hrt_absolute_time() - _time_wind_last_received) < WIND_EST_TIMEOUT;
+		_wind_valid = _wind_valid && (_now - _time_wind_last_received) < WIND_EST_TIMEOUT;
 	}
 
 	if (!_wind_valid) {
@@ -743,12 +745,10 @@ float FwLateralLongitudinalControl::getCorrectedLateralAccelSetpoint(float later
 	// Scale the npfg output to zero if npfg is not certain for correct output
 	_can_run_factor = math::constrain(getGuidanceQualityFactor(_local_pos, _wind_valid), 0.f, 1.f);
 
-	hrt_abstime now{hrt_absolute_time()};
-
 	// Warn the user when the scale is less than 90% for at least 2 seconds (disable in transition)
 
 	// If the npfg was not running before, reset the user warning variables.
-	if ((now - _time_since_last_npfg_call) > ROLL_WARNING_TIMEOUT) {
+	if ((_now - _time_since_last_npfg_call) > ROLL_WARNING_TIMEOUT) {
 		_need_report_npfg_uncertain_condition = true;
 		_time_since_first_reduced_roll = 0U;
 	}
@@ -760,10 +760,10 @@ float FwLateralLongitudinalControl::getCorrectedLateralAccelSetpoint(float later
 
 	} else if (_need_report_npfg_uncertain_condition) {
 		if (_time_since_first_reduced_roll == 0U) {
-			_time_since_first_reduced_roll = now;
+			_time_since_first_reduced_roll = _now;
 		}
 
-		if ((now - _time_since_first_reduced_roll) > ROLL_WARNING_TIMEOUT) {
+		if ((_now - _time_since_first_reduced_roll) > ROLL_WARNING_TIMEOUT) {
 			_need_report_npfg_uncertain_condition = false;
 			events::send(events::ID("npfg_roll_command_uncertain"), events::Log::Warning,
 				     "Roll command reduced due to uncertain velocity/wind estimates!");
@@ -773,7 +773,7 @@ float FwLateralLongitudinalControl::getCorrectedLateralAccelSetpoint(float later
 		// Nothing to do, already reported.
 	}
 
-	_time_since_last_npfg_call = now;
+	_time_since_last_npfg_call = _now;
 
 	return _can_run_factor * (lateral_accel_sp);
 }
@@ -782,7 +782,7 @@ float FwLateralLongitudinalControl::mapLateralAccelerationToRollAngle(float late
 }
 
 void FwLateralLongitudinalControl::setDefaultLongitudinalControlConfiguration() {
-	_long_configuration.timestamp = hrt_absolute_time();
+	_long_configuration.timestamp = _now;
 	_long_configuration.pitch_min = radians(_param_fw_p_lim_min.get());
 	_long_configuration.pitch_max = radians(_param_fw_p_lim_max.get());
 	_long_configuration.throttle_min = _param_fw_thr_min.get();
