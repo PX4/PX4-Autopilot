@@ -55,11 +55,13 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rtl_status.h>
 #include <uORB/topics/rtl_time_estimate.h>
+#include <uORB/topics/telemetry_status.h>
 
 class Navigator;
 
@@ -95,6 +97,7 @@ private:
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
 		DESTINATION_TYPE_SAFE_POINT,
+		DESTINATION_TYPE_LAST_LINK_POSITION
 	};
 
 private:
@@ -130,8 +133,13 @@ private:
 	 * @brief Find RTL destination.
 	 *
 	 */
-	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &rtl_position, float &rtl_alt,
-				uint8_t &safe_point_index);
+	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &rtl_position, uint8_t &safe_point_index);
+
+	/**
+	 * @brief Find RTL destination if only safe points are considered
+	 *
+	 */
+	void findClosestSafePoint(PositionYawSetpoint &rtl_position, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
@@ -147,14 +155,13 @@ private:
 	void setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mission_item_s &mission_safe_point) const;
 
 	/**
-	 * @brief calculate return altitude from cone half angle
+	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
 	 *
 	 * @param[in] rtl_position landing position of the rtl
 	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
 	 * @return return altitude
 	 */
-	float calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &rtl_position,
-			float cone_half_angle_deg) const;
+	float computeReturnAltitude(const PositionYawSetpoint &rtl_position, float cone_half_angle_deg) const;
 
 	/**
 	 * @brief initialize RTL mission type
@@ -223,6 +230,7 @@ private:
 	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
 	uint32_t _mission_id = 0u;
 	uint32_t _safe_points_id = 0u;
+	PositionYawSetpoint _last_position_before_link_loss;
 
 	mission_stats_entry_s _stats;
 
@@ -246,6 +254,7 @@ private:
 	uORB::SubscriptionData<mission_s> _mission_sub{ORB_ID(mission)};
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
+	uORB::SubscriptionMultiArray<telemetry_status_s> _telemetry_status_subs{ORB_ID::telemetry_status};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
 	uORB::PublicationData<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
