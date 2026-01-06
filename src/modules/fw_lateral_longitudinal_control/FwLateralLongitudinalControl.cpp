@@ -748,22 +748,22 @@ float FwLateralLongitudinalControl::getCorrectedLateralAccelSetpoint(float later
 	// Warn the user when the scale is less than 90% for at least 2 seconds (disable in transition)
 
 	// If the npfg was not running before, reset the user warning variables.
-	if ((_now - _time_since_last_npfg_call) > ROLL_WARNING_TIMEOUT) {
+	if ((_now - _time_of_last_npfg_call) > ROLL_WARNING_TIMEOUT) {
 		_need_report_npfg_uncertain_condition = true;
-		_time_since_first_reduced_roll = 0U;
+		_time_of_first_reduced_roll = 0U;
 	}
 
 	if (_vehicle_status_sub.get().in_transition_mode || _can_run_factor > ROLL_WARNING_CAN_RUN_THRESHOLD || _landed) {
 		// NPFG reports a good condition or we are in transition, reset the user warning variables.
 		_need_report_npfg_uncertain_condition = true;
-		_time_since_first_reduced_roll = 0U;
+		_time_of_first_reduced_roll = 0U;
 
 	} else if (_need_report_npfg_uncertain_condition) {
-		if (_time_since_first_reduced_roll == 0U) {
-			_time_since_first_reduced_roll = _now;
+		if (_time_of_first_reduced_roll == 0U) {
+			_time_of_first_reduced_roll = _now;
 		}
 
-		if ((_now - _time_since_first_reduced_roll) > ROLL_WARNING_TIMEOUT) {
+		if ((_now - _time_of_first_reduced_roll) > ROLL_WARNING_TIMEOUT) {
 			_need_report_npfg_uncertain_condition = false;
 			events::send(events::ID("npfg_roll_command_uncertain"), events::Log::Warning,
 				     "Roll command reduced due to uncertain velocity/wind estimates!");
@@ -773,7 +773,7 @@ float FwLateralLongitudinalControl::getCorrectedLateralAccelSetpoint(float later
 		// Nothing to do, already reported.
 	}
 
-	_time_since_last_npfg_call = _now;
+	_time_of_last_npfg_call = _now;
 
 	return _can_run_factor * (lateral_accel_sp);
 }

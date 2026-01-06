@@ -196,8 +196,8 @@ private:
 		matrix::Vector2f wind_speed;
 	} _lateral_control_state{};
 	bool _need_report_npfg_uncertain_condition{false}; ///< boolean if reporting of uncertain npfg output condition is needed
-	hrt_abstime _time_since_first_reduced_roll{0U}; ///< absolute time since start when entering reduced roll angle for the first time
-	hrt_abstime _time_since_last_npfg_call{0U}; 	///< absolute time since start when the npfg reduced roll angle calculations was last performed
+	hrt_abstime _time_of_first_reduced_roll{0U};       ///< absolute time when entering reduced roll angle for the first time
+	hrt_abstime _time_of_last_npfg_call{0U};           ///< absolute time when the npfg reduced roll angle calculations was last performed
 	vehicle_attitude_setpoint_s _att_sp{};
 	bool _landed{false};
 	float _can_run_factor{0.f};
