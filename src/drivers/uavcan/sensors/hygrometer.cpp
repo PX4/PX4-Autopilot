@@ -42,6 +42,7 @@ UavcanHygrometerBridge::UavcanHygrometerBridge(uavcan::INode &node, NodeInfoPubl
 	UavcanSensorBridgeBase("uavcan_hygrometer_sensor", ORB_ID(sensor_hygrometer), node_info_publisher),
 	_sub_hygro(node)
 {
+	set_device_type(DRV_HYGRO_DEVTYPE_UAVCAN);
 }
 
 int UavcanHygrometerBridge::init()
@@ -64,7 +65,7 @@ void UavcanHygrometerBridge::hygro_sub_cb(const uavcan::ReceivedDataStructure<dr
 
 	sensor_hygrometer_s report{};
 	report.timestamp_sample = timestamp_sample;
-	report.device_id = 0; // TODO
+	report.device_id = make_uavcan_device_id(msg);
 	report.temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius;
 	report.humidity = msg.humidity;
 	report.timestamp = hrt_absolute_time();
