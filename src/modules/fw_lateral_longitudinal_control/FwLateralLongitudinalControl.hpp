@@ -173,7 +173,6 @@ private:
 	)
 
 	hrt_abstime _last_time_loop_ran{};
-	hrt_abstime _now{};
 	uint8_t _z_reset_counter{UINT8_C(0)};
 	uint64_t _time_airspeed_last_valid{UINT64_C(0)};
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};
@@ -213,15 +212,15 @@ private:
 	float _min_airspeed_from_guidance{0.f}; // need to store it bc we only update after running longitudinal controller
 
 	void parameters_update();
-	void update_control_state();
+	void update_control_state(hrt_abstime now);
 	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
 					float pitch_min_rad, float pitch_max_rad, float throttle_min,
 					float throttle_max, const float desired_max_sinkrate,
 					const float desired_max_climbrate,
-					bool disable_underspeed_detection, float hgt_rate_sp);
+					bool disable_underspeed_detection, float hgt_rate_sp, hrt_abstime now);
 
 	void tecs_status_publish(float alt_sp, float equivalent_airspeed_sp, float true_airspeed_derivative_raw,
-				 float throttle_trim);
+				 float throttle_trim, hrt_abstime now);
 
 	void updateAirspeed();
 
@@ -231,7 +230,7 @@ private:
 
 	float mapLateralAccelerationToRollAngle(float lateral_acceleration_sp) const;
 
-	void updateWind();
+	void updateWind(hrt_abstime now);
 
 	void updateTECSAltitudeTimeConstant(const bool is_low_height, const float dt);
 
@@ -239,13 +238,13 @@ private:
 
 	float getGuidanceQualityFactor(const vehicle_local_position_s &local_pos, const bool is_wind_valid) const;
 
-	float getCorrectedLateralAccelSetpoint(float lateral_accel_sp);
+	float getCorrectedLateralAccelSetpoint(float lateral_accel_sp, hrt_abstime now);
 
-	void setDefaultLongitudinalControlConfiguration();
+	void setDefaultLongitudinalControlConfiguration(hrt_abstime now);
 
 	void updateLongitudinalControlConfiguration(const longitudinal_control_configuration_s &configuration_in);
 
-	void updateControllerConfiguration();
+	void updateControllerConfiguration(hrt_abstime now);
 
 	float getLoadFactor() const;
 
