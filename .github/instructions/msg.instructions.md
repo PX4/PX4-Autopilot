@@ -44,11 +44,26 @@ Your task is to review `.msg` files to ensure they comply with the official [PX4
 
 ## 3. Constants & Enums
 
-- **Naming:** Constants related to a specific field (enums) should share a common prefix.
-  - The field name and the prefix should match for new fields (except constants are upper case)
-  - Constants should appear after the field in which they are used.
-- **Documentation:** Constants do not require unit metadata; the description follows the `#` after a space.
+- **Naming:** Constants related to a specific field should share a common prefix in their name that matches the associated field (except in terms of case)
+- **Position in message:** Constants should appear immediately after the field in which they are used, ordered by their value.
+- **Documentation:** 
+  - Constants may have a comment, separated by exactly one space from the contant name.
+  - The comment may contain a description of the purpose of the constant. The description should start with a capital letter. If the description is a single sentence it should omit the final full stop.
+  - The description/comment is optional if the purpose of the constant is obvious from its name.
 - **Standard Constants:** Standardized fields like `MESSAGE_VERSION` or `ORB_QUEUE_LENGTH` do not require individual documentation.
+- **Example:** The following code shows a field airspeed_source followed by the constants that can be used with it. 
+  These all share the prefix `AIRSPEED_SOURCE` matching the field name, and this is listed in the field metadata as the enum name.
+  The contants are listed immediately after the field, and ordered by their value in descending order.
+
+   ```
+   int8 airspeed_source # [@enum AIRSPEED_SOURCE] Source of currently published airspeed values
+   int8 AIRSPEED_SOURCE_DISABLED = -1 # Disabled
+   int8 AIRSPEED_SOURCE_GROUND_MINUS_WIND = 0 # Ground speed minus wind
+   int8 AIRSPEED_SOURCE_SENSOR_1 = 1 # Sensor 1
+   int8 AIRSPEED_SOURCE_SENSOR_2 = 2 # Sensor 2
+   int8 AIRSPEED_SOURCE_SENSOR_3 = 3 # Sensor 3
+   int8 AIRSPEED_SOURCE_SYNTHETIC = 4 # Synthetic airspeed
+   ```
 
 ## 4. Multi-Topic Messages
 
