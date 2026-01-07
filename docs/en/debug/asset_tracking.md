@@ -65,4 +65,4 @@ You can extract it using [pyulog](../log/flight_log_analysis.md#pyulog), though 
 
 - [CAN (DroneCAN & Cyphal)](../can/index.md) — CAN bus configuration and setup
 - [DroneCAN](../dronecan/index.md) — DroneCAN-specific documentation
-- [Flight Log Analysis](../log/flight_log_analysis.md) — Analysing flight logs
+- [Flight Log Analysis](../log/flight_log_analysis.md) — Flight log analysis
