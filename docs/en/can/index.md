@@ -11,7 +11,7 @@ For this reason it is very robust even over longer cable lengths (on large vehic
 CAN also allows status feedback from peripherals and convenient firmware upgrades over the bus.
 
 PX4 has the ability to track and log detailed information from CAN devices, including firmware versions, hardware versions, and serial numbers.
-This enables unique identification and lifecycle tracking of components.
+This enables unique identification and lifecycle tracking of hardware connected to the flight controller.
 See [Asset Tracking](../debug/asset_tracking.md) for more information.
 
 PX4 supports two software protocols for communicating with CAN devices:
