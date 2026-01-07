@@ -146,6 +146,9 @@ void OutputBase::_set_angle_setpoints(const ControlData &control_data)
 		_angle_velocity[0] = NAN;
 		_angle_velocity[1] = NAN;
 		_angle_velocity[2] = NAN;
+		_absolute_angle[0] = false;
+		_absolute_angle[1] = false;
+		_absolute_angle[2] = false;
 		break;
 	}
 }
@@ -237,25 +240,24 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 	float dt = math::constrain((t - _last_update) * 1.e-6f, 0.001f, 1.f);
 
 	const matrix::Quatf q_setpoint(_q_setpoint);
-	const bool q_setpoint_valid = q_setpoint.isAllFinite();
-	matrix::Eulerf euler_gimbal{};
 
-	if (q_setpoint_valid) {
-		euler_gimbal = q_setpoint;
+	if (q_setpoint.isAllFinite()) {
+		_last_valid_setpoint = q_setpoint;
 	}
+
+	matrix::Eulerf euler_gimbal(_last_valid_setpoint);
 
 	for (int i = 0; i < 3; ++i) {
 
-		if (q_setpoint_valid && PX4_ISFINITE(euler_gimbal(i))) {
+		if (PX4_ISFINITE(euler_gimbal(i)) && compensate[i] && PX4_ISFINITE(euler_vehicle(i))) {
+			_angle_outputs[i] = euler_gimbal(i) - euler_vehicle(i);
+
+		} else if (PX4_ISFINITE(euler_gimbal(i)) && !_absolute_angle[i]) {
 			_angle_outputs[i] = euler_gimbal(i);
 		}
 
 		if (PX4_ISFINITE(_angle_velocity[i])) {
 			_angle_outputs[i] += dt * _angle_velocity[i];
-		}
-
-		if (compensate[i] && PX4_ISFINITE(euler_vehicle(i))) {
-			_angle_outputs[i] -= euler_vehicle(i);
 		}
 
 		if (PX4_ISFINITE(_angle_outputs[i]) && _parameters.mnt_rc_in_mode == 0) {
@@ -291,6 +293,56 @@ void OutputBase::set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool y
 	_stabilize[0] = roll_stabilize;
 	_stabilize[1] = pitch_stabilize;
 	_stabilize[2] = yaw_stabilize;
+}
+
+void OutputBase::set_last_valid_setpoint(const bool compensate[3], const matrix::Eulerf euler_vehicle)
+{
+	// No updates from angular velocity, hence no modification of last valid setpoint
+	if (!PX4_ISFINITE(_angle_velocity[0]) && !PX4_ISFINITE(_angle_velocity[1]) && !PX4_ISFINITE(_angle_velocity[2])) {
+		return;
+	}
+
+	// Angle outputs, from vehicle body frame to end effector (last actuator in the kinematic chain)
+	_last_valid_setpoint.phi() = _angle_outputs[0];
+	_last_valid_setpoint.theta() = _angle_outputs[1];
+	_last_valid_setpoint.psi() = _angle_outputs[2];
+
+	// Take into account vehicle attitude if it should
+	switch (_parameters.mnt_do_stab) {
+
+	case MntDoStabilize::ALL_AXES: {
+
+			for (int i = 0; i < 3; i++) {
+				if (compensate[i]) {
+					_last_valid_setpoint(i) += euler_vehicle(i);
+				}
+			}
+
+			break;
+		}
+
+	case MntDoStabilize::YAW_LOCK: {
+			if (compensate[2]) {
+				_last_valid_setpoint.psi() += euler_vehicle(2);
+			}
+
+			break;
+		}
+
+	case MntDoStabilize::PITCH_LOCK: {
+
+			if (compensate[1]) {
+				_last_valid_setpoint.theta() += euler_vehicle(1);
+			}
+
+			break;
+		}
+
+	default: {
+			// Dont add anything
+			break;
+		}
+	}
 }
 
 } /* namespace gimbal */
