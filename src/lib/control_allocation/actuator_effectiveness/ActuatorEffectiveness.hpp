@@ -64,6 +64,7 @@ enum class EffectivenessUpdateReason {
 	NO_EXTERNAL_UPDATE = 0,
 	CONFIGURATION_UPDATE = 1, ///< config changes (parameter)
 	MOTOR_ACTIVATION_UPDATE = 2, ///< motor failure detected or certain redundant motors are switched off to save energy
+	BATTERY_SCALE_UPDATE = 3, ///< Update with low rate to recalculate battery scale compensation
 };
 
 class ActuatorEffectiveness

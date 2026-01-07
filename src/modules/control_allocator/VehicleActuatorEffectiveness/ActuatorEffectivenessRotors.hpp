@@ -46,6 +46,7 @@
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/battery_status.h>
 
 class ActuatorEffectivenessTilts;
 
@@ -96,7 +97,7 @@ public:
 	}
 
 	static int computeEffectivenessMatrix(const Geometry &geometry,
-					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
+					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0, float battery_scale = 1.f);
 
 	bool addActuators(Configuration &configuration);
 
@@ -135,6 +136,8 @@ private:
 	const AxisConfiguration _axis_config;
 	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
 
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
+
 	struct ParamHandles {
 		param_t position_x;
 		param_t position_y;
@@ -149,8 +152,10 @@ private:
 	ParamHandles _param_handles[NUM_ROTORS_MAX];
 
 	Geometry _geometry{};
+	float _battery_scale{1.f};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_ca_rotor_count
+		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_ca_rotor_count,
+		(ParamBool<px4::params::CA_BAT_SCALE_EN>) _param_ca_bat_scale_en
 	)
 };

@@ -134,16 +134,36 @@ ActuatorEffectivenessRotors::addActuators(Configuration &configuration)
 		return false;
 	}
 
+	if (_param_ca_bat_scale_en.get()) {
+		battery_status_s battery_status;
+
+		if (_battery_status_sub.update(&battery_status)) {
+
+			if (battery_status.scale > 0.f) {
+				_battery_scale = battery_status.scale;
+
+			} else {
+				_battery_scale = 1.f;
+			}
+		}
+
+	} else {
+		_battery_scale = 1.0f;
+	}
+
+
+
 	int num_actuators = computeEffectivenessMatrix(_geometry,
 			    configuration.effectiveness_matrices[configuration.selected_matrix],
-			    configuration.num_actuators_matrix[configuration.selected_matrix]);
+			    configuration.num_actuators_matrix[configuration.selected_matrix], _battery_scale);
+
 	configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
 	return true;
 }
 
 int
 ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry,
-		EffectivenessMatrix &effectiveness, int actuator_start_index)
+		EffectivenessMatrix &effectiveness, int actuator_start_index, float battery_scale)
 {
 	int num_actuators = 0;
 
@@ -175,6 +195,14 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 		// Get coefficients
 		float ct = geometry.rotors[i].thrust_coef;
 		float km = geometry.rotors[i].moment_ratio;
+
+		// When battery depletes, scale rises above 1 (initially
+		// designed as a compensation factor to multiply thrust and
+		// torque commands with). Rather than that we model it here by a decreasing
+		// thrust coefficient (thrust = ct * u^2)
+		if (battery_scale > 1.f) {
+			ct /= battery_scale;
+		}
 
 		if (geometry.propeller_torque_disabled) {
 			km = 0.f;
