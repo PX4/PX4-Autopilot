@@ -385,20 +385,6 @@ PARAM_DEFINE_FLOAT(SC_ACRO_SUPEXPO, 0.7f);
 PARAM_DEFINE_FLOAT(SC_ACRO_SUPEXPOY, 0.7f);
 
 /**
- * Battery power level scaler
- *
- * This compensates for voltage drop of the battery over time by attempting to
- * normalize performance across the operating range of the battery. The copter
- * should constantly behave as if it was fully charged with reduced max acceleration
- * at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
- * it will still be 0.5 at 60% battery.
- *
- * @boolean
- * @group Spacecraft Rate Control
- */
-PARAM_DEFINE_INT32(SC_BAT_SCALE_EN, 0);
-
-/**
  * Manual mode maximum force.
  *
  * *
