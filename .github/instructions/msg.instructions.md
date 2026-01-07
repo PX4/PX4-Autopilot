@@ -41,10 +41,11 @@ Your task is to review `.msg` files to ensure they comply with the official [PX4
 
 - If a single `.msg` file defines multiple topics (e.g., `actuator_controls_0`, `actuator_controls_1`), the file must end with a `# TOPICS` line followed by the space-separated topic names.
 
-## 5. Deprecation & Semantic Changes
+## 5. Field Changes
 
-- **Field Deprecation:** Do not delete fields. Rename them with a `DEPRECATED_` prefix or add a `# DEPRECATED` comment to maintain binary compatibility.
-- **Semantic Changes:** If a unit changes (e.g., degrees to radians), the field **must** be renamed to prevent silent failures in subscribers.
+- For files in `./msg/versioned/` or one of its subfolders:
+  - The file must have a field named `MESSAGE_VERSION`.
+  - If a field name or type changes, or if a field is deleted or added, the value of the `MESSAGE_VERSION` field must be incremented by one.
 
 ## Review Checklist
 
