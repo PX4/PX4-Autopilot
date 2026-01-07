@@ -82,4 +82,4 @@ Your task is to review `.msg` files to ensure they comply with the official [PX4
 3. Do all numeric fields have units in square brackets?
 4. Are enums linked to fields using the `[@enum Name]` tag?
 5. Are single-line comments lacking a trailing period?
-6. If the message is versioned, is `MESSAGE_VERSION` included?
+6. If the message is nested in `msg/versioned` (or a subfolder), is `MESSAGE_VERSION` included, and has the value been iterated.
