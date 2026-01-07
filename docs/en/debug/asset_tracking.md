@@ -3,7 +3,7 @@
 <Badge type="tip" text="main (planned for: PX4 v1.18)" />
 
 PX4 can track and log detailed information about external hardware devices connected to the flight controller.
-This enables unique identification of physical components throughout their operational lifetime using device IDs, serial numbers, and version information.
+This enables unique identification of vehicle parts throughout their operational lifetime using device IDs, serial numbers, and version information.
 
 ::: info
 Asset tracking is currently implemented for [DroneCAN](../dronecan/index.md) devices only.
@@ -11,8 +11,8 @@ Asset tracking is currently implemented for [DroneCAN](../dronecan/index.md) dev
 
 ## Overview
 
-Asset tracking allows you to determine exactly which hardware is installed on a vehicle, and makes it easier to find and replace specific components by providing their serial number.
-You can check firmware and hardware versions across multiple vehicles, quickly see what versions you're running when debugging, and log component information for regulatory audits.
+Asset tracking allows you to determine exactly which hardware is installed on a vehicle, providing serial number, version, and other information.
+This makes it easier to track and maintain specific vehicle parts across multiple vehicles, to quickly see what versions you're running when debugging, and log component information for regulatory audits.
 
 Asset tracking automatically collects and logs the following metadata from external devices:
 
@@ -49,7 +49,7 @@ TOPIC: device_information
     serial_number: "1c00410018513331"
 ```
 
-Device information is published in a round-robin fashion approximately every second for each detected device.
+Device information is published in a round-robin fashion for each detected device, at a rate of approximately 1 Hz.
 
 ### Multi-Capability Devices
 

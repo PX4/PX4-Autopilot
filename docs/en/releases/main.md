@@ -45,8 +45,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Control
 
 - Added new flight mode(s): [Altitude Cruise (MC)](../flight_modes_mc/altitude_cruise.md), Altitude Cruise (FW).
-  For fixed-wing the mode behaves the same as Altitude mode but you can disable the manual control loss failsafe. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise
-  ](https://github.com/PX4/PX4-Autopilot/pull/25435)).
+  For fixed-wing the mode behaves the same as Altitude mode but you can disable the manual control loss failsafe. ([PX4-Autopilot#25435: Add new flight mode: Altitude Cruise](https://github.com/PX4/PX4-Autopilot/pull/25435)).
 
 ### Estimation
 
@@ -66,7 +65,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Debug & Logging
 
-- [Asset Tracking](../debug/asset_tracking.md): Automatic tracking and logging of external device information including vendor name, firmware and hardware version, serial numbers. Currently supports DroneCAN devices. ([PX4-Autopilot#25617](https://github.com/PX4/PX4-Autopilot/pull/25617))
+- [Asset Tracking](../debug/asset_tracking.md): Automatic tracking and logging of external device information, including: vendor name, firmware and hardware version, serial numbers.
+  Currently supports DroneCAN devices.
+  ([PX4-Autopilot#25617](https://github.com/PX4/PX4-Autopilot/pull/25617))
 
 ### Ethernet
 
