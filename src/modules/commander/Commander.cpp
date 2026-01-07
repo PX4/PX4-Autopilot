@@ -1955,7 +1955,6 @@ void Commander::run()
 
 			// vehicle_status publish (after prearm/preflight updates above)
 			_mode_management.getModeStatus(_vehicle_status.valid_nav_states_mask, _vehicle_status.can_set_nav_states_mask);
-			_vehicle_status.accepts_offboard_setpoints = _mode_management.currentModeAcceptsOffboardSetpoints(_vehicle_status.nav_state);
 			_vehicle_status.timestamp = hrt_absolute_time();
 			_vehicle_status_pub.publish(_vehicle_status);
 

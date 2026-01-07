@@ -257,7 +257,6 @@ bool Raptor::init()
 	register_ext_component_request.register_mode = true;
 	register_ext_component_request.enable_replace_internal_mode = _param_mc_raptor_offboard.get();
 	register_ext_component_request.replace_internal_mode = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
-	register_ext_component_request.request_offboard_setpoints = true;
 	_register_ext_component_request_pub.publish(register_ext_component_request);
 
 	int32_t imu_gyro_ratemax = _param_imu_gyro_ratemax.get();
