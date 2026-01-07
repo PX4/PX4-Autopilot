@@ -609,11 +609,12 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  *
  * Specify modes where manual control loss is ignored and no failsafe is triggered.
  * External modes requiring stick input will still failsafe.
+ * Auto modes are: Hold, Takeoff, Land, RTL, Descend, Follow Target, Precland, Orbit.
  *
  * @min 0
  * @max 31
  * @bit 0 Mission
- * @bit 1 Hold
+ * @bit 1 Auto modes
  * @bit 2 Offboard
  * @bit 3 External Mode
  * @bit 4 Altitude Cruise
