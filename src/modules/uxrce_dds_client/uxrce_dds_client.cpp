@@ -843,6 +843,7 @@ bool UxrceddsClient::setBaudrate(int fd, unsigned baud)
 	/* enable flow control if needed */
 	if (_param_uxrce_dds_flctrl.get() > 0) {
 		uart_config.c_cflag |= CRTSCTS;
+
 	} else {
 		uart_config.c_cflag &= ~CRTSCTS;
 	}

@@ -40488,16 +40488,6 @@ A value less than one disables the TX rate timeout.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 3       | s    |
 
-### UXRCE_DDS_FLCTRL (`INT32`) {#UXRCE_DDS_FLCTRL}
-
-Enable serial flow control for UXRCE interface.
-
-This is used to enable flow control for the serial uxrce instance. Used for reliable high bandwidth communication.
-
-| Reboot  | minValue | maxValue | increment | default      | unit |
-| ------- | -------- | -------- | --------- | ------------ | ---- |
-| &check; |          |          |           | Disabled (0) |
-
 ## VOXL ESC
 
 ### VOXL_ESC_BAUD (`INT32`) {#VOXL_ESC_BAUD}
