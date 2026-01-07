@@ -1,4 +1,4 @@
-# Neural Networks
+# MC Neural Networks Control
 
 <Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
@@ -7,11 +7,11 @@ This is an experimental module.
 Use at your own risk.
 :::
 
-The Multicopter Neural Network (NN) module ([mc_nn_control](../../modules/modules_controller.md#mc-nn-control)) is an example module that allows you to experiment with using a pre-trained neural network on PX4.
+The Multicopter Neural Network (NN) module ([mc_nn_control](../modules/modules_controller.md#mc-nn-control)) is an example module that allows you to experiment with using a pre-trained neural network on PX4.
 It might be used, for example, to experiment with controllers for non-traditional drone morphologies, computer vision tasks, and so on.
 
 The module integrates a pre-trained neural network based on the [TensorFlow Lite Micro (TFLM)](./tflm.md) module.
-The module is trained for the [X500 V2](../../frames_multicopter/holybro_x500v2_pixhawk6c.md) multicopter frame.
+The module is trained for the [X500 V2](../frames_multicopter/holybro_x500v2_pixhawk6c.md) multicopter frame.
 While the controller is fairly robust, and might work on other platforms, we recommend [Training your own Network](#training-your-own-network) if you use a different vehicle.
 Note that after training the network you will need to update and rebuild PX4.
 
@@ -59,9 +59,9 @@ The `mc_nn_control` module takes up roughly 50KB, and many of the `default.px4bo
 
 The example module replaces the entire controller structure as well as the control allocator, as shown in the diagram below:
 
-![neural_control](../../../assets/advanced/neural_control.png)
+![neural_control](../../assets/advanced/neural_control.png)
 
-In the [controller diagram](../../flight_stack/controller_diagrams.md) you can see the [uORB message](../../middleware/uorb.md) flow.
+In the [controller diagram](../flight_stack/controller_diagrams.md) you can see the [uORB message](../middleware/uorb.md) flow.
 We hook into this flow by subscribing to messages at particular points, using our neural network to calculate outputs, and then publishing them into the next point in the flow.
 We also need to stop the module publishing the topic to be replaced, which is covered in [Neural Network Module: System Integration](nn_module_utilities.md)
 
@@ -80,7 +80,7 @@ All the input values are collected from uORB topics and transformed into the cor
 PX4 uses the NED frame representation, while the Aerial Gym Simulator, in which the NN was trained, uses the ENU representation.
 Therefore two rotation matrices are created in the function and all the inputs are transformed from the NED representation to the ENU one.
 
-![ENU-NED](../../../assets/advanced/ENU-NED.png)
+![ENU-NED](../../assets/advanced/ENU-NED.png)
 
 ENU and NED are just rotation representations, the translational difference is only there so both can be seen in the same figure.
 
@@ -91,24 +91,24 @@ These are transformed in the `RescaleActions()` function.
 This is done because PX4 expects normalized motor commands while the Aerial Gym Simulator uses physical values.
 So the output from the network needs to be normalized before they can be sent to the motors in PX4.
 
-The commands are published to the [ActuatorMotors](../../msg_docs/ActuatorMotors.md) topic.
+The commands are published to the [ActuatorMotors](../msg_docs/ActuatorMotors.md) topic.
 The publishing is handled in `PublishOutput(float* command_actions)` function.
 
 :::tip
-If the neural control mode is too aggressive or unresponsive the [MC_NN_THRST_COEF](../../advanced_config/parameter_reference.md#MC_NN_THRST_COEF) parameter can be tuned.
+If the neural control mode is too aggressive or unresponsive the [MC_NN_THRST_COEF](../advanced_config/parameter_reference.md#MC_NN_THRST_COEF) parameter can be tuned.
 Decrease it for more thrust.
 :::
 
 ## Training your own Network
 
-The network is currently trained for the [X500 V2](../../frames_multicopter/holybro_x500v2_pixhawk6c.md).
+The network is currently trained for the [X500 V2](../frames_multicopter/holybro_x500v2_pixhawk6c.md).
 But the controller is somewhat robust, so it could work directly on other platforms, but performing system identification and training a new network is recommended.
 
 Since the Aerial Gym Simulator is open-source you can download it and train your own networks as long as you have access to an NVIDIA GPU.
 If you want to train a control network optimized for your platform you can follow the instructions in the [Aerial Gym Documentation](https://ntnu-arl.github.io/aerial_gym_simulator/9_sim2real/).
 
 You should do one system identification flight for this and get an approximate inertia matrix for your platform.
-On the `sys-id` flight you need ESC telemetry, you can read more about that in [DSHOT](../../peripherals/dshot.md).
+On the `sys-id` flight you need ESC telemetry, you can read more about that in [DSHOT](../peripherals/dshot.md).
 
 Then do the following steps:
 

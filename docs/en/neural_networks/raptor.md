@@ -13,7 +13,7 @@ This topic provides an overview of the fundamental concepts, and explains how yo
 
 ## Overview
 
-![Visual Abstract](../../../assets/advanced/neural_networks/raptor/visual_abstract.jpg)
+![Visual Abstract](../../assets/advanced/neural_networks/raptor/visual_abstract.jpg)
 
 RAPTOR is an adaptive policy for end-to-end quadrotor control.
 It is motivated by the human ability to adapt learned behaviours to similar situations.
@@ -31,7 +31,7 @@ For more details please refer to this video:
 
 The method we developed for training the RAPTOR policy is called Meta-Imitation Learning:
 
-![Diagram showing the Method Overview](../../../assets/advanced/neural_networks/raptor/method.jpg)
+![Diagram showing the Method Overview](../../assets/advanced/neural_networks/raptor/method.jpg)
 
 You can torture test the RAPTOR policy in your browser at [https://raptor.rl.tools](https://raptor.rl.tools) or in the embedded app here:
 
@@ -43,7 +43,7 @@ For more information please refer to the paper at [https://arxiv.org/abs/2509.11
 
 The RAPTOR control policy is an end-to-end policy that takes position, orientation, linear velocity and angular velocity as inputs and outputs motor commands (`actuator_motors`).
 To integrate it into PX4 we use the external mode registration facilities in PX4 (which also works well for internal modes as demonstrated in `mc_nn_control`).
-Because of this architecture the [`mc_raptor`](../../modules/modules_controller.md#mc-raptor) module is completely decoupled from all other PX4 logic.
+Because of this architecture the [`mc_raptor`](../modules/modules_controller.md#mc-raptor) module is completely decoupled from all other PX4 logic.
 
 By default, the RAPTOR module expects setpoints via `trajectory_setpoint` messages.
 If no `trajectory_setpoint` messages are received or if no `trajectory_setpoint` is received within 200 ms, the current position and orientation (with zero velocity) is used as the setpoint.
@@ -169,11 +169,11 @@ To enable the `mc_raptor` module in other platforms, just add `CONFIG_MODULES_MC
 
 Even though there were moderate winds (~ 5 m/s) during the test, we found good figure-eight tracking performance at velocities up to 12 m/s
 
-![Lissajous](../../../assets/advanced/neural_networks/raptor/results_figure_eight.svg)
+![Lissajous](../../assets/advanced/neural_networks/raptor/results_figure_eight.svg)
 
 We also tested the linear velocity in a straight line and found that the RAPTOR policy can reliably fly at > 17 m/s (the wind direction was orthogonal to the line)
 
-![Linear Oscillation](../../../assets/advanced/neural_networks/raptor/results_line.svg)
+![Linear Oscillation](../../assets/advanced/neural_networks/raptor/results_line.svg)
 
 ### Troubleshooting
 
