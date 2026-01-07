@@ -295,6 +295,7 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 			break;
 
 		case 'P':	// Pause for a note length.
+		case 'R':
 			frequency = 0;
 			duration = 0;
 			note_length = next_number();
