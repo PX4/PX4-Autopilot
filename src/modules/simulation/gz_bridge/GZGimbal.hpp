@@ -66,11 +66,13 @@ private:
 	hrt_abstime _last_time_update;
 
 	// Mount parameters
-	param_t _mnt_range_pitch_handle = PARAM_INVALID;
+	param_t _mnt_max_pitch_handle = PARAM_INVALID;
+	param_t _mnt_min_pitch_handle = PARAM_INVALID;
 	param_t _mnt_range_roll_handle = PARAM_INVALID;
 	param_t _mnt_range_yaw_handle = PARAM_INVALID;
 	param_t _mnt_mode_out_handle = PARAM_INVALID;
-	float _mnt_range_pitch = 0.0f;
+	float _mnt_max_pitch = 0.0f;
+	float _mnt_min_pitch = 0.0f;
 	float _mnt_range_roll = 0.0f;
 	float _mnt_range_yaw = 0.0f;
 	int32_t _mnt_mode_out = 0;
@@ -109,8 +111,6 @@ private:
 	// its mechanical limits. So the values below have to match the characteristics of the simulated gimbal
 	const float _roll_min = -0.785398f;
 	const float _roll_max = 0.785398f;
-	const float _pitch_min = -2.35619f;
-	const float _pitch_max = 0.785398f;
 	const float _yaw_min = NAN; 		// infinite yaw
 	const float _yaw_max = NAN;		// infinite yaw
 
