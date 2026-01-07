@@ -195,8 +195,8 @@ private:
 		matrix::Vector2f wind_speed;
 	} _lateral_control_state{};
 	bool _need_report_npfg_uncertain_condition{false}; ///< boolean if reporting of uncertain npfg output condition is needed
-	hrt_abstime _time_since_first_reduced_roll{0U}; ///< absolute time since start when entering reduced roll angle for the first time
-	hrt_abstime _time_since_last_npfg_call{0U}; 	///< absolute time since start when the npfg reduced roll angle calculations was last performed
+	hrt_abstime _time_of_first_reduced_roll{0U};       ///< absolute time when entering reduced roll angle for the first time
+	hrt_abstime _time_of_last_npfg_call{0U};           ///< absolute time when the npfg reduced roll angle calculations was last performed
 	vehicle_attitude_setpoint_s _att_sp{};
 	bool _landed{false};
 	float _can_run_factor{0.f};
@@ -212,15 +212,15 @@ private:
 	float _min_airspeed_from_guidance{0.f}; // need to store it bc we only update after running longitudinal controller
 
 	void parameters_update();
-	void update_control_state();
+	void update_control_state(hrt_abstime now);
 	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
 					float pitch_min_rad, float pitch_max_rad, float throttle_min,
 					float throttle_max, const float desired_max_sinkrate,
 					const float desired_max_climbrate,
-					bool disable_underspeed_detection, float hgt_rate_sp);
+					bool disable_underspeed_detection, float hgt_rate_sp, hrt_abstime now);
 
 	void tecs_status_publish(float alt_sp, float equivalent_airspeed_sp, float true_airspeed_derivative_raw,
-				 float throttle_trim);
+				 float throttle_trim, hrt_abstime now);
 
 	void updateAirspeed();
 
@@ -230,7 +230,7 @@ private:
 
 	float mapLateralAccelerationToRollAngle(float lateral_acceleration_sp) const;
 
-	void updateWind();
+	void updateWind(hrt_abstime now);
 
 	void updateTECSAltitudeTimeConstant(const bool is_low_height, const float dt);
 
@@ -238,13 +238,13 @@ private:
 
 	float getGuidanceQualityFactor(const vehicle_local_position_s &local_pos, const bool is_wind_valid) const;
 
-	float getCorrectedLateralAccelSetpoint(float lateral_accel_sp);
+	float getCorrectedLateralAccelSetpoint(float lateral_accel_sp, hrt_abstime now);
 
-	void setDefaultLongitudinalControlConfiguration();
+	void setDefaultLongitudinalControlConfiguration(hrt_abstime now);
 
 	void updateLongitudinalControlConfiguration(const longitudinal_control_configuration_s &configuration_in);
 
-	void updateControllerConfiguration();
+	void updateControllerConfiguration(hrt_abstime now);
 
 	float getLoadFactor() const;
 
