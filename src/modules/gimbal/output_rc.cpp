@@ -132,20 +132,46 @@ void OutputRC::_stream_device_attitude_status()
 	attitude_status.target_component = 0;
 	attitude_status.device_flags = 0;
 
-	if (_absolute_angle[0]) {
-		attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_ROLL_LOCK;
+	matrix::Quatf q;
+
+	switch (_parameters.mnt_do_stab) {
+	case MntDoStabilize::PITCH_LOCK: {
+			// Report device attitude in relative frame as external apps are dependent
+			attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
+			matrix::AxisAnglef angle_axis(matrix::Vector3f(0.f, 1.f, 0.f), _angle_outputs[1]);
+			q = matrix::Quaternionf(angle_axis);
+			break;
+		}
+
+	case MntDoStabilize::YAW_LOCK:
+	case MntDoStabilize::ALL_AXES:
+	default: {
+			if (_absolute_angle[0]) {
+				attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_ROLL_LOCK;
+			}
+
+			if (_absolute_angle[1]) {
+				attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_PITCH_LOCK;
+			}
+
+			if (_absolute_angle[2]) {
+				attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_LOCK;
+				// absolute frame
+				q = matrix::Quaternionf(_q_setpoint);
+
+			} else {
+				attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME;
+				// yaw vehicle frame
+				q = matrix::Quaternionf(_q_setpoint);
+			}
+
+
+			break;
+		}
 	}
 
-	if (_absolute_angle[1]) {
-		attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_PITCH_LOCK;
-	}
 
-	if (_absolute_angle[2]) {
-		attitude_status.device_flags |= gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_LOCK;
-	}
 
-	matrix::Eulerf euler(_angle_outputs[0], _angle_outputs[1], _angle_outputs[2]);
-	matrix::Quatf q(euler);
 	q.copyTo(attitude_status.q);
 
 	attitude_status.failure_flags = 0;
