@@ -141,11 +141,10 @@ void FwLateralLongitudinalControl::Run()
 
 	if (_local_pos_sub.update(&_local_pos)) {
 
-		const float control_interval = math::constrain((_local_pos.timestamp - _last_time_loop_ran) * 1e-6f,
-					       0.001f, 0.1f);
-		_last_time_loop_ran = _local_pos.timestamp;
+		const hrt_abstime now = _local_pos.timestamp_sample;
 
-		const hrt_abstime now = hrt_absolute_time();
+		const float control_interval = math::constrain((now - _last_time_loop_ran) * 1e-6f, 0.001f, 0.1f);
+		_last_time_loop_ran = now;
 
 		updateControllerConfiguration(now);
 
