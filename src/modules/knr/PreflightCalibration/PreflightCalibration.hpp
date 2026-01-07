@@ -3,7 +3,7 @@
  * This module is triggered by external mavlink command 'DO_PREFLIGHT' to perform preflight checks and calibration.
  * This ensures that the vehicle is properly calibrated before starting an autonomous mission.
  *
- * Remember to make with propoer hardware target => make cubepilot_cubeorange
+ * Remember to make with propoer hardware target => make cubepilot_cubeorangeplus
  *
  * SHOULD WE NAME ALL OF THE CUSTOM MODULES WITH A PREFIX LIKE KNR_ ???
  *
