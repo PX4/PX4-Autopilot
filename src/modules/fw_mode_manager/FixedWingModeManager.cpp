@@ -1636,8 +1636,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 	const bool abort_on_terrain_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
 					      position_controller_landing_status_s::TERRAIN_TIMEOUT);
-	const float land_point_alt = _position_setpoint_current_valid ? pos_sp_curr.alt : 0.f;
-	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, land_point_alt, false, abort_on_terrain_timeout);
+	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, pos_sp_curr.alt, false, abort_on_terrain_timeout);
 
 	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
 	const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
@@ -2326,6 +2325,10 @@ FixedWingModeManager::reset_landing_state()
 
 float FixedWingModeManager::getMaxRollAngleNearGround(const float altitude, const float terrain_altitude) const
 {
+	if (!PX4_ISFINITE(altitude) || !PX4_ISFINITE(terrain_altitude)) {
+		return math::radians(_param_fw_r_lim.get());
+	}
+
 	// we want the wings level when at the wing height above ground
 	const float height_above_ground = math::max(altitude - (terrain_altitude + _param_fw_wing_height.get()), 0.0f);
 
