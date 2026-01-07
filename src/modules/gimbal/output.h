@@ -96,7 +96,22 @@ protected:
 	/** calculate the _angle_outputs (with speed) and stabilize if needed */
 	void _calculate_angle_output(const hrt_abstime &t);
 
+	/**
+	 * The angular velocity setpoint modifies the angle setpoint.
+	 * To correctly track and lock onto the desired orientation, the resulting change in angle
+	 * must be incorporated into the world-frame attitude setpoint. Depending on MNT_DO_STAB and
+	 * the received MAVLink command, the last valid setpoint is updated to account for the vehicle attitude.
+	 *
+	 * @param compensate Boolean per axis (roll, pitch, yaw). If true, the vehicle attitude is taken into account.
+	 * @param euler_vehicle
+	 */
+	void set_last_valid_setpoint(const bool compensate[3], const matrix::Eulerf euler_vehicle);
+
 	float _angle_outputs[3] = { 0.f, 0.f, 0.f }; ///< calculated output angles (roll, pitch, yaw) [rad]
+
+	// Quaternion float last valid setpoint.
+	// Depending on MNT_DO_STAB and mavlink command the setpoint can be relative to vehicle or in the world frame
+	matrix::Eulerf _last_valid_setpoint;
 	hrt_abstime _last_update;
 
 private:
