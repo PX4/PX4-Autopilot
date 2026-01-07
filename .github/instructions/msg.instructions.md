@@ -17,17 +17,30 @@ Your task is to review `.msg` files to ensure they comply with the official [PX4
 
 ## 2. Field Documentation Standards
 
-- **Inline Comments:** Every field and constant should have a comment on the same line, separated by exactly one space.
-- **Units:** Required for all non-boolean/non-enum fields.
-    - Format: `[unit]` (e.g., `[m/s]`, `[rad/s]`, `[m/s^2]`, `[deg]`).
-    - Unitless fields must use `[-]`.
+- **Inline Comments:** Fields should have a comment on the same line, separated by exactly one space from the field name. This should be followed first by metadata tags (described below) if required, and then descriptive text.
 - **Metadata Tags:**
+  - Metadata tags appear first in the field comments, and are delineated by brackets.
+  - The type of metdata is indicated by a value following the @ symbol, except for unit metadata, which is assumed to be units if there is no value immediately following the @ symbol.
+  - The metadata types are:
+    - **Units:** Required for all non-boolean/non-enum fields.
+      - Format: `[unit]` (e.g., `[m/s]`, `[rad/s]`, `[m/s^2]`, `[deg]`).
+      - Unitless fields must use `[-]`.
     - **Ranges:** Use `[@range min, max]` to define valid bounds.
-      Values for `min` and `max` may be omitted.
+      Values for either `min` and `max` may be omitted if there is no lower or upper bound.
     - **Enums:** Use `[@enum NAME]` to link a field to a set of constants defined in the file.
+      - The `NAME` should be the prefix of a set of constants defined in the file.
     - **Invalid Values:** Use `[@invalid NaN]` to indicate that a `NaN` value represents "no data".
       If another value represents "no data" that would replace `NaN` as the invalid value. A short description can follow the value by one space.
-- **Case & Punctuation:** Field comments should start with a capital letter and omit the final full stop if they are a single sentence.
+- **Field descriptions:** Field descriptions come after any metadata, if present. 
+  - The description should start with a capital letter. If the description is a single sentence it should omit the final full stop.
+  - The description may contain unit or other metadata, but this metadata must also be captured in the metadata tags.
+- **Example**. 
+  The following example shows a field of type `float32` with a name `true_airspeed`.
+   The comment starts one space after the field name, has `unit` metadata and `invalid` metadata, followed by the descriptive text `True airspeed (TAS)`.
+     
+     ```
+     float32 true_airspeed # [m/s] [@invalid NaN] True airspeed (TAS)
+     ```
 
 ## 3. Constants & Enums
 
