@@ -128,7 +128,7 @@
     - [LED Meanings](getting_started/led_meanings.md)
     - [Tune/Sound Meanings](getting_started/tunes.md)
     - [QGroundControl Flight-Readiness Status](flying/pre_flight_checks.md)
-
+  - [Asset Tracking](debug/asset_tracking.md)
 - [Hardware Selection & Setup](hardware/drone_parts.md)
   - [Flight Controllers (Autopilots)](flight_controller/index.md)
     - [Flight Controller Selection](getting_started/flight_controller_selection.md)
