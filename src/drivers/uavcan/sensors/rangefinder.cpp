@@ -45,7 +45,9 @@ const char *const UavcanRangefinderBridge::NAME = "rangefinder";
 UavcanRangefinderBridge::UavcanRangefinderBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_rangefinder", ORB_ID(distance_sensor), node_info_publisher),
 	_sub_range_data(node)
-{ }
+{
+	set_device_type(DRV_DIST_DEVTYPE_UAVCAN);
+}
 
 int UavcanRangefinderBridge::init()
 {
@@ -66,7 +68,7 @@ int UavcanRangefinderBridge::init()
 void UavcanRangefinderBridge::range_sub_cb(const
 		uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &msg)
 {
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get(), msg.getIfaceIndex());
 
 	if (channel == nullptr || channel->instance < 0) {
 		// Something went wrong - no channel to publish on; return
@@ -125,13 +127,10 @@ void UavcanRangefinderBridge::range_sub_cb(const
 
 int UavcanRangefinderBridge::init_driver(uavcan_bridge::Channel *channel)
 {
-	// update device id as we now know our device node_id
-	DeviceId device_id{_device_id};
+	// Build device ID using node_id and interface index
+	uint32_t device_id = make_uavcan_device_id(static_cast<uint8_t>(channel->node_id), channel->iface_index);
 
-	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_UAVCAN;
-	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
-
-	channel->h_driver = new PX4Rangefinder(device_id.devid, distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	channel->h_driver = new PX4Rangefinder(device_id, distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
 	if (channel->h_driver == nullptr) {
 		return PX4_ERROR;

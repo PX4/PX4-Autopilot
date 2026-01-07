@@ -404,7 +404,8 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    const uint8_t spoofing_state)
 {
 	sensor_gps_s sensor_gps{};
-	sensor_gps.device_id = get_device_id();
+
+	sensor_gps.device_id = make_uavcan_device_id(msg);
 
 	// Register GPS capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
