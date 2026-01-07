@@ -1125,7 +1125,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			return;
 		}
 
-		if (ocm.position || ocm.velocity || ocm.acceleration || ocm.attitude || ocm.body_rate) {
+		if (ocm.position || ocm.velocity || ocm.acceleration) {
 			// publish offboard_control_mode
 			ocm.timestamp = hrt_absolute_time();
 			_offboard_control_mode_pub.publish(ocm);
@@ -1249,7 +1249,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 			return;
 		}
 
-		if (ocm.position || ocm.velocity || ocm.acceleration || ocm.attitude || ocm.body_rate) {
+		if (ocm.position || ocm.velocity || ocm.acceleration) {
 			// publish offboard_control_mode
 			ocm.timestamp = hrt_absolute_time();
 			_offboard_control_mode_pub.publish(ocm);
