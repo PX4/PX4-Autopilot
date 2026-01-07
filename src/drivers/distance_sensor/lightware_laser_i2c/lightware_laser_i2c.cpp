@@ -53,9 +53,11 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/rangefinder/PX4Rangefinder.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/distance_sensor_mode_change_request.h>
+#include <uORB/topics/device_information.h>
 
 using namespace time_literals;
 
@@ -85,6 +87,9 @@ private:
 	enum class Register : uint8_t {
 		// Common registers
 		ProductName = 0,
+		HardwareVersion = 1,
+		FirmwareVersion = 2,
+		SerialNumber = 3,
 		DistanceData = 44,
 		LaserFiring = 50,
 		Protocol = 120,
@@ -142,9 +147,23 @@ private:
 
 	int updateRestriction();
 
+	int readDeviceInformation();
+	void publishDeviceInformation();
+
 	PX4Rangefinder _px4_rangefinder;
+	uORB::Publication<device_information_s> _device_info_pub{ORB_ID(device_information)};
 
 	int _conversion_interval{-1};
+
+	// Device information data
+	struct DeviceInfo {
+		char vendor_name[32] {};
+		char model_name[32] {};
+		char firmware_version[24] {};
+		char hardware_version[24] {};
+		char serial_number[32] {};
+		bool valid{false};
+	} _device_info;
 
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
@@ -165,6 +184,7 @@ private:
 	bool _restriction{false};
 	bool _auto_restriction{false};
 	bool _prev_restriction{false};
+	hrt_abstime _last_device_info_pub{0};
 };
 
 LightwareLaser::LightwareLaser(const I2CSPIDriverConfig &config) :
@@ -340,6 +360,10 @@ int LightwareLaser::configure()
 			const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
 			ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
 
+			if (ret == 0) {
+				readDeviceInformation();
+			}
+
 			return ret;
 		}
 		break;
@@ -358,12 +382,90 @@ int LightwareLaser::configure()
 			const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
 			ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
 
+			if (ret == 0) {
+				readDeviceInformation();
+			}
+
 			return ret;
 		}
 		break;
 	}
 
 	return -1;
+}
+
+int LightwareLaser::readDeviceInformation()
+{
+
+	if (_type != Type::LW20c && _type != Type::SF30d) {
+		return -1;
+	}
+
+	_device_info = {};
+
+	strlcpy(_device_info.vendor_name, "LightWare", sizeof(_device_info.vendor_name));
+
+	uint8_t buffer[32];
+
+	if (readRegister(Register::ProductName, buffer, sizeof(buffer) - 1) == 0) {
+		strlcpy(_device_info.model_name, (char *)buffer, sizeof(_device_info.model_name));
+
+	} else {
+
+		strlcpy(_device_info.model_name, "-1", sizeof(_device_info.model_name));
+	}
+
+	uint32_t hw_version = 0;
+
+	if (readRegister(Register::HardwareVersion, (uint8_t *)&hw_version, sizeof(hw_version)) == 0) {
+		snprintf(_device_info.hardware_version, sizeof(_device_info.hardware_version), "%u", (unsigned int)hw_version);
+
+	} else {
+		strlcpy(_device_info.hardware_version, "-1", sizeof(_device_info.hardware_version));
+	}
+
+	uint8_t fw_bytes[4];
+
+	if (readRegister(Register::FirmwareVersion, fw_bytes, sizeof(fw_bytes)) == 0) {
+		snprintf(_device_info.firmware_version, sizeof(_device_info.firmware_version), "%u.%u.%u",
+			 fw_bytes[2], fw_bytes[1], fw_bytes[0]);
+
+	} else {
+		strlcpy(_device_info.firmware_version, "-1", sizeof(_device_info.firmware_version));
+	}
+
+	if (readRegister(Register::SerialNumber, buffer, sizeof(buffer) - 1) == 0) {
+		strlcpy(_device_info.serial_number, (char *)buffer, sizeof(_device_info.serial_number));
+
+	} else {
+		strlcpy(_device_info.serial_number, "-1", sizeof(_device_info.serial_number));
+	}
+
+	_device_info.valid = true;
+
+	return 0;
+}
+
+void LightwareLaser::publishDeviceInformation()
+{
+	if (!_device_info.valid) {
+		return;
+	}
+
+	device_information_s device_info{};
+
+	device_info.timestamp = hrt_absolute_time();
+	device_info.device_type = device_information_s::DEVICE_TYPE_RANGEFINDER;
+	device_info.device_id = get_device_id();
+
+	// Copy device information strings (bounded to destination buffer sizes)
+	strlcpy(device_info.vendor_name, _device_info.vendor_name, sizeof(device_info.vendor_name));
+	strlcpy(device_info.model_name, _device_info.model_name, sizeof(device_info.model_name));
+	strlcpy(device_info.firmware_version, _device_info.firmware_version, sizeof(device_info.firmware_version));
+	strlcpy(device_info.hardware_version, _device_info.hardware_version, sizeof(device_info.hardware_version));
+	strlcpy(device_info.serial_number, _device_info.serial_number, sizeof(device_info.serial_number));
+
+	_device_info_pub.publish(device_info);
 }
 
 int LightwareLaser::collect()
@@ -509,6 +611,14 @@ void LightwareLaser::RunImpl()
 	if (PX4_OK != updateRestriction()) {
 		PX4_DEBUG("restriction error");
 		perf_count(_comms_errors);
+	}
+
+	// Publish device information (1 Hz)
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (now - _last_device_info_pub >= 1_s) {
+		publishDeviceInformation();
+		_last_device_info_pub = now;
 	}
 
 	switch (_state) {
