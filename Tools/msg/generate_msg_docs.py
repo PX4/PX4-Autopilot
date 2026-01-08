@@ -240,8 +240,8 @@ class UORBMessage:
 
         # Generate field docs
         markdown += f"## Fields\n\n"
-        markdown += "Name (type) | Unit [Frame] | Values | Description\n"
-        markdown += "--- | --- | --- | ---\n"
+        markdown += "Name | Type | Unit [Frame] | Range/Enum | Description\n"
+        markdown += "--- | --- | --- | --- | ---\n"
         for field in self.fields:
             unit = f"{field.unit}" if field.unit else ""
             frame = f"[{field.frameValue}]" if field.frameValue else ""
@@ -256,16 +256,12 @@ class UORBMessage:
                     value += f"[{enum}](#{enum})"
                 value = value.strip()
                 value = f"{value}"
-            elif field.minValue and field.maxValue:
-                value = f"range: {field.minValue} to {field.maxValue}"
-            elif field.minValue:
-                value = f"min: {field.minValue}"
-            elif field.maxValue:
-                value = f"max: {field.maxValue}"
+            elif field.minValue or field.maxValue:
+                value = f"[{field.minValue if field.minValue else '-'} : {field.maxValue if field.maxValue else '-' }]"
 
             description = f" {field.description}" if field.description else ""
             invalid = f" (Invalid: {field.invalidValue}) " if field.invalidValue else ""
-            markdown += f"{field.name} (`{field.type}`) |{unit}|{value}|{description}{invalid}\n"
+            markdown += f"{field.name} | `{field.type}` |{unit}|{value}|{description}{invalid}\n"
 
         # Generate enum docs
         if len(self.enums) > 0:
@@ -274,21 +270,21 @@ class UORBMessage:
             for name, enum in self.enums.items():
                 markdown += f"\n### {name} {{#{name}}}\n\n"
 
-                markdown += "Name (type) | Value | Description\n"
-                markdown += "--- | --- | ---\n"
+                markdown += "Name | Type | Value | Description\n"
+                markdown += "--- | --- | --- | ---\n"
 
                 for enumValueName, enumValue in enum.enumValues.items():
                     description = f" {enumValue.comment} " if enumValue.comment else " "
-                    markdown += f'<a href="#{enumValueName}">{enumValueName}</a> (`{enumValue.type}`) | {enumValue.value} |{description}\n'
+                    markdown += f'<a href="#{enumValueName}"></a> {enumValueName} | `{enumValue.type}` | {enumValue.value} |{description}\n'
 
         # Generate table for constants docs
         if len(self.enumValues) > 0:
             markdown += f"\n## Constants\n\n"
-            markdown += "Name (type) | Value | Description\n"
-            markdown += "--- | --- | ---\n"
+            markdown += "Name | Type | Value | Description\n"
+            markdown += "--- | --- | --- |---\n"
             for name, enum in self.enumValues.items():
                 description = f" {enum.comment} " if enum.comment else " "
-                markdown += f'<a href="#{name}">{name}</a> (`{enum.type}`) | {enum.value} |{description}\n'
+                markdown += f'<a href="#{name}"></a> {name} | `{enum.type}` | {enum.value} |{description}\n'
 
         # Append msg contents to the end
         with open(self.msg_filename, 'r') as source_file:
