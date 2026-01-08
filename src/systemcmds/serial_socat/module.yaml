@@ -1,0 +1,15 @@
+module_name: Serial SOCAT
+
+parameters:
+    - group: Serial SOCAT
+      definitions:
+        SER_FWD_PORT:
+            description:
+                short: Enable serial passthrough via socat
+                long: |
+                    Can be used to enable or disable the serial_socat system command.
+                    This requires helper code in the board default to configure the
+                    serial devices correctly. Check the board documentation for details.
+            type: int32
+            default: 0
+            reboot_required: true

@@ -1,0 +1,5 @@
+menuconfig SYSTEMCMDS_SERIAL_SOCAT
+	bool "serial_socat"
+	default n
+	---help---
+		Enable serial_socat command for TCP to serial port bridging.
