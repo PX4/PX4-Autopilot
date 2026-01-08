@@ -75,6 +75,18 @@ bool file_exist(const char *filename);
 int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub,
 		     int &sess_dir_index);
 
+#ifdef BOARD_SMALL_FLASH_LOGGING
+/**
+ * For small flash: cleanup old logs when starting to log if less than 1/3 of total available.
+ * This ensures enough space for one new log file while keeping older logs.
+ * Called when actually starting to log (logger on), not at boot.
+ * @param log_root_dir log root directory
+ * @param max_log_dirs_to_keep maximum log directories to keep (set to 0 for unlimited)
+ * @param mavlink_log_pub mavlink log publisher
+ * @return 0 on success, 1 if not enough space even after cleanup
+ */
+int cleanup_for_small_flash(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub);
+#endif
 
 /**
  * Utility for fetching UTC time in microseconds from sensor_gps or CLOCK_REALTIME

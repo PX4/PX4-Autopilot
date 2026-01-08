@@ -382,6 +382,10 @@ private:
 	hrt_abstime					_logger_status_last {0};
 	int						_lockstep_component{-1};
 
+#ifdef BOARD_SMALL_FLASH_LOGGING
+	size_t						_max_log_file_size {0}; ///< max log file size for small flash (0 = unlimited)
+#endif
+
 	uint32_t					_message_gaps{0};
 
 	timer_callback_data_s				_timer_callback_data{};
