@@ -196,13 +196,11 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 		float ct = geometry.rotors[i].thrust_coef;
 		float km = geometry.rotors[i].moment_ratio;
 
-		// When battery depletes, scale rises above 1 (initially
-		// designed as a compensation factor to multiply thrust and
-		// torque commands with). Rather than that we model it here by a decreasing
-		// thrust coefficient (thrust = ct * u^2)
-		if (battery_scale > 1.f) {
-			ct /= battery_scale;
-		}
+		// When battery depletes, scale rises above 1, as it was
+		// initially designed as a compensation factor to multiply
+		// thrust and torque commands with. Rather than that we model it
+		// here by a decreasing thrust coefficient.
+		ct /= battery_scale;
 
 		if (geometry.propeller_torque_disabled) {
 			km = 0.f;
