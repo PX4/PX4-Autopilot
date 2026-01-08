@@ -249,6 +249,17 @@ void FlightModeManager::start_flight_task()
 		matching_task_running = matching_task_running && !task_failure;
 	}
 
+	// Altitude cruise
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE) {
+		found_some_task = true;
+		FlightTaskError error = FlightTaskError::NoError;
+
+		error = switchTask(FlightTaskIndex::AltitudeCruise);
+
+		task_failure = (error != FlightTaskError::NoError);
+		matching_task_running = matching_task_running && !task_failure;
+	}
+
 	// Emergency descend
 	if (nav_state_descend || task_failure) {
 		found_some_task = true;

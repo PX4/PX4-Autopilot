@@ -3,10 +3,6 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-param set-default SENS_EN_INA238 0
-param set-default SENS_EN_INA228 0
-param set-default SENS_EN_INA226 1
-
 if ver hwbasecmp 008 009 00a 010 011
 then
 	# Skynode: use the "custom participant", IP=10.41.10.1 config for uxrce_dds_client
@@ -33,9 +29,9 @@ safety_button start
 if ver hwbasecmp 009
 then
 	# No USB
-	mcp23009 start -b 3 -X -D 0xf0 -O 0xf0 -P 0x0f -U 10
+	mcp23009 start -b 3 -X -D 0xf0 -O 0xf0 -P 0x0f -M 0 -U 10
 fi
 if ver hwbasecmp 00a 008
 then
-	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -U 10
+	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -M 0 -U 10
 fi

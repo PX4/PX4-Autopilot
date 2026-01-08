@@ -2,13 +2,10 @@
 #
 # @name Aion Robotics R1 UGV
 #
-# @url https://www.aionrobotics.com/r1
+# @url https://docs.px4.io/main/en/complete_vehicles_rover/aion_r1.html
 #
 # @type Rover
 # @class Rover
-#
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.rover_differential_defaults

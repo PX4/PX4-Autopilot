@@ -16,3 +16,9 @@ iis2mdc -R 0 -I -b 4 start
 
 # Internal Baro on I2C
 bmp388 -I -b 2 start
+
+# Start an external PWM generator
+if param greater PCA9685_EN_BUS 0
+then
+	pca9685_pwm_out start
+fi

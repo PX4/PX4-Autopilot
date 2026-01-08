@@ -116,7 +116,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 _RaccoonLab FMUv6X_ can be triple-redundant on the power supply if three power sources are supplied.
 The three power rails are: **POWER1**, **POWER2** and **USB**.
-The **POWER1** & **POWER2** ports on the RaccoonLab FMUv6X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/molex/products/part-detail/pcb_receptacles/5024430670).
+The **POWER1** & **POWER2** ports on the RaccoonLab FMUv6X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/en-us/products/part-detail/5024430670).
 
 **Normal Operation Maximum Ratings**
 
@@ -159,4 +159,4 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 - [Pixhawk Автопілот FMUv6X Стандартний](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf)
 - [Стандарт шини автопілота Pixhawk](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
 - [Стандарт Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf)
-- [RaccoonLab docs](http://docs.raccoonlab.co)
+- [RaccoonLab docs](https://docs.raccoonlab.co/)

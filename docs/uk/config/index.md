@@ -7,7 +7,7 @@ Most other steps can be done out of order, except for [tuning](#tuning), which m
 
 ## Передумови
 
-Before starting you should [Download QGroundControl](http://qgroundcontrol.com/downloads/) and install it on your **desktop** computer.
+Before starting you should [Download QGroundControl](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) and install it on your **desktop** computer.
 Then open the QGC application menu ("Q" icon in the top-left corner) and choose **Vehicle Setup** in the _Select Tool_ popup:
 
 ![QGC Main Menu Popup: highlighting Vehicle Setup](../../assets/qgc/setup/menu_setup.png)
@@ -32,6 +32,7 @@ Then open the QGC application menu ("Q" icon in the top-left corner) and choose 
 - [Акселерометр](../config/accelerometer.md)
 - [Level Horizon](../config/level_horizon_calibration.md)
 - [Airspeed](../config/airspeed.md) (Fixed-wing/VTOL only)
+  - [Airspeed Validation](../advanced_config/airspeed_validation.md).
 
 :::info
 Setup for these and other sensors is located in [Sensor Hardware & Setup](../sensor/index.md).
@@ -69,7 +70,7 @@ The video below shows most of the calibration process (it uses an older version 
 
 ## Підтримка
 
-If you need help with the configuration you can ask for help on the [QGroundControl Support forum](https://discuss.px4.io//c/qgroundcontrol/qgroundcontrol-usage).
+If you need help with the configuration you can ask for help on the [QGroundControl Support forum](https://discuss.px4.io/c/qgroundcontrol/qgroundcontrol-usage/18).
 
 ## Дивіться також
 
@@ -77,7 +78,6 @@ If you need help with the configuration you can ask for help on the [QGroundCont
 - [Периферія контролера польоту](../peripherals/README.md) - налаштування конкретних датчиків, опціональних датчиків, приводів тощо.
 - [Advanced Configuration](../advanced_config/index.md) - Factory/OEM calibration, configuring advanced features, less-common configuration.
 - Конфігурація/налаштування, що залежать від апарату:
-
   - [Конфігурація/налаштування мультикоптера](../config_mc/index.md)
   - [Конфігурація/налаштування гелікоптера](../config_heli/index.md)
   - [Конфігурація/налаштування літака (з нерухомим крилом)](../config_fw/index.md)

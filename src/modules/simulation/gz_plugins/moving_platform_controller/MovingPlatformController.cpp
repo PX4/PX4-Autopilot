@@ -240,7 +240,7 @@ void MovingPlatformController::updateWrenchCommand(
 
 		if (accel_xy > max_accel) {
 			const float scaling = max_accel / accel_xy;
-			_force += feedback_force * gz::math::Vector3d(scaling, scaling, 1.);
+			_force += feedback_force * gz::math::Vector3d((double)scaling, (double)scaling, 1.);
 
 		} else {
 			_force += feedback_force;

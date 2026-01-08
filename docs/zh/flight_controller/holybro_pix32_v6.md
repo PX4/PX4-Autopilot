@@ -95,7 +95,7 @@ This flight controller is perfect for people that is looking for a affordable an
 
 ## 购买渠道
 
-Order from [Holybro](https://holybro.com/collections/autopilot-flight-controllers/products/pix32-v6).
+Order from [Holybro](https://holybro.com/products/pix32-v6).
 
 ## 针脚定义
 
@@ -104,15 +104,15 @@ Order from [Holybro](https://holybro.com/collections/autopilot-flight-controller
 
 ## 串口映射
 
-| UART   | 设备         | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | GPS1          |
-| USART2 | /dev/ttyS1 | TELEM3        |
-| USART3 | /dev/ttyS2 | Debug Console |
-| UART5  | /dev/ttyS3 | TELEM2        |
-| USART6 | /dev/ttyS4 | PX4IO         |
-| UART7  | /dev/ttyS5 | TELEM1        |
-| UART8  | /dev/ttyS6 | GPS2          |
+| UART   | 设备         | Port   |
+| ------ | ---------- | ------ |
+| USART1 | /dev/ttyS0 | GPS1   |
+| USART2 | /dev/ttyS1 | TELEM3 |
+| USART3 | /dev/ttyS2 | 调试控制台  |
+| UART5  | /dev/ttyS3 | TELEM2 |
+| USART6 | /dev/ttyS4 | PX4IO  |
+| UART7  | /dev/ttyS5 | TELEM1 |
+| UART8  | /dev/ttyS6 | GPS2   |
 
 ## 尺寸
 
@@ -188,7 +188,7 @@ For information about using this port see:
 
 ## 外部设备
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
@@ -204,5 +204,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 - [PM02 Power Module](../power_module/holybro_pm02.md)
 - [PM06 Power Module](../power_module/holybro_pm06_pixhawk4mini_power_module.md)
 - [PM07 Power Module](../power_module/holybro_pm07_pixhawk4_power_module.md)
-- FMUv6C reference design pinout.
+- [FMUv6C reference design pinout](https://docs.google.com/spreadsheets/d/1FcmWRKd6zjdz3-cnjEDYEmANKZOFzNSc/edit?usp=sharing&ouid=113251442407318461574&rtpof=true&sd=true).
 - [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).

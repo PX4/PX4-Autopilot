@@ -62,13 +62,18 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
 
+// Local includes
+#include "SpacecraftRateControl/SpacecraftRateControl.hpp"
+#include "SpacecraftAttitudeControl/SpacecraftAttitudeControl.hpp"
+#include "SpacecraftPositionControl/SpacecraftPositionControl.hpp"
+
 class SpacecraftHandler : public ModuleBase<SpacecraftHandler>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 
 	SpacecraftHandler();
 
-	virtual ~SpacecraftHandler();
+	~SpacecraftHandler() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -82,6 +87,33 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-private:		/**< loop duration performance counter */
+	bool init();
+
+protected:
+	/**
+	 * @brief Update the parameters of the module.
+	 */
+	void updateParams() override;
+
+private:
+	void Run() override;
+
+	// uORB subscriptions
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	vehicle_control_mode_s _vehicle_control_mode{};
+
+	// uORB publications
+	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+
+	// Class instances
+	SpacecraftRateControl _spacecraft_rate_control{this};
+	SpacecraftAttitudeControl _spacecraft_attitude_control{this};
+	SpacecraftPositionControl _spacecraft_position_control{this};
+
+	// Variables
+	hrt_abstime _timestamp{0};
+	float _dt{0.f};
 
 };

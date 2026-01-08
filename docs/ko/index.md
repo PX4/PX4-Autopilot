@@ -1,3 +1,8 @@
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData();
+</script>
+
 <div style="float:right; padding:10px; margin-right:20px;"><a href="https://px4.io/"><img src="../assets/site/logo_pro_small.png" title="PX4 Logo" width="180px" /></a></div>
 
 # PX4 Autopilot 사용자 안내서
@@ -9,16 +14,21 @@ PX4 is the _Professional Autopilot_.
 세계 각국에서 활동중인 여러 단체들의 지원을 받을 수 있습니다. PX4는 레이싱 드론, 운송용 드론, 자동차와 선박 등의 다양한 운송체에 적용하여 사용할 수 있습니다.
 
 :::tip
-This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle. 이 프로젝트에 기여하시려면,  Check out the [Development](development/development.md) section.
-
+This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle.
+이 프로젝트에 기여하시려면,  Check out the [Development](development/development.md) section.
 :::
 
+<div v-if="site.title == 'PX4 Guide (main)'">
+
 :::warning
+
 This guide is for the _development_ version of PX4 (`main` branch).
 Use the **Version** selector to find the current _stable_ version.
 
 Documented changes since the stable release are captured in the evolving [release note](releases/main.md).
 :::
+
+</div>
 
 ## 시작하기
 
@@ -102,7 +112,7 @@ There are several [translations](contribute/translation.md) of this guide.
 
 ## 라이선스
 
-PX4 code is free to use and modify under the terms of the permissive [BSD 3-clause license](https://opensource.org/licenses/BSD-3-Clause).
+PX4 code is free to use and modify under the terms of the permissive [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause).
 This documentation is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 For more information see: [Licences](contribute/licenses.md).
 
@@ -129,13 +139,13 @@ The calendar default timezone is Central European Time (CET).
 
 <img src="../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" /> _placeholder_ icon made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
 
-<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ icon made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
+<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ icon made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
 
 ## 운영 방법
 
-The PX4 flight stack is hosted under the governance of the [Dronecode Project](https://www.dronecode.org/).
+The PX4 flight stack is hosted under the governance of the [Dronecode Project](https://dronecode.org/).
 
-<a href="https://www.dronecode.org/" style="padding:20px" ><img src="../assets/site/logo_dronecode.png" alt="Dronecode Logo" width="110px"/></a> <a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="../assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
+<a href="https://dronecode.org/" style="padding:20px" ><img src="../assets/site/logo_dronecode.png" alt="Dronecode Logo" width="110px"/></a> <a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="../assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
 
 <div style="padding:10px">&nbsp;</div>
 

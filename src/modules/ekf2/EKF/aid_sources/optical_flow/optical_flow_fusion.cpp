@@ -73,7 +73,7 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 			// when close to the ground (singularity at 0) and the innovation can suddenly become really
 			// large and destabilize the filter
 			_aid_src_optical_flow.test_ratio[1] = sq(_aid_src_optical_flow.innovation[1]) / (sq(
-					_params.flow_innov_gate) * _aid_src_optical_flow.innovation_variance[1]);
+					_params.ekf2_of_gate) * _aid_src_optical_flow.innovation_variance[1]);
 
 			if (_aid_src_optical_flow.test_ratio[1] > 1.f) {
 				continue;
@@ -164,14 +164,14 @@ Vector2f Ekf::predictFlow(const Vector3f &flow_gyro) const
 float Ekf::calcOptFlowMeasVar(const flowSample &flow_sample) const
 {
 	// calculate the observation noise variance - scaling noise linearly across flow quality range
-	const float R_LOS_best = fmaxf(_params.flow_noise, 0.05f);
-	const float R_LOS_worst = fmaxf(_params.flow_noise_qual_min, 0.05f);
+	const float R_LOS_best = fmaxf(_params.ekf2_of_n_min, 0.05f);
+	const float R_LOS_worst = fmaxf(_params.ekf2_of_n_max, 0.05f);
 
 	// calculate a weighting that varies between 1 when flow quality is best and 0 when flow quality is worst
-	float weighting = (255.f - (float)_params.flow_qual_min);
+	float weighting = (255.f - (float)_params.ekf2_of_qmin);
 
 	if (weighting >= 1.f) {
-		weighting = math::constrain((float)(flow_sample.quality - _params.flow_qual_min) / weighting, 0.f, 1.f);
+		weighting = math::constrain((float)(flow_sample.quality - _params.ekf2_of_qmin) / weighting, 0.f, 1.f);
 
 	} else {
 		weighting = 0.0f;

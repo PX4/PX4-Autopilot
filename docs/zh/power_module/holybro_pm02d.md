@@ -49,6 +49,6 @@ For this module you must instead enable parameter [SENS_EN_INA226](../advanced_c
 
 Note that the current divider and voltage divider should not be set in the [Battery Configuration](../config/battery.md) (the default values are accurate within 5%).
 
-## See Also
+## 另见
 
 - [Digital Power Module (PM) Setup](https://docs.holybro.com/power-module-and-pdb/power-module/digital-power-module-pm-setup#px4-setup) (Manufacturer guide)

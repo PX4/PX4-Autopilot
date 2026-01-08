@@ -54,6 +54,7 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/version/version.h>
 
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/events.h>
 
 #include <uORB/topics/event.h>
@@ -82,6 +83,8 @@
 
 static pthread_mutex_t mavlink_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t mavlink_event_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
+static px4::atomic<int> mavlink_instance_count {0};
+
 events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
@@ -160,7 +163,11 @@ Mavlink::~Mavlink()
 	}
 
 	if (_instance_id >= 0) {
-		mavlink_module_instances[_instance_id] = nullptr;
+		{
+			LockGuard lg{mavlink_module_mutex};
+			mavlink_module_instances[_instance_id] = nullptr;
+		}
+		mavlink_instance_count.fetch_sub(1);
 	}
 
 	// if this instance was responsible for checking events then select a new mavlink instance
@@ -187,12 +194,7 @@ Mavlink::mavlink_update_parameters()
 {
 	updateParams();
 
-	int32_t proto = _param_mav_proto_ver.get();
-
-	if (_protocol_version_switch != proto) {
-		_protocol_version_switch = proto;
-		set_proto_version(proto);
-	}
+	setProtocolVersion(_param_mav_proto_ver.get());
 
 	if (_param_mav_type.get() < 0 || _param_mav_type.get() >= MAV_TYPE_ENUM_END) {
 		_param_mav_type.set(0);
@@ -270,6 +272,7 @@ Mavlink::set_instance_id()
 		if (mavlink_module_instances[instance_id] == nullptr) {
 			mavlink_module_instances[instance_id] = this;
 			_instance_id = instance_id;
+			mavlink_instance_count.fetch_add(1);
 			return true;
 		}
 	}
@@ -277,16 +280,13 @@ Mavlink::set_instance_id()
 	return false;
 }
 
-void
-Mavlink::set_proto_version(unsigned version)
+void Mavlink::setProtocolVersion(uint8_t version)
 {
-	if ((version == 1 || version == 0) &&
-	    ((_protocol_version_switch == 0) || (_protocol_version_switch == 1))) {
+	if (version == 1) {
 		get_status()->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
 		_protocol_version = 1;
 
-	} else if (version == 2 &&
-		   ((_protocol_version_switch == 0) || (_protocol_version_switch == 2))) {
+	} else {
 		get_status()->flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1);
 		_protocol_version = 2;
 	}
@@ -469,6 +469,11 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
 			target_component_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_component_ofs]);
 		}
+	}
+
+	// Avoid locking/iteration when there is no instance to forward to.
+	if (mavlink_instance_count.load() <= 1) {
+		return;
 	}
 
 	// If it's a message only for us, we keep it
@@ -1150,19 +1155,13 @@ Mavlink::send_protocol_version()
 
 	msg.version = _protocol_version * 100;
 	msg.min_version = 100;
-	msg.max_version = 200;
+	msg.max_version = 203;
 	uint64_t mavlink_lib_git_version_binary = px4_mavlink_lib_version_binary();
 	// TODO add when available
 	//memcpy(&msg.spec_version_hash, &mavlink_spec_git_version_binary, sizeof(msg.spec_version_hash));
 	memcpy(&msg.library_version_hash, &mavlink_lib_git_version_binary, sizeof(msg.library_version_hash));
 
-	// Switch to MAVLink 2
-	int curr_proto_ver = _protocol_version;
-	set_proto_version(2);
-	// Send response - if it passes through the link its fine to use MAVLink 2
 	mavlink_msg_protocol_version_send_struct(get_channel(), &msg);
-	// Reset to previous value
-	set_proto_version(curr_proto_ver);
 }
 
 int
@@ -1208,8 +1207,8 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	}
 
 	// if we reach here, the stream list does not contain the stream.
-	// flash constrained target's don't include all streams, and some are only available for the development dialect
-#if defined(CONSTRAINED_FLASH) || !defined(MAVLINK_DEVELOPMENT_H)
+	// flash constrained target's don't include all streams
+#if defined(CONSTRAINED_FLASH)
 	return PX4_OK;
 #else
 	PX4_WARN("stream %s not found", stream_name);
@@ -1317,6 +1316,11 @@ Mavlink::update_rate_mult()
 
 	/* scale up and down as the link permits */
 	float bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+
+	/* Reduce rate while sending parameters in low bandwidth mode */
+	if (sending_parameters() && _mode == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH) {
+		bandwidth_mult = fminf(bandwidth_mult, 0.25f);
+	}
 
 	/* if we do not have flow control, limit to the set data rate */
 	if (!get_flow_control_enabled()) {
@@ -1434,7 +1438,13 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
 		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
+#if defined(MAVLINK_MSG_ID_GLOBAL_POSITION)
+		configure_stream_local("GLOBAL_POSITION", 5.0f);
+#endif
 		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+		configure_stream_local("GNSS_INTEGRITY", 1.0f);
+#endif
 		configure_stream_local("GPS2_RAW", 1.0f);
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS_RAW_INT", 5.0f);
@@ -1507,6 +1517,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
 		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
 		configure_stream_local("GLOBAL_POSITION_INT", 50.0f);
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+		configure_stream_local("GNSS_INTEGRITY", 1.0f);
+#endif
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
@@ -1667,6 +1680,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ESTIMATOR_STATUS", 5.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 2.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+		configure_stream_local("GNSS_INTEGRITY", 1.0f);
+#endif
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
@@ -1751,7 +1767,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DISTANCE_SENSOR", 10.0f);
 		configure_stream_local("MOUNT_ORIENTATION", 10.0f);
 		configure_stream_local("OBSTACLE_DISTANCE", 10.0f);
-		configure_stream_local("ODOMETRY", 30.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
 		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 5.0f);
@@ -1766,8 +1781,14 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
+#if defined(MAVLINK_MSG_ID_GLOBAL_POSITION)
+		configure_stream_local("GLOBAL_POSITION", 10.0f);
+#endif
 		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
+#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+		configure_stream_local("GNSS_INTEGRITY", 1.0f);
+#endif
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
 		configure_stream_local("HOME_POSITION", 0.5f);
@@ -1809,9 +1830,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("TIMESYNC", 10.0f);
 		configure_stream_local("CAMERA_TRIGGER", 2.0f);
 		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
-		configure_stream_local("ATTITUDE", 1.0f);
+		configure_stream_local("ATTITUDE_QUATERNION", 2.0f);
 		configure_stream_local("ALTITUDE", 1.0f);
-		configure_stream_local("DISTANCE_SENSOR", 2.0f);
+		configure_stream_local("DISTANCE_SENSOR", 1.0f);
 		configure_stream_local("MOUNT_ORIENTATION", 2.0f);
 		configure_stream_local("OBSTACLE_DISTANCE", 2.0f);
 		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 1.0f);
@@ -1819,41 +1840,55 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GIMBAL_DEVICE_SET_ATTITUDE", 2.0f);
 		configure_stream_local("ESC_INFO", 1.0f);
 		configure_stream_local("ESC_STATUS", 2.0f);
-
-		configure_stream_local("ADSB_VEHICLE", 2.0f);
+		configure_stream_local("ADSB_VEHICLE", 1.0f);
 		configure_stream_local("ATTITUDE_TARGET", 0.5f);
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", 2.0f);
-		configure_stream_local("COLLISION", 2.0f);
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 0.5f);
-		configure_stream_local("GLOBAL_POSITION_INT", 1.0f);
+		configure_stream_local("GLOBAL_POSITION_INT", 2.0f);
+#if defined(MAVLINK_MSG_ID_GLOBAL_POSITION)
+		configure_stream_local("GLOBAL_POSITION", 2.0f);
+#endif
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS2_RAW", 2.0f);
 		configure_stream_local("GPS_RAW_INT", 2.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
-		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 2.0f);
+		configure_stream_local("NAV_CONTROLLER_OUTPUT", 0.1f);
+		configure_stream_local("OPTICAL_FLOW_RAD", 0.1f);
+		configure_stream_local("ORBIT_EXECUTION_STATUS", 1.0f);
 		configure_stream_local("PING", 0.1f);
-		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.0f);
-		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.0f);
+		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 0.5f);
+		configure_stream_local("POSITION_TARGET_LOCAL_NED", 0.5f);
+		configure_stream_local("RAW_RPM", 1.0f);
 		configure_stream_local("RC_CHANNELS", 5.0f);
-		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
+		configure_stream_local("SERVO_OUTPUT_RAW_0", 0.1f);
 		configure_stream_local("SYS_STATUS", 0.5f);
 		configure_stream_local("SYSTEM_TIME", 2.0f);
 		configure_stream_local("TIME_ESTIMATE_TO_TARGET", 0.5f);
-		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 2.0f);
-		configure_stream_local("VFR_HUD", 1.0f);
+		configure_stream_local("VFR_HUD", 1.5f);
 		configure_stream_local("VIBRATION", 0.1f);
 		configure_stream_local("WIND_COV", 0.1f);
+#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 0.5f);
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
 		break;
 
 	case MAVLINK_MODE_UAVIONIX:
 		configure_stream_local("UAVIONIX_ADSB_OUT_CFG", 0.1f);
 		configure_stream_local("UAVIONIX_ADSB_OUT_DYNAMIC", 5.0f);
+		break;
+
+	case MAVLINK_MODE_DISTANCE_SENSOR:
+		configure_stream_local("DISTANCE_SENSOR", unlimited_rate);
+#if !defined(CONSTRAINED_FLASH)
+		configure_stream_local("DEBUG", 1.0f);
+		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
+		configure_stream_local("DEBUG_VECT", 1.0f);
+		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
+#endif // !CONSTRAINED_FLASH
 		break;
 
 	default:
@@ -2098,6 +2133,12 @@ Mavlink::task_main(int argc, char *argv[])
 
 					} else if (strcmp(myoptarg, "uavionix") == 0) {
 						_mode = MAVLINK_MODE_UAVIONIX;
+
+					} else if (strcmp(myoptarg, "low_bandwidth") == 0) {
+						_mode = MAVLINK_MODE_LOW_BANDWIDTH;
+
+					} else if (strcmp(myoptarg, "distance_sensor") == 0) {
+						_mode = MAVLINK_MODE_DISTANCE_SENSOR;
 
 					} else {
 						PX4_ERR("invalid mode");
@@ -3025,7 +3066,7 @@ Mavlink::display_status()
 	}
 
 	printf("\tForwarding: %s\n", get_forwarding_on() ? "On" : "Off");
-	printf("\tMAVLink version: %" PRId32 "\n", _protocol_version);
+	printf("\tMAVLink version: %" PRId8 "\n", _protocol_version);
 
 	printf("\ttransport protocol: ");
 
@@ -3398,7 +3439,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|onboard_low_bandwidth|uavionix|low_bandwidth|distance_sensor",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)

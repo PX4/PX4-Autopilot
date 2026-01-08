@@ -74,14 +74,14 @@ void Ekf::reset()
 	//
 #if defined(CONFIG_EKF2_TERRAIN)
 	// assume a ground clearance
-	_state.terrain = -_gpos.altitude() + _params.rng_gnd_clearance;
+	_state.terrain = -_gpos.altitude() + _params.ekf2_min_rng;
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
+	_range_sensor.setPitchOffset(_params.ekf2_rng_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
-	_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
-	_range_sensor.setMaxFogDistance(_params.rng_fog);
+	_range_sensor.setQualityHysteresis(_params.ekf2_rng_qlty_t);
+	_range_sensor.setMaxFogDistance(_params.ekf2_rng_fog);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	_control_status.value = 0;
@@ -151,7 +151,7 @@ bool Ekf::update()
 
 		// calculate an average filter update time
 		// limit input between -50% and +100% of nominal value
-		const float filter_update_s = 1e-6f * _params.filter_update_interval_us;
+		const float filter_update_s = 1e-6f * _params.ekf2_predict_us;
 		const float input = math::constrain(0.5f * (imu_sample_delayed.delta_vel_dt + imu_sample_delayed.delta_ang_dt),
 						    0.5f * filter_update_s,
 						    2.f * filter_update_s);
@@ -270,7 +270,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.pos(2) = -_gpos.altitude();
 
 	// constrain states
-	_state.vel = matrix::constrain(_state.vel, -_params.velocity_limit, _params.velocity_limit);
+	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
 
 	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
 	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
@@ -330,29 +330,61 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 		const Vector2f innov = (_gpos - gpos_corrected).xy();
 		const Vector2f innov_var = Vector2f(getStateVariance<State::pos>()) + obs_var;
 
-		const float sq_gate = sq(5.f); // magic hardcoded gate
+		const float sq_gate = sq(10.f); // magic hardcoded gate
 		const float test_ratio = sq(innov(0)) / (sq_gate * innov_var(0)) + sq(innov(1)) / (sq_gate * innov_var(1));
 
 		const bool innov_rejected = (test_ratio > 1.f);
 
 		if (!_control_status.flags.in_air || (eph > 0.f && eph < 1.f) || innov_rejected) {
-			// when on ground or accuracy chosen to be very low, we hard reset position
+			// When on ground or accuracy chosen to be very low, we hard reset position
 			// this allows the user to still send hard resets at any time
+			// Also reset when another position source is active as it it would otherwise have almost no
+			// visible effect to the position estimate.
 			ECL_INFO("reset position to external observation");
 			_information_events.flags.reset_pos_to_ext_obs = true;
 
 			resetHorizontalPositionTo(gpos_corrected.latitude_deg(), gpos_corrected.longitude_deg(), obs_var);
+
+			Vector2f new_vel = _state.vel.xy() - _state.wind_vel;
+			resetHorizontalVelocityTo(new_vel, Vector2f(P(State::vel.idx, State::vel.idx), P(State::vel.idx + 1, State::vel.idx + 1)));
+
+			// bump up wind uncertainty to ensure velocity remains correct
+			// eventual reset-by-fusion will have larger effect on wind state
+			P.uncorrelateCovarianceSetVariance<2>(State::wind_vel.idx, 10.f);
+			_state.wind_vel.setZero();
 			_last_known_gpos.setLatLon(gpos_corrected);
 
 		} else {
 			ECL_INFO("fuse external observation as position measurement");
-			fuseDirectStateMeasurement(innov(0), innov_var(0), obs_var, State::pos.idx + 0);
-			fuseDirectStateMeasurement(innov(1), innov_var(1), obs_var, State::pos.idx + 1);
 
-			// Use the reset counters to inform the controllers about a potential large position jump
-			// TODO: compute the actual position change
-			_state_reset_status.reset_count.posNE++;
-			_state_reset_status.posNE_change.zero();
+			VectorState H;
+			VectorState K;
+			Vector2f innov_var_temp = Vector2f(getStateVariance<State::pos>()) + 0.1f;
+
+			for (unsigned index = 0; index < 2; index++) {
+				// Artificially setting the observation variance to a small value to
+				// increase the Kalman gain to basically 1 to force a reset of the position
+				// through fusion. This also enforces a strong correction of the correlated states
+				// (e.g.: velocity, heading, wind)
+				// The update of the covariance matrix is still performed with the correct observation variance
+				// to not artificially reduce the state uncertainty and cross-correlations.
+				K = VectorState(P.row(State::pos.idx + index)) / innov_var_temp(index);
+				H(State::pos.idx + index) = 1.f;
+
+				clearInhibitedStateKalmanGains(K);
+				fuse(K, innov(index));
+
+				K = VectorState(P.row(State::pos.idx + index)) / innov_var(index);
+				measurementUpdate(K, H, obs_var, 0.f);
+				H(State::pos.idx + index) = 0.f; // Reset the whole vector to 0
+			}
+
+			// Use the reset counters to inform the controllers about a position jump
+			updateHorizontalPositionResetStatus(-innov);
+
+			// Reset the positon of the output predictor to avoid a transient that would disturb the
+			// position controller
+			_output_predictor.resetLatLonTo(_gpos.latitude_deg(), _gpos.longitude_deg());
 
 			_time_last_hor_pos_fuse = _time_delayed_us;
 			_last_known_gpos.setLatLon(gpos_corrected);
@@ -372,19 +404,19 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 
 void Ekf::updateParameters()
 {
-	_params.gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
-	_params.accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
+	_params.ekf2_gyr_noise = math::constrain(_params.ekf2_gyr_noise, 0.f, 1.f);
+	_params.ekf2_acc_noise = math::constrain(_params.ekf2_acc_noise, 0.f, 1.f);
 
-	_params.gyro_bias_p_noise = math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
-	_params.accel_bias_p_noise = math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
+	_params.ekf2_gyr_b_noise = math::constrain(_params.ekf2_gyr_b_noise, 0.f, 1.f);
+	_params.ekf2_acc_b_noise = math::constrain(_params.ekf2_acc_b_noise, 0.f, 1.f);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	_params.mage_p_noise = math::constrain(_params.mage_p_noise, 0.f, 1.f);
-	_params.magb_p_noise = math::constrain(_params.magb_p_noise, 0.f, 1.f);
+	_params.ekf2_mag_e_noise = math::constrain(_params.ekf2_mag_e_noise, 0.f, 1.f);
+	_params.ekf2_mag_b_noise = math::constrain(_params.ekf2_mag_b_noise, 0.f, 1.f);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
-	_params.wind_vel_nsd = math::constrain(_params.wind_vel_nsd, 0.f, 1.f);
+	_params.ekf2_wind_nsd = math::constrain(_params.ekf2_wind_nsd, 0.f, 1.f);
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)

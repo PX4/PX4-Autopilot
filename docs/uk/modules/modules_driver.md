@@ -2,6 +2,7 @@
 
 Підкатегорії:
 
+- [Adc](modules_driver_adc.md)
 - [Airspeed Sensor](modules_driver_airspeed_sensor.md)
 - [Baro](modules_driver_baro.md)
 - [Camera](modules_driver_camera.md)
@@ -13,98 +14,6 @@
 - [Radio Control](modules_driver_radio_control.md)
 - [Rpm Sensor](modules_driver_rpm_sensor.md)
 - [Transponder](modules_driver_transponder.md)
-
-## MCP23009
-
-Source: [drivers/gpio/mcp23009](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/gpio/mcp23009)
-
-### Usage {#MCP23009_usage}
-
-```
-MCP23009 <command> [arguments...]
- Commands:
-   start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
-                 (default=1))
-     [-f <val>]  bus frequency in kHz
-     [-q]        quiet startup (no message if no device found)
-     [-a <val>]  I2C address
-                 default: 37
-     [-D <val>]  Direction
-                 default: 0
-     [-O <val>]  Output
-                 default: 0
-     [-P <val>]  Pullups
-                 default: 0
-     [-U <val>]  Update Interval [ms]
-                 default: 0
-
-   stop
-
-   status        print status info
-```
-
-## adc
-
-Source: [drivers/adc/board_adc](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/adc/board_adc)
-
-### Опис
-
-ADC driver.
-
-### Usage {#adc_usage}
-
-```
-adc <command> [arguments...]
- Commands:
-   start
-
-   test
-     [-n]        Do not publish ADC report, only system power
-
-   stop
-
-   status        print status info
-```
-
-## ads1115
-
-Source: [drivers/adc/ads1115](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/adc/ads1115)
-
-### Опис
-
-Driver to enable an external [ADS1115](https://www.adafruit.com/product/1085) ADC connected via I2C.
-
-The driver is included by default in firmware for boards that do not have an internal analog to digital converter,
-such as [PilotPi](../flight_controller/raspberry_pi_pilotpi.md) or [CUAV Nora](../flight_controller/cuav_nora.md)
-(search for `CONFIG_DRIVERS_ADC_ADS1115` in board configuration files).
-
-It is enabled/disabled using the
-[ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN)
-parameter, and is disabled by default.
-If enabled, internal ADCs are not used.
-
-### Usage {#ads1115_usage}
-
-```
-ads1115 <command> [arguments...]
- Commands:
-   start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
-                 (default=1))
-     [-f <val>]  bus frequency in kHz
-     [-q]        quiet startup (no message if no device found)
-     [-a <val>]  I2C address
-                 default: 72
-
-   stop
-
-   status        print status info
-```
 
 ## atxxxx
 
@@ -326,9 +235,6 @@ dshot <command> [arguments...]
 
    beep5         Send Beep pattern 5
      [-m <val>]  Motor index (1-based, default=all)
-
-   esc_info      Request ESC information
-     -m <val>    Motor index (1-based)
 
    stop
 
@@ -811,6 +717,64 @@ lsm303agr <command> [arguments...]
    status        print status info
 ```
 
+## mcp230xx
+
+Source: [lib/drivers/mcp_common](https://github.com/PX4/PX4-Autopilot/tree/main/src/lib/drivers/mcp_common)
+
+### Usage {#mcp230xx_usage}
+
+```
+mcp230xx <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 39
+     [-D <val>]  Direction (1=Input, 0=Output)
+                 default: 0
+     [-O <val>]  Output
+                 default: 0
+     [-P <val>]  Pullups
+                 default: 0
+     [-U <val>]  Update Interval [ms]
+                 default: 0
+     [-M <val>]  First minor number
+                 default: 0
+
+   stop
+
+   status        print status info
+```
+
+## mcp9808
+
+Source: [drivers/temperature_sensor/mcp9808](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/temperature_sensor/mcp9808)
+
+### Usage {#mcp9808_usage}
+
+```
+mcp9808 <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 24
+
+   stop
+
+   status        print status info
+```
+
 ## msp_osd
 
 Source: [drivers/osd/msp_osd](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/osd/msp_osd)
@@ -839,6 +803,8 @@ msp_osd <command> [arguments...]
    stop
 
    status        print status info
+
+   channel       Change VTX channel
 ```
 
 ## newpixel
@@ -1161,6 +1127,30 @@ rgbled <command> [arguments...]
                  default: 57
      [-o <val>]  RGB PWM Assignment
                  default: 123
+
+   stop
+
+   status        print status info
+```
+
+## rgbled_aw2023
+
+Source: [drivers/lights/rgbled_aw2023](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_aw2023)
+
+### Usage {#rgbled_aw2023_usage}
+
+```
+rgbled_aw2023 <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 69
 
    stop
 

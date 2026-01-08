@@ -43,10 +43,10 @@ namespace estimator
 class GnssChecks final
 {
 public:
-	GnssChecks(int32_t &check_mask, int32_t &req_nsats, float &req_pdop, float &req_hacc, float &req_vacc, float &req_sacc,
-		   float &req_hdrift, float &req_vdrift, float &velocity_limit, uint32_t &min_health_time_us,
-		   filter_control_status_u &control_status):
-		_params{check_mask, req_nsats, req_pdop, req_hacc, req_vacc, req_sacc, req_hdrift, req_vdrift, velocity_limit, min_health_time_us},
+	GnssChecks(int32_t &check_mask, int32_t &ekf2_req_nsats, float &ekf2_req_pdop, float &ekf2_req_eph, float &ekf2_req_epv,
+		   float &ekf2_req_sacc, float &ekf2_req_hdrift, float &ekf2_req_vdrift, int32_t &ekf2_req_fix, float &ekf2_vel_lim,
+		   uint32_t &min_health_time_us, filter_control_status_u &control_status):
+		_params{check_mask, ekf2_req_nsats, ekf2_req_pdop, ekf2_req_eph, ekf2_req_epv, ekf2_req_sacc, ekf2_req_hdrift, ekf2_req_vdrift, ekf2_req_fix, ekf2_vel_lim, min_health_time_us},
 		_control_status(control_status)
 	{};
 
@@ -63,6 +63,7 @@ public:
 			uint16_t hspeed : 1; ///< 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
 			uint16_t vspeed : 1; ///< 9 - true if vertical speed error is excessive
 			uint16_t spoofed: 1; ///< 10 - true if the GNSS data is spoofed
+			uint16_t jammed : 1; ///< 11 - true if the GNSS data is jammed
 		} flags;
 		uint16_t value;
 	};
@@ -107,7 +108,9 @@ private:
 		kVdrift  = (1 << 6),
 		kHspd    = (1 << 7),
 		kVspd    = (1 << 8),
-		kSpoofed = (1 << 9)
+		kSpoofed = (1 << 9),
+		kFix     = (1 << 10),
+		kJammed  = (1 << 11)
 	};
 
 	bool isCheckEnabled(GnssChecksMask check) { return (_params.check_mask & static_cast<int32_t>(check)); }
@@ -143,14 +146,15 @@ private:
 
 	struct Params {
 		const int32_t &check_mask;
-		const int32_t &req_nsats;
-		const float &req_pdop;
-		const float &req_hacc;
-		const float &req_vacc;
-		const float &req_sacc;
-		const float &req_hdrift;
-		const float &req_vdrift;
-		const float &velocity_limit;
+		const int32_t &ekf2_req_nsats;
+		const float &ekf2_req_pdop;
+		const float &ekf2_req_eph;
+		const float &ekf2_req_epv;
+		const float &ekf2_req_sacc;
+		const float &ekf2_req_hdrift;
+		const float &ekf2_req_vdrift;
+		const int32_t &ekf2_req_fix;
+		const float &ekf2_vel_lim;
 		const uint32_t &min_health_time_us;
 	};
 

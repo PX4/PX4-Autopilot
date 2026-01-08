@@ -83,6 +83,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_DO_MOUNT_CONTROL:
 	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 	case NAV_CMD_COMPONENT_ARM_DISARM:
+	case NAV_CMD_DO_AUTOTUNE_ENABLE:
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_DO_SET_ROI_LOCATION:
 	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
@@ -96,6 +97,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_SET_CAMERA_FOCUS:
 	case NAV_CMD_DO_CHANGE_SPEED:
 	case NAV_CMD_DO_SET_HOME:
+	case NAV_CMD_RETURN_TO_LAUNCH:
 
 		return true;
 
@@ -169,7 +171,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 		// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
 		const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
 				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
-				_navigator->get_loiter_radius();
+				_navigator->get_default_loiter_rad();
 
 		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
 				_navigator->get_global_position()->lat,
@@ -625,7 +627,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->alt = get_absolute_altitude_for_item(item);
 	sp->yaw = item.yaw;
 	sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
-			    _navigator->get_loiter_radius();
+			    _navigator->get_default_loiter_rad();
 	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
 	if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
@@ -729,7 +731,7 @@ MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
 	}
 
 	item->altitude = loiter_altitude_amsl;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->yaw = NAN;
 }
 
@@ -741,7 +743,7 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s 
 	_navigator->preproject_stop_point(item->lat, item->lon);
 
 	item->altitude = _navigator->get_global_position()->alt;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->yaw = NAN;
 }
 
@@ -772,7 +774,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 	item->altitude_is_relative = false;
 
 	item->acceptance_radius = _navigator->get_acceptance_radius();
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
 }
@@ -807,7 +809,7 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
@@ -823,7 +825,7 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->altitude_is_relative = false;
 	item->altitude = _navigator->get_home_position()->alt;
 	item->yaw = NAN;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
@@ -895,7 +897,7 @@ MissionBlock::initialize()
 	_mission_item.lat = (double)NAN;
 	_mission_item.lon = (double)NAN;
 	_mission_item.yaw = NAN;
-	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.time_inside = 0.0f;
 	_mission_item.autocontinue = true;
@@ -1026,10 +1028,18 @@ void MissionBlock::updateFailsafeChecks()
 void MissionBlock::updateMaxHaglFailsafe()
 {
 	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
+	const float max_alt = math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy);
+	const float terrain_alt = _navigator->get_global_position()->terrain_alt;
+	const bool terrain_alt_valid = _navigator->get_global_position()->terrain_alt_valid;
 
-	if (_navigator->get_global_position()->terrain_alt_valid
-	    && ((target_alt - _navigator->get_global_position()->terrain_alt)
-		> math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy))) {
+	// If the HAGL failsafe is declared during front transition, we enter a
+	// FW hold at the current low altitude while not having finished the
+	// transition. This is dangerous and worse than possibly fusing neither
+	// optical flow nor airspeed for a couple seconds, so we bypass the
+	// failsafe here.
+	const bool in_transition_to_fw = _navigator->get_vstatus()->in_transition_to_fw;
+
+	if (!in_transition_to_fw && terrain_alt_valid && (target_alt - terrain_alt) > max_alt) {
 		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
 		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");

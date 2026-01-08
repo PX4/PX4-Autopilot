@@ -47,12 +47,13 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
 
 // Local includes
 #include "MecanumActControl/MecanumActControl.hpp"
 #include "MecanumRateControl/MecanumRateControl.hpp"
 #include "MecanumAttControl/MecanumAttControl.hpp"
-#include "MecanumVelControl/MecanumVelControl.hpp"
+#include "MecanumSpeedControl/MecanumSpeedControl.hpp"
 #include "MecanumPosControl/MecanumPosControl.hpp"
 #include "MecanumDriveModes/MecanumAutoMode/MecanumAutoMode.hpp"
 #include "MecanumDriveModes/MecanumManualMode/MecanumManualMode.hpp"
@@ -89,9 +90,9 @@ private:
 	void Run() override;
 
 	/**
-	 * @brief Handle manual control
+	 * @brief Generate rover setpoints from supported PX4 internal modes
 	 */
-	void manualControl();
+	void generateSetpoints();
 
 	/**
 	 * @brief Update the controllers
@@ -114,6 +115,7 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
@@ -121,7 +123,7 @@ private:
 	MecanumActControl   _mecanum_act_control{this};
 	MecanumRateControl  _mecanum_rate_control{this};
 	MecanumAttControl   _mecanum_att_control{this};
-	MecanumVelControl   _mecanum_vel_control{this};
+	MecanumSpeedControl   _mecanum_speed_control{this};
 	MecanumPosControl   _mecanum_pos_control{this};
 	MecanumAutoMode	    _auto_mode{this};
 	MecanumManualMode   _manual_mode{this};

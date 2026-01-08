@@ -499,9 +499,9 @@ MavlinkMissionManager::send()
 		return;
 	}
 
-	mission_result_s mission_result{};
 
-	if (_mission_result_sub.update(&mission_result)) {
+	if (_mission_result_sub.update()) {
+		const mission_result_s &mission_result = _mission_result_sub.get();
 
 		if (_current_seq != mission_result.seq_current) {
 
@@ -1538,6 +1538,12 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->params[0] = (uint16_t)mavlink_mission_item->param1;
 			break;
 
+		case MAV_CMD_DO_AUTOTUNE_ENABLE:
+			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->params[0] = (uint16_t)mavlink_mission_item->param1;
+			mission_item->params[1] = (uint16_t)mavlink_mission_item->param2;
+			break;
+
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
 			PX4_DEBUG("Unsupported command %d", mavlink_mission_item->command);
@@ -1627,6 +1633,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_CONDITION_DELAY:
 		case MAV_CMD_CONDITION_DISTANCE:
 		case MAV_CMD_DO_SET_ACTUATOR:
+		case MAV_CMD_DO_AUTOTUNE_ENABLE:
 		case MAV_CMD_COMPONENT_ARM_DISARM:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;
@@ -1925,11 +1932,7 @@ MavlinkMissionManager::update_mission_state()
 	}
 
 	// Get mission result
-	mission_result_s mission_result;
-
-	if (!_mission_result_sub.update(&mission_result)) {
-		return;
-	}
+	const mission_result_s &mission_result = _mission_result_sub.get();
 
 	// Update mission mode
 	if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
@@ -1942,22 +1945,21 @@ MavlinkMissionManager::update_mission_state()
 	}
 
 	// Update mission state
-	if (_count[MAV_MISSION_TYPE_MISSION] == 0) {
+	if (_count[MAV_MISSION_TYPE_MISSION] == 0 || !mission_result.valid) {
 		_mission_state = MISSION_STATE_NO_MISSION;
 
 	} else if (mission_result.finished) {
 		// Mission is complete if the navigator says it's finished
 		_mission_state = MISSION_STATE_COMPLETE;
 
-	} else if (_mission_mode == MISSION_MODE_ACTIVE
-		   && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	} else if (_mission_mode == MISSION_MODE_ACTIVE) {
 		_mission_state = MISSION_STATE_ACTIVE;
 
-	} else if (_mission_mode == MISSION_MODE_SUSPENDED && _last_reached >= 0) {
+	} else if (_mission_mode == MISSION_MODE_SUSPENDED && mission_result.seq_reached >= 0) {
 		// Only PAUSED if we were actually in the middle of a mission
 		_mission_state = MISSION_STATE_PAUSED;
 
-	} else {
+	} else if (mission_result.seq_reached < 0 && mission_result.seq_current < 1) {
 		_mission_state = MISSION_STATE_NOT_STARTED;
 	}
 }

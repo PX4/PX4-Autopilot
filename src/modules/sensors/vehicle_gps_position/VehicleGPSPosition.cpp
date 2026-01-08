@@ -36,6 +36,7 @@
 #include <px4_platform_common/log.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/drivers/device/Device.hpp>
 
 namespace sensors
 {
@@ -95,7 +96,12 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		_gps_blending.setBlendingUseHPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_HPOS_ACC);
 		_gps_blending.setBlendingUseVPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_VPOS_ACC);
 		_gps_blending.setBlendingTimeConstant(_param_sens_gps_tau.get());
-		_gps_blending.setPrimaryInstance(_param_sens_gps_prime.get());
+
+		const int gps_prime = _param_sens_gps_prime.get();
+
+		if (math::isInRange(gps_prime, -1, 1)) {
+			_gps_blending.setPrimaryInstance(gps_prime);
+		}
 	}
 }
 
@@ -104,9 +110,16 @@ void VehicleGPSPosition::Run()
 	perf_begin(_cycle_perf);
 	ParametersUpdate();
 
+	pps_capture_s pps_capture;
+
+	if (_pps_capture_sub.update(&pps_capture)) {
+		_pps_time_sync.process_pps(pps_capture);
+	}
+
 	// Check all GPS instance
 	bool any_gps_updated = false;
 	bool gps_updated = false;
+	const int32_t gps_prime = _param_sens_gps_prime.get();
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		gps_updated = _sensor_gps_sub[i].updated();
@@ -118,6 +131,16 @@ void VehicleGPSPosition::Run()
 
 			_sensor_gps_sub[i].copy(&gps_data);
 			_gps_blending.setGpsData(gps_data, i);
+
+			if (math::isInRange(static_cast<int>(gps_prime), 2, 127)) {
+				device::Device::DeviceId device_id{};
+				device_id.devid = gps_data.device_id;
+
+				if (device_id.devid_s.bus_type == device::Device::DeviceBusType_UAVCAN
+				    && device_id.devid_s.address == static_cast<uint8_t>(gps_prime)) {
+					_gps_blending.setPrimaryInstance(i);
+				}
+			}
 
 			if (!_sensor_gps_sub[i].registered()) {
 				_sensor_gps_sub[i].registerCallback();
@@ -136,6 +159,7 @@ void VehicleGPSPosition::Run()
 				gps_output.device_id = 0;
 			}
 
+			gps_output.timestamp_sample = _pps_time_sync.correct_gps_timestamp(gps_output.timestamp, gps_output.time_utc_usec);
 			_vehicle_gps_position_pub.publish(gps_output);
 		}
 	}

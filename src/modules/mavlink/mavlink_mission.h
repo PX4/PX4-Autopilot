@@ -114,7 +114,7 @@ private:
 
 	uint8_t			_reached_sent_count{0};			///< last time when the vehicle reached a waypoint
 
-	bool			_int_mode{false};			///< Use accurate int32 instead of float
+	bool			_int_mode{true};			///< Use accurate int32 instead of float
 
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
@@ -148,7 +148,7 @@ private:
 
 	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
-	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
+	uORB::SubscriptionData<mission_result_s>	_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<mission_s> 	_mission_sub{ORB_ID(mission)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};	///< vehicle status subscription
 

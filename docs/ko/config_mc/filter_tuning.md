@@ -70,7 +70,7 @@ Airframes with more than two frequency noise spikes typically clean the first tw
 Dynamic notch filters use ESC RPM feedback and/or the onboard FFT analysis.
 The ESC RPM feedback is used to track the rotor blade pass frequency and its harmonics, while the FFT analysis can be used to track a frequency of another vibration source, such as a fuel engine.
 
-ESC RPM feedback requires ESCs capable of providing RPM feedback such as [DShot](../peripherals/esc_motors.md#dshot) with telemetry connected, a bidirectional DShot set up ([work in progress](https://github.com/PX4/PX4-Autopilot/pull/23863)), or [UAVCAN/DroneCAN ESCs](../dronecan/escs.md).
+ESC RPM feedback requires ESCs capable of providing RPM feedback such as [DShot](../peripherals/dshot.md) with telemetry connected, a bidirectional DShot set up ([work in progress](https://github.com/PX4/PX4-Autopilot/pull/23863)), or [UAVCAN/DroneCAN ESCs](../dronecan/escs.md).
 Before enabling, make sure that the ESC RPM is correct.
 You might have to adjust the [pole count of the motors](../advanced_config/parameter_reference.md#MOT_POLE_COUNT).
 
@@ -166,11 +166,11 @@ In this case you might use the settings: [IMU_GYRO_NF0_FRQ=32](../advanced_confi
 ## 추가 팁
 
 1. 허용 가능한 지연 시간은 기체 크기와 기대치에 따라 달라집니다.
-  FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
-  For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
+   FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
+   For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
 
 2. You can start tuning at higher `IMU_GYRO_CUTOFF` values (e.g. 100Hz), which might be desirable because the default tuning of `IMU_GYRO_CUTOFF` is set very low (30Hz).
-  유일한 주의 사항은 위험을 알고 있어야한다는 것입니다.
-  - 20 ~ 30 초 이상 비행하지 마십시오
-  - 모터가 과열되지 않는 지 확인하십시오.
-  - 위의 설명처럼 이상한 소리와 과도한 소음을 체크하십시오.
+   유일한 주의 사항은 위험을 알고 있어야한다는 것입니다.
+   - 20 ~ 30 초 이상 비행하지 마십시오
+   - 모터가 과열되지 않는 지 확인하십시오.
+   - 위의 설명처럼 이상한 소리와 과도한 소음을 체크하십시오.

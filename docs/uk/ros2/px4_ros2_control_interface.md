@@ -109,92 +109,92 @@ Unless the mode is safety-critical, requires strict timing or very high update r
 
 2. Клонуйте репозиторій в робочий простір:
 
-  ```sh
-  cd $ros_workspace/src
-  git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
-  ```
+   ```sh
+   cd $ros_workspace/src
+   git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib
+   ```
 
-  :::info
-  Для забезпечення сумісності, використовуйте останні _main_ гілки для PX4, _px4_msgs_ та бібліотеки.
-  Дивіться також [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
+   :::info
+   Для забезпечення сумісності, використовуйте останні _main_ гілки для PX4, _px4_msgs_ та бібліотеки.
+   Дивіться також [here](https://github.com/Auterion/px4-ros2-interface-lib#compatibility-with-px4).
 
 :::
 
 3. Побудуйте робочий простір:
 
-  ```sh
-  cd ..
-  colcon build
-  source install/setup.bash
-  ```
+   ```sh
+   cd ..
+   colcon build
+   source install/setup.bash
+   ```
 
 4. У іншій оболонці запустіть PX4 SITL:
 
-  ```sh
-  cd $px4-autopilot
-  make px4_sitl gazebo-classic
-  ```
+   ```sh
+   cd $px4-autopilot
+   make px4_sitl gazebo-classic
+   ```
 
-  (тут ми використовуємо Gazebo-Classic, але ви можете використовувати будь-яку модель або симулятор)
+   (тут ми використовуємо Gazebo-Classic, але ви можете використовувати будь-яку модель або симулятор)
 
 5. Запустіть агента micro XRCE в новій оболонці (після цього ви можете залишити його запущеним):
 
-  ```sh
-  MicroXRCEAgent udp4 -p 8888
-  ```
+   ```sh
+   MicroXRCEAgent udp4 -p 8888
+   ```
 
 6. Запустіть QGroundControl.
 
-  :::info
-  Використовуйте QGroundControl Daily, яка підтримує динамічне оновлення списку режимів.
+   :::info
+   Використовуйте QGroundControl Daily, яка підтримує динамічне оновлення списку режимів.
 
 :::
 
 7. Повернутись до терміналу 2 ROS, запустити один із прикладів:
 
-  ```sh
-  ros2 run example_mode_manual_cpp example_mode_manual
-  ```
+   ```sh
+   ros2 run example_mode_manual_cpp example_mode_manual
+   ```
 
-  Ви повинні отримати на виході режим 'Мій ручний режим' зареєстрований:
+   Ви повинні отримати на виході режим 'Мій ручний режим' зареєстрований:
 
-  ```sh
-  [DEBUG] [example_mode_manual]: Checking message compatibility...
-  [DEBUG] [example_mode_manual]: Subscriber found, continuing
-  [DEBUG] [example_mode_manual]: Publisher found, continuing
-  [DEBUG] [example_mode_manual]: Registering 'My Manual Mode' (arming check: 1, mode: 1, mode executor: 0)
-  [DEBUG] [example_mode_manual]: Subscriber found, continuing
-  [DEBUG] [example_mode_manual]: Publisher found, continuing
-  [DEBUG] [example_mode_manual]: Got RegisterExtComponentReply
-  [DEBUG] [example_mode_manual]: Arming check request (id=1, only printed once)
-  ```
+   ```sh
+   [DEBUG] [example_mode_manual]: Checking message compatibility...
+   [DEBUG] [example_mode_manual]: Subscriber found, continuing
+   [DEBUG] [example_mode_manual]: Publisher found, continuing
+   [DEBUG] [example_mode_manual]: Registering 'My Manual Mode' (arming check: 1, mode: 1, mode executor: 0)
+   [DEBUG] [example_mode_manual]: Subscriber found, continuing
+   [DEBUG] [example_mode_manual]: Publisher found, continuing
+   [DEBUG] [example_mode_manual]: Got RegisterExtComponentReply
+   [DEBUG] [example_mode_manual]: Arming check request (id=1, only printed once)
+   ```
 
 8. На PX4 оболонці ви можете перевірити, що PX4 зареєстрував новий режим:
 
-  ```sh
-  commander status
-  ```
+   ```sh
+   commander status
+   ```
 
-  Вихід має містити:
+   Вихід має містити:
 
-  ```plain
-  INFO  [commander] Disarmed
-  INFO  [commander] navigation mode: Position
-  INFO  [commander] user intended navigation mode: Position
-  INFO  [commander] in failsafe: no
-  INFO  [commander] External Mode 1: nav_state: 23, name: My Manual Mode
-  ```
+   ```plain
+   INFO  [commander] Disarmed
+   INFO  [commander] navigation mode: Position
+   INFO  [commander] user intended navigation mode: Position
+   INFO  [commander] in failsafe: no
+   INFO  [commander] External Mode 1: nav_state: 23, name: My Manual Mode
+   ```
 
 9. У цій точці ви також повинні побачити режим в QGroundControl :
 
 
 
 10. Виберіть режим, переконайтеся, що у вас є ручне джерело управління (фізичний або віртуальний джойстик), та озброєння транспорту.
-  Тоді режим активується, і він має вивести наступний вивід:
+    Тоді режим активується, і він має вивести наступний вивід:
 
-  ```sh
-  [DEBUG] [example_mode_manual]: Mode 'My Manual Mode' activated
-  ```
+    ```sh
+    [DEBUG] [example_mode_manual]: Mode 'My Manual Mode' activated
+    ```
 
 11. Тепер ви готові створити свій власний режим.
 
@@ -267,9 +267,9 @@ private:
 class MyModeExecutor : public px4_ros2::ModeExecutorBase // [1]
 {
 public:
-  MyModeExecutor(rclcpp::Node & node, px4_ros2::ModeBase & owned_mode) // [2]
-  : ModeExecutorBase(node, px4_ros2::ModeExecutorBase::Settings{}, owned_mode),
-    _node(node)
+  MyModeExecutor(px4_ros2::ModeBase & owned_mode) // [2]
+  : ModeExecutorBase(px4_ros2::ModeExecutorBase::Settings{}, owned_mode),
+    _node(owned_mode.node())
   { }
 
   enum class State // [3]
@@ -345,9 +345,10 @@ private:
 
 Наступні розділи надають список підтримуваних типів установок:
 
-- GotoSetpointType: Плавне позиціонування та (за бажанням) керування курсом
-- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="tip" text="main (planned for: PX4 v1.17)" /> Direct control of lateral and longitudinal fixed wing dynamics
+- [MulticopterGotoSetpointType](#go-to-setpoint-multicoptergotosetpointtype): <Badge type="warning" text="MC only" /> Smooth position and (optionally) heading control
+- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="warning" text="FW only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" /> Direct control of lateral and longitudinal fixed wing dynamics
 - DirectActuatorsSetpointType: Пряме керування моторами та установками сервоприводів польотних поверхонь
+- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="main (planned for: PX4 v1.17)" /> Direct access to rover control setpoints (Position, Speed, Attitude, Rate, Throttle and Steering).
 
 :::tip
 The other setpoint types are currently experimental, and can be found in: [px4_ros2/control/setpoint_types/experimental](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/experimental).
@@ -355,14 +356,20 @@ The other setpoint types are currently experimental, and can be found in: [px4_r
 Ви можете додати свої власні типи установок, додавши клас, який успадковується від px4_ros2::SetpointBase, встановлює прапорці конфігурації відповідно до того, що вимагає установка, а потім публікує будь-яку тему, що містить установку
 :::
 
-#### Установка "перейти до" (GotoSetpointType)
+#### Go-to Setpoint (MulticopterGotoSetpointType)
+
+<Badge type="warning" text="MC only" />
+
+<Badge type="warning" text="Multicopter only" />
 
 :::info
-Цей тип установки наразі підтримується лише для багтрикоптерів.
+This setpoint type is currently only supported for multicopters.
 :::
 
-Smoothly control position and (optionally) heading setpoints with the [`px4_ros2::GotoSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/goto.hpp) setpoint type.
-Тип установки транслюється до плавних позиційних та курсових вирівнювачів на основі FMU, сформульованих з оптимальним за часом, максимальною швидкістю зміни прискорення, з обмеженнями швидкості та прискорення.
+Smoothly control position and (optionally) heading setpoints with the [`px4_ros2::MulticopterGotoSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/multicopter/goto.hpp) setpoint type.
+The setpoint type is streamed to FMU based position and heading smoothers formulated with time-optimal, maximum-jerk trajectories, with velocity and acceleration constraints.
+
+There is also a [`px4_ros2::MulticopterGotoGlobalSetpointType`](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/multicopter/goto.hpp) class that allows to send setpoints in global coordinates.
 
 Найбільш тривіальне використання полягає в простому введенні 3D-позиції в метод оновлення:
 
@@ -420,7 +427,7 @@ This setpoint is streamed to the PX4 [_FwLateralLongitudinalControl_ module](../
 To control the vehicle, at least one lateral **and** one longitudinal setpoint must be provided:
 
 1. Of the longitudinal inputs: either `altitude` or `height_rate` must be finite to control vertical motion.
-  If both are set to `NAN`, the vehicle will maintain its current altitude.
+   If both are set to `NAN`, the vehicle will maintain its current altitude.
 2. Of the lateral inputs: at least one of `course`, `airspeed_direction`, or `lateral_acceleration` must be finite.
 
 For a detailed description of the controllable parameters, please refer to message definitions ([FixedWingLateralSetpoint](../msg_docs/FixedWingLateralSetpoint.md) and [FixedWingLongitudinalSetpoint](../msg_docs/FixedWingLongitudinalSetpoint.md)).
@@ -548,13 +555,47 @@ and [`FW_THR_MAX`](../advanced_config/parameter_reference.md#FW_THR_MAX).
 Якщо ви хочете керувати клапаном, який не контролює рух транспортного засобу, але, наприклад, сервопривід навантаження, подивіться нижче.
 :::
 
+#### Rover Setpoints
+
+<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+
+The rover modules use a hierarchical structure to propagate setpoints:
+
+![Rover Control Structure](../../assets/middleware/ros2/px4_ros2_interface_lib/rover_control_structure.svg)
+
+:::info
+The "highest" setpoint that is provided will be used within the PX4 rover modules to generate the setpoints that are below it (Overriding them!).
+With this hierarchy there are clear rules for providing a valid control input:
+
+- Provide a position setpoint, **or**
+- One of the setpoints on the "left" (speed **or** throttle) **and** one of the setpoints on the "right" (attitude, rate **or** steering). All combinations of "left" and "right" setpoints are valid.
+
+For ease of use we expose these valid combinations as new SetpointTypes.
+:::
+
+The RoverSetpointTypes exposed through the control interface are combinations of these setpoints that lead to a valid control input:
+
+| SetpointType                                                                                                                        | Положення                   | Speed                                            | Тяга                                             | Attitude                                         | Rate                                             | Steering                                         | Control Flags                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------ |
+| [RoverPosition](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverPositionSetpointType.html#details)         | &check; | (&check;) | (&check;) | (&check;) | (&check;) | (&check;) | Position, Velocity, Attitude, Rate, Control Allocation |
+| [RoverSpeedAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedAttitudeSetpointType.html)       |                             | &check;                      | (&check;) | &check;                      | (&check;) | (&check;) | Velocity, Attitude, Rate, Control Allocation           |
+| [RoverSpeedRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedRateSetpointType.html)               |                             | &check;                      | (&check;) |                                                  | &check;                      | (&check;) | Velocity, Rate, Control Allocation                     |
+| [RoverSpeedSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedSteeringSetpointType.html)       |                             | &check;                      | (&check;) |                                                  |                                                  | &check;                      | Velocity, Control Allocation                           |
+| [RoverThrottleAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleAttitudeSetpointType.html) |                             |                                                  | &check;                      | &check;                      | (&check;) | (&check;) | Attitude, Rate, Control Allocation                     |
+| [RoverThrottleRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleRateSetpointType.html)         |                             |                                                  | &check;                      |                                                  | &check;                      | (&check;) | Rate, Control Allocation                               |
+| [RoverThrottleSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleSteeringSetpointType.html) |                             |                                                  | &check;                      |                                                  |                                                  | &check;                      | Control Allocation                                     |
+
+&check; are the setpoints we publish, and (&check;) are generated internally by the PX4 rover modules according to the hierarchy above.
+
+An example for a rover specific drive mode using the `RoverSpeedAttitudeSetpointType` is provided [here](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/rover_velocity).
+
 ### Controlling a VTOL
 
 <Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
 
 To control a VTOL in an external flight mode, ensure you're returning the correct setpoint type based on the current flight configuration:
 
-- Multicopter mode: use a setpoint type that is compatible with multicopter control. For example: either the [`GotoSetpointType`](#go-to-setpoint-gotosetpointtype) or the [`TrajectorySetpointType`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1TrajectorySetpointType.html).
+- Multicopter mode: use a setpoint type that is compatible with multicopter control. For example: either the [`MulticopterGotoSetpointType`](#go-to-setpoint-multicoptergotosetpointtype) or the [`TrajectorySetpointType`](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1TrajectorySetpointType.html).
 - Fixed-wing mode: Use the [`FwLateralLongitudinalSetpointType`](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype).
 
 As long as the VTOL remains in either multicopter or fixed-wing mode throughout the external mode, no additional handling is required.
@@ -569,24 +610,24 @@ Commanding transitions externally makes the user partially responsible for ensur
 3. To command a transition, you can use the `toMulticopter()` or `toFixedwing()` methods on your VTOL object to set the desired state.
 4. During transition, send the following combination of setpoints:
 
-  ```cpp
-  // Assuming the instance of the px4_ros2::VTOL object is called vtol
+   ```cpp
+   // Assuming the instance of the px4_ros2::VTOL object is called vtol
 
-  // Send TrajectorySetpointType as follows:
-  Eigen::Vector3f acceleration_sp = vtol.computeAccelerationSetpointDuringTransition();
-  Eigen::Vector3f velocity_sp{NAN, NAN, 0.f};
+   // Send TrajectorySetpointType as follows:
+   Eigen::Vector3f acceleration_sp = vtol.computeAccelerationSetpointDuringTransition();
+   Eigen::Vector3f velocity_sp{NAN, NAN, 0.f};
 
-  _trajectory_setpoint->update(velocity_sp, acceleration_sp);
+   _trajectory_setpoint->update(velocity_sp, acceleration_sp);
 
-  // Send FwLateralLongitudinalSetpointType with lateral input to realign vehicle as desired
+   // Send FwLateralLongitudinalSetpointType with lateral input to realign vehicle as desired
 
-  float course_sp = 0.F; // North
+   float course_sp = 0.F; // North
 
-  _fw_lateral_longitudinal_setpoint->updateWithAltitude(NAN, course_sp)
-  ```
+   _fw_lateral_longitudinal_setpoint->updateWithAltitude(NAN, course_sp)
+   ```
 
-  This will ensure that the transition is handled properly within PX4.
-  You can optionally pass a deceleration setpoint to `computeAccelerationSetpointDuringTransition()` to be used during back-transitions.
+   This will ensure that the transition is handled properly within PX4.
+   You can optionally pass a deceleration setpoint to `computeAccelerationSetpointDuringTransition()` to be used during back-transitions.
 
 To check the current state of the vehicle, use the `getCurrentState()` method on your `px4_ros2::VTOL` object.
 
@@ -599,7 +640,7 @@ See [this external flight mode implementation](https://github.com/Auterion/px4-r
 1. [Configure the output](../payloads/generic_actuator_control.md#generic-actuator-control-with-mavlink).
 2. Створіть екземпляр px4_ros2::PeripheralActuatorControls у конструкторі вашого режиму.
 3. Викличте метод set(), щоб керувати клапаном(-ами).
-  Це може бути зроблено незалежно від будь-яких активних встановлень.
+   Це може бути зроблено незалежно від будь-яких активних встановлень.
 
 ### Телеметрія
 

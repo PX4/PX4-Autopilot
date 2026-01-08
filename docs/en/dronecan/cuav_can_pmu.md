@@ -9,7 +9,7 @@ It is recommended for use in large commercial vehicles, but might also be used f
 
 ## Where to Buy
 
-- [CUAV store](https://store.cuav.net/index.php)
+- [CUAV store](https://store.cuav.net/)
 - [CUAV aliexpress ](https://www.aliexpress.com/item/4000369700535.html)
 
 ## Hardware Specifications
@@ -71,4 +71,4 @@ Set the following parameters in _QGroundControl_ [Vehicle Setup > Parameters](..
 
 [CAN PMU Manual](http://manual.cuav.net/power-module/CAN-PMU.pdf)
 
-[CAN PMU Power detection module > Enable CAN PMU > PX4 firmware](http://doc.cuav.net/power-module/can-pmu/en/) (CUAV docs)
+[CAN PMU Power detection module > Enable CAN PMU > PX4 firmware](https://doc.cuav.net/power-module/can-pmu/en/) (CUAV docs)

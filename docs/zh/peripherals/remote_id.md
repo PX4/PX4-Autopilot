@@ -158,7 +158,7 @@ Integrators should test than the remote ID module is broadcasting the correct in
 This is most easily done using a 3rd party application on your mobile device:
 
 - [Drone Scanner](https://github.com/dronetag/drone-scanner) (Google Play or Apple App store)
-- OpenDroneID OSM (Google Play)
+- [OpenDroneID OSM](https://play.google.com/store/apps/details?id=org.opendroneid.android_osm&hl=en&gl=US) (Google Play)
 
 ## 实现
 
@@ -245,11 +245,11 @@ If the Remote ID CAN node is present and the messages are not being received, th
 2. Navigate to the [Application settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/general.html): **Application Settings > General > Miscellaneous**.
 
 3. Select `Enable Remote ID`.
-  The Remote ID tab should appear.
+   The Remote ID tab should appear.
 
-  ::: info
-  If this option is not present you may be in a very recent version of QGC.
-  In that case, open the view at: **Application Settings > Remote ID**.
+   ::: info
+   If this option is not present you may be in a very recent version of QGC.
+   In that case, open the view at: **Application Settings > Remote ID**.
 
 :::
 
@@ -257,6 +257,6 @@ If the Remote ID CAN node is present and the messages are not being received, th
 
 Once configured, check the MAVLink Inspector again and check that the `OPEN_DRONE_ID_BASIC_ID` and `OPEN_DRONE_ID_LOCATION` messages are now present.
 
-## See Also
+## 另见
 
 - [Remote Identification of Drones](https://www.faa.gov/uas/getting_started/remote_id) (FAA)

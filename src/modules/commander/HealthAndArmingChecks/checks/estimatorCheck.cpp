@@ -272,6 +272,22 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			_gnss_spoofed = false;
 		}
 
+		if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_JAMMED)) {
+			if (!_gnss_jammed) {
+				_gnss_jammed = true;
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS signal jammed\t");
+				}
+
+				events::send(events::ID("check_estimator_gnss_warning_jamming"), {events::Log::Alert, events::LogInternal::Info},
+					     "GNSS signal jammed");
+			}
+
+		} else {
+			_gnss_jammed = false;
+		}
+
 		if (!context.isArmed() && ekf_gps_check_fail) {
 			NavModesMessageFail required_modes;
 			events::Log log_level;
@@ -435,6 +451,18 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 							    events::ID("check_estimator_gps_spoofed"),
 							    log_level, "GPS signal spoofed");
 
+			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_JAMMED)) {
+				message = "Preflight%s: GPS signal jammed";
+				/* EVENT
+				 * @description
+				 * <profile name="dev">
+				 * Can be configured with <param>EKF2_GPS_CHECK</param> and <param>COM_ARM_WO_GPS</param>.
+				 * </profile>
+				 */
+				reporter.armingCheckFailure(required_modes, health_component_t::gps,
+							    events::ID("check_estimator_gps_jammed"),
+							    log_level, "GPS signal jammed");
+
 			} else {
 				if (!ekf_gps_fusion) {
 					// Likely cause unknown
@@ -594,38 +622,15 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 
 void EstimatorChecks::checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const
 {
-	if (vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_CRITICAL) {
+	if (vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_DETECTED) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_jamming_critical"),
-					    events::Log::Critical, "GPS reports critical jamming state");
+					    events::Log::Critical, "GPS jamming detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports critical jamming state\t");
-		}
-	}
-
-	if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_INDICATED) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
-					    events::ID("check_estimator_gps_spoofing_indicated"),
-					    events::Log::Critical, "GPS reports spoofing indicated");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports spoofing indicated\t");
-		}
-
-	} else if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_MULTIPLE) {
-		/* EVENT
-		 */
-		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
-					    events::ID("check_estimator_gps_multiple_spoofing_indicated"),
-					    events::Log::Critical, "GPS reports multiple spoofing indicated");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports multiple spoofing indicated\t");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS jamming detected\t");
 		}
 	}
 }
@@ -644,8 +649,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 		position_valid_but_low_accuracy = (_param_com_low_eph.get() > FLT_EPSILON && lpos.eph > _param_com_low_eph.get());
 	}
 
-	if (!reporter.failsafeFlags().position_accuracy_low && position_valid_but_low_accuracy
-	    && _param_com_pos_low_act.get()) {
+	if (position_valid_but_low_accuracy && _param_com_pos_low_act.get()) {
 
 		// only report if armed
 		if (context.isArmed()) {

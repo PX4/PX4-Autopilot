@@ -65,9 +65,6 @@ protected:
 	void _set_hysteresis_factor(const int factor) override {};
 
 private:
-
-	static constexpr hrt_abstime FLYING_TRIGGER_TIME_US = 0_us;
-
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 

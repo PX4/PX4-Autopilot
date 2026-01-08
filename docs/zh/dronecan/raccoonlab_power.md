@@ -2,14 +2,14 @@
 
 ## CAN Power Connectors
 
-CAN power connectors are designed for light unmanned aerial (UAV) and other vehicles for providing power over CAN using [CAN power cables](https://docs.raccoonlab.co/guide/pmu/wires/).
+CAN power connectors are designed for light unmanned aerial (UAV) and other vehicles for providing power over CAN using [CAN power cables](https://docs.raccoonlab.co/guide/pmu/wires.html).
 
 There are two types of devices:
 
 1. `CAN-MUX` devices provide power from XT30 connector to CAN.
-  There are 2 variation of this type of the device with different number of connectors.
+   There are 2 variation of this type of the device with different number of connectors.
 2. `Power connector node` is designed to pass current (up to 60A) to power load and CAN, measure voltage and current on load.
-  It behaves as Cyphal/DroneCAN node.
+   It behaves as Cyphal/DroneCAN node.
 
 Please refer to the RaccoonLab docs [CAN Power Connectors](https://docs.raccoonlab.co/guide/pmu/power/) page.
 

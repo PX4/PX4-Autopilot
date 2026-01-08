@@ -39,7 +39,10 @@
 #include <pthread.h>
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
-#include <px4_platform_common/crypto.h>
+
+#if defined(PX4_CRYPTO)
+# include <px4_platform_common/crypto.h>
+#endif // PX4_CRYPTO
 
 namespace px4
 {
@@ -143,7 +146,7 @@ public:
 		_key_idx = key_idx;
 		_exchange_key_idx = exchange_key_idx;
 	}
-#endif
+#endif // PX4_CRYPTO
 
 private:
 	static void *run_helper(void *);
@@ -223,6 +226,7 @@ private:
 	pthread_mutex_t		_mtx;
 	pthread_cond_t		_cv;
 	pthread_t _thread = 0;
+
 #if defined(PX4_CRYPTO)
 	bool init_logfile_encryption(const LogType type);
 	PX4Crypto _crypto;
@@ -230,7 +234,7 @@ private:
 	px4_crypto_algorithm_t _algorithm;
 	uint8_t _key_idx;
 	uint8_t _exchange_key_idx;
-#endif
+#endif // PX4_CRYPTO
 
 };
 

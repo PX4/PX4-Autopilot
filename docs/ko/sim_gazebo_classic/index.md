@@ -46,8 +46,6 @@ Note that `aptitude` is needed because it can resolve dependency conflicts (by r
 
 :::tip
 You could also modify the installation script to install Gazebo Classic on Ubuntu 22.04 before it is run for the first time.
-
-Additional installation instructions can be found on gazebosim.org.
 :::
 
 ## Running the Simulation
@@ -80,8 +78,6 @@ For the full list of build targets run `make px4_sitl list_vmd_make_targets` (an
 | [Standard Plane (with catapult launch)](../sim_gazebo_classic/vehicles.md#standard-plane-with-catapult-launch)                                        | `make px4_sitl gazebo-classic_plane_catapult`             |
 | [Standard VTOL](../sim_gazebo_classic/vehicles.md#standard-vtol)                                                                                                         | `make px4_sitl gazebo-classic_standard_vtol`              |
 | [Tailsitter VTOL](../sim_gazebo_classic/vehicles.md#tailsitter-vtol)                                                                                                     | `make px4_sitl gazebo-classic_tailsitter`                 |
-| [Ackerman UGV (Rover)](../sim_gazebo_classic/vehicles.md#ackermann-ugv)                                                                               | `make px4_sitl gazebo-classic_rover`                      |
-| [Differential UGV (Rover)](../sim_gazebo_classic/vehicles.md#differential-ugv)                                                                        | `make px4_sitl gazebo-classic_r1_rover`                   |
 | [HippoCampus TUHH (UUV: Unmanned Underwater Vehicle)](../sim_gazebo_classic/vehicles.md#unmanned-underwater-vehicle-uuv-submarine)    | `make px4_sitl gazebo-classic_uuv_hippocampus`            |
 | [Boat (USV: Unmanned Surface Vehicle)](../sim_gazebo_classic/vehicles.md#hippocampus-tuhh-uuv)                                        | `make px4_sitl gazebo-classic_boat`                       |
 | [Cloudship (Airship)](../sim_gazebo_classic/vehicles.md#airship)                                                                                      | `make px4_sitl gazebo-classic_cloudship`                  |
@@ -120,7 +116,7 @@ INFO  [simulator] Waiting for simulator to connect on TCP port 4560
 Gazebo multi-robot simulator, version 9.0.0
 Copyright (C) 2012 Open Source Robotics Foundation.
 Released under the Apache 2 License.
-http://gazebosim.org
+https://gazebosim.org/home
 ...
 INFO  [ecl/EKF] 5188000: commencing GPS fusion
 ```
@@ -253,14 +249,14 @@ It is enabled by default in many vehicle SDF files: **solo.sdf**, **iris.sdf**, 
 To enable/disable GPS noise:
 
 1. Build any gazebo target in order to generate SDF files (for all vehicles).
-  예:
+   예:
 
-  ```sh
-  make px4_sitl gazebo-classic_iris
-  ```
+   ```sh
+   make px4_sitl gazebo-classic_iris
+   ```
 
-  :::tip
-  The SDF files are not overwritten on subsequent builds.
+   :::tip
+   The SDF files are not overwritten on subsequent builds.
 
 :::
 
@@ -268,17 +264,17 @@ To enable/disable GPS noise:
 
 3. Search for the `gpsNoise` element:
 
-  ```xml
-  <plugin name='gps_plugin' filename='libgazebo_gps_plugin.so'>
-    <robotNamespace/>
-    <gpsNoise>true</gpsNoise>
-  </plugin>
-  ```
+   ```xml
+   <plugin name='gps_plugin' filename='libgazebo_gps_plugin.so'>
+     <robotNamespace/>
+     <gpsNoise>true</gpsNoise>
+   </plugin>
+   ```
 
-  - If it is present, GPS is enabled.
-    You can disable it by deleting the line: `<gpsNoise>true</gpsNoise>`
-  - If it is not present, GPS is disabled.
-    You can enable it by adding the `gpsNoise` element to the `gps_plugin` section (as shown above).
+   - If it is present, GPS is enabled.
+     You can disable it by deleting the line: `<gpsNoise>true</gpsNoise>`
+   - If it is not present, GPS is disabled.
+     You can enable it by adding the `gpsNoise` element to the `gps_plugin` section (as shown above).
 
 The next time you build/restart Gazebo Classic it will use the new GPS noise setting.
 
@@ -537,7 +533,7 @@ To disable lockstep in:
 ## Extending and Customizing
 
 To extend or customize the simulation interface, edit the files in the `Tools/simulation/gazebo/sitl_gazebo` folder.
-The code is available on the [sitl_gazebo repository](https://github.com/PX4/PX4-SITL_gazebo) on Github.
+The code is available on the [sitl_gazebo repository](https://github.com/PX4/PX4-SITL_gazebo-classic) on GitHub.
 
 :::info
 The build system enforces the correct GIT submodules, including the simulator.

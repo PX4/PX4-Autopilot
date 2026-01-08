@@ -152,7 +152,6 @@ The Pixhawk®​ 6X is perfect for developers at corporate research labs, startu
   - CAN Bus has individual silent controls or ESC RX-MUX control
 
 - 2 Power input ports with SMBus
-
   - 1 AD & IO port
   - 2 个模拟输入接口
   - 1 PWM/Capture input
@@ -191,7 +190,7 @@ Sample Wiring Diagram
 | ------ | ---------- | ------------------------------- |
 | USART1 | /dev/ttyS0 | GPS                             |
 | USART2 | /dev/ttyS1 | TELEM3                          |
-| USART3 | /dev/ttyS2 | Debug Console                   |
+| USART3 | /dev/ttyS2 | 调试控制台                           |
 | UART4  | /dev/ttyS3 | UART4 & I2C |
 | UART5  | /dev/ttyS4 | TELEM2                          |
 | USART6 | /dev/ttyS5 | PX4IO/RC                        |
@@ -205,7 +204,7 @@ Sample Wiring Diagram
 ## 额定电压
 
 _Pixhawk 6X_ can be triple-redundant on the power supply if three power sources are supplied. The three power rails are: **POWER1**, **POWER2** and **USB**.
-The **POWER1** & **POWER2** ports on the Pixhawk 6X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/molex/products/part-detail/pcb_receptacles/5024430670).
+The **POWER1** & **POWER2** ports on the Pixhawk 6X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/en-us/products/part-detail/5024430670).
 
 **Normal Operation Maximum Ratings**
 

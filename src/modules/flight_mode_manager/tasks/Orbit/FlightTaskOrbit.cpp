@@ -160,7 +160,7 @@ void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 {
 	// clip the radius to be within range
 	radius = math::constrain(radius, _radius_min, _param_mc_orbit_rad_max.get());
-	velocity = math::constrain(velocity, -fabsf(_velocity_max), fabsf(_velocity_max));
+	velocity = math::constrain(velocity, -fabsf(_param_mpc_xy_vel_max.get()), fabsf(_param_mpc_xy_vel_max.get()));
 
 	bool exceeds_maximum_acceleration = (velocity * velocity) >= _acceleration_max * radius;
 
@@ -292,8 +292,8 @@ void FlightTaskOrbit::_adjustParametersByStick()
 
 	switch (_yaw_behaviour) {
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:
-		radius -= signFromBool(_started_clockwise) * _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_xy_cruise.get();
-		velocity += signFromBool(_started_clockwise) * _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_acc_hor.get();
+		radius -= signFromBool(_started_clockwise) * _sticks.getRollExpo() * _deltatime * _param_mpc_xy_cruise.get();
+		velocity += signFromBool(_started_clockwise) * _sticks.getPitchExpo() * _deltatime * _param_mpc_acc_hor.get();
 		break;
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING:
@@ -302,8 +302,8 @@ void FlightTaskOrbit::_adjustParametersByStick()
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER:
 	default:
 		// stick input adjusts parameters within a fixed time frame
-		radius -= _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_xy_cruise.get();
-		velocity -= _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_acc_hor.get();
+		radius -= _sticks.getPitchExpo() * _deltatime * _param_mpc_xy_cruise.get();
+		velocity -= _sticks.getRollExpo() * _deltatime * _param_mpc_acc_hor.get();
 		break;
 	}
 

@@ -14,7 +14,7 @@ The autopilot is recommended for commercial systems integration, but is also sui
 
 Some of its main features include:
 
-- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://pixhawk.org/pixhawk-connector-standard/) for all external interfaces.
+- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) for all external interfaces.
 - More advanced processor, RAM and flash memory than FMU v3, along with more stable and reliable sensors.
 - Firmware-compatible with PX4.
 - Modular design allows users to customize their own carrier board.
@@ -34,7 +34,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 32 位 Arm® Cortex®-M3，24MHz，8KB SRAM
 
 - 内置传感器：
-
   - 加速度计/陀螺仪：ICM-20689
   - 加速度计/陀螺仪：BMI055
   - 磁力计：IST8310
@@ -62,16 +61,13 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Dimensions: 85.5\*42\*33mm
 
 - 其它特性:
-
   - Operating temperature: -20 ~ 80°c（Measured value）
 
 ## 购买渠道
 
-<!-- [CUAV Store](https://store.cuav.net/index.php?id_product=95&id_product_attribute=0&rewrite=cuav-new-pixhack-v5-autopilot-m8n-gps-for-fpv-rc-drone-quadcopter-helicopter-flight-simulator-free-shipping-whole-sale&controller=product&id_lang=1) -->
-
 [CUAV Aliexpress](https://www.aliexpress.com/item/32890380056.html?spm=a2g0o.detail.1000060.1.7a7233e7mLTlVl&gps-id=pcDetailBottomMoreThisSeller&scm=1007.13339.90158.0&scm_id=1007.13339.90158.0&scm-url=1007.13339.90158.0&pvid=d899bfab-a7ca-46e1-adf2-72ad1d649822) (International users)
 
-CUAV Taobao (China Mainland users)
+[CUAV Taobao](https://item.taobao.com/item.htm?spm=a1z10.5-c.w4002-21303114052.37.a28f697aeYzQx9&id=594262853015) (China Mainland users)
 
 :::info
 Autopilot may be purchased with included Neo GPS module
@@ -134,7 +130,7 @@ The board does not have an I/O debug interface.
 
 ![Debug port (DSU7)](../../assets/flight_controller/cuav_v5_plus/debug_port_dsu7.jpg)
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | 针脚   | 信号                                | 电压                    |
 | ---- | --------------------------------- | --------------------- |
@@ -165,11 +161,11 @@ For more information see [Using JTAG for hardware debugging](#using-jtag-for-har
 | UART   | 设备         | Port                                                       |
 | ------ | ---------- | ---------------------------------------------------------- |
 | UART1  | /dev/ttyS0 | GPS                                                        |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control)                   |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control)                   |
+| USART2 | /dev/ttyS1 | TELEM1 (流控)                             |
+| USART3 | /dev/ttyS2 | TELEM2 (流控)                             |
 | UART4  | /dev/ttyS3 | TELEM4                                                     |
 | USART6 | /dev/ttyS4 | TX is RC input from SBUS_RC connector |
-| UART7  | /dev/ttyS5 | Debug Console                                              |
+| UART7  | /dev/ttyS5 | 调试控制台                                                      |
 | UART8  | /dev/ttyS6 | PX4IO                                                      |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
@@ -206,7 +202,7 @@ CUAV adopts some differentiated designs and is incompatible with some hardware, 
 
 The _Neo v2.0 GPS_ recommended for use with _CUAV V5+_ and _CUAV V5 nano_ is not fully compatible with other Pixhawk flight controllers (specifically, the buzzer part is not compatible and there may be issues with the safety switch).
 
-The UAVCAN [NEO V2 PRO GNSS receiver](http://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
+The UAVCAN [NEO V2 PRO GNSS receiver](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
 
 <a id="compatibility_jtag"></a>
 
@@ -240,7 +236,7 @@ Please do not connect other equipment (except RC receiver) on SBUS / DSM / RSSI 
 ## 更多信息
 
 - [CUAV V5+ Manual](http://manual.cuav.net/V5-Plus.pdf)
-- [CUAV V5+ docs](http://doc.cuav.net/flight-controller/v5-autopilot/en/v5+.html)
+- [CUAV V5+ docs](https://doc.cuav.net/controller/v5-autopilot/en/v5+.html)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165)
 - [CUAV Github](https://github.com/cuav)
 - [Base board design reference](https://github.com/cuav/hardware/tree/master/V5_Autopilot/V5%2B/V5%2BBASE)

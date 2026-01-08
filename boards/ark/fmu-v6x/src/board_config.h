@@ -241,7 +241,7 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   8
+#define DIRECT_PWM_OUTPUT_CHANNELS   9
 
 #define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
 #define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
@@ -321,10 +321,6 @@
 
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
-
-/* RC Serial port */
-
-#define RC_SERIAL_PORT                     "/dev/ttyS5"
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  1
@@ -486,7 +482,7 @@
 #define PX4_I2C_BUS_MTD      4,5
 
 
-#define BOARD_NUM_IO_TIMERS  3
+#define BOARD_NUM_IO_TIMERS  4
 #define BOARD_SPIX_SYNC_FREQ 32000
 
 __BEGIN_DECLS

@@ -8,7 +8,7 @@ parameters:
         description:
           short: Enable internal combustion engine
         type: boolean
-        default: true
+        default: false
 
       ICE_ON_SOURCE:
         description:
@@ -19,6 +19,7 @@ parameters:
           0: On arming - disarming
           1: Aux1
           2: Aux2
+          3: On Vtol Transitions
 
       ICE_CHOKE_ST_DUR:
         description:
