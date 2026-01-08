@@ -58,7 +58,9 @@ private:
 		Hold = (1 << 1),
 		Offboard = (1 << 2),
 		ExternalMode = (1 << 3),
-		AltitudeCruise = (1 << 4)
+		AltitudeCruise = (1 << 4),
+		RTL = (1 << 5),
+		Land = (1 << 6)
 	};
 
 	enum class DatalinkLossExceptionBits : int32_t {

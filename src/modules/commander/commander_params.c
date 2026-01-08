@@ -611,12 +611,14 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * External modes requiring stick input will still failsafe.
  *
  * @min 0
- * @max 31
+ * @max 127
  * @bit 0 Mission
  * @bit 1 Hold
  * @bit 2 Offboard
  * @bit 3 External Mode
  * @bit 4 Altitude Cruise
+ * @bit 5 RTL
+ * @bit 6 Land
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
