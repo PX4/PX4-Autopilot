@@ -398,7 +398,24 @@ ControlAllocator::Run()
 		_last_run = now;
 
 		check_for_motor_failures();
-		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
+
+		const hrt_abstime time_since_last_effectiveness_udpate = now - _last_effectiveness_update;
+
+		// If the above check_for_motor_failures has already triggered
+		// an effectiveness update, these timing checks all return false
+		// and no additional update is done. This is by design, because
+		// an effectiveness update due to MOTOR_ACTIVATION_UPDATE also
+		// updates the battery scale and directions of tiltable rotors.
+
+		if (time_since_last_effectiveness_udpate > 1_s) {
+			// Update battery scaling at relatively low rate
+			update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::BATTERY_SCALE_UPDATE);
+
+		} else if (time_since_last_effectiveness_udpate > 100_ms) {
+			// Update periodically for "no external" reason,
+			// allowing tiltrotor directions to update.
+			update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
+		}
 
 		// Set control setpoint vector(s)
 		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];
@@ -463,36 +480,6 @@ void
 ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReason reason)
 {
 	ActuatorEffectiveness::Configuration config{};
-
-	const hrt_abstime time_since_last_update = hrt_elapsed_time(&_last_effectiveness_update);
-
-	if (reason == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
-		if (time_since_last_update < 100_ms) {
-			return;
-
-		} else if (time_since_last_update > 1_s)  {
-
-			// Kind of ugly way to force updating it due to battery scale at ~1Hz
-
-			// The only way anything happens with NO_EXTERNAL_UPDATE
-			// is in ActuatorEffectivenessTiltrotorVTOL, where we
-			// additionally watch the collective tilt update:
-			// 	if (!_collective_tilt_updated && external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
-			// 		return false;
-			// 	}
-
-			// Therefore, changing it once per second to
-			// BATTERY_SCALE_UPDATE should have no effect, as the
-			// Tiltrotor class will still just update a bit more
-			// often but never less.
-
-			// It is still needed though as all the other classes
-			// (non-tilting motors) do nothing when
-			// NO_EXTERNAL_UPDATE is given.
-
-			reason = EffectivenessUpdateReason::BATTERY_SCALE_UPDATE;
-		}
-	}
 
 	if (_actuator_effectiveness->getEffectivenessMatrix(config, reason)) {
 		_last_effectiveness_update = hrt_absolute_time();
