@@ -52,9 +52,9 @@ using namespace time_literals;
 static constexpr hrt_abstime ESC_INIT_TELEM_DELAY = 5_s;
 
 /// Dshot PWM frequency (Hz)
-static constexpr unsigned int DSHOT150  =  150000u;
-static constexpr unsigned int DSHOT300  =  300000u;
-static constexpr unsigned int DSHOT600  =  600000u;
+static constexpr uint32_t DSHOT150 = 150000u;
+static constexpr uint32_t DSHOT300 = 300000u;
+static constexpr uint32_t DSHOT600 = 600000u;
 
 static constexpr uint16_t DSHOT_DISARM_VALUE = 0;
 static constexpr uint16_t DSHOT_MIN_THROTTLE = 1;
@@ -159,8 +159,12 @@ private:
 
 	// Parameters we must load only at init
 	bool _serial_telemetry_enabled = false;
-
 	bool _bdshot_edt_enabled = false;
+
+	// Hardware initialization state
+	bool _hardware_initialized = false;
+	uint32_t _dshot_frequency = 0;
+	uint32_t _bdshot_timer_channels = 0;
 
 	// Perf counters
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};

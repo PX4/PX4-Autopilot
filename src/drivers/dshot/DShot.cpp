@@ -122,7 +122,7 @@ void DShot::Run()
 
 bool DShot::updateOutputs(uint16_t *outputs, unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	if (!count_set_bits(_output_mask)) {
+	if (!_hardware_initialized || !count_set_bits(_output_mask)) {
 		return false;
 	}
 
@@ -204,12 +204,16 @@ void DShot::select_next_command()
 		// EDT Request first
 		int next_motor_index = 0;
 
-		for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-			bool is_bdshot = _bdshot_output_mask & (1 << i);
+		for (int output_channel = 0; output_channel < DSHOT_MAXIMUM_CHANNELS; output_channel++) {
+			bool is_bdshot = _bdshot_output_mask & (1 << output_channel);
 
-			if (is_bdshot && (needs_edt_request_mask & (1 << i))) {
-				next_motor_index = i;
-				break;
+			if (is_bdshot && _mixing_output.isMotor(output_channel)) {
+				int motor_index = (int)_mixing_output.outputFunction(output_channel) - (int)OutputFunction::Motor1;
+
+				if (needs_edt_request_mask & (1 << motor_index)) {
+					next_motor_index = motor_index;
+					break;
+				}
 			}
 		}
 
@@ -500,7 +504,7 @@ bool DShot::process_serial_telemetry()
 
 		case TelemetryStatus::ParseError:
 			// Set ESC data to zeroes
-			PX4_WARN("Telem parse error");
+			PX4_WARN("Telem parse error, index %u", _telemetry_motor_index);
 			_serial_telem_errors[_telemetry_motor_index]++;
 			_serial_telem_online_mask &= ~(1 << _telemetry_motor_index);
 			_serial_telem_online_timestamps[_telemetry_motor_index] = 0;
@@ -625,7 +629,7 @@ bool DShot::process_bdshot_telemetry()
 
 			} else {
 				_bdshot_telem_online_mask &= ~(1 << motor_index);
-				_bdshot_edt_requested_mask &= ~(1 << motor_index); // re-triggers EDT request when it comes back online
+				// _bdshot_edt_requested_mask &= ~(1 << motor_index); // re-triggers EDT request when it comes back online
 				perf_count(_bdshot_error_perf);
 			}
 
@@ -867,116 +871,121 @@ void DShot::mixerChanged()
 
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 
-	int motor_count = 0;
+	// Build output mask from actual motor assignments
+	uint32_t new_output_mask = 0;
 
 	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-
 		if (_mixing_output.isMotor(i)) {
 			_esc_status.esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
-			motor_count++;
-
-			if (!(_output_mask & (1 << i))) {
-				PX4_INFO("Enabling channel %d", i);
-			}
-
-			_output_mask |= (1 << i);
-
-		} else {
-			if ((_output_mask & (1 << i))) {
-				PX4_INFO("Disabling channel %d", i);
-			}
-
-			_output_mask &= ~(1 << i);
+			new_output_mask |= (1 << i);
 		}
 	}
 
-	// TODO: we should only re-initialize if we gain/lose outputs
-	// initialize_dshot();
+	// Check if we need to (re)initialize hardware
+	// bool needs_init = !_hardware_initialized || (new_output_mask != _output_mask);
+
+	if (!_hardware_initialized) {
+		PX4_INFO("Output mask changed: 0x%lx -> 0x%lx", _output_mask, new_output_mask);
+		_output_mask = new_output_mask;
+		uint32_t new_bdshot_output_mask = _bdshot_timer_channels & _output_mask;
+		PX4_INFO("BDShot Output mask changed: 0x%lx -> 0x%lx", _bdshot_output_mask, new_bdshot_output_mask);
+		_bdshot_output_mask = new_bdshot_output_mask;
+
+		PX4_INFO("up_dshot_init");
+		up_dshot_init(_output_mask, _bdshot_output_mask, _dshot_frequency, _bdshot_edt_enabled);
+		up_dshot_arm(true);
+		_hardware_initialized = true;
+	}
 }
 
 bool DShot::initialize_dshot()
 {
-	PX4_INFO("initialize_dshot");
-	unsigned int dshot_frequency = 0;
-	uint32_t dshot_frequency_param = 0;
+	PX4_INFO("initialize_dshot: motor_mask=0x%lx", _output_mask);
 
-	_output_mask = 0;
-	_bdshot_output_mask = 0;
+	uint32_t dshot_timer_channels = 0;  // Channels on DShot-enabled timers
 
+	// Iterate through timers to determine DShot frequency and BDShot channels
+	// _output_mask already contains only motor channels (set by mixerChanged)
 	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
 
 		// Get mask of actuator channels associated with this timer group
-		uint32_t channels = io_timer_get_group(timer_index);
+		uint32_t timer_channels = io_timer_get_group(timer_index);
 
-		if (channels == 0) {
+		if (timer_channels == 0) {
 			continue;
 		}
 
-		char param_name[17];
+		char param_name[17] = {};
 		snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer_index);
 
 		int32_t tim_config = 0;
 		param_t handle = param_find(param_name);
 		param_get(handle, &tim_config);
-		unsigned int dshot_frequency_request = 0;
 
+		// Check if this timer is configured for DShot
 		if (tim_config == -5 || tim_config == -8) {
-			dshot_frequency_request = DSHOT150;
-			_output_mask |= channels;
+			_dshot_frequency = DSHOT150;
+			dshot_timer_channels |= timer_channels;
 
 		} else if (tim_config == -4 || tim_config == -7) {
-			dshot_frequency_request = DSHOT300;
-			_output_mask |= channels;
+			_dshot_frequency = DSHOT300;
+			dshot_timer_channels |= timer_channels;
 
 		} else if (tim_config == -3 || tim_config == -6) {
-			dshot_frequency_request = DSHOT600;
-			_output_mask |= channels;
+			_dshot_frequency = DSHOT600;
+			dshot_timer_channels |= timer_channels;
 		}
 
+		// Bidirectional DShot (tim_config < -5 means -6, -7, or -8)
 		if (tim_config < -5) {
-			_bdshot_output_mask |= io_timer_get_group(timer_index);
+			// Add timer channels that are also motors to BDShot mask
+			// _bdshot_output_mask |= (timer_channels & _output_mask);
+			// _bdshot_output_mask |= timer_channels;
+			_bdshot_timer_channels |= timer_channels;
 		}
 
-		if (dshot_frequency_request != 0) {
-			if (dshot_frequency != 0 && dshot_frequency != dshot_frequency_request) {
-				PX4_WARN("Only supporting a single frequency (%u), adjusting param %s", dshot_frequency, param_name);
-				param_set_no_notification(handle, &dshot_frequency_param);
-
-			} else {
-				dshot_frequency = dshot_frequency_request;
-				dshot_frequency_param = tim_config;
-			}
-		}
+		PX4_INFO("timer_index %u, channels_mask %lu", timer_index, dshot_timer_channels);
 	}
 
-	_bdshot_output_mask &= _output_mask;
-	int ret = up_dshot_init(_output_mask, _bdshot_output_mask, dshot_frequency, _bdshot_edt_enabled);
+	PX4_INFO("_bdshot_output_mask %lu", _bdshot_output_mask);
 
-	if (ret < 0) {
-		PX4_ERR("up_dshot_init failed (%i)", ret);
-		return false;
-	}
-
-	if ((uint32_t)ret != _output_mask) {
-		PX4_INFO("Failed to configure some channels");
-		PX4_INFO("requested: 0x%lx", _output_mask);
-		PX4_INFO("configured: 0x%lx", (uint32_t)ret);
-		_output_mask = ret;
-	}
-
-	// Set our mixer to explicitly disable channels we do not control
-	for (uint8_t i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-		if (((1 << i) & _output_mask) == 0) {
-			_mixing_output.disableFunction(i);
-		}
-	}
-
-	if (_output_mask == 0) {
+	if (dshot_timer_channels == 0) {
 		PX4_WARN("No channels configured");
 		return false;
 	}
 
-	up_dshot_arm(true);
+
+	// _output_mask &= dshot_timer_channels;
+
+	// PX4_INFO("dshot_timer_channels=0x%lx, _output_mask=0x%lx, _bdshot_output_mask=0x%lx",
+	//   dshot_timer_channels, _output_mask, _bdshot_output_mask);
+
+
+	// if (ret < 0) {
+	//  PX4_ERR("up_dshot_init failed (%i)", ret);
+	//  return false;
+	// }
+
+	// if ((uint32_t)ret != _output_mask) {
+	//  PX4_INFO("Failed to configure some channels");
+	//  PX4_INFO("requested: 0x%lx", _output_mask);
+	//  PX4_INFO("configured: 0x%lx", (uint32_t)ret);
+	//  _output_mask = ret;
+	// }
+
+	// Set our mixer to explicitly disable channels we do not control
+	// for (uint8_t i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+	//  if (((1 << i) & _output_mask) == 0) {
+	//      _mixing_output.disableFunction(i);
+	//  }
+	// }
+
+	// if (_output_mask == 0) {
+	//  PX4_WARN("No channels configured");
+	//  return false;
+	// }
+
+	// up_dshot_arm(true);
 
 	return true;
 }
@@ -1179,6 +1188,8 @@ int DShot::task_spawn(int argc, char *argv[])
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
 		}
+
+		PX4_INFO("Exiting");
 
 	} else {
 		PX4_ERR("alloc failed");

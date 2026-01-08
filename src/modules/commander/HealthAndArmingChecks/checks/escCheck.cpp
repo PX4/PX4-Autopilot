@@ -114,9 +114,18 @@ void EscChecks::checkEscStatus(const Context &context, Report &reporter, const e
 		// Check if one or more the ESCs are offline
 		if (online_bitmask != esc_status.esc_online_flags) {
 
-			for (int index = 0; index < esc_status.esc_count; index++) {
-				if ((esc_status.esc_online_flags & (1 << index)) == 0) {
-					uint8_t motor_index = esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
+			for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+
+				uint8_t actuator_function = esc_status.esc[i].actuator_function;
+
+				bool is_motor = math::isInRange(actuator_function, actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1,
+								actuator_motors_s::ACTUATOR_FUNCTION_MOTOR12);
+				bool is_online = esc_status.esc_online_flags & (1 << i);
+
+				if (is_motor && !is_online) {
+
+					uint8_t motor_index = actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
+
 					/* EVENT
 					 * @description
 					 * <profile name="dev">
