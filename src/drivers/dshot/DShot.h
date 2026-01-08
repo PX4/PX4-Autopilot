@@ -123,8 +123,14 @@ private:
 
 	// Mixer
 	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
-	uint32_t _output_mask{0}; // Configured outputs for this (shouldn't this live in OutputModuleInterface?)
+
+	// Actuator-order masks (indexed by output channel)
+	uint32_t _output_mask{0};
 	uint32_t _bdshot_output_mask{0};
+
+	// Motor-order masks (indexed by motor number: Motor1=0, Motor2=1, etc.)
+	uint32_t _motor_mask{0};
+	uint32_t _bdshot_motor_mask{0};
 
 	// uORB
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

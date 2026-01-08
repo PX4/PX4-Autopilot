@@ -44,6 +44,7 @@ enum class TelemetrySource {
 };
 
 struct EscData {
+	int actuator_channel;  // Actuator output channel 0-7
 	int motor_index;       // Motors 0-7
 	hrt_abstime timestamp; // Sample time
 	TelemetrySource source;
