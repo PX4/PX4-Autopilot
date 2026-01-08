@@ -147,7 +147,7 @@ parameters:
             description:
                 short: Enable serial flow control for UXRCE interface
                 long: |
-                    This is used to enable flow control for the serial uxrce instance.
+                    This is used to enable flow control for the serial uXRCE instance.
                     Used for reliable high bandwidth communication.
             type: boolean
             category: System
