@@ -75,6 +75,9 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		return;
 	}
 
+	// Update flap slewrates
+	_flaps_setpoint_with_slewrate.setSlewRate(_param_ca_flap_slew.get());
+
 	// Helper to check if a PWM center parameter is enabled, and clamp it to valid range
 	auto check_pwm_center = [](const char *prefix, int channel) -> bool {
 		char param_name[20];
