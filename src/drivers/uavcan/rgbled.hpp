@@ -75,13 +75,13 @@ private:
 
 	LedController _led_controller;
 
-	uint8_t _esc_count{0};
+	uint8_t _vertiq_esc_count{0};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UAVCAN_LGT_MODE>) _param_lgt_mode,
-		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_mode_anti_col,
-		(ParamInt<px4::params::UAVCAN_LGT_STROB>) _param_mode_strobe,
-		(ParamInt<px4::params::UAVCAN_LGT_NAV>) _param_mode_nav,
-		(ParamInt<px4::params::UAVCAN_LGT_LAND>) _param_mode_land
+		(ParamInt<px4::params::UAVCAN_LGT_MODE>) _param_uavcan_lgt_mode,
+		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_uavcan_lgt_antcl,
+		(ParamInt<px4::params::UAVCAN_LGT_STROB>) _param_uavcan_lgt_strob,
+		(ParamInt<px4::params::UAVCAN_LGT_NAV>) _param_uavcan_lgt_nav,
+		(ParamInt<px4::params::UAVCAN_LGT_LAND>) _param_uavcan_lgt_land
 	)
 };

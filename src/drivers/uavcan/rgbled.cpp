@@ -52,13 +52,13 @@ int UavcanRGBController::init()
 
 void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 {
-	const bool vertiq_mode = (_param_lgt_mode.get() == 1);
+	const bool vertiq_mode = (_param_uavcan_lgt_mode.get() == 1);
 
 	if (vertiq_mode) {
 		esc_status_s esc_status;
 
 		if (_esc_status_sub.copy(&esc_status)) {
-			_esc_count = esc_status.esc_count;
+			_vertiq_esc_count = esc_status.esc_count;
 		}
 	}
 
@@ -131,8 +131,7 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 
 		if (vertiq_mode) {
 			// Vertiq mode: send RGB status to all ESC RGB LEDs
-
-			for (uint8_t esc = 0; esc < _esc_count; esc++) {
+			for (uint8_t esc = 0; esc < _vertiq_esc_count; ++esc) {
 				cmd.light_id = esc * 3 + VERTIQ_RGB_BASE_ID;
 				cmds.commands.push_back(cmd);
 			}
@@ -171,38 +170,38 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 				control_mode = 3;
 			}
 
+			static const uavcan::equipment::indication::RGB565 color_off = brightness_to_rgb565(0);
+			static const uavcan::equipment::indication::RGB565 color_on = brightness_to_rgb565(255);
+
+			uavcan::equipment::indication::SingleLightCommand cmd;
+
+			// Beacons
+			cmd.color = _param_uavcan_lgt_antcl.get() >= control_mode ? color_on : color_off;
+
 			if (vertiq_mode) {
 				// Vertiq mode: send anti-collision to all ESC White LEDs
-				uint8_t brightness = (_param_mode_anti_col.get() >= control_mode) ? 255 : 0;
-				uavcan::equipment::indication::SingleLightCommand cmd;
-				cmd.color = brightness_to_rgb565(brightness);
-
-				for (uint8_t esc = 0; esc < _esc_count; esc++) {
+				for (uint8_t esc = 0; esc < _vertiq_esc_count; ++esc) {
 					cmd.light_id = esc * 3 + VERTIQ_WHITE_BASE_ID;
 					cmds.commands.push_back(cmd);
 				}
 
 			} else {
-				uavcan::equipment::indication::SingleLightCommand cmd;
-
-				// Beacons
 				cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_ANTI_COLLISION;
-				cmd.color = brightness_to_rgb565(_param_mode_anti_col.get() >= control_mode ? 255 : 0);
 				cmds.commands.push_back(cmd);
 
 				// Strobes
 				cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_STROBE;
-				cmd.color = brightness_to_rgb565(_param_mode_strobe.get() >= control_mode ? 255 : 0);
+				cmd.color = _param_uavcan_lgt_strob.get() >= control_mode ? color_on : color_off;
 				cmds.commands.push_back(cmd);
 
 				// Nav lights
 				cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_RIGHT_OF_WAY;
-				cmd.color = brightness_to_rgb565(_param_mode_nav.get() >= control_mode ? 255 : 0);
+				cmd.color = _param_uavcan_lgt_nav.get() >= control_mode ? color_on : color_off;
 				cmds.commands.push_back(cmd);
 
 				// Landing lights
 				cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_LANDING;
-				cmd.color = brightness_to_rgb565(_param_mode_land.get() >= control_mode ? 255 : 0);
+				cmd.color = _param_uavcan_lgt_land.get() >= control_mode ? color_on : color_off;
 				cmds.commands.push_back(cmd);
 			}
 		}
