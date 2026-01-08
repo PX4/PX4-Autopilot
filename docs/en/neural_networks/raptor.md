@@ -101,12 +101,16 @@ commander mode ext{RAPTOR_MODE_ID}
 
 #### Internal Reference Trajectory Generation
 
-In our experience, feeding the `trajectory_setpoint` via MAVLink (even via WiFi telemetry) is unreliable. But we do not want to constrain this module to only platforms that bear a companion board. Hence, we integrate a simple internal reference trajectory generator for testing and benchmarking purposes. It supports position (constant position and yaw setpoint) as well as configurable [Lissajous trajectories](https://en.wikipedia.org/wiki/Lissajous_curve).
+In our experience, feeding the `trajectory_setpoint` via MAVLink (even via WiFi telemetry) is unreliable.
+But we do not want to constrain this module to only platforms that have a companion board.
 
-The Lissajous generator can e.g. generate smooth figure-eight trajectories that contain interesting accelerations for benchmarking and testing purposes.
+For this reason we have integrated a simple internal reference trajectory generator for testing and benchmarking purposes.
+It supports position (constant position and yaw setpoint) as well as configurable [Lissajous trajectories](https://en.wikipedia.org/wiki/Lissajous_curve).
+
+The Lissajous generator can, for example, generate smooth figure-eight trajectories that contain interesting accelerations for benchmarking and testing purposes.
 Please refer to the embedded configurator later in this section to explore the Lissajous parameters and view the resulting trajectories.
 
-To use the internal reference generator, select the mode: 0: Off/activation position tracking, 1: Lissajous
+To use the internal reference generator, select the mode: `0`: Off/activation position tracking, `1`: Lissajous
 
 ```sh
 param set MC_RAPTOR_INTREF 1
@@ -131,14 +135,14 @@ Make sure to copy the generated CLI string at the end:
 
 #### Setup
 
-The `mc_raptor` module has been mostly tested with the Holybro X500 V2 but it should also work out-of-the-box with other platforms (cf. the [Other Platforms](#other-platforms) section).
+The `mc_raptor` module has been mostly tested with the Holybro X500 V2 but it should also work out-of-the-box with other platforms (see the [Other Platforms](#other-platforms) section).
 
 ```sh
 make px4_fmu-v6c_raptor upload
 ```
 
 We recommend initially testing the RAPTOR mode using a dead man's switch.
-For this we configure the mode selection to be e.g. connected to a push button or a switch with a spring that automatically switches back.
+For this we configure the mode selection to be connected to a push button or a switch with a spring that automatically switches back.
 In the default position we configure e.g. `Stabilized Mode` and in the pressed configuration we select `External Mode 1` (since the name of the external mode is only transmitted at runtime).
 This allows to take off manually and then just trigger the RAPTOR mode for a split-second to see how it behaves.
 In our experiments it has been exceptionally stable (zero crashes) but we still think progressively activating it for longer is the safest way to build confidence.
@@ -167,11 +171,11 @@ To enable the `mc_raptor` module in other platforms, just add `CONFIG_MODULES_MC
 
 #### Results
 
-Even though there were moderate winds (~ 5 m/s) during the test, we found good figure-eight tracking performance at velocities up to 12 m/s
+Even though there were moderate winds (~ 5 m/s) during the test, we found good figure-eight tracking performance at velocities up to 12 m/s:
 
 ![Lissajous](../../assets/advanced/neural_networks/raptor/results_figure_eight.svg)
 
-We also tested the linear velocity in a straight line and found that the RAPTOR policy can reliably fly at > 17 m/s (the wind direction was orthogonal to the line)
+We also tested the linear velocity in a straight line and found that the RAPTOR policy can reliably fly at > 17 m/s (the wind direction was orthogonal to the line):
 
 ![Linear Oscillation](../../assets/advanced/neural_networks/raptor/results_line.svg)
 
