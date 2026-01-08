@@ -88,3 +88,10 @@ bmp388 -X start
 
 unset INA_CONFIGURED
 unset HAVE_PM2
+
+if param compare SENS_EN_TMP102 1
+then
+	# Start TMP102 temperature sensor on internal I2C3
+	tmp102 -I -b 3 -a 0x48 start
+	tmp102 -I -b 3 -a 0x49 start
+fi
