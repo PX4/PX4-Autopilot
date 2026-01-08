@@ -43,6 +43,8 @@ The vehicle course is not maintained, and can drift due to wind.
 - Manual control input is required (such as RC control, joystick).
 - An altitude measurement source is required (usually barometer or GPS)
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_altctl.md-->
+
 ## Parameters
 
 The mode is affected by the following parameters:

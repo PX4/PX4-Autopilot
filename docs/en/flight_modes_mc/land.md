@@ -27,6 +27,8 @@ The vehicle descends at the rate specified in [MPC_LAND_SPEED](#MPC_LAND_SPEED) 
 
 RC stick movement will change the vehicle to [Position mode](../flight_modes_mc/position.md) (by [default](#COM_RC_OVERRIDE)).
 
+<!--@include: ../flight_modes_mc/mode_requirements_rotary_wing_auto_land.md-->
+
 ### Parameters
 
 Land mode behaviour can be configured using the parameters below.

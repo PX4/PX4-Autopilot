@@ -55,6 +55,8 @@ If the local position is invalid or becomes invalid while executing the takeoff,
 
 :::
 
+<!--@include: ../flight_modes_fw/mode_requirements_fixed_wing_auto_takeoff.md-->
+
 ### Parameters
 
 Parameters that affect both catapult/hand-launch and runway takeoffs:
