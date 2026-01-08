@@ -1,3 +1,5 @@
+__max_uavcan_lights: &max_uavcan_lights 16
+
 module_name: UAVCAN
 parameters:
 - group: UAVCAN
@@ -24,6 +26,46 @@ parameters:
       min: 1
       max: 255
       reboot_required: true
+    UAVCAN_LGT_NUM:
+      description:
+        short: Number of UAVCAN lights to configure
+        long: |
+          Number of lights to control via UAVCAN LightsCommand messages.
+          Set to 0 to disable UAVCAN light control.
+          Each light uses two parameters: LGT_IDx for the light_id and LGT_FNx for the function.
+      type: int32
+      min: 0
+      max: *max_uavcan_lights
+      default: 1
+      reboot_required: true
+    UAVCAN_LGT_ID${i}:
+      description:
+        short: Light ${i} ID
+        long: |
+          specifies the  light_id value for light ${i} in UAVCAN LightsCommand messages.
+          This determines which physical LED responds to commands for this light slot.
+      type: int32
+      num_instances: *max_uavcan_lights
+      instance_start: 0
+      min: 0
+      max: 255
+      default: 0
+    UAVCAN_LGT_FN${i}:
+      description:
+        short: Light ${i} function
+        long: |
+          Function assigned to light ${i}.
+          0: Status - displays system status colors
+          1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
+      type: enum
+      num_instances: *max_uavcan_lights
+      instance_start: 0
+      min: 0
+      max: 1
+      default: 0
+      values:
+        0: Status Light
+        1: Anti-collision Light
 actuator_output:
   show_subgroups_if: 'UAVCAN_ENABLE>=3'
   config_parameters:

@@ -54,9 +54,30 @@ private:
 	// Max update rate to avoid excessive bus traffic
 	static constexpr unsigned MAX_RATE_HZ = 20;
 
+	// Maximum number of configurable lights
+	static constexpr uint8_t MAX_LIGHTS = 16;
+
+	// Light function types
+	enum class LightFunction : uint8_t {
+		Status = 0,        // System status colors from led_control
+		AntiCollision = 1  // White beacon based on arm state
+	};
+
+	enum class LightMode : uint8_t {
+		Off = 0,
+		WhenArmed = 1,
+		WhenPrearmed = 2,
+		AlwaysOn = 3
+	};
+
+	// White light intensity levels
+	enum class Brightness { None, Full };
+
 	void periodic_update(const uavcan::TimerEvent &);
 
-	uavcan::equipment::indication::RGB565 brightness_to_rgb565(uint8_t brightness);
+	bool check_light_state(LightMode mode, const actuator_armed_s &armed) const;
+
+	uavcan::equipment::indication::RGB565 brightness_to_rgb565(Brightness level);
 
 	typedef uavcan::MethodBinder<UavcanRGBController *, void (UavcanRGBController::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
@@ -69,10 +90,17 @@ private:
 
 	LedController _led_controller;
 
+	// Cached configuration (set during init, requires reboot to change)
+	uint8_t _num_lights{0};
+	uint8_t _light_ids[MAX_LIGHTS] {};
+	LightFunction _light_functions[MAX_LIGHTS] {};
+
+	// Cached parameter handles
+	param_t _light_id_params[MAX_LIGHTS] {};
+	param_t _light_fn_params[MAX_LIGHTS] {};
+
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_mode_anti_col,
-		(ParamInt<px4::params::UAVCAN_LGT_STROB>) _param_mode_strobe,
-		(ParamInt<px4::params::UAVCAN_LGT_NAV>) _param_mode_nav,
-		(ParamInt<px4::params::UAVCAN_LGT_LAND>) _param_mode_land
+		(ParamInt<px4::params::UAVCAN_LGT_NUM>) _param_lgt_num,
+		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_mode_anti_col
 	)
 };
