@@ -24,6 +24,22 @@ parameters:
       min: 1
       max: 255
       reboot_required: true
+    UAVCAN_LGT_MODE:
+      description:
+        short: UAVCAN LED addressing mode
+        long: |
+          Controls how light_id values are assigned in UAVCAN LightsCommand messages.
+
+          Generic (0): Uses standard DroneCAN lighting conventions.
+
+          Vertiq (1): Auto-calculates light_ids for Vertiq motor modules with LED Add-on.
+          Supports status and anti-collision lights on each motor.
+      type: enum
+      values:
+        0: Generic
+        1: Vertiq
+      default: 0
+      reboot_required: true
 actuator_output:
   show_subgroups_if: 'UAVCAN_ENABLE>=3'
   config_parameters:
