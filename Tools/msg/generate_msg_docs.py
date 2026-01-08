@@ -17,13 +17,11 @@ VALID_FIELDS = { #Note, also have to add the message types as those can be field
     'uint32'
 }
 
-ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "rad", "rad/s", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa","-"])
+ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa","-"])
 invalid_units = set()
 ALLOWED_FRAMES = set(["NED","Body"])
-ALLOWED_INVALID_VALUES = set(["NaN"])
+ALLOWED_INVALID_VALUES = set(["NaN", "0"])
 ALLOWED_CONSTANTS_NOT_IN_ENUM = set(["ORB_QUEUE_LENGTH","MESSAGE_VERSION"])
-
-
 
 class Error:
     def __init__(self, type, message, linenumber=None, issueString = None, field = None):
@@ -35,26 +33,45 @@ class Error:
 
     def display_error(self):
         #print(f"Debug: Error: display_error")
-        if 'internal_comment' in self.type:
+
+
+        if 'trailing_whitespace' == self.type:
+            if self.issueString.strip():    
+                print(f"NOTE: Line has trailing whitespace ({self.message}: {self.linenumber}): {self.issueString}")
+            else:
+                print(f"NOTE: Line has trailing whitespace ({self.message}: {self.linenumber})")
+        elif 'leading_whitespace_field_or_constant' == self.type:
+            print(f"NOTE: Whitespace before field or constant ({self.message}: {self.linenumber}): {self.issueString}")             
+        elif 'field_or_constant_has_multiple_whitepsace' == self.type:
+            print(f"NOTE: Field/constant has more than one sequential whitespace character ({self.message}: {self.linenumber}): {self.issueString}") 
+        elif 'empty_start_line' == self.type:
+            print(f"NOTE: Empty line at start of file ({self.message}: {self.linenumber})")
+        elif 'internal_comment' == self.type:
             print(f"NOTE: Internal Comment ({self.message}: {self.linenumber})\n {self.issueString}")
-        elif 'summary_missing' in self.type:
+        elif 'internal_comment_empty' == self.type:
+            print(f"NOTE: Empty Internal Comment ({self.message}: {self.linenumber})")
+        elif 'summary_missing' == self.type:
             print(f"WARNING: No message description ({self.message})")
-        elif 'topic_error' in self.type:
+        elif 'topic_error' == self.type:
             print(f"NOTE: TOPIC ISSUE: {self.issueString}")
-        elif 'unknown_unit' in self.type:
+        elif 'unknown_unit' == self.type:
             print(f"WARNING: Unknown Unit: [{self.issueString}] on `{self.field}` ({self.message}: {self.linenumber})")
-        elif 'constant_not_in_assigned_enum' in self.type:
+        elif 'constant_not_in_assigned_enum' == self.type:
             print(f"WARNING: `{self.issueString}` constant: Prefix not in `@enum` field metadata ({self.message}: {self.linenumber})")
-        elif 'unknown_invalid_value' in self.type:
+        elif 'unknown_invalid_value' == self.type:
             print(f"WARNING: Unknown @invalid value: [{self.issueString}] on `{self.field}` ({self.message}: {self.linenumber})")
-        elif 'unknown_frame' in self.type:
+        elif 'unknown_frame' == self.type:
             print(f"WARNING: Unknown @frame: [{self.issueString}] on `{self.field}` ({self.message}: {self.linenumber})")
 
         else:
             self.display_info()
 
     def display_info(self):
-        print(f"Debug: Error: display_info")
+        """
+        Display info about an error.
+        Used as a fallback if error does not have specific printout in display_error()
+        """
+        #print(f"Debug: Error: display_info")
         print(f" type: {self.type}, message: {self.message}, linenumber: {self.linenumber}, issueString: {self.issueString}, field: {self.field}")
 
 class Enum:
@@ -64,6 +81,9 @@ class Enum:
         self.enumValues = dict()
 
     def display_info(self):
+        """
+        Display info about an enum
+        """
         print(f"Debug: Enum: display_info")
         print(f" name: {self.name}")
         for key, value in self.enumValues.items():
@@ -210,7 +230,6 @@ class UORBMessage:
         #print(f"Debug: UORBMessage: markdown_out()")
 
         markdown = f"# {self.name} (UORB message)\n\n"
-        markdown += f"[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/{self.filename})\n\n"
 
         ## Append description info if present
         markdown += f"{self.shortDescription}\n\n" if self.shortDescription else ""
@@ -228,6 +247,7 @@ class UORBMessage:
             frame = f"[{field.frameValue}]" if field.frameValue else ""
             unit = f"{unit} {frame}"
             unit.strip()
+            unit = f" {unit}"
 
             value = " "
             if field.enums:
@@ -243,9 +263,9 @@ class UORBMessage:
             elif field.maxValue:
                 value = f"max: {field.maxValue}"
 
-            description = f"{field.description} " if field.description else ""
-            invalid = f"(Invalid: {field.invalidValue}) " if field.invalidValue else ""
-            markdown += f"{field.name} (`{field.type}`) | {unit} | {value} | {description}{invalid}\n"
+            description = f" {field.description}" if field.description else ""
+            invalid = f" (Invalid: {field.invalidValue}) " if field.invalidValue else ""
+            markdown += f"{field.name} (`{field.type}`) |{unit}|{value}|{description}{invalid}\n"
 
         # Generate enum docs
         if len(self.enums) > 0:
@@ -259,7 +279,7 @@ class UORBMessage:
 
                 for enumValueName, enumValue in enum.enumValues.items():
                     description = f" {enumValue.comment} " if enumValue.comment else " "
-                    markdown += f"{enumValueName} (`{enumValue.type}`) | {enumValue.value} |{description}\n"
+                    markdown += f'<a href="#{enumValueName}">{enumValueName}</a> (`{enumValue.type}`) | {enumValue.value} |{description}\n'
 
         # Generate table for constants docs
         if len(self.enumValues) > 0:
@@ -268,7 +288,7 @@ class UORBMessage:
             markdown += "--- | --- | ---\n"
             for name, enum in self.enumValues.items():
                 description = f" {enum.comment} " if enum.comment else " "
-                markdown += f'<a href="#{name}">{name} (`{enum.type}`) | {enum.value} |{description}\n'
+                markdown += f'<a href="#{name}">{name}</a> (`{enum.type}`) | {enum.value} |{description}\n'
 
         # Append msg contents to the end
         with open(self.msg_filename, 'r') as source_file:
@@ -278,12 +298,16 @@ class UORBMessage:
         #Format markdown using msg name, comment, url, contents.
         markdown += f"""
 
-## Source
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/{self.filename})
 
 ::: details Click here to see original file
+
 ```c
 {msg_contents}
 ```
+
 :::
 """
 
@@ -315,17 +339,44 @@ class UORBMessage:
 
     def handleField(self, line, line_number, parentMessage):
         #print(f"debug: handleField: (line): \n {line}")
+        # Note, here we know we don't have a comment or a topic.
+        # We expect it to be a field.
+
+        # Check field doesn't have leading whitespace (trailing spaces already checked)
+        if line[:1].isspace(): # Returns True for ' ', '\t', '\n', '\r', etc.
+            #print("First character is whitespace")
+            error = Error("leading_whitespace_field_or_constant", self.filename, line_number, line)
+            if not "leading_whitespace_field_or_constant" in self.errors:
+                self.errors["leading_whitespace_field_or_constant"] = []
+                self.errors["leading_whitespace_field_or_constant"].append(error)
+
+        # Now we can parse the stripped line
         fieldOrConstant = line.strip()
+
+        # Check that the field or constant has only single whitespace separators
+        stripped_fieldOrConstant = re.sub(r'\s+', ' ', fieldOrConstant) # Collapse all spaces to a single space (LHS already stripped).
+        if stripped_fieldOrConstant != fieldOrConstant:
+            #print("Field/Constant has multiple whitespace characters") # Since the collapsed version shows them.
+            error = Error("field_or_constant_has_multiple_whitepsace", self.filename, line_number, line)
+            if not "field_or_constant_has_multiple_whitepsace" in self.errors:
+                self.errors["field_or_constant_has_multiple_whitepsace"] = []
+                self.errors["field_or_constant_has_multiple_whitepsace"].append(error)
+
+        fieldOrConstant = stripped_fieldOrConstant
+
+
+
         comment = None
         if "#" in line:
-            commentExtract = line.split("#") #TODO should check for multiples and take first
+            commentExtract = line.split("#", 1) # Split once on left-most '#'
             fieldOrConstant = commentExtract[0].strip()
             comment = commentExtract[-1].strip()
-        #print(f" Comment: {comment}")
-        #print(f"fieldOrConstant: {fieldOrConstant}")
+
+        #print(f"DEBUG: Comment: XX{comment}YY")
+        #print(f"DEBUG: fieldOrConstant: XX{fieldOrConstant}YY")
 
         if "=" not in fieldOrConstant:
-            # Is constant:
+            # Is a field:
             field = fieldOrConstant.split(" ")
             type = field[0].strip()
             name = field[1].strip()
@@ -349,17 +400,32 @@ class UORBMessage:
         gettingFields = False
 
         with open(self.msg_filename, 'r', encoding='utf-8') as uorbfile:
-            for line_number, line in enumerate(uorbfile, 1):
+            lines = uorbfile.read().splitlines()
+            for line_number, line in enumerate(lines, 1):
+
+                if line != line.rstrip():
+                    #print(f"[{self.filename}] Trailing whitespace on line {line_number}: XX{line}YY")
+                    error = Error("trailing_whitespace", self.filename, line_number, line)
+                    if not "trailing_whitespace" in self.errors:
+                        self.errors["trailing_whitespace"] = []
+                    self.errors["trailing_whitespace"].append(error)
+
                 #print(f"line: {line}")
-                stripped_line = re.sub(r'\s+', ' ', line).strip()
+                stripped_line = re.sub(r'\s+', ' ', line).strip() # Collapse all spaces to a single space and strip stuff off end.
                 #print(f"stripped_line: {stripped_line}")
                 # TODO? Perhaps report whitespace if the size of those two is different and it is empty
                 # Or perhaps we just fix it on request
 
-                if not found_first_relevant_content and not stripped_line:
-                    #print(f"DEBUG: found_first_relevant_content (false): comment line: {stripped_line}")
+                isEmptyLine = False if line.strip() else True
+                if not found_first_relevant_content and isEmptyLine: #Empty line
+                    #print(f"{self.filename}: Empty line at start of file: [{line_number}]\n {line}")
+                    error = Error("empty_start_line", self.filename, line_number, line)
+                    if not "empty_start_line" in self.errors:
+                        self.errors["empty_start_line"] = []
+                    self.errors["empty_start_line"].append(error)
+                    #error.display_error()
                     continue
-                if not found_first_relevant_content and stripped_line:
+                if not found_first_relevant_content and not isEmptyLine:
                     found_first_relevant_content = True
 
                     if stripped_line.startswith("#"):
@@ -374,9 +440,9 @@ class UORBMessage:
                     initial_block_lines.append(stripped_line)
                 else:
                     gettingInitialComments = False
-                    gettingFields = True
+                    gettingFields = True #Getting fields and constants
                 if gettingFields:
-                    if not stripped_line:
+                    if isEmptyLine:
                         continue # empty line
                     if stripped_line.startswith("# TOPICS "):
                         stripped_line =  stripped_line[9:]
@@ -385,19 +451,26 @@ class UORBMessage:
                         # Note, default topic and topic errors handled after all lines parsed
                         continue
                     if stripped_line.startswith("#"):
+                        # Its an internal comment
                         stripped_line=stripped_line[1:].strip()
-                        if not stripped_line:
-                            pass # Empty comment
-                        else:
+                        
+                        if stripped_line:
                             #print(f"{self.filename}: Internal comment: [{line_number}]\n {line}")
                             error = Error("internal_comment", self.filename, line_number, line)
                             if not "internal_comment" in self.errors:
                                 self.errors["internal_comment"] = []
                             self.errors["internal_comment"].append(error)
+                        else:
+                            #print(f"{self.filename}: Empty internal comment: [{line_number}]\n {line}")
+                            error = Error("internal_comment_empty", self.filename, line_number, line)
+                            if not "internal_comment_empty" in self.errors:
+                                self.errors["internal_comment_empty"] = []
+                            self.errors["internal_comment_empty"].append(error)
+                            #pass # Empty comment
                         continue
-                    else:
-                        #print(f"Field? {stripped_line}")
-                        self.handleField(stripped_line, line_number, parentMessage=self)
+                    
+                    # Must be a field or a comment.
+                    self.handleField(line, line_number, parentMessage=self)
 
             # Fix up topics if the topic is empty
             def camel_to_snake(name):
