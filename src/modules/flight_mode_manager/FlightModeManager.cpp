@@ -138,7 +138,7 @@ void FlightModeManager::start_flight_task()
 	// Do not run any flight task for VTOLs in fixed-wing mode
 	if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
 	    || ((_vehicle_status_sub.get().nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
-		&& (_vehicle_status_sub.get().nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8))) {
+		&& (_vehicle_status_sub.get().nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL16))) {
 		switchTask(FlightTaskIndex::None);
 		return;
 	}

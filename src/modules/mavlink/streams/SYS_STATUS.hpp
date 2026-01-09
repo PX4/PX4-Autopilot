@@ -137,7 +137,7 @@ private:
 
 			mavlink_sys_status_t msg{};
 
-			if (health_report.can_arm_mode_flags & (1u << status.nav_state)) {
+			if (health_report.can_arm_mode_flags & (1ull << status.nav_state)) {
 				msg.onboard_control_sensors_health |= MAV_SYS_STATUS_PREARM_CHECK;
 			}
 

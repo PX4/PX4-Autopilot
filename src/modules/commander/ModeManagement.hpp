@@ -76,7 +76,7 @@ class Modes
 {
 public:
 	static constexpr uint8_t FIRST_EXTERNAL_NAV_STATE = vehicle_status_s::NAVIGATION_STATE_EXTERNAL1;
-	static constexpr uint8_t LAST_EXTERNAL_NAV_STATE = vehicle_status_s::NAVIGATION_STATE_EXTERNAL8;
+	static constexpr uint8_t LAST_EXTERNAL_NAV_STATE = vehicle_status_s::NAVIGATION_STATE_EXTERNAL16;
 	static constexpr int MAX_NUM = LAST_EXTERNAL_NAV_STATE - FIRST_EXTERNAL_NAV_STATE + 1;
 
 	struct Mode {
