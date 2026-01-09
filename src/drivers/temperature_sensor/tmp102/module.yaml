@@ -13,4 +13,3 @@ parameters:
         type: boolean
         reboot_required: true
         default: 0
-
