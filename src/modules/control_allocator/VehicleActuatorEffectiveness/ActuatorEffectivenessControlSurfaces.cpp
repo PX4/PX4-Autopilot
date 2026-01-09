@@ -59,7 +59,7 @@ ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(Modul
 		_param_handles[i].scale_spoiler = param_find(buffer);
 	}
 
-	_flaps_setpoint_with_slewrate.setSlewRate(kFlapSlewRate);
+	_flaps_setpoint_with_slewrate.setSlewRate(_param_ca_flap_slew.get());
 	_spoilers_setpoint_with_slewrate.setSlewRate(kSpoilersSlewRate);
 
 	_count_handle = param_find("CA_SV_CS_COUNT");
@@ -74,6 +74,9 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		PX4_ERR("param_get failed");
 		return;
 	}
+
+	// Update flap slewrates
+	_flaps_setpoint_with_slewrate.setSlewRate(_param_ca_flap_slew.get());
 
 	// Helper to check if a PWM center parameter is enabled, and clamp it to valid range
 	auto check_pwm_center = [](const char *prefix, int channel) -> bool {
