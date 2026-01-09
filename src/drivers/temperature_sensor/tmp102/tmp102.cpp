@@ -118,11 +118,11 @@ int TMP102::read_reg(uint8_t reg, uint16_t &data)
 	int ret = PX4_OK;
 	uint8_t tmp_data[2];
 
-	if (reg != curr_PR) {
+	if (reg != _curr_pr) {
 		tmp_data[0] = reg;
 
 		if (transfer(tmp_data, 1, nullptr, 0) == PX4_OK) {
-			curr_PR = reg;
+			_curr_pr = reg;
 		}
 	}
 

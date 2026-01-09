@@ -68,7 +68,7 @@ private:
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_comms_errors;
 
-	uint16_t curr_PR = 0;
+	uint16_t _curr_pr = 0;
 
 	float read_temperature();
 	int read_reg(uint8_t address, uint16_t &data);
