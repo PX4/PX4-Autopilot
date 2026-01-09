@@ -304,7 +304,7 @@ Recommended modules include:
 
 | UART   | 设备         | Port                           |
 | ------ | ---------- | ------------------------------ |
-| UART   | /dev/ttyS0 | GPS1                           |
+| UART1  | /dev/ttyS0 | GPS1                           |
 | USART2 | /dev/ttyS1 | TELEM1 (流控) |
 | USART3 | /dev/ttyS2 | TELEM2 (流控) |
 | UART4  | /dev/ttyS3 | GPS2                           |

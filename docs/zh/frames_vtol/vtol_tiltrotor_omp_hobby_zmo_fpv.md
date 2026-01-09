@@ -74,7 +74,7 @@ The following tools were used for this build.
 - Sandpaper
 - 3D-Printer
 
-## Hardware Integration
+## 硬件集成
 
 ### Preparations
 

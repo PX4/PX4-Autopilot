@@ -545,8 +545,10 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 
 	float output = _disarmed_value[i];
 
-	if (_function_assignment[i] >= OutputFunction::Servo1
-	    && _function_assignment[i] <= OutputFunction::ServoMax
+	if (((_function_assignment[i] >= OutputFunction::Servo1
+	      && _function_assignment[i] <= OutputFunction::ServoMax) || _function_assignment[i] == OutputFunction::Landing_Gear_Wheel
+	     || (_function_assignment[i] >= OutputFunction::Gimbal_Roll
+		 && _function_assignment[i] <= OutputFunction::Gimbal_Yaw))
 	    && _param_handles[i].center != PARAM_INVALID
 	    && _center_value[i] >= 800
 	    && _center_value[i] <= 2200) {

@@ -49,7 +49,9 @@ UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node, NodeInfoPublis
 	UavcanSensorBridgeBase("uavcan_baro", ORB_ID(sensor_baro), node_info_publisher),
 	_sub_air_pressure_data(node),
 	_sub_air_temperature_data(node)
-{ }
+{
+	set_device_type(DRV_BARO_DEVTYPE_UAVCAN);
+}
 
 int UavcanBarometerBridge::init()
 {
@@ -91,7 +93,7 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 {
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get(), msg.getIfaceIndex());
 
 	if (channel == nullptr) {
 		// Something went wrong - no channel to publish on; return
@@ -105,23 +107,18 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 		return;
 	}
 
-	DeviceId device_id{};
-	device_id.devid_s.bus = 0;
-	device_id.devid_s.bus_type = DeviceBusType_UAVCAN;
-
-	device_id.devid_s.devtype = DRV_BARO_DEVTYPE_UAVCAN;
-	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
+	uint32_t device_id = make_uavcan_device_id(msg);
 
 	// Register barometer capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
-		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), device_id.devid,
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), device_id,
 				NodeInfoPublisher::DeviceCapability::BAROMETER);
 	}
 
 	// publish
 	sensor_baro_s sensor_baro{};
 	sensor_baro.timestamp_sample = timestamp_sample;
-	sensor_baro.device_id = device_id.devid;
+	sensor_baro.device_id = device_id;
 	sensor_baro.pressure = msg.static_pressure;
 
 	if (PX4_ISFINITE(_last_temperature_kelvin) && (_last_temperature_kelvin >= 0.f)) {

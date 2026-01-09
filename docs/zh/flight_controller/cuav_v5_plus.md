@@ -160,7 +160,7 @@ For more information see [Using JTAG for hardware debugging](#using-jtag-for-har
 
 | UART   | 设备         | Port                                                       |
 | ------ | ---------- | ---------------------------------------------------------- |
-| UART   | /dev/ttyS0 | GPS                                                        |
+| UART1  | /dev/ttyS0 | GPS                                                        |
 | USART2 | /dev/ttyS1 | TELEM1 (流控)                             |
 | USART3 | /dev/ttyS2 | TELEM2 (流控)                             |
 | UART4  | /dev/ttyS3 | TELEM4                                                     |

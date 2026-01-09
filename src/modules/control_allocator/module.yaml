@@ -336,6 +336,15 @@ parameters:
             instance_start: 0
             default: 0
 
+        CA_SV_FLAP_SLEW:
+            description:
+                short: Control Surface slew rate for normalized flaps setpoint
+            type: float
+            decimal: 1
+            min: 0.0
+            max: 5.0
+            default: 0.5
+
         CA_SV_CS${i}_SPOIL:
             description:
                 short: Control Surface ${i} configuration as spoiler

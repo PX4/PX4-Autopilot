@@ -99,7 +99,7 @@ EKF 实例的总数是 [EKF2_MULTI_IMU](../advanced_config/parameter_reference.m
 - [SENS_IMU_MODE](../advanced_config/parameter_reference.md#SENS_IMU_MODE):
   如果是以 IMU 传感器多样性运行多个 EKF 实例，即 [EKF2_MULTI_IMU](../advanced_config/parameter_reference.md#EKF2_MULTI_IMU) > 1，则设置为 0。
 
-  当设置为 1（单个 EKF 操作的默认值）时，传感器模块选择 EKF 使用的 IMU 数据。
+  当设置为 1（单个 EKF 的默认值）时，传感器模块选择 EKF 使用的 IMU 数据。
   这提供了针对传感器数据丢失的保护，但不提供针对错误传感器数据的保护。
   当设置为 0 时，传感器模块不进行选择。
 
@@ -107,7 +107,7 @@ EKF 实例的总数是 [EKF2_MULTI_IMU](../advanced_config/parameter_reference.m
   如果是以磁力计传感器多样性运行多个 EKF 实例，即 [EKF2_MULTI_MAG](../
   advanced_config/parameter_reference.md#EKF2_MULTI_MAG) > 1，则设置为 0。
 
-  当设置为 1（单个 EKF 操作的默认值）时，传感器模块选择 EKF 使用的磁力计数据。
+  当设置为 1（单个 EKF 的默认值）时，传感器模块选择 EKF 使用的磁力计数据。
   这提供了针对传感器数据丢失的保护，但不提供针对错误传感器数据的保护。
   当设置为 0 时，传感器模块不进行选择。
 
@@ -115,13 +115,13 @@ EKF 实例的总数是 [EKF2_MULTI_IMU](../advanced_config/parameter_reference.m
   此参数指定多个 EKF 使用的 IMU 传感器数量。
   如果 `EKF2_MULTI_IMU` <= 1，则仅使用第一个 IMU 传感器。
   当 [SENS_IMU_MODE](../advanced_config/parameter_reference.md#SENS_IMU_MODE) = 1 时，这将是传感器模块选择的传感器。
-  如果 `EKF2_MULTI_IMU` >= 2，则将针对指定数量的 IMU 传感器（最多 4 个或存在的 IMU 数量，取较小值）运行单独的 EKF 实例。
+  如果 `EKF2_MULTI_IMU` >= 2，那么将为指定数量的 IMU 传感器运行独立的 EKF 实例，最多支持 4 个或实际存在的 IMU 数量（取两者中的较小值）。
 
 - [EKF2_MULTI_MAG](../advanced_config/parameter_reference.md#EKF2_MULTI_MAG):
   此参数指定多个 EKF 使用的磁力计传感器数量。
   如果 `EKF2_MULTI_MAG` <= 1，则仅使用第一个磁力计传感器。
   当 [SENS_MAG_MODE](../advanced_config/parameter_reference.md#SENS_MAG_MODE) = 1 时，这将是传感器模块选择的传感器。
-  如果 `EKF2_MULTI_MAG` >= 2，则将针对指定数量的磁力计传感器（最多 4 个或存在的磁力计数量，取较小值）运行单独的 EKF 实例。
+  如果 `EKF2_MULTI_MAG` >= 2，那么将为指定数量的磁力计传感器运行独立的 EKF 实例，最多支持 4 个或实际存在的磁力计数量（取两者中的较小值）。
 
 :::info
 不支持多 EKF 实例飞行日志的记录和 [EKF2 回放](../debug/system_wide_replay.md#ekf2-replay)。
@@ -131,26 +131,26 @@ EKF 实例的总数是 [EKF2_MULTI_IMU](../advanced_config/parameter_reference.m
 ## 它使用哪些传感器测量？
 
 EKF 具有不同的操作模式，允许不同的传感器测量组合。
-启动时，滤波器会检查最小的可行传感器组合，并在初始倾斜、偏航和高度对准完成后，进入提供旋转、垂直速度、垂直位置、IMU 角度增量零偏和 IMU 速度增量零偏估计的模式。
+启动时，滤波器会检查传感器的最小可用组合，并在初始倾斜、偏航和高度对准完成后，进入提供旋转、垂直速度、垂直位置、IMU 角度增量零偏和 IMU 速度增量零偏估计的模式。
 
 此模式需要 IMU 数据、偏航源（磁力计或外部视觉）和高度数据源。
-所有 EKF 操作模式都需要此最小数据集。
-然后可以使用其他传感器数据来估计额外的状态。
+所有 EKF 工作模式都需要此最小数据集。
+其他传感器数据可用于估计额外状态。
 
 ### IMU
 
-- 三轴机体固定惯性测量单元 (IMU) 的角度增量和速度增量数据，最小速率为 100Hz。
-  注意：在 EKF 使用 IMU 角度增量数据之前，应先对其应用圆锥效应校正。
+- 固定在机体上的三轴 IMU，以至少100Hz的频率获取增量角度和角速度数据 。
+  注意：在 EKF 使用 IMU 角度增量数据之前，应该使用圆锥校正算法校正。
 
 ### 磁力计
 
-估计器需要三轴机体固定磁力计数据，最小速率为 5Hz。
+固定在机体上的三轴磁力计数据，至少以 5Hz 提供数据才会被估计器用于估计。
 
 ::: info
 
 - 磁力计 **零偏 (biases)** 仅在无人机旋转时可观测。
-- 当载具加速（线性加速度）且同时融合绝对位置或速度测量值（例如 GPS）时，真实航向是可观测的。
-  这意味着如果这些条件能够足够频繁地满足以约束航向漂移（由陀螺仪零偏引起），则初始化后的磁力计航向测量是可选的。
+- 当载具处于加速状态（线性加速度）时，可通过融合绝对位置或速度测量数据（例如GPS）来观测真实航向。
+  这意味着在初始化后，如果满足上述条件且频率足够高以约束（由陀螺仪偏置引起的）航向漂移，则磁力计航向测量是可选的。
 
 :::
 
@@ -160,12 +160,12 @@ EKF 具有不同的操作模式，允许不同的传感器测量组合。
    - 磁力计读数仅在解锁前影响航向估计，解锁后影响整个姿态。
    - 使用此方法时会补偿航向和倾斜误差。
    - 不正确的磁场测量会降低倾斜估计的质量。
-   - 只要可观测，就会估计磁力计零偏。
+   - 磁力计零偏会在可观测时被估计。
 1. 磁航向 (Magnetic heading):
    - 仅修正航向。
      倾斜估计永远不会受到不正确磁场测量的影响。
    - 使用此方法时，不会修正因没有速度/位置辅助飞行而产生的倾斜误差。
-   - 只要可观测，就会估计磁力计零偏。
+   - 磁力计零偏会在可观测时被估计。
 2. 已弃用
 3. 已弃用
 4. 已弃用
@@ -173,7 +173,7 @@ EKF 具有不同的操作模式，允许不同的传感器测量组合。
    - 永不使用磁力计数据。
      当数据完全不可信时（例如：传感器附近有大电流、外部异常），这很有用。
    - 估计器将使用其他航向源：[GPS 航向](#yaw-measurements) 或外部视觉。
-   - 当使用 GPS 测量而没有其他航向源时，航向只能在充分的水平加速后才能初始化。
+   - 当使用 GPS 测量而没有其他航向源时，航向只能在获得足够的水平加速度后才能初始化。
      参见下文的 [从载具运动估计偏航](#yaw-from-gps-velocity)。
 6. 仅初始化 (Init only):
    - 磁力计数据仅用于初始化航向估计。
@@ -276,7 +276,7 @@ EKF2 模块将误差建模为一个机体固定的椭球体，该椭球体指定
 #### 偏航角测量
 
 某些 GPS 接收机，例如 [Trimble MB-Two RTK GPS 接收机](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two)，可用于提供航向测量，以替代磁力计数据的使用。
-当在存在大磁异常的环境中或在地球磁场倾角较大的纬度地区运行时，这可能是一个显著的优势。
+当在存在大型磁异常的环境中或在地球磁场倾角较大的纬度地区运行时，这可能是一个显著的优势。
 通过将 [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) 参数中的第 3 位设置为 1（加 8）来启用 GPS 偏航测量。
 
 #### 从 GPS 速度数据获取偏航角
@@ -317,9 +317,9 @@ GSF 应用于各个 3 状态 EKF 输出的权重位于 `weight` 字段中。
 - 检查来自每个接收机的 `s_variance_m_s`、`eph` 和 `epv` 数据，并决定可以使用哪些精度指标。
   如果两个接收机都输出合理的 `s_variance_m_s` 和 `eph` 数据，并且 GPS 垂直位置未直接用于导航，则建议将 [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) 设置为 3。
   如果只有 `eph` 数据可用，且两个接收机都不输出 `s_variance_m_s` 数据，则将 [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) 设置为 2。
-  只有当 GPS 已通过 [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) 参数被选为参考高度源，且两个接收机都输出合理的 `epv` 数据时，才会设置第 2 位。
+  只有当 GPS 已通过 [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) 参数被选为参考高度源，且两个接收机都输出合理的 `epv` 数据时，第 2 位才会被置位。
 - 混合接收机数据的输出记录为 `ekf_gps_position`，可以在连接 nsh 终端时使用命令 `listener ekf_gps_position` 进行检查。
-- 如果接收机以不同的速率输出，则混合输出将采用较慢接收机的速率。
+- 若各接收机输出速率不同，融合后的输出速率将与速率较慢的接收机保持一致。
   在可能的情况下，接收机应配置为以相同的速率输出。
 
 #### GNSS 性能要求
@@ -546,11 +546,11 @@ EKF 会考虑视觉位姿估计中的不确定性。
 此不确定性信息可以通过 MAVLink [ODOMETRY](https://mavlink.io/en/messages/common.html#ODOMETRY) 消息中的协方差字段发送，也可以通过参数 [EKF2_EVP_NOISE](../advanced_config/parameter_reference.md#EKF2_EVP_NOISE)、[EKF2_EVV_NOISE](../advanced_config/parameter_reference.md#EKF2_EVV_NOISE) 和 [EKF2_EVA_NOISE](../advanced_config/parameter_reference.md#EKF2_EVA_NOISE) 进行设置。
 您可以使用 [EKF2_EV_NOISE_MD](../advanced_config/parameter_reference.md#EKF2_EV_NOISE_MD) 选择不确定性的来源。
 
-## 如何使用 'ecl' 库 EKF？
+## 如何使用 'ecl' 库中的EKF？
 
 EKF2 默认启用（有关更多信息，请参阅 [切换状态估计器](../advanced/switching_state_estimators.md) 和 [EKF2_EN](../advanced_config/parameter_reference.md#EKF2_EN)）。
 
-## 如何使用 'ecl' 库 EKF？
+## ecl EKF相较于其他估计器的优缺点是什么？
 
 像所有估计器一样，大部分性能来自于与传感器特性相匹配的调参。
 调参是精度和鲁棒性之间的折衷，虽然我们试图提供满足大多数用户需求的参数，但仍会有需要更改参数的应用。
@@ -624,7 +624,7 @@ covariances\[24\] 的索引映射如下：
 - \[19 ... 21\] 机体磁场 XYZ \(gauss^2\)
 - \[22 ... 23\] 风速 NE \(m/s\)^2
 
-### 观测创新量与创新方差
+### 观测新息与新息方差
 
 观测 `estimator_innovations`、`estimator_innovation_variances` 与 `estimator_innovation_test_ratios` 消息字段定义在 [EstimatorInnovations.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorInnovations.msg) 中。
 这些消息字段名称/类型相同（但单位不同）。
@@ -654,30 +654,30 @@ covariances\[24\] 的索引映射如下：
 这些字段基本自说明，下面给出原始定义：
 
 ```
-float32[2] gps_hvel	# 水平 GPS 速度创新量 (m/sec) 与创新方差 ((m/sec)**2)
-float32    gps_vvel	# 垂直 GPS 速度创新量 (m/sec) 与创新方差 ((m/sec)**2)
-float32[2] gps_hpos	# 水平 GPS 位置创新量 (m) 与创新方差 (m**2)
-float32    gps_vpos	# 垂直 GPS 位置创新量 (m) 与创新方差 (m**2)
+float32[2] gps_hvel	# 水平 GPS 速度新息 (m/sec) 与新息方差 ((m/sec)**2)
+float32    gps_vvel	# 垂直 GPS 速度新息 (m/sec) 与新息方差 ((m/sec)**2)
+float32[2] gps_hpos	# 水平 GPS 位置新息 (m) 与新息方差 (m**2)
+float32    gps_vpos	# 垂直 GPS 位置新息 (m) 与新息方差 (m**2)
 
 # External Vision
-float32[2] ev_hvel	# 水平外部视觉速度创新量 (m/sec) 与创新方差 ((m/sec)**2)
-float32    ev_vvel	# 垂直外部视觉速度创新量 (m/sec) 与创新方差 ((m/sec)**2)
-float32[2] ev_hpos	# 水平外部视觉位置创新量 (m) 与创新方差 (m**2)
-float32    ev_vpos	# 垂直外部视觉位置创新量 (m) 与创新方差 (m**2)
+float32[2] ev_hvel	# 水平外部视觉速度新息 (m/sec) 与新息方差 ((m/sec)**2)
+float32    ev_vvel	# 垂直外部视觉速度新息 (m/sec) 与新息方差 ((m/sec)**2)
+float32[2] ev_hpos	# 水平外部视觉位置新息 (m) 与新息方差 (m**2)
+float32    ev_vpos	# 垂直外部视觉位置新息 (m) 与新息方差 (m**2)
 
 # Fake Position and Velocity
-float32[2] fake_hvel	# 虚拟水平速度创新量 (m/s) 与创新方差 ((m/s)**2)
-float32    fake_vvel	# 虚拟垂直速度创新量 (m/s) 与创新方差 ((m/s)**2)
-float32[2] fake_hpos	# 虚拟水平位置创新量 (m) 与创新方差 (m**2)
-float32    fake_vpos	# 虚拟垂直位置创新量 (m) 与创新方差 (m**2)
+float32[2] fake_hvel	# 虚拟水平速度新息 (m/s) 与新息方差 ((m/s)**2)
+float32    fake_vvel	# 虚拟垂直速度新息 (m/s) 与新息方差 ((m/s)**2)
+float32[2] fake_hpos	# 虚拟水平位置新息 (m) 与新息方差 (m**2)
+float32    fake_vpos	# 虚拟垂直位置新息 (m) 与新息方差 (m**2)
 
 # Height sensors
-float32 rng_vpos	# 测距高度创新量 (m) 与创新方差 (m**2)
-float32 baro_vpos	# 气压计高度创新量 (m) 与创新方差 (m**2)
+float32 rng_vpos	# 测距高度新息 (m) 与新息方差 (m**2)
+float32 baro_vpos	# 气压计高度新息 (m) 与新息方差 (m**2)
 
 # Auxiliary velocity
-float32[2] aux_hvel	# 来自着陆目标测量的水平辅助速度创新量 (m/sec) 与创新方差 ((m/sec)**2)
-float32    aux_vvel	# 来自着陆目标测量的垂直辅助速度创新量 (m/sec) 与创新方差 ((m/sec)**2)
+float32[2] aux_hvel	# 来自着陆目标测量的水平辅助速度新息 (m/sec) 与新息方差 ((m/sec)**2)
+float32    aux_vvel	# 来自着陆目标测量的垂直辅助速度新息 (m/sec) 与新息方差 ((m/sec)**2)
 ```
 
 ### 输出互补滤波器
@@ -710,17 +710,17 @@ EKF 包含针对严重条件状态和协方差更新的内部错误检查。
   这种情况的一个例子是过度振动导致大的垂直位置误差，导致气压计高度测量被拒绝。
 
 这两者都可能导致观测数据被拒绝，如果时间足够长，使得 EKF 尝试重置状态以使用传感器观测数据。
-所有观测都会对创新量进行统计置信度检查。
+所有观测结果均对新息进行了统计置信度检查。
 各观测类型的检查标准差数由对应的 `EKF2_*_GATE` 参数控制。
 
 测试指标可在 [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg) 中查看：
 
-- `mag_test_ratio`：磁力计创新量最大分量与测试限值的比值
-- `vel_test_ratio`：速度创新量最大分量与测试限值的比值
-- `pos_test_ratio`：水平位置创新量最大分量与测试限值的比值
-- `hgt_test_ratio`：垂直位置创新量与测试限值的比值
-- `tas_test_ratio`：真空速创新量与测试限值的比值
-- `hagl_test_ratio`：离地高度创新量与测试限值的比值
+- `mag_test_ratio`：磁力计新息最大分量与测试限值的比值
+- `vel_test_ratio`：速度新息最大分量与测试限值的比值
+- `pos_test_ratio`：水平位置新息最大分量与测试限值的比值
+- `hgt_test_ratio`：垂直位置新息与测试限值的比值
+- `tas_test_ratio`：真空速新息与测试限值的比值
+- `hagl_test_ratio`：离地高度新息与测试限值的比值
 
 若需查看每个传感器的二值通过/失败汇总，请参考 [EstimatorStatus](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStatus.msg) 中的 `innovation_check_flags`。
 
@@ -749,7 +749,7 @@ EKF 对其所有计算使用单精度浮点运算，并使用一阶近似来推�
 
 重新调参后，尤其是降低噪声变量的调参，应检查 `estimator_status.gps_check_fail_flags` 是否保持为零。
 
-## 如果高度估计值发散了怎么办?
+## 如何应对高度估计的发散？
 
 在飞行期间 EKF 高度偏离 GPS 和高度计测量的最常见原因是由振动引起的 IMU 测量的削波和/或混叠。
 出现该问题时，通常会在数据中看到以下迹象：
@@ -772,7 +772,7 @@ EKF 对其所有计算使用单精度浮点运算，并使用一阶近似来推�
 
 注意 这些变化的影响将使 EKF 对 GPS 垂直速度和气压的误差更敏感。
 
-## 如果位置估计发散了应该怎么办?
+## 如何应对位置估计的发散？
 
 位置发散的最常见原因是：
 
@@ -821,7 +821,7 @@ EKF 对其所有计算使用单精度浮点运算，并使用一阶近似来推�
 
 ### 确定过度振动
 
-高振动通常会影响垂直位置与速度创新量以及水平分量。
+高振动通常会影响垂直位置与速度新息以及水平分量。
 磁力计测试级别仅受到很小程度的影响。
 
 \(在此插入示例绘图显示不好振动\)
@@ -865,11 +865,11 @@ GPS 数据精度差通常伴随着接收器报告的速度误差的增加以及�
 GPS 数据丢失会表现为速度与位置创新测试比值“贴平(flat-lining)”。
 出现该情况时，请检查 `vehicle_gps_position` 中的其他 GPS 状态数据。
 
-下图显示了使用 SITL Gazebo 模拟 VTOL 飞行生成的 NED GPS 速度创新量 `ekf2_innovations_0.vel_pos_innov[0 ... 2]`、GPS NE 位置创新量 `ekf2_innovations_0.vel_pos_innov[3 ... 4]` 以及气压垂直位置创新量 `ekf2_innovations_0.vel_pos_innov[5]`。
+下图显示了使用 SITL Gazebo 模拟 VTOL 飞行生成的 NED GPS 速度新息 `ekf2_innovations_0.vel_pos_innov[0 ... 2]`、GPS NE 位置新息 `ekf2_innovations_0.vel_pos_innov[3 ... 4]` 以及气压垂直位置新息 `ekf2_innovations_0.vel_pos_innov[5]`。
 
 模拟的 GPS 在 73 秒时失锁。
-注意 GPS 丢失后 NED 速度创新量与 NE 位置创新量“贴平(flat-line)”。
-注意 GPS 丢失 10 秒后，EKF 会回退到使用最后已知位置的静态位置模式，NE 位置创新量开始再次变化。
+注意 GPS 丢失后 NED 速度新息与 NE 位置新息“贴平(flat-line)”。
+注意 GPS 丢失 10 秒后，EKF 会回退到使用最后已知位置的静态位置模式，NE 位置新息开始再次变化。
 
 ![GPS Data Loss - in SITL](../../assets/ecl/gps_data_loss_-_velocity_innovations.png)
 

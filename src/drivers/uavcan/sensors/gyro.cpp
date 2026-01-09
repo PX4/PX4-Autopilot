@@ -43,7 +43,9 @@ const char *const UavcanGyroBridge::NAME = "gyro";
 UavcanGyroBridge::UavcanGyroBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_gyro", ORB_ID(sensor_gyro), node_info_publisher),
 	_sub_imu_data(node)
-{ }
+{
+	set_device_type(DRV_GYR_DEVTYPE_UAVCAN);
+}
 
 int UavcanGyroBridge::init()
 {
@@ -59,7 +61,7 @@ int UavcanGyroBridge::init()
 
 void UavcanGyroBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::RawIMU> &msg)
 {
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get(), msg.getIfaceIndex());
 
 	if (channel == nullptr) {
 		// Something went wrong - no channel to publish on; return
@@ -87,13 +89,10 @@ void UavcanGyroBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 
 int UavcanGyroBridge::init_driver(uavcan_bridge::Channel *channel)
 {
-	// update device id as we now know our device node_id
-	DeviceId device_id{_device_id};
+	// Build device ID using node_id and interface index
+	uint32_t device_id = make_uavcan_device_id(static_cast<uint8_t>(channel->node_id), channel->iface_index);
 
-	device_id.devid_s.devtype = DRV_GYR_DEVTYPE_UAVCAN;
-	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
-
-	channel->h_driver = new PX4Gyroscope(device_id.devid);
+	channel->h_driver = new PX4Gyroscope(device_id);
 
 	if (channel->h_driver == nullptr) {
 		return PX4_ERROR;
