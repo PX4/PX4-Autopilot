@@ -77,10 +77,11 @@ int TMP102::probe()
 {
 	uint16_t conf_reg;
 
-	for(int i=0; i<3; i++) {
+	for (int i = 0; i < 3; i++) {
 		if (read_reg(TMP102_CONFIG_REG, conf_reg) == PX4_OK && conf_reg == DEFAULT_CONFIG_REG) {
 			return PX4_OK;
 		}
+
 		px4_sleep(1);
 	}
 
