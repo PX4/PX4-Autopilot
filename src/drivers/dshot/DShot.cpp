@@ -945,12 +945,9 @@ void DShot::mixerChanged()
 
 bool DShot::initialize_dshot()
 {
-	PX4_INFO("initialize_dshot: motor_mask=0x%lx", _output_mask);
-
 	uint32_t dshot_timer_channels = 0;  // Channels on DShot-enabled timers
 
 	// Iterate through timers to determine DShot frequency and BDShot channels
-	// _output_mask already contains only motor channels (set by mixerChanged)
 	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
 
 		// Get mask of actuator channels associated with this timer group
@@ -981,56 +978,16 @@ bool DShot::initialize_dshot()
 			dshot_timer_channels |= timer_channels;
 		}
 
-		// Bidirectional DShot (tim_config < -5 means -6, -7, or -8)
+		// Bidirectional DShot
 		if (tim_config < -5) {
-			// Add timer channels that are also motors to BDShot mask
-			// _bdshot_output_mask |= (timer_channels & _output_mask);
-			// _bdshot_output_mask |= timer_channels;
 			_bdshot_timer_channels |= timer_channels;
 		}
-
-		PX4_INFO("timer_index %u, channels_mask %lu", timer_index, dshot_timer_channels);
 	}
-
-	PX4_INFO("_bdshot_output_mask %lu", _bdshot_output_mask);
 
 	if (dshot_timer_channels == 0) {
 		PX4_WARN("No channels configured");
 		return false;
 	}
-
-
-	// _output_mask &= dshot_timer_channels;
-
-	// PX4_INFO("dshot_timer_channels=0x%lx, _output_mask=0x%lx, _bdshot_output_mask=0x%lx",
-	//   dshot_timer_channels, _output_mask, _bdshot_output_mask);
-
-
-	// if (ret < 0) {
-	//  PX4_ERR("up_dshot_init failed (%i)", ret);
-	//  return false;
-	// }
-
-	// if ((uint32_t)ret != _output_mask) {
-	//  PX4_INFO("Failed to configure some channels");
-	//  PX4_INFO("requested: 0x%lx", _output_mask);
-	//  PX4_INFO("configured: 0x%lx", (uint32_t)ret);
-	//  _output_mask = ret;
-	// }
-
-	// Set our mixer to explicitly disable channels we do not control
-	// for (uint8_t i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-	//  if (((1 << i) & _output_mask) == 0) {
-	//      _mixing_output.disableFunction(i);
-	//  }
-	// }
-
-	// if (_output_mask == 0) {
-	//  PX4_WARN("No channels configured");
-	//  return false;
-	// }
-
-	// up_dshot_arm(true);
 
 	return true;
 }
