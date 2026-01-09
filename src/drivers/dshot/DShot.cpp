@@ -558,8 +558,8 @@ bool DShot::process_bdshot_telemetry()
 		return false;
 	}
 
-	// We wait until all are ready.
-	if (up_bdshot_num_channels_ready() < count_set_bits(_output_mask)) {
+	// We wait until all BDShot channels are ready.
+	if (up_bdshot_num_channels_ready() < count_set_bits(_bdshot_output_mask)) {
 		return false;
 	}
 
@@ -656,17 +656,26 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 	bool is_bdshot = _bdshot_motor_mask & (1 << motor_index);
 
 	// Require both sources online when enabled (masks are in motor order)
-	uint8_t online_mask = 0xFF;
+	uint8_t online_mask_motor_order = 0xFF;
 
 	if (is_bdshot) {
-		online_mask &= _bdshot_telem_online_mask;
+		online_mask_motor_order &= _bdshot_telem_online_mask;
 	}
 
 	if (_serial_telemetry_enabled) {
-		online_mask &= _serial_telem_online_mask;
+		online_mask_motor_order &= _serial_telem_online_mask;
 	}
 
-	_esc_status.esc_online_flags = online_mask;
+	// Convert motor-order mask to actuator-order mask for esc_online_flags
+	uint8_t online_mask_actuator_order = 0;
+
+	for (int motor_idx = 0; motor_idx < DSHOT_MAXIMUM_CHANNELS; motor_idx++) {
+		if ((online_mask_motor_order & (1 << motor_idx)) && _motor_to_channel[motor_idx] >= 0) {
+			online_mask_actuator_order |= (1 << _motor_to_channel[motor_idx]);
+		}
+	}
+
+	_esc_status.esc_online_flags = online_mask_actuator_order;
 
 	// Sum the errors from both interfaces (error arrays are in actuator order)
 	_esc_status.esc[actuator_channel].esc_errorcount = _serial_telem_errors[actuator_channel] +
@@ -880,6 +889,11 @@ void DShot::mixerChanged()
 	uint32_t new_output_mask = 0;
 	uint32_t new_motor_mask = 0;
 
+	// Reset motor-to-channel mapping
+	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+		_motor_to_channel[i] = -1;
+	}
+
 	for (int actuator_channel = 0; actuator_channel < DSHOT_MAXIMUM_CHANNELS; actuator_channel++) {
 		if (_mixing_output.isMotor(actuator_channel)) {
 			_esc_status.esc[actuator_channel].actuator_function = (uint8_t)_mixing_output.outputFunction(actuator_channel);
@@ -889,6 +903,7 @@ void DShot::mixerChanged()
 
 			if (motor_index >= 0 && motor_index < DSHOT_MAXIMUM_CHANNELS) {
 				new_motor_mask |= (1 << motor_index);
+				_motor_to_channel[motor_index] = actuator_channel;
 			}
 		}
 	}

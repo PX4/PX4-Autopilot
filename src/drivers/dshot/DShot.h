@@ -132,6 +132,9 @@ private:
 	uint32_t _motor_mask{0};
 	uint32_t _bdshot_motor_mask{0};
 
+	// Motor-to-channel mapping: _motor_to_channel[motor_index] = actuator_channel (-1 if not assigned)
+	int8_t _motor_to_channel[DSHOT_MAXIMUM_CHANNELS] = {-1, -1, -1, -1, -1, -1, -1, -1};
+
 	// uORB
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};

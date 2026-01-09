@@ -1021,7 +1021,9 @@ void up_bdshot_status(void)
 					 (double)_edt_volt[i].rate_hz,
 					 (double)_edt_curr[i].rate_hz);
 			}
+		}
 
+		for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
 			PX4_INFO("Output %u: read %lu, failed CRC %lu", i, read_ok[i], read_fail_crc[i]);
 		}
 	}
