@@ -49,14 +49,15 @@ This behaviour can be accessed in QGroundControl by clicking on the map in Fly v
 The behavior can be triggered using the MAVLink [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_ORBIT) command.
 Note that PX4 respects the specified centre point (`param5`, `param6`, `param7`), and the radius and direction (`param1`).
 PX4 ignores `param3` (Yaw behaviour) and `param4` (Orbits).
-The value of `param2` (velocity) is also ignored, but the speed can be controlled using the [MAV_CMD_DO_CHANGE_SPEED](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED) command.
+The value of `param2` (velocity) is also ignored, but the speed can be controlled using the [MAV_CMD_DO_CHANGE_SPEED](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_CHANGE_SPEED) command (constrained between `FW_AIRSPD_MAX` and `FW_AIRSPD_MIN`).
 PX4 outputs orbit status using the [ORBIT_EXECUTION_STATUS](https://mavlink.io/en/messages/common.html#ORBIT_EXECUTION_STATUS) message.
 
 ### Figure 8 Loiter Mode
 
 <Badge type="tip" text="PX4 v1.15" /> <Badge type="warning" text="Experimental" />
 
-The aircraft flys towards a figure 8 centre position, then follows a figure 8 path as defined by the centre position, orientation, and radius of two circles.
+The aircraft flys towards the closest point on a specified figure 8 path and then follows it.
+The path is defined by the figure 8 centre position, orientation, and radius of two circles.
 
 The feature is experimental, and is not present in PX4 firmware by default (on most flight controller boards).
 It can be included by setting the `CONFIG_FIGURE_OF_EIGHT` key in the [PX4 board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) for your board and rebuilding.
