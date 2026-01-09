@@ -1170,6 +1170,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 		fixed_wing_runway_control_s fw_runway_control{};
 		fw_runway_control.timestamp = now;
+		fw_runway_control.runway_takeoff_state = _runway_takeoff.getState();
 		fw_runway_control.wheel_steering_enabled = true;
 		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
@@ -1343,6 +1344,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 
 		fixed_wing_runway_control_s fw_runway_control{};
 		fw_runway_control.timestamp = now;
+		fw_runway_control.runway_takeoff_state = _runway_takeoff.getState();
 		fw_runway_control.wheel_steering_enabled = true;
 		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
@@ -1591,6 +1593,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 	fixed_wing_runway_control_s fw_runway_control{};
 	fw_runway_control.timestamp = now;
+	fw_runway_control.runway_takeoff_state = fixed_wing_runway_control_s::STATE_FLYING; // not in takeoff, use FLYING as default
 	fw_runway_control.wheel_steering_enabled = true;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
 			_sticks.getYaw() : 0.f;
@@ -1761,6 +1764,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 	fixed_wing_runway_control_s fw_runway_control{};
 	fw_runway_control.timestamp = now;
+	fw_runway_control.runway_takeoff_state = fixed_wing_runway_control_s::STATE_FLYING; // not in takeoff, use FLYING as default
 	fw_runway_control.wheel_steering_enabled = true;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
 			_sticks.getYaw() : 0.f;
