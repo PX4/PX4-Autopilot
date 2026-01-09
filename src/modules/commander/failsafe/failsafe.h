@@ -53,18 +53,12 @@ protected:
 private:
 	void updateArmingState(const hrt_abstime &time_us, bool armed, const failsafe_flags_s &status_flags);
 
-	enum class ManualControlLossExceptionBits : int32_t {
+	enum class LinkLossExceptionBits : int32_t {
 		Mission = (1 << 0),
 		AutoModes = (1 << 1),
 		Offboard = (1 << 2),
 		ExternalMode = (1 << 3),
 		AltitudeCruise = (1 << 4)
-	};
-
-	enum class DatalinkLossExceptionBits : int32_t {
-		Mission = (1 << 0),
-		Hold = (1 << 1),
-		Offboard = (1 << 2)
 	};
 
 	// COM_LOW_BAT_ACT parameter values
@@ -174,6 +168,8 @@ private:
 	static ActionOptions fromHighWindLimitActParam(int param_value);
 	static ActionOptions fromPosLowActParam(int param_value);
 	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
+
+	static bool isFailsafeIgnored(uint8_t user_intended_mode, int32_t exception_mask_parameter);
 
 	const int _caller_id_mode_fallback{genCallerId()};
 	bool _last_state_mode_fallback{false};
