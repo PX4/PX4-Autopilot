@@ -10,6 +10,7 @@
 #include <mathlib/math/Limits.hpp>
 
 using math::constrain;
+using namespace time_literals;
 
 CdusBacksteppingAttitude::CdusBacksteppingAttitude() :
 	ModuleParams(nullptr),
@@ -32,6 +33,21 @@ bool CdusBacksteppingAttitude::init()
 	return true;
 }
 
+void CdusBacksteppingAttitude::parameters_updated() {
+
+	_Kv_r = _param_bsa_roll_kv.get();
+	_Kv_p = _param_bsa_pitch_kv.get();
+	_Kv_y = _param_bsa_yaw_kv.get();
+
+	_Ka_r = _param_bsa_roll_ka.get();
+	_Ka_p = _param_bsa_pitch_ka.get();
+	_Ka_y = _param_bsa_yaw_ka.get();
+
+	_Ixx = _param_bsa_ixx.get();
+	_Iyy = _param_bsa_iyy.get();
+	_Izz = _param_bsa_izz.get();
+}
+
 
 void CdusBacksteppingAttitude::Run()
 {
@@ -40,6 +56,17 @@ void CdusBacksteppingAttitude::Run()
 		exit_and_cleanup();
 		return;
 	}
+
+	// Check if parameters have changed
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		updateParams();
+		parameters_updated();
+	}
+
 
     vehicle_angular_velocity_s angular_velocity{};
 
@@ -97,6 +124,13 @@ void CdusBacksteppingAttitude::Run()
         _thrust_sp(2) = _attitude_sp.thrust_body[2];
     }
 
+	// Manual control input
+	if (_manual_control_sub.updated()) {
+		_manual_control_sub.copy(&_manual_control);
+		updateYawRateSp();
+		// updateAttitudeWithYaw(dt);
+	}
+
     calcRollTorque();
     calcPitchTorque();
     calcYawTorque();
@@ -130,8 +164,8 @@ void CdusBacksteppingAttitude::calcRollTorque() {
     const float Ix = _Ixx;
     const float Iy = _Iyy;
     const float Iz = _Izz;
-    const float k1 = _Kv;
-    const float k2 = _Ka;
+    const float k1 = _Kv_r;
+    const float k2 = _Ka_r;
     const float q0 = _q_att(0);
     const float qv1 = _q_att(1);
     const float qv2 = _q_att(2);
@@ -151,8 +185,8 @@ void CdusBacksteppingAttitude::calcPitchTorque() {
     const float Ix = _Ixx;
     const float Iy = _Iyy;
     const float Iz = _Izz;
-    const float k1 = _Kv;
-    const float k2 = _Ka;
+    const float k1 = _Kv_p;
+    const float k2 = _Ka_p;
     const float q0 = _q_att(0);
     const float qv1 = _q_att(1);
     const float qv2 = _q_att(2);
@@ -172,8 +206,8 @@ void CdusBacksteppingAttitude::calcYawTorque() {
     const float Ix = _Ixx;
     const float Iy = _Iyy;
     const float Iz = _Izz;
-    const float k1 = _Kv;
-    const float k2 = _Ka;
+    const float k1 = _Kv_y;
+    const float k2 = _Ka_y;
     const float q0 = _q_att(0);
     const float qv1 = _q_att(1);
     const float qv2 = _q_att(2);
@@ -187,6 +221,25 @@ void CdusBacksteppingAttitude::calcYawTorque() {
     const float omega3 = _rates_body(2);
 
     _torque_sp(2) = -Iz*(k1*omega3 + k2*omega3 - q0*qc4 + qc1*qv3 - qc2*qv2 + qc3*qv1 - k1*k2*q0*qc4 + k1*k2*qc1*qv3 - k1*k2*qc2*qv2 + k1*k2*qc3*qv1 + Ix*omega1*omega2/Iz - Iy*omega1*omega2/Iz);
+}
+
+void CdusBacksteppingAttitude::updateYawRateSp() {
+	_yaw_rate_sp = _yaw_rate_scale * _manual_control.yaw;
+}
+
+void CdusBacksteppingAttitude::updateAttitudeWithYaw(float& dt) {
+	// 1) integrate
+	float dpsi = _yaw_rate_sp * dt;
+
+	// 2) delta yaw quaternion about NED Down axis
+	matrix::Quatf q_dyaw;
+	q_dyaw(0) = cosf(0.5f * dpsi);
+	q_dyaw(1) = 0.f;
+	q_dyaw(2) = 0.f;
+	q_dyaw(3) = sinf(0.5f * dpsi);
+
+	_q_att_sp = q_dyaw * _q_att_sp;
+	_q_att_sp.normalize();
 }
 
 /** ModuleBase interface **/

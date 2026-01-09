@@ -305,3 +305,131 @@ PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_FLOAT(MC_YAW_TQ_CUTOFF, 2.f);
+
+/**
+ * Attitude based backstepping control tuning parameter
+ *
+ * Tune +/- 5 starting at 10
+ * 0 disables the filter
+ *
+ * @min 0
+ * @max 100
+ * @unit Hz
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(BSA_ROLL_KV, 10.f);
+
+/**
+ * Attitude based backstepping control tuning parameter
+ *
+ * Tune +/- 5 starting at 10
+ * 0 disables the filter
+ *
+ * @min 0
+ * @max 100
+ * @unit Hz
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(BSA_ROLL_KA, 10.f);
+
+/**
+ * Attitude based backstepping control tuning parameter
+ *
+ * Tune +/- 5 starting at 10
+ * 0 disables the filter
+ *
+ * @min 0
+ * @max 100
+ * @unit Hz
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(BSA_PITCH_KV, 10.f);
+
+/**
+ * Attitude based backstepping control tuning parameter
+ *
+ * Tune +/- 5 starting at 10
+ * 0 disables the filter
+ *
+ * @min 0
+ * @max 100
+ * @unit Hz
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(BSA_PITCH_KA, 10.f);
+
+/**
+ * Attitude based backstepping control tuning parameter
+ *
+ * Tune +/- 5 starting at 10
+ * 0 disables the filter
+ *
+ * @min 0
+ * @max 100
+ * @unit Hz
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(BSA_YAW_KV, 10.f);
+
+/**
+ * Attitude based backstepping control tuning parameter
+ *
+ * Tune +/- 5 starting at 10
+ * 0 disables the filter
+ *
+ * @min 0
+ * @max 100
+ * @unit Hz
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(BSA_YAW_KA, 10.f);
+
+/**
+ * Attitude based backstepping control inertia parameter
+ *
+ * Tune +/- 5 starting at 10
+ * 0 disables the filter
+ *
+ * @min 0
+ * @max 100
+ * @unit Hz
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(BSA_IXX, 0.02f);
+
+/**
+ * Attitude based backstepping control inertia parameter
+ *
+ * Tune +/- 5 starting at 10
+ * 0 disables the filter
+ *
+ * @min 0
+ * @max 100
+ * @unit Hz
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(BSA_IYY, 0.02f);
+
+/**
+ * Attitude based backstepping control inertia parameter
+ *
+ * Tune +/- 5 starting at 10
+ * 0 disables the filter
+ *
+ * @min 0
+ * @max 100
+ * @unit Hz
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(BSA_IZZ, 0.02f);
+
+
