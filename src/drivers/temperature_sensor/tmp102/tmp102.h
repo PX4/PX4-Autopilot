@@ -47,6 +47,8 @@ using namespace time_literals;
 #define TMP102_TLOW_REG 0x02
 #define TMP102_THIGH_REG 0x03
 
+constexpr uint16_t DEFAULT_CONFIG_REG = 0x60A0; // 12-bit resolution, comparator mode, active low, 4Hz
+
 class TMP102 : public device::I2C, public I2CSPIDriver<TMP102>
 {
 public:
