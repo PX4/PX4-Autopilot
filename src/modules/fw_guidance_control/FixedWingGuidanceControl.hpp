@@ -68,11 +68,9 @@
 #include <uORB/topics/fixed_wing_lateral_guidance_status.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
 #include <uORB/topics/fixed_wing_runway_control.h>
-#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/trajectory_setpoint.h>
@@ -180,16 +178,11 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
-	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};
 	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
-	uORB::Publication<landing_gear_s> _landing_gear_pub {ORB_ID(landing_gear)};
-	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
-	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
 	uORB::PublicationData<fixed_wing_lateral_setpoint_s> _lateral_ctrl_sp_pub{ORB_ID(fixed_wing_lateral_setpoint)};
 	uORB::PublicationData<fixed_wing_longitudinal_setpoint_s> _longitudinal_ctrl_sp_pub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 	uORB::Publication<fixed_wing_lateral_guidance_status_s> _fixed_wing_lateral_guidance_status_pub{ORB_ID(fixed_wing_lateral_guidance_status)};
-	uORB::Publication<fixed_wing_runway_control_s> _fixed_wing_runway_control_pub{ORB_ID(fixed_wing_runway_control)};
 
 	position_setpoint_triplet_s _pos_sp_triplet{};
 	vehicle_control_mode_s _control_mode{};
@@ -292,47 +285,14 @@ private:
 	bool _skipping_takeoff_detection{false};
 
 	// AUTO LANDING
-
-	// corresponds to param FW_LND_NUDGE
-	enum LandingNudgingOption {
-		kNudgingDisabled = 0,
-		kNudgeApproachAngle,
-		kNudgeApproachPath
-	};
-
-	// [us] Start time of the landing approach. If a fixed-wing landing pattern is used, this timer starts *after any
-	// orbit to altitude only when the aircraft has entered the final *straight approach.
-	hrt_abstime _time_started_landing{0};
-
 	// [m] lateral touchdown position offset manually commanded during landing
 	float _lateral_touchdown_position_offset{0.0f};
-
-	// [m] relative vector from land point to approach entrance (NE)
-	Vector2f _landing_approach_entrance_offset_vector{};
-
-	// [m] relative height above land point
-	float _landing_approach_entrance_rel_alt{0.0f};
-
-	uint8_t _landing_abort_status{position_controller_landing_status_s::NOT_ABORTED};
-
-	// organize flare states XXX: need to split into a separate class at some point!
-	struct FlareStates {
-		bool flaring{false};
-		hrt_abstime start_time{0}; // [us]
-		float initial_height_rate_setpoint{0.0f}; // [m/s]
-	} _flare_states;
 
 	// [m] last terrain estimate which was valid
 	float _last_valid_terrain_alt_estimate{0.0f};
 
 	// [us] time at which we had last valid terrain alt
 	hrt_abstime _last_time_terrain_alt_was_valid{0};
-
-	enum TerrainEstimateUseOnLanding {
-		kDisableTerrainEstimation = 0,
-		kTriggerFlareWithTerrainEstimate,
-		kFollowTerrainRelativeLandingGlideSlope
-	};
 
 	// AIRSPEED
 
@@ -367,13 +327,6 @@ private:
 	// nonlinear path following guidance - lateral-directional position control
 	DirectionalGuidance _directional_guidance;
 
-	// LANDING GEAR
-	int8_t _new_landing_gear_position{landing_gear_s::GEAR_KEEP};
-
-	// FLAPS/SPOILERS
-	float _flaps_setpoint{0.f};
-	float _spoilers_setpoint{0.f};
-
 	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
 	float _min_current_sp_distance_xy{FLT_MAX};
 
@@ -390,39 +343,19 @@ private:
 
 	void wind_poll(const hrt_abstime now);
 
-	void landing_status_publish();
+	/**
+	 * @brief Vehicle control for following a path.
+	 *
+	 * @param control_interval Time since last position control call [s]
+	 * @param curr_pos Current 2D local position vector of vehicle [m]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param pos_sp_prev previous position setpoint
+	 * @param pos_sp_curr current position setpoint
+	 */
+	 void control_auto_path(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
+		const position_setpoint_s &pos_sp_curr);
 
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
-
-	/**
-	 * @brief Sets the landing abort status and publishes landing status.
-	 *
-	 * @param new_abort_status Either 0 (not aborted) or the singular bit >0 which triggered the abort
-	 */
-	void updateLandingAbortStatus(const uint8_t new_abort_status = position_controller_landing_status_s::NOT_ABORTED);
-
-	/**
-	 * @brief Checks if the automatic abort bitmask (from FW_LND_ABORT) contains the given abort criterion.
-	 *
-	 * @param automatic_abort_criteria_bitmask Bitmask containing all active abort criteria
-	 * @param landing_abort_criterion The specifc criterion we are checking for
-	 * @return true if the bitmask contains the criterion
-	 */
-	bool checkLandingAbortBitMask(const uint8_t automatic_abort_criteria_bitmask, uint8_t landing_abort_criterion);
-
-	/**
-	 * @brief Maps the manual control setpoint (pilot sticks) to height rate commands
-	 *
-	 * @return Manual height rate setpoint [m/s]
-	 */
-	float getManualHeightRateSetpoint();
-
-	/**
-	 * @brief Updates a state indicating whether a manual takeoff has been completed.
-	 *
-	 * Criteria include passing an airspeed threshold and not being in a landed state. VTOL airframes always pass.
-	 */
-	void updateManualTakeoffStatus();
 
 	/**
 	 * @brief Updates timing information for landed and in-air states.
@@ -430,165 +363,6 @@ private:
 	 * @param now Current system time [us]
 	 */
 	void update_in_air_states(const hrt_abstime now);
-
-	/**
-	 * @brief Moves the current position setpoint to a value far ahead of the current vehicle yaw when in  a VTOL
-	 * transition.
-	 *
-	 * @param[in,out] current_sp Current position setpoint
-	 */
-	void move_position_setpoint_for_vtol_transition(position_setpoint_s &current_sp);
-
-	/**
-	 * @brief Changes the position setpoint type to achieve the desired behavior in some instances.
-	 *
-	 * @param pos_sp_curr Current position setpoint
-	 * @return Adjusted position setpoint type
-	 */
-	uint8_t handle_setpoint_type(const position_setpoint_s &pos_sp_curr,
-				     const position_setpoint_s &pos_sp_next);
-
-	/* automatic control methods */
-
-	float get_manual_airspeed_setpoint();
-
-	void reset_takeoff_state();
-	void reset_landing_state();
-
-	/**
-	 * @brief Decides which control mode to execute.
-	 *
-	 * May also change the position setpoint type depending on the desired behavior.
-	 *
-	 * @param now Current system time [us]
-	 */
-	// void set_control_mode_current(const hrt_abstime &now);
-
-	void publishOrbitStatus(const position_setpoint_s pos_sp);
-
-	float getMaxRollAngleNearGround(const float altitude, const float terrain_altitude) const;
-
-	/**
-	 * @brief Calculates the touchdown position for landing with optional manual lateral adjustments.
-	 *
-	 * Manual inputs (from the remote) are used to command a rate at which the position moves and the integrated
-	 * position is bounded. This is useful for manually adjusting the landing point in real time when map or GNSS
-	 * errors cause an offset from the desired landing vector.
-	 *
-	 * @param control_interval Time since the last position control update [s]
-	 * @param local_land_position Originally commanded local land position (NE) [m]
-	 * @return (Nudged) Local touchdown position (NE) [m]
-	 */
-	Vector2f calculateTouchdownPosition(const float control_interval, const Vector2f &local_land_position);
-
-	/**
-	 * @brief Calculates the vector from landing approach entrance to touchdown point
-	 *
-	 * NOTE: calculateTouchdownPosition() MUST be called before this method
-	 *
-	 * @return Landing approach vector [m]
-	 */
-	Vector2f calculateLandingApproachVector() const;
-
-	/**
-	 * @brief Returns a terrain altitude estimate with consideration of altimeter measurements.
-	 *
-	 * @param now Current system time [us]
-	 * @param land_point_altitude Altitude (AMSL) of the land point [m]
-	 * @param abort_on_terrain_measurement_timeout Abort if distance to ground estimation doesn't get valid when we expect it to
-	 * @param abort_on_terrain_timeout Abort if distance to ground estimation is invalid after being valid before
-	 * @return Terrain altitude (AMSL) [m]
-	 */
-	float getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude,
-						const bool abort_on_terrain_measurement_timeout, const bool abort_on_terrain_timeout);
-
-	/**
-	 * @brief Initializes landing states
-	 *
-	 * @param now Current system time [us]
-	 * @param pos_sp_prev Previous position setpoint
-	 * @param land_point_alt Landing point altitude setpoint AMSL [m]
-	 * @param local_position Local aircraft position (NE) [m]
-	 * @param local_land_point Local land point (NE) [m]
-	 */
-	void initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
-				   const float land_point_alt, const Vector2f &local_position, const Vector2f &local_land_point);
-
-	/*
-	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
-	 * method of the same name. Takes two waypoints, steering the vehicle to track
-	 * the line segment between them.
-	 *
-	 * @param[in] start_waypoint Segment starting position in local coordinates. (N,E) [m]
-	 * @param[in] end_waypoint Segment end position in local coordinates. (N,E) [m]
-	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 */
-	DirectionalGuidanceOutput navigateWaypoints(const matrix::Vector2f &start_waypoint,
-			const matrix::Vector2f &end_waypoint,
-			const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
-			const matrix::Vector2f &wind_vel);
-
-	/*
-	 * Takes one waypoint and steers the vehicle towards this.
-	 *
-	 * NOTE: this *will lead to "flowering" behavior if no higher level state machine or
-	 * switching condition changes the waypoint.
-	 *
-	 * @param[in] waypoint_pos Waypoint position in local coordinates. (N,E) [m]
-	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 */
-	DirectionalGuidanceOutput navigateWaypoint(const matrix::Vector2f &waypoint_pos, const matrix::Vector2f &vehicle_pos,
-			const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel);
-
-	/*
-	 * Line (infinite) following logic. Two points on the line are used to define the
-	 * line in 2D space (first to second point determines the direction). Determines the
-	 * relevant parameters for evaluating the NPFG guidance law, then updates control setpoints.
-	 *
-	 * @param[in] point_on_line_1 Arbitrary first position on line in local coordinates. (N,E) [m]
-	 * @param[in] point_on_line_2 Arbitrary second position on line in local coordinates. (N,E) [m]
-	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 */
-	DirectionalGuidanceOutput navigateLine(const Vector2f &point_on_line_1, const Vector2f &point_on_line_2,
-					       const Vector2f &vehicle_pos,
-					       const Vector2f &ground_vel, const Vector2f &wind_vel);
-
-	/*
-	 * Line (infinite) following logic. One point on the line and a line bearing are used to define
-	 * the line in 2D space. Determines the relevant parameters for evaluating the NPFG guidance law,
-	 * then updates control setpoints.
-	 *
-	 * @param[in] point_on_line Arbitrary position on line in local coordinates. (N,E) [m]
-	 * @param[in] line_bearing Line bearing [rad] (from north)
-	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 */
-	DirectionalGuidanceOutput navigateLine(const Vector2f &point_on_line, const float line_bearing,
-					       const Vector2f &vehicle_pos,
-					       const Vector2f &ground_vel, const Vector2f &wind_vel);
-
-	/*
-	 * Loitering (unlimited) logic. Takes loiter center, radius, and direction and
-	 * determines the relevant parameters for evaluating the NPFG guidance law,
-	 * then updates control setpoints.
-	 *
-	 * @param[in] loiter_center The position of the center of the loiter circle [m]
-	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
-	 * @param[in] radius Loiter radius [m]
-	 * @param[in] loiter_direction_counter_clockwise Specifies loiter direction
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 */
-	DirectionalGuidanceOutput navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos,
-			float radius, bool loiter_direction_counter_clockwise, const matrix::Vector2f &ground_vel,
-			const matrix::Vector2f &wind_vel);
 
 	/*
 	 * Path following logic. Takes poisiton, path tangent, curvature and
@@ -608,25 +382,7 @@ private:
 			const matrix::Vector2f &tangent_setpoint,
 			const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
 
-	/*
-	 * Navigate on a fixed bearing.
-	 *
-	 * This only holds a certain (ground relative) direction and does not perform
-	 * cross track correction. Helpful for semi-autonomous modes.
-	 *
-	 * @param[in] vehicle_pos vehicle_pos Vehicle position in local coordinates. (N,E) [m]
-	 * @param[in] bearing Bearing angle [rad]
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 */
-	DirectionalGuidanceOutput navigateBearing(const matrix::Vector2f &vehicle_pos, float bearing,
-			const matrix::Vector2f &ground_vel,
-			const matrix::Vector2f &wind_vel);
-
-	void control_idle();
 	void publish_lateral_guidance_status(const hrt_abstime now);
-
-	float rollAngleToLateralAccel(float roll_body) const;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_R_LIM>) _param_fw_r_lim,
