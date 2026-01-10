@@ -237,7 +237,7 @@ FixedWingGuidanceControl::update_in_air_states(const hrt_abstime now)
 
 void
 FixedWingGuidanceControl::control_auto_path(const float control_interval, const Vector2d &curr_pos,
-					const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
+		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
 {
 	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
 
@@ -291,10 +291,11 @@ FixedWingGuidanceControl::Run()
 
 	/* only run controller if position changed and we are not running an external mode*/
 
-	const bool is_external_nav_state = (_vehicle_status.nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
-					   && (_vehicle_status.nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8);
+	const bool is_external_nav_state = ((_vehicle_status.nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
+					    && (_vehicle_status.nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8))
+					   || _vehicle_status.nav_state <= vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
 
-	if (is_external_nav_state) {
+	if (!is_external_nav_state) {
 		// this will cause the configuration handler to publish immediately the next time an internal flight
 		// mode is active
 		_ctrl_configuration_handler.resetLastPublishTime();

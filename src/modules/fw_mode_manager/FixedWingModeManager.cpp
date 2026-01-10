@@ -2014,12 +2014,12 @@ FixedWingModeManager::Run()
 		if (_pos_sp_triplet_sub.update(&_pos_sp_triplet)) {
 
 			_position_setpoint_previous_valid = PX4_ISFINITE(_pos_sp_triplet.previous.lat)
-								&& PX4_ISFINITE(_pos_sp_triplet.previous.lon)
-								&& PX4_ISFINITE(_pos_sp_triplet.previous.alt);
+							    && PX4_ISFINITE(_pos_sp_triplet.previous.lon)
+							    && PX4_ISFINITE(_pos_sp_triplet.previous.alt);
 
 			_position_setpoint_current_valid = PX4_ISFINITE(_pos_sp_triplet.current.lat)
-								&& PX4_ISFINITE(_pos_sp_triplet.current.lon)
-								&& PX4_ISFINITE(_pos_sp_triplet.current.alt);
+							   && PX4_ISFINITE(_pos_sp_triplet.current.lon)
+							   && PX4_ISFINITE(_pos_sp_triplet.current.alt);
 
 			_position_setpoint_next_valid = PX4_ISFINITE(_pos_sp_triplet.next.lat)
 							&& PX4_ISFINITE(_pos_sp_triplet.next.lon)
