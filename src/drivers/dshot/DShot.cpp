@@ -765,7 +765,10 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 {
 	int function = (int)(command.param5 + 0.5);
 
-	PX4_INFO("Received VEHICLE_CMD_CONFIGURE_ACTUATOR");
+	if (function > 1000) {
+		// NOTE: backwards compatibility for QGC - 1101=Motor1, 1102=Motor2, etc
+		function -= 1000;
+	}
 
 	int motor_index = -1;
 
