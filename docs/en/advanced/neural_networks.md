@@ -1,6 +1,6 @@
 # Neural Networks
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
 ::: warning
 This is an experimental module.

@@ -904,6 +904,7 @@
   - [Licenses](contribute/licenses.md)
 - [Releases](releases/index.md)
   - [main (alpha)](releases/main.md)
+  - [1.17 (alpha)](releases/1.17.md)
   - [1.16 (stable)](releases/1.16.md)
   - [1.15](releases/1.15.md)
   - [1.14](releases/1.14.md)
