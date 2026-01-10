@@ -102,31 +102,6 @@ FixedWingGuidanceControl::vehicle_control_mode_poll()
 }
 
 void
-FixedWingGuidanceControl::vehicle_command_poll()
-{
-	vehicle_command_s vehicle_command;
-
-	while (_vehicle_command_sub.update(&vehicle_command)) {
-		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
-
-			if ((static_cast<uint8_t>(vehicle_command.param1 + .5f) == vehicle_command_s::SPEED_TYPE_AIRSPEED)) {
-				if (vehicle_command.param2 > FLT_EPSILON) {	// param2 is an equivalent airspeed setpoint
-					if (_control_mode_current == FW_POSCTRL_MODE_AUTO) {
-						_pos_sp_triplet.current.cruising_speed = vehicle_command.param2;
-
-					} else if (_control_mode_current == FW_POSCTRL_MODE_MANUAL_ALTITUDE
-						   || _control_mode_current == FW_POSCTRL_MODE_MANUAL_POSITION) {
-						_commanded_manual_airspeed_setpoint = vehicle_command.param2;
-					}
-
-				}
-			}
-
-		}
-	}
-}
-
-void
 FixedWingGuidanceControl::airspeed_poll()
 {
 	airspeed_validated_s airspeed_validated;
@@ -423,7 +398,6 @@ FixedWingGuidanceControl::Run()
 		airspeed_poll();
 		manual_control_setpoint_poll();
 		vehicle_attitude_poll();
-		vehicle_command_poll();
 		vehicle_control_mode_poll();
 		wind_poll(now);
 

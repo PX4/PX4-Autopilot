@@ -373,21 +373,7 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 	_skipping_takeoff_detection = false;
 	const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
 
-	if (_control_mode.flag_control_offboard_enabled && _position_setpoint_current_valid
-	    && _control_mode.flag_control_position_enabled) {
-		if (PX4_ISFINITE(_pos_sp_triplet.current.vx) && PX4_ISFINITE(_pos_sp_triplet.current.vy)
-		    && PX4_ISFINITE(_pos_sp_triplet.current.vz)) {
-			// Offboard position with velocity setpoints
-			_control_mode_current = FW_POSCTRL_MODE_AUTO_PATH;
-			return;
-
-		} else {
-			// Offboard position setpoint only
-			_control_mode_current = FW_POSCTRL_MODE_AUTO;
-			return;
-		}
-
-	} else if ((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled)
+	if ((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled)
 		   && _position_setpoint_current_valid) {
 
 		// Enter this mode only if the current waypoint has valid 3D position setpoints.
@@ -2108,10 +2094,6 @@ FixedWingModeManager::Run()
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR: {
 				control_auto_landing_circular(now, control_interval, ground_speed, _pos_sp_triplet.current);
-				break;
-			}
-
-		case FW_POSCTRL_MODE_AUTO_PATH: {
 				break;
 			}
 

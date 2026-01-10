@@ -204,22 +204,6 @@ private:
 
 	uint8_t _position_sp_type{0};
 
-	enum FW_POSCTRL_MODE {
-		FW_POSCTRL_MODE_AUTO,
-		FW_POSCTRL_MODE_AUTO_ALTITUDE,
-		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
-		FW_POSCTRL_MODE_AUTO_TAKEOFF,
-		FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV,
-		FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
-		FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
-		FW_POSCTRL_MODE_AUTO_PATH,
-		FW_POSCTRL_MODE_MANUAL_POSITION,
-		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
-		FW_POSCTRL_MODE_TRANSITION_TO_HOVER_LINE_FOLLOW,
-		FW_POSCTRL_MODE_TRANSITION_TO_HOVER_HEADING_HOLD,
-		FW_POSCTRL_MODE_OTHER
-	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
-
 	enum StickConfig {
 		STICK_CONFIG_SWAP_STICKS_BIT = (1 << 0),
 		STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT = (1 << 1)
@@ -338,7 +322,6 @@ private:
 
 	void manual_control_setpoint_poll();
 	void vehicle_attitude_poll();
-	void vehicle_command_poll();
 	void vehicle_control_mode_poll();
 
 	void wind_poll(const hrt_abstime now);
