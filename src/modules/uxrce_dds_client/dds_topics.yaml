@@ -160,6 +160,9 @@ subscriptions:
   - topic: /fmu/in/trajectory_setpoint
     type: px4_msgs::msg::TrajectorySetpoint
 
+  - topic: /fmu/in/global_trajectory_setpoint
+    type: px4_msgs::msg::GlobalTrajectorySetpoint
+
   - topic: /fmu/in/vehicle_attitude_setpoint
     type: px4_msgs::msg::VehicleAttitudeSetpoint
 

@@ -338,13 +338,13 @@ FixedWingGuidanceControl::Run()
 		}
 
 		if (_control_mode.flag_control_offboard_enabled) {
-			trajectory_setpoint_s trajectory_setpoint;
+			global_trajectory_setpoint_s global_trajectory_setpoint;
 
-			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
+			if (_global_trajectory_setpoint_sub.update(&global_trajectory_setpoint)) {
 				bool valid_setpoint = false;
 				_pos_sp_triplet = {}; // clear any existing
-				_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
-				_pos_sp_triplet.current.timestamp = trajectory_setpoint.timestamp;
+				_pos_sp_triplet.timestamp = global_trajectory_setpoint.timestamp;
+				_pos_sp_triplet.current.timestamp = global_trajectory_setpoint.timestamp;
 				_pos_sp_triplet.current.cruising_speed = NAN; // ignored
 				_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
 				_pos_sp_triplet.current.vx = NAN;
@@ -354,31 +354,26 @@ FixedWingGuidanceControl::Run()
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
 
-				if (Vector3f(trajectory_setpoint.position).isAllFinite()) {
-					if (_global_local_proj_ref.isInitialized()) {
-						double lat;
-						double lon;
-						_global_local_proj_ref.reproject(trajectory_setpoint.position[0], trajectory_setpoint.position[1], lat, lon);
-						valid_setpoint = true;
-						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-						_pos_sp_triplet.current.lat = lat;
-						_pos_sp_triplet.current.lon = lon;
-						_pos_sp_triplet.current.alt = _reference_altitude - trajectory_setpoint.position[2];
-					}
-
-				}
-
-				if (Vector3f(trajectory_setpoint.velocity).isAllFinite()) {
+				if (PX4_ISFINITE(global_trajectory_setpoint.lat) && PX4_ISFINITE(global_trajectory_setpoint.lon)
+				    && PX4_ISFINITE(global_trajectory_setpoint.alt)) {
 					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-					_pos_sp_triplet.current.vx = trajectory_setpoint.velocity[0];
-					_pos_sp_triplet.current.vy = trajectory_setpoint.velocity[1];
-					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
+					_pos_sp_triplet.current.lat = global_trajectory_setpoint.lat;
+					_pos_sp_triplet.current.lon = global_trajectory_setpoint.lon;
+					_pos_sp_triplet.current.alt = global_trajectory_setpoint.alt;
+				}
 
-					if (Vector3f(trajectory_setpoint.acceleration).isAllFinite()) {
-						Vector2f velocity_sp_2d(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
+				if (Vector3f(global_trajectory_setpoint.velocity).isAllFinite()) {
+					valid_setpoint = true;
+					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+					_pos_sp_triplet.current.vx = global_trajectory_setpoint.velocity[0];
+					_pos_sp_triplet.current.vy = global_trajectory_setpoint.velocity[1];
+					_pos_sp_triplet.current.vz = global_trajectory_setpoint.velocity[2];
+
+					if (Vector3f(global_trajectory_setpoint.acceleration).isAllFinite()) {
+						Vector2f velocity_sp_2d(global_trajectory_setpoint.velocity[0], global_trajectory_setpoint.velocity[1]);
 						Vector2f normalized_velocity_sp_2d = velocity_sp_2d.normalized();
-						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
+						Vector2f acceleration_sp_2d(global_trajectory_setpoint.acceleration[0], global_trajectory_setpoint.acceleration[1]);
 						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(normalized_velocity_sp_2d) *
 									       normalized_velocity_sp_2d;
 						float direction = -normalized_velocity_sp_2d.cross(acceleration_normal.normalized());
@@ -392,7 +387,6 @@ FixedWingGuidanceControl::Run()
 
 				_position_setpoint_current_valid = valid_setpoint;
 			}
-
 		}
 
 		airspeed_poll();
