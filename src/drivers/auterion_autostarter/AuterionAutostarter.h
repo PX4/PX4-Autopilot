@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -124,7 +124,7 @@ private:
 		uint16_t flags; /**< offset 6 */
 		uint16_t num_blocks; /**< offset 8 */
 		uint8_t _reserved1[2]; /**< offset 10 */
-	};
+	} __attribute__((aligned(4)));
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -132,11 +132,11 @@ private:
 		uint8_t block_type; /**< offset 0 */
 		uint8_t block_type_version; /**< offset 1 */
 		uint16_t block_length; /**< offset 2 */
-	};
+	} __attribute__((aligned(4)));
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-	/* Block n starts at 12 + (n * 20) */
+	/* Block n starts at 12 + (n * 20), each block needs to contain a block_header and dev_type! */
 	struct EepromBlockPm {
 		EepromBlockHeader block_header; /**< offset 0 */
 		uint16_t dev_type; /**< offset 4 */
@@ -149,7 +149,7 @@ private:
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-	/* Block n starts at 12 + (n * 20) */
+	/* Block n starts at 12 + (n * 20), each block needs to contain a block_header and dev_type! */
 	struct EepromBlockPwmExpander {
 		EepromBlockHeader block_header; /**< offset 0 */
 		uint16_t dev_type; /**< offset 4 */

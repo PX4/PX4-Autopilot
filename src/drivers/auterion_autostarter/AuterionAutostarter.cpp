@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -92,9 +92,10 @@ void AuterionAutostarter::try_eeprom_start()
 	for (uint32_t i = 0U; i < BUSES_NUMBERS; i++) {
 		if (!_buses[i].started) {
 			if (eeprom_read(i) == PX4_OK) {
-				for (int ii = 0U; ii < _eeprom_num_decoded_blocks && ii < EEPROM_MAX_BLOCKS; ii++) {
+				int ret_val = PX4_OK;
+
+				for (uint32_t ii = 0U; ii < _eeprom_num_decoded_blocks && ii < EEPROM_MAX_BLOCKS; ii++) {
 					DecodedBlock decoded_block = _eeprom_decoded_blocks[ii];
-					int ret_val = PX4_ERROR;
 
 					switch (decoded_block.block_type) {
 					case TYPE_PM: {
@@ -102,21 +103,21 @@ void AuterionAutostarter::try_eeprom_start()
 							uint16_t dev_type = block_pm.dev_type;
 							set_max_current(dev_type, block_pm.max_current);
 							set_shunt_value(dev_type, block_pm.shunt_value);
-							ret_val = start_pm(_buses[i].bus_number, dev_type, block_pm.i2c_addr, _buses[i].id);
+							ret_val |= start_pm(_buses[i].bus_number, dev_type, block_pm.i2c_addr, _buses[i].id);
 							break;
 						}
 
 					case TYPE_PWM_EXPANDER: {
 							EepromBlockPwmExpander block_pwm_expader = decoded_block.block_pwm_expander;
 							uint16_t dev_type = block_pwm_expader.dev_type;
-							ret_val = start_i2c_driver(_buses[i].bus_number, dev_type, block_pwm_expader.i2c_addr);
+							ret_val |= start_i2c_driver(_buses[i].bus_number, dev_type, block_pwm_expader.i2c_addr);
 							break;
 						}
 					}
+				}
 
-					if (ret_val == PX4_OK) {
-						_buses[i].started = true;
-					}
+				if (ret_val == PX4_OK) {
+					_buses[i].started = true;
 				}
 			}
 		}
@@ -287,7 +288,7 @@ int AuterionAutostarter::eeprom_read_block(struct i2c_master_s *i2c, const uint3
 				EepromBlockPm *block_pm = &block.block_pm;
 				block.block_type = TYPE_PM;
 				block_pm->block_header = eeprom_block_header;
-				eeprom_read_block_data<EepromBlockPm>(i2c, instance, crc, block_pm);
+				ret |= eeprom_read_block_data<EepromBlockPm>(i2c, instance, crc, block_pm);
 				break;
 			}
 
@@ -297,7 +298,7 @@ int AuterionAutostarter::eeprom_read_block(struct i2c_master_s *i2c, const uint3
 				EepromBlockPwmExpander *block_pwm_expander = &block.block_pwm_expander;
 				block.block_type = TYPE_PWM_EXPANDER;
 				block_pwm_expander->block_header = eeprom_block_header;
-				eeprom_read_block_data<EepromBlockPwmExpander>(i2c, instance, crc, block_pwm_expander);
+				ret |= eeprom_read_block_data<EepromBlockPwmExpander>(i2c, instance, crc, block_pwm_expander);
 				break;
 			}
 
