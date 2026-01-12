@@ -166,7 +166,7 @@ void FwLateralLongitudinalControl::Run()
 			_landed = landed.landed;
 		}
 
-		_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
+		uint8_t current_flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
 
 		_vehicle_status_sub.update();
 		_control_mode_sub.update();
@@ -211,18 +211,18 @@ void FwLateralLongitudinalControl::Run()
 			// If the both altitude and height rate are set, set altitude setpoint to NAN
 			const float altitude_sp = PX4_ISFINITE(_long_control_sp.height_rate) ? NAN : _long_control_sp.altitude;
 
-			tecs_update_pitch_throttle(control_interval, altitude_sp,
-						   airspeed_sp_eas,
-						   _long_configuration.pitch_min,
-						   _long_configuration.pitch_max,
-						   _long_configuration.throttle_min,
-						   _long_configuration.throttle_max,
-						   _long_configuration.sink_rate_target,
-						   _long_configuration.climb_rate_target,
-						   _long_configuration.disable_underspeed_protection,
-						   _long_control_sp.height_rate,
-						   now
-						  );
+			current_flight_phase = tecs_update_pitch_throttle(control_interval, altitude_sp,
+					       airspeed_sp_eas,
+					       _long_configuration.pitch_min,
+					       _long_configuration.pitch_max,
+					       _long_configuration.throttle_min,
+					       _long_configuration.throttle_max,
+					       _long_configuration.sink_rate_target,
+					       _long_configuration.climb_rate_target,
+					       _long_configuration.disable_underspeed_protection,
+					       _long_control_sp.height_rate,
+					       now
+									 );
 
 			pitch_sp = PX4_ISFINITE(_long_control_sp.pitch_direct) ? _long_control_sp.pitch_direct : _tecs.get_pitch_setpoint();
 			throttle_sp = PX4_ISFINITE(_long_control_sp.throttle_direct) ? _long_control_sp.throttle_direct :
@@ -319,8 +319,15 @@ void FwLateralLongitudinalControl::Run()
 
 		}
 
-		_flight_phase_estimation_pub.get().timestamp = now;
-		_flight_phase_estimation_pub.update();
+		// Publish flight phase with low rate, but immediately if updated
+		const bool flight_phase_updated = current_flight_phase != _flight_phase_estimation_pub.get().flight_phase;
+		const hrt_abstime time_since_last_flightphase_pub = now - _flight_phase_estimation_pub.get().timestamp;
+
+		if (flight_phase_updated || time_since_last_flightphase_pub >= 1_s) {
+			_flight_phase_estimation_pub.get().timestamp = now;
+			_flight_phase_estimation_pub.get().flight_phase = current_flight_phase;
+			_flight_phase_estimation_pub.update();
+		}
 
 		_z_reset_counter = _local_pos.z_reset_counter;
 	}
@@ -361,7 +368,7 @@ void FwLateralLongitudinalControl::updateControllerConfiguration(hrt_abstime tim
 	}
 }
 
-void
+uint8_t
 FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
 		float pitch_min_rad, float pitch_max_rad, float throttle_min,
 		float throttle_max, const float desired_max_sinkrate,
@@ -375,8 +382,7 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 	    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		|| _vehicle_status_sub.get().in_transition_mode)) {
 		tecs_is_running = false;
-		return;
-
+		return flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
 	}
 
 	const float throttle_trim_compensated = _performance_model.getTrimThrottle(throttle_min,
@@ -414,22 +420,23 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 		// Check level flight: the height rate setpoint is not set or set to 0 and we are close to the target altitude and target altitude is not moving
 		if ((fabsf(tecs_output.height_rate_reference) < MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) &&
 		    fabsf(_long_control_state.altitude_msl - tecs_output.altitude_reference) < _param_nav_fw_alt_rad.get()) {
-			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_LEVEL;
+			return flight_phase_estimation_s::FLIGHT_PHASE_LEVEL;
 
 		} else if (((tecs_output.altitude_reference - _long_control_state.altitude_msl) >= _param_nav_fw_alt_rad.get()) ||
 			   (tecs_output.height_rate_reference >= MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT)) {
-			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_CLIMB;
+			return flight_phase_estimation_s::FLIGHT_PHASE_CLIMB;
 
 		} else if (((_long_control_state.altitude_msl - tecs_output.altitude_reference) >= _param_nav_fw_alt_rad.get()) ||
 			   (tecs_output.height_rate_reference <= -MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT)) {
-			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_DESCEND;
+			return flight_phase_estimation_s::FLIGHT_PHASE_DESCEND;
 
 		} else {
-			// We can't infer the flight phase , do nothing, estimation is reset at each step
-			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
-
+			// We can't infer the flight phase
+			return flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
 		}
 	}
+
+	return flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
 }
 
 void
