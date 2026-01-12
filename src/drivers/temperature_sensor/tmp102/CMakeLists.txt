@@ -38,7 +38,6 @@ px4_add_module(
 	SRCS
 		tmp102_main.cpp
 		tmp102.cpp
-		tmp102.h
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
