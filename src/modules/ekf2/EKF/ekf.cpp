@@ -425,7 +425,7 @@ void Ekf::updateParameters()
 }
 
 template<typename T>
-static void printRingBuffer(const char *name, RingBuffer<T> *rb)
+static void printRingBuffer(const char *name, TimestampedRingBuffer<T> *rb)
 {
 	if (rb) {
 		printf("%s: %d/%d entries (%d/%d Bytes) (%zu Bytes per entry)\n",

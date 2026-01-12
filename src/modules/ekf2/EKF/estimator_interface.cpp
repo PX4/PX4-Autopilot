@@ -128,7 +128,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 
 	// Allocate the required buffer size if not previously done
 	if (_mag_buffer == nullptr) {
-		_mag_buffer = new RingBuffer<magSample>(_obs_buffer_length);
+		_mag_buffer = new TimestampedRingBuffer<magSample>(_obs_buffer_length);
 
 		if (_mag_buffer == nullptr || !_mag_buffer->valid()) {
 			delete _mag_buffer;
@@ -167,7 +167,7 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample, const bool pp
 
 	// Allocate the required buffer size if not previously done
 	if (_gps_buffer == nullptr) {
-		_gps_buffer = new RingBuffer<gnssSample>(_obs_buffer_length);
+		_gps_buffer = new TimestampedRingBuffer<gnssSample>(_obs_buffer_length);
 
 		if (_gps_buffer == nullptr || !_gps_buffer->valid()) {
 			delete _gps_buffer;
@@ -216,7 +216,7 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 
 	// Allocate the required buffer size if not previously done
 	if (_baro_buffer == nullptr) {
-		_baro_buffer = new RingBuffer<baroSample>(_obs_buffer_length);
+		_baro_buffer = new TimestampedRingBuffer<baroSample>(_obs_buffer_length);
 
 		if (_baro_buffer == nullptr || !_baro_buffer->valid()) {
 			delete _baro_buffer;
@@ -255,7 +255,7 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 
 	// Allocate the required buffer size if not previously done
 	if (_airspeed_buffer == nullptr) {
-		_airspeed_buffer = new RingBuffer<airspeedSample>(_obs_buffer_length);
+		_airspeed_buffer = new TimestampedRingBuffer<airspeedSample>(_obs_buffer_length);
 
 		if (_airspeed_buffer == nullptr || !_airspeed_buffer->valid()) {
 			delete _airspeed_buffer;
@@ -293,7 +293,7 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 
 	// Allocate the required buffer size if not previously done
 	if (_range_buffer == nullptr) {
-		_range_buffer = new RingBuffer<sensor::rangeSample>(_obs_buffer_length);
+		_range_buffer = new TimestampedRingBuffer<sensor::rangeSample>(_obs_buffer_length);
 
 		if (_range_buffer == nullptr || !_range_buffer->valid()) {
 			delete _range_buffer;
@@ -332,7 +332,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 
 	// Allocate the required buffer size if not previously done
 	if (_flow_buffer == nullptr) {
-		_flow_buffer = new RingBuffer<flowSample>(_imu_buffer_length);
+		_flow_buffer = new TimestampedRingBuffer<flowSample>(_imu_buffer_length);
 
 		if (_flow_buffer == nullptr || !_flow_buffer->valid()) {
 			delete _flow_buffer;
@@ -370,7 +370,7 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 
 	// Allocate the required buffer size if not previously done
 	if (_ext_vision_buffer == nullptr) {
-		_ext_vision_buffer = new RingBuffer<extVisionSample>(_obs_buffer_length);
+		_ext_vision_buffer = new TimestampedRingBuffer<extVisionSample>(_obs_buffer_length);
 
 		if (_ext_vision_buffer == nullptr || !_ext_vision_buffer->valid()) {
 			delete _ext_vision_buffer;
@@ -410,7 +410,7 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 
 	// Allocate the required buffer size if not previously done
 	if (_auxvel_buffer == nullptr) {
-		_auxvel_buffer = new RingBuffer<auxVelSample>(_obs_buffer_length);
+		_auxvel_buffer = new TimestampedRingBuffer<auxVelSample>(_obs_buffer_length);
 
 		if (_auxvel_buffer == nullptr || !_auxvel_buffer->valid()) {
 			delete _auxvel_buffer;
@@ -447,7 +447,7 @@ void EstimatorInterface::setSystemFlagData(const systemFlagUpdate &system_flags)
 
 	// Allocate the required buffer size if not previously done
 	if (_system_flag_buffer == nullptr) {
-		_system_flag_buffer = new RingBuffer<systemFlagUpdate>(_obs_buffer_length);
+		_system_flag_buffer = new TimestampedRingBuffer<systemFlagUpdate>(_obs_buffer_length);
 
 		if (_system_flag_buffer == nullptr || !_system_flag_buffer->valid()) {
 			delete _system_flag_buffer;
@@ -483,7 +483,7 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 
 		// Allocate the required buffer size if not previously done
 		if (_drag_buffer == nullptr) {
-			_drag_buffer = new RingBuffer<dragSample>(_obs_buffer_length);
+			_drag_buffer = new TimestampedRingBuffer<dragSample>(_obs_buffer_length);
 
 			if (_drag_buffer == nullptr || !_drag_buffer->valid()) {
 				delete _drag_buffer;

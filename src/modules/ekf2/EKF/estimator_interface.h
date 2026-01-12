@@ -62,7 +62,7 @@
 #endif
 
 #include "common.h"
-#include "RingBuffer.h"
+#include <lib/ringbuffer/TimestampedRingBuffer.hpp>
 #include "imu_down_sampler/imu_down_sampler.hpp"
 #include "output_predictor/output_predictor.h"
 
@@ -375,7 +375,7 @@ protected:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	RingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
+	TimestampedRingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
 	uint64_t _time_last_range_buffer_push{0};
 
 	sensor::SensorRangeFinder _range_sensor{};
@@ -383,7 +383,7 @@ protected:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	RingBuffer<flowSample> 	*_flow_buffer {nullptr};
+	TimestampedRingBuffer<flowSample> 	*_flow_buffer {nullptr};
 
 	flowSample _flow_sample_delayed{};
 
@@ -403,7 +403,7 @@ protected:
 	float _local_origin_alt{NAN};
 
 #if defined(CONFIG_EKF2_GNSS)
-	RingBuffer<gnssSample> *_gps_buffer {nullptr};
+	TimestampedRingBuffer<gnssSample> *_gps_buffer {nullptr};
 	uint64_t _time_last_gps_buffer_push{0};
 
 	gnssSample _gps_sample_delayed{};
@@ -429,7 +429,7 @@ protected:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	RingBuffer<dragSample> *_drag_buffer {nullptr};
+	TimestampedRingBuffer<dragSample> *_drag_buffer {nullptr};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 #endif // CONFIG_EKF2_DRAG_FUSION
 
@@ -444,29 +444,29 @@ protected:
 
 	// data buffer instances
 	static constexpr uint8_t kBufferLengthDefault = 12;
-	RingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
+	TimestampedRingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	RingBuffer<magSample> *_mag_buffer {nullptr};
+	TimestampedRingBuffer<magSample> *_mag_buffer {nullptr};
 	uint64_t _time_last_mag_buffer_push{0};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-	RingBuffer<airspeedSample> *_airspeed_buffer {nullptr};
+	TimestampedRingBuffer<airspeedSample> *_airspeed_buffer {nullptr};
 	bool _synthetic_airspeed{false};
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	RingBuffer<extVisionSample> *_ext_vision_buffer {nullptr};
+	TimestampedRingBuffer<extVisionSample> *_ext_vision_buffer {nullptr};
 	uint64_t _time_last_ext_vision_buffer_push{0};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_AUXVEL)
-	RingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
+	TimestampedRingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
 #endif // CONFIG_EKF2_AUXVEL
-	RingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
+	TimestampedRingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	RingBuffer<baroSample> *_baro_buffer {nullptr};
+	TimestampedRingBuffer<baroSample> *_baro_buffer {nullptr};
 	uint64_t _time_last_baro_buffer_push{0};
 #endif // CONFIG_EKF2_BAROMETER
 
