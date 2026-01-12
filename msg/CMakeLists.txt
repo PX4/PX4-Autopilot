@@ -540,8 +540,7 @@ if(CONFIG_LIB_CDRSTREAM)
 
 	add_custom_target(
 		uorb_idl_header
-		COMMAND ${PYTHON_EXECUTABLE}
-	${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 			--uorb-idl-header
 			-f ${msg_files}
 			-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned

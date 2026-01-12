@@ -26,7 +26,7 @@ float32 test_ratio            # [-] normalized innovation squared (NIS)
 uint8 fusion_status           # [-] fusion status code
 
 # OOSM Diagnostics
-float32 time_since_meas_ms     # [ms] (now - timestamp_sample)
-uint8 history_steps            # [-] number of steps replayed in OOSM (0 if current or failed)
+float32 time_since_meas_ms    # [ms] (now - timestamp_sample)
+uint8 history_steps           # [-] number of steps replayed in OOSM (0 if current or failed)
 
 # TOPICS vte_aid_ev_yaw
