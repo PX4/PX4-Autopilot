@@ -213,11 +213,12 @@ private:
 
 	void parameters_update();
 	void update_control_state(hrt_abstime now);
-	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
-					float pitch_min_rad, float pitch_max_rad, float throttle_min,
-					float throttle_max, const float desired_max_sinkrate,
-					const float desired_max_climbrate,
-					bool disable_underspeed_detection, float hgt_rate_sp, hrt_abstime now);
+
+	uint8_t tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
+					   float pitch_min_rad, float pitch_max_rad, float throttle_min,
+					   float throttle_max, const float desired_max_sinkrate,
+					   const float desired_max_climbrate,
+					   bool disable_underspeed_detection, float hgt_rate_sp, hrt_abstime now);
 
 	void tecs_status_publish(float alt_sp, float equivalent_airspeed_sp, float true_airspeed_derivative_raw,
 				 float throttle_trim, hrt_abstime now);
