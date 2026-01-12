@@ -110,7 +110,7 @@ float TMP102::read_temperature()
 		return NAN;
 	}
 
-	float temperature = (tmp_data >> 4) * 0.0625f;
+	float temperature = ((int16_t)(tmp_data << 4) >> 4) * 0.0625f;
 	return temperature;
 }
 
