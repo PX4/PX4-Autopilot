@@ -116,20 +116,14 @@ float TMP102::read_temperature()
 
 int TMP102::read_reg(uint8_t reg, uint16_t &data)
 {
-	int ret = PX4_OK;
 	uint8_t tmp_data[2];
+	tmp_data[0] = reg;
 
-	if (reg != _curr_pr) {
-		tmp_data[0] = reg;
-
-		if (transfer(tmp_data, 1, nullptr, 0) == PX4_OK) {
-			_curr_pr = reg;
-		} else {
-			return PX4_ERROR;
-		}
+	if (transfer(tmp_data, 1, nullptr, 0) != PX4_OK) { // Set the PR to the desired register
+		return PX4_ERROR;
 	}
 
-	ret |= transfer(nullptr, 0, tmp_data, 2); // Now read the data from the desired register
+	int ret = transfer(nullptr, 0, tmp_data, 2); // Read the data from the desired register
 	data = (tmp_data[0] << 8) | tmp_data[1];
 	return ret;
 }
