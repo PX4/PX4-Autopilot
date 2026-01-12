@@ -78,7 +78,7 @@ int TMP102::probe()
 	uint16_t conf_reg;
 
 	for (int i = 0; i < 3; i++) {
-		if (read_reg(TMP102_CONFIG_REG, conf_reg) == PX4_OK && conf_reg == DEFAULT_CONFIG_REG) {
+		if (read_reg(TMP102_CONFIG_REG, conf_reg) == PX4_OK && (conf_reg | 0x0020) == DEFAULT_CONFIG_REG) { // Mask the AL bit
 			return PX4_OK;
 		}
 
