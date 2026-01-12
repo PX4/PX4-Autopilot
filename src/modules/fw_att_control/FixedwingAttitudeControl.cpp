@@ -357,6 +357,9 @@ void FixedwingAttitudeControl::Run()
 					// --- Blend A and B ---
 					Vector3f body_rates_setpoint = (1.f - s) * rates_tilt + s * rates_full;
 
+					// Only use A for testing
+					body_rates_setpoint = rates_full;
+
 
 					// limit rates (kept identical)
 					body_rates_setpoint(0) = constrain(body_rates_setpoint(0), -_max_roll_rate, _max_roll_rate);
