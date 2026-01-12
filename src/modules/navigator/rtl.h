@@ -130,15 +130,14 @@ private:
 	 * @brief Find RTL destination.
 	 *
 	 */
-	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &rtl_position, float &rtl_alt,
+	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &rtl_position,
 				uint8_t &safe_point_index);
 
 	/**
 	 * @brief Find RTL destination if only safe points are considered
 	 *
 	 */
-	void findClosestSafePoint(PositionYawSetpoint &rtl_position, float &rtl_alt,
-				  uint8_t &safe_point_index);
+	void findClosestSafePoint(PositionYawSetpoint &rtl_position, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
@@ -154,14 +153,14 @@ private:
 	void setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mission_item_s &mission_safe_point) const;
 
 	/**
-	 * @brief calculate return altitude from cone half angle
+	 * @brief calculate return altitude from cone angle other variables
 	 *
 	 * @param[in] rtl_position landing position of the rtl
 	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
 	 * @return return altitude
 	 */
-	float calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &rtl_position,
-			float cone_half_angle_deg) const;
+	float adapt_return_alt_if_needed(const PositionYawSetpoint &rtl_position,
+					 float cone_half_angle_deg) const;
 
 	/**
 	 * @brief initialize RTL mission type
