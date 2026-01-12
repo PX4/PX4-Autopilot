@@ -124,6 +124,8 @@ int TMP102::read_reg(uint8_t reg, uint16_t &data)
 
 		if (transfer(tmp_data, 1, nullptr, 0) == PX4_OK) {
 			_curr_pr = reg;
+		} else {
+			return PX4_ERROR;
 		}
 	}
 
