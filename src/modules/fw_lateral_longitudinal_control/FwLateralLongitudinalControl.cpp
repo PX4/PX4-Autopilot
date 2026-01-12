@@ -166,6 +166,8 @@ void FwLateralLongitudinalControl::Run()
 			_landed = landed.landed;
 		}
 
+		_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
+
 		_vehicle_status_sub.update();
 		_control_mode_sub.update();
 
@@ -317,6 +319,9 @@ void FwLateralLongitudinalControl::Run()
 
 		}
 
+		_flight_phase_estimation_pub.get().timestamp = now;
+		_flight_phase_estimation_pub.update();
+
 		_z_reset_counter = _local_pos.z_reset_counter;
 	}
 
@@ -424,9 +429,6 @@ FwLateralLongitudinalControl::tecs_update_pitch_throttle(const float control_int
 			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
 
 		}
-
-		_flight_phase_estimation_pub.get().timestamp = now;
-		_flight_phase_estimation_pub.update();
 	}
 }
 
