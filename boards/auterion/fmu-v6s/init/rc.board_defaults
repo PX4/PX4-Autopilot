@@ -36,3 +36,40 @@ time_persistor start
 
 # Start the ESC telemetry
 dshot telemetry -d /dev/ttyS5 -x
+
+if param compare -s SER_FWD_PORT 1
+then
+	# GPS1
+	serial_socat start -p 5760 -d /dev/ttyS6 -b 115200
+	echo "Fwd: GPS1@115200 <-> 10.41.10.2:5760"
+	set PRT_GPS1_ 1
+	param reset SER_FWD_PORT
+fi
+
+if param compare -s SER_FWD_PORT 2
+then
+	# TELEM2
+	serial_socat start -p 5760 -d /dev/ttyS2 -b 420000
+	echo "Fwd: TELEM2@420000 <-> 10.41.10.2:5760"
+	set PRT_TEL2_ 1
+	param reset SER_FWD_PORT
+fi
+
+if param compare -s SER_FWD_PORT 3
+then
+	# ESC port, swapped and single wire
+	serial_socat start -p 5760 -d /dev/ttyS5 -b 115200 -s
+	echo "Fwd: ESC@115200 <-> 10.41.10.2:5760"
+	# manually invalidate the dshot telemetry port to avoid conflict
+	dshot telemetry -d none
+	param reset SER_FWD_PORT
+fi
+
+if param compare -s SER_FWD_PORT 4
+then
+	# RC port, swapped, single wire, and two stop bits
+	serial_socat start -p 5760 -d /dev/ttyS4 -b 115200 -x -s -2
+	echo "Fwd: RC@115200 <-> 10.41.10.2:5760"
+	set PRT_RC_ 1
+	param reset SER_FWD_PORT
+fi
