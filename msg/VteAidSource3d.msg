@@ -5,10 +5,10 @@ uint64 timestamp_sample          # [us] timestamp of the raw observation
 uint64 time_last_predict         # [us] timestamp of last filter prediction
 
 # Observation & Innovation
-float32[3] observation		 # [-] [@frame NED] sensor observation attempted to be fused
+float32[3] observation           # [-] [@frame NED] sensor observation attempted to be fused
 float32[3] observation_variance  # [-] [@frame NED] variance of the observation attempted to be fused
 
-float32[3] innovation		 # [-] [@frame NED] Kalman Filter innovation (y = z - Hx)
+float32[3] innovation            # [-] [@frame NED] Kalman Filter innovation (y = z - Hx)
 float32[3] innovation_variance	 # [-] [@frame NED] Kalman Filter variance of the innovation
 
 float32[3] test_ratio            # [-] normalized innovation squared (NIS)
