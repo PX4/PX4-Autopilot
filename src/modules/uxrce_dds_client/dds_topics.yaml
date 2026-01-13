@@ -96,10 +96,6 @@ publications:
     type: px4_msgs::msg::SensorGyro
     rate_limit: 250.
 
-  - topic: /fmu/out/naor_debug
-    type: px4_msgs::msg::NaorDebug
-    rate_limit: 30.
-
   - topic: /fmu/out/rc_channels
     type: px4_msgs::msg::RcChannels
     rate_limit: 100.
@@ -127,6 +123,18 @@ publications:
   # - topic: /fmu/out/vehicle_local_position_setpoint
     # type: px4_msgs::msg::VehicleLocalPositionSetpoint
     # rate_limit: 50.
+
+  - topic: /fmu/out/sensor_gps
+    type: px4_msgs::msg::SensorGps
+    rate_limit: 50.
+
+  
+  - topic: /fmu/out/formic/debug_flag
+    type: px4_msgs::msg::DebugFlag
+    rate_limit: 30.
+
+
+
 
 
 

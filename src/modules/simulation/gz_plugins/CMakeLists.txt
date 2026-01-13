@@ -31,6 +31,13 @@
 #
 ############################################################################
 
+# Set policy version minimum to allow compatibility with older config files (like jsoncpp)
+# This is needed because system-installed jsoncpp config files may use older CMake policy syntax
+# The jsoncpp config file uses cmake_policy(VERSION < 3.5) which is no longer allowed by default
+# Setting CMAKE_POLICY_VERSION_MINIMUM as a cache variable allows imported packages to use older policy syntax
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum CMake policy version" FORCE)
+cmake_policy(VERSION 3.5...3.30)
+
 project(px4_gz_plugins)
 
 if(NOT DEFINED ENV{GZ_DISTRO} OR NOT "$ENV{GZ_DISTRO}"  STREQUAL "harmonic")

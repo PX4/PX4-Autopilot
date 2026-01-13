@@ -182,6 +182,8 @@
 
 	 void throwLaunchUpdate();
  
+	 void turtleModeUpdate();
+
 	 void vtolStatusUpdate();
  
 	 void updateTunes();

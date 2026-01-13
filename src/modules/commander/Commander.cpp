@@ -1895,25 +1895,8 @@
  
 		 _multicopter_throw_launch.update(isArmed());
 
-		 _multicopter_turtle.update(isArmed()); 
-		 
-		 // Handle turtle mode arming/disarming (bypass preflight checks for turtle mode)
-		 if (_multicopter_turtle.shouldArm() && !isArmed()) {
-			 arm(arm_disarm_reason_t::command_internal, false); // Bypass preflight checks
-		 } else if (_multicopter_turtle.shouldDisarm() && isArmed()) {
-			 disarm(arm_disarm_reason_t::command_internal, false);
-			 _multicopter_turtle.clearDisarmFlag(); // Clear the flag after disarming
-		 }
-		 
-		 // Handle turtle mode nav_state changes (only when ACTIVE or leaving ACTIVE)
-		 const uint8_t turtle_desired_nav_state = _multicopter_turtle.getDesiredNavState();
-		 if (turtle_desired_nav_state != vehicle_status_s::NAVIGATION_STATE_MAX && 
-		     _user_mode_intention.get() != turtle_desired_nav_state) {
-			 if (_user_mode_intention.change(turtle_desired_nav_state, ModeChangeSource::User, false, true)) {
-				 // Mark that we've requested the nav_state change to prevent repeated requests
-				 _multicopter_turtle.markNavStateChangeRequested();
-			 }
-		 }
+
+		 turtleModeUpdate();
 		 
  
 		 vtolStatusUpdate();
@@ -3151,4 +3134,28 @@ void Commander::updateTotalArmTime(hrt_abstime arm_time_us)
 	 total_arm_time_msg.cumulative_base_ms = _total_arm_time_at_session_start_ms;
 	 total_arm_time_msg.total_arm_time_ms = total_arm_time_ms;
 	 _total_arm_time_pub.publish(total_arm_time_msg);
+}
+
+
+void Commander::turtleModeUpdate()
+{
+	_multicopter_turtle.update(isArmed()); 
+			
+	// Handle turtle mode arming/disarming (bypass preflight checks for turtle mode)
+	if (_multicopter_turtle.shouldArm() && !isArmed()) {
+		arm(arm_disarm_reason_t::command_internal, false); // Bypass preflight checks
+	} else if (_multicopter_turtle.shouldDisarm() && isArmed()) {
+		disarm(arm_disarm_reason_t::command_internal, false);
+		_multicopter_turtle.clearDisarmFlag(); // Clear the flag after disarming
+	}
+
+	// Handle turtle mode nav_state changes (only when ACTIVE or leaving ACTIVE)
+	const uint8_t turtle_desired_nav_state = _multicopter_turtle.getDesiredNavState();
+	if (turtle_desired_nav_state != vehicle_status_s::NAVIGATION_STATE_MAX && 
+	_user_mode_intention.get() != turtle_desired_nav_state) {
+		if (_user_mode_intention.change(turtle_desired_nav_state, ModeChangeSource::User, false, true)) {
+			// Mark that we've requested the nav_state change to prevent repeated requests
+			_multicopter_turtle.markNavStateChangeRequested();
+		}
+	}
 }

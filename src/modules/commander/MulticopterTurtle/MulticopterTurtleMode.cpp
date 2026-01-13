@@ -4,34 +4,61 @@
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/time.h>
+#include <px4_platform_common/shutdown.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <uORB/topics/actuator_motors.h>
 #include <parameters/param.h>
 #include <inttypes.h>
 #include <math.h>
 #include <float.h>
+#include <stdio.h>
 
-// Forward declaration for dshot_main
+using namespace MulticopterTurtleUtil;
+
+// Forward declaration of dshot_main (only available on hardware builds)
+#if !defined(__PX4_POSIX)
 extern "C" int dshot_main(int argc, char *argv[]);
+#endif
+
+// Wrapper function to handle dshot_main calls in both SITL and hardware builds
+static int call_dshot_main(int argc, char *argv[])
+{
+#if defined(__PX4_POSIX)
+	// In SITL, dshot_main is not available, so we simulate it
+	// Just log and return success since there's no actual hardware
+	const char *cmd = (argc > 1) ? argv[1] : "unknown";
+	PX4_INFO("dshot command simulated (SITL): %s", cmd);
+	return 0;
+#else
+	// On hardware, call the real dshot_main
+	return dshot_main(argc, argv);
+#endif
+}
 
 MulticopterTurtleMode::MulticopterTurtleMode(ModuleParams *parent) :
 	ModuleParams(parent)
 {
-	PX4_INFO("MulticopterTurtleMode initialized, aux channel: %.0f", (double)getAuxChannel());
+	getMotorData(_motor_data);
+	_thr_factor = thr_factor();
+	updateDshot3dParameter(false, false);
+
+
 }
 
 void MulticopterTurtleMode::update(const bool armed)
 {
 	// Check if we need to send 3d_off command after disarming
-	// Only send if ESC state is ON but we're disarmed and not in ACTIVE_TURTLE
+	// Only send if ESC state is ON but we're disarmed and not in ACTIVE_TURTLE or ENTERING_TURTLE
 	// This handles the case when exiting ACTIVE_TURTLE - 3d_off will be sent after disarm completes
-	// PX4_INFO("turtle mode state: %d", (int)_turtle_mode_state);
-	// PX4_INFO("turtle mode esc internal state: %d", (int)_turtle_mode_esc_internal_state);
-
 	if (_turtle_mode_esc_internal_state == TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_ON && 
 	    !armed && 
-	    _turtle_mode_state != TurtleModeState::ACTIVE_TURTLE) {
-
+	    _turtle_mode_state != TurtleModeState::ACTIVE_TURTLE &&
+	    _turtle_mode_state != TurtleModeState::ENTERING_TURTLE) {
+		// If we're in EXITING_TURTLE or OPTIONAL_TURTLE and disarmed, ensure 3D is off
+		if (_turtle_mode_state == TurtleModeState::EXITING_TURTLE || 
+		    _turtle_mode_state == TurtleModeState::OPTIONAL_TURTLE) {
+			updateDshot3dParameter(false, armed);
+		}
 	}
 	if (_param_com_turtle_en.get()) {
 
@@ -46,7 +73,8 @@ void MulticopterTurtleMode::update(const bool armed)
 			if (!armed || _turtle_mode_armed) {
 				// Don't allow entering ACTIVE_TURTLE while waiting for disarm
 				if (aux_triggered && !_should_disarm_on_exit) {
-					setState(TurtleModeState::ACTIVE_TURTLE);
+					// Transition to ENTERING_TURTLE to enable 3D mode
+					setState(TurtleModeState::ENTERING_TURTLE);
 					updateDshot3dParameter(true, armed);
 				} else {
 					setState(TurtleModeState::OPTIONAL_TURTLE);
@@ -57,33 +85,73 @@ void MulticopterTurtleMode::update(const bool armed)
 		case TurtleModeState::OPTIONAL_TURTLE:
 			// Don't allow entering ACTIVE_TURTLE while waiting for disarm
 			if (aux_triggered && !_should_disarm_on_exit) {
-				setState(TurtleModeState::ACTIVE_TURTLE);
+				// Transition to ENTERING_TURTLE to enable 3D mode
+				setState(TurtleModeState::ENTERING_TURTLE);
 				updateDshot3dParameter(true, armed);
-			}
-			else {
-				updateDshot3dParameter(false, armed);
 			}
 			break;
 
+		case TurtleModeState::ENTERING_TURTLE:
+			// Wait for 3D mode to be enabled, then transition to ACTIVE_TURTLE
+			// Only transition to ACTIVE if 3D mode is successfully enabled
+			// Note: updateDshot3dParameter only works when disarmed, so 3D mode can only be enabled when !armed
+			if (!armed) {
+				updateDshot3dParameter(true, armed);
+			}
+			if (_turtle_mode_esc_internal_state == TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_ON) {
+				setState(TurtleModeState::ACTIVE_TURTLE);
+			} else if (!aux_triggered) {
+				// If aux channel released before 3D enabled, go back to OPTIONAL
+				setState(TurtleModeState::OPTIONAL_TURTLE);
+				if (!armed) {
+					updateDshot3dParameter(false, armed);
+				}
+			}
+			break;
 
 		case TurtleModeState::ACTIVE_TURTLE:
 			if (!aux_triggered) {
-				// Transition to OPTIONAL: disable 3D mode and disarm
+				// Transition to EXITING_TURTLE to disable 3D mode
 				const bool was_turtle_armed = _turtle_mode_armed;
-				setState(TurtleModeState::OPTIONAL_TURTLE);
+				setState(TurtleModeState::EXITING_TURTLE);
 				_turtle_mode_armed = false;
 				_should_disarm_on_exit = was_turtle_armed;
 				_nav_state_change_requested = false;
 				_waiting_for_dshot_command = false;
-				// Don't send 3d_off here if armed - it will be sent after disarming by the check at the top
-				// The check at lines 28-32 will handle sending 3d_off after disarming
+				updateDshot3dParameter(false, armed);
 			} else {
 				// While in ACTIVE_TURTLE: publish motor commands continuously
 				// ESC internal state should already be ON (set when enable command succeeded)
 				const MotorCommands motor_cmds = getMotorCommands();
-				const float motor_commands[12] = {motor_cmds.roll, motor_cmds.pitch, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN};
+				Quadrants quadrant = MulticopterTurtleUtil::getQuadrant(-MulticopterTurtleUtil::Threshold(motor_cmds.roll, 0.1f), -MulticopterTurtleUtil::Threshold(motor_cmds.pitch, 0.1f));
+				PX4_INFO("current joystick Quadrant: %d", (int)quadrant);
+				float motor_commands[12] = {NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN};
+				for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; i++) {
+					if (_motor_data[i].motor_quadrant == quadrant) {
+						motor_commands[i] = _thr_factor*1.5f;
+					} else {
+						motor_commands[i] = NAN;
+					}
+				}
 				publishMotorCommands(motor_commands);
 			}
+			break;
+
+		case TurtleModeState::EXITING_TURTLE:
+			
+			_should_disarm_on_exit = true;
+			px4_usleep(100000); // 100ms delay to allow 3D mode to disable
+			updateDshot3dParameter(false, armed);
+			setState(TurtleModeState::OPTIONAL_TURTLE);
+			
+			// Reboot the drone after exiting turtle mode (only on hardware, not in SITL)
+#if defined(CONFIG_BOARDCTL_RESET)
+			PX4_INFO("Exiting turtle mode - rebooting system");
+			px4_reboot_request(REBOOT_REQUEST, 100000); // 100ms delay to allow 3D mode to disable
+#else
+			PX4_INFO("Exiting turtle mode - reboot skipped (SITL/non-hardware build)");
+#endif
+			
 			break;
 		}
 
@@ -99,11 +167,21 @@ void MulticopterTurtleMode::update(const bool armed)
 		}
 
 	} else if (_turtle_mode_state != TurtleModeState::FLYING_DISABLED) {
-		// Feature disabled: reset to FLYING_DISABLED
-		setState(TurtleModeState::FLYING_DISABLED);
-		// Disable 3D mode if it was enabled
+		// Feature disabled: disable 3D mode first if needed, then reset to FLYING_DISABLED
 		if (_turtle_mode_esc_internal_state == TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_ON) {
-			updateDshot3dParameter(false, armed);
+			// If in ACTIVE or ENTERING, transition through EXITING to properly disable 3D
+			if (_turtle_mode_state == TurtleModeState::ACTIVE_TURTLE || 
+			    _turtle_mode_state == TurtleModeState::ENTERING_TURTLE) {
+				setState(TurtleModeState::EXITING_TURTLE);
+				updateDshot3dParameter(false, armed);
+			} else {
+				// Already exiting or in other state, just disable 3D and reset
+				updateDshot3dParameter(false, armed);
+				setState(TurtleModeState::FLYING_DISABLED);
+			}
+		} else {
+			// 3D already off, just reset state
+			setState(TurtleModeState::FLYING_DISABLED);
 		}
 	}
 }
@@ -121,35 +199,34 @@ void MulticopterTurtleMode::updateDshot3dParameter(bool enable, bool armed)
 	// For disable: command will be sent after disarming
 
 	if (armed) {
-		PX4_WARN("Turtle mode: Cannot update DSHOT_3D_ENABLE while armed");
+		// Do nothing if armed - > return
 		return;
 	}
 	
-	param_t param_handle = param_find("DSHOT_3D_ENABLE");
+
+	param_t param_handle = param_find("DSHOT_3D_ENABLE"); // find param for scaling to 3d 
 	int result_param = PX4_ERROR;
 	
 	if (param_handle != PARAM_INVALID) {
-		int32_t value = enable ? 1 : 0;
+		int32_t value = enable ? 1 : 0; // set param to 1 if enable, 0 if disable
 		result_param = param_set(param_handle, &value);
 	}
-	
-	usleep(1000000);
-	// Send DShot command to change ESC direction
-	const char *cmd_str = enable ? "3d_on" : "3d_off";
+
+	const char *cmd_str = enable ? "3d_on" : "3d_off"; // change the dshot hardware  capability to be 3d or not (mavlink shell command)
 	char *cmd_argv[] = { 
 		(char*)"dshot", 
 		(char*)cmd_str,
 		nullptr 
 	};
 
-	int result_dshot = dshot_main(2, cmd_argv);
+
+	int result_dshot = call_dshot_main(2, cmd_argv); // send the dshot command to the dshot hardware
 
 	if (result_dshot == 0 && result_param == PX4_OK) {
 		// Command succeeded - update internal state
 		_turtle_mode_esc_internal_state = enable ? 
 			TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_ON : 
-			TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_OFF;
-		
+			TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_OFF; // if have telemetry data from the esc need to add here function for each motor 
 		if (enable) {
 			// For enable: delay arming until command completes
 			_waiting_for_dshot_command = true;
@@ -158,13 +235,9 @@ void MulticopterTurtleMode::updateDshot3dParameter(bool enable, bool armed)
 			return;
 		}
 	} else {
-		if (result_param != PX4_OK) {
-			PX4_WARN("Turtle mode: Failed to set DSHOT_3D_ENABLE parameter: %d", result_param);
+		if (result_param != PX4_OK || result_dshot != 0) {
+			PX4_WARN("failed send dshot command to the dshot hardware"); // maby set 3d on to try run this function again
 		}
-		if (result_dshot != 0) {
-			PX4_WARN("Turtle mode: Failed to send DShot %s command: %d", cmd_str, result_dshot);
-		}
-		// On failure, don't update internal state - keep it as is
 	}
 }
 
@@ -187,9 +260,9 @@ uint8_t MulticopterTurtleMode::getDesiredNavState() const
 
 bool MulticopterTurtleMode::shouldArm() const
 {
-	// Only arm on transition to ACTIVE_TURTLE state
+	// Only arm on transition to ACTIVE_TURTLE state (from ENTERING_TURTLE)
 	if (_turtle_mode_state != TurtleModeState::ACTIVE_TURTLE || 
-	    _previous_state == TurtleModeState::ACTIVE_TURTLE) {
+	    _previous_state != TurtleModeState::ENTERING_TURTLE) {
 		return false;
 	}
 	
@@ -251,15 +324,9 @@ float MulticopterTurtleMode::getAuxChannelValue()
 }
 
 
-float MulticopterTurtleMode::Threshold(float value, float threshold){
 
-	if (value < threshold && value > -threshold) {
-		return NAN;
-	}
-	return value;
-}
 
-MulticopterTurtleMode::MotorCommands MulticopterTurtleMode::getMotorCommands()
+MulticopterTurtleUtil::MotorCommands MulticopterTurtleMode::getMotorCommands()
 {
 	manual_control_setpoint_s manual_control_setpoint;
 	// Update manual control setpoint from subscription
@@ -274,7 +341,6 @@ MulticopterTurtleMode::MotorCommands MulticopterTurtleMode::getMotorCommands()
 	MotorCommands cmds{};
 	cmds.roll = Threshold(manual_control_setpoint.roll, threshold);
 	cmds.pitch = Threshold(manual_control_setpoint.pitch, threshold);
-	PX4_INFO("ROLL PITCH PRINT: %f, %f", (double)cmds.roll, (double)cmds.pitch);
 	return cmds;
 }
 
@@ -303,4 +369,58 @@ void MulticopterTurtleMode::publishMotorCommands(const float throttle[12])
 	}
 	
 	_actuator_motors_pub.publish(actuator_motors);
+}
+
+void MulticopterTurtleMode::getMotorData(MulticopterTurtleUtil::Motor_data motor_data[]){
+	for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; i++) {
+		char buffer[20];
+		param_t param_handle;
+		float value;
+
+		motor_data[i].motor_number = i + 1;
+
+		// Get rotor X position
+		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_PX", i);
+		param_handle = param_find(buffer);
+		if (param_handle != PARAM_INVALID) {
+			param_get(param_handle, &motor_data[i].x_position);
+		} else {
+			motor_data[i].x_position = 0.0f;
+		}
+
+		// Get rotor Y position
+		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_PY", i);
+		param_handle = param_find(buffer);
+		if (param_handle != PARAM_INVALID) {
+			param_get(param_handle, &motor_data[i].y_position);
+		} else {
+			motor_data[i].y_position = 0.0f;
+		}
+
+		// Get rotor direction from KM (moment coefficient)
+		snprintf(buffer, sizeof(buffer), "CA_ROTOR%u_KM", i);
+		param_handle = param_find(buffer);
+		if (param_handle != PARAM_INVALID) {
+			param_get(param_handle, &value);
+			motor_data[i].motor_direction = (value > 0.0f);
+		} else {
+			motor_data[i].motor_direction = true;
+		}
+		motor_data[i].motor_quadrant = getQuadrant(motor_data[i].x_position, motor_data[i].y_position);
+		PX4_INFO("Motor %u: X=%f, Y=%f, Direction=%d, Quadrant=%d", i, (double)motor_data[i].x_position, (double)motor_data[i].y_position, motor_data[i].motor_direction, (int)motor_data[i].motor_quadrant);
+	}
+}
+
+
+
+
+
+float MulticopterTurtleMode::thr_factor()
+{
+	float hover_throttle = _param_mpc_thr_hover.get();
+	if (hover_throttle < 10.0f || hover_throttle > 90.0f) {
+		return 50.0f;
+	} else {
+		return hover_throttle * 120.0f;
+	}
 }

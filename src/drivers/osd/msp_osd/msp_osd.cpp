@@ -448,7 +448,7 @@ void MspOsd::Run()
 		if (enabled(SymbolIndex::ALTITUDE)) {
 			const auto msg = msp_osd::construct_Rendor_ALTITUDE(vehicle_gps_position, vehicle_local_position);
 
-			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_altitude_t));
+			this->Send(MSP_CMD_DISPLAYPORT, &msg, sizeof(msp_rendor_altitude_t));
 		}
 	}
 

@@ -537,7 +537,7 @@ msp_rendor_altitude_t construct_Rendor_ALTITUDE(const sensor_gps_s &vehicle_gps_
 {
 	msp_rendor_altitude_t altitude;
 
-	altitude.screenYPosition = 0x06;
+	altitude.screenYPosition = 0x10;
 	altitude.screenXPosition = 0x02;
 
 	double alt;

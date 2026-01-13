@@ -39,6 +39,28 @@ add_subdirectory(ModeUtil)
 add_subdirectory(MulticopterThrowLaunch)
 add_subdirectory(MulticopterTurtle)
 
+# Conditionally add dshot dependency if the target exists (not available in all builds, e.g. SITL)
+set(commander_depends
+	ArmAuthorization
+	circuit_breaker
+	failsafe
+	failure_detector
+	geo
+	health_and_arming_checks
+	hysteresis
+	mode_util
+	MulticopterThrowLaunch
+	MulticopterTurtleMode
+	sensor_calibration
+	world_magnetic_model
+	atmosphere
+)
+
+# Add dshot dependency if available (needed for MulticopterTurtleMode)
+if(TARGET drivers__dshot)
+	list(APPEND commander_depends drivers__dshot)
+endif()
+
 px4_add_module(
 	MODULE modules__commander
 	MAIN commander
@@ -65,19 +87,7 @@ px4_add_module(
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
-		ArmAuthorization
-		circuit_breaker
-		failsafe
-		failure_detector
-		geo
-		health_and_arming_checks
-		hysteresis
-		mode_util
-		MulticopterThrowLaunch
-		MulticopterTurtleMode
-		sensor_calibration
-		world_magnetic_model
-        atmosphere
+		${commander_depends}
 	)
 
 px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)

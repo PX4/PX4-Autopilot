@@ -50,6 +50,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
+#include "TurtleUtil.hpp"
 
 
 using namespace std;
@@ -57,17 +58,7 @@ using namespace std;
 class MulticopterTurtleMode : public ModuleParams
 {
 public:
-	enum class TurtleModeState {
-		FLYING_DISABLED = 0,
-		OPTIONAL_TURTLE = 1,
-		ACTIVE_TURTLE = 2,
-	};
 
-
-	enum class TurtleModeESCInternalState {
-		TURTLE_MODE_ESC_INTERNAL_STATE_3D_ON = 0,
-		TURTLE_MODE_ESC_INTERNAL_STATE_3D_OFF = 1,
-	};
 
 	explicit MulticopterTurtleMode(ModuleParams *parent);
 	~MulticopterTurtleMode() override = default;
@@ -77,7 +68,7 @@ public:
 	 */
 	bool isTurtleModeEnabled() const
 	{
-		return _turtle_mode_state == TurtleModeState::ACTIVE_TURTLE;
+		return _turtle_mode_state == MulticopterTurtleUtil::TurtleModeState::ACTIVE_TURTLE;
 	}
 
 	/**
@@ -86,7 +77,7 @@ public:
 	 */
 	bool isInTurtleMode() const
 	{
-		return _param_com_turtle_en.get() && _turtle_mode_state == TurtleModeState::ACTIVE_TURTLE;
+		return _param_com_turtle_en.get() && _turtle_mode_state == MulticopterTurtleUtil::TurtleModeState::ACTIVE_TURTLE;
 	}
 
 	/**
@@ -133,11 +124,15 @@ private:
 	float getAuxChannel() const;
 	float getAuxChannelValue();
 	void updateDshot3dParameter(bool enable, bool armed);
-	void setState(TurtleModeState new_state);
+	void setState(MulticopterTurtleUtil::TurtleModeState new_state);
+	void getMotorData(MulticopterTurtleUtil::Motor_data motor_data[]);
 
-	TurtleModeState _turtle_mode_state{TurtleModeState::FLYING_DISABLED};
-	TurtleModeESCInternalState _turtle_mode_esc_internal_state{TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_OFF};
-	TurtleModeState _previous_state{TurtleModeState::FLYING_DISABLED};
+	float thr_factor();
+	float _thr_factor;
+
+	MulticopterTurtleUtil::TurtleModeState _turtle_mode_state{MulticopterTurtleUtil::TurtleModeState::FLYING_DISABLED};
+	MulticopterTurtleUtil::TurtleModeESCInternalState _turtle_mode_esc_internal_state{MulticopterTurtleUtil::TurtleModeESCInternalState::TURTLE_MODE_ESC_INTERNAL_STATE_3D_OFF};
+	MulticopterTurtleUtil::TurtleModeState _previous_state{MulticopterTurtleUtil::TurtleModeState::FLYING_DISABLED};
 	bool _turtle_mode_armed{false}; // Track if turtle mode was responsible for arming
 	bool _should_disarm_on_exit{false}; // Flag to disarm when exiting turtle mode
 	bool _nav_state_change_requested{false}; // Track if we've already requested nav_state change to STAB
@@ -146,17 +141,15 @@ private:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
 	
-	struct MotorCommands {
-		float roll;
-		float pitch;
-	};
-	float Threshold(float value, float threshold);
-	MotorCommands getMotorCommands();
+	MulticopterTurtleUtil::Motor_data _motor_data[actuator_motors_s::NUM_CONTROLS];
+
+	MulticopterTurtleUtil::MotorCommands getMotorCommands();
 	static constexpr float AUX_CHANNEL_THRESHOLD{0.5f};
 	static constexpr uint16_t ALL_MOTORS_REVERSIBLE{0xFFFF};
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::COM_TURTLE_EN>) _param_com_turtle_en,
-		(ParamInt<px4::params::TURTLE_AUX_CHN>) _param_turtle_aux_chn
+		(ParamInt<px4::params::TURTLE_AUX_CHN>) _param_turtle_aux_chn,
+		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover
 	);
 };

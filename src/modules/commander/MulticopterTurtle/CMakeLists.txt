@@ -33,4 +33,5 @@
 
 px4_add_library(MulticopterTurtleMode
 	MulticopterTurtleMode.cpp
+	TurtleUtil.hpp
 )
