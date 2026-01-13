@@ -34,10 +34,8 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include "fw_pitch_controller.h"
-#include "fw_roll_controller.h"
+
 #include "fw_wheel_controller.h"
-#include "fw_yaw_controller.h"
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -65,7 +63,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/vehicle_euler_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
 using matrix::Eulerf;
@@ -114,14 +111,12 @@ private:
 
 	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub;
 	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Publication<vehicle_euler_rates_setpoint_s> _euler_rates_sp_pub{ORB_ID(vehicle_euler_rates_setpoint)};
 	uORB::Publication<landing_gear_wheel_s>		_landing_gear_wheel_pub{ORB_ID(landing_gear_wheel)};
 
 	manual_control_setpoint_s		_manual_control_setpoint{};
 	vehicle_attitude_setpoint_s		_att_sp{};
 	vehicle_control_mode_s			_vcontrol_mode{};
 	vehicle_rates_setpoint_s		_rates_sp{};
-	vehicle_euler_rates_setpoint_s		_euler_rates_sp{};
 	vehicle_status_s			_vehicle_status{};
 	landing_gear_wheel_s			_landing_gear_wheel{};
 
@@ -162,23 +157,13 @@ private:
 
 		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
 		(ParamFloat<px4::params::FW_MAN_YR_MAX>) _param_man_yr_max
-
 	)
 
 	matrix::Vector3f _proportional_gain;
-	RollController _roll_ctrl;
-	PitchController _pitch_ctrl;
-	YawController _yaw_ctrl;
-
-	float _max_roll_rate;
-	float _max_pitch_rate_pos;
-	float _max_pitch_rate_neg;
-	float _max_yaw_rate;
-
 	WheelController _wheel_ctrl;
 
 	void parameters_update();
-	void vehicle_manual_poll(matrix::Quatf R);
+	void vehicle_manual_poll(const float yaw_body);
 	void vehicle_attitude_setpoint_poll();
 	void vehicle_land_detected_poll();
 	float get_airspeed_constrained();

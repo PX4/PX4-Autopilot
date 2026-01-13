@@ -275,7 +275,6 @@ set(msg_files
 	versioned/VehicleLocalPosition.msg
 	versioned/VehicleOdometry.msg
 	versioned/VehicleRatesSetpoint.msg
-	versioned/VehicleEulerRatesSetpoint.msg
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg
