@@ -317,13 +317,40 @@ void RTL::setRtlTypeAndDestination()
 	if (_param_rtl_type.get() == 5) {
 		PositionYawSetpoint rtl_position;
 		findClosestSafePoint(rtl_position, safe_point_index);
+		DestinationType destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 
 		if (safe_point_index == UINT8_MAX) {
-			rtl_position.lat = _global_pos_sub.get().lat;
-			rtl_position.lon = _global_pos_sub.get().lon;
+			// no safe point found, set destination to last position with valid data link
+			for (auto &telemetry_status :  _telemetry_status_subs) {
+				telemetry_status_s telemetry;
+
+				if (telemetry_status.update(&telemetry)) {
+
+					if (telemetry.heartbeat_type_gcs) {
+						_last_position_before_link_loss.alt = _global_pos_sub.get().alt;
+						_last_position_before_link_loss.lat = _global_pos_sub.get().lat;
+						_last_position_before_link_loss.lon = _global_pos_sub.get().lon;
+						break;
+					}
+				}
+			}
+
+			if (!PX4_ISFINITE(_last_position_before_link_loss.lat) || !PX4_ISFINITE(_last_position_before_link_loss.lon)) {
+				// if we never had a valid data link position, fallback to current position
+				rtl_position.alt = _global_pos_sub.get().alt;
+				rtl_position.lat = _global_pos_sub.get().lat;
+				rtl_position.lon = _global_pos_sub.get().lon;
+
+			} else {
+				rtl_position = _last_position_before_link_loss;
+			}
+
+			destination_type = DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION;
 		}
 
-		const float rtl_alt = adapt_return_alt_if_needed(rtl_position, (float)_param_rtl_cone_half_angle_deg.get());
+		// set rtl altitude to the destination from the beginning for DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION
+		const float rtl_alt = destination_type == DestinationType::DESTINATION_TYPE_SAFE_POINT ? adapt_return_alt_if_needed(rtl_position,
+				      (float)_param_rtl_cone_half_angle_deg.get()) : rtl_position.alt;
 
 		loiter_point_s landing_loiter;
 		landing_loiter.lat = rtl_position.lat;
