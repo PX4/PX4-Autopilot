@@ -70,6 +70,10 @@ FixedwingAttitudeControl::init()
 void
 FixedwingAttitudeControl::parameters_update()
 {
+	_proportional_gain = matrix::Vector3f(1.0f / _param_fw_p_tc.get(),
+					      1.0f / _param_fw_p_tc.get(),
+					      0.0f);
+
 	_roll_ctrl.set_time_constant(_param_fw_r_tc.get());
 	_roll_ctrl.set_max_rate(radians(_param_fw_r_rmax.get()));
 
@@ -78,6 +82,12 @@ FixedwingAttitudeControl::parameters_update()
 	_pitch_ctrl.set_max_rate_neg(radians(_param_fw_p_rmax_neg.get()));
 
 	_yaw_ctrl.set_max_rate(radians(_param_fw_y_rmax.get()));
+
+
+	_max_roll_rate = radians(_param_fw_r_rmax.get());
+	_max_pitch_rate_pos = radians(_param_fw_p_rmax_pos.get());
+	_max_pitch_rate_neg = radians(_param_fw_p_rmax_neg.get());
+	_max_yaw_rate = radians(_param_fw_y_rmax.get());
 
 	_wheel_ctrl.set_k_p(_param_fw_wr_p.get());
 	_wheel_ctrl.set_k_i(_param_fw_wr_i.get());
@@ -88,8 +98,10 @@ FixedwingAttitudeControl::parameters_update()
 }
 
 void
-FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
+FixedwingAttitudeControl::vehicle_manual_poll(matrix::Quatf R)
 {
+	const matrix::Eulerf euler_angles(R);
+	float yaw_body = euler_angles.psi();
 	if (_vcontrol_mode.flag_control_manual_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
 
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the actuators with valid values
@@ -205,7 +217,7 @@ void FixedwingAttitudeControl::Run()
 			dt = math::constrain((att.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
 			_last_run = att.timestamp_sample;
 
-			// get current rotation matrix and euler angles from control state quaternions
+			// get current rotation matrix from control state quaternions
 			_R = matrix::Quatf(att.q);
 		}
 
@@ -252,10 +264,9 @@ void FixedwingAttitudeControl::Run()
 			/* fill in new attitude data */
 			_R = R_adapted;
 		}
-
 		const matrix::Eulerf euler_angles(_R);
 
-		vehicle_manual_poll(euler_angles.psi());
+		vehicle_manual_poll(_R);
 
 		vehicle_attitude_setpoint_poll();
 
@@ -297,6 +308,70 @@ void FixedwingAttitudeControl::Run()
 				const Quatf q_sp(_att_sp.q_d);
 
 				if (q_sp.isAllFinite()) {
+
+
+					// Current attitude
+					const Quatf q_current(att.q);
+
+					// Full desired attitude (setpoint)
+					const Quatf qd_full = q_sp;
+
+					// --- Scheduling: 0 = normal FW, 1 = near-vertical/full-3D ---
+					const float pitch = Eulerf(q_current).theta(); // scheduling only
+					const float s = math::constrain((fabsf(pitch) - radians(60.f)) / radians(20.f), 0.f, 1.f); // 0..1
+
+					// --- Build reduced desired attitude qd_red: align "tilt" (body Z axis) but don't chase yaw ---
+					// Note: assumes Quatf::dcm_z() returns body Z axis expressed in world/NED (same convention as PX4 MC).
+					const Vector3f ez_current = q_current.dcm_z(); // current body Z in world
+					const Vector3f ez_desired = qd_full.dcm_z();   // desired body Z in world
+
+					// Quaternion rotating ez_current -> ez_desired (tilt correction only)
+					Quatf q_tilt_err(ez_current, ez_desired);
+
+					// Convert that tilt error into an absolute reduced desired attitude.
+					// This matches the PX4 multicopter pattern (right multiplication).
+					Quatf qd_red;
+
+					if (fabsf(q_tilt_err(1)) > (1.f - 1e-5f) || fabsf(q_tilt_err(2)) > (1.f - 1e-5f)) {
+						// Corner case: vectors almost exactly opposite (180 deg). Tilt-only separation is ill-defined.
+						// Fall back to full desired attitude; it's safe/stable.
+						qd_red = qd_full;
+
+					} else {
+						// Apply tilt correction to current attitude to get a reduced desired attitude
+						qd_red = q_tilt_err * q_current;
+					}
+
+					// --- Compute rate setpoint A: tilt-only attitude tracking (normal FW) ---
+
+					// qe_tilt is rotation from current to reduced desired
+					const Quatf qe_tilt = (q_current.inversed() * qd_red).canonical();
+
+					// Use bounded quaternion vector part as error (stable & well-tuned pattern)
+					const Vector3f e_tilt = 2.f * qe_tilt.imag();
+
+					Vector3f rates_tilt = e_tilt.emult(_proportional_gain);
+
+					// In normal FW flight, yaw is NOT attitude-tracked; use existing yaw/turn coordination
+					const float yaw_rate_tc = _yaw_ctrl.get_body_rate_setpoint();
+					rates_tilt(2) = yaw_rate_tc;
+
+					// --- Compute rate setpoint B: full 3D attitude tracking (near-vertical) ---
+					const Quatf qe_full = (q_current.inversed() * qd_full).canonical();
+					const Vector3f e_full = 2.f * qe_full.imag();
+					Vector3f rates_full = e_full.emult(_proportional_gain);
+
+					// --- Blend A and B ---
+					Vector3f body_rates_setpoint = (1.f - s) * rates_tilt + s * rates_full;
+
+
+					// limit rates (kept identical)
+					body_rates_setpoint(0) = constrain(body_rates_setpoint(0), -_max_roll_rate, _max_roll_rate);
+					body_rates_setpoint(1) = constrain(body_rates_setpoint(1), -_max_pitch_rate_neg, _max_pitch_rate_pos);
+					body_rates_setpoint(2) = constrain(body_rates_setpoint(2), -_max_yaw_rate, _max_yaw_rate);
+
+
+					///////////////////////////////////
 					const Eulerf euler_sp(q_sp);
 					const float roll_sp = euler_sp.phi();
 					const float pitch_sp = euler_sp.theta();
@@ -309,8 +384,16 @@ void FixedwingAttitudeControl::Run()
 							      euler_angles.theta(), get_airspeed_constrained());
 
 					/* Update input data for rate controllers */
-					Vector3f body_rates_setpoint = Vector3f(_roll_ctrl.get_body_rate_setpoint(), _pitch_ctrl.get_body_rate_setpoint(),
-										_yaw_ctrl.get_body_rate_setpoint());
+					Vector3f _euler_body_rates_sp = Vector3f(_roll_ctrl.get_body_rate_setpoint(), _pitch_ctrl.get_body_rate_setpoint(),
+									_yaw_ctrl.get_body_rate_setpoint());
+
+					_euler_rates_sp.timestamp = hrt_absolute_time();
+					_euler_rates_sp.roll_rate = _euler_body_rates_sp(0);
+					_euler_rates_sp.pitch_rate = _euler_body_rates_sp(1);
+					_euler_rates_sp.yaw_rate = _euler_body_rates_sp(2);
+					///////////////////////////////////
+
+
 
 					autotune_attitude_control_status_s pid_autotune;
 					matrix::Vector3f bodyrate_autotune_ff;
@@ -349,6 +432,7 @@ void FixedwingAttitudeControl::Run()
 					_rates_sp.timestamp = hrt_absolute_time();
 
 					_rate_sp_pub.publish(_rates_sp);
+					_euler_rates_sp_pub.publish(_euler_rates_sp);
 				}
 			}
 		}
