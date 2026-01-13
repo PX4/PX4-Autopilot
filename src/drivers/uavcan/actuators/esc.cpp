@@ -43,8 +43,6 @@
 #include <drivers/drv_hrt.h>
 #include <lib/atmosphere/atmosphere.h>
 
-#define MOTOR_BIT(x) (1<<(x))
-
 using namespace time_literals;
 
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
