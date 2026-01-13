@@ -969,6 +969,10 @@ UavcanNode::Run()
 		}
 	}
 
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+	_arming_status_controller.setActuatorTestRunning(_mixing_interface_esc.isActuatorTestRunning());
+#endif
+
 	perf_end(_cycle_perf);
 
 	pthread_mutex_unlock(&_node_mutex);
