@@ -1,5 +1,7 @@
 # Holybro Pixhawk 4 Mini (Знято з виробництва)
 
+<Badge type="info" text="Discontinued" px4_current="v1.15" year="2024"/>
+
 :::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
@@ -29,32 +31,32 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
   - Барометр: MS5611
 - GPS: u-blox Neo-M8N GPS/ГЛОНАСС приймач; інтегрований магнетометр IST8310
 - Інтерфейси:
-  - 8 PWM виводів
-  - 4 виділених PWM/Capture входи на FMU
+  - 8 PWM outputs
+  - 4 dedicated PWM/Capture inputs on FMU
   - Виділений R/C вхід для CPPM
   - Виділений R/C вхід для Spektrum / DSM та S.Bus з аналоговим / PWM RSSI входом
   - 3 загальних послідовних портів
-  - 2 I2C порти
-  - 3 SPI шини
-  - 1 CAN шина для CAN ESC
+  - 2 I2C ports
+  - 3 SPI buses
+  - 1 CANBuses for CAN ESC
   - Аналогові входи для напруги / струму з батареї
   - 2 додаткових аналогових входи
 - Система живлення:
-  - Вхід Power Brick: 4.75~5.5V
+  - Power Brick Input: 4.75~5.5V
   - Вхід USB Power: 4.75~5.25V
-  - Вхід Servo Rail: 0~24V
+  - Servo Rail Input: 0~24V
   - Максимальний струм у значенні: 120 A
 - Вага та розміри:
-  - Вага: 37.2g
-  - Розміри: 38x55x15.5mm
+  - Weight: 37.2g
+  - Dimensions: 38x55x15.5mm
 - Інші характеристики:
   - Температура роботи: -40 ~ 85°c
 
-Additional information can be found in the [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf).
+Additional information can be found in the [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf).
 
 ## Де купити
 
-Order from [Holybro](https://holybro.com/collections/autopilot-flight-controllers/products/pixhawk4-mini).
+No longer available.
 
 ## Інтерфейси
 
@@ -66,7 +68,7 @@ The **RC IN** and **PPM** ports are for RC receivers only. Вони працюю
 
 ## Схема розташування виводів
 
-Download _Pixhawk 4 Mini_ pinouts from [here](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_pinouts.pdf).
+Download _Pixhawk 4 Mini_ pinouts from [here](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_pinouts.pdf).
 
 ## Розміри
 
@@ -90,7 +92,7 @@ You must [supply power](../assembly/quick_start_pixhawk4_mini.md#power) to one o
 
 **Absolute Maximum Ratings**
 
-За таких умов система залишиться неушкодженою.
+Under these conditions the system will remain intact.
 
 1. **POWER** input (0V to 6V undamaged)
 2. **USB** input (0V to 6V undamaged)
@@ -120,38 +122,39 @@ In order to access these ports, the user must remove the _Pixhawk 4 Mini_ casing
 
 ![Pixhawk 4 Mini FMU Debug](../../assets/flight_controller/pixhawk4mini/pixhawk4mini_fmu_debug.png)
 
-The port has a standard serial pinout and can be connected to a standard FTDI cable (3.3V, but it's 5V tolerant) or a [Dronecode probe](https://kb.zubax.com/display/MAINKB/Dronecode+Probe+documentation). The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) pinout. Please refer to the [wiring](../debug/system_console.md) page for details of how to wire up this port.
+The port has a standard serial pinout and can be connected to a standard FTDI cable (3.3V, but it's 5V tolerant) or a [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1).
+The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) pinout. Please refer to the [wiring](../debug/system_console.md) page for details of how to wire up this port.
 
 ## Налаштування послідовного порту
 
-|  UART  |  Пристрій  | Опис параметра QGC |               Мітка порту на FC              |
-| :----: | :--------: | :----------------: | :------------------------------------------: |
-|  UART1 | /dev/ttyS0 |        GPS1        |                  GPS Module                  |
-| USART2 | /dev/ttyS1 |       TELEM1       |                    TELEM1                    |
-| USART3 | /dev/ttyS2 |       TELEM2       |                      N/A                     |
-|  UART4 | /dev/ttyS3 |    TELEM/SERIAL4   |                  UART/l2C B                  |
-| USART6 | /dev/ttyS4 |         N/A        |                     RC IN                    |
-|  UART7 | /dev/ttyS5 |         N/A        |                     Debug                    |
-|  UART8 | /dev/ttyS6 |         N/A        | Не підключено (без PX4IO) |
+|  UART  |  Пристрій  | QGC Parameter Description |               Port Label on FC               |
+| :----: | :--------: | :-----------------------: | :------------------------------------------: |
+|  UART1 | /dev/ttyS0 |            GPS1           |                  GPS Module                  |
+| USART2 | /dev/ttyS1 |           TELEM1          |                    TELEM1                    |
+| USART3 | /dev/ttyS2 |           TELEM2          |                      N/A                     |
+|  UART4 | /dev/ttyS3 |       TELEM/SERIAL4       |                  UART/l2C B                  |
+| USART6 | /dev/ttyS4 |            N/A            |                     RC IN                    |
+|  UART7 | /dev/ttyS5 |            N/A            |                     Debug                    |
+|  UART8 | /dev/ttyS6 |            N/A            | Не підключено (без PX4IO) |
 
 ## Периферійні пристрої
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](../telemetry/index.md)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
-## Підтримувані платформи
+## Supported Platforms
 
 Motors and servos are connected to the **MAIN OUT** ports in the order specified for your vehicle in the [Airframe Reference](../airframes/airframe_reference.md).
 Цей довідник містить зіставлення портів виводу до моторів/сервоприводів для всіх підтримуваних повітряних та наземних шасі (якщо ваше шасі не вказане в довіднику, то використовуйте "загальний" планер відповідного типу).
 
 :::warning
 _Pixhawk 4 Mini_ does not have AUX ports.
-Плата не може використовуватися з шасі, яким необхідно більше ніж 8 портів або які використовують AUX порти для моторів або керування.
-Вона може бути використана для планерів, які використовують AUX для другорядних периферійних пристроїв (наприклад, "feed-through of RC AUX1 channel").
+The board cannot be used with frames that require more than 8 ports or which use AUX ports for motors or control surfaces.
+It can be used for airframes that use AUX for non-essential peripherals (e.g. "feed-through of RC AUX1 channel").
 :::
 
 ## Подальша інформація
 
-- [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf)
+- [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165).

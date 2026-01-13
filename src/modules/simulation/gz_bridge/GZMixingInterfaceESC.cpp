@@ -62,7 +62,7 @@ bool GZMixingInterfaceESC::init(const std::string &model_name)
 	return true;
 }
 
-bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool GZMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
 	unsigned active_output_count = 0;
@@ -109,9 +109,10 @@ void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuato
 	pthread_mutex_lock(&_node_mutex);
 
 	esc_status_s esc_status{};
-	esc_status.esc_count = actuators.velocity_size();
+	// Limit to max supported ESCs while allowing for a larger number of system actuators
+	esc_status.esc_count = math::min(actuators.velocity_size(), static_cast<int>(esc_status_s::CONNECTED_ESC_MAX));
 
-	for (int i = 0; i < actuators.velocity_size(); i++) {
+	for (int i = 0; i < esc_status.esc_count; i++) {
 		esc_status.esc[i].timestamp = hrt_absolute_time();
 		esc_status.esc[i].esc_rpm = actuators.velocity(i);
 		esc_status.esc_online_flags |= 1 << i;

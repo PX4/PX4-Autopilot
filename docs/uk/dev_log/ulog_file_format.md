@@ -218,7 +218,7 @@ A key defined in the Information message must be unique. Означає, що н
 | `char[value_len] ver_sw_branch`     | git branch                                                                                          | "master"                                                          |
 | `uint32_t ver_sw_release`           | Версія програмного забезпечення (див. нижче)                     | 0x010401ff                                                        |
 | `char[value_len] sys_os_name`       | Назва операційної системи                                                                           | "Linux"                                                           |
-| `char[value_len] sys_os_ve`r        | Версія ОС (git tag)                                                              | "9f82919"                                                         |
+| `char[value_len] sys_os_ver`        | Версія ОС (git tag)                                                              | "9f82919"                                                         |
 | `uint32_t ver_os_release`           | Версія ОС (див. нижче)                                           | 0x010401ff                                                        |
 | `char[value_len] sys_toolchain`     | Назва набору інструментів                                                                           | "GNU GCC"                                                         |
 | `char[value_len] sys_toolchain_ver` | Версія інструментального набору                                                                     | "6.2.1"                           |
@@ -491,16 +491,18 @@ struct message_dropout_s {
   - [replay module](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/replay)
   - [hardfault_log module](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hardfault_log): append hardfault crash data.
 - [pyulog](https://github.com/PX4/pyulog): python, ULog reader and writer library with CLI scripts.
+  The project also has tools to convert ULog to rosbag and other formats.
 - [ulog_cpp](https://github.com/PX4/ulog_cpp): C++, ULog reader and writer library.
 - [FlightPlot](https://github.com/PX4/FlightPlot): Java, log plotter.
 - [MAVLink](https://github.com/mavlink/mavlink): Messages for ULog streaming via MAVLink (note that appending data is not supported, at least not for cut off messages).
 - [QGroundControl](https://github.com/mavlink/qgroundcontrol): C++, ULog streaming via MAVLink and minimal parsing for GeoTagging.
-- [mavlink-router](https://github.com/01org/mavlink-router): C++, ULog streaming via MAVLink.
+- [mavlink-router](https://github.com/mavlink-router/mavlink-router): C++, ULog streaming via MAVLink.
 - [MAVGAnalysis](https://github.com/ecmnet/MAVGCL): Java, ULog streaming via MAVLink and parser for plotting and analysis.
 - [PlotJuggler](https://github.com/facontidavide/PlotJuggler): C++/Qt application to plot logs and time series. Підтримує ULog з версії 2.1.3.
 - [ulogreader](https://github.com/maxsun/ulogreader): Javascript, ULog reader and parser outputs log in JSON object format.
-- [Foxglove Studio](https://github.com/foxglove/studio): an integrated visualization and diagnosis tool for robotics
-  (Typescript ULog parser: https://github.com/foxglove/ulog).
+- [Foxglove](https://foxglove.dev): an integrated visualization and diagnosis tool for robotics data that supports ULog files.
+- [TypeScript ULog parser](https://github.com/foxglove/ulog): TypeScript, ULog reader that outputs JS objects.
+- [yule_log](https://crates.io/crates/yule_log): A streaming ULog parser written in Rust.
 
 ## Історія версій формату файлу
 

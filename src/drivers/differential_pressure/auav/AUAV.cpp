@@ -65,6 +65,7 @@ AUAV::AUAV(const I2CSPIDriverConfig &config) :
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
+	I2C::_retries = 5;
 }
 
 AUAV::~AUAV()
@@ -130,15 +131,21 @@ int AUAV::init()
 
 int AUAV::probe()
 {
-	uint8_t res_data = 0;
-	int status = transfer(nullptr, 0, &res_data, sizeof(res_data));
+	uint8_t res_data;
 
-	/* Check that the sensor is active. Reported in bit 6 of the status byte */
-	if ((res_data & 0x40) == 0) {
-		status = PX4_ERROR;
+	for (unsigned i = 0; i < 10; i++) {
+		res_data = 0;
+		int status = transfer(nullptr, 0, &res_data, 1);
+
+		/* Check that the sensor is active. Reported in bit 6 of the status byte */
+		if (status == PX4_OK && (res_data & 0x40)) {
+			return PX4_OK;
+		}
+
+		px4_usleep(10'000);
 	}
 
-	return status;
+	return PX4_ERROR;
 }
 
 void AUAV::handle_state_read_calibdata()
@@ -240,14 +247,14 @@ int AUAV::read_calibration_eeprom(const uint8_t eeprom_address, uint16_t &data)
 void AUAV::process_calib_data_raw(const calib_data_raw_t calib_data_raw)
 {
 	/* Conversion of calib data as described in the datasheet */
-	_calib_data.a = (float)((calib_data_raw.a_hw << 16) | calib_data_raw.a_lw) / 0x7FFFFFFF;
-	_calib_data.b = (float)((calib_data_raw.b_hw << 16) | calib_data_raw.b_lw) / 0x7FFFFFFF;
-	_calib_data.c = (float)((calib_data_raw.c_hw << 16) | calib_data_raw.c_lw) / 0x7FFFFFFF;
-	_calib_data.d = (float)((calib_data_raw.d_hw << 16) | calib_data_raw.d_lw) / 0x7FFFFFFF;
+	_calib_data.a = (float)((int32_t)((calib_data_raw.a_hw << 16) | calib_data_raw.a_lw)) / 0x7FFFFFFF;
+	_calib_data.b = (float)((int32_t)((calib_data_raw.b_hw << 16) | calib_data_raw.b_lw)) / 0x7FFFFFFF;
+	_calib_data.c = (float)((int32_t)((calib_data_raw.c_hw << 16) | calib_data_raw.c_lw)) / 0x7FFFFFFF;
+	_calib_data.d = (float)((int32_t)((calib_data_raw.d_hw << 16) | calib_data_raw.d_lw)) / 0x7FFFFFFF;
 
-	_calib_data.tc50h = (float)(calib_data_raw.tc50 >> 8) / 0x7F;
-	_calib_data.tc50l = (float)(calib_data_raw.tc50 & 0xFF) / 0x7F;
-	_calib_data.es = (float)(calib_data_raw.es & 0xFF) / 0x7F;
+	_calib_data.tc50h = (float)((int8_t)(calib_data_raw.tc50 >> 8)) / 0x7F;
+	_calib_data.tc50l = (float)((int8_t)(calib_data_raw.tc50 & 0xFF)) / 0x7F;
+	_calib_data.es = (float)((int8_t)(calib_data_raw.es & 0xFF)) / 0x7F;
 }
 
 float AUAV::correct_pressure(const uint32_t pressure_raw, const uint32_t temperature_raw) const

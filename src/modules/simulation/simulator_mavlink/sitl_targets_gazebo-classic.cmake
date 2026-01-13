@@ -44,12 +44,20 @@ if(gazebo_FOUND)
 	# project to build sitl_gazebo if necessary
 	px4_add_git_submodule(TARGET git_sitl_gazebo-classic PATH "${PX4_SOURCE_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic")
 	include(ExternalProject)
+
+	# Set MAVLINK_DEVELOPMENT if using development dialect
+	set(GAZEBO_MAVLINK_ARGS)
+	if(CONFIG_MAVLINK_DIALECT STREQUAL "development")
+		list(APPEND GAZEBO_MAVLINK_ARGS -DMAVLINK_DEVELOPMENT=1)
+	endif()
+
 	ExternalProject_Add(sitl_gazebo-classic
 		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic
 		CMAKE_ARGS
 			-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
 			-DSEND_ODOMETRY_DATA=ON
 			-DGENERATE_ROS_MODELS=ON
+			${GAZEBO_MAVLINK_ARGS}
 		BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo-classic
 		INSTALL_COMMAND ""
 		DEPENDS git_sitl_gazebo-classic
@@ -93,8 +101,6 @@ if(gazebo_FOUND)
 		plane_lidar
 		px4vision
 		quadtailsitter
-		r1_rover
-		rover
 		standard_vtol
 		standard_vtol_drop
 		tailsitter

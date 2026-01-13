@@ -1,123 +1,39 @@
-# VOXL 2 Зоряний PX4 Розробка Дрону
+# ModalAI Starling 2
 
-[Starling](https://modalai.com/starling) - це SLAM розроблений дрон, підсиленний [VOXL 2](../flight_controller/modalai_voxl_2.md) та PX4 з оптимізованими датчиками та навантаженнями для внутрішньої та зовнішньої автономної навігації.
-За допомогою автопілота Blue UAS Framework, VOXL 2, Starling важить всього 275 г і має вражаючі 30 хвилин автономного польоту в приміщенні.
+The [Starlings](https://www.modalai.com/pages/starlings) are NDAA-compliant SLAM development drones based on the [VOXL 2](../flight_controller/modalai_voxl_2.md) and PX4 with SWAP-optimized sensors and payloads optimized for indoor and outdoor autonomous navigation.
 
-![Огляд](../../assets/hardware/complete_vehicles/modalai_starling/starling_front_hero.jpg)
+## Загальний огляд
 
-VOXL 2 Starling - це розробницький безпілотник PX4, який містить супутній комп'ютер [VOXL 2](../flight_controller/modalai_voxl_2.md) та керування польотом PX4, сенсори зображення, GPS, модем підключення і готовий до польоту прямо з коробки.
-Starling має [відкрите SDK](https://docs.modalai.com/voxl-developer-bootcamp/) від ModalAI, яке має попередньо налаштовані моделі автономії для польотів з допомогою комп'ютерного зору.
-Цей розвивальний дрон призначений, щоб допомогти вам швидше вийти на ринок та прискорити розробку та прототипування вашої програми.
+Starling drones house _VOXL 2_, which is a powerful companion computer, a PX4 flight controller, image sensors, GPS, and connectivity modem, in one small package.
+The Starlings feature ModalAI's open source [VOXL SDK](https://gitlab.com/voxl-public/voxl-sdk) that has pre-configured autonomy models for computer vision assisted flight.
 
-Цей посібник пояснює мінімальну додаткову настройку, необхідну для підготовки БПЛА до польоту. Він також охоплює огляд апаратного забезпечення, перший польот, налаштування WiFi та інше.
-
-:::info
-Для повного та регулярно оновлюваного документування відвідайте <https://docs.modalai.com/starling-v2>.
-:::
+These development drones are ready-to-fly out-of-the-box.
+They are designed to help you get to market faster and accelerate your application development and prototyping.
 
 :::info
 Якщо ви новачок у VOXL, обов'язково ознайомтеся з основними функціями апаратного та програмного забезпечення VOXL, переглянувши [VOXL Bootcamp](https://docs.modalai.com/voxl-developer-bootcamp/).
 :::
 
+:::info
+For complete and regularly updated documentation, please visit <https://docs.modalai.com/starling-2/> and <https://docs.modalai.com/starling-2-max/>.
+:::
+
+## Starling 2
+
+The [Starling 2](https://www.modalai.com/products/starling-2) is an NDAA-compliant development drone supercharged by the VOXL SDK and equipped with a new image sensor suite for precise, indoor visual navigation and SLAM. Powered by the Blue UAS Framework autopilot, VOXL 2, the Starling 2 weighs 280g and boasts an impressive 40 minutes of autonomous flight time.
+
+![Image of the front of Starling 2](../../assets/hardware/complete_vehicles/modalai_starling/d0014_front_1920x800.png)
+
+## Starling 2 Max
+
+The [Starling 2 Max](https://www.modalai.com/products/starling-2-max) is VOXL 2-powered, NDAA-compliant development drone supercharged by VOXL SDK specifically designed for computer vision-based, long-range dead reckoning with a 500g payload capacity. Powered by the Blue UAS Framework autopilot, VOXL 2, the Starling 2 Max weighs 500g and boasts an impressive 55 minutes of autonomous flight time.
+
+![Image of front of a Starling 2 Max](../../assets/hardware/complete_vehicles/modalai_starling/d0012_front_1920x800.png)
+
 ## Де купити
 
-[modalai.com/starling](https://modalai.com/starling)
+[ModalAI Starling 2](https://www.modalai.com/products/starling-2)
 
-## Налаштування обладнання
+[ModalAI Starling 2 Max](https://www.modalai.com/products/starling-2-max)
 
-![Огляд апаратної частини](../../assets/hardware/complete_vehicles/modalai_starling/mrb_d0005_4_v2_c6_m22__callouts_a.jpg)
-
-| Callout | Опис                                                         | MPN              |
-| ------- | ------------------------------------------------------------ | ---------------- |
-| A       | VOXL 2                                                       | MDK-M0054-1      |
-| B       | VOXL 4-in-1 ESC                                              | MDK-M0117-1      |
-| C       | Заглушка для барометра                                       | M10000533        |
-| D       | Датчик зображення ToF (PMD)               | MDK-M0040        |
-| E       | Датчик відстеження зображень (OV7251)     | M0014            |
-| F       | Датчик зображення високої якості (IMX214) | M0025-2          |
-| G       | AC600 WiFi Dongle                                            | AWUS036EACS      |
-| H       | Модуль GNSS GPS & Компас                 | M10-5883         |
-| I       | Приймач ELRS 915МГц                                          | BetaFPV Nano RX  |
-| J       | Роз'єм USB C на VOXL 2 (не відображено)   |                  |
-| K       | Блок живлення VOXL                                           | MCCA-M0041-5-B-T |
-| L       | 4726FM Пропелер                                              | M10000302        |
-| M       | Мотор 1504                                                   |                  |
-| N       | XT30 Конектор живлення                                       |                  |
-
-## Документація
-
-### Характеристики
-
-| Компонент                | Специфікація                                                        |
-| ------------------------ | ------------------------------------------------------------------- |
-| Автопілот                | VOXL2                                                               |
-| Максимальна взлітна вага | 275г (172г без батареї)                          |
-| Розмір по діагоналі      | 211мм                                                               |
-| Час польоту              | 30 хвилин                                                           |
-| Двигуни                  | 1504                                                                |
-| Пропелери                | 120mm                                                               |
-| Frame                    | Карбонове волокно 3мм                                               |
-| ESC                      | ModalAI VOXL 4-in-1 ESC V2                                          |
-| GPS                      | UBlox M10                                                           |
-| Приймач радіокерування   | 915мгц ELRS                                                         |
-| Модуль живлення          | Модуль живлення ModalAI v3 - 5V/6A                                  |
-| Батарея                  | Sony VTC6 3000mah 2S, або будь-яка 2S 18650 батарея з роз'ємом XT30 |
-| Висота                   | 83мм                                                                |
-| Ширина                   | 187мм (пропелери складені)                       |
-| Довжина                  | 142мм (пропелери складені)                       |
-
-### Стандартна схема проводки
-
-![Огляд апаратної частини](../../assets/hardware/complete_vehicles/modalai_starling/d0005_compute_wiring_d.jpg)
-
-## Посібники
-
-### ELRS Set Up
-
-Прив'язка вашого приймача ELRS (ExpressLRS) до передавача є важливим кроком у підготовці вашого набору розробника автономії PX4 Autonomy Developer Kit від ModalAI на базі VOXL 2 для польоту.
-Цей процес забезпечує безпечне та відгукнуто з'єднання між вашим дроном та його системою керування.
-
-Дотримуйтесь цього керівництва, щоб прив'язати ваш приймач ELRS до вашого передавача.
-
-#### Налаштування відображення
-
-1. **Увімкніть приймач**: Як тільки ваш квадрокоптер увімкнено, ви помітите, що синій світлодіод приймача ELRS мигає.
-  Це свідчить про те, що отримувач увімкнений, але ще не встановив зв'язок з передавачем.
-
-  ![Приймач Starling](../../assets/hardware/complete_vehicles/modalai_starling/starling-photo.png)
-
-2. **Увійдіть в режим зв'язку**: Для ініціювання зв'язку відкрийте термінал та виконайте команди `adb shell` та `voxl-elrs -bind`.
-  Ви побачите, що світлодіод приймача перемикається на миготливий в режимі миттєвого реагування, сигналізуючи, що тепер він у режимі зв'язку.
-
-  ![Boot Screenshot](../../assets/hardware/complete_vehicles/modalai_starling/screenshot-boot.png)
-
-#### Налаштування передавача
-
-1. **Отримайте доступ до меню**: На вашому передавачі радіо Commando 8, включеному в комплект, натисніть ліву кнопку режиму, щоб відкрити систему меню.
-
-  ![Натисніть Меню на ПДУ](../../assets/hardware/complete_vehicles/modalai_starling/radio-1.png)
-
-2. **Перейдіть до ExpressLRS**: Використовуйте праву кнопку, щоб вибрати перший пункт меню, який повинен бути "ExpressLRS."
-
-3. **Знайдіть опцію Bind**: Після вибору опції "ExpressLRS" прокрутіть вниз до нижньої частини меню, щоб знайти розділ "Bind". Це можна зробити, натиснувши праву кнопку донизу, поки ви не досягнете опцію "Прив'язка".
-
-  ![Press Binding on RC](../../assets/hardware/complete_vehicles/modalai_starling/radio-2.png)
-
-4. **Ініціювати Прив'язку**: Виберіть "Прив'язати", щоб перевести передавач у режим прив'язки. Ви будете знати, що процес був успішним, коли передавач видасть сигнал, вказуючи на успішне зв'язування.
-
-#### Завершення процесу зв'язування
-
-Після того як передавач встановлено в режим зв'язку, приймач ELRS на дроні змінить свій світлодіод з миготливого на постійне світло, що свідчить про успішне підключення між приймачем та передавачем.
-
-- **Цикл живлення**: Після завершення процесу прив'язки обов'язково вимкніть живлення VOXL 2 перед спробою політів.
-  Це означає вимкнути VOXL 2, а потім увімкнути його знову.
-  Цей крок забезпечує, що всі налаштування правильно застосовані і система визнає новостворене з'єднання.
-
-Тепер ви повинні мати успішно прив'язаний приймач ELRS до вашого передавача, готовий до використання з набором автономії PX4 від ModalAI.
-Безпечне підключення є важливим для надійної роботи вашого безпілотника, тому завжди підтверджуйте статус зв'язку перед польотом.
-
-### Відео
-
-- [Огляд апаратного забезпечення VOXL 2 Starling](https://youtu.be/M9OiMpbEYOg)
-- [Посібник з першого польоту VOXL 2 Starling](https://youtu.be/Cpbbye3Z6co)
-- [VOXL 2 Starling Налаштування ELRS](https://youtu.be/7OwGS-kcFVg)
+<!--  @katzfey - ModalAI reviewer -->

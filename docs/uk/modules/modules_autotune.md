@@ -6,9 +6,7 @@ Source: [modules/fw_autotune_attitude_control](https://github.com/PX4/PX4-Autopi
 
 ### Опис
 
-<a id="fw_autotune_attitude_control_usage"></a>
-
-### Використання
+### Usage {#fw_autotune_attitude_control_usage}
 
 ```
 fw_autotune_attitude_control <command> [arguments...]
@@ -27,9 +25,7 @@ Source: [modules/mc_autotune_attitude_control](https://github.com/PX4/PX4-Autopi
 
 ### Опис
 
-<a id="mc_autotune_attitude_control_usage"></a>
-
-### Використання
+### Usage {#mc_autotune_attitude_control_usage}
 
 ```
 mc_autotune_attitude_control <command> [arguments...]

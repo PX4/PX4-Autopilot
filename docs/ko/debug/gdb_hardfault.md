@@ -10,6 +10,13 @@ It was presented at the PX4 Developer Conference 2019.
 
 <lite-youtube videoid="KZkAM_PVOi0" title="Hardfault debugging on PX4"/>
 
+---
+
+The following video provides an overview of the tooling available for advanced debugging of PX4 via GDB (including hard fault debugging).
+It was presented at the PX4 Developer Conference 2023.
+
+<lite-youtube videoid="1c4TqEn3MZ0" title="Debugging PX4 - Niklas Hauser, Auterion AG"/>
+
 ## Debugging Hard Faults in NuttX
 
 A typical scenario that can cause a hard fault is when the processor overwrites the stack and then the processor returns to an invalid address from the stack.

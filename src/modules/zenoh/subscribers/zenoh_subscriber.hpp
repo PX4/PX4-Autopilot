@@ -67,8 +67,7 @@ public:
 	virtual void print();
 
 protected:
-	virtual void  print(const char *type_string, const char *topic_string);
+	virtual void print(const char *type_string, const char *topic_string);
 
 	z_owned_subscriber_t _sub;
-	char _topic[60]; // The Topic name is somewhere is the Zenoh stack as well but no good api to fetch it.
 };

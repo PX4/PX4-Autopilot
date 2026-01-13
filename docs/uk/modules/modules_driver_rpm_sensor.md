@@ -4,9 +4,7 @@
 
 Source: [drivers/rpm/pcf8583](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/rpm/pcf8583)
 
-<a id="pcf8583_usage"></a>
-
-### Використання
+### Usage {#pcf8583_usage}
 
 ```
 pcf8583 <command> [arguments...]

@@ -10,7 +10,7 @@ If you have [mounted the compass](../assembly/mount_gps_compass.md#compass-orien
 
 ## Загальний огляд
 
-You will need to calibrate your compass(es) when you first setup your vehicle, and you may need to recalibrate it if the vehicles is ever exposed to a very strong magnetic field, or if it is used in an area with abnormal magnetic characteristics.
+You will need to calibrate your compass(es) when you first setup your vehicle, and you may need to [recalibrate](#recalibration) it if the vehicles is ever exposed to a very strong magnetic field, or if it is used in an area with abnormal magnetic characteristics.
 
 :::tip
 Indications of a poor compass calibration include multicopter circling during hover, toilet bowling (circling at increasing radius/spiraling-out, usually constant altitude, leading to fly-way), or veering off-path when attempting to fly straight.
@@ -20,13 +20,16 @@ _QGroundControl_ should also notify the error `mag sensors inconsistent`.
 The process calibrates all compasses and autodetects the orientation of any external compasses.
 If any external magnetometers are available, it then disables the internal magnetometers (these are primarily needed for automatic rotation detection of external magnetometers).
 
+### Types of Calibration
+
 Several types of compass calibration are available:
 
 1. [Complete](#complete-calibration): This calibration is required after installing the autopilot on an airframe for the first time or when the configuration of the vehicle has changed significantly.
-  Воно компенсує впливи твердого та м'якого заліза, оцінюючи зміщення та коефіцієнт масштабу для кожної вісі.
+   Воно компенсує впливи твердого та м'якого заліза, оцінюючи зміщення та коефіцієнт масштабу для кожної вісі.
 2. [Partial](#partial-quick-calibration): This calibration can be performed as a routine when preparing the vehicle for a flight, after changing the payload, or simply when the compass rose seems inaccurate.
-  Цей тип калібрування лише оцінює зміщення для компенсації ефекту твердого заліза.
-3. [Large vehicle](#large-vehicle-calibration): This calibration can be performed when the vehicle is too large or heavy to perform a complete calibration. Цей тип калібрування лише оцінює зміщення для компенсації ефекту твердого заліза.
+   Цей тип калібрування лише оцінює зміщення для компенсації ефекту твердого заліза.
+3. [Large vehicle](#large-vehicle-calibration): This calibration can be performed when the vehicle is too large or heavy to perform a complete calibration.
+   Цей тип калібрування лише оцінює зміщення для компенсації ефекту твердого заліза.
 
 ## Виконання калібрування
 
@@ -35,13 +38,13 @@ Several types of compass calibration are available:
 Перед початком калібрування:
 
 1. Виберіть місце подалеку від великих металевих об'єктів або магнітних полів.
-  :::tip
-  Metal is not always obvious! Уникайте калібрування на верхній частині офісного столу (часто містять металеві пластины) або поруч з транспортним засобом.
-  Калібрування може бути навіть уражено, якщо ви стоїте на бетонній плиті з нерівномірним розподілом арматури.
+   :::tip
+   Metal is not always obvious! Уникайте калібрування на верхній частині офісного столу (часто містять металеві пластины) або поруч з транспортним засобом.
+   Калібрування може бути навіть уражено, якщо ви стоїте на бетонній плиті з нерівномірним розподілом арматури.
 
 :::
 2. Підключайтесь за допомогою телеметричного радіо, а не через USB, якщо це взагалі можливо.
-  USB потенційно може викликати значне магнітне втручання.
+   USB потенційно може викликати значне магнітне втручання.
 3. If using an external compass (or a combined GPS/compass module), make sure it is [mounted](../assembly/mount_gps_compass.md) as far as possible from other electronics in order to reduce magnetic interference, and in a _supported orientation_.
 
 ### Повне калібрування
@@ -54,29 +57,33 @@ Several types of compass calibration are available:
 
 3. Click the **Compass** sensor button.
 
-  ![Select Compass calibration PX4](../../assets/qgc/setup/sensor/sensor_compass_select_px4.png)
+   ![Select Compass calibration PX4](../../assets/qgc/setup/sensor/sensor_compass_select_px4.png)
 
-  ::: info
-  You should already have set the [Autopilot Orientation](../config/flight_controller_orientation.md). Якщо ні, ви також можете встановити це тут.
+   ::: info
+   You should already have set the [Autopilot Orientation](../config/flight_controller_orientation.md).
+   Якщо ні, ви також можете встановити це тут.
 
 :::
 
 4. Click **OK** to start the calibration.
 
-5. Розмістіть транспортний засіб у будь-якому з показаних червоних орієнтацій (неповний) та утримуйте його нерухомим. Після запиту (орієнтаційне зображення стає жовтим) обертайте транспортний засіб навколо вказаної вісі в одному або обох напрямках. Після завершення калібрування для поточного орієнтації пов'язане зображення на екрані стане зеленим.
+5. Розмістіть транспортний засіб у будь-якому з показаних червоних орієнтацій (неповний) та утримуйте його нерухомим.
+   Після запиту (орієнтаційне зображення стає жовтим) обертайте транспортний засіб навколо вказаної вісі в одному або обох напрямках.
+   Після завершення калібрування для поточного орієнтації пов'язане зображення на екрані стане зеленим.
 
-  ![Compass calibration steps on PX4](../../assets/qgc/setup/sensor/sensor_compass_calibrate_px4.png)
+   ![Compass calibration steps on PX4](../../assets/qgc/setup/sensor/sensor_compass_calibrate_px4.png)
 
 6. Повторіть процес калібрування для всіх орієнтацій автомобіля.
 
-Once you've calibrated the vehicle in all the positions _QGroundControl_ will display _Calibration complete_ (all orientation images will be displayed in green and the progress bar will fill completely). Ви можете потім перейти до наступного сенсора.
+Once you've calibrated the vehicle in all the positions _QGroundControl_ will display _Calibration complete_ (all orientation images will be displayed in green and the progress bar will fill completely).
+Ви можете потім перейти до наступного сенсора.
 
 ### Часткова "Швидка" Калібрування
 
 Ця калібровка схожа на відому калібровку компасу у вигляді восьмірки, виконану на смартфоні:
 
 1. Утримуйте транспортний засіб перед собою та випадковим чином виконуйте часткові обертання по всіх його осях.
-  2-3 коливань на кут близько 30 градусів у кожному напрямку зазвичай достатньо.
+   2-3 коливань на кут близько 30 градусів у кожному напрямку зазвичай достатньо.
 2. Зачекайте, поки оцінка заголовку стабілізується, і перевірте, що компас вказує в правильному напрямку (це може зайняти кілька секунд).
 
 Примітки:
@@ -92,14 +99,15 @@ Once you've calibrated the vehicle in all the positions _QGroundControl_ will di
 
 This calibration process leverages external knowledge of vehicle's orientation and location, and a World Magnetic Model (WMM) to calibrate the hard iron biases.
 
-1. Ensure GNSS Fix. This is required to find the expected Earth magnetic field in WMM tables.
+1. Ensure GNSS Fix.
+   This is required to find the expected Earth magnetic field in WMM tables.
 2. Align the vehicle to face True North.
-  Be as accurate as possible for best results.
+   Be as accurate as possible for best results.
 3. Open the [QGroundControl MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html) and send the following command:
 
-  ```sh
-  commander calibrate mag quick
-  ```
+   ```sh
+   commander calibrate mag quick
+   ```
 
 Примітки:
 
@@ -111,6 +119,30 @@ This calibration process leverages external knowledge of vehicle's orientation a
 ## Перевірка
 
 Після завершення калібрування перевірте, щоб індикатор напрямку та напрямок стрілки на карті були стабільними і відповідали орієнтації транспортного засобу при його повороті, наприклад, на головні сторони.
+
+## Recalibration
+
+Recalibration is recommended whenever the magnetic environment of the vehicle has changed or when heading behavior appears unreliable.
+
+You can use either complete calibration or mag quick calibration depending on the size of the vehicle and your ability to rotate it through the required orientations.
+Complete calibration provides the most accurate soft-iron compensation.
+
+Recalibrate the compass when:
+
+- _The compass module or its mounting orientation has changed._
+  This includes replacing the GPS or mag unit, rotating the mast, or altering how the module is fixed to the airframe.
+- _The vehicle has been exposed to a strong magnetic disturbance._
+  Examples include transport or storage near large steel structures, welding operations near the airframe, or operation close to high-current equipment.
+- _Structural, wiring, or payload changes may have altered the magnetic field around the sensors._
+  New payloads, rerouted wires, additional batteries, or metal fasteners can introduce soft-iron effects that affect heading accuracy.
+- _The vehicle is operated in a region with significantly different magnetic characteristics._
+  Large changes in latitude, longitude, or magnetic inclination can require re-estimation of offsets.
+- _QGroundControl reports magnetometer inconsistencies_.
+  For example, if you see the error `mag sensors inconsistent`.
+- _Heading behavior does not match the vehicle’s observed orientation._
+  Symptoms include drifting yaw, sudden heading jumps when attempting to fly straight, and toilet bowling
+- _QGroundControl_ sends the error `mag sensors inconsistent`.
+  This indicates that multiple magnetometers are reporting different headings.
 
 ## Додаткова калібрування/конфігурація
 

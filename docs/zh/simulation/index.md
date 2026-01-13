@@ -75,10 +75,10 @@ By default, PX4 uses commonly established UDP ports for MAVLink communication wi
 These ports are:
 
 - PX4's remote UDP Port **14550** is used for communication with ground control stations.
-  期望外接 APIs 监听此端口上的连接。
-  _QGroundControl_ listens to this port by default.
-- PX4's remote UDP Port **14540** is used for communication with offboard APIs.
-  期望 GCS 将侦听此端口上的连接。
+  期望 GCS 侦听此端口上的连接。
+  _QGroundControl_ 默认侦听此端口。
+- PX4的远程UDP端口 **14540** 用于与 offboard API 通信。
+  期望 Offboard APIs 侦听此端口上的连接。
   ::: info
   Multi-vehicle simulations use a separate remote port for each instance, allocated sequentially from `14540` to `14549`
   (additional instances all use port `14549`).
@@ -157,9 +157,8 @@ make px4_sitl none_iris
 
 The simulation can be further configured via environment variables:
 
-- `PX4_ESTIMATOR`: This variable configures which estimator to use.
-  Possible options are: `ekf2` (default), `lpe` (deprecated).
-  It can be set via `export PX4_ESTIMATOR=lpe` before running the simulation.
+- Any of the [PX4 parameters](../advanced_config/parameter_reference.md) can be overridden via `export PX4_PARAM_{name}={value}`.
+  For example changing the estimator: `export PX4_PARAM_EKF2_EN=0; export PX4_PARAM_ATT_EN=1`.
 
 The syntax described here is simplified, and there are many other options that you can configure via _make_ - for example, to set that you wish to connect to an IDE or debugger.
 For more information see: [Building the Code > PX4 Make Build Targets](../dev_setup/building_px4.md#px4-make-build-targets).
@@ -218,20 +217,20 @@ The simulated camera is a gazebo classic plugin that implements the [MAVLink Cam
 PX4 connects/integrates with this camera in _exactly the same way_ as it would with any other MAVLink camera:
 
 1. [TRIG_INTERFACE](../advanced_config/parameter_reference.md#TRIG_INTERFACE) must be set to `3` to configure the camera trigger driver for use with a MAVLink camera
-  :::tip
-  In this mode the driver just sends a [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) message whenever an image capture is requested.
-  For more information see [Cameras Connected to Flight Controller Outputs](../camera/fc_connected_camera.md).
+   :::tip
+   In this mode the driver just sends a [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) message whenever an image capture is requested.
+   For more information see [Cameras Connected to Flight Controller Outputs](../camera/fc_connected_camera.md).
 
 :::
 2. PX4 必须在 GCS 和（模拟器）MAVLink Camera 之间转发所有摄像机命令。
-  You can do this by starting [MAVLink](../modules/modules_communication.md#mavlink) with the `-f` flag as shown, specifying the UDP ports for the new connection.
+   You can do this by starting [MAVLink](../modules/modules_communication.md#mavlink) with the `-f` flag as shown, specifying the UDP ports for the new connection.
 
-  ```sh
-  mavlink start -u 14558 -o 14530 -r 4000 -f -m camera
-  ```
+   ```sh
+   mavlink start -u 14558 -o 14530 -r 4000 -f -m camera
+   ```
 
-  ::: info
-  More than just the camera MAVLink messages will be forwarded, but the camera will ignore those that it doesn't consider relevant.
+   ::: info
+   More than just the camera MAVLink messages will be forwarded, but the camera will ignore those that it doesn't consider relevant.
 
 :::
 

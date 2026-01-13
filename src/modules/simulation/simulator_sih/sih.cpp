@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,8 +75,9 @@ void Sih::run()
 	_last_run = task_start;
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
-	_vehicle = (VehicleType)constrain(_sih_vtype.get(), static_cast<typeof _sih_vtype.get()>(0),
-					  static_cast<typeof _sih_vtype.get()>(3));
+	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
+					    static_cast<int32_t>(VehicleType::First),
+					    static_cast<int32_t>(VehicleType::Last)));
 
 	_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
 
@@ -210,7 +211,7 @@ void Sih::sensor_step()
 
 	read_motors(dt);
 
-	generate_force_and_torques();
+	generate_force_and_torques(dt);
 
 	equations_of_motion(dt);
 
@@ -289,6 +290,7 @@ void Sih::init_variables()
 
 	_lpos = Vector3f(0.0f, 0.0f, 0.0f);
 	_v_N = Vector3f(0.0f, 0.0f, 0.0f);
+	_v_N_dot = Vector3f(0.0f, 0.0f, 0.0f);
 	_p_E = Vector3d(Wgs84::equatorial_radius, 0.0, 0.0);
 	_v_E = Vector3f(0.0f, 0.0f, 0.0f);
 	_q = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
@@ -317,15 +319,30 @@ void Sih::read_motors(const float dt)
 	}
 }
 
-void Sih::generate_force_and_torques()
+void Sih::generate_force_and_torques(const float dt)
 {
-	if (_vehicle == VehicleType::Multicopter) {
+	if (_vehicle == VehicleType::Quadcopter) {
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
 				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
 		_Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
 		_Ma_B = -_KDW * _w_B;   // first order angular damper
+
+	} else if (_vehicle == VehicleType::Hexacopter) {
+		/*     m5    m0      ┬
+		         \  /      √3/2
+		    m4 -- + -- m1    ┴
+		         /  \
+		       m3    m2
+		          ├1/2┤
+		          ├  1  ┤    */
+		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3] + _u[4] + _u[5]));
+		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-.5f * _u[0] - _u[1] - .5f * _u[2] + .5f * _u[3] + _u[4] + .5f * _u[5]),
+				 _L_PITCH * _T_MAX * (M_SQRT3_F / 2.f) * (+_u[0] - _u[2] - _u[3] + _u[5]),
+				 _Q_MAX * (+_u[0] - _u[1] + _u[2] - _u[3] + _u[4] - _u[5]));
+		_Fa_E = -_KDV * _v_E; // first order drag to slow down the aircraft
+		_Ma_B = -_KDW * _w_B; // first order angular damper
 
 	} else if (_vehicle == VehicleType::FixedWing) {
 		_T_B = Vector3f(_T_MAX * _u[3], 0.0f, 0.0f); 	// forward thruster
@@ -351,6 +368,9 @@ void Sih::generate_force_and_torques()
 		// thrust 0 because it is already contained in _T_B. in
 		// equations_of_motion they are all summed into sum_of_forces_E
 		generate_fw_aerodynamics(_u[4], _u[5], _u[6], 0);
+
+	} else if (_vehicle == VehicleType::RoverAckermann) {
+		generate_rover_ackermann_dynamics(_u[1], _u[0], dt);
 	}
 }
 
@@ -406,6 +426,73 @@ void Sih::generate_ts_aerodynamics()
 	_Ma_B = _R_S2B * Ma_ts - _KDW * _w_B; 	// aerodynamic moments
 }
 
+void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt)
+{
+	// --- Constants ---
+	static constexpr float MAX_THROTTLE_FORCE = 400.0f;     // [N]
+	static constexpr float MAX_STEER_ANGLE = radians(30.f); // [rad]
+	static constexpr float WHEEL_BASE = 0.321f;             // [m] Distance between front and rear axle
+	static constexpr float C = 500.f;                       // [N/rad] Cornering stiffness
+	static constexpr float MU_S = 0.5f;                     // [-] Static Coefficient of friction
+	static constexpr float MU_K = 0.4f;                     // [-] Kinetic Coefficient of friction
+	static constexpr float MU_R = 0.3f;                     // [-] Rolling Coefficient of friction
+	static constexpr float ROLLING_THRESHOLD = 0.05f;       // [m/s] Threshold for rolling resistance
+	static constexpr float STATIC_THRESHOLD = 0.01f;        // [m/s] Threshold for static resistance
+
+	matrix::Vector3f v_B = _q.rotateVectorInverse(_v_N); // Nav -> Body
+
+	// --- Compute inputs ---
+	const float delta = MAX_STEER_ANGLE * steering_cmd; // [rad] Steering angle
+	const float F_x = MAX_THROTTLE_FORCE * throttle_cmd;         // [N] Throttle force
+
+	// --- Compute forces and moments ---
+	float F_y = 0.f; // [N] Lateral force
+	float M_z = 0.f; // [Nm] Yaw moment
+
+	if (fabsf(v_B(0)) > ROLLING_THRESHOLD) {
+		// Equations based on the lateral dynamics of the bicycle model from [1]
+		// [1] Sri Anumakonda, Everything you need to know about Self-Driving Cars in <30 minutes
+		// Link: https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427
+		const float a_y = C * delta / _MASS - fabsf(v_B(0)) * _w_B(2)
+				  - 2 * C * v_B(1) / (_MASS * fabsf(v_B(0))); // [m/s^2] Lateral acceleration
+		const float psi_dot_dot = WHEEL_BASE * C * delta / _sih_izz.get()
+					  - C * WHEEL_BASE * WHEEL_BASE  * _w_B(2) / (_sih_izz.get() * fabsf(v_B(0))); // [rad/s^2] Yaw acceleration
+		F_y = _MASS * a_y; // Lateral force [N]
+		M_z = _sih_izz.get() * psi_dot_dot; // [Nm] Yaw moment
+	}
+
+	_T_B = Vector3f(F_x, F_y, 0.f);
+	_Mt_B = Vector3f(0.f, 0.f, M_z);
+
+	// --- Compute drag/friction forces and moments ---
+	Vector3f F_f = Vector3f(0.f, 0.f, 0.f); // [N] Friction force
+	Vector3f F_a = Vector3f(0.f, 0.f, 0.f); // [N] Aerodynamic force (neglect until rover is rolling)
+
+	if (_v_E.norm() < STATIC_THRESHOLD) { // Static friction
+		Vector3f F_f_B = Vector3f(sign(F_x) * math::min(fabsf(F_x), MU_S * _MASS * 9.81f), sign(F_y) * math::min(fabsf(F_y),
+					  MU_S * _MASS * 9.81f), 0.f);
+		F_f = _q_E.rotateVector(F_f_B);
+
+	} else if (_v_E.norm() < ROLLING_THRESHOLD) { // Kinetic friction
+		if (_T_B.norm() > FLT_EPSILON) {
+			F_f = _v_E.unit_or_zero() * MU_K * _MASS * 9.81f;
+
+		} else {
+			F_f = _v_E * _MASS / dt; // Stop the vehicle
+		}
+
+	} else { // Rolling friction
+		F_f = _v_E.unit_or_zero() * MU_R * _MASS * 9.81f;
+		Vector3f v_E_squared = Vector3f(sign(_v_E(0)) * _v_E(0) * _v_E(0), sign(_v_E(1)) * _v_E(1) * _v_E(1),
+						sign(_v_E(2)) * _v_E(2) * _v_E(2));
+		F_a = _KDV * v_E_squared; // [N] Second order drag
+	}
+
+	_Fa_E = -F_a - F_f;   // [N] Second order drag and friction
+	_Ma_B = -_KDW * _w_B; // [Nm] First order angular damper
+
+}
+
 float Sih::computeGravity(const double lat)
 {
 	// Somigliana formula for gravitational acceleration
@@ -429,7 +516,8 @@ void Sih::equations_of_motion(const float dt)
 	Vector3f ground_force_E;
 
 	if ((_lla.altitude() - _lpos_ref_alt) < 0.f && force_down > 0.f) {
-		if (_vehicle == VehicleType::Multicopter
+		if (_vehicle == VehicleType::Quadcopter
+		    || _vehicle == VehicleType::Hexacopter
 		    || _vehicle == VehicleType::TailsitterVTOL
 		    || _vehicle == VehicleType::StandardVTOL) {
 			ground_force_E = -sum_of_forces_E;
@@ -442,7 +530,8 @@ void Sih::equations_of_motion(const float dt)
 
 			_grounded = true;
 
-		} else if (_vehicle == VehicleType::FixedWing) {
+		} else if (_vehicle == VehicleType::FixedWing
+			   || _vehicle == VehicleType::RoverAckermann) {
 			Vector3f down_u = _R_N2E.col(2);
 			ground_force_E = -down_u * sum_of_forces_E * down_u;
 
@@ -715,20 +804,26 @@ int Sih::print_status()
 	PX4_INFO("Achieved speedup: %.2fX", (double)_achieved_speedup);
 #endif
 
-	if (_vehicle == VehicleType::Multicopter) {
-		PX4_INFO("Running MultiCopter");
+	if (_vehicle == VehicleType::Quadcopter) {
+		PX4_INFO("Quadcopter");
+
+	} else if (_vehicle == VehicleType::Hexacopter) {
+		PX4_INFO("Hexacopter");
 
 	} else if (_vehicle == VehicleType::FixedWing) {
-		PX4_INFO("Running Fixed-Wing");
+		PX4_INFO("Fixed-Wing");
 
 	} else if (_vehicle == VehicleType::TailsitterVTOL) {
-		PX4_INFO("Running TailSitter");
+		PX4_INFO("TailSitter");
 		PX4_INFO("aoa [deg]: %d", (int)(degrees(_ts[4].get_aoa())));
 		PX4_INFO("v segment (m/s)");
 		_ts[4].get_vS().print();
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
-		PX4_INFO("Running Standard VTOL");
+		PX4_INFO("Standard VTOL");
+
+	} else if (_vehicle == VehicleType::RoverAckermann) {
+		PX4_INFO("Rover Ackermann");
 	}
 
 	PX4_INFO("vehicle landed: %d", _grounded);

@@ -49,34 +49,25 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+static constexpr char NAMESPACE_PREFIX[] = "uav_";
 #define PARTICIPANT_XML_SIZE 512
 static constexpr uint8_t TIMESYNC_MAX_TIMEOUTS = 10;
 
 using namespace time_literals;
 
-static void on_time(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
-		    int64_t originate_timestamp, void *args)
+static void on_time(uxrSession *session, int64_t current_time, int64_t client_transmit_timestamp,
+		    int64_t agent_receive_timestamp, int64_t originate_timestamp, void *args)
 {
-	// latest round trip time (RTT)
-	int64_t rtt = current_time - originate_timestamp;
-
-	// HRT to AGENT
-	int64_t offset_1 = (received_timestamp - originate_timestamp) - (rtt / 2);
-	int64_t offset_2 = (transmit_timestamp - current_time) - (rtt / 2);
-
-	session->time_offset = (offset_1 + offset_2) / 2;
-
 	if (args) {
 		Timesync *timesync = static_cast<Timesync *>(args);
-		timesync->update(current_time / 1000, transmit_timestamp, originate_timestamp);
+		timesync->update(current_time / 1000, agent_receive_timestamp, originate_timestamp);
 
 		session->time_offset = -timesync->offset() * 1000; // us -> ns
 	}
 }
 
-static void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received_timestamp,
-			    int64_t transmit_timestamp,
-			    int64_t originate_timestamp, void *args)
+static void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t client_transmit_timestamp,
+			    int64_t agent_receive_timestamp, int64_t originate_timestamp, void *args)
 {
 	session->time_offset = 0;
 }
@@ -693,7 +684,6 @@ void UxrceddsClient::run()
 			if (_synchronize_timestamps && hrt_elapsed_time(&last_sync_session) > 1_s) {
 
 				if (uxr_sync_session(&session, 10) && _timesync.sync_converged()) {
-					//PX4_INFO("synchronized with time offset %-5" PRId64 "ns", session.time_offset);
 					last_sync_session = hrt_absolute_time();
 
 					if (_param_uxrce_dds_syncc.get() > 0) {
@@ -702,10 +692,10 @@ void UxrceddsClient::run()
 				}
 
 				if (!_timesync_converged && _timesync.sync_converged()) {
-					PX4_INFO("time sync converged");
+					PX4_DEBUG("time sync converged");
 
 				} else if (_timesync_converged && !_timesync.sync_converged()) {
-					PX4_WARN("time sync no longer converged");
+					PX4_DEBUG("time sync no longer converged");
 				}
 
 				_timesync_converged = _timesync.sync_converged();
@@ -847,8 +837,16 @@ bool UxrceddsClient::setBaudrate(int fd, unsigned baud)
 	//
 	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
-	/* no parity, one stop bit, disable flow control */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+	/* no parity, one stop bit */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+	/* enable flow control if needed */
+	if (_param_uxrce_dds_flctrl.get() > 0) {
+		uart_config.c_cflag |= CRTSCTS;
+
+	} else {
+		uart_config.c_cflag &= ~CRTSCTS;
+	}
 
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
@@ -1039,6 +1037,23 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
+	if (client_namespace == nullptr) {
+		int32_t ns_idx = -1;
+		param_get(param_find("UXRCE_DDS_NS_IDX"), &ns_idx);
+
+		if (ns_idx > -1) {
+			if (ns_idx < 10000) {
+				// Allocate buffer for prefix + '\0' + 4 digits
+				static char client_namespace_buf[sizeof(NAMESPACE_PREFIX) + 4];
+				snprintf(client_namespace_buf, sizeof client_namespace_buf, "%s%u", NAMESPACE_PREFIX, (uint16_t)ns_idx);
+				client_namespace = client_namespace_buf;
+
+			} else {
+				PX4_WARN("namespace index must be between 0 and 9999 inclusive; ignoring index-based namespace");
+			}
+		}
+	}
+
 #if defined(UXRCE_DDS_CLIENT_UDP)
 
 	if (port[0] == '\0') {
@@ -1103,7 +1118,7 @@ $ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('h', nullptr, "<IP>", "Agent IP. If not provided, defaults to UXRCE_DDS_AG_IP", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 65535, "Agent listening port. If not provided, defaults to UXRCE_DDS_PRT", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace. If not provided but UXRCE_DDS_NS_IDX is between 0 and 9999 inclusive, then uav_ + UXRCE_DDS_NS_IDX will be used", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

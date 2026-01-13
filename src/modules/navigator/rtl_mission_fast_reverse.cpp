@@ -57,7 +57,7 @@ void RtlMissionFastReverse::on_inactive()
 	MissionBase::on_inactive();
 	_vehicle_status_sub.update();
 	_mission_index_prior_rtl = _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ?
-				   _mission.current_seq : -1;
+				   _mission.current_seq : INT32_C(-1);
 }
 
 void RtlMissionFastReverse::on_inactivation()
@@ -71,13 +71,24 @@ void RtlMissionFastReverse::on_activation()
 	_home_pos_sub.update();
 
 	// set mission item to closest item if not already in mission. If we are in mission, set to the previous item.
-	if (_mission_index_prior_rtl < 0) {
+	if (_mission_index_prior_rtl < INT32_C(0)) {
 		_is_current_planned_mission_item_valid = setMissionToClosestItem(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
 				_global_pos_sub.get().alt, _home_pos_sub.get().alt, _vehicle_status_sub.get()) == PX4_OK;
 
 	} else {
-		setMissionIndex(math::max(_mission_index_prior_rtl - 1, 0));
-		_is_current_planned_mission_item_valid = isMissionValid();
+		int32_t previous_mission_item_index;
+		size_t num_found_items{0U};
+		getPreviousPositionItems(math::max(_mission_index_prior_rtl - INT32_C(1), INT32_C(0)), &previous_mission_item_index,
+					 num_found_items, UINT8_C(1));
+
+		if (num_found_items > 0U) {
+			setMissionIndex(previous_mission_item_index);
+			_is_current_planned_mission_item_valid = isMissionValid();
+
+		} else {
+			// No prior position items, so try to go to the first one.
+			_is_current_planned_mission_item_valid = (goToNextPositionItem(false) == PX4_OK);
+		}
 	}
 
 	if (_land_detected_sub.get().landed) {
@@ -251,6 +262,11 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 			_mission_item.lon = _home_pos_sub.get().lon;
 			_mission_item.yaw = NAN;
 
+			// make previous and next setpoints invalid, such that there will be no line following.
+			// If the vehicle drifted off the path during back-transition it should just go straight to the landing point.
+			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
+			_navigator->reset_position_setpoint(pos_sp_triplet->next);
+
 			if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
 			    do_need_move_to_item()) {
 				new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
@@ -261,14 +277,9 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 				_mission_item.autocontinue = true;
 				_mission_item.time_inside = 0.0f;
 
-				// make previous setpoint invalid, such that there will be no prev-current line following.
-				// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
-				_navigator->reset_position_setpoint(pos_sp_triplet->previous);
-
 			} else {
 				_mission_item.altitude = _home_pos_sub.get().alt;
 				_mission_item.altitude_is_relative = false;
-				_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
 				_mission_item.land_precision = _param_rtl_pld_md.get();
 
@@ -278,6 +289,7 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 				}
 			}
 		}
+
 	}
 }
 

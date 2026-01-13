@@ -95,11 +95,6 @@ ControlAllocator::init()
 		return false;
 	}
 
-	if (!_vehicle_thrust_setpoint_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
-	}
-
 #ifndef ENABLE_LOCKSTEP_SCHEDULER // Backup schedule would interfere with lockstep
 	ScheduleDelayed(50_ms);
 #endif
@@ -150,7 +145,7 @@ ControlAllocator::update_allocation_method(bool force)
 
 	if (_allocation_method_id != configured_method || force) {
 
-		matrix::Vector<float, NUM_ACTUATORS> actuator_sp[ActuatorEffectiveness::MAX_NUM_MATRICES];
+		ActuatorVector actuator_sp[ActuatorEffectiveness::MAX_NUM_MATRICES];
 
 		// Cleanup first
 		for (int i = 0; i < ActuatorEffectiveness::MAX_NUM_MATRICES; ++i) {
@@ -271,11 +266,11 @@ ControlAllocator::update_effectiveness_source()
 			break;
 
 		case EffectivenessSource::SPACECRAFT_2D:
-			// spacecraft_allocation does allocation and publishes directly to actuator_motors topic
+			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 
 		case EffectivenessSource::SPACECRAFT_3D:
-			// spacecraft_allocation does allocation and publishes directly to actuator_motors topic
+			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 
 		default:
@@ -309,7 +304,6 @@ ControlAllocator::Run()
 {
 	if (should_exit()) {
 		_vehicle_torque_setpoint_sub.unregisterCallback();
-		_vehicle_thrust_setpoint_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -396,15 +390,8 @@ ControlAllocator::Run()
 
 	}
 
-	// Also run allocator on thrust setpoint changes if the torque setpoint
-	// has not been updated for more than 5ms
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
 		_thrust_sp = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
-
-		if (dt > 0.005f) {
-			do_update = true;
-			_timestamp_sample = vehicle_thrust_setpoint.timestamp_sample;
-		}
 	}
 
 	if (do_update) {
@@ -639,9 +626,9 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 			control_allocator_status.unallocated_thrust[2]).norm_squared() < 1e-6f);
 
 	// Actuator saturation
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp = _control_allocation[matrix_index]->getActuatorSetpoint();
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_min = _control_allocation[matrix_index]->getActuatorMin();
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_max = _control_allocation[matrix_index]->getActuatorMax();
+	const ActuatorVector &actuator_sp = _control_allocation[matrix_index]->getActuatorSetpoint();
+	const ActuatorVector &actuator_min = _control_allocation[matrix_index]->getActuatorMin();
+	const ActuatorVector &actuator_max = _control_allocation[matrix_index]->getActuatorMax();
 
 	for (int i = 0; i < NUM_ACTUATORS; i++) {
 		if (actuator_sp(i) > (actuator_max(i) - FLT_EPSILON)) {
@@ -654,6 +641,7 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 
 	// Handled motor failures
 	control_allocator_status.handled_motor_failure_mask = _handled_motor_failure_bitmask;
+	control_allocator_status.motor_stop_mask = _motor_stop_mask;
 
 	_control_allocator_status_pub[matrix_index].publish(control_allocator_status);
 }
@@ -678,7 +666,9 @@ ControlAllocator::publish_actuator_controls()
 	int actuator_idx = 0;
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
-	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors() | _handled_motor_failure_bitmask;
+	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors()
+				  | _handled_motor_failure_bitmask
+				  | _motor_stop_mask;
 
 	// motors
 	int motors_idx;
@@ -729,8 +719,13 @@ ControlAllocator::check_for_motor_failures()
 
 	if ((FailureMode)_param_ca_failure_mode.get() > FailureMode::IGNORE
 	    && _failure_detector_status_sub.update(&failure_detector_status)) {
-		if (failure_detector_status.fd_motor) {
 
+		if (_motor_stop_mask != failure_detector_status.motor_stop_mask) {
+			_motor_stop_mask = failure_detector_status.motor_stop_mask;
+			PX4_WARN("Stopping motors (%d)", _motor_stop_mask);
+		}
+
+		if (failure_detector_status.fd_motor) {
 			if (_handled_motor_failure_bitmask != failure_detector_status.motor_failure_mask) {
 				// motor failure bitmask changed
 				switch ((FailureMode)_param_ca_failure_mode.get()) {

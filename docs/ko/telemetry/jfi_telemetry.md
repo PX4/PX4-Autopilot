@@ -20,8 +20,8 @@ Operating in the 2.4GHz frequency band, it allows unrestricted global use withou
 
 - **Frequency Band:** 2.4GHz
 - **Speed:** Up to 11 Mbps (adjustable)
-- **Range:** Up to 500 meters (varies upon environments)
-- **Payload Capacity:** Up to 1400 bytes
+- **Range:** Up to 1000 meters (varies upon environments)
+- **Payload Capacity:** Up to 1024 bytes
 
 ### Network Schemes
 
@@ -111,9 +111,9 @@ However if you change the baud rate from 57600 you will need to create and use a
 
 1. Disable SiK Radio in QGC (**Application Settings → General → AutoConnect**).
 2. Create a new link configuration:
-  - Go to **Application Settings → Comms Links**.
-  - Click **Add**.
-  - Set **Type** to **Serial**, configure the **Serial Port** and **Baud Rate** to match the J.Fi device.
+   - Go to **Application Settings → Comms Links**.
+   - Click **Add**.
+   - Set **Type** to **Serial**, configure the **Serial Port** and **Baud Rate** to match the J.Fi device.
 3. Select **Connect** to connect with the new configuration.
 
 ## J.Fi Configuration
@@ -124,7 +124,7 @@ However if you change the baud rate from 57600 you will need to create and use a
 - **Smart device:** Connect to Wi-Fi network named `J.Fi-xxxxxx` (x: alphanumeric characters)
 - **Browser:** Go to `192.168.4.1` to open the **configuration page**.
 - **Configuration page:** Adjust settings as needed, then click **Save**
-  - _LED 1_ blinks once upon saving
+  - _LED 2_ blinks once upon saving
 
 ![J.Fi Wireless Telemetry Broadcast Communication](../../assets/hardware/telemetry/jmarple/jfi_telemetry_config.jpg)
 

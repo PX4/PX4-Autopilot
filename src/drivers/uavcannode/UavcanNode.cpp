@@ -505,12 +505,16 @@ void UavcanNode::Run()
 
 			if (can_init_res < 0) {
 				PX4_ERR("CAN driver init failed %i", can_init_res);
+				ScheduleClear();
+				return;
 			}
 
 			int rv = _node.start();
 
 			if (rv < 0) {
 				PX4_ERR("Failed to start the node");
+				ScheduleClear();
+				return;
 			}
 
 			// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
@@ -528,6 +532,8 @@ void UavcanNode::Run()
 
 				if (client_start_res < 0) {
 					PX4_ERR("Failed to start the dynamic node ID client");
+					ScheduleClear();
+					return;
 				}
 			}
 		}
@@ -541,7 +547,7 @@ void UavcanNode::Run()
 		 */
 
 		if (_dyn_node_id_client.isAllocationComplete()) {
-			PX4_INFO("Got node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
+			PX4_INFO("Assigned node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
 
 			_node.setNodeID(_dyn_node_id_client.getAllocatedNodeID());
 			_init_state = Allocated;
@@ -817,6 +823,24 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 			(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
 		}
 	}
+
+	// Use a static node ID if the parameter is set and in range
+	int32_t cannode_node_id = 0;
+	param_get(param_find("CANNODE_NODE_ID"), &cannode_node_id);
+
+	if (cannode_node_id < 0 || cannode_node_id > uavcan::NodeID::Max) {
+		PX4_ERR("Invalid static node ID %ld, using dynamic allocation", cannode_node_id);
+		node_id = 0;
+
+	} else {
+		node_id = cannode_node_id;
+	}
+
+	// Persist the node ID for the bootloader
+	bootloader_app_shared_t shared_write = {};
+	shared_write.node_id = node_id;
+	shared_write.bus_speed = 0; // we always want to autobaud
+	bootloader_app_shared_write(&shared_write, BootLoader);
 
 	if (
 #if defined(SUPPORT_ALT_CAN_BOOTLOADER)

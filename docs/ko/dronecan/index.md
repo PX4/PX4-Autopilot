@@ -38,7 +38,7 @@ Supported hardware includes (this is not an exhaustive list):
 
 - Airspeed sensors
   - [Holybro High Precision DroneCAN Airspeed Sensor - DLVR](https://holybro.com/collections/sensors/products/high-precision-dronecan-airspeed-sensor-dlvr)
-  - [RaccoonLab airspeed sensor](https://docs.raccoonlab.co/guide/airspeed)
+  - [RaccoonLab airspeed sensor](https://docs.raccoonlab.co/guide/airspeed/)
   - [Thiemar airspeed sensor](https://github.com/thiemar/airspeed)
 
 - GNSS receivers for GNSS (GPS, GLONASS, BeiDou, and so on)
@@ -55,7 +55,7 @@ Supported hardware includes (this is not an exhaustive list):
   - [Holybro DroneCAN H-RTK F9P Rover](https://holybro.com/products/dronecan-h-rtk-f9p-rover)
   - [Holybro DroneCAN H-RTK F9P Helical](https://holybro.com/products/dronecan-h-rtk-f9p-helical)
   - [RaccoonLab GNSS Modules](https://docs.raccoonlab.co/guide/gps_mag_baro/)
-  - [Zubax GNSS](https://zubax.com/products/gnss_2)
+  - [Zubax GNSS](https://shop.zubax.com/products/zubax-gnss-2)
 
 - Power monitors
   - [Pomegranate Systems Power Module](../dronecan/pomegranate_systems_pm.md)
@@ -67,10 +67,12 @@ Supported hardware includes (this is not an exhaustive list):
   - [RaccoonLab RM3100 Magnetometer](https://docs.raccoonlab.co/guide/gps_mag_baro/mag_rm3100.html)
 
 - Distance sensors
+  - [ARK Dist](ark_dist.md)
+  - [Ark Dist MR](ark_dist_mr.md)
   - [ARK Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
-  - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder)
+  - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
 
 - 광류 센서
   - [Ark Flow](ark_flow.md)
@@ -102,6 +104,10 @@ If the DNA is still running and certain devices need to be manually configured, 
 :::info
 The PX4 node ID can be configured using the [UAVCAN_NODE_ID](../advanced_config/parameter_reference.md#UAVCAN_NODE_ID) parameter.
 The parameter is set to 1 by default.
+
+Devices running the [PX4 DroneCAN firmware](px4_cannode_fw.md) (such as [ARK CANnode](ark_cannode.md)) can use the
+[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) parameter to set a static node ID.
+Set it to 0 (default) for dynamic allocation, or to a value between 1-127 to use a specific static node ID.
 :::
 
 :::warning
@@ -276,6 +282,9 @@ PX4 DroneCAN parameters:
 
 [DroneCAN ESCs and servos](../dronecan/escs.md) require the [motor order and servo outputs](../config/actuators.md) to be configured.
 
+Select the specific CAN interface(s) used for ESC data output using the [UAVCAN_ESC_IFACE](../advanced_config/parameter_reference.md#UAVCAN_ESC_IFACE) parameter (all that all interfaces are selected by default).
+Note that DroneCAN ESCs should be on their own dedicated CAN interface(s) because ESC messages can saturate the bus and starve other nodes of bandwidth.
+
 ## QGC CANNODE Parameter Configuration
 
 QGroundControl can inspect and modify parameters belonging to CAN devices attached to the flight controller, provided the device are connected to the flight controller before QGC is started.
@@ -284,6 +293,11 @@ CAN nodes are displayed separate sections in [Vehicle Settings > Parameters](../
 For example, the screenshot below shows the parameters for a CAN GPS with node id 125 (after the _Standard_, _System_, and _Developer_ parameter groupings).
 
 ![QGC Parameter showing selected DroneCAN node](../../assets/can/dronecan/qgc_can_parameters.png)
+
+Common CANNODE parameters that you can configure include:
+
+- [CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID): Set a static node ID (1-127) or use 0 for dynamic allocation. See [PX4 DroneCAN Firmware > Static Node ID](px4_cannode_fw.md#static-node-id) for more information.
+- [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM): Enable CAN bus termination on the last node in the bus.
 
 ## Device Specific Setup
 
@@ -313,7 +327,10 @@ If successful, the firmware binary will be removed from the root directory and t
 
 **Q**: The motors aren't spinning when armed.
 
-**A**: Make sure `UAVCAN_ENABLE` is set to `3` to enable DroneCAN ESC output.
+**A**:
+
+- Make sure `UAVCAN_ENABLE` is set to `3` to enable DroneCAN ESC output.
+- Make sure `UAVCAN_ESC_IFACE` is set to enable the CAN interface(s) used for ESCs.
 
 ---
 
@@ -324,6 +341,6 @@ If successful, the firmware binary will be removed from the root directory and t
 ## Useful Links
 
 - [Home Page](https://dronecan.github.io) (dronecan.github.io)
-- [Protocol Specification](https://dronecan.github.io/Specification) (dronecan.github.io)
+- [Protocol Specification](https://dronecan.github.io/Specification/1._Introduction/) (dronecan.github.io)
 - [Implementations](https://dronecan.github.io/Implementations/) (dronecan.github.io)
-- [Cyphal/CAN Device Interconnection](https://kb.zubax.com/pages/viewpage.action?pageId=2195476) (kb.zubax.com)
+- [Cyphal/CAN Device Interconnection](https://wiki.zubax.com/public/cyphal/CyphalCAN-device-interconnection?pageId=2195476) (kb.zubax.com)

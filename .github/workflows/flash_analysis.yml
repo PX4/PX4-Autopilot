@@ -11,13 +11,11 @@ on:
       - 'main'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
   pull_request:
     branches:
-      - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
 
 env:
   MIN_FLASH_POS_DIFF_FOR_COMMENT: 50
@@ -26,9 +24,9 @@ env:
 jobs:
   analyze_flash:
     name: Analyzing ${{ matrix.target }}
-    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     container:
-      image: px4io/px4-dev-nuttx-focal
+      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
     strategy:
       matrix:
         target: [px4_fmu-v5x, px4_fmu-v6x]
@@ -56,6 +54,7 @@ jobs:
         run: |
           make clean
           make distclean
+          make submodulesclean
 
       - name: If it's a PR checkout the base branch
         if: ${{ github.event.pull_request }}
@@ -80,7 +79,7 @@ jobs:
         id: bloaty-step
         with:
           bloaty-file-args: ./with-change.elf -- ./before-change.elf
-          bloaty-additional-args: -d sections,compileunits -s vm -n 20
+          bloaty-additional-args: -d sections,symbols -s vm -n 20
           output-to-summary: true
 
       - name: Generate output
@@ -99,7 +98,7 @@ jobs:
   # Track this issue https://github.com/PX4/PX4-Autopilot/issues/24408
   post_pr_comment:
     name: Publish Results
-    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
     needs: [analyze_flash]
     env:
       V5X-SUMMARY-MAP-ABS: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-summary-map).vm-absolute) }}

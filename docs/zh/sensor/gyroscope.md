@@ -1,12 +1,12 @@
-# Gyroscope Hardware & Setup
+# 陀螺仪硬件和设置
 
-PX4 uses a gyroscope for estimating the vehicle attitude (orientation).
+PX4使用一个陀螺仪来估计载具的姿态（方向）。
 
-You should not need to attach a gyroscope as a stand-alone external device:
+你无需将陀螺仪作为独立的外部设备进行连接：
 
-- Most flight controllers, such as those in the [Pixhawk Series](../flight_controller/pixhawk_series.md), include a gyroscope as part of the flight controller's [Inertial Motion Unit (IMU)](https://en.wikipedia.org/wiki/Inertial_measurement_unit).
-- Gyroscopes are present as part of an [external INS, ARHS or INS-enhanced GNSS system](../sensor/inertial_navigation_systems.md).
+- 大多数飞行控制器，如 [Pixhawk Series](../flight_controller/pixhawk_series.md) 都将陀螺仪作为飞行控制器 [惯性测量单元（IMU）](https://en.wikipedia.org/wiki/Inertial_measurement_unit) 的一部分。
+- 陀螺仪作为[外部惯性导航系统、姿态与航向参考系统或惯性导航增强型全球导航卫星系统](../sensor/inertial_navigation_systems.md)的一部分而存在。
 
-The gyroscope must be calibrated before first use of the vehicle:
+在首次使用载具之前必须校准陀螺仪：
 
-- [Gyroscope Calibration](../config/gyroscope.md)
+- [陀螺仪校准](../config/gyroscope.md)

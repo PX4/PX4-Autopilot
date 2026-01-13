@@ -4,9 +4,9 @@
 
 Source: [drivers/telemetry/frsky_telemetry](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/telemetry/frsky_telemetry)
 
-FrSky 数传支持， FrSky Telemetry support. Auto-detects D or S.PORT protocol. <a id="frsky_telemetry_usage"></a>
+FrSky 数传支持， FrSky Telemetry support. Auto-detects D or S.PORT protocol.
 
-### 用法
+### Usage {#frsky_telemetry_usage}
 
 ```
 frsky_telemetry <command> [arguments...]
@@ -64,9 +64,7 @@ mavlink start -u 14556 -r 1000000
 mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 ```
 
-<a id="mavlink_usage"></a>
-
-### 用法
+### Usage {#mavlink_usage}
 
 ```
 mavlink <command> [arguments...]
@@ -87,7 +85,8 @@ mavlink <command> [arguments...]
                  default: 127.0.0.1
      [-m <val>]  Mode: sets default streams and rates
                  values: custom|camera|onboard|osd|magic|config|iridium|minimal|
-                 extvision|extvisionmin|gimbal|uavionix, default: normal
+                 extvision|extvisionmin|gimbal|onboard_low_bandwidth|uavionix|lo
+                 w_bandwidth|distance_sensor, default: normal
      [-n <val>]  wifi/ethernet interface name
                  values: <interface_name>
      [-c <val>]  Multicast address (multicasting can be enabled via
@@ -129,7 +128,7 @@ Source: [systemcmds/uorb](https://github.com/PX4/PX4-Autopilot/tree/main/src/sys
 
 ### 描述
 
-uORB 是各模块之间进行通讯的基于 发布-订阅 机制的内部消息传递系统。
+uORB is the internal pub-sub messaging system, used for communication between modules.
 
 ### 实现
 
@@ -140,19 +139,18 @@ The code is optimized to minimize the memory footprint and the latency to exchan
 
 Messages are defined in the `/msg` directory. They are converted into C/C++ code at build-time.
 
-该接口基于文件描述符（file descriptor）实现：它在内部使用 <code>read</code>、<code>write</code> 和 <code>ioctl</code>。 The interface is based on file descriptors: internally it uses <code>read</code>, <code>write</code> and <code>ioctl</code>. Except for the publications, which use <code>orb_advert_t</code> handles, so that they can be used from interrupts as well (on NuttX).
+If compiled with ORB_USE_PUBLISHER_RULES, a file with uORB publication rules can be used to configure which
+modules are allowed to publish which topics. This is used for system-wide replay.
 
 ### 示例
 
-Messages are defined in the <code>/msg</code> directory. They are converted into C/C++ code at build-time. Besides `top`, this is an important command for general system inspection:
+Monitor topic publication rates. Besides `top`, this is an important command for general system inspection:
 
 ```
 uorb top
 ```
 
-<a id="uorb_usage"></a>
-
-### 用法
+### Usage {#uorb_usage}
 
 ```
 uorb <command> [arguments...]

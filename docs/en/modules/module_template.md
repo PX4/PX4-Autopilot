@@ -13,7 +13,7 @@ All the things learned in the [First Application Tutorial](../modules/hello_sky.
 
 ## Work Queue Task
 
-PX4-Autopilot contains a template for writing a new application (module) that runs as a *work queue task*: 
+PX4-Autopilot contains a template for writing a new application (module) that runs as a *work queue task*:
 [src/examples/work_item](https://github.com/PX4/PX4-Autopilot/tree/main/src/examples/work_item).
 
 A work queue task application is just the same as an ordinary (task) application, except that it needs to specify that it is a work queue task, and schedule itself to run during initialisation.
@@ -36,7 +36,7 @@ In summary:
    {
    }
    ```
-   
+
    ::: info
    The available work queues (`wq_configurations`) are listed in [WorkQueueManager.hpp](https://github.com/PX4/PX4-Autopilot/blob/main/platforms/common/include/px4_platform_common/px4_work_queue/WorkQueueManager.hpp#L49).
    :::
@@ -64,4 +64,3 @@ The template demonstrates the following additional features/aspects that are req
   documented [in the source code](https://github.com/PX4/PX4-Autopilot/blob/v1.8.0/src/platforms/px4_module.h#L381)):
   - They are used to print the command-line usage when entering `module help` on the console.
   - They are automatically extracted via script to generate the [Modules & Commands Reference](../modules/modules_main.md) page.
-

@@ -12,7 +12,7 @@ To use it you will need to build firmware with this feature enabled and then upl
 :::
 
 :::tip
-Log encryption was has been improved in PX4 main (v1.16+) to generate a single encrypted log file that contains both encrypted log data, and an encrypted symmetric key that you can use to decrypt it (provided you can decrypt the symmetric key).
+Log encryption was has been improved in PX4 v1.16 to generate a single encrypted log file that contains both encrypted log data, and an encrypted symmetric key that you can use to decrypt it (provided you can decrypt the symmetric key).
 
 In earlier versions the encrypted symmetric key was stored in a separate file.
 For more information see the [Log Encryption (PX4 v1.15)](https://docs.px4.io/v1.15/en/dev_log/log_encryption.html).
@@ -30,7 +30,7 @@ If another algorithm is supported in future, the process is _likely_ to remain t
 The encryption process for each new ULog is:
 
 1. A XChaCha20 symmetric key is generated and encrypted using an RSA2048 public key.
-  This wrapped (encrypted) key is stored on the SD card in the beginning of a file that has the suffix `.ulge` ("ulog encrypted").
+   This wrapped (encrypted) key is stored on the SD card in the beginning of a file that has the suffix `.ulge` ("ulog encrypted").
 2. When a log is captured, the ULog data is encrypted with the unwrapped symmetric key and the resulting data is appended into the end of the `.ulge` file immediately after the wrapped key data.
 
 After the flight, the `.ulge` file containing both the wrapped symmetric key and the encrypted log data can be found on the SD card.
@@ -191,7 +191,7 @@ You can now build and test.
 ## Download & Decrypt Log Files
 
 Before you can analyse your logs they must first be downloaded and decrypted.
-PX4 includes Python scripts in [Tools/log_encryption](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/) that make this process easier:
+PX4 includes Python scripts in [Tools/log_encryption](https://github.com/PX4/PX4-Autopilot/tree/main/Tools) that make this process easier:
 
 - [download_logs.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/download_logs.py): Downloads the logs to `/logs/encrypted`.
 - [decrypt_logs.py](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/log_encryption/decrypt_logs.py): Decrypts encrypted logs in `/logs/encrypted` to `/logs/decrypted` using a specified (or default) key.
@@ -356,23 +356,51 @@ This section explains how you might manually run the same steps as the script (s
 
 2. Use OpenSSL to generate a RSA2048 private and public key:
 
-  ```sh
-  openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048
-  ```
+   ```sh
+   openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048
+   ```
 
 3. Create a public key from this private key:
 
-  ```sh
-  # Convert private_key.pem to a DER file
-  openssl rsa -pubout -in private_key.pem -outform DER -out public_key.der
-  # From the DER file, generate a public key in hex format, separated by commas
-  xxd -p public_key.der | tr -d '\n' | sed 's/\(..\)/0x\1, /g' > public_key.pub
-  ```
+   ```sh
+   # Convert private_key.pem to a DER file
+   openssl rsa -pubout -in private_key.pem -outform DER -out public_key.der
+   # From the DER file, generate a public key in hex format, separated by commas
+   xxd -p public_key.der | tr -d '\n' | sed 's/\(..\)/0x\1, /g' > public_key.pub
+   ```
 
 4. Copy the keys into the appropriate locations expected by the rest of the toolchain (as shown in previous section).
 
 5. To use this key, modify your `.px4board` file to point `CONFIG_PUBLIC_KEY1` to the file location of `public_key.pub`.
 
-  ```sh
-  CONFIG_PUBLIC_KEY1="../../../keys/public/public_key.pub"
-  ```
+   ```sh
+   CONFIG_PUBLIC_KEY1="../../../keys/public/public_key.pub"
+   ```
+
+## Flight Review & Encrypted logs
+
+If your logs are secret enough to require encryption it is likely that you will not trust them on the public [Flight Review](../getting_started/flight_reporting.md) server (this is not particularly hardened against data loss or theft).
+
+:::info
+The public [Flight Review](../getting_started/flight_reporting.md) service does not support encrypted logs.
+If you wish to use the service you can use the tools here to download and decrypt the files first.
+:::
+
+This section explains how you can host a _private_ instance of the Flight Review server.
+This can use logs that you have downloaded and decrypted yourself, or you can include your private key in the server for automatic decryption of logs on upload.
+
+Кроки наступні:
+
+1. Follow the Flight Review [installation and setup](https://github.com/PX4/flight_review?tab=readme-ov-file#installation-and-setup) instructions to clone and setup the server.
+
+2. Put your private key in the source code at: `flight_review/app/private_key/private_key.pem`
+
+3. Add this key location into the server config file: `flight_review/app/config_default.ini`.
+
+   The line to add should look something like this (for the file above):
+
+   ```sh
+   ulge_private_key = ../private_key/private_key.pem
+   ```
+
+4. Follow the Flight Review Instructions to start your server.

@@ -1,5 +1,7 @@
 # Modules Reference: Optical Flow (Driver)
+
 ## thoneflow
+
 Source: [drivers/optical_flow/thoneflow](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/optical_flow/thoneflow)
 
 
@@ -22,8 +24,8 @@ Stop driver
 thoneflow stop
 ```
 
-<a id="thoneflow_usage"></a>
-### Usage
+### Usage {#thoneflow_usage}
+
 ```
 thoneflow <command> [arguments...]
  Commands:

@@ -274,7 +274,7 @@ For more details about the configuration of height sources, [click here](#height
 
 #### Yaw Measurements
 
-Some GPS receivers such as the [Trimble MB-Two RTK GPS receiver](https://www.trimble.com/Precision-GNSS/MB-Two-Board.aspx) can be used to provide a heading measurement that replaces the use of magnetometer data.
+Some GPS receivers such as the [Trimble MB-Two RTK GPS receiver](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) can be used to provide a heading measurement that replaces the use of magnetometer data.
 This can be a significant advantage when operating in an environment where large magnetic anomalies are present, or at latitudes here the earth's magnetic field has a high inclination.
 Use of GPS yaw measurements is enabled by setting bit position 3 to 1 (adding 8) in the [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) parameter.
 
@@ -348,6 +348,60 @@ The `hpos_drift_rate`, `vpos_drift_rate` and `hspd` are calculated over a period
 Note that `ekf2_gps_drift` is not logged!
 :::
 
+#### GNSS Fault Detection
+
+PX4's GNSS fault detection protects against malicious or erroneous GNSS signals using selective fusion control based on measurement validation.
+
+The fault detection logic depends on the GPS mode, and also operates differently for horizontal position and altitude measurements.
+The mode is set using the [EKF2_GPS_MODE](../advanced_config/parameter_reference.md#EKF2_GPS_MODE) parameter:
+
+- **Automatic (`0`)** (Default): Assumes that GNSS is generally reliable and is likely to be recovered.
+  EKF2 resets on fusion timeouts if no other source of position is available.
+- **Dead-reckoning (`1`)**: Assumes that GNSS might be lost indefinitely, so resets should be avoided while we have other estimates of position data.
+  EKF2 may reset if no other sources of position or velocity are available.
+  If GNSS altitude OR horizontal position data drifts, the system disables fusion of both measurements simultaneously (even if one would still pass validation) and avoids performing resets.
+
+##### Detection Logic
+
+Horizontal Position:
+
+- **Automatic mode**: Horizontal position resets to GNSS data if no other horizontal position source is currently being fused (e.g., Auxiliary Global Position - AGP).
+- **Dead-reckoning mode**: Horizontal position resets to GNSS data only if no other horizontal position OR velocity source is currently being fused (e.g., AGP, airspeed, optical flow).
+
+Altitude:
+
+- The altitude logic is more complex due to the height reference sensor ([EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF)) parameter, which is typically set to GNSS or baro in GNSS-denied scenarios.
+- If height reference is set to baro, GNSS-based height resets are prevented (except when baro fusion fails completely and height reference automatically switches to GNSS).
+- When height reference is set to GNSS:
+- **Automatic mode**: Resets occur on drifting GNSS altitude measurements.
+- **Dead-reckoning mode**: When validation starts failing, the system prevents GNSS altitude resets and labels the GNSS data as faulty.
+
+##### Faulty GNSS Data During Boot
+
+The system cannot automatically detect faulty GNSS data during vehicle boot as no baseline comparison exists.
+
+If GNSS fusion is enabled ([EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL)), operators will observe incorrect positions on maps and should disable GNSS fusion, then manually set the correct position via ground control station.
+The global position gets corrected, and if [SENS_BAR_AUTOCAL](../advanced_config/parameter_reference.md#SENS_BAR_AUTOCAL) was enabled, baro offsets are automatically adjusted (through bias correction, not parameter changes).
+
+##### Enabling GNSS Fusion Mid-Flight
+
+With Faulty GNSS Data:
+
+- **Automatic mode**: Vehicle will reset to faulty position - potentially dangerous.
+- **Dead-reckoning mode**: Large measurement differences cause GNSS rejection and fault detection activation.
+
+With Valid GNSS Data:
+
+- **Automatic mode**: Vehicle will reset to GNSS measurements.
+- **Dead-reckoning mode**: If estimated position/altitude is close enough to measurements, fusion resumes; if too far apart, data gets labeled as faulty.
+
+##### Notes
+
+- **Dual Detection**: Horizontal and altitude checks run completely separately but both lead to the same result when triggered - all GNSS fusion gets disabled.
+- **Recovery**: Only the specific check that labeled data as invalid can re-enable fusion.
+- **Alternative Sources**: Dead-reckoning mode provides enhanced protection by requiring absence of alternative navigation sources before allowing resets.
+- **Boot Vulnerability**: Initial faulty GNSS data cannot be detected automatically; requires operator intervention and manual position correction.
+
 ### Range Finder
 
 [Range finder](../sensor/rangefinders.md) distance to ground is used by a single state filter to estimate the vertical position of the terrain relative to the height datum.
@@ -386,7 +440,6 @@ It is further configured using the `EKF2_RNG_A_` parameters:
 
 - [EKF2_RNG_A_VMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_VMAX): Maximum horizontal speed, above which range aid is disabled.
 - [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX): Maximum height, above which range aid is disabled.
-- [EKF2_RNG_A_IGATE](../advanced_config/parameter_reference.md#EKF2_RNG_A_IGATE): Range aid consistency checks "gate" (a measure of the error before range aid is disabled).
 
 #### Range height fusion
 
@@ -442,9 +495,7 @@ Airspeed data will be used when it exceeds the threshold set by a positive value
 Fixed-wing platforms can take advantage of an assumed sideslip observation of zero to improve wind speed estimation and also enable wind speed estimation without an airspeed sensor.
 This is enabled by setting the [EKF2_FUSE_BETA](../advanced_config/parameter_reference.md#EKF2_FUSE_BETA) parameter to 1.
 
-<a id="mc_wind_estimation_using_drag"></a>
-
-### Multicopter Wind Estimation using Drag Specific Forces
+### Multicopter Wind Estimation using Drag Specific Forces {#mc_wind_estimation_using_drag}
 
 Multi-rotor platforms can take advantage of the relationship between airspeed and drag force along the X and Y body axes to estimate North/East components of wind velocity.
 This can be enabled using [EKF2_DRAG_CTRL](../advanced_config/parameter_reference.md#EKF2_DRAG_CTRL).
@@ -536,9 +587,9 @@ When this has been done, the performance metadata files can be processed to prov
 
 ### Output Data
 
-- Attitude output data is found in the [VehicleAttitude](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAttitude.msg) message.
-- Local position output data is found in the [VehicleLocalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleLocalPosition.msg) message.
-- Global \(WGS-84\) output data is found in the [VehicleGlobalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleGlobalPosition.msg) message.
+- Attitude output data is found in the [VehicleAttitude](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleAttitude.msg) message.
+- Local position output data is found in the [VehicleLocalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleLocalPosition.msg) message.
+- Global \(WGS-84\) output data is found in the [VehicleGlobalPosition](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleGlobalPosition.msg) message.
 - Wind velocity output data is found in the [Wind.msg](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Wind.msg) message.
 
 ### States

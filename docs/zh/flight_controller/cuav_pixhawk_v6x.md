@@ -96,7 +96,6 @@ The Pixhawk® V6X is ideal for corporate research labs, academic research and co
   - Baseboard: 56g
 - Operating & storage temperature: -20 ~ 85°c
 - Size
-
   - Flight controller
 
     ![Pixhawk V6X](../../assets/flight_controller/cuav_pixhawk_v6x/v6x_size.jpg)
@@ -123,16 +122,16 @@ The [Pixhawk V6X Wiring Quick Start](../assembly/quick_start_cuav_pixhawk_v6x.md
 
 ## 串口映射
 
-| UART   | 设备         | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | GPS           |
-| USART2 | /dev/ttyS1 | TELEM3        |
-| USART3 | /dev/ttyS2 | Debug Console |
-| UART4  | /dev/ttyS3 | UART4         |
-| UART5  | /dev/ttyS4 | TELEM2        |
-| USART6 | /dev/ttyS5 | PX4IO/RC      |
-| UART7  | /dev/ttyS6 | TELEM1        |
-| UART8  | /dev/ttyS7 | GPS2          |
+| UART   | 设备         | Port     |
+| ------ | ---------- | -------- |
+| USART1 | /dev/ttyS0 | GPS      |
+| USART2 | /dev/ttyS1 | TELEM3   |
+| USART3 | /dev/ttyS2 | 调试控制台    |
+| UART4  | /dev/ttyS3 | UART4    |
+| UART5  | /dev/ttyS4 | TELEM2   |
+| USART6 | /dev/ttyS5 | PX4IO/RC |
+| UART7  | /dev/ttyS6 | TELEM1   |
+| UART8  | /dev/ttyS7 | GPS2     |
 
 ## 额定电压
 
@@ -206,7 +205,7 @@ For information about wiring and using this port see:
 
 ## 外部设备
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

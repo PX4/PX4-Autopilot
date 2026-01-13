@@ -44,14 +44,11 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
 
+	// Set setpoints equal current state.
 	_position_setpoint = _position;
 	_velocity_setpoint = _velocity;
 	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
-
-	// Set setpoints equal current state.
-	_velocity_setpoint = _velocity;
-	_position_setpoint = _position;
 
 	Vector3f vel_prev{last_setpoint.velocity};
 	Vector3f pos_prev{last_setpoint.position};
@@ -70,7 +67,10 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 
 	_position_smoothing.reset(accel_prev, vel_prev, pos_prev);
 
-	_yaw_sp_prev = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
+	_yaw_setpoint_previous = last_setpoint.yaw;
+	_heading_smoothing.reset(PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw,
+				 PX4_ISFINITE(last_setpoint.yawspeed) ? last_setpoint.yawspeed : 0.f);
+
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
 	_time_last_cruise_speed_override = 0;
@@ -190,16 +190,14 @@ bool FlightTaskAuto::update()
 		// no valid heading -> generate heading in this flight task
 		// Generate heading along trajectory if possible, otherwise hold the previous yaw setpoint
 		if (!_generateHeadingAlongTraj()) {
-			_yaw_setpoint = PX4_ISFINITE(_yaw_sp_prev) ? _yaw_sp_prev : _yaw;
+			_yaw_setpoint = _yaw_setpoint_previous;
 		}
 	}
 
 	// update previous type
 	_type_previous = _type;
 
-	// If the FlightTask generates a yaw or a yawrate setpoint that exceeds this value
-	// it will see its setpoint constrained here
-	_limitYawRate();
+	_smoothYaw();
 
 	_constraints.want_takeoff = _checkTakeoff();
 
@@ -235,7 +233,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	bool range_dist_available = PX4_ISFINITE(_dist_to_bottom);
 
 	if (range_dist_available && _dist_to_bottom <= _param_mpc_land_alt3.get()) {
-		vertical_speed = _param_mpc_land_crawl_speed.get();
+		vertical_speed = _param_mpc_land_crwl.get();
 	}
 
 	if (_type_previous != WaypointType::land) {
@@ -257,7 +255,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 
 		if (sticks_xy.longerThan(FLT_EPSILON)) {
 			// Ensure no unintended yawing when nudging horizontally during initial heading alignment
-			_land_heading = _yaw_sp_prev;
+			_land_heading = _yaw_setpoint_previous;
 		}
 
 		rcHelpModifyYaw(_land_heading);
@@ -265,21 +263,28 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		Vector2f sticks_ne = sticks_xy;
 		Sticks::rotateIntoHeadingFrameXY(sticks_ne, _yaw, _land_heading);
 
-		const float distance_to_circle = math::trajectory::getMaxDistanceToCircle(_position.xy(), _initial_land_position.xy(),
-						 _param_mpc_land_radius.get(), sticks_ne);
-		float max_speed;
+		float max_speed = INFINITY;
 
-		if (PX4_ISFINITE(distance_to_circle)) {
-			max_speed = math::trajectory::computeMaxSpeedFromDistance(_stick_acceleration_xy.getMaxJerk(),
-					_stick_acceleration_xy.getMaxAcceleration(), distance_to_circle, 0.f);
+		if (_param_mpc_land_radius.get() > FLT_EPSILON) {
 
-			if (max_speed < 0.5f) {
+			// = NaN if we are outside of the allowed circle and nudging does not point back towards it
+			const float distance_to_circle = math::trajectory::getMaxDistanceToCircle(_position.xy(), _initial_land_position.xy(),
+							 _param_mpc_land_radius.get(), sticks_ne);
+
+			if (PX4_ISFINITE(distance_to_circle)) {
+
+				// We are inside of the allowed circle. Limit speed so we can always brake in time to not leave the circle.
+				max_speed = math::trajectory::computeMaxSpeedFromDistance(_stick_acceleration_xy.getMaxJerk(),
+						_stick_acceleration_xy.getMaxAcceleration(), distance_to_circle, 0.f);
+
+				if (max_speed < 0.5f) {
+					sticks_xy.setZero();
+				}
+
+			} else {
+				max_speed = 0.f;
 				sticks_xy.setZero();
 			}
-
-		} else {
-			max_speed = 0.f;
-			sticks_xy.setZero();
 		}
 
 		_stick_acceleration_xy.setVelocityConstraint(max_speed);
@@ -288,7 +293,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
 
 	} else {
-		// Make sure we have a valid land position even in the case we loose RC while amending it
+		// Make sure we have a valid land position even in the case we loose manual control while amending it
 		if (!PX4_ISFINITE(_land_position(0))) {
 			_land_position.xy() = Vector2f(_position);
 		}
@@ -300,39 +305,32 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
-void FlightTaskAuto::_limitYawRate()
+void FlightTaskAuto::_smoothYaw()
 {
 	const float yawrate_max = math::radians(_param_mpc_yawrauto_max.get());
+	_heading_smoothing.setMaxHeadingRate(yawrate_max);
+	_heading_smoothing.setMaxHeadingAccel(math::radians(_param_mpc_yawrauto_acc.get()));
 
 	_yaw_sp_aligned = true;
 
-	if (PX4_ISFINITE(_yaw_setpoint) && PX4_ISFINITE(_yaw_sp_prev)) {
-		// Limit the rate of change of the yaw setpoint
-		const float dyaw_desired = matrix::wrap_pi(_yaw_setpoint - _yaw_sp_prev);
-		const float dyaw_max = yawrate_max * _deltatime;
-		const float dyaw = math::constrain(dyaw_desired, -dyaw_max, dyaw_max);
-		const float yaw_setpoint_sat = matrix::wrap_pi(_yaw_sp_prev + dyaw);
+	if (PX4_ISFINITE(_yaw_setpoint)) {
+		const float yaw_sp_unsmoothed = _yaw_setpoint;
+		_heading_smoothing.update(_yaw_setpoint, _deltatime);
+		_yaw_setpoint = _heading_smoothing.getSmoothedHeading();
+		_yawspeed_setpoint = _heading_smoothing.getSmoothedHeadingRate();
 
 		// The yaw setpoint is aligned when it is within tolerance
-		_yaw_sp_aligned = fabsf(matrix::wrap_pi(_yaw_setpoint - yaw_setpoint_sat)) < math::radians(_param_mis_yaw_err.get());
+		_yaw_sp_aligned = fabsf(matrix::wrap_pi(yaw_sp_unsmoothed - _yaw_setpoint)) < math::radians(_param_mis_yaw_err.get());
 
-		_yaw_setpoint = yaw_setpoint_sat;
-
-		if (!PX4_ISFINITE(_yawspeed_setpoint) && (_deltatime > FLT_EPSILON)) {
-			// Create a feedforward using the filtered derivative
-			_yawspeed_filter.setParameters(_deltatime, .2f);
-			_yawspeed_filter.update(dyaw / _deltatime);
-			_yawspeed_setpoint = _yawspeed_filter.getState();
-		}
+	} else {
+		_heading_smoothing.reset(_yaw, 0.f);
 	}
 
-	_yaw_sp_prev = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw;
+	_yaw_setpoint_previous = _yaw_setpoint;
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
 		// The yaw setpoint is aligned when its rate is not saturated
 		_yaw_sp_aligned = _yaw_sp_aligned && (fabsf(_yawspeed_setpoint) < yawrate_max);
-
-		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
 	}
 }
 
@@ -618,6 +616,7 @@ State FlightTaskAuto::_getCurrentState()
 	const Vector3f u_prev_to_target = (_triplet_target - _triplet_prev_wp).unit_or_zero();
 	const Vector3f prev_to_pos = _position - _triplet_prev_wp;
 	const Vector3f pos_to_target = _triplet_target - _position;
+
 	// Calculate the closest point to the vehicle position on the line prev_wp - target
 	_closest_pt = _triplet_prev_wp + u_prev_to_target * (prev_to_pos * u_prev_to_target);
 
@@ -635,10 +634,9 @@ State FlightTaskAuto::_getCurrentState()
 		// Previous is in front
 		return_state = State::previous_infront;
 
-	} else if ((_position - _closest_pt).longerThan(_target_acceptance_radius)) {
+	} else if (_type != WaypointType::land && (_position - _closest_pt).longerThan(_target_acceptance_radius)) {
 		// Vehicle too far from the track
 		return_state = State::offtrack;
-
 	}
 
 	return return_state;
@@ -713,19 +711,20 @@ void FlightTaskAuto::_ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vx
 	_position_smoothing.forceSetVelocity({_velocity(0), _velocity(1), NAN});
 }
 
-void FlightTaskAuto::_ekfResetHandlerPositionZ(float delta_z)
+void FlightTaskAuto::_ekfResetHandlerPositionZ(const float delta_z)
 {
 	_position_smoothing.forceSetPosition({NAN, NAN, _position(2)});
 }
 
-void FlightTaskAuto::_ekfResetHandlerVelocityZ(float delta_vz)
+void FlightTaskAuto::_ekfResetHandlerVelocityZ(const float delta_vz)
 {
 	_position_smoothing.forceSetVelocity({NAN, NAN, _velocity(2)});
 }
 
-void FlightTaskAuto::_ekfResetHandlerHeading(float delta_psi)
+void FlightTaskAuto::_ekfResetHandlerHeading(const float delta_psi)
 {
-	_yaw_sp_prev += delta_psi;
+	_yaw_setpoint_previous = wrap_pi(_yaw_setpoint_previous + delta_psi);
+	_heading_smoothing.reset(wrap_pi(_heading_smoothing.getSmoothedHeading() + delta_psi));
 }
 
 void FlightTaskAuto::_checkEmergencyBraking()

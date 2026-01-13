@@ -37,7 +37,6 @@ cmake_policy(SET CMP0057 NEW)
 include(px4_list_make_absolute)
 
 set(msg_files
-	AckermannVelocitySetpoint.msg
 	ActionRequest.msg
 	ActuatorArmed.msg
 	ActuatorControlsStatus.msg
@@ -48,6 +47,7 @@ set(msg_files
 	Airspeed.msg
 	AirspeedWind.msg
 	AutotuneAttitudeControlStatus.msg
+	BatteryInfo.msg
 	ButtonEvent.msg
 	CameraCapture.msg
 	CameraStatus.msg
@@ -63,9 +63,11 @@ set(msg_files
 	DebugKeyValue.msg
 	DebugValue.msg
 	DebugVect.msg
+	DeviceInformation.msg
 	DifferentialPressure.msg
 	DistanceSensor.msg
 	DistanceSensorModeChangeRequest.msg
+	DronecanNodeStatus.msg
 	Ekf2Timestamps.msg
 	EscReport.msg
 	EscStatus.msg
@@ -82,7 +84,7 @@ set(msg_files
 	EstimatorStates.msg
 	EstimatorStatus.msg
 	EstimatorStatusFlags.msg
-	Event.msg
+	versioned/Event.msg
 	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
@@ -91,9 +93,13 @@ set(msg_files
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
 	FuelTankStatus.msg
+	FixedWingLateralGuidanceStatus.msg
+	FixedWingLateralStatus.msg
+	FixedWingRunwayControl.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
+	GainCompression.msg
 	GimbalControls.msg
 	GimbalDeviceAttitudeStatus.msg
 	GimbalDeviceInformation.msg
@@ -137,8 +143,8 @@ set(msg_files
 	MountOrientation.msg
 	NavigatorMissionItem.msg
 	NavigatorStatus.msg
+	NeuralControl.msg
 	NormalizedUnsignedSetpoint.msg
-	NpfgStatus.msg
 	ObstacleDistance.msg
 	OffboardControlMode.msg
 	OnboardComputerStatus.msg
@@ -177,9 +183,10 @@ set(msg_files
 	RoverPositionSetpoint.msg
 	RoverRateSetpoint.msg
 	RoverRateStatus.msg
+	RoverSpeedSetpoint.msg
+	RoverSpeedStatus.msg
 	RoverSteeringSetpoint.msg
 	RoverThrottleSetpoint.msg
-	RoverVelocityStatus.msg
 	Rpm.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg
@@ -190,6 +197,7 @@ set(msg_files
 	SensorCombined.msg
 	SensorCorrection.msg
 	SensorGnssRelative.msg
+	SensorGnssStatus.msg
 	SensorGps.msg
 	SensorGyro.msg
 	SensorGyroFft.msg
@@ -201,6 +209,7 @@ set(msg_files
 	SensorSelection.msg
 	SensorsStatus.msg
 	SensorsStatusImu.msg
+	SensorTemp.msg
 	SensorUwb.msg
 	SensorAirflow.msg
 	SystemPower.msg
@@ -232,7 +241,6 @@ set(msg_files
 	VehicleTorqueSetpoint.msg
 	VelocityLimits.msg
 	WheelEncoders.msg
-	Wind.msg
 	YawEstimatorStatus.msg
 	versioned/ActuatorMotors.msg
 	versioned/ActuatorServos.msg
@@ -241,8 +249,12 @@ set(msg_files
 	versioned/ArmingCheckRequest.msg
 	versioned/BatteryStatus.msg
 	versioned/ConfigOverrides.msg
+	versioned/FixedWingLateralSetpoint.msg
+	versioned/FixedWingLongitudinalSetpoint.msg
 	versioned/GotoSetpoint.msg
 	versioned/HomePosition.msg
+	versioned/LateralControlConfiguration.msg
+	versioned/LongitudinalControlConfiguration.msg
 	versioned/ManualControlSetpoint.msg
 	versioned/ModeCompleted.msg
 	versioned/RegisterExtComponentReply.msg
@@ -262,6 +274,7 @@ set(msg_files
 	versioned/VehicleRatesSetpoint.msg
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
+	versioned/Wind.msg
 )
 list(SORT msg_files)
 
@@ -415,9 +428,11 @@ add_dependencies(uorb_msgs prebuild_targets uorb_headers)
 if(CONFIG_LIB_CDRSTREAM)
 	set(uorb_cdr_idl)
 	set(uorb_cdr_msg)
+	set(uorb_cdr_hash)
 	set(uorb_cdr_idl_uorb)
 	set(idl_include_path ${PX4_BINARY_DIR}/uORB/idl)
 	set(idl_out_path ${idl_include_path}/px4/msg)
+	set(idl_rihs01_out_path ${idl_include_path}/px4)
 	set(idl_uorb_path ${PX4_BINARY_DIR}/msg/px4/msg)
 
 	# Make sure that CycloneDDS has been checkout out
@@ -448,6 +463,7 @@ if(CONFIG_LIB_CDRSTREAM)
 		configure_file(${msg_file} ${idl_out_path}/${msg}.msg COPYONLY)
 		list(APPEND uorb_cdr_idl ${idl_out_path}/${msg}.idl)
 		list(APPEND uorb_cdr_msg ${idl_out_path}/${msg}.msg)
+		list(APPEND uorb_cdr_hash ${idl_out_path}/${msg}.json)
 		list(APPEND uorb_cdr_idl_uorb ${idl_uorb_path}/${msg}.h)
 	endforeach()
 
@@ -463,6 +479,25 @@ if(CONFIG_LIB_CDRSTREAM)
 			${uorb_cdr_msg}
 			git_cyclonedds
 		COMMENT "Generating IDL from uORB topic headers"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		VERBATIM
+		)
+
+	file(CREATE_LINK ${idl_rihs01_out_path} ${idl_include_path}/px4_msgs SYMBOLIC)
+
+	# Generate IDL from .msg using rosidl_adapter
+	# Note this is a submodule inside PX4 hence no ROS2 installation required
+	add_custom_command(
+		OUTPUT ${uorb_cdr_hash}
+		COMMAND ${CMAKE_COMMAND}
+		        -E env "PYTHONPATH=${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_adapter:${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_cli:${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_parser:${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_generator_type_description"
+			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/cdrstream/idl2rihs01.py
+			--output-dir ${idl_rihs01_out_path}
+			${uorb_cdr_idl}
+		DEPENDS
+			${uorb_cdr_idl}
+			git_cyclonedds
+		COMMENT "Generating RIHS01 hashes from IDL"
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		VERBATIM
 		)
@@ -496,6 +531,7 @@ if(CONFIG_LIB_CDRSTREAM)
 		DEPENDS
 			uorb_cdrstream
 			${msg_files}
+			${uorb_cdr_hash}
 			${PX4_SOURCE_DIR}/Tools/msg/templates/cdrstream/uorb_idl_header.h.em
 			${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 			${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_helper.py
@@ -525,8 +561,10 @@ if(CONFIG_MODULES_ZENOH)
 			-f ${msg_files}
 			-o ${PX4_BINARY_DIR}/src/modules/zenoh/
 			-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
+			--rihs ${idl_rihs01_out_path}
 		DEPENDS
 			${msg_files}
+			${uorb_cdr_hash}
 			${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh/uorb_pubsub_factory.hpp.em
 			${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
 		COMMENT "Generating Zenoh Topic Code"

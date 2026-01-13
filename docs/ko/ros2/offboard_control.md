@@ -1,6 +1,6 @@
 # ROS 2 오프보드 제어 예
 
-The following C++ example shows how to do position control in [offboard mode](../flight_modes/offboard.md) from a ROS 2 node.
+The following C++ example shows how to do multicopter position control in [offboard mode](../flight_modes/offboard.md) from a ROS 2 node.
 
 The example starts sending setpoints, enters offboard mode, arms, ascends to 5 metres, and waits.
 While simple, it shows the main principles of how to use offboard control and how to send vehicle commands.
@@ -22,7 +22,7 @@ To subscribe to data coming from nodes that publish in a different frame (for ex
 
 ## Trying it out
 
-Follow the instructions in [ROS 2 User Guide](../ros2/user_guide.md) to install PX and run the simulator, install ROS 2, and start the XRCE-DDS Agent.
+Follow the instructions in [ROS 2 User Guide](../ros2/user_guide.md) to install PX and run the multicopter simulator, install ROS 2, and start the XRCE-DDS Agent.
 
 After that we can follow a similar set of steps to those in [ROS 2 User Guide > Build ROS 2 Workspace](../ros2/user_guide.md#build-ros-2-workspace) to run the example.
 
@@ -37,63 +37,63 @@ To build and run the example:
 
 2. Create and navigate into a new colcon workspace directory using:
 
- ```sh
- mkdir -p ~/ws_offboard_control/src/
- cd ~/ws_offboard_control/src/
- ```
+   ```sh
+   mkdir -p ~/ws_offboard_control/src/
+   cd ~/ws_offboard_control/src/
+   ```
 
 3. Clone the [px4_msgs](https://github.com/PX4/px4_msgs) repo to the `/src` directory (this repo is needed in every ROS 2 PX4 workspace!):
 
- ```sh
- git clone https://github.com/PX4/px4_msgs.git
- # checkout the matching release branch if not using PX4 main.
- ```
+   ```sh
+   git clone https://github.com/PX4/px4_msgs.git
+   # checkout the matching release branch if not using PX4 main.
+   ```
 
 4. Clone the example repository [px4_ros_com](https://github.com/PX4/px4_ros_com) to the `/src` directory:
 
- ```sh
- git clone https://github.com/PX4/px4_ros_com.git
- ```
+   ```sh
+   git clone https://github.com/PX4/px4_ros_com.git
+   ```
 
 5. Source the ROS 2 development environment into the current terminal and compile the workspace using `colcon`:
 
- :::: tabs
+   :::: tabs
 
- ::: tab humble
+   ::: tab humble
 
- ```sh
- cd ..
- source /opt/ros/humble/setup.bash
- colcon build
- ```
-
-
-:::
-
- ::: tab foxy
-
- ```sh
- cd ..
- source /opt/ros/foxy/setup.bash
- colcon build
- ```
+   ```sh
+   cd ..
+   source /opt/ros/humble/setup.bash
+   colcon build
+   ```
 
 
 :::
 
- ::::
+   ::: tab foxy
+
+   ```sh
+   cd ..
+   source /opt/ros/foxy/setup.bash
+   colcon build
+   ```
+
+
+:::
+
+   ::::
 
 6. Source the `local_setup.bash`:
 
- ```sh
- source install/local_setup.bash
- ```
+   ```sh
+   source install/local_setup.bash
+   ```
 
 7. Launch the example.
 
- ```
- ros2 run px4_ros_com offboard_control
- ```
+   ```
+   ros2 run px4_ros_com offboard_control
+   ```
 
 The vehicle should arm, ascend 5 metres, and then wait (perpetually).
 

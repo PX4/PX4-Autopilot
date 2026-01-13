@@ -6,13 +6,15 @@ on:
     - 'main'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
   pull_request:
     branches:
-    - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -32,7 +34,8 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: setup
-      run: ./Tools/setup/macos.sh; ./Tools/setup/macos.sh
+      run: |
+        ./Tools/setup/macos.sh
 
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp

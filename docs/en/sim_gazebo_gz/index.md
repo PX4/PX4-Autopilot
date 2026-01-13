@@ -20,6 +20,8 @@ See [Simulation](../simulation/index.md) for general information about simulator
 
 Gazebo Harmonic is installed by default on Ubuntu 22.04 as part of the normal [development environment setup](../dev_setup/dev_env_linux_ubuntu.md#simulation-and-nuttx-pixhawk-targets).
 
+Gazebo versions Harmonic, Ionic, and Jetty are supported on Ubuntu 24.04. The latest installed Gazebo release is used by default.
+
 :::info
 The PX4 installation scripts are based on the instructions: [Binary Installation on Ubuntu](https://gazebosim.org/docs/harmonic/install_ubuntu/) (gazebosim.org).
 :::
@@ -48,22 +50,24 @@ This runs both the PX4 SITL instance and the Gazebo client.
 The supported vehicles and `make` commands are listed below.
 Note that all gazebo make targets have the prefix `gz_`.
 
-| Vehicle                                                                                                                       | Command                             | `PX4_SYS_AUTOSTART` |
-| ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------- |
-| [Quadrotor (x500)](../sim_gazebo_gz/vehicles.md#x500-quadrotor)                                                               | `make px4_sitl gz_x500`             | 4001                |
-| [X500 Quadrotor with Depth Camera (Front-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-depth-camera-front-facing) | `make px4_sitl gz_x500_depth`       | 4002                |
-| [Quadrotor(x500) with Vision Odometry](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-visual-odometry)                      | `make px4_sitl gz_x500_vision`      | 4005                |
-| [Quadrotor(x500) with 1D LIDAR (Down-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-1d-lidar-down-facing)          | `make px4_sitl gz_x500_lidar_down`  | 4016                |
-| [Quadrotor(x500) with 2D LIDAR](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-2d-lidar)                                    | `make px4_sitl gz_x500_lidar_2d`    | 4013                |
-| [Quadrotor(x500) with 1D LIDAR (Front-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-1d-lidar-front-facing)        | `make px4_sitl gz_x500_lidar_front` | 4017                |
-| [Quadrotor(x500) with gimbal (Front-facing) in Gazebo](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-gimbal-front-facing)  | `make px4_sitl gz_x500_gimbal`      | 4019                |
-| [VTOL](../sim_gazebo_gz/vehicles.md#standard-vtol)                                                                            | `make px4_sitl gz_standard_vtol`    | 4004                |
-| [Plane](../sim_gazebo_gz/vehicles.md#standard-plane)                                                                          | `make px4_sitl gz_rc_cessna`        | 4003                |
-| [Advanced Plane](../sim_gazebo_gz/vehicles.md#advanced-plane)                                                                 | `make px4_sitl gz_advanced_plane`   | 4008                |
-| [Differential Rover](../sim_gazebo_gz/vehicles.md#differential-rover)                                                         | `make px4_sitl gz_r1_rover`         | 4009                |
-| [Ackermann Rover](../sim_gazebo_gz/vehicles.md#ackermann-rover)                                                               | `make px4_sitl gz_rover_ackermann`  | 4012                |
-| [Quad Tailsitter VTOL](../sim_gazebo_gz/vehicles.md#quad-tailsitter-vtol)                                                     | `make px4_sitl gz_quadtailsitter`   | 4018                |
-| [Tiltrotor VTOL](../sim_gazebo_gz/vehicles.md#tiltrotor-vtol)                                                                 | `make px4_sitl gz_tiltrotor`        | 4020                |
+| Vehicle                                                                                                                       | Command                               | `PX4_SYS_AUTOSTART` |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------- |
+| [Quadrotor (x500)](../sim_gazebo_gz/vehicles.md#x500-quadrotor)                                                               | `make px4_sitl gz_x500`               | 4001                |
+| [X500 Quadrotor with Depth Camera (Front-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-depth-camera-front-facing) | `make px4_sitl gz_x500_depth`         | 4002                |
+| [Quadrotor(x500) with Vision Odometry](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-visual-odometry)                      | `make px4_sitl gz_x500_vision`        | 4005                |
+| [Quadrotor(x500) with 1D LIDAR (Down-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-1d-lidar-down-facing)          | `make px4_sitl gz_x500_lidar_down`    | 4016                |
+| [Quadrotor(x500) with 2D LIDAR](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-2d-lidar)                                    | `make px4_sitl gz_x500_lidar_2d`      | 4013                |
+| [Quadrotor(x500) with 1D LIDAR (Front-facing)](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-1d-lidar-front-facing)        | `make px4_sitl gz_x500_lidar_front`   | 4017                |
+| [Quadrotor(x500) with gimbal (Front-facing) in Gazebo](../sim_gazebo_gz/vehicles.md#x500-quadrotor-with-gimbal-front-facing)  | `make px4_sitl gz_x500_gimbal`        | 4019                |
+| [VTOL](../sim_gazebo_gz/vehicles.md#standard-vtol)                                                                            | `make px4_sitl gz_standard_vtol`      | 4004                |
+| [Plane](../sim_gazebo_gz/vehicles.md#standard-plane)                                                                          | `make px4_sitl gz_rc_cessna`          | 4003                |
+| [Advanced Plane](../sim_gazebo_gz/vehicles.md#advanced-plane)                                                                 | `make px4_sitl gz_advanced_plane`     | 4008                |
+| [Quad Tailsitter VTOL](../sim_gazebo_gz/vehicles.md#quad-tailsitter-vtol)                                                     | `make px4_sitl gz_quadtailsitter`     | 4018                |
+| [Tiltrotor VTOL](../sim_gazebo_gz/vehicles.md#tiltrotor-vtol)                                                                 | `make px4_sitl gz_tiltrotor`          | 4020                |
+| [Differential Rover](../sim_gazebo_gz/vehicles.md#differential-rover)                                                         | `make px4_sitl gz_rover_differential` | 50000               |
+| [Ackermann Rover](../sim_gazebo_gz/vehicles.md#ackermann-rover)                                                               | `make px4_sitl gz_rover_ackermann`    | 51000               |
+| [Mecanum Rover](../sim_gazebo_gz/vehicles.md#mecanum-rover)                                                                   | `make px4_sitl gz_rover_mecanum`      | 52000               |
+
 
 All [vehicle models](../sim_gazebo_gz/vehicles.md) (and [worlds](#specify-world)) are included as a submodule from the [Gazebo Models Repository](../sim_gazebo_gz/gazebo_models.md) repository.
 
@@ -131,6 +135,20 @@ The simulation can be run in headless mode by prefixing the command with the `HE
 HEADLESS=1 make px4_sitl gz_x500
 ```
 
+### Set Custom Takeoff Location
+The takeoff location in Gazebo Classic can be set using environment variables.
+
+The variables to set are: PX4_HOME_LAT, PX4_HOME_LON, and PX4_HOME_ALT.
+
+For example:
+
+```
+export PX4_HOME_LAT=51.1788
+export PX4_HOME_LON=-1.8263
+export PX4_HOME_ALT=101
+make px4_sitl gz_x500
+```
+
 ### Specify World
 
 The simulation can be run inside a particular world by concatenating the desired world to the name of the desired vehicle.
@@ -148,15 +166,16 @@ PX4_GZ_WORLD=windy make px4_sitl gz_x500
 
 The [supported worlds](../sim_gazebo_gz/worlds.md) are listed below.
 
-| World      | Command                    | Description                                                 |
-| ---------- | -------------------------- | ----------------------------------------------------------- |
-| `default`  | `make px4_sitl *`          | Empty world (a grey plane)                                  |
-| `aruco`    | `make px4_sitl *_aruco`    | Empty world with aruco marker for testing precision landing |
-| `baylands` | `make px4_sitl *_baylands` | Baylands world surrounded by water                          |
-| `lawn`     | `make px4_sitl *_lawn`     | Lawn world for testing rovers                               |
-| `rover`    | `make px4_sitl *_rover`    | Rover world (optimised/preferred)                           |
-| `walls`    | `make px4_sitl *_walls`    | Wall world for testing collision prevention                 |
-| `windy`    | `make px4_sitl *_windy`    | Empty world with wind enabled                               |
+| World             | Command                           | Description                                                 |
+| ----------------- | --------------------------------- | ----------------------------------------------------------- |
+| `default`         | `make px4_sitl *`                 | Empty world (a grey plane)                                  |
+| `aruco`           | `make px4_sitl *_aruco`           | Empty world with aruco marker for testing precision landing |
+| `baylands`        | `make px4_sitl *_baylands`        | Baylands world surrounded by water                          |
+| `lawn`            | `make px4_sitl *_lawn`            | Lawn world for testing rovers                               |
+| `rover`           | `make px4_sitl *_rover`           | Rover world (optimised/preferred)                           |
+| `walls`           | `make px4_sitl *_walls`           | Wall world for testing collision prevention                 |
+| `windy`           | `make px4_sitl *_windy`           | Empty world with wind enabled                               |
+| `moving_platform` | `make px4_sitl *_moving_platform` | World with moving takeoff / landing platform                |
 
 :::warning
 Note that if no world is specified, PX4 will use the `default` world.
@@ -262,6 +281,9 @@ where `ARGS` is a list of environment variables including:
 
   - This variable is ignored if an existing simulation is already running.
   - This value should be [specified for the selected airframe](#adding-new-worlds-and-models) but may be overridden using this argument.
+  - If the [moving platform world](../sim_gazebo_gz/worlds.md#moving-platform) is selected using `PX4_GZ_WORLD=moving_platform` (or any world using the moving platform plugin), the platform can be configured using environment variables:
+    - `PX4_GZ_PLATFORM_VEL`: Platform speed (m/s).
+    - `PX4_GZ_PLATFORM_HEADING_DEG`: Platform heading and direction of velocity (degrees). 0 = east, positive direction is counterclockwise.
 
 - `PX4_SIMULATOR=GZ`:
   Sets the simulator, which for Gazebo must be `gz`.
@@ -373,6 +395,11 @@ To add a new world:
 As long as the world file and the model file are in the Gazebo search path (`GZ_SIM_RESOURCE_PATH`) it is not necessary to add them to the PX4 world and model directories.
 However, `make px4_sitl gz_<model>_<world>` won't work with them.
 :::
+
+## Extending Gazebo with Plugins
+
+World, vehicle (model), and sensor behaviour can be customised using plugins.
+For more information see [Gazebo Plugins](../sim_gazebo_gz/plugins.md).
 
 ## Multi-Vehicle Simulation
 

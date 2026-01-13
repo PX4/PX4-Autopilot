@@ -14,7 +14,7 @@ Source: [drivers/optical_flow/thoneflow](https://github.com/PX4/PX4-Autopilot/tr
 
 ### Приклади
 
-Спроба запустити драйвер на вказаному послідовному пристрої.
+Attempt to start driver on a specified serial device.
 
 ```
 thoneflow start -d /dev/ttyS1
@@ -26,9 +26,7 @@ Stop driver
 thoneflow stop
 ```
 
-<a id="thoneflow_usage"></a>
-
-### Використання
+### Usage {#thoneflow_usage}
 
 ```
 thoneflow <command> [arguments...]

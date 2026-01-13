@@ -68,6 +68,7 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_vari
 	}
 
 	_wind_estimator_reset = true;
+	_time_initialised = hrt_absolute_time();
 
 	return true;
 }
@@ -94,10 +95,14 @@ WindEstimator::update(uint64_t time_now)
 	const float dt = (float)(time_now - _time_last_update) * 1e-6f;
 	_time_last_update = time_now;
 
+	// if airspeed scale is at default (1.0) and we are in the first 5 minutes of flight time, multiply _tas_scale_psd by 100 for faster learning
+	const float tas_psd_multiplier = (fabsf(_scale_init - 1.0f) < FLT_EPSILON && (time_now - _time_initialised < kTASScaleFastLearnTime)) ?
+					 kTASScalePSDMultiplier : 1.f;
+
 	matrix::Matrix3f Qk;
 	Qk(INDEX_W_N, INDEX_W_N) = _wind_psd * dt;
 	Qk(INDEX_W_E, INDEX_W_E) = Qk(INDEX_W_N, INDEX_W_N);
-	Qk(INDEX_TAS_SCALE, INDEX_TAS_SCALE) = _tas_scale_psd * dt;
+	Qk(INDEX_TAS_SCALE, INDEX_TAS_SCALE) = _tas_scale_psd * tas_psd_multiplier * dt;
 	_P += Qk;
 }
 

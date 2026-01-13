@@ -31,33 +31,33 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
 
 1. If no mission is stored, or if PX4 has finished executing all mission commands, or if the [mission is not feasible](#mission-feasibility-checks):
 
-  - If flying the vehicle will hold.
-  - If landed the vehicle will "wait".
+   - If flying the vehicle will hold.
+   - If landed the vehicle will "wait".
 
 2. If a mission is stored and PX4 is flying it will execute the [mission/flight plan](../flying/missions.md) from the current step.
-  - A `TAKEOFF` item is treated as a normal waypoint.
+   - A `TAKEOFF` item is treated as a normal waypoint.
 
 3. If a mission is stored and PX4 is landed:
-  - PX4 will execute the [mission/flight plan](../flying/missions.md).
-  - If the mission does not have a `TAKEOFF` item then PX4 will fly the vehicle to the minimum altitude before executing the remainder of the flight plan from the current step.
+   - PX4 will execute the [mission/flight plan](../flying/missions.md).
+   - If the mission does not have a `TAKEOFF` item then PX4 will fly the vehicle to the minimum altitude before executing the remainder of the flight plan from the current step.
 
 4. If no mission is stored, or if PX4 has finished executing all mission commands:
-  - If flying the vehicle will hold.
-  - If landed the vehicle will "wait".
+   - If flying the vehicle will hold.
+   - If landed the vehicle will "wait".
 
 5. You can manually change the current mission command by selecting it in _QGroundControl_.
 
-  ::: info
-  If you have a _Jump to item_ command in the mission, moving to another item will **not** reset the loop counter.
-  One implication is that if you change the current mission command to 1 this will not "fully restart" the mission.
+   ::: info
+   If you have a _Jump to item_ command in the mission, moving to another item will **not** reset the loop counter.
+   One implication is that if you change the current mission command to 1 this will not "fully restart" the mission.
 
 :::
 
 6. The mission will only reset when the vehicle is disarmed or when a new mission is uploaded.
 
-  :::tip
-  To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
-  Enter the time to wait after landing before disarming the vehicle.
+   :::tip
+   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
+   Enter the time to wait after landing before disarming the vehicle.
 
 :::
 
@@ -171,6 +171,9 @@ Mission Items:
 - [MAV_CMD_NAV_VTOL_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_VTOL_TAKEOFF)
   - `MAV_CMD_NAV_VTOL_TAKEOFF.param2` (transition heading) is ignored.
     Instead the heading to the next waypoint is used for the transition heading. <!-- at LEAST until PX4 v1.13: https://github.com/PX4/PX4-Autopilot/issues/12660 -->
+- [MAV_CMD_DO_AUTOTUNE_ENABLE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_AUTOTUNE_ENABLE)
+  - Disabling autotune by setting `param1` to zero is currently not supported. To abort autotune during a mission, switch to another flight mode.
+  - Axis selection specified in the MAVLink message is ignored (`param2` must be set to 0) .
 
 GeoFence Definitions
 
@@ -228,8 +231,8 @@ If a mission with no takeoff mission item is started, the vehicle will ascend to
 
 If the vehicle is already flying when the mission is started, a takeoff mission item is treated as a normal waypoint.
 
-## See Also
+## 另见
 
 - [Missions](../flying/missions.md)
-  - [Package Delivery Mission](../flying/package_delivery_mission.md)
+  - [包裹投递任务](../flying/package_delivery_mission.md)
 - [Mission Mode (FW)](../flight_modes_fw/mission.md)
