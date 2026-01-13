@@ -81,15 +81,10 @@ UavcanHardpointController::periodic_update(const uavcan::TimerEvent &)
 		}
 	}
 
-	/*
-	 * According to the MAV_CMD_DO_GRIPPER cmd, Instance (hardpoint_id) should be at least 1
-	 */
-	if (_cmd.hardpoint_id >= 1) {
-		const hrt_abstime timestamp_now = hrt_absolute_time();
+	const hrt_abstime timestamp_now = hrt_absolute_time();
 
-		if (timestamp_now > _next_publish_time) {
-			_next_publish_time = timestamp_now + 1000000 / PUBLISH_RATE_HZ;
-			_uavcan_pub_hardpoint.broadcast(_cmd);
-		}
+	if (timestamp_now > _next_publish_time) {
+		_next_publish_time = timestamp_now + 1000000 / PUBLISH_RATE_HZ;
+		_uavcan_pub_hardpoint.broadcast(_cmd);
 	}
 }
