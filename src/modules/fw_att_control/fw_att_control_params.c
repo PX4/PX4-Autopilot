@@ -254,3 +254,19 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
+
+/**
+ * Rate blending amount (debug parameter)
+ *
+ * Controls the blending between tilt-only rate control (0.0) and full 3D attitude rate control (1.0).
+ * This is a debug parameter to test different blending amounts without reflashing.
+ * 0.0 = only use tilt-based rates (normal FW)
+ * 1.0 = only use full quaternion error rates (near-vertical)
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_RATE_BLEND, 1.0f);
