@@ -25,19 +25,20 @@ parser.add_argument('-p', '--pretty', dest='pretty', action='store_true',
                     help='Pretty output instead of a single line')
 parser.add_argument('-g', '--groups', dest='group', action='store_true',
                     help='Groups targets')
-parser.add_argument('-f', '--filter', dest='filter', help='comma separated list of board names to use instead of all')
+parser.add_argument('-f', '--filter', dest='filter', help='comma separated list of build target name prefixes to include instead of all e.g. "px4_fmu-v5_"')
 
 args = parser.parse_args()
 verbose = args.verbose
 
-board_filter = []
+target_filter = []
 if args.filter:
-    for board in args.filter.split(','):
-        board_filter.append(board)
+    for target in args.filter.split(','):
+        target_filter.append(target)
 
+default_container = 'ghcr.io/px4/px4-dev:v1.16.0-rc1-258-g0369abd556'
 build_configs = []
 grouped_targets = {}
-excluded_boards = ['modalai_voxl2', 'px4_ros2']  # TODO: fix and enable
+excluded_boards = ['modalai_voxl2', 'px4_ros2', 'espressif_esp32']  # TODO: fix and enable
 excluded_manufacturers = ['atlflight']
 excluded_platforms = ['qurt']
 excluded_labels = [
@@ -69,7 +70,7 @@ def process_target(px4board_file, target_name):
     group = None
 
     if px4board_file.endswith("default.px4board") or \
-        px4board_file.endswith("recovery.px4board") or \
+        px4board_file.endswith("performance-test.px4board") or \
         px4board_file.endswith("bootloader.px4board"):
         kconf.load_config(px4board_file, replace=True)
     else: # Merge config with default.px4board
@@ -86,21 +87,17 @@ def process_target(px4board_file, target_name):
     assert platform, f"PLATFORM not found in {px4board_file}"
 
     if platform not in excluded_platforms:
-        # get the container based on the platform and toolchain
+        container = default_container
         if platform == 'posix':
-            container = 'px4io/px4-dev-base-focal:2021-09-08'
             group = 'base'
             if toolchain:
                 if toolchain.startswith('aarch64'):
-                    container = 'px4io/px4-dev-aarch64:2022-08-12'
                     group = 'aarch64'
                 elif toolchain == 'arm-linux-gnueabihf':
-                    container = 'px4io/px4-dev-armhf:2023-06-26'
                     group = 'armhf'
                 else:
                     if verbose: print(f'unmatched toolchain: {toolchain}')
         elif platform == 'nuttx':
-            container = 'px4io/px4-dev-nuttx-focal:2022-08-12'
             group = 'nuttx'
         else:
             if verbose: print(f'unmatched platform: {platform}')
@@ -124,7 +121,7 @@ if(verbose):
 # - Events
 metadata_targets = ['airframe_metadata', 'parameters_metadata', 'extract_events']
 grouped_targets['base'] = {}
-grouped_targets['base']['container'] = 'px4io/px4-dev-base-focal:2021-09-08'
+grouped_targets['base']['container'] = default_container
 grouped_targets['base']['manufacturers'] = {}
 grouped_targets['base']['manufacturers']['px4'] = []
 grouped_targets['base']['manufacturers']['px4'] += metadata_targets
@@ -147,7 +144,7 @@ for manufacturer in os.scandir(os.path.join(source_dir, '../boards')):
                 label = files.name[:-9]
                 target_name = manufacturer.name + '_' + board.name + '_' + label
 
-                if board_filter and not board_name in board_filter:
+                if target_filter and not any(target_name.startswith(f) for f in target_filter):
                     if verbose: print(f'excluding board {board_name} ({target_name})')
                     continue
 
@@ -206,6 +203,7 @@ if (args.group):
     if(verbose):
         print(f'=:Architectures: [{grouped_targets.keys()}]')
     for arch in grouped_targets:
+        runner = 'x64' if arch == 'nuttx' else 'arm64'
         if(verbose):
             print(f'=:Processing: [{arch}]')
         temp_group = []
@@ -223,6 +221,7 @@ if (args.group):
                     "container": grouped_targets[arch]['container'],
                     "targets": targets,
                     "arch": arch,
+                    "runner": runner,
                     "group": group_name,
                     "len": len(grouped_targets[arch]['manufacturers'][man])
                 })
@@ -240,6 +239,7 @@ if (args.group):
                         "container": grouped_targets[arch]['container'],
                         "targets": targets,
                         "arch": arch,
+                        "runner": runner,
                         "group": group_name,
                         "len": len(chunk),
                     })
@@ -260,6 +260,7 @@ if (args.group):
                 "container": grouped_targets[arch]['container'],
                 "targets": targets,
                 "arch": arch,
+                "runner": runner,
                 "group": group_name,
                 "len": temp_len
             })
@@ -277,6 +278,7 @@ if (args.group):
                     "container": grouped_targets[arch]['container'],
                     "targets": targets,
                     "arch": arch,
+                    "runner": runner,
                     "group": group_name,
                     "len": len(chunk),
                 })

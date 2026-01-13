@@ -53,6 +53,7 @@ file(GLOB_RECURSE yaml_config_files ${PX4_SOURCE_DIR}/src/modules/*.yaml
 # avoid param duplicates
 list(FILTER yaml_config_files EXCLUDE REGEX ".*/pwm_out_sim/")
 list(FILTER yaml_config_files EXCLUDE REGEX ".*/linux_pwm_out/")
+list(FILTER yaml_config_files EXCLUDE REGEX ".*/spacecraft/")
 
 add_custom_target(metadata_parameters
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs
@@ -70,18 +71,15 @@ add_custom_target(metadata_parameters
 
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py
 		--src-path `find ${PX4_SOURCE_DIR}/src -maxdepth 4 -type d` ${generated_params_dir}
-		--inject-xml ${PX4_SOURCE_DIR}/src/lib/parameters/parameters_injected.xml
 		--markdown ${PX4_BINARY_DIR}/docs/parameters.md
 
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py
 		--src-path `find ${PX4_SOURCE_DIR}/src -maxdepth 4 -type d` ${generated_params_dir}
-		--inject-xml ${PX4_SOURCE_DIR}/src/lib/parameters/parameters_injected.xml
 		--json ${PX4_BINARY_DIR}/docs/parameters.json
 		--compress
 
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py
 		--src-path `find ${PX4_SOURCE_DIR}/src -maxdepth 4 -type d` ${generated_params_dir}
-		--inject-xml ${PX4_SOURCE_DIR}/src/lib/parameters/parameters_injected.xml
 		--xml ${PX4_BINARY_DIR}/docs/parameters.xml
 
 	COMMENT "Generating full parameter metadata (markdown, xml, and json)"

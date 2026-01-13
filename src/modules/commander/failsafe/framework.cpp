@@ -290,7 +290,9 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			}
 		}
 
-		mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
+		if (action != Action::Warn) {
+			mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated\t");
+		}
 	}
 
 #endif /* EMSCRIPTEN_BUILD */
@@ -394,7 +396,11 @@ bool FailsafeBase::checkFailsafe(int caller_id, bool last_state_failure, bool cu
 
 void FailsafeBase::removeAction(ActionOptions &action) const
 {
-	if (action.clear_condition == ClearCondition::WhenConditionClears) {
+	// If failsafes are being deferred and the action can be deferred, remove it immediately independent of the
+	// clear_condition to avoid triggering a failsafe after deferring is disabled.
+	const bool remove_while_deferring = _defer_failsafes && action.can_be_deferred;
+
+	if (action.clear_condition == ClearCondition::WhenConditionClears || remove_while_deferring) {
 		// Remove action
 		PX4_DEBUG("Caller %i: state changed to valid, removing action", action.id);
 		action.setInvalid();
@@ -437,7 +443,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	returned_state.updated_user_intended_mode = state.user_intended_mode;
 	returned_state.cause = Cause::Generic;
 
-	if (_selected_action == Action::Terminate) { // Terminate never clears
+	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_TERMINATION
+	    || _selected_action == Action::Terminate) { // Terminate never clears
 		returned_state.action = Action::Terminate;
 		return;
 	}
@@ -480,16 +487,21 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	}
 
 	// Check if we should enter delayed Hold
+	const bool action_can_be_delayed = selected_action != Action::None &&
+					   selected_action != Action::Disarm &&
+					   selected_action != Action::Terminate &&
+					   selected_action != Action::Hold;
+
 	if (_current_delay > 0 && !_user_takeover_active && allow_user_takeover <= UserTakeoverAllowed::AlwaysModeSwitchOnly
-	    && selected_action != Action::Disarm && selected_action != Action::Terminate && selected_action != Action::Hold) {
+	    && action_can_be_delayed) {
 		returned_state.delayed_action = selected_action;
 		selected_action = Action::Hold;
 		allow_user_takeover = UserTakeoverAllowed::AlwaysModeSwitchOnly;
 	}
 
-	// User takeover is activated on user intented mode update (w/o action change, so takeover is not immediately
-	// requested when entering failsafe) or rc stick movements
-	bool want_user_takeover_mode_switch = user_intended_mode_updated && _selected_action == selected_action;
+	// User takeover interrupting a failsafe is triggered by a change of the user-intended mode
+	// (only if a failsafe action is already active otherwise there can be immediate takeover when entering a failsafe) or by stick movement
+	bool want_user_takeover_mode_switch = user_intended_mode_updated && (_selected_action > Action::Warn);
 	bool want_user_takeover = want_user_takeover_mode_switch || rc_sticks_takeover_request;
 	bool takeover_allowed =
 		(allow_user_takeover == UserTakeoverAllowed::Always && (_user_takeover_active || want_user_takeover))
@@ -695,6 +707,7 @@ bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode
 		(!status_flags.local_position_invalid || ((status_flags.mode_req_local_position & mode_mask) == 0)) &&
 		(!status_flags.local_position_invalid_relaxed || ((status_flags.mode_req_local_position_relaxed & mode_mask) == 0)) &&
 		(!status_flags.global_position_invalid || ((status_flags.mode_req_global_position & mode_mask) == 0)) &&
+		(!status_flags.global_position_invalid_relaxed || ((status_flags.mode_req_global_position_relaxed & mode_mask) == 0)) &&
 		(!status_flags.local_altitude_invalid || ((status_flags.mode_req_local_alt & mode_mask) == 0)) &&
 		(!status_flags.auto_mission_missing || ((status_flags.mode_req_mission & mode_mask) == 0)) &&
 		(!status_flags.offboard_control_signal_lost || ((status_flags.mode_req_offboard_signal & mode_mask) == 0)) &&
@@ -706,6 +719,10 @@ bool FailsafeBase::deferFailsafes(bool enabled, int timeout_s)
 {
 	if (enabled && _selected_action > Action::Warn) {
 		return false;
+	}
+
+	if (!enabled && _defer_failsafes && _failsafe_defer_started == 0) {
+		_current_delay = 0;
 	}
 
 	if (timeout_s == 0) {

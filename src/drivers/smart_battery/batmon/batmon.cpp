@@ -191,7 +191,6 @@ void Batmon::RunImpl()
 	if (ret == PX4_OK) {
 		new_report.capacity = _batt_capacity;
 		new_report.cycle_count = _cycle_count;
-		new_report.serial_number = _serial_number;
 		new_report.max_cell_voltage_delta = _max_cell_voltage_delta;
 		new_report.cell_count = _cell_count;
 		new_report.state_of_health = _state_of_health;
@@ -199,19 +198,19 @@ void Batmon::RunImpl()
 		// TODO: This critical setting should be set with BMS info or through a paramter
 		// Setting a hard coded BATT_CELL_VOLTAGE_THRESHOLD_FAILED may not be appropriate
 		//if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
-		//	new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+		//	new_report.warning = battery_status_s::WARNING_CRITICAL;
 
 		if (new_report.remaining > _low_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
+			new_report.warning = battery_status_s::WARNING_NONE;
 
 		} else if (new_report.remaining > _crit_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
+			new_report.warning = battery_status_s::WARNING_LOW;
 
 		} else if (new_report.remaining > _emergency_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+			new_report.warning = battery_status_s::WARNING_CRITICAL;
 
 		} else {
-			new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+			new_report.warning = battery_status_s::WARNING_EMERGENCY;
 		}
 
 		new_report.interface_error = perf_event_count(_interface->_interface_errors);
@@ -220,6 +219,12 @@ void Batmon::RunImpl()
 		orb_publish_auto(ORB_ID(battery_status), &_batt_topic, &new_report, &instance);
 
 		_last_report = new_report;
+
+		battery_info_s battery_info{};
+		battery_info.timestamp = new_report.timestamp;
+		battery_info.id = new_report.id;
+		snprintf(battery_info.serial_number, sizeof(battery_info.serial_number), "%" PRIu16, _serial_number);
+		orb_publish_auto(ORB_ID(battery_info), &_battery_info_topic, &battery_info, &instance);
 	}
 }
 

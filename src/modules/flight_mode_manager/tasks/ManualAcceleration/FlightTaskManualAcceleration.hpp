@@ -33,10 +33,9 @@
 
 #pragma once
 
+#include <lib/weather_vane/WeatherVane.hpp>
 #include "FlightTaskManualAltitudeSmoothVel.hpp"
 #include "StickAccelerationXY.hpp"
-#include "StickYaw.hpp"
-#include <lib/weather_vane/WeatherVane.hpp>
 
 class FlightTaskManualAcceleration : public FlightTaskManualAltitudeSmoothVel
 {

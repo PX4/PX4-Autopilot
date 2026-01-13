@@ -45,7 +45,7 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 }
 
 void
-UavcanServoController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+UavcanServoController::update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	uavcan::equipment::actuator::ArrayCommand msg;
 

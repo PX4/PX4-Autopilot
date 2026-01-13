@@ -147,7 +147,7 @@ PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 /**
  * Front transition timeout
  *
- * Time in seconds after which transition will be cancelled. Disabled if set to 0.
+ * Time in seconds after which transition will be cancelled.
  *
  * @unit s
  * @min 0.1
@@ -273,6 +273,8 @@ PARAM_DEFINE_INT32(VT_FW_QC_HMAX, 0);
  * Airspeed-less front transition time (open loop)
  *
  * The duration of the front transition when there is no airspeed feedback available.
+ * When airspeed is used, transition timeout is declared if airspeed does not
+ * reach VT_ARSP_BLEND after this time.
  *
  * @unit s
  * @min 1.0
@@ -339,7 +341,7 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_P, 1.f);
 PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_Y, 0.1f);
 
 /**
- * Backtransition deceleration setpoint to pitch I gain.
+ * Backtransition deceleration setpoint to tilt I gain.
  *
  * @unit rad s/m
  * @min 0
@@ -363,7 +365,7 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
+PARAM_DEFINE_FLOAT(VT_PITCH_MIN, 0.0f);
 
 /**
  * Minimum pitch angle during hover landing.
@@ -378,7 +380,7 @@ PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, -5.0f);
+PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, 0.0f);
 
 /**
  * Spoiler setting while landing (hover)

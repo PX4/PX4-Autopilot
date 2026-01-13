@@ -69,7 +69,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 	if (_aux_global_position_buffer.pop_first_older_than(imu_delayed.time_us, &sample)) {
 
-		if (!(_param_ekf2_agp_ctrl.get() & static_cast<int32_t>(Ctrl::HPOS))) {
+		if (!(_param_ekf2_agp_ctrl.get() & static_cast<int32_t>(Ctrl::kHPos))) {
 			return;
 		}
 
@@ -96,17 +96,28 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 						   && ekf.global_origin_valid();
 
 		switch (_state) {
-		case State::stopped:
+		case State::kStopped:
 
 		/* FALLTHROUGH */
-		case State::starting:
+		case State::kStarting:
 			if (starting_conditions) {
-				_state = State::starting;
+				_state = State::kStarting;
 
 				if (ekf.global_origin_valid()) {
-					ekf.enableControlStatusAuxGpos();
-					_reset_counters.lat_lon = sample.lat_lon_reset_counter;
-					_state = State::active;
+					const bool fused = ekf.fuseHorizontalPosition(aid_src);
+					bool reset = false;
+
+					if (!fused && isResetAllowed(ekf)) {
+						ekf.resetHorizontalPositionTo(sample.latitude, sample.longitude, Vector2f(aid_src.observation_variance));
+						ekf.resetAidSourceStatusZeroInnovation(aid_src);
+						reset = true;
+					}
+
+					if (fused || reset) {
+						ekf.enableControlStatusAuxGpos();
+						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
+						_state = State::kActive;
+					}
 
 				} else {
 					// Try to initialize using measurement
@@ -115,30 +126,36 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 						ekf.resetAidSourceStatusZeroInnovation(aid_src);
 						ekf.enableControlStatusAuxGpos();
 						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
-						_state = State::active;
+						_state = State::kActive;
 					}
 				}
 			}
 
 			break;
 
-		case State::active:
+		case State::kActive:
 			if (continuing_conditions) {
 				ekf.fuseHorizontalPosition(aid_src);
 
-				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf._params.no_aid_timeout_max)
+				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf._params.reset_timeout_max)
 				    || (_reset_counters.lat_lon != sample.lat_lon_reset_counter)) {
+					if (isResetAllowed(ekf)) {
 
-					ekf.resetHorizontalPositionTo(sample.latitude, sample.longitude, Vector2f(aid_src.observation_variance));
+						ekf.resetHorizontalPositionTo(sample.latitude, sample.longitude, Vector2f(aid_src.observation_variance));
 
-					ekf.resetAidSourceStatusZeroInnovation(aid_src);
+						ekf.resetAidSourceStatusZeroInnovation(aid_src);
 
-					_reset_counters.lat_lon = sample.lat_lon_reset_counter;
+						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
+
+					} else {
+						ekf.disableControlStatusAuxGpos();
+						_state = State::kStopped;
+					}
 				}
 
 			} else {
 				ekf.disableControlStatusAuxGpos();
-				_state = State::stopped;
+				_state = State::kStopped;
 			}
 
 			break;
@@ -154,11 +171,19 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 		_test_ratio_filtered = math::max(fabsf(aid_src.test_ratio_filtered[0]), fabsf(aid_src.test_ratio_filtered[1]));
 #endif // MODULE_NAME
 
-	} else if ((_state != State::stopped) && isTimedOut(_time_last_buffer_push, imu_delayed.time_us, (uint64_t)5e6)) {
+	} else if ((_state != State::kStopped) && isTimedOut(_time_last_buffer_push, imu_delayed.time_us, (uint64_t)5e6)) {
 		ekf.disableControlStatusAuxGpos();
-		_state = State::stopped;
+		_state = State::kStopped;
 		ECL_WARN("Aux global position data stopped");
 	}
+}
+
+bool AuxGlobalPosition::isResetAllowed(const Ekf &ekf) const
+{
+	return ((static_cast<Mode>(_param_ekf2_agp_mode.get()) == Mode::kAuto)
+		&& !ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf.control_status_flags().aux_gpos))
+	       || ((static_cast<Mode>(_param_ekf2_agp_mode.get()) == Mode::kDeadReckoning)
+		   && !ekf.isOtherSourceOfHorizontalAidingThan(ekf.control_status_flags().aux_gpos));
 }
 
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION

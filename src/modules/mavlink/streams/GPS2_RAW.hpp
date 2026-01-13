@@ -68,8 +68,13 @@ private:
 		hrt_abstime now{};
 
 		if (_sensor_gps_sub.update(&gps)) {
+			if (gps.time_utc_usec > 0) {
+				msg.time_usec = gps.timestamp;
 
-			msg.time_usec = gps.timestamp;
+			} else {
+				msg.time_usec = gps.time_utc_usec;
+			}
+
 			msg.fix_type = gps.fix_type;
 			msg.lat = static_cast<int32_t>(round(gps.latitude_deg * 1e7));
 			msg.lon = static_cast<int32_t>(round(gps.longitude_deg * 1e7));
@@ -86,9 +91,10 @@ private:
 
 			msg.cog = math::degrees(matrix::wrap_2pi(gps.cog_rad)) * 1e2f;
 			msg.satellites_visible = gps.satellites_used;
-
-			//msg.dgps_numch = // Number of DGPS satellites
-			//msg.dgps_age = // Age of DGPS info
+			msg.alt_ellipsoid = static_cast<int32_t>(round(gps.altitude_ellipsoid_m * 1e3)); // convert [m] to [mm]
+			msg.h_acc = gps.eph * 1e3f;              // position uncertainty in mm
+			msg.v_acc = gps.epv * 1e3f;              // altitude uncertainty in mm
+			msg.vel_acc = gps.s_variance_m_s * 1e3f; // speed uncertainty in mm
 
 			if (PX4_ISFINITE(gps.heading)) {
 				if (fabsf(gps.heading) < FLT_EPSILON) {

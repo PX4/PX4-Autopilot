@@ -82,6 +82,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_DO_MOUNT_CONFIGURE:
 	case NAV_CMD_DO_MOUNT_CONTROL:
 	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
+	case NAV_CMD_COMPONENT_ARM_DISARM:
+	case NAV_CMD_DO_AUTOTUNE_ENABLE:
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_DO_SET_ROI_LOCATION:
 	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
@@ -95,6 +97,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_SET_CAMERA_FOCUS:
 	case NAV_CMD_DO_CHANGE_SPEED:
 	case NAV_CMD_DO_SET_HOME:
+	case NAV_CMD_RETURN_TO_LAUNCH:
+
 		return true;
 
 	// Indefinite Waypoints
@@ -167,7 +171,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 		// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
 		const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
 				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
-				_navigator->get_loiter_radius();
+				_navigator->get_default_loiter_rad();
 
 		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
 				_navigator->get_global_position()->lat,
@@ -529,27 +533,27 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 	// Mission item's NAV_CMD enums directly map to the according vehicle command
 	// So set the raw value directly (MAV_FRAME_MISSION mission item)
-	vehicle_command_s vcmd = {};
-	vcmd.command = item.nav_cmd;
-	vcmd.param1 = item.params[0];
-	vcmd.param2 = item.params[1];
-	vcmd.param3 = item.params[2];
-	vcmd.param4 = item.params[3];
-	vcmd.param5 = static_cast<double>(item.params[4]);
-	vcmd.param6 = static_cast<double>(item.params[5]);
-	vcmd.param7 = item.params[6];
+	vehicle_command_s vehicle_command{};
+	vehicle_command.command = item.nav_cmd;
+	vehicle_command.param1 = item.params[0];
+	vehicle_command.param2 = item.params[1];
+	vehicle_command.param3 = item.params[2];
+	vehicle_command.param4 = item.params[3];
+	vehicle_command.param5 = static_cast<double>(item.params[4]);
+	vehicle_command.param6 = static_cast<double>(item.params[5]);
+	vehicle_command.param7 = item.params[6];
 
 	if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION) {
 		// We need to send out the ROI location that was parsed potentially with double precision to lat/lon because mission item parameters 5 and 6 only have float precision
-		vcmd.param5 = item.lat;
-		vcmd.param6 = item.lon;
+		vehicle_command.param5 = item.lat;
+		vehicle_command.param6 = item.lon;
 
 		if (item.altitude_is_relative) {
-			vcmd.param7 = item.altitude + _navigator->get_home_position()->alt;
+			vehicle_command.param7 = item.altitude + _navigator->get_home_position()->alt;
 		}
 	}
 
-	_navigator->publish_vehicle_cmd(&vcmd);
+	_navigator->publish_vehicle_command(vehicle_command);
 
 	if (item_has_timeout(item)) {
 		_timestamp_command_timeout = hrt_absolute_time();
@@ -622,11 +626,11 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->lon = item.lon;
 	sp->alt = get_absolute_altitude_for_item(item);
 	sp->yaw = item.yaw;
-	sp->loiter_radius = (fabsf(item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item.loiter_radius) :
-			    _navigator->get_loiter_radius();
+	sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
+			    _navigator->get_default_loiter_rad();
 	sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
 
-	if (item.acceptance_radius > 0.001f && PX4_ISFINITE(item.acceptance_radius)) {
+	if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
 		// if the mission item has a specified acceptance radius, overwrite the default one from parameters
 		sp->acceptance_radius = item.acceptance_radius;
 
@@ -727,7 +731,7 @@ MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
 	}
 
 	item->altitude = loiter_altitude_amsl;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->yaw = NAN;
 }
 
@@ -739,7 +743,7 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s 
 	_navigator->preproject_stop_point(item->lat, item->lon);
 
 	item->altitude = _navigator->get_global_position()->alt;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->yaw = NAN;
 }
 
@@ -770,7 +774,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 	item->altitude_is_relative = false;
 
 	item->acceptance_radius = _navigator->get_acceptance_radius();
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->autocontinue = false;
 	item->origin = ORIGIN_ONBOARD;
 }
@@ -781,11 +785,11 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 	/* VTOL transition to RW before landing */
 	if (_navigator->force_vtol()) {
 
-		vehicle_command_s vcmd = {};
-		vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-		vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-		vcmd.param2 = 0.0f;
-		_navigator->publish_vehicle_cmd(&vcmd);
+		vehicle_command_s vehicle_command{};
+		vehicle_command.command = NAV_CMD_DO_VTOL_TRANSITION;
+		vehicle_command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		vehicle_command.param2 = 0.f; // normal unforced transition
+		_navigator->publish_vehicle_command(vehicle_command);
 	}
 
 	/* set the land item */
@@ -805,7 +809,7 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
@@ -821,7 +825,7 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->altitude_is_relative = false;
 	item->altitude = _navigator->get_home_position()->alt;
 	item->yaw = NAN;
-	item->loiter_radius = _navigator->get_loiter_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
 	item->autocontinue = true;
@@ -893,7 +897,7 @@ MissionBlock::initialize()
 	_mission_item.lat = (double)NAN;
 	_mission_item.lon = (double)NAN;
 	_mission_item.yaw = NAN;
-	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 	_mission_item.time_inside = 0.0f;
 	_mission_item.autocontinue = true;
@@ -1024,10 +1028,18 @@ void MissionBlock::updateFailsafeChecks()
 void MissionBlock::updateMaxHaglFailsafe()
 {
 	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
+	const float max_alt = math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy);
+	const float terrain_alt = _navigator->get_global_position()->terrain_alt;
+	const bool terrain_alt_valid = _navigator->get_global_position()->terrain_alt_valid;
 
-	if (_navigator->get_global_position()->terrain_alt_valid
-	    && ((target_alt - _navigator->get_global_position()->terrain_alt)
-		> math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy))) {
+	// If the HAGL failsafe is declared during front transition, we enter a
+	// FW hold at the current low altitude while not having finished the
+	// transition. This is dangerous and worse than possibly fusing neither
+	// optical flow nor airspeed for a couple seconds, so we bypass the
+	// failsafe here.
+	const bool in_transition_to_fw = _navigator->get_vstatus()->in_transition_to_fw;
+
+	if (!in_transition_to_fw && terrain_alt_valid && (target_alt - terrain_alt) > max_alt) {
 		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
 		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");

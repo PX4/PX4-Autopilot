@@ -31,6 +31,8 @@ parameters:
                 11: Helicopter (tail Servo)
                 12: Helicopter (Coaxial)
                 13: Rover (Mecanum)
+                14: Spacecraft 2D
+                15: Spacecraft 3D
             default: 0
 
         CA_METHOD:
@@ -38,7 +40,7 @@ parameters:
                 short: Control allocation method
                 long: |
                   Selects the algorithm and desaturation method.
-                  If set to Automtic, the selection is based on the airframe (CA_AIRFRAME).
+                  If set to Automatic, the selection is based on the airframe (CA_AIRFRAME).
             type: enum
             values:
                 0: Pseudo-inverse with output clipping
@@ -310,7 +312,11 @@ parameters:
         CA_SV_CS${i}_TRIM:
             description:
                 short: Control Surface ${i} trim
-                long: Can be used to add an offset to the servo control.
+                long: |
+                  Can be used to add an offset to the servo control.
+
+                  NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+                  This parameter can only be set if all PWM Center parameters are set to default.
             type: float
             decimal: 2
             min: -1.0
@@ -329,6 +335,15 @@ parameters:
             num_instances: *max_num_servos
             instance_start: 0
             default: 0
+
+        CA_SV_FLAP_SLEW:
+            description:
+                short: Control Surface slew rate for normalized flaps setpoint
+            type: float
+            decimal: 1
+            min: 0.0
+            max: 5.0
+            default: 0.5
 
         CA_SV_CS${i}_SPOIL:
             description:
@@ -561,6 +576,20 @@ parameters:
           increment: 0.1
           min: 0
           max: 10
+          default: 0.0
+        CA_MAX_SVO_THROW:
+          description:
+            short: Throw angle of swashplate servo at maximum commands for linearization
+            long: |
+              Used to linearize mechanical output of swashplate servos to avoid axis coupling and binding with 4 servo redundancy.
+              This requires a symmetric setup where the servo horn is exactly centered with a 0 command.
+              Setting to zero disables feature.
+          type: float
+          decimal: 1
+          unit: deg
+          increment: 0.1
+          min: 0
+          max: 75
           default: 0.0
 
         # Others
@@ -1189,3 +1218,45 @@ mixer:
                         position: [ -1, 1, 0 ]
                       - name: 'Left Motor Back'
                         position: [ -1, -1, 0 ]
+
+            14: # Spacecraft 2D
+                actuators:
+                  - actuator_type: 'motor'
+                    group_label: 'Thrust/Motors'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                        extra:
+                          - name: 'CA_ROTOR${i}_AX'
+                            label: 'Axis X'
+                            function: 'axisx'
+                          - name: 'CA_ROTOR${i}_AY'
+                            label: 'Axis Y'
+                            function: 'axisy'
+                          - name: 'CA_ROTOR${i}_AZ'
+                            label: 'Axis Z'
+                            function: 'axisz'
+                          - name: 'CA_ROTOR${i}_CT'
+                            label: "Thrust\nCoefficient"
+
+            15: # Spacecraft 3D
+                actuators:
+                  - actuator_type: 'motor'
+                    group_label: 'Thrust/Motors'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                        extra:
+                          - name: 'CA_ROTOR${i}_AX'
+                            label: 'Axis X'
+                            function: 'axisx'
+                          - name: 'CA_ROTOR${i}_AY'
+                            label: 'Axis Y'
+                            function: 'axisy'
+                          - name: 'CA_ROTOR${i}_AZ'
+                            label: 'Axis Z'
+                            function: 'axisz'
+                          - name: 'CA_ROTOR${i}_CT'
+                            label: "Thrust\nCoefficient"

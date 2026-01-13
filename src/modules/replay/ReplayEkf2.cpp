@@ -75,6 +75,20 @@ ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream &repl
 
 		return true;
 
+	} else if (sub.orb_meta == ORB_ID(sensor_combined) && !_ekf2_timestamps_exists) {
+		// No ekf2_timestamps topic, publish with approximate timestamps
+		sensor_combined_s sensor_combined;
+		memcpy(&sensor_combined, data, sub.orb_meta->o_size);
+
+		if (!publishEkf2Topics(sensor_combined, replay_file)) {
+			return false;
+		}
+
+		// Wait for modules to process the data
+		px4_lockstep_wait_for_components();
+
+		return true;
+
 	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)
 		   || sub.orb_meta == ORB_ID(vehicle_gps_position)) {
 		return publishTopic(sub, data);
@@ -121,13 +135,43 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_global_position_groundtruth)) {
 		_vehicle_global_position_groundtruth_msg_id = msg_id;
+
+	} else if (sub.orb_meta == ORB_ID(ekf2_timestamps)) {
+		_ekf2_timestamps_exists = true;
 	}
 
 	// the main loop should only handle publication of the following topics, the sensor topics are
 	// handled separately in publishEkf2Topics()
 	// Note: the GPS is not treated here since not missing data is more important than the accuracy of the timestamp
 	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(vehicle_status)
-		      && sub.orb_meta != ORB_ID(vehicle_land_detected) && sub.orb_meta != ORB_ID(vehicle_gps_position);
+		      && sub.orb_meta != ORB_ID(vehicle_land_detected) && sub.orb_meta != ORB_ID(vehicle_gps_position)
+		      && sub.orb_meta != ORB_ID(sensor_combined);
+}
+
+bool
+ReplayEkf2::publishEkf2Topics(sensor_combined_s &sensor_combined, std::ifstream &replay_file)
+{
+	findTimestampAndPublish(sensor_combined.timestamp, _airspeed_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _distance_sensor_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _optical_flow_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_air_data_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_magnetometer_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_visual_odometry_msg_id, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _aux_global_position_msg_id, replay_file);
+
+	// sensor_combined: publish last because ekf2 is polling on this
+	if (_last_sensor_combined_timestamp > 0) {
+		// Some samples might be missing so compensate for this by holding the last value
+		const uint32_t true_dt = static_cast<uint32_t>(sensor_combined.timestamp - _last_sensor_combined_timestamp);
+		sensor_combined.gyro_integral_dt = true_dt;
+		sensor_combined.accelerometer_integral_dt = true_dt;
+	}
+
+	_last_sensor_combined_timestamp = sensor_combined.timestamp;
+
+	publishTopic(*_subscriptions[_sensor_combined_msg_id], &sensor_combined);
+
+	return true;
 }
 
 bool
@@ -135,8 +179,8 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 {
 	auto handle_sensor_publication = [&](int16_t timestamp_relative, uint16_t msg_id) {
 		if (timestamp_relative != ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID) {
-			// timestamp_relative is already given in 0.1 ms
-			uint64_t t = timestamp_relative + ekf2_timestamps.timestamp / 100; // in 0.1 ms
+			// timestamp_relative is given in 0.1 ms
+			uint64_t t = timestamp_relative * 100 + ekf2_timestamps.timestamp;
 			findTimestampAndPublish(t, msg_id, replay_file);
 		}
 	};
@@ -154,7 +198,7 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	handle_sensor_publication(0, _vehicle_attitude_groundtruth_msg_id);
 
 	// sensor_combined: publish last because ekf2 is polling on this
-	if (!findTimestampAndPublish(ekf2_timestamps.timestamp / 100, _sensor_combined_msg_id, replay_file)) {
+	if (!findTimestampAndPublish(ekf2_timestamps.timestamp, _sensor_combined_msg_id, replay_file)) {
 		if (_sensor_combined_msg_id == msg_id_invalid) {
 			// subscription not found yet or sensor_combined not contained in log
 			return false;
@@ -182,25 +226,27 @@ ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::if
 
 	Subscription &sub = *_subscriptions[msg_id];
 
-	while (sub.next_timestamp / 100 < timestamp && sub.orb_meta) {
+	bool topic_published = false;
+
+	while (sub.next_timestamp <= timestamp && sub.orb_meta) {
+		if (!sub.published) {
+			if (sub.next_timestamp != timestamp) {
+				// Not the exact sample, publish but notify error
+				PX4_DEBUG("No timestamp match found for topic %s (%" PRIu64 ", %" PRIu64 ")\n", sub.orb_meta->o_name,
+					  sub.next_timestamp,
+					  timestamp);
+				++sub.approx_timestamp_counter;
+			}
+
+			readTopicDataToBuffer(sub, replay_file);
+			publishTopic(sub, _read_buffer.data());
+			topic_published = true;
+		}
+
 		nextDataMessage(replay_file, sub, msg_id);
 	}
 
-	if (!sub.orb_meta) { // no messages anymore
-		return false;
-	}
-
-	if (sub.next_timestamp / 100 != timestamp) {
-		// this can happen in beginning of the log or on a dropout
-		PX4_DEBUG("No timestamp match found for topic %s (%i, %i)", sub.orb_meta->o_name, (int)sub.next_timestamp / 100,
-			  timestamp);
-		++sub.error_counter;
-		return false;
-	}
-
-	readTopicDataToBuffer(sub, replay_file);
-	publishTopic(sub, _read_buffer.data());
-	return true;
+	return topic_published;
 }
 
 void
@@ -220,14 +266,19 @@ ReplayEkf2::onExitMainLoop()
 		if (msg_id != msg_id_invalid) {
 			Subscription &sub = *_subscriptions[msg_id];
 
-			if (sub.publication_counter > 0 || sub.error_counter > 0) {
-				PX4_INFO("%s: %i, %i", name, sub.publication_counter, sub.error_counter);
+			if (sub.publication_counter > 0 || sub.approx_timestamp_counter > 0) {
+				PX4_INFO("%s: %i (%i)", name, sub.publication_counter, sub.approx_timestamp_counter);
 			}
 		}
 	};
 
 	PX4_INFO("");
-	PX4_INFO("Topic, Num Published, Num Error (no timestamp match found):");
+
+	if (!_ekf2_timestamps_exists) {
+		PX4_INFO("/!\\ Approximate replay (ekf2_timestamps not found)\n");
+	}
+
+	PX4_INFO("Topic, Num Published (Num approximate timestamp found):");
 
 	print_sensor_statistics(_airspeed_msg_id, "airspeed");
 	print_sensor_statistics(_airspeed_validated_msg_id, "airspeed_validated");
