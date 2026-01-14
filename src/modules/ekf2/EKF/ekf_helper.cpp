@@ -1263,10 +1263,15 @@ void Ekf::clearInhibitedStateKalmanGains(VectorState &K) const
 
 float Ekf::getHeadingInnov() const
 {
+	float innov = 0.f;
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 
 	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-		return Vector3f(_aid_src_mag.innovation).max();
+		innov = Vector3f(_aid_src_mag.innovation).max();
+
+	} else {
+		innov = _mag_heading_innov_lpf.getState();
 	}
 
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -1274,7 +1279,7 @@ float Ekf::getHeadingInnov() const
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
 	if (_control_status.flags.gnss_yaw) {
-		return _aid_src_gnss_yaw.innovation;
+		innov = _aid_src_gnss_yaw.innovation;
 	}
 
 #endif // CONFIG_EKF2_GNSS_YAW
@@ -1282,12 +1287,12 @@ float Ekf::getHeadingInnov() const
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 
 	if (_control_status.flags.ev_yaw) {
-		return _aid_src_ev_yaw.innovation;
+		innov = _aid_src_ev_yaw.innovation;
 	}
 
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
-	return 0.f;
+	return innov;
 }
 
 float Ekf::getHeadingInnovVar() const

@@ -168,7 +168,13 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 		checkMagHeadingConsistency(mag_sample);
 
+		if (_control_status.flags.mag_fault && _control_status.flags.mag_heading_consistent
+		    && isTimedOut(_time_last_heading_fuse, _params.reset_timeout_max)) {
+			_control_status.flags.mag_fault = false;
+		}
+
 		{
+
 			const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !isNorthEastAidingActive();
 			const bool common_conditions_passing = _control_status.flags.mag
 							       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
@@ -188,8 +194,6 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 							    || (_params.ekf2_mag_type == MagFuseType::AUTO && !_control_status.flags.mag_3D));
 		}
 
-		// TODO: allow clearing mag_fault if mag_3d is good?
-
 		if (_control_status.flags.mag_3D && !_control_status_prev.flags.mag_3D) {
 			ECL_INFO("starting mag 3D fusion");
 
@@ -206,10 +210,18 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-				if ((checkHaglYawResetReq() && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D
-								|| _control_status.flags.yaw_manual))
-				    || (wmm_updated && no_ne_aiding_or_not_moving)) {
+				if (checkHaglYawResetReq() && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D
+							       || _control_status.flags.yaw_manual)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
+					const bool reset_heading = ((_control_status.flags.mag_hdg || _control_status.flags.mag_3D) && !isNorthEastAidingActive());
+					resetMagStates(_mag_lpf.getState(), reset_heading);
+
+					// record the start time for the magnetic field alignment
+					_control_status.flags.mag_aligned_in_flight = true;
+					_flt_mag_align_start_time = _time_delayed_us;
+					aid_src.time_last_fuse = imu_sample.time_us;
+
+				} else if (wmm_updated && no_ne_aiding_or_not_moving) {
 					const bool reset_heading = _control_status.flags.mag_hdg || _control_status.flags.mag_3D;
 					resetMagStates(_mag_lpf.getState(), reset_heading);
 					aid_src.time_last_fuse = imu_sample.time_us;
@@ -442,12 +454,6 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 		ECL_INFO("resetting mag B [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]",
 			 (double)mag_B_before_reset(0), (double)mag_B_before_reset(1), (double)mag_B_before_reset(2),
 			 (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2));
-	}
-
-	// record the start time for the magnetic field alignment
-	if (_control_status.flags.in_air && (reset_heading || _control_status.flags.yaw_manual)) {
-		_control_status.flags.mag_aligned_in_flight = true;
-		_flt_mag_align_start_time = _time_delayed_us;
 	}
 }
 
