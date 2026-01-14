@@ -613,7 +613,7 @@ uint64_t dshot_expand_data(uint16_t packet)
 * bit 	12		- dshot telemetry enable/disable
 * bits 	13-16	- XOR checksum
 **/
-void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
+void dshot_motor_data_set(uint8_t channel, uint16_t throttle, bool telemetry)
 {
 	if (channel < DSHOT_TIMERS && dshot_inst[channel].init) {
 		uint16_t csum_data;
