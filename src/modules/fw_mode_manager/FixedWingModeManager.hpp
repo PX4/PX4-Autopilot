@@ -319,6 +319,7 @@ private:
 	// orbit to altitude only when the aircraft has entered the final *straight approach.
 	hrt_abstime _time_started_landing{0};
 
+	Vector2f _local_landing_orbit_center{NAN, NAN};
 	// [m] lateral touchdown position offset manually commanded during landing
 	float _lateral_touchdown_position_offset{0.0f};
 

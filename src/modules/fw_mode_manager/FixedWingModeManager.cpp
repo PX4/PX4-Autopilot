@@ -388,11 +388,9 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 		}
 
 	} else if ((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled)
-		   && (_position_setpoint_current_valid
-		       || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
+		   && _position_setpoint_current_valid) {
 
-		// Enter this mode only if the current waypoint has valid 3D position setpoints or is of type IDLE.
-		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
+		// Enter this mode only if the current waypoint has valid 3D position setpoints.
 
 		if (doing_backtransition) {
 			_control_mode_current = FW_POSCTRL_MODE_TRANSITION_TO_HOVER_LINE_FOLLOW;
@@ -431,6 +429,28 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 
 		} else {
 			_control_mode_current = FW_POSCTRL_MODE_AUTO;
+		}
+
+	} else if (_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled
+		   && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
+
+		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
+		if (doing_backtransition) {
+			_control_mode_current = FW_POSCTRL_MODE_TRANSITION_TO_HOVER_HEADING_HOLD;
+
+		} else {
+			_control_mode_current = FW_POSCTRL_MODE_AUTO;
+		}
+
+	} else if (_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled
+		   && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)) {
+
+		if (doing_backtransition) {
+			_control_mode_current = FW_POSCTRL_MODE_TRANSITION_TO_HOVER_HEADING_HOLD;
+
+		} else {
+			// Only circular landing are supported when LAND is sent without valid position
+			_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR;
 		}
 
 	} else if (_control_mode.flag_control_auto_enabled
@@ -1150,6 +1170,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 
 		fixed_wing_runway_control_s fw_runway_control{};
 		fw_runway_control.timestamp = now;
+		fw_runway_control.runway_takeoff_state = _runway_takeoff.getState();
 		fw_runway_control.wheel_steering_enabled = true;
 		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
@@ -1323,6 +1344,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 
 		fixed_wing_runway_control_s fw_runway_control{};
 		fw_runway_control.timestamp = now;
+		fw_runway_control.runway_takeoff_state = _runway_takeoff.getState();
 		fw_runway_control.wheel_steering_enabled = true;
 		fw_runway_control.wheel_steering_nudging_rate = _param_rwto_nudge.get() ? _sticks.getYaw() : 0.f;
 
@@ -1571,6 +1593,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 
 	fixed_wing_runway_control_s fw_runway_control{};
 	fw_runway_control.timestamp = now;
+	fw_runway_control.runway_takeoff_state = fixed_wing_runway_control_s::STATE_FLYING; // not in takeoff, use FLYING as default
 	fw_runway_control.wheel_steering_enabled = true;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
 			_sticks.getYaw() : 0.f;
@@ -1594,6 +1617,12 @@ void
 FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, const float control_interval,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
 {
+	if (_time_started_landing == 0) {
+		// save time at which we started landing and reset landing abort status
+		reset_landing_state();
+		_time_started_landing = now;
+	}
+
 	const float airspeed_land = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
 				    _param_fw_airspd_min.get();
 
@@ -1601,12 +1630,11 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 
 	const Vector2f local_position{_local_pos.x, _local_pos.y};
-	Vector2f local_landing_orbit_center = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	if (_time_started_landing == 0) {
-		// save time at which we started landing and reset landing abort status
-		reset_landing_state();
-		_time_started_landing = now;
+	if (!_local_landing_orbit_center.isAllFinite()) {
+		_local_landing_orbit_center = _position_setpoint_current_valid
+					      ? _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon)
+					      : local_position;
 	}
 
 	const bool abort_on_terrain_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
@@ -1642,7 +1670,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 						      1.0f);
 
 		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
-		const DirectionalGuidanceOutput sp = navigateLoiter(local_landing_orbit_center, local_position, loiter_radius,
+		const DirectionalGuidanceOutput sp = navigateLoiter(_local_landing_orbit_center, local_position, loiter_radius,
 						     loiter_direction_ccw,
 						     ground_speed, _wind_vel);
 		fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
@@ -1700,7 +1728,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 	} else {
 
 		// follow the glide slope
-		const DirectionalGuidanceOutput sp = navigateLoiter(local_landing_orbit_center, local_position, loiter_radius,
+		const DirectionalGuidanceOutput sp = navigateLoiter(_local_landing_orbit_center, local_position, loiter_radius,
 						     loiter_direction_ccw,
 						     ground_speed, _wind_vel);
 		fixed_wing_lateral_setpoint_s fw_lateral_ctrl_sp{empty_lateral_control_setpoint};
@@ -1736,6 +1764,7 @@ FixedWingModeManager::control_auto_landing_circular(const hrt_abstime &now, cons
 
 	fixed_wing_runway_control_s fw_runway_control{};
 	fw_runway_control.timestamp = now;
+	fw_runway_control.runway_takeoff_state = fixed_wing_runway_control_s::STATE_FLYING; // not in takeoff, use FLYING as default
 	fw_runway_control.wheel_steering_enabled = true;
 	fw_runway_control.wheel_steering_nudging_rate = _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled ?
 			_sticks.getYaw() : 0.f;
@@ -2285,6 +2314,7 @@ FixedWingModeManager::reset_landing_state()
 
 	_flare_states = FlareStates{};
 
+	_local_landing_orbit_center.setNaN();
 	_lateral_touchdown_position_offset = 0.0f;
 
 	_last_time_terrain_alt_was_valid = 0;
@@ -2299,6 +2329,10 @@ FixedWingModeManager::reset_landing_state()
 
 float FixedWingModeManager::getMaxRollAngleNearGround(const float altitude, const float terrain_altitude) const
 {
+	if (!PX4_ISFINITE(altitude) || !PX4_ISFINITE(terrain_altitude)) {
+		return math::radians(_param_fw_r_lim.get());
+	}
+
 	// we want the wings level when at the wing height above ground
 	const float height_above_ground = math::max(altitude - (terrain_altitude + _param_fw_wing_height.get()), 0.0f);
 
@@ -2424,7 +2458,7 @@ FixedWingModeManager::getLandingTerrainAltitudeEstimate(const hrt_abstime &now, 
 
 		if (_local_pos.dist_bottom_valid) {
 
-			const float terrain_estimate = _local_pos.ref_alt + -_local_pos.z - _local_pos.dist_bottom;
+			const float terrain_estimate = _reference_altitude + -_local_pos.z - _local_pos.dist_bottom;
 			_last_valid_terrain_alt_estimate = terrain_estimate;
 			_last_time_terrain_alt_was_valid = now;
 
