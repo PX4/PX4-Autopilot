@@ -105,13 +105,12 @@ void EscChecks::checkEscStatus(const Context &context, Report &reporter, const e
 	const NavModes required_modes = _param_escs_checks_required.get() ? NavModes::All : NavModes::None;
 
 	if (esc_status.esc_count > 0) {
-
+		// Check if one or more the ESCs are offline
 		char esc_fail_msg[50];
 		esc_fail_msg[0] = '\0';
 
 		int online_bitmask = (1 << esc_status.esc_count) - 1;
 
-		// Check if one or more the ESCs are offline
 		if (online_bitmask != esc_status.esc_online_flags) {
 
 			for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
@@ -119,7 +118,7 @@ void EscChecks::checkEscStatus(const Context &context, Report &reporter, const e
 				uint8_t actuator_function = esc_status.esc[i].actuator_function;
 
 				bool is_motor = math::isInRange(actuator_function, actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1,
-								actuator_motors_s::ACTUATOR_FUNCTION_MOTOR12);
+								actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + actuator_motors_s::NUM_CONTROLS - 1);
 				bool is_online = esc_status.esc_online_flags & (1 << i);
 
 				if (is_motor && !is_online) {
