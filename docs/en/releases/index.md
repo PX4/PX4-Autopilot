@@ -2,6 +2,8 @@
 
 A list of PX4 release notes, they contain a list of the changes that went into each release, explaining the included features, bug fixes, deprecations and updates in detail.
 
+For maintainers, see [Release Process](release_process.md) for the tagging and publishing workflow.
+
 - [main](../releases/main.md) (changes planned for v1.18 or later)
 - [v1.17](../releases/1.17.md) (changes planned for v1.17, since v1.16)
 - [v1.16](../releases/1.16.md)

@@ -908,6 +908,7 @@
   - [Terminology/Notation](contribute/notation.md)
   - [Licenses](contribute/licenses.md)
 - [Releases](releases/index.md)
+  - [Release Process](releases/release_process.md)
   - [main (alpha)](releases/main.md)
   - [1.17 (alpha)](releases/1.17.md)
   - [1.16 (stable)](releases/1.16.md)
