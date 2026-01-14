@@ -169,6 +169,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 		checkMagHeadingConsistency(mag_sample);
 
 		if (_control_status.flags.mag_fault && _control_status.flags.mag_heading_consistent
+		    && _control_status.flags.mag
 		    && isTimedOut(_time_last_heading_fuse, _params.reset_timeout_max)) {
 			_control_status.flags.mag_fault = false;
 		}
@@ -476,16 +477,17 @@ void Ekf::checkMagHeadingConsistency(const magSample &mag_sample)
 	const Vector3f mag_earth_pred = R_to_earth * (mag_sample.mag - mag_bias);
 	const float declination = getMagDeclination();
 	const float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + declination;
+	float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
 
 	if (_control_status.flags.yaw_align) {
-		const float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
 		_mag_heading_innov_lpf.update(innovation);
 
 	} else {
-		_mag_heading_innov_lpf.reset(0.f);
+		innovation = 0.f;
+		_mag_heading_innov_lpf.reset(innovation);
 	}
 
-	if (fabsf(_mag_heading_innov_lpf.getState()) < _params.ekf2_head_noise) {
+	if ((fabsf(_mag_heading_innov_lpf.getState()) < _params.ekf2_head_noise) && (fabsf(innovation) < _params.ekf2_head_noise)) {
 		// Check if there has been enough change in horizontal velocity to make yaw observable
 
 		if (isNorthEastAidingActive() && (_accel_horiz_lpf.getState().longerThan(_params.ekf2_mag_acclim))) {
