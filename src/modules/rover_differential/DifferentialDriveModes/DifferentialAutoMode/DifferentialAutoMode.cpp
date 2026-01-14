@@ -97,7 +97,7 @@ float DifferentialAutoMode::arrivalSpeed(const float cruising_speed, const float
 {
 	// Upcoming stop
 	if (!PX4_ISFINITE(waypoint_transition_angle) || waypoint_transition_angle < M_PI_F - trans_drv_trn
-	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+	    || curr_wp_type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 		return 0.f;
 	}
 

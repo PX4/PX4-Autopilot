@@ -124,7 +124,7 @@ private:
 	float _waypoint_transition_angle{0.f}; // Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	float _max_yaw_rate{NAN};
 	float _min_speed{NAN}; // Speed at which the maximum yaw rate limit is enforced given the maximum steer angle and wheel base.
-	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
+	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_POSITION};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
