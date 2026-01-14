@@ -43,7 +43,7 @@ For more information please refer to the paper at [https://arxiv.org/abs/2509.11
 
 The RAPTOR control policy is an end-to-end policy that takes position, orientation, linear velocity and angular velocity as inputs and outputs motor commands (`actuator_motors`).
 To integrate it into PX4 we use the external mode registration facilities in PX4 (which also works well for internal modes as demonstrated in `mc_nn_control`).
-Because of this architecture the [`mc_raptor`](../modules/modules_controller.md#mc-raptor) module is completely decoupled from all other PX4 logic.
+Because of this architecture the `mc_raptor` module is completely decoupled from all other PX4 logic.
 
 By default, the RAPTOR module expects setpoints via `trajectory_setpoint` messages.
 If no `trajectory_setpoint` messages are received or if no `trajectory_setpoint` is received within 200 ms, the current position and orientation (with zero velocity) is used as the setpoint.
