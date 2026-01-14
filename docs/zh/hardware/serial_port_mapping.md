@@ -14,8 +14,8 @@
 
 <!-- instructions from DavidS here: https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
 
-本节将展示如何通过检查板载配置文件，获取在STMxxyyy架构上构建NuttX所需的映射信息。
-该说明使用FMUv5，但同样可扩展至其他FMU版本/NuttX开发板。
+本节将展示如何通过检查板载配置文件，获取在 STMxxyyy 架构上构建 NuttX 所需的映射信息。
+该说明使用 FMUv5，但同样可扩展至其他FMU版本/NuttX开发板。
 
 ###
 
@@ -49,7 +49,7 @@ CONFIG_BOARD_SERIAL_TEL4="/dev/ttyS3"
 ### nsh/defconfig
 
 _nsh/defconfig_ 允许您确定哪些端口被定义，它们是 UART 还是 USART，以及 USART/UART 与设备之间的映射关系。
-您还可以确定用于该功能的端口[serial/debug console](../debug/system_console.md)。
+您还可以确定用于该功能的端口[串口/调试控制台](../debug/system_console.md)。
 
 打开板载的 defconfig 配置文件，例如：[/boards/px4/fmu-v5/nuttx-config/nsh/defconfig](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/nuttx-config/nsh/defconfig#L215-L221)
 
@@ -69,7 +69,7 @@ CONFIG_STM32F7_USART6=y
 这些条目会告知您哪些端口已被定义，以及它们属于UART还是USART。
 
 复制上方段落，按“n”进行数字排序。
-同时递增设备编号ttySn（基于零的计数），以获取设备到串行端口的映射关系。
+同时递增设备编号 _ttyS**n**_（从零开始计数），以获取设备到串行端口的映射关系。
 
 ```
 ttyS0 CONFIG_STM32F7_USART1=y
@@ -81,7 +81,7 @@ ttyS5 CONFIG_STM32F7_UART7=y
 ttyS6 CONFIG_STM32F7_UART8=y
 ```
 
-要获取调试控制台映射，我们需在[defconfig file](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/nuttx-config/nsh/defconfig#L212) 搜索 `SERIAL_CONSOLE`.
+要获取调试控制台映射，我们需在[defconfig file](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v5/nuttx-config/nsh/defconfig#L212) 搜索 `SERIAL_CONSOLE`。
 下面我们看到控制台位于UART7：
 
 ```
@@ -117,11 +117,11 @@ ttyS5 CONFIG_STM32F7_UART7=y DEBUG
 ttyS6 CONFIG_STM32F7_UART8=y PX4IO
 ```
 
-在 [flight controller docs]../flight_controller/pixhawk4.md#serial-port-mapping最终生成的表格如下：
+在 [flight controller docs](../flight_controller/pixhawk4.md#serial-port-mapping) 最终生成的表格如下：
 
 | UART   | 设备         | Port                           |
 | ------ | ---------- | ------------------------------ |
-| UART   | UART       | GPS                            |
+| UART1  | /dev/ttyS0 | GPS                            |
 | USART2 | /dev/ttyS1 | TELEM1 (流控) |
 | USART3 | /dev/ttyS2 | TELEM2 (流控) |
 | UART4  | /dev/ttyS3 | TELEM4                         |
@@ -137,5 +137,5 @@ Contributions welcome!
 
 ## 另见
 
-- [Serial Port Configuration](../peripherals/serial_configuration.md)
+- [串口配置](../peripherals/serial_configuration.md)
 - [MAVLink Telemetry (OSD/GCS)](../peripherals/mavlink_peripherals.md)

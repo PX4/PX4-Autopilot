@@ -97,5 +97,11 @@ bmm150 -I start
 # Internal Baro on I2C
 bmp388 -I start
 
+# Start an external PWM generator
+if param greater PCA9685_EN_BUS 0
+then
+	pca9685_pwm_out start
+fi
+
 unset HAVE_PM2
 unset HAVE_PM3

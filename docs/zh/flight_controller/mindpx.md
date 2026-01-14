@@ -113,7 +113,7 @@ You can also find MindRacer at Amazon<sup>&reg;</sup> or eBay<sup>&reg;</sup>.
 
 | UART   | 设备         | Port   |
 | ------ | ---------- | ------ |
-| USART1 | UART       | RC     |
+| USART1 | /dev/ttyS0 | RC     |
 | USART2 | /dev/ttyS1 | TELEM1 |
 | USART3 | /dev/ttyS2 | TELEM2 |
 | UART4  | /dev/ttyS3 | GPS1   |

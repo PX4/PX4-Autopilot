@@ -126,7 +126,7 @@ Board schematics and other documentation can be found here: [The Cube Project](h
 
 | UART   | 设备         | Port                           |
 | ------ | ---------- | ------------------------------ |
-| USART1 | UART       | <!-- IO debug? -->             |
+| USART1 | /dev/ttyS0 | <!-- IO debug? -->             |
 | USART2 | /dev/ttyS1 | TELEM1 (流控) |
 | USART3 | /dev/ttyS2 | TELEM2 (流控) |
 | UART4  | /dev/ttyS3 | GPS1                           |

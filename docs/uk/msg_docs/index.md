@@ -105,6 +105,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [DebugKeyValue](DebugKeyValue.md)
 - [DebugValue](DebugValue.md)
 - [DebugVect](DebugVect.md)
+- [DeviceInformation](DeviceInformation.md) — Device information
 - [DifferentialPressure](DifferentialPressure.md) — Differential-pressure (airspeed) sensor
 - [DistanceSensor](DistanceSensor.md) — DISTANCE_SENSOR message data
 - [DistanceSensorModeChangeRequest](DistanceSensorModeChangeRequest.md)

@@ -127,20 +127,38 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			}
 
 		} else if (starting_conditions_passing) {
-			ECL_INFO("starting airspeed fusion");
+			const bool do_vel_reset = _horizontal_deadreckon_time_exceeded
+						  || (_control_status.flags.inertial_dead_reckoning && !is_airspeed_consistent);
 
-			if (_control_status.flags.inertial_dead_reckoning && !is_airspeed_consistent) {
+			const Vector2f wind_vel_var = getWindVelocityVariance();
+			const bool do_wind_reset = (!_control_status.flags.wind || ((wind_vel_var(0) + wind_vel_var(1)) > sq(_params.initial_wind_uncertainty)))
+						   && !_external_wind_init;
+
+			if (do_vel_reset) {
+				if (do_wind_reset) {
+					resetWindCov();
+					_state.wind_vel.zero();
+				}
+
 				resetVelUsingAirspeed(airspeed_sample);
+				ECL_INFO("Reset velocity using airspeed (%.3f)",
+					 (double)airspeed_sample.true_airspeed);
 
-			} else if (!_external_wind_init && !_synthetic_airspeed
-				   && (!_control_status.flags.wind
-				       || getWindVelocityVariance().longerThan(sq(_params.initial_wind_uncertainty)))) {
+			} else if (do_wind_reset) {
 				resetWindUsingAirspeed(airspeed_sample);
+				ECL_INFO("Reset wind using airspeed (%.3f)",
+					 (double)airspeed_sample.true_airspeed);
 				_aid_src_airspeed.time_last_fuse = _time_delayed_us;
+
+			} else {
+				fuseAirspeed(airspeed_sample, _aid_src_airspeed);
 			}
 
-			_control_status.flags.wind = true;
-			_control_status.flags.fuse_aspd = true;
+			if (do_vel_reset || do_wind_reset || _aid_src_airspeed.fused) {
+				ECL_INFO("starting airspeed fusion");
+				_control_status.flags.wind = true;
+				_control_status.flags.fuse_aspd = true;
+			}
 		}
 
 	} else if (_control_status.flags.fuse_aspd && !isRecent(_airspeed_sample_delayed.time_us, (uint64_t)1e6)) {

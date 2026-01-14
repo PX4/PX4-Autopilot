@@ -107,7 +107,7 @@ Below are silkscreens for the Hobbywing XRotor Flight Controller F4.
 
 RC is connected to one of the following ports:
 
-- UART
+- UART1
 - SBUS/PPM port (via inverter, internally goes to UART1)
 
 :::info
@@ -164,7 +164,7 @@ Here is an example implementation. I used a Spektrum plug to get 3.3v from the D
 
 | UART   | 设备         | Port     |
 | ------ | ---------- | -------- |
-| USART1 | UART       | SerialRX |
+| USART1 | /dev/ttyS0 | SerialRX |
 | USART4 | /dev/ttyS1 | TELEM1   |
 | USART6 | /dev/ttyS2 | GPS      |
 

@@ -190,7 +190,7 @@ For information about using this port see:
 
 | UART   | 设备         | Port                              |
 | ------ | ---------- | --------------------------------- |
-| UART   | UART       | WiFi (ESP8266) |
+| UART1  | /dev/ttyS0 | WiFi (ESP8266) |
 | USART2 | /dev/ttyS1 | TELEM1 (流控)    |
 | USART3 | /dev/ttyS2 | TELEM2 (流控)    |
 | UART4  |            |                                   |

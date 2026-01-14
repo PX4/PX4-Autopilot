@@ -77,7 +77,7 @@ The exception is the [debug port(s)](#debug_port) (pin 1 is the right-most, as s
 
 | UART   | 设备         | Port                           |
 | ------ | ---------- | ------------------------------ |
-| UART   | UART       | GPS                            |
+| UART1  | /dev/ttyS0 | GPS                            |
 | USART2 | /dev/ttyS1 | TELEM1 (流控) |
 | USART3 | /dev/ttyS2 | TELEM2 (流控) |
 | UART4  | /dev/ttyS3 | TELEM4                         |

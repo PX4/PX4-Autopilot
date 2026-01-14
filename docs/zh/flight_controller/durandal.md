@@ -170,7 +170,7 @@ make holybro_durandal-v1_default
 
 | UART   | 设备         | Port        |
 | ------ | ---------- | ----------- |
-| USART1 | UART       | GPS1        |
+| USART1 | /dev/ttyS0 | GPS1        |
 | USART2 | /dev/ttyS1 | TELEM1      |
 | USART3 | /dev/ttyS2 | TELEM2      |
 | UART4  | /dev/ttyS3 | TELEM4/GPS2 |
