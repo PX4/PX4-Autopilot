@@ -48,7 +48,6 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/sem.hpp>
 #include <lib/parameters/param.h>
-//#include <px4_platform_common/i2c_spi_buses.h>
 
 #include "PCA9685.h"
 
