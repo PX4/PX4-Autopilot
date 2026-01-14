@@ -349,7 +349,7 @@ void RTL::setRtlTypeAndDestination()
 		}
 
 		// set rtl altitude to the destination from the beginning for DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION
-		const float rtl_alt = destination_type == DestinationType::DESTINATION_TYPE_SAFE_POINT ? adapt_return_alt_if_needed(rtl_position,
+		const float rtl_alt = destination_type == DestinationType::DESTINATION_TYPE_SAFE_POINT ? computeReturnAltitude(rtl_position,
 				      (float)_param_rtl_cone_half_angle_deg.get()) : rtl_position.alt;
 
 		loiter_point_s landing_loiter;
@@ -374,7 +374,7 @@ void RTL::setRtlTypeAndDestination()
 		DestinationType destination_type{DestinationType::DESTINATION_TYPE_HOME};
 		PositionYawSetpoint rtl_position;
 		findRtlDestination(destination_type, rtl_position, safe_point_index);
-		const float rtl_alt = adapt_return_alt_if_needed(rtl_position, (float)_param_rtl_cone_half_angle_deg.get());
+		const float rtl_alt = computeReturnAltitude(rtl_position, (float)_param_rtl_cone_half_angle_deg.get());
 
 		switch (destination_type) {
 		case DestinationType::DESTINATION_TYPE_MISSION_LAND:
@@ -574,8 +574,7 @@ void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_ite
 	rtl_position.yaw = _home_pos_sub.get().yaw;
 }
 
-void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position,
-				    const mission_item_s &mission_safe_point) const
+void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mission_item_s &mission_safe_point) const
 {
 	// There is a safe point closer than home/mission landing
 	// TODO: handle all possible mission_safe_point.frame cases
@@ -602,16 +601,12 @@ void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position,
 	}
 }
 
-float RTL::adapt_return_alt_if_needed(const PositionYawSetpoint &rtl_position,
-				      float cone_half_angle_deg) const
+float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position, float cone_half_angle_deg) const
 {
-	float rtl_alt = NAN;
-
-	if (_param_rtl_cone_half_angle_deg.get() > 0
-	    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	if (_param_rtl_cone_half_angle_deg.get() > 0 && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		// horizontal distance to destination
-		const float destination_dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-					       rtl_position.lat, rtl_position.lon);
+		const float destination_dist =
+			get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, rtl_position.lat, rtl_position.lon);
 
 		// minium rtl altitude to use when outside of horizontal acceptance radius of target position.
 		// We choose the minimum height to be two times the distance from the land position in order to
@@ -640,15 +635,12 @@ float RTL::adapt_return_alt_if_needed(const PositionYawSetpoint &rtl_position,
 			return_altitude_amsl = max(return_altitude_amsl, return_altitude_min_outside_acceptance_rad_amsl);
 		}
 
-		rtl_alt = constrain(return_altitude_amsl, _global_pos_sub.get().alt, max_return_altitude);
-
+		return constrain(return_altitude_amsl, _global_pos_sub.get().alt, max_return_altitude);
 
 	} else {
 		// standard behaviour: return altitude above rtl destination
-		rtl_alt = max(_global_pos_sub.get().alt, rtl_position.alt + _param_rtl_return_alt.get());
+		return max(_global_pos_sub.get().alt, rtl_position.alt + _param_rtl_return_alt.get());
 	}
-
-	return rtl_alt;
 }
 
 void RTL::init_rtl_mission_type()
