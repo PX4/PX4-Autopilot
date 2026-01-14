@@ -431,17 +431,6 @@ FixedWingModeManager::set_control_mode_current(const hrt_abstime &now)
 		}
 
 	} else if (_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled
-		   && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
-
-		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
-		if (doing_backtransition) {
-			_control_mode_current = FW_POSCTRL_MODE_TRANSITION_TO_HOVER_HEADING_HOLD;
-
-		} else {
-			_control_mode_current = FW_POSCTRL_MODE_AUTO;
-		}
-
-	} else if (_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled
 		   && (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)) {
 
 		if (doing_backtransition) {
