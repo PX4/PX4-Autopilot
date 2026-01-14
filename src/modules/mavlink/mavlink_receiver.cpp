@@ -607,8 +607,8 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
 			PX4_INFO("publishing MAV_CMD_REQUEST_MESSAGE for MAVLINK_MSG_ID_ESC_EEPROM");
 			_cmd_pub.publish(vehicle_command);
-else
-		if (1)
+#else
+		if (1) {
 		// no-op
 #endif
 		} else if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
