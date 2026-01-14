@@ -52,7 +52,7 @@ struct EscData {
 	float temperature;     // [deg C]
 	float voltage;         // [0.01V]
 	float current;         // [0.01A]
-	int16_t erpm;          // [100ERPM]
+	int32_t erpm;          // [eRPM]
 };
 
 enum class TelemetryStatus {
