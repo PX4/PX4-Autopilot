@@ -257,6 +257,10 @@ set(msg_files
 	versioned/LongitudinalControlConfiguration.msg
 	versioned/ManualControlSetpoint.msg
 	versioned/ModeCompleted.msg
+	versioned/ParameterGetRequest.msg
+	versioned/ParameterGetReply.msg
+	versioned/ParameterSetRequest.msg
+	versioned/ParameterSetReply.msg
 	versioned/RegisterExtComponentReply.msg
 	versioned/RegisterExtComponentRequest.msg
 	versioned/TrajectorySetpoint.msg
