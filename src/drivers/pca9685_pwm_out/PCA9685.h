@@ -35,6 +35,8 @@
 #include <cstdint>
 #include <drivers/device/i2c.h>
 #include <px4_boardconfig.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+
 
 #define PCA9685_REG_MODE1 0x00			// Mode  register  1
 #define PCA9685_REG_MODE2 0x01			// Mode  register  2

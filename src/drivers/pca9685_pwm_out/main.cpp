@@ -48,6 +48,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/sem.hpp>
 #include <lib/parameters/param.h>
+//#include <px4_platform_common/i2c_spi_buses.h>
 
 #include "PCA9685.h"
 
@@ -356,92 +357,43 @@ int PCA9685Wrapper::custom_command(int argc, char **argv) {
 }
 
 int PCA9685Wrapper::task_spawn(int argc, char **argv) {
-	int ch;
-	int address = PCA9685_DEFAULT_ADDRESS;
-	int iicbus = PCA9685_DEFAULT_IICBUS;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 400000;
+	cli.i2c_address = PCA9685_DEFAULT_ADDRESS;
+	cli.requested_bus = PCA9685_DEFAULT_IICBUS;
+	cli.parseDefaultArguments(argc, argv);
 
-	int32_t en_bus = 0;
-	param_t param_handle = param_find("PCA9685_EN_BUS");
+	auto *instance = new PCA9685Wrapper();
 
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &en_bus);
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
 
-		if (en_bus > 0) {
-			iicbus = en_bus;
+		instance->pca9685 = new PCA9685(cli.requested_bus, cli.i2c_address);
+
+		if(instance->pca9685==nullptr){
+			PX4_ERR("alloc failed");
+			goto driverInstanceAllocFailed;
 		}
+
+		if (instance->init() == PX4_OK) {
+			return PX4_OK;
+		} else {
+			PX4_ERR("driver init failed");
+			delete instance->pca9685;
+			instance->pca9685=nullptr;
+		}
+	} else {
+		PX4_ERR("alloc failed");
+			return PX4_ERROR;
 	}
 
-	int32_t i2c_addr = 0;
-	param_handle = param_find("PCA9685_I2C_ADDR");
+	driverInstanceAllocFailed:
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
 
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &i2c_addr);
-
-		if (i2c_addr > 0) {
-			address = i2c_addr;
-		}
-	}
-
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
-	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-			case 'a':
-                errno = 0;
-				address = strtol(myoptarg, nullptr, 16);
-                if (errno != 0) {
-                    PX4_WARN("Invalid address");
-                    return PX4_ERROR;
-                }
-				break;
-
-			case 'b':
-				iicbus = strtol(myoptarg, nullptr, 10);
-                if (errno != 0) {
-                    PX4_WARN("Invalid bus");
-                    return PX4_ERROR;
-                }
-				break;
-
-			case '?':
-				PX4_WARN("Unsupported args");
-				return PX4_ERROR;
-
-			default:
-				break;
-		}
-	}
-
-    auto *instance = new PCA9685Wrapper();
-
-    if (instance) {
-        _object.store(instance);
-        _task_id = task_id_is_work_queue;
-
-        instance->pca9685 = new PCA9685(iicbus, address);
-        if(instance->pca9685==nullptr){
-            PX4_ERR("alloc failed");
-            goto driverInstanceAllocFailed;
-        }
-
-        if (instance->init() == PX4_OK) {
-            return PX4_OK;
-        } else {
-            PX4_ERR("driver init failed");
-            delete instance->pca9685;
-            instance->pca9685=nullptr;
-        }
-    } else {
-        PX4_ERR("alloc failed");
-	    return PX4_ERROR;
-    }
-
-    driverInstanceAllocFailed:
-    delete instance;
-    _object.store(nullptr);
-    _task_id = -1;
-
-    return PX4_ERROR;
+	return PX4_ERROR;
 }
 
 void PCA9685Wrapper::updateParams() {
