@@ -342,13 +342,18 @@ $ pca9685_pwm_out start -a 0x40 -b 1
 }
 
 int PCA9685Wrapper::print_status() {
-    int ret =  ModuleBase::print_status();
-    PX4_INFO("PCA9685 @I2C Bus %d, address 0x%.2x, real frequency %.2f",
-            pca9685->get_device_bus(),
-            pca9685->get_device_address(),
-             (double)(pca9685->getFreq()));
+	int ret =  ModuleBase::print_status();
+	PX4_INFO("PCA9685 @I2C Bus %d, address 0x%.2x, real frequency %.2f",
+		pca9685->get_device_bus(),
+		pca9685->get_device_address(),
+		(double)(pca9685->getFreq()));
 
-    return ret;
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_registers_invalid_reset);
+	perf_print_counter(_registers_transfer_reset);
+
+    	return ret;
 }
 
 int PCA9685Wrapper::custom_command(int argc, char **argv) {
