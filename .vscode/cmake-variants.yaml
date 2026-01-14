@@ -6,6 +6,16 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_raptor:
+      short: px4_sitl_raptor
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_raptor
+    px4_sitl_raptor_debug:
+      short: px4_sitl_raptor_debug
+      buildType: Debug
+      settings:
+        CONFIG: px4_sitl_raptor
     px4_sitl_spacecraft:
       short: px4_sitl_spacecraft
       buildType: RelWithDebInfo
