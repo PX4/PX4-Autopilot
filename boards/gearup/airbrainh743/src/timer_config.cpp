@@ -45,6 +45,10 @@
  * M7: PB10 (TIM2_CH3)
  * M8: PB11 (TIM2_CH4)
  * M9: PA2  (TIM5_CH3) - LED strip
+ *
+ * Note: TIM2 is shared with buzzer pin PA15 (TIM2_CH1). The buzzer is disabled
+ * by default because the tone alarm driver would change the timer prescaler/ARR
+ * which affects M7/M8 PWM frequency. See board_config.h for details.
  */
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {

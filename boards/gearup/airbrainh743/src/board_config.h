@@ -112,9 +112,16 @@
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 
-/* Tone alarm output - PA15 */
+/* Tone alarm output (directly connected to transistor switch of external buzzer)
+ *
+ * GPIO mode only (active buzzer) - passive buzzer with different tones is not
+ * supported because PA15 can only use TIM2, which is also used for motor outputs
+ * M7 (PB10, TIM2_CH3) and M8 (PB11, TIM2_CH4). The PWM tone alarm driver changes
+ * the timer's prescaler and auto-reload registers (shared across all channels),
+ * which would affect M7/M8 PWM frequency during tone playback.
+ */
 #define GPIO_TONE_ALARM_IDLE    /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
-#define GPIO_TONE_ALARM_GPIO    /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
+#define GPIO_TONE_ALARM_GPIO    /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN15)
 
 
 /* ICM42688P FSYNC - directly connected to IMU via GPIO (no timer).
