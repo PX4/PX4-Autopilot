@@ -350,7 +350,7 @@ void RTL::setRtlTypeAndDestination()
 
 		// set rtl altitude to the destination from the beginning for DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION
 		const float rtl_alt = destination_type == DestinationType::DESTINATION_TYPE_SAFE_POINT ? computeReturnAltitude(rtl_position,
-				      (float)_param_rtl_cone_half_angle_deg.get()) : rtl_position.alt;
+				      (float)_param_rtl_cone_ang.get()) : rtl_position.alt;
 
 		loiter_point_s landing_loiter;
 		landing_loiter.lat = rtl_position.lat;
@@ -374,7 +374,7 @@ void RTL::setRtlTypeAndDestination()
 		DestinationType destination_type{DestinationType::DESTINATION_TYPE_HOME};
 		PositionYawSetpoint rtl_position;
 		findRtlDestination(destination_type, rtl_position, safe_point_index);
-		const float rtl_alt = computeReturnAltitude(rtl_position, (float)_param_rtl_cone_half_angle_deg.get());
+		const float rtl_alt = computeReturnAltitude(rtl_position, (float)_param_rtl_cone_ang.get());
 
 		switch (destination_type) {
 		case DestinationType::DESTINATION_TYPE_MISSION_LAND:
@@ -450,7 +450,7 @@ void RTL::findClosestSafePoint(PositionYawSetpoint &rtl_position, uint8_t &safe_
 
 				_one_rally_point_has_land_approach |= current_safe_point_has_approaches;
 
-				if (((dist + MIN_DIST_THRESHOLD) < min_dist) && ((_param_rtl_approach_force.get() == 0)
+				if (((dist + MIN_DIST_THRESHOLD) < min_dist) && ((_param_rtl_appr_force.get() == 0)
 						|| current_safe_point_has_approaches)) {
 					min_dist = dist;
 					rtl_position = safepoint_position;
@@ -483,7 +483,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 
 	_home_has_land_approach = hasVtolLandApproach(rtl_position);
 
-	if (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || (vtol_in_fw_mode && (_param_rtl_approach_force.get() == 1)
+	if (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || (vtol_in_fw_mode && (_param_rtl_appr_force.get() == 1)
 			&& !_home_has_land_approach)) {
 		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode or we forces approach landing for vtol in fw and it is not defined for home.
 		min_dist = FLT_MAX;
@@ -553,7 +553,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 
 				_one_rally_point_has_land_approach |= current_safe_point_has_approaches;
 
-				if (((dist + MIN_DIST_THRESHOLD) < min_dist) && (!vtol_in_fw_mode || (_param_rtl_approach_force.get() == 0)
+				if (((dist + MIN_DIST_THRESHOLD) < min_dist) && (!vtol_in_fw_mode || (_param_rtl_appr_force.get() == 0)
 						|| current_safe_point_has_approaches)) {
 					min_dist = dist;
 					rtl_position = safepoint_position;
@@ -603,7 +603,7 @@ void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mis
 
 float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position, float cone_half_angle_deg) const
 {
-	if (_param_rtl_cone_half_angle_deg.get() > 0 && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	if (_param_rtl_cone_ang.get() > 0 && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		// horizontal distance to destination
 		const float destination_dist =
 			get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, rtl_position.lat, rtl_position.lon);
