@@ -38,10 +38,10 @@ body:
           - Vehicle type (multicopter, fixed-wing, VTOL, etc.)
           - Screenshots or media
       placeholder: |
-          Flight log link:
+        Flight log link:
 
-          Version:
+        Version:
 
-          Hardware:
+        Hardware:
     validations:
       required: false
