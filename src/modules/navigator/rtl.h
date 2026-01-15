@@ -133,13 +133,13 @@ private:
 	 * @brief Find RTL destination.
 	 *
 	 */
-	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &rtl_position, uint8_t &safe_point_index);
+	PositionYawSetpoint findRtlDestination(DestinationType &destination_type, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Find RTL destination if only safe points are considered
 	 *
 	 */
-	void findClosestSafePoint(PositionYawSetpoint &rtl_position, uint8_t &safe_point_index);
+	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
