@@ -371,7 +371,9 @@ MB12XX::set_address(const uint8_t address)
 	    address == 80  ||
 	    address == 164 ||
 	    address == 170 ||
-	    address > 224) {
+	    address > 224 ||
+	    (address % 2) != 0 ||
+	    address < MB12XX_MIN_ADDR) {
 		PX4_ERR("incompatible address requested");
 		return PX4_ERROR;
 	}
@@ -386,6 +388,8 @@ MB12XX::set_address(const uint8_t address)
 	}
 
 	set_device_address(address);
+	_sensor_addresses[0] = address;
+
 	PX4_INFO("device address: %u", get_device_address());
 	return PX4_OK;
 }
