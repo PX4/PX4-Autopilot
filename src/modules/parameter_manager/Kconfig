@@ -1,0 +1,9 @@
+menuconfig MODULES_PARAMETER_MANAGER
+	bool "parameter_manager"
+	default n
+	---help---
+		Enable support for the Parameter Manager module.
+
+		This module provides a uORB-based parameter microservice that enables
+		external systems (such as ROS2 via DDS) to look up parameters by name
+		and enumerate available parameters.

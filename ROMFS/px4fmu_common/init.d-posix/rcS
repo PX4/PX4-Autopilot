@@ -328,6 +328,9 @@ then
 	zenoh start
 fi
 
+# Start parameter manager for ROS2 parameter bridge
+parameter_manager start
+
 if param greater -s MNT_MODE_IN -1
 then
 	gimbal start

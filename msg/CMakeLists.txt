@@ -156,6 +156,10 @@ set(msg_files
 	OrbTest.msg
 	OrbTestLarge.msg
 	OrbTestMedium.msg
+	ParameterListRequest.msg
+	ParameterListResponse.msg
+	ParameterNameRequest.msg
+	ParameterNameResponse.msg
 	ParameterResetRequest.msg
 	ParameterSetUsedRequest.msg
 	ParameterSetValueRequest.msg
