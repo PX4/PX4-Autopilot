@@ -357,15 +357,14 @@ void RTL::setRtlTypeAndDestination()
 	}
 
 	// Publish rtl status
-	_rtl_status_pub.get().timestamp = hrt_absolute_time();
-	_rtl_status_pub.get().safe_points_id = _safe_points_id;
-	_rtl_status_pub.get().is_evaluation_pending = _dataman_state != DatamanState::UpdateRequestWait;
-	_rtl_status_pub.get().has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
-
-	_rtl_status_pub.get().rtl_type = static_cast<uint8_t>(_rtl_type);
-	_rtl_status_pub.get().safe_point_index = safe_point_index;
-
-	_rtl_status_pub.update();
+	rtl_status_s rtl_status{};
+	rtl_status.safe_points_id = _safe_points_id;
+	rtl_status.is_evaluation_pending = _dataman_state != DatamanState::UpdateRequestWait;
+	rtl_status.has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
+	rtl_status.rtl_type = static_cast<uint8_t>(_rtl_type);
+	rtl_status.safe_point_index = safe_point_index;
+	rtl_status.timestamp = hrt_absolute_time();
+	_rtl_status_pub.publish(rtl_status);
 
 }
 

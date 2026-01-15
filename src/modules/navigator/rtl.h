@@ -257,5 +257,5 @@ private:
 	uORB::SubscriptionMultiArray<telemetry_status_s> _telemetry_status_subs{ORB_ID::telemetry_status};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
-	uORB::PublicationData<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
+	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
 };
