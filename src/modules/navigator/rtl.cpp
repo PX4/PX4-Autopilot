@@ -318,12 +318,12 @@ void RTL::setRtlTypeAndDestination()
 		// check the closest allowed destination.
 		DestinationType destination_type = DestinationType::DESTINATION_TYPE_HOME;
 
-		PositionYawSetpoint rtl_position = findRtlDestination(destination_type, safe_point_index);
+		PositionYawSetpoint destination = findRtlDestination(destination_type, safe_point_index);
 
-		float rtl_alt = computeReturnAltitude(rtl_position, (float)_param_rtl_cone_ang.get());
+		float rtl_alt = computeReturnAltitude(destination, (float)_param_rtl_cone_ang.get());
 
 		if (destination_type == DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION) {
-			rtl_alt = rtl_position.alt;
+			rtl_alt = destination.alt;
 		}
 
 		switch (destination_type) {
@@ -336,11 +336,11 @@ void RTL::setRtlTypeAndDestination()
 		case DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION:
 		default:
 			loiter_point_s landing_loiter;
-			landing_loiter.lat = rtl_position.lat;
-			landing_loiter.lon = rtl_position.lon;
+			landing_loiter.lat = destination.lat;
+			landing_loiter.lon = destination.lon;
 			landing_loiter.height_m = NAN;
 
-			land_approaches_s rtl_land_approaches{readVtolLandApproaches(rtl_position)};
+			land_approaches_s rtl_land_approaches{readVtolLandApproaches(destination)};
 
 			if (_vehicle_status_sub.get().is_vtol
 			    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
@@ -350,7 +350,7 @@ void RTL::setRtlTypeAndDestination()
 
 			_rtl_type = RtlType::RTL_DIRECT;
 			_rtl_direct.setRtlAlt(rtl_alt);
-			_rtl_direct.setRtlPosition(rtl_position, landing_loiter);
+			_rtl_direct.setRtlPosition(destination, landing_loiter);
 
 			break;
 		}
@@ -420,10 +420,10 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 
 PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, uint8_t &safe_point_index)
 {
-	PositionYawSetpoint rtl_position{NAN, NAN, NAN, NAN};
+	PositionYawSetpoint destination{NAN, NAN, NAN, NAN};
 
 	if (_param_rtl_type.get() == 5) {
-		rtl_position = findClosestSafePoint(FLT_MAX, safe_point_index);
+		destination = findClosestSafePoint(FLT_MAX, safe_point_index);
 		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 
 		if (safe_point_index == UINT8_MAX) {
@@ -444,25 +444,25 @@ PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, u
 
 			if (!PX4_ISFINITE(_last_position_before_link_loss.lat) || !PX4_ISFINITE(_last_position_before_link_loss.lon)) {
 				// if we never had a valid data link position, fallback to current position
-				rtl_position.alt = _global_pos_sub.get().alt;
-				rtl_position.lat = _global_pos_sub.get().lat;
-				rtl_position.lon = _global_pos_sub.get().lon;
+				destination.alt = _global_pos_sub.get().alt;
+				destination.lat = _global_pos_sub.get().lat;
+				destination.lon = _global_pos_sub.get().lon;
 
 			} else {
-				rtl_position = _last_position_before_link_loss;
+				destination = _last_position_before_link_loss;
 			}
 
 			destination_type = DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION;
 		}
 
-		return rtl_position;
+		return destination;
 	}
 
 	// set destination to home per default, then check if other valid landing spot is closer
-	rtl_position.alt = _home_pos_sub.get().alt;
-	rtl_position.lat = _home_pos_sub.get().lat;
-	rtl_position.lon = _home_pos_sub.get().lon;
-	rtl_position.yaw = _home_pos_sub.get().yaw;
+	destination.alt = _home_pos_sub.get().alt;
+	destination.lat = _home_pos_sub.get().lat;
+	destination.lon = _home_pos_sub.get().lon;
+	destination.yaw = _home_pos_sub.get().yaw;
 	destination_type = DestinationType::DESTINATION_TYPE_HOME;
 
 	const bool vtol_in_rw_mode = _vehicle_status_sub.get().is_vtol
@@ -472,10 +472,10 @@ PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, u
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
 	// get distance to home position
-	float home_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, rtl_position.lat, rtl_position.lon)};
+	float home_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, destination.lat, destination.lon)};
 	float min_dist;
 
-	_home_has_land_approach = hasVtolLandApproach(rtl_position);
+	_home_has_land_approach = hasVtolLandApproach(destination);
 
 	if (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || (vtol_in_fw_mode && (_param_rtl_appr_force.get() == 1)
 			&& !_home_has_land_approach)) {
@@ -512,7 +512,7 @@ PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, u
 				min_dist = FLT_MAX;
 			}
 
-			setLandPosAsDestination(rtl_position, land_mission_item);
+			setLandPosAsDestination(destination, land_mission_item);
 			destination_type = DestinationType::DESTINATION_TYPE_MISSION_LAND;
 		}
 	}
@@ -520,11 +520,11 @@ PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, u
 	PositionYawSetpoint safe_point = findClosestSafePoint(min_dist, safe_point_index);
 
 	if (safe_point_index != UINT8_MAX) {
-		rtl_position = safe_point;
+		destination = safe_point;
 		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 	}
 
-	return rtl_position;
+	return destination;
 }
 
 void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const
