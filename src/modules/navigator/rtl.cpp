@@ -317,9 +317,7 @@ void RTL::setRtlTypeAndDestination()
 	if (_param_rtl_type.get() != 2 && _param_rtl_type.get() != 4) {
 		// check the closest allowed destination.
 		DestinationType destination_type = DestinationType::DESTINATION_TYPE_HOME;
-
-		PositionYawSetpoint destination = findRtlDestination(destination_type, safe_point_index);
-
+		const PositionYawSetpoint destination = findRtlDestination(destination_type, safe_point_index);
 		float rtl_alt = computeReturnAltitude(destination, (float)_param_rtl_cone_ang.get());
 
 		switch (destination_type) {
@@ -365,7 +363,6 @@ void RTL::setRtlTypeAndDestination()
 	rtl_status.safe_point_index = safe_point_index;
 	rtl_status.timestamp = hrt_absolute_time();
 	_rtl_status_pub.publish(rtl_status);
-
 }
 
 PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_point_index)
@@ -419,111 +416,100 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 
 PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, uint8_t &safe_point_index)
 {
-	PositionYawSetpoint destination{NAN, NAN, NAN, NAN};
-
-	if (_param_rtl_type.get() == 5) {
-		PositionYawSetpoint safe_point = findClosestSafePoint(FLT_MAX, safe_point_index);
-
-		if (safe_point_index != UINT8_MAX) {
-			destination = safe_point;
-			destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
-
-		} else {
-			// no safe point found, set destination to last position with valid data link
-			for (auto &telemetry_status :  _telemetry_status_subs) {
-				telemetry_status_s telemetry;
-
-				if (telemetry_status.update(&telemetry)) {
-
-					if (telemetry.heartbeat_type_gcs) {
-						_last_position_before_link_loss.alt = _global_pos_sub.get().alt;
-						_last_position_before_link_loss.lat = _global_pos_sub.get().lat;
-						_last_position_before_link_loss.lon = _global_pos_sub.get().lon;
-						break;
-					}
-				}
-			}
-
-			if (PX4_ISFINITE(_last_position_before_link_loss.lat) && PX4_ISFINITE(_last_position_before_link_loss.lon)) {
-				destination = _last_position_before_link_loss;
-
-			} else {
-				// if we never had a valid data link position, fallback to current position
-				destination.alt = _global_pos_sub.get().alt;
-				destination.lat = _global_pos_sub.get().lat;
-				destination.lon = _global_pos_sub.get().lon;
-			}
-
-			destination_type = DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION;
-		}
-
-		return destination;
-	}
-
-	// set destination to home per default, then check if other valid landing spot is closer
-	destination.alt = _home_pos_sub.get().alt;
-	destination.lat = _home_pos_sub.get().lat;
-	destination.lon = _home_pos_sub.get().lon;
-	destination.yaw = _home_pos_sub.get().yaw;
-	destination_type = DestinationType::DESTINATION_TYPE_HOME;
-
 	const bool vtol_in_rw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
 	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
-	// get distance to home position
-	float home_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, destination.lat, destination.lon)};
-	float min_dist;
+	PositionYawSetpoint destination{NAN, NAN, NAN, NAN};
+	float min_dist = FLT_MAX;
 
-	_home_has_land_approach = hasVtolLandApproach(destination);
+	if (_param_rtl_type.get() != 5) {
+		// Home position
+		destination.lat = _home_pos_sub.get().lat;
+		destination.lon = _home_pos_sub.get().lon;
+		destination.alt = _home_pos_sub.get().alt;
+		destination.yaw = _home_pos_sub.get().yaw;
+		destination_type = DestinationType::DESTINATION_TYPE_HOME;
+		_home_has_land_approach = hasVtolLandApproach(destination);
 
-	if (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || (vtol_in_fw_mode && (_param_rtl_appr_force.get() == 1)
-			&& !_home_has_land_approach)) {
-		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode or we forces approach landing for vtol in fw and it is not defined for home.
-		min_dist = FLT_MAX;
+		const bool prioritize_safe_points_over_home = ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode);
+		const bool required_approach_missing_for_home = (vtol_in_fw_mode && (_param_rtl_appr_force.get() == 1) && !_home_has_land_approach);
 
-	} else {
-		min_dist = home_dist;
-	}
+		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode or we force approach landing for vtol in fw and it is not defined for home.
+		const bool deprioritize_home = prioritize_safe_points_over_home || required_approach_missing_for_home;
 
-	// consider the mission landing if available and allowed
-	if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == 3) || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON))
-	    && hasMissionLandStart()) {
-		mission_item_s land_mission_item;
-		const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().mission_dataman_id);
-		bool success = _dataman_cache_landItem.loadWait(dm_item, _mission_sub.get().land_index,
-				reinterpret_cast<uint8_t *>(&land_mission_item), sizeof(mission_item_s), 500_ms);
-
-		if (!success) {
-			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
-			events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
-				     "Mission land item could not be read");
+		if (!deprioritize_home) {
+			// distance to home position
+			min_dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, destination.lat, destination.lon);
 		}
 
-		float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
+		// Mission landing
+		if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == 3) || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON)) && hasMissionLandStart()) {
+			mission_item_s land_mission_item;
+			const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().mission_dataman_id);
+			bool success = _dataman_cache_landItem.loadWait(dm_item, _mission_sub.get().land_index,
+					reinterpret_cast<uint8_t *>(&land_mission_item), sizeof(mission_item_s), 500_ms);
 
-		if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
-			if (_param_rtl_type.get() != 0) {
-				min_dist = dist;
-
-			} else {
-				// Mission landing is not allowed, but home has no approaches. Still use mission landing.
-				min_dist = FLT_MAX;
+			if (!success) {
+				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
+				events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
+					     "Mission land item could not be read");
 			}
 
-			setLandPosAsDestination(destination, land_mission_item);
-			destination_type = DestinationType::DESTINATION_TYPE_MISSION_LAND;
+			float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
+
+			if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
+				if (_param_rtl_type.get() != 0) {
+					min_dist = dist;
+
+				} else {
+					// Mission landing is not allowed, but home has no approaches. Still use mission landing.
+					min_dist = FLT_MAX;
+				}
+
+				setLandPosAsDestination(destination, land_mission_item);
+				destination_type = DestinationType::DESTINATION_TYPE_MISSION_LAND;
+			}
 		}
 	}
 
+	// Safe/rally points
 	PositionYawSetpoint safe_point = findClosestSafePoint(min_dist, safe_point_index);
 
 	if (safe_point_index != UINT8_MAX) {
 		destination = safe_point;
 		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+
+	} else if (_param_rtl_type.get() == 5) {
+		// Safe points only but no valid safe point, fallback to last position with valid data link
+		for (auto &telemetry_status :  _telemetry_status_subs) {
+			telemetry_status_s telemetry;
+
+			if (telemetry_status.update(&telemetry)) {
+
+				if (telemetry.heartbeat_type_gcs) {
+					_last_position_before_link_loss.alt = _global_pos_sub.get().alt;
+					_last_position_before_link_loss.lat = _global_pos_sub.get().lat;
+					_last_position_before_link_loss.lon = _global_pos_sub.get().lon;
+					break;
+				}
+			}
+		}
+
+		if (PX4_ISFINITE(_last_position_before_link_loss.lat) && PX4_ISFINITE(_last_position_before_link_loss.lon)) {
+			destination = _last_position_before_link_loss;
+
+		} else {
+			// If no valid data link position, fallback to current position
+			destination.alt = _global_pos_sub.get().alt;
+			destination.lat = _global_pos_sub.get().lat;
+			destination.lon = _global_pos_sub.get().lon;
+		}
+
+		destination_type = DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION;
 	}
 
 	return destination;
