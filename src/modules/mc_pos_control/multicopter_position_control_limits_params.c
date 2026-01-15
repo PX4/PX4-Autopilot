@@ -150,3 +150,18 @@ PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_ACC_DECOUPLE, 1);
+
+/**
+ * Max horizontal thrust scale for tilting multirotor
+ *
+ * Defines the maximum horizontal thrust as a scale of the maximum system thrust (MPC_THR_MAX).
+ * This is only used for vehicles that have direct force control enabled (MPC_ACT_MODE = 1).
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THRXY_SCL, 0.25f);

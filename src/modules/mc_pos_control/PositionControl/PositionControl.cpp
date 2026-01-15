@@ -60,6 +60,11 @@ void PositionControl::setVelocityLimits(const float vel_horizontal, const float 
 	_lim_vel_down = vel_down;
 }
 
+void PositionControl::setForceLimits(const float force_max)
+{
+	_lim_force_xy_max = force_max;
+}
+
 void PositionControl::setThrustLimits(const float min, const float max)
 {
 	// make sure there's always enough thrust vector length to infer the attitude
@@ -154,49 +159,8 @@ void PositionControl::_velocityControl(const float dt)
 
 	_accelerationControl();
 
-	// Integrator anti-windup in vertical direction
-	if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.f) ||
-	    (_thr_sp(2) <= -_lim_thr_max && vel_error(2) <= 0.f)) {
-		vel_error(2) = 0.f;
-	}
-
-	// Prioritize vertical control while keeping a horizontal margin
-	const Vector2f thrust_sp_xy(_thr_sp);
-	const float thrust_sp_xy_norm = thrust_sp_xy.norm();
-	const float thrust_max_squared = math::sq(_lim_thr_max);
-
-	// Determine how much vertical thrust is left keeping horizontal margin
-	const float allocated_horizontal_thrust = math::min(thrust_sp_xy_norm, _lim_thr_xy_margin);
-	const float thrust_z_max_squared = thrust_max_squared - math::sq(allocated_horizontal_thrust);
-
-	// Saturate maximal vertical thrust
-	_thr_sp(2) = math::max(_thr_sp(2), -sqrtf(thrust_z_max_squared));
-
-	// Determine how much horizontal thrust is left after prioritizing vertical control
-	const float thrust_max_xy_squared = thrust_max_squared - math::sq(_thr_sp(2));
-	float thrust_max_xy = 0.f;
-
-	if (thrust_max_xy_squared > 0.f) {
-		thrust_max_xy = sqrtf(thrust_max_xy_squared);
-	}
-
-	// Saturate thrust in horizontal direction
-	if (thrust_sp_xy_norm > thrust_max_xy) {
-		_thr_sp.xy() = thrust_sp_xy / thrust_sp_xy_norm * thrust_max_xy;
-	}
-
-	// Use tracking Anti-Windup for horizontal direction: during saturation, the integrator is used to unsaturate the output
-	// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
-	const Vector2f acc_sp_xy_produced = Vector2f(_thr_sp) * (CONSTANTS_ONE_G / _hover_thrust);
-
-	// The produced acceleration can be greater or smaller than the desired acceleration due to the saturations and the actual vertical thrust (computed independently).
-	// The ARW loop needs to run if the signal is saturated only.
-	if (_acc_sp.xy().norm_squared() > acc_sp_xy_produced.norm_squared()) {
-		const float arw_gain = 2.f / _gain_vel_p(0);
-		const Vector2f acc_sp_xy = _acc_sp.xy();
-
-		vel_error.xy() = Vector2f(vel_error) - arw_gain * (acc_sp_xy - acc_sp_xy_produced);
-	}
+	// saturate thrust
+	_thrustControl(vel_error);
 
 	// Make sure integral doesn't get NAN
 	ControlMath::setZeroIfNanVector3f(vel_error);
@@ -206,22 +170,41 @@ void PositionControl::_velocityControl(const float dt)
 
 void PositionControl::_accelerationControl()
 {
-	// Assume standard acceleration due to gravity in vertical direction for attitude generation
-	float z_specific_force = -CONSTANTS_ONE_G;
+	switch (_actuation_output)
+	{
+	case ActuationOutput::FORCE:{
+		//* For an omni-directional vehicle, forces are decoupled.
+		//* The required thrust vector is mapped from acceleration,
+		//* plus gravity compensation.
+		//* F_total = m * a_sp + F_gravity
 
-	if (!_decouple_horizontal_and_vertical_acceleration) {
-		// Include vertical acceleration setpoint for better horizontal acceleration tracking
-		z_specific_force += _acc_sp(2);
+		const float mass_equivalent_thrust = _hover_thrust / CONSTANTS_ONE_G;
+		_thr_sp = _acc_sp * mass_equivalent_thrust;
+		_thr_sp(2) -= _hover_thrust;
+
+		break;
 	}
+	case ActuationOutput::ATTITUDE:
+	default:{
+		// Assume standard acceleration due to gravity in vertical direction for attitude generation
+		float z_specific_force = -CONSTANTS_ONE_G;
 
-	Vector3f body_z = Vector3f(-_acc_sp(0), -_acc_sp(1), -z_specific_force).normalized();
-	ControlMath::limitTilt(body_z, Vector3f(0, 0, 1), _lim_tilt);
-	// Convert to thrust assuming hover thrust produces standard gravity
-	const float thrust_ned_z = _acc_sp(2) * (_hover_thrust / CONSTANTS_ONE_G) - _hover_thrust;
-	// Project thrust to planned body attitude
-	const float cos_ned_body = (Vector3f(0, 0, 1).dot(body_z));
-	const float collective_thrust = math::min(thrust_ned_z / cos_ned_body, -_lim_thr_min);
-	_thr_sp = body_z * collective_thrust;
+		if (!_decouple_horizontal_and_vertical_acceleration) {
+			// Include vertical acceleration setpoint for better horizontal acceleration tracking
+			z_specific_force += _acc_sp(2);
+		}
+
+		Vector3f body_z = Vector3f(-_acc_sp(0), -_acc_sp(1), -z_specific_force).normalized();
+		ControlMath::limitTilt(body_z, Vector3f(0, 0, 1), _lim_tilt);
+		// Convert to thrust assuming hover thrust produces standard gravity
+		const float thrust_ned_z = _acc_sp(2) * (_hover_thrust / CONSTANTS_ONE_G) - _hover_thrust;
+		// Project thrust to planned body attitude
+		const float cos_ned_body = (Vector3f(0, 0, 1).dot(body_z));
+		const float collective_thrust = math::min(thrust_ned_z / cos_ned_body, -_lim_thr_min);
+		_thr_sp = body_z * collective_thrust;
+		break;
+	}
+	}
 }
 
 bool PositionControl::_inputValid()
@@ -252,6 +235,91 @@ bool PositionControl::_inputValid()
 	return valid;
 }
 
+void PositionControl::_thrustControl(matrix::Vector3f &vel_error)
+{
+	switch (_actuation_output) {
+	case ActuationOutput::FORCE: {
+		//* For an omni-directional vehicle, horizontal and vertical thrusts are limited independently.
+		//* The horizontal thrust is a 2D force vector, limited by MPC_XY_FORCE_MAX.
+		//* The vertical thrust is a scalar, limited by _lim_thr_min and _lim_thr_max.
+
+		// Limit horizontal thrust
+		const Vector2f thrust_xy_unconstrained(_thr_sp);
+		const float thrust_xy_norm = thrust_xy_unconstrained.norm();
+
+		if (thrust_xy_norm > _lim_force_xy_max) {
+			_thr_sp.xy() = thrust_xy_unconstrained.normalized() * _lim_force_xy_max;
+
+			// Horizontal Anti-Reset Windup
+			const Vector2f acc_sp_xy_produced = Vector2f(_thr_sp) * (CONSTANTS_ONE_G / _hover_thrust);
+			if (_acc_sp.xy().norm_squared() > acc_sp_xy_produced.norm_squared()) {
+				const float arw_gain = 2.f / _gain_vel_p(0);
+				vel_error.xy() = Vector2f(vel_error) - arw_gain * (_acc_sp.xy() - acc_sp_xy_produced);
+			}
+		}
+
+		// Integrator anti-windup in vertical direction
+		if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.f) ||
+		(_thr_sp(2) <= -_lim_thr_max && vel_error(2) <= 0.f)) {
+			vel_error(2) = 0.f;
+		}
+
+		// Limit vertical thrust
+		_thr_sp(2) = math::constrain(_thr_sp(2), -_lim_thr_max, -_lim_thr_min);
+		break;
+	}
+
+	case ActuationOutput::ATTITUDE:
+	default: {
+		// Integrator anti-windup in vertical direction
+		if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.f) ||
+		(_thr_sp(2) <= -_lim_thr_max && vel_error(2) <= 0.f)) {
+			vel_error(2) = 0.f;
+		}
+
+		// Prioritize vertical control while keeping a horizontal margin
+		const Vector2f thrust_sp_xy(_thr_sp);
+		const float thrust_sp_xy_norm = thrust_sp_xy.norm();
+		const float thrust_max_squared = math::sq(_lim_thr_max);
+
+		// Determine how much vertical thrust is left keeping horizontal margin
+		const float allocated_horizontal_thrust = math::min(thrust_sp_xy_norm, _lim_thr_xy_margin);
+		const float thrust_z_max_squared = thrust_max_squared - math::sq(allocated_horizontal_thrust);
+
+		// Saturate maximal vertical thrust
+		_thr_sp(2) = math::max(_thr_sp(2), -sqrtf(thrust_z_max_squared));
+
+		// Determine how much horizontal thrust is left after prioritizing vertical control
+		const float thrust_max_xy_squared = thrust_max_squared - math::sq(_thr_sp(2));
+		float thrust_max_xy = 0.f;
+
+		if (thrust_max_xy_squared > 0.f) {
+			thrust_max_xy = sqrtf(thrust_max_xy_squared);
+		}
+
+		// Saturate thrust in horizontal direction
+		if (thrust_sp_xy_norm > thrust_max_xy) {
+			_thr_sp.xy() = thrust_sp_xy.normalized() * thrust_max_xy;
+		}
+
+		// Use tracking Anti-Windup for horizontal direction: during saturation, the integrator is used to unsaturate the output
+		// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
+		const Vector2f acc_sp_xy_produced = Vector2f(_thr_sp) * (CONSTANTS_ONE_G / _hover_thrust);
+
+		// The produced acceleration can be greater or smaller than the desired acceleration due to the saturations and the actual vertical thrust (computed independently).
+		// The ARW loop needs to run if the signal is saturated only.
+		if (_acc_sp.xy().norm_squared() > acc_sp_xy_produced.norm_squared()) {
+			const float arw_gain = 2.f / _gain_vel_p(0);
+			const Vector2f acc_sp_xy = _acc_sp.xy();
+
+			vel_error.xy() = Vector2f(vel_error) - arw_gain * (acc_sp_xy - acc_sp_xy_produced);
+		}
+
+		break;
+	}
+	}
+}
+
 void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const
 {
 	local_position_setpoint.x = _pos_sp(0);
@@ -266,8 +334,27 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 	_thr_sp.copyTo(local_position_setpoint.thrust);
 }
 
-void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
+void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint, const matrix::Quatf &vehicle_attitude) const
 {
-	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
+	switch (_actuation_output) {
+	case ActuationOutput::FORCE: {
+		// Set desired attitude
+		Quatf q_sp = Eulerf(0.f, 0.f, _yaw_sp);
+		q_sp.copyTo(attitude_setpoint.q_d);
+
+		// Compute force vector in body frame and add
+		const Dcmf R_body_to_ned(vehicle_attitude);
+		const Vector3f force_sp_body = R_body_to_ned.transpose() * _thr_sp;
+		force_sp_body.copyTo(attitude_setpoint.thrust_body);
+		break;
+	}
+
+	case ActuationOutput::ATTITUDE:
+	default: {
+		ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
+		break;
+	}
+	}
+
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }

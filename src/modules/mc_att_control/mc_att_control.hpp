@@ -115,6 +115,8 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
 	uORB::Publication<vehicle_attitude_setpoint_s>  _vehicle_attitude_setpoint_pub;
 
+	float _man_forcelat_max{0.f}; /**< maximum lateral force allowed for manual flight [N]*/
+
 	manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
 	vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */
 
@@ -126,6 +128,7 @@ private:
 	SlewRate<float> _hover_thrust_slew_rate{.5f};
 
 	float _yaw_setpoint_stabilized{0.f};
+	bool _heading_good_for_control{true}; // initialized true to have heading lock when local position never published
 	float _unaided_heading{NAN}; // initialized NAN to not distract heading lock when local position never published
 	float _man_tilt_max{0.f};			/**< maximum tilt allowed for manual flight [rad] */
 
@@ -133,6 +136,8 @@ private:
 	SlewRate<float> _manual_throttle_maximum{0.f}; ///< 0 when disarmed ramped to 1 when spooled up
 	AlphaFilter<float> _man_roll_input_filter;
 	AlphaFilter<float> _man_pitch_input_filter;
+	AlphaFilter<float> _man_Fx_input_filter;
+	AlphaFilter<float> _man_Fy_input_filter;
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _last_attitude_setpoint{0};
@@ -143,12 +148,14 @@ private:
 	bool _vtol{false};
 	bool _vtol_tailsitter{false};
 	bool _vtol_in_transition_mode{false};
+	bool _mc_in_force_mode{false}; ///< activate or not roll and pitch
 
 	uint8_t _quat_reset_counter{0};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>)         _param_mc_airmode,
 		(ParamFloat<px4::params::MC_MAN_TILT_TAU>)  _param_mc_man_tilt_tau,
+		(ParamFloat<px4::params::MC_MAN_XY_TAU>)    _param_mc_man_xy_tau,
 
 		(ParamFloat<px4::params::MC_ROLL_P>)        _param_mc_roll_p,
 		(ParamFloat<px4::params::MC_PITCH_P>)       _param_mc_pitch_p,
@@ -159,6 +166,8 @@ private:
 		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _param_mc_pitchrate_max,
 		(ParamFloat<px4::params::MC_YAWRATE_MAX>)   _param_mc_yawrate_max,
 
+		(ParamInt<px4::params::MPC_ACT_MODE>) 	    _param_mpc_act_mode,
+
 		/* Stabilized mode params */
 		(ParamFloat<px4::params::MAN_DEADZONE>) _param_man_deadzone,
 		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max,
@@ -166,6 +175,10 @@ private:
 		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
 		(ParamInt<px4::params::MPC_THR_CURVE>) _param_mpc_thr_curve,
+
+    		(ParamFloat<px4::params::MPC_MANTHRXY_SCL>) _param_mpc_manthrxy_scl, // TODO merge with MAN_ACC_MAX
+
+		// (ParamFloat<px4::params::MPC_YAW_EXPO>) _param_mpc_yaw_expo,
 
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
 	)

@@ -102,6 +102,12 @@ MulticopterAttitudeControl::parameters_updated()
 		_hover_thrust_slew_rate.setForcedValue(_param_mpc_thr_hover.get());
 	}
 
+	// Check if in direct for mode or not
+	_mc_in_force_mode = (_param_mpc_act_mode.get() == 1);
+
+	// update max force
+	_man_forcelat_max = _param_mpc_manthrxy_scl.get() * _param_mpc_thr_max.get();
+
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
 }
 
@@ -163,9 +169,20 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 	_man_roll_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
 	_man_pitch_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
 
-	// we want to fly towards the direction of (roll, pitch)
-	Vector2f v = Vector2f(_man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max),
-			      -_man_pitch_input_filter.update(_manual_control_setpoint.pitch * _man_tilt_max));
+	float roll_stick_input = .0f;
+	float pitch_stick_input = .0f;
+	if (_mc_in_force_mode) {
+		// sliders (tilt_roll/pitch) for attitude input.
+		// roll_stick_input = _man_roll_input_filter.update(_manual_control_setpoint.tilt_roll * _man_tilt_max);
+		// pitch_stick_input = -_man_pitch_input_filter.update(_manual_control_setpoint.tilt_pitch * _man_tilt_max);
+		roll_stick_input = .0f;
+		pitch_stick_input = .0f;
+	} else {
+		// sticks (roll/pitch) for attitude input.
+		roll_stick_input = _man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max);
+		pitch_stick_input = -_man_pitch_input_filter.update(_manual_control_setpoint.pitch * _man_tilt_max);
+	}
+	Vector2f v(roll_stick_input, pitch_stick_input);
 	float v_norm = v.norm(); // the norm of v defines the tilt angle
 
 	if (v_norm > _man_tilt_max) { // limit to the configured maximum tilt angle
@@ -173,6 +190,23 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 	}
 
 	Quatf q_sp_rp = AxisAnglef(v(0), v(1), 0.f);
+
+	if(_mc_in_force_mode){
+		// get force sp from RC
+		_man_Fx_input_filter.setParameters(dt, _param_mc_man_xy_tau.get());
+		_man_Fy_input_filter.setParameters(dt, _param_mc_man_xy_tau.get());
+		matrix::Vector2f force_sp;
+		force_sp(0) = _man_Fx_input_filter.update(_manual_control_setpoint.pitch * _man_forcelat_max);
+		force_sp(1) = _man_Fy_input_filter.update(_manual_control_setpoint.roll * _man_forcelat_max);
+
+		// update lateral forces sp
+		attitude_setpoint.thrust_body[0] = force_sp(0);
+		attitude_setpoint.thrust_body[1] = force_sp(1);
+	}else{
+		attitude_setpoint.thrust_body[0] = .0f;
+		attitude_setpoint.thrust_body[1] = .0f;
+	}
+
 	// Make sure there's a valid attitude quaternion with no yaw error when yaw is unlocked (NAN)
 	const float yaw_setpoint = PX4_ISFINITE(_yaw_setpoint_stabilized) ? _yaw_setpoint_stabilized : yaw;
 	// The axis angle can change the yaw as well (noticeable at higher tilt angles).
@@ -278,6 +312,7 @@ MulticopterAttitudeControl::Run()
 			vehicle_local_position_s vehicle_local_position;
 
 			if (_vehicle_local_position_sub.copy(&vehicle_local_position)) {
+				_heading_good_for_control = vehicle_local_position.heading_good_for_control;
 				_unaided_heading = vehicle_local_position.unaided_heading;
 			}
 		}
@@ -312,7 +347,31 @@ MulticopterAttitudeControl::Run()
 				if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)
 				    && (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
 
-					_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+					Quatf q_sp_ctrl(vehicle_attitude_setpoint.q_d);
+
+					const bool is_manual_assisted = _vehicle_control_mode.flag_control_manual_enabled &&
+									(_vehicle_control_mode.flag_control_position_enabled ||
+									 _vehicle_control_mode.flag_control_velocity_enabled ||
+									 _vehicle_control_mode.flag_control_altitude_enabled);
+
+					if (_mc_in_force_mode && is_manual_assisted) { // ! add roll and pitch from stick rc
+
+						// Get the pilot's desired roll & pitch from rc
+						_man_roll_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
+						_man_pitch_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
+						// const float manual_roll_sp  = _man_roll_input_filter.update(_manual_control_setpoint.tilt_roll * _man_tilt_max);
+						// const float manual_pitch_sp = -_man_pitch_input_filter.update(_manual_control_setpoint.tilt_pitch * _man_tilt_max);
+						const float manual_roll_sp  = .0f;
+						const float manual_pitch_sp  = .0f;
+
+						// Get yaw from position ctrl
+						const float yaw_sp_ctrl = Eulerf(q_sp_ctrl).psi();
+
+						// merge roll and pitch with yaw
+						q_sp_ctrl = Quatf(Eulerf(manual_roll_sp, manual_pitch_sp, yaw_sp_ctrl));
+					}
+
+					_attitude_control.setAttitudeSetpoint(q_sp_ctrl, vehicle_attitude_setpoint.yaw_sp_move_rate);
 					_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
 					_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
 				}
