@@ -54,8 +54,6 @@ RtlDirect::RtlDirect(Navigator *navigator) :
 	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL),
 	ModuleParams(navigator)
 {
-	_destination.lat = static_cast<double>(NAN);
-	_destination.lon = static_cast<double>(NAN);
 	_land_approach.lat = static_cast<double>(NAN);
 	_land_approach.lon = static_cast<double>(NAN);
 	_land_approach.height_m = NAN;
