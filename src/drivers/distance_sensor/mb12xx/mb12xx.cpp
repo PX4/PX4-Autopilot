@@ -423,6 +423,7 @@ extern "C" __EXPORT int mb12xx_main(int argc, char *argv[])
 	using ThisDriver = MB12XX;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = MB12XX_BUS_SPEED;
+	cli.i2c_address = MB12XX_BASE_ADDR;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
@@ -430,8 +431,6 @@ extern "C" __EXPORT int mb12xx_main(int argc, char *argv[])
 		ThisDriver::print_usage();
 		return -1;
 	}
-
-	cli.i2c_address = MB12XX_BASE_ADDR;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIST_DEVTYPE_MB12XX);
 
