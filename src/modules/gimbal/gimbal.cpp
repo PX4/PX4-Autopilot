@@ -556,6 +556,7 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mnt_rc_in_mode, &params.mnt_rc_in_mode);
 	param_get(param_handles.mnt_lnd_p_min, &params.mnt_lnd_p_min);
 	param_get(param_handles.mnt_lnd_p_max, &params.mnt_lnd_p_max);
+	param_get(param_handles.mnt_tau, &params.mnt_tau);
 }
 
 bool initialize_params(ParameterHandles &param_handles, Parameters &params)
@@ -579,6 +580,7 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_rc_in_mode = param_find("MNT_RC_IN_MODE");
 	param_handles.mnt_lnd_p_min = param_find("MNT_LND_P_MIN");
 	param_handles.mnt_lnd_p_max = param_find("MNT_LND_P_MAX");
+	param_handles.mnt_tau = param_find("MNT_TAU");
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
@@ -598,7 +600,8 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_rate_yaw == PARAM_INVALID ||
 	    param_handles.mnt_rc_in_mode == PARAM_INVALID ||
 	    param_handles.mnt_lnd_p_min == PARAM_INVALID ||
-	    param_handles.mnt_lnd_p_max == PARAM_INVALID
+	    param_handles.mnt_lnd_p_max == PARAM_INVALID ||
+	    param_handles.mnt_tau == PARAM_INVALID
 	   ) {
 		return false;
 	}
