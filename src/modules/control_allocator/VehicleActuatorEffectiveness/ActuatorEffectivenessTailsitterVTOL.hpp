@@ -70,6 +70,12 @@ public:
 		normalize[1] = false;
 	}
 
+	void getNeedsBatteryScaling(bool needs_scaling[MAX_NUM_MATRICES]) const override
+	{
+		needs_scaling[0] = true;
+		needs_scaling[1] = true;  // Even in fixed wing we want to scale all thrusts and torques by battery because everything is a rotor
+	}
+
 	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index, ActuatorVector &actuator_sp,

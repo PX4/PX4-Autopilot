@@ -57,6 +57,22 @@ public:
 	void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness,
 				    const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators,
 				    bool update_normalization_scale) override;
+
+	void setBatteryScaling(float new_battery_scaling) override
+	{
+		// Only update the battery scaling if changed significantly, to
+		// avoid doing costly pseudoinverse updates at high rate
+		//  - could change the mix update itself to again only update the pinv itself when it used to, and to
+		//  - might want to limit the rate at which we do this anyway in case battery scale behaves erratically to deterministically limit cpu
+		const bool update_significant = fabsf(new_battery_scaling - _battery_scaling) > 0.005f;
+		const bool updating_to_one = fabsf(new_battery_scaling - 1.0f) < FLT_EPSILON && fabsf(_battery_scaling - 1.0f) < FLT_EPSILON;
+
+		if (update_significant || updating_to_one) {
+			_battery_scaling = new_battery_scaling;
+			_mix_update_needed = true;
+		}
+	}
+
 	void setMetricAllocation(bool metric_allocation) { _metric_allocation = metric_allocation; }
 
 protected:

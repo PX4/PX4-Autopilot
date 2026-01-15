@@ -54,6 +54,11 @@ public:
 		normalize[0] = true;
 	}
 
+	void getNeedsBatteryScaling(bool needs_scaling[MAX_NUM_MATRICES]) const override
+	{
+		needs_scaling[0] = true;
+	}
+
 	const char *name() const override { return "Multirotor"; }
 
 protected:

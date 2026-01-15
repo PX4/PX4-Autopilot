@@ -57,6 +57,13 @@ public:
 		normalize[0] = true;
 	}
 
+	void getNeedsBatteryScaling(bool needs_scaling[MAX_NUM_MATRICES]) const override
+	{
+		// Set to true if the spacecraft is using electric actuators
+		// that degrade as battery depletes
+		needs_scaling[0] = false;
+	}
+
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;

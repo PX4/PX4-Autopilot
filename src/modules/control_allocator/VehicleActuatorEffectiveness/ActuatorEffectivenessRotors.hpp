@@ -95,6 +95,11 @@ public:
 		normalize[0] = true;
 	}
 
+	void getNeedsBatteryScaling(bool needs_scaling[MAX_NUM_MATRICES]) const override
+	{
+		needs_scaling[0] = true;
+	}
+
 	static int computeEffectivenessMatrix(const Geometry &geometry,
 					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
 

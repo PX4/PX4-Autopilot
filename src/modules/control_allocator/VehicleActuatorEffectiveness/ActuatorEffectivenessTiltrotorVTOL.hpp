@@ -76,6 +76,12 @@ public:
 		normalize[1] = false;
 	}
 
+	void getNeedsBatteryScaling(bool needs_scaling[MAX_NUM_MATRICES]) const override
+	{
+		needs_scaling[0] = true;
+		needs_scaling[1] = false;
+	}
+
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;

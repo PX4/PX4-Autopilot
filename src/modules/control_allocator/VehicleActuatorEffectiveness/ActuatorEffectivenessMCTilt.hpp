@@ -55,6 +55,11 @@ public:
 		normalize[0] = true;
 	}
 
+	void getNeedsBatteryScaling(bool needs_scaling[MAX_NUM_MATRICES]) const override
+	{
+		needs_scaling[0] = true;
+	}
+
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index, ActuatorVector &actuator_sp,
 			    const ActuatorVector &actuator_min, const ActuatorVector &actuator_max) override;
 
