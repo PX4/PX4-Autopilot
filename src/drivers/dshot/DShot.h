@@ -231,7 +231,6 @@ private:
 		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
 		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count,
-		(ParamBool<px4::params::DSHOT_BIDIR_EDT>) _param_dshot_bidir_edt,
-		(ParamBool<px4::params::DSHOT_TEL_CFG>) _param_dshot_tel_cfg
+		(ParamBool<px4::params::DSHOT_BIDIR_EDT>) _param_dshot_bidir_edt
 	)
 };

@@ -71,7 +71,6 @@ int DShot::init()
 {
 	update_params();
 
-	_serial_telemetry_enabled = _param_dshot_tel_cfg.get();
 	_bdshot_edt_enabled = _param_dshot_bidir_edt.get();
 
 	if (initialize_dshot()) {
@@ -1001,15 +1000,13 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 		return;
 	}
 
-	if (!_serial_telemetry_enabled) {
-		PX4_ERR("serial telemetry not enabled");
-		return;
-	}
-
 	if (_telemetry.init(device, swap_rxtx) != PX4_OK) {
 		PX4_ERR("telemetry init failed");
 		return;
 	}
+
+	// Enable serial telemetry now that we've successfully initialized
+	_serial_telemetry_enabled = true;
 
 	// Initialize ESC settings handlers based on ESC type
 	ESCType esc_type = static_cast<ESCType>(_param_dshot_esc_type.get());
