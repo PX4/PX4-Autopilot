@@ -225,6 +225,19 @@ PARAM_DEFINE_FLOAT(MNT_RATE_PITCH, 30.0f);
 PARAM_DEFINE_FLOAT(MNT_RATE_YAW, 30.0f);
 
 /**
+ * Alpha filter time constant defining the convergence rate (in seconds) for open-loop AUX mount control.
+ *
+ * Use when no angular position feedback is available.
+ * With MNT_MODE_OUT set to AUX, the mount operates in open-loop and directly commands the servo output.
+ * Parameters must be tuned for the specific servo to approximate its speed and response.
+ *
+ * @min 0.0
+ * @group Mount
+ */
+PARAM_DEFINE_FLOAT(MNT_TAU, 0.3f);
+
+
+/**
  * Input mode for RC gimbal input
  *
  * @value 0 Angle
