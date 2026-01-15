@@ -167,7 +167,7 @@ private:
 	bool _force_heading{false};
 	RtlTimeEstimator _rtl_time_estimator;
 
-	PositionYawSetpoint _destination; ///< the RTL position to fly to
+	PositionYawSetpoint _destination{NAN, NAN, NAN, NAN}; ///< the RTL position to fly to
 	loiter_point_s _land_approach;
 
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the home position
