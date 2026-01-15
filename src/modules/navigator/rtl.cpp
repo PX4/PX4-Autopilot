@@ -312,7 +312,7 @@ void RTL::setRtlTypeAndDestination()
 {
 	init_rtl_mission_type();
 
-	uint8_t safe_point_index{UINT8_MAX};
+	uint8_t safe_point_index = UINT8_MAX;
 
 	if (_param_rtl_type.get() != 2 && _param_rtl_type.get() != 4) {
 		// check the closest allowed destination.
@@ -322,18 +322,18 @@ void RTL::setRtlTypeAndDestination()
 
 		float rtl_alt = computeReturnAltitude(destination, (float)_param_rtl_cone_ang.get());
 
-		if (destination_type == DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION) {
-			rtl_alt = destination.alt;
-		}
-
 		switch (destination_type) {
 		case DestinationType::DESTINATION_TYPE_MISSION_LAND:
 			_rtl_type = RtlType::RTL_DIRECT_MISSION_LAND;
 			_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 			break;
 
-		case DestinationType::DESTINATION_TYPE_SAFE_POINT:
 		case DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION:
+			rtl_alt = destination.alt; // Override return altitude with last known link altitude
+
+		// FALLTHROUGH
+
+		case DestinationType::DESTINATION_TYPE_SAFE_POINT:
 		default:
 			loiter_point_s landing_loiter;
 			landing_loiter.lat = destination.lat;
@@ -422,10 +422,13 @@ PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, u
 	PositionYawSetpoint destination{NAN, NAN, NAN, NAN};
 
 	if (_param_rtl_type.get() == 5) {
-		destination = findClosestSafePoint(FLT_MAX, safe_point_index);
-		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+		PositionYawSetpoint safe_point = findClosestSafePoint(FLT_MAX, safe_point_index);
 
-		if (safe_point_index == UINT8_MAX) {
+		if (safe_point_index != UINT8_MAX) {
+			destination = safe_point;
+			destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+
+		} else {
 			// no safe point found, set destination to last position with valid data link
 			for (auto &telemetry_status :  _telemetry_status_subs) {
 				telemetry_status_s telemetry;
@@ -441,14 +444,14 @@ PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, u
 				}
 			}
 
-			if (!PX4_ISFINITE(_last_position_before_link_loss.lat) || !PX4_ISFINITE(_last_position_before_link_loss.lon)) {
+			if (PX4_ISFINITE(_last_position_before_link_loss.lat) && PX4_ISFINITE(_last_position_before_link_loss.lon)) {
+				destination = _last_position_before_link_loss;
+
+			} else {
 				// if we never had a valid data link position, fallback to current position
 				destination.alt = _global_pos_sub.get().alt;
 				destination.lat = _global_pos_sub.get().lat;
 				destination.lon = _global_pos_sub.get().lon;
-
-			} else {
-				destination = _last_position_before_link_loss;
 			}
 
 			destination_type = DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION;
@@ -532,7 +535,6 @@ void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_ite
 			   _home_pos_sub.get().alt : land_mission_item.altitude;
 	rtl_position.lat = land_mission_item.lat;
 	rtl_position.lon = land_mission_item.lon;
-	rtl_position.yaw = _home_pos_sub.get().yaw;
 }
 
 void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mission_item_s &mission_safe_point) const
@@ -544,14 +546,12 @@ void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mis
 		rtl_position.lat = mission_safe_point.lat;
 		rtl_position.lon = mission_safe_point.lon;
 		rtl_position.alt = mission_safe_point.altitude;
-		rtl_position.yaw = _home_pos_sub.get().yaw;;
 		break;
 
 	case 3: // MAV_FRAME_GLOBAL_RELATIVE_ALT
 		rtl_position.lat = mission_safe_point.lat;
 		rtl_position.lon = mission_safe_point.lon;
 		rtl_position.alt = mission_safe_point.altitude + _home_pos_sub.get().alt; // alt of safe point is rel to home
-		rtl_position.yaw = _home_pos_sub.get().yaw;;
 		break;
 
 	default:

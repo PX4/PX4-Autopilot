@@ -230,7 +230,7 @@ private:
 	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
 	uint32_t _mission_id = 0u;
 	uint32_t _safe_points_id = 0u;
-	PositionYawSetpoint _last_position_before_link_loss;
+	PositionYawSetpoint _last_position_before_link_loss{NAN, NAN, NAN, NAN};
 
 	mission_stats_entry_s _stats;
 
