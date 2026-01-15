@@ -33,6 +33,7 @@ parameters:
                 13: Rover (Mecanum)
                 14: Spacecraft 2D
                 15: Spacecraft 3D
+                16: Tilting Multirotor
             default: 0
 
         CA_METHOD:
@@ -416,6 +417,23 @@ parameters:
             num_instances: *max_num_tilts
             instance_start: 0
             default: 0
+
+        # tilting multirotors
+        CA_SV_TL${i}_POL:
+            description:
+                short: Tilt Servo ${i} Polarity
+                long: |
+                  Defines the servo's positive rotation direction.
+                  A value of 1 (Normal) follows the right-hand rule, with the rotation axis
+                  pointing outward from the vehicle's center through the motor.
+                  Set to -1 (Reversed) to invert this direction.
+            type: enum
+            values:
+                1: 'Normal'
+                -1: 'Reversed'
+            num_instances: *max_num_tilts
+            instance_start: 0
+            default: 1
 
         # helicopter
         CA_SP0_COUNT:
@@ -1251,3 +1269,36 @@ mixer:
                             function: 'axisz'
                           - name: 'CA_ROTOR${i}_CT'
                             label: "Thrust\nCoefficient"
+
+            16: #Tilting Multirotor
+                type: 'tilting_multirotor'
+                title: 'Tilting Multirotor'
+                actuators:
+                  - actuator_type: 'motor'
+                    group_label: 'Rotors'
+                    count: 'CA_ROTOR_COUNT'
+                    item_label_prefix: 'Rotor ${i}'
+                    per_item_parameters:
+                      standard:
+                        position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                      extra:
+                        - name: 'CA_ROTOR${i}_CT'
+                          label: "Thrust\nCoefficient"
+                        - name: 'CA_ROTOR${i}_KM'
+                          label: 'Direction CCW'
+                          function: 'spin-dir'
+                          show_as: 'true-if-positive'
+                        - name: 'CA_ROTOR${i}_TILT'
+                          label: 'Tilted by'
+                  - actuator_type: 'servo'
+                    group_label: 'Tilt Servos'
+                    count: 'CA_SV_TL_COUNT'
+                    item_label_prefix: 'Tilt ${i}'
+                    per_item_parameters:
+                      extra:
+                        - name: 'CA_SV_TL${i}_MINA'
+                          label: "Angle at Min\nTilt"
+                        - name: 'CA_SV_TL${i}_MAXA'
+                          label: "Angle at Max\nTilt"
+                        - name: 'CA_SV_TL${i}_POL'
+                          label: 'Polarity'

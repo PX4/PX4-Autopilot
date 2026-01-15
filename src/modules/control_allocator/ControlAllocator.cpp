@@ -273,6 +273,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 
+		case EffectivenessSource::TILTING_MULTIROTOR:
+			tmp = new ActuatorEffectivenessTiltingMultirotor(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;

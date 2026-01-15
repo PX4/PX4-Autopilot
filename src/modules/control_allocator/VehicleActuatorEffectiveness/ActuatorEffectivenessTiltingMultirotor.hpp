@@ -31,79 +31,52 @@
  *
  ****************************************************************************/
 
+/**
+ * @file ActuatorEffectivenessTiltingMultirotor.hpp
+ *
+ * Actuator effectiveness for tilting multirotor
+ *
+ * @author Andrea Berra <andrea.berra@outlook.com>
+ */
+
 #pragma once
 
-#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
+#include "ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
-
+#include "ActuatorEffectivenessTilts.hpp"
 #include <px4_platform_common/module_params.h>
+#include <uORB/Publication.hpp>
 
-class ActuatorEffectivenessTilts : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessTiltingMultirotor : public ModuleParams, public ActuatorEffectiveness
 {
 public:
+	ActuatorEffectivenessTiltingMultirotor(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessTiltingMultirotor();
 
-	static constexpr int MAX_COUNT = 4;
+	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	enum class Control : int32_t {
-		// This matches with the parameter
-		None = 0,
-		Yaw = 1,
-		Pitch = 2,
-		YawAndPitch = 3,
-	};
-	enum class TiltDirection : int32_t {
-		// This matches with the parameter
-		TowardsFront = 0,
-		TowardsRight = 90,
-	};
-	enum class Polarity : int32_t {
-		// This matches with the parameter
-		Normal = 1,
-		Reversed = -1,
-	};
+	int numMatrices() const override { return 2; }
 
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
+	{
+		allocation_method_out[0] = AllocationMethod::PSEUDO_INVERSE;
+		allocation_method_out[1] = AllocationMethod::SEQUENTIAL_DESATURATION;
+	}
 
-	struct Params {
-		Control control;
-		float min_angle;
-		float max_angle;
-		TiltDirection tilt_direction;
-		Polarity polarity;
-	};
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	{
+		normalize[0] = true;
+	}
 
-	ActuatorEffectivenessTilts(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessTilts() = default;
+	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
 
-	bool addActuators(Configuration &configuration);
+	const char *name() const override { return "Tilting Multirotor"; }
 
-	const char *name() const override { return "Tilts"; }
-
-	int count() const { return _count; }
-
-	const Params &config(int idx) const { return _params[idx]; }
-
-	void updateTorqueSign(const ActuatorEffectivenessRotors::Geometry &geometry, bool disable_pitch = false);
-
-	bool hasYawControl() const;
-
-	float getYawTorqueOfTilt(int tilt_index) const { return _torque[tilt_index](2); }
-
-private:
+protected:
 	void updateParams() override;
 
-	struct ParamHandles {
-		param_t control;
-		param_t min_angle;
-		param_t max_angle;
-		param_t tilt_direction;
-		param_t polarity;
-	};
+	ActuatorEffectivenessRotors *_mc_rotors{nullptr};
+	ActuatorEffectivenessTilts *_tilts{nullptr};
 
-	ParamHandles _param_handles[MAX_COUNT];
-	param_t _count_handle;
-
-	Params _params[MAX_COUNT] {};
-	int _count{0};
-
-	matrix::Vector3f _torque[MAX_COUNT] {};
+	ActuatorVector _cached_servo_sp{};
 };

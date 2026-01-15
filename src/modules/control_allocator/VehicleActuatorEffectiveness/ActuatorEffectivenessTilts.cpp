@@ -52,6 +52,8 @@ ActuatorEffectivenessTilts::ActuatorEffectivenessTilts(ModuleParams *parent)
 		_param_handles[i].max_angle = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "CA_SV_TL%u_TD", i);
 		_param_handles[i].tilt_direction = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SV_TL%u_POL", i);
+		_param_handles[i].polarity = param_find(buffer);
 	}
 
 	_count_handle = param_find("CA_SV_TL_COUNT");
@@ -76,6 +78,13 @@ void ActuatorEffectivenessTilts::updateParams()
 		param_get(_param_handles[i].tilt_direction, (int32_t *)&_params[i].tilt_direction);
 		param_get(_param_handles[i].min_angle, &_params[i].min_angle);
 		param_get(_param_handles[i].max_angle, &_params[i].max_angle);
+
+		int32_t polarity_int = 1;
+		if (_param_handles[i].polarity != PARAM_INVALID) {
+			param_get(_param_handles[i].polarity, &polarity_int);
+		}
+		_params[i].polarity = (polarity_int < 0) ? Polarity::Reversed : Polarity::Normal;
+
 
 		_params[i].min_angle = math::radians(_params[i].min_angle);
 		_params[i].max_angle = math::radians(_params[i].max_angle);

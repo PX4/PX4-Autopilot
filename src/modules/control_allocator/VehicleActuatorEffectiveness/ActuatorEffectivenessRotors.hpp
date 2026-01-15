@@ -80,7 +80,7 @@ public:
 	};
 
 	ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
-				    bool tilt_support = false);
+				    bool tilt_support = false, bool tilting_omnidir = false);
 	virtual ~ActuatorEffectivenessRotors() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
@@ -96,7 +96,8 @@ public:
 	}
 
 	static int computeEffectivenessMatrix(const Geometry &geometry,
-					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
+					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0,
+					      bool tilting_omnidir = false);
 
 	bool addActuators(Configuration &configuration);
 
@@ -134,6 +135,7 @@ private:
 	void updateParams() override;
 	const AxisConfiguration _axis_config;
 	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
+	const bool _tilting_omnidir; ///< If true, enables effectiveness matrix calculation for omnidirectional tilting vehicles
 
 	struct ParamHandles {
 		param_t position_x;
