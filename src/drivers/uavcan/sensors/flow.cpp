@@ -41,6 +41,7 @@ UavcanFlowBridge::UavcanFlowBridge(uavcan::INode &node, NodeInfoPublisher *node_
 	UavcanSensorBridgeBase("uavcan_flow", ORB_ID(sensor_optical_flow), node_info_publisher),
 	_sub_flow(node)
 {
+	set_device_type(DRV_FLOW_DEVTYPE_UAVCAN);
 }
 
 int
@@ -61,13 +62,7 @@ void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex:
 	sensor_optical_flow_s flow{};
 	flow.timestamp_sample = hrt_absolute_time(); // TODO
 
-	device::Device::DeviceId device_id;
-	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_UAVCAN;
-	device_id.devid_s.bus = 0;
-	device_id.devid_s.devtype = DRV_FLOW_DEVTYPE_UAVCAN;
-	device_id.devid_s.address = msg.getSrcNodeID().get() & 0xFF;
-
-	flow.device_id = device_id.devid;
+	flow.device_id = make_uavcan_device_id(msg);
 
 	flow.pixel_flow[0] = msg.flow_integral[0];
 	flow.pixel_flow[1] = msg.flow_integral[1];

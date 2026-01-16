@@ -1,6 +1,6 @@
 # TensorFlow Lite Micro (TFLM)
 
-The PX4 [Multicopter Neural Network](../advanced/neural_networks.md) module ([mc_nn_control](../modules/modules_controller.md#mc-nn-control)) integrates a neural network that uses the [TensorFlow Lite Micro (TFLM)](https://github.com/tensorflow/tflite-micro) inference library.
+The PX4 [MC Neural Networks Control](../neural_networks/mc_neural_network_control.md) module ([mc_nn_control](../modules/modules_controller.md#mc-nn-control)) integrates a neural network that uses the [TensorFlow Lite Micro (TFLM)](https://github.com/tensorflow/tflite-micro) inference library.
 
 This is a mature inference library intended for use on embedded devices, and is hence a suitable choice for PX4.
 
@@ -68,7 +68,7 @@ The `_input_tensor` is also defined, it is fetched from `_control_interpreter->i
 
 The `_input_tensor` is filled in the `PopulateInputTensor()` function.
 `_input_tensor` works by accessing the `->data.f` member array and fill in the required inputs for your network.
-The inputs used in the control network is covered in [Neural Networks](../advanced/neural_networks.md).
+The inputs used in the control network is covered in [MC Neural Networks Control](../neural_networks/mc_neural_network_control.md).
 
 ### Outputs
 

@@ -1,6 +1,6 @@
-# AP-H743-R1
+# AP-H743-R1 Flight Controller
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" />
+<Badge type="tip" text="PX4 v1.17" />
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -50,6 +50,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 Order from [X-MAV](https://www.x-mav.cn/).
 
 ## Radio Control
+
 A Radio Control (RC) system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 
 You will need to select a compatible transmitter/receiver and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
@@ -59,14 +60,14 @@ CRSF receiver must be wired to a spare port (UART) on the Flight Controller. The
 
 ## Serial Port Mapping
 
-| UART   | Device     | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | GPS           |
-| USART2 | /dev/ttyS1 | GPS2          |
-| USART3 | /dev/ttyS2 | TELEM1        |
-| UART4  | /dev/ttyS3 | TELEM2        |
-| UART7  | /dev/ttyS4 | TELEM3        |
-| UART8  | /dev/ttyS5 | SERIAL4       |
+| UART   | Device     | Port    |
+| ------ | ---------- | ------- |
+| USART1 | /dev/ttyS0 | GPS     |
+| USART2 | /dev/ttyS1 | GPS2    |
+| USART3 | /dev/ttyS2 | TELEM1  |
+| UART4  | /dev/ttyS3 | TELEM2  |
+| UART7  | /dev/ttyS4 | TELEM3  |
+| UART8  | /dev/ttyS5 | SERIAL4 |
 
 ## PWM Output
 
@@ -133,13 +134,14 @@ The complete set of supported configurations can be found in the [Airframe Refer
 ## Debug Port
 
 ### SWD
+
 The [SWD interface](../debug/swd_debug.md) operate on the **FMU-DEBUG** port (`FMU-DEBUG`).
 
 The debug port (`FMU-DEBUG`) uses a [JST SM04B-GHS-TB](https://www.digikey.com/en/products/detail/jst-sales-america-inc/SM04B-GHS-TB/807788) connector and has the following pinout:
 
-| Pin     | Signal         | Volt  |
-| ------- | -------------- | ----- |
-| 1 (red) | 5V+            | +5V   |
-| 2 (blk) | FMU_SWDIO      | +3.3V |
-| 3 (blk) | FMU_SWCLK      | +3.3V |
-| 4 (blk) | GND            | GND   |
+| Pin     | Signal    | Volt  |
+| ------- | --------- | ----- |
+| 1 (red) | 5V+       | +5V   |
+| 2 (blk) | FMU_SWDIO | +3.3V |
+| 3 (blk) | FMU_SWCLK | +3.3V |
+| 4 (blk) | GND       | GND   |

@@ -34,6 +34,7 @@
 #pragma once
 
 // PX4 includes
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/events.h>
 
@@ -51,6 +52,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/rover_attitude_status.h>
 #include <uORB/topics/rover_attitude_setpoint.h>
+
+using namespace time_literals;
 
 /**
  * @brief Class for mecanum attitude control.
@@ -102,6 +105,10 @@ private:
 	hrt_abstime _timestamp{0};
 	float _max_yaw_rate{0.f};
 	float _yaw_setpoint{NAN};
+
+	hrt_abstime _last_yaw_setpoint_timestamp{0};
+	/** Timeout in us for yaw setpoint to get considered invalid */
+	static constexpr uint64_t YAW_SETPOINT_TIMEOUT_US = 500_ms;
 
 	// Controllers
 	PID _pid_yaw;

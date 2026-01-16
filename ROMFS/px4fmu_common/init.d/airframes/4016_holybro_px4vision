@@ -77,9 +77,6 @@ param set-default NAV_ACC_RAD 2
 param set-default RTL_DESCEND_ALT 5
 param set-default RTL_RETURN_ALT 5
 
-# Logging Parameters
-param set-default SDLOG_PROFILE 131
-
 # Sensors Parameters
 param set-default SENS_CM8JL65_CFG 104
 param set-default SENS_FLOW_MAXHGT 25

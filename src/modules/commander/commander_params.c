@@ -607,13 +607,14 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 /**
  * Manual control loss exceptions
  *
- * Specify modes where manual control loss is ignored and no failsafe is triggered.
+ * Specify modes in which stick input is ignored and no failsafe action is triggered.
  * External modes requiring stick input will still failsafe.
+ * Auto modes are: Hold, Takeoff, Land, RTL, Descend, Follow Target, Precland, Orbit.
  *
  * @min 0
  * @max 31
  * @bit 0 Mission
- * @bit 1 Hold
+ * @bit 1 Auto modes
  * @bit 2 Offboard
  * @bit 3 External Mode
  * @bit 4 Altitude Cruise
@@ -624,13 +625,16 @@ PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
 /**
  * Datalink loss exceptions
  *
- * Specify modes in which datalink loss is ignored and the failsafe action not triggered.
+ * Specify modes in which ground control station connection loss is ignored and no failsafe action is triggered.
+ * See also COM_RCL_EXCEPT.
  *
  * @min 0
- * @max 7
+ * @max 31
  * @bit 0 Mission
- * @bit 1 Hold
+ * @bit 1 Auto modes
  * @bit 2 Offboard
+ * @bit 3 External Mode
+ * @bit 4 Altitude Cruise
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_DLL_EXCEPT, 0);
