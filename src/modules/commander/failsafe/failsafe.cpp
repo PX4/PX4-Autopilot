@@ -669,6 +669,15 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		if (action == Action::Disarm) {
 			return action;
 		}
+
+		if (action == Action::FallbackPosCtrl || action == Action::FallbackAltCtrl || action == Action::FallbackStab) {
+			// Check if RC is available, if not use the mode specified in NAV_RCL_ACT
+			if (status_flags.manual_control_signal_lost) {
+				ActionOptions rc_loss_action = fromNavDllOrRclActParam(_param_nav_rcl_act.get());
+				action = rc_loss_action.action;
+			}
+
+		}
 	}
 
 	// PosCtrl/PositionSlow -> AltCtrl
