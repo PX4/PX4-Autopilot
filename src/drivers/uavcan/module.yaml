@@ -42,7 +42,7 @@ parameters:
       description:
         short: Light ${i} ID
         long: |
-          specifies the  light_id value for light ${i} in UAVCAN LightsCommand messages.
+          specifies the light_id value for light ${i} in UAVCAN LightsCommand messages.
           This determines which physical LED responds to commands for this light slot.
       type: int32
       num_instances: *max_uavcan_lights

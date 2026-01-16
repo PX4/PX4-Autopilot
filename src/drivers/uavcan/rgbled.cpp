@@ -49,7 +49,7 @@ int UavcanRGBController::init()
 	_num_lights = math::min(static_cast<uint8_t>(_param_lgt_num.get()), MAX_LIGHTS);
 
 	if (_num_lights == 0) {
-		return 0;  // Disabled, don't start timer
+		return 0; // Disabled, don't start timer
 	}
 
 	// Cache parameter handles and values for each light
@@ -104,39 +104,28 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 	switch (led_control_data.leds[0].color) {
 	case led_control_s::COLOR_RED:
 		status_color.red = brightness >> 3;
-		status_color.green = 0;
-		status_color.blue = 0;
 		break;
 
 	case led_control_s::COLOR_GREEN:
-		status_color.red = 0;
 		status_color.green = brightness >> 2;
-		status_color.blue = 0;
 		break;
 
 	case led_control_s::COLOR_BLUE:
-		status_color.red = 0;
-		status_color.green = 0;
 		status_color.blue = brightness >> 3;
 		break;
 
 	case led_control_s::COLOR_AMBER: // make it the same as yellow
-
-	// FALLTHROUGH
 	case led_control_s::COLOR_YELLOW:
 		status_color.red = (brightness / 2) >> 3;
 		status_color.green = (brightness / 2) >> 2;
-		status_color.blue = 0;
 		break;
 
 	case led_control_s::COLOR_PURPLE:
 		status_color.red = (brightness / 2) >> 3;
-		status_color.green = 0;
 		status_color.blue = (brightness / 2) >> 3;
 		break;
 
 	case led_control_s::COLOR_CYAN:
-		status_color.red = 0;
 		status_color.green = (brightness / 2) >> 2;
 		status_color.blue = (brightness / 2) >> 3;
 		break;
@@ -147,10 +136,8 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 		status_color.blue = (brightness / 3) >> 3;
 		break;
 
-	default: // led_control_s::COLOR_OFF
-		status_color.red = 0;
-		status_color.green = 0;
-		status_color.blue = 0;
+	default:
+	case led_control_s::COLOR_OFF:
 		break;
 	}
 
@@ -161,7 +148,7 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 	bool anticol_on = check_light_state(static_cast<LightMode>(_param_mode_anti_col.get()), armed);
 
 	// Build and send light commands for all configured lights
-	uavcan::equipment::indication::LightsCommand cmds;
+	uavcan::equipment::indication::LightsCommand light_command;
 
 	for (uint8_t i = 0; i < _num_lights; i++) {
 		uavcan::equipment::indication::SingleLightCommand cmd;
@@ -177,10 +164,10 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 			break;
 		}
 
-		cmds.commands.push_back(cmd);
+		light_command.commands.push_back(cmd);
 	}
 
-	_uavcan_pub_lights_cmd.broadcast(cmds);
+	_uavcan_pub_lights_cmd.broadcast(light_command);
 }
 
 bool UavcanRGBController::check_light_state(LightMode mode, const actuator_armed_s &armed) const
