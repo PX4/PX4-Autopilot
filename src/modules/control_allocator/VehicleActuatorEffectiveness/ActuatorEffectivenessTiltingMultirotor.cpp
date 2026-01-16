@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,38 +46,35 @@ using namespace matrix;
 ActuatorEffectivenessTiltingMultirotor::ActuatorEffectivenessTiltingMultirotor(ModuleParams *parent)
 	: ModuleParams(parent)
 {
-	updateParams();
-
-	// _rotor_force_pub.advertise();
-
-	PX4_INFO("TiltingMultirotor Constructor DONE");
-
-}
-
-ActuatorEffectivenessTiltingMultirotor::~ActuatorEffectivenessTiltingMultirotor()
-{
-	delete _tilts;
-	delete _mc_rotors;
-}
-
-void ActuatorEffectivenessTiltingMultirotor::updateParams()
-{
 	ModuleParams::updateParams();
 
 	if (_mc_rotors) {
 		delete _mc_rotors;
 		_mc_rotors = nullptr;
 	}
+
 	if (_tilts) {
 		delete _tilts;
 		_tilts = nullptr;
 	}
 
-
 	_mc_rotors = new ActuatorEffectivenessRotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedUpwards,
-							true, true);
+			true, true);
 	_tilts = new ActuatorEffectivenessTilts(this);
 
+}
+
+ActuatorEffectivenessTiltingMultirotor::~ActuatorEffectivenessTiltingMultirotor()
+{
+	if (_tilts) {
+		delete _tilts;
+		_tilts = nullptr;
+	}
+
+	if (_mc_rotors) {
+		delete _mc_rotors;
+		_mc_rotors = nullptr;
+	}
 }
 
 bool
@@ -99,7 +96,7 @@ ActuatorEffectivenessTiltingMultirotor::getEffectivenessMatrix(Configuration &co
 	configuration.selected_matrix = 1;
 	tilts_added_successfully = _tilts->addActuators(configuration);
 
-	return (rotors_added_successfully && tilts_added_successfully);
+	return rotors_added_successfully && tilts_added_successfully;
 }
 
 void
@@ -107,11 +104,11 @@ ActuatorEffectivenessTiltingMultirotor::allocateAuxilaryControls(const float dt,
 		ActuatorVector &actuator_sp)
 {
 
-	if(matrix_index == 0){
+	if (matrix_index == 0) {
 		const ActuatorVector &vertlat_actuator_sp = actuator_sp;
 
-		ActuatorVector motor_sp; // motor setpoint
-		ActuatorVector servo_sp; // servo setpoint
+		ActuatorVector motor_sp;
+		ActuatorVector servo_sp;
 
 		motor_sp.zero();
 		servo_sp.zero();
@@ -127,7 +124,8 @@ ActuatorEffectivenessTiltingMultirotor::allocateAuxilaryControls(const float dt,
 			motor_sp(i) = hypotf(vertical_force, lateral_force);
 
 			int servo_idx = _mc_rotors->geometry().rotors[i].tilt_index;
-			if (servo_idx == -1){
+
+			if (servo_idx == -1) {
 				servo_idx = i;
 			}
 
@@ -135,6 +133,7 @@ ActuatorEffectivenessTiltingMultirotor::allocateAuxilaryControls(const float dt,
 				// Prevent numerical instability and servo jitter when the commanded thrust is negligible.
 				// The atan2f function is ill-conditioned when both inputs are close to zero
 				float tilt_angle_rad = .0f;
+
 				if (motor_sp(i) >= FLT_EPSILON) {
 					tilt_angle_rad = atan2f(lateral_force, vertical_force);
 				}
