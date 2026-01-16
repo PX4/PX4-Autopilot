@@ -37,6 +37,7 @@
 #include <lib/drivers/device/i2c.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/PublicationMulti.hpp>
 
@@ -45,6 +46,9 @@ using namespace time_literals;
 static constexpr uint8_t I2C_ADDRESS_DIFFERENTIAL = 0x26;
 static constexpr uint8_t I2C_ADDRESS_ABSOLUTE = 0x27;
 static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+
+static constexpr auto FACTORY_DATA_READ_TIMEOUT = 3_s;
+static constexpr auto FACTORY_DATA_WAIT_TIMEOUT = 4_s;
 
 class AUAV : public device::I2C, public I2CSPIDriver<AUAV>
 {
@@ -61,9 +65,16 @@ public:
 
 protected:
 	enum class STATE : uint8_t {
+		READ_FACTORY_DATA,
 		READ_CALIBDATA,
+		WAIT_FACTORY_DATA,
 		REQUEST_MEASUREMENT,
 		GATHER_MEASUREMENT
+	};
+
+	enum FACTORY_DATA_STATE : int32_t {
+		INVALID = -1,
+		NOT_READ = 0
 	};
 
 	struct calib_eeprom_addr_t {
@@ -107,8 +118,11 @@ protected:
 	virtual int64_t get_conversion_interval() const = 0;
 	virtual calib_eeprom_addr_t get_calib_eeprom_addr() const = 0;
 	virtual float process_pressure_dig(const float pressure_dig) const = 0;
+	virtual int read_factory_data() = 0;
 
+	void handle_state_read_factory_data();
 	void handle_state_read_calibdata();
+	void handle_state_wait_factory_data();
 	void handle_state_request_measurement();
 	void handle_state_gather_measurement();
 
@@ -117,13 +131,19 @@ protected:
 	float correct_pressure(const uint32_t pressure_raw, const uint32_t temperature_raw) const;
 	float process_temperature_raw(const float temperature_raw) const;
 
-	float _cal_range{10.0f};
-	STATE _state{STATE::READ_CALIBDATA};
+	static px4::atomic_int _shared_cal_range_eeprom[PX4_NUMBER_I2C_BUSES];
+
+	int _bus_num{0};
+	int32_t _cal_range{10};
+	STATE _state{STATE::READ_FACTORY_DATA};
 	calib_data_t _calib_data {};
+	hrt_abstime _factory_data_read_start{0};
+	hrt_abstime _factory_data_wait_start{0};
 
 	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
 
 private:
 	int probe() override;
+	bool check_and_use_cal_range(int32_t cal_range_eeprom);
 };

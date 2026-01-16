@@ -68,6 +68,7 @@ private:
 	int64_t get_conversion_interval() const override;
 	calib_eeprom_addr_t get_calib_eeprom_addr() const override;
 	float process_pressure_dig(const float pressure_dig) const override;
+	int read_factory_data() override;
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 };
