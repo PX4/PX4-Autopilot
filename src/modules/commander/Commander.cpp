@@ -917,6 +917,11 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+				} else {
+					main_ret = TRANSITION_DENIED;
+					mavlink_log_critical(&_mavlink_log_pub, "Unsupported main mode\t");
+					events::send(events::ID("commander_unsupported_main_mode"), events::Log::Error,
+								     "Unsupported main mode");
 				}
 
 			} else {
@@ -934,6 +939,11 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					} else {
 						desired_nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 					}
+				} else {
+					main_ret = TRANSITION_DENIED;
+					mavlink_log_critical(&_mavlink_log_pub, "Unsupported base mode\t");
+					events::send(events::ID("commander_unsupported_base_mode"), events::Log::Error,
+								     "Unsupported base mode");
 				}
 			}
 
