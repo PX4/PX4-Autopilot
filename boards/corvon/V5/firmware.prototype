@@ -1,0 +1,13 @@
+{
+    "board_id": 1211,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the CORVON_V5 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "CORVON_V5",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 2064384,
+    "git_identity": "",
+    "board_revision": 0
+}
