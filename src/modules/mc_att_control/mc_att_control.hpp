@@ -176,7 +176,7 @@ private:
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
 		(ParamInt<px4::params::MPC_THR_CURVE>) _param_mpc_thr_curve,
 
-    		(ParamFloat<px4::params::MPC_MANTHRXY_SCL>) _param_mpc_manthrxy_scl, // TODO merge with MAN_ACC_MAX
+		(ParamFloat<px4::params::MPC_MANTHRXY_SCL>) _param_mpc_manthrxy_scl,
 
 		// (ParamFloat<px4::params::MPC_YAW_EXPO>) _param_mpc_yaw_expo,
 

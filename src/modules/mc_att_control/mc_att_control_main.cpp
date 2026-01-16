@@ -171,17 +171,16 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 
 	float roll_stick_input = .0f;
 	float pitch_stick_input = .0f;
+
 	if (_mc_in_force_mode) {
-		// sliders (tilt_roll/pitch) for attitude input.
-		// roll_stick_input = _man_roll_input_filter.update(_manual_control_setpoint.tilt_roll * _man_tilt_max);
-		// pitch_stick_input = -_man_pitch_input_filter.update(_manual_control_setpoint.tilt_pitch * _man_tilt_max);
 		roll_stick_input = .0f;
 		pitch_stick_input = .0f;
+
 	} else {
-		// sticks (roll/pitch) for attitude input.
 		roll_stick_input = _man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max);
 		pitch_stick_input = -_man_pitch_input_filter.update(_manual_control_setpoint.pitch * _man_tilt_max);
 	}
+
 	Vector2f v(roll_stick_input, pitch_stick_input);
 	float v_norm = v.norm(); // the norm of v defines the tilt angle
 
@@ -191,7 +190,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 
 	Quatf q_sp_rp = AxisAnglef(v(0), v(1), 0.f);
 
-	if(_mc_in_force_mode){
+	if (_mc_in_force_mode) {
 		// get force sp from RC
 		_man_Fx_input_filter.setParameters(dt, _param_mc_man_xy_tau.get());
 		_man_Fy_input_filter.setParameters(dt, _param_mc_man_xy_tau.get());
@@ -202,7 +201,8 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 		// update lateral forces sp
 		attitude_setpoint.thrust_body[0] = force_sp(0);
 		attitude_setpoint.thrust_body[1] = force_sp(1);
-	}else{
+
+	} else {
 		attitude_setpoint.thrust_body[0] = .0f;
 		attitude_setpoint.thrust_body[1] = .0f;
 	}
@@ -354,7 +354,7 @@ MulticopterAttitudeControl::Run()
 									 _vehicle_control_mode.flag_control_velocity_enabled ||
 									 _vehicle_control_mode.flag_control_altitude_enabled);
 
-					if (_mc_in_force_mode && is_manual_assisted) { // ! add roll and pitch from stick rc
+					if (_mc_in_force_mode && is_manual_assisted) {
 
 						// Get the pilot's desired roll & pitch from rc
 						_man_roll_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());

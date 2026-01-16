@@ -80,9 +80,11 @@ void ActuatorEffectivenessTilts::updateParams()
 		param_get(_param_handles[i].max_angle, &_params[i].max_angle);
 
 		int32_t polarity_int = 1;
+
 		if (_param_handles[i].polarity != PARAM_INVALID) {
 			param_get(_param_handles[i].polarity, &polarity_int);
 		}
+
 		_params[i].polarity = (polarity_int < 0) ? Polarity::Reversed : Polarity::Normal;
 
 
