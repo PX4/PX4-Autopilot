@@ -25244,18 +25244,6 @@ arms and to the lower left disarms the vehicle.
 Deadzone for sticks (only specific use cases).
 
 Range around stick center ignored to prevent
-Does not apply to any precise constant input like
-throttle and attitude or rate piloting.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        | 0.01      | 0.1     |
-
-### MAN_DEADZONE (`FLOAT`) {#MAN_DEADZONE}
-
-Deadzone for sticks (only specific use cases).
-
-Range around stick center ignored to prevent
 vehicle drift from stick hardware inaccuracy.
 Does not apply to any precise constant input like
 throttle and attitude or rate piloting.
