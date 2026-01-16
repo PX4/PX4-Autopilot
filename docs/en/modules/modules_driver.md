@@ -906,7 +906,7 @@ that can be accepted by most ESCs and servos.
 It is typically started with:
 
 ```
-pca9685_pwm_out start -a 0x40 -b 1
+pca9685_pwm_out start -X -a 0x40 -b 1
 ```
 
 ### Usage {#pca9685_pwm_out_usage}

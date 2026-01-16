@@ -28,7 +28,7 @@ then
 	echo "ads1115 not found."
 fi
 
-if ! pca9685_pwm_out start
+if ! pca9685_pwm_out start -X
 then
 	echo "pca9685_pwm_out not found."
 fi
