@@ -72,6 +72,7 @@
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/actuator_servos_trim.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -139,6 +140,8 @@ private:
 
 	void publish_actuator_controls();
 
+	void update_battery_scaling_modes();
+
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
 	int _num_control_allocation{0};
@@ -168,6 +171,13 @@ private:
 		REMOVE_FIRST_FAILING_MOTOR = 1,
 	};
 
+	enum class BatteryScalingMode {
+		NONE = 0,
+		ALL,
+		FORWARD_THRUST_ONLY
+	};
+
+
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
 	ActuatorEffectiveness *_actuator_effectiveness{nullptr}; 	///< class providing actuator effectiveness
 
@@ -180,6 +190,8 @@ private:
 
 	uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
 	uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */
+
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 
 	// Outputs
 	uORB::PublicationMulti<control_allocator_status_s> _control_allocator_status_pub[2] {ORB_ID(control_allocator_status), ORB_ID(control_allocator_status)};
@@ -206,6 +218,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
 	bool _armed{false};
+	bool _is_vtol{false};
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
 	hrt_abstime _last_status_pub{0};
@@ -214,11 +227,49 @@ private:
 	Params _params{};
 	bool _has_slew_rate{false};
 
+	float _battery_scale{1.0f};
+	BatteryScalingMode _battery_scaling_modes[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamInt<px4::params::CA_BAT_SCALE_EN>) _param_ca_bat_scale_en
 	)
+
+	static matrix::Vector3f
+	battery_scale_torque_setpoint(const vehicle_torque_setpoint_s &torque_sp, const BatteryScalingMode mode,
+				      const float battery_scale)
+	{
+		switch (mode) {
+		case BatteryScalingMode::ALL:
+			return matrix::Vector3f(torque_sp.xyz) * battery_scale;
+
+		case BatteryScalingMode::FORWARD_THRUST_ONLY:
+		case BatteryScalingMode::NONE:
+		default:
+			return matrix::Vector3f(torque_sp.xyz);
+		}
+	}
+
+	static matrix::Vector3f
+	battery_scale_thrust_setpoint(const vehicle_thrust_setpoint_s &thrust_sp, const BatteryScalingMode mode,
+				      const float battery_scale)
+	{
+
+		switch (mode) {
+		case BatteryScalingMode::ALL:
+			return matrix::Vector3f(thrust_sp.xyz) * battery_scale;
+
+		case BatteryScalingMode::FORWARD_THRUST_ONLY:
+			return matrix::Vector3f(thrust_sp.xyz[0] * battery_scale, thrust_sp.xyz[1], thrust_sp.xyz[2]);
+
+		case BatteryScalingMode::NONE:
+		default:
+			return matrix::Vector3f(thrust_sp.xyz);
+		}
+	}
+
 
 };

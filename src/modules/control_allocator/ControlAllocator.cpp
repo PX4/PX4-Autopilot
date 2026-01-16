@@ -49,6 +49,7 @@
 using namespace matrix;
 using namespace time_literals;
 
+
 ControlAllocator::ControlAllocator() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -131,6 +132,7 @@ ControlAllocator::parameters_updated()
 	}
 
 	update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+	update_battery_scaling_modes();
 }
 
 void
@@ -333,12 +335,22 @@ ControlAllocator::Run()
 		return;
 	}
 
+	if (_battery_status_sub.updated()) {
+		battery_status_s battery_status;
+
+		if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
+			_battery_scale = battery_status.scale;
+		}
+	}
+
+
 	{
 		vehicle_status_s vehicle_status;
 
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+			_is_vtol = vehicle_status.is_vtol;
 
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
@@ -362,6 +374,8 @@ ControlAllocator::Run()
 
 			// Forward to effectiveness source
 			_actuator_effectiveness->setFlightPhase(flight_phase);
+
+			update_battery_scaling_modes();
 		}
 	}
 
@@ -383,7 +397,8 @@ ControlAllocator::Run()
 
 	// Run allocator on torque changes
 	if (_vehicle_torque_setpoint_sub.update(&vehicle_torque_setpoint)) {
-		_torque_sp = matrix::Vector3f(vehicle_torque_setpoint.xyz);
+
+		_torque_sp = battery_scale_torque_setpoint(vehicle_torque_setpoint, _battery_scaling_modes[0], _battery_scale);
 
 		do_update = true;
 		_timestamp_sample = vehicle_torque_setpoint.timestamp_sample;
@@ -391,7 +406,7 @@ ControlAllocator::Run()
 	}
 
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
-		_thrust_sp = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
+		_thrust_sp = battery_scale_thrust_setpoint(vehicle_thrust_setpoint, _battery_scaling_modes[0], _battery_scale);
 	}
 
 	if (do_update) {
@@ -412,15 +427,17 @@ ControlAllocator::Run()
 
 		if (_num_control_allocation > 1) {
 			if (_vehicle_torque_setpoint1_sub.copy(&vehicle_torque_setpoint)) {
-				c[1](0) = vehicle_torque_setpoint.xyz[0];
-				c[1](1) = vehicle_torque_setpoint.xyz[1];
-				c[1](2) = vehicle_torque_setpoint.xyz[2];
+				const Vector3f torque_sp = battery_scale_torque_setpoint(vehicle_torque_setpoint, _battery_scaling_modes[1], _battery_scale);
+				c[1](0) = torque_sp(0);
+				c[1](1) = torque_sp(1);
+				c[1](2) = torque_sp(2);
 			}
 
 			if (_vehicle_thrust_setpoint1_sub.copy(&vehicle_thrust_setpoint)) {
-				c[1](3) = vehicle_thrust_setpoint.xyz[0];
-				c[1](4) = vehicle_thrust_setpoint.xyz[1];
-				c[1](5) = vehicle_thrust_setpoint.xyz[2];
+				const Vector3f thrust_sp = battery_scale_torque_setpoint(vehicle_torque_setpoint, _battery_scaling_modes[1], _battery_scale);
+				c[1](3) = thrust_sp(0);
+				c[1](4) = thrust_sp(1);
+				c[1](5) = thrust_sp(2);
 			}
 		}
 
@@ -458,6 +475,31 @@ ControlAllocator::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void
+ControlAllocator::update_battery_scaling_modes()
+{
+
+	const ActuatorEffectiveness::FlightPhase flight_phase = _actuator_effectiveness->getFlightPhase();
+
+	if (_param_ca_bat_scale_en.get()) {
+		if (_is_vtol) {
+			_battery_scaling_modes[0] = BatteryScalingMode::ALL;
+			_battery_scaling_modes[1] = BatteryScalingMode::FORWARD_THRUST_ONLY;
+
+		} else if (flight_phase == ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT) {
+			_battery_scaling_modes[0] = BatteryScalingMode::ALL;
+
+		} else {
+			// Remaining option is flight_phase == forward flight.
+			_battery_scaling_modes[0] = BatteryScalingMode::FORWARD_THRUST_ONLY;
+		}
+
+	} else {
+		_battery_scaling_modes[0] = BatteryScalingMode::NONE;
+		_battery_scaling_modes[1] = BatteryScalingMode::NONE;
+	}
 }
 
 void
