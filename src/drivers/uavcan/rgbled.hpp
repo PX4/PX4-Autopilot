@@ -77,7 +77,7 @@ private:
 
 	bool is_anticolision_on(LightMode mode);
 
-	uavcan::equipment::indication::RGB565 brightness_to_rgb565(Brightness level);
+	uavcan::equipment::indication::RGB565 rgb888_to_rgb565(uint8_t red, uint8_t green, uint8_t blue);
 
 	typedef uavcan::MethodBinder<UavcanRGBController *, void (UavcanRGBController::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;

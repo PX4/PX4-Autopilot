@@ -103,37 +103,32 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 
 	switch (led_control_data.leds[0].color) {
 	case led_control_s::COLOR_RED:
-		status_color.red = brightness >> 3;
+		status_color = rgb888_to_rgb565(brightness, 0, 0);
 		break;
 
 	case led_control_s::COLOR_GREEN:
-		status_color.green = brightness >> 2;
+		status_color = rgb888_to_rgb565(0, brightness, 0);
 		break;
 
 	case led_control_s::COLOR_BLUE:
-		status_color.blue = brightness >> 3;
+		status_color = rgb888_to_rgb565(0, 0, brightness);
 		break;
 
 	case led_control_s::COLOR_AMBER: // make it the same as yellow
 	case led_control_s::COLOR_YELLOW:
-		status_color.red = (brightness / 2) >> 3;
-		status_color.green = (brightness / 2) >> 2;
+		status_color = rgb888_to_rgb565(brightness, brightness, 0);
 		break;
 
 	case led_control_s::COLOR_PURPLE:
-		status_color.red = (brightness / 2) >> 3;
-		status_color.blue = (brightness / 2) >> 3;
+		status_color = rgb888_to_rgb565(brightness, 0, brightness);
 		break;
 
 	case led_control_s::COLOR_CYAN:
-		status_color.green = (brightness / 2) >> 2;
-		status_color.blue = (brightness / 2) >> 3;
+		status_color = rgb888_to_rgb565(0, brightness, brightness);
 		break;
 
 	case led_control_s::COLOR_WHITE:
-		status_color.red = (brightness / 3) >> 3;
-		status_color.green = (brightness / 3) >> 2;
-		status_color.blue = (brightness / 3) >> 3;
+		status_color = rgb888_to_rgb565(brightness, brightness, brightness);
 		break;
 
 	default:
@@ -154,8 +149,8 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 			break;
 
 		case LightFunction::AntiCollision:
-			cmd.color = brightness_to_rgb565(
-					    is_anticolision_on(static_cast<LightMode>(_param_mode_anti_col.get())) ? Brightness::Full : Brightness::None);
+			uint8_t brigtness = is_anticolision_on(static_cast<LightMode>(_param_mode_anti_col.get())) ? 255 : 0;
+			cmd.color = rgb888_to_rgb565(brigtness, brigtness, brigtness);
 			break;
 		}
 
@@ -186,16 +181,12 @@ bool UavcanRGBController::is_anticolision_on(LightMode mode)
 	}
 }
 
-uavcan::equipment::indication::RGB565 UavcanRGBController::brightness_to_rgb565(Brightness level)
+uavcan::equipment::indication::RGB565 UavcanRGBController::rgb888_to_rgb565(uint8_t red, uint8_t green, uint8_t blue)
 {
 	// RGB565: Full brightness is (31, 63, 31), off is (0, 0, 0)
 	uavcan::equipment::indication::RGB565 color{};
-
-	if (level == Brightness::Full) {
-		color.red = 31;
-		color.green = 63;
-		color.blue = 31;
-	}
-
+	color.red = (red * 31 + 127) / 255;
+	color.green = (green * 63 + 127) / 255;
+	color.blue = (blue * 31 + 127) / 255;
 	return color;
 }
