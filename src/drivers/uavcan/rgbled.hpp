@@ -55,7 +55,7 @@ private:
 	static constexpr unsigned MAX_RATE_HZ = 20;
 
 	// Maximum number of configurable lights
-	static constexpr uint8_t MAX_LIGHTS = 16;
+	static constexpr uint8_t MAX_NUM_UAVCAN_LIGHTS = 3;
 
 	// Light function types
 	enum class LightFunction : uint8_t {
@@ -92,12 +92,12 @@ private:
 
 	// Cached configuration (set during init, requires reboot to change)
 	uint8_t _num_lights{0};
-	uint8_t _light_ids[MAX_LIGHTS] {};
-	LightFunction _light_functions[MAX_LIGHTS] {};
+	uint8_t _light_ids[MAX_NUM_UAVCAN_LIGHTS] {};
+	LightFunction _light_functions[MAX_NUM_UAVCAN_LIGHTS] {};
 
 	// Cached parameter handles
-	param_t _light_id_params[MAX_LIGHTS] {};
-	param_t _light_fn_params[MAX_LIGHTS] {};
+	param_t _light_id_params[MAX_NUM_UAVCAN_LIGHTS] {};
+	param_t _light_fn_params[MAX_NUM_UAVCAN_LIGHTS] {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UAVCAN_LGT_NUM>) _param_lgt_num,

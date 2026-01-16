@@ -1,4 +1,4 @@
-__max_uavcan_lights: &max_uavcan_lights 16
+__max_num_uavcan_lights: &max_num_uavcan_lights 3 # Needs to be equal to MAX_NUM_UAVCAN_LIGHTS constant
 
 module_name: UAVCAN
 parameters:
@@ -35,7 +35,7 @@ parameters:
           Each light uses two parameters: LGT_IDx for the light_id and LGT_FNx for the function.
       type: int32
       min: 0
-      max: *max_uavcan_lights
+      max: *max_num_uavcan_lights
       default: 1
       reboot_required: true
     UAVCAN_LGT_ID${i}:
@@ -45,7 +45,7 @@ parameters:
           specifies the light_id value for light ${i} in UAVCAN LightsCommand messages.
           This determines which physical LED responds to commands for this light slot.
       type: int32
-      num_instances: *max_uavcan_lights
+      num_instances: *max_num_uavcan_lights
       instance_start: 0
       min: 0
       max: 255
@@ -58,7 +58,7 @@ parameters:
           0: Status - displays system status colors
           1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
       type: enum
-      num_instances: *max_uavcan_lights
+      num_instances: *max_num_uavcan_lights
       instance_start: 0
       min: 0
       max: 1

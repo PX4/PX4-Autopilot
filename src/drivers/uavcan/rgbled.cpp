@@ -46,7 +46,7 @@ UavcanRGBController::UavcanRGBController(uavcan::INode &node) :
 int UavcanRGBController::init()
 {
 	// Cache number of lights (0 disables the feature)
-	_num_lights = math::min(static_cast<uint8_t>(_param_lgt_num.get()), MAX_LIGHTS);
+	_num_lights = math::min(static_cast<uint8_t>(_param_lgt_num.get()), MAX_NUM_UAVCAN_LIGHTS);
 
 	if (_num_lights == 0) {
 		return 0; // Disabled, don't start timer
