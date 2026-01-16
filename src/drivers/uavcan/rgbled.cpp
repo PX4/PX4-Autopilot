@@ -54,7 +54,7 @@ int UavcanRGBController::init()
 
 	// Cache parameter handles and values for each light
 	for (uint8_t i = 0; i < _num_lights; i++) {
-		char param_name[20];
+		char param_name[17];
 
 		// Light ID parameter
 		snprintf(param_name, sizeof(param_name), "UAVCAN_LGT_ID%u", i);

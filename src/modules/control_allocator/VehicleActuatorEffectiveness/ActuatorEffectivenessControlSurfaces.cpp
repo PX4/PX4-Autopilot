@@ -80,7 +80,7 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 
 	// Helper to check if a PWM center parameter is enabled, and clamp it to valid range
 	auto check_pwm_center = [](const char *prefix, int channel) -> bool {
-		char param_name[20];
+		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_CENT%d", prefix, channel);
 		param_t param = param_find(param_name);
 
