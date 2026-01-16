@@ -49,7 +49,6 @@
 using namespace matrix;
 using namespace time_literals;
 
-
 ControlAllocator::ControlAllocator() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
