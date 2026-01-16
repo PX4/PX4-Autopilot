@@ -98,6 +98,11 @@ TEST_F(TimestampedRingBufferDynamicTest, orderOfSamples)
 {
 	ASSERT_EQ(true, _buffer->allocate(3));
 	// GIVEN: allocated buffer
+	// WHEN: adding multiple samples
+	// THEN: they should be added in order
+	_buffer->push(_x);
+
+	EXPECT_EQ(_x.time_us, _buffer->get_newest().time_us);
 	EXPECT_EQ(_x.time_us, _buffer->get_oldest().time_us);
 
 	_buffer->push(_z);
@@ -116,7 +121,11 @@ TEST_F(TimestampedRingBufferDynamicTest, popSample)
 
 	// GIVEN: allocated and filled buffer
 
+	sample pop = {};
+	// WHEN: we want to retrieve a sample that is older than any in the buffer
+	// THEN: we should not get any sample
 	EXPECT_FALSE(_buffer->pop_first_older_than(0, &pop));
+
 	// WHEN: when calling "pop_first_older_than"
 	// THEN: we should get the first sample from the head that is older
 	EXPECT_TRUE(_buffer->pop_first_older_than(_x.time_us + 1, &pop));
