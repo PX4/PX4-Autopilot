@@ -75,7 +75,7 @@ private:
 
 	void periodic_update(const uavcan::TimerEvent &);
 
-	bool check_light_state(LightMode mode, const actuator_armed_s &armed) const;
+	bool is_anticolision_on(LightMode mode);
 
 	uavcan::equipment::indication::RGB565 brightness_to_rgb565(Brightness level);
 

@@ -141,12 +141,6 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 		break;
 	}
 
-	actuator_armed_s armed;
-	_armed_sub.copy(&armed);
-
-	// Check anti-collision light state
-	bool anticol_on = check_light_state(static_cast<LightMode>(_param_mode_anti_col.get()), armed);
-
 	// Build and send light commands for all configured lights
 	uavcan::equipment::indication::LightsCommand light_command;
 
@@ -160,7 +154,8 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 			break;
 
 		case LightFunction::AntiCollision:
-			cmd.color = brightness_to_rgb565(anticol_on ? Brightness::Full : Brightness::None);
+			cmd.color = brightness_to_rgb565(
+					    is_anticolision_on(static_cast<LightMode>(_param_mode_anti_col.get())) ? Brightness::Full : Brightness::None);
 			break;
 		}
 
@@ -170,8 +165,11 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 	_uavcan_pub_lights_cmd.broadcast(light_command);
 }
 
-bool UavcanRGBController::check_light_state(LightMode mode, const actuator_armed_s &armed) const
+bool UavcanRGBController::is_anticolision_on(LightMode mode)
 {
+	actuator_armed_s armed{};
+	_armed_sub.copy(&armed);
+
 	switch (mode) {
 	case LightMode::AlwaysOn:
 		return true;
