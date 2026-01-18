@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# AirBrainH743 board specific defaults
+#------------------------------------------------------------------------------
+
+# Transition from params file to flash-based params
+if [ -f $PARAM_FILE ]
+then
+	param load $PARAM_FILE
+	param save
+	# create a backup
+	mv $PARAM_FILE ${PARAM_FILE}.bak
+	reboot
+fi
+
+# Battery voltage divider and current scale
+param set-default BAT1_V_DIV 15.0
+param set-default BAT1_A_PER_V 101.0
+
+# system_power unavailable
+param set-default CBRK_SUPPLY_CHK 894281
+
+param set-default IMU_GYRO_RATEMAX 2000
+
+# W25N NAND flash with littlefs (128 MB): larger buffer, auto-rotate
+set LOGGER_BUF 32
+param set-default SDLOG_DIRS_MAX 3
