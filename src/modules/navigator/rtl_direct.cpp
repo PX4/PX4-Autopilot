@@ -125,28 +125,12 @@ void RtlDirect::on_inactive()
 
 void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s loiter_pos)
 {
-	_home_pos_sub.update();
-
 	parameters_update();
 
 	// Only allow to set a new approach if the mode is not activated yet.
 	if (!isActive()) {
 		_destination = rtl_position;
 		_force_heading = false;
-
-		// Input sanitation
-		if (!PX4_ISFINITE(_destination.lat) || !PX4_ISFINITE(_destination.lon)) {
-			// We don't have a valid rtl position, use the home position instead.
-			_destination.lat = _home_pos_sub.get().lat;
-			_destination.lon = _home_pos_sub.get().lon;
-			_destination.alt = _home_pos_sub.get().alt;
-			_destination.yaw = _home_pos_sub.get().yaw;
-		}
-
-		if (!PX4_ISFINITE(_destination.alt)) {
-			// Not a valid rtl land altitude. Assume same altitude as home position.
-			_destination.alt = _home_pos_sub.get().alt;
-		}
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
 
