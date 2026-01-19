@@ -44,6 +44,7 @@
 
 #include <matrix/math.hpp>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/fixed_wing_runway_control.h>
 #include <uORB/topics/launch_detection_status.h>
 
 #include "LandDetector.h"
@@ -67,6 +68,7 @@ protected:
 private:
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
+	uORB::Subscription _fixed_wing_runway_control_sub{ORB_ID(fixed_wing_runway_control)};
 
 	float _airspeed_filtered{0.0f};
 	float _velocity_xy_filtered{0.0f};

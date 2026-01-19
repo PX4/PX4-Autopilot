@@ -163,6 +163,7 @@ public:
 	void setMaxTopicUpdateRate(unsigned max_topic_update_interval_us);
 
 	const actuator_armed_s &armed() const { return _armed; }
+	bool isActuatorTestRunning() const { return _actuator_test.inTestMode(); }
 
 	void setAllFailsafeValues(uint16_t value);
 	void setAllDisarmedValues(uint16_t value);

@@ -184,6 +184,7 @@ private:
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -252,6 +253,8 @@ private:
 
 	float _yaw{0.0f};
 	float _yawrate{0.0f};
+	float _pitch{0.0f}; // [rad] current pitch angle from attitude
+	float _throttle{0.0f}; // [0-1] last set throttle
 
 	float _body_acceleration_x{0.f};
 	float _body_velocity_x{0.f};
@@ -336,6 +339,8 @@ private:
 		bool flaring{false};
 		hrt_abstime start_time{0}; // [us]
 		float initial_height_rate_setpoint{0.0f}; // [m/s]
+		float initial_pitch{0.0f}; // [rad]
+		float initial_throttle{0.0f}; // [0-1] throttle value when flare started
 	} _flare_states;
 
 	// [m] last terrain estimate which was valid
@@ -419,6 +424,7 @@ private:
 
 	void manual_control_setpoint_poll();
 	void vehicle_attitude_poll();
+	void vehicle_attitude_setpoint_poll();
 	void vehicle_command_poll();
 	void vehicle_control_mode_poll();
 

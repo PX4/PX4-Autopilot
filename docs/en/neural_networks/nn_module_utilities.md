@@ -2,7 +2,7 @@
 
 The neural control module ([mc_nn_control](../modules/modules_controller.md#mc-nn-control)) implements an end-to-end controller utilizing neural networks.
 
-The parts of the module directly concerned with generating the code for the trained neural network and integrating it into the module are covered in [TensorFlow Lite Micro (TFLM)](../advanced/tflm.md).
+The parts of the module directly concerned with generating the code for the trained neural network and integrating it into the module are covered in [TensorFlow Lite Micro (TFLM)](./tflm.md).
 This page covers the changes that were made to integrate the module into PX4, both within the module, and in larger system configuration.
 
 ::: tip
@@ -75,7 +75,7 @@ Which timing library is included and used is based on wether PX4 is built with N
 
 ## Changing the setpoint
 
-The module uses the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) message’s position fields to define its target.
+The module uses the [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) message's position fields to define its target.
 To follow a trajectory, you can send updated setpoints.
 For an example of how to do this in a PX4 module, see the [mc_nn_testing](https://github.com/SindreMHegre/PX4-Autopilot-public/tree/main/src/modules/mc_nn_testing) module in this fork.
 Note that this is not included in upstream PX4.
