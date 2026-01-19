@@ -31,69 +31,32 @@
 #
 ############################################################################
 
-# NuttX CDCACM vendor and product strings
-set(vendorstr_underscore)
-set(productstr_underscore)
-string(REPLACE " " "_" vendorstr_underscore ${CONFIG_CDCACM_VENDORSTR})
-string(REPLACE "," "_" vendorstr_underscore "${vendorstr_underscore}")
-string(REPLACE " " "_" productstr_underscore ${CONFIG_CDCACM_PRODUCTSTR})
-
-set(serial_ports)
-if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
-
-	set(px4_usb_path "${vendorstr_underscore}_${productstr_underscore}")
-	set(px4_bl_usb_path "${vendorstr_underscore}_BL")
-
-	list(APPEND serial_ports
-		# NuttX vendor + product string
-		/dev/serial/by-id/*-${px4_usb_path}*
-
-		# Bootloader
-		/dev/serial/by-id/*_${px4_bl_usb_path}*
-		/dev/serial/by-id/*PX4_BL* # typical bootloader USB device string
-		/dev/serial/by-id/*BL_FMU*
-
-		# TODO: handle these per board
-		/dev/serial/by-id/usb-The_Autopilot*
-		/dev/serial/by-id/usb-Bitcraze*
-		/dev/serial/by-id/pci-Bitcraze*
-		/dev/serial/by-id/usb-Gumstix*
-		/dev/serial/by-id/usb-Hex_ProfiCNC*
-		/dev/serial/by-id/usb-UVify*
-		/dev/serial/by-id/usb-ArduPilot*
-		)
-
-elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
-	list(APPEND serial_ports
-		/dev/tty.usbmodemPX*,/dev/tty.usbmodem*
-		)
-elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "CYGWIN")
-	list(APPEND serial_ports
-		/dev/ttyS*
-		)
-elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
-	foreach(port RANGE 32 0)
-		list(APPEND serial_ports
-			"COM${port}")
-	endforeach()
-endif()
-
-string(REPLACE ";" "," serial_ports "${serial_ports}")
+# Uploader script auto-detects PX4 devices by USB VID/PID
+set(PX4_UPLOADER_SCRIPT "${PX4_SOURCE_DIR}/Tools/px4_uploader2.py")
 
 add_custom_target(upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_package}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} ${fw_package}
 	DEPENDS ${fw_package}
 	COMMENT "uploading px4"
 	VERBATIM
 	USES_TERMINAL
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-	)
+)
 
 add_custom_target(force-upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_package}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --force ${fw_package}
 	DEPENDS ${fw_package}
 	COMMENT "uploading px4 with --force"
 	VERBATIM
 	USES_TERMINAL
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-	)
+)
+
+add_custom_target(upload-verbose
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --verbose ${fw_package}
+	DEPENDS ${fw_package}
+	COMMENT "uploading px4 with verbose output"
+	VERBATIM
+	USES_TERMINAL
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+)
