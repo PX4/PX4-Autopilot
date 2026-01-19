@@ -34,6 +34,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <climits>
 #include <time.h>
 
 #include <uORB/uORB.h>
@@ -43,6 +44,9 @@
 #else
 #define LOG_DIR_LEN 256
 #endif
+
+// Include parsing utilities (separate file for testability)
+#include "util_parse.h"
 
 namespace px4
 {
@@ -63,30 +67,33 @@ int remove_directory(const char *dir);
 bool file_exist(const char *filename);
 
 /**
- * Check if there is enough free space left on the SD Card.
- * It will remove old log files if there is not enough space,
- * and if that fails return 1, and send a user message
- * @param log_root_dir log root directory: it's expected to contain directories in the form of sess%i or %d-%d-%d (year, month, day)
- * @param max_log_dirs_to_keep maximum log directories to keep (set to 0 for unlimited)
- * @param mavlink_log_pub
- * @param sess_dir_index output argument: will be set to the next free directory sess%i index.
- * @return 0 on success, 1 if not enough space, <0 on error
+ * Get available and total storage space for a path.
+ * @param path path to check
+ * @param avail_bytes available bytes (output)
+ * @param total_bytes total bytes (output), can be nullptr if not needed
+ * @return true on success, false on error
  */
-int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub,
-		     int &sess_dir_index);
+bool get_free_space(const char *path, uint64_t &avail_bytes, uint64_t *total_bytes);
 
-#ifdef BOARD_SMALL_FLASH_LOGGING
 /**
- * For small flash: cleanup old logs when starting to log if less than 1/3 of total available.
- * This ensures enough space for one new log file while keeping older logs.
- * Called when actually starting to log (logger on), not at boot.
+ * Scan log directory and gather information about subdirectories.
+ * @param log_root_dir log root directory to scan
+ * @param info output: populated with directory information
+ * @return true on success, false if directory cannot be opened
+ */
+bool scan_log_directories(const char *log_root_dir, LogDirInfo &info);
+
+/**
+ * Cleanup old logs to ensure sufficient free space. Deletes oldest files
+ * using "other type first" logic (sess dirs if we have time, date dirs if not).
  * @param log_root_dir log root directory
- * @param max_log_dirs_to_keep maximum log directories to keep (set to 0 for unlimited)
  * @param mavlink_log_pub mavlink log publisher
+ * @param target_free_mb target free space in MB (0 = use default minimum)
+ * @param max_log_dirs_to_keep maximum log directories to keep (0 = unlimited)
  * @return 0 on success, 1 if not enough space even after cleanup
  */
-int cleanup_for_small_flash(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub);
-#endif
+int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
+		     uint32_t target_free_mb, int32_t max_log_dirs_to_keep = 0);
 
 /**
  * Utility for fetching UTC time in microseconds from sensor_gps or CLOCK_REALTIME

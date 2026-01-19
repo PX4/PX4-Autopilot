@@ -106,16 +106,29 @@ parameters:
       description:
         short: Maximum number of log directories to keep
         long: 'If there are more log directories than this value, the system will
-          delete the oldest directories during startup. In addition, the system will
-          delete old logs if there is not enough free space left. The minimum amount
-          is 300 MB. If this is set to 0, old directories will only be removed if
-          the free space falls below the minimum. Note: this does not apply to mission
-          log files.'
+          delete the oldest directories when starting to log. Cleanup prioritizes
+          directories from the naming scheme not currently in use (e.g., sess dirs
+          are deleted first when date dirs are being used). If set to 0, directories
+          are only removed based on storage space. The minimum free space threshold
+          is 300 MB or 10% of disk size, whichever is smaller. Note: this does not
+          apply to mission log files.'
       type: int32
       default: 0
       min: 0
       max: 1000
-      reboot_required: true
+      reboot_required: false
+    SDLOG_MAX_SIZE:
+      description:
+        short: Maximum log file size
+        long: 'Maximum size of a single log file in megabytes. When reached,
+          the log file is closed and a new one is started. Set to 0 for unlimited.
+          Cleanup of old logs always happens at log start (not boot) to allow
+          downloading logs via FTP before deletion.'
+      type: int32
+      default: 0
+      min: 0
+      max: 4096
+      reboot_required: false
     SDLOG_UUID:
       description:
         short: Log UUID

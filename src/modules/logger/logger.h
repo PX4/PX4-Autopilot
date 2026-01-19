@@ -382,9 +382,7 @@ private:
 	hrt_abstime					_logger_status_last {0};
 	int						_lockstep_component{-1};
 
-#ifdef BOARD_SMALL_FLASH_LOGGING
-	size_t						_max_log_file_size {0}; ///< max log file size for small flash (0 = unlimited)
-#endif
+	size_t						_max_log_file_size {0}; ///< max log file size in bytes (0 = unlimited)
 
 	uint32_t					_message_gaps{0};
 
@@ -399,6 +397,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,
 		(ParamInt<px4::params::SDLOG_DIRS_MAX>) _param_sdlog_dirs_max,
+		(ParamInt<px4::params::SDLOG_MAX_SIZE>) _param_sdlog_max_size,
 		(ParamInt<px4::params::SDLOG_PROFILE>) _param_sdlog_profile,
 		(ParamInt<px4::params::SDLOG_MISSION>) _param_sdlog_mission,
 		(ParamBool<px4::params::SDLOG_BOOT_BAT>) _param_sdlog_boot_bat,

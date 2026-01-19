@@ -38,6 +38,7 @@
 #include "messages.h"
 
 #include <dirent.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
@@ -66,10 +67,6 @@
 #include <replay/definitions.hpp>
 #include <version/version.h>
 #include <component_information/checksums.h>
-
-#ifdef BOARD_SMALL_FLASH_LOGGING
-#include <sys/statfs.h>
-#endif
 
 //#define DBGPRINT //write status output every few seconds
 
@@ -591,9 +588,14 @@ void Logger::run()
 			}
 		}
 
-		if (util::check_free_space(LOG_ROOT[(int)LogType::Full], _param_sdlog_dirs_max.get(), _mavlink_log_pub,
-					   _file_name[(int)LogType::Full].sess_dir_index) == 1) {
-			return;
+		// Get the next session directory index
+		util::LogDirInfo dir_info;
+
+		if (util::scan_log_directories(LOG_ROOT[(int)LogType::Full], dir_info)) {
+			_file_name[(int)LogType::Full].sess_dir_index = dir_info.sess_idx_max + 1;
+
+		} else {
+			_file_name[(int)LogType::Full].sess_dir_index = 0;
 		}
 	}
 
@@ -873,17 +875,13 @@ void Logger::run()
 
 			debug_print_buffer(total_bytes, timer_start);
 
-#ifdef BOARD_SMALL_FLASH_LOGGING
-
-			// For small flash: rotate log file when it exceeds max size
+			// Rotate log file when it exceeds max size (if SDLOG_MAX_SIZE > 0)
 			if (_max_log_file_size > 0 &&
 			    _writer.get_total_written_file(LogType::Full) > _max_log_file_size) {
 				PX4_INFO("Log file size limit reached, rotating");
 				stop_log_file(LogType::Full);
 				start_log_file(LogType::Full);
 			}
-
-#endif
 
 			was_started = true;
 
@@ -1428,27 +1426,21 @@ void Logger::start_log_file(LogType type)
 	}
 
 	if (type == LogType::Full) {
-#ifdef BOARD_SMALL_FLASH_LOGGING
+		int32_t max_size_mb = _param_sdlog_max_size.get();
 
-		// For small flash (<500 MB): cleanup old logs if needed
-		if (util::cleanup_for_small_flash(LOG_ROOT[(int)LogType::Full], _param_sdlog_dirs_max.get(),
-						  _mavlink_log_pub) == 1) {
+		if (max_size_mb > 0) {
+			_max_log_file_size = (size_t)max_size_mb * 1024ULL * 1024ULL;
+			PX4_INFO("Max log file size: %" PRId32 " MB", max_size_mb);
+
+		} else {
+			_max_log_file_size = 0; // unlimited
+		}
+
+		// Cleanup old logs if needed (storage-based and/or count-based)
+		if (util::cleanup_old_logs(LOG_ROOT[(int)LogType::Full], _mavlink_log_pub,
+					   (uint32_t)max_size_mb, _param_sdlog_dirs_max.get()) == 1) {
 			return;  // Not enough space even after cleanup
 		}
-
-		// For small flash: limit log file size to 30% of total (leaving 10% buffer)
-		struct statfs statfs_buf;
-
-		if (statfs(LOG_ROOT[(int)LogType::Full], &statfs_buf) == 0) {
-			uint64_t total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
-
-			if (total_bytes < 500ULL * 1024ULL * 1024ULL) {
-				_max_log_file_size = (total_bytes * 30) / 100;
-				PX4_INFO("Small flash: max log file size %zu MB", _max_log_file_size / 1024U / 1024U);
-			}
-		}
-
-#endif
 
 		// initialize cpu load as early as possible to get more data
 		initialize_load_output(PrintLoadReason::Preflight);
