@@ -59,7 +59,7 @@ if validate:
     # remove optional -<num_commits>-g<commit_hash> at the end (in case we are not on a tagged commit)
     git_tag_test = re.sub(r'-[0-9]+-g[0-9a-fA-F]+$', '', git_tag_test)
     # now check the version format
-    m = re.match(r'v([0-9]+)\.([0-9]+)\.[0-9]+(((-dev)|(-alpha[0-9]+)|(-beta[0-9]+)|(-rc[0-9]+))|'\
+    m = re.match(r'v([0-9]+)\.([0-9]+)\.[0-9]+(((-dev)|(-alpha[0-9]+)|(-knr-([0-9]+)\.[0-9]+)|(-beta[0-9]+)|(-rc[0-9]+))|'\
                  r'(-[0-9]+\.[0-9]+\.[0-9]+((-dev)|(-alpha[0-9]+)|(-beta[0-9]+)|([-]?rc[0-9]+))?))?$', git_tag_test)
     if not m:
         print("")
@@ -69,6 +69,7 @@ if validate:
         print("  <PX4 version>: v<major>.<minor>.<patch>[-rc<rc>|-beta<beta>|-alpha<alpha>|-dev]")
         print("  <custom version>: <major>.<minor>.<patch>[-rc<rc>|-beta<beta>|-alpha<alpha>|-dev]")
         print("Examples:")
+        print("  v1.9.0-knr-1.0")
         print("  v1.9.0-rc3 (preferred)")
         print("  v1.9.0-beta1")
         print("  v1.9.0-1.0.0")
