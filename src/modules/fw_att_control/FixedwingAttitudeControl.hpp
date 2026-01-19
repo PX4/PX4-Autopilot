@@ -172,11 +172,6 @@ private:
 	PitchController _pitch_ctrl;
 	YawController _yaw_ctrl;
 
-	float _max_roll_rate;
-	float _max_pitch_rate_pos;
-	float _max_pitch_rate_neg;
-	float _max_yaw_rate;
-
 	WheelController _wheel_ctrl;
 
 	void parameters_update();

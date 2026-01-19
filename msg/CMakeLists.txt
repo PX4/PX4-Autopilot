@@ -236,6 +236,7 @@ set(msg_files
 	VehicleMagnetometer.msg
 	VehicleOpticalFlow.msg
 	VehicleOpticalFlowVel.msg
+	VehicleEulerRatesSetpoint.msg
 	VehicleRoi.msg
 	VehicleThrustSetpoint.msg
 	VehicleTorqueSetpoint.msg
@@ -272,7 +273,6 @@ set(msg_files
 	versioned/VehicleLocalPosition.msg
 	versioned/VehicleOdometry.msg
 	versioned/VehicleRatesSetpoint.msg
-	versioned/VehicleEulerRatesSetpoint.msg
 	versioned/VehicleStatus.msg
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg

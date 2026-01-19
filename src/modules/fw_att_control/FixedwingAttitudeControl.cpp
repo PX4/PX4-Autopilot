@@ -83,12 +83,6 @@ FixedwingAttitudeControl::parameters_update()
 
 	_yaw_ctrl.set_max_rate(radians(_param_fw_y_rmax.get()));
 
-
-	_max_roll_rate = radians(_param_fw_r_rmax.get());
-	_max_pitch_rate_pos = radians(_param_fw_p_rmax_pos.get());
-	_max_pitch_rate_neg = radians(_param_fw_p_rmax_neg.get());
-	_max_yaw_rate = radians(_param_fw_y_rmax.get());
-
 	_wheel_ctrl.set_k_p(_param_fw_wr_p.get());
 	_wheel_ctrl.set_k_i(_param_fw_wr_i.get());
 	_wheel_ctrl.set_k_ff(_param_fw_wr_ff.get());
@@ -345,18 +339,15 @@ void FixedwingAttitudeControl::Run()
 					// Current attitude
 					const Quatf q_current(att.q);
 
-					// Setpoint
-					const Quatf qd_full = q_sp;
-
 					// --- Build reduced desired attitude qd_red: align "tilt" (body Z axis) but don't chase yaw ---
 					const Vector3f ez_current = q_current.dcm_z(); // current body Z in world
-					const Vector3f ez_desired = qd_full.dcm_z();   // desired body Z in world
+					const Vector3f ez_desired = q_sp.dcm_z();   // desired body Z in world
 
 					// Quaternion rotating ez_current -> ez_desired (tilt correction only)
-					Quatf q_tilt_err(ez_current, ez_desired);
+					const Quatf q_tilt_err(ez_current, ez_desired);
 
 					// Convert that tilt error into an absolute reduced desired attitude.
-					Quatf qd_red  = q_tilt_err *q_current;
+					Quatf qd_red  = q_tilt_err * q_current;
 
 					// --- Compute rate setpoint A: tilt-only attitude tracking (normal FW) ---
 
@@ -371,7 +362,7 @@ void FixedwingAttitudeControl::Run()
 					rates_tilt(2) = yaw_rate_tc;
 
 					// --- Compute rate setpoint B: full 3D attitude tracking (near-vertical) ---
-					const Quatf qe_full = (q_current.inversed() * qd_full).canonical();
+					const Quatf qe_full = (q_current.inversed() * q_sp).canonical();
 					const Vector3f e_full = 2.f * qe_full.imag();
 					Vector3f rates_full = e_full.emult(_proportional_gain);
 
@@ -384,11 +375,10 @@ void FixedwingAttitudeControl::Run()
 					const float blend = _param_fw_rate_blend.get();
 					Vector3f body_rates_setpoint = (1.f - blend) * rates_tilt + blend * rates_full;
 
-
 					// limit rates
-					body_rates_setpoint(0) = constrain(body_rates_setpoint(0), -_max_roll_rate, _max_roll_rate);
-					body_rates_setpoint(1) = constrain(body_rates_setpoint(1), -_max_pitch_rate_neg, _max_pitch_rate_pos);
-					body_rates_setpoint(2) = constrain(body_rates_setpoint(2), -_max_yaw_rate, _max_yaw_rate);
+					body_rates_setpoint(0) = constrain(body_rates_setpoint(0), -radians(_param_fw_r_rmax.get()), radians(_param_fw_r_rmax.get()));
+					body_rates_setpoint(1) = constrain(body_rates_setpoint(1), -radians(_param_fw_p_rmax_neg.get()), radians(_param_fw_p_rmax_pos.get()));
+					body_rates_setpoint(2) = constrain(body_rates_setpoint(2), -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					///////////////////////////////////////////////////////////////////////////
 					// End of quaternion-based controller
 					///////////////////////////////////////////////////////////////////////////
