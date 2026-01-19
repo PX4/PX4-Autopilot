@@ -35,8 +35,6 @@
 #include "AUAV_Absolute.hpp"
 #include "AUAV_Differential.hpp"
 
-px4::atomic_int AUAV::_shared_cal_range_eeprom[PX4_NUMBER_I2C_BUSES] = {};
-
 I2CSPIDriverBase *AUAV::instantiate(const I2CSPIDriverConfig &config, const int runtime_instance)
 {
 	AUAV *instance = nullptr;
@@ -64,7 +62,6 @@ I2CSPIDriverBase *AUAV::instantiate(const I2CSPIDriverConfig &config, const int 
 AUAV::AUAV(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_bus_num(config.bus),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
@@ -88,10 +85,6 @@ void AUAV::RunImpl()
 		handle_state_read_calibdata();
 		break;
 
-	case STATE::WAIT_FACTORY_DATA:
-		handle_state_wait_factory_data();
-		break;
-
 	case STATE::REQUEST_MEASUREMENT:
 		handle_state_request_measurement();
 		break;
@@ -105,9 +98,6 @@ void AUAV::RunImpl()
 void AUAV::print_status()
 {
 	I2CSPIDriverBase::print_status();
-
-	PX4_INFO("cal range: %" PRId32, _cal_range);
-
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
@@ -120,25 +110,6 @@ int AUAV::init()
 		DEVICE_DEBUG("I2C::init failed (%i)", ret);
 		return ret;
 	}
-
-	int32_t hw_model = 0;
-	param_get(param_find("SENS_EN_AUAVX"), &hw_model);
-
-	switch (hw_model) {
-	case 1: /* AUAV L05D (+- 5 inH20) */
-		_cal_range = 10;
-		break;
-
-	case 2: /* AUAV L10D (+- 10 inH20) */
-		_cal_range = 20;
-		break;
-
-	case 3: /* AUAV L30D (+- 30 inH20) */
-		_cal_range = 60;
-		break;
-	}
-
-	_factory_data_read_start = hrt_absolute_time();
 
 	ScheduleClear();
 	ScheduleNow();
@@ -169,21 +140,12 @@ void AUAV::handle_state_read_factory_data()
 	int status = read_factory_data();
 
 	if (status == PX4_OK) {
+		/* Factory data read or sensor does not have any, move to next state */
 		_state = STATE::READ_CALIBDATA;
 		ScheduleNow();
 
 	} else {
-		/* Try to get valid factory data for FACTORY_DATA_READ_TIMEOUT before giving up and continue */
-		hrt_abstime elapsed = hrt_elapsed_time(&_factory_data_read_start);
-
-		if (elapsed >= FACTORY_DATA_READ_TIMEOUT) {
-			_shared_cal_range_eeprom[_bus_num].store(FACTORY_DATA_STATE::INVALID);
-			_state = STATE::READ_CALIBDATA;
-			ScheduleNow();
-
-		} else {
-			ScheduleDelayed(100_ms);
-		}
+		ScheduleDelayed(100_ms);
 	}
 }
 
@@ -206,8 +168,7 @@ void AUAV::handle_state_read_calibdata()
 
 	if (status == PX4_OK) {
 		process_calib_data_raw(calib_data_raw);
-		_factory_data_wait_start = hrt_absolute_time();
-		_state = STATE::WAIT_FACTORY_DATA;
+		_state = STATE::REQUEST_MEASUREMENT;
 		ScheduleNow();
 
 	} else {
@@ -217,43 +178,8 @@ void AUAV::handle_state_read_calibdata()
 	}
 }
 
-void AUAV::handle_state_wait_factory_data()
-{
-	int32_t cal_range_eeprom = _shared_cal_range_eeprom[_bus_num].load();
-
-	if (check_and_use_cal_range(cal_range_eeprom)) {
-		/* Valid EEPROM data received, continue */
-		_state = STATE::REQUEST_MEASUREMENT;
-		ScheduleNow();
-
-	} else if (cal_range_eeprom == FACTORY_DATA_STATE::NOT_READ) {
-		/* Check if FACTORY_DATA_WAIT_TIMEOUT has elapsed */
-		hrt_abstime elapsed = hrt_elapsed_time(&_factory_data_wait_start);
-
-		if (elapsed >= FACTORY_DATA_WAIT_TIMEOUT) {
-			/* Continue with already set parameter value in case of timeout */
-			PX4_INFO("Could not read sensor range. Fallback to parameter cal range: %" PRId32, _cal_range);
-			_state = STATE::REQUEST_MEASUREMENT;
-			ScheduleNow();
-
-		} else {
-			ScheduleDelayed(100_ms);
-		}
-
-	} else {
-		/* Continue with already set parameter value in case of invalid EEPROM data */
-		PX4_INFO("Could not find valid sensor range. Fallback to parameter cal range: %" PRId32, _cal_range);
-		_state = STATE::REQUEST_MEASUREMENT;
-		ScheduleNow();
-	}
-}
-
 void AUAV::handle_state_request_measurement()
 {
-	/* Continue checking for valid EEPROM factory data in case of a slow ABS sensor bootup */
-	int32_t cal_range_eeprom = _shared_cal_range_eeprom[_bus_num].load();
-	check_and_use_cal_range(cal_range_eeprom);
-
 	uint8_t req_data = 0xAA;
 	int status = transfer(&req_data, sizeof(req_data), nullptr, 0);
 
@@ -374,17 +300,4 @@ float AUAV::correct_pressure(const uint32_t pressure_raw, const uint32_t tempera
 float AUAV::process_temperature_raw(const float temperature_raw) const
 {
 	return ((temperature_raw * 155.0f) / (1 << 24)) - 45.0f;
-}
-
-bool AUAV::check_and_use_cal_range(int32_t cal_range_eeprom)
-{
-	if (cal_range_eeprom > 0) {
-		if (cal_range_eeprom != _cal_range) {
-			_cal_range = cal_range_eeprom;
-		}
-
-		return true;
-	}
-
-	return false;
 }

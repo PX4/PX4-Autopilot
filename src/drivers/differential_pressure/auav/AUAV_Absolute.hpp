@@ -37,7 +37,6 @@
 #include <uORB/topics/sensor_baro.h>
 
 /* AUAV EEPROM addresses for absolute channel */
-static constexpr uint8_t EEPROM_ABS_CAL_RNG	= 0x25;
 static constexpr uint8_t EEPROM_ABS_AHW 	= 0x2F;
 static constexpr uint8_t EEPROM_ABS_ALW 	= 0x30;
 static constexpr uint8_t EEPROM_ABS_BHW 	= 0x31;
@@ -57,11 +56,6 @@ static_assert(ABS_CONVERSION_INTERVAL >= 7000, "Conversion interval is too fast"
 
 /* Conversions */
 static constexpr float MBAR_TO_PA = 100.0f;
-
-/* Valid AUAV types */
-static constexpr int32_t AUAV_LD_05 = 5;
-static constexpr int32_t AUAV_LD_10 = 10;
-static constexpr int32_t AUAV_LD_30 = 30;
 
 class AUAV_Absolute : public AUAV
 {
