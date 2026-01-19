@@ -180,7 +180,7 @@ private:
 	WheelController _wheel_ctrl;
 
 	void parameters_update();
-	void vehicle_manual_poll(matrix::Quatf R);
+	void vehicle_manual_poll(matrix::Quatf R, float airspeed, float dt);
 	void vehicle_attitude_setpoint_poll();
 	void vehicle_land_detected_poll();
 	float get_airspeed_constrained();

@@ -98,10 +98,10 @@ FixedwingAttitudeControl::parameters_update()
 }
 
 void
-FixedwingAttitudeControl::vehicle_manual_poll(matrix::Quatf R)
+FixedwingAttitudeControl::vehicle_manual_poll(matrix::Quatf R, float airspeed, float dt)
 {
 	const matrix::Eulerf euler_angles(R);
-	float yaw_body = euler_angles.psi();
+
 	if (_vcontrol_mode.flag_control_manual_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
 
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the actuators with valid values
@@ -111,12 +111,18 @@ FixedwingAttitudeControl::vehicle_manual_poll(matrix::Quatf R)
 
 				// STABILIZED mode generate the attitude setpoint from manual user inputs
 
-				const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
+				float roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
 
 				float pitch_body = -_manual_control_setpoint.pitch * radians(_param_fw_man_p_max.get())
 						   + radians(_param_fw_psp_off.get());
 				pitch_body = constrain(pitch_body,
 						       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
+
+				const float V = fmaxf(airspeed, 3.0f); // Guard against division by zero
+				float yaw_body = euler_angles.psi();
+				yaw_body += tanf(roll_body) * 9.81f / V * dt;
+
+				roll_body  *= cosf(pitch_body); //
 
 				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 
@@ -264,9 +270,10 @@ void FixedwingAttitudeControl::Run()
 			/* fill in new attitude data */
 			_R = R_adapted;
 		}
+
 		const matrix::Eulerf euler_angles(_R);
 
-		vehicle_manual_poll(_R);
+		vehicle_manual_poll(_R, get_airspeed_constrained(), dt);
 
 		vehicle_attitude_setpoint_poll();
 
@@ -349,11 +356,7 @@ void FixedwingAttitudeControl::Run()
 					Quatf q_tilt_err(ez_current, ez_desired);
 
 					// Convert that tilt error into an absolute reduced desired attitude.
-					Quatf qd_red;
-
-					// Apply tilt correction to current attitude to get a reduced desired attitude
-					qd_red = q_tilt_err * q_current;
-
+					Quatf qd_red  = q_tilt_err *q_current;
 
 					// --- Compute rate setpoint A: tilt-only attitude tracking (normal FW) ---
 
