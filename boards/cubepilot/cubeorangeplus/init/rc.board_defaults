@@ -11,5 +11,7 @@ param set-default BAT2_A_PER_V 17
 
 # Disable IMU thermal control
 param set-default SENS_EN_THERMAL 0
+param set-default UXRCE_DDS_CFG 102 # set enable uxrce dds to telem 2 port
+param set-default SER_TEL2_BAUD 921600
 
 set IOFW "/etc/extras/cubepilot_io-v2_default.bin"
