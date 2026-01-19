@@ -35,7 +35,7 @@ Source: [modules/mavlink](https://github.com/PX4/PX4-Autopilot/tree/main/src/mod
 This module implements the MAVLink protocol, which can be used on a Serial link or UDP network connection. It communicates with the system via uORB: some messages are directly handled in the module (eg. mission protocol), others are published via uORB (eg. vehicle_command).
 
 流（Stream）被用来以特定速率发送周期性的消息，例如飞机姿态信息。
-Streams are used to send periodic messages with a specific rate, such as the vehicle attitude. When starting the mavlink instance, a mode can be specified, which defines the set of enabled streams with their rates. For a running instance, streams can be configured via <code>mavlink stream</code> command.
+Streams are used to send periodic messages with a specific rate, such as the vehicle attitude. When starting the mavlink instance, a mode can be specified, which defines the set of enabled streams with their rates.
 For a running instance, streams can be configured via `mavlink stream` command.
 
 可以存在多个该模块的实例，每个实例连接到一个串口设备或者网络端口。
