@@ -317,9 +317,7 @@ void RTL::setRtlTypeAndDestination()
 	if (_param_rtl_type.get() != 2 && _param_rtl_type.get() != 4) {
 		// check the closest allowed destination.
 		DestinationType destination_type = DestinationType::DESTINATION_TYPE_HOME;
-
-		PositionYawSetpoint destination = findRtlDestination(destination_type, safe_point_index);
-
+		const PositionYawSetpoint destination = findRtlDestination(destination_type, safe_point_index);
 		float rtl_alt = computeReturnAltitude(destination, (float)_param_rtl_cone_ang.get());
 
 		switch (destination_type) {
@@ -365,7 +363,6 @@ void RTL::setRtlTypeAndDestination()
 	rtl_status.safe_point_index = safe_point_index;
 	rtl_status.timestamp = hrt_absolute_time();
 	_rtl_status_pub.publish(rtl_status);
-
 }
 
 PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_point_index)
@@ -486,7 +483,7 @@ PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, u
 		destination = safe_point;
 		destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 
-	} else if (_param_rtl_type.get() != 5) {
+	} else if (_param_rtl_type.get() == 5) {
 		// Safe points only but no valid safe point, fallback to last position with valid data link
 		for (auto &telemetry_status :  _telemetry_status_subs) {
 			telemetry_status_s telemetry;
