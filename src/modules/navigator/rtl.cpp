@@ -310,35 +310,62 @@ bool RTL::isLanding()
 
 void RTL::setRtlTypeAndDestination()
 {
-	init_rtl_mission_type();
-
 	uint8_t safe_point_index = UINT8_MAX;
+	RtlType new_rtl_type{RtlType::RTL_DIRECT};
 
-	if (_param_rtl_type.get() != 2 && _param_rtl_type.get() != 4) {
+	// init destination with Home (used also with Type 2 and 4 as backup)
+	DestinationType destination_type = DestinationType::DESTINATION_TYPE_HOME;
+	PositionYawSetpoint destination;
+	destination.lat = _home_pos_sub.get().lat;
+	destination.lon = _home_pos_sub.get().lon;
+	destination.alt = _home_pos_sub.get().alt;
+	destination.yaw = _home_pos_sub.get().yaw;
+
+	loiter_point_s landing_loiter;
+	landing_loiter.lat = destination.lat;
+	landing_loiter.lon = destination.lon;
+	landing_loiter.height_m = NAN;
+
+	if (_param_rtl_type.get() == 2) {
+		if (hasMissionLandStart()) {
+			new_rtl_type = RtlType::RTL_MISSION_FAST;
+
+		} else if (_navigator->get_mission_result()->valid) {
+			new_rtl_type = RtlType::RTL_MISSION_FAST_REVERSE;
+
+		} else {
+			// no valid mission, go direct to home
+			new_rtl_type = RtlType::RTL_DIRECT;
+		}
+
+	} else if (_param_rtl_type.get() == 4) {
+		if (hasMissionLandStart() && reverseIsFurther()) {
+			new_rtl_type = RtlType::RTL_MISSION_FAST;
+
+		} else if (_navigator->get_mission_result()->valid) {
+			new_rtl_type = RtlType::RTL_MISSION_FAST_REVERSE;
+
+		} else {
+			// no valid mission, go direct to home
+			new_rtl_type = RtlType::RTL_DIRECT;
+		}
+
+	} else {
 		// check the closest allowed destination.
-		DestinationType destination_type = DestinationType::DESTINATION_TYPE_HOME;
-		const PositionYawSetpoint destination = findRtlDestination(destination_type, safe_point_index);
-		float rtl_alt = computeReturnAltitude(destination, (float)_param_rtl_cone_ang.get());
+		findRtlDestination(destination_type, destination, safe_point_index);
 
 		switch (destination_type) {
 		case DestinationType::DESTINATION_TYPE_MISSION_LAND:
-			_rtl_type = RtlType::RTL_DIRECT_MISSION_LAND;
-			_rtl_mission_type_handle->setRtlAlt(rtl_alt);
+			new_rtl_type = RtlType::RTL_DIRECT_MISSION_LAND;
 			break;
 
-		case DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION:
-			rtl_alt = destination.alt; // Override return altitude with last known link altitude
-
-		// FALLTHROUGH
-
-		case DestinationType::DESTINATION_TYPE_SAFE_POINT:
 		default:
-			loiter_point_s landing_loiter;
+			land_approaches_s rtl_land_approaches{readVtolLandApproaches(destination)};
+
+			// set loiter position to destination initially, overwrite for VTOL if land approaches exist
 			landing_loiter.lat = destination.lat;
 			landing_loiter.lon = destination.lon;
 			landing_loiter.height_m = NAN;
-
-			land_approaches_s rtl_land_approaches{readVtolLandApproaches(destination)};
 
 			if (_vehicle_status_sub.get().is_vtol
 			    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
@@ -346,13 +373,19 @@ void RTL::setRtlTypeAndDestination()
 				landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
 			}
 
-			_rtl_type = RtlType::RTL_DIRECT;
-			_rtl_direct.setRtlAlt(rtl_alt);
-			_rtl_direct.setRtlPosition(destination, landing_loiter);
+			new_rtl_type = RtlType::RTL_DIRECT;
 
 			break;
 		}
 	}
+
+	const float rtl_alt = computeReturnAltitude(destination, destination_type, (float)_param_rtl_cone_ang.get());
+	_rtl_direct.setRtlAlt(rtl_alt);
+	_rtl_direct.setRtlPosition(destination, landing_loiter);
+
+	initRtlMissionType(new_rtl_type, rtl_alt);
+
+	_rtl_type = new_rtl_type;
 
 	// Publish rtl status
 	rtl_status_s rtl_status{};
@@ -414,7 +447,7 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 	return safe_point;
 }
 
-PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, uint8_t &safe_point_index)
+void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index)
 {
 	const bool vtol_in_rw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
@@ -422,16 +455,9 @@ PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, u
 	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
-	PositionYawSetpoint destination{NAN, NAN, NAN, NAN};
 	float min_dist = FLT_MAX;
 
 	if (_param_rtl_type.get() != 5) {
-		// Home position
-		destination.lat = _home_pos_sub.get().lat;
-		destination.lon = _home_pos_sub.get().lon;
-		destination.alt = _home_pos_sub.get().alt;
-		destination.yaw = _home_pos_sub.get().yaw;
-		destination_type = DestinationType::DESTINATION_TYPE_HOME;
 		_home_has_land_approach = hasVtolLandApproach(destination);
 
 		const bool prioritize_safe_points_over_home = ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode);
@@ -511,8 +537,6 @@ PositionYawSetpoint RTL::findRtlDestination(DestinationType &destination_type, u
 
 		destination_type = DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION;
 	}
-
-	return destination;
 }
 
 void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const
@@ -548,8 +572,13 @@ void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mis
 	}
 }
 
-float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position, float cone_half_angle_deg) const
+float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position, DestinationType destination_type, float cone_half_angle_deg) const
 {
+	if (destination_type == DestinationType::DESTINATION_TYPE_LAST_LINK_POSITION) {
+		// when returning to last known link position, do not modify altitude
+		return rtl_position.alt;
+	}
+
 	if (_param_rtl_cone_ang.get() > 0 && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		// horizontal distance to destination
 		const float destination_dist =
@@ -590,67 +619,39 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position, float 
 	}
 }
 
-void RTL::init_rtl_mission_type()
+void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 {
-	RtlType new_rtl_mission_type{RtlType::RTL_DIRECT_MISSION_LAND};
-
-	if (_param_rtl_type.get() == 2) {
-		if (hasMissionLandStart()) {
-			new_rtl_mission_type = RtlType::RTL_MISSION_FAST;
-
-		} else {
-			new_rtl_mission_type = RtlType::RTL_MISSION_FAST_REVERSE;
-		}
-
-	} else if (_param_rtl_type.get() == 4) {
-		if (hasMissionLandStart() && reverseIsFurther()) {
-			new_rtl_mission_type = RtlType::RTL_MISSION_FAST;
-
-		} else {
-			new_rtl_mission_type = RtlType::RTL_MISSION_FAST_REVERSE;
-		}
-
-	} else if (_param_rtl_type.get() == 5) {
-		new_rtl_mission_type = RtlType::RTL_DIRECT;
-	}
-
-	if (_set_rtl_mission_type == new_rtl_mission_type) {
+	if (_rtl_type == new_rtl_type) {
 		return;
 	}
 
 	if (_rtl_mission_type_handle) {
 		delete _rtl_mission_type_handle;
 		_rtl_mission_type_handle = nullptr;
-		_set_rtl_mission_type = RtlType::NONE;
 	}
 
 	mission_s new_mission = _mission_sub.get();
 
-	switch (new_rtl_mission_type) {
+	switch (new_rtl_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:
 		_rtl_mission_type_handle = new RtlDirectMissionLand(_navigator);
-		_set_rtl_mission_type = RtlType::RTL_DIRECT_MISSION_LAND;
+		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
+		_rtl_mission_type_handle->initialize();
 		// RTL type is either direct or mission land have to set it later.
 		break;
 
 	case RtlType::RTL_MISSION_FAST:
 		_rtl_mission_type_handle = new RtlMissionFast(_navigator, new_mission);
-		_set_rtl_mission_type = RtlType::RTL_MISSION_FAST;
-		_rtl_type = RtlType::RTL_MISSION_FAST;
+		_rtl_mission_type_handle->initialize();
 		break;
 
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 		_rtl_mission_type_handle = new RtlMissionFastReverse(_navigator, new_mission);
-		_set_rtl_mission_type = RtlType::RTL_MISSION_FAST_REVERSE;
-		_rtl_type = RtlType::RTL_MISSION_FAST_REVERSE;
+		_rtl_mission_type_handle->initialize();
 		break;
 
 	default:
 		break;
-	}
-
-	if (_rtl_mission_type_handle) {
-		_rtl_mission_type_handle->initialize();
 	}
 }
 
