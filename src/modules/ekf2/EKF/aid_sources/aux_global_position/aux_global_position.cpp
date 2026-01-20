@@ -32,158 +32,195 @@
  ****************************************************************************/
 
 #include "ekf.h"
-
-#include "aid_sources/aux_global_position/aux_global_position.hpp"
+#include <aid_sources/aux_global_position/aux_global_position.hpp>
+#include <aid_sources/aux_global_position/aux_global_position_control.hpp>
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 
+AuxGlobalPosition::AuxGlobalPosition() : ModuleParams(nullptr)
+{
+	for (int i = 0; i < MAX_AGP_IDS; i++) {
+		_sources[i] = new AgpSource(i, this);
+	}
+
+	touchActiveAgpParams();
+}
+
+AuxGlobalPosition::~AuxGlobalPosition()
+{
+	for (int i = 0; i < MAX_AGP_IDS; i++) {
+		delete _sources[i];
+		_sources[i] = nullptr;
+	}
+}
+
+void AuxGlobalPosition::touchActiveAgpParams()
+{
+	for (int i = 0; i < MAX_AGP_IDS; i++) {
+		if (getIdParam(i) != 0) {
+			getCtrlParam(i);
+			getModeParam(i);
+			getDelayParam(i);
+			getNoiseParam(i);
+			getGateParam(i);
+			_sources[i]->advertise();
+
+		} else {
+			break;
+		}
+	}
+}
+
 void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 {
-
-#if defined(MODULE_NAME)
-
-	if (_aux_global_position_sub.updated()) {
-
-		vehicle_global_position_s aux_global_position{};
-		_aux_global_position_sub.copy(&aux_global_position);
-
-		const int64_t time_us = aux_global_position.timestamp_sample - static_cast<int64_t>(_param_ekf2_agp_delay.get() * 1000);
-
-		AuxGlobalPositionSample sample{};
-		sample.time_us = time_us;
-		sample.latitude = aux_global_position.lat;
-		sample.longitude = aux_global_position.lon;
-		sample.altitude_amsl = aux_global_position.alt;
-		sample.eph = aux_global_position.eph;
-		sample.epv = aux_global_position.epv;
-		sample.lat_lon_reset_counter = aux_global_position.lat_lon_reset_counter;
-
-		_aux_global_position_buffer.push(sample);
-
-		_time_last_buffer_push = imu_delayed.time_us;
+	if (_params_updated) {
+		touchActiveAgpParams();
+		_params_updated = false;
 	}
 
-#endif // MODULE_NAME
-
-	AuxGlobalPositionSample sample;
-
-	if (_aux_global_position_buffer.pop_first_older_than(imu_delayed.time_us, &sample)) {
-
-		if (!(_param_ekf2_agp_ctrl.get() & static_cast<int32_t>(Ctrl::kHPos))) {
-			return;
-		}
-
-		estimator_aid_source2d_s &aid_src = _aid_src_aux_global_position;
-		const LatLonAlt position(sample.latitude, sample.longitude, sample.altitude_amsl);
-		const Vector2f innovation = (ekf.getLatLonAlt() - position).xy(); // altitude measurements are not used
-
-		// relax the upper observation noise limit which prevents bad measurements perturbing the position estimate
-		float pos_noise = math::max(sample.eph, _param_ekf2_agp_noise.get(), 0.01f);
-		const float pos_var = sq(pos_noise);
-		const Vector2f pos_obs_var(pos_var, pos_var);
-
-		ekf.updateAidSourceStatus(aid_src,
-					  sample.time_us,                                      // sample timestamp
-					  matrix::Vector2d(sample.latitude, sample.longitude), // observation
-					  pos_obs_var,                                         // observation variance
-					  innovation,                                          // innovation
-					  Vector2f(ekf.getPositionVariance()) + pos_obs_var,   // innovation variance
-					  math::max(_param_ekf2_agp_gate.get(), 1.f));         // innovation gate
-
-		const bool starting_conditions = PX4_ISFINITE(sample.latitude) && PX4_ISFINITE(sample.longitude)
-						 && ekf.control_status_flags().yaw_align;
-		const bool continuing_conditions = starting_conditions
-						   && ekf.global_origin_valid();
-
-		switch (_state) {
-		case State::kStopped:
-
-		/* FALLTHROUGH */
-		case State::kStarting:
-			if (starting_conditions) {
-				_state = State::kStarting;
-
-				if (ekf.global_origin_valid()) {
-					const bool fused = ekf.fuseHorizontalPosition(aid_src);
-					bool reset = false;
-
-					if (!fused && isResetAllowed(ekf)) {
-						ekf.resetHorizontalPositionTo(sample.latitude, sample.longitude, Vector2f(aid_src.observation_variance));
-						ekf.resetAidSourceStatusZeroInnovation(aid_src);
-						reset = true;
-					}
-
-					if (fused || reset) {
-						ekf.enableControlStatusAuxGpos();
-						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
-						_state = State::kActive;
-					}
-
-				} else {
-					// Try to initialize using measurement
-					if (ekf.resetGlobalPositionTo(sample.latitude, sample.longitude, sample.altitude_amsl, pos_var,
-								      sq(sample.epv))) {
-						ekf.resetAidSourceStatusZeroInnovation(aid_src);
-						ekf.enableControlStatusAuxGpos();
-						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
-						_state = State::kActive;
-					}
-				}
-			}
-
-			break;
-
-		case State::kActive:
-			if (continuing_conditions) {
-				ekf.fuseHorizontalPosition(aid_src);
-
-				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf._params.reset_timeout_max)
-				    || (_reset_counters.lat_lon != sample.lat_lon_reset_counter)) {
-					if (isResetAllowed(ekf)) {
-
-						ekf.resetHorizontalPositionTo(sample.latitude, sample.longitude, Vector2f(aid_src.observation_variance));
-
-						ekf.resetAidSourceStatusZeroInnovation(aid_src);
-
-						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
-
-					} else {
-						ekf.disableControlStatusAuxGpos();
-						_state = State::kStopped;
-					}
-				}
-
-			} else {
-				ekf.disableControlStatusAuxGpos();
-				_state = State::kStopped;
-			}
-
-			break;
-
-		default:
-			break;
-		}
-
-#if defined(MODULE_NAME)
-		aid_src.timestamp = hrt_absolute_time();
-		_estimator_aid_src_aux_global_position_pub.publish(aid_src);
-
-		_test_ratio_filtered = math::max(fabsf(aid_src.test_ratio_filtered[0]), fabsf(aid_src.test_ratio_filtered[1]));
-#endif // MODULE_NAME
-
-	} else if ((_state != State::kStopped) && isTimedOut(_time_last_buffer_push, imu_delayed.time_us, (uint64_t)5e6)) {
-		ekf.disableControlStatusAuxGpos();
-		_state = State::kStopped;
-		ECL_WARN("Aux global position data stopped");
+	for (int i = 0; i < MAX_AGP_IDS; i++) {
+		_sources[i]->checkAndBufferData(imu_delayed);
+		_sources[i]->update(ekf, imu_delayed);
 	}
 }
 
-bool AuxGlobalPosition::isResetAllowed(const Ekf &ekf) const
+float AuxGlobalPosition::test_ratio_filtered() const
 {
-	return ((static_cast<Mode>(_param_ekf2_agp_mode.get()) == Mode::kAuto)
-		&& !ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf.control_status_flags().aux_gpos))
-	       || ((static_cast<Mode>(_param_ekf2_agp_mode.get()) == Mode::kDeadReckoning)
-		   && !ekf.isOtherSourceOfHorizontalAidingThan(ekf.control_status_flags().aux_gpos));
+	float max_ratio = 0.f;
+
+	for (int i = 0; i < MAX_AGP_IDS; i++) {
+		if (_sources[i]->isFusing()) {
+			max_ratio = math::max(max_ratio, _sources[i]->getTestRatioFiltered());
+		}
+	}
+
+	return max_ratio;
 }
 
-#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+bool AuxGlobalPosition::anySourceFusing() const
+{
+	for (int i = 0; i < MAX_AGP_IDS; i++) {
+		if (_sources[i]->isFusing()) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+int32_t AuxGlobalPosition::getAgpParamInt32(const char *param_suffix, int instance) const
+{
+	char param_name[20] {};
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_%s", instance, param_suffix);
+
+	int32_t value = 0;
+
+	if (param_get(param_find(param_name), &value) != 0) {
+		PX4_ERR("failed to get %s", param_name);
+	}
+
+	return value;
+}
+
+float AuxGlobalPosition::getAgpParamFloat(const char *param_suffix, int instance) const
+{
+	char param_name[20] {};
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_%s", instance, param_suffix);
+
+	float value = NAN;
+
+	if (param_get(param_find(param_name), &value) != 0) {
+		PX4_ERR("failed to get %s", param_name);
+	}
+
+	return value;
+}
+
+bool AuxGlobalPosition::setAgpParamInt32(const char *param_suffix, int instance, int32_t value)
+{
+	char param_name[20] {};
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_%s", instance, param_suffix);
+
+	return param_set_no_notification(param_find(param_name), &value) == PX4_OK;
+}
+
+int32_t AuxGlobalPosition::getCtrlParam(int instance)
+{
+	if (_params_updated) {
+		_param_values[instance].ctrl = getAgpParamInt32("CTRL", instance);
+	}
+
+	return _param_values[instance].ctrl;
+}
+
+int32_t AuxGlobalPosition::getModeParam(int instance)
+{
+	if (_params_updated) {
+		_param_values[instance].mode = getAgpParamInt32("MODE", instance);
+	}
+
+	return _param_values[instance].mode;
+}
+
+float AuxGlobalPosition::getDelayParam(int instance)
+{
+	if (_params_updated) {
+		_param_values[instance].delay = getAgpParamFloat("DELAY", instance);
+	}
+
+	return _param_values[instance].delay;
+}
+
+float AuxGlobalPosition::getNoiseParam(int instance)
+{
+	if (_params_updated) {
+		_param_values[instance].noise = getAgpParamFloat("NOISE", instance);
+	}
+
+	return _param_values[instance].noise;
+}
+
+float AuxGlobalPosition::getGateParam(int instance)
+{
+	if (_params_updated) {
+		_param_values[instance].gate = getAgpParamFloat("GATE", instance);
+	}
+
+	return _param_values[instance].gate;
+}
+
+int32_t AuxGlobalPosition::getIdParam(int instance)
+{
+	if (_params_updated) {
+		_param_values[instance].id = getAgpParamInt32("ID", instance);
+	}
+
+	return _param_values[instance].id;
+}
+
+void AuxGlobalPosition::setIdParam(int instance, int32_t sensor_id)
+{
+	setAgpParamInt32("ID", instance, sensor_id);
+	_param_values[instance].id = sensor_id;
+	_params_updated = true;
+}
+
+int AuxGlobalPosition::mapSensorIdToSlot(int32_t sensor_id)
+{
+	for (int slot = 0; slot < MAX_AGP_IDS; slot++) {
+		if (getIdParam(slot) == sensor_id) {
+			return slot;
+		}
+	}
+
+	for (int slot = 0; slot < MAX_AGP_IDS; slot++) {
+		if (getIdParam(slot) == 0) {
+			setIdParam(slot, sensor_id);
+			return slot;
+		}
+	}
+
+	return MAX_AGP_IDS;
+}
+
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION && MODULE_NAME
