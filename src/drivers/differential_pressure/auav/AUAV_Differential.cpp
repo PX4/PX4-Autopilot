@@ -33,10 +33,38 @@
 
 #include "AUAV_Differential.hpp"
 #include <parameters/param.h>
+#include <cctype>
 
 AUAV_Differential::AUAV_Differential(const I2CSPIDriverConfig &config) :
 	AUAV(config)
 {
+	/* Initialize cal_range from parameter as fallback value */
+	int32_t hw_model = 0;
+	param_get(param_find("SENS_EN_AUAVX"), &hw_model);
+
+	switch (hw_model) {
+	case 1: /* AUAV L05D (+- 5 inH20) */
+		_cal_range = 10;
+		break;
+
+	case 2: /* AUAV L10D (+- 10 inH20) */
+		_cal_range = 20;
+		break;
+
+	case 3: /* AUAV L30D (+- 30 inH20) */
+		_cal_range = 60;
+		break;
+
+	default:
+		_cal_range = 10; /* Default fallback */
+		break;
+	}
+}
+
+void AUAV_Differential::print_status()
+{
+	AUAV::print_status();
+	PX4_INFO("cal range: %" PRId32, _cal_range);
 }
 
 void AUAV_Differential::publish_pressure(const float pressure_p, const float temperature_c,
@@ -83,6 +111,52 @@ AUAV::calib_eeprom_addr_t AUAV_Differential::get_calib_eeprom_addr() const
 
 float AUAV_Differential::process_pressure_dig(const float pressure_dig) const
 {
-	const float pressure_in_h = 1.25f * ((pressure_dig - (1 << 23)) / (1 << 24)) * _cal_range;
+	const float pressure_in_h = 1.25f * ((pressure_dig - (1 << 23)) / (1 << 24)) * static_cast<float>(_cal_range);
 	return pressure_in_h * INH_TO_PA;
+}
+
+int AUAV_Differential::read_factory_data()
+{
+	/* The differential sensor needs the cal_range from the absolute sensor's EEPROM.
+	 * Temporarily switch to the absolute sensor's I2C address to read it, then switch back. */
+
+	uint8_t original_address = get_device_address();
+	set_device_address(I2C_ADDRESS_ABSOLUTE);
+
+	/* Read the calibration range from the absolute sensor's EEPROM */
+	uint16_t factory_data = 0;
+	int status = read_calibration_eeprom(EEPROM_ABS_CAL_RNG, factory_data);
+
+	set_device_address(original_address);
+
+	if (status != PX4_OK) {
+		return status;
+	}
+
+	/* If EEPROM data is 0, stop trying (sensor does not have factory data) */
+	if (factory_data == 0) {
+		PX4_INFO("Differential: cal range data is 0, using fallback value");
+		return PX4_OK;
+	}
+
+	/* Decode the two bytes as ASCII characters */
+	uint8_t char_high = (factory_data >> 8) & 0xFF;
+	uint8_t char_low = factory_data & 0xFF;
+
+	/* Validate that both characters are ASCII digits (0-9) */
+	if (!isdigit(char_high) || !isdigit(char_low)) {
+		return PX4_ERROR;
+	}
+
+	int32_t sensor_type = ((char_high - '0') * 10) + (char_low - '0');
+
+	/* Check if the detected sensor type is valid */
+	if (sensor_type != AUAV_LD_05 && sensor_type != AUAV_LD_10 && sensor_type != AUAV_LD_30) {
+		return PX4_ERROR;
+	}
+
+	_cal_range = sensor_type * 2;
+	PX4_INFO("Differential: read cal range %" PRId32 " from absolute sensor EEPROM", _cal_range);
+
+	return PX4_OK;
 }
