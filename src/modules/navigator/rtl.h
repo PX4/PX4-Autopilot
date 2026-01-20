@@ -133,7 +133,7 @@ private:
 	 * @brief Find RTL destination.
 	 *
 	 */
-	PositionYawSetpoint findRtlDestination(DestinationType &destination_type, uint8_t &safe_point_index);
+	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
 
 	/**
 	 * @brief Find RTL destination if only safe points are considered
@@ -158,16 +158,17 @@ private:
 	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
 	 *
 	 * @param[in] rtl_position landing position of the rtl
+	 * param[in] destination_type type of the rtl destination
 	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
 	 * @return return altitude
 	 */
-	float computeReturnAltitude(const PositionYawSetpoint &rtl_position, float cone_half_angle_deg) const;
+	float computeReturnAltitude(const PositionYawSetpoint &rtl_position, DestinationType destination_type, float cone_half_angle_deg) const;
 
 	/**
 	 * @brief initialize RTL mission type
 	 *
 	 */
-	void init_rtl_mission_type();
+	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
 
 	/**
 	 * @brief Update parameters
@@ -213,8 +214,6 @@ private:
 	hrt_abstime _destination_check_time{0};
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
-	RtlType _set_rtl_mission_type{RtlType::NONE};
-
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
 
 	bool _home_has_land_approach;			///< Flag if the home position has a land approach defined
