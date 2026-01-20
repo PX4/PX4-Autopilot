@@ -62,14 +62,14 @@ private:
 
 	bool send() override
 	{
-		vehicle_global_position_s pos{};
+		aux_global_position_s pos{};
 
 		if (_aux_global_position_sub.update(&pos)) {
 			mavlink_global_position_t msg{};
 
-			msg.id = UINT8_C(1);
+			msg.id = pos.id;
 			msg.time_usec = pos.timestamp;
-			msg.source = GLOBAL_POSITION_UNKNOWN;
+			msg.source = pos.source;
 			msg.flags = 0;
 
 			if (PX4_ISFINITE(pos.lat)) {
@@ -87,7 +87,6 @@ private:
 			}
 
 			msg.alt = pos.alt;
-			msg.alt_ellipsoid = pos.alt_ellipsoid;
 
 			msg.eph = pos.eph;
 			msg.epv = pos.epv;
