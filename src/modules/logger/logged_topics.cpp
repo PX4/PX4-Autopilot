@@ -91,6 +91,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("landing_gear_wheel", 100);
 	add_optional_topic("landing_target_pose", 1000);
 	add_optional_topic("launch_detection_status", 200);
+	add_topic("logger_status", 200);
 	add_optional_topic("magnetometer_bias_estimate", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
@@ -124,7 +125,6 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("sensor_gyro_fft", 50);
 	add_topic("sensor_selection");
 	add_topic("sensors_status_imu", 200);
-	add_optional_topic("sensor_temp", 100);
 	add_optional_topic("spoilers_setpoint", 1000);
 	add_topic("system_power", 500);
 	add_optional_topic("takeoff_status", 1000);
@@ -166,6 +166,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
 	add_optional_topic_multi("sensor_hygrometer", 500, 4);
+	add_optional_topic_multi("sensor_temp", 100, 4);
 	add_optional_topic_multi("rpm", 200);
 	add_topic_multi("timesync_status", 1000, 3);
 	add_optional_topic_multi("telemetry_status", 1000, 4);

@@ -3,92 +3,45 @@ description: Create a report to help us improve
 title: "[Bug] "
 labels: ["bug-report"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        **Tips for a great bug report:**
+        - Describe what went wrong and what you expected
+        - Include a flight log link from [logs.px4.io](http://logs.px4.io/) if possible
+        - Mention your PX4 version, flight controller, and vehicle type if relevant
+
   - type: textarea
     attributes:
       label: Describe the bug
-      description: A clear and concise description of the bug.
+      description: A clear description of the bug and what you expected to happen.
+      placeholder: |
+        What happened and what did you expect instead?
+
+        Steps to reproduce (if applicable):
+        1.
+        2.
+        3.
     validations:
       required: true
 
   - type: textarea
     attributes:
-      label: To Reproduce
+      label: Flight Log / Additional Information
       description: |
-          Steps to reproduce the behavior.
-          1. Drone switched on '...'
-          2. Uploaded mission '....' (attach QGC mission file)
-          3. Took off '....'
-          4. See error
-    validations:
-      required: false
+        **Flight log** (highly recommended for flight-related issues):
+        - Upload to [PX4 Flight Review](http://logs.px4.io/) and paste the link
 
-  - type: textarea
-    attributes:
-      label: Expected behavior
-      description: A clear and concise description of what you expected to happen.
-    validations:
-      required: false
-
-  - type: textarea
-    attributes:
-      label: Screenshot / Media
-      description: Add screenshot / media if you have them
-
-  - type: textarea
-    attributes:
-      label: Flight Log
-      description: |
-          *Always* provide a link to the flight log file:
-          - Download the flight log file from the vehicle ([tutorial](https://docs.px4.io/main/en/getting_started/flight_reporting.html)).
-          - Upload the log to the [PX4 Flight Review](http://logs.px4.io/)
-          - Share the link to the log (Copy and paste the URL of the log)
+        **Additional details** (if relevant):
+        - PX4 version (output of `ver all` in MAVLink Shell)
+        - Flight controller model
+        - Vehicle type (multicopter, fixed-wing, VTOL, etc.)
+        - Screenshots or media
       placeholder: |
-          # PASTE HERE THE LINK TO THE LOG
+        Flight log link:
+
+        Version:
+
+        Hardware:
     validations:
       required: false
-
-  - type: markdown
-    attributes:
-      value: |
-        ## Setup
-
-  - type: textarea
-    attributes:
-      label: Software Version
-      description: |
-          Which version of PX4 are you using?
-      placeholder: |
-          # If you don't know the version, paste the output of `ver all` in the MAVLink Shell of QGC
-    validations:
-      required: false
-
-  - type: input
-    attributes:
-      label: Flight controller
-      description: Specify your flight controller model (what type is it, where was it bought from, ...).
-    validations:
-      required: false
-
-  - type: dropdown
-    attributes:
-      label: Vehicle type
-      options:
-        - Multicopter
-        - Helicopter
-        - Fixed Wing
-        - Hybrid VTOL
-        - Airship/Balloon
-        - Rover
-        - Boat
-        - Submarine
-        - Other
-
-  - type: textarea
-    attributes:
-      label: How are the different components wired up (including port information)
-      description: Details about how all is wired.
-
-  - type: textarea
-    attributes:
-      label: Additional context
-      description: Add any other context about the problem here.

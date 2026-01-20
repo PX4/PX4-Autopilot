@@ -341,9 +341,9 @@ The used types also define the compatibility with different vehicle types.
 The following sections provide a list of supported setpoint types:
 
 - [MulticopterGotoSetpointType](#go-to-setpoint-multicoptergotosetpointtype): <Badge type="warning" text="MC only" /> Smooth position and (optionally) heading control
-- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="warning" text="FW only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" /> Direct control of lateral and longitudinal fixed wing dynamics
+- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="warning" text="FW only" /> <Badge type="tip" text="PX4 v1.17" /> Direct control of lateral and longitudinal fixed wing dynamics
 - [DirectActuatorsSetpointType](#direct-actuator-control-setpoint-directactuatorssetpointtype): Direct control of motors and flight surface servo setpoints
-- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="main (planned for: PX4 v1.17)" /> Direct access to rover control setpoints (Position, Speed, Attitude, Rate, Throttle and Steering).
+- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="PX4 v1.17" /> Direct access to rover control setpoints (Position, Speed, Attitude, Rate, Throttle and Steering).
 
 :::tip
 The other setpoint types are currently experimental, and can be found in: [px4_ros2/control/setpoint_types/experimental](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/experimental).
@@ -410,7 +410,7 @@ _goto_setpoint->update(
 
 #### Fixed-Wing Lateral and Longitudinal Setpoint (FwLateralLongitudinalSetpointType)
 
-<Badge type="warning" text="Fixed wing only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" />
+<Badge type="warning" text="Fixed wing only" /> <Badge type="tip" text="PX4 v1.17" />
 
 ::: info
 This setpoint type is supported for fixed-wing vehicles and for VTOLs in fixed-wing mode.
@@ -552,7 +552,7 @@ If you want to control an actuator that does not control the vehicle's motion, b
 
 #### Rover Setpoints
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
 The rover modules use a hierarchical structure to propagate setpoints:
 
@@ -586,7 +586,7 @@ An example for a rover specific drive mode using the `RoverSpeedAttitudeSetpoint
 
 ### Controlling a VTOL
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
 To control a VTOL in an external flight mode, ensure you're returning the correct setpoint type based on the current flight configuration:
 

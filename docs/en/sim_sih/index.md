@@ -27,8 +27,8 @@ The Desktop computer is only used to display the virtual vehicle.
 - SIH for FW (airplane) and VTOL tailsitter are supported from PX4 v1.13.
 - SIH as SITL (without hardware) from PX4 v1.14.
 - SIH for Standard VTOL from PX4 v1.16.
-- SIH for MC Hexacopter X from `main` (expected to be PX4 v1.17).
-- SIH for Ackermann Rover from `main`.
+- SIH for MC Hexacopter X from PX4 v1.17.
+- SIH for Ackermann Rover from PX4 v1.17.
 
 ### Benefits
 
@@ -339,6 +339,7 @@ You can find a full list of available values for `PWM_MAIN_FUNCn` [here](../adva
 Alternatively, you can use the [`PWM_AUX_FUNCn`](../advanced_config/parameter_reference.md#PWM_AUX_FUNC1) parameters.
 
 You may also configure the output as desired:
+
 - Disarmed PWM: ([`PWM_MAIN_DISn`](../advanced_config/parameter_reference.md#PWM_MAIN_DIS1) / [`PWM_AUX_DIS1`](../advanced_config/parameter_reference.md#PWM_AUX_DIS1))
 - Minimum PWM ([`PWM_MAIN_MINn`](../advanced_config/parameter_reference.md#PWM_MAIN_MIN1) / [`PWM_AUX_MINn`](../advanced_config/parameter_reference.md#PWM_AUX_MIN1))
 - Maximum PWM ([`PWM_MAIN_MAXn`](../advanced_config/parameter_reference.md#PWM_MAIN_MAX1) / [`PWM_AUX_MAXn`](../advanced_config/parameter_reference.md#PWM_AUX_MAX1))
