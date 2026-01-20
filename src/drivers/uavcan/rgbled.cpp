@@ -131,13 +131,16 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 		status_color = rgb888_to_rgb565(brightness, brightness, brightness);
 		break;
 
-	default:
 	case led_control_s::COLOR_OFF:
+	default:
 		break;
 	}
 
 	// Build and send light commands for all configured lights
 	uavcan::equipment::indication::LightsCommand light_command;
+
+	const bool light_mode_active = check_light_state(static_cast<LightMode>(_param_lgt_mode.get()));
+	brightness = light_mode_active ? 255 : 0;
 
 	for (uint8_t i = 0; i < _num_lights; i++) {
 		uavcan::equipment::indication::SingleLightCommand cmd;
@@ -149,8 +152,40 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 			break;
 
 		case LightFunction::AntiCollision:
-			uint8_t brigtness = is_anticolision_on() ? 255 : 0;
-			cmd.color = rgb888_to_rgb565(brigtness, brigtness, brigtness);
+			cmd.color = rgb888_to_rgb565(brightness, brightness, brightness);
+			break;
+
+		case LightFunction::RedNavigation:
+			cmd.color = rgb888_to_rgb565(brightness, 0, 0);
+			break;
+
+		case LightFunction::GreenNavigation:
+			cmd.color = rgb888_to_rgb565(0, brightness, 0);
+			break;
+
+		case LightFunction::WhiteNavigation:
+			cmd.color = rgb888_to_rgb565(brightness, brightness, brightness);
+			break;
+
+		// Hybrid functions: show status when UAVCAN_LGT_MODE inactive, navigation light when active
+		case LightFunction::StatusOrAntiCollision:
+			cmd.color = light_mode_active ? rgb888_to_rgb565(brightness, brightness, brightness) : status_color;
+			break;
+
+		case LightFunction::StatusOrRedNavigation:
+			cmd.color = light_mode_active ? rgb888_to_rgb565(brightness, 0, 0) : status_color;
+			break;
+
+		case LightFunction::StatusOrGreenNavigation:
+			cmd.color = light_mode_active ? rgb888_to_rgb565(0, brightness, 0) : status_color;
+			break;
+
+		case LightFunction::StatusOrWhiteNavigation:
+			cmd.color = light_mode_active ? rgb888_to_rgb565(brightness, brightness, brightness) : status_color;
+			break;
+
+		case LightFunction::StatusOrOff:
+			cmd.color = light_mode_active ? rgb888_to_rgb565(0, 0, 0) : status_color;
 			break;
 		}
 
@@ -160,12 +195,12 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 	_uavcan_pub_lights_cmd.broadcast(light_command);
 }
 
-bool UavcanRGBController::is_anticolision_on()
+bool UavcanRGBController::check_light_state(LightMode mode)
 {
 	actuator_armed_s actuator_armed{};
 	_actuator_armed_sub.copy(&actuator_armed);
 
-	switch (_param_uavcan_lgt_antcl.get()) {
+	switch (_param_lgt_mode.get()) {
 	case 3: // Always on
 		return true;
 
