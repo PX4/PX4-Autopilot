@@ -4,6 +4,7 @@
 #
 # @type VTOL Tiltrotor
 #
+# @maintener Rafał Lesiak
 
 . ${R}etc/init.d/rc.vtol_defaults
 
