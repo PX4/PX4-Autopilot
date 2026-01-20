@@ -54,18 +54,36 @@ private:
 	// Max update rate to avoid excessive bus traffic
 	static constexpr unsigned MAX_RATE_HZ = 20;
 
-	// Maximum number of configurable lights
-	static constexpr uint8_t MAX_NUM_UAVCAN_LIGHTS = 3;
+	// NOTE: This value must match __max_num_uavcan_lights in module.yaml
+	static constexpr uint8_t MAX_NUM_UAVCAN_LIGHTS = 2;
 
-	// Light function types
+	// Light function types - must match values in module.yaml UAVCAN_LGT_FN
 	enum class LightFunction : uint8_t {
-		Status = 0,        // System status colors from led_control
-		AntiCollision = 1  // White beacon based on arm state
+		Status = 0,                    // System status colors from led_control
+		AntiCollision = 1,             // White beacon based on arm state
+		RedNavigation = 2,             // Red navigation light
+		GreenNavigation = 3,           // Green navigation light
+		WhiteNavigation = 4,           // White navigation light
+		StatusOrAntiCollision = 5,     // Status when LGT_MODE inactive, white beacon when active
+		StatusOrRedNavigation = 6,     // Status when LGT_MODE inactive, red nav when active
+		StatusOrGreenNavigation = 7,   // Status when LGT_MODE inactive, green nav when active
+		StatusOrWhiteNavigation = 8,   // Status when LGT_MODE inactive, white nav when active
+		StatusOrOff = 9                // Status when LGT_MODE inactive, off when active
 	};
+
+	enum class LightMode : uint8_t {
+		Off = 0,
+		WhenArmed = 1,
+		WhenPrearmed = 2,
+		AlwaysOn = 3
+	};
+
+	// White light intensity levels
+	enum class Brightness { None, Full };
 
 	void periodic_update(const uavcan::TimerEvent &);
 
-	bool is_anticolision_on(); ///< Evaluates current on state of collision lights accordingt to UAVCAN_LGT_ANTCL
+	bool check_light_state(LightMode mode);
 
 	uavcan::equipment::indication::RGB565 rgb888_to_rgb565(uint8_t red, uint8_t green, uint8_t blue);
 
@@ -91,6 +109,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UAVCAN_LGT_NUM>) _param_lgt_num,
-		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_uavcan_lgt_antcl
+		(ParamInt<px4::params::UAVCAN_LGT_MODE>) _param_lgt_mode
 	)
 };
