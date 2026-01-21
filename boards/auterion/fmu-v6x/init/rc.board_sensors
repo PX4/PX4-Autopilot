@@ -55,8 +55,8 @@ then
 	set INA_CONFIGURED yes
 fi
 
-#Start Auterion Power Module selector for Skynode boards
-pm_selector_auterion start
+# Auterion auto starter
+auterion_autostarter start
 
 # Auterion's INA238 uses a shunt value of 0.0003 instead of 0.0005.
 param set-default INA238_SHUNT 0.0003
