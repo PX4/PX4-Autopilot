@@ -1395,9 +1395,10 @@ class UploadProgressBar:
     VERIFY_START = 99
     VERIFY_END = 100
 
-    def __init__(self, noninteractive: bool = False):
+    def __init__(self, noninteractive: bool = False, json_output: bool = False):
         # Use noninteractive mode if flag is set OR if not a TTY
-        self._noninteractive = noninteractive or not sys.stdout.isatty()
+        self._json = json_output
+        self._noninteractive = json_output or noninteractive or not sys.stdout.isatty()
         self._start_time = time.monotonic()
         self._last_percent = -1
         self._last_printed_percent = -1
@@ -1442,16 +1443,27 @@ class UploadProgressBar:
                     print_percent = (percent // 5) * 5
                 if print_percent > self._last_printed_percent:
                     if print_percent >= 100:
-                        phase = "Done"
+                        phase = "done"
                     elif self._phase == "Erase":
-                        phase = "Erasing"
+                        phase = "erasing"
                     elif self._phase == "Program":
-                        phase = "Programming"
+                        phase = "programming"
                     elif self._phase == "Verify":
-                        phase = "Verifying"
+                        phase = "verifying"
                     else:
-                        phase = self._phase
-                    print(f"{phase}, progress: {print_percent}%")
+                        phase = self._phase.lower()
+                    if self._json:
+                        print(
+                            json.dumps(
+                                {
+                                    "type": "progress",
+                                    "phase": phase,
+                                    "percent": print_percent,
+                                }
+                            )
+                        )
+                    else:
+                        print(f"{phase.capitalize()}, progress: {print_percent}%")
                     self._last_printed_percent = print_percent
             self._last_percent = percent
             return
@@ -1528,7 +1540,10 @@ class UploadProgressBar:
         elapsed = time.monotonic() - self._start_time
 
         if self._noninteractive:
-            print(f"\nUploaded in {int(elapsed)}s")
+            if self._json:
+                print(json.dumps({"type": "complete", "elapsed_seconds": int(elapsed)}))
+            else:
+                print(f"\nUploaded in {int(elapsed)}s")
             return
 
         # Interactive mode: show 100% briefly, then clear and print summary
@@ -1556,6 +1571,7 @@ class UploaderConfig:
     retry_count: int = 3
     windowed: bool = False
     noninteractive: bool = False
+    json_output: bool = False
 
 
 class Uploader:
@@ -1564,6 +1580,43 @@ class Uploader:
     def __init__(self, config: UploaderConfig):
         self.config = config
         self.port_detector = PortDetector()
+
+    def _print_message(self, message_type: str, **kwargs) -> None:
+        """Print a message, either as JSON or plain text."""
+        if self.config.json_output:
+            # Format chip_id as hex string for JSON
+            if "chip_id" in kwargs and kwargs["chip_id"] is not None:
+                kwargs["chip_id"] = f"0x{kwargs['chip_id']:08X}"
+            # Remove None values from JSON output
+            kwargs = {k: v for k, v in kwargs.items() if v is not None}
+            print(json.dumps({"type": message_type, **kwargs}))
+        else:
+            # Format as plain text based on message type
+            if message_type == "board":
+                print(
+                    f"\nFound board {kwargs['board_type']},{kwargs['board_rev']} "
+                    f"protocol v{kwargs['protocol_version']} on {kwargs['port']}"
+                )
+            elif message_type == "firmware":
+                print(
+                    f"\nFirmware: board_id={kwargs['board_id']}, "
+                    f"revision={kwargs['board_revision']}"
+                )
+                print(
+                    f"Size: {kwargs['image_size']} bytes ({kwargs['usage_percent']:.1f}%)"
+                )
+                print(f"Bootloader version: {kwargs['bootloader_version']}")
+            elif message_type == "board_info":
+                if kwargs.get("serial"):
+                    print(f"Serial: {kwargs['serial']}")
+                if kwargs.get("chip_id"):
+                    print(f"Chip: 0x{kwargs['chip_id']:08X}")
+                if kwargs.get("chip_family"):
+                    print(f"Family: {kwargs['chip_family']}")
+                if kwargs.get("chip_revision"):
+                    print(f"Revision: {kwargs['chip_revision']}")
+                print(f"Flash: {kwargs['flash_size']} bytes")
+                print(f"Windowed mode: {'yes' if kwargs.get('windowed') else 'no'}")
 
     def upload(self, firmware_paths: list[str]) -> bool:
         """Upload firmware to connected board.
@@ -1688,10 +1741,12 @@ class Uploader:
         # First try to identify without reboot
         try:
             protocol.identify()
-            print()
-            print(
-                f"Found board {protocol.board_type},{protocol.board_rev} "
-                f"protocol v{protocol.bl_rev} on {transport.port_name}"
+            self._print_message(
+                "board",
+                board_type=protocol.board_type,
+                board_rev=protocol.board_rev,
+                protocol_version=protocol.bl_rev,
+                port=transport.port_name,
             )
             return True
         except (ProtocolError, TimeoutError):
@@ -1699,10 +1754,11 @@ class Uploader:
 
         # Try rebooting at each baud rate
         for baud in self.config.baud_flightstack:
-            print(
-                f"Attempting reboot on {transport.port_name} at {baud} baud...",
-                file=sys.stderr,
-            )
+            if not self.config.json_output:
+                print(
+                    f"Attempting reboot on {transport.port_name} at {baud} baud...",
+                    file=sys.stderr,
+                )
 
             try:
                 transport.set_baudrate(baud)
@@ -1750,10 +1806,12 @@ class Uploader:
             for identify_attempt in range(5):
                 try:
                     protocol.identify()
-                    print()
-                    print(
-                        f"Found board {protocol.board_type},{protocol.board_rev} "
-                        f"protocol v{protocol.bl_rev} on {transport.port_name}"
+                    self._print_message(
+                        "board",
+                        board_type=protocol.board_type,
+                        board_rev=protocol.board_rev,
+                        protocol_version=protocol.bl_rev,
+                        port=transport.port_name,
                     )
                     return True
                 except (ProtocolError, TimeoutError):
@@ -1804,12 +1862,14 @@ class Uploader:
             firmware: Firmware to upload
         """
         # Print firmware info
-        print(
-            f"\nFirmware: board_id={firmware.board_id}, "
-            f"revision={firmware.board_revision}"
+        self._print_message(
+            "firmware",
+            board_id=firmware.board_id,
+            board_revision=firmware.board_revision,
+            image_size=firmware.image_size,
+            usage_percent=firmware.usage_percent,
+            bootloader_version=protocol.version,
         )
-        print(f"Size: {firmware.image_size} bytes ({firmware.usage_percent:.1f}%)")
-        print(f"Bootloader version: {protocol.version}")
 
         # Check for silicon errata (bootloader v4 on Pixhawk)
         if protocol.bl_rev == 4 and firmware.board_id == 9:
@@ -1842,8 +1902,12 @@ class Uploader:
         self._print_board_info(protocol)
 
         # Create unified progress bar
-        print()
-        progress = UploadProgressBar(noninteractive=self.config.noninteractive)
+        if not self.config.json_output:
+            print()
+        progress = UploadProgressBar(
+            noninteractive=self.config.noninteractive,
+            json_output=self.config.json_output,
+        )
 
         # Erase
         protocol.erase(
@@ -1867,20 +1931,15 @@ class Uploader:
 
     def _print_board_info(self, protocol: BootloaderProtocol) -> None:
         """Print board OTP and chip info."""
-        if protocol.sn:
-            print(f"Serial: {protocol.sn.hex()}")
-
-        if protocol.chip_id:
-            print(f"Chip: 0x{protocol.chip_id:08X}")
-
-        if protocol.chip_family:
-            print(f"Family: {protocol.chip_family}")
-
-        if protocol.chip_revision:
-            print(f"Revision: {protocol.chip_revision}")
-
-        print(f"Flash: {protocol.fw_maxsize} bytes")
-        print(f"Windowed mode: {'yes' if protocol._windowed_mode else 'no'}")
+        self._print_message(
+            "board_info",
+            serial=protocol.sn.hex() if protocol.sn else None,
+            chip_id=protocol.chip_id if protocol.chip_id else None,
+            chip_family=protocol.chip_family if protocol.chip_family else None,
+            chip_revision=protocol.chip_revision if protocol.chip_revision else None,
+            flash_size=protocol.fw_maxsize,
+            windowed=protocol._windowed_mode,
+        )
 
     def _send_gcs_release(self) -> None:
         """Send UDP message to release serial port from GCS."""
@@ -1974,6 +2033,11 @@ Examples:
         action="store_true",
         help="Non-interactive mode: print progress every 5%% for tools to parse",
     )
+    parser.add_argument(
+        "--noninteractive-json",
+        action="store_true",
+        help="Non-interactive JSON mode: print progress as JSON lines",
+    )
 
     args = parser.parse_args()
 
@@ -1981,7 +2045,11 @@ Examples:
     setup_logging(verbose=args.verbose, debug=args.debug)
 
     # Warn about ModemManager on Linux
-    if sys.platform.startswith("linux") and os.path.exists("/usr/sbin/ModemManager"):
+    if (
+        not args.noninteractive_json
+        and sys.platform.startswith("linux")
+        and os.path.exists("/usr/sbin/ModemManager")
+    ):
         print("=" * 80)
         print("WARNING: ModemManager detected. It may interfere with PX4 devices.")
         print("Consider: sudo systemctl disable ModemManager")
@@ -2000,13 +2068,14 @@ Examples:
         boot_delay=args.boot_delay,
         use_protocol_splitter=args.use_protocol_splitter_format,
         windowed=args.windowed,
-        noninteractive=args.noninteractive,
+        noninteractive=args.noninteractive or args.noninteractive_json,
+        json_output=args.noninteractive_json,
     )
 
-    if args.use_protocol_splitter_format:
-        print("Using protocol splitter format for reboot commands")
-
-    print("Waiting for bootloader...")
+    if not args.noninteractive_json:
+        if args.use_protocol_splitter_format:
+            print("Using protocol splitter format for reboot commands")
+        print("Waiting for bootloader...")
 
     uploader = Uploader(config)
 
@@ -2023,11 +2092,17 @@ Examples:
                 # No device found yet, keep trying
                 time.sleep(0.05)
             except UploadError as e:
-                print(f"\nError: {e}", file=sys.stderr)
+                if args.noninteractive_json:
+                    print(json.dumps({"type": "error", "message": str(e)}))
+                else:
+                    print(f"\nError: {e}", file=sys.stderr)
                 return 1
 
     except KeyboardInterrupt:
-        print("\nUpload aborted by user.")
+        if args.noninteractive_json:
+            print(json.dumps({"type": "error", "message": "Upload aborted by user"}))
+        else:
+            print("\nUpload aborted by user.")
         return 0
 
 
