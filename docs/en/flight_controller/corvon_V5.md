@@ -106,10 +106,10 @@ The firmware can be installed in any of the normal ways:
   make corvon_V5_default upload
   ```
 
-- **Load the firmware using QGroundControl.** You can use either pre-built firmware or your own custom firmware.
+- **Load the firmware using *QGroundControl*.** You can use either pre-built firmware or your own custom firmware.
 
 :::info
-If this target is not listed in QGroundControl, build and upload from source or load a custom firmware file (see *Installing PX4 Main, Beta or Custom Firmware*).
+If this target is not listed in *QGroundControl*, build and upload from source or load a custom firmware file (see Installing PX4 Main, Beta or Custom Firmware).
 :::
 
 ## Supported Platforms / Airframes
