@@ -646,6 +646,52 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 	_control_allocator_status_pub[matrix_index].publish(control_allocator_status);
 }
 
+float
+ControlAllocator::get_ice_shedding_output(hrt_abstime now)
+{
+
+	// Feature config
+	const bool spin_to_shed_enabled = true; // TODO replace by param
+
+	const float period_sec = 10.0f;
+	const float on_sec = 5.0f;
+	const float slew_sec = 1.0f; // Time to reach full shed_ice_thrust
+	const float max_ice_shedding_output = 0.1f;
+
+	const bool has_unused_upwards_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
+					       || _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
+	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
+	const bool apply_shedding = has_unused_upwards_rotors && spin_to_shed_enabled && in_forward_flight;
+
+	if (!apply_shedding) {
+		return 0.0f;
+	}
+
+	const float elapsed_in_period = fmodf((float) now / 1_s, period_sec);
+
+	float current_ice_shedding_output = 0.0f;
+
+	if (elapsed_in_period < on_sec) {
+
+		// We are in the "active" window, calculate ramping
+		if (elapsed_in_period < slew_sec) {
+			// Ramp Up
+			current_ice_shedding_output = (elapsed_in_period / slew_sec) * max_ice_shedding_output;
+
+		} else if (elapsed_in_period > (on_sec - slew_sec)) {
+			// Ramp Down
+			current_ice_shedding_output = ((on_sec - elapsed_in_period) / slew_sec) * max_ice_shedding_output;
+
+		} else {
+			// Full Throttle
+			current_ice_shedding_output = max_ice_shedding_output;
+		}
+	}
+
+	return current_ice_shedding_output;
+
+}
+
 void
 ControlAllocator::publish_actuator_controls()
 {
@@ -670,16 +716,7 @@ ControlAllocator::publish_actuator_controls()
 				  | _handled_motor_failure_bitmask
 				  | _motor_stop_mask;
 
-	// Feature config
-	const bool spin_to_shed_enabled = true; // TODO replace by param
-	const int period_sec = 10;
-	const int on_sec = 5;
-	const float shed_ice_thrust = 0.1f;
-
-	// Conditions to run motors
-	const bool time_to_spin = (actuator_motors.timestamp / 1_s) % period_sec < on_sec;
-	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
-	const bool spin_upwards_motors_to_shed_ice = spin_to_shed_enabled && time_to_spin && in_forward_flight;
+	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp);
 
 	// motors
 	int motors_idx;
@@ -692,8 +729,8 @@ ControlAllocator::publish_actuator_controls()
 		if (stopped_motors & (1u << motors_idx)) {
 			actuator_motors.control[motors_idx] = NAN;
 
-			if (spin_upwards_motors_to_shed_ice) {
-				actuator_motors.control[motors_idx] = shed_ice_thrust;
+			if (ice_shedding_output > 0.001f) {
+				actuator_motors.control[motors_idx] = ice_shedding_output;
 			}
 		}
 
