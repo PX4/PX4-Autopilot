@@ -38,6 +38,7 @@
  *     uavcan.equipment.esc.RawCommand
  *     uavcan.equipment.esc.RPMCommand
  *     uavcan.equipment.esc.Status
+ *     uavcan.equipment.esc.StatusExtended
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
@@ -49,6 +50,11 @@
 #include <uavcan/equipment/esc/Status.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/esc_report.h>
+#include <uORB/topics/dronecan_node_status.h>
+#include <uORB/topics/device_information.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/uavcan/node_info.hpp>
 #include "../node_info.hpp"
 
 class UavcanEscController
@@ -56,6 +62,7 @@ class UavcanEscController
 public:
 	static constexpr int MAX_ACTUATORS = esc_status_s::CONNECTED_ESC_MAX;
 	static constexpr unsigned MAX_RATE_HZ = 400;
+	static constexpr int16_t kMaxUavcanNodeId = 128; // UAVCAN supports up to 128 nodes (0-127)
 
 	static_assert(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize >= MAX_ACTUATORS, "Too many actuators");
 
@@ -91,6 +98,21 @@ private:
 	 */
 	uint8_t check_escs_status();
 
+	/**
+	 * Updates node health status from dronecan_node_status topic
+	 */
+	void update_node_health();
+
+	/**
+	 * Updates device vendor/model information from device_information topic
+	 */
+	void update_device_info();
+
+	/**
+	 * Gets failure flags for a specific ESC
+	 */
+	uint32_t get_failures(uint8_t esc_index);
+
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
 
@@ -102,8 +124,17 @@ private:
 	esc_status_s	_esc_status{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Subscription _dronecan_node_status_sub{ORB_ID(dronecan_node_status)};
+	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
+
+	// Store node health status for each ESC node (indexed by node_id)
+	uint8_t _node_health[kMaxUavcanNodeId] {};
+	uint16_t _vendor_specific_status_code[kMaxUavcanNodeId] {};
+
+	// Store device name for each ESC (indexed by esc_index)
+	char _esc_name[esc_status_s::CONNECTED_ESC_MAX][80] {};
 
 	/*
 	 * libuavcan related things
