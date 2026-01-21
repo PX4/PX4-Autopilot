@@ -608,19 +608,17 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
 			PX4_INFO("publishing MAV_CMD_REQUEST_MESSAGE for MAVLINK_MSG_ID_ESC_EEPROM");
 			_cmd_pub.publish(vehicle_command);
-#else
 
-		if (1) {
-			// no-op
+		} else
 #endif
-		} else if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
-			get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+			if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
+				get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
 
-		} else {
-			result = handle_request_message_command(message_id,
-								vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
-								vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-		}
+			} else {
+				result = handle_request_message_command(message_id,
+									vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
+									vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+			}
 
 	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink.failure_injection_enabled()) {
