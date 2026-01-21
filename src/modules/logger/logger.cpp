@@ -1715,7 +1715,7 @@ void Logger::write_formats(LogType type)
 	formats_to_write.set(_event_subscription.get_topic()->o_id);
 
 
-	static_assert(sizeof(msg.format) > uORB::orb_tokenized_fields_max_length, "uORB message definition too long");
+	static_assert(sizeof(msg.format) > (uORB::orb_untokenized_fields_max_length * 1.1f), "uORB message definition too long");
 	uORB::MessageFormatReader format_reader(msg.format, sizeof(msg.format));
 	bool done = false;
 
