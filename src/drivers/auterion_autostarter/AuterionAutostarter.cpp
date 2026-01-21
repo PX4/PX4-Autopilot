@@ -404,9 +404,6 @@ int AuterionAutostarter::start(const char *start_command, const char **start_arg
 const char *AuterionAutostarter::get_start_command(const uint16_t dev_type) const
 {
 	switch (dev_type) {
-	case DRV_POWER_DEVTYPE_INA220:
-		return "ina220";
-
 	case DRV_POWER_DEVTYPE_INA226:
 		return "ina226";
 
@@ -479,9 +476,6 @@ void AuterionAutostarter::set_float_param(const char *param_name, const float pa
 const char *AuterionAutostarter::get_ina_type(const uint16_t dev_type) const
 {
 	switch (dev_type) {
-	case DRV_POWER_DEVTYPE_INA220:
-		return "220";
-
 	case DRV_POWER_DEVTYPE_INA226:
 		return "226";
 
