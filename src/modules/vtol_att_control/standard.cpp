@@ -361,7 +361,17 @@ void Standard::fill_actuator_outputs()
 		_torque_setpoint_1->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2];
 		_thrust_setpoint_0->xyz[0] = _vehicle_thrust_setpoint_virtual_fw->xyz[0];
 
+		// simulate toggling some param on and off just to test
+		const int period_sec = 10;
+		const int on_sec = 5;
 
+		if ((now / 1_s) % period_sec < on_sec) {
+			_thrust_setpoint_0->xyz[2] = -0.1;
+		}
+
+		// TODO bypass the off motors mask or whatever in the allocator
+		// OR do it straight from the allocator?
+		// ActuatorEffectivenessStandardVTOL::setFlightPhase
 
 		break;
 	}
