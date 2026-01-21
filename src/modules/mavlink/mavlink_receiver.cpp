@@ -603,13 +603,15 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
 
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+
 		// NOTE: ESC_EEPROM message request handling is deferred - DShot driver handles and triggers reading
 		if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
 			PX4_INFO("publishing MAV_CMD_REQUEST_MESSAGE for MAVLINK_MSG_ID_ESC_EEPROM");
 			_cmd_pub.publish(vehicle_command);
 #else
+
 		if (1) {
-		// no-op
+			// no-op
 #endif
 		} else if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
 			get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
