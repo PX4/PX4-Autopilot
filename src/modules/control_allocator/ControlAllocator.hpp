@@ -139,6 +139,8 @@ private:
 
 	void publish_actuator_controls();
 
+	float get_ice_shedding_output(hrt_abstime now, bool any_stopped_motor_failed);
+
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
 	int _num_control_allocation{0};
@@ -214,11 +216,16 @@ private:
 	Params _params{};
 	bool _has_slew_rate{false};
 
+
+	SlewRate<float> _slew_limited_ice_shedding_output;
+	hrt_abstime _last_ice_shedding_update{};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamFloat<px4::params::CA_ICE_PERIOD>) _param_ice_shedding_period
 	)
 
 };

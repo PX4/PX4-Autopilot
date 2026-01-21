@@ -646,6 +646,50 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 	_control_allocator_status_pub[matrix_index].publish(control_allocator_status);
 }
 
+float
+ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_motor_failed)
+{
+	// If ever needed, expose these parameters again. Feature is turned off
+	// with period <= 0, and constantly turned on with period == on_sec.
+
+	const float period_sec = _param_ice_shedding_period.get();
+	const float on_sec = 2.0f;
+	const float ice_shedding_output = 0.01f;
+	const float max_ice_shedding_slewrate = 0.1f;
+
+	_slew_limited_ice_shedding_output.setSlewRate(max_ice_shedding_slewrate);
+
+	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON;
+	const bool has_unused_upwards_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
+					       || _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
+	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
+
+	// If any stopped motor (*) has failed, the feature will create much more
+	// torque than in the nominal case, and becomes pointless anyway as we
+	// cannot go back to multicopter
+	//  (*) in FW and for the relevant airframes these are exactly the upward pointing motors
+	const bool apply_shedding = has_unused_upwards_rotors && in_forward_flight && !any_stopped_motor_failed;
+
+	if (feature_disabled_by_param || !apply_shedding) {
+		// Bypass slew limit and immediately set zero, to not
+		// interfere with backtransition in any way
+		_slew_limited_ice_shedding_output.setForcedValue(0.0f);
+
+	} else {
+		// Raw square wave output
+		const float elapsed_in_period = fmodf((float) now / 1_s, period_sec);
+		const float raw_ice_shedding_output = elapsed_in_period < on_sec ? ice_shedding_output : 0.0f;
+
+		// Apply slew rate limit
+		const float dt = (float)(now - _last_ice_shedding_update) / 1_s;
+		_slew_limited_ice_shedding_output.update(raw_ice_shedding_output, dt);
+	}
+
+	_last_ice_shedding_update = now;
+
+	return _slew_limited_ice_shedding_output.getState();
+}
+
 void
 ControlAllocator::publish_actuator_controls()
 {
@@ -666,9 +710,15 @@ ControlAllocator::publish_actuator_controls()
 	int actuator_idx = 0;
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
-	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors()
-				  | _handled_motor_failure_bitmask
-				  | _motor_stop_mask;
+	const uint32_t stopped_motors_due_to_effectiveness = _actuator_effectiveness->getStoppedMotors();
+
+	const uint32_t stopped_motors = stopped_motors_due_to_effectiveness
+					| _handled_motor_failure_bitmask
+					| _motor_stop_mask;
+
+	const bool any_stopped_motor_failed = 0 != (stopped_motors_due_to_effectiveness & (_handled_motor_failure_bitmask | _motor_stop_mask));
+
+	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp, any_stopped_motor_failed);
 
 	// motors
 	int motors_idx;
@@ -680,6 +730,10 @@ ControlAllocator::publish_actuator_controls()
 
 		if (stopped_motors & (1u << motors_idx)) {
 			actuator_motors.control[motors_idx] = NAN;
+
+			if (ice_shedding_output > 0.001f) {
+				actuator_motors.control[motors_idx] = ice_shedding_output;
+			}
 		}
 
 		++actuator_idx_matrix[selected_matrix];
