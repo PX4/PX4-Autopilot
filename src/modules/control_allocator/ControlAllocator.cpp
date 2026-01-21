@@ -670,6 +670,17 @@ ControlAllocator::publish_actuator_controls()
 				  | _handled_motor_failure_bitmask
 				  | _motor_stop_mask;
 
+	// Feature config
+	const bool spin_to_shed_enabled = true; // TODO replace by param
+	const int period_sec = 10;
+	const int on_sec = 5;
+	const float shed_ice_thrust = 0.1f;
+
+	// Conditions to run motors
+	const bool time_to_spin = (actuator_motors.timestamp / 1_s) % period_sec < on_sec;
+	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
+	const bool spin_upwards_motors_to_shed_ice = spin_to_shed_enabled && time_to_spin && in_forward_flight;
+
 	// motors
 	int motors_idx;
 
@@ -680,6 +691,10 @@ ControlAllocator::publish_actuator_controls()
 
 		if (stopped_motors & (1u << motors_idx)) {
 			actuator_motors.control[motors_idx] = NAN;
+
+			if (spin_upwards_motors_to_shed_ice) {
+				actuator_motors.control[motors_idx] = shed_ice_thrust;
+			}
 		}
 
 		++actuator_idx_matrix[selected_matrix];
