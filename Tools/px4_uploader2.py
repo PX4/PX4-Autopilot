@@ -1395,23 +1395,69 @@ class UploadProgressBar:
     VERIFY_START = 99
     VERIFY_END = 100
 
-    def __init__(self):
-        self._is_tty = sys.stdout.isatty()
+    def __init__(self, noninteractive: bool = False):
+        # Use noninteractive mode if flag is set OR if not a TTY
+        self._noninteractive = noninteractive or not sys.stdout.isatty()
         self._start_time = time.monotonic()
         self._last_percent = -1
+        self._last_printed_percent = -1
         self._phase = "Erase"
 
     def _render(self, percent: int) -> None:
         """Render the progress bar."""
-        if percent == self._last_percent and percent < 100:
+        if not self._noninteractive and percent == self._last_percent and percent < 100:
+            return
+
+        if self._noninteractive:
+            # Print at 5% increments (0, 5, 10, ...) plus 99% for verify
+            next_milestone = ((self._last_printed_percent // 5) + 1) * 5
+            if self._last_printed_percent < 0:
+                next_milestone = 0
+            # Special case: print 99% only when in Verify phase
+            is_verify_99 = (
+                self._phase == "Verify"
+                and self._last_printed_percent < 99
+                and percent >= 99
+            )
+            if is_verify_99:
+                next_milestone = 99
+            should_print = percent >= next_milestone or (
+                percent >= 100 and self._last_printed_percent < 100
+            )
+            # Don't print 99% unless we're in Verify phase
+            if (
+                should_print
+                and percent >= 99
+                and percent < 100
+                and self._phase != "Verify"
+            ):
+                should_print = False
+            if should_print:
+                # Print at the milestone, not the actual percent
+                if percent >= 100:
+                    print_percent = 100
+                elif percent >= 99 and self._phase == "Verify":
+                    print_percent = 99
+                else:
+                    print_percent = (percent // 5) * 5
+                if print_percent > self._last_printed_percent:
+                    if print_percent >= 100:
+                        phase = "Done"
+                    elif self._phase == "Erase":
+                        phase = "Erasing"
+                    elif self._phase == "Program":
+                        phase = "Programming"
+                    elif self._phase == "Verify":
+                        phase = "Verifying"
+                    else:
+                        phase = self._phase
+                    print(f"{phase}, progress: {print_percent}%")
+                    self._last_printed_percent = print_percent
+            self._last_percent = percent
             return
 
         # Step through each percent for smooth animation
-        if (
-            self._is_tty
-            and self._last_percent >= 0
-            and percent > self._last_percent + 1
-        ):
+        if self._last_percent >= 0 and percent > self._last_percent + 1:
             for p in range(self._last_percent + 1, percent):
                 self._render_single(p)
                 time.sleep(0.02)
@@ -1436,12 +1482,7 @@ class UploadProgressBar:
             bar += " " * (bar_width - filled_full - 1)
 
         line = f"{self._phase:8s} ▕{bar}▏ {percent:3d}%"
-
-        if self._is_tty:
-            print(f"\r{line}", end="", flush=True)
-        else:
-            if percent % 10 == 0 or percent >= 100:
-                print(line)
+        print(f"\r{line}", end="", flush=True)
 
     def update_erase(self, current: float, total: float) -> None:
         """Update progress during erase phase (0-45%)."""
@@ -1484,17 +1525,15 @@ class UploadProgressBar:
         self._last_percent = -1  # Force render
         self._render(100)
 
-        if self._is_tty:
-            time.sleep(0.5)
-
         elapsed = time.monotonic() - self._start_time
 
-        if self._is_tty:
-            # Clear the progress line and print summary
-            print("\r\033[K", end="")
-        else:
-            print()
+        if self._noninteractive:
+            print(f"\nUploaded in {int(elapsed)}s")
+            return
 
+        # Interactive mode: show 100% briefly, then clear and print summary
+        time.sleep(0.5)
+        print("\r\033[K", end="")
         print(f"Uploaded in {int(elapsed)}s")
 
 
@@ -1516,6 +1555,7 @@ class UploaderConfig:
     use_protocol_splitter: bool = False
     retry_count: int = 3
     windowed: bool = False
+    noninteractive: bool = False
 
 
 class Uploader:
@@ -1803,7 +1843,7 @@ class Uploader:
 
         # Create unified progress bar
         print()
-        progress = UploadProgressBar()
+        progress = UploadProgressBar(noninteractive=self.config.noninteractive)
 
         # Erase
         protocol.erase(
@@ -1929,6 +1969,11 @@ Examples:
         action="store_true",
         help="Enable debug output (includes protocol traces)",
     )
+    parser.add_argument(
+        "--noninteractive",
+        action="store_true",
+        help="Non-interactive mode: print progress every 5%% for tools to parse",
+    )
 
     args = parser.parse_args()
 
@@ -1955,6 +2000,7 @@ Examples:
         boot_delay=args.boot_delay,
         use_protocol_splitter=args.use_protocol_splitter_format,
         windowed=args.windowed,
+        noninteractive=args.noninteractive,
     )
 
     if args.use_protocol_splitter_format:
