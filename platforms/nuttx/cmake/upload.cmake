@@ -32,7 +32,7 @@
 ############################################################################
 
 # Uploader script auto-detects PX4 devices by USB VID/PID
-set(PX4_UPLOADER_SCRIPT "${PX4_SOURCE_DIR}/Tools/px4_uploader2.py")
+set(PX4_UPLOADER_SCRIPT "${PX4_SOURCE_DIR}/Tools/px4_uploader.py")
 
 add_custom_target(upload
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} ${fw_package}
