@@ -605,6 +605,53 @@ parameters:
                 1: Remove first failed motor from effectiveness
             default: 0
 
+        CA_ICE_PERIOD:
+            description:
+                short: Ice shedding cycle period
+                long: |
+                    Ice shedding is a feature that periodically spins unused
+                    upwards rotors on VTOL aircraft to remove ice buildup within
+                    the motors. This period defines the total duration of the
+                    ice shedding cycle.  Feature is turned off if <= 0.
+            type: float
+            decimal: 1
+            unit: s
+            increment: 0.1
+            min: 0.0
+            max: 300.0
+            default: 60.0
+
+        CA_ICE_ON_TIME:
+            description:
+                short: Ice shedding active duration
+                long: |
+                    This parameter defines the active duration within each ice
+                    shedding cycle during which rotors will spin. Feature is
+                    turned off if <= 0.
+            type: float
+            decimal: 1
+            unit: s
+            increment: 0.1
+            min: 0.0
+            max: 300.0
+            default: 0.0
+
+        CA_ICE_OUTPUT:
+            description:
+                short: Maximum motor output for ice shedding
+                long: |
+                    This parameter determines the maximum motor output commanded
+                    during ice shedding. Warning: If this output is too high,
+                    the feature disturbs with fixed wing rate control,
+                    especially on tiltrotorp. Start with very low values, only
+                    increase in small steps. Feature is turned off if <= 0.
+            type: float
+            decimal: 2
+            increment: 0.01
+            min: 0.0
+            max: 0.2
+            default: 0.0
+
 # Mixer
 mixer:
     actuator_types:

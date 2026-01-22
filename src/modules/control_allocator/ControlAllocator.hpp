@@ -220,7 +220,10 @@ private:
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamFloat<px4::params::CA_ICE_PERIOD>) _param_ice_shedding_period,
+		(ParamFloat<px4::params::CA_ICE_ON_TIME>) _param_ice_shedding_on_time,
+		(ParamFloat<px4::params::CA_ICE_OUTPUT>) _param_ice_shedding_output
 	)
 
 };

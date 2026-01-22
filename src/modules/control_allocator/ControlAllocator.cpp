@@ -649,19 +649,19 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 float
 ControlAllocator::get_ice_shedding_output(hrt_abstime now)
 {
+	const float period_sec = _param_ice_shedding_period.get();
+	const float on_sec = _param_ice_shedding_on_time.get();
+	const float max_ice_shedding_output = _param_ice_shedding_output.get();
 
-	// Feature config
-	const bool spin_to_shed_enabled = true; // TODO replace by param
-
-	const float period_sec = 10.0f;
-	const float on_sec = 5.0f;
-	const float slew_sec = 1.0f; // Time to reach full shed_ice_thrust
-	const float max_ice_shedding_output = 0.1f;
+	if (period_sec <= FLT_EPSILON || on_sec <= FLT_EPSILON || max_ice_shedding_output <= FLT_EPSILON) {
+		// The user has not configured the feature to be turned on
+		return 0.0f;
+	}
 
 	const bool has_unused_upwards_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
 					       || _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
 	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
-	const bool apply_shedding = has_unused_upwards_rotors && spin_to_shed_enabled && in_forward_flight;
+	const bool apply_shedding = has_unused_upwards_rotors && in_forward_flight;
 
 	if (!apply_shedding) {
 		return 0.0f;
@@ -670,6 +670,16 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now)
 	const float elapsed_in_period = fmodf((float) now / 1_s, period_sec);
 
 	float current_ice_shedding_output = 0.0f;
+
+	const float slew_sec = 1.0f; // Time to reach full shed_ice_thrust
+
+	// TOOD ensure this works (fails predictably...) when on_sec < 2 * slew_sec
+	// TODO if period_sec > on_sec, always output thrust? still fade it in?
+	// TODO when the params are changed in flight we essentially enter the
+	// cycle in a completely random phase, bypassing the slew limit.
+	//  - find out if this is actually dangerous
+	//  - if so, put some offset that is updated on param changes to stay in the same phase
+	//  - or redo the entire implementation with a state machine rather than this pure functional version
 
 	if (elapsed_in_period < on_sec) {
 
