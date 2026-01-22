@@ -109,16 +109,20 @@ void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuato
 	pthread_mutex_lock(&_node_mutex);
 
 	esc_status_s esc_status{};
-	// Limit to max supported ESCs while allowing for a larger number of system actuators
-	esc_status.esc_count = math::min(actuators.velocity_size(), static_cast<int>(esc_status_s::CONNECTED_ESC_MAX));
+	int limited_escs = math::min(actuators.velocity_size(), (int)esc_status_s::CONNECTED_ESC_MAX);
+	esc_status.esc_count = limited_escs;
 
-	for (int i = 0; i < esc_status.esc_count; i++) {
+	for (int i = 0; i < limited_escs; i++) {
 		esc_status.esc[i].timestamp = hrt_absolute_time();
 		esc_status.esc[i].esc_rpm = actuators.velocity(i);
 		esc_status.esc_online_flags |= 1 << i;
 
+		// This is a race condition with the failure detector, for smaller models it always resolves before
+		// the failure detector runs, but for larger models (with more than 8 ESCs) the failure detector
+		// can run before the velocity of some escs is set > 0. To mitigate this, if one esc has a velocity > 0,
+		// we assume all escs are armed.
 		if (actuators.velocity(i) > 0) {
-			esc_status.esc_armed_flags |= 1 << i;
+			esc_status.esc_armed_flags = (1 << limited_escs) - 1;
 		}
 	}
 

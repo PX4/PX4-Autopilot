@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,31 +32,31 @@
  ****************************************************************************/
 
 /**
- * @file RingBuffer.h
+ * @file TimestampedRingBuffer.h
  * @author Roman Bapst <bapstroman@gmail.com>
- * Template RingBuffer.
+ * @brief Template ring buffer for timestamped samples (requires data_type::time_us).
+ * Note: This is not the same as `Ringbuffer` (byte FIFO) in `src/lib/ringbuffer/Ringbuffer.hpp`.
  */
 
-#ifndef EKF_RINGBUFFER_H
-#define EKF_RINGBUFFER_H
+#pragma once
 
 #include <inttypes.h>
 #include <cstdio>
 #include <cstring>
 
 template <typename data_type>
-class RingBuffer
+class TimestampedRingBuffer
 {
 public:
-	explicit RingBuffer(size_t size) { allocate(size); }
-	RingBuffer() = delete;
-	~RingBuffer() { delete[] _buffer; }
+	explicit TimestampedRingBuffer(size_t size) { allocate(size); }
+	TimestampedRingBuffer() = delete;
+	~TimestampedRingBuffer() { delete[] _buffer; }
 
 	// no copy, assignment, move, move assignment
-	RingBuffer(const RingBuffer &) = delete;
-	RingBuffer &operator=(const RingBuffer &) = delete;
-	RingBuffer(RingBuffer &&) = delete;
-	RingBuffer &operator=(RingBuffer &&) = delete;
+	TimestampedRingBuffer(const TimestampedRingBuffer &) = delete;
+	TimestampedRingBuffer &operator=(const TimestampedRingBuffer &) = delete;
+	TimestampedRingBuffer(TimestampedRingBuffer &&) = delete;
+	TimestampedRingBuffer &operator=(TimestampedRingBuffer &&) = delete;
 
 	bool allocate(uint8_t size)
 	{
@@ -69,9 +69,7 @@ public:
 			return false;
 		}
 
-		if (_buffer != nullptr) {
-			delete[] _buffer;
-		}
+		delete[] _buffer;
 
 		_buffer = new data_type[size] {};
 
@@ -191,5 +189,3 @@ private:
 
 	bool _first_write{true};
 };
-
-#endif // !EKF_RINGBUFFER_H

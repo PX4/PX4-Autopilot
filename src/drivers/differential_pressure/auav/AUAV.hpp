@@ -61,6 +61,7 @@ public:
 
 protected:
 	enum class STATE : uint8_t {
+		READ_FACTORY_DATA,
 		READ_CALIBDATA,
 		REQUEST_MEASUREMENT,
 		GATHER_MEASUREMENT
@@ -107,7 +108,9 @@ protected:
 	virtual int64_t get_conversion_interval() const = 0;
 	virtual calib_eeprom_addr_t get_calib_eeprom_addr() const = 0;
 	virtual float process_pressure_dig(const float pressure_dig) const = 0;
+	virtual int read_factory_data() = 0;
 
+	void handle_state_read_factory_data();
 	void handle_state_read_calibdata();
 	void handle_state_request_measurement();
 	void handle_state_gather_measurement();
@@ -117,8 +120,7 @@ protected:
 	float correct_pressure(const uint32_t pressure_raw, const uint32_t temperature_raw) const;
 	float process_temperature_raw(const float temperature_raw) const;
 
-	float _cal_range{10.0f};
-	STATE _state{STATE::READ_CALIBDATA};
+	STATE _state{STATE::READ_FACTORY_DATA};
 	calib_data_t _calib_data {};
 
 	perf_counter_t _sample_perf;
