@@ -226,7 +226,10 @@ void RTL::on_activation()
 	case RtlType::RTL_DIRECT_MISSION_LAND:	// Fall through
 	case RtlType::RTL_MISSION_FAST: // Fall through
 	case RtlType::RTL_MISSION_FAST_REVERSE:
-		_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
+		}
+
 		break;
 
 	case RtlType::RTL_DIRECT:
@@ -635,19 +638,31 @@ void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 	switch (new_rtl_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:
 		_rtl_mission_type_handle = new RtlDirectMissionLand(_navigator);
-		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
-		_rtl_mission_type_handle->initialize();
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->setRtlAlt(rtl_alt);
+			_rtl_mission_type_handle->initialize();
+		}
+
 		// RTL type is either direct or mission land have to set it later.
 		break;
 
 	case RtlType::RTL_MISSION_FAST:
 		_rtl_mission_type_handle = new RtlMissionFast(_navigator, new_mission);
-		_rtl_mission_type_handle->initialize();
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->initialize();
+		}
+
 		break;
 
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 		_rtl_mission_type_handle = new RtlMissionFastReverse(_navigator, new_mission);
-		_rtl_mission_type_handle->initialize();
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->initialize();
+		}
+
 		break;
 
 	default:
