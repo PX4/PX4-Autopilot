@@ -258,11 +258,10 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
 
-			const bool loiter_indefinitely = _param_rtl_land_delay.get() < -FLT_EPSILON;
-
 			_mission_item.lat = _home_pos_sub.get().lat;
 			_mission_item.lon = _home_pos_sub.get().lon;
 			_mission_item.yaw = NAN;
+			_mission_item.altitude = _global_pos_sub.get().alt;
 			_mission_item.altitude_is_relative = false;
 
 			// make previous and next setpoints invalid, such that there will be no line following.
@@ -274,14 +273,17 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 			    do_need_move_to_item()) {
 				new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
-				_mission_item.altitude = _global_pos_sub.get().alt;
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 				_mission_item.autocontinue = true;
 				_mission_item.time_inside = 0.0f;
 
 			} else {
-				_mission_item.altitude = loiter_indefinitely ? _home_pos_sub.get().alt + _param_rtl_descend_alt.get() : _global_pos_sub.get().alt;
-				_mission_item.nav_cmd = loiter_indefinitely ? NAV_CMD_WAYPOINT : NAV_CMD_LAND;
+				_mission_item.nav_cmd = NAV_CMD_LAND;
+
+				if (_param_rtl_land_delay.get() < -FLT_EPSILON) { // parameter negative -> loiter indefinitely instead of landing
+					_mission_item.altitude = _home_pos_sub.get().alt + _param_rtl_descend_alt.get();
+					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+				}
 
 				_mission_item.land_precision = _param_rtl_pld_md.get();
 

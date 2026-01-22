@@ -357,12 +357,13 @@ void RTL::setRtlTypeAndDestination()
 		// check the closest allowed destination.
 		findRtlDestination(destination_type, destination, safe_point_index);
 
-		switch (destination_type) {
-		case DestinationType::DESTINATION_TYPE_MISSION_LAND:
+		if (destination_type == DestinationType::DESTINATION_TYPE_MISSION_LAND) {
 			new_rtl_type = RtlType::RTL_DIRECT_MISSION_LAND;
-			break;
 
-		default:
+		} else {
+
+			new_rtl_type = RtlType::RTL_DIRECT;
+
 			land_approaches_s rtl_land_approaches{readVtolLandApproaches(destination)};
 
 			// set loiter position to destination initially, overwrite for VTOL if land approaches exist
@@ -375,10 +376,6 @@ void RTL::setRtlTypeAndDestination()
 			    && rtl_land_approaches.isAnyApproachValid()) {
 				landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
 			}
-
-			new_rtl_type = RtlType::RTL_DIRECT;
-
-			break;
 		}
 	}
 
@@ -406,7 +403,7 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, uint8_t &safe_poin
 	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
-	PositionYawSetpoint safe_point{NAN, NAN, NAN, NAN};
+	PositionYawSetpoint safe_point{(double)NAN, (double)NAN, NAN, NAN};
 
 	if (_safe_points_updated) {
 		_one_rally_point_has_land_approach = false;
