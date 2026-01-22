@@ -647,7 +647,7 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 }
 
 float
-ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor_failed)
+ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_motor_failed)
 {
 	// Hardcoded maximum to limit the amount the user can mess up by setting parameters
 	// Equal to the param maximum in module.yaml
@@ -659,21 +659,22 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor
 	const float max_ice_shedding_slewrate = _param_ice_shedding_slewrate.get();
 	_slew_limited_ice_shedding_output.setSlewRate(max_ice_shedding_slewrate);
 
-	const bool feature_turned_off = period_sec <= FLT_EPSILON || on_sec <= FLT_EPSILON
-					|| ice_shedding_output <= FLT_EPSILON
-					|| max_ice_shedding_slewrate < FLT_EPSILON;
+	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON || on_sec <= FLT_EPSILON
+					       || ice_shedding_output <= FLT_EPSILON
+					       || max_ice_shedding_slewrate < FLT_EPSILON;
 
 	const bool has_unused_upwards_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
 					       || _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
 	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
 
-	// If any upward motor has failed, the feature will create much more
+	// If any stopped motor (*) has failed, the feature will create much more
 	// torque than in the nominal case, and becomes pointless anyway as we
 	// cannot go back to multicopter
-	const bool apply_shedding = has_unused_upwards_rotors && in_forward_flight && !any_upward_motor_failed;
+	//  (*) in FW and for the relevant airframes these are exactly the upward pointing motors
+	const bool apply_shedding = has_unused_upwards_rotors && in_forward_flight && !any_stopped_motor_failed;
 
-	if (feature_turned_off || !apply_shedding) {
-		// Bypass slew limit and immediately return zero to not
+	if (feature_disabled_by_param || !apply_shedding) {
+		// Bypass slew limit and immediately set zero, to not
 		// interfere with backtransition in any way
 		_slew_limited_ice_shedding_output.setForcedValue(0.0f);
 
@@ -719,9 +720,9 @@ ControlAllocator::publish_actuator_controls()
 					| _handled_motor_failure_bitmask
 					| _motor_stop_mask;
 
-	const bool any_upward_motor_failed = 0 != (stopped_motors_due_to_effectiveness & (_handled_motor_failure_bitmask | _motor_stop_mask));
+	const bool any_stopped_motor_failed = 0 != (stopped_motors_due_to_effectiveness & (_handled_motor_failure_bitmask | _motor_stop_mask));
 
-	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp, any_upward_motor_failed);
+	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp, any_stopped_motor_failed);
 
 	// motors
 	int motors_idx;

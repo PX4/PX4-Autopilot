@@ -139,7 +139,7 @@ private:
 
 	void publish_actuator_controls();
 
-	float get_ice_shedding_output(hrt_abstime now, bool any_upward_motor_failed);
+	float get_ice_shedding_output(hrt_abstime now, bool any_stopped_motor_failed);
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
