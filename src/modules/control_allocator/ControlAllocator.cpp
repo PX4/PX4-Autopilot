@@ -655,13 +655,9 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor
 	const float max_ice_shedding_slewrate = _param_ice_shedding_slewrate.get();
 	_slew_limited_ice_shedding_output.setSlewRate(max_ice_shedding_slewrate);
 
-	if (period_sec <= FLT_EPSILON || on_sec <= FLT_EPSILON || max_ice_shedding_output <= FLT_EPSILON
-	    || max_ice_shedding_slewrate < FLT_EPSILON) {
-		// The user has not configured the feature to be turned on, or the config makes no sense
-		_slew_limited_ice_shedding_output = 0.0f;
-		_last_ice_shedding_update = now;
-		return 0.0f;
-	}
+	const bool feature_turned_off = period_sec <= FLT_EPSILON || on_sec <= FLT_EPSILON
+					|| max_ice_shedding_output <= FLT_EPSILON
+					|| max_ice_shedding_slewrate < FLT_EPSILON;
 
 	const bool has_unused_upwards_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
 					       || _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
@@ -672,23 +668,22 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor
 	// cannot go back to multicopter
 	const bool apply_shedding = has_unused_upwards_rotors && in_forward_flight && !any_upward_motor_failed;
 
-	if (!apply_shedding) {
-		_slew_limited_ice_shedding_output = 0.0f;
-		_last_ice_shedding_update = now;
-		return 0.0f;
+	if (feature_turned_off || !apply_shedding) {
+		// Bypass slew limit and immediately return zero to not
+		// interfere with backtransition in any way
+		_slew_limited_ice_shedding_output.setForcedValue(0.0f);
+
+	} else {
+		// Raw square wave output
+		const float elapsed_in_period = fmodf((float) now / 1_s, period_sec);
+		const float raw_ice_shedding_output = elapsed_in_period < on_sec ? max_ice_shedding_output : 0.0f;
+
+		// Apply slew rate limit
+		const float dt = (float)(now - _last_ice_shedding_update) / 1_s;
+		_slew_limited_ice_shedding_output.update(raw_ice_shedding_output, dt);
 	}
 
-	const float elapsed_in_period = fmodf((float) now / 1_s, period_sec);
-
-	// Pure square wave output
-	const float raw_ice_shedding_output = elapsed_in_period < on_sec ? max_ice_shedding_output : 0.0f;
-
-	// Apply slew rate limit
-	const float dt = (float)(now - _last_ice_shedding_update) / 1_s;
-
-	_slew_limited_ice_shedding_output.update(raw_ice_shedding_output, dt);
 	_last_ice_shedding_update = now;
-
 	return _slew_limited_ice_shedding_output.getState();
 }
 
