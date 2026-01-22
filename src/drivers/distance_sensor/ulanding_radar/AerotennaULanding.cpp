@@ -101,24 +101,13 @@ int AerotennaULanding::collect()
 				bytes_processed = index;
 
 				while (bytes_processed < bytes_read && !checksum_passed) {
-					if (ULANDING_VERSION == 1) {
-						uint8_t checksum_value = (_buffer[index + 1] + _buffer[index + 2] + _buffer[index + 3] + _buffer[index + 4]) & 0xFF;
-						uint8_t checksum_byte = _buffer[index + 5];
-
-						if (checksum_value == checksum_byte) {
-							checksum_passed = true;
-							distance_cm = (_buffer[index + 3] << 8) | _buffer[index + 2];
-							distance_m = static_cast<float>(distance_cm) / 100.f;
-						}
-
-					} else {
+					uint8_t checksum_value = (_buffer[index + 1] + _buffer[index + 2] + _buffer[index + 3] + _buffer[index + 4]) & 0xFF;
+					uint8_t checksum_byte = _buffer[index + 5];
+					if (checksum_value == checksum_byte) {
 						checksum_passed = true;
-						distance_cm = (_buffer[index + 1] & 0x7F);
-						distance_cm += ((_buffer[index + 2] & 0x7F) << 7);
-						distance_m = static_cast<float>(distance_cm) * 0.045f;
-						break;
+						distance_cm = (_buffer[index + 3] << 8) | _buffer[index + 2];
+						distance_m = static_cast<float>(distance_cm) / 100.f;
 					}
-
 					bytes_processed++;
 				}
 			}
