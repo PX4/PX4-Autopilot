@@ -66,17 +66,3 @@ bool fs_bad_optflow_x         #  7 - true if fusion of the optical flow X axis h
 bool fs_bad_optflow_y         #  8 - true if fusion of the optical flow Y axis has encountered a numerical error
 bool fs_bad_acc_vertical      # 10 - true if bad vertical accelerometer data has been detected
 bool fs_bad_acc_clipping      # 11 - true if delta velocity data contains clipping (asymmetric railing)
-
-
-# innovation test failures
-uint32 innovation_fault_status_changes    # number of innovation fault status (reject) changes
-bool reject_hor_vel                       #  0 - true if horizontal velocity observations have been rejected
-bool reject_ver_vel                       #  1 - true if vertical velocity observations have been rejected
-bool reject_hor_pos                       #  2 - true if horizontal position observations have been rejected
-bool reject_ver_pos                       #  3 - true if vertical position observations have been rejected
-bool reject_yaw                           #  7 - true if the yaw observation has been rejected
-bool reject_airspeed                      #  8 - true if the airspeed observation has been rejected
-bool reject_sideslip                      #  9 - true if the synthetic sideslip observation has been rejected
-bool reject_hagl                          # 10 - true if the height above ground observation has been rejected
-bool reject_optflow_x                     # 11 - true if the X optical flow observation has been rejected
-bool reject_optflow_y                     # 12 - true if the Y optical flow observation has been rejected
