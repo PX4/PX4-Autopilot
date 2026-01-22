@@ -634,7 +634,7 @@ parameters:
             increment: 0.1
             min: 0.0
             max: 300.0
-            default: 0.0
+            default: 5.0
 
         CA_ICE_OUTPUT:
             description:
