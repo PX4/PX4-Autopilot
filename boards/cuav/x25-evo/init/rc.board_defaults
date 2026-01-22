@@ -23,7 +23,7 @@ param set-default UAVCAN_SUB_BAT 1
 # Enable IMU thermal control
 param set-default SENS_EN_THERMAL 1
 param set-default SENS_IMU_TEMP 45
-param set-default SENS_TEMP_ID 2818058
+param set-default HEATER1_IMU_ID 2818058
 
 # CUAV core board IMU thermal control
 param set-default CORE_IMU_TEMP 45
