@@ -158,7 +158,7 @@ private:
 	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
 	 *
 	 * @param[in] rtl_position landing position of the rtl
-	 * param[in] destination_type type of the rtl destination
+	 * @param[in] destination_type type of the rtl destination
 	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
 	 * @return return altitude
 	 */
@@ -229,7 +229,7 @@ private:
 	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
 	uint32_t _mission_id = 0u;
 	uint32_t _safe_points_id = 0u;
-	PositionYawSetpoint _last_position_before_link_loss{NAN, NAN, NAN, NAN};
+	PositionYawSetpoint _last_position_before_link_loss{(double)NAN, (double)NAN, NAN, NAN};
 
 	mission_stats_entry_s _stats;
 

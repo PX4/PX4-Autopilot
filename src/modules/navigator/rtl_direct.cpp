@@ -489,7 +489,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		case RTLState::MOVE_TO_LAND:
 		case RTLState::TRANSITION_TO_MC:
 		case RTLState::MOVE_TO_LAND_HOVER: {
-				// Add cruise segment to home
+				// Add cruise segment to destination
 				float move_to_land_dist{0.f};
 				matrix::Vector2f direction{};
 
