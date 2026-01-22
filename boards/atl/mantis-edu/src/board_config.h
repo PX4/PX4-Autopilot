@@ -184,7 +184,7 @@
 		PX4_ADC_GPIO,                     \
 		GPIO_HW_REV_DRIVE,                \
 		GPIO_HW_VER_DRIVE,                \
-		GPIO_HEATER_OUTPUT,               \
+		GPIO_HEATER1_OUTPUT,              \
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_OTGFS_VBUS                   \
 	}

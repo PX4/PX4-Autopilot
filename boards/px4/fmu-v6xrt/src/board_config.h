@@ -312,7 +312,7 @@
 #define GPIO_HEATER_OUTPUT
 #define HEATER_NUM 	1
 #define GPIO_HEATER1_OUTPUT    /* GPIO_EMC_B2_17 GPIO2_IO27 */ (GPIO_PORT2 | GPIO_PIN27 | GPIO_OUTPUT | HEATER_IOMUX)
-#define HEATER1_OUTPUT_EN(on_true) px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
+#define HEATER1_OUTPUT_EN(on_true) px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, (on_true))
 
 /* nARMED GPIO1_IO17
  *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
@@ -575,7 +575,7 @@
 		GPIO_FLEXCAN2_RX,                 \
 		GPIO_FLEXCAN3_TX,                 \
 		GPIO_FLEXCAN3_RX,                 \
-		GPIO_HEATER_OUTPUT,               \
+		GPIO_HEATER1_OUTPUT,              \
 		GPIO_FMU_CAP1,                    \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \

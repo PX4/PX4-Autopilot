@@ -283,7 +283,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 	// Power down the heater.
-	stm32_gpiowrite(GPIO_HEATER_OUTPUT, 0);
+	stm32_gpiowrite(GPIO_HEATER1_OUTPUT, 0);
 
 	// Configure SPI-based devices.
 	spi1 = stm32_spibus_initialize(1);

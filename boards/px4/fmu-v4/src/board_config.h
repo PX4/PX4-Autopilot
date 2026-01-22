@@ -143,7 +143,7 @@
 #define GPIO_HEATER_OUTPUT
 #define HEATER_NUM 	1
 #define GPIO_HEATER1_OUTPUT          (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
-#define HEATER1_OUTPUT_EN(on_true)    px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
+#define HEATER1_OUTPUT_EN(on_true)    px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, (on_true))
 
 /* Power switch controls */
 

@@ -212,7 +212,7 @@
 #define GPIO_HEATER_OUTPUT
 #define HEATER_NUM 	1
 #define GPIO_HEATER1_OUTPUT  /* PA7  T14CH1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
-#define HEATER1_OUTPUT_EN(on_true)              px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
+#define HEATER1_OUTPUT_EN(on_true)              px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, (on_true))
 
 
 /* PI0 is nARMED
@@ -428,7 +428,7 @@
 		GPIO_CAN1_SILENT_S0,              \
 		GPIO_CAN2_SILENT_S1,              \
 		GPIO_CAN3_SILENT_S2,              \
-		GPIO_HEATER_OUTPUT,               \
+		GPIO_HEATER1_OUTPUT,              \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \
