@@ -149,11 +149,6 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				      innov_var,                               // innovation variance
 				      math::max(_params.ekf2_mag_gate, 1.f)); // innovation gate
 
-		// Perform an innovation consistency check and report the result
-		_innov_check_fail_status.flags.reject_mag_x = (aid_src.test_ratio[0] > 1.f);
-		_innov_check_fail_status.flags.reject_mag_y = (aid_src.test_ratio[1] > 1.f);
-		_innov_check_fail_status.flags.reject_mag_z = (aid_src.test_ratio[2] > 1.f);
-
 		// determine if we should use mag fusion
 		bool continuing_conditions_passing = ((_params.ekf2_mag_type == MagFuseType::INIT)
 						      || (_params.ekf2_mag_type == MagFuseType::AUTO)
