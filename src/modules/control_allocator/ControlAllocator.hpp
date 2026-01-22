@@ -216,6 +216,10 @@ private:
 	Params _params{};
 	bool _has_slew_rate{false};
 
+
+	SlewRate<float> _slew_limited_ice_shedding_output;
+	hrt_abstime _last_ice_shedding_update{};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
@@ -223,7 +227,8 @@ private:
 		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
 		(ParamFloat<px4::params::CA_ICE_PERIOD>) _param_ice_shedding_period,
 		(ParamFloat<px4::params::CA_ICE_ON_TIME>) _param_ice_shedding_on_time,
-		(ParamFloat<px4::params::CA_ICE_OUTPUT>) _param_ice_shedding_output
+		(ParamFloat<px4::params::CA_ICE_OUTPUT>) _param_ice_shedding_output,
+		(ParamFloat<px4::params::CA_ICE_SLEW>) _param_ice_shedding_slewrate
 	)
 
 };

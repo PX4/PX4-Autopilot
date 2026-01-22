@@ -652,9 +652,13 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor
 	const float period_sec = _param_ice_shedding_period.get();
 	const float on_sec = _param_ice_shedding_on_time.get();
 	const float max_ice_shedding_output = _param_ice_shedding_output.get();
+	const float max_ice_shedding_slewrate = _param_ice_shedding_slewrate.get();
+	_slew_limited_ice_shedding_output.setSlewRate(max_ice_shedding_slewrate);
 
-	if (period_sec <= FLT_EPSILON || on_sec <= FLT_EPSILON || max_ice_shedding_output <= FLT_EPSILON) {
-		// The user has not configured the feature to be turned on
+	if (period_sec <= FLT_EPSILON || on_sec <= FLT_EPSILON || max_ice_shedding_output <= FLT_EPSILON
+	    || max_ice_shedding_slewrate < FLT_EPSILON) {
+		// The user has not configured the feature to be turned on, or the config makes no sense
+		_slew_limited_ice_shedding_output = 0.0f;
 		return 0.0f;
 	}
 
@@ -668,42 +672,22 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor
 	const bool apply_shedding = has_unused_upwards_rotors && in_forward_flight && !any_upward_motor_failed;
 
 	if (!apply_shedding) {
+		_slew_limited_ice_shedding_output = 0.0f;
 		return 0.0f;
 	}
 
 	const float elapsed_in_period = fmodf((float) now / 1_s, period_sec);
 
-	float current_ice_shedding_output = 0.0f;
+	// Pure square wave output
+	const float raw_ice_shedding_output = elapsed_in_period < on_sec ? max_ice_shedding_output : 0.0f;
 
-	const float slew_sec = 1.0f; // Time to reach full shed_ice_thrust
+	// Apply slew rate limit
+	const float dt = (float)(now - _last_ice_shedding_update) / 1_s;
 
-	// TOOD ensure this works (fails predictably...) when on_sec < 2 * slew_sec
-	// TODO if period_sec > on_sec, always output thrust? still fade it in?
-	// TODO when the params are changed in flight we essentially enter the
-	// cycle in a completely random phase, bypassing the slew limit.
-	//  - find out if this is actually dangerous
-	//  - if so, put some offset that is updated on param changes to stay in the same phase
-	//  - or redo the entire implementation with a state machine rather than this pure functional version
+	_slew_limited_ice_shedding_output.update(raw_ice_shedding_output, dt);
+	_last_ice_shedding_update = now;
 
-	if (elapsed_in_period < on_sec) {
-
-		// We are in the "active" window, calculate ramping
-		if (elapsed_in_period < slew_sec) {
-			// Ramp Up
-			current_ice_shedding_output = (elapsed_in_period / slew_sec) * max_ice_shedding_output;
-
-		} else if (elapsed_in_period > (on_sec - slew_sec)) {
-			// Ramp Down
-			current_ice_shedding_output = ((on_sec - elapsed_in_period) / slew_sec) * max_ice_shedding_output;
-
-		} else {
-			// Full Throttle
-			current_ice_shedding_output = max_ice_shedding_output;
-		}
-	}
-
-	return current_ice_shedding_output;
-
+	return _slew_limited_ice_shedding_output.getState();
 }
 
 void

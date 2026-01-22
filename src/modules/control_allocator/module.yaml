@@ -652,6 +652,17 @@ parameters:
             max: 0.2
             default: 0.0
 
+        CA_ICE_SLEW:
+            description:
+                short: Slew rate maximum for the ice shedding motor output.
+            type: float
+            decimal: 2
+            increment: 0.01
+            unit: 1/s
+            min: 0.1
+            max: 1000
+            default: 0.2
+
 # Mixer
 mixer:
     actuator_types:
