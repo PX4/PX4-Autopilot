@@ -375,6 +375,8 @@ void DShot::mixerChanged()
 bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
+	bool is_3d_mode_en = false;
+
 	if (!_outputs_on) {
 		return false;
 	}
@@ -403,11 +405,12 @@ bool DShot::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 		} else {
 
 			if (_param_dshot_3d_enable.get() || (_reversible_outputs & (1u << i))) {
+				is_3d_mode_en = true;
 				output = convert_output_to_3d_scaling(output);
 			}
 
 			up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
-						telemetry_index == requested_telemetry_index);
+						telemetry_index == requested_telemetry_index, is_3d_mode_en);
 		}
 
 		telemetry_index += _mixing_output.isFunctionSet(i);
