@@ -163,6 +163,19 @@ private:
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
 
-		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en
+		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
+
+		(ParamFloat<px4::params::BSA_ROLL_KV>) _param_bsa_roll_kv,
+		(ParamFloat<px4::params::BSA_ROLL_KA>) _param_bsa_roll_ka,
+
+		(ParamFloat<px4::params::BSA_PITCH_KV>) _param_bsa_pitch_kv,
+		(ParamFloat<px4::params::BSA_PITCH_KA>) _param_bsa_pitch_ka,
+
+		(ParamFloat<px4::params::BSA_YAW_KV>) _param_bsa_yaw_kv,
+		(ParamFloat<px4::params::BSA_YAW_KA>) _param_bsa_yaw_ka,
+
+		(ParamFloat<px4::params::BSA_IXX>) _param_bsa_ixx,
+		(ParamFloat<px4::params::BSA_IYY>) _param_bsa_iyy,
+		(ParamFloat<px4::params::BSA_IZZ>) _param_bsa_izz
 	)
 };
