@@ -313,9 +313,6 @@ public:
 	const fault_status_u &fault_status() const { return _fault_status; }
 	const decltype(fault_status_u::flags) &fault_status_flags() const { return _fault_status.flags; }
 
-	const innovation_fault_status_u &innov_check_fail_status() const { return _innov_check_fail_status; }
-	const decltype(innovation_fault_status_u::flags) &innov_check_fail_status_flags() const { return _innov_check_fail_status.flags; }
-
 	const information_event_status_u &information_event_status() const { return _information_events; }
 	const decltype(information_event_status_u::flags) &information_event_flags() const { return _information_events.flags; }
 	void clear_information_events() { _information_events.value = 0; }
@@ -432,8 +429,6 @@ protected:
 	TimestampedRingBuffer<dragSample> *_drag_buffer {nullptr};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 #endif // CONFIG_EKF2_DRAG_FUSION
-
-	innovation_fault_status_u _innov_check_fail_status{};
 
 	bool _horizontal_deadreckon_time_exceeded{true};
 	bool _vertical_position_deadreckon_time_exceeded{true};

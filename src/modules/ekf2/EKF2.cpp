@@ -1898,13 +1898,6 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		_filter_fault_status_changes++;
 	}
 
-	// innovation check fail status
-	if (_ekf.innov_check_fail_status().value != _innov_check_fail_status) {
-		update = true;
-		_innov_check_fail_status = _ekf.innov_check_fail_status().value;
-		_innov_check_fail_status_changes++;
-	}
-
 	if (update) {
 		estimator_status_flags_s status_flags{};
 		status_flags.timestamp_sample = _ekf.time_delayed_us();
@@ -1971,18 +1964,6 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.fs_bad_optflow_y         = _ekf.fault_status_flags().bad_optflow_Y;
 		status_flags.fs_bad_acc_vertical      = _ekf.fault_status_flags().bad_acc_vertical;
 		status_flags.fs_bad_acc_clipping      = _ekf.fault_status_flags().bad_acc_clipping;
-
-		status_flags.innovation_fault_status_changes = _innov_check_fail_status_changes;
-		status_flags.reject_hor_vel                  = _ekf.innov_check_fail_status_flags().reject_hor_vel;
-		status_flags.reject_ver_vel                  = _ekf.innov_check_fail_status_flags().reject_ver_vel;
-		status_flags.reject_hor_pos                  = _ekf.innov_check_fail_status_flags().reject_hor_pos;
-		status_flags.reject_ver_pos                  = _ekf.innov_check_fail_status_flags().reject_ver_pos;
-		status_flags.reject_yaw                      = _ekf.innov_check_fail_status_flags().reject_yaw;
-		status_flags.reject_airspeed                 = _ekf.innov_check_fail_status_flags().reject_airspeed;
-		status_flags.reject_sideslip                 = _ekf.innov_check_fail_status_flags().reject_sideslip;
-		status_flags.reject_hagl                     = _ekf.innov_check_fail_status_flags().reject_hagl;
-		status_flags.reject_optflow_x                = _ekf.innov_check_fail_status_flags().reject_optflow_X;
-		status_flags.reject_optflow_y                = _ekf.innov_check_fail_status_flags().reject_optflow_Y;
 
 		status_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_status_flags_pub.publish(status_flags);
