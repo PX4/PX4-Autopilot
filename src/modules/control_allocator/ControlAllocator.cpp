@@ -647,7 +647,7 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 }
 
 float
-ControlAllocator::get_ice_shedding_output(hrt_abstime now)
+ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor_failed)
 {
 	const float period_sec = _param_ice_shedding_period.get();
 	const float on_sec = _param_ice_shedding_on_time.get();
@@ -661,7 +661,11 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now)
 	const bool has_unused_upwards_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
 					       || _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
 	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
-	const bool apply_shedding = has_unused_upwards_rotors && in_forward_flight;
+
+	// If any upward motor has failed, the feature will create much more
+	// torque than in the nominal case, and becomes pointless anyway as we
+	// cannot go back to multicopter
+	const bool apply_shedding = has_unused_upwards_rotors && in_forward_flight && !any_upward_motor_failed;
 
 	if (!apply_shedding) {
 		return 0.0f;
@@ -722,11 +726,15 @@ ControlAllocator::publish_actuator_controls()
 	int actuator_idx = 0;
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
-	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors()
-				  | _handled_motor_failure_bitmask
-				  | _motor_stop_mask;
+	const uint32_t stopped_motors_due_to_effectiveness = _actuator_effectiveness->getStoppedMotors();
 
-	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp);
+	const uint32_t stopped_motors = stopped_motors_due_to_effectiveness
+					| _handled_motor_failure_bitmask
+					| _motor_stop_mask;
+
+	const bool any_upward_motor_failed = 0 != (stopped_motors_due_to_effectiveness & (_handled_motor_failure_bitmask | _motor_stop_mask));
+
+	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp, any_upward_motor_failed);
 
 	// motors
 	int motors_idx;
