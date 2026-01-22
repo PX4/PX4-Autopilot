@@ -649,14 +649,18 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 float
 ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor_failed)
 {
+	// Hardcoded maximum to limit the amount the user can mess up by setting parameters
+	// Equal to the param maximum in module.yaml
+	const float max_ice_shedding_output = 0.2;
+
 	const float period_sec = _param_ice_shedding_period.get();
 	const float on_sec = _param_ice_shedding_on_time.get();
-	const float max_ice_shedding_output = _param_ice_shedding_output.get();
+	const float ice_shedding_output = fminf(_param_ice_shedding_output.get(), max_ice_shedding_output);
 	const float max_ice_shedding_slewrate = _param_ice_shedding_slewrate.get();
 	_slew_limited_ice_shedding_output.setSlewRate(max_ice_shedding_slewrate);
 
 	const bool feature_turned_off = period_sec <= FLT_EPSILON || on_sec <= FLT_EPSILON
-					|| max_ice_shedding_output <= FLT_EPSILON
+					|| ice_shedding_output <= FLT_EPSILON
 					|| max_ice_shedding_slewrate < FLT_EPSILON;
 
 	const bool has_unused_upwards_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
@@ -676,7 +680,7 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor
 	} else {
 		// Raw square wave output
 		const float elapsed_in_period = fmodf((float) now / 1_s, period_sec);
-		const float raw_ice_shedding_output = elapsed_in_period < on_sec ? max_ice_shedding_output : 0.0f;
+		const float raw_ice_shedding_output = elapsed_in_period < on_sec ? ice_shedding_output : 0.0f;
 
 		// Apply slew rate limit
 		const float dt = (float)(now - _last_ice_shedding_update) / 1_s;
@@ -684,7 +688,9 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor
 	}
 
 	_last_ice_shedding_update = now;
-	return _slew_limited_ice_shedding_output.getState();
+
+	// Again limit with the maximum just in case there is an error
+	return fminf(_slew_limited_ice_shedding_output.getState(), max_ice_shedding_output);
 }
 
 void
