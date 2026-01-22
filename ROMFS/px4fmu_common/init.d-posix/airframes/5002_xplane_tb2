@@ -1,0 +1,404 @@
+#!/bin/sh
+################################################################################
+# PX4 SITL Configuration Script for Bayraktar TB2 UAV in X-Plane
+################################################################################
+#
+# @name              TB2 Fixed Wing Aircraft
+# @type              Plane A-Tail
+# @class             Plane
+# @maintainer        Alireza Ghaderi <p30planets@gmail.com>
+# @url               https://github.com/alireza787b/px4xplane/
+#
+# Airframe:          Bayraktar TB2
+# Type:              Fixed-Wing MALE UAV (A-Tail / Inverted V-Tail)
+# Configuration:     1 Propeller Motor + 7 Control Surfaces (V-tail + Flaps)
+# Compatible Sim:    X-Plane 11/12
+# Date:              December 2025
+#
+# AIRCRAFT SPECIFICATIONS:
+# - MTOW: 650 kg (1,433 lb) - Medium UAV
+# - Wingspan: 12.0 m (39.4 ft)
+# - Cruise Speed: 100 km/h (28 m/s) - optimized for 27+ hour endurance
+# - Service Ceiling: 25,000 ft (7,620 m)
+# - Endurance: 27+ hours (world record holder for its class)
+# - Engine: 100 HP internal combustion
+# - Unique: Inverted V-tail (A-tail) configuration for pitch/yaw control
+#
+# USAGE:
+# 1. Place this file in: PX4-Autopilot/ROMFS/px4fmu_common/init.d-posix/airframes/
+# 2. Run: make px4_sitl xplane_tb2
+# 3. Launch X-Plane with TB2 aircraft model
+#
+################################################################################
+
+. ${R}etc/init.d/rc.fw_defaults
+
+
+################################################################################
+# SECTION 1: CONTROL ALLOCATION (CA) - V-TAIL CONFIGURATION
+################################################################################
+# Motor: Front propeller (+1.5m from CG, thrust forward)
+# Primary Surfaces: Left/Right Ailerons, Left/Right V-tail (combined pitch/yaw)
+# Secondary Surfaces: Wheel (ground steering), Left/Right Flaps
+#
+# V-TAIL MIXING:
+# - Both surfaces move UP together → pitch UP
+# - Both surfaces move DOWN together → pitch DOWN
+# - Left UP + Right DOWN → yaw RIGHT (differential lift/drag)
+# - Left DOWN + Right UP → yaw LEFT (differential lift/drag)
+#
+# Left V-tail deflection = (pitch_cmd × 0.5) + (yaw_cmd × -0.5)
+# Right V-tail deflection = (pitch_cmd × 0.5) + (yaw_cmd × 0.5)
+
+param set-default CA_AIRFRAME 1          # Fixed-wing configuration
+param set-default CA_METHOD 2            # Pseudo-inverse allocation
+param set-default CA_FAILURE_MODE 0
+param set-default CA_ROTOR_COUNT 1       # 1 propeller motor
+
+# Propeller Motor 0
+param set-default CA_ROTOR0_PX 1.5       # 1.5m forward of CG
+param set-default CA_ROTOR0_AX 1.0       # Thrust forward
+param set-default CA_ROTOR0_AZ 0.0
+param set-default CA_R0_SLEW 2.0         # Smooth throttle for endurance
+
+# Primary Control Surfaces
+param set-default CA_SV_CS0_TRQ_R -0.5   # Left Aileron
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS1_TRQ_R 0.5    # Right Aileron
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS2_TRQ_P 0.5    # Left V-tail (pitch+yaw)
+param set-default CA_SV_CS2_TRQ_Y -0.5
+param set-default CA_SV_CS2_TYPE 13      # Type 13 = Left V-tail
+param set-default CA_SV_CS3_TRQ_P 0.5    # Right V-tail (pitch+yaw)
+param set-default CA_SV_CS3_TRQ_Y 0.5
+param set-default CA_SV_CS3_TYPE 14      # Type 14 = Right V-tail
+
+# Secondary Control Surfaces
+param set-default CA_SV_CS4_TRQ_Y 0      # Wheel (ground steering)
+param set-default CA_SV_CS4_TYPE 16
+param set-default CA_SV_CS5_TYPE 9       # Left Flap
+param set-default CA_SV_CS6_TYPE 10      # Right Flap
+param set-default CA_SV_CS_COUNT 7
+
+# PWM Output Mapping
+param set-default PWM_MAIN_FUNC1 201     # Left aileron
+param set-default PWM_MAIN_FUNC2 202     # Right aileron
+param set-default PWM_MAIN_FUNC3 203     # Left V-tail
+param set-default PWM_MAIN_FUNC4 204     # Right V-tail
+param set-default PWM_MAIN_FUNC5 101     # Propeller
+param set-default PWM_MAIN_FUNC6 205     # Wheel
+param set-default PWM_MAIN_FUNC7 206     # Left flap
+param set-default PWM_MAIN_FUNC8 207     # Right flap
+param set-default PWM_MAIN_REV 15
+
+
+################################################################################
+# SECTION 2: EKF2 SENSOR FUSION - OPTIMIZED FOR LONG-ENDURANCE MISSIONS
+################################################################################
+# Applied optimizations for 27+ hour missions:
+# - Barometer: 0.003 (3mm noise) - critical for no drift over 27+ hours
+# - Single sensor priority prevents BARO switch during long missions
+# - Innovation gates: 5.0 for day/night temperature variations
+
+# Sensor Simulation Enables
+param set-default SENS_EN_GPSSIM 1       # GPS simulation
+param set-default SENS_EN_BAROSIM 1      # Barometer simulation
+param set-default SENS_EN_ARSPDSIM 1     # Airspeed simulation
+param set-default SENS_EN_MAGSIM 1       # Magnetometer simulation
+param set-default SYS_HAS_BARO 1
+param set-default SYS_HAS_GPS 1
+param set-default SYS_HAS_MAG 1
+
+# Barometer Priority (prevents switching during 27+ hour missions)
+param set-default CAL_BARO0_PRIO 100     # Primary barometer
+param set-default CAL_BARO1_PRIO 0       # Backup disabled
+
+# EKF2 Core Configuration
+param set-default EKF2_BARO_CTRL 1
+param set-default EKF2_MULTI_IMU 1
+
+# Accelerometer Bias Estimation (v3.3.3 - X-Plane SITL optimized)
+param set-default EKF2_ABIAS_INIT 0.2    # Tighter initial bias estimate
+param set-default EKF2_ABL_LIM 2.5       # X-Plane SITL requires higher tolerance (see note below)
+param set-default EKF2_ABL_TAU 0.5       # Slower bias adaptation (stability)
+param set-default EKF2_ABL_ACCLIM 35.0
+param set-default EKF2_ACC_NOISE 1.0     # Better accelerometer trust
+param set-default EKF2_ACC_B_NOISE 0.001
+
+# X-PLANE SITL NOTE: EKF2_ABL_LIM = 2.5 (vs Gazebo/jMAVSim default 0.4)
+# Required because X-Plane has lower sensor rate (~100Hz vs 250Hz) and
+# inherent physics engine variations that cause EKF2 to estimate higher bias.
+# This does NOT affect flight performance - only the preflight arming check.
+
+# Gyroscope Noise (v3.2.0 - added for bias estimation stability)
+param set-default EKF2_GYR_NOISE 0.015   # Gyro measurement noise (rad/s)
+param set-default EKF2_GYR_B_NOISE 0.001 # Gyro bias process noise (rad/s)
+
+# Barometer (v3.2.0 - critical for 27+ hour missions without drift)
+param set-default EKF2_BARO_NOISE 0.003  # 3mm - matches plugin sensor noise
+param set-default EKF2_BARO_DELAY 0.0
+param set-default EKF2_BARO_GATE 10.0    # Increased for day/night temp tolerance
+
+# GPS Parameters
+param set-default EKF2_GPS_DELAY 0.0
+param set-default EKF2_GPS_P_NOISE 0.15  # Matches vertical accuracy
+param set-default EKF2_GPS_V_NOISE 0.15  # Realistic GPS velocity noise (was 0.01)
+param set-default EKF2_GPS_P_GATE 5.0
+param set-default EKF2_GPS_V_GATE 5.0
+
+# Magnetometer (critical for GPS-denied operations)
+param set-default EKF2_MAG_TYPE 0
+param set-default EKF2_HEAD_NOISE 0.3
+param set-default EKF2_MAG_NOISE 0.05
+param set-default EKF2_MAG_GATE 5.0
+
+# Airspeed & Additional Sensors
+param set-default EKF2_ASP_DELAY 0.0
+param set-default EKF2_TAS_GATE 5.0
+param set-default EKF2_AGP_CTRL 3
+param set-default EKF2_AVEL_DELAY 0.0
+param set-default EKF2_WIND_NSD 0.01     # Wind estimation for endurance
+param set-default EKF2_REQ_VDRIFT 1.0
+
+# IMU Configuration
+param set-default IMU_GYRO_RATEMAX 100
+param set-default IMU_INTEG_RATE 100
+
+
+################################################################################
+# SECTION 3: FIXED-WING RATE CONTROL - PID TUNING
+################################################################################
+# Tuned for medium UAV (650 kg) with V-tail configuration.
+# December 2025: Reduced extreme gains (P/I/D/FF were 5-100x defaults)
+# for ISR sensor platform stability. Added explicit yaw rate control.
+
+# Roll Rate (moderate gains for ISR stability)
+param set-default FW_RR_P 0.15           # P gain (was 0.47 - 9x default!)
+param set-default FW_RR_I 0.10           # I gain (standard)
+param set-default FW_RR_D 0.01           # D gain (was 0.085 - 28x default!)
+param set-default FW_RR_FF 0.6           # Feedforward (was 4.8 - 10x default!)
+param set-default FW_R_RMAX 10.0         # Max roll rate (slow ISR maneuvers)
+param set-default FW_R_TC 0.6            # Time constant
+param set-default FW_R_LIM 45.0          # Roll limit (UAV operations)
+
+# Pitch Rate (reduced for smooth ISR platform)
+param set-default FW_PR_P 0.12           # P gain (was 0.365 - 4.5x default!)
+param set-default FW_PR_I 0.08           # I gain (increased for steady-state)
+param set-default FW_PR_D 0.01           # D gain (was 0.355 - 118x default!)
+param set-default FW_PR_FF 0.5           # Feedforward (was 3.4 - 10x default!)
+param set-default FW_P_LIM_MAX 20.0      # Max pitch up
+param set-default FW_P_LIM_MIN -15.0     # Max pitch down
+param set-default FW_P_TC 0.45
+param set-default FW_PN_R_SLEW_MAX 50.0
+
+# Yaw Rate (V-tail requires explicit yaw control)
+param set-default FW_YR_P 0.08           # P gain (V-tail yaw authority)
+param set-default FW_YR_I 0.05           # I gain (steady-state tracking)
+param set-default FW_YR_D 0.003          # D gain (yaw damping)
+param set-default FW_YR_FF 0.3           # Feedforward (coordinated turn)
+
+# Wheel Rate (Ground Steering)
+param set-default FW_WR_P 1.0
+param set-default FW_WR_I 0.2
+param set-default FW_WR_FF 0.2
+param set-default FW_WR_IMAX 0.8
+param set-default FW_W_RMAX 0
+
+
+################################################################################
+# SECTION 4: MANUAL FLIGHT MODE
+################################################################################
+# For pilot training and testing
+
+param set-default FW_MAN_P_MAX 55        # Max manual pitch (UAV)
+param set-default FW_MAN_R_MAX 55        # Max manual roll (UAV)
+
+
+################################################################################
+# SECTION 5: AIRSPEED CONTROL
+################################################################################
+# Flight envelope: Stall ~25 m/s, Cruise 28 m/s (endurance), Max 36 m/s
+# TB2 cruises SLOW (28 m/s) to maximize 27+ hour endurance
+
+param set-default FW_AIRSPD_MIN 30.0     # Min airspeed (above stall)
+param set-default FW_AIRSPD_MAX 40.0     # Max airspeed
+param set-default FW_AIRSPD_TRIM 28.0    # 100 km/h endurance cruise
+param set-default FW_AIRSPD_STALL 25.0   # Stall speed
+
+# Airspeed Sensor (SITL)
+param set-default FW_USE_AIRSPD 1        # Use airspeed for control
+param set-default ASPD_DO_CHECKS 7       # Disable hardware checks (SITL)
+param set-default SYS_HAS_NUM_ASPD 1     # 1 virtual airspeed sensor
+
+
+################################################################################
+# SECTION 6: TECS - TOTAL ENERGY CONTROL SYSTEM
+################################################################################
+# Optimized for 27+ hour endurance and ISR sensor platform stability
+# December 2025: Increased damping (lesson from Alia 250 tuning)
+
+# Core Parameters
+param set-default FW_T_ALT_TC 8.0        # Altitude time constant (slow for ISR)
+param set-default FW_T_RLL2THR 8.0       # Roll to throttle (ISR loiter)
+param set-default FW_T_STE_R_TC 1.5      # Energy rate time constant
+
+# Climb/Sink Limits (100 HP / 650 kg)
+param set-default FW_T_CLMB_MAX 4.0      # Max climb rate
+param set-default FW_T_SINK_MIN 2.0      # Min sink
+param set-default FW_T_SINK_MAX 4.0      # Max sink
+param set-default FW_T_VERT_ACC 4.0      # Vertical acceleration limit
+
+# Damping (critical for stable ISR sensor platform)
+param set-default FW_T_THR_DAMPING 0.15  # Throttle damping (was 0.08)
+param set-default FW_T_PTCH_DAMP 0.15    # Pitch damping (was 0.1)
+
+# Integrators
+param set-default FW_T_I_GAIN_PIT 0.25   # Pitch integrator (was 0.3)
+
+
+################################################################################
+# SECTION 7: THROTTLE MANAGEMENT
+################################################################################
+# Engine: 100 HP, optimized for 27+ hour endurance
+# 50% cruise throttle (lowest in fleet) for maximum endurance
+
+param set-default FW_THR_TRIM 0.50       # 50% endurance cruise throttle
+param set-default FW_THR_MAX 1.0         # 100% max
+param set-default FW_THR_MIN 0.10        # 10% min
+param set-default FW_THR_IDLE 0.00       # Idle
+param set-default FW_THR_SLEW_MAX 0.50   # Throttle slew rate
+param set-default FW_THR_ASPD_MAX 0.00
+param set-default FW_THR_ASPD_MIN 0.00
+
+
+################################################################################
+# SECTION 8: TAKEOFF & LANDING
+################################################################################
+# Runway operations with flaps
+
+# Takeoff
+param set-default FW_TKO_AIRSPD 32.0     # Rotation speed
+param set-default FW_TKO_PITCH_MIN 20.0  # Min pitch angle
+
+# Landing
+param set-default FW_LND_ABORT 0
+param set-default FW_LND_AIRSPD 0        # Auto (based on stall speed)
+param set-default FW_LND_FLALT 5.0       # Flare altitude
+param set-default FW_LND_FL_PMAX 35.0    # Max pitch during flare
+param set-default LNDFW_AIRSPD_MAX 30.0
+param set-default LNDFW_VEL_XY_MAX 15.0
+
+
+################################################################################
+# SECTION 9: NPFG GUIDANCE (Modern PX4 v1.14+)
+################################################################################
+# Optimized for medium UAV ISR missions
+# December 2025: Increased damping for stable orbit tracking
+# Formula: L1_distance = (1/π) × NPFG_DAMPING × NPFG_PERIOD × groundspeed
+# At 28 m/s cruise: ~250m turning radius
+
+param set-default NPFG_PERIOD 35.0       # Large for ISR loiter (TB2 specialty)
+param set-default NPFG_DAMPING 0.80      # Damping ratio (was 0.7)
+param set-default NPFG_ROLL_TC 0.5       # Roll time constant (was 0.4)
+param set-default NPFG_SW_DST_MLT 1.0    # Switch distance multiplier
+
+
+################################################################################
+# SECTION 10: NAVIGATION & MISSION
+################################################################################
+# ISR mission strategy: Persistence over target, not speed
+
+# Mission Parameters
+param set-default MIS_YAW_ERR 30.0       # Yaw error tolerance (ISR)
+param set-default MIS_YAW_TMT 5.0
+param set-default MIS_TAKEOFF_ALT 100.0  # Standard pattern altitude
+param set-default MIS_TKO_LAND_REQ 0
+param set-default MIS_DIST_1WP 5000.0
+
+# Acceptance Radii
+param set-default NAV_ACC_RAD 300.0      # Waypoint acceptance
+param set-default NAV_FW_ALT_RAD 50.0    # Altitude acceptance
+param set-default NAV_MIN_LTR_ALT -1.0
+
+# Loiter Configuration (ISR missions at 28 m/s)
+param set-default NAV_LOITER_RAD 900.0   # Tactical ISR loiter radius
+
+# Return to Launch
+param set-default RTL_RETURN_ALT 100     # RTL altitude
+param set-default RTL_DESCEND_ALT 200
+param set-default RTL_MIN_DIST 50.0
+param set-default RTL_LOITER_RAD 900.0
+
+
+################################################################################
+# SECTION 11: AIRCRAFT GEOMETRY & MASS
+################################################################################
+# Physical dimensions for flight dynamics
+
+param set-default FW_WING_SPAN 12.0      # 12.0 m (39.4 ft)
+param set-default FW_WING_HEIGHT 2.5     # Estimated for medium UAV
+param set-default WEIGHT_BASE 650.0      # MTOW 650 kg
+param set-default WEIGHT_GROSS 650.0     # MTOW 650 kg
+
+
+################################################################################
+# SECTION 12: ADVANCED FEATURES & SYSTEM CONFIGURATION
+################################################################################
+
+# Logging
+param set-default SDLOG_MODE 0           # Disabled for SITL
+
+# Circuit Breakers (SITL-SPECIFIC - DO NOT USE ON REAL HARDWARE)
+param set-default CBRK_USB_CHK 197848    # Disable USB check
+param set-default CBRK_SUPPLY_CHK 894281 # Disable battery check
+param set-default CBRK_IO_SAFETY 22027   # Disable safety switch
+
+
+################################################################################
+# TROUBLESHOOTING GUIDE
+################################################################################
+#
+# Roll/pitch oscillation or jittery control:
+#   - Verify FW_RR_P = 0.15, FW_RR_FF = 0.6 (reduced from extreme values)
+#   - Verify FW_PR_P = 0.12, FW_PR_FF = 0.5 (reduced from extreme values)
+#   - Check D-gains are low: FW_RR_D = 0.01, FW_PR_D = 0.01
+#   - High D-gains amplify sensor noise (was 118x default!)
+#
+# V-tail yaw control issues:
+#   - Verify FW_YR_P = 0.08, FW_YR_I = 0.05, FW_YR_D = 0.003
+#   - V-tail mixing: CA_SV_CS2_TRQ_P = 0.5, CA_SV_CS2_TRQ_Y = -0.5
+#   - V-tail mixing: CA_SV_CS3_TRQ_P = 0.5, CA_SV_CS3_TRQ_Y = 0.5
+#   - Check PWM_MAIN_REV = 15
+#
+# Altitude drift during long mission (27+ hours):
+#   - Verify EKF2_BARO_NOISE = 0.003
+#   - Check CAL_BARO1_PRIO = 0
+#   - Verify innovation gates = 5.0
+#
+# Altitude oscillation during ISR loiter:
+#   - Verify FW_T_THR_DAMPING = 0.15 (increased from 0.08)
+#   - Verify FW_T_PTCH_DAMP = 0.15 (increased from 0.1)
+#   - Increase further if needed
+#
+# Wide loiter radius / orbit tracking issues:
+#   - Verify NPFG_DAMPING = 0.80 (increased from 0.7)
+#   - Reduce NPFG_PERIOD (35 → 30) for tighter orbits
+#   - Reduce NAV_LOITER_RAD (900 → 700m) if needed
+#
+# Flaps not deploying during landing:
+#   - Verify PWM_MAIN_FUNC7 = 206 (left flap)
+#   - Verify PWM_MAIN_FUNC8 = 207 (right flap)
+#   - Check X-Plane dataref mapping
+#
+# V-TAIL MIXING NOTES:
+# Left V-tail deflection = (pitch_cmd × 0.5) + (yaw_cmd × -0.5)
+# Right V-tail deflection = (pitch_cmd × 0.5) + (yaw_cmd × 0.5)
+#
+################################################################################
+# END OF CONFIGURATION
+################################################################################
+# Maintainer: px4xplane project - https://github.com/alireza787b/px4xplane/
+# Status: Production-ready for X-Plane SITL simulation
+# Mission Profile: MALE UAV, ISR/Strike, Long-Endurance (27+ hours)
+# Tuning: December 2025 - Reduced extreme gains, added V-tail yaw control
+################################################################################
