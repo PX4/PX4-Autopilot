@@ -659,6 +659,7 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor
 	    || max_ice_shedding_slewrate < FLT_EPSILON) {
 		// The user has not configured the feature to be turned on, or the config makes no sense
 		_slew_limited_ice_shedding_output = 0.0f;
+		_last_ice_shedding_update = now;
 		return 0.0f;
 	}
 
@@ -673,6 +674,7 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_upward_motor
 
 	if (!apply_shedding) {
 		_slew_limited_ice_shedding_output = 0.0f;
+		_last_ice_shedding_update = now;
 		return 0.0f;
 	}
 
