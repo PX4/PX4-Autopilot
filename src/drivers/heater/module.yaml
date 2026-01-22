@@ -1,0 +1,88 @@
+__max_num_config_instances: &max_num_config_instances 3
+
+module_name: heater
+
+parameters:
+    - group: Sensors
+      definitions:
+        HEATER${i}_IMU_ID:
+            description:
+                short: The ID of the IMU controlled by heater ${i}
+                long: |
+                    Specifies the sensor device ID (DEVID) that this heater instance attempts to control.
+                    If set to 0, this instance attempts to locate the first unoccupied sensor.
+                    Setting to -1 or an invalid ID disables this heater instance.
+
+            type: int32
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0, 0, 0]
+
+        HEATER${i}_TEMP:
+            description:
+                short: Target temperature for heater ${i}
+                long: |
+                    Specify the target stable temperature (in degrees Celsius) for the IMU.
+                    It is generally recommended to set this between 40°C and 60°C,
+                    which must be higher than the maximum ambient temperature.
+
+            type: float
+            decimal: 3
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            unit: celcius
+            min: 0
+            max: 85.0
+            default: [55.0, 55.0, 55.0]
+
+        HEATER${i}_TEMP_FF:
+            description:
+                short:  IMU heater controller ${i} feedforward value
+                long: |
+                    Used to predict the baseline power consumption required to maintain temperature,
+                    helping to reduce adjustment time.
+
+            type: float
+            unit: '%'
+            min: 0
+            max: 1.0
+            decimal: 3
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0.05, 0.05, 0.05]
+
+        HEATER${i}_TEMP_I:
+            description:
+                short: IMU heater controller ${i} integrator gain value
+                long: |
+                    Integral gain is used to eliminate steady-state error,
+                    ensuring that the temperature ultimately reaches the setpoint target.
+
+            type: float
+            unit: us/C
+            min: 0
+            max: 1.0
+            decimal: 3
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0.025, 0.025, 0.025]
+
+        HEATER${i}_TEMP_P:
+            description:
+                short: IMU heater controller ${i} proportional gain value
+                long: |
+                    The proportional gain determines how quickly the controller responds to temperature deviations.
+
+            type: float
+            unit: us/C
+            min: 0
+            max: 2.0
+            decimal: 3
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [1.0, 1.0, 1.0]

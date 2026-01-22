@@ -48,10 +48,12 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/heater_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
+#include <parameters/param.h>
 
 #include <mathlib/mathlib.h>
 
@@ -59,23 +61,23 @@ using namespace time_literals;
 
 #define CONTROLLER_PERIOD_DEFAULT    10000
 #define TEMPERATURE_TARGET_THRESHOLD 2.5f
+#define HEATER_MAX_INSTANCES 3 	// If changed, also need to change `max_num_config_instances` in module.yaml
 
-class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem
+class Heater : px4::ScheduledWorkItem, public ModuleParams
 {
 public:
-	Heater();
+	Heater(uint8_t instance, const px4::wq_config_t &wq);
 
 	virtual ~Heater();
 
 	/**
-	 * @see ModuleBase::custom_command().
-	 * @brief main Main entry point to the module that should be
-	 *        called directly from the module's main method.
-	 * @param argc The input argument count.
-	 * @param argv Pointer to the input argument array.
-	 * @return Returns 0 iff successful, -1 otherwise.
+	 * @brief Initiates the heater driver work queue, starts a new background task,
+	 *        and fails if it is already running.
+	 * @return Returns 1 iff start was successful.
 	 */
-	static int custom_command(int argc, char *argv[]);
+	int start();
+
+	void stop();
 
 	/**
 	 * @see ModuleBase::print_usage().
@@ -84,21 +86,14 @@ public:
 	 */
 	static int print_usage(const char *reason = nullptr);
 
-	/**
-	 * @see ModuleBase::task_spawn().
-	 * @brief Initializes the class in the same context as the work queue
-	 *        and starts the background listener.
-	 * @param argv Pointer to the input argument array.
-	 * @return Returns 0 iff successful, -1 otherwise.
-	 */
-	static int task_spawn(int argc, char *argv[]);
+	static bool is_running_instance(uint8_t instance);
+	static bool is_running_any();
 
-	/**
-	 * @brief Initiates the heater driver work queue, starts a new background task,
-	 *        and fails if it is already running.
-	 * @return Returns 1 iff start was successful.
-	 */
-	int start();
+	static int start_instance(uint8_t instance);
+	static int stop_all();
+	static int status(uint8_t instance);
+
+	static Heater *g_heater[HEATER_MAX_INSTANCES];
 
 private:
 
@@ -142,6 +137,7 @@ private:
 	bool _heater_on              = false;
 	bool _temperature_target_met = false;
 
+	int _controller_period_usec = CONTROLLER_PERIOD_DEFAULT;
 	int _controller_time_on_usec = 0;
 
 	float _integrator_value   = 0.0f;
@@ -157,11 +153,25 @@ private:
 
 	float _temperature_last{NAN};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SENS_IMU_TEMP_FF>) _param_sens_imu_temp_ff,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _param_sens_imu_temp_i,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _param_sens_imu_temp_p,
-		(ParamFloat<px4::params::SENS_IMU_TEMP>)    _param_sens_imu_temp,
-		(ParamInt<px4::params::SENS_TEMP_ID>)       _param_sens_temp_id
-	)
+	const uint8_t _instance; // 1,2,3
+
+	volatile bool _should_exit{false};
+	struct {
+		param_t imu_id;
+		param_t temp;
+		param_t temp_p;
+		param_t temp_i;
+		param_t temp_ff;
+	} _param_handles;
+
+	struct {
+		int32_t imu_id;   // HEATER<i>_IMU_ID: <0 disable, 0 auto, >0 match device_id
+		float   temp;     // target temperature
+		float   temp_p;
+		float   temp_i;
+		float   temp_ff;
+	} _params;
+
 };
+
+
