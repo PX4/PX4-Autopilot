@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,12 +71,12 @@ private:
 	struct i2c_master_s *_i2c {nullptr};
 };
 
-class PowerMonitorSelectorAuterion : public ModuleBase<PowerMonitorSelectorAuterion>, public px4::ScheduledWorkItem
+class AuterionAutostarter : public ModuleBase<AuterionAutostarter>, public px4::ScheduledWorkItem
 {
 
 public:
-	PowerMonitorSelectorAuterion();
-	virtual ~PowerMonitorSelectorAuterion();
+	AuterionAutostarter();
+	virtual ~AuterionAutostarter();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -89,7 +89,14 @@ public:
 
 private:
 	enum BlockType : uint8_t {
-		TYPE_PM = 0
+		TYPE_PM = 0,
+		TYPE_PWM_EXPANDER = 1,
+	};
+
+	enum ClockType : uint8_t {
+		CLOCK_NONE = 0,
+		CLOCK_INTERNAL = 1,
+		CLOCK_EXTERNAL_GENERIC = 2,
 	};
 
 	struct Buses {
@@ -117,7 +124,7 @@ private:
 		uint16_t flags; /**< offset 6 */
 		uint16_t num_blocks; /**< offset 8 */
 		uint8_t _reserved1[2]; /**< offset 10 */
-	};
+	} __attribute__((aligned(4)));
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -125,11 +132,11 @@ private:
 		uint8_t block_type; /**< offset 0 */
 		uint8_t block_type_version; /**< offset 1 */
 		uint16_t block_length; /**< offset 2 */
-	};
+	} __attribute__((aligned(4)));
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-	/* Block n starts at 12 + (n * 20) */
+	/* Block n starts at 12 + (n * 20), each block needs to contain a block_header and dev_type! */
 	struct EepromBlockPm {
 		EepromBlockHeader block_header; /**< offset 0 */
 		uint16_t dev_type; /**< offset 4 */
@@ -138,8 +145,32 @@ private:
 		uint8_t _padding1[2]; /**< offset 10 */
 		float max_current; /**< offset 12 */
 		float shunt_value; /**< offset 16 */
-	};
+	} __attribute__((aligned(4)));
 #pragma pack(pop)
+
+#pragma pack(push, 1)
+	/* Block n starts at 12 + (n * 20), each block needs to contain a block_header and dev_type! */
+	struct EepromBlockPwmExpander {
+		EepromBlockHeader block_header; /**< offset 0 */
+		uint16_t dev_type; /**< offset 4 */
+		uint16_t sensor_type; /**< offset 6 */
+		uint16_t i2c_addr; /**< offset 8 */
+		uint16_t num_channels; /**< offset 10 */
+		uint16_t offset_channels; /**< offset 12 */
+		ClockType clock_type; /**< offset 14 */
+		uint8_t _padding1; /**< offset 15 */
+		float signal_level; /**< offset 16 */
+	} __attribute__((aligned(4)));
+#pragma pack(pop)
+
+	struct DecodedBlock {
+		BlockType block_type;
+
+		union {
+			EepromBlockPm block_pm;
+			EepromBlockPwmExpander block_pwm_expander;
+		};
+	};
 
 	void Run() override;
 
@@ -152,12 +183,16 @@ private:
 	int eeprom_read(const uint32_t instance);
 	bool is_eeprom_header_valid(EepromHeader *eeprom_header) const;
 
-	int eeprom_read_block(struct i2c_master_s *i2c, const uint32_t instance, const uint16_t transferred_blocks,
-			      uint16_t &crc);
+	int eeprom_read_block(struct i2c_master_s *i2c, const uint32_t instance, const uint16_t transferred_blocks, uint16_t &crc);
+	template <typename T>
+	int eeprom_read_block_data(struct i2c_master_s *i2c, const uint32_t instance, uint16_t &crc, T *block);
+	template <AuterionAutostarter::BlockType ExpectedBlockType, typename T>
 	bool is_eeprom_block_header_valid(EepromBlockHeader *eeprom_block_header) const;
 
 	int start_pm(const uint8_t bus_number, const uint16_t dev_type, const uint16_t i2c_addr, const uint16_t id) const;
+	int start_i2c_driver(const uint8_t bus_number, const uint16_t dev_type, const uint16_t i2c_addr) const;
 	const char *get_start_command(const uint16_t dev_type) const;
+	int start(const char *start_command, const char **start_argv) const;
 
 	bool is_user_configured(const uint16_t dev_type) const;
 	void set_max_current(const uint16_t dev_type, const float max_current) const;
@@ -234,6 +269,6 @@ private:
 		}
 	};
 
-	EepromBlockPm _eeprom_blocks_pm[EEPROM_MAX_BLOCKS] = { 0 };
-	uint16_t _eeprom_valid_blocks_pm = 0;
+	DecodedBlock _eeprom_decoded_blocks[EEPROM_MAX_BLOCKS];
+	uint16_t _eeprom_num_decoded_blocks = 0;
 };
