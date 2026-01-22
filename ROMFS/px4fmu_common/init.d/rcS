@@ -265,12 +265,15 @@ else
 	# Start the tone_alarm driver.
 	# Needs to be started after the parameters are loaded (for CBRK_BUZZER).
 	#
+%ifdef CONFIG_DRIVERS_TONE_ALARM
 	tone_alarm start
+%endif
 
 	#
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
+%ifdef CONFIG_MODULES_DATAMAN
 	if param compare -s SYS_DM_BACKEND 1
 	then
 		dataman start -r
@@ -281,11 +284,14 @@ else
 			dataman start
 		fi
 	fi
+%endif
 
 	#
 	# Start the socket communication send_event handler.
 	#
+%ifdef CONFIG_MODULES_SEND_EVENT
 	send_event start
+%endif
 
 	#
 	# Start the hardfault streamer.
@@ -298,15 +304,25 @@ else
 	#
 	# Start the resource load monitor.
 	#
+%ifdef CONFIG_MODULES_LOAD_MON
 	load_mon start
+%endif
 
 	#
 	# Start system state indicator.
 	#
+%ifdef CONFIG_DRIVERS_LIGHTS_RGBLED
 	rgbled start -X -q
+%endif
+%ifdef CONFIG_DRIVERS_LIGHTS_RGBLED_NCP5623C
 	rgbled_ncp5623c start -X -q
+%endif
+%ifdef CONFIG_DRIVERS_LIGHTS_RGBLED_LP5562
 	rgbled_lp5562 start -X -q
+%endif
+%ifdef CONFIG_DRIVERS_LIGHTS_RGBLED_IS31FL3195
 	rgbled_is31fl3195 start -X -q
+%endif
 
 	#
 	# Override parameters from user configuration file.
@@ -331,11 +347,21 @@ else
 		# start the simulator in hardware if needed
 		if param compare SYS_HITL 2
 		then
+%ifdef CONFIG_MODULES_SIMULATION_SIMULATOR_SIH
 			simulator_sih start
+%endif
+%ifdef CONFIG_MODULES_SIMULATION_SENSOR_BARO_SIM
 			sensor_baro_sim start
+%endif
+%ifdef CONFIG_MODULES_SIMULATION_SENSOR_MAG_SIM
 			sensor_mag_sim start
+%endif
+%ifdef CONFIG_MODULES_SIMULATION_SENSOR_GPS_SIM
 			sensor_gps_sim start
+%endif
+%ifdef CONFIG_MODULES_SIMULATION_SENSOR_AGP_SIM
 			sensor_agp_sim start
+%endif
 		fi
 
 	else
@@ -352,43 +378,58 @@ else
 
 		. ${R}etc/init.d/rc.sensors
 
+%ifdef CONFIG_MODULES_SENSORS
+%ifdef CONFIG_MODULES_ESC_BATTERY
 		if param compare -s BAT1_SOURCE 2
 		then
 			esc_battery start
 		fi
+%endif
 
+%ifdef CONFIG_MODULES_BATTERY_STATUS
 		if ! param compare BAT1_SOURCE 1
 		then
 			battery_status start
 		fi
+%endif
+%endif
 
+%ifdef CONFIG_MODULES_SENSORS
 		sensors start
+%endif
 	fi
 
 	#
 	# state estimator selection
 	#
+%ifdef CONFIG_MODULES_EKF2
 	if param compare -s EKF2_EN 1
 	then
 		ekf2 start &
 	fi
+%endif
 
+%ifdef CONFIG_MODULES_LOCAL_POSITION_ESTIMATOR
 	if param compare -s LPE_EN 1
 	then
 		local_position_estimator start
 	fi
+%endif
 
+%ifdef CONFIG_MODULES_ATTITUDE_ESTIMATOR_Q
 	if param compare -s ATT_EN 1
 	then
 		attitude_estimator_q start
 	fi
+%endif
 
+%ifdef CONFIG_DRIVERS_PX4IO
 	#
 	# px4io
 	#
 	if px4io supported
 	then
-	# Check if PX4IO present and update firmware if needed.
+		# Check if PX4IO present and update firmware if needed.
 		if [ -f $IOFW ]
 		then
 			if ! px4io checkcrc ${IOFW}
@@ -418,40 +459,56 @@ else
 			fi
 		fi
 	fi
+%endif
 
 	# Heater driver for temperature regulated IMUs.
 	# The heater needs to start after px4io.
+%ifdef CONFIG_DRIVERS_HEATER
 	if param compare -s SENS_EN_THERMAL 1
 	then
 		heater start
 	fi
+%endif
 
 
 	#
 	# RC update (map raw RC input to calibrate manual control)
 	#  start before commander
 	#
+%ifdef CONFIG_MODULES_RC_UPDATE
 	rc_update start
+%endif
+%ifdef CONFIG_MODULES_MANUAL_CONTROL
 	manual_control start
+%endif
 
 	# Start camera trigger, capture and PPS before pwm_out as they might access
 	# pwm pins
+%ifdef CONFIG_DRIVERS_CAMERA_TRIGGER
 	if param greater -s TRIG_MODE 0
 	then
 		camera_trigger start
+%ifdef CONFIG_MODULES_CAMERA_FEEDBACK
 		camera_feedback start
+%endif
 	fi
+%endif
 	# PPS capture driver
+%ifdef CONFIG_DRIVERS_PPS_CAPTURE
 	if param greater -s PPS_CAP_ENABLE 0
 	then
 		pps_capture start
 	fi
+%endif
 	# RPM capture driver
+%ifdef CONFIG_DRIVERS_RPM_CAPTURE
 	if param greater -s RPM_CAP_ENABLE 0
 	then
 		rpm_capture start
 	fi
+%endif
 	# Camera capture driver
+%ifdef CONFIG_DRIVERS_CAMERA_CAPTURE
 	if param greater -s CAM_CAP_FBACK 0
 	then
 		if camera_capture start
@@ -459,25 +516,34 @@ else
 			camera_capture on
 		fi
 	fi
+%endif
 
 	#
 	# Commander
 	#
+%ifdef CONFIG_MODULES_COMMANDER
 	if param greater SYS_HITL 0
 	then
 		commander start -h
 
+%ifdef CONFIG_MODULES_SIMULATION_PWM_OUT_SIM
 		if ! pwm_out_sim start -m hil
 		then
 			tune_control play error
 		fi
+%endif
 
 	else
 		commander start
 
+%ifdef CONFIG_DRIVERS_DSHOT
 		dshot start
+%endif
+%ifdef CONFIG_DRIVERS_PWM_OUT
 		pwm_out start
+%endif
 	fi
+%endif
 
 	#
 	# Configure vehicle type specific parameters.
@@ -485,10 +551,12 @@ else
 	. ${R}etc/init.d/rc.vehicle_setup
 
 	# Pre-takeoff continuous magnetometer calibration
+%ifdef CONFIG_MODULES_MAG_BIAS_ESTIMATOR
 	if param compare -s MBE_ENABLE 1
 	then
 		mag_bias_estimator start
 	fi
+%endif
 
 	#
 	# Optional board mavlink streams: rc.board_mavlink
@@ -533,54 +601,67 @@ else
 	#
 	# Start the navigator.
 	#
+%ifdef CONFIG_MODULES_NAVIGATOR
 	navigator start
+%endif
 
+%ifdef CONFIG_MODULES_TEMPERATURE_COMPENSATION
 	#
 	# Start a thermal calibration if required.
 	#
-	set RC_THERMAL_CAL ${R}etc/init.d/rc.thermal_cal
-	if [ -f ${RC_THERMAL_CAL} ]
-	then
-		. ${RC_THERMAL_CAL}
-	fi
-	unset RC_THERMAL_CAL
+	. ${R}etc/init.d/rc.thermal_cal
+%endif
 
 	#
 	# Start gimbal to control mounts such as gimbals, disabled by default.
 	#
+%ifdef CONFIG_MODULES_GIMBAL
 	if param greater -s MNT_MODE_IN -1
 	then
 		gimbal start
 	fi
+%endif
 
 	# Blacksheep telemetry
+%ifdef CONFIG_DRIVERS_TELEMETRY_BST
 	if param compare -s TEL_BST_EN 1
 	then
 		bst start -X
 	fi
+%endif
 
+%ifdef CONFIG_MODULES_GYRO_FFT
 	if param compare -s IMU_GYRO_FFT_EN 1
 	then
 		gyro_fft start
 	fi
+%endif
 
+%ifdef CONFIG_MODULES_GYRO_CALIBRATION
 	if param compare -s IMU_GYRO_CAL_EN 1
 	then
 		gyro_calibration start
 	fi
+%endif
 
 	# Check for px4flow sensor
+%ifdef CONFIG_DRIVERS_OPTICAL_FLOW_PX4FLOW
 	if param compare -s SENS_EN_PX4FLOW 1
 	then
 		px4flow start -X &
 	fi
+%endif
 
+%ifdef CONFIG_MODULES_PAYLOAD_DELIVERER
 	payload_deliverer start
+%endif
 
+%ifdef CONFIG_MODULES_INTERNAL_COMBUSTION_ENGINE_CONTROL
 	if param compare -s ICE_EN 1
 	then
 		internal_combustion_engine_control start
 	fi
+%endif
 
 	#
 	# Optional board supplied extras: rc.board_extras
@@ -602,15 +683,12 @@ else
 		. $FEXTRAS
 	fi
 
+%ifdef CONFIG_MODULES_LOGGER
 	#
 	# Start the logger.
 	#
-	set RC_LOGGING ${R}etc/init.d/rc.logging
-	if [ -f ${RC_LOGGING} ]
-	then
-		. ${RC_LOGGING}
-	fi
-	unset RC_LOGGING
+	. ${R}etc/init.d/rc.logging
+%endif
 
 	#
 	# Set additional parameters and env variables for selected AUTOSTART.
@@ -631,6 +709,7 @@ else
 	#
 	# Check if UAVCAN is enabled, default to it for ESCs.
 	#
+%ifdef CONFIG_DRIVERS_UAVCAN
 	if param greater -s UAVCAN_ENABLE 0
 	then
 		# Start core UAVCAN module.
@@ -639,15 +718,27 @@ else
 			tune_control play error
 		fi
 	else
+%ifdef CONFIG_DRIVERS_CYPHAL
 		if param greater -s CYPHAL_ENABLE 0
 		then
 			cyphal start
 		fi
+%endif
 	fi
+%else
+%ifdef CONFIG_DRIVERS_CYPHAL
+	if param greater -s CYPHAL_ENABLE 0
+	then
+		cyphal start
+	fi
+%endif
+%endif
+%ifdef CONFIG_MODULES_ZENOH
 	if param greater -s ZENOH_ENABLE 0
 	then
 		zenoh start
 	fi
+%endif
 
 #
 # End of autostart.
