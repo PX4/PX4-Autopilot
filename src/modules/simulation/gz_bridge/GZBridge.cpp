@@ -410,43 +410,6 @@ void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 {
 	const uint64_t timestamp = hrt_absolute_time();
 
-	// To simulate atmospheric pressure drift, we use a time-discretised
-	// Ornstein-Uhlenbeck process (= integral of gaussian white noise with a
-	// linear stabilising feedback term). This has the advantage that we
-	// retain the statistical properties (stationary distribution, mixing
-	// time) regardless of dt.
-
-	// Ref: Gillespie, Daniel T.. (1996). Exact numerical simulation of the
-	// Ornstein-Uhlenbeck process and its integral. Physical Review E,
-	// 54(2), 2084–2091. doi:10.1103/PhysRevE.54.2084
-
-	const float dt = (float)(timestamp - _last_baro_pressure_drift_update) / 1_s;
-	const bool init = dt > 10;
-
-	// Parameterisation used in Gillespie 1996, but instead of c we use
-	// sigma_stationary - equivalent with c = 2 * sigma_stationary^2 / tau
-
-	// Relaxation time [sec]
-	const float tau = 3600.f * 24;
-
-	// Standard deviation of stationary distribution [Pa]
-	// 1000 Pa corresponds to about 80m of altitude error
-	const float sigma_stationary = 200;
-
-	const float mu = exp(-dt / tau);   // (3.3)
-	const float sigma_update = sigma_stationary * sqrtf(1 - mu * mu); // (3.4a)
-
-	if (init) {
-		// Sample from the stationary distribution to match long time behaviour
-		_baro_pressure_drift = sigma_stationary * generate_wgn();
-
-	} else {
-		// Update equation (3.5a)
-		_baro_pressure_drift = mu * _baro_pressure_drift + sigma_update * generate_wgn();
-	}
-
-	_last_baro_pressure_drift_update = timestamp;
-
 	device::Device::DeviceId id{};
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	id.devid_s.devtype = DRV_BARO_DEVTYPE_BAROSIM;
@@ -457,7 +420,10 @@ void GZBridge::airPressureCallback(const gz::msgs::FluidPressure &msg)
 	report.timestamp = timestamp;
 	report.timestamp_sample = timestamp;
 	report.device_id = id.devid;
-	report.pressure = (float) msg.pressure() + _baro_pressure_drift;
+
+	const float sin_offset = 12.0f * sinf(((float) timestamp / 60_s) * 2.0f * (float) MATH_PI);
+	report.pressure = (float) msg.pressure() + sin_offset;
+
 	report.temperature = this->_temperature;
 	_sensor_baro_pub.publish(report);
 }
