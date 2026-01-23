@@ -193,6 +193,9 @@ private:
 	const float _vel_noise_density = 0.2f;      // Velocity noise process density
 	const float _vel_markov_time = 0.85f;       // Velocity Markov process coefficient
 
+	float _baro_pressure_drift{};
+	hrt_abstime _last_baro_pressure_drift_update;
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used,
 		(ParamInt<px4::params::SIM_GZ_EN_LIDAR>) _sim_gz_en_lidar,
