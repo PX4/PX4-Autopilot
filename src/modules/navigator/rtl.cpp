@@ -383,7 +383,13 @@ void RTL::setRtlTypeAndDestination()
 	_rtl_direct.setRtlAlt(rtl_alt);
 	_rtl_direct.setRtlPosition(destination, landing_loiter);
 
-	initRtlMissionType(new_rtl_type, rtl_alt);
+	const bool new_type_is_mission_based = (new_rtl_type == RtlType::RTL_MISSION_FAST)
+					       || (new_rtl_type == RtlType::RTL_MISSION_FAST_REVERSE)
+					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND);
+
+	if (new_type_is_mission_based && (_rtl_type != new_rtl_type)) {
+		initRtlMissionType(new_rtl_type, rtl_alt);
+	}
 
 	_rtl_type = new_rtl_type;
 
@@ -621,10 +627,6 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position, Destin
 
 void RTL::initRtlMissionType(RtlType new_rtl_type, float rtl_alt)
 {
-	if (_rtl_type == new_rtl_type) {
-		return;
-	}
-
 	if (_rtl_mission_type_handle) {
 		delete _rtl_mission_type_handle;
 		_rtl_mission_type_handle = nullptr;
