@@ -420,7 +420,7 @@ void Ekf::updateParameters()
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 
-	_aux_global_position.params_updated();
+	_aux_global_position.paramsUpdated();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 }
 

@@ -40,7 +40,46 @@
 AgpSource::AgpSource(int instance_id, AuxGlobalPosition *manager)
 	: _agp_sub(ORB_ID(aux_global_position), instance_id)
 	, _manager(manager)
-	, _instance_id(instance_id) {}
+	, _instance_id(instance_id)
+{
+	initParams();
+	advertise();
+}
+
+void AgpSource::initParams()
+{
+	char param_name[20] {};
+
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_CTRL", _instance_id);
+	_param_ctrl = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_MODE", _instance_id);
+	_param_mode = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_DELAY", _instance_id);
+	_param_delay = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_NOISE", _instance_id);
+	_param_noise = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_GATE", _instance_id);
+	_param_gate = param_find(param_name);
+
+	updateParams();
+}
+
+void AgpSource::updateParams()
+{
+	if (_param_ctrl == PARAM_INVALID) {
+		return;
+	}
+
+	param_get(_param_ctrl, &_ctrl);
+	param_get(_param_mode, &_mode);
+	param_get(_param_delay, &_delay);
+	param_get(_param_noise, &_noise);
+	param_get(_param_gate, &_gate);
+}
 
 void AgpSource::checkAndBufferData(const estimator::imuSample &imu_delayed)
 {
@@ -63,7 +102,7 @@ void AgpSource::checkAndBufferData(const estimator::imuSample &imu_delayed)
 		}
 
 		const int64_t time_us = aux_global_position.timestamp_sample
-					- static_cast<int64_t>(getDelayParam() * 1000);
+					- static_cast<int64_t>(_delay * 1000);
 
 		AuxGlobalPositionSample sample{};
 		sample.time_us = time_us;
@@ -86,14 +125,14 @@ void AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 	if (_buffer.pop_first_older_than(imu_delayed.time_us, &sample)) {
 
-		if (!(getCtrlParam() & static_cast<int32_t>(Ctrl::kHPos))) {
+		if (!(_ctrl & static_cast<int32_t>(Ctrl::kHPos))) {
 			return;
 		}
 
 		const LatLonAlt position(sample.latitude, sample.longitude, sample.altitude_amsl);
 		const Vector2f innovation = (ekf.getLatLonAlt() - position).xy(); // altitude measurements are not used
 
-		float pos_noise = math::max(sample.eph, getNoiseParam(), 0.01f);
+		float pos_noise = math::max(sample.eph, _noise, 0.01f);
 		const float pos_var = sq(pos_noise);
 		const Vector2f pos_obs_var(pos_var, pos_var);
 
@@ -103,7 +142,7 @@ void AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 					  pos_obs_var,                                         // observation variance
 					  innovation,                                          // innovation
 					  Vector2f(ekf.getPositionVariance()) + pos_obs_var,   // innovation variance
-					  math::max(getGateParam(), 1.f));                     // innovation gate
+					  math::max(_gate, 1.f));                              // innovation gate
 
 		const bool starting_conditions = PX4_ISFINITE(sample.latitude) && PX4_ISFINITE(sample.longitude)
 						 && ekf.control_status_flags().yaw_align;
@@ -203,40 +242,15 @@ void AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 bool AgpSource::isResetAllowed(const Ekf &ekf) const
 {
-	return ((static_cast<Mode>(getModeParam()) == Mode::kAuto)
+	return ((static_cast<Mode>(_mode) == Mode::kAuto)
 		&& !ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf.control_status_flags().aux_gpos))
-	       || ((static_cast<Mode>(getModeParam()) == Mode::kDeadReckoning)
+	       || ((static_cast<Mode>(_mode) == Mode::kDeadReckoning)
 		   && !ekf.isOtherSourceOfHorizontalAidingThan(ekf.control_status_flags().aux_gpos));
 }
 
 bool AgpSource::isTimedOut(uint64_t last_sensor_timestamp, uint64_t time_delayed_us, uint64_t timeout_period) const
 {
 	return (last_sensor_timestamp == 0) || (last_sensor_timestamp + timeout_period < time_delayed_us);
-}
-
-int32_t AgpSource::getCtrlParam() const
-{
-	return _manager->getCtrlParam(_instance_id);
-}
-
-int32_t AgpSource::getModeParam() const
-{
-	return _manager->getModeParam(_instance_id);
-}
-
-float AgpSource::getDelayParam() const
-{
-	return _manager->getDelayParam(_instance_id);
-}
-
-float AgpSource::getNoiseParam() const
-{
-	return _manager->getNoiseParam(_instance_id);
-}
-
-float AgpSource::getGateParam() const
-{
-	return _manager->getGateParam(_instance_id);
 }
 
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION && MODULE_NAME

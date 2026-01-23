@@ -62,37 +62,18 @@ public:
 
 	float test_ratio_filtered() const;
 	bool anySourceFusing() const;
-	int32_t getCtrlParam(int instance);
-	int32_t getModeParam(int instance);
-	float getDelayParam(int instance);
-	float getNoiseParam(int instance);
-	float getGateParam(int instance);
 	int32_t getIdParam(int instance);
 	void setIdParam(int instance, int32_t sensor_id);
 	int mapSensorIdToSlot(int32_t sensor_id);
-	void params_updated() { _params_updated = true; }
+	void paramsUpdated();
 
 private:
-	friend class AgpSource;
-
 	AgpSource *_sources[MAX_AGP_IDS];
-	bool _params_updated{true};
 
 	int32_t getAgpParamInt32(const char *param_suffix, int instance) const;
-	float getAgpParamFloat(const char *param_suffix, int instance) const;
 	bool setAgpParamInt32(const char *param_suffix, int instance, int32_t value);
 
-	struct ParamValues {
-		int32_t ctrl{0};
-		int32_t mode{0};
-		float delay{0.f};
-		float noise{10.f};
-		float gate{3.f};
-		int32_t id{0};
-	};
-
-	void touchActiveAgpParams();
-	ParamValues _param_values[MAX_AGP_IDS] {};
+	int32_t _id_param_values[MAX_AGP_IDS] {};
 
 };
 

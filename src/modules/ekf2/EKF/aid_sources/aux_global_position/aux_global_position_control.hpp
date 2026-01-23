@@ -38,7 +38,7 @@
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 
-#include <lib/ringbuffer/TimestampedRingBuffer.hpp>
+#include <lib/parameters/param.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_aid_source2d.h>
@@ -56,6 +56,8 @@ public:
 	void checkAndBufferData(const estimator::imuSample &imu_delayed);
 	void update(Ekf &ekf, const estimator::imuSample &imu_delayed);
 	void advertise() { _aid_src_pub.advertise(); }
+	void initParams();
+	void updateParams();
 
 	float getTestRatioFiltered() const { return _test_ratio_filtered; }
 	bool isFusing() const { return _state == State::kActive; }
@@ -105,14 +107,20 @@ private:
 	AuxGlobalPosition *_manager;
 	const int _instance_id;
 
+	param_t _param_ctrl{PARAM_INVALID};
+	param_t _param_mode{PARAM_INVALID};
+	param_t _param_delay{PARAM_INVALID};
+	param_t _param_noise{PARAM_INVALID};
+	param_t _param_gate{PARAM_INVALID};
+
+	int32_t _ctrl{0};
+	int32_t _mode{0};
+	float _delay{0.f};
+	float _noise{10.f};
+	float _gate{3.f};
+
 	bool isResetAllowed(const Ekf &ekf) const;
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t time_delayed_us, uint64_t timeout_period) const;
-
-	int32_t getCtrlParam() const;
-	int32_t getModeParam() const;
-	float getDelayParam() const;
-	float getNoiseParam() const;
-	float getGateParam() const;
 };
 
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION && MODULE_NAME
