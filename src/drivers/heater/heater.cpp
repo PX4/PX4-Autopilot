@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-20 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -80,7 +80,7 @@
 #  define HEATER_GPIO
 #endif
 
-Heater *Heater::g_heater[HEATER_MAX_INSTANCES] {};
+Heater *Heater::g_heater[HEATER_MAX_INSTANCES] {}; //! 0-based
 
 Heater::Heater(uint8_t instance, const px4::wq_config_t &wq) :
 	ScheduledWorkItem(MODULE_NAME, wq),
@@ -240,6 +240,7 @@ void Heater::heater_off()
 	default:
 		break;
 	}
+
 #endif
 }
 
@@ -281,6 +282,7 @@ void Heater::heater_on()
 	default:
 		break;
 	}
+
 #endif
 }
 
@@ -389,7 +391,7 @@ void Heater::Run()
 		// Turn the heater off.
 		_heater_on = false;
 		heater_off();
-		ScheduleDelayed(_controller_period_usec - _controller_time_on_usec);
+		ScheduleDelayed(CONTROLLER_PERIOD_DEFAULT - _controller_time_on_usec);
 
 	} else if (_sensor_accel_sub.update(&sensor_accel)) {
 
@@ -405,9 +407,9 @@ void Heater::Run()
 		_integrator_value = math::constrain(_integrator_value, -0.25f, 0.25f);
 
 		_controller_time_on_usec = static_cast<int>((_params.temp_ff + _proportional_value +
-					   _integrator_value) * static_cast<float>(_controller_period_usec));
+					   _integrator_value) * static_cast<float>(CONTROLLER_PERIOD_DEFAULT));
 
-		_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, _controller_period_usec);
+		_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, CONTROLLER_PERIOD_DEFAULT);
 
 		if (fabsf(temperature_delta) < TEMPERATURE_TARGET_THRESHOLD) {
 			_temperature_target_met = true;
@@ -433,7 +435,7 @@ void Heater::publish_status()
 	status.temperature_sensor      = _temperature_last;
 	status.temperature_target      = _params.temp;
 	status.temperature_target_met  = _temperature_target_met;
-	status.controller_period_usec  = _controller_period_usec;
+	status.controller_period_usec  = CONTROLLER_PERIOD_DEFAULT;
 	status.controller_time_on_usec = _controller_time_on_usec;
 	status.proportional_value      = _proportional_value;
 	status.integrator_value        = _integrator_value;
@@ -452,34 +454,24 @@ void Heater::publish_status()
 
 int Heater::start()
 {
+	update_params(true);
 
+	const int32_t target = _params.imu_id;
 
-	if (_params.imu_id == 0) {
-		// Exit the driver if the sensor ID does not match the desired sensor.
-		switch (_instance) {
-		case 1:
-
-			PX4_ERR("Valid HEATER1_IMU_ID required");
-			break;
-
-		case 2:
-			PX4_ERR("Valid HEATER2_IMU_ID required");
-			break;
-
-		case 3:
-			PX4_ERR("Valid HEATER3_IMU_ID required");
-			break;
-
-		default:
-			break;
-		}
-
-		stop();
-		return PX4_ERROR;
-
+	// Disabled instance
+	if (target < 0) {
+		PX4_INFO("heater %u disabled (HEATER%u_IMU_ID=%ld)",
+			 (unsigned)_instance, (unsigned)_instance, (long)target);
+		return PX4_OK;
 	}
 
-	update_params(true);
+	// Auto-select only allowed for legacy single-heater setups
+	if ((target == 0) && (HEATER_NUM > 1)) {
+		PX4_INFO("heater %u disabled (HEATER%u_IMU_ID=0 not allowed when HEATER_NUM>1)",
+			(unsigned)_instance, (unsigned)_instance);
+		return PX4_OK;
+	}
+
 	ScheduleNow();
 	return PX4_OK;
 }
@@ -493,17 +485,22 @@ void Heater::stop()
 
 int Heater::status(uint8_t instance ){
 
-	if(instance > 0 && instance < HEATER_MAX_INSTANCES){
+	if(instance > 0 && instance <= HEATER_MAX_INSTANCES){
 		if (Heater::is_running_instance(instance)) {
 			PX4_INFO("instance %u: running", (unsigned)instance);
-			PX4_INFO("instance %u: IMU ID is %lu",(unsigned)instance , Heater::g_heater[instance - 1]->_params.imu_id);
+			PX4_INFO("instance %u: IMU ID is %lu",(unsigned)instance , Heater::g_heater[instance - 1]->_sensor_device_id);
+			PX4_INFO("instance %u: IMU Temperature is %f",(unsigned)instance , (double)Heater::g_heater[instance - 1]->_temperature_last);
+			PX4_INFO("instance %u: Set Temperature is %f",(unsigned)instance , (double)Heater::g_heater[instance - 1]->_params.temp);
+
 		}
 	}
 	else{
 		for (instance = 1; instance <= HEATER_MAX_INSTANCES; instance++) {
 			if (Heater::is_running_instance(instance)) {
 				PX4_INFO("instance %u: running", (unsigned)instance);
-				PX4_INFO("instance %u: IMU ID is %lu",(unsigned)instance , Heater::g_heater[instance - 1]->_params.imu_id);
+				PX4_INFO("instance %u: IMU ID is %lu",(unsigned)instance , Heater::g_heater[instance - 1]->_sensor_device_id);
+				PX4_INFO("instance %u: IMU Temperature is %f",(unsigned)instance , (double)Heater::g_heater[instance - 1]->_temperature_last);
+				PX4_INFO("instance %u: Set Temperature is %f",(unsigned)instance , (double)Heater::g_heater[instance - 1]->_params.temp);
 			}
 		}
 	}
@@ -543,7 +540,7 @@ bool Heater::is_running_any()
 
 int Heater::start_instance(uint8_t instance)
 {
-	if (instance < 1 || instance > HEATER_MAX_INSTANCES) {
+	if (instance < 1 || instance > HEATER_NUM) {
 		PX4_ERR("invalid instance %u", (unsigned)instance);
 		return PX4_ERROR;
 	}

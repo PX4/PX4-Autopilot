@@ -62,6 +62,9 @@ using namespace time_literals;
 #define CONTROLLER_PERIOD_DEFAULT    10000
 #define TEMPERATURE_TARGET_THRESHOLD 2.5f
 #define HEATER_MAX_INSTANCES 3 	// If changed, also need to change `max_num_config_instances` in module.yaml
+#if HEATER_NUM > HEATER_MAX_INSTANCES
+#error "HEATER_NUM must less than HEATER_MAX_INSTANCES"
+#endif
 
 class Heater : px4::ScheduledWorkItem, public ModuleParams
 {
@@ -137,7 +140,6 @@ private:
 	bool _heater_on              = false;
 	bool _temperature_target_met = false;
 
-	int _controller_period_usec = CONTROLLER_PERIOD_DEFAULT;
 	int _controller_time_on_usec = 0;
 
 	float _integrator_value   = 0.0f;
@@ -153,7 +155,7 @@ private:
 
 	float _temperature_last{NAN};
 
-	const uint8_t _instance; // 1,2,3
+	const uint8_t _instance; //! 1-based
 
 	volatile bool _should_exit{false};
 	struct {

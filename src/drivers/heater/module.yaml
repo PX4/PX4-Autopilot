@@ -9,9 +9,11 @@ parameters:
             description:
                 short: The ID of the IMU controlled by heater ${i}
                 long: |
-                    Specifies the sensor device ID (DEVID) that this heater instance attempts to control.
-                    If set to 0, this instance attempts to locate the first unoccupied sensor.
-                    Setting to -1 or an invalid ID disables this heater instance.
+                    Specifies the sensor device ID (DEVID) that this heater instance controls.
+                    -1 disables this heater instance.
+                    If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
+                    a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
+
 
             type: int32
             reboot_required: true
