@@ -72,7 +72,7 @@ FixedwingAttitudeControl::parameters_update()
 {
 	_proportional_gain = matrix::Vector3f(1.0f / _param_fw_p_tc.get(),
 					      1.0f / _param_fw_p_tc.get(),
-					      0.0f);
+					      1.0f / _param_fw_y_tc.get());
 
 	_roll_ctrl.set_time_constant(_param_fw_r_tc.get());
 	_roll_ctrl.set_max_rate(radians(_param_fw_r_rmax.get()));
@@ -114,7 +114,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(matrix::Quatf R, float airspeed, f
 
 				const float V = fmaxf(airspeed, 3.0f); // Guard against division by zero
 				float yaw_body = euler_angles.psi();
-				yaw_body += tanf(roll_body) * 9.81f / V * dt;
+				yaw_body += tanf(roll_body) * 9.81f / V; // feedforward turn rate for coordinated turns
 
 				roll_body  *= cosf(pitch_body); //
 
@@ -336,44 +336,21 @@ void FixedwingAttitudeControl::Run()
 					///////////////////////////////////////////////////////////////////////////
 					// NEW: Quaternion based controller
 					///////////////////////////////////////////////////////////////////////////
-					// Current attitude
 					const Quatf q_current(att.q);
+					Quatf q_sp_modified = q_sp;
 
-					// --- Build reduced desired attitude qd_red: align "tilt" (body Z axis) but don't chase yaw ---
-					const Vector3f ez_current = q_current.dcm_z(); // current body Z in world
-					const Vector3f ez_desired = q_sp.dcm_z();   // desired body Z in world
+					// Enforce quaternion hemisphere consistency
+					if (q_current.dot(q_sp_modified) < 0.f) {
+						q_sp_modified = -q_sp_modified;
+					}
 
-					// Quaternion rotating ez_current -> ez_desired (tilt correction only)
-					const Quatf q_tilt_err(ez_current, ez_desired);
+					// Full 3D attitude error quaternion
+					matrix::Quatf qe = (q_current.inversed() * q_sp_modified).canonical();
 
-					// Convert that tilt error into an absolute reduced desired attitude.
-					Quatf qd_red  = q_tilt_err * q_current;
-
-					// --- Compute rate setpoint A: tilt-only attitude tracking (normal FW) ---
-
-					// qe_tilt is rotation from current to reduced desired
-					const Quatf qe_tilt = (q_current.inversed() * qd_red).canonical();
-					const Vector3f e_tilt = 2.f * qe_tilt.imag();
-
-					Vector3f rates_tilt = e_tilt.emult(_proportional_gain);
-
-					// In normal FW flight, yaw is NOT attitude-tracked; use existing yaw/turn coordination
-					const float yaw_rate_tc = _yaw_ctrl.get_body_rate_setpoint();
-					rates_tilt(2) = yaw_rate_tc;
-
-					// --- Compute rate setpoint B: full 3D attitude tracking (near-vertical) ---
-					const Quatf qe_full = (q_current.inversed() * q_sp).canonical();
-					const Vector3f e_full = 2.f * qe_full.imag();
-					Vector3f rates_full = e_full.emult(_proportional_gain);
-
-					// --- Scheduling: 0 = normal FW, 1 = near-vertical/full-3D ---
-					//const float pitch = Eulerf(q_current).theta(); // scheduling only
-					//const float s = math::constrain((fabsf(pitch) - radians(60.f)) / radians(20.f), 0.f, 1.f); // 0..1
-
-					// --- Blend A and B ---
-					// Use debug parameter to control blending amount
-					const float blend = _param_fw_rate_blend.get();
-					Vector3f body_rates_setpoint = (1.f - blend) * rates_tilt + blend * rates_full;
+					// Convert error to rotation vector in BODY frame
+					matrix::AxisAnglef aa(qe);
+					matrix::Vector3f rotvec_b = aa.axis() * aa.angle(); // [rad], BODY axes (FRD)
+					matrix::Vector3f body_rates_setpoint = rotvec_b.emult(_proportional_gain);
 
 					// limit rates
 					body_rates_setpoint(0) = constrain(body_rates_setpoint(0), -radians(_param_fw_r_rmax.get()), radians(_param_fw_r_rmax.get()));
