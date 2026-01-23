@@ -450,8 +450,8 @@ MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_c
 		break;
 
 	default:
-		target_ok = (target_system == mavlink_system.sysid) && ((target_component == mavlink_system.compid)
-				|| (target_component == MAV_COMP_ID_ALL));
+		target_ok = ((target_system == 0) || (target_system == mavlink_system.sysid))
+			    && ((target_component == mavlink_system.compid) || (target_component == MAV_COMP_ID_ALL));
 		break;
 	}
 

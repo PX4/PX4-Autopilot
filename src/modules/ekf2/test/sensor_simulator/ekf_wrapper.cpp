@@ -210,6 +210,11 @@ bool EkfWrapper::isIntendingExternalVisionHeadingFusion() const
 	return _ekf->control_status_flags().ev_yaw;
 }
 
+bool EkfWrapper::isIntendingMagFusion() const
+{
+	return _ekf->control_status_flags().mag;
+}
+
 bool EkfWrapper::isIntendingMagHeadingFusion() const
 {
 	return _ekf->control_status_flags().mag_hdg;
@@ -223,6 +228,11 @@ bool EkfWrapper::isIntendingMag3DFusion() const
 bool EkfWrapper::isMagHeadingConsistent() const
 {
 	return _ekf->control_status_flags().mag_heading_consistent;
+}
+
+bool EkfWrapper::isMagFaultDetected() const
+{
+	return _ekf->control_status_flags().mag_fault;
 }
 
 void EkfWrapper::setMagFuseTypeNone()

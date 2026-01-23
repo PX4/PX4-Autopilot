@@ -60,6 +60,9 @@ then
 	set INA_CONFIGURED yes
 fi
 
+# Auterion auto starter
+auterion_autostarter start
+
 if param compare BAT1_V_CHANNEL -2
 then
 	if [ "$INA_CONFIGURED" != "yes" ]

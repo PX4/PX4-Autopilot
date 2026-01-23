@@ -25,7 +25,7 @@ It brings you ultimate performance, stability, and reliability in every aspect.
   - 32 Bit Arm® Cortex®-M3, 72MHz, 20KB SRAM
 - 내장 센서 :
   - Accel/Gyro: ICM-42688-P\*2(Version1), BMI270\*2(Version2)
-  - 자력계: IST8310
+  - 자력계: QMC5883P
   - Barometer: DPS310(Version1),SPL06(Version2)
 
 ### 인터페이스

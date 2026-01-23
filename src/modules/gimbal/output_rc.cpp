@@ -38,8 +38,6 @@
 #include <px4_platform_common/defines.h>
 #include <matrix/matrix/math.hpp>
 
-using math::constrain;
-
 namespace gimbal
 {
 

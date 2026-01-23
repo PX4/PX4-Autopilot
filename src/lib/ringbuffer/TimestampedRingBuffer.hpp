@@ -69,9 +69,7 @@ public:
 			return false;
 		}
 
-		if (_buffer != nullptr) {
-			delete[] _buffer;
-		}
+		delete[] _buffer;
 
 		_buffer = new data_type[size] {};
 
