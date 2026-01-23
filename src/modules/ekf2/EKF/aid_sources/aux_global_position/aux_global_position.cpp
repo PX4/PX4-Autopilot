@@ -51,16 +51,14 @@ AuxGlobalPosition::AuxGlobalPosition() : ModuleParams(nullptr)
 AuxGlobalPosition::~AuxGlobalPosition()
 {
 	for (int i = 0; i < MAX_AGP_IDS; i++) {
-		if (_id_param_values[i] != 0) {
-			delete _sources[i];
-		}
+		delete _sources[i];
 	}
 }
 
 void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 {
 	for (int i = 0; i < MAX_AGP_IDS; i++) {
-		if (_id_param_values[i] != 0) {
+		if (_sources[i]) {
 			_sources[i]->checkAndBufferData(imu_delayed);
 			_sources[i]->update(ekf, imu_delayed);
 		}
@@ -70,7 +68,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 void AuxGlobalPosition::paramsUpdated()
 {
 	for (int i = 0; i < MAX_AGP_IDS; i++) {
-		if (_id_param_values[i] != 0) {
+		if (_sources[i]) {
 			_sources[i]->updateParams();
 		}
 	}
@@ -81,7 +79,7 @@ float AuxGlobalPosition::test_ratio_filtered() const
 	float max_ratio = 0.f;
 
 	for (int i = 0; i < MAX_AGP_IDS; i++) {
-		if (_id_param_values[i] != 0 && _sources[i]->isFusing()) {
+		if (_sources[i] && _sources[i]->isFusing()) {
 			max_ratio = math::max(max_ratio, _sources[i]->getTestRatioFiltered());
 		}
 	}
@@ -92,7 +90,7 @@ float AuxGlobalPosition::test_ratio_filtered() const
 bool AuxGlobalPosition::anySourceFusing() const
 {
 	for (int i = 0; i < MAX_AGP_IDS; i++) {
-		if (_id_param_values[i] != 0 && _sources[i]->isFusing()) {
+		if (_sources[i] && _sources[i]->isFusing()) {
 			return true;
 		}
 	}

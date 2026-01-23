@@ -68,7 +68,7 @@ public:
 	void paramsUpdated();
 
 private:
-	AgpSource *_sources[MAX_AGP_IDS];
+	AgpSource *_sources[MAX_AGP_IDS] {};
 
 	int32_t getAgpParamInt32(const char *param_suffix, int instance) const;
 	bool setAgpParamInt32(const char *param_suffix, int instance, int32_t value);

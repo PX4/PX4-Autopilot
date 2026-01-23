@@ -107,17 +107,23 @@ private:
 	AuxGlobalPosition *_manager;
 	const int _instance_id;
 
-	param_t _param_ctrl{PARAM_INVALID};
-	param_t _param_mode{PARAM_INVALID};
-	param_t _param_delay{PARAM_INVALID};
-	param_t _param_noise{PARAM_INVALID};
-	param_t _param_gate{PARAM_INVALID};
+	struct ParamHandles {
+		param_t id{PARAM_INVALID};
+		param_t ctrl{PARAM_INVALID};
+		param_t mode{PARAM_INVALID};
+		param_t delay{PARAM_INVALID};
+		param_t noise{PARAM_INVALID};
+		param_t gate{PARAM_INVALID};
+	} _param_handles;
 
-	int32_t _ctrl{0};
-	int32_t _mode{0};
-	float _delay{0.f};
-	float _noise{10.f};
-	float _gate{3.f};
+	struct Params {
+		int32_t id{0};
+		int32_t ctrl{0};
+		int32_t mode{0};
+		float delay{0.f};
+		float noise{10.f};
+		float gate{3.f};
+	} _params;
 
 	bool isResetAllowed(const Ekf &ekf) const;
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t time_delayed_us, uint64_t timeout_period) const;

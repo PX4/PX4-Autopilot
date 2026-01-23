@@ -51,34 +51,35 @@ void AgpSource::initParams()
 	char param_name[20] {};
 
 	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_CTRL", _instance_id);
-	_param_ctrl = param_find(param_name);
+	_param_handles.ctrl = param_find(param_name);
 
 	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_MODE", _instance_id);
-	_param_mode = param_find(param_name);
+	_param_handles.mode = param_find(param_name);
 
 	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_DELAY", _instance_id);
-	_param_delay = param_find(param_name);
+	_param_handles.delay = param_find(param_name);
 
 	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_NOISE", _instance_id);
-	_param_noise = param_find(param_name);
+	_param_handles.noise = param_find(param_name);
 
 	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_GATE", _instance_id);
-	_param_gate = param_find(param_name);
+	_param_handles.gate = param_find(param_name);
 
 	updateParams();
 }
 
 void AgpSource::updateParams()
 {
-	if (_param_ctrl == PARAM_INVALID) {
+	if (_param_handles.ctrl == PARAM_INVALID) {
 		return;
 	}
 
-	param_get(_param_ctrl, &_ctrl);
-	param_get(_param_mode, &_mode);
-	param_get(_param_delay, &_delay);
-	param_get(_param_noise, &_noise);
-	param_get(_param_gate, &_gate);
+	param_get(_param_handles.id, &_params.id);
+	param_get(_param_handles.ctrl, &_params.ctrl);
+	param_get(_param_handles.mode, &_params.mode);
+	param_get(_param_handles.delay, &_params.delay);
+	param_get(_param_handles.noise, &_params.noise);
+	param_get(_param_handles.gate, &_params.gate);
 }
 
 void AgpSource::checkAndBufferData(const estimator::imuSample &imu_delayed)
@@ -102,7 +103,7 @@ void AgpSource::checkAndBufferData(const estimator::imuSample &imu_delayed)
 		}
 
 		const int64_t time_us = aux_global_position.timestamp_sample
-					- static_cast<int64_t>(_delay * 1000);
+					- static_cast<int64_t>(_params.delay * 1000);
 
 		AuxGlobalPositionSample sample{};
 		sample.time_us = time_us;
@@ -125,14 +126,14 @@ void AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 	if (_buffer.pop_first_older_than(imu_delayed.time_us, &sample)) {
 
-		if (!(_ctrl & static_cast<int32_t>(Ctrl::kHPos))) {
+		if (!(_params.ctrl & static_cast<int32_t>(Ctrl::kHPos))) {
 			return;
 		}
 
 		const LatLonAlt position(sample.latitude, sample.longitude, sample.altitude_amsl);
 		const Vector2f innovation = (ekf.getLatLonAlt() - position).xy(); // altitude measurements are not used
 
-		float pos_noise = math::max(sample.eph, _noise, 0.01f);
+		float pos_noise = math::max(sample.eph, _params.noise, 0.01f);
 		const float pos_var = sq(pos_noise);
 		const Vector2f pos_obs_var(pos_var, pos_var);
 
@@ -142,7 +143,7 @@ void AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 					  pos_obs_var,                                         // observation variance
 					  innovation,                                          // innovation
 					  Vector2f(ekf.getPositionVariance()) + pos_obs_var,   // innovation variance
-					  math::max(_gate, 1.f));                              // innovation gate
+					  math::max(_params.gate, 1.f));                              // innovation gate
 
 		const bool starting_conditions = PX4_ISFINITE(sample.latitude) && PX4_ISFINITE(sample.longitude)
 						 && ekf.control_status_flags().yaw_align;
@@ -242,9 +243,9 @@ void AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 bool AgpSource::isResetAllowed(const Ekf &ekf) const
 {
-	return ((static_cast<Mode>(_mode) == Mode::kAuto)
+	return ((static_cast<Mode>(_params.mode) == Mode::kAuto)
 		&& !ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf.control_status_flags().aux_gpos))
-	       || ((static_cast<Mode>(_mode) == Mode::kDeadReckoning)
+	       || ((static_cast<Mode>(_params.mode) == Mode::kDeadReckoning)
 		   && !ekf.isOtherSourceOfHorizontalAidingThan(ekf.control_status_flags().aux_gpos));
 }
 
