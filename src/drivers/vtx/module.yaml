@@ -1,0 +1,133 @@
+module_name: VTX SmartAudio
+serial_config:
+  - command: vtx start -d ${SERIAL_DEV}
+    port_config_param:
+      name: VTX_SER_CFG
+      group: VTX
+    label: VTX Serial Port
+
+parameters:
+  - group: VTX
+    definitions:
+      VTX_BAND:
+        description:
+          short: VTX band
+          long: VTX table band 1-24
+        type: enum
+        values:
+          0: Band 1
+          1: Band 2
+          2: Band 3
+          3: Band 4
+          4: Band 5
+          5: Band 6
+          6: Band 7
+          7: Band 8
+          8: Band 9
+          9: Band 10
+          10: Band 11
+          11: Band 12
+          12: Band 13
+          13: Band 14
+          14: Band 15
+          15: Band 16
+          16: Band 17
+          17: Band 18
+          18: Band 19
+          19: Band 20
+          20: Band 21
+          21: Band 22
+          22: Band 23
+          23: Band 24
+        default: 0
+      VTX_CHANNEL:
+        description:
+          short: VTX channel
+          long: VTX table channel 1-16
+        type: enum
+        values:
+          0: Channel 1
+          1: Channel 2
+          2: Channel 3
+          3: Channel 4
+          4: Channel 5
+          5: Channel 6
+          6: Channel 7
+          7: Channel 8
+          8: Channel 9
+          9: Channel 10
+          10: Channel 11
+          11: Channel 12
+          12: Channel 13
+          13: Channel 14
+          14: Channel 15
+          15: Channel 16
+        default: 0
+      VTX_FREQUENCY:
+        description:
+          short: VTX frequency in MHz
+          long: |
+            If the VTX frequency is set, it will overwrite the band and channel
+            settings. Set to 0 to use band and channel settings.
+        type: int32
+        min: 0
+        max: 32000
+        default: 0
+      VTX_POWER:
+        description:
+          short: VTX power level
+          long: VTX transmission power level 1-16
+        type: enum
+        values:
+          0: Level 1
+          1: Level 2
+          2: Level 3
+          3: Level 4
+          4: Level 5
+          5: Level 6
+          6: Level 7
+          7: Level 8
+          8: Level 9
+          9: Level 10
+          10: Level 11
+          11: Level 12
+          12: Level 13
+          13: Level 14
+          14: Level 15
+          15: Level 16
+        default: 0
+      VTX_PIT_MODE:
+        description:
+          short: VTX pit mode
+          long: VTX pit mode reduces power to the minimum
+        type: boolean
+        default: false
+      VTX_MAP_CONFIG:
+        description:
+          short: VTX mapping configuration
+          long: |
+            Configure how VTX settings are controlled. Options include using
+            MSP commands, AUX channels or a combination of both. To use MSP
+            commands, you must use a CRSF receiver with MSP support enabled in
+            the PX4 build.
+        type: enum
+        values:
+          0: Disabled
+          1: MSP for Power, Band and Channel
+          2: MSP for Band and Channel, AUX for Power
+          3: MSP for Power, AUX for Band and Channel
+          4: AUX for Power, Band and Channel
+        default: 0
+      VTX_DEVICE:
+        description:
+          short: VTX device
+          long: Specific VTX device useful for workarounds and optimizations
+        type: enum
+        # Note: keep values in sync with msg/Vtx.msg: lower 8-bit is protocol, next 8-bit is device
+        values:
+          0: SmartAudio v1, v2, v2.1 Protocol
+          100: Tramp Protocol
+          5120: Peak THOR T67
+          10240: Rush MAX SOLO
+        default: 0
+        reboot_required: true
