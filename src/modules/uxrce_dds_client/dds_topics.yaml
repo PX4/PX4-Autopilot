@@ -126,6 +126,11 @@ publications:
     type: px4_msgs::msg::PayloadResponse
     rate_limit: 2.
 
+  - topic: /fmu/out/vehicle_attitude_setpoint
+    type: px4_msgs::msg::VehicleAttitudeSetpoint
+    rate_limit: 10.
+
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
