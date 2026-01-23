@@ -112,7 +112,7 @@ private:
 			//  Row-major representation of a 6x6 pose cross-covariance matrix upper right triangle
 			//  (states: x, y, z, roll, pitch, yaw; first six entries are the first ROW, next five entries are the second ROW, etc.)
 			for (auto &pc : msg.pose_covariance) {
-				pc = NAN;
+				pc = 0.f;
 			}
 
 			msg.pose_covariance[0]  = odom.position_variance[0];  // X  row 0, col 0
@@ -127,7 +127,7 @@ private:
 			//  Row-major representation of a 6x6 velocity cross-covariance matrix upper right triangle
 			//  (states: vx, vy, vz, rollspeed, pitchspeed, yawspeed; first six entries are the first ROW, next five entries are the second ROW, etc.)
 			for (auto &vc : msg.velocity_covariance) {
-				vc = NAN;
+				vc = 0.f;
 			}
 
 			msg.velocity_covariance[0]  = odom.velocity_variance[0];   // X  row 0, col 0
