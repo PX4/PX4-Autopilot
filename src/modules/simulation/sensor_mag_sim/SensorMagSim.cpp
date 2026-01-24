@@ -87,6 +87,49 @@ float SensorMagSim::generate_wgn()
 	return X;
 }
 
+void SensorMagSim::check_failure_injections()
+{
+	vehicle_command_s vehicle_command;
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+			continue;
+		}
+
+		bool handled = false;
+		bool supported = false;
+
+		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+
+		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_MAG) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, mag off");
+				supported = true;
+				_mag_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, mag ok");
+				supported = true;
+				_mag_blocked = false;
+			}
+		}
+
+		if (handled) {
+			vehicle_command_ack_s ack{};
+			ack.command = vehicle_command.command;
+			ack.from_external = false;
+			ack.result = supported ?
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(ack);
+		}
+	}
+}
+
 void SensorMagSim::Run()
 {
 	if (should_exit()) {
@@ -104,6 +147,13 @@ void SensorMagSim::Run()
 		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
+	}
+
+	check_failure_injections();
+
+	if (_mag_blocked) {
+		perf_end(_loop_perf);
+		return;
 	}
 
 	if (_vehicle_global_position_sub.updated()) {
