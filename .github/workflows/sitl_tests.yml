@@ -92,7 +92,7 @@ jobs:
           PX4_HOME_LAT: ${{matrix.config.latitude}}
           PX4_HOME_LON: ${{matrix.config.longitude}}
           PX4_HOME_ALT: ${{matrix.config.altitude}}
-        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --model ${{matrix.config.model}} test/mavsdk_tests/configs/sitl.json --verbose --force-color
+        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --model ${{matrix.config.model}} test/mavsdk_tests/configs/gazebo-classic-sitl.json --verbose --force-color
         timeout-minutes: 45
 
       - name: Upload failed logs
