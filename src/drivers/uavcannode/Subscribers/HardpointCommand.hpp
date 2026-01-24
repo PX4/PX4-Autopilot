@@ -82,7 +82,7 @@ private:
 	{
 
 		uint8_t servo_id = msg.hardpoint_id;
-		actuator_servos_s actuator_servos;
+		actuator_servos_s actuator_servos {};
 
 		if (servo_id >= actuator_servos_s::NUM_CONTROLS) {
 			return;
