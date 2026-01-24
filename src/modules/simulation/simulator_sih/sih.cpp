@@ -217,13 +217,13 @@ void Sih::sensor_step()
 
 	reconstruct_sensors_signals(now);
 
-	if ((_vehicle == VehicleType::FixedWing
-	     || _vehicle == VehicleType::TailsitterVTOL
-	     || _vehicle == VehicleType::StandardVTOL)
-	    && now - _airspeed_time >= 50_ms) {
-		_airspeed_time = now;
-		send_airspeed(now);
-	}
+	// if ((_vehicle == VehicleType::FixedWing
+	//      || _vehicle == VehicleType::TailsitterVTOL
+	//      || _vehicle == VehicleType::StandardVTOL)
+	//     && now - _airspeed_time >= 50_ms) {
+	// 	_airspeed_time = now;
+	// 	send_airspeed(now);
+	// }
 
 	// distance sensor published at 50 Hz
 	if (now - _dist_snsr_time >= 20_ms
@@ -282,6 +282,8 @@ void Sih::parameters_updated()
 	_distance_snsr_override = _sih_distance_snsr_override.get();
 
 	_T_TAU = _sih_thrust_tau.get();
+
+	_noise_scale = _sih_noise_scale.get();
 }
 
 void Sih::init_variables()
@@ -360,17 +362,25 @@ void Sih::generate_force_and_torques(const float dt)
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
 
-		_T_B = Vector3f(_T_MAX * 2 * _u[7], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
+		// Pusher motor is usually stronger than one individual MC motor.
+		// matching this standard VTOL model here
+		// https://github.com/PX4/PX4-gazebo-models/blob/main/models/standard_vtol/model.sdf
+		// we have for the MC rotors (in sdf rotor_0 ... rotor_3, here _u[0]..._u[3]):
+		//   max thrust = maxRotVelocity ** 2 * motorConstant = 1500**2 * 2e-5 = 45 N
+		// and for the pusher (in sdf rotor_puller, here _u[7]):
+		//   max thrust = maxRotVelocity ** 2 * motorConstant = 3500**2 * 8.54858e-06 = 105 N
+		float T_MAX_PUSHER = 2 * _T_MAX * 105.f / 45.f;
+
+		_T_B = Vector3f(T_MAX_PUSHER * _u[7], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
 				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
 
-		// thrust 0 because it is already contained in _T_B. in
-		// equations_of_motion they are all summed into sum_of_forces_E
-		generate_fw_aerodynamics(_u[4], _u[5], _u[6], 0);
+		generate_fw_aerodynamics(_u[4], _u[5], _u[6], _u[7]);
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		generate_rover_ackermann_dynamics(_u[1], _u[0], dt);
+
 	}
 }
 
@@ -411,7 +421,7 @@ void Sih::generate_ts_aerodynamics()
 
 	for (int i = 0; i < NB_TS_SEG; i++) {
 		if (i <= NB_TS_SEG / 2) {
-			_ts[i].update_aero(v_ts, w_ts, altitude, _u[5]*TS_DEF_MAX, _T_MAX * _u[1]);
+			_ts[i].update_aero(v_ts, w_ts, altitude, -_u[5]*TS_DEF_MAX, _T_MAX * _u[1]);
 
 		} else {
 			_ts[i].update_aero(v_ts, w_ts, altitude, -_u[4]*TS_DEF_MAX, _T_MAX * _u[0]);
@@ -620,13 +630,13 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f gyro_noise;
 
 	if (_T_B.longerThan(FLT_EPSILON)) {
-		accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
-		gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
+		accel_noise = _noise_scale * noiseGauss3f(0.5f, 1.7f, 1.4f);
+		gyro_noise = _noise_scale * noiseGauss3f(0.14f, 0.07f, 0.03f);
 
 	} else {
 		// Lower noise when not armed
-		accel_noise = noiseGauss3f(0.1f, 0.1f, 0.1f);
-		gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
+		accel_noise = _noise_scale * noiseGauss3f(0.1f, 0.1f, 0.1f);
+		gyro_noise = _noise_scale * noiseGauss3f(0.01f, 0.01f, 0.01f);
 	}
 
 	Vector3f specific_force_B = R_E2B * _specific_force_E;

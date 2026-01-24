@@ -1,6 +1,8 @@
 #!/bin/sh
 # shellcheck disable=SC2154
 
+echo "INFO  [init] Gazebo simulator"
+
 # Enforce minimum gz version as Harmonic (gz-sim8)
 MIN_GZ_VERSION="8.0.0"
 GZ_SIM_VERSION=$(gz sim --versions 2>/dev/null | head -n 1 | tr -d ' ')

@@ -85,7 +85,20 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	if (!subscribeMag(true)) {
+	// mag: /world/$WORLD/model/$MODEL/link/base_link/sensor/magnetometer_sensor/magnetometer
+	std::string mag_topic = "/world/" + _world_name + "/model/" + _model_name +
+				"/link/base_link/sensor/magnetometer_sensor/magnetometer";
+
+	if (!_node.Subscribe(mag_topic, &GZBridge::magnetometerCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", mag_topic.c_str());
+		return PX4_ERROR;
+	}
+
+	// odom: /world/$WORLD/model/$MODEL/link/base_link/odometry_with_covariance
+	std::string odometry_topic = "/model/" + _model_name + "/odometry_with_covariance";
+
+	if (!_node.Subscribe(odometry_topic, &GZBridge::odometryCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", odometry_topic.c_str());
 		return PX4_ERROR;
 	}
 
@@ -378,6 +391,32 @@ void GZBridge::opticalFlowCallback(const px4::msgs::OpticalFlow &msg)
 	// Distance will come from vehicle distance sensor
 
 	_optical_flow_pub.publish(report);
+}
+
+void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
+{
+	const uint64_t timestamp = hrt_absolute_time();
+
+	device::Device::DeviceId id{};
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.devtype = DRV_MAG_DEVTYPE_MAGSIM;
+	id.devid_s.bus = 1;
+	id.devid_s.address = 3; // TODO: any value other than 3 causes Commander to not use the mag.... wtf
+
+	sensor_mag_s report{};
+	report.timestamp = timestamp;
+	report.timestamp_sample = timestamp;
+	report.device_id = id.devid;
+	report.temperature = this->_temperature;
+
+	// FIMEX: once we're on jetty or later
+	// The magnetometer plugin publishes in units of gauss and in a weird left handed coordinate system
+	// https://github.com/gazebosim/gz-sim/pull/2460
+	report.x = -msg.field_tesla().y();
+	report.y = -msg.field_tesla().x();
+	report.z = msg.field_tesla().z();
+
+	_sensor_mag_pub.publish(report);
 }
 
 void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &msg)
