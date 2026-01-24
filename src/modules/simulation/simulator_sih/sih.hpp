@@ -77,6 +77,8 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -117,6 +119,7 @@ public:
 
 private:
 	void parameters_updated();
+	void check_failure_injections();
 
 	// simulated sensors
 	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
@@ -132,6 +135,14 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+
+	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	bool _airspeed_blocked{false};
+	bool _distance_sensor_blocked{false};
+	bool _accel_blocked{false};
+	bool _gyro_blocked{false};
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;

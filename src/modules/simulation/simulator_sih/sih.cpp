@@ -190,6 +190,91 @@ void Sih::realtime_loop()
 	px4_sem_destroy(&_data_semaphore);
 }
 
+void Sih::check_failure_injections()
+{
+	vehicle_command_s vehicle_command;
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+			continue;
+		}
+
+		bool handled = false;
+		bool supported = false;
+
+		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+
+		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, airspeed off");
+				supported = true;
+				_airspeed_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, airspeed ok");
+				supported = true;
+				_airspeed_blocked = false;
+			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, distance sensor off");
+				supported = true;
+				_distance_sensor_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, distance sensor ok");
+				supported = true;
+				_distance_sensor_blocked = false;
+			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_ACCEL) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, accel off");
+				supported = true;
+				_accel_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, accel ok");
+				supported = true;
+				_accel_blocked = false;
+			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_GYRO) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, gyro off");
+				supported = true;
+				_gyro_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, gyro ok");
+				supported = true;
+				_gyro_blocked = false;
+			}
+		}
+
+		if (handled) {
+			vehicle_command_ack_s ack{};
+			ack.command = vehicle_command.command;
+			ack.from_external = false;
+			ack.result = supported ?
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(ack);
+		}
+	}
+}
+
 void Sih::sensor_step()
 {
 	// check for parameter updates
@@ -202,6 +287,8 @@ void Sih::sensor_step()
 		updateParams();
 		parameters_updated();
 	}
+
+	check_failure_injections();
 
 	perf_begin(_loop_perf);
 
@@ -636,12 +723,21 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
 
 	// update IMU every iteration
-	_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
-	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+	if (!_accel_blocked) {
+		_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
+	}
+
+	if (!_gyro_blocked) {
+		_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+	}
 }
 
 void Sih::send_airspeed(const hrt_abstime &time_now_us)
 {
+	if (_airspeed_blocked) {
+		return;
+	}
+
 	// TODO: send differential pressure instead?
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
@@ -656,6 +752,10 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 {
+	if (_distance_sensor_blocked) {
+		return;
+	}
+
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	device_id.devid_s.bus = 0;
