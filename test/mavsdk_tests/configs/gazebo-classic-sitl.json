@@ -1,18 +1,17 @@
 {
     "mode": "sitl",
     "simulator": "gazebo",
+    "model_prefix": "gazebo-classic_",
     "mavlink_connection": "udpin://0.0.0.0:14540",
     "tests":
     [
         {
             "model": "iris",
-            "vehicle": "iris",
             "test_filter": "[multicopter],[offboard],[offboard_attitude]",
             "timeout_min": 10
         },
         {
             "model": "iris",
-            "vehicle": "iris",
             "test_filter": "[offboard_attitude]",
             "timeout_min": 10,
             "env": {
@@ -22,19 +21,16 @@
         },
         {
             "model": "standard_vtol",
-            "vehicle": "standard_vtol",
             "test_filter": "[vtol], [vtol_wind], [vtol_airspeed_fail]",
             "timeout_min": 10
         },
         {
             "model": "tailsitter",
-            "vehicle": "tailsitter",
             "test_filter": "[vtol]",
             "timeout_min": 10
         },
         {
             "model": "typhoon_h480",
-            "vehicle": "typhoon_h480",
             "test_filter": "[controlallocation]",
             "timeout_min": 10
         }

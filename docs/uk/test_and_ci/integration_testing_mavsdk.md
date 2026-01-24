@@ -45,10 +45,10 @@ The tests need the MAVSDK C++ library installed system-wide (e.g. in `/usr/lib` 
 
 ## Запуск усіх PX4 тестів
 
-To run all SITL tests as defined in [sitl.json](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/configs/sitl.json), do:
+To run all SITL tests using the SIH simulator as defined in [sih-sitl.json](https://github.com/PX4/PX4-Autopilot/blob/main/test/mavsdk_tests/configs/sih-sitl.json), do:
 
 ```sh
-test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sitl.json --speed-factor 10
+test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sih-sitl.json --speed-factor 10
 ```
 
 This will list all the tests and then run them sequentially.
@@ -87,10 +87,10 @@ options:
 ## Запуск одного тесту
 
 Run a single test by specifying the `model` and test `case` as command line options.
-Наприклад, щоб протестувати керування хвостовиком у місії, ви можете виконати:
+For example, to test a multicopter mission using the SIH simulator:
 
 ```sh
-test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sitl.json --speed-factor 10 --model tailsitter --case 'Fly VTOL mission'
+test/mavsdk_tests/mavsdk_test_runner.py test/mavsdk_tests/configs/sih-sitl.json --speed-factor 10 --model quadx --case 'Fly square Multicopter Missions including RTL'
 ```
 
 The easiest way to find out the current set of models and their associated test cases is to run all PX4 tests [as shown above](#run-all-px4-tests) (note, you can then cancel the build if you wish to test just one).
