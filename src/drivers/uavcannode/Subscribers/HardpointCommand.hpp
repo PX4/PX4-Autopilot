@@ -103,7 +103,7 @@ private:
 				} else {
 					actuator_servos.control[i] = 0; // do nothing
 
-				} // end else
+				}
 
 			} // end for
 
