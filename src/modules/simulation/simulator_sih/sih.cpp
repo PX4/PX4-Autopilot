@@ -191,6 +191,20 @@ void Sih::realtime_loop()
 	px4_sem_destroy(&_data_semaphore);
 }
 
+void Sih::updateFailureConfig()
+{
+	_failure_config.update();
+
+	_airspeed_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED, 1)
+			     == failure_injection::Mode::Off);
+	_distance_sensor_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, 1)
+				    == failure_injection::Mode::Off);
+	_accel_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, 1)
+			  == failure_injection::Mode::Off);
+	_gyro_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, 1)
+			 == failure_injection::Mode::Off);
+}
+
 void Sih::sensor_step()
 {
 	// check for parameter updates
@@ -203,6 +217,8 @@ void Sih::sensor_step()
 		updateParams();
 		parameters_updated();
 	}
+
+	updateFailureConfig();
 
 	perf_begin(_loop_perf);
 
@@ -715,12 +731,21 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
 
 	// update IMU every iteration
-	_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
-	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+	if (!_accel_blocked) {
+		_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
+	}
+
+	if (!_gyro_blocked) {
+		_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+	}
 }
 
 void Sih::send_airspeed(const hrt_abstime &time_now_us)
 {
+	if (_airspeed_blocked) {
+		return;
+	}
+
 	// TODO: send differential pressure instead?
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
@@ -736,6 +761,10 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 {
+	if (_distance_sensor_blocked) {
+		return;
+	}
+
 	float current_distance;
 
 	if (_distance_snsr_override >= 0.f) {
