@@ -27,6 +27,8 @@ DroneCAN was previously known as UAVCAN v0 (or just UAVCAN).
 - Проводка менше складна, оскільки ви можете мати один шину для підключення всіх ваших ESC і інших периферійних пристроїв DroneCAN.
 - Налаштування стає простіше, оскільки ви налаштовуєте нумерацію ESC, обертаючи кожен двигун вручну.
 - Це дозволяє користувачам налаштовувати та оновлювати прошивку всіх пристроїв, підключених через CAN, централізовано через PX4.
+- PX4 automatically tracks device information (vendor, model, versions, serial numbers) for maintenance and fleet management.
+  See [Asset Tracking](../debug/asset_tracking.md).
 
 ## Підтримуване обладнання
 
