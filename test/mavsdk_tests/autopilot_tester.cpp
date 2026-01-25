@@ -225,7 +225,7 @@ void AutopilotTester::wait_until_hovering()
 
 void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout, float delta)
 {
-	auto prom = std::promise<void>{};
+	auto prom = std::promise<void> {};
 	auto fut = prom.get_future();
 
 	Telemetry::PositionVelocityNedHandle handle = _telemetry->subscribe_position_velocity_ned([&prom, rel_altitude_m, delta, &handle,
