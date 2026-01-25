@@ -1,5 +1,7 @@
 module_name: ekf2
 parameters:
+  num_instances: 4
+  instance_start: 1
 - group: EKF2
   definitions:
     EKF2_GPS_CTRL:
@@ -86,25 +88,31 @@ parameters:
       max: 5.0
       unit: m/s
       decimal: 2
-    EKF2_GPS_POS_X:
+    EKF2_GPS${i}_ID:
       description:
-        short: X position of GPS antenna in body frame
+        short: Device ID of GPS ${i}
+        long: Match this ID with the device ID of the GPS receiver (param STATUS_GPS${i}_DEV_ID)
+      type: int32
+      default: 0
+    EKF2_GPS${i}_POS_X:
+      description:
+        short: X position of GPS ${i} antenna in body frame
         long: Forward (roll) axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
-    EKF2_GPS_POS_Y:
+    EKF2_GPS${i}_POS_Y:
       description:
-        short: Y position of GPS antenna in body frame
+        short: Y position of GPS ${i} antenna in body frame
         long: Right (pitch) axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
-    EKF2_GPS_POS_Z:
+    EKF2_GPS${i}_POS_Z:
       description:
-        short: Z position of GPS antenna in body frame
+        short: Z position of GPS ${i} antenna in body frame
         long: Down (yaw) axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0

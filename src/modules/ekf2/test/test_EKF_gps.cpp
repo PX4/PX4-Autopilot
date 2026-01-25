@@ -36,20 +36,18 @@
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
 
-#include <gtest/gtest.h>
 #include "EKF/ekf.h"
-#include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "sensor_simulator/sensor_simulator.h"
 #include "test_helper/reset_logging_checker.h"
+#include <gtest/gtest.h>
 
 class EkfGpsTest : public ::testing::Test
 {
 public:
-
-	EkfGpsTest(): ::testing::Test(),
-		_ekf{std::make_shared<Ekf>()},
-		_sensor_simulator(_ekf),
-		_ekf_wrapper(_ekf) {};
+	EkfGpsTest()
+		: ::testing::Test(), _ekf{std::make_shared<Ekf>()},
+		  _sensor_simulator(_ekf), _ekf_wrapper(_ekf) {};
 
 	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator _sensor_simulator;
@@ -58,7 +56,8 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
+		// run briefly to init, then manually set in air and at rest (default for a
+		// real vehicle)
 		_ekf->init(0);
 		_sensor_simulator.runSeconds(0.1);
 		_ekf->set_in_air_status(false);
@@ -71,9 +70,7 @@ public:
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
-	void TearDown() override
-	{
-	}
+	void TearDown() override {}
 };
 
 TEST_F(EkfGpsTest, gpsTimeout)
@@ -111,12 +108,14 @@ TEST_F(EkfGpsTest, gpsFixLoss)
 	// WHEN: the fix is loss
 	_sensor_simulator._gps.setFixType(0);
 
-	// THEN: after dead-reconing for a couple of seconds, the local position gets invalidated
+	// THEN: after dead-reconing for a couple of seconds, the local position gets
+	// invalidated
 	_sensor_simulator.runSeconds(6);
 	EXPECT_TRUE(_ekf->control_status_flags().inertial_dead_reckoning);
 	EXPECT_FALSE(_ekf->isLocalHorizontalPositionValid());
 
-	// The control logic takes a bit more time to deactivate the GNSS fusion completely
+	// The control logic takes a bit more time to deactivate the GNSS fusion
+	// completely
 	_sensor_simulator.runSeconds(5);
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 }
@@ -138,8 +137,10 @@ TEST_F(EkfGpsTest, resetToGpsVelocity)
 	const Vector3f simulated_velocity(10.5f, 1.0f, -5.3f);
 	_sensor_simulator._gps.setVelocity(simulated_velocity);
 	const uint64_t dt_us = 1e5;
-	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f(simulated_velocity) * dt_us * 1e-6);
-	_sensor_simulator._gps.stepHeightByMeters(simulated_velocity(2) * dt_us * 1e-6f);
+	_sensor_simulator._gps.stepHorizontalPositionByMeters(
+		Vector2f(simulated_velocity) * dt_us * 1e-6);
+	_sensor_simulator._gps.stepHeightByMeters(simulated_velocity(2) * dt_us *
+			1e-6f);
 
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
@@ -154,8 +155,10 @@ TEST_F(EkfGpsTest, resetToGpsVelocity)
 
 	// AND: the reset in velocity should be saved correctly
 	reset_logging_checker.capturePostResetState();
-	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
-	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(
+		reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(
+		reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-2f));
 }
 
@@ -223,7 +226,8 @@ TEST_F(EkfGpsTest, altitudeDrift)
 	BiasEstimator::status status = _ekf->getBaroBiasEstimatorStatus();
 
 	printf("baro innov = %f\n", (double)baro_innov);
-	printf("bias: %f, innov bias = %f\n", (double)status.bias, (double)status.innov);
+	printf("bias: %f, innov bias = %f\n", (double)status.bias,
+	       (double)status.innov);
 
 	// THEN: the baro and local position should follow it
 	EXPECT_LT(fabsf(baro_innov), 0.1f);
@@ -266,8 +270,7 @@ TEST_F(EkfGpsTest, gnssJumpDetectionDRMode)
 	EXPECT_TRUE(_ekf_wrapper.isGnssFaultDetected());
 
 	// The position is obtained through dead-reckoning
-	EXPECT_TRUE(isEqual(estimated_position,
-			    previous_position, 25.f));
+	EXPECT_TRUE(isEqual(estimated_position, previous_position, 25.f));
 
 	// BUT WHEN: the position data goes back to normal
 	_sensor_simulator._gps.stepHorizontalPositionByMeters(
@@ -278,4 +281,32 @@ TEST_F(EkfGpsTest, gnssJumpDetectionDRMode)
 	EXPECT_FALSE(_ekf_wrapper.isGnssFaultDetected());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+}
+
+TEST_F(EkfGpsTest, gpsPositionOffset)
+{
+	// GIVEN: EKF with GPS fusion active
+	// (SetUp already runs for 11s, GPS should be active)
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// WHEN: We set a body frame position offset on the GPS sample
+	// This simulates the EKF2 module looking up the value from parameters and
+	// passing it to the EKF via vehicle_gps_position
+	const Vector3f offset_body(1.0f, 0.5f, -0.5f);
+	_sensor_simulator._gps.setPosOffsetBody(offset_body);
+
+	// Run for a while to let EKF digest it
+	_sensor_simulator.runSeconds(5.0);
+
+	// THEN: The estimated position should be shifted by -offset (assuming heading
+	// 0 and simulator sends 0) Measured = VehiclePos + Offset Simulator sends
+	// Measured = 0 (approx). VehiclePos = Measured - Offset = -Offset.
+	const Vector3f pos = _ekf->getPosition();
+
+	// Check X/Y (Horizontal)
+	EXPECT_NEAR(pos(0), -offset_body(0), 0.2f);
+	EXPECT_NEAR(pos(1), -offset_body(1), 0.2f);
+
+	// Check Z (Vertical)
+	EXPECT_NEAR(pos(2), -offset_body(2), 0.2f);
 }

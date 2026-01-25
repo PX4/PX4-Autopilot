@@ -45,7 +45,7 @@ namespace sensor_simulator
 namespace sensor
 {
 
-class Gps: public Sensor
+class Gps : public Sensor
 {
 public:
 	Gps(std::shared_ptr<Ekf> ekf);
@@ -61,6 +61,7 @@ public:
 	void setVelocity(const Vector3f &vel);
 	void setYaw(const float yaw);
 	void setYawOffset(const float yaw);
+	void setPosOffsetBody(const Vector3f &pos_offset_body);
 	void setFixType(const int fix_type);
 	void setNumberOfSatellites(const int num_satellites);
 	void setPdop(const float pdop);
