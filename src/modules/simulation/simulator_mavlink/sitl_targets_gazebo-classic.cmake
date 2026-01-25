@@ -249,6 +249,7 @@ if(gazebo_FOUND)
 endif()
 
 # mavsdk tests DO NOT depend on sitl_gazebo
+include(ExternalProject)
 ExternalProject_Add(mavsdk_tests
 	SOURCE_DIR ${PX4_SOURCE_DIR}/test/mavsdk_tests
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
