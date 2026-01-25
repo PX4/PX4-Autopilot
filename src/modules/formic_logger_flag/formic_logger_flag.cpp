@@ -96,39 +96,59 @@ FormicLoggerFlag *FormicLoggerFlag::instantiate(int argc, char *argv[])
 
 void FormicLoggerFlag::run_once()
 {
-	const int32_t selected_channel = _param_formic_logger_flag_ch.get();
+	const int32_t selected_aux = _param_formic_logger_flag_aux.get();
 
-	if (selected_channel != _active_rc_channel) {
-		_active_rc_channel = selected_channel;
-		PX4_INFO("Formic logger RC channel set to %ld", (long)_active_rc_channel);
+	if (selected_aux != _active_aux_channel) {
+		_active_aux_channel = selected_aux;
 	}
 }
 
 float FormicLoggerFlag::on_press_logger_flag(){
 
-	// Check if a valid channel is selected (parameter is 1-indexed: 1-18, 0 = disabled)
-	if (_active_rc_channel <= 0 || _active_rc_channel > input_rc_s::RC_INPUT_MAX_CHANNELS) {
-		return -1.0f; // Invalid or disabled channel
+	// Check if a valid aux channel is selected (parameter is 1-indexed: 1-6, 0 = disabled)
+	if (_active_aux_channel <= 0 || _active_aux_channel > 6) {
+		return 0.0f; // Invalid or disabled aux channel
 	}
 
-	// Use rc_channels topic which has normalized values [-1, 1]
-	rc_channels_s rc_channels{};
+	// Use manual_control_setpoint topic which has normalized values [-1, 1]
+	manual_control_setpoint_s manual_control_setpoint{};
 	
-	if (!_rc_channels_sub.update(&rc_channels)) {
-		return -1.0f; // No new RC data
+	if (!_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+		return 0.0f; // No new manual control data
 	}
 
-	// Convert from 1-indexed parameter to 0-indexed array index
-	uint8_t channel_index = _active_rc_channel - 1;
-	if (channel_index >= rc_channels.channel_count) {
-		return -1.0f; // Channel not available
+	// Get the aux channel value based on the selected aux (1-6)
+	float aux_value = NAN;
+	switch (_active_aux_channel) {
+		case 1:
+			aux_value = manual_control_setpoint.aux1;
+			break;
+		case 2:
+			aux_value = manual_control_setpoint.aux2;
+			break;
+		case 3:
+			aux_value = manual_control_setpoint.aux3;
+			break;
+		case 4:
+			aux_value = manual_control_setpoint.aux4;
+			break;
+		case 5:
+			aux_value = manual_control_setpoint.aux5;
+			break;
+		case 6:
+			aux_value = manual_control_setpoint.aux6;
+			break;
+		default:
+			return -1.0f; // Invalid aux channel
 	}
 
-	// Get normalized value from rc_channels (already scaled to -1..1)
-	float rc_normalized = rc_channels.channels[channel_index];
+	// Check if aux value is valid (not NaN)
+	if (!PX4_ISFINITE(aux_value)) {
+		return 0.0f; // Aux channel not available
+	}
 	
 	// Convert from [-1, 1] to [0, 1] range
-	return (rc_normalized + 1.0f) * 0.5f;
+	return (aux_value + 1.0f) * 0.5f;
 }
 
 

@@ -7,8 +7,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/debug_flag.h>
-#include <uORB/topics/input_rc.h>
-#include <uORB/topics/rc_channels.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 
 #define linear_mapping(x, in_min, in_max, out_min, out_max) ((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
@@ -44,17 +43,16 @@ private:
 	void publish_debug_flag(ClickState click_state);
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
-	uORB::Subscription _rc_channels_sub{ORB_ID(rc_channels)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Publication<debug_flag_s> _debug_flag_pub{ORB_ID(debug_flag)};
 	float on_press_logger_flag();
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::FORMIC_LG_CH>) _param_formic_logger_flag_ch,
+		(ParamInt<px4::params::FORMIC_LG_AUX>) _param_formic_logger_flag_aux,
 		(ParamFloat<px4::params::FORMIC_LG_INVERT>) _param_formic_logger_flag_invert
 	)
 
-	int32_t _active_rc_channel{-1};
+	int32_t _active_aux_channel{-1};
 	bool _flag_activate_state{false};
 };
 
