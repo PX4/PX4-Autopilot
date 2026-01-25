@@ -258,7 +258,7 @@ typedef struct {
 	_stack_s interrupt;
 #endif
 
-} stack_t;
+} px4_stack_t;
 
 /* Not Used for reference only */
 
@@ -371,7 +371,7 @@ typedef struct {
 	int                   pid;                    /* Process ID */
 	uint32_t              regs[XCPTCONTEXT_REGS]; /* Interrupt register save area */
 	fault_regs_s          fault_regs;             /* NVIC status */
-	stack_t               stacks;                 /* Stack info */
+	px4_stack_t           stacks;                 /* Stack info */
 #if CONFIG_TASK_NAME_SIZE > 0
 	char                  name[CONFIG_TASK_NAME_SIZE + 1]; /* Task name (with NULL
 													* terminator) */

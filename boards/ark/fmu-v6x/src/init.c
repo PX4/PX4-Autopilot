@@ -60,6 +60,7 @@
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
+#include <sys/stat.h>
 #include <chip.h>
 #include <stm32_uart.h>
 #include <arch/board/board.h>
@@ -277,9 +278,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	// Ensure Power is off for > 10 mS
 	usleep(15 * 1000);
 	VDD_3V3_SD_CARD_EN(true);
-	usleep(500 * 1000);
+	// Increased delay for SD card power-on and initialization (NuttX 12)
+	usleep(1000 * 1000);
 
 #ifdef CONFIG_MMCSD
+	/* Create mount point for SD card */
+	mkdir("/fs", 0777);
+	mkdir("/fs/microsd", 0777);
+
 	int ret = stm32_sdio_initialize();
 
 	if (ret != OK) {

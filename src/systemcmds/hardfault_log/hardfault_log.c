@@ -340,7 +340,7 @@ static int write_stack_detail(bool inValid, _stack_s *si, char *sp_name,
 	tcb.adj_stack_size = si->size;
 
 	if (verify_ram_address(sbot, si->size)) {
-		n = snprintf(buffer, max,         "  used:   0x%08zx\n", up_check_tcbstack(&tcb));
+		n = snprintf(buffer, max,         "  used:   0x%08zx\n", up_check_tcbstack(&tcb, tcb.adj_stack_size));
 
 	} else {
 		n = snprintf(buffer, max,         "Invalid Stack! (Corrupted TCB)  Stack base:  0x%08" PRIx32 " Stack size:  0x%08"
@@ -459,7 +459,7 @@ static int write_registers(uint32_t regs[], char *buffer, int max, int fd)
 		return -EIO;
 	}
 
-#ifdef CONFIG_ARMV7M_USEBASEPRI
+#if defined(CONFIG_ARMV7M_USEBASEPRI) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7EM__)
 	n = snprintf(buffer, max, " xpsr:0x%08" PRIx32 " basepri:0x%08" PRIx32 " control:0x%08" PRIx32 "\n",
 		     regs[REG_XPSR],  regs[REG_BASEPRI],
 		     getcontrol());

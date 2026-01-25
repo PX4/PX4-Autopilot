@@ -45,7 +45,7 @@
 
 #include <signal.h>
 #include <stdint.h>
-#include <queue.h>
+#include <sys/queue.h>
 #include <stdio.h>
 #include <semaphore.h>
 #include "work_lock.h"

@@ -44,6 +44,22 @@ endif
 include $(TOPDIR)/.config
 include $(TOPDIR)/tools/Config.mk
 
+# Include toolchain definitions based on architecture
+# This is required for NuttX 12.x which moved toolchain-specific flags to Toolchain.defs
+ifeq ($(CONFIG_ARCH_ARMV7M),y)
+  include $(TOPDIR)/arch/arm/src/armv7-m/Toolchain.defs
+else ifeq ($(CONFIG_ARCH_ARMV7A),y)
+  include $(TOPDIR)/arch/arm/src/armv7-a/Toolchain.defs
+else ifeq ($(CONFIG_ARCH_ARMV7R),y)
+  include $(TOPDIR)/arch/arm/src/armv7-r/Toolchain.defs
+else ifeq ($(CONFIG_ARCH_ARMV8M),y)
+  include $(TOPDIR)/arch/arm/src/armv8-m/Toolchain.defs
+else ifeq ($(CONFIG_ARCH_ARMV8R),y)
+  include $(TOPDIR)/arch/arm/src/armv8-r/Toolchain.defs
+else ifeq ($(CONFIG_ARCH_ARMV6M),y)
+  include $(TOPDIR)/arch/arm/src/armv6-m/Toolchain.defs
+endif
+
 # Replace each space separated word in the string that contains "cygdrive"
 # with the windows path and escaped backslashes
 # e.g. [hello -I /cygdrive/c -I/cygdrive/c] -> [hello -I C:\\ ]
@@ -56,6 +72,17 @@ else \
 fi \
 )))
 endef
+
+# Define compilers first, before they are used in CINCPATH calculation
+CC = ${CMAKE_C_COMPILER}
+CXX = ${CMAKE_CXX_COMPILER}
+CPP = ${CMAKE_C_COMPILER} -E
+LD = ${CMAKE_LD}
+STRIP = ${CMAKE_STRIP} --strip-unneeded
+AR = ${CMAKE_AR} rcs
+NM = ${CMAKE_NM}
+OBJCOPY = ${CMAKE_OBJCOPY}
+OBJDUMP = ${CMAKE_OBJDUMP}
 
 CINCPATH := $(shell $(INCDIR) -s "$(CC)" $(TOPDIR)$(DELIM)include)
 CXXINCPATH := $(shell $(INCDIR) -s "$(CC)" $(TOPDIR)$(DELIM)include$(DELIM)cxx)
@@ -73,16 +100,6 @@ ifneq (, $(findstring CYGWIN, $(shell uname)))
   ARCHINCLUDES := $(call cygwin_to_windows_paths,$(ARCHINCLUDES))
   ARCHXXINCLUDES := $(call cygwin_to_windows_paths,$(ARCHXXINCLUDES))
 endif
-
-CC = ${CMAKE_C_COMPILER}
-CXX = ${CMAKE_CXX_COMPILER}
-CPP = ${CMAKE_C_COMPILER} -E
-LD = ${CMAKE_LD}
-STRIP = ${CMAKE_STRIP} --strip-unneeded
-AR = ${CMAKE_AR} rcs
-NM = ${CMAKE_NM}
-OBJCOPY = ${CMAKE_OBJCOPY}
-OBJDUMP = ${CMAKE_OBJDUMP}
 
 ARCHCCVERSION = $(shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gcc version \([0-9\.]\)/\1/g' -e 's/[-\ ].*//g' -e '1q')
 ARCHCCMAJOR = $(shell echo $(ARCHCCVERSION) | cut -d'.' -f1)
@@ -104,7 +121,9 @@ FLAGS = $(MAXOPTIMIZATION) -g2 \
 	-Wall \
 	-Wextra \
 	-Wlogical-op \
+	-Wno-builtin-declaration-mismatch \
 	-Wno-cpp \
+	-Wno-format \
 	-Wno-format-truncation \
 	-Wno-maybe-uninitialized \
 	-Wno-missing-field-initializers \

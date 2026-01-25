@@ -51,9 +51,9 @@
 #include <time.h>
 #include <nuttx/fs/fs.h>
 
-#include <crc32.h>
+#include <nuttx/crc32.h>
 
-#ifdef CONFIG_BOARD_CRASHDUMP
+#ifdef CONFIG_BOARD_CRASHDUMP_CUSTOM
 
 #include <systemlib/hardfault_log.h>
 #include "chip.h"
@@ -450,8 +450,8 @@ static int progmem_dump_poll(struct file *filep, struct pollfd *fds,
 	if (setup) {
 		fds->revents |= (fds->events & (POLLIN | POLLOUT));
 
-		if (fds->revents != 0) {
-			nxsem_post(fds->sem);
+		if (fds->revents != 0 && fds->cb != NULL) {
+			fds->cb(fds);
 		}
 	}
 

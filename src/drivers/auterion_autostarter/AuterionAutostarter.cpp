@@ -391,7 +391,7 @@ int AuterionAutostarter::start(const char *start_command, const char **start_arg
 	int status = PX4_ERROR;
 
 	if (start_command != nullptr) {
-		int pid = exec_builtin(start_command, (char **)start_argv, NULL, 0);
+		int pid = exec_builtin(start_command, (char **)start_argv, NULL);
 
 		if (pid != -1) {
 			waitpid(pid, &status, WUNTRACED);

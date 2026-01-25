@@ -39,7 +39,7 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <queue.h>
+#include <sys/queue.h>
 #include <px4_platform_common/workqueue.h>
 #include "work_lock.h"
 
