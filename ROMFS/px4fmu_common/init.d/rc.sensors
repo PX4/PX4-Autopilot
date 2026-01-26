@@ -8,17 +8,24 @@
 #                           Begin Optional drivers                            #
 ###############################################################################
 
+%ifdef CONFIG_DRIVERS_BATT_SMBUS
 if param compare -s SENS_EN_BATT 1
 then
 	batt_smbus start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_SMART_BATTERY_BATMON
 # Start batmon driver if enabled using BATMON_DRIVER_EN
 if param compare -s BATMON_DRIVER_EN 1
 then
 	batmon start -X  #start on external bus
 fi
+%endif
 
+
+%ifdef CONFIG_DRIVERS_PWM_INPUT
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_LL40LS
 # Sensors on the PWM interface bank
 if param compare -s SENS_EN_LL40LS 1
 then
@@ -27,92 +34,121 @@ then
 		ll40ls_pwm start
 	fi
 fi
+%endif
 
 # External automatic trigger system
 if param compare FD_EXT_ATS_EN 1
 then
 	pwm_input start
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_LL40LS
 # Lidar-Lite on I2C
 if param compare -s SENS_EN_LL40LS 2
 then
 	ll40ls start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_MAPPYDOT
 # mappydot lidar sensor
 if param compare -s SENS_EN_MPDT 1
 then
 	mappydot start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_MB12XX
 # mb12xx sonar sensor
 if param greater -s SENS_EN_MB12XX 0
 then
 	mb12xx start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_PGA460
 # pga460 sonar sensor
 if param greater -s SENS_EN_PGA460 0
 then
 	pga460 start
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_LIGHTWARE_LASER_I2C
 # Lightware i2c lidar sensor
 if param greater -s SENS_EN_SF1XX 0
 then
 	lightware_laser_i2c start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_SRF05
 # Sensor HY-SRF05 or HC-SR05 ultrasonic sensor
 if param compare -s SENS_EN_SR05 1
 then
 	srf05 start
 fi
+%endif
 
 
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_TERARANGER
 # Teraranger one tof sensor
 if param greater -s SENS_EN_TRANGER 0
 then
 	teraranger start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_OPTICAL_FLOW_PAA3905
 # paa3905 optical flow sensor (external SPI)
 if param greater -s SENS_EN_PAA3905 0
 then
 	paa3905 -S start
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_OPTICAL_FLOW_PAW3902
 # paw3902 optical flow sensor (external SPI)
 if param greater -s SENS_EN_PAW3902 0
 then
 	paw3902 -S start
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_OPTICAL_FLOW_PMW3901
 # pmw3901 optical flow sensor (external SPI)
 if param greater -s SENS_EN_PMW3901 0
 then
 	pmw3901 -S start
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_VL53L0X
 # vl53l0x i2c distance sensor
 if param compare -s SENS_EN_VL53L0X 1
 then
 	vl53l0x start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_VL53L1X
 # vl53l1x i2c distance sensor
 if param compare -s SENS_EN_VL53L1X 1
 then
 	vl53l1x start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DISTANCE_SENSOR_TF02PRO
 # tf02 pro i2c distance sensor
 if param compare -s SENS_EN_TF02PRO 1
 then
 	tf02pro start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_IMU_ANALOG_DEVICES_ADIS16448
 # ADIS16448 spi external IMU
 if param compare -s SENS_EN_ADIS164X 1
 then
@@ -125,25 +161,33 @@ then
 		adis16448 -S start -R 4
 	fi
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_IMU_ANALOG_DEVICES_ADIS16507
 # ADIS16507 spi external IMU
 if param greater -s SENS_EN_ADIS165X 0
 then
 	adis16507 -S start
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_IMU_MURATA_SCH16T
 # SCH16T spi external IMU
 if param compare -s SENS_EN_SCH16T 1
 then
 	sch16t -S start
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_ETS
 # Eagle Tree airspeed sensor external I2C
 if param compare -s SENS_EN_ETSASPD 1
 then
 	ets_airspeed start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_SDP3X
 # Sensirion SDP3X differential pressure sensor external I2C
 if param compare -s SENS_EN_SDP3X 1
 then
@@ -153,116 +197,171 @@ then
 		sdp3x start -X -a 0x22
 	fi
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_TEMPERATURE_SENSOR_MCP9808
 # Microchip MCP9808 temperature sensor external I2C
 if param compare -s SENS_EN_MCP9808 1
 then
 	mcp9808 start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_MS4515
 # TE MS4515 differential pressure sensor external I2C
 if param compare -s SENS_EN_MS4515 1
 then
 	ms4515 start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_MS4525DO
 # TE MS4525DO differential pressure sensor external I2C
 if param compare -s SENS_EN_MS4525DO 1
 then
 	ms4525do start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_MS5525DSO
 # TE MS5525DSO differential pressure sensor external I2C
 if param compare -s SENS_EN_MS5525DS 1
 then
 	ms5525dso start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_ASP5033
 # TE ASP5033 differential pressure sensor external I2C
 if param compare -s SENS_EN_ASP5033 1
 then
 	asp5033 start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_DIFFERENTIAL_PRESSURE_AUAV
 # AUAV absolute/differential pressure sensor external I2C
 if param greater -s SENS_EN_AUAVX 0
 then
 	auav start -D -X
 	auav start -A -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_HYGROMETER_SHT3X
 # SHT3x temperature and hygrometer sensor, external I2C
 if param compare -s SENS_EN_SHT3X 1
 then
 	sht3x start -X
 	sht3x start -X -a 0x45
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_IRLOCK
 # IR-LOCK sensor external I2C
 if param compare -s SENS_EN_IRLOCK 1
 then
 	irlock start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_BAROMETER_GOERTEK_SPL06
 # SPL06 sensor external I2C
 if param compare -s SENS_EN_SPL06 1
 then
 	spl06 -X start
 	spl06 -X -a 0x77 start
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_BAROMETER_GOERTEK_SPA06
 # SPA06 sensor external I2C
 if param compare -s SENS_EN_SPA06 1
 then
 	spa06 -X start
 	spa06 -X -a 0x77 start
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_RPM_PCF8583
 # PCF8583 counter (RPM sensor)
 if param compare -s SENS_EN_PCF8583 1
 then
 	pcf8583 start -X
 	pcf8583 start -X -a 0x51
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_ADC_ADS7953
 # ADC sensor ADS7953 external SPI
 if param compare -s ADC_ADS7953_EN 1
 then
 	ads7953 start -S
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_ADC_TLA2528
 # ADC sensor tla2528 external I2C
 if param compare -s ADC_TLA2528_EN 1
 then
 	tla2528 start -X
 fi
+%endif
 
+%ifdef CONFIG_DRIVERS_TEMPERATURE_SENSOR_TMP102
 # Start TMP102 temperature sensor
-if param compare SENS_EN_TMP102 1
+if param compare -s SENS_EN_TMP102 1
 then
 	tmp102 start -X
 fi
+%endif
 
+%ifdef COMMON_MAGNETOMETER
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then
+%ifdef CONFIG_DRIVERS_IMU_INVENSENSE_ICM20948
 	icm20948_i2c_passthrough -X -q start
+%endif
 
 	# compasses
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_HMC5883
 	hmc5883 -T -X -q start
+%endif
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_ST_IIS2MDC
 	iis2mdc -X -q start
+%endif
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_ISENTEK_IST8308
 	ist8308 -X -q start
+%endif
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_ISENTEK_IST8310
 	ist8310 -X -q start
+%endif
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_LIS3MDL
 	if ! lis3mdl -X -q start
 	then
 		lis3mdl -X -q -a 0x1c start
 	fi
+%endif
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_QMC5883L
 	qmc5883l -X -q start
+%endif
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_QMC5883P
 	qmc5883p -X -q start
+%endif
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_RM3100
 	rm3100 -X -q start
+%endif
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_BOSCH_BMM350
 	bmm350 -X -q start
+%endif
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_ST_IIS2MDC
 	iis2mdc -X -q start
+%endif
 
 	# start last (wait for possible icm20948 passthrough mode)
+%ifdef CONFIG_DRIVERS_MAGNETOMETER_AKM_AK09916
 	ak09916 -X -q start
+%endif
 fi
+%endif

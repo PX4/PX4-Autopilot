@@ -146,6 +146,11 @@ add_custom_command(
 		${romfs_copy_stamp}
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/*
 	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
+	# Preprocess ROMFS files with KConfig definitions
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_preprocess.py
+		--romfs-dir ${romfs_gen_root_dir}
+		--kconfig-header ${PX4_BINARY_DIR}/px4_boardconfig.h
+		--cpp ${CMAKE_C_COMPILER}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
@@ -159,8 +164,10 @@ add_custom_command(
 		--params-file ${CONFIG_BOARD_PARAM_FILE}
 	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_copy_stamp}
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
-	DEPENDS ${romfs_tar_file}
-	COMMENT "ROMFS: copying, generating airframes"
+	DEPENDS
+		${romfs_tar_file}
+		${PX4_BINARY_DIR}/px4_boardconfig.h
+	COMMENT "ROMFS: copying, preprocessing, generating airframes"
 	)
 
 # copy extras into ROMFS
