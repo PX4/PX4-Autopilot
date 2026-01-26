@@ -52,6 +52,7 @@ public:
 	int init() override;
 	void RunImpl();
 	int probe() override;
+	void print_status() override;
 
 private:
 	static const hrt_abstime SAMPLE_INTERVAL{10_ms};

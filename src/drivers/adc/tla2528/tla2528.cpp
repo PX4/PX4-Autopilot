@@ -142,7 +142,7 @@ int TLA2528::poll_reset()
 	uint8_t send_data[2];
 	uint8_t recv_data;
 	send_data[0] = READ;
-	send_data[0] = GENERAL_CFG;
+	send_data[1] = GENERAL_CFG;
 	int ret = transfer(&send_data[0], 2, nullptr, 0);
 	ret |= transfer(nullptr, 0, &recv_data, 1);
 
@@ -199,16 +199,30 @@ void TLA2528::adc_get()
 int TLA2528::probe()
 {
 	for (int i = 0; i < 3; i++) {
+		// Select channel 0
+		uint8_t send_data[3];
+		send_data[0] = WRITE;
+		send_data[1] = CHANNEL_SEL;
+		send_data[2] = 0x00;            // Channel 0
+		transfer(&send_data[0], 3, nullptr, 0);
+
+		// Put device in in manual mode
+		send_data[0] = WRITE;
+		send_data[1] = OPMODE_CFG;
+		send_data[2] = 0x00;
+		transfer(&send_data[0], 3, nullptr, 0);
+
 		// Set device in debug mode (should respond with 0xA5AX to all reads)
-		uint8_t send_data[3] = {SET_BIT, DATA_CFG, 0x80};
+		send_data[0] = SET_BIT;
+		send_data[1] = DATA_CFG;
+		send_data[2] = 0x80;
 		int ret = transfer(&send_data[0], 3, nullptr, 0);
 
 		// Read
 		uint8_t recv_data[2];
-		send_data[0] = SET_BIT;
-		send_data[0] = DATA_CFG;
-		ret |= transfer(&send_data[0], 2, nullptr, 0);
-		ret |= transfer(nullptr, 0, &recv_data[0], 2);
+		transfer(nullptr, 0, &recv_data[0], 2);
+
+		printf("TLA2528::probe result: 0x%02x 0x%02x\n", recv_data[0], recv_data[1]);
 
 		// Turn debug mode off
 		send_data[0] = CLEAR_BIT;
