@@ -657,10 +657,10 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_moto
 	// with period <= 0, and constantly turned on with period == on_sec.
 
 	const float period_sec = _param_ice_shedding_period.get();
-	const float on_sec = _param_ice_shedding_on_time.get();
+	const float on_sec = 2.0f;
 	const float ice_shedding_output = 0.01f;
 
-	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON || on_sec <= FLT_EPSILON;
+	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON;
 	const bool has_unused_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
 				       || _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL
 				       || _effectiveness_source_id == EffectivenessSource::TAILSITTER_VTOL;
