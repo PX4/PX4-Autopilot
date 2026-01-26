@@ -177,5 +177,20 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-01-26: translate MC_BAT_SCALE_EN, FW_BAT_SCALE_EN, CA_BAT_SCALE_EN to CA_BAT_SCALE_EN
+	{
+		if (strcmp("MC_BAT_SCALE_EN", node->name) == 0
+		    || strcmp("FW_BAT_SCALE_EN", node->name) == 0
+		    || strcmp("SC_BAT_SCALE_EN", node->name) == 0) {
+			// Set new param true if one of the old params is true. This results in
+			// CA_BAT_SCALE_EN == MC_BAT_SCALE_EN || FW_BAT_SCALE_EN || SC_BAT_SCALE_EN
+			if (node->b) {
+				bool val = true;
+				param_set(param_find("CA_BAT_SCALE_EN"), &val);
+				PX4_INFO("migrating %s -> %s", node->name, "CA_BAT_SCALE_EN");
+			}
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }
