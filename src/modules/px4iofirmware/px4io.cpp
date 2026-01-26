@@ -392,6 +392,7 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 		}
 
 #if defined(HEATER1_OUTPUT_EN)
+// TODO: Multi-instance heater for PX4IO to be implemented
 
 		if (r_page_setup[PX4IO_P_SETUP_THERMAL] != PX4IO_THERMAL_IGNORE) {
 			if (r_page_setup[PX4IO_P_SETUP_THERMAL] < PX4IO_THERMAL_FULL) {
