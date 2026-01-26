@@ -38,6 +38,7 @@
  *     uavcan.equipment.esc.RawCommand
  *     uavcan.equipment.esc.RPMCommand
  *     uavcan.equipment.esc.Status
+ *     uavcan.equipment.esc.StatusExtended
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
@@ -58,12 +59,14 @@
 #include <uORB/topics/device_information.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/uavcan/node_info.hpp>
+#include "../node_info.hpp"
 
 class UavcanEscController
 {
 public:
 	static constexpr int MAX_ACTUATORS = esc_status_s::CONNECTED_ESC_MAX;
 	static constexpr unsigned MAX_RATE_HZ = 400;
+	static constexpr int16_t kMaxUavcanNodeId = 128; // UAVCAN supports up to 128 nodes (0-127)
 
 	static_assert(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize >= MAX_ACTUATORS, "Too many actuators");
 
@@ -75,8 +78,7 @@ public:
 
 	bool initialized() { return _initialized; };
 
-	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size);
-
+	void update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size);
 	/**
 	 * Sets the number of rotors and enable timer
 	 */
@@ -103,6 +105,12 @@ private:
 	 */
 	uint8_t check_escs_status();
 
+
+	/**
+	 * Gets failure flags for a specific ESC
+	 */
+	uint32_t get_failures(uint8_t esc_index);
+
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
 
@@ -113,11 +121,13 @@ private:
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
-	bool _initialized = false;
+	bool _initialized{};
 
 	esc_status_s	_esc_status{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Subscription _dronecan_node_status_sub{ORB_ID(dronecan_node_status)};
+	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
 
