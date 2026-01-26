@@ -89,6 +89,11 @@ public:
 	static constexpr int MAX_NUM_MOTORS = actuator_motors_s::NUM_CONTROLS;
 	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
 
+	static constexpr float ICE_SHEDDING_MAX_SLEWRATE = 0.1f;
+	static constexpr float ICE_SHEDDING_ON_SEC = 2.0f;
+	static constexpr float ICE_SHEDDING_OUTPUT = 0.01f;
+
+
 	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
 
 	ControlAllocator();

@@ -75,9 +75,7 @@ ControlAllocator::ControlAllocator() :
 
 	parameters_updated();
 
-	// If ever exposing this as a parameter do it repeatedly
-	const float max_ice_shedding_slewrate = 0.1f;
-	_slew_limited_ice_shedding_output.setSlewRate(max_ice_shedding_slewrate);
+	_slew_limited_ice_shedding_output.setSlewRate(ICE_SHEDDING_MAX_SLEWRATE);
 }
 
 ControlAllocator::~ControlAllocator()
@@ -653,12 +651,7 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 float
 ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_motor_failed)
 {
-	// If ever needed, expose these parameters again. Feature is turned off
-	// with period <= 0, and constantly turned on with period == on_sec.
-
 	const float period_sec = _param_ice_shedding_period.get();
-	const float on_sec = 2.0f;
-	const float ice_shedding_output = 0.01f;
 
 	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON;
 	const bool has_unused_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
@@ -680,7 +673,7 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_moto
 	} else {
 		// Raw square wave output
 		const float elapsed_in_period = fmodf((float) now / 1_s, period_sec);
-		const float raw_ice_shedding_output = elapsed_in_period < on_sec ? ice_shedding_output : 0.0f;
+		const float raw_ice_shedding_output = elapsed_in_period < ICE_SHEDDING_ON_SEC ? ICE_SHEDDING_OUTPUT : 0.0f;
 
 		// Apply slew rate limit
 		const float dt = (float)(now - _last_ice_shedding_update) / 1_s;
