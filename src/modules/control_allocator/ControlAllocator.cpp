@@ -350,6 +350,7 @@ ControlAllocator::Run()
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 			_is_vtol = vehicle_status.is_vtol;
+			_vehicle_type = vehicle_status.vehicle_type;
 
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
@@ -483,7 +484,13 @@ ControlAllocator::update_battery_scaling_modes()
 	const ActuatorEffectiveness::FlightPhase flight_phase = _actuator_effectiveness->getFlightPhase();
 
 	if (_param_ca_bat_scale_en.get()) {
-		if (_is_vtol) {
+
+		if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+			// Currently there is no rover battery scaling. Add here if necessary.
+			_battery_scaling_modes[0] = BatteryScalingMode::NONE;
+			_battery_scaling_modes[1] = BatteryScalingMode::NONE;
+
+		} else if (_is_vtol) {
 			_battery_scaling_modes[0] = BatteryScalingMode::ALL;
 			_battery_scaling_modes[1] = BatteryScalingMode::FORWARD_THRUST_ONLY;
 

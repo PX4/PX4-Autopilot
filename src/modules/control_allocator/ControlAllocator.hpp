@@ -219,6 +219,7 @@ private:
 
 	bool _armed{false};
 	bool _is_vtol{false};
+	uint8_t _vehicle_type{vehicle_status_s::VEHICLE_TYPE_UNSPECIFIED};
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
 	hrt_abstime _last_status_pub{0};
