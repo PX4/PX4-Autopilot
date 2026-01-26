@@ -176,9 +176,9 @@ static struct hrt_call _cc_calls[MAX_IO_TIMERS];
 static uint32_t read_ok[MAX_TIMER_IO_CHANNELS] = {};
 static uint32_t read_fail_crc[MAX_TIMER_IO_CHANNELS] = {};
 
-static perf_counter_t hrt_callback_perf = NULL;
-static perf_counter_t capture_cycle_perf = NULL;
-static perf_counter_t capture_cycle_perf2 = NULL;
+static perf_counter_t capture_complete_perf = NULL;
+static perf_counter_t bust_perf = NULL;
+static perf_counter_t capture_window_perf = NULL;
 
 static void init_timer_config(uint32_t channel_mask)
 {
@@ -309,12 +309,12 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 	if (bdshot_channel_mask) {
 		// TODO: show which timers/channels it's enabled on
 		PX4_INFO("BDShot enabled");
-		hrt_callback_perf = perf_alloc(PC_ELAPSED, "dshot: callback perf");
-		capture_cycle_perf = perf_alloc(PC_INTERVAL, "dshot: cycle perf");
-		capture_cycle_perf2 = perf_alloc(PC_INTERVAL, "dshot: cycle perf2");
+		capture_complete_perf = perf_alloc(PC_ELAPSED, "dshot: capture complete");
+		bust_perf = perf_alloc(PC_INTERVAL, "dshot: burst perf");
+		capture_window_perf = perf_alloc(PC_INTERVAL, "dshot: capture window");
 	}
 
-	// NOTE: All timers are triggered simultaneously for low latency.
+	// NOTE: All timers are triggered in a loop with a small delay.
 	// Each timer needs its own DMA channel, re-used for burst transmit and then capture.
 	// For bidirectional DShot, each timer uses round-robin capture (1 channel per timer per cycle).
 
@@ -403,7 +403,7 @@ static void dshot_start_timer_burst(uint8_t timer_index)
 
 	// Trigger DMA. For BDShot after boot delay, use callback for capture setup.
 	if (timer->bidirectional && (hrt_absolute_time() > ESC_BOOT_DELAY_US)) {
-		perf_begin(capture_cycle_perf);
+		perf_begin(bust_perf);
 		stm32_dmastart(timer->dma_handle, dma_burst_finished_callback, &timer->timer_index, false);
 
 	} else {
@@ -438,13 +438,16 @@ void up_dshot_trigger()
 			}
 
 			dshot_start_timer_burst(i);
+
 			// NOTE: small delay between timer bursts, workaround for race condition. The issue is that when timers
 			// are burst at the same time, the response frame arrives at the same time. Response frames arrive 30us
 			// after the burst is complete, and reconfiguring the first timer for capture-compare takes longer than
 			// 15us. This means by the time the second timer is configured for capture-compare, we've already missed
 			// some of the response frame bits.
-			px4_udelay(10);
 			// NOTE: 24us stagger between Timer1Burst and Timer2Burst measured on an H7
+			if (i < MAX_IO_TIMERS - 1) {
+				px4_udelay(10);
+			}
 		}
 	}
 }
@@ -564,9 +567,8 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	// Enable CaptureDMA on this timer's channels only
 	io_timer_set_enable(true, IOTimerChanMode_CaptureDMA, io_timer_get_group(timer_index));
 
-	// Measuring the time it takes from when we start the DMA to when we enable CaptureDMA
-	perf_end(capture_cycle_perf);
-	perf_begin(capture_cycle_perf2);
+	perf_end(bust_perf);
+	perf_begin(capture_window_perf);
 
 	// 30us to switch regardless of DShot frequency + eRPM frame time + 20us for good measure
 	hrt_abstime frame_us = (16 * 1000000) / _dshot_frequency; // 16 bits * us_per_s / bits_per_s
@@ -576,8 +578,8 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 
 static void capture_complete_callback(void *arg)
 {
-	perf_end(capture_cycle_perf2);
-	perf_begin(hrt_callback_perf);
+	perf_end(capture_window_perf);
+	perf_begin(capture_complete_perf);
 
 	uint8_t timer_index = *((uint8_t *)arg);
 
@@ -616,7 +618,7 @@ static void capture_complete_callback(void *arg)
 	// Enable this timer's channels as DShotInverted
 	io_timer_set_enable(true, IOTimerChanMode_DshotInverted, io_timer_get_group(timer_index));
 
-	perf_end(hrt_callback_perf);
+	perf_end(capture_complete_perf);
 
 	_bdshot_cycle_complete[timer_index] = true;
 }
