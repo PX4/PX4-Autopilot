@@ -433,7 +433,7 @@ ControlAllocator::Run()
 			}
 
 			if (_vehicle_thrust_setpoint1_sub.copy(&vehicle_thrust_setpoint)) {
-				const Vector3f thrust_sp = battery_scale_torque_setpoint(vehicle_torque_setpoint, _battery_scaling_modes[1], _battery_scale);
+				const Vector3f thrust_sp = battery_scale_thrust_setpoint(vehicle_thrust_setpoint, _battery_scaling_modes[1], _battery_scale);
 				c[1](3) = thrust_sp(0);
 				c[1](4) = thrust_sp(1);
 				c[1](5) = thrust_sp(2);
