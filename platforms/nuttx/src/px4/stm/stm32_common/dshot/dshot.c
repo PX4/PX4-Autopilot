@@ -151,7 +151,7 @@ typedef struct {
 	uint64_t last_timestamp;
 } erpm_data_t;
 
-typedef struct edt_data_t {
+typedef struct {
 	uint8_t value;
 	bool ready;
 	float rate_hz;
