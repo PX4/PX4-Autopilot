@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +35,7 @@
 #include "../DShotCommon.h"
 #include <px4_platform_common/log.h>
 
-static constexpr int EEPROM_SIZE = 48;  // AM32 sends raw eeprom data
-static constexpr int RESPONSE_SIZE = 49; // 48B data + 1B CRC
+static constexpr int RESPONSE_SIZE = EEPROM_SIZE + 1; // 48B data + 1B CRC
 
 uORB::Publication<esc_eeprom_read_s> AM32Settings::_esc_eeprom_read_pub{ORB_ID(esc_eeprom_read)};
 
