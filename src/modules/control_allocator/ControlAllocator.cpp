@@ -341,6 +341,7 @@ ControlAllocator::Run()
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+			_is_vtol = vehicle_status.is_vtol;
 
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
@@ -654,16 +655,12 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_moto
 	const float period_sec = _param_ice_shedding_period.get();
 
 	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON;
-	const bool has_unused_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
-				       || _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL
-				       || _effectiveness_source_id == EffectivenessSource::TAILSITTER_VTOL;
 	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
 
-	// If any stopped motor (*) has failed, the feature will create much more
+	// If any stopped motor has failed, the feature will create much more
 	// torque than in the nominal case, and becomes pointless anyway as we
 	// cannot go back to multicopter
-	//  (*) in FW and for the relevant airframes these are exactly the upward pointing motors
-	const bool apply_shedding = has_unused_rotors && in_forward_flight && !any_stopped_motor_failed;
+	const bool apply_shedding = _is_vtol && in_forward_flight && !any_stopped_motor_failed;
 
 	if (feature_disabled_by_param || !apply_shedding) {
 		// Bypass slew limit and immediately set zero, to not
