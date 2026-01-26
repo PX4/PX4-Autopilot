@@ -222,7 +222,7 @@ stm32_boardinitialize(void)
 
 	// Configure heater GPIO.
 	stm32_configgpio(GPIO_HEATER_INPUT);
-	stm32_configgpio(GPIO_HEATER_OUTPUT);
+	stm32_configgpio(GPIO_HEATER1_OUTPUT);
 }
 
 /****************************************************************************
