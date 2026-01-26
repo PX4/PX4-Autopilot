@@ -159,5 +159,5 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_PWM8);
 
 	/* disable heater */
-	HEATER_OUTPUT_EN(false);
+	HEATER1_OUTPUT_EN(false);
 }

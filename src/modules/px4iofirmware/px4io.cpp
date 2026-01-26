@@ -391,16 +391,16 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 			heartbeat_blink();
 		}
 
-#if defined(HEATER_OUTPUT_EN)
+#if defined(HEATER1_OUTPUT_EN)
 
 		if (r_page_setup[PX4IO_P_SETUP_THERMAL] != PX4IO_THERMAL_IGNORE) {
 			if (r_page_setup[PX4IO_P_SETUP_THERMAL] < PX4IO_THERMAL_FULL) {
 				/* switch resistive heater off */
-				HEATER_OUTPUT_EN(false);
+				HEATER1_OUTPUT_EN(false);
 
 			} else {
 				/* switch resistive heater hard on */
-				HEATER_OUTPUT_EN(true);
+				HEATER1_OUTPUT_EN(true);
 			}
 		}
 
