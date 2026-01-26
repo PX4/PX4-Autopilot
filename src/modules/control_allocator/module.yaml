@@ -610,16 +610,29 @@ parameters:
                 short: Ice shedding cycle period
                 long: |
                     Ice shedding prevents ice buildup in VTOL aircraft motors by
-                    periodically spinning inactive rotors. When enabled (period
-                    > 0), every cycle lasts for the defined period and includes
-                    a 2‑second spin at 0.01 motor output. If period <= 0, the
-                    feature is disabled.
+                    periodically spinning inactive rotors. Every cycle lasts for
+                    the defined period and includes a spin at 0.01 motor output
+                    with the length defined by CA_ICE_ON_TIME. If period <= 0,
+                    the feature is disabled.
             type: float
             decimal: 1
             unit: s
             increment: 0.1
             min: 0.0
             default: 0.0
+
+        CA_ICE_ON_TIME:
+            description:
+                short: Ice shedding on time
+                long: |
+                    The duration for which unused motors are spun during each
+                    ice shedding cycle. If <= 0, the feature is disabled.
+            type: float
+            decimal: 1
+            unit: s
+            increment: 0.1
+            min: 0.0
+            default: 2.0
 
 # Mixer
 mixer:
