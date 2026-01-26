@@ -723,7 +723,7 @@ ControlAllocator::publish_actuator_controls()
 		if (stopped_motors & (1u << motors_idx)) {
 			actuator_motors.control[motors_idx] = NAN;
 
-			if (ice_shedding_output > 0.001f) {
+			if (ice_shedding_output > FLT_EPSILON) {
 				actuator_motors.control[motors_idx] = ice_shedding_output;
 			}
 		}
