@@ -206,12 +206,17 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 	static_assert(sizeof(msg.firmware_version) == sizeof(device_info.firmware_version), "Array size mismatch");
 	static_assert(sizeof(msg.hardware_version) == sizeof(device_info.hardware_version), "Array size mismatch");
 	static_assert(sizeof(msg.serial_number) == sizeof(device_info.serial_number), "Array size mismatch");
+	// Copy strings using memcpy and ensure null termination
+	static_assert(sizeof(msg.name) == sizeof(device_info.name), "Array size mismatch");
 
 	memcpy(msg.model_name, device_info.model_name, sizeof(msg.model_name));
 	msg.model_name[sizeof(msg.model_name) - 1] = '\0';
 
 	memcpy(msg.vendor_name, device_info.vendor_name, sizeof(msg.vendor_name));
 	msg.vendor_name[sizeof(msg.vendor_name) - 1] = '\0';
+
+	memcpy(msg.name, device_info.name, sizeof(msg.name));
+	msg.name[sizeof(msg.name) - 1] = '\0';
 
 	memcpy(msg.firmware_version, device_info.firmware_version, sizeof(msg.firmware_version));
 	msg.firmware_version[sizeof(msg.firmware_version) - 1] = '\0';
@@ -233,9 +238,10 @@ void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info,
 {
 	device_info.has_node_info = true;
 
-	// Parse the node name to extract vendor and model information
+	// Remain backward compatible - for now.
 	parseNodeName(info.name, device_info);
 
+	snprintf(device_info.name, sizeof(device_info.name), "%s", info.name);
 	snprintf(device_info.firmware_version, sizeof(device_info.firmware_version),
 		 "%d.%d.%lu", info.sw_major, info.sw_minor, static_cast<unsigned long>(info.vcs_commit));
 	snprintf(device_info.hardware_version, sizeof(device_info.hardware_version),

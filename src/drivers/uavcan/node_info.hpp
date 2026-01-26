@@ -102,6 +102,7 @@ private:
 		DeviceCapability capability{DeviceCapability::NONE};
 		bool has_node_info{false};
 
+		char name[80];
 		char vendor_name[32];
 		char model_name[32];
 		char firmware_version[24];
@@ -112,6 +113,7 @@ private:
 			has_node_info(false)
 		{
 			// Initialize string fields
+			name[0] = '\0';
 			vendor_name[0] = '\0';
 			model_name[0] = '\0';
 			firmware_version[0] = '\0';
@@ -123,6 +125,7 @@ private:
 			: node_id(nid), device_id(did), capability(cap), has_node_info(false)
 		{
 			// Initialize string fields
+			name[0] = '\0';
 			vendor_name[0] = '\0';
 			model_name[0] = '\0';
 			firmware_version[0] = '\0';
@@ -145,10 +148,10 @@ private:
 	// Publishing methods
 	void publishDeviceInformationPeriodic();
 	void publishSingleDeviceInformation(const DeviceInformation &device_info);
+	void parseNodeName(const char *name, DeviceInformation &device_info);
 
 	// Helper functions
 	void populateDeviceInfoFields(DeviceInformation &device_info, const NodeInfo &info);
-	void parseNodeName(const char *name, DeviceInformation &device_info);
 	bool extendDeviceInformationsArray();
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;
