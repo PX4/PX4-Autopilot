@@ -70,10 +70,6 @@ private:
 			memcpy(msg.data, eeprom.data, sizeof(eeprom.data));
 			msg.length = eeprom.length;
 
-			PX4_INFO("Sending ESC_EEPROM on channel %d", _mavlink->get_channel());
-			PX4_INFO("ESC%d firmware %d", msg.esc_index + 1, msg.firmware);
-			PX4_INFO("length %d", msg.length);
-
 			mavlink_msg_esc_eeprom_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
