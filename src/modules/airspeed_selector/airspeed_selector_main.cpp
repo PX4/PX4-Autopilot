@@ -182,6 +182,7 @@ private:
 	float _param_fw_thr_max{0.0f};
 
 	AlphaFilter<float> _throttle_filtered{_kThrottleFilterTimeConstant};
+	AlphaFilter<float> _tecs_throttle_filtered{_kThrottleFilterTimeConstant};
 	uint64_t _t_last_throttle_fw{0};
 
 	DEFINE_PARAMETERS(
@@ -390,7 +391,7 @@ AirspeedModule::Run()
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
 		input_data.hdg_test_ratio = _estimator_status.hdg_test_ratio;
 		input_data.tecs_timestamp = _tecs_status.timestamp;
-		input_data.fixed_wing_throttle_filtered = _throttle_filtered.getState();
+		input_data.fixed_wing_throttle_filtered = _tecs_throttle_filtered.getState();
 		input_data.fixed_wing_tecs_throttle_trim = _tecs_status.throttle_trim;
 
 		// iterate through all airspeed sensors, poll new data from them and update their validators
@@ -862,6 +863,31 @@ void AirspeedModule::update_throttle_filter(hrt_abstime now)
 		} else {
 			_throttle_filtered.update(forward_thrust, dt);
 		}
+
+		// In the same way also update the TECS throttle filter. Reason
+		// for keeping the two separately is that synthetic airspeed
+		// needs to be available in non-tecs-controlled modes so we
+		// cannot use TECS throttle setpoint, but the airspeed validator
+		// needs a throttle setpoint without battery scaling
+		// (vehicle_thrust_setpoint is battery scaled).
+
+		// This is a short term solution, longer term we aim to move
+		// battery scaling into the allocator, making all uOrb thrust /
+		// torque setpoints non-battery-scaled, allowing us to use only
+		// vehicle_thrust_setpoint here again.
+
+		// Note that both alpha filters are updated with the frequency
+		// of AirspeedModule::Run, NOT with the frequency of the
+		// incoming topic. This is not a problem as long as dt reflects
+		// it correctly.
+
+		if (dt < FLT_EPSILON || dt > 1.f) {
+			_tecs_throttle_filtered.reset(_tecs_status.throttle_sp);
+
+		} else {
+			_tecs_throttle_filtered.update(_tecs_status.throttle_sp, dt);
+		}
+
 	}
 }
 
