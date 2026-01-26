@@ -74,6 +74,10 @@ ControlAllocator::ControlAllocator() :
 	}
 
 	parameters_updated();
+
+	// If ever exposing this as a parameter do it repeatedly
+	const float max_ice_shedding_slewrate = 0.1f;
+	_slew_limited_ice_shedding_output.setSlewRate(max_ice_shedding_slewrate);
 }
 
 ControlAllocator::~ControlAllocator()
@@ -655,20 +659,18 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_moto
 	const float period_sec = _param_ice_shedding_period.get();
 	const float on_sec = 2.0f;
 	const float ice_shedding_output = 0.01f;
-	const float max_ice_shedding_slewrate = 0.1f;
-
-	_slew_limited_ice_shedding_output.setSlewRate(max_ice_shedding_slewrate);
 
 	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON;
-	const bool has_unused_upwards_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
-					       || _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL;
+	const bool has_unused_rotors = _effectiveness_source_id == EffectivenessSource::STANDARD_VTOL
+				       || _effectiveness_source_id == EffectivenessSource::TILTROTOR_VTOL
+				       || _effectiveness_source_id == EffectivenessSource::TAILSITTER_VTOL;
 	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
 
 	// If any stopped motor (*) has failed, the feature will create much more
 	// torque than in the nominal case, and becomes pointless anyway as we
 	// cannot go back to multicopter
 	//  (*) in FW and for the relevant airframes these are exactly the upward pointing motors
-	const bool apply_shedding = has_unused_upwards_rotors && in_forward_flight && !any_stopped_motor_failed;
+	const bool apply_shedding = has_unused_rotors && in_forward_flight && !any_stopped_motor_failed;
 
 	if (feature_disabled_by_param || !apply_shedding) {
 		// Bypass slew limit and immediately set zero, to not

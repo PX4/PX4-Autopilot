@@ -609,16 +609,16 @@ parameters:
             description:
                 short: Ice shedding cycle period
                 long: |
-                    Ice shedding is a feature that periodically spins unused
-                    upwards rotors on VTOL aircraft to remove ice buildup within
-                    the motors. This period defines the total duration of the
-                    ice shedding cycle. Feature is turned off if <= 0.
+                    Ice shedding prevents ice buildup in VTOL aircraft motors by
+                    periodically spinning inactive rotors. When enabled (period
+                    > 0), every cycle lasts for the defined period and includes
+                    a 2‑second spin at 0.01 motor output. If period <= 0, the
+                    feature is disabled.
             type: float
             decimal: 1
             unit: s
             increment: 0.1
             min: 0.0
-            max: 300.0
             default: 0.0
 
 # Mixer
