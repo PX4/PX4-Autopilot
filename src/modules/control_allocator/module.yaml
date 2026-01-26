@@ -48,6 +48,17 @@ parameters:
                 2: Automatic
             default: 2
 
+        CA_BAT_SCALE_EN:
+            description:
+                short: Enable battery scale compensation
+                long: |
+                  Battery scale compensation results in consistent thrust and
+                  torque response despite depleting battery. It applies to all
+                  rotors -- if they are gas powered disable it. This replaces
+                  MC_BAT_SCALE_EN, FW_BAT_SCALE_EN, and SC_BAT_SCALE_EN.
+            type: boolean
+            default: false
+
         # Motor parameters
         CA_R_REV:
             description:

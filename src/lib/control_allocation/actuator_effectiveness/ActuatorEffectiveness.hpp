@@ -160,6 +160,16 @@ public:
 	}
 
 	/**
+	 * Query if the mixing matrix requires battery compensation
+	 */
+	virtual void getNeedsBatteryScaling(bool needs_scaling[MAX_NUM_MATRICES]) const
+	{
+		for (int i = 0; i < MAX_NUM_MATRICES; ++i) {
+			needs_scaling[i] = false;
+		}
+	}
+
+	/**
 	 * Get the control effectiveness matrix if updated
 	 *
 	 * @return true if updated and matrix is set

@@ -166,6 +166,8 @@ ControlAllocator::update_allocation_method(bool force)
 		bool normalize_rpy[ActuatorEffectiveness::MAX_NUM_MATRICES];
 		_actuator_effectiveness->getNormalizeRPY(normalize_rpy);
 
+		_actuator_effectiveness->getNeedsBatteryScaling(_allocation_needs_battery_scaling);
+
 		for (int i = 0; i < _num_control_allocation; ++i) {
 			AllocationMethod method = configured_method;
 
@@ -424,7 +426,26 @@ ControlAllocator::Run()
 			}
 		}
 
+		float battery_scaling = 1.0f;
+
+		if (_param_ca_bat_scale_en.get()) {
+			battery_status_s battery_status;
+
+			if (_battery_status_sub.copy(&battery_status)) {
+				if (battery_status.connected && battery_status.scale > 0.f) {
+					battery_scaling = battery_status.scale;
+				}
+			}
+		}
+
 		for (int i = 0; i < _num_control_allocation; ++i) {
+
+			if (_allocation_needs_battery_scaling[i]) {
+				_control_allocation[i]->setBatteryScaling(battery_scaling);
+
+			} else {
+				_control_allocation[i]->setBatteryScaling(1.0f);
+			}
 
 			_control_allocation[i]->setControlSetpoint(c[i]);
 
@@ -471,6 +492,7 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 	}
 
 	if (_actuator_effectiveness->getEffectivenessMatrix(config, reason)) {
+		PX4_INFO("eff update");
 		_last_effectiveness_update = hrt_absolute_time();
 
 		memcpy(_control_allocation_selection_indexes, config.matrix_selection_indexes,

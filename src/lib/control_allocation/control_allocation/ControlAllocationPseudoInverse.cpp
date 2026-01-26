@@ -73,6 +73,9 @@ ControlAllocationPseudoInverse::updatePseudoInverse()
 			normalizeControlAllocationMatrix();
 		}
 
+		// empty battery = scaling > 1 = larger mix matrix = smaller effectiveness
+		_mix *= _battery_scaling;
+
 		_mix_update_needed = false;
 	}
 }

@@ -70,6 +70,10 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
 
@@ -228,6 +232,8 @@ public:
 
 	void setNormalizeRPY(bool normalize_rpy) { _normalize_rpy = normalize_rpy; }
 
+	virtual void setBatteryScaling(float new_battery_scaling) { _battery_scaling = new_battery_scaling; }
+
 protected:
 	friend class ControlAllocator; // for _actuator_sp
 
@@ -244,4 +250,5 @@ protected:
 	int _num_actuators{0};
 	bool _normalize_rpy{false};				///< if true, normalize roll, pitch and yaw columns
 	bool _had_actuator_failure{false};
+	float _battery_scaling{1.0f};
 };

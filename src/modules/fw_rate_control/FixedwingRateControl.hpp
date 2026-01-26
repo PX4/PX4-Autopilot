@@ -57,7 +57,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
@@ -103,7 +102,6 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
@@ -141,8 +139,6 @@ private:
 
 	bool _landed{true};
 
-	float _battery_scale{1.0f};
-
 	float _energy_integration_time{0.0f};
 	float _control_energy[4] {};
 	float _control_prev[3] {};
@@ -172,8 +168,6 @@ private:
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 
 		(ParamInt<px4::params::FW_ARSP_SCALE_EN>) _param_fw_arsp_scale_en,
-
-		(ParamBool<px4::params::FW_BAT_SCALE_EN>) _param_fw_bat_scale_en,
 
 		(ParamFloat<px4::params::FW_DTRIM_P_VMAX>) _param_fw_dtrim_p_vmax,
 		(ParamFloat<px4::params::FW_DTRIM_P_VMIN>) _param_fw_dtrim_p_vmin,
