@@ -2113,6 +2113,7 @@ bool Commander::getPrearmState() const
 		return hrt_elapsed_time(&_boot_timestamp) > 5_s;
 
 	case PrearmedMode::SAFETY_BUTTON:
+	case PrearmedMode::TOGGLE_BUTTON:
 		if (_safety.isButtonAvailable()) {
 			/* safety button is present, go into prearmed if safety is off */
 			return _safety.isSafetyOff();
@@ -2203,7 +2204,11 @@ void Commander::landDetectorUpdate()
 
 void Commander::safetyButtonUpdate()
 {
-	const bool safety_changed = _safety.safetyButtonHandler();
+	// use toggle button if configured and not armed
+	bool is_toggle = (PrearmedMode)_param_com_prearm_mode.get() == PrearmedMode::TOGGLE_BUTTON;
+	bool allow_toggle = is_toggle && !isArmed();
+
+	const bool safety_changed = _safety.safetyButtonHandler(allow_toggle);
 	_vehicle_status.safety_button_available = _safety.isButtonAvailable();
 	_vehicle_status.safety_off = _safety.isSafetyOff();
 
