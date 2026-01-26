@@ -82,10 +82,10 @@
 
 Heater *Heater::g_heater[HEATER_MAX_INSTANCES] {}; //! 0-based
 
-Heater::Heater(uint8_t instance, const px4::wq_config_t &wq) :
-	ScheduledWorkItem(MODULE_NAME, wq),
-	ModuleParams(nullptr),
-	_instance(instance)
+Heater::Heater(uint8_t instance) :
+    ScheduledWorkItem(heater_instance_name(instance), px4::wq_configurations::lp_default),
+    ModuleParams(nullptr),
+    _instance(instance)
 {
 	initialize_heater_io();
 
@@ -507,6 +507,17 @@ int Heater::status(uint8_t instance ){
 	return PX4_OK;
 }
 
+const char *Heater::heater_instance_name(uint8_t inst)
+{
+    switch (inst) {
+    case 1: return "heater_1";
+    case 2: return "heater_2";
+    case 3: return "heater_3";
+    default: return "heater";
+    }
+}
+
+
 int Heater::stop_all()
 {
 	for (uint8_t i = 0; i < HEATER_MAX_INSTANCES; i++) {
@@ -550,9 +561,7 @@ int Heater::start_instance(uint8_t instance)
 		return PX4_OK;
 	}
 
-	const px4::wq_config_t &wq = px4::ins_instance_to_wq((int)instance - 1);
-
-	Heater *h = new Heater(instance, wq);
+	Heater *h = new Heater(instance);
 
 	if (!h) {
 		PX4_ERR("alloc failed");

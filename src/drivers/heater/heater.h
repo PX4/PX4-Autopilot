@@ -69,7 +69,7 @@ using namespace time_literals;
 class Heater : px4::ScheduledWorkItem, public ModuleParams
 {
 public:
-	Heater(uint8_t instance, const px4::wq_config_t &wq);
+	Heater(uint8_t instance);
 
 	virtual ~Heater();
 
@@ -95,6 +95,7 @@ public:
 	static int start_instance(uint8_t instance);
 	static int stop_all();
 	static int status(uint8_t instance);
+	static const char *heater_instance_name(uint8_t inst);
 
 	static Heater *g_heater[HEATER_MAX_INSTANCES];
 
