@@ -144,7 +144,7 @@ static bool _bdshot_processed[MAX_TIMER_IO_CHANNELS] = {};
 static int _consecutive_failures[MAX_TIMER_IO_CHANNELS] = {};
 static int _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
 
-typedef struct erpm_data_t {
+typedef struct {
 	int32_t erpm;
 	bool ready;
 	float rate_hz;
