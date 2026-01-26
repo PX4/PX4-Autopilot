@@ -253,7 +253,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 	// Power down the heater
-	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
+	px4_arch_configgpio(GPIO_HEATER1_OUTPUT);
 	px4_arch_gpiowrite(GPIO_HEATER1_OUTPUT, 1);
 
 #ifdef CONFIG_MMCSD
