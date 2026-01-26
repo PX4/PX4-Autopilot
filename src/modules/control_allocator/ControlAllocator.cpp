@@ -669,11 +669,11 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_moto
 
 	} else {
 		// Raw square wave output
-		const float elapsed_in_period = fmodf((float) now / 1_s, period_sec);
+		const float elapsed_in_period = fmodf(static_cast<float>(now) / 1_s, period_sec);
 		const float raw_ice_shedding_output = elapsed_in_period < ICE_SHEDDING_ON_SEC ? ICE_SHEDDING_OUTPUT : 0.0f;
 
 		// Apply slew rate limit
-		const float dt = (float)(now - _last_ice_shedding_update) / 1_s;
+		const float dt = static_cast<float>(now - _last_ice_shedding_update) / 1_s;
 		_slew_limited_ice_shedding_output.update(raw_ice_shedding_output, dt);
 	}
 
