@@ -271,10 +271,41 @@ void Mission::setActiveMissionItems()
 		handleVtolTransition(new_work_item_type, next_mission_items, num_found_items);
 	}
 
-	// Only set the previous position item if the current one really changed
 	if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&
 	    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
-		pos_sp_triplet->previous = current_setpoint_copy;
+
+		// Check if previous waypoint is invalid (e.g., after mode switch / triplet reset)
+		// and we are continuing with a previous mission
+		// In that case, load the actual previous mission waypoint for proper line-following
+		if (!pos_sp_triplet->previous.valid && _mission.current_seq > 0) {
+			int32_t previous_position_index;
+			size_t num_found{0};
+
+			getPreviousPositionItems(_mission.current_seq, &previous_position_index, num_found, 1U);
+
+			if (num_found == 1U) {
+				mission_item_s previous_mission_item;
+				bool success = _dataman_cache.loadWait(mission_dataman_id, previous_position_index,
+								       reinterpret_cast<uint8_t *>(&previous_mission_item),
+								       sizeof(previous_mission_item), MAX_DATAMAN_LOAD_WAIT);
+
+				if (success) {
+					mission_item_to_position_setpoint(previous_mission_item, &pos_sp_triplet->previous);
+
+				} else {
+					// Fallback to standard behavior if load fails
+					pos_sp_triplet->previous = current_setpoint_copy;
+				}
+
+			} else {
+				// No previous position waypoint found, use standard behavior
+				pos_sp_triplet->previous = current_setpoint_copy;
+			}
+
+		} else {
+			// Normal progression: use old current as previous (standard behavior)
+			pos_sp_triplet->previous = current_setpoint_copy;
+		}
 	}
 
 	issue_command(_mission_item);
