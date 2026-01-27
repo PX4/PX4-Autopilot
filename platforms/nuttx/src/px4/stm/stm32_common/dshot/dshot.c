@@ -141,6 +141,7 @@ static bool _bdshot_cycle_complete[MAX_IO_TIMERS] = { [0 ...(MAX_IO_TIMERS - 1)]
 #define BDSHOT_OFFLINE_COUNT 200
 static bool _bdshot_online[MAX_TIMER_IO_CHANNELS] = {};
 static bool _bdshot_processed[MAX_TIMER_IO_CHANNELS] = {};
+static bool _bdshot_capture_supported[MAX_TIMER_IO_CHANNELS] = {};
 static int _consecutive_failures[MAX_TIMER_IO_CHANNELS] = {};
 static int _consecutive_successes[MAX_TIMER_IO_CHANNELS] = {};
 
@@ -353,6 +354,28 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 		}
 	}
 
+	// Mark BDShot channels without capture DMA as processed (so they don't block ready count)
+	// and track which channels support capture
+	for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
+		if (bdshot_channel_mask & (1 << output_channel)) {
+			uint8_t timer_index = timer_io_channels[output_channel].timer_index;
+			uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
+
+			if (timer_channel >= 1 && timer_channel <= 4) {
+				uint8_t timer_channel_index = timer_channel - 1;
+
+				if (io_timers[timer_index].dshot.dma_map_ch[timer_channel_index] != 0) {
+					_bdshot_capture_supported[output_channel] = true;
+
+				} else {
+					// No DMA for capture on this channel - mark as processed so it doesn't block
+					_bdshot_processed[output_channel] = true;
+					PX4_WARN("BDShot capture not supported on output %u (no DMA)", output_channel);
+				}
+			}
+		}
+	}
+
 	return channels_init_mask;
 }
 
@@ -463,7 +486,8 @@ static void select_next_capture_channel(uint8_t timer_index)
 		if (timer_configs[timer_index].initialized_channels[next]) {
 			uint8_t output_channel = output_channel_from_timer_channel(timer_index, next);
 
-			if (_bdshot_channel_mask & (1 << output_channel)) {
+			// Only capture from channels that support BDShot (have DMA mapping)
+			if (_bdshot_capture_supported[output_channel]) {
 				timer_configs[timer_index].capture_channel = next;
 				return;
 			}
@@ -1016,12 +1040,43 @@ int up_bdshot_channel_online(uint8_t channel)
 	return _bdshot_online[channel];
 }
 
+int up_bdshot_channel_capture_supported(uint8_t channel)
+{
+	if (channel >= MAX_TIMER_IO_CHANNELS) {
+		return 0;
+	}
+
+	return _bdshot_capture_supported[channel];
+}
+
 void up_bdshot_status(void)
 {
 	PX4_INFO("dshot driver stats:");
 
 	if (_bdshot_channel_mask) {
 		PX4_INFO("BDShot channel mask: 0x%2x", (unsigned)_bdshot_channel_mask);
+
+		// Show timer configuration
+		for (int i = 0; i < MAX_IO_TIMERS; i++) {
+			if (timer_configs[i].enabled) {
+				PX4_INFO("Timer %d: enabled=%d init=%d bidir=%d cap_ch=%d",
+					 i, timer_configs[i].enabled, timer_configs[i].initialized,
+					 timer_configs[i].bidirectional, timer_configs[i].capture_channel);
+			}
+		}
+
+		// Always show read counters for BDShot
+		for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
+			if (_bdshot_channel_mask & (1 << i)) {
+				if (_bdshot_capture_supported[i]) {
+					PX4_INFO("Output %u: read_ok %lu, fail_crc %lu",
+						 i, read_ok[i], read_fail_crc[i]);
+
+				} else {
+					PX4_INFO("Output %u: no DMA for capture", i);
+				}
+			}
+		}
 	}
 
 	if (_edt_enabled) {
@@ -1036,10 +1091,6 @@ void up_bdshot_status(void)
 					 (double)_edt_volt[i].rate_hz,
 					 (double)_edt_curr[i].rate_hz);
 			}
-		}
-
-		for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
-			PX4_INFO("Output %u: read %lu, failed CRC %lu", i, read_ok[i], read_fail_crc[i]);
 		}
 	}
 }

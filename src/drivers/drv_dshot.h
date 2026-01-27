@@ -180,4 +180,11 @@ __EXPORT extern int up_bdshot_get_extended_telemetry(uint8_t channel, int type, 
  */
 __EXPORT extern int up_bdshot_channel_online(uint8_t channel);
 
+/**
+ * Check if bidrectional dshot capture is supported for a channel
+ * @param channel	Dshot channel
+ * @return 0 if not supported (no DMA), 1 if supported
+ */
+__EXPORT extern int up_bdshot_channel_capture_supported(uint8_t channel);
+
 __END_DECLS

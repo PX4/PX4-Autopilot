@@ -1070,7 +1070,12 @@ int DShot::print_status()
 
 			// Online masks are in motor order
 			if (_bdshot_output_mask & (1 << actuator_channel)) {
-				bdshot_status = (_bdshot_telem_online_mask & (1 << motor_index)) ? "Online" : "Offline";
+				if (!up_bdshot_channel_capture_supported(actuator_channel)) {
+					bdshot_status = "No DMA";
+
+				} else {
+					bdshot_status = (_bdshot_telem_online_mask & (1 << motor_index)) ? "Online" : "Offline";
+				}
 			}
 
 			if (_serial_telemetry_enabled) {
