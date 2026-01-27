@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,33 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-# Uploader script auto-detects PX4 devices by USB VID/PID
-set(PX4_UPLOADER_SCRIPT "${PX4_SOURCE_DIR}/Tools/px4_uploader.py")
-
-add_custom_target(upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} ${fw_package}
-	DEPENDS ${fw_package}
-	COMMENT "uploading px4"
-	VERBATIM
-	USES_TERMINAL
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-)
-
-add_custom_target(force-upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --force ${fw_package}
-	DEPENDS ${fw_package}
-	COMMENT "uploading px4 with --force"
-	VERBATIM
-	USES_TERMINAL
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-)
-
-add_custom_target(upload-verbose
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --verbose ${fw_package}
-	DEPENDS ${fw_package}
-	COMMENT "uploading px4 with verbose output"
-	VERBATIM
-	USES_TERMINAL
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-)
+px4_add_module(
+	MODULE drivers__vtx
+	MAIN vtx
+	COMPILE_FLAGS
+	SRCS
+		VTX.cpp
+		smart_audio.cpp
+		tramp.cpp
+	MODULE_CONFIG
+		module.yaml
+	)

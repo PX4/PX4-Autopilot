@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,54 +30,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file rtl_mission_fast_reverse.h
- *
- * Helper class for RTL
- *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
 
 #pragma once
 
-#include "rtl_base.h"
+#include "config.h"
 
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/rtl_time_estimate.h>
+/**
+ * @author Niklas Hauser <niklas@auterion.com>
+ */
 
-class Navigator;
+extern vtx::Config &vtxtable();
 
-class RtlMissionFastReverse : public RtlBase
-{
-public:
-	RtlMissionFastReverse(Navigator *navigator, mission_s mission);
-	~RtlMissionFastReverse() = default;
+#ifdef CONFIG_VTXTABLE_USE_STORAGE
+extern int vtxtable_store(const char *filename);
+extern int vtxtable_load(const char *filename);
+#endif
 
-	void on_activation() override;
-	void on_active() override;
-	void on_inactive() override;
-	void on_inactivation() override;
-
-	bool isLanding() override {return _in_landing_phase;};
-
-	rtl_time_estimate_s calc_rtl_time_estimate() override;
-
-private:
-	bool setNextMissionItem() override;
-	void setActiveMissionItems() override;
-	void handleLanding(WorkItemType &new_work_item_type);
-
-	int32_t _mission_index_prior_rtl{INT32_C(-1)};
-
-	bool _in_landing_phase{false};
-
-	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		RtlBase,
-		(ParamInt<px4::params::RTL_PLD_MD>)       _param_rtl_pld_md,
-		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,
-		(ParamFloat<px4::params::RTL_LAND_DELAY>)  _param_rtl_land_delay
-	)
-};
+extern void vtxtable_print_frequencies();
+extern void vtxtable_print_power_levels();
+#ifdef CONFIG_VTXTABLE_AUX_MAP
+extern void vtxtable_print_aux_map();
+#endif
