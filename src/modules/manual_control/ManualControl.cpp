@@ -290,9 +290,23 @@ void ManualControl::processSwitches(hrt_abstime &now)
 
 #endif // PAYLOAD_POWER_EN
 
-			} else if (!_armed) {
-				// Directly initialize mode using RC switch but only before arming
-				evaluateModeSlot(switches.mode_slot);
+			} else {
+				if (!_armed) {
+					// Directly initialize mode using RC switch but only before arming
+					evaluateModeSlot(switches.mode_slot);
+				}
+
+#if defined(PAYLOAD_POWER_EN)
+				// Apply payload power state on first switch receipt
+				if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_ON) {
+					PAYLOAD_POWER_EN(true);
+
+				} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF
+					   || switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_MIDDLE) {
+					PAYLOAD_POWER_EN(false);
+				}
+
+#endif // PAYLOAD_POWER_EN
 			}
 
 			_previous_switches = switches;
@@ -316,6 +330,23 @@ void ManualControl::updateParams()
 
 	_selector.setRcInMode(_param_com_rc_in_mode.get());
 	_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
+
+#if defined(PAYLOAD_POWER_EN)
+	// If the payload power switch is mapped, default to power off until
+	// the RC switch explicitly commands it on.
+	{
+		param_t param_rc_map_pay_sw = param_find("RC_MAP_PAY_SW");
+
+		if (param_rc_map_pay_sw != PARAM_INVALID) {
+			int32_t rc_map_pay_sw = 0;
+			param_get(param_rc_map_pay_sw, &rc_map_pay_sw);
+
+			if (rc_map_pay_sw > 0) {
+				PAYLOAD_POWER_EN(false);
+			}
+		}
+	}
+#endif // PAYLOAD_POWER_EN
 
 	// MAN_ARM_GESTURE
 	if (_param_man_arm_gesture.get() == 1) {
