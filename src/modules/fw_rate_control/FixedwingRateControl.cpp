@@ -394,20 +394,6 @@ void FixedwingRateControl::Run()
 
 				/* throttle passed through if it is finite */
 				_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;
-
-				/* scale effort by battery status */
-				if (_param_fw_bat_scale_en.get() && _vehicle_thrust_setpoint.xyz[0] > 0.1f) {
-
-					if (_battery_status_sub.updated()) {
-						battery_status_s battery_status{};
-
-						if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
-							_battery_scale = battery_status.scale;
-						}
-					}
-
-					_vehicle_thrust_setpoint.xyz[0] *= _battery_scale;
-				}
 			}
 
 			// publish rate controller status

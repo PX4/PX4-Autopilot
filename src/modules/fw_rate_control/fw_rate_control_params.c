@@ -270,17 +270,6 @@ PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
 PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45);
 
 /**
- * Enable throttle scale by battery level
- *
- * This compensates for voltage drop of the battery over time by attempting to
- * normalize performance across the operating range of the battery.
- *
- * @boolean
- * @group FW Rate Control
- */
-PARAM_DEFINE_INT32(FW_BAT_SCALE_EN, 0);
-
-/**
  * Enable airspeed scaling
  *
  * This enables a logic that automatically adjusts the output of the rate controller to take
