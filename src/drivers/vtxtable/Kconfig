@@ -1,0 +1,28 @@
+menuconfig DRIVERS_VTXTABLE
+	bool "VTX Table"
+	default n
+	---help---
+		Manages the configuration of VTX frequencies and power levels.
+
+if DRIVERS_VTXTABLE
+
+	config VTXTABLE_CONFIG_FILE
+		string "VTX Configuration File Path"
+		default "/fs/microsd/vtx_config"
+		---help---
+			Allows saving/loading the VTX table and aux config
+			from a file system.
+
+	config VTXTABLE_USE_STORAGE
+		bool
+		default y if VTXTABLE_CONFIG_FILE != ""
+		default n if !(VTXTABLE_CONFIG_FILE != "")
+
+	config VTXTABLE_AUX_MAP
+		string "VTX Auxiliary Map"
+		default n
+		---help---
+			Enable the AUX map for mapping AUX channel ranges to VTX
+			table settings.
+
+endif # DRIVERS_VTXTABLE

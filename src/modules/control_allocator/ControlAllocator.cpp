@@ -826,13 +826,110 @@ int ControlAllocator::print_status()
 			PX4_INFO("Instance: %i", i);
 		}
 
-		PX4_INFO("  Effectiveness.T =");
-		effectiveness.T().print();
+		PX4_INFO("  Effectiveness =");
+		int num_configured = _control_allocation[i]->numConfiguredActuators();
+
+		// print column numbering
+		if (num_configured > 1) {
+			printf("  ");
+
+			for (int col = 0; col < num_configured; col++) {
+				printf("|%2u      ", col);
+			}
+
+			printf("\n");
+		}
+
+		// Print effectiveness matrix with row labels
+		const char *row_labels[] = {"Mx", "My", "Mz", "Fx", "Fy", "Fz"};
+
+		for (int row = 0; row < 6; row++) {
+			printf("%2s|", row_labels[row]);
+
+			for (int col = 0; col < num_configured; col++) {
+				double d = static_cast<double>(effectiveness(row, col));
+
+				// avoid -0.0 for display
+				if (fabs(d - 0.0) < 1e-9) {
+					// print fixed width zero
+					printf(" 0       ");
+
+				} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
+					printf("% .1e ", d);
+
+				} else {
+					printf("% 6.5f ", d);
+				}
+			}
+
+			printf("\n");
+		}
+
 		PX4_INFO("  minimum =");
-		_control_allocation[i]->getActuatorMin().T().print();
+
+		// print column numbering
+		if (num_configured > 1) {
+			printf("  ");
+
+			for (int col = 0; col < num_configured; col++) {
+				printf("|%2u      ", col);
+			}
+
+			printf("\n");
+		}
+
+		printf("  |");
+
+		for (int col = 0; col < num_configured; col++) {
+			double d = static_cast<double>(_control_allocation[i]->getActuatorMin()(col));
+
+			// avoid -0.0 for display
+			if (fabs(d - 0.0) < 1e-9) {
+				// print fixed width zero
+				printf(" 0       ");
+
+			} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
+				printf("% .1e ", d);
+
+			} else {
+				printf("% 6.5f ", d);
+			}
+		}
+
+		printf("\n");
 		PX4_INFO("  maximum =");
-		_control_allocation[i]->getActuatorMax().T().print();
-		PX4_INFO("  Configured actuators: %i", _control_allocation[i]->numConfiguredActuators());
+
+		// print column numbering
+		if (num_configured > 1) {
+			printf("  ");
+
+			for (int col = 0; col < num_configured; col++) {
+				printf("|%2u      ", col);
+			}
+
+			printf("\n");
+		}
+
+		printf("  |");
+
+		for (int col = 0; col < num_configured; col++) {
+			double d = static_cast<double>(_control_allocation[i]->getActuatorMax()(col));
+
+			// avoid -0.0 for display
+			if (fabs(d - 0.0) < 1e-9) {
+				// print fixed width zero
+				printf(" 0       ");
+
+			} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
+				printf("% .1e ", d);
+
+			} else {
+				printf("% 6.5f ", d);
+			}
+		}
+
+		printf("\n");
+		PX4_INFO("  Configured actuators: %i", num_configured);
 	}
 
 	if (_handled_motor_failure_bitmask) {

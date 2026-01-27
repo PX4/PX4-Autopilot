@@ -52,9 +52,11 @@ public:
 	~Mag();
 
 	void setData(const Vector3f &mag);
+	void setBias(const Vector3f &bias) { _bias = bias; }
 
 private:
 	Vector3f _mag_data;
+	Vector3f _bias;
 
 	void send(uint64_t time) override;
 
