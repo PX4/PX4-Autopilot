@@ -8,12 +8,12 @@ board_adc start
 # IMU
 if ! icm42688p -s -b 1 -R 4 start
 then
-	bmi270 -s -b 1 -R 4 start
+	bmi270 -s -b 1 -R 2 start
 fi
 
 if ! icm42688p -s -b 4 -R 4 start
 then
-	bmi270 -s -b 4 -R 4 start
+	bmi270 -s -b 4 -R 2 start
 fi
 
 # baro
@@ -23,4 +23,4 @@ then
 fi
 
 # internal mag
-qmc5883p -I -R 2 start
+qmc5883p -I -R 4 start
