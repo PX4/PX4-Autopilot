@@ -443,6 +443,7 @@ I2CSPIDriverBase *MCP230XX::instantiate(const I2CSPIDriverConfig &config, int ru
 	MCP230XX_config_t tmp_config = *static_cast<const MCP230XX_config_t *>(config.custom_data);
 	instance->mcp_config = tmp_config;
 	instance->mcp_config.i2c_bus = config.bus;
+	instance->mcp_config.i2c_addr = config.i2c_address;
 
 	if (OK != instance->init()) {
 		delete instance;
