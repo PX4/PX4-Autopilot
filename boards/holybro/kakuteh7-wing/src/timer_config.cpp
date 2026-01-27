@@ -38,18 +38,20 @@ constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 	initIOTimer(Timer::Timer1, DMA{DMA::Index1}),
 	initIOTimer(Timer::Timer4, DMA{DMA::Index1}),
 	initIOTimer(Timer::Timer5, DMA{DMA::Index1}),
-	initIOTimer(Timer::Timer15),
-	initIOTimer(Timer::Timer3),
-	initIOTimer(Timer::Timer2),
+	initIOTimer(Timer::Timer15), // Note: Timer15 has no TIM_UP DMA on STM32H7, cannot do DShot
+	initIOTimer(Timer::Timer3, DMA{DMA::Index1}),
+	initIOTimer(Timer::Timer2, DMA{DMA::Index1}),
 };
 
+// Note: Timer4 Channel4 has no DMAMUX mapping on STM32H7, so BDShot telemetry capture
+// is not available on that channel. DShot output still works (uses TIM_UP DMA for burst).
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel1}, {GPIO::PortA, GPIO::Pin8}),
 	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel2}, {GPIO::PortE, GPIO::Pin11}),
 	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel3}, {GPIO::PortE, GPIO::Pin13}),
 	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel4}, {GPIO::PortE, GPIO::Pin14}),
 	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel3}, {GPIO::PortD, GPIO::Pin14}),
-	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel4}, {GPIO::PortD, GPIO::Pin15}),
+	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel4}, {GPIO::PortD, GPIO::Pin15}), // no BDShot capture
 	initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
 	initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel2}, {GPIO::PortA, GPIO::Pin1}),
 	initIOTimerChannel(io_timers, {Timer::Timer15, Timer::Channel1}, {GPIO::PortE, GPIO::Pin5}),
