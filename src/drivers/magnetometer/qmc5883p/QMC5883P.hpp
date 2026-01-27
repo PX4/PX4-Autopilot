@@ -107,7 +107,7 @@ private:
 	static constexpr uint8_t size_register_cfg{2};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register                   | Set bits, Clear bits
-		{ Register::CNTL1,            CNTL1_BIT::MODE_CONTINUOUS | CNTL1_BIT::OSR1_8 | CNTL1_BIT::ODR_50HZ,  CNTL1_BIT::OSR2_8},
+		{ Register::CNTL1,            CNTL1_BIT::MODE_CONTINUOUS | CNTL1_BIT::OSR2_4 | CNTL1_BIT::ODR_200HZ,  CNTL1_BIT::OSR1_8},
 		{ Register::CNTL2,            CNTL2_BIT::RNG_2G, CNTL2_BIT::SOFT_RST | CNTL2_BIT::SELF_TEST},
 	};
 };
