@@ -23,4 +23,4 @@ then
 fi
 
 # internal mag
-ist8310 -I -R 6 start
+qmc5883p -I -R 2 start
