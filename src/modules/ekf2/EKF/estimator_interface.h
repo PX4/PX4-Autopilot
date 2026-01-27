@@ -158,6 +158,9 @@ public:
 		if (!in_air) {
 			if (_control_status.flags.in_air) {
 				ECL_DEBUG("no longer in air");
+#if defined(CONFIG_EKF2_GNSS)
+				_gnss_checks.resetHard();
+#endif // CONFIG_EKF2_GNSS
 			}
 
 			_time_last_on_ground_us = _time_delayed_us;
