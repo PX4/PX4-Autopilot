@@ -297,6 +297,7 @@ void ManualControl::processSwitches(hrt_abstime &now)
 				}
 
 #if defined(PAYLOAD_POWER_EN)
+
 				// Apply payload power state on first switch receipt
 				if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_ON) {
 					PAYLOAD_POWER_EN(true);
