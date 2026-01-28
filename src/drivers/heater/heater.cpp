@@ -642,12 +642,12 @@ This task can be started at boot from the startup scripts by setting SENS_EN_THE
 
 extern "C" __EXPORT int heater_main(int argc, char *argv[])
 {
-    	if (argc < 2) {
+	if (argc < 2) {
 		PX4_INFO("usage: heater {start|stop|status} [-i N]");
 		return PX4_ERROR;
-    	}
+	}
 
-    	int ch;
+	int ch;
 	int myoptind = 2;
 	const char *myoptarg = nullptr;
 	int instance = -1;
@@ -701,4 +701,3 @@ extern "C" __EXPORT int heater_main(int argc, char *argv[])
 	PX4_INFO("unknown command");
 	return PX4_ERROR;
 }
-

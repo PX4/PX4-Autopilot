@@ -176,5 +176,3 @@ private:
 	} _params;
 
 };
-
-
