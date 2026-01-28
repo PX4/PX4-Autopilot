@@ -67,6 +67,7 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/uORB.h>
@@ -114,6 +115,8 @@ private:
 	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};	/**< vehicle angular velocity subscription */
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)}; /**< local Position for hgt control */
+
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
@@ -123,9 +126,13 @@ private:
 	vehicle_attitude_setpoint_s _attitude_setpoint{};
 	vehicle_rates_setpoint_s _rates_setpoint{};
 	vehicle_control_mode_s _vcontrol_mode{};
+	vehicle_local_position_s _vehicle_local_position{};
 
 	perf_counter_t	_loop_perf;
 	hrt_abstime _last_run{0};
+
+	//control variables
+	float hgtData[2];//des_hgt,integrated hgt error
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::UUV_ROLL_P>) _param_roll_p,
@@ -134,6 +141,15 @@ private:
 		(ParamFloat<px4::params::UUV_PITCH_D>) _param_pitch_d,
 		(ParamFloat<px4::params::UUV_YAW_P>) _param_yaw_p,
 		(ParamFloat<px4::params::UUV_YAW_D>) _param_yaw_d,
+		(ParamFloat<px4::params::UUV_HGT_P>) _param_hgt_p,
+		(ParamFloat<px4::params::UUV_HGT_D>) _param_hgt_d,
+		(ParamFloat<px4::params::UUV_HGT_I>) _param_hgt_i,
+		(ParamFloat<px4::params::UUV_HGT_I_SPD>) _param_hgt_i_speed,
+		(ParamFloat<px4::params::UUV_HGT_STR>) _param_hgt_strength,
+		(ParamInt<px4::params::UUV_HGT_MODE>) _param_hgt_mode,
+		(ParamInt<px4::params::UUV_HGT_B_UP>) _param_hgt_b_up,
+		(ParamInt<px4::params::UUV_HGT_B_DOWN>) _param_hgt_b_down,
+
 		// gains for the different modes
 		(ParamFloat<px4::params::UUV_SGM_ROLL>) _param_sgm_roll,
 		(ParamFloat<px4::params::UUV_SGM_PITCH>) _param_sgm_pitch,
