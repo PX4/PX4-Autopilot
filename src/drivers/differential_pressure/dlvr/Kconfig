@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DIFFERENTIAL_PRESSURE_DLVR
+	bool "dlvr"
+	default n
+	---help---
+		Enable support for DLVR

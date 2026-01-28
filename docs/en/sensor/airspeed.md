@@ -19,6 +19,9 @@ Recommended digital airspeed sensors include:
   - I2C Sensirion series (e.g. SDP33)
     - [ThunderFly TFPITOT01 Lightweight Pitot Tube](https://docs.thunderfly.cz/avionics/TFPITOT01/)
     - [Drotek SDP3x Airspeed Sensor Kit](https://store-drotek.com/848-sdp3x-airspeed-sensor-kit-sdp33.html)
+  - I2C All Sensors DLVR Low Voltage Digital Pressure Sensor Series (e.g. L10D) - only continuous-sampling sensors
+    - [MATEKSYS Digital AirSpeed sensor ASPD-DLVR](https://www.mateksys.com/?portfolio=aspd-dlvr)
+    - [RCDrone Digital AirSpeed sensor ASPD-DLVR](https://rcdrone.top/products/matek-mateksys-digital-airspeed-sensor-aspd-dlvr)
   - DroneCAN interface
     - [Holybro High Precision DroneCAN Airspeed Sensor - DLVR](https://holybro.com/collections/sensors/products/high-precision-dronecan-airspeed-sensor-dlvr)
     - [RaccoonLab Cyphal/CAN and DroneCAN Airspeed Sensor - MS4525DO](https://raccoonlab.co/tproduct/360882105-652259850171-cyphal-and-dronecan-airspeed-v2)
@@ -37,6 +40,7 @@ Enable each type using its [corresponding parameter](../advanced_config/paramete
 - **TE MS4525:** [SENS_EN_MS4525DO](../advanced_config/parameter_reference.md#SENS_EN_MS4525DO)
 - **TE MS5525:** [SENS_EN_MS5525DS](../advanced_config/parameter_reference.md#SENS_EN_MS5525DS)
 - **Eagle Tree airspeed sensor:** [SENS_EN_ETSASPD](../advanced_config/parameter_reference.md#SENS_EN_ETSASPD)
+- **All Sensors DLVR (only continuous-sampling sensors):** [SENS_EN_DLVR](../advanced_config/parameter_reference.md#SENS_EN_DLVR)
 
 You should also check [ASPD_PRIMARY](../advanced_config/parameter_reference.md#ASPD_PRIMARY) is `1` (see next section - this is the default).
 
