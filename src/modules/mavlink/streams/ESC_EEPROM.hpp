@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,63 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef ESC_EEPROM_HPP
+#define ESC_EEPROM_HPP
 
-#include "../Common.hpp"
+#include <uORB/topics/esc_eeprom_read.h>
 
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/esc_status.h>
-
-class EscChecks : public HealthAndArmingCheckBase
+class MavlinkStreamEscEeprom : public MavlinkStream
 {
 public:
-	EscChecks() = default;
-	~EscChecks() = default;
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamEscEeprom(mavlink); }
 
-	void checkAndReport(const Context &context, Report &reporter) override;
+	static constexpr const char *get_name_static() { return "ESC_EEPROM"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_ESC_EEPROM; }
+
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
+
+	unsigned get_size() override
+	{
+		return _esc_eeprom_read_sub.advertised() ? MAVLINK_MSG_ID_ESC_EEPROM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
 
 private:
-	void checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
+	explicit MavlinkStreamEscEeprom(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+	uORB::Subscription _esc_eeprom_read_sub{ORB_ID(esc_eeprom_read)};
 
-	const hrt_abstime _start_time{hrt_absolute_time()};
+	bool emit_message(bool force)
+	{
+		esc_eeprom_read_s eeprom = {};
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs
-				       )
+		if (_esc_eeprom_read_sub.update(&eeprom) || force) {
+			mavlink_esc_eeprom_t msg = {};
+			msg.firmware = eeprom.firmware;
+			msg.esc_index = eeprom.index;
+			msg.msg_index = 0;
+			msg.msg_count = 1;
+			memcpy(msg.data, eeprom.data, sizeof(eeprom.data));
+			msg.length = eeprom.length;
+
+			mavlink_msg_esc_eeprom_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+
+	bool request_message(float param2, float param3, float param4, float param5, float param6, float param7) override
+	{
+		return emit_message(true);
+	}
+
+	bool send() override
+	{
+		return emit_message(false);
+	}
+
 };
+
+#endif // ESC_EEPROM_HPP
