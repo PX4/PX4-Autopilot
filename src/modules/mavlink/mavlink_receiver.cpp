@@ -1352,7 +1352,7 @@ MavlinkReceiver::handle_message_esc_eeprom(mavlink_message_t *msg)
 	eeprom.length = length;
 	memcpy(eeprom.write_mask, message.write_mask, sizeof(eeprom.write_mask));
 
-	PX4_INFO("ESC EEPROM write request for ESC%d firmware %d", eeprom.index + 1, eeprom.firmware);
+	PX4_INFO("ESC EEPROM write request for ESC%d", eeprom.index + 1);
 
 	_esc_eeprom_write_pub.publish(eeprom);
 }
