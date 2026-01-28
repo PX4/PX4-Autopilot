@@ -216,7 +216,7 @@ void DShot::select_next_command()
 			}
 		}
 
-	} else if (_serial_telemetry_enabled && serial_telem_delay_elapsed) {
+	} else if (_serial_telemetry_enabled && serial_telem_delay_elapsed && (_motor_mask & needs_settings_request_mask)) {
 		// Settings Request: use motor-order masks since needs_settings_request_mask is in motor order
 		uint8_t settings_motors_to_request = _motor_mask & needs_settings_request_mask;
 
@@ -241,7 +241,9 @@ void DShot::select_next_command()
 			int next_index = -1;
 
 			// Find settings that need to be written but haven't been yet
-			for (int i = 0; i < _esc_eeprom_write.length; i++) {
+			int max_length = math::min((int)_esc_eeprom_write.length, 64);
+
+			for (int i = 0; i < max_length; i++) {
 				int array_index = i / 32;
 				int bit_index = i % 32;
 
