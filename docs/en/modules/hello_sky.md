@@ -88,13 +88,17 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
      ```
 
      :::tip
+
      The main function must be named `<module_name>_main` and exported from the module as shown.
+
      :::
 
      :::tip
+
      `PX4_INFO` is the equivalent of `printf` for the PX4 shell (included from **px4_platform_common/log.h**).
      There are different log levels: `PX4_INFO`, `PX4_WARN`, `PX4_ERR`, `PX4_DEBUG`.
      Warnings and errors are additionally added to the [ULog](../dev_log/ulog_file_format.md) and shown on [Flight Review](https://logs.px4.io/).
+
      :::
 
 1. Create and open a new _cmake_ definition file named **CMakeLists.txt**.
@@ -160,7 +164,7 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 1. Create and open a new _Kconfig_ definition file named **Kconfig** and define your symbol for naming (see [Kconfig naming convention](../hardware/porting_guide_config.md#px4-kconfig-symbol-naming-convention)).
    Copy in the text below:
 
-   ```
+   ```text
    menuconfig EXAMPLES_PX4_SIMPLE_APP
    	bool "px4_simple_app"
    	default n
