@@ -75,10 +75,19 @@ then
 		iim42652 -s -R 6 start
 		icm45686 -s -R 10 start
 	else
-		# Internal SPI bus 3x ICM45686
-		icm45686 -b 3 -s -R 0 start
-		icm45686 -b 2 -s -R 0 start
-		icm45686 -b 1 -s -R 10 start
+		# Internal SPI bus 3x ICM45686 or 3x im42653
+		if ! icm45686 -b 3 -s -R 0 start
+		then
+		     iim42653 -b 3 -s -R 0 start
+		fi
+		if ! icm45686 -b 2 -s -R 0 start
+		then
+		     iim42653 -b 2 -s -R 0 start
+		fi
+		if ! icm45686 -b 1 -s -R 10 start
+		then
+		     iim42653 -b 1 -s -R 10 start
+		fi
 	fi
 else
 	if ver hwtypecmp V6X004
