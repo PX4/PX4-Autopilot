@@ -200,6 +200,8 @@ void MulticopterPositionControl::parameters_update(bool force)
 			Vector3f(_param_mpc_xy_vel_d_acc.get(), _param_mpc_xy_vel_d_acc.get(), _param_mpc_z_vel_d_acc.get()));
 		_control.setHorizontalThrustMargin(_param_mpc_thr_xy_marg.get());
 		_control.decoupleHorizontalAndVecticalAcceleration(_param_mpc_acc_decouple.get());
+		_control.setActuationOutput(static_cast<PositionControl::ActuationOutput>(_param_mpc_act_mode.get()));
+		_control.setForceLimits(_param_mpc_thrxy_scl.get() * _param_mpc_thr_max.get());
 		_goto_control.setParamMpcAccHor(_param_mpc_acc_hor.get());
 		_goto_control.setParamMpcAccDownMax(_param_mpc_acc_down_max.get());
 		_goto_control.setParamMpcAccUpMax(_param_mpc_acc_up_max.get());
@@ -397,6 +399,10 @@ void MulticopterPositionControl::Run()
 		_time_stamp_last_loop = vehicle_local_position.timestamp_sample;
 
 		_sample_interval_s.update(dt);
+
+		// current vehicle attitude
+		vehicle_attitude_s vehicle_attitude;
+		_vehicle_attitude_sub.update(&vehicle_attitude);
 
 		if (_vehicle_control_mode_sub.updated()) {
 			const bool previous_position_control_enabled = _vehicle_control_mode.flag_multicopter_position_control_enabled;
@@ -608,7 +614,7 @@ void MulticopterPositionControl::Run()
 
 			// Publish attitude setpoint output
 			vehicle_attitude_setpoint_s attitude_setpoint{};
-			_control.getAttitudeSetpoint(attitude_setpoint);
+			_control.getAttitudeSetpoint(attitude_setpoint, matrix::Quatf(vehicle_attitude.q));
 			attitude_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 

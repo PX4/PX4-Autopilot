@@ -158,3 +158,48 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MC_MAN_TILT_TAU, 0.0f);
+
+/**
+ * Manual horizontal translation input filter time constant
+ *
+ * Setting this parameter to 0 disables the filter
+ *
+ * @unit s
+ * @min 0.0
+ * @max 2.0
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MC_MAN_XY_TAU, 0.0f);
+
+/**
+ * Manual horizontal thrust scaling for omnidirectional control
+ *
+ * Maximum horizontal thrust (X and Y body axes) from manual stick input,
+ * as a fraction of maximum thrust (MPC_THR_MAX).
+ * Used in manual and stabilized modes when MPC_ACT_MODE = 1.
+ * With omnidirectional control, stick inputs command lateral forces
+ * directly instead of vehicle tilt.
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_MANTHRXY_SCL, 0.25f);
+
+/**
+ * Maximum acceleration in G (X and Y body axes) from manual stick input,
+ *
+ * Used in altitude mode when MPC_ACT_MODE = 1.
+ *
+ * @unit m/s^2
+ * @min 2
+ * @max 15
+ * @decimal 1
+ * @increment 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_MAN_ACC_MAX, 4.0f);
