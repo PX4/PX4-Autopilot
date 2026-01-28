@@ -582,6 +582,20 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 
 			local_position_groundtruth.timestamp = timestamp;
 			_lpos_ground_truth_pub.publish(local_position_groundtruth);
+
+
+			airflow_s airflow_groundtruth;
+			airflow_groundtruth.timestamp = timestamp;
+			// Body-relateive air velocity
+			matrix::Vector3f body_velocity = matrix::Quatf(vehicle_attitude_groundtruth.q).rotateVectorInverse(matrix::Vector3f(velocity));
+			airflow_groundtruth.u = body_velocity(0);
+			airflow_groundtruth.v = body_velocity(1);
+			airflow_groundtruth.w = body_velocity(2);
+			///TODO: Include wind
+			airflow_groundtruth.windspeed_north = 0.0;
+			airflow_groundtruth.windspeed_east = 0.0;
+			airflow_groundtruth.windspeed_down = 0.0;
+			_airflow_groundtruth_pub.publish(airflow_groundtruth);
 			return;
 		}
 	}
