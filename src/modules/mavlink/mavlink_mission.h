@@ -132,6 +132,7 @@ private:
 	static int32_t		_current_seq;				///< Current item sequence in active mission
 
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
+	bool			_last_finished{false};			///< Last mission finished state
 
 	dm_item_t		_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};	///< Dataman storage ID for current transmission
 
