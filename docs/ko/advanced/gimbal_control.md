@@ -74,7 +74,7 @@ For example, you might have the following settings to assign the gimbal roll, pi
 
 ![Gimbal Actuator config](../../assets/config/actuators/qgc_actuators_gimbal.png)
 
-The PWM values to use for the disarmed, maximum and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low and high position in the slider.
+The PWM values to use for the disarmed, maximum, center and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low, center and high position in the slider.
 The values may also be provided in gimbal documentation.
 
 ## Gimbal Control in Missions
