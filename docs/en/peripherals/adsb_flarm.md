@@ -11,7 +11,7 @@ PX4 traffic avoidance works with ADS-B or FLARM products that supply transponder
 It has been tested with the following devices:
 
 - [PingRX ADS-B Receiver](https://uavionix.com/product/pingrx-pro/) (uAvionix)
-- [FLARM](https://flarm.com/products/uav/atom-uav-flarm-for-drones/) <!-- I think originally https://flarm.com/products/powerflarm/uav/ -->
+- [FLARM](https://www.flarm.com/en/drones/) <!-- I think originally https://flarm.com/products/powerflarm/uav/ -->
 
 ## Hardware Setup
 
