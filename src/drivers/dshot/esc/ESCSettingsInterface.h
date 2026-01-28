@@ -50,4 +50,3 @@ public:
 	// TODO: function to read data
 	// TODO: function to write data
 };
-
