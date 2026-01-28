@@ -503,6 +503,8 @@ MavlinkMissionManager::send()
 	if (_mission_result_sub.update()) {
 		const mission_result_s &mission_result = _mission_result_sub.get();
 
+		bool send_current = false;
+
 		if (_current_seq != mission_result.seq_current) {
 
 			_current_seq = mission_result.seq_current;
@@ -511,7 +513,7 @@ MavlinkMissionManager::send()
 
 			if (mission_result.seq_total > 0) {
 				if (mission_result.seq_current < mission_result.seq_total) {
-					send_mission_current(_current_seq);
+					send_current = true;
 
 				} else {
 					_mavlink.send_statustext_critical("ERROR: wp index out of bounds\t");
@@ -519,6 +521,16 @@ MavlinkMissionManager::send()
 									 "Waypoint index out of bounds (current {1} \\>= total {2})", mission_result.seq_current, mission_result.seq_total);
 				}
 			}
+		}
+
+		// Send MISSION_CURRENT when finished state changes (to notify MISSION_STATE_COMPLETE)
+		if (_last_finished != mission_result.finished) {
+			_last_finished = mission_result.finished;
+			send_current = true;
+		}
+
+		if (send_current) {
+			send_mission_current(_current_seq);
 		}
 
 		if (_last_reached != mission_result.seq_reached) {
