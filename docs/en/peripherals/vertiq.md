@@ -38,6 +38,19 @@ Instructions for integrating the motor/ESC using with DroneCAN can be found in [
 
 These instructions walk you through setting the correct parameters for enabling the flight controller's DroneCAN drivers, setting the correct configuration parameters for communication with Vertiq modules on the DroneCAN bus, ESC configuration, and testing that your flight controller can properly control your modules over DroneCAN.
 
+#### LED Configuration for Vertiq Modules
+
+::: info
+This configuration is only required if you have the optional [Vertiq LED module add-on](https://www.vertiq.co/add-ons).
+Standard Vertiq ESC modules do not include LEDs.
+:::
+
+Vertiq LED Add-on modules have two LEDs per ESC (RGB for status, White for anti-collision).
+See [DroneCAN Lights](../dronecan/index.md#lights) for configuration instructions.
+
+The `light_id` for each LED is calculated as: `esc_index × 3 + BASE_ID`, where `BASE_ID` is 1 for RGB and 2 for White.
+
+
 ### DShot/PWM Configuration
 
 Instructions for integrating the motor/ESC using PWM and DShot can be found in [PWM and DShot Control with a Flight Controller](https://iqmotion.readthedocs.io/en/latest/tutorials/pwm_control_flight_controller.html).
