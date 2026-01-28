@@ -54,6 +54,17 @@ static const char *kLogDir = PX4_STORAGEDIR "/log";
 #define PX4_MAX_FILEPATH 	PATH_MAX
 #endif
 
+// Ensure PX4_MAX_FILEPATH is large enough for our buffer sizes
+// LogEntry.filepath uses MavlinkLogHandler::LOG_FILEPATH_SIZE
+static_assert(PX4_MAX_FILEPATH >= MavlinkLogHandler::LOG_FILEPATH_SIZE,
+	      "PX4_MAX_FILEPATH must be at least LOG_FILEPATH_SIZE bytes for log file paths");
+
+// Width specifier for sscanf - must be LOG_FILEPATH_SIZE - 1
+// This is hardcoded as 255 because preprocessor can't evaluate (256-1) in format strings
+// The static_assert below ensures this stays synchronized with LOG_FILEPATH_SIZE
+#define LOG_FILEPATH_SCANF_WIDTH "255"
+static_assert(MavlinkLogHandler::LOG_FILEPATH_SIZE == 256, "Update LOG_FILEPATH_SCANF_WIDTH if LOG_FILEPATH_SIZE changes");
+
 MavlinkLogHandler::MavlinkLogHandler(Mavlink &mavlink)
 	: _mavlink(mavlink)
 {}
@@ -171,10 +182,12 @@ void MavlinkLogHandler::state_listing()
 		// We can send!
 		uint32_t size_bytes = 0;
 		uint32_t time_utc = 0;
-		char filepath[PX4_MAX_FILEPATH];
+		char filepath[MavlinkLogHandler::LOG_FILEPATH_SIZE];
 
 		// If parsed lined successfully, send the entry
-		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %s", &time_utc, &size_bytes, filepath) != 3) {
+		// Note: Using width specifier to prevent buffer overflow
+		// Width is LOG_FILEPATH_SIZE-1 to leave room for null terminator
+		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %" LOG_FILEPATH_SCANF_WIDTH "s", &time_utc, &size_bytes, filepath) != 3) {
 			PX4_DEBUG("sscanf failed");
 			continue;
 		}
@@ -506,7 +519,9 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 			continue;
 		}
 
-		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %s", &(entry->time_utc), &(entry->size_bytes), entry->filepath) != 3) {
+		// Parse log entry with width specifier to prevent buffer overflow
+		// Width is LOG_FILEPATH_SIZE-1 to leave room for null terminator
+		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %" LOG_FILEPATH_SCANF_WIDTH "s", &(entry->time_utc), &(entry->size_bytes), entry->filepath) != 3) {
 			PX4_DEBUG("sscanf failed");
 			continue;
 		}
