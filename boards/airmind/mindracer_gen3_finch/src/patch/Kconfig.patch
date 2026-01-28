@@ -1,0 +1,18 @@
+--- a/Kconfig
++++ b/Kconfig
+@@ -1399,8 +1399,13 @@
+ 	default n
+ 	depends on STM32F7_HAVE_ETHRNET
+ 	select NETDEVICES
+-	select ARCH_HAVE_PHY
+-	select STM32F7_HAVE_PHY_POLLED
++    select ARCH_HAVE_PHY if !STM32F7_NO_PHY
++    select STM32F7_PHY_POLLING if !STM32F7_NO_PHY
++
++config STM32F7_NO_PHY
++    bool "RMII Direct connection mode"
++    default n
++    depends on STM32F7_RMII
+ 
+ config STM32F7_FMC
+ 	bool "FMC"
