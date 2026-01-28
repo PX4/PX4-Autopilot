@@ -1,0 +1,7 @@
+module_name: parameter_manager
+
+serial_config:
+    - command: parameter_manager start
+      port_config_param:
+        name: PARAM_MGR_CFG
+        group: Parameter Manager
