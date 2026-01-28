@@ -535,6 +535,15 @@ int up_bdshot_get_extended_telemetry(uint8_t channel, int type, uint8_t *value)
 	return -1;
 }
 
+int up_bdshot_channel_capture_supported(uint8_t channel)
+{
+	if (channel >= DSHOT_TIMERS) {
+		return 0;
+	}
+
+	return dshot_inst[channel].init && dshot_inst[channel].bdshot;
+}
+
 int up_bdshot_channel_online(uint8_t channel)
 {
 	if (channel < DSHOT_TIMERS) {
