@@ -1153,7 +1153,7 @@ int DShot::custom_command(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "m:xd:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "xd:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'x':
 			swap_rxtx = true;
