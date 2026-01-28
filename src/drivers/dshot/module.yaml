@@ -16,6 +16,7 @@ parameters:
           values:
             0: Unknown
             1: AM32
+          default: 0
         DSHOT_MIN:
             description:
                 short: Minimum DShot Motor Output
