@@ -1,10 +1,22 @@
+__max_num_agp_instances: &max_num_agp_instances 4
+
 module_name: ekf2
 parameters:
 - group: EKF2
   definitions:
-    EKF2_AGP_CTRL:
+    EKF2_AGP${i}_ID:
       description:
-        short: Aux global position (AGP) sensor aiding
+        short: Aux global position sensor ${i} ID
+        long: 'Sensor ID for slot ${i}. Set to 0 to disable this slot.'
+      type: int32
+      default: 0
+      min: 0
+      max: 255
+      num_instances: *max_num_agp_instances
+      instance_start: 0
+    EKF2_AGP${i}_CTRL:
+      description:
+        short: Aux global position sensor ${i} aiding
         long: 'Set bits in the following positions to enable: 0 : Horizontal position
           fusion 1 : Vertical position fusion'
       type: bitmask
@@ -14,9 +26,11 @@ parameters:
       default: 0
       min: 0
       max: 3
-    EKF2_AGP_MODE:
+      num_instances: *max_num_agp_instances
+      instance_start: 0
+    EKF2_AGP${i}_MODE:
       description:
-        short: Fusion reset mode
+        short: Fusion reset mode for sensor ${i}
         long: 'Automatic: reset on fusion timeout if no other source of position is available
           Dead-reckoning: reset on fusion timeout if no source of velocity is available'
       type: enum
@@ -24,28 +38,34 @@ parameters:
         0: Automatic
         1: Dead-reckoning
       default: 0
-    EKF2_AGP_DELAY:
+      num_instances: *max_num_agp_instances
+      instance_start: 0
+    EKF2_AGP${i}_DELAY:
       description:
-        short: Aux global position estimator delay relative to IMU measurements
+        short: Aux global position sensor ${i} delay relative to IMU measurements
       type: float
       default: 0
       min: 0
-      max: 300
+      max: 1000
       unit: ms
       reboot_required: true
       decimal: 1
-    EKF2_AGP_NOISE:
+      num_instances: *max_num_agp_instances
+      instance_start: 0
+    EKF2_AGP${i}_NOISE:
       description:
-        short: Measurement noise for aux global position measurements
+        short: Measurement noise for aux global position sensor ${i}
         long:  Used to lower bound or replace the uncertainty included in the message
       type: float
-      default: 0.9
+      default: 1.0
       min: 0.01
       unit: m
       decimal: 2
-    EKF2_AGP_GATE:
+      num_instances: *max_num_agp_instances
+      instance_start: 0
+    EKF2_AGP${i}_GATE:
       description:
-        short: Gate size for aux global position fusion
+        short: Gate size for aux global position sensor ${i} fusion
         long: Sets the number of standard deviations used by the innovation consistency
           test.
       type: float
@@ -53,3 +73,5 @@ parameters:
       min: 1.0
       unit: SD
       decimal: 1
+      num_instances: *max_num_agp_instances
+      instance_start: 0
