@@ -1,0 +1,153 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_MAG_TYPE:
+      description:
+        short: Type of magnetometer fusion
+        long: Integer controlling the type of magnetometer fusion used - magnetic
+          heading or 3-component vector. The fusion of magnetometer data as a three
+          component vector enables vehicle body fixed hard iron errors to be learned,
+          but requires a stable earth field. If set to 'Automatic' magnetic heading
+          fusion is used when on-ground and 3-axis magnetic field fusion in-flight.
+          If set to 'Magnetic heading' magnetic heading fusion is used at all times.
+          If set to 'None' the magnetometer will not be used under any circumstance.
+          If no external source of yaw is available, it is possible to use post-takeoff
+          horizontal movement combined with GNSS velocity measurements to align the yaw angle.
+          If set to 'Init' the magnetometer is only used to initalize the heading.
+      type: enum
+      values:
+        0: Automatic
+        1: Magnetic heading
+        5: None
+        6: Init
+      default: 0
+      reboot_required: true
+    EKF2_MAG_DELAY:
+      description:
+        short: Magnetometer measurement delay relative to IMU measurements
+      type: float
+      default: 0
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_MAG_GATE:
+      description:
+        short: Gate size for magnetometer XYZ component fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 3.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_MAG_NOISE:
+      description:
+        short: Measurement noise for magnetometer 3-axis fusion
+      type: float
+      default: 0.05
+      min: 0.001
+      max: 1.0
+      unit: gauss
+      decimal: 3
+    EKF2_MAG_B_NOISE:
+      description:
+        short: Process noise for body magnetic field prediction
+      type: float
+      default: 0.0001
+      min: 0.0
+      max: 0.1
+      unit: gauss/s
+      decimal: 6
+    EKF2_MAG_E_NOISE:
+      description:
+        short: Process noise for earth magnetic field prediction
+      type: float
+      default: 0.001
+      min: 0.0
+      max: 0.1
+      unit: gauss/s
+      decimal: 6
+    EKF2_DECL_TYPE:
+      description:
+        short: Integer bitmask controlling handling of magnetic declination
+        long: 'Set bits in the following positions to enable functions. 0 : Set to
+          true to use the declination from the geo_lookup library when the GPS position
+          becomes available, set to false to always use the EKF2_MAG_DECL value. 1
+          : Set to true to save the EKF2_MAG_DECL parameter to the value returned
+          by the EKF when the vehicle disarms.'
+      type: bitmask
+      bit:
+        0: use geo_lookup declination
+        1: save EKF2_MAG_DECL on disarm
+      default: 3
+      min: 0
+      max: 3
+      reboot_required: true
+    EKF2_MAG_ACCLIM:
+      description:
+        short: Horizontal acceleration threshold used for heading observability check
+        long: The heading is assumed to be observable when the body acceleration is
+          greater than this parameter when a global position/velocity aiding source
+          is active.
+      type: float
+      default: 0.5
+      min: 0.0
+      max: 5.0
+      unit: m/s^2
+      decimal: 2
+    EKF2_MAG_CHECK:
+      description:
+        short: Magnetic field strength test selection
+        long: 'Bitmask to set which check is used to decide whether the magnetometer
+          data is valid. If GNSS data is received, the magnetic field is compared
+          to a World Magnetic Model (WMM), otherwise an average value is used. This
+          check is useful to reject occasional hard iron disturbance. Set bits to
+          1 to enable checks. Checks enabled by the following bit positions 0 : Magnetic
+          field strength. Set tolerance using EKF2_MAG_CHK_STR 1 : Magnetic field
+          inclination. Set tolerance using EKF2_MAG_CHK_INC 2 : Wait for GNSS to find
+          the theoretical strength and inclination using the WMM'
+      type: bitmask
+      bit:
+        0: Strength (EKF2_MAG_CHK_STR)
+        1: Inclination (EKF2_MAG_CHK_INC)
+        2: Wait for WMM
+      default: 1
+      min: 0
+      max: 7
+    EKF2_MAG_CHK_STR:
+      description:
+        short: Magnetic field strength check tolerance
+        long: Maximum allowed deviation from the expected magnetic field strength
+          to pass the check.
+      type: float
+      default: 0.2
+      min: 0.0
+      max: 1.0
+      unit: gauss
+      decimal: 2
+    EKF2_MAG_CHK_INC:
+      description:
+        short: Magnetic field inclination check tolerance
+        long: Maximum allowed deviation from the expected magnetic field inclination
+          to pass the check.
+      type: float
+      default: 20.0
+      min: 0.0
+      max: 90.0
+      unit: deg
+      decimal: 1
+    EKF2_SYNT_MAG_Z:
+      description:
+        short: Enable synthetic magnetometer Z component measurement
+        long: Use for vehicles where the measured body Z magnetic field is subject
+          to strong magnetic interference. For magnetic heading fusion the magnetometer
+          Z measurement will be replaced by a synthetic value calculated using the
+          knowledge of the 3D magnetic field vector at the location of the drone.
+          Therefore, this parameter will only have an effect if the global position
+          of the drone is known. For 3D mag fusion the magnetometer Z measurement
+          will simply be ignored instead of fusing the synthetic value.
+      type: boolean
+      default: 0

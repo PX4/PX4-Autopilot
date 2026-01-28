@@ -1,51 +1,43 @@
 from xml.sax.saxutils import escape
 import codecs
+import html
 
 class MarkdownTablesOutput():
     def __init__(self, groups):
         result = (
 """# Parameter Reference
 
-:::note
+::: info
 This documentation was auto-generated from the source code for this PX4 version (using `make parameters_metadata`).
 :::
 
-:::tip
+::: tip
 If a listed parameter is missing from the Firmware see: [Finding/Updating Parameters](../advanced_config/parameters.md#parameter-not-in-firmware).
 :::
 
 <!-- markdown generator: src/lib/parameters/px4params/markdownout.py -->
 
-<style>
-tr > * {
-    vertical-align : top;
-}
-td:nth-child(1),td:nth-child(2) {
-  text-align : left;
-  }
-table {
-  width: fit-content;
-}
-</style>
-
 """
                   )
 
         for group in groups:
-            result += '## %s\n\n' % group.GetName()
-            result += (
-"""<table>
- <colgroup><col style="width: 23%"><col style="width: 46%"><col style="width: 11%"><col style="width: 11%"><col style="width: 9%"></colgroup>
- <thead>
-   <tr><th>Name</th><th>Description</th><th>[Min, Max] (Incr.)</th><th>Default</th><th>Units</th></tr>
- </thead>
-<tbody>
-"""
-            )
+            result += f'## {group.GetName()}\n\n'
+
             for param in group.GetParams():
-                code = param.GetName()
-                name = param.GetFieldValue("short_desc") or ''
+                name = param.GetName()
+                short_desc = param.GetFieldValue("short_desc") or ''
+
+                # Add fullstop to short_desc if not present
+                if short_desc:
+                    if not short_desc.strip().endswith('.'):
+                        short_desc += "."
+
                 long_desc = param.GetFieldValue("long_desc") or ''
+
+                #Strip out short text from start of long text, if it ends in fullstop
+                if long_desc.startswith(short_desc):
+                    long_desc = long_desc[len(short_desc):].lstrip()
+
                 min_val = param.GetFieldValue("min") or ''
                 max_val = param.GetFieldValue("max") or ''
                 increment = param.GetFieldValue("increment") or ''
@@ -59,59 +51,43 @@ table {
                 #field_codes = param.GetFieldCodes() ## Disabled as not needed for display.
                 #boolean = param.GetFieldValue("boolean") # or '' # Disabled - does not appear useful.
 
-
                 # Format values for display.
-                # Display min/max/increment value based on what values are defined.
-                max_min_combined = ''
-                if min_val or max_val:
-                    if not min_val:
-                        min_val='?'
-                    if not max_val:
-                        max_val='?'
-                    max_min_combined+='[%s, %s] ' % (min_val, max_val)
-                if increment:
-                    max_min_combined+='(%s)' % increment
-
-                if long_desc != '':
-                    long_desc = '<p><strong>Comment:</strong> %s</p>' % long_desc
-
-                if name == code:
-                    name = ""
-                code='<strong id="%s">%s</strong>' % (code, code)
-
-                if reboot_required:
-                    reboot_required='<p><b>Reboot required:</b> %s</p>\n' % reboot_required
-
                 enum_codes=param.GetEnumCodes() or '' # Gets numerical values for parameter.
                 enum_output=''
                 # Format codes and their descriptions for display.
                 if enum_codes:
-                    enum_output+='<strong>Values:</strong><ul>'
+                    enum_output+='**Values:**\n\n'
                     enum_codes=sorted(enum_codes,key=float)
                     for item in enum_codes:
-                        enum_output+='\n<li><strong>%s:</strong> %s</li> \n' % (item, param.GetEnumValue(item))
-                    enum_output+='</ul>\n'
-
+                        enum_output+=f"- `{item}`: {param.GetEnumValue(item)}\n"
+                    enum_output+='\n\n'
 
                 bitmask_list=param.GetBitmaskList() #Gets bitmask values for parameter
                 bitmask_output=''
                 #Format bitmask values
                 if bitmask_list:
-                    bitmask_output+='<strong>Bitmask:</strong><ul>'
+                    bitmask_output+='**Bitmask:**\n\n'
                     for bit in bitmask_list:
                         bit_text = param.GetBitmaskBit(bit)
-                        bitmask_output+='  <li><strong>%s:</strong> %s</li> \n' % (bit, bit_text)
-                    bitmask_output+='</ul>\n'
+                        bitmask_output+=f"- `{bit}`: {bit_text}\n"
+                    bitmask_output+='\n\n'
 
                 if is_boolean and def_val=='1':
                     def_val='Enabled (1)'
                 if is_boolean and def_val=='0':
                     def_val='Disabled (0)'
 
-                result += '<tr>\n <td>%s (%s)</td>\n <td>%s %s %s %s %s</td>\n <td>%s</td>\n <td>%s</td>\n <td>%s</td>\n</tr>\n' % (code, type, name, long_desc, enum_output, bitmask_output, reboot_required, max_min_combined, def_val, unit)
-
-            #Close the table.
-            result += '</tbody></table>\n\n'
+                result += f'### {name} (`{type}`)' + ' {#' + name + '}\n\n'
+                if short_desc:
+                    result += f'{short_desc}\n\n'
+                if long_desc:
+                    result += f'{long_desc}\n\n'
+                if enum_codes:
+                    result += enum_output
+                if bitmask_list:
+                    result += bitmask_output
+                # Format the ranges as a table.
+                result += f"Reboot | minValue | maxValue | increment | default | unit\n--- | --- | --- | --- | --- | ---\n{'&check;' if reboot_required else '&nbsp;' } | {min_val} | {max_val} | {increment} | {def_val} | {unit} \n\n"
 
         self.output = result
 

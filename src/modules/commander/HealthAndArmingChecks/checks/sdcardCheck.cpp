@@ -122,7 +122,7 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 				       events::Log::Error, "Crash dumps present on SD card");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Crash dumps present on SD, vehicle needs service");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Crash dumps present on SD");
 		}
 	}
 

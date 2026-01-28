@@ -4,3 +4,11 @@ menuconfig MODULES_MUORB_APPS
 	depends on PLATFORM_POSIX
 	---help---
 		Enable support for muorb apps
+
+
+    config MUORB_APPS_SYNC_TIMESTAMP
+        bool "Sync timestamp with external processor"
+        depends on MODULES_MUORB_APPS
+        default y
+        help
+            causes HRT timestamp to use an externally calculated offset for synchronization

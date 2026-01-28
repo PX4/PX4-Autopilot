@@ -34,7 +34,7 @@
 #include <gtest/gtest.h>
 #include <math.h>
 #include "EKF/ekf.h"
-#include "EKF/imu_down_sampler.hpp"
+#include "EKF/imu_down_sampler/imu_down_sampler.hpp"
 
 class EkfImuSamplingTest : public ::testing::TestWithParam<std::tuple<float, float, Vector3f, Vector3f>>
 {

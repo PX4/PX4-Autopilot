@@ -50,6 +50,7 @@ PARAM_DEFINE_INT32(SENS_EN_INA226, 0);
  * @max 65535
  * @decimal 1
  * @increment 1
+ * @reboot_required true
 */
 PARAM_DEFINE_INT32(INA226_CONFIG, 18139);
 
@@ -61,6 +62,7 @@ PARAM_DEFINE_INT32(INA226_CONFIG, 18139);
  * @max 200.0
  * @decimal 2
  * @increment 0.1
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(INA226_CURRENT, 164.0f);
 
@@ -72,5 +74,6 @@ PARAM_DEFINE_FLOAT(INA226_CURRENT, 164.0f);
  * @max 0.1
  * @decimal 10
  * @increment .000000001
+ * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(INA226_SHUNT, 0.0005f);

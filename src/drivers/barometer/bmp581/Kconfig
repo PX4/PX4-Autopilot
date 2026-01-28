@@ -1,0 +1,5 @@
+menuconfig DRIVERS_BAROMETER_BMP581
+	bool "bmp581"
+	default n
+	---help---
+		Enable support for bmp581

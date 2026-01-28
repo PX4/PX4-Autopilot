@@ -48,13 +48,7 @@ void ImuConsistencyChecks::checkAndReport(const Context &context, Report &report
 
 			const float accel_inconsistency_m_s_s = imu.accel_inconsistency_m_s_s[i];
 
-			NavModes required_groups = NavModes::None;
-
 			if (accel_inconsistency_m_s_s > _param_com_arm_imu_acc.get()) {
-				required_groups = NavModes::All;
-			}
-
-			if (accel_inconsistency_m_s_s > _param_com_arm_imu_acc.get() * 0.8f) {
 				/* EVENT
 				 * @description
 				 * Check the calibration.
@@ -66,7 +60,7 @@ void ImuConsistencyChecks::checkAndReport(const Context &context, Report &report
 				 * This check can be configured via <param>COM_ARM_IMU_ACC</param> parameter.
 				 * </profile>
 				 */
-				reporter.armingCheckFailure<uint8_t, float, float>(required_groups, health_component_t::accel,
+				reporter.armingCheckFailure<uint8_t, float, float>(NavModes::All, health_component_t::accel,
 						events::ID("check_imu_accel_inconsistent"),
 						events::Log::Warning, "Accel {1} inconsistent", i, accel_inconsistency_m_s_s, _param_com_arm_imu_acc.get());
 
@@ -85,13 +79,7 @@ void ImuConsistencyChecks::checkAndReport(const Context &context, Report &report
 
 			const float gyro_inconsistency_rad_s = imu.gyro_inconsistency_rad_s[i];
 
-			NavModes required_groups = NavModes::None;
-
 			if (gyro_inconsistency_rad_s > _param_com_arm_imu_gyr.get()) {
-				required_groups = NavModes::All;
-			}
-
-			if (gyro_inconsistency_rad_s > _param_com_arm_imu_gyr.get() * 0.5f) {
 				/* EVENT
 				 * @description
 				 * Check the calibration.
@@ -103,7 +91,7 @@ void ImuConsistencyChecks::checkAndReport(const Context &context, Report &report
 				 * This check can be configured via <param>COM_ARM_IMU_GYR</param> parameter.
 				 * </profile>
 				 */
-				reporter.armingCheckFailure<uint8_t, float, float>(required_groups, health_component_t::gyro,
+				reporter.armingCheckFailure<uint8_t, float, float>(NavModes::All, health_component_t::gyro,
 						events::ID("check_imu_gyro_inconsistent"),
 						events::Log::Warning, "Gyro {1} inconsistent", i, gyro_inconsistency_rad_s, _param_com_arm_imu_gyr.get());
 

@@ -265,8 +265,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 	return ret;
 }
 
-orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-		unsigned int queue_size)
+orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance)
 {
 #ifdef ORB_USE_PUBLISHER_RULES
 
@@ -300,19 +299,10 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 		return nullptr;
 	}
 
-	/* Set the queue size. This must be done before the first publication; thus it fails if
-	 * this is not the first advertiser.
-	 */
-	int result = px4_ioctl(fd, ORBIOCSETQUEUESIZE, (unsigned long)queue_size);
-
-	if (result < 0 && queue_size > 1) {
-		PX4_WARN("orb_advertise_multi: failed to set queue size");
-	}
-
 	/* get the advertiser handle and close the node */
 	orb_advert_t advertiser;
 
-	result = px4_ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);
+	int result = px4_ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);
 	px4_close(fd);
 
 	if (result == PX4_ERROR) {
@@ -602,6 +592,22 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 {
 	PX4_DEBUG("entering process_remote_topic: name: %s", topic_name);
 
+	// First make sure this is a valid topic
+	const struct orb_metadata *const *topic_list = orb_get_topics();
+	orb_id_t topic_ptr = nullptr;
+
+	for (size_t i = 0; i < orb_topics_count(); i++) {
+		if (strcmp(topic_list[i]->o_name, topic_name) == 0) {
+			topic_ptr = topic_list[i];
+			break;
+		}
+	}
+
+	if (! topic_ptr) {
+		PX4_ERR("process_remote_topic meta not found for %s\n", topic_name);
+		return -1;
+	}
+
 	// Look to see if we already have a node for this topic
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, topic_name);
@@ -613,7 +619,7 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 			uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
 
 			if (node) {
-				PX4_INFO("Marking DeviceNode(%s) as advertised in process_remote_topic", topic_name);
+				PX4_DEBUG("Marking DeviceNode(%s) as advertised in process_remote_topic", topic_name);
 				node->mark_as_advertised();
 				_remote_topics.insert(topic_name);
 				return 0;
@@ -622,27 +628,9 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 	}
 
 	// We didn't find a node so we need to create it via an advertisement
-	const struct orb_metadata *const *topic_list = orb_get_topics();
-	orb_id_t topic_ptr = nullptr;
-
-	for (size_t i = 0; i < orb_topics_count(); i++) {
-		if (strcmp(topic_list[i]->o_name, topic_name) == 0) {
-			topic_ptr = topic_list[i];
-			break;
-		}
-	}
-
-	if (topic_ptr) {
-		PX4_INFO("Advertising remote topic %s", topic_name);
-		_remote_topics.insert(topic_name);
-		// Add some queue depth when advertising remote topics. These
-		// topics may get aggregated and thus delivered in a batch that
-		// requires some buffering in a queue.
-		orb_advertise(topic_ptr, nullptr, 5);
-
-	} else {
-		PX4_INFO("process_remote_topic meta not found for %s\n", topic_name);
-	}
+	PX4_DEBUG("Advertising remote topic %s", topic_name);
+	_remote_topics.insert(topic_name);
+	orb_advertise(topic_ptr, nullptr);
 
 	return 0;
 }
@@ -663,8 +651,11 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName)
 			PX4_DEBUG("DeviceNode(%s) not created yet", messageName);
 
 		} else {
-			// node is present.
-			node->process_add_subscription();
+			// node is present. But don't send any data to it if it
+			// is a node advertised by the remote side
+			if (_remote_topics.find(messageName) == false) {
+				node->process_add_subscription();
+			}
 		}
 
 	} else {

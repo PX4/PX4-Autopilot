@@ -94,6 +94,14 @@ public:
 	void set_beta_gate(uint8_t gate_size) {_beta_gate = gate_size; }
 	void set_scale_init(float scale_init) {_scale_init = 1.f / math::constrain(scale_init, 0.1f, 10.f); }
 
+	void reset_scale_to_init()
+	{
+		_state(INDEX_TAS_SCALE) = _scale_init;
+		auto P_wind = _P.slice<2, 2>(0, 0);
+		_P.setZero();
+		_P.slice<2, 2>(0, 0) = P_wind;
+	}
+
 private:
 	enum {
 		INDEX_W_N = 0,
@@ -131,6 +139,10 @@ private:
 	uint64_t _time_last_airspeed_fuse = 0;	///< timestamp of last airspeed fusion
 	uint64_t _time_last_beta_fuse = 0;	///< timestamp of last sideslip fusion
 	uint64_t _time_last_update = 0;		///< timestamp of last covariance prediction
+	uint64_t _time_initialised = 0;         ///< timestamp when estimator is initialised
+
+	static constexpr float kTASScalePSDMultiplier = 100;
+	static constexpr hrt_abstime kTASScaleFastLearnTime = 300_s;
 
 	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
 

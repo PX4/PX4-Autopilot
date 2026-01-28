@@ -1,0 +1,1190 @@
+
+menu "Zenoh publishers/subscribers"
+	depends on MODULES_ZENOH
+	config ZENOH_PUBSUB_ACTION_REQUEST
+		bool "action_request"
+		default n
+
+	config ZENOH_PUBSUB_ACTUATOR_ARMED
+		bool "actuator_armed"
+		default n
+
+	config ZENOH_PUBSUB_ACTUATOR_CONTROLS_STATUS
+		bool "actuator_controls_status"
+		default n
+
+	config ZENOH_PUBSUB_ACTUATOR_MOTORS
+		bool "actuator_motors"
+		default n
+
+	config ZENOH_PUBSUB_ACTUATOR_OUTPUTS
+		bool "actuator_outputs"
+		default n
+
+	config ZENOH_PUBSUB_ACTUATOR_SERVOS
+		bool "actuator_servos"
+		default n
+
+	config ZENOH_PUBSUB_ACTUATOR_SERVOS_TRIM
+		bool "actuator_servos_trim"
+		default n
+
+	config ZENOH_PUBSUB_ACTUATOR_TEST
+		bool "actuator_test"
+		default n
+
+	config ZENOH_PUBSUB_ADC_REPORT
+		bool "adc_report"
+		default n
+
+	config ZENOH_PUBSUB_AIRSPEED
+		bool "airspeed"
+		default n
+
+	config ZENOH_PUBSUB_AIRSPEED_VALIDATED
+		bool "airspeed_validated"
+		default n
+
+	config ZENOH_PUBSUB_AIRSPEED_WIND
+		bool "airspeed_wind"
+		default n
+
+	config ZENOH_PUBSUB_ARMING_CHECK_REPLY
+		bool "arming_check_reply"
+		default n
+
+	config ZENOH_PUBSUB_ARMING_CHECK_REQUEST
+		bool "arming_check_request"
+		default n
+
+	config ZENOH_PUBSUB_AUTOTUNE_ATTITUDE_CONTROL_STATUS
+		bool "autotune_attitude_control_status"
+		default n
+
+	config ZENOH_PUBSUB_BATTERY_INFO
+		bool "battery_info"
+		default n
+
+	config ZENOH_PUBSUB_BATTERY_STATUS
+		bool "battery_status"
+		default n
+
+	config ZENOH_PUBSUB_BUTTON_EVENT
+		bool "button_event"
+		default n
+
+	config ZENOH_PUBSUB_CAMERA_CAPTURE
+		bool "camera_capture"
+		default n
+
+	config ZENOH_PUBSUB_CAMERA_STATUS
+		bool "camera_status"
+		default n
+
+	config ZENOH_PUBSUB_CAMERA_TRIGGER
+		bool "camera_trigger"
+		default n
+
+	config ZENOH_PUBSUB_CAN_INTERFACE_STATUS
+		bool "can_interface_status"
+		default n
+
+	config ZENOH_PUBSUB_CELLULAR_STATUS
+		bool "cellular_status"
+		default n
+
+	config ZENOH_PUBSUB_COLLISION_CONSTRAINTS
+		bool "collision_constraints"
+		default n
+
+	config ZENOH_PUBSUB_CONFIG_OVERRIDES
+		bool "config_overrides"
+		default n
+
+	config ZENOH_PUBSUB_CONTROL_ALLOCATOR_STATUS
+		bool "control_allocator_status"
+		default n
+
+	config ZENOH_PUBSUB_CPULOAD
+		bool "cpuload"
+		default n
+
+	config ZENOH_PUBSUB_DATAMAN_REQUEST
+		bool "dataman_request"
+		default n
+
+	config ZENOH_PUBSUB_DATAMAN_RESPONSE
+		bool "dataman_response"
+		default n
+
+	config ZENOH_PUBSUB_DEBUG_ARRAY
+		bool "debug_array"
+		default n
+
+	config ZENOH_PUBSUB_DEBUG_KEY_VALUE
+		bool "debug_key_value"
+		default n
+
+	config ZENOH_PUBSUB_DEBUG_VALUE
+		bool "debug_value"
+		default n
+
+	config ZENOH_PUBSUB_DEBUG_VECT
+		bool "debug_vect"
+		default n
+
+	config ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
+		bool "differential_pressure"
+		default n
+
+	config ZENOH_PUBSUB_DISTANCE_SENSOR
+		bool "distance_sensor"
+		default n
+
+	config ZENOH_PUBSUB_DISTANCE_SENSOR_MODE_CHANGE_REQUEST
+		bool "distance_sensor_mode_change_request"
+		default n
+
+	config ZENOH_PUBSUB_DRONECAN_NODE_STATUS
+		bool "dronecan_node_status"
+		default n
+
+	config ZENOH_PUBSUB_EKF2_TIMESTAMPS
+		bool "ekf2_timestamps"
+		default n
+
+	config ZENOH_PUBSUB_ESC_REPORT
+		bool "esc_report"
+		default n
+
+	config ZENOH_PUBSUB_ESC_STATUS
+		bool "esc_status"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_AID_SOURCE1D
+		bool "estimator_aid_source1d"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_AID_SOURCE2D
+		bool "estimator_aid_source2d"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_AID_SOURCE3D
+		bool "estimator_aid_source3d"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_BIAS
+		bool "estimator_bias"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_BIAS3D
+		bool "estimator_bias3d"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_EVENT_FLAGS
+		bool "estimator_event_flags"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_GPS_STATUS
+		bool "estimator_gps_status"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_INNOVATIONS
+		bool "estimator_innovations"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_SELECTOR_STATUS
+		bool "estimator_selector_status"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_SENSOR_BIAS
+		bool "estimator_sensor_bias"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_STATES
+		bool "estimator_states"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_STATUS
+		bool "estimator_status"
+		default n
+
+	config ZENOH_PUBSUB_ESTIMATOR_STATUS_FLAGS
+		bool "estimator_status_flags"
+		default n
+
+	config ZENOH_PUBSUB_EVENT
+		bool "event"
+		default n
+
+	config ZENOH_PUBSUB_FAILSAFE_FLAGS
+		bool "failsafe_flags"
+		default n
+
+	config ZENOH_PUBSUB_FAILURE_DETECTOR_STATUS
+		bool "failure_detector_status"
+		default n
+
+	config ZENOH_PUBSUB_FIGURE_EIGHT_STATUS
+		bool "figure_eight_status"
+		default n
+
+	config ZENOH_PUBSUB_FIXED_WING_LATERAL_GUIDANCE_STATUS
+		bool "fixed_wing_lateral_guidance_status"
+		default n
+
+	config ZENOH_PUBSUB_FIXED_WING_LATERAL_SETPOINT
+		bool "fixed_wing_lateral_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_FIXED_WING_LATERAL_STATUS
+		bool "fixed_wing_lateral_status"
+		default n
+
+	config ZENOH_PUBSUB_FIXED_WING_LONGITUDINAL_SETPOINT
+		bool "fixed_wing_longitudinal_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_FIXED_WING_RUNWAY_CONTROL
+		bool "fixed_wing_runway_control"
+		default n
+
+	config ZENOH_PUBSUB_FLIGHT_PHASE_ESTIMATION
+		bool "flight_phase_estimation"
+		default n
+
+	config ZENOH_PUBSUB_FOLLOW_TARGET
+		bool "follow_target"
+		default n
+
+	config ZENOH_PUBSUB_FOLLOW_TARGET_ESTIMATOR
+		bool "follow_target_estimator"
+		default n
+
+	config ZENOH_PUBSUB_FOLLOW_TARGET_STATUS
+		bool "follow_target_status"
+		default n
+
+	config ZENOH_PUBSUB_FUEL_TANK_STATUS
+		bool "fuel_tank_status"
+		default n
+
+	config ZENOH_PUBSUB_GENERATOR_STATUS
+		bool "generator_status"
+		default n
+
+	config ZENOH_PUBSUB_GEOFENCE_RESULT
+		bool "geofence_result"
+		default n
+
+	config ZENOH_PUBSUB_GEOFENCE_STATUS
+		bool "geofence_status"
+		default n
+
+	config ZENOH_PUBSUB_GIMBAL_CONTROLS
+		bool "gimbal_controls"
+		default n
+
+	config ZENOH_PUBSUB_GIMBAL_DEVICE_ATTITUDE_STATUS
+		bool "gimbal_device_attitude_status"
+		default n
+
+	config ZENOH_PUBSUB_GIMBAL_DEVICE_INFORMATION
+		bool "gimbal_device_information"
+		default n
+
+	config ZENOH_PUBSUB_GIMBAL_DEVICE_SET_ATTITUDE
+		bool "gimbal_device_set_attitude"
+		default n
+
+	config ZENOH_PUBSUB_GIMBAL_MANAGER_INFORMATION
+		bool "gimbal_manager_information"
+		default n
+
+	config ZENOH_PUBSUB_GIMBAL_MANAGER_SET_ATTITUDE
+		bool "gimbal_manager_set_attitude"
+		default n
+
+	config ZENOH_PUBSUB_GIMBAL_MANAGER_SET_MANUAL_CONTROL
+		bool "gimbal_manager_set_manual_control"
+		default n
+
+	config ZENOH_PUBSUB_GIMBAL_MANAGER_STATUS
+		bool "gimbal_manager_status"
+		default n
+
+	config ZENOH_PUBSUB_GOTO_SETPOINT
+		bool "goto_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_GPIO_CONFIG
+		bool "gpio_config"
+		default n
+
+	config ZENOH_PUBSUB_GPIO_IN
+		bool "gpio_in"
+		default n
+
+	config ZENOH_PUBSUB_GPIO_OUT
+		bool "gpio_out"
+		default n
+
+	config ZENOH_PUBSUB_GPIO_REQUEST
+		bool "gpio_request"
+		default n
+
+	config ZENOH_PUBSUB_GPS_DUMP
+		bool "gps_dump"
+		default n
+
+	config ZENOH_PUBSUB_GPS_INJECT_DATA
+		bool "gps_inject_data"
+		default n
+
+	config ZENOH_PUBSUB_GRIPPER
+		bool "gripper"
+		default n
+
+	config ZENOH_PUBSUB_HEALTH_REPORT
+		bool "health_report"
+		default n
+
+	config ZENOH_PUBSUB_HEATER_STATUS
+		bool "heater_status"
+		default n
+
+	config ZENOH_PUBSUB_HOME_POSITION
+		bool "home_position"
+		default n
+
+	config ZENOH_PUBSUB_HOVER_THRUST_ESTIMATE
+		bool "hover_thrust_estimate"
+		default n
+
+	config ZENOH_PUBSUB_INPUT_RC
+		bool "input_rc"
+		default n
+
+	config ZENOH_PUBSUB_INTERNAL_COMBUSTION_ENGINE_CONTROL
+		bool "internal_combustion_engine_control"
+		default n
+
+	config ZENOH_PUBSUB_INTERNAL_COMBUSTION_ENGINE_STATUS
+		bool "internal_combustion_engine_status"
+		default n
+
+	config ZENOH_PUBSUB_IRIDIUMSBD_STATUS
+		bool "iridiumsbd_status"
+		default n
+
+	config ZENOH_PUBSUB_IRLOCK_REPORT
+		bool "irlock_report"
+		default n
+
+	config ZENOH_PUBSUB_LANDING_GEAR
+		bool "landing_gear"
+		default n
+
+	config ZENOH_PUBSUB_LANDING_GEAR_WHEEL
+		bool "landing_gear_wheel"
+		default n
+
+	config ZENOH_PUBSUB_LANDING_TARGET_INNOVATIONS
+		bool "landing_target_innovations"
+		default n
+
+	config ZENOH_PUBSUB_LANDING_TARGET_POSE
+		bool "landing_target_pose"
+		default n
+
+	config ZENOH_PUBSUB_LATERAL_CONTROL_CONFIGURATION
+		bool "lateral_control_configuration"
+		default n
+
+	config ZENOH_PUBSUB_LAUNCH_DETECTION_STATUS
+		bool "launch_detection_status"
+		default n
+
+	config ZENOH_PUBSUB_LED_CONTROL
+		bool "led_control"
+		default n
+
+	config ZENOH_PUBSUB_LOG_MESSAGE
+		bool "log_message"
+		default n
+
+	config ZENOH_PUBSUB_LOGGER_STATUS
+		bool "logger_status"
+		default n
+
+	config ZENOH_PUBSUB_LONGITUDINAL_CONTROL_CONFIGURATION
+		bool "longitudinal_control_configuration"
+		default n
+
+	config ZENOH_PUBSUB_MAG_WORKER_DATA
+		bool "mag_worker_data"
+		default n
+
+	config ZENOH_PUBSUB_MAGNETOMETER_BIAS_ESTIMATE
+		bool "magnetometer_bias_estimate"
+		default n
+
+	config ZENOH_PUBSUB_MANUAL_CONTROL_SETPOINT
+		bool "manual_control_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_MANUAL_CONTROL_SWITCHES
+		bool "manual_control_switches"
+		default n
+
+	config ZENOH_PUBSUB_MAVLINK_LOG
+		bool "mavlink_log"
+		default n
+
+	config ZENOH_PUBSUB_MAVLINK_TUNNEL
+		bool "mavlink_tunnel"
+		default n
+
+	config ZENOH_PUBSUB_MESSAGE_FORMAT_REQUEST
+		bool "message_format_request"
+		default n
+
+	config ZENOH_PUBSUB_MESSAGE_FORMAT_RESPONSE
+		bool "message_format_response"
+		default n
+
+	config ZENOH_PUBSUB_MISSION
+		bool "mission"
+		default n
+
+	config ZENOH_PUBSUB_MISSION_RESULT
+		bool "mission_result"
+		default n
+
+	config ZENOH_PUBSUB_MODE_COMPLETED
+		bool "mode_completed"
+		default n
+
+	config ZENOH_PUBSUB_MOUNT_ORIENTATION
+		bool "mount_orientation"
+		default n
+
+	config ZENOH_PUBSUB_NAVIGATOR_MISSION_ITEM
+		bool "navigator_mission_item"
+		default n
+
+	config ZENOH_PUBSUB_NAVIGATOR_STATUS
+		bool "navigator_status"
+		default n
+
+	config ZENOH_PUBSUB_NEURAL_CONTROL
+		bool "neural_control"
+		default n
+
+	config ZENOH_PUBSUB_NORMALIZED_UNSIGNED_SETPOINT
+		bool "normalized_unsigned_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_OBSTACLE_DISTANCE
+		bool "obstacle_distance"
+		default n
+
+	config ZENOH_PUBSUB_OFFBOARD_CONTROL_MODE
+		bool "offboard_control_mode"
+		default n
+
+	config ZENOH_PUBSUB_ONBOARD_COMPUTER_STATUS
+		bool "onboard_computer_status"
+		default n
+
+	config ZENOH_PUBSUB_OPEN_DRONE_ID_ARM_STATUS
+		bool "open_drone_id_arm_status"
+		default n
+
+	config ZENOH_PUBSUB_OPEN_DRONE_ID_OPERATOR_ID
+		bool "open_drone_id_operator_id"
+		default n
+
+	config ZENOH_PUBSUB_OPEN_DRONE_ID_SELF_ID
+		bool "open_drone_id_self_id"
+		default n
+
+	config ZENOH_PUBSUB_OPEN_DRONE_ID_SYSTEM
+		bool "open_drone_id_system"
+		default n
+
+	config ZENOH_PUBSUB_ORB_TEST
+		bool "orb_test"
+		default n
+
+	config ZENOH_PUBSUB_ORB_TEST_LARGE
+		bool "orb_test_large"
+		default n
+
+	config ZENOH_PUBSUB_ORB_TEST_MEDIUM
+		bool "orb_test_medium"
+		default n
+
+	config ZENOH_PUBSUB_ORBIT_STATUS
+		bool "orbit_status"
+		default n
+
+	config ZENOH_PUBSUB_PARAMETER_RESET_REQUEST
+		bool "parameter_reset_request"
+		default n
+
+	config ZENOH_PUBSUB_PARAMETER_SET_USED_REQUEST
+		bool "parameter_set_used_request"
+		default n
+
+	config ZENOH_PUBSUB_PARAMETER_SET_VALUE_REQUEST
+		bool "parameter_set_value_request"
+		default n
+
+	config ZENOH_PUBSUB_PARAMETER_SET_VALUE_RESPONSE
+		bool "parameter_set_value_response"
+		default n
+
+	config ZENOH_PUBSUB_PARAMETER_UPDATE
+		bool "parameter_update"
+		default n
+
+	config ZENOH_PUBSUB_PING
+		bool "ping"
+		default n
+
+	config ZENOH_PUBSUB_POSITION_CONTROLLER_LANDING_STATUS
+		bool "position_controller_landing_status"
+		default n
+
+	config ZENOH_PUBSUB_POSITION_CONTROLLER_STATUS
+		bool "position_controller_status"
+		default n
+
+	config ZENOH_PUBSUB_POSITION_SETPOINT
+		bool "position_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_POSITION_SETPOINT_TRIPLET
+		bool "position_setpoint_triplet"
+		default n
+
+	config ZENOH_PUBSUB_POWER_BUTTON_STATE
+		bool "power_button_state"
+		default n
+
+	config ZENOH_PUBSUB_POWER_MONITOR
+		bool "power_monitor"
+		default n
+
+	config ZENOH_PUBSUB_PPS_CAPTURE
+		bool "pps_capture"
+		default n
+
+	config ZENOH_PUBSUB_PURE_PURSUIT_STATUS
+		bool "pure_pursuit_status"
+		default n
+
+	config ZENOH_PUBSUB_PWM_INPUT
+		bool "pwm_input"
+		default n
+
+	config ZENOH_PUBSUB_PX4IO_STATUS
+		bool "px4io_status"
+		default n
+
+	config ZENOH_PUBSUB_QSHELL_REQ
+		bool "qshell_req"
+		default n
+
+	config ZENOH_PUBSUB_QSHELL_RETVAL
+		bool "qshell_retval"
+		default n
+
+	config ZENOH_PUBSUB_RADIO_STATUS
+		bool "radio_status"
+		default n
+
+	config ZENOH_PUBSUB_RATE_CTRL_STATUS
+		bool "rate_ctrl_status"
+		default n
+
+	config ZENOH_PUBSUB_RC_CHANNELS
+		bool "rc_channels"
+		default n
+
+	config ZENOH_PUBSUB_RC_PARAMETER_MAP
+		bool "rc_parameter_map"
+		default n
+
+	config ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REPLY
+		bool "register_ext_component_reply"
+		default n
+
+	config ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REQUEST
+		bool "register_ext_component_request"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_ATTITUDE_SETPOINT
+		bool "rover_attitude_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_ATTITUDE_STATUS
+		bool "rover_attitude_status"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_POSITION_SETPOINT
+		bool "rover_position_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_RATE_SETPOINT
+		bool "rover_rate_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_RATE_STATUS
+		bool "rover_rate_status"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_SPEED_SETPOINT
+		bool "rover_speed_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_SPEED_STATUS
+		bool "rover_speed_status"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_STEERING_SETPOINT
+		bool "rover_steering_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_THROTTLE_SETPOINT
+		bool "rover_throttle_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_RPM
+		bool "rpm"
+		default n
+
+	config ZENOH_PUBSUB_RTL_STATUS
+		bool "rtl_status"
+		default n
+
+	config ZENOH_PUBSUB_RTL_TIME_ESTIMATE
+		bool "rtl_time_estimate"
+		default n
+
+	config ZENOH_PUBSUB_SATELLITE_INFO
+		bool "satellite_info"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_ACCEL
+		bool "sensor_accel"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_ACCEL_FIFO
+		bool "sensor_accel_fifo"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_AIRFLOW
+		bool "sensor_airflow"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_BARO
+		bool "sensor_baro"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_COMBINED
+		bool "sensor_combined"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_CORRECTION
+		bool "sensor_correction"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_GNSS_RELATIVE
+		bool "sensor_gnss_relative"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_GNSS_STATUS
+		bool "sensor_gnss_status"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_GPS
+		bool "sensor_gps"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_GYRO
+		bool "sensor_gyro"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_GYRO_FFT
+		bool "sensor_gyro_fft"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_GYRO_FIFO
+		bool "sensor_gyro_fifo"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_HYGROMETER
+		bool "sensor_hygrometer"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_MAG
+		bool "sensor_mag"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_OPTICAL_FLOW
+		bool "sensor_optical_flow"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_PREFLIGHT_MAG
+		bool "sensor_preflight_mag"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_SELECTION
+		bool "sensor_selection"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_TEMP
+		bool "sensor_temp"
+		default n
+
+	config ZENOH_PUBSUB_SENSOR_UWB
+		bool "sensor_uwb"
+		default n
+
+	config ZENOH_PUBSUB_SENSORS_STATUS
+		bool "sensors_status"
+		default n
+
+	config ZENOH_PUBSUB_SENSORS_STATUS_IMU
+		bool "sensors_status_imu"
+		default n
+
+	config ZENOH_PUBSUB_SYSTEM_POWER
+		bool "system_power"
+		default n
+
+	config ZENOH_PUBSUB_TAKEOFF_STATUS
+		bool "takeoff_status"
+		default n
+
+	config ZENOH_PUBSUB_TASK_STACK_INFO
+		bool "task_stack_info"
+		default n
+
+	config ZENOH_PUBSUB_TECS_STATUS
+		bool "tecs_status"
+		default n
+
+	config ZENOH_PUBSUB_TELEMETRY_STATUS
+		bool "telemetry_status"
+		default n
+
+	config ZENOH_PUBSUB_TILTROTOR_EXTRA_CONTROLS
+		bool "tiltrotor_extra_controls"
+		default n
+
+	config ZENOH_PUBSUB_TIMESYNC_STATUS
+		bool "timesync_status"
+		default n
+
+	config ZENOH_PUBSUB_TRAJECTORY_SETPOINT
+		bool "trajectory_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_TRAJECTORY_SETPOINT6DOF
+		bool "trajectory_setpoint6dof"
+		default n
+
+	config ZENOH_PUBSUB_TRANSPONDER_REPORT
+		bool "transponder_report"
+		default n
+
+	config ZENOH_PUBSUB_TUNE_CONTROL
+		bool "tune_control"
+		default n
+
+	config ZENOH_PUBSUB_UAVCAN_PARAMETER_REQUEST
+		bool "uavcan_parameter_request"
+		default n
+
+	config ZENOH_PUBSUB_UAVCAN_PARAMETER_VALUE
+		bool "uavcan_parameter_value"
+		default n
+
+	config ZENOH_PUBSUB_ULOG_STREAM
+		bool "ulog_stream"
+		default n
+
+	config ZENOH_PUBSUB_ULOG_STREAM_ACK
+		bool "ulog_stream_ack"
+		default n
+
+	config ZENOH_PUBSUB_UNREGISTER_EXT_COMPONENT
+		bool "unregister_ext_component"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_ACCELERATION
+		bool "vehicle_acceleration"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_AIR_DATA
+		bool "vehicle_air_data"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_ANGULAR_ACCELERATION_SETPOINT
+		bool "vehicle_angular_acceleration_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_ANGULAR_VELOCITY
+		bool "vehicle_angular_velocity"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_ATTITUDE
+		bool "vehicle_attitude"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_ATTITUDE_SETPOINT
+		bool "vehicle_attitude_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_COMMAND
+		bool "vehicle_command"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_COMMAND_ACK
+		bool "vehicle_command_ack"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_CONSTRAINTS
+		bool "vehicle_constraints"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_CONTROL_MODE
+		bool "vehicle_control_mode"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_GLOBAL_POSITION
+		bool "vehicle_global_position"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_IMU
+		bool "vehicle_imu"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_IMU_STATUS
+		bool "vehicle_imu_status"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_LAND_DETECTED
+		bool "vehicle_land_detected"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_LOCAL_POSITION
+		bool "vehicle_local_position"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_LOCAL_POSITION_SETPOINT
+		bool "vehicle_local_position_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_MAGNETOMETER
+		bool "vehicle_magnetometer"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_ODOMETRY
+		bool "vehicle_odometry"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_OPTICAL_FLOW
+		bool "vehicle_optical_flow"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_OPTICAL_FLOW_VEL
+		bool "vehicle_optical_flow_vel"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_RATES_SETPOINT
+		bool "vehicle_rates_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_ROI
+		bool "vehicle_roi"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_STATUS
+		bool "vehicle_status"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_THRUST_SETPOINT
+		bool "vehicle_thrust_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_VEHICLE_TORQUE_SETPOINT
+		bool "vehicle_torque_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_VELOCITY_LIMITS
+		bool "velocity_limits"
+		default n
+
+	config ZENOH_PUBSUB_VTOL_VEHICLE_STATUS
+		bool "vtol_vehicle_status"
+		default n
+
+	config ZENOH_PUBSUB_WHEEL_ENCODERS
+		bool "wheel_encoders"
+		default n
+
+	config ZENOH_PUBSUB_WIND
+		bool "wind"
+		default n
+
+	config ZENOH_PUBSUB_YAW_ESTIMATOR_STATUS
+		bool "yaw_estimator_status"
+		default n
+
+
+
+config ZENOH_PUBSUB_ALL_SELECTION
+	bool
+	default y if ZENOH_PUBSUB_ALL
+	select ZENOH_PUBSUB_ACTION_REQUEST
+	select ZENOH_PUBSUB_ACTUATOR_ARMED
+	select ZENOH_PUBSUB_ACTUATOR_CONTROLS_STATUS
+	select ZENOH_PUBSUB_ACTUATOR_MOTORS
+	select ZENOH_PUBSUB_ACTUATOR_OUTPUTS
+	select ZENOH_PUBSUB_ACTUATOR_SERVOS
+	select ZENOH_PUBSUB_ACTUATOR_SERVOS_TRIM
+	select ZENOH_PUBSUB_ACTUATOR_TEST
+	select ZENOH_PUBSUB_ADC_REPORT
+	select ZENOH_PUBSUB_AIRSPEED
+	select ZENOH_PUBSUB_AIRSPEED_VALIDATED
+	select ZENOH_PUBSUB_AIRSPEED_WIND
+	select ZENOH_PUBSUB_ARMING_CHECK_REPLY
+	select ZENOH_PUBSUB_ARMING_CHECK_REQUEST
+	select ZENOH_PUBSUB_AUTOTUNE_ATTITUDE_CONTROL_STATUS
+	select ZENOH_PUBSUB_BATTERY_INFO
+	select ZENOH_PUBSUB_BATTERY_STATUS
+	select ZENOH_PUBSUB_BUTTON_EVENT
+	select ZENOH_PUBSUB_CAMERA_CAPTURE
+	select ZENOH_PUBSUB_CAMERA_STATUS
+	select ZENOH_PUBSUB_CAMERA_TRIGGER
+	select ZENOH_PUBSUB_CAN_INTERFACE_STATUS
+	select ZENOH_PUBSUB_CELLULAR_STATUS
+	select ZENOH_PUBSUB_COLLISION_CONSTRAINTS
+	select ZENOH_PUBSUB_CONFIG_OVERRIDES
+	select ZENOH_PUBSUB_CONTROL_ALLOCATOR_STATUS
+	select ZENOH_PUBSUB_CPULOAD
+	select ZENOH_PUBSUB_DATAMAN_REQUEST
+	select ZENOH_PUBSUB_DATAMAN_RESPONSE
+	select ZENOH_PUBSUB_DEBUG_ARRAY
+	select ZENOH_PUBSUB_DEBUG_KEY_VALUE
+	select ZENOH_PUBSUB_DEBUG_VALUE
+	select ZENOH_PUBSUB_DEBUG_VECT
+	select ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
+	select ZENOH_PUBSUB_DISTANCE_SENSOR
+	select ZENOH_PUBSUB_DISTANCE_SENSOR_MODE_CHANGE_REQUEST
+	select ZENOH_PUBSUB_DRONECAN_NODE_STATUS
+	select ZENOH_PUBSUB_EKF2_TIMESTAMPS
+	select ZENOH_PUBSUB_ESC_REPORT
+	select ZENOH_PUBSUB_ESC_STATUS
+	select ZENOH_PUBSUB_ESTIMATOR_AID_SOURCE1D
+	select ZENOH_PUBSUB_ESTIMATOR_AID_SOURCE2D
+	select ZENOH_PUBSUB_ESTIMATOR_AID_SOURCE3D
+	select ZENOH_PUBSUB_ESTIMATOR_BIAS
+	select ZENOH_PUBSUB_ESTIMATOR_BIAS3D
+	select ZENOH_PUBSUB_ESTIMATOR_EVENT_FLAGS
+	select ZENOH_PUBSUB_ESTIMATOR_GPS_STATUS
+	select ZENOH_PUBSUB_ESTIMATOR_INNOVATIONS
+	select ZENOH_PUBSUB_ESTIMATOR_SELECTOR_STATUS
+	select ZENOH_PUBSUB_ESTIMATOR_SENSOR_BIAS
+	select ZENOH_PUBSUB_ESTIMATOR_STATES
+	select ZENOH_PUBSUB_ESTIMATOR_STATUS
+	select ZENOH_PUBSUB_ESTIMATOR_STATUS_FLAGS
+	select ZENOH_PUBSUB_EVENT
+	select ZENOH_PUBSUB_FAILSAFE_FLAGS
+	select ZENOH_PUBSUB_FAILURE_DETECTOR_STATUS
+	select ZENOH_PUBSUB_FIGURE_EIGHT_STATUS
+	select ZENOH_PUBSUB_FIXED_WING_LATERAL_GUIDANCE_STATUS
+	select ZENOH_PUBSUB_FIXED_WING_LATERAL_SETPOINT
+	select ZENOH_PUBSUB_FIXED_WING_LATERAL_STATUS
+	select ZENOH_PUBSUB_FIXED_WING_LONGITUDINAL_SETPOINT
+	select ZENOH_PUBSUB_FIXED_WING_RUNWAY_CONTROL
+	select ZENOH_PUBSUB_FLIGHT_PHASE_ESTIMATION
+	select ZENOH_PUBSUB_FOLLOW_TARGET
+	select ZENOH_PUBSUB_FOLLOW_TARGET_ESTIMATOR
+	select ZENOH_PUBSUB_FOLLOW_TARGET_STATUS
+	select ZENOH_PUBSUB_FUEL_TANK_STATUS
+	select ZENOH_PUBSUB_GENERATOR_STATUS
+	select ZENOH_PUBSUB_GEOFENCE_RESULT
+	select ZENOH_PUBSUB_GEOFENCE_STATUS
+	select ZENOH_PUBSUB_GIMBAL_CONTROLS
+	select ZENOH_PUBSUB_GIMBAL_DEVICE_ATTITUDE_STATUS
+	select ZENOH_PUBSUB_GIMBAL_DEVICE_INFORMATION
+	select ZENOH_PUBSUB_GIMBAL_DEVICE_SET_ATTITUDE
+	select ZENOH_PUBSUB_GIMBAL_MANAGER_INFORMATION
+	select ZENOH_PUBSUB_GIMBAL_MANAGER_SET_ATTITUDE
+	select ZENOH_PUBSUB_GIMBAL_MANAGER_SET_MANUAL_CONTROL
+	select ZENOH_PUBSUB_GIMBAL_MANAGER_STATUS
+	select ZENOH_PUBSUB_GOTO_SETPOINT
+	select ZENOH_PUBSUB_GPIO_CONFIG
+	select ZENOH_PUBSUB_GPIO_IN
+	select ZENOH_PUBSUB_GPIO_OUT
+	select ZENOH_PUBSUB_GPIO_REQUEST
+	select ZENOH_PUBSUB_GPS_DUMP
+	select ZENOH_PUBSUB_GPS_INJECT_DATA
+	select ZENOH_PUBSUB_GRIPPER
+	select ZENOH_PUBSUB_HEALTH_REPORT
+	select ZENOH_PUBSUB_HEATER_STATUS
+	select ZENOH_PUBSUB_HOME_POSITION
+	select ZENOH_PUBSUB_HOVER_THRUST_ESTIMATE
+	select ZENOH_PUBSUB_INPUT_RC
+	select ZENOH_PUBSUB_INTERNAL_COMBUSTION_ENGINE_CONTROL
+	select ZENOH_PUBSUB_INTERNAL_COMBUSTION_ENGINE_STATUS
+	select ZENOH_PUBSUB_IRIDIUMSBD_STATUS
+	select ZENOH_PUBSUB_IRLOCK_REPORT
+	select ZENOH_PUBSUB_LANDING_GEAR
+	select ZENOH_PUBSUB_LANDING_GEAR_WHEEL
+	select ZENOH_PUBSUB_LANDING_TARGET_INNOVATIONS
+	select ZENOH_PUBSUB_LANDING_TARGET_POSE
+	select ZENOH_PUBSUB_LATERAL_CONTROL_CONFIGURATION
+	select ZENOH_PUBSUB_LAUNCH_DETECTION_STATUS
+	select ZENOH_PUBSUB_LED_CONTROL
+	select ZENOH_PUBSUB_LOG_MESSAGE
+	select ZENOH_PUBSUB_LOGGER_STATUS
+	select ZENOH_PUBSUB_LONGITUDINAL_CONTROL_CONFIGURATION
+	select ZENOH_PUBSUB_MAG_WORKER_DATA
+	select ZENOH_PUBSUB_MAGNETOMETER_BIAS_ESTIMATE
+	select ZENOH_PUBSUB_MANUAL_CONTROL_SETPOINT
+	select ZENOH_PUBSUB_MANUAL_CONTROL_SWITCHES
+	select ZENOH_PUBSUB_MAVLINK_LOG
+	select ZENOH_PUBSUB_MAVLINK_TUNNEL
+	select ZENOH_PUBSUB_MESSAGE_FORMAT_REQUEST
+	select ZENOH_PUBSUB_MESSAGE_FORMAT_RESPONSE
+	select ZENOH_PUBSUB_MISSION
+	select ZENOH_PUBSUB_MISSION_RESULT
+	select ZENOH_PUBSUB_MODE_COMPLETED
+	select ZENOH_PUBSUB_MOUNT_ORIENTATION
+	select ZENOH_PUBSUB_NAVIGATOR_MISSION_ITEM
+	select ZENOH_PUBSUB_NAVIGATOR_STATUS
+	select ZENOH_PUBSUB_NEURAL_CONTROL
+	select ZENOH_PUBSUB_NORMALIZED_UNSIGNED_SETPOINT
+	select ZENOH_PUBSUB_OBSTACLE_DISTANCE
+	select ZENOH_PUBSUB_OFFBOARD_CONTROL_MODE
+	select ZENOH_PUBSUB_ONBOARD_COMPUTER_STATUS
+	select ZENOH_PUBSUB_OPEN_DRONE_ID_ARM_STATUS
+	select ZENOH_PUBSUB_OPEN_DRONE_ID_OPERATOR_ID
+	select ZENOH_PUBSUB_OPEN_DRONE_ID_SELF_ID
+	select ZENOH_PUBSUB_OPEN_DRONE_ID_SYSTEM
+	select ZENOH_PUBSUB_ORB_TEST
+	select ZENOH_PUBSUB_ORB_TEST_LARGE
+	select ZENOH_PUBSUB_ORB_TEST_MEDIUM
+	select ZENOH_PUBSUB_ORBIT_STATUS
+	select ZENOH_PUBSUB_PARAMETER_RESET_REQUEST
+	select ZENOH_PUBSUB_PARAMETER_SET_USED_REQUEST
+	select ZENOH_PUBSUB_PARAMETER_SET_VALUE_REQUEST
+	select ZENOH_PUBSUB_PARAMETER_SET_VALUE_RESPONSE
+	select ZENOH_PUBSUB_PARAMETER_UPDATE
+	select ZENOH_PUBSUB_PING
+	select ZENOH_PUBSUB_POSITION_CONTROLLER_LANDING_STATUS
+	select ZENOH_PUBSUB_POSITION_CONTROLLER_STATUS
+	select ZENOH_PUBSUB_POSITION_SETPOINT
+	select ZENOH_PUBSUB_POSITION_SETPOINT_TRIPLET
+	select ZENOH_PUBSUB_POWER_BUTTON_STATE
+	select ZENOH_PUBSUB_POWER_MONITOR
+	select ZENOH_PUBSUB_PPS_CAPTURE
+	select ZENOH_PUBSUB_PURE_PURSUIT_STATUS
+	select ZENOH_PUBSUB_PWM_INPUT
+	select ZENOH_PUBSUB_PX4IO_STATUS
+	select ZENOH_PUBSUB_QSHELL_REQ
+	select ZENOH_PUBSUB_QSHELL_RETVAL
+	select ZENOH_PUBSUB_RADIO_STATUS
+	select ZENOH_PUBSUB_RATE_CTRL_STATUS
+	select ZENOH_PUBSUB_RC_CHANNELS
+	select ZENOH_PUBSUB_RC_PARAMETER_MAP
+	select ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REPLY
+	select ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REQUEST
+	select ZENOH_PUBSUB_ROVER_ATTITUDE_SETPOINT
+	select ZENOH_PUBSUB_ROVER_ATTITUDE_STATUS
+	select ZENOH_PUBSUB_ROVER_POSITION_SETPOINT
+	select ZENOH_PUBSUB_ROVER_RATE_SETPOINT
+	select ZENOH_PUBSUB_ROVER_RATE_STATUS
+	select ZENOH_PUBSUB_ROVER_SPEED_SETPOINT
+	select ZENOH_PUBSUB_ROVER_SPEED_STATUS
+	select ZENOH_PUBSUB_ROVER_STEERING_SETPOINT
+	select ZENOH_PUBSUB_ROVER_THROTTLE_SETPOINT
+	select ZENOH_PUBSUB_RPM
+	select ZENOH_PUBSUB_RTL_STATUS
+	select ZENOH_PUBSUB_RTL_TIME_ESTIMATE
+	select ZENOH_PUBSUB_SATELLITE_INFO
+	select ZENOH_PUBSUB_SENSOR_ACCEL
+	select ZENOH_PUBSUB_SENSOR_ACCEL_FIFO
+	select ZENOH_PUBSUB_SENSOR_AIRFLOW
+	select ZENOH_PUBSUB_SENSOR_BARO
+	select ZENOH_PUBSUB_SENSOR_COMBINED
+	select ZENOH_PUBSUB_SENSOR_CORRECTION
+	select ZENOH_PUBSUB_SENSOR_GNSS_RELATIVE
+	select ZENOH_PUBSUB_SENSOR_GNSS_STATUS
+	select ZENOH_PUBSUB_SENSOR_GPS
+	select ZENOH_PUBSUB_SENSOR_GYRO
+	select ZENOH_PUBSUB_SENSOR_GYRO_FFT
+	select ZENOH_PUBSUB_SENSOR_GYRO_FIFO
+	select ZENOH_PUBSUB_SENSOR_HYGROMETER
+	select ZENOH_PUBSUB_SENSOR_MAG
+	select ZENOH_PUBSUB_SENSOR_OPTICAL_FLOW
+	select ZENOH_PUBSUB_SENSOR_PREFLIGHT_MAG
+	select ZENOH_PUBSUB_SENSOR_SELECTION
+	select ZENOH_PUBSUB_SENSOR_TEMP
+	select ZENOH_PUBSUB_SENSOR_UWB
+	select ZENOH_PUBSUB_SENSORS_STATUS
+	select ZENOH_PUBSUB_SENSORS_STATUS_IMU
+	select ZENOH_PUBSUB_SYSTEM_POWER
+	select ZENOH_PUBSUB_TAKEOFF_STATUS
+	select ZENOH_PUBSUB_TASK_STACK_INFO
+	select ZENOH_PUBSUB_TECS_STATUS
+	select ZENOH_PUBSUB_TELEMETRY_STATUS
+	select ZENOH_PUBSUB_TILTROTOR_EXTRA_CONTROLS
+	select ZENOH_PUBSUB_TIMESYNC_STATUS
+	select ZENOH_PUBSUB_TRAJECTORY_SETPOINT
+	select ZENOH_PUBSUB_TRAJECTORY_SETPOINT6DOF
+	select ZENOH_PUBSUB_TRANSPONDER_REPORT
+	select ZENOH_PUBSUB_TUNE_CONTROL
+	select ZENOH_PUBSUB_UAVCAN_PARAMETER_REQUEST
+	select ZENOH_PUBSUB_UAVCAN_PARAMETER_VALUE
+	select ZENOH_PUBSUB_ULOG_STREAM
+	select ZENOH_PUBSUB_ULOG_STREAM_ACK
+	select ZENOH_PUBSUB_UNREGISTER_EXT_COMPONENT
+	select ZENOH_PUBSUB_VEHICLE_ACCELERATION
+	select ZENOH_PUBSUB_VEHICLE_AIR_DATA
+	select ZENOH_PUBSUB_VEHICLE_ANGULAR_ACCELERATION_SETPOINT
+	select ZENOH_PUBSUB_VEHICLE_ANGULAR_VELOCITY
+	select ZENOH_PUBSUB_VEHICLE_ATTITUDE
+	select ZENOH_PUBSUB_VEHICLE_ATTITUDE_SETPOINT
+	select ZENOH_PUBSUB_VEHICLE_COMMAND
+	select ZENOH_PUBSUB_VEHICLE_COMMAND_ACK
+	select ZENOH_PUBSUB_VEHICLE_CONSTRAINTS
+	select ZENOH_PUBSUB_VEHICLE_CONTROL_MODE
+	select ZENOH_PUBSUB_VEHICLE_GLOBAL_POSITION
+	select ZENOH_PUBSUB_VEHICLE_IMU
+	select ZENOH_PUBSUB_VEHICLE_IMU_STATUS
+	select ZENOH_PUBSUB_VEHICLE_LAND_DETECTED
+	select ZENOH_PUBSUB_VEHICLE_LOCAL_POSITION
+	select ZENOH_PUBSUB_VEHICLE_LOCAL_POSITION_SETPOINT
+	select ZENOH_PUBSUB_VEHICLE_MAGNETOMETER
+	select ZENOH_PUBSUB_VEHICLE_ODOMETRY
+	select ZENOH_PUBSUB_VEHICLE_OPTICAL_FLOW
+	select ZENOH_PUBSUB_VEHICLE_OPTICAL_FLOW_VEL
+	select ZENOH_PUBSUB_VEHICLE_RATES_SETPOINT
+	select ZENOH_PUBSUB_VEHICLE_ROI
+	select ZENOH_PUBSUB_VEHICLE_STATUS
+	select ZENOH_PUBSUB_VEHICLE_THRUST_SETPOINT
+	select ZENOH_PUBSUB_VEHICLE_TORQUE_SETPOINT
+	select ZENOH_PUBSUB_VELOCITY_LIMITS
+	select ZENOH_PUBSUB_VTOL_VEHICLE_STATUS
+	select ZENOH_PUBSUB_WHEEL_ENCODERS
+	select ZENOH_PUBSUB_WIND
+	select ZENOH_PUBSUB_YAW_ESTIMATOR_STATUS
+
+endmenu

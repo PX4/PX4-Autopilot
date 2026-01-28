@@ -133,8 +133,8 @@ bool thoneflow_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum TH
 				// Checksum valid, populate sensor report
 				int16_t delta_x = uint16_t(parserbuf[1]) << 8 | parserbuf[0];
 				int16_t delta_y = uint16_t(parserbuf[3]) << 8 | parserbuf[2];
-				flow->pixel_flow[0] = static_cast<float>(delta_x) * (3.52e-3f);
-				flow->pixel_flow[1] = static_cast<float>(delta_y) * (3.52e-3f);
+				flow->pixel_flow[0] = static_cast<float>(delta_x) * (1.76e-3f);
+				flow->pixel_flow[1] = static_cast<float>(delta_y) * (1.76e-3f);
 				*state = THONEFLOW_PARSE_STATE7_CHECKSUM;
 
 			} else {

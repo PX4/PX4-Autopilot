@@ -49,7 +49,7 @@ public:
 
 	int init();
 
-	uint8_t get_reg(uint8_t addr);
+	int get_reg(uint8_t addr, uint8_t *value);
 	int get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len);
 	int set_reg(uint8_t value, uint8_t addr);
 	calibration_s *get_calibration(uint8_t addr);
@@ -71,19 +71,26 @@ IBMP388 *bmp388_i2c_interface(uint8_t busnum, uint32_t device, int bus_frequency
 BMP388_I2C::BMP388_I2C(uint8_t bus, uint32_t device, int bus_frequency) :
 	I2C(DRV_BARO_DEVTYPE_BMP388, MODULE_NAME, bus, device, bus_frequency)
 {
+	_retries = 1;
 }
 
 int BMP388_I2C::init()
 {
-	return I2C::init();
+	for (int i = 0; i < 10; i++) {
+		if (I2C::init() == OK) {
+			return OK;
+		}
+
+		px4_usleep(10000);
+	}
+
+	return PX4_ERROR;
 }
 
-uint8_t BMP388_I2C::get_reg(uint8_t addr)
+int BMP388_I2C::get_reg(uint8_t addr, uint8_t *value)
 {
-	uint8_t cmd[2] = { (uint8_t)(addr), 0};
-	transfer(&cmd[0], 1, &cmd[1], 1);
-
-	return cmd[1];
+	const uint8_t cmd = (uint8_t)(addr);
+	return transfer(&cmd, sizeof(cmd), value, 1);
 }
 
 int BMP388_I2C::get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len)

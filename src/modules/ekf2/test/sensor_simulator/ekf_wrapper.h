@@ -73,9 +73,13 @@ public:
 	void disableBetaFusion();
 	bool isIntendingBetaFusion() const;
 
+	bool isIntendingAirspeedFusion() const;
+
 	void enableGpsFusion();
 	void disableGpsFusion();
 	bool isIntendingGpsFusion() const;
+	bool isGnssFaultDetected() const;
+	void setGnssDeadReckonMode();
 
 	void enableGpsHeadingFusion();
 	void disableGpsHeadingFusion();
@@ -98,9 +102,11 @@ public:
 	void disableExternalVisionHeadingFusion();
 	bool isIntendingExternalVisionHeadingFusion() const;
 
+	bool isIntendingMagFusion() const;
 	bool isIntendingMagHeadingFusion() const;
 	bool isIntendingMag3DFusion() const;
 	bool isMagHeadingConsistent() const;
+	bool isMagFaultDetected() const;
 	void setMagFuseTypeNone();
 	void enableMagStrengthCheck();
 	void enableMagInclinationCheck();
@@ -108,17 +114,12 @@ public:
 
 	bool isWindVelocityEstimated() const;
 
-	void enableTerrainRngFusion();
-	void disableTerrainRngFusion();
 	bool isIntendingTerrainRngFusion() const;
 
-	void enableTerrainFlowFusion();
-	void disableTerrainFlowFusion();
 	bool isIntendingTerrainFlowFusion() const;
 
 	Eulerf getEulerAngles() const;
 	float getYawAngle() const;
-	matrix::Vector4f getQuaternionVariance() const;
 	int getQuaternionResetCounter() const;
 
 	void enableDragFusion();
@@ -126,6 +127,9 @@ public:
 	void setDragFusionParameters(const float &bcoef_x, const float &bcoef_y, const float &mcoef);
 
 	float getMagHeadingNoise() const;
+
+	void enableGyroBiasEstimation();
+	void disableGyroBiasEstimation();
 
 private:
 	std::shared_ptr<Ekf> _ekf;

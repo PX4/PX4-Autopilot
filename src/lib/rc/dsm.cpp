@@ -481,6 +481,9 @@ void dsm_proto_init()
 		channel_buffer[i].last_seen = 0;
 		channel_buffer[i].value = 0;
 	}
+
+	/* reset the format detector */
+	dsm_guess_format(true);
 }
 
 /**

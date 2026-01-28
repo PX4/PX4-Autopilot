@@ -39,6 +39,8 @@
 
 DatamanClient::DatamanClient()
 {
+	_sync_perf = perf_alloc(PC_ELAPSED, "DatamanClient: sync");
+
 	_dataman_request_pub.advertise();
 	_dataman_response_sub = orb_subscribe(ORB_ID(dataman_response));
 
@@ -74,6 +76,8 @@ DatamanClient::DatamanClient()
 
 DatamanClient::~DatamanClient()
 {
+	perf_free(_sync_perf);
+
 	if (_dataman_response_sub >= 0) {
 		orb_unsubscribe(_dataman_response_sub);
 	}
@@ -85,6 +89,7 @@ bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_respon
 	bool response_received = false;
 	int32_t ret = 0;
 	hrt_abstime time_elapsed = hrt_elapsed_time(&start_time);
+	perf_begin(_sync_perf);
 	_dataman_request_pub.publish(request);
 
 	while (!response_received && (time_elapsed < timeout)) {
@@ -132,6 +137,8 @@ bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_respon
 		time_elapsed = hrt_elapsed_time(&start_time);
 	}
 
+	perf_end(_sync_perf);
+
 	if (!response_received && ret >= 0) {
 		PX4_ERR("timeout after %" PRIu32 " ms!", static_cast<uint32_t>(timeout / 1000));
 	}
@@ -146,7 +153,6 @@ bool DatamanClient::readSync(dm_item_t item, uint32_t index, uint8_t *buffer, ui
 		return false;
 	}
 
-	bool success = false;
 	hrt_abstime timestamp = hrt_absolute_time();
 
 	dataman_request_s request;
@@ -158,7 +164,7 @@ bool DatamanClient::readSync(dm_item_t item, uint32_t index, uint8_t *buffer, ui
 	request.item = static_cast<uint8_t>(item);
 
 	dataman_response_s response{};
-	success = syncHandler(request, response, timestamp, timeout);
+	bool success = syncHandler(request, response, timestamp, timeout);
 
 	if (success) {
 
@@ -183,7 +189,6 @@ bool DatamanClient::writeSync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 		return false;
 	}
 
-	bool success = false;
 	hrt_abstime timestamp = hrt_absolute_time();
 
 	dataman_request_s request;
@@ -197,7 +202,7 @@ bool DatamanClient::writeSync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 	memcpy(request.data, buffer, length);
 
 	dataman_response_s response{};
-	success = syncHandler(request, response, timestamp, timeout);
+	bool success = syncHandler(request, response, timestamp, timeout);
 
 	if (success) {
 
@@ -214,7 +219,6 @@ bool DatamanClient::writeSync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 
 bool DatamanClient::clearSync(dm_item_t item, hrt_abstime timeout)
 {
-	bool success = false;
 	hrt_abstime timestamp = hrt_absolute_time();
 
 	dataman_request_s request;
@@ -224,7 +228,7 @@ bool DatamanClient::clearSync(dm_item_t item, hrt_abstime timeout)
 	request.item = static_cast<uint8_t>(item);
 
 	dataman_response_s response{};
-	success = syncHandler(request, response, timestamp, timeout);
+	bool success = syncHandler(request, response, timestamp, timeout);
 
 	if (success) {
 
@@ -550,6 +554,32 @@ bool DatamanCache::loadWait(dm_item_t item, uint32_t index, uint8_t *buffer, uin
 			_load_index = (_load_index + 1) % _num_items;
 
 			++_item_counter; // Still increase the counter here
+		}
+	}
+
+	return success;
+}
+
+bool DatamanCache::writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout)
+{
+	if (length > g_per_item_size[item]) {
+		PX4_ERR("Length  %" PRIu32 " can't fit in data size for item  %" PRIi8, length, static_cast<uint8_t>(item));
+		return false;
+	}
+
+	bool success = _client.writeSync(item, index, buffer, length, timeout);
+
+	if (success && _items) {
+		for (uint32_t i = 0; i < _num_items; ++i) {
+			if ((_items[i].response.item == item) &&
+			    (_items[i].response.index == index) &&
+			    ((_items[i].cache_state == State::ResponseReceived) ||
+			     (_items[i].cache_state == State::RequestPrepared))) {
+
+				memcpy(_items[i].response.data, buffer, length);
+				_items[i].cache_state = State::ResponseReceived;
+				break;
+			}
 		}
 	}
 

@@ -47,6 +47,7 @@
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/shutdown.h>
 #include <lib/parameters/param.h>
+#include <uORB/uORBMessageFields.hpp>
 
 #include <cstring>
 #include <float.h>
@@ -391,36 +392,33 @@ Replay::readFormat(std::ifstream &file, uint16_t msg_size)
 }
 
 
-string Replay::parseOrbFields(const string &fields)
+string Replay::getOrbFields(const orb_metadata *meta)
 {
-	string ret{};
+	char format[3000];
+	char buffer[2048];
+	uORB::MessageFormatReader format_reader(buffer, sizeof(buffer));
 
-	// convert o_fields from "<chr> timestamp;<chr>[5] array;" to "uint64_t timestamp;int8_t[5] array;"
-	for (int format_idx = 0; format_idx < (int)fields.length();) {
-		const char *end_field = strchr(fields.c_str() + format_idx, ';');
-
-		if (!end_field) {
-			PX4_ERR("Format error in %s", fields.c_str());
-			return "";
-		}
-
-		const char *c_type = orb_get_c_type(fields[format_idx]);
-
-		if (c_type) {
-			string str_type = c_type;
-			ret += str_type;
-			++format_idx;
-		}
-
-		int len = end_field - (fields.c_str() + format_idx) + 1;
-		ret += fields.substr(format_idx, len);
-		format_idx += len;
+	if (!format_reader.readUntilFormat(meta->o_id)) {
+		PX4_ERR("failed to find format for topic %s", meta->o_name);
+		return "";
 	}
 
-	return ret;
+	int field_length = 0;
+	int format_length = 0;
+
+	while (format_reader.readNextField(field_length)) {
+		format_length += snprintf(format + format_length, sizeof(buffer) - format_length - 1, "%s;", buffer);
+	}
+
+	if (uORB::MessageFormatReader::expandMessageFormat(format, format_length, sizeof(format)) < 0) {
+		PX4_ERR("failed to expand message format for %s", meta->o_name);
+		return "";
+	}
+
+	return format;
 }
 
-bool
+Replay::ReadAndAndAddSubResult
 Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 {
 	_read_buffer.reserve(msg_size + 1);
@@ -430,11 +428,11 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	message[msg_size] = 0;
 
 	if (!file) {
-		return false;
+		return ReadAndAndAddSubResult::kFailure;
 	}
 
 	if (file.tellg() <= _subscription_file_pos) { //already read this subscription
-		return true;
+		return ReadAndAndAddSubResult::kIgnoringMsg;
 	}
 
 	_subscription_file_pos = file.tellg();
@@ -446,7 +444,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	if (!orb_meta) {
 		PX4_WARN("Topic %s not found internally. Will ignore it", topic_name.c_str());
-		return true;
+		return ReadAndAndAddSubResult::kIgnoringMsg;
 	}
 
 	CompatBase *compat = nullptr;
@@ -455,7 +453,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	// FIXME: this should check recursively, all used nested types
 	string file_format = _file_formats[topic_name];
 
-	const string orb_fields = parseOrbFields(orb_meta->o_fields);
+	const string orb_fields = getOrbFields(orb_meta);
 
 	if (file_format != orb_fields) {
 		// check if we have a compatibility conversion available
@@ -522,7 +520,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 				}
 			}
 
-			return true; // not a fatal error
+			return ReadAndAndAddSubResult::kIgnoringMsg; // not a fatal error
 		}
 	}
 
@@ -537,13 +535,13 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	if (!timestamp_found) {
 		delete subscription;
-		return true;
+		return ReadAndAndAddSubResult::kIgnoringMsg;
 	}
 
 	if (field_size != 8) {
 		PX4_ERR("Unsupported timestamp with size %i, ignoring the topic %s", field_size, orb_meta->o_name);
 		delete subscription;
-		return true;
+		return ReadAndAndAddSubResult::kIgnoringMsg;
 	}
 
 	//find first data message (and the timestamp)
@@ -552,7 +550,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	if (!nextDataMessage(file, *subscription, msg_id)) {
 		delete subscription;
-		return false;
+		return ReadAndAndAddSubResult::kFailure;
 	}
 
 	file.seekg(cur_pos);
@@ -560,7 +558,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	if (!subscription->orb_meta) {
 		//no message found. This is not a fatal error
 		delete subscription;
-		return true;
+		return ReadAndAndAddSubResult::kIgnoringMsg;
 	}
 
 	PX4_DEBUG("adding subscription for %s (msg_id %i)", subscription->orb_meta->o_name, msg_id);
@@ -574,7 +572,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	onSubscriptionAdded(*_subscriptions[msg_id], msg_id);
 
-	return true;
+	return ReadAndAndAddSubResult::kSuccess;
 }
 
 bool
@@ -723,10 +721,6 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 		}
 
 		switch (message_header.msg_type) {
-		case (int)ULogMessageType::ADD_LOGGED_MSG:
-			readAndAddSubscription(file, message_header.msg_size);
-			break;
-
 		case (int)ULogMessageType::DATA:
 			file.read((char *)&file_msg_id, sizeof(file_msg_id));
 
@@ -736,6 +730,7 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 						subscription.next_read_pos = cur_pos;
 						file.seekg(subscription.timestamp_offset, ios::cur);
 						file.read((char *)&subscription.next_timestamp, sizeof(subscription.next_timestamp));
+						subscription.published = false;
 						done = true;
 
 					} else { //sanity check failed!
@@ -753,6 +748,7 @@ Replay::nextDataMessage(std::ifstream &file, Subscription &subscription, int msg
 			break;
 
 		case (int)ULogMessageType::REMOVE_LOGGED_MSG: //skip these
+		case (int)ULogMessageType::ADD_LOGGED_MSG:
 		case (int)ULogMessageType::PARAMETER:
 		case (int)ULogMessageType::DROPOUT:
 		case (int)ULogMessageType::INFO:
@@ -906,16 +902,31 @@ Replay::run()
 
 	PX4_INFO("Replay in progress...");
 
+	// Find and add all subscriptions
 	ulog_message_header_s message_header;
 	replay_file.seekg(_data_section_start);
 
-	//we know the next message must be an ADD_LOGGED_MSG
-	replay_file.read((char *)&message_header, ULOG_MSG_HEADER_LEN);
+	while (true) {
+		//we are in the Definition & Data Section Message Header section
+		replay_file.read((char *)&message_header, ULOG_MSG_HEADER_LEN);
 
-	if (!readAndAddSubscription(replay_file, message_header.msg_size)) {
-		PX4_ERR("Failed to read subscription");
-		return;
+		if (!replay_file) {
+			// end of file
+			break;
+		}
+
+		if (message_header.msg_type == (int)ULogMessageType::ADD_LOGGED_MSG) {
+			readAndAddSubscription(replay_file, message_header.msg_size);
+
+		} else {
+			// Not important for now, skip
+			replay_file.seekg(message_header.msg_size, ios::cur);
+		}
 	}
+
+	// Rewind back to the begining of the data section
+	replay_file.seekg(_data_section_start);
+	replay_file.clear();
 
 	const uint64_t timestamp_offset = getTimestampOffset();
 	uint32_t nr_published_messages = 0;
@@ -1117,6 +1128,7 @@ Replay::publishTopic(Subscription &sub, void *data)
 
 	if (published) {
 		++sub.publication_counter;
+		sub.published = true;
 	}
 
 	return published;

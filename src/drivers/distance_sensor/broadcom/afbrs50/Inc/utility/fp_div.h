@@ -61,7 +61,7 @@ extern "C" {
  * @details Algorithm to evaluate a/b, where b is in Q15.16 format, on a 32-bit
  *          architecture with maximum precision.
  *          The result is correctly rounded and given as the input format.
- *          Division by 0 yields max. values determined by signa of numerator.
+ *          Division by 0 yields max. values determined by signs of numerator.
  *          Too high/low results are truncated to max/min values.
  *
  *          Depending on the architecture, the division is implemented with a 64-bit
@@ -89,14 +89,14 @@ inline int32_t fp_div16(int32_t a, q15_16_t b)
 
 		if (c > 0x80000000U) { return INT32_MIN; }
 
-		return -c;
+		return (int32_t) - c;
 
 	} else {
 		c = ((c / b) + (1 << 13U)) >> 14U;
 
 		if (c > (int64_t)INT32_MAX) { return INT32_MAX; }
 
-		return c;
+		return (int32_t)c;
 	}
 
 #else
@@ -159,10 +159,16 @@ inline int32_t fp_div16(int32_t a, q15_16_t b)
 
 	/* Figure out the sign of result */
 	if ((uint32_t)(a ^ b) & 0x80000000U) {
-		result = -result;
+		return (int32_t) - result;
+
+	} else {
+		// fix 05.10.2023; the corner case, when result == INT32_MAX + 1:
+		// Catch the wraparound (to INT32_MIN) and truncate instead.
+		if (quotient > INT32_MAX) { return INT32_MAX; }
+
+		return (int32_t)result;
 	}
 
-	return (int32_t)result;
 #endif
 }
 

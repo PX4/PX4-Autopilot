@@ -47,6 +47,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <px4_boardconfig.h>
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -67,6 +68,10 @@
 #    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000, 100000}
 #  elif (PX4_NUMBER_I2C_BUSES) == 4
 #    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
+#  elif (PX4_NUMBER_I2C_BUSES) == 5
+#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000, 100000}
+#  elif (PX4_NUMBER_I2C_BUSES) == 6
+#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000, 100000, 100000}
 #  else
 #    error PX4_NUMBER_I2C_BUSES not supported
 #  endif
@@ -100,6 +105,13 @@
 #endif
 #if !defined(ADC_V5_SCALE)
 #define ADC_V5_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
+#endif
+
+#if !defined(ADC_PAYLOAD_V_FULL_SCALE)
+#define ADC_PAYLOAD_V_FULL_SCALE        (25.3f)  // Payload volt Rail full scale voltage
+#endif
+#if !defined(ADC_PAYLOAD_SCALE)
+#define ADC_PAYLOAD_SCALE               (7.667f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
 #endif
 
 #if !defined(ADC_3V3_V_FULL_SCALE)
@@ -145,8 +157,13 @@
 #if BOARD_NUMBER_BRICKS == 0
 /* allow SITL to disable all bricks */
 #elif BOARD_NUMBER_BRICKS == 1
-#  define BOARD_BATT_V_LIST       {ADC_BATTERY_VOLTAGE_CHANNEL}
-#  define BOARD_BATT_I_LIST       {ADC_BATTERY_CURRENT_CHANNEL}
+#  if  defined(BOARD_NUMBER_DIGITAL_BRICKS)
+#    define BOARD_BATT_V_LIST       {-1}
+#    define BOARD_BATT_I_LIST       {-1}
+#  else
+#    define BOARD_BATT_V_LIST       {ADC_BATTERY_VOLTAGE_CHANNEL}
+#    define BOARD_BATT_I_LIST       {ADC_BATTERY_CURRENT_CHANNEL}
+#  endif
 #  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK_VALID}
 #elif BOARD_NUMBER_BRICKS == 2
 #  if  defined(BOARD_NUMBER_DIGITAL_BRICKS)
@@ -161,10 +178,6 @@
 #  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL}
 #  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL}
 #  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID}
-#elif BOARD_NUMBER_BRICKS == 4
-#  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL, ADC_BATTERY4_VOLTAGE_CHANNEL}
-#  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL, ADC_BATTERY4_CURRENT_CHANNEL}
-#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID, BOARD_ADC_BRICK3_VALID, BOARD_ADC_BRICK4_VALID}
 #else
 #  error Unsuported BOARD_NUMBER_BRICKS number.
 #endif
@@ -235,7 +248,7 @@
 #  else
 /*  Use PX4IO FW search paths defaults based on version */
 #    if BOARD_USES_PX4IO_VERSION == 2
-#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4_io-v2_default.bin","/fs/microsd/px4_io-v2_default.bin", "/fs/microsd/px4io2.bin", nullptr }
+#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4_io-v2_default.bin",CONFIG_BOARD_ROOT_PATH "/px4_io-v2_default.bin", CONFIG_BOARD_ROOT_PATH "/px4io2.bin", nullptr }
 #    endif
 #  endif
 #endif
@@ -245,6 +258,17 @@
  */
 #if !defined(BOARD_EEPROM_WP_CTRL)
 #  define BOARD_EEPROM_WP_CTRL(on_true)
+#endif
+
+/*
+ * Support both RC_SERIAL_PORT and CONFIG_BOARD_SERIAL_RC
+ */
+#if defined(RC_SERIAL_PORT)
+#  define RC_SERIAL RC_SERIAL_PORT
+#elif defined(CONFIG_BOARD_SERIAL_RC)
+#  define RC_SERIAL CONFIG_BOARD_SERIAL_RC
+#else
+#  error Board needs to define either CONFIG_BOARD_SERIAL_RC or RC_SERIAL_PORT
 #endif
 
 /*
@@ -263,6 +287,18 @@
 #if defined(BOARD_HAS_HW_VERSIONING)
 #  define BOARD_HAS_VERSIONING 1
 #  define HW_VER_REV(v,r)       ((uint32_t)((v) & 0xffff) << 16) | ((uint32_t)(r) & 0xffff)
+#endif
+
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+typedef uint16_t hw_fmun_id_t;
+typedef uint16_t hw_base_id_t;
+// Original Signals GPIO_HW_REV_SENSE/GPIO_HW_VER_REV_DRIVE is used to ID the FMUM
+// Original Signals GPIO_HW_VER_SENSE/GPIO_HW_VER_REV_DRIVE is used to ID the BASE
+#  define BOARD_HAS_VERSIONING 1
+#  define HW_FMUM_ID(rev)       ((hw_fmun_id_t)(rev) & 0xffff)
+#  define HW_BASE_ID(ver)       ((hw_base_id_t)(ver) & 0xffff)
+#  define GET_HW_FMUM_ID()      (HW_FMUM_ID(board_get_hw_revision()))
+#  define GET_HW_BASE_ID()      (HW_BASE_ID(board_get_hw_version()))
 #endif
 
 #define HW_INFO_REV_DIGITS    3
@@ -341,6 +377,7 @@ typedef enum PX4_SOC_ARCH_ID_t {
 
 	PX4_SOC_ARCH_ID_NXPS32K146     =  0x0007,
 	PX4_SOC_ARCH_ID_NXPS32K344     =  0x0008,
+	PX4_SOC_ARCH_ID_NXPIMXRT1176   =  0x0009,
 
 	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
 	PX4_SOC_ARCH_ID_QURT           =  0x1002,
@@ -426,7 +463,7 @@ __BEGIN_DECLS
  * Name: board_rc_singlewire
  *
  * Description:
- *   A board may define RC_SERIAL_SINGLEWIRE, so that RC_SERIAL_PORT is configured
+ *   A board may define RC_SERIAL_SINGLEWIRE, so that RC_SERIAL is configured
  *   as singlewire UART.
  *
  * Input Parameters:
@@ -439,7 +476,7 @@ __BEGIN_DECLS
  ************************************************************************************/
 
 #if defined(RC_SERIAL_SINGLEWIRE)
-static inline bool board_rc_singlewire(const char *device) { return strcmp(device, RC_SERIAL_PORT) == 0; }
+static inline bool board_rc_singlewire(const char *device) { return strcmp(device, RC_SERIAL) == 0; }
 #elif defined(RC_SERIAL_SINGLEWIRE_FORCE)
 static inline bool board_rc_singlewire(const char *device) { return true; }
 #else
@@ -450,8 +487,17 @@ static inline bool board_rc_singlewire(const char *device) { return false; }
  * Name: board_rc_swap_rxtx
  *
  * Description:
- *   A board may define RC_SERIAL_SWAP_RXTX, so that RC_SERIAL_PORT is configured
+ *   A board may define RC_SERIAL_SWAP_RXTX, so that RC_SERIAL is configured
  *   as UART with RX/TX swapped.
+ *
+ *   It can optionaly define RC_SERIAL_SWAP_USING_SINGLEWIRE If the board is wired
+ *   with TX to the input (Swapped) and the SoC does not support U[S]ART level
+ *   HW swapping, then use onewire to do the swap if and only if:
+ *
+ *    RC_SERIAL_SWAP_USING_SINGLEWIRE   is defined
+ *    RC_SERIAL_SWAP_RXTX               is defined
+ *    TIOCSSWAP                         is defined and retuns !OK
+ *    TIOCSSINGLEWIRE                   is defined
  *
  * Input Parameters:
  *   device: serial device, e.g. "/dev/ttyS0"
@@ -463,9 +509,38 @@ static inline bool board_rc_singlewire(const char *device) { return false; }
  ************************************************************************************/
 
 #if defined(RC_SERIAL_SWAP_RXTX)
-static inline bool board_rc_swap_rxtx(const char *device) { return strcmp(device, RC_SERIAL_PORT) == 0; }
+static inline bool board_rc_swap_rxtx(const char *device) { return strcmp(device, RC_SERIAL) == 0; }
 #else
 static inline bool board_rc_swap_rxtx(const char *device) { return false; }
+#endif
+
+/************************************************************************************
+ * Name: board_rc_conflicting
+ *
+ * Description:
+ *   A board may define its serial RC to be the same as PX4IO_SERIAL_DEVICE,
+ *   especially when using PX4IO.
+ *
+ *   This is problematic when trying to open the serial device used for PX4IO
+ *   for RC.
+ *
+ * Input Parameters:
+ *   device: serial device, e.g. "/dev/ttyS0"
+ *
+ * Returned Value:
+ *   true if the given serial device does conflict with the PX4IO.
+ *   false if not.
+ *
+ ************************************************************************************/
+
+#if defined(RC_SERIAL) && defined(PX4IO_SERIAL_DEVICE)
+static inline bool board_rc_conflicting(const char *device)
+{
+	return strcmp(device, RC_SERIAL) == 0 && strcmp(RC_SERIAL, PX4IO_SERIAL_DEVICE) == 0
+	       && (access("/dev/px4io", R_OK) == 0);
+}
+#else
+static inline bool board_rc_conflicting(const char *device) { return false; }
 #endif
 
 /************************************************************************************
@@ -473,7 +548,7 @@ static inline bool board_rc_swap_rxtx(const char *device) { return false; }
  *
  * Description:
  *   All boards may optionally define RC_INVERT_INPUT(bool invert) that is
- *   used to invert the RC_SERIAL_PORT RC port (e.g. to toggle an external XOR via
+ *   used to invert the RC_SERIAL RC port (e.g. to toggle an external XOR via
  *   GPIO).
  *
  * Input Parameters:
@@ -488,7 +563,7 @@ static inline bool board_rc_swap_rxtx(const char *device) { return false; }
 #ifdef RC_INVERT_INPUT
 static inline bool board_rc_invert_input(const char *device, bool invert)
 {
-	if (strcmp(device, RC_SERIAL_PORT) == 0) { RC_INVERT_INPUT(invert); return true; }
+	if (strcmp(device, RC_SERIAL) == 0) { RC_INVERT_INPUT(invert); return true; }
 
 	return false;
 }
@@ -654,20 +729,51 @@ bool board_booted_by_px4(void);
  ************************************************************************************/
 
 typedef enum {
-	PX4_MFT_PX4IO = 0,
-	PX4_MFT_USB   = 1,
-	PX4_MFT_CAN2  = 2,
-	PX4_MFT_CAN3  = 3,
+	PX4_MFT_PX4IO      = 0,
+	PX4_MFT_USB        = 1,
+	PX4_MFT_CAN2       = 2,
+	PX4_MFT_CAN3       = 3,
+	PX4_MFT_PM2        = 4,
+	PX4_MFT_ETHERNET   = 5,
+	PX4_MFT_T1_ETH     = 6,
+	PX4_MFT_T100_ETH   = 7,
+	PX4_MFT_T1000_ETH  = 8,
 } px4_hw_mft_item_id_t;
 
+typedef int (*system_query_func_t)(const char *sub,  const char *val, void *out);
+
+#define PX4_MFT_MFT_TYPES  { \
+		PX4_MFT_PX4IO,           \
+		PX4_MFT_USB,             \
+		PX4_MFT_CAN2,            \
+		PX4_MFT_CAN3,            \
+		PX4_MFT_PM2,             \
+		PX4_MFT_ETHERNET,        \
+		PX4_MFT_T1_ETH,          \
+		PX4_MFT_T100_ETH,        \
+		PX4_MFT_T1000_ETH }
+
+#define PX4_MFT_MFT_STR_TYPES  { \
+		"MFT_PX4IO",             \
+		"MFT_USB",               \
+		"MFT_CAN2",              \
+		"MFT_CAN3",              \
+		"MFT_PM2",               \
+		"MFT_ETHERNET",          \
+		"MFT_T1_ETH",            \
+		"MFT_T100_ETH",          \
+		"MFT_T1000_ETH",         \
+		"MFT_T1000_ETH"}
+
 typedef enum {
-	px4_hw_con_unknown  = 0,
-	px4_hw_con_onboard  = 1,
+	px4_hw_con_unknown   = 0,
+	px4_hw_con_onboard   = 1,
 	px4_hw_con_connector = 3,
 } px4_hw_connection_t;
 
 
 typedef struct {
+	unsigned int id:         16;  /* The id px4_hw_mft_item_id_t */
 	unsigned int present:    1;   /* 1 if this board have this item */
 	unsigned int mandatory:  1;   /* 1 if this item has to be present and working */
 	unsigned int connection: 2;   /* See px4_hw_connection_t */
@@ -679,7 +785,7 @@ typedef const px4_hw_mft_item_t  *px4_hw_mft_item;
 
 #if defined(BOARD_HAS_VERSIONING)
 __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id);
-
+__EXPORT int system_query_manifest(const char *sub,  const char *val, void *out);
 #  define PX4_MFT_HW_SUPPORTED(ID)           (board_query_manifest((ID))->present)
 #  define PX4_MFT_HW_REQUIRED(ID)            (board_query_manifest((ID))->mandatory)
 #  define PX4_MFT_HW_IS_ONBOARD(ID)          (board_query_manifest((ID))->connection == px4_hw_con_onboard)
@@ -750,6 +856,26 @@ inline uint16_t board_get_can_interfaces(void) { return 0x7; }
 __EXPORT const char *board_get_hw_type_name(void);
 #else
 #define board_get_hw_type_name() ""
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_base_type_name
+ *
+ * Description:
+ *   Optional returns a 0 terminated string defining the HW type.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   a 0 terminated string defining the HW type. This may be a 0 length string ""
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+__EXPORT const char *board_get_hw_base_type_name(void);
+#else
+#define board_get_hw_base_type_name() ""
 #endif
 
 /************************************************************************************

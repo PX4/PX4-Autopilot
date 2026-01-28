@@ -45,8 +45,6 @@ using namespace time_literals;
 ToneAlarm::ToneAlarm() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	// ensure ORB_ID(tune_control) is advertised with correct queue depth
-	orb_advertise_queue(ORB_ID(tune_control), nullptr, tune_control_s::ORB_QUEUE_LENGTH);
 }
 
 ToneAlarm::~ToneAlarm()

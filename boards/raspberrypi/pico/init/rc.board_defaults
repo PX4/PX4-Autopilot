@@ -8,7 +8,3 @@ param set-default BAT1_A_PER_V 36.367515152
 
 # system_power unavailable
 param set-default CBRK_SUPPLY_CHK 894281
-
-# Disable safety switch by default
-param set-default CBRK_IO_SAFETY 22027
-

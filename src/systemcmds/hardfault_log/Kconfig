@@ -1,6 +1,7 @@
 menuconfig SYSTEMCMDS_HARDFAULT_LOG
 	bool "hardfault_log"
 	default n
+	depends on PLATFORM_NUTTX
 	---help---
 		Enable support for hardfault_log
 

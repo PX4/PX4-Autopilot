@@ -1,0 +1,20 @@
+menuconfig MODULES_FW_MODE_MANAGER
+	bool "fw_mode_manager"
+	default n
+	---help---
+		Enable support for fw_mode_manager
+
+menuconfig USER_FW_MODE_MANAGER
+	bool "fw_mode_manager running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_FW_MODE_MANAGER
+	---help---
+		Put fw_mode_manager in userspace memory
+
+menuconfig FIGURE_OF_EIGHT
+	bool "fw_mode_manager figure of eight loiter support"
+	default n
+	depends on MODULES_FW_MODE_MANAGER
+	---help---
+		Enable support for the figure of eight loitering pattern in fixed wing.
+		NOTE: Enable Mavlink development support to get feedback message.

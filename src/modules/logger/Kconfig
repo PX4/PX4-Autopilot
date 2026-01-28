@@ -10,3 +10,11 @@ menuconfig USER_LOGGER
 	depends on BOARD_PROTECTED && MODULES_LOGGER
 	---help---
 		Put logger in userspace memory
+
+menuconfig LOGGER_STACK_SIZE
+	int "stack size of logger task"
+	default 3700
+	depends on MODULES_LOGGER
+	---help---
+		Stack size of the logger task. Some configurations require more stack
+		than the default.

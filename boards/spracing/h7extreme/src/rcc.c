@@ -364,7 +364,7 @@ __ramfunc__ void stm32_board_clockconfig(void)
 		 */
 
 		regval = getreg32(STM32_PWR_CR3);
-		regval |= STM32_PWR_CR3_LDOEN | STM32_PWR_CR3_LDOESCUEN;
+		regval |= STM32_PWR_CR3_LDOEN | STM32_PWR_CR3_SCUEN;
 		putreg32(regval, STM32_PWR_CR3);
 
 		/* Set the voltage output scale */
@@ -503,10 +503,10 @@ __ramfunc__ void stm32_board_clockconfig(void)
 
 		/* Configure ADC source clock */
 
-#if defined(STM32_RCC_D3CCIPR_ADCSEL)
+#if defined(STM32_RCC_D3CCIPR_ADCSRC)
 		regval = getreg32(STM32_RCC_D3CCIPR);
 		regval &= ~RCC_D3CCIPR_ADCSEL_MASK;
-		regval |= STM32_RCC_D3CCIPR_ADCSEL;
+		regval |= STM32_RCC_D3CCIPR_ADCSRC;
 		putreg32(regval, STM32_RCC_D3CCIPR);
 #endif
 

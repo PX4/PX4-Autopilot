@@ -304,4 +304,3 @@
  *      OTG_FS_DP                           PA12
  *      VBUS                                PA8
  */
-

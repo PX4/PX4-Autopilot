@@ -8,7 +8,7 @@
 @#
 @# Context:
 @#  - msgs (List) list of all msg files
-@#  - multi_topics (List) list of all multi-topic names
+@#  - all_topics (List) list of all topic names (sorted)
 @###############################################
 /****************************************************************************
  *
@@ -50,9 +50,7 @@ msg_names = list(set([mn.replace(".msg", "") for mn in msgs])) # set() filters d
 msg_names.sort()
 msgs_count = len(msg_names)
 
-topic_names = list(set(topics)) # set() filters duplicates
-topic_names.sort()
-topics_count = len(topics)
+topics_count = len(all_topics)
 
 }@
 @[for msg_name in msg_names]@
@@ -60,8 +58,8 @@ topics_count = len(topics)
 @[end for]
 
 const constexpr struct orb_metadata *const uorb_topics_list[ORB_TOPICS_COUNT] = {
-@[for idx, topic_name in enumerate(topic_names, 1)]@
-	ORB_ID(@(topic_name))@[if idx != topic_names], @[end if]
+@[for idx, topic_name in enumerate(all_topics, 1)]@
+	ORB_ID(@(topic_name))@[if idx != all_topics], @[end if]
 @[end for]
 };
 

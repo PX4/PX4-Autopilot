@@ -45,7 +45,7 @@ function [ center, radii, evecs, v ] = ellipsoid_fit( X, flag, equals )
 % * center    -  ellispoid center coordinates [xc; yc; zc]
 % * ax        -  ellipsoid radii [a; b; c]
 % * evecs     -  ellipsoid radii directions as columns of the 3x3 matrix
-% * v         -  the 9 parameters describing the ellipsoid algebraically: 
+% * v         -  the 9 parameters describing the ellipsoid algebraically:
 %                Ax^2 + By^2 + Cz^2 + 2Dxy + 2Exz + 2Fyz + 2Gx + 2Hy + 2Iz = 1
 %
 % Author:
@@ -59,7 +59,7 @@ end
 if flag == 2 && nargin == 2
     equals = 'xy';
 end
-    
+
 if size( X, 2 ) ~= 3
     error( 'Input data must have three columns!' );
 else
@@ -69,7 +69,7 @@ else
 end
 
 % need nine or more data points
-if length( x ) < 9 && flag == 0 
+if length( x ) < 9 && flag == 0
    error( 'Must have at least 9 points to fit a unique ellipsoid' );
 end
 if length( x ) < 6 && flag == 1
@@ -91,7 +91,7 @@ if flag == 0
       2 * x .* z, ...
       2 * y .* z, ...
       2 * x, ...
-      2 * y, ... 
+      2 * y, ...
       2 * z ];  % ndatapoints x 9 ellipsoid parameters
 elseif flag == 1
     % fit ellipsoid in the form Ax^2 + By^2 + Cz^2 + 2Gx + 2Hy + 2Iz = 1
@@ -99,7 +99,7 @@ elseif flag == 1
           y .* y, ...
           z .* z, ...
       2 * x, ...
-      2 * y, ... 
+      2 * y, ...
       2 * z ];  % ndatapoints x 6 ellipsoid parameters
 elseif flag == 2
     % fit ellipsoid in the form Ax^2 + By^2 + Cz^2 + 2Gx + 2Hy + 2Iz = 1,
@@ -127,7 +127,7 @@ else
     % fit sphere in the form A(x^2 + y^2 + z^2) + 2Gx + 2Hy + 2Iz = 1
     D = [ x .* x + y .* y + z .* z, ...
       2 * x, ...
-      2 * y, ... 
+      2 * y, ...
       2 * z ];  % ndatapoints x 4 sphere parameters
 end
 
@@ -170,5 +170,3 @@ else
     radii = ( sqrt( gam ./ v( 1:3 ) ) )';
     evecs = eye( 3 );
 end
-
-

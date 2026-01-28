@@ -118,7 +118,7 @@ inline uint32_t fp_mulu(uint32_t u, uint32_t v, uint_fast8_t shift)
 	assert(shift <= 32);
 #if USE_64BIT_MUL
 	const uint64_t w = (uint64_t)u * (uint64_t)v;
-	return (w >> shift) + ((w >> (shift - 1)) & 1U);
+	return (uint32_t)((w >> shift) + ((w >> (shift - 1)) & 1U));
 #else
 	uint32_t tmp[2] = { 0 };
 	muldwu(tmp, u, v);
@@ -158,15 +158,15 @@ inline int32_t fp_muls(int32_t u, int32_t v, uint_fast8_t shift)
 
 	uint32_t u2, v2;
 
-	if (u < 0) { u2 = -u; sign = -sign; } else { u2 = u; }
+	if (u < 0) { u2 = (uint32_t) - u; sign = -sign; } else { u2 = (uint32_t)u; }
 
-	if (v < 0) { v2 = -v; sign = -sign; } else { v2 = v; }
+	if (v < 0) { v2 = (uint32_t) - v; sign = -sign; } else { v2 = (uint32_t)v; }
 
 	const uint32_t res = fp_mulu(u2, v2, shift);
 
 	assert(sign > 0 ? res <= 0x7FFFFFFFU : res <= 0x80000000U);
 
-	return sign > 0 ? res : -res;
+	return sign > 0 ? (int32_t)res : -(int32_t)res;
 }
 
 
@@ -225,7 +225,9 @@ inline uint32_t fp_mul_u32_u16(uint32_t u, uint16_t v, uint_fast8_t shift)
  *****************************************************************************/
 inline int32_t fp_mul_s32_u16(int32_t u, uint16_t v, uint_fast8_t shift)
 {
-	return u >= 0 ? fp_mul_u32_u16(u, v, shift) : - fp_mul_u32_u16(-u, v, shift);
+	return u >= 0 ?
+	       (int32_t)fp_mul_u32_u16((uint32_t)u, v, shift) :
+	       -(int32_t)fp_mul_u32_u16((uint32_t) - u, v, shift);
 }
 
 /*! @} */

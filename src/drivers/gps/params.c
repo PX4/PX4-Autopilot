@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,6 +70,51 @@ PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
 PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 
 /**
+ * u-blox GPS DGNSS timeout
+ *
+ * When set to 0 (default), default DGNSS timeout set by u-blox will be used.
+ *
+ * @min 0
+ * @max 255
+ * @unit s
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_DGNSS_TO, 0);
+
+/**
+ * u-blox GPS minimum satellite signal level for navigation
+ *
+ * When set to 0 (default), default minimum satellite signal level set by u-blox wll be used.
+ *
+ * @min 0
+ * @max 255
+ * @unit dBHz
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MIN_CNO, 0);
+
+/**
+ * u-blox GPS minimum elevation for a GNSS satellite to be used in navigation
+ *
+ * When set to 0 (default), default minimum elevation set by u-blox will be used.
+ *
+ * @min 0
+ * @max 127
+ * @unit deg
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MIN_ELEV, 0);
+
+/**
  * Enable sat info (if available)
  *
  * Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
@@ -94,6 +139,7 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  * F9P units are connected to each other.
  * Modes 3 and 4 only require UART1 on each F9P connected to the Autopilot or Can Node. UART RX DMA is required.
  * RTK is still possible with this setup.
+ * Mode 6 is intended for use with a ground control station (not necessarily an RTK correction base).
  *
  * @min 0
  * @max 1
@@ -103,6 +149,7 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  * @value 3 Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
  * @value 4 Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
  * @value 5 Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
+ * @value 6 Ground Control Station (UART2 outputs NMEA)
  *
  * @reboot_required true
  * @group GPS
@@ -143,6 +190,31 @@ PARAM_DEFINE_INT32(GPS_UBX_BAUD2, 230400);
 PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
 
 /**
+ * Enable MSM7 message output for PPK workflow.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_PPK, 0);
+
+/**
+ * Wipes the flash config of UBX modules.
+ *
+ * Some UBX modules have a FLASH that allows to store persistent configuration that will be loaded on start.
+ * PX4 does override all configuration parameters it needs in RAM, which takes precedence over the values in FLASH.
+ * However, configuration parameters that are not overriden by PX4 can still cause unexpected problems during flight.
+ * To avoid these kind of problems a clean config can be reached by wiping the FLASH on boot.
+ *
+ * Note: Currently only supported on UBX.
+ *
+ * @reboot_required true
+ * @group GPS
+ * @boolean
+ */
+PARAM_DEFINE_INT32(GPS_CFG_WIPE, 0);
+
+/**
  * Heading/Yaw offset for dual antenna GPS
  *
  * Heading offset angle for dual antenna GPS setups that support heading estimation.
@@ -152,8 +224,9 @@ PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
  *
  * The offset angle increases clockwise.
  *
- * Set this to 90 if the rover (or Unicore primary) antenna is placed on the
- * right side of the vehicle and the moving base antenna is on the left side.
+ * Set this to 90 if the rover (or Unicore primary, or Septentrio Mosaic Aux)
+ * antenna is placed on the right side of the vehicle and the moving base
+ * antenna is on the left side.
  *
  * (Note: the Unicore primary antenna is the one connected on the right as seen
  *        from the top).
@@ -167,24 +240,6 @@ PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
  * @group GPS
  */
 PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
-
-/**
- * Pitch offset for dual antenna GPS
- *
- * Vertical offsets can be compensated for by adjusting the Pitch offset (Septentrio).
- *
- * Note that this can be interpreted as the "roll" angle in case the antennas are aligned along the perpendicular axis. This occurs in situations where the two antenna ARPs may not be exactly at the same height in the vehicle reference frame. Since pitch is defined as the right-handed rotation about the vehicle Y axis, a situation where the main antenna is mounted lower than the aux antenna (assuming the default antenna setup) will result in a positive pitch.
- *
- *
- * @min -90
- * @max 90
- * @unit deg
- * @reboot_required true
- * @decimal 3
- *
- * @group GPS
- */
-PARAM_DEFINE_FLOAT(GPS_PITCH_OFFSET, 0.f);
 
 /**
  * Protocol for Main GPS
@@ -202,7 +257,6 @@ PARAM_DEFINE_FLOAT(GPS_PITCH_OFFSET, 0.f);
  * @value 4 Emlid Reach
  * @value 5 Femtomes
  * @value 6 NMEA (generic)
- * @value 7 Septentrio (SBF)
  *
  * @reboot_required true
  * @group GPS
@@ -247,14 +301,16 @@ PARAM_DEFINE_INT32(GPS_2_PROTOCOL, 1);
  * 2 : Use Galileo
  * 3 : Use BeiDou
  * 4 : Use GLONASS
+ * 5 : Use NAVIC
  *
  * @min 0
- * @max 31
+ * @max 63
  * @bit 0 GPS (with QZSS)
  * @bit 1 SBAS
  * @bit 2 Galileo
  * @bit 3 BeiDou
  * @bit 4 GLONASS
+ * @bit 5 NAVIC
  *
  * @reboot_required true
  * @group GPS
@@ -277,14 +333,16 @@ PARAM_DEFINE_INT32(GPS_1_GNSS, 0);
  * 2 : Use Galileo
  * 3 : Use BeiDou
  * 4 : Use GLONASS
+ * 5 : Use NAVIC
  *
  * @min 0
- * @max 31
+ * @max 63
  * @bit 0 GPS (with QZSS)
  * @bit 1 SBAS
  * @bit 2 Galileo
  * @bit 3 BeiDou
  * @bit 4 GLONASS
+ * @bit 5 NAVIC
  *
  * @reboot_required true
  * @group GPS

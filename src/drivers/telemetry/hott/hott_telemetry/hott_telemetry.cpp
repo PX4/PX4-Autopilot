@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file hott_telemetry_main.c
+ * @file hott_telemetry.cpp
  * @author Simon Wilks <sjwilks@gmail.com>
  *
  * Graupner HoTT Telemetry implementation.

@@ -54,7 +54,7 @@ int board_get_mfguid(mfguid_t mfgid)
 	uint32_t  *rv = (uint32_t *) &mfgid[0];
 
 	for (unsigned int i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
-		*rv++ = SWAP_UINT32(chip_uuid[(PX4_CPU_UUID_WORD32_LENGTH - 1) - i]);
+		*rv++ = SWAP_UINT32(chip_uuid[i]);
 	}
 
 	return PX4_CPU_MFGUID_BYTE_LENGTH;

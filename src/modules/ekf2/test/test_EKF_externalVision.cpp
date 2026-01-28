@@ -85,8 +85,8 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionVelocityFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
 
-	EXPECT_TRUE(_ekf->local_position_is_valid());
-	EXPECT_FALSE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
+	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.runSeconds(2);
@@ -95,8 +95,8 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionVelocityFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
 
-	EXPECT_TRUE(_ekf->local_position_is_valid());
-	EXPECT_FALSE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
+	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 
 	_ekf_wrapper.enableExternalVisionHeadingFusion();
 	_sensor_simulator.runSeconds(2);
@@ -105,8 +105,8 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionVelocityFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
 
-	EXPECT_TRUE(_ekf->local_position_is_valid());
-	EXPECT_FALSE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
+	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 }
 
 TEST_F(EkfExternalVisionTest, visionVelocityReset)
@@ -259,37 +259,24 @@ TEST_F(EkfExternalVisionTest, visionAlignment)
 
 TEST_F(EkfExternalVisionTest, velocityFrameBody)
 {
-	// GIVEN: Drone is turned 90 degrees
-	const Quatf quat_sim(Eulerf(0.0f, 0.0f, math::radians(90.0f)));
-	_sensor_simulator.simulateOrientation(quat_sim);
+	_ekf_wrapper.setMagFuseTypeNone();
 	_sensor_simulator.runSeconds(_tilt_align_time);
-
 	_ekf->set_vehicle_at_rest(false);
 
-	// Without any measurement x and y velocity variance are close
-	const Vector3f velVar_init = _ekf->getVelocityVariance();
-	EXPECT_NEAR(velVar_init(0), velVar_init(1), 0.0001);
-
-	// WHEN: measurement is given in BODY-FRAME and
-	//       x variance is bigger than y variance
-	_sensor_simulator._vio.setVelocityFrameToBody();
+	float yaw_var0 = _ekf->getYawVar();
 
 	const Vector3f vel_cov_body(2.0f, 0.01f, 0.01f);
 	const Vector3f vel_body(1.0f, 0.0f, 0.0f);
+	_sensor_simulator._vio.setVelocityFrameToBody();
 	_sensor_simulator._vio.setVelocityVariance(vel_cov_body);
 	_sensor_simulator._vio.setVelocity(vel_body);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();
 	_sensor_simulator.runSeconds(4);
 
-	// THEN: As the drone is turned 90 degrees, velocity variance
-	//       along local y axis is expected to be bigger
-	const Vector3f velVar_new = _ekf->getVelocityVariance();
-	EXPECT_NEAR(velVar_new(1) / velVar_new(0), 70.f, 15.f);
-
-	const Vector3f vel_earth_est = _ekf->getVelocity();
-	EXPECT_NEAR(vel_earth_est(0), 0.0f, 0.1f);
-	EXPECT_NEAR(vel_earth_est(1), 1.0f, 0.1f);
+	const Vector3f vel_var = _ekf->getVelocityVariance();
+	EXPECT_TRUE(yaw_var0 < _ekf->getYawVar());
+	EXPECT_TRUE(vel_var(1) < vel_var(0));
 }
 
 TEST_F(EkfExternalVisionTest, velocityFrameLocal)
@@ -319,7 +306,7 @@ TEST_F(EkfExternalVisionTest, velocityFrameLocal)
 	// THEN: Independently on drones heading, velocity variance
 	//       along local x axis is expected to be bigger
 	const Vector3f velVar_new = _ekf->getVelocityVariance();
-	EXPECT_NEAR(velVar_new(0) / velVar_new(1), 70.f, 15.f);
+	EXPECT_NEAR(velVar_new(0) / velVar_new(1), 30.f, 15.f);
 
 	const Vector3f vel_earth_est = _ekf->getVelocity();
 	EXPECT_NEAR(vel_earth_est(0), 1.0f, 0.1f);

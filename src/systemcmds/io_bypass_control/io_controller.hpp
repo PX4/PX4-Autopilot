@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file io_controller.h
+ * @file io_controller.hpp
  * Simple IOController class
  *
  */

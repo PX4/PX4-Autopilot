@@ -74,8 +74,7 @@
 #define ADC_BATTERY_CURRENT_CHANNEL  13
 #define ADC_RC_RSSI_CHANNEL          12
 
-/* Define Battery 1 Voltage Divider and A per V
- */
+/* Define Battery Voltage Divider and A per V */
 #define BOARD_BATTERY1_V_DIV         (11.12f)
 #define BOARD_BATTERY1_A_PER_V       (31.f)
 

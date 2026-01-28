@@ -38,22 +38,6 @@
  *
  */
 
-
-/**
- * Minimum motor rise time (slew rate limit).
- *
- * Minimum time allowed for the motor input signal to pass through
- * a range of 1000 PWM units. A value x means that the motor signal
- * can only go from 1000 to 2000 PWM in minimum x seconds.
- *
- * Zero means that slew rate limiting is disabled.
- *
- * @min 0.0
- * @unit s/(1000*PWM)
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
-
 /**
  * Thrust to motor control signal model parameter
  *

@@ -1,0 +1,13 @@
+{
+    "board_id": 36,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the TROPIC Community board",
+    "image": "",
+    "build_time": 0,
+    "summary": "TROPIC Community",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 0,
+    "git_identity": "",
+    "board_revision": 0
+}

@@ -48,21 +48,34 @@ void WindChecks::checkAndReport(const Context &context, Report &reporter)
 
 		// publish a warning if it's the first since in air or 60s have passed since the last warning
 		const bool warning_timeout_passed = _last_wind_warning == 0 || now - _last_wind_warning > 60_s;
+		const bool wind_limit_exceeded = _param_com_wind_max.get() > FLT_EPSILON && wind.longerThan(_param_com_wind_max.get());
+		reporter.failsafeFlags().wind_limit_exceeded = false; // reset, will be set below if needed
 
-		reporter.failsafeFlags().wind_limit_exceeded = _param_com_wind_max.get() > FLT_EPSILON
-				&& wind.longerThan(_param_com_wind_max.get());
+		if (_param_com_wind_max_act.get() > 1 && wind_limit_exceeded) {
 
-		if (reporter.failsafeFlags().wind_limit_exceeded) {
+			// only set failsafe flag if the high wind failsafe action is higher than warning
+			reporter.failsafeFlags().wind_limit_exceeded = true;
 
 			/* EVENT
 			 * @description
 			 * <profile name="dev">
-			 * This check can be configured via <param>COM_WIND_MAX</param> parameter.
+			 * This check can be configured via <param>COM_WIND_MAX</param> and <param>COM_WIND_MAX_ACT</param> parameters.
 			 * </profile>
 			 */
 			reporter.armingCheckFailure<float>(NavModes::All, health_component_t::system,
 							   events::ID("check_wind_too_high"),
 							   events::Log::Warning, "Wind speed is above limit ({1:.1m/s})", wind.norm());
+
+		} else if (_param_com_wind_max_act.get() == 1 // warning only
+			   && wind_limit_exceeded
+			   && warning_timeout_passed
+			   && context.status().nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+			   && context.status().nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+
+			events::send<float>(events::ID("check_above_wind_limits_warning"),
+			{events::Log::Warning, events::LogInternal::Warning},
+			"Wind speed above limit ({1:.1m/s}), landing advised", wind.norm());
+			_last_wind_warning = now;
 
 		} else if (_param_com_wind_warn.get() > FLT_EPSILON
 			   && wind.longerThan(_param_com_wind_warn.get())

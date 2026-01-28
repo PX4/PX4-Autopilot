@@ -1,0 +1,13 @@
+{
+    "board_id": 1124,
+    "magic": "3dr-ctrl-zero-h7-oem-revg",
+    "description": "Firmware for the 3dr-ctrl-zero-h7-oem-revg board",
+    "image": "",
+    "build_time": 0,
+    "summary": "3dr-ctrl-zero-h7-oem-revg",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1966080,
+    "git_identity": "",
+    "board_revision": 0
+}

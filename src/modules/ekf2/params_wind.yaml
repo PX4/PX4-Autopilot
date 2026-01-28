@@ -1,0 +1,15 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_WIND_NSD:
+      description:
+        short: Process noise spectral density for wind velocity prediction
+        long: When unaided, the wind estimate uncertainty (1-sigma, in m/s) increases
+          by this amount every second.
+      type: float
+      default: 0.05
+      min: 0.0
+      max: 1.0
+      unit: m/s^2/sqrt(Hz)
+      decimal: 3

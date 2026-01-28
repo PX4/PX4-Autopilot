@@ -138,3 +138,15 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.f);
+
+/**
+ * Acceleration to tilt coupling
+ *
+ * Set to decouple tilt from vertical acceleration.
+ * This provides smoother flight but slightly worse tracking in position and auto modes.
+ * Unset if accurate position tracking during dynamic maneuvers is more important than a smooth flight.
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_ACC_DECOUPLE, 1);

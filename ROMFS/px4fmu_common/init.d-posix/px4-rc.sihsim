@@ -1,0 +1,38 @@
+#!/bin/sh
+
+echo "INFO  [init] SIH simulator"
+
+if [ -n "${PX4_HOME_LAT}" ]; then
+	param set SIH_LOC_LAT0 ${PX4_HOME_LAT}
+fi
+
+if [ -n "${PX4_HOME_LON}" ]; then
+	param set SIH_LOC_LON0 ${PX4_HOME_LON}
+fi
+if [ -n "${PX4_HOME_ALT}" ]; then
+	param set SIH_LOC_H0 ${PX4_HOME_ALT}
+fi
+
+if simulator_sih start; then
+
+	if param compare -s SENS_EN_BAROSIM 1
+	then
+		sensor_baro_sim start
+	fi
+	if param compare -s SENS_EN_GPSSIM 1
+	then
+		sensor_gps_sim start
+	fi
+	if param compare -s SENS_EN_MAGSIM 1
+	then
+		sensor_mag_sim start
+	fi
+	if param compare -s SENS_EN_AGPSIM 1
+	then
+		sensor_agp_sim start
+	fi
+
+else
+	echo "ERROR [init] simulator_sih failed to start"
+	exit 1
+fi

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file batt_smbus.h
+ * @file batt_smbus.cpp
  *
  * Header for a battery monitor connected via SMBus (I2C).
  * Designed for BQ40Z50-R1/R2 and BQ40Z80
@@ -44,6 +44,7 @@
  */
 
 #include "batt_smbus.h"
+#include <lib/atmosphere/atmosphere.h>
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
@@ -76,6 +77,7 @@ BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface) :
 
 BATT_SMBUS::~BATT_SMBUS()
 {
+	orb_unadvertise(_battery_info_topic);
 	orb_unadvertise(_batt_topic);
 	perf_free(_cycle);
 
@@ -115,13 +117,11 @@ void BATT_SMBUS::RunImpl()
 
 	// Convert millivolts to volts.
 	new_report.voltage_v = ((float)result) / 1000.0f;
-	new_report.voltage_filtered_v = new_report.voltage_v;
 
 	// Read current.
 	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
 
 	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
-	new_report.current_filtered_a = new_report.current_a;
 
 	// Read average current.
 	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result);
@@ -160,38 +160,44 @@ void BATT_SMBUS::RunImpl()
 
 	// Read battery temperature and covert to Celsius.
 	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
-	new_report.temperature = ((float)result / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	new_report.temperature = ((float)result / 10.0f) + atmosphere::kAbsoluteNullCelsius;
 
 	// Only publish if no errors.
 	if (ret == PX4_OK) {
 		new_report.capacity = _batt_capacity;
 		new_report.cycle_count = _cycle_count;
-		new_report.serial_number = _serial_number;
 		new_report.max_cell_voltage_delta = _max_cell_voltage_delta;
 		new_report.cell_count = _cell_count;
 		new_report.state_of_health = _state_of_health;
 
 		// Check if max lifetime voltage delta is greater than allowed.
 		if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+			new_report.warning = battery_status_s::WARNING_CRITICAL;
 
 		} else if (new_report.remaining > _low_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_NONE;
+			new_report.warning = battery_status_s::WARNING_NONE;
 
 		} else if (new_report.remaining > _crit_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_LOW;
+			new_report.warning = battery_status_s::WARNING_LOW;
 
 		} else if (new_report.remaining > _emergency_thr) {
-			new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+			new_report.warning = battery_status_s::WARNING_CRITICAL;
 
 		} else {
-			new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+			new_report.warning = battery_status_s::WARNING_EMERGENCY;
 		}
 
 		new_report.interface_error = perf_event_count(_interface->_interface_errors);
 
 		int instance = 0;
 		orb_publish_auto(ORB_ID(battery_status), &_batt_topic, &new_report, &instance);
+
+		battery_info_s battery_info{};
+		battery_info.timestamp = new_report.timestamp;
+		battery_info.id = new_report.id;
+		snprintf(battery_info.serial_number, sizeof(battery_info.serial_number), "%" PRIu16, _serial_number);
+		orb_publish_auto(ORB_ID(battery_info), &_battery_info_topic, &battery_info, &instance);
+
 
 		_last_report = new_report;
 	}
@@ -390,6 +396,12 @@ int BATT_SMBUS::get_startup_info()
 
 	uint16_t state_of_health;
 	ret |= _interface->read_word(BATT_SMBUS_STATE_OF_HEALTH, state_of_health);
+
+	/* ManufacturerAccess dummy command to init the ManufacturerBlockAccess routine
+	in the BQ40Zx0 and avoid timeout during LifetimeDataFlush.
+	test Sleep > 20 ms to give time to init the ManufacturerBlockAccess routine*/
+	ret |= _interface->write_word(BATT_SMBUS_MANUFACTURER_ACCESS, BATT_SMBUS_DEVICE_TYPE);
+	px4_usleep(30_ms);
 
 	if (!ret) {
 		_serial_number = serial_num;

@@ -248,7 +248,13 @@
 
 /* ADC 1 2 3 clock source */
 
-#define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
+#define STM32_RCC_D3CCIPR_ADCSRC     RCC_D3CCIPR_ADCSEL_PLL2
+
+/* UART clock selection */
+/* reset to default to overwrite any changes done by any bootloader */
+
+#define STM32_RCC_D2CCIP2R_USART234578_SEL RCC_D2CCIP2R_USART234578SEL_RCC
+#define STM32_RCC_D2CCIP2R_USART16_SEL     RCC_D2CCIP2R_USART16SEL_RCC
 
 /* FDCAN 1 2 clock source */
 
@@ -380,7 +386,9 @@
 #define GPIO_UART5_RX    GPIO_UART5_RX_3    /* PD2  */
 #define GPIO_UART5_TX    GPIO_UART5_TX_3    /* PC12 */
 // GPIO_UART5_RTS   no remap                /* PC8  */
-// GPIO_UART5_CTS  No remap                 /* PC9  */
+#undef GPIO_UART5_CTS
+#define GPIO_UART5_CTS   ((GPIO_ALT|GPIO_AF8|GPIO_PORTC|GPIO_PIN9) | GPIO_PULLDOWN) /* PC9  */
+
 
 #define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7 */
 #define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */

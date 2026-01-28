@@ -1,0 +1,21 @@
+# vitepress - user guide
+node_modules/
+.vitepress/cache/
+.vitepress/dist/
+.vitepress/.temp/
+
+# Book build output
+_book
+
+#log folder
+logs
+
+#backup files
+*.bak
+
+#Yarn log
+yarn-error.log
+
+
+# Generated alternative _summary.md
+# **/*/_summary.md

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_posix.h
+ * @file posix.h
  *
  * Includes POSIX-like functions for virtual character devices
  */

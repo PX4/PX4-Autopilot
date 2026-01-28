@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_SENSOR_AGP_SIM
+	bool "sensor_agp_sim"
+	default n
+	---help---
+		Enable support for sensor_agp_sim

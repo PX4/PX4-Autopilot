@@ -264,4 +264,3 @@
 #define GPIO_SPI3_MISO  GPIO_SPI3_MISO_2    /* PC11 */
 #define GPIO_SPI3_MOSI  GPIO_SPI3_MOSI_3    /* PC12 */
 #define GPIO_SPI3_SCK   GPIO_SPI3_SCK_1     /* PB3  */
-

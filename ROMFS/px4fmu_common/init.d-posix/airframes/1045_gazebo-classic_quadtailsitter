@@ -33,7 +33,7 @@ param set-default PWM_MAIN_FUNC3 103
 param set-default PWM_MAIN_FUNC4 104
 param set-default PWM_MAIN_FUNC5 0
 
-parm set-default FD_FAIL_R 70
+param set-default FD_FAIL_R 70
 
 param set-default FW_P_TC 0.6
 

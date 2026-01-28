@@ -61,6 +61,10 @@
 #include "Publishers/GnssAuxiliary.hpp"
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
 
+#if defined(CONFIG_UAVCANNODE_INDICATED_AIR_SPEED)
+#include "Publishers/IndicatedAirspeed.hpp"
+#endif // CONFIG_UAVCANNODE_INDICATED_AIR_SPEED
+
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
 #include "Publishers/MagneticFieldStrength2.hpp"
 #endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
@@ -72,6 +76,10 @@
 #if defined(CONFIG_UAVCANNODE_RAW_AIR_DATA)
 #include "Publishers/RawAirData.hpp"
 #endif // CONFIG_UAVCANNODE_RAW_AIR_DATA
+
+#if defined(CONFIG_UAVCANNODE_RAW_IMU)
+#include "Publishers/RawIMU.hpp"
+#endif // CONFIG_UAVCANNODE_RAW_IMU
 
 #if defined(CONFIG_UAVCANNODE_SAFETY_BUTTON)
 #include "Publishers/SafetyButton.hpp"
@@ -121,7 +129,7 @@ namespace uavcannode
 
 
 /**
- * @file uavcan_main.cpp
+ * @file UavcanNode.cpp
  *
  * Implements basic functionality of UAVCAN node.
  *
@@ -376,7 +384,13 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
 
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
-	_publisher_list.add(new MagneticFieldStrength2(this, _node));
+	int32_t cannode_pub_mag = 1;
+	param_get(param_find("CANNODE_PUB_MAG"), &cannode_pub_mag);
+
+	if (cannode_pub_mag == 1) {
+		_publisher_list.add(new MagneticFieldStrength2(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
 
 #if defined(CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT)
@@ -386,6 +400,16 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #if defined(CONFIG_UAVCANNODE_RAW_AIR_DATA)
 	_publisher_list.add(new RawAirData(this, _node));
 #endif // CONFIG_UAVCANNODE_RAW_AIR_DATA
+
+#if defined(CONFIG_UAVCANNODE_RAW_IMU)
+	int32_t cannode_pub_raw_imu = 0;
+	param_get(param_find("CANNODE_PUB_IMU"), &cannode_pub_raw_imu);
+
+	if (cannode_pub_raw_imu == 1) {
+		_publisher_list.add(new RawIMU(this, _node));
+	}
+
+#endif // CONFIG_UAVCANNODE_RAW_IMU
 
 #if defined(CONFIG_UAVCANNODE_RTK_DATA)
 	_publisher_list.add(new RelPosHeadingPub(this, _node));
@@ -403,12 +427,25 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new SafetyButton(this, _node));
 #endif // CONFIG_UAVCANNODE_SAFETY_BUTTON
 
+#if defined(CONFIG_UAVCANNODE_STATIC_PRESSURE) || defined(CONFIG_UAVCANNODE_STATIC_TEMPERATURE)
+	int32_t cannode_pub_bar = 1;
+	param_get(param_find("CANNODE_PUB_BAR"), &cannode_pub_bar);
+#endif
+
 #if defined(CONFIG_UAVCANNODE_STATIC_PRESSURE)
-	_publisher_list.add(new StaticPressure(this, _node));
+
+	if (cannode_pub_bar == 1) {
+		_publisher_list.add(new StaticPressure(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_STATIC_PRESSURE
 
 #if defined(CONFIG_UAVCANNODE_STATIC_TEMPERATURE)
-	_publisher_list.add(new StaticTemperature(this, _node));
+
+	if (cannode_pub_bar == 1) {
+		_publisher_list.add(new StaticTemperature(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_STATIC_TEMPERATURE
 
 #if defined(CONFIG_UAVCANNODE_ARMING_STATUS)
@@ -455,32 +492,6 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_log_message_sub.registerCallback();
 
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
-
-	const int can_init_res = _can->init((uint32_t)_bitrate);
-
-	if (can_init_res < 0) {
-		PX4_ERR("CAN driver init failed %i", can_init_res);
-	}
-
-	int rv = _node.start();
-
-	if (rv < 0) {
-		PX4_ERR("Failed to start the node");
-	}
-
-	// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
-
-	if (_node.getNodeID() == 0) {
-
-		int client_start_res = _dyn_node_id_client.start(
-					       _node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
-					       _node.getNodeID());
-
-		if (client_start_res < 0) {
-			PX4_ERR("Failed to start the dynamic node ID client");
-		}
-	}
-
 	return 1;
 }
 
@@ -505,7 +516,49 @@ void UavcanNode::Run()
 
 	watchdog_pet();
 
-	if (!_initialized) {
+	switch (_init_state) {
+
+	case Booted: {
+
+			const int can_init_res = _can->init((uint32_t)_bitrate);
+
+			if (can_init_res < 0) {
+				PX4_ERR("CAN driver init failed %i", can_init_res);
+				ScheduleClear();
+				return;
+			}
+
+			int rv = _node.start();
+
+			if (rv < 0) {
+				PX4_ERR("Failed to start the node");
+				ScheduleClear();
+				return;
+			}
+
+			// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
+
+			if (_node.getNodeID() != 0) {
+				_init_state = Allocated;
+
+			} else {
+
+				_init_state = Allocation;
+
+				int client_start_res = _dyn_node_id_client.start(
+							       _node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
+							       _node.getNodeID());
+
+				if (client_start_res < 0) {
+					PX4_ERR("Failed to start the dynamic node ID client");
+					ScheduleClear();
+					return;
+				}
+			}
+		}
+		break;
+
+	case  Allocation:
 
 		/*
 		 * Waiting for the client to obtain a node ID.
@@ -513,12 +566,17 @@ void UavcanNode::Run()
 		 */
 
 		if (_dyn_node_id_client.isAllocationComplete()) {
-			PX4_INFO("Got node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
+			PX4_INFO("Assigned node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
 
 			_node.setNodeID(_dyn_node_id_client.getAllocatedNodeID());
+			_init_state = Allocated;
 		}
 
+		break;
+
+	case  Allocated:
 		if (_node.getNodeID() != 0) {
+
 			up_time = hrt_absolute_time();
 			get_node().setRestartRequestHandler(&restart_request_handler);
 			_param_server.start(&_param_manager);
@@ -530,13 +588,16 @@ void UavcanNode::Run()
 				PX4_ERR("Failed to start time_sync_slave");
 				_task_should_exit.store(true);
 			}
-
-			_node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
-
-			_node.setModeOperational();
-
-			_initialized = true;
 		}
+
+		_node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
+
+		_node.setModeOperational();
+
+		_init_state = Done;
+
+	default:
+		break;
 	}
 
 	perf_begin(_cycle_perf);
@@ -666,6 +727,13 @@ void UavcanNode::PrintInfo()
 
 	printf("\n");
 
+	// UAVCAN Time
+	printf("UAVCAN Time:\n");
+	printf("\tMonotonic time: %llu\n", _node.getMonotonicTime().toUSec());
+	printf("\tUtc time:       %llu\n", _node.getUtcTime().toUSec());
+
+	printf("\n");
+
 	// CAN driver status
 	for (unsigned i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
 		printf("CAN%u status:\n", unsigned(i + 1));
@@ -743,8 +811,15 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 	int32_t node_id = 0;
 
 	// Did the bootloader auto baud and get a node ID Allocated
+	int valid = -1;
 	bootloader_app_shared_t shared;
-	int valid = bootloader_app_shared_read(&shared, BootLoader);
+
+	if (board_app_shared_read) {
+		valid = board_app_shared_read(&shared, BootLoader);
+
+	} else {
+		valid = bootloader_app_shared_read(&shared, BootLoader);
+	}
 
 	if (valid == 0) {
 
@@ -767,6 +842,24 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 			(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
 		}
 	}
+
+	// Use a static node ID if the parameter is set and in range
+	int32_t cannode_node_id = 0;
+	param_get(param_find("CANNODE_NODE_ID"), &cannode_node_id);
+
+	if (cannode_node_id < 0 || cannode_node_id > uavcan::NodeID::Max) {
+		PX4_ERR("Invalid static node ID %ld, using dynamic allocation", cannode_node_id);
+		node_id = 0;
+
+	} else {
+		node_id = cannode_node_id;
+	}
+
+	// Persist the node ID for the bootloader
+	bootloader_app_shared_t shared_write = {};
+	shared_write.node_id = node_id;
+	shared_write.bus_speed = 0; // we always want to autobaud
+	bootloader_app_shared_write(&shared_write, BootLoader);
 
 	if (
 #if defined(SUPPORT_ALT_CAN_BOOTLOADER)

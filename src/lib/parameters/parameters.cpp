@@ -105,8 +105,10 @@ static DynamicSparseLayer runtime_defaults{&firmware_defaults};
 DynamicSparseLayer user_config{&runtime_defaults};
 
 /** parameter update topic handle */
+#if not defined(CONFIG_PARAM_REMOTE)
 static orb_advert_t param_topic = nullptr;
 static unsigned int param_instance = 0;
+#endif
 
 static perf_counter_t param_export_perf;
 static perf_counter_t param_find_perf;
@@ -115,6 +117,14 @@ static perf_counter_t param_set_perf;
 
 static pthread_mutex_t file_mutex  =
 	PTHREAD_MUTEX_INITIALIZER; ///< this protects against concurrent param saves (file or flash access).
+
+// Support for remote parameter node
+#if defined(CONFIG_PARAM_PRIMARY)
+# include "parameters_primary.h"
+#endif // CONFIG_PARAM_PRIMARY
+#if defined(CONFIG_PARAM_REMOTE)
+# include "parameters_remote.h"
+#endif // CONFIG_PARAM_REMOTE
 
 void
 param_init()
@@ -128,14 +138,27 @@ param_init()
 	px4_register_boardct_ioctl(_PARAMIOCBASE, param_ioctl);
 #endif
 
+#if defined(CONFIG_PARAM_PRIMARY)
+	param_primary_init();
+#endif // CONFIG_PARAM_PRIMARY
+
+#if defined(CONFIG_PARAM_REMOTE)
+	param_remote_init();
+#endif // CONFIG_PARAM_REMOTE
+
+#if not defined(CONFIG_PARAM_REMOTE)
 	autosave_instance = new ParamAutosave();
+#endif
 }
 
 
 void
 param_notify_changes()
 {
-	parameter_update_s pup{};
+// Don't send if this is a remote node. Only the primary
+// sends out update notices
+#if not defined(CONFIG_PARAM_REMOTE)
+	parameter_update_s pup {};
 	pup.instance = param_instance++;
 	pup.get_count = perf_event_count(param_get_perf);
 	pup.set_count = perf_event_count(param_set_perf);
@@ -152,6 +175,8 @@ param_notify_changes()
 	} else {
 		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
 	}
+
+#endif
 }
 
 static param_t param_find_internal(const char *name, bool notification)
@@ -280,11 +305,11 @@ param_get(param_t param, void *val)
 
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32:
-			*(int32_t *)val = retrieve_value.i;
+			memcpy(val, &retrieve_value.i, sizeof(retrieve_value.i));
 			return PX4_OK;
 
 		case PARAM_TYPE_FLOAT:
-			*(float *)val = retrieve_value.f;
+			memcpy(val, &retrieve_value.f, sizeof(retrieve_value.f));
 			return PX4_OK;
 		}
 	}
@@ -302,13 +327,17 @@ param_get_default_value_internal(param_t param, void *default_val)
 
 	if (default_val) {
 		switch (param_type(param)) {
-		case PARAM_TYPE_INT32:
-			*(int32_t *) default_val = runtime_defaults.get(param).i;
-			return PX4_OK;
+		case PARAM_TYPE_INT32: {
+				int32_t val = runtime_defaults.get(param).i;
+				memcpy(default_val, &val, sizeof(val));
+				return PX4_OK;
+			}
 
-		case PARAM_TYPE_FLOAT:
-			*(float *) default_val = runtime_defaults.get(param).f;
-			return PX4_OK;
+		case PARAM_TYPE_FLOAT: {
+				float val = runtime_defaults.get(param).f;
+				memcpy(default_val, &val, sizeof(val));
+				return PX4_OK;
+			}
 		}
 	}
 
@@ -372,7 +401,7 @@ param_control_autosave(bool enable)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool update_remote = true)
 {
 	if (!handle_in_range(param)) {
 		PX4_ERR("set invalid param %d", param);
@@ -393,13 +422,13 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
-		param_changed = user_config_value.i != *(int32_t *)val;
-		new_value.i = *(int32_t *)val;
+		memcpy(&new_value.i, val, sizeof(new_value.i));
+		param_changed = user_config_value.i != new_value.i;
 		break;
 
 	case PARAM_TYPE_FLOAT:
-		param_changed = fabsf(user_config_value.f - * (float *) val) > FLT_EPSILON;
-		new_value.f = *(float *) val;
+		memcpy(&new_value.f, val, sizeof(new_value.f));
+		param_changed = fabsf(user_config_value.f - new_value.f) > FLT_EPSILON;
 		break;
 
 	default: {
@@ -409,7 +438,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 	if (user_config.store(param, new_value)) {
-		params_unsaved.set(param, !mark_saved);
+		params_unsaved.set(param, !mark_saved && param_changed);
 		result = PX4_OK;
 
 	} else {
@@ -420,6 +449,24 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	if ((result == PX4_OK) && param_changed && !mark_saved) { // this is false when importing parameters
 		param_autosave();
 	}
+
+	// If this is the parameter server, make sure that the remote is updated
+#if defined(CONFIG_PARAM_PRIMARY)
+
+	if (param_changed && update_remote) {
+		param_primary_set_value(param, val);
+	}
+
+#endif
+
+	// If this is the parameter remote, make sure that the primary is updated
+#if defined(CONFIG_PARAM_REMOTE)
+
+	if (param_changed && update_remote) {
+		param_remote_set_value(param, val);
+	}
+
+#endif
 
 	perf_end(param_set_perf);
 
@@ -456,6 +503,11 @@ int param_set_no_notification(param_t param, const void *val)
 	return param_set_internal(param, val, false, false);
 }
 
+int param_set_no_remote_update(param_t param, const void *val, bool notify)
+{
+	return param_set_internal(param, val, false, notify, false);
+}
+
 bool param_used(param_t param)
 {
 	if (handle_in_range(param)) {
@@ -468,6 +520,14 @@ bool param_used(param_t param)
 void param_set_used(param_t param)
 {
 	if (handle_in_range(param)) {
+#if defined(CONFIG_PARAM_REMOTE)
+
+		if (!param_used(param)) {
+			param_remote_set_used(param);
+		}
+
+#endif
+
 		params_active.set(param, true);
 	}
 }
@@ -492,13 +552,19 @@ int param_set_default_value(param_t param, const void *val)
 	const param_value_u firmware_default_value = firmware_defaults.get(param);
 
 	switch (param_type(param)) {
-	case PARAM_TYPE_INT32:
-		setting_to_static_default = (firmware_default_value.i == *(int32_t *)val);
-		break;
+	case PARAM_TYPE_INT32: {
+			int32_t new_value;
+			memcpy(&new_value, val, sizeof(new_value));
+			setting_to_static_default = firmware_default_value.i == new_value;
+			break;
+		}
 
-	case PARAM_TYPE_FLOAT:
-		setting_to_static_default = (fabsf(firmware_default_value.f - * (float *)val) <= FLT_EPSILON);
-		break;
+	case PARAM_TYPE_FLOAT: {
+			float new_value;
+			memcpy(&new_value, val, sizeof(new_value));
+			setting_to_static_default = fabsf(firmware_default_value.f - new_value) <= FLT_EPSILON;
+			break;
+		}
 	}
 
 	if (setting_to_static_default) {
@@ -511,12 +577,12 @@ int param_set_default_value(param_t param, const void *val)
 
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32: {
-				new_value.i = *(int32_t *) val;
+				memcpy(&new_value.i, val, sizeof(new_value.i));
 				break;
 			}
 
 		case PARAM_TYPE_FLOAT: {
-				new_value.f = *(float *) val;
+				memcpy(&new_value.f, val, sizeof(new_value.f));
 				break;
 			}
 
@@ -544,6 +610,11 @@ int param_set_default_value(param_t param, const void *val)
 
 static int param_reset_internal(param_t param, bool notify = true, bool autosave = true)
 {
+#if defined(CONFIG_PARAM_REMOTE)
+	// Remote doesn't support reset
+	return false;
+#endif
+
 	bool param_found = user_config.contains(param);
 
 	if (handle_in_range(param)) {
@@ -558,6 +629,10 @@ static int param_reset_internal(param_t param, bool notify = true, bool autosave
 		param_notify_changes();
 	}
 
+#if defined(CONFIG_PARAM_PRIMARY)
+	param_primary_reset(param);
+#endif
+
 	return param_found;
 }
 
@@ -567,6 +642,11 @@ int param_reset_no_notification(param_t param) { return param_reset_internal(par
 static void
 param_reset_all_internal(bool auto_save)
 {
+#if defined(CONFIG_PARAM_REMOTE)
+	// Remote doesn't support reset
+	return;
+#endif
+
 	for (param_t param = 0; handle_in_range(param); param++) {
 		param_reset_internal(param, false, false);
 	}
@@ -574,6 +654,10 @@ param_reset_all_internal(bool auto_save)
 	if (auto_save) {
 		param_autosave();
 	}
+
+#if defined(CONFIG_PARAM_PRIMARY)
+	param_primary_reset_all();
+#endif
 
 	param_notify_changes();
 }
@@ -1078,7 +1162,10 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 		return 0;
 	}
 
-	param_modify_on_import(node);
+	// if we do param_set() directly in the translation, set PARAM_SKIP_IMPORT as return value and return here
+	if (param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
+		return 1;
+	}
 
 	// Find the parameter this node represents.  If we don't know it, ignore the node.
 	param_t param = param_find_no_notification(node->name);
@@ -1277,4 +1364,27 @@ void param_print_status()
 	perf_print_counter(param_find_perf);
 	perf_print_counter(param_get_perf);
 	perf_print_counter(param_set_perf);
+
+#if defined(CONFIG_PARAM_PRIMARY)
+	struct param_primary_counters counts;
+	param_primary_get_counters(&counts);
+	PX4_INFO("set value requests received: %" PRIu32 ", set value responses sent: %" PRIu32,
+		 counts.set_value_request_received, counts.set_value_response_sent);
+	PX4_INFO("set value requests sent: %" PRIu32 ", set value responses received: %" PRIu32,
+		 counts.set_value_request_sent, counts.set_value_response_received);
+	PX4_INFO("resets sent: %" PRIu32 ", set used requests received: %" PRIu32,
+		 counts.reset_sent, counts.set_used_received);
+#endif
+
+#if defined(CONFIG_PARAM_REMOTE)
+	struct param_remote_counters counts;
+	param_remote_get_counters(&counts);
+	PX4_INFO("set value requests received: %" PRIu32 ", set value responses sent: %" PRIu32,
+		 counts.set_value_request_received, counts.set_value_response_sent);
+	PX4_INFO("set value requests sent: %" PRIu32 ", set value responses received: %" PRIu32,
+		 counts.set_value_request_sent, counts.set_value_response_received);
+	PX4_INFO("resets received: %" PRIu32 ", set used requests sent: %" PRIu32,
+		 counts.reset_received, counts.set_used_sent);
+#endif
+
 }

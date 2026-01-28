@@ -289,9 +289,9 @@ int can_autobaud(can_speed_t *can_speed, bl_timer_id timeout)
 	int rv = CAN_ERROR;
 
 	while (rv == CAN_ERROR) {
-		for (can_speed_t speed = CAN_125KBAUD; rv == CAN_ERROR  && speed <= CAN_1MBAUD; speed++) {
+		for (can_speed_t speed = CAN_1MBAUD; rv == CAN_ERROR  && speed >=  CAN_125KBAUD; speed--) {
 
-			can_init(speed, CAN_Mode_Silent);
+			can_init(speed, CAN_Mode_Normal);
 
 			bl_timer_id baudtimer = timer_allocate(modeTimeout | modeStarted, 600, 0);
 

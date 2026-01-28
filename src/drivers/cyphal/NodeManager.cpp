@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file NodeIDManager.cpp
+ * @file NodeManager.cpp
  *
  * Defines basic implementation of UAVCAN PNP for dynamic Node ID
  *

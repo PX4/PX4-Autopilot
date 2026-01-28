@@ -1,5 +1,6 @@
 menuconfig SYSTEMCMDS_MFT
 	bool "mft"
 	default n
+	depends on PLATFORM_NUTTX
 	---help---
 		Enable support for mft

@@ -218,12 +218,22 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 	if (_can_fd) {
 		struct canfd_frame *recv_frame = (struct canfd_frame *)&_recv_frame;
 		out_frame.id = recv_frame->can_id;
+
+		if (recv_frame->len > CANFD_MAX_DLEN) {
+			return -EFAULT;
+		}
+
 		out_frame.dlc = recv_frame->len;
 		memcpy(out_frame.data, &recv_frame->data, recv_frame->len);
 
 	} else {
 		struct can_frame *recv_frame = (struct can_frame *)&_recv_frame;
 		out_frame.id = recv_frame->can_id;
+
+		if (recv_frame->can_dlc > CAN_MAX_DLEN) {
+			return -EFAULT;
+		}
+
 		out_frame.dlc = recv_frame->can_dlc;
 		memcpy(out_frame.data, &recv_frame->data, recv_frame->can_dlc);
 	}

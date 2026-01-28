@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# # Internal SPI bus ICM24688P
+icm42688p -R 0 -s start
+
+# # Internal SPI bus BMI088 accel/gyro
+bmi088 -A -R 0 -s start
+bmi088 -G -R 0 -s start
+
+# internal baro
+bmp388 -I -a 0x76 start

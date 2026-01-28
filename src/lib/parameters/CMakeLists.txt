@@ -62,6 +62,10 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 		# allow those timer configurations to be skipped.
 		if ((${PX4_BOARD_NAME} MATCHES "MODALAI_VOXL2") AND (file_path MATCHES pwm_out))
 			message(STATUS "Skipping pwm file path ${file_path} for VOXL2")
+		# Spacecraft has duplicate parameter names which kills the VOXL 2 build. VOXL 2 does not
+		# support the spacecraft module so we skip adding the parameters.
+		elseif ((${PX4_BOARD_NAME} MATCHES "MODALAI_VOXL2") AND (file_path MATCHES spacecraft))
+			message(STATUS "Skipping spacecraft file path ${file_path} for VOXL2")
 		else()
 			list(APPEND module_config_files "${file_path}")
 		endif()
@@ -119,7 +123,6 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--xml ${parameters_xml}
 		--json ${parameters_json}
 		--compress
-		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
 		--board ${PX4_BOARD}
 		#--verbose
@@ -132,13 +135,11 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		${param_src_files}
 		${generated_serial_params_file}
 		${generated_module_params_file}
-		parameters_injected.xml
 		px4params/srcparser.py
 		px4params/srcscanner.py
 		px4params/jsonout.py
 		px4params/xmlout.py
 		px_process_params.py
-		parameters_injected.xml
 	COMMENT "Generating parameters.xml"
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
@@ -156,7 +157,23 @@ add_custom_target(parameters_header DEPENDS px4_parameters.hpp)
 
 set(SRCS)
 
-list(APPEND SRCS parameters.cpp atomic_transaction.cpp autosave.cpp)
+list(APPEND SRCS
+	parameters.cpp
+	atomic_transaction.cpp
+	autosave.cpp
+)
+
+if(CONFIG_PARAM_PRIMARY)
+list(APPEND SRCS
+	parameters_primary.cpp
+)
+endif()
+
+if(CONFIG_PARAM_REMOTE)
+list(APPEND SRCS
+	parameters_remote.cpp
+)
+endif()
 
 if(BUILD_TESTING)
 	list(APPEND SRCS param_translation_unit_tests.cpp)
@@ -199,6 +216,10 @@ add_dependencies(parameters prebuild_targets)
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")
 	target_link_libraries(parameters PRIVATE flashparams)
+endif()
+
+if(${PX4_PLATFORM} STREQUAL "posix" OR ${PX4_PLATFORM} STREQUAL "ros2")
+	target_include_directories(parameters PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../../platforms/posix/include/")
 endif()
 
 px4_add_functional_gtest(SRC ParameterTest.cpp LINKLIBS parameters)

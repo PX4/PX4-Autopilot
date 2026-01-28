@@ -40,6 +40,7 @@
 #pragma once
 
 #include <px4_platform_common/module_params.h>
+#include <lib/collision_prevention/CollisionPrevention.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <matrix/math.hpp>
 #include <uORB/Subscription.hpp>
@@ -55,6 +56,7 @@ public:
 
 	void resetPosition();
 	void resetPosition(const matrix::Vector2f &position);
+	void addToPositionSetpoint(const matrix::Vector2f &delta);
 	void resetVelocity(const matrix::Vector2f &velocity);
 	void resetAcceleration(const matrix::Vector2f &acceleration);
 	void generateSetpoints(matrix::Vector2f stick_xy, const float yaw, const float yaw_sp, const matrix::Vector3f &pos,
@@ -62,9 +64,14 @@ public:
 	void getSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, matrix::Vector3f &acc_sp);
 	float getMaxAcceleration() { return _param_mpc_acc_hor.get(); };
 	float getMaxJerk() { return _param_mpc_jerk_max.get(); };
-	void setVelocityConstraint(float vel) { _velocity_constraint = fmaxf(vel, FLT_EPSILON); };
+
+	// Assuming the velocity constraint resets in every loop and update constraint if new value is lower
+	void setVelocityConstraint(float vel);
+	float getVelocityConstraint() { return _velocity_slew_rate_xy.getState(); };
 
 private:
+	CollisionPrevention _collision_prevention{this};
+
 	void applyJerkLimit(const float dt);
 	matrix::Vector2f calculateDrag(matrix::Vector2f drag_coefficient, const float dt, const matrix::Vector2f &stick_xy,
 				       const matrix::Vector2f &vel_sp);
@@ -75,6 +82,7 @@ private:
 
 	SlewRate<float> _acceleration_slew_rate_x;
 	SlewRate<float> _acceleration_slew_rate_y;
+	SlewRate<float> _velocity_slew_rate_xy;
 	AlphaFilter<float> _brake_boost_filter;
 
 	matrix::Vector2f _position_setpoint;

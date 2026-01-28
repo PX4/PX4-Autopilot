@@ -96,10 +96,10 @@ def init_wind_using_airspeed(
         airspeed_var: sf.Scalar,
 ) -> (sf.V2, sf.M22):
 
-    # Initialise wind states assuming zero side slip and horizontal flight
-    wind = sf.V2(v_local[0] - airspeed * sm.cos(heading), v_local[1] - airspeed * sm.sin(heading))
-    # Zero sideslip, propagate the sideslip variance using partial derivatives w.r.t heading
-    J = wind.jacobian([v_local[0], v_local[1], heading, heading, airspeed])
+    # Initialise wind states assuming horizontal flight
+    sideslip = sm.Symbol("beta")
+    wind = sf.V2(v_local[0] - airspeed * sm.cos(heading + sideslip), v_local[1] - airspeed * sm.sin(heading + sideslip))
+    J = wind.jacobian([v_local[0], v_local[1], heading, sideslip, airspeed])
 
     R = sf.M55()
     R[0,0] = v_var
@@ -109,6 +109,10 @@ def init_wind_using_airspeed(
     R[4,4] = airspeed_var
 
     P = J * R * J.T
+
+    # Assume zero sideslip
+    P = P.subs({sideslip: 0.0})
+    wind = wind.subs({sideslip: 0.0})
 
     return (wind, P)
 

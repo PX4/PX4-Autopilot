@@ -46,7 +46,6 @@
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 
-#include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
 
 #include <px4_platform_common/board_common.h>
@@ -57,14 +56,15 @@ using namespace time_literals;
 
 static constexpr uint8_t NAVIGATOR_MAX_TRAFFIC{10};
 
-static constexpr uint8_t UTM_GUID_MSG_LENGTH{11};
-
 static constexpr uint8_t UTM_CALLSIGN_LENGTH{9};
 
 static constexpr uint64_t CONFLICT_WARNING_TIMEOUT{60_s};
 
 static constexpr float TRAFFIC_TO_UAV_DISTANCE_EXTENSION{1000.0f};
 
+static constexpr uint64_t TRAFFIC_WARNING_TIMESTEP{60_s}; //limits the max warning rate when traffic conflict buffer is full
+
+static constexpr uint64_t TRAFFIC_CONFLICT_LIFETIME{120_s}; //limits the time a conflict can be in the buffer without being seen (as a conflict)
 
 struct traffic_data_s {
 	double lat_traffic;
@@ -109,16 +109,16 @@ public:
 
 	void remove_icao_address_from_conflict_list(int traffic_index);
 
-	void add_icao_address_from_conflict_list(uint32_t icao_address);
+	void add_icao_address_from_conflict_list(uint32_t icao_address, hrt_abstime now);
 
-	void get_traffic_state();
+	void get_traffic_state(hrt_abstime now);
 
 	void set_conflict_detection_params(float crosstrack_separation, float vertical_separation,
 					   int collision_time_threshold, uint8_t traffic_avoidance_mode);
 
 
 	bool send_traffic_warning(int traffic_direction, int traffic_seperation, uint16_t tr_flags,
-				  char uas_id[UTM_GUID_MSG_LENGTH], char tr_callsign[UTM_CALLSIGN_LENGTH], uint64_t uas_id_int);
+				  char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address, hrt_abstime now);
 
 	transponder_report_s _transponder_report{};
 
@@ -129,8 +129,9 @@ public:
 			  float hor_velocity, float ver_velocity, int emitter_type, uint32_t icao_address, double lat_uav, double lon_uav,
 			  float &alt_uav);
 
-	void run_fake_traffic(double &lat_uav, double &lon_uav,
-			      float &alt_uav);
+	void run_fake_traffic(double &lat_uav, double &lon_uav, float &alt_uav);
+
+	void remove_expired_conflicts();
 
 	bool _conflict_detected{false};
 
@@ -144,15 +145,15 @@ protected:
 
 private:
 
-	orb_advert_t _mavlink_log_pub{nullptr};
-
 	crosstrack_error_s _crosstrack_error{};
-
 
 	transponder_report_s tr{};
 
-	orb_advert_t fake_traffic_report_publisher = orb_advertise_queue(ORB_ID(transponder_report), &tr, (unsigned int)20);
+	orb_advert_t fake_traffic_report_publisher = orb_advertise(ORB_ID(transponder_report), &tr);
 
 	TRAFFIC_STATE _traffic_state_previous{TRAFFIC_STATE::NO_CONFLICT};
 
+	hrt_abstime _last_traffic_warning_time{0};
+
+	hrt_abstime _last_buffer_full_warning_time{0};
 };

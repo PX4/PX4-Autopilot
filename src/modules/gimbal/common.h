@@ -83,7 +83,15 @@ struct ControlData {
 	// uint8_t sysid_secondary_control = 0; // The MAVLink system ID selected for additional input, not implemented yet.
 	// uint8_t compid_secondary_control = 0; // The MAVLink component ID selected for additional input, not implemented yet.
 	uint8_t device_compid = 0;
+	uint64_t timestamp_last_update{0}; // Timestamp when there was the last setpoint set by the input used for timeout
 };
 
+// Must match paraneter MNT_DO_STAB
+enum MntDoStabilize {
+	DISABLED = 0,
+	ALL_AXES, 			// Stabilize all axis
+	YAW_LOCK, 			// Stabilize yaw for absolute/lock mode.
+	PITCH_LOCK, 			// Stabilize pitch for absolute/lock mode.
+};
 
 } /* namespace gimbal */

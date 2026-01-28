@@ -1,0 +1,5 @@
+menuconfig MODULES_TIME_PERSISTOR
+	bool "time_persistor"
+	default n
+	---help---
+		Enable support for time_persistor

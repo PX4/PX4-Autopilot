@@ -40,6 +40,7 @@
 
 #include "uORBManager.hpp"
 #include "uORBCommon.hpp"
+#include "uORBMessageFields.hpp"
 
 
 #include <lib/drivers/device/Device.hpp>
@@ -117,20 +118,9 @@ orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)
 	return uORB::Manager::get_instance()->orb_advertise(meta, data);
 }
 
-orb_advert_t orb_advertise_queue(const struct orb_metadata *meta, const void *data, unsigned int queue_size)
-{
-	return uORB::Manager::get_instance()->orb_advertise(meta, data, queue_size);
-}
-
 orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance)
 {
 	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance);
-}
-
-orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, const void *data, int *instance,
-				       unsigned int queue_size)
-{
-	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, queue_size);
 }
 
 int orb_unadvertise(orb_advert_t handle)
@@ -196,7 +186,7 @@ int orb_get_interval(int handle, unsigned *interval)
 
 const char *orb_get_c_type(unsigned char short_type)
 {
-	// this matches with the uorb o_fields generator
+	// this matches with the uorb type_map_short python data
 	switch (short_type) {
 	case 0x82: return "int8_t";
 
@@ -226,6 +216,14 @@ const char *orb_get_c_type(unsigned char short_type)
 	return nullptr;
 }
 
+uint8_t orb_get_queue_size(const struct orb_metadata *meta)
+{
+	if (meta) {
+		return meta->o_queue;
+	}
+
+	return 0;
+}
 
 void orb_print_message_internal(const orb_metadata *meta, const void *data, bool print_topic_name)
 {
@@ -239,25 +237,29 @@ void orb_print_message_internal(const orb_metadata *meta, const void *data, bool
 	const uint8_t *data_ptr = (const uint8_t *)data;
 	int data_offset = 0;
 
-	for (int format_idx = 0; meta->o_fields[format_idx] != 0;) {
-		const char *end_field = strchr(meta->o_fields + format_idx, ';');
+	// Find message format
+	char format_buffer[128];
+	uORB::MessageFormatReader format_reader(format_buffer, sizeof(format_buffer));
 
-		if (!end_field) {
-			PX4_ERR("Format error in %s", meta->o_fields);
-			return;
-		}
+	if (!format_reader.readUntilFormat(meta->o_id)) {
+		PX4_ERR("Failed to get uorb format");
+		return;
+	}
 
-		const char *c_type = orb_get_c_type(meta->o_fields[format_idx]);
-		const int end_field_idx = end_field - meta->o_fields;
+	int field_length = 0;
+
+	while (format_reader.readNextField(field_length)) {
+
+		const char *c_type = orb_get_c_type(format_buffer[0]);
 
 		int array_idx = -1;
 		int field_name_idx = -1;
 
-		for (int field_idx = format_idx; field_idx != end_field_idx; ++field_idx) {
-			if (meta->o_fields[field_idx] == '[') {
+		for (int field_idx = 0; field_idx < field_length; ++field_idx) {
+			if (format_buffer[field_idx] == '[') {
 				array_idx = field_idx + 1;
 
-			} else if (meta->o_fields[field_idx] == ' ') {
+			} else if (format_buffer[field_idx] == ' ') {
 				field_name_idx = field_idx + 1;
 				break;
 			}
@@ -266,19 +268,10 @@ void orb_print_message_internal(const orb_metadata *meta, const void *data, bool
 		int array_size = 1;
 
 		if (array_idx >= 0) {
-			array_size = strtol(meta->o_fields + array_idx, nullptr, 10);
+			array_size = strtol(format_buffer + array_idx, nullptr, 10);
 		}
 
-		char field_name[80];
-		size_t field_name_len = end_field_idx - field_name_idx;
-
-		if (field_name_len >= sizeof(field_name)) {
-			PX4_ERR("field name too long %s (max: %u)", meta->o_fields, (unsigned)sizeof(field_name));
-			return;
-		}
-
-		memcpy(field_name, meta->o_fields + field_name_idx, field_name_len);
-		field_name[field_name_len] = '\0';
+		const char *field_name = format_buffer + field_name_idx;
 
 		if (c_type) { // built-in type
 			bool dont_print = false;
@@ -458,17 +451,10 @@ void orb_print_message_internal(const orb_metadata *meta, const void *data, bool
 
 		} else {
 
-			// extract the topic name
-			char topic_name[80];
-			const size_t topic_name_len = array_size > 1 ? array_idx - format_idx - 1 : field_name_idx - format_idx - 1;
-
-			if (topic_name_len >= sizeof(topic_name)) {
-				PX4_ERR("topic name too long in %s (max: %u)", meta->o_name, (unsigned)sizeof(topic_name));
-				return;
-			}
-
-			memcpy(topic_name, meta->o_fields + format_idx, topic_name_len);
-			topic_name[topic_name_len] = '\0';
+			// Get the topic name
+			const size_t topic_name_len = array_size > 1 ? array_idx - 1 : field_name_idx - 1;
+			format_buffer[topic_name_len] = '\0';
+			const char *topic_name = format_buffer;
 
 			// find the metadata
 			const orb_metadata *const *topics = orb_get_topics();
@@ -499,7 +485,5 @@ void orb_print_message_internal(const orb_metadata *meta, const void *data, bool
 				data_offset += found_topic->o_size;
 			}
 		}
-
-		format_idx = end_field_idx + 1;
 	}
 }

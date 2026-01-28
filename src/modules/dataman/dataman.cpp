@@ -65,12 +65,14 @@ __END_DECLS
 
 static constexpr int TASK_STACK_SIZE = 1420;
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* Private File based Operations */
 static ssize_t _file_write(dm_item_t item, unsigned index, const void *buf, size_t count);
 static ssize_t _file_read(dm_item_t item, unsigned index, void *buf, size_t count);
 static int  _file_clear(dm_item_t item);
 static int _file_initialize(unsigned max_offset);
 static void _file_shutdown();
+#endif
 
 /* Private Ram based Operations */
 static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_t count);
@@ -88,6 +90,7 @@ typedef struct dm_operations_t {
 	int (*wait)(px4_sem_t *sem);
 } dm_operations_t;
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 static constexpr dm_operations_t dm_file_operations = {
 	.write   = _file_write,
 	.read    = _file_read,
@@ -96,6 +99,7 @@ static constexpr dm_operations_t dm_file_operations = {
 	.shutdown = _file_shutdown,
 	.wait = px4_sem_wait,
 };
+#endif
 
 static constexpr dm_operations_t dm_ram_operations = {
 	.write   = _ram_write,
@@ -129,8 +133,12 @@ static unsigned g_func_counts[DM_NUMBER_OF_FUNCS];
 
 /* Table of the len of each item type including HDR size */
 static constexpr size_t g_per_item_size_with_hdr[DM_KEY_NUM_KEYS] = {
-	g_per_item_size[DM_KEY_SAFE_POINTS] + DM_SECTOR_HDR_SIZE,
-	g_per_item_size[DM_KEY_FENCE_POINTS] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_SAFE_POINTS_0] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_SAFE_POINTS_1] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_SAFE_POINTS_STATE] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_FENCE_POINTS_0] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_FENCE_POINTS_1] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_FENCE_POINTS_STATE] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_0] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_1] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_MISSION_STATE] + DM_SECTOR_HDR_SIZE,
@@ -145,9 +153,11 @@ static uint8_t dataman_clients_count = 1;
 static perf_counter_t _dm_read_perf{nullptr};
 static perf_counter_t _dm_write_perf{nullptr};
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* The data manager store file handle and file name */
 static const char *default_device_path = PX4_STORAGEDIR "/dataman";
 static char *k_data_manager_device_path = nullptr;
+#endif
 
 static enum {
 	BACKEND_NONE = 0,
@@ -237,6 +247,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_
 	return count;
 }
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* write to the data manager file */
 static ssize_t
 _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
@@ -314,6 +325,7 @@ _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 	/* All is well... return the number of user data written */
 	return count - DM_SECTOR_HDR_SIZE;
 }
+#endif
 
 /* Retrieve from the data manager RAM buffer*/
 static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count)
@@ -358,6 +370,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 	return buffer[0];
 }
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* Retrieve from the data manager file */
 static ssize_t
 _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
@@ -438,15 +451,13 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	/* Return the number of bytes of caller data read */
 	return buffer[0];
 }
+#endif
 
 static int  _ram_clear(dm_item_t item)
 {
 	if (item >= DM_KEY_NUM_KEYS) {
 		return -1;
 	}
-
-	int i;
-	int result = 0;
 
 	/* Get the offset of 1st item of this type */
 	int offset = calculate_offset(item, 0);
@@ -456,8 +467,10 @@ static int  _ram_clear(dm_item_t item)
 		return -1;
 	}
 
+	int result = 0;
+
 	/* Clear all items of this type */
-	for (i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
+	for (int i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
 		uint8_t *buf = &dm_operations_data.ram.data[offset];
 
 		if (buf > dm_operations_data.ram.data_end) {
@@ -472,14 +485,13 @@ static int  _ram_clear(dm_item_t item)
 	return result;
 }
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 static int
 _file_clear(dm_item_t item)
 {
 	if (item >= DM_KEY_NUM_KEYS) {
 		return -1;
 	}
-
-	int i, result = 0;
 
 	/* Get the offset of 1st item of this type */
 	int offset = calculate_offset(item, 0);
@@ -489,8 +501,10 @@ _file_clear(dm_item_t item)
 		return -1;
 	}
 
+	int result = 0;
+
 	/* Clear all items of this type */
-	for (i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
+	for (int i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
 		char buf[1];
 
 		if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
@@ -525,7 +539,9 @@ _file_clear(dm_item_t item)
 	fsync(dm_operations_data.file.fd);
 	return result;
 }
+#endif
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 static int
 _file_initialize(unsigned max_offset)
 {
@@ -565,29 +581,33 @@ _file_initialize(unsigned max_offset)
 			PX4_ERR("Failed writing compat: %d", ret);
 		}
 
-		for (uint32_t item = DM_KEY_SAFE_POINTS; item <= DM_KEY_MISSION_STATE; ++item) {
+		for (uint32_t item = DM_KEY_SAFE_POINTS_0; item <= DM_KEY_MISSION_STATE; ++item) {
 			g_dm_ops->clear((dm_item_t)item);
 		}
 
 		mission_s mission{};
 		mission.timestamp = hrt_absolute_time();
-		mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 		mission.count = 0;
 		mission.current_seq = 0;
+		mission.mission_id = 0u;
+		mission.geofence_id = 0u;
+		mission.safe_points_id = 0u;
 
 		mission_stats_entry_s stats;
 		stats.num_items = 0;
-		stats.update_counter = 1;
+		stats.opaque_id = 0;
 
 		g_dm_ops->write(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s));
-		g_dm_ops->write(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
-		g_dm_ops->write(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
+		g_dm_ops->write(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
+		g_dm_ops->write(DM_KEY_SAFE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
 	}
 
 	dm_operations_data.running = true;
 
 	return 0;
 }
+#endif
 
 static int
 _ram_initialize(unsigned max_offset)
@@ -608,12 +628,14 @@ _ram_initialize(unsigned max_offset)
 	return 0;
 }
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 static void
 _file_shutdown()
 {
 	close(dm_operations_data.file.fd);
 	dm_operations_data.running = false;
 }
+#endif
 
 static void
 _ram_shutdown()
@@ -627,9 +649,12 @@ task_main(int argc, char *argv[])
 {
 	/* Dataman can use disk or RAM */
 	switch (backend) {
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
+
 	case BACKEND_FILE:
 		g_dm_ops = &dm_file_operations;
 		break;
+#endif
 
 	case BACKEND_RAM:
 		g_dm_ops = &dm_ram_operations;
@@ -674,10 +699,13 @@ task_main(int argc, char *argv[])
 	}
 
 	switch (backend) {
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
+
 	case BACKEND_FILE:
 		PX4_INFO("data manager file '%s' size is %u bytes", k_data_manager_device_path, max_offset);
 
 		break;
+#endif
 
 	case BACKEND_RAM:
 		PX4_INFO("data manager RAM size is %u bytes", max_offset);
@@ -817,8 +845,6 @@ end:
 static int
 start()
 {
-	int task;
-
 	px4_sem_init(&g_init_sema, 1, 0);
 
 	/* g_init_sema use case is a signal */
@@ -826,9 +852,9 @@ start()
 	px4_sem_setprotocol(&g_init_sema, SEM_PRIO_NONE);
 
 	/* start the worker thread with low priority for disk IO */
-	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
-				       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
-				       nullptr)) < 0) {
+	if (px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
+			       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
+			       nullptr) < 0) {
 		px4_sem_destroy(&g_init_sema);
 		PX4_ERR("task start failed");
 		return -1;
@@ -867,7 +893,7 @@ usage()
 		R"DESCR_STR(
 ### Description
 Module to provide persistent storage for the rest of the system in form of a simple database through a C API.
-Multiple backends are supported:
+Multiple backends are supported depending on the board:
 - a file (eg. on the SD card)
 - RAM (this is obviously not persistent)
 
@@ -877,17 +903,17 @@ Each type has a specific type and a fixed maximum amount of storage items, so th
 ### Implementation
 Reading and writing a single item is always atomic.
 
-**DM_KEY_FENCE_POINTS** and **DM_KEY_SAFE_POINTS** items: the first data element is a `mission_stats_entry_s` struct,
-which stores the number of items for these types. These items are always updated atomically in one transaction (from
-the mavlink mission manager).
-
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("dataman", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Storage file", true);
+#endif
 	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Use RAM backend (NOT persistent)", true);
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 	PRINT_MODULE_USAGE_PARAM_COMMENT("The options -f and -r are mutually exclusive. If nothing is specified, a file 'dataman' is used");
+#endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -930,9 +956,14 @@ dataman_main(int argc, char *argv[])
 					return -1;
 				}
 
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 				backend = BACKEND_FILE;
 				k_data_manager_device_path = strdup(dmoptarg);
 				PX4_INFO("dataman file set to: %s", k_data_manager_device_path);
+#else
+				backend = BACKEND_RAM;
+				PX4_WARN("dataman does not support persistent storage. Falling back to RAM.");
+#endif
 				break;
 
 			case 'r':
@@ -951,16 +982,22 @@ dataman_main(int argc, char *argv[])
 		}
 
 		if (backend == BACKEND_NONE) {
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 			backend = BACKEND_FILE;
 			k_data_manager_device_path = strdup(default_device_path);
+#else
+			backend = BACKEND_RAM;
+#endif
 		}
 
 		start();
 
 		if (!is_running()) {
 			PX4_ERR("dataman start failed");
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 			free(k_data_manager_device_path);
 			k_data_manager_device_path = nullptr;
+#endif
 			return -1;
 		}
 
@@ -976,8 +1013,10 @@ dataman_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		stop();
+#ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 		free(k_data_manager_device_path);
 		k_data_manager_device_path = nullptr;
+#endif
 
 	} else if (!strcmp(argv[1], "status")) {
 		status();
@@ -991,7 +1030,7 @@ dataman_main(int argc, char *argv[])
 }
 
 static_assert(sizeof(dataman_request_s::data) == sizeof(dataman_response_s::data), "request and response data are not the same size");
-static_assert(sizeof(dataman_response_s::data) >= MISSION_SAFE_POINT_SIZE, "mission_safe_point_s can't fit in the response data");
+static_assert(sizeof(dataman_response_s::data) >= MISSION_SAFE_POINT_SIZE, "mission_item_s can't fit in the response data");
 static_assert(sizeof(dataman_response_s::data) >= MISSION_FENCE_POINT_SIZE, "mission_fance_point_s can't fit in the response data");
 static_assert(sizeof(dataman_response_s::data) >= MISSION_ITEM_SIZE, "mission_item_s can't fit in the response data");
 static_assert(sizeof(dataman_response_s::data) >= MISSION_SIZE, "mission_s can't fit in the response data");

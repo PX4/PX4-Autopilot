@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file GY_US42.cpp
+ * @file GY_US42.hpp
  *
  * Driver for the GY-US42 sonar range finder on I2C.
  */

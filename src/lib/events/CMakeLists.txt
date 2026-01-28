@@ -35,13 +35,21 @@ px4_add_git_submodule(TARGET git_libevents PATH "libevents")
 
 get_property(all_px4_src_files GLOBAL PROPERTY PX4_SRC_FILES)
 
+# Use relative path list to work around Makefile command character limit
+set(all_px4_src_files_relative "")
+foreach(f ${all_px4_src_files})
+	file(RELATIVE_PATH relative_path ${PX4_SOURCE_DIR}/src ${f})
+	list(APPEND all_px4_src_files_relative "${relative_path}")
+endforeach(f)
+
 set(generated_events_dir ${PX4_BINARY_DIR}/events)
 set(generated_events_px4_file ${generated_events_dir}/px4.json)
 set(generated_events_common_enums_file ${generated_events_dir}/common_with_enums.json)
 add_custom_command(OUTPUT ${generated_events_px4_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_events_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_events.py
-		--src-path ${all_px4_src_files}
+		--base-path ${PX4_SOURCE_DIR}/src
+		--src-path ${all_px4_src_files_relative}
 		--json ${generated_events_px4_file} #--verbose
 	DEPENDS
 		${all_px4_src_files}
@@ -110,3 +118,12 @@ add_custom_command(OUTPUT ${generated_events_header}
 )
 add_custom_target(events_header DEPENDS ${generated_events_header})
 add_dependencies(prebuild_targets events_header)
+
+# Build the interface(s)
+if (${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT)
+	list(APPEND EXTRA_SRCS events_ioctl.cpp)
+	add_library(usr_events usr_events.cpp)
+	add_dependencies(usr_events prebuild_targets)
+endif()
+
+px4_add_library(events events.cpp ${EXTRA_SRCS})

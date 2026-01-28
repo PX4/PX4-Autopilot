@@ -126,8 +126,8 @@ AirshipAttitudeControl::Run()
 	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 
 		/* run the rate controller immediately after a gyro update */
-		publishTorqueSetpoint(angular_velocity.timestamp_sample);
 		publishThrustSetpoint(angular_velocity.timestamp_sample);
+		publishTorqueSetpoint(angular_velocity.timestamp_sample);
 
 		/* check for updates in manual control topic */
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);

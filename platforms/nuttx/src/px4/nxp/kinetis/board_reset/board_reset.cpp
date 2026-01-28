@@ -38,6 +38,7 @@
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/shutdown.h>
 #include <errno.h>
 #include <nuttx/board.h>
 
@@ -72,7 +73,7 @@ static int board_reset_enter_bootloader()
 
 int board_reset(int status)
 {
-	if (status == 1) {
+	if (status == REBOOT_TO_BOOTLOADER) {
 		board_reset_enter_bootloader();
 	}
 

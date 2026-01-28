@@ -2,6 +2,26 @@
 
 #include <motion_planning/PositionSmoothing.hpp>
 
+TEST(PositionSmoothingBasicTest, AllZeroCase)
+{
+	PositionSmoothing position_smoothing;
+	PositionSmoothing::PositionSmoothingSetpoints out;
+
+	position_smoothing.generateSetpoints(
+		Vector3f(),
+	{Vector3f(), Vector3f(), Vector3f()},
+	Vector3f(),
+	0.f,
+	false,
+	out
+	);
+
+	EXPECT_EQ(out.jerk, Vector3f());
+	EXPECT_EQ(out.acceleration, Vector3f());
+	EXPECT_EQ(out.velocity, Vector3f());
+	EXPECT_EQ(out.position, Vector3f());
+	EXPECT_EQ(out.unsmoothed_velocity, Vector3f());
+}
 
 static constexpr float MAX_JERK = 4.f;
 static constexpr float MAX_ACCELERATION = 3.f;
@@ -23,7 +43,7 @@ public:
 
 	PositionSmoothingTest()
 	{
-		_position_smoothing.setMaxJerk({MAX_JERK, MAX_JERK, MAX_JERK});
+		_position_smoothing.setMaxJerk(MAX_JERK);
 		_position_smoothing.setMaxAcceleration({MAX_ACCELERATION, MAX_ACCELERATION, MAX_ACCELERATION});
 		_position_smoothing.setMaxVelocity({MAX_VELOCITY, MAX_VELOCITY, MAX_VELOCITY});
 		_position_smoothing.setMaxAllowedHorizontalError(MAX_ALLOWED_HOR_ERR);
@@ -33,23 +53,6 @@ public:
 		_position_smoothing.setTargetAcceptanceRadius(TARGET_ACCEPTANCE_RADIUS);
 
 		_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, {0.f, 0.f, 0.f});
-	}
-
-	static bool _vectorNear(const Vector3f &a, const Vector3f &b, float EPS = 1e-4f)
-	{
-		return (fabsf(a(0) - b(0)) < EPS) && (fabsf(a(1) - b(1)) < EPS) && (fabsf(a(2) - b(2)) < EPS);
-	}
-
-	static void expectVectorEqual(const Vector3f &expected, const Vector3f &value, const char *name, float EPS)
-	{
-		EXPECT_TRUE(_vectorNear(expected, value, EPS)) <<
-				"Vector \"" << name << "\" expected [" <<
-				expected(0) << ", " <<
-				expected(1) << ", " <<
-				expected(2) << "] has value [" <<
-				value(0) << ", " <<
-				value(1) << ", " <<
-				value(2) << "]\n";
 	}
 
 	static void expectDynamicsLimitsRespected(const PositionSmoothing::PositionSmoothingSetpoints &setpoints)
@@ -69,7 +72,6 @@ public:
 
 TEST_F(PositionSmoothingTest, reachesTargetPositionSetpoint)
 {
-	const float EPS = 1e-4;
 	const int N_ITER = 2000;
 	const float DELTA_T = 0.02f;
 	const Vector3f INITIAL_POSITION{0.f, 0.f, 0.f};
@@ -96,20 +98,19 @@ TEST_F(PositionSmoothingTest, reachesTargetPositionSetpoint)
 		position = out.position;
 		expectDynamicsLimitsRespected(out);
 
-		if ((position - TARGET).length() < EPS) {
+		if (position == TARGET) {
 			printf("Converged in %d iterations\n", iteration);
 			break;
 		}
 	}
 
-	expectVectorEqual(TARGET, position, "position", EPS);
+	EXPECT_EQ(TARGET, position);
 	EXPECT_LT(iteration, N_ITER) << "Took too long to converge\n";
 }
 
 
 TEST_F(PositionSmoothingTest, reachesTargetVelocityIntegration)
 {
-	const float EPS = 1e-4;
 	const int N_ITER = 2000;
 	const float DELTA_T = 0.02f;
 	const Vector3f INITIAL_POSITION{0.f, 0.f, 0.f};
@@ -137,28 +138,30 @@ TEST_F(PositionSmoothingTest, reachesTargetVelocityIntegration)
 		expectDynamicsLimitsRespected(out);
 
 
-		if ((position - TARGET).length() < EPS) {
+		if (position == TARGET) {
 			printf("Converged in %d iterations\n", iteration);
 			break;
 		}
 	}
 
-	expectVectorEqual(TARGET, position, "position", EPS);
+	EXPECT_EQ(TARGET, position);
 	EXPECT_LT(iteration, N_ITER) << "Took too long to converge\n";
 }
 
 
 TEST_F(PositionSmoothingTest, reachesTargetInitialVelocity)
 {
-	const float EPS = 1e-4;
-	const int N_ITER = 2000;
+	const int N_ITER = 20000;
 	const float DELTA_T = 0.02f;
 	const Vector3f INITIAL_POSITION{0.f, 0.f, 0.f};
 	const Vector3f TARGET{12.f, 17.f, 8.f};
 	const Vector3f NEXT_TARGET{8.f, 12.f, 80.f};
 
+	const float XY_ACC_RAD = 10.f;
+	const float Z_ACC_RAD = 0.8f;
 
-	Vector3f waypoints[3] = {INITIAL_POSITION, TARGET, NEXT_TARGET};
+
+	Vector3f waypoints[3] = {INITIAL_POSITION, TARGET, TARGET};
 	Vector3f ff_velocity{1.f, 0.1f, 0.3f};
 
 	Vector3f position{0.f, 0.f, 0.f};
@@ -180,12 +183,13 @@ TEST_F(PositionSmoothingTest, reachesTargetInitialVelocity)
 		ff_velocity = {0.f, 0.f, 0.f};
 		expectDynamicsLimitsRespected(out);
 
-		if ((position - TARGET).length() < EPS) {
+		if (Vector2f(position.xy() - TARGET.xy()).norm() < XY_ACC_RAD && fabsf(position(2) - TARGET(2)) < Z_ACC_RAD) {
 			printf("Converged in %d iterations\n", iteration);
 			break;
 		}
 	}
 
-	expectVectorEqual(TARGET, position, "position", EPS);
+	EXPECT_LT(Vector2f(position.xy() - TARGET.xy()).norm(), XY_ACC_RAD);
+	EXPECT_LT(fabsf(position(2) - TARGET(2)), Z_ACC_RAD);
 	EXPECT_LT(iteration, N_ITER) << "Took too long to converge\n";
 }

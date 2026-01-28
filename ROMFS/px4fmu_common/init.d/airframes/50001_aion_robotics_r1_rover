@@ -1,0 +1,55 @@
+#!/bin/sh
+#
+# @name Aion Robotics R1 UGV
+#
+# @url https://docs.px4.io/main/en/complete_vehicles_rover/aion_r1.html
+#
+# @type Rover
+# @class Rover
+#
+
+. ${R}etc/init.d/rc.rover_differential_defaults
+
+param set-default BAT1_N_CELLS 4
+
+# Set geometry & output configration
+param set-default RBCLW_ADDRESS 128
+param set-default RBCLW_FUNC1 101
+param set-default RBCLW_FUNC2 102
+param set-default RBCLW_REV 1 # reverse right wheels
+
+
+param set-default NAV_ACC_RAD 0.5
+
+# Differential Parameters
+param set-default RD_WHEEL_TRACK 0.3
+param set-default RD_TRANS_DRV_TRN 0.785398
+param set-default RD_TRANS_TRN_DRV 0.139626
+
+# Rover Control Parameters
+param set-default RO_ACCEL_LIM 3
+param set-default RO_DECEL_LIM 4
+param set-default RO_JERK_LIM 5
+param set-default RO_MAX_THR_SPEED 1.9
+
+# Rover Rate Control Parameters
+param set-default RO_YAW_RATE_I 0.1
+param set-default RO_YAW_RATE_P 0.1
+param set-default RO_YAW_RATE_LIM 250
+param set-default RO_YAW_ACCEL_LIM 600
+param set-default RO_YAW_DECEL_LIM 600
+param set-default RO_YAW_RATE_CORR 2.7
+
+# Rover Attitude Control Parameters
+param set-default RO_YAW_P 2.5
+
+# Rover Velocity Control Parameters
+param set-default RO_SPEED_LIM 1.6
+param set-default RO_SPEED_I 0.01
+param set-default RO_SPEED_P 0.1
+param set-default RO_SPEED_RED 1
+
+# Pure Pursuit parameters
+param set-default PP_LOOKAHD_GAIN 1
+param set-default PP_LOOKAHD_MAX 10
+param set-default PP_LOOKAHD_MIN 1

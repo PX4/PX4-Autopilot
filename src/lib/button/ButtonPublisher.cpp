@@ -70,9 +70,9 @@ void ButtonPublisher::pairingButtonTriggerEvent()
 	led_control_s led_control{};
 	led_control.led_mask = 0xff;
 	led_control.mode = led_control_s::MODE_BLINK_FAST;
-	led_control.color = led_control_s::COLOR_GREEN;
-	led_control.num_blinks = 1;
-	led_control.priority = 0;
+	led_control.color = led_control_s::COLOR_WHITE;
+	led_control.num_blinks = 20;
+	led_control.priority = 2;
 	led_control.timestamp = hrt_absolute_time();
 	_led_control_pub.publish(led_control);
 

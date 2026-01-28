@@ -46,21 +46,7 @@ FeasibilityChecker::FeasibilityChecker() :
 
 void FeasibilityChecker::reset()
 {
-
-	_is_landed = false;
-	_home_alt_msl = NAN;
-	_home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
-	_current_position_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
-	_vehicle_type = VehicleType::RotaryWing;
-
-	_mission_validity_failed = false;
-	_takeoff_failed = false;
-	_land_pattern_validity_failed = false;
-	_distance_first_waypoint_failed = false;
-	_distance_between_waypoints_failed = false;
-	_below_home_alt_failed = false;
-	_fixed_wing_land_approach_failed = false;
-	_takeoff_land_available_failed = false;
+	_checks_failed.value = 0;
 
 	_found_item_with_position = false;
 	_has_vtol_takeoff = false;
@@ -87,10 +73,16 @@ void FeasibilityChecker::updateData()
 
 		if (home.valid_hpos) {
 			_home_lat_lon = matrix::Vector2d(home.lat, home.lon);
+
+		} else {
+			_home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 		}
 
 		if (home.valid_alt) {
 			_home_alt_msl = home.alt;
+
+		} else {
+			_home_alt_msl = NAN;
 		}
 	}
 
@@ -120,10 +112,10 @@ void FeasibilityChecker::updateData()
 		_is_landed = land_detected.landed;
 	}
 
-	if (_vehicle_global_position_sub.updated()) {
-		vehicle_global_position_s vehicle_global_position = {};
-		_vehicle_global_position_sub.copy(&vehicle_global_position);
-		_current_position_lat_lon = matrix::Vector2d(vehicle_global_position.lat, vehicle_global_position.lon);
+	if (_rtl_status_sub.updated()) {
+		rtl_status_s rtl_status = {};
+		_rtl_status_sub.copy(&rtl_status);
+		_has_vtol_approach = rtl_status.has_vtol_approach;
 	}
 
 	param_t handle = param_find("FW_LND_ANG");
@@ -158,11 +150,11 @@ bool FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int
 		updateData();
 	}
 
-	if (!_mission_validity_failed) {
-		_mission_validity_failed = !checkMissionItemValidity(mission_item, current_index);
+	if (!_checks_failed.flags.mission_validity_failed) {
+		_checks_failed.flags.mission_validity_failed = !checkMissionItemValidity(mission_item, current_index);
 	}
 
-	if (_mission_validity_failed) {
+	if (_checks_failed.flags.mission_validity_failed) {
 		// if a mission item is not valid then abort the other checks
 		return false;
 	}
@@ -180,7 +172,7 @@ bool FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int
 	}
 
 	if (current_index == total_count - 1) {
-		_takeoff_land_available_failed = !checkTakeoffLandAvailable();
+		_checks_failed.flags.takeoff_land_available_failed = !checkTakeoffLandAvailable();
 	}
 
 	_mission_item_previous = mission_item;
@@ -191,43 +183,39 @@ bool FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int
 void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int current_index)
 {
 
-	if (!_distance_between_waypoints_failed) {
-		_distance_between_waypoints_failed = !checkDistancesBetweenWaypoints(mission_item);
+	if (!_checks_failed.flags.distance_between_waypoints_failed) {
+		_checks_failed.flags.distance_between_waypoints_failed = !checkDistancesBetweenWaypoints(mission_item);
 	}
 
-	if (!_distance_first_waypoint_failed) {
-		_distance_first_waypoint_failed = !checkHorizontalDistanceToFirstWaypoint(mission_item);
+	if (!_first_waypoint_found) {
+		checkHorizontalDistanceToFirstWaypoint(mission_item);
 	}
 
-	if (!_below_home_alt_failed) {
-		_below_home_alt_failed = !checkIfBelowHomeAltitude(mission_item, current_index);
+	if (!_checks_failed.flags.takeoff_failed) {
+		_checks_failed.flags.takeoff_failed = !checkTakeoff(mission_item);
 	}
 
-	if (!_takeoff_failed) {
-		_takeoff_failed = !checkTakeoff(mission_item);
-	}
-
-	if (!_items_fit_to_vehicle_type_failed) {
-		_items_fit_to_vehicle_type_failed = !checkItemsFitToVehicleType(mission_item);
+	if (!_checks_failed.flags.items_fit_to_vehicle_type_failed) {
+		_checks_failed.flags.items_fit_to_vehicle_type_failed = !checkItemsFitToVehicleType(mission_item);
 	}
 }
 
 void FeasibilityChecker::doVtolChecks(mission_item_s &mission_item, const int current_index, const int last_index)
 {
-	if (!_land_pattern_validity_failed) {
-		_land_pattern_validity_failed = !checkLandPatternValidity(mission_item, current_index, last_index);
+	if (!_checks_failed.flags.land_pattern_validity_failed) {
+		_checks_failed.flags.land_pattern_validity_failed = !checkLandPatternValidity(mission_item, current_index, last_index);
 	}
 
 }
 
 void FeasibilityChecker::doFixedWingChecks(mission_item_s &mission_item, const int current_index, const int last_index)
 {
-	if (!_land_pattern_validity_failed) {
-		_land_pattern_validity_failed = !checkLandPatternValidity(mission_item, current_index, last_index);
+	if (!_checks_failed.flags.land_pattern_validity_failed) {
+		_checks_failed.flags.land_pattern_validity_failed = !checkLandPatternValidity(mission_item, current_index, last_index);
 	}
 
-	if (!_fixed_wing_land_approach_failed) {
-		_fixed_wing_land_approach_failed = !checkFixedWindLandApproach(mission_item, current_index);
+	if (!_checks_failed.flags.fixed_wing_land_approach_failed) {
+		_checks_failed.flags.fixed_wing_land_approach_failed = !checkFixedWindLandApproach(mission_item, current_index);
 	}
 
 }
@@ -269,12 +257,14 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_CONDITION_GATE &&
 	    mission_item.nav_cmd != NAV_CMD_DO_WINCH &&
 	    mission_item.nav_cmd != NAV_CMD_DO_GRIPPER &&
+	    mission_item.nav_cmd != NAV_CMD_DO_AUTOTUNE_ENABLE &&
 	    mission_item.nav_cmd != NAV_CMD_DO_JUMP &&
 	    mission_item.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_HOME &&
 	    mission_item.nav_cmd != NAV_CMD_DO_LAND_START &&
 	    mission_item.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
 	    mission_item.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
+	    mission_item.nav_cmd != NAV_CMD_COMPONENT_ARM_DISARM &&
 	    mission_item.nav_cmd != NAV_CMD_IMAGE_START_CAPTURE &&
 	    mission_item.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
 	    mission_item.nav_cmd != NAV_CMD_VIDEO_START_CAPTURE &&
@@ -293,6 +283,7 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_OBLIQUE_SURVEY &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
 	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
+	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_SOURCE &&
 	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_ZOOM &&
 	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
 	    mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
@@ -378,6 +369,7 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 					     mission_item.nav_cmd != NAV_CMD_OBLIQUE_SURVEY &&
 					     mission_item.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
+					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_SOURCE &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_ZOOM &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
 					     mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION);
@@ -582,17 +574,22 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 		break;
 
 	case 4:
-		result = _has_takeoff == _landing_valid;
+		result = hasMissionBothOrNeitherTakeoffAndLanding();
 
-		if (!result && (_has_takeoff)) {
-			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Landing item or remove Takeoff.\t");
-			events::send(events::ID("navigator_mis_add_land_or_rm_to"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: Add Landing item or remove Takeoff");
+		break;
 
-		} else if (!result && (_landing_valid)) {
-			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Takeoff item or remove Landing.\t");
-			events::send(events::ID("navigator_mis_add_to_or_rm_land"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: Add Takeoff item or remove Landing");
+	case 5:
+		if (_is_landed) {
+			result = hasMissionBothOrNeitherTakeoffAndLanding();
+
+		} else if (!_has_vtol_approach) {
+			result = _landing_valid;
+
+			if (!result) {
+				mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Landing waypoint/pattern required.");
+				events::send(events::ID("feasibility_mis_in_air_landing_req"), {events::Log::Error, events::LogInternal::Info},
+					     "Mission rejected: Landing waypoint/pattern required");
+			}
 		}
 
 		break;
@@ -605,35 +602,53 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 	return result;
 }
 
+bool FeasibilityChecker::hasMissionBothOrNeitherTakeoffAndLanding()
+{
+	bool result{_has_takeoff == _landing_valid};
+
+	if (!result && (_has_takeoff)) {
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Landing item or remove Takeoff.\t");
+		events::send(events::ID("navigator_mis_add_land_or_rm_to"), {events::Log::Error, events::LogInternal::Info},
+			     "Mission rejected: Add Landing item or remove Takeoff");
+
+	} else if (!result && (_landing_valid)) {
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Takeoff item or remove Landing.\t");
+		events::send(events::ID("navigator_mis_add_to_or_rm_land"), {events::Log::Error, events::LogInternal::Info},
+			     "Mission rejected: Add Takeoff item or remove Landing");
+	}
+
+	return result;
+}
 
 bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
 	if (_param_mis_dist_1wp > FLT_EPSILON &&
-	    (_current_position_lat_lon.isAllFinite()) && !_first_waypoint_found &&
+	    (_home_lat_lon.isAllFinite()) &&
 	    MissionBlock::item_contains_position(mission_item)) {
 
 		_first_waypoint_found = true;
 
-		float dist_to_1wp_from_current_pos = 1e6f;
+		const float dist_to_1wp_from_home_pos = get_distance_to_next_waypoint(
+				mission_item.lat, mission_item.lon,
+				_home_lat_lon(0), _home_lat_lon(1));
 
-		if (_current_position_lat_lon.isAllFinite()) {
-			dist_to_1wp_from_current_pos = get_distance_to_next_waypoint(
-							       mission_item.lat, mission_item.lon,
-							       _current_position_lat_lon(0), _current_position_lat_lon(1));
-		}
-
-		if (dist_to_1wp_from_current_pos < _param_mis_dist_1wp) {
+		if (dist_to_1wp_from_home_pos < _param_mis_dist_1wp) {
 
 			return true;
 
 		} else {
 			/* item is too far from current position */
 			mavlink_log_critical(_mavlink_log_pub,
-					     "First waypoint too far away: %dm, %d max\t",
-					     (int)dist_to_1wp_from_current_pos, (int)_param_mis_dist_1wp);
-			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Error, events::LogInternal::Info},
-							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp_from_current_pos,
-							 (uint32_t)_param_mis_dist_1wp);
+					     "First waypoint far away from home: %dm. Correct mission loaded?\t",
+					     (int)dist_to_1wp_from_home_pos);
+			/* EVENT
+			* @description
+			* <profile name="dev">
+			* This check can be configured via <param>MIS_DIST_1WP</param> parameter.
+			* </profile>
+			*/
+			events::send<uint32_t>(events::ID("navigator_mis_first_wp_far"), {events::Log::Warning, events::LogInternal::Info},
+					       "First waypoint far away from Home: {1m} Correct mission loaded?", (uint32_t)dist_to_1wp_from_home_pos);
 
 			return false;
 		}
@@ -679,21 +694,6 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 	_last_cmd = mission_item.nav_cmd;
 
 	/* We ran through all waypoints and have not found any distances between waypoints that are too far. */
-	return true;
-}
-
-bool FeasibilityChecker::checkIfBelowHomeAltitude(const mission_item_s &mission_item, const int current_index)
-{
-	/* calculate the global waypoint altitude */
-	float wp_alt = (mission_item.altitude_is_relative) ? mission_item.altitude + _home_alt_msl : mission_item.altitude;
-
-	if (PX4_ISFINITE(_home_alt_msl) && _home_alt_msl > wp_alt && MissionBlock::item_contains_position(mission_item)) {
-
-		mavlink_log_critical(_mavlink_log_pub, "Warning: Waypoint %d below home\t", current_index + 1);
-		events::send<int16_t>(events::ID("navigator_mis_wp_below_home"), {events::Log::Warning, events::LogInternal::Info},
-				      "Waypoint {1} below home", current_index + 1);
-	}
-
 	return true;
 }
 

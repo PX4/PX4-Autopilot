@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
-* @file sled_dma.cpp
+* @file srgbled_dma.cpp
 * Author: David.Sidrane@Nscdg.com
 *
 *  This is a DMA based driver for the the neopixel class of serial RGB LEDs.

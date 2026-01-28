@@ -202,7 +202,7 @@ void LoadMon::cpuload()
 			}
 		}
 
-		fseek(_proc_fd, 0, SEEK_END);
+		fseek(_proc_fd, 0, SEEK_SET);
 
 		if (parsedCount == 5) {
 			int32_t kb_main_cached = kb_page_cache + kb_slab_reclaimable;
@@ -229,6 +229,9 @@ void LoadMon::cpuload()
 	struct mallinfo mem = mallinfo();
 	cpuload.ram_usage = (float)mem.uordblks / mem.arena;
 	cpuload.load = 1.f - interval_idletime / interval;
+#elif defined(__PX4_QURT)
+	cpuload.ram_usage = 0.0f;
+	cpuload.load = px4muorb_get_cpu_load() / 100.0f;
 #endif
 	cpuload.timestamp = hrt_absolute_time();
 

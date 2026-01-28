@@ -33,12 +33,48 @@ then
 fi
 
 #
+# Differential Rover setup.
+#
+if [ $VEHICLE_TYPE = rover_differential ]
+then
+	# Start differential drive rover apps.
+	. ${R}etc/init.d/rc.rover_differential_apps
+fi
+
+#
+# Ackermann Rover setup.
+#
+if [ $VEHICLE_TYPE = rover_ackermann ]
+then
+	# Start ackermann drive rover apps.
+	. ${R}etc/init.d/rc.rover_ackermann_apps
+fi
+
+#
+# Mecanum Rover setup.
+#
+if [ $VEHICLE_TYPE = rover_mecanum ]
+then
+	# Start mecanum drive rover apps.
+	. ${R}etc/init.d/rc.rover_mecanum_apps
+fi
+
+#
 # VTOL setup.
 #
 if [ $VEHICLE_TYPE = vtol ]
 then
 	# Start standard vtol apps.
 	. ${R}etc/init.d/rc.vtol_apps
+fi
+
+#
+# Spacecraft setup.
+#
+if [ $VEHICLE_TYPE = spacecraft ]
+then
+	# Start standard multicopter apps.
+	. ${R}etc/init.d/rc.sc_apps
 fi
 
 #
@@ -67,5 +103,4 @@ fi
 if [ $VEHICLE_TYPE = none ]
 then
 	echo "No autostart ID found"
-	ekf2 start &
 fi

@@ -62,10 +62,6 @@ VectorNav::VectorNav(const char *port) :
 		v = 0;
 		param_set(param_find("EKF2_EN"), &v);
 
-		// SYS_MC_EST_GROUP 0 (disabled)
-		v = 0;
-		param_set(param_find("SYS_MC_EST_GROUP"), &v);
-
 		// SENS_IMU_MODE (VN handles sensor selection)
 		v = 0;
 		param_set(param_find("SENS_IMU_MODE"), &v);
@@ -277,11 +273,11 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 			const double lat = positionEstimatedLla.c[0];
 			const double lon = positionEstimatedLla.c[1];
-			const float alt = positionEstimatedLla.c[2];
+			const float alt_ellipsoid = positionEstimatedLla.c[2];
 
 			if (!_pos_ref.isInitialized()) {
 				_pos_ref.initReference(lat, lon, time_now_us);
-				_gps_alt_ref = alt;
+				_gps_alt_ref = alt_ellipsoid;
 			}
 
 			const Vector2f pos_ned = _pos_ref.project(lat, lon);
@@ -296,7 +292,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 			local_position.x = pos_ned(0);
 			local_position.y = pos_ned(1);
-			local_position.z = -(alt - _gps_alt_ref);
+			local_position.z = -(alt_ellipsoid - _gps_alt_ref);
 
 			local_position.vx = velocityEstimatedNed.c[0];
 			local_position.vy = velocityEstimatedNed.c[1];
@@ -332,7 +328,8 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			local_position.vxy_max = INFINITY;
 			local_position.vz_max = INFINITY;
 			local_position.hagl_min = INFINITY;
-			local_position.hagl_max = INFINITY;
+			local_position.hagl_max_z = INFINITY;
+			local_position.hagl_max_xy = INFINITY;
 
 			local_position.unaided_heading = NAN;
 			local_position.timestamp = hrt_absolute_time();
@@ -345,8 +342,10 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			global_position.timestamp_sample = time_now_us;
 			global_position.lat = lat;
 			global_position.lon = lon;
-			global_position.alt = alt;
-			global_position.alt = alt;
+			global_position.lat_lon_valid = true;
+			global_position.alt = alt_ellipsoid; // AMSL altitude is not available
+			global_position.alt_ellipsoid = alt_ellipsoid;
+			global_position.alt_valid = true;
 
 			global_position.eph = positionUncertaintyEstimated;
 			global_position.epv = positionUncertaintyEstimated;
@@ -354,6 +353,35 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			global_position.timestamp = hrt_absolute_time();
 			_global_position_pub.publish(global_position);
 			perf_count(_global_position_pub_interval_perf);
+		}
+
+		// publish estimator_status (VN_MODE 1 only)
+		if (_param_vn_mode.get() == 1) {
+
+			estimator_status_s estimator_status{};
+			estimator_status.timestamp_sample = time_now_us;
+
+			float test_ratio = 0.f;
+
+			if (mode_aligning) {
+				test_ratio = 0.99f;
+
+			} else if (mode_tracking) {
+				// very good
+				test_ratio = 0.1f;
+			}
+
+			estimator_status.hdg_test_ratio = test_ratio;
+			estimator_status.vel_test_ratio = test_ratio;
+			estimator_status.pos_test_ratio = test_ratio;
+			estimator_status.hgt_test_ratio = test_ratio;
+
+			estimator_status.accel_device_id = _px4_accel.get_device_id();
+			estimator_status.gyro_device_id = _px4_gyro.get_device_id();
+
+			estimator_status.timestamp = hrt_absolute_time();
+			_estimator_status_pub.publish(estimator_status);
+
 		}
 	}
 
@@ -416,10 +444,11 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			sensor_gps.altitude_msl_m = positionGpsLla.c[2];
 			sensor_gps.altitude_ellipsoid_m = sensor_gps.altitude_msl_m;
 
-			sensor_gps.vel_ned_valid = true;
+			sensor_gps.vel_m_s = matrix::Vector3f(velocityGpsNed.c).length();
 			sensor_gps.vel_n_m_s = velocityGpsNed.c[0];
 			sensor_gps.vel_e_m_s = velocityGpsNed.c[1];
 			sensor_gps.vel_d_m_s = velocityGpsNed.c[2];
+			sensor_gps.vel_ned_valid = true;
 
 			sensor_gps.hdop = dop.hDOP;
 			sensor_gps.vdop = dop.vDOP;
@@ -806,7 +835,7 @@ Serial bus driver for the VectorNav VN-100, VN-200, VN-300.
 
 Most boards are configured to enable/start the driver on a specified UART using the SENS_VN_CFG parameter.
 
-Setup/usage information: https://docs.px4.io/master/en/sensor/vectornav.html
+Setup/usage information: https://docs.px4.io/main/en/sensor/vectornav.html
 
 ### Examples
 

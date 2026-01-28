@@ -146,7 +146,7 @@ private:
 	bool _has_replay_data{false};
 
 	uint64_t _current_replay_data_index{0};
-	uint64_t _time{0};	// microseconds
+	uint64_t _time{0}; // microseconds
 
 	Dcmf _R_body_to_world{};
 };

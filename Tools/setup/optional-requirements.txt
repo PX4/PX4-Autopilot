@@ -1,1 +1,2 @@
+pyelftools>=0.32,<1
 symforce>=0.9.0

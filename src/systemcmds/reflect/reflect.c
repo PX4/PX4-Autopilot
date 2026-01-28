@@ -121,7 +121,9 @@ reflect_main(int argc, char *argv[])
 		}
 
 		if (n > 0) {
-			write(1, buf, n);
+			if (write(1, buf, n) < 0) {
+				return -1;
+			}
 		}
 
 		total += n;

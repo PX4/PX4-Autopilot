@@ -1,0 +1,13 @@
+{
+    "board_id": 5600,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the ZeroOneX6 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "ZeroOneX6",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1966080,
+    "git_identity": "",
+    "board_revision": 0
+}

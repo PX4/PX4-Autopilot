@@ -38,4 +38,3 @@ px4_add_module(
 		rpi_rc_in.cpp
 	DEPENDS
 	)
-

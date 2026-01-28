@@ -25,6 +25,7 @@ set(COMMON_KCONFIG_ENV_SETTINGS
 	TOOLCHAIN=${CMAKE_TOOLCHAIN_FILE}
 	ARCHITECTURE=${CMAKE_SYSTEM_PROCESSOR}
 	ROMFSROOT=${config_romfs_root}
+	BASE_DEFCONFIG=${BOARD_CONFIG}
 )
 
 set(config_user_list)
@@ -34,7 +35,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	# Depend on BOARD_DEFCONFIG so that we reconfigure on config change
 	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BOARD_DEFCONFIG})
 
-	if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "recovery" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
+	if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "performance-test" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
 		# Generate boardconfig from saved defconfig
 		execute_process(
 			COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
@@ -49,6 +50,15 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/merge_config.py Kconfig ${BOARD_CONFIG} ${PX4_BOARD_DIR}/default.px4board ${BOARD_DEFCONFIG}
 			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 			OUTPUT_VARIABLE DUMMY_RESULTS
+		)
+	endif()
+
+	if(${LABEL} MATCHES "allyes")
+		message(AUTHOR_WARNING "allyes build: allyes is for CI coverage and not for use in production")
+		execute_process(
+			COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
+			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/allyesconfig.py
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 		)
 	endif()
 
@@ -73,12 +83,18 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			# Find the value
 			string(REPLACE "${Name}=" "" Value ${NameAndValue})
 
-			if(Value)
-				# remove extra quotes
-				string(REPLACE "\"" "" Value ${Value})
+			# remove extra quotes
+			string(REPLACE "\"" "" Value ${Value})
 
-				# Set the variable
-				set(${Name} ${Value} CACHE INTERNAL "BOARD DEFCONFIG: ${Name}" FORCE)
+			# Set the variable
+			set(${Name} ${Value} CACHE INTERNAL "BOARD DEFCONFIG: ${Name}" FORCE)
+
+		else()
+			# Find boolean not set
+			string(REGEX MATCH " (CONFIG[^ ]+) is not set" Name ${NameAndValue})
+
+			if(${CMAKE_MATCH_1})
+				set(${CMAKE_MATCH_1} "" CACHE INTERNAL "BOARD DEFCONFIG: ${CMAKE_MATCH_1}" FORCE)
 			endif()
 		endif()
 
@@ -323,6 +339,11 @@ if(EXISTS ${BOARD_DEFCONFIG})
 		endif()
 	endif()
 
+	# ADDITIONAL INIT
+	if(ADDITIONAL_INIT)
+		set(config_additional_init ${ADDITIONAL_INIT} CACHE INTERNAL "additional init" FORCE)
+	endif()
+
 	if(UAVCAN_INTERFACES)
 		set(config_uavcan_num_ifaces ${UAVCAN_INTERFACES} CACHE INTERNAL "UAVCAN interfaces" FORCE)
 	endif()
@@ -432,7 +453,7 @@ if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCH
 		COMMAND_EXPAND_LISTS
 	)
 
-else()
+elseif(NOT ${LABEL} MATCHES "allyes") # All other configs except allyes which isn't configurable
 	add_custom_target(boardconfig
 		${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${MENUCONFIG_PATH} Kconfig
 		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}

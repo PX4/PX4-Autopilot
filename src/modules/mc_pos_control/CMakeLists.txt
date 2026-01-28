@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+add_subdirectory(GotoControl)
 add_subdirectory(PositionControl)
 add_subdirectory(Takeoff)
 
@@ -42,6 +43,7 @@ px4_add_module(
 		MulticopterPositionControl.cpp
 		MulticopterPositionControl.hpp
 	DEPENDS
+		GotoControl
 		PositionControl
 		Takeoff
 		controllib

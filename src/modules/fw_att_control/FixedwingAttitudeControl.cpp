@@ -47,6 +47,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 {
 	/* fetch initial parameter values */
 	parameters_update();
+	_landing_gear_wheel_pub.advertise();
+	_attitude_sp_pub.advertise();
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
@@ -82,6 +84,7 @@ FixedwingAttitudeControl::parameters_update()
 	_wheel_ctrl.set_k_ff(_param_fw_wr_ff.get());
 	_wheel_ctrl.set_integrator_max(_param_fw_wr_imax.get());
 	_wheel_ctrl.set_max_rate(radians(_param_fw_w_rmax.get()));
+	_wheel_ctrl.set_time_constant(0.1f);
 }
 
 void
@@ -92,24 +95,21 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the actuators with valid values
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 
-			if (!_vcontrol_mode.flag_control_climb_rate_enabled & _vcontrol_mode.flag_control_attitude_enabled) {
+			if (!_vcontrol_mode.flag_control_climb_rate_enabled && _vcontrol_mode.flag_control_attitude_enabled) {
 
 				// STABILIZED mode generate the attitude setpoint from manual user inputs
 
-				_att_sp.roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
+				const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
 
-				_att_sp.pitch_body = -_manual_control_setpoint.pitch * radians(_param_fw_man_p_max.get())
-						     + radians(_param_fw_psp_off.get());
-				_att_sp.pitch_body = constrain(_att_sp.pitch_body,
-							       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
+				float pitch_body = -_manual_control_setpoint.pitch * radians(_param_fw_man_p_max.get())
+						   + radians(_param_fw_psp_off.get());
+				pitch_body = constrain(pitch_body,
+						       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
-				_att_sp.yaw_body = yaw_body; // yaw is not controlled, so set setpoint to current yaw
 				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 
-				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+				const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
 				q.copyTo(_att_sp.q_d);
-
-				_att_sp.reset_integral = false;
 
 				_att_sp.timestamp = hrt_absolute_time();
 
@@ -150,7 +150,7 @@ float FixedwingAttitudeControl::get_airspeed_constrained()
 	// if no airspeed measurement is available out best guess is to use the trim airspeed
 	float airspeed = _param_fw_airspd_trim.get();
 
-	if ((_param_fw_arsp_mode.get() == 0) && airspeed_valid) {
+	if (_param_fw_use_airspd.get() && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
 
@@ -215,9 +215,6 @@ void FixedwingAttitudeControl::Run()
 			_last_run = time_now_us;
 		}
 
-		vehicle_angular_velocity_s angular_velocity{};
-		_vehicle_rates_sub.copy(&angular_velocity);
-
 		if (_vehicle_status.is_vtol_tailsitter) {
 			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 			 *
@@ -273,12 +270,6 @@ void FixedwingAttitudeControl::Run()
 
 		vehicle_land_detected_poll();
 
-		bool wheel_control = false;
-
-		if (_param_fw_w_en.get() && _att_sp.fw_control_yaw_wheel && _vcontrol_mode.flag_control_auto_enabled) {
-			wheel_control = true;
-		}
-
 		/* if we are in rotary wing mode, do nothing */
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
 			perf_end(_loop_perf);
@@ -287,11 +278,10 @@ void FixedwingAttitudeControl::Run()
 
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
-			/* Reset integrators if commanded by attitude setpoint, or the aircraft is on ground
+			/* Reset integrators if the aircraft is on ground
 			 * or a multicopter (but not transitioning VTOL or tailsitter)
 			 */
-			if (_att_sp.reset_integral
-			    || _landed
+			if (_landed
 			    || !_in_fw_or_transition_wo_tailsitter_transition) {
 
 				_rates_sp.reset_integral = true;
@@ -301,56 +291,22 @@ void FixedwingAttitudeControl::Run()
 				_rates_sp.reset_integral = false;
 			}
 
-			float groundspeed_scale = 1.f;
-
-			if (wheel_control) {
-				if (_local_pos_sub.updated()) {
-					vehicle_local_position_s vehicle_local_position;
-
-					if (_local_pos_sub.copy(&vehicle_local_position)) {
-						_groundspeed = sqrtf(vehicle_local_position.vx * vehicle_local_position.vx + vehicle_local_position.vy *
-								     vehicle_local_position.vy);
-					}
-				}
-
-				// Use stall airspeed to calculate ground speed scaling region. Don't scale below gspd_scaling_trim
-				float gspd_scaling_trim = (_param_fw_airspd_stall.get());
-
-				if (_groundspeed > gspd_scaling_trim) {
-					groundspeed_scale = gspd_scaling_trim / _groundspeed;
-
-				}
-			}
-
-			/* Prepare data for attitude controllers */
-			ECL_ControlData control_input{};
-			control_input.roll = euler_angles.phi();
-			control_input.pitch = euler_angles.theta();
-			control_input.yaw = euler_angles.psi();
-			control_input.body_z_rate = angular_velocity.xyz[2];
-			control_input.roll_setpoint = _att_sp.roll_body;
-			control_input.pitch_setpoint = _att_sp.pitch_body;
-			control_input.yaw_setpoint = _att_sp.yaw_body;
-			control_input.euler_pitch_rate_setpoint = _pitch_ctrl.get_euler_rate_setpoint();
-			control_input.euler_yaw_rate_setpoint = _yaw_ctrl.get_euler_rate_setpoint();
-			control_input.airspeed_constrained = get_airspeed_constrained();
-			control_input.groundspeed = _groundspeed;
-			control_input.groundspeed_scaler = groundspeed_scale;
-
 			/* Run attitude controllers */
 
 			if (_vcontrol_mode.flag_control_attitude_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
-				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
-					_roll_ctrl.control_attitude(dt, control_input);
-					_pitch_ctrl.control_attitude(dt, control_input);
-					_yaw_ctrl.control_attitude(dt, control_input);
+				const Quatf q_sp(_att_sp.q_d);
 
-					if (wheel_control) {
-						_wheel_ctrl.control_attitude(dt, control_input);
+				if (q_sp.isAllFinite()) {
+					const Eulerf euler_sp(q_sp);
+					const float roll_sp = euler_sp.phi();
+					const float pitch_sp = euler_sp.theta();
 
-					} else {
-						_wheel_ctrl.reset_integrator();
-					}
+					_roll_ctrl.control_roll(roll_sp, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+								euler_angles.theta());
+					_pitch_ctrl.control_pitch(pitch_sp, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+								  euler_angles.theta());
+					_yaw_ctrl.control_yaw(roll_sp, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+							      euler_angles.theta(), get_airspeed_constrained());
 
 					/* Update input data for rate controllers */
 					Vector3f body_rates_setpoint = Vector3f(_roll_ctrl.get_body_rate_setpoint(), _pitch_ctrl.get_body_rate_setpoint(),
@@ -363,6 +319,9 @@ void FixedwingAttitudeControl::Run()
 						if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
 						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
 						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL_AMPLITUDE_DETECTION
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH_AMPLITUDE_DETECTION
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW_AMPLITUDE_DETECTION
 						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
 						    && ((hrt_absolute_time() - pid_autotune.timestamp) < 1_s)) {
 
@@ -373,7 +332,7 @@ void FixedwingAttitudeControl::Run()
 
 					/* add yaw rate setpoint from sticks in all attitude-controlled modes */
 					if (_vcontrol_mode.flag_control_manual_enabled) {
-						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_fw_y_rmax.get()),
+						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_man_yr_max.get()),
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 
@@ -392,36 +351,61 @@ void FixedwingAttitudeControl::Run()
 					_rate_sp_pub.publish(_rates_sp);
 				}
 			}
+		}
 
-			// wheel control
-			float wheel_u = 0.f;
+		// steering wheel control
+		fixed_wing_runway_control_s runway_control{};
+		_fixed_wing_runway_control_sub.copy(&runway_control);
+		const bool runway_control_recent = hrt_elapsed_time(&runway_control.timestamp) < 1_s;
+		const bool wheel_controller_enabled = _param_fw_w_en.get() && _vcontrol_mode.flag_control_auto_enabled
+						      && runway_control_recent && runway_control.wheel_steering_enabled;
 
-			if (_vcontrol_mode.flag_control_manual_enabled) {
-				// always direct control of steering wheel with yaw stick in manual modes
-				wheel_u = _manual_control_setpoint.yaw;
+		float groundspeed_scale = 1.f;
+		float wheel_u = 0.f;
 
-			} else {
-				// XXX: yaw_sp_move_rate here is an abuse -- used to ferry manual yaw inputs from
-				// position controller during auto modes _manual_control_setpoint.r gets passed
-				// whenever nudging is enabled, otherwise zero
-				wheel_u = wheel_control ? _wheel_ctrl.control_bodyrate(dt, control_input)
-					  + _att_sp.yaw_sp_move_rate : 0.f;
+		if (wheel_controller_enabled) {
+			if (_local_pos_sub.updated()) {
+				vehicle_local_position_s vehicle_local_position;
+
+				if (_local_pos_sub.copy(&vehicle_local_position)) {
+					_groundspeed = sqrtf(vehicle_local_position.vx * vehicle_local_position.vx + vehicle_local_position.vy *
+							     vehicle_local_position.vy);
+				}
 			}
 
-			_landing_gear_wheel.normalized_wheel_setpoint = PX4_ISFINITE(wheel_u) ? wheel_u : 0.f;
-			_landing_gear_wheel.timestamp = hrt_absolute_time();
-			_landing_gear_wheel_pub.publish(_landing_gear_wheel);
+			// Use stall airspeed to calculate ground speed scaling region. Don't scale below gspd_scaling_trim
+			float gspd_scaling_trim = (_param_fw_airspd_stall.get());
+
+			if (_groundspeed > gspd_scaling_trim) {
+				groundspeed_scale = gspd_scaling_trim / _groundspeed;
+
+			}
+
+			// set now yaw setpoint once we're entering the first time
+			if (!PX4_ISFINITE(_steering_wheel_yaw_setpoint)) {
+				_steering_wheel_yaw_setpoint = euler_angles.psi();
+			}
+
+			_wheel_ctrl.control_attitude(_steering_wheel_yaw_setpoint, euler_angles.psi());
+
+			vehicle_angular_velocity_s angular_velocity{};
+			_vehicle_rates_sub.copy(&angular_velocity);
+
+			const float wheel_controller_output = wheel_controller_enabled ? _wheel_ctrl.control_bodyrate(dt,
+							      angular_velocity.xyz[2], _groundspeed,
+							      groundspeed_scale) : 0.f;
+
+			wheel_u = wheel_controller_output + runway_control.wheel_steering_nudging_rate;
 
 		} else {
-			// full manual
 			_wheel_ctrl.reset_integrator();
-
-			_landing_gear_wheel.normalized_wheel_setpoint = PX4_ISFINITE(_manual_control_setpoint.yaw) ?
-					_manual_control_setpoint.yaw : 0.f;
-			_landing_gear_wheel.timestamp = hrt_absolute_time();
-			_landing_gear_wheel_pub.publish(_landing_gear_wheel);
-
+			_steering_wheel_yaw_setpoint = NAN;
+			wheel_u = _manual_control_setpoint.yaw; // direct yaw stick to wheel steering
 		}
+
+		_landing_gear_wheel.normalized_wheel_setpoint = PX4_ISFINITE(wheel_u) ? wheel_u : 0.f;
+		_landing_gear_wheel.timestamp = hrt_absolute_time();
+		_landing_gear_wheel_pub.publish(_landing_gear_wheel);
 	}
 
 	// backup schedule

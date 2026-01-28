@@ -158,8 +158,8 @@ private:
 	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 	static constexpr const char	*LOG_ROOT[(int)LogType::Count] = {
-		PX4_STORAGEDIR "/log",
-		PX4_STORAGEDIR "/mission_log"
+		CONFIG_BOARD_ROOT_PATH "/log",
+		CONFIG_BOARD_ROOT_PATH "/mission_log"
 	};
 
 	struct LogFileName {
@@ -236,11 +236,6 @@ private:
 	 */
 	void write_header(LogType type);
 
-	/// Array to store written formats for nested definitions (only)
-	using WrittenFormats = Array < const orb_metadata *, 20 >;
-
-	void write_format(LogType type, const orb_metadata &meta, WrittenFormats &written_formats, ulog_message_format_s &msg,
-			  int subscription_index, int level = 1);
 	void write_formats(LogType type);
 
 	/**
@@ -272,6 +267,7 @@ private:
 	void write_info_multiple(LogType type, const char *name, int fd);
 	void write_info(LogType type, const char *name, int32_t value);
 	void write_info(LogType type, const char *name, uint32_t value);
+	void write_info(LogType type, const char *name, uint64_t value);
 
 	/** generic common template method for write_info variants */
 	template<typename T>
@@ -407,7 +403,7 @@ private:
 		, (ParamInt<px4::params::SDLOG_ALGORITHM>) _param_sdlog_crypto_algorithm,
 		(ParamInt<px4::params::SDLOG_KEY>) _param_sdlog_crypto_key,
 		(ParamInt<px4::params::SDLOG_EXCH_KEY>) _param_sdlog_crypto_exchange_key
-#endif
+#endif // PX4_CRYPTO
 	)
 };
 

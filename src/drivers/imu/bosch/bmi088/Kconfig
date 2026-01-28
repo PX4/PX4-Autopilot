@@ -3,3 +3,47 @@ menuconfig DRIVERS_IMU_BOSCH_BMI088
 	default n
 	---help---
 		Enable support for bosch bmi088
+
+if DRIVERS_IMU_BOSCH_BMI088
+
+choice
+	prompt "BMI088 accelerometer interrupt pin"
+	default BMI088_ACCELEROMETER_INT1
+
+config BMI088_ACCELEROMETER_INT_NONE
+	bool "No interrupts"
+	---help---
+		No pin on the BMI088 will output accelerometer interrupts
+
+config BMI088_ACCELEROMETER_INT1
+	bool "INT1"
+	---help---
+		Use INT1 pin of the BMI088 to output accelerometer interrupts
+
+config BMI088_ACCELEROMETER_INT2
+	bool "INT2"
+	---help---
+		Use INT2 pin of the BMI088 to output accelerometer interrupts
+endchoice
+
+choice
+	prompt "BMI088 gyroscope interrupt pin"
+	default BMI088_GYROSCOPE_INT3
+
+config BMI088_GYROSCOPE_INT_NONE
+	bool "No interrupts"
+	---help---
+		No pin on the BMI088 will output gyroscope interrupts
+
+config BMI088_GYROSCOPE_INT3
+	bool "INT3"
+	---help---
+		Use INT3 pin of the BMI088 to output gyroscope interrupts
+
+config BMI088_GYROSCOPE_INT4
+	bool "INT4"
+	---help---
+		Use INT4 pin of the BMI088 to output gyroscope interrupts
+endchoice
+
+endif

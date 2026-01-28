@@ -49,7 +49,7 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index) :
 	_comms_errors(perf_alloc(PC_COUNT, "ina228_com_err")),
 	_collection_errors(perf_alloc(PC_COUNT, "ina228_collection_err")),
 	_measure_errors(perf_alloc(PC_COUNT, "ina228_measurement_err")),
-	_battery(battery_index, this, INA228_SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
+	_battery(battery_index, this, INA228_SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE)
 {
 	float fvalue = MAX_CURRENT;
 	_max_current = fvalue;
@@ -59,14 +59,27 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index) :
 		_max_current = fvalue;
 	}
 
-	_range = _max_current > (MAX_CURRENT - 1.0f) ? INA228_ADCRANGE_HIGH : INA228_ADCRANGE_LOW;
-
 	fvalue = INA228_SHUNT;
 	_rshunt = fvalue;
 	ph = param_find("INA228_SHUNT");
 
 	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
 		_rshunt = fvalue;
+	}
+
+	// According to page 8.2.2.1, page 36/48 of the INA228 interface datasheet (Rev. A),
+	// the requirement is: R_SHUNT < V_SENSE_MAX / I_MAX
+	// therefore: R_SHUNT * I_MAX < V_SENSE_MAX
+	// and so if V_SENSE_MAX is bigger, we need to use the bigger ADC range to avoid
+	// the device from capping the measured current.
+
+	const float v_sense_max = _rshunt * _max_current;
+
+	if (v_sense_max > INA228_ADCRANGE_LOW_V_SENSE) {
+		_range = INA228_ADCRANGE_HIGH;
+
+	} else {
+		_range = INA228_ADCRANGE_LOW;
 	}
 
 	ph = param_find("INA228_CONFIG");
@@ -85,10 +98,10 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index) :
 	_power_lsb = 3.2f * _current_lsb;
 
 	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
-	_battery.setConnected(false);
-	_battery.updateVoltage(0.f);
-	_battery.updateCurrent(0.f);
+	setConnected(false);
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+
+	I2C::_retries = 5;
 }
 
 INA228::~INA228()
@@ -306,15 +319,14 @@ INA228::collect()
 	// success = success && (read(INA228_REG_POWER, _power) == PX4_OK);
 	success = success && (read(INA228_REG_CURRENT, _current) == PX4_OK);
 	//success = success && (read(INA228_REG_VSHUNT, _shunt) == PX4_OK);
+	success = success && (read(INA228_REG_DIETEMP, _temperature) == PX4_OK);
 
-	if (!success) {
-		PX4_DEBUG("error reading from sensor");
-		_bus_voltage = _power = _current = _shunt = 0;
+	if (setConnected(success)) {
+		_battery.updateVoltage(static_cast<float>(_bus_voltage * INA228_VSCALE));
+		_battery.updateCurrent(static_cast<float>(_current * _current_lsb));
+		_battery.updateTemperature(static_cast<float>(_temperature * INA228_TSCALE));
 	}
 
-	_battery.setConnected(success);
-	_battery.updateVoltage(static_cast<float>(_bus_voltage * INA228_VSCALE));
-	_battery.updateCurrent(static_cast<float>(_current * _current_lsb));
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
 	perf_end(_sample_perf);
@@ -378,15 +390,36 @@ INA228::RunImpl()
 		ScheduleDelayed(INA228_CONVERSION_INTERVAL);
 
 	} else {
-		_battery.setConnected(false);
-		_battery.updateVoltage(0.f);
-		_battery.updateCurrent(0.f);
+		setConnected(false);
 		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
 		if (init() != PX4_OK) {
 			ScheduleDelayed(INA228_INIT_RETRY_INTERVAL_US);
 		}
 	}
+}
+
+bool INA228::setConnected(bool state)
+{
+	// Filter out brief I2C failures for 2s
+	if (state) {
+		_connected = INA228_SAMPLE_FREQUENCY_HZ * 2;
+
+	} else if (_connected > 0) {
+		_connected--;
+	}
+
+	if (_connected > 0) {
+		_battery.setConnected(true);
+
+	} else {
+		_battery.setConnected(false);
+		_battery.updateVoltage(0);
+		_battery.updateCurrent(0);
+		_battery.updateTemperature(0);
+	}
+
+	return state;
 }
 
 void

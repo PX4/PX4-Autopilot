@@ -1,0 +1,72 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_ABIAS_INIT:
+      description:
+        short: 1-sigma IMU accelerometer switch-on bias
+      type: float
+      default: 0.2
+      min: 0.0
+      max: 0.5
+      unit: m/s^2
+      reboot_required: true
+      decimal: 2
+    EKF2_ACC_B_NOISE:
+      description:
+        short: Process noise for IMU accelerometer bias prediction
+      type: float
+      default: 0.003
+      min: 0.0
+      max: 0.01
+      unit: m/s^3
+      decimal: 6
+    EKF2_ABL_LIM:
+      description:
+        short: Accelerometer bias learning limit
+        long: The ekf accel bias states will be limited to within a range equivalent
+          to +- of this value.
+      type: float
+      default: 0.4
+      min: 0.0
+      max: 0.8
+      unit: m/s^2
+      decimal: 2
+    EKF2_ABL_ACCLIM:
+      description:
+        short: Maximum IMU accel magnitude that allows IMU bias learning
+        long: If the magnitude of the IMU accelerometer vector exceeds this value,
+          the EKF accel bias state estimation will be inhibited. This reduces the
+          adverse effect of high manoeuvre accelerations and IMU nonlinerity and scale
+          factor errors on the accel bias estimates.
+      type: float
+      default: 25.0
+      min: 20.0
+      max: 200.0
+      unit: m/s^2
+      decimal: 1
+    EKF2_ABL_GYRLIM:
+      description:
+        short: Maximum IMU gyro angular rate magnitude that allows IMU bias learning
+        long: If the magnitude of the IMU angular rate vector exceeds this value,
+          the EKF accel bias state estimation will be inhibited. This reduces the
+          adverse effect of rapid rotation rates and associated errors on the accel
+          bias estimates.
+      type: float
+      default: 3.0
+      min: 2.0
+      max: 20.0
+      unit: rad/s
+      decimal: 1
+    EKF2_ABL_TAU:
+      description:
+        short: Accel bias learning inhibit time constant
+        long: The vector magnitude of angular rate and acceleration used to check
+          if learning should be inhibited has a peak hold filter applied to it with
+          an exponential decay. This parameter controls the time constant of the decay.
+      type: float
+      default: 0.5
+      min: 0.1
+      max: 1.0
+      unit: s
+      decimal: 2

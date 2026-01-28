@@ -48,25 +48,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <drivers/drv_hrt.h>
-
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 
 static constexpr float CONSTANTS_ONE_G = 9.80665f;						// m/s^2
-
-static constexpr float CONSTANTS_STD_PRESSURE_PA = 101325.0f;					// pascals (Pa)
-static constexpr float CONSTANTS_STD_PRESSURE_KPA = CONSTANTS_STD_PRESSURE_PA / 1000.0f;	// kilopascals (kPa)
-static constexpr float CONSTANTS_STD_PRESSURE_MBAR = CONSTANTS_STD_PRESSURE_PA /
-		100.0f;	// Millibar (mbar) (1 mbar = 100 Pa)
-
-static constexpr float CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C = 1.225f;				// kg/m^3
-static constexpr float CONSTANTS_AIR_GAS_CONST = 287.1f;					// J/(kg * K)
-static constexpr float CONSTANTS_ABSOLUTE_NULL_CELSIUS = -273.15f;				// °C
-
 static constexpr double CONSTANTS_RADIUS_OF_EARTH = 6371000;					// meters (m)
 static constexpr float  CONSTANTS_RADIUS_OF_EARTH_F = CONSTANTS_RADIUS_OF_EARTH;		// meters (m)
-
 static constexpr float CONSTANTS_EARTH_SPIN_RATE = 7.2921150e-5f;				// radians/second (rad/s)
 
 
@@ -182,15 +169,7 @@ public:
 	/**
 	 * @brief Construct and initialize a new Map Projection object
 	 */
-	MapProjection(double lat_0, double lon_0)
-	{
-		initReference(lat_0, lon_0);
-	}
-
-	/**
-	 * @brief Construct and initialize a new Map Projection object
-	 */
-	MapProjection(double lat_0, double lon_0, uint64_t timestamp)
+	MapProjection(double lat_0, double lon_0, uint64_t timestamp = 0)
 	{
 		initReference(lat_0, lon_0, timestamp);
 	}
@@ -203,20 +182,7 @@ public:
 	 * @param lat in degrees (47.1234567°, not 471234567°)
 	 * @param lon in degrees (8.1234567°, not 81234567°)
 	 */
-	void initReference(double lat_0, double lon_0, uint64_t timestamp);
-
-	/**
-	 * Initialize the map transformation
-	 *
-	 * with reference coordinates on the geographic coordinate system
-	 * where the azimuthal equidistant plane's origin is located
-	 * @param lat in degrees (47.1234567°, not 471234567°)
-	 * @param lon in degrees (8.1234567°, not 81234567°)
-	 */
-	inline void initReference(double lat_0, double lon_0)
-	{
-		initReference(lat_0, lon_0, hrt_absolute_time());
-	}
+	void initReference(double lat_0, double lon_0, uint64_t timestamp = 0);
 
 	/**
 	 * @return true, if the map reference has been initialized before

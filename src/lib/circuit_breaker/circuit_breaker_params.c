@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file circuit_breaker.c
+ * @file circuit_breaker_params.c
  *
  * Circuit breaker parameters.
  * Analog to real aviation circuit breakers these parameters
@@ -68,21 +68,6 @@ PARAM_DEFINE_INT32(CBRK_SUPPLY_CHK, 0);
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_IO_SAFETY, 22027);
-
-/**
- * Circuit breaker for airspeed sensor
- *
- * Setting this parameter to 162128 will disable the check for an airspeed sensor.
- * The sensor driver will not be started and it cannot be calibrated.
- * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
- *
- * @reboot_required true
- * @min 0
- * @max 162128
- * @category Developer
- * @group Circuit Breaker
- */
-PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
 
 /**
  * Circuit breaker for flight termination

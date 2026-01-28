@@ -85,7 +85,7 @@ static int s32k3xx_selftest_se050(void)
 	lpi2c1 = s32k3xx_i2cbus_initialize(1);
 
 	if (lpi2c1 != NULL) {
-		_info("s32k3xx_i2cbus_initialize() succesful\n");
+		_info("s32k3xx_i2cbus_initialize() successful\n");
 
 	} else {
 		error = true;
@@ -105,7 +105,7 @@ static int s32k3xx_selftest_se050(void)
 	ret = I2C_TRANSFER(lpi2c1, &se050_msg, 1);
 
 	if (ret == 0) {
-		_info("SE050 ACK succesful\n");
+		_info("SE050 ACK successful\n");
 
 	} else {
 		error = true;
@@ -119,7 +119,7 @@ static int s32k3xx_selftest_se050(void)
 	ret = s32k3xx_i2cbus_uninitialize(lpi2c1);
 
 	if (ret == 0) {
-		_info("s32k3xx_i2cbus_uninitialize() succesful\n");
+		_info("s32k3xx_i2cbus_uninitialize() successful\n");
 
 		/* Return error if we had any earlier, otherwise return result of
 		 * s32k3xx_i2cbus_uninitialize()
@@ -232,7 +232,7 @@ static int s32k3xx_selftest_can(void)
 
 	for (i = 0; i < 4; i++) {
 		if (s32k3xx_gpioread(errn_pins[i])) {
-			_info("CAN%d flag check succesful\n", i);
+			_info("CAN%d flag check successful\n", i);
 
 		} else {
 			error = true;
@@ -333,7 +333,7 @@ static int s32k3xx_selftest_sct(void)
 
 	for (i = 4; i < 6; i++) {
 		if (s32k3xx_gpioread(rxd_pins[i - 4])) {
-			_info("CAN%d RXD high check succesful\n", i);
+			_info("CAN%d RXD high check successful\n", i);
 
 		} else {
 			error = true;
@@ -355,7 +355,7 @@ static int s32k3xx_selftest_sct(void)
 
 	for (i = 4; i < 6; i++) {
 		if (!s32k3xx_gpioread(rxd_pins[i - 4])) {
-			_info("CAN%d RXD low check succesful\n", i);
+			_info("CAN%d RXD low check successful\n", i);
 
 		} else {
 			error = true;
@@ -432,7 +432,7 @@ void s32k3xx_selftest(void)
 #endif
 
 	if (!error) {
-		_info("s32k3xx_selftest() succesful\n");
+		_info("s32k3xx_selftest() successful\n");
 	}
 }
 

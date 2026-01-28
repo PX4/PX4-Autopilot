@@ -7,7 +7,7 @@ class MarkdownTablesOutput():
     def __init__(self, groups, board, image_path):
         result = """# Airframes Reference
 
-:::note
+::: info
 **This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4airframes/markdownout.py) from the source code** using the build command: `make airframe_metadata`.
 :::
 
@@ -137,7 +137,7 @@ div.frame_variant td, div.frame_variant th {
                             #print(output_name,value, attribstrs[0].strip(),attribstrs[1].strip())
                     outputs += '</ul>'
                     if has_outputs:
-                        outputs_entry = '<p><b>Specific Outputs:</b>' + outputs + '</p>'
+                        outputs_entry = '<br><b>Specific Outputs:</b>' + outputs
                     else:
                         outputs_entry = ''
 

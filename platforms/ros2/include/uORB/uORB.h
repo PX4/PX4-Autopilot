@@ -46,7 +46,6 @@ struct orb_metadata {
 	const char *o_name;		/**< unique object name */
 	const uint16_t o_size;		/**< object size */
 	const uint16_t o_size_no_padding;	/**< object size w/o padding at the end (for logger) */
-	const char *o_fields;		/**< semicolon separated list of fields (with type) */
 	uint8_t o_id;			/**< ORB_ID enum */
 };
 

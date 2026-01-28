@@ -52,6 +52,7 @@
 #include <px4_platform_common/param.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/topics/battery_info.h>
 #include <uORB/topics/battery_status.h>
 
 #include <board_config.h>
@@ -107,6 +108,7 @@ using namespace time_literals;
 
 #define BATT_SMBUS_SECURITY_KEYS                        0x0035
 
+#define BATT_SMBUS_DEVICE_TYPE                          0x0001
 #define BATT_SMBUS_LIFETIME_FLUSH                       0x002E
 #define BATT_SMBUS_LIFETIME_BLOCK_ONE                   0x0060
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS        0x4938
@@ -241,7 +243,7 @@ private:
 	/** @param _last_report Last published report, used for test(). */
 	battery_status_s _last_report{};
 
-	/** @param _batt_topic uORB battery topic. */
+	orb_advert_t _battery_info_topic{nullptr};
 	orb_advert_t _batt_topic{nullptr};
 
 	/** @param _cell_count Number of series cell. */

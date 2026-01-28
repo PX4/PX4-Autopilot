@@ -69,7 +69,6 @@ VehicleIMU::VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, co
 	// schedule conservatively until the actual accel & gyro rates are known
 	_sensor_gyro_sub.set_required_updates(sensor_gyro_s::ORB_QUEUE_LENGTH / 2);
 #endif
-
 	// advertise immediately to ensure consistent ordering
 	_vehicle_imu_pub.advertise();
 	_vehicle_imu_status_pub.advertise();
@@ -124,6 +123,8 @@ bool VehicleIMU::ParametersUpdate(bool force)
 		const auto gyro_calibration_count = _gyro_calibration.calibration_count();
 		_accel_calibration.ParametersUpdate();
 		_gyro_calibration.ParametersUpdate();
+
+		_notify_clipping = _param_sens_imu_notify_clipping.get();
 
 		if (accel_calibration_count != _accel_calibration.calibration_count()) {
 			// if calibration changed reset any existing learned calibration
@@ -192,7 +193,12 @@ void VehicleIMU::Run()
 	// reset data gap monitor
 	_data_gap = false;
 
-	while (_sensor_gyro_sub.updated() || _sensor_accel_sub.updated()) {
+	int sensor_sub_updates = 0;
+
+	while ((_sensor_gyro_sub.updated() || _sensor_accel_sub.updated())
+	       && (sensor_sub_updates < math::max(sensor_accel_s::ORB_QUEUE_LENGTH, sensor_gyro_s::ORB_QUEUE_LENGTH))) {
+		sensor_sub_updates++;
+
 		bool updated = false;
 
 		bool consume_all_gyro = !_intervals_configured || _data_gap;
@@ -220,10 +226,15 @@ void VehicleIMU::Run()
 
 
 		// update accel until integrator ready and caught up to gyro
+		int sensor_accel_sub_updates = 0;
+
 		while (_sensor_accel_sub.updated()
+		       && (sensor_accel_sub_updates < sensor_accel_s::ORB_QUEUE_LENGTH)
 		       && (!_accel_integrator.integral_ready() || !_intervals_configured || _data_gap
 			   || (_accel_timestamp_sample_last < (_gyro_timestamp_sample_last - 0.5f * _accel_interval_us)))
 		      ) {
+
+			sensor_accel_sub_updates++;
 
 			if (UpdateAccel()) {
 				updated = true;
@@ -374,7 +385,7 @@ bool VehicleIMU::UpdateAccel()
 
 			_publish_status = true;
 
-			if (_accel_calibration.enabled() && (hrt_elapsed_time(&_last_accel_clipping_notify_time) > 3_s)) {
+			if (_notify_clipping && _accel_calibration.enabled() && (hrt_elapsed_time(&_last_accel_clipping_notify_time) > 3_s)) {
 				// start notifying the user periodically if there's significant continuous clipping
 				const uint64_t clipping_total = _status.accel_clipping[0] + _status.accel_clipping[1] + _status.accel_clipping[2];
 
@@ -503,7 +514,7 @@ bool VehicleIMU::UpdateGyro()
 
 			_publish_status = true;
 
-			if (_gyro_calibration.enabled() && (hrt_elapsed_time(&_last_gyro_clipping_notify_time) > 3_s)) {
+			if (_notify_clipping && _gyro_calibration.enabled() && (hrt_elapsed_time(&_last_gyro_clipping_notify_time) > 3_s)) {
 				// start notifying the user periodically if there's significant continuous clipping
 				const uint64_t clipping_total = _status.gyro_clipping[0] + _status.gyro_clipping[1] + _status.gyro_clipping[2];
 
@@ -645,6 +656,7 @@ bool VehicleIMU::Publish()
 			imu.gyro_device_id = _gyro_calibration.device_id();
 			delta_angle_corrected.copyTo(imu.delta_angle);
 			delta_velocity_corrected.copyTo(imu.delta_velocity);
+			imu.delta_angle_clipping = _delta_angle_clipping;
 			imu.delta_velocity_clipping = _delta_velocity_clipping;
 			imu.accel_calibration_count = _accel_calibration.calibration_count();
 			imu.gyro_calibration_count = _gyro_calibration.calibration_count();
@@ -652,6 +664,7 @@ bool VehicleIMU::Publish()
 			_vehicle_imu_pub.publish(imu);
 
 			// reset clip counts
+			_delta_angle_clipping = 0;
 			_delta_velocity_clipping = 0;
 
 			// record gyro publication latency and integrated samples
@@ -693,8 +706,8 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 		_gyro_integrator.set_reset_interval(roundf((gyro_integral_samples - 0.5f) * gyro_interval_us));
 		_gyro_integrator.set_reset_samples(gyro_integral_samples);
 
-		_backup_schedule_timeout_us = math::constrain((int)math::min(sensor_accel_s::ORB_QUEUE_LENGTH * accel_interval_us,
-					      sensor_gyro_s::ORB_QUEUE_LENGTH * gyro_interval_us) / 2, 1000, 20000);
+		_backup_schedule_timeout_us = math::constrain((int)math::min((sensor_accel_s::ORB_QUEUE_LENGTH - 1) * accel_interval_us,
+					      (sensor_gyro_s::ORB_QUEUE_LENGTH - 1) * gyro_interval_us), 1000, 20000);
 
 		// gyro: find largest integer multiple of gyro_integral_samples
 		for (int n = sensor_gyro_s::ORB_QUEUE_LENGTH; n > 0; n--) {
@@ -703,6 +716,12 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 			}
 
 			if (gyro_integral_samples % n == 0) {
+				// Make sure _backup_schedule_timeout_us is not smaller than normal scheduling interval
+
+				if (_backup_schedule_timeout_us < n * gyro_interval_us) {
+					_backup_schedule_timeout_us = (n + 1) * gyro_interval_us;
+				}
+
 				_sensor_gyro_sub.set_required_updates(n);
 				_sensor_gyro_sub.registerCallback();
 

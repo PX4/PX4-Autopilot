@@ -48,6 +48,7 @@ px4_add_library(mixer_module
 	functions/FunctionConstantMax.hpp
 	functions/FunctionConstantMin.hpp
 	functions/FunctionGimbal.hpp
+	functions/FunctionICEngineControl.hpp
 	functions/FunctionLandingGear.hpp
 	functions/FunctionManualRC.hpp
 	functions/FunctionMotors.hpp

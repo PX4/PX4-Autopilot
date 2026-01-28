@@ -78,7 +78,7 @@ bool AK09916::Reset()
 void AK09916::print_status()
 {
 	I2CSPIDriverBase::print_status();
-	PX4_INFO("Variant: %s", _is_ak09918 ? "AK09918" : "AK09916");
+	PX4_INFO("Variant: %s", device_name());
 
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_bad_register_perf);
@@ -94,23 +94,28 @@ int AK09916::probe()
 		const uint8_t WIA1 = RegisterRead(Register::WIA1);
 		const uint8_t WIA2 = RegisterRead(Register::WIA2);
 
-		if ((WIA1 == Company_ID) && (WIA2 == Device_ID)) {
-			_is_ak09918 = false;
-			return PX4_OK;
-		}
-
-		if ((WIA1 == Company_ID) && (WIA2 == Device_ID_AK09918)) {
-			_is_ak09918 = true;
-			return PX4_OK;
-		}
-
-		if (WIA1 != Company_ID) {
+		if ((WIA1 != Company_ID)) {
 			PX4_DEBUG("unexpected WIA1 0x%02x", WIA1);
+			return PX4_ERROR;
 		}
 
-		if (WIA2 != Device_ID && WIA2 != Device_ID_AK09918) {
+		switch (static_cast<AKTYPE>(WIA2)) {
+		case AKTYPE::AK09916:
+			_device = AKTYPE::AK09916;
+			return PX4_OK;
+
+		case AKTYPE::AK09915:
+			_device = AKTYPE::AK09915;
+			return PX4_OK;
+
+		case AKTYPE::AK09918:
+			_device = AKTYPE::AK09918;
+			return PX4_OK;
+
+		default:
 			PX4_DEBUG("unexpected WIA2 0x%02x", WIA2);
-		}
+
+		};
 	}
 
 	return PX4_ERROR;
@@ -132,9 +137,7 @@ void AK09916::RunImpl()
 		break;
 
 	case STATE::WAIT_FOR_RESET: {
-			uint8_t device_id = _is_ak09918 ? Device_ID_AK09918 : Device_ID;
-
-			if ((RegisterRead(Register::WIA1) == Company_ID) && (RegisterRead(Register::WIA2) == device_id)) {
+			if ((RegisterRead(Register::WIA1) == Company_ID) && (static_cast<AKTYPE>(RegisterRead(Register::WIA2)) == _device)) {
 				// if reset succeeded then configure
 				_state = STATE::CONFIGURE;
 				ScheduleDelayed(100_ms);

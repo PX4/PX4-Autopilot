@@ -41,25 +41,67 @@
 PARAM_DEFINE_INT32(SIM_GZ_EN, 0);
 
 /**
- * simulator origin latitude
+ * Enable laser/lidar sensors in Gazebo bridge
  *
- * @unit deg
- * @group Simulator
+ * @boolean
+ * @reboot_required true
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
  */
-PARAM_DEFINE_FLOAT(SIM_GZ_HOME_LAT, 47.397742f);
+PARAM_DEFINE_INT32(SIM_GZ_EN_LIDAR, 1);
 
 /**
- * simulator origin longitude
+ * Enable optical flow sensor in Gazebo bridge
  *
- * @unit deg
- * @group Simulator
+ * @boolean
+ * @reboot_required true
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
  */
-PARAM_DEFINE_FLOAT(SIM_GZ_HOME_LON, 8.545594);
+PARAM_DEFINE_INT32(SIM_GZ_EN_FLOW, 1);
 
 /**
- * simulator origin altitude
+ * Enable airspeed sensor in Gazebo bridge
  *
- * @unit m
- * @group Simulator
+ * @boolean
+ * @reboot_required true
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
  */
-PARAM_DEFINE_FLOAT(SIM_GZ_HOME_ALT, 488.0);
+PARAM_DEFINE_INT32(SIM_GZ_EN_ASPD, 1);
+
+/**
+ * Enable barometer/air pressure sensor in Gazebo bridge
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
+ */
+PARAM_DEFINE_INT32(SIM_GZ_EN_BARO, 1);
+
+/**
+ * Enable odometry in Gazebo bridge
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
+ */
+PARAM_DEFINE_INT32(SIM_GZ_EN_ODOM, 1);
+
+/**
+ * Enable GPS/NavSat sensor in Gazebo bridge
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Simulation
+ * @value 0 Disabled
+ * @value 1 Enabled
+ */
+PARAM_DEFINE_INT32(SIM_GZ_EN_GPS, 1);

@@ -36,6 +36,10 @@
 __BEGIN_DECLS
 
 #define HW_INFO_SUFFIX        "%0" STRINGIFY(HW_INFO_VER_DIGITS) "x%0" STRINGIFY(HW_INFO_REV_DIGITS) "x"
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+#  define HW_INFO_FMUM_SUFFIX   "%0" STRINGIFY(HW_INFO_REV_DIGITS) "x"
+#  define HW_INFO_BASE_SUFFIX   "%0" STRINGIFY(HW_INFO_VER_DIGITS) "x"
+#endif
 /************************************************************************************
   * Name: board_determine_hw_info
  *

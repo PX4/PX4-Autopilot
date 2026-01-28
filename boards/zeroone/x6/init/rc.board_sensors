@@ -1,0 +1,104 @@
+#!/bin/sh
+#
+# ZeroOne X6 specific board sensors init
+#------------------------------------------------------------------------------
+set HAVE_PM2 yes
+set INA_CONFIGURED no
+
+if mft query -q -k MFT -s MFT_PM2 -v 0
+then
+	set HAVE_PM2 no
+fi
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+
+if ver hwtypecmp ZeroOneX6000
+then
+        # Internal SPI bus icm45686 with SPIX
+	icm45686 -b 2 -s -R 6 start       //X6 & X6 air
+
+	bmi088 -A -R 4 -s start           //X6
+	bmi088 -G -R 4 -s start           //X6
+
+	# Internal SPI bus icm45686 with SPIX
+	icm45686 -b 1 -s -R 8 start       //X6 & X6 air
+fi
+
+
+if ver hwtypecmp ZeroOneX6001             //X6  PRO
+then
+	# Internal SPI bus IIM42653 with SPIX
+	iim42653 -b 2 -s -R 6 start
+
+	bmi088 -A -R 4 -s start
+	bmi088 -G -R 4 -s start
+
+	# Internal SPI bus IIM42653 with SPIX
+	iim42653 -b 1 -s -R 8 start
+fi
+
+
+rm3100 -I -b 4 start
+# Internal magnetometer on I2c
+
+# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+ist8310 -X -b 1 -R 10 start
+
+# Internal compass
+ist8310 start -I -a 0x0E -R 12
+
+# Possible internal Baro
+if param compare SENS_INT_BARO_EN 1
+then
+	icp201xx -I -a 0x64 start
+fi
+icp201xx -X start
+#external baro
+
+unset INA_CONFIGURED
+unset HAVE_PM2

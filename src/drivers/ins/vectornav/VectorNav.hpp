@@ -63,6 +63,7 @@ extern "C" {
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
@@ -139,6 +140,8 @@ private:
 	uORB::PublicationMulti<vehicle_attitude_s> _attitude_pub;
 	uORB::PublicationMulti<vehicle_local_position_s> _local_position_pub;
 	uORB::PublicationMulti<vehicle_global_position_s> _global_position_pub;
+
+	uORB::Publication<estimator_status_s> _estimator_status_pub{ORB_ID(estimator_status)};
 
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};

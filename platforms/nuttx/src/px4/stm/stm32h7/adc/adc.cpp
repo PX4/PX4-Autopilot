@@ -37,6 +37,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_arch/adc.h>
 
+#include "stm32_dbgmcu.h"
 #include <stm32_adc.h>
 #include <stm32_gpio.h>
 
@@ -96,35 +97,123 @@
 
 #define ADC_MAX_FADC 36000000
 
-#if STM32_PLL2P_FREQUENCY     <= ADC_MAX_FADC
-#  define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_NOT_DIV
-#elif STM32_PLL2P_FREQUENCY/2 <= ADC_MAX_FADC
-#  define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV2
-#elif STM32_PLL2P_FREQUENCY/4 <= ADC_MAX_FADC
-#  define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV4
-#elif STM32_PLL2P_FREQUENCY/6 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV6
-#elif STM32_PLL2P_FREQUENCY/8 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV8
-#elif STM32_PLL2P_FREQUENCY/10 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV10
-#elif STM32_PLL2P_FREQUENCY/12 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV12
-#elif STM32_PLL2P_FREQUENCY/16 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV16
-#elif STM32_PLL2P_FREQUENCY/32 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV32
-#elif STM32_PLL2P_FREQUENCY/64 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV64
-#elif STM32_PLL2P_FREQUENCY/128 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV128
-#elif STM32_PLL2P_FREQUENCY/256 <= ADC_MAX_FADC
-# define ADC_CCR_PRESC_DIV     ADC_CCR_PRESC_DIV256
-#else
-#  error "ADC STM32_PLL2P_FREQUENCY too high - no divisor found "
+#define ADC3_INTERNAL_TEMP_SENSOR_CHANNEL 18 //define to map the internal temperature channel.
+
+
+/****************************************************************************
+ * Name: adc_getclocks
+ ****************************************************************************/
+
+static int adc_getclocks(uint32_t *prescaler, uint32_t *boost)
+{
+	uint32_t max_clock = ADC_MAX_FADC;
+	uint32_t src_clock = STM32_PLL2P_FREQUENCY;
+	uint32_t adc_clock;
+	int rv = OK;
+
+#if STM32_RCC_D3CCIPR_ADCSRC == RCC_D3CCIPR_ADCSEL_PLL3
+	src_clock = STM32_PLL3R_FREQUENCY;
+#elif STM32_RCC_D3CCIPR_ADCSRC == RCC_D3CCIPR_ADCSEL_PER
+#  error ADCSEL_PER not supported
 #endif
 
-#define ADC3_INTERNAL_TEMP_SENSOR_CHANNEL 18 //define to map the internal temperature channel.
+	/* The maximum clock is different for rev Y devices and rev V devices.
+	 * rev V can support an ADC clock of up to 50MHz. rev Y only supports
+	 * up to 36MHz.
+	 */
+
+	if ((getreg32(STM32_DEBUGMCU_BASE) & DBGMCU_IDCODE_REVID_MASK) ==
+	    STM32_IDCODE_REVID_V) {
+		/* The max fadc is 50MHz, but there is an always-present /2 divider
+		 * after the configurable prescaler.  Therefore, the max clock out of
+		 * the prescaler block is 2*50=100MHz
+		 */
+
+		max_clock = 100000000;
+	}
+
+	if (src_clock <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_NOT_DIV;
+		adc_clock = src_clock;
+
+	} else if (src_clock / 2 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV2;
+		adc_clock = src_clock / 2;
+
+	} else if (src_clock / 4 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV4;
+		adc_clock = src_clock / 4;
+
+	} else if (src_clock / 6 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV6;
+		adc_clock = src_clock / 6;
+
+	} else if (src_clock / 8 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV8;
+		adc_clock = src_clock / 8;
+
+	} else if (src_clock / 10 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV10;
+		adc_clock = src_clock / 10;
+
+	} else if (src_clock / 12 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV12;
+		adc_clock = src_clock / 12;
+
+	} else if (src_clock / 16 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV16;
+		adc_clock = src_clock / 16;
+
+	} else if (src_clock / 32 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV32;
+		adc_clock = src_clock / 32;
+
+	} else if (src_clock / 64 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV64;
+		adc_clock = src_clock / 64;
+
+	} else if (src_clock / 128 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV128;
+		adc_clock = src_clock / 128;
+
+	} else if (src_clock / 256 <= max_clock) {
+		*prescaler = ADC_CCR_PRESC_DIV256;
+		adc_clock = src_clock / 256;
+
+	} else {
+		rv = -1;
+	}
+
+	if ((getreg32(STM32_DEBUGMCU_BASE) & DBGMCU_IDCODE_REVID_MASK) ==
+	    STM32_IDCODE_REVID_V) {
+		if (adc_clock >= 25000000) {
+			*boost = ADC_CR_BOOST_50_MHZ;
+
+		} else if (adc_clock >= 12500000) {
+			*boost = ADC_CR_BOOST_25_MHZ;
+
+		} else if (adc_clock >=  6250000) {
+			*boost = ADC_CR_BOOST_12p5_MHZ;
+
+		} else {
+			*boost = ADC_CR_BOOST_6p25_MHZ;
+		}
+
+	} else {
+		if (adc_clock >= 20000000) {
+			*boost = ADC_CR_BOOST;
+
+		} else {
+			*boost = 0;
+		}
+	}
+
+	return rv;
+}
+
+/****************************************************************************
+ * Name: px4_arch_adc_init
+ ****************************************************************************/
 
 int px4_arch_adc_init(uint32_t base_address)
 {
@@ -158,9 +247,21 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	*free = base_address;
 
+	/* Get cloking for this version of Siicon */
+
+	uint32_t boost     = ADC_CR_BOOST;
+	uint32_t prescaler = ADC_CCR_PRESC_DIV256;
+
+	if (adc_getclocks(&prescaler, &boost) != OK) {
+
+		/* ERROR: source clock too high */
+
+		PANIC();
+	}
+
 	/* do calibration if supported */
 
-	rCR(base_address)  = ADC_CR_ADVREGEN | ADC_CR_BOOST;
+	rCR(base_address)  = ADC_CR_ADVREGEN | boost;
 
 	/* Wait for voltage regulator to power up */
 
@@ -169,7 +270,7 @@ int px4_arch_adc_init(uint32_t base_address)
 	/* enable the temperature sensor, VREFINT channel and VBAT */
 
 	rCCR(base_address) = (ADC_CCR_VREFEN | ADC_CCR_VSENSEEN | ADC_CCR_VBATEN |
-			      ADC_CCR_CKMODE_ASYCH | ADC_CCR_PRESC_DIV);
+			      ADC_CCR_CKMODE_ASYCH | prescaler);
 
 	/* Enable ADC calibration. ADCALDIF == 0 so this is only for
 	 * single-ended conversions, not for differential ones.

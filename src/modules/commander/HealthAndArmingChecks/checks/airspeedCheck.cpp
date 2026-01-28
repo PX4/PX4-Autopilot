@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,26 +37,28 @@
 using namespace time_literals;
 
 AirspeedChecks::AirspeedChecks()
-	: _param_fw_arsp_mode_handle(param_find("FW_ARSP_MODE")), _param_fw_airspd_max_handle(param_find("FW_AIRSPD_MAX"))
+	: _param_fw_airspd_max_handle(param_find("FW_AIRSPD_MAX"))
 {
 }
 
 void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	if (circuit_breaker_enabled_by_val(_param_cbrk_airspd_chk.get(), CBRK_AIRSPD_CHK_KEY) ||
+	if (_param_sys_has_num_aspd.get() <= 0 ||
 	    (context.status().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !context.status().is_vtol)) {
 		return;
 	}
 
-	int32_t airspeed_mode = 0;
-	param_get(_param_fw_arsp_mode_handle, &airspeed_mode);
-	const bool optional = (airspeed_mode == 1);
-
 	airspeed_validated_s airspeed_validated;
 
-	if (_airspeed_validated_sub.copy(&airspeed_validated) && hrt_elapsed_time(&airspeed_validated.timestamp) < 1_s) {
+	if (_airspeed_validated_sub.copy(&airspeed_validated) && hrt_elapsed_time(&airspeed_validated.timestamp) < 2_s) {
 
 		reporter.setIsPresent(health_component_t::differential_pressure);
+
+		const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_1
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_2
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_3;
+
+		const float airspeed_calibrated_from_sensor = airspeed_from_sensor ? airspeed_validated.calibrated_airspeed_m_s : NAN;
 
 		// Maximally allow the airspeed reading to be at FW_AIRSPD_MAX when arming. This is to catch very badly calibrated
 		// airspeed sensors, but also high wind conditions that prevent a forward flight of the vehicle.
@@ -66,7 +68,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 		/*
 		 * Check if airspeed is declared valid or not by airspeed selector.
 		 */
-		if (!PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)) {
+		if (!PX4_ISFINITE(airspeed_calibrated_from_sensor)) {
 
 			/* EVENT
 			 */
@@ -79,7 +81,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 		}
 
-		if (!context.isArmed() && fabsf(airspeed_validated.calibrated_airspeed_m_s) > arming_max_airspeed_allowed) {
+		if (!context.isArmed() && airspeed_calibrated_from_sensor > arming_max_airspeed_allowed) {
 			/* EVENT
 			 * @description
 			 * Current airspeed reading too high. Check if wind is below maximum airspeed and redo airspeed
@@ -96,17 +98,17 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 					events::Log::Error, "Airspeed too high", airspeed_validated.calibrated_airspeed_m_s, arming_max_airspeed_allowed);
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed too high - check airspeed calibration");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed too high");
 			}
 		}
 
-	} else if (!optional) {
+	} else {
 
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
 		 * Most likely the airspeed selector module is not running.
-		 * This check can be configured via <param>CBRK_AIRSPD_CHK</param> parameter.
+		 * This check can be configured via <param>SYS_HAS_NUM_ASPD</param> parameter.
 		 * </profile>
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::differential_pressure,

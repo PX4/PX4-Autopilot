@@ -62,7 +62,7 @@
 typedef struct {
 	uint32_t                hw_ver_rev; /* the version and revision */
 	const px4_hw_mft_item_t *mft;       /* The first entry */
-	uint32_t                entries;    /* the lenght of the list */
+	uint32_t                entries;    /* the length of the list */
 } px4_hw_mft_list_entry_t;
 
 typedef px4_hw_mft_list_entry_t *px4_hw_mft_list_entry;
@@ -104,9 +104,11 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
 	{V6C00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // Rev 0
 	{V6C01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // Rev 1
+	{V6C02, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // Rev 2
 	{V6C10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // Rev 0 No PX4IO
 	{V6C11, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // Rev 1 No PX4IO
 	{V6C21, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // Rev 1 MINI
+	{V6C22, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // Rev 2 MINI
 };
 
 /************************************************************************************

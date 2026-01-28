@@ -1,6 +1,7 @@
 menuconfig DRIVERS_UAVCANNODE
 	bool "uavcannode"
 	default n
+    depends on BOARD_ROMFSROOT != "px4fmu_common"
 	---help---
 		Enable support for uavcannode
 
@@ -37,6 +38,10 @@ if DRIVERS_UAVCANNODE
         bool "Include hygrometer measurement"
         default n
 
+    config UAVCANNODE_INDICATED_AIR_SPEED
+        bool "Include Indicated Airspeed"
+        default n
+
     config UAVCANNODE_LIGHTS_COMMAND
         bool "Include lights command"
         default n
@@ -52,6 +57,10 @@ if DRIVERS_UAVCANNODE
     config UAVCANNODE_RAW_AIR_DATA
         bool "Include raw air data"
         default n
+
+    config UAVCANNODE_RAW_IMU
+        bool "Include raw IMU"
+	default n
 
     config UAVCANNODE_RTK_DATA
         bool "Include RTK data"

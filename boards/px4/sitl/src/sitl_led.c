@@ -50,7 +50,7 @@ __END_DECLS
 
 static bool _led_state[2] = { false, false };
 
-__EXPORT void led_init()
+__EXPORT void led_init(void)
 {
 	PX4_DEBUG("LED_INIT");
 }

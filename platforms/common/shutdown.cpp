@@ -108,6 +108,7 @@ static uint16_t shutdown_counter = 0; ///< count how many times the shutdown wor
 #define SHUTDOWN_ARG_IN_PROGRESS (1<<0)
 #define SHUTDOWN_ARG_REBOOT (1<<1)
 #define SHUTDOWN_ARG_TO_BOOTLOADER (1<<2)
+#define SHUTDOWN_ARG_TO_ISP (1<<3)
 static uint8_t shutdown_args = 0;
 
 static constexpr int max_shutdown_hooks = 1;
@@ -175,7 +176,17 @@ static void shutdown_worker(void *arg)
 		if (shutdown_args & SHUTDOWN_ARG_REBOOT) {
 #if defined(CONFIG_BOARDCTL_RESET)
 			PX4_INFO_RAW("Reboot NOW.");
-			boardctl(BOARDIOC_RESET, (shutdown_args & SHUTDOWN_ARG_TO_BOOTLOADER) ? 1 : 0);
+
+			if (shutdown_args & SHUTDOWN_ARG_TO_BOOTLOADER) {
+				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_TO_BOOTLOADER);
+
+			} else if (shutdown_args & SHUTDOWN_ARG_TO_ISP) {
+				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_TO_ISP);
+
+			} else {
+				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_REQUEST);
+			}
+
 #else
 			PX4_PANIC("board reset not available");
 #endif
@@ -206,7 +217,7 @@ static void shutdown_worker(void *arg)
 }
 
 #if defined(CONFIG_BOARDCTL_RESET)
-int px4_reboot_request(bool to_bootloader, uint32_t delay_us)
+int px4_reboot_request(reboot_request_t request, uint32_t delay_us)
 {
 	pthread_mutex_lock(&shutdown_mutex);
 
@@ -217,8 +228,11 @@ int px4_reboot_request(bool to_bootloader, uint32_t delay_us)
 
 	shutdown_args |= SHUTDOWN_ARG_REBOOT;
 
-	if (to_bootloader) {
+	if (request == REBOOT_TO_BOOTLOADER) {
 		shutdown_args |= SHUTDOWN_ARG_TO_BOOTLOADER;
+
+	} else if (request == REBOOT_TO_ISP) {
+		shutdown_args |= SHUTDOWN_ARG_TO_ISP;
 	}
 
 	shutdown_time_us = hrt_absolute_time();

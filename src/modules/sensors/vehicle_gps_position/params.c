@@ -70,13 +70,16 @@ PARAM_DEFINE_FLOAT(SENS_GPS_TAU, 10.0f);
  * send data to the EKF even if a secondary instance is already available.
  * The secondary instance is then only used if the primary one times out.
  *
- * To have an equal priority of all the instances, set this parameter to -1 and
- * the best receiver will be used.
+ * Accepted values:
+ * -1 : Auto (equal priority for all instances)
+ * 0 : Main serial GPS instance
+ * 1 : Secondary serial GPS instance
+ * 2-127 : UAVCAN module node ID
  *
  * This parameter has no effect if blending is active.
  *
  * @group Sensors
  * @min -1
- * @max 1
+ * @max 127
  */
 PARAM_DEFINE_INT32(SENS_GPS_PRIME, 0);

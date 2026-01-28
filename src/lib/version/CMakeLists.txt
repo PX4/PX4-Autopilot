@@ -53,7 +53,8 @@ endif()
 
 set(px4_git_ver_header ${CMAKE_CURRENT_BINARY_DIR}/build_git_version.h)
 add_custom_command(OUTPUT ${px4_git_ver_header}
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py ${px4_git_ver_header} --validate
+	COMMAND
+		${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py ${px4_git_ver_header} --validate --git_tag '${PX4_GIT_TAG}'
 	DEPENDS
 		${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py
 		${git_dir_path}/HEAD

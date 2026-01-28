@@ -62,7 +62,7 @@
 static constexpr const char *LOST_TARGET_ERROR_MESSAGE = "Lost landing target while landing";
 
 PrecLand::PrecLand(Navigator *navigator) :
-	MissionBlock(navigator),
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND),
 	ModuleParams(navigator)
 {
 	_handle_param_acceleration_hor = param_find("MPC_ACC_HOR");
@@ -81,7 +81,7 @@ PrecLand::on_activation()
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
 	if (!_map_ref.isInitialized()) {
-		_map_ref.initReference(vehicle_local_position->ref_lat, vehicle_local_position->ref_lon);
+		_map_ref.initReference(vehicle_local_position->ref_lat, vehicle_local_position->ref_lon, hrt_absolute_time());
 	}
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();

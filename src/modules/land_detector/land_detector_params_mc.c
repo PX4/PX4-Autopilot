@@ -76,9 +76,9 @@ PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.25f);
 PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.5f);
 
 /**
- * Multicopter max rotation
+ * Multicopter max rotational speed
  *
- * Maximum allowed angular velocity around each axis allowed in the landed state.
+ * Maximum allowed norm of the angular velocity (roll, pitch) in the landed state.
  *
  * @unit deg/s
  * @decimal 1
@@ -86,24 +86,6 @@ PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.5f);
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
-
-/**
- * Maximum altitude for multicopters
- *
- * The system will obey this limit as a
- * hard altitude limit. This setting will
- * be consolidated with the GF_MAX_VER_DIST
- * parameter.
- * A negative value indicates no altitude limitation.
- *
- * @unit m
- * @min -1
- * @max 10000
- * @decimal 2
- * @group Land Detector
- *
- */
-PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, -1.0f);
 
 /**
  * Ground effect altitude for multicopters

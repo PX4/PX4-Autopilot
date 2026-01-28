@@ -101,10 +101,12 @@ pipeline {
             echo $0;
             git clone https://github.com/emscripten-core/emsdk.git _emscripten_sdk;
             cd _emscripten_sdk;
+            git checkout 4.0.15;
             ./emsdk install latest;
             ./emsdk activate latest;
             cd ..;
             . ./_emscripten_sdk/emsdk_env.sh;
+            git fetch --all --tags;
             make failsafe_web;
             cd build/px4_sitl_default_failsafe_web;
             mkdir -p failsafe_sim;
@@ -170,9 +172,9 @@ pipeline {
               sh('cp airframes.md PX4-user_guide/en/airframes/airframe_reference.md')
               sh('cp parameters.md PX4-user_guide/en/advanced_config/parameter_reference.md')
               sh('cp -R modules/*.md PX4-user_guide/en/modules/')
-              sh('cp -R graph_*.json PX4-user_guide/.vuepress/public/en/middleware/')
+              sh('cp -R graph_*.json PX4-user_guide/public/middleware/')  // vitepress
               sh('cp -R msg_docs/*.md PX4-user_guide/en/msg_docs/')
-              sh('cp -R failsafe_sim/* PX4-user_guide/.vuepress/public/en/config/failsafe')
+              sh('cp -R failsafe_sim/* PX4-user_guide/public/config/failsafe')  // vitepress
               sh('cd PX4-user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd PX4-user_guide; git push origin main || true')
               sh('rm -rf PX4-user_guide')
@@ -216,30 +218,6 @@ pipeline {
           }
           options {
             skipDefaultCheckout()
-          }
-        }
-
-        stage('PX4 ROS msgs') {
-          agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
-          }
-          steps {
-            sh('export')
-            sh('make distclean; git clean -ff -x -d .')
-            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
-              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_msgs.git")
-              // 'main' branch
-              sh('rm -f px4_msgs/msg/*.msg')
-              sh('cp msg/*.msg px4_msgs/msg/')
-              sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
-              sh('cd px4_msgs; git push origin main || true')
-              sh('rm -rf px4_msgs')
-            }
-          }
-          when {
-            anyOf {
-              branch 'main'
-            }
           }
         }
 

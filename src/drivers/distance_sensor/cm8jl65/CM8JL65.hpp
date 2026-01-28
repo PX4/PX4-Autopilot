@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file cm8jl65.cpp
+ * @file CM8JL65.hpp
  * @author Claudio Micheli <claudio@auterion.com>
  *
  * Driver for the Lanbao PSK-CM8JL65-CC5 distance sensor.

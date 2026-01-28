@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2017 - 2022 PX4 Development Team. All rights reserved.
+# Copyright (c) 2017 - 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -99,7 +99,7 @@
 #
 #=============================================================================
 
-cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE FILEPATH "PX4 source directory" FORCE)
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE FILEPATH "PX4 binary directory" FORCE)
@@ -113,11 +113,19 @@ include(px4_parse_function_args)
 include(px4_git)
 
 execute_process(
-	COMMAND git describe --exclude ext/* --always --tags
+	COMMAND git describe --exclude ext/* --tags --match "v[0-9]*"
 	OUTPUT_VARIABLE PX4_GIT_TAG
 	OUTPUT_STRIP_TRAILING_WHITESPACE
+	RESULTS_VARIABLE GIT_DESCRIBE_RESULT
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
+
+# if proper git tag unavilable default to v0.0.0
+if(NOT ${GIT_DESCRIBE_RESULT} MATCHES "0")
+	set(PX4_GIT_TAG "v0.0.0")
+endif()
+
+message(STATUS "PX4_GIT_TAG: ${PX4_GIT_TAG}")
 
 # git describe to X.Y.Z version
 string(REPLACE "." ";" VERSION_LIST ${PX4_GIT_TAG})
@@ -132,7 +140,9 @@ list(GET VERSION_LIST 2 PX4_VERSION_PATCH)
 string(REPLACE "-" ";" PX4_VERSION_PATCH ${PX4_VERSION_PATCH})
 list(GET PX4_VERSION_PATCH 0 PX4_VERSION_PATCH)
 
-message(STATUS "PX4 version: ${PX4_GIT_TAG} (${PX4_VERSION_MAJOR}.${PX4_VERSION_MINOR}.${PX4_VERSION_PATCH})")
+# # Capture only the hash part after 'g'
+string(REGEX MATCH "g([a-f0-9]+)$" GIT_HASH "${PX4_GIT_TAG}")
+set(PX4_GIT_HASH ${CMAKE_MATCH_1})
 
 define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
                  BRIEF_DOCS "PX4 module libs"
@@ -148,6 +158,7 @@ define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
                  BRIEF_DOCS "PX4 module paths"
                  FULL_DOCS "List of paths to all PX4 modules"
                  )
+
 define_property(GLOBAL PROPERTY PX4_SRC_FILES
                  BRIEF_DOCS "src files from all PX4 modules & libs"
                  FULL_DOCS "SRC files from px4_add_{module,library}"
@@ -256,7 +267,7 @@ endif()
 
 set(package-contact "px4users@googlegroups.com")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -324,6 +335,33 @@ if(NOT PX4_CHIP)
 endif()
 
 #=============================================================================
+# Testing - Automatic unit and integration testing with CTest
+# (Needs to be before setting the common compile flags)
+#
+
+# optionally enable cmake testing (supported only on posix)
+option(CMAKE_TESTING "Configure test targets" OFF)
+if(${PX4_CONFIG} STREQUAL "px4_sitl_test")
+	set(CMAKE_TESTING ON)
+endif()
+if(CMAKE_TESTING)
+	include(CTest) # sets BUILD_TESTING variable
+endif()
+
+# enable test filtering to run only specific tests with the ctest -R regex functionality
+set(TESTFILTER "" CACHE STRING "Filter string for ctest to selectively only run specific tests (ctest -R)")
+
+include(px4_add_gtest)
+if(BUILD_TESTING)
+	# Setting FUZZTEST_FUZZING_MODE=on enables ASAN, and is only supported with Clang
+	if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))
+		set(FUZZTEST_FUZZING_MODE ON)
+	endif()
+	add_subdirectory(test)
+	fuzztest_setup_fuzzing_flags()
+endif()
+
+#=============================================================================
 # build flags
 #
 include(px4_add_common_flags)
@@ -376,44 +414,12 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 endif()
 
 #=============================================================================
-# Testing - Automatic unit and integration testing with CTest
-#
-
-# optionally enable cmake testing (supported only on posix)
-option(CMAKE_TESTING "Configure test targets" OFF)
-if(${PX4_CONFIG} STREQUAL "px4_sitl_test")
-	set(CMAKE_TESTING ON)
-endif()
-if(CMAKE_TESTING)
-	include(CTest) # sets BUILD_TESTING variable
-endif()
-
-# enable test filtering to run only specific tests with the ctest -R regex functionality
-set(TESTFILTER "" CACHE STRING "Filter string for ctest to selectively only run specific tests (ctest -R)")
-
-# if testing is enabled download and configure gtest
-list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/gtest/)
-include(px4_add_gtest)
-if(BUILD_TESTING)
-	include(gtest)
-
-	add_custom_target(test_results
-			COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test -R ${TESTFILTER} USES_TERMINAL
-			DEPENDS
-				px4
-				examples__dyn_hello
-			USES_TERMINAL
-			COMMENT "Running tests"
-			WORKING_DIRECTORY ${PX4_BINARY_DIR})
-	set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
-endif()
-
-
-#=============================================================================
 # subdirectories
 #
 add_library(parameters_interface INTERFACE)
 add_library(kernel_parameters_interface INTERFACE)
+add_library(events_interface INTERFACE)
+add_library(kernel_events_interface INTERFACE)
 
 include(px4_add_library)
 add_subdirectory(src/lib EXCLUDE_FROM_ALL)
@@ -440,8 +446,11 @@ add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)
 if(${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT)
 	target_link_libraries(parameters_interface INTERFACE usr_parameters)
 	target_link_libraries(kernel_parameters_interface INTERFACE parameters)
+	target_link_libraries(events_interface INTERFACE usr_events)
+	target_link_libraries(kernel_events_interface INTERFACE events)
 else()
 	target_link_libraries(parameters_interface INTERFACE parameters)
+	target_link_libraries(events_interface INTERFACE events)
 endif()
 
 # firmware added last to generate the builtin for included modules
@@ -473,13 +482,12 @@ add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
 include(bloaty)
 
 
-include(doxygen)
 include(metadata)
 include(package)
 
 # install python requirements using configured python
 add_custom_target(install_python_requirements
-	COMMAND ${PYTHON_EXECUTABLE} -m pip install --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
+	COMMAND ${PYTHON_EXECUTABLE} -m pip install --break-system-packages --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 	DEPENDS ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 	USES_TERMINAL
 )

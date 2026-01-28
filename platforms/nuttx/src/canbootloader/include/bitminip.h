@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file board.h
+ * @file bitminip.h
  *
  * bootloader board interface
  * This file contains the common interfaces that all boards

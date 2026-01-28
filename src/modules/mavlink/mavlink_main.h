@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,6 +60,7 @@
 
 #include <containers/List.hpp>
 #include <parameters/param.h>
+#include <lib/variable_length_ringbuffer/VariableLengthRingbuffer.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/px4_config.h>
@@ -108,22 +109,10 @@ class Mavlink final : public ModuleParams
 {
 
 public:
-	/**
-	 * Constructor
-	 */
 	Mavlink();
-
-	/**
-	 * Destructor, also kills the mavlinks task.
-	 */
 	~Mavlink();
 
-	/**
-	* Start the mavlink task.
-	 *
-	 * @return OK on success.
-	 */
-	static int		start(int argc, char *argv[]);
+	static int start(int argc, char *argv[]);
 
 	bool running() const { return _task_running.load(); }
 	bool should_exit() const { return _task_should_exit.load(); }
@@ -133,67 +122,40 @@ public:
 		_receiver.request_stop();
 	}
 
-	/**
-	 * Display the mavlink status.
-	 */
-	void			display_status();
+	void display_status();
+	void display_status_streams();
 
-	/**
-	 * Display the status of all enabled streams.
-	 */
-	void			display_status_streams();
+	static int stop_command(int argc, char *argv[]);
+	static int stream_command(int argc, char *argv[]);
 
-	static int		stop_command(int argc, char *argv[]);
-	static int		stream_command(int argc, char *argv[]);
+	static int instance_count();
+	static Mavlink *new_instance();
+	static Mavlink *get_instance_for_device(const char *device_name);
 
-	static int		instance_count();
+	mavlink_message_t *get_buffer() { return &_mavlink_buffer; }
+	mavlink_status_t *get_status() { return &_mavlink_status; }
 
-	static Mavlink		*new_instance();
+	void setProtocolVersion(uint8_t version);
+	uint8_t getProtocolVersion() const { return _protocol_version; };
 
-	static Mavlink 		*get_instance_for_device(const char *device_name);
+	static int destroy_all_instances();
+	static int get_status_all_instances(bool show_streams_status);
+	static bool serial_instance_exists(const char *device_name, Mavlink *self);
 
-	mavlink_message_t 	*get_buffer() { return &_mavlink_buffer; }
+	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
+	static void forward_message(const mavlink_message_t *msg, Mavlink *self);
 
-	mavlink_status_t 	*get_status() { return &_mavlink_status; }
+	bool check_events() const { return _should_check_events.load(); }
+	void check_events_enable() { _should_check_events.store(true); }
+	void check_events_disable() { _should_check_events.store(false); }
 
-	/**
-	 * Set the MAVLink version
-	 *
-	 * Currently supporting v1 and v2
-	 *
-	 * @param version MAVLink version
-	 */
-	void			set_proto_version(unsigned version);
+	bool sending_parameters() const { return _sending_parameters.load(); }
+	void set_sending_parameters(bool sending) { _sending_parameters.store(sending); }
 
-	static int		destroy_all_instances();
+	int get_uart_fd() const { return _uart_fd; }
 
-	static int		get_status_all_instances(bool show_streams_status);
-
-	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
-
-	static bool		component_was_seen(int system_id, int component_id, Mavlink *self = nullptr);
-
-	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
-
-	bool			check_events() const { return _should_check_events.load(); }
-	void			check_events_enable() { _should_check_events.store(true); }
-	void			check_events_disable() { _should_check_events.store(false); }
-
-	int			get_uart_fd() const { return _uart_fd; }
-
-	/**
-	 * Get the MAVLink system id.
-	 *
-	 * @return The system ID of this vehicle
-	 */
-	int			get_system_id() const { return mavlink_system.sysid; }
-
-	/**
-	 * Get the MAVLink component id.
-	 *
-	 * @return The component ID of this vehicle
-	 */
-	int			get_component_id() const { return mavlink_system.compid; }
+	int get_system_id() const { return mavlink_system.sysid; }
+	int get_component_id() const { return mavlink_system.compid; }
 
 	const char *_device_name{DEFAULT_DEVICE_NAME};
 
@@ -211,6 +173,8 @@ public:
 		MAVLINK_MODE_GIMBAL,
 		MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH,
 		MAVLINK_MODE_UAVIONIX,
+		MAVLINK_MODE_LOW_BANDWIDTH,
+		MAVLINK_MODE_DISTANCE_SENSOR,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -265,8 +229,14 @@ public:
 		case MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH:
 			return "OnboardLowBandwidth";
 
+		case MAVLINK_MODE_LOW_BANDWIDTH:
+			return "Low Bandwidth";
+
 		case MAVLINK_MODE_UAVIONIX:
 			return "uAvionix";
+
+		case MAVLINK_MODE_DISTANCE_SENSOR:
+			return "DistanceSensor";
 
 		default:
 			return "Unknown";
@@ -419,11 +389,6 @@ public:
 	bool			get_wait_to_transmit() { return _wait_to_transmit; }
 	bool			should_transmit() { return (_transmitting_enabled && (!_wait_to_transmit || (_wait_to_transmit && _received_messages))); }
 
-	bool			message_buffer_write(const void *ptr, int size);
-
-	void			lockMessageBufferMutex(void) { pthread_mutex_lock(&_message_buffer_mutex); }
-	void			unlockMessageBufferMutex(void) { pthread_mutex_unlock(&_message_buffer_mutex); }
-
 	/**
 	 * Count transmitted bytes
 	 */
@@ -485,6 +450,7 @@ public:
 	/** get the Mavlink shell. Create a new one if there isn't one. It is *always* created via MavlinkReceiver thread.
 	 *  Returns nullptr if shell cannot be created */
 	MavlinkShell		*get_shell();
+	pthread_mutex_t		&get_shell_mutex() { return _mavlink_shell_mutex; }
 	/** close the Mavlink shell if it is open */
 	void			close_shell();
 
@@ -565,12 +531,14 @@ private:
 	bool			_received_messages{false};	/**< Whether we've received valid mavlink messages. */
 
 	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
+	px4::atomic_bool	_sending_parameters{false};     /**< True if parameters are currently sent out */
 
 	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
 
 	List<MavlinkStream *>		_streams;
 
 	MavlinkShell		*_mavlink_shell{nullptr};
+	pthread_mutex_t		_mavlink_shell_mutex{};
 	MavlinkULog		*_mavlink_ulog{nullptr};
 	static events::EventBuffer	*_event_buffer;
 	events::SendProtocol		_events{*_event_buffer, *this};
@@ -588,6 +556,7 @@ private:
 	int			_baudrate{57600};
 	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
 	float			_rate_mult{1.0f};
+	float			_high_latency_freq{0.015f};	///< frequency of HIGH_LATENCY2 stream
 
 	bool			_radio_status_available{false};
 	bool			_radio_status_critical{false};
@@ -600,8 +569,6 @@ private:
 	 */
 	unsigned int		_mavlink_param_queue_index{0};
 
-	bool			_mavlink_link_termination_allowed{false};
-
 	char			*_subscribe_to_stream{nullptr};
 	float			_subscribe_to_stream_rate{0.0f};  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)
 	bool			_udp_initialised{false};
@@ -611,8 +578,7 @@ private:
 	uint64_t		_last_write_success_time{0};
 	uint64_t		_last_write_try_time{0};
 	uint64_t		_mavlink_start_time{0};
-	int32_t			_protocol_version_switch{-1};
-	int32_t			_protocol_version{0};
+	uint8_t _protocol_version = 0; ///< after initialization the only values are 1 and 2
 
 	unsigned		_bytes_tx{0};
 	unsigned		_bytes_txerr{0};
@@ -651,16 +617,9 @@ private:
 
 	ping_statistics_s	_ping_stats {};
 
-	struct mavlink_message_buffer {
-		int write_ptr;
-		int read_ptr;
-		int size;
-		char *data;
-	};
+	pthread_mutex_t		_message_buffer_mutex{};
+	VariableLengthRingbuffer _message_buffer{};
 
-	mavlink_message_buffer	_message_buffer {};
-
-	pthread_mutex_t		_message_buffer_mutex {};
 	pthread_mutex_t		_send_mutex {};
 	pthread_mutex_t         _radio_status_mutex {};
 
@@ -682,6 +641,7 @@ private:
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": tx run elapsed")};                      /**< loop performance counter */
 	perf_counter_t _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": tx run interval")};           /**< loop interval performance counter */
 	perf_counter_t _send_byte_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": send_bytes error")};           /**< send bytes error count */
+	perf_counter_t _forwarding_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": forwarding error")};           /**< forwarding messages error count */
 
 	void			mavlink_update_parameters();
 
@@ -711,23 +671,19 @@ private:
 	 */
 	int configure_streams_to_default(const char *configure_single_stream = nullptr);
 
-	int message_buffer_init(int size);
-
-	void message_buffer_destroy();
-
-	int message_buffer_count();
-
-	int message_buffer_is_empty() const { return (_message_buffer.read_ptr == _message_buffer.write_ptr); }
-
-	int message_buffer_get_ptr(void **ptr, bool *is_part);
-
-	void message_buffer_mark_read(int n) { _message_buffer.read_ptr = (_message_buffer.read_ptr + n) % _message_buffer.size; }
-
 	void pass_message(const mavlink_message_t *msg);
 
 	void publish_telemetry_status();
 
 	void check_requested_subscriptions();
+
+	void handleCommands();
+
+	void handleAndGetCurrentCommandAck();
+
+	void handleStatus();
+
+	void handleMavlinkShellOutput();
 
 	/**
 	 * Reconfigure a SiK radio if requested by MAV_SIK_RADIO_ID

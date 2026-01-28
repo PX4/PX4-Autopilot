@@ -4,6 +4,7 @@
     "recommendations": [
         "chiehyu.vscode-astyle",
         "dan-c-underwood.arm",
+        "editorconfig.editorconfig",
         "fredericbonnet.cmake-test-adapter",
         "github.vscode-pull-request-github",
         "marus25.cortex-debug",
@@ -18,6 +19,7 @@
         "twxs.cmake",
         "uavcan.dsdl",
         "wholroyd.jinja",
-        "zixuanwang.linkerscript"
+        "zixuanwang.linkerscript",
+        "ms-vscode.makefile-tools"
     ]
 }

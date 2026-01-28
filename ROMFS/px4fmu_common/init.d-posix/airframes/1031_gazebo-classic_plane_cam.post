@@ -1,0 +1,1 @@
+mavlink start -x -u 14558 -r 4000 -f -m onboard -o 14530 -p

@@ -129,10 +129,10 @@ bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_satura
 					watchdog_data.sem_counter_saturated_start = now;
 				}
 
-				if (watchdog_data.manual_watchdog_trigger
-				    || now > watchdog_data.sem_counter_saturated_start + 3_s
-				    || now > watchdog_data.ready_to_run_timestamp + 1_s) {
+				bool cycle_trigger = now > watchdog_data.sem_counter_saturated_start + 5_s;
+				bool ready_trigger = now > watchdog_data.ready_to_run_timestamp + 1_s;
 
+				if (watchdog_data.manual_watchdog_trigger || cycle_trigger || ready_trigger) {
 					sched_param param{};
 
 					// Get the current priorities
@@ -153,6 +153,8 @@ bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_satura
 
 					sched_setparam(log_writer_task.tcb->pid, &param);
 
+					watchdog_data.triggered_by_cycle_delay = cycle_trigger;
+					watchdog_data.triggered_by_ready_delay = ready_trigger;
 					watchdog_data.trigger_time = now;
 					return true;
 				}

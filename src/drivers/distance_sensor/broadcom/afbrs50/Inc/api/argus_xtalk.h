@@ -72,30 +72,28 @@ typedef struct xtalk_t {
  * @details Contains crosstalk vector values for all 32 active pixels,
  *          separated for A/B-Frames.
  *****************************************************************************/
-typedef struct argus_cal_xtalk_table_t {
-	union {
-		struct {
-			/*! The crosstalk vector table for A-Frames. */
-			xtalk_t FrameA[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
+typedef union argus_cal_xtalk_table_t {
+	struct {
+		/*! The crosstalk vector table for A-Frames. */
+		xtalk_t FrameA[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
 
-			/*! The crosstalk vector table for B-Frames. */
-			xtalk_t FrameB[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
-		};
-
-		/*! The crosstalk vector table for A/B-Frames of all 32 pixels.*/
-		xtalk_t Table[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
+		/*! The crosstalk vector table for B-Frames. */
+		xtalk_t FrameB[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
 	};
+
+	/*! The crosstalk vector table for A/B-Frames of all 32 pixels.*/
+	xtalk_t Table[ARGUS_DFM_FRAME_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
 
 } argus_cal_xtalk_table_t;
 
 
 /*!***************************************************************************
- * @brief   Pixel-To-Pixel Crosstalk Compensation Parameters.
- * @details Contains calibration data that belongs to the pixel-to-pixel
- *          crosstalk compensation feature.
+ * @brief   Electrical Pixel-To-Pixel Crosstalk Compensation Parameters.
+ * @details Contains calibration data that belongs to the electrical
+ *          pixel-to-pixel crosstalk compensation feature.
  *****************************************************************************/
-typedef struct argus_cal_p2pxtalk_t {
-	/*! Pixel-To-Pixel Compensation on/off. */
+typedef struct argus_cal_electrical_p2pxtalk_t {
+	/*! Electrical Pixel-To-Pixel Compensation on/off. */
 	bool Enabled;
 
 	/*! The relative threshold determines when the compensation is active for
@@ -134,8 +132,39 @@ typedef struct argus_cal_p2pxtalk_t {
 	 *  Higher values determine more influence on the reference pixel signal. */
 	q3_12_t KcFactorCRefPx;
 
-} argus_cal_p2pxtalk_t;
+} argus_cal_electrical_p2pxtalk_t;
 
+/*!***************************************************************************
+ * @brief   Optical Pixel-To-Pixel Crosstalk Compensation Parameters.
+ * @details Contains calibration data that belongs to the optical
+ *          pixel-to-pixel crosstalk compensation feature.
+ *****************************************************************************/
+typedef struct argus_cal_optical_p2pxtalk_t {
+	/*! Optical Pixel-To-Pixel Compensation on/off. */
+	bool Enabled;
+
+	/*! The sine component of the coupling coefficient that determines the amount
+	 *  of a neighbour pixel signal that influences the raw signal of certain pixel.
+	 *  Higher values determine more influence on the individual pixel signal. */
+	q3_12_t CouplingCoeffS;
+
+	/*! The cosine component of the coupling coefficient that determines the amount
+	 *  of a neighbour pixel signal that influences the raw signal of a certain pixel.
+	 *  Higher values determine more influence on the individual pixel signal. */
+	q3_12_t CouplingCoeffC;
+
+} argus_cal_optical_p2pxtalk_t;
+
+/*!***************************************************************************
+ * @brief   Pixel-To-Pixel Crosstalk Compensation Parameters.
+ * @details Contains combined calibration data for electrical and
+ *          optical pixel-to-pixel crosstalk compensation feature.
+ *****************************************************************************/
+typedef struct argus_cal_p2pxtalk_t {
+	argus_cal_electrical_p2pxtalk_t Electrical;
+
+	argus_cal_optical_p2pxtalk_t Optical;
+} argus_cal_p2pxtalk_t;
 
 /*! @} */
 #ifdef __cplusplus

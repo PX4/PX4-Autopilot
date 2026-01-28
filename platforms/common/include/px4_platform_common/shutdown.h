@@ -70,6 +70,12 @@ __EXPORT int px4_register_shutdown_hook(shutdown_hook_t hook);
  */
 __EXPORT int px4_unregister_shutdown_hook(shutdown_hook_t hook);
 
+/** Types of reboot requests for PX4 */
+typedef enum {
+	REBOOT_REQUEST = 0,          ///< Normal reboot
+	REBOOT_TO_BOOTLOADER = 1,    ///< Reboot to PX4 bootloader
+	REBOOT_TO_ISP = 2,           ///< Reboot to ISP bootloader
+} reboot_request_t;
 
 /**
  * Request the system to reboot.
@@ -83,7 +89,7 @@ __EXPORT int px4_unregister_shutdown_hook(shutdown_hook_t hook);
  * @return 0 on success, <0 on error
  */
 #if defined(CONFIG_BOARDCTL_RESET)
-__EXPORT int px4_reboot_request(bool to_bootloader = false, uint32_t delay_us = 0);
+__EXPORT int px4_reboot_request(reboot_request_t request = REBOOT_REQUEST, uint32_t delay_us = 0);
 #endif // CONFIG_BOARDCTL_RESET
 
 

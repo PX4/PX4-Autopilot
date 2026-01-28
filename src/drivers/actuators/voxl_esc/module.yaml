@@ -1,0 +1,41 @@
+module_name: VOXL ESC Output
+actuator_output:
+  show_subgroups_if: 'VOXL_ESC_CONFIG>0'
+  config_parameters:
+    - param: 'VOXL_ESC_CONFIG'
+      label: 'Configure'
+      function: 'enable'
+    - param: 'VOXL_ESC_BAUD'
+      label: 'Bitrate'
+    - param: 'VOXL_ESC_RPM_MIN'
+      label: 'RPM Min'
+    - param: 'VOXL_ESC_RPM_MAX'
+      label: 'RPM Max'
+    - param: 'VOXL_ESC_SDIR1'
+      label: 'ESC 1 Spin Direction'
+    - param: 'VOXL_ESC_SDIR2'
+      label: 'ESC 2 Spin Direction'
+    - param: 'VOXL_ESC_SDIR3'
+      label: 'ESC 3 Spin Direction'
+    - param: 'VOXL_ESC_SDIR4'
+      label: 'ESC 4 Spin Direction'
+  output_groups:
+    - param_prefix: VOXL_ESC
+      group_label: 'ESCs'
+      channel_label: 'ESC'
+      num_channels: 4
+
+parameters:
+    - group: ModalAI Custom Configuration
+      definitions:
+        MODALAI_CONFIG:
+            description:
+                short: Custom configuration for ModalAI drones
+                long: |
+                    This can be set to indicate that drone behavior
+                    needs to be changed to match a custom setting
+            type: int32
+            reboot_required: true
+            num_instances: 1
+            instance_start: 1
+            default: 0

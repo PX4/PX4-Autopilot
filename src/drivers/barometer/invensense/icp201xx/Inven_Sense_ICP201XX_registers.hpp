@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file icp201xx_registers.hpp
+ * @file Inven_Sense_ICP201XX_registers.hpp
  *
  * icp201xx registers.
  *

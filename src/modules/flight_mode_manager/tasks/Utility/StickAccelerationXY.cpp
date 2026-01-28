@@ -34,7 +34,7 @@
 #include "StickAccelerationXY.hpp"
 
 #include <geo/geo.h>
-#include "Sticks.hpp"
+#include <lib/sticks/Sticks.hpp>
 
 using namespace matrix;
 
@@ -43,6 +43,8 @@ StickAccelerationXY::StickAccelerationXY(ModuleParams *parent) :
 {
 	_brake_boost_filter.reset(1.f);
 	resetPosition();
+	_velocity_slew_rate_xy.setSlewRate(_param_mpc_acc_hor.get());
+	_velocity_slew_rate_xy.setForcedValue(_param_mpc_vel_manual.get());
 }
 
 void StickAccelerationXY::resetPosition()
@@ -53,6 +55,11 @@ void StickAccelerationXY::resetPosition()
 void StickAccelerationXY::resetPosition(const matrix::Vector2f &position)
 {
 	_position_setpoint = position;
+}
+
+void StickAccelerationXY::addToPositionSetpoint(const matrix::Vector2f &delta)
+{
+	_position_setpoint += delta;
 }
 
 void StickAccelerationXY::resetVelocity(const matrix::Vector2f &velocity)
@@ -70,13 +77,26 @@ void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration
 	}
 }
 
+void StickAccelerationXY::setVelocityConstraint(float vel)
+{
+	if ((vel < _velocity_constraint) && (vel >= FLT_EPSILON)) {
+		_velocity_constraint = vel;
+	}
+};
+
 void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, const float yaw_sp, const Vector3f &pos,
 		const matrix::Vector2f &vel_sp_feedback, const float dt)
 {
-	// maximum commanded acceleration and velocity
-	Vector2f acceleration_scale(_param_mpc_acc_hor.get(), _param_mpc_acc_hor.get());
-	const float velocity_sc = fminf(_param_mpc_vel_manual.get(), _velocity_constraint);
+	// avoid setpoint steps from limit changes to improve velocity tracking and hence drag estimation
+	const float velocity_constraint = _velocity_slew_rate_xy.update(_velocity_constraint, dt);
+	_velocity_constraint = _param_mpc_vel_manual.get(); // reset, reduced to strictest limit in next loop
+
+	// maximum commanded velocity can be constrained dynamically
+	const float velocity_sc = fminf(_param_mpc_vel_manual.get(), velocity_constraint);
 	Vector2f velocity_scale(velocity_sc, velocity_sc);
+	// maximum commanded acceleration is scaled down with velocity
+	const float acceleration_sc = _param_mpc_acc_hor.get() * (velocity_sc / _param_mpc_vel_manual.get());
+	Vector2f acceleration_scale(acceleration_sc, acceleration_sc);
 
 	acceleration_scale *= 2.f; // because of drag the average acceleration is half
 
@@ -93,6 +113,10 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 
 	Sticks::rotateIntoHeadingFrameXY(stick_xy, yaw, yaw_sp);
 	_acceleration_setpoint = stick_xy.emult(acceleration_scale);
+
+	if (_collision_prevention.is_active()) {
+		_collision_prevention.modifySetpoint(_acceleration_setpoint, _velocity_setpoint);
+	}
 
 	// Add drag to limit speed and brake again
 	Vector2f drag = calculateDrag(acceleration_scale.edivide(velocity_scale), dt, stick_xy, _velocity_setpoint);
@@ -157,7 +181,13 @@ Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const flo
 
 	// increase drag with squareroot function when velocity is lower than 1m/s
 	const Vector2f velocity_with_sqrt_boost = vel_sp.unit_or_zero() * math::sqrt_linear(vel_sp.norm());
-	return drag_coefficient.emult(velocity_with_sqrt_boost);
+
+	// only apply the drag increase below 1m/s when actually braking such that speeds below 1m/s
+	// are exactly reached but do so by blending it with the filter to avoid any discontinuity when switching
+	const float brake_scale = math::interpolate(_brake_boost_filter.getState(), 1.f, 2.f, 0.f, 1.f);
+	const Vector2f mixed_velocity = brake_scale * velocity_with_sqrt_boost + (1.f - brake_scale) * vel_sp;
+
+	return drag_coefficient.emult(mixed_velocity);
 }
 
 void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)

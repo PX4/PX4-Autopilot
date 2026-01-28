@@ -1,0 +1,27 @@
+#!/bin/sh
+# shellcheck disable=SC2154
+
+# EKF2 specifics
+param set-default EKF2_GPS_DELAY 10
+param set-default EKF2_MULTI_IMU 3
+param set-default SENS_IMU_MODE 0
+
+simulator_tcp_port=$((4560+px4_instance))
+
+# Check if PX4_SIM_HOSTNAME environment variable is empty
+# If empty check if PX4_SIM_HOST_ADDR environment variable is empty
+# If both are empty use localhost for simulator
+if [ -z "${PX4_SIM_HOSTNAME}" ]; then
+
+	if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
+		echo "INFO  [init] PX4_SIM_HOSTNAME: localhost"
+		simulator_mavlink start -c $simulator_tcp_port
+	else
+		echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOST_ADDR}"
+		simulator_mavlink start -t "${PX4_SIM_HOST_ADDR}" "${simulator_tcp_port}"
+	fi
+
+else
+	echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOSTNAME}"
+	simulator_mavlink start -h "${PX4_SIM_HOSTNAME}" "${simulator_tcp_port}"
+fi

@@ -35,6 +35,11 @@
 
 #include "../../../stm32_common/include/px4_arch/hw_description.h"
 
+static inline constexpr void getTimerChannelDMAMap(Timer::Timer timer, const DMA &dma, uint32_t *dma_map_ch)
+{
+	// Not supported
+}
+
 static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma)
 {
 	// not used on STM32F1

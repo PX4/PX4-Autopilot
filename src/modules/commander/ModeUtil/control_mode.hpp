@@ -41,7 +41,7 @@
 namespace mode_util
 {
 
-void getVehicleControlMode(bool armed, uint8_t nav_state, uint8_t vehicle_type,
+void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 			   const offboard_control_mode_s &offboard_control_mode,
 			   vehicle_control_mode_s &vehicle_control_mode);
 

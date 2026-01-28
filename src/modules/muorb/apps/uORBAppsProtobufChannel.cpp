@@ -56,10 +56,10 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 	if (_Debug) { PX4_INFO("Got Receive callback for topic %s", topic); }
 
 	if (strcmp(topic, "slpi_debug") == 0) {
-		PX4_INFO("SLPI: %s", (const char *) data);
+		PX4_INFO("%s", (const char *) data);
 
 	} else if (strcmp(topic, "slpi_error") == 0) {
-		PX4_ERR("SLPI: %s", (const char *) data);
+		PX4_ERR("%s", (const char *) data);
 
 	} else if (IS_MUORB_TEST(topic)) {
 		// Validate the test data received
@@ -113,6 +113,11 @@ void uORB::AppsProtobufChannel::SubscribeCallback(const char *topic)
 		test_flag = true;
 		return;
 
+	} else if (strcmp(topic, "CPULOAD") == 0) {
+		// PX4_ERR("Got CPULOAD subscription");
+		// This will happen when a newer PX4 version is talking to a
+		// SLPI image that doesn't support the CPULOAD request. If the
+		// SLPI image does support it then we wouldn't get this.
 	} else if (_RxHandler) {
 		pthread_mutex_lock(&_rx_mutex);
 		_SlpiSubscriberCache[topic]++;

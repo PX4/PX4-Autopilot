@@ -2,7 +2,7 @@
 ################################################################################
 #
 # Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
-# Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+# Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -43,9 +43,6 @@ import em
 import yaml
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-m", "--topic-msg-dir", dest='msgdir', type=str,
-                    help="Topics message, by default using relative path 'msg/'", default="msg")
-
 parser.add_argument("-y", "--dds-topics-file", dest='yaml_file', type=str,
                     help="Setup topics file path, by default using 'dds_topics.yaml'")
 
@@ -82,48 +79,63 @@ if not os.path.exists(folder_name):
 with open(args.yaml_file, 'r') as file:
     msg_map = yaml.safe_load(file)
 
+# Get DDS namespace from environment, default to empty string
+namespace = os.getenv('PX4_UXRCE_DDS_NS', '')
+
 merged_em_globals = {}
 all_type_includes = []
 
-for p in msg_map['publications']:
+def process_message_type(msg_type):
+    # Add namespace to topic
+    msg_type['topic'] = f"/{namespace}{msg_type['topic']}" if namespace else msg_type['topic']
+
     # eg TrajectoryWaypoint from px4_msgs::msg::TrajectoryWaypoint
-    simple_base_type = p['type'].split('::')[-1]
+    simple_base_type = msg_type['type'].split('::')[-1]
 
     # eg TrajectoryWaypoint -> trajectory_waypoint
     base_type_name_snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', simple_base_type).lower()
     all_type_includes.append(base_type_name_snake_case)
-
     # simple_base_type: eg vehicle_status
-    p['simple_base_type'] = base_type_name_snake_case
-
+    msg_type['simple_base_type'] = base_type_name_snake_case
     # dds_type: eg px4_msgs::msg::dds_::VehicleStatus_
-    p['dds_type'] = p['type'].replace("::msg::", "::msg::dds_::") + "_"
-
+    msg_type['dds_type'] = msg_type['type'].replace("::msg::", "::msg::dds_::") + "_"
     # topic_simple: eg vehicle_status
-    p['topic_simple'] = p['topic'].split('/')[-1]
+    msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
 
+def process_message_instance(msg_type):
+    if 'instance' in msg_type:
+        # if instance is given, check if it is a non negative integer
+        if not (type(msg_type['instance']) is int and msg_type['instance'] >= 0) :
+            raise TypeError("`instance` must be a non negative integer")
+        # add trailing instance to topic name
+        msg_type['topic'] = f"{msg_type['topic']}{msg_type['instance']}"
+    else:
+        # if instance is not given,
+        msg_type['instance'] = 0
 
-merged_em_globals['publications'] = msg_map['publications']
+merged_em_globals['namespace'] = namespace
 
-for s in msg_map['subscriptions']:
-    # eg TrajectoryWaypoint from px4_msgs::msg::TrajectoryWaypoint
-    simple_base_type = s['type'].split('::')[-1]
+pubs_not_empty = msg_map['publications'] is not None
+if pubs_not_empty:
+    for p in msg_map['publications']:
+        process_message_type(p)
+        process_message_instance(p)
 
-    # eg TrajectoryWaypoint -> trajectory_waypoint
-    base_type_name_snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', simple_base_type).lower()
-    all_type_includes.append(base_type_name_snake_case)
+merged_em_globals['publications'] = msg_map['publications'] if pubs_not_empty else []
 
-    # simple_base_type: eg vehicle_status
-    s['simple_base_type'] = base_type_name_snake_case
+subs_not_empty = msg_map['subscriptions'] is not None
+if subs_not_empty:
+    for s in msg_map['subscriptions']:
+        process_message_type(s)
 
-    # dds_type: eg px4_msgs::msg::dds_::VehicleStatus_
-    s['dds_type'] = s['type'].replace("::msg::", "::msg::dds_::") + "_"
+merged_em_globals['subscriptions'] = msg_map['subscriptions'] if subs_not_empty else []
 
-    # topic_simple: eg vehicle_status
-    s['topic_simple'] = s['topic'].split('/')[-1]
+subs_multi_not_empty = msg_map['subscriptions_multi'] is not None
+if subs_multi_not_empty:
+    for sm in msg_map['subscriptions_multi']:
+        process_message_type(sm)
 
-
-merged_em_globals['subscriptions'] = msg_map['subscriptions']
+merged_em_globals['subscriptions_multi'] = msg_map['subscriptions_multi'] if subs_multi_not_empty else []
 
 merged_em_globals['type_includes'] = sorted(set(all_type_includes))
 

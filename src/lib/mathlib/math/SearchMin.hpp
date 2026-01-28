@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file Seach.hpp
+ * @file SearchMin.hpp
  *
  * - Binary Search (ToDo)
  * - Golden Section Search

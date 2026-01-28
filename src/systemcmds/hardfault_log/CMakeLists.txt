@@ -35,6 +35,7 @@ px4_add_module(
 	MAIN hardfault_log
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
+	STACK_MAIN 4096
 	SRCS
 		hardfault_log.c
 	DEPENDS

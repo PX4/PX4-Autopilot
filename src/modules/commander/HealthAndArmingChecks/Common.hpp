@@ -74,6 +74,12 @@ static_assert(sizeof(navigation_mode_group_t) == sizeof(NavModes), "type mismatc
 static_assert(vehicle_status_s::NAVIGATION_STATE_MAX <= CHAR_BIT *sizeof(navigation_mode_group_t),
 	      "type too small, use next larger type");
 
+// Type to pass two mode groups in one struct to have the same number of function arguments to facilitate events parsing
+struct NavModesMessageFail {
+	NavModes message_modes; ///< modes in which there's user messageing but arming is allowed
+	NavModes fail_modes; ///< modes in which checks fail which must be a subset of message_modes
+};
+
 static inline NavModes operator|(NavModes a, NavModes b)
 {
 	return static_cast<NavModes>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
@@ -128,10 +134,15 @@ public:
 
 	bool isArmed() const { return _status.arming_state == vehicle_status_s::ARMING_STATE_ARMED; }
 
+	bool isArmingRequest() const { return _is_arming_request; }
+
+	void setIsArmingRequest(bool is_arming_request) { _is_arming_request = is_arming_request; }
+
 	const vehicle_status_s &status() const { return _status; }
 
 private:
 	const vehicle_status_s &_status;
+	bool _is_arming_request{false};	// true if we currently have an arming request
 };
 
 
@@ -246,11 +257,19 @@ public:
 	void armingCheckFailure(NavModes required_modes, HealthComponentIndex component, uint32_t event_id,
 				const events::LogLevels &log_levels, const char *message);
 
+	/**
+	 * Overloaded variant of armingCheckFailure() which allows to separately specify modes in which a message should be emitted and a subset in which arming is blocked
+	 * @param required_modes .message_modes modes in which to put out the event and hence user message.
+	 *                       .failing_modes modes in which to to fail arming. Has to be a subset of message_modes to never disallow arming without a reason.
+	 */
+	void armingCheckFailure(NavModesMessageFail required_modes, HealthComponentIndex component,
+				uint32_t event_id, const events::LogLevels &log_levels, const char *message);
+
 	void clearArmingBits(NavModes modes);
 
 	/**
-	 * Clear can_run bits for certain modes. This will prevent mode switching and trigger failsafe if the
-	 * mode is being run.
+	 * Clear can_run bits for certain modes. This will prevent mode switching.
+	 * For failsafe use the mode requirements instead, which then will clear the can_run bits.
 	 * @param modes affected modes
 	 */
 	void clearCanRunBits(NavModes modes);
@@ -259,6 +278,8 @@ public:
 	const ArmingCheckResults &armingCheckResults() const { return _results[_current_result].arming_checks; }
 
 	bool modePreventsArming(uint8_t nav_state) const { return _failsafe_flags.mode_req_prevent_arming & (1u << nav_state); }
+
+	bool addExternalEvent(const event_s &event, NavModes modes);
 private:
 
 	/**
@@ -307,6 +328,7 @@ private:
 	NavModes getModeGroup(uint8_t nav_state) const;
 
 	friend class HealthAndArmingChecks;
+	friend class ExternalChecks;
 	FRIEND_TEST(ReporterTest, basic_no_checks);
 	FRIEND_TEST(ReporterTest, basic_fail_all_modes);
 	FRIEND_TEST(ReporterTest, arming_checks_mode_category);
@@ -329,7 +351,12 @@ private:
 	 */
 	bool finalize();
 
-	bool report(bool is_armed, bool force);
+	bool report(bool force);
+
+	/**
+	 * Send out any unreported changes if there are any
+	 */
+	bool reportIfUnreportedDifferences();
 
 	const hrt_abstime _min_reporting_interval;
 
@@ -373,7 +400,7 @@ bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, co
 		      Args... args)
 {
 	constexpr unsigned args_size = events::util::sizeofArguments(modes, args...);
-	static_assert(args_size <= sizeof(events::EventType::arguments), "Too many arguments");
+	static_assert(args_size <= sizeof(event_s::arguments), "Too many arguments");
 	unsigned total_size = sizeof(EventBufferHeader) + args_size;
 
 	if (total_size > sizeof(_event_buffer) - _next_buffer_idx) {

@@ -32,17 +32,17 @@
  ****************************************************************************/
 
 /**
- * @file FlightManualAltitude.hpp
+ * @file FlightTaskManualAltitude.hpp
  *
  * Flight task for manual controlled altitude.
  */
 
 #pragma once
 
+#include <lib/stick_yaw/StickYaw.hpp>
+#include <lib/sticks/Sticks.hpp>
 #include "FlightTask.hpp"
-#include "Sticks.hpp"
 #include "StickTiltXY.hpp"
-#include "StickYaw.hpp"
 #include <uORB/Subscription.hpp>
 
 class FlightTaskManualAltitude : public FlightTask
@@ -53,10 +53,15 @@ public:
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	bool updateInitialize() override;
 	bool update() override;
+	void setMaxDistanceToGround(float max_distance) { _max_distance_to_ground = max_distance; }
 
 protected:
 	void _ekfResetHandlerHeading(float delta_psi) override; /**< adjust heading setpoint in case of EKF reset event */
+	void _ekfResetHandlerHagl(float delta_hagl) override;
+
 	virtual void _updateSetpoints(); /**< updates all setpoints */
+	virtual void _updateYawSetpoint();
+	virtual void _updateXYSetpoint();
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
 	bool _checkTakeoff() override;
 	void _updateConstraintsFromEstimator();
@@ -73,6 +78,10 @@ protected:
 	StickYaw _stick_yaw{this};
 
 	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
+	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
+
+	float _velocity_constraint_up{INFINITY};
+	float _velocity_constraint_down{INFINITY};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) _param_mpc_hold_max_z,
@@ -117,8 +126,6 @@ private:
 	bool _updateYawCorrection();
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
-	bool _terrain_follow{false}; /**< true when the vehicle is following the terrain height */
-	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
 
 	float _min_distance_to_ground{(float)(-INFINITY)}; /**< min distance to ground constraint */
 	float _max_distance_to_ground{(float)INFINITY};  /**< max distance to ground constraint */

@@ -1,0 +1,85 @@
+name: Docs - Check for flaws in PX4 Guide Source
+# So far:
+  # Modifications of translations files
+  # Broken internal links
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize]
+    paths:
+      - 'docs/en/**'
+
+jobs:
+  check_flaws:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Create logs directory
+        run: |
+          mkdir logs
+
+      - name: Get changed english doc files
+        id: get_changed_markdown_english
+        uses: tj-actions/changed-files@v46.0.5
+        with:
+          json: true
+          base_sha: "${{ github.event.pull_request.base.sha }}"
+          sha: "${{ github.event.pull_request.head.sha }}"
+          # Below are used to output files to a directory. May use in flaw checker.
+          # write_output_files: true
+          # output_dir: "./logs"
+          files: |
+            docs/en/**/*.md
+
+      - name: Save JSON file containing files to link check
+        run: |
+          echo "$ALL_CHANGED_FILES"
+          # echo "$ALL_CHANGED_FILES" > ./logs/prFiles.json
+          echo "$ALL_CHANGED_FILES" | sed 's/\\//g' | jq '.' > ./logs/prFiles.json
+        env:
+          ALL_CHANGED_FILES: ${{ steps.get_changed_markdown_english.outputs.all_changed_files }}
+
+      - name: Run link checker
+        id: link-check
+        run: |
+          npm -g install markdown_link_checker_sc@0.0.138
+          markdown_link_checker_sc \
+            -r "$GITHUB_WORKSPACE" \
+            -d docs \
+            -e en \
+            -f ./logs/prFiles.json \
+            -i assets \
+            -u docs.px4.io/main/ \
+            > ./logs/errorsFilteredByPrPages.md
+          mkdir -p ./pr
+          cp ./logs/errorsFilteredByPrPages.md ./pr/errorsFilteredByPrPages.md
+
+      - name: Read errorsFilteredByPrPages.md file
+        id: read-errors-by-page
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./logs/errorsFilteredByPrPages.md
+
+      - name: Echo Errors by Page
+        run: echo "$ERRORS"
+        env:
+          ERRORS: ${{ steps.read-errors-by-page.outputs.content }}
+
+      - name: Save PR number
+        run: echo "$PR_NUMBER" > ./pr/pr_number
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr_number
+          path: pr/

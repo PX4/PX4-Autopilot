@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file blocks.h
+ * @file BlockDerivative.hpp
  *
  * Controller library code
  */

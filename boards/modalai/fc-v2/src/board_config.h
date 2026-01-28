@@ -351,7 +351,7 @@
 #define BOARD_NUM_IO_TIMERS 5
 
 // J5 USART5 TELEM2 Port next to PWM connector
-#define MODAL_IO_DEFAULT_PORT                     "/dev/ttyS4"
+#define VOXL_ESC_DEFAULT_PORT                     "/dev/ttyS4"
 
 __BEGIN_DECLS
 

@@ -41,15 +41,17 @@
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
-#include <lib/geo/geo.h> // For CONSTANTS_*
+#include <lib/atmosphere/atmosphere.h>
 
 const char *const UavcanBarometerBridge::NAME = "baro";
 
-UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_baro", ORB_ID(sensor_baro)),
+UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_baro", ORB_ID(sensor_baro), node_info_publisher),
 	_sub_air_pressure_data(node),
 	_sub_air_temperature_data(node)
-{ }
+{
+	set_device_type(DRV_BARO_DEVTYPE_UAVCAN);
+}
 
 int UavcanBarometerBridge::init()
 {
@@ -78,10 +80,10 @@ void UavcanBarometerBridge::air_temperature_sub_cb(const
 
 	} else if (msg.static_temperature < 0) {
 		// handle previous incorrect temperature conversion to Kelvin where 273 was subtracted instead of added (https://github.com/PX4/PX4-Autopilot/pull/19061)
-		float temperature_c = msg.static_temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+		float temperature_c = msg.static_temperature - atmosphere::kAbsoluteNullCelsius;
 
 		if (temperature_c > -40.f && temperature_c < 120.f) {
-			_last_temperature_kelvin = temperature_c - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+			_last_temperature_kelvin = temperature_c - atmosphere::kAbsoluteNullCelsius;
 		}
 	}
 }
@@ -91,7 +93,7 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 {
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get(), msg.getIfaceIndex());
 
 	if (channel == nullptr) {
 		// Something went wrong - no channel to publish on; return
@@ -105,21 +107,22 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 		return;
 	}
 
-	DeviceId device_id{};
-	device_id.devid_s.bus = 0;
-	device_id.devid_s.bus_type = DeviceBusType_UAVCAN;
+	uint32_t device_id = make_uavcan_device_id(msg);
 
-	device_id.devid_s.devtype = DRV_BARO_DEVTYPE_UAVCAN;
-	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
+	// Register barometer capability with NodeInfoPublisher after first successful message
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), device_id,
+				NodeInfoPublisher::DeviceCapability::BAROMETER);
+	}
 
 	// publish
 	sensor_baro_s sensor_baro{};
 	sensor_baro.timestamp_sample = timestamp_sample;
-	sensor_baro.device_id = device_id.devid;
+	sensor_baro.device_id = device_id;
 	sensor_baro.pressure = msg.static_pressure;
 
 	if (PX4_ISFINITE(_last_temperature_kelvin) && (_last_temperature_kelvin >= 0.f)) {
-		sensor_baro.temperature = _last_temperature_kelvin + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+		sensor_baro.temperature = _last_temperature_kelvin + atmosphere::kAbsoluteNullCelsius;
 
 	} else {
 		sensor_baro.temperature = NAN;

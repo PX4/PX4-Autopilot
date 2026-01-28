@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file usr_hrt.c
+ * @file usr_hrt.cpp
  *
  * Userspace High-resolution timer callouts and timekeeping.
  *

@@ -1,0 +1,75 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_DRAG_CTRL:
+      description:
+        short: Multirotor wind estimation selection
+        long: Activate wind speed estimation using specific-force measurements and
+          a drag model defined by EKF2_BCOEF_[XY] and EKF2_MCOEF. Only use on vehicles
+          that have their thrust aligned with the Z axis and no thrust in the XY plane.
+      type: boolean
+      default: 0
+    EKF2_DRAG_NOISE:
+      description:
+        short: Specific drag force observation noise variance
+        long: Used by the multi-rotor specific drag force model.
+          Increasing this makes the multi-rotor wind estimates adjust more slowly.
+      type: float
+      default: 2.5
+      min: 0.5
+      max: 10.0
+      unit: (m/s^2)^2
+      decimal: 2
+    EKF2_BCOEF_X:
+      description:
+        short: X-axis ballistic coefficient used for multi-rotor wind estimation
+        long: This parameter controls the prediction of drag produced by bluff body
+          drag along the forward/reverse axis when flying a multi-copter which enables
+          estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The
+          drag produced by this effect scales with speed squared. The predicted drag
+          from the rotors is specified separately by the EKF2_MCOEF parameter. Set
+          this parameter to zero to turn off the bluff body drag model for this axis.
+      type: float
+      default: 100.0
+      min: 0.0
+      max: 200.0
+      unit: kg/m^2
+      decimal: 1
+    EKF2_BCOEF_Y:
+      description:
+        short: Y-axis ballistic coefficient used for multi-rotor wind estimation
+        long: This parameter controls the prediction of drag produced by bluff body
+          drag along the right/left axis when flying a multi-copter, which enables
+          estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The
+          drag produced by this effect scales with speed squared. The predicted drag
+          from the rotors is specified separately by the EKF2_MCOEF parameter. Set
+          this parameter to zero to turn off the bluff body drag model for this axis.
+      type: float
+      default: 100.0
+      min: 0.0
+      max: 200.0
+      unit: kg/m^2
+      decimal: 1
+    EKF2_MCOEF:
+      description:
+        short: Propeller momentum drag coefficient for multi-rotor wind estimation
+        long: This parameter controls the prediction of drag produced by the propellers
+          when flying a multi-copter, which enables estimation of wind drift when
+          enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect
+          scales with speed not speed squared and is produced because some of the
+          air velocity normal to the propeller axis of rotation is lost when passing
+          through the rotor disc. This  changes the momentum of the flow which creates
+          a drag reaction force. When comparing un-ducted propellers of the same diameter,
+          the effect is roughly proportional to the area of the propeller blades when
+          viewed side on and changes with propeller selection. Momentum drag is significantly
+          higher for ducted rotors. To account for the drag produced by the body which
+          scales with speed squared, see documentation for the EKF2_BCOEF_X and EKF2_BCOEF_Y
+          parameters. Set this parameter to zero to turn off the momentum drag model
+          for both axis.
+      type: float
+      default: 0.15
+      min: 0
+      max: 1.0
+      unit: 1/s
+      decimal: 2

@@ -104,6 +104,13 @@ __EXPORT int px4_mft_query(const px4_mft_s *mft, px4_manifest_types_e type,
 					break;
 
 				case MFT:
+					if (mft->mfts[m]->pmft != nullptr) {
+						system_query_func_t query = (system_query_func_t) mft->mfts[m]->pmft;
+						return query(sub, val, nullptr);
+					}
+
+					break;
+
 				default:
 					rv = -ENODATA;
 					break;

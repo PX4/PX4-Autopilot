@@ -203,57 +203,45 @@ void ICM40609D::RunImpl()
 
 	case STATE::FIFO_READ: {
 			hrt_abstime timestamp_sample = now;
-			uint8_t samples = 0;
-
-			if (_data_ready_interrupt_enabled) {
-				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
-				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
-
-				if ((now - drdy_timestamp_sample) < _fifo_empty_interval_us) {
-					timestamp_sample = drdy_timestamp_sample;
-					samples = _fifo_gyro_samples;
-
-				} else {
-					perf_count(_drdy_missed_perf);
-				}
-
-				// push backup schedule back
-				ScheduleDelayed(_fifo_empty_interval_us * 2);
-			}
+			uint8_t samples = FIFOReadCount();
 
 			if (samples == 0) {
-				// check current FIFO count
-				const uint16_t fifo_count = FIFOReadCount();
+				perf_count(_fifo_empty_perf);
 
-				if (fifo_count >= FIFO::SIZE) {
+			} else {
+				// tolerate minor jitter, leave sample to next iteration if behind by only 1
+				if (samples == _fifo_gyro_samples + 1) {
+					timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
+					samples--;
+				}
+
+				if (samples > FIFO_MAX_SAMPLES) {
+					// not technically an overflow, but more samples than we expected or can publish
 					FIFOReset();
 					perf_count(_fifo_overflow_perf);
-
-				} else if (fifo_count == 0) {
-					perf_count(_fifo_empty_perf);
-
-				} else {
-					// FIFO count (size in bytes)
-					samples = (fifo_count / sizeof(FIFO::DATA));
-
-					// tolerate minor jitter, leave sample to next iteration if behind by only 1
-					if (samples == _fifo_gyro_samples + 1) {
-						timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
-						samples--;
-					}
-
-					if (samples > FIFO_MAX_SAMPLES) {
-						// not technically an overflow, but more samples than we expected or can publish
-						FIFOReset();
-						perf_count(_fifo_overflow_perf);
-						samples = 0;
-					}
+					samples = 0;
 				}
 			}
 
 			bool success = false;
 
-			if (samples >= 1) {
+			if (samples > 0) {
+				if (_data_ready_interrupt_enabled) {
+					// scheduled from interrupt if _drdy_timestamp_sample was set as expected
+					const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
+
+					if ((now - drdy_timestamp_sample) < _fifo_empty_interval_us) {
+						timestamp_sample = drdy_timestamp_sample;
+						samples = _fifo_gyro_samples;
+
+					} else {
+						perf_count(_drdy_missed_perf);
+					}
+
+					// push backup schedule back
+					ScheduleDelayed(_fifo_empty_interval_us * 2);
+				}
+
 				if (FIFORead(timestamp_sample, samples)) {
 					success = true;
 
@@ -374,17 +362,11 @@ void ICM40609D::ConfigureSampleRate(int sample_rate)
 
 void ICM40609D::ConfigureFIFOWatermark(uint8_t samples)
 {
-	// FIFO watermark threshold in number of bytes
-	const uint16_t fifo_watermark_threshold = samples * sizeof(FIFO::DATA);
-
 	for (auto &r : _register_bank0_cfg) {
 		if (r.reg == Register::BANK_0::FIFO_CONFIG2) {
 			// FIFO_WM[7:0]  FIFO_CONFIG2
-			r.set_bits = fifo_watermark_threshold & 0xFF;
+			r.set_bits = samples & 0xFF;
 
-		} else if (r.reg == Register::BANK_0::FIFO_CONFIG3) {
-			// FIFO_WM[11:8] FIFO_CONFIG3
-			r.set_bits = (fifo_watermark_threshold >> 8) & 0x0F;
 		}
 	}
 }
@@ -537,25 +519,10 @@ bool ICM40609D::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 		return false;
 	}
 
-	const uint16_t fifo_count_bytes = combine(buffer.FIFO_COUNTH, buffer.FIFO_COUNTL);
-
-	if (fifo_count_bytes >= FIFO::SIZE) {
-		perf_count(_fifo_overflow_perf);
-		FIFOReset();
-		return false;
-	}
-
-	const uint8_t fifo_count_samples = fifo_count_bytes / sizeof(FIFO::DATA);
-
-	if (fifo_count_samples == 0) {
-		perf_count(_fifo_empty_perf);
-		return false;
-	}
-
 	// check FIFO header in every sample
 	uint8_t valid_samples = 0;
 
-	for (int i = 0; i < math::min(samples, fifo_count_samples); i++) {
+	for (int i = 0; i < samples; i++) {
 		bool valid = true;
 
 		// With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
@@ -598,6 +565,9 @@ void ICM40609D::FIFOReset()
 
 	// SIGNAL_PATH_RESET: FIFO flush
 	RegisterSetBits(Register::BANK_0::SIGNAL_PATH_RESET, SIGNAL_PATH_RESET_BIT::FIFO_FLUSH);
+
+	// Read INT_STATUS to clear
+	RegisterRead(Register::BANK_0::INT_STATUS);
 
 	// reset while FIFO is disabled
 	_drdy_timestamp_sample.store(0);

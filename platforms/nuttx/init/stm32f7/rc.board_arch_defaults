@@ -13,4 +13,4 @@ param set-default -s MC_AT_EN 1
 
 param set-default -s UAVCAN_ENABLE 2
 
-set LOGGER_BUF 64
+set LOGGER_BUF 40

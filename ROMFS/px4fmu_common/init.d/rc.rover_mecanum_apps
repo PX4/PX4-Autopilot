@@ -1,0 +1,8 @@
+#!/bin/sh
+# Standard apps for a mecanum drive rover.
+
+# Start rover mecanum drive controller.
+rover_mecanum start
+
+# Start Land Detector.
+land_detector start rover

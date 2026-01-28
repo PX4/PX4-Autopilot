@@ -264,7 +264,7 @@
 #define BOARD_NUM_IO_TIMERS 5
 
 // J4 / TELEM3 / UART2
-#define MODAL_IO_DEFAULT_PORT                      "/dev/ttyS1"
+#define VOXL_ESC_DEFAULT_PORT                      "/dev/ttyS1"
 
 __BEGIN_DECLS
 

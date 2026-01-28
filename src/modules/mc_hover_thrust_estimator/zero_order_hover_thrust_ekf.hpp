@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file zero_order_thrust_ekf.hpp
+ * @file zero_order_hover_thrust_ekf.hpp
  * @brief Implementation of a single-state hover thrust estimator
  *
  * state: hover thrust (Th)

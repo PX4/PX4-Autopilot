@@ -153,7 +153,7 @@ public:
 
 	uint16_t		system_status() const { return _status; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
 private:
@@ -335,9 +335,7 @@ private:
 		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
 		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
-		(ParamInt<px4::params::SENS_EN_THERMAL>) _param_sens_en_themal,
-		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl,
-		(ParamInt<px4::params::SYS_USE_IO>) _param_sys_use_io
+		(ParamInt<px4::params::SENS_EN_THERMAL>) _param_sens_en_themal
 	)
 };
 
@@ -362,9 +360,16 @@ PX4IO::~PX4IO()
 	perf_free(_interface_write_perf);
 }
 
-bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool PX4IO::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
+	for (size_t i = 0; i < num_outputs; i++) {
+		if (!_mixing_output.isFunctionSet(i)) {
+			// do not run any signal on disabled channels
+			outputs[i] = 0;
+		}
+	}
+
 	if (!_test_fmu_fail) {
 		/* output to the servos */
 		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, num_outputs);
@@ -468,9 +473,7 @@ int PX4IO::init()
 	}
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	if (_param_sys_hitl.get() <= 0 && _param_sys_use_io.get() == 1) {
-		_mixing_output.setMaxTopicUpdateRate(MIN_TOPIC_UPDATE_INTERVAL);
-	}
+	_mixing_output.setMaxTopicUpdateRate(MIN_TOPIC_UPDATE_INTERVAL);
 
 	_px4io_status_pub.advertise();
 
@@ -519,9 +522,7 @@ void PX4IO::Run()
 	perf_count(_interval_perf);
 
 	/* if we have new control data from the ORB, handle it */
-	if (_param_sys_hitl.get() <= 0) {
-		_mixing_output.update();
-	}
+	_mixing_output.update();
 
 	if (hrt_elapsed_time(&_poll_last) >= 20_ms) {
 		/* run at 50 */
@@ -534,13 +535,11 @@ void PX4IO::Run()
 		io_publish_raw_rc();
 	}
 
-	if (_param_sys_hitl.get() <= 0) {
-		/* check updates on uORB topics and handle it */
-		if (_t_actuator_armed.updated()) {
-			io_set_arming_state();
+	/* check updates on uORB topics and handle it */
+	if (_t_actuator_armed.updated()) {
+		io_set_arming_state();
 
-			// TODO: throttle
-		}
+		// TODO: throttle
 	}
 
 	if (!_mixing_output.armed().armed) {
@@ -706,7 +705,7 @@ void PX4IO::update_params()
 						if (output_function >= (int)OutputFunction::Servo1
 						    && output_function <= (int)OutputFunction::ServoMax) { // Function got set to a servo
 							int32_t val = 1500;
-							PX4_INFO("Setting channel %i disarmed to %i", (int) val, i);
+							PX4_INFO("Setting channel %i disarmed to %i", (int)i + 1, (int)val);
 							param_set(_mixing_output.disarmedParamHandle(i), &val);
 
 							// If the whole timer group was not set previously, then set the pwm rate to 50 Hz
@@ -727,7 +726,7 @@ void PX4IO::update_params()
 
 									if (param_get(handle, &tim_config) == 0 && tim_config == 400) {
 										tim_config = 50;
-										PX4_INFO("setting timer %i to %i Hz", timer, (int) tim_config);
+										PX4_INFO("Setting timer %i to %i Hz", timer, (int)tim_config);
 										param_set(handle, &tim_config);
 									}
 								}
@@ -738,10 +737,10 @@ void PX4IO::update_params()
 						if (output_function >= (int)OutputFunction::Motor1
 						    && output_function <= (int)OutputFunction::MotorMax) { // Function got set to a motor
 							int32_t val = 1100;
-							PX4_INFO("Setting channel %i minimum to %i", (int) val, i);
+							PX4_INFO("Setting channel %i minimum to %i", (int)i + 1, (int)val);
 							param_set(_mixing_output.minParamHandle(i), &val);
 							val = 1900;
-							PX4_INFO("Setting channel %i maximum to %i", (int) val, i);
+							PX4_INFO("Setting channel %i maximum to %i", (int)i + 1, (int)val);
 							param_set(_mixing_output.maxParamHandle(i), &val);
 						}
 					}
@@ -792,29 +791,21 @@ PX4IO::io_set_arming_state()
 			clear |= PX4IO_P_SETUP_ARMING_FMU_PREARMED;
 		}
 
-		if ((armed.lockdown || armed.manual_lockdown) && !_lockdown_override) {
+		if ((armed.lockdown || armed.kill) && !_lockdown_override) {
 			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = true;
 
-		} else if (!(armed.lockdown || armed.manual_lockdown) && _lockdown_override) {
+		} else if (!(armed.lockdown || armed.kill) && _lockdown_override) {
 			clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = false;
 		}
 
-		if (armed.force_failsafe) {
-			set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+		if (armed.termination) {
+			set |= PX4IO_P_SETUP_ARMING_TERMINATION;
 
 		} else {
-			clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+			clear |= PX4IO_P_SETUP_ARMING_TERMINATION;
 		}
-
-		// XXX this is for future support in the commander
-		// but can be removed if unneeded
-		// if (armed.termination_failsafe) {
-		// 	set |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
-		// } else {
-		// 	clear |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
-		// }
 
 		if (armed.ready_to_arm) {
 			set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
@@ -997,7 +988,7 @@ int PX4IO::io_get_status()
 		status.arming_fmu_prearmed         = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FMU_PREARMED;
 		status.arming_failsafe_custom      = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;
 		status.arming_lockdown             = SETUP_ARMING & PX4IO_P_SETUP_ARMING_LOCKDOWN;
-		status.arming_force_failsafe       = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+		status.arming_termination          = SETUP_ARMING & PX4IO_P_SETUP_ARMING_TERMINATION;
 		status.arming_termination_failsafe = SETUP_ARMING & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
@@ -1039,7 +1030,10 @@ int PX4IO::io_publish_raw_rc()
 	const bool rc_updated = (rc_valid_update_count != _rc_valid_update_count);
 	_rc_valid_update_count = rc_valid_update_count;
 
-	if (!rc_updated) {
+	// only publish if the IO status indicates that the RC is OK
+	const uint16_t status_rc_ok = _status & PX4IO_P_STATUS_FLAGS_RC_OK;
+
+	if (!rc_updated | !status_rc_ok) {
 		return 0;
 	}
 
@@ -1236,8 +1230,8 @@ int PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint1
 int PX4IO::print_status()
 {
 	/* basic configuration */
-	printf("protocol %" PRIu32 " hardware %" PRIu32 " bootloader %" PRIu32 " buffer %" PRIu32 "B crc 0x%04" PRIu32 "%04"
-	       PRIu32 "\n",
+	printf("protocol %" PRIu32 " hardware %" PRIu32 " bootloader %" PRIu32 " buffer %" PRIu32 "B crc 0x%04" PRIx32 "%04"
+	       PRIx32 "\n",
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_BOOTLOADER_VERSION),
@@ -1557,6 +1551,10 @@ int PX4IO::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
 
+	if (!strcmp(verb, "supported")) {
+		return 0;
+	}
+
 	if (!strcmp(verb, "checkcrc")) {
 		if (is_running()) {
 			PX4_ERR("io must be stopped");
@@ -1750,6 +1748,7 @@ Output driver communicating with the IO co-processor.
 	PRINT_MODULE_USAGE_ARG("dsm2|dsmx|dsmx8", "protocol", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus1_out", "enable sbus1 out");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus2_out", "enable sbus2 out");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("supported", "Returns 0 if px4io is supported");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test_fmu_fail", "test: turn off IO updates");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test_fmu_ok", "re-enable IO updates");
 
@@ -1762,7 +1761,7 @@ Output driver communicating with the IO co-processor.
 extern "C" __EXPORT int px4io_main(int argc, char *argv[])
 {
 	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
-		PX4_ERR("PX4IO Not Supported");
+		PX4_INFO("PX4IO Not Supported");
 		return -1;
 	}
 	return PX4IO::main(argc, argv);

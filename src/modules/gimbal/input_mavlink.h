@@ -41,6 +41,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/gimbal_device_attitude_status.h>
+#include <uORB/topics/gimbal_device_information.h>
 #include <uORB/topics/gimbal_manager_information.h>
 #include <uORB/topics/gimbal_manager_status.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
@@ -112,7 +113,7 @@ private:
 	UpdateResult _process_set_manual_control(ControlData &control_data,
 			const gimbal_manager_set_manual_control_s &set_manual_control);
 	void _set_control_data_from_set_attitude(ControlData &control_data, const uint32_t flags, const matrix::Quatf &q,
-			const matrix::Vector3f &angular_velocity);
+			const matrix::Vector3f &angular_velocity, const uint64_t timestamp);
 	void _ack_vehicle_command(const vehicle_command_s &cmd, uint8_t result);
 	void _stream_gimbal_manager_information(const ControlData &control_data);
 	void _stream_gimbal_manager_status(const ControlData &control_data);
@@ -125,6 +126,7 @@ private:
 	int _vehicle_command_sub = -1;
 
 	uORB::Subscription _gimbal_device_attitude_status_sub{ORB_ID(gimbal_device_attitude_status)};
+	uORB::Subscription _gimbal_device_information_sub{ORB_ID(gimbal_device_information)};
 	uORB::Publication<gimbal_manager_information_s> _gimbal_manager_info_pub{ORB_ID(gimbal_manager_information)};
 	uORB::Publication<gimbal_manager_status_s> _gimbal_manager_status_pub{ORB_ID(gimbal_manager_status)};
 	uint8_t _cur_roi_mode = vehicle_roi_s::ROI_NONE;

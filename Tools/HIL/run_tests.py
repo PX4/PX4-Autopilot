@@ -136,9 +136,6 @@ class TestHardwareMethods(unittest.TestCase):
     def test_atomic_bitset(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "atomic_bitset"))
 
-    def test_bezier(self):
-        self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bezier"))
-
     def test_bitset(self):
         self.assertTrue(do_test(self.TEST_DEVICE, self.TEST_BAUDRATE, "bitset"))
 

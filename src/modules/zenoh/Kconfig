@@ -1,0 +1,78 @@
+menuconfig MODULES_ZENOH
+	bool "Zenoh"
+	default n
+	select LIB_CDRSTREAM
+	---help---
+		Enable support for Zenoh
+
+if MODULES_ZENOH
+    config ZENOH_DEBUG
+        int "Zenoh debug level"
+        default 0
+        help
+            Set Zenoh debug level
+            0: NONE
+            1: ERROR
+            2: INFO + ERROR
+            3: DEBUG + INFO + ERROR
+
+    config ZENOH_DEFAULT_LOCATOR
+        string "Zenoh default mode"
+        default "tcp/127.0.0.1:7447" if PLATFORM_POSIX
+        default "tcp/10.41.10.1:7447#iface=eth0" if !PLATFORM_POSIX
+
+    config ZENOH_RMW_LIVELINESS
+        bool "[EXPERIMENTAL] rmw_zenoh liveliness implemenation"
+        default y
+        ---help---
+                Declares liveliness tokens with key expressions in the way rmw_zenoh expects them
+                Allowing to construct ROS2 graphs
+
+    config ZENOH_PUB_ON_MATCHING
+        bool "[EXPERIMENTAL] Only publish data when having matching subscribers"
+        default n
+        ---help---
+                Uses the Zenoh matching feature to check whether a publisher has subscribers.
+                If so, only then publish the data. This is still experimental
+
+
+    # Choose exactly one item
+    choice ZENOH_PUBSUB_SELECTION
+            prompt "Publishers/Subscribers selection"
+            default ZENOH_PUBSUB_ALL
+
+    config ZENOH_PUBSUB_MINIMAL
+            bool "Minimal"
+            select ZENOH_PUBSUB_COLLISION_CONSTRAINTS
+            select ZENOH_PUBSUB_FAILSAFE_FLAGS
+            select ZENOH_PUBSUB_POSITION_SETPOINT_TRIPLET
+            select ZENOH_PUBSUB_SENSOR_COMBINED
+            select ZENOH_PUBSUB_TIMESYNC_STATUS
+            select ZENOH_PUBSUB_VEHICLE_ATTITUDE
+            select ZENOH_PUBSUB_VEHICLE_CONTROL_MODE
+            select ZENOH_PUBSUB_VEHICLE_GLOBAL_POSITION
+            select ZENOH_PUBSUB_SENSOR_GPS
+            select ZENOH_PUBSUB_VEHICLE_LOCAL_POSITION
+            select ZENOH_PUBSUB_VEHICLE_ODOMETRY
+            select ZENOH_PUBSUB_VEHICLE_STATUS
+            select ZENOH_PUBSUB_TRAJECTORY_WAYPOINT
+            select ZENOH_PUBSUB_OFFBOARD_CONTROL_MODE
+            select ZENOH_PUBSUB_ONBOARD_COMPUTER_STATUS
+            select ZENOH_PUBSUB_OBSTACLE_DISTANCE
+            select ZENOH_PUBSUB_SENSOR_OPTICAL_FLOW
+            select ZENOH_PUBSUB_TELEMETRY_STATUS
+            select ZENOH_PUBSUB_TRAJECTORY_SETPOINT
+            select ZENOH_PUBSUB_VEHICLE_ATTITUDE_SETPOINT
+            select ZENOH_PUBSUB_VEHICLE_ODOMETRY
+            select ZENOH_PUBSUB_VEHICLE_RATES_SETPOINT
+            select ZENOH_PUBSUB_VEHICLE_COMMAND
+    config ZENOH_PUBSUB_ALL
+            bool "All"
+
+    config ZENOH_PUBSUB_CUSTOM
+            bool "Custom"
+    endchoice
+
+endif
+
+rsource "Kconfig.topics"

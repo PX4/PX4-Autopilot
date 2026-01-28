@@ -229,6 +229,7 @@ public:
 	I2CSPIBusOption configuredBusOption() const { return _bus_option; }
 
 	int runningInstancesCount() const;
+	int runningInstancesOnBusCount() const;
 
 	bool next();
 

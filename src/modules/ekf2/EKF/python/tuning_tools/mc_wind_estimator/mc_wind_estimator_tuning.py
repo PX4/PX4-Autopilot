@@ -45,14 +45,20 @@ import numpy as np
 import quaternion
 from scipy import optimize
 
-def getAllData(logfile):
+def getAllData(logfile, use_gnss):
     log = ULog(logfile)
 
-    v_local = np.matrix([getData(log, 'vehicle_local_position', 'vx'),
-              getData(log, 'vehicle_local_position', 'vy'),
-              getData(log, 'vehicle_local_position', 'vz')])
+    if use_gnss:
+        v_local = np.array([getData(log, 'vehicle_gps_position', 'vel_n_m_s'),
+                  getData(log, 'vehicle_gps_position', 'vel_e_m_s'),
+                  getData(log, 'vehicle_gps_position', 'vel_d_m_s')])
+        t_v_local = ms2s(getData(log, 'vehicle_gps_position', 'timestamp'))
 
-    t_v_local = ms2s(getData(log, 'vehicle_local_position', 'timestamp'))
+    else:
+        v_local = np.array([getData(log, 'vehicle_local_position', 'vx'),
+                  getData(log, 'vehicle_local_position', 'vy'),
+                  getData(log, 'vehicle_local_position', 'vz')])
+        t_v_local = ms2s(getData(log, 'vehicle_local_position', 'timestamp'))
 
     accel = np.matrix([getData(log, 'sensor_combined', 'accelerometer_m_s2[0]'),
               getData(log, 'sensor_combined', 'accelerometer_m_s2[1]'),
@@ -126,8 +132,8 @@ def getData(log, topic_name, variable_name, instance=0):
 def ms2s(time_ms):
     return time_ms * 1e-6
 
-def run(logfile):
-    (t, v_body, a_body) = getAllData(logfile)
+def run(logfile, use_gnss):
+    (t, v_body, a_body) = getAllData(logfile, use_gnss)
 
     rho = 1.15 # air densitiy
     rho15 = 1.225 # air density at 15 degC
@@ -197,8 +203,10 @@ if __name__ == '__main__':
 
     # Provide parameter file path and name
     parser.add_argument('logfile', help='Full ulog file path, name and extension', type=str)
+    parser.add_argument('--gnss', help='Use GNSS velocity instead of local velocity estimate',
+                        action='store_true')
     args = parser.parse_args()
 
     logfile = os.path.abspath(args.logfile) # Convert to absolute path
 
-    run(logfile)
+    run(logfile, args.gnss)

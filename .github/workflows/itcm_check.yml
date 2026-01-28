@@ -1,0 +1,67 @@
+name: ITCM check
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check_itcm:
+    name: Checking ${{ matrix.target }}
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    container:
+      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: px4_fmu-v5x
+            scripts: >
+              boards/px4/fmu-v5x/nuttx-config/scripts/itcm_gen_functions.ld
+              boards/px4/fmu-v5x/nuttx-config/scripts/itcm_static_functions.ld
+          - target: px4_fmu-v6xrt
+            scripts: >
+              boards/px4/fmu-v6xrt/nuttx-config/scripts/itcm_functions_includes.ld
+              boards/px4/fmu-v6xrt/nuttx-config/scripts/itcm_static_functions.ld
+          - target: nxp_tropic-community
+            scripts: >
+              boards/nxp/tropic-community/nuttx-config/scripts/itcm_functions_includes.ld
+              boards/nxp/tropic-community/nuttx-config/scripts/itcm_static_functions.ld
+          - target: nxp_mr-tropic
+            scripts: >
+              boards/nxp/mr-tropic/nuttx-config/scripts/itcm_functions_includes.ld
+              boards/nxp/mr-tropic/nuttx-config/scripts/itcm_static_functions.ld
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Git ownership workaround
+        run: git config --system --add safe.directory '*'
+
+      - name: Build Target
+        run: make ${{ matrix.target }}
+
+      - name: Copy built ELF
+        run: cp ./build/**/*.elf ./built.elf
+
+      - name: Install itcm-check dependencies
+        run: pip3 install -r Tools/setup/optional-requirements.txt --break-system-packages
+
+      - name: Execute the itcm-check
+        run: python3 Tools/itcm_check.py --elf-file built.elf --script-files ${{ matrix.scripts }}

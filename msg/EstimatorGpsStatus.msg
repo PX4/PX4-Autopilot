@@ -13,6 +13,7 @@ bool check_fail_max_horz_drift   # 6 : maximum allowed horizontal position drift
 bool check_fail_max_vert_drift   # 7 : maximum allowed vertical position drift fail - requires stationary vehicle
 bool check_fail_max_horz_spd_err # 8 : maximum allowed horizontal speed fail - requires stationary vehicle
 bool check_fail_max_vert_spd_err # 9 : maximum allowed vertical velocity discrepancy fail
+bool check_fail_spoofed_gps      # 10 : GPS signal is spoofed
 
 float32 position_drift_rate_horizontal_m_s # Horizontal position rate magnitude (m/s)
 float32 position_drift_rate_vertical_m_s   # Vertical position rate magnitude (m/s)

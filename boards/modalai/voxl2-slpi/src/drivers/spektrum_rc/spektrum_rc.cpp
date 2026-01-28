@@ -110,15 +110,17 @@ void task_main(int argc, char *argv[])
 		}
 	}
 
-	int uart_fd = dsm_init(device_path);
+	int uart_fd = qurt_uart_open(device_path, 115200);
 
 	if (uart_fd < 0) {
-		PX4_ERR("dsm init failed");
+		PX4_ERR("uart open failed");
 		return;
 
 	} else if (verbose) {
-		PX4_INFO("Spektrum RC: dsm_init succeeded");
+		PX4_INFO("Spektrum RC: uart open succeeded");
 	}
+
+	dsm_proto_init();
 
 	orb_advert_t rc_pub = nullptr;
 
@@ -153,9 +155,8 @@ void task_main(int argc, char *argv[])
 		if (newbytes <= 0) {
 			if (print_msg) { PX4_INFO("Spektrum RC: Read no bytes from UART"); }
 
-		} else if (((newbytes != DSM_FRAME_SIZE) || ((rx_buf[1] & 0x0F) != 0x02)) && (! first_correct_frame_received)) {
-			PX4_ERR("Spektrum RC: Read something other than correct DSM frame on read. Got %d bytes. Protocol byte is 0x%.2x",
-				newbytes, rx_buf[1]);
+		} else if ((newbytes != DSM_FRAME_SIZE) && (! first_correct_frame_received)) {
+			PX4_ERR("Invalid DSM frame size: %d bytes", newbytes);
 
 		} else {
 			if (print_msg) { PX4_INFO("Spektrum RC: Read %d bytes from UART", newbytes); }

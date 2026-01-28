@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ST_LSM9DS1_MAG_registers.hpp
+ * @file ST_LSM9DS1_MAG_Registers.hpp
  *
  * ST LSM9DS1 magnetometer registers.
  *

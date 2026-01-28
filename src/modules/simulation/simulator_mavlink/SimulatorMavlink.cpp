@@ -326,11 +326,22 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	}
 
 	// differential pressure
-	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_blocked) {
+	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_disconnected) {
+
+		const float blockage_fraction = 0.7; // defines max blockage (fully ramped)
+		const float airspeed_blockage_rampup_time = 1_s; // time it takes to go max blockage, linear ramp
+
+		float airspeed_blockage_scale = 1.f;
+
+		if (_airspeed_blocked_timestamp > 0) {
+			airspeed_blockage_scale = math::constrain(1.f - (hrt_absolute_time() - _airspeed_blocked_timestamp) /
+						  airspeed_blockage_rampup_time, 1.f - blockage_fraction, 1.f);
+		}
+
 		differential_pressure_s report{};
 		report.timestamp_sample = time;
 		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
-		report.differential_pressure_pa = sensors.diff_pressure * 100.f; // hPa to Pa;
+		report.differential_pressure_pa = sensors.diff_pressure * 100.f * airspeed_blockage_scale; // hPa to Pa;
 		report.temperature = _sensors_temperature;
 		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);
@@ -377,14 +388,12 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_RAW_RPM:
-		mavlink_raw_rpm_t rpm;
-		mavlink_msg_raw_rpm_decode(msg, &rpm);
-		rpm_s rpmmsg{};
-		rpmmsg.timestamp = hrt_absolute_time();
-		rpmmsg.indicated_frequency_rpm = rpm.frequency;
-		rpmmsg.estimated_accurancy_rpm = 0;
-
-		_rpm_pub.publish(rpmmsg);
+		mavlink_raw_rpm_t rpm_mavlink;
+		mavlink_msg_raw_rpm_decode(msg, &rpm_mavlink);
+		rpm_s rpm_uorb{};
+		rpm_uorb.timestamp = hrt_absolute_time();
+		rpm_uorb.rpm_estimate = rpm_mavlink.frequency;
+		_rpm_pub.publish(rpm_uorb);
 		break;
 	}
 }
@@ -404,41 +413,65 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 	if (!_gps_blocked) {
 		sensor_gps_s gps{};
 
-		gps.latitude_deg = hil_gps.lat / 1e7;
-		gps.longitude_deg = hil_gps.lon / 1e7;
-		gps.altitude_msl_m = hil_gps.alt / 1e3;
-		gps.altitude_ellipsoid_m = hil_gps.alt / 1e3;
+		if (!_gps_stuck) {
+			if (!_gps_wrong) {
+				gps.latitude_deg = hil_gps.lat / 1e7;
+				gps.longitude_deg = hil_gps.lon / 1e7;
+				gps.altitude_msl_m = hil_gps.alt / 1e3;
+				gps.altitude_ellipsoid_m = hil_gps.alt / 1e3;
 
-		gps.s_variance_m_s = 0.25f;
-		gps.c_variance_rad = 0.5f;
-		gps.fix_type = hil_gps.fix_type;
+			} else {
+				gps.latitude_deg = hil_gps.lat / 1e7 + 1.0;
+				gps.longitude_deg = hil_gps.lon / 1e7 + 1.0;
+				gps.altitude_msl_m = hil_gps.alt / 1e3 + 100.0;
+				gps.altitude_ellipsoid_m = hil_gps.alt / 1e3 - 100.0;
+			}
 
-		gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
-		gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
+			gps.s_variance_m_s = 0.25f;
+			gps.c_variance_rad = 0.5f;
+			gps.fix_type = hil_gps.fix_type;
 
-		gps.hdop = 0; // TODO
-		gps.vdop = 0; // TODO
+			gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
+			gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
 
-		gps.noise_per_ms = 0;
-		gps.automatic_gain_control = 0;
-		gps.jamming_indicator = 0;
-		gps.jamming_state = 0;
-		gps.spoofing_state = 0;
+			gps.hdop = 0; // TODO
+			gps.vdop = 0; // TODO
 
-		gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
-		gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
-		gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
-		gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
-		gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
-		gps.vel_ned_valid = true;
+			gps.noise_per_ms = 0;
+			gps.automatic_gain_control = 0;
+			gps.jamming_indicator = 0;
+			gps.jamming_state = 0;
+			gps.spoofing_state = 0;
 
-		gps.timestamp_time_relative = 0;
-		gps.time_utc_usec = hil_gps.time_usec;
+			if (!_gps_wrong) {
+				gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
+				gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
+				gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
+				gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
 
-		gps.satellites_used = hil_gps.satellites_visible;
+			} else {
+				gps.vel_m_s = (float)(hil_gps.vel) / 100.0f - 1.f; // cm/s -> m/s
+				gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f + 5.f; // cm/s -> m/s
+				gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f - 8.f; // cm/s -> m/s
+				gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f + 2.f; // cm/s -> m/s
+			}
 
-		gps.heading = NAN;
-		gps.heading_offset = NAN;
+			gps.cog_rad = ((hil_gps.cog == 65535) ? NAN : matrix::wrap_2pi(math::radians(hil_gps.cog * 1e-2f))); // cdeg -> rad
+			gps.vel_ned_valid = true;
+
+			gps.timestamp_time_relative = 0;
+			gps.time_utc_usec = hil_gps.time_usec;
+
+			gps.satellites_used = hil_gps.satellites_visible;
+
+			gps.heading = NAN;
+			gps.heading_offset = NAN;
+
+			_gps_prev = gps;
+
+		} else {
+			gps = _gps_prev;
+		}
 
 		gps.timestamp = hrt_absolute_time();
 
@@ -569,7 +602,7 @@ void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message
 		double lon = hil_state.lon * 1e-7;
 
 		if (!_global_local_proj_ref.isInitialized()) {
-			_global_local_proj_ref.initReference(lat, lon);
+			_global_local_proj_ref.initReference(lat, lon, timestamp);
 			_global_local_alt0 = hil_state.alt / 1000.f;
 		}
 
@@ -598,7 +631,8 @@ void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message
 		hil_lpos.vxy_max = std::numeric_limits<float>::infinity();
 		hil_lpos.vz_max = std::numeric_limits<float>::infinity();
 		hil_lpos.hagl_min = std::numeric_limits<float>::infinity();
-		hil_lpos.hagl_max = std::numeric_limits<float>::infinity();
+		hil_lpos.hagl_max_z = std::numeric_limits<float>::infinity();
+		hil_lpos.hagl_max_xy = std::numeric_limits<float>::infinity();
 
 		// always publish ground truth attitude message
 		_lpos_ground_truth_pub.publish(hil_lpos);
@@ -1238,6 +1272,16 @@ void SimulatorMavlink::check_failure_injections()
 				PX4_INFO("CMD_INJECT_FAILURE, GPS ok");
 				supported = true;
 				_gps_blocked = false;
+				_gps_stuck = false;
+				_gps_wrong = false;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
+				supported = true;
+				_gps_stuck = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
+				supported = true;
+				_gps_wrong = true;
 			}
 
 		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_ACCEL) {
@@ -1431,12 +1475,18 @@ void SimulatorMavlink::check_failure_injections()
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
 				PX4_WARN("CMD_INJECT_FAILURE, airspeed off");
 				supported = true;
-				_airspeed_blocked = true;
+				_airspeed_disconnected = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
+				PX4_WARN("CMD_INJECT_FAILURE, airspeed wrong (simulate pitot blockage)");
+				supported = true;
+				_airspeed_blocked_timestamp = hrt_absolute_time();
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
 				PX4_INFO("CMD_INJECT_FAILURE, airspeed ok");
 				supported = true;
-				_airspeed_blocked = false;
+				_airspeed_disconnected = false;
+				_airspeed_blocked_timestamp = 0;
 			}
 
 		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_VIO) {

@@ -44,6 +44,8 @@
 
 #include "apps.h"
 
+#define MODULE_NAME "main"
+
 #define MAX_ARGS 8 // max number of whitespace separated args after app name
 
 __BEGIN_DECLS

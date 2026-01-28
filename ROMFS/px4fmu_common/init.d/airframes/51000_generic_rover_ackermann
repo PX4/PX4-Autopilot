@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# @name Generic Rover Ackermann
+#
+# @type Rover
+# @class Rover
+#
+
+. ${R}etc/init.d/rc.rover_ackermann_defaults

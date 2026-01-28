@@ -68,7 +68,7 @@ private:
 				mavlink_raw_rpm_t msg{};
 
 				msg.index = i;
-				msg.frequency = rpm.indicated_frequency_rpm;
+				msg.frequency = rpm.rpm_estimate;
 
 				mavlink_msg_raw_rpm_send_struct(_mavlink->get_channel(), &msg);
 				updated = true;

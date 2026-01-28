@@ -1,0 +1,10 @@
+# Labeler configuration file for GitHub Actions
+# The action is ./.github/workflows/label.yml
+# Docs for the syntax in this file can be found at
+# https://github.com/actions/labeler
+
+
+# Add 'Documentation' label to any changes within 'docs' folder or any subfolders
+"Documentation 📑":
+- changed-files:
+  - any-glob-to-any-file: docs/**

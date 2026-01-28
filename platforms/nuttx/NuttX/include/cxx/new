@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#include <cstddef>
+
 inline void* operator new  (std::size_t, void* ptr) { return ptr; }
 inline void* operator new[](std::size_t, void* ptr) { return ptr; }
 inline void  operator delete  (void*, void*) {}

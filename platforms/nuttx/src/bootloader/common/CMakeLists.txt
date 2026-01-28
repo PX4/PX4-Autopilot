@@ -37,6 +37,10 @@ add_library(bootloader
 	crypto.c
 )
 
+target_compile_definitions(bootloader
+	PRIVATE BOOTLOADER_VERSION="PX4BLv${PX4_VERSION_MAJOR}.${PX4_VERSION_MINOR}.${PX4_VERSION_PATCH}g${PX4_GIT_HASH}"
+)
+
 target_link_libraries(bootloader
 	PRIVATE
 		arch_bootloader

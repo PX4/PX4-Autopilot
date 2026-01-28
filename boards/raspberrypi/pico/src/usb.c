@@ -82,4 +82,3 @@ __EXPORT void rp2040_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
 	uinfo("resume: %d\n", resume);
 }
-

@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file wqueue_example.cpp
+ * @file wqueue_test.cpp
  * Example for Linux
  *
  * @author Mark Charlebois <charlebm@gmail.com>

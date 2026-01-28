@@ -1,0 +1,24 @@
+module_name: InertialLabs
+
+serial_config:
+    - command: ilabs start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_ILABS_CFG
+        group: Sensors
+
+parameters:
+    - group: Sensors
+      definitions:
+
+        ILABS_MODE:
+            description:
+                short: InertialLabs INS sensor mode configuration
+                long: |
+                  Configures whether the driver outputs only raw sensor output (the default),
+                  or additionally supplies INS data such as position and velocity estimates.
+            category: System
+            type: enum
+            values:
+                0: Sensors Only (default)
+                1: INS
+            default: 0

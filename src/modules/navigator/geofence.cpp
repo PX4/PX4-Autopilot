@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013,2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,8 +40,10 @@
  */
 #include "geofence.h"
 #include "navigator.h"
+#include "navigation.h"
 
 #include <ctype.h>
+#include <crc32.h>
 
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
@@ -51,16 +53,36 @@
 
 #include "navigator.h"
 
-#define GEOFENCE_RANGE_WARNING_LIMIT 5000000
+static uint32_t crc32_for_fence_point(const mission_fence_point_s &fence_point, uint32_t prev_crc32)
+{
+	union {
+		CrcMissionItem_t item;
+		uint8_t raw[sizeof(CrcMissionItem_t)];
+	} u;
+
+	u.item.frame = fence_point.frame;
+	u.item.command = fence_point.nav_cmd;
+	u.item.autocontinue = 0U;
+	u.item.params[0] = 0.f;
+	u.item.params[1] = 0.f;
+	u.item.params[2] = 0.f;
+	u.item.params[3] = 0.f;
+	u.item.params[4] = static_cast<float>(fence_point.lat);
+	u.item.params[5] = static_cast<float>(fence_point.lon);
+	u.item.params[6] = fence_point.alt;
+
+	return crc32part(u.raw, sizeof(u), prev_crc32);
+}
 
 Geofence::Geofence(Navigator *navigator) :
 	ModuleParams(navigator),
-	_navigator(navigator),
-	_sub_airdata(ORB_ID(vehicle_air_data))
+	_navigator(navigator)
 {
 	if (_navigator != nullptr) {
 		updateFence();
 	}
+
+	_geofence_status_pub.advertise();
 }
 
 Geofence::~Geofence()
@@ -81,6 +103,14 @@ void Geofence::run()
 		if (_initiate_fence_updated) {
 			_initiate_fence_updated = false;
 			_dataman_state	= DatamanState::Read;
+
+			geofence_status_s status{};
+			status.timestamp = hrt_absolute_time();
+			status.geofence_id = _opaque_id;
+			status.status = geofence_status_s::GF_STATUS_LOADING;
+
+			_geofence_status_pub.publish(status);
+
 		}
 
 		break;
@@ -88,7 +118,7 @@ void Geofence::run()
 	case DatamanState::Read:
 
 		_dataman_state = DatamanState::ReadWait;
-		success = _dataman_client.readAsync(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&_stats),
+		success = _dataman_client.readAsync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&_stats),
 						    sizeof(mission_stats_entry_s));
 
 		if (!success) {
@@ -108,9 +138,9 @@ void Geofence::run()
 				_error_state = DatamanState::ReadWait;
 				_dataman_state = DatamanState::Error;
 
-			} else if (_update_counter != _stats.update_counter) {
+			} else if (_opaque_id != _stats.opaque_id) {
 
-				_update_counter = _stats.update_counter;
+				_opaque_id = _stats.opaque_id;
 				_fence_updated = false;
 
 				_dataman_cache.invalidate();
@@ -119,14 +149,22 @@ void Geofence::run()
 					_dataman_cache.resize(_stats.num_items);
 				}
 
-				for (int index = 1; index <= _dataman_cache.size(); ++index) {
-					_dataman_cache.load(DM_KEY_FENCE_POINTS, index);
+				for (int index = 0; index < _dataman_cache.size(); ++index) {
+					_dataman_cache.load(static_cast<dm_item_t>(_stats.dataman_id), index);
 				}
 
 				_dataman_state = DatamanState::Load;
 
 			} else {
 				_dataman_state = DatamanState::UpdateRequestWait;
+				_fence_updated = true;
+
+				geofence_status_s status{};
+				status.timestamp = hrt_absolute_time();
+				status.geofence_id = _opaque_id;
+				status.status = geofence_status_s::GF_STATUS_READY;
+
+				_geofence_status_pub.publish(status);
 			}
 		}
 
@@ -140,6 +178,13 @@ void Geofence::run()
 			_dataman_state = DatamanState::UpdateRequestWait;
 			_updateFence();
 			_fence_updated = true;
+
+			geofence_status_s status{};
+			status.timestamp = hrt_absolute_time();
+			status.geofence_id = _opaque_id;
+			status.status = geofence_status_s::GF_STATUS_READY;
+
+			_geofence_status_pub.publish(status);
 		}
 
 		break;
@@ -167,11 +212,11 @@ void Geofence::_updateFence()
 
 	// iterate over all polygons and store their starting vertices
 	_num_polygons = 0;
-	int current_seq = 1;
+	int current_seq = 0;
 
-	while (current_seq <= _dataman_cache.size()) {
+	while (current_seq < _dataman_cache.size()) {
 
-		bool success = _dataman_cache.loadWait(DM_KEY_FENCE_POINTS, current_seq,
+		bool success = _dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), current_seq,
 						       reinterpret_cast<uint8_t *>(&mission_fence_point),
 						       sizeof(mission_fence_point_s));
 
@@ -232,7 +277,17 @@ void Geofence::_updateFence()
 					current_seq += mission_fence_point.vertex_count;
 				}
 
-				++_num_polygons;
+				// check if requiremetns for Home location are met
+				const bool home_check_okay = checkHomeRequirementsForGeofence(polygon);
+
+				// check if current position is inside the fence and vehicle is armed
+				const bool current_position_check_okay = checkCurrentPositionRequirementsForGeofence(polygon);
+
+				// discard the polygon if at least one check fails by not incrementing the counter in that case
+				if (home_check_okay && current_position_check_okay) {
+					++_num_polygons;
+
+				}
 			}
 
 			break;
@@ -245,100 +300,66 @@ void Geofence::_updateFence()
 	}
 }
 
-bool Geofence::checkAll(const struct vehicle_global_position_s &global_position)
+bool Geofence::checkHomeRequirementsForGeofence(const PolygonInfo &polygon)
 {
-	return checkAll(global_position.lat, global_position.lon, global_position.alt);
-}
+	bool checks_pass = true;
 
-bool Geofence::checkAll(const struct vehicle_global_position_s &global_position, const float alt)
-{
-	return checkAll(global_position.lat, global_position.lon, alt);
-}
-
-bool Geofence::checkAll(double lat, double lon, float altitude)
-{
-	bool inside_fence = isCloserThanMaxDistToHome(lat, lon, altitude);
-
-	inside_fence = inside_fence && isBelowMaxAltitude(altitude);
-
-	// to be inside the geofence both fences have to report being inside
-	// as they both report being inside when not enabled
-	inside_fence = inside_fence && isInsidePolygonOrCircle(lat, lon, altitude);
-
-	if (inside_fence) {
-		_outside_counter = 0;
-		return inside_fence;
-
-	} else {
-		_outside_counter++;
-
-		if (_outside_counter > _param_gf_count.get()) {
-			return inside_fence;
-
-		} else {
-			return true;
-		}
+	if (_navigator->home_global_position_valid()) {
+		checks_pass = checkPointAgainstPolygonCircle(polygon, _navigator->get_home_position()->lat,
+				_navigator->get_home_position()->lon,
+				_navigator->get_home_position()->alt);
 	}
-}
 
-bool Geofence::check(const vehicle_global_position_s &global_position, const sensor_gps_s &gps_position)
-{
-	if (_param_gf_altmode.get() == Geofence::GF_ALT_MODE_WGS84) {
-		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-			return checkAll(global_position);
 
-		} else {
-			return checkAll(gps_position.latitude_deg, gps_position.longitude_deg, gps_position.altitude_msl_m);
-		}
-
-	} else {
-		// get baro altitude
-		_sub_airdata.update();
-		const float baro_altitude_amsl = _sub_airdata.get().baro_alt_meter;
-
-		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-			return checkAll(global_position, baro_altitude_amsl);
-
-		} else {
-			return checkAll(gps_position.latitude_deg, gps_position.longitude_deg, baro_altitude_amsl);
-		}
+	if (!checks_pass) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, doesn't contain Home position\t");
+		events::send(events::ID("navigator_geofence_invalid_against_home"), {events::Log::Critical, events::LogInternal::Warning},
+			     "Geofence invalid, doesn't contain Home position");
 	}
+
+	return checks_pass;
 }
 
-bool Geofence::check(const struct mission_item_s &mission_item)
+bool Geofence::checkCurrentPositionRequirementsForGeofence(const PolygonInfo &polygon)
 {
-	return checkAll(mission_item.lat, mission_item.lon, mission_item.altitude);
+	bool checks_pass = true;
+
+	// do not allow upload of geofence if vehicle is flying and current geofence would be immediately violated
+	if (getGeofenceAction() != geofence_result_s::GF_ACTION_NONE && !_navigator->get_land_detected()->landed) {
+		checks_pass = checkPointAgainstPolygonCircle(polygon, _navigator->get_global_position()->lat,
+				_navigator->get_global_position()->lon, _navigator->get_global_position()->alt);
+	}
+
+	if (!checks_pass) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, doesn't contain current vehicle position\t");
+		events::send(events::ID("navigator_geofence_invalid_against_cur_pos"), {events::Log::Critical, events::LogInternal::Warning},
+			     "Geofence invalid, doesn't contain current vehicle position");
+	}
+
+	return checks_pass;
+}
+
+
+bool Geofence::checkPointAgainstAllGeofences(double lat, double lon, float altitude)
+{
+	const bool inside_fence = isCloserThanMaxDistToHome(lat, lon, altitude) && isBelowMaxAltitude(altitude)
+				  && isInsidePolygonOrCircle(lat, lon, altitude);
+	return inside_fence;
 }
 
 bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 {
 	bool inside_fence = true;
 
-	if (isHomeRequired() && _navigator->home_global_position_valid()) {
-
-		const float max_horizontal_distance = _param_gf_max_hor_dist.get();
-
-		const double home_lat = _navigator->get_home_position()->lat;
-		const double home_lon = _navigator->get_home_position()->lon;
-		const float home_alt = _navigator->get_home_position()->alt;
+	if (_param_gf_max_hor_dist.get() > FLT_EPSILON && _navigator->home_global_position_valid()) {
 
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
 
-		get_distance_to_point_global_wgs84(lat, lon, altitude, home_lat, home_lon, home_alt, &dist_xy, &dist_z);
+		get_distance_to_point_global_wgs84(lat, lon, altitude, _navigator->get_home_position()->lat,
+						   _navigator->get_home_position()->lon, _navigator->get_home_position()->alt, &dist_xy, &dist_z);
 
-		if (max_horizontal_distance > FLT_EPSILON && (dist_xy > max_horizontal_distance)) {
-			if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Maximum distance from home reached (%.5f)\t",
-						     (double)max_horizontal_distance);
-				events::send<float>(events::ID("navigator_geofence_max_dist_from_home"), {events::Log::Critical, events::LogInternal::Warning},
-						    "Geofence: maximum distance from home reached ({1:.0m})",
-						    max_horizontal_distance);
-				_last_horizontal_range_warning = hrt_absolute_time();
-			}
-
-			inside_fence = false;
-		}
+		inside_fence = dist_xy < _param_gf_max_hor_dist.get();
 	}
 
 	return inside_fence;
@@ -348,25 +369,10 @@ bool Geofence::isBelowMaxAltitude(float altitude)
 {
 	bool inside_fence = true;
 
-	if (isHomeRequired() && _navigator->home_alt_valid()) {
+	if (_param_gf_max_ver_dist.get() > FLT_EPSILON && _navigator->home_alt_valid()) {
 
-		const float max_vertical_distance = _param_gf_max_ver_dist.get();
-		const float home_alt = _navigator->get_home_position()->alt;
-
-		float dist_z = altitude - home_alt;
-
-		if (max_vertical_distance > FLT_EPSILON && (dist_z > max_vertical_distance)) {
-			if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Maximum altitude above home reached (%.5f)\t",
-						     (double)max_vertical_distance);
-				events::send<float>(events::ID("navigator_geofence_max_alt_from_home"), {events::Log::Critical, events::LogInternal::Warning},
-						    "Geofence: maximum altitude above home reached ({1:.0m_v})",
-						    max_vertical_distance);
-				_last_vertical_range_warning = hrt_absolute_time();
-			}
-
-			inside_fence = false;
-		}
+		const float dist_z = altitude - _navigator->get_home_position()->alt;
+		inside_fence = dist_z < _param_gf_max_ver_dist.get();
 	}
 
 	return inside_fence;
@@ -387,46 +393,41 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	}
 
 	/* Horizontal check: iterate all polygons & circles */
-	bool outside_exclusion = true;
-	bool inside_inclusion = false;
-	bool had_inclusion_areas = false;
+	bool checksPass = true;
 
 	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
-		if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
-			bool inside = insideCircle(_polygons[polygon_index], lat, lon, altitude);
-
-			if (inside) {
-				inside_inclusion = true;
-			}
-
-			had_inclusion_areas = true;
-
-		} else if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
-			bool inside = insideCircle(_polygons[polygon_index], lat, lon, altitude);
-
-			if (inside) {
-				outside_exclusion = false;
-			}
-
-		} else { // it's a polygon
-			bool inside = insidePolygon(_polygons[polygon_index], lat, lon, altitude);
-
-			if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
-				if (inside) {
-					inside_inclusion = true;
-				}
-
-				had_inclusion_areas = true;
-
-			} else { // exclusion
-				if (inside) {
-					outside_exclusion = false;
-				}
-			}
-		}
+		checksPass &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
 	}
 
-	return (!had_inclusion_areas || inside_inclusion) && outside_exclusion;
+	return checksPass;
+}
+
+bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)
+{
+	bool checksPass = true;
+
+	switch (polygon.fence_type) {
+	case NAV_CMD_FENCE_CIRCLE_INCLUSION:
+		checksPass &= insideCircle(polygon, lat, lon, altitude);
+		break;
+
+	case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
+		checksPass &= !insideCircle(polygon, lat, lon, altitude);
+		break;
+
+	case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
+		checksPass &= insidePolygon(polygon, lat, lon, altitude);
+		break;
+
+	case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
+		checksPass &= !insidePolygon(polygon, lat, lon, altitude);
+		break;
+
+	default:  // unknown fence type
+		break;
+	}
+
+	return checksPass;
 }
 
 bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude)
@@ -444,26 +445,33 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 
 	for (unsigned i = 0, j = polygon.vertex_count - 1; i < polygon.vertex_count; j = i++) {
 
-		bool success = _dataman_cache.loadWait(DM_KEY_FENCE_POINTS, polygon.dataman_index + i,
+		dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
+		bool success = _dataman_cache.loadWait(fence_dataman_id, polygon.dataman_index + i,
 						       reinterpret_cast<uint8_t *>(&temp_vertex_i), sizeof(mission_fence_point_s));
 
 		if (!success) {
 			break;
 		}
 
-		success = _dataman_cache.loadWait(DM_KEY_FENCE_POINTS, polygon.dataman_index + j,
+		success = _dataman_cache.loadWait(fence_dataman_id, polygon.dataman_index + j,
 						  reinterpret_cast<uint8_t *>(&temp_vertex_j), sizeof(mission_fence_point_s));
 
 		if (!success) {
 			break;
 		}
 
-		if (temp_vertex_i.frame != NAV_FRAME_GLOBAL && temp_vertex_i.frame != NAV_FRAME_GLOBAL_INT
-		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
-		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+		switch (temp_vertex_i.frame) {
+		case NAV_FRAME_GLOBAL:
+		case NAV_FRAME_GLOBAL_INT:
+		case NAV_FRAME_GLOBAL_RELATIVE_ALT:
+		case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+			break;
+
+		default:
 			// TODO: handle different frames
 			PX4_ERR("Frame type %i not supported", (int)temp_vertex_i.frame);
-			break;
+			return c;
+
 		}
 
 		if (((double)temp_vertex_i.lon >= lon) != ((double)temp_vertex_j.lon >= lon) &&
@@ -480,7 +488,7 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 {
 
 	mission_fence_point_s circle_point{};
-	bool success = _dataman_cache.loadWait(DM_KEY_FENCE_POINTS, polygon.dataman_index,
+	bool success = _dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), polygon.dataman_index,
 					       reinterpret_cast<uint8_t *>(&circle_point), sizeof(mission_fence_point_s));
 
 	if (!success) {
@@ -488,16 +496,22 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 		return false;
 	}
 
-	if (circle_point.frame != NAV_FRAME_GLOBAL && circle_point.frame != NAV_FRAME_GLOBAL_INT
-	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
-	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+	switch (circle_point.frame) {
+	case NAV_FRAME_GLOBAL:
+	case NAV_FRAME_GLOBAL_INT:
+	case NAV_FRAME_GLOBAL_RELATIVE_ALT:
+	case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+		break;
+
+	default:
 		// TODO: handle different frames
 		PX4_ERR("Frame type %i not supported", (int)circle_point.frame);
 		return false;
+
 	}
 
 	if (!_projection_reference.isInitialized()) {
-		_projection_reference.initReference(lat, lon);
+		_projection_reference.initReference(lat, lon, hrt_absolute_time());
 	}
 
 	float x1, y1, x2, y2;
@@ -523,8 +537,18 @@ Geofence::loadFromFile(const char *filename)
 	const char commentChar = '#';
 	int ret_val = PX4_ERROR;
 
-	/* Make sure no data is left in the datamanager */
-	clearDm();
+	mission_stats_entry_s stat;
+	{
+		const bool success = _dataman_client.readAsync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stat),
+				     sizeof(mission_stats_entry_s));
+
+		if (!success) {
+			PX4_ERR("Could not read fence dataman state");
+			return PX4_ERROR;
+		}
+	}
+
+	dm_item_t write_fence_dataman_id{static_cast<dm_item_t>(stat.dataman_id) == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0};
 
 	/* open the mixer definition file */
 	fp = fopen(GEOFENCE_FILENAME, "r");
@@ -586,7 +610,7 @@ Geofence::loadFromFile(const char *filename)
 				}
 			}
 
-			bool success = _dataman_client.writeSync(DM_KEY_FENCE_POINTS, pointCounter + 1, reinterpret_cast<uint8_t *>(&vertex),
+			bool success = _dataman_client.writeSync(write_fence_dataman_id, pointCounter, reinterpret_cast<uint8_t *>(&vertex),
 					sizeof(vertex));
 
 			if (!success) {
@@ -614,26 +638,28 @@ Geofence::loadFromFile(const char *filename)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported\t");
 		events::send(events::ID("navigator_geofence_imported"), events::Log::Info, "Geofence imported");
 		ret_val = PX4_ERROR;
+		uint32_t crc32{0U};
 
 		/* do a second pass, now that we know the number of vertices */
-		for (int seq = 1; seq <= pointCounter; ++seq) {
+		for (int seq = 0; seq < pointCounter; ++seq) {
 			mission_fence_point_s mission_fence_point;
 
-			bool success = _dataman_client.readSync(DM_KEY_FENCE_POINTS, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
+			bool success = _dataman_client.readSync(write_fence_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
 								sizeof(mission_fence_point_s));
 
 			if (success) {
 				mission_fence_point.vertex_count = pointCounter;
-				_dataman_client.writeSync(DM_KEY_FENCE_POINTS, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
+				crc32 = crc32_for_fence_point(mission_fence_point, crc32);
+				_dataman_client.writeSync(write_fence_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
 							  sizeof(mission_fence_point_s));
 			}
 		}
 
 		mission_stats_entry_s stats;
 		stats.num_items = pointCounter;
-		stats.update_counter = _update_counter + 1;
+		stats.opaque_id = crc32;
 
-		bool success = _dataman_client.writeSync(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
+		bool success = _dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats),
 				sizeof(mission_stats_entry_s));
 
 		if (success) {
@@ -642,7 +668,7 @@ Geofence::loadFromFile(const char *filename)
 
 	} else {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence: import error\t");
-		events::send(events::ID("navigator_geofence_import_failed"), events::Log::Error, "Geofence: import error");
+		events::send(events::ID("navigator_geofence_import_failed"), events::Log::Critical, "Geofence: import error");
 	}
 
 	updateFence();
@@ -650,13 +676,6 @@ Geofence::loadFromFile(const char *filename)
 error:
 	fclose(fp);
 	return ret_val;
-}
-
-int Geofence::clearDm()
-{
-	_dataman_client.clearSync(DM_KEY_FENCE_POINTS);
-	updateFence();
-	return PX4_OK;
 }
 
 bool Geofence::isHomeRequired()
@@ -676,24 +695,30 @@ void Geofence::printStatus()
 	for (int i = 0; i < _num_polygons; ++i) {
 		total_num_vertices += _polygons[i].vertex_count;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
+		switch (_polygons[i].fence_type) {
+		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
 			++num_inclusion_polygons;
-		}
+			break;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
+		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 			++num_exclusion_polygons;
-		}
+			break;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
+		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
 			++num_inclusion_circles;
-		}
+			break;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+		case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
 			++num_exclusion_circles;
+			break;
+
+		default:  // unknown fence type
+			break;
+
 		}
 	}
 
-	PX4_INFO("Geofence: %i inclusion, %i exclusion polygons, %i inclusion, %i exclusion circles, %i total vertices",
+	PX4_INFO("Geofence: %i inclusion, %i exclusion polygons, %i inclusion circles, %i exclusion circles, %i total vertices",
 		 num_inclusion_polygons, num_exclusion_polygons, num_inclusion_circles, num_exclusion_circles,
 		 total_num_vertices);
 }

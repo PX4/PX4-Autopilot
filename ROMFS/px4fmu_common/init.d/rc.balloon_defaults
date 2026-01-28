@@ -13,4 +13,6 @@ param set-default MAV_TYPE 8
 #
 # Default parameters for balloon UAVs.
 #
-param set-default SYS_MC_EST_GROUP 1
+param set-default LPE_EN 1
+param set-default ATT_EN 1
+param set-default EKF2_EN 0

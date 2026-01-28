@@ -34,10 +34,10 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include "ecl_pitch_controller.h"
-#include "ecl_roll_controller.h"
-#include "ecl_wheel_controller.h"
-#include "ecl_yaw_controller.h"
+#include "fw_pitch_controller.h"
+#include "fw_roll_controller.h"
+#include "fw_wheel_controller.h"
+#include "fw_yaw_controller.h"
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -54,6 +54,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
+#include <uORB/topics/fixed_wing_runway_control.h>
 #include <uORB/topics/landing_gear_wheel.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -100,6 +101,7 @@ private:
 
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};			/**< vehicle attitude setpoint */
 	uORB::Subscription _autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
+	uORB::Subscription _fixed_wing_runway_control_sub{ORB_ID(fixed_wing_runway_control)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};			/**< local position subscription */
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};			/**< vehicle status subscription */
@@ -129,13 +131,13 @@ private:
 	bool _landed{true};
 	float _groundspeed{0.f};
 	bool _in_fw_or_transition_wo_tailsitter_transition{false}; // only run the FW attitude controller in these states
+	float _steering_wheel_yaw_setpoint{NAN};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
-		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
+		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 
 		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
 		(ParamFloat<px4::params::FW_MAN_R_MAX>) _param_fw_man_r_max,
@@ -155,14 +157,15 @@ private:
 		(ParamFloat<px4::params::FW_WR_IMAX>) _param_fw_wr_imax,
 		(ParamFloat<px4::params::FW_WR_P>) _param_fw_wr_p,
 
-		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax
+		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
+		(ParamFloat<px4::params::FW_MAN_YR_MAX>) _param_man_yr_max
 
 	)
 
-	ECL_RollController _roll_ctrl;
-	ECL_PitchController _pitch_ctrl;
-	ECL_YawController _yaw_ctrl;
-	ECL_WheelController _wheel_ctrl;
+	RollController _roll_ctrl;
+	PitchController _pitch_ctrl;
+	YawController _yaw_ctrl;
+	WheelController _wheel_ctrl;
 
 	void parameters_update();
 	void vehicle_manual_poll(const float yaw_body);

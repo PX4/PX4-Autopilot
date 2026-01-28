@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file uorb_template.cpp
+ * @file uorb_publisher.cpp
  *
 * Defines generic, templatized uORB over UAVCANv1 publisher
  *

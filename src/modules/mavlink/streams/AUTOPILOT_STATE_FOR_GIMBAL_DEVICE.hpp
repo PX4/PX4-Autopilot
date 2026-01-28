@@ -70,6 +70,7 @@ private:
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _landed_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	bool send() override
 	{
@@ -78,14 +79,22 @@ private:
 		if (_att_sub.update(&att)) {
 			mavlink_autopilot_state_for_gimbal_device_t msg{};
 
+			bool hil_state = false;
+			vehicle_status_s vehicle_status;
+
+			if (_vehicle_status_sub.copy(&vehicle_status)) {
+				hil_state = vehicle_status.hil_state;
+			}
+
 			//msg.target_system = 0; // TODO
 			//msg.target_component = 0; // TODO
 
 			msg.time_boot_us = att.timestamp;
-			msg.q[0] = att.q[0];
-			msg.q[1] = att.q[1];
-			msg.q[2] = att.q[2];
-			msg.q[3] = att.q[3];
+			// In HIL mode the gimbal is not moving. Send a static attitude to not disturb the gimbal
+			msg.q[0] = !hil_state ? att.q[0] : 1;
+			msg.q[1] = !hil_state ? att.q[1] : 0;
+			msg.q[2] = !hil_state ? att.q[2] : 0;
+			msg.q[3] = !hil_state ? att.q[3] : 0;
 			msg.q_estimated_delay_us = 0; // I don't know.
 
 			{
@@ -102,7 +111,7 @@ private:
 			{
 				vehicle_attitude_setpoint_s att_sp;
 
-				if (_att_sp_sub.copy(&att_sp)) {
+				if (!hil_state && _att_sp_sub.copy(&att_sp)) {
 					msg.feed_forward_angular_velocity_z = att_sp.yaw_sp_move_rate;
 				}
 			}

@@ -1,0 +1,59 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+choice
+	prompt "Boot Flash"
+	default PX4_FMU_V6XRT_V3_QSPI_FLASH
+
+config PX4_FMU_V6XRT_V3_HYPER_FLASH
+	bool "HYPER Flash"
+
+config PX4_FMU_V6XRT_V3_QSPI_FLASH
+	bool "QSPI Flash"
+
+endchoice # Boot Flash
+
+config BOARD_HAS_PROBES
+	bool "Board provides GPIO or other Hardware for signaling to timing analyze."
+	default y
+	---help---
+		This board provides GPIO FMU-CH1-8, as PROBE_1-8 to provide timing signals
+		from selected drivers.
+
+config BOARD_USE_PROBES
+	bool "Enable the use the board provided FMU-CH1-8 as PROBE_1-8"
+	default n
+	depends on BOARD_HAS_PROBES
+
+	---help---
+		Select to use GPIO FMU-CH1-8, as PROBE_1-8 to provide timing signals
+		from selected drivers.
+
+config BOARD_FORCE_ALIGNMENT
+	bool "Forces all acesses to be Aligned"
+	default n
+
+	---help---
+		Adds -mno-unaligned-access to build flags. to force alignment.
+		This can be needed if data is stored in a region of memory, that
+		is Strongly ordered and dcache is off.
+
+config BOARD_BOOTLOADER_INVALID_FCB
+	bool "Disables the FCB header"
+	default n
+
+	---help---
+		This can be used to keep the ROM bootloader in the serial Download mode.
+		Thus preventing bootlooping on `is_debug_pending` in the lame Rev B
+		silicon ROM bootloader. You can not cold boot (Power cycle) but can
+		Jtag from Load and be abel to reset it.
+
+config BOARD_BOOTLOADER_FIXUP
+	bool "Restores OCTAL Flash when No FCB"
+	default n
+	select ARCH_RAMFUNCS
+
+	---help---
+		Restores OCTAL Flash when FCB is invalid.

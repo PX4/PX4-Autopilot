@@ -160,6 +160,11 @@ status_t Argus_InitMode(argus_hnd_t *hnd, s2pi_slave_t spi_slave, argus_mode_t m
  *          Also refer to #Argus_ReinitMode, which uses a specified measurement
  *          mode instead of the currently active measurement mode.
  *
+ * @note    If a full re-initialization is not desired, refer to the
+ *          #Argus_RestoreDeviceState function that will only re-write the
+ *          register map to the device to restore its state after an power
+ *          cycle.
+ *
  * @param   hnd The API handle; contains all internal states and data.
  *
  * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
@@ -181,6 +186,11 @@ status_t Argus_Reinit(argus_hnd_t *hnd);
  *
  *          Also refer to #Argus_Reinit, which re-uses the currently active
  *          measurement mode instead of an user specified measurement mode.
+ *
+ * @note    If a full re-initialization is not desired, refer to the
+ *          #Argus_RestoreDeviceState function that will only re-write the
+ *          register map to the device to restore its state after an power
+ *          cycle.
  *
  * @param   hnd The API handle; contains all internal states and data.
  *
@@ -273,6 +283,69 @@ argus_hnd_t *Argus_CreateHandle(void);
  * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t Argus_DestroyHandle(argus_hnd_t *hnd);
+
+/*!***************************************************************************
+ * @brief   Restores the device state with a re-write of all register values.
+ *
+ * @details The function invalidates and restores the device state by executing
+ *          a re-write of the full register map.
+ *
+ *          The purpose of this function is to recover from known external
+ *          events like power cycles, for example due to sleep / wake-up
+ *          functionality. This can be implemented by cutting off the external
+ *          power supply of the device (e.g. via a MOSFET switch controlled by
+ *          a GPIB pin). By calling this function, the expected state of the
+ *          API is written to the device without the need to fully re-initialize
+ *          the device. Thus, the API can resume where it has stopped as if
+ *          there has never been a power cycle.
+ *
+ *          The internal state machines like the dynamic configuration adaption
+ *          (DCA) algorithm will not be reseted. The API/sensor will immediately
+ *          resume at the last state that was optimized for the given
+ *          environmental conditions.
+ *
+ *          The use case of sleep / wake-up can be implemented as follows:
+ *
+ *          1. In case of ongoing measurements, stop the measurements via
+ *             the #Argus_StopMeasurementTimer function (if started by the
+ *             #Argus_StartMeasurementTimer function).
+ *
+ *          2. Shut down the device by removing the 5V power supply, e.g.
+ *             via a GPIO pin that switches a MOSFET circuit.
+ *
+ *          3. After the desired sleep period, power the device by switching
+ *             the 5V power supply on again. Wait until the power-on-reset
+ *             (POR) is finished (approx. 1 ms) or just repeat step 4 until
+ *             it succeeds.
+ *
+ *          4. Call the #Argus_RestoreDeviceState function to trigger the
+ *             restoration of the device state in the API. Note that the
+ *             function will return an error code if it fails. One can repeat
+ *             the execution of that function a few times until it succeeds.
+ *
+ *          6. Continue with measurements via #Argus_StartMeasurementTimer
+ *             of #Argus_TriggerMeasurement functions as desired.
+ *
+ * @note    If a complete re-initialization (= soft-reset) is desired, see
+ *          the #Argus_Reinit functionality.
+ *
+ * @note    Changing a configuration or calibration parameter will always
+ *          invalidate the device state as well as the state machine of the
+ *          dynamic configuration adaption (DCA) algorithm. In that case, the
+ *          device/API needs a few measurements to adopt to the present
+ *          environmental conditions before the first valid measurement result
+ *          can be obtained. This is almost similar to re-initializing the
+ *          device (see #Argus_Reinit) which would also re-read the EEPROM.
+ *          On the other hand, the #Argus_RestoreDeviceState does not reset
+ *          or re-initialize anything. It just makes sure that the device
+ *          register map (which has changed to its reset values after the
+ *          power cycle) is what the API expects upon the next measurement.
+ *
+ * @param   hnd The device handle object to be invalidated.
+ *
+ * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
+ *****************************************************************************/
+status_t Argus_RestoreDeviceState(argus_hnd_t *hnd);
 
 /*!**************************************************************************
  * Generic API
@@ -726,7 +799,7 @@ status_t Argus_ExecuteXtalkCalibrationSequence(argus_hnd_t *hnd);
  *          After calibration has finished successfully, the obtained data is
  *          applied immediately and can be read from the API using the
  *          #Argus_GetCalibrationPixelRangeOffsets or
- *          #Argus_GetCalibrationGlobalRangeOffset function.
+ *          #Argus_GetCalibrationGlobalRangeOffsets function.
  *
  * @param   hnd The API handle; contains all internal states and data.
  * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
@@ -775,7 +848,7 @@ status_t Argus_ExecuteRelativeRangeOffsetCalibrationSequence(argus_hnd_t *hnd);
  *          After calibration has finished successfully, the obtained data is
  *          applied immediately and can be read from the API using the
  *          #Argus_GetCalibrationPixelRangeOffsets or
- *          #Argus_GetCalibrationGlobalRangeOffset function.
+ *          #Argus_GetCalibrationGlobalRangeOffsets function.
  *
  * @param   hnd The API handle; contains all internal states and data.
  * @param   targetRange The absolute range between the reference plane and the
@@ -1043,28 +1116,40 @@ status_t Argus_GetConfigurationUnambiguousRange(argus_hnd_t *hnd,
  ****************************************************************************/
 
 /*!***************************************************************************
- * @brief   Sets the global range offset value to a specified device.
+ * @brief   Sets the global range offset values to a specified device.
  *
- * @details The global range offset is subtracted from the raw range values.
+ * @details The global range offsets are subtracted from the raw range values.
+ *          There are two distinct values that are applied in low or high
+ *          power stage setting respectively.
  *
  * @param   hnd The API handle; contains all internal states and data.
- * @param   value The new global range offset in meter and Q0.15 format.
+ * @param   offset_low The new global range offset for the low power stage in
+ *                     meter and Q0.15 format.
+ * @param   offset_high The new global range offset for the high power stage in
+ *                      meter and Q0.15 format.
  * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetCalibrationGlobalRangeOffset(argus_hnd_t *hnd,
-		q0_15_t value);
+status_t Argus_SetCalibrationGlobalRangeOffsets(argus_hnd_t *hnd,
+		q0_15_t offset_low,
+		q0_15_t offset_high);
 
 /*!***************************************************************************
- * @brief   Gets the global range offset value from a specified device.
+ * @brief   Gets the global range offset values from a specified device.
  *
- * @details The global range offset is subtracted from the raw range values.
+ * @details The global range offsets are subtracted from the raw range values.
+ *          There are two distinct values that are applied in low or high
+ *          power stage setting respectively.
  *
  * @param   hnd The API handle; contains all internal states and data.
- * @param   value The current global range offset in meter and Q0.15 format.
+ * @param   offset_low The current range offset for the low power stage in
+ *                     meter and Q0.15 format.
+ * @param   offset_high The current global range offset for the high power stage
+ *                      in meter and Q0.15 format.
  * @return  Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetCalibrationGlobalRangeOffset(argus_hnd_t *hnd,
-		q0_15_t *value);
+status_t Argus_GetCalibrationGlobalRangeOffsets(argus_hnd_t *hnd,
+		q0_15_t *offset_low,
+		q0_15_t *offset_high);
 
 /*!***************************************************************************
  * @brief   Sets the relative pixel offset table to a specified device.

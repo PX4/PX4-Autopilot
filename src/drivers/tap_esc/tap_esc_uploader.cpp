@@ -163,7 +163,7 @@ int TAP_ESC_UPLOADER::upload_id(uint8_t esc_id, int32_t fw_size)
 		/******************************************
 		* second: get device bootloader revision
 		 ******************************************/
-		uint32_t bl_rev;
+		uint32_t bl_rev = 0;
 		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_BL_REV, bl_rev);
 
 		if (ret == OK) {
@@ -390,7 +390,7 @@ int TAP_ESC_UPLOADER::checkcrc(const char *filenames[])
 			return -EIO;
 		}
 
-		uint32_t temp_revision;
+		uint32_t temp_revision = 0;
 
 		/* get device bootloader revision */
 		ret = get_device_info(esc_id, PROTO_GET_DEVICE, PROTO_DEVICE_BL_REV, temp_revision);
@@ -1098,7 +1098,7 @@ int TAP_ESC_UPLOADER::verify_crc(uint8_t esc_id, size_t fw_size_local)
 	uint32_t sum = 0;
 	uint32_t bytes_read = 0;
 	uint32_t crc = 0;
-	uint32_t fw_size_remote;
+	uint32_t fw_size_remote = 0;
 	uint8_t fill_blank = 0xff;
 
 	file_buf = new uint8_t[PROG_MULTI_MAX];

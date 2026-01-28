@@ -45,6 +45,7 @@
 #include <nuttx/board.h>
 
 #include "board_config.h"
+#include <drivers/bootloaders/boot_app_shared.h>
 
 /****************************************************************************
  * Public Functions
@@ -61,15 +62,30 @@
  *
  ****************************************************************************/
 
+static bootloader_app_shared_t can0_config;
+
+int weak_function board_app_shared_read(bootloader_app_shared_t *shared, eRole_t role)
+{
+	int rv = -EBADR;
+
+	if (can0_config.signature != 0) {
+		*shared = can0_config;
+		rv = OK;
+	}
+
+	return rv;
+}
+
 void s32k1xx_board_initialize(void)
 {
+	can0_config.signature = 0;
+	bootloader_app_shared_read(&can0_config, BootLoader);
 #ifdef CONFIG_ARCH_LEDS
 	/* Configure on-board LEDs if LED support has been selected. */
 
 	board_autoled_initialize();
 #endif
 	ucans32k_timer_initialize();
-
 }
 
 /****************************************************************************

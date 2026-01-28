@@ -82,6 +82,8 @@ enum class BANK_0 : uint8_t {
 
 	SIGNAL_PATH_RESET = 0x4B,
 
+	INTF_CONFIG0      = 0x4C,
+
 	PWR_MGMT0         = 0x4E,
 	GYRO_CONFIG0      = 0x4F,
 	ACCEL_CONFIG0     = 0x50,
@@ -130,6 +132,16 @@ enum INT_STATUS_BIT : uint8_t {
 // SIGNAL_PATH_RESET
 enum SIGNAL_PATH_RESET_BIT : uint8_t {
 	FIFO_FLUSH      = Bit1,
+};
+
+// INTF_CONFIG0
+enum INTF_CONFIG0_BIT : uint8_t {
+	FIFO_HOLD_LAST_DATA_EN = Bit7,
+	FIFO_COUNT_REC = Bit6,
+	FIFO_COUNT_ENDIAN = Bit5,
+	SENSOR_DATA_ENDIAN = Bit4,
+	UI_SIFS_CFG_DISABLE_SPI = Bit1,
+	UI_SIFS_CFG_DISABLE_I2C = Bit1 | Bit0
 };
 
 // PWR_MGMT0

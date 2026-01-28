@@ -79,6 +79,10 @@ static int io_timer_handler7(int irq, void *context, void *arg);
 
 #define BOARD_PWM_PRESCALER 20
 
+#ifdef CONFIG_BOARD_PWM_FREQ
+#define BOARD_PWM_FREQ CONFIG_BOARD_PWM_FREQ
+#endif
+
 #if !defined(BOARD_PWM_FREQ)
 #define BOARD_PWM_FREQ 160000000 / BOARD_PWM_PRESCALER
 #endif
@@ -864,6 +868,11 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 
 		} else {
 			//FIXME why multiple by 2
+
+			if ((rC(channels_timer(channel), channel) & EMIOS_C_UCPRE_MASK) == 0) {
+				value = value * 4;
+			}
+
 			/* configure the channel */
 			irqstate_t flags = px4_enter_critical_section();
 			rA(channels_timer(channel), timer_io_channels[channel].timer_channel - 1) = EMIOS_A(value * 2);

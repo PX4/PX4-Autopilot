@@ -78,7 +78,7 @@ static constexpr uint32_t CONVERGENCE_WINDOW = 500;
 // Outlier rejection and filter reset
 //
 // Samples with round-trip time higher than MAX_RTT_SAMPLE are not used to update the filter.
-// More than MAX_CONSECUTIVE_HIGH_RTT number of such events in a row will throw a warning
+// More than MAX_CONSECUTIVE_HIGH_RTT number of such events in a row will throw a debug message
 // but not reset the filter.
 // Samples whose calculated clock offset is more than MAX_DEVIATION_SAMPLE off from the current
 // estimate are not used to update the filter. More than MAX_CONSECUTIVE_HIGH_DEVIATION number
@@ -87,8 +87,8 @@ static constexpr uint32_t CONVERGENCE_WINDOW = 500;
 // TODO : automatically determine these using ping statistics?
 static constexpr uint64_t MAX_RTT_SAMPLE = 10_ms;
 static constexpr uint64_t MAX_DEVIATION_SAMPLE = 100_ms;
-static constexpr uint32_t MAX_CONSECUTIVE_HIGH_RTT = 5;
-static constexpr uint32_t MAX_CONSECUTIVE_HIGH_DEVIATION = 5;
+static constexpr uint32_t MAX_CONSECUTIVE_HIGH_RTT = 10;
+static constexpr uint32_t MAX_CONSECUTIVE_HIGH_DEVIATION = 10;
 
 class Timesync
 {
@@ -106,13 +106,6 @@ public:
 
 	int64_t offset() const { return (int64_t)_time_offset; }
 
-private:
-
-	/**
-	 * Online exponential filter to smooth time offset
-	 */
-	void add_sample(int64_t offset_us);
-
 	/**
 	 * Return true if the timesync algorithm converged to a good estimate,
 	 * return false otherwise
@@ -124,6 +117,13 @@ private:
 	 */
 	void reset_filter();
 
+
+private:
+
+	/**
+	 * Online exponential filter to smooth time offset
+	 */
+	void add_sample(int64_t offset_us);
 	uORB::PublicationMulti<timesync_status_s>  _timesync_status_pub{ORB_ID(timesync_status)};
 
 	uint32_t _sequence{0};

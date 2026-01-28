@@ -69,7 +69,7 @@
 
 //#define USE_VBUS_PULL_DOWN
 #define BOOT_DELAY_ADDRESS             0x000001a0
-#define BOARD_TYPE                     1054
+#define BOARD_TYPE                     1058
 #define BOARD_FLASH_SECTORS            (14)
 #define BOARD_FLASH_SIZE               (16 * 128 * 1024)
 #define APP_RESERVATION_SIZE           (1 * 128 * 1024)

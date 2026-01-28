@@ -85,14 +85,34 @@ void IST8310::print_status()
 
 int IST8310::probe()
 {
-	const uint8_t WAI = RegisterRead(Register::WAI);
+	// Reading the WAI register is not always reliable, it can return 0xff or
+	// other values if the sensor has been powered up in a certain way. In
+	// addition, the I2C address is not always correct, sometimes it boots with
+	// 0x0C rather than 0x0E.
+	const auto start_time = hrt_absolute_time();
+	const uint8_t start_addr = get_device_address();
 
-	if (WAI != Device_ID) {
-		DEVICE_DEBUG("unexpected WAI 0x%02x", WAI);
-		return PX4_ERROR;
+	while (hrt_elapsed_time(&start_time) < 50_ms) {
+		set_device_address(start_addr);
+
+		const uint8_t wai = RegisterRead(Register::WAI);
+
+		if ((wai == IST8310_Device_ID) || (wai == IST8310J_Device_ID)) {
+
+			// Device has the right I2C address and register content
+			return PX4_OK;
+		}
+
+		// send reset command to all four possible addresses
+		for (uint8_t addr = 0x0C; addr <= 0x0F; addr++) {
+			set_device_address(addr);
+			RegisterWrite(Register::CNTL2, CNTL2_BIT::SRST);
+		}
+
+		px4_usleep(10'000);
 	}
 
-	return PX4_OK;
+	return PX4_ERROR;
 }
 
 void IST8310::RunImpl()
@@ -110,30 +130,31 @@ void IST8310::RunImpl()
 		ScheduleDelayed(50_ms); // Power On Reset: max 50ms
 		break;
 
-	case STATE::WAIT_FOR_RESET:
+	case STATE::WAIT_FOR_RESET: {
+			// SRST: This bit is automatically reset to zero after POR routine
+			const uint8_t wai = RegisterRead(Register::WAI);
 
-		// SRST: This bit is automatically reset to zero after POR routine
-		if ((RegisterRead(Register::WAI) == Device_ID)
-		    && ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SRST) == 0)) {
-
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
-			ScheduleDelayed(10_ms);
-
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
+			if (((wai == IST8310_Device_ID) || (wai == IST8310J_Device_ID))
+			    && ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SRST) == 0)) {
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(10_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
-			}
-		}
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
 
-		break;
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
+			}
+
+			break;
+		}
 
 	case STATE::CONFIGURE:
 		if (Configure()) {
@@ -273,11 +294,14 @@ bool IST8310::RegisterCheck(const register_config_t &reg_cfg)
 	return success;
 }
 
-uint8_t IST8310::RegisterRead(Register reg)
+int IST8310::RegisterRead(Register reg)
 {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer{};
-	transfer(&cmd, 1, &buffer, 1);
+	const int ret = transfer(&cmd, 1, &buffer, 1);
+
+	if (ret != OK) { return -1; }
+
 	return buffer;
 }
 

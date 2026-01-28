@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file tcbp001ta/defines.h
+ * @file defines.h
  *
  * Shared defines for the TCBP001TA barometer driver.
  *

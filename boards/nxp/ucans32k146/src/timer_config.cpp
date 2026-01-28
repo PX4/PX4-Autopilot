@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file timer_config.c
+ * @file timer_config.cpp
  *
  * Configuration data for the S32K1XX pwm_servo, input capture and pwm input driver.
  *

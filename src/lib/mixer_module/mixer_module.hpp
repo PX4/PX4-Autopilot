@@ -40,6 +40,7 @@
 #include "functions/FunctionConstantMin.hpp"
 #include "functions/FunctionGimbal.hpp"
 #include "functions/FunctionGripper.hpp"
+#include "functions/FunctionICEngineControl.hpp"
 #include "functions/FunctionLandingGear.hpp"
 #include "functions/FunctionLandingGearWheel.hpp"
 #include "functions/FunctionManualRC.hpp"
@@ -78,14 +79,12 @@ public:
 
 	/**
 	 * Callback to update the (physical) actuator outputs in the driver
-	 * @param stop_motors if true, all motors must be stopped (if false, individual motors
-	 *                    might still be stopped via outputs[i] == disarmed_value)
 	 * @param outputs individual actuator outputs in range [min, max] or failsafe/disarmed value
 	 * @param num_outputs number of outputs (<= max_num_outputs)
 	 * @param num_control_groups_updated number of actuator_control groups updated
 	 * @return if true, the update got handled, and actuator_outputs can be published
 	 */
-	virtual bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	virtual bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
 
 	/** called whenever the mixer gets updated/reset */
@@ -120,7 +119,7 @@ public:
 	 */
 	MixingOutput(const char *param_prefix, uint8_t max_num_outputs, OutputModuleInterface &interface,
 		     SchedulingPolicy scheduling_policy,
-		     bool support_esc_calibration, bool ramp_up = true);
+		     bool support_esc_calibration, bool ramp_up = true, const uint8_t instance_start = 1);
 
 	~MixingOutput();
 
@@ -164,22 +163,24 @@ public:
 	void setMaxTopicUpdateRate(unsigned max_topic_update_interval_us);
 
 	const actuator_armed_s &armed() const { return _armed; }
+	bool isActuatorTestRunning() const { return _actuator_test.inTestMode(); }
 
 	void setAllFailsafeValues(uint16_t value);
 	void setAllDisarmedValues(uint16_t value);
 	void setAllMinValues(uint16_t value);
+	void setAllCenterValues(uint16_t value);
 	void setAllMaxValues(uint16_t value);
 
-	uint16_t &reverseOutputMask() { return _reverse_output_mask; }
-	uint16_t &failsafeValue(int index) { return _failsafe_value[index]; }
 	/** Disarmed values: disarmedValue < minValue needs to hold */
 	uint16_t &disarmedValue(int index) { return _disarmed_value[index]; }
 	uint16_t &minValue(int index) { return _min_value[index]; }
+	uint16_t &centerValue(int index) { return _center_value[index]; }
 	uint16_t &maxValue(int index) { return _max_value[index]; }
 
 	param_t functionParamHandle(int index) const { return _param_handles[index].function; }
 	param_t disarmedParamHandle(int index) const { return _param_handles[index].disarmed; }
 	param_t minParamHandle(int index) const { return _param_handles[index].min; }
+	param_t centerParamHandle(int index) const { return _param_handles[index].center; }
 	param_t maxParamHandle(int index) const { return _param_handles[index].max; }
 
 	/**
@@ -206,10 +207,11 @@ public:
 
 protected:
 	void updateParams() override;
+	uint16_t output_limit_calc_single(int i, float value) const;
 
 private:
 
-	bool armNoThrottle() const
+	bool isPrearmed() const
 	{
 		return (_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode;
 	}
@@ -220,11 +222,9 @@ private:
 
 	void cleanupFunctions();
 
-	void initParamHandles();
+	void initParamHandles(const uint8_t instance_start);
 
 	void limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates);
-
-	uint16_t output_limit_calc_single(int i, float value) const;
 
 	void output_limit_calc(const bool armed, const int num_channels, const float outputs[MAX_ACTUATORS]);
 
@@ -232,6 +232,7 @@ private:
 		param_t function{PARAM_INVALID};
 		param_t disarmed{PARAM_INVALID};
 		param_t min{PARAM_INVALID};
+		param_t center{PARAM_INVALID};
 		param_t max{PARAM_INVALID};
 		param_t failsafe{PARAM_INVALID};
 	};
@@ -244,6 +245,7 @@ private:
 	uint16_t _failsafe_value[MAX_ACTUATORS] {};
 	uint16_t _disarmed_value[MAX_ACTUATORS] {};
 	uint16_t _min_value[MAX_ACTUATORS] {};
+	uint16_t _center_value[MAX_ACTUATORS] {};
 	uint16_t _max_value[MAX_ACTUATORS] {};
 	uint16_t _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
 	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction
@@ -289,13 +291,13 @@ private:
 	hrt_abstime _lowrate_schedule_interval{300_ms};
 	ActuatorTest _actuator_test{_function_assignment};
 	uint32_t _reversible_mask{0}; ///< per-output bits. If set, the output is configured to be reversible (motors only)
+	bool _was_all_disabled{false};
 
 	uORB::SubscriptionCallbackWorkItem *_subscription_callback{nullptr}; ///< current scheduling callback
 
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
-		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
 		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac ///< thrust to motor control signal modelling factor
 	)
 };

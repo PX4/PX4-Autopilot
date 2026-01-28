@@ -38,12 +38,12 @@
 #include <drivers/drv_hrt.h>
 #include "airspeed.hpp"
 #include <math.h>
-#include <lib/geo/geo.h> // For CONSTANTS_*
+#include <lib/atmosphere/atmosphere.h>
 
 const char *const UavcanAirspeedBridge::NAME = "airspeed";
 
-UavcanAirspeedBridge::UavcanAirspeedBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_airspeed", ORB_ID(airspeed)),
+UavcanAirspeedBridge::UavcanAirspeedBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_airspeed", ORB_ID(airspeed), node_info_publisher),
 	_sub_ias_data(node),
 	_sub_tas_data(node),
 	_sub_oat_data(node)
@@ -104,7 +104,12 @@ UavcanAirspeedBridge::ias_sub_cb(const
 	report.timestamp   		= hrt_absolute_time();
 	report.indicated_airspeed_m_s   = msg.indicated_airspeed;
 	report.true_airspeed_m_s   	= _last_tas_m_s;
-	report.air_temperature_celsius 	= _last_outside_air_temp_k + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 
 	publish(msg.getSrcNodeID().get(), &report);
+
+	// Register device capability if not already done
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				0, NodeInfoPublisher::DeviceCapability::AIRSPEED); // Device ID not defined for airspeed message
+	}
 }

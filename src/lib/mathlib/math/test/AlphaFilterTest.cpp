@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file test_AlphaFilter.cpp
+ * @file AlphaFilterTest.cpp
  *
  * @brief Unit tests for the alpha filter class
  */

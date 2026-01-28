@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file teraranger.cpp
+ * @file TERARANGER.hpp
  * @author Luis Rodrigues
  *
  * Driver for the TeraRanger One range finders connected via I2C.

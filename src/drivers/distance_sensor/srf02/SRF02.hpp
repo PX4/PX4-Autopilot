@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file srf02.cpp
+ * @file SRF02.hpp
  *
  * Driver for the SRF02 sonar range finder adapted from the Maxbotix sonar range finder driver (srf02).
  */

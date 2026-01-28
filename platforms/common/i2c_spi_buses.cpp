@@ -392,6 +392,19 @@ int BusInstanceIterator::runningInstancesCount() const
 	return num_instances;
 }
 
+int BusInstanceIterator::runningInstancesOnBusCount() const
+{
+	int num_instances = 0;
+
+	for (const auto &modules : i2c_spi_module_instances) {
+		if (modules->_bus == bus() && strcmp(modules->_module_name, _module_name) == 0) {
+			++num_instances;
+		}
+	}
+
+	return num_instances;
+}
+
 I2CSPIInstance *BusInstanceIterator::instance() const
 {
 	if (_current_instance == i2c_spi_module_instances.end()) {

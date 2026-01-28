@@ -215,17 +215,15 @@ public:
 	 * @param data    A pointer to the initial data to be published.
 	 *      For topics updated by interrupt handlers, the advertisement
 	 *      must be performed from non-interrupt context.
-	 * @param queue_size  Maximum number of buffered elements. If this is 1, no queuing is
-	 *      used.
 	 * @return    nullptr on error, otherwise returns an object pointer
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
 	 *      this function will return nullptr and set errno to ENOENT.
 	 */
-	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data, unsigned int queue_size = 1)
+	orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data = nullptr)
 	{
-		return orb_advertise_multi(meta, data, nullptr, queue_size);
+		return orb_advertise_multi(meta, data, nullptr);
 	}
 
 	/**
@@ -250,16 +248,13 @@ public:
 	 * @param instance  Pointer to an integer which will yield the instance ID (0-based)
 	 *      of the publication. This is an output parameter and will be set to the newly
 	 *      created instance, ie. 0 for the first advertiser, 1 for the next and so on.
-	 * @param queue_size  Maximum number of buffered elements. If this is 1, no queuing is
-	 *      used.
 	 * @return    nullptr on error, otherwise returns a handle
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
 	 *      this function will return nullptr and set errno to ENOENT.
 	 */
-	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-					 unsigned int queue_size = 1);
+	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance);
 
 	/**
 	 * Unadvertise a topic.

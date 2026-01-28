@@ -64,13 +64,10 @@
 /** Get the priority for the topic */
 #define ORBIOCGPRIORITY		_ORBIOC(14)
 
-/** Set the queue size of the topic */
-#define ORBIOCSETQUEUESIZE	_ORBIOC(15)
-
 /** Get the minimum interval at which the topic can be seen to be updated for this subscription */
-#define ORBIOCGETINTERVAL	_ORBIOC(16)
+#define ORBIOCGETINTERVAL	_ORBIOC(15)
 
 /** Check whether the topic is advertised, sets *(unsigned long *)arg to 1 if advertised, 0 otherwise */
-#define ORBIOCISADVERTISED	_ORBIOC(17)
+#define ORBIOCISADVERTISED	_ORBIOC(16)
 
 #endif /* _DRV_UORB_H */

@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Make sure that the SLPI DSP test signature is there otherwise px4 cannot run
+# on the DSP
+if /bin/ls /usr/lib/rfsa/adsp/testsig-*.so &> /dev/null; then
+    /bin/echo "Found DSP signature file"
+else
+    /bin/echo "[WARNING] Could not find DSP signature file"
+    # Look for the DSP signature generation script
+    if [ -f /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh ]; then
+        /bin/echo "[INFO] Attempting to generate the DSP signature file"
+        # Automatically generate the test signature so that px4 can run on SLPI DSP
+        /share/modalai/qrb5165-slpi-test-sig/generate-test-sig.sh
+    else
+        /bin/echo "[ERROR] Could not find the DSP signature file generation script"
+        exit 0
+    fi
+fi
+
+print_usage() {
+    echo -e "\nUsage: voxl-px4-hitl"
+    echo "                [-h (show help)]"
+
+    exit 1
+}
+
+while getopts "h" flag
+do
+    case "${flag}" in
+        h)
+            print_usage
+            ;;
+        *)
+            print_usage
+            ;;
+    esac
+done
+
+px4 -s /usr/bin/voxl-px4-hitl-start

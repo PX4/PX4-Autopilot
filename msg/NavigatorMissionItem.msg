@@ -1,7 +1,5 @@
 uint64 timestamp                 # time since system start (microseconds)
 
-uint32 instance_count            # Instance count of this mission. Increments monotonically whenever the mission is modified
-
 uint16 sequence_current          # Sequence of the current mission item
 
 uint16 nav_cmd

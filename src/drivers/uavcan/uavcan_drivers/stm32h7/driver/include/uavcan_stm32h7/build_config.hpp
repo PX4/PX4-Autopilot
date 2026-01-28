@@ -19,7 +19,7 @@
 #endif
 
 /**
- * Any General-Purpose timer (TIM2, TIM3, TIM4, TIM5)
+ * Any General-Purpose timer (TIM2, TIM3, TIM4, TIM5, TIM6, TIM7)
  * e.g. -DUAVCAN_STM32H7_TIMER_NUMBER=2
  */
 #ifndef UAVCAN_STM32H7_TIMER_NUMBER

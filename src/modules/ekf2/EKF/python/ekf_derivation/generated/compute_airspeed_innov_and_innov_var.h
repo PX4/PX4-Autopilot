@@ -16,7 +16,7 @@ namespace sym {
  * Symbolic function: compute_airspeed_innov_and_innov_var
  *
  * Args:
- *     state: Matrix24_1
+ *     state: Matrix25_1
  *     P: Matrix24_24
  *     airspeed: Scalar
  *     R: Scalar
@@ -27,7 +27,7 @@ namespace sym {
  *     innov_var: Scalar
  */
 template <typename Scalar>
-void ComputeAirspeedInnovAndInnovVar(const matrix::Matrix<Scalar, 24, 1>& state,
+void ComputeAirspeedInnovAndInnovVar(const matrix::Matrix<Scalar, 25, 1>& state,
                                      const matrix::Matrix<Scalar, 24, 24>& P, const Scalar airspeed,
                                      const Scalar R, const Scalar epsilon,
                                      Scalar* const innov = nullptr,
@@ -57,16 +57,16 @@ void ComputeAirspeedInnovAndInnovVar(const matrix::Matrix<Scalar, 24, 1>& state,
     Scalar& _innov_var = (*innov_var);
 
     _innov_var = R +
-                 _tmp4 * (-P(22, 6) * _tmp5 - P(23, 6) * _tmp6 + P(4, 6) * _tmp5 + P(5, 6) * _tmp6 +
-                          P(6, 6) * _tmp4) -
-                 _tmp5 * (-P(22, 22) * _tmp5 - P(23, 22) * _tmp6 + P(4, 22) * _tmp5 +
-                          P(5, 22) * _tmp6 + P(6, 22) * _tmp4) +
-                 _tmp5 * (-P(22, 4) * _tmp5 - P(23, 4) * _tmp6 + P(4, 4) * _tmp5 + P(5, 4) * _tmp6 +
-                          P(6, 4) * _tmp4) -
-                 _tmp6 * (-P(22, 23) * _tmp5 - P(23, 23) * _tmp6 + P(4, 23) * _tmp5 +
-                          P(5, 23) * _tmp6 + P(6, 23) * _tmp4) +
-                 _tmp6 * (-P(22, 5) * _tmp5 - P(23, 5) * _tmp6 + P(4, 5) * _tmp5 + P(5, 5) * _tmp6 +
-                          P(6, 5) * _tmp4);
+                 _tmp4 * (-P(21, 5) * _tmp5 - P(22, 5) * _tmp6 + P(3, 5) * _tmp5 + P(4, 5) * _tmp6 +
+                          P(5, 5) * _tmp4) -
+                 _tmp5 * (-P(21, 21) * _tmp5 - P(22, 21) * _tmp6 + P(3, 21) * _tmp5 +
+                          P(4, 21) * _tmp6 + P(5, 21) * _tmp4) +
+                 _tmp5 * (-P(21, 3) * _tmp5 - P(22, 3) * _tmp6 + P(3, 3) * _tmp5 + P(4, 3) * _tmp6 +
+                          P(5, 3) * _tmp4) -
+                 _tmp6 * (-P(21, 22) * _tmp5 - P(22, 22) * _tmp6 + P(3, 22) * _tmp5 +
+                          P(4, 22) * _tmp6 + P(5, 22) * _tmp4) +
+                 _tmp6 * (-P(21, 4) * _tmp5 - P(22, 4) * _tmp6 + P(3, 4) * _tmp5 + P(4, 4) * _tmp6 +
+                          P(5, 4) * _tmp4);
   }
 }  // NOLINT(readability/fn_size)
 

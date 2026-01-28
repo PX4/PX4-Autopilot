@@ -56,6 +56,8 @@ struct watchdog_data_t {
 	int logger_main_priority = 0;
 	hrt_abstime trigger_time = 0; ///< timestamp when it was triggered
 	bool manual_watchdog_trigger = false;
+	bool triggered_by_cycle_delay = false;
+	bool triggered_by_ready_delay = false;
 #endif /* __PX4_NUTTX */
 };
 

@@ -49,7 +49,7 @@ class Mavlink;
 class MavlinkTimesync
 {
 public:
-	explicit MavlinkTimesync(Mavlink *mavlink);
+	explicit MavlinkTimesync(Mavlink &mavlink);
 	~MavlinkTimesync() = default;
 
 	void handle_message(const mavlink_message_t *msg);
@@ -61,6 +61,6 @@ public:
 	uint64_t sync_stamp(uint64_t usec) { return _timesync.sync_stamp(usec); }
 
 private:
-	Mavlink *const _mavlink;
+	Mavlink &_mavlink;
 	Timesync _timesync{};
 };

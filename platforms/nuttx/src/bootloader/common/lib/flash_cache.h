@@ -46,10 +46,15 @@
  * *writes to the first 8 words of flash at APP_LOAD_ADDRESS
  * are buffered until the "first word" is written with the real value (not 0xffffffff)
  *
+ * On a imxrt the ROM API supports 256 byte writes.
  */
 
-#define FC_NUMBER_LINES  2                                  // Number of cache lines.
+#if defined(CONFIG_ARCH_CHIP_IMXRT)
+#define FC_NUMBER_WORDS  64                                  // Number of words per page
+#else
 #define FC_NUMBER_WORDS  8                                  // Number of words per cache line.
+#endif
+#define FC_NUMBER_LINES  2                                  // Number of cache lines.
 #define FC_LAST_WORD     FC_NUMBER_WORDS-1                  // The index of the last word in cache line.
 #define FC_ADDRESS_MASK  ~(sizeof(flash_cache[0].words)-1)  // Cache tag from address
 #define FC_ADDR2INDX(a)   (((a) / sizeof(flash_cache[0].words[0])) % FC_NUMBER_WORDS) // index from address

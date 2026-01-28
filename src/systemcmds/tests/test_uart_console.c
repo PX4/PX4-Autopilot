@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file test_uart_break.c
+ * @file test_uart_console.c
  * Tests the uart console.
  *
  * @author Lorenz Meier <lorenz@px4.io>

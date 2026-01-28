@@ -40,6 +40,16 @@
  */
 
 /**
+ * standalone attitude estimator enable (unsupported)
+ *
+ * Enable standalone quaternion based attitude estimator.
+ *
+ * @group Attitude Q estimator
+ * @boolean
+ */
+PARAM_DEFINE_INT32(ATT_EN, 0);
+
+/**
  * Complimentary filter accelerometer weight
  *
  * @group Attitude Q estimator

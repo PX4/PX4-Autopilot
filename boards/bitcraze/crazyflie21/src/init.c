@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file crazyflie_init.c
+ * @file init.c
  *
  * Crazyflie specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
@@ -100,7 +100,7 @@ __END_DECLS
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/

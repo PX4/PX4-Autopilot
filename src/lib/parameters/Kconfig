@@ -1,0 +1,11 @@
+menuconfig PARAM_PRIMARY
+	bool "parameter primary"
+	default n
+	---help---
+		Enable support for the parameter primary in distributed board architectures
+
+menuconfig PARAM_REMOTE
+	bool "parameter remote"
+	default n
+	---help---
+		Enable support for the parameter remote in distributed board architectures

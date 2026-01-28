@@ -1,0 +1,5 @@
+menuconfig MODULES_ROVER_DIFFERENTIAL
+	bool "rover_differential"
+	default n
+	---help---
+		Enable support for differential rovers

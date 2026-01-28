@@ -54,7 +54,7 @@ def getData(log, topic_name, variable_name, instance=0):
 def us2s(time_ms):
     return time_ms * 1e-6
 
-def run(logfile, use_gnss):
+def run(logfile, use_gnss, scale_init):
     log = ULog(logfile)
 
     if use_gnss:
@@ -75,7 +75,12 @@ def run(logfile, use_gnss):
     dist_bottom = getData(log, 'vehicle_local_position', 'dist_bottom')
     t_dist_bottom = us2s(getData(log, 'vehicle_local_position', 'timestamp'))
 
-    state = np.array([0.0, 0.0, 1.0])
+    if scale_init is None:
+        scale_init = 1.0
+
+    # The estimator estimates the inverse scale factor to have a simpler measurement jacobian
+    inverse_scale_init = 1 / scale_init
+    state = np.array([0.0, 0.0, inverse_scale_init])
     P = np.diag([1.0, 1.0, 1e-4])
     wind_nsd = 1e-2
     scale_nsd = 1e-4
@@ -103,19 +108,19 @@ def run(logfile, use_gnss):
 
             P += Q * dt
 
-            if t_true_airspeed[i_airspeed] < t_now:
+            if i_airspeed < len(t_true_airspeed) and t_true_airspeed[i_airspeed] < t_now:
                 while i_airspeed < len(t_true_airspeed) and t_true_airspeed[i_airspeed] < t_now:
                     i_airspeed += 1
                 i_airspeed -= 1
 
-                (H, K, innov_var, innov) = fuse_airspeed(np.asarray(v_local[:,i]), state, P.flatten(), true_airspeed[i_airspeed], R, epsilon)
+                (H, K, innov_var, innov) = fuse_airspeed(np.asarray(v_local[:,i]), state, P, true_airspeed[i_airspeed], R, epsilon)
                 state += np.array(K) * innov
                 P -= K * H * P
                 i_airspeed += 1
 
         wind_est_n[i] = state[0]
         wind_est_e[i] = state[1]
-        scale_est[i] = state[2]
+        scale_est[i] = 1 / state[2]
 
     plt.figure(1)
     ax1 = plt.subplot(2, 1, 1)
@@ -145,8 +150,9 @@ if __name__ == '__main__':
     parser.add_argument('logfile', help='Full ulog file path, name and extension', type=str)
     parser.add_argument('--gnss', help='Use GNSS velocity instead of local velocity estimate',
                         action='store_true')
+    parser.add_argument('--scale_init', help='Initial airsped scale factor (1.0 if not specified)', type=float)
     args = parser.parse_args()
 
     logfile = os.path.abspath(args.logfile) # Convert to absolute path
 
-    run(logfile, args.gnss)
+    run(logfile, args.gnss, args.scale_init)

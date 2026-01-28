@@ -36,15 +36,12 @@ add_library(drivers_board
 	i2c.cpp
 	init.cpp
 	led.c
-	manifest.c
 	mtd.cpp
 	sdio.c
 	spi.cpp
 	timer_config.cpp
 	usb.c
 )
-
-add_dependencies(drivers_board platform_gpio_mcp23009)
 
 target_link_libraries(drivers_board
 	PRIVATE
@@ -55,5 +52,5 @@ target_link_libraries(drivers_board
 		nuttx_arch # sdio
 		nuttx_drivers # sdio
 		px4_layer
-		platform_gpio_mcp23009
+		platform_gpio_mcp
 )

@@ -62,6 +62,11 @@ public:
 	{
 		Node **p;
 
+		// Don't allow duplicates to be inserted
+		if (find(node_name)) {
+			return;
+		}
+
 		if (_top == nullptr) {
 			p = &_top;
 

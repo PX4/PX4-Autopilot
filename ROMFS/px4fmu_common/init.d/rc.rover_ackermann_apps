@@ -1,0 +1,8 @@
+#!/bin/sh
+# Standard apps for an ackermann rover.
+
+# Start rover ackermann module.
+rover_ackermann start
+
+# Start Land Detector.
+land_detector start rover

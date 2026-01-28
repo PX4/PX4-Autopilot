@@ -98,6 +98,8 @@ enum GYRO_INT_CTRL_BIT : uint8_t {
 
 // INT3_INT4_IO_CONF
 enum INT3_INT4_IO_CONF_BIT : uint8_t {
+	Int4_od  = Bit3, // '0' Push-pull
+	Int4_lvl = Bit2, // '0' Active low
 	Int3_od  = Bit1, // ‘0’ Push-pull
 	Int3_lvl = Bit0, // ‘0’ Active low
 };

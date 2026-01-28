@@ -156,13 +156,13 @@ mixer_tick()
 	    (source == MIX_DISARMED) && 				/* and if we ended up not changing the default mixer */
 	    should_arm && 						/* and we should be armed, so we intended to provide outputs */
 	    (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED)) { 	/* and FMU is initialized */
-		atomic_modify_or(&r_setup_arming, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE); /* then FMU is dead -> terminate flight */
+		atomic_modify_or(&r_setup_arming, PX4IO_P_SETUP_ARMING_TERMINATION); /* then FMU is dead -> terminate flight */
 	}
 
 	/*
-	 * Check if we should force failsafe - and do it if we have to
+	 * If terminated output failsafe values
 	 */
-	if (r_setup_arming & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE) {
+	if (r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION) {
 		source = MIX_FAILSAFE;
 	}
 
@@ -176,19 +176,31 @@ mixer_tick()
 		atomic_modify_clear(&r_status_flags, (PX4IO_P_STATUS_FLAGS_FAILSAFE));
 	}
 
+	const bool armed_output = should_arm || should_arm_nothrottle || (source == MIX_FAILSAFE);
+	const bool disarmed_output = (!armed_output && should_always_enable_pwm)
+				     || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN);
+
+	if (disarmed_output) {
+		source = MIX_DISARMED;
+	}
+
 	/*
 	 * Run the mixers.
 	 */
 	if (source == MIX_FAILSAFE) {
-		/* copy failsafe values to the servo outputs */
+		// Set failsafe value if the PWM output isn't disabled
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-			r_page_servos[i] = r_page_servo_failsafe[i];
+			if (r_page_servos[i] != 0) {
+				r_page_servos[i] = r_page_servo_failsafe[i];
+			}
 		}
 
 	} else if (source == MIX_DISARMED) {
-		/* copy disarmed values to the servo outputs */
+		// Set disarmed value if the PWM output isn't disabled
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-			r_page_servos[i] = r_page_servo_disarmed[i];
+			if (r_page_servos[i] != 0) {
+				r_page_servos[i] = r_page_servo_disarmed[i];
+			}
 		}
 	}
 
@@ -215,9 +227,7 @@ mixer_tick()
 		isr_debug(5, "> PWM disabled");
 	}
 
-	if (mixer_servos_armed
-	    && (should_arm || should_arm_nothrottle || (source == MIX_FAILSAFE))
-	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
+	if (mixer_servos_armed && (armed_output || disarmed_output)) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
@@ -229,23 +239,6 @@ mixer_tick()
 
 		} else if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
 			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
-		}
-
-	} else if (mixer_servos_armed && (should_always_enable_pwm || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
-		/* set the disarmed servo outputs. */
-		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
-			/* copy values into reporting register */
-			r_page_servos[i] = r_page_servo_disarmed[i];
-		}
-
-		/* set S.BUS1 or S.BUS2 outputs */
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
-		}
-
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
 		}
 	}
 }

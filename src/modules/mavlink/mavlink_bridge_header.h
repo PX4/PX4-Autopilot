@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_bridge_header
+ * @file mavlink_bridge_header.h
  * MAVLink bridge header for UART access.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>

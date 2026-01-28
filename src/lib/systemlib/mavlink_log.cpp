@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_log.c
+ * @file mavlink_log.cpp
  * MAVLink text logging.
  *
  * @author Lorenz Meier <lorenz@px4.io>
@@ -73,6 +73,6 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 		orb_publish(ORB_ID(mavlink_log), *mavlink_log_pub, &log_msg);
 
 	} else {
-		*mavlink_log_pub = orb_advertise_queue(ORB_ID(mavlink_log), &log_msg, mavlink_log_s::ORB_QUEUE_LENGTH);
+		*mavlink_log_pub = orb_advertise(ORB_ID(mavlink_log), &log_msg);
 	}
 }

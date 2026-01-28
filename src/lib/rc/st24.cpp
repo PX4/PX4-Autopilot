@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file st24.h
+ * @file st24.cpp
  *
  * RC protocol implementation for Yuneec ST24 transmitter.
  *

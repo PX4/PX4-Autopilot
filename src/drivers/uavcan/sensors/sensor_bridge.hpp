@@ -42,6 +42,7 @@
 #include <drivers/drv_orb_dev.h>
 #include <lib/drivers/device/Device.hpp>
 #include <uORB/uORB.h>
+#include <drivers/uavcan/node_info.hpp>
 
 /**
  * A sensor bridge class must implement this interface.
@@ -80,7 +81,8 @@ public:
 	 * Sensor bridge factory.
 	 * Creates all known sensor bridges and puts them in the linked list.
 	 */
-	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list);
+	static void make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list,
+			     NodeInfoPublisher *node_info_publisher);
 };
 
 namespace uavcan_bridge
@@ -90,6 +92,7 @@ struct Channel {
 	orb_advert_t orb_advert{nullptr};
 	int instance{-1};
 	void *h_driver{nullptr};
+	uint8_t iface_index{0};
 };
 } // namespace uavcan_bridge
 
@@ -106,13 +109,16 @@ class UavcanSensorBridgeBase : public IUavcanSensorBridge, public device::Device
 protected:
 	static constexpr unsigned DEFAULT_MAX_CHANNELS = 4;
 	const unsigned _max_channels;
+	NodeInfoPublisher *_node_info_publisher;
 
 	UavcanSensorBridgeBase(const char *name, const orb_id_t orb_topic_sensor,
+			       NodeInfoPublisher *node_info_publisher,
 			       const unsigned max_channels = DEFAULT_MAX_CHANNELS) :
 		Device(name),
 		_orb_topic(orb_topic_sensor),
 		_channels(new uavcan_bridge::Channel[max_channels]),
-		_max_channels(max_channels)
+		_max_channels(max_channels),
+		_node_info_publisher(node_info_publisher)
 	{
 		set_device_bus_type(DeviceBusType_UAVCAN);
 		set_device_bus(0);
@@ -133,7 +139,34 @@ protected:
 	 */
 	virtual int init_driver(uavcan_bridge::Channel *channel) { return PX4_OK; };
 
-	uavcan_bridge::Channel *get_channel_for_node(int node_id);
+	uavcan_bridge::Channel *get_channel_for_node(int node_id, uint8_t iface_index);
+
+	/**
+	 * Builds a unique device ID from a UAVCAN message
+	 * @param msg UAVCAN message (must have getSrcNodeID() and getIfaceIndex() methods)
+	 * @return Complete device ID with node address and interface encoded
+	 */
+	template<typename T>
+	uint32_t make_uavcan_device_id(const uavcan::ReceivedDataStructure<T> &msg) const
+	{
+		return make_uavcan_device_id(msg.getSrcNodeID().get(), msg.getIfaceIndex());
+	}
+
+	/**
+	 * Builds a unique device ID from node ID and interface index
+	 * @param node_id UAVCAN node ID
+	 * @param iface_index CAN interface index (0 = CAN1, 1 = CAN2, etc.)
+	 * @return Complete device ID with node address and interface encoded
+	 */
+	uint32_t make_uavcan_device_id(uint8_t node_id, uint8_t iface_index) const
+	{
+		device::Device::DeviceId device_id{};
+		device_id.devid_s.devtype = get_device_type();
+		device_id.devid_s.address = node_id;
+		device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
+		device_id.devid_s.bus = iface_index;
+		return device_id.devid;
+	}
 
 public:
 	virtual ~UavcanSensorBridgeBase();

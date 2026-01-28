@@ -44,6 +44,11 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
         raise PreconditionError('could not find estimator_states instance', multi_instance)
 
     try:
+        estimator_sensor_bias = ulog.get_dataset('estimator_sensor_bias', multi_instance).data
+    except:
+        raise PreconditionError('could not find estimator_sensor_bias instance', multi_instance)
+
+    try:
         estimator_innovations = ulog.get_dataset('estimator_innovations', multi_instance).data
         estimator_innovation_variances = ulog.get_dataset('estimator_innovation_variances', multi_instance).data
         innovation_data = estimator_innovations
@@ -155,7 +160,7 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
 
         # plot normalised innovation test levels
         # define variables to plot
-        variables = [['mag_test_ratio'], ['vel_test_ratio', 'pos_test_ratio'], ['hgt_test_ratio']]
+        variables = [['hdg_test_ratio'], ['vel_test_ratio', 'pos_test_ratio'], ['hgt_test_ratio']]
         y_labels = ['mag', 'vel, pos', 'hgt']
         legend = [['mag'], ['vel', 'pos'], ['hgt']]
         if np.amax(estimator_status['hagl_test_ratio']) > 0.0:  # plot hagl test ratio, if applicable
@@ -180,7 +185,7 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
         # plot control mode summary A
         data_plot = ControlModeSummaryPlot(
             status_flags_time, estimator_status_flags, [['cs_tilt_align', 'cs_yaw_align'],
-            ['cs_gps', 'cs_opt_flow', 'cs_ev_pos'], ['cs_baro_hgt', 'cs_gps_hgt',
+            ['cs_gnss_pos', 'cs_opt_flow', 'cs_ev_pos'], ['cs_baro_hgt', 'cs_gps_hgt',
              'cs_rng_hgt', 'cs_ev_hgt'], ['cs_mag_hdg', 'cs_mag_3d', 'cs_mag_dec']],
             x_label='time (sec)', y_labels=['aligned', 'pos aiding', 'hgt aiding', 'mag aiding'],
             annotation_text=[['tilt alignment', 'yaw alignment'], ['GPS aiding', 'optical flow aiding',
@@ -218,7 +223,7 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
         data_plot.save()
         data_plot.close()
 
-        # plot innovation_check_flags summary
+        # plot innovation flags summary
         data_plot = CheckFlagsPlot(
             status_flags_time, estimator_status_flags, [['reject_hor_vel', 'reject_hor_pos'], ['reject_ver_vel', 'reject_ver_pos',
                                                                                'reject_hagl'],
@@ -299,21 +304,21 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
         data_plot.save()
         data_plot.close()
 
-        # Plot the delta angle bias estimates
+        # Plot the gyro bias estimates
         data_plot = CheckFlagsPlot(
-            1e-6 * estimator_states['timestamp'], estimator_states,
-            [['states[10]'], ['states[11]'], ['states[12]']],
-            x_label='time (sec)', y_labels=['X (rad)', 'Y (rad)', 'Z (rad)'],
-            plot_title='Delta Angle Bias Estimates', annotate=False, pdf_handle=pdf_pages)
+            1e-6 * estimator_sensor_bias['timestamp'], estimator_sensor_bias,
+            [['gyro_bias[0]'], ['gyro_bias[1]'], ['gyro_bias[2]']],
+            x_label='time (sec)', y_labels=['X (rad/s)', 'Y (rad/s)', 'Z (rad/s)'],
+            plot_title='Gyro Bias Estimates', annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
         data_plot.close()
 
-        # Plot the delta velocity bias estimates
+        # Plot the accel bias estimates
         data_plot = CheckFlagsPlot(
-            1e-6 * estimator_states['timestamp'], estimator_states,
-            [['states[13]'], ['states[14]'], ['states[15]']],
-            x_label='time (sec)', y_labels=['X (m/s)', 'Y (m/s)', 'Z (m/s)'],
-            plot_title='Delta Velocity Bias Estimates', annotate=False, pdf_handle=pdf_pages)
+            1e-6 * estimator_sensor_bias['timestamp'], estimator_sensor_bias,
+            [['accel_bias[0]'], ['accel_bias[1]'], ['accel_bias[2]']],
+            x_label='time (sec)', y_labels=['X (m/s^2)', 'Y (m/s^2)', 'Z (m/s^2)'],
+            plot_title='Accel Bias Estimates', annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
         data_plot.close()
 

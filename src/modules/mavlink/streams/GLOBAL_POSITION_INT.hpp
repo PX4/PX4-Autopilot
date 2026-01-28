@@ -35,7 +35,6 @@
 #define GLOBAL_POSITION_INT_HPP
 
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -61,7 +60,6 @@ private:
 	uORB::Subscription _gpos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _home_sub{ORB_ID(home_position)};
-	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
 
 	bool send() override
 	{
@@ -72,39 +70,21 @@ private:
 
 			mavlink_global_position_int_t msg{};
 
-			if (lpos.z_valid && lpos.z_global) {
-				msg.alt = (-lpos.z + lpos.ref_alt) * 1000.0f;
-
-			} else {
-				// fall back to baro altitude
-				vehicle_air_data_s air_data{};
-				_air_data_sub.copy(&air_data);
-
-				if (air_data.timestamp > 0) {
-					msg.alt = air_data.baro_alt_meter * 1000.0f;
-				}
-			}
-
 			home_position_s home{};
 			_home_sub.copy(&home);
 
 			if ((home.timestamp > 0) && home.valid_alt) {
-				if (lpos.z_valid) {
-					msg.relative_alt = -(lpos.z - home.z) * 1000.0f;
-
-				} else {
-					msg.relative_alt = msg.alt - (home.alt * 1000.0f);
-				}
+				msg.relative_alt = (gpos.alt - home.alt) * 1000.0f;
 
 			} else {
-				if (lpos.z_valid) {
-					msg.relative_alt = -lpos.z * 1000.0f;
-				}
+				msg.relative_alt = gpos.alt * 1000.0f;
 			}
 
 			msg.time_boot_ms = gpos.timestamp / 1000;
+
 			msg.lat = gpos.lat * 1e7;
 			msg.lon = gpos.lon * 1e7;
+			msg.alt = gpos.alt * 1000.0f;
 
 			msg.vx = lpos.vx * 100.0f;
 			msg.vy = lpos.vy * 100.0f;

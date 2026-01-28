@@ -97,4 +97,3 @@ void init(int argc, char *argv[], const char *app_name)
 }
 
 }
-

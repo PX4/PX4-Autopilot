@@ -36,6 +36,14 @@
 
 using namespace time_literals;
 
+PowerChecks::PowerChecks()
+{
+	_voltage_low_hysteresis.set_hysteresis_time_from(false, 0_s);
+	_voltage_low_hysteresis.set_hysteresis_time_from(true, 15_s);
+	_voltage_high_hysteresis.set_hysteresis_time_from(false, 0_s);
+	_voltage_high_hysteresis.set_hysteresis_time_from(true, 15_s);
+}
+
 void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
@@ -74,16 +82,26 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 		if (!system_power.usb_connected) {
 			float avionics_power_rail_voltage = system_power.voltage5v_v;
 
-			const float low_error_threshold = 4.5f;
-			const float low_warning_threshold = 4.8f;
-			const float high_warning_threshold = 5.4f;
+			const float low_error_threshold = 4.7f;
+			const float high_error_threshold = 5.4f;
 
-			if (avionics_power_rail_voltage < low_warning_threshold) {
-				NavModes affected_groups = NavModes::None;
+			const auto now = hrt_absolute_time();
 
-				if (avionics_power_rail_voltage < low_error_threshold) {
-					affected_groups = NavModes::All;
-				}
+			bool old_state_low = _voltage_low_hysteresis.get_state();
+			bool old_state_high = _voltage_high_hysteresis.get_state();
+
+			_voltage_low_hysteresis.set_state_and_update(avionics_power_rail_voltage < low_error_threshold, now);
+			_voltage_high_hysteresis.set_state_and_update(avionics_power_rail_voltage > high_error_threshold, now);
+
+			if (_voltage_low_hysteresis.get_state() && !old_state_low) {
+				_latest_low_failure_val = avionics_power_rail_voltage;
+			}
+
+			if (_voltage_high_hysteresis.get_state() && !old_state_high) {
+				_latest_high_failure_val = avionics_power_rail_voltage;
+			}
+
+			if (_voltage_low_hysteresis.get_state()) {
 
 				/* EVENT
 				 * @description
@@ -93,16 +111,16 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 				 * This check can be configured via <param>CBRK_SUPPLY_CHK</param> parameter.
 				 * </profile>
 				 */
-				reporter.healthFailure<float, float>(affected_groups, health_component_t::system,
+				reporter.healthFailure<float, float>(NavModes::All, health_component_t::system,
 								     events::ID("check_avionics_power_low"),
-								     events::Log::Error, "Avionics Power low: {1:.2} Volt", avionics_power_rail_voltage, low_warning_threshold);
+								     events::Log::Error, "Avionics Power low: {1:.2} Volt", _latest_low_failure_val, low_error_threshold);
 
 				if (reporter.mavlink_log_pub()) {
 					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Avionics Power low: %6.2f Volt",
-							     (double)avionics_power_rail_voltage);
+							     (double)_latest_low_failure_val);
 				}
 
-			} else if (avionics_power_rail_voltage > high_warning_threshold) {
+			} else if (_voltage_high_hysteresis.get_state()) {
 				/* EVENT
 				 * @description
 				 * Check the voltage supply to the FMU, it must be below {2:.2} Volt.
@@ -113,11 +131,11 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 				 */
 				reporter.healthFailure<float, float>(NavModes::All, health_component_t::system,
 								     events::ID("check_avionics_power_high"),
-								     events::Log::Error, "Avionics Power high: {1:.2} Volt", avionics_power_rail_voltage, high_warning_threshold);
+								     events::Log::Error, "Avionics Power high: {1:.2} Volt", _latest_high_failure_val, high_error_threshold);
 
 				if (reporter.mavlink_log_pub()) {
 					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Avionics Power high: %6.2f Volt",
-							     (double)avionics_power_rail_voltage);
+							     (double)_latest_high_failure_val);
 				}
 			}
 
@@ -138,8 +156,38 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 						events::Log::Error, "Power redundancy not met", power_module_count, _param_com_power_count.get());
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Power redundancy not met: %d instead of %" PRId32 "",
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Power redundancy not met: %d of %" PRId32 "",
 							     power_module_count, _param_com_power_count.get());
+				}
+			}
+
+			// Overcurrent detection
+			if (system_power.hipower_5v_oc) {
+				/* EVENT
+				 * @description
+				 * Check the power supply
+				 */
+				reporter.healthFailure(NavModes::All, health_component_t::system,
+						       events::ID("check_power_oc_hipower"),
+						       events::Log::Error, "Overcurrent detected for the hipower 5V supply");
+			}
+
+			if (system_power.periph_5v_oc) {
+				/* EVENT
+				 * @description
+				 * Check the power supply
+				 */
+				reporter.healthFailure(NavModes::All, health_component_t::system,
+						       events::ID("check_power_oc_periph"),
+						       events::Log::Error, "Overcurrent detected for the peripheral 5V supply");
+			}
+
+			if (system_power.hipower_5v_oc || system_power.periph_5v_oc) {
+				if (context.isArmed() && !_overcurrent_warning_sent) {
+					_overcurrent_warning_sent = true;
+					events::send(events::ID("check_power_oc_report"),
+						     events::Log::Error,
+						     "5V overcurrent detected, landing advised");
 				}
 			}
 		}

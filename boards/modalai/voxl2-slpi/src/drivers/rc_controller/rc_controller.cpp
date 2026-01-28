@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_simple_app.c
+ * @file rc_controller.cpp
  * Minimal application example for PX4 autopilot
  *
  * @author Example User <mail@example.com>

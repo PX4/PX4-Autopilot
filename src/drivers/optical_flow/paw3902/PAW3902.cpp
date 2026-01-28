@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -918,7 +918,7 @@ uint8_t PAW3902::RegisterRead(uint8_t reg)
 	// tSRW/tSRR SPI Time Between Read And Subsequent Commands
 	const hrt_abstime elapsed_last_read = hrt_elapsed_time(&_last_read_time);
 
-	if (elapsed_last_write < TIME_TSRW_TSRR_us) {
+	if (elapsed_last_read < TIME_TSRW_TSRR_us) {
 		px4_udelay(TIME_TSRW_TSRR_us - elapsed_last_read);
 	}
 

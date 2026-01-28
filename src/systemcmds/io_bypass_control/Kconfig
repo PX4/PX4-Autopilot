@@ -1,6 +1,7 @@
 menuconfig SYSTEMCMDS_IO_BYPASS_CONTROL
 	bool "IO Bypass control deamon"
 	default n
+	depends on PLATFORM_NUTTX
 	---help---
 		Simple daemon that listens uORB actuator_outputs to control PWM output
 		Useful for full offboard control using RTPS.

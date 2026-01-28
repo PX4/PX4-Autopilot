@@ -19,7 +19,7 @@
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define TEST_DATA_PATH "./test_data/"
 #else
-#define TEST_DATA_PATH "/fs/microsd"
+#define TEST_DATA_PATH CONFIG_BOARD_ROOT_PATH
 #endif
 
 extern "C" __EXPORT int rc_tests_main(int argc, char *argv[]);
@@ -159,7 +159,7 @@ bool RCTest::ghstTest()
 	uint16_t rc_values[max_channels];
 	uint16_t num_values = 0;
 	int line_counter = 1;
-	int8_t ghst_rssi = -1;
+	ghstLinkStatistics_t link_stats;
 	ghst_config(uart_fd);
 
 	while (fgets(line, line_size, fp) != nullptr)  {
@@ -186,7 +186,7 @@ bool RCTest::ghstTest()
 			// Pipe the data into the parser
 			hrt_abstime now = hrt_absolute_time();
 
-			bool result = ghst_parse(now, frame, frame_len, rc_values, &ghst_rssi, &num_values, max_channels);
+			bool result = ghst_parse(now, frame, frame_len, rc_values, &link_stats, &num_values, max_channels);
 
 			if (result) {
 				has_decoded_values = true;
@@ -359,7 +359,6 @@ bool RCTest::sbus2Test()
 	bool sbus_frame_drop;
 	uint16_t max_channels = sizeof(rc_values) / sizeof(rc_values[0]);
 
-	int rate_limiter = 0;
 	unsigned last_drop = 0;
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
@@ -390,7 +389,6 @@ bool RCTest::sbus2Test()
 			last_drop = sbus_frame_drops + sbus_frame_resets;
 		}
 
-		rate_limiter++;
 	}
 
 	ut_test(ret == EOF);
@@ -522,7 +520,4 @@ bool RCTest::sumdTest()
 	return true;
 }
 
-
-
 ut_declare_test_c(rc_tests_main, RCTest)
-

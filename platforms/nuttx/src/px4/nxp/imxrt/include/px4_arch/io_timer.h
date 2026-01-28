@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file drv_io_timer.h
+ * @file io_timer.h
  *
  * imxrt-specific PWM output data.
  */
@@ -41,6 +41,7 @@
 #include <nuttx/irq.h>
 
 #include <drivers/drv_hrt.h>
+#include "dshot.h"
 
 #pragma once
 __BEGIN_DECLS
@@ -67,7 +68,8 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_Dshot   = 6,
 	IOTimerChanMode_LED     = 7,
 	IOTimerChanMode_PPS     = 8,
-	IOTimerChanMode_Other   = 9,
+	IOTimerChanMode_RPM     = 9,
+	IOTimerChanMode_Other   = 10,
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
@@ -110,6 +112,7 @@ typedef struct timer_io_channels_t {
 	uint8_t   sub_module;          /* 0 based sub module offset */
 	uint8_t   sub_module_bits;     /* LDOK and CLDOK bits */
 	uint8_t   timer_channel;       /* Unused */
+	dshot_conf_t	dshot;
 } timer_io_channels_t;
 
 #define SM0           0
@@ -119,6 +122,7 @@ typedef struct timer_io_channels_t {
 
 #define PWMA_VAL      IMXRT_FLEXPWM_SM0VAL3_OFFSET
 #define PWMB_VAL      IMXRT_FLEXPWM_SM0VAL5_OFFSET
+#define PWMX_VAL      IMXRT_FLEXPWM_SM0VAL0_OFFSET //FIXME
 
 
 typedef void (*channel_handler_t)(void *context, const io_timers_t *timer, uint32_t chan_index,

@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file frsky_telemetry.c
+ * @file frsky_telemetry.cpp
  * @author Stefan Rado <px4@sradonia.net>
  * @author Mark Whitehorn <kd0aij@github.com>
  * @author Gianni Carbone <gianni.carbone@gmail.com>

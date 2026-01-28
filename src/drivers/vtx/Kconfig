@@ -1,0 +1,18 @@
+menuconfig DRIVERS_VTX
+	bool "VTX Driver"
+	default n
+	select DRIVERS_VTXTABLE
+	select VTXTABLE_AUX_MAP
+	---help---
+		Control VTX devices via serial interface.
+
+if DRIVERS_VTX
+
+	config VTX_CRSF_MSP_SUPPORT
+		bool "Support using CRSF MSP commands to configure VTX"
+		depends on DRIVERS_RC_CRSF_RC
+		default n
+		---help---
+			Set VTX frequency and power via CRSF MSP messages.
+
+endif # DRIVERS_VTX

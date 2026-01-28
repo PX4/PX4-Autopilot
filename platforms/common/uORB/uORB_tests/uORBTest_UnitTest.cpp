@@ -146,7 +146,14 @@ int uORBTest::UnitTest::pubsublatency_main()
 
 	pubsubtest_passed = true;
 
-	if (mean > 150.0f) {
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+	// relaxed on SITL (non-realtime)
+	const float kMaxMeanUs = 1000.f; // 1000 microseconds
+#else
+	const float kMaxMeanUs = 150.f; // 150 microseconds
+#endif
+
+	if (mean > kMaxMeanUs) {
 		pubsubtest_res = PX4_ERROR;
 
 	} else {
@@ -574,8 +581,8 @@ int uORBTest::UnitTest::test_wrap_around()
 	bool updated{false};
 
 	// Advertise but not publish topics, only generate device_node, which is convenient for modifying DeviceNode::_generation
-	const int queue_size = 16;
-	ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_wrap_around), nullptr, queue_size);
+	const int queue_size = orb_get_queue_size(ORB_ID(orb_test_medium_wrap_around));
+	ptopic = orb_advertise(ORB_ID(orb_test_medium_wrap_around), nullptr);
 
 	if (ptopic == nullptr) {
 		return test_fail("advertise failed: %d", errno);
@@ -828,9 +835,9 @@ int uORBTest::UnitTest::test_queue()
 		return test_fail("subscribe failed: %d", errno);
 	}
 
-	const int queue_size = 16;
+	const int queue_size = orb_get_queue_size(ORB_ID(orb_test_medium_queue));
 	orb_test_medium_s t{};
-	ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_queue), &t, queue_size);
+	ptopic = orb_advertise(ORB_ID(orb_test_medium_queue), &t);
 
 	if (ptopic == nullptr) {
 		return test_fail("advertise failed: %d", errno);
@@ -935,9 +942,9 @@ int uORBTest::UnitTest::pub_test_queue_main()
 {
 	orb_test_medium_s t{};
 	orb_advert_t ptopic{nullptr};
-	const int queue_size = 50;
+	const int queue_size = orb_get_queue_size(ORB_ID(orb_test_medium_queue_poll));
 
-	if ((ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_queue_poll), &t, queue_size)) == nullptr) {
+	if ((ptopic = orb_advertise(ORB_ID(orb_test_medium_queue_poll), &t)) == nullptr) {
 		_thread_should_exit = true;
 		return test_fail("advertise failed: %d", errno);
 	}

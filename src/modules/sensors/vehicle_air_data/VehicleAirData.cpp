@@ -36,13 +36,18 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
+#include <lib/atmosphere/atmosphere.h>
 
 namespace sensors
 {
 
 using namespace matrix;
+using namespace atmosphere;
 
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
+static constexpr float DEFAULT_TEMPERATURE_CELSIUS = 15.f;
+static constexpr float TEMPERATURE_MIN_CELSIUS = -60.f;
+static constexpr float TEMPERATURE_MAX_CELSIUS = 60.f;
 
 VehicleAirData::VehicleAirData() :
 	ModuleParams(nullptr),
@@ -75,21 +80,23 @@ void VehicleAirData::Stop()
 	}
 }
 
-void VehicleAirData::AirTemperatureUpdate()
+float VehicleAirData::AirTemperatureUpdate(const float temperature_baro, TemperatureSource &source,
+		const hrt_abstime time_now_us)
 {
+	// use the temperature from the differential pressure sensor if available
+	// otherwise use the temperature from the external barometer
+	// Temperature measurements from internal baros are not used as typically not representative for ambient temperature
+	float temperature = source == TemperatureSource::EXTERNAL_BARO ? temperature_baro : DEFAULT_TEMPERATURE_CELSIUS;
 	differential_pressure_s differential_pressure;
 
-	static constexpr float temperature_min_celsius = -20.f;
-	static constexpr float temperature_max_celsius = 35.f;
-
-	// update air temperature if data from differential pressure sensor is finite and not exactly 0
-	// limit the range to max 35°C to limt the error due to heated up airspeed sensors prior flight
-	if (_differential_pressure_sub.update(&differential_pressure) && PX4_ISFINITE(differential_pressure.temperature)
-	    && fabsf(differential_pressure.temperature) > FLT_EPSILON) {
-
-		_air_temperature_celsius = math::constrain(differential_pressure.temperature, temperature_min_celsius,
-					   temperature_max_celsius);
+	if (_differential_pressure_sub.copy(&differential_pressure)
+	    && time_now_us - differential_pressure.timestamp_sample < 1_s
+	    && PX4_ISFINITE(differential_pressure.temperature)) {
+		temperature = differential_pressure.temperature;
+		source = TemperatureSource::AIRSPEED;
 	}
+
+	return math::constrain(temperature, TEMPERATURE_MIN_CELSIUS, TEMPERATURE_MAX_CELSIUS);
 }
 
 bool VehicleAirData::ParametersUpdate(bool force)
@@ -137,7 +144,8 @@ void VehicleAirData::Run()
 
 	const bool parameter_update = ParametersUpdate();
 
-	AirTemperatureUpdate();
+	estimator_status_flags_s estimator_status_flags;
+	const bool estimator_status_flags_updated = _estimator_status_flags_sub.update(&estimator_status_flags);
 
 	bool updated[MAX_SENSOR_COUNT] {};
 
@@ -160,9 +168,11 @@ void VehicleAirData::Run()
 		}
 
 		if (_advertised[uorb_index]) {
+			int sensor_sub_updates = 0;
 			sensor_baro_s report;
 
-			while (_sensor_sub[uorb_index].update(&report)) {
+			while ((sensor_sub_updates < sensor_baro_s::ORB_QUEUE_LENGTH) && _sensor_sub[uorb_index].update(&report)) {
+				sensor_sub_updates++;
 
 				if (_calibration[uorb_index].device_id() != report.device_id) {
 					_calibration[uorb_index].set_device_id(report.device_id);
@@ -183,14 +193,26 @@ void VehicleAirData::Run()
 							_sensor_sub[uorb_index].registerCallback();
 						}
 
+						if (!_calibration[uorb_index].calibrated()) {
+							_calibration[uorb_index].set_device_id(report.device_id);
+							_calibration[uorb_index].ParametersSave(uorb_index);
+							param_notify_changes();
+						}
+
 						ParametersUpdate(true);
+					}
+
+					if (estimator_status_flags_updated && _selected_sensor_sub_index >= 0 && _selected_sensor_sub_index == uorb_index
+					    && estimator_status_flags.cs_baro_fault && !_last_status_baro_fault) {
+						_priority[uorb_index] = 1; // 1 is min priority while still being enabled
 					}
 
 					// pressure corrected with offset (if available)
 					_calibration[uorb_index].SensorCorrectionsUpdate();
 					const float pressure_corrected = _calibration[uorb_index].Correct(report.pressure);
+					const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
 
-					float data_array[3] {pressure_corrected, report.temperature, PressureToAltitude(pressure_corrected)};
+					float data_array[3] {pressure_corrected, report.temperature, getAltitudeFromPressure(pressure_corrected, pressure_sealevel_pa)};
 					_voter.put(uorb_index, report.timestamp, data_array, report.error_count, _priority[uorb_index]);
 
 					_timestamp_sample_sum[uorb_index] += report.timestamp_sample;
@@ -204,6 +226,10 @@ void VehicleAirData::Run()
 				}
 			}
 		}
+	}
+
+	if (estimator_status_flags_updated) {
+		_last_status_baro_fault = estimator_status_flags.cs_baro_fault;
 	}
 
 	// check for the current best sensor
@@ -228,6 +254,13 @@ void VehicleAirData::Run()
 		}
 	}
 
+	if (!_relative_calibration_done) {
+		_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
+
+	} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get()) {
+		_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
+	}
+
 	// Publish
 	if (_param_sens_baro_rate.get() > 0) {
 		int interval_us = 1e6f / _param_sens_baro_rate.get();
@@ -237,7 +270,7 @@ void VehicleAirData::Run()
 
 				const hrt_abstime timestamp_sample = _timestamp_sample_sum[instance] / _data_sum_count[instance];
 
-				if (timestamp_sample >= _last_publication_timestamp[instance] + interval_us) {
+				if (time_now_us >= _last_publication_timestamp[instance] + interval_us) {
 
 					bool publish = (time_now_us <= timestamp_sample + 1_s);
 
@@ -249,20 +282,24 @@ void VehicleAirData::Run()
 
 					if (publish) {
 						const float pressure_pa = _data_sum[instance] / _data_sum_count[instance];
-						const float temperature = _temperature_sum[instance] / _data_sum_count[instance];
+						const float temperature_baro = _temperature_sum[instance] / _data_sum_count[instance];
+						TemperatureSource temperature_source = _calibration[instance].external() ? TemperatureSource::EXTERNAL_BARO :
+										       TemperatureSource::DEFAULT_TEMP;
+						const float ambient_temperature = AirTemperatureUpdate(temperature_baro, temperature_source, time_now_us);
 
-						float altitude = PressureToAltitude(pressure_pa, temperature);
+						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
+						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
 
 						// calculate air density
-						float air_density = pressure_pa / (CONSTANTS_AIR_GAS_CONST * (_air_temperature_celsius -
-										   CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+						const float air_density = getDensityFromPressureAndTemp(pressure_pa, ambient_temperature);
 
 						// populate vehicle_air_data with and publish
 						vehicle_air_data_s out{};
 						out.timestamp_sample = timestamp_sample;
 						out.baro_device_id = _calibration[instance].device_id();
 						out.baro_alt_meter = altitude;
-						out.baro_temp_celcius = temperature;
+						out.ambient_temperature = ambient_temperature;
+						out.temperature_source = static_cast<uint8_t>(temperature_source);
 						out.baro_pressure_pa = pressure_pa;
 						out.rho = air_density;
 						out.calibration_count = _calibration[instance].calibration_count();
@@ -271,7 +308,7 @@ void VehicleAirData::Run()
 						_vehicle_air_data_pub.publish(out);
 					}
 
-					_last_publication_timestamp[instance] = timestamp_sample;
+					_last_publication_timestamp[instance] = time_now_us;
 
 					// reset
 					_timestamp_sample_sum[instance] = 0;
@@ -295,30 +332,33 @@ void VehicleAirData::Run()
 	perf_end(_cycle_perf);
 }
 
-float VehicleAirData::PressureToAltitude(float pressure_pa, float temperature) const
+bool VehicleAirData::UpdateRelativeCalibrations(const hrt_abstime time_now_us)
 {
-	// calculate altitude using the hypsometric equation
-	static constexpr float T1 = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
-	static constexpr float a = -6.5f / 1000.f; // temperature gradient in degrees per metre
+	// delay calibration to allow all drivers to start up
+	if (_calibration_t_first == 0) {
+		_calibration_t_first = time_now_us;
+	}
 
-	// current pressure at MSL in kPa (QNH in hPa)
-	const float p1 = _param_sens_baro_qnh.get() * 0.1f;
+	if (time_now_us - _calibration_t_first > 1_s && _data_sum_count[_selected_sensor_sub_index] > 0) {
+		const float pressure_primary = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
 
-	// measured pressure in kPa
-	const float p = pressure_pa * 0.001f;
+		for (int instance = 0; instance < MAX_SENSOR_COUNT; ++instance) {
 
-	/*
-	 * Solve:
-	 *
-	 *     /        -(aR / g)     \
-	 *    | (p / p1)          . T1 | - T1
-	 *     \                      /
-	 * h = -------------------------------  + h1
-	 *                   a
-	 */
-	float altitude = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
+			if (instance != _selected_sensor_sub_index
+			    && _calibration[instance].device_id() != 0
+			    && _data_sum_count[instance] > 0) {
+				const float pressure_secondary = _data_sum[instance] / _data_sum_count[instance];
+				const float new_offset = pressure_secondary - pressure_primary + _calibration[instance].offset();
+				_calibration[instance].set_offset(new_offset);
+				_calibration[instance].ParametersSave(instance);
+				param_notify_changes();
+			}
+		}
 
-	return altitude;
+		return true;
+	}
+
+	return false;
 }
 
 void VehicleAirData::CheckFailover(const hrt_abstime &time_now_us)
@@ -430,6 +470,95 @@ void VehicleAirData::PrintStatus()
 			_calibration[i].PrintStatus();
 		}
 	}
+}
+
+bool VehicleAirData::BaroGNSSAltitudeOffset()
+{
+	static constexpr float kEpvReq = 8.f;
+	static constexpr float kDeltaOffsetTolerance = 4.f;
+	static constexpr uint64_t kLpfWindow = 2_s;
+	static constexpr float kLpfTimeConstant = static_cast<float>(kLpfWindow) * 1.e-6f;
+
+	sensor_gps_s gps_pos;
+
+	if (!_vehicle_gps_position_sub.update(&gps_pos)) {
+		return false;
+	}
+
+	const float pressure_sealevel = _param_sens_baro_qnh.get() * 100.0f;
+	const float baro_pressure = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
+	const float target_altitude = static_cast<float>(gps_pos.altitude_msl_m);
+
+	const float delta_alt =  getAltitudeFromPressure(baro_pressure, pressure_sealevel) - target_altitude;
+	bool gnss_baro_offset_stable = false;
+
+	if (gps_pos.epv > kEpvReq || _t_first_gnss_sample == 0) {
+		_calibration_t_first = 0;
+		_t_first_gnss_sample = gps_pos.timestamp;
+		return false;
+	}
+
+	if (_calibration_t_first == 0) {
+		_calibration_t_first = gps_pos.timestamp;
+		const float dt = (_calibration_t_first - _t_first_gnss_sample) * 1.e-6f;
+		_delta_baro_gnss_lpf.setParameters(dt, kLpfTimeConstant);
+		_delta_baro_gnss_lpf.reset(delta_alt);
+
+	} else {
+		_delta_baro_gnss_lpf.update(delta_alt);
+	}
+
+	if (gps_pos.timestamp - _calibration_t_first > kLpfWindow && !PX4_ISFINITE(_baro_gnss_offset_t1)) {
+		_baro_gnss_offset_t1 = _delta_baro_gnss_lpf.getState();
+
+	} else if (gps_pos.timestamp - _calibration_t_first > 2 * kLpfWindow && PX4_ISFINITE(_baro_gnss_offset_t1)) {
+		if (fabsf(_delta_baro_gnss_lpf.getState() - _baro_gnss_offset_t1) > kDeltaOffsetTolerance) {
+			_baro_gnss_offset_t1 = NAN;
+			_calibration_t_first = 0;
+			_t_first_gnss_sample = 0;
+
+		} else {
+			gnss_baro_offset_stable = true;
+		}
+	}
+
+	if (!gnss_baro_offset_stable) {
+		return false;
+	}
+
+	// Binary search
+	float low = -10000.0f;
+	float high = 10000.0f;
+	float offset = NAN;
+	static constexpr float kTolerance = 0.1f;
+	static constexpr int kIterations = 100;
+
+	for (int i = 0; i < kIterations; ++i) {
+		float mid = low + (high - low) / 2.0f;
+		float calibrated_altitude = getAltitudeFromPressure(baro_pressure - mid, pressure_sealevel);
+
+		if (calibrated_altitude > target_altitude + kTolerance) {
+			high = mid;
+
+		} else if (calibrated_altitude < target_altitude - kTolerance) {
+			low = mid;
+
+		} else {
+			offset = mid;
+			break;
+		}
+	}
+
+	// add new offset to existing relative offsets
+	for (int instance = 0; instance < MAX_SENSOR_COUNT; ++instance) {
+		if (_calibration[instance].device_id() != 0 && _data_sum_count[instance] > 0) {
+			_calibration[instance].set_offset(_calibration[instance].offset() + offset);
+			_calibration[instance].ParametersSave(instance);
+			param_notify_changes();
+		}
+	}
+
+	return true;
 }
 
 }; // namespace sensors

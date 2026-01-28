@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FakeMagnetometer.cpp
+ * @file FakeMagnetometer.hpp
  *
  * Publish the earth magnetic field as a fake magnetometer (sensor_mag).
  * Requires vehicle_attitude and vehicle_gps_position

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file blocks.h
+ * @file BlockLowPassVector.hpp
  *
  * Controller library code
  */

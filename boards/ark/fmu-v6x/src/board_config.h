@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -127,6 +127,9 @@
 #define SPI6_nRESET_EXTERNAL1       /* PF10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN10)
 #define SPI6_RESET(on_true)          px4_arch_gpiowrite(SPI6_nRESET_EXTERNAL1, !(on_true))
 
+// ADIS16507 hardware reset
+#define GPIO_ADIS16507_RESET(reset) SPI6_RESET(reset)
+
 /* I2C busses */
 
 /* Devices on the onboard buses.
@@ -204,25 +207,17 @@
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* HW Version and Revision drive signals Default to 1 to detect */
-#define BOARD_HAS_HW_VERSIONING
+#define BOARD_HAS_HW_SPLIT_VERSIONING
 
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PH4 */  GPIO_ADC3_INP15
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 #define HW_INFO_INIT_PREFIX    "ARKV6X"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 8 // Rev 0 and Rev 1
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
 //                 Base/FMUM
-#define ARKV6X00   HW_VER_REV(0x0,0x0) // ARKV6X,     Sensor Set  Rev 0
-#define ARKV6X01   HW_VER_REV(0x0,0x1) // ARKV6X,     Sensor Set  Rev 1
-//#define ARKV6X03   HW_VER_REV(0x0,0x3) // ARKV6X,     Sensor Set  Rev 3
-//#define ARKV6X04   HW_VER_REV(0x0,0x4) // ARKV6X,     Sensor Set  Rev 4
-#define ARKV6X10   HW_VER_REV(0x1,0x0) // NO PX4IO,   Sensor Set  Rev 0
-#define ARKV6X11   HW_VER_REV(0x1,0x1) // NO PX4IO,   Sensor Set  Rev 1
-#define ARKV6X40   HW_VER_REV(0x4,0x0) // ARKV6X,     Sensor Set  Rev 0   HB CM4 base Rev 3
-#define ARKV6X41   HW_VER_REV(0x4,0x1) // ARKV6X,     Sensor Set  Rev 1   HB CM4 base Rev 4
-#define ARKV6X50   HW_VER_REV(0x5,0x0) // ARKV6X,     Sensor Set  Rev 0   HB Mini Rev 5
-#define ARKV6X51   HW_VER_REV(0x5,0x1) // ARKV6X,     Sensor Set  Rev 1   HB Mini Rev 1 // never shipped
+#define ARKV6X_0   HW_FMUM_ID(0x0) // ARKV6X,     Sensor Set  Rev 0
+#define ARKV6X_1   HW_FMUM_ID(0x1) // ARKV6X,     Sensor Set  Rev 1
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
@@ -246,8 +241,7 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   8
-#define BOARD_PWM_FREQ	             1024000
+#define DIRECT_PWM_OUTPUT_CHANNELS   9
 
 #define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
 #define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
@@ -327,10 +321,6 @@
 
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
-
-/* RC Serial port */
-
-#define RC_SERIAL_PORT                     "/dev/ttyS5"
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  1
@@ -429,6 +419,9 @@
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
+/* This board has 4 DMA channels available for bidirectional dshot */
+#define BOARD_DMA_NUM_DSHOT_CHANNELS 4
+
 /* This board provides the board_on_reset interface */
 
 #define BOARD_HAS_ON_RESET 1
@@ -489,7 +482,7 @@
 #define PX4_I2C_BUS_MTD      4,5
 
 
-#define BOARD_NUM_IO_TIMERS  3
+#define BOARD_NUM_IO_TIMERS  4
 #define BOARD_SPIX_SYNC_FREQ 32000
 
 __BEGIN_DECLS

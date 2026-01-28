@@ -38,6 +38,7 @@ set(QURT_LAYER_SRCS
 	px4_qurt_impl.cpp
 	main.cpp
 	qurt_log.cpp
+	SerialImpl.cpp
 	)
 
 add_library(px4_layer

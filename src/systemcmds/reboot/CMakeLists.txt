@@ -39,4 +39,3 @@ px4_add_module(
 	DEPENDS
 		px4_platform
 	)
-

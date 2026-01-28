@@ -144,22 +144,7 @@ private:
 					const int speed_vertical_cm_s = roundf(-vel_ned(2) * 100.f);
 					msg.speed_vertical = math::constrain(speed_vertical_cm_s, -6200, 6200);
 
-					// speed_accuracy
-					if (vehicle_gps_position.s_variance_m_s < 0.3f) {
-						msg.speed_accuracy = MAV_ODID_SPEED_ACC_0_3_METERS_PER_SECOND;
-
-					} else if (vehicle_gps_position.s_variance_m_s < 1.f) {
-						msg.speed_accuracy = MAV_ODID_SPEED_ACC_1_METERS_PER_SECOND;
-
-					} else if (vehicle_gps_position.s_variance_m_s < 3.f) {
-						msg.speed_accuracy = MAV_ODID_SPEED_ACC_3_METERS_PER_SECOND;
-
-					} else if (vehicle_gps_position.s_variance_m_s < 10.f) {
-						msg.speed_accuracy = MAV_ODID_SPEED_ACC_10_METERS_PER_SECOND;
-
-					} else {
-						msg.speed_accuracy = MAV_ODID_SPEED_ACC_UNKNOWN;
-					}
+					msg.speed_accuracy = open_drone_id_translations::odidSpeedAccForVariance(vehicle_gps_position.s_variance_m_s);
 
 					updated = true;
 				}
@@ -173,45 +158,9 @@ private:
 						msg.altitude_geodetic = static_cast<float>(round(vehicle_gps_position.altitude_msl_m)); // [m]
 					}
 
-					// horizontal_accuracy
-					if (vehicle_gps_position.eph < 1.f) {
-						msg.horizontal_accuracy = MAV_ODID_HOR_ACC_1_METER;
+					msg.horizontal_accuracy = open_drone_id_translations::odidHorAccForEph(vehicle_gps_position.eph);
 
-					} else if (vehicle_gps_position.eph < 3.f) {
-						msg.horizontal_accuracy = MAV_ODID_HOR_ACC_3_METER;
-
-					} else if (vehicle_gps_position.eph < 10.f) {
-						msg.horizontal_accuracy = MAV_ODID_HOR_ACC_10_METER;
-
-					} else if (vehicle_gps_position.eph < 30.f) {
-						msg.horizontal_accuracy = MAV_ODID_HOR_ACC_30_METER;
-
-					} else {
-						msg.horizontal_accuracy = MAV_ODID_HOR_ACC_UNKNOWN;
-					}
-
-					// vertical_accuracy
-					if (vehicle_gps_position.epv < 1.f) {
-						msg.vertical_accuracy = MAV_ODID_VER_ACC_1_METER;
-
-					} else if (vehicle_gps_position.epv < 3.f) {
-						msg.vertical_accuracy = MAV_ODID_VER_ACC_3_METER;
-
-					} else if (vehicle_gps_position.epv < 10.f) {
-						msg.vertical_accuracy = MAV_ODID_VER_ACC_10_METER;
-
-					} else if (vehicle_gps_position.epv < 25.f) {
-						msg.vertical_accuracy = MAV_ODID_VER_ACC_25_METER;
-
-					} else if (vehicle_gps_position.epv < 45.f) {
-						msg.vertical_accuracy = MAV_ODID_VER_ACC_45_METER;
-
-					} else if (vehicle_gps_position.epv < 150.f) {
-						msg.vertical_accuracy = MAV_ODID_VER_ACC_150_METER;
-
-					} else {
-						msg.vertical_accuracy = MAV_ODID_VER_ACC_UNKNOWN;
-					}
+					msg.vertical_accuracy = open_drone_id_translations::odidVerAccForEpv(vehicle_gps_position.epv);
 
 					updated = true;
 				}
@@ -221,9 +170,8 @@ private:
 					uint64_t utc_time_msec = vehicle_gps_position.time_utc_usec / 1000;
 					msg.timestamp = ((float)(utc_time_msec % (60 * 60 * 1000))) / 1000;
 
-					if (hrt_elapsed_time(&vehicle_gps_position.timestamp) < 1_s) {
-						msg.timestamp_accuracy = MAV_ODID_TIME_ACC_1_0_SECOND; // TODO
-					}
+					msg.timestamp_accuracy = open_drone_id_translations::odidTimeForElapsed(hrt_elapsed_time(
+									 &vehicle_gps_position.timestamp));
 
 					updated = true;
 				}
@@ -236,7 +184,7 @@ private:
 
 			if (_vehicle_air_data_sub.copy(&vehicle_air_data) && (hrt_elapsed_time(&vehicle_air_data.timestamp) < 10_s)) {
 				msg.altitude_barometric = vehicle_air_data.baro_alt_meter;
-				msg.barometer_accuracy = MAV_ODID_VER_ACC_150_METER; // TODO
+				msg.barometer_accuracy = MAV_ODID_VER_ACC_UNKNOWN; // We just don't without calibration.
 				updated = true;
 			}
 		}

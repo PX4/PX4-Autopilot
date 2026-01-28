@@ -121,7 +121,8 @@ exec_program(${CMAKE_CXX_COMPILER} ${CMAKE_CURRENT_SOURCE_DIR} ARGS -print-file-
 set(EXTRA_LIBS ${EXTRA_LIBS} ${LIBM})
 
 # Full optimization and Link Time Optimization (LTO)
-set(QURT_OPTIMIZATION_FLAGS -O3 -flto)
+# set(QURT_OPTIMIZATION_FLAGS -O3 -flto)
+set(QURT_OPTIMIZATION_FLAGS -O3) # LTO takes a lot of extra time and doesn't really help much...
 
 # Flags we pass to the C compiler
 list2string(CFLAGS

@@ -58,21 +58,22 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 			set_in_air_status(system_flags_delayed.in_air);
 
 			set_is_fixed_wing(system_flags_delayed.is_fixed_wing);
+			set_in_transition_to_fw(system_flags_delayed.in_transition_to_fw);
 
 			if (system_flags_delayed.gnd_effect) {
 				set_gnd_effect();
 			}
+
+			set_constant_pos(system_flags_delayed.constant_pos);
 		}
 	}
 
 	// monitor the tilt alignment
 	if (!_control_status.flags.tilt_align) {
 		// whilst we are aligning the tilt, monitor the variances
-		const Vector3f angle_err_var_vec = calcRotVecVariances();
-
-		// Once the tilt variances have reduced to equivalent of 3deg uncertainty
+		// Once the tilt variances have reduced to equivalent of 3 deg uncertainty
 		// and declare the tilt alignment complete
-		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < sq(math::radians(3.0f))) {
+		if (getTiltVariance() < sq(math::radians(3.f))) {
 			_control_status.flags.tilt_align = true;
 
 			// send alignment status message to the console
@@ -92,7 +93,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 			}
 
 			ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
-					 (unsigned long long)imu_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				 (unsigned long long)imu_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
 
 			ECL_DEBUG("tilt aligned, roll: %.3f, pitch %.3f, yaw: %.3f",
 				  (double)matrix::Eulerf(_state.quat_nominal).phi(),
@@ -104,14 +105,20 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control use of observations for aiding
-	controlMagFusion();
+	controlMagFusion(imu_delayed);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	controlOpticalFlowFusion(imu_delayed);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
+#if defined(CONFIG_EKF2_GNSS)
 	controlGpsFusion(imu_delayed);
+#endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
+	_aux_global_position.update(*this, imu_delayed);
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	controlAirDataFusion(imu_delayed);
@@ -122,26 +129,37 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	controlDragFusion();
+	controlDragFusion(imu_delayed);
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	controlHeightFusion(imu_delayed);
+
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	controlGravityFusion(imu_delayed);
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// Additional data odometry data from an external estimator can be fused.
-	controlExternalVisionFusion();
+	controlExternalVisionFusion(imu_delayed);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// Additional horizontal velocity data from an auxiliary sensor can be fused
-	controlAuxVelFusion();
+	controlAuxVelFusion(imu_delayed);
 #endif // CONFIG_EKF2_AUXVEL
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	controlTerrainFakeFusion();
+	updateTerrainValidity();
+#endif // CONFIG_EKF2_TERRAIN
 
 	controlZeroInnovationHeadingUpdate();
 
-	controlZeroVelocityUpdate();
-	controlZeroGyroUpdate(imu_delayed);
+	_zero_velocity_update.update(*this, imu_delayed);
+
+	if (_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias)) {
+		_zero_gyro_update.update(*this, imu_delayed);
+	}
 
 	// Fake position measurement for constraining drift when no other velocity or position measurements
 	controlFakePosFusion();

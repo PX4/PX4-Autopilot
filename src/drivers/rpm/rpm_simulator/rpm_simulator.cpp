@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file rpm_simulator.c
+ * @file rpm_simulator.cpp
  * Simple app for publishing RPM messages with custom value.
  *
  * Usage: rpm_simulator <rpm_value>
@@ -66,8 +66,7 @@ int rpm_simulator_main(int argc, char *argv[])
 
 	// prpepare RPM data message
 	rpm.timestamp = timestamp_us;
-	rpm.indicated_frequency_rpm = frequency;
-	rpm.estimated_accurancy_rpm = frequency / 100.0f;
+	rpm.rpm_estimate = frequency;
 
 	// Publish data and let the user know what was published
 	rpm_pub.publish(rpm);

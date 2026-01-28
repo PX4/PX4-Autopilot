@@ -1,0 +1,31 @@
+{
+    "mode": "sitl",
+    "simulator": "gazebo",
+    "tests":
+    [
+        {
+            "model": "iris",
+            "vehicle": "iris",
+            "test_filter": "ModesTest.*",
+            "timeout_min": 10
+        },
+        {
+            "model": "iris",
+            "vehicle": "iris",
+            "test_filter": "LocalPositionInterfaceTest.*",
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_EKF2_EV_CTRL": 15
+            }
+        },
+        {
+            "model": "iris",
+            "vehicle": "iris",
+            "test_filter": "GlobalPositionInterfaceTest.*",
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_EKF2_AGP_CTRL": 1
+            }
+        }
+    ]
+}

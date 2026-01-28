@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# Auterion FMUv6X specific board MAVLink startup script.
+#------------------------------------------------------------------------------
+
+if param compare MAV_S_FORWARD 1
+then
+	set S_FORWARD "-f"
+else
+	set S_FORWARD ""
+fi
+
+mavlink start -d /dev/ttyS4 -b 3000000 -r 290000 -m p:MAV_S_MODE -x -z $S_FORWARD
+
+unset S_FORWARD
+
+# Ensure nothing else starts on TEL2 (ttyS4)
+set PRT_TEL2_ 1

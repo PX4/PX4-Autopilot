@@ -245,7 +245,7 @@ private:
 	/*
 	 * Checks if the modem responds to the "AT" command
 	 */
-	bool is_modem_ready(void);
+	bool is_modem_responsive(void);
 
 	/*
 	 * Get the poll state
@@ -321,7 +321,7 @@ private:
 
 	hrt_abstime _last_write_time = 0;
 	hrt_abstime _last_read_time = 0;
-	hrt_abstime _last_heartbeat = 0;
+	hrt_abstime _last_at_ok_timestamp = 0;
 	hrt_abstime _session_start_time = 0;
 
 	satcom_state _state = SATCOM_STATE_STANDBY;

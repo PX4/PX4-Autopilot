@@ -39,9 +39,8 @@
  *@author Denislav Petrov <denislavamitoba@gmail.com>
  */
 
-
-
 #include "ASP5033.hpp"
+#include <parameters/param.h>
 
 ASP5033::ASP5033(const I2CSPIDriverConfig &config) :
 	I2C(config),
@@ -80,9 +79,6 @@ int ASP5033::sensor_id_check()
 	if ((transfer(&cmd_3, 1, &id[0], sizeof(id)) != PX4_OK) || (*id != REG_WHOAMI_RECHECK_ID_ASP5033)) { return 0; }
 
 	return 1;
-
-
-
 }
 
 int ASP5033::init()
@@ -123,13 +119,11 @@ bool ASP5033::get_differential_pressure()
 	press_sum = 0.;
 	press_count = 0;
 	return true;
-
 }
 
 
 void ASP5033::print_status()
 {
-
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_sample_perf);
@@ -209,7 +203,6 @@ int ASP5033::collect()
 	perf_begin(_sample_perf);
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-
 	// Read pressure and temperature as one block
 	uint8_t val[5] {0, 0, 0, 0, 0};
 	uint8_t cmd = REG_PRESS_DATA_ASP5033;
@@ -240,6 +233,15 @@ int ASP5033::collect()
 		differential_pressure.timestamp_sample = timestamp_sample;
 		differential_pressure.device_id = get_device_id();
 		differential_pressure.differential_pressure_pa = _pressure;
+		int32_t differential_press_rev = 0;
+		param_get(param_find("SENS_DPRES_REV"), &differential_press_rev);
+
+		//If differential pressure reverse param set, swap positive and negative
+		if (differential_press_rev == 1) {
+			differential_pressure.differential_pressure_pa = -1.0f * _pressure;
+		}
+
+
 		differential_pressure.temperature = _temperature ;
 		differential_pressure.error_count = perf_event_count(_comms_errors);
 		differential_pressure.timestamp = timestamp_sample;
@@ -251,8 +253,3 @@ int ASP5033::collect()
 
 	return PX4_OK;
 }
-
-
-
-
-

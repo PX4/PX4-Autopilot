@@ -46,7 +46,7 @@
  * @value 2 High Speed Short Range Mode
  * @value 3 High Speed Long Range Mode
  */
-PARAM_DEFINE_INT32(SENS_AFBR_MODE, 1);
+PARAM_DEFINE_INT32(SENS_AFBR_MODE, 0);
 
 /**
  * AFBR Rangefinder Short Range Rate
@@ -85,7 +85,7 @@ PARAM_DEFINE_INT32(SENS_AFBR_L_RATE, 25);
  * @group Sensors
  *
  */
-PARAM_DEFINE_INT32(SENS_AFBR_THRESH, 5);
+PARAM_DEFINE_INT32(SENS_AFBR_THRESH, 4);
 
 
 /**

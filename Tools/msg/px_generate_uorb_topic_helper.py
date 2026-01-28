@@ -171,6 +171,61 @@ def get_children_fields(base_type, search_path):
     return spec_temp.parsed_fields()
 
 
+def get_message_fields_str_for_message_hash(msg_fields, search_path):
+    """
+    Get all fields (including for nested types) in the form of:
+'''
+uint64 timestamp
+uint8 esc_count
+uint8 esc_online_flags
+EscReport[8] esc
+uint64 timestamp
+uint32 esc_errorcount
+int32 esc_rpm
+float32 esc_voltage
+uint16 failures
+int8 esc_power
+'''
+    """
+    all_fields_str = ''
+    for field in msg_fields:
+        if field.is_header:
+            continue
+
+        type_name = field.type
+        # detect embedded types
+        sl_pos = type_name.find('/')
+        if sl_pos >= 0:
+            type_name = type_name[sl_pos + 1:]
+
+        all_fields_str += type_name + ' ' + field.name + '\n'
+
+        if sl_pos >= 0: # nested type, add all nested fields
+            children_fields = get_children_fields(field.base_type, search_path)
+            all_fields_str += get_message_fields_str_for_message_hash(children_fields, search_path)
+
+    return all_fields_str
+
+
+def hash_32_fnv1a(data: str):
+    hash_val = 0x811c9dc5
+    prime = 0x1000193
+    for i in range(len(data)):
+        value = ord(data[i])
+        hash_val = hash_val ^ value
+        hash_val *= prime
+        hash_val &= 0xffffffff
+    return hash_val
+
+
+def get_message_hash(msg_fields, search_path):
+    """
+    Get a 32 bit message hash over all fields
+    """
+    all_fields_str = get_message_fields_str_for_message_hash(msg_fields, search_path)
+    return hash_32_fnv1a(all_fields_str)
+
+
 def add_padding_bytes(fields, search_path):
     """
     Add padding fields before the embedded types, at the end and calculate the

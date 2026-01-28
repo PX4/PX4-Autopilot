@@ -1,0 +1,33 @@
+name: 📑 Documentation Bug report
+description: Create a report to help us improve the docs
+title: "[Docs] [Bug] "
+labels: ["Documentation 📑"]
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of the bug.
+      placeholder: |
+          # A PR to fix the bug is often better than adding this issue!
+          #
+          # If you can't create a PR please provide the following:
+          # - What page and/or section has the problem
+          # - What is the problem - missing information, incorrect information?
+          # - Suggested fixes, links to corresponding code PRs
+          # - Any additional context
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Page URL
+      description: The URL of the problem page.
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Screenshot / Media
+      description: Add screenshot / media if you have them
+    validations:
+      required: false

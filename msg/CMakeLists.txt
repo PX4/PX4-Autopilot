@@ -40,24 +40,21 @@ set(msg_files
 	ActionRequest.msg
 	ActuatorArmed.msg
 	ActuatorControlsStatus.msg
-	ActuatorMotors.msg
 	ActuatorOutputs.msg
-	ActuatorServos.msg
 	ActuatorServosTrim.msg
 	ActuatorTest.msg
 	AdcReport.msg
 	Airspeed.msg
-	AirspeedValidated.msg
 	AirspeedWind.msg
 	AutotuneAttitudeControlStatus.msg
-	BatteryStatus.msg
+	BatteryInfo.msg
 	ButtonEvent.msg
 	CameraCapture.msg
 	CameraStatus.msg
 	CameraTrigger.msg
+	CanInterfaceStatus.msg
 	CellularStatus.msg
 	CollisionConstraints.msg
-	CollisionReport.msg
 	ControlAllocatorStatus.msg
 	Cpuload.msg
 	DatamanRequest.msg
@@ -66,8 +63,11 @@ set(msg_files
 	DebugKeyValue.msg
 	DebugValue.msg
 	DebugVect.msg
+	DeviceInformation.msg
 	DifferentialPressure.msg
 	DistanceSensor.msg
+	DistanceSensorModeChangeRequest.msg
+	DronecanNodeStatus.msg
 	Ekf2Timestamps.msg
 	EscReport.msg
 	EscStatus.msg
@@ -84,14 +84,22 @@ set(msg_files
 	EstimatorStates.msg
 	EstimatorStatus.msg
 	EstimatorStatusFlags.msg
-	Event.msg
+	versioned/Event.msg
+	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
+	FlightPhaseEstimation.msg
 	FollowTarget.msg
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
+	FuelTankStatus.msg
+	FixedWingLateralGuidanceStatus.msg
+	FixedWingLateralStatus.msg
+	FixedWingRunwayControl.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
+	GeofenceStatus.msg
+	GainCompression.msg
 	GimbalControls.msg
 	GimbalDeviceAttitudeStatus.msg
 	GimbalDeviceInformation.msg
@@ -109,9 +117,9 @@ set(msg_files
 	Gripper.msg
 	HealthReport.msg
 	HeaterStatus.msg
-	HomePosition.msg
 	HoverThrustEstimate.msg
 	InputRc.msg
+	InternalCombustionEngineControl.msg
 	InternalCombustionEngineStatus.msg
 	IridiumsbdStatus.msg
 	IrlockReport.msg
@@ -125,24 +133,33 @@ set(msg_files
 	LogMessage.msg
 	MagnetometerBiasEstimate.msg
 	MagWorkerData.msg
-	ManualControlSetpoint.msg
 	ManualControlSwitches.msg
 	MavlinkLog.msg
 	MavlinkTunnel.msg
+	MessageFormatRequest.msg
+	MessageFormatResponse.msg
 	Mission.msg
 	MissionResult.msg
 	MountOrientation.msg
-	ModeCompleted.msg
 	NavigatorMissionItem.msg
+	NavigatorStatus.msg
+	NeuralControl.msg
 	NormalizedUnsignedSetpoint.msg
-	NpfgStatus.msg
 	ObstacleDistance.msg
 	OffboardControlMode.msg
 	OnboardComputerStatus.msg
+	OpenDroneIdArmStatus.msg
+	OpenDroneIdOperatorId.msg
+	OpenDroneIdSelfId.msg
+	OpenDroneIdSystem.msg
 	OrbitStatus.msg
 	OrbTest.msg
 	OrbTestLarge.msg
 	OrbTestMedium.msg
+	ParameterResetRequest.msg
+	ParameterSetUsedRequest.msg
+	ParameterSetValueRequest.msg
+	ParameterSetValueResponse.msg
 	ParameterUpdate.msg
 	Ping.msg
 	PositionControllerLandingStatus.msg
@@ -152,6 +169,7 @@ set(msg_files
 	PowerButtonState.msg
 	PowerMonitor.msg
 	PpsCapture.msg
+	PurePursuitStatus.msg
 	PwmInput.msg
 	Px4ioStatus.msg
 	QshellReq.msg
@@ -160,7 +178,17 @@ set(msg_files
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
+	RoverAttitudeSetpoint.msg
+	RoverAttitudeStatus.msg
+	RoverPositionSetpoint.msg
+	RoverRateSetpoint.msg
+	RoverRateStatus.msg
+	RoverSpeedSetpoint.msg
+	RoverSpeedStatus.msg
+	RoverSteeringSetpoint.msg
+	RoverThrottleSetpoint.msg
 	Rpm.msg
+	RtlStatus.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg
 	SensorAccel.msg
@@ -169,6 +197,7 @@ set(msg_files
 	SensorCombined.msg
 	SensorCorrection.msg
 	SensorGnssRelative.msg
+	SensorGnssStatus.msg
 	SensorGps.msg
 	SensorGyro.msg
 	SensorGyroFft.msg
@@ -180,7 +209,9 @@ set(msg_files
 	SensorSelection.msg
 	SensorsStatus.msg
 	SensorsStatusImu.msg
+	SensorTemp.msg
 	SensorUwb.msg
+	SensorAirflow.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
@@ -188,9 +219,7 @@ set(msg_files
 	TelemetryStatus.msg
 	TiltrotorExtraControls.msg
 	TimesyncStatus.msg
-	TrajectoryBezier.msg
-	TrajectorySetpoint.msg
-	TrajectoryWaypoint.msg
+	TrajectorySetpoint6dof.msg
 	TransponderReport.msg
 	TuneControl.msg
 	UavcanParameterRequest.msg
@@ -200,33 +229,55 @@ set(msg_files
 	VehicleAcceleration.msg
 	VehicleAirData.msg
 	VehicleAngularAccelerationSetpoint.msg
-	VehicleAngularVelocity.msg
-	VehicleAttitude.msg
-	VehicleAttitudeSetpoint.msg
-	VehicleCommand.msg
-	VehicleCommandAck.msg
 	VehicleConstraints.msg
-	VehicleControlMode.msg
-	VehicleGlobalPosition.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
-	VehicleLandDetected.msg
-	VehicleLocalPosition.msg
 	VehicleLocalPositionSetpoint.msg
 	VehicleMagnetometer.msg
-	VehicleOdometry.msg
 	VehicleOpticalFlow.msg
 	VehicleOpticalFlowVel.msg
-	VehicleRatesSetpoint.msg
 	VehicleRoi.msg
-	VehicleStatus.msg
 	VehicleThrustSetpoint.msg
 	VehicleTorqueSetpoint.msg
-	VehicleTrajectoryBezier.msg
-	VehicleTrajectoryWaypoint.msg
-	VtolVehicleStatus.msg
-	Wind.msg
+	VelocityLimits.msg
+	Vtx.msg
+	WheelEncoders.msg
 	YawEstimatorStatus.msg
+	versioned/ActuatorMotors.msg
+	versioned/ActuatorServos.msg
+	versioned/AirspeedValidated.msg
+	versioned/ArmingCheckReply.msg
+	versioned/ArmingCheckRequest.msg
+	versioned/BatteryStatus.msg
+	versioned/ConfigOverrides.msg
+	versioned/FixedWingLateralSetpoint.msg
+	versioned/FixedWingLongitudinalSetpoint.msg
+	versioned/GotoSetpoint.msg
+	versioned/HomePosition.msg
+	versioned/LateralControlConfiguration.msg
+	versioned/LongitudinalControlConfiguration.msg
+	versioned/ManualControlSetpoint.msg
+	versioned/ModeCompleted.msg
+	versioned/RaptorInput.msg
+	versioned/RaptorStatus.msg
+	versioned/RegisterExtComponentReply.msg
+	versioned/RegisterExtComponentRequest.msg
+	versioned/TrajectorySetpoint.msg
+	versioned/UnregisterExtComponent.msg
+	versioned/VehicleAngularVelocity.msg
+	versioned/VehicleAttitude.msg
+	versioned/VehicleAttitudeSetpoint.msg
+	versioned/VehicleCommandAck.msg
+	versioned/VehicleCommand.msg
+	versioned/VehicleControlMode.msg
+	versioned/VehicleGlobalPosition.msg
+	versioned/VehicleLandDetected.msg
+	versioned/VehicleLocalPosition.msg
+	versioned/VehicleOdometry.msg
+	versioned/VehicleRatesSetpoint.msg
+	versioned/VehicleStatus.msg
+	versioned/VtolVehicleStatus.msg
+	versioned/Wind.msg
 )
 list(SORT msg_files)
 
@@ -252,6 +303,7 @@ set(msg_source_out_path ${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
 set(uorb_headers)
 set(uorb_sources)
 set(uorb_ucdr_headers)
+set(uorb_json_files)
 foreach(msg_file ${msg_files})
 	get_filename_component(msg ${msg_file} NAME_WE)
 
@@ -263,9 +315,10 @@ foreach(msg_file ${msg_files})
 	list(APPEND uorb_headers ${msg_out_path}/${msg}.h)
 	list(APPEND uorb_sources ${msg_source_out_path}/${msg}.cpp)
 	list(APPEND uorb_ucdr_headers ${ucdr_out_path}/${msg}.h)
+	list(APPEND uorb_json_files ${msg_source_out_path}/${msg}.json)
 endforeach()
 
-# set parent scope msg_files for other modules to consume (eg topic_listener)
+# set parent scope msg_files for ROS
 set(msg_files ${msg_files} PARENT_SCOPE)
 
 # Generate uORB headers
@@ -276,7 +329,7 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--headers
 		-f ${msg_files}
-		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
 		-o ${msg_out_path}
 		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/uorb
 	DEPENDS
@@ -291,13 +344,51 @@ add_custom_command(
 	)
 add_custom_target(uorb_headers DEPENDS ${uorb_headers})
 
+add_custom_command(
+	OUTPUT
+		${uorb_json_files}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		--json
+		-f ${msg_files}
+		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
+		-o ${msg_source_out_path}
+		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/uorb
+	DEPENDS
+		${msg_files}
+		${PX4_SOURCE_DIR}/Tools/msg/templates/uorb/msg.json.em
+		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_helper.py
+	COMMENT "Generating uORB json files"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+)
+add_custom_target(uorb_json_files DEPENDS ${uorb_json_files})
+
+set(uorb_message_fields_cpp_file ${msg_source_out_path}/uORBMessageFieldsGenerated.cpp)
+set(uorb_message_fields_header_file ${msg_out_path}/uORBMessageFieldsGenerated.hpp)
+add_custom_command(
+	OUTPUT
+		${uorb_message_fields_cpp_file}
+		${uorb_message_fields_header_file}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_compressed_fields.py
+		-f ${uorb_json_files}
+		--source-output-file ${uorb_message_fields_cpp_file}
+		--header-output-file ${uorb_message_fields_header_file}
+	DEPENDS
+		${uorb_json_files}
+		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_compressed_fields.py
+	COMMENT "Generating uORB compressed fields"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+)
+
 # Generate microcdr headers
 add_custom_command(
 	OUTPUT ${uorb_ucdr_headers}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--headers
 		-f ${msg_files}
-		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
 		-o ${ucdr_out_path}
 		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/ucdr
 	DEPENDS
@@ -319,7 +410,7 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--sources
 		-f ${msg_files}
-		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
 		-o ${msg_source_out_path}
 		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/uorb
 	DEPENDS
@@ -333,6 +424,156 @@ add_custom_command(
 	VERBATIM
 	)
 
-add_library(uorb_msgs ${uorb_headers} ${msg_out_path}/uORBTopics.hpp ${uorb_sources} ${msg_source_out_path}/uORBTopics.cpp)
+add_library(uorb_msgs ${uorb_headers} ${msg_out_path}/uORBTopics.hpp ${uorb_sources} ${msg_source_out_path}/uORBTopics.cpp ${uorb_message_fields_cpp_file})
 target_link_libraries(uorb_msgs PRIVATE m)
 add_dependencies(uorb_msgs prebuild_targets uorb_headers)
+
+if(CONFIG_LIB_CDRSTREAM)
+	set(uorb_cdr_idl)
+	set(uorb_cdr_msg)
+	set(uorb_cdr_hash)
+	set(uorb_cdr_idl_uorb)
+	set(idl_include_path ${PX4_BINARY_DIR}/uORB/idl)
+	set(idl_out_path ${idl_include_path}/px4/msg)
+	set(idl_rihs01_out_path ${idl_include_path}/px4)
+	set(idl_uorb_path ${PX4_BINARY_DIR}/msg/px4/msg)
+
+	# Make sure that CycloneDDS has been checkout out
+	execute_process(COMMAND git submodule sync src/lib/cdrstream/cyclonedds
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR} )
+	execute_process(COMMAND git submodule update --init --force src/lib/cdrstream/cyclonedds
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR} )
+
+	# CycloneDDS-tools doesn't ship with the cdrstream-desc feature thus we've to compile idlc from source
+	MESSAGE(STATUS "Configuring idlc :" ${CMAKE_CURRENT_BINARY_DIR}/idlc)
+	file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/idlc)
+	execute_process(COMMAND ${CMAKE_COMMAND} ${PX4_SOURCE_DIR}/src/lib/cdrstream/cyclonedds
+			-DCMAKE_C_COMPILER=/usr/bin/gcc
+			-DBUILD_EXAMPLES=OFF
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/idlc
+			RESULT_VARIABLE CMD_ERROR
+			OUTPUT_FILE CMD_OUTPUT )
+	MESSAGE(STATUS "Building idlc :" ${CMAKE_CURRENT_BINARY_DIR}/idlc)
+	execute_process(COMMAND ${CMAKE_COMMAND} --build . --target idlc
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/idlc
+			RESULT_VARIABLE CMD_ERROR
+			OUTPUT_FILE CMD_OUTPUT )
+	list(APPEND CMAKE_PROGRAM_PATH "${CMAKE_CURRENT_BINARY_DIR}/idlc/bin")
+
+	# Copy .msg files
+	foreach(msg_file ${msg_files})
+		get_filename_component(msg ${msg_file} NAME_WE)
+		configure_file(${msg_file} ${idl_out_path}/${msg}.msg COPYONLY)
+		list(APPEND uorb_cdr_idl ${idl_out_path}/${msg}.idl)
+		list(APPEND uorb_cdr_msg ${idl_out_path}/${msg}.msg)
+		list(APPEND uorb_cdr_hash ${idl_out_path}/${msg}.json)
+		list(APPEND uorb_cdr_idl_uorb ${idl_uorb_path}/${msg}.h)
+	endforeach()
+
+	# Generate IDL from .msg using rosidl_adapter
+	# Note this a submodule inside PX4 hence no ROS2 installation required
+	add_custom_command(
+		OUTPUT ${uorb_cdr_idl}
+		COMMAND ${CMAKE_COMMAND}
+		        -E env "PYTHONPATH=${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_adapter:${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_cli"
+			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/cdrstream/msg2idl.py
+			${uorb_cdr_msg}
+		DEPENDS
+			${uorb_cdr_msg}
+			git_cyclonedds
+		COMMENT "Generating IDL from uORB topic headers"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		VERBATIM
+		)
+
+	file(CREATE_LINK ${idl_rihs01_out_path} ${idl_include_path}/px4_msgs SYMBOLIC)
+
+	# Generate IDL from .msg using rosidl_adapter
+	# Note this is a submodule inside PX4 hence no ROS2 installation required
+	add_custom_command(
+		OUTPUT ${uorb_cdr_hash}
+		COMMAND ${CMAKE_COMMAND}
+		        -E env "PYTHONPATH=${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_adapter:${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_cli:${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_parser:${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_generator_type_description"
+			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/cdrstream/idl2rihs01.py
+			--output-dir ${idl_rihs01_out_path}
+			${uorb_cdr_idl}
+		DEPENDS
+			${uorb_cdr_idl}
+			git_cyclonedds
+		COMMENT "Generating RIHS01 hashes from IDL"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		VERBATIM
+		)
+
+	# Generate C definitions from IDL
+	set(CYCLONEDDS_DIR ${PX4_SOURCE_DIR}/src/lib/cdrstream/cyclonedds)
+	include("${CYCLONEDDS_DIR}/cmake/Modules/Generate.cmake")
+	idlc_generate(TARGET uorb_cdrstream
+                  FEATURES "cdrstream-desc"
+                  FILES ${uorb_cdr_idl}
+                  INCLUDES ${idl_include_path}
+                  BASE_DIR ${idl_include_path}
+                  WARNINGS no-implicit-extensibility)
+	target_link_libraries(uorb_cdrstream INTERFACE cdr)
+
+	# Generate and overwrite IDL header with custom headers for uORB operatability
+	# We typedef the IDL struct the uORB struct so that the IDL offset calculate
+	# the offset of internal uORB struct for serialization/deserialization
+
+	# In the future we might want to turn this around let the IDL struct be the leading ABI
+	# However we need to remove the padding for logging and remove the re-ordering of fields
+
+	add_custom_target(
+		uorb_idl_header
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+			--uorb-idl-header
+			-f ${msg_files}
+			-i ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/versioned
+			-o ${idl_uorb_path}
+			-e ${PX4_SOURCE_DIR}/Tools/msg/templates/cdrstream
+		DEPENDS
+			uorb_cdrstream
+			${msg_files}
+			${uorb_cdr_hash}
+			${PX4_SOURCE_DIR}/Tools/msg/templates/cdrstream/uorb_idl_header.h.em
+			${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+			${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_helper.py
+		COMMENT "Generating uORB compatible IDL headers"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		VERBATIM
+	)
+	add_dependencies(uorb_msgs uorb_idl_header)
+
+	# Compile all CDR compatible message defnitions
+	target_link_libraries(uorb_msgs PRIVATE uorb_cdrstream )
+endif()
+
+if(CONFIG_MODULES_ZENOH)
+	# Update kconfig file for topics
+	execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
+			--zenoh-config
+			-f ${msg_files}
+			-o ${PX4_SOURCE_DIR}/src/modules/zenoh/
+			-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
+		)
+	add_custom_command(
+		OUTPUT
+			${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
+			--zenoh-pub-sub
+			-f ${msg_files}
+			-o ${PX4_BINARY_DIR}/src/modules/zenoh/
+			-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
+			--rihs ${idl_rihs01_out_path}
+		DEPENDS
+			${msg_files}
+			${uorb_cdr_hash}
+			${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh/uorb_pubsub_factory.hpp.em
+			${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
+		COMMENT "Generating Zenoh Topic Code"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		VERBATIM
+		)
+		add_library(zenoh_topics ${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp)
+		set_target_properties(zenoh_topics PROPERTIES LINKER_LANGUAGE CXX)
+endif()

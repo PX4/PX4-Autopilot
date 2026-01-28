@@ -3,9 +3,9 @@
 # ModalAI FC-v2 specific board sensors init
 #------------------------------------------------------------------------------
 
-if param greater MODAL_IO_CONFIG 0
+if param greater VOXL_ESC_CONFIG 0
 then
-	modal_io start
+	voxl_esc start
 fi
 
 board_adc start

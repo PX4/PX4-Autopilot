@@ -1,0 +1,43 @@
+module_name: Rover Mecanum
+
+parameters:
+  - group: Rover Mecanum
+    definitions:
+      RM_WHEEL_TRACK:
+          description:
+            short: Wheel track
+            long: Distance from the center of the right wheel to the center of the left wheel.
+          type: float
+          unit: m
+          min: 0
+          max: 100
+          increment: 0.001
+          decimal: 3
+          default: 0
+
+      RM_COURSE_CTL_TH:
+        description:
+          short: Threshold to update course control in manual position mode
+          long: |
+            Threshold for the angle between the active cruise direction and the cruise direction given
+            by the stick inputs.
+            This can be understood as a deadzone for the combined stick inputs for forward/backwards
+            and lateral speed which defines a course direction.
+        type: float
+        unit: rad
+        min: 0
+        max: 3.14
+        increment: 0.01
+        decimal: 2
+        default: 0.17
+
+      RM_YAW_STK_GAIN:
+        description:
+            short: Yaw stick gain for Manual mode
+            long: Assign value <1.0 to decrease stick response for yaw control.
+        type: float
+        min: 0.1
+        max: 1
+        increment: 0.01
+        decimal: 3
+        default: 1

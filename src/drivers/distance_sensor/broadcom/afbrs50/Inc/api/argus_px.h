@@ -55,6 +55,9 @@ extern "C" {
  * Also used as a special value to determine no object detected or infinity range. */
 #define ARGUS_RANGE_MAX (Q9_22_MAX)
 
+/*! Minimum range value in Q9.22 format. */
+#define ARGUS_RANGE_MIN (Q9_22_MIN)
+
 /*!***************************************************************************
  * @brief   Status flags for the evaluated pixel structure.
  *

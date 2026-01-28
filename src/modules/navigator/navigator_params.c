@@ -43,11 +43,14 @@
 /**
  * Loiter radius (FW only)
  *
- * Default value of loiter radius in FW mode (e.g. for Loiter mode).
+ * Default value of loiter radius in fixed-wing mode (e.g. for Loiter mode).
+ *
+ * The direction of the loiter can be set via the sign: A positive value for
+ * clockwise, negative for counter-clockwise.
  *
  * @unit m
- * @min 25
- * @max 1000
+ * @min -10000
+ * @max 10000
  * @decimal 1
  * @increment 0.5
  * @group Mission
@@ -187,3 +190,21 @@ PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_MIN_LTR_ALT, -1.f);
+
+/**
+ * Minimum height above ground during Mission and RTL
+ *
+ * Minimum height above ground the vehicle is allowed to descend to during Mission and RTL,
+ * excluding landing commands.
+ * Requires a distance sensor to be set up.
+ * Note: only prevents the vehicle from descending further, but does not force it to climb.
+ *
+ * Set to a negative value to disable.
+ *
+ * @unit m
+ * @min -1
+ * @decimal 1
+ * @increment 1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_MIN_GND_DIST, -1.f);

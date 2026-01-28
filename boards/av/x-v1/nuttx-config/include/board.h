@@ -374,4 +374,3 @@
  *      SDMMC1_D2                           PC10
  *      SDMMC1_D3                           PC11
  */
-

@@ -1,0 +1,13 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_GRAV_NOISE:
+      description:
+        short: Accelerometer measurement noise for gravity based observations
+      type: float
+      default: 1.0
+      min: 0.1
+      max: 10.0
+      unit: g0
+      decimal: 2

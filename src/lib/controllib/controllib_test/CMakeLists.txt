@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
 	MODULE lib__controllib__controllib_test
 	MAIN controllib_test
@@ -39,5 +40,3 @@ px4_add_module(
 		controllib_test_main.cpp
 	DEPENDS
 	)
-
-

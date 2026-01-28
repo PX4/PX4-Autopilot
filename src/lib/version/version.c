@@ -75,27 +75,48 @@ uint32_t version_tag_to_number(const char *tag)
 	int firmware_type = FIRMWARE_TYPE_RELEASE;
 
 	for (size_t i = 0; i < strlen(tag); i++) {
-		if (tag[i] == '-') {
+		switch (tag[i]) {
+		case '-':
 			dash_count++;
+			break;
 
-		} else if (tag[i] == '.') {
+		case '.':
 			point_count++;
-		}
+			break;
 
-		if (tag[i] == 'r' && i < strlen(tag) - 1 && tag[i + 1] == 'c') {
-			firmware_type = FIRMWARE_TYPE_RC;
+		case 'r':
+			if (i < strlen(tag) - 1 && tag[i + 1] == 'c') {
+				firmware_type = FIRMWARE_TYPE_RC;
 
-		} else if (tag[i] == 'p') {
+			}
+
+			break;
+
+		case 'p':
 			firmware_type = FIRMWARE_TYPE_ALPHA;
+			break;
 
-		} else if (tag[i] == 't' && i < strlen(tag) - 1 && tag[i + 1] == 'y') {
-			firmware_type = FIRMWARE_TYPE_DEV;
+		case 't':
+			if (i < strlen(tag) - 1 && tag[i + 1] == 'y') {
+				firmware_type = FIRMWARE_TYPE_DEV;
 
-		} else if (tag[i] == 't') {
-			firmware_type = FIRMWARE_TYPE_BETA;
+			} else {
+				firmware_type = FIRMWARE_TYPE_BETA;
 
-		} else if (tag[i] == 'v' && i > 0) {
-			firmware_type = FIRMWARE_TYPE_DEV;
+			}
+
+			break;
+
+		case 'v':
+			if (i > 0) {
+				firmware_type = FIRMWARE_TYPE_DEV;
+
+			}
+
+			break;
+
+		default:
+			break;
 		}
 	}
 
@@ -163,27 +184,48 @@ uint32_t version_tag_to_vendor_version_number(const char *tag)
 	int firmware_type = FIRMWARE_TYPE_RELEASE;
 
 	for (size_t i = 0; i < strlen(tag); i++) {
-		if (tag[i] == '-') {
+		switch (tag[i]) {
+		case '-':
 			dash_count++;
+			break;
 
-		} else if (tag[i] == '.') {
+		case '.':
 			point_count++;
-		}
+			break;
 
-		if (tag[i] == 'r' && i < strlen(tag) - 1 && tag[i + 1] == 'c') {
-			firmware_type = FIRMWARE_TYPE_RC;
+		case 'r':
+			if (i < strlen(tag) - 1 && tag[i + 1] == 'c') {
+				firmware_type = FIRMWARE_TYPE_RC;
 
-		} else if (tag[i] == 'p') {
+			}
+
+			break;
+
+		case 'p':
 			firmware_type = FIRMWARE_TYPE_ALPHA;
+			break;
 
-		} else if (tag[i] == 't' && i < strlen(tag) - 1 && tag[i + 1] == 'y') {
-			firmware_type = FIRMWARE_TYPE_DEV;
+		case 't':
+			if (i < strlen(tag) - 1 && tag[i + 1] == 'y') {
+				firmware_type = FIRMWARE_TYPE_DEV;
 
-		} else if (tag[i] == 't') {
-			firmware_type = FIRMWARE_TYPE_BETA;
+			} else {
+				firmware_type = FIRMWARE_TYPE_BETA;
 
-		} else if (tag[i] == 'v' && i > 0) {
-			firmware_type = FIRMWARE_TYPE_DEV;
+			}
+
+			break;
+
+		case 'v':
+			if (i > 0) {
+				firmware_type = FIRMWARE_TYPE_DEV;
+
+			}
+
+			break;
+
+		default:
+			break;
 		}
 	}
 
@@ -366,4 +408,3 @@ const char *px4_firmware_oem_version_string(void)
 {
 	return PX4_GIT_OEM_VERSION_STR;
 }
-

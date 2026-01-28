@@ -41,6 +41,8 @@
 #include <pthread.h>
 #include "hrt_work.h"
 
+#define MODULE_NAME "tasks"
+
 #define PX4_TASK_STACK_SIZE 8192
 #define PX4_TASK_MAX_NAME_LENGTH 32
 #define PX4_TASK_MAX_ARGC 32
@@ -129,7 +131,7 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 	int task_index = 0;
 	char *p = (char *)argv;
 
-	PX4_INFO("Creating pthread %s\n", name);
+	PX4_INFO("Creating pthread %s", name);
 
 	if (task_mutex_initialized == false) {
 		task_mutex_initialized = true;
@@ -161,6 +163,9 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 		return -1;
 	}
 
+	char *charPointer = const_cast<char *>(name);
+	taskmap[task_index].argv[0] = charPointer;
+
 	for (i = 0; i < PX4_TASK_MAX_ARGC; i++) {
 		if (i < taskmap[task_index].argc) {
 			int argument_length = strlen(argv[i]);
@@ -172,12 +177,13 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 
 			} else {
 				strcpy(taskmap[task_index].argv_storage[i], argv[i]);
-				taskmap[task_index].argv[i] = taskmap[task_index].argv_storage[i];
+				taskmap[task_index].argv[i + 1] = taskmap[task_index].argv_storage[i];
 			}
 
 		} else {
 			// Must add NULL at end of argv
-			taskmap[task_index].argv[i] = nullptr;
+			taskmap[task_index].argv[i + 1] = nullptr;
+			taskmap[task_index].argc = i + 1;
 			break;
 		}
 	}

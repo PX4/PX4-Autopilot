@@ -1,0 +1,289 @@
+module_name: Vertiq IO
+serial_config:
+    - command: vertiq_io start -d ${SERIAL_DEV}
+      port_config_param:
+        name: VERTIQ_IO_CFG
+        group: Vertiq IO
+
+actuator_output:
+  output_groups:
+    - param_prefix: VTQ_IO
+      group_label: 'CVIs'
+      channel_label: 'CVI'
+      instance_start: 0
+      standard_params:
+        disarmed: { min: 0, max: 65535, default: 0 }
+        min: { min: 0, max: 65535, default: 0 }
+        max: { min: 0, max: 65535, default: 65535 }
+        failsafe: { min: 0, max: 500 }
+      num_channels: 16
+
+parameters:
+    - group: Vertiq IO
+      definitions:
+        VTQ_BAUD:
+            description:
+                short: The IQUART driver's baud rate
+                long: |
+                    The baud rate (in bits per second) used by the serial port connected with IQUART communication
+            type: int32
+            reboot_required: true
+            default: 115200
+        VTQ_NUM_CVS:
+            description:
+              short: The number of Vertiq IFCI parameters to use
+              long: |
+                  The total number of IFCI control variables being used across all connected modules
+            type: int32
+            min: 0
+            max: 16
+            reboot_required: true
+            default: 0
+        VTQ_DISARM_TRIG:
+            description:
+                short: The triggered behavior sent to the motors on PX4 disarm
+                long: |
+                    The behavior triggered when the flight controller disarms. You have the option to trigger your motors' disarm behaviors, set all motors to coast,
+                    or set a predefined throttle setpoint
+            type: enum
+            values:
+                0: Send Explicit Disarm
+                1: Coast Motors
+                2: Set Predefined Velocity Setpoint
+            default: 0
+        VTQ_DISARM_VELO:
+            description:
+                short: Velocity sent when DISARM_TRIGGER is Set Predefined Velocity Setpoint
+                long: This is the velocity that will be sent to all motors when PX4 is disarmed and DISARM_TRIGGER is Set Predefined Velocity Setpoint
+            type: int32
+            min: 0
+            max: 100
+            default: 0
+        VTQ_ARM_BEHAVE:
+            description:
+                short: The triggered behavior on PX4 arm
+                long: |
+                    The behavior triggered when the flight controller arms. You have the option to use your motors' arming behaviors, or to force all of your motors to arm
+            type: enum
+            values:
+                0: Use Motor Arm Behavior
+                1: Send Explicit Arm Command
+            default: 0
+        VTQ_TRGT_MOD_ID:
+            description:
+                short: The Module ID of the module you would like to communicate with
+                long: |
+                    This is the value used as the target module ID of all configuration parameters (not operational parameters). The Vertiq module with the
+                    module ID matching this value will react to all get and set requests from PX4. Any Vertiq client made with dynamic object IDs should
+                    use this value to instantiate itself.
+            type: int32
+            default: 0
+        VTQ_REDO_READ:
+            description:
+                short: Reinitialize the target module's values into the PX4 parameters
+                long: |
+                    Setting this value to true will reinitialize PX4's IQUART connected parameters to the value stored on the currently targeted motor.
+                    This is especially useful if your flight controller powered on before your connected modules
+            type: boolean
+            default: 0
+        VTQ_THROTTLE_CVI:
+            description:
+                short: Module Param - The module's Throttle Control Value Index
+                long: |
+                    This represents the Control Value Index where the targeted module will look for throttle commands
+            type: int32
+            min: 0
+            max: 255
+            default: 0
+        VTQ_CONTROL_MODE:
+            description:
+                short: Module Param - The module's control mechanism
+                long: |
+                    PWM Mode: Commands a fraction of battery voltage. This changes as the battery voltage changes.
+                    This is the least safe mode because the upper throttle limit is determined by the battery voltage.
+                    Voltage Mode: Commands a voltage. The motor will behave the same way throughout the life of a battery, assuming the commanded voltage is less than the battery voltage.
+                    You must set the MAX_VOLTS parameter.
+                    Velocity Mode: Closed-loop, commands a velocity. The controller will adjust the applied voltage so that the motor spins at the commanded velocity.
+                    This mode has faster reaction times. Only use this if you know the properties of your propeller. You must set the MAX_VELOCITY parameter.
+            type: enum
+            values:
+                0: PWM
+                1: Voltage
+                2: Velocity
+            default: 0
+        VTQ_MAX_VELOCITY:
+            description:
+                short: Module Param - Maximum velocity when CONTROL_MODE is set to Velocity
+                long: |
+                    Only relevant in Velocity Mode. This is the velocity the controller will command at full throttle.
+            type: float
+            default: 0
+        VTQ_MAX_VOLTS:
+            description:
+                short: Module Param - Maximum voltage when CONTROL_MODE is set to Voltage
+                long: |
+                    Only relevant in Voltage Mode. This is the voltage the controller will command at full throttle.
+            type: float
+            default: 0
+        VTQ_MOTOR_DIR:
+            description:
+                short: Module Param - The direction that the module should spin
+                long: |
+                    Set the targeted motor's spinning direction (clockwise vs. counter clockwise) and flight mode (2D non-reversible vs. 3D reversible)
+            type: enum
+            values:
+                0: Unconfigured
+                1: 3D Counter Clockwise
+                2: 3D Clockwise
+                3: 2D Counter Clockwise
+                4: 2D Clockwise
+            default: 0
+        VTQ_FC_DIR:
+            description:
+                short: Module Param - If the flight controller uses 2D or 3D communication
+                long: |
+                    The FC and the ESC must agree upon the meaning of the signal coming out of the ESC. When FCs are in 3D mode
+                    they re-map negative signals. This parameter keeps the FC and ESC in agreement.
+            type: enum
+            values:
+                0: 2D
+                1: 3D
+            default: 0
+        VTQ_ZERO_ANGLE:
+            description:
+                short: Module Param - The encoder angle at which theta is zero
+                long: |
+                    The encoder angle at which theta is zero. Adjust this number to change the location of 0 phase when pulsing.
+            type: float
+            default: 0
+        VTQ_VELO_CUTOFF:
+            description:
+                short: Module Param - The minimum velocity required to allow pulsing
+                long: |
+                    This is the velocity at which pulsing is allowed. Any velocity between VELOCITY_CUTOFF and -VELOCITY_CUTOFF will not pulse.
+            type: float
+            default: 0
+        VTQ_TQUE_OFF_ANG:
+            description:
+                short: Module Param - Offsets pulse angle to allow for mechanical properties
+                long: |
+                    This offsets where the pulse starts around the motor to allow for propeller mechanical properties.
+            type: float
+            default: 0
+        VTQ_PULSE_V_MODE:
+            description:
+                short: Module Param - 0 = Supply Voltage Mode, 1 = Voltage Limit Mode
+                long: |
+                    Supply Voltage Mode means that the maximum voltage applied to pulsing is the supplied voltage. Voltage Limit Mode
+                    indicates that PULSE_VOLT_LIM is the maximum allowed voltage to apply towards pulsing.
+            type: enum
+            values:
+                0: Supply Voltage Mode
+                1: Voltage Limit Mode
+            default: 0
+        VTQ_PULSE_V_LIM:
+            description:
+                short: Module Param - Max pulsing voltage limit when in Voltage Limit Mode
+                long: |
+                    This sets the max pulsing voltage limit when in Voltage Limit Mode.
+            type: float
+            default: 0
+        VTQ_X_CVI:
+            description:
+                short: Module Param - CVI for the X rectangular coordinate
+                long: |
+                    This represents the Control Value Index where the targeted module will look for the X rectangular coordinate.
+            type: int32
+            min: 0
+            max: 255
+            default: 0
+        VTQ_Y_CVI:
+            description:
+                short: Module Param - CVI for the Y rectangular coordinate
+                long: |
+                    This represents the Control Value Index where the targeted module will look for the Y rectangular coordinate.
+            type: int32
+            min: 0
+            max: 255
+            default: 0
+        VTQ_TELEM_IDS_1:
+            description:
+                short: Module IDs [0, 31] that you would like to request telemetry from
+                long: |
+                  The module IDs [0, 31] that should be asked for telemetry. The data received from these IDs will be published via the esc_status topic.
+            type: bitmask
+            bit:
+                0: Module ID 0
+                1: Module ID 1
+                2: Module ID 2
+                3: Module ID 3
+                4: Module ID 4
+                5: Module ID 5
+                6: Module ID 6
+                7: Module ID 7
+                8: Module ID 8
+                9: Module ID 9
+                10: Module ID 10
+                11: Module ID 11
+                12: Module ID 12
+                13: Module ID 13
+                14: Module ID 14
+                15: Module ID 15
+                16: Module ID 16
+                17: Module ID 17
+                18: Module ID 18
+                19: Module ID 19
+                20: Module ID 20
+                21: Module ID 21
+                22: Module ID 22
+                23: Module ID 23
+                24: Module ID 24
+                25: Module ID 25
+                26: Module ID 26
+                27: Module ID 27
+                28: Module ID 28
+                29: Module ID 29
+                30: Module ID 30
+                31: Module ID 31
+            reboot_required: true
+            default: 0
+        VTQ_TELEM_IDS_2:
+            description:
+                short: Module IDs [32, 62] that you would like to request telemetry from
+                long: |
+                  The module IDs [32, 62] that should be asked for telemetry. The data received from these IDs will be published via the esc_status topic.
+            type: bitmask
+            bit:
+                0: Module ID 32
+                1: Module ID 33
+                2: Module ID 34
+                3: Module ID 35
+                4: Module ID 36
+                5: Module ID 37
+                6: Module ID 38
+                7: Module ID 39
+                8: Module ID 40
+                9: Module ID 41
+                10: Module ID 42
+                11: Module ID 43
+                12: Module ID 44
+                13: Module ID 45
+                14: Module ID 46
+                15: Module ID 47
+                16: Module ID 48
+                17: Module ID 49
+                18: Module ID 50
+                19: Module ID 51
+                20: Module ID 52
+                21: Module ID 53
+                22: Module ID 54
+                23: Module ID 55
+                24: Module ID 56
+                25: Module ID 57
+                26: Module ID 58
+                27: Module ID 59
+                28: Module ID 60
+                29: Module ID 61
+                30: Module ID 62
+            reboot_required: true
+            default: 0

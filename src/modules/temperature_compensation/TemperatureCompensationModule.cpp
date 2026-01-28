@@ -106,7 +106,7 @@ void TemperatureCompensationModule::parameters_update()
 		sensor_mag_s report;
 
 		if (_mag_subs[uorb_index].copy(&report)) {
-			int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, uorb_index);
+			int temp = _temperature_compensation.set_sensor_id_mag(report.device_id, uorb_index);
 
 			if (temp < 0) {
 				PX4_INFO("No temperature calibration available for mag %" PRIu8 " (device id %" PRIu32 ")", uorb_index,
@@ -306,7 +306,7 @@ void TemperatureCompensationModule::Run()
 				}
 
 				if (got_temperature_calibration_command) {
-					int ret = run_temperature_calibration(accel, baro, gyro, mag);
+					int ret = run_temperature_calibration(accel, gyro, mag, baro);
 
 					// publish ACK
 					vehicle_command_ack_s command_ack{};

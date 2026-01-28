@@ -81,8 +81,8 @@ bool CRSFTelemetry::send_battery()
 		return false;
 	}
 
-	uint16_t voltage = battery_status.voltage_filtered_v * 10;
-	uint16_t current = battery_status.current_filtered_a * 10;
+	uint16_t voltage = battery_status.voltage_v * 10;
+	uint16_t current = battery_status.current_a * 10;
 	int fuel = battery_status.discharged_mah;
 	uint8_t remaining = battery_status.remaining * 100;
 	return crsf_send_telemetry_battery(_uart_fd, voltage, current, fuel, remaining);
@@ -139,6 +139,10 @@ bool CRSFTelemetry::send_flight_mode()
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		flight_mode = "Altitude";
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
+		flight_mode = "Altitude Cruise";
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:

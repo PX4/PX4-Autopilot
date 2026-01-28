@@ -94,6 +94,22 @@ private:
 				msg.min_distance     = dist_sensor.min_distance * 1e2f;     // m to cm
 				msg.orientation      = dist_sensor.orientation;
 				msg.covariance       = dist_sensor.variance * 1e4f;         // m^2 to cm^2
+				msg.horizontal_fov   = dist_sensor.h_fov;
+				msg.vertical_fov     = dist_sensor.v_fov;
+				msg.quaternion[0]    = dist_sensor.q[0];
+				msg.quaternion[1]    = dist_sensor.q[1];
+				msg.quaternion[2]    = dist_sensor.q[2];
+				msg.quaternion[3]    = dist_sensor.q[3];
+
+				if (dist_sensor.signal_quality < 0) {
+					msg.signal_quality = 0;
+
+				} else if (dist_sensor.signal_quality == 0) {
+					msg.signal_quality = 1;
+
+				} else {
+					msg.signal_quality = dist_sensor.signal_quality;
+				}
 
 				mavlink_msg_distance_sensor_send_struct(_mavlink->get_channel(), &msg);
 

@@ -1,0 +1,13 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_MAG_DECL:
+      description:
+        short: Magnetic declination
+      category: System
+      type: float
+      default: 0
+      volatile: true
+      unit: deg
+      decimal: 1

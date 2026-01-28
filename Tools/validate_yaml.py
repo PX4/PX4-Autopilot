@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 """ Script to validate YAML file(s) against a YAML schema file """
 
 from __future__ import print_function
@@ -65,4 +65,3 @@ for yaml_file in yaml_files:
         print(validator.errors)
         print("")
         raise Exception("Validation of {:} failed".format(yaml_file))
-

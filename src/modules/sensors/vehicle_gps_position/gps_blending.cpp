@@ -76,7 +76,8 @@ void GpsBlending::update(uint64_t hrt_now_us)
 		// Only use a secondary instance if the fallback is allowed
 		if ((_primary_instance > -1)
 		    && (gps_select_index != _primary_instance)
-		    && !_fallback_allowed) {
+		    && _primary_instance_available
+		    && (_gps_state[_primary_instance].fix_type >= 3)) {
 			gps_select_index = _primary_instance;
 		}
 
@@ -86,6 +87,10 @@ void GpsBlending::update(uint64_t hrt_now_us)
 		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 			_gps_updated[gps_select_index] = false;
 		}
+	}
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
+		_time_prev_us[i] = _gps_state[i].timestamp;
 	}
 }
 
@@ -121,6 +126,10 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 		if (raw_dt > 0.0f && raw_dt < GPS_TIMEOUT_S) {
 			_gps_dt[i] = 0.1f * raw_dt + 0.9f * _gps_dt[i];
 
+			if (i == _primary_instance) {
+				_primary_instance_available = true;
+			}
+
 		} else if ((present_dt >= GPS_TIMEOUT_S) && (_gps_state[i].timestamp > 0)) {
 			// Timed out - kill the stored fix for this receiver and don't track its (stale) gps_dt
 			_gps_state[i].timestamp = 0;
@@ -129,9 +138,8 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 			_gps_state[i].vel_ned_valid = 0;
 
 			if (i == _primary_instance) {
-				// Allow using a secondary instance when the primary
-				// receiver has timed out
-				_fallback_allowed = true;
+				// Allow using a secondary instance when the primary receiver has timed out
+				_primary_instance_available = false;
 			}
 
 			continue;
@@ -493,6 +501,21 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 		gps_blended_state.heading_accuracy = _gps_state[gps_best_yaw_index].heading_accuracy;
 	}
 
+	// Blend UTC timestamp from all receivers that are publishing a valid time_utc_usec value
+	double utc_weight_sum = 0.0;
+	double utc_time_sum = 0.0;
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
+		if (_gps_state[i].time_utc_usec > 0) {
+			utc_time_sum += (double)_gps_state[i].time_utc_usec * (double)blend_weights[i];
+			utc_weight_sum += (double)blend_weights[i];
+		}
+	}
+
+	if (utc_weight_sum > 0.0) {
+		gps_blended_state.time_utc_usec = (uint64_t)(utc_time_sum / utc_weight_sum);
+	}
+
 	return gps_blended_state;
 }
 
@@ -508,8 +531,6 @@ void GpsBlending::update_gps_offsets(const sensor_gps_s &gps_blended_state)
 			// calculate the filter coefficient that achieves the time constant specified by the user adjustable parameter
 			alpha[i] = constrain(omega_lpf * 1e-6f * (float)(_gps_state[i].timestamp - _time_prev_us[i]),
 					     0.0f, 1.0f);
-
-			_time_prev_us[i] = _gps_state[i].timestamp;
 		}
 	}
 

@@ -204,13 +204,17 @@ void ADC::update_system_power(hrt_abstime now)
 #  if defined(ADC_SCALED_V5_SENSE) && defined(ADC_SCALED_V3V3_SENSORS_SENSE)
 	cnt += ADC_SCALED_V3V3_SENSORS_COUNT;
 #  endif
+# if defined(ADC_SCALED_PAYLOAD_SENSE)
+	cnt++;
+# endif
 
 	for (unsigned i = 0; i < _channel_count; i++) {
 #  if defined(ADC_SCALED_V5_SENSE)
 
 		if (_samples[i].am_channel == ADC_SCALED_V5_SENSE) {
 			// it is 2:1 scaled
-			system_power.voltage5v_v = _samples[i].am_data * (ADC_V5_V_FULL_SCALE / px4_arch_adc_dn_fullcount());
+			system_power.voltage5v_v = _samples[i].am_data * ((ADC_V5_V_FULL_SCALE / 3.3f) * (px4_arch_adc_reference_v() /
+						   px4_arch_adc_dn_fullcount()));
 			cnt--;
 
 		} else
@@ -224,7 +228,8 @@ void ADC::update_system_power(hrt_abstime now)
 			for (int j = 0; j < ADC_SCALED_V3V3_SENSORS_COUNT; ++j) {
 				if (_samples[i].am_channel == sensors_channels[j]) {
 					// it is 2:1 scaled
-					system_power.sensors3v3[j] = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / px4_arch_adc_dn_fullcount()));
+					system_power.sensors3v3[j] = _samples[i].am_data * (ADC_3V3_SCALE * (px4_arch_adc_reference_v() /
+								     px4_arch_adc_dn_fullcount()));
 					system_power.sensors3v3_valid |= 1 << j;
 					cnt--;
 				}
@@ -232,6 +237,16 @@ void ADC::update_system_power(hrt_abstime now)
 		}
 
 #  endif
+# if defined(ADC_SCALED_PAYLOAD_SENSE)
+
+		if (_samples[i].am_channel == ADC_SCALED_PAYLOAD_SENSE) {
+			system_power.voltage_payload_v = _samples[i].am_data * ((ADC_PAYLOAD_V_FULL_SCALE / 3.3f) *
+							 (px4_arch_adc_reference_v() /
+							  px4_arch_adc_dn_fullcount()));
+			cnt--;
+		}
+
+# endif
 
 		if (cnt == 0) {
 			break;
@@ -282,6 +297,9 @@ void ADC::update_system_power(hrt_abstime now)
 #endif
 #ifdef BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID
 	system_power.can1_gps1_5v_valid = read_gpio_value(_5v_can1_gps1_valid_fd);
+#endif
+#ifdef BOARD_GPIO_PAYOLOAD_V_VALID
+	system_power.payload_v_valid = BOARD_GPIO_PAYOLOAD_V_VALID;
 #endif
 
 	system_power.timestamp = hrt_absolute_time();
@@ -392,6 +410,7 @@ ADC driver.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("adc", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("adc");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_COMMAND("test");
 	PRINT_MODULE_USAGE_PARAM_FLAG('n', "Do not publish ADC report, only system power", true);

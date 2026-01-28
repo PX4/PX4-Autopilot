@@ -31,19 +31,11 @@
  *
  ****************************************************************************/
 
-/**
- * @file FlightTaskManualPosition.hpp
- *
- * Flight task for manual position controlled mode.
- *
- */
-
 #pragma once
 
+#include <lib/weather_vane/WeatherVane.hpp>
 #include "FlightTaskManualAltitudeSmoothVel.hpp"
 #include "StickAccelerationXY.hpp"
-#include "StickYaw.hpp"
-#include <lib/weather_vane/WeatherVane.hpp>
 
 class FlightTaskManualAcceleration : public FlightTaskManualAltitudeSmoothVel
 {
@@ -53,10 +45,15 @@ public:
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	bool update() override;
 
-private:
+protected:
 	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
 	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
 
 	StickAccelerationXY _stick_acceleration_xy{this};
 	WeatherVane _weathervane{this}; /**< weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
+					(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
+					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor
+				       )
 };

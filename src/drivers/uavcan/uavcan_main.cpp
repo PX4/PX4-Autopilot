@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -80,18 +80,34 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	ModuleParams(nullptr),
 	_node(can_driver, system_clock, _pool_allocator),
+#if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	_arming_status_controller(_node),
+#endif
+#if defined(CONFIG_UAVCAN_BEEP_CONTROLLER)
 	_beep_controller(_node),
+#endif
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_esc_controller(_node),
 	_servo_controller(_node),
+#endif
+#if defined(CONFIG_UAVCAN_HARDPOINT_CONTROLLER)
 	_hardpoint_controller(_node),
+#endif
+#if defined(CONFIG_UAVCAN_SAFETY_STATE_CONTROLLER)
 	_safety_state_controller(_node),
-	_log_message_controller(_node),
+#endif
+#if defined(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
+	_remoteid_controller(_node),
+#endif
+#if defined(CONFIG_UAVCAN_RGB_CONTROLLER)
 	_rgbled_controller(_node),
+#endif
+	_log_message_controller(_node),
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
 	_node_info_retriever(_node),
+	_node_info_publisher(_node, _node_info_retriever),
 	_master_timer(_node),
 	_param_getset_client(_node),
 	_param_opcode_client(_node),
@@ -103,8 +119,10 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 		std::abort();
 	}
 
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_mixing_interface_esc.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
 	_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanServoController::MAX_RATE_HZ);
+#endif
 }
 
 UavcanNode::~UavcanNode()
@@ -395,8 +413,10 @@ UavcanNode::get_param(int remote_node_id, const char *name)
 void
 UavcanNode::update_params()
 {
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_mixing_interface_esc.updateParams();
 	_mixing_interface_servo.updateParams();
+#endif
 }
 
 int
@@ -429,8 +449,11 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
+
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 	_instance->_mixing_interface_esc.ScheduleNow();
 	_instance->_mixing_interface_servo.ScheduleNow();
+#endif
 
 	return OK;
 }
@@ -482,6 +505,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	int ret;
 
 	// UAVCAN_PUB_ARM
+#if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	int32_t uavcan_pub_arm = 0;
 	param_get(param_find("UAVCAN_PUB_ARM"), &uavcan_pub_arm);
 
@@ -493,30 +517,50 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		}
 	}
 
+#endif
+
+#if defined(CONFIG_UAVCAN_BEEP_CONTROLLER)
 	ret = _beep_controller.init();
 
 	if (ret < 0) {
 		return ret;
 	}
 
-	// Actuators
-	ret = _esc_controller.init();
+#endif
 
-	if (ret < 0) {
-		return ret;
+	// Actuators
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+	int32_t uavcan_enable = -1;
+	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
+
+	if (uavcan_enable > 2) {
+
+		ret = _esc_controller.init();
+
+		if (ret < 0) {
+			return ret;
+		}
 	}
 
+#endif
+
+#if defined(CONFIG_UAVCAN_HARDPOINT_CONTROLLER)
 	ret = _hardpoint_controller.init();
 
 	if (ret < 0) {
 		return ret;
 	}
 
+#endif
+
+#if defined(CONFIG_UAVCAN_SAFETY_STATE_CONTROLLER)
 	ret = _safety_state_controller.init();
 
 	if (ret < 0) {
 		return ret;
 	}
+
+#endif
 
 	ret = _log_message_controller.init();
 
@@ -524,11 +568,24 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		return ret;
 	}
 
+#if defined(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
+	ret = _remoteid_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+#endif
+
+
+#if defined(CONFIG_UAVCAN_RGB_CONTROLLER)
 	ret = _rgbled_controller.init();
 
 	if (ret < 0) {
 		return ret;
 	}
+
+#endif
 
 	/* Start node info retriever to fetch node info from new nodes */
 	ret = _node_info_retriever.start();
@@ -539,7 +596,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 	// Sensor bridges
-	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
+	IUavcanSensorBridge::make_all(_node, _sensor_bridges, &_node_info_publisher);
 
 	for (const auto &br : _sensor_bridges) {
 		ret = br->init();
@@ -552,23 +609,14 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		PX4_DEBUG("sensor bridge '%s' init ok", br->get_name());
 	}
 
-	// Ensure we don't exceed maximum limits and assumptions. FIXME: these should be static assertions
-	if (UavcanEscController::max_output_value() >= UavcanEscController::DISARMED_OUTPUT_VALUE
-	    || UavcanEscController::max_output_value() > (int)UINT16_MAX) {
-		PX4_ERR("ESC max output value assertion failed");
-		return -EINVAL;
-	}
-
-	_mixing_interface_esc.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+	_esc_controller.set_node_info_publisher(&_node_info_publisher);
+#endif
 
 	/* Set up shared service clients */
 	_param_getset_client.setCallback(GetSetCallback(this, &UavcanNode::cb_getset));
 	_param_opcode_client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
 	_param_restartnode_client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
-
-
-	int32_t uavcan_enable = 1;
-	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
 
 	if (uavcan_enable > 1) {
 		_servers = new UavcanServers(_node, _node_info_retriever);
@@ -652,11 +700,12 @@ UavcanNode::Run()
 
 		if (can_init_res < 0) {
 			PX4_ERR("CAN driver init failed %i", can_init_res);
+
+		} else {
+			_instance->init(node_id, can->driver.updateEvent());
+
+			_node_init = true;
 		}
-
-		_instance->init(node_id, can->driver.updateEvent());
-
-		_node_init = true;
 	}
 
 	pthread_mutex_lock(&_node_mutex);
@@ -703,6 +752,10 @@ UavcanNode::Run()
 	}
 
 	_node.spinOnce(); // expected to be non-blocking
+
+	publish_can_interface_statuses();
+
+	publish_node_statuses();
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
@@ -916,24 +969,146 @@ UavcanNode::Run()
 		}
 	}
 
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+	_arming_status_controller.setActuatorTestRunning(_mixing_interface_esc.isActuatorTestRunning());
+#endif
+
 	perf_end(_cycle_perf);
 
 	pthread_mutex_unlock(&_node_mutex);
 
 	if (_task_should_exit.load()) {
+
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 		_mixing_interface_esc.mixingOutput().unregister();
 		_mixing_interface_esc.ScheduleClear();
+
 		_mixing_interface_servo.mixingOutput().unregister();
 		_mixing_interface_servo.ScheduleClear();
+#endif
 		ScheduleClear();
 		_instance = nullptr;
 	}
 }
 
-bool UavcanMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+void UavcanNode::publish_can_interface_statuses()
+{
+	constexpr hrt_abstime status_pub_interval = 100_ms;
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (now - _last_can_status_pub >= status_pub_interval) {
+		_last_can_status_pub = now;
+
+		for (int i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
+			if (i > UAVCAN_NUM_IFACES) {
+				break;
+			}
+
+			auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
+
+			if (!iface) {
+				continue;
+			}
+
+			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
+			can_interface_status_s status{
+				.timestamp = now,
+				.io_errors = iface_perf_cnt.errors,
+				.frames_tx = iface_perf_cnt.frames_tx,
+				.frames_rx = iface_perf_cnt.frames_rx,
+				.interface = static_cast<uint8_t>(i),
+			};
+
+			if (_can_status_pub_handles[i] == nullptr) {
+				int instance{0};
+				_can_status_pub_handles[i] = orb_advertise_multi(ORB_ID(can_interface_status), nullptr, &instance);
+			}
+
+			(void)orb_publish(ORB_ID(can_interface_status), _can_status_pub_handles[i], &status);
+		}
+	}
+}
+
+void UavcanNode::publish_node_statuses()
+{
+	constexpr hrt_abstime status_pub_interval = 100_ms;
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (now - _last_node_status_pub >= status_pub_interval) {
+		_last_node_status_pub = now;
+
+		_node_status_monitor.forEachNode([this](uavcan::NodeID node_id, uavcan::NodeStatusMonitor::NodeStatus node_status) {
+			auto node_id_val = node_id.get();
+
+			if (node_id_val == 0) {
+				return;
+			}
+
+			// See if we have NodeID <--> uORB_index mapped
+			int uorb_index = -1;
+
+			for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+				if (_node_status_uorb_index_map[i] == node_id_val) {
+					uorb_index = i;
+					break;
+				}
+			}
+
+			if (uorb_index < 0) {
+				// use next available index
+				for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+					if (_node_status_uorb_index_map[i] == 0) {
+						_node_status_uorb_index_map[i] = node_id_val;
+						uorb_index = i;
+						// advertise
+						PX4_INFO("advertising node_id %u on index %u", node_id_val, i);
+						int instance{0};
+						_node_status_pub_handles[i] = orb_advertise_multi(ORB_ID(dronecan_node_status), nullptr, &instance);
+						break;
+					}
+				}
+			}
+
+			if (uorb_index >= 0) {
+
+				dronecan_node_status_s status{
+					.timestamp = hrt_absolute_time(),
+					.uptime_sec = node_status.uptime_sec,
+					.node_id = node_id_val,
+					.vendor_specific_status_code = node_status.vendor_specific_status_code,
+					.health = node_status.health,
+					.mode = node_status.mode,
+					.sub_mode = node_status.sub_mode,
+				};
+
+				(void)orb_publish(ORB_ID(dronecan_node_status), _node_status_pub_handles[uorb_index], &status);
+			}
+		});
+
+
+	}
+}
+
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
+bool UavcanMixingInterfaceESC::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
-	_esc_controller.update_outputs(stop_motors, outputs, num_outputs);
+	if (_esc_controller.initialized()) {
+		// num_outputs is the maximum possible number of outputs (8)
+		// output_array_size adapts to the highest output index that is mapped (4 for a quad)
+		// this allows for sending less CAN frames depending on what output indices are mapped
+		uint8_t output_array_size = 0;
+
+		for (int i = MAX_ACTUATORS - 1; i >= 0; i--) {
+			if (mixingOutput().isFunctionSet(i)) {
+				output_array_size = i + 1;
+				break;
+			}
+		}
+
+		_esc_controller.update_outputs(outputs, output_array_size);
+	}
+
 	return true;
 }
 
@@ -960,10 +1135,10 @@ void UavcanMixingInterfaceESC::mixerChanged()
 	_esc_controller.set_rotor_count(rotor_count);
 }
 
-bool UavcanMixingInterfaceServo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool UavcanMixingInterfaceServo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
-	_servo_controller.update_outputs(stop_motors, outputs, num_outputs);
+	_servo_controller.update_outputs(outputs, num_outputs);
 	return true;
 }
 
@@ -974,12 +1149,11 @@ void UavcanMixingInterfaceServo::Run()
 	_mixing_output.updateSubscriptions(false);
 	pthread_mutex_unlock(&_node_mutex);
 }
+#endif
 
 void
 UavcanNode::print_info()
 {
-	(void)pthread_mutex_lock(&_node_mutex);
-
 	// Memory status
 	printf("Pool allocator status:\n");
 	printf("\tCapacity hard/soft: %" PRIu16 "/%" PRIu16 " blocks\n",
@@ -1016,12 +1190,29 @@ UavcanNode::print_info()
 
 	printf("\n");
 
-	printf("ESC outputs:\n");
-	_mixing_interface_esc.mixingOutput().printStatus();
-	printf("Servo outputs:\n");
-	_mixing_interface_servo.mixingOutput().printStatus();
+#if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 
-	printf("\n");
+	// Print esc status if at least one channel is enabled
+	for (int i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
+		if (_mixing_interface_esc.mixingOutput().isFunctionSet(i)) {
+			printf("ESC outputs:\n");
+			_mixing_interface_esc.mixingOutput().printStatus();
+			printf("\n");
+			break;
+		}
+	}
+
+	// Print servo status if at least one channel is enabled
+	for (int i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
+		if (_mixing_interface_servo.mixingOutput().isFunctionSet(i)) {
+			printf("Servo outputs:\n");
+			_mixing_interface_servo.mixingOutput().printStatus();
+			printf("\n");
+			break;
+		}
+	}
+
+#endif
 
 	// Sensor bridges
 	for (const auto &br : _sensor_bridges) {
@@ -1042,8 +1233,6 @@ UavcanNode::print_info()
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
-
-	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
 void

@@ -103,7 +103,6 @@ void FlightModeManager::Run()
 		const float dt = math::constrain(((time_stamp_now - _time_stamp_last_loop) / 1e6f), 0.0002f, 0.1f);
 		_time_stamp_last_loop = time_stamp_now;
 
-		_home_position_sub.update();
 		_vehicle_control_mode_sub.update();
 		_vehicle_land_detected_sub.update();
 		_vehicle_status_sub.update();
@@ -137,7 +136,9 @@ void FlightModeManager::updateParams()
 void FlightModeManager::start_flight_task()
 {
 	// Do not run any flight task for VTOLs in fixed-wing mode
-	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+	    || ((_vehicle_status_sub.get().nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
+		&& (_vehicle_status_sub.get().nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8))) {
 		switchTask(FlightTaskIndex::None);
 		return;
 	}
@@ -195,6 +196,13 @@ void FlightModeManager::start_flight_task()
 		}
 	}
 
+	// position slow mode
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW) {
+		found_some_task = true;
+		FlightTaskError error = switchTask(FlightTaskIndex::ManualAccelerationSlow);
+		task_failure = error != FlightTaskError::NoError;
+	}
+
 	// Manual position control
 	if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL) || task_failure) {
 		found_some_task = true;
@@ -203,10 +211,6 @@ void FlightModeManager::start_flight_task()
 		switch (_param_mpc_pos_mode.get()) {
 		case 0:
 			error = switchTask(FlightTaskIndex::ManualPosition);
-			break;
-
-		case 3:
-			error = switchTask(FlightTaskIndex::ManualPositionSmoothVel);
 			break;
 
 		case 4:
@@ -240,6 +244,17 @@ void FlightModeManager::start_flight_task()
 			error = switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
 			break;
 		}
+
+		task_failure = (error != FlightTaskError::NoError);
+		matching_task_running = matching_task_running && !task_failure;
+	}
+
+	// Altitude cruise
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE) {
+		found_some_task = true;
+		FlightTaskError error = FlightTaskError::NoError;
+
+		error = switchTask(FlightTaskIndex::AltitudeCruise);
 
 		task_failure = (error != FlightTaskError::NoError);
 		matching_task_running = matching_task_running && !task_failure;
@@ -328,9 +343,6 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		constraints = _current_task.task->getConstraints();
 	}
 
-	// limit altitude according to land detector
-	limitAltitude(setpoint, vehicle_local_position);
-
 	if (_takeoff_status_sub.updated()) {
 		takeoff_status_s takeoff_status;
 
@@ -364,25 +376,6 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	_old_landing_gear_position = landing_gear.landing_gear;
 }
 
-void FlightModeManager::limitAltitude(trajectory_setpoint_s &setpoint,
-				      const vehicle_local_position_s &vehicle_local_position)
-{
-	if (_param_lndmc_alt_max.get() < 0.0f || !_home_position_sub.get().valid_alt
-	    || !vehicle_local_position.z_valid || !vehicle_local_position.v_z_valid) {
-		// there is no altitude limitation present or the required information not available
-		return;
-	}
-
-	// maximum altitude == minimal z-value (NED)
-	const float min_z = _home_position_sub.get().z + (-_param_lndmc_alt_max.get());
-
-	if (vehicle_local_position.z < min_z) {
-		// above maximum altitude, only allow downwards flight == positive vz-setpoints (NED)
-		setpoint.position[2] = min_z;
-		setpoint.velocity[2] = math::max(setpoint.velocity[2], 0.f);
-	}
-}
-
 FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 {
 	// switch to the running task, nothing to do
@@ -392,11 +385,9 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 
 	// Save current setpoints for the next FlightTask
 	trajectory_setpoint_s last_setpoint = FlightTask::empty_trajectory_setpoint;
-	ekf_reset_counters_s last_reset_counters{};
 
 	if (isAnyTaskActive()) {
 		last_setpoint = _current_task.task->getTrajectorySetpoint();
-		last_reset_counters = _current_task.task->getResetCounters();
 	}
 
 	if (_initTask(new_task_index)) {
@@ -417,7 +408,6 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 		return FlightTaskError::ActivationFailed;
 	}
 
-	_current_task.task->setResetCounters(last_reset_counters);
 	_command_failed = false;
 
 	return FlightTaskError::NoError;

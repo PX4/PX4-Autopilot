@@ -68,25 +68,26 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
  * @value 2 Require a landing
  * @value 3 Require a takeoff and a landing
  * @value 4 Require both a takeoff and a landing, or neither
+ * @value 5 Same as previous when landed, in-air require landing only if no valid VTOL approach is present
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_TKO_LAND_REQ, 0);
 
 /**
- * Maximal horizontal distance from current position to first waypoint
+ * Maximal horizontal distance from Home to first waypoint
  *
- * Failsafe check to prevent running mission stored from previous flight at a new takeoff location.
- * Set a value of zero or less to disable. The mission will not be started if the current
- * waypoint is more distant than MIS_DIST_1WP from the current position.
+ * There will be a warning message if the current waypoint is more distant than MIS_DIST_1WP from Home.
+ * Has no effect on mission validity.
+ * Set a value of zero or less to disable.
  *
  * @unit m
  * @min -1
- * @max 10000
+ * @max 100000
  * @decimal 1
  * @increment 100
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
+PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 10000);
 
 /**
 * Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
@@ -132,17 +133,6 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
 PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
 
 /**
- * Timeout for a successful payload deployment acknowledgement
- *
- * @unit s
- * @min 0
- * @decimal 1
- * @increment 1
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(MIS_PD_TO, 5.0f);
-
-/**
  * Landing abort min altitude
  *
  * Minimum altitude above landing point that the vehicle will climb to after an aborted landing.
@@ -154,3 +144,21 @@ PARAM_DEFINE_FLOAT(MIS_PD_TO, 5.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_LND_ABRT_ALT, 30);
+
+/**
+ * Timeout to allow the payload to execute the mission command
+ *
+ * Ensure:
+ *   gripper: NAV_CMD_DO_GRIPPER
+ *     has released before continuing mission.
+ *   winch: CMD_DO_WINCH
+ *     has delivered before continuing mission.
+ *   gimbal: CMD_DO_GIMBAL_MANAGER_PITCHYAW
+ *     has reached the commanded orientation before beginning to take pictures.
+ *
+ * @unit s
+ * @min 0
+ * @decimal 1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_COMMAND_TOUT, 0.f);

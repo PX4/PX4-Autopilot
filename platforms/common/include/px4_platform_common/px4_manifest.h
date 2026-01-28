@@ -49,6 +49,7 @@ typedef struct  {
 		I2C = 0,
 		SPI = 1,
 		ONCHIP = 2,
+		FLEXSPI = 3
 	} bus_type;
 
 	uint32_t devid;

@@ -43,7 +43,7 @@
 #include "navigator.h"
 
 Loiter::Loiter(Navigator *navigator) :
-	MissionBlock(navigator),
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER),
 	ModuleParams(navigator)
 {
 }
@@ -94,8 +94,22 @@ Loiter::set_loiter_position()
 		_mission_item.nav_cmd = NAV_CMD_IDLE;
 
 	} else {
-		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			setLoiterItemFromCurrentPositionWithBreaking(&_mission_item);
+		// Check if we already loiter on a circle and are on the loiter pattern.
+		bool on_loiter{false};
+
+		if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+		    && pos_sp_triplet->current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
+			const float d_current = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
+						_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+			on_loiter = d_current <= (_navigator->get_acceptance_radius() + pos_sp_triplet->current.loiter_radius);
+
+		}
+
+		if (on_loiter) {
+			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+
+		} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			setLoiterItemFromCurrentPositionWithBraking(&_mission_item);
 
 		} else {
 			setLoiterItemFromCurrentPosition(&_mission_item);
@@ -105,7 +119,6 @@ Loiter::set_loiter_position()
 
 	// convert mission item to current setpoint
 	pos_sp_triplet->previous.valid = false;
-	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 

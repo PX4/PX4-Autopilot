@@ -353,7 +353,7 @@ void IIM42652::ConfigureCLKIN()
 {
 	for (auto &r0 : _register_bank0_cfg) {
 		if (r0.reg == Register::BANK_0::INTF_CONFIG1) {
-			r0.set_bits = INTF_CONFIG1_BIT::RTC_MODE;
+			r0.set_bits = r0.set_bits | INTF_CONFIG1_BIT::RTC_MODE;
 		}
 	}
 

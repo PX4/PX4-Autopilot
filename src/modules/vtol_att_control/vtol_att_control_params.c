@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -147,7 +147,7 @@ PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
 /**
  * Front transition timeout
  *
- * Time in seconds after which transition will be cancelled. Disabled if set to 0.
+ * Time in seconds after which transition will be cancelled.
  *
  * @unit s
  * @min 0.1
@@ -210,9 +210,9 @@ PARAM_DEFINE_FLOAT(VT_QC_ALT_LOSS, 0.0f);
 /**
  * Quad-chute transition altitude loss threshold
  *
- * Altitude loss threshold for quad-chute triggering during VTOL transition to fixed-wing flight.
+ * Altitude loss threshold for quad-chute triggering during VTOL transition to fixed-wing flight
+ * in altitude-controlled flight modes.
  * Active until 5s after completing transition to fixed-wing.
- * Only active if altitude estimate is valid and in altitude-controlled mode.
  * If the current altitude is more than this value below the altitude at the beginning of the
  * transition, it will instantly switch back to MC mode and execute behavior defined in COM_QC_ACT.
  *
@@ -273,6 +273,8 @@ PARAM_DEFINE_INT32(VT_FW_QC_HMAX, 0);
  * Airspeed-less front transition time (open loop)
  *
  * The duration of the front transition when there is no airspeed feedback available.
+ * When airspeed is used, transition timeout is declared if airspeed does not
+ * reach VT_ARSP_BLEND after this time.
  *
  * @unit s
  * @min 1.0
@@ -339,7 +341,7 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_P, 1.f);
 PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_Y, 0.1f);
 
 /**
- * Backtransition deceleration setpoint to pitch I gain.
+ * Backtransition deceleration setpoint to tilt I gain.
  *
  * @unit rad s/m
  * @min 0
@@ -354,7 +356,7 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
  * Minimum pitch angle during hover.
  *
  * Any pitch setpoint below this value is translated to a forward force by the fixed-wing forward actuation if
- * VT_FW_TRHUST_EN is set to 1.
+ * VT_FWD_TRHUST_EN is set.
  *
  * @unit deg
  * @min -10.0
@@ -363,14 +365,13 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
+PARAM_DEFINE_FLOAT(VT_PITCH_MIN, 0.0f);
 
 /**
  * Minimum pitch angle during hover landing.
  *
  * Overrides VT_PITCH_MIN when the vehicle is in LAND mode (hovering).
- * During landing it can be beneficial to allow lower minimum pitch angles as it can avoid the wings
- * generating too much lift and preventing the vehicle from sinking at the desired rate.
+ * During landing it can be beneficial to reduce the pitch angle to reduce the generated lift in head wind.
  *
  * @unit deg
  * @min -10.0
@@ -379,7 +380,7 @@ PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, -5.0f);
+PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, 0.0f);
 
 /**
  * Spoiler setting while landing (hover)

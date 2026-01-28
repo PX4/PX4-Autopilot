@@ -137,6 +137,14 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 bool
 BlockLocalPositionEstimator::init()
 {
+	uORB::SubscriptionData<vehicle_local_position_s> vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	vehicle_local_position_sub.update();
+
+	if (vehicle_local_position_sub.advertised() && (hrt_elapsed_time(&vehicle_local_position_sub.get().timestamp) < 1_s)) {
+		PX4_ERR("init failed, vehicle_local_position already advertised");
+		return false;
+	}
+
 	if (!_sensors_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -635,7 +643,8 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().vxy_max = INFINITY;
 		_pub_lpos.get().vz_max = INFINITY;
 		_pub_lpos.get().hagl_min = INFINITY;
-		_pub_lpos.get().hagl_max = INFINITY;
+		_pub_lpos.get().hagl_max_z = INFINITY;
+		_pub_lpos.get().hagl_max_xy = INFINITY;
 		_pub_lpos.get().timestamp = hrt_absolute_time();;
 		_pub_lpos.update();
 	}
@@ -750,7 +759,6 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 
 	// replacing the hor wind cov with terrain altitude covariance
 	_pub_est_states.get().covariances[22] = m_P(X_tz, X_tz);
-	_pub_est_states.get().covariances[23] = NAN;
 
 	_pub_est_states.get().n_states = n_x;
 	_pub_est_states.get().timestamp = hrt_absolute_time();

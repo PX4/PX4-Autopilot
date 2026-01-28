@@ -52,7 +52,7 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max,
-					(ParamFloat<px4::params::COM_WIND_WARN>) _param_com_wind_warn
-
+					(ParamFloat<px4::params::COM_WIND_WARN>) _param_com_wind_warn,
+					(ParamInt<px4::params::COM_WIND_MAX_ACT>) _param_com_wind_max_act
 				       )
 };

@@ -4,6 +4,12 @@
 #------------------------------------------------------------------------------
 board_adc start
 
-bmi270 -s start
+if ! bmi270 -s -q start
+then
+	icm42688p -R 0 -s start
+fi
 
-bmp280 -X start
+if ! bmp280 -X start
+then
+	spa06 -X start
+fi

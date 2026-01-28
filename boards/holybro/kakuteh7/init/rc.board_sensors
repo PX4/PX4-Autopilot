@@ -8,7 +8,10 @@ board_adc start
 # but there might also be an MPU6000
 if ! mpu6000 -R 6 -s start
 then
-	icm20689 -R 6 -s start
+	icm42688p -R 6 -s start
 fi
 
-bmp280 -X start
+if ! bmp280 -X start
+then
+	spa06 -X start
+fi

@@ -51,9 +51,9 @@ px4_add_module(
 		devices/src/nmea.cpp
 		devices/src/unicore.cpp
 		devices/src/crc.cpp
-		devices/src/sbf.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
 		git_gps_devices
+		gnss
 	)

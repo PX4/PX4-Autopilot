@@ -66,7 +66,7 @@ inline uint32_t log2i(uint32_t x)
 {
 	assert(x != 0);
 #if 1
-	return 31 - __builtin_clz(x);
+	return (uint32_t)(31 - __builtin_clz(x));
 #else
 #define S(k) if (x >= (1 << k)) { i += k; x >>= k; }
 	int i = 0; S(16); S(8); S(4); S(2); S(1); return i;

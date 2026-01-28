@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file timestamped list.h
+ * @file timestamped_list.h
  * Fixed size list with timestamps.
  *
  * The list has a fixed size that is set at instantiation and is based
