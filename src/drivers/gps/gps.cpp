@@ -488,6 +488,10 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	if (_interface == GPSHelper::Interface::UART) {
 		ret = _uart.readAtLeast(buf, buf_length, math::min(character_count, buf_length), timeout_adjusted);
 
+		if (ret > 0) {
+			_num_bytes_read += ret;
+		}
+
 // SPI is only supported on LInux
 #if defined(__PX4_LINUX)
 
@@ -761,6 +765,27 @@ GPS::run()
 		param_get(handle, &gps_ubx_dynmodel);
 	}
 
+	int32_t gps_ubx_dgnss_to = 0;
+	handle = param_find("GPS_UBX_DGNSS_TO");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_ubx_dgnss_to);
+	}
+
+	int32_t gps_ubx_min_cno = 0;
+	handle = param_find("GPS_UBX_MIN_CNO");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_ubx_min_cno);
+	}
+
+	int32_t gps_ubx_min_elev = 0;
+	handle = param_find("GPS_UBX_MIN_ELEV");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_ubx_min_elev);
+	}
+
 	handle = param_find("GPS_UBX_MODE");
 
 	GPSDriverUBX::UBXMode ubx_mode{GPSDriverUBX::UBXMode::Normal};
@@ -910,6 +935,9 @@ GPS::run()
 		case gps_driver_mode_t::UBX: {
 				GPSDriverUBX::Settings settings = {
 					.dynamic_model = (uint8_t)gps_ubx_dynmodel,
+					.dgnss_timeout = (uint8_t)gps_ubx_dgnss_to,
+					.min_cno = (uint8_t)gps_ubx_min_cno,
+					.min_elev = (int8_t)gps_ubx_min_elev,
 					.heading_offset = heading_offset,
 					.uart2_baudrate = f9p_uart2_baudrate,
 					.ppk_output = ppk_output > 0,

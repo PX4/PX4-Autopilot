@@ -93,6 +93,7 @@
     - [Back-transition Tuning](config_vtol/vtol_back_transition_tuning.md)
     - [VTOL w/o Airspeed Sensor](config_vtol/vtol_without_airspeed_sensor.md)
     - [VTOL Weather Vane](config_vtol/vtol_weathervane.md)
+    - [VTOL Ice Shedding](config_vtol/vtol_ice_shedding.md)
   - [Flight Modes](flight_modes_vtol/index.md)
     - [Mission Mode (VTOL)](flight_modes_vtol/mission.md)
     - [Return Mode (VTOL)](flight_modes_vtol/return.md)
@@ -350,6 +351,7 @@
     - [FrSky Telemetry](peripherals/frsky_telemetry.md)
     - [TBS Crossfire (CRSF) Telemetry](telemetry/crsf_telemetry.md)
     - [Satellite Comms (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
+    - [Analog Video Transmitters](vtx/index.md)
 
   - [Power Systems](power_systems/index.md)
     - [Battery Estimation Tuning](config/battery.md)

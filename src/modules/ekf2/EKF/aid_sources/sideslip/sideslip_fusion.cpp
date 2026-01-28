@@ -62,7 +62,6 @@ void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 		if (beta_fusion_time_triggered) {
 
 			updateSideslip(_aid_src_sideslip);
-			_innov_check_fail_status.flags.reject_sideslip = _aid_src_sideslip.innovation_rejected;
 
 			if (fuseSideslip(_aid_src_sideslip)) {
 				_control_status.flags.wind = true;
