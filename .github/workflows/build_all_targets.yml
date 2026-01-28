@@ -215,21 +215,6 @@ jobs:
           SOURCE_DIR: artifacts/
           DEST_DIR: Firmware/${{ steps.upload-location.outputs.uploadlocation }}/
 
-      # if we are uploading artifacts to a versioned folder
-      # we should also update the stable folder in the s3 bucket
-      - name: Uploading Artifacts to S3 [stable]
-        uses: jakejarvis/s3-sync-action@master
-        if: startsWith(github.ref, 'refs/tags/v')
-        with:
-          args: --acl public-read
-        env:
-          AWS_S3_BUCKET: 'px4-travis'
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: 'us-west-1'
-          SOURCE_DIR: artifacts/
-          DEST_DIR: Firmware/stable/
-
       # if build is a release triggered by a versioned tag then create a github release
       # and upload the build artifacts. A draft release is created so that the release
       # can be reviewed before publishing
