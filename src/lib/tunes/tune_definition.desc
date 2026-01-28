@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018, 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 /**
- * Driver for the PX4 audio .
+ * Driver for PX4 audio
  *
- * The tune_control supports a set of predefined "alarm" tunes and
- * one user-supplied tune.
+ * The tune_control supports a set of predefined "alarm" tunes and one user-supplied tune.
  *
- * Tunes follow the syntax of the Microsoft GWBasic/QBasic PLAY
- * statement, with some exceptions and extensions.
+ * Tunes follow the syntax of the Microsoft GWBasic/QBasic PLAY statement, with some exceptions and extensions.
+ * This is equivalent to Modern MML https://en.wikipedia.org/wiki/Music_Macro_Language#Modern_MML
+ * With the exception that symbols must be upper-cased, and that the `V` symbol is ignored.
  *
  * From Wikibooks:
  *
@@ -70,7 +70,9 @@
  * ML     Stand for Music Legato. Note duration is full length of that indicated by Ln.
  * MS     Stand for Music Staccato. Note duration is 3/4ths of the length indicated by Ln.
  * Pn     Causes a silence (pause) for the length of note indicated (same as Ln).
+ * Rn     Same as P (pause).
  * Tn     Sets the number of "L4"s per minute (tempo). Valid values are from 32 to 255. The default value is T120.
+ * Vn     Ignored. In specification sets the volume of the instrument (subsequent notes).
  * .      When placed after a note, it causes the duration of the note to be 3/2 of the set duration.
  *        This is how to get "dotted" notes. "L4 C#." would play C sharp as a dotted quarter note.
  *        It can be used for a pause as well.
