@@ -259,6 +259,9 @@ PX4_USB_IDS: list[tuple[int, int, str]] = [
     (0x0483, 0x5740, "STMicroelectronics Virtual COM Port"),  # Generic ST bootloader
     (0x1209, 0x5740, "Generic STM32"),
     (0x1209, 0x5741, "ArduPilot"),
+    (0x3185, 0x0039, "ARK FMU v6x"),
+    (0x3185, 0x003A, "ARK Pi6x"),
+    (0x3185, 0x003B, "ARK FPV"),
     (0x2341, 0x8036, "Arduino Leonardo"),  # Some PX4 boards use this
 ]
 
