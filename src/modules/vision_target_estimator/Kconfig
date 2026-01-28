@@ -1,0 +1,24 @@
+menuconfig MODULES_VISION_TARGET_ESTIMATOR
+	bool "vision_target_estimator"
+	default n
+	depends on !BOARD_CONSTRAINED_MEMORY
+	depends on !BOARD_CONSTRAINED_FLASH
+	---help---
+		Enable support for vision_target_estimator
+
+menuconfig USER_VISION_TARGET_ESTIMATOR
+	bool "vision_target_estimator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_VISION_TARGET_ESTIMATOR
+	---help---
+		Put vision_target_estimator in userspace memory
+
+menuconfig VTEST_MOVING
+	depends on MODULES_VISION_TARGET_ESTIMATOR
+        bool "vtest with moving target"
+        default n
+	depends on !BOARD_CONSTRAINED_MEMORY
+	depends on !BOARD_CONSTRAINED_FLASH
+	---help---
+		Enable support for estimation of moving targets.
+		WARNING: Experimental beta version
