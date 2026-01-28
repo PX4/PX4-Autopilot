@@ -48,8 +48,6 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 
 	// if either axis fails we abort the fusion
 	if (_aid_src_optical_flow.innovation_rejected) {
-		_innov_check_fail_status.flags.reject_optflow_X = true;
-		_innov_check_fail_status.flags.reject_optflow_Y = true;
 		return false;
 	}
 
@@ -99,9 +97,6 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 
 	_fault_status.flags.bad_optflow_X = false;
 	_fault_status.flags.bad_optflow_Y = false;
-
-	_innov_check_fail_status.flags.reject_optflow_X = (_aid_src_optical_flow.test_ratio[0] > 1.f);
-	_innov_check_fail_status.flags.reject_optflow_Y = (_aid_src_optical_flow.test_ratio[1] > 1.f);
 
 	_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 	_aid_src_optical_flow.fused = true;
