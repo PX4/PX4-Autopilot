@@ -16,12 +16,12 @@ Releases are tracked on the [PX4 Release Project Board](https://github.com/orgs/
 
 Each release goes through the following tag stages:
 
-| Stage | Example | Branch Status | What Gets Merged |
-|-------|---------|---------------|------------------|
-| **Alpha** | `v1.18.0-alpha1` | Open for fixes | Bug fixes and regression fixes only |
-| **Beta** | `v1.18.0-beta1` | Open for fixes | Bug fixes and regression fixes only |
-| **RC** | `v1.18.0-rc1` | Frozen | Nothing (unless veto vote passes) |
-| **Stable** | `v1.18.0` | Open for fixes | Bug fixes and regression fixes (for point releases) |
+| Stage      | Example          | Branch Status  | What Gets Merged                                    |
+| ---------- | ---------------- | -------------- | --------------------------------------------------- |
+| **Alpha**  | `v1.18.0-alpha1` | Open for fixes | Bug fixes and regression fixes only                 |
+| **Beta**   | `v1.18.0-beta1`  | Open for fixes | Bug fixes and regression fixes only                 |
+| **RC**     | `v1.18.0-rc1`    | Frozen         | Nothing (unless veto vote passes)                   |
+| **Stable** | `v1.18.0`        | Open for fixes | Bug fixes and regression fixes (for point releases) |
 
 ::: info
 New features are never merged to release branches. Once a release branch is created from `main`, only bug fixes and regression fixes are accepted. New features must target `main` and will be included in the next release cycle.
@@ -94,7 +94,7 @@ During the alpha phase, review pull requests targeting the release branch:
 
 The [Dronecode Test Team](https://www.ascendengineer.com), provided by Dronecode Silver member Ascend Engineering, conducts initial flight testing of alpha builds using:
 
-- The [test cards](../test_and_ci/test_flights.md) documented in the PX4 guide
+- The [test cards](../test_and_ci/test_flights.md) documented in the PX4 Guide
 - A hardware matrix covering supported flight controllers and airframes
 
 ### 3. Create Beta Tag
