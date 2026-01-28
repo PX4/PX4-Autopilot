@@ -90,8 +90,9 @@ TEST_CASE("Fly straight Multicopter Mission", "[multicopter]")
 	AutopilotTester::MissionOptions mission_options;
 	mission_options.rtl_at_end = false;
 	mission_options.fly_through = true;
+	mission_options.leg_length_m = 40.0;
 	tester.prepare_straight_mission(mission_options);
-	tester.check_mission_item_speed_above(2, 4.0);
+	tester.check_mission_item_speed_above(3, 4.0);
 	tester.check_tracks_mission(5.f);
 	tester.arm();
 	tester.execute_mission();

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,6 +87,49 @@ float SensorGpsSim::generate_wgn()
 	return X;
 }
 
+void SensorGpsSim::check_failure_injections()
+{
+	vehicle_command_s vehicle_command;
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+			continue;
+		}
+
+		bool handled = false;
+		bool supported = false;
+
+		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+
+		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_GPS) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, GPS off");
+				supported = true;
+				_gps_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, GPS ok");
+				supported = true;
+				_gps_blocked = false;
+			}
+		}
+
+		if (handled) {
+			vehicle_command_ack_s ack{};
+			ack.command = vehicle_command.command;
+			ack.from_external = false;
+			ack.result = supported ?
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(ack);
+		}
+	}
+}
+
 void SensorGpsSim::Run()
 {
 	if (should_exit()) {
@@ -106,19 +149,26 @@ void SensorGpsSim::Run()
 		updateParams();
 	}
 
-	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()) {
+	check_failure_injections();
 
-		vehicle_local_position_s lpos{};
-		_vehicle_local_position_sub.copy(&lpos);
+	if (_gps_blocked) {
+		perf_end(_loop_perf);
+		return;
+	}
 
-		vehicle_global_position_s gpos{};
-		_vehicle_global_position_sub.copy(&gpos);
+	if (_vehicle_local_position_groundtruth_sub.updated() && _vehicle_global_position_groundtruth_sub.updated()) {
 
-		double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double altitude = (double)(gpos.alt + (generate_wgn() * 0.5f));
+		vehicle_local_position_s vehicle_local_position{};
+		_vehicle_local_position_groundtruth_sub.copy(&vehicle_local_position);
 
-		Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
+		vehicle_global_position_s vehicle_global_position{};
+		_vehicle_global_position_groundtruth_sub.copy(&vehicle_global_position);
+
+		double latitude = vehicle_global_position.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+		double longitude = vehicle_global_position.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+		double altitude = (double)(vehicle_global_position.alt + (generate_wgn() * 0.5f));
+
+		Vector3f gps_vel = Vector3f{vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz};// + noiseGauss3f(0.06f, 0.077f, 0.158f);
 
 		// device id
 		device::Device::DeviceId device_id;
@@ -150,7 +200,7 @@ void SensorGpsSim::Run()
 			sensor_gps.vdop = 100.f;
 		}
 
-		sensor_gps.timestamp_sample = gpos.timestamp_sample;
+		sensor_gps.timestamp_sample = vehicle_global_position.timestamp_sample;
 		sensor_gps.time_utc_usec = 0;
 		sensor_gps.device_id = device_id.devid;
 		sensor_gps.latitude_deg = latitude; // Latitude in degrees
@@ -159,7 +209,7 @@ void SensorGpsSim::Run()
 		sensor_gps.altitude_ellipsoid_m = altitude;
 		sensor_gps.noise_per_ms = 0;
 		sensor_gps.jamming_indicator = 0;
-		sensor_gps.vel_m_s = sqrtf(gps_vel(0) * gps_vel(0) + gps_vel(1) * gps_vel(1)); // GPS ground speed, (metres/sec)
+		sensor_gps.vel_m_s = Vector2f(gps_vel).length(); // GPS ground speed, (metres/sec)
 		sensor_gps.vel_n_m_s = gps_vel(0);
 		sensor_gps.vel_e_m_s = gps_vel(1);
 		sensor_gps.vel_d_m_s = gps_vel(2);

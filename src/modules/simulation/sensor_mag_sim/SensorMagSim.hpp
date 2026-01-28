@@ -44,6 +44,8 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 
 using namespace time_literals;
@@ -67,6 +69,7 @@ public:
 
 private:
 	void Run() override;
+	void check_failure_injections();
 
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
@@ -77,8 +80,13 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+
+	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	PX4Magnetometer _px4_mag{197388, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 1, ADDR: 3, TYPE: SIMULATION
+
+	bool _mag_blocked{false};
 
 	bool _mag_earth_available{false};
 
