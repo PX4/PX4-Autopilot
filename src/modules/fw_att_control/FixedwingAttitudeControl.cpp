@@ -70,6 +70,10 @@ FixedwingAttitudeControl::init()
 void
 FixedwingAttitudeControl::parameters_update()
 {
+	_proportional_gain = matrix::Vector3f(1.0f / _param_fw_r_tc.get(),
+					      1.0f / _param_fw_p_tc.get(),
+					      1.0f / _param_fw_y_tc.get());
+
 	_roll_ctrl.set_time_constant(_param_fw_r_tc.get());
 	_roll_ctrl.set_max_rate(radians(_param_fw_r_rmax.get()));
 
@@ -88,8 +92,10 @@ FixedwingAttitudeControl::parameters_update()
 }
 
 void
-FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
+FixedwingAttitudeControl::vehicle_manual_poll(matrix::Quatf R, float airspeed, float dt)
 {
+	const matrix::Eulerf euler_angles(R);
+
 	if (_vcontrol_mode.flag_control_manual_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
 
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the actuators with valid values
@@ -99,12 +105,18 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 				// STABILIZED mode generate the attitude setpoint from manual user inputs
 
-				const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
+				float roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
 
 				float pitch_body = -_manual_control_setpoint.pitch * radians(_param_fw_man_p_max.get())
 						   + radians(_param_fw_psp_off.get());
 				pitch_body = constrain(pitch_body,
 						       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
+
+				const float V = fmaxf(airspeed, 3.0f); // Guard against division by zero
+				float yaw_body = euler_angles.psi();
+				yaw_body += tanf(roll_body) * 9.81f / V; // feedforward turn rate for coordinated turns
+
+				roll_body  *= cosf(pitch_body); //
 
 				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 
@@ -205,7 +217,7 @@ void FixedwingAttitudeControl::Run()
 			dt = math::constrain((att.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
 			_last_run = att.timestamp_sample;
 
-			// get current rotation matrix and euler angles from control state quaternions
+			// get current rotation matrix from control state quaternions
 			_R = matrix::Quatf(att.q);
 		}
 
@@ -255,7 +267,7 @@ void FixedwingAttitudeControl::Run()
 
 		const matrix::Eulerf euler_angles(_R);
 
-		vehicle_manual_poll(euler_angles.psi());
+		vehicle_manual_poll(_R, get_airspeed_constrained(), dt);
 
 		vehicle_attitude_setpoint_poll();
 
@@ -297,6 +309,8 @@ void FixedwingAttitudeControl::Run()
 				const Quatf q_sp(_att_sp.q_d);
 
 				if (q_sp.isAllFinite()) {
+
+					///////////////////////////////////
 					const Eulerf euler_sp(q_sp);
 					const float roll_sp = euler_sp.phi();
 					const float pitch_sp = euler_sp.theta();
@@ -309,8 +323,45 @@ void FixedwingAttitudeControl::Run()
 							      euler_angles.theta(), get_airspeed_constrained());
 
 					/* Update input data for rate controllers */
-					Vector3f body_rates_setpoint = Vector3f(_roll_ctrl.get_body_rate_setpoint(), _pitch_ctrl.get_body_rate_setpoint(),
-										_yaw_ctrl.get_body_rate_setpoint());
+					Vector3f _euler_body_rates_sp = Vector3f(_roll_ctrl.get_body_rate_setpoint(), _pitch_ctrl.get_body_rate_setpoint(),
+									_yaw_ctrl.get_body_rate_setpoint());
+
+					_euler_rates_sp.timestamp = hrt_absolute_time();
+					_euler_rates_sp.roll_rate = _euler_body_rates_sp(0);
+					_euler_rates_sp.pitch_rate = _euler_body_rates_sp(1);
+					_euler_rates_sp.yaw_rate = _euler_body_rates_sp(2);
+					///////////////////////////////////
+
+
+					///////////////////////////////////////////////////////////////////////////
+					// NEW: Quaternion based controller
+					///////////////////////////////////////////////////////////////////////////
+					const Quatf q_current(att.q);
+					Quatf q_sp_modified = q_sp;
+
+					// Enforce quaternion hemisphere consistency
+					if (q_current.dot(q_sp_modified) < 0.f) {
+						q_sp_modified = -q_sp_modified;
+					}
+
+					// Full 3D attitude error quaternion
+					matrix::Quatf qe = (q_current.inversed() * q_sp_modified).canonical();
+
+					// Convert error to rotation vector in BODY frame
+					matrix::AxisAnglef aa(qe);
+					matrix::Vector3f rotvec_b = aa.axis() * aa.angle(); // [rad], BODY axes (FRD)
+					matrix::Vector3f body_rates_setpoint = rotvec_b.emult(_proportional_gain);
+
+					// limit rates
+					body_rates_setpoint(0) = constrain(body_rates_setpoint(0), -radians(_param_fw_r_rmax.get()), radians(_param_fw_r_rmax.get()));
+					body_rates_setpoint(1) = constrain(body_rates_setpoint(1), -radians(_param_fw_p_rmax_neg.get()), radians(_param_fw_p_rmax_pos.get()));
+					body_rates_setpoint(2) = constrain(body_rates_setpoint(2), -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
+					///////////////////////////////////////////////////////////////////////////
+					// End of quaternion-based controller
+					///////////////////////////////////////////////////////////////////////////
+
+
+
 
 					autotune_attitude_control_status_s pid_autotune;
 					matrix::Vector3f bodyrate_autotune_ff;
@@ -349,6 +400,7 @@ void FixedwingAttitudeControl::Run()
 					_rates_sp.timestamp = hrt_absolute_time();
 
 					_rate_sp_pub.publish(_rates_sp);
+					_euler_rates_sp_pub.publish(_euler_rates_sp);
 				}
 			}
 		}
