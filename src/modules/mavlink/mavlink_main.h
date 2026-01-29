@@ -135,7 +135,8 @@ public:
 	static Mavlink *get_instance_for_device(const char *device_name);
 
 	mavlink_message_t *get_buffer() { return &_mavlink_buffer; }
-	mavlink_status_t *get_status() { return &_mavlink_status; }
+	static Mavlink *get_instance_for_status(const mavlink_status_t *status);
+        mavlink_status_t *get_status() { return &_mavlink_status; }
 
 	void setProtocolVersion(uint8_t version);
 	uint8_t getProtocolVersion() const { return _protocol_version; };
@@ -144,9 +145,7 @@ public:
 	static int get_status_all_instances(bool show_streams_status);
 	static bool serial_instance_exists(const char *device_name, Mavlink *self);
 
-	static Mavlink *get_instance_for_status(const mavlink_status_t *status);
-	mavlink_message_t 	*get_buffer() { return &_mavlink_buffer; }
-        static void forward_message(const mavlink_message_t *msg, Mavlink *self);
+	static void forward_message(const mavlink_message_t *msg, Mavlink *self);
 	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
 
 	bool check_events() const { return _should_check_events.load(); }
