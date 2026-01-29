@@ -43,6 +43,13 @@ void TLA2528::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
+void TLA2528::print_status()
+{
+	I2CSPIDriverBase::print_status();
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_comms_errors);
+}
+
 extern "C" int tla2528_main(int argc, char *argv[])
 {
 	using ThisDriver = TLA2528;
