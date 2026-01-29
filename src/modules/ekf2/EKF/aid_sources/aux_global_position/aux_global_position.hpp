@@ -34,38 +34,24 @@
 #ifndef EKF_AUX_GLOBAL_POSITION_HPP
 #define EKF_AUX_GLOBAL_POSITION_HPP
 
-// interface?
-//  - ModuleParams
-//  - Base class EKF
-//  -  bool update(imu)
-//   how to get delay?
-//  WelfordMean for init?
-//  WelfordMean for rate
-
 #include "../../common.h"
-#include <lib/ringbuffer/TimestampedRingBuffer.hpp>
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 
-#if defined(MODULE_NAME)
-# include <px4_platform_common/module_params.h>
-# include <uORB/PublicationMulti.hpp>
-# include <uORB/Subscription.hpp>
-# include <uORB/topics/estimator_aid_source2d.h>
-# include <uORB/topics/vehicle_global_position.h>
-#endif // MODULE_NAME
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/log.h>
+#include <lib/parameters/param.h>
+#include <aid_sources/aux_global_position/aux_global_position_control.hpp>
 
 class Ekf;
 
 class AuxGlobalPosition : public ModuleParams
 {
 public:
-	AuxGlobalPosition() : ModuleParams(nullptr)
-	{
-		_estimator_aid_src_aux_global_position_pub.advertise();
-	}
+	static constexpr uint8_t MAX_AGP_IDS = 4;
 
-	~AuxGlobalPosition() = default;
+	AuxGlobalPosition();
+	~AuxGlobalPosition();
 
 	void update(Ekf &ekf, const estimator::imuSample &imu_delayed);
 
@@ -74,70 +60,42 @@ public:
 		updateParams();
 	}
 
-	float test_ratio_filtered() const { return _test_ratio_filtered; }
+	float test_ratio_filtered() const;
+	bool anySourceFusing() const;
+	int32_t getCtrlParam(int instance);
+	int32_t getModeParam(int instance);
+	float getDelayParam(int instance);
+	float getNoiseParam(int instance);
+	float getGateParam(int instance);
+	int32_t getIdParam(int instance);
+	void setIdParam(int instance, int32_t sensor_id);
+	int mapSensorIdToSlot(int32_t sensor_id);
+	void params_updated() { _params_updated = true; }
 
 private:
-	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t time_delayed_us, uint64_t timeout_period) const
-	{
-		return (last_sensor_timestamp == 0) || (last_sensor_timestamp + timeout_period < time_delayed_us);
-	}
+	friend class AgpSource;
 
-	bool isResetAllowed(const Ekf &ekf) const;
+	AgpSource *_sources[MAX_AGP_IDS];
+	bool _params_updated{true};
 
-	struct AuxGlobalPositionSample {
-		uint64_t time_us{};     ///< timestamp of the measurement (uSec)
-		double latitude{};
-		double longitude{};
-		float altitude_amsl{};
-		float eph{};
-		float epv{};
-		uint8_t lat_lon_reset_counter{};
+	int32_t getAgpParamInt32(const char *param_suffix, int instance) const;
+	float getAgpParamFloat(const char *param_suffix, int instance) const;
+	bool setAgpParamInt32(const char *param_suffix, int instance, int32_t value);
+
+	struct ParamValues {
+		int32_t ctrl{0};
+		int32_t mode{0};
+		float delay{0.f};
+		float noise{10.f};
+		float gate{3.f};
+		int32_t id{0};
 	};
 
-	estimator_aid_source2d_s _aid_src_aux_global_position{};
-	TimestampedRingBuffer<AuxGlobalPositionSample> _aux_global_position_buffer{20}; // TODO: size with _obs_buffer_length and actual publication rate
-	uint64_t _time_last_buffer_push{0};
+	void touchActiveAgpParams();
+	ParamValues _param_values[MAX_AGP_IDS] {};
 
-	enum class Ctrl : uint8_t {
-		kHPos  = (1 << 0),
-		kVPos  = (1 << 1)
-	};
-
-	enum class Mode : uint8_t {
-		kAuto           = 0,   	///< Reset on fusion timeout if no other source of position is available
-		kDeadReckoning = 1   	///< Reset on fusion timeout if no source of velocity is availabl
-	};
-
-	enum class State {
-		kStopped,
-		kStarting,
-		kActive,
-	};
-
-	State _state{State::kStopped};
-
-	float _test_ratio_filtered{INFINITY};
-
-#if defined(MODULE_NAME)
-	struct reset_counters_s {
-		uint8_t lat_lon{};
-	};
-	reset_counters_s _reset_counters{};
-
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_aux_global_position_pub{ORB_ID(estimator_aid_src_aux_global_position)};
-	uORB::Subscription _aux_global_position_sub{ORB_ID(aux_global_position)};
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::EKF2_AGP_CTRL>) _param_ekf2_agp_ctrl,
-		(ParamInt<px4::params::EKF2_AGP_MODE>) _param_ekf2_agp_mode,
-		(ParamFloat<px4::params::EKF2_AGP_DELAY>) _param_ekf2_agp_delay,
-		(ParamFloat<px4::params::EKF2_AGP_NOISE>) _param_ekf2_agp_noise,
-		(ParamFloat<px4::params::EKF2_AGP_GATE>) _param_ekf2_agp_gate
-	)
-
-#endif // MODULE_NAME
 };
 
-#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION && MODULE_NAME
 
 #endif // !EKF_AUX_GLOBAL_POSITION_HPP
