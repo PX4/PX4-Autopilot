@@ -135,8 +135,8 @@ public:
 	static Mavlink *get_instance_for_device(const char *device_name);
 
 	mavlink_message_t *get_buffer() { return &_mavlink_buffer; }
+	mavlink_status_t *get_status() { return &_mavlink_status; }
 	static Mavlink *get_instance_for_status(const mavlink_status_t *status);
-        mavlink_status_t *get_status() { return &_mavlink_status; }
 
 	void setProtocolVersion(uint8_t version);
 	uint8_t getProtocolVersion() const { return _protocol_version; };

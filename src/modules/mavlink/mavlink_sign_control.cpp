@@ -112,8 +112,9 @@ void MavlinkSignControl::start(int _instance_id, mavlink_status_t *_mavlink_stat
 
 bool MavlinkSignControl::check_for_signing(const mavlink_message_t *msg)
 {
-	if (msg->msgid != MAVLINK_MSG_ID_SETUP_SIGNING)
+	if (msg->msgid != MAVLINK_MSG_ID_SETUP_SIGNING) {
 		return false;
+	}
 
 	mavlink_setup_signing_t setup_signing;
 	mavlink_msg_setup_signing_decode(msg, &setup_signing);
