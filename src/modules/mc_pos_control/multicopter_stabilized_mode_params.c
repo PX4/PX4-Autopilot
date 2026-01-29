@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Maximal tilt angle in Stabilized or Altitude mode
+ * Maximal tilt angle in Stabilized, Altitude and Altitude Cruise mode
  *
  * @unit deg
  * @min 1

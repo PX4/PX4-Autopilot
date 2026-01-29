@@ -160,7 +160,7 @@ ulog 스트리밍을 지원하는 다양한 클라이언트가 있습니다.
 
 - If log streaming does not start, make sure the `logger` is running (see above), and inspect the console output while starting.
 - 그래도 작동하지 않으면, MAVLink 2를 사용하고 있는지 확인하십시오.
-  Enforce it by setting `MAV_PROTO_VER` to 2.
+  `MAV_PROTO_VER` needs to be set to 2.
 - Log streaming uses a maximum of 70% of the configured MAVLink rate (`-r` parameter).
   더 큰 전송율이 요구되는 상황에서는, 메세지가 사라집니다.
   The currently used percentage can be inspected with `mavlink status` (1.8% is used in this example):

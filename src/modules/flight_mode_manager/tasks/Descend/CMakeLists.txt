@@ -35,5 +35,5 @@ px4_add_library(FlightTaskDescend
 	FlightTaskDescend.cpp
 )
 
-target_link_libraries(FlightTaskDescend PUBLIC FlightTask FlightTaskUtility StickYaw)
+target_link_libraries(FlightTaskDescend PUBLIC FlightTask FlightTaskUtility Sticks StickYaw)
 target_include_directories(FlightTaskDescend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

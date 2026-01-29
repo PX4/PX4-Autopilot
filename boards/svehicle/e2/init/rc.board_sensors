@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# SVehicle E2 specific board sensors init
+#------------------------------------------------------------------------------
+
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X  start
+fi
+
+bmi088 -A -R 4 -s -b 3 start
+bmi088 -G -R 4 -s -b 3 start
+
+icm42688p -R 6 -s start
+
+# Internal SPI bus ICM-20649 (hard-mounted)
+icm20649 -R 14 -s start
+
+# Internal magnetometer on I2c
+rm3100 -I -R 12 start
+
+bmm150 -I -R 4 start
+
+icp201xx -X start
+icp201xx -I -a 0x64 start

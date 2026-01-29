@@ -126,15 +126,6 @@ then
 	set AUTOCNF yes
 fi
 
-# Allow overriding parameters via env variables: export PX4_PARAM_{name}={value}
-env | while IFS='=' read -r line; do
-  value=${line#*=}
-  name=${line%%=*}
-  case $name in
-    "PX4_PARAM_"*) param set "${name#PX4_PARAM_}" "$value" ;;
-  esac
-done
-
 # multi-instance setup
 # shellcheck disable=SC2154
 param set MAV_SYS_ID $((px4_instance+1))
@@ -173,7 +164,6 @@ param set-default COM_RC_IN_MODE 1
 param set-default EKF2_REQ_GPS_H 0.5
 
 param set-default IMU_GYRO_FFT_EN 1
-param set-default MAV_PROTO_VER 2 # Ensures QGC does not drop the first few packets after a SITL restart due to MAVLINK 1 packets
 
 param set-default -s MC_AT_EN 1
 
@@ -238,6 +228,15 @@ then
 	echo "Error: no autostart file found ($autostart_file)"
 	exit 1
 fi
+
+# Allow overriding parameters via env variables: export PX4_PARAM_{name}={value}
+env | while IFS='=' read -r line; do
+  value=${line#*=}
+  name=${line%%=*}
+  case $name in
+    "PX4_PARAM_"*) param set "${name#PX4_PARAM_}" "$value" ;;
+  esac
+done
 
 dataman start
 

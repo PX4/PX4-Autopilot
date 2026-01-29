@@ -49,8 +49,8 @@ If the local position is invalid or becomes invalid while executing the takeoff,
 
 ::: info
 
-- Takeoff towards a target position was added in <Badge type="tip" text="main (planned for: PX4 v1.17)" />.
-- Holding wings level and ascending to clearance attitude when local position is invalid during takeoff was added in <Badge type="tip" text="main (planned for: PX4 v1.17)" />.
+- Takeoff towards a target position was added in <Badge type="tip" text="PX4 v1.17" />.
+- Holding wings level and ascending to clearance attitude when local position is invalid during takeoff was added in <Badge type="tip" text="PX4 v1.17" />.
 - QGroundControl does not support `MAV_CMD_NAV_TAKEOFF` (at time of writing).
 
 :::
@@ -93,7 +93,7 @@ Once it reaches [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT) it will automatically switch
 1. Увімкніть дрон
 2. Put the vehicle into _Takeoff mode_
 3. Запустіть / киньте транспортний засіб (міцно) безпосередньо у вітер.
-  Ви також можете спершу потрясти транспортний засіб, зачекати, поки рушить двигун, а потім кинути його
+   Ви також можете спершу потрясти транспортний засіб, зачекати, поки рушить двигун, а потім кинути його
 
 ### Параметри (виявник запуску)
 

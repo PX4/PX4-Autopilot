@@ -6,35 +6,36 @@ Note that at 60A and 20°C without cooling, the 5V regulator is de-rated to a 3A
 
 ![ARK PAB Power Module](../../assets/hardware/power_module/ark_power_modules//ark_pab_power_module.jpg)
 
+This power module is also available without connectors:
+
+![ARK PAB Power Module No Connector](../../assets/hardware/power_module/ark_power_modules//ark_pab_power_no_connector.jpg)
+
 ## Where to Buy
 
 Order this module from:
 
-- [ARK Electronics](https://arkelectron.com/product/ark-pab-power-module/) (US)
+- [ARK Electronics - ARK PAB Power Module](https://arkelectron.com/product/ark-pab-power-module/) (US)
+- [ARK Electronics - ARK PAB Power Module No Connector](https://arkelectron.com/product/ark-pab-power-module-no-connector/) (US)
 
 ## Hardware Specifications
 
 - **TI INA226 Digital Power Monitor**
-
   - 0.0005 Ohm Shunt
   - I2C Interface
 
 - **5.2V 6A Step-Down Regulator**
-
   - 33V Maximum Input Voltage
   - 5.8V Minimum Input Voltage at 6A Out
   - Output Over-Voltage Protection
   - Output Over-Current Protection
 
 - **Connections**
-
-  - XT60 Battery Input
-  - XT60 Battery Output
+  - XT60 Battery Input / Solder Pad Battery Input (No Connector version)
+  - XT60 Battery Output / Solder Pad Battery Output (No Connector version)
   - 6 Pin Molex CLIK-Mate Output
     - [Matches ARK PAB Carrier Power Pinout](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-pixhawk-autopilot-bus-carrier/pinout)
 
 - **Other**
-
   - USA Built
   - FCC Compliant
   - Includes 6 Pin Molex CLIK-Mate Cable

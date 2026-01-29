@@ -95,7 +95,6 @@ PARAM_DEFINE_INT32(ASPD_SCALE_APPLY, 2);
  * @min 0.5
  * @max 2.0
  * @decimal 2
- * @reboot_required true
  * @group Airspeed Validator
  * @volatile
  */
@@ -109,7 +108,6 @@ PARAM_DEFINE_FLOAT(ASPD_SCALE_1, 1.0f);
  * @min 0.5
  * @max 2.0
  * @decimal 2
- * @reboot_required true
  * @group Airspeed Validator
  * @volatile
  */
@@ -123,7 +121,6 @@ PARAM_DEFINE_FLOAT(ASPD_SCALE_2, 1.0f);
  * @min 0.5
  * @max 2.0
  * @decimal 2
- * @reboot_required true
  * @group Airspeed Validator
  * @volatile
  */

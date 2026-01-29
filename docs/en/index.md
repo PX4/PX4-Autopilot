@@ -1,3 +1,8 @@
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData();
+</script>
+
 <div style="float:right; padding:10px; margin-right:20px;"><a href="https://px4.io/"><img src="../assets/site/logo_pro_small.png" title="PX4 Logo" width="180px" /></a></div>
 
 # PX4 Autopilot User Guide
@@ -8,16 +13,21 @@ PX4 is the _Professional Autopilot_.
 Developed by world-class developers from industry and academia, and supported by an active world wide community, it powers all kinds of vehicles from racing and cargo drones through to ground vehicles and submersibles.
 
 :::tip
-This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle. Interested in contributing? Check out the [Development](development/development.md) section.
-
+This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle.
+Interested in contributing? Check out the [Development](development/development.md) section.
 :::
 
+<div v-if="site.title == 'PX4 Guide (main)'">
+
 :::warning
+
 This guide is for the _development_ version of PX4 (`main` branch).
 Use the **Version** selector to find the current _stable_ version.
 
 Documented changes since the stable release are captured in the evolving [release note](releases/main.md).
 :::
+
+</div>
 
 ## How Do I Get Started?
 

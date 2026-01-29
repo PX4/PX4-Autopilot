@@ -27,8 +27,8 @@ The Desktop computer is only used to display the virtual vehicle.
 - SIH for FW (airplane) and VTOL tailsitter are supported from PX4 v1.13.
 - SIH as SITL (without hardware) from PX4 v1.14.
 - SIH for Standard VTOL from PX4 v1.16.
-- SIH for MC Hexacopter X from `main` (expected to be PX4 v1.17).
-- SIH for Ackermann Rover from `main`.
+- SIH for MC Hexacopter X from PX4 v1.17.
+- SIH for Ackermann Rover from PX4 v1.17.
 
 ### Benefits
 
@@ -65,7 +65,7 @@ These include: [`pwm_out_sim`](../modules/modules_driver.md#pwm-out-sim), [`sens
 
 To check that these are present on your flight controller:
 
-1. Start QGroundControl.
+1. 启动QGroundControl。
 
 2. Open **Analyze Tools > Mavlink Console**.
 

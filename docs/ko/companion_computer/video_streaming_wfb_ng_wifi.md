@@ -80,18 +80,18 @@ If you use a special "very" high power cards from Taobao/Aliexpress then you MUS
 5. Setup camera pipeline. Open `/etc/systemd/system/fpv-camera.service` and uncomment pipeline according to your camera (PI camera or Logitech camera)
 6. Open `/etc/wifibroadcast.cfg` and configure WiFi channel according to your antenna setup (or use default #165 for 5.8GHz)
 7. Configure PX4 to output telemetry stream at speed 1500 Kbps (other UART speeds doesn't match well to RPi frequency dividers).
-  Connect Pixhawk UART to Raspberry Pi UART.
-  In `/etc/wifibroadcast.cfg` uncomment `peer = 'serial:ttyS0:1500000'` in `[drone_mavlink]` section.
+   Connect Pixhawk UART to Raspberry Pi UART.
+   In `/etc/wifibroadcast.cfg` uncomment `peer = 'serial:ttyS0:1500000'` in `[drone_mavlink]` section.
 
 ### Using a Linux Laptop as GCS (Harder than using a RPi)
 
 1. On **ground** Linux development computer:
 
-  ```sh
-  sudo apt install libpcap-dev libsodium-dev python3-all python3-twisted
-  git clone -b stable https://github.com/svpcom/wfb-ng.git
-  cd wfb-ng && make deb && sudo apt install ./deb_dist/wfb-ng*.deb
-  ```
+   ```sh
+   sudo apt install libpcap-dev libsodium-dev python3-all python3-twisted
+   git clone -b stable https://github.com/svpcom/wfb-ng.git
+   cd wfb-ng && make deb && sudo apt install ./deb_dist/wfb-ng*.deb
+   ```
 
 2. Follow the [Setup HOWTO](https://github.com/svpcom/wfb-ng/wiki/Setup-HOWTO) to complete installation
 

@@ -49,12 +49,8 @@ namespace systemlib
 class Hysteresis
 {
 public:
-	explicit Hysteresis(bool init_state) :
-		_state(init_state),
-		_requested_state(init_state)
-	{}
-	Hysteresis() = delete; // no default constructor
-
+	Hysteresis() = default;
+	explicit Hysteresis(bool initial_state);
 	~Hysteresis() = default;
 
 	bool get_state() const { return _state; }
@@ -67,13 +63,13 @@ public:
 
 private:
 
-	hrt_abstime _last_time_to_change_state{0};
+	hrt_abstime _last_time_to_change_state = 0;
 
-	hrt_abstime _time_from_true_us{0};
-	hrt_abstime _time_from_false_us{0};
+	hrt_abstime _time_from_true_us = 0;
+	hrt_abstime _time_from_false_us = 0;
 
-	bool _state;
-	bool _requested_state;
+	bool _state = false;
+	bool _requested_state = false;
 };
 
 } // namespace systemlib

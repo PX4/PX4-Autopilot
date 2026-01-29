@@ -590,13 +590,13 @@ int BMM350::ReadOutRawData(float *out_data)
 		return -1;
 	}
 
-	float temp = 0.0;
 	struct BMM350::raw_mag_data raw_data = {0};
 
 	// --- Start read_uncomp_mag_temp_data
 	uint8_t mag_data[14] = {0};
 
 	uint32_t raw_mag_x, raw_mag_y, raw_mag_z, raw_temp;
+
 	uint8_t cmd = static_cast<uint8_t>(Register::DATAX_XLSB);
 
 	uint8_t res = transfer(&cmd, 1, (uint8_t *)&mag_data, sizeof(mag_data));
@@ -623,17 +623,7 @@ int BMM350::ReadOutRawData(float *out_data)
 	out_data[3] = (float)raw_data.raw_t * lsb_to_utc_degc[3];
 
 	// Adjust temperature
-	if (out_data[3] > 0.0f) {
-		temp = (float)(out_data[3] - (1 * 25.49f));
-
-	} else if (out_data[3] < 0.0f) {
-		temp = (float)(out_data[3] - (-1 * 25.49f));
-
-	} else {
-		temp = (float)(out_data[3]);
-	}
-
-	out_data[3] = temp;
+	out_data[3] = (float)(out_data[3] - (1 * 25.49f));
 
 	return res;
 }

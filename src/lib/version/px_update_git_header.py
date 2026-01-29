@@ -97,9 +97,10 @@ except:
 if tag_or_branch is None:
     # replace / so it can be used as directory name
     tag_or_branch = git_branch_name.replace('/', '-')
-    # either a release or main branch (used for metadata)
+    # either a release or master branch (used for metadata)
+    # CI uploads to 'master/' on S3 for legacy QGC compatibility
     if not tag_or_branch.startswith('release-'):
-        tag_or_branch = 'main'
+        tag_or_branch = 'master'
 
 header += f"""
 #define PX4_GIT_VERSION_STR "{git_version}"
@@ -109,7 +110,7 @@ header += f"""
 
 #define PX4_GIT_OEM_VERSION_STR  "{oem_tag}"
 
-#define PX4_GIT_TAG_OR_BRANCH_NAME "{tag_or_branch}" // special variable: git tag, release or main branch
+#define PX4_GIT_TAG_OR_BRANCH_NAME "{tag_or_branch}" // special variable: git tag, release or master branch
 """
 
 
@@ -129,8 +130,12 @@ if (os.path.exists('src/modules/mavlink/mavlink/.git')):
 if (os.path.exists('platforms/nuttx/NuttX/nuttx/.git')):
     nuttx_git_tags = subprocess.check_output('git -c versionsort.suffix=- tag --sort=v:refname'.split(),
                                   cwd='platforms/nuttx/NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip()
-    nuttx_git_tag = re.findall(r'nuttx-[0-9]+\.[0-9]+\.[0-9]+', nuttx_git_tags)[-1].replace("nuttx-", "v")
-    nuttx_git_tag = re.sub('-.*', '.0', nuttx_git_tag)
+    # may be empty if shallow clone
+    if (len(nuttx_git_tags) > 0):
+        nuttx_git_tag = re.findall(r'nuttx-[0-9]+\.[0-9]+\.[0-9]+', nuttx_git_tags)[-1].replace("nuttx-", "v")
+        nuttx_git_tag = re.sub('-.*', '.0', nuttx_git_tag)
+    else:
+        nuttx_git_tag = "v0.0.0"
     nuttx_git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),
                                       cwd='platforms/nuttx/NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip()
     nuttx_git_version_short = nuttx_git_version[0:16]

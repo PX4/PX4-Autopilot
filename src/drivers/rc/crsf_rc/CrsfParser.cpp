@@ -46,6 +46,9 @@
 #include "QueueBuffer.hpp"
 #include "CrsfParser.hpp"
 #include "Crc8.hpp"
+#ifdef CONFIG_VTX_CRSF_MSP_SUPPORT
+#include <px4_platform_common/param.h>
+#endif
 
 #define CRSF_CHANNEL_VALUE_MIN  172
 #define CRSF_CHANNEL_VALUE_MAX  1811
@@ -57,8 +60,11 @@ enum CRSF_PAYLOAD_SIZE {
 	CRSF_PAYLOAD_SIZE_GPS = 15,
 	CRSF_PAYLOAD_SIZE_BATTERY = 8,
 	CRSF_PAYLOAD_SIZE_LINK_STATISTICS = 10,
+	CRSF_PAYLOAD_SIZE_LINK_STATISTICS_TX = -1,
 	CRSF_PAYLOAD_SIZE_RC_CHANNELS = 22,
 	CRSF_PAYLOAD_SIZE_ATTITUDE = 6,
+	CRSF_PAYLOAD_SIZE_MSP_WRITE = -1, // -1 means variable length
+	CRSF_PAYLOAD_SIZE_ELRS_STATUS = -1, // unclear how large this message is
 };
 
 enum CRSF_PACKET_TYPE {
@@ -68,6 +74,8 @@ enum CRSF_PACKET_TYPE {
 	CRSF_PACKET_TYPE_OPENTX_SYNC = 0x10,
 	CRSF_PACKET_TYPE_RADIO_ID = 0x3A,
 	CRSF_PACKET_TYPE_RC_CHANNELS_PACKED = 0x16,
+	CRSF_PACKET_TYPE_LINK_STATISTICS_RX = 0x1C,
+	CRSF_PACKET_TYPE_LINK_STATISTICS_TX = 0x1D,
 	CRSF_PACKET_TYPE_ATTITUDE = 0x1E,
 	CRSF_PACKET_TYPE_FLIGHT_MODE = 0x21,
 	// Extended Header Frames, range: 0x28 to 0x96
@@ -76,6 +84,7 @@ enum CRSF_PACKET_TYPE {
 	CRSF_PACKET_TYPE_PARAMETER_SETTINGS_ENTRY = 0x2B,
 	CRSF_PACKET_TYPE_PARAMETER_READ = 0x2C,
 	CRSF_PACKET_TYPE_PARAMETER_WRITE = 0x2D,
+	CRSF_PACKET_TYPE_ELRS_STATUS = 0x2E,
 	CRSF_PACKET_TYPE_COMMAND = 0x32,
 	// MSP commands
 	CRSF_PACKET_TYPE_MSP_REQ = 0x7A,   // response request using msp sequence as command
@@ -114,18 +123,28 @@ enum PARSER_STATE {
 
 typedef struct {
 	uint8_t packet_type;
-	uint32_t packet_size;
+	int32_t packet_size;
 	bool (*processor)(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
 } CrsfPacketDescriptor_t;
 
 static bool ProcessChannelData(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
 static bool ProcessLinkStatistics(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
+static bool ProcessLinkStatisticsTx(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
+static bool ProcessElrsStatus(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
+#ifdef CONFIG_VTX_CRSF_MSP_SUPPORT
+static bool ProcessMspWrite(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet);
+#endif
 
-#define CRSF_PACKET_DESCRIPTOR_COUNT  2
-static const CrsfPacketDescriptor_t crsf_packet_descriptors[CRSF_PACKET_DESCRIPTOR_COUNT] = {
+static const CrsfPacketDescriptor_t crsf_packet_descriptors[] = {
 	{CRSF_PACKET_TYPE_RC_CHANNELS_PACKED, CRSF_PAYLOAD_SIZE_RC_CHANNELS, ProcessChannelData},
 	{CRSF_PACKET_TYPE_LINK_STATISTICS, CRSF_PAYLOAD_SIZE_LINK_STATISTICS, ProcessLinkStatistics},
+	{CRSF_PACKET_TYPE_LINK_STATISTICS_TX, CRSF_PAYLOAD_SIZE_LINK_STATISTICS_TX, ProcessLinkStatisticsTx},
+	{CRSF_PACKET_TYPE_ELRS_STATUS, CRSF_PAYLOAD_SIZE_ELRS_STATUS, ProcessElrsStatus},
+#ifdef CONFIG_VTX_CRSF_MSP_SUPPORT
+	{CRSF_PACKET_TYPE_MSP_WRITE, CRSF_PAYLOAD_SIZE_MSP_WRITE, ProcessMspWrite},
+#endif
 };
+#define CRSF_PACKET_DESCRIPTOR_COUNT  (sizeof(crsf_packet_descriptors) / sizeof(CrsfPacketDescriptor_t))
 
 static enum PARSER_STATE parser_state = PARSER_STATE_HEADER;
 static uint32_t working_index = 0;
@@ -134,6 +153,11 @@ static uint32_t working_segment_size = HEADER_SIZE;
 #define RX_QUEUE_BUFFER_SIZE 200
 static QueueBuffer_t rx_queue;
 static uint8_t rx_queue_buffer[RX_QUEUE_BUFFER_SIZE];
+#ifdef CONFIG_RC_CRSF_INJECT
+static QueueBuffer_t inject_queue;
+static uint8_t inject_queue_buffer[RX_QUEUE_BUFFER_SIZE];
+static uint8_t temp_queue_buffer[RX_QUEUE_BUFFER_SIZE];
+#endif
 static uint8_t process_buffer[CRSF_MAX_PACKET_LEN];
 static CrsfPacketDescriptor_t *working_descriptor = NULL;
 
@@ -142,6 +166,9 @@ static CrsfPacketDescriptor_t *FindCrsfDescriptor(const enum CRSF_PACKET_TYPE pa
 void CrsfParser_Init(void)
 {
 	QueueBuffer_Init(&rx_queue, rx_queue_buffer, RX_QUEUE_BUFFER_SIZE);
+#ifdef CONFIG_RC_CRSF_INJECT
+	QueueBuffer_Init(&inject_queue, inject_queue_buffer, RX_QUEUE_BUFFER_SIZE);
+#endif
 }
 
 static float ConstrainF(const float x, const float min, const float max)
@@ -201,7 +228,7 @@ static bool ProcessLinkStatistics(const uint8_t *data, const uint32_t size, Crsf
 	new_packet->message_type = CRSF_MESSAGE_TYPE_LINK_STATISTICS;
 
 	new_packet->link_statistics.uplink_rssi_1 = data[0];
-	new_packet->link_statistics.uplink_rssi_2  = data[1];
+	new_packet->link_statistics.uplink_rssi_2 = data[1];
 	new_packet->link_statistics.uplink_link_quality = data[2];
 	new_packet->link_statistics.uplink_snr = data[3];
 	new_packet->link_statistics.active_antenna = data[4];
@@ -213,6 +240,89 @@ static bool ProcessLinkStatistics(const uint8_t *data, const uint32_t size, Crsf
 
 	return true;
 }
+
+static bool ProcessLinkStatisticsTx(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet)
+{
+	new_packet->message_type = CRSF_MESSAGE_TYPE_LINK_STATISTICS_TX;
+
+	new_packet->link_statistics_tx.uplink_rssi = data[0];
+	new_packet->link_statistics_tx.uplink_rssi_pct = data[1];
+	new_packet->link_statistics_tx.uplink_link_quality = data[2];
+	new_packet->link_statistics_tx.uplink_snr = data[3];
+	new_packet->link_statistics_tx.downlink_power = data[4];
+	new_packet->link_statistics_tx.uplink_fps = data[5];
+
+	return true;
+}
+
+static bool ProcessElrsStatus(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet)
+{
+	new_packet->message_type = CRSF_MESSAGE_TYPE_ELRS_STATUS;
+
+	// Try: crsf_rc inject 0x2E 0x13 0x50 0xFB 0x53 0x31 0x63 0x63 0x63 0x63
+
+	new_packet->elrs_status.packets_bad = data[2];
+	new_packet->elrs_status.packets_good = (data[3] << 8) | data[4];
+	new_packet->elrs_status.flags = data[5];
+	strlcpy(new_packet->elrs_status.message, (const char *)&data[6], sizeof(new_packet->elrs_status.message));
+
+	return true;
+}
+
+#ifdef CONFIG_VTX_CRSF_MSP_SUPPORT
+static bool ProcessMspWrite(const uint8_t *data, const uint32_t size, CrsfPacket_t *const)
+{
+	// Write the band/channel into the parameters, so it is thread-safe
+	// data contains the following:
+	// 0: CRSF v3: destination
+	// 1: CRSF v3: origin
+	// 2: CRSF v3: status
+	// 3: MSP: size
+	// 4: MSP: command
+	// 5: MSP: data[≤57]
+	// Try: crsf_rc inject 0x7C 0xC8 0xEA 0x30 0x4 0x59 0x22 0x0 0x1 0x0
+
+	int32_t map_config{};
+	param_get(int(px4::params::VTX_MAP_CONFIG), &map_config);
+
+	if (map_config == 0) {
+		// no mapping, just return
+		return false;
+	}
+
+	if (data[2] == 0x30 && data[4] == 0x59) {
+		const uint8_t length = data[3];
+
+		if (map_config == 1 || map_config == 2) {
+			// Status = bit4=new frame, bit5,6=MSPv1
+			// MSP command 0x59 is MSP_SET_VTX_CONFIG
+			uint32_t frequency = (data[6] << 8) | data[5];
+
+			if (frequency <= 0x3f) {
+				// first byte contains band and channel: 0b00bb'bccc
+				const int32_t band = (data[5] >> 3) & 0x07;
+				const int32_t channel = data[5] & 0x07;
+
+				param_set_no_notification(int(px4::params::VTX_BAND), &band);
+				param_set_no_notification(int(px4::params::VTX_CHANNEL), &channel);
+				frequency = 0; // Disable the frequency override
+			}
+
+			param_set_no_notification(int(px4::params::VTX_FREQUENCY), &frequency);
+		}
+
+		if (length > 2 && (map_config == 1 || map_config == 3)) {
+			const int32_t pit_mode = (data[8] || (data[7] == 0)) ? 1 : 0;
+			param_set_no_notification(int(px4::params::VTX_PIT_MODE), &pit_mode);
+			const int32_t power{pit_mode ? 0 : data[7] - 1};
+			param_set_no_notification(int(px4::params::VTX_POWER), &power);
+		}
+	}
+
+	// nothing else is implemented yet
+	return false;
+}
+#endif
 
 static CrsfPacketDescriptor_t *FindCrsfDescriptor(const enum CRSF_PACKET_TYPE packet_type)
 {
@@ -231,6 +341,13 @@ bool CrsfParser_LoadBuffer(const uint8_t *buffer, const uint32_t size)
 {
 	return QueueBuffer_AppendBuffer(&rx_queue, buffer, size);
 }
+
+#ifdef CONFIG_RC_CRSF_INJECT
+bool CrsfParser_InjectBuffer(const uint8_t *buffer, const uint32_t size)
+{
+	return QueueBuffer_AppendBuffer(&inject_queue, buffer, size);
+}
+#endif
 
 uint32_t CrsfParser_FreeQueueSize(void)
 {
@@ -280,16 +397,21 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			// If we know what this packet is...
 			if (working_descriptor != NULL) {
 				// Validate length
-				if (packet_size != working_descriptor->packet_size + PACKET_SIZE_TYPE_SIZE) {
-					parser_statistics->invalid_known_packet_sizes++;
-					parser_state = PARSER_STATE_HEADER;
-					working_segment_size = HEADER_SIZE;
-					working_index = 0;
-					buffer_count = QueueBuffer_Count(&rx_queue);
-					continue;
-				}
+				if (working_descriptor->packet_size == -1) {
+					working_segment_size = packet_size - PACKET_SIZE_TYPE_SIZE;
 
-				working_segment_size = working_descriptor->packet_size;
+				} else {
+					if (packet_size != working_descriptor->packet_size + PACKET_SIZE_TYPE_SIZE) {
+						parser_statistics->invalid_known_packet_sizes++;
+						parser_state = PARSER_STATE_HEADER;
+						working_segment_size = HEADER_SIZE;
+						working_index = 0;
+						buffer_count = QueueBuffer_Count(&rx_queue);
+						continue;
+					}
+
+					working_segment_size = working_descriptor->packet_size;
+				}
 
 			} else {
 				// We don't know what this packet is, so we'll let the parser continue
@@ -349,7 +471,37 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			parser_state = PARSER_STATE_HEADER;
 
 			if (valid_packet) {
+#ifdef CONFIG_RC_CRSF_INJECT
+
+				if (!QueueBuffer_IsEmpty(&inject_queue)) {
+					// copy the remaining bytes from the rx queue to the temp buffer
+					const uint32_t temp_size = QueueBuffer_Count(&rx_queue);
+
+					if (temp_size) {
+						QueueBuffer_PeekBuffer(&rx_queue, 0, temp_queue_buffer, temp_size);
+						// clear the rx queue
+						QueueBuffer_Dequeue(&rx_queue, QueueBuffer_Count(&rx_queue));
+					}
+
+					// append the inject queue to the rx queue
+					uint8_t inject_byte;
+
+					while (QueueBuffer_Get(&inject_queue, &inject_byte)) {
+						QueueBuffer_Append(&rx_queue, inject_byte);
+					}
+
+					if (temp_size) {
+						// append the temp buffer back to the rx queue
+						QueueBuffer_AppendBuffer(&rx_queue, temp_queue_buffer, temp_size);
+					}
+
+				} else {
+					return true;
+				}
+
+#else
 				return true;
+#endif
 			}
 
 			break;

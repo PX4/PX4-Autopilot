@@ -47,10 +47,10 @@ else()
 
     target_link_libraries(${PROJECT_NAME}
         PUBLIC px4_gz_msgs
-        PUBLIC gz-sensors${gz-sensors_VERSION_MAJOR}::gz-sensors${gz-sensors_VERSION_MAJOR}
-        PUBLIC gz-plugin${gz-plugin_VERSION_MAJOR}::gz-plugin${gz-plugin_VERSION_MAJOR}
-        PUBLIC gz-sim${gz-sim_VERSION_MAJOR}::gz-sim${gz-sim_VERSION_MAJOR}
-        PUBLIC gz-transport${gz-transport_VERSION_MAJOR}::gz-transport${gz-transport_VERSION_MAJOR}
+        PUBLIC ${GZ_SENSORS_TARGET}
+        PUBLIC ${GZ_PLUGIN_TARGET}
+        PUBLIC ${GZ_SIM_TARGET}
+        PUBLIC ${GZ_TRANSPORT_TARGET}
         PUBLIC ${GSTREAMER_LIBRARIES}
         PUBLIC ${GSTREAMER_APP_LIBRARIES}
     )
@@ -67,4 +67,8 @@ else()
         PRIVATE ${GSTREAMER_CFLAGS}
         PRIVATE ${GSTREAMER_APP_CFLAGS}
     )
+
+    if (NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+        install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib/px4_gz_plugins)
+    endif()
 endif()

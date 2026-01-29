@@ -54,9 +54,9 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 
 		reporter.setIsPresent(health_component_t::differential_pressure);
 
-		const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_1
-						  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_2
-						  || airspeed_validated.airspeed_source == airspeed_validated_s::SENSOR_3;
+		const bool airspeed_from_sensor = airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_1
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_2
+						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_3;
 
 		const float airspeed_calibrated_from_sensor = airspeed_from_sensor ? airspeed_validated.calibrated_airspeed_m_s : NAN;
 

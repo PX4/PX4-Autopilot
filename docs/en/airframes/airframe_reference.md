@@ -615,6 +615,10 @@ div.frame_variant td, div.frame_variant th {
  <td><a href="https://www.axialadventure.com/product/1-10-scx10-ii-trail-honcho-4wd-rock-crawler-brushed-rtr/AXID9059.html">Axial SCX10 2 Trail Honcho</a></td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51001</p></td>
 </tr>
+<tr id="rover_rover_nxp_b3rb_rover_ackermann">
+ <td>NXP B3RB Rover Ackermann</td>
+ <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51002</p></td>
+</tr>
 <tr id="rover_rover_generic_rover_mecanum">
  <td>Generic Rover Mecanum</td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 52000</p></td>
@@ -628,7 +632,16 @@ div.frame_variant td, div.frame_variant th {
 ### Free-Flyer
 
 <div class="frame_common">
-<img src="../../assets/airframes/types/AirframeUnknown.svg"/>
+<img src="../../assets/airframes/types/FreeFlyer.svg"/>
+<table>
+ <thead>
+   <tr><th>Common Outputs</th></tr>
+ </thead>
+ <tbody>
+<tr>
+ <td><ul><li><b>Motor1</b>: back left thruster, +x thrust</li><li><b>Motor2</b>: front left thruster, -x thrust</li><li><b>Motor3</b>: back right thruster, +x thrust</li><li><b>Motor4</b>: front right thruster, -x thrust</li><li><b>Motor5</b>: front left thruster, +y thrust</li><li><b>Motor6</b>: front right thruster, -y thrust</li><li><b>Motor7</b>: back left thruster, +y thrust</li><li><b>Motor8</b>: back right thruster, -y thrust</li></ul></td>
+</tr>
+</tbody></table>
 </div>
 
 <div class="frame_variant">
@@ -638,7 +651,7 @@ div.frame_variant td, div.frame_variant th {
  </thead>
 <tbody>
 <tr id="spacecraft_free-flyer_kth-atmos">
- <td>KTH-ATMOS</td>
+ <td><a href="https://atmos.discower.io">KTH-ATMOS</a></td>
  <td>Maintainer: DISCOWER<p><code>SYS_AUTOSTART</code> = 70000</p></td>
 </tr>
 </tbody>

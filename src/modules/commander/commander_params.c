@@ -166,40 +166,37 @@ PARAM_DEFINE_INT32(COM_HOME_EN, 1);
 PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
 
 /**
- * RC control input mode
+ * Manual control input source configuration
  *
- * A value of 0 enables RC transmitter control (only). A valid RC transmitter calibration is required.
- * A value of 1 allows joystick control only. RC input handling and the associated checks are disabled.
- * A value of 2 allows either RC Transmitter or Joystick input. The first valid input is used, will fallback to other sources if the input stream becomes invalid.
- * A value of 3 allows either input from RC or joystick. The first available source is selected and used until reboot.
- * A value of 4 ignores any stick input.
- * A value of 5 allows either RC Transmitter or Joystick input. But RC has priority and whenever avaiable is immedietely used.
- * A value of 6 allows either RC Transmitter or Joystick input. But Joystick has priority and whenever avaiable is immedietely used.
+ * Selects stick input selection behavior:
+ * either a traditional remote control receiver (RC) or a MAVLink joystick (MANUAL_CONTROL message)
+ *
+ * Priority sources are immediately switched to whenever they get valid.
+ *
+ * 0 RC only. Requires valid RC calibration.
+ * 1 MAVLink only. RC and related checks are disabled.
+ * 2 Switches only if current source becomes invalid.
+ * 3 Locks to the first valid source until reboot.
+ * 4 Ignores all sources.
+ * 5 RC priority, then MAVLink (lower instance before higher)
+ * 6 MAVLink priority (lower instance before higher), then RC
+ * 7 RC priority, then MAVLink (higher instance before lower)
+ * 8 MAVLink priority (higher instance before lower), then RC
  *
  * @group Commander
  * @min 0
- * @max 4
- * @value 0 RC Transmitter only
- * @value 1 Joystick only
- * @value 2 RC and Joystick with fallback
- * @value 3 RC or Joystick keep first
- * @value 4 Stick input disabled
- * @value 5 RC priority, Joystick fallback
- * @value 6 Joystick priority, RC fallback
+ * @max 8
+ * @value 0 RC only
+ * @value 1 MAVLink only
+ * @value 2 RC or MAVLink with fallback
+ * @value 3 RC or MAVLink keep first
+ * @value 4 Disable manual control
+ * @value 5 Prio: RC > MAVL 1 > MAVL 2
+ * @value 6 Prio: MAVL 1 > MAVL 2 > RC
+ * @value 7 Prio: RC > MAVL 2 > MAVL 1
+ * @value 8 Prio: MAVL 2 > MAVL 1 > RC
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 3);
-
-/**
- * Manual control input arm/disarm command duration
- *
- * The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
- *
- * @group Commander
- * @min 100
- * @max 1500
- * @unit ms
- */
-PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
 
 /**
  * Time-out for auto disarm after landing
@@ -234,14 +231,16 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
 /**
- * GPS preflight check
+ * Arming without GNSS configuration
  *
- * Measures taken when a check defined by EKF2_GPS_CHECK is failing.
+ * Configures whether arming is allowed without GNSS, for modes that require a global position
+ * (specifically, in those modes when a check defined by EKF2_GPS_CHECK fails).
+ * The settings deny arming and warn, allow arming and warn, or silently allow arming.
  *
  * @group Commander
  * @value 0 Deny arming
- * @value 1 Warning only
- * @value 2 Disabled
+ * @value 1 Allow arming (with warning)
+ * @value 2 Allow arming (no warning)
  */
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
@@ -249,8 +248,7 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
  * Arm switch is a momentary button
  *
  * 0: Arming/disarming triggers on switch transition.
- * 1: Arming/disarming triggers when holding the momentary button down
- * for COM_RC_ARM_HYST like the stick gesture.
+ * 1: Arming/disarming triggers when holding the momentary button down like the stick gesture.
  *
  * @group Commander
  * @boolean
@@ -609,15 +607,17 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 /**
  * Manual control loss exceptions
  *
- * Specify modes where manual control loss is ignored and no failsafe is triggered.
+ * Specify modes in which stick input is ignored and no failsafe action is triggered.
  * External modes requiring stick input will still failsafe.
+ * Auto modes are: Hold, Takeoff, Land, RTL, Descend, Follow Target, Precland, Orbit.
  *
  * @min 0
- * @max 15
+ * @max 31
  * @bit 0 Mission
- * @bit 1 Hold
+ * @bit 1 Auto modes
  * @bit 2 Offboard
  * @bit 3 External Mode
+ * @bit 4 Altitude Cruise
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
@@ -625,13 +625,16 @@ PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
 /**
  * Datalink loss exceptions
  *
- * Specify modes in which datalink loss is ignored and the failsafe action not triggered.
+ * Specify modes in which ground control station connection loss is ignored and no failsafe action is triggered.
+ * See also COM_RCL_EXCEPT.
  *
  * @min 0
- * @max 7
+ * @max 31
  * @bit 0 Mission
- * @bit 1 Hold
+ * @bit 1 Auto modes
  * @bit 2 Offboard
+ * @bit 3 External Mode
+ * @bit 4 Altitude Cruise
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_DLL_EXCEPT, 0);

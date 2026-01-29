@@ -88,7 +88,10 @@ void MecanumOffboardMode::offboardControl()
 		rover_attitude_setpoint.yaw_setpoint = atan2f(velocity_ned(1), velocity_ned(0));
 		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
-	} else if (offboard_control_mode.attitude) {
+	}
+
+	// For Mecanum wheel systems, attitude and position control can be decoupled
+	if (offboard_control_mode.attitude) {
 		rover_attitude_setpoint_s rover_attitude_setpoint{};
 		rover_attitude_setpoint.timestamp = hrt_absolute_time();
 		rover_attitude_setpoint.yaw_setpoint = trajectory_setpoint.yaw;

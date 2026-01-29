@@ -70,6 +70,51 @@ PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
 PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 
 /**
+ * u-blox GPS DGNSS timeout
+ *
+ * When set to 0 (default), default DGNSS timeout set by u-blox will be used.
+ *
+ * @min 0
+ * @max 255
+ * @unit s
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_DGNSS_TO, 0);
+
+/**
+ * u-blox GPS minimum satellite signal level for navigation
+ *
+ * When set to 0 (default), default minimum satellite signal level set by u-blox wll be used.
+ *
+ * @min 0
+ * @max 255
+ * @unit dBHz
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MIN_CNO, 0);
+
+/**
+ * u-blox GPS minimum elevation for a GNSS satellite to be used in navigation
+ *
+ * When set to 0 (default), default minimum elevation set by u-blox will be used.
+ *
+ * @min 0
+ * @max 127
+ * @unit deg
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MIN_ELEV, 0);
+
+/**
  * Enable sat info (if available)
  *
  * Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
@@ -143,6 +188,15 @@ PARAM_DEFINE_INT32(GPS_UBX_BAUD2, 230400);
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
+
+/**
+ * Enable MSM7 message output for PPK workflow.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_PPK, 0);
 
 /**
  * Wipes the flash config of UBX modules.

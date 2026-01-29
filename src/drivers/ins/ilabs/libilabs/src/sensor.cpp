@@ -86,72 +86,72 @@ Sensor::~Sensor() {
 }
 
 bool Sensor::init(const char *serialDeviceName, void *context, DataHandler dataHandler) {
-	if (_isInitialized) {
-		PX4_ERR("Serial device already initialized. Deinitialize first.");
+	if (_isInitialized.load()) {
+		PX4_WARN("Serial device already initialized. Deinitialize first");
 		return false;
 	}
-
+	if (_isDeinitInProcess.load()) {
+		PX4_WARN("Deinitialization is in progress. Please wait until it completes before re-initializing");
+		return false;
+	}
 	if (serialDeviceName[0] == '\0') {
 		PX4_ERR("Empty serial device name");
 		return false;
 	}
-
 	if (!context || !dataHandler) {
 		PX4_ERR("Empty data handler callback");
 		return false;
 	}
 
-	_serial = new device::Serial(serialDeviceName, BAUDRATE);
-	if (_serial == nullptr) {
-		PX4_ERR("Error creating serial device: %s", serialDeviceName);
-		px4_sleep(1);  // NOLINT(concurrency-mt-unsafe)
+	if (!initSerialPort(serialDeviceName)) {
 		return false;
 	}
 
-	if (!_serial->isOpen() && !_serial->open()) {
-		// Open the UART. If this is successful then the UART is ready to use.
-		if (!_serial->open()) {
-			PX4_ERR("Error opening serial device: %s", serialDeviceName);
-			px4_sleep(1);  // NOLINT(concurrency-mt-unsafe)
-			resetSerial();
-			return false;
-		}
-
-		PX4_INFO("Serial device opened sucessfully: %s", serialDeviceName);
-
-		_serial->flush();
-	}
 	_context     = context;
 	_dataHandler = dataHandler;
 
-	_processInThread = true;
+	_processInThread.store(true);
 	const int result = pthread_create(&_threadId, nullptr, &Sensor::updateDataThreadHelper, this);
 	if (result) {
 		PX4_ERR("Cant create working thread");
-		_processInThread = false;
-		px4_sleep(1);  // NOLINT(concurrency-mt-unsafe)
-		resetSerial();
+		deinit();
 		return false;
 	}
-
 	pthread_detach(_threadId);
 
-	_isInitialized = true;
+	_isInitialized.store(true);
 	return true;
 }
 
 void Sensor::deinit() {
-	_processInThread = false;
-	_isInitialized = false;
-	resetSerial();
+	if (_isDeinitInProcess.load()) {
+		PX4_WARN("Deinitialization already in process");
+		return;
+	}
+
+	_isDeinitInProcess.store(true);
+	_isInitialized.store(false);
+	_processInThread.store(false);
+	// Wait to be shure, that operations with UART are finished
+	px4_sleep(1); // NOLINT(concurrency-mt-unsafe)
+	if (_serial) {
+		(void)_serial->close();
+		delete _serial;
+		_serial = nullptr;
+	}
+
+	_context     = nullptr;
+	_dataHandler = nullptr;
+	_bufOffset   = 0;
+	_isDeinitInProcess.store(false);
 }
 
 bool Sensor::isInitialized() const {
-	return _isInitialized;
+	return _isInitialized.load();
 }
 
 void Sensor::updateData() {
-	while (_processInThread) {
+	while (_processInThread.load()) {
 		bool result = moveValidPackageToBufferStart();
 		if (!result) {
 			continue;
@@ -162,18 +162,40 @@ void Sensor::updateData() {
 			continue;
 		}
 
-		_dataHandler(_context, &_sensorData);
+		if (_dataHandler) {
+			_dataHandler(_context, &_sensorData);
+		}
 
 		skipPackageInBufferStart();
 	}
 }
 
-void Sensor::resetSerial() {
+bool Sensor::initSerialPort(const char *serialDeviceName) {
 	if (_serial) {
-		(void)_serial->close();
-		delete _serial;
-		_serial = nullptr;
+		PX4_WARN("Serial port already initialized. Deinitialize first");
+		return false;
 	}
+
+	_serial = new device::Serial(serialDeviceName, BAUDRATE);
+	if (_serial == nullptr) {
+		PX4_ERR("Error creating serial device: %s", serialDeviceName);
+		px4_sleep(1); // NOLINT(concurrency-mt-unsafe)
+		return false;
+	}
+
+	if (!_serial->isOpen()) {
+		_serial->open();
+		if (!_serial->isOpen()) {
+			PX4_ERR("Error opening serial device: %s", serialDeviceName);
+			deinit();
+			return false;
+		}
+		PX4_INFO("Serial device opened sucessfully: %s", serialDeviceName);
+	} else {
+		PX4_INFO("Serial device already opened: %s", serialDeviceName);
+	}
+	_serial->flush();
+	return true;
 }
 
 bool Sensor::moveToBufferStart(const uint8_t *pos) {
@@ -201,7 +223,7 @@ bool Sensor::moveToBufferStart(const uint8_t *pos) {
 bool Sensor::skipPackageInBufferStart() {
 	const MessageHeader *packageHeader = reinterpret_cast<MessageHeader *>(_buf);
 	if (!isMessageHeaderCorrect(packageHeader)) {
-		PX4_ERR("Incorrect message header in buffer start. Can't skip the package correctly.");
+		PX4_ERR("Incorrect message header in buffer start. Can't skip the package correctly");
 		return false;
 	}
 
@@ -239,7 +261,7 @@ bool Sensor::moveValidPackageToBufferStart() {
 		return false;
 	}
 
-	const ssize_t nRead = _serial->readAtLeast(&_buf[_bufOffset], freeBufByteCount, freeBufByteCount, 1000);
+	const ssize_t nRead = _serial->readAtLeast(&_buf[_bufOffset], freeBufByteCount, freeBufByteCount, 500);
 	if (nRead != freeBufByteCount) {
 		PX4_ERR("Can't read requested data from the serial device. Bytes requested: %d. Bytes read: %d",
 				freeBufByteCount, static_cast<int>(nRead));
@@ -546,8 +568,8 @@ bool Sensor::parseUDDPayload() {
 				break;
 			}
 			default: {
-				PX4_ERR("Unknown message type: %d. Further package parsing result will be incorrect!",
-						messageType);
+				PX4_ERR("Unknown message type: %d. Further package parsing result will be incorrect",
+				        messageType);
 				messageLength = 0;
 				break;
 			}

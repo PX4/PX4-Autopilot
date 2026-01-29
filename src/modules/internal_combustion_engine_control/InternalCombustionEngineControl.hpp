@@ -102,12 +102,13 @@ private:
 	enum class UserOnOffRequest {
 		Off,
 		On
-	};
+	} _user_request{UserOnOffRequest::Off};
 
 	enum class ICESource {
 		ArmingState,
 		Aux1,
 		Aux2,
+		VtolStatus,
 	};
 
 	hrt_abstime _state_start_time{0};
@@ -126,7 +127,7 @@ private:
 	void controlEngineStartup(const hrt_abstime now);
 	void controlEngineFault();
 	bool maximumAttemptsReached();
-	void publishControl(const hrt_abstime now, const UserOnOffRequest user_request);
+	void publishControl(const hrt_abstime now);
 
 	// Starting state specifics
 	static constexpr float DELAY_BEFORE_RESTARTING{1.f};

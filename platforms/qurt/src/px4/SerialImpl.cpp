@@ -103,25 +103,14 @@ bool SerialImpl::open()
 		return false;
 	}
 
-	if (_bytesize != ByteSize::EightBits) {
-		PX4_ERR("Qurt platform only supports ByteSize::EightBits");
-		return false;
-	}
+	// Check all non-supported configurations without duplicating the error strings
+	if (!setBytesize(_bytesize)) { return false; }
 
-	if (_parity != Parity::None) {
-		PX4_ERR("Qurt platform only supports Parity::None");
-		return false;
-	}
+	if (!setParity(_parity)) { return false; }
 
-	if (_stopbits != StopBits::One) {
-		PX4_ERR("Qurt platform only supports StopBits::One");
-		return false;
-	}
+	if (!setStopbits(_stopbits)) { return false; }
 
-	if (_flowcontrol != FlowControl::Disabled) {
-		PX4_ERR("Qurt platform only supports FlowControl::Disabled");
-		return false;
-	}
+	if (!setFlowcontrol(_flowcontrol)) { return false; }
 
 	if (!validatePort(_port)) {
 		PX4_ERR("Invalid port %s", _port);
@@ -167,12 +156,31 @@ ssize_t SerialImpl::bytesAvailable()
 {
 	if (!_open) {
 		PX4_ERR("Device not open!");
+		errno = EBADF;
 		return -1;
 	}
 
 	uint32_t rx_bytes = 0;
-	(void) fc_uart_rx_available(_serial_fd, &rx_bytes);
+	int ret = fc_uart_rx_available(_serial_fd, &rx_bytes);
+
+	if (ret < 0) {
+		return -1;
+	}
+
 	return (ssize_t) rx_bytes;
+}
+
+ssize_t SerialImpl::txSpaceAvailable()
+{
+	if (!_open) {
+		PX4_ERR("Device not open!");
+		errno = EBADF;
+		return -1;
+	}
+
+	// QURT doesn't have a direct equivalent to NuttX's FIONSPACE
+	errno = ENOSYS;
+	return -1;
 }
 
 ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
@@ -260,6 +268,12 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 
 ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 {
+	// TODO: Implement a non-blocking write in Qurt
+	return writeBlocking(buffer, buffer_size, 0);
+}
+
+ssize_t SerialImpl::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
+{
 	if (!_open) {
 		PX4_ERR("Cannot write to serial device until it has been opened");
 		return -1;
@@ -342,7 +356,12 @@ ByteSize SerialImpl::getBytesize() const
 
 bool SerialImpl::setBytesize(ByteSize bytesize)
 {
-	return bytesize == ByteSize::EightBits;
+	if (bytesize != ByteSize::EightBits) {
+		PX4_ERR("Qurt platform only supports ByteSize::EightBits");
+		return false;
+	}
+
+	return true;
 }
 
 Parity SerialImpl::getParity() const
@@ -352,7 +371,12 @@ Parity SerialImpl::getParity() const
 
 bool SerialImpl::setParity(Parity parity)
 {
-	return parity == Parity::None;
+	if (parity != Parity::None) {
+		PX4_ERR("Qurt platform only supports Parity::None");
+		return false;
+	}
+
+	return true;
 }
 
 StopBits SerialImpl::getStopbits() const
@@ -362,7 +386,12 @@ StopBits SerialImpl::getStopbits() const
 
 bool SerialImpl::setStopbits(StopBits stopbits)
 {
-	return stopbits == StopBits::One;
+	if (stopbits != StopBits::One) {
+		PX4_ERR("Qurt platform only supports StopBits::One");
+		return false;
+	}
+
+	return true;
 }
 
 FlowControl SerialImpl::getFlowcontrol() const
@@ -372,7 +401,12 @@ FlowControl SerialImpl::getFlowcontrol() const
 
 bool SerialImpl::setFlowcontrol(FlowControl flowcontrol)
 {
-	return flowcontrol == FlowControl::Disabled;
+	if (flowcontrol != FlowControl::Disabled) {
+		PX4_ERR("Qurt platform only supports FlowControl::Disabled");
+		return false;
+	}
+
+	return true;
 }
 
 bool SerialImpl::getSingleWireMode() const
@@ -382,8 +416,12 @@ bool SerialImpl::getSingleWireMode() const
 
 bool SerialImpl::setSingleWireMode()
 {
-	// Qurt platform does not support single wire mode
-	return false;
+	if (enable) {
+		PX4_ERR("Qurt platform does not support single wire mode");
+		return false;
+	}
+
+	return true;
 }
 
 bool SerialImpl::getSwapRxTxMode() const
@@ -393,14 +431,22 @@ bool SerialImpl::getSwapRxTxMode() const
 
 bool SerialImpl::setSwapRxTxMode()
 {
-	// Qurt platform does not support swap rx tx mode
-	return false;
+	if (enable) {
+		PX4_ERR("Qurt platform does not support swap rx tx mode");
+		return false;
+	}
+
+	return true;
 }
 
 bool SerialImpl::setInvertedMode(bool enable)
 {
-	// Qurt platform does not support inverted mode
-	return false == enable;
+	if (enable) {
+		PX4_ERR("Qurt platform does not support inverted mode");
+		return false;
+	}
+
+	return true;
 }
 bool SerialImpl::getInvertedMode() const
 {

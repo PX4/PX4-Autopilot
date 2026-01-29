@@ -52,6 +52,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRate.hpp>
+#include <lib/sticks/Sticks.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -71,7 +72,6 @@
 #include <uORB/topics/fixed_wing_runway_control.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/launch_detection_status.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
@@ -180,11 +180,11 @@ private:
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -201,7 +201,6 @@ private:
 	uORB::Publication<fixed_wing_lateral_guidance_status_s> _fixed_wing_lateral_guidance_status_pub{ORB_ID(fixed_wing_lateral_guidance_status)};
 	uORB::Publication<fixed_wing_runway_control_s> _fixed_wing_runway_control_pub{ORB_ID(fixed_wing_runway_control)};
 
-	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
 	vehicle_control_mode_s _control_mode{};
 	vehicle_local_position_s _local_pos{};
@@ -243,9 +242,10 @@ private:
 		STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT = (1 << 1)
 	};
 
-	// VEHICLE STATES
 
-	uint8_t _nav_state;
+	Sticks _sticks{this};
+
+	// VEHICLE STATES
 
 	double _current_latitude{0};
 	double _current_longitude{0};
@@ -253,6 +253,8 @@ private:
 
 	float _yaw{0.0f};
 	float _yawrate{0.0f};
+	float _pitch{0.0f}; // [rad] current pitch angle from attitude
+	float _throttle{0.0f}; // [0-1] last set throttle
 
 	float _body_acceleration_x{0.f};
 	float _body_velocity_x{0.f};
@@ -320,6 +322,7 @@ private:
 	// orbit to altitude only when the aircraft has entered the final *straight approach.
 	hrt_abstime _time_started_landing{0};
 
+	Vector2f _local_landing_orbit_center{NAN, NAN};
 	// [m] lateral touchdown position offset manually commanded during landing
 	float _lateral_touchdown_position_offset{0.0f};
 
@@ -336,6 +339,8 @@ private:
 		bool flaring{false};
 		hrt_abstime start_time{0}; // [us]
 		float initial_height_rate_setpoint{0.0f}; // [m/s]
+		float initial_pitch{0.0f}; // [rad]
+		float initial_throttle{0.0f}; // [0-1] throttle value when flare started
 	} _flare_states;
 
 	// [m] last terrain estimate which was valid
@@ -419,6 +424,7 @@ private:
 
 	void manual_control_setpoint_poll();
 	void vehicle_attitude_poll();
+	void vehicle_attitude_setpoint_poll();
 	void vehicle_command_poll();
 	void vehicle_control_mode_poll();
 

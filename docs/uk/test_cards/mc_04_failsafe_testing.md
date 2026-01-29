@@ -9,10 +9,10 @@ Test RC loss, data link loss, and low battery failsafes.
 - Verify RC Loss action is Return to Land
 - Verify Data Link Loss action is Return to Land and the timeout is 10 seconds
 - Verify Battery failsafe
-    - Action is Return to Land
-    - Battery Warn Level is 25%
-    - Battery Failsafe Level is 20%
-    - Battery Emergency Level is 15%
+  - Action is Return to Land
+  - Battery Warn Level is 25%
+  - Battery Failsafe Level is 20%
+  - Battery Emergency Level is 15%
 
 ## Flight Tests
 

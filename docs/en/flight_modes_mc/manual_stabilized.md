@@ -31,7 +31,7 @@ Throttle is rescaled (see [below](#params)) and passed directly to control alloc
 The autopilot controls the attitude, meaning it regulates the roll and pitch angles to zero when the RC sticks are centered inside the controller deadzone (consequently leveling-out the attitude).
 The autopilot does not compensate for drift due to wind (or other sources).
 
-- Centered sticks (inside deadband):
+- Centered sticks:
   - Roll/Pitch sticks level vehicle.
 - Outside center:
   - Roll/Pitch sticks control tilt angle in those orientations, resulting in corresponding left-right and forward-back movement.

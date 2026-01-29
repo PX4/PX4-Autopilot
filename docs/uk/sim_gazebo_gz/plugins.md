@@ -43,8 +43,8 @@ When developing new plugins:
 
 1. **Follow the plugin architecture** - Implement desired interfaces.
 
-  You can start by copying the [Template plugin](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/template_plugin) which is a simple example that only implements `ISystemPreUpdate` and `ISystemPostUpdate`.
-  The interfaces are specified in the official [Gazebo documentation](https://gazebosim.org/api/sim/9/createsystemplugins.html).
+   You can start by copying the [Template plugin](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/simulation/gz_plugins/template_plugin) which is a simple example that only implements `ISystemPreUpdate` and `ISystemPostUpdate`.
+   The interfaces are specified in the official [Gazebo documentation](https://gazebosim.org/api/sim/9/createsystemplugins.html).
 
 2. **Register your plugin** - Add it to [server.config](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_bridge/server.config) for discovery.
 

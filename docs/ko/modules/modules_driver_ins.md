@@ -45,6 +45,41 @@ MicroStrain <command> [arguments...]
    status        Driver status
 ```
 
+## eulernav_bahrs
+
+Source: [drivers/ins/eulernav_bahrs](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/ins/eulernav_bahrs)
+
+### 설명
+
+Serial bus driver for the EULER-NAV Baro-Inertial AHRS.
+
+### 예
+
+Attempt to start driver on a specified serial device.
+
+```
+eulernav_bahrs start -d /dev/ttyS1
+```
+
+Stop driver
+
+```
+eulernav_bahrs stop
+```
+
+### Usage {#eulernav_bahrs_usage}
+
+```
+eulernav_bahrs <command> [arguments...]
+ Commands:
+   start         Start driver
+     -d <val>    Serial device
+
+   status        Print driver status
+
+   stop          Stop driver
+```
+
 ## ilabs
 
 Source: [drivers/ins/ilabs](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/ins/ilabs)
@@ -88,6 +123,31 @@ ilabs <command> [arguments...]
    stop          Stop driver
 
    status        Print driver status
+```
+
+## sbgecom
+
+Source: [drivers/ins/sbgecom](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/ins/sbgecom)
+
+Description du module
+
+### Usage {#sbgecom_usage}
+
+```
+sbgecom <command> [arguments...]
+ Commands:
+   start         Start driver
+     [-d <val>]  Serial device
+                 default: /dev/ttyS0
+     [-b <val>]  Baudrate device
+                 default: 921600
+     [-f <val>]  Config JSON file path
+                 default: /etc/extras/sbg_settings\.json
+     [-s <val>]  Config JSON string
+
+   status        Driver status
+
+   stop          Stop driver
 ```
 
 ## vectornav

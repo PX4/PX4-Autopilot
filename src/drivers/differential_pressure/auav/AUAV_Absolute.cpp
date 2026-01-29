@@ -77,3 +77,9 @@ float AUAV_Absolute::process_pressure_dig(const float pressure_dig) const
 	const float pressure_mbar = 250.f + 1.25f * ((pressure_dig - (0.1f * (1 << 24))) / (1 << 24)) * 1000.f;
 	return pressure_mbar * MBAR_TO_PA;
 }
+
+int AUAV_Absolute::read_factory_data()
+{
+	/* Absolute sensor doesn't need to read factory data */
+	return PX4_OK;
+}

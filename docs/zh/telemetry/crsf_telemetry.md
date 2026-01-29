@@ -213,7 +213,7 @@ The supported telemetry messages and their source are listed below (this table i
 | FM        | Flight mode                                                           | FC                               |
 | VSPD      | Barometer                                                             | FC                               |
 
-## See Also
+## 另见
 
 - [TBS Crossfire Manual](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf)
 - [ExpressLRS Documentation](https://www.expresslrs.org/quick-start/getting-started/)

@@ -25,6 +25,7 @@ PX4 supports Ethernet connectivity on [Pixhawk 5X-standard](https://github.com/p
 
 支持的飞行控制器包括:
 
+- [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md)
 - [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md)
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md)
 - [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md)
@@ -268,7 +269,7 @@ MAVSDK can connect to the PX4 on port `14550` if you don't modify the PX4 Ethern
    accelerometer_integral_dt: 4997
    ```
 
-## See Also
+## 另见
 
 - [Get The Pixhawk Raspberry Pi CM4 Baseboard By Holybro Talking With PX4](https://px4.io/get-the-pixhawk-raspberry-pi-cm4-baseboard-by-holybro-talking-with-px4/) (px4.io blog):
   - 展示如何通过有线以太网连接 Pixhawk 6X + Raspberry Pi 到 CM4 主板。

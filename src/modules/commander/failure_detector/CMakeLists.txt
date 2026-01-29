@@ -33,4 +33,5 @@
 
 px4_add_library(failure_detector
 	FailureDetector.cpp
+	FailureInjector.cpp
 )

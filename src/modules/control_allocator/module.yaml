@@ -312,7 +312,11 @@ parameters:
         CA_SV_CS${i}_TRIM:
             description:
                 short: Control Surface ${i} trim
-                long: Can be used to add an offset to the servo control.
+                long: |
+                  Can be used to add an offset to the servo control.
+
+                  NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+                  This parameter can only be set if all PWM Center parameters are set to default.
             type: float
             decimal: 2
             min: -1.0
@@ -331,6 +335,15 @@ parameters:
             num_instances: *max_num_servos
             instance_start: 0
             default: 0
+
+        CA_SV_FLAP_SLEW:
+            description:
+                short: Control Surface slew rate for normalized flaps setpoint
+            type: float
+            decimal: 1
+            min: 0.0
+            max: 5.0
+            default: 0.5
 
         CA_SV_CS${i}_SPOIL:
             description:
@@ -591,6 +604,22 @@ parameters:
                 0: Ignore
                 1: Remove first failed motor from effectiveness
             default: 0
+
+        CA_ICE_PERIOD:
+            description:
+                short: Ice shedding cycle period
+                long: |
+                    Ice shedding prevents ice buildup in VTOL aircraft motors by
+                    periodically spinning inactive rotors. When enabled (period
+                    > 0), every cycle lasts for the defined period and includes
+                    a 2‑second spin at 0.01 motor output. If period <= 0, the
+                    feature is disabled.
+            type: float
+            decimal: 1
+            unit: s
+            increment: 0.1
+            min: 0.0
+            default: 0.0
 
 # Mixer
 mixer:

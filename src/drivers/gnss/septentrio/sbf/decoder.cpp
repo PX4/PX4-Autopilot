@@ -163,7 +163,7 @@ int Decoder::parse(QualityInd *message) const
 
 int Decoder::parse(RFStatus *message) const
 {
-	if (can_parse() && id() == BlockID::PVTGeodetic) {
+	if (can_parse() && id() == BlockID::RFStatus) {
 		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
 		memcpy(message, _message.payload, sizeof(RFStatus) - sizeof(RFStatus::rf_band));
 

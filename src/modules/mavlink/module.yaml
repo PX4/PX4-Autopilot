@@ -201,3 +201,40 @@ parameters:
             num_instances: *max_num_config_instances
             default: [0.015, 0.015, 0.015]
             reboot_required: true
+
+        MAV_S_MODE:
+            description:
+                short: MAVLink Mode for SOM to FMU communication channel
+                long: |
+                    The MAVLink Mode defines the set of streamed messages (for example the
+                    vehicle's attitude) and their sending rates.
+
+            type: enum
+            values:
+                0: Normal
+                #1: Custom
+                2: Onboard
+                #3: OSD
+                #4: Magic
+                5: Config
+                #6: Iridium
+                7: Minimal
+                #8: External Vision
+                #9: External Vision Minimal
+                #10: Gimbal
+                11: Onboard Low Bandwidth
+                #12: uAvionix
+                13: Low Bandwidth
+                # We shadow the modes that can block the FMU to SOM connection
+            reboot_required: true
+            default: 11
+
+        MAV_S_FORWARD:
+            description:
+                short: Enable MAVLink forwarding on TELEM2
+                long : |
+                    TELEM2 on Skynode only.
+
+            type: boolean
+            reboot_required: true
+            default: false

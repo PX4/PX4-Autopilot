@@ -384,7 +384,13 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
 
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
-	_publisher_list.add(new MagneticFieldStrength2(this, _node));
+	int32_t cannode_pub_mag = 1;
+	param_get(param_find("CANNODE_PUB_MAG"), &cannode_pub_mag);
+
+	if (cannode_pub_mag == 1) {
+		_publisher_list.add(new MagneticFieldStrength2(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
 
 #if defined(CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT)
@@ -421,12 +427,25 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new SafetyButton(this, _node));
 #endif // CONFIG_UAVCANNODE_SAFETY_BUTTON
 
+#if defined(CONFIG_UAVCANNODE_STATIC_PRESSURE) || defined(CONFIG_UAVCANNODE_STATIC_TEMPERATURE)
+	int32_t cannode_pub_bar = 1;
+	param_get(param_find("CANNODE_PUB_BAR"), &cannode_pub_bar);
+#endif
+
 #if defined(CONFIG_UAVCANNODE_STATIC_PRESSURE)
-	_publisher_list.add(new StaticPressure(this, _node));
+
+	if (cannode_pub_bar == 1) {
+		_publisher_list.add(new StaticPressure(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_STATIC_PRESSURE
 
 #if defined(CONFIG_UAVCANNODE_STATIC_TEMPERATURE)
-	_publisher_list.add(new StaticTemperature(this, _node));
+
+	if (cannode_pub_bar == 1) {
+		_publisher_list.add(new StaticTemperature(this, _node));
+	}
+
 #endif // CONFIG_UAVCANNODE_STATIC_TEMPERATURE
 
 #if defined(CONFIG_UAVCANNODE_ARMING_STATUS)
@@ -547,7 +566,7 @@ void UavcanNode::Run()
 		 */
 
 		if (_dyn_node_id_client.isAllocationComplete()) {
-			PX4_INFO("Got node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
+			PX4_INFO("Assigned node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
 
 			_node.setNodeID(_dyn_node_id_client.getAllocatedNodeID());
 			_init_state = Allocated;
@@ -823,6 +842,24 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 			(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
 		}
 	}
+
+	// Use a static node ID if the parameter is set and in range
+	int32_t cannode_node_id = 0;
+	param_get(param_find("CANNODE_NODE_ID"), &cannode_node_id);
+
+	if (cannode_node_id < 0 || cannode_node_id > uavcan::NodeID::Max) {
+		PX4_ERR("Invalid static node ID %ld, using dynamic allocation", cannode_node_id);
+		node_id = 0;
+
+	} else {
+		node_id = cannode_node_id;
+	}
+
+	// Persist the node ID for the bootloader
+	bootloader_app_shared_t shared_write = {};
+	shared_write.node_id = node_id;
+	shared_write.bus_speed = 0; // we always want to autobaud
+	bootloader_app_shared_write(&shared_write, BootLoader);
 
 	if (
 #if defined(SUPPORT_ALT_CAN_BOOTLOADER)

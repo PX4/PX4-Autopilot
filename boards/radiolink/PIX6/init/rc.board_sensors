@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# board sensors init
+#------------------------------------------------------------------------------
+
+set HAVE_PM2 yes
+
+board_adc start
+
+if param compare SENS_EN_INA226 1
+then
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
+
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
+
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+
+fi
+
+# Internal SPI bus ICM42688p
+icm42688p -R 2 -s start
+
+# Internal SPI BMI088
+bmi088 -A -R 4 -s start
+bmi088 -G -R 4 -s start
+
+spa06 -I start
+
+# internal compass
+ist8310 -I start
+
+# External compass on GPS1/I2C1
+ist8310 -X start
+
+# Possible internal Baro
+unset HAVE_PM2

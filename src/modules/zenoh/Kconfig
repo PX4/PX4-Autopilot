@@ -19,7 +19,7 @@ if MODULES_ZENOH
     config ZENOH_DEFAULT_LOCATOR
         string "Zenoh default mode"
         default "tcp/127.0.0.1:7447" if PLATFORM_POSIX
-        default "" if !PLATFORM_POSIX
+        default "tcp/10.41.10.1:7447#iface=eth0" if !PLATFORM_POSIX
 
     config ZENOH_RMW_LIVELINESS
         bool "[EXPERIMENTAL] rmw_zenoh liveliness implemenation"
