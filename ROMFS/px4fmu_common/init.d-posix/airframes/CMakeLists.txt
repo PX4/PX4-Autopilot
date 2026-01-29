@@ -111,6 +111,8 @@ px4_add_romfs_files(
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2
 
+	40000_gz_boat
+
 	50000_gz_rover_differential
 	51000_gz_rover_ackermann
 	52000_gz_rover_mecanum
