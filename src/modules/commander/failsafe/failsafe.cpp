@@ -422,6 +422,7 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 	switch (command_after_remaining_flight_time_low(param_value)) {
 	case command_after_remaining_flight_time_low::None:
 		options.action = Action::None;
+		options.allow_user_takeover = UserTakeoverAllowed::Never; // Execute immediately without delay
 		break;
 
 	case command_after_remaining_flight_time_low::Warning:
@@ -435,6 +436,7 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 
 	default:
 		options.action = Action::None;
+		options.allow_user_takeover = UserTakeoverAllowed::Never;
 		break;
 
 	}
@@ -563,7 +565,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	// Battery flight time remaining failsafe
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
-		       ActionOptions(fromRemainingFlightTimeLowActParam(_param_com_fltt_low_act.get())));
+		       fromRemainingFlightTimeLowActParam(_param_com_fltt_low_act.get()).cannotBeDeferred());
 
 	if ((_armed_time != 0)
 	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
