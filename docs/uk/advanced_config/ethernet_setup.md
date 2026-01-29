@@ -25,6 +25,7 @@ PX4 supports Ethernet connectivity on [Pixhawk 5X-standard](https://github.com/p
 
 Підтримувані автопілоти включають:
 
+- [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md)
 - [CUAV Pixhawk V6X](../flight_controller/cuav_pixhawk_v6x.md)
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md)
 - [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md)

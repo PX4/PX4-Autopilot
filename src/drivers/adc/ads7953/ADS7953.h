@@ -19,7 +19,7 @@ class ADS7953 : public device::SPI, public I2CSPIDriver<ADS7953>, public ModuleP
 {
 public:
 	ADS7953(const I2CSPIDriverConfig &config);
-	virtual ~ADS7953() = default;
+	~ADS7953() override;
 	static void print_usage();
 
 	int init() override;
@@ -31,7 +31,9 @@ private:
 	static constexpr int NUM_CHANNELS = 16;
 	uORB::PublicationMulti<adc_report_s> _adc_report_pub{ORB_ID(adc_report)};
 
-	static const hrt_abstime SAMPLE_INTERVAL{50_ms};
+	static const hrt_abstime SAMPLE_INTERVAL{10_ms};
+	perf_counter_t _cycle_perf;
+	perf_counter_t _comms_errors;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::ADC_ADS7953_REFV>) _adc_ads7953_refv

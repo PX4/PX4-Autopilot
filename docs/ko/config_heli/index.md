@@ -53,15 +53,15 @@ To setup and configure a helicopter:
    For each servo set:
 
    - `Angle`: Clockwise angle in degree on the swash plate circle at which the servo arm is attached starting from `0` pointing forwards.
-      Example for a typical setup where three servos are controlling the swash plate equally distributed over the circle (360° / 3 =) 120° apart each which results in the angles:
+     Example for a typical setup where three servos are controlling the swash plate equally distributed over the circle (360° / 3 =) 120° apart each which results in the angles:
 
-      | #       | Angle |
-      | ------- | ----- |
-      | Servo 1 | 60°   |
-      | Servo 2 | 180°  |
-      | Servo 3 | 300°  |
+     | #       | Angle |
+     | ------- | ----- |
+     | Servo 1 | 60°   |
+     | Servo 2 | 180°  |
+     | Servo 3 | 300°  |
 
-      <img width="700" alt="warning and requirement" src="../../assets/airframes/helicopter/swash_plate_servo_angles.png">
+     <img width="700" alt="warning and requirement" src="../../assets/airframes/helicopter/swash_plate_servo_angles.png">
 
    - `Arm Length (relative to each other)`: Radius from the swash plate center (top view). A shorter arm means the same servo motion moves the plate more. This allows the autopilot to compensate.
 
@@ -72,7 +72,7 @@ To setup and configure a helicopter:
    - `Yaw compensation scale based on collective pitch`: How much yaw is feed forward compensated based on the current collective pitch.
    - `Main rotor turns counter-clockwise`: `Disabled` (clockwise rotation) | `Enabled`
    - `Throttle spoolup time`: Set value (in seconds) greater than the achievable minimum motor spool up time.
-      A larger value may improve user experience.
+     A larger value may improve user experience.
 
 3. Remove the rotor blades and propellers
 

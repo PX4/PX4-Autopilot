@@ -345,9 +345,9 @@ private:
 以下章节提供了支持的设置点类型列表：
 
 - [MulticopterGotoSetpointType](#go-to-setpoint-multicoptergotosetpointtype): <Badge type="warning" text="MC only" /> 平滑的位置控制以及（可选的）航向控制
-- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="warning" text="FW only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" /> 对横向和纵向固定翼动态的直接控制
+- [FwLateralLongitudinalSetpointType](#fixed-wing-lateral-and-longitudinal-setpoint-fwlaterallongitudinalsetpointtype): <Badge type="warning" text="FW only" /> <Badge type="tip" text="PX4 v1.17" /> Direct control of lateral and longitudinal fixed wing dynamics
 - [DirectActuatorsSetpointType](#direct-actuator-control-setpoint-directactuatorssetpointtype)：直接控制发动机和飞行地面servo setpoints
-- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="main (planned for: PX4 v1.17)" />直接访问火星车控制设定值（位置、速度、姿态、速率、油门和转向）。
+- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="PX4 v1.17" /> Direct access to rover control setpoints (Position, Speed, Attitude, Rate, Throttle and Steering).
 
 :::tip
 其他设置点类型目前是实验性的，可在以下网址找到：[px4_ros2/control/setpoint_types/experimental](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/experimental)。
@@ -414,7 +414,7 @@ _goto_setpoint->update(
 
 #### 固定翼横向与纵向设定值（FwLateralLongitudinalSetpointType，固定翼横向纵向设定值类型）
 
-<Badge type="warning" text="Fixed wing only" /> <Badge type="tip" text="main (planned for: PX4 v1.17)" />
+<Badge type="warning" text="Fixed wing only" /> <Badge type="tip" text="PX4 v1.17" />
 
 :::info
 此设定值类型支持固定翼飞行器，以及处于固定翼模式下的垂直起降飞行器（VTOL）。
@@ -556,7 +556,7 @@ _fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
 
 #### Rover 设置点
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
 滚动模块使用层次结构来传播设置点：
 
@@ -590,7 +590,7 @@ _fw_lateral_longitudinal_setpoint->update(setpoint_s, config_s);
 
 ### 控制VTOL
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.17" /> <Badge type="warning" text="Experimental" />
 
 要在外部飞行模式下控制VTOL，需确保根据当前飞行配置返回正确的设定值类型：
 

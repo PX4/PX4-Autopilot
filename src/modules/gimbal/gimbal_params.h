@@ -64,12 +64,10 @@ struct Parameters {
 	int32_t mnt_man_roll;
 	int32_t mnt_man_yaw;
 	int32_t mnt_do_stab;
-	float mnt_range_pitch;
+	float mnt_max_pitch;
+	float mnt_min_pitch;
 	float mnt_range_roll;
 	float mnt_range_yaw;
-	float mnt_off_pitch;
-	float mnt_off_roll;
-	float mnt_off_yaw;
 	int32_t mav_sysid;
 	int32_t mav_compid;
 	float mnt_rate_pitch;
@@ -77,6 +75,7 @@ struct Parameters {
 	int32_t mnt_rc_in_mode;
 	float mnt_lnd_p_min;
 	float mnt_lnd_p_max;
+	float mnt_tau;
 };
 
 struct ParameterHandles {
@@ -88,12 +87,10 @@ struct ParameterHandles {
 	param_t mnt_man_roll;
 	param_t mnt_man_yaw;
 	param_t mnt_do_stab;
-	param_t mnt_range_pitch;
+	param_t mnt_max_pitch;
+	param_t mnt_min_pitch;
 	param_t mnt_range_roll;
 	param_t mnt_range_yaw;
-	param_t mnt_off_pitch;
-	param_t mnt_off_roll;
-	param_t mnt_off_yaw;
 	param_t mav_sysid;
 	param_t mav_compid;
 	param_t mnt_rate_pitch;
@@ -101,6 +98,7 @@ struct ParameterHandles {
 	param_t mnt_rc_in_mode;
 	param_t mnt_lnd_p_min;
 	param_t mnt_lnd_p_max;
+	param_t mnt_tau;
 };
 
 } /* namespace gimbal */

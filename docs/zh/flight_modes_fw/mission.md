@@ -167,6 +167,10 @@ Mission Items:
 - [MAV_CMD_OBLIQUE_SURVEY](https://mavlink.io/en/messages/common.html#MAV_CMD_OBLIQUE_SURVEY)
 - [MAV_CMD_DO_SET_CAMERA_ZOOM](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_CAMERA_ZOOM)
 - [MAV_CMD_DO_SET_CAMERA_FOCUS](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_CAMERA_FOCUS)
+- [MAV_CMD_DO_AUTOTUNE_ENABLE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_AUTOTUNE_ENABLE)
+  - Disabling autotune by setting `param1` to zero is currently not supported. To abort autotune during a mission, switch to another flight mode.
+  - Axis selection specified in the MAVLink message is ignored (`param2` must be set to 0).
+    Instead, the axis bitmask defined by [`FW_AT_AXES`](../advanced_config/parameter_reference.md#FW_AT_AXES) is used.
 
 GeoFence Definitions
 
@@ -374,7 +378,7 @@ In landing mode, the distance sensor is used to determine proximity to the groun
 | [FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)     | Wing span of the airframe.                                                   |
 | [FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT) | Height of wing from bottom of gear (or belly if no gear). |
 
-## See Also
+## 另见
 
 - [Missions](../flying/missions.md)
   - [包裹投递任务](../flying/package_delivery_mission.md)

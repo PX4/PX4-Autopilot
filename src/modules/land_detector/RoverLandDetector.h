@@ -52,13 +52,13 @@ namespace land_detector
 class RoverLandDetector : public LandDetector
 {
 public:
-	RoverLandDetector() = default;
+	RoverLandDetector();
 	~RoverLandDetector() override = default;
 
 protected:
 	bool _get_ground_contact_state() override;
 	bool _get_landed_state() override;
-	void _set_hysteresis_factor(const int factor) override;
+	void _set_hysteresis_factor(const int factor) override {};
 
 private:
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};

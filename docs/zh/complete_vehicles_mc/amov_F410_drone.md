@@ -53,7 +53,7 @@ It is pre-installed with PX4 v1.15.4 at time of writing (a more recent version m
 |                          处理器                          |                                     FMU: STM32H743; IO Processor: STM32F103                                    |
 |                     Accelerometer                     |                                                               BMI055/ICM-42688-P                                                               |
 |                       Gyroscope                       |                                                               BMI055/ICM-42688-P                                                               |
-|                          磁罗盘                          |                                                                     IST8310                                                                    |
+|                          磁力计                          |                                                                     IST8310                                                                    |
 |                       Barometer                       |                                                                     MS5611                                                                     |
 |                           重量                          |                                                              59.3g                                                             |
 |                           尺寸                          |                                   Length 84.8mm × Width 44mm × Height 12.4mm                                   |

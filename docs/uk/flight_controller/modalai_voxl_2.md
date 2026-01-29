@@ -74,7 +74,6 @@ PX4 mainline supports VOXL 2 (board documentation [here](https://github.com/PX4/
 
 ## Доступність
 
-- [PX4 Autonomy Developer Kit](https://www.modalai.com/products/px4-autonomy-developer-kit)
 - [Starling 2](https://www.modalai.com/products/starling-2)
 - [Starling 2 MAX](https://www.modalai.com/products/starling-2-max)
 - [Sentinel Development Drone powered by VOXL 2](https://www.modalai.com/pages/sentinel)

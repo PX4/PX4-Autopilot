@@ -471,7 +471,7 @@
 #define PX4_I2C_BUS_MTD      4,5
 
 
-#define BOARD_NUM_IO_TIMERS 5
+#define BOARD_NUM_IO_TIMERS 4
 
 /* No CDCACM driver for this board, so this is manually defined for version.c
  * so that the px4_board_version reports the correct board id to the companion */

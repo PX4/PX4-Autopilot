@@ -68,7 +68,7 @@ fi
 
 bmi088 -A -R 4 -s start
 bmi088 -G -R 4 -s start
-iim42652 -R 6 -s start
+iim42652 -R 6 -s -C 32768 start
 icm45686 -R 2 -s start
 
 rm3100 -I -b 4 start

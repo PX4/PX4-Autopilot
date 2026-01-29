@@ -47,8 +47,6 @@ MecanumPosControl::MecanumPosControl(ModuleParams *parent) : ModuleParams(parent
 void MecanumPosControl::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
-
 }
 
 void MecanumPosControl::updatePosControl()
@@ -89,10 +87,6 @@ void MecanumPosControl::updatePosControl()
 			rover_speed_setpoint.speed_body_x = velocity_in_body_frame(0);
 			rover_speed_setpoint.speed_body_y = velocity_in_body_frame(1);
 			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
-			rover_attitude_setpoint_s rover_attitude_setpoint{};
-			rover_attitude_setpoint.timestamp = timestamp;
-			rover_attitude_setpoint.yaw_setpoint = _yaw_setpoint;
-			_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
 		} else {
 			rover_speed_setpoint_s rover_speed_setpoint{};
@@ -100,10 +94,6 @@ void MecanumPosControl::updatePosControl()
 			rover_speed_setpoint.speed_body_x = 0.f;
 			rover_speed_setpoint.speed_body_y = 0.f;
 			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
-			rover_attitude_setpoint_s rover_attitude_setpoint{};
-			rover_attitude_setpoint.timestamp = timestamp;
-			rover_attitude_setpoint.yaw_setpoint = _vehicle_yaw;
-			_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
 			if (!_stopped && fabsf(_vehicle_speed) < FLT_EPSILON) {
 				_stopped = true;
@@ -124,7 +114,6 @@ void MecanumPosControl::updateSubscriptions()
 		vehicle_attitude_s vehicle_attitude{};
 		_vehicle_attitude_sub.copy(&vehicle_attitude);
 		_vehicle_attitude_quaternion = matrix::Quatf(vehicle_attitude.q);
-		_vehicle_yaw = matrix::Eulerf(_vehicle_attitude_quaternion).psi();
 	}
 
 	if (_vehicle_local_position_sub.updated()) {

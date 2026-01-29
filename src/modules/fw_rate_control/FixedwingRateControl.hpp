@@ -34,9 +34,11 @@
 #pragma once
 
 #include <lib/rate_control/rate_control.hpp>
+#include <lib/rate_control/gain_compression.hpp>
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -132,6 +134,9 @@ private:
 
 	hrt_abstime _last_run{0};
 
+	static constexpr float _kAirspeedFilterTimeConstant{1.f};
+	AlphaFilter<float> _airspeed_filter_for_torque_scaling{_kAirspeedFilterTimeConstant};
+
 	float _airspeed_scaling{1.0f};
 
 	bool _landed{true};
@@ -208,6 +213,7 @@ private:
 	)
 
 	RateControl _rate_control; ///< class for rate control calculations
+	GainCompression3d _gain_compression{this};
 
 	void updateActuatorControlsStatus(float dt);
 
@@ -219,5 +225,5 @@ private:
 	void		vehicle_manual_poll();
 	void		vehicle_land_detected_poll();
 
-	float 		get_airspeed_and_update_scaling();
+	float 		get_airspeed_and_update_scaling(float dt);
 };

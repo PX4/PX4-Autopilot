@@ -83,6 +83,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_DO_MOUNT_CONTROL:
 	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 	case NAV_CMD_COMPONENT_ARM_DISARM:
+	case NAV_CMD_DO_AUTOTUNE_ENABLE:
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_DO_SET_ROI_LOCATION:
 	case NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET:
@@ -1027,10 +1028,18 @@ void MissionBlock::updateFailsafeChecks()
 void MissionBlock::updateMaxHaglFailsafe()
 {
 	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
+	const float max_alt = math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy);
+	const float terrain_alt = _navigator->get_global_position()->terrain_alt;
+	const bool terrain_alt_valid = _navigator->get_global_position()->terrain_alt_valid;
 
-	if (_navigator->get_global_position()->terrain_alt_valid
-	    && ((target_alt - _navigator->get_global_position()->terrain_alt)
-		> math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy))) {
+	// If the HAGL failsafe is declared during front transition, we enter a
+	// FW hold at the current low altitude while not having finished the
+	// transition. This is dangerous and worse than possibly fusing neither
+	// optical flow nor airspeed for a couple seconds, so we bypass the
+	// failsafe here.
+	const bool in_transition_to_fw = _navigator->get_vstatus()->in_transition_to_fw;
+
+	if (!in_transition_to_fw && terrain_alt_valid && (target_alt - terrain_alt) > max_alt) {
 		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
 		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");

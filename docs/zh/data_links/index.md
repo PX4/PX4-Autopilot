@@ -12,6 +12,6 @@ PX4 使用 [MAVLink](https://mavlink.io/en/) 协议在无线电频道上传送�
 - [TBS Crossfire (CRSF) Telemetry](../telemetry/crsf_telemetry.md) — TBS Crossfire 接收机上的遥测
 - [Satellite Comms (Iridium/RockBlock)](../advanced_features/satcom_roadblock.md) — 高延迟卫星通信
 
-## See Also
+## 另见
 
 - [安全配置 > 数据连接丢失的失效保护](../config/safety.md#data-link-loss-failsafe)

@@ -20,6 +20,7 @@ Order this module from:
     - Multi-band RTK with fast convergence times and reliable performance
     - High update rate for highly dynamic applications
     - Centimetre accuracy in a small and energy efficient module
+    - Moving Base for Heading
   - Bosch BMM150 Magnetometer
   - Bosch BMP388 Barometer
   - Invensense ICM-42688-P 6-Axis IMU
@@ -200,6 +201,6 @@ ARK RTK GPS comes with the Ublox F9P module up to date with version 1.13 or newe
   - "Firmware Update SUCCESS" should be displayed if it updated successfully
     ![Firmware Update](../../assets/hardware/gps/ark/ark_rtk_gps_ublox_f9p_firmware_update.png)
 
-## See Also
+## 另见
 
 - [ARK RTK GPS Documentation](https://arkelectron.gitbook.io/ark-documentation/sensors/ark-rtk-gps) (ARK Docs)

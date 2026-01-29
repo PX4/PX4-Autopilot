@@ -85,7 +85,8 @@
 /*
  * IUavcanSensorBridge
  */
-void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list)
+void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list,
+				   NodeInfoPublisher *node_info_publisher)
 {
 	// airspeed
 #if defined(CONFIG_UAVCAN_SENSOR_AIRSPEED)
@@ -93,7 +94,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_ASPD"), &uavcan_sub_aspd);
 
 	if (uavcan_sub_aspd != 0) {
-		list.add(new UavcanAirspeedBridge(node));
+		list.add(new UavcanAirspeedBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -104,7 +105,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_BARO"), &uavcan_sub_baro);
 
 	if (uavcan_sub_baro != 0) {
-		list.add(new UavcanBarometerBridge(node));
+		list.add(new UavcanBarometerBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -115,7 +116,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_BAT"), &uavcan_sub_bat);
 
 	if (uavcan_sub_bat != 0) {
-		list.add(new UavcanBatteryBridge(node));
+		list.add(new UavcanBatteryBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -126,7 +127,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_DPRES"), &uavcan_sub_dpres);
 
 	if (uavcan_sub_dpres != 0) {
-		list.add(new UavcanDifferentialPressureBridge(node));
+		list.add(new UavcanDifferentialPressureBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -137,7 +138,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_FLOW"), &uavcan_sub_flow);
 
 	if (uavcan_sub_flow != 0) {
-		list.add(new UavcanFlowBridge(node));
+		list.add(new UavcanFlowBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -159,7 +160,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_GPS"), &uavcan_sub_gps);
 
 	if (uavcan_sub_gps != 0) {
-		list.add(new UavcanGnssBridge(node));
+		list.add(new UavcanGnssBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -170,7 +171,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_GPS_R"), &uavcan_sub_gps_rel);
 
 	if (uavcan_sub_gps_rel != 0) {
-		list.add(new UavcanGnssRelativeBridge(node));
+		list.add(new UavcanGnssRelativeBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -181,7 +182,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_HYGRO"), &uavcan_sub_hygro);
 
 	if (uavcan_sub_hygro != 0) {
-		list.add(new UavcanHygrometerBridge(node));
+		list.add(new UavcanHygrometerBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -203,8 +204,8 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_IMU"), &uavcan_sub_imu);
 
 	if (uavcan_sub_imu != 0) {
-		list.add(new UavcanAccelBridge(node));
-		list.add(new UavcanGyroBridge(node));
+		list.add(new UavcanAccelBridge(node, node_info_publisher));
+		list.add(new UavcanGyroBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -215,7 +216,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_MAG"), &uavcan_sub_mag);
 
 	if (uavcan_sub_mag != 0) {
-		list.add(new UavcanMagnetometerBridge(node));
+		list.add(new UavcanMagnetometerBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -226,7 +227,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	param_get(param_find("UAVCAN_SUB_RNG"), &uavcan_sub_rng);
 
 	if (uavcan_sub_rng != 0) {
-		list.add(new UavcanRangefinderBridge(node));
+		list.add(new UavcanRangefinderBridge(node, node_info_publisher));
 	}
 
 #endif
@@ -315,7 +316,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 	(void)orb_publish(_orb_topic, channel->orb_advert, report);
 }
 
-uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id)
+uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id, uint8_t iface_index)
 {
 	uavcan_bridge::Channel *channel = nullptr;
 
@@ -353,6 +354,7 @@ uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id
 
 		// initialize the driver, which registers the class device name and uORB publisher
 		channel->node_id = node_id;
+		channel->iface_index = iface_index;
 		int ret = init_driver(channel);
 
 		if (ret != PX4_OK) {

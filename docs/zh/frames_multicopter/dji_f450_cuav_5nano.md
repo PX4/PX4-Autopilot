@@ -43,8 +43,8 @@ This section lists all hardware for the frame.
 | DJI F450 Bottom plate                                             | 1        |
 | DJI F450 Top plate                                                | 1        |
 | DJI F450 legs with landing gear                                   | 4        |
-| M3\*8 screws                                                      | 18       |
-| M2 5\*6 screws                                                    | 24       |
+| M3\*8螺丝                                                           | 18       |
+| M2.5\*6 螺丝                                        | 24       |
 | Velcro Battery Strap                                              | 1        |
 | DJI Phantom Built-in Nut Upgrade Propellers 9.4x5 | 1        |
 

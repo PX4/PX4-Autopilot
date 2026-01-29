@@ -27,6 +27,7 @@ This section provides information about a number of power modules and power dist
 - Цифрові (I2C) модулі напруги та поточного живлення (для контролерів, похідних від Pixhawk FMUv6X та FMUv5X):
   - [ARK PAB Power Module](../power_module/ark_pab_power_module.md)
   - [ARK 12S PAB Power Module](../power_module/ark_12s_pab_power_module.md)
+  - [ARK 12S Payload Power Module](../power_module/ark_12s_payload_power_module.md)
   - [Holybro PM02D](../power_module/holybro_pm02d.md)
   - [Holybro PM03D](../power_module/holybro_pm03d.md)
 - [DroneCAN](../dronecan/index.md) power modules

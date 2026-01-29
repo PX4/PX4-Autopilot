@@ -27,6 +27,8 @@ DroneCAN was previously known as UAVCAN v0 (or just UAVCAN).
 - Проводка менше складна, оскільки ви можете мати один шину для підключення всіх ваших ESC і інших периферійних пристроїв DroneCAN.
 - Налаштування стає простіше, оскільки ви налаштовуєте нумерацію ESC, обертаючи кожен двигун вручну.
 - Це дозволяє користувачам налаштовувати та оновлювати прошивку всіх пристроїв, підключених через CAN, централізовано через PX4.
+- PX4 automatically tracks device information (vendor, model, versions, serial numbers) for maintenance and fleet management.
+  See [Asset Tracking](../debug/asset_tracking.md).
 
 ## Підтримуване обладнання
 
@@ -67,6 +69,8 @@ DroneCAN was previously known as UAVCAN v0 (or just UAVCAN).
   - [RaccoonLab RM3100 Magnetometer](https://docs.raccoonlab.co/guide/gps_mag_baro/mag_rm3100.html)
 
 - Датчики відстані
+  - [ARK Dist](ark_dist.md)
+  - [Ark Dist MR](ark_dist_mr.md)
   - [ARK Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)

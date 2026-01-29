@@ -306,7 +306,7 @@ void TemperatureCompensationModule::Run()
 				}
 
 				if (got_temperature_calibration_command) {
-					int ret = run_temperature_calibration(accel, baro, gyro, mag);
+					int ret = run_temperature_calibration(accel, gyro, mag, baro);
 
 					// publish ACK
 					vehicle_command_ack_s command_ack{};

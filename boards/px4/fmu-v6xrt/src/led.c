@@ -92,7 +92,7 @@ static bool phy_get_led(int led)
 {
 
 	if (g_ledmap[led] != 0) {
-		return imxrt_gpio_read(!g_ledmap[led]);
+		return !imxrt_gpio_read(g_ledmap[led]);
 	}
 
 	return false;

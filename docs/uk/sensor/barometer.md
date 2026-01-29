@@ -30,17 +30,51 @@ Note that the supported barometer part numbers can be inferred from the driver n
 - Change the selection order of barometers using the [CAL_BAROx_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO) parameters for each barometer.
 - Disable a barometer by setting its [CAL_BAROx_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO) value to `0`.
 
-## Калібрування
+## Baro Auto-Calibration (Developers)
 
-Барометри не потребують калібрування.
+:::tip
+This section documents the automated calibration mechanisms that ensure accurate altitude measurements throughout flight operations.
+It is intended primarily for a developer audience who want to understand the underlying mechanisms.
+:::
 
-<!-- Notes:
-- Absolute value isn't important since we just use the difference in altitude between "now" and the value when initializing EKF2
-- There is usually a scale factor error but it's compensated by the GNSS altitude using a bias estimator in EKF2 (we don't provide a way to calibrate that). This method is fine as long as the height change of the drone isn't too fast (below 200-300km/h probably; don't have real data on that).
-- The baro readings can be corrected using a param SENS_BARO_QNH (https://en.wikipedia.org/wiki/Altimeter_setting) parameter, but again, it is only necessary to adjust it if the absolute barometric altitude is required by the pilot.
--->
+The system implements two complementary calibration approaches that work together to maintain altitude measurement precision.
+Both calibrations are initiated at the beginning after a system boot.
+Relative calibration is performed first, followed by GNSS-barometric calibration.
 
-## Інформація для розробників
+### Relative Calibration
+
+Relative baro calibration is **always enabled** and operates automatically during system initialization.
+This calibration establishes offset corrections for all secondary baro sensors relative to the primary (selected) sensor.
+
+This calibration:
+
+- Eliminates altitude jumps when switching between baro sensors during flight.
+- Ensures consistent altitude readings across all available baro sensors.
+- Maintains seamless sensor redundancy and failover capability.
+
+### GNSS-Baro Calibration
+
+:::info
+GNSS-baro calibration requires an operational GNSS receiver with vertical accuracy (EPV) ≤ 8 meters.
+Relative calibration must already have completed.
+:::
+
+GNSS-baro calibration adjusts baro sensor offsets to align with absolute altitude measurements from the GNSS receiver.
+This calibration is controlled by the [SENS_BAR_AUTOCAL](../advanced_config/parameter_reference.md#SENS_BAR_AUTOCAL) parameter (enabled by default).
+
+The algorithm monitors GNSS quality, collects altitude differences over a 2-second filtered window, and verifies stability within 4m tolerance.
+Once stable, it uses binary search to calculate pressure offsets that align baro altitude with GNSS altitude (0.1m precision), then applies the offset to all sensors and saves the parameters.
+
+Примітки:
+
+- **EKF Independence**: GNSS-baro calibration operates independently of EKF2 altitude fusion settings.
+- **Execution Timing**: Calibration runs even when [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) altitude fusion is disabled.
+- **One-Time Process**: Each calibration session completes once per system startup.
+- **Persistence**: Calibration offsets are saved to parameters and persist across reboots.
+- **Faulty GNSS Vulnerability**: If GNSS data is faulty during boot, the calibration will use incorrect altitude reference.
+  See [Faulty GNSS Data During Boot](../advanced_config/tuning_the_ecl_ekf.md#faulty-gnss-data-during-boot) for mitigation strategies.
+
+## Дивіться також
 
 - [Baro driver source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer)
 - [Modules Reference: Baro (Driver)](../modules/modules_driver_baro.md) documentation.

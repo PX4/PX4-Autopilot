@@ -64,11 +64,11 @@ public:
 	float get_body_rate_setpoint() { return _body_rate_setpoint; }
 
 private:
-	float _tc;
-	float _max_rate_pos;
-	float _max_rate_neg;
-	float _euler_rate_setpoint;
-	float _body_rate_setpoint;
+	float _tc{};
+	float _max_rate_pos{};
+	float _max_rate_neg{};
+	float _euler_rate_setpoint{};
+	float _body_rate_setpoint{};
 };
 
 #endif // FW_PITCH_CONTROLLER_H

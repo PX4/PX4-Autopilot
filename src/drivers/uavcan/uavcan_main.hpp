@@ -45,6 +45,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include "node_info.hpp"
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
 #include "actuators/esc.hpp"
@@ -135,6 +136,8 @@ public:
 
 	MixingOutput &mixingOutput() { return _mixing_output; }
 
+	bool isActuatorTestRunning() const { return _mixing_output.isActuatorTestRunning(); }
+
 protected:
 	void Run() override;
 private:
@@ -199,7 +202,7 @@ class UavcanNode : public px4::ScheduledWorkItem, public ModuleParams
 	 *  1000000/200
 	 */
 
-	static constexpr unsigned RxQueueLenPerIface	= FramePerMSecond * ScheduleIntervalMs; // At
+	static constexpr unsigned RxQueueLenPerIface	= FramePerMSecond * ScheduleIntervalMs;
 
 public:
 	typedef UAVCAN_DRIVER::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
@@ -291,6 +294,7 @@ private:
 	uavcan::NodeStatusMonitor	_node_status_monitor;
 
 	uavcan::NodeInfoRetriever   _node_info_retriever;
+	NodeInfoPublisher           _node_info_publisher;
 
 	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
 

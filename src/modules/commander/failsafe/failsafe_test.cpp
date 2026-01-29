@@ -35,6 +35,7 @@
 
 #include "framework.h"
 #include <uORB/topics/vehicle_status.h>
+#include "../ModeUtil/mode_requirements.hpp"
 
 // to run: make tests TESTFILTER=failsafe_test
 
@@ -50,16 +51,16 @@ protected:
 	void checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			       const failsafe_flags_s &status_flags) override
 	{
-		CHECK_FAILSAFE(status_flags, manual_control_signal_lost,
-			       ActionOptions(Action::RTL).clearOn(ClearCondition::OnModeChangeOrDisarm));
+		CHECK_FAILSAFE(status_flags, manual_control_signal_lost, ActionOptions(Action::RTL).clearOn(ClearCondition::OnModeChangeOrDisarm));
 		CHECK_FAILSAFE(status_flags, gcs_connection_lost, Action::Descend);
 
 		if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 			CHECK_FAILSAFE(status_flags, mission_failure, Action::Descend);
 		}
 
-		CHECK_FAILSAFE(status_flags, wind_limit_exceeded,
-			       ActionOptions(Action::RTL).allowUserTakeover(UserTakeoverAllowed::Never));
+		CHECK_FAILSAFE(status_flags, wind_limit_exceeded, ActionOptions(Action::RTL).allowUserTakeover(UserTakeoverAllowed::Never));
+		CHECK_FAILSAFE(status_flags, battery_low_remaining_time, ActionOptions(Action::RTL).causedBy(Cause::RemainingFlightTimeLow));
+		CHECK_FAILSAFE(status_flags, offboard_control_signal_lost, ActionOptions(Action::Hold));
 
 		_last_state_test = checkFailsafe(_caller_id_test, _last_state_test, status_flags.fd_motor_failure
 						 && status_flags.fd_critical_failure, ActionOptions(Action::Terminate).cannotBeDeferred());
@@ -256,6 +257,77 @@ TEST_F(FailsafeTest, takeover_denied)
 	stick_override_request = false;
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+}
+
+TEST_F(FailsafeTest, can_takeover_degraded_failsafe)
+{
+	FailsafeTester failsafe(nullptr);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(state.vehicle_type, failsafe_flags); // Load mode requirements to degrade without valid position estimate
+	bool user_intended_mode_updated = false;
+
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+
+	// Battery time low -> Hold for the delay
+	time += 10_ms;
+	failsafe_flags.battery_low_remaining_time = true;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	// Delay over -> RTL
+	time += 5_s;
+	failsafe_flags.battery_low_remaining_time = true;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Global position gets invalid -> Land
+	time += 10_ms;
+	failsafe_flags.global_position_invalid = true;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Land);
+
+	// User wants takeover -> Altitude mode + Warning
+	time += 10_ms;
+	user_intended_mode_updated = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
+	ASSERT_TRUE(failsafe.userTakeoverActive());
+}
+
+TEST_F(FailsafeTest, no_immediate_takeover_when_failsafe_on_mode_switch)
+{
+	FailsafeTester failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+	bool user_intended_mode_updated = false;
+
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+
+	// Switch to offboard but no offboard signal -> No immediate user takeover flagged but rather Hold
+	time += 10_ms;
+	user_intended_mode_updated = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+	failsafe_flags.offboard_control_signal_lost = true;
+	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	ASSERT_FALSE(failsafe.userTakeoverActive());
 }
 
 TEST_F(FailsafeTest, defer)

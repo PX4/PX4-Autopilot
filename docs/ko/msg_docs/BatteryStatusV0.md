@@ -32,9 +32,9 @@ uint8 cell_count # [@invalid 0] Number of cells
 
 
 uint8 source # [@enum SOURCE] Battery source
-uint8 SOURCE_POWER_MODULE = 0 # Power module
-uint8 SOURCE_EXTERNAL = 1 # External
-uint8 SOURCE_ESCS = 2 # ESCs
+uint8 SOURCE_POWER_MODULE = 0 # Power module (analog ADC or I2C power monitor)
+uint8 SOURCE_EXTERNAL = 1 # External (MAVLink, CAN, or external driver)
+uint8 SOURCE_ESCS = 2 # ESCs (via ESC telemetry)
 
 uint8 priority # Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
 uint16 capacity # [mAh] Capacity of the battery when fully charged

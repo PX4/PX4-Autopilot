@@ -80,7 +80,7 @@ The following tools were used for this build.
 - 3D-Printer
 - [Blue Loctite](https://www.amazon.com/Loctite-Heavy-Duty-Threadlocker-Single/dp/B000I1RSNS?th=1)
 
-## Hardware Integration
+## 硬件集成
 
 In this documentation the integration of a Auterion Skynode is described.
 The installation of a Pixhawk can be done similarly.

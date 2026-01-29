@@ -297,6 +297,6 @@ Order this module from:
 | 21         | SDA0                                                | 3.3V |
 | 22         | 3.3V_RPI       | 3.3V |
 
-## See Also
+## 另见
 
 - [ARK Pi6X Flow Documentation](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-pi6x-flow) (ARK Docs)

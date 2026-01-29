@@ -38,7 +38,6 @@
 #include <px4_platform_common/module_params.h>
 #include <lib/slew_rate/SlewRate.hpp>
 
-static constexpr float kFlapSlewRate = 0.5f; // slew rate for normalized flaps setpoint [1/s]
 static constexpr float kSpoilersSlewRate = 0.5f; // slew rate for normalized spoilers setpoint [1/s]
 
 class ActuatorEffectivenessControlSurfaces : public ModuleParams, public ActuatorEffectiveness
@@ -111,4 +110,7 @@ private:
 
 	SlewRate<float> _flaps_setpoint_with_slewrate;
 	SlewRate<float> _spoilers_setpoint_with_slewrate;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::CA_SV_FLAP_SLEW>) _param_ca_flap_slew
+	)
 };

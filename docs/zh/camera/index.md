@@ -14,7 +14,7 @@ PX4 integrates with three types of cameras:
 推荐[MAVLink 摄像头](../camera/mavlink_v2_camera.md)，因为它们使用简单一致的命令/消息集提供了最广泛的相机功能访问。
 如果相机不支持该协议，则可以在一台机载计算机上运行[摄像机管理器](../camera/mavlink_v2_camera.md#camera-managers)以在 MAVLink 和相机的本机协议之间进行接口交互。
 
-## See Also
+## 另见
 
 - [云台(相机支架)](../advanced/gimbal_control.md)
 - [相机集成/架构](../camera/camera_architecture.md) ( PX4 开发者)

@@ -414,11 +414,9 @@ private:
 
 	uint64_t _filter_control_status{0};
 	uint32_t _filter_fault_status{0};
-	uint32_t _innov_check_fail_status{0};
 
 	uint32_t _filter_control_status_changes{0};
 	uint32_t _filter_fault_status_changes{0};
-	uint32_t _innov_check_fail_status_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
@@ -489,6 +487,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
 		(ParamExtFloat<px4::params::EKF2_VEL_LIM>) _param_ekf2_vel_lim,
+		(ParamBool<px4::params::EKF2_ENGINE_WRM>) _param_ekf2_engine_wrm,
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)

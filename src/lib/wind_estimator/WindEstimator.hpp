@@ -139,6 +139,10 @@ private:
 	uint64_t _time_last_airspeed_fuse = 0;	///< timestamp of last airspeed fusion
 	uint64_t _time_last_beta_fuse = 0;	///< timestamp of last sideslip fusion
 	uint64_t _time_last_update = 0;		///< timestamp of last covariance prediction
+	uint64_t _time_initialised = 0;         ///< timestamp when estimator is initialised
+
+	static constexpr float kTASScalePSDMultiplier = 100;
+	static constexpr hrt_abstime kTASScaleFastLearnTime = 300_s;
 
 	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
 

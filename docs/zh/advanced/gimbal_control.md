@@ -74,7 +74,7 @@ The output pins that are used to control the gimbal are set in the [Acuator Conf
 
 ![Gimbal Actuator config](../../assets/config/actuators/qgc_actuators_gimbal.png)
 
-The PWM values to use for the disarmed, maximum and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low and high position in the slider.
+The PWM values to use for the disarmed, maximum, center and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low, center and high position in the slider.
 这些数值也可以在云台文档中提供。
 
 ## Gimbal Control in Missions

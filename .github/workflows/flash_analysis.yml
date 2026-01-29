@@ -54,6 +54,7 @@ jobs:
         run: |
           make clean
           make distclean
+          make submodulesclean
 
       - name: If it's a PR checkout the base branch
         if: ${{ github.event.pull_request }}

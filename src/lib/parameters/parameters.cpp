@@ -438,7 +438,7 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 	if (user_config.store(param, new_value)) {
-		params_unsaved.set(param, !mark_saved);
+		params_unsaved.set(param, !mark_saved && param_changed);
 		result = PX4_OK;
 
 	} else {

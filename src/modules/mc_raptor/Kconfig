@@ -1,0 +1,12 @@
+menuconfig MODULES_MC_RAPTOR
+	bool "mc_raptor"
+	default n
+	---help---
+		Enable support for mc_raptor
+
+menuconfig USER_MC_RAPTOR
+	bool "mc_raptor running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_MC_RAPTOR
+	---help---
+		Put mc_raptor in userspace memory

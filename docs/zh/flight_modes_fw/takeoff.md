@@ -49,8 +49,8 @@ If the local position is invalid or becomes invalid while executing the takeoff,
 
 ::: info
 
-- Takeoff towards a target position was added in <Badge type="tip" text="main (planned for: PX4 v1.17)" />.
-- Holding wings level and ascending to clearance attitude when local position is invalid during takeoff was added in <Badge type="tip" text="main (planned for: PX4 v1.17)" />.
+- Takeoff towards a target position was added in <Badge type="tip" text="PX4 v1.17" />.
+- Holding wings level and ascending to clearance attitude when local position is invalid during takeoff was added in <Badge type="tip" text="PX4 v1.17" />.
 - QGroundControl does not support `MAV_CMD_NAV_TAKEOFF` (at time of writing).
 
 :::
@@ -142,7 +142,7 @@ Runway takeoff is affected by the following parameters:
 | <a id="FW_WING_SPAN"></a>[FW_WING_SPAN](../advanced_config/parameter_reference.md#FW_WING_SPAN)          | The wingspan of the vehicle. Used to prevent wingstrikes.                                                                                                                                    |
 | <a id="FW_WING_HEIGHT"></a>[FW_WING_HEIGHT](../advanced_config/parameter_reference.md#FW_WING_HEIGHT)    | The height of the wings above ground (ground clearance). Used to prevent wingstrikes.                                                                                     |
 
-## See Also
+## 另见
 
 - [Takeoff Mode (MC)](../flight_modes_mc/takeoff.md)
 - [Planning a mission takeoff](../flight_modes_fw/mission.md#mission-takeoff)

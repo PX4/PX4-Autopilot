@@ -179,4 +179,4 @@ The method creates a simulated transponder message near the vehicle, using follo
 ## 更多信息
 
 - [MAVLink Peripherals](../peripherals/mavlink_peripherals.md)
-- [Serial Port Configuration](../peripherals/serial_configuration.md)
+- [串口配置](../peripherals/serial_configuration.md)

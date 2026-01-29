@@ -65,6 +65,8 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 
 				rsync.tc1 = now * 1000ULL;
 				rsync.ts1 = tsync.ts1;
+				rsync.target_component = msg->compid;
+				rsync.target_system = msg->sysid;
 
 				mavlink_msg_timesync_send_struct(_mavlink.get_channel(), &rsync);
 

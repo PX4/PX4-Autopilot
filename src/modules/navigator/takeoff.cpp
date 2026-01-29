@@ -203,6 +203,8 @@ Takeoff::set_takeoff_position()
 	}
 
 	if (!PX4_ISFINITE(_loiter_altitude_msl)) {
+		_loiter_altitude_msl = takeoff_altitude_amsl;
+
 		if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
 			_loiter_altitude_msl = math::max(_loiter_altitude_msl, takeoff_altitude_amsl + _navigator->get_loiter_min_alt());
 
