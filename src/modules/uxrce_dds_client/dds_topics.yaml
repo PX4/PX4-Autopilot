@@ -110,6 +110,20 @@ publications:
     type: px4_msgs::msg::GimbalDeviceAttitudeStatus
     rate_limit: 20.
 
+  # Parameter Manager topics for ROS2 parameter bridge
+  - topic: /fmu/out/parameter_name_response
+    type: px4_msgs::msg::ParameterNameResponse
+
+  - topic: /fmu/out/parameter_list_response
+    type: px4_msgs::msg::ParameterListResponse
+
+  - topic: /fmu/out/parameter_set_value_response
+    type: px4_msgs::msg::ParameterSetValueResponse
+
+  - topic: /fmu/out/parameter_update
+    type: px4_msgs::msg::ParameterUpdate
+    rate_limit: 1.
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -225,6 +239,16 @@ subscriptions:
 
   - topic: /fmu/in/landing_gear
     type: px4_msgs::msg::LandingGear
+
+  # Parameter Manager topics for ROS2 parameter bridge
+  - topic: /fmu/in/parameter_name_request
+    type: px4_msgs::msg::ParameterNameRequest
+
+  - topic: /fmu/in/parameter_list_request
+    type: px4_msgs::msg::ParameterListRequest
+
+  - topic: /fmu/in/parameter_set_value_request
+    type: px4_msgs::msg::ParameterSetValueRequest
 
 # Create uORB::PublicationMulti
 subscriptions_multi:
