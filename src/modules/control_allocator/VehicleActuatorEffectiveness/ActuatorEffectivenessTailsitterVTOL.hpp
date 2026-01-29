@@ -75,6 +75,7 @@ public:
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index, ActuatorVector &actuator_sp,
 			    const ActuatorVector &actuator_min, const ActuatorVector &actuator_max) override;
 
+	void updateParams() override;
 
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
@@ -87,6 +88,16 @@ protected:
 	uint32_t _forwards_motors_mask{};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
+
+	struct ParamHandles {
+		param_t vt_elev_mc_lock;
+		param_t vt_ts_cs_hvr_dis;
+	} _param_handles{};
+
+	int32_t _param_vt_elev_mc_lock{1}; ///< Lock control surfaces in hover (default: locked)
+	int32_t _param_vt_ts_cs_hvr_dis{0}; ///< Bitmask to disable specific surfaces in hover (only effective when VT_ELEV_MC_LOCK=0)
+
+	bool _control_surfaces_updated{false}; ///< flag to trigger matrix update when flight phase changes
 
 	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
 	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
