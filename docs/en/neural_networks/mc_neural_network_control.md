@@ -23,7 +23,9 @@ This document explains how you can include the module in your PX4 build, and pro
 The other documents in the section provide more information about the integration, allowing you to replace the NN with a version trained on different data, or even to replace the TLFM library altogether.
 
 ::: tip
-If you are looking for more resources to learn about the module, a website has been created with links to a youtube video and a workshop paper: [A Neural Network Mode for PX4 on Embedded Flight Controllers](https://ntnu-arl.github.io/px4-nns/). The module was created as a masters thesis, the full thesis can be found here [Deep Reinforcement Learning for Embedded Control Policies for Aerial Vehicles](https://nva.sikt.no/registration/019b26689144-efeebae8-84d6-4413-ad7f-9aceb4ff7374) (The webpage is in Norwegian, but the thesis is in English).
+For more information, see the Masters thesis from which this module was created: [Deep Reinforcement Learning for Embedded Control Policies for Aerial Vehicles](https://nva.sikt.no/registration/019b26689144-efeebae8-84d6-4413-ad7f-9aceb4ff7374).
+
+In addition, the (Norwegian) website [A Neural Network Mode for PX4 on Embedded Flight Controllers](https://ntnu-arl.github.io/px4-nns/) has a youtube video and a workshop paper .
 :::
 
 ## Neural Network PX4 Firmware
