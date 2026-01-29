@@ -168,6 +168,10 @@ jobs:
     outputs:
       uploadlocation: ${{ steps.upload-location.outputs.uploadlocation }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: Tools/manifest
+
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -202,6 +206,25 @@ jobs:
           fi
 
           echo "uploadlocation=$location" >> $GITHUB_OUTPUT
+
+      - name: Generate Release Manifest
+        run: |
+          # Generate a manifest of all .px4 firmware files for this release
+          version="${{ steps.upload-location.outputs.uploadlocation }}"
+          git_tag=""
+          base_url=""
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            git_tag="${GITHUB_REF#refs/tags/}"
+            base_url="https://github.com/${{ github.repository }}/releases/download/${git_tag}"
+          fi
+
+          python3 ./Tools/manifest/gen_release_manifest.py \
+            --dir artifacts/ \
+            --version "$version" \
+            --git-tag "$git_tag" \
+            --base-url "$base_url" \
+            --out artifacts/release_manifest.json
 
       - name: Uploading Artifacts to S3 [${{ steps.upload-location.outputs.uploadlocation }}]
         uses: jakejarvis/s3-sync-action@master
@@ -238,5 +261,55 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           draft: true
-          files: artifacts/*.px4
+          files: |
+            artifacts/*.px4
+            artifacts/release_manifest.json
           name: ${{ steps.upload-location.outputs.uploadlocation }}
+
+      # Update the top-level firmware index with this release
+      # The index lives at s3://px4-travis/Firmware/index.json and provides
+      # a lightweight list of all available releases for tools like QGroundControl
+      - name: Backup Existing Firmware Index
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          s3_base="https://px4-travis.s3.us-west-1.amazonaws.com/Firmware"
+          mkdir -p index_backup
+          # Download existing index for backup (may not exist for first release)
+          curl -sf "${s3_base}/index.json" -o index_backup/index.json.backup || echo "No existing index to backup"
+          if [ -f index_backup/index.json.backup ]; then
+            echo "Backed up existing firmware index ($(wc -c < index_backup/index.json.backup) bytes)"
+          fi
+
+      - name: Upload Firmware Index Backup
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware_index_backup_${{ steps.upload-location.outputs.uploadlocation }}
+          path: index_backup/
+          if-no-files-found: ignore
+          retention-days: 90
+
+      - name: Update Firmware Index
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          git_tag="${GITHUB_REF#refs/tags/}"
+          build_count=$(ls artifacts/*.px4 2>/dev/null | wc -l)
+          s3_base="https://px4-travis.s3.us-west-1.amazonaws.com/Firmware"
+
+          python3 ./Tools/manifest/update_firmware_index.py \
+            --version "$git_tag" \
+            --git-tag "$git_tag" \
+            --build-count "$build_count" \
+            --manifest-url "https://github.com/${{ github.repository }}/releases/download/${git_tag}/release_manifest.json" \
+            --s3-manifest-url "${s3_base}/${git_tag}/release_manifest.json" \
+            --fetch-url "${s3_base}/index.json" \
+            --out index.json
+
+      - name: Upload Firmware Index to S3
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          aws s3 cp index.json s3://px4-travis/Firmware/index.json --acl public-read
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-west-1'
