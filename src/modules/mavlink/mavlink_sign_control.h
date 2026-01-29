@@ -45,6 +45,9 @@
 #define MAVLINK_FOLDER_PATH MAVLINK_SD_ROOT_PATH"/mavlink"
 #define MAVLINK_SECRET_FILE MAVLINK_FOLDER_PATH"/.secret"
 
+#define MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH = 8; ///< size of timestamp in bytes
+#define MAVLINK_SECRET_KEY_LENGTH = 32; ///< size of key in bytes
+
 #include "mavlink_receiver.h"
 
 class Mavlink;
@@ -89,7 +92,7 @@ private:
 	/**
 	 * Checks whether the key has been initialized
 	 */
-	bool is_signing_initialized;
+	bool _is_signing_initialized;
 };
 
 
