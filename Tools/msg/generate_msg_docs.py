@@ -229,8 +229,14 @@ class UORBMessage:
     def markdown_out(self):
         #print(f"Debug: UORBMessage: markdown_out()")
 
-        markdown = f"# {self.name} (UORB message)\n\n"
+        # Add page header (forces wide pages)
+        markdown = f"""---
+pageClass: is-wide-page
+---
 
+# {self.name} (UORB message)
+
+"""
         ## Append description info if present
         markdown += f"{self.shortDescription}\n\n" if self.shortDescription else ""
         markdown += f"{self.longDescription}\n\n" if self.longDescription else ""
@@ -733,7 +739,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 {unversioned_msgs_list}
     """
     index_file = os.path.join(output_dir, 'index.md')
-    with open(index_file, 'w') as content_file:
+    with open(index_file, 'w', encoding='utf-8') as content_file:
             content_file.write(index_text)
 
     generate_dds_yaml_doc(msg_files)
