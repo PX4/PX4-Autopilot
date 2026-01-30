@@ -44,13 +44,24 @@ using namespace matrix;
 ActuatorEffectivenessTailsitterVTOL::ActuatorEffectivenessTailsitterVTOL(ModuleParams *parent)
 	: ModuleParams(parent), _mc_rotors(this), _control_surfaces(this)
 {
+	_param_handles.vt_elev_mc_lock = param_find("VT_ELEV_MC_LOCK");
+	_param_handles.vt_ts_cs_hvr_dis = param_find("VT_TS_CS_HVR_DIS");
+	updateParams();
 	setFlightPhase(FlightPhase::HOVER_FLIGHT);
 }
+
+void ActuatorEffectivenessTailsitterVTOL::updateParams()
+{
+	ModuleParams::updateParams();
+	param_get(_param_handles.vt_elev_mc_lock, &_param_vt_elev_mc_lock);
+	param_get(_param_handles.vt_ts_cs_hvr_dis, &_param_vt_ts_cs_hvr_dis);
+}
+
 bool
 ActuatorEffectivenessTailsitterVTOL::getEffectivenessMatrix(Configuration &configuration,
 		EffectivenessUpdateReason external_update)
 {
-	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
+	if (!_control_surfaces_updated && external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
 
@@ -64,6 +75,23 @@ ActuatorEffectivenessTailsitterVTOL::getEffectivenessMatrix(Configuration &confi
 	configuration.selected_matrix = 1;
 	_first_control_surface_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
 	const bool surfaces_added_successfully = _control_surfaces.addActuators(configuration);
+
+	// In HOVER_FLIGHT, selectively disable control surfaces based on VT_TS_CS_HVR_DIS bitmask.
+	// This only takes effect when VT_ELEV_MC_LOCK=0 (control surfaces unlocked in hover).
+	if (surfaces_added_successfully && _flight_phase == FlightPhase::HOVER_FLIGHT && _param_vt_elev_mc_lock == 0) {
+		// VT_TS_CS_HVR_DIS: bit=1 means disabled in hover, bit=0 means enabled (default)
+		for (int i = 0; i < _control_surfaces.count(); i++) {
+			if ((_param_vt_ts_cs_hvr_dis & (1 << i)) != 0) {
+				// Set the corresponding column in effectiveness matrix to zero
+				for (int row = 0; row < NUM_AXES; row++) {
+					configuration.effectiveness_matrices[1](row, _first_control_surface_idx + i) = 0.f;
+				}
+			}
+		}
+	}
+
+	// Reset flag after update
+	_control_surfaces_updated = false;
 
 	return (mc_rotors_added_successfully && surfaces_added_successfully);
 }
@@ -103,6 +131,9 @@ void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flig
 	}
 
 	ActuatorEffectiveness::setFlightPhase(flight_phase);
+
+	// Trigger control surfaces matrix update when transitioning between HOVER_FLIGHT and other flight phases.
+	_control_surfaces_updated = true;
 
 	// update stopped motors
 	switch (flight_phase) {
