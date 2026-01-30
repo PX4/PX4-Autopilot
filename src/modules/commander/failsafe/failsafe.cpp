@@ -565,7 +565,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	// Battery flight time remaining failsafe
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
-		       fromRemainingFlightTimeLowActParam(_param_com_fltt_low_act.get()).cannotBeDeferred());
+		       ActionOptions(fromRemainingFlightTimeLowActParam(_param_com_fltt_low_act.get())));
 
 	if ((_armed_time != 0)
 	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
