@@ -275,6 +275,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 
+		case EffectivenessSource::TAILSITTER_COAXIAL:
+			tmp = new ActuatorEffectivenessTailsitterCoaxial(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;

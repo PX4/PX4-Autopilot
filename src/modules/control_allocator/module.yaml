@@ -33,6 +33,7 @@ parameters:
                 13: Rover (Mecanum)
                 14: Spacecraft 2D
                 15: Spacecraft 3D
+                16: Tailsitter Coaxial
             default: 0
 
         CA_METHOD:
@@ -1276,3 +1277,50 @@ mixer:
                             function: 'axisz'
                           - name: 'CA_ROTOR${i}_CT'
                             label: "Thrust\nCoefficient"
+
+            16: # Tailsitter VTOL
+                title: 'Tailsitter Coaxial'
+                actuators:
+                  - actuator_type: 'motor'
+                    group_label: 'MC Motors'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                        extra:
+                          - name: 'CA_ROTOR${i}_KM'
+                            label: 'Direction CCW'
+                            function: 'spin-dir'
+                            show_as: 'true-if-positive'
+                  - actuator_type: 'servo'
+                    group_label: 'Control Surfaces'
+                    count: 'CA_SV_CS_COUNT'
+                    item_label_prefix: 'Surface ${i}'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SV_CS${i}_TYPE'
+                            label: 'Type'
+                            function: 'type'
+                            identifier: 'servo-type-tailsitter'
+                          - name: 'CA_SV_CS${i}_TRQ_R'
+                            label: 'Roll Scale'
+                            identifier: 'servo-torque-roll-tailsitter'
+                          - name: 'CA_SV_CS${i}_TRQ_P'
+                            label: 'Pitch Scale'
+                            identifier: 'servo-torque-pitch-tailsitter'
+                          - name: 'CA_SV_CS${i}_TRQ_Y'
+                            label: 'Yaw Scale'
+                            identifier: 'servo-torque-yaw-tailsitter'
+                          - name: 'CA_SV_CS${i}_TRIM'
+                            label: 'Trim'
+                          - name: 'CA_SV_CS${i}_FLAP'
+                            label: 'Flaps Scale'
+                            advanced: true
+                            identifier: 'servo-scale-flap'
+                          - name: 'CA_SV_CS${i}_SPOIL'
+                            label: 'Spoiler Scale'
+                            advanced: true
+                            identifier: 'servo-scale-spoiler'
+                    parameters:
+                      - label: 'Lock control surfaces in hover'
+                        name: VT_ELEV_MC_LOCK
