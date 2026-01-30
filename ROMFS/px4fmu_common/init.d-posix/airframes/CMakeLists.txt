@@ -100,6 +100,7 @@ px4_add_romfs_files(
 	10018_gazebo-classic_iris_foggy_lidar
 	10019_gazebo-classic_omnicopter
 	10030_gazebo-classic_px4vision
+	10032_none_coaxial
 
 	10040_sihsim_quadx
 	10041_sihsim_airplane
