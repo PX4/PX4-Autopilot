@@ -14,6 +14,7 @@ PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=omnicopter}
 
 param set-default CA_AIRFRAME 0
+param set-default MPC_ACT_MODE 1
 
 param set-default CA_ROTOR_COUNT 8
 param set-default CA_R_REV 255
