@@ -1,0 +1,14 @@
+# Estimated airflow around the vehicle
+#
+# This is published by the fw_wind_estimator module.
+
+uint64 timestamp                 # [us] Time since system start
+uint64 timestamp_sample          # [us] Timestamp of the raw data
+float32 u   			 # [m/s] Body-relative air relative velocity component / X direction
+float32 v        		 # [m/s] Body-relative air relative velocity component / Y direction
+float32 w               	 # [m/s] Body-relative air relative velocity component / Z direction
+float32 windspeed_north	# [m/s] Wind component in north / X direction
+float32 windspeed_east # [m/s] Wind component in east / Y direction
+float32 windspeed_down # [m/s] Wind component in down / Z direction
+
+# TOPICS airflow airflow_groundtruth
