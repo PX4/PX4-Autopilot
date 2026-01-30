@@ -422,6 +422,7 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 	switch (command_after_remaining_flight_time_low(param_value)) {
 	case command_after_remaining_flight_time_low::None:
 		options.action = Action::None;
+		options.allow_user_takeover = UserTakeoverAllowed::Never; // Execute immediately without delay
 		break;
 
 	case command_after_remaining_flight_time_low::Warning:
@@ -435,6 +436,7 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 
 	default:
 		options.action = Action::None;
+		options.allow_user_takeover = UserTakeoverAllowed::Never;
 		break;
 
 	}
