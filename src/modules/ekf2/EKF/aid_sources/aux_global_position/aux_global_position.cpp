@@ -74,7 +74,7 @@ void AuxGlobalPosition::paramsUpdated()
 	}
 }
 
-float AuxGlobalPosition::test_ratio_filtered() const
+float AuxGlobalPosition::testRatioFiltered() const
 {
 	float max_ratio = 0.f;
 

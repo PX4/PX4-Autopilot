@@ -6,7 +6,7 @@ parameters:
   definitions:
     EKF2_AGP${i}_ID:
       description:
-        short: Aux global position sensor ${i} ID
+        short: Auxiliary global position sensor ${i} ID
         long: 'Sensor ID for slot ${i}. Set to 0 to disable this slot.'
       type: int32
       default: 0
@@ -16,7 +16,7 @@ parameters:
       instance_start: 0
     EKF2_AGP${i}_CTRL:
       description:
-        short: Aux global position sensor ${i} aiding
+        short: Auxiliary global position sensor ${i} aiding
         long: 'Set bits in the following positions to enable: 0 : Horizontal position
           fusion 1 : Vertical position fusion'
       type: bitmask
@@ -42,7 +42,7 @@ parameters:
       instance_start: 0
     EKF2_AGP${i}_DELAY:
       description:
-        short: Aux global position sensor ${i} delay relative to IMU measurements
+        short: Auxiliary global position sensor ${i} delay relative to IMU measurements
       type: float
       default: 0
       min: 0
@@ -54,7 +54,7 @@ parameters:
       instance_start: 0
     EKF2_AGP${i}_NOISE:
       description:
-        short: Measurement noise for aux global position sensor ${i}
+        short: Measurement noise for auxiliary global position sensor ${i}
         long:  Used to lower bound or replace the uncertainty included in the message
       type: float
       default: 1.0
@@ -65,7 +65,7 @@ parameters:
       instance_start: 0
     EKF2_AGP${i}_GATE:
       description:
-        short: Gate size for aux global position sensor ${i} fusion
+        short: Gate size for auxiliary global position sensor ${i} fusion
         long: Sets the number of standard deviations used by the innovation consistency
           test.
       type: float

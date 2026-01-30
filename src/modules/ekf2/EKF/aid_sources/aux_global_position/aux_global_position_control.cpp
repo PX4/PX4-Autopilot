@@ -236,8 +236,6 @@ void AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 		if (!_manager->anySourceFusing()) {
 			ekf.disableControlStatusAuxGpos();
 		}
-
-		ECL_WARN("Aux global position data stopped for instance %d", _instance_id);
 	}
 }
 

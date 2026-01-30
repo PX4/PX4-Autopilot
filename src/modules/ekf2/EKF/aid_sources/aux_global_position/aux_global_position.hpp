@@ -60,7 +60,10 @@ public:
 		updateParams();
 	}
 
-	float test_ratio_filtered() const;
+	/**
+	 * Returns the maximum filtered test ratio across all active AGP sources.
+	 */
+	float testRatioFiltered() const;
 	bool anySourceFusing() const;
 	int32_t getIdParam(int instance);
 	void setIdParam(int instance, int32_t sensor_id);
