@@ -291,6 +291,30 @@ The specified remote computer can then connect to the simulator by listening to 
 This should be done in various configuration files where `mavlink start` is called.
 For example: [/ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink).
 
+### Bind MAVLink to Specific Network Interface
+
+The `PX4_NET_INTERFACE` environment variable allows binding all MAVLink connections to a specific network interface.
+This is useful when running simulations in containerized environments (e.g., Docker) or on systems with multiple network interfaces where you need MAVLink traffic to use a particular interface.
+
+Set the variable before launching the simulation:
+
+```sh
+export PX4_NET_INTERFACE=eth0
+make px4_sitl gz_x500
+```
+
+Or inline with the make command:
+
+```sh
+PX4_NET_INTERFACE=eth0 make px4_sitl gz_x500
+```
+
+This sets the `-n` flag on all `mavlink start` commands in [/ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink), binding MAVLink to the specified interface.
+
+::: info
+When `PX4_NET_INTERFACE` is not set, MAVLink binds to all interfaces (default behavior).
+:::
+
 ### SSH Tunneling
 
 SSH tunneling is a flexible option because the simulation computer and the system using it need not be on the same network.
