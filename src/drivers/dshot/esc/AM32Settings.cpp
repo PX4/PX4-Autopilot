@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,56 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "AM32Settings.h"
+#include "../DShotCommon.h"
+#include <px4_platform_common/log.h>
 
-#include "../Common.hpp"
+static constexpr int RESPONSE_SIZE = EEPROM_SIZE + 1; // 48B data + 1B CRC
 
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/esc_status.h>
+uORB::Publication<esc_eeprom_read_s> AM32Settings::_esc_eeprom_read_pub{ORB_ID(esc_eeprom_read)};
 
-class EscChecks : public HealthAndArmingCheckBase
+AM32Settings::AM32Settings(int index)
+	: _esc_index(index)
+{}
+
+int AM32Settings::getExpectedResponseSize()
 {
-public:
-	EscChecks() = default;
-	~EscChecks() = default;
+	return RESPONSE_SIZE;
+}
 
-	void checkAndReport(const Context &context, Report &reporter) override;
+void AM32Settings::publish_latest()
+{
+	// PX4_INFO("publish_latest()");
+	esc_eeprom_read_s data = {};
+	data.timestamp = hrt_absolute_time();
+	data.firmware = 1; // ESC_FIRMWARE_AM32
+	data.index = _esc_index;
+	memcpy(data.data, &_eeprom_data, sizeof(_eeprom_data));
+	data.length = sizeof(_eeprom_data);
+	_esc_eeprom_read_pub.publish(data);
+}
 
-private:
-	void checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
+bool AM32Settings::decodeInfoResponse(const uint8_t *buf, int size)
+{
+	if (size != RESPONSE_SIZE) {
+		return false;
+	}
 
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+	uint8_t checksum = crc8(buf, EEPROM_SIZE);
+	uint8_t checksum_data = buf[EEPROM_SIZE];
 
-	const hrt_abstime _start_time{hrt_absolute_time()};
+	if (checksum != checksum_data) {
+		PX4_WARN("Command Response checksum failed!");
+		return false;
+	}
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs
-				       )
-};
+	PX4_INFO("Successfully received AM32 settings from ESC%d", _esc_index + 1);
+
+	// Store data for retrieval later if requested
+	memcpy(&_eeprom_data, buf, EEPROM_SIZE);
+
+	// Publish data immedietly
+	publish_latest();
+
+	return true;
+}

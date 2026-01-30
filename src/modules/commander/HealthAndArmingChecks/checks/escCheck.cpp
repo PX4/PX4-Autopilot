@@ -82,7 +82,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		checkEscStatus(context, reporter, esc_status);
 		reporter.setIsPresent(health_component_t::motors_escs);
 
-	} else if (_param_escs_checks_required.get()
+	} else if (_param_com_arm_chk_escs.get()
 		   && now - _start_time > 5_s) { // Wait a bit after startup to allow esc's to init
 
 		/* EVENT
@@ -102,21 +102,29 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 
 void EscChecks::checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
 {
-	const NavModes required_modes = _param_escs_checks_required.get() ? NavModes::All : NavModes::None;
+	const NavModes required_modes = _param_com_arm_chk_escs.get() ? NavModes::All : NavModes::None;
 
 	if (esc_status.esc_count > 0) {
-
+		// Check if one or more the ESCs are offline
 		char esc_fail_msg[50];
 		esc_fail_msg[0] = '\0';
 
 		int online_bitmask = (1 << esc_status.esc_count) - 1;
 
-		// Check if one or more the ESCs are offline
 		if (online_bitmask != esc_status.esc_online_flags) {
 
-			for (int index = 0; index < esc_status.esc_count; index++) {
-				if ((esc_status.esc_online_flags & (1 << index)) == 0) {
-					uint8_t motor_index = esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
+			for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+
+				uint8_t actuator_function = esc_status.esc[i].actuator_function;
+
+				bool is_motor = math::isInRange(actuator_function, actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1,
+								uint8_t(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + actuator_motors_s::NUM_CONTROLS - 1));
+				bool is_online = esc_status.esc_online_flags & (1 << i);
+
+				if (is_motor && !is_online) {
+
+					uint8_t motor_index = actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
+
 					/* EVENT
 					 * @description
 					 * <profile name="dev">

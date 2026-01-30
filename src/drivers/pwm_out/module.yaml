@@ -21,6 +21,9 @@ actuator_output:
         type: enum
         default: 400
         values:
+            -8: BDShot150
+            -7: BDShot300
+            -6: BDShot600
             -5: DShot150
             -4: DShot300
             -3: DShot600
