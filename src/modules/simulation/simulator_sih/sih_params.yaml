@@ -151,7 +151,7 @@ parameters:
           Drag force function of velocity: D=-KDV*V.
           The maximum freefall velocity can be computed as V=10*MASS/KDV [m/s]
       type: float
-      default: 1.0
+      default: 0.15
       unit: N/(m/s)
       min: 0.0
       decimal: 2
