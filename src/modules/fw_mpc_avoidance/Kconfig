@@ -1,0 +1,13 @@
+menuconfig MODULES_FW_MPC_AVOIDANCE
+	bool "fw_mpc_avoidance"
+	default n
+	---help---
+		Enable fixed-wing MPC avoidance prototype module.
+
+if MODULES_FW_MPC_AVOIDANCE
+
+config PX4_MAIN
+	string
+	default "fw_mpc_avoidance"
+
+endif
