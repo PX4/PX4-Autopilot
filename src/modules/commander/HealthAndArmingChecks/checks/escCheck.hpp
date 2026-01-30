@@ -37,6 +37,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/failure_detector_status.h>
 
 class EscChecks : public HealthAndArmingCheckBase
 {
@@ -50,6 +51,7 @@ private:
 	void checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
 
 	const hrt_abstime _start_time{hrt_absolute_time()};
 

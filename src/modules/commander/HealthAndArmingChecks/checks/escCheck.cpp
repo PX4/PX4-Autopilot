@@ -134,7 +134,11 @@ void EscChecks::checkEscStatus(const Context &context, Report &reporter, const e
 
 		for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; ++index) {
 
-			if (esc_status.esc[index].failures != 0) {
+			const bool esc_failure = (esc_status.esc[index].failures != 0);
+			reporter.failsafeFlags().fd_motor_failure = context.status().failure_detector_status & vehicle_status_s::FAILURE_MOTOR;
+			const bool motor_failure = (reporter.failsafeFlags().fd_motor_failure);
+
+			if (esc_failure) {
 
 				for (uint8_t fault_index = 0; fault_index <= static_cast<uint8_t>(esc_fault_reason_t::_max); fault_index++) {
 					if (esc_status.esc[index].failures & (1 << fault_index)) {
@@ -178,6 +182,39 @@ void EscChecks::checkEscStatus(const Context &context, Report &reporter, const e
 					}
 				}
 			}
+
+			if (motor_failure) {
+				reporter.failsafeFlags().fd_motor_failure = context.status().failure_detector_status & vehicle_status_s::FAILURE_MOTOR;
+
+				if (reporter.failsafeFlags().fd_motor_failure) {
+					// Get the failure detector status to check which motor(s) failed
+					failure_detector_status_s failure_detector_status{};
+					bool have_motor_mask = _failure_detector_status_sub.copy(&failure_detector_status);
+
+					if (have_motor_mask && failure_detector_status.motor_failure_mask != 0) {
+						for (uint8_t motor_index = 0; motor_index < esc_status_s::CONNECTED_ESC_MAX; motor_index++) {
+							if (failure_detector_status.motor_failure_mask & (1 << motor_index)) {
+								/* EVENT
+								 * @description
+								 * <profile name="dev">
+								 * This check can be configured via <param>FD_ACT_EN</param> parameter.
+								 * </profile>
+								 */
+								reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
+												events::ID("check_failure_detector_motor"),
+												events::Log::Critical, "Motor {1} failure detected", motor_index);
+
+								if (reporter.mavlink_log_pub()) {
+									mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Motor %d failure detected",
+											     motor_index);
+								}
+							}
+						}
+					}
+				}
+			}
 		}
+
+
 	}
 }
