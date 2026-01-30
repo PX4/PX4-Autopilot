@@ -213,6 +213,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_follow_target(msg);
 		break;
 
+	case MAVLINK_MSG_ID_FW_MPC_OBSTACLES:
+		handle_message_fw_mpc_obstacles(msg);
+		break;
+
 	case MAVLINK_MSG_ID_LANDING_TARGET:
 		handle_message_landing_target(msg);
 		break;
@@ -2492,6 +2496,26 @@ MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
 	follow_target_topic.vz = follow_target_msg.vel[2];
 
 	_follow_target_pub.publish(follow_target_topic);
+}
+
+void
+MavlinkReceiver::handle_message_fw_mpc_obstacles(mavlink_message_t *msg)
+{
+	mavlink_fw_mpc_obstacles_t obstacles_msg;
+	mavlink_msg_fw_mpc_obstacles_decode(msg, &obstacles_msg);
+
+	fw_mpc_obstacles_s obstacles{};
+	obstacles.timestamp = hrt_absolute_time();
+	obstacles.frame = obstacles_msg.frame;
+	obstacles.count = obstacles_msg.count;
+
+	memcpy(obstacles.x, obstacles_msg.x, sizeof(obstacles.x));
+	memcpy(obstacles.y, obstacles_msg.y, sizeof(obstacles.y));
+	memcpy(obstacles.z, obstacles_msg.z, sizeof(obstacles.z));
+	memcpy(obstacles.radius, obstacles_msg.radius, sizeof(obstacles.radius));
+	memcpy(obstacles.margin, obstacles_msg.margin, sizeof(obstacles.margin));
+
+	_fw_mpc_obstacles_pub.publish(obstacles);
 }
 
 void
