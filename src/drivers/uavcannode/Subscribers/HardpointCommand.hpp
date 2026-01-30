@@ -88,41 +88,30 @@ private:
 			return;
 		}
 
-		// If hardpoint_id is set to 0, that is a broadcast
-		if (servo_id == 0) {
-			for (uint8_t i = 0; i < actuator_servos_s::NUM_CONTROLS; ++i) {
-				actuator_servos.timestamp = hrt_absolute_time();
-				actuator_servos.timestamp_sample = actuator_servos.timestamp;
+		for (uint8_t i = servo_id; i < actuator_servos_s::NUM_CONTROLS; ++i) {
 
-				if (msg.command == 1) {
-					actuator_servos.control[i] = 1; // grip
-
-				} else if (msg.command == 0) {
-					actuator_servos.control[i] = -1; // release
-
-				} else {
-					actuator_servos.control[i] = 0; // do nothing
-
-				}
-
-			} // end for
-
-		} else {
 			actuator_servos.timestamp = hrt_absolute_time();
 			actuator_servos.timestamp_sample = actuator_servos.timestamp;
 
 			if (msg.command == 1) {
-				actuator_servos.control[servo_id] = 1; // grip
+				actuator_servos.control[i] = 1; // grip
 
 			} else if (msg.command == 0) {
-				actuator_servos.control[servo_id] = -1; // release
+				actuator_servos.control[i] = -1; // release
 
 			} else {
-				actuator_servos.control[servo_id] = 0; // do nothing
+				actuator_servos.control[i] = 0; // do nothing
+			}
 
-			} // end else
+			actuator_servos.timestamp = hrt_absolute_time();
+			actuator_servos.timestamp_sample = actuator_servos.timestamp;
 
-		} // end else
+			// If ID is not 0 (broadcast), do not iterate
+			if (servo_id != 0) {
+				break;
+			}
+
+		}
 
 		_actuator_servos_pub.publish(actuator_servos);
 
