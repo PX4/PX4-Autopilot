@@ -182,7 +182,7 @@ private:
 	uavcan::Publisher<uavcan::equipment::gnss::RTCMStream> _pub_rtcm_stream;
 
 #if defined(CONFIG_UAVCAN_SENSOR_GNSS_AUXILIARY)
-	uint64_t	_last_gnss_auxiliary_timestamp{0};
+	uint64_t	_last_gnss_auxiliary_timestamp {0};
 	float		_last_gnss_auxiliary_hdop{0.0f};
 	float		_last_gnss_auxiliary_vdop{0.0f};
 #endif
@@ -196,10 +196,10 @@ private:
 	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 
 #if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX) && (defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3))
-	bool *_channel_using_fix2{nullptr}; ///< Flag for whether each channel is using Fix2 or Fix msg
+	bool *_channel_using_fix2 {nullptr}; ///< Flag for whether each channel is using Fix2 or Fix msg
 #endif
 #if (defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2)) && defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
-	bool *_channel_using_fix3{nullptr}; ///< Flag for whether each channel is using Fix3 (takes priority over Fix2 and Fix)
+	bool *_channel_using_fix3 {nullptr}; ///< Flag for whether each channel is using Fix3 (takes priority over Fix2 and Fix)
 #endif
 
 	bool _publish_rtcm_stream{false};
