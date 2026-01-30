@@ -169,12 +169,13 @@ PARAM_DEFINE_INT32(FD_IMB_PROP_THR, 30);
  *
  * @group Failure Detector
  */
-PARAM_DEFINE_INT32(FD_ACT_EN, 1);
+PARAM_DEFINE_INT32(FD_ACT_EN, 0);
 
 /**
- * Motor Failure Throttle Threshold
+ * Motor Failure Thrust Threshold
  *
- * Motor failure triggers only above this throttle value.
+ * Failure detection per motor only triggers above this thrust value.
+ * Set to 1 to disable the detection.
  *
  * @group Failure Detector
  * @unit norm
@@ -186,9 +187,11 @@ PARAM_DEFINE_INT32(FD_ACT_EN, 1);
 PARAM_DEFINE_FLOAT(FD_ACT_MOT_THR, 0.2f);
 
 /**
- * Motor Failure Current/Throttle Threshold
+ * Motor Failure Current/Throttle Scale
  *
- * Motor failure triggers only below this current value
+ * Determines the slope between expected steady state current and linearized, normalized thrust command.
+ * E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
+ * FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
  *
  * @group Failure Detector
  * @min 0.0
@@ -197,13 +200,12 @@ PARAM_DEFINE_FLOAT(FD_ACT_MOT_THR, 0.2f);
  * @decimal 2
  * @increment 1
  */
-PARAM_DEFINE_FLOAT(FD_ACT_MOT_C2T, 2.0f);
+PARAM_DEFINE_FLOAT(FD_ACT_MOT_C2T, 35.f);
 
 /**
- * Motor Failure Time Threshold
+ * Motor Failure Hysteresis Time
  *
- * Motor failure triggers only if the throttle threshold and the
- * current to throttle threshold are violated for this time.
+ * Motor failure only triggers after current thresholds are exceeded for this time.
  *
  * @group Failure Detector
  * @unit ms
@@ -211,4 +213,32 @@ PARAM_DEFINE_FLOAT(FD_ACT_MOT_C2T, 2.0f);
  * @max 10000
  * @increment 100
  */
-PARAM_DEFINE_INT32(FD_ACT_MOT_TOUT, 100);
+PARAM_DEFINE_INT32(FD_ACT_MOT_TOUT, 1000);
+
+/**
+ * Undercurrent motor failure limit offset
+ *
+ * threshold = FD_ACT_MOT_C2T * thrust - FD_ACT_LOW_OFF
+ *
+ * @group Failure Detector
+ * @min 0
+ * @max 30
+ * @unit A
+ * @decimal 2
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(FD_ACT_LOW_OFF, 10.f);
+
+/**
+ * Overcurrent motor failure limit offset
+ *
+ * threshold = FD_ACT_MOT_C2T * thrust + FD_ACT_HIGH_OFF
+ *
+ * @group Failure Detector
+ * @min 0
+ * @max 30
+ * @unit A
+ * @decimal 2
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(FD_ACT_HIGH_OFF, 10.f);
