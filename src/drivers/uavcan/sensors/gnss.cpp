@@ -56,25 +56,51 @@ const char *const UavcanGnssBridge::NAME = "gnss";
 UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
 	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gps), node_info_publisher),
 	_node(node),
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_AUXILIARY)
 	_sub_auxiliary(node),
+#endif
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX)
 	_sub_fix(node),
+#endif
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2)
 	_sub_fix2(node),
+#endif
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
+	_sub_fix3(node),
+#endif
 	_sub_gnss_heading(node),
 	_sub_moving_baseline_data(node),
 	_pub_moving_baseline_data(node),
-	_pub_rtcm_stream(node),
-	_channel_using_fix2(new bool[_max_channels])
+	_pub_rtcm_stream(node)
 {
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX) && (defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3))
+	_channel_using_fix2 = new bool[_max_channels];
+
 	for (uint8_t i = 0; i < _max_channels; i++) {
 		_channel_using_fix2[i] = false;
 	}
+
+#endif
+#if (defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2)) && defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
+	_channel_using_fix3 = new bool[_max_channels];
+
+	for (uint8_t i = 0; i < _max_channels; i++) {
+		_channel_using_fix3[i] = false;
+	}
+
+#endif
 
 	set_device_type(DRV_GPS_DEVTYPE_UAVCAN);
 }
 
 UavcanGnssBridge::~UavcanGnssBridge()
 {
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX) && (defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3))
 	delete [] _channel_using_fix2;
+#endif
+#if (defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2)) && defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
+	delete [] _channel_using_fix3;
+#endif
 	perf_free(_rtcm_stream_pub_perf);
 	perf_free(_moving_baseline_data_pub_perf);
 	perf_free(_moving_baseline_data_sub_perf);
@@ -83,13 +109,19 @@ UavcanGnssBridge::~UavcanGnssBridge()
 int
 UavcanGnssBridge::init()
 {
-	int res = _sub_auxiliary.start(AuxiliaryCbBinder(this, &UavcanGnssBridge::gnss_auxiliary_sub_cb));
+	int res = 0;
+
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_AUXILIARY)
+	res = _sub_auxiliary.start(AuxiliaryCbBinder(this, &UavcanGnssBridge::gnss_auxiliary_sub_cb));
 
 	if (res < 0) {
 		PX4_WARN("GNSS auxiliary sub failed %i", res);
 		return res;
 	}
 
+#endif
+
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX)
 	res = _sub_fix.start(FixCbBinder(this, &UavcanGnssBridge::gnss_fix_sub_cb));
 
 	if (res < 0) {
@@ -97,12 +129,27 @@ UavcanGnssBridge::init()
 		return res;
 	}
 
+#endif
+
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2)
 	res = _sub_fix2.start(Fix2CbBinder(this, &UavcanGnssBridge::gnss_fix2_sub_cb));
 
 	if (res < 0) {
 		PX4_WARN("GNSS fix2 sub failed %i", res);
 		return res;
 	}
+
+#endif
+
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
+	res = _sub_fix3.start(Fix3CbBinder(this, &UavcanGnssBridge::gnss_fix3_sub_cb));
+
+	if (res < 0) {
+		PX4_WARN("GNSS fix3 sub failed %i", res);
+		return res;
+	}
+
+#endif
 
 	res = _sub_gnss_heading.start(RelPosHeadingCbBinder(this, &UavcanGnssBridge::gnss_relative_sub_cb));
 
@@ -143,6 +190,7 @@ UavcanGnssBridge::init()
 	return res;
 }
 
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_AUXILIARY)
 void
 UavcanGnssBridge::gnss_auxiliary_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg)
 {
@@ -151,17 +199,29 @@ UavcanGnssBridge::gnss_auxiliary_sub_cb(const uavcan::ReceivedDataStructure<uavc
 	_last_gnss_auxiliary_hdop = msg.hdop;
 	_last_gnss_auxiliary_vdop = msg.vdop;
 }
+#endif
 
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX)
 void
 UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg)
 {
-	// Check to see if this node is also publishing a Fix2 message.
+	// Check to see if this node is also publishing a Fix2 or Fix3 message.
 	// If so, ignore the old "Fix" message for this node.
 	const int8_t ch = get_channel_index_for_node(msg.getSrcNodeID().get());
 
-	if (ch > -1 && _channel_using_fix2[ch]) {
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
+
+	if (ch > -1 && (_channel_using_fix2[ch]
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
+			|| _channel_using_fix3[ch]
+#endif
+		       )) {
 		return;
 	}
+
+#else
+	(void)ch;
+#endif
 
 	uint8_t fix_type = msg.status;
 
@@ -176,7 +236,9 @@ UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 
 	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov, NAN, NAN, NAN, -1, -1, 0, 0);
 }
+#endif
 
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2)
 void
 UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg)
 {
@@ -184,10 +246,25 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 
 	const int8_t ch = get_channel_index_for_node(msg.getSrcNodeID().get());
 
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
+
+	// If this node is using Fix3, ignore Fix2 messages
+	if (ch > -1 && _channel_using_fix3[ch]) {
+		return;
+	}
+
+#endif
+
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX)
+
 	if (ch > -1 && !_channel_using_fix2[ch]) {
 		PX4_WARN("GNSS Fix2 msg detected for ch %d; disabling Fix msg for this node", ch);
 		_channel_using_fix2[ch] = true;
 	}
+
+#else
+	(void)ch;
+#endif
 
 	uint8_t fix_type = msg.status;
 
@@ -349,6 +426,173 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances, heading, heading_offset,
 		     heading_accuracy, noise_per_ms, jamming_indicator, jamming_state, spoofing_state);
 }
+#endif
+
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
+void
+UavcanGnssBridge::gnss_fix3_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix3> &msg)
+{
+	using uavcan::equipment::gnss::Fix3;
+
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2)
+	const int8_t ch = get_channel_index_for_node(msg.getSrcNodeID().get());
+
+	if (ch > -1 && !_channel_using_fix3[ch]) {
+		PX4_WARN("GNSS Fix3 msg detected for ch %d; disabling Fix/Fix2 msgs for this node", ch);
+		_channel_using_fix3[ch] = true;
+	}
+
+#endif
+
+	sensor_gps_s sensor_gps{};
+
+	sensor_gps.device_id = make_uavcan_device_id(msg);
+
+	// Register GPS capability with NodeInfoPublisher after first successful message
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				sensor_gps.device_id,
+				NodeInfoPublisher::DeviceCapability::GPS);
+	}
+
+	sensor_gps.timestamp = hrt_absolute_time();
+
+	// Position - Fix3 uses 1e8 scaling for lat/lon, mm for altitudes
+	sensor_gps.latitude_deg         = msg.latitude_deg_1e8 / 1e8;
+	sensor_gps.longitude_deg        = msg.longitude_deg_1e8 / 1e8;
+	sensor_gps.altitude_msl_m       = msg.altitude_msl / 1e3;        // mm to m
+	sensor_gps.altitude_ellipsoid_m = msg.altitude_ellipsoid / 1e3;  // mm to m
+
+	sensor_gps.eph = (msg.eph >= 0) ? msg.eph : -1.0f;
+	sensor_gps.epv = (msg.epv >= 0) ? msg.epv : -1.0f;
+
+	// Velocity
+	sensor_gps.vel_n_m_s = msg.vel_north;
+	sensor_gps.vel_e_m_s = msg.vel_east;
+	sensor_gps.vel_d_m_s = msg.vel_down;
+	sensor_gps.vel_m_s = (msg.ground_speed >= 0 && !std::isnan(msg.ground_speed)) ?
+			     msg.ground_speed : matrix::Vector3f(msg.vel_north, msg.vel_east, msg.vel_down).norm();
+	sensor_gps.vel_ned_valid = (msg.flags & Fix3::FLAGS_VEL_NED_VALID) != 0;
+
+	// Speed accuracy
+	sensor_gps.s_variance_m_s = (msg.speed_accuracy >= 0) ? (msg.speed_accuracy * msg.speed_accuracy) : -1.0f;
+
+	// Course over ground
+	if (!std::isnan(msg.cog)) {
+		sensor_gps.cog_rad = math::radians(msg.cog);
+
+	} else {
+		sensor_gps.cog_rad = atan2f(sensor_gps.vel_e_m_s, sensor_gps.vel_n_m_s);
+	}
+
+	// Course variance from velocity (same calculation as process_fixx)
+	if (sensor_gps.s_variance_m_s > 0) {
+		float vel_n = msg.vel_north;
+		float vel_e = msg.vel_east;
+		float vel_n_sq = vel_n * vel_n;
+		float vel_e_sq = vel_e * vel_e;
+		float speed_sq = vel_n_sq + vel_e_sq;
+
+		if (speed_sq > 0.01f) { // Only calculate if moving
+			sensor_gps.c_variance_rad = sensor_gps.s_variance_m_s / speed_sq;
+
+		} else {
+			sensor_gps.c_variance_rad = -1.0f;
+		}
+
+	} else {
+		sensor_gps.c_variance_rad = -1.0f;
+	}
+
+	// Fix type mapping
+	sensor_gps.fix_type = msg.fix_type;
+
+	// DOP values
+	sensor_gps.hdop = std::isnan(msg.hdop) ? 0.0f : msg.hdop;
+	sensor_gps.vdop = std::isnan(msg.vdop) ? 0.0f : msg.vdop;
+
+	// Satellite count
+	sensor_gps.satellites_used = msg.sats_used;
+
+	// Time handling
+	sensor_gps.timestamp_time_relative = 0;
+
+	if ((msg.flags & Fix3::FLAGS_TIME_VALID) && msg.gnss_time_usec > 0) {
+		switch (msg.time_standard) {
+		case Fix3::TIME_STANDARD_UTC:
+			sensor_gps.time_utc_usec = msg.gnss_time_usec;
+			break;
+
+		case Fix3::TIME_STANDARD_GPS:
+			if (msg.num_leap_seconds > 0) {
+				sensor_gps.time_utc_usec = msg.gnss_time_usec - (uint64_t)(msg.num_leap_seconds - 9) * 1000000ULL;
+			}
+
+			break;
+
+		case Fix3::TIME_STANDARD_TAI:
+			if (msg.num_leap_seconds > 0) {
+				sensor_gps.time_utc_usec = msg.gnss_time_usec - (uint64_t)(msg.num_leap_seconds + 10) * 1000000ULL;
+			}
+
+			break;
+
+		default:
+			break;
+		}
+
+		// Set system clock if not already done
+		if (sensor_gps.time_utc_usec != 0 && (msg.fix_type >= sensor_gps_s::FIX_TYPE_2D) && !_system_clock_set) {
+			timespec ts{};
+			ts.tv_sec = sensor_gps.time_utc_usec / 1000000ULL;
+			ts.tv_nsec = (sensor_gps.time_utc_usec % 1000000ULL) * 1000;
+			px4_clock_settime(CLOCK_REALTIME, &ts);
+			_system_clock_set = true;
+		}
+	}
+
+	// Heading - Fix3 provides direct degrees
+	if ((msg.flags & Fix3::FLAGS_HEADING_VALID) && !std::isnan(msg.heading)) {
+		// Use RelPosHeading if available and we have RTK Fixed solution
+		if (_rel_heading_valid && (msg.fix_type == sensor_gps_s::FIX_TYPE_RTK_FIXED)) {
+			sensor_gps.heading = _rel_heading;
+			sensor_gps.heading_offset = NAN;
+			sensor_gps.heading_accuracy = _rel_heading_accuracy;
+
+			_rel_heading = NAN;
+			_rel_heading_accuracy = NAN;
+			_rel_heading_valid = false;
+
+		} else {
+			sensor_gps.heading = math::radians(msg.heading);
+			sensor_gps.heading_offset = NAN; // Fix3 doesn't have offset field
+			sensor_gps.heading_accuracy = std::isnan(msg.heading_accuracy) ? NAN : math::radians(msg.heading_accuracy);
+		}
+
+	} else {
+		sensor_gps.heading = NAN;
+		sensor_gps.heading_offset = NAN;
+		sensor_gps.heading_accuracy = NAN;
+	}
+
+	// Quality metrics - Fix3 has dedicated fields
+	sensor_gps.noise_per_ms = msg.noise;
+	sensor_gps.automatic_gain_control = msg.agc;
+	sensor_gps.jamming_indicator = msg.jamming_indicator;
+	sensor_gps.jamming_state = msg.jamming_state;
+	sensor_gps.spoofing_state = msg.spoofing_state;
+	sensor_gps.authentication_state = msg.auth_state;
+
+	// System errors
+	sensor_gps.system_error = msg.system_errors;
+
+	// RTCM info
+	sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
+	sensor_gps.rtcm_injection_rate = _rtcm_injection_rate;
+
+	publish(msg.getSrcNodeID().get(), &sensor_gps);
+}
+#endif
 
 void UavcanGnssBridge::gnss_relative_sub_cb(const
 		uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg)
@@ -393,6 +637,7 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 	}
 }
 
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2)
 template <typename FixType>
 void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
 				    uint8_t fix_type,
@@ -522,11 +767,15 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	sensor_gps.satellites_used = msg.sats_used;
 
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_AUXILIARY)
+
 	if (hrt_elapsed_time(&_last_gnss_auxiliary_timestamp) < 2_s) {
 		sensor_gps.hdop = _last_gnss_auxiliary_hdop;
 		sensor_gps.vdop = _last_gnss_auxiliary_vdop;
 
-	} else {
+	} else
+#endif
+	{
 		// Using PDOP for HDOP and VDOP
 		// Relevant discussion: https://github.com/PX4/Firmware/issues/5153
 		sensor_gps.hdop = msg.pdop;
@@ -559,6 +808,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	publish(msg.getSrcNodeID().get(), &sensor_gps);
 }
+#endif
 
 void UavcanGnssBridge::update()
 {

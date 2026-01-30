@@ -60,7 +60,7 @@
 #if defined(CONFIG_UAVCAN_SENSOR_FUEL_TANK_STATUS)
 #include "fuel_tank_status.hpp"
 #endif
-#if defined(CONFIG_UAVCAN_SENSOR_GNSS)
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_AUXILIARY) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
 #include "gnss.hpp"
 #endif
 #if defined(CONFIG_UAVCAN_SENSOR_GNSS_RELATIVE)
@@ -155,7 +155,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 #endif
 
 	// GPS
-#if defined(CONFIG_UAVCAN_SENSOR_GNSS)
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_AUXILIARY) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX2) || defined(CONFIG_UAVCAN_SENSOR_GNSS_FIX3)
 	int32_t uavcan_sub_gps = 1;
 	param_get(param_find("UAVCAN_SUB_GPS"), &uavcan_sub_gps);
 
