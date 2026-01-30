@@ -72,7 +72,7 @@ if DRIVERS_UAVCAN
 
     config UAVCAN_SENSOR_GNSS_FIX2
         bool "Subscribe to GPS Fix2:                    uavcan::equipment::gnss::Fix2"
-        default n
+        default y
 
     config UAVCAN_SENSOR_GNSS_FIX3
         bool "Subscribe to GPS Fix3 (preferred):        uavcan::equipment::gnss::Fix3"
