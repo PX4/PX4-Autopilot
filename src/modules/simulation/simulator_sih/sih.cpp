@@ -148,6 +148,22 @@ void Sih::lockstep_loop()
 
 		} else {
 			px4_lockstep_wait_for_components();
+
+			// Wait for the control pipeline to produce new actuator outputs.
+			// Without this, under CPU load the controllers may not run between
+			// SIH iterations, causing stale actuator data and sluggish response.
+			uint64_t wait_start_us = micros();
+			constexpr uint64_t actuator_wait_timeout_us = 10'000'000; // 10s wall time
+
+			while (!_actuator_out_sub.updated() && !should_exit()) {
+				if (micros() - wait_start_us > actuator_wait_timeout_us) {
+					PX4_WARN("SIH lockstep: timed out waiting for actuator_outputs_sim");
+					break;
+				}
+
+				usleep(100);
+			}
+
 			current_wall_time_us = micros();
 			sleep_time = math::max(0, rt_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
 		}
