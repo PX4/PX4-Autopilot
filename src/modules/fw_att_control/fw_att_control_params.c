@@ -254,3 +254,18 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
+
+/**
+ * Yaw rate proportional gain
+ *
+ * This defines how much the control response will be commanded depending on the
+ * current body yaw rate error.
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 10.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_Y_TC, 1.0f);
