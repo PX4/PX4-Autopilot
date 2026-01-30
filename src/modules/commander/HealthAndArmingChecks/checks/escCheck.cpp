@@ -146,7 +146,8 @@ void EscChecks::checkEscStatus(const Context &context, Report &reporter, const e
 
 						if (context.isArmed()) {
 							if (fault_reason_index == esc_fault_reason_t::motor_warn_temp
-							    || fault_reason_index == esc_fault_reason_t::esc_warn_temp) {
+							    || fault_reason_index == esc_fault_reason_t::esc_warn_temp
+							    || fault_reason_index == esc_fault_reason_t::over_rpm) {
 								user_action = "Reduce throttle";
 								action = events::px4::enums::suggested_action_t::reduce_throttle;
 
