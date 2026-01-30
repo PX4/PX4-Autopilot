@@ -212,7 +212,7 @@ PARAM_DEFINE_FLOAT(SIH_L_PITCH, 0.2f);
  * @increment 0.05
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_KDV, 1.0f);
+PARAM_DEFINE_FLOAT(SIH_KDV, 0.15f);
 
 /**
  * First order angular damper coefficient
