@@ -1,20 +1,20 @@
 /****************************************************************************
- * Copyright (c) 2025 PX4 Development Team.
+ * Copyright (c) 2026 PX4 Development Team.
  * SPDX-License-Identifier: BSD-3-Clause
  ****************************************************************************/
 #pragma once
 
-// Translate VehicleStatus v0 <--> v1
-#include <px4_msgs_old/msg/vehicle_status_v0.hpp>
+// Translate VehicleStatus v1 <--> v2
 #include <px4_msgs_old/msg/vehicle_status_v1.hpp>
+#include <px4_msgs/msg/vehicle_status.hpp>
 
-class VehicleStatusV1Translation {
+class VehicleStatusV2Translation {
 public:
-	using MessageOlder = px4_msgs_old::msg::VehicleStatusV0;
-	static_assert(MessageOlder::MESSAGE_VERSION == 0);
+	using MessageOlder = px4_msgs_old::msg::VehicleStatusV1;
+	static_assert(MessageOlder::MESSAGE_VERSION == 1);
 
-	using MessageNewer = px4_msgs_old::msg::VehicleStatusV1;
-	static_assert(MessageNewer::MESSAGE_VERSION == 1);
+	using MessageNewer = px4_msgs::msg::VehicleStatus;
+	static_assert(MessageNewer::MESSAGE_VERSION == 2);
 
 	static constexpr const char* kTopic = "fmu/out/vehicle_status";
 
@@ -56,6 +56,7 @@ public:
 		msg_newer.open_drone_id_system_healthy = msg_older.open_drone_id_system_healthy;
 		msg_newer.parachute_system_present = msg_older.parachute_system_present;
 		msg_newer.parachute_system_healthy = msg_older.parachute_system_healthy;
+		msg_newer.traffic_avoidance_system_present = false; // New field, default to false
 		msg_newer.rc_calibration_in_progress = msg_older.rc_calibration_in_progress;
 		msg_newer.calibration_enabled = msg_older.calibration_enabled;
 		msg_newer.pre_flight_checks_pass = msg_older.pre_flight_checks_pass;
@@ -99,12 +100,11 @@ public:
 		msg_older.open_drone_id_system_healthy = msg_newer.open_drone_id_system_healthy;
 		msg_older.parachute_system_present = msg_newer.parachute_system_present;
 		msg_older.parachute_system_healthy = msg_newer.parachute_system_healthy;
-		msg_older.avoidance_system_required =  false;
-		msg_older.avoidance_system_valid = false;
+		// traffic_avoidance_system_present is dropped (not in V1)
 		msg_older.rc_calibration_in_progress = msg_newer.rc_calibration_in_progress;
 		msg_older.calibration_enabled = msg_newer.calibration_enabled;
 		msg_older.pre_flight_checks_pass = msg_newer.pre_flight_checks_pass;
 	}
 };
 
-REGISTER_TOPIC_TRANSLATION_DIRECT(VehicleStatusV1Translation);
+REGISTER_TOPIC_TRANSLATION_DIRECT(VehicleStatusV2Translation);
