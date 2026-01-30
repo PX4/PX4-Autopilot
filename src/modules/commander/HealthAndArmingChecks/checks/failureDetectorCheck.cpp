@@ -139,21 +139,6 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
-	reporter.failsafeFlags().fd_motor_failure = context.status().failure_detector_status & vehicle_status_s::FAILURE_MOTOR;
 
-	if (reporter.failsafeFlags().fd_motor_failure) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * This check can be configured via <param>FD_ACT_EN</param> parameter.
-		 * </profile>
-		 */
-		reporter.healthFailure(NavModes::All, health_component_t::motors_escs, events::ID("check_failure_detector_motor"),
-				       events::Log::Critical, "Motor failure detected");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Motor failure detected");
-		}
-	}
 
 }
