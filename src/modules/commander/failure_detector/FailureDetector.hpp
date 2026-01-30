@@ -115,6 +115,8 @@ private:
 	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	uint16_t _motor_failure_mask = 0; // actuator function indexed
+	esc_status_s _last_esc_status{}; // Store last received ESC status
+	bool _esc_status_received{false}; // Track if we've ever received ESC data
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)}; // TODO: multi-instance
