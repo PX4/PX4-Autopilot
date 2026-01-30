@@ -56,11 +56,17 @@
 #include "Publishers/HygrometerMeasurement.hpp"
 #endif // UAVCANNODE_HYGROMETER_MEASUREMENT
 
-#if defined(CONFIG_UAVCANNODE_GNSS_FIX)
-#include "Publishers/GnssFix2.hpp"
-#include "Publishers/GnssFix3.hpp"
+#if defined(CONFIG_UAVCANNODE_GNSS_AUXILIARY)
 #include "Publishers/GnssAuxiliary.hpp"
-#endif // CONFIG_UAVCANNODE_GNSS_FIX
+#endif // CONFIG_UAVCANNODE_GNSS_AUXILIARY
+
+#if defined(CONFIG_UAVCANNODE_GNSS_FIX2)
+#include "Publishers/GnssFix2.hpp"
+#endif // CONFIG_UAVCANNODE_GNSS_FIX2
+
+#if defined(CONFIG_UAVCANNODE_GNSS_FIX3)
+#include "Publishers/GnssFix3.hpp"
+#endif // CONFIG_UAVCANNODE_GNSS_FIX3
 
 #if defined(CONFIG_UAVCANNODE_INDICATED_AIR_SPEED)
 #include "Publishers/IndicatedAirspeed.hpp"
@@ -379,11 +385,17 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new HygrometerMeasurement(this, _node));
 #endif // UAVCANNODE_HYGROMETER_MEASUREMENT
 
-#if defined(CONFIG_UAVCANNODE_GNSS_FIX)
+#if defined(CONFIG_UAVCANNODE_GNSS_FIX3)
 	_publisher_list.add(new GnssFix3(this, _node));
+#endif // CONFIG_UAVCANNODE_GNSS_FIX3
+
+#if defined(CONFIG_UAVCANNODE_GNSS_FIX2)
 	_publisher_list.add(new GnssFix2(this, _node)); // Keep Fix2 for backwards compatibility
+#endif // CONFIG_UAVCANNODE_GNSS_FIX2
+
+#if defined(CONFIG_UAVCANNODE_GNSS_AUXILIARY)
 	_publisher_list.add(new GnssAuxiliary(this, _node));
-#endif // CONFIG_UAVCANNODE_GNSS_FIX
+#endif // CONFIG_UAVCANNODE_GNSS_AUXILIARY
 
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
 	int32_t cannode_pub_mag = 1;

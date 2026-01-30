@@ -62,8 +62,20 @@ if DRIVERS_UAVCAN
         bool "Subscribe to Fuel Tank Status:            uavcan::equipment::ice::FuelTankStatus"
         default y
 
-    config UAVCAN_SENSOR_GNSS
-        bool "Subscribe to GPS:                         uavcan::equipment::gnss::Auxiliary | uavcan::equipment::gnss::Fix | uavcan::equipment::gnss::Fix2"
+    config UAVCAN_SENSOR_GNSS_AUXILIARY
+        bool "Subscribe to GPS Auxiliary:               uavcan::equipment::gnss::Auxiliary"
+        default y
+
+    config UAVCAN_SENSOR_GNSS_FIX
+        bool "Subscribe to GPS Fix (deprecated):        uavcan::equipment::gnss::Fix"
+        default n
+
+    config UAVCAN_SENSOR_GNSS_FIX2
+        bool "Subscribe to GPS Fix2:                    uavcan::equipment::gnss::Fix2"
+        default n
+
+    config UAVCAN_SENSOR_GNSS_FIX3
+        bool "Subscribe to GPS Fix3 (preferred):        uavcan::equipment::gnss::Fix3"
         default y
 
     config UAVCAN_SENSOR_GNSS_RELATIVE

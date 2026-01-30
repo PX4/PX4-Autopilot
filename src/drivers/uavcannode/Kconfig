@@ -30,9 +30,17 @@ if DRIVERS_UAVCANNODE
         bool "Include flow measurement"
         default n
 
-    config UAVCANNODE_GNSS_FIX
-        bool "Include GNSS fix"
+    config UAVCANNODE_GNSS_AUXILIARY
+        bool "Include GNSS Auxiliary publisher"
         default n
+
+    config UAVCANNODE_GNSS_FIX2
+        bool "Include GNSS Fix2 publisher"
+        default n
+
+    config UAVCANNODE_GNSS_FIX3
+        bool "Include GNSS Fix3 publisher (preferred)"
+        default y
 
     config UAVCANNODE_HYGROMETER_MEASUREMENT
         bool "Include hygrometer measurement"
