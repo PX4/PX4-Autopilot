@@ -66,6 +66,19 @@ else
 	fi
 fi
 
+# OpenCV for GZ optical flow plugin
+if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
+	echo "[macos.sh] Re-installing OpenCV"
+	brew reinstall opencv
+else
+	if brew ls --versions opencv > /dev/null; then
+		echo "[macos.sh] OpenCV already installed"
+	else
+		echo "[macos.sh] Installing OpenCV"
+		brew install opencv
+	fi
+fi
+
 # Python dependencies
 echo "[macos.sh] Installing Python3 dependencies"
 # We need to have future to install pymavlink later.
@@ -82,3 +95,5 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 fi
 
 echo "[macos.sh] All set! The PX4 Autopilot toolchain was installed."
+echo "[macos.sh] If CMake cannot find OpenCV, set OpenCV_DIR to:"
+echo "  $(brew --prefix opencv)/lib/cmake/opencv4"
