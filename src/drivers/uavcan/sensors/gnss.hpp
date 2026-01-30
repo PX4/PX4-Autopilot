@@ -37,6 +37,7 @@
  * UAVCAN <--> ORB bridge for GNSS messages:
  *     uavcan.equipment.gnss.Fix (deprecated, but still supported for backward compatibility)
  *     uavcan.equipment.gnss.Fix2
+ *     uavcan.equipment.gnss.Fix3 (preferred, uses direct EPH/EPV fields)
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  * @author Andrew Chambers <achamber@gmail.com>
@@ -55,6 +56,7 @@
 #include <uavcan/equipment/gnss/Auxiliary.hpp>
 #include <uavcan/equipment/gnss/Fix.hpp>
 #include <uavcan/equipment/gnss/Fix2.hpp>
+#include <uavcan/equipment/gnss/Fix3.hpp>
 #include <ardupilot/gnss/MovingBaselineData.hpp>
 #include <ardupilot/gnss/RelPosHeading.hpp>
 #include <uavcan/equipment/gnss/RTCMStream.hpp>
@@ -84,6 +86,7 @@ private:
 	void gnss_auxiliary_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg);
 	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
 	void gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg);
+	void gnss_fix3_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix3> &msg);
 	void gnss_relative_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg);
 	void moving_baseline_data_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &msg);
 
@@ -114,6 +117,10 @@ private:
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &) >
 		Fix2CbBinder;
 
+	typedef uavcan::MethodBinder < UavcanGnssBridge *,
+		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix3> &) >
+		Fix3CbBinder;
+
 	typedef uavcan::MethodBinder<UavcanGnssBridge *,
 		void (UavcanGnssBridge::*)(const uavcan::TimerEvent &)>
 		TimerCbBinder;
@@ -131,6 +138,7 @@ private:
 	uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary, AuxiliaryCbBinder> _sub_auxiliary;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix2, Fix2CbBinder> _sub_fix2;
+	uavcan::Subscriber<uavcan::equipment::gnss::Fix3, Fix3CbBinder> _sub_fix3;
 	uavcan::Subscriber<ardupilot::gnss::RelPosHeading, RelPosHeadingCbBinder> _sub_gnss_heading;
 
 	// Used for MSM7 logging for PPK workflows
@@ -152,6 +160,7 @@ private:
 	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 
 	bool *_channel_using_fix2; ///< Flag for whether each channel is using Fix2 or Fix msg
+	bool *_channel_using_fix3; ///< Flag for whether each channel is using Fix3 (takes priority over Fix2 and Fix)
 
 	bool _publish_rtcm_stream{false};
 	bool _publish_moving_baseline_data{false};
