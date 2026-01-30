@@ -60,6 +60,13 @@ param set-default CA_SV_CS3_TYPE 4
 param set-default CA_SV_CS4_TYPE 9
 param set-default CA_SV_CS5_TYPE 10
 
+param set-default SIH_MASS 1.0
+param set-default SIH_IXX 0.198
+param set-default SIH_IYY 0.146
+param set-default SIH_IZZ 0.148
+param set-default SIH_KDV 0.5
+param set-default SIH_KDW 0.025
+
 param set-default SIM_GZ_EC_FUNC1 101
 param set-default SIM_GZ_EC_MIN1 10
 param set-default SIM_GZ_EC_MAX1 1600

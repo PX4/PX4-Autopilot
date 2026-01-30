@@ -2,6 +2,7 @@
 
 #include <matrix/matrix/math.hpp>
 #include <lib/mathlib/mathlib.h>
+#include "FwMpcAero.hpp"
 
 class FixedWingMpcModel
 {
@@ -16,70 +17,36 @@ public:
 
 	State dynamics(const State &x, const Control &u) const
 	{
-		const float u_b = x(0);
-		const float v_b = x(1);
-		const float w_b = x(2);
-		const float p = x(3);
-		const float q = x(4);
-		const float r = x(5);
+		const matrix::Vector3f uvw{x(0), x(1), x(2)};
+		const matrix::Vector3f pqr{x(3), x(4), x(5)};
 		const float phi = x(6);
 		const float theta = x(7);
 		const float psi = x(8);
 
-		float V = math::max(sqrtf(u_b * u_b + v_b * v_b + w_b * w_b), 1e-3f);
-		float alpha = atanf2(w_b, u_b);
-		float beta = asinf(math::constrain(v_b / V, -1.f, 1.f));
-
-		alpha = math::constrain(alpha, -_alpha_max, _alpha_max);
-		beta = math::constrain(beta, -_beta_max, _beta_max);
-
-		const float q_dyn = 0.5f * _rho * V * V;
-
-		float CL = _CL0 + _CL_alpha * alpha;
-		CL = math::constrain(CL, -_CL_max, _CL_max);
-		const float CD = _CD0 + _k * CL * CL;
-
-		const float L = q_dyn * _S * CL;
-		const float D = q_dyn * _S * CD;
-		const float CY = _CY_beta * beta;
-		const float Y = q_dyn * _S * CY;
-
-		const float Xa = -D * cosf(alpha) + L * sinf(alpha);
-		const float Za = -D * sinf(alpha) - L * cosf(alpha);
+		matrix::Vector3f Fa_body{};
+		matrix::Vector3f Ma_body{};
+		const float altitude_up = math::max(x(11), 0.f); // controller stores z_up
+		_aero.compute(uvw, pqr, altitude_up, u, Fa_body, Ma_body);
 
 		const matrix::Dcmf Rbi = rotationMatrix(phi, theta, psi);
 		const matrix::Vector3f Fg_body = Rbi.transpose() * matrix::Vector3f{0.f, 0.f, -_mass * _g};
 
-		matrix::Vector3f F_body{Xa + u(3), Y, Za};
-		F_body += Fg_body;
-
-		const matrix::Vector3f uvw{u_b, v_b, w_b};
-		const matrix::Vector3f pqr{p, q, r};
+		const matrix::Vector3f thrust_B{u(3), 0.f, 0.f};
+		const matrix::Vector3f F_body = thrust_B + Fa_body + Fg_body;
 
 		const matrix::Vector3f uvw_dot = F_body / _mass - pqr.cross(uvw);
-
-		// Control moments scaled with q_dyn and deflections (normalized to [-1,1])
-		const matrix::Vector3f delta = matrix::Vector3f{u(0), u(1), u(2)}.emult(_defl_max);
-		const matrix::Matrix3f M_ctrl_mat{
-			_S * _b * _Cl_da, 0.f, 0.f,
-			0.f, _S * _c * _Cm_de, 0.f,
-			0.f, 0.f, _S * _b * _Cn_dr
-		};
-		const matrix::Vector3f M_ctrl = q_dyn * (M_ctrl_mat * delta);
-		const matrix::Vector3f M_damp = _D_rot * pqr;
-		const matrix::Vector3f M_body = M_ctrl - M_damp;
-
-		const matrix::Vector3f pqrdot = _I_inv * (M_body - pqr.cross(_I * pqr));
+		const matrix::Vector3f pqrdot = _I_inv * (Ma_body - pqr.cross(_I * pqr));
 
 		// Euler rates
 		const float ct = cosf(theta);
 		const float st = sinf(theta);
-		const float tt = ct != 0.f ? st / ct : 0.f;
+		const float ct_safe = (fabsf(ct) > 1e-3f) ? ct : copysignf(1e-3f, ct);
+		const float tt = st / ct_safe;
 
 		matrix::Matrix<float, 3, 3> E;
 		E(0, 0) = 1.f;  E(0, 1) = sinf(phi) * tt;     E(0, 2) = cosf(phi) * tt;
 		E(1, 0) = 0.f;  E(1, 1) = cosf(phi);         E(1, 2) = -sinf(phi);
-		E(2, 0) = 0.f;  E(2, 1) = sinf(phi) / math::max(fabsf(ct), 1e-3f); E(2, 2) = cosf(phi) / math::max(fabsf(ct), 1e-3f);
+		E(2, 0) = 0.f;  E(2, 1) = sinf(phi) / fabsf(ct_safe); E(2, 2) = cosf(phi) / fabsf(ct_safe);
 
 		const matrix::Vector3f eul_dot = E * pqr;
 		const matrix::Vector3f pos_dot = Rbi * uvw; // NED position rates
@@ -109,6 +76,31 @@ public:
 		return x0 + (dt / 6.f) * (k1 + 2.f * k2 + 2.f * k3 + k4);
 	}
 
+	// Basic getters used by the MPC controller for feed-forward references.
+	float mass() const { return _mass; }
+	float gravity() const { return _g; }
+	float rho() const { return _rho; }
+	float wing_area() const { return _S; }
+	float wing_span() const { return _b; }
+	float mean_chord() const { return _c; }
+	float CL0() const { return _CL0; }
+	float CL_alpha() const { return _CL_alpha; }
+	float CD0() const { return _CD0; }
+	float induced_drag_k() const { return _k; }
+	const matrix::Matrix3f &inertia() const { return _I; }
+
+	void set_mass(float m) { _mass = math::max(m, 0.1f); }
+	void set_inertia_diag(const matrix::Vector3f &diag)
+	{
+		matrix::Vector3f d = diag.emult(matrix::Vector3f{1.f, 1.f, 1.f});
+		d(0) = math::max(d(0), 1e-4f);
+		d(1) = math::max(d(1), 1e-4f);
+		d(2) = math::max(d(2), 1e-4f);
+		_I = matrix::diag(d);
+		_I_inv = matrix::diag(matrix::Vector3f{1.f / d(0), 1.f / d(1), 1.f / d(2)});
+	}
+	void set_damping(float kdv, float kdw) { _aero.set_damping(kdv, kdw); }
+
 private:
 	matrix::Dcmf rotationMatrix(float phi, float theta, float psi) const
 	{
@@ -118,16 +110,22 @@ private:
 		const float sT = sinf(theta);
 		const float cS = cosf(psi);
 		const float sS = sinf(psi);
-		return matrix::Dcmf{
-			cT * cS, sP * sT * cS - cP * sS, cP * sT * cS + sP * sS,
-			cT * sS, sP * sT * sS + cP * cS, cP * sT * sS - sP * cS,
-			-sT, sP * cT, cP * cT
-		};
+		matrix::Dcmf R;
+		R(0, 0) = cT * cS;
+		R(0, 1) = sP * sT * cS - cP * sS;
+		R(0, 2) = cP * sT * cS + sP * sS;
+		R(1, 0) = cT * sS;
+		R(1, 1) = sP * sT * sS + cP * cS;
+		R(1, 2) = cP * sT * sS - sP * cS;
+		R(2, 0) = -sT;
+		R(2, 1) = sP * cT;
+		R(2, 2) = cP * cT;
+		return R;
 	}
 
-	const float _mass = 2.5f;
-	const matrix::Matrix3f _I{matrix::diag(matrix::Vector3f{0.20f, 0.30f, 1.00f})};
-	const matrix::Matrix3f _I_inv{matrix::diag(matrix::Vector3f{1.f / 0.20f, 1.f / 0.30f, 1.f / 1.00f})};
+	float _mass = 2.5f;
+	matrix::Matrix3f _I{matrix::diag(matrix::Vector3f{0.20f, 0.30f, 1.00f})};
+	matrix::Matrix3f _I_inv{matrix::diag(matrix::Vector3f{1.f / 0.20f, 1.f / 0.30f, 1.f / 1.00f})};
 	const float _S = 0.50f;
 	const float _b = 2.00f;
 	const float _c = 0.25f;
@@ -137,13 +135,5 @@ private:
 	const float _CL_alpha = 4.5f;
 	const float _CD0 = 0.035f;
 	const float _k = 0.040f;
-	const float _CY_beta = -0.9f;
-	const float _CL_max = 1.4f;
-	const float _alpha_max = 25.f * M_PI_F / 180.f;
-	const float _beta_max = 25.f * M_PI_F / 180.f;
-	const matrix::Matrix3f _D_rot{matrix::diag(matrix::Vector3f{0.05f, 0.07f, 0.05f})};
-	const matrix::Vector3f _defl_max{25.f * M_PI_F / 180.f, 25.f * M_PI_F / 180.f, 25.f * M_PI_F / 180.f};
-	const float _Cl_da = 0.08f;
-	const float _Cm_de = -0.50f;
-	const float _Cn_dr = 0.06f;
+	mutable FwMpcAero _aero{};
 };

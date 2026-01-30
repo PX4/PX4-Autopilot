@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FwMpcDynamics.hpp"
+#include "FwMpcController.hpp"
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -14,6 +15,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 
@@ -43,6 +45,7 @@ private:
 	uORB::Subscription _rates_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _lpos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Subscription _lat_sp_sub{ORB_ID(fixed_wing_lateral_setpoint)};
 	uORB::Subscription _lon_sp_sub{ORB_ID(fixed_wing_longitudinal_setpoint)};
 
@@ -53,9 +56,17 @@ private:
 
 	hrt_abstime _last_run{0};
 	FwMpcDynamics _dynamics{};
+	FwMpcController _controller{};
+	bool _mpc_ready{false};
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::FW_MPC_AVOID_EN>) _param_fw_mpc_avoid_en,
-		(ParamFloat<px4::params::FW_MPC_AVOID_DT>) _param_fw_mpc_avoid_dt
+		(ParamFloat<px4::params::FW_MPC_AVOID_DT>) _param_fw_mpc_avoid_dt,
+		(ParamFloat<px4::params::SIH_MASS>) _param_sih_mass,
+		(ParamFloat<px4::params::SIH_IXX>) _param_sih_ixx,
+		(ParamFloat<px4::params::SIH_IYY>) _param_sih_iyy,
+		(ParamFloat<px4::params::SIH_IZZ>) _param_sih_izz,
+		(ParamFloat<px4::params::SIH_KDV>) _param_sih_kdv,
+		(ParamFloat<px4::params::SIH_KDW>) _param_sih_kdw
 	)
 };

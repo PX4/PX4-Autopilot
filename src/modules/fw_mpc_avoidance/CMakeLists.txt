@@ -6,6 +6,9 @@ px4_add_module(
 		FwMpcAvoidance.hpp
 		FwMpcDynamics.hpp
 		FixedWingMpcModel.hpp
+		FwMpcAero.hpp
+		FwMpcController.cpp
+		FwMpcController.hpp
 	DEPENDS
 		px4_work_queue
 		osqp
