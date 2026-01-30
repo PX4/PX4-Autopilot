@@ -786,6 +786,13 @@ GPS::run()
 		param_get(handle, &gps_ubx_min_elev);
 	}
 
+	int32_t gps_ubx_rate = 0;
+	handle = param_find("GPS_UBX_RATE");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_ubx_rate);
+	}
+
 	handle = param_find("GPS_UBX_MODE");
 
 	GPSDriverUBX::UBXMode ubx_mode{GPSDriverUBX::UBXMode::Normal};
@@ -938,6 +945,7 @@ GPS::run()
 					.dgnss_timeout = (uint8_t)gps_ubx_dgnss_to,
 					.min_cno = (uint8_t)gps_ubx_min_cno,
 					.min_elev = (int8_t)gps_ubx_min_elev,
+					.output_rate = (uint8_t)gps_ubx_rate,
 					.heading_offset = heading_offset,
 					.uart2_baudrate = f9p_uart2_baudrate,
 					.ppk_output = ppk_output > 0,

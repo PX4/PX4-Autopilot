@@ -115,6 +115,25 @@ PARAM_DEFINE_INT32(GPS_UBX_MIN_CNO, 0);
 PARAM_DEFINE_INT32(GPS_UBX_MIN_ELEV, 0);
 
 /**
+ * u-blox GPS output rate
+ *
+ * Configure the output rate of u-blox GPS receivers (protocol v27+).
+ * When set to 0, automatic rate selection is used based on the receiver model.
+ * Default rates: M9N=8Hz, F9P L1L2=5Hz, F9P L1L5=7Hz, Others=10Hz.
+ *
+ * Note: Higher rates reduce satellite count (e.g., >8Hz limits to 16 SVs on M9N).
+ * Max rates vary by model and RTK mode: F9P L1L2=5-7Hz, F9P L1L5=7-8Hz, X20=25Hz.
+ * High rates at 115200 baud may cause dropouts.
+ *
+ * @min 0
+ * @max 25
+ * @unit Hz
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_RATE, 0);
+
+/**
  * Enable sat info (if available)
  *
  * Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
