@@ -1,0 +1,295 @@
+name: Docs CI
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs-orchestrator.yml'
+  push:
+    branches:
+      - main
+      - 'release/**'
+    paths:
+      - 'docs/**'
+      - 'src/**'
+      - 'msg/**'
+      - 'ROMFS/**'
+      - 'Tools/module_config/**'
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # for AWS OIDC
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # PR ONLY: Link Checker
+  # ═══════════════════════════════════════════════════════════════════════════════
+  link-check:
+    name: "Docs: Link Check"
+    if: github.event_name == 'pull_request'
+    runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    steps:
+      - uses: runs-on/action@v1
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get changed markdown files
+        id: changed
+        uses: tj-actions/changed-files@v46
+        with:
+          files: 'docs/en/**/*.md'
+          json: true
+
+      - name: Run link checker
+        if: steps.changed.outputs.any_changed == 'true'
+        id: linkcheck
+        run: |
+          npm install -g markdown_link_checker_sc@0.0.138
+          echo '${{ steps.changed.outputs.all_changed_files }}' > /tmp/files.json
+          markdown_link_checker_sc \
+            -r "$GITHUB_WORKSPACE" \
+            -d docs \
+            -e en \
+            -f /tmp/files.json \
+            -i assets \
+            -u docs.px4.io/main/ \
+            > /tmp/errors.md || true
+          echo "errors<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/errors.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post PR comment
+        if: steps.changed.outputs.any_changed == 'true'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: link-check
+          message: |
+            ## Link Check Results
+            ${{ steps.linkcheck.outputs.errors || 'No broken links found!' }}
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # PUSH ONLY: Metadata Regeneration + Auto-Commit
+  # ═══════════════════════════════════════════════════════════════════════════════
+  metadata-regen:
+    name: "Docs: Regenerate Metadata"
+    if: github.event_name == 'push'
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    container:
+      image: px4io/px4-dev:v1.16.0
+    outputs:
+      metadata_updated: ${{ steps.commit.outputs.updated }}
+    steps:
+      - uses: runs-on/action@v1
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PX4BUILDBOT_PAT }}
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config --system --add safe.directory '*'
+          git config user.name "PX4 BuildBot"
+          git config user.email "px4buildbot@px4.io"
+
+      - name: Cache Restore - ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.ccache
+          key: docs-metadata-ccache-${{ github.sha }}
+          restore-keys: |
+            docs-metadata-ccache-${{ github.base_ref || github.ref_name }}-
+            docs-metadata-ccache-
+
+      - name: Cache Configure - ccache
+        run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
+          echo "max_size = 250M" >> ~/.ccache/ccache.conf
+          echo "hash_dir = false" >> ~/.ccache/ccache.conf
+          echo "compiler_check = content" >> ~/.ccache/ccache.conf
+          ccache -s
+          ccache -z
+
+      - name: Build px4_sitl_default
+        run: make px4_sitl_default
+
+      - name: Install Emscripten
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git /tmp/emsdk
+          cd /tmp/emsdk
+          ./emsdk install 3.1.64
+          ./emsdk activate 3.1.64
+
+      - name: Build failsafe_web
+        run: |
+          source /tmp/emsdk/emsdk_env.sh
+          make failsafe_web
+
+      - name: Sync all metadata
+        run: Tools/ci/metadata_sync.sh --sync all
+
+      - name: Cache Stats - ccache
+        run: ccache -s
+
+      - name: Cache Save - ccache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.ccache
+          key: docs-metadata-ccache-${{ github.sha }}
+
+      - name: Commit and push changes
+        id: commit
+        run: |
+          if [[ -n $(git status -s docs/) ]]; then
+            git add docs/
+            git commit -m "docs: auto-update metadata [skip ci]"
+            git push
+            echo "updated=true" >> $GITHUB_OUTPUT
+          else
+            echo "updated=false" >> $GITHUB_OUTPUT
+          fi
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # BOTH: VitePress Site Build
+  # ═══════════════════════════════════════════════════════════════════════════════
+  build-site:
+    name: "Docs: Build Site"
+    needs: [link-check, metadata-regen]
+    if: always() && (needs.link-check.result == 'success' || needs.link-check.result == 'skipped') && (needs.metadata-regen.result == 'success' || needs.metadata-regen.result == 'skipped')
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    outputs:
+      branchname: ${{ steps.set-branch.outputs.branchname }}
+      releaseversion: ${{ steps.set-version.outputs.releaseversion }}
+    steps:
+      - uses: runs-on/action@v1
+
+      - uses: actions/checkout@v4
+        with:
+          # For push events, fetch latest (includes auto-commit if any)
+          ref: ${{ github.event_name == 'push' && github.ref || github.event.pull_request.head.sha }}
+
+      - name: Set branch name
+        id: set-branch
+        run: echo "branchname=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+
+      - name: Set release version
+        id: set-version
+        run: |
+          branch="${{ steps.set-branch.outputs.branchname }}"
+          if [[ "$branch" == "main" ]]; then
+            version="main"
+          else
+            version="v${branch#release/}"
+          fi
+          echo "releaseversion=$version" >> $GITHUB_OUTPUT
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache Restore - node_modules
+        uses: actions/cache@v4
+        with:
+          path: docs/node_modules
+          key: node-modules-${{ hashFiles('docs/yarn.lock') }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --prefer-offline --cwd ./docs
+
+      - name: Build VitePress
+        working-directory: ./docs
+        env:
+          BRANCH_NAME: ${{ steps.set-version.outputs.releaseversion }}
+        run: |
+          npm run docs:build_ubuntu
+          touch .vitepress/dist/.nojekyll
+          npm run docs:sitemap
+
+      - name: Upload artifact
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: px4_docs_build
+          path: docs/.vitepress/dist/
+          retention-days: 1
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # PUSH ONLY: Deploy to AWS S3
+  # ═══════════════════════════════════════════════════════════════════════════════
+  deploy-aws:
+    name: "Docs: Deploy to AWS"
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: [build-site]
+    runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    steps:
+      - uses: runs-on/action@v1
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: px4_docs_build
+          path: ~/_book
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: S3 sync - HTML files
+        run: |
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build-site.outputs.releaseversion }}/ \
+            --delete \
+            --exclude "*" --include "*.html" \
+            --cache-control "public, max-age=60"
+
+      - name: S3 sync - assets
+        run: |
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build-site.outputs.releaseversion }}/ \
+            --delete \
+            --exclude "*.html" \
+            --cache-control "public, max-age=86400, immutable"
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # PUSH ONLY: Upload to Crowdin
+  # ═══════════════════════════════════════════════════════════════════════════════
+  crowdin-upload:
+    name: "Docs: Crowdin Upload"
+    if: github.event_name == 'push'
+    needs: [deploy-aws]
+    runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    steps:
+      - uses: runs-on/action@v1
+
+      - uses: actions/checkout@v4
+
+      - name: Upload to Crowdin
+        uses: crowdin/github-action@v2
+        with:
+          config: 'docs/crowdin_docs.yml'
+          upload_sources: true
+          upload_translations: false
+          download_translations: false
+          crowdin_branch_name: main
+        env:
+          GITHUB_TOKEN: ${{ secrets.PX4BUILDBOT_ACCESSTOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_DOCS_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.PX4BUILDBOT_CROWDIN_PERSONAL_TOKEN }}
