@@ -837,6 +837,21 @@ PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
 PARAM_DEFINE_INT32(COM_ARM_ODID, 0);
 
 /**
+ * Enable Traffic Avoidance system detection check
+ *
+ * This check detects if a traffic avoidance system (ADSB/FLARM transponder)
+ * is missing. Depending on the value of the parameter, the check can be
+ * disabled, warn only, or deny arming.
+ *
+ * @group Commander
+ * @value 0 Disabled
+ * @value 1 Warning only
+ * @value 2 Enforce for all modes
+ * @value 3 Enforce for mission modes only
+ */
+PARAM_DEFINE_INT32(COM_ARM_TRAFF, 0);
+
+/**
  * Enforced delay between arming and further navigation
  *
  * The minimal time from arming the motors until moving the vehicle is possible is COM_SPOOLUP_TIME seconds.

@@ -1,6 +1,6 @@
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 2
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -125,8 +125,6 @@ bool open_drone_id_system_healthy
 
 bool parachute_system_present
 bool parachute_system_healthy
-
-bool traffic_avoidance_system_present
 
 bool rc_calibration_in_progress
 bool calibration_enabled
