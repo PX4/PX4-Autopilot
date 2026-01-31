@@ -141,13 +141,8 @@ float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 
 const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, const Vector3f(&waypoints)[3]) const
 {
-	const auto &target = waypoints[1];
-
-	if (!_isTurning(target)) {
-		return target;
-	}
-
-	// Get the crossing point using L1-style guidance
+	// Always use L1 guidance to handle edge cases (vehicle behind previous waypoint, etc.)
+	// The L1 logic will clamp to the segment bounds and handle straight-line cases appropriately
 	return _getL1Point(position, waypoints);
 }
 
@@ -157,8 +152,9 @@ const Vector3f PositionSmoothing::_getL1Point(const Vector3f &position, const Ve
 				_trajectory[2].getCurrentPosition());
 	const Vector3f u_prev_to_target = (waypoints[1] - waypoints[0]).unit_or_zero();
 	const Vector3f prev_to_pos(pos_traj - waypoints[0]);
-	const Vector3f prev_to_closest(u_prev_to_target * (prev_to_pos * u_prev_to_target));
-	const Vector3f closest_pt = waypoints[0] + prev_to_closest;
+	const float projection = prev_to_pos * u_prev_to_target;
+
+	const Vector3f closest_pt = waypoints[0] + u_prev_to_target * projection;
 
 	// Compute along-track error using L1 distance and cross-track error
 	const float crosstrack_error = (closest_pt - pos_traj).length();
@@ -171,8 +167,12 @@ const Vector3f PositionSmoothing::_getL1Point(const Vector3f &position, const Ve
 		alongtrack_error = sqrtf(l1 * l1 - crosstrack_error * crosstrack_error);
 	}
 
+	// Clamp the final point to the line segment bounds
+	const float segment_length = (waypoints[1] - waypoints[0]).length();
+	const float constrained_projection = math::constrain(projection + alongtrack_error, 0.0f, segment_length);
+
 	// Position of the point on the line where L1 intersect the line between the two waypoints
-	return closest_pt + alongtrack_error * u_prev_to_target;
+	return waypoints[0] + u_prev_to_target * constrained_projection;
 }
 
 const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &position, const Vector3f(&waypoints)[3],
