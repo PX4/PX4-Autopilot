@@ -49,9 +49,7 @@
 #include <lib/perf/perf_counter.h>
 
 #include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/obstacle_distance.h>
-#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/distance_sensor.h>
 
 #include "grf_commands.h"
 
@@ -93,10 +91,8 @@ public:
 	void				grf_process_replies();
 
 private:
-	obstacle_distance_s 			_obstacle_distance{};
-	uORB::Publication<obstacle_distance_s>	_obstacle_distance_pub{ORB_ID(obstacle_distance)};	/**< obstacle_distance publication */
-	static constexpr uint8_t 	BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
-				obstacle_distance_s::distances[0]);
+
+	distance_sensor_s		_distance{};
 	static constexpr uint64_t 	GRF_MEAS_TIMEOUT{100_ms};
 	static constexpr float 		GRF_SCALE_FACTOR = 0.01f;
 	static constexpr float		GRF_FIELDOF_VIEW = 320.f; // degrees
@@ -108,11 +104,7 @@ private:
 	int				collect();
 	bool				_crc_valid{false};
 
-	void 				_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement, hrt_abstime now);
-	void 				_publish_obstacle_msg(hrt_abstime now);
-	uORB::Subscription 		_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uint64_t			_data_timestamps[BIN_COUNT];
-
+	// void 				_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement, hrt_abstime now);
 
 	char 				_port[20] {};
 	int				_interval{2000};
@@ -121,7 +113,7 @@ private:
 	uint8_t				_linebuf[GRF_MAX_PAYLOAD] {};
 	int				_linebuf_size{0};
 
-	// GRF/B uses a binary protocol to include header,flags
+	// GRF uses a binary protocol to include header,flags
 	// message ID, payload, and checksum
 	bool				_is_grf{false};
 	GRF_SERIAL_STATE		_sensor_state{STATE_UNINIT};
@@ -139,9 +131,8 @@ private:
 	int32_t				_orient_cfg{0};
 	uint8_t				_previous_bin{0};
 	uint16_t			_current_bin_dist{UINT16_MAX};
-	matrix::Quatf			_vehicle_attitude{};
 
-	// end of GRF/B data members
+	// end of GRF data members
 
 	hrt_abstime			_last_received_time{0};
 	perf_counter_t			_sample_perf;
