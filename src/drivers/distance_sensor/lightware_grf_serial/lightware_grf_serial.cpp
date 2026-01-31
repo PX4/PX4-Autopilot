@@ -65,17 +65,9 @@ GRFLaserSerial::GRFLaserSerial(const char *port) :
 		device_id.devid_s.bus = bus_num;
 	}
 
-	// populate obstacle map members
-	_obstacle_distance.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
-	_obstacle_distance.sensor_type = obstacle_distance_s::MAV_DISTANCE_SENSOR_LASER;
-	_obstacle_distance.increment = 5;
-	_obstacle_distance.min_distance = 20;
-	_obstacle_distance.max_distance = 5000;
-	_obstacle_distance.angle_offset = 0;
+	_distance.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	_distance.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
-	for (uint32_t i = 0 ; i < BIN_COUNT; i++) {
-		_obstacle_distance.distances[i] = UINT16_MAX;
-	}
 }
 
 GRFLaserSerial::~GRFLaserSerial()
@@ -89,13 +81,6 @@ GRFLaserSerial::~GRFLaserSerial()
 int GRFLaserSerial::init()
 {
 	param_get(param_find("GRF_UPDATE_CFG"), &_update_rate);
-	param_get(param_find("GRF_ORIENT_CFG"), &_orient_cfg);
-	param_get(param_find("GRF_YAW_CFG"), &_yaw_cfg);
-
-	// set the sensor orientation
-	const float yaw_cfg_angle = ObstacleMath::sensor_orientation_to_yaw_offset(static_cast<ObstacleMath::SensorOrientation>
-				    (_yaw_cfg));
-	_obstacle_distance.angle_offset = math::degrees(matrix::wrap_2pi(yaw_cfg_angle));
 
 	start();
 	return PX4_OK;
@@ -255,7 +240,7 @@ void GRFLaserSerial::Run()
 		/* no parity, one stop bit */
 		uart_config.c_cflag &= ~(CSTOPB | PARENB);
 
-		unsigned speed = B115200;
+		unsigned speed = B921600;
 
 		/* set baud rate */
 		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
@@ -346,6 +331,10 @@ void GRFLaserSerial::grf_get_and_handle_request(const int payload_length, const 
 		bool restart_flag = false;
 
 		while (restart_flag != true) {
+			PX4_INFO("Line Index: %02X State: %d",_linebuf[index], _parsed_state);
+			PX4_INFO("Line Flag Low: %u State: %d",_linebuf[index + 1], _parsed_state);
+			PX4_INFO("Line Flag High: %u State: %d",_linebuf[index + 2], _parsed_state);
+			PX4_INFO("Line ID: %u  State: %d",_linebuf[index + 3], _parsed_state);
 			switch (_parsed_state) {
 			case GRF_PARSED_STATE::START: {
 					if (_linebuf[index] == 0xAA) {
@@ -595,68 +584,26 @@ void GRFLaserSerial::grf_send(uint8_t msg_id, bool write, int32_t *data, uint8_t
 
 void GRFLaserSerial::grf_process_replies()
 {
-	const int16_t YAW_THRESHOLD  = 32000;
-	const int16_t YAW_ADJUSTMENT = 65535;
-
 	switch (rx_field.msg_id) {
 	case GRF_DISTANCE_DATA_CM: {
 			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8);
-			int16_t raw_yaw = ((rx_field.data[2] << 0) | (rx_field.data[3] << 8));
-
-			// The sensor scans from 0 to -160, so extract negative angle from int16 and represent as if a float
-			if (raw_yaw > YAW_THRESHOLD) {
-				raw_yaw -= YAW_ADJUSTMENT;
-			}
-
-			// Adjust yaw for downward facing sensor
-			if (_orient_cfg == ROTATION_DOWNWARD_FACING) {
-				raw_yaw = -raw_yaw;
-			}
-
-			// GRF/B product guide {Data output bit: 8 Description: "Yaw angle [1/100 deg] size: int16}"
-			float scaled_yaw_sensor_frame = raw_yaw * GRF_SCALE_FACTOR;
-			float scaled_yaw_frd          = ObstacleMath::wrap_360(scaled_yaw_sensor_frame + _obstacle_distance.angle_offset);
-			float distance_m              = raw_distance * GRF_SCALE_FACTOR;
+			PX4_INFO("Raw Distance: %02f", (double) raw_distance);
 
 			// Update the current bin distance
-			_current_bin_dist = ((uint16_t)raw_distance < _current_bin_dist) ? (uint16_t)raw_distance : _current_bin_dist;
+			// _current_bin_dist = ((uint16_t)raw_distance < _current_bin_dist) ? (uint16_t)raw_distance : _current_bin_dist;
 
-			// Find bin index for the current sensor yaw angle (in sensor frame)
-			const int current_bin = ObstacleMath::get_bin_at_angle(_obstacle_distance.increment, scaled_yaw_sensor_frame);
+			// if (current_bin != _previous_bin) {
+			// 	PX4_DEBUG("distance: \t %8.4f\n", (double) distance_m);
 
-			if (current_bin != _previous_bin) {
-				PX4_DEBUG("scaled_yaw: \t %f, \t current_bin: \t %d, \t distance: \t %8.4f\n", (double)scaled_yaw_frd, current_bin,
-					  (double)distance_m);
+			// 	hrt_abstime now = hrt_absolute_time();
 
-				if (_vehicle_attitude_sub.updated()) {
-					vehicle_attitude_s vehicle_attitude;
+			// 	_distance.current_distances = _current_bin_dist;
+			// 	_publish_distance_msg(now);
 
-					if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
-						_vehicle_attitude = matrix::Quatf(vehicle_attitude.q);
-					}
-				}
-
-				// Scale distance with vehicle rotation
-				float current_bin_dist = static_cast<float>(_current_bin_dist);
-				float scaled_yaw_frd_rad = math::radians(static_cast<float>(scaled_yaw_frd));
-				ObstacleMath::project_distance_on_horizontal_plane(current_bin_dist, scaled_yaw_frd_rad, _vehicle_attitude);
-				_current_bin_dist = static_cast<uint16_t>(current_bin_dist);
-
-				if (_current_bin_dist > _obstacle_distance.max_distance) {
-					_current_bin_dist = _obstacle_distance.max_distance + 1; // As per ObstacleDistance.msg definition
-				}
-
-				hrt_abstime now = hrt_absolute_time();
-
-				_obstacle_distance.distances[current_bin] = _current_bin_dist;
-				_handle_missed_bins(current_bin, _previous_bin, _current_bin_dist, now);
-
-				_publish_obstacle_msg(now);
-
-				// reset the values for the next measurement
-				_current_bin_dist = UINT16_MAX;
-				_previous_bin = current_bin;
-			}
+			// 	// reset the values for the next measurement
+			// 	_current_bin_dist = UINT16_MAX;
+			// 	_previous_bin = current_bin;
+			// }
 
 			break;
 		}
@@ -666,59 +613,45 @@ void GRFLaserSerial::grf_process_replies()
 		break;
 	}
 }
-void GRFLaserSerial::_publish_obstacle_msg(hrt_abstime now)
-{
-	// This whole logic is in place because CollisionPrevention, just reads in the last published message on the topic, and not every message,
-	// This can result in messages being misssed if the sensor is publishing at a faster rate than the CollisionPrevention module is reading.
-	for (uint8_t i = 0; i < BIN_COUNT; i++) {
-		if (now - _data_timestamps[i] > GRF_MEAS_TIMEOUT) {
-			// If the data is older than GRF_MEAS_TIMEOUT, we discard the value (UINT16_MAX means no valid data)
-			_obstacle_distance.distances[i] = UINT16_MAX;
-		}
-	}
 
-	_obstacle_distance.timestamp = now;
-	_obstacle_distance_pub.publish(_obstacle_distance);
-}
+// void GRFLaserSerial::_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement,
+// 		hrt_abstime now)
+// {
+// 	// if the sensor has its cycle delay configured for a low value like 5, it can happen that not every bin gets a measurement.
+// 	// in this case we assume the measurement to be valid for all bins between the previous and the current bin.
+// 	uint8_t start = current_bin;
+// 	uint8_t end = previous_bin - 1;
 
-void GRFLaserSerial::_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement,
-		hrt_abstime now)
-{
-	// if the sensor has its cycle delay configured for a low value like 5, it can happen that not every bin gets a measurement.
-	// in this case we assume the measurement to be valid for all bins between the previous and the current bin.
-	uint8_t start = current_bin;
-	uint8_t end = previous_bin - 1;
+// 	if (abs(current_bin - previous_bin) > BIN_COUNT / 4) {
+// 		// wrap-around case is assumed to have happend when the distance between the bins is larger than 1/4 of all Bins
+// 		// This is simplyfied as we are not considering the scaning direction
+// 		start = math::max(previous_bin, current_bin);
+// 		end = math::min(previous_bin, current_bin);
 
-	if (abs(current_bin - previous_bin) > BIN_COUNT / 4) {
-		// wrap-around case is assumed to have happend when the distance between the bins is larger than 1/4 of all Bins
-		// This is simplyfied as we are not considering the scaning direction
-		start = math::max(previous_bin, current_bin);
-		end = math::min(previous_bin, current_bin);
+// 	} else if (previous_bin < current_bin) {	// Scanning clockwise
+// 		start = previous_bin + 1;
+// 		end = current_bin;
 
-	} else if (previous_bin < current_bin) {	// Scanning clockwise
-		start = previous_bin + 1;
-		end = current_bin;
+// 	}
 
-	}
+// 	if (start <= end) {
+// 		for (uint8_t i = start; i <= end; i++) {
+// 			_obstacle_distance.distances[i] = measurement;
+// 			_data_timestamps[i] = now;
+// 		}
 
-	if (start <= end) {
-		for (uint8_t i = start; i <= end; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
+// 	} else { // wrap-around case
+// 		for (uint8_t i = start; i < BIN_COUNT; i++) {
+// 			_obstacle_distance.distances[i] = measurement;
+// 			_data_timestamps[i] = now;
+// 		}
 
-	} else { // wrap-around case
-		for (uint8_t i = start; i < BIN_COUNT; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
-
-		for (uint8_t i = 0; i <= end; i++) {
-			_obstacle_distance.distances[i] = measurement;
-			_data_timestamps[i] = now;
-		}
-	}
-}
+// 		for (uint8_t i = 0; i <= end; i++) {
+// 			_obstacle_distance.distances[i] = measurement;
+// 			_data_timestamps[i] = now;
+// 		}
+// 	}
+// }
 
 uint16_t GRFLaserSerial::grf_format_crc(uint16_t crc, uint8_t data_val)
 {

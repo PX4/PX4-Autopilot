@@ -1,8 +1,8 @@
 module_name: Lightware GRF Rangefinder (serial)
 serial_config:
-    - command: lightware_grf250_serial start -d ${SERIAL_DEV}
+    - command: lightware_grf_serial start -d ${SERIAL_DEV}
       port_config_param:
-        name: SENS_EN_grf250_CFG
+        name: SENS_EN_GRF_CFG
         group: Sensors
       num_instances: 1
       supports_networking: false
@@ -14,7 +14,7 @@ parameters:
               description:
                   short: Update rate in Hz
                   long: |
-                      The GRF-250 sets the update rate in Hz to allow greater resolution
+                      The GRF sets the update rate in Hz to allow greater resolution
               type: enum
               values:
                   1: 50hz
@@ -32,31 +32,3 @@ parameters:
               reboot_required: true
               num_instances: 1
               default: 5
-
-          GRF_ORIENT_CFG:
-              description:
-                  short: Orientation upright or facing downward
-                  long: |
-                      The GRF-250 mounted facing upward or downward on the frame
-              type: enum
-              values:
-                24: Rotation upward
-                25: Rotation downward
-              reboot_required: true
-              num_instances: 1
-              default: 24
-
-          GRF_YAW_CFG:
-              description:
-                  short: Sensor facing forward or backward
-                  long: |
-                      The usb port on the sensor indicates 180deg, opposite usb is forward facing
-              type: enum
-              values:
-                0: Rotation forward
-                2: Rotation right
-                4: Rotation backward
-                6: Rotation left
-              reboot_required: true
-              num_instances: 1
-              default: 0

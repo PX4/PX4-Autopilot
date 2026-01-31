@@ -45,7 +45,3 @@ px4_add_module(
 	MODULE_CONFIG
 		module.yaml
 	)
-
-if(PX4_TESTING)
-	add_subdirectory(tests)
-endif()
