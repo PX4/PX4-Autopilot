@@ -1,7 +1,7 @@
 uint64 timestamp
 uint8 frame
 uint8 count
-uint8[2] _padding0
+uint8[2] padding0
 
 uint8 MAX_OBSTACLES = 4
 uint8 FRAME_LOCAL_NED = 1
