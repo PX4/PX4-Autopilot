@@ -60,10 +60,6 @@ if(CONFIG_EKF2_AIRSPEED)
 	list(APPEND EKF_SRCS aid_sources/airspeed/airspeed_fusion.cpp)
 endif()
 
-if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-	list(APPEND EKF_SRCS aid_sources/aux_global_position/aux_global_position.cpp)
-endif()
-
 if(CONFIG_EKF2_AUXVEL)
 	list(APPEND EKF_SRCS aid_sources/auxvel/auxvel_fusion.cpp)
 endif()
