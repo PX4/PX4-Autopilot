@@ -137,6 +137,8 @@ __EXPORT float calc_TAS(float total_pressure, float static_pressure, float tempe
  */
 __EXPORT float calc_calibrated_from_true_airspeed(float speed_true, float air_density);
 
+__EXPORT float calc_true_from_calibrated_airspeed(float speed_calibrated, float air_density);
+
 __END_DECLS
 
 #endif

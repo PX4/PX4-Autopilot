@@ -112,4 +112,6 @@ if(PX4_TESTING)
 	add_subdirectory(uORB_tests)
 endif()
 
-px4_add_functional_gtest(SRC uORBMessageFieldsTest.cpp LINKLIBS uORB)
+if(PX4_TESTING)
+	add_subdirectory(test)
+endif()

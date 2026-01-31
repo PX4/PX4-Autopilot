@@ -42,7 +42,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 	actuator_armed_s actuator_armed;
 
 	if (_actuator_armed_sub.copy(&actuator_armed)) {
-		if (actuator_armed.force_failsafe || actuator_armed.manual_lockdown) {
+		if (actuator_armed.termination || actuator_armed.kill) {
 			/* EVENT
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_flight_term_active"),
@@ -118,27 +118,6 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Press safety button first");
-		}
-	}
-
-	// avoidance system
-	if (context.status().avoidance_system_required) {
-		if (context.status().avoidance_system_valid) {
-			reporter.setIsPresent(health_component_t::avoidance);
-
-		} else {
-			/* EVENT
-			 * @description
-			 * <profile name="dev">
-			 * This check can be configured via <param>COM_OBS_AVOID</param> parameter.
-			 * </profile>
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_system_avoidance_not_ready"),
-						    events::Log::Error, "Avoidance system not ready");
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Avoidance system not ready");
-			}
 		}
 	}
 

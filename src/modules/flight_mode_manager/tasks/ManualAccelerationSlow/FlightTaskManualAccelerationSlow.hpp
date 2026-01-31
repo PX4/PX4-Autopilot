@@ -42,6 +42,7 @@
 
 #include "FlightTaskManualAcceleration.hpp"
 #include "StickAccelerationXY.hpp"
+#include "Gimbal.hpp"
 
 #include <lib/weather_vane/WeatherVane.hpp>
 #include <uORB/Subscription.hpp>
@@ -67,8 +68,14 @@ private:
 
 	bool _velocity_limits_received_before{false};
 
+	// Gimbal control
+	Gimbal _gimbal{this};
+
 	uORB::Subscription _velocity_limits_sub{ORB_ID(velocity_limits)};
 	velocity_limits_s _velocity_limits{};
+
+	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
+	bool haveTakenOff();
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAcceleration,
 					(ParamInt<px4::params::MC_SLOW_MAP_HVEL>) _param_mc_slow_map_hvel,
@@ -83,6 +90,7 @@ private:
 					(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
 					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
-					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max
+					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max,
+					(ParamInt<px4::params::MC_SLOW_MAP_PTCH>) _param_mc_slow_map_pitch
 				       )
 };

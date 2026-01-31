@@ -250,13 +250,14 @@ private:
 
 	// publish helper for estimator_aid_source topics
 	template <typename T>
-	void PublishAidSourceStatus(const T &status, hrt_abstime &status_publish_last, uORB::PublicationMulti<T> &pub)
+	void PublishAidSourceStatus(const hrt_abstime &timestamp, const T &status, hrt_abstime &status_publish_last,
+				    uORB::PublicationMulti<T> &pub)
 	{
 		if (status.timestamp_sample > status_publish_last) {
 			// publish if updated
 			T status_out{status};
 			status_out.estimator_instance = _instance;
-			status_out.timestamp = hrt_absolute_time();
+			status_out.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 			pub.publish(status_out);
 
 			// record timestamp sample
@@ -413,11 +414,9 @@ private:
 
 	uint64_t _filter_control_status{0};
 	uint32_t _filter_fault_status{0};
-	uint32_t _innov_check_fail_status{0};
 
 	uint32_t _filter_control_status_changes{0};
 	uint32_t _filter_fault_status_changes{0};
-	uint32_t _innov_check_fail_status_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
@@ -488,6 +487,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
 		(ParamExtFloat<px4::params::EKF2_VEL_LIM>) _param_ekf2_vel_lim,
+		(ParamBool<px4::params::EKF2_ENGINE_WRM>) _param_ekf2_engine_wrm,
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
@@ -513,6 +513,7 @@ private:
 
 #if defined(CONFIG_EKF2_GNSS)
 		(ParamExtInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,
+		(ParamExtInt<px4::params::EKF2_GPS_MODE>) _param_ekf2_gps_mode,
 		(ParamExtFloat<px4::params::EKF2_GPS_DELAY>) _param_ekf2_gps_delay,
 
 		(ParamExtFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps_pos_x,
@@ -533,10 +534,11 @@ private:
 		(ParamExtFloat<px4::params::EKF2_REQ_PDOP>)   _param_ekf2_req_pdop,
 		(ParamExtFloat<px4::params::EKF2_REQ_HDRIFT>) _param_ekf2_req_hdrift,
 		(ParamExtFloat<px4::params::EKF2_REQ_VDRIFT>) _param_ekf2_req_vdrift,
+		(ParamExtInt<px4::params::EKF2_REQ_FIX>)      _param_ekf2_req_fix,
 		(ParamFloat<px4::params::EKF2_REQ_GPS_H>)     _param_ekf2_req_gps_h,
 
 		// Used by EKF-GSF experimental yaw estimator
-		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas_default,
+		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas,
 		(ParamFloat<px4::params::EKF2_GPS_YAW_OFF>) _param_ekf2_gps_yaw_off,
 #endif // CONFIG_EKF2_GNSS
 
@@ -573,12 +575,9 @@ private:
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)
-		(ParamExtFloat<px4::params::EKF2_BETA_GATE>)
-		_param_ekf2_beta_gate, ///< synthetic sideslip innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_BETA_NOISE>) _param_ekf2_beta_noise, ///< synthetic sideslip noise (rad)
-
-		(ParamExtInt<px4::params::EKF2_FUSE_BETA>)
-		_param_ekf2_fuse_beta, ///< Controls synthetic sideslip fusion, 0 disables, 1 enables
+		(ParamExtFloat<px4::params::EKF2_BETA_GATE>) _param_ekf2_beta_gate,
+		(ParamExtFloat<px4::params::EKF2_BETA_NOISE>) _param_ekf2_beta_noise,
+		(ParamExtInt<px4::params::EKF2_FUSE_BETA>) _param_ekf2_fuse_beta,
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -596,7 +595,7 @@ private:
 		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check,
 		(ParamExtFloat<px4::params::EKF2_MAG_CHK_STR>) _param_ekf2_mag_chk_str,
 		(ParamExtFloat<px4::params::EKF2_MAG_CHK_INC>) _param_ekf2_mag_chk_inc,
-		(ParamExtInt<px4::params::EKF2_SYNT_MAG_Z>) _param_ekf2_synthetic_mag_z,
+		(ParamExtInt<px4::params::EKF2_SYNT_MAG_Z>) _param_ekf2_synt_mag_z,
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 		(ParamExtInt<px4::params::EKF2_HGT_REF>) _param_ekf2_hgt_ref,    ///< selects the primary source for height data
@@ -621,7 +620,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>) _param_ekf2_rng_pitch,
 		(ParamExtFloat<px4::params::EKF2_RNG_A_VMAX>) _param_ekf2_rng_a_vmax,
 		(ParamExtFloat<px4::params::EKF2_RNG_A_HMAX>) _param_ekf2_rng_a_hmax,
-		(ParamExtFloat<px4::params::EKF2_RNG_A_IGATE>) _param_ekf2_rng_a_igate,
 		(ParamExtFloat<px4::params::EKF2_RNG_QLTY_T>) _param_ekf2_rng_qlty_t,
 		(ParamExtFloat<px4::params::EKF2_RNG_K_GATE>) _param_ekf2_rng_k_gate,
 		(ParamExtFloat<px4::params::EKF2_RNG_FOG>) _param_ekf2_rng_fog,

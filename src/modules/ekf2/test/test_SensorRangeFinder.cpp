@@ -354,13 +354,12 @@ TEST_F(SensorRangeFinderTest, blockedByFog)
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 	const uint64_t dt_update_us = 10e3;
 	uint64_t dt_sensor_us = 3e5;
-	uint64_t duration_us = 5e5;
+	uint64_t duration_us = 2e6;
 
 	updateSensorAtRate(_good_sample, duration_us, dt_update_us, dt_sensor_us);
 	// THEN: the data should be marked as healthy
 	EXPECT_TRUE(_range_finder.isDataHealthy());
 	EXPECT_TRUE(_range_finder.isHealthy());
-
 
 	// WHEN: sensor is then blocked by fog
 	// range jumps to value below 2m
@@ -374,6 +373,7 @@ TEST_F(SensorRangeFinderTest, blockedByFog)
 
 	// WHEN: the sensor is not blocked by fog anymore
 	sample.rng = 5.f;
+	sample.time_us = _range_finder.getSampleAddress()->time_us;
 	updateSensorAtRate(sample, duration_us, dt_update_us, dt_sensor_us);
 
 	// THEN: the data should be marked as healthy again

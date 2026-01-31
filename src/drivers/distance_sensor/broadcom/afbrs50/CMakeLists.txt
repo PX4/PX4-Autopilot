@@ -47,7 +47,7 @@ px4_add_module(
 		AFBRS50.cpp
 		AFBRS50.hpp
 		API/Src/irq.c
-		API/Src/s2pi.c
+		API/Src/s2pi.cpp
 		API/Src/timer.c
 		argus_hal_test.c
 	DEPENDS

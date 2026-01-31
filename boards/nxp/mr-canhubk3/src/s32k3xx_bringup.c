@@ -119,7 +119,7 @@ int s32k3xx_bringup(void)
 		PX4_ERR("btn_lower_initialize() failed: %d", ret);
 
 	} else {
-		PX4_INFO("btn_lower_initialize() succesful");
+		PX4_INFO("btn_lower_initialize() successful");
 	}
 
 #endif
@@ -133,7 +133,7 @@ int s32k3xx_bringup(void)
 		PX4_ERR("userled_lower_initialize() failed: %d", ret);
 
 	} else {
-		PX4_INFO("userled_lower_initialize() succesful");
+		PX4_INFO("userled_lower_initialize() successful");
 	}
 
 #endif
@@ -224,7 +224,7 @@ int s32k3xx_bringup(void)
 				PX4_ERR("nxffs_initialize() failed: %d", ret);
 
 			} else {
-				PX4_INFO("nxffs_initialize() succesful");
+				PX4_INFO("nxffs_initialize() successful");
 
 				/* Mount the file system at /mnt/qspi */
 
@@ -234,7 +234,7 @@ int s32k3xx_bringup(void)
 					PX4_ERR("nx_mount() failed: %d", ret);
 
 				} else {
-					PX4_INFO("nx_mount() succesful");
+					PX4_INFO("nx_mount() successful");
 				}
 			}
 
@@ -250,7 +250,7 @@ int s32k3xx_bringup(void)
 #    ifdef CONFIG_BCH
 
 			else {
-				PX4_INFO("ftl_initialize() succesful");
+				PX4_INFO("ftl_initialize() successful");
 
 				/* Use the minor number to create device paths */
 
@@ -267,7 +267,7 @@ int s32k3xx_bringup(void)
 					PX4_ERR("bchdev_register %s failed: %d", chardev, ret);
 
 				} else {
-					PX4_INFO("bchdev_register %s succesful", chardev);
+					PX4_INFO("bchdev_register %s successful", chardev);
 				}
 			}
 

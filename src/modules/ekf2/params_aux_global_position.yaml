@@ -14,6 +14,16 @@ parameters:
       default: 0
       min: 0
       max: 3
+    EKF2_AGP_MODE:
+      description:
+        short: Fusion reset mode
+        long: 'Automatic: reset on fusion timeout if no other source of position is available
+          Dead-reckoning: reset on fusion timeout if no source of velocity is available'
+      type: enum
+      values:
+        0: Automatic
+        1: Dead-reckoning
+      default: 0
     EKF2_AGP_DELAY:
       description:
         short: Aux global position estimator delay relative to IMU measurements

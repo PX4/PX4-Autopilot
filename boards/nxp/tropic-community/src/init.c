@@ -65,8 +65,8 @@
 #include <nuttx/mm/gran.h>
 
 #include "arm_internal.h"
-#include "arm_internal.h"
 #include "imxrt_flexspi_nor_boot.h"
+#include <px4_arch/imxrt_flexspi_nor_flash.h>
 #include "imxrt_iomuxc.h"
 #include "imxrt_flexcan.h"
 #include "imxrt_enet.h"
@@ -84,6 +84,7 @@
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
 #include <px4_arch/io_timer.h>
+#include <px4_arch/imxrt_romapi.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
@@ -104,11 +105,6 @@ extern void led_off(int led);
 
 extern uint32_t _srodata;            /* Start of .rodata */
 extern uint32_t _erodata;            /* End of .rodata */
-extern const uint64_t _fitcmfuncs;   /* Copy source address in FLASH */
-extern uint64_t _sitcmfuncs;         /* Copy destination start address in ITCM */
-extern uint64_t _eitcmfuncs;         /* Copy destination end address in ITCM */
-extern uint64_t _sdtcm;              /* Copy destination start address in DTCM */
-extern uint64_t _edtcm;              /* Copy destination end address in DTCM */
 __END_DECLS
 
 /************************************************************************************
@@ -139,11 +135,40 @@ __EXPORT void board_on_reset(int status)
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_gpio_output(i)));
 	}
 
+	/*
+	 * On resets invoked from system (not boot) ensure we establish a low
+	 * output state on PWM pins to disarm the ESC and prevent the reset from potentially
+	 * spinning up the motors.
+	 */
 	if (status >= 0) {
-		up_mdelay(6);
+		up_mdelay(100);
 	}
 }
 
+/****************************************************************************
+ * Name: imxrt_flash_romapi_initialize
+ *
+ * Description:
+ *
+ ****************************************************************************/
+struct flexspi_nor_config_s g_bootConfig;
+
+locate_code(".ramfunc")
+void imxrt_flash_romapi_initialize(void)
+{
+	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, &g_flash_config,
+	       sizeof(struct flexspi_nor_config_s));
+	g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
+
+	ROM_API_Init();
+
+	ROM_FLEXSPI_NorFlash_Init(NOR_INSTANCE, (struct flexspi_nor_config_s *)&g_bootConfig);
+	ROM_FLEXSPI_NorFlash_ClearCache(NOR_INSTANCE);
+
+	ARM_DSB();
+	ARM_ISB();
+	ARM_DMB();
+}
 
 locate_code(".ramfunc")
 void imxrt_flash_setup_prefetch_partition(void)
@@ -193,50 +218,6 @@ void imxrt_flash_setup_prefetch_partition(void)
 }
 
 /****************************************************************************
- * Name: imxrt_ocram_initialize
- *
- * Description:
- *   Called off reset vector to reconfigure the flexRAM
- *   and finish the FLASH to RAM Copy.
- *
- ****************************************************************************/
-
-__EXPORT void imxrt_ocram_initialize(void)
-{
-	uint32_t regval;
-	register uint64_t *src;
-	register uint64_t *dest;
-
-	/* FlexRAM Configuration
-	 *    F = 64K ITCM
-	 *    A = 64K DTCM
-	 *    5 = 64K OCRAM
-	 *    So 0xFFFFFFAA is
-	 *    384K FlexRAM ITCM
-	 *    128K FlexRAM DTCM
-	 * */
-
-	putreg32(0xFFFFFFAA, IMXRT_IOMUXC_GPR_GPR17);
-	regval = getreg32(IMXRT_IOMUXC_GPR_GPR16);
-	putreg32(regval | GPR_GPR16_FLEXRAM_BANK_CFG_SEL, IMXRT_IOMUXC_GPR_GPR16);
-
-	/* Copy any necessary code sections from FLASH to ITCM. The process is the
-	* same as the code copying from FLASH to RAM above. */
-	for (src = (uint64_t *)&_fitcmfuncs, dest = (uint64_t *)&_sitcmfuncs;
-	     dest < (uint64_t *)&_eitcmfuncs;) {
-		*dest++ = *src++;
-	}
-
-	/* Clear .dtcm.  We'll do this inline (vs. calling memset) just to be
-	* certain that there are no issues with the state of global variables.
-	*/
-
-	for (dest = &_sdtcm; dest < &_edtcm;) {
-		*dest++ = 0;
-	}
-}
-
-/****************************************************************************
  * Name: imxrt_boardinitialize
  *
  * Description:
@@ -251,6 +232,8 @@ __EXPORT void imxrt_boardinitialize(void)
 {
 	imxrt_flash_setup_prefetch_partition();
 
+	imxrt_flash_romapi_initialize();
+
 	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
@@ -261,10 +244,6 @@ __EXPORT void imxrt_boardinitialize(void)
 
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
-
-	/* configure SPI interfaces */
-
-	imxrt_spidev_initialize();
 
 	imxrt_usb_initialize();
 
@@ -374,13 +353,17 @@ void imxrt_flexio_clocking(void)
  ****************************************************************************/
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+	int ret = OK;
+
+#if !defined(BOOTLOADER)
+
 	imxrt_flexio_clocking();
 
 	/* Power on Interfaces */
 
-	board_spi_reset(10, 0xffff);
-
 	px4_platform_init();
+
+	imxrt_spiinitialize();
 
 	/* configure the DMA allocator */
 
@@ -394,14 +377,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)imxrt_serial_dma_poll, NULL);
 #endif
 
-	int ret = OK;
 #if defined(CONFIG_IMXRT_USDHC)
 	ret = fmurt1062_usdhc_initialize();
 #endif
 
-	/* Configure SPI-based devices */
+	imxrt_spiinitialize();
 
-	ret = imxrt1062_spi_bus_initialize();
+	board_spi_reset(10, 0xffff);
 
 #ifdef CONFIG_IMXRT_ENET
 	imxrt_netinitialize(0);
@@ -411,7 +393,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	imxrt_caninitialize(3);
 #endif
 
-#ifdef CONFIG_IMXRT_FLEXSPI
 	ret = imxrt_flexspi_storage_initialize();
 
 	if (ret < 0) {
@@ -419,7 +400,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       "ERROR: imxrt_flexspi_nor_initialize failed: %d\n", ret);
 	}
 
-#endif
+#endif /* !defined(BOOTLOADER) */
 
 	return ret;
 }

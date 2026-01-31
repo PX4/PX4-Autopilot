@@ -43,6 +43,8 @@
 #include <math.h>
 #include <matrix/matrix/math.hpp>
 
+using namespace matrix;
+
 namespace gimbal
 {
 
@@ -506,10 +508,12 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_information(const ControlData 
 			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_LOCK |
 			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_CAN_POINT_LOCATION_GLOBAL;
 
-		gimbal_manager_info.pitch_max = _parameters.mnt_range_pitch;
-		gimbal_manager_info.pitch_min = -_parameters.mnt_range_pitch;
-		gimbal_manager_info.yaw_max = _parameters.mnt_range_yaw;
-		gimbal_manager_info.yaw_min = -_parameters.mnt_range_yaw;
+		gimbal_manager_info.pitch_max = math::radians(_parameters.mnt_max_pitch);
+		gimbal_manager_info.pitch_min = math::radians(_parameters.mnt_min_pitch);
+		gimbal_manager_info.yaw_max = math::radians(_parameters.mnt_range_yaw * 0.5f);
+		gimbal_manager_info.yaw_min = math::radians(-_parameters.mnt_range_yaw * 0.5f);
+		gimbal_manager_info.roll_max = math::radians(_parameters.mnt_range_roll * 0.5f);
+		gimbal_manager_info.roll_min = math::radians(-_parameters.mnt_range_roll * 0.5f);
 
 		gimbal_manager_info.gimbal_device_id = control_data.device_compid;
 
@@ -936,21 +940,19 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_set_manual_con
 	if (set_manual_control.origin_sysid == control_data.sysid_primary_control &&
 	    set_manual_control.origin_compid == control_data.compid_primary_control) {
 
-		const matrix::Quatf q =
-			(PX4_ISFINITE(set_manual_control.pitch) && PX4_ISFINITE(set_manual_control.yaw))
-			?
-			matrix::Quatf(
-				matrix::Eulerf(0.0f, set_manual_control.pitch, set_manual_control.yaw))
-			:
-			matrix::Quatf(NAN, NAN, NAN, NAN);
+		Quatf q(NAN, NAN, NAN, NAN);
 
-		const matrix::Vector3f angular_velocity =
-			(PX4_ISFINITE(set_manual_control.pitch_rate) &&
-			 PX4_ISFINITE(set_manual_control.yaw_rate)) ?
-			matrix::Vector3f(0.0f,
-					 math::radians(_parameters.mnt_rate_pitch) * set_manual_control.pitch_rate,
-					 math::radians(_parameters.mnt_rate_yaw) * set_manual_control.yaw_rate) :
-			matrix::Vector3f(NAN, NAN, NAN);
+		if (PX4_ISFINITE(set_manual_control.pitch) && PX4_ISFINITE(set_manual_control.yaw)) {
+			q = Quatf(matrix::Eulerf(0.0f, set_manual_control.pitch, set_manual_control.yaw));
+		}
+
+		Vector3f angular_velocity(NAN, NAN, NAN);
+
+		if (PX4_ISFINITE(set_manual_control.pitch_rate) && PX4_ISFINITE(set_manual_control.yaw_rate)) {
+			angular_velocity = Vector3f(0.0f,
+						    set_manual_control.pitch_rate * math::radians(_parameters.mnt_rate_pitch),
+						    set_manual_control.yaw_rate * math::radians(_parameters.mnt_rate_yaw));
+		}
 
 		_set_control_data_from_set_attitude(control_data, set_manual_control.flags, q,
 						    angular_velocity, set_manual_control.timestamp);

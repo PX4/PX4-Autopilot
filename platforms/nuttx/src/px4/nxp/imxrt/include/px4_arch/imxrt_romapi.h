@@ -239,7 +239,9 @@ status_t ROM_FLEXSPI_NorFlash_Erase(uint32_t instance, flexspi_nor_config_t *con
  * @retval kStatus_ROM_FLEXSPI_SequenceExecutionTimeout Sequence Execution timeout.
  * @retval kStatus_ROM_FLEXSPI_DeviceTimeout the device timeout
  */
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
 status_t ROM_FLEXSPI_NorFlash_EraseSector(uint32_t instance, flexspi_nor_config_t *config, uint32_t start);
+#endif
 
 /*!
  * @brief Erase one block specified by address
@@ -259,7 +261,9 @@ status_t ROM_FLEXSPI_NorFlash_EraseSector(uint32_t instance, flexspi_nor_config_
  * @retval kStatus_ROM_FLEXSPI_SequenceExecutionTimeout Sequence Execution timeout.
  * @retval kStatus_ROM_FLEXSPI_DeviceTimeout the device timeout
  */
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
 status_t ROM_FLEXSPI_NorFlash_EraseBlock(uint32_t instance, flexspi_nor_config_t *config, uint32_t start);
+#endif
 
 /*!
  * @brief Erase all the Serial NOR devices connected on FLEXSPI.
@@ -342,10 +346,12 @@ status_t ROM_FLEXSPI_NorFlash_UpdateLut(uint32_t instance,
  * @retval kStatus_ROM_FLEXSPI_InvalidSequence A invalid Sequence is provided.
  * @retval kStatus_ROM_FLEXSPI_DeviceTimeout Device timeout.
  */
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
 status_t ROM_FLEXSPI_NorFlash_WaitBusy(uint32_t instance,
 				       flexspi_nor_config_t *config,
 				       bool isParallelMode,
 				       uint32_t address);
+#endif
 /*@}*/
 
 /*!

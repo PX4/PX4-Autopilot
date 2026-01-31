@@ -27,18 +27,17 @@ using namespace time_literals;
 class GZGimbal : public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
-	GZGimbal(gz::transport::Node &node, pthread_mutex_t &node_mutex) :
+	GZGimbal(gz::transport::Node &node) :
 		px4::ScheduledWorkItem(MODULE_NAME "-gimbal", px4::wq_configurations::rate_ctrl),
 		ModuleParams(nullptr),
-		_node(node),
-		_node_mutex(node_mutex)
+		_node(node)
 	{}
 
 private:
 	friend class GZBridge;
 
 	gz::transport::Node &_node;
-	pthread_mutex_t &_node_mutex;
+	pthread_mutex_t _node_mutex;
 
 	uORB::Subscription _gimbal_device_set_attitude_sub{ORB_ID(gimbal_device_set_attitude)};
 	uORB::Subscription _gimbal_controls_sub{ORB_ID(gimbal_controls)};
@@ -67,11 +66,13 @@ private:
 	hrt_abstime _last_time_update;
 
 	// Mount parameters
-	param_t _mnt_range_pitch_handle = PARAM_INVALID;
+	param_t _mnt_max_pitch_handle = PARAM_INVALID;
+	param_t _mnt_min_pitch_handle = PARAM_INVALID;
 	param_t _mnt_range_roll_handle = PARAM_INVALID;
 	param_t _mnt_range_yaw_handle = PARAM_INVALID;
 	param_t _mnt_mode_out_handle = PARAM_INVALID;
-	float _mnt_range_pitch = 0.0f;
+	float _mnt_max_pitch = 0.0f;
+	float _mnt_min_pitch = 0.0f;
 	float _mnt_range_roll = 0.0f;
 	float _mnt_range_yaw = 0.0f;
 	int32_t _mnt_mode_out = 0;
@@ -110,12 +111,10 @@ private:
 	// its mechanical limits. So the values below have to match the characteristics of the simulated gimbal
 	const float _roll_min = -0.785398f;
 	const float _roll_max = 0.785398f;
-	const float _pitch_min = -2.35619f;
-	const float _pitch_max = 0.785398f;
 	const float _yaw_min = NAN; 		// infinite yaw
 	const float _yaw_max = NAN;		// infinite yaw
 
-	const uint8_t _gimbal_device_id = 154;	// TODO the implementation differs from the protocol
+	const uint8_t _gimbal_device_id = 1;	// Gimbal is implemented by the same component: options are 1..6
 	uint16_t _gimbal_device_flags = 0;  // GIMBAL_DEVICE_FLAGS
 
 	bool init(const std::string &world_name, const std::string &model_name);

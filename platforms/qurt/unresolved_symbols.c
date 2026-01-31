@@ -4,6 +4,8 @@
 #include <qurt_alloc.h>
 #include <termios.h>
 
+#define MODULE_NAME "unresolved_symbols"
+
 __attribute__((visibility("default"))) void free(void *ptr)
 {
 	qurt_free(ptr);

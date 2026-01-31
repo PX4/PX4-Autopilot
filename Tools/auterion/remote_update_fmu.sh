@@ -7,6 +7,7 @@ fi
 
 ssh_port=22
 ssh_user=root
+ssh_opts="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 
 while getopts ":f:c:d:p:u:r" opt; do
 	case ${opt} in
@@ -67,7 +68,7 @@ target_file_name="update-dev.tar"
 if [ "$revert" == true ]; then
 	# revert to the release version which was originally deployed
 	cmd="cp $target_dir/update.tar $target_dir/$target_file_name"
-	ssh -t -p $ssh_port $ssh_user@$device "$cmd"
+	ssh $ssh_opts -t -p $ssh_port $ssh_user@$device "$cmd"
 else
 	# create custom update-dev.tar
 	tmp_dir="$(mktemp -d)"
@@ -105,11 +106,11 @@ else
 	$tar_name -C "$tmp_dir" --sort=name --owner=root:0 --group=root:0 --mtime='2019-01-01 00:00:00' -cvf $target_file_name $firmware_path $config_path
 
 	# send it to the target to start flashing
-	scp -P $ssh_port "$target_file_name" $ssh_user@"$device":$target_dir
+	scp $ssh_opts -P $ssh_port "$target_file_name" $ssh_user@"$device":$target_dir
 	popd &>/dev/null
 	rm -rf "$tmp_dir"
 fi
 
 # grab status output for flashing progress
 cmd="tail --follow=name $target_dir/update_status 2>/dev/null || true"
-ssh -t -p $ssh_port $ssh_user@$device "$cmd"
+ssh $ssh_opts -t -p $ssh_port $ssh_user@$device "$cmd"

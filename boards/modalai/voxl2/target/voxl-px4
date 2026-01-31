@@ -74,49 +74,49 @@ print_config_settings(){
 while getopts "bcdhfmorwz" flag
 do
     case "${flag}" in
-        b) 
+        b)
             echo "[INFO] Holybro GPS selected"
             GPS=HOLYBRO
             ;;
-        c) 
+        c)
             echo "[INFO] Wiping old config file"
             if [ -f "$CONFIG_FILE" ]; then
                 rm -rf ${CONFIG_FILE}
             fi
             exit 0
             ;;
-        d) 
+        d)
             echo "[INFO] Disabling daemon mode"
             DAEMON_MODE=DISABLE
             ;;
-        h) 
+        h)
             print_usage
             ;;
-        f) 
+        f)
             echo "[INFO] Setting RC to FAKE_RC_INPUT"
             RC=FAKE_RC_INPUT
             ;;
-        m) 
+        m)
             echo "[INFO] Matek GPS selected"
             GPS=MATEK
             ;;
-        o) 
+        o)
             echo "[INFO] OSD module selected"
             OSD=ENABLE
             ;;
-        r) 
+        r)
             echo "[INFO] TBS Crossfire RC receiver, MAVLINK selected"
             RC=CRSF_MAV
             ;;
-        w) 
+        w)
             echo "[INFO] TBS Crossfire RC receiver, raw selected"
             RC=CRSF_RAW
             ;;
-        z) 
+        z)
             echo "[INFO] Fake sensor calibration values selected"
             SENSOR_CAL=FAKE
             ;;
-        *) 
+        *)
             print_usage
             ;;
     esac
@@ -130,9 +130,9 @@ else
 fi
 
 if [ $SENSOR_CAL == "FAKE" ]; then
-   /bin/echo "[INFO] Setting up fake sensor calibration values"
-   px4 $DAEMON -s /etc/modalai/voxl-px4-fake-imu-calibration.config
-   /bin/sync
+    /bin/echo "[INFO] Setting up fake sensor calibration values"
+    px4 $DAEMON -s /etc/modalai/voxl-px4-fake-imu-calibration.config
+    /bin/sync
 fi
 
 print_config_settings

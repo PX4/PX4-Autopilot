@@ -32,7 +32,6 @@ param set-default FW_WR_IMAX 0.8
 param set-default FW_WR_P 1
 param set-default FW_W_RMAX 0
 
-param set-default CA_AIRFRAME 1
 param set-default CA_ROTOR_COUNT 1
 param set-default CA_SV_CS_COUNT 7
 param set-default CA_SV_CS0_TRQ_R -0.5

@@ -103,7 +103,8 @@ TEST_F(EkfBasicsTest, initialControlMode)
 	// THEN: EKF control status should be reasonable
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().tilt_align);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().yaw_align);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().gps);
+	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnss_pos);
+	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnss_vel);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().opt_flow);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_hdg);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_3D);
@@ -158,7 +159,8 @@ TEST_F(EkfBasicsTest, gpsFusion)
 	// THEN: EKF should fuse GPS, but no other position sensor
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().tilt_align);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().yaw_align);
-	EXPECT_EQ(1, (int) _ekf->control_status_flags().gps);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().gnss_pos);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().gnss_vel);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().opt_flow);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_hdg);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_3D);

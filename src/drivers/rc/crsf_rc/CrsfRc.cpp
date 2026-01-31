@@ -97,6 +97,11 @@ int CrsfRc::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
+	if (board_rc_conflicting(device_name)) {
+		PX4_INFO("unable to start, conflict with PX4IO on %s", device_name);
+		return PX4_ERROR;
+	}
+
 	CrsfRc *instance = new CrsfRc(device_name);
 
 	if (instance == nullptr) {
@@ -173,8 +178,11 @@ void CrsfRc::Run()
 
 		Crc8Init(0xd5);
 
+		_input_rc.rssi = -1;
 		_input_rc.rssi_dbm = NAN;
 		_input_rc.link_quality = -1;
+		_input_rc.rc_frame_rate = 0;
+		_input_rc.link_snr = -1;
 
 		CrsfParser_Init();
 	}
@@ -208,8 +216,30 @@ void CrsfRc::Run()
 
 			case CRSF_MESSAGE_TYPE_LINK_STATISTICS:
 				_last_packet_seen = time_now_us;
-				_input_rc.rssi_dbm = -(float)new_crsf_packet.link_statistics.uplink_rssi_1;
+				_input_rc.rssi_dbm = -(float)(new_crsf_packet.link_statistics.active_antenna ?
+							      new_crsf_packet.link_statistics.uplink_rssi_2 :
+							      new_crsf_packet.link_statistics.uplink_rssi_1);
+
+				if (time_now_us - _last_stats_tx_seen > 500_ms) {
+					// We haven't received link statistics tx in a while, use an approximation
+					_input_rc.rssi = (1.f - _input_rc.rssi_dbm / -130.f) * _input_rc.RSSI_MAX;
+				}
+
 				_input_rc.link_quality = new_crsf_packet.link_statistics.uplink_link_quality;
+				_input_rc.rc_frame_rate = new_crsf_packet.link_statistics.rf_mode;
+				_input_rc.link_snr = new_crsf_packet.link_statistics.uplink_snr;
+				break;
+
+			case CRSF_MESSAGE_TYPE_LINK_STATISTICS_TX:
+				_last_packet_seen = time_now_us;
+				_last_stats_tx_seen = time_now_us;
+				_input_rc.rssi = new_crsf_packet.link_statistics_tx.uplink_rssi_pct;
+				break;
+
+			case CRSF_MESSAGE_TYPE_ELRS_STATUS:
+				_last_packet_seen = time_now_us;
+				_input_rc.rc_lost_frame_count = new_crsf_packet.elrs_status.packets_bad;
+				_input_rc.rc_total_frame_count = new_crsf_packet.elrs_status.packets_good;
 				break;
 
 			default:
@@ -276,6 +306,10 @@ void CrsfRc::Run()
 						flight_mode = "Altitude";
 						break;
 
+					case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
+						flight_mode = "Altitude Cruise";
+						break;
+
 					case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 						flight_mode = "Position";
 						break;
@@ -333,14 +367,17 @@ void CrsfRc::Run()
 	}
 
 	// If no communication
-	if (time_now_us - _last_packet_seen > 100_ms) {
+	if (time_now_us - _last_packet_seen > 500_ms) {
 		// Invalidate link statistics
+		_input_rc.rssi = -1;
 		_input_rc.rssi_dbm = NAN;
 		_input_rc.link_quality = -1;
+		_input_rc.rc_frame_rate = 0;
+		_input_rc.link_snr = -1;
 	}
 
 	// If we have not gotten RC updates specifically
-	if (time_now_us - _input_rc.timestamp_last_signal > 50_ms) {
+	if (time_now_us - _input_rc.timestamp_last_signal > 500_ms) {
 		_input_rc.rc_lost = 1;
 		_input_rc.rc_failsafe = 1;
 
@@ -350,7 +387,6 @@ void CrsfRc::Run()
 	}
 
 	_input_rc.channel_count = CRSF_CHANNEL_COUNT;
-	_input_rc.rssi = -1;
 	_input_rc.rc_ppm_frame_length = 0;
 	_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
 	_input_rc.timestamp = hrt_absolute_time();
@@ -509,6 +545,43 @@ int CrsfRc::print_status()
 
 int CrsfRc::custom_command(int argc, char *argv[])
 {
+#ifdef CONFIG_RC_CRSF_INJECT
+
+	if (!strcmp(argv[0], "start")) {
+		if (is_running()) {
+			return print_usage("already running");
+		}
+
+		int ret = CrsfRc::task_spawn(argc, argv);
+
+		if (ret) {
+			return ret;
+		}
+	}
+
+	if (!is_running()) {
+		return print_usage("not running");
+	}
+
+	// crsf_rc inject 0x7C 0xC8 0xEA 0x30 0x02 0x59 0x31 0x00 0x6A
+	if (!strcmp(argv[0], "inject")) {
+		const uint8_t length = argc;
+		uint8_t buf[100];
+		buf[0] = 0xC8; // sync byte
+		buf[1] = length;
+		uint8_t i = 0;
+
+		for (; i < length - 1; i++) {
+			buf[i + 2] = (uint8_t) strtol(argv[i + 1], nullptr, 16);
+		}
+
+		buf[i + 2] = Crc8Calc(buf + 2, length - 1); // CRC
+		CrsfParser_InjectBuffer(buf, length + 2);
+		return PX4_OK;
+	}
+
+#endif
+
 	return print_usage("unknown command");
 }
 
@@ -526,9 +599,12 @@ This module parses the CRSF RC uplink protocol and generates CRSF downlink telem
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("crsf_rc", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("radio_control");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "RC device", true);
-
+#ifdef CONFIG_RC_CRSF_INJECT
+	PRINT_MODULE_USAGE_COMMAND_DESCR("inject", "Inject frame data bytes (for testing)");
+#endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

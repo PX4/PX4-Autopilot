@@ -115,12 +115,12 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	EXPECT_NEAR(height_before_pressure_correction, 0.0f, 1e-5f);
 
 	// Apply height correction
-	const float static_pressure_coef_xp = 1.0f;
-	const float static_pressure_coef_yp = -1.0f;	// not used as wind direction is along x axis
+	const float ekf2_pcoef_xp = 1.0f;
+	const float ekf2_pcoef_yp = -1.0f;	// not used as wind direction is along x axis
 	parameters *_params = _ekf->getParamHandle();
-	_params->static_pressure_coef_xp = static_pressure_coef_xp;
-	_params->static_pressure_coef_yp = static_pressure_coef_yp;
-	float expected_height_difference = 0.5f * static_pressure_coef_xp * airspeed_body(0) * airspeed_body(
+	_params->ekf2_pcoef_xp = ekf2_pcoef_xp;
+	_params->ekf2_pcoef_yp = ekf2_pcoef_yp;
+	float expected_height_difference = 0.5f * ekf2_pcoef_xp * airspeed_body(0) * airspeed_body(
 			0) / CONSTANTS_ONE_G;
 
 	_ekf->set_vehicle_at_rest(false);
@@ -218,7 +218,7 @@ TEST_F(EkfAirspeedTest, testAirspeedDeadReckoning)
 
 	EXPECT_TRUE(_ekf_wrapper.isWindVelocityEstimated());
 	const Vector3f vel = _ekf->getVelocity();
-	EXPECT_NEAR(vel.norm(), airspeed_body.norm(), 1e-2f);
+	EXPECT_NEAR(vel.norm(), airspeed_body.norm(), 0.05f);
 	const Vector2f vel_wind_earth = _ekf->getWindVelocity();
 	EXPECT_NEAR(vel_wind_earth(0), 0.f, .1f);
 	EXPECT_NEAR(vel_wind_earth(1), 0.f, .1f);
@@ -280,7 +280,7 @@ TEST_F(EkfAirspeedTest, testAirspeedDeadReckoningLatLonAltReset)
 	reset_logging_checker.capturePostResetState();
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
-	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(0));
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isHorizontalPositionResetCounterIncreasedBy(1));
 
 	// AND WHEN: only the lat/lon is valid
@@ -293,6 +293,56 @@ TEST_F(EkfAirspeedTest, testAirspeedDeadReckoningLatLonAltReset)
 	reset_logging_checker.capturePostResetState();
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
-	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(0));
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isHorizontalPositionResetCounterIncreasedBy(2));
+}
+
+TEST_F(EkfAirspeedTest, testExternalWindResetOnGround)
+{
+	// WHEN: an external wind reset is performed before flight
+	const float wind_speed = 4.5f;
+	const float wind_speed_acc = 2.f;
+	const float wind_direction = math::radians(-90.f);
+	const float wind_direction_acc = math::radians(20.f);
+	_ekf->resetWindToExternalObservation(wind_speed, wind_direction, wind_speed_acc, wind_direction_acc);
+
+	Vector2f vel_wind_earth = _ekf->getWindVelocity();
+	EXPECT_EQ(wind_speed, vel_wind_earth.norm());
+	EXPECT_EQ(wind_direction, atan2f(vel_wind_earth(1), vel_wind_earth(0)));
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->set_is_fixed_wing(true);
+	_ekf_wrapper.enableBetaFusion();
+	_sensor_simulator.startAirspeedSensor();
+
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	const float measured_airspeed = 25.f;
+	_sensor_simulator._airspeed.setData(measured_airspeed, measured_airspeed);
+
+	// Since we are doing inertial dead-reckoning
+	// and that the measurement is inconsistent with the filter
+	EXPECT_FALSE(_ekf->isLocalHorizontalPositionValid());
+
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the velocity is reset to the airspeed measurement
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
+
+	const Vector3f vel = _ekf->getVelocity();
+	const Vector2f air_relative_vel = vel.xy() - vel_wind_earth;
+
+	EXPECT_NEAR(air_relative_vel.norm(), measured_airspeed, 1e-3f);
+
+	// AND: wind estimate stayed close to its manually initialized value
+	vel_wind_earth = _ekf->getWindVelocity();
+	EXPECT_NEAR(wind_speed, vel_wind_earth.norm(), 0.1f);
+	EXPECT_NEAR(wind_direction, atan2f(vel_wind_earth(1), vel_wind_earth(0)), 0.1f);
+
+	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBetaFusion());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 }

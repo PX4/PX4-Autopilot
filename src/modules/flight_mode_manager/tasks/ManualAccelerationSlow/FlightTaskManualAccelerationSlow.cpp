@@ -39,6 +39,7 @@
 #include <px4_platform_common/events.h>
 
 using namespace time_literals;
+using namespace matrix;
 
 bool FlightTaskManualAccelerationSlow::update()
 {
@@ -128,11 +129,41 @@ bool FlightTaskManualAccelerationSlow::update()
 	FlightTaskManualAltitude::_velocity_constraint_down = velocity_down;
 	FlightTaskManualAcceleration::_stick_yaw.setYawspeedConstraint(yaw_rate);
 
-	return FlightTaskManualAcceleration::update();
+	bool ret = FlightTaskManualAcceleration::update();
+
+	// Optimize input-to-video latency gimbal control
+	if (_gimbal.checkForTelemetry(_time_stamp_current) && haveTakenOff()) {
+		_gimbal.acquireGimbalControlIfNeeded();
+
+		// the exact same _yawspeed_setpoint is setpoint for the gimbal and vehicle feed-forward
+		const float pitchrate_setpoint = getInputFromSanitizedAuxParameterIndex(_param_mc_slow_map_pitch.get()) * yaw_rate;
+		_yawspeed_setpoint = _sticks.getYaw() * yaw_rate;
+
+		_gimbal.publishGimbalManagerSetAttitude(Gimbal::FLAGS_ALL_AXES_LOCKED, Quatf(NAN, NAN, NAN, NAN),
+							Vector3f(NAN, pitchrate_setpoint, _yawspeed_setpoint));
+
+		if (_gimbal.allAxesLockedConfirmed()) {
+			// but the vehicle makes sure it stays alligned with the gimbal absolute yaw
+			_yaw_setpoint = _gimbal.getTelemetryYaw();
+		}
+
+	} else {
+		_gimbal.releaseGimbalControlIfNeeded();
+	}
+
+	return ret;
 }
 
 float FlightTaskManualAccelerationSlow::getInputFromSanitizedAuxParameterIndex(int parameter_value)
 {
 	const int sanitized_index = math::constrain(parameter_value - 1, 0, 5);
 	return _sticks.getAux()(sanitized_index);
+}
+
+bool FlightTaskManualAccelerationSlow::haveTakenOff()
+{
+	takeoff_status_s takeoff_status{};
+	_takeoff_status_sub.copy(&takeoff_status);
+
+	return takeoff_status.takeoff_state == takeoff_status_s::TAKEOFF_STATE_FLIGHT;
 }

@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# Holybro KakuteH7 dual IMU specific board sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+# The KakuteH7 dual IMU comes by default with an ICM2688P and ICM45686.
+# We start the ICM45686 first to have it as the primary by default.
+icm45686 -R 0 -s start
+icm42688p -R 0 -s start
+
+# ICP20100 baro on external I2C1
+icp201xx -X -a 0x64 start

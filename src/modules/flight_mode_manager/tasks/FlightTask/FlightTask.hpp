@@ -55,15 +55,6 @@
 #include <uORB/topics/home_position.h>
 #include <lib/geo/geo.h>
 
-struct ekf_reset_counters_s {
-	uint8_t xy;
-	uint8_t vxy;
-	uint8_t z;
-	uint8_t vz;
-	uint8_t heading;
-	uint8_t hagl;
-};
-
 class FlightTask : public ModuleParams
 {
 public:
@@ -87,6 +78,8 @@ public:
 	 * Call this to reset an active Flight Task
 	 */
 	virtual void reActivate();
+
+	virtual void initEkfResetCounters();
 
 	/**
 	 * To be called to adopt parameters from an arrived vehicle command
@@ -114,9 +107,6 @@ public:
 	 * @return task output setpoints that get executed by the positon controller
 	 */
 	const trajectory_setpoint_s getTrajectorySetpoint();
-
-	const ekf_reset_counters_s getResetCounters() const { return _reset_counters; }
-	void setResetCounters(const ekf_reset_counters_s &counters) { _reset_counters = counters; }
 
 	/**
 	 * Get vehicle constraints.
@@ -236,7 +226,14 @@ protected:
 	float _yaw_setpoint{};
 	float _yawspeed_setpoint{};
 
-	ekf_reset_counters_s _reset_counters{}; ///< Counters for estimator local position resets
+	struct ekf_reset_counters_s {
+		uint8_t xy;
+		uint8_t vxy;
+		uint8_t z;
+		uint8_t vz;
+		uint8_t heading;
+		uint8_t hagl;
+	} _reset_counters{}; ///< Counters for estimator local position resets
 
 	/**
 	 * Vehicle constraints.

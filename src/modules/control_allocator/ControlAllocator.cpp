@@ -74,6 +74,8 @@ ControlAllocator::ControlAllocator() :
 	}
 
 	parameters_updated();
+
+	_slew_limited_ice_shedding_output.setSlewRate(ICE_SHEDDING_MAX_SLEWRATE);
 }
 
 ControlAllocator::~ControlAllocator()
@@ -91,11 +93,6 @@ bool
 ControlAllocator::init()
 {
 	if (!_vehicle_torque_setpoint_sub.registerCallback()) {
-		PX4_ERR("callback registration failed");
-		return false;
-	}
-
-	if (!_vehicle_thrust_setpoint_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -150,7 +147,7 @@ ControlAllocator::update_allocation_method(bool force)
 
 	if (_allocation_method_id != configured_method || force) {
 
-		matrix::Vector<float, NUM_ACTUATORS> actuator_sp[ActuatorEffectiveness::MAX_NUM_MATRICES];
+		ActuatorVector actuator_sp[ActuatorEffectiveness::MAX_NUM_MATRICES];
 
 		// Cleanup first
 		for (int i = 0; i < ActuatorEffectiveness::MAX_NUM_MATRICES; ++i) {
@@ -270,6 +267,14 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessHelicopterCoaxial(this);
 			break;
 
+		case EffectivenessSource::SPACECRAFT_2D:
+			tmp = new ActuatorEffectivenessSpacecraft(this);
+			break;
+
+		case EffectivenessSource::SPACECRAFT_3D:
+			tmp = new ActuatorEffectivenessSpacecraft(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
@@ -301,7 +306,6 @@ ControlAllocator::Run()
 {
 	if (should_exit()) {
 		_vehicle_torque_setpoint_sub.unregisterCallback();
-		_vehicle_thrust_setpoint_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -337,6 +341,7 @@ ControlAllocator::Run()
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+			_is_vtol = vehicle_status.is_vtol;
 
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
@@ -388,15 +393,8 @@ ControlAllocator::Run()
 
 	}
 
-	// Also run allocator on thrust setpoint changes if the torque setpoint
-	// has not been updated for more than 5ms
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
 		_thrust_sp = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
-
-		if (dt > 0.005f) {
-			do_update = true;
-			_timestamp_sample = vehicle_thrust_setpoint.timestamp_sample;
-		}
 	}
 
 	if (do_update) {
@@ -631,9 +629,9 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 			control_allocator_status.unallocated_thrust[2]).norm_squared() < 1e-6f);
 
 	// Actuator saturation
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp = _control_allocation[matrix_index]->getActuatorSetpoint();
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_min = _control_allocation[matrix_index]->getActuatorMin();
-	const matrix::Vector<float, NUM_ACTUATORS> &actuator_max = _control_allocation[matrix_index]->getActuatorMax();
+	const ActuatorVector &actuator_sp = _control_allocation[matrix_index]->getActuatorSetpoint();
+	const ActuatorVector &actuator_min = _control_allocation[matrix_index]->getActuatorMin();
+	const ActuatorVector &actuator_max = _control_allocation[matrix_index]->getActuatorMax();
 
 	for (int i = 0; i < NUM_ACTUATORS; i++) {
 		if (actuator_sp(i) > (actuator_max(i) - FLT_EPSILON)) {
@@ -646,8 +644,42 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 
 	// Handled motor failures
 	control_allocator_status.handled_motor_failure_mask = _handled_motor_failure_bitmask;
+	control_allocator_status.motor_stop_mask = _motor_stop_mask;
 
 	_control_allocator_status_pub[matrix_index].publish(control_allocator_status);
+}
+
+float
+ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_motor_failed)
+{
+	const float period_sec = _param_ice_shedding_period.get();
+
+	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON;
+	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
+
+	// If any stopped motor has failed, the feature will create much more
+	// torque than in the nominal case, and becomes pointless anyway as we
+	// cannot go back to multicopter
+	const bool apply_shedding = _is_vtol && in_forward_flight && !any_stopped_motor_failed;
+
+	if (feature_disabled_by_param || !apply_shedding) {
+		// Bypass slew limit and immediately set zero, to not
+		// interfere with backtransition in any way
+		_slew_limited_ice_shedding_output.setForcedValue(0.0f);
+
+	} else {
+		// Raw square wave output
+		const float elapsed_in_period = fmodf(static_cast<float>(now) / 1_s, period_sec);
+		const float raw_ice_shedding_output = elapsed_in_period < ICE_SHEDDING_ON_SEC ? ICE_SHEDDING_OUTPUT : 0.0f;
+
+		// Apply slew rate limit
+		const float dt = static_cast<float>(now - _last_ice_shedding_update) / 1_s;
+		_slew_limited_ice_shedding_output.update(raw_ice_shedding_output, dt);
+	}
+
+	_last_ice_shedding_update = now;
+
+	return _slew_limited_ice_shedding_output.getState();
 }
 
 void
@@ -670,7 +702,15 @@ ControlAllocator::publish_actuator_controls()
 	int actuator_idx = 0;
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
-	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors() | _handled_motor_failure_bitmask;
+	const uint32_t stopped_motors_due_to_effectiveness = _actuator_effectiveness->getStoppedMotors();
+
+	const uint32_t stopped_motors = stopped_motors_due_to_effectiveness
+					| _handled_motor_failure_bitmask
+					| _motor_stop_mask;
+
+	const bool any_stopped_motor_failed = 0 != (stopped_motors_due_to_effectiveness & (_handled_motor_failure_bitmask | _motor_stop_mask));
+
+	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp, any_stopped_motor_failed);
 
 	// motors
 	int motors_idx;
@@ -682,6 +722,10 @@ ControlAllocator::publish_actuator_controls()
 
 		if (stopped_motors & (1u << motors_idx)) {
 			actuator_motors.control[motors_idx] = NAN;
+
+			if (ice_shedding_output > FLT_EPSILON) {
+				actuator_motors.control[motors_idx] = ice_shedding_output;
+			}
 		}
 
 		++actuator_idx_matrix[selected_matrix];
@@ -721,8 +765,13 @@ ControlAllocator::check_for_motor_failures()
 
 	if ((FailureMode)_param_ca_failure_mode.get() > FailureMode::IGNORE
 	    && _failure_detector_status_sub.update(&failure_detector_status)) {
-		if (failure_detector_status.fd_motor) {
 
+		if (_motor_stop_mask != failure_detector_status.motor_stop_mask) {
+			_motor_stop_mask = failure_detector_status.motor_stop_mask;
+			PX4_WARN("Stopping motors (%d)", _motor_stop_mask);
+		}
+
+		if (failure_detector_status.fd_motor) {
 			if (_handled_motor_failure_bitmask != failure_detector_status.motor_failure_mask) {
 				// motor failure bitmask changed
 				switch ((FailureMode)_param_ca_failure_mode.get()) {
@@ -823,13 +872,110 @@ int ControlAllocator::print_status()
 			PX4_INFO("Instance: %i", i);
 		}
 
-		PX4_INFO("  Effectiveness.T =");
-		effectiveness.T().print();
+		PX4_INFO("  Effectiveness =");
+		int num_configured = _control_allocation[i]->numConfiguredActuators();
+
+		// print column numbering
+		if (num_configured > 1) {
+			printf("  ");
+
+			for (int col = 0; col < num_configured; col++) {
+				printf("|%2u      ", col);
+			}
+
+			printf("\n");
+		}
+
+		// Print effectiveness matrix with row labels
+		const char *row_labels[] = {"Mx", "My", "Mz", "Fx", "Fy", "Fz"};
+
+		for (int row = 0; row < 6; row++) {
+			printf("%2s|", row_labels[row]);
+
+			for (int col = 0; col < num_configured; col++) {
+				double d = static_cast<double>(effectiveness(row, col));
+
+				// avoid -0.0 for display
+				if (fabs(d - 0.0) < 1e-9) {
+					// print fixed width zero
+					printf(" 0       ");
+
+				} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
+					printf("% .1e ", d);
+
+				} else {
+					printf("% 6.5f ", d);
+				}
+			}
+
+			printf("\n");
+		}
+
 		PX4_INFO("  minimum =");
-		_control_allocation[i]->getActuatorMin().T().print();
+
+		// print column numbering
+		if (num_configured > 1) {
+			printf("  ");
+
+			for (int col = 0; col < num_configured; col++) {
+				printf("|%2u      ", col);
+			}
+
+			printf("\n");
+		}
+
+		printf("  |");
+
+		for (int col = 0; col < num_configured; col++) {
+			double d = static_cast<double>(_control_allocation[i]->getActuatorMin()(col));
+
+			// avoid -0.0 for display
+			if (fabs(d - 0.0) < 1e-9) {
+				// print fixed width zero
+				printf(" 0       ");
+
+			} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
+				printf("% .1e ", d);
+
+			} else {
+				printf("% 6.5f ", d);
+			}
+		}
+
+		printf("\n");
 		PX4_INFO("  maximum =");
-		_control_allocation[i]->getActuatorMax().T().print();
-		PX4_INFO("  Configured actuators: %i", _control_allocation[i]->numConfiguredActuators());
+
+		// print column numbering
+		if (num_configured > 1) {
+			printf("  ");
+
+			for (int col = 0; col < num_configured; col++) {
+				printf("|%2u      ", col);
+			}
+
+			printf("\n");
+		}
+
+		printf("  |");
+
+		for (int col = 0; col < num_configured; col++) {
+			double d = static_cast<double>(_control_allocation[i]->getActuatorMax()(col));
+
+			// avoid -0.0 for display
+			if (fabs(d - 0.0) < 1e-9) {
+				// print fixed width zero
+				printf(" 0       ");
+
+			} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
+				printf("% .1e ", d);
+
+			} else {
+				printf("% 6.5f ", d);
+			}
+		}
+
+		printf("\n");
+		PX4_INFO("  Configured actuators: %i", num_configured);
 	}
 
 	if (_handled_motor_failure_bitmask) {

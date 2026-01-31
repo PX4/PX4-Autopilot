@@ -47,8 +47,8 @@
 #include <hardware/imxrt_pinmux.h>
 
 #include <board_config.h>
-#ifndef CONFIG_ARCH_CHIP_MIMXRT1062DVL6A
-# error "This code has only been validated with IMXRT1062. Make sure it is correct before using it on another board."
+#if !defined(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A) && !defined(CONFIG_ARCH_CHIP_MIMXRT1064DVL6A)
+# error "This code has only been validated with IMXRT1062 and IMXRT1064. Make sure it is correct before using it on another board."
 #endif
 
 

@@ -63,7 +63,6 @@ else()
 	endif()
 
 	include(ExternalProject)
-
 	ExternalProject_Add(
 		libmicroxrceddsclient_project
 		PREFIX      ${microxrceddsclient_build_dir}
@@ -139,7 +138,6 @@ else()
 			# -DDEBUG_BUILD
 			${MAX_CUSTOM_OPT_LEVEL}
 		SRCS
-			${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
 			uxrce_dds_client.cpp
 			uxrce_dds_client.h
 			vehicle_command_srv.cpp

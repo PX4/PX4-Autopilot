@@ -49,10 +49,10 @@
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
 
 /**
- * Hover thrust estimator
+ * Use hover thrust estimate for altitude control
  *
- * Disable to use the fixed parameter MPC_THR_HOVER
- * Enable to use the hover thrust estimator
+ * Disable to use the fixed parameter MPC_THR_HOVER instead of the hover thrust estimate in the position controller.
+ * This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
  *
  * @boolean
  * @group Multicopter Position Control

@@ -94,6 +94,9 @@ protected:
 	virtual void updateParams() override;
 
 private:
+
+	static constexpr int V_CHANNEL_DISABLED = -2;
+
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uint8_t _arming_state{0};
 

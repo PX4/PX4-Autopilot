@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -88,7 +88,7 @@ typedef enum {
  * @param channel_mask		Bitmask of channels (LSB = channel 0) to enable.
  *				This allows some of the channels to remain configured
  *				as GPIOs or as another function. Already used channels/timers will not be configured as DShot
- * @param dshot_pwm_freq	Frequency of DSHOT signal. Usually DSHOT150, DSHOT300, DSHOT600 or DSHOT1200
+ * @param dshot_pwm_freq	Frequency of DSHOT signal. Usually DSHOT150, DSHOT300, or DSHOT600
  * @return <0 on error, the initialized channels mask.
  */
 __EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot);
@@ -96,7 +96,7 @@ __EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq
 /**
  * Set Dshot motor data, used by up_dshot_motor_data_set() and up_dshot_motor_command() (internal method)
  */
-__EXPORT extern void dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemetry);
+__EXPORT extern void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry);
 
 /**
  * Set the current dshot throttle value for a channel (motor).
@@ -141,6 +141,17 @@ __EXPORT extern int up_dshot_arm(bool armed);
  * Print bidrectional dshot status
  */
 __EXPORT extern void up_bdshot_status(void);
+
+
+/**
+ * Get how many bidirectional erpm channels are ready
+ *
+ * When we get the erpm round-robin style, we need to get
+ * and publish the erpms less often.
+ *
+ * @return <0 on error, OK on succes
+ */
+__EXPORT extern int up_bdshot_num_erpm_ready(void);
 
 
 /**

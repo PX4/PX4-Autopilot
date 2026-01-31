@@ -33,10 +33,9 @@
 
 #pragma once
 
+#include <lib/weather_vane/WeatherVane.hpp>
 #include "FlightTaskManualAltitudeSmoothVel.hpp"
 #include "StickAccelerationXY.hpp"
-#include "StickYaw.hpp"
-#include <lib/weather_vane/WeatherVane.hpp>
 
 class FlightTaskManualAcceleration : public FlightTaskManualAltitudeSmoothVel
 {
@@ -52,4 +51,9 @@ protected:
 
 	StickAccelerationXY _stick_acceleration_xy{this};
 	WeatherVane _weathervane{this}; /**< weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
+					(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
+					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor
+				       )
 };

@@ -329,7 +329,7 @@ TEST_F(EkfHeightFusionTest, gpsRefAllHgtFailReset)
 
 	// Also check the reset counters to make sure the reset logic triggered
 	reset_logging_checker.capturePostResetState();
-	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
 }
 

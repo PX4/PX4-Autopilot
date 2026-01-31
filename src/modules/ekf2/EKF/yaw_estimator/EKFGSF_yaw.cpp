@@ -167,6 +167,10 @@ void EKFGSF_yaw::fuseVelocity(const Vector2f &vel_NE, const float vel_accuracy, 
 			const float yaw_delta = wrap_pi(_ekf_gsf[model_index].X(2) - _gsf_yaw);
 			_gsf_yaw_variance += _model_weights(model_index) * (_ekf_gsf[model_index].P(2, 2) + yaw_delta * yaw_delta);
 		}
+
+		if (_gsf_yaw_variance <= 0.f || !PX4_ISFINITE(_gsf_yaw_variance)) {
+			reset();
+		}
 	}
 }
 
@@ -203,13 +207,13 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_an
 	}
 
 	// Gyro bias estimation
-	constexpr float gyro_bias_limit = 0.05f;
+	constexpr float ekf2_gyr_b_limit = 0.05f;
 	const float spin_rate = ang_rate.length();
 
 	if (spin_rate < math::radians(10.f)) {
 		_ahrs_ekf_gsf[model_index].gyro_bias -= tilt_correction * (_gyro_bias_gain * delta_ang_dt);
 		_ahrs_ekf_gsf[model_index].gyro_bias = matrix::constrain(_ahrs_ekf_gsf[model_index].gyro_bias,
-						       -gyro_bias_limit, gyro_bias_limit);
+						       -ekf2_gyr_b_limit, ekf2_gyr_b_limit);
 	}
 
 	// delta angle from previous to current frame

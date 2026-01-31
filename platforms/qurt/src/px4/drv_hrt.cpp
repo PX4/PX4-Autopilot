@@ -43,6 +43,8 @@
 
 #include "hrt_work.h"
 
+#define MODULE_NAME "drv_hrt"
+
 static constexpr unsigned HRT_INTERVAL_MIN = 50;
 static constexpr unsigned HRT_INTERVAL_MAX = 50000000;
 

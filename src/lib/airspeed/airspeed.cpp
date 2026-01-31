@@ -214,3 +214,8 @@ float calc_calibrated_from_true_airspeed(float speed_true, float air_density)
 {
 	return speed_true * sqrtf(air_density / kAirDensitySeaLevelStandardAtmos);
 }
+
+float calc_true_from_calibrated_airspeed(float speed_calibrated, float air_density)
+{
+	return speed_calibrated * sqrtf(kAirDensitySeaLevelStandardAtmos / air_density);
+}

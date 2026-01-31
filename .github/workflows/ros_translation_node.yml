@@ -1,0 +1,61 @@
+name: ROS Translation Node Tests
+on:
+  push:
+    branches:
+    - 'main'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    name: Build and test
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {ros_version: "humble", ubuntu: "jammy"}
+          - {ros_version: "jazzy", ubuntu: "noble"}
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-${{ matrix.config.ubuntu }}-latest
+    steps:
+      - name: Setup ROS 2 (${{ matrix.config.ros_version }})
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: ${{ matrix.config.ros_version }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Workaround for https://github.com/actions/runner/issues/2033
+      - name: ownership workaround
+        run: git config --system --add safe.directory '*'
+
+      - name: Check .msg file versioning
+        if: github.event_name == 'pull_request'
+        run: |
+          ./Tools/ci/check_msg_versioning.sh ${{ github.event.pull_request.base.sha }} ${{github.event.pull_request.head.sha}}
+
+      - name: Build and test
+        run: |
+          ros_ws=/ros_ws
+          mkdir -p $ros_ws/src
+          ./Tools/copy_to_ros_ws.sh $ros_ws
+          cd $ros_ws
+          source /opt/ros/${{ matrix.config.ros_version }}/setup.sh
+          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --symlink-install --event-handlers=console_cohesion+
+          source ./install/setup.sh
+          ./build/translation_node/translation_node_unit_tests

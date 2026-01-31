@@ -45,7 +45,7 @@
 #pragma once
 __BEGIN_DECLS
 /* configuration limits */
-#define MAX_IO_TIMERS			1
+#define MAX_IO_TIMERS			8
 #define MAX_TIMER_IO_CHANNELS		8
 
 #define MAX_LED_TIMERS			2
@@ -88,6 +88,7 @@ typedef struct io_timers_t {
 	uint32_t	vectorno_12_15;      /* IRQ number */
 	uint32_t	vectorno_16_19;      /* IRQ number */
 	uint32_t	vectorno_20_23;      /* IRQ number */
+	uint32_t        channel;
 } io_timers_t;
 
 typedef struct io_timers_channel_mapping_element_t {

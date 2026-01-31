@@ -75,12 +75,6 @@ def main():
                         metavar="FILENAME",
                         help="Create XML file"
                              " (default FILENAME: parameters.xml)")
-    parser.add_argument("-i", "--inject-xml",
-                        nargs='?',
-                        const="parameters_injected.xml",
-                        metavar="FILENAME",
-                        help="Inject additional param XML file"
-                             " (default FILENAME: parameters_injected.xml)")
     parser.add_argument("-b", "--board",
                         nargs='?',
                         const="",
@@ -138,8 +132,6 @@ def main():
 
     #inject parameters at front of set
     cur_dir = os.path.dirname(os.path.realpath(__file__))
-    groups_to_inject = injectxmlparams.XMLInject(os.path.join(cur_dir, args.inject_xml)).injected()
-    param_groups=groups_to_inject+param_groups
 
     override_dict = json.loads(args.overrides)
     if len(override_dict.keys()) > 0:
@@ -174,8 +166,7 @@ def main():
         if args.verbose:
             print("Creating Json file " + args.json)
         cur_dir = os.path.dirname(os.path.realpath(__file__))
-        out = jsonout.JsonOutput(param_groups, args.board,
-                               os.path.join(cur_dir, args.inject_xml))
+        out = jsonout.JsonOutput(param_groups, args.board)
         out.Save(args.json)
         output_files.append(args.json)
 
@@ -184,7 +175,7 @@ def main():
             if args.verbose:
                 print("Compressing file " + f)
             save_compressed(f)
-            
+
 
 if __name__ == "__main__":
     main()

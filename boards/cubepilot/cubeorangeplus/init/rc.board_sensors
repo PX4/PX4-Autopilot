@@ -17,6 +17,9 @@ ms5611 -s -b 4 start
 
 if icm42688p -s -b 4 -R 10 -q start -c 15
 then
+	# We need to use the temperature of the first isolated IMU for heater control.
+	param set-default SENS_TEMP_ID 2490402
+
 	if ! icm20948 -s -b 4 -R 10 -M -q start
 	then
 		icm42688p -s -b 4 -R 6 start -c 13
@@ -24,6 +27,8 @@ then
 else
 	icm45686 -s -b 4 -R 10 start -c 15
 	icm45686 -s -b 4 -R 6 start -c 13
+
+	param set-default SENS_TEMP_ID 3407906
 fi
 
 # SPI1, body-fixed
@@ -33,7 +38,6 @@ then
 	ak09916 start -I -R 13
 else
 	icm20649 -s -b 1 start
-
 fi
 
 ms5611 -s -b 1 start

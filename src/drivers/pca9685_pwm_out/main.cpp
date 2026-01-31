@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,6 +47,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/sem.hpp>
+#include <lib/parameters/param.h>
 
 #include "PCA9685.h"
 
@@ -70,7 +71,7 @@ public:
 	static int custom_command(int argc, char *argv[]);
 	static int print_usage(const char *reason = nullptr);
 
-	bool updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
+	bool updateOutputs(uint16_t *outputs, unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
 	int print_status() override;
@@ -80,12 +81,15 @@ protected:
 
 private:
 	perf_counter_t	_cycle_perf;
+	perf_counter_t _comms_errors;
+	perf_counter_t _registers_invalid_reset;
+	perf_counter_t _registers_transfer_reset;
 
 	enum class STATE : uint8_t {
+		CONFIGURE,
 		INIT,
-		WAIT_FOR_OSC,
 		RUNNING
-	} state{STATE::INIT};
+	} _state{STATE::CONFIGURE};
 
 	PCA9685 *pca9685 = nullptr;
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -99,14 +103,22 @@ private:
 
 	float param_pwm_freq, previous_pwm_freq;
 	float param_schd_rate, previous_schd_rate;
+	bool param_update_failed = false;
 	uint32_t param_duty_mode;
 
+	static constexpr uint8_t _transfer_fails_threshold = 10;
+	uint8_t _register_transfer_fails = 0;
+
 	void Run() override;
+	int registers_check();
 };
 
 PCA9685Wrapper::PCA9685Wrapper() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors")),
+	_registers_invalid_reset(perf_alloc(PC_COUNT, MODULE_NAME": registers invalid reset")),
+	_registers_transfer_reset(perf_alloc(PC_COUNT, MODULE_NAME": registers transfer reset"))
 {
 }
 
@@ -119,6 +131,9 @@ PCA9685Wrapper::~PCA9685Wrapper()
 	}
 
 	perf_free(_cycle_perf);
+	perf_free(_comms_errors);
+	perf_free(_registers_invalid_reset);
+	perf_free(_registers_transfer_reset);
 }
 
 int PCA9685Wrapper::init()
@@ -136,10 +151,10 @@ int PCA9685Wrapper::init()
 	return PX4_OK;
 }
 
-bool PCA9685Wrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
+bool PCA9685Wrapper::updateOutputs(uint16_t *outputs, unsigned num_outputs,
 				   unsigned num_control_groups_updated)
 {
-	if (state != STATE::RUNNING) { return false; }
+	if (_state != STATE::RUNNING) { return false; }
 
 	uint16_t low_level_outputs[PCA9685_PWM_CHANNEL_COUNT] = {};
 	num_outputs = num_outputs > PCA9685_PWM_CHANNEL_COUNT ? PCA9685_PWM_CHANNEL_COUNT : num_outputs;
@@ -154,7 +169,7 @@ bool PCA9685Wrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned
 	}
 
 	if (pca9685->updateRAW(low_level_outputs, num_outputs) != PX4_OK) {
-		PX4_ERR("Failed to write PWM to PCA9685");
+		perf_count(_comms_errors);
 		return false;
 	}
 
@@ -176,67 +191,122 @@ void PCA9685Wrapper::Run()
 		return;
 	}
 
-	switch (state) {
-	case STATE::INIT:
-		updateParams();
-		pca9685->updateFreq(param_pwm_freq);
-		previous_pwm_freq = param_pwm_freq;
-		previous_schd_rate = param_schd_rate;
+	switch (_state) {
+	case STATE::CONFIGURE: {
+			int ret = pca9685->configure();
 
-		pca9685->wake();
-		state = STATE::WAIT_FOR_OSC;
-		ScheduleDelayed(500);
-		break;
+			if (ret == PX4_OK) {
+				_state = STATE::INIT;
+				ScheduleNow();
 
-	case STATE::WAIT_FOR_OSC: {
-			state = STATE::RUNNING;
-			ScheduleOnInterval(1000000 / param_schd_rate, 0);
-		}
-		break;
-
-	case STATE::RUNNING:
-		perf_begin(_cycle_perf);
-
-		_mixing_output.update();
-
-		// check for parameter updates
-		if (_parameter_update_sub.updated()) {
-			// clear update
-			parameter_update_s pupdate;
-			_parameter_update_sub.copy(&pupdate);
-
-			// update parameters from storage
-			updateParams();
-
-			// apply param updates
-			if ((float)fabs(previous_pwm_freq - param_pwm_freq) > 0.01f) {
-				previous_pwm_freq = param_pwm_freq;
-
-				ScheduleClear();
-
-				pca9685->sleep();
-				pca9685->updateFreq(param_pwm_freq);
-				pca9685->wake();
-
-				// update of PWM freq will always trigger scheduling change
-				previous_schd_rate = param_schd_rate;
-
-				state = STATE::WAIT_FOR_OSC;
-				ScheduleDelayed(500);
-
-			} else if ((float)fabs(previous_schd_rate - param_schd_rate) > 0.01f) {
-				// case when PWM freq not changed but scheduling rate does
-				previous_schd_rate = param_schd_rate;
-				ScheduleClear();
-				ScheduleOnInterval(1000000 / param_schd_rate, 1000000 / param_schd_rate);
+			} else {
+				perf_count(_comms_errors);
+				ScheduleDelayed(20_ms);
 			}
+
+			break;
 		}
 
-		_mixing_output.updateSubscriptions(false);
+	case STATE::INIT: {
+			updateParams();
+			int ret = pca9685->updateFreq(param_pwm_freq);
+			ret |= pca9685->wake();
 
-		perf_end(_cycle_perf);
-		break;
+			if (ret == PX4_OK) {
+				previous_pwm_freq = param_pwm_freq;
+				previous_schd_rate = param_schd_rate;
+				_state = STATE::RUNNING;
+				ScheduleOnInterval(1000000 / param_schd_rate, 0);
+
+			} else {
+				perf_count(_comms_errors);
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(20_ms);
+			}
+
+			break;
+		}
+
+	case STATE::RUNNING: {
+			perf_begin(_cycle_perf);
+			_mixing_output.update();
+
+			// check for parameter updates
+			if (_parameter_update_sub.updated() || param_update_failed) {
+				// clear update
+				parameter_update_s pupdate;
+				_parameter_update_sub.copy(&pupdate);
+
+				// update parameters from storage
+				updateParams();
+
+				// apply param updates
+				if ((float)fabs(previous_pwm_freq - param_pwm_freq) > 0.01f) {
+					ScheduleClear();
+
+					int ret = pca9685->sleep();
+					ret |= pca9685->updateFreq(param_pwm_freq);
+					ret |= pca9685->wake();
+
+					if (ret == PX4_OK) {
+						// update of PWM freq will always trigger scheduling change
+						param_update_failed = false;
+						previous_schd_rate = param_schd_rate;
+						previous_pwm_freq = param_pwm_freq;
+						ScheduleOnInterval(1000000 / param_schd_rate, 0);
+
+					} else {
+						param_update_failed = true;
+						perf_count(_comms_errors);
+						ScheduleDelayed(20_ms);
+						break;
+					}
+
+				} else if ((float)fabs(previous_schd_rate - param_schd_rate) > 0.01f) {
+					// case when PWM freq not changed but scheduling rate does
+					previous_schd_rate = param_schd_rate;
+					ScheduleClear();
+					ScheduleOnInterval(1000000 / param_schd_rate, 1000000 / param_schd_rate);
+				}
+			}
+
+			if (registers_check() != PX4_OK) {
+				_state = STATE::CONFIGURE;
+				ScheduleClear();
+				ScheduleDelayed(20_ms);
+			}
+
+			_mixing_output.updateSubscriptions(false);
+
+			perf_end(_cycle_perf);
+			break;
+		}
 	}
+}
+
+int PCA9685Wrapper::registers_check()
+{
+	int reg_ret = pca9685->registers_check();
+
+	if (reg_ret == -EIO) {
+		_register_transfer_fails++;
+
+	} else {
+		_register_transfer_fails = 0;
+	}
+
+	if (reg_ret == -EFAULT) {
+		perf_count(_registers_invalid_reset);
+		return PX4_ERROR;
+	}
+
+	if (_register_transfer_fails > _transfer_fails_threshold) {
+		perf_count(_registers_transfer_reset);
+		_register_transfer_fails = 0;
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 int PCA9685Wrapper::print_usage(const char *reason)
@@ -287,8 +357,30 @@ int PCA9685Wrapper::custom_command(int argc, char **argv) {
 
 int PCA9685Wrapper::task_spawn(int argc, char **argv) {
 	int ch;
-	int address=PCA9685_DEFAULT_ADDRESS;
-	int iicbus=PCA9685_DEFAULT_IICBUS;
+	int address = PCA9685_DEFAULT_ADDRESS;
+	int iicbus = PCA9685_DEFAULT_IICBUS;
+
+	int32_t en_bus = 0;
+	param_t param_handle = param_find("PCA9685_EN_BUS");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &en_bus);
+
+		if (en_bus > 0) {
+			iicbus = en_bus;
+		}
+	}
+
+	int32_t i2c_addr = 0;
+	param_handle = param_find("PCA9685_I2C_ADDR");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &i2c_addr);
+
+		if (i2c_addr > 0) {
+			address = i2c_addr;
+		}
+	}
 
 	int myoptind = 1;
 	const char *myoptarg = nullptr;

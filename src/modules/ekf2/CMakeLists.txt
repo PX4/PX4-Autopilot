@@ -38,6 +38,7 @@ execute_process(
     COMMAND ${PYTHON_EXECUTABLE} -m symforce.symbolic
     RESULT_VARIABLE PYTHON_SYMFORCE_EXIT_CODE
     OUTPUT_QUIET
+    ERROR_QUIET
 )
 
 # for now only provide symforce target helper if derivation.py generation isn't default
@@ -172,8 +173,8 @@ endif()
 
 if(CONFIG_EKF2_GNSS)
 	list(APPEND EKF_SRCS
+		EKF/aid_sources/gnss/gnss_checks.cpp
 		EKF/aid_sources/gnss/gnss_height_control.cpp
-		EKF/aid_sources/gnss/gps_checks.cpp
 		EKF/aid_sources/gnss/gps_control.cpp
 	)
 

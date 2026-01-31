@@ -55,7 +55,7 @@ RtlTimeEstimator::RtlTimeEstimator() : ModuleParams(nullptr)
 	_param_fw_sink_rate = param_find("FW_T_SINK_R_SP");
 	_param_fw_airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_param_mpc_xy_cruise = param_find("MPC_XY_CRUISE");
-	_param_rover_cruise_speed = param_find("GND_SPEED_THR_SC");
+	_param_rover_cruise_speed = param_find("RO_SPEED_LIM");
 };
 
 rtl_time_estimate_s RtlTimeEstimator::getEstimate() const

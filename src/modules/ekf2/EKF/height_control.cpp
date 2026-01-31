@@ -67,7 +67,7 @@ void Ekf::checkHeightSensorRefFallback()
 
 	HeightSensor fallback_list[4];
 
-	switch (static_cast<HeightSensor>(_params.height_sensor_ref)) {
+	switch (static_cast<HeightSensor>(_params.ekf2_hgt_ref)) {
 	default:
 
 	/* FALLTHROUGH */
@@ -112,8 +112,10 @@ void Ekf::checkHeightSensorRefFallback()
 		    || ((fallback_list[i] == HeightSensor::GNSS) && _control_status.flags.gps_hgt)
 		    || ((fallback_list[i] == HeightSensor::RANGE) && _control_status.flags.rng_hgt)
 		    || ((fallback_list[i] == HeightSensor::EV) && _control_status.flags.ev_hgt)) {
-			ECL_INFO("fallback to secondary height reference");
+
 			_height_sensor_ref = fallback_list[i];
+
+			ECL_WARN("fallback to secondary height reference %d", (int)_height_sensor_ref);
 			break;
 		}
 	}
@@ -205,7 +207,7 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 		checks[1] = {ReferenceType::GNSS, _aid_src_gnss_hgt.innovation, _aid_src_gnss_hgt.innovation_variance};
 	}
 
-	if (_control_status.flags.gps) {
+	if (_control_status.flags.gnss_vel) {
 		checks[2] = {ReferenceType::GNSS, _aid_src_gnss_vel.innovation[2], _aid_src_gnss_vel.innovation_variance[2]};
 	}
 

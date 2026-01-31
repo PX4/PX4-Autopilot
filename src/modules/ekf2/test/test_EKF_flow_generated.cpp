@@ -71,3 +71,22 @@ TEST(FlowGenerated, distBottom0y)
 	sym::ComputeFlowYInnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var, &H);
 	EXPECT_GT(innov_var, 1e12);
 }
+
+TEST(FlowGenerated, distBottomNeg)
+{
+	// GIVEN: a small negative distance to the ground (singularity)
+	StateSample state{};
+	state.quat_nominal = Quatf();
+	state.pos(2) = 1e-3f;
+
+	const float R = sq(radians(sq(0.5f)));
+	SquareMatrixState P = createRandomCovarianceMatrix();
+
+	VectorState H;
+	Vector2f innov_var;
+	sym::ComputeFlowXyInnovVarAndHx(state.vector(), P, R, FLT_EPSILON, &innov_var, &H);
+	EXPECT_GT(innov_var(0), 1e6);
+	EXPECT_GT(innov_var(1), 1e6);
+	sym::ComputeFlowYInnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var(1), &H);
+	EXPECT_GT(innov_var(1), 1e6);
+}

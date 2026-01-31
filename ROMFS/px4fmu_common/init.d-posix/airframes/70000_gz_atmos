@@ -1,0 +1,155 @@
+#!/bin/sh
+#
+# @name KTH-ATMOS
+#
+# @type Free-Flyer
+# @class Spacecraft
+#
+# @output Motor1 back left thruster, +x thrust
+# @output Motor2 front left thruster, -x thrust
+# @output Motor3 back right thruster, +x thrust
+# @output Motor4 front right thruster, -x thrust
+# @output Motor5 front left thruster, +y thrust
+# @output Motor6 front right thruster, -y thrust
+# @output Motor7 back left thruster, +y thrust
+# @output Motor8 back right thruster, -y thrust
+#
+# @maintainer discower-io
+# @url https://atmos.discower.io
+#
+
+. ${R}etc/init.d/rc.sc_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=atmos}
+
+param set-default SIM_GZ_EN 1
+
+param set-default SENS_EN_MAGSIM 1
+param set-default COM_ARM_CHK_ESCS 0  # We don't have ESCs
+param set-default FD_ESCS_EN 0
+
+param set-default CA_AIRFRAME 14
+param set-default MAV_TYPE 45
+
+param set-default CA_ROTOR_COUNT 8
+param set-default CA_R_REV 0
+
+# Auto to be provided by Custom Airframe
+param set-default CA_METHOD 0
+
+# Set proper failsafes
+param set-default COM_ACT_FAIL_ACT 0
+param set-default COM_LOW_BAT_ACT 0
+param set-default NAV_DLL_ACT 0
+param set-default GF_ACTION 1
+param set-default NAV_RCL_ACT 1
+
+# disable attitude failure detection
+param set-default FD_FAIL_P 0
+param set-default FD_FAIL_R 0
+
+param set-default CA_ROTOR0_PX -0.12
+param set-default CA_ROTOR0_PY -0.12
+param set-default CA_ROTOR0_PZ 0.0
+param set-default CA_ROTOR0_CT 1.4
+param set-default CA_ROTOR0_AX 1.0
+param set-default CA_ROTOR0_AY 0.0
+param set-default CA_ROTOR0_AZ 0.0
+
+param set-default CA_ROTOR1_PX 0.12
+param set-default CA_ROTOR1_PY -0.12
+param set-default CA_ROTOR1_PZ 0.0
+param set-default CA_ROTOR1_CT 1.4
+param set-default CA_ROTOR1_AX -1.0
+param set-default CA_ROTOR1_AY 0.0
+param set-default CA_ROTOR1_AZ 0.0
+
+param set-default CA_ROTOR2_PX -0.12
+param set-default CA_ROTOR2_PY 0.12
+param set-default CA_ROTOR2_PZ 0.0
+param set-default CA_ROTOR2_CT 1.4
+param set-default CA_ROTOR2_AX 1.0
+param set-default CA_ROTOR2_AY 0.0
+param set-default CA_ROTOR2_AZ 0.0
+
+param set-default CA_ROTOR3_PX 0.12
+param set-default CA_ROTOR3_PY 0.12
+param set-default CA_ROTOR3_PZ 0.0
+param set-default CA_ROTOR3_CT 1.4
+param set-default CA_ROTOR3_AX -1.0
+param set-default CA_ROTOR3_AY 0.0
+param set-default CA_ROTOR3_AZ 0.0
+
+param set-default CA_ROTOR4_PX 0.12
+param set-default CA_ROTOR4_PY -0.12
+param set-default CA_ROTOR4_PZ 0.0
+param set-default CA_ROTOR4_CT 1.4
+param set-default CA_ROTOR4_AX 0.0
+param set-default CA_ROTOR4_AY 1.0
+param set-default CA_ROTOR4_AZ 0.0
+
+param set-default CA_ROTOR5_PX 0.12
+param set-default CA_ROTOR5_PY 0.12
+param set-default CA_ROTOR5_PZ 0.0
+param set-default CA_ROTOR5_CT 1.4
+param set-default CA_ROTOR5_AX 0.0
+param set-default CA_ROTOR5_AY -1.0
+param set-default CA_ROTOR5_AZ 0.0
+
+param set-default CA_ROTOR6_PX -0.12
+param set-default CA_ROTOR6_PY -0.12
+param set-default CA_ROTOR6_PZ 0.0
+param set-default CA_ROTOR6_CT 1.4
+param set-default CA_ROTOR6_AX 0.0
+param set-default CA_ROTOR6_AY 1.0
+param set-default CA_ROTOR6_AZ 0.0
+
+param set-default CA_ROTOR7_PX -0.12
+param set-default CA_ROTOR7_PY 0.12
+param set-default CA_ROTOR7_PZ 0.0
+param set-default CA_ROTOR7_CT 1.4
+param set-default CA_ROTOR7_AX 0.0
+param set-default CA_ROTOR7_AY -1.0
+param set-default CA_ROTOR7_AZ 0.0
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_FUNC3 103
+param set-default SIM_GZ_EC_FUNC4 104
+param set-default SIM_GZ_EC_FUNC5 105
+param set-default SIM_GZ_EC_FUNC6 106
+param set-default SIM_GZ_EC_FUNC7 107
+param set-default SIM_GZ_EC_FUNC8 108
+
+param set-default SIM_GZ_EC_MIN1 0
+param set-default SIM_GZ_EC_MIN2 0
+param set-default SIM_GZ_EC_MIN3 0
+param set-default SIM_GZ_EC_MIN4 0
+param set-default SIM_GZ_EC_MIN5 0
+param set-default SIM_GZ_EC_MIN6 0
+param set-default SIM_GZ_EC_MIN7 0
+param set-default SIM_GZ_EC_MIN8 0
+
+param set-default SIM_GZ_EC_MAX1 10000
+param set-default SIM_GZ_EC_MAX2 10000
+param set-default SIM_GZ_EC_MAX3 10000
+param set-default SIM_GZ_EC_MAX4 10000
+param set-default SIM_GZ_EC_MAX5 10000
+param set-default SIM_GZ_EC_MAX6 10000
+param set-default SIM_GZ_EC_MAX7 10000
+param set-default SIM_GZ_EC_MAX8 10000
+
+# Controller Tunings
+param set SC_YAWRATE_P 3.335
+param set SC_YAWRATE_I 0.87
+param set SC_YAWRATE_D 0.15
+param set SC_YR_INT_LIM 0.2
+param set SC_YAW_P 3.0
+
+param set SPC_POS_P 0.20
+param set SPC_VEL_P 6.55
+param set SPC_VEL_I 0.0
+param set SPC_VEL_D 0.0
+param set SPC_VEL_MAX 12.0

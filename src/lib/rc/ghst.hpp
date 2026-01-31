@@ -106,6 +106,13 @@ typedef struct {
 	int txPowerdBm: 8;		// Tx power [dBm]
 } __attribute__((__packed__)) ghstPayloadRssi_t;
 
+// Link statistics for internal transport
+typedef struct {
+	int8_t rssi_pct;
+	float rssi_dbm;
+	int8_t link_quality;
+} ghstLinkStatistics_t;
+
 /**
  * Configure an UART port to be used for GHST
  * @param uart_fd UART file descriptor
@@ -127,7 +134,7 @@ __EXPORT int ghst_config(int uart_fd);
  * @return true if channels successfully decoded
  */
 __EXPORT bool ghst_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t *values,
-			 int8_t *rssi, uint16_t *num_values, uint16_t max_channels);
+			 ghstLinkStatistics_t *link_stats, uint16_t *num_values, uint16_t max_channels);
 
 
 /**

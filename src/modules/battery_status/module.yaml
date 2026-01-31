@@ -41,7 +41,9 @@ parameters:
                 short: Battery ${i} Voltage ADC Channel
                 long: |
                     This parameter specifies the ADC channel used to monitor voltage of main power battery.
-                    A value of -1 means to use the board default.
+                    A value of -1 means to use the board default. A value of -2 disables analog monitoring.
+                    This is useful when the FMU supports both analog and digital voltage monitoring and you want
+                    to use digital monitoring exclusively.
 
             type: int32
             reboot_required: true

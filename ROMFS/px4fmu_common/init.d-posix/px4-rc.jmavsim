@@ -1,0 +1,14 @@
+#!/bin/sh
+# shellcheck disable=SC2154
+
+echo "INFO  [init] jMAVSim simulator"
+
+if jps | grep -i jmavsim; then
+	kill "$(jps | grep -i jmavsim | awk '{print $1}')" || true
+	sleep 1
+fi
+
+param set IMU_INTEG_RATE 250
+./jmavsim_run.sh -l -r 250 &
+
+simulator_mavlink start -h localhost $((4560+px4_instance))

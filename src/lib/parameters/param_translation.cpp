@@ -142,5 +142,40 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2025-03-19: translate ASPD_FALLBACK_GW to ASPD_FALLBACK
+	{
+		if (strcmp("ASPD_FALLBACK_GW", node->name) == 0) {
+			strcpy(node->name, "ASPD_FALLBACK");
+			PX4_INFO("copying %s -> %s", "ASPD_FALLBACK_GW", "ASPD_FALLBACK");
+		}
+	}
+
+	// 2025-08-22: translate SDLOG_MODE (disabled) to SDLOG_BACKEND (no logging backend)
+	{
+		if (strcmp("SDLOG_MODE", node->name) == 0) {
+			if (node->i32 == -1) {
+				node->i32 = 0;
+
+				int32_t sdlog_backend_val = 0;
+				param_set(param_find("SDLOG_BACKEND"), &sdlog_backend_val);
+				PX4_INFO("migrating %s -> %s", "SDLOG_MODE", "SDLOG_BACKEND");
+			}
+		}
+	}
+
+	// 2025-11-17: translate MNT_RANGE_PITCH to MNT_MAX_PITCH, MNT_MIN_PITCH
+	{
+		if (strcmp("MNT_RANGE_PITCH", node->name) == 0) {
+			if (node->d > DBL_EPSILON) {
+				float mnt_max_pitch = static_cast<float>(node->d) * 0.5f;
+				float mnt_min_pitch = static_cast<float>(-node->d) * 0.5f;
+				param_set(param_find("MNT_MAX_PITCH"), &mnt_max_pitch);
+				param_set(param_find("MNT_MIN_PITCH"), &mnt_min_pitch);
+				PX4_INFO("migrating %s -> %s, %s", "MNT_RANGE_PITCH", "MNT_MAX_PITCH", "MNT_MIN_PITCH");
+			}
+
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

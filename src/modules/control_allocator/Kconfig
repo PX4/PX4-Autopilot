@@ -10,3 +10,10 @@ menuconfig USER_CONTROL_ALLOCATOR
 	depends on BOARD_PROTECTED && MODULES_CONTROL_ALLOCATOR
 	---help---
 		Put control_allocator in userspace memory
+
+menuconfig CONTROL_ALLOCATOR_RPM_CONTROL
+	bool "Include RPM control for Helicopter rotor"
+	default n
+	depends on MODULES_CONTROL_ALLOCATOR
+	---help---
+		Add support for controlling the helicopter main rotor rpm

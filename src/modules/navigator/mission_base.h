@@ -332,6 +332,7 @@ protected:
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
 	int _mission_activation_index{-1};					/**< Index of the mission item that will bring the vehicle back to a mission waypoint */
+	bool _speed_replayed_on_activation{false};			/**< Flag indicating if the speed change items have been replayed on activation */
 
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/

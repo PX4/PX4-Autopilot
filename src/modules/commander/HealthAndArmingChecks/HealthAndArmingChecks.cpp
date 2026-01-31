@@ -45,6 +45,7 @@ HealthAndArmingChecks::HealthAndArmingChecks(ModuleParams *parent, vehicle_statu
 	_failsafe_flags.local_position_invalid_relaxed = true;
 	_failsafe_flags.local_velocity_invalid = true;
 	_failsafe_flags.global_position_invalid = true;
+	_failsafe_flags.global_position_invalid_relaxed = true;
 	_failsafe_flags.auto_mission_missing = true;
 	_failsafe_flags.offboard_control_signal_lost = true;
 	_failsafe_flags.home_position_invalid = true;
@@ -54,7 +55,10 @@ bool HealthAndArmingChecks::update(bool force_reporting, bool is_arming_request)
 {
 	_reporter.reset();
 
-	_reporter.prepare(_context.status().vehicle_type);
+	// treat VTOLs in transition mode as fixed-wing - this is not in line with what's published as vehicle_status_s::vehicle_type
+	const uint8_t vehicle_type = _context.status().in_transition_mode ? vehicle_status_s::VEHICLE_TYPE_FIXED_WING :
+				     _context.status().vehicle_type;
+	_reporter.prepare(vehicle_type);
 
 	_context.setIsArmingRequest(is_arming_request);
 
@@ -78,7 +82,7 @@ bool HealthAndArmingChecks::update(bool force_reporting, bool is_arming_request)
 		_reporter._mavlink_log_pub = &_mavlink_log_pub;
 		_reporter.reset();
 
-		_reporter.prepare(_context.status().vehicle_type);
+		_reporter.prepare(vehicle_type);
 
 		for (unsigned i = 0; i < sizeof(_checks) / sizeof(_checks[0]); ++i) {
 			if (!_checks[i]) {

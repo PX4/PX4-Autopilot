@@ -61,7 +61,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error, "Geofence violation: exceeding maximum distance to Home");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence violation: exceeding maximum distance to Home");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum distance to Home");
 			}
 		}
 
@@ -77,7 +77,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error, "Geofence violation: exceeding maximum altitude above Home");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence violation: exceeding maximum altitude above Home");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum altitude above Home");
 			}
 		}
 
@@ -93,7 +93,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error, "Geofence violation: approaching or outside geofence");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence violation: approaching or outside geofence");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: approaching or outside geofence");
 			}
 		}
 	}

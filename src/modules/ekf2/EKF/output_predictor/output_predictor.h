@@ -36,7 +36,7 @@
 
 #include <matrix/math.hpp>
 
-#include "../RingBuffer.h"
+#include <lib/ringbuffer/TimestampedRingBuffer.hpp>
 
 #include <lib/geo/geo.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
@@ -94,6 +94,8 @@ public:
 	void reset();
 
 	const matrix::Quatf &getQuaternion() const { return _output_new.quat_nominal; }
+
+	matrix::Vector3f getAngularVelocityAndResetAccumulator();
 
 	// get a yaw value solely based on bias-removed gyro integration
 	float getUnaidedYaw() const { return _unaided_yaw; }
@@ -163,8 +165,8 @@ private:
 
 	LatLonAlt _global_ref{0.0, 0.0, 0.f};
 
-	RingBuffer<outputSample> _output_buffer{12};
-	RingBuffer<outputVert> _output_vert_buffer{12};
+	TimestampedRingBuffer<outputSample> _output_buffer{12};
+	TimestampedRingBuffer<outputVert> _output_vert_buffer{12};
 
 	matrix::Vector3f _accel_bias{};
 	matrix::Vector3f _gyro_bias{};
@@ -192,6 +194,8 @@ private:
 
 	matrix::Vector3f _imu_pos_body{};                ///< xyz position of IMU in body frame (m)
 
+	matrix::Quatf _delta_angle_sum{};
+	float _delta_angle_sum_dt{0.f};
 	float _unaided_yaw{};
 
 	// output complementary filter tuning

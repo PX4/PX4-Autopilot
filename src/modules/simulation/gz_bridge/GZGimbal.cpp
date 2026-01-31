@@ -38,16 +38,20 @@ bool GZGimbal::init(const std::string &world_name, const std::string &model_name
 
 	// Mount parameters
 	_mnt_range_roll_handle = param_find("MNT_RANGE_ROLL");
-	_mnt_range_pitch_handle = param_find("MNT_RANGE_PITCH");
+	_mnt_max_pitch_handle = param_find("MNT_MAX_PITCH");
+	_mnt_min_pitch_handle = param_find("MNT_MIN_PITCH");
 	_mnt_range_yaw_handle = param_find("MNT_RANGE_YAW");
 	_mnt_mode_out_handle = param_find("MNT_MODE_OUT");
 
 	if (_mnt_range_roll_handle == PARAM_INVALID ||
-	    _mnt_range_pitch_handle == PARAM_INVALID ||
+	    _mnt_max_pitch_handle == PARAM_INVALID ||
+	    _mnt_min_pitch_handle == PARAM_INVALID ||
 	    _mnt_range_yaw_handle == PARAM_INVALID ||
 	    _mnt_mode_out_handle == PARAM_INVALID) {
 		return false;
 	}
+
+	pthread_mutex_init(&_node_mutex, nullptr);
 
 	updateParameters();
 
@@ -74,7 +78,8 @@ void GZGimbal::Run()
 	if (pollSetpoint()) {
 		//TODO handle device flags
 		publishJointCommand(_gimbal_roll_cmd_publisher, _roll_stp, _roll_rate_stp, _last_roll_stp, _roll_min, _roll_max, dt);
-		publishJointCommand(_gimbal_pitch_cmd_publisher, _pitch_stp, _pitch_rate_stp, _last_pitch_stp, _pitch_min, _pitch_max,
+		publishJointCommand(_gimbal_pitch_cmd_publisher, _pitch_stp, _pitch_rate_stp, _last_pitch_stp, _mnt_min_pitch,
+				    _mnt_max_pitch,
 				    dt);
 		publishJointCommand(_gimbal_yaw_cmd_publisher, _yaw_stp, _yaw_rate_stp, _last_yaw_stp, _yaw_min, _yaw_max, dt);
 	}
@@ -98,11 +103,15 @@ void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 	pthread_mutex_lock(&_node_mutex);
 
 	static const matrix::Quatf q_FLU_to_FRD = matrix::Quatf(0.0f, 1.0f, 0.0f, 0.0f);
+	static const matrix::Quatf q_ENU_to_NED = matrix::Quatf(0.0f, cosf(M_PI_4_F), cosf(M_PI_4_F), 0.0f);
+
+	// Get the gimbal orientation. Gimbal frame is FLU in Gazebo, reference frame is ENU in Gazebo
 	const matrix::Quatf q_gimbal_FLU = matrix::Quatf(IMU_data.orientation().w(),
 					   IMU_data.orientation().x(),
 					   IMU_data.orientation().y(),
 					   IMU_data.orientation().z());
-	_q_gimbal = q_FLU_to_FRD * q_gimbal_FLU * q_FLU_to_FRD.inversed();
+
+	_q_gimbal = q_ENU_to_NED * q_gimbal_FLU * q_FLU_to_FRD.inversed();
 
 	matrix::Vector3f rate = q_FLU_to_FRD.rotateVector(matrix::Vector3f(IMU_data.angular_velocity().x(),
 				IMU_data.angular_velocity().y(),
@@ -117,8 +126,10 @@ void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 
 void GZGimbal::updateParameters()
 {
+
 	param_get(_mnt_range_roll_handle, &_mnt_range_roll);
-	param_get(_mnt_range_pitch_handle, &_mnt_range_pitch);
+	param_get(_mnt_max_pitch_handle, &_mnt_max_pitch);
+	param_get(_mnt_min_pitch_handle, &_mnt_min_pitch);
 	param_get(_mnt_range_yaw_handle, &_mnt_range_yaw);
 	param_get(_mnt_mode_out_handle, &_mnt_mode_out);
 }
@@ -145,10 +156,12 @@ bool GZGimbal::pollSetpoint()
 		gimbal_controls_s msg;
 
 		if (_gimbal_controls_sub.copy(&msg)) {
-			// map control inputs from [-1;1] to [min_angle; max_angle] using the range parameters
+			// map control inputs from [-1;1] to [min_angle; max_angle]
 			_roll_stp = math::constrain(math::radians(msg.control[msg.INDEX_ROLL] * _mnt_range_roll / 2), _roll_min, _roll_max);
-			_pitch_stp = math::constrain(math::radians(msg.control[msg.INDEX_PITCH] * _mnt_range_pitch / 2), _pitch_min,
-						     _pitch_max);
+			_pitch_stp = math::radians(math::constrain(_mnt_min_pitch + 0.5f * (msg.control[msg.INDEX_PITCH] + 1.f) *
+						   (_mnt_max_pitch - _mnt_min_pitch),
+						   _mnt_min_pitch,
+						   _mnt_max_pitch));
 			_yaw_stp = math::constrain(math::radians(msg.control[msg.INDEX_YAW] * _mnt_range_yaw / 2), _yaw_min, _yaw_max);
 
 			return true;
@@ -190,8 +203,8 @@ void GZGimbal::publishDeviceInfo()
 			device_info.custom_cap_flags = _custom_cap_flags;
 			device_info.roll_min = _roll_min;
 			device_info.roll_max = _roll_max;
-			device_info.pitch_min = _pitch_min;
-			device_info.pitch_max = _pitch_max;
+			device_info.pitch_min = _mnt_min_pitch;
+			device_info.pitch_max = _mnt_max_pitch;
 			device_info.yaw_min = _yaw_min;
 			device_info.yaw_max = _yaw_max;
 			device_info.gimbal_device_id = _gimbal_device_id;
@@ -204,13 +217,11 @@ void GZGimbal::publishDeviceInfo()
 
 void GZGimbal::publishDeviceAttitude()
 {
-	// TODO handle flags
-
 	gimbal_device_attitude_status_s gimbal_att{};
 
 	gimbal_att.target_system = 0; // Broadcast
 	gimbal_att.target_component = 0; // Broadcast
-	gimbal_att.device_flags = 0;
+	gimbal_att.device_flags = gimbal_device_attitude_status_s::DEVICE_FLAGS_YAW_IN_EARTH_FRAME;
 	_q_gimbal.copyTo(gimbal_att.q);
 	gimbal_att.angular_velocity_x = _gimbal_rate[0];
 	gimbal_att.angular_velocity_y = _gimbal_rate[1];
@@ -229,7 +240,7 @@ void GZGimbal::publishJointCommand(gz::transport::Node::Publisher &publisher, co
 	float new_stp = computeJointSetpoint(att_stp, rate_stp, last_stp, dt);
 	new_stp = math::constrain(new_stp, min_stp, max_stp);
 	last_stp = new_stp;
-	msg.set_data(new_stp);
+	msg.set_data((double)new_stp);
 
 	publisher.Publish(msg);
 }
@@ -238,6 +249,11 @@ float GZGimbal::computeJointSetpoint(const float att_stp, const float rate_stp, 
 {
 
 	if (PX4_ISFINITE(rate_stp)) {
+		if (math::abs_t(rate_stp) < FLT_EPSILON) {
+			// Handle zero velocity by sending the last target angle
+			return last_stp;
+		}
+
 		const float rate_diff = dt * rate_stp;
 		const float stp_from_rate = last_stp + rate_diff;
 

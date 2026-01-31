@@ -137,9 +137,9 @@ private:
 BatteryStatus::BatteryStatus() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_battery1(1, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE, 0),
+	_battery1(1, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE, 0),
 #if BOARD_NUMBER_BRICKS > 1
-	_battery2(2, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE, 1),
+	_battery2(2, this, SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE, 1),
 #endif
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME))
 {

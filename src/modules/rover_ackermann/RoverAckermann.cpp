@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,14 +33,12 @@
 
 #include "RoverAckermann.hpp"
 
+using namespace time_literals;
+
 RoverAckermann::RoverAckermann() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
-	_rover_ackermann_setpoint_pub.advertise();
-	_ax_filter.setAlpha(0.05);
-	_ay_filter.setAlpha(0.05);
-	_az_filter.setAlpha(0.05);
 	updateParams();
 }
 
@@ -57,170 +55,138 @@ void RoverAckermann::updateParams()
 
 void RoverAckermann::Run()
 {
-	if (should_exit()) {
-		ScheduleClear();
-		exit_and_cleanup();
-		return;
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update{};
+		_parameter_update_sub.copy(&param_update);
+		updateParams();
+		runSanityChecks();
 	}
 
-	updateSubscriptions();
+	if (_vehicle_control_mode_sub.updated()) {
+		vehicle_control_mode_s vehicle_control_mode{};
+		_vehicle_control_mode_sub.copy(&vehicle_control_mode);
 
-	// Generate and publish speed and steering setpoints
-	hrt_abstime timestamp = hrt_absolute_time();
+		// Run sanity checks if the control mode changes (Note: This has to be done this way, because the topic is periodically updated at 2 Hz)
+		if (_vehicle_control_mode.flag_control_position_enabled != vehicle_control_mode.flag_control_position_enabled ||
+		    _vehicle_control_mode.flag_control_velocity_enabled != vehicle_control_mode.flag_control_velocity_enabled ||
+		    _vehicle_control_mode.flag_control_attitude_enabled != vehicle_control_mode.flag_control_attitude_enabled ||
+		    _vehicle_control_mode.flag_control_rates_enabled != vehicle_control_mode.flag_control_rates_enabled ||
+		    _vehicle_control_mode.flag_control_allocation_enabled != vehicle_control_mode.flag_control_allocation_enabled) {
+			_vehicle_control_mode = vehicle_control_mode;
+			runSanityChecks();
+			reset();
 
-	switch (_nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL: {
-			manual_control_setpoint_s manual_control_setpoint{};
-
-			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-				rover_ackermann_setpoint_s rover_ackermann_setpoint{};
-				rover_ackermann_setpoint.timestamp =  timestamp;
-				rover_ackermann_setpoint.forward_speed_setpoint =  NAN;
-				rover_ackermann_setpoint.forward_speed_setpoint_normalized =  manual_control_setpoint.throttle;
-				rover_ackermann_setpoint.steering_setpoint = NAN;
-				rover_ackermann_setpoint.steering_setpoint_normalized = manual_control_setpoint.roll;
-				rover_ackermann_setpoint.lateral_acceleration_setpoint = NAN;
-				_rover_ackermann_setpoint_pub.publish(rover_ackermann_setpoint);
-			}
-
-		} break;
-
-	case vehicle_status_s::NAVIGATION_STATE_ACRO: {
-			manual_control_setpoint_s manual_control_setpoint{};
-
-			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-				rover_ackermann_setpoint_s rover_ackermann_setpoint{};
-				rover_ackermann_setpoint.timestamp =  timestamp;
-				rover_ackermann_setpoint.forward_speed_setpoint =  NAN;
-				rover_ackermann_setpoint.forward_speed_setpoint_normalized =  manual_control_setpoint.throttle;
-				rover_ackermann_setpoint.steering_setpoint = NAN;
-				rover_ackermann_setpoint.steering_setpoint_normalized = NAN;
-				rover_ackermann_setpoint.lateral_acceleration_setpoint = math::interpolate(manual_control_setpoint.roll, -1.f, 1.f,
-						-_param_ra_max_lat_accel.get(), _param_ra_max_lat_accel.get());
-				_rover_ackermann_setpoint_pub.publish(rover_ackermann_setpoint);
-			}
-
-		} break;
-
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL: {
-			manual_control_setpoint_s manual_control_setpoint{};
-
-			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-				rover_ackermann_setpoint_s rover_ackermann_setpoint{};
-				rover_ackermann_setpoint.timestamp = timestamp;
-				rover_ackermann_setpoint.forward_speed_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
-						-1.f, 1.f, -_param_ra_max_speed.get(), _param_ra_max_speed.get());
-				rover_ackermann_setpoint.forward_speed_setpoint_normalized = NAN;
-				rover_ackermann_setpoint.steering_setpoint = NAN;
-				rover_ackermann_setpoint.steering_setpoint_normalized = NAN;
-				rover_ackermann_setpoint.lateral_acceleration_setpoint = math::interpolate(math::deadzone(manual_control_setpoint.roll,
-						STICK_DEADZONE), -1.f, 1.f, -_param_ra_max_lat_accel.get(), _param_ra_max_lat_accel.get());
-
-				if (fabsf(rover_ackermann_setpoint.lateral_acceleration_setpoint) > FLT_EPSILON
-				    || fabsf(rover_ackermann_setpoint.forward_speed_setpoint) < FLT_EPSILON) { // Closed loop yaw rate control
-					_course_control = false;
-
-				} else { // Course control if the steering input is zero (keep driving on a straight line)
-					if (!_course_control) {
-						_pos_ctl_course_direction = Vector2f(cos(_vehicle_yaw), sin(_vehicle_yaw));
-						_pos_ctl_start_position_ned = _curr_pos_ned;
-						_course_control = true;
-					}
-
-					// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
-					const float vector_scaling = sqrtf(powf(_param_pp_lookahd_max.get(),
-										2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceOnLineSegment();
-					const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(
-							rover_ackermann_setpoint.forward_speed_setpoint) *
-									     vector_scaling * _pos_ctl_course_direction;
-					// Calculate steering setpoint
-					const float steering_setpoint = _ackermann_guidance.calcDesiredSteering(_posctl_pure_pursuit,
-									target_waypoint_ned, _pos_ctl_start_position_ned, _curr_pos_ned, _param_ra_wheel_base.get(),
-									rover_ackermann_setpoint.forward_speed_setpoint, _vehicle_yaw, _param_ra_max_steer_angle.get(), _armed);
-					rover_ackermann_setpoint.lateral_acceleration_setpoint = powf(_vehicle_forward_speed,
-							2.f) * tanf(steering_setpoint) / _param_ra_wheel_base.get();
-				}
-
-				_rover_ackermann_setpoint_pub.publish(rover_ackermann_setpoint);
-			}
-
-		} break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-		_ackermann_guidance.computeGuidance(_vehicle_forward_speed, _vehicle_yaw, _nav_state, _armed);
-		break;
-
-	default: // Unimplemented nav states will stop the rover
-		rover_ackermann_setpoint_s rover_ackermann_setpoint{};
-		rover_ackermann_setpoint.timestamp =  timestamp;
-		rover_ackermann_setpoint.forward_speed_setpoint =  NAN;
-		rover_ackermann_setpoint.forward_speed_setpoint_normalized =  0.f;
-		rover_ackermann_setpoint.steering_setpoint = NAN;
-		rover_ackermann_setpoint.steering_setpoint_normalized = 0.f;
-		rover_ackermann_setpoint.lateral_acceleration_setpoint = NAN;
-		_rover_ackermann_setpoint_pub.publish(rover_ackermann_setpoint);
-		break;
+		} else {
+			_vehicle_control_mode = vehicle_control_mode;
+		}
 	}
 
-	if (!_armed) {
-		_ackermann_control.resetControllers();
-	}
+	if (_vehicle_control_mode.flag_armed && _sanity_checks_passed) {
+		_was_armed = true;
+		generateSetpoints();
+		updateControllers();
 
-	_ackermann_control.computeMotorCommands(_vehicle_forward_speed, _vehicle_yaw, _vehicle_lateral_acceleration);
+	} else if (_was_armed) { // Reset all controllers and stop the vehicle
+		reset();
+		_ackermann_act_control.stopVehicle();
+		_was_armed = false;
+	}
 
 }
 
-void RoverAckermann::updateSubscriptions()
+void RoverAckermann::generateSetpoints()
 {
-	if (_parameter_update_sub.updated()) {
-		updateParams();
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+
+	switch (vehicle_status.nav_state) {
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+		_auto_mode.autoControl();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
+		_offboard_mode.offboardControl();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+		_manual_mode.manual();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ACRO:
+		_manual_mode.acro();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_STAB:
+		_manual_mode.stab();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+		_manual_mode.position();
+		break;
+
+	default:
+		break;
 	}
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status;
-		_vehicle_status_sub.copy(&vehicle_status);
+}
 
-		if (vehicle_status.nav_state != _nav_state) { // Reset on mode change
-			_ackermann_control.resetControllers();
-			_course_control = false;
-		}
-
-		_nav_state = vehicle_status.nav_state;
-		_armed = vehicle_status.arming_state == 2;
+void RoverAckermann::updateControllers()
+{
+	if (_vehicle_control_mode.flag_control_position_enabled) {
+		_ackermann_pos_control.updatePosControl();
 	}
 
-	if (_vehicle_attitude_sub.updated()) {
-		vehicle_attitude_s vehicle_attitude{};
-		_vehicle_attitude_sub.copy(&vehicle_attitude);
-		_vehicle_attitude_quaternion = matrix::Quatf(vehicle_attitude.q);
-		_vehicle_yaw = matrix::Eulerf(_vehicle_attitude_quaternion).psi();
+	if (_vehicle_control_mode.flag_control_velocity_enabled) {
+		_ackermann_speed_control.updateSpeedControl();
 	}
 
-	if (_vehicle_local_position_sub.updated()) {
-		vehicle_local_position_s vehicle_local_position{};
-		_vehicle_local_position_sub.copy(&vehicle_local_position);
-
-		if (PX4_ISFINITE(vehicle_local_position.ax)) {
-			_ax_filter.update(vehicle_local_position.ax);
-		}
-
-		if (PX4_ISFINITE(vehicle_local_position.ay)) {
-			_ay_filter.update(vehicle_local_position.ay);
-		}
-
-		if (PX4_ISFINITE(vehicle_local_position.az)) {
-			_az_filter.update(vehicle_local_position.az);
-		}
-
-		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
-		Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
-		Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-		_vehicle_forward_speed = fabsf(velocity_in_body_frame(0)) > SPEED_THRESHOLD ? velocity_in_body_frame(0) : 0.f;
-		Vector3f acceleration_in_local_frame(_ax_filter.getState(), _ay_filter.getState(), _az_filter.getState());
-		Vector3f acceleration_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(acceleration_in_local_frame);
-		_vehicle_lateral_acceleration = acceleration_in_body_frame(1);
+	if (_vehicle_control_mode.flag_control_attitude_enabled) {
+		_ackermann_att_control.updateAttControl();
 	}
+
+	if (_vehicle_control_mode.flag_control_rates_enabled) {
+		_ackermann_rate_control.updateRateControl();
+	}
+
+	if (_vehicle_control_mode.flag_control_allocation_enabled) {
+		_ackermann_act_control.updateActControl();
+	}
+}
+
+void RoverAckermann::runSanityChecks()
+{
+	if (_vehicle_control_mode.flag_control_rates_enabled && !_ackermann_rate_control.runSanityChecks()) {
+		_sanity_checks_passed = false;
+		return;
+	}
+
+	if (_vehicle_control_mode.flag_control_attitude_enabled && !_ackermann_att_control.runSanityChecks()) {
+		_sanity_checks_passed = false;
+		return;
+	}
+
+	if (_vehicle_control_mode.flag_control_velocity_enabled && !_ackermann_speed_control.runSanityChecks()) {
+		_sanity_checks_passed = false;
+		return;
+	}
+
+	if (_vehicle_control_mode.flag_control_position_enabled && !_ackermann_pos_control.runSanityChecks()) {
+		_sanity_checks_passed = false;
+		return;
+	}
+
+	_sanity_checks_passed = true;
+}
+
+void RoverAckermann::reset()
+{
+	_ackermann_pos_control.reset();
+	_ackermann_speed_control.reset();
+	_ackermann_att_control.reset();
+	_ackermann_rate_control.reset();
+	_manual_mode.reset();
 }
 
 int RoverAckermann::task_spawn(int argc, char *argv[])

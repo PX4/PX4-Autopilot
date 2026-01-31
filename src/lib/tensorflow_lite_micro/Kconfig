@@ -1,0 +1,7 @@
+config LIB_TFLM
+	bool "TensorFlow Lite Micro"
+	default n
+	---help---
+		TensorFlow Lite Micro is a lightweight version of TensorFlow Lite designed for microcontrollers and other resource-constrained devices.
+		It enables running machine learning models on devices with limited computational power and memory.
+		This library is used for running neural networks on the PX4 autopilot.

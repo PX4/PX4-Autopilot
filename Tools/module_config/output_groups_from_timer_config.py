@@ -30,12 +30,12 @@ def find_matching_brackets(brackets, s, verbose):
 
 def extract_timer(line):
     # Try format: initIOTimer(Timer::Timer5, DMA{DMA::Index1, DMA::Stream0, DMA::Channel6}),
-    search = re.search('Timer::([0-9a-zA-Z_]+)[,\)]', line, re.IGNORECASE)
+    search = re.search('Timer::([0-9a-zA-Z_]+)[,)]', line, re.IGNORECASE)
     if search:
         return search.group(1), 'generic'
 
     # NXP FlexPWM format format: initIOPWM(PWM::FlexPWM2),
-    search = re.search('PWM::Flex([0-9a-zA-Z_]+)..PWM::Submodule([0-9])[,\)]', line, re.IGNORECASE)
+    search = re.search('PWM::Flex([0-9a-zA-Z_]+)..PWM::Submodule([0-9])[,)]', line, re.IGNORECASE)
     if search:
         return (search.group(1) + '_' +  search.group(2)), 'imxrt'
 

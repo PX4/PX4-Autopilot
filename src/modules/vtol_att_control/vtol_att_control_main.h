@@ -87,6 +87,7 @@
 #include "standard.h"
 #include "tailsitter.h"
 #include "tiltrotor.h"
+#include "vtol_type.h"
 
 using namespace time_literals;
 
@@ -127,7 +128,6 @@ public:
 	struct vehicle_thrust_setpoint_s		*get_vehicle_thrust_setpoint_virtual_mc() {return &_vehicle_thrust_setpoint_virtual_mc;}
 	struct vehicle_thrust_setpoint_s		*get_vehicle_thrust_setpoint_virtual_fw() {return &_vehicle_thrust_setpoint_virtual_fw;}
 
-	struct airspeed_validated_s 			*get_airspeed() {return &_airspeed_validated;}
 	struct position_setpoint_triplet_s		*get_pos_sp_triplet() {return &_pos_sp_triplet;}
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
 	struct vehicle_attitude_s 			*get_att() {return &_vehicle_attitude;}
@@ -143,14 +143,16 @@ public:
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_0() {return &_thrust_setpoint_0;}
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
+
 	float get_home_position_z() { return _home_position_z; }
+	float get_calibrated_airspeed() { return _calibrated_airspeed; }
 
 private:
 	void Run() override;
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_fw_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_mc_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_mc)};
-	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_virtual_fw_sub{this, ORB_ID(vehicle_thrust_setpoint_virtual_fw)};
-	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_virtual_mc_sub{this, ORB_ID(vehicle_thrust_setpoint_virtual_mc)};
+	uORB::Subscription _vehicle_thrust_setpoint_virtual_fw_sub{ORB_ID(vehicle_thrust_setpoint_virtual_fw)};
+	uORB::Subscription _vehicle_thrust_setpoint_virtual_mc_sub{ORB_ID(vehicle_thrust_setpoint_virtual_mc)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -195,7 +197,6 @@ private:
 	vehicle_thrust_setpoint_s		_thrust_setpoint_0{};
 	vehicle_thrust_setpoint_s		_thrust_setpoint_1{};
 
-	airspeed_validated_s 			_airspeed_validated{};
 	position_setpoint_triplet_s		_pos_sp_triplet{};
 	tecs_status_s				_tecs_status{};
 	vehicle_attitude_s			_vehicle_attitude{};
@@ -205,7 +206,10 @@ private:
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vehicle_status_s 			_vehicle_status{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
+	vtol_vehicle_status_s 			_prev_published_vtol_vehicle_status{};
 	float _home_position_z{NAN};
+	float _calibrated_airspeed{NAN};
+	hrt_abstime _time_last_airspeed_update{0};
 
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};	// [kg/m^3]
 
@@ -222,6 +226,7 @@ private:
 	uint8_t _nav_state_prev;
 
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
+	mode		_previous_vtol_mode;
 
 	bool		_initialized{false};
 
@@ -235,8 +240,11 @@ private:
 
 	void 		parameters_update();
 
+	void		update_callbacks();
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VT_TYPE>) _param_vt_type,
-		(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld
+		(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld,
+		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd
 	)
 };

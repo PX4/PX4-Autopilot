@@ -68,6 +68,8 @@
 #define PX4IO_SERIAL_CLOCK             STM32_PCLK2_FREQUENCY
 #define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
 
+#define PX4IO_HEATER_ENABLED
+
 /* LEDs */
 #define GPIO_nLED_AMBER        /* PE12 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
 

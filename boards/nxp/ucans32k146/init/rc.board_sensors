@@ -37,7 +37,7 @@ fi
 hmc5883 -T -X -q start
 ist8308 -X -q start
 ist8310 -X -q start
-lis2mdl -X -q start
+iis2mdc -X -q start
 lis3mdl -X -q start
 qmc5883l -X -q start
 rm3100 -X -q start
