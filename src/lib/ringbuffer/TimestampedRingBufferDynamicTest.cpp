@@ -41,7 +41,7 @@ struct sample {
 };
 
 
-class TimestampedRingBufferTest : public ::testing::Test
+class TimestampedRingBufferDynamicTest : public ::testing::Test
 {
 public:
 
@@ -67,15 +67,24 @@ public:
 	}
 };
 
-TEST_F(TimestampedRingBufferTest, goodInitialisation)
+TEST_F(TimestampedRingBufferDynamicTest, goodInitialisation)
 {
 	// WHEN: buffer was allocated
 	// THEN: allocation should have succeed
-	ASSERT_EQ(true, _buffer->allocate(3));
-
+	EXPECT_TRUE(_buffer->allocate(3));
+	EXPECT_TRUE(_buffer->valid());
+	EXPECT_EQ(_buffer->get_length(), 3);
 }
 
-TEST_F(TimestampedRingBufferTest, badInitialisation)
+TEST_F(TimestampedRingBufferDynamicTest, RejectsInvalidSize)
+{
+	EXPECT_FALSE(_buffer->allocate(0));
+	EXPECT_FALSE(_buffer->allocate(UINT8_MAX + 1u));
+	EXPECT_TRUE(_buffer->valid());
+	EXPECT_EQ(_buffer->get_length(), 3);
+}
+
+TEST_F(TimestampedRingBufferDynamicTest, badInitialisation)
 {
 	// WHEN: buffer allocation input is bad
 	// THEN: allocation should fail
@@ -85,7 +94,7 @@ TEST_F(TimestampedRingBufferTest, badInitialisation)
 	// ASSERT_EQ(false, _buffer->allocate(0));
 }
 
-TEST_F(TimestampedRingBufferTest, orderOfSamples)
+TEST_F(TimestampedRingBufferDynamicTest, orderOfSamples)
 {
 	ASSERT_EQ(true, _buffer->allocate(3));
 	// GIVEN: allocated buffer
@@ -103,7 +112,7 @@ TEST_F(TimestampedRingBufferTest, orderOfSamples)
 	EXPECT_EQ(_y.time_us, _buffer->get_newest().time_us);
 }
 
-TEST_F(TimestampedRingBufferTest, popSample)
+TEST_F(TimestampedRingBufferDynamicTest, popSample)
 {
 	ASSERT_EQ(true, _buffer->allocate(3));
 	_buffer->push(_x);
@@ -115,20 +124,20 @@ TEST_F(TimestampedRingBufferTest, popSample)
 	sample pop = {};
 	// WHEN: we want to retrieve a sample that is older than any in the buffer
 	// THEN: we should not get any sample
-	EXPECT_EQ(false, _buffer->pop_first_older_than(0, &pop));
+	EXPECT_FALSE(_buffer->pop_first_older_than(0, &pop));
 
 	// WHEN: when calling "pop_first_older_than"
 	// THEN: we should get the first sample from the head that is older
-	EXPECT_EQ(true, _buffer->pop_first_older_than(_x.time_us + 1, &pop));
+	EXPECT_TRUE(_buffer->pop_first_older_than(_x.time_us + 1, &pop));
 	EXPECT_EQ(_x.time_us, pop.time_us);
-	EXPECT_EQ(true, _buffer->pop_first_older_than(_y.time_us + 10, &pop));
+	EXPECT_TRUE(_buffer->pop_first_older_than(_y.time_us + 10, &pop));
 	EXPECT_EQ(_y.time_us, pop.time_us);
-	EXPECT_EQ(true, _buffer->pop_first_older_than(_z.time_us + 100, &pop));
+	EXPECT_TRUE(_buffer->pop_first_older_than(_z.time_us + 100, &pop));
 	EXPECT_EQ(_z.time_us, pop.time_us);
 	// TODO: When changing the order of popping sample it does not behave as expected, fix this
 }
 
-TEST_F(TimestampedRingBufferTest, askingForTooNewSample)
+TEST_F(TimestampedRingBufferDynamicTest, askingForTooNewSample)
 {
 	ASSERT_EQ(true, _buffer->allocate(3));
 	_buffer->push(_x);
@@ -138,11 +147,11 @@ TEST_F(TimestampedRingBufferTest, askingForTooNewSample)
 	sample pop = {};
 	// WHEN: all buffered samples are older by 0.1s than your query timestamp
 	// THEN: should get no sample returned
-	EXPECT_EQ(true, _buffer->pop_first_older_than(_z.time_us + 99000, &pop));
-	EXPECT_EQ(false, _buffer->pop_first_older_than(_y.time_us + 100000, &pop));
+	EXPECT_TRUE(_buffer->pop_first_older_than(_z.time_us + 99000, &pop));
+	EXPECT_FALSE(_buffer->pop_first_older_than(_y.time_us + 100000, &pop));
 }
 
-TEST_F(TimestampedRingBufferTest, reallocateBuffer)
+TEST_F(TimestampedRingBufferDynamicTest, reallocateBuffer)
 {
 	ASSERT_EQ(true, _buffer->allocate(5));
 	_buffer->push(_x);
@@ -153,8 +162,7 @@ TEST_F(TimestampedRingBufferTest, reallocateBuffer)
 
 	// GIVEN: allocated and filled buffer
 	// WHEN: do another allocate call
-	_buffer->allocate(3);
+	EXPECT_TRUE(_buffer->allocate(3));
 	// THEN: its length should update
 	EXPECT_EQ(3, _buffer->get_length());
-
 }
