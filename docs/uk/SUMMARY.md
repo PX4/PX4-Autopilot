@@ -93,6 +93,7 @@
     - [Настройка Зворотнього Переходу](config_vtol/vtol_back_transition_tuning.md)
     - [ВЗІП Датчик польоту](config_vtol/vtol_without_airspeed_sensor.md)
     - [VTOL Weather Vane](config_vtol/vtol_weathervane.md)
+    - [VTOL Ice Shedding](config_vtol/vtol_ice_shedding.md)
   - [Режим польоту](flight_modes_vtol/index.md)
     - [Mission Mode (VTOL)](flight_modes_vtol/mission.md)
     - [Return Mode (VTOL)](flight_modes_vtol/return.md)
@@ -360,6 +361,8 @@
     - [TBS Crossfire (CRSF) телеметрія](telemetry/crsf_telemetry.md)
 
     - [Супутниковий зв'язок (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
+
+    - [Analog Video Transmitters](vtx/index.md)
 
   - [Енергетичні системи](power_systems/index.md)
     - [Налаштування оцінки батареї](config/battery.md)
