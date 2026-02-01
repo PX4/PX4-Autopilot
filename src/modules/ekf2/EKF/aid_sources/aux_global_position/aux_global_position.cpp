@@ -180,9 +180,9 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 bool AuxGlobalPosition::isResetAllowed(const Ekf &ekf) const
 {
-	return ((static_cast<Mode>(ekf.getParamHandle().agp_mode) == Mode::kAuto)
+	return ((static_cast<Mode>(ekf.getParamHandle()->agp_mode) == Mode::kAuto)
 		&& !ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf.control_status_flags().aux_gpos))
-	       || ((static_cast<Mode>(ekf.getParamHandle().agp_mode) == Mode::kDeadReckoning)
+	       || ((static_cast<Mode>(ekf.getParamHandle()->agp_mode) == Mode::kDeadReckoning)
 		   && !ekf.isOtherSourceOfHorizontalAidingThan(ekf.control_status_flags().aux_gpos));
 }
 
