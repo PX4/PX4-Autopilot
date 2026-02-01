@@ -283,6 +283,8 @@ public:
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
+
+	const parameters *getParamHandle() const { return &_params; }
 	bool gyro_bias_inhibited() const { return _gyro_bias_inhibit[0] || _gyro_bias_inhibit[1] || _gyro_bias_inhibit[2]; }
 
 	const auto &state_reset_status() const { return _state_reset_status; }
