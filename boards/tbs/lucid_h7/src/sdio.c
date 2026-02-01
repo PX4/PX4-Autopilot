@@ -46,9 +46,9 @@
 
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
+#include <nuttx/arch.h>
 
 #include "chip.h"
-#include "board_config.h"
 #include "stm32_gpio.h"
 #include "stm32_sdmmc.h"
 
@@ -167,8 +167,14 @@ int stm32_sdio_initialize(void)
 	sdio_mediachange(sdio_dev, cd_status);
 #else
 	/* Assume that the SD card is inserted.  What choice do we have? */
+	/* Add a small delay to allow the SD card to power up and initialize */
 
+	up_mdelay(100);
+	finfo("No card detect pin - assuming SD card is present\n");
 	sdio_mediachange(sdio_dev, true);
+	
+	/* Give the card additional time to become ready */
+	up_mdelay(50);
 #endif
 
 	return OK;

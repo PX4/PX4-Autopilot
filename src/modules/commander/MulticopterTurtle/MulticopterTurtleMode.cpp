@@ -407,7 +407,7 @@ void MulticopterTurtleMode::getMotorData(MulticopterTurtleUtil::Motor_data motor
 			motor_data[i].motor_direction = true;
 		}
 		motor_data[i].motor_quadrant = getQuadrant(motor_data[i].x_position, motor_data[i].y_position);
-		PX4_INFO("Motor %u: X=%f, Y=%f, Direction=%d, Quadrant=%d", i, (double)motor_data[i].x_position, (double)motor_data[i].y_position, motor_data[i].motor_direction, (int)motor_data[i].motor_quadrant);
+		// PX4_INFO("Motor %u: X=%f, Y=%f, Direction=%d, Quadrant=%d", i, (double)motor_data[i].x_position, (double)motor_data[i].y_position, motor_data[i].motor_direction, (int)motor_data[i].motor_quadrant);
 	}
 }
 
