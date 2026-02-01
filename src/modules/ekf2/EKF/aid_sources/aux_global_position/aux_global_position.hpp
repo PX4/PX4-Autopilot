@@ -57,10 +57,10 @@
 
 class Ekf;
 
-class AuxGlobalPosition : public ModuleParams
+class AuxGlobalPosition
 {
 public:
-	AuxGlobalPosition() : ModuleParams(nullptr)
+	AuxGlobalPosition()
 	{
 		_estimator_aid_src_aux_global_position_pub.advertise();
 	}
@@ -69,10 +69,6 @@ public:
 
 	void update(Ekf &ekf, const estimator::imuSample &imu_delayed);
 
-	void updateParameters()
-	{
-		updateParams();
-	}
 
 	float test_ratio_filtered() const { return _test_ratio_filtered; }
 
@@ -127,13 +123,6 @@ private:
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_aux_global_position_pub{ORB_ID(estimator_aid_src_aux_global_position)};
 	uORB::Subscription _aux_global_position_sub{ORB_ID(aux_global_position)};
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::EKF2_AGP_CTRL>) _param_ekf2_agp_ctrl,
-		(ParamInt<px4::params::EKF2_AGP_MODE>) _param_ekf2_agp_mode,
-		(ParamFloat<px4::params::EKF2_AGP_DELAY>) _param_ekf2_agp_delay,
-		(ParamFloat<px4::params::EKF2_AGP_NOISE>) _param_ekf2_agp_noise,
-		(ParamFloat<px4::params::EKF2_AGP_GATE>) _param_ekf2_agp_gate
-	)
 
 #endif // MODULE_NAME
 };

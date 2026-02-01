@@ -494,6 +494,14 @@ private:
 		_param_ekf2_avel_delay,	///< auxiliary velocity measurement delay relative to the IMU (mSec)
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+		(ParamExtInt<px4::params::EKF2_AGP_CTRL>) _param_ekf2_agp_ctrl,
+		(ParamExtInt<px4::params::EKF2_AGP_MODE>) _param_ekf2_agp_mode,
+		(ParamExtFloat<px4::params::EKF2_AGP_DELAY>) _param_ekf2_agp_delay,
+		(ParamExtFloat<px4::params::EKF2_AGP_NOISE>) _param_ekf2_agp_noise,
+		(ParamExtFloat<px4::params::EKF2_AGP_GATE>) _param_ekf2_agp_gate,
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
 		(ParamExtFloat<px4::params::EKF2_GYR_NOISE>)
 		_param_ekf2_gyr_noise,	///< IMU angular rate noise used for covariance prediction (rad/sec)
 		(ParamExtFloat<px4::params::EKF2_ACC_NOISE>)

@@ -511,6 +511,14 @@ struct parameters {
 	const float auxvel_gate{5.0f};          ///< velocity fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+	int32_t agp_ctrl{0};
+	int32_t agp_mode{0};
+	float agp_delay{0.0f};
+	float agp_noise{0.9f};
+	float agp_gate{3.0f};
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
 };
 
 union fault_status_u {

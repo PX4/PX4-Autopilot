@@ -47,7 +47,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 		vehicle_global_position_s aux_global_position{};
 		_aux_global_position_sub.copy(&aux_global_position);
 
-		const int64_t time_us = aux_global_position.timestamp_sample - static_cast<int64_t>(_param_ekf2_agp_delay.get() * 1000);
+		const int64_t time_us = aux_global_position.timestamp_sample - static_cast<int64_t>(ekf.getParamHandle().agp_delay * 1000);
 
 		AuxGlobalPositionSample sample{};
 		sample.time_us = time_us;
@@ -69,7 +69,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 	if (_aux_global_position_buffer.pop_first_older_than(imu_delayed.time_us, &sample)) {
 
-		if (!(_param_ekf2_agp_ctrl.get() & static_cast<int32_t>(Ctrl::kHPos))) {
+		if (!(ekf.getParamHandle().agp_ctrl & static_cast<int32_t>(Ctrl::kHPos))) {
 			return;
 		}
 
@@ -78,7 +78,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 		const Vector2f innovation = (ekf.getLatLonAlt() - position).xy(); // altitude measurements are not used
 
 		// relax the upper observation noise limit which prevents bad measurements perturbing the position estimate
-		float pos_noise = math::max(sample.eph, _param_ekf2_agp_noise.get(), 0.01f);
+		float pos_noise = math::max(sample.eph, ekf.getParamHandle().agp_noise, 0.01f);
 		const float pos_var = sq(pos_noise);
 		const Vector2f pos_obs_var(pos_var, pos_var);
 
@@ -88,7 +88,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 					  pos_obs_var,                                         // observation variance
 					  innovation,                                          // innovation
 					  Vector2f(ekf.getPositionVariance()) + pos_obs_var,   // innovation variance
-					  math::max(_param_ekf2_agp_gate.get(), 1.f));         // innovation gate
+					  math::max(ekf.getParamHandle().agp_gate, 1.f));         // innovation gate
 
 		const bool starting_conditions = PX4_ISFINITE(sample.latitude) && PX4_ISFINITE(sample.longitude)
 						 && ekf.control_status_flags().yaw_align;
@@ -137,7 +137,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 			if (continuing_conditions) {
 				ekf.fuseHorizontalPosition(aid_src);
 
-				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf._params.reset_timeout_max)
+				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf.getParamHandle().reset_timeout_max)
 				    || (_reset_counters.lat_lon != sample.lat_lon_reset_counter)) {
 					if (isResetAllowed(ekf)) {
 
@@ -180,9 +180,9 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 bool AuxGlobalPosition::isResetAllowed(const Ekf &ekf) const
 {
-	return ((static_cast<Mode>(_param_ekf2_agp_mode.get()) == Mode::kAuto)
+	return ((static_cast<Mode>(ekf.getParamHandle().agp_mode) == Mode::kAuto)
 		&& !ekf.isOtherSourceOfHorizontalPositionAidingThan(ekf.control_status_flags().aux_gpos))
-	       || ((static_cast<Mode>(_param_ekf2_agp_mode.get()) == Mode::kDeadReckoning)
+	       || ((static_cast<Mode>(ekf.getParamHandle().agp_mode) == Mode::kDeadReckoning)
 		   && !ekf.isOtherSourceOfHorizontalAidingThan(ekf.control_status_flags().aux_gpos));
 }
 
