@@ -520,6 +520,17 @@ private:
 		(ParamExtFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps_pos_y,
 		(ParamExtFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps_pos_z,
 
+		(ParamExtFloat<px4::params::EKF2_GPS_P1_X>) _param_ekf2_gps_p1_x,
+		(ParamExtFloat<px4::params::EKF2_GPS_P1_Y>) _param_ekf2_gps_p1_y,
+		(ParamExtFloat<px4::params::EKF2_GPS_P1_Z>) _param_ekf2_gps_p1_z,
+
+		(ParamExtFloat<px4::params::EKF2_GPS_P2_X>) _param_ekf2_gps_p2_x,
+		(ParamExtFloat<px4::params::EKF2_GPS_P2_Y>) _param_ekf2_gps_p2_y,
+		(ParamExtFloat<px4::params::EKF2_GPS_P2_Z>) _param_ekf2_gps_p2_z,
+
+		(ParamExtInt<px4::params::EKF2_GPS_ID_P1>) _param_ekf2_gps_id_p1,
+		(ParamExtInt<px4::params::EKF2_GPS_ID_P2>) _param_ekf2_gps_id_p2,
+
 		(ParamExtFloat<px4::params::EKF2_GPS_V_NOISE>) _param_ekf2_gps_v_noise,
 		(ParamExtFloat<px4::params::EKF2_GPS_P_NOISE>) _param_ekf2_gps_p_noise,
 
