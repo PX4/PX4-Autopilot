@@ -45,8 +45,9 @@
 
 using namespace time_literals;
 
-GRFLaserSerial::GRFLaserSerial(const char *port) :
+GRFLaserSerial::GRFLaserSerial(const char *port,  uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
+	_px4_rangefinder(0, rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {
@@ -65,8 +66,8 @@ GRFLaserSerial::GRFLaserSerial(const char *port) :
 		device_id.devid_s.bus = bus_num;
 	}
 
-	_distance.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	_distance.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	_px4_rangefinder.set_device_id(device_id.devid);
+	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
 
 }
 
@@ -81,6 +82,7 @@ GRFLaserSerial::~GRFLaserSerial()
 int GRFLaserSerial::init()
 {
 	param_get(param_find("GRF_UPDATE_CFG"), &_update_rate);
+	param_get(param_find("GRF_SENS_MODEL"), &_model_type);
 
 	start();
 	return PX4_OK;
@@ -126,7 +128,6 @@ int GRFLaserSerial::measure()
 
 int GRFLaserSerial::collect()
 {
-	// PX4_INFO("Collect called in State %d", _sensor_state);
 	if (_sensor_state == STATE_UNINIT) {
 
 		perf_begin(_sample_perf);
@@ -208,6 +209,22 @@ void GRFLaserSerial::start()
 	/* reset the fail counter */
 	_last_received_time = hrt_absolute_time();
 
+	/*Set Lidar Min/Max based on model*/
+	switch(_model_type)
+	{
+		case GRF250:{
+			_px4_rangefinder.set_min_distance(0.1f);
+			_px4_rangefinder.set_max_distance(250.0f);
+			break;
+		}
+
+		case GRF500:{
+			_px4_rangefinder.set_min_distance(0.1f);
+			_px4_rangefinder.set_max_distance(500.0f);
+			break;
+		}
+	}
+
 	/* schedule a cycle to start things */
 	ScheduleNow();
 }
@@ -242,7 +259,7 @@ void GRFLaserSerial::Run()
 		/* no parity, one stop bit */
 		uart_config.c_cflag &= ~(CSTOPB | PARENB);
 
-		unsigned speed = B921600;
+		unsigned speed = B115200;
 
 		/* set baud rate */
 		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
@@ -582,13 +599,13 @@ void GRFLaserSerial::grf_send(uint8_t msg_id, bool write, int32_t *data, uint8_t
 
 void GRFLaserSerial::grf_process_replies()
 {
+	float distance_m = -1.0f;
 	hrt_abstime now = hrt_absolute_time();
 	switch (rx_field.msg_id) {
 	case GRF_DISTANCE_DATA_CM: {
 			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8);
-			PX4_INFO("Raw Distance: %02f", (double) raw_distance);
-			_px4_rangefinder.update(now, raw_distance/100)
-
+			distance_m = raw_distance/100.0f;
+			_px4_rangefinder.update(now, distance_m);
 			break;
 		}
 

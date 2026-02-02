@@ -17,8 +17,27 @@ parameters:
                       The GRF sets the update rate in Hz to allow greater resolution
               type: enum
               values:
-                  1: 5hz
-                  2: 50hz
+                  1: 1hz
+                  2: 2hz
+                  3: 4hz
+                  4: 5hz
+                  5: 10hz
+                  6: 20hz
+                  7: 30hz
+                  8: 40hz
+                  9: 50hz
               reboot_required: true
               num_instances: 1
-              default: 1
+              default: 4
+          GRF_SENS_MODEL:
+              description:
+                  short: GRF Sensor model
+                  long: |
+                      GRF Sensor Model used to distinush the maximum lidar distance.
+              type: enum
+              values:
+                  0: GRF250
+                  1: GRF500
+              reboot_required: true
+              num_instances: 1
+              default: 0

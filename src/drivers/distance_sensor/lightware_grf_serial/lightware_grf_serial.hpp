@@ -76,11 +76,16 @@ enum SensorOrientation {	  // Direction the sensor faces from MAV_SENSOR_ORIENTA
 	ROTATION_DOWNWARD_FACING = 25 // MAV_SENSOR_ROTATION_PITCH_270
 };
 
+enum MODEL {
+	GRF250 = 0,
+	GRF500 = 1
+};
+
 using namespace time_literals;
 class GRFLaserSerial : public px4::ScheduledWorkItem
 {
 public:
-	GRFLaserSerial(const char *port);
+	GRFLaserSerial(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	~GRFLaserSerial() override;
 
 	int				init();
@@ -104,8 +109,6 @@ private:
 	int				collect();
 	bool				_crc_valid{false};
 
-	// void 				_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement, hrt_abstime now);
-
 	PX4Rangefinder                  _px4_rangefinder;
 	char 				_port[20] {};
 	int				_interval{200000};
@@ -122,6 +125,7 @@ private:
 	int32_t				_product_name[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	int32_t				_stream_data{0};
 	int32_t				_update_rate{0};
+	int32_t				_model_type{0};
 	int32_t				_data_output{0};
 	const uint8_t			_start_of_frame{0xAA};
 	uint16_t			_data_bytes_recv{0};
