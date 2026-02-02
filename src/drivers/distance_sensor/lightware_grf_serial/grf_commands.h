@@ -81,7 +81,7 @@ enum GRF_SERIAL_CMD {
 struct {
 	const uint8_t data_fields = 2; // useful for breaking crc's into byte separated fields
 	uint16_t data_len{0};   // last message payload length (1+ bytes in payload)
-	uint32_t data[GRF_MAX_PAYLOAD];   // payload size limited by posix serial
+	uint8_t data[GRF_MAX_PAYLOAD];   // payload size limited by posix serial
 	uint8_t msg_id{0};          // latest message's message id
 	uint8_t flags_lo{0};      // flags low byte
 	uint8_t flags_hi{0};     // flags high byte
