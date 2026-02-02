@@ -1,5 +1,5 @@
 uint64 timestamp                      # time since system start (microseconds)
-uint8 CONNECTED_ESC_MAX = 8           # The number of ESCs supported. Current (Q2/2013) we support 8 ESCs
+uint8 CONNECTED_ESC_MAX = 12          # The number of ESCs supported (Motor1-Motor12)
 
 uint8 ESC_CONNECTION_TYPE_PPM = 0     # Traditional PPM ESC
 uint8 ESC_CONNECTION_TYPE_SERIAL = 1  # Serial Bus connected ESC
@@ -13,16 +13,20 @@ uint16 counter                        # incremented by the writing thread everyt
 uint8 esc_count                       # number of connected ESCs
 uint8 esc_connectiontype              # how ESCs connected to the system
 
-uint8 esc_online_flags                # Bitmask indicating which ESC is online/offline
-# esc_online_flags bit 0 : Set to 1 if ESC0 is online
-# esc_online_flags bit 1 : Set to 1 if ESC1 is online
-# esc_online_flags bit 2 : Set to 1 if ESC2 is online
-# esc_online_flags bit 3 : Set to 1 if ESC3 is online
-# esc_online_flags bit 4 : Set to 1 if ESC4 is online
-# esc_online_flags bit 5 : Set to 1 if ESC5 is online
-# esc_online_flags bit 6 : Set to 1 if ESC6 is online
-# esc_online_flags bit 7 : Set to 1 if ESC7 is online
+uint16 esc_online_flags               # Bitmask indicating which ESC is online/offline (in motor order)
+# esc_online_flags bit 0 : Set to 1 if Motor1 is online
+# esc_online_flags bit 1 : Set to 1 if Motor2 is online
+# esc_online_flags bit 2 : Set to 1 if Motor3 is online
+# esc_online_flags bit 3 : Set to 1 if Motor4 is online
+# esc_online_flags bit 4 : Set to 1 if Motor5 is online
+# esc_online_flags bit 5 : Set to 1 if Motor6 is online
+# esc_online_flags bit 6 : Set to 1 if Motor7 is online
+# esc_online_flags bit 7 : Set to 1 if Motor8 is online
+# esc_online_flags bit 8 : Set to 1 if Motor9 is online
+# esc_online_flags bit 9 : Set to 1 if Motor10 is online
+# esc_online_flags bit 10: Set to 1 if Motor11 is online
+# esc_online_flags bit 11: Set to 1 if Motor12 is online
 
-uint8 esc_armed_flags                 # Bitmask indicating which ESC is armed. For ESC's where the arming state is not known (returned by the ESC), the arming bits should always be set.
+uint16 esc_armed_flags                # Bitmask indicating which ESC is armed (in motor order)
 
-EscReport[8] esc
+EscReport[12] esc
