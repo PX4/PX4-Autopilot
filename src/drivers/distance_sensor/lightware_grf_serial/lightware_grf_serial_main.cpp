@@ -100,7 +100,7 @@ static int usage()
 		R"DESCR_STR(
 ### Description
 
-Serial bus driver for the Lightware GRF/b Laser rangefinder.
+Serial bus driver for the Lightware GRF Laser rangefinder.
 
 
 ### Examples

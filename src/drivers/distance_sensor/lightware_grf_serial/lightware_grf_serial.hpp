@@ -106,8 +106,9 @@ private:
 
 	// void 				_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement, hrt_abstime now);
 
+	PX4Rangefinder                  _px4_rangefinder;
 	char 				_port[20] {};
-	int				_interval{2000};
+	int				_interval{200000};
 	bool				_collect_phase{false};
 	int 				_fd{-1};
 	uint8_t				_linebuf[GRF_MAX_PAYLOAD] {};

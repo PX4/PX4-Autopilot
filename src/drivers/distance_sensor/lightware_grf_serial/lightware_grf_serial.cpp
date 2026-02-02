@@ -89,7 +89,7 @@ int GRFLaserSerial::init()
 int GRFLaserSerial::measure()
 {
 	int32_t rate = (int32_t)_update_rate;
-	_data_output = 0x101; // raw distance (first return) + yaw readings
+	_data_output = 0x01; // raw distance (first return) + yaw readings
 	_stream_data = 5; // enable constant streaming
 
 	// send packets to the sensor depending on the state
@@ -101,8 +101,9 @@ int GRFLaserSerial::measure()
 		break;
 
 	case STATE_ACK_PRODUCT_NAME:
-		// Update rate default to 50 readings/s
+		// Update rate default to 5 readings/s
 		grf_send(GRF_UPDATE_RATE, true, &rate, sizeof(uint8_t));
+		ScheduleDelayed(100_ms);
 		break;
 
 	case STATE_ACK_UPDATE_RATE:
@@ -125,6 +126,7 @@ int GRFLaserSerial::measure()
 
 int GRFLaserSerial::collect()
 {
+	// PX4_INFO("Collect called in State %d", _sensor_state);
 	if (_sensor_state == STATE_UNINIT) {
 
 		perf_begin(_sample_perf);
@@ -331,10 +333,6 @@ void GRFLaserSerial::grf_get_and_handle_request(const int payload_length, const 
 		bool restart_flag = false;
 
 		while (restart_flag != true) {
-			PX4_INFO("Line Index: %02X State: %d",_linebuf[index], _parsed_state);
-			PX4_INFO("Line Flag Low: %u State: %d",_linebuf[index + 1], _parsed_state);
-			PX4_INFO("Line Flag High: %u State: %d",_linebuf[index + 2], _parsed_state);
-			PX4_INFO("Line ID: %u  State: %d",_linebuf[index + 3], _parsed_state);
 			switch (_parsed_state) {
 			case GRF_PARSED_STATE::START: {
 					if (_linebuf[index] == 0xAA) {
@@ -584,26 +582,12 @@ void GRFLaserSerial::grf_send(uint8_t msg_id, bool write, int32_t *data, uint8_t
 
 void GRFLaserSerial::grf_process_replies()
 {
+	hrt_abstime now = hrt_absolute_time();
 	switch (rx_field.msg_id) {
 	case GRF_DISTANCE_DATA_CM: {
 			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8);
 			PX4_INFO("Raw Distance: %02f", (double) raw_distance);
-
-			// Update the current bin distance
-			// _current_bin_dist = ((uint16_t)raw_distance < _current_bin_dist) ? (uint16_t)raw_distance : _current_bin_dist;
-
-			// if (current_bin != _previous_bin) {
-			// 	PX4_DEBUG("distance: \t %8.4f\n", (double) distance_m);
-
-			// 	hrt_abstime now = hrt_absolute_time();
-
-			// 	_distance.current_distances = _current_bin_dist;
-			// 	_publish_distance_msg(now);
-
-			// 	// reset the values for the next measurement
-			// 	_current_bin_dist = UINT16_MAX;
-			// 	_previous_bin = current_bin;
-			// }
+			_px4_rangefinder.update(now, raw_distance/100)
 
 			break;
 		}
@@ -613,45 +597,6 @@ void GRFLaserSerial::grf_process_replies()
 		break;
 	}
 }
-
-// void GRFLaserSerial::_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement,
-// 		hrt_abstime now)
-// {
-// 	// if the sensor has its cycle delay configured for a low value like 5, it can happen that not every bin gets a measurement.
-// 	// in this case we assume the measurement to be valid for all bins between the previous and the current bin.
-// 	uint8_t start = current_bin;
-// 	uint8_t end = previous_bin - 1;
-
-// 	if (abs(current_bin - previous_bin) > BIN_COUNT / 4) {
-// 		// wrap-around case is assumed to have happend when the distance between the bins is larger than 1/4 of all Bins
-// 		// This is simplyfied as we are not considering the scaning direction
-// 		start = math::max(previous_bin, current_bin);
-// 		end = math::min(previous_bin, current_bin);
-
-// 	} else if (previous_bin < current_bin) {	// Scanning clockwise
-// 		start = previous_bin + 1;
-// 		end = current_bin;
-
-// 	}
-
-// 	if (start <= end) {
-// 		for (uint8_t i = start; i <= end; i++) {
-// 			_obstacle_distance.distances[i] = measurement;
-// 			_data_timestamps[i] = now;
-// 		}
-
-// 	} else { // wrap-around case
-// 		for (uint8_t i = start; i < BIN_COUNT; i++) {
-// 			_obstacle_distance.distances[i] = measurement;
-// 			_data_timestamps[i] = now;
-// 		}
-
-// 		for (uint8_t i = 0; i <= end; i++) {
-// 			_obstacle_distance.distances[i] = measurement;
-// 			_data_timestamps[i] = now;
-// 		}
-// 	}
-// }
 
 uint16_t GRFLaserSerial::grf_format_crc(uint16_t crc, uint8_t data_val)
 {

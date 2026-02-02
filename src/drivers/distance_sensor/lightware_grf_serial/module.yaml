@@ -17,18 +17,8 @@ parameters:
                       The GRF sets the update rate in Hz to allow greater resolution
               type: enum
               values:
-                  1: 50hz
-                  2: 100hz
-                  3: 200hz
-                  4: 400hz
-                  5: 500hz
-                  6: 625hz
-                  7: 1000hz
-                  8: 1250hz
-                  9: 1538hz
-                  10: 2000hz
-                  11: 2500hz
-                  12: 5000hz
+                  1: 5hz
+                  2: 50hz
               reboot_required: true
               num_instances: 1
-              default: 5
+              default: 1
