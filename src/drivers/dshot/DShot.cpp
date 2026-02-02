@@ -403,14 +403,18 @@ void DShot::update_motor_commands(int num_outputs)
 	}
 }
 
-uint8_t DShot::esc_armed_mask(uint16_t *outputs, uint8_t num_outputs)
+uint16_t DShot::esc_armed_mask(uint16_t *outputs, uint8_t num_outputs)
 {
-	uint8_t mask = 0;
+	uint16_t mask = 0;
 
 	for (uint8_t i = 0; i < num_outputs; i++) {
 		if (_mixing_output.isMotor(i)) {
 			if (outputs[i] != DSHOT_DISARM_VALUE) {
-				mask |= (1 << i);
+				int motor_index = (int)_mixing_output.outputFunction(i) - (int)OutputFunction::Motor1;
+
+				if (motor_index >= 0 && motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+					mask |= (1 << motor_index);
+				}
 			}
 		}
 	}
@@ -583,7 +587,7 @@ bool DShot::process_bdshot_telemetry()
 			esc.motor_index = motor_index;
 			esc.timestamp = now;
 
-			// Error counts are stored in actuator order to match _esc_status.esc[]
+			// Error counts are stored in actuator order
 			_bdshot_telem_errors[output_channel] = up_bdshot_num_errors(output_channel);
 
 			if (up_bdshot_channel_online(output_channel)) {
@@ -597,8 +601,8 @@ bool DShot::process_bdshot_telemetry()
 					esc.erpm = erpm * 100;
 
 				} else {
-					// Use previous value (esc_status is in actuator order)
-					esc.erpm = _esc_status.esc[output_channel].esc_rpm * (_param_mot_pole_count.get() / 2);
+					// Use previous value (esc_status is indexed by motor_index)
+					esc.erpm = _esc_status.esc[motor_index].esc_rpm * (_param_mot_pole_count.get() / 2);
 				}
 
 				// Extended DShot Telemetry
@@ -610,21 +614,21 @@ bool DShot::process_bdshot_telemetry()
 						esc.temperature = value; // BDShot temperature is in C
 
 					} else {
-						esc.temperature = _esc_status.esc[output_channel].esc_temperature; // use previous
+						esc.temperature = _esc_status.esc[motor_index].esc_temperature; // use previous
 					}
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
 						esc.voltage = value / 4.f; // BDShot voltage is in 0.25V
 
 					} else {
-						esc.voltage = _esc_status.esc[output_channel].esc_voltage; // use previous
+						esc.voltage = _esc_status.esc[motor_index].esc_voltage; // use previous
 					}
 
 					if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
 						esc.current = value / 2.f; // BDShot current is in 0.5A
 
 					} else {
-						esc.current = _esc_status.esc[output_channel].esc_current;  // use previous
+						esc.current = _esc_status.esc[motor_index].esc_current;  // use previous
 					}
 				}
 
@@ -648,7 +652,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 	int actuator_channel = esc.actuator_channel;
 	int motor_index = esc.motor_index;
 
-	if (!math::isInRange(actuator_channel, 0, esc_status_s::CONNECTED_ESC_MAX - 1) ||
+	if (!math::isInRange(actuator_channel, 0, DSHOT_MAXIMUM_CHANNELS - 1) ||
 	    !math::isInRange(motor_index, 0, esc_status_s::CONNECTED_ESC_MAX - 1)) {
 		return;
 	}
@@ -657,51 +661,42 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 	bool is_bdshot = _bdshot_motor_mask & (1 << motor_index);
 
 	// Require both sources online when enabled (masks are in motor order)
-	uint8_t online_mask_motor_order = 0xFF;
+	uint16_t online_mask = (1u << esc_status_s::CONNECTED_ESC_MAX) - 1;
 
 	if (is_bdshot) {
-		online_mask_motor_order &= _bdshot_telem_online_mask;
+		online_mask &= _bdshot_telem_online_mask;
 	}
 
 	if (_serial_telemetry_enabled) {
-		online_mask_motor_order &= _serial_telem_online_mask;
+		online_mask &= _serial_telem_online_mask;
 	}
 
-	// Convert motor-order mask to actuator-order mask for esc_online_flags
-	uint8_t online_mask_actuator_order = 0;
+	_esc_status.esc_online_flags = online_mask;
 
-	for (int motor_idx = 0; motor_idx < DSHOT_MAXIMUM_CHANNELS; motor_idx++) {
-		if ((online_mask_motor_order & (1 << motor_idx)) && _motor_to_channel[motor_idx] >= 0) {
-			online_mask_actuator_order |= (1 << _motor_to_channel[motor_idx]);
-		}
-	}
-
-	_esc_status.esc_online_flags = online_mask_actuator_order;
-
-	// Sum the errors from both interfaces (error arrays are in actuator order)
-	_esc_status.esc[actuator_channel].esc_errorcount = _serial_telem_errors[actuator_channel] +
+	// esc_status is indexed by motor_index (Motor1=0, Motor2=1, ...)
+	_esc_status.esc[motor_index].esc_errorcount = _serial_telem_errors[actuator_channel] +
 			_bdshot_telem_errors[actuator_channel];
 
 	if (source == TelemetrySource::Serial) {
 		// Only use SerialTelemetry eRPM when BDShot is disabled
 		if (!is_bdshot) {
-			_esc_status.esc[actuator_channel].timestamp = esc.timestamp;
-			_esc_status.esc[actuator_channel].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
+			_esc_status.esc[motor_index].timestamp = esc.timestamp;
+			_esc_status.esc[motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
 		}
 
-		_esc_status.esc[actuator_channel].esc_voltage = esc.voltage;
-		_esc_status.esc[actuator_channel].esc_current = esc.current;
-		_esc_status.esc[actuator_channel].esc_temperature = esc.temperature;
+		_esc_status.esc[motor_index].esc_voltage = esc.voltage;
+		_esc_status.esc[motor_index].esc_current = esc.current;
+		_esc_status.esc[motor_index].esc_temperature = esc.temperature;
 
 	} else if (source == TelemetrySource::BDShot) {
-		_esc_status.esc[actuator_channel].timestamp = esc.timestamp;
-		_esc_status.esc[actuator_channel].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
+		_esc_status.esc[motor_index].timestamp = esc.timestamp;
+		_esc_status.esc[motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
 
 		// Only use BDShot Volt/Curr/Temp when Serial Telemetry is disabled
 		if (!_serial_telemetry_enabled) {
-			_esc_status.esc[actuator_channel].esc_voltage = esc.voltage;
-			_esc_status.esc[actuator_channel].esc_current = esc.current;
-			_esc_status.esc[actuator_channel].esc_temperature = esc.temperature;
+			_esc_status.esc[motor_index].esc_voltage = esc.voltage;
+			_esc_status.esc[motor_index].esc_current = esc.current;
+			_esc_status.esc[motor_index].esc_temperature = esc.temperature;
 		}
 	}
 }
@@ -893,21 +888,15 @@ void DShot::mixerChanged()
 	uint32_t new_output_mask = 0;
 	uint32_t new_motor_mask = 0;
 
-	// Reset motor-to-channel mapping
-	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
-		_motor_to_channel[i] = -1;
-	}
-
 	for (int actuator_channel = 0; actuator_channel < DSHOT_MAXIMUM_CHANNELS; actuator_channel++) {
 		if (_mixing_output.isMotor(actuator_channel)) {
-			_esc_status.esc[actuator_channel].actuator_function = (uint8_t)_mixing_output.outputFunction(actuator_channel);
 			new_output_mask |= (1 << actuator_channel);
 
 			int motor_index = (int)_mixing_output.outputFunction(actuator_channel) - (int)OutputFunction::Motor1;
 
-			if (motor_index >= 0 && motor_index < DSHOT_MAXIMUM_CHANNELS) {
+			if (motor_index >= 0 && motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+				_esc_status.esc[motor_index].actuator_function = (uint8_t)_mixing_output.outputFunction(actuator_channel);
 				new_motor_mask |= (1 << motor_index);
-				_motor_to_channel[motor_index] = actuator_channel;
 			}
 		}
 	}
@@ -931,7 +920,7 @@ void DShot::mixerChanged()
 			if ((new_bdshot_output_mask & (1 << actuator_channel)) && _mixing_output.isMotor(actuator_channel)) {
 				int motor_index = (int)_mixing_output.outputFunction(actuator_channel) - (int)OutputFunction::Motor1;
 
-				if (motor_index >= 0 && motor_index < DSHOT_MAXIMUM_CHANNELS) {
+				if (motor_index >= 0 && motor_index < esc_status_s::CONNECTED_ESC_MAX) {
 					new_bdshot_motor_mask |= (1 << motor_index);
 				}
 			}

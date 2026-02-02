@@ -34,9 +34,9 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include <uORB/topics/esc_status.h>
+#include <board_config.h>
 
-static constexpr int DSHOT_MAXIMUM_CHANNELS = esc_status_s::CONNECTED_ESC_MAX;
+static constexpr int DSHOT_MAXIMUM_CHANNELS = DIRECT_PWM_OUTPUT_CHANNELS;
 
 enum class TelemetrySource {
 	Serial = 0,
@@ -44,8 +44,8 @@ enum class TelemetrySource {
 };
 
 struct EscData {
-	int actuator_channel;  // Actuator output channel 0-7
-	int motor_index;       // Motors 0-7
+	int actuator_channel;  // Actuator output channel 0..(DSHOT_MAXIMUM_CHANNELS-1)
+	int motor_index;       // Motor index 0..(CONNECTED_ESC_MAX-1)
 	hrt_abstime timestamp; // Sample time
 	TelemetrySource source;
 

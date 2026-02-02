@@ -36,6 +36,7 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/esc_eeprom_write.h>
@@ -48,6 +49,10 @@ using namespace time_literals;
 #if !defined(DIRECT_PWM_OUTPUT_CHANNELS)
 #  error "board_config.h needs to define DIRECT_PWM_OUTPUT_CHANNELS"
 #endif
+
+static_assert(DSHOT_MAXIMUM_CHANNELS <= 16, "DShot driver uses uint16_t bitmasks");
+static_assert(esc_status_s::CONNECTED_ESC_MAX <= DSHOT_MAXIMUM_CHANNELS,
+	      "esc_status array must not exceed DShot channel count");
 
 static constexpr hrt_abstime ESC_INIT_TELEM_DELAY = 5_s;
 
@@ -98,7 +103,7 @@ private:
 	bool initialize_dshot();
 	void init_telemetry(const char *device, bool swap_rxtx);
 
-	uint8_t esc_armed_mask(uint16_t *outputs, uint8_t num_outputs);
+	uint16_t esc_armed_mask(uint16_t *outputs, uint8_t num_outputs);
 
 	void update_motor_outputs(uint16_t *outputs, int num_outputs);
 	void update_motor_commands(int num_outputs);
@@ -131,9 +136,6 @@ private:
 	// Motor-order masks (indexed by motor number: Motor1=0, Motor2=1, etc.)
 	uint32_t _motor_mask{0};
 	uint32_t _bdshot_motor_mask{0};
-
-	// Motor-to-channel mapping: _motor_to_channel[motor_index] = actuator_channel (-1 if not assigned)
-	int8_t _motor_to_channel[DSHOT_MAXIMUM_CHANNELS] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
 	// uORB
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -188,7 +190,7 @@ private:
 	struct DShotCommand {
 		uint16_t command{};
 		int num_repetitions{0};
-		uint8_t motor_mask{0xff};
+		uint16_t motor_mask{(1u << DSHOT_MAXIMUM_CHANNELS) - 1};
 		bool save{false};
 		bool expect_response{false};
 
