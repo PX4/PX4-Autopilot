@@ -263,14 +263,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 				syslog(LOG_INFO, "[boot] W25N MTD registered at /dev/mtd0\n");
 
 #ifdef CONFIG_FS_LITTLEFS
-				ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, "autoformat");
+				ret = nx_mount("/dev/mtd0", CONFIG_BOARD_ROOT_PATH, "littlefs", 0, "autoformat");
 
 				if (ret < 0) {
 					syslog(LOG_ERR, "[boot] FAILED to mount littlefs: %d\n", ret);
 					led_on(LED_RED);
 
 				} else {
-					syslog(LOG_INFO, "[boot] LittleFS mounted at /fs/microsd\n");
+					syslog(LOG_INFO, "[boot] LittleFS mounted at %s\n", CONFIG_BOARD_ROOT_PATH);
 				}
 
 #endif
