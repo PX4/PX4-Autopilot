@@ -51,10 +51,17 @@ private:
 	bool _hardfault_checked_once {false};
 	bool _hardfault_file_present {false};
 #endif
+
+	hrt_abstime _sdcard_detected_time {0};
+
+	bool _metadata_checked {false};
+	bool _metadata_mismatch {false};
+	bool _metadata_missing {false};
 #endif
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::COM_ARM_SDCARD>) _param_com_arm_sdcard,
-					(ParamBool<px4::params::COM_ARM_HFLT_CHK>) _param_com_arm_hardfault_check
+					(ParamBool<px4::params::COM_ARM_HFLT_CHK>) _param_com_arm_hardfault_check,
+					(ParamBool<px4::params::COM_ARM_META_CHK>) _param_com_arm_metadata_check
 				       )
 };
