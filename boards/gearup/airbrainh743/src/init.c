@@ -190,25 +190,25 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 				syslog(LOG_INFO, "[boot] W25N MTD registered at /dev/mtd0\n");
 
 #ifdef CONFIG_FS_LITTLEFS
-				ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, NULL);
+				ret = nx_mount("/dev/mtd0", CONFIG_BOARD_ROOT_PATH, "littlefs", 0, NULL);
 
 				if (ret == 0) {
 					/* Verify the filesystem is usable by creating a test file */
-					int fd = open("/fs/microsd/.mount_test", O_CREAT | O_WRONLY | O_TRUNC);
+					int fd = open(CONFIG_BOARD_ROOT_PATH "/.mount_test", O_CREAT | O_WRONLY | O_TRUNC);
 
 					if (fd >= 0) {
 						close(fd);
-						unlink("/fs/microsd/.mount_test");
+						unlink(CONFIG_BOARD_ROOT_PATH "/.mount_test");
 
 					} else {
 						syslog(LOG_WARNING, "[boot] littlefs mounted but not usable, reformatting\n");
-						nx_umount2("/fs/microsd", 0);
+						nx_umount2(CONFIG_BOARD_ROOT_PATH, 0);
 						ret = -1;
 					}
 				}
 
 				if (ret < 0) {
-					ret = nx_mount("/dev/mtd0", "/fs/microsd", "littlefs", 0, "forceformat");
+					ret = nx_mount("/dev/mtd0", CONFIG_BOARD_ROOT_PATH, "littlefs", 0, "forceformat");
 				}
 
 				if (ret < 0) {
@@ -216,7 +216,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 					led_on(LED_RED);
 
 				} else {
-					syslog(LOG_INFO, "[boot] LittleFS mounted at /fs/microsd\n");
+					syslog(LOG_INFO, "[boot] LittleFS mounted at %s\n", CONFIG_BOARD_ROOT_PATH);
 				}
 
 #endif
