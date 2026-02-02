@@ -195,6 +195,9 @@ void Navigator::run()
 			continue;
 		}
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		int lockstep_component = px4_lockstep_register_component();
+#endif
 		perf_begin(_loop_perf);
 
 		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
@@ -933,6 +936,10 @@ void Navigator::run()
 		_geofence.run();
 
 		perf_end(_loop_perf);
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		px4_lockstep_unregister_component(lockstep_component);
+#endif
 	}
 }
 
