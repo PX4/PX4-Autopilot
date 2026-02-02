@@ -41,13 +41,23 @@
 set(comp_metadata_types)
 set(comp_metadata_board "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}")
 set(s3_url "https://px4-travis.s3.amazonaws.com")
+set(sdcard_metadata_subdir "px4/metadata")
+if(CONFIG_BOARD_ROOT_PATH)
+	string(REGEX REPLACE "^/" "" sdcard_root "${CONFIG_BOARD_ROOT_PATH}")
+endif()
 
 set(comp_metadata_param_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/parameters.json.xz")
 list(FIND config_romfs_extra_dependencies "parameters_xml" index)
 if (${index} EQUAL -1)
-	set(comp_metadata_param_uri ${comp_metadata_param_uri_board})
-	# use generic URL as fallback
-	set(comp_metadata_param_uri_fallback "${s3_url}/Firmware/{version}/_general/parameters.json.xz")
+	if(CONFIG_BOARD_ROOT_PATH)
+		# SD card path as primary, S3 as fallback
+		set(comp_metadata_param_uri "mftp://${sdcard_root}/${sdcard_metadata_subdir}/parameters.json.xz")
+		set(comp_metadata_param_uri_fallback ${comp_metadata_param_uri_board})
+	else()
+		set(comp_metadata_param_uri ${comp_metadata_param_uri_board})
+		# use generic URL as fallback
+		set(comp_metadata_param_uri_fallback "${s3_url}/Firmware/{version}/_general/parameters.json.xz")
+	endif()
 else()
 	set(comp_metadata_param_uri "mftp://etc/extras/parameters.json.xz")
 	set(comp_metadata_param_uri_fallback ${comp_metadata_param_uri_board})
@@ -59,9 +69,14 @@ list(APPEND comp_metadata_types "--type" "1,${PX4_BINARY_DIR}/parameters.json.xz
 set(comp_metadata_events_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/all_events.json.xz")
 list(FIND config_romfs_extra_dependencies "events_json" index)
 if (${index} EQUAL -1)
-	set(comp_metadata_events_uri ${comp_metadata_events_uri_board})
-	# use generic URL as fallback
-	set(comp_metadata_events_uri_fallback "${s3_url}/Firmware/{version}/_general/all_events.json.xz")
+	if(CONFIG_BOARD_ROOT_PATH)
+		set(comp_metadata_events_uri "mftp://${sdcard_root}/${sdcard_metadata_subdir}/all_events.json.xz")
+		set(comp_metadata_events_uri_fallback ${comp_metadata_events_uri_board})
+	else()
+		set(comp_metadata_events_uri ${comp_metadata_events_uri_board})
+		# use generic URL as fallback
+		set(comp_metadata_events_uri_fallback "${s3_url}/Firmware/{version}/_general/all_events.json.xz")
+	endif()
 else()
 	set(comp_metadata_events_uri "mftp://etc/extras/all_events.json.xz")
 	set(comp_metadata_events_uri_fallback ${comp_metadata_events_uri_board})
@@ -71,8 +86,13 @@ list(APPEND comp_metadata_types "--type" "4,${PX4_BINARY_DIR}/events/all_events.
 set(comp_metadata_actuators_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/actuators.json.xz")
 list(FIND config_romfs_extra_dependencies "actuators_json" index)
 if (${index} EQUAL -1)
-	set(comp_metadata_actuators_uri ${comp_metadata_actuators_uri_board})
-	set(comp_metadata_actuators_uri_fallback "")
+	if(CONFIG_BOARD_ROOT_PATH)
+		set(comp_metadata_actuators_uri "mftp://${sdcard_root}/${sdcard_metadata_subdir}/actuators.json.xz")
+		set(comp_metadata_actuators_uri_fallback ${comp_metadata_actuators_uri_board})
+	else()
+		set(comp_metadata_actuators_uri ${comp_metadata_actuators_uri_board})
+		set(comp_metadata_actuators_uri_fallback "")
+	endif()
 else()
 	set(comp_metadata_actuators_uri "mftp://etc/extras/actuators.json.xz")
 	set(comp_metadata_actuators_uri_fallback ${comp_metadata_actuators_uri_board})
@@ -105,3 +125,33 @@ add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
 	COMMENT "Generating component_general.json and checksums.h"
 )
 add_custom_target(component_general_json DEPENDS ${component_general_json})
+
+# For constrained flash builds, copy metadata files to sdcard output directory
+# so they can be uploaded to the SD card after firmware flash
+if(px4_constrained_flash_build AND CONFIG_BOARD_ROOT_PATH)
+	set(sdcard_extras_dir ${PX4_BINARY_DIR}/sdcard/${sdcard_metadata_subdir})
+	add_custom_command(
+		OUTPUT
+			${sdcard_extras_dir}/parameters.json.xz
+			${sdcard_extras_dir}/all_events.json.xz
+			${sdcard_extras_dir}/actuators.json.xz
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${sdcard_extras_dir}
+		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BINARY_DIR}/parameters.json.xz ${sdcard_extras_dir}/
+		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BINARY_DIR}/events/all_events.json.xz ${sdcard_extras_dir}/
+		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BINARY_DIR}/actuators.json.xz ${sdcard_extras_dir}/
+		DEPENDS
+			${PX4_BINARY_DIR}/parameters.json.xz
+			${PX4_BINARY_DIR}/events/all_events.json.xz
+			${PX4_BINARY_DIR}/actuators.json.xz
+			parameters_xml
+			events_json
+			actuators_json
+		COMMENT "Copying metadata files to sdcard output directory"
+	)
+	add_custom_target(sdcard_metadata ALL
+		DEPENDS
+			${sdcard_extras_dir}/parameters.json.xz
+			${sdcard_extras_dir}/all_events.json.xz
+			${sdcard_extras_dir}/actuators.json.xz
+	)
+endif()

@@ -33,24 +33,68 @@
 
 # Uploader script auto-detects PX4 devices by USB VID/PID
 set(PX4_UPLOADER_SCRIPT "${PX4_SOURCE_DIR}/Tools/px4_uploader.py")
+set(PX4_SDCARD_UPLOAD_SCRIPT "${PX4_SOURCE_DIR}/Tools/px4_sdcard_upload.py")
 
-add_custom_target(upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} ${fw_package}
-	DEPENDS ${fw_package}
-	COMMENT "uploading px4"
-	VERBATIM
-	USES_TERMINAL
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-)
+if(px4_constrained_flash_build AND CONFIG_BOARD_ROOT_PATH)
 
-add_custom_target(force-upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --force ${fw_package}
-	DEPENDS ${fw_package}
-	COMMENT "uploading px4 with --force"
-	VERBATIM
-	USES_TERMINAL
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-)
+	# For constrained flash boards: flash firmware, then push metadata to SD card
+	add_custom_target(upload
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} ${fw_package}
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SDCARD_UPLOAD_SCRIPT}
+			--sdcard-dir ${PX4_BINARY_DIR}/sdcard
+			--device-root ${CONFIG_BOARD_ROOT_PATH}
+		DEPENDS ${fw_package} sdcard_metadata
+		COMMENT "uploading px4 and SD card metadata"
+		VERBATIM
+		USES_TERMINAL
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
+
+	add_custom_target(force-upload
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --force ${fw_package}
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SDCARD_UPLOAD_SCRIPT}
+			--sdcard-dir ${PX4_BINARY_DIR}/sdcard
+			--device-root ${CONFIG_BOARD_ROOT_PATH}
+		DEPENDS ${fw_package} sdcard_metadata
+		COMMENT "uploading px4 with --force and SD card metadata"
+		VERBATIM
+		USES_TERMINAL
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
+
+	# Standalone target: upload only SD card metadata (e.g. with --port)
+	add_custom_target(upload_sdcard
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SDCARD_UPLOAD_SCRIPT}
+			--sdcard-dir ${PX4_BINARY_DIR}/sdcard
+			--device-root ${CONFIG_BOARD_ROOT_PATH}
+		DEPENDS sdcard_metadata
+		COMMENT "uploading metadata to SD card via MAVLink FTP"
+		VERBATIM
+		USES_TERMINAL
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
+
+else()
+
+	add_custom_target(upload
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} ${fw_package}
+		DEPENDS ${fw_package}
+		COMMENT "uploading px4"
+		VERBATIM
+		USES_TERMINAL
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
+
+	add_custom_target(force-upload
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --force ${fw_package}
+		DEPENDS ${fw_package}
+		COMMENT "uploading px4 with --force"
+		VERBATIM
+		USES_TERMINAL
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
+
+endif()
 
 add_custom_target(upload-verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --verbose ${fw_package}
