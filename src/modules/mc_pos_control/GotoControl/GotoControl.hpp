@@ -65,8 +65,8 @@ public:
 	 * @brief resets the position smoother at the current position with zero velocity and acceleration.
 	 *
 	 * @param position [m] (NED) local vehicle position
-	 * @param[in] velocity [m/s] local vehicle velocity
-	 * @param[in] acceleration [m/s^2] local vehicle acceleration
+	 * @param velocity [m/s] local vehicle velocity
+	 * @param acceleration [m/s^2] local vehicle acceleration
 	 */
 	void resetPositionSmoother(const matrix::Vector3f &position, const matrix::Vector3f &velocity, const matrix::Vector3f &acceleration);
 
