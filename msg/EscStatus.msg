@@ -1,17 +1,17 @@
-uint64 timestamp                      # time since system start (microseconds)
-uint8 CONNECTED_ESC_MAX = 12          # The number of ESCs supported (Motor1-Motor12)
+uint64 timestamp # [us] Time since system start
+uint8 CONNECTED_ESC_MAX = 12 # The number of ESCs supported (Motor1-Motor12)
 
-uint8 ESC_CONNECTION_TYPE_PPM = 0     # Traditional PPM ESC
-uint8 ESC_CONNECTION_TYPE_SERIAL = 1  # Serial Bus connected ESC
+uint8 ESC_CONNECTION_TYPE_PPM = 0 # Traditional PPM ESC
+uint8 ESC_CONNECTION_TYPE_SERIAL = 1 # Serial Bus connected ESC
 uint8 ESC_CONNECTION_TYPE_ONESHOT = 2 # One Shot PPM
-uint8 ESC_CONNECTION_TYPE_I2C = 3     # I2C
-uint8 ESC_CONNECTION_TYPE_CAN = 4     # CAN-Bus
-uint8 ESC_CONNECTION_TYPE_DSHOT = 5   # DShot
+uint8 ESC_CONNECTION_TYPE_I2C = 3 # I2C
+uint8 ESC_CONNECTION_TYPE_CAN = 4 # CAN-Bus
+uint8 ESC_CONNECTION_TYPE_DSHOT = 5 # DShot
 
-uint16 counter                        # incremented by the writing thread everytime new data is stored
+uint16 counter # [-] Incremented by the writing thread everytime new data is stored
 
-uint8 esc_count                       # number of connected ESCs
-uint8 esc_connectiontype              # how ESCs connected to the system
+uint8 esc_count # [-] Number of connected ESCs
+uint8 esc_connectiontype # [@enum ESC_CONNECTION_TYPE] How ESCs connected to the system
 
 uint16 esc_online_flags               # Bitmask indicating which ESC is online/offline (in motor order)
 # esc_online_flags bit 0 : Set to 1 if Motor1 is online
@@ -27,6 +27,6 @@ uint16 esc_online_flags               # Bitmask indicating which ESC is online/o
 # esc_online_flags bit 10: Set to 1 if Motor11 is online
 # esc_online_flags bit 11: Set to 1 if Motor12 is online
 
-uint16 esc_armed_flags                # Bitmask indicating which ESC is armed (in motor order)
+uint16 esc_armed_flags # [-] Bitmask indicating which ESC is armed (in motor order)
 
 EscReport[12] esc
