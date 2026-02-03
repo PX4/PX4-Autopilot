@@ -110,7 +110,7 @@ private:
 
 	float measured_temperature = 0;
 	float measured_humidity = 0;
-	uint32_t measurement_time = 0;
+	uint64_t measurement_time = 0;
 	uint16_t measurement_index = 0;
 
 	sht_info _sht_info;
