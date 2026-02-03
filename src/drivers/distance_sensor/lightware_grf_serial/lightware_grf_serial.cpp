@@ -1,6 +1,6 @@
 /**************************************************************************
  *
- *   Copyright (c) 2022-2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -131,7 +131,6 @@ int GRFLaserSerial::collect()
 	if (_sensor_state == STATE_UNINIT) {
 
 		perf_begin(_sample_perf);
-		const int payload_length = 22;
 
 		_crc_valid = false;
 		grf_get_and_handle_request(payload_length, GRF_PRODUCT_NAME);
@@ -604,7 +603,7 @@ void GRFLaserSerial::grf_process_replies()
 	switch (rx_field.msg_id) {
 	case GRF_DISTANCE_DATA_CM: {
 			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8);
-			distance_m = raw_distance/100.0f;
+			distance_m = raw_distance * GRF_SCALE_FACTOR;
 			_px4_rangefinder.update(now, distance_m);
 			break;
 		}

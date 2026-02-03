@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 /**
  * @file lightware_grf_serial.hpp
- * @author Andrew Brahim <dirksavage88@gmail.com>
+ * @author Aaron Porter <aaron..portter@assscendengineer.com>
  *
  * Serial Protocol driver for the Lightware GRF/B rangefinder series
  */
@@ -100,7 +100,7 @@ private:
 	distance_sensor_s		_distance{};
 	static constexpr uint64_t 	GRF_MEAS_TIMEOUT{100_ms};
 	static constexpr float 		GRF_SCALE_FACTOR = 0.01f;
-	static constexpr float		GRF_FIELDOF_VIEW = 320.f; // degrees
+	static constexpr int 		payload_length = 22;
 
 	void				start();
 	void				stop();
@@ -119,7 +119,6 @@ private:
 
 	// GRF uses a binary protocol to include header,flags
 	// message ID, payload, and checksum
-	bool				_is_grf{false};
 	GRF_SERIAL_STATE		_sensor_state{STATE_UNINIT};
 	int				_baud_rate{0};
 	int32_t				_product_name[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -130,12 +129,6 @@ private:
 	const uint8_t			_start_of_frame{0xAA};
 	uint16_t			_data_bytes_recv{0};
 	uint8_t				_parsed_state{0};
-	bool				_sop_valid{false};
-	uint16_t			_calc_crc{0};
-	int32_t				_yaw_cfg{0};
-	int32_t				_orient_cfg{0};
-	uint8_t				_previous_bin{0};
-	uint16_t			_current_bin_dist{UINT16_MAX};
 
 	// end of GRF data members
 
