@@ -65,6 +65,8 @@ public:
 	 * @brief resets the position smoother at the current position with zero velocity and acceleration.
 	 *
 	 * @param position [m] (NED) local vehicle position
+	 * @param[in] velocity [m/s] local vehicle velocity
+	 * @param[in] acceleration [m/s^2] local vehicle acceleration
 	 */
 	void resetPositionSmoother(const matrix::Vector3f &position, const matrix::Vector3f &velocity, const matrix::Vector3f &acceleration);
 
@@ -81,6 +83,8 @@ public:
 	 *
 	 * @param[in] dt [s] time since last control update
 	 * @param[in] position [m] (NED) local vehicle position
+	 * @param[in] velocity [m/s] local vehicle velocity
+	 * @param[in] acceleration [m/s^2] local vehicle acceleration
 	 * @param[in] heading [rad] (from North) vehicle heading
 	 * @param[in] goto_setpoint struct containing current go-to setpoints
 	 * @param[out] trajectory_setpoint struct containing trajectory (tracking) setpoints
