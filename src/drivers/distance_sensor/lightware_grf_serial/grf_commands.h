@@ -35,7 +35,7 @@
  * @file grf_commands.h
  * @author Aaron Porter
  *
- * Declarations of grf serial commands for the Lightware grf/b series
+ * Declarations of grf serial commands for the Lightware grf series
  */
 
 #pragma once
