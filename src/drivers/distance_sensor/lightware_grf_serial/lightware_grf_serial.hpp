@@ -100,7 +100,6 @@ private:
 	distance_sensor_s		_distance{};
 	static constexpr uint64_t 	GRF_MEAS_TIMEOUT{100_ms};
 	static constexpr float 		GRF_SCALE_FACTOR = 0.01f;
-	static constexpr int 		payload_length = 22;
 
 	void				start();
 	void				stop();
@@ -129,6 +128,7 @@ private:
 	const uint8_t			_start_of_frame{0xAA};
 	uint16_t			_data_bytes_recv{0};
 	uint8_t				_parsed_state{0};
+	uint16_t			_calc_crc{0};
 
 	// end of GRF data members
 

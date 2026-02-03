@@ -131,6 +131,7 @@ int GRFLaserSerial::collect()
 	if (_sensor_state == STATE_UNINIT) {
 
 		perf_begin(_sample_perf);
+		const int payload_length = 22;
 
 		_crc_valid = false;
 		grf_get_and_handle_request(payload_length, GRF_PRODUCT_NAME);
@@ -353,13 +354,11 @@ void GRFLaserSerial::grf_get_and_handle_request(const int payload_length, const 
 			case GRF_PARSED_STATE::START: {
 					if (_linebuf[index] == 0xAA) {
 						// start of frame is valid, continue
-						_sop_valid = true;
 						_calc_crc = grf_format_crc(_calc_crc, _start_of_frame);
 						_parsed_state = GRF_PARSED_STATE::FLG_LOW;
 						break;
 
 					} else {
-						_sop_valid = false;
 						_crc_valid = false;
 						_parsed_state = GRF_PARSED_STATE::START;
 						restart_flag = true;
