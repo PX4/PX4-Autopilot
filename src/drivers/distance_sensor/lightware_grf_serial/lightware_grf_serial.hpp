@@ -33,9 +33,9 @@
 
 /**
  * @file lightware_grf_serial.hpp
- * @author Aaron Porter <aaron..porter@ascendengineer.com>
+ * @author Aaron Porter <aaron.porter@ascendengineer.com>
  *
- * Serial Protocol driver for the Lightware GRF/B rangefinder series
+ * Serial Protocol driver for the Lightware GRF rangefinder series
  */
 
 #pragma once

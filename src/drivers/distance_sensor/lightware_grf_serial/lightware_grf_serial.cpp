@@ -39,9 +39,6 @@
 #include <termios.h>
 
 #include <lib/crc/crc.h>
-#include <lib/mathlib/mathlib.h>
-#include <matrix/matrix/math.hpp>
-#include <ObstacleMath.hpp>
 
 using namespace time_literals;
 
