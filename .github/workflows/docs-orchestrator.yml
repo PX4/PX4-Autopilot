@@ -1,0 +1,362 @@
+name: Docs - Orchestrator
+
+on:
+  push:
+    branches:
+      - "main"
+      - "release/**"
+    paths:
+      - "docs/**"
+  pull_request:
+    paths:
+      - "docs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+
+concurrency:
+  group: docs-orchestrator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =============================================================================
+  # Detect Changes (PR only)
+  # =============================================================================
+  detect-changes:
+    name: "Detect Changed Paths"
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      source_changed: ${{ steps.changes.outputs.source }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            source:
+              - 'src/**'
+              - 'msg/**'
+              - 'ROMFS/**'
+              - 'Tools/module_config/**'
+
+  # =============================================================================
+  # PR Metadata Regen (conditional - only when PR touches source files)
+  # =============================================================================
+  pr-metadata-regen:
+    name: "PR: Generate Metadata"
+    needs: [detect-changes]
+    if: github.event_name == 'pull_request' && needs.detect-changes.outputs.source_changed == 'true'
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    container:
+      image: px4io/px4-dev-nuttx-focal:2024-11-07
+    steps:
+      - uses: runs-on/action@v1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache Restore - ccache
+        id: cache-ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.ccache
+          key: ccache-docs-metadata-${{ github.sha }}
+          restore-keys: |
+            ccache-docs-metadata-
+
+      - name: Setup ccache
+        run: |
+          mkdir -p ~/.ccache
+          echo "max_size = 1G" > ~/.ccache/ccache.conf
+
+      - name: Build px4_sitl_default
+        run: |
+          make px4_sitl_default
+        env:
+          CCACHE_DIR: ~/.ccache
+
+      - name: Install Emscripten
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git /opt/emsdk
+          cd /opt/emsdk
+          ./emsdk install 3.1.64
+          ./emsdk activate 3.1.64
+
+      - name: Build failsafe_web
+        run: |
+          source /opt/emsdk/emsdk_env.sh
+          make failsafe_web
+
+      - name: Sync all metadata
+        run: Tools/ci/metadata_sync.sh --sync all
+
+      - name: Upload metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-metadata
+          path: docs/
+          retention-days: 1
+
+  # =============================================================================
+  # Push Metadata Regen (main/release branches)
+  # =============================================================================
+  metadata-regen:
+    name: "Push: Generate & Commit Metadata"
+    if: github.event_name == 'push'
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    container:
+      image: px4io/px4-dev-nuttx-focal:2024-11-07
+    steps:
+      - uses: runs-on/action@v1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Cache Restore - ccache
+        id: cache-ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.ccache
+          key: ccache-docs-metadata-${{ github.sha }}
+          restore-keys: |
+            ccache-docs-metadata-
+
+      - name: Setup ccache
+        run: |
+          mkdir -p ~/.ccache
+          echo "max_size = 1G" > ~/.ccache/ccache.conf
+
+      - name: Build px4_sitl_default
+        run: |
+          make px4_sitl_default
+        env:
+          CCACHE_DIR: ~/.ccache
+
+      - name: Cache Save - ccache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.ccache
+          key: ccache-docs-metadata-${{ github.sha }}
+
+      - name: Install Emscripten
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git /opt/emsdk
+          cd /opt/emsdk
+          ./emsdk install 3.1.64
+          ./emsdk activate 3.1.64
+
+      - name: Build failsafe_web
+        run: |
+          source /opt/emsdk/emsdk_env.sh
+          make failsafe_web
+
+      - name: Sync all metadata
+        run: Tools/ci/metadata_sync.sh --sync all
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ./docs/yarn.lock
+
+      - name: Format markdown with Prettier
+        run: |
+          cd docs
+          yarn install --frozen-lockfile
+          yarn prettier --write "en/**/*.md"
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "${{ secrets.PX4BUILDBOT_USER }}"
+          git config --global user.email "${{ secrets.PX4BUILDBOT_EMAIL }}"
+          git add docs/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "docs: auto-sync metadata
+
+            Co-Authored-By: PX4 BuildBot <${{ secrets.PX4BUILDBOT_EMAIL }}>"
+            git push
+          fi
+
+  # =============================================================================
+  # Link Check
+  # =============================================================================
+  link-check:
+    name: "Check Links"
+    needs: [detect-changes, pr-metadata-regen]
+    if: always() && (github.event_name == 'pull_request')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Download metadata artifact
+        if: needs.pr-metadata-regen.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-metadata
+          path: docs/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run link checker
+        run: |
+          npm -g install markdown_link_checker_sc@0.0.138
+          mkdir -p logs
+          markdown_link_checker_sc \
+            -r "$GITHUB_WORKSPACE" \
+            -d docs \
+            -e en \
+            -i assets \
+            -u docs.px4.io/main/ \
+            > ./logs/link-check-results.md || true
+          cat ./logs/link-check-results.md
+
+      - name: Upload link check results
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-check-results
+          path: logs/link-check-results.md
+          retention-days: 7
+
+  # =============================================================================
+  # Build Site
+  # =============================================================================
+  build-site:
+    name: "Build Site"
+    needs: [detect-changes, pr-metadata-regen, metadata-regen]
+    if: always() && (needs.metadata-regen.result == 'success' || needs.metadata-regen.result == 'skipped')
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    outputs:
+      branchname: ${{ steps.set-branch.outputs.branchname }}
+      releaseversion: ${{ steps.set-version.outputs.releaseversion }}
+    steps:
+      - uses: runs-on/action@v1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Download metadata artifact (PR)
+        if: github.event_name == 'pull_request' && needs.pr-metadata-regen.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-metadata
+          path: docs/
+
+      - id: set-branch
+        run: echo "branchname=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+
+      - id: set-version
+        run: |
+          branch="${{ steps.set-branch.outputs.branchname }}"
+          if [[ "$branch" == "main" ]]; then
+            version="main"
+          else
+            version="v${branch#release/}"
+          fi
+          echo "releaseversion=$version" >> $GITHUB_OUTPUT
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ./docs/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --cwd ./docs
+
+      - name: Build with VitePress
+        working-directory: ./docs
+        env:
+          BRANCH_NAME: ${{ steps.set-version.outputs.releaseversion }}
+        run: |
+          npm run docs:build_ubuntu
+          touch .vitepress/dist/.nojekyll
+          npm run docs:sitemap
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: px4_docs_build
+          path: docs/.vitepress/dist/
+          retention-days: 1
+
+  # =============================================================================
+  # Deploy to AWS (push only)
+  # =============================================================================
+  deploy-aws:
+    name: "Deploy to AWS"
+    if: github.event_name == 'push'
+    needs: [metadata-regen, build-site]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: px4_docs_build
+          path: ~/_book
+
+      - name: Configure AWS from OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: Sanity check AWS credentials
+        run: aws sts get-caller-identity
+
+      - name: Upload HTML with short cache
+        run: |
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build-site.outputs.releaseversion }}/ \
+            --delete \
+            --exclude "*" --include "*.html" \
+            --cache-control "public, max-age=60"
+
+      - name: Upload assets with long cache
+        run: |
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build-site.outputs.releaseversion }}/ \
+            --delete \
+            --exclude "*.html" \
+            --cache-control "public, max-age=86400, immutable"
+
+  # =============================================================================
+  # Crowdin Upload (push only)
+  # =============================================================================
+  crowdin-upload:
+    name: "Upload to Crowdin"
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [metadata-regen, build-site]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload to Crowdin
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: true
+          upload_translations: false
+          download_translations: false
+          source: docs/en/**/*.md
+          project_id: ${{ secrets.CROWDIN_PROJECT_ID }}
+          token: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
