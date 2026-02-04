@@ -56,6 +56,16 @@ endif
 # directory build/px4_fmu-v2_default and then call make
 # in that directory with the target upload.
 
+# ccache
+ifndef CCACHE_TEMPDIR
+	CCACHE_TEMPDIR := /tmp/ccache-tmp
+endif
+ifndef CCACHE_DIR
+	CCACHE_DIR := /tmp/.ccache
+endif
+$(shell mkdir -p $(CCACHE_TEMPDIR) $(CCACHE_DIR))
+export CCACHE_TEMPDIR CCACHE_DIR
+
 # explicity set default build target
 all: px4_sitl_default
 
