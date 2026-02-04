@@ -21,20 +21,11 @@ jobs:
         fetch-depth: 0
         fetch-tags: true
 
-    - name: Determine PX4 version for container image
-      id: px4_version
-      run: |
-        echo "px4_version=$(git describe --tags --match 'v[0-9]*')" >> $GITHUB_OUTPUT
-
     - name: Testing (clang-tidy)
       uses: addnab/docker-run-action@v3
       with:
-        image: px4io/px4-dev:${{ steps.px4_version.outputs.px4_version }}
+        image: px4io/px4-dev:v1.17.0-beta1
         options: -v ${{ github.workspace }}:/workspace
         run: |
           cd /workspace
-          apt install clang-tidy-18 -y
-          update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-18 100
-          update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100
-          update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
           make clang-tidy
