@@ -17,7 +17,7 @@ VALID_FIELDS = { #Note, also have to add the message types as those can be field
     'uint32'
 }
 
-ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa","-"])
+ALLOWED_UNITS = set(["m", "m/s", "m/s^2", "(m/s)^2", "deg", "deg/s", "rad", "rad/s", "rad^2", "rpm" ,"V", "A", "mA", "mAh", "W", "dBm", "h", "s", "ms", "us", "Ohm", "MB", "Kb/s", "degC","Pa","%","-"])
 invalid_units = set()
 ALLOWED_FRAMES = set(["NED","Body"])
 ALLOWED_INVALID_VALUES = set(["NaN", "0"])
@@ -62,6 +62,13 @@ class Error:
             print(f"WARNING: Unknown @invalid value: [{self.issueString}] on `{self.field}` ({self.message}: {self.linenumber})")
         elif 'unknown_frame' == self.type:
             print(f"WARNING: Unknown @frame: [{self.issueString}] on `{self.field}` ({self.message}: {self.linenumber})")
+        elif 'command_no_params_pipes' == self.type:
+            print(f"WARNING: `{self.field}` command has no parameters (pipes): [{self.issueString}] ({self.message}: {self.linenumber})")
+        elif 'command_missing_params' == self.type:
+            print(f"WARNING: `{self.field}` command missing params - should be 7 params surrounded by 8 pipes: [{self.issueString}] ({self.message}: {self.linenumber})")
+        elif 'command_too_many_params' == self.type:
+            print(f"WARNING: `{self.field}` command too many params (should be 7). Extras: [{self.issueString}] ({self.message}: {self.linenumber})")
+
 
         else:
             self.display_info()
@@ -89,7 +96,7 @@ class Enum:
         for key, value in self.enumValues.items():
             value.display_info()
 
-class EnumValue:
+class ConstantValue:
     def __init__(self, name, type, value, comment, line_number):
         self.name = name.strip()
         self.type = type.strip()
@@ -98,14 +105,222 @@ class EnumValue:
         self.line_number = line_number
 
         if not self.value:
-            print(f"Debug WARNING: NO VALUE in enumValue: {self.name}")  ## TODO make into ERROR
+            print(f"Debug WARNING: NO VALUE in ConstantValue: {self.name}")  ## TODO make into ERROR
             exit()
 
         # TODO if value or name are empty, error
 
     def display_info(self):
-        print(f"Debug: EnumValue: display_info")
+        print(f"Debug: ConstantValue: display_info")
         print(f" name: {self.name}, type: {self.type}, value: {self.value}, comment: {self.comment}, line: {self.line_number}")
+
+
+class CommandParam:
+    def __init__(self, num, paramText, line_number, parentCommand):
+        self.paramNum = num
+        self.paramText = paramText.strip()
+        self.enum = None
+        self.range = None
+        #self.type = type
+        self.units = []
+        self.enums = []
+        self.minValue = None
+        self.maxValue = None
+        self.invalidValue = None
+        self.frameValue = None
+        self.lineNumber = line_number
+        self.parent = parentCommand
+        self.parentMessage = self.parent.parent
+
+        match = None
+        if self.paramText:
+            match = re.match(r'^((?:\[[^\]]*\]\s*)+)(.*)$', paramText)
+        self.description = paramText
+        bracketed_part = None
+        if match:
+            bracketed_part = match.group(1).strip() # .strip() removes trailing whitespace from the bracketed part
+            self.description = match.group(2).strip()
+        if bracketed_part:
+          # get units
+            bracket_content_matches = re.findall(r'\[(.*?)\]', bracketed_part)
+            #print(f"DEBUG: bracket_content_matches: {bracket_content_matches}")
+            for item in bracket_content_matches:
+                item = item.strip()
+                if item.startswith('@'): # Not a unit:
+                    if item.startswith('@enum'):
+                        item = item.split(" ")
+                        enum = item[1].strip()
+                        if enum and enum not in self.enums:
+                            self.enums.append(enum)
+
+                        # Create parent enum objects for any enums created in this step
+                        for enumName in self.enums:
+                            if not enumName in self.parentMessage.enums:
+                                self.parentMessage.enums[enumName]=Enum(enumName,self.parentMessage)
+
+                    elif item.startswith('@range'):
+                        item = item[6:].strip().split(",")
+                        self.range = item
+                        self.minValue = item[0].strip()
+                        self.maxValue = item[1].strip()
+                    elif item.startswith('@invalid'):
+                        self.invalidValue = item[8:].strip()
+                        #TODO: Do we require a description? (not currently)
+                        if self.invalidValue.split(" ")[0] not in ALLOWED_INVALID_VALUES:
+                            print(f"TODO: Command param do not support @invalid: {self.invalidValue}")
+                            """
+                            error = Error("unknown_invalid_value", self.parent.filename, self.lineNumber, self.invalidValue, self.name)
+                            #error.display_error()
+                            if not "unknown_invalid_value" in self.parent.errors:
+                                self.parent.errors["unknown_invalid_value"] = []
+                            self.parent.errors["unknown_invalid_value"].append(error)
+                            """
+
+                    elif item.startswith('@frame'):
+                        self.frameValue = item[6:].strip()
+                        print(f"TODO: Command param do not support @frame: {self.frameValue}")
+                        """
+                        if self.frameValue not in ALLOWED_FRAMES:
+                            error = Error("unknown_frame", self.parent.filename, self.lineNumber, self.frameValue, self.name)
+                            #error.display_error()
+                            if not "unknown_frame" in self.parent.errors:
+                                self.parent.errors["unknown_frame"] = []
+                            self.parent.errors["unknown_frame"].append(error)
+                        """    
+                    else:
+                        print(f"WARNING: Unhandled metadata in message comment: {item}")
+                        # TODO - report errors for different kinds of metadata
+                        exit()
+
+                else: # bracket is a unit
+                    unit = item.strip()
+
+                    if item == "-":
+                        unit = ""
+                    
+                    if unit and unit not in self.units:
+                        self.units.append(unit) 
+
+                    if unit not in ALLOWED_UNITS:
+                        print(f"TODO: Command.param doesn't report errors in units: {unit}")
+                        """
+                        invalid_units.add(unit)
+                        error = Error("unknown_unit", self.parent.filename, self.lineNumber, unit, self.name)
+                        #error.display_error()
+                        if not "unknown_unit" in self.parent.errors:
+                            self.parent.errors["unknown_unit"] = []
+                        self.parent.errors["unknown_unit"].append(error)
+                        """
+
+
+    def display_info(self):
+        print(f"Debug: CommandParam: display_info")
+        print(f" id: {self.paramNum}")
+        print(f"   paramText: {self.paramText}\n  unit:  {self.units}\n  enums: {self.enums}\n  lineNumber: {self.lineNumber}\n  range: {self.range}\n  minValue: {self.minValue}\n  maxValue: {self.maxValue}\n  invalidValue: {self.invalidValue}\n  frameValue: {self.frameValue}\n  parent: {self.parent}\n  ")
+
+
+        
+class CommandConstant:
+    def __init__(self, name, type, value, comment, line_number, parentMessage):
+        self.name = name.strip()
+        self.type = type.strip()
+        self.value = value.strip()
+        self.comment = comment
+        self.line_number = line_number
+        self.parent = parentMessage
+
+        self.description = self.comment
+        self.param1 = None
+        self.param2 = None
+        self.param3 = None
+        self.param4 = None
+        self.param5 = None
+        self.param6 = None
+        self.param7 = None
+
+        if not self.value:
+            print(f"Debug WARNING: NO VALUE in CommandConstant: {self.name}")  ## TODO make into ERROR
+            exit()
+
+        if not self.comment: # This is an bug for a command
+            #print(f"Debug WARNING: NO COMMENT in CommandConstant: {self.name}")  ## TODO make into ERROR
+            return
+            
+        # Parse command comment to get the description and parameters.
+        # print(f"Debug CommandConstant: {self.comment}") 
+        if not "|" in self.comment:
+            # This is an error for a command constant
+            error = Error("command_no_params_pipes", self.parent.filename, self.line_number, self.comment, self.name)
+            #error.display_error()
+            if not "command_no_params_pipes" in self.parent.errors:
+                self.parent.errors["command_no_params_pipes"] = []
+            self.parent.errors["command_no_params_pipes"].append(error)
+            return
+        
+        # Split on pipes
+        commandSplit = self.comment.split("|")
+        if len(commandSplit) < 9:
+            # Should 7 pipes, so each command is fully surrounded
+            error = Error("command_missing_params", self.parent.filename, self.line_number, self.comment, self.name)
+            #error.display_error()
+            if not "command_missing_params" in self.parent.errors:
+                self.parent.errors["command_missing_params"] = []
+            self.parent.errors["command_missing_params"].append(error)
+
+        self.description = commandSplit[0].strip()
+        self.description = self.description if self.description else None
+
+        params_to_update = commandSplit[1:8]
+
+        for i, value in enumerate(params_to_update, start=1):
+            if value.strip():
+                # parse the param
+                param = CommandParam(i, value, self.line_number, self)
+                #param.display_info() # DEBUG CODE XXX
+                setattr(self, f"param{i}", param)
+                # parse the param
+
+        if len(commandSplit) > 8:
+            extras = commandSplit[8:]
+            error = Error("command_too_many_params", self.parent.filename, self.line_number, extras, self.name)
+            if not "command_too_many_params" in self.parent.errors:
+                self.parent.errors["command_too_many_params"] = []
+            self.parent.errors["command_too_many_params"].append(error)
+
+
+        # TODO if value or name are empty, error
+
+    def markdown_out(self):
+        #print("DEBUG: CommandConstant.markdown_out")
+        output = f"""### {self.name} ({self.value})
+
+{self.description}
+
+Param | Units | Range/Enum | Description
+--- | --- | --- | ---
+"""
+        for i in range(1, 8):
+            attr_name = f"param{i}"
+            # getattr returns None if the attribute doesn't exist
+            val = getattr(self, attr_name, None)
+
+            if val is not None:
+                rangeVal = ""
+                if val.minValue or val.maxValue:
+                    rangeVal = f"[{val.minValue if val.minValue else '-'} : {val.maxValue if val.maxValue else '-' }]"
+
+                output+=f"{i} | {", ".join(val.units)}|{', '.join(f"[{e}](#{e})" for e in val.enums)}{rangeVal} | {val.description}\n"
+            else:
+                output+=f"{i} | | | ?\n"                
+
+        output+=f"\n"
+        return output
+
+
+    def display_info(self):
+        print(f"Debug: CommandConstant: display_info")
+        print(f" name: {self.name}, type: {self.type}, value: {self.value}, comment: {self.comment}, line: {self.line_number}")
+        print(f"   description: {self.description}\n  param1: {self.param1}\n  param2: {self.param2}\n  param3: {self.param3}\n  param4: {self.param4}\n  param5: {self.param5}\n  param6: {self.param6}\n  param7: {self.param7}")
 
 class MessageField:
     def __init__(self, name, type, comment, line_number, parentMessage):
@@ -150,7 +365,6 @@ class MessageField:
                         self.maxValue = item[1].strip()
                     elif item.startswith('@invalid'):
                         self.invalidValue = item[8:].strip()
-                        #TODO: Maybe split the description out too?
                         #TODO: Do we require a description? (not currently)
                         if self.invalidValue.split(" ")[0] not in ALLOWED_INVALID_VALUES:
                             error = Error("unknown_invalid_value", self.parent.filename, self.lineNumber, self.invalidValue, self.name)
@@ -201,7 +415,8 @@ class UORBMessage:
         self.shortDescription = ""
         self.longDescription = ""
         self.fields = []
-        self.enumValues = dict()
+        self.constantFields = dict()
+        self.commandConstants = dict()
         self.enums = dict()
         self.output_file = os.path.join(output_dir, f"{self.name}.md")
         self.topics = []
@@ -269,6 +484,22 @@ pageClass: is-wide-page
             invalid = f" (Invalid: {field.invalidValue}) " if field.invalidValue else ""
             markdown += f"{field.name} | `{field.type}` |{unit}|{value}|{description}{invalid}\n"
 
+        # Generate table for command docs
+        if len(self.commandConstants) > 0:
+            #print("DEBUGCOMMAND")
+            markdown += f"\n## Commands\n\n"
+
+            """
+            markdown += "Name | Type | Value | Description\n"
+            markdown += "--- | --- | --- |---\n"
+            for name, command in self.commandConstants.items():
+                description = f" {command.comment} " if enum.comment else " "
+                markdown += f'<a href="#{name}"></a> {name} | `{command.type}` | {command.value} |{description}\n'            
+            """
+            for commandConstant in self.commandConstants.values():
+                #print(commandConstant)
+                markdown += commandConstant.markdown_out()     
+
         # Generate enum docs
         if len(self.enums) > 0:
             markdown += f"\n## Enums\n"
@@ -284,13 +515,15 @@ pageClass: is-wide-page
                     markdown += f'<a href="#{enumValueName}"></a> {enumValueName} | `{enumValue.type}` | {enumValue.value} |{description}\n'
 
         # Generate table for constants docs
-        if len(self.enumValues) > 0:
+        if len(self.constantFields) > 0:
             markdown += f"\n## Constants\n\n"
             markdown += "Name | Type | Value | Description\n"
             markdown += "--- | --- | --- |---\n"
-            for name, enum in self.enumValues.items():
+            for name, enum in self.constantFields.items():
                 description = f" {enum.comment} " if enum.comment else " "
                 markdown += f'<a href="#{name}"></a> {name} | `{enum.type}` | {enum.value} |{description}\n'
+
+
 
         # Append msg contents to the end
         with open(self.msg_filename, 'r') as source_file:
@@ -335,9 +568,9 @@ pageClass: is-wide-page
         for field in self.fields:
             field.display_info()
 
-        for enumvalue in self.enumValues:
+        for enumvalue in self.constantFields:
             print(enumvalue)
-            self.enumValues[enumvalue].display_info()
+            self.constantFields[enumvalue].display_info()
 
     def handleField(self, line, line_number, parentMessage):
         #print(f"debug: handleField: (line): \n {line}")
@@ -374,9 +607,6 @@ pageClass: is-wide-page
             fieldOrConstant = commentExtract[0].strip()
             comment = commentExtract[-1].strip()
 
-        #print(f"DEBUG: Comment: XX{comment}YY")
-        #print(f"DEBUG: fieldOrConstant: XX{fieldOrConstant}YY")
-
         if "=" not in fieldOrConstant:
             # Is a field:
             field = fieldOrConstant.split(" ")
@@ -390,8 +620,14 @@ pageClass: is-wide-page
             typeAndName = temp[0].split(" ")
             type = typeAndName[0]
             name = typeAndName[1]
-            enumValue = EnumValue(name, type, value, comment, line_number)
-            self.enumValues[name]=enumValue
+            if name.startswith("VEHICLE_CMD_") and parentMessage.name == 'VehicleCommand': #it's a command.
+                #print(f"DEBUG: startswith VEHICLE_CMD_ {name}")
+                commandConstant = CommandConstant(name, type, value, comment, line_number, parentMessage)
+                #commandConstant.display_info()
+                self.commandConstants[name]=commandConstant
+            else: #it's a constant (or part of an enum)
+                constantField = ConstantValue(name, type, value, comment, line_number)
+                self.constantFields[name]=constantField
 
 
     def parseFile(self):
@@ -529,23 +765,24 @@ pageClass: is-wide-page
                 self.errors["summary_missing"].append(error)
 
 
-            # TODO Parse our enumvalues into enums, leaving only constants
-            enumValuesToRemove = []
+            # TODO Parse our constantValues into enums, leaving only constants
+            constantValuesToRemove = []
+            #print(f"DEBUG: Self.enums: {self.enums}")
             for enumName, enumObject in self.enums.items():
                 #print(f"enum enumName key: {enumName}")
-                for enumValueName, enumValueObject in self.enumValues.items():
-                    #print(f"enumValueName key: {enumValueName}")
+                for enumValueName, enumValueObject in self.constantFields.items():
+                    #print(f"DEBUG: enumValueName key: {enumValueName}")
                     if enumValueName.startswith(enumName):
                         # Copy this value into the object (cant be duplicate because parent is dict)
                         enumObject.enumValues[enumValueName]=enumValueObject
-                        enumValuesToRemove.append(enumValueName)
+                        constantValuesToRemove.append(enumValueName)
             # Now delete the original enumvalues
-            for enumValName in enumValuesToRemove:
-                del self.enumValues[enumValName]
-            unassignedEnumValues = len(self.enumValues)
-            if unassignedEnumValues > 0:
-                #print(f"Debug: WARNING unassignedEnumValues: {unassignedEnumValues}")
-                for enumValueName, enumValue in self.enumValues.items():
+            for enumValName in constantValuesToRemove:
+                del self.constantFields[enumValName]
+            constantsNotAssignedToEnums = len(self.constantFields)
+            if constantsNotAssignedToEnums > 0:
+                #print(f"Debug: WARNING constantsNotAssignedToEnums: {constantsNotAssignedToEnums}")
+                for enumValueName, enumValue in self.constantFields.items():
                     if enumValueName in ALLOWED_CONSTANTS_NOT_IN_ENUM: # Ignore constants
                         pass
                     else:
