@@ -69,6 +69,9 @@ VTOL vehicles may choose to also set [SF1XX_MODE](../advanced_config/parameter_r
 ::: tip
 [SF45/B](../sensor/sf45_rotating_lidar.md) setup is covered in the linked document.
 :::
+::: tip
+[GRF250/GRF500](../sensor/grf_lidar.md) setup is covered in the linked document.
+:::
 
 ### Hardware
 
