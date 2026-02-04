@@ -15,8 +15,8 @@ The following models are supported by PX4, and can be connected to either the I2
 | [LW20/C](https://lightware.co.za/products/lw20-c-100-m) | 100       | I2C bus           | Waterproofed (IP67) with servo for sense-and-avoid applications                            |
 | [SF30/D](https://lightwarelidar.com/shop/sf30-d-200-m/) | 200       | I2C bus           | Waterproofed (IP67)                                                                        |
 | [SF45/B](../sensor/sf45_rotating_lidar.md)              | 50        | Serial            | Rotary Lidar (Used for [Collision Prevention](../computer_vision/collision_prevention.md)) |
-| [GRF250](../sensor/grf_lidar.md)                        | 250       | Serial or I2C     | Gimbal Range Finder                                                                        |
-| [GRF500](../sensor/grf_lidar.md)                        | 500       | Serial or I2C     | Gimbal Range Finder                                                                        |
+| [GRF250](https://lightwarelidar.com/shop/grf-250/) | 250 | I2C or Serial | Gimbal Range Finder
+| [GRF500](https://lightwarelidar.com/shop/grf-500/) | 500 | I2C or Serial | Gimbal Range Finder
 
 ::: details Discontinued
 
