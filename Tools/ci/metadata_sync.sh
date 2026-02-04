@@ -115,18 +115,6 @@ ensure_emscripten() {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Whitespace Normalization
-# ═══════════════════════════════════════════════════════════════════════════════
-
-normalize_whitespace() {
-    local file="$1"
-    if [[ -f "$file" ]]; then
-        # Remove trailing whitespace from each line
-        sed -i 's/[[:space:]]*$//' "$file"
-    fi
-}
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # Generation Functions
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -199,7 +187,6 @@ sync_parameters() {
         die "Source file not found: $src (did you run --generate?)"
     fi
 
-    normalize_whitespace "$src"
     mkdir -p "$(dirname "$dest")"
     cp "$src" "$dest"
     log_verbose "  $src -> $dest"
@@ -215,7 +202,6 @@ sync_airframes() {
         die "Source file not found: $src (did you run --generate?)"
     fi
 
-    normalize_whitespace "$src"
     mkdir -p "$(dirname "$dest")"
     cp "$src" "$dest"
     log_verbose "  $src -> $dest"
@@ -239,7 +225,6 @@ sync_modules() {
     mkdir -p "$dest_dir"
 
     for src in "${src_files[@]}"; do
-        normalize_whitespace "$src"
         local name
         name=$(basename "$src")
         cp "$src" "$dest_dir/$name"
@@ -267,7 +252,6 @@ sync_msg_docs() {
     mkdir -p "$middleware_dir"
 
     for src in "${src_files[@]}"; do
-        normalize_whitespace "$src"
         local name
         name=$(basename "$src")
 
