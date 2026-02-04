@@ -492,13 +492,25 @@ px4_sitl_default-clang:
 	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/px4_sitl_default-clang
 
+# Paths to exclude from clang-tidy (auto-generated from .gitmodules + manual additions):
+# - All submodules (external code we consume, not edit)
+# - Test code (allowed looser style)
+# - Example code (educational, not production)
+# - Vendored third-party code (e.g., CMSIS_5)
+#
+# To add manual exclusions, append to CLANG_TIDY_EXCLUDE_EXTRA below.
+# Submodules are automatically excluded - no action needed when adding new ones.
+CLANG_TIDY_SUBMODULES := $(shell git config --file .gitmodules --get-regexp path | awk '{print $$2}' | tr '\n' '|' | sed 's/|$$//')
+CLANG_TIDY_EXCLUDE_EXTRA := src/systemcmds/tests|src/examples|src/modules/gyro_fft/CMSIS_5
+CLANG_TIDY_EXCLUDE := $(CLANG_TIDY_SUBMODULES)|$(CLANG_TIDY_EXCLUDE_EXTRA)
+
 clang-tidy: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -p .
+	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -exclude="$(CLANG_TIDY_EXCLUDE)" -p .
 
 # to automatically fix a single check at a time, eg modernize-redundant-void-arg
 #  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .
 clang-tidy-fix: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -fix -p .
+	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -exclude="$(CLANG_TIDY_EXCLUDE)" -fix -p .
 
 # TODO: Fix cppcheck errors then try --enable=warning,performance,portability,style,unusedFunction or --enable=all
 cppcheck: px4_sitl_default
