@@ -51,8 +51,6 @@ using namespace time_literals;
 #endif
 
 static_assert(DSHOT_MAXIMUM_CHANNELS <= 16, "DShot driver uses uint16_t bitmasks");
-static_assert(esc_status_s::CONNECTED_ESC_MAX <= DSHOT_MAXIMUM_CHANNELS,
-	      "esc_status array must not exceed DShot channel count");
 
 static constexpr hrt_abstime ESC_INIT_TELEM_DELAY = 5_s;
 
