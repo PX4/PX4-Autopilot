@@ -116,6 +116,11 @@ class ConstantValue:
 
 
 class CommandParam:
+    """
+    Represents an individual param in a command constant
+    Encapsulates parsing of the param to extract units etc.
+    """
+
     def __init__(self, num, paramText, line_number, parentCommand):
         self.paramNum = num
         self.paramText = paramText.strip()
@@ -221,6 +226,11 @@ class CommandParam:
 
         
 class CommandConstant:
+    """
+    Represents a constant that is a command definition.
+    Encapsulates parsing of the command format.
+    The individual params are further parsed in CommandParam
+    """
     def __init__(self, name, type, value, comment, line_number, parentMessage):
         self.name = name.strip()
         self.type = type.strip()
@@ -323,6 +333,10 @@ Param | Units | Range/Enum | Description
         print(f"   description: {self.description}\n  param1: {self.param1}\n  param2: {self.param2}\n  param3: {self.param3}\n  param4: {self.param4}\n  param5: {self.param5}\n  param6: {self.param6}\n  param7: {self.param7}")
 
 class MessageField:
+    """
+    Represents a field.
+    Encapsulates parsing of the field information.
+    """
     def __init__(self, name, type, comment, line_number, parentMessage):
         self.name = name
         self.type = type
@@ -406,6 +420,12 @@ class MessageField:
 
 
 class UORBMessage:
+    """
+    Represents a whole message, including fields, enums, commands, constants.
+    The parser function delegates the parsing of each part of the message to 
+    more appropriate classes, once the specific type of line has been identified.
+    """
+
     def __init__(self, filename):
 
         self.filename = filename
@@ -683,7 +703,7 @@ pageClass: is-wide-page
                     if isEmptyLine:
                         continue # empty line
                     if stripped_line.startswith("# TOPICS "):
-                        stripped_line =  stripped_line[9:]
+                        stripped_line = stripped_line[9:]
                         stripped_line = stripped_line.split(" ")
                         self.topics+= stripped_line
                         # Note, default topic and topic errors handled after all lines parsed
@@ -718,7 +738,6 @@ pageClass: is-wide-page
                 return re.sub('([A-Z]+)([A-Z][a-z]*)', r'\1_\2', s1).lower()
 
             defaultTopic = camel_to_snake(self.name)
-            #print(f"debug: defaultTopic: {defaultTopic}")
             if len(self.topics) == 0:
                 # We have no topic declared, so set the default topic
                 self.topics.append(defaultTopic)
@@ -769,9 +788,7 @@ pageClass: is-wide-page
             constantValuesToRemove = []
             #print(f"DEBUG: Self.enums: {self.enums}")
             for enumName, enumObject in self.enums.items():
-                #print(f"enum enumName key: {enumName}")
                 for enumValueName, enumValueObject in self.constantFields.items():
-                    #print(f"DEBUG: enumValueName key: {enumValueName}")
                     if enumValueName.startswith(enumName):
                         # Copy this value into the object (cant be duplicate because parent is dict)
                         enumObject.enumValues[enumValueName]=enumValueObject
@@ -791,7 +808,6 @@ pageClass: is-wide-page
                             self.errors["constant_not_in_assigned_enum"] = []
                         self.errors["constant_not_in_assigned_enum"].append(error)
                 # TODO Maybe present as list of possible enums.
-
 
 
 import yaml
