@@ -88,7 +88,7 @@ int GRFLaserSerial::init()
 int GRFLaserSerial::measure()
 {
 	int32_t rate = (int32_t)_update_rate;
-	_data_output = 0x01; // raw distance (first return) + yaw readings
+	_data_output = 0x08; // raw distance (last return)
 	_stream_data = 5; // enable constant streaming
 
 	// send packets to the sensor depending on the state

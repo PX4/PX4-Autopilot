@@ -94,7 +94,7 @@ private:
 
 	distance_sensor_s		_distance{};
 	static constexpr uint64_t 	GRF_MEAS_TIMEOUT{100_ms};
-	static constexpr float 		GRF_SCALE_FACTOR = 0.01f;
+	static constexpr float 		GRF_SCALE_FACTOR = 0.1f;
 
 	void				start();
 	void				stop();
