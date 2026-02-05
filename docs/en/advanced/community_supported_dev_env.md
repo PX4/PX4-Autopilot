@@ -2,7 +2,7 @@
 
 This section contains information about _community-supported_ development setups, IDEs, simulators, and other tools.
 
-:::warning
+::: warning
 These setups are not maintained, tested, or supported, by the core development team.
 They may or may not work with current versions of PX4.
 
