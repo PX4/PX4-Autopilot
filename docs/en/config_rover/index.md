@@ -28,7 +28,7 @@ Load the firmware onto your flight controller as "Custom Firmware" (see [Loading
 
 ## Building Rover
 
-Rover is built as the `rover` [firmware variant](h../dev_setup/building_px4.md#px4-make-build-targets).
+Rover is built as the `rover` [firmware variant](../dev_setup/building_px4.md#px4-make-build-targets).
 What this means is that when building the firmware with the `make` command, you replace the `_default` suffix in the configuration target with `_rover`.
 
 For example, to build rover for `px4_fmu-v6x` boards, you would use the following command:
