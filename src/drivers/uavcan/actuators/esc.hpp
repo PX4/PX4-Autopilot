@@ -48,14 +48,17 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
+#include <uavcan/equipment/esc/StatusExtended.hpp>
+#include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
 #include <uORB/topics/dronecan_node_status.h>
 #include <uORB/topics/device_information.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/uavcan/node_info.hpp>
-#include "../node_info.hpp"
 
 class UavcanEscController
 {
@@ -74,7 +77,7 @@ public:
 
 	bool initialized() { return _initialized; };
 
-	void update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size);
+	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size);
 
 	/**
 	 * Sets the number of rotors and enable timer
@@ -92,6 +95,10 @@ private:
 	 * ESC status message reception will be reported via this callback.
 	 */
 	void esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg);
+	/**
+	 * ESC extended status message reception will be stored via this callback.
+	 */
+	void esc_status_extended_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg);
 
 	/**
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
@@ -117,9 +124,13 @@ private:
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended>&)>
+		StatusExtendedCbBinder;
+
+	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
-	bool _initialized{};
+	bool _initialized = false;
 
 	esc_status_s	_esc_status{};
 
@@ -143,6 +154,7 @@ private:
 	uavcan::INode								&_node;
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
+	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder>	_uavcan_sub_status_extended;
 
 	NodeInfoPublisher *_node_info_publisher{nullptr};
 };

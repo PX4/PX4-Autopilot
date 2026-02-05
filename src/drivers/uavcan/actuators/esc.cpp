@@ -48,7 +48,8 @@ using namespace time_literals;
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
-	_uavcan_sub_status(node)
+	_uavcan_sub_status(node),
+	_uavcan_sub_status_extended(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin); // Highest priority
 }
@@ -61,6 +62,14 @@ UavcanEscController::init()
 
 	if (res < 0) {
 		PX4_ERR("ESC status sub failed %i", res);
+		return res;
+	}
+
+	//ESC Status Extended subscription
+	res = _uavcan_sub_status_extended.start(StatusExtendedCbBinder(this, &UavcanEscController::esc_status_extended_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("ESC status extended sub failed %i", res);
 		return res;
 	}
 
