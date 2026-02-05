@@ -94,6 +94,11 @@ Set environment variables to change output directory for generated files:
 export PX4_GZ_WORLD=<Model name>
 make px4_sitl gz_x500 # For spawning quadrotor (x500)
 ```
+::: info
+Replace `<Model name>` with same name used when generating the gazebo world.
+For example if model name is **Zurich** then the command is ```export PX4_GZ_WORLD=Zurich```
+
+:::
 
 
 ## Further Information
