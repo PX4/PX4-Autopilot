@@ -42,7 +42,7 @@ parameters:
       instance_start: 0
     EKF2_AGP${i}_DELAY:
       description:
-        short: Auxiliary global position sensor ${i} delay relative to IMU measurements
+        short: Auxiliary global position sensor ${i} delay (to IMU)
       type: float
       default: 0
       min: 0
