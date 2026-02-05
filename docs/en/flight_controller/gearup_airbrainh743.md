@@ -9,6 +9,8 @@ Contact the [manufacturer](https://takeyourgear.com/) for hardware support.
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
+Purchase from [takeyourgear.com](https://takeyourgear.com/pages/products/airbrain).
+
 For more information and pinout, check the [GitHub documentation](https://github.com/GearUp-Company/AirBrainH743).
 
 ## Key Features
@@ -88,8 +90,6 @@ Firmware can be installed in any of the normal ways:
 
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.
   You can use either pre-built firmware or your own custom firmware.
-
-## Debug Port
 
 ### System Console
 
