@@ -207,15 +207,12 @@ class CommandParam:
                         self.units.append(unit) 
 
                     if unit not in ALLOWED_UNITS:
-                        print(f"TODO: Command.param doesn't report errors in units: {unit}")
-                        """
                         invalid_units.add(unit)
-                        error = Error("unknown_unit", self.parent.filename, self.lineNumber, unit, self.name)
+                        error = Error("unknown_unit", self.parentMessage.filename, self.lineNumber, unit, self.parent.name)
                         #error.display_error()
-                        if not "unknown_unit" in self.parent.errors:
-                            self.parent.errors["unknown_unit"] = []
-                        self.parent.errors["unknown_unit"].append(error)
-                        """
+                        if not "unknown_unit" in self.parentMessage.errors:
+                            self.parentMessage.errors["unknown_unit"] = []
+                        self.parentMessage.errors["unknown_unit"].append(error)
 
 
     def display_info(self):
