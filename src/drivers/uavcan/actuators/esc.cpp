@@ -134,11 +134,6 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		_esc_status.esc_online_flags = check_escs_status();
 		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
 		_esc_status.timestamp = hrt_absolute_time();
-
-		// Update node health status from dronecan_node_status
-		update_node_health();
-		// Update device vendor/model information
-		update_device_info();
 		ref.failures = get_failures(msg.esc_index);
 
 		_esc_status_pub.publish(_esc_status);
@@ -183,119 +178,112 @@ UavcanEscController::check_escs_status()
 	return esc_status_flags;
 }
 
-void
-UavcanEscController::update_node_health()
-{
-	// Update node health from all available dronecan_node_status messages
-	dronecan_node_status_s node_status;
-
-	while (_dronecan_node_status_sub.update(&node_status)) {
-		if (node_status.node_id < kMaxUavcanNodeId) {
-			_node_health[node_status.node_id] = node_status.health;
-			_vendor_specific_status_code[node_status.node_id] = node_status.vendor_specific_status_code;
-
-		}
-	}
-}
-
-void
-UavcanEscController::update_device_info()
-{
-	// Update device vendor/model information from device_information topic
-	device_information_s device_info;
-
-	while (_device_information_sub.update(&device_info)) {
-		// Check if this is an ESC device
-		if (device_info.device_type == device_information_s::DEVICE_TYPE_ESC) {
-			// Find the ESC index that matches this device_id
-			for (uint8_t esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
-				if (_esc_status.esc[esc_index].esc_address < kMaxUavcanNodeId &&
-				    device_info.device_id == esc_index) {
-
-					// Store device name
-					strncpy(_esc_name[esc_index], device_info.name, sizeof(_esc_name[esc_index]));
-					_esc_name[esc_index][sizeof(_esc_name[esc_index]) - 1] = '\0';
-
-					break;
-				}
-			}
-		}
-	}
-}
-
 uint32_t
 UavcanEscController::get_failures(uint8_t esc_index)
 {
 	auto &ref = _esc_status.esc[esc_index];
 
-	//Only check device name if we have it
-	if (strstr(_esc_name[esc_index], "iq_motion") != nullptr) {
+
+	// Update device vendor/model information from device_information topic
+	device_information_s device_info;
+	char esc_name[80] {};
+
+	if (_device_information_sub.copy(&device_info)) {
+		if (device_info.device_type == device_information_s::DEVICE_TYPE_ESC
+		    && device_info.device_id == esc_index) {
+			strncpy(esc_name, device_info.name, sizeof(esc_name));
+			esc_name[sizeof(esc_name) - 1] = '\0';
+		}
+	}
+
+	// Update node health from all available dronecan_node_status messages
+	dronecan_node_status_s node_status;
+	uint8_t node_health{dronecan_node_status_s::HEALTH_OK};
+	uint16_t vendor_specific_status_code{0};
+	bool have_node_status{false};
+
+	if (_dronecan_node_status_sub.copy(&node_status)) {
+		if (ref.esc_address < kMaxUavcanNodeId && node_status.node_id == ref.esc_address) {
+			node_health = node_status.health;
+			vendor_specific_status_code = node_status.vendor_specific_status_code;
+			have_node_status = true;
+		}
+	}
+
+	//Vendor specific parsing
+	if (strstr(esc_name, "iq_motion") != nullptr) {
 		// Parse iq_motion ESC errors
-		if (ref.esc_address < kMaxUavcanNodeId && (_node_health[ref.esc_address] == dronecan_node_status_s::HEALTH_OK ||
-				_node_health[ref.esc_address] == dronecan_node_status_s::HEALTH_WARNING)) {
+		if (!have_node_status) {
+			return ref.failures;
+		}
+
+		if (ref.esc_address < kMaxUavcanNodeId && (node_health == dronecan_node_status_s::HEALTH_OK ||
+				node_health == dronecan_node_status_s::HEALTH_WARNING)) {
 			// Set FAILURE Flags to ok if node health is OK
 			ref.failures = 0;
 
 		} else {
 			// Add parsing based on the vendor specific status code
-			uint16_t vssc = _vendor_specific_status_code[ref.esc_address];
-
-			if (vssc & (1 << 0)) {
+			if (vendor_specific_status_code & (1 << 0)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_OVER_VOLTAGE);
 
 			}
 
-			if (vssc & (1 << 1)) {
+			if (vendor_specific_status_code & (1 << 1)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_OVER_VOLTAGE);
 
 			}
 
-			if (vssc & (1 << 2)) {
+			if (vendor_specific_status_code & (1 << 2)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_OVER_VOLTAGE);
 			}
 
-			if (vssc & (1 << 3)) {
+			if (vendor_specific_status_code & (1 << 3)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_OVER_CURRENT);
 			}
 
-			if (vssc & (1 << 4)) {
+			if (vendor_specific_status_code & (1 << 4)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_OVER_CURRENT);
 			}
 
-			if (vssc & (1 << 5)) {
+			if (vendor_specific_status_code & (1 << 5)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
 			}
 
-			if (vssc & (1 << 6)) {
+			if (vendor_specific_status_code & (1 << 6)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE);
 			}
 
-			if (vssc & (1 << 7)) {
+			if (vendor_specific_status_code & (1 << 7)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_GENERIC);
 			}
 
-			if (vssc & (1 << 8)) {
+			if (vendor_specific_status_code & (1 << 8)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_OVER_RPM);
 			}
 
-			if (vssc & (1 << 9)) {
+			if (vendor_specific_status_code & (1 << 9)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
 			}
 
-			if (vssc & (1 << 10)) {
+			if (vendor_specific_status_code & (1 << 10)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE);
 			}
 
-			if (vssc & (1 << 11)) {
+			if (vendor_specific_status_code & (1 << 11)) {
 				ref.failures |= (1 << esc_report_s::FAILURE_OVER_VOLTAGE);
 			}
 
 		}
 
 	} else {
-		// Check if this ESC's node has unhealthy status
-		if (ref.esc_address < kMaxUavcanNodeId && (_node_health[ref.esc_address] == dronecan_node_status_s::HEALTH_ERROR  ||
-				_node_health[ref.esc_address] == dronecan_node_status_s::HEALTH_CRITICAL)) {
+		// Generic parsing
+		if (!have_node_status) {
+			return ref.failures;
+		}
+
+		if (ref.esc_address < kMaxUavcanNodeId && (node_health == dronecan_node_status_s::HEALTH_ERROR  ||
+				node_health == dronecan_node_status_s::HEALTH_CRITICAL)) {
 			// Set FAILURE_GENERIC flag if node health is not OK
 			ref.failures |= (1 << esc_report_s::FAILURE_GENERIC);
 

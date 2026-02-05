@@ -105,15 +105,6 @@ private:
 	 */
 	uint8_t check_escs_status();
 
-	/**
-	 * Updates node health status from dronecan_node_status topic
-	 */
-	void update_node_health();
-
-	/**
-	 * Updates device vendor/model information from device_information topic
-	 */
-	void update_device_info();
 
 	/**
 	 * Gets failure flags for a specific ESC
@@ -139,13 +130,6 @@ private:
 	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
-
-	// Store node health status for each ESC node (indexed by node_id)
-	uint8_t _node_health[kMaxUavcanNodeId] {};
-	uint16_t _vendor_specific_status_code[kMaxUavcanNodeId] {};
-
-	// Store device name for each ESC (indexed by esc_index)
-	char _esc_name[esc_status_s::CONNECTED_ESC_MAX][80] {};
 
 	/*
 	 * libuavcan related things
