@@ -3,7 +3,7 @@
 The _Flight termination_ [failsafe action](../config/safety.md#failsafe-actions) irreversibly turns off controllers and sets PWM values to their parameter configured failsafe values.
 
 ::: info
-Flight termination differs from the [Kill action](../config/safety.html#kill-switch) in that it is permanent until after reboot.
+Flight termination differs from the [Kill action](../config/safety.md#kill-switch) in that it is permanent until after reboot.
 :::
 
 ::: warning

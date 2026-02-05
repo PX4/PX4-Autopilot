@@ -1,4 +1,4 @@
-# MacOS Development Environment
+# macOS Development Environment
 
 The following instructions set up a PX4 development environment for macOS.
 This environment can be used to build PX4 for:
@@ -21,8 +21,8 @@ The "base" macOS setup installs the tools needed for building firmware, and incl
 
 ### Environment Setup
 
-:::details Apple Silicon Macbook users!
-If you have an Apple M1, M2 etc. Macbook, make sure to run the terminal as x86 by setting up an x86 terminal:
+:::details Apple Silicon MacBook users!
+If you have an Apple M1, M2 etc. MacBook, make sure to run the terminal as x86 by setting up an x86 terminal:
 
 1. Locate the Terminal application within the Utilities folder (**Finder > Go menu > Utilities**)
 2. Select _Terminal.app_ and right-click on it, then choose **Duplicate**.
@@ -47,7 +47,7 @@ First set up the environment
 1. Enforce Python 3 by appending the following lines to `~/.zshenv`
 
    ```sh
-   # Point pip3 to MacOS system python 3 pip
+   # Point pip3 to macOS system python 3 pip
    alias pip3=/usr/bin/pip3
    ```
 

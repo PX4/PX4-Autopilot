@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,59 +57,59 @@ PCA9685::PCA9685(int bus, int addr):
 
 int PCA9685::init()
 {
-	int ret = I2C::init();
+	return I2C::init();
+}
 
-	if (ret != PX4_OK) { return ret; }
-
+int PCA9685::configure()
+{
 	uint8_t buf[2] = {};
 
 	buf[0] = PCA9685_REG_MODE1;
 	buf[1] = PCA9685_DEFAULT_MODE1_CFG | PCA9685_MODE1_SLEEP_MASK;  // put into sleep mode
-	ret = transfer(buf, 2, nullptr, 0);
-
-	if (OK != ret) {
-		PX4_ERR("init: i2c::transfer returned %d", ret);
-		return ret;
-	}
+	int ret = transfer(buf, 2, nullptr, 0);
 
 #ifdef CONFIG_PCA9685_USE_EXTERNAL_CRYSTAL
+	/* EXTCLK is sticky, so writing it once is enough. Its not a problem when its written to 0 later. */
 	buf[1] = PCA9685_DEFAULT_MODE1_CFG | PCA9685_MODE1_SLEEP_MASK | PCA9685_MODE1_EXTCLK_MASK;
-	ret = transfer(buf, 2, nullptr, 0); // enable EXTCLK if possible
-
-	if (OK != ret) {
-		PX4_ERR("init: i2c::transfer returned %d", ret);
-		return ret;
-	}
-
+	ret |= transfer(buf, 2, nullptr, 0);
 #endif
 
 	buf[0] = PCA9685_REG_MODE2;
 	buf[1] = PCA9685_DEFAULT_MODE2_CFG;
-	ret = transfer(buf, 2, nullptr, 0);
+	ret |= transfer(buf, 2, nullptr, 0);
+	return ret;
+}
 
-	if (OK != ret) {
-		PX4_ERR("init: i2c::transfer returned %d", ret);
-		return ret;
+int PCA9685::registers_check()
+{
+	/* Check MODE1 register */
+	uint8_t send_buf = PCA9685_REG_MODE1;
+	uint8_t recv_buf;
+
+	int ret = transfer(&send_buf, 1, &recv_buf, 1);
+	uint8_t ignore_extclk_mask = ~PCA9685_MODE1_EXTCLK_MASK;
+
+	if (ret != PX4_OK) {
+		return -EIO;
+	}
+
+	if ((recv_buf & ignore_extclk_mask) != (PCA9685_DEFAULT_MODE1_CFG & ignore_extclk_mask)) {
+		return -EFAULT;
+	}
+
+	/* Check MODE2 register */
+	send_buf = PCA9685_REG_MODE2;
+	ret = transfer(&send_buf, 1, &recv_buf, 1);
+
+	if (ret != PX4_OK) {
+		return -EIO;
+	}
+
+	if (recv_buf != PCA9685_DEFAULT_MODE2_CFG) {
+		return -EFAULT;
 	}
 
 	return PX4_OK;
-}
-
-int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
-{
-	if (num_outputs > PCA9685_PWM_CHANNEL_COUNT) {
-		num_outputs = PCA9685_PWM_CHANNEL_COUNT;
-		PX4_DEBUG("PCA9685 can only drive up to 16 channels");
-	}
-
-	uint16_t out[PCA9685_PWM_CHANNEL_COUNT];
-	memcpy(out, outputs, sizeof(uint16_t) * num_outputs);
-
-	for (unsigned i = 0; i < num_outputs; ++i) {
-		out[i] = calcRawFromPulse(out[i]);
-	}
-
-	return writePWM(0, out, num_outputs);
 }
 
 int PCA9685::updateFreq(float freq)
@@ -160,30 +160,47 @@ int PCA9685::sleep()
 
 int PCA9685::wake()
 {
-	uint8_t buf[2] = {
-		PCA9685_REG_MODE1,
-		PCA9685_DEFAULT_MODE1_CFG
-	};
-	return transfer(buf, 2, nullptr, 0);
-}
+	uint8_t send_buf[2];
+	uint8_t recv_buf;
 
-int PCA9685::doRestart()
-{
-	uint8_t buf[2] = {
-		PCA9685_REG_MODE1,
-		PCA9685_DEFAULT_MODE1_CFG | PCA9685_MODE1_RESTART_MASK
-	};
-	return transfer(buf, 2, nullptr, 0);
+	send_buf[0] = PCA9685_REG_MODE1;
+	int ret = transfer(&send_buf[0], 1, &recv_buf, 1);
+
+	if (ret != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	send_buf[1] = recv_buf & ~PCA9685_MODE1_SLEEP_MASK; // Clear sleep bit
+	ret |= transfer(&send_buf[0], 2, nullptr, 0);
+	px4_usleep(500); // wait for oscillator to stabilize
+
+	if (recv_buf & PCA9685_MODE1_RESTART_MASK) { // Check if reset bit is set
+		send_buf[1] |= PCA9685_MODE1_RESTART_MASK; // Set restart bit
+		ret |= transfer(&send_buf[0], 2, nullptr, 0);
+	}
+
+	ret |= transfer(&send_buf[0], 1, &recv_buf, 1);
+
+	if (ret != PX4_OK || recv_buf & (PCA9685_MODE1_RESTART_MASK | PCA9685_MODE1_SLEEP_MASK)) {
+		return PX4_ERROR;
+	}
+
+	return ret;
 }
 
 int PCA9685::probe()
 {
-	int ret = I2C::probe();
+	for (int i = 0; i < 10; i++) {
+		uint8_t send_buf = PCA9685_REG_MODE1;
 
-	if (ret != PX4_OK) { return ret; }
+		if (transfer(&send_buf, 1, nullptr, 0) == PX4_OK) {
+			return PX4_OK;
+		}
 
-	uint8_t buf[2] = {0x00};
-	return transfer(buf, 2, buf, 1);
+		px4_usleep(10'000);
+	}
+
+	return PX4_ERROR;
 }
 
 int PCA9685::writePWM(uint8_t idx, const uint16_t *value, uint8_t num)

@@ -44,7 +44,7 @@ The process is demonstrated for a multicopter, but is equally valid for other ve
    - 解锁无人机，然后缓缓将油门推到最大。
    - 慢慢将油门降到0
    - 给无人机加锁
-      &#062; <strong x-id="1">Note</strong> 谨慎地进行测试，并密切注意振动情况。
+     &#062; <strong x-id="1">Note</strong> 谨慎地进行测试，并密切注意振动情况。
 
    ::: info
    Perform the test carefully and closely monitor the vibrations.

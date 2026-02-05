@@ -101,6 +101,7 @@ pipeline {
             echo $0;
             git clone https://github.com/emscripten-core/emsdk.git _emscripten_sdk;
             cd _emscripten_sdk;
+            git checkout 4.0.15;
             ./emsdk install latest;
             ./emsdk activate latest;
             cd ..;
@@ -217,36 +218,6 @@ pipeline {
           }
           options {
             skipDefaultCheckout()
-          }
-        }
-
-        stage('PX4 ROS msgs') {
-          agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
-          }
-          steps {
-            sh('export')
-            sh('make distclean; git clean -ff -x -d .')
-            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
-              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_msgs.git")
-              // 'main' branch
-              sh('rm -f px4_msgs/msg/*.msg')
-              sh('rm -f px4_msgs/msg/versioned/*.msg')
-              sh('rm -f px4_msgs/srv/*.srv')
-              sh('rm -f px4_msgs/srv/versioned/*.srv')
-              sh('cp msg/*.msg px4_msgs/msg/')
-              sh('cp msg/versioned/*.msg px4_msgs/msg/ || true')
-              sh('cp srv/*.srv px4_msgs/srv/')
-              sh('cp srv/versioned/*.srv px4_msgs/srv/ || true')
-              sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
-              sh('cd px4_msgs; git push origin main || true')
-              sh('rm -rf px4_msgs')
-            }
-          }
-          when {
-            anyOf {
-              branch 'main'
-            }
           }
         }
 

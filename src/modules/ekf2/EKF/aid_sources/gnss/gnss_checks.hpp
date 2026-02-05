@@ -44,10 +44,9 @@ class GnssChecks final
 {
 public:
 	GnssChecks(int32_t &check_mask, int32_t &ekf2_req_nsats, float &ekf2_req_pdop, float &ekf2_req_eph, float &ekf2_req_epv,
-		   float &ekf2_req_sacc,
-		   float &ekf2_req_hdrift, float &ekf2_req_vdrift, float &ekf2_vel_lim, uint32_t &min_health_time_us,
-		   filter_control_status_u &control_status):
-		_params{check_mask, ekf2_req_nsats, ekf2_req_pdop, ekf2_req_eph, ekf2_req_epv, ekf2_req_sacc, ekf2_req_hdrift, ekf2_req_vdrift, ekf2_vel_lim, min_health_time_us},
+		   float &ekf2_req_sacc, float &ekf2_req_hdrift, float &ekf2_req_vdrift, int32_t &ekf2_req_fix, float &ekf2_vel_lim,
+		   uint32_t &min_health_time_us, filter_control_status_u &control_status):
+		_params{check_mask, ekf2_req_nsats, ekf2_req_pdop, ekf2_req_eph, ekf2_req_epv, ekf2_req_sacc, ekf2_req_hdrift, ekf2_req_vdrift, ekf2_req_fix, ekf2_vel_lim, min_health_time_us},
 		_control_status(control_status)
 	{};
 
@@ -64,6 +63,7 @@ public:
 			uint16_t hspeed : 1; ///< 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
 			uint16_t vspeed : 1; ///< 9 - true if vertical speed error is excessive
 			uint16_t spoofed: 1; ///< 10 - true if the GNSS data is spoofed
+			uint16_t jammed : 1; ///< 11 - true if the GNSS data is jammed
 		} flags;
 		uint16_t value;
 	};
@@ -108,7 +108,9 @@ private:
 		kVdrift  = (1 << 6),
 		kHspd    = (1 << 7),
 		kVspd    = (1 << 8),
-		kSpoofed = (1 << 9)
+		kSpoofed = (1 << 9),
+		kFix     = (1 << 10),
+		kJammed  = (1 << 11)
 	};
 
 	bool isCheckEnabled(GnssChecksMask check) { return (_params.check_mask & static_cast<int32_t>(check)); }
@@ -151,6 +153,7 @@ private:
 		const float &ekf2_req_sacc;
 		const float &ekf2_req_hdrift;
 		const float &ekf2_req_vdrift;
+		const int32_t &ekf2_req_fix;
 		const float &ekf2_vel_lim;
 		const uint32_t &min_health_time_us;
 	};

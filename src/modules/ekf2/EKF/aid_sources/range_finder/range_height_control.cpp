@@ -81,6 +81,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			// If we are supposed to be using range finder data but have bad range measurements
 			// and are on the ground, then synthesise a measurement at the expected on ground value
 			if (!_control_status.flags.in_air
+			    && _control_status.flags.vehicle_at_rest
 			    && _range_sensor.isRegularlySendingData()
 			    && _range_sensor.isDataReady()) {
 
@@ -99,20 +100,42 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 	if (rng_data_ready && _range_sensor.getSampleAddress()) {
 
-		updateRangeHagl(aid_src);
+		const float measurement = math::max(_range_sensor.getDistBottom(), _params.ekf2_min_rng);
+		const float measurement_variance = getRngVar();
+
+		float innovation_variance;
+		sym::ComputeHaglInnovVar(P, measurement_variance, &innovation_variance);
+
+		const float innov_gate = math::max(_params.ekf2_rng_gate, 1.f);
+		updateAidSourceStatus(aid_src,
+				      _range_sensor.getSampleAddress()->time_us, // sample timestamp
+				      measurement,                               // observation
+				      measurement_variance,                      // observation variance
+				      getHagl() - measurement,                   // innovation
+				      innovation_variance,                       // innovation variance
+				      innov_gate);                               // innovation gate
+
 		const bool measurement_valid = PX4_ISFINITE(aid_src.observation) && PX4_ISFINITE(aid_src.observation_variance);
+
+		// z special case if there is bad vertical acceleration data, then don't reject measurement,
+		// but limit innovation to prevent spikes that could destabilise the filter
+		if (_fault_status.flags.bad_acc_vertical && aid_src.innovation_rejected
+		    && measurement_valid && _range_sensor.isDataHealthy()
+		   ) {
+			const float innov_limit = innov_gate * sqrtf(aid_src.innovation_variance);
+			aid_src.innovation = math::constrain(aid_src.innovation, -innov_limit, innov_limit);
+			aid_src.innovation_rejected = false;
+		}
 
 		const bool continuing_conditions_passing = ((_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED))
 				|| (_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL)))
 				&& _control_status.flags.tilt_align
-				&& measurement_valid
-				&& _range_sensor.isDataHealthy()
-				&& _rng_consistency_check.isKinematicallyConsistent();
+				&& measurement_valid;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& isNewestSampleRecent(_time_last_range_buffer_push, 2 * estimator::sensor::RNG_MAX_INTERVAL)
-				&& _range_sensor.isRegularlySendingData();
-
+				&& _range_sensor.isRegularlySendingData()
+				&& _range_sensor.isDataHealthy();
 
 		const bool do_conditional_range_aid = (_control_status.flags.rng_terrain || _control_status.flags.rng_hgt)
 						      && (_params.ekf2_rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL))
@@ -127,7 +150,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				stopRngHgtFusion();
 			}
 
-		} else {
+		} else if (starting_conditions_passing) {
 			if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::RANGE)) {
 				if (do_conditional_range_aid) {
 					// Range finder is used while hovering to stabilize the height estimate. Don't reset but use it as height reference.
@@ -164,6 +187,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					_control_status.flags.rng_hgt = true;
 
 					if (!_control_status.flags.opt_flow_terrain && aid_src.innovation_rejected) {
+						ECL_INFO("starting %s height fusion, resetting terrain", HGT_SRC_NAME);
 						resetTerrainToRng(aid_src);
 						resetAidSourceStatusZeroInnovation(aid_src);
 					}
@@ -174,11 +198,26 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		if (_control_status.flags.rng_hgt || _control_status.flags.rng_terrain) {
 			if (continuing_conditions_passing) {
 
-				fuseHaglRng(aid_src, _control_status.flags.rng_hgt, _control_status.flags.rng_terrain);
+				if (do_conditional_range_aid) {
+					_height_sensor_ref = HeightSensor::RANGE;
+
+				} else if (_height_sensor_ref == HeightSensor::RANGE) {
+					_height_sensor_ref = HeightSensor::UNKNOWN;
+				}
+
+				if (_range_sensor.isDataHealthy()
+				    && _control_status.flags.rng_kin_consistent
+				   ) {
+					fuseHaglRng(aid_src, _control_status.flags.rng_hgt, _control_status.flags.rng_terrain);
+				}
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
 
-				if (isHeightResetRequired() && _control_status.flags.rng_hgt && (_height_sensor_ref == HeightSensor::RANGE)) {
+				if (isHeightResetRequired()
+				    && _control_status.flags.rng_hgt
+				    && (_height_sensor_ref == HeightSensor::RANGE)
+				    && starting_conditions_passing
+				   ) {
 					// All height sources are failing
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
@@ -200,7 +239,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 						stopRngHgtFusion();
 						stopRngTerrFusion();
 
-					} else {
+					} else if (starting_conditions_passing) {
 						resetTerrainToRng(aid_src);
 						resetAidSourceStatusZeroInnovation(aid_src);
 					}
@@ -237,32 +276,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		ECL_WARN("stopping %s fusion, no data", HGT_SRC_NAME);
 		stopRngHgtFusion();
 		stopRngTerrFusion();
-	}
-}
-
-void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
-{
-	const float measurement = math::max(_range_sensor.getDistBottom(), _params.ekf2_min_rng);
-	const float measurement_variance = getRngVar();
-
-	float innovation_variance;
-	sym::ComputeHaglInnovVar(P, measurement_variance, &innovation_variance);
-
-	const float innov_gate = math::max(_params.ekf2_rng_gate, 1.f);
-	updateAidSourceStatus(aid_src,
-			      _range_sensor.getSampleAddress()->time_us, // sample timestamp
-			      measurement,                               // observation
-			      measurement_variance,                      // observation variance
-			      getHagl() - measurement,                   // innovation
-			      innovation_variance,                       // innovation variance
-			      innov_gate);                               // innovation gate
-
-	// z special case if there is bad vertical acceleration data, then don't reject measurement,
-	// but limit innovation to prevent spikes that could destabilise the filter
-	if (_fault_status.flags.bad_acc_vertical && aid_src.innovation_rejected) {
-		const float innov_limit = innov_gate * sqrtf(aid_src.innovation_variance);
-		aid_src.innovation = math::constrain(aid_src.innovation, -innov_limit, innov_limit);
-		aid_src.innovation_rejected = false;
 	}
 }
 

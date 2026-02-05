@@ -54,6 +54,22 @@ if [[ ! -f "${DIR}/${REQUIREMENTS_FILE}" ]]; then
 	return 1
 fi
 
+# Linux Mint compatibility: use upstream Ubuntu values
+if [ -r /etc/upstream-release/lsb-release ]; then
+    . /etc/upstream-release/lsb-release
+    UBUNTU_CODENAME="${DISTRIB_CODENAME:-${UBUNTU_CODENAME:-}}"
+    UBUNTU_RELEASE="${DISTRIB_RELEASE:-${UBUNTU_RELEASE:-}}"
+
+    lsb_release() {
+        if [ "$1" = "-cs" ]; then
+            printf '%s' "$UBUNTU_CODENAME"
+        elif [ "$1" = "-rs" ]; then
+            printf '%s' "$UBUNTU_RELEASE"
+        else
+            command lsb_release "$@"
+        fi
+    }
+fi
 
 # check ubuntu version
 # otherwise warn and point to docker?
@@ -155,7 +171,16 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 			g++-multilib \
 			gcc-arm-none-eabi \
 			gcc-multilib \
+			esptool \
 			;
+
+		echo
+		echo "Fetching Xtensa compilers"
+		XTENSA_FILE_NAME=xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu.tar.xz
+		wget -q -P $DIR https://github.com/espressif/crosstool-NG/releases/download/esp-13.2.0_20240530/$XTENSA_FILE_NAME
+		sudo tar -xf $DIR/$XTENSA_FILE_NAME -C /opt
+		rm $DIR/$XTENSA_FILE_NAME
+		echo 'export PATH=$PATH:/opt/xtensa-esp-elf/bin/' >> /home/$USER/.bashrc
 	fi
 
 	if [[ "${INSTALL_ARCH}" == "aarch64" ]]; then

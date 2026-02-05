@@ -8,6 +8,6 @@
 
 - [电调校准](../advanced_config/esc_calibration.md) — PWM 电调的校准 (DShot/CAN 电调/舵机不需要) 。
 
-## See Also
+## 另见
 
 - [外设](../peripherals/index.md) - 包括非核心执行器，如夹具， 降落伞等。

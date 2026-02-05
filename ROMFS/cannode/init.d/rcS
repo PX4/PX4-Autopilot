@@ -57,6 +57,17 @@ fi
 unset BOARD_RC_DEFAULTS
 
 #
+# Optional additional init file: rc.additional_init
+#
+set BOARD_RC_ADDITIONAL_INIT ${R}etc/init.d/rc.additional_init
+if [ -f $BOARD_RC_ADDITIONAL_INIT ]
+then
+	echo "Board additional init: ${BOARD_RC_ADDITIONAL_INIT}"
+	. $BOARD_RC_ADDITIONAL_INIT
+fi
+unset BOARD_RC_ADDITIONAL_INIT
+
+#
 # Start system state indicator.
 #
 rgbled start -X -q

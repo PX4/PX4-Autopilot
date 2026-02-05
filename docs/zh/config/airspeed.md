@@ -27,18 +27,18 @@ To calibrate the airspeed sensor:
 
 4. Click the **Airspeed** sensor button.
 
-  ![Airspeed calibration](../../assets/qgc/setup/sensor/sensor_airspeed.jpg)
+   ![Airspeed calibration](../../assets/qgc/setup/sensor/sensor_airspeed.jpg)
 
 5. Shield the sensor from the wind (i.e. cup it with your hand).
-  Take care not to block any of its holes.
+   Take care not to block any of its holes.
 
 6. Click **OK** to start the calibration.
 
 7. Once asked for, blow into the tip of the pitot tube to signal the end of calibration.
 
-  :::tip
-  Blowing into the tube is also a basic check that the dynamic and static ports are installed correctly.
-  If they are swapped then the sensor will read a large negative differential pressure when you blow into the tube, and the calibration will abort with an error.
+   :::tip
+   Blowing into the tube is also a basic check that the dynamic and static ports are installed correctly.
+   If they are swapped then the sensor will read a large negative differential pressure when you blow into the tube, and the calibration will abort with an error.
 
 :::
 
@@ -46,4 +46,5 @@ To calibrate the airspeed sensor:
 
 ## 更多信息
 
+- [Airspeed Validation](../advanced_config/airspeed_validation.md).
 - [QGroundControl User Guide > Sensors](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/sensors_px4.html#airspeed)

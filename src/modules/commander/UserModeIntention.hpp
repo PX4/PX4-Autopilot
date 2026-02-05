@@ -35,7 +35,6 @@
 
 #include <uORB/topics/vehicle_status.h>
 #include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
-#include <px4_platform_common/module_params.h>
 
 enum class ModeChangeSource {
 	User,           ///< RC or MAVLink
@@ -53,13 +52,15 @@ public:
 	 * @return nav_state or the mode that nav_state replaces
 	 */
 	virtual uint8_t getReplacedModeIfAny(uint8_t nav_state) = 0;
+
+	virtual uint8_t onDisarm(uint8_t stored_nav_state) = 0;
 };
 
 
-class UserModeIntention : ModuleParams
+class UserModeIntention
 {
 public:
-	UserModeIntention(ModuleParams *parent, const vehicle_status_s &vehicle_status,
+	UserModeIntention(const vehicle_status_s &vehicle_status,
 			  const HealthAndArmingChecks &health_and_arming_checks, ModeChangeHandler *handler);
 	~UserModeIntention() = default;
 
@@ -90,6 +91,7 @@ public:
 
 private:
 	bool isArmed() const { return _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED; }
+	bool isTakeOffIntended(uint8_t user_intented_nav_state) const {return user_intented_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF || user_intented_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;}
 
 	const vehicle_status_s &_vehicle_status;
 	const HealthAndArmingChecks &_health_and_arming_checks;
@@ -100,8 +102,4 @@ private:
 
 	bool _ever_had_mode_change{false}; ///< true if there was ever a mode change call (also if the same mode as already set)
 	bool _had_mode_change{false}; ///< true if there was a mode change call since the last getHadModeChangeAndClear()
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl
-	);
 };

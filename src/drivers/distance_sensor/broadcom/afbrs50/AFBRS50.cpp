@@ -66,71 +66,44 @@ AFBRS50::~AFBRS50()
 	Argus_DestroyHandle(_hnd);
 
 	perf_free(_sample_perf);
-	perf_free(_comms_errors);
-	perf_free(_not_ready_perf);
+	perf_free(_callback_error);
+	perf_free(_process_measurement_error);
+	perf_free(_status_not_ready_perf);
+	perf_free(_trigger_fail_perf);
 }
 
 status_t AFBRS50::measurementReadyCallback(status_t status, argus_hnd_t *hnd)
 {
 	// Called from the SPI comms thread context
+	STATE state = STATE::COLLECT;
 
 	if (up_interrupt_context()) {
 		// We cannot be in interrupt context
-		g_dev->recordCommsError();
-		return ERROR_FAIL;
+		g_dev->recordCallbackError();
+		status = ERROR_FAIL;
+		state = STATE::TRIGGER;
 	}
 
 	if ((g_dev == nullptr) || (status != STATUS_OK)) {
-		g_dev->recordCommsError();
-		return ERROR_FAIL;
+		g_dev->recordCallbackError();
+		status = ERROR_FAIL;
+		state = STATE::TRIGGER;
 	}
 
-	g_dev->scheduleCollect();
+	g_dev->schedule(state);
 
 	return status;
 }
 
-void AFBRS50::scheduleCollect()
+void AFBRS50::schedule(STATE state)
 {
-	_state = STATE::COLLECT;
+	_state = state;
 	ScheduleNow();
 }
 
-void AFBRS50::recordCommsError()
+void AFBRS50::recordCallbackError()
 {
-	perf_count(_comms_errors);
-}
-
-void AFBRS50::processMeasurement()
-{
-	perf_count(_sample_perf);
-
-	argus_results_t res{};
-	status_t evaluate_status = Argus_EvaluateData(_hnd, &res);
-
-	if ((evaluate_status != STATUS_OK) || (res.Status != STATUS_OK)) {
-		perf_count(_comms_errors);
-		return;
-	}
-
-	uint32_t result_mm = res.Bin.Range / (Q9_22_ONE / 1000);
-	float distance = static_cast<float>(result_mm) / 1000.f;
-	int8_t quality = res.Bin.SignalQuality;
-
-	// Signal quality indicates 100% for good signals, 50% and lower for weak signals.
-	// 1% is an errored signal (not reliable). Signal Quality of 0% is unknown.
-	if (quality == 1) {
-		quality = 0;
-	}
-
-	if (distance > _max_distance) {
-		distance = 0.0;
-		quality = 0;
-	}
-
-	_current_distance = distance;
-	_current_quality = quality;
-	_px4_rangefinder.update(((res.TimeStamp.sec * 1000000ULL) + res.TimeStamp.usec), distance, quality);
+	perf_count(_callback_error);
 }
 
 int AFBRS50::init()
@@ -235,6 +208,9 @@ int AFBRS50::init()
 
 void AFBRS50::Run()
 {
+	perf_end(_loop_perf);
+	perf_begin(_loop_perf);
+
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
@@ -264,7 +240,6 @@ void AFBRS50::Run()
 			// Enable interrupt on falling edge
 			px4_arch_configgpio(BROADCOM_AFBR_S50_S2PI_IRQ);
 
-			// TODO: delay after configure?
 			_state = STATE::TRIGGER;
 			ScheduleDelayed(_measurement_inverval);
 		}
@@ -272,7 +247,7 @@ void AFBRS50::Run()
 
 	case STATE::TRIGGER: {
 			if (Argus_GetStatus(_hnd) != STATUS_IDLE) {
-				perf_count(_not_ready_perf);
+				perf_count(_status_not_ready_perf);
 				ScheduleDelayed(_measurement_inverval / 4);
 				return;
 			}
@@ -281,10 +256,9 @@ void AFBRS50::Run()
 			status_t status = Argus_TriggerMeasurement(_hnd, measurementReadyCallback);
 
 			if (status != STATUS_OK) {
-				perf_count(_not_ready_perf);
-				// Reschedule another trigger
+				perf_count(_trigger_fail_perf);
 				_state = STATE::TRIGGER;
-				ScheduleDelayed(_measurement_inverval / 4);
+				ScheduleDelayed(1_ms); // Try again immediately
 			}
 
 			// We don't reschedule, the trigger callback will schedule a collect
@@ -292,11 +266,9 @@ void AFBRS50::Run()
 		break;
 
 	case STATE::COLLECT: {
-			// Process and publish the measurement
-			processMeasurement();
-
-			// Change measurement rate and mode based on range
-			updateMeasurementRateFromRange();
+			if (processMeasurement()) {
+				updateMeasurementRateFromRange();
+			}
 
 			_state = STATE::TRIGGER;
 
@@ -316,41 +288,76 @@ void AFBRS50::Run()
 	}
 }
 
-// TODO: fix this logic
-// Require 3 readings on same side of fence to mode switch
-// Require 3_s after ground_contact in vehicle_land_detected before switching to long range mode
+bool AFBRS50::processMeasurement()
+{
+	perf_count(_sample_perf);
+
+	argus_results_t res{};
+	status_t evaluate_status = Argus_EvaluateData(_hnd, &res);
+
+	if ((evaluate_status != STATUS_OK) || (res.Status != STATUS_OK)) {
+		perf_count(_process_measurement_error);
+		return 0;
+	}
+
+	uint32_t result_mm = res.Bin.Range / (Q9_22_ONE / 1000);
+	float distance = static_cast<float>(result_mm) / 1000.f;
+	int8_t quality = res.Bin.SignalQuality;
+
+	// Signal quality indicates 100% for good signals, 50% and lower for weak signals.
+	// 1% is an errored signal (not reliable). Signal Quality of 0% is unknown.
+	if (quality == 1) {
+		quality = 0;
+	}
+
+	if (distance > _max_distance * 1.5f) {
+		distance = 0.0;
+		quality = 0;
+	}
+
+	_current_distance = distance;
+	_current_quality = quality;
+	_px4_rangefinder.update(((res.TimeStamp.sec * 1000000ULL) + res.TimeStamp.usec), distance, quality);
+	return 1;
+}
+
+// TODO: Require 3 consecutive readings on same side of fence to mode switch
 void AFBRS50::updateMeasurementRateFromRange()
 {
-	// only update mode if _current_distance is a valid measurement and if the last rate switch was more than 1 second ago
-	if ((_current_distance > 0) && (_current_quality > 0) && ((hrt_absolute_time() - _last_rate_switch) > 1_s)) {
+	bool valid_distance = (_current_distance > 0) && (_current_quality > 0);
+	bool switch_allowed = hrt_elapsed_time(&_last_rate_switch) > 1_s;
 
-		status_t status = STATUS_OK;
+	if (valid_distance && switch_allowed) {
 
-		if ((_current_distance >= (_p_sens_afbr_thresh.get() + _p_sens_afbr_hyster.get()))
-		    && (_current_rate != (uint32_t)_p_sens_afbr_l_rate.get())) {
+		bool above_threshold = _current_distance >= (_p_sens_afbr_thresh.get() + _p_sens_afbr_hyster.get());
+		bool in_long_range_mode = _current_rate == _p_sens_afbr_l_rate.get();
 
-			_current_rate = (uint32_t)_p_sens_afbr_l_rate.get();
-			status = setRateAndDfm(_current_rate, DFM_MODE_8X);
+		bool below_threshold = _current_distance <= (_p_sens_afbr_thresh.get() - _p_sens_afbr_hyster.get());
+		bool in_short_range_mode = _current_rate == _p_sens_afbr_s_rate.get();
+
+		if (above_threshold && !in_long_range_mode) {
+
+			_current_rate = _p_sens_afbr_l_rate.get();
+			auto status = setRateAndDfm(_current_rate, DFM_MODE_8X);
 
 			if (status != STATUS_OK) {
-				PX4_ERR("set_rate status not okay: %i", (int)status);
+				PX4_ERR("set_rate status not okay: %ld", status);
 
 			} else {
-				PX4_INFO("switched to long range rate: %i", (int)_current_rate);
+				PX4_INFO("switched to long range rate: %d", _current_rate);
 				_last_rate_switch = hrt_absolute_time();
 			}
 
-		} else if ((_current_distance <= (_p_sens_afbr_thresh.get() - _p_sens_afbr_hyster.get()))
-			   && (_current_rate != (uint32_t)_p_sens_afbr_s_rate.get())) {
+		} else if (below_threshold && !in_short_range_mode) {
 
-			_current_rate = (uint32_t)_p_sens_afbr_s_rate.get();
-			status = setRateAndDfm(_current_rate, DFM_MODE_OFF);
+			_current_rate = _p_sens_afbr_s_rate.get();
+			auto status = setRateAndDfm(_current_rate, DFM_MODE_OFF);
 
 			if (status != STATUS_OK) {
-				PX4_ERR("set_rate status not okay: %i", (int)status);
+				PX4_ERR("set_rate status not okay: %ld", status);
 
 			} else {
-				PX4_INFO("switched to short range rate: %i", (int)_current_rate);
+				PX4_INFO("switched to short range rate: %d", _current_rate);
 				_last_rate_switch = hrt_absolute_time();
 			}
 		}
@@ -441,8 +448,11 @@ argus_mode_t AFBRS50::argusModeFromParameter()
 void AFBRS50::printInfo()
 {
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	perf_print_counter(_not_ready_perf);
+	perf_print_counter(_callback_error);
+	perf_print_counter(_process_measurement_error);
+	perf_print_counter(_status_not_ready_perf);
+	perf_print_counter(_trigger_fail_perf);
+	perf_print_counter(_loop_perf);
 	PX4_INFO_RAW("distance: %.3fm\n", (double)_current_distance);
 	PX4_INFO_RAW("rate: %u Hz\n", (uint)(1000000 / _measurement_inverval));
 }

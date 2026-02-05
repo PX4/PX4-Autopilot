@@ -19,7 +19,7 @@ See [the documentation on Maintainers](https://docs.px4.io/main/en/contribute/ma
 | Matthias Grob | Multirotor | [@MaEtUgR](https://github.com/MaEtUgR) | maetugr |
 | Silvan Fuhrer | Fixed-Wing / VTOL | [@sfuhrer](https://github.com/sfuhrer) | sfuhrer |
 | Christian Friedrich | Rover | [@chfriedrich98](https://github.com/chfriedrich98) | christian982564 |
-| Pedro Roque | Spacecraft | [@Pedro-Roque](https://github.com/Pedro-Roque) | .pedroroque | <padr@kth.se>
+| Pedro Roque | Spacecraft | [@Pedro-Roque](https://github.com/Pedro-Roque) | .pedroroque | <roque@caltech.edu>
 | Jacob Dahl | Simulation | [@dakejahl](https://github.com/dakejahl) | dakejahl | <dahl.jakejacob@gmail.com>
 
 

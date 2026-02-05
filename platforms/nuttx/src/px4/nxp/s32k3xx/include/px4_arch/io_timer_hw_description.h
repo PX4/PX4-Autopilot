@@ -55,15 +55,7 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	ret.timer_channel = (int)timer.channel + 1;
 
 	// find timer index
-	ret.timer_index = 0xff;
-	const uint32_t timer_base = timerBaseRegister(timer.timer);
-
-	for (int i = 0; i < MAX_IO_TIMERS; ++i) {
-		if (io_timers_conf[i].base == timer_base) {
-			ret.timer_index = i;
-			break;
-		}
-	}
+	ret.timer_index = timer.channel;
 
 	constexpr_assert(ret.timer_index != 0xff, "Timer not found");
 
@@ -80,13 +72,20 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
  * Ch20 - Ch23 = vectorno - 5
  */
 
-static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
+static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, Timer::Channel channel)
 {
 	bool nuttx_config_timer_enabled = false;
 	io_timers_t ret{};
 
 	switch (timer) {
-	case Timer::EMIOS0:
+	case Timer::EMIOS0_Channel0:
+	case Timer::EMIOS0_Channel1:
+	case Timer::EMIOS0_Channel2:
+	case Timer::EMIOS0_Channel3:
+	case Timer::EMIOS0_Channel4:
+	case Timer::EMIOS0_Channel5:
+	case Timer::EMIOS0_Channel6:
+	case Timer::EMIOS0_Channel7:
 		ret.base = S32K3XX_EMIOS0_BASE;
 		ret.clock_register = 0;
 		ret.clock_bit = 0;
@@ -96,12 +95,20 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 		ret.vectorno_12_15 = S32K3XX_IRQ_EMIOS0_12_15;
 		ret.vectorno_16_19 = S32K3XX_IRQ_EMIOS0_16_19;
 		ret.vectorno_20_23 = S32K3XX_IRQ_EMIOS0_20_23;
+		ret.channel = channel;
 #ifdef CONFIG_S32K3XX_EMIOS0
 		nuttx_config_timer_enabled = true;
 #endif
 		break;
 
-	case Timer::EMIOS1:
+	case Timer::EMIOS1_Channel0:
+	case Timer::EMIOS1_Channel1:
+	case Timer::EMIOS1_Channel2:
+	case Timer::EMIOS1_Channel3:
+	case Timer::EMIOS1_Channel4:
+	case Timer::EMIOS1_Channel5:
+	case Timer::EMIOS1_Channel6:
+	case Timer::EMIOS1_Channel7:
 		ret.base = S32K3XX_EMIOS1_BASE;
 		ret.clock_register = 0;
 		ret.clock_bit = 0;
@@ -116,7 +123,15 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 #endif
 		break;
 
-	case Timer::EMIOS2:
+
+	case Timer::EMIOS2_Channel0:
+	case Timer::EMIOS2_Channel1:
+	case Timer::EMIOS2_Channel2:
+	case Timer::EMIOS2_Channel3:
+	case Timer::EMIOS2_Channel4:
+	case Timer::EMIOS2_Channel5:
+	case Timer::EMIOS2_Channel6:
+	case Timer::EMIOS2_Channel7:
 		ret.base = S32K3XX_EMIOS2_BASE;
 		ret.clock_register = 0;
 		ret.clock_bit = 0;

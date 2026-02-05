@@ -45,10 +45,11 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/rover_rate_setpoint.h>
 #include <uORB/topics/rover_attitude_setpoint.h>
-#include <uORB/topics/rover_velocity_setpoint.h>
+#include <uORB/topics/rover_speed_setpoint.h>
 #include <uORB/topics/rover_position_setpoint.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 using namespace matrix;
 
@@ -80,10 +81,13 @@ private:
 	// uORB subscriptions
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	// uORB publications
 	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
 	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
-	uORB::Publication<rover_velocity_setpoint_s> _rover_velocity_setpoint_pub{ORB_ID(rover_velocity_setpoint)};
+	uORB::Publication<rover_speed_setpoint_s> _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
 	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
+
+	Quatf _vehicle_attitude_quaternion{};
 };

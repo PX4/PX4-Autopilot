@@ -1,12 +1,11 @@
 # Modules Reference: Communication
 
-
-
 ## frsky_telemetry
 
 Source: [drivers/telemetry/frsky_telemetry](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/telemetry/frsky_telemetry)
 
 FrSky Telemetry support. Auto-detects D or S.PORT protocol.
+
 ### Usage {#frsky_telemetry_usage}
 
 ```
@@ -30,8 +29,8 @@ frsky_telemetry <command> [arguments...]
 
 Source: [modules/mavlink](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mavlink)
 
-
 ### Description
+
 This module implements the MAVLink protocol, which can be used on a Serial link or UDP network connection.
 It communicates with the system via uORB: some messages are directly handled in the module (eg. mission
 protocol), others are published via uORB (eg. vehicle_command).
@@ -43,6 +42,7 @@ For a running instance, streams can be configured via `mavlink stream` command.
 There can be multiple independent instances of the module, each connected to one serial device or network port.
 
 ### Implementation
+
 The implementation uses 2 threads, a sending and a receiving thread. The sender runs at a fixed rate and dynamically
 reduces the rates of the streams if the combined bandwidth is higher than the configured rate (`-r`) or the
 physical link becomes saturated. This can be checked with `mavlink status`, see if `rate mult` is less than 1.
@@ -51,12 +51,15 @@ physical link becomes saturated. This can be checked with `mavlink status`, see 
 functionality, this needs to be take into account, in order to avoid race conditions and corrupt data.
 
 ### Examples
+
 Start mavlink on ttyS1 serial with baudrate 921600 and maximum sending rate of 80kB/s:
+
 ```
 mavlink start -d /dev/ttyS1 -b 921600 -m onboard -r 80000
 ```
 
 Start mavlink on UDP port 14556 and enable the HIGHRES_IMU message with 50Hz:
+
 ```
 mavlink start -u 14556 -r 1000000
 mavlink stream -u 14556 -s HIGHRES_IMU -r 50
@@ -83,7 +86,8 @@ mavlink <command> [arguments...]
                  default: 127.0.0.1
      [-m <val>]  Mode: sets default streams and rates
                  values: custom|camera|onboard|osd|magic|config|iridium|minimal|
-                 extvision|extvisionmin|gimbal|uavionix, default: normal
+                 extvision|extvisionmin|gimbal|onboard_low_bandwidth|uavionix|lo
+                 w_bandwidth|distance_sensor, default: normal
      [-n <val>]  wifi/ethernet interface name
                  values: <interface_name>
      [-c <val>]  Multicast address (multicasting can be enabled via
@@ -123,11 +127,12 @@ mavlink <command> [arguments...]
 
 Source: [systemcmds/uorb](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/uorb)
 
-
 ### Description
+
 uORB is the internal pub-sub messaging system, used for communication between modules.
 
 ### Implementation
+
 The implementation is asynchronous and lock-free, ie. a publisher does not wait for a subscriber and vice versa.
 This is achieved by having a separate buffer between a publisher and a subscriber.
 
@@ -139,7 +144,9 @@ If compiled with ORB_USE_PUBLISHER_RULES, a file with uORB publication rules can
 modules are allowed to publish which topics. This is used for system-wide replay.
 
 ### Examples
+
 Monitor topic publication rates. Besides `top`, this is an important command for general system inspection:
+
 ```
 uorb top
 ```

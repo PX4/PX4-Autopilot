@@ -58,6 +58,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <mathlib/mathlib.h>
@@ -101,11 +102,10 @@ private:
 
 	void Run() override;
 
-	void reset();
-
 	void checkFilters();
 
 	void updateStateMachine(hrt_abstime now);
+	void updateAmplitudeDetectionState(hrt_abstime now, float rate, float target_rate);
 	void copyGains(int index);
 	bool areGainsGood() const;
 	void saveGainsToParams();
@@ -114,6 +114,9 @@ private:
 	bool isAuxEnableSwitchEnabled();
 
 	const matrix::Vector3f getIdentificationSignal();
+	const matrix::Vector3f getAmplitudeDetectionSignal();
+	const matrix::Vector3f scaleInputSignal(const float signal);
+
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub;
 	uORB::SubscriptionCallbackWorkItem _parameter_update_sub{this, ORB_ID(parameter_update)};
@@ -122,6 +125,7 @@ private:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	uORB::PublicationData<autotune_attitude_control_status_s> _autotune_attitude_control_status_pub{ORB_ID(autotune_attitude_control_status)};
 
@@ -130,10 +134,13 @@ private:
 	enum class state {
 		idle = autotune_attitude_control_status_s::STATE_IDLE,
 		init = autotune_attitude_control_status_s::STATE_INIT,
+		roll_amp_detection = autotune_attitude_control_status_s::STATE_ROLL_AMPLITUDE_DETECTION,
 		roll = autotune_attitude_control_status_s::STATE_ROLL,
 		roll_pause = autotune_attitude_control_status_s::STATE_ROLL_PAUSE,
+		pitch_amp_detection = autotune_attitude_control_status_s::STATE_PITCH_AMPLITUDE_DETECTION,
 		pitch = autotune_attitude_control_status_s::STATE_PITCH,
 		pitch_pause = autotune_attitude_control_status_s::STATE_PITCH_PAUSE,
+		yaw_amp_detection = autotune_attitude_control_status_s::STATE_YAW_AMPLITUDE_DETECTION,
 		yaw = autotune_attitude_control_status_s::STATE_YAW,
 		yaw_pause = autotune_attitude_control_status_s::STATE_YAW_PAUSE,
 		apply = autotune_attitude_control_status_s::STATE_APPLY,
@@ -144,15 +151,35 @@ private:
 		wait_for_disarm = autotune_attitude_control_status_s::STATE_WAIT_FOR_DISARM
 	} _state{state::idle};
 
+	enum class amplitudeDetectionState {
+		init,
+		first_period,
+		second_period,
+		increase_amplitude,
+		set_amplitude,
+		complete
+	} _amplitude_detection_state{amplitudeDetectionState::init};
+
 	hrt_abstime _state_start_time{0};
 	uint8_t _steps_counter{0};
 	uint8_t _max_steps{5};
 	int8_t _signal_sign{0};
 
+	// Amplitude detection variables
+	float _signal_amp{0.1f};
+	bool _rate_reached{false};
+	hrt_abstime _time_last_amplitude_increase{0};
+	static constexpr float kSignalAmpMax{5.0f};
+	static constexpr float kSignalAmpStep{0.1f};
+
+	matrix::Vector3f _angular_velocity{};
+
 	bool _armed{false};
 	uint8_t _nav_state{0};
 	uint8_t _start_flight_mode{0};
 	bool _aux_switch_en{false};
+	bool _vehicle_cmd_start_autotune{false};
+	bool _want_start_autotune{false};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
@@ -190,9 +217,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::FW_AT_AXES>) _param_fw_at_axes,
-		(ParamBool<px4::params::FW_AT_START>) _param_fw_at_start,
 		(ParamInt<px4::params::FW_AT_MAN_AUX>) _param_fw_at_man_aux,
-		(ParamFloat<px4::params::FW_AT_SYSID_AMP>) _param_fw_at_sysid_amp,
 		(ParamInt<px4::params::FW_AT_APPLY>) _param_fw_at_apply,
 
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
@@ -219,6 +244,6 @@ private:
 		(ParamInt<px4::params::FW_AT_SYSID_TYPE>) _param_fw_sysid_signal_type
 	)
 
-	static constexpr float _publishing_dt_s = 100e-3f;
-	static constexpr hrt_abstime _publishing_dt_hrt = 100_ms;
+	static constexpr float _publishing_dt_s = 20e-3f;
+	static constexpr hrt_abstime _publishing_dt_hrt = 20_ms;
 };

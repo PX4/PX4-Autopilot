@@ -1,0 +1,50 @@
+module_name: sbgECom
+
+serial_config:
+    - command: sbgecom start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_SBG_CFG
+        group: Sensors
+
+parameters:
+    - group: Sensors
+      definitions:
+        SBG_MODE:
+            description:
+                short: sbgECom driver mode
+                long: |
+                    Modes available for sbgECom driver.
+                    In Sensors Only mode, use external IMU and magnetometer.
+                    In GNSS mode, use external GNSS in addition to sensors only mode.
+                    In INS mode, use external Kalman Filter in addition to GNSS mode.
+
+                    In INS mode, requires EKF2_EN 0. Keeping both enabled
+                    can lead to an unexpected behavior and vehicle instability.
+            category: System
+            type: enum
+            values:
+                0: Sensors Only
+                1: GNSS
+                2: INS (default)
+            default: 2
+        SBG_BAUDRATE:
+            description:
+                short: sbgECom driver baudrate
+                long: |
+                    Baudrate used by default for serial communication between PX4
+                    and SBG Systems INS through sbgECom driver.
+            category: System
+            type: int32
+            min: 9600
+            max: 921600
+            default: 921600
+            reboot_required: true
+        SBG_CONFIGURE_EN:
+            description:
+                short: sbgECom driver INS configuration enable
+                long: |
+                    Enable SBG Systems INS configuration through sbgECom driver
+                    on start.
+            category: System
+            type: boolean
+            default: 0

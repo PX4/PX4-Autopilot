@@ -125,11 +125,13 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 		if (_flow_counter == 0) {
 			_flow_vel_body_lpf.reset(_flow_vel_body);
+			_flow_rate_compensated_lpf.reset(_flow_rate_compensated);
 			_flow_counter = 1;
 
 		} else {
 
 			_flow_vel_body_lpf.update(_flow_vel_body);
+			_flow_rate_compensated_lpf.update(_flow_rate_compensated);
 			_flow_counter++;
 		}
 
@@ -231,26 +233,34 @@ void Ekf::resetFlowFusion(const flowSample &flow_sample)
 	resetHorizontalVelocityTo(getFilteredFlowVelNE(), flow_vel_var);
 
 	resetAidSourceStatusZeroInnovation(_aid_src_optical_flow);
-
-	_innov_check_fail_status.flags.reject_optflow_X = false;
-	_innov_check_fail_status.flags.reject_optflow_Y = false;
 }
 
 void Ekf::resetTerrainToFlow()
 {
 	ECL_INFO("reset hagl to flow");
 
-	// TODO: use the flow data
-	const float new_terrain = -_gpos.altitude() + _params.ekf2_min_rng;
+	float new_terrain = -_gpos.altitude() + _params.ekf2_min_rng;
+
+	if (isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow)) {
+		// ||vel_NE|| = ||( R * flow_body * range).xy()||
+		// range = ||vel_NE|| / ||P * R * flow_body||
+		constexpr float kProjXY[2][3] = {{1.f, 0.f, 0.f}, {0.f, 1.f, 0.f}};
+		const matrix::Matrix<float, 2, 3> proj(kProjXY);
+
+		const Vector3f flow_body(-_flow_rate_compensated_lpf.getState()(1), _flow_rate_compensated_lpf.getState()(0), 0.f);
+		const float denom = Vector2f(proj * _R_to_earth * flow_body).norm();
+
+		if (denom > 1e-6f) {
+			const float range = _state.vel.xy().norm() / denom;
+			new_terrain = -_gpos.altitude() + max(range, _params.ekf2_min_rng);
+		}
+	}
+
 	const float delta_terrain = new_terrain - _state.terrain;
 	_state.terrain = new_terrain;
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, 100.f);
 
 	resetAidSourceStatusZeroInnovation(_aid_src_optical_flow);
-
-	_innov_check_fail_status.flags.reject_optflow_X = false;
-	_innov_check_fail_status.flags.reject_optflow_Y = false;
-
 
 	// record the state change
 	if (_state_reset_status.reset_count.hagl == _state_reset_count_prev.hagl) {
@@ -273,9 +283,6 @@ void Ekf::stopFlowFusion()
 
 		_fault_status.flags.bad_optflow_X = false;
 		_fault_status.flags.bad_optflow_Y = false;
-
-		_innov_check_fail_status.flags.reject_optflow_X = false;
-		_innov_check_fail_status.flags.reject_optflow_Y = false;
 
 		_flow_counter = 0;
 	}

@@ -40,8 +40,11 @@
 
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/crypto.h>
 #include <px4_platform_common/log.h>
+
+#if defined(PX4_CRYPTO)
+# include <px4_platform_common/crypto.h>
+#endif // PX4_CRYPTO
 
 #if defined(__PX4_NUTTX)
 # include <malloc.h>
@@ -378,7 +381,7 @@ void LogWriterFile::run()
 #if defined(PX4_CRYPTO)
 				// Split into min blocksize chunks, so it is good for encrypting in pieces
 				available = (available / _min_blocksize) * _min_blocksize;
-#endif
+#endif // PX4_CRYPTO
 
 				/* if sufficient data available or partial read or terminating, write data */
 				if (available >= min_available[i] || is_part || (!buffer._should_run && available > 0)) {
@@ -408,7 +411,7 @@ void LogWriterFile::run()
 						}
 					}
 
-#endif
+#endif // PX4_CRYPTO
 
 					int written = buffer.write_to_file(read_ptr, available, call_fsync);
 
@@ -469,7 +472,7 @@ void LogWriterFile::run()
 				/* close the crypto session */
 
 				_crypto.close();
-#endif
+#endif // PX4_CRYPTO
 
 				break;
 			}

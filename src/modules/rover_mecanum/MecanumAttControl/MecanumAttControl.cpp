@@ -63,7 +63,7 @@ void MecanumAttControl::updateAttControl()
 {
 	hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
 
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude{};
@@ -76,6 +76,11 @@ void MecanumAttControl::updateAttControl()
 		rover_attitude_setpoint_s rover_attitude_setpoint{};
 		_rover_attitude_setpoint_sub.copy(&rover_attitude_setpoint);
 		_yaw_setpoint = rover_attitude_setpoint.yaw_setpoint;
+		_last_yaw_setpoint_timestamp = hrt_absolute_time();
+	}
+
+	if (hrt_elapsed_time(&_last_yaw_setpoint_timestamp) > YAW_SETPOINT_TIMEOUT_US) {
+		_yaw_setpoint = NAN;
 	}
 
 	if (PX4_ISFINITE(_yaw_setpoint)) {

@@ -53,6 +53,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss_status.h>
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <drivers/drv_hrt.h>
@@ -710,12 +711,16 @@ private:
 	char                                   _port[20] {};                                                 ///< The path of the used serial device
 	hrt_abstime                            _last_rtcm_injection_time {0};                                ///< Time of last RTCM injection
 	uint8_t                                _selected_rtcm_instance {0};                                  ///< uORB instance that is being used for RTCM corrections
+	uint8_t                                _spoofing_state {0};                                          ///< Receiver spoofing state
+	uint8_t                                _jamming_state {0};                                           ///< Receiver jamming state
 	bool                                   _time_synced {false};                                         ///< Receiver time in sync with GPS time
 	const Instance                         _instance {Instance::Main};                                   ///< The receiver that this instance of the driver controls
 	uint32_t                               _chosen_baud_rate {0};                                        ///< The baud rate requested by the user
 	static px4::atomic<SeptentrioDriver *> _secondary_instance;
 	hrt_abstime                            _sleep_end {0};                                               ///< End time for sleeping
 	State                                  _resume_state {State::OpeningSerialPort};                     ///< Resume state after sleep
+	hrt_abstime                            _time_last_qualityind_received{0};			     ///< Time of last quality message reception
+	hrt_abstime                            _time_last_resilience_received{0};			     ///< Time of last resilience message reception
 
 	// Module configuration
 	float                                  _heading_offset {0.0f};                                       ///< The heading offset given by the `SEP_YAW_OFFS` parameter
@@ -737,14 +742,16 @@ private:
 	rtcm::Decoder                                  *_rtcm_decoder {nullptr};                    ///< RTCM message decoder
 
 	// uORB topics and subscriptions
-	sensor_gps_s                                   _sensor_gps{};                           ///< uORB topic for position
-	gps_dump_s                                     *_message_data_to_receiver {nullptr};           ///< uORB topic for dumping data to the receiver
-	gps_dump_s                                     *_message_data_from_receiver {nullptr};         ///< uORB topic for dumping data from the receiver
-	satellite_info_s                               *_message_satellite_info {nullptr};             ///< uORB topic for satellite info
-	uORB::PublicationMulti<sensor_gps_s>           _sensor_gps_pub {ORB_ID(sensor_gps)};           ///< uORB publication for gps position
-	uORB::Publication<gps_dump_s>                  _gps_dump_pub {ORB_ID(gps_dump)};               ///< uORB publication for dump GPS data
-	uORB::Publication<gps_inject_data_s>           _gps_inject_data_pub {ORB_ID(gps_inject_data)}; ///< uORB publication for injected data to the receiver
-	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   ///< uORB publication for satellite info
+	sensor_gps_s                                   _sensor_gps {};                          		///< uORB topic for position
+	sensor_gnss_status_s                           _message_sensor_gnss_status {};                          ///< uORB topic for gps status
+	gps_dump_s                                     *_message_data_to_receiver {nullptr};           		///< uORB topic for dumping data to the receiver
+	gps_dump_s                                     *_message_data_from_receiver {nullptr};         		///< uORB topic for dumping data from the receiver
+	satellite_info_s                               *_message_satellite_info {nullptr};             		///< uORB topic for satellite info
+	uORB::PublicationMulti<sensor_gps_s>           _sensor_gps_pub {ORB_ID(sensor_gps)};           		///< uORB publication for gps position
+	uORB::PublicationMulti<sensor_gnss_status_s>   _sensor_gnss_status_pub {ORB_ID(sensor_gnss_status)};	///< uORB publication for gnss status
+	uORB::Publication<gps_dump_s>                  _gps_dump_pub {ORB_ID(gps_dump)};              		///< uORB publication for dump GPS data
+	uORB::Publication<gps_inject_data_s>           _gps_inject_data_pub {ORB_ID(gps_inject_data)}; 		///< uORB publication for injected data to the receiver
+	uORB::PublicationMulti<satellite_info_s>       _satellite_info_pub {ORB_ID(satellite_info)};   		///< uORB publication for satellite info
 	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _gps_inject_data_sub {ORB_ID::gps_inject_data}; ///< uORB subscription about data to inject to the receiver
 
 	// Data about update frequencies of various bits of information like RTCM message injection frequency, received data rate...

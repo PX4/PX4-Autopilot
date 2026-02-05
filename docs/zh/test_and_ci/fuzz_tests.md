@@ -15,14 +15,14 @@ To write a fuzz test:
 
 1. Start by writing a "normal" [functional test](../test_and_ci/unit_tests.md#functional-test).
 2. Make sure the file name contains `fuzz` (lower case).
-  For example `my_driver_fuzz_tests.cpp`.
+   For example `my_driver_fuzz_tests.cpp`.
 3. Add one or more fuzz tests to the file.
-  例如：
+   例如：
 
    ```cpp
    #include <gtest/gtest.h>
    #include <fuzztest/fuzztest.h>
-   
+
    void myDriverNeverCrashes(const std::string& s) {
       MyDriver driver;
       driver.handleInput(s);

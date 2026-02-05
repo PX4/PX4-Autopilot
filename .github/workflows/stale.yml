@@ -7,10 +7,15 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v8
+      - uses: actions/stale@v10
         with:
-          days-before-stale: 30
-          days-before-close: -1
+          operations-per-run: 250
+          days-before-stale: 90
+          days-before-close: 30
           stale-issue-label: 'stale'
           stale-pr-label: 'stale'
           remove-stale-when-updated: true
+          stale-issue-message: ''
+          close-issue-message: 'This issue has been automatically closed due to 120 days of inactivity. If you believe this is still relevant, please feel free to reopen it or create a new issue.'
+          stale-pr-message: ''
+          close-pr-message: 'This pull request has been automatically closed due to 120 days of inactivity. If you would like to continue, please feel free to reopen it or submit a new PR.'

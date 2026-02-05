@@ -173,7 +173,8 @@ public:
 	{
 		if (_log_writer_file) { _log_writer_file->set_encryption_parameters(algorithm, key_idx, exchange_key_idx); }
 	}
-#endif
+#endif // PX4_CRYPTO
+
 private:
 
 	LogWriterFile *_log_writer_file = nullptr;

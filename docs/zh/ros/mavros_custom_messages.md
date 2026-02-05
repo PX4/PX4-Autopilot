@@ -110,7 +110,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
    - `PX4-Autopilot/src/modules/mavlink/mavlink/message_definitions/v1.0`
    - `workspace/src/mavlink/message_definitions/v1.0`
-      are exactly the same.
+     are exactly the same.
 
 :::
 

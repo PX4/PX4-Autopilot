@@ -1,6 +1,6 @@
 # ROS 2 오프보드 제어 예
 
-The following C++ example shows how to do position control in [offboard mode](../flight_modes/offboard.md) from a ROS 2 node.
+The following C++ example shows how to do multicopter position control in [offboard mode](../flight_modes/offboard.md) from a ROS 2 node.
 
 The example starts sending setpoints, enters offboard mode, arms, ascends to 5 metres, and waits.
 While simple, it shows the main principles of how to use offboard control and how to send vehicle commands.
@@ -22,7 +22,7 @@ To subscribe to data coming from nodes that publish in a different frame (for ex
 
 ## Trying it out
 
-Follow the instructions in [ROS 2 User Guide](../ros2/user_guide.md) to install PX and run the simulator, install ROS 2, and start the XRCE-DDS Agent.
+Follow the instructions in [ROS 2 User Guide](../ros2/user_guide.md) to install PX and run the multicopter simulator, install ROS 2, and start the XRCE-DDS Agent.
 
 After that we can follow a similar set of steps to those in [ROS 2 User Guide > Build ROS 2 Workspace](../ros2/user_guide.md#build-ros-2-workspace) to run the example.
 

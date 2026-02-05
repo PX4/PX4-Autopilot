@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2014-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,8 +43,6 @@
 #include <drivers/drv_hrt.h>
 #include <lib/atmosphere/atmosphere.h>
 
-#define MOTOR_BIT(x) (1<<(x))
-
 using namespace time_literals;
 
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
@@ -74,18 +72,13 @@ UavcanEscController::init()
 		_uavcan_pub_raw_cmd.getTransferSender().setIfaceMask(iface_mask);
 	}
 
-	char param_name[17];
-
-	for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
-		snprintf(param_name, sizeof(param_name), "UAVCAN_EC_FUNC%d", i + 1);
-		_param_handles[i] = param_find(param_name);
-	}
+	_initialized = true;
 
 	return res;
 }
 
 void
-UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned total_outputs)
+UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size)
 {
 	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
@@ -96,27 +89,11 @@ UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], unsigned to
 
 	_prev_cmd_pub = timestamp;
 
-	uavcan::equipment::esc::RawCommand msg;
+	uavcan::equipment::esc::RawCommand msg = {};
 
-	// directly output values from mixer
-	for (unsigned i = 0; i < total_outputs; i++) {
+	for (unsigned i = 0; i < output_array_size; i++) {
 		msg.cmd.push_back(static_cast<int>(outputs[i]));
 	}
-
-	// but only output as many channels as are configured
-	uint8_t min_size = 0;
-
-	for (int i = 0; i < MAX_ACTUATORS; i++) {
-		int32_t val = 0;
-
-		if (param_get(_param_handles[i], &val) == 0) {
-			if (val > 0) {
-				min_size = i + 1;
-			}
-		}
-	}
-
-	msg.cmd.resize(min_size);
 
 	_uavcan_pub_raw_cmd.broadcast(msg);
 }
@@ -148,6 +125,13 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status_pub.publish(_esc_status);
+	}
+
+	// Register device capability for each ESC channel
+	if (_node_info_publisher != nullptr) {
+		uint8_t node_id = msg.getSrcNodeID().get();
+		uint32_t device_id = msg.esc_index;
+		_node_info_publisher->registerDeviceCapability(node_id, device_id, NodeInfoPublisher::DeviceCapability::ESC);
 	}
 }
 

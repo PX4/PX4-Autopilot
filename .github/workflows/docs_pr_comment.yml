@@ -4,6 +4,7 @@ on:
     workflows: ["Docs - Check for flaws in PX4 Guide Source"]
     types:
       - completed
+
 jobs:
   comment:
     permissions:
@@ -56,8 +57,11 @@ jobs:
 
       - name: File detail info
         run: |
-          echo "${{ steps.read-errors-by-page.outputs.content }}"
-          echo "${{ steps.read-error-pr-number.outputs.content }}"
+          echo "$ERRORS"
+          echo "$PRNUM"
+        env:
+          ERRORS: ${{ steps.read-errors-by-page.outputs.content }}
+          PRNUM: ${{ steps.read-error-pr-number.outputs.content }}
 
       - name: Create or update comment
         id: comment_to_pr

@@ -161,7 +161,7 @@ My assumption is that the mixing system can cope with whatever geometry you thro
 Yes but it must be physically feasible. E.g. if you make a quadrotor where all motors turn the same way it will "deal" with it but that cannot work without very specific controllers. Same for a monocopter or a tricopter without swiveling one motor.
 -->
 
-## See Also
+## 另见
 
 - [QGroundControl > Setup](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/setup_view.html)
 - [飞控外设](../peripherals/index.md) - 设置特定传感器、可选传感器、执行器等。

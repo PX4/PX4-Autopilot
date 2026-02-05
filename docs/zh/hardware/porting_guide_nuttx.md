@@ -62,30 +62,30 @@ First you will need a bootloader, which depends on the hardware target:
 
 2. Download the source code and make sure you can build an existing target:
 
-  ```sh
-  git clone --recursive https://github.com/PX4/PX4-Autopilot.git
-  cd PX4-Autopilot
-  make px4_fmu-v5
-  ```
+   ```sh
+   git clone --recursive https://github.com/PX4/PX4-Autopilot.git
+   cd PX4-Autopilot
+   make px4_fmu-v5
+   ```
 
 3. Find an existing target that uses the same (or a closely related) CPU type and copy it.
-  For example for STM32F7:
+   For example for STM32F7:
 
-  ```sh
-  mkdir boards/manufacturer
-  cp -r boards/px4/fmu-v5 boards/manufacturer/my-target-v1
-  ```
+   ```sh
+   mkdir boards/manufacturer
+   cp -r boards/px4/fmu-v5 boards/manufacturer/my-target-v1
+   ```
 
-  Change **manufacturer** to the manufacturer name and **my-target-v1** to your board name.
+   Change **manufacturer** to the manufacturer name and **my-target-v1** to your board name.
 
 Next you need to go through all files under **boards/manufacturer/my-target-v1** and update them according to your board.
 
 1. **firmware.prototype**: update the board ID and name
 2. **default.px4board**: update the **VENDOR** and **MODEL** to match the directory names (**my-target-v1**).
-  Configure the serial ports.
+   Configure the serial ports.
 3. Configure NuttX (**defconfig**) via `make manufacturer_my-target-v1 menuconfig`: Adjust the CPU and chip, configure the peripherals (UART's, SPI, I2C, ADC).
 4. **nuttx-config/include/board.h**: Configure the NuttX pins.
-  For all peripherals with multiple pin options, NuttX needs to know the pin.
-  They are defined in the chip-specific pinmap header file, for example [stm32f74xx75xx_pinmap.h](https://github.com/PX4/NuttX/blob/px4_firmware_nuttx-8.2/arch/arm/src/stm32f7/hardware/stm32f74xx75xx_pinmap.h).
+   For all peripherals with multiple pin options, NuttX needs to know the pin.
+   They are defined in the chip-specific pinmap header file, for example [stm32f74xx75xx_pinmap.h](https://github.com/PX4/NuttX/blob/px4_firmware_nuttx-8.2/arch/arm/src/stm32f7/hardware/stm32f74xx75xx_pinmap.h).
 5. **src**: go through all files under **src** and update them as needed, in particular **board_config.h**.
 6. **init/rc.board_sensors**: start the sensors that are attached to the board.

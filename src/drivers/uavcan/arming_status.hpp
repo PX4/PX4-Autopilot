@@ -57,6 +57,8 @@ public:
 	 */
 	int init();
 
+	void setActuatorTestRunning(bool running) {_is_actuator_test_running = running;}
+
 private:
 	/*
 	 * Max update rate to avoid exessive bus traffic
@@ -80,4 +82,5 @@ private:
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
+	bool _is_actuator_test_running = false;
 };

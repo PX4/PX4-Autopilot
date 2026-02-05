@@ -95,9 +95,9 @@ mode_req_other             # other requirements, not covered above (for external
 
 If the condition of restriction is not met:
 
-- arming is not allowed, while the mode is selected
-- when already armed, the mode cannot be selected
-- when armed and the mode is selected, the relevant failsafe is triggered (e.g. RC loss for the manual control requirement).
+- 在选定模式时不允许进行解锁操作
+- 当已处于武装状态时，该模式无法被选择。
+- 当载具已解锁且该模式被选中时，相关的故障保护机制会被触发（例如，针对手动控制需求的遥控器信号丢失故障保护）。
   Check [Safety (Failsafe) Configuration](../config/safety.md) for how to configure failsafe behaviour.
 
 This is the corresponding flow diagram for the manual control flag (`mode_req_manual_control`):

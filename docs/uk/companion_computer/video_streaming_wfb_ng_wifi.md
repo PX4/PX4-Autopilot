@@ -80,18 +80,18 @@ Alpha AWUS036ACH - це карта середньої потужності, як
 5. Налаштуйте камерний канал. Відкрийте `/etc/systemd/system/fpv-camera.service` і розкоментуйте конвеєр відповідно до вашої камери (камера PI або камера Logitech)
 6. Відкрийте `/etc/wifibroadcast.cfg` і налаштуйте канал WiFi відповідно до налаштувань вашої антени (або використовуйте замовчуваний #165 для 5.8GHz)
 7. Налаштуйте PX4 на вивід потоку телеметрії зі швидкістю 1500 Кбіт/с (інші швидкості UART не добре відповідають дільникам частоти RPI).
-  Підключіть UART Pixhawk до UART Raspberry PI.
-  У розділі `/etc/wifibroadcast.cfg` файлу розкоментуйте `peer = 'serial:ttyS0:1500000'` секцію.
+   Підключіть UART Pixhawk до UART Raspberry PI.
+   У розділі `/etc/wifibroadcast.cfg` файлу розкоментуйте `peer = 'serial:ttyS0:1500000'` секцію.
 
 ### Використання ноутбука Linux як GCS (важче, ніж використання RasPi)
 
 1. На **наземному** Linux комп'ютері розробки:
 
-  ```sh
-  sudo apt install libpcap-dev libsodium-dev python3-all python3-twisted
-  git clone -b stable https://github.com/svpcom/wfb-ng.git
-  cd wfb-ng && make deb && sudo apt install ./deb_dist/wfb-ng*.deb
-  ```
+   ```sh
+   sudo apt install libpcap-dev libsodium-dev python3-all python3-twisted
+   git clone -b stable https://github.com/svpcom/wfb-ng.git
+   cd wfb-ng && make deb && sudo apt install ./deb_dist/wfb-ng*.deb
+   ```
 
 2. Слідуйте інструкції з [Setup HOWTO](https://github.com/svpcom/wfb-ng/wiki/Setup-HOWTO) для завершення встановлення
 

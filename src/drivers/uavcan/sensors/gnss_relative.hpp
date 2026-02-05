@@ -34,7 +34,6 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
-
 #include <stdint.h>
 
 #include <uORB/topics/sensor_gnss_relative.h>
@@ -46,7 +45,7 @@ class UavcanGnssRelativeBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanGnssRelativeBridge(uavcan::INode &node);
+	UavcanGnssRelativeBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 

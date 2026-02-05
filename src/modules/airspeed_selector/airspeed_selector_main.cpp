@@ -66,7 +66,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/airspeed_wind.h>
 #include <uORB/topics/flight_phase_estimation.h>
 
@@ -127,7 +127,7 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
+	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _position_setpoint_sub{ORB_ID(position_setpoint)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
@@ -494,9 +494,23 @@ void AirspeedModule::update_params()
 		param_get(_param_handle_fw_thr_max, &_param_fw_thr_max);
 	}
 
+	const float prev_scale[MAX_NUM_AIRSPEED_SENSORS] = {
+		_param_airspeed_scale[0],
+		_param_airspeed_scale[1],
+		_param_airspeed_scale[2]
+	};
+
 	_param_airspeed_scale[0] = _param_airspeed_scale_1.get();
 	_param_airspeed_scale[1] = _param_airspeed_scale_2.get();
 	_param_airspeed_scale[2] = _param_airspeed_scale_3.get();
+
+	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
+		if (fabsf(_param_airspeed_scale[i] - prev_scale[i]) > FLT_EPSILON) {
+			_airspeed_validator[i].set_scale_init(_param_airspeed_scale[i]);
+			_airspeed_validator[i].reset_scale_estimator();
+			_airspeed_validator[i].set_CAS_scale_validated(_param_airspeed_scale[i]);
+		}
+	}
 
 	_wind_estimator_sideslip.set_wind_process_noise_spectral_density(_param_aspd_wind_nsd.get());
 	_wind_estimator_sideslip.set_tas_scale_process_noise_spectral_density(_param_aspd_scale_nsd.get());
@@ -827,16 +841,16 @@ float AirspeedModule::get_synthetic_airspeed(float throttle)
 void AirspeedModule::update_throttle_filter(hrt_abstime now)
 {
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		vehicle_thrust_setpoint_s vehicle_thrust_setpoint_0{};
-		_vehicle_thrust_setpoint_0_sub.copy(&vehicle_thrust_setpoint_0);
+		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
+		_vehicle_rates_setpoint_sub.copy(&vehicle_rates_setpoint);
 
-		float forward_thrust = vehicle_thrust_setpoint_0.xyz[0];
+		float forward_thrust = vehicle_rates_setpoint.thrust_body[0];
 
 		// if VTOL, use the total thrust vector length (otherwise needs special handling for tailsitters and tiltrotors)
 		if (_vehicle_status.is_vtol) {
-			forward_thrust = sqrtf(vehicle_thrust_setpoint_0.xyz[0] * vehicle_thrust_setpoint_0.xyz[0] +
-					       vehicle_thrust_setpoint_0.xyz[1] * vehicle_thrust_setpoint_0.xyz[1] +
-					       vehicle_thrust_setpoint_0.xyz[2] * vehicle_thrust_setpoint_0.xyz[2]);
+			forward_thrust = sqrtf(vehicle_rates_setpoint.thrust_body[0] * vehicle_rates_setpoint.thrust_body[0] +
+					       vehicle_rates_setpoint.thrust_body[1] * vehicle_rates_setpoint.thrust_body[1] +
+					       vehicle_rates_setpoint.thrust_body[2] * vehicle_rates_setpoint.thrust_body[2]);
 		}
 
 		const float dt = static_cast<float>(now - _t_last_throttle_fw) * 1e-6f;

@@ -1,7 +1,5 @@
 # Px4ioStatus (UORB message)
 
-
-
 [source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Px4ioStatus.msg)
 
 ```c
@@ -36,7 +34,7 @@ bool alarm_rc_lost
 bool arming_failsafe_custom
 bool arming_fmu_armed
 bool arming_fmu_prearmed
-bool arming_force_failsafe
+bool arming_termination
 bool arming_io_arm_ok
 bool arming_lockdown
 bool arming_termination_failsafe

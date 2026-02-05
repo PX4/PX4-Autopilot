@@ -120,6 +120,16 @@ bool EkfWrapper::isIntendingGpsFusion() const
 	return _ekf->control_status_flags().gnss_vel || _ekf->control_status_flags().gnss_pos;
 }
 
+bool EkfWrapper::isGnssFaultDetected() const
+{
+	return _ekf->control_status_flags().gnss_fault;
+}
+
+void EkfWrapper::setGnssDeadReckonMode()
+{
+	_ekf_params->ekf2_gps_mode = static_cast<int32_t>(GnssMode::kDeadReckoning);
+}
+
 void EkfWrapper::enableGpsHeadingFusion()
 {
 	_ekf_params->ekf2_gps_ctrl |= static_cast<int32_t>(GnssCtrl::YAW);
@@ -200,6 +210,11 @@ bool EkfWrapper::isIntendingExternalVisionHeadingFusion() const
 	return _ekf->control_status_flags().ev_yaw;
 }
 
+bool EkfWrapper::isIntendingMagFusion() const
+{
+	return _ekf->control_status_flags().mag;
+}
+
 bool EkfWrapper::isIntendingMagHeadingFusion() const
 {
 	return _ekf->control_status_flags().mag_hdg;
@@ -213,6 +228,11 @@ bool EkfWrapper::isIntendingMag3DFusion() const
 bool EkfWrapper::isMagHeadingConsistent() const
 {
 	return _ekf->control_status_flags().mag_heading_consistent;
+}
+
+bool EkfWrapper::isMagFaultDetected() const
+{
+	return _ekf->control_status_flags().mag_fault;
 }
 
 void EkfWrapper::setMagFuseTypeNone()

@@ -49,6 +49,7 @@
 #include "publishers/uorb_publisher.hpp"
 #include "subscribers/uorb_subscriber.hpp"
 
+
 class ZENOH : public ModuleBase<ZENOH>, public ModuleParams
 {
 public:
@@ -82,13 +83,28 @@ public:
 	void run() override;
 
 private:
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::ZENOH_DOMAIN_ID>) _zenoh_domain_id
+	)
+
+	int generate_rmw_zenoh_node_liveliness_keyexpr(const z_id_t *id, char *keyexpr);
+	int generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *rihs_hash, char *type, char *keyexpr);
+	int generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const char *topic, const uint8_t *rihs_hash,
+			char *type, char *keyexpr, const char *entity_str);
+	int setupSession();
+	int setupTopics(px4_pollfd_struct_t *pfds);
 
 	Zenoh_Config _config;
 
 	int _pub_count;
-	uORB_Zenoh_Publisher **_zenoh_publishers;
+	uORB_Zenoh_Publisher **_zenoh_publishers = nullptr;
 	int _sub_count;
-	Zenoh_Subscriber **_zenoh_subscribers;
+	Zenoh_Subscriber **_zenoh_subscribers = nullptr;
+
+	z_owned_session_t _s;
+	bool connected = false;
+
+	px4_guid_t _px4_guid{};
 
 };
 

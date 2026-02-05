@@ -685,7 +685,7 @@ private:
 	hrt_abstime _last_update_time{0};
 	float _update_rate_filtered{0};
 
-	PerBatteryData _batteries[battery_status_s::MAX_INSTANCES] {0, 1, 2, 3};
+	PerBatteryData _batteries[battery_status_s::MAX_INSTANCES] {0, 1, 2};
 };
 
 #endif // HIGH_LATENCY2_HPP

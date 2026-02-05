@@ -16,6 +16,7 @@ uint8 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 7		# 7 : maximum allowed vertical position
 uint8 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 8	# 8 : maximum allowed horizontal speed fail - requires stationary vehicle
 uint8 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 9	# 9 : maximum allowed vertical velocity discrepancy fail
 uint8 GPS_CHECK_FAIL_SPOOFED = 10		# 10 : GPS signal is spoofed
+uint8 GPS_CHECK_FAIL_JAMMED = 11		# 11 : GPS signal is jammed
 
 uint64 control_mode_flags	# Bitmask to indicate EKF logic state
 uint8 CS_TILT_ALIGN = 0		# 0 - true if the filter tilt alignment is complete
@@ -47,7 +48,9 @@ uint8 CS_SYNTHETIC_MAG_Z = 25	# 25 - true when we are using a synthesized measur
 uint8 CS_VEHICLE_AT_REST = 26	# 26 - true when the vehicle is at rest
 uint8 CS_GPS_YAW_FAULT = 27	# 27 - true when the GNSS heading has been declared faulty and is no longer being used
 uint8 CS_RNG_FAULT = 28		# 28 - true when the range finder has been declared faulty and is no longer being used
-uint8 CS_GNSS_VEL = 44		# 44 - true if GNSS velocity measurements are being fused
+uint8 CS_GNSS_VEL = 44		# 44 - true if GNSS velocity measurement fusion is intended
+uint8 CS_GNSS_FAULT = 45        # 45 - true if GNSS measurements have been declared faulty and are no longer used
+uint8 CS_YAW_MANUAL = 46        # 46 - true if yaw has been set manually
 
 uint32 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error

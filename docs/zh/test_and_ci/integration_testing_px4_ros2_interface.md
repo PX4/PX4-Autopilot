@@ -2,11 +2,11 @@
 
 This topic outlines the integration tests for the [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md).
 
-These test that mode registration, failsafes, and mode replacement, work as expected.
+这些测试用于验证模式注册、故障保护（failsafes）和模式替换功能是否按预期工作。
 
 ## CI Testing
 
-When opening a pull request to PX4, CI runs the library integration tests.
+向 PX4 提交拉取请求（pull request）时，持续集成（CI）会运行该库的集成测试
 
 ## Running Tests Locally
 
