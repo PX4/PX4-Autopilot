@@ -88,7 +88,7 @@ int GRFLaserSerial::init()
 int GRFLaserSerial::measure()
 {
 	int32_t rate = (int32_t)_update_rate;
-	_data_output = 0x08; // raw distance (last return)
+	_data_output = 0x01; // raw distance (last return)
 	_stream_data = 5; // enable constant streaming
 
 	// send packets to the sensor depending on the state
@@ -598,7 +598,7 @@ void GRFLaserSerial::grf_process_replies()
 	hrt_abstime now = hrt_absolute_time();
 	switch (rx_field.msg_id) {
 	case GRF_DISTANCE_DATA_CM: {
-			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8);
+			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8) | (rx_field.data[2] << 16);
 			distance_m = raw_distance * GRF_SCALE_FACTOR;
 			_px4_rangefinder.update(now, distance_m);
 			break;
