@@ -64,6 +64,12 @@ then
 	lightware_laser_i2c start -X
 fi
 
+# Lightware i2c lidar sensor
+if param greater -s SENS_EN_GRFXXX 0
+then
+	lightware_grf_i2c start -X
+fi
+
 # Sensor HY-SRF05 or HC-SR05 ultrasonic sensor
 if param compare -s SENS_EN_SR05 1
 then
