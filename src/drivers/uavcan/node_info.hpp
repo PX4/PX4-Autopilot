@@ -148,10 +148,10 @@ private:
 	// Publishing methods
 	void publishDeviceInformationPeriodic();
 	void publishSingleDeviceInformation(const DeviceInformation &device_info);
-	void parseNodeName(const char *name, DeviceInformation &device_info);
 
 	// Helper functions
 	void populateDeviceInfoFields(DeviceInformation &device_info, const NodeInfo &info);
+	void parseNodeName(const char *name, DeviceInformation &device_info);
 	bool extendDeviceInformationsArray();
 
 	uavcan::NodeInfoRetriever &_node_info_retriever;

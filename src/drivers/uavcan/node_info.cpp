@@ -206,7 +206,6 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 	static_assert(sizeof(msg.firmware_version) == sizeof(device_info.firmware_version), "Array size mismatch");
 	static_assert(sizeof(msg.hardware_version) == sizeof(device_info.hardware_version), "Array size mismatch");
 	static_assert(sizeof(msg.serial_number) == sizeof(device_info.serial_number), "Array size mismatch");
-	// Copy strings using memcpy and ensure null termination
 	static_assert(sizeof(msg.name) == sizeof(device_info.name), "Array size mismatch");
 
 	memcpy(msg.model_name, device_info.model_name, sizeof(msg.model_name));
