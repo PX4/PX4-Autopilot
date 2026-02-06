@@ -268,7 +268,7 @@
 
 #define DRV_TEMP_DEVTYPE_MCP9808	0xEE
 #define DRV_TEMP_DEVTYPE_TMP102		0xF0
-
+#define DRV_DIST_DEVTYPE_TFA1500        0xF1
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
