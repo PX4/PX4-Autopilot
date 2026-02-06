@@ -79,6 +79,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/ranging_beacon.h>
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 #include <sys/time.h>
@@ -123,6 +124,7 @@ private:
 	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	uORB::Publication<distance_sensor_s>  _distance_snsr_pub{ORB_ID(distance_sensor)};
 	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
+	uORB::Publication<ranging_beacon_s>   _ranging_beacon_pub{ORB_ID(ranging_beacon)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -135,6 +137,29 @@ private:
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
+
+	// Ranging beacon simulation constants
+	static constexpr uint8_t NUM_RANGING_BEACONS = 4;
+	bool _beacons_configured{false};
+	struct RangingBeaconConfig {
+		double lat_deg;
+		double lon_deg;
+		float alt_m;
+	};
+	struct RangingBeaconOffset {
+		float north_m;
+		float east_m;
+		float alt_offset_m;
+	};
+	// NED offsets from SIH_LOC_LAT0/LON0/H0, resolved once in init_variables()
+	static constexpr RangingBeaconOffset RANGING_BEACON_OFFSETS[NUM_RANGING_BEACONS] = {
+		{  5000.f,     0.f,  30.f},  // ~5 km North
+		{     0.f, 10000.f,   0.f},  // ~10 km East
+		{-20000.f, -15000.f, 110.f}, // ~20 km South-West
+		{ 35000.f,  45000.f, 310.f}  // ~50 km North-East
+	};
+	RangingBeaconConfig _ranging_beacons[NUM_RANGING_BEACONS] {};
+
 	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
 	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
@@ -160,6 +185,7 @@ private:
 	void reconstruct_sensors_signals(const hrt_abstime &time_now_us);
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
+	void send_ranging_beacon(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust);
 	void generate_ts_aerodynamics();
@@ -196,6 +222,8 @@ private:
 	hrt_abstime _last_actuator_output_time{0};
 	hrt_abstime _airspeed_time{0};
 	hrt_abstime _dist_snsr_time{0};
+	hrt_abstime _ranging_beacon_time{0};
+	uint8_t _ranging_beacon_idx{0};
 
 	bool        _grounded{true};// whether the vehicle is on the ground
 
@@ -301,6 +329,7 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
-		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
+		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
+		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise
 	)
 };

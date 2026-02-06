@@ -339,3 +339,17 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_INT32(SIH_VEHICLE_TYPE, 0);
+
+/**
+ * Ranging beacon measurement noise standard deviation
+ *
+ * Gaussian noise added to simulated ranging beacon measurements.
+ * Set to 0 to disable noise.
+ *
+ * @unit m
+ * @min 0.0
+ * @max 100.0
+ * @decimal 1
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_RNGBC_NOISE, 30.0f);

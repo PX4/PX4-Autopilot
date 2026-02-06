@@ -53,6 +53,9 @@ using namespace math;
 using namespace matrix;
 using namespace time_literals;
 
+// DEBUG: Only for C++ 14 on 3.3
+constexpr Sih::RangingBeaconOffset Sih::RANGING_BEACON_OFFSETS[];
+
 Sih::Sih() :
 	ModuleParams(nullptr)
 {}
@@ -75,6 +78,7 @@ void Sih::run()
 	_last_run = task_start;
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
+	_ranging_beacon_time = task_start;
 	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
@@ -230,6 +234,12 @@ void Sih::sensor_step()
 	    && fabs(_distance_snsr_override) < 10000) {
 		_dist_snsr_time = now;
 		send_dist_snsr(now);
+	}
+
+	// ranging beacon published at 2 Hz (each beacon at 0.5 Hz)
+	if (now - _ranging_beacon_time >= 500_ms) {
+		_ranging_beacon_time = now;
+		send_ranging_beacon(now);
 	}
 
 	publish_ground_truth(now);
@@ -686,6 +696,61 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 
 	distance_sensor.timestamp = hrt_absolute_time();
 	_distance_snsr_pub.publish(distance_sensor);
+}
+
+void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
+{
+	if (_lpos_ref.isInitialized()) {
+
+		if (!_beacons_configured) {
+			_beacons_configured = true;
+
+			for (uint8_t i = 0; i < NUM_RANGING_BEACONS; i++) {
+				_lpos_ref.reproject(RANGING_BEACON_OFFSETS[i].north_m, RANGING_BEACON_OFFSETS[i].east_m,
+						    _ranging_beacons[i].lat_deg, _ranging_beacons[i].lon_deg);
+				_ranging_beacons[i].alt_m = _sih_h0.get() + RANGING_BEACON_OFFSETS[i].alt_offset_m;
+			}
+		}
+
+		const RangingBeaconConfig &beacon = _ranging_beacons[_ranging_beacon_idx];
+		const LatLonAlt beacon_lla(beacon.lat_deg, beacon.lon_deg, beacon.alt_m);
+		const matrix::Vector3d beacon_ecef = beacon_lla.toEcef();
+
+		// Compute true range in ECEF
+		const matrix::Vector3d delta_ecef = beacon_ecef - _p_E;
+		const double true_range_m = delta_ecef.norm();
+
+		const float noise_std = _sih_ranging_beacon_noise.get();
+		const float noise_m = (noise_std > 0.f) ? generate_wgn() * noise_std : 0.f;
+		const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
+
+		const uint32_t range_mm = static_cast<uint32_t>(measured_range_m * 1000.0);
+		const uint32_t hacc_mm = static_cast<uint32_t>(noise_std * 1000.f);
+		const uint32_t vacc_mm = static_cast<uint32_t>(noise_std * 1000.f);
+
+		ranging_beacon_s msg{};
+		msg.timestamp = hrt_absolute_time();
+		msg.timestamp_sample = time_now_us;
+		msg.beacon_id = _ranging_beacon_idx;
+		msg.range = range_mm;
+		msg.lat = beacon.lat_deg;
+		msg.lon = beacon.lon_deg;
+		msg.alt = beacon.alt_m;
+		msg.alt_ellipsoid = beacon.alt_m;
+		msg.hacc = hacc_mm;
+		msg.vacc = vacc_mm;
+		msg.range_accuracy = noise_std;
+		msg.rssi_node = -50.f;
+		msg.rssi_beacon = -50.f;
+		msg.battery_status = 100;
+		msg.sequence = 0;
+		msg.carrier_freq = 0;
+
+		_ranging_beacon_pub.publish(msg);
+
+		// cycle through the beacons
+		_ranging_beacon_idx = (_ranging_beacon_idx + 1) % NUM_RANGING_BEACONS;
+	}
 }
 
 void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
