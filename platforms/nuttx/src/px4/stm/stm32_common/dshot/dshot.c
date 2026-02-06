@@ -1062,15 +1062,18 @@ void up_bdshot_status(void)
 	}
 
 	if (_edt_enabled) {
-		PX4_INFO("BDShot EDT rates");
+		PX4_INFO("BDShot EDT");
 
 		for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
 			if (_bdshot_online[i]) {
-				PX4_INFO("Ch%d:  eRPM: %dHz  Temp: %.2fHz  Volt: %.2fHz  Curr: %.2fHz",
+				PX4_INFO("Ch%d:  eRPM: %dHz  Temp: %dC (%.1fHz)  Volt: %.2fV (%.1fHz)  Curr: %.1fA (%.1fHz)",
 					 i,
 					 (int)_erpms[i].rate_hz,
+					 (int)_edt_temp[i].value,
 					 (double)_edt_temp[i].rate_hz,
+					 (double)_edt_volt[i].value * 0.25,
 					 (double)_edt_volt[i].rate_hz,
+					 (double)_edt_curr[i].value * 0.5,
 					 (double)_edt_curr[i].rate_hz);
 			}
 		}
