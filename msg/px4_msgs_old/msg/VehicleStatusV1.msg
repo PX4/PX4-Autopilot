@@ -84,7 +84,7 @@ uint8 HIL_STATE_OFF = 0
 uint8 HIL_STATE_ON = 1
 
 # Current vehicle locomotion method. A vehicle can have different methods (e.g. VTOL transitions from RW to FW method)
-uint8 vehicle_type [@enum VEHICLE_TYPE]
+uint8 vehicle_type # [@enum VEHICLE_TYPE]
 uint8 VEHICLE_TYPE_UNSPECIFIED = 0
 uint8 VEHICLE_TYPE_ROTARY_WING = 1
 uint8 VEHICLE_TYPE_FIXED_WING = 2
