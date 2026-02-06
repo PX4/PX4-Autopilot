@@ -563,10 +563,14 @@ bool DShot::process_bdshot_telemetry()
 		return false;
 	}
 
-	// We wait until all BDShot channels are ready.
-	if (up_bdshot_num_channels_ready() < count_set_bits(_bdshot_output_mask)) {
+	// Rate-limit telemetry processing to 200Hz
+	static hrt_abstime last_processed = 0;
+
+	if (now - last_processed < 5000) { // 5ms = 200Hz
 		return false;
 	}
+
+	last_processed = now;
 
 	for (uint8_t output_channel = 0; output_channel < DSHOT_MAXIMUM_CHANNELS; output_channel++) {
 		bool is_motor = _mixing_output.isMotor(output_channel);
