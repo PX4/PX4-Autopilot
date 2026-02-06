@@ -162,7 +162,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_EN_SF1XX>) _param_sens_en_sf1xx,
-		(ParamInt<px4::params::SF1XX_MODE>) _param_sf1xx_mode
+		(ParamInt<px4::params::SF1XX_MODE>) _param_sf1xx_mode,
+		(ParamInt<px4::params::SF1XX_ROT>) _param_sf1xx_rot
 	)
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -194,6 +195,9 @@ int LightwareLaser::init()
 {
 	int ret = PX4_ERROR;
 	updateParams();
+
+	_px4_rangefinder.set_orientation(_param_sf1xx_rot.get());
+
 	const int32_t hw_model = _param_sens_en_sf1xx.get();
 
 	switch (hw_model) {

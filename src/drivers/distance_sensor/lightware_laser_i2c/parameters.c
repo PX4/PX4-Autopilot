@@ -62,3 +62,21 @@ PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
  * @max 2
  */
 PARAM_DEFINE_INT32(SF1XX_MODE, 1);
+
+/**
+ * Lightware SF1xx/SF20/LW20 Rotation
+ *
+ * Distance sensor orientation as MAV_SENSOR_ORIENTATION enum.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 25
+ * @group Sensors
+ * @value 0 Forward
+ * @value 2 Right
+ * @value 4 Backward
+ * @value 6 Left
+ * @value 24 Upward
+ * @value 25 Downward
+ */
+PARAM_DEFINE_INT32(SF1XX_ROT, 25);
