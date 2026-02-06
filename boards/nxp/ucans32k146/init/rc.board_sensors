@@ -27,12 +27,6 @@ then
 	lightware_laser_i2c start -X
 fi
 
-# Lightware i2c lidar sensor
-if param greater -s SENS_EN_GRFXXX 0
-then
-	lightware_grf_i2c start -X
-fi
-
 # vl53l1x i2c distance sensor
 if param compare -s SENS_EN_VL53L1X 1
 then
