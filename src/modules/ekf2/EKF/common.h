@@ -261,6 +261,16 @@ struct auxVelSample {
 };
 #endif // CONFIG_EKF2_AUXVEL
 
+struct rangingBeaconSample {
+	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
+	uint8_t     beacon_id{};   ///< beacon identifier
+	float       range_m{};     ///< measured range to beacon (m)
+	float       range_var{};   ///< range measurement variance (m^2)
+	double      beacon_lat{};  ///< beacon latitude (degrees)
+	double      beacon_lon{};  ///< beacon longitude (degrees)
+	float       beacon_alt{};  ///< beacon altitude AMSL (m)
+};
+
 struct systemFlagUpdate {
 	uint64_t time_us{};
 	bool at_rest{false};
@@ -506,6 +516,14 @@ struct parameters {
 	const float auxvel_gate{5.0f};          ///< velocity fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	// ranging beacon fusion
+	int32_t ekf2_rngbc_ctrl{0};            ///< ranging beacon fusion control (0=disabled, 1=enabled)
+	float ekf2_rngbc_delay{50.f};          ///< ranging beacon measurement delay relative to the IMU (mSec)
+	float ekf2_rngbc_noise{1.f};           ///< ranging beacon measurement noise (m)
+	float ekf2_rngbc_gate{5.f};            ///< ranging beacon fusion innovation consistency gate size (STD)
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 };
 
 union fault_status_u {
@@ -594,6 +612,7 @@ uint64_t gnss_fault              :
 uint64_t gnss_hgt_fault              :
 		1; ///< 47 - true if GNSS measurements (alt) have been declared faulty and are no longer used
 		uint64_t in_transition_to_fw 	 : 1; ///< 48 - true if the vehicle is in transition to fw
+		uint64_t rngbcn_fusion           : 1; ///< 49 - true when ranging beacon position fusion is active
 
 	} flags;
 	uint64_t value;

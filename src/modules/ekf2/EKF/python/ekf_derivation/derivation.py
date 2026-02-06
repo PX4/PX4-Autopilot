@@ -721,6 +721,23 @@ def compute_gravity_z_innov_var_and_h(
 
     return (innov_var, H.T)
 
+def compute_range_beacon_innov_var_and_h(
+        state: VState,
+        P: MTangent,
+        beacon_pos: sf.V3,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VTangent):
+
+    state = vstate_to_state(state)
+    delta = beacon_pos - state["pos"]
+    range_pred = delta.norm(epsilon=epsilon)
+
+    H = jacobian_chain_rule(range_pred, state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
 print("Derive EKF2 equations...")
 generate_px4_function(predict_covariance, output_names=None)
 
@@ -752,5 +769,6 @@ generate_px4_function(compute_gravity_z_innov_var_and_h, output_names=["innov_va
 generate_px4_function(compute_body_vel_innov_var_h, output_names=["innov_var", "Hx", "Hy", "Hz"])
 generate_px4_function(compute_body_vel_y_innov_var, output_names=["innov_var"])
 generate_px4_function(compute_body_vel_z_innov_var, output_names=["innov_var"])
+generate_px4_function(compute_range_beacon_innov_var_and_h, output_names=["innov_var", "H"])
 
 generate_px4_state(State, tangent_idx)

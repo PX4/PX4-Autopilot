@@ -810,7 +810,8 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 	}
 
 	// position aiding active
-	if ((_control_status.flags.gnss_pos || _control_status.flags.ev_pos || _control_status.flags.aux_gpos)
+	if ((_control_status.flags.gnss_pos || _control_status.flags.ev_pos
+	     || _control_status.flags.aux_gpos || _control_status.flags.rngbcn_fusion)
 	    && isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;

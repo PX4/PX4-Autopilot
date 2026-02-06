@@ -130,6 +130,12 @@ if(CONFIG_EKF2_RANGE_FINDER)
 	)
 endif()
 
+if(CONFIG_EKF2_RANGING_BEACON)
+	list(APPEND EKF_SRCS
+		aid_sources/ranging_beacon/ranging_beacon_control.cpp
+	)
+endif()
+
 if(CONFIG_EKF2_SIDESLIP)
 	list(APPEND EKF_SRCS aid_sources/sideslip/sideslip_fusion.cpp)
 endif()

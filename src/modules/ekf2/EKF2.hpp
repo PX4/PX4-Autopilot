@@ -123,6 +123,10 @@
 # include <uORB/topics/wind.h>
 #endif // CONFIG_EKF2_WIND
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+# include <uORB/topics/ranging_beacon.h>
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 extern pthread_mutex_t ekf2_module_mutex;
 
 class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
@@ -229,6 +233,9 @@ private:
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGE_FINDER
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	void UpdateRangingBeaconSample(ekf2_timestamps_s &ekf2_timestamps);
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
 
@@ -339,6 +346,10 @@ private:
 	hrt_abstime _status_aux_vel_pub_last{0};
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	uORB::Subscription _ranging_beacon_sub {ORB_ID(ranging_beacon)};
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	uORB::Subscription _vehicle_optical_flow_sub {ORB_ID(vehicle_optical_flow)};
 	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
@@ -406,6 +417,11 @@ private:
 	hrt_abstime _last_range_sensor_update{0};
 	int _distance_sensor_selected{-1}; // because we can have several distance sensor instances with different orientations
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	hrt_abstime _status_ranging_beacon_pub_last {0};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_ranging_beacon_pub{ORB_ID(estimator_aid_src_ranging_beacon)};
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 	bool _callback_registered{false};
 
@@ -627,6 +643,14 @@ private:
 		(ParamExtFloat<px4::params::EKF2_RNG_POS_Y>) _param_ekf2_rng_pos_y,
 		(ParamExtFloat<px4::params::EKF2_RNG_POS_Z>) _param_ekf2_rng_pos_z,
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+		// ranging beacon fusion
+		(ParamExtInt<px4::params::EKF2_RNGBC_CTRL>) _param_ekf2_rngbc_ctrl,
+		(ParamExtFloat<px4::params::EKF2_RNGBC_DELAY>) _param_ekf2_rngbc_delay,
+		(ParamExtFloat<px4::params::EKF2_RNGBC_NOISE>) _param_ekf2_rngbc_noise,
+		(ParamExtFloat<px4::params::EKF2_RNGBC_GATE>) _param_ekf2_rngbc_gate,
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		// vision estimate fusion

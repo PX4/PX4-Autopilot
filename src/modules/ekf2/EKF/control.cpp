@@ -116,6 +116,10 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	controlGpsFusion(imu_delayed);
 #endif // CONFIG_EKF2_GNSS
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	controlRangingBeaconFusion(imu_delayed);
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 	_aux_global_position.update(*this, imu_delayed);
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION

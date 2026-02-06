@@ -73,6 +73,9 @@ EstimatorInterface::~EstimatorInterface()
 #if defined(CONFIG_EKF2_AUXVEL)
 	delete _auxvel_buffer;
 #endif // CONFIG_EKF2_AUXVEL
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	delete _ranging_beacon_buffer;
+#endif // CONFIG_EKF2_RANGING_BEACON
 }
 
 // Accumulate imu data and store to buffer at desired rate
@@ -439,6 +442,46 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 }
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+void EstimatorInterface::setRangingBeaconData(const rangingBeaconSample &ranging_beacon_sample)
+{
+
+	if (!_initialised) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	if (_ranging_beacon_buffer == nullptr) {
+		_ranging_beacon_buffer = new TimestampedRingBuffer<rangingBeaconSample>(_obs_buffer_length);
+
+		if (_ranging_beacon_buffer == nullptr || !_ranging_beacon_buffer->valid()) {
+			delete _ranging_beacon_buffer;
+			_ranging_beacon_buffer = nullptr;
+			printBufferAllocationFailed("ranging beacon");
+			return;
+		}
+	}
+
+	const int64_t time_us = ranging_beacon_sample.time_us
+				- static_cast<int64_t>(_params.ekf2_rngbc_delay * 1000)
+				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	// limit data rate to prevent data being lost
+	if (time_us >= static_cast<int64_t>(_ranging_beacon_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		rangingBeaconSample ranging_beacon_sample_new{ranging_beacon_sample};
+		ranging_beacon_sample_new.time_us = time_us;
+
+		_ranging_beacon_buffer->push(ranging_beacon_sample_new);
+		_time_last_ranging_beacon_buffer_push = _time_latest_us;
+
+	} else {
+		ECL_WARN("ranging beacon data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us,
+			 _ranging_beacon_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 void EstimatorInterface::setSystemFlagData(const systemFlagUpdate &system_flags)
 {
 	if (!_initialised) {
@@ -621,7 +664,8 @@ int EstimatorInterface::getNumberOfActiveHorizontalPositionAidingSources() const
 {
 	return int(_control_status.flags.gnss_pos)
 	       + int(_control_status.flags.ev_pos)
-	       + int(_control_status.flags.aux_gpos);
+	       + int(_control_status.flags.aux_gpos)
+	       + int(_control_status.flags.rngbcn_fusion);
 }
 
 bool EstimatorInterface::isHorizontalPositionAidingActive() const

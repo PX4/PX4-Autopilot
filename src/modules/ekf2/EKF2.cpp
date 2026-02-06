@@ -169,6 +169,12 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_pos_y(_params->rng_pos_body(1)),
 	_param_ekf2_rng_pos_z(_params->rng_pos_body(2)),
 #endif // CONFIG_EKF2_RANGE_FINDER
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	_param_ekf2_rngbc_ctrl(_params->ekf2_rngbc_ctrl),
+	_param_ekf2_rngbc_delay(_params->ekf2_rngbc_delay),
+	_param_ekf2_rngbc_noise(_params->ekf2_rngbc_noise),
+	_param_ekf2_rngbc_gate(_params->ekf2_rngbc_gate),
+#endif // CONFIG_EKF2_RANGING_BEACON
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	_param_ekf2_ev_delay(_params->ekf2_ev_delay),
 	_param_ekf2_ev_ctrl(_params->ekf2_ev_ctrl),
@@ -795,6 +801,9 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 		UpdateRangeSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGE_FINDER
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+		UpdateRangingBeaconSample(ekf2_timestamps);
+#endif // CONFIG_EKF2_RANGING_BEACON
 		UpdateSystemFlagsSample(ekf2_timestamps);
 
 		// run the EKF update and output
@@ -990,6 +999,12 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	// RNG height
 	PublishAidSourceStatus(timestamp, _ekf.aid_src_rng_hgt(), _status_rng_hgt_pub_last, _estimator_aid_src_rng_hgt_pub);
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	// ranging beacon
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_ranging_beacon(), _status_ranging_beacon_pub_last,
+			       _estimator_aid_src_ranging_beacon_pub);
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 	// fake position
 	PublishAidSourceStatus(timestamp, _ekf.aid_src_fake_pos(), _status_fake_pos_pub_last, _estimator_aid_src_fake_pos_pub);
@@ -2144,6 +2159,32 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 #endif // CONFIG_EKF2_AUXVEL
+
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+void EKF2::UpdateRangingBeaconSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	ranging_beacon_s ranging_beacon;
+
+	if (_ranging_beacon_sub.update(&ranging_beacon)) {
+		// Convert range from millimeters to meters
+		const float range_m = static_cast<float>(ranging_beacon.range) * 0.001f;
+		const float range_var = PX4_ISFINITE(ranging_beacon.range_accuracy)
+					? sq(ranging_beacon.range_accuracy) : sq(_param_ekf2_rngbc_noise.get());
+
+		rangingBeaconSample sample{
+			.time_us = ranging_beacon.timestamp_sample,
+			.beacon_id = ranging_beacon.beacon_id,
+			.range_m = range_m,
+			.range_var = range_var,
+			.beacon_lat = ranging_beacon.lat,
+			.beacon_lon = ranging_beacon.lon,
+			.beacon_alt = ranging_beacon.alt,
+		};
+
+		_ekf.setRangingBeaconData(sample);
+	}
+}
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 #if defined(CONFIG_EKF2_BAROMETER)
 void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)

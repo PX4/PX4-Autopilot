@@ -1,0 +1,42 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_RNGBC_CTRL:
+      description:
+        short: Ranging beacon fusion control
+        long: Enable/disable ranging beacon fusion.
+      type: enum
+      values:
+        0: Disable ranging beacon fusion
+        1: Enable ranging beacon fusion
+      default: 1
+    EKF2_RNGBC_DELAY:
+      description:
+        short: Ranging beacon measurement delay relative to IMU measurements
+      type: float
+      default: 0
+      min: 0
+      max: 1000
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_RNGBC_GATE:
+      description:
+        short: Gate size for ranging beacon fusion
+        long: Sets the number of standard deviations used by the innovation consistency test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_RNGBC_NOISE:
+      description:
+        short: Measurement noise for ranging beacon fusion
+        long: Used to lower bound or replace the uncertainty included in the message
+      type: float
+      default: 30.0
+      min: 0.1
+      max: 500.0
+      unit: m
+      decimal: 1

@@ -146,6 +146,10 @@ public:
 	void setAuxVelData(const auxVelSample &auxvel_sample);
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	void setRangingBeaconData(const rangingBeaconSample &ranging_beacon_sample);
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 	void setSystemFlagData(const systemFlagUpdate &system_flags);
 
 	// return a address to the parameters struct
@@ -459,6 +463,11 @@ protected:
 	TimestampedRingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
 #endif // CONFIG_EKF2_AUXVEL
 	TimestampedRingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
+
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+	TimestampedRingBuffer<rangingBeaconSample> *_ranging_beacon_buffer {nullptr};
+	uint64_t _time_last_ranging_beacon_buffer_push{0};
+#endif // CONFIG_EKF2_RANGING_BEACON
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	TimestampedRingBuffer<baroSample> *_baro_buffer {nullptr};
