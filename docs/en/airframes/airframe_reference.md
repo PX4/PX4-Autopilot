@@ -806,23 +806,3 @@ div.frame_variant td, div.frame_variant th {
 </tbody>
 </table>
 </div>
-
-### VTOL Tailsitter Coaxial
-
-<div class="frame_common">
-<img src="../../assets/airframes/types/AirframeUnknown.svg"/>
-</div>
-
-<div class="frame_variant">
-<table>
- <thead>
-   <tr><th>Name</th><th></th></tr>
- </thead>
-<tbody>
-<tr id="vtol_vtol_tailsitter_coaxial_vtol_tailsitter">
- <td>VTOL Coaxial Tailsitter</td>
- <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 13201</p></td>
-</tr>
-</tbody>
-</table>
-</div>

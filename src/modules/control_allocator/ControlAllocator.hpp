@@ -170,7 +170,7 @@ private:
 		HELICOPTER_COAXIAL = 12,
 		SPACECRAFT_2D = 13,
 		SPACECRAFT_3D = 14,
-		TAILSITTER_COAXIAL= 16,
+		TAILSITTER_COAXIAL = 16,
 	};
 
 	enum class FailureMode {
