@@ -16,6 +16,7 @@ permissions:
   contents: write
   actions: read
   id-token: write
+  pull-requests: write
 
 concurrency:
   group: docs-orchestrator-${{ github.ref }}
@@ -203,6 +204,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
 
       - name: Download metadata artifact
         if: needs.pr-metadata-regen.result == 'success'
@@ -211,15 +213,47 @@ jobs:
           name: pr-metadata
           path: docs/
 
+      - name: Get changed doc files
+        id: changed-files
+        uses: tj-actions/changed-files@v46.0.5
+        with:
+          json: true
+          base_sha: ${{ github.event.pull_request.base.sha }}
+          sha: ${{ github.event.pull_request.head.sha }}
+          files: |
+            docs/en/**/*.md
+
+      - name: Save changed files list
+        run: |
+          mkdir -p logs
+          echo '${{ steps.changed-files.outputs.all_changed_files }}' | jq '.' > ./logs/prFiles.json
+          echo "Changed files:"
+          cat ./logs/prFiles.json
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Run link checker
+      - name: Run filtered link checker (changed files)
         run: |
           npm -g install markdown_link_checker_sc@0.0.138
-          mkdir -p logs
+          if [ "$(jq length ./logs/prFiles.json)" -gt 0 ]; then
+            markdown_link_checker_sc \
+              -r "$GITHUB_WORKSPACE" \
+              -d docs \
+              -e en \
+              -f ./logs/prFiles.json \
+              -i assets \
+              -u docs.px4.io/main/ \
+              > ./logs/filtered-link-check-results.md || true
+          else
+            echo "No changed doc files found" > ./logs/filtered-link-check-results.md
+          fi
+          cat ./logs/filtered-link-check-results.md
+
+      - name: Run full link checker
+        run: |
           markdown_link_checker_sc \
             -r "$GITHUB_WORKSPACE" \
             -d docs \
@@ -229,11 +263,17 @@ jobs:
             > ./logs/link-check-results.md || true
           cat ./logs/link-check-results.md
 
+      - name: Post PR comment with link check results
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: flaws
+          path: ./logs/filtered-link-check-results.md
+
       - name: Upload link check results
         uses: actions/upload-artifact@v4
         with:
           name: link-check-results
-          path: logs/link-check-results.md
+          path: logs/
           retention-days: 7
 
   # =============================================================================
@@ -241,8 +281,11 @@ jobs:
   # =============================================================================
   build-site:
     name: "Build Site"
-    needs: [detect-changes, pr-metadata-regen, metadata-regen]
-    if: always() && (needs.metadata-regen.result == 'success' || needs.metadata-regen.result == 'skipped')
+    needs: [detect-changes, pr-metadata-regen, metadata-regen, link-check]
+    if: >-
+      always() &&
+      (needs.metadata-regen.result == 'success' || needs.metadata-regen.result == 'skipped') &&
+      (needs.link-check.result == 'success' || needs.link-check.result == 'skipped')
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     outputs:
       branchname: ${{ steps.set-branch.outputs.branchname }}
