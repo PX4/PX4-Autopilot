@@ -81,9 +81,6 @@ private:
 	enum class Register : uint8_t {
 		// Common registers
 		ProductName = 0,
-		HARDWARE_VERSION = 1,
-		FIRMWARE_VERSION = 2,
-		SERIAL_NUMBER =3,
 		DistanceData = 44,
 		LaserFiring = 50,
 		UpdateRate = 74,
@@ -107,19 +104,6 @@ private:
 		int16_t background_noise;
 	};
 
-	typedef struct{
-		uint8_t data[PAYLOAD_LENGTH];
-		uint32_t data_size;
-		uint8_t command_id;
-		uint8_t write;
-	} lw_request;
-
-	typedef struct {
-		uint8_t data[PAYLOAD_LENGTH];
-		uint32_t data_size;
-		uint8_t command_id;
-	} lw_response;
-
 	enum class Type {
 		GRF250 =0,
 		GRF500,
@@ -132,11 +116,6 @@ private:
 	int probe() override;
 
 	void start();
-	void init_protocol();
-	void get_product_name();
-	void get_hw_version();
-	void get_firmware_version();
-	void get_serial_number();
 	void set_update_rate();
 	void set_dist_output();
 
@@ -147,8 +126,6 @@ private:
 	int enableI2CBinaryProtocol(const char *product_name1, const char *product_name2);
 	int collect();
 
-	int updateRestriction();
-	uint16_t grf_format_crc(uint16_t crc, uint8_t data_val);
 
 	PX4Rangefinder _px4_rangefinder;
 
@@ -165,11 +142,6 @@ private:
 		(ParamInt<px4::params::SENS_EN_GRFXXX>) _param_sens_en_grfxxx,
 		(ParamInt<px4::params::GRFXXX_MODE>) _param_grfxxx_mode
 	)
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	typeof(px4::msg::VehicleStatus::vehicle_type) _vehicle_type{px4::msg::VehicleStatus::VEHICLE_TYPE_ROTARY_WING};
-	uORB::Subscription _dist_sense_mode_change_sub{ORB_ID(distance_sensor_mode_change_request)};
-	typeof(px4::msg::DistanceSensorModeChangeRequest::request_on_off) _req_mode{px4::msg::DistanceSensorModeChangeRequest::REQUEST_OFF};
 };
 
 LightwareGRF::LightwareGRF(const I2CSPIDriverConfig &config) :
@@ -262,71 +234,17 @@ int LightwareGRF::enableI2CBinaryProtocol(const char *product_name1, const char 
 
 int LightwareGRF::configure()
 {
-	PX4_INFO("Configure in the protocols");
-	// This will start the I2C sequesnce sinc the lidar will auto detect
-	// then set the communication protocols to I2C.
-	init_protocol();
-
-	// Request and response are needed for data to be collected
-	get_product_name();
-	get_hw_version();
-	get_firmware_version();
-	get_serial_number();
-
 	// Setting the update Rate
 	set_update_rate();
 	set_dist_output();
 	return 0;
 }
 
-void LightwareGRF::init_protocol()
-{
-	const uint8_t cmd[] = {0xaa, 0xaa};
-	int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
-	if (ret == 0 ) {
-		return ;
-	}
-}
-
-void LightwareGRF::get_product_name()
-{
-	// read the product name
-	uint8_t product_name[16];
-	readRegister(Register::ProductName, product_name, sizeof(product_name));
-	product_name[sizeof(product_name) - 1] = '\0';
-	PX4_INFO("Product: %s", product_name);
-
-}
-
-void LightwareGRF::get_hw_version()
-{
-	// read the Hardware Version
-	uint8_t hw_version[4];
-	readRegister(Register::HARDWARE_VERSION, hw_version, sizeof(hw_version));
-
-}
-
-void LightwareGRF::get_firmware_version()
-{
-	// read the firmware Version
-	uint8_t firmware_version[4];
-	readRegister(Register::FIRMWARE_VERSION, firmware_version, sizeof(firmware_version));
-
-}
-
-void LightwareGRF::get_serial_number()
-{
-	// read the product name
-	uint8_t serial_number[16];
-	readRegister(Register::SERIAL_NUMBER, serial_number, sizeof(serial_number));
-
-}
 
 void LightwareGRF::set_update_rate()
 {
 	const uint8_t cmd[] = {(uint8_t) Register::UpdateRate,(uint8_t)(0), (uint8_t)(0), (uint8_t)(0), (uint8_t)(50)};
 	int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
-	PX4_INFO("Update Return Value : %d", ret);
 }
 
 void LightwareGRF::set_dist_output()
@@ -334,7 +252,6 @@ void LightwareGRF::set_dist_output()
 	// read the product name
 	uint8_t cmd[] = {(uint8_t)RegisterGRF::DistanceOutput, (uint8_t)0, (uint8_t)0, (uint8_t)1};
 	int ret = transfer(cmd, sizeof(cmd), 0, 0);
-	PX4_INFO("Distance Out Return Value : %d", ret);
 }
 
 
@@ -358,7 +275,6 @@ int LightwareGRF::collect()
 
 	uint16_t distance_cm = val[2] << 16 | val[1] << 8 | val[0];
 	float distance_m = float(distance_cm) * 1e-1f;
-	PX4_INFO("Distance: %.02f", (double)distance_m);
 
 	_px4_rangefinder.update(timestamp_sample, distance_m);
 
@@ -372,91 +288,8 @@ void LightwareGRF::start()
 	ScheduleDelayed(_conversion_interval);
 }
 
-int LightwareGRF::updateRestriction()
-{
-	if (_dist_sense_mode_change_sub.updated()) {
-		distance_sensor_mode_change_request_s dist_sense_mode_change;
-
-		if (_dist_sense_mode_change_sub.copy(&dist_sense_mode_change)) {
-			_req_mode = dist_sense_mode_change.request_on_off;
-
-		} else {
-			_req_mode = distance_sensor_mode_change_request_s::REQUEST_OFF;
-		}
-	}
-
-	px4::msg::VehicleStatus vehicle_status;
-
-	if (_vehicle_status_sub.update(&vehicle_status)) {
-		// Check if vehicle type changed
-		if (vehicle_status.vehicle_type != _vehicle_type) {
-			// Transition VTOL -> Fixed Wing
-			if (_vehicle_type == px4::msg::VehicleStatus::VEHICLE_TYPE_ROTARY_WING &&
-			    vehicle_status.vehicle_type == px4::msg::VehicleStatus::VEHICLE_TYPE_FIXED_WING) {
-				// _auto_restriction = true;
-			}
-
-			// Transition Fixed Wing -> VTOL
-			else if (_vehicle_type == px4::msg::VehicleStatus::VEHICLE_TYPE_FIXED_WING &&
-				 vehicle_status.vehicle_type == px4::msg::VehicleStatus::VEHICLE_TYPE_ROTARY_WING) {
-				// _auto_restriction = false;
-			}
-
-			_vehicle_type = vehicle_status.vehicle_type;
-		}
-	}
-
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-		updateParams();
-	}
-
-
-
-	// _prev_restriction = _restriction;
-
-	switch (_param_grfxxx_mode.get()) {
-	case 0: // Sensor disabled
-		// _restriction = true;
-		break;
-
-	case 1: // Sensor enabled
-	default:
-		// _restriction = false;
-		break;
-
-	case 2:
-		// _restriction = _auto_restriction && _req_mode != distance_sensor_mode_change_request_s::REQUEST_ON;
-		break;
-	}
-
-	// if (_prev_restriction != _restriction) {
-	// 	PX4_INFO("Emission Control: %sabling sensor!", _restriction ? "dis" : "en");
-
-	// 	switch (_type) {
-	// 	case Type::Generic: {
-	// 			const uint8_t cmd[] = {I2C_LEGACY_CMD_WRITE_LASER_CONTROL, (uint8_t)(_restriction ? 0 : 1)};
-	// 			return transfer(cmd, sizeof(cmd), nullptr, 0);
-	// 		}
-
-	// 	case Type::LW20c:
-	// 	case Type::SF30d: {
-	// 			const uint8_t cmd[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
-	// 			return transfer(cmd, sizeof(cmd), nullptr, 0);
-	// 		}
-	// 	}
-	// }
-
-	return 0;
-}
-
 void LightwareGRF::RunImpl()
 {
-	if (PX4_OK != updateRestriction()) {
-		PX4_DEBUG("restriction error");
-		perf_count(_comms_errors);
-	}
 
 	switch (_state) {
 	case State::Configuring: {
@@ -474,48 +307,20 @@ void LightwareGRF::RunImpl()
 		}
 
 	case State::Running:
-		// if (!_restriction) {
-		// 	_px4_rangefinder.set_mode(distance_sensor_s::MODE_ENABLED);
 
-			if (PX4_OK != collect()) {
-				PX4_DEBUG("collection error");
+		if (PX4_OK != collect()) {
+			PX4_DEBUG("collection error");
 
-				if (++_consecutive_errors > 3) {
-					_state = State::Configuring;
-					_consecutive_errors = 0;
-				}
+			if (++_consecutive_errors > 3) {
+				_state = State::Configuring;
+				_consecutive_errors = 0;
 			}
+		}
 
-		// } else {
-		// 	_px4_rangefinder.set_mode(distance_sensor_s::MODE_DISABLED);
-
-		// 	if (!_prev_restriction) { // Publish disabled status once
-		// 		_px4_rangefinder.update(hrt_absolute_time(), -1.f, 0);
-		// 	}
-
-		// }
 
 		ScheduleDelayed(_conversion_interval);
 		break;
 	}
-}
-
-uint16_t LightwareGRF::grf_format_crc(uint16_t crc, uint8_t data_val)
-{
-	uint32_t i;
-	const uint16_t poly = 0x1021u;
-	crc ^= (uint16_t)((uint16_t) data_val << 8u);
-
-	for (i = 0; i < 8; i++) {
-		if (crc & (1u << 15u)) {
-			crc = (uint16_t)((crc << 1u) ^ poly);
-
-		} else {
-			crc = (uint16_t)(crc << 1u);
-		}
-	}
-
-	return crc;
 }
 
 void LightwareGRF::print_status()
@@ -531,7 +336,7 @@ void LightwareGRF::print_usage()
 		R"DESCR_STR(
 ### Description
 
-I2C bus driver for Lightware SFxx series LIDAR rangefinders: GRF250, GRF500.
+I2C bus driver for Lightware GRFxxx series LIDAR rangefinders: GRF250, GRF500.
 
 Setup/usage information:
 )DESCR_STR");
