@@ -258,6 +258,7 @@ set(msg_files
 	versioned/LongitudinalControlConfiguration.msg
 	versioned/ManualControlSetpoint.msg
 	versioned/ModeCompleted.msg
+	versioned/RangingBeacon.msg
 	versioned/RaptorInput.msg
 	versioned/RaptorStatus.msg
 	versioned/RegisterExtComponentReply.msg
