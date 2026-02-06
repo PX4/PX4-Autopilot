@@ -202,11 +202,18 @@ void DShot::select_next_command()
 	// EDT Request: use motor-order masks since needs_edt_request_mask is in motor order
 	uint8_t edt_motors_to_request = _bdshot_motor_mask & needs_edt_request_mask;
 
-	if (_bdshot_edt_enabled && edt_motors_to_request) {
-		// Find first motor that needs EDT request
+	if (_bdshot_edt_enabled && edt_motors_to_request != 0) {
+		// Find first motor that needs EDT request and has been online long enough
+		hrt_abstime now = hrt_absolute_time();
+
 		for (int motor_index = 0; motor_index < DSHOT_MAXIMUM_CHANNELS; motor_index++) {
 			if (edt_motors_to_request & (1 << motor_index)) {
-				auto now = hrt_absolute_time();
+				// Wait 1 second after ESC comes online before sending EDT (ESC init sequence)
+				if (_bdshot_telem_online_timestamps[motor_index] == 0
+				    || (now - _bdshot_telem_online_timestamps[motor_index]) < 1_s) {
+					continue;
+				}
+
 				_current_command.num_repetitions = 10;
 				_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
 				_current_command.motor_mask = (1 << motor_index);
@@ -382,7 +389,6 @@ void DShot::update_motor_commands(int num_outputs)
 					_telemetry.setExpectCommandResponse(motor_index, _current_command.command);
 				}
 
-				// PX4_INFO("Writing: ESC%d, value: %u", motor_index + 1, _current_command.command);
 				command = _current_command.command;
 				command_sent = true;
 			}
@@ -595,6 +601,12 @@ bool DShot::process_bdshot_telemetry()
 			_bdshot_telem_errors[output_channel] = up_bdshot_num_errors(output_channel);
 
 			if (up_bdshot_channel_online(output_channel)) {
+
+				// Record when this motor first came online
+				if (!(_bdshot_telem_online_mask & (1 << motor_index))) {
+					_bdshot_telem_online_timestamps[motor_index] = now;
+				}
+
 				// Online mask is in motor order for command/request logic
 				_bdshot_telem_online_mask |= (1 << motor_index);
 
@@ -638,7 +650,8 @@ bool DShot::process_bdshot_telemetry()
 
 			} else {
 				_bdshot_telem_online_mask &= ~(1 << motor_index);
-				// _bdshot_edt_requested_mask &= ~(1 << motor_index); // re-triggers EDT request when it comes back online
+				_bdshot_telem_online_timestamps[motor_index] = 0;
+				_bdshot_edt_requested_mask &= ~(1 << motor_index);
 				perf_count(_bdshot_error_perf);
 			}
 
