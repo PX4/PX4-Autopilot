@@ -107,7 +107,7 @@ private:
 		ZeroOffset = 116,
 	};
 
-	enum class RegisterGRF : uint8_t{
+	enum class RegisterGRF : uint8_t {
 		DistanceOutput = 27,
 		UpdateRate = 74,
 	};
@@ -386,7 +386,7 @@ int LightwareLaser::configure()
 		}
 		break;
 
-	case Type::GRF:{
+	case Type::GRF: {
 			int ret = enableI2CBinaryProtocol("GRF250", "GRF500");
 			const uint8_t cmd1[] = {(uint8_t) RegisterGRF::UpdateRate, 0, 0, 0, 50};
 			ret |= transfer(cmd1, sizeof(cmd1), nullptr, 0);
@@ -425,7 +425,7 @@ int LightwareLaser::collect()
 			break;
 		}
 
-	case Type::GRF:{
+	case Type::GRF: {
 
 			/* read from the sensor */
 			perf_begin(_sample_perf);
@@ -445,7 +445,7 @@ int LightwareLaser::collect()
 			float distance_m = float(distance_cm) * 1e-1f;
 
 			_px4_rangefinder.update(timestamp_sample, distance_m);
-		break;
+			break;
 		}
 
 	case Type::LW20c:
@@ -558,6 +558,7 @@ int LightwareLaser::updateRestriction()
 				const uint8_t cmd[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
 				return transfer(cmd, sizeof(cmd), nullptr, 0);
 			}
+
 		case Type::GRF: {
 				return 0;
 			}
