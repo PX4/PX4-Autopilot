@@ -138,7 +138,7 @@ int GRFLaserSerial::collect()
 			perf_end(_sample_perf);
 			return PX4_OK;
 		}
-
+		perf_end(_sample_perf);
 		return -EAGAIN;
 
 	} else if (_sensor_state == STATE_ACK_PRODUCT_NAME) {
@@ -154,7 +154,7 @@ int GRFLaserSerial::collect()
 			perf_end(_sample_perf);
 			return PX4_OK;
 		}
-
+		perf_end(_sample_perf);
 		return -EAGAIN;
 
 	} else if (_sensor_state == STATE_ACK_UPDATE_RATE) {
@@ -170,7 +170,7 @@ int GRFLaserSerial::collect()
 			perf_end(_sample_perf);
 			return PX4_OK;
 		}
-
+		perf_end(_sample_perf);
 		return -EAGAIN;
 
 	} else {
@@ -187,7 +187,7 @@ int GRFLaserSerial::collect()
 			perf_end(_sample_perf);
 			return PX4_OK;
 		}
-
+		perf_end(_sample_perf);
 		return -EAGAIN;
 	}
 }
