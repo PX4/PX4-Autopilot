@@ -101,6 +101,7 @@ pipeline {
             echo $0;
             git clone https://github.com/emscripten-core/emsdk.git _emscripten_sdk;
             cd _emscripten_sdk;
+            git checkout 4.0.15;
             ./emsdk install latest;
             ./emsdk activate latest;
             cd ..;

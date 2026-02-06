@@ -40,7 +40,9 @@
 #include "commander_helper.h"
 
 HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags): ModuleParams(nullptr),
-	_failsafe_flags(failsafe_flags) {}
+	_failsafe_flags(failsafe_flags),
+	_param_ekf2_gps_ctrl_handle(param_find("EKF2_GPS_CTRL"))
+{}
 
 bool HomePosition::hasMovedFromCurrentHomeLocation()
 {
@@ -299,6 +301,19 @@ void HomePosition::setHomePosValid()
 	_valid = true;
 }
 
+bool HomePosition::isGpsHorizontalFusionEnabled()
+{
+	// If parameter doesn't exist, allow GPS usage
+	if (_param_ekf2_gps_ctrl_handle == PARAM_INVALID) {
+		return true;
+	}
+
+	// Check if bit 0 (horizontal position fusion) is set
+	int32_t ekf2_gps_ctrl = 0;
+	param_get(_param_ekf2_gps_ctrl_handle, &ekf2_gps_ctrl);
+	return (ekf2_gps_ctrl & 1);
+}
+
 void HomePosition::updateHomePositionYaw(float yaw)
 {
 	home_position_s home = _home_position_pub.get();
@@ -348,7 +363,8 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 		const bool epv_valid = vehicle_gps_position.epv < kHomePositionGPSRequiredEPV;
 		const bool evh_valid = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
 
-		_gps_position_for_home_valid = time_valid && fix_valid && eph_valid && epv_valid && evh_valid;
+		_gps_position_for_home_valid = time_valid && fix_valid && eph_valid && epv_valid && evh_valid
+					       && isGpsHorizontalFusionEnabled();
 
 		if (_param_com_home_en.get() && _gps_position_for_home_valid && _last_gps_timestamp != 0 && _last_baro_timestamp != 0
 		    && _takeoff_time != 0 && now < _takeoff_time + kHomePositionCorrectionTimeWindow) {
