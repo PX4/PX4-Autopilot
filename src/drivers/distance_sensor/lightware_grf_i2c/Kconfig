@@ -1,5 +1,0 @@
-menuconfig DRIVERS_DISTANCE_SENSOR_LIGHTWARE_GRF_I2C
-	bool "lightware_grf_i2c"
-	default n
-	---help---
-		Enable support for lightware_grf_i2c
