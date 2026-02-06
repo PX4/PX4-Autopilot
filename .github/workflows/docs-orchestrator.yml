@@ -224,9 +224,11 @@ jobs:
             docs/en/**/*.md
 
       - name: Save changed files list
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
           mkdir -p logs
-          echo '${{ steps.changed-files.outputs.all_changed_files }}' | jq '.' > ./logs/prFiles.json
+          echo "$ALL_CHANGED_FILES" | jq '.' > ./logs/prFiles.json
           echo "Changed files:"
           cat ./logs/prFiles.json
 
