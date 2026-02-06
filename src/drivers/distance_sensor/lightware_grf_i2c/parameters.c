@@ -42,16 +42,4 @@
  * @value 1 GRF250
  * @value 2 GRF500
  */
-PARAM_DEFINE_INT32(SENS_EN_GRFXXX, 0);
-
-/**
- * Lightware GRF250 GRF500 Operation Mode
- *
- * @value 0 Disabled
- * @value 1 Enabled
- * @value 2 Enabled in VTOL MC mode, listen to request from system in FW mode
- *
- * @min 0
- * @max 2
- */
-PARAM_DEFINE_INT32(GRFXXX_MODE, 1);
+PARAM_DEFINE_INT32(SENS_EN_GRF, 0);

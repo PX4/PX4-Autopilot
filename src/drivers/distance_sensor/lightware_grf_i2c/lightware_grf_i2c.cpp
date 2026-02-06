@@ -139,8 +139,7 @@ private:
 	int _consecutive_errors{0};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_EN_GRFXXX>) _param_sens_en_grfxxx,
-		(ParamInt<px4::params::GRFXXX_MODE>) _param_grfxxx_mode
+		(ParamInt<px4::params::SENS_EN_GRFXXX>) _param_sens_en_grfxxx
 	)
 };
 
