@@ -1,6 +1,6 @@
 [submodule "src/modules/mavlink/mavlink"]
 	path = src/modules/mavlink/mavlink
-	url = https://github.com/mavlink/mavlink.git
+	url = git@github.com:Gromiusz/mavlink.git
 	branch = master
 [submodule "Tools/simulation/jmavsim/jMAVSim"]
 	path = Tools/simulation/jmavsim/jMAVSim

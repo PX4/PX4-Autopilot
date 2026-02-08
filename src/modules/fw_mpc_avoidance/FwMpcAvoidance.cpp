@@ -11,6 +11,8 @@
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
 
+#include <vector>
+
 using matrix::Quatf;
 using matrix::Vector3f;
 
@@ -90,6 +92,45 @@ void FwMpcAvoidance::Run()
 	}
 
 	parameters_update();
+
+	fw_mpc_obstacles_s obstacles_msg{};
+
+	if (_fw_mpc_obstacles_sub.update(&obstacles_msg)) {
+		if (obstacles_msg.count == 0) {
+			_controller.clear_obstacles();
+
+		} else if (obstacles_msg.frame == fw_mpc_obstacles_s::FRAME_LOCAL_ENU
+			   || obstacles_msg.frame == fw_mpc_obstacles_s::FRAME_LOCAL_NED) {
+			const int count = math::min((int)obstacles_msg.count, (int)fw_mpc_obstacles_s::MAX_OBSTACLES);
+			std::vector<FwMpcController::Obstacle> obs;
+			obs.reserve(count);
+
+			for (int i = 0; i < count; i++) {
+				float n = 0.f;
+				float e = 0.f;
+				float u = 0.f;
+
+				if (obstacles_msg.frame == fw_mpc_obstacles_s::FRAME_LOCAL_ENU) {
+					n = obstacles_msg.y[i];
+					e = obstacles_msg.x[i];
+					u = obstacles_msg.z[i];
+
+				} else { // FRAME_LOCAL_NED
+					n = obstacles_msg.x[i];
+					e = obstacles_msg.y[i];
+					u = -obstacles_msg.z[i];
+				}
+
+				FwMpcController::Obstacle o{};
+				o.c = Vector3f{n, e, u};
+				o.R = obstacles_msg.radius[i];
+				o.margin = obstacles_msg.margin[i];
+				obs.push_back(o);
+			}
+
+			_controller.set_obstacles(obs);
+		}
+	}
 
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain((now - _last_run) * 1e-6f, 0.001f, 0.1f);

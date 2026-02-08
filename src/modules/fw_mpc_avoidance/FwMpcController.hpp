@@ -9,7 +9,7 @@
 #include <vector>
 
 /**
- * Fixed-wing MPC controller translated from the UAVMPC_LOW MATLAB prototype.
+ * Fixed-wing MPC controller.
  * Builds a horizon-based QP (linearized dynamics, smoothness, obstacle constraints)
  * and solves it with OSQP to generate control increments.
  */

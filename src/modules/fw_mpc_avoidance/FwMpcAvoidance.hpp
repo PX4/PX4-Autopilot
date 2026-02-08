@@ -11,6 +11,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/fixed_wing_lateral_setpoint.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
+#include <uORB/topics/fw_mpc_obstacles.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -48,6 +49,7 @@ private:
 	uORB::Subscription _lpos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Subscription _lat_sp_sub{ORB_ID(fixed_wing_lateral_setpoint)};
 	uORB::Subscription _lon_sp_sub{ORB_ID(fixed_wing_longitudinal_setpoint)};
+	uORB::Subscription _fw_mpc_obstacles_sub{ORB_ID(fw_mpc_obstacles)};
 
 	uORB::SubscriptionInterval _param_update_sub{ORB_ID(parameter_update), 1000000};
 
