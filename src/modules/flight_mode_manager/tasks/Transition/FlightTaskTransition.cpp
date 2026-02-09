@@ -67,6 +67,8 @@ bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 		_gear.landing_gear = landing_gear_s::GEAR_KEEP;
 	}
 
+	_yaw_setpoint = _sub_vehicle_local_position.get().heading;
+
 	return ret;
 }
 
@@ -93,18 +95,20 @@ bool FlightTaskTransition::update()
 	Vector2f horizontal_acceleration_direction;
 
 	if (!_sub_vehicle_status.get().in_transition_to_fw) {
+		// In backtransition, do NOT give a NAN yaw setpoint here - we
+		// keep the heading set in FlightTaskTransition::activate()
 		tilt_setpoint = computeBackTransitionTiltSetpoint();
 		const Vector2f velocity_xy{_velocity};
 		horizontal_acceleration_direction = -velocity_xy.unit_or_zero();
 
 	} else {
-		// Forward transition: use heading direction
+		// Forward transition: use heading direction, no yaw setpoint
 		horizontal_acceleration_direction = Dcm2f(_yaw) * Vector2f(-1.0f, 0.0f);
+		_yaw_setpoint = NAN;
 	}
 
 	_acceleration_setpoint.xy() = tanf(tilt_setpoint) * CONSTANTS_ONE_G * horizontal_acceleration_direction;
 
-	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.f;
 	return ret;
 }
