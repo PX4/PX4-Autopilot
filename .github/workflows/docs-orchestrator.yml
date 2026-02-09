@@ -218,17 +218,16 @@ jobs:
         uses: tj-actions/changed-files@v46.0.5
         with:
           json: true
+          write_output_files: true
+          output_dir: ./logs
           base_sha: ${{ github.event.pull_request.base.sha }}
           sha: ${{ github.event.pull_request.head.sha }}
           files: |
             docs/en/**/*.md
 
       - name: Save changed files list
-        env:
-          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
         run: |
-          mkdir -p logs
-          echo "$ALL_CHANGED_FILES" | jq '.' > ./logs/prFiles.json
+          mv ./logs/all_changed_files.json ./logs/prFiles.json
           echo "Changed files:"
           cat ./logs/prFiles.json
 
@@ -383,25 +382,3 @@ jobs:
             --delete \
             --exclude "*.html" \
             --cache-control "public, max-age=86400, immutable"
-
-  # =============================================================================
-  # Crowdin Upload (push only)
-  # =============================================================================
-  crowdin-upload:
-    name: "Upload to Crowdin"
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [metadata-regen, build-site]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Upload to Crowdin
-        uses: crowdin/github-action@v2
-        with:
-          upload_sources: true
-          upload_translations: false
-          download_translations: false
-          source: docs/en/**/*.md
-          project_id: ${{ secrets.CROWDIN_PROJECT_ID }}
-          token: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
