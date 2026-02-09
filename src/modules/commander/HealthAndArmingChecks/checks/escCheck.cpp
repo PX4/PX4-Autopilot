@@ -104,17 +104,21 @@ void EscChecks::checkEscStatus(const Context &context, Report &reporter, const e
 {
 	const NavModes required_modes = _param_com_arm_chk_escs.get() ? NavModes::All : NavModes::None;
 
-	if (esc_status.esc_count > 0) {
-		// Check if one or more the ESCs are offline
-		char esc_fail_msg[50];
-		esc_fail_msg[0] = '\0';
+	if (esc_status.esc_count <= 0) {
+		return;
+	}
 
-		for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
-			const bool mapped = math::isInRange(esc_status.esc[i].actuator_function, actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1,
-							    uint8_t(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + actuator_motors_s::NUM_CONTROLS - 1));
-			const bool offline = (esc_status.esc_online_flags & (1 << i)) == 0;
+	char esc_fail_msg[50];
+	esc_fail_msg[0] = '\0';
 
-			if (mapped && offline) {
+	int online_bitmask = (1 << esc_status.esc_count) - 1;
+
+	// Check if one or more the ESCs are offline
+	if (online_bitmask != esc_status.esc_online_flags) {
+
+		for (int index = 0; index < esc_status.esc_count; index++) {
+			if ((esc_status.esc_online_flags & (1 << index)) == 0) {
+				uint8_t motor_index = esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
 				/* EVENT
 					* @description
 					* <profile name="dev">
@@ -122,99 +126,98 @@ void EscChecks::checkEscStatus(const Context &context, Report &reporter, const e
 					* </profile>
 					*/
 				reporter.healthFailure<uint8_t>(required_modes, health_component_t::motors_escs, events::ID("check_escs_offline"),
-								events::Log::Critical, "ESC {1} offline", i + 1);
-				snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", i + 1);
+								events::Log::Critical, "ESC {1} offline", motor_index);
+				snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", motor_index);
 				esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
 			}
 		}
 
-		if ((esc_fail_msg[0] != '\0') && reporter.mavlink_log_pub()) {
+		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "%soffline. %s\t", esc_fail_msg, context.isArmed() ? "Land now!" : "");
 		}
+	}
 
 		for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; ++index) {
 
-			const bool esc_failure = (esc_status.esc[index].failures != 0);
-			reporter.failsafeFlags().fd_motor_failure = context.status().failure_detector_status & vehicle_status_s::FAILURE_MOTOR;
-			const bool motor_failure = (reporter.failsafeFlags().fd_motor_failure);
+		const bool esc_failure = (esc_status.esc[index].failures != 0);
+		reporter.failsafeFlags().fd_motor_failure = context.status().failure_detector_status & vehicle_status_s::FAILURE_MOTOR;
+		const bool motor_failure = (reporter.failsafeFlags().fd_motor_failure);
 
-			if (esc_failure) {
+		if (esc_failure) {
 
-				for (uint8_t fault_index = 0; fault_index <= static_cast<uint8_t>(esc_fault_reason_t::_max); fault_index++) {
-					if (esc_status.esc[index].failures & (1 << fault_index)) {
+			for (uint8_t fault_index = 0; fault_index <= static_cast<uint8_t>(esc_fault_reason_t::_max); fault_index++) {
+				if (esc_status.esc[index].failures & (1 << fault_index)) {
 
-						esc_fault_reason_t fault_reason_index = static_cast<esc_fault_reason_t>(fault_index);
+					esc_fault_reason_t fault_reason_index = static_cast<esc_fault_reason_t>(fault_index);
 
-						const char *user_action = "";
-						events::px4::enums::suggested_action_t action = events::px4::enums::suggested_action_t::none;
+					const char *user_action = "";
+					events::px4::enums::suggested_action_t action = events::px4::enums::suggested_action_t::none;
 
-						if (context.isArmed()) {
-							if (fault_reason_index == esc_fault_reason_t::motor_warn_temp
-							    || fault_reason_index == esc_fault_reason_t::esc_warn_temp
-							    || fault_reason_index == esc_fault_reason_t::over_rpm) {
-								user_action = "Reduce throttle";
-								action = events::px4::enums::suggested_action_t::reduce_throttle;
+					if (context.isArmed()) {
+						if (fault_reason_index == esc_fault_reason_t::motor_warn_temp
+						    || fault_reason_index == esc_fault_reason_t::esc_warn_temp
+						    || fault_reason_index == esc_fault_reason_t::over_rpm) {
+							user_action = "Reduce throttle";
+							action = events::px4::enums::suggested_action_t::reduce_throttle;
 
-							} else {
-								user_action = "Land now!";
-								action = events::px4::enums::suggested_action_t::land;
-							}
+						} else {
+							user_action = "Land now!";
+							action = events::px4::enums::suggested_action_t::land;
 						}
+					}
 
-						uint8_t motor_index = esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
+					uint8_t motor_index = esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
 
-						/* EVENT
-						 * @description
-						 * {3}
-						 *
-						 * <profile name="dev">
-						 * This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
-						 * </profile>
-						 */
-						reporter.healthFailure<uint8_t, events::px4::enums::esc_fault_reason_t, events::px4::enums::suggested_action_t>(
-							required_modes, health_component_t::motors_escs, events::ID("check_escs_fault"),
-							events::Log::Critical, "ESC {1}: {2}", motor_index, fault_reason_index, action);
+					/* EVENT
+						* @description
+						* {3}
+						*
+						* <profile name="dev">
+						* This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
+						* </profile>
+						*/
+					reporter.healthFailure<uint8_t, events::px4::enums::esc_fault_reason_t, events::px4::enums::suggested_action_t>(
+						required_modes, health_component_t::motors_escs, events::ID("check_escs_fault"),
+						events::Log::Critical, "ESC {1}: {2}", motor_index, fault_reason_index, action);
 
-						if (reporter.mavlink_log_pub()) {
-							mavlink_log_emergency(reporter.mavlink_log_pub(), "ESC%d: %s. %s \t", motor_index,
-									      esc_fault_reason_str(fault_reason_index), user_action);
-						}
+					if (reporter.mavlink_log_pub()) {
+						mavlink_log_emergency(reporter.mavlink_log_pub(), "ESC%d: %s. %s \t", motor_index,
+								      esc_fault_reason_str(fault_reason_index), user_action);
 					}
 				}
 			}
+		}
 
-			if (motor_failure) {
-				reporter.failsafeFlags().fd_motor_failure = context.status().failure_detector_status & vehicle_status_s::FAILURE_MOTOR;
+		if (motor_failure) {
+			reporter.failsafeFlags().fd_motor_failure = context.status().failure_detector_status & vehicle_status_s::FAILURE_MOTOR;
 
-				if (reporter.failsafeFlags().fd_motor_failure) {
-					// Get the failure detector status to check which motor(s) failed
-					failure_detector_status_s failure_detector_status{};
-					bool have_motor_mask = _failure_detector_status_sub.copy(&failure_detector_status);
+			if (reporter.failsafeFlags().fd_motor_failure) {
+				// Get the failure detector status to check which motor(s) failed
+				failure_detector_status_s failure_detector_status{};
+				bool have_motor_mask = _failure_detector_status_sub.copy(&failure_detector_status);
 
-					if (have_motor_mask && failure_detector_status.motor_failure_mask != 0) {
-						for (uint8_t motor_index = 0; motor_index < esc_status_s::CONNECTED_ESC_MAX; motor_index++) {
-							if (failure_detector_status.motor_failure_mask & (1 << motor_index)) {
-								/* EVENT
-								 * @description
-								 * <profile name="dev">
-								 * This check can be configured via <param>FD_ACT_EN</param> parameter.
-								 * </profile>
-								 */
-								reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
-												events::ID("check_failure_detector_motor"),
-												events::Log::Critical, "Motor {1} failure detected", motor_index);
+				if (have_motor_mask && failure_detector_status.motor_failure_mask != 0) {
+					for (uint8_t motor_index = 0; motor_index < esc_status_s::CONNECTED_ESC_MAX; motor_index++) {
+						if (failure_detector_status.motor_failure_mask & (1 << motor_index)) {
+							/* EVENT
+								* @description
+								* <profile name="dev">
+								* This check can be configured via <param>FD_ACT_EN</param> parameter.
+								* </profile>
+								*/
+							reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
+											events::ID("check_failure_detector_motor"),
+											events::Log::Critical, "Motor {1} failure detected", motor_index);
 
-								if (reporter.mavlink_log_pub()) {
-									mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Motor %d failure detected",
-											     motor_index);
-								}
+							if (reporter.mavlink_log_pub()) {
+								mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Motor %d failure detected",
+										     motor_index);
 							}
 						}
 					}
 				}
 			}
 		}
-
-
 	}
+
 }
