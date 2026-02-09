@@ -27,9 +27,9 @@ jobs:
     - name: Git ownership workaround
       run: git config --system --add safe.directory '*'
 
-    - name: ccache cache
+    - name: ccache cache restore
       id: cc_restore
-      uses: runs-on/cache@v4
+      uses: runs-on/cache/restore@v4
       with:
         path: ~/.ccache
         key: ccache-clang-tidy-${{ github.ref_name }}
@@ -56,3 +56,10 @@ jobs:
     - name: ccache post-build stats
       if: always()
       run: ccache -s
+
+    - name: ccache cache save
+      if: always()
+      uses: runs-on/cache/save@v4
+      with:
+        path: ~/.ccache
+        key: ${{ steps.cc_restore.outputs.cache-primary-key }}
