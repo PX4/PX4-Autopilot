@@ -132,7 +132,7 @@ void EscChecks::checkEscStatus(const Context &context, Report &reporter, const e
 			mavlink_log_critical(reporter.mavlink_log_pub(), "%soffline. %s\t", esc_fail_msg, context.isArmed() ? "Land now!" : "");
 		}
 
-		for (int index = 0; index < math::min(esc_status.esc_count, esc_status_s::CONNECTED_ESC_MAX); ++index) {
+		for (int index = 0; index <  esc_status_s::CONNECTED_ESC_MAX; ++index) {
 
 			if (esc_status.esc[index].failures != 0) {
 

@@ -6,7 +6,6 @@
 uint64 timestamp  # time since system start (microseconds)
 
 uint8 device_type  # [@enum DEVICE_TYPE] Type of the device. Matches MAVLink DEVICE_TYPE enum
-
 uint8 DEVICE_TYPE_GENERIC = 0                 # Generic/unknown sensor
 uint8 DEVICE_TYPE_AIRSPEED = 1                # Airspeed sensor
 uint8 DEVICE_TYPE_ESC = 2                     # ESC
@@ -25,8 +24,6 @@ uint8 DEVICE_TYPE_BATTERY = 14                # Battery
 uint8 DEVICE_TYPE_HYGROMETER = 15             # Hygrometer
 
 char[80] name  # Name of node
-char[32] vendor_name  # Name of the device vendor
-char[32] model_name   # Name of the device model
 
 uint32   device_id         # [-] [@invalid 0 if not available] Unique device ID for the sensor. Does not change between power cycles.
 char[24] firmware_version  # [-] [@invalid empty if not available] Firmware version.

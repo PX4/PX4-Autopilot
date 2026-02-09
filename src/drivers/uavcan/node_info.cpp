@@ -201,18 +201,10 @@ void NodeInfoPublisher::publishSingleDeviceInformation(const DeviceInformation &
 	msg.device_id = device_info.device_id;
 
 	// Copy pre-populated fields directly from the struct
-	static_assert(sizeof(msg.model_name) == sizeof(device_info.model_name), "Array size mismatch");
-	static_assert(sizeof(msg.vendor_name) == sizeof(device_info.vendor_name), "Array size mismatch");
+	static_assert(sizeof(msg.name) == sizeof(device_info.name), "Array size mismatch");
 	static_assert(sizeof(msg.firmware_version) == sizeof(device_info.firmware_version), "Array size mismatch");
 	static_assert(sizeof(msg.hardware_version) == sizeof(device_info.hardware_version), "Array size mismatch");
 	static_assert(sizeof(msg.serial_number) == sizeof(device_info.serial_number), "Array size mismatch");
-	static_assert(sizeof(msg.name) == sizeof(device_info.name), "Array size mismatch");
-
-	memcpy(msg.model_name, device_info.model_name, sizeof(msg.model_name));
-	msg.model_name[sizeof(msg.model_name) - 1] = '\0';
-
-	memcpy(msg.vendor_name, device_info.vendor_name, sizeof(msg.vendor_name));
-	msg.vendor_name[sizeof(msg.vendor_name) - 1] = '\0';
 
 	memcpy(msg.name, device_info.name, sizeof(msg.name));
 	msg.name[sizeof(msg.name) - 1] = '\0';
@@ -237,9 +229,6 @@ void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info,
 {
 	device_info.has_node_info = true;
 
-	// Remain backward compatible - for now.
-	parseNodeName(info.name, device_info);
-
 	snprintf(device_info.name, sizeof(device_info.name), "%s", info.name);
 	snprintf(device_info.firmware_version, sizeof(device_info.firmware_version),
 		 "%d.%d.%lu", info.sw_major, info.sw_minor, static_cast<unsigned long>(info.vcs_commit));
@@ -251,46 +240,6 @@ void NodeInfoPublisher::populateDeviceInfoFields(DeviceInformation &device_info,
 		 info.unique_id[4], info.unique_id[5], info.unique_id[6], info.unique_id[7],
 		 info.unique_id[8], info.unique_id[9], info.unique_id[10], info.unique_id[11],
 		 info.unique_id[12], info.unique_id[13], info.unique_id[14], info.unique_id[15]);
-}
-
-void NodeInfoPublisher::parseNodeName(const char *name, DeviceInformation &device_info)
-{
-	if (!name || strlen(name) == 0) {
-		strlcpy(device_info.vendor_name, "", sizeof(device_info.vendor_name));
-		strlcpy(device_info.model_name, "", sizeof(device_info.model_name));
-		return;
-	}
-
-	// Find first dot and skip everything before it
-	const char *after_first_dot = strchr(name, '.');
-
-	if (after_first_dot == nullptr) {
-		// No dot - whole string is model, vendor is -1
-		strlcpy(device_info.vendor_name, "", sizeof(device_info.vendor_name));
-		strlcpy(device_info.model_name, name, sizeof(device_info.model_name));
-		return;
-	}
-
-	after_first_dot++;
-
-	// Find next dot in remaining string
-	const char *second_dot = strchr(after_first_dot, '.');
-
-	if (second_dot == nullptr) {
-		// Only one dot - everything after first dot is model, vendor is -1
-		strlcpy(device_info.vendor_name, "", sizeof(device_info.vendor_name));
-		strlcpy(device_info.model_name, after_first_dot,  sizeof(device_info.model_name));
-		return;
-	}
-
-	// Copy vendor (between first and second dot)
-	size_t vendor_len = second_dot - after_first_dot;
-	size_t copy_len = (vendor_len < sizeof(device_info.vendor_name) - 1) ? vendor_len : sizeof(device_info.vendor_name) - 1;
-	strncpy(device_info.vendor_name, after_first_dot, copy_len);
-	device_info.vendor_name[copy_len] = '\0';
-
-	// Copy model (everything after second dot)
-	strlcpy(device_info.model_name, second_dot + 1, sizeof(device_info.model_name));
 }
 
 bool NodeInfoPublisher::extendDeviceInformationsArray()
