@@ -7,16 +7,14 @@ on:
       - "release/**"
     paths:
       - "docs/**"
+      - "src/**"
+      - "msg/**"
+      - "ROMFS/**"
+      - "Tools/module_config/**"
   pull_request:
     paths:
       - "docs/**"
   workflow_dispatch:
-
-permissions:
-  contents: write
-  actions: read
-  id-token: write
-  pull-requests: write
 
 concurrency:
   group: docs-orchestrator-${{ github.ref }}
@@ -29,6 +27,8 @@ jobs:
   detect-changes:
     name: "Detect Changed Paths"
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     outputs:
       source_changed: ${{ steps.changes.outputs.source }}
@@ -51,6 +51,8 @@ jobs:
     name: "PR: Generate Metadata"
     needs: [detect-changes]
     if: github.event_name == 'pull_request' && needs.detect-changes.outputs.source_changed == 'true'
+    permissions:
+      contents: read
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
       image: px4io/px4-dev-nuttx-focal:2024-11-07
@@ -110,6 +112,8 @@ jobs:
   metadata-regen:
     name: "Push: Generate & Commit Metadata"
     if: github.event_name == 'push'
+    permissions:
+      contents: write
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
       image: px4io/px4-dev-nuttx-focal:2024-11-07
@@ -185,7 +189,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "docs: auto-sync metadata
+            git commit -m "docs: auto-sync metadata [skip ci]
 
             Co-Authored-By: PX4 BuildBot <${{ secrets.PX4BUILDBOT_EMAIL }}>"
             git push
@@ -198,6 +202,9 @@ jobs:
     name: "Check Links"
     needs: [detect-changes, pr-metadata-regen]
     if: always() && (github.event_name == 'pull_request')
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -287,6 +294,8 @@ jobs:
       always() &&
       (needs.metadata-regen.result == 'success' || needs.metadata-regen.result == 'skipped') &&
       (needs.link-check.result == 'success' || needs.link-check.result == 'skipped')
+    permissions:
+      contents: read
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     outputs:
       branchname: ${{ steps.set-branch.outputs.branchname }}
@@ -352,6 +361,8 @@ jobs:
     name: "Deploy to AWS"
     if: github.event_name == 'push'
     needs: [metadata-regen, build-site]
+    permissions:
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifact
