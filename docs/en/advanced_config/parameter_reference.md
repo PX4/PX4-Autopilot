@@ -41637,3 +41637,51 @@ ROS2 RMW_ZENOH_CPP Domain id.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 232      |           | 0       |
+
+### SF45_ORIENT_CFG (`INT32`) {#SENS_EN_GRF_CFG}
+
+Serial Configuration for Lightware Laser Rangefinder (serial).
+
+Configure on which serial port to run Lightware Laser Rangefinder (serial).
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
+
+### GRF_UPDATE_CFG (`INT32`) {#GRF_UPDATE_CFG}
+
+Update rate in Hz.
+
+The GRF sets the update rate in Hz to allow greater resolution
+
+**Values:**
+
+ - `1`: 1hz
+ - `2`: 2hz
+ - `3`: 4hz
+ - `4`: 5hz
+ - `5`: 10hz
+ - `6`: 20hz
+ - `7`: 30hz
+ - `8`: 40hz
+ - `9`: 50hz
+
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 5       |

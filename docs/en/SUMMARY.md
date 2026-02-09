@@ -254,6 +254,7 @@
       - [Lidar-Lite](sensor/lidar_lite.md)
       - [Lightware Lidars (SF/LW)](sensor/sfxx_lidar.md)
         - [Lightware SF45 Rotary Lidar](sensor/sf45_rotating_lidar.md)
+        - [Lightware GRF250/GRF500 Gimbal Lidar](sensor/grf_lidar.md)
       - [TeraRanger](sensor/teraranger.md)
       - [✘ Lanbao PSK-CM8JL65-CC5](sensor/cm8jl65_ir_distance_sensor.md)
       - [Avionics Anonymous Laser Altimeter UAVCAN Interface (CAN)](dronecan/avanon_laser_interface.md)
