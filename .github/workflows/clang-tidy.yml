@@ -14,18 +14,45 @@ on:
 
 jobs:
   build:
-    runs-on: [runs-on, runner=16cpu-linux-x64, "run-id=${{ github.run_id }}"]
+    runs-on: [runs-on, runner=16cpu-linux-x64, "run-id=${{ github.run_id }}", "extras=s3-cache"]
+    container:
+      image: px4io/px4-dev:v1.17.0-beta1
     steps:
+    - uses: runs-on/action@v2
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
         fetch-tags: true
 
-    - name: Testing (clang-tidy)
-      uses: addnab/docker-run-action@v3
+    - name: Git ownership workaround
+      run: git config --system --add safe.directory '*'
+
+    - name: ccache cache
+      id: cc_restore
+      uses: runs-on/cache@v4
       with:
-        image: px4io/px4-dev:v1.17.0-beta1
-        options: -v ${{ github.workspace }}:/workspace
-        run: |
-          cd /workspace
-          make -j16 clang-tidy
+        path: ~/.ccache
+        key: ccache-clang-tidy-${{ github.ref_name }}
+        restore-keys: |
+          ccache-clang-tidy-${{ github.ref_name }}-
+          ccache-clang-tidy-main-
+          ccache-clang-tidy-
+
+    - name: ccache config and stats
+      run: |
+        mkdir -p ~/.ccache
+        echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+        echo "compression = true" >> ~/.ccache/ccache.conf
+        echo "compression_level = 6" >> ~/.ccache/ccache.conf
+        echo "max_size = 120M" >> ~/.ccache/ccache.conf
+        echo "hash_dir = false" >> ~/.ccache/ccache.conf
+        echo "compiler_check = content" >> ~/.ccache/ccache.conf
+        ccache -s
+        ccache -z
+
+    - name: Testing (clang-tidy)
+      run: make -j16 clang-tidy
+
+    - name: ccache post-build stats
+      if: always()
+      run: ccache -s
