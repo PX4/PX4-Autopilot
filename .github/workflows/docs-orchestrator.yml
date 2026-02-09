@@ -14,6 +14,7 @@ on:
   pull_request:
     paths:
       - "docs/**"
+      - ".github/workflows/docs-orchestrator.yml"
   workflow_dispatch:
 
 concurrency:
