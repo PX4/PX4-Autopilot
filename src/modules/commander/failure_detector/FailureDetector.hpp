@@ -48,6 +48,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <matrix/matrix/math.hpp>
+#include <mixer_module/output_functions.hpp>
 #include <px4_platform_common/module_params.h>
 
 // subscriptions
