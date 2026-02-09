@@ -329,7 +329,7 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 		_failure_detector_status.flags.motor = (_motor_failure_mask != 0u);
 
 	} else { // Disarmed
-		for (uint8_t i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) {
+		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
 			_esc_undercurrent_hysteresis[i].set_state_and_update(false, now);
 			_esc_overcurrent_hysteresis[i].set_state_and_update(false, now);
 		}
