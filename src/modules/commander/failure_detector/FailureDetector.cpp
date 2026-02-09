@@ -191,7 +191,7 @@ void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status, c
 		}
 
 		_esc_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
-		_esc_failure_hysteresis.set_state_and_update(!is_all_escs_armed, now);
+		_esc_failure_hysteresis.set_state_and_update(!is_all_escs_armed, time_now);
 
 		_failure_detector_status.flags.arm_escs = _esc_failure_hysteresis.get_state();
 
@@ -286,8 +286,8 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 
 	// Check individual ESC reports
 	for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
-		const bool mapped = math::isInRange(esc_status.esc[i].actuator_function, actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1,
-						    uint8_t(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + actuator_motors_s::NUM_CONTROLS - 1));
+		const bool mapped = math::isInRange((int)esc_status.esc[i].actuator_function, (int)OutputFunction::Motor1,
+						    (int)OutputFunction::MotorMax);
 
 		// Skip if ESC is not actually connected
 		if (!mapped) {
@@ -296,8 +296,7 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 
 		// Map the esc status index to the actuator function index
 		const uint8_t actuator_function_index =
-			esc_status.esc[i].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
-
+			esc_status.esc[i].actuator_function - (int)OutputFunction::Motor1;
 
 		if (actuator_function_index >= actuator_motors_s::NUM_CONTROLS) {
 			continue; // Invalid mapping
@@ -332,10 +331,6 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 			_esc_has_reported_current[i] = true;
 		}
 
-		if (!_esc_has_reported_current[i]) {
-			continue;
-		}
-
 		// Current limits
 		float thrust = 0.f;
 
@@ -351,12 +346,12 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 		_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
 		_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
 
-		if (!_esc_undercurrent_hysteresis[i].get_state()) {
+		if (_esc_has_reported_current[i] && !_esc_undercurrent_hysteresis[i].get_state()) {
 			// Do not clear because a reaction could be to stop the motor and that would be conidered healty again
 			_esc_undercurrent_hysteresis[i].set_state_and_update(thrust_above_threshold && current_too_low && !timeout, now);
 		}
 
-		if (!_esc_overcurrent_hysteresis[i].get_state()) {
+		if (_esc_has_reported_current[i] && !_esc_overcurrent_hysteresis[i].get_state()) {
 			// Do not clear because a reaction could be to stop the motor and that would be conidered healty again
 			_esc_overcurrent_hysteresis[i].set_state_and_update(current_too_high && !timeout, now);
 		}
