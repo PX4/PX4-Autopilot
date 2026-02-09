@@ -131,22 +131,7 @@ bool MavlinkSignControl::check_for_signing(const mavlink_message_t *msg)
 		_is_signing_initialized = false;
 	}
 
-	int _fd = ::open(MAVLINK_SECRET_FILE, O_CREAT | O_WRONLY | O_TRUNC, PX4_O_MODE_600);
-
-	if (_fd == -1) {
-		if (errno != ENOENT) {
-			PX4_ERR("failed opening mavlink secret key file for writing: %s (%i)", MAVLINK_SECRET_FILE, errno);
-		}
-
-	} else {
-		ssize_t bytes_write = ::write(_fd, setup_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
-
-		if (bytes_write == MAVLINK_SECRET_KEY_LENGTH) {
-			bytes_write = ::write(_fd, &setup_signing.initial_timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
-		}
-
-		close(_fd);
-	}
+	write_key_and_timestamp();
 
 	return true;
 }
