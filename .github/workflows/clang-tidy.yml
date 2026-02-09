@@ -1,4 +1,4 @@
-name: Clang Tidy
+name: Static Analysis
 
 on:
   push:
@@ -16,7 +16,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  clang_tidy:
+    name: Clang-Tidy
     runs-on: [runs-on, runner=16cpu-linux-x64, "run-id=${{ github.run_id }}", "extras=s3-cache"]
     container:
       image: px4io/px4-dev:v1.17.0-beta1
@@ -27,12 +28,12 @@ jobs:
         fetch-depth: 0
         fetch-tags: true
 
-    - name: Git ownership workaround
+    - name: Configure Git Safe Directory
       run: git config --system --add safe.directory '*'
 
-    - name: ccache cache restore
+    - name: Restore Compiler Cache
       id: cc_restore
-      uses: runs-on/cache/restore@v4
+      uses: actions/cache/restore@v4
       with:
         path: ~/.ccache
         key: ccache-clang-tidy-${{ github.head_ref || github.ref_name }}
@@ -41,7 +42,7 @@ jobs:
           ccache-clang-tidy-main-
           ccache-clang-tidy-
 
-    - name: ccache config and stats
+    - name: Configure Compiler Cache
       run: |
         mkdir -p ~/.ccache
         echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
@@ -53,16 +54,16 @@ jobs:
         ccache -s
         ccache -z
 
-    - name: Testing (clang-tidy)
+    - name: Run Clang-Tidy Analysis
       run: make -j16 clang-tidy
 
-    - name: ccache post-build stats
+    - name: Compiler Cache Stats
       if: always()
       run: ccache -s
 
-    - name: ccache cache save
+    - name: Save Compiler Cache
       if: always()
-      uses: runs-on/cache/save@v4
+      uses: actions/cache/save@v4
       with:
         path: ~/.ccache
         key: ${{ steps.cc_restore.outputs.cache-primary-key }}
