@@ -12,6 +12,9 @@ on:
     paths-ignore:
       - 'docs/**'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: [runs-on, runner=16cpu-linux-x64, "run-id=${{ github.run_id }}", "extras=s3-cache"]
