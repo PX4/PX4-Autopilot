@@ -52,6 +52,7 @@
 #include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
@@ -66,7 +67,7 @@ class UavcanEscController
 public:
 	static constexpr int MAX_ACTUATORS = esc_status_s::CONNECTED_ESC_MAX;
 	static constexpr unsigned MAX_RATE_HZ = 400;
-	static constexpr int16_t kMaxUavcanNodeId = 128; // UAVCAN supports up to 128 nodes (0-127)
+	static constexpr int16_t UAVCAN_NODE_ID_MAX = 128; // UAVCAN supports up to 128 nodes (0-127)
 
 	static_assert(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize >= MAX_ACTUATORS, "Too many actuators");
 
@@ -126,7 +127,7 @@ private:
 	esc_status_s	_esc_status{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
-	uORB::Subscription _dronecan_node_status_sub{ORB_ID(dronecan_node_status)};
+	uORB::SubscriptionMultiArray<dronecan_node_status_s, ORB_MULTI_MAX_INSTANCES> _dronecan_node_status_subs{ORB_ID::dronecan_node_status};
 	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};

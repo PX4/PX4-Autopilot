@@ -102,36 +102,10 @@ private:
 		DeviceCapability capability{DeviceCapability::NONE};
 		bool has_node_info{false};
 
-		char name[80];
-		char vendor_name[32];
-		char model_name[32];
-		char firmware_version[24];
-		char hardware_version[24];
-		char serial_number[33];
-
-		DeviceInformation() : node_id(UINT8_MAX), device_id(UINT32_MAX), capability(DeviceCapability::NONE),
-			has_node_info(false)
-		{
-			// Initialize string fields
-			name[0] = '\0';
-			vendor_name[0] = '\0';
-			model_name[0] = '\0';
-			firmware_version[0] = '\0';
-			hardware_version[0] = '\0';
-			serial_number[0] = '\0';
-		}
-
-		DeviceInformation(uint8_t nid, uint32_t did, DeviceCapability cap)
-			: node_id(nid), device_id(did), capability(cap), has_node_info(false)
-		{
-			// Initialize string fields
-			name[0] = '\0';
-			vendor_name[0] = '\0';
-			model_name[0] = '\0';
-			firmware_version[0] = '\0';
-			hardware_version[0] = '\0';
-			serial_number[0] = '\0';
-		}
+		char name[80] = "";
+		char firmware_version[24] = "";
+		char hardware_version[24] = "";
+		char serial_number[33] = "";
 	};
 
 	void handleNodeInfoRetrieved(uavcan::NodeID node_id,

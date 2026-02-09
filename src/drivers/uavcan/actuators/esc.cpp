@@ -65,7 +65,7 @@ UavcanEscController::init()
 		return res;
 	}
 
-	//ESC Status Extended subscription
+	// ESC Status Extended subscription
 	res = _uavcan_sub_status_extended.start(StatusExtendedCbBinder(this, &UavcanEscController::esc_status_extended_sub_cb));
 
 	if (res < 0) {
@@ -117,16 +117,16 @@ void
 UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
-		auto &esc_report = _esc_status.esc[msg.esc_index];
-
-		esc_report.timestamp       = hrt_absolute_time();
+		esc_report_s &esc_report = _esc_status.esc[msg.esc_index];
+		esc_report.timestamp = hrt_absolute_time();
 		esc_report.esc_address = msg.getSrcNodeID().get();
-		esc_report.esc_voltage     = msg.voltage;
-		esc_report.esc_current     = msg.current;
+		esc_report.esc_voltage = msg.voltage;
+		esc_report.esc_current = msg.current;
 		esc_report.esc_temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 		// esc_report.motor_temperature is filled in the extended status callback
-		esc_report.esc_rpm         = msg.rpm;
-		esc_report.esc_errorcount  = msg.error_count;
+		esc_report.esc_rpm = msg.rpm;
+		esc_report.esc_errorcount = msg.error_count;
+		esc_report.failures = get_failures(msg.esc_index);
 
 		_esc_status.esc_count = _rotor_count;
 		_esc_status.counter += 1;
@@ -134,7 +134,6 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		_esc_status.esc_online_flags = check_escs_status();
 		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
 		_esc_status.timestamp = hrt_absolute_time();
-		esc_report.failures = get_failures(msg.esc_index);
 
 		_esc_status_pub.publish(_esc_status);
 	}
@@ -147,15 +146,13 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	}
 }
 
-void
-UavcanEscController::esc_status_extended_sub_cb(const
-		uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg)
+void UavcanEscController::esc_status_extended_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg)
 {
 	uint8_t index = msg.esc_index;
 
 	if (index < esc_status_s::CONNECTED_ESC_MAX) {
-		auto &esc_report = _esc_status.esc[index];
-		// This will be published along with the regular ESC status
+		esc_report_s &esc_report = _esc_status.esc[index];
+		// published with the non-extended esc::Status
 		esc_report.motor_temperature = msg.motor_temperature_degC;
 		esc_report.esc_power = msg.input_pct;
 	}
@@ -178,20 +175,20 @@ UavcanEscController::check_escs_status()
 	return esc_status_flags;
 }
 
-uint32_t
-UavcanEscController::get_failures(uint8_t esc_index)
+uint32_t UavcanEscController::get_failures(uint8_t esc_index)
 {
-	auto &esc_report = _esc_status.esc[esc_index];
-
+	esc_report_s &esc_report = _esc_status.esc[esc_index];
+	uint32_t failures = 0;
 
 	// Update device vendor/model information from device_information topic
-	device_information_s device_info;
+	device_information_s device_information;
+
 	char esc_name[80] {};
 
-	if (_device_information_sub.copy(&device_info)
-	    && device_info.device_type == device_information_s::DEVICE_TYPE_ESC
-	    && device_info.device_id == esc_index) {
-		strncpy(esc_name, device_info.name, sizeof(esc_name) - 1);
+	if (_device_information_sub.copy(&device_information)
+	    && device_information.device_type == device_information_s::DEVICE_TYPE_ESC
+	    && device_information.device_id == esc_index) {
+		strncpy(esc_name, device_information.name, sizeof(esc_name) - 1);
 		esc_name[sizeof(esc_name) - 1] = '\0';
 	}
 
@@ -199,23 +196,20 @@ UavcanEscController::get_failures(uint8_t esc_index)
 	dronecan_node_status_s node_status {};
 	uint8_t node_health{dronecan_node_status_s::HEALTH_OK};
 	uint16_t vendor_specific_status_code{0};
-	bool have_node_status{false};
 
-	if (_dronecan_node_status_sub.copy(&node_status)
-	    && esc_report.esc_address < kMaxUavcanNodeId
-	    && node_status.node_id == esc_report.esc_address) {
-		node_health = node_status.health;
-		vendor_specific_status_code = node_status.vendor_specific_status_code;
-		have_node_status = true;
+	for (auto &dronecan_node_status_sub : _dronecan_node_status_subs) {
+		if (dronecan_node_status_sub.copy(&node_status)) {
+			if (node_status.node_id == esc_report.esc_address) {
+				node_health = node_status.health;
+				vendor_specific_status_code = node_status.vendor_specific_status_code;
+				break;
+			}
+		}
 	}
 
-	if (!have_node_status) {
-		return esc_report.failures;
-	}
-
-	if (esc_report.esc_address < kMaxUavcanNodeId && (node_health == dronecan_node_status_s::HEALTH_OK ||
+	if (esc_report.esc_address < UAVCAN_NODE_ID_MAX && (node_health == dronecan_node_status_s::HEALTH_OK ||
 			node_health == dronecan_node_status_s::HEALTH_WARNING)) {
-		esc_report.failures = 0;
+		failures = 0;
 
 	} else if (strstr(esc_name, "iq_motion") != nullptr) {
 		// Parse iq_motion ESC errors
@@ -239,14 +233,14 @@ UavcanEscController::get_failures(uint8_t esc_index)
 
 		for (const auto &mapping : bit_to_failure_map) {
 			if (vendor_specific_status_code & (1 << mapping.bit)) {
-				esc_report.failures |= (1 << mapping.failure_type);
+				failures |= (1 << mapping.failure_type);
 			}
 		}
 
 	} else {
 		// Generic parsing
-		esc_report.failures |= (1 << esc_report_s::FAILURE_GENERIC);
+		failures |= (1 << esc_report_s::FAILURE_GENERIC);
 	}
 
-	return esc_report.failures;
+	return failures;
 }
