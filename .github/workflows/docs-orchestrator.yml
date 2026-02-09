@@ -26,7 +26,7 @@ jobs:
   # Detect Changes (PR only)
   # =============================================================================
   detect-changes:
-    name: "Detect Changed Paths"
+    name: "T1: Detect Changes"
     if: github.event_name == 'pull_request'
     permissions:
       contents: read
@@ -49,7 +49,7 @@ jobs:
   # PR Metadata Regen (conditional - only when PR touches source files)
   # =============================================================================
   pr-metadata-regen:
-    name: "PR: Generate Metadata"
+    name: "T2: PR Metadata"
     needs: [detect-changes]
     if: github.event_name == 'pull_request' && needs.detect-changes.outputs.source_changed == 'true'
     permissions:
@@ -111,7 +111,7 @@ jobs:
   # Push Metadata Regen (main/release branches)
   # =============================================================================
   metadata-regen:
-    name: "Push: Generate & Commit Metadata"
+    name: "T2: Metadata Sync"
     if: github.event_name == 'push'
     permissions:
       contents: write
@@ -200,7 +200,7 @@ jobs:
   # Link Check
   # =============================================================================
   link-check:
-    name: "Check Links"
+    name: "T2: Link Check"
     needs: [detect-changes, pr-metadata-regen]
     if: always() && (github.event_name == 'pull_request')
     permissions:
@@ -289,7 +289,7 @@ jobs:
   # Build Site
   # =============================================================================
   build-site:
-    name: "Build Site"
+    name: "T3: Build Site"
     needs: [detect-changes, pr-metadata-regen, metadata-regen, link-check]
     if: >-
       always() &&
@@ -359,7 +359,7 @@ jobs:
   # Deploy to AWS (push only)
   # =============================================================================
   deploy-aws:
-    name: "Deploy to AWS"
+    name: "T4: Deploy"
     if: github.event_name == 'push'
     needs: [metadata-regen, build-site]
     permissions:
