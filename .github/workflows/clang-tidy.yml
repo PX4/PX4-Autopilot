@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [runs-on, runner=16cpu-linux-x64, "run-id=${{ github.run_id }}"]
     steps:
     - uses: actions/checkout@v4
       with:
@@ -28,4 +28,4 @@ jobs:
         options: -v ${{ github.workspace }}:/workspace
         run: |
           cd /workspace
-          make clang-tidy
+          make -j16 clang-tidy
