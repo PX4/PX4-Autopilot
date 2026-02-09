@@ -35,9 +35,9 @@ jobs:
       uses: runs-on/cache/restore@v4
       with:
         path: ~/.ccache
-        key: ccache-clang-tidy-${{ github.ref_name }}
+        key: ccache-clang-tidy-${{ github.head_ref || github.ref_name }}
         restore-keys: |
-          ccache-clang-tidy-${{ github.ref_name }}-
+          ccache-clang-tidy-${{ github.head_ref || github.ref_name }}-
           ccache-clang-tidy-main-
           ccache-clang-tidy-
 
