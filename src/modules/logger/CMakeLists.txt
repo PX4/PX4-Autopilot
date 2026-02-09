@@ -61,4 +61,4 @@ px4_add_module(
 		component_general_json # for checksums.h
 	)
 
-px4_add_unit_gtest(SRC ULogMessageInfoTest.cpp)
+px4_add_unit_gtest(SRC ULogMessagesTest.cpp)
