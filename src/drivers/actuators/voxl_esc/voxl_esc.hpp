@@ -117,8 +117,8 @@ private:
 
 	static constexpr uint16_t DISARMED_VALUE = 0;
 
-	static constexpr uint16_t VOXL_ESC_PWM_MIN = 0;
-	static constexpr uint16_t VOXL_ESC_PWM_MAX = 800;
+	static constexpr int VOXL_ESC_PWM_MIN = 1;
+	static constexpr int VOXL_ESC_PWM_MAX = 800;
 	static constexpr uint16_t VOXL_ESC_DEFAULT_RPM_MIN = 5000;
 	static constexpr uint16_t VOXL_ESC_DEFAULT_RPM_MAX = 17000;
 
@@ -148,6 +148,9 @@ private:
 	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX5 = 5;
 	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX6 = 6;
 
+	static constexpr int32_t VOXL_ESC_RPM_CMDS = 0;
+	static constexpr int32_t VOXL_ESC_PWM_CMDS = 1;
+
 	Serial			_uart_port{};
 
 	typedef struct {
@@ -159,6 +162,7 @@ private:
 		float		turtle_stick_minf{0.15f};
 		float		turtle_cosphi{0.99f};
 		int32_t		baud_rate{VOXL_ESC_DEFAULT_BAUD};
+		float		pwr_min{0.05f};
 		int32_t		rpm_min{VOXL_ESC_DEFAULT_RPM_MIN};
 		int32_t		rpm_max{VOXL_ESC_DEFAULT_RPM_MAX};
 		int32_t		function_map[VOXL_ESC_OUTPUT_CHANNELS] {0, 0, 0, 0};
@@ -169,6 +173,7 @@ private:
 		int32_t		esc_warn_temp_threshold{0};
 		int32_t		esc_over_temp_threshold{0};
 		int32_t		gpio_ctl_channel{0};
+		int32_t		cmd_type{0};
 	} voxl_esc_params_t;
 
 	struct EscChan {
@@ -222,6 +227,8 @@ private:
 	bool _need_version_info{true};
 	QC_ESC_EXTENDED_VERSION_INFO _version_info[VOXL_ESC_OUTPUT_CHANNELS];
 
+	int _min_active_pwm{1};
+
 	voxl_esc_params_t	_parameters;
 	int			update_params();
 	int			load_params(voxl_esc_params_t *params, ch_assign_t *map);
@@ -250,12 +257,13 @@ private:
 	int			_fb_idx;
 	uint32_t		_rx_crc_error_count{0};
 	uint32_t		_rx_packet_count{0};
+	uint32_t		_rx_power_status_count{0};
 
 	static const uint8_t	READ_BUF_SIZE = 128;
 	uint8_t			_read_buf[READ_BUF_SIZE];
 
 	Battery			_battery;
-	static constexpr unsigned _battery_report_interval{100_ms};
+	static constexpr unsigned _battery_report_interval{20_ms};
 	hrt_abstime		_last_battery_report_time;
 	hrt_abstime		_last_uart_passthru{0};
 
