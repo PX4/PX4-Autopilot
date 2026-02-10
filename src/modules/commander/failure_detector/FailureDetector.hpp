@@ -81,10 +81,12 @@ union failure_detector_status_u {
 
 using uORB::SubscriptionData;
 
+class HealthAndArmingChecks;
+
 class FailureDetector : public ModuleParams
 {
 public:
-	FailureDetector(ModuleParams *parent);
+	FailureDetector(ModuleParams *parent, HealthAndArmingChecks &health_and_arming_checks);
 	~FailureDetector() = default;
 
 	bool update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode);
@@ -95,29 +97,21 @@ public:
 private:
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
 	void updateExternalAtsStatus();
-	void updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
-	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateImbalancedPropStatus();
 
 	failure_detector_status_u _failure_detector_status{};
 
+	HealthAndArmingChecks &_health_and_arming_checks;
+
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
-	systemlib::Hysteresis _esc_failure_hysteresis{false};
 
 	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
 	uint32_t _selected_accel_device_id{0};
 	hrt_abstime _imu_status_timestamp_prev{0};
 
-	// Motor failure check
-	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if ESC reported non-zero current before (some never report any)
-	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
-	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
-	uint16_t _motor_failure_mask = 0; // actuator function indexed
-	esc_status_s _last_esc_status{}; // Store last received ESC status
-	bool _esc_status_received{false}; // Track if we've ever received ESC data
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)}; // TODO: multi-instance
