@@ -1038,24 +1038,15 @@ void up_bdshot_status(void)
 	if (_bdshot_channel_mask) {
 		PX4_INFO("BDShot channel mask: 0x%2x", (unsigned)_bdshot_channel_mask);
 
-		// Show timer configuration
-		for (int i = 0; i < MAX_IO_TIMERS; i++) {
-			if (timer_configs[i].enabled) {
-				PX4_INFO("Timer %d: enabled=%d init=%d bidir=%d cap_ch=%d",
-					 i, timer_configs[i].enabled, timer_configs[i].initialized,
-					 timer_configs[i].bidirectional, timer_configs[i].capture_channel);
-			}
-		}
-
 		// Always show read counters for BDShot
 		for (int i = 0; i < MAX_TIMER_IO_CHANNELS; i++) {
 			if (_bdshot_channel_mask & (1 << i)) {
 				if (_bdshot_capture_supported[i]) {
-					PX4_INFO("Output %u: read_ok %lu, fail_crc %lu",
+					PX4_INFO("Ch%u: read_ok %lu, fail_crc %lu",
 						 i, read_ok[i], read_fail_crc[i]);
 
 				} else {
-					PX4_INFO("Output %u: no DMA for capture", i);
+					PX4_INFO("Ch%u: no DMA for capture", i);
 				}
 			}
 		}

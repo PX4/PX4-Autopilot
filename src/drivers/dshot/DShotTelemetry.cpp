@@ -299,7 +299,7 @@ bool DShotTelemetry::telemetryResponseFinished()
 
 void DShotTelemetry::printStatus() const
 {
-	PX4_INFO("Number of successful ESC frames: %i", _num_successful_responses);
-	PX4_INFO("Number of timeouts: %i", _num_timeouts);
-	PX4_INFO("Number of CRC errors: %i", _num_checksum_errors);
+	PX4_INFO("Successful ESC frames: %i", _num_successful_responses);
+	PX4_INFO("Timeouts: %i", _num_timeouts);
+	PX4_INFO("CRC errors: %i", _num_checksum_errors);
 }

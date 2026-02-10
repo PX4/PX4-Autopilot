@@ -61,10 +61,10 @@ DShot::~DShot()
 	perf_free(_cycle_perf);
 	perf_free(_bdshot_success_perf);
 	perf_free(_bdshot_error_perf);
-	perf_free(_telem_success_perf);
-	perf_free(_telem_error_perf);
-	perf_free(_telem_timeout_perf);
-	perf_free(_telem_allsampled_perf);
+	perf_free(_serial_telem_success_perf);
+	perf_free(_serial_telem_error_perf);
+	perf_free(_serial_telem_timeout_perf);
+	perf_free(_serial_telem_allsampled_perf);
 }
 
 int DShot::init()
@@ -480,7 +480,7 @@ bool DShot::process_serial_telemetry()
 			if (_serial_telem_online_mask & (1 << motor_index)) {
 				consume_esc_data(esc, TelemetrySource::Serial);
 				all_telem_sampled = set_next_telemetry_index();
-				perf_count(_telem_success_perf);
+				perf_count(_serial_telem_success_perf);
 
 			} else {
 				hrt_abstime now = hrt_absolute_time();
@@ -507,7 +507,7 @@ bool DShot::process_serial_telemetry()
 			// Consume an empty EscData to zero the data
 			consume_esc_data(esc, TelemetrySource::Serial);
 			all_telem_sampled = set_next_telemetry_index();
-			perf_count(_telem_timeout_perf);
+			perf_count(_serial_telem_timeout_perf);
 			break;
 
 		case TelemetryStatus::ParseError:
@@ -520,7 +520,7 @@ bool DShot::process_serial_telemetry()
 			consume_esc_data(esc, TelemetrySource::Serial);
 			all_telem_sampled = set_next_telemetry_index();
 			_serial_telem_delay_until = hrt_absolute_time() + 1_s;
-			perf_count(_telem_error_perf);
+			perf_count(_serial_telem_error_perf);
 			break;
 		}
 	}
@@ -549,7 +549,7 @@ bool DShot::set_next_telemetry_index()
 	// Check if all motors have been sampled
 	if (count_set_bits(_telemetry_requested_mask) >= count_set_bits(_output_mask)) {
 		_telemetry_requested_mask = 0;
-		perf_count(_telem_allsampled_perf);
+		perf_count(_serial_telem_allsampled_perf);
 		return true;
 	}
 
@@ -1131,10 +1131,10 @@ int DShot::print_status()
 	}
 
 	if (_serial_telemetry_enabled) {
-		perf_print_counter(_telem_success_perf);
-		perf_print_counter(_telem_error_perf);
-		perf_print_counter(_telem_timeout_perf);
-		perf_print_counter(_telem_allsampled_perf);
+		perf_print_counter(_serial_telem_success_perf);
+		perf_print_counter(_serial_telem_error_perf);
+		perf_print_counter(_serial_telem_timeout_perf);
+		perf_print_counter(_serial_telem_allsampled_perf);
 	}
 
 	print_spacer();
