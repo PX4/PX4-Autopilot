@@ -138,6 +138,7 @@ int GRFLaserSerial::collect()
 			perf_end(_sample_perf);
 			return PX4_OK;
 		}
+
 		perf_end(_sample_perf);
 		return -EAGAIN;
 
@@ -154,6 +155,7 @@ int GRFLaserSerial::collect()
 			perf_end(_sample_perf);
 			return PX4_OK;
 		}
+
 		perf_end(_sample_perf);
 		return -EAGAIN;
 
@@ -170,6 +172,7 @@ int GRFLaserSerial::collect()
 			perf_end(_sample_perf);
 			return PX4_OK;
 		}
+
 		perf_end(_sample_perf);
 		return -EAGAIN;
 
@@ -187,6 +190,7 @@ int GRFLaserSerial::collect()
 			perf_end(_sample_perf);
 			return PX4_OK;
 		}
+
 		perf_end(_sample_perf);
 		return -EAGAIN;
 	}
@@ -207,15 +211,14 @@ void GRFLaserSerial::start()
 	_last_received_time = hrt_absolute_time();
 
 	/*Set Lidar Min/Max based on model*/
-	switch(_model_type)
-	{
-		case GRF250:{
+	switch (_model_type) {
+	case GRF250: {
 			_px4_rangefinder.set_min_distance(0.1f);
 			_px4_rangefinder.set_max_distance(250.0f);
 			break;
 		}
 
-		case GRF500:{
+	case GRF500: {
 			_px4_rangefinder.set_min_distance(0.1f);
 			_px4_rangefinder.set_max_distance(500.0f);
 			break;
@@ -596,6 +599,7 @@ void GRFLaserSerial::grf_process_replies()
 {
 	float distance_m = -1.0f;
 	hrt_abstime now = hrt_absolute_time();
+
 	switch (rx_field.msg_id) {
 	case GRF_DISTANCE_DATA_CM: {
 			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8) | (rx_field.data[2] << 16);
