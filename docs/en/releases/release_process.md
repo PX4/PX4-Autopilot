@@ -14,7 +14,7 @@ Releases are tracked on the [PX4 Release Project Board](https://github.com/orgs/
 
 ### Release Tag Progression
 
-Each release goes through the following tag stages:
+Release branches go through the following tag stages:
 
 | Stage | Example | Branch Status | What Gets Merged |
 |-------|---------|---------------|------------------|
@@ -92,7 +92,7 @@ During the alpha phase, review pull requests targeting the release branch:
 
 ### 2. Alpha Testing
 
-The [Dronecode Test Team](https://www.ascendengineer.com), provided by Dronecode Silver member Ascend Engineering, conducts initial flight testing of alpha builds using:
+The _Dronecode Test Team_ (provided by [Ascend Engineering](https://www.ascendengineer.com) — Dronecode Silver member) conducts initial flight testing of alpha builds using:
 
 - The [test cards](../test_and_ci/test_flights.md) documented in the PX4 guide
 - A hardware matrix covering supported flight controllers and airframes
