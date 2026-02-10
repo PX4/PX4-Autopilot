@@ -55,6 +55,7 @@
 #include <uavcan/equipment/gnss/Auxiliary.hpp>
 #include <uavcan/equipment/gnss/Fix.hpp>
 #include <uavcan/equipment/gnss/Fix2.hpp>
+#include <uavcan/equipment/gnss/Quality.hpp>
 #include <ardupilot/gnss/MovingBaselineData.hpp>
 #include <ardupilot/gnss/RelPosHeading.hpp>
 #include <uavcan/equipment/gnss/RTCMStream.hpp>
@@ -82,6 +83,7 @@ private:
 	 * GNSS fix message will be reported via this callback.
 	 */
 	void gnss_auxiliary_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg);
+	void gnss_quality_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Quality> &msg);
 	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
 	void gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg);
 	void gnss_relative_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg);
@@ -107,6 +109,10 @@ private:
 		AuxiliaryCbBinder;
 
 	typedef uavcan::MethodBinder < UavcanGnssBridge *,
+		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Quality> &) >
+		QualityCbBinder;
+
+	typedef uavcan::MethodBinder < UavcanGnssBridge *,
 		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &) >
 		FixCbBinder;
 
@@ -129,6 +135,7 @@ private:
 	uavcan::INode &_node;
 
 	uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary, AuxiliaryCbBinder> _sub_auxiliary;
+	uavcan::Subscriber<uavcan::equipment::gnss::Quality, QualityCbBinder> _sub_quality;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix2, Fix2CbBinder> _sub_fix2;
 	uavcan::Subscriber<ardupilot::gnss::RelPosHeading, RelPosHeadingCbBinder> _sub_gnss_heading;
@@ -142,6 +149,9 @@ private:
 	uint64_t	_last_gnss_auxiliary_timestamp{0};
 	float		_last_gnss_auxiliary_hdop{0.0f};
 	float		_last_gnss_auxiliary_vdop{0.0f};
+
+	uint64_t	_last_gnss_quality_timestamp{0};
+	uavcan::equipment::gnss::Quality _last_quality{};
 
 	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
 	hrt_abstime		_last_rtcm_injection_time{0};	///< time of last rtcm injection

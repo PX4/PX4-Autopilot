@@ -57,6 +57,7 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node, NodeInfoPublisher *node_
 	UavcanSensorBridgeBase("uavcan_gnss", ORB_ID(sensor_gps), node_info_publisher),
 	_node(node),
 	_sub_auxiliary(node),
+	_sub_quality(node),
 	_sub_fix(node),
 	_sub_fix2(node),
 	_sub_gnss_heading(node),
@@ -87,6 +88,13 @@ UavcanGnssBridge::init()
 
 	if (res < 0) {
 		PX4_WARN("GNSS auxiliary sub failed %i", res);
+		return res;
+	}
+
+	res = _sub_quality.start(QualityCbBinder(this, &UavcanGnssBridge::gnss_quality_sub_cb));
+
+	if (res < 0) {
+		PX4_WARN("GNSS quality sub failed %i", res);
 		return res;
 	}
 
@@ -150,6 +158,13 @@ UavcanGnssBridge::gnss_auxiliary_sub_cb(const uavcan::ReceivedDataStructure<uavc
 	_last_gnss_auxiliary_timestamp = hrt_absolute_time();
 	_last_gnss_auxiliary_hdop = msg.hdop;
 	_last_gnss_auxiliary_vdop = msg.vdop;
+}
+
+void
+UavcanGnssBridge::gnss_quality_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Quality> &msg)
+{
+	_last_gnss_quality_timestamp = hrt_absolute_time();
+	_last_quality = msg;
 }
 
 void
@@ -556,6 +571,21 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	sensor_gps.selected_rtcm_instance = _selected_rtcm_instance;
 	sensor_gps.rtcm_injection_rate = _rtcm_injection_rate;
+
+	// Apply cached Quality message fields (if received within last 2s)
+	if (hrt_elapsed_time(&_last_gnss_quality_timestamp) < 2_s) {
+		sensor_gps.noise_per_ms           = _last_quality.noise;
+		sensor_gps.automatic_gain_control = _last_quality.agc;
+		sensor_gps.jamming_state          = _last_quality.jamming_state;
+		sensor_gps.jamming_indicator      = _last_quality.jamming_indicator;
+		sensor_gps.spoofing_state         = _last_quality.spoofing_state;
+		sensor_gps.authentication_state   = _last_quality.auth_state;
+		sensor_gps.diff_age               = _last_quality.diff_age;
+		sensor_gps.antenna_status         = _last_quality.antenna_status;
+		sensor_gps.antenna_power          = _last_quality.antenna_power;
+		sensor_gps.fix_quality            = _last_quality.fix_quality;
+		sensor_gps.system_error           = _last_quality.system_errors;
+	}
 
 	publish(msg.getSrcNodeID().get(), &sensor_gps);
 }
