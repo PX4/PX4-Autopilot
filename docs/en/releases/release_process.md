@@ -10,6 +10,8 @@ PX4 uses a branch-based release workflow:
 - **`stable`** - Points to the latest stable release tag; reset after each release
 - **`beta`** - For flight testers to validate release candidates
 
+The target release cycle is approximately 6 months, best effort. The actual cadence depends on testing results and maintainer availability, with an ongoing goal to shorten the cycle.
+
 Releases are tracked on the [PX4 Release Project Board](https://github.com/orgs/PX4/projects/45), which is reused and renamed for each release cycle.
 
 ### Release Tag Progression
@@ -33,6 +35,19 @@ A new release cycle begins immediately after a stable release is published. This
 
 1. **Vote to publish the current release** - Approve the stable release for publication
 2. **Vote on the next release name/number** - Decide the version number for the next release (e.g., v1.18 or v2.0)
+
+### Prepare Release Notes Before Branching
+
+Release notes are built incrementally in [`main.md`](../releases/main.md), which accumulates changes as they land on `main`. Before creating the release branch:
+
+1. Rename `main.md` to the version-specific file (e.g., `docs/en/releases/1.18.md`)
+2. Add the new file to `SUMMARY.md` and `releases/index.md`
+3. Reset `main.md` to a clean template for the next release cycle
+4. Verify that documentation for all included contributions is complete
+
+::: tip
+Community members are encouraged to document changes as they are merged into `main`. This distributes the documentation workload and ensures changes are captured while they're fresh.
+:::
 
 ### Create the Release Branch
 
@@ -67,18 +82,6 @@ git push origin v1.18.0-alpha1
 
 Subsequent alpha tags can be created as fixes are merged (e.g., `v1.18.0-alpha2`, `v1.18.0-alpha3`).
 
-### Create Documentation Early
-
-Create the release notes page as soon as the release branch is created:
-
-- Create the new release notes file (e.g., `docs/en/releases/1.18.md`)
-- Add the initial structure based on existing release notes
-- Add the entry to `SUMMARY.md` and `releases/index.md`
-
-::: tip
-Community members are encouraged to help document changes early in the release cycle. As fixes are merged into the release branch, contributors can add them to the release notes. This distributes the documentation workload and ensures changes are documented while they're fresh.
-:::
-
 ## Release Steps
 
 ### 1. Review and Merge PRs (Alpha Phase)
@@ -99,7 +102,9 @@ The _Dronecode Test Team_ (provided by [Ascend Engineering](https://www.ascenden
 
 ### 3. Create Beta Tag
 
-Once alpha testing is successful, create the first beta tag:
+The alpha phase is complete when the test team's [test cards](../test_and_ci/test_flights.md) pass across the hardware matrix. If test results show failures, the release stays in alpha until the issues are resolved and the test cards pass.
+
+Once alpha testing passes, create the first beta tag:
 
 ```sh
 # On the release branch
@@ -126,7 +131,9 @@ During beta, continue to:
 
 ### 5. Create Release Candidate Tag
 
-Once beta testing is successful, create the first release candidate:
+The beta phase is complete when full test card coverage passes across the hardware matrix. If test results show failures, the release stays in beta until the issues are resolved and the test cards pass.
+
+Once beta testing passes, create the first release candidate:
 
 ```sh
 # On the release branch
