@@ -501,6 +501,8 @@ private:
 	uint64_t _time_last_heading_fuse{0};
 	uint64_t _time_last_terrain_fuse{0};
 
+	uint64_t _time_last_fixed_wing{0};
+
 	LatLonAlt _last_known_gpos{};
 
 	Vector3f _earth_rate_NED{}; ///< earth rotation vector (NED) in rad/s

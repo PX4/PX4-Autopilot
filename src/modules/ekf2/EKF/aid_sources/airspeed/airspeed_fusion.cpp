@@ -66,6 +66,11 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		_external_wind_init = false;
 	}
 
+	if (_control_status.flags.fixed_wing) {
+		_time_last_fixed_wing = _airspeed_sample_delayed.time_us;
+	}
+
+
 #if defined(CONFIG_EKF2_GNSS)
 
 	// clear yaw estimator airspeed (updated later with true airspeed if airspeed fusion is active)
@@ -93,8 +98,12 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 
 		updateAirspeed(airspeed_sample, _aid_src_airspeed);
 
-		const bool continuing_conditions_passing = _control_status.flags.in_air && (_control_status.flags.fixed_wing
-				|| _control_status.flags.in_transition_to_fw)
+		const bool was_recently_in_fixedwing = _airspeed_sample_delayed.time_us - _time_last_fixed_wing > (uint64_t) 3e6f;
+		const bool is_airspeed_accurate = _control_status.flags.fixed_wing || _control_status.flags.in_transition_to_fw
+						  || was_recently_in_fixedwing;
+
+		const bool continuing_conditions_passing = _control_status.flags.in_air
+				&& is_airspeed_accurate
 				&& !_control_status.flags.fake_pos;
 
 		const bool is_airspeed_significant = airspeed_sample.true_airspeed > _params.ekf2_arsp_thr;
