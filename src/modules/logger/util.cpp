@@ -197,7 +197,7 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 
 	while (need_space_cleanup || need_count_cleanup) {
 		char oldest_file[LOG_DIR_LEN] = "";
-		char oldest_dir_name[64] = "";
+		char oldest_dir[LOG_DIR_LEN];
 
 		if (!scan_log_directories(log_root_dir, info)) {
 			break;
@@ -215,30 +215,22 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 		// Delete from the "other" naming scheme first (it's old/stale)
 		// - Have time (using date dirs): delete sess dirs first
 		// - No time (using sess dirs): delete date dirs first, then sess dirs
-		char oldest_dir[LOG_DIR_LEN];
-
 		if (have_time && found_sess) {
 			// Using date dirs, delete old sess dirs first
 			snprintf(oldest_dir, sizeof(oldest_dir), "%s/sess%03u", log_root_dir, info.sess_idx_min);
-			snprintf(oldest_dir_name, sizeof(oldest_dir_name), "sess%03u", info.sess_idx_min);
 
 		} else if (!have_time && found_date) {
 			// Using sess dirs, delete old date dirs first
 			snprintf(oldest_dir, sizeof(oldest_dir), "%s/%04u-%02u-%02u", log_root_dir,
 				 info.oldest_year, info.oldest_month, info.oldest_day);
-			snprintf(oldest_dir_name, sizeof(oldest_dir_name), "%04u-%02u-%02u",
-				 info.oldest_year, info.oldest_month, info.oldest_day);
 
 		} else if (found_sess) {
 			// Delete from oldest sess dir (including current - old files are ok to delete)
 			snprintf(oldest_dir, sizeof(oldest_dir), "%s/sess%03u", log_root_dir, info.sess_idx_min);
-			snprintf(oldest_dir_name, sizeof(oldest_dir_name), "sess%03u", info.sess_idx_min);
 
 		} else if (found_date) {
 			// Delete from oldest date dir
 			snprintf(oldest_dir, sizeof(oldest_dir), "%s/%04u-%02u-%02u", log_root_dir,
-				 info.oldest_year, info.oldest_month, info.oldest_day);
-			snprintf(oldest_dir_name, sizeof(oldest_dir_name), "%04u-%02u-%02u",
 				 info.oldest_year, info.oldest_month, info.oldest_day);
 
 		} else {
@@ -246,13 +238,13 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 			break;
 		}
 
-		PX4_DEBUG("Checking directory %s for old logs", oldest_dir_name);
+		PX4_DEBUG("Checking directory %s for old logs", oldest_dir);
 
 		// Find oldest .ulg file in that directory
 		DIR *dp = opendir(oldest_dir);
 
 		if (dp == nullptr) {
-			PX4_WARN("Cannot open directory %s", oldest_dir_name);
+			PX4_WARN("Cannot open directory %s", oldest_dir);
 			break;
 		}
 
@@ -275,7 +267,7 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 		if (oldest_ulg[0] == '\0') {
 			// No .ulg files, try to remove directory
 			if (remove_directory(oldest_dir) == 0) {
-				PX4_INFO("removed directory %s (no .ulg files)", oldest_dir_name);
+				PX4_INFO("removed directory %s (no .ulg files)", oldest_dir);
 				empty_dir_failures = 0;
 
 			} else {
@@ -289,7 +281,7 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 				}
 
 				have_time = !have_time;
-				PX4_DEBUG("Cannot remove %s, trying other scheme", oldest_dir_name);
+				PX4_DEBUG("Cannot remove %s, trying other scheme", oldest_dir);
 			}
 
 			continue;
@@ -297,7 +289,7 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 
 		// Build full path and delete the file
 		snprintf(oldest_file, sizeof(oldest_file), "%s/%s", oldest_dir, oldest_ulg);
-		PX4_INFO("removing old log %s/%s", oldest_dir_name, oldest_ulg);
+		PX4_INFO("removing old log %s/%s", oldest_dir, oldest_ulg);
 
 		if (unlink(oldest_file) != 0) {
 			PX4_ERR("Failed to delete %s", oldest_file);
