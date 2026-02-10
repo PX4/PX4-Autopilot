@@ -69,11 +69,11 @@ bool file_exist(const char *filename);
 /**
  * Get available and total storage space for a path.
  * @param path path to check
- * @param avail_bytes available bytes (output)
+ * @param avail_bytes available bytes (output), can be nullptr if not needed
  * @param total_bytes total bytes (output), can be nullptr if not needed
  * @return true on success, false on error
  */
-bool get_free_space(const char *path, uint64_t &avail_bytes, uint64_t *total_bytes);
+bool get_free_space(const char *path, uint64_t *avail_bytes, uint64_t *total_bytes);
 
 /**
  * Scan log directory and gather information about subdirectories.

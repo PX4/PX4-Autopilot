@@ -71,7 +71,7 @@ bool file_exist(const char *filename)
 	return stat(filename, &buffer) == 0;
 }
 
-bool get_free_space(const char *path, uint64_t &avail_bytes, uint64_t *total_bytes)
+bool get_free_space(const char *path, uint64_t *avail_bytes, uint64_t *total_bytes)
 {
 	struct statfs statfs_buf;
 
@@ -79,7 +79,9 @@ bool get_free_space(const char *path, uint64_t &avail_bytes, uint64_t *total_byt
 		return false;
 	}
 
-	avail_bytes = (uint64_t)statfs_buf.f_bavail * statfs_buf.f_bsize;
+	if (avail_bytes != nullptr) {
+		*avail_bytes = (uint64_t)statfs_buf.f_bavail * statfs_buf.f_bsize;
+	}
 
 	if (total_bytes != nullptr) {
 		*total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
@@ -162,7 +164,7 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 	uint64_t avail_bytes;
 	uint64_t total_bytes;
 
-	if (!get_free_space(log_root_dir, avail_bytes, &total_bytes)) {
+	if (!get_free_space(log_root_dir, &avail_bytes, &total_bytes)) {
 		return PX4_ERROR;
 	}
 
@@ -318,7 +320,7 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 		}
 
 		// Re-check conditions
-		if (!get_free_space(log_root_dir, avail_bytes, nullptr)) {
+		if (!get_free_space(log_root_dir, &avail_bytes, nullptr)) {
 			break;
 		}
 
