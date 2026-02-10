@@ -1,6 +1,6 @@
 # PX4 Autopilot Firmware for FSR@TUDa
 
-Base Version: **v1.15.4**
+Base Version: **v1.17.4**
 
 This fork adds airframes and board configurations required for operating the UAS fleet of FSR@TUDa.
 
@@ -18,5 +18,6 @@ This fork adds airframes and board configurations required for operating the UAS
 
 - [4002_tuda_fsr_edufly](ROMFS/px4fmu_common/init.d/airframes/4002_tuda_fsr_edufly)
 - [13001_tuda_fsr_scidragon](ROMFS/px4fmu_common/init.d/airframes/13001_tuda_fsr_scidragon)
+- [4002_tuda_fsr_scidominus](ROMFS/px4fmu_common/init.d/airframes/4002_tuda_fsr_scidominus)
 
 ### `ROMFS/px4fmu_common/init.d-posix/airframes` (Simulation)
