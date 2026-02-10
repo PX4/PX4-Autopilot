@@ -851,6 +851,13 @@ GPS::run()
 		param_get(handle, &ppk_output);
 	}
 
+	handle = param_find("GPS_UBX_JAM_DET");
+	int32_t jam_det_sensitivity_hi = 1;
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &jam_det_sensitivity_hi);
+	}
+
 	int32_t gnssSystemsParam = static_cast<int32_t>(GPSHelper::GNSSSystemsMask::RECEIVER_DEFAULTS);
 
 	if (_instance == Instance::Main) {
@@ -941,6 +948,7 @@ GPS::run()
 					.heading_offset = heading_offset,
 					.uart2_baudrate = f9p_uart2_baudrate,
 					.ppk_output = ppk_output > 0,
+					.jam_det_sensitivity_hi = jam_det_sensitivity_hi > 0,
 					.mode = ubx_mode,
 				};
 
