@@ -7,7 +7,7 @@ Experimental
 在撰写本文时，PX4 ROS 2 接口库的部分内容仍处于试验阶段，因此可能会发生变动。
 :::
 
-[PX4 ROS 2 接口库 ]（https://github.com/Auterion/px4-ros2-interface-lib）是一个 C++ 库，可简化从 ROS 2 对 PX4 进行控制和交互的操作。
+The [PX4 ROS 2 Interface Library](https://github.com/Auterion/px4-ros2-interface-lib) is a C++ library (with Python bindings) that simplifies controlling and interacting with PX4 from ROS 2.
 
 该库为开发者提供了两个高级接口。
 

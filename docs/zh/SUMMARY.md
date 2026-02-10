@@ -93,6 +93,7 @@
     - [VTOL后转换调参](config_vtol/vtol_back_transition_tuning.md)
     - [没有空速传感器的VTOL  ](config_vtol/vtol_without_airspeed_sensor.md)
     - [垂直起降风向仪](config_vtol/vtol_weathervane.md)
+    - [VTOL Ice Shedding](config_vtol/vtol_ice_shedding.md)
   - [飞行模式](flight_modes_vtol/index.md)
     - [Mission Mode (VTOL)](flight_modes_vtol/mission.md)
     - [Return Mode (VTOL)](flight_modes_vtol/return.md)
@@ -360,6 +361,8 @@
     - [TBS Crossfire (CRSF) Telemetry](telemetry/crsf_telemetry.md)
 
     - [Satellite Comms (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
+
+    - [Analog Video Transmitters](vtx/index.md)
 
   - [Power Systems](power_systems/index.md)
     - [Battery Estimation Tuning](config/battery.md)

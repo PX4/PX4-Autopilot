@@ -107,6 +107,12 @@ private:
 		ZeroOffset = 116,
 	};
 
+	enum class RegisterGRF : uint8_t {
+		DistanceOutput = 27,
+		UpdateRate = 74,
+	};
+
+
 	static constexpr uint16_t output_data_config_sf20 = 0b110'1011'0100;
 	static constexpr uint8_t output_data_config_sf30 = 0b0111'1110;
 
@@ -123,6 +129,7 @@ private:
 		Generic = 0,
 		LW20c,
 		SF30d,
+		GRF,
 	};
 	enum class State {
 		Configuring,
@@ -242,6 +249,20 @@ int LightwareLaser::init()
 		_type = Type::SF30d;
 		break;
 
+	case 8:  /* GRF250 (250m 5Hz) */
+		_px4_rangefinder.set_min_distance(0.1f);
+		_px4_rangefinder.set_max_distance(250.0f);
+		_conversion_interval = 200000;
+		_type = Type::GRF;
+		break;
+
+	case 9:  /* GRF500 (500m 5Hz) */
+		_px4_rangefinder.set_min_distance(0.1f);
+		_px4_rangefinder.set_max_distance(500.0f);
+		_conversion_interval = 200000;
+		_type = Type::GRF;
+		break;
+
 	default:
 		PX4_ERR("invalid HW model %" PRId32 ".", hw_model);
 		return ret;
@@ -278,6 +299,9 @@ int LightwareLaser::probe()
 
 	case Type::SF30d:
 		return enableI2CBinaryProtocol("SF30", "LW30");
+
+	case  Type::GRF:
+		return enableI2CBinaryProtocol("GRF250", "GRF500");
 	}
 
 	return -1;
@@ -361,6 +385,17 @@ int LightwareLaser::configure()
 			return ret;
 		}
 		break;
+
+	case Type::GRF: {
+			int ret = enableI2CBinaryProtocol("GRF250", "GRF500");
+			const uint8_t cmd1[] = {(uint8_t) RegisterGRF::UpdateRate, 0, 0, 0, 50};
+			ret |= transfer(cmd1, sizeof(cmd1), nullptr, 0);
+			uint8_t cmd2[] = {(uint8_t)RegisterGRF::DistanceOutput, 0, 0, 1};
+			ret |= transfer(cmd2, sizeof(cmd2), nullptr, 0);
+
+			return ret;
+		}
+		break;
 	}
 
 	return -1;
@@ -385,6 +420,29 @@ int LightwareLaser::collect()
 
 			uint16_t distance_cm = val[0] << 8 | val[1];
 			float distance_m = float(distance_cm) * 1e-2f;
+
+			_px4_rangefinder.update(timestamp_sample, distance_m);
+			break;
+		}
+
+	case Type::GRF: {
+
+			/* read from the sensor */
+			perf_begin(_sample_perf);
+			uint8_t val[4] {};
+			const hrt_abstime timestamp_sample = hrt_absolute_time();
+
+			if (readRegister((uint8_t)Register::DistanceData, &val[0], 4) < 0) {
+				perf_count(_comms_errors);
+				perf_end(_sample_perf);
+				PX4_INFO("Register Read Error");
+				return PX4_ERROR;
+			}
+
+			perf_end(_sample_perf);
+
+			uint16_t distance_cm = val[2] << 16 | val[1] << 8 | val[0];
+			float distance_m = float(distance_cm) * 1e-1f;
 
 			_px4_rangefinder.update(timestamp_sample, distance_m);
 			break;
@@ -416,6 +474,8 @@ int LightwareLaser::collect()
 
 		_px4_rangefinder.update(timestamp_sample, distance_m, quality);
 		break;
+
+
 	}
 
 	return PX4_OK;
@@ -497,6 +557,10 @@ int LightwareLaser::updateRestriction()
 		case Type::SF30d: {
 				const uint8_t cmd[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
 				return transfer(cmd, sizeof(cmd), nullptr, 0);
+			}
+
+		case Type::GRF: {
+				return 0;
 			}
 		}
 	}

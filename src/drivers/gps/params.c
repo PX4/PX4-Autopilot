@@ -218,6 +218,20 @@ PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
 PARAM_DEFINE_INT32(GPS_UBX_PPK, 0);
 
 /**
+ * u-blox GPS jamming detection high sensitivity mode
+ *
+ * Enables or disables the high sensitivity mode for the u-blox jamming detection
+ * (CFG-SEC-JAMDET_SENSITIVITY_HI). When enabled, the receiver uses a
+ * more sensitive algorithm to detect jamming. Disabling this may reduce false
+ * positives in electrically noisy environments.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_JAM_DET, 1);
+
+/**
  * Wipes the flash config of UBX modules.
  *
  * Some UBX modules have a FLASH that allows to store persistent configuration that will be loaded on start.

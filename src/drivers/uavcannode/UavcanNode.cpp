@@ -121,6 +121,10 @@
 #include "Subscribers/ServoArrayCommand.hpp"
 #endif // CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND
 
+#if defined(CONFIG_UAVCANNODE_HARDPOINT_COMMAND)
+#include "Subscribers/HardpointCommand.hpp"
+#endif // CONFIG_UAVCANNODE_HARDPOINT_COMMAND
+
 using namespace time_literals;
 
 namespace uavcannode
@@ -484,6 +488,10 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #if defined(CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND)
 	_subscriber_list.add(new ServoArrayCommand(_node));
 #endif // CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND
+
+#if defined(CONFIG_UAVCANNODE_HARDPOINT_COMMAND)
+	_subscriber_list.add(new HardpointCommand(_node));
+#endif // CONFIG_UAVCANNODE_HARDPOINT_COMMAND
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();

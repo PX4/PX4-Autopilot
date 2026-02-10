@@ -25,6 +25,7 @@ The boards in this category are:
 - [CubePilot Cube Orange+](../flight_controller/cubepilot_cube_orangeplus.md)
 - [CubePilot Cube Orange](../flight_controller/cubepilot_cube_orange.md)
 - [CubePilot Cube Yellow](../flight_controller/cubepilot_cube_yellow.md)
+- [Gear Up AirBrainH743](../flight_controller/gearup_airbrainh743.md)
 - [Holybro Kakute H7v2](../flight_controller/kakuteh7v2.md)
 - [Holybro Kakute H7mini](../flight_controller/kakuteh7mini.md)
 - [Holybro Kakute H7](../flight_controller/kakuteh7.md)
