@@ -35,7 +35,7 @@
 #include <px4_arch/io_timer.h>
 #include <px4_platform_common/sem.hpp>
 
-char DShot::_telemetry_device[] {};
+char DShot::_serial_port_path[] {};
 bool DShot::_telemetry_swap_rxtx{false};
 px4::atomic_bool DShot::_request_telemetry_init{false};
 
@@ -107,7 +107,7 @@ void DShot::Run()
 
 	// Telemetry init hook
 	if (_request_telemetry_init.load()) {
-		init_telemetry(_telemetry_device, _telemetry_swap_rxtx);
+		init_telemetry(_serial_port_path, _telemetry_swap_rxtx);
 		_request_telemetry_init.store(false);
 	}
 
@@ -1038,16 +1038,9 @@ int DShot::print_status()
 
 	// Configuration
 	PX4_INFO("Configuration:");
-	const int n_timers = count_set_bits(_output_mask);
-	PX4_INFO("  Output Mask:        0x%02lx (%d timer%s)", (unsigned long)_output_mask, n_timers, n_timers > 1 ? "s" : "");
+	PX4_INFO("  Output Mask:        0x%02lx (%d channels)", (unsigned long)_output_mask, count_set_bits(_output_mask));
 	PX4_INFO("  BDShot Telemetry:   %s", _bdshot_output_mask ? "Enabled" : "Disabled");
-	PX4_INFO("  Serial Telemetry:   %s%s", _serial_telemetry_enabled ? "Enabled" : "Disabled",
-		 _serial_telemetry_enabled ? (strlen(_telemetry_device) ? "" : " (no device)") : "");
-
-	if (_serial_telemetry_enabled && strlen(_telemetry_device)) {
-		PX4_INFO("    Device: %s", _telemetry_device);
-	}
-
+	PX4_INFO("  Serial Telemetry:   %s", _serial_telemetry_enabled ? "Enabled" : "Disabled");
 	PX4_INFO("  Extended DShot:     %s", _bdshot_edt_enabled ? "Enabled" : "Disabled");
 
 	const char *esc_type_str = "Unknown";
@@ -1177,8 +1170,8 @@ int DShot::custom_command(int argc, char *argv[])
 	if (!strcmp(verb, "telemetry")) {
 		if (device_name) {
 			// telemetry can be requested before the module is started
-			strncpy(_telemetry_device, device_name, sizeof(_telemetry_device) - 1);
-			_telemetry_device[sizeof(_telemetry_device) - 1] = '\0';
+			strncpy(_serial_port_path, device_name, sizeof(_serial_port_path) - 1);
+			_serial_port_path[sizeof(_serial_port_path) - 1] = '\0';
 			_telemetry_swap_rxtx = swap_rxtx;
 			_request_telemetry_init.store(true);
 		}
