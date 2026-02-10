@@ -439,6 +439,8 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 				--chip		"${CONFIG_ARCH_CHIP}"
 				--vid		"${CONFIG_CDCACM_VENDORID}"
 				--pid		"${CONFIG_CDCACM_PRODUCTID}"
+				--label-pretty	"${CONFIG_BOARD_LABEL_PRETTY}"
+				--firmware-category	"${CONFIG_BOARD_FIRMWARE_CATEGORY}"
 				--out		${MANIFEST_JSON}
 		DEPENDS
 			${PX4_SOURCE_DIR}/Tools/manifest/gen_board_manifest_from_defconfig.py
