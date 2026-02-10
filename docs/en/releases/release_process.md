@@ -51,20 +51,29 @@ Community members are encouraged to document changes as they are merged into `ma
 
 ### Create the Release Branch
 
-Once the next release version is decided, create the new release branch from `main`:
+Once the next release version is decided, create the new release branch from `main` in PX4-Autopilot and the companion repositories:
 
 ```sh
-# Ensure main is up to date
-git checkout main
-git pull
-
-# Create the new release branch
+# PX4-Autopilot
+git checkout main && git pull
 git checkout -b release/1.18
 git push origin release/1.18
 ```
 
+Matching release branches must also be created in:
+
+- [PX4/px4_msgs](https://github.com/PX4/px4_msgs)
+- [Auterion/px4-ros2-interface-lib](https://github.com/Auterion/px4-ros2-interface-lib)
+
+After creating the companion branches, update the [ROS integration test workflow](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/ros_integration_tests.yml) on the release branch to clone `px4-ros2-interface-lib` from the matching release branch:
+
+```diff
+- git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib.git
++ git clone --recursive --branch release/1.18 https://github.com/Auterion/px4-ros2-interface-lib.git
+```
+
 ::: warning
-Once the release branch is created, it only accepts bug fixes and regression fixes. All new feature development continues on `main`.
+Once the release branches are created, they only accept bug fixes and regression fixes. All new feature development continues on `main`.
 :::
 
 ### Create the Alpha Tag
