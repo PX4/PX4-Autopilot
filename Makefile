@@ -497,14 +497,15 @@ px4_sitl_default-clang:
 # - Test code (allowed looser style)
 # - Example code (educational, not production)
 # - Vendored third-party code (e.g., CMSIS_5)
-# - NuttX-only drivers excluded at CMake level (mcp_common, smbus); GPIO excluded here
+# - NuttX-only drivers excluded at CMake level (mcp_common); I2C-dependent libs excluded here (smbus)
+# - GPIO excluded here (NuttX platform headers)
 # - Emscripten failsafe web build: source path + Unity build path (failsafe_test.dir)
 #   because CMake Unity Builds merge sources into a generated .cxx under build/
 #
 # To add manual exclusions, append to CLANG_TIDY_EXCLUDE_EXTRA below.
 # Submodules are automatically excluded - no action needed when adding new ones.
 CLANG_TIDY_SUBMODULES := $(shell git config --file .gitmodules --get-regexp path | awk '{print $$2}' | tr '\n' '|' | sed 's/|$$//')
-CLANG_TIDY_EXCLUDE_EXTRA := src/systemcmds/tests|src/examples|src/modules/gyro_fft/CMSIS_5|src/drivers/gpio|src/modules/commander/failsafe/emscripten|failsafe_test\.dir
+CLANG_TIDY_EXCLUDE_EXTRA := src/systemcmds/tests|src/examples|src/modules/gyro_fft/CMSIS_5|src/lib/drivers/smbus|src/drivers/gpio|src/modules/commander/failsafe/emscripten|failsafe_test\.dir
 CLANG_TIDY_EXCLUDE := $(CLANG_TIDY_SUBMODULES)|$(CLANG_TIDY_EXCLUDE_EXTRA)
 
 clang-tidy: px4_sitl_default-clang

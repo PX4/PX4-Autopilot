@@ -38,8 +38,9 @@ add_subdirectory(led)
 add_subdirectory(magnetometer)
 add_subdirectory(rangefinder)
 
+add_subdirectory(smbus)
+add_subdirectory(smbus_sbs)
+
 if (${PX4_PLATFORM} STREQUAL "nuttx")
 	add_subdirectory(mcp_common)
-	add_subdirectory(smbus)
-	add_subdirectory(smbus_sbs)
 endif()
