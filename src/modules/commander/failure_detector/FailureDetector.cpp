@@ -81,7 +81,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 	}
 
 	// Run motor status checks even when no new ESC data arrives (to detect timeouts)
-	if (_param_fd_act_en.get() && _esc_status_received) {
+	if (_esc_status_received) {
 		updateMotorStatus(vehicle_status, _last_esc_status);
 	}
 
@@ -346,13 +346,13 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 		_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
 		_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
 
-		if (_esc_has_reported_current[i] && !_esc_undercurrent_hysteresis[i].get_state()) {
-			// Do not clear because a reaction could be to stop the motor and that would be conidered healty again
+		if (!_esc_undercurrent_hysteresis[i].get_state()) {
+			// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
 			_esc_undercurrent_hysteresis[i].set_state_and_update(thrust_above_threshold && current_too_low && !timeout, now);
 		}
 
-		if (_esc_has_reported_current[i] && !_esc_overcurrent_hysteresis[i].get_state()) {
-			// Do not clear because a reaction could be to stop the motor and that would be conidered healty again
+		if (!_esc_overcurrent_hysteresis[i].get_state()) {
+			// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
 			_esc_overcurrent_hysteresis[i].set_state_and_update(current_too_high && !timeout, now);
 		}
 
