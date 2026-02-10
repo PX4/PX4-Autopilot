@@ -1440,10 +1440,14 @@ void Logger::start_log_file(LogType type)
 		}
 
 		// Cleanup old logs if needed (storage-based and/or count-based)
+		hrt_abstime cleanup_start = hrt_absolute_time();
+
 		if (util::cleanup_old_logs(LOG_ROOT[(int)LogType::Full], _mavlink_log_pub,
 					   (uint32_t)max_size_mb, _param_sdlog_dirs_max.get()) == 1) {
 			return;  // Not enough space even after cleanup
 		}
+
+		PX4_INFO("Log cleanup took %" PRIu64 " ms", hrt_elapsed_time(&cleanup_start) / 1000);
 
 		// initialize cpu load as early as possible to get more data
 		initialize_load_output(PrintLoadReason::Preflight);
