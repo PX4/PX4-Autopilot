@@ -40,9 +40,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gps.h>
-
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
@@ -92,30 +89,12 @@ bool get_free_space(const char *path, uint64_t *avail_bytes, uint64_t *total_byt
 
 bool get_log_time(uint64_t &utc_time_usec, int utc_offset_sec, bool boot_time)
 {
-	uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	struct timespec ts = {};
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
+	utc_time_usec = ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000ULL;
 
-	bool use_clock_time = true;
-
-	/* Get the latest GPS publication */
-	sensor_gps_s gps_pos;
-
-	if (vehicle_gps_position_sub.copy(&gps_pos)) {
-		utc_time_usec = gps_pos.time_utc_usec;
-
-		if (gps_pos.fix_type >= 2 && utc_time_usec >= (uint64_t) GPS_EPOCH_SECS * 1000000ULL) {
-			use_clock_time = false;
-		}
-	}
-
-	if (use_clock_time) {
-		/* take clock time if there's no fix (yet) */
-		struct timespec ts = {};
-		px4_clock_gettime(CLOCK_REALTIME, &ts);
-		utc_time_usec = ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000ULL;
-
-		if (utc_time_usec < (uint64_t) GPS_EPOCH_SECS * 1000000ULL) {
-			return false;
-		}
+	if (utc_time_usec < (uint64_t) GPS_EPOCH_SECS * 1000000ULL) {
+		return false;
 	}
 
 	/* strip the time elapsed since boot */

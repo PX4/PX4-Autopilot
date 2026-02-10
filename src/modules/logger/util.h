@@ -96,11 +96,11 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 		     uint32_t target_free_mb, int32_t max_log_dirs_to_keep = 0);
 
 /**
- * Utility for fetching UTC time in microseconds from sensor_gps or CLOCK_REALTIME
+ * Get UTC time in microseconds from CLOCK_REALTIME
  * @param utc_time_usec returned microseconds
  * @param utc_offset_sec UTC time offset [s]
  * @param boot_time use time when booted instead of current time
- * @return true on success, false otherwise (eg. if no gps)
+ * @return true on success, false if system time is not set
  */
 bool get_log_time(uint64_t &utc_time_usec, int utc_offset_sec, bool boot_time);
 
@@ -109,7 +109,7 @@ bool get_log_time(uint64_t &utc_time_usec, int utc_offset_sec, bool boot_time);
  * @param tt returned time
  * @param utc_offset_sec UTC time offset [s]
  * @param boot_time use time when booted instead of current time
- * @return true on success, false otherwise (eg. if no gps)
+ * @return true on success, false if system time is not set
  */
 bool get_log_time(struct tm *tt, int utc_offset_sec = 0, bool boot_time = false);
 
