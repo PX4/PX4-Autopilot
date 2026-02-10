@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,13 +31,45 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file usb.c
+ *
+ * Board-specific USB functions.
+ */
 
-/* SPI1 DMA for W25N NAND Flash */
-#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1 */
-#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1 */
+#include "board_config.h"
+#include <nuttx/usb/usbdev.h>
+#include <nuttx/usb/usbdev_trace.h>
+#include <stm32_otg.h>
+#include <debug.h>
 
-#define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_1 /* DMA2 */
-#define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_1 /* DMA2 */
+/************************************************************************************
+ * Name: stm32_usbinitialize
+ *
+ * Description:
+ *   Called to setup USB-related GPIO pins for the board.
+ *
+ ************************************************************************************/
 
-#define DMAMAP_USART2_RX   DMAMAP_DMA12_USART2RX_1 /* DMA2 */
+__EXPORT void stm32_usbinitialize(void)
+{
+	/* The OTG FS has an internal soft pull-up */
+
+	/* Configure the OTG FS VBUS sensing GPIO */
+#ifdef CONFIG_STM32H7_OTGFS
+	stm32_configgpio(GPIO_OTGFS_VBUS);
+#endif
+}
+
+/************************************************************************************
+ * Name:  stm32_usbsuspend
+ *
+ * Description:
+ *   Board logic must provide the stm32_usbsuspend logic if the USBDEV driver is
+ *   used.  This function is called whenever the USB enters or leaves suspend mode.
+ *
+ ************************************************************************************/
+__EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
+{
+	uinfo("resume: %d\n", resume);
+}

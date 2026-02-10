@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,11 +33,53 @@
 
 #pragma once
 
-/* SPI1 DMA for W25N NAND Flash */
-#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1 */
-#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1 */
+#define APP_LOAD_ADDRESS               0x08020000
+#define BOOTLOADER_DELAY               5000
+#define INTERFACE_USB                  1
+#define INTERFACE_USB_CONFIG           "/dev/ttyACM0"
+#define BOARD_VBUS                     MK_GPIO_INPUT(GPIO_OTGFS_VBUS)
 
-#define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_1 /* DMA2 */
-#define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_1 /* DMA2 */
+#define INTERFACE_USART                1
+#define INTERFACE_USART_CONFIG         "/dev/ttyS0,57600"
+#define BOOT_DELAY_ADDRESS             0x000001a0
+#define BOARD_TYPE                     1209
+#define _FLASH_KBYTES                  (*(uint32_t *)0x1FF1E880)
+#define BOARD_FLASH_SECTORS            (14)
+#define BOARD_FLASH_SIZE               (_FLASH_KBYTES * 1024)
 
-#define DMAMAP_USART2_RX   DMAMAP_DMA12_USART2RX_1 /* DMA2 */
+#define OSC_FREQ                       8
+
+#define BOARD_PIN_LED_ACTIVITY         GPIO_nLED_BLUE
+#define BOARD_PIN_LED_BOOTLOADER       GPIO_nLED_GREEN
+#define BOARD_LED_ON                   0
+#define BOARD_LED_OFF                  1
+
+#define SERIAL_BREAK_DETECT_DISABLED   1
+
+#if !defined(ARCH_SN_MAX_LENGTH)
+# define ARCH_SN_MAX_LENGTH 12
+#endif
+
+/* Reserve 128KB (1 sector) at end of flash for parameters */
+#define APP_RESERVATION_SIZE           (1 * 128 * 1024)
+
+#if !defined(BOARD_FIRST_FLASH_SECTOR_TO_ERASE)
+#  define BOARD_FIRST_FLASH_SECTOR_TO_ERASE 1
+#endif
+
+#if !defined(USB_DATA_ALIGN)
+# define USB_DATA_ALIGN
+#endif
+
+#ifndef BOOT_DEVICES_SELECTION
+#  define BOOT_DEVICES_SELECTION USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
+#endif
+
+#ifndef BOOT_DEVICES_FILTER_ONUSB
+#  define BOOT_DEVICES_FILTER_ONUSB USB0_DEV|SERIAL0_DEV|SERIAL1_DEV
+#endif
+
+/* Boot device selection list*/
+#define USB0_DEV       0x01
+#define SERIAL0_DEV    0x02
+#define SERIAL1_DEV    0x04

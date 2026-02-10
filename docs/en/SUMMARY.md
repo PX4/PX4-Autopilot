@@ -178,6 +178,7 @@
       - [CubePilot Cube Orange (CubePilot)](flight_controller/cubepilot_cube_orange.md)
       - [CubePilot Cube Yellow (CubePilot)](flight_controller/cubepilot_cube_yellow.md)
         - [Cube Wiring Quickstart](assembly/quick_start_cube.md)
+      - [Gear Up AirBrainH743](flight_controller/gearup_airbrainh743.md)
       - [Holybro Kakute H7v2](flight_controller/kakuteh7v2.md)
       - [Holybro Kakute H7mini](flight_controller/kakuteh7mini.md)
       - [Holybro Kakute H7](flight_controller/kakuteh7.md)

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,13 +31,17 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <px4_arch/i2c_hw_description.h>
 
-/* SPI1 DMA for W25N NAND Flash */
-#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1 */
-#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1 */
+/*
+ * I2C bus configuration for AirBrainH743
+ *
+ * I2C1: Internal bus - PB6 (SCL), PB7 (SDA)
+ *       Devices: DPS310 baro @ 0x76, LIS2MDL compass @ 0x1E
+ * I2C4: External bus - PD12 (SCL), PD13 (SDA)
+ */
 
-#define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_1 /* DMA2 */
-#define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_1 /* DMA2 */
-
-#define DMAMAP_USART2_RX   DMAMAP_DMA12_USART2RX_1 /* DMA2 */
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	initI2CBusInternal(1),
+	initI2CBusExternal(4),
+};

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,11 +33,10 @@
 
 #pragma once
 
-/* SPI1 DMA for W25N NAND Flash */
-#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1 */
-#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1 */
+/* DMA mapping for SPI1 (IMU) */
+#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1:37 */
+#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1:38 */
 
-#define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_1 /* DMA2 */
-#define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_1 /* DMA2 */
-
-#define DMAMAP_USART2_RX   DMAMAP_DMA12_USART2RX_1 /* DMA2 */
+/* DMA mapping for SPI2 (W25N Flash) */
+#define DMAMAP_SPI2_RX    DMAMAP_DMA12_SPI2RX_0 /* DMA1:39 */
+#define DMAMAP_SPI2_TX    DMAMAP_DMA12_SPI2TX_0 /* DMA1:40 */

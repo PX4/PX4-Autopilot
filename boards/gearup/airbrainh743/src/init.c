@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,16 +34,8 @@
 /**
  * @file init.c
  *
- * PX4FMU-specific early startup code.  This file implements the
- * board_app_initialize() function that is called early by nsh during startup.
- *
- * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * AirBrainH743-specific early startup code.
  */
-
-/****************************************************************************
- * Included Files
- ****************************************************************************/
 
 #include "board_config.h"
 
@@ -53,16 +45,14 @@
 #include <debug.h>
 #include <errno.h>
 #include <syslog.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/fs/fs.h>
-#include <chip.h>
-#include <stm32_uart.h>
 #include <arch/board/board.h>
 #include "arm_internal.h"
 
@@ -72,39 +62,21 @@
 #include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
-#include <px4_platform/board_determine_hw_info.h>
 #include <px4_platform/board_dma_alloc.h>
 
-#include <mpu.h>
-
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
 #ifdef CONFIG_MTD_W25N
 extern FAR struct mtd_dev_s *w25n_initialize(FAR struct spi_dev_s *dev, uint32_t spi_devid);
 #endif
 
-
-/****************************************************************************
- * Pre-Processor Definitions
- ****************************************************************************/
-
-/* Configuration ************************************************************/
-
-/*
- * Ideally we'd be able to get these from arm_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
- */
 __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
-
 
 /************************************************************************************
  * Name: board_peripheral_reset
@@ -114,6 +86,7 @@ __END_DECLS
  ************************************************************************************/
 __EXPORT void board_peripheral_reset(int ms)
 {
+	UNUSED(ms);
 }
 
 /************************************************************************************
@@ -133,11 +106,6 @@ __EXPORT void board_on_reset(int status)
 		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_as_pwm_input(i)));
 	}
 
-	/*
-	 * On resets invoked from system (not boot) ensure we establish a low
-	 * output state on PWM pins to disarm the ESC and prevent the reset from potentially
-	 * spinning up the motors.
-	 */
 	if (status >= 0) {
 		up_mdelay(100);
 	}
@@ -147,106 +115,65 @@ __EXPORT void board_on_reset(int status)
  * Name: stm32_boardinitialize
  *
  * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the initialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
+ *   All STM32 architectures must provide the following entry point.
  *
  ************************************************************************************/
-
-__EXPORT void
-stm32_boardinitialize(void)
+__EXPORT void stm32_boardinitialize(void)
 {
-	board_on_reset(-1); /* Reset PWM first thing */
+	/* Reset PWM first thing */
+	board_on_reset(-1);
 
 	/* configure LEDs */
-
 	board_autoled_initialize();
 
 	/* configure pins */
-
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 
-	board_control_spi_sensors_power_configgpio();
-
-	/* Turn bluetooth off by default (no mavlink support yet) */
-	px4_arch_gpiowrite(GPIO_RF_SWITCH, 0);
-
 	/* configure USB interfaces */
-
 	stm32_usbinitialize();
-
 }
 
 /****************************************************************************
  * Name: board_app_initialize
  *
  * Description:
- *   Perform application specific initialization.  This function is never
- *   called directly from application code, but only indirectly via the
- *   (non-standard) boardctl() interface using the command BOARDIOC_INIT.
- *
- * Input Parameters:
- *   arg - The boardctl() argument is passed to the board_app_initialize()
- *         implementation without modification.  The argument has no
- *         meaning to NuttX; the meaning of the argument is a contract
- *         between the board-specific initalization logic and the the
- *         matching application logic.  The value cold be such things as a
- *         mode enumeration value, a set of DIP switch switch settings, a
- *         pointer to configuration data read from a file or serial FLASH,
- *         or whatever you would like to do with it.  Every implementation
- *         should accept zero/NULL as a default configuration.
- *
- * Returned Value:
- *   Zero (OK) is returned on success; a negated errno value is returned on
- *   any failure to indicate the nature of the failure.
+ *   Perform application specific initialization.
  *
  ****************************************************************************/
-
-
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-	/* Power on Interfaces */
-	board_control_spi_sensors_power(true, 0xffff);
-
 	/* Need hrt running before using the ADC */
-
 	px4_platform_init();
 
 	/* configure SPI interfaces */
-
 	stm32_spiinitialize();
 
 	/* configure the DMA allocator */
-
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
-#if defined(SERIAL_HAVE_RXDMA)
-	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
-	static struct hrt_call serial_dma_call;
-	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
-#endif
-
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_RED);
+	led_off(LED_GREEN);
+	led_off(LED_BLUE);
 
 	if (board_hardfault_init(2, true) != 0) {
 		led_on(LED_RED);
 	}
 
 #ifdef CONFIG_MTD_W25N
-	/* Initialize W25N01GV NAND Flash on SPI1 */
-	struct spi_dev_s *spi1 = stm32_spibus_initialize(1);
+	/* Initialize W25N01GV NAND Flash on SPI2 */
+	struct spi_dev_s *spi2 = stm32_spibus_initialize(2);
 
-	if (!spi1) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI1 for W25N\n");
+	if (!spi2) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI2 for W25N\n");
 		led_on(LED_RED);
 
 	} else {
-		struct mtd_dev_s *mtd = w25n_initialize(spi1, 0);
+		struct mtd_dev_s *mtd = w25n_initialize(spi2, 0);
 
 		if (!mtd) {
 			syslog(LOG_ERR, "[boot] FAILED to initialize W25N MTD driver\n");
@@ -263,7 +190,26 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 				syslog(LOG_INFO, "[boot] W25N MTD registered at /dev/mtd0\n");
 
 #ifdef CONFIG_FS_LITTLEFS
-				ret = nx_mount("/dev/mtd0", CONFIG_BOARD_ROOT_PATH, "littlefs", 0, "autoformat");
+				ret = nx_mount("/dev/mtd0", CONFIG_BOARD_ROOT_PATH, "littlefs", 0, NULL);
+
+				if (ret == 0) {
+					/* Verify the filesystem is usable by creating a test file */
+					int fd = open(CONFIG_BOARD_ROOT_PATH "/.mount_test", O_CREAT | O_WRONLY | O_TRUNC);
+
+					if (fd >= 0) {
+						close(fd);
+						unlink(CONFIG_BOARD_ROOT_PATH "/.mount_test");
+
+					} else {
+						syslog(LOG_WARNING, "[boot] littlefs mounted but not usable, reformatting\n");
+						nx_umount2(CONFIG_BOARD_ROOT_PATH, 0);
+						ret = -1;
+					}
+				}
+
+				if (ret < 0) {
+					ret = nx_mount("/dev/mtd0", CONFIG_BOARD_ROOT_PATH, "littlefs", 0, "forceformat");
+				}
 
 				if (ret < 0) {
 					syslog(LOG_ERR, "[boot] FAILED to mount littlefs: %d\n", ret);
@@ -280,27 +226,23 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif
 
-	up_udelay(20);
-
-
 #if defined(FLASH_BASED_PARAMS)
+	/* Initialize parameters in internal flash (sector 15, 128KB at 0x081E0000) */
 	static sector_descriptor_t params_sector_map[] = {
 		{15, 128 * 1024, 0x081E0000},
 		{0, 0, 0},
 	};
 
-	/* Initialize the flashfs layer to use heap allocated memory */
 	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
 	if (result != OK) {
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-		led_on(LED_AMBER);
+		led_on(LED_RED);
 	}
 
 #endif
 
 	/* Configure the HW based on the manifest */
-
 	px4_platform_configure();
 
 	return OK;

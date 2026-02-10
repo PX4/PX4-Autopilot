@@ -1,6 +1,7 @@
 /************************************************************************************
+ * nuttx-config/include/board.h
  *
- *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,7 +31,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#pragma once
+#ifndef __NUTTX_CONFIG_AIRBRAINH743_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_AIRBRAINH743_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -52,14 +54,9 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The holybro KakuteH7  board provides the following clock sources:
+/* The AirBrainH743 board provides the following clock sources:
  *
  *   X1: 8 MHz crystal for HSE
- *
- * So we have these clock source available within the STM32
- *
- *   HSI: 16 MHz RC factory-trimmed
- *   HSE:  8 MHz crystal for HSE
  */
 
 #define STM32_BOARD_XTAL        8000000ul
@@ -74,20 +71,9 @@
  * PLL source is HSE = 8,000,000
  *
  * PLL_VCOx = (STM32_HSE_FREQUENCY / PLLM) * PLLN
- * Subject to:
- *
- *     1 <= PLLM <= 63
- *     4 <= PLLN <= 512
- *   150 MHz <= PLL_VCOL <= 420MHz
- *   192 MHz <= PLL_VCOH <= 836MHz
  *
  * SYSCLK  = PLL_VCO / PLLP
  * CPUCLK  = SYSCLK / D1CPRE
- * Subject to
- *
- *   PLLP1   = {2, 4, 6, 8, ..., 128}
- *   PLLP2,3 = {2, 3, 4, ..., 128}
- *   CPUCLK <= 480 MHz
  */
 
 #define STM32_BOARD_USEHSE
@@ -99,7 +85,7 @@
  *   PLL1_VCO = (8,000,000 / 1) * 120 = 960 MHz
  *
  *   PLL1P = PLL1_VCO/2  = 960 MHz / 2   = 480 MHz
- *   PLL1Q = PLL1_VCO/5  = 960 MHz / 5   = 192 MHz (SPI123 clock, max 200 MHz)
+ *   PLL1Q = PLL1_VCO/4  = 960 MHz / 4   = 240 MHz
  *   PLL1R = PLL1_VCO/8  = 960 MHz / 8   = 120 MHz
  */
 
@@ -187,7 +173,7 @@
 #define STM32_RCC_D1CFGR_D1PPRE   RCC_D1CFGR_D1PPRE_HCLKd2        /* PCLK3 = HCLK / 2 */
 #define STM32_PCLK3_FREQUENCY     (STM32_HCLK_FREQUENCY/2)
 
-/* APB4 clock (PCLK4) is HCLK/4 (120 MHz) */
+/* APB4 clock (PCLK4) is HCLK/2 (120 MHz) */
 
 #define STM32_RCC_D3CFGR_D3PPRE   RCC_D3CFGR_D3PPRE_HCLKd2       /* PCLK4 = HCLK / 2 */
 #define STM32_PCLK4_FREQUENCY     (STM32_HCLK_FREQUENCY/2)
@@ -214,10 +200,7 @@
 #define STM32_APB2_TIM16_CLKIN  (2*STM32_PCLK2_FREQUENCY)
 #define STM32_APB2_TIM17_CLKIN  (2*STM32_PCLK2_FREQUENCY)
 
-/* Kernel Clock Configuration
- *
- * Note: look at Table 54 in ST Manual
- */
+/* Kernel Clock Configuration */
 
 /* I2C123 clock source */
 
@@ -227,9 +210,9 @@
 
 #define STM32_RCC_D3CCIPR_I2C4SRC    RCC_D3CCIPR_I2C4SEL_HSI
 
-/* SPI123 clock source - PLL1Q = 192 MHz for W25N NAND flash (max 104 MHz) */
+/* SPI123 clock source */
 
-#define STM32_RCC_D2CCIP1R_SPI123SRC RCC_D2CCIP1R_SPI123SEL_PLL1
+#define STM32_RCC_D2CCIP1R_SPI123SRC RCC_D2CCIP1R_SPI123SEL_PLL2
 
 /* SPI45 clock source */
 
@@ -247,84 +230,31 @@
 
 #define STM32_RCC_D3CCIPR_ADCSRC     RCC_D3CCIPR_ADCSEL_PLL2
 
-/* FDCAN 1 2 clock source */
+/* FDCAN 1 clock source */
 
-#define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE   /* FDCAN 1 2 clock source */
-
+#define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE
 #define STM32_FDCANCLK               STM32_HSE_FREQUENCY
 
-/* FLASH wait states
- *
- *  ------------ ---------- -----------
- *  Vcore        MAX ACLK   WAIT STATES
- *  ------------ ---------- -----------
- *  1.15-1.26 V     70 MHz    0
- *  (VOS1 level)   140 MHz    1
- *                 210 MHz    2
- *  1.05-1.15 V     55 MHz    0
- *  (VOS2 level)   110 MHz    1
- *                 165 MHz    2
- *                 220 MHz    3
- *  0.95-1.05 V     45 MHz    0
- *  (VOS3 level)    90 MHz    1
- *                 135 MHz    2
- *                 180 MHz    3
- *                 225 MHz    4
- *  ------------ ---------- -----------
- */
+/* FLASH wait states */
 
 #define BOARD_FLASH_WAITSTATES 2
 
-/* SDMMC definitions ********************************************************/
-
-/* Init 400kHz, freq = PLL1Q/(2*div)  div =  PLL1Q/(2*freq) */
-
-#define STM32_SDMMC_INIT_CLKDIV     (300 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-
-/* 25 MHz Max for now, 25 mHz = PLL1Q/(2*div), div = PLL1Q/(2*freq)
- * PLL1Q = 192 MHz, div = 192 / 50 = 3.84, round up to 4 for 24 MHz
- */
-
-#if defined(CONFIG_STM32H7_SDMMC_XDMA) || defined(CONFIG_STM32H7_SDMMC_IDMA)
-#  define STM32_SDMMC_MMCXFR_CLKDIV   (4 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-#else
-#  define STM32_SDMMC_MMCXFR_CLKDIV   (100 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-#endif
-#if defined(CONFIG_STM32H7_SDMMC_XDMA) || defined(CONFIG_STM32H7_SDMMC_IDMA)
-#  define STM32_SDMMC_SDXFR_CLKDIV    (4 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-#else
-#  define STM32_SDMMC_SDXFR_CLKDIV    (100 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
-#endif
-
-#define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
-
 /* LED definitions ******************************************************************/
-/* The holybro KakuteH7 board has three, LED_GREEN a Green LED, LED_BLUE
- * a Blue LED and LED_RED a Red LED, that can be controlled by software.
- *
- * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
- * The following definitions are used to access individual LEDs.
- */
-
-/* LED index values for use with board_userled() */
 
 #define BOARD_LED1        0
-#define BOARD_NLEDS       1
+#define BOARD_LED2        1
+#define BOARD_LED3        2
+#define BOARD_NLEDS       3
 
 #define BOARD_LED_RED     BOARD_LED1
+#define BOARD_LED_GREEN   BOARD_LED2
+#define BOARD_LED_BLUE    BOARD_LED3
 
 /* LED bits for use with board_userled_all() */
 
 #define BOARD_LED1_BIT    (1 << BOARD_LED1)
-
-/* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
- * include/board.h and src/stm32_leds.c. The LEDs are used to encode OS-related
- * events as follows:
- *
- *
- *   SYMBOL                     Meaning                      LED state
- *                                                        Red   Green Blue
- *   ----------------------  --------------------------  ------ ------ ----*/
+#define BOARD_LED2_BIT    (1 << BOARD_LED2)
+#define BOARD_LED3_BIT    (1 << BOARD_LED3)
 
 #define LED_STARTED        0 /* NuttX has been started   OFF    OFF   OFF  */
 #define LED_HEAPALLOCATE   1 /* Heap has been allocated  OFF    OFF   ON   */
@@ -336,83 +266,81 @@
 #define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
 #define LED_IDLE           8 /* MCU is is sleep mode     ON     OFF   OFF  */
 
-/* Thus if the Green LED is statically on, NuttX has successfully booted and
- * is, apparently, running normally.  If the Red LED is flashing at
- * approximately 2Hz, then a fatal error has been detected and the system
- * has halted.
- */
-
 /* Alternate function pin selections ************************************************/
 
+/* USART1 - Debug (PA9 TX, PA10 RX) */
+#define GPIO_USART1_RX   GPIO_USART1_RX_2   /* PA10 */
+#define GPIO_USART1_TX   GPIO_USART1_TX_2   /* PA9  */
 
-#define GPIO_USART1_RX   GPIO_USART1_RX_2    /* PA10 */
-#define GPIO_USART1_TX   GPIO_USART1_TX_2    /* PA9 */
+/* USART2 - RC input (PD5 TX, PD6 RX) */
+#define GPIO_USART2_RX   GPIO_USART2_RX_2   /* PD6  */
+#define GPIO_USART2_TX   GPIO_USART2_TX_2   /* PD5  */
 
-#define GPIO_USART2_RX   GPIO_USART2_RX_2   /* PD6 */
-#define GPIO_USART2_TX   GPIO_USART2_TX_2   /* PD5 */
-
+/* USART3 - DJI/MSP (PD8 TX, PD9 RX) */
 #define GPIO_USART3_RX   GPIO_USART3_RX_3   /* PD9  */
 #define GPIO_USART3_TX   GPIO_USART3_TX_3   /* PD8  */
 
-#define GPIO_UART4_RX    GPIO_UART4_RX_5    /* PD0 */
-#define GPIO_UART4_TX    GPIO_UART4_TX_5    /* PD1 */
+/* UART4 - General (PB9 TX, PB8 RX) */
+#define GPIO_UART4_RX    GPIO_UART4_RX_3    /* PB8  */
+#define GPIO_UART4_TX    GPIO_UART4_TX_3    /* PB9  */
 
-#define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7  */
-#define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6 */
+/* UART5 - Companion (PB13 TX, PB12 RX) */
+#define GPIO_UART5_RX    GPIO_UART5_RX_1    /* PB12 */
+#define GPIO_UART5_TX    GPIO_UART5_TX_1    /* PB13 */
 
-#define GPIO_UART7_RX    GPIO_UART7_RX_3    /* PE7 */
-#define GPIO_UART7_TX    GPIO_UART7_TX_3    /* PE8 */
+/* UART7 - ESC telemetry (PE8 TX, PE7 RX) */
+#define GPIO_UART7_RX    GPIO_UART7_RX_3    /* PE7  */
+#define GPIO_UART7_TX    GPIO_UART7_TX_3    /* PE8  */
+
+/* UART8 - GPS (PE1 TX, PE0 RX) */
+#define GPIO_UART8_RX    GPIO_UART8_RX_1    /* PE0  */
+#define GPIO_UART8_TX    GPIO_UART8_TX_1    /* PE1  */
+
 
 /* SPI
- * SPI1 SD Card
- * SPI2 is OSD AT7456E
- * SPI4 is IMU
+ *
+ * SPI1: IMU (PA5 SCK, PA6 MISO, PA7 MOSI)
+ * SPI2: W25N Flash (PD3 SCK, PB14 MISO, PC3 MOSI)
+ * SPI4: External (PE12 SCK, PE5 MISO, PE6 MOSI)
  */
 
-#define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1   /* PA6 */
-#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1   /* PA7 */
-#define GPIO_SPI1_SCK    GPIO_SPI1_SCK_1    /* PA5 */
+#define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1   /* PA6  */
+#define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1   /* PA7  */
+#define GPIO_SPI1_SCK    GPIO_SPI1_SCK_1    /* PA5  */
 
 #define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1   /* PB14 */
-#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1   /* PB15 */
-#define GPIO_SPI2_SCK    GPIO_SPI2_SCK_4    /* PB13 */
+#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_3   /* PC3  */
+#define GPIO_SPI2_SCK    GPIO_SPI2_SCK_5    /* PD3  */
 
-#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_2   /* PE5 */
-#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_2   /* PE6 */
-#define GPIO_SPI4_SCK    GPIO_SPI4_SCK_2    /* PE2 */
+#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_2   /* PE5  */
+#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_2   /* PE6  */
+#define GPIO_SPI4_SCK    GPIO_SPI4_SCK_1    /* PE12 */
 
 /* I2C
+ *
+ * I2C1: Internal (PB6 SCL, PB7 SDA)
+ * I2C4: External (PD12 SCL, PD13 SDA)
  */
 
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_1       /* PB6  */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_1       /* PB7  */
 
-#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN6)
-#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN7)
+#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN6)
+#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN7)
 
-/* SDMMC1
- *
- *      VDD 3.3
- *      GND
- *      SDMMC1_CK                           PC12
- *      SDMMC1_CMD                          PD2
- *      SDMMC1_D0                           PC8
- *      SDMMC1_D1                           PC9
- *      SDMMC1_D2                           PC10
- *      SDMMC1_D3                           PC11
- *      GPIO_SDMMC1_NCD                     PG0
- */
+#define GPIO_I2C4_SCL GPIO_I2C4_SCL_1       /* PD12 */
+#define GPIO_I2C4_SDA GPIO_I2C4_SDA_1       /* PD13 */
+
+#define GPIO_I2C4_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN12)
+#define GPIO_I2C4_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN13)
+
 
 /* USB
  *
  *      OTG_FS_DM                           PA11
  *      OTG_FS_DP                           PA12
- *      VBUS                                PA9
+ *      VBUS                                PD0
  */
 
 
-/* Board provides GPIO or other Hardware for signaling to timing analyzer */
-
-# define PROBE_INIT(mask)
-# define PROBE(n,s)
-# define PROBE_MARK(n)
+#endif  /*__NUTTX_CONFIG_AIRBRAINH743_INCLUDE_BOARD_H  */

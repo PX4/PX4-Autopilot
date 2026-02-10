@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * holybro KakuteH7 internal definitions
+ * AirBrainH743 (Gear Up) internal definitions
  */
 
 #pragma once
@@ -53,25 +53,25 @@
  * Definitions
  ****************************************************************************************************/
 
-/* Configuration ************************************************************************************/
-
-#  define BOARD_HAS_USB_VALID           1
-#  define BOARD_HAS_NBAT_V              1
-#  define BOARD_HAS_NBAT_I              1
-
 /* Enable small flash logging support (for W25N NAND flash) */
 #ifdef CONFIG_MTD_W25N
 #  define BOARD_SMALL_FLASH_LOGGING 1
 #endif
 
-/* Holybro KakuteH7 GPIOs ************************************************************************/
+/* LEDs are active low
+ * STAT RGB LED:
+ *   PB15 = Blue
+ *   PD11 = Green
+ *   PD15 = Red
+ * BAT LED (orange): hardwired to power input
+ */
+#define GPIO_nLED_BLUE       /* PB15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN15)
+#define GPIO_nLED_GREEN      /* PD11 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN11)
+#define GPIO_nLED_RED        /* PD15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN15)
 
-/* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
-
-#define GPIO_nLED_RED        /* PC2 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
-
-#define BOARD_HAS_CONTROL_STATUS_LEDS      1
-#define BOARD_OVERLOAD_LED     LED_RED
+#define BOARD_HAS_CONTROL_STATUS_LEDS   1
+#define BOARD_OVERLOAD_LED              LED_RED
+#define BOARD_ARMED_STATE_LED           LED_GREEN
 
 /*
  * ADC channels
@@ -81,116 +81,107 @@
  */
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
-
 #define ADC1_CH(n)                  (n)
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below */
-
 #define PX4_ADC_GPIO  \
-	/* PC0 */  GPIO_ADC123_INP10, \
-	/* PC1 */  GPIO_ADC123_INP11, \
+	/* PC4 */  GPIO_ADC12_INP4, \
 	/* PC5 */  GPIO_ADC12_INP8
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
-
-#define ADC_BATTERY_VOLTAGE_CHANNEL        /* PC0 */  ADC1_CH(10)
-#define ADC_BATTERY_CURRENT_CHANNEL        /* PC1 */  ADC1_CH(11)
-#define ADC_RSSI_IN_CHANNEL                /* PC5 */  ADC1_CH(8)
+#define ADC_BATTERY_VOLTAGE_CHANNEL     /* PC4 */  ADC1_CH(4)
+#define ADC_BATTERY_CURRENT_CHANNEL     /* PC5 */  ADC1_CH(8)
 
 #define ADC_CHANNELS \
-	((1 << ADC_BATTERY_VOLTAGE_CHANNEL)       | \
-	 (1 << ADC_BATTERY_CURRENT_CHANNEL)       | \
-	 (1 << ADC_RSSI_IN_CHANNEL))
+	((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
+	 (1 << ADC_BATTERY_CURRENT_CHANNEL))
 
-#define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
+/* Define Battery Voltage Divider and A per V
+ */
+#define BOARD_BATTERY1_V_DIV         (15.0f)
+#define BOARD_BATTERY1_A_PER_V       (101.0f)
 
 
 /* PWM
+ * 8 PWM outputs for motors + 1 for LED strip
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS  8
+#define DIRECT_PWM_OUTPUT_CHANNELS   9
+#define DIRECT_INPUT_TIMER_CHANNELS  9
 
-#define BOARD_NUM_IO_TIMERS 4
+#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 
-/* Tone alarm output */
+/* Tone alarm output (directly connected to transistor switch of external buzzer)
+ *
+ * GPIO mode only (active buzzer) - passive buzzer with different tones is not
+ * supported because PA15 can only use TIM2, which is also used for motor outputs
+ * M7 (PB10, TIM2_CH3) and M8 (PB11, TIM2_CH4). The PWM tone alarm driver changes
+ * the timer's prescaler and auto-reload registers (shared across all channels),
+ * which would affect M7/M8 PWM frequency during tone playback.
+ */
+#define GPIO_TONE_ALARM_IDLE    /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN15)
+#define GPIO_TONE_ALARM_GPIO    /* PA15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN15)
 
-#define GPIO_TONE_ALARM_IDLE    /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
-#define GPIO_TONE_ALARM_GPIO    /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
+
+/* ICM42688P FSYNC - directly connected to IMU via GPIO (no timer).
+ * The driver clears TMST_FSYNC_EN and FIFO_TMST_FSYNC_EN, so FSYNC is unused.
+ * This GPIO is kept low to prevent spurious triggers.
+ */
+#define GPIO_42688P_FSYNC       /* PC7 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN7)
+
 
 /* USB OTG FS
  *
- * PA9  OTG_FS_VBUS VBUS sensing
+ * PD0 VBUS sensing (active high input)
  */
-#define GPIO_OTGFS_VBUS         /* PA8 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN8)
+#define GPIO_OTGFS_VBUS         /* PD0 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTD|GPIO_PIN0)
+
 
 /* High-resolution timer */
-#define HRT_TIMER               4  /* use timer3 for the HRT */
-#define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
+#define HRT_TIMER               8  /* use timer8 for the HRT */
+#define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
-/* RC Serial port */
 
-/* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
-
-#define PWMIN_TIMER                       5
-#define PWMIN_TIMER_CHANNEL    /* T5C1 */ 1
-#define GPIO_PWM_IN            /* PA0  */ GPIO_TIM5_CH1IN
-
-#define GPIO_RSSI_IN                       /* PC5  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN5)
-
-#define GPIO_RF_SWITCH                     /* PE13  */ (GPIO_OUTPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN13)
-
-#define GPIO_VTX_ON                        /* PB11  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN11)
-
-/* Power switch controls ******************************************************/
-
-#define SDIO_SLOTNO                    0  /* Only one slot */
-#define SDIO_MINOR                     0
-
-/* SD card bringup does not work if performed on the IDLE thread because it
- * will cause waiting.  Use either:
+/*
+ * Serial Port Mapping:
  *
- *  CONFIG_BOARDCTL=y, OR
- *  CONFIG_BOARD_INITIALIZE=y && CONFIG_BOARD_INITTHREAD=y
+ *   UART    Device    Pins          Function
+ *   ----    ------    ----          --------
+ *   USART1  /dev/ttyS0  PA9/PA10    Console/Debug
+ *   USART2  /dev/ttyS1  PD5/PD6     RC Input
+ *   USART3  /dev/ttyS2  PD8/PD9     TEL4 (DJI/MSP)
+ *   UART4   /dev/ttyS3  PA0/PA1     TEL1
+ *   UART5   /dev/ttyS4  PB13/PB12   TEL2
+ *   UART7   /dev/ttyS5  PE8/PE7     TEL3 (ESC Telemetry)
+ *   UART8   /dev/ttyS6  PE1/PE0     GPS1
  */
 
-#if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_BOARDCTL) && \
-   !defined(CONFIG_BOARD_INITTHREAD)
-#  warning SDIO initialization cannot be perfomed on the IDLE thread
-#endif
-
-/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
-#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-
-/* Board never powers off the Servo rail */
-
-#define BOARD_ADC_SERVO_VALID     (1)
-
-#define BOARD_ADC_BRICK1_VALID  (1)
-
+/* RC Serial port - USART2 (PD5/PD6) */
+#define RC_SERIAL_PORT          "/dev/ttyS1"
+#define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 /* This board provides the board_on_reset interface */
-
 #define BOARD_HAS_ON_RESET 1
 
+
 #define PX4_GPIO_INIT_LIST { \
-		PX4_ADC_GPIO,                     \
-		GPIO_TONE_ALARM_IDLE,             \
-		GPIO_RSSI_IN,                     \
-		GPIO_RF_SWITCH,                   \
-		GPIO_VTX_ON,                      \
+		PX4_ADC_GPIO, \
+		GPIO_nLED_RED, \
+		GPIO_nLED_GREEN, \
+		GPIO_nLED_BLUE, \
+		GPIO_TONE_ALARM_IDLE, \
+		GPIO_42688P_FSYNC, \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
-#define FLASH_BASED_PARAMS
+#define BOARD_NUM_IO_TIMERS 4
+
 
 __BEGIN_DECLS
 
@@ -208,11 +199,22 @@ __BEGIN_DECLS
  * Public Functions
  ****************************************************************************************************/
 
+/****************************************************************************
+ * Name: stm32_spiinitialize
+ *
+ * Description:
+ *   Called to configure SPI chip select GPIO pins for the board.
+ *
+ ****************************************************************************/
+
 extern void stm32_spiinitialize(void);
 
 extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
+
+/* Parameters stored in internal flash */
+#define FLASH_BASED_PARAMS
 
 #include <px4_platform_common/board_common.h>
 
