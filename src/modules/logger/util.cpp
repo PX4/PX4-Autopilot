@@ -162,7 +162,14 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 		}
 	}
 
-	// Check if we need cleanup
+	// Early out if we have enough space and no directory limit
+	bool need_space_cleanup = avail_bytes < cleanup_threshold;
+
+	if (!need_space_cleanup && max_log_dirs_to_keep <= 0) {
+		return PX4_OK;
+	}
+
+	// Scan directories for cleanup
 	LogDirInfo info;
 
 	if (!scan_log_directories(log_root_dir, info)) {
@@ -170,7 +177,6 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 	}
 
 	int total_dirs = info.num_sess + info.num_dates;
-	bool need_space_cleanup = avail_bytes < cleanup_threshold;
 	bool need_count_cleanup = (max_log_dirs_to_keep > 0) && (total_dirs > max_log_dirs_to_keep);
 
 	if (!need_space_cleanup && !need_count_cleanup) {
