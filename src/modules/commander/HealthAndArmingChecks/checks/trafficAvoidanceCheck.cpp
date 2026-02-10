@@ -36,23 +36,20 @@
 
 void TrafficAvoidanceChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	// Check to see if the check has been disabled
-	if (!_param_com_arm_traff.get()) {
-		return;
+	NavModes affected_modes{NavModes::None}; // COM_ARM_TRAFF 1 - warning only, arming allowed, affected_modes stays None
+
+	switch (_param_com_arm_traff.get()) {
+	case 0:
+		return; // Check disabled
+
+	case 2:
+		affected_modes = NavModes::All; // Disallow arming for all modes
+		break;
+
+	case 3:
+		affected_modes = NavModes::Mission; // Disallow arming for mission
+		break;
 	}
-
-	NavModes affected_modes{NavModes::None};
-
-	if (_param_com_arm_traff.get() == 2) {
-		// disallow arming without the traffic avoidance system for all modes
-		affected_modes = NavModes::All;
-
-	} else if (_param_com_arm_traff.get() == 3) {
-		// disallow arming for mission modes without the traffic avoidance system
-		affected_modes = NavModes::Mission;
-	}
-
-	// else: value 1 = warning only, affected_modes stays None (arming allowed)
 
 	if (!context.status().traffic_avoidance_system_present) {
 		/* EVENT
