@@ -121,13 +121,14 @@ parameters:
       description:
         short: Maximum log file size
         long: 'Maximum size of a single log file in megabytes. When reached,
-          the log file is closed and a new one is started. Set to 0 for unlimited.
+          the log file is closed and a new one is started.
           Cleanup of old logs always happens at log start (not boot) to allow
-          downloading logs via FTP before deletion.'
+          downloading logs via FTP before deletion.
+          Must stay below the FAT32 file size limit of 4 GiB.'
       type: int32
-      default: 0
+      default: 4095
       min: 0
-      max: 4096
+      max: 4095
       reboot_required: false
     SDLOG_UUID:
       description:
