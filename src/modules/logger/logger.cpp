@@ -810,7 +810,7 @@ void Logger::run()
 
 			if (_log_message_sub.update(&log_message)) {
 				const char *message = (const char *)log_message.text;
-				int message_len = strlen(message);
+				int message_len = strnlen(message, sizeof(log_message.text));
 
 				if (message_len > 0) {
 					uint16_t write_msg_size = sizeof(ulog_message_logging_s) - sizeof(ulog_message_logging_s::message)
@@ -1254,7 +1254,8 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 
 	if (tt) {
 		strftime(file_name.log_dir, sizeof(LogFileName::log_dir), "%Y-%m-%d", tt);
-		strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
+		strncpy(log_dir + n, file_name.log_dir, log_dir_len - n - 1);
+		log_dir[log_dir_len - 1] = '\0';
 		int mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 		if (mkdir_ret != OK && errno != EEXIST) {
@@ -1266,7 +1267,8 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 		uint16_t dir_number = file_name.sess_dir_index;
 
 		if (file_name.has_log_dir) {
-			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
+			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n - 1);
+			log_dir[log_dir_len - 1] = '\0';
 		}
 
 		/* look for the next dir that does not exist */
@@ -1279,7 +1281,8 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 				return -1;
 			}
 
-			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
+			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n - 1);
+			log_dir[log_dir_len - 1] = '\0';
 			int mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 			if (mkdir_ret == 0) {

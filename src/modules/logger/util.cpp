@@ -278,6 +278,7 @@ int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
 			if (len > 4 && strcmp(result->d_name + len - 4, ".ulg") == 0) {
 				if (oldest_ulg[0] == '\0' || strcmp(result->d_name, oldest_ulg) < 0) {
 					strncpy(oldest_ulg, result->d_name, sizeof(oldest_ulg) - 1);
+					oldest_ulg[sizeof(oldest_ulg) - 1] = '\0';
 				}
 			}
 		}
