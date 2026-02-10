@@ -52,6 +52,7 @@
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <syslog.h>
 
 #include <nuttx/config.h>
@@ -231,16 +232,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-	// MARK: this will *not* work as the minis have a W25N NAND flash chip
-	/* Get the SPI port for the microSD slot */
-	struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
-	if (!spi_dev) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
-		led_on(LED_BLUE);
-	}
-
-	up_udelay(20);
 
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t params_sector_map[] = {
@@ -259,8 +251,18 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	/* Configure the HW based on the manifest */
-
 	px4_platform_configure();
+
+	/* Mount LittleFS on W25Q128 flash for logging */
+	mkdir("/fs/microsd", 0777);
+
+	if (nx_mount("/dev/mtdblock0", "/fs/microsd", "littlefs", 0, "autoformat") != 0) {
+		syslog(LOG_ERR, "[boot] FAILED to mount littlefs on mtdblock0\n");
+		led_on(LED_BLUE);
+
+	} else {
+		syslog(LOG_INFO, "[boot] LittleFS mounted on /fs/microsd\n");
+	}
 
 	return OK;
 }
