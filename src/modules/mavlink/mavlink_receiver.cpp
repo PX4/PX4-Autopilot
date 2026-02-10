@@ -2043,6 +2043,10 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 		_esc_serial_passthru_pub.publish(tunnel);
 		break;
 
+	case MAV_TUNNEL_PAYLOAD_TYPE_MODALAI_IO_UART_PASSTHRU:
+		_io_serial_passthru_pub.publish(tunnel);
+		break;
+
 	default:
 		_mavlink_tunnel_pub.publish(tunnel);
 		break;

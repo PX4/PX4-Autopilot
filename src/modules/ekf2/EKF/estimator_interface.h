@@ -190,9 +190,6 @@ public:
 	// return true if the attitude is usable
 	bool attitude_valid() const { return _control_status.flags.tilt_align; }
 
-	// get vehicle landed status data
-	bool get_in_air_status() const { return _control_status.flags.in_air; }
-
 #if defined(CONFIG_EKF2_WIND)
 	bool get_wind_status() const { return _control_status.flags.wind || _external_wind_init; }
 #endif // CONFIG_EKF2_WIND

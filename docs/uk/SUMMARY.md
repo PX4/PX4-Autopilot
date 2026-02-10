@@ -93,6 +93,7 @@
     - [Настройка Зворотнього Переходу](config_vtol/vtol_back_transition_tuning.md)
     - [ВЗІП Датчик польоту](config_vtol/vtol_without_airspeed_sensor.md)
     - [VTOL Weather Vane](config_vtol/vtol_weathervane.md)
+    - [VTOL Ice Shedding](config_vtol/vtol_ice_shedding.md)
   - [Режим польоту](flight_modes_vtol/index.md)
     - [Mission Mode (VTOL)](flight_modes_vtol/mission.md)
     - [Return Mode (VTOL)](flight_modes_vtol/return.md)
@@ -128,6 +129,7 @@
     - [Значення світлодіодів](getting_started/led_meanings.md)
     - [Значення звуків та мелодій](getting_started/tunes.md)
     - [QGroundControl Flight-Readiness Status](flying/pre_flight_checks.md)
+  - [Asset Tracking](debug/asset_tracking.md)
 
 - [Вибір обладнання & Налаштування](hardware/drone_parts.md)
   - [Flight Controllers (Autopilots)](flight_controller/index.md)
@@ -273,6 +275,8 @@
       - [Holybro M8N & M9N GPS](gps_compass/gps_holybro_m8n_m9n.md)
       - [Sky-Drones SmartAP GPS](gps_compass/gps_smartap.md)
     - [RTK GNSS](gps_compass/rtk_gps.md)
+      - [ARK G5 RTK GPS](dronecan/ark_g5_rtk_gps.md)
+      - [ARK G5 RTK HEADING GPS](dronecan/ark_g5_rtk_heading_gps.md)
       - [ARK RTK GPS (CAN)](dronecan/ark_rtk_gps.md)
       - [ARK RTK GPS L1 L5 (CAN)](dronecan/ark_rtk_gps_l1_l2.md)
       - [ARK X20 RTK GPS (CAN)](dronecan/ark_x20_rtk_gps.md)
@@ -357,6 +361,8 @@
     - [TBS Crossfire (CRSF) телеметрія](telemetry/crsf_telemetry.md)
 
     - [Супутниковий зв'язок (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
+
+    - [Analog Video Transmitters](vtx/index.md)
 
   - [Енергетичні системи](power_systems/index.md)
     - [Налаштування оцінки батареї](config/battery.md)
@@ -840,9 +846,11 @@
     - [Інтеграція камери/Архітектура](camera/camera_architecture.md)
     - [Комп'ютерний зір](advanced/computer_vision.md)
       - [Захоплення руху (VICON, Optitrack, NOKOV)](tutorials/motion-capture.md)
-    - [Neural Networks](advanced/neural_networks.md)
-      - [Neural Network Module Utilities](advanced/nn_module_utilities.md)
-      - [TensorFlow Lite Micro (TFLM)](advanced/tflm.md)
+    - [Neural Networks](neural_networks/index.md)
+      - [MC NN Control Module (Generic)](neural_networks/mc_neural_network_control.md)
+        - [Neural Network Module Utilities](neural_networks/nn_module_utilities.md)
+        - [TensorFlow Lite Micro (TFLM)](neural_networks/tflm.md)
+      - [RAPTOR Adaptive RL NN Module](neural_networks/raptor.md)
     - [Встановлюється драйвер для Intel RealSense R200](advanced/realsense_intel_driver.md)
     - [Перемикання оцінювачів стану](advanced/switching_state_estimators.md)
     - [Out-of-Tree модулі](advanced/out_of_tree_modules.md)
@@ -925,6 +933,7 @@
 
 - [Релізи](releases/index.md)
   - [main (alpha)](releases/main.md)
+  - [1.17 (alpha)](releases/1.17.md)
   - [1.16 (stable)](releases/1.16.md)
   - [1.15](releases/1.15.md)
   - [1.14](releases/1.14.md)

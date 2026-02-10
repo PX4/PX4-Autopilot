@@ -330,6 +330,10 @@ uint16_t Battery::determineFaults()
 		faults |= (1 << battery_status_s::FAULT_SPIKES);
 	}
 
+	if (PX4_ISFINITE(_temperature_c) && _temperature_c > BAT_TEMP_MAX) {
+		faults |= (1 << battery_status_s::FAULT_OVER_TEMPERATURE);
+	}
+
 	return faults;
 }
 

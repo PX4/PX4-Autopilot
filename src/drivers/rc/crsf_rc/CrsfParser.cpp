@@ -264,7 +264,8 @@ static bool ProcessElrsStatus(const uint8_t *data, const uint32_t size, CrsfPack
 	new_packet->elrs_status.packets_bad = data[2];
 	new_packet->elrs_status.packets_good = (data[3] << 8) | data[4];
 	new_packet->elrs_status.flags = data[5];
-	strlcpy(new_packet->elrs_status.message, (const char *)&data[6], sizeof(new_packet->elrs_status.message));
+	strncpy(new_packet->elrs_status.message, (const char *)&data[6], sizeof(new_packet->elrs_status.message) - 1);
+	new_packet->elrs_status.message[sizeof(new_packet->elrs_status.message) - 1] = '\0';
 
 	return true;
 }

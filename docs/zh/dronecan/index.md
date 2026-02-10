@@ -27,6 +27,8 @@ Connecting peripherals over DroneCAN has many benefits:
 - Wiring is less complicated as you can have a single bus for connecting all your ESCs and other DroneCAN peripherals.
 - Setup is easier as you configure ESC numbering by manually spinning each motor.
 - It allows users to configure and update the firmware of all CAN-connected devices centrally through PX4.
+- PX4 automatically tracks device information (vendor, model, versions, serial numbers) for maintenance and fleet management.
+  See [Asset Tracking](../debug/asset_tracking.md).
 
 ## 支持的硬件
 
