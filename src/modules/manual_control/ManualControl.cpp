@@ -313,18 +313,20 @@ void ManualControl::processSwitches(hrt_abstime &now)
 				if (!_armed) {
 					// Directly initialize mode using RC switch but only before arming
 					evaluateModeSlot(switches.mode_slot);
+
+					// Apply payload power state on first switch receipt if not armed
+					if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						PAYLOAD_POWER_EN(true);
+
+					} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF
+						   || switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_MIDDLE) {
+						PAYLOAD_POWER_EN(false);
+					}
 				}
 
 #if defined(PAYLOAD_POWER_EN)
 
-				// Apply payload power state on first switch receipt
-				if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_ON) {
-					PAYLOAD_POWER_EN(true);
 
-				} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF
-					   || switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_MIDDLE) {
-					PAYLOAD_POWER_EN(false);
-				}
 
 #endif // PAYLOAD_POWER_EN
 			}
