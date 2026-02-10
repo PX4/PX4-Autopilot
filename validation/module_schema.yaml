@@ -155,7 +155,7 @@ parameters:
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C',
                                 'N/(m/s)', 'Nm/(rad/s)', 'Nm', 'N',
                                 'rpm',
-                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD']
+                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD', 'dBHz']
                         bit:
                             # description of all bits for type bitmask.
                             # The first bit is 0.

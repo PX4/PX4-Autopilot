@@ -281,7 +281,8 @@ TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
 
 	// AND THEN: restart GNSS yaw fusion
-	_sensor_simulator.runSeconds(5);
+	// The strict checks on ground require min_health_time_us (10s) to pass again.
+	_sensor_simulator.runSeconds(11);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);
 	EXPECT_LT(fabsf(matrix::wrap_pi(_ekf_wrapper.getYawAngle() - gps_heading)), math::radians(1.f));

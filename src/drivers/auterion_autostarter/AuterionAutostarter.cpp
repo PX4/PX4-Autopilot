@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,26 +35,26 @@
  * Automatic handling power monitors
  */
 
-#include "PowerMonitorSelectorAuterion.h"
-#include "../ina226/ina226.h"
+#include "AuterionAutostarter.h"
+#include "../power_monitor/ina226/ina226.h"
 
 #include <builtin/builtin.h>
 #include <sys/wait.h>
 
-PowerMonitorSelectorAuterion::PowerMonitorSelectorAuterion() :
+AuterionAutostarter::AuterionAutostarter() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 }
 
-PowerMonitorSelectorAuterion::~PowerMonitorSelectorAuterion() = default;
+AuterionAutostarter::~AuterionAutostarter() = default;
 
-bool PowerMonitorSelectorAuterion::init()
+bool AuterionAutostarter::init()
 {
 	ScheduleNow();
 	return true;
 }
 
-void PowerMonitorSelectorAuterion::Run()
+void AuterionAutostarter::Run()
 {
 	if (should_exit()) {
 		exit_and_cleanup();
@@ -83,33 +83,48 @@ void PowerMonitorSelectorAuterion::Run()
 	ScheduleDelayed(RUN_INTERVAL);
 }
 
-void PowerMonitorSelectorAuterion::try_eeprom_start()
+void AuterionAutostarter::try_eeprom_start()
 {
 	static_assert(sizeof(_buses) / sizeof(Buses) == BUSES_NUMBERS, "Unexpected number of buses");
-	static_assert(sizeof(_eeprom_blocks_pm) / sizeof(EepromBlockPm) == EEPROM_MAX_BLOCKS,
+	static_assert(sizeof(_eeprom_decoded_blocks) / sizeof(DecodedBlock) == EEPROM_MAX_BLOCKS,
 		      "Unexpected number of EEPROM PM blocks");
 
 	for (uint32_t i = 0U; i < BUSES_NUMBERS; i++) {
 		if (!_buses[i].started) {
 			if (eeprom_read(i) == PX4_OK) {
-				for (int ii = 0U; ii < _eeprom_valid_blocks_pm && ii < EEPROM_MAX_BLOCKS; ii++) {
-					EepromBlockPm eeprom_block_pm = _eeprom_blocks_pm[ii];
+				int ret_val = PX4_OK;
 
-					uint16_t dev_type = eeprom_block_pm.dev_type;
-					set_max_current(dev_type, eeprom_block_pm.max_current);
-					set_shunt_value(dev_type, eeprom_block_pm.shunt_value);
-					int ret_val = start_pm(_buses[i].bus_number, dev_type, eeprom_block_pm.i2c_addr, _buses[i].id);
+				for (uint32_t ii = 0U; ii < _eeprom_num_decoded_blocks && ii < EEPROM_MAX_BLOCKS; ii++) {
+					DecodedBlock decoded_block = _eeprom_decoded_blocks[ii];
 
-					if (ret_val == PX4_OK) {
-						_buses[i].started = true;
+					switch (decoded_block.block_type) {
+					case TYPE_PM: {
+							EepromBlockPm block_pm = decoded_block.block_pm;
+							uint16_t dev_type = block_pm.dev_type;
+							set_max_current(dev_type, block_pm.max_current);
+							set_shunt_value(dev_type, block_pm.shunt_value);
+							ret_val |= start_pm(_buses[i].bus_number, dev_type, block_pm.i2c_addr, _buses[i].id);
+							break;
+						}
+
+					case TYPE_PWM_EXPANDER: {
+							EepromBlockPwmExpander block_pwm_expader = decoded_block.block_pwm_expander;
+							uint16_t dev_type = block_pwm_expader.dev_type;
+							ret_val |= start_i2c_driver(_buses[i].bus_number, dev_type, block_pwm_expader.i2c_addr);
+							break;
+						}
 					}
+				}
+
+				if (ret_val == PX4_OK) {
+					_buses[i].started = true;
 				}
 			}
 		}
 	}
 }
 
-void PowerMonitorSelectorAuterion::try_probe_start()
+void AuterionAutostarter::try_probe_start()
 {
 	static_assert(sizeof(_sensors) / sizeof(Sensor) == SENSORS_NUMBER, "Unexpected number of sensors");
 
@@ -133,7 +148,7 @@ void PowerMonitorSelectorAuterion::try_probe_start()
 	}
 }
 
-int PowerMonitorSelectorAuterion::ina226_probe(const uint32_t instance) const
+int AuterionAutostarter::ina226_probe(const uint32_t instance) const
 {
 	I2CWrapper i2c{_sensors[instance].bus_number};
 	int ret = PX4_ERROR;
@@ -177,10 +192,10 @@ int PowerMonitorSelectorAuterion::ina226_probe(const uint32_t instance) const
 	return ret;
 }
 
-int PowerMonitorSelectorAuterion::eeprom_read(const uint32_t instance)
+int AuterionAutostarter::eeprom_read(const uint32_t instance)
 {
 	I2CWrapper i2c{_buses[instance].bus_number};
-	_eeprom_valid_blocks_pm = 0;
+	_eeprom_num_decoded_blocks = 0;
 	EepromHeader eeprom_header;
 
 	if (i2c.is_valid()) {
@@ -228,7 +243,7 @@ int PowerMonitorSelectorAuterion::eeprom_read(const uint32_t instance)
 			return PX4_ERROR;
 		}
 
-		_eeprom_valid_blocks_pm = transferred_blocks;
+		_eeprom_num_decoded_blocks = transferred_blocks;
 		return PX4_OK;
 
 	} else {
@@ -236,7 +251,7 @@ int PowerMonitorSelectorAuterion::eeprom_read(const uint32_t instance)
 	}
 }
 
-bool PowerMonitorSelectorAuterion::is_eeprom_header_valid(EepromHeader *eeprom_header) const
+bool AuterionAutostarter::is_eeprom_header_valid(EepromHeader *eeprom_header) const
 {
 	if (eeprom_header->magic != EEPROM_MAGIC
 	    || eeprom_header->version != EEPROM_VERSION
@@ -247,8 +262,8 @@ bool PowerMonitorSelectorAuterion::is_eeprom_header_valid(EepromHeader *eeprom_h
 	return true;
 }
 
-int PowerMonitorSelectorAuterion::eeprom_read_block(struct i2c_master_s *i2c, const uint32_t instance,
-		const uint16_t transferred_blocks, uint16_t &crc)
+int AuterionAutostarter::eeprom_read_block(struct i2c_master_s *i2c, const uint32_t instance, const uint16_t transferred_blocks,
+		uint16_t &crc)
 {
 	int ret = PX4_ERROR;
 	EepromBlockHeader eeprom_block_header;
@@ -263,44 +278,76 @@ int PowerMonitorSelectorAuterion::eeprom_read_block(struct i2c_master_s *i2c, co
 
 	ret = I2C_TRANSFER(i2c, &msg, 1);
 
-	if (ret == PX4_OK && is_eeprom_block_header_valid(&eeprom_block_header)) {
-		EepromBlockPm &eeprom_block_pm = _eeprom_blocks_pm[transferred_blocks];
-		eeprom_block_pm.block_header = eeprom_block_header;
+	if (ret == PX4_OK) {
+		DecodedBlock &block = _eeprom_decoded_blocks[transferred_blocks];
 
-		/* Already read the header, so just need to read the block itself now */
-		uint8_t *data_ptr = reinterpret_cast<uint8_t *>(&eeprom_block_pm) + offsetof(EepromBlockPm, dev_type);
-		size_t data_size = sizeof(EepromBlockPm) - offsetof(EepromBlockPm, dev_type);
+		switch (eeprom_block_header.block_type) {
+		case TYPE_PM: {
+				if (!is_eeprom_block_header_valid<TYPE_PM, EepromBlockPm>(&eeprom_block_header)) { return PX4_ERROR; }
 
-		/* Read the actual block data from the EEPROM */
-		msg.buffer = data_ptr;
-		msg.length = data_size;
+				EepromBlockPm *block_pm = &block.block_pm;
+				block.block_type = TYPE_PM;
+				block_pm->block_header = eeprom_block_header;
+				ret |= eeprom_read_block_data<EepromBlockPm>(i2c, instance, crc, block_pm);
+				break;
+			}
 
-		ret = I2C_TRANSFER(i2c, &msg, 1);
+		case TYPE_PWM_EXPANDER: {
+				if (!is_eeprom_block_header_valid<TYPE_PWM_EXPANDER, EepromBlockPwmExpander>(&eeprom_block_header)) { return PX4_ERROR; }
 
-		if (ret == PX4_OK) {
-			crc = crc16_update(crc, reinterpret_cast<uint8_t *>(&eeprom_block_pm), sizeof(EepromBlockPm));
+				EepromBlockPwmExpander *block_pwm_expander = &block.block_pwm_expander;
+				block.block_type = TYPE_PWM_EXPANDER;
+				block_pwm_expander->block_header = eeprom_block_header;
+				ret |= eeprom_read_block_data<EepromBlockPwmExpander>(i2c, instance, crc, block_pwm_expander);
+				break;
+			}
+
+		default:
+			return PX4_ERROR;
 		}
-
-	} else {
-		ret = PX4_ERROR;
 	}
 
 	return ret;
 }
 
-bool PowerMonitorSelectorAuterion::is_eeprom_block_header_valid(EepromBlockHeader *eeprom_block_header) const
+template <typename T>
+int AuterionAutostarter::eeprom_read_block_data(struct i2c_master_s *i2c, const uint32_t instance, uint16_t &crc, T *block)
 {
-	if (eeprom_block_header->block_type != BlockType::TYPE_PM
+	/* Already read the header, so just need to read the block itself now */
+	uint8_t *data_ptr = reinterpret_cast<uint8_t *>(block) + offsetof(T, dev_type);
+	size_t data_size = sizeof(T) - offsetof(T, dev_type);
+
+	/* Read the actual block data from the EEPROM */
+	struct i2c_msg_s msg;
+	msg.frequency = I2C_SPEED_STANDARD;
+	msg.addr = _buses[instance].eeprom_i2c_addr;
+	msg.flags = I2C_M_READ;
+	msg.buffer = data_ptr;
+	msg.length = data_size;
+
+	int ret = I2C_TRANSFER(i2c, &msg, 1);
+
+	if (ret == PX4_OK) {
+		crc = crc16_update(crc, reinterpret_cast<uint8_t *>(block), sizeof(T));
+	}
+
+	return ret;
+}
+
+template <AuterionAutostarter::BlockType ExpectedBlockType, typename T>
+bool AuterionAutostarter::is_eeprom_block_header_valid(EepromBlockHeader *eeprom_block_header) const
+{
+	if (eeprom_block_header->block_type != ExpectedBlockType
 	    || eeprom_block_header->block_type_version != EEPROM_BLOCK_TYPE_VERSION
-	    || eeprom_block_header->block_length != sizeof(EepromBlockPm)) {
+	    || eeprom_block_header->block_length != sizeof(T)) {
 		return false;
 	}
 
 	return true;
 }
 
-int PowerMonitorSelectorAuterion::start_pm(const uint8_t bus_number, const uint16_t dev_type,
-		const uint16_t i2c_addr, const uint16_t id) const
+int AuterionAutostarter::start_pm(const uint8_t bus_number, const uint16_t dev_type,
+				  const uint16_t i2c_addr, const uint16_t id) const
 {
 	char bus_number_str[BUS_MAX_LEN];
 	snprintf(bus_number_str, sizeof(bus_number_str), "%u", bus_number);
@@ -312,33 +359,51 @@ int PowerMonitorSelectorAuterion::start_pm(const uint8_t bus_number, const uint1
 	snprintf(id_str, sizeof(id_str), "%u", id);
 
 	const char *start_command = get_start_command(dev_type);
-
-	if (start_command == nullptr) {
-		return PX4_ERROR;
-	}
-
 	const char *start_argv[] {
 		start_command,
 		"-X", "-b", bus_number_str, "-a", i2c_addr_str,
 		"-t", id_str, "-q", "start", NULL
 	};
 
-	int status = PX4_ERROR;
-	int pid = exec_builtin(start_command, (char **)start_argv, NULL, 0);
+	return start(start_command, start_argv);
+}
 
-	if (pid != -1) {
-		waitpid(pid, &status, WUNTRACED);
+int AuterionAutostarter::start_i2c_driver(const uint8_t bus_number, const uint16_t dev_type, const uint16_t i2c_addr) const
+{
+	char bus_number_str[BUS_MAX_LEN];
+	snprintf(bus_number_str, sizeof(bus_number_str), "%u", bus_number);
+
+	char i2c_addr_str[I2C_ADDR_MAX_LEN];
+	snprintf(i2c_addr_str, sizeof(i2c_addr_str), "%u", i2c_addr);
+
+	const char *start_command = get_start_command(dev_type);
+	const char *start_argv[] {
+		start_command,
+		"-X", "-b", bus_number_str, "-a", i2c_addr_str,
+		"-q", "start", NULL
+	};
+
+	return start(start_command, start_argv);
+}
+
+int AuterionAutostarter::start(const char *start_command, const char **start_argv) const
+{
+	int status = PX4_ERROR;
+
+	if (start_command != nullptr) {
+		int pid = exec_builtin(start_command, (char **)start_argv, NULL, 0);
+
+		if (pid != -1) {
+			waitpid(pid, &status, WUNTRACED);
+		}
 	}
 
 	return status;
 }
 
-const char *PowerMonitorSelectorAuterion::get_start_command(const uint16_t dev_type) const
+const char *AuterionAutostarter::get_start_command(const uint16_t dev_type) const
 {
 	switch (dev_type) {
-	case DRV_POWER_DEVTYPE_INA220:
-		return "ina220";
-
 	case DRV_POWER_DEVTYPE_INA226:
 		return "ina226";
 
@@ -348,12 +413,15 @@ const char *PowerMonitorSelectorAuterion::get_start_command(const uint16_t dev_t
 	case DRV_POWER_DEVTYPE_INA238:
 		return "ina238";
 
+	case DRV_PWM_DEVTYPE_PCA9685:
+		return "pca9685_pwm_out";
+
 	default:
 		return nullptr;
 	}
 }
 
-bool PowerMonitorSelectorAuterion::is_user_configured(const uint16_t dev_type) const
+bool AuterionAutostarter::is_user_configured(const uint16_t dev_type) const
 {
 	const char *ina_type = get_ina_type(dev_type);
 
@@ -369,7 +437,7 @@ bool PowerMonitorSelectorAuterion::is_user_configured(const uint16_t dev_type) c
 	return sens_en != 0;
 }
 
-void PowerMonitorSelectorAuterion::set_max_current(const uint16_t dev_type, const float max_current) const
+void AuterionAutostarter::set_max_current(const uint16_t dev_type, const float max_current) const
 {
 	const char *ina_type = get_ina_type(dev_type);
 
@@ -382,7 +450,7 @@ void PowerMonitorSelectorAuterion::set_max_current(const uint16_t dev_type, cons
 	set_float_param(param_name, max_current);
 }
 
-void PowerMonitorSelectorAuterion::set_shunt_value(const uint16_t dev_type, const float shunt_value) const
+void AuterionAutostarter::set_shunt_value(const uint16_t dev_type, const float shunt_value) const
 {
 	const char *ina_type = get_ina_type(dev_type);
 
@@ -395,7 +463,7 @@ void PowerMonitorSelectorAuterion::set_shunt_value(const uint16_t dev_type, cons
 	set_float_param(param_name, shunt_value);
 }
 
-void PowerMonitorSelectorAuterion::set_float_param(const char *param_name, const float param_val) const
+void AuterionAutostarter::set_float_param(const char *param_name, const float param_val) const
 {
 	float current_param_value = 0;
 	param_get(param_find(param_name), &current_param_value);
@@ -405,12 +473,9 @@ void PowerMonitorSelectorAuterion::set_float_param(const char *param_name, const
 	}
 }
 
-const char *PowerMonitorSelectorAuterion::get_ina_type(const uint16_t dev_type) const
+const char *AuterionAutostarter::get_ina_type(const uint16_t dev_type) const
 {
 	switch (dev_type) {
-	case DRV_POWER_DEVTYPE_INA220:
-		return "220";
-
 	case DRV_POWER_DEVTYPE_INA226:
 		return "226";
 
@@ -425,7 +490,7 @@ const char *PowerMonitorSelectorAuterion::get_ina_type(const uint16_t dev_type) 
 	}
 }
 
-uint16_t PowerMonitorSelectorAuterion::crc16_update(const uint16_t current_crc, const uint8_t *data_p,
+uint16_t AuterionAutostarter::crc16_update(const uint16_t current_crc, const uint8_t *data_p,
 		size_t length) const
 {
 	uint8_t x;
@@ -440,9 +505,9 @@ uint16_t PowerMonitorSelectorAuterion::crc16_update(const uint16_t current_crc, 
 	return crc;
 }
 
-int PowerMonitorSelectorAuterion::task_spawn(int argc, char *argv[])
+int AuterionAutostarter::task_spawn(int argc, char *argv[])
 {
-	PowerMonitorSelectorAuterion *instance = new PowerMonitorSelectorAuterion();
+	AuterionAutostarter *instance = new AuterionAutostarter();
 
 	if (instance) {
 		_object.store(instance);
@@ -463,12 +528,12 @@ int PowerMonitorSelectorAuterion::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int PowerMonitorSelectorAuterion::custom_command(int argc, char *argv[])
+int AuterionAutostarter::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int PowerMonitorSelectorAuterion::print_usage(const char *reason)
+int AuterionAutostarter::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -481,14 +546,14 @@ Driver for starting and auto-detecting different power monitors.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("pm_selector_auterion", "driver");
+	PRINT_MODULE_USAGE_NAME("auterion_autostarter", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-extern "C" __EXPORT int pm_selector_auterion_main(int argc, char *argv[])
+extern "C" __EXPORT int auterion_autostarter_main(int argc, char *argv[])
 {
-	return PowerMonitorSelectorAuterion::main(argc, argv);
+	return AuterionAutostarter::main(argc, argv);
 }

@@ -1,6 +1,6 @@
-# AP-H743-R1
+# AP-H743-R1 Flight Controller
 
-<Badge type="tip" text="main (planned for: PX4 v1.17)" />
+<Badge type="tip" text="PX4 v1.17" />
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -25,7 +25,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
   - 32 Bit Arm® Cortex®-M3, 72MHz, 20KB SRAM
 - On-board sensors
   - Accel/Gyro: ICM-42688-P\*2(Version1), BMI270\*2(Version2)
-  - Mag: IST8310
+  - Mag: QMC5883P
   - Barometer: DPS310(Version1),SPL06(Version2)
 
 ### 接口

@@ -148,6 +148,16 @@ public:
 	int16_t send_message(const char *messageName, int length, uint8_t *data);
 
 	/**
+	 * @brief Interface to notify the remote entity of a shutdown.
+	 *
+	 * @return
+	 * 	0 = success; This means the shutdown is successfully sent to the receiver
+	 * 		Note: This does not mean that the receiver has received it.
+	 *  otherwise = failure.
+	 */
+	int16_t shutdown();
+
+	/**
 	 * @brief Interface to test the functions of the protobuf channel.
 	 *
 	 * @return
@@ -169,6 +179,7 @@ private:
 	static bool                                 _Debug;
 
 	bool                                        _Initialized;
+	bool                                        _ShutdownRequested{false};
 	uint32_t                                    _MessageCounter;
 
 private:

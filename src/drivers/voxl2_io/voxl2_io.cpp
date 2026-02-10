@@ -276,6 +276,31 @@ int Voxl2IO::get_version_info()
 	return (got_response == true ? 0 : -1);
 }
 
+int Voxl2IO::handle_uart_passthru()
+{
+	int num_writes = 0;
+
+	// Don't do these faster than 20Hz
+	if (hrt_elapsed_time(&_last_uart_passthru) > 50_ms) {
+		_last_uart_passthru = hrt_absolute_time();
+
+		// Don't do more than a few writes each check
+		while (_io_serial_passthru_sub.updated() && (num_writes < 4)) {
+			mavlink_tunnel_s uart_passthru{};
+			_io_serial_passthru_sub.copy(&uart_passthru);
+
+			if (_uart_port.write(uart_passthru.payload, uart_passthru.payload_length) != uart_passthru.payload_length) {
+				PX4_ERR("Failed to send mavlink tunnel data");
+				return false;
+			}
+
+			num_writes++;
+		}
+	}
+
+	return num_writes;
+}
+
 bool Voxl2IO::updateOutputs(uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			    unsigned num_outputs, unsigned num_control_groups_updated)
 {
@@ -561,6 +586,13 @@ void Voxl2IO::Run()
 
 	/* check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread) */
 	_mixing_output.updateSubscriptions(true);
+
+	int num_writes = handle_uart_passthru();
+
+	if (_debug && num_writes) {
+		PX4_INFO("UART Passthru wrote %d packets", num_writes);
+	}
+
 	perf_end(_cycle_perf);
 }
 

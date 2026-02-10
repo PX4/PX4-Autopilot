@@ -109,8 +109,6 @@ static inline bool isAdvanced(uint8_t nav_state)
 	switch (nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL: return false;
 
-	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE: return false;
-
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL: return false;
 
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL1: return false;
