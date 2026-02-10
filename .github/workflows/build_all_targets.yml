@@ -168,6 +168,10 @@ jobs:
     outputs:
       uploadlocation: ${{ steps.upload-location.outputs.uploadlocation }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: Tools/manifest
+
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -238,5 +242,59 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           draft: true
-          files: artifacts/*.px4
+          files: |
+            artifacts/*.px4
+            manifest.json
           name: ${{ steps.upload-location.outputs.uploadlocation }}
+
+      # Update the unified firmware manifest with this release
+      # The manifest lives at s3://px4-travis/Firmware/manifest.json and provides
+      # a complete index of all releases and builds for tools like QGroundControl
+      - name: Backup Existing Firmware Manifest
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          s3_base="https://px4-travis.s3.us-west-1.amazonaws.com/Firmware"
+          mkdir -p manifest_backup
+          curl -sf "${s3_base}/manifest.json" -o manifest_backup/manifest.json.backup || echo "No existing manifest to backup"
+          if [ -f manifest_backup/manifest.json.backup ]; then
+            echo "Backed up existing firmware manifest ($(wc -c < manifest_backup/manifest.json.backup) bytes)"
+          fi
+
+      - name: Upload Firmware Manifest Backup
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware_manifest_backup_${{ steps.upload-location.outputs.uploadlocation }}
+          path: manifest_backup/
+          if-no-files-found: ignore
+          retention-days: 90
+
+      - name: Update Firmware Manifest
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version="${{ steps.upload-location.outputs.uploadlocation }}"
+          git_tag=""
+          base_url=""
+          s3_base="https://px4-travis.s3.us-west-1.amazonaws.com/Firmware"
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            git_tag="${GITHUB_REF#refs/tags/}"
+            base_url="https://github.com/${{ github.repository }}/releases/download/${git_tag}"
+          fi
+
+          python3 ./Tools/manifest/update_firmware_manifest.py \
+            --dir artifacts/ \
+            --version "$version" \
+            --git-tag "$git_tag" \
+            --base-url "$base_url" \
+            --fetch-url "${s3_base}/manifest.json" \
+            --out manifest.json
+
+      - name: Upload Firmware Manifest to S3
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          aws s3 cp manifest.json s3://px4-travis/Firmware/manifest.json --acl public-read
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-west-1'
