@@ -304,7 +304,11 @@ where `ARGS` is a list of environment variables including:
 - `PX4_NET_INTERFACE`:
   Binds all MAVLink connections to a specific network interface (e.g., `eth0`).
   Useful for containerized environments or multi-NIC systems.
-  See [Bind MAVLink to Specific Network Interface](../simulation/index.md#bind-mavlink-to-specific-network-interface) for more information.
+  See [Environment Configuration](../simulation/index.md#environment-configuration) for more information.
+
+::: info
+For other general simulation environment variables (not Gazebo-specific), such as `PX4_SIM_SPEED_FACTOR` and `PX4_NET_INTERFACE`, see [Simulation > Environment Configuration](../simulation/index.md#environment-configuration).
+:::
 
 The PX4 Gazebo worlds and and models databases [can be found on GitHub here](https://github.com/PX4/PX4-gazebo-models).
 
