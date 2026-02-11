@@ -257,11 +257,14 @@ endif()
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Coverage;AddressSanitizer;UndefinedBehaviorSanitizer")
 message(STATUS "cmake build type: ${CMAKE_BUILD_TYPE}")
 
-# Check if LTO option and check if toolchain supports it
+# Enable LTO by default for NuttX targets (saves ~100KB flash)
+if(NOT DEFINED LTO AND ${PX4_PLATFORM} STREQUAL "nuttx")
+    set(LTO ON)
+endif()
+
 if(LTO)
     include(CheckIPOSupported)
     check_ipo_supported()
-    message(AUTHOR_WARNING "LTO enabled: LTO is highly experimental and should not be used in production")
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
