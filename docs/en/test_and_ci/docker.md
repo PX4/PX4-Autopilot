@@ -1,6 +1,6 @@
 # PX4 Docker Containers
 
-Docker containers are provided for the complete [PX4 development toolchain](../dev_setup/dev_env.md#supported-targets) including NuttX and Linux based hardware, [Gazebo Classic](../sim_gazebo_classic/index.md) simulation, and [ROS](../simulation/ros_interface.md).
+Docker containers are provided for the complete [PX4 development toolchain](../dev_setup/dev_env.md#supported-targets) including NuttX and Linux based hardware, [Gazebo](../sim_gazebo_gz/index.md) simulation, and [ROS 2](../ros2/user_guide.md).
 
 This topic shows how to use the [available docker containers](#px4_containers) to access the build environment in a local Linux computer.
 
@@ -41,22 +41,19 @@ The available containers are on [GitHub here](https://github.com/PX4/PX4-contain
 
 These allow testing of various build targets and configurations (the included tools can be inferred from their names).
 The containers are hierarchical, such that containers have the functionality of their parents.
-For example, the partial hierarchy below shows that the docker container with NuttX build tools (`px4-dev-nuttx-focal`) does not include ROS 2, while the simulation containers do:
+For example, the partial hierarchy below shows that the docker container with NuttX build tools (`px4-dev-nuttx-jammy`) does not include ROS 2, while the simulation containers do:
 
 ```plain
-- px4io/px4-dev-base-focal
-  - px4io/px4-dev-nuttx-focal
-  - px4io/px4-dev-simulation-focal
-    - px4io/px4-dev-ros-noetic
-      - px4io/px4-dev-ros2-foxy
-  - px4io/px4-dev-ros2-rolling
 - px4io/px4-dev-base-jammy
   - px4io/px4-dev-nuttx-jammy
+  - px4io/px4-dev-simulation-jammy
+    - px4io/px4-dev-ros2-humble
+  - px4io/px4-dev-ros2-rolling
 ```
 
-The most recent version can be accessed using the `latest` tag: `px4io/px4-dev-nuttx-focal:latest`
+The most recent version can be accessed using the `latest` tag: `px4io/px4-dev-nuttx-jammy:latest`
 (available tags are listed for each container on _hub.docker.com_.
-For example, the `px4io/px4-dev-nuttx-focal` tags can be found on [hub.docker.com here](https://hub.docker.com/r/px4io/px4-dev-nuttx-focal/tags?page=1&ordering=last_updated)).
+For example, the `px4io/px4-dev-nuttx-jammy` tags can be found on [hub.docker.com here](https://hub.docker.com/r/px4io/px4-dev-nuttx-jammy/tags?page=1&ordering=last_updated)).
 
 :::tip
 Typically you should use a recent container, but not necessarily the `latest` (as this changes too often).
@@ -137,7 +134,7 @@ docker run -it --privileged \
 -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
 -e DISPLAY=:0 \
 --network host \
---name=px4-ros px4io/px4-dev-ros2-foxy:2022-07-31 bash
+--name=px4-ros px4io/px4-dev-ros2-humble:latest bash
 ```
 
 ::: info
@@ -155,7 +152,7 @@ Verify if everything works by running, for example, SITL:
 
 ```sh
 cd src/PX4-Autopilot    #This is <container_src>
-make px4_sitl_default gazebo-classic
+make px4_sitl gz_x500
 ```
 
 ### Re-enter the Container
@@ -219,7 +216,7 @@ This ensures that all files created within the container will be accessible on t
 
 #### Graphics Driver Issues
 
-It's possible that running Gazebo Classic will result in a similar error message like the following:
+It's possible that running Gazebo will result in a similar error message like the following:
 
 ```sh
 libGL error: failed to load driver: swrast
@@ -239,7 +236,7 @@ Any recent Linux distribution should work.
 
 The following configuration is tested:
 
-- OS X with VMWare Fusion and Ubuntu 14.04 (Docker container with GUI support on Parallels make the X-Server crash).
+- OS X with VMWare Fusion and Ubuntu 22.04 (Docker container with GUI support on Parallels make the X-Server crash).
 
 **Memory**
 
