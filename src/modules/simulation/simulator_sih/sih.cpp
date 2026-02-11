@@ -324,8 +324,9 @@ void Sih::generate_force_and_torques(const float dt)
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
 				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
-		_Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
-		_Ma_B = -_KDW * _w_B;   // first order angular damper
+
+		_Fa_E = -_KDV * _R_N2E * _v_N;  // first order drag to slow down the aircraft
+		_Ma_B = -_KDW * _w_B;           // first order angular damper
 
 	} else if (_vehicle == VehicleType::Hexacopter) {
 		/*     m5    m0      ┬
@@ -339,8 +340,8 @@ void Sih::generate_force_and_torques(const float dt)
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-.5f * _u[0] - _u[1] - .5f * _u[2] + .5f * _u[3] + _u[4] + .5f * _u[5]),
 				 _L_PITCH * _T_MAX * (M_SQRT3_F / 2.f) * (+_u[0] - _u[2] - _u[3] + _u[5]),
 				 _Q_MAX * (+_u[0] - _u[1] + _u[2] - _u[3] + _u[4] - _u[5]));
-		_Fa_E = -_KDV * _v_E; // first order drag to slow down the aircraft
-		_Ma_B = -_KDW * _w_B; // first order angular damper
+		_Fa_E = -_KDV * _R_N2E * _v_N;  // first order drag to slow down the aircraft
+		_Ma_B = -_KDW * _w_B;           // first order angular damper
 
 	} else if (_vehicle == VehicleType::FixedWing) {
 		_T_B = Vector3f(_T_MAX * _u[3], 0.0f, 0.0f); 	// forward thruster
@@ -353,8 +354,8 @@ void Sih::generate_force_and_torques(const float dt)
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (_u[1] - _u[0]), 0.0f, _Q_MAX * (_u[1] - _u[0]));
 		generate_ts_aerodynamics();
 
-		// _Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
-		// _Ma_B = -_KDW * _w_B;   // first order angular damper
+		// _Fa_E = -_KDV * _R_N2E * _v_N;  // first order drag to slow down the aircraft
+		// _Ma_B = -_KDW * _w_B;           // first order angular damper
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
 
@@ -375,7 +376,7 @@ void Sih::generate_force_and_torques(const float dt)
 void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd,
 				   const float throttle_cmd)
 {
-	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
+	const Vector3f v_B = _q.rotateVectorInverse(_v_N);
 	const float &alt = _lla.altitude();
 
 	_wing_l.update_aero(v_B, _w_B, alt, roll_cmd * FLAP_MAX);
@@ -397,7 +398,7 @@ void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, 
 void Sih::generate_ts_aerodynamics()
 {
 	// velocity in body frame [m/s]
-	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
+	const Vector3f v_B = _q.rotateVectorInverse(_v_N);
 
 	// the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
 	Vector3f v_ts = _R_S2B.transpose() * v_B;
