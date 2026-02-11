@@ -10,22 +10,23 @@ serial_config:
 parameters:
     - group: Sensors
       definitions:
-          GRF_UPDATE_CFG:
+          GRF_RATE_CFG:
               description:
-                  short: Update rate in Hz
+                  short: Lightware GRF lidar update rate.
                   long: |
-                      The GRF sets the update rate in Hz to allow greater resolution
+                      The Lightware GRF distance sensor can increase the update rate to enable greater resolution.
               type: enum
               values:
-                  1: 1hz
-                  2: 2hz
-                  3: 4hz
-                  4: 5hz
-                  5: 10hz
-                  6: 20hz
-                  7: 30hz
-                  8: 40hz
-                  9: 50hz
+                  1: 1 Hz
+                  2: 2 Hz
+                  3: 4 Hz
+                  4: 5 Hz
+                  5: 10 Hz
+                  6: 20 Hz
+                  7: 30 Hz
+                  8: 40 Hz
+                  9: 50 Hz
+              @unit rad
               reboot_required: true
               num_instances: 1
               default: 4
