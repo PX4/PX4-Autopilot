@@ -26923,7 +26923,7 @@ Pitch rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = MC_PITCHRATE_K _ (MC_PITCHRATE_P _ error
+output = MC*PITCHRATE_K * (MC*PITCHRATE_P * error
 
 - MC_PITCHRATE_I \* error_integral
 - MC_PITCHRATE_D \* error_derivative)
@@ -26990,7 +26990,7 @@ Roll rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = MC_ROLLRATE_K _ (MC_ROLLRATE_P _ error
+output = MC*ROLLRATE_K * (MC*ROLLRATE_P * error
 
 - MC_ROLLRATE_I \* error_integral
 - MC_ROLLRATE_D \* error_derivative)
@@ -27057,7 +27057,7 @@ Yaw rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = MC_YAWRATE_K _ (MC_YAWRATE_P _ error
+output = MC*YAWRATE_K * (MC*YAWRATE_P * error
 
 - MC_YAWRATE_I \* error_integral
 - MC_YAWRATE_D \* error_derivative)
@@ -27291,7 +27291,7 @@ Thrust to motor control signal model parameter.
 
 Parameter used to model the nonlinear relationship between
 motor control signal (e.g. PWM) and static thrust.
-The model is: rel_thrust = factor _ rel_signal^2 + (1-factor) _ rel_signal,
+The model is: rel*thrust = factor * rel*signal^2 + (1-factor) * rel_signal,
 where rel_thrust is the normalized thrust between 0 and 1, and
 rel_signal is the relative motor control signal between 0 and 1.
 
@@ -29975,7 +29975,7 @@ Proportional gain for ground speed controller.
 
 Tuning parameter for the speed reduction based on the course error.
 
-Reduced_speed = RO_MAX_THR_SPEED _ (1 - normalized_course_error _ RO_SPEED_RED)
+Reduced*speed = RO_MAX_THR_SPEED * (1 - normalized*course_error * RO_SPEED_RED)
 The normalized course error is the angle between the current course and the bearing setpoint
 interpolated from [0, 180] -> [0, 1].
 Higher value -> More speed reduction.
@@ -36830,7 +36830,7 @@ Pitch rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = SC_PITCHRATE_K _ (SC_PITCHRATE_P _ error
+output = SC*PITCHRATE_K * (SC*PITCHRATE_P * error
 
 - SC_PITCHRATE_I \* error_integral
 - SC_PITCHRATE_D \* error_derivative)
@@ -36897,7 +36897,7 @@ Roll rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = SC_ROLLRATE_K _ (SC_ROLLRATE_P _ error
+output = SC*ROLLRATE_K * (SC*ROLLRATE_P * error
 
 - SC_ROLLRATE_I \* error_integral
 - SC_ROLLRATE_D \* error_derivative)
@@ -36964,7 +36964,7 @@ Yaw rate controller gain.
 
 Global gain of the controller.
 This gain scales the P, I and D terms of the controller:
-output = SC_YAWRATE_K _ (SC_YAWRATE_P _ error
+output = SC*YAWRATE_K * (SC*YAWRATE_P * error
 
 - SC_YAWRATE_I \* error_integral
 - SC_YAWRATE_D \* error_derivative)

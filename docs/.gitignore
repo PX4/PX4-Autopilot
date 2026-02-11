@@ -16,6 +16,9 @@ logs
 #Yarn log
 yarn-error.log
 
+# npm lockfile (project uses yarn)
+package-lock.json
+
 
 # Generated alternative _summary.md
 # **/*/_summary.md
