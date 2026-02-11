@@ -34288,7 +34288,7 @@ Lightware Laser Rangefinder hardware model (serial).
 
 ### SENS_EN_SF1XX (`INT32`) {#SENS_EN_SF1XX}
 
-Lightware SF1xx/SF20/LW20/GRF laser rangefinder (i2c).
+Lightware SF1xx/SF20/LW20 laser rangefinder (i2c).
 
 **Values:**
 
