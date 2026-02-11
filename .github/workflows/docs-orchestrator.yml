@@ -21,6 +21,7 @@ on:
       - "msg/**"
       - "ROMFS/**"
       - "Tools/module_config/**"
+      - ".github/workflows/docs-orchestrator.yml"
   pull_request:
     paths:
       - "docs/**"
