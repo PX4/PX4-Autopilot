@@ -256,8 +256,9 @@ jobs:
               -i assets \
               -u docs.px4.io/main/ \
               > ./logs/filtered-link-check-results.md || true
-          else
-            echo "No changed doc files found" > ./logs/filtered-link-check-results.md
+          fi
+          if [ ! -s ./logs/filtered-link-check-results.md ]; then
+            echo "No broken links found in changed files." > ./logs/filtered-link-check-results.md
           fi
           cat ./logs/filtered-link-check-results.md
 
