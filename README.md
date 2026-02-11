@@ -105,7 +105,7 @@ We welcome contributions of all kinds — bug reports, documentation, new featur
 
 ## Governance
 
-PX4 is hosted by the [Dronecode Foundation](https://www.dronecode.org/), part of the Linux Foundation.
+The PX4 Autopilot project is hosted by the [Dronecode Foundation](https://www.dronecode.org/), a [Linux Foundation](https://www.linuxfoundation.org/) Collaborative Project. Dronecode holds all PX4 trademarks and serves as the project's legal guardian, ensuring vendor-neutral stewardship — no single company owns the name or controls the roadmap. The source code is licensed under the [BSD 3-Clause](LICENSE) license, so you are free to use, modify, and distribute it in your own projects.
 
 <p align="center">
   <a href="https://www.dronecode.org/">
