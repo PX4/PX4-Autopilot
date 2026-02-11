@@ -11,19 +11,19 @@ All documentation CI is consolidated into a single orchestrator workflow organiz
 
 **Workflow file:** [`docs-orchestrator.yml`](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/docs-orchestrator.yml)
 
-This is the main documentation workflow. It runs on pull requests and pushes to `main` and `release/**` branches, performing different jobs depending on the trigger event.
+This is the main documentation workflow. It runs on pull requests, pushes to `main` and `release/**` branches, and manual `workflow_dispatch` triggers, performing different jobs depending on the trigger event.
 Jobs are organized in tiers, where each tier depends on the previous one completing successfully.
 
 #### Tier Structure
 
-| Tier | Job            | PR                | Push           | Description                                                   |
-| ---- | -------------- | ----------------- | -------------- | ------------------------------------------------------------- |
-| T1   | Detect Changes | Yes               | —              | Checks if source code files changed (triggers metadata regen) |
-| T2   | PR Metadata    | Yes (conditional) | —              | Builds PX4 SITL and regenerates all auto-generated docs       |
-| T2   | Metadata Sync  | —                 | Yes            | Builds PX4 SITL, regenerates metadata, auto-commits           |
-| T2   | Link Check     | Yes               | —              | Checks for broken links in changed files, posts PR comment    |
-| T3   | Build Site     | Yes (gated on T2) | Yes (after T2) | Builds the VitePress documentation site                       |
-| T4   | Deploy         | —                 | Yes            | Deploys to AWS S3                                             |
+| Tier | Job            | PR                | Push / Dispatch | Description                                                   |
+| ---- | -------------- | ----------------- | --------------- | ------------------------------------------------------------- |
+| T1   | Detect Changes | Yes               | —               | Checks if source code files changed (triggers metadata regen) |
+| T2   | PR Metadata    | Yes (conditional) | —               | Builds PX4 SITL and regenerates all auto-generated docs       |
+| T2   | Metadata Sync  | —                 | Yes             | Builds PX4 SITL, regenerates metadata, auto-commits           |
+| T2   | Link Check     | Yes               | —               | Checks for broken links in changed files, posts PR comment    |
+| T3   | Build Site     | Yes (gated on T2) | Yes (after T2)  | Builds the VitePress documentation site                       |
+| T4   | Deploy         | —                 | Yes             | Deploys to AWS S3                                             |
 
 #### Pull Request Flow
 
@@ -66,15 +66,16 @@ PR Event
 | ---------------------- | -------- | ------------------------------------------------------------------------------------------- |
 | **T1: Detect Changes** | ~10s     | Determines if metadata regeneration is needed                                               |
 | **T2: PR Metadata**    | ~10-15m  | Rebuilds PX4 SITL and regenerates all metadata (only if source files changed)               |
-| **T2: Link Check**     | ~30s     | Checks for broken links in changed markdown files and posts a sticky comment to the PR      |
+| **T2: Link Check**     | ~30s     | Checks for broken links in changed markdown files and posts a sticky comment to the PR (skipped on fork PRs) |
 | **T3: Build Site**     | ~7-10m   | Builds the VitePress site to verify there are no build errors. Gated on link check passing. |
 
-#### Push Flow (main/release branches)
+#### Push / Dispatch Flow (main/release branches)
 
-When changes are pushed to `main` or `release/**` branches that affect docs or source paths, the workflow regenerates metadata, builds, and deploys:
+When changes are pushed to `main` or `release/**` branches (or a `workflow_dispatch` is triggered), the workflow regenerates metadata, builds, and deploys.
+Only `main` and `release/*` branches are accepted for deploy — other branches will fail with a clear error.
 
 ```txt
-Push Event
+Push / Dispatch Event
     │
     ▼
 ┌─────────────────────────────────────┐
