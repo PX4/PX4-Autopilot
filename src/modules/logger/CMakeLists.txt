@@ -67,5 +67,5 @@ if(BUILD_TESTING)
 	add_library(logger_util_parse STATIC util_parse.cpp)
 	target_include_directories(logger_util_parse PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-	px4_add_unit_gtest(SRC utilTest.cpp LINKLIBS logger_util_parse)
+	px4_add_unit_gtest(SRC loggerUtilTest.cpp LINKLIBS logger_util_parse)
 endif()
