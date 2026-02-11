@@ -333,6 +333,8 @@ jobs:
             version="main"
           elif [[ "$branch" =~ ^release/ ]]; then
             version="v${branch#release/}"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            version="main"
           else
             echo "::error::Unsupported branch for docs deploy: $branch (expected main or release/*)"
             exit 1
