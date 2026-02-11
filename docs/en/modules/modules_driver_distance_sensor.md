@@ -212,7 +212,7 @@ Serial bus driver for the LightWare GRF250, GRF500 Laser rangefinders.
 
 Most boards are configured to enable/start the driver on a specified UART using the SENS_GRF_CFG parameter.
 
-Setup/usage information: https://docs.px4.io/main/en/sensor/grf_lidar.html
+[Setup/usage information](../sensor/grf_lidar.md).
 
 ### Examples
 
