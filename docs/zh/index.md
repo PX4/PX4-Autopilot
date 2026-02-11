@@ -38,7 +38,7 @@ _PX4_ 是一款专业级飞控。
 
 ### 我想要一个能与PX4配合使用的载具
 
-在 [多旋翼](frames_multicopter/index.md), [VTOL](frames_vtol/index.md), 和 [平面(固定翼)](frames_plane/index.md)部分你会找到如下主题（这些链接针对多旋翼飞行器）：
+在 [多旋翼](frames_multicopter/index.md), [VTOL](frames_vtol/index.md), 和 [飞机(固定翼)](frames_plane/index.md)部分你会找到如下主题（这些链接针对多旋翼飞行器）：
 
 - [完整的载具](complete_vehicles_mc/index.md)列出了到手飞(RTF)的硬件
 - [套件(frames_multicopter/kits.md) 列出了需要你利用一组预先选定的部件自行组装的无人机。
