@@ -55,11 +55,9 @@ To use the VectorNav driver:
 1. Disable magnetometer preflight checks by setting [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) to `0`.
 1. Allow the VectorNav driver to initialize by restarting PX4.
 1. Configure driver as either an external INS or to provide raw data:
-
    - If using the VectorNav as an external INS, set [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) to `INS`.
      This disables EKF2.
    - If using the VectorNav as external inertial sensors:
-
      1. Set [VN_MODE](../advanced_config/parameter_reference.md#VN_MODE) to `Sensors Only`
      1. If internal sensors are enabled, prioritize VectorNav sensors using [CAL_GYROn_PRIO](../advanced_config/parameter_reference.md#CAL_GYRO0_PRIO), [CAL_ACCn_PRIO](../advanced_config/parameter_reference.md#CAL_ACC0_PRIO), [CAL_BAROn_PRIO](../advanced_config/parameter_reference.md#CAL_BARO0_PRIO), [CAL_MAGn_PRIO](../advanced_config/parameter_reference.md#CAL_MAG0_PRIO), where _n_ is the instance number of the IMU component (0, 1, etc.).
 

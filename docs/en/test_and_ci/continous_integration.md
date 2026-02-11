@@ -16,14 +16,14 @@ Jobs are organized in tiers, where each tier depends on the previous one complet
 
 #### Tier Structure
 
-| Tier | Job            | PR                | Push / Dispatch | Description                                                   |
-| ---- | -------------- | ----------------- | --------------- | ------------------------------------------------------------- |
-| T1   | Detect Changes | Yes               | —               | Checks if source code files changed (triggers metadata regen) |
-| T2   | PR Metadata    | Yes (conditional) | —               | Builds PX4 SITL and regenerates all auto-generated docs       |
-| T2   | Metadata Sync  | —                 | Yes             | Builds PX4 SITL, regenerates metadata, auto-commits           |
-| T2   | Link Check     | Yes               | —               | Checks for broken links in changed files, posts PR comment    |
+| Tier | Job            | PR                           | Push / Dispatch | Description                                                   |
+| ---- | -------------- | ---------------------------- | --------------- | ------------------------------------------------------------- |
+| T1   | Detect Changes | Yes                          | —               | Checks if source code files changed (triggers metadata regen) |
+| T2   | PR Metadata    | Yes (conditional)            | —               | Builds PX4 SITL and regenerates all auto-generated docs       |
+| T2   | Metadata Sync  | —                            | Yes             | Builds PX4 SITL, regenerates metadata, auto-commits           |
+| T2   | Link Check     | Yes                          | —               | Checks for broken links in changed files, posts PR comment    |
 | T3   | Build Site     | Yes (if docs/source changed) | Yes (after T2)  | Builds the VitePress documentation site                       |
-| T4   | Deploy         | —                 | Yes             | Deploys to AWS S3                                             |
+| T4   | Deploy         | —                            | Yes             | Deploys to AWS S3                                             |
 
 #### Pull Request Flow
 
@@ -63,11 +63,11 @@ PR Event
                 DONE
 ```
 
-| Job                    | Duration | Description                                                                                 |
-| ---------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| **T1: Detect Changes** | ~10s     | Determines if metadata regeneration is needed                                               |
-| **T2: PR Metadata**    | ~10-15m  | Rebuilds PX4 SITL and regenerates all metadata (only if source files changed)               |
-| **T2: Link Check**     | ~30s     | Checks for broken links in changed markdown files and posts a sticky comment to the PR (skipped on fork PRs) |
+| Job                    | Duration | Description                                                                                                                             |
+| ---------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **T1: Detect Changes** | ~10s     | Determines if metadata regeneration is needed                                                                                           |
+| **T2: PR Metadata**    | ~10-15m  | Rebuilds PX4 SITL and regenerates all metadata (only if source files changed)                                                           |
+| **T2: Link Check**     | ~30s     | Checks for broken links in changed markdown files and posts a sticky comment to the PR (skipped on fork PRs)                            |
 | **T3: Build Site**     | ~7-10m   | Builds the VitePress site to verify there are no build errors. Skipped when only the workflow YAML changed (no docs or source changes). |
 
 #### Push / Dispatch Flow (main/release branches)

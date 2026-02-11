@@ -11,13 +11,13 @@ The _supported platforms_ for PX4 development are:
 The table below shows what PX4 targets you can build on each OS.
 
 | Target                                                                                                                                 | Linux (Ubuntu) | macOS | Windows |
-| -------------------------------------------------------------------------------------------------------------------------------------- | :------------: | :-: | :-----: |
-| **NuttX based hardware:** [Pixhawk Series](../flight_controller/pixhawk_series.md), [Crazyflie](../complete_vehicles_mc/crazyflie2.md) |       ✓        |  ✓  |    ✓    |
-| **Linux-based hardware:** [Raspberry Pi 2/3](../flight_controller/raspberry_pi_navio2.md)                                              |       ✓        |     |         |
-| **Simulation:** [Gazebo SITL](../sim_gazebo_gz/index.md)                                                                               |       ✓        |  ✓  |    ✓    |
-| **Simulation:** [Gazebo Classic SITL](../sim_gazebo_classic/index.md)                                                                  |       ✓        |  ✓  |    ✓    |
-| **Simulation:** [ROS with Gazebo Classic](../simulation/ros_interface.md)                                                              |       ✓        |     |    ✓    |
-| **Simulation:** ROS 2 with Gazebo                                                                                                      |       ✓        |     |    ✓    |
+| -------------------------------------------------------------------------------------------------------------------------------------- | :------------: | :---: | :-----: |
+| **NuttX based hardware:** [Pixhawk Series](../flight_controller/pixhawk_series.md), [Crazyflie](../complete_vehicles_mc/crazyflie2.md) |       ✓        |   ✓   |    ✓    |
+| **Linux-based hardware:** [Raspberry Pi 2/3](../flight_controller/raspberry_pi_navio2.md)                                              |       ✓        |       |         |
+| **Simulation:** [Gazebo SITL](../sim_gazebo_gz/index.md)                                                                               |       ✓        |   ✓   |    ✓    |
+| **Simulation:** [Gazebo Classic SITL](../sim_gazebo_classic/index.md)                                                                  |       ✓        |   ✓   |    ✓    |
+| **Simulation:** [ROS with Gazebo Classic](../simulation/ros_interface.md)                                                              |       ✓        |       |    ✓    |
+| **Simulation:** ROS 2 with Gazebo                                                                                                      |       ✓        |       |    ✓    |
 
 Experienced Docker users can also build with the containers used by our continuous integration system: [Docker Containers](../test_and_ci/docker.md)
 
