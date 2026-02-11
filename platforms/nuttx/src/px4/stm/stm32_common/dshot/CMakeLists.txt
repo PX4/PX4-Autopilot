@@ -31,7 +31,13 @@
 #
 ############################################################################
 
+if(CONFIG_DRIVERS_DSHOT_BITBANG)
+	set(DSHOT_SRC dshot_bitbang.c)
+else()
+	set(DSHOT_SRC dshot.c)
+endif()
+
 px4_add_library(arch_dshot
-	dshot.c
+	${DSHOT_SRC}
 )
 target_compile_options(arch_dshot PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
