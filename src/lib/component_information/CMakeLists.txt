@@ -126,19 +126,24 @@ add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
 )
 add_custom_target(component_general_json DEPENDS ${component_general_json})
 
-# For constrained flash builds, copy metadata files to sdcard output directory
-# so they can be uploaded to the SD card after firmware flash
-if(px4_constrained_flash_build AND CONFIG_BOARD_ROOT_PATH)
-	set(sdcard_extras_dir ${PX4_BINARY_DIR}/sdcard/${sdcard_metadata_subdir})
+# Copy metadata files (and optionally bootloader/IO binaries) to sdcard output
+# directory so they can be uploaded to the SD card after firmware flash
+if(CONFIG_BOARD_ROOT_PATH)
+	set(sdcard_metadata_dir ${PX4_BINARY_DIR}/sdcard/${sdcard_metadata_subdir})
+	set(sdcard_extras_dir ${PX4_BINARY_DIR}/sdcard/px4/extras)
+	set(sdcard_files_outputs)
+	set(sdcard_files_deps)
+
+	# Metadata files
 	add_custom_command(
 		OUTPUT
-			${sdcard_extras_dir}/parameters.json.xz
-			${sdcard_extras_dir}/all_events.json.xz
-			${sdcard_extras_dir}/actuators.json.xz
-		COMMAND ${CMAKE_COMMAND} -E make_directory ${sdcard_extras_dir}
-		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BINARY_DIR}/parameters.json.xz ${sdcard_extras_dir}/
-		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BINARY_DIR}/events/all_events.json.xz ${sdcard_extras_dir}/
-		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BINARY_DIR}/actuators.json.xz ${sdcard_extras_dir}/
+			${sdcard_metadata_dir}/parameters.json.xz
+			${sdcard_metadata_dir}/all_events.json.xz
+			${sdcard_metadata_dir}/actuators.json.xz
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${sdcard_metadata_dir}
+		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BINARY_DIR}/parameters.json.xz ${sdcard_metadata_dir}/
+		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BINARY_DIR}/events/all_events.json.xz ${sdcard_metadata_dir}/
+		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BINARY_DIR}/actuators.json.xz ${sdcard_metadata_dir}/
 		DEPENDS
 			${PX4_BINARY_DIR}/parameters.json.xz
 			${PX4_BINARY_DIR}/events/all_events.json.xz
@@ -148,10 +153,41 @@ if(px4_constrained_flash_build AND CONFIG_BOARD_ROOT_PATH)
 			actuators_json
 		COMMENT "Copying metadata files to sdcard output directory"
 	)
-	add_custom_target(sdcard_metadata ALL
-		DEPENDS
-			${sdcard_extras_dir}/parameters.json.xz
-			${sdcard_extras_dir}/all_events.json.xz
-			${sdcard_extras_dir}/actuators.json.xz
+	list(APPEND sdcard_files_outputs
+		${sdcard_metadata_dir}/parameters.json.xz
+		${sdcard_metadata_dir}/all_events.json.xz
+		${sdcard_metadata_dir}/actuators.json.xz
+	)
+
+	# Bootloader binary (optional)
+	set(bootloader_bin "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
+	if(EXISTS "${PX4_BOARD_DIR}/extras/${bootloader_bin}")
+		add_custom_command(
+			OUTPUT ${sdcard_extras_dir}/${bootloader_bin}
+			COMMAND ${CMAKE_COMMAND} -E make_directory ${sdcard_extras_dir}
+			COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BOARD_DIR}/extras/${bootloader_bin} ${sdcard_extras_dir}/
+			DEPENDS ${PX4_BOARD_DIR}/extras/${bootloader_bin}
+			COMMENT "Copying bootloader binary to sdcard output directory"
+		)
+		list(APPEND sdcard_files_outputs ${sdcard_extras_dir}/${bootloader_bin})
+	endif()
+
+	# IO firmware binary (optional)
+	if(CONFIG_BOARD_IO)
+		set(io_bin "${CONFIG_BOARD_IO}.bin")
+		if(EXISTS "${PX4_BOARD_DIR}/extras/${io_bin}")
+			add_custom_command(
+				OUTPUT ${sdcard_extras_dir}/${io_bin}
+				COMMAND ${CMAKE_COMMAND} -E make_directory ${sdcard_extras_dir}
+				COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BOARD_DIR}/extras/${io_bin} ${sdcard_extras_dir}/
+				DEPENDS ${PX4_BOARD_DIR}/extras/${io_bin}
+				COMMENT "Copying IO firmware binary to sdcard output directory"
+			)
+			list(APPEND sdcard_files_outputs ${sdcard_extras_dir}/${io_bin})
+		endif()
+	endif()
+
+	add_custom_target(sdcard_files ALL
+		DEPENDS ${sdcard_files_outputs}
 	)
 endif()

@@ -140,6 +140,10 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 
 		_metadata_missing = result.num_missing > 0;
 		_metadata_mismatch = result.num_mismatch > 0;
+
+		if (!_metadata_missing && !_metadata_mismatch && result.num_checked > 0) {
+			PX4_INFO("SD card files verified: %d files OK", result.num_checked);
+		}
 	}
 
 	if (_metadata_missing && _param_com_arm_metadata_check.get()) {
