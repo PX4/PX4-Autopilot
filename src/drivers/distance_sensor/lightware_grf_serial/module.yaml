@@ -34,11 +34,12 @@ parameters:
               description:
                   short: GRF Sensor model
                   long: |
-                      GRF Sensor Model used to distinush the maximum lidar distance.
+                      GRF Sensor Model used to distinush between the GRF250 and GRF500 since both have different max distance range.
               type: enum
               values:
-                  0: GRF250
-                  1: GRF500
+                  0: disable
+                  1: GRF250
+                  2: GRF500
               reboot_required: true
               num_instances: 1
               default: 0

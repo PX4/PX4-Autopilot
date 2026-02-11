@@ -54,11 +54,15 @@ The [parameters to change](../advanced_config/parameters.md) are listed in the t
 
 | Parameter                                                                                                | Description                                              |
 | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| <a id="SENS_EN_GRF_CFG"></a>[SENS_EN_GRF_CFG](../advanced_config/parameter_reference.md#SENS_EN_GRF_CFG) | Set to the serial port you have the sensor connected to. |
+| <a id="SENS_EN_GRF_CFG"></a>[SENS_EN_GRF_CFG](../advanced_config/parameter_reference.md#SENS_EN_GRF_CFG) | Set to the serial port the sensor is connected to. |
 | <a id="GRF_UPDATE_CFG"></a>[GRF_UPDATE_CFG](../advanced_config/parameter_reference.md#GRF_UPDATE_CFG)    | Set the update rate.                                     |
+| <a id="GRF_SENS_MODEL"></a>[GRF_SENS_MODEL](../advanced_config/parameter_reference.md#GRF_SENS_MODEL)    | Set the update rate.                                     |
 
 ## Testing
 
 You can confirm that the sensor is correctly configured by connecting QGroundControl, and observing that [DISTANCE_SENSOR](https://mavlink.io/en/messages/common.html#DISTANCE_SENSOR) is present in the [MAVLink Inspector](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_inspector.html).
 
 Moving the sensor around at various distances from a surface will have the `current_distance` value change.
+
+## Troubleshooting
+If you are having problems with connecting to the sensor you may need to unassign a the default serial port. [Unassign Default Serial Port](../peripherals/serial_configuration.md)

@@ -72,8 +72,9 @@ enum GRF_PARSED_STATE {
 };
 
 enum MODEL {
-	GRF250 = 0,
-	GRF500 = 1
+	Disable = 0,
+	GRF250 = 1,
+	GRF500 = 2
 };
 
 using namespace time_literals;

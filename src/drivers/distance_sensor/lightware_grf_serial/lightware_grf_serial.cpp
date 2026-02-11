@@ -78,7 +78,7 @@ GRFLaserSerial::~GRFLaserSerial()
 
 int GRFLaserSerial::init()
 {
-	param_get(param_find("GRF_UPDATE_CFG"), &_update_rate);
+	param_get(param_find("GRF_RATE_CFG"), &_update_rate);
 	param_get(param_find("GRF_SENS_MODEL"), &_model_type);
 
 	start();

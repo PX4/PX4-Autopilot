@@ -102,6 +102,13 @@ static int usage()
 
 Serial bus driver for the Lightware GRF Laser rangefinder.
 
+### Configuration
+https://docs.px4.io/main/en/sensor/grf_lidar
+
+### Parameters
+https://docs.px4.io/main/en/advanced_config/parameter_reference#GRF_SENS_MODEL
+https://docs.px4.io/main/en/advanced_config/parameter_reference#GRF_RATE_CFG
+https://docs.px4.io/main/en/advanced_config/parameter_reference#SENS_EN_GRF_CFG
 
 ### Examples
 
