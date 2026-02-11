@@ -95,42 +95,42 @@ int DLVR::init()
 	switch (hw_model) {
 	case 1: /* DLVR F50D (+- 0.5 inH20) */
 		_cal_range = 1.0f;
-		_offset_out = 8129.f;
+		_offset_out = 8192.f;
 		break;
 
 	case 2: /* DLVR L01D (+- 1 inH20) */
 		_cal_range = 2.0f;
-		_offset_out = 8129.f;
+		_offset_out = 8192.f;
 		break;
 
 	case 3: /* DLVR L02D (+- 2 inH20) */
 		_cal_range = 4.0f;
-		_offset_out = 8129.f;
+		_offset_out = 8192.f;
 		break;
 
 	case 4: /* DLVR L05D (+- 5 inH20) */
 		_cal_range = 10.0f;
-		_offset_out = 8129.f;
+		_offset_out = 8192.f;
 		break;
 
 	case 5: /* DLVR L10D (+- 10 inH20) */
 		_cal_range = 20.0f;
-		_offset_out = 8129.f;
+		_offset_out = 8192.f;
 		break;
 
 	case 6: /* DLVR L20D (+- 20 inH20) */
 		_cal_range = 40.0f;
-		_offset_out = 8129.f;
+		_offset_out = 8192.f;
 		break;
 
 	case 7: /* DLVR L30D (+- 30 inH20) */
 		_cal_range = 60.0f;
-		_offset_out = 8129.f;
+		_offset_out = 8192.f;
 		break;
 
 	case 8: /* DLVR L60D (+- 60 inH20) */
 		_cal_range = 120.0f;
-		_offset_out = 8129.f;
+		_offset_out = 8192.f;
 		break;
 
 	case 9: /* DLVR L01G (0 to 1 inH20) */
