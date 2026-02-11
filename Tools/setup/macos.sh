@@ -66,6 +66,12 @@ else
 	fi
 fi
 
+# Install ccache (used by cmake/ccache.cmake to speed up builds)
+if ! command -v ccache &> /dev/null; then
+	echo "[macos.sh] Installing ccache"
+	brew install ccache
+fi
+
 # Python dependencies
 echo "[macos.sh] Installing Python3 dependencies"
 # We need to have future to install pymavlink later.
