@@ -123,7 +123,7 @@
 /* We should include cstdlib or stdlib.h but this doesn't
  * compile because many C++ files include stdlib.h and would
  * need to get changed. */
-#pragma GCC poison getenv setenv putenv
+/* Not poisoned: setenv is needed in tasks.cpp to restore PATH after clearenv() */
 #endif // defined(__PX4_NUTTX)
 
 #endif // PX4_DISABLE_GCC_POISON

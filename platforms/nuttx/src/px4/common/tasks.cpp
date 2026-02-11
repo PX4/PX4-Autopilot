@@ -66,6 +66,9 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 	 * This frees up a considerable amount of RAM.
 	 */
 	clearenv();
+#  ifdef CONFIG_PATH_INITIAL
+	setenv("PATH", CONFIG_PATH_INITIAL, 1);
+#  endif
 #endif
 
 #if !defined(__KERNEL__)

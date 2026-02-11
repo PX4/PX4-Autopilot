@@ -37,4 +37,5 @@ px4_add_module(
 	STACK_MAIN 4096
 	SRCS
 		listener_main.cpp
+	LOADABLE
 	)

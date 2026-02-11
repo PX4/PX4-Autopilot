@@ -1,10 +1,16 @@
 # Build the px4 layer for nuttx flat build
 
-add_library(px4_layer
-		${KERNEL_SRCS}
-		${PX4_SOURCE_DIR}/platforms/common/Serial.cpp
-		SerialImpl.cpp
-	)
+set(PX4_LAYER_SRCS
+	${KERNEL_SRCS}
+	${PX4_SOURCE_DIR}/platforms/common/Serial.cpp
+	SerialImpl.cpp
+)
+
+if(CONFIG_ELF)
+	list(APPEND PX4_LAYER_SRCS px4_elf_symtab.cpp)
+endif()
+
+add_library(px4_layer ${PX4_LAYER_SRCS})
 
 target_link_libraries(px4_layer
 	PRIVATE
