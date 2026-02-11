@@ -87,6 +87,7 @@
 #endif
 
 // Timer register macros (from io_timer.c, local to this file)
+#define _REG32(_base, _reg) (*(volatile uint32_t *)(_base + _reg))
 #define REG(_tmr, _reg)     _REG32(io_timers[_tmr].base, _reg)
 #define rCR1(_tmr)          REG(_tmr, STM32_GTIM_CR1_OFFSET)
 #define rCR2(_tmr)          REG(_tmr, STM32_GTIM_CR2_OFFSET)
@@ -231,8 +232,6 @@ static void timer_configure_pacer(uint8_t timer_index)
 
 	// Auto-reload: one DMA transfer per timer update
 	rARR(timer_index) = SUBPERIODS_PER_BIT - 1;
-
-	test
 
 	// Generate update event to load prescaler
 	rEGR(timer_index) = GTIM_EGR_UG;

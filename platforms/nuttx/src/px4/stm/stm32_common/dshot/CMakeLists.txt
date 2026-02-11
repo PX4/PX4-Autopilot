@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-if(CONFIG_DRIVERS_DSHOT_BITBANG)
+if(CONFIG_DSHOT_BITBANG)
 	set(DSHOT_SRC dshot_bitbang.c)
 else()
 	set(DSHOT_SRC dshot.c)

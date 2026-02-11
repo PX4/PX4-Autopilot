@@ -3,3 +3,10 @@ menuconfig DRIVERS_DSHOT
 	default n
 	---help---
 		Enable support for dshot
+
+config DSHOT_BITBANG
+	bool "Use bitbang DShot"
+	default n
+	depends on DRIVERS_DSHOT
+	---help---
+		Use bitbang GPIO DShot instead of DMA burst to timer registers
