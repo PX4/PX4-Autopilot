@@ -34,13 +34,11 @@
 #include "util.h"
 
 #include <dirent.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_gps.h>
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
@@ -57,8 +55,6 @@
 
 #define GPS_EPOCH_SECS ((time_t)1234567890ULL)
 
-typedef decltype(statfs::f_bavail) px4_statfs_buf_f_bavail_t;
-
 namespace px4
 {
 namespace logger
@@ -72,32 +68,33 @@ bool file_exist(const char *filename)
 	return stat(filename, &buffer) == 0;
 }
 
-bool get_log_time(uint64_t &utc_time_usec, int utc_offset_sec, bool boot_time)
+bool get_free_space(const char *path, uint64_t *avail_bytes, uint64_t *total_bytes)
 {
-	uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	struct statfs statfs_buf;
 
-	bool use_clock_time = true;
-
-	/* Get the latest GPS publication */
-	sensor_gps_s gps_pos;
-
-	if (vehicle_gps_position_sub.copy(&gps_pos)) {
-		utc_time_usec = gps_pos.time_utc_usec;
-
-		if (gps_pos.fix_type >= 2 && utc_time_usec >= (uint64_t) GPS_EPOCH_SECS * 1000000ULL) {
-			use_clock_time = false;
-		}
+	if (statfs(path, &statfs_buf) != 0) {
+		return false;
 	}
 
-	if (use_clock_time) {
-		/* take clock time if there's no fix (yet) */
-		struct timespec ts = {};
-		px4_clock_gettime(CLOCK_REALTIME, &ts);
-		utc_time_usec = ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000ULL;
+	if (avail_bytes != nullptr) {
+		*avail_bytes = (uint64_t)statfs_buf.f_bavail * statfs_buf.f_bsize;
+	}
 
-		if (utc_time_usec < (uint64_t) GPS_EPOCH_SECS * 1000000ULL) {
-			return false;
-		}
+	if (total_bytes != nullptr) {
+		*total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
+	}
+
+	return true;
+}
+
+bool get_log_time(uint64_t &utc_time_usec, int utc_offset_sec, bool boot_time)
+{
+	struct timespec ts = {};
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
+	utc_time_usec = ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000ULL;
+
+	if (utc_time_usec < (uint64_t) GPS_EPOCH_SECS * 1000000ULL) {
+		return false;
 	}
 
 	/* strip the time elapsed since boot */
@@ -119,130 +116,199 @@ bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
 	return result && gmtime_r(&utc_time_sec, tt) != nullptr;
 }
 
-int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub,
-		     int &sess_dir_index)
+bool scan_log_directories(const char *log_root_dir, LogDirInfo &info)
 {
-	struct statfs statfs_buf;
+	DIR *dp = opendir(log_root_dir);
 
-	if (max_log_dirs_to_keep == 0) {
-		max_log_dirs_to_keep = INT32_MAX;
+	if (dp == nullptr) {
+		return false;
 	}
 
-	// remove old logs if the free space falls below a threshold
-	do {
-		if (statfs(log_root_dir, &statfs_buf) != 0) {
-			return PX4_ERROR;
+	// Reset info to defaults
+	info = LogDirInfo{};
+
+	struct dirent *result = nullptr;
+
+	while ((result = readdir(dp))) {
+		process_dir_entry(result->d_name, info);
+	}
+
+	closedir(dp);
+	return true;
+}
+
+int cleanup_old_logs(const char *log_root_dir, orb_advert_t &mavlink_log_pub,
+		     uint32_t target_free_mb, int32_t max_log_dirs_to_keep)
+{
+	uint64_t avail_bytes;
+	uint64_t total_bytes;
+
+	if (!get_free_space(log_root_dir, &avail_bytes, &total_bytes)) {
+		return PX4_ERROR;
+	}
+
+	// Calculate cleanup threshold
+	uint64_t cleanup_threshold;
+
+	if (target_free_mb > 0) {
+		cleanup_threshold = (uint64_t)target_free_mb * 1024ULL * 1024ULL;
+
+	} else {
+		// Default: 300 MiB or 10% of disk, whichever is smaller
+		cleanup_threshold = 300ULL * 1024ULL * 1024ULL;
+
+		if (total_bytes / 10 < cleanup_threshold) {
+			cleanup_threshold = total_bytes / 10;
+		}
+	}
+
+	// Early out if we have enough space and no directory limit
+	bool need_space_cleanup = avail_bytes < cleanup_threshold;
+
+	if (!need_space_cleanup && max_log_dirs_to_keep <= 0) {
+		return PX4_OK;
+	}
+
+	// Scan directories for cleanup
+	LogDirInfo info;
+
+	if (!scan_log_directories(log_root_dir, info)) {
+		return PX4_OK; // ignore if we cannot access the log directory
+	}
+
+	int total_dirs = info.num_sess + info.num_dates;
+	bool need_count_cleanup = (max_log_dirs_to_keep > 0) && (total_dirs > max_log_dirs_to_keep);
+
+	if (!need_space_cleanup && !need_count_cleanup) {
+		return PX4_OK;
+	}
+
+	PX4_INFO("Log cleanup: %u MiB free, threshold %u MiB, %d dirs (max %" PRId32 ")",
+		 (unsigned)(avail_bytes / 1024U / 1024U), (unsigned)(cleanup_threshold / 1024U / 1024U),
+		 total_dirs, max_log_dirs_to_keep > 0 ? max_log_dirs_to_keep : -1);
+
+	// Determine if we currently have valid time (using date dirs) or not (using sess dirs)
+	// Delete from the "other" scheme first to avoid deleting current log
+	uint64_t utc_time_usec;
+	bool have_time = get_log_time(utc_time_usec, 0, false);
+
+	// Cleanup oldest .ulg files one by one until conditions are met
+	int empty_dir_failures = 0;
+
+	while (need_space_cleanup || need_count_cleanup) {
+		char oldest_file[LOG_DIR_LEN] = "";
+		char oldest_dir[LOG_DIR_LEN];
+
+		if (!scan_log_directories(log_root_dir, info)) {
+			break;
 		}
 
-		DIR *dp = opendir(log_root_dir);
+		total_dirs = info.num_sess + info.num_dates;
+		bool found_sess = info.num_sess > 0;
+		bool found_date = info.num_dates > 0;
+
+		if (!found_sess && !found_date) {
+			PX4_WARN("No log directories found to clean up");
+			break; // no log directories found
+		}
+
+		// Delete from the "other" naming scheme first (it's old/stale)
+		// - Have time (using date dirs): delete sess dirs first
+		// - No time (using sess dirs): delete date dirs first, then sess dirs
+		if (have_time && found_sess) {
+			// Using date dirs, delete old sess dirs first
+			snprintf(oldest_dir, sizeof(oldest_dir), "%s/sess%03u", log_root_dir, info.sess_idx_min);
+
+		} else if (!have_time && found_date) {
+			// Using sess dirs, delete old date dirs first
+			snprintf(oldest_dir, sizeof(oldest_dir), "%s/%04u-%02u-%02u", log_root_dir,
+				 info.oldest_year, info.oldest_month, info.oldest_day);
+
+		} else if (found_sess) {
+			// Delete from oldest sess dir (including current - old files are ok to delete)
+			snprintf(oldest_dir, sizeof(oldest_dir), "%s/sess%03u", log_root_dir, info.sess_idx_min);
+
+		} else if (found_date) {
+			// Delete from oldest date dir
+			snprintf(oldest_dir, sizeof(oldest_dir), "%s/%04u-%02u-%02u", log_root_dir,
+				 info.oldest_year, info.oldest_month, info.oldest_day);
+
+		} else {
+			// Nothing left to delete
+			break;
+		}
+
+		PX4_DEBUG("Checking directory %s for old logs", oldest_dir);
+
+		// Find oldest .ulg file in that directory
+		DIR *dp = opendir(oldest_dir);
 
 		if (dp == nullptr) {
-			break; // ignore if we cannot access the log directory
+			PX4_WARN("Cannot open directory %s", oldest_dir);
+			break;
 		}
 
+		char oldest_ulg[64] = "";
 		struct dirent *result = nullptr;
 
-		int num_sess = 0, num_dates = 0;
-
-		// There are 2 directory naming schemes: sess<i> or <year>-<month>-<day>.
-		// For both we find the oldest and then remove the one which has more directories.
-		int year_min = 10000, month_min = 99, day_min = 99, sess_idx_min = 99999999, sess_idx_max = 99;
-
 		while ((result = readdir(dp))) {
-			int year, month, day, sess_idx;
+			size_t len = strlen(result->d_name);
 
-			if (sscanf(result->d_name, "sess%d", &sess_idx) == 1) {
-				++num_sess;
-
-				if (sess_idx > sess_idx_max) {
-					sess_idx_max = sess_idx;
-				}
-
-				if (sess_idx < sess_idx_min) {
-					sess_idx_min = sess_idx;
-				}
-
-			} else if (sscanf(result->d_name, "%d-%d-%d", &year, &month, &day) == 3) {
-				++num_dates;
-
-				if (year < year_min) {
-					year_min = year;
-					month_min = month;
-					day_min = day;
-
-				} else if (year == year_min) {
-					if (month < month_min) {
-						month_min = month;
-						day_min = day;
-
-					} else if (month == month_min) {
-						if (day < day_min) {
-							day_min = day;
-						}
-					}
+			if (len > 4 && strcmp(result->d_name + len - 4, ".ulg") == 0) {
+				if (oldest_ulg[0] == '\0' || strcmp(result->d_name, oldest_ulg) < 0) {
+					strncpy(oldest_ulg, result->d_name, sizeof(oldest_ulg) - 1);
+					oldest_ulg[sizeof(oldest_ulg) - 1] = '\0';
 				}
 			}
 		}
 
 		closedir(dp);
 
-		sess_dir_index = sess_idx_max + 1;
+		if (oldest_ulg[0] == '\0') {
+			// No .ulg files, try to remove directory
+			if (remove_directory(oldest_dir) == 0) {
+				PX4_INFO("removed directory %s (no .ulg files)", oldest_dir);
+				empty_dir_failures = 0;
 
+			} else {
+				// Removal failed (littlefs may report "not empty" for empty dirs)
+				// Toggle have_time to try the other naming scheme next iteration
+				empty_dir_failures++;
 
-		uint64_t min_free_bytes = 300ULL * 1024ULL * 1024ULL;
-		uint64_t total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
+				if (empty_dir_failures >= 3) {
+					PX4_WARN("Cannot remove empty directories, giving up");
+					break;
+				}
 
-		if (total_bytes / 10 < min_free_bytes) { // reduce the minimum if it's larger than 10% of the disk size
-			min_free_bytes = total_bytes / 10;
+				have_time = !have_time;
+				PX4_DEBUG("Cannot remove %s, trying other scheme", oldest_dir);
+			}
+
+			continue;
 		}
 
-		if (num_sess + num_dates <= max_log_dirs_to_keep &&
-		    statfs_buf.f_bavail >= (px4_statfs_buf_f_bavail_t)(min_free_bytes / statfs_buf.f_bsize)) {
-			break; // enough free space and limit not reached
-		}
+		// Build full path and delete the file
+		snprintf(oldest_file, sizeof(oldest_file), "%s/%s", oldest_dir, oldest_ulg);
+		PX4_INFO("removing old log %s/%s", oldest_dir, oldest_ulg);
 
-		if (num_sess == 0 && num_dates == 0) {
-			break; // nothing to delete
-		}
-
-		char directory_to_delete[LOG_DIR_LEN];
-		int n;
-
-		if (num_sess >= num_dates) {
-			n = snprintf(directory_to_delete, sizeof(directory_to_delete), "%s/sess%03u", log_root_dir, sess_idx_min);
-
-		} else {
-			n = snprintf(directory_to_delete, sizeof(directory_to_delete), "%s/%04u-%02u-%02u", log_root_dir, year_min, month_min,
-				     day_min);
-		}
-
-		if (n >= (int)sizeof(directory_to_delete)) {
-			PX4_ERR("log path too long (%i)", n);
+		if (unlink(oldest_file) != 0) {
+			PX4_ERR("Failed to delete %s", oldest_file);
 			break;
 		}
 
-		PX4_INFO("removing log directory %s to get more space (left=%u MiB)", directory_to_delete,
-			 (unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
-
-		if (remove_directory(directory_to_delete)) {
-			PX4_ERR("Failed to delete directory");
+		// Re-check conditions
+		if (!get_free_space(log_root_dir, &avail_bytes, nullptr)) {
 			break;
 		}
 
-	} while (true);
+		need_space_cleanup = avail_bytes < cleanup_threshold;
+		need_count_cleanup = (max_log_dirs_to_keep > 0) && (total_dirs > max_log_dirs_to_keep);
+	}
 
-
-	/* use a threshold of 50 MiB: if below, do not start logging */
-	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
-		mavlink_log_critical(&mavlink_log_pub,
-				     "[logger] Not logging; SD almost full: %u MiB\t",
-				     (unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
-		/* EVENT
-		 * @description Either manually free up some space, or enable automatic log rotation
-		 * via <param>SDLOG_DIRS_MAX</param>.
-		 */
-		events::send<uint32_t>(events::ID("logger_storage_full"), events::Log::Error,
-				       "Not logging, storage is almost full: {1} MiB", (uint32_t)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
+	// Final check: if still not enough space, refuse to log
+	if (avail_bytes < 10ULL * 1024ULL * 1024ULL) {  // Less than 10 MiB is critical
+		mavlink_log_critical(&mavlink_log_pub, "[logger] Storage full: %u MiB free\t",
+				     (unsigned)(avail_bytes / 1024U / 1024U));
 		return 1;
 	}
 

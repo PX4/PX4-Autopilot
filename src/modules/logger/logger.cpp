@@ -38,6 +38,7 @@
 #include "messages.h"
 
 #include <dirent.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
@@ -587,9 +588,14 @@ void Logger::run()
 			}
 		}
 
-		if (util::check_free_space(LOG_ROOT[(int)LogType::Full], _param_sdlog_dirs_max.get(), _mavlink_log_pub,
-					   _file_name[(int)LogType::Full].sess_dir_index) == 1) {
-			return;
+		// Get the next session directory index
+		util::LogDirInfo dir_info;
+
+		if (util::scan_log_directories(LOG_ROOT[(int)LogType::Full], dir_info)) {
+			_file_name[(int)LogType::Full].sess_dir_index = dir_info.sess_idx_max + 1;
+
+		} else {
+			_file_name[(int)LogType::Full].sess_dir_index = 0;
 		}
 	}
 
@@ -804,7 +810,7 @@ void Logger::run()
 
 			if (_log_message_sub.update(&log_message)) {
 				const char *message = (const char *)log_message.text;
-				int message_len = strlen(message);
+				int message_len = strnlen(message, sizeof(log_message.text));
 
 				if (message_len > 0) {
 					uint16_t write_msg_size = sizeof(ulog_message_logging_s) - sizeof(ulog_message_logging_s::message)
@@ -868,6 +874,14 @@ void Logger::run()
 			}
 
 			debug_print_buffer(total_bytes, timer_start);
+
+			// Rotate log file when it exceeds max size (if SDLOG_MAX_SIZE > 0)
+			if (_max_log_file_size > 0 &&
+			    _writer.get_total_written_file(LogType::Full) > _max_log_file_size) {
+				PX4_INFO("Log file size limit reached, rotating");
+				stop_log_file(LogType::Full);
+				start_log_file(LogType::Full);
+			}
 
 			was_started = true;
 
@@ -1240,7 +1254,8 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 
 	if (tt) {
 		strftime(file_name.log_dir, sizeof(LogFileName::log_dir), "%Y-%m-%d", tt);
-		strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
+		strncpy(log_dir + n, file_name.log_dir, log_dir_len - n - 1);
+		log_dir[log_dir_len - 1] = '\0';
 		int mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 		if (mkdir_ret != OK && errno != EEXIST) {
@@ -1252,7 +1267,8 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 		uint16_t dir_number = file_name.sess_dir_index;
 
 		if (file_name.has_log_dir) {
-			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
+			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n - 1);
+			log_dir[log_dir_len - 1] = '\0';
 		}
 
 		/* look for the next dir that does not exist */
@@ -1265,7 +1281,8 @@ int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 				return -1;
 			}
 
-			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n);
+			strncpy(log_dir + n, file_name.log_dir, log_dir_len - n - 1);
+			log_dir[log_dir_len - 1] = '\0';
 			int mkdir_ret = mkdir(log_dir, S_IRWXU | S_IRWXG | S_IRWXO);
 
 			if (mkdir_ret == 0) {
@@ -1349,26 +1366,38 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 			return -1;
 		}
 
+		// Find the highest existing log file number and use next
 		uint16_t file_number = 100; // start with file log100
+		uint16_t max_existing = 99;
 
-		/* look for the next file that does not exist */
-		while (file_number <= MAX_NO_LOGFILE) {
-			/* format log file path: e.g. /fs/microsd/log/sess001/log001.ulg */
-			snprintf(log_file_name, sizeof(LogFileName::log_file_name), "log%03" PRIu16 "%s.ulg%s", file_number, replay_suffix,
-				 crypto_suffix);
-			snprintf(file_name + n, file_name_size - n, "/%s", log_file_name);
+		DIR *dp = opendir(file_name);
 
-			if (!util::file_exist(file_name)) {
-				break;
+		if (dp != nullptr) {
+			struct dirent *entry;
+
+			while ((entry = readdir(dp)) != nullptr) {
+				uint16_t num;
+
+				if (sscanf(entry->d_name, "log%hu", &num) == 1) {
+					if (num > max_existing) {
+						max_existing = num;
+					}
+				}
 			}
 
-			file_number++;
+			closedir(dp);
+			file_number = max_existing + 1;
 		}
 
 		if (file_number > MAX_NO_LOGFILE) {
 			/* we should not end up here, either we have more than MAX_NO_LOGFILE on the SD card, or another problem */
 			return -1;
 		}
+
+		/* format log file path: e.g. /fs/microsd/log/sess001/log001.ulg */
+		snprintf(log_file_name, sizeof(LogFileName::log_file_name), "log%03" PRIu16 "%s.ulg%s", file_number, replay_suffix,
+			 crypto_suffix);
+		snprintf(file_name + n, file_name_size - n, "/%s", log_file_name);
 
 		if (notify) {
 			mavlink_log_info(&_mavlink_log_pub, "[logger] %s\t", file_name);
@@ -1400,6 +1429,26 @@ void Logger::start_log_file(LogType type)
 	}
 
 	if (type == LogType::Full) {
+		int32_t max_size_mb = _param_sdlog_max_size.get();
+
+		if (max_size_mb > 0) {
+			_max_log_file_size = (size_t)max_size_mb * 1024ULL * 1024ULL;
+			PX4_INFO("Max log file size: %" PRId32 " MB", max_size_mb);
+
+		} else {
+			_max_log_file_size = 0; // unlimited
+		}
+
+		// Cleanup old logs if needed (storage-based and/or count-based)
+		hrt_abstime cleanup_start = hrt_absolute_time();
+
+		if (util::cleanup_old_logs(LOG_ROOT[(int)LogType::Full], _mavlink_log_pub,
+					   (uint32_t)max_size_mb, _param_sdlog_dirs_max.get()) == 1) {
+			return;  // Not enough space even after cleanup
+		}
+
+		PX4_INFO("Log cleanup took %" PRIu64 " ms", hrt_elapsed_time(&cleanup_start) / 1000);
+
 		// initialize cpu load as early as possible to get more data
 		initialize_load_output(PrintLoadReason::Preflight);
 	}

@@ -41,3 +41,4 @@ param set-default COM_ARM_SDCARD 0
 # W25N NAND flash with littlefs (128 MB): larger buffer, auto-rotate
 set LOGGER_BUF 32
 param set-default SDLOG_DIRS_MAX 3
+param set-default SDLOG_MAX_SIZE 30

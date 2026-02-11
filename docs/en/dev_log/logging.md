@@ -83,6 +83,27 @@ This configuration will log sensor_accel 0 at full rate, sensor_accel 1 at 10Hz,
 
 There are several scripts to analyze and convert logging files in the [pyulog](https://github.com/PX4/pyulog) repository.
 
+## Log Cleanup
+
+PX4 automatically manages log storage by cleaning up old logs when starting to log.
+Cleanup is triggered based on two criteria:
+
+- **Storage-based cleanup**: Ensures minimum free space (300 MB or 10% of disk, whichever is smaller) is available.
+- **Count-based cleanup**: If [SDLOG_DIRS_MAX](../advanced_config/parameter_reference.md#SDLOG_DIRS_MAX) is set, limits the total number of log directories.
+
+The cleanup algorithm prioritizes deleting logs from the directory naming scheme not currently in use.
+PX4 uses two directory naming schemes:
+
+- **Session directories** (`sess001`, `sess002`, etc.) - used when the system doesn't have valid time information
+- **Date directories** (`2024-01-15`, `2024-01-16`, etc.) - used when the system has valid time (e.g., from GPS)
+
+When cleanup is needed:
+
+- If the system has valid time (using date directories): old session directories are deleted first
+- If the system doesn't have valid time (using session directories): old date directories are deleted first
+
+This ensures that stale logs from a different time mode are cleaned up before current logs.
+
 ## File size limitations
 
 The maximum file size depends on the file system and OS.
