@@ -178,12 +178,11 @@ jobs:
         env:
           CCACHE_DIR: ~/.ccache
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: ./docs/yarn.lock
+      - name: Install Node.js and Yarn
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          corepack enable
 
       - name: Format markdown with Prettier
         run: |
