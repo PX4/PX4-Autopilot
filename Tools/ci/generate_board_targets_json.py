@@ -25,15 +25,15 @@ parser.add_argument('-p', '--pretty', dest='pretty', action='store_true',
                     help='Pretty output instead of a single line')
 parser.add_argument('-g', '--groups', dest='group', action='store_true',
                     help='Groups targets')
-parser.add_argument('-f', '--filter', dest='filter', help='comma separated list of board names to use instead of all')
+parser.add_argument('-f', '--filter', dest='filter', help='comma separated list of build target name prefixes to include instead of all e.g. "px4_fmu-v5_"')
 
 args = parser.parse_args()
 verbose = args.verbose
 
-board_filter = []
+target_filter = []
 if args.filter:
-    for board in args.filter.split(','):
-        board_filter.append(board)
+    for target in args.filter.split(','):
+        target_filter.append(target)
 
 default_container = 'ghcr.io/px4/px4-dev:v1.16.0-rc1-258-g0369abd556'
 build_configs = []
@@ -144,7 +144,7 @@ for manufacturer in os.scandir(os.path.join(source_dir, '../boards')):
                 label = files.name[:-9]
                 target_name = manufacturer.name + '_' + board.name + '_' + label
 
-                if board_filter and not board_name in board_filter:
+                if target_filter and not any(target_name.startswith(f) for f in target_filter):
                     if verbose: print(f'excluding board {board_name} ({target_name})')
                     continue
 

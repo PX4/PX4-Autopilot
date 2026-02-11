@@ -24,16 +24,16 @@
 
 ## 串口/以太网配置
 
-- [Serial Port Configuration](../peripherals/serial_configuration.md)
+- [串口配置](../peripherals/serial_configuration.md)
 - [MAVLink Telemetry (OSD/GCS)](../peripherals/mavlink_peripherals.md)
-- [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md)
+- [PX4 以太网设置](../advanced_config/ethernet_setup.md)
 
 ## 其它选项
 
 - [Bootloader 更新](../advanced_config/bootloader_update.md)
   - [通过 USB 更新 FMUv6X-RT bootloader](../advanced_config/bootloader_update_v6xrt.md)
 
-## See Also
+## 另见
 
 - [标准配置](../config/index.md) - 大多数 PX4 机体所需要的基本传感器/功能配置。
 - [飞控外设](../peripherals/index.md) - 设置特定传感器、可选传感器、执行器等。

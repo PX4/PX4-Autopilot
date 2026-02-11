@@ -50,8 +50,6 @@
  * TIM1_CH3  T SPI2_DRDY2_ISM330_INT2 < Capture or GPIO INT
  * TIM1_CH1  T SPIX_SYNC              > Pulse or GPIO strobe
  *
- * TIM2_CH3  T HEATER                 > PWM OUT or GPIO
- *
  * TIM14_CH1 T BUZZER_1              - Driven by other driver
  * TIM8_CH1_IN T FMU_PPM_INPUT       - Sampled byt HRT by other driver
  */
@@ -61,7 +59,6 @@ constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 	initIOTimer(Timer::Timer4, DMA{DMA::Index1}),
 	initIOTimer(Timer::Timer12),
 	initIOTimer(Timer::Timer1),
-	initIOTimer(Timer::Timer2),
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {

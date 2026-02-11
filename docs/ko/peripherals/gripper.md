@@ -75,13 +75,13 @@ To set the actuation timeout:
 
    - Run the `payload_deliverer` test in the QGC [MAVLink Shell](../debug/mavlink_shell.md):
 
-      ```sh
-      > payload_deliverer gripper_test
-      ```
+     ```sh
+     > payload_deliverer gripper_test
+     ```
 
-      ::: info
-      If you get an error message like "[payload_deliverer] not running", repeat the setup procedures above.
-      You might also run the `payload_deliverer start` command in the Nuttx shell.
+     ::: info
+     If you get an error message like "[payload_deliverer] not running", repeat the setup procedures above.
+     You might also run the `payload_deliverer start` command in the Nuttx shell.
 
 :::
 

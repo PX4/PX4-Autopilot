@@ -98,9 +98,10 @@ except:
 if tag_or_branch is None:
     # replace / so it can be used as directory name
     tag_or_branch = git_branch_name.replace('/', '-')
-    # either a release or main branch (used for metadata)
+    # either a release or master branch (used for metadata)
+    # CI uploads to 'master/' on S3 for legacy QGC compatibility
     if not tag_or_branch.startswith('release-'):
-        tag_or_branch = 'main'
+        tag_or_branch = 'master'
 
 header += f"""
 #define PX4_GIT_VERSION_STR "{git_version}"
@@ -110,7 +111,7 @@ header += f"""
 
 #define PX4_GIT_OEM_VERSION_STR  "{oem_tag}"
 
-#define PX4_GIT_TAG_OR_BRANCH_NAME "{tag_or_branch}" // special variable: git tag, release or main branch
+#define PX4_GIT_TAG_OR_BRANCH_NAME "{tag_or_branch}" // special variable: git tag, release or master branch
 """
 
 

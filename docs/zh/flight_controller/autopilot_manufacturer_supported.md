@@ -30,6 +30,7 @@ The boards in this category are:
 - [Holybro Kakute H7](../flight_controller/kakuteh7.md)
 - [Holybro Durandal](../flight_controller/durandal.md)
 - [Holybro Pix32 v5](../flight_controller/holybro_pix32_v5.md)
+- [MicoAir H743 Lite](../flight_controller/micoair743-lite.md)
 - [ModalAI VOXL 2](../flight_controller/modalai_voxl_2.md)
 - [mRo Control Zero](../flight_controller/mro_control_zero_f7.md)
 - [Radiolink PIX6](../flight_controller/radiolink_pix6.md)
@@ -38,3 +39,4 @@ The boards in this category are:
 - [Svehicle E2](../flight_controller/svehicle_e2.md)
 - [ThePeach FCC-K1](../flight_controller/thepeach_k1.md)
 - [ThePeach FCC-R1](../flight_controller/thepeach_r1.md)
+- [X-MAV AP-H743-R1](../flight_controller/x-mav_ap-h743r1.md)

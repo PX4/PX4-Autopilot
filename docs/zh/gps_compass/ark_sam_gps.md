@@ -1,6 +1,6 @@
 # ARK SAM GPS
 
-[ARK SAM GPS](https://arkelectron.gitbook.io/ark-documentation/gps/ark-sam-gps>) is a made in the USA and NDAA-compliant [GNSS/GPS](../gps_compass/index.md) u-blox SAM-M10Q GPS and industrial magnetometer.
+[ARK SAM GPS](https://arkelectron.gitbook.io/ark-documentation/gps/ark-sam-gps) is a made in the USA and NDAA-compliant [GNSS/GPS](../gps_compass/index.md) u-blox SAM-M10Q GPS and industrial magnetometer.
 
 ![ARK SAM GPS](../../assets/hardware/gps/ark/ark_sam_gps.jpg)
 
@@ -56,6 +56,6 @@ The module should be plug-n-play when used with the `GPS2` port on most flight c
 | 5          | SDA         | 3.3V |
 | 6          | GND         | GND                  |
 
-## See Also
+## 另见
 
 - [ARK SAM GPS Documentation](https://arkelectron.gitbook.io/ark-documentation/gps/ark-sam-gps) (ARK Docs)

@@ -218,7 +218,7 @@ A key defined in the Information message must be unique. Означає, що н
 | `char[value_len] ver_sw_branch`     | git branch                                                                                          | "master"                                                          |
 | `uint32_t ver_sw_release`           | Версія програмного забезпечення (див. нижче)                     | 0x010401ff                                                        |
 | `char[value_len] sys_os_name`       | Назва операційної системи                                                                           | "Linux"                                                           |
-| `char[value_len] sys_os_ve`r        | Версія ОС (git tag)                                                              | "9f82919"                                                         |
+| `char[value_len] sys_os_ver`        | Версія ОС (git tag)                                                              | "9f82919"                                                         |
 | `uint32_t ver_os_release`           | Версія ОС (див. нижче)                                           | 0x010401ff                                                        |
 | `char[value_len] sys_toolchain`     | Назва набору інструментів                                                                           | "GNU GCC"                                                         |
 | `char[value_len] sys_toolchain_ver` | Версія інструментального набору                                                                     | "6.2.1"                           |

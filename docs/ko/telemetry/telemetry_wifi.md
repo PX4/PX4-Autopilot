@@ -1,6 +1,6 @@
 # WiFi 텔레메트리 라디오
 
-WiFi telemetry enables MAVLink communication between a WiFi radio on a vehicle and a GCS.\
+WiFi telemetry enables MAVLink communication between a WiFi radio on a vehicle and a GCS.  
 WiFi typically offers shorter range than a normal telemetry radio, but supports higher data rates, and makes it easier to support FPV/video feeds.
 일반적으로 차량용 라디오 장치 하나만 필요합니다 (지상국에 이미 WiFi가 있다고 가정).
 

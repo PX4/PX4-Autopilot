@@ -55,7 +55,7 @@ Each wheel is driven by its own motor, and by controlling the speed and directio
 
 ![Mecanum rover](../../assets/airframes/rover/rover_mecanum.png)
 
-## See Also
+## 另见
 
 - [Drive Modes](../flight_modes_rover/index.md)
 - [Configuration/Tuning](../config_rover/index.md)

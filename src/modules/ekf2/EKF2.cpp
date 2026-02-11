@@ -748,7 +748,6 @@ void EKF2::Run()
 
 		// push imu data into estimator
 		_ekf.setIMUData(imu_sample_new);
-		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
 
 		// integrate time to monitor time slippage
 		if (_start_time_us > 0) {
@@ -854,6 +853,9 @@ void EKF2::Run()
 			UpdateMagCalibration(now);
 #endif // CONFIG_EKF2_MAGNETOMETER
 		}
+
+		PublishAttitude(now); // publish attitude immediately (uses quaternion from output predictor)
+
 
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
@@ -1896,13 +1898,6 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		_filter_fault_status_changes++;
 	}
 
-	// innovation check fail status
-	if (_ekf.innov_check_fail_status().value != _innov_check_fail_status) {
-		update = true;
-		_innov_check_fail_status = _ekf.innov_check_fail_status().value;
-		_innov_check_fail_status_changes++;
-	}
-
 	if (update) {
 		estimator_status_flags_s status_flags{};
 		status_flags.timestamp_sample = _ekf.time_delayed_us();
@@ -1969,18 +1964,6 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.fs_bad_optflow_y         = _ekf.fault_status_flags().bad_optflow_Y;
 		status_flags.fs_bad_acc_vertical      = _ekf.fault_status_flags().bad_acc_vertical;
 		status_flags.fs_bad_acc_clipping      = _ekf.fault_status_flags().bad_acc_clipping;
-
-		status_flags.innovation_fault_status_changes = _innov_check_fail_status_changes;
-		status_flags.reject_hor_vel                  = _ekf.innov_check_fail_status_flags().reject_hor_vel;
-		status_flags.reject_ver_vel                  = _ekf.innov_check_fail_status_flags().reject_ver_vel;
-		status_flags.reject_hor_pos                  = _ekf.innov_check_fail_status_flags().reject_hor_pos;
-		status_flags.reject_ver_pos                  = _ekf.innov_check_fail_status_flags().reject_ver_pos;
-		status_flags.reject_yaw                      = _ekf.innov_check_fail_status_flags().reject_yaw;
-		status_flags.reject_airspeed                 = _ekf.innov_check_fail_status_flags().reject_airspeed;
-		status_flags.reject_sideslip                 = _ekf.innov_check_fail_status_flags().reject_sideslip;
-		status_flags.reject_hagl                     = _ekf.innov_check_fail_status_flags().reject_hagl;
-		status_flags.reject_optflow_x                = _ekf.innov_check_fail_status_flags().reject_optflow_X;
-		status_flags.reject_optflow_y                = _ekf.innov_check_fail_status_flags().reject_optflow_Y;
 
 		status_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_status_flags_pub.publish(status_flags);
@@ -2473,6 +2456,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.yaw_acc = vehicle_gps_position.heading_accuracy,
 			.yaw_offset = vehicle_gps_position.heading_offset,
 			.spoofed = vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_DETECTED,
+			.jammed = vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_DETECTED,
 		};
 
 		_ekf.setGpsData(gnss_sample, pps_compensation);
@@ -2614,14 +2598,18 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 		// vehicle_status
 		vehicle_status_s vehicle_status;
 
+		bool armed = false;
+
 		if (_status_sub.copy(&vehicle_status)
 		    && (ekf2_timestamps.timestamp < vehicle_status.timestamp + 3_s)) {
 
 			// initially set in_air from arming_state (will be overridden if land detector is available)
-			flags.in_air = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			flags.in_air = armed;
 
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 			flags.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+			flags.in_transition_to_fw = vehicle_status.in_transition_to_fw;
 
 #if defined(CONFIG_EKF2_SIDESLIP)
 
@@ -2643,6 +2631,9 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 			flags.at_rest = vehicle_land_detected.at_rest;
 			flags.in_air = !vehicle_land_detected.landed;
 			flags.gnd_effect = vehicle_land_detected.in_ground_effect;
+
+			// Enable constant position fusion for engine warmup when landed and armed
+			flags.constant_pos = _param_ekf2_engine_wrm.get() && !flags.in_air && armed;
 		}
 
 		launch_detection_status_s launch_detection_status;

@@ -48,7 +48,6 @@ FwAutotuneAttitudeControl::FwAutotuneAttitudeControl(bool is_vtol) :
 	_actuator_controls_status_sub(is_vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0))
 {
 	_autotune_attitude_control_status_pub.advertise();
-	reset();
 }
 
 FwAutotuneAttitudeControl::~FwAutotuneAttitudeControl()
@@ -71,11 +70,6 @@ bool FwAutotuneAttitudeControl::init()
 	}
 
 	return true;
-}
-
-void FwAutotuneAttitudeControl::reset()
-{
-	_param_fw_at_start.reset();
 }
 
 void FwAutotuneAttitudeControl::Run()
@@ -107,10 +101,23 @@ void FwAutotuneAttitudeControl::Run()
 		}
 	}
 
+	if (_vehicle_command_sub.updated()) {
+		vehicle_command_s vehicle_command;
+
+		if (_vehicle_command_sub.copy(&vehicle_command)) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE) {
+				if (fabsf(vehicle_command.param1 - 1.0f) < FLT_EPSILON && fabsf(vehicle_command.param2) < FLT_EPSILON) {
+					_vehicle_cmd_start_autotune = true;
+				}
+			}
+		}
+	}
+
 	_aux_switch_en = isAuxEnableSwitchEnabled();
+	_want_start_autotune = _vehicle_cmd_start_autotune || _aux_switch_en;
 
 	// new control data needed every iteration
-	if ((_state == state::idle && !_aux_switch_en)
+	if ((_state == state::idle && !_want_start_autotune)
 	    || !_vehicle_torque_setpoint_sub.updated()) {
 
 		return;
@@ -310,7 +317,8 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	switch (_state) {
 	case state::idle:
-		if (_param_fw_at_start.get() || _aux_switch_en) {
+
+		if (_want_start_autotune) {
 
 			mavlink_log_info(&_mavlink_log_pub, "Autotune started");
 			_state = state::init;
@@ -540,8 +548,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			orb_advert_t mavlink_log_pub = nullptr;
 			mavlink_log_info(&mavlink_log_pub, "Autotune returned to idle");
 			_state = state::idle;
-			_param_fw_at_start.set(false);
-			_param_fw_at_start.commit();
+			_vehicle_cmd_start_autotune = false;
 		}
 
 		break;
@@ -561,6 +568,8 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			// Abort
 			mavlink_log_critical(&mavlink_log_pub, "Autotune aborted before finishing");
 			_state = state::fail;
+			_start_flight_mode = _nav_state;
+			_state_start_time = now;
 
 		} else if (timeout) {
 			// Skip to next axis
@@ -586,9 +595,10 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 				_state = state::fail;         // safety fallback
 				break;
 			}
-		}
 
-		_state_start_time = now;
+			_start_flight_mode = _nav_state;
+			_state_start_time = now;
+		}
 	}
 }
 

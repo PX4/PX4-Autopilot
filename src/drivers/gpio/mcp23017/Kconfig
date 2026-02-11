@@ -1,0 +1,5 @@
+menuconfig DRIVERS_GPIO_MCP23017
+	bool "MCP23017"
+	default n
+	---help---
+		Enable support for MCP23017 16-bit GPIO expander

@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# VTX table loading script.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+vtxtable load

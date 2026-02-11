@@ -17,6 +17,8 @@
 - 过高地增益(和快速的舵面响应)可能会超过你的机体结构允许最大过载――增加增益时需谨慎。
 - 滚转和俯仰参数调整都遵循相同的顺序。
   The only difference is that pitch is more sensitive to trim offsets, so [trimming](../config_fw/trimming_guide_fixedwing.md) has to be done carefully and integrator gains need more attention to compensate this.
+- Disable automatic [gain compression](../features_fw/gain_compression.md) ([FW_GC_EN](../advanced_config/parameter_reference.md#FW_GC_EN)) to avoid over-tuning.
+  Remember to re-enable it when tuning is done.
 
 ## 建立机型基准线
 

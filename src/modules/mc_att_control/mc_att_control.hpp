@@ -126,7 +126,6 @@ private:
 	SlewRate<float> _hover_thrust_slew_rate{.5f};
 
 	float _yaw_setpoint_stabilized{0.f};
-	bool _heading_good_for_control{true}; // initialized true to have heading lock when local position never published
 	float _unaided_heading{NAN}; // initialized NAN to not distract heading lock when local position never published
 	float _man_tilt_max{0.f};			/**< maximum tilt allowed for manual flight [rad] */
 

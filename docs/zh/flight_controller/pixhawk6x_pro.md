@@ -150,7 +150,7 @@ The [Pixhawk 6X Wiring Quick Start](../assembly/quick_start_pixhawk6x.md) provid
 | ------ | ---------- | ------------------------------- |
 | USART1 | /dev/ttyS0 | GPS                             |
 | USART2 | /dev/ttyS1 | TELEM3                          |
-| USART3 | /dev/ttyS2 | Debug Console                   |
+| USART3 | /dev/ttyS2 | 调试控制台                           |
 | UART4  | /dev/ttyS3 | UART4 & I2C |
 | UART5  | /dev/ttyS4 | TELEM2                          |
 | USART6 | /dev/ttyS5 | PX4IO/RC                        |
@@ -244,7 +244,7 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 
 Download [here](https://docs.holybro.com/autopilot/pixhawk-6x-pro/download).
 
-## See Also
+## 另见
 
 - [Holybro Docs](https://docs.holybro.com/autopilot/pixhawk-6x-pro) (Holybro)
 - [Pixhawk 6X Wiring QuickStart](../assembly/quick_start_pixhawk6x.md)

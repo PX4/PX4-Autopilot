@@ -20,8 +20,8 @@ parameters:
     EKF2_GPS_MODE:
       description:
         short: Fusion reset mode
-        long: 'Automatic: reset on fusion timeout if no other source of position is available
-          Dead-reckoning: reset on fusion timeout if no source of velocity is available'
+        long: 'Automatic: reset on fusion timeout if no other source of position is available.
+          Dead-reckoning: reset on fusion timeout if no source of velocity is available.'
       type: enum
       values:
         0: Automatic
@@ -128,9 +128,10 @@ parameters:
         8: Vertical speed offset (EKF2_REQ_VDRIFT)
         9: Spoofing
         10: GPS fix type (EKF2_REQ_FIX)
+        11: Jamming
       default: 2047
       min: 0
-      max: 2047
+      max: 4095
     EKF2_REQ_EPH:
       description:
         short: Required EPH to use GPS

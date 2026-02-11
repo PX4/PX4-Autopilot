@@ -302,6 +302,26 @@ int Commander::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[0], "safety")) {
+		if (argc < 2) {
+			PX4_ERR("missing argument");
+			return 1;
+		}
+
+		if (!strcmp(argv[1], "on")) {
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_ON);
+
+		} else if (!strcmp(argv[1], "off")) {
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE, vehicle_command_s::SAFETY_OFF);
+
+		} else {
+			PX4_ERR("invlaid argument, use [on|off]");
+			return 1;
+		}
+
+		return 0;
+	}
+
 	if (!strcmp(argv[0], "arm")) {
 		float param2 = 0.f;
 
@@ -495,6 +515,7 @@ int Commander::custom_command(int argc, char *argv[])
 int Commander::print_status()
 {
 	PX4_INFO("%s", isArmed() ? "Armed" : "Disarmed");
+	PX4_INFO("prearm safety: %s", _safety.isSafetyOff() ? "Off" : "On");
 	PX4_INFO("navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state]);
 	PX4_INFO("user intended navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state_user_intention]);
 	PX4_INFO("in failsafe: %s", _failsafe.inFailsafe() ? "yes" : "no");
@@ -638,7 +659,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_armed_by"), events::Log::Info,
 			"Armed by {1}", calling_reason);
 
-	if (_param_com_home_en.get() && !_mission_in_progress) {
+	if (_param_com_home_en.get() && !_mission_in_progress && !_config_overrides.disable_auto_set_home) {
 		_home_position.setHomePosition();
 	}
 
@@ -896,6 +917,12 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+
+				} else {
+					main_ret = TRANSITION_DENIED;
+					mavlink_log_critical(&_mavlink_log_pub, "Unsupported main mode\t");
+					events::send(events::ID("commander_unsupported_main_mode"), events::Log::Error,
+						     "Unsupported main mode");
 				}
 
 			} else {
@@ -913,6 +940,12 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					} else {
 						desired_nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 					}
+
+				} else {
+					main_ret = TRANSITION_DENIED;
+					mavlink_log_critical(&_mavlink_log_pub, "Unsupported base mode\t");
+					events::send(events::ID("commander_unsupported_base_mode"), events::Log::Error,
+						     "Unsupported base mode");
 				}
 			}
 
@@ -1508,6 +1541,29 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE: {
+			// reject if armed, only allow pre or post flight for safety
+			if (isArmed()) {
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+
+			} else {
+				int commanded_state = (int)cmd.param1;
+
+				if (commanded_state == vehicle_command_s::SAFETY_OFF) {
+					_safety.deactivateSafety();
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+				} else if (commanded_state == vehicle_command_s::SAFETY_ON) {
+					_safety.activateSafety();
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+				} else {
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
+				}
+			}
+		}
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
@@ -1550,6 +1606,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_CAMERA_INFORMATION:
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
+	case vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1850,7 +1907,8 @@ void Commander::run()
 		_mission_in_progress = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
 				       && !_mission_result_sub.get().finished;
 
-		_home_position.update(_param_com_home_en.get(), !isArmed() && _vehicle_land_detected.landed && !_mission_in_progress);
+		_home_position.update(_param_com_home_en.get(), !isArmed() && _vehicle_land_detected.landed && !_mission_in_progress
+				      && !_config_overrides.disable_auto_set_home);
 
 		handleAutoDisarm();
 
@@ -2140,7 +2198,7 @@ void Commander::landDetectorUpdate()
 			}
 
 			// automatically set or update home position
-			if (_param_com_home_en.get() && !_mission_in_progress) {
+			if (_param_com_home_en.get() && !_mission_in_progress && !_config_overrides.disable_auto_set_home) {
 				// set the home position when taking off
 				if (!_vehicle_land_detected.landed) {
 					if (was_landed) {
@@ -3024,6 +3082,8 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_ARG("mag|baro|accel|gyro|level|esc|airspeed", "Calibration type", false);
 	PRINT_MODULE_USAGE_ARG("quick", "Quick calibration [mag, accel (not recommended)]", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("safety", "Change prearm safety state");
+	PRINT_MODULE_USAGE_ARG("on|off", "[on] to activate safety, [off] to deactivate safety and allow control surface movements", false);
 	PRINT_MODULE_USAGE_COMMAND("arm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
 	PRINT_MODULE_USAGE_COMMAND("disarm");

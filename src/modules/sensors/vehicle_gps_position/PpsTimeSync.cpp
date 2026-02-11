@@ -96,9 +96,5 @@ bool PpsTimeSync::is_valid() const
 		now = UINT64_MAX;
 	}
 
-	if (now - _pps_hrt_timestamp > kPpsStaleTimeoutUs) {
-		return false;
-	}
-
-	return true;
+	return now - _pps_hrt_timestamp < kPpsStaleTimeoutUs;
 }

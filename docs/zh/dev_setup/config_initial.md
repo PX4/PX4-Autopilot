@@ -1,4 +1,4 @@
-# Initial Setup & Configuration
+# 初始配置
 
 我们建议开发者们获取下文描述的基本配置的硬件设备（或者相似的设备）并使用"默认" <a href="../airframes/airframe_reference.md">机架</a> 构型。
 

@@ -37,11 +37,13 @@ bool rc_lost				# RC receiver connection status: True,if no frame has arrived in
 uint16 rc_lost_frame_count		# Number of lost RC frames. Note: intended purpose: observe the radio link quality if RSSI is not available. This value must not be used to trigger any failsafe-alike functionality.
 uint16 rc_total_frame_count		# Number of total RC frames. Note: intended purpose: observe the radio link quality if RSSI is not available. This value must not be used to trigger any failsafe-alike functionality.
 uint16 rc_ppm_frame_length		# Length of a single PPM frame. Zero for non-PPM systems
+uint16 rc_frame_rate			# RC frame rate in msg/second. 0 = invalid
 
 uint8 input_source			# Input source
 uint16[18] values			# measured pulse widths for each of the supported channels
 
 int8 link_quality			# link quality. Percentage 0-100%. -1 = invalid
 float32 rssi_dbm			# Actual rssi in units of dBm. NaN = invalid
+int8 link_snr				# link signal to noise ratio in units of dB. -1 = invalid
 
 ```

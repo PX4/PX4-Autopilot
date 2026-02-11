@@ -39,8 +39,8 @@
 
 const char *const UavcanBatteryBridge::NAME = "battery";
 
-UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_battery", ORB_ID(battery_status)),
+UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher) :
+	UavcanSensorBridgeBase("uavcan_battery", ORB_ID(battery_status), node_info_publisher),
 	ModuleParams(nullptr),
 	_sub_battery(node),
 	_sub_battery_aux(node),
@@ -100,6 +100,11 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 		}
 	}
 
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				msg.battery_id, NodeInfoPublisher::DeviceCapability::BATTERY);
+	}
+
 	if (instance >= battery_status_s::MAX_INSTANCES
 	    || _batt_update_mod[instance] == BatteryDataType::CBAT) {
 		return;
@@ -128,7 +133,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	_battery_status[instance].source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
 	_battery_status[instance].full_charge_capacity_wh = msg.full_charge_capacity_wh;
 	_battery_status[instance].remaining_capacity_wh = msg.remaining_capacity_wh;
-	_battery_status[instance].id = msg.getSrcNodeID().get();
+	_battery_status[instance].id = msg.battery_id;
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		// Mavlink 2 needs individual cell voltages or cell[0] if cell voltages are not available.
@@ -150,6 +155,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 				 "%" PRIu32, msg.model_instance_id);
 			_battery_info_pub[instance].publish(_battery_info[instance]);
 		}
+
 	}
 }
 
@@ -284,6 +290,11 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	snprintf(_battery_info[instance].serial_number, sizeof(_battery_info[instance].serial_number), "%" PRIu16,
 		 msg.serial_number);
 	_battery_info_pub[instance].publish(_battery_info[instance]);
+
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				_battery_status[instance].id, NodeInfoPublisher::DeviceCapability::BATTERY);
+	}
 }
 
 void

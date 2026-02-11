@@ -25,11 +25,6 @@ The default type is recommended.
 
 :::
 
-:::warning
-There is a known issue ([PX4-Autopilot#25436](https://github.com/PX4/PX4-Autopilot/issues/25436)) with fixed-wing approaches and landings while in RTL mode.
-Please review the issue and verify in simulation that the behavior you get is safe in an RTL landing scenario (if not, consider using rally points).
-:::
-
 ## 技术总结
 
 Fixed-wing vehicles use the _mission landing/rally point_ return type by default.
@@ -66,7 +61,7 @@ The others are relevant if the destination is a rally point or the home location
 | <a id="RTL_LOITER_RAD"></a>[RTL_LOITER_RAD](../advanced_config/parameter_reference.md#RTL_LOITER_RAD)                            | [Fixed-wing Only] The radius of the loiter circle (at [RTL_LAND_DELAY](#RTL_LAND_DELAY)).                                                                                                                                     |
 | <a id="MIS_TKO_LAND_REQ"></a>[MIS_TKO_LAND_REQ](../advanced_config/parameter_reference.md#MIS_TKO_LAND_REQ) | Specify whether a mission landing or takeoff pattern is required. Fixed wings generally require this.                                                                                                                                                                                                                          |
 
-## See Also
+## 另见
 
 - [Return Mode (Generic)](../flight_modes/return.md)
 - [Return Mode (Multicopter)](../flight_modes_mc/return.md)
