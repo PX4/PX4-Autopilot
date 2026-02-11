@@ -1,10 +1,10 @@
 # Generate checksums header from sdcard build directory
 set(sdcard_checksums_header ${CMAKE_CURRENT_BINARY_DIR}/sdcard_checksums.h)
 
-if(px4_constrained_flash_build AND CONFIG_BOARD_ROOT_PATH)
+if(CONFIG_BOARD_ROOT_PATH)
 	set(sdcard_dir ${PX4_BINARY_DIR}/sdcard)
 	set(sdcard_dir_arg --sdcard-dir ${sdcard_dir})
-	set(sdcard_deps sdcard_metadata)  # will grow as more targets add files
+	set(sdcard_deps sdcard_files)
 else()
 	set(sdcard_dir_arg)
 	set(sdcard_deps)
