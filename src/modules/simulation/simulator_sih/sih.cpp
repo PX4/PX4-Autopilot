@@ -282,6 +282,10 @@ void Sih::parameters_updated()
 	_distance_snsr_override = _sih_distance_snsr_override.get();
 
 	_T_TAU = _sih_thrust_tau.get();
+
+	_v_wind(0) = _sih_wind_n.get();
+	_v_wind(1) = _sih_wind_e.get();
+	_v_wind(2) = 0.0f;
 }
 
 void Sih::read_motors(const float dt)
@@ -363,6 +367,7 @@ void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, 
 				   const float throttle_cmd)
 {
 	const Vector3f v_B = _q.rotateVectorInverse(_v_N);
+
 	const float &alt = _lla.altitude();
 
 	_wing_l.update_aero(v_B, _w_B, alt, roll_cmd * FLAP_MAX);
@@ -573,6 +578,9 @@ void Sih::ecefToNed()
 
 	// Transform velocity to NED frame
 	_v_N = C_SE * _v_E;
+
+	_v_N_apparent = _v_N - _v_wind;
+
 	_q = Quatf(C_SE) * _q_E;
 	_q.normalize();
 }
