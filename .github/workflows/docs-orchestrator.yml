@@ -376,8 +376,12 @@ jobs:
   # =============================================================================
   deploy-aws:
     name: "T4: Deploy"
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs: [metadata-regen, build-site]
+    if: >-
+      always() &&
+      needs.metadata-regen.result == 'success' &&
+      needs.build-site.result == 'success' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       id-token: write
     runs-on: ubuntu-latest
