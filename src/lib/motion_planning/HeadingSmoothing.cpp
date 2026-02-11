@@ -56,6 +56,6 @@ void HeadingSmoothing::update(const float heading_setpoint, const float time_ela
 	_velocity_smoothing.updateDurations(unwrapped_heading_setpoint);
 	_velocity_smoothing.updateTraj(time_elapsed);
 
-	const float wrapped_current_heading = getSmoothedHeading();
+	const float wrapped_current_heading = matrix::wrap_pi(getSmoothedHeading());
 	_velocity_smoothing.setCurrentVelocity(wrapped_current_heading);
 }
