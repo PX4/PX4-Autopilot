@@ -1,0 +1,12 @@
+menuconfig MODULES_PREFLIGHT_CALIBRATION
+	bool "preflight_calibration"
+	default y
+	---help---
+		Enable support for preflight_calibration
+
+menuconfig USER_PREFLIGHT_CALIBRATION
+	bool "preflight_calibration running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_PREFLIGHT_CALIBRATION
+	---help---
+		Put preflight_calibration in userspace memory

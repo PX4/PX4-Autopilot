@@ -435,6 +435,9 @@ foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
 endforeach()
 
+# Add own KNR submodules
+add_subdirectory(src/modules/knr/PreflightCalibration)
+
 # add events lib after modules and libs as it needs to know all source files (PX4_SRC_FILES)
 add_subdirectory(src/lib/events EXCLUDE_FROM_ALL)
 # metadata needs PX4_MODULE_CONFIG_FILES
