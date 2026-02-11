@@ -14,4 +14,9 @@ param set-default SENS_EN_THERMAL 0
 param set-default UXRCE_DDS_CFG 102 # set enable uxrce dds to telem 2 port
 param set-default SER_TEL2_BAUD 921600
 
+# set the Radio Controller config via mavlink
+param set-default SER_TEL1_BAUD 460800
+param set-default MAV_0_CONFIG 101
+param set-default MAV_0_RATE 9600
+
 set IOFW "/etc/extras/cubepilot_io-v2_default.bin"
