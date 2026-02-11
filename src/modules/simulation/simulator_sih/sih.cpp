@@ -79,8 +79,6 @@ void Sih::run()
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
 
-	_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
-
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	lockstep_loop();
 #else
