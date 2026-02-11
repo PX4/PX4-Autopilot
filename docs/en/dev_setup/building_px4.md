@@ -79,6 +79,16 @@ cd PX4-Autopilot
 make px4_fmu-v5_default
 ```
 
+:::tip
+You can also build using the [px4-dev Docker container](../test_and_ci/docker.md) without installing the toolchain locally.
+From the PX4-Autopilot directory:
+
+```sh
+./Tools/docker_run.sh 'make px4_fmu-v5_default'
+```
+
+:::
+
 A successful run will end with similar output to:
 
 ```sh

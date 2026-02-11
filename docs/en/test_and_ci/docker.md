@@ -5,8 +5,7 @@ Docker containers are provided for the complete [PX4 development toolchain](../d
 This topic shows how to use the [available docker containers](#px4_containers) to access the build environment in a local Linux computer.
 
 ::: info
-Dockerfiles and README can be found on [Github here](https://github.com/PX4/PX4-containers/tree/master?tab=readme-ov-file#container-hierarchy).
-They are built automatically on [Docker Hub](https://hub.docker.com/u/px4io/).
+The recommended `px4-dev` container is built from the [Dockerfile in the PX4-Autopilot source tree](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/Dockerfile) by the [Container build workflow](https://github.com/PX4/PX4-Autopilot/actions/workflows/dev_container.yml).
 :::
 
 ## Prerequisites
@@ -35,29 +34,35 @@ sudo usermod -aG docker $USER
 # Log in/out again before using docker!
 ```
 
-## Container Hierarchy {#px4_containers}
+## px4-dev Container (Recommended) {#px4_containers}
 
-The available containers are on [GitHub here](https://github.com/PX4/PX4-containers/tree/master?tab=readme-ov-file#container-hierarchy).
+The **`px4-dev`** container is the recommended container for building PX4 firmware.
+It is a single, multi-architecture container (linux/amd64 and linux/arm64) based on Ubuntu 24.04 that includes everything needed to build PX4 for NuttX hardware targets.
 
-These allow testing of various build targets and configurations (the included tools can be inferred from their names).
-The containers are hierarchical, such that containers have the functionality of their parents.
-For example, the partial hierarchy below shows that the docker container with NuttX build tools (`px4-dev-nuttx-jammy`) does not include ROS 2, while the simulation containers do:
+It is published to both registries simultaneously:
 
-```plain
-- px4io/px4-dev-base-jammy
-  - px4io/px4-dev-nuttx-jammy
-  - px4io/px4-dev-simulation-jammy
-    - px4io/px4-dev-ros2-humble
-  - px4io/px4-dev-ros2-rolling
-```
+- **GitHub Container Registry:** [ghcr.io/px4/px4-dev](https://github.com/PX4/PX4-Autopilot/pkgs/container/px4-dev)
+- **Docker Hub:** [px4io/px4-dev](https://hub.docker.com/r/px4io/px4-dev)
 
-The most recent version can be accessed using the `latest` tag: `px4io/px4-dev-nuttx-jammy:latest`
-(available tags are listed for each container on _hub.docker.com_.
-For example, the `px4io/px4-dev-nuttx-jammy` tags can be found on [hub.docker.com here](https://hub.docker.com/r/px4io/px4-dev-nuttx-jammy/tags?page=1&ordering=last_updated)).
+The container includes:
+
+- Ubuntu 24.04 base
+- ARM cross-compiler (`gcc-arm-none-eabi`) and Xtensa compiler (for ESP32 targets)
+- Build tools: `cmake`, `ninja`, `ccache`, `make`
+- Python 3 with PX4 build dependencies
+- NuttX toolchain libraries (`libnewlib-arm-none-eabi`, etc.)
+
+The container is built from the [Dockerfile](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/Dockerfile) in the PX4 source tree using the [Container build workflow](https://github.com/PX4/PX4-Autopilot/actions/workflows/dev_container.yml).
+Images are tagged with the PX4 version (e.g. `px4io/px4-dev:v1.16.0`).
 
 :::tip
-Typically you should use a recent container, but not necessarily the `latest` (as this changes too often).
+A `px4-sim` container with simulation tools (Gazebo Harmonic) is planned to complement `px4-dev` for simulation workflows.
 :::
+
+### Legacy Containers
+
+The older per-distro containers from [PX4/PX4-containers](https://github.com/PX4/PX4-containers) (e.g. `px4-dev-nuttx-jammy`, `px4-dev-ros2-humble`, etc.) are no longer recommended.
+They will be replaced by `px4-dev` (for builds) and the upcoming `px4-sim` (for simulation).
 
 ## Use the Docker Container
 
@@ -118,7 +123,7 @@ Where,
 - `<host_src>`: The host computer directory to be mapped to `<container_src>` in the container. This should normally be the **PX4-Autopilot** directory.
 - `<container_src>`: The location of the shared (source) directory when inside the container.
 - `<local_container_name>`: A name for the docker container being created. This can later be used if we need to reference the container again.
-- `<container>:<tag>`: The container with version tag to start - e.g.: `px4io/px4-dev-ros:2017-10-23`.
+- `<container>:<tag>`: The container with version tag to start - e.g.: `px4io/px4-dev:v1.16.0`.
 - `<build_command>`: The command to invoke on the new container. E.g. `bash` is used to open a bash shell in the container.
 
 The concrete example below shows how to open a bash shell and share the directory **~/src/PX4-Autopilot** on the host computer.
@@ -134,7 +139,7 @@ docker run -it --privileged \
 -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
 -e DISPLAY=:0 \
 --network host \
---name=px4-ros px4io/px4-dev-ros2-humble:latest bash
+--name=px4-dev px4io/px4-dev:v1.16.0 bash
 ```
 
 ::: info
