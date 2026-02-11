@@ -44,6 +44,8 @@ Release notes are built incrementally in [`main.md`](../releases/main.md), which
 2. Add the new file to `SUMMARY.md` and `releases/index.md`
 3. Reset `main.md` to a clean template for the next release cycle
 4. Verify that documentation for all included contributions is complete
+5. Search for instances of `main (planned for:` and replace with the release version now that it is known.
+   So, for example `<Badge type="tip" text="main (planned for: PX4 v1.18)" />` is replaced with `<Badge type="tip" text="PX4 v1.18" />`
 
 ::: tip
 Community members are encouraged to document changes as they are merged into `main`. This distributes the documentation workload and ensures changes are captured while they're fresh.
@@ -109,11 +111,15 @@ The _Dronecode Test Team_ (provided by [Ascend Engineering](https://www.ascenden
 - The [test cards](../test_and_ci/test_flights.md) documented in the PX4 guide
 - A hardware matrix covering supported flight controllers and airframes
 
+Alpha testing focuses on identifying regressions and blockers early. The alpha phase is complete when:
+
+- All test cards pass across the core hardware matrix (no critical or high-severity failures)
+- All identified regressions have fixes merged or have been triaged as non-blocking
+- Release notes and documentation for included changes are complete
+
 ### 3. Create Beta Tag
 
-The alpha phase is complete when the test team's [test cards](../test_and_ci/test_flights.md) pass across the hardware matrix. If test results show failures, the release stays in alpha until the issues are resolved and the test cards pass.
-
-Once alpha testing passes, create the first beta tag:
+Once the alpha exit criteria above are met, create the first beta tag:
 
 ```sh
 # On the release branch
@@ -127,11 +133,11 @@ git push origin v1.18.0-beta1
 
 ### 4. Beta Testing
 
-The test team conducts more extensive testing of beta builds:
+Beta builds are published for wider community validation. Unlike alpha testing (which is conducted by the Dronecode Test Team on the core hardware matrix), beta testing focuses on:
 
-- Full test card coverage across the hardware matrix
-- Focus on stability and regression testing
-- Community testing is encouraged during this phase
+- **Community testing** — beta builds are made available for community members to test on their own hardware and airframe configurations
+- **Extended hardware coverage** — testing on hardware and configurations beyond the core test matrix
+- **Real-world flight scenarios** — longer flights, mission testing, and edge cases not covered by standard test cards
 
 During beta, continue to:
 
@@ -140,9 +146,12 @@ During beta, continue to:
 
 ### 5. Create Release Candidate Tag
 
-The beta phase is complete when full test card coverage passes across the hardware matrix. If test results show failures, the release stays in beta until the issues are resolved and the test cards pass.
+The beta phase is complete when:
 
-Once beta testing passes, create the first release candidate:
+- No new critical or high-severity issues are reported for at least one beta tag cycle
+- All beta-reported regressions have fixes merged or have been triaged as non-blocking
+
+Once the beta exit criteria are met, create the first release candidate:
 
 ```sh
 # On the release branch
