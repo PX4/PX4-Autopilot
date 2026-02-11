@@ -30,7 +30,7 @@ The diagrams use the standard [PX4 notation](../contribute/notation.md) (and eac
 
   ::: info
   The IMU pipeline is:
-  gyro data > apply calibration parameters > remove estimated bias > notch filter (`IMU_GYRO_NF0_BW` and `IMU_GYRO_NF0_FRQ`) > low-pass filter (`IMU_GYRO_CUTOFF`) > vehicle_angular_velocity (_filtered angular rate used by the P and I controllers_) > derivative -> low-pass filter (`IMU_DGYRO_CUTOFF`) > vehicle_angular_acceleration (_filtered angular acceleration used by the D controller_)
+  gyro data > apply calibration parameters > remove estimated bias > notch filter (`IMU_GYRO_NF0_BW` and `IMU_GYRO_NF0_FRQ`) > low-pass filter (`IMU_GYRO_CUTOFF`) > vehicle*angular_velocity (\_filtered angular rate used by the P and I controllers*) > derivative -> low-pass filter (`IMU_DGYRO_CUTOFF`) > vehicle*angular_acceleration (\_filtered angular acceleration used by the D controller*)
 
   ![IMU pipeline](../../assets/diagrams/px4_imu_pipeline.png)
   :::
