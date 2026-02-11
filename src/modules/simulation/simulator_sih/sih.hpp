@@ -208,6 +208,9 @@ private:
 	matrix::Quatf       _q{};             // quaternion attitude in local navigation frame
 	matrix::Vector3f    _w_B{};           // body rates in body frame [rad/s]
 
+	matrix::Vector3f    _v_wind{};        // velocity of the wind in local navigation frame [m/s]
+	matrix::Vector3f    _v_N_apparent{};  // velocity in local frame relative to the air, for aerodynamic calculations [m/s]
+
 	LatLonAlt _lla{};
 
 	// Quantities in Earth-centered-Earth-fixed coordinates
@@ -301,6 +304,8 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
-		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
+		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
+		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
+		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e
 	)
 };
