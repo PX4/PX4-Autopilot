@@ -56,7 +56,7 @@ jobs:
       contents: read
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      image: px4io/px4-dev-nuttx-focal:2024-11-07
+      image: px4io/px4-dev:v1.17.0-beta1
     steps:
       - uses: runs-on/action@v1
 
@@ -117,7 +117,7 @@ jobs:
       contents: write
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      image: px4io/px4-dev-nuttx-focal:2024-11-07
+      image: px4io/px4-dev:v1.17.0-beta1
     steps:
       - uses: runs-on/action@v1
 
