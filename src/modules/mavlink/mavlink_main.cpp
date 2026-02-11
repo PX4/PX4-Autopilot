@@ -2384,11 +2384,18 @@ Mavlink::task_main(int argc, char *argv[])
 		/* main loop */
 		px4_usleep(_main_loop_delay);
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		int lockstep_component = px4_lockstep_register_component();
+#endif
+
 		if (!should_transmit()) {
 			check_requested_subscriptions();
 			handleStatus();
 			handleCommands();
 			handleAndGetCurrentCommandAck();
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+			px4_lockstep_unregister_component(lockstep_component);
+#endif
 			continue;
 		}
 
@@ -2520,6 +2527,10 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		perf_end(_loop_perf);
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		px4_lockstep_unregister_component(lockstep_component);
+#endif
 	}
 
 	_receiver.stop();

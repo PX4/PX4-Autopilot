@@ -44,6 +44,8 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 
 using namespace time_literals;
@@ -67,17 +69,25 @@ public:
 
 private:
 	void Run() override;
+	void check_failure_injections();
 
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
+	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	bool _baro_blocked{false};
+	bool _baro_stuck{false};
 	bool _baro_rnd_use_last{false};
 	double _baro_rnd_y2{0.0};
 	float _baro_drift_pa_per_sec{0.0};
 	float _baro_drift_pa{0.0};
+	float _last_pressure{0.0f};
+	float _last_temperature{0.0f};
 
 	hrt_abstime _last_update_time{0};
 
