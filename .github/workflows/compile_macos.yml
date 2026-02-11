@@ -18,50 +18,58 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [macos-latest, macos-26]
         config: [
-          px4_fmu-v5_default,
-          px4_sitl
+          "px4_sitl gz_x500"
           ]
     steps:
-    - name: install Python 3.10
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
+      - name: install Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: setup
-      run: |
-        ./Tools/setup/macos.sh
+      - name: Initialize and update git submodules
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive --jobs 4
 
-    - name: Prepare ccache timestamp
-      id: ccache_cache_timestamp
-      shell: cmake -P {0}
-      run: |
-        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
-        message("::set-output name=timestamp::${current_date}")
-    - name: ccache cache files
-      uses: actions/cache@v4
-      with:
-        path: ~/.ccache
-        key: macos_${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
-        restore-keys: macos_${{matrix.config}}-ccache-
-    - name: setup ccache
-      run: |
-          mkdir -p ~/.ccache
-          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
-          echo "compression = true" >> ~/.ccache/ccache.conf
-          echo "compression_level = 6" >> ~/.ccache/ccache.conf
-          echo "max_size = 40M" >> ~/.ccache/ccache.conf
-          echo "hash_dir = false" >> ~/.ccache/ccache.conf
-          ccache -s
-          ccache -z
+      - name: setup
+        run: |
+          ./Tools/setup/macos.sh --sim-tools --reinstall
 
-    - name: make ${{matrix.config}}
-      run: |
-          ccache -z
-          make ${{matrix.config}}
-          ccache -s
+      - name: Prepare ccache timestamp
+        id: ccache_cache_timestamp
+        shell: cmake -P {0}
+        run: |
+          string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+          message("::set-output name=timestamp::${current_date}")
+
+      - name: ccache cache files
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: macos_${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+          restore-keys: macos_${{matrix.config}}-ccache-
+
+      - name: setup ccache
+        run: |
+            mkdir -p ~/.ccache
+            echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+            echo "compression = true" >> ~/.ccache/ccache.conf
+            echo "compression_level = 6" >> ~/.ccache/ccache.conf
+            echo "max_size = 40M" >> ~/.ccache/ccache.conf
+            echo "hash_dir = false" >> ~/.ccache/ccache.conf
+            ccache -s
+            ccache -z
+
+      - name: make ${{matrix.config}}
+        run: |
+            ccache -z
+            export CMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@5:$CMAKE_PREFIX_PATH"
+            make ${{matrix.config}}
+            ccache -s
