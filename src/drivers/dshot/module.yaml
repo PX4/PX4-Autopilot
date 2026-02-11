@@ -72,14 +72,18 @@ parameters:
             min: 0
             max: 1000
             default: 1000
-        MOT_POLE_COUNT: # only used by dshot so far, so keep it under the dshot group
+        DSHOT_MOT_POL${i}:
             description:
-                short: Number of magnetic poles of the motors
+                short: Number of magnetic poles of motor ${i}
                 long: |
-                    Specify the number of magnetic poles of the motors.
-                    It is required to compute the RPM value from the eRPM returned with the ESC telemetry.
-
-                    Either get the number from the motor spec sheet or count the magnets on the bell of the motor (not the stator magnets).
+                    Number of magnetic poles for motor ${i}.
+                    Required to compute RPM from the eRPM returned by ESC telemetry.
+                    Either get the number from the motor spec sheet or count the magnets
+                    on the bell of the motor (not the stator magnets).
                     Typical motors for 5 inch props have 14 poles.
             type: int32
             default: 14
+            min: 2
+            max: 400
+            num_instances: 12
+            instance_start: 1

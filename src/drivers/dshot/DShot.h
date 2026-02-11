@@ -223,6 +223,10 @@ private:
 	uint16_t _programming_address{};
 	uint16_t _programming_value{};
 
+	// Per-motor pole count
+	param_t _param_pole_count_handles[12] {};
+	int get_pole_count(int motor_index);
+
 	// Parameters
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::DSHOT_ESC_TYPE>) _param_dshot_esc_type,
@@ -230,7 +234,6 @@ private:
 		(ParamBool<px4::params::DSHOT_3D_ENABLE>) _param_dshot_3d_enable,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
-		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count,
 		(ParamBool<px4::params::DSHOT_BIDIR_EDT>) _param_dshot_bidir_edt
 	)
 };

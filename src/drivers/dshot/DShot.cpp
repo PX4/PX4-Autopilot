@@ -618,7 +618,7 @@ bool DShot::process_bdshot_telemetry()
 
 				} else {
 					// Use previous value (esc_status is indexed by motor_index)
-					esc.erpm = _esc_status.esc[motor_index].esc_rpm * (_param_mot_pole_count.get() / 2);
+					esc.erpm = _esc_status.esc[motor_index].esc_rpm * (get_pole_count(motor_index) / 2);
 				}
 
 				// Extended DShot Telemetry
@@ -698,7 +698,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 		// Only use SerialTelemetry eRPM when BDShot is disabled
 		if (!is_bdshot) {
 			_esc_status.esc[motor_index].timestamp = esc.timestamp;
-			_esc_status.esc[motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
+			_esc_status.esc[motor_index].esc_rpm = esc.erpm / (get_pole_count(motor_index) / 2);
 		}
 
 		_esc_status.esc[motor_index].esc_voltage = esc.voltage;
@@ -707,7 +707,7 @@ void DShot::consume_esc_data(const EscData &esc, TelemetrySource source)
 
 	} else if (source == TelemetrySource::BDShot) {
 		_esc_status.esc[motor_index].timestamp = esc.timestamp;
-		_esc_status.esc[motor_index].esc_rpm = esc.erpm / (_param_mot_pole_count.get() / 2);
+		_esc_status.esc[motor_index].esc_rpm = esc.erpm / (get_pole_count(motor_index) / 2);
 
 		// Only use BDShot Volt/Curr/Temp when Serial Telemetry is disabled
 		if (!_serial_telemetry_enabled) {
@@ -874,6 +874,19 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 	_command_ack_pub.publish(command_ack);
 }
 
+int DShot::get_pole_count(int motor_index)
+{
+	int32_t pole_count = 14;
+
+	int num_motors = (int)OutputFunction::MotorMax - ((int)OutputFunction::Motor1 - 1);
+
+	if (motor_index >= 0 && motor_index < num_motors) {
+		param_get(_param_pole_count_handles[motor_index], &pole_count);
+	}
+
+	return pole_count;
+}
+
 void DShot::update_params()
 {
 	parameter_update_s pupdate;
@@ -892,6 +905,13 @@ void DShot::update_params()
 		if (_mixing_output.reversibleOutputs() & (1 << i)) {
 			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
 		}
+	}
+
+	// Update per-motor pole count param handles
+	for (int i = 0; i < 12; i++) {
+		char name[20];
+		snprintf(name, sizeof(name), "DSHOT_MOT_POL%d", i + 1);
+		_param_pole_count_handles[i] = param_find(name);
 	}
 }
 
@@ -1052,8 +1072,16 @@ int DShot::print_status()
 	}
 
 	PX4_INFO("  ESC Type:           %s (%ld)", esc_type_str, _param_dshot_esc_type.get());
-	PX4_INFO("  Motor Poles:        %ld", _param_mot_pole_count.get());
 	PX4_INFO("  3D Mode:            %s", _param_dshot_3d_enable.get() ? "Enabled" : "Disabled");
+
+	// Per-motor pole counts
+	PX4_INFO("  Motor Poles:");
+
+	for (int i = 0; i < DSHOT_MAXIMUM_CHANNELS; i++) {
+		if (_motor_mask & (1 << i)) {
+			PX4_INFO("    Motor %d: %d poles", i + 1, get_pole_count(i));
+		}
+	}
 
 	// Telemetry Status
 	if (_bdshot_output_mask || _serial_telemetry_enabled) {
