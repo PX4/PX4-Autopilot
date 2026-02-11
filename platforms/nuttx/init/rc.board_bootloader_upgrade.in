@@ -5,12 +5,12 @@
 #
 if param compare -s SYS_BL_UPDATE 1
 then
-	if [ -f "/etc/extras/@BOARD_FIRMWARE_BIN@" ]
+	if [ -f "@BOARD_FIRMWARE_PATH@" ]
 	then
 		param set SYS_BL_UPDATE 0
 		param save
 		echo "bootloader update..."
-		bl_update "/etc/extras/@BOARD_FIRMWARE_BIN@"
+		bl_update "@BOARD_FIRMWARE_PATH@"
 		echo "bootloader update done, rebooting"
 		reboot
 	fi

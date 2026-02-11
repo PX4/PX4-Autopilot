@@ -35,16 +35,16 @@
 set(PX4_UPLOADER_SCRIPT "${PX4_SOURCE_DIR}/Tools/px4_uploader.py")
 set(PX4_SDCARD_UPLOAD_SCRIPT "${PX4_SOURCE_DIR}/Tools/px4_sdcard_upload.py")
 
-if(px4_constrained_flash_build AND CONFIG_BOARD_ROOT_PATH)
+if(CONFIG_BOARD_ROOT_PATH)
 
-	# For constrained flash boards: flash firmware, then push metadata to SD card
+	# Flash firmware, then push SD card files (metadata, bootloader, IO binary)
 	add_custom_target(upload
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} ${fw_package}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SDCARD_UPLOAD_SCRIPT}
 			--sdcard-dir ${PX4_BINARY_DIR}/sdcard
 			--device-root ${CONFIG_BOARD_ROOT_PATH}
-		DEPENDS ${fw_package} sdcard_metadata
-		COMMENT "uploading px4 and SD card metadata"
+		DEPENDS ${fw_package} sdcard_files
+		COMMENT "uploading px4 and SD card files"
 		VERBATIM
 		USES_TERMINAL
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
@@ -55,20 +55,20 @@ if(px4_constrained_flash_build AND CONFIG_BOARD_ROOT_PATH)
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SDCARD_UPLOAD_SCRIPT}
 			--sdcard-dir ${PX4_BINARY_DIR}/sdcard
 			--device-root ${CONFIG_BOARD_ROOT_PATH}
-		DEPENDS ${fw_package} sdcard_metadata
-		COMMENT "uploading px4 with --force and SD card metadata"
+		DEPENDS ${fw_package} sdcard_files
+		COMMENT "uploading px4 with --force and SD card files"
 		VERBATIM
 		USES_TERMINAL
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)
 
-	# Standalone target: upload only SD card metadata (e.g. with --port)
+	# Standalone target: upload only SD card files (e.g. with --port)
 	add_custom_target(upload_sdcard
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SDCARD_UPLOAD_SCRIPT}
 			--sdcard-dir ${PX4_BINARY_DIR}/sdcard
 			--device-root ${CONFIG_BOARD_ROOT_PATH}
-		DEPENDS sdcard_metadata
-		COMMENT "uploading metadata to SD card via MAVLink FTP"
+		DEPENDS sdcard_files
+		COMMENT "uploading SD card files via MAVLink FTP"
 		VERBATIM
 		USES_TERMINAL
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
