@@ -2,7 +2,7 @@
 #
 # Trigger paths:
 #   push (main, release/**)  → metadata-regen → build-site → deploy-aws
-#   pull_request              → detect-changes → pr-metadata-regen → link-check → build-site
+#   pull_request              → detect-changes → pr-metadata-regen → link-check → build-site (if docs/source changed)
 #   workflow_dispatch         → metadata-regen → build-site → deploy-aws
 #
 # Container jobs (pr-metadata-regen, metadata-regen) run in px4-dev image and
@@ -44,6 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       source_changed: ${{ steps.changes.outputs.source }}
+      docs_changed: ${{ steps.changes.outputs.docs }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -55,6 +56,8 @@ jobs:
               - 'msg/**'
               - 'ROMFS/**'
               - 'Tools/module_config/**'
+            docs:
+              - 'docs/**'
 
   # =============================================================================
   # PR Metadata Regen (conditional - only when PR touches source files)
@@ -298,11 +301,12 @@ jobs:
   # =============================================================================
   build-site:
     name: "T3: Build Site"
-    needs: [pr-metadata-regen, metadata-regen, link-check]
+    needs: [detect-changes, pr-metadata-regen, metadata-regen, link-check]
     if: >-
       always() &&
       (needs.metadata-regen.result == 'success' || needs.metadata-regen.result == 'skipped') &&
-      (needs.link-check.result == 'success' || needs.link-check.result == 'skipped')
+      (needs.link-check.result == 'success' || needs.link-check.result == 'skipped') &&
+      (github.event_name != 'pull_request' || needs.detect-changes.outputs.docs_changed == 'true' || needs.detect-changes.outputs.source_changed == 'true')
     permissions:
       contents: read
     runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
