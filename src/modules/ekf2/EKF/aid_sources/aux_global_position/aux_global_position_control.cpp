@@ -37,10 +37,9 @@
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 
-AgpSource::AgpSource(int instance_id, AuxGlobalPosition *manager)
-	: _agp_sub(ORB_ID(aux_global_position), instance_id)
-	, _manager(manager)
-	, _instance_id(instance_id)
+AgpSource::AgpSource(int slot, AuxGlobalPosition *manager)
+	: _manager(manager)
+	, _slot(slot)
 {
 	initParams();
 	advertise();
@@ -50,19 +49,19 @@ void AgpSource::initParams()
 {
 	char param_name[20] {};
 
-	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_CTRL", _instance_id);
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_CTRL", _slot);
 	_param_handles.ctrl = param_find(param_name);
 
-	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_MODE", _instance_id);
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_MODE", _slot);
 	_param_handles.mode = param_find(param_name);
 
-	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_DELAY", _instance_id);
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_DELAY", _slot);
 	_param_handles.delay = param_find(param_name);
 
-	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_NOISE", _instance_id);
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_NOISE", _slot);
 	_param_handles.noise = param_find(param_name);
 
-	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_GATE", _instance_id);
+	snprintf(param_name, sizeof(param_name), "EKF2_AGP%d_GATE", _slot);
 	_param_handles.gate = param_find(param_name);
 
 	updateParams();
@@ -74,7 +73,6 @@ void AgpSource::updateParams()
 		return;
 	}
 
-	param_get(_param_handles.id, &_params.id);
 	param_get(_param_handles.ctrl, &_params.ctrl);
 	param_get(_param_handles.mode, &_params.mode);
 	param_get(_param_handles.delay, &_params.delay);
@@ -82,52 +80,33 @@ void AgpSource::updateParams()
 	param_get(_param_handles.gate, &_params.gate);
 }
 
-void AgpSource::checkAndBufferData(const estimator::imuSample &imu_delayed)
+void AgpSource::bufferData(const aux_global_position_s &msg, const estimator::imuSample &imu_delayed)
 {
-	if (_agp_sub.updated()) {
+	const int64_t time_us = msg.timestamp_sample
+				- static_cast<int64_t>(_params.delay * 1000);
 
-		aux_global_position_s aux_global_position{};
-		_agp_sub.copy(&aux_global_position);
+	AuxGlobalPositionSample sample{};
+	sample.time_us = time_us;
+	sample.id = msg.id;
+	sample.latitude = msg.lat;
+	sample.longitude = msg.lon;
+	sample.altitude_amsl = msg.alt;
+	sample.eph = msg.eph;
+	sample.epv = msg.epv;
+	sample.lat_lon_reset_counter = msg.lat_lon_reset_counter;
 
-		const uint8_t sensor_id = aux_global_position.id;
-		const int slot = _manager->mapSensorIdToSlot(sensor_id);
-
-		if (slot >= AuxGlobalPosition::MAX_AGP_IDS) {
-			// All parameter slots are full, cannot handle this sensor
-			return;
-		}
-
-		if (slot != _instance_id) {
-			// This sensor is mapped to a different instance
-			return;
-		}
-
-		const int64_t time_us = aux_global_position.timestamp_sample
-					- static_cast<int64_t>(_params.delay * 1000);
-
-		AuxGlobalPositionSample sample{};
-		sample.time_us = time_us;
-		sample.id = sensor_id;
-		sample.latitude = aux_global_position.lat;
-		sample.longitude = aux_global_position.lon;
-		sample.altitude_amsl = aux_global_position.alt;
-		sample.eph = aux_global_position.eph;
-		sample.epv = aux_global_position.epv;
-		sample.lat_lon_reset_counter = aux_global_position.lat_lon_reset_counter;
-
-		_buffer.push(sample);
-		_time_last_buffer_push = imu_delayed.time_us;
-	}
+	_buffer.push(sample);
+	_time_last_buffer_push = imu_delayed.time_us;
 }
 
-void AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
+bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 {
 	AuxGlobalPositionSample sample;
 
 	if (_buffer.pop_first_older_than(imu_delayed.time_us, &sample)) {
 
 		if (!(_params.ctrl & static_cast<int32_t>(Ctrl::kHPos))) {
-			return;
+			return true;
 		}
 
 		const LatLonAlt position(sample.latitude, sample.longitude, sample.altitude_amsl);
@@ -230,13 +209,19 @@ void AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 		_test_ratio_filtered = math::max(fabsf(_aid_src.test_ratio_filtered[0]), fabsf(_aid_src.test_ratio_filtered[1]));
 
+		return true;
+
 	} else if ((_state != State::kStopped) && isTimedOut(_time_last_buffer_push, imu_delayed.time_us, (uint64_t)5e6)) {
 		_state = State::kStopped;
 
 		if (!_manager->anySourceFusing()) {
 			ekf.disableControlStatusAuxGpos();
 		}
+
+		ECL_INFO("Aux global position data stopped for slot %d", _slot);
 	}
+
+	return false;
 }
 
 bool AgpSource::isResetAllowed(const Ekf &ekf) const

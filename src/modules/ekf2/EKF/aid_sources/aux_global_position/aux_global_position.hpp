@@ -41,6 +41,8 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/log.h>
 #include <lib/parameters/param.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/aux_global_position.h>
 #include <aid_sources/aux_global_position/aux_global_position_control.hpp>
 
 class Ekf;
@@ -72,6 +74,9 @@ public:
 
 private:
 	AgpSource *_sources[MAX_AGP_IDS] {};
+	uORB::Subscription _agp_sub[MAX_AGP_IDS];
+	int8_t _instance_slot_map[MAX_AGP_IDS] {-1, -1, -1, -1};
+	uint8_t _n_sources{0};
 
 	int32_t getAgpParamInt32(const char *param_suffix, int instance) const;
 	bool setAgpParamInt32(const char *param_suffix, int instance, int32_t value);

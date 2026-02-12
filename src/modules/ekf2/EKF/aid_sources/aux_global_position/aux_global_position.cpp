@@ -39,11 +39,19 @@
 
 AuxGlobalPosition::AuxGlobalPosition() : ModuleParams(nullptr)
 {
-	for (int i = 0; i < MAX_AGP_IDS; i++) {
-		_id_param_values[i] = getAgpParamInt32("ID", i);
+	for (int slot = 0; slot < MAX_AGP_IDS; slot++) {
+		_id_param_values[slot] = getAgpParamInt32("ID", slot);
 
-		if (_id_param_values[i] != 0) {
-			_sources[i] = new AgpSource(i, this);
+		if (_id_param_values[slot] != 0) {
+			_sources[slot] = new AgpSource(slot, this);
+			_n_sources++;
+		}
+	}
+
+	// Only subscribe to uORB instances if there are configured sources
+	if (_n_sources > 0) {
+		for (int i = 0; i < MAX_AGP_IDS; i++) {
+			_agp_sub[i] = uORB::Subscription(ORB_ID(aux_global_position), i);
 		}
 	}
 }
@@ -57,10 +65,36 @@ AuxGlobalPosition::~AuxGlobalPosition()
 
 void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 {
-	for (int i = 0; i < MAX_AGP_IDS; i++) {
-		if (_sources[i]) {
-			_sources[i]->checkAndBufferData(imu_delayed);
-			_sources[i]->update(ekf, imu_delayed);
+	// If there are no sources configured, we also don't subscribe to any uORB topic
+	// and skip the update completely.
+	if (_n_sources == 0) {
+		return;
+	}
+
+	for (int instance = 0; instance < MAX_AGP_IDS; instance++) {
+		if (_agp_sub[instance].updated()) {
+			aux_global_position_s msg{};
+			_agp_sub[instance].copy(&msg);
+
+			int slot = _instance_slot_map[instance];
+
+			if (slot < 0) {
+				slot = mapSensorIdToSlot(msg.id);
+				_instance_slot_map[instance] = static_cast<int8_t>(slot);
+			}
+
+			if (slot >= 0 && _sources[slot]) {
+				_sources[slot]->bufferData(msg, imu_delayed);
+			}
+		}
+	}
+
+	for (int slot = 0; slot < MAX_AGP_IDS; slot++) {
+		if (_sources[slot]) {
+			if (_sources[slot]->update(ekf, imu_delayed)) {
+				// Only update one source per update cycle
+				break;
+			}
 		}
 	}
 }
@@ -146,7 +180,7 @@ int AuxGlobalPosition::mapSensorIdToSlot(int32_t sensor_id)
 		}
 	}
 
-	return MAX_AGP_IDS;
+	return -1;
 }
 
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION && MODULE_NAME

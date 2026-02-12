@@ -40,7 +40,6 @@
 
 #include <lib/parameters/param.h>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_aid_source2d.h>
 #include <uORB/topics/aux_global_position.h>
 
@@ -50,11 +49,11 @@ class AuxGlobalPosition;
 class AgpSource
 {
 public:
-	AgpSource(int instance_id, AuxGlobalPosition *manager);
+	AgpSource(int slot, AuxGlobalPosition *manager);
 	~AgpSource() = default;
 
-	void checkAndBufferData(const estimator::imuSample &imu_delayed);
-	void update(Ekf &ekf, const estimator::imuSample &imu_delayed);
+	void bufferData(const aux_global_position_s &msg, const estimator::imuSample &imu_delayed);
+	bool update(Ekf &ekf, const estimator::imuSample &imu_delayed);
 	void advertise() { _aid_src_pub.advertise(); }
 	void initParams();
 	void updateParams();
@@ -64,8 +63,8 @@ public:
 
 private:
 	struct AuxGlobalPositionSample {
-		uint64_t time_us{};     ///< timestamp of the measurement (uSec)
-		uint8_t id{};           ///< source identifier
+		uint64_t time_us{};
+		uint8_t id{};
 		double latitude{};
 		double longitude{};
 		float altitude_amsl{};
@@ -94,7 +93,6 @@ private:
 		uint8_t lat_lon{};
 	};
 
-	uORB::Subscription _agp_sub;
 	uORB::PublicationMulti<estimator_aid_source2d_s> _aid_src_pub{ORB_ID(estimator_aid_src_aux_global_position)};
 
 	TimestampedRingBuffer<AuxGlobalPositionSample> _buffer{20};
@@ -105,10 +103,9 @@ private:
 	reset_counters_s _reset_counters{};
 
 	AuxGlobalPosition *_manager;
-	const int _instance_id;
+	int _slot;
 
 	struct ParamHandles {
-		param_t id{PARAM_INVALID};
 		param_t ctrl{PARAM_INVALID};
 		param_t mode{PARAM_INVALID};
 		param_t delay{PARAM_INVALID};
@@ -117,7 +114,6 @@ private:
 	} _param_handles;
 
 	struct Params {
-		int32_t id{0};
 		int32_t ctrl{0};
 		int32_t mode{0};
 		float delay{0.f};
