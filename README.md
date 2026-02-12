@@ -19,7 +19,7 @@
 
 ## About
 
-PX4 is an open-source autopilot stack for drones and unmanned vehicles. It supports multirotors, fixed-wing, VTOL, helicopters, rovers, and many more experimental platforms from racing quads to industrial survey aircraft. It runs on [NuttX](https://nuttx.apache.org/), Linux, and macOS. Licensed under [BSD 3-Clause](LICENSE).
+PX4 is an open-source autopilot stack for drones and unmanned vehicles. It supports multirotors, fixed-wing, VTOL, rovers, and many more experimental platforms from racing quads to industrial survey aircraft. It runs on [NuttX](https://nuttx.apache.org/), Linux, and macOS. Licensed under [BSD 3-Clause](LICENSE).
 
 ## Why PX4
 
@@ -54,12 +54,6 @@ PX4 is an open-source autopilot stack for drones and unmanned vehicles. It suppo
       </a>
     </td>
     <td align="center">
-      <a href="https://docs.px4.io/main/en/frames_multicopter/index.md#helicopter">
-        <img src="docs/assets/airframes/types/Helicopter.svg" width="50" alt="Helicopter"><br>
-        <sub>Helicopter</sub>
-      </a>
-    </td>
-    <td align="center">
       <a href="https://docs.px4.io/main/en/frames_rover/">
         <img src="docs/assets/airframes/types/Rover.svg" width="50" alt="Rover"><br>
         <sub>Rover</sub>
@@ -68,7 +62,7 @@ PX4 is an open-source autopilot stack for drones and unmanned vehicles. It suppo
   </tr>
 </table>
 
-<sub>…and many more: autogyros, airships, submarines, boats, and experimental platforms. See the <a href="https://docs.px4.io/main/en/airframes/airframe_reference.html">full airframe reference</a>.</sub>
+<sub>…and many more: helicopters, autogyros, airships, submarines, boats, and other experimental platforms. These frames have basic support but are not part of the regular flight-test program. See the <a href="https://docs.px4.io/main/en/airframes/airframe_reference.html">full airframe reference</a>.</sub>
 
 ## Quick Start
 
