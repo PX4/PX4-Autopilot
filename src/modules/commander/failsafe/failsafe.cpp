@@ -547,6 +547,13 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
 	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
 		CHECK_FAILSAFE(status_flags, position_accuracy_low, fromPosLowActParam(_param_com_pos_low_act.get()));
+
+		// Joint invalid global position and RC loss failsafe
+		_last_state_joint_pos_rcl_loss = checkFailsafe(_caller_id_joint_pos_rcl_loss, _last_state_joint_pos_rcl_loss,
+						 status_flags.global_position_invalid && status_flags.manual_control_signal_lost,
+						 Action::Descend);
+		// To do it immediately regardless of COM_FAIL_ACT_T, replace Action::Descend by:
+		// ActionOptions(Action::Descend).cannotBeDeferred()
 	}
 
 	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||

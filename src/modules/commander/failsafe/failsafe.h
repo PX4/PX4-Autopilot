@@ -186,6 +186,8 @@ private:
 	bool _last_state_fd_esc_arming{false};
 	const int _caller_id_battery_unhealthy_spoolup{genCallerId()};
 	bool _last_state_battery_unhealthy_spoolup{false};
+	const int _caller_id_joint_pos_rcl_loss{genCallerId()};
+	bool _last_state_joint_pos_rcl_loss{false};
 
 	hrt_abstime _armed_time{0};
 	bool _was_armed{false};
