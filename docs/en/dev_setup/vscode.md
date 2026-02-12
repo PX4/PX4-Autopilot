@@ -23,7 +23,6 @@ You must already have installed the command line [PX4 developer environment](../
 
 1. [Download and install VSCode](https://code.visualstudio.com/) (you will be offered the correct version for your OS).
 1. Open VSCode and add the PX4 source code:
-
    - Select _Open folder ..._ option on the welcome page (or using the menu: **File > Open Folder**):
 
      ![Open Folder](../../assets/toolchain/vscode/welcome_open_folder.jpg)
@@ -45,7 +44,6 @@ You must already have installed the command line [PX4 developer environment](../
    :::tip
    If the prompts disappear, click the little "alarm" icon on the right of the bottom blue bar.
    :::
-
    - If prompted to install a new version of _cmake_:
      - Say **No** (the right version is installed with the [PX4 developer environment](../dev_setup/dev_env.md)).
    - If prompted to sign into _github.com_ and add your credentials:
@@ -59,7 +57,6 @@ You must already have installed the command line [PX4 developer environment](../
 To build:
 
 1. Select your build target ("cmake build config"):
-
    - The current _cmake build target_ is shown on the blue _config_ bar at the bottom (if this is already your desired target, skip to next step).
      ![Select Cmake build target](../../assets/toolchain/vscode/cmake_build_config.jpg)
 

@@ -4,9 +4,7 @@ A **Standard VTOL** is a [VTOL](../frames_vtol/index.md) that has _completely se
 
 ![Vertical Technologies: Deltaquad QuadPlane VTOL](../../assets/airframes/vtol/vertical_technologies_deltaquad/hero_small.png)
 
-*Vertical Technologies: Deltaquad QuadPlane VTOL*
-
-
+_Vertical Technologies: Deltaquad QuadPlane VTOL_
 
 ## Videos
 
