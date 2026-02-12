@@ -44,6 +44,7 @@
 
 #include "uuv_pos_control.hpp"
 
+#include <iostream>
 
 
 /**
@@ -74,6 +75,8 @@ bool UUVPOSControl::init()
 		return false;
 	}
 
+	hgtData[0] = 0.0f;
+	hgtData[1] = 0.0f;
 	return true;
 }
 
@@ -291,7 +294,7 @@ void UUVPOSControl::Run()
 			|| _vcontrol_mode.flag_control_position_enabled)
 		    && _vcontrol_mode.flag_armed) {
 			/* Update manual setpoints */
-
+			//
 			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled
 							&& ! _vcontrol_mode.flag_control_position_enabled;
 
@@ -300,11 +303,78 @@ void UUVPOSControl::Run()
 			// Ensure no nan and sufficiently recent setpoint
 			check_setpoint_validity(vlocal_pos);
 
-			// Generate _trajectory_setpoint -> creates _trajectory_setpoint
-			generate_trajectory_setpoint(vlocal_pos, _vehicle_attitude, dt);
+			if (altitude_only_flag) {
 
-			pose_controller_6dof(Vector3f(_trajectory_setpoint.position), _vehicle_attitude,
-					     vlocal_pos, altitude_only_flag);
+
+				// Avoid accumulating absolute yaw error with arming stick gesture
+				// roll and pitch for future implementation
+				// float roll = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).phi();
+				// float pitch = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).theta();
+				float yaw = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).psi();
+
+				float roll_setpoint = 0.0f;
+				float pitch_setpoint = 0.0f;
+				float yaw_setpoint = yaw + _manual_control_setpoint.roll * dt * _param_sgm_yaw.get();
+
+				// Generate target quaternion
+				Eulerf euler_sp(roll_setpoint, pitch_setpoint, yaw_setpoint);
+				Quatf q_sp = euler_sp;
+
+				// Normalize the quaternion to avoid numerical issues
+				q_sp.normalize();
+
+				q_sp.copyTo(_attitude_setpoint.q_d);
+
+				const float throttle_manual_attitude_gain = _param_sgm_thrtl.get();
+				_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_attitude_gain; // surge +x
+				_attitude_setpoint.thrust_body[1] = _manual_control_setpoint.yaw * throttle_manual_attitude_gain; // sway +y
+
+
+				float maximumDistanceAllowed = 0.3f;
+
+				//Making sure, the difference between des hgt and actual hgt is not to high
+				if (vlocal_pos.z - hgtData[0] >= maximumDistanceAllowed) {
+					hgtData[0] = vlocal_pos.z - maximumDistanceAllowed;
+
+				} else {
+					if (vlocal_pos.z - hgtData[0] <= -maximumDistanceAllowed) {
+						hgtData[0] = vlocal_pos.z + maximumDistanceAllowed;
+					}
+				}
+
+				//change the desired hgt
+				if (_manual_control_setpoint.buttons & (1 << _param_hgt_b_up.get())) { //up
+					if (abs(hgtData[0] - 0.001f * _param_hgt_strength.get() - vlocal_pos.z) < maximumDistanceAllowed) {
+						hgtData[0] = hgtData[0] - 0.001f * _param_hgt_strength.get();
+					}
+				}
+
+				if (_manual_control_setpoint.buttons & (1 << _param_hgt_b_down.get())) { //down
+					if (abs(hgtData[0] + 0.001f * _param_hgt_strength.get() - vlocal_pos.z) < maximumDistanceAllowed) {
+						hgtData[0] = hgtData[0] + 0.001f * _param_hgt_strength.get();
+					}
+
+				}
+
+				float errorInZ = hgtData[0] - vlocal_pos.z;
+
+				//make sure the integrational part is not to high
+				if (std::abs(hgtData[1] + 0.005f * errorInZ * _param_hgt_i_speed.get()) < 1.0f) {
+					hgtData[1] = hgtData[1] + 0.005f * errorInZ * _param_hgt_i_speed.get();
+				}
+
+				_attitude_setpoint.thrust_body[2] = _param_hgt_p.get() * errorInZ - _param_hgt_d.get() * vlocal_pos.vz + _param_hgt_i.get() *
+								    hgtData[1];//PID values
+
+
+			} else {
+
+				// Generate _trajectory_setpoint -> creates _trajectory_setpoint
+				generate_trajectory_setpoint(vlocal_pos, _vehicle_attitude, dt);
+
+				pose_controller_6dof(Vector3f(_trajectory_setpoint.position), _vehicle_attitude,
+						     vlocal_pos, altitude_only_flag);
+			}
 
 		} else if (!_vcontrol_mode.flag_control_manual_enabled
 			   && (_vcontrol_mode.flag_control_altitude_enabled

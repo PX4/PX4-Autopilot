@@ -117,6 +117,9 @@ private:
 	perf_counter_t	_loop_perf;
 	hrt_abstime _last_run{0};
 
+	//control variables
+	float hgtData[2];//des_hgt,integrated hgt error
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::UUV_GAIN_X_P>) _param_pose_gain_x,
 		(ParamFloat<px4::params::UUV_GAIN_Y_P>) _param_pose_gain_y,
@@ -131,7 +134,17 @@ private:
 		(ParamFloat<px4::params::UUV_SGM_PITCH>) _param_sgm_pitch,
 		(ParamFloat<px4::params::UUV_SGM_YAW>) _param_sgm_yaw,
 		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_setpoint_max_age,
-		(ParamInt<px4::params::UUV_POS_MODE>) _param_pos_mode
+		(ParamInt<px4::params::UUV_POS_MODE>) _param_pos_mode,
+
+		(ParamFloat<px4::params::UUV_SGM_THRTL>) _param_sgm_thrtl,
+		(ParamFloat<px4::params::UUV_HGT_P>) _param_hgt_p,
+		(ParamFloat<px4::params::UUV_HGT_D>) _param_hgt_d,
+		(ParamFloat<px4::params::UUV_HGT_I>) _param_hgt_i,
+		(ParamFloat<px4::params::UUV_HGT_I_SPD>) _param_hgt_i_speed,
+		(ParamFloat<px4::params::UUV_HGT_STR>) _param_hgt_strength,
+		(ParamInt<px4::params::UUV_HGT_MODE>) _param_hgt_mode,
+		(ParamInt<px4::params::UUV_HGT_B_UP>) _param_hgt_b_up,
+		(ParamInt<px4::params::UUV_HGT_B_DOWN>) _param_hgt_b_down
 	)
 
 	void Run() override;

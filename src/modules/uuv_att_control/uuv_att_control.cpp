@@ -77,8 +77,6 @@ bool UUVAttitudeControl::init()
 		return false;
 	}
 
-	hgtData[0] = 0.0f;
-	hgtData[1] = 0.0f;
 	return true;
 }
 
@@ -281,45 +279,6 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 		_attitude_setpoint.thrust_body[2] = 0.f;
 	}
 
-	if (_param_hgt_mode.get() == 1) {
-
-		float maximumDistanceAllowed = 0.3f;
-
-		//Making sure, the difference between des hgt and actual hgt is not to high
-		if (_vehicle_local_position.z - hgtData[0] >= maximumDistanceAllowed) {
-			hgtData[0] = _vehicle_local_position.z - maximumDistanceAllowed;
-
-		} else {
-			if (_vehicle_local_position.z - hgtData[0] <= -maximumDistanceAllowed) {
-				hgtData[0] = _vehicle_local_position.z + maximumDistanceAllowed;
-			}
-		}
-
-		//change the desired hgt
-		if (_manual_control_setpoint.buttons & (1 << _param_hgt_b_up.get())) { //up
-			if (abs(hgtData[0] - 0.001f * _param_hgt_strength.get() - _vehicle_local_position.z) < maximumDistanceAllowed) {
-				hgtData[0] = hgtData[0] - 0.001f * _param_hgt_strength.get();
-			}
-		}
-
-		if (_manual_control_setpoint.buttons & (1 << _param_hgt_b_down.get())) { //down
-			if (abs(hgtData[0] + 0.001f * _param_hgt_strength.get() - _vehicle_local_position.z) < maximumDistanceAllowed) {
-				hgtData[0] = hgtData[0] + 0.001f * _param_hgt_strength.get();
-			}
-
-		}
-
-		float errorInZ = hgtData[0] - _vehicle_local_position.z;
-
-		//make sure the integrational part is not to high
-		if (std::abs(hgtData[1] + 0.005f * errorInZ * _param_hgt_i_speed.get()) < 1.0f) {
-			hgtData[1] = hgtData[1] + 0.005f * errorInZ * _param_hgt_i_speed.get();
-		}
-
-		_attitude_setpoint.thrust_body[2] = _param_hgt_p.get() * errorInZ - _param_hgt_d.get() * _vehicle_local_position.vz + _param_hgt_i.get() *
-						    hgtData[1];//PID values
-	}
-
 	_attitude_setpoint.timestamp = hrt_absolute_time();
 }
 
@@ -416,8 +375,7 @@ void UUVAttitudeControl::Run()
 
 				// Check setpoint validty
 				check_setpoint_validity(attitude);
-				//get local Position
-				_vehicle_local_position_sub.update(&_vehicle_local_position);
+
 				/* Generate atttiude setpoint from sticks */
 				generate_attitude_setpoint(dt);
 
