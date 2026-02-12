@@ -327,7 +327,22 @@ parameters:
 
         CA_SV_CS${i}_FLAP:
             description:
-                short: Control Surface ${i} configuration as flap
+                short: Control Surface ${i} flap scale
+            type: float
+            decimal: 2
+            min: -1.0
+            max: 1.0
+            num_instances: *max_num_servos
+            instance_start: 0
+            default: 0
+
+        CA_SV_CS${i}_FLP_O:
+            description:
+                short: Control Surface ${i} flap offset
+                long: |
+                    Offset applied to the flap actuator output when flaps_control is 0.
+                    For flaperons (ailerons with flap function), set to 0.
+                    For dedicated flaps, set to -1 to achieve full servo range mapping from [0,1] to [-1,1].
             type: float
             decimal: 2
             min: -1.0

@@ -55,6 +55,8 @@ ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(Modul
 		_param_handles[i].trim = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_FLAP", i);
 		_param_handles[i].scale_flap = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_FLP_O", i);
+		_param_handles[i].offset_flap = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_SPOIL", i);
 		_param_handles[i].scale_spoiler = param_find(buffer);
 	}
@@ -137,6 +139,7 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		}
 
 		param_get(_param_handles[i].scale_flap, &_params[i].scale_flap);
+		param_get(_param_handles[i].offset_flap, &_params[i].offset_flap);
 		param_get(_param_handles[i].scale_spoiler, &_params[i].scale_spoiler);
 
 		// TODO: enforce limits (note that tailsitter uses different limits)?
@@ -218,9 +221,8 @@ void ActuatorEffectivenessControlSurfaces::applyFlaps(float flaps_control, int f
 	_flaps_setpoint_with_slewrate.update(flaps_control, dt);
 
 	for (int i = 0; i < _count; ++i) {
-		// map [0, 1] to [-1, 1]
-		// TODO: this currently only works for dedicated flaps, not flaperons
-		actuator_sp(i + first_actuator_idx) += (_flaps_setpoint_with_slewrate.getState() * 2.f - 1.f) * _params[i].scale_flap;
+		// Flaps: [0, 1] needs to be mapped to [-1, 1] for full servo range with scale_flap and offset_flap
+		actuator_sp(i + first_actuator_idx) += _flaps_setpoint_with_slewrate.getState() * _params[i].scale_flap + _params[i].offset_flap;
 	}
 }
 

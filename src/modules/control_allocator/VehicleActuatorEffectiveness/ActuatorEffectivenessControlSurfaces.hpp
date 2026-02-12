@@ -74,6 +74,7 @@ public:
 		matrix::Vector3f torque;
 		float trim;
 		float scale_flap;
+		float offset_flap;
 		float scale_spoiler;
 	};
 
@@ -100,6 +101,7 @@ private:
 		param_t torque[3];
 		param_t trim;
 		param_t scale_flap;
+		param_t offset_flap;
 		param_t scale_spoiler;
 	};
 	ParamHandles _param_handles[MAX_COUNT];
