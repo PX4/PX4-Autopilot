@@ -102,11 +102,11 @@ int ADS7128::poll_calibrate()
 	uint8_t send_data[2] = {READ, GENERAL_CFG};
 	uint8_t recv_data;
 
-	for(int i=0; i<3; i++){
+	for (int i = 0; i < 3; i++) {
 		int ret = transfer(&send_data[0], 2, nullptr, 0);
 		ret |= transfer(nullptr, 0, &recv_data, 1);
 
-		if(ret == PX4_OK && !(recv_data & 2u)) {
+		if (ret == PX4_OK && !(recv_data & 2u)) {
 			return PX4_OK;
 		}
 
@@ -128,11 +128,11 @@ int ADS7128::poll_reset()
 	uint8_t send_data[2] = {READ, GENERAL_CFG};
 	uint8_t recv_data;
 
-	for(int i=0; i<3; i++){
+	for (int i = 0; i < 3; i++) {
 		int ret = transfer(&send_data[0], 2, nullptr, 0);
 		ret |= transfer(nullptr, 0, &recv_data, 1);
 
-		if(ret == PX4_OK && !(recv_data & 1u)) {
+		if (ret == PX4_OK && !(recv_data & 1u)) {
 			return PX4_OK;
 		}
 
@@ -148,23 +148,24 @@ int ADS7128::adc_get()
 	uint8_t recv_data[2];
 	send_data[0] = READ;
 
-	for(int i=0; i<8; i++) {
+	for (int i = 0; i < 8; i++) {
 		// Read LSB data
-		send_data[1] = RECENT_CH0_LSB + (i*2);
+		send_data[1] = RECENT_CH0_LSB + (i * 2);
 		int ret = transfer(&send_data[0], 2, nullptr, 0);
 		ret |= transfer(nullptr, 0, &recv_data[0], 2);
 
 		// Read MSB data
-		send_data[1] = RECENT_CH0_LSB + (i*2) + 1;
+		send_data[1] = RECENT_CH0_LSB + (i * 2) + 1;
 		ret |= transfer(&send_data[0], 2, nullptr, 0);
 		ret |= transfer(nullptr, 0, &recv_data[1], 2);
 
 		uint16_t raw_value = (((uint16_t)recv_data[1]) << 4) | (recv_data[0] >> 4);
 
-		if(ret == PX4_OK) {
+		if (ret == PX4_OK) {
 			_adc_report.channel_id[i] = i;
 			_adc_report.raw_data[i] = raw_value;
-		}else{
+
+		} else {
 			return PX4_ERROR;
 		}
 	}
@@ -289,6 +290,7 @@ void ADS7128::RunImpl()
 
 		if (ret == PX4_OK) {
 			_state = STATE::CONFIGURE;
+
 		} else {
 			_state = STATE::RESET;
 			perf_count(_comms_errors);
@@ -303,6 +305,7 @@ void ADS7128::RunImpl()
 
 		if (ret == PX4_OK) {
 			_state = STATE::CALIBRATE;
+
 		} else {
 			_state = STATE::RESET;
 			perf_count(_comms_errors);
@@ -315,6 +318,7 @@ void ADS7128::RunImpl()
 
 		if (ret == PX4_OK) {
 			_state = STATE::WORK;
+
 		} else {
 			_state = STATE::RESET;
 			perf_count(_comms_errors);
@@ -335,6 +339,7 @@ void ADS7128::RunImpl()
 			_state = STATE::RESET;
 			perf_count(_comms_errors);
 		}
+
 		break;
 	}
 
