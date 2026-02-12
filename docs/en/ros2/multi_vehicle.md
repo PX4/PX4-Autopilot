@@ -38,12 +38,12 @@ This mismatch can be fixed by manually using `PX4_UXRCE_DDS_NS` on the first ins
 
 The default client configuration in simulation is summarized as follows:
 
-| `PX4_UXRCE_DDS_NS` | `px4_instance` | `UXRCE_DDS_KEY`   | client namespace      |
-|-------------------|----------------|------------------|-----------------------|
-| not provided      | 0              | `px4_instance+1` | none                  |
-| provided          | 0              | `px4_instance+1` | `PX4_UXRCE_DDS_NS`     |
-| not provided      | >0             | `px4_instance+1` | `px4_${px4_instance}` |
-| provided          | >0             | `px4_instance+1` | `PX4_UXRCE_DDS_NS`     |
+| `PX4_UXRCE_DDS_NS` | `px4_instance` | `UXRCE_DDS_KEY`  | client namespace      |
+| ------------------ | -------------- | ---------------- | --------------------- |
+| not provided       | 0              | `px4_instance+1` | none                  |
+| provided           | 0              | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
+| not provided       | >0             | `px4_instance+1` | `px4_${px4_instance}` |
+| provided           | >0             | `px4_instance+1` | `PX4_UXRCE_DDS_NS`    |
 
 ## Adjusting the `target_system` value
 

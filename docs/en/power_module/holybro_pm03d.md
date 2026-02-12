@@ -31,13 +31,13 @@ The PM is **NOT** compatible with flight controllers that require an analog powe
 - **Mounting**: 45 x 45mm
 - **Weight**: 59g
 - **Connections**:
- - XT-60 for battery
- - XT-30 for motor & peripheral device (battery voltage)
- - Solder pads in each corner (battery voltage)
- - CLIK-Mate 2.0mm for flight controller (5.2V/3A standalone BEC)
- - JST GH 4pin (5.2V/3A, BEC shared with 5.2V triple row pin header)
- - 2x Triple row pin header (5.2V/3A, BEC shared with JST GH 4pin)
- - 2x Triple row pin header (8V or 12V selectable by moving header jumper, 3A)
+- XT-60 for battery
+- XT-30 for motor & peripheral device (battery voltage)
+- Solder pads in each corner (battery voltage)
+- CLIK-Mate 2.0mm for flight controller (5.2V/3A standalone BEC)
+- JST GH 4pin (5.2V/3A, BEC shared with 5.2V triple row pin header)
+- 2x Triple row pin header (5.2V/3A, BEC shared with JST GH 4pin)
+- 2x Triple row pin header (8V or 12V selectable by moving header jumper, 3A)
 
 ## Package Contents
 
@@ -46,8 +46,8 @@ The PM is **NOT** compatible with flight controllers that require an analog powe
 - 1x Electrolytic capacitor: 220uF 63V (pre-soldered)
 - 1x 2.0mm pitch CLIK-Mate 6pin cable (To power flight controller)
 - 4pin JST GH to USB Type C
-- 4pin JST GH to barrel plug (2.1*5.5mm)
-- 4pin JST GH to barrel plug (2.5*5.5mm)
+- 4pin JST GH to barrel plug (2.1\*5.5mm)
+- 4pin JST GH to barrel plug (2.5\*5.5mm)
 - 4pin Pin Dupont Cable (2pc)
 - Nylon standoffs & nuts
 

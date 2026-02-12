@@ -1,8 +1,36 @@
+---
+pageClass: is-wide-page
+---
+
 # GpsDump (UORB message)
 
 This message is used to dump the raw gps communication to the log.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GpsDump.msg)
+**TOPICS:** gps_dump
+
+## Fields
+
+| Name      | Type        | Unit [Frame] | Range/Enum | Description                                              |
+| --------- | ----------- | ------------ | ---------- | -------------------------------------------------------- |
+| timestamp | `uint64`    |              |            | time since system start (microseconds)                   |
+| instance  | `uint8`     |              |            | Instance of GNSS receiver                                |
+| device_id | `uint32`    |              |            |
+| len       | `uint8`     |              |            | length of data, MSB bit set = message to the gps device, |
+| data      | `uint8[79]` |              |            | data to write to the log                                 |
+
+## Constants
+
+| Name                                                  | Type    | Value | Description |
+| ----------------------------------------------------- | ------- | ----- | ----------- |
+| <a href="#INSTANCE_MAIN"></a> INSTANCE_MAIN           | `uint8` | 0     |
+| <a href="#INSTANCE_SECONDARY"></a> INSTANCE_SECONDARY | `uint8` | 1     |
+| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH     | `uint8` | 16    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GpsDump.msg)
+
+::: details Click here to see original file
 
 ```c
 # This message is used to dump the raw gps communication to the log.
@@ -19,5 +47,6 @@ uint8 len        # length of data, MSB bit set = message to the gps device,
 uint8[79] data   # data to write to the log
 
 uint8 ORB_QUEUE_LENGTH = 16
-
 ```
+
+:::

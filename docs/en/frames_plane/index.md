@@ -22,7 +22,6 @@ The linked sections instructions for assembling and configuring fixed-wing frame
 
 ## Videos
 
-
 <lite-youtube videoid="VqNWwIPWJb0" params="ab_channel=ChrisSeto" title="Reptile Dragon 2 Demo Flight For Px4 Log Review"/>
 
 ---

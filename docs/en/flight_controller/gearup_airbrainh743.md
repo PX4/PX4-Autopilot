@@ -39,20 +39,20 @@ The pin order is different from the Pixhawk standard (compatible to the Betaflig
 
 Current UART configuration:
 
-| UART   | Device     | Function                     |
-| ------ | ---------- | ---------------------------- |
-| USART1 | /dev/ttyS0 | Console/Debug                |
-| USART2 | /dev/ttyS1 | RC Input                     |
-| USART3 | /dev/ttyS2 | TEL4 (DJI/MSP)               |
-| UART4  | /dev/ttyS3 | TEL1                         |
-| UART5  | /dev/ttyS4 | TEL2                         |
-| UART7  | /dev/ttyS5 | TEL3 (ESC Telemetry)         |
-| UART8  | /dev/ttyS6 | GPS1                         |
+| UART   | Device     | Function             |
+| ------ | ---------- | -------------------- |
+| USART1 | /dev/ttyS0 | Console/Debug        |
+| USART2 | /dev/ttyS1 | RC Input             |
+| USART3 | /dev/ttyS2 | TEL4 (DJI/MSP)       |
+| UART4  | /dev/ttyS3 | TEL1                 |
+| UART5  | /dev/ttyS4 | TEL2                 |
+| UART7  | /dev/ttyS5 | TEL3 (ESC Telemetry) |
+| UART8  | /dev/ttyS6 | GPS1                 |
 
 ### Motor/Servo Outputs
 
 | Connector | Pin | Function     |
-| ----------| ------------------ |
+| --------- | --- | ------------ |
 | ESC       | M1  | Motor 1      |
 | ESC       | M2  | Motor 2      |
 | ESC       | M3  | Motor 3      |
