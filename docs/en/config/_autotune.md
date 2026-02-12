@@ -84,10 +84,7 @@ The test steps are:
    </div></div>
    1. In QGroundControl, open the menu **Vehicle setup > PID Tuning**:
 
-   ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png)
-   2. Select either the _Rate Controller_ or _Attitude Controller_ tabs.
-   3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors).
-   4. Read the warning popup and click on **OK** to start tuning.
+   ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png) 2. Select either the _Rate Controller_ or _Attitude Controller_ tabs. 3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors). 4. Read the warning popup and click on **OK** to start tuning.
 
 <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
 
