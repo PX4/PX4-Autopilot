@@ -823,6 +823,17 @@ PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
 PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
 
 /**
+ * Enable task watchdog dump detection check
+ *
+ * This check detects if there are task watchdog dump files present on
+ * the SD card, indicating a previous task starvation event.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_ARM_WDG_CHK, 1);
+
+/**
  * Enable Drone ID system detection and health check
  *
  * This check detects if the Open Drone ID system is missing.

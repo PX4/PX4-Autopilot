@@ -1,0 +1,6 @@
+menuconfig MODULES_TASK_WATCHDOG
+	bool "task_watchdog"
+	default n
+	depends on PLATFORM_NUTTX
+	---help---
+		Detect tasks running too long and dump their register/stack state and cpuload to files
