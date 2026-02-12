@@ -233,7 +233,7 @@ sync_modules() {
 }
 
 sync_msg_docs() {
-    local src_dir="build/px4_sitl_default/msg_docs"
+    local src_dir="build/msg_docs"
     local dest_dir="docs/en/msg_docs"
     local middleware_dir="docs/en/middleware"
 

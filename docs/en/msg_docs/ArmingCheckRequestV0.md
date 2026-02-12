@@ -1,3 +1,7 @@
+---
+pageClass: is-wide-page
+---
+
 # ArmingCheckRequestV0 (UORB message)
 
 Arming check request.
@@ -9,7 +13,26 @@ The request is sent regularly, even while armed, so that the FMU always knows th
 The reply will include the published request_id, allowing correlation of all arming check information for a particular request.
 The reply will also include the registration_id for each external component, provided to it during the registration process (RegisterExtComponentReply).
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/ArmingCheckRequestV0.msg)
+**TOPICS:** arming_checkrequestv0
+
+## Fields
+
+| Name       | Type     | Unit [Frame] | Range/Enum | Description                                                                       |
+| ---------- | -------- | ------------ | ---------- | --------------------------------------------------------------------------------- |
+| timestamp  | `uint64` | us           |            | Time since system start.                                                          |
+| request_id | `uint8`  |              |            | Id of this request. Allows correlation with associated ArmingCheckReply messages. |
+
+## Constants
+
+| Name                                            | Type     | Value | Description |
+| ----------------------------------------------- | -------- | ----- | ----------- |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/ArmingCheckRequestV0.msg)
+
+::: details Click here to see original file
 
 ```c
 # Arming check request.
@@ -26,5 +49,6 @@ uint32 MESSAGE_VERSION = 0
 uint64 timestamp  # [us] Time since system start.
 
 uint8 request_id  # Id of this request. Allows correlation with associated ArmingCheckReply messages.
-
 ```
+
+:::

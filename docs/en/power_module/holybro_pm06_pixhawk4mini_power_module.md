@@ -4,7 +4,6 @@ This power module has integrated power distribution board and provides regulated
 
 ![PM06](../../assets/hardware/power_module/holybro_pm06_14s/pm06v2_pm06v2-14s.jpg)
 
-
 ## Specifications
 
 - **PCB Current:** 120A continued
@@ -18,7 +17,7 @@ This power module has integrated power distribution board and provides regulated
 ## Mechanical Specifications
 
 - **Dimensions:** 35x35x5mm
-- **Mounting hole:** 30.5mm*30.5mm
+- **Mounting hole:** 30.5mm\*30.5mm
 - **Weight:** 24g
 
 ## Where to Buy
