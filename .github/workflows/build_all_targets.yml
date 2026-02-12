@@ -29,6 +29,7 @@ concurrency:
 permissions:
   contents: write
   actions: read
+  packages: read
 
 jobs:
   group_targets:
@@ -94,6 +95,9 @@ jobs:
       fail-fast: false
     container:
       image: ${{ matrix.container }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v4
