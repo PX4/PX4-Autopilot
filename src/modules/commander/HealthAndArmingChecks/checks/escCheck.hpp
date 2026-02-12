@@ -49,8 +49,10 @@ public:
 
 	void checkAndReport(const Context &context, Report &reporter) override;
 
-	uint16_t getMotorFailureMask() const {
-				return _motor_failure_mask; }
+	uint16_t getMotorFailureMask() const
+	{
+		return _motor_failure_mask;
+	}
 	bool getEscArmStatus() const { return _esc_arm_hysteresis.get_state(); }
 
 private:
@@ -67,20 +69,19 @@ private:
 	const hrt_abstime _start_time{hrt_absolute_time()};
 
 	uint16_t _motor_failure_mask{0};
-	esc_status_s _last_esc_status{};
-	bool _esc_status_received{false};
 	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {};
 	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_arm_hysteresis;
 
-
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs,
+
 					(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
-					(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_act_mot_thr,
-					(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_act_mot_c2t,
-					(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_act_mot_tout,
-					(ParamFloat<px4::params::FD_ACT_LOW_OFF>) _param_fd_act_low_off,
-					(ParamFloat<px4::params::FD_ACT_HIGH_OFF>) _param_fd_act_high_off);
+					(ParamFloat<px4::params::MOTFAIL_THR>) _param_motfail_thr,
+					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,
+					(ParamInt<px4::params::MOTFAIL_TOUT>) _param_motfail_tout,
+					(ParamFloat<px4::params::MOTFAIL_LOW_OFF>) _param_motfail_low_off,
+					(ParamFloat<px4::params::MOTFAIL_HIGH_OFF>) _param_motfail_high_off);
+
 };
