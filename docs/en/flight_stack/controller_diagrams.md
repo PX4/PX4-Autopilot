@@ -185,10 +185,10 @@ In order to keep a constant rate, this damping can be compensated using feedforw
 
 ### Turn coordination
 
-The roll and pitch controllers have the same structure and the longitudinal and lateral dynamics are assumed to be uncoupled enough to work independently.
-The yaw controller, however, generates its yaw rate setpoint using the turn coordination constraint in order to minimize lateral acceleration, generated when the aircraft is slipping. The turn coordination algorithm is based solely on coordinated turn geometry calculation.
+The yaw controller generates its yaw rate setpoint using the coordinated turn constraint in order to minimize lateral acceleration caused by sideslip. Instead of relying on Euler angles, the bank angle is computed geometrically from the body 𝑍.
+Z-axis relative to a heading-aligned horizontal frame. This makes the turn coordination computation independent of absolute yaw and robust to large attitudes.
 
-$$\dot{\Psi}_{sp} = \frac{g}{V_T} \tan{\phi_{sp}} \cos{\theta_{sp}}$$
+$$\dot{\Psi}_{sp} = \frac{g}{V_T} \tan{\phi_{sp}} \cdot 0.6$$
 
 The yaw rate controller also helps to counteract [adverse yaw effects](https://youtu.be/sNV_SDDxuWk) and to damp the [Dutch roll mode](https://en.wikipedia.org/wiki/Dutch_roll) by providing extra directional damping.
 

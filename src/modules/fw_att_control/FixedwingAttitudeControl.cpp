@@ -294,11 +294,10 @@ void FixedwingAttitudeControl::Run()
 				if (q_sp.isAllFinite()) {
 
 					const Quatf q_current(att.q);
-					const Quatf q_sp_full(q_sp);
 					const Vector3f ez_world(0.f, 0.f, 1.f);
 					const Vector3f ex_c = q_current.dcm_x();
 					const Vector3f ez_c = q_current.dcm_z();
-					const Vector3f ez_sp = q_sp_full.dcm_z();
+					const Vector3f ez_sp = q_sp.dcm_z();
 
 					// Tilt-only error quaternion
 					Quatf q_tilt_err(ez_c, ez_sp);
