@@ -59,12 +59,11 @@ To build for [other targets](../dev_setup/dev_env.md#supported-targets) you will
    ```
 
    This installs:
-
    - **`px4-dev`** — ARM cross-compiler (`arm-gcc-bin@13`), `cmake`, `ninja`, `ccache`, and other build tools
    - **Python packages** from `requirements.txt`
    - **`px4-sim`** (via `--sim-tools`) — Gazebo Harmonic simulation (`gz-harmonic`) and related tools
 
-   :::info
+   ::: info
    Omit `--sim-tools` if you only need to build for NuttX hardware and don't need simulation.
 
    Use `--reinstall` to force reinstallation of all Homebrew formulas (useful if something is broken).
@@ -81,7 +80,7 @@ brew tap PX4/px4
 brew install px4-sim
 ```
 
-:::info
+::: info
 Gazebo requires **XQuartz** for display on macOS.
 If you don't already have it installed:
 
@@ -123,7 +122,7 @@ Once you have finished setting up the command-line toolchain:
 - Install [VSCode](../dev_setup/vscode.md) (if you prefer using an IDE to the command line).
 - Install the [QGroundControl Daily Build](../dev_setup/qgc_daily_build.md)
 
-  :::tip
+  ::: tip
   The _daily build_ includes development tools that are hidden in release builds.
   It may also provide access to new PX4 features that are not yet supported in release builds.
   :::
