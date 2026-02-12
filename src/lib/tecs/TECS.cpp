@@ -485,6 +485,11 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 		// Update the pitch integrator state.
 		_pitch_integ_state = _pitch_integ_state + pitch_integ_input * dt;
 
+		// Limit the integrator state
+		if (param.pitch_integrator_max > FLT_EPSILON) {
+			_pitch_integ_state = constrain(_pitch_integ_state, -param.pitch_integrator_max, param.pitch_integrator_max);
+		}
+
 	} else {
 		_pitch_integ_state = 0.0f;
 	}
@@ -597,6 +602,12 @@ void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit
 			// Calculate a throttle demand from the integrated total energy rate error
 			// This will be added to the total throttle demand to compensate for steady state errors
 			_throttle_integ_state = PX4_ISFINITE(throttle_integ_input) ? _throttle_integ_state + throttle_integ_input : 0.f;
+
+			// Limit the integrator state
+			if (param.throttle_integrator_max > FLT_EPSILON) {
+				_throttle_integ_state = constrain(_throttle_integ_state, -param.throttle_integrator_max,
+								  param.throttle_integrator_max);
+			}
 
 		} else {
 			_throttle_integ_state = 0.0f;

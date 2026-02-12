@@ -91,6 +91,21 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMPING, 0.05f);
 PARAM_DEFINE_FLOAT(FW_T_THR_INTEG, 0.02f);
 
 /**
+ * Throttle integrator limit
+ *
+ * Maximum integrator state contribution to throttle output (in the range
+ * between minimum and maximum throttle). This prevents integrator windup,
+ * especially important in soaring mode where throttle authority may be limited.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ * @group FW Longitudinal Control
+ */
+PARAM_DEFINE_FLOAT(FW_T_THR_I_MAX, 0.3f);
+
+/**
  * Integrator gain pitch
  *
  * Increase it to trim out speed and height offsets faster,
@@ -103,6 +118,21 @@ PARAM_DEFINE_FLOAT(FW_T_THR_INTEG, 0.02f);
  * @group FW Longitudinal Control
  */
 PARAM_DEFINE_FLOAT(FW_T_I_GAIN_PIT, 0.1f);
+
+/**
+ * Pitch integrator limit
+ *
+ * Maximum integrator state contribution to pitch output (in radians).
+ * This prevents integrator windup.
+ *
+ * @unit rad
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.05
+ * @group FW Longitudinal Control
+ */
+PARAM_DEFINE_FLOAT(FW_T_PTCH_I_MAX, 0.5f);
 
 /**
  * Maximum vertical acceleration

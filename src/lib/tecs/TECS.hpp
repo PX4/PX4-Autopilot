@@ -228,11 +228,13 @@ public:
 		float pitch_speed_weight;				///< Speed control weighting used by pitch demand calculation.
 		float integrator_gain_pitch;				///< Integrator gain used by the pitch demand calculation.
 		float pitch_damping_gain;				///< Damping gain of the pitch demand calculation [s].
+		float pitch_integrator_max;				///< Maximum pitch integrator state [rad].
 
 		// Throttle control param
 		float integrator_gain_throttle;				///< Integrator gain used by the throttle demand calculation.
 		float throttle_damping_gain;				///< Damping gain of the throttle demand calculation [s].
 		float throttle_slewrate;				///< Throttle demand slew rate limit [1/s].
+		float throttle_integrator_max;				///< Maximum throttle integrator state [-].
 
 		float load_factor_correction;				///< Gain from normal load factor increase to total energy rate demand [m²/s³].
 		float load_factor;					///< Additional normal load factor.
@@ -604,6 +606,8 @@ public:
 
 	void set_integrator_gain_throttle(float gain) { _control_param.integrator_gain_throttle = gain;};
 	void set_integrator_gain_pitch(float gain) { _control_param.integrator_gain_pitch = gain; };
+	void set_throttle_integrator_max(float max) { _control_param.throttle_integrator_max = max; };
+	void set_pitch_integrator_max(float max) { _control_param.pitch_integrator_max = max; };
 
 	void set_max_sink_rate(float max_sink_rate) { _control_param.max_sink_rate = max_sink_rate; _reference_param.max_sink_rate = max_sink_rate; };
 	void set_min_sink_rate(float min_sink_rate) { _control_param.min_sink_rate = min_sink_rate; };
@@ -746,9 +750,11 @@ private:
 		.pitch_speed_weight = 1.0f,
 		.integrator_gain_pitch = 0.0f,
 		.pitch_damping_gain = 0.0f,
+		.pitch_integrator_max = 0.5f,
 		.integrator_gain_throttle = 0.0f,
 		.throttle_damping_gain = 0.0f,
 		.throttle_slewrate = 0.0f,
+		.throttle_integrator_max = 0.3f,
 		.load_factor_correction = 0.0f,
 		.load_factor = 1.0f,
 		.fast_descend = 0.f

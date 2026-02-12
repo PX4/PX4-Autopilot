@@ -97,7 +97,9 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_equivalent_airspeed_max(_performance_model.getMaximumCalibratedAirspeed());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damping.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_thr_integ.get());
+	_tecs.set_throttle_integrator_max(_param_fw_t_thr_i_max.get());
 	_tecs.set_integrator_gain_pitch(_param_fw_t_I_gain_pit.get());
+	_tecs.set_pitch_integrator_max(_param_fw_t_ptch_i_max.get());
 	_tecs.set_throttle_slewrate(_param_fw_thr_slew_max.get());
 	_tecs.set_vertical_accel_limit(_param_fw_t_vert_acc.get());
 	_tecs.set_roll_throttle_compensation(_param_fw_t_rll2thr.get());
