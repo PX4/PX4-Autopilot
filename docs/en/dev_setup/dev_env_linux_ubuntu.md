@@ -9,7 +9,7 @@ The environment includes:
 
 The build toolchain for other flight controllers, simulators, and working with ROS are discussed in the [Other Targets](#other-targets) section below.
 
-:::info
+::: info
 PX4 targets the **current Ubuntu LTS** (24.04) for CI and release builds, with the **previous LTS** (22.04) also supported.
 Older Ubuntu versions are not supported and may not work.
 :::
