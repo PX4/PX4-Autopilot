@@ -1,8 +1,4 @@
 module_name: dlvr_airspeed
-type: driver
-description: |
-    Driver for the Amphenol DLVR Low Voltage Digital Pressure Sensor series.
-    This driver supports only the continuous-sampling variants of the sensor.
 
 parameters:
   - group: Sensors
