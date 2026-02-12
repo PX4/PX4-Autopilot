@@ -58,46 +58,48 @@ public:
 private:
 	explicit MavlinkStreamGLobalPosition(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _aux_global_position_sub{ORB_ID(aux_global_position)};
+	uORB::SubscriptionMultiArray<aux_global_position_s, 4> _aux_global_position_sub{ORB_ID::aux_global_position};
 
 	bool send() override
 	{
 		aux_global_position_s pos{};
+		bool sent = false;
 
-		if (_aux_global_position_sub.update(&pos)) {
-			mavlink_global_position_t msg{};
+		for (int i = 0; i < _aux_global_position_sub.size(); i++) {
+			if (_aux_global_position_sub[i].update(&pos)) {
+				mavlink_global_position_t msg{};
 
-			msg.id = pos.id;
-			msg.time_usec = pos.timestamp;
-			msg.source = pos.source;
-			msg.flags = 0;
+				msg.id = pos.id;
+				msg.time_usec = pos.timestamp;
+				msg.source = pos.source;
 
-			if (PX4_ISFINITE(pos.lat)) {
-				msg.lat = static_cast<int32_t>(pos.lat * 1e7);
+				if (PX4_ISFINITE(pos.lat)) {
+					msg.lat = static_cast<int32_t>(pos.lat * 1e7);
 
-			} else {
-				msg.lat = INT32_MAX;
+				} else {
+					msg.lat = INT32_MAX;
+				}
+
+				if (PX4_ISFINITE(pos.lon)) {
+					msg.lon = static_cast<int32_t>(pos.lon * 1e7);
+
+				} else {
+					msg.lon = INT32_MAX;
+				}
+
+				msg.alt = pos.alt;
+
+				msg.eph = pos.eph;
+				msg.epv = pos.epv;
+
+
+				mavlink_msg_global_position_send_struct(_mavlink->get_channel(), &msg);
+
+				sent = true;
 			}
-
-			if (PX4_ISFINITE(pos.lon)) {
-				msg.lon = static_cast<int32_t>(pos.lon * 1e7);
-
-			} else {
-				msg.lon = INT32_MAX;
-			}
-
-			msg.alt = pos.alt;
-
-			msg.eph = pos.eph;
-			msg.epv = pos.epv;
-
-
-			mavlink_msg_global_position_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
 		}
 
-		return false;
+		return sent;
 	}
 };
 
