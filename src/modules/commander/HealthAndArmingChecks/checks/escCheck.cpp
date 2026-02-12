@@ -83,6 +83,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		if (esc_status.esc_count <= 0) {
 			return;
 		}
+
 		uint16_t mask = 0;
 
 		mask |= checkEscOnline(context, reporter, esc_status);
@@ -92,8 +93,10 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		if (!_param_fd_act_en.get()) {
 			mask |= checkMotorStatus(context, reporter, esc_status);
 		}
+
 		_motor_failure_mask = mask;
 		reporter.setIsPresent(health_component_t::motors_escs);
+		reporter.failsafeFlags().fd_motor_failure = mask != 0;
 
 	} else if (_param_com_arm_chk_escs.get()
 		   && now - _start_time > esc_telemetry_timeout) { // Wait a bit after startup to allow esc's to init
@@ -116,33 +119,30 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status)
 {
 	// Check if one or more the ESCs are offline
-	if (!_param_com_arm_chk_escs.get()){
+	if (!_param_com_arm_chk_escs.get()) {
 		return 0;
 	}
+
 	uint16_t mask = 0;
 	char esc_fail_msg[50];
 	esc_fail_msg[0] = '\0';
 
-	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
+	for (int esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
 
 		// check if mapped
-		if (!math::isInRange(esc_status.esc[index].actuator_function, actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1,
-							    uint8_t(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + actuator_motors_s::NUM_CONTROLS - 1))) {
+		if (!math::isInRange(esc_status.esc[esc_index].actuator_function, actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1,
+				     uint8_t(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + actuator_motors_s::NUM_CONTROLS - 1))) {
 			continue; // Skip unmapped ESC status entries
 		}
-		const uint8_t actuator_function_index =
-		esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
 
-		const bool timeout = hrt_absolute_time() > esc_status.esc[index].timestamp + 300_ms;
-		const bool is_offline = (esc_status.esc_online_flags & (1 << index)) == 0;
-
-
+		const bool timeout = hrt_absolute_time() > esc_status.esc[esc_index].timestamp + 300_ms;
+		const bool is_offline = (esc_status.esc_online_flags & (1 << esc_index)) == 0;
 
 		// Set failure bits for this motor
 		if (timeout || is_offline) {
-			mask |= (1u << actuator_function_index);
+			mask |= (1u << esc_index);
 
-			uint8_t motor_index = actuator_function_index + 1;
+			uint8_t esc_nr = esc_index + 1;
 			/* EVENT
 				* @description
 				* <profile name="dev">
@@ -150,8 +150,8 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 				* </profile>
 				*/
 			reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs, events::ID("check_escs_offline"),
-							events::Log::Critical, "ESC {1} offline", motor_index);
-			snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", motor_index);
+							events::Log::Critical, "ESC {1} offline", esc_nr);
+			snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", esc_nr);
 			esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
 		}
 	}
@@ -160,39 +160,39 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 		mavlink_log_critical(reporter.mavlink_log_pub(), "%soffline. %s\t", esc_fail_msg, context.isArmed() ? "Land now!" : "");
 
 	}
+
 	return mask;
 
 }
 
 uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
 {
-	if (!_param_com_arm_chk_escs.get()){
+	if (!_param_com_arm_chk_escs.get()) {
 		return 0;
 	}
 
 	uint16_t mask = 0;
 
-	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
+	for (int esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
 
-		if (!math::isInRange(esc_status.esc[index].actuator_function, actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1,
-							    uint8_t(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + actuator_motors_s::NUM_CONTROLS - 1))) {
+		if (!math::isInRange(esc_status.esc[esc_index].actuator_function, actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1,
+				     uint8_t(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + actuator_motors_s::NUM_CONTROLS - 1))) {
 			continue; // Skip unmapped ESC status entries
 		}
 
 		const uint8_t act_function_index =
-			esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
+			esc_status.esc[esc_index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
 
-		if (esc_status.esc[index].failures == 0) {
+		if (esc_status.esc[esc_index].failures == 0) {
 			continue;
-		}
-		else
-		{
+
+		} else {
 			mask |= (1u << act_function_index); // Set bit in mask
 		}
 
 
 		for (uint8_t fault_index = 0; fault_index <= static_cast<uint8_t>(esc_fault_reason_t::_max); fault_index++) {
-			if (!(esc_status.esc[index].failures & (1 << fault_index))) {
+			if (!(esc_status.esc[esc_index].failures & (1 << fault_index))) {
 				continue;
 			}
 
@@ -224,22 +224,24 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 				*/
 			reporter.healthFailure<uint8_t, events::px4::enums::esc_fault_reason_t, events::px4::enums::suggested_action_t>(
 				NavModes::All, health_component_t::motors_escs, events::ID("check_failure_detector_arm_esc"),
-				events::Log::Critical, "ESC {1}: {2}", act_function_index + 1, fault_reason_index, action);
+				events::Log::Critical, "ESC {1}: {2}", esc_index + 1, fault_reason_index, action);
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_emergency(reporter.mavlink_log_pub(), "ESC%d: %s. %s \t", act_function_index + 1,
+				mavlink_log_emergency(reporter.mavlink_log_pub(), "ESC%d: %s. %s \t", esc_index + 1,
 						      esc_fault_reason_str(fault_reason_index), user_action);
 			}
 		}
 	}
+
 	return mask;
 }
 
 uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
 {
-	if (!_param_fd_act_en.get()){
+	if (!_param_fd_act_en.get()) {
 		return 0;
 	}
+
 	const hrt_abstime now = hrt_absolute_time();
 	uint16_t mask = 0;
 
@@ -254,8 +256,9 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 			const uint8_t actuator_function_index =
 				esc_status.esc[i].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
 
-			if (actuator_function_index >= actuator_motors_s::NUM_CONTROLS) {
-				continue; // Invalid mapping
+			// check if mapped
+			if (!math::isInRange(actuator_function_index, uint8_t(0), uint8_t(actuator_motors_s::NUM_CONTROLS - 1))) {
+				continue; // Skip unmapped ESC status entries
 			}
 
 			const float current = esc_status.esc[i].esc_current;
@@ -277,12 +280,12 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				thrust = fabsf(actuator_motors.control[actuator_function_index]);
 			}
 
-			bool thrust_above_threshold = thrust > _param_fd_act_mot_thr.get();
-			bool current_too_low = current < (thrust * _param_fd_act_mot_c2t.get()) - _param_fd_act_low_off.get();
-			bool current_too_high = current > (thrust * _param_fd_act_mot_c2t.get()) + _param_fd_act_high_off.get();
+			bool thrust_above_threshold = thrust > _param_motfail_thr.get();
+			bool current_too_low = current < (thrust * _param_motfail_c2t.get()) - _param_motfail_low_off.get();
+			bool current_too_high = current > (thrust * _param_motfail_c2t.get()) + _param_motfail_high_off.get();
 
-			_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
-			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
+			_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_tout.get() * 1_ms);
+			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_tout.get() * 1_ms);
 
 			if (!_esc_undercurrent_hysteresis[i].get_state()) {
 				// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
@@ -339,15 +342,17 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 		}
 
 	}
+
 	return mask;
 }
 
 
 void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
 {
-	if (!_param_com_arm_chk_escs.get()){
+	if (!_param_com_arm_chk_escs.get()) {
 		return;
 	}
+
 	hrt_abstime now = hrt_absolute_time();
 
 	if (context.status().arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
@@ -373,10 +378,14 @@ void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(), "ESC failure: Not all ESCs are armed. Land now!");
 			}
+
+			reporter.failsafeFlags().fd_esc_arming_failure = true;
+
 		}
 
 	} else {
 		// reset ESC bitfield
 		_esc_arm_hysteresis.set_state_and_update(false, now);
+		reporter.failsafeFlags().fd_esc_arming_failure = false;
 	}
 }

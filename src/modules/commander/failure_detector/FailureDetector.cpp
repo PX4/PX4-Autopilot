@@ -217,4 +217,3 @@ void FailureDetector::updateImbalancedPropStatus()
 		}
 	}
 }
-
