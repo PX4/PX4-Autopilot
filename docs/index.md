@@ -32,7 +32,7 @@ features:
   - title: Permissive License
     details: BSD 3-Clause. Use it, modify it, ship it in proprietary products. You only need to include the original copyright notice and license text.
   - title: Interoperability
-    details: Part of a modular ecosystem. PX4 (autopilot), MAVLink (protocol), QGroundControl (ground station), Pixhawk (hardware standard), MAVSDK (SDK/API), and ROS 2 via DDS. All Dronecode projects, all open source.
+    details: Part of a modular ecosystem. PX4 (autopilot), MAVLink (protocol), QGroundControl (ground station), Pixhawk (hardware standard), MAVSDK (SDK/API), and ROS 2 via DDS or Zenoh. All Dronecode projects, all open source.
   - title: Vendor Neutral Governance
     details: Hosted by the Dronecode Foundation under the Linux Foundation. No single company owns the name or controls the roadmap. Community-driven with a weekly open dev call.
 
