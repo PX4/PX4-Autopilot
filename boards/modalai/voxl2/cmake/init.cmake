@@ -32,3 +32,19 @@
 ############################################################################
 
 include_directories(${PX4_BOARD_DIR}/libfc-sensor-api/inc)
+
+# Build libfc_sensor.so stub library automatically if not already built
+set(FC_SENSOR_LIB ${PX4_BOARD_DIR}/libfc-sensor-api/build/libfc_sensor.so)
+if(NOT EXISTS ${FC_SENSOR_LIB})
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BOARD_DIR}/libfc-sensor-api/build
+	)
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} ..
+		WORKING_DIRECTORY ${PX4_BOARD_DIR}/libfc-sensor-api/build
+	)
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} --build .
+		WORKING_DIRECTORY ${PX4_BOARD_DIR}/libfc-sensor-api/build
+	)
+endif()
