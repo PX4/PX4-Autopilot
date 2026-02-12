@@ -325,53 +325,9 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 								events::ID("check_failure_detector_motor_oc"),
 								events::Log::Critical, "Motor {1} overcurrent detected", actuator_function_index + 1);
 
-		for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; ++index) {
-
-		const bool esc_failure = (esc_status.esc[index].failures != 0);
-		reporter.failsafeFlags().fd_motor_failure = context.status().failure_detector_status & vehicle_status_s::FAILURE_MOTOR;
-		const bool motor_failure = (reporter.failsafeFlags().fd_motor_failure);
-
-		if (esc_failure) {
-
-			for (uint8_t fault_index = 0; fault_index <= static_cast<uint8_t>(esc_fault_reason_t::_max); fault_index++) {
-				if (esc_status.esc[index].failures & (1 << fault_index)) {
-
-					esc_fault_reason_t fault_reason_index = static_cast<esc_fault_reason_t>(fault_index);
-
-					const char *user_action = "";
-					events::px4::enums::suggested_action_t action = events::px4::enums::suggested_action_t::none;
-
-					if (context.isArmed()) {
-						if (fault_reason_index == esc_fault_reason_t::motor_warn_temp
-						    || fault_reason_index == esc_fault_reason_t::esc_warn_temp
-						    || fault_reason_index == esc_fault_reason_t::over_rpm) {
-							user_action = "Reduce throttle";
-							action = events::px4::enums::suggested_action_t::reduce_throttle;
-
-						} else {
-							user_action = "Land now!";
-							action = events::px4::enums::suggested_action_t::land;
-						}
-					}
-
-					uint8_t motor_index = esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
-
-					/* EVENT
-						* @description
-						* {3}
-						*
-						* <profile name="dev">
-						* This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
-						* </profile>
-						*/
-					reporter.healthFailure<uint8_t, events::px4::enums::esc_fault_reason_t, events::px4::enums::suggested_action_t>(
-						required_modes, health_component_t::motors_escs, events::ID("check_escs_fault"),
-						events::Log::Critical, "ESC {1}: {2}", motor_index, fault_reason_index, action);
-
-					if (reporter.mavlink_log_pub()) {
-						mavlink_log_emergency(reporter.mavlink_log_pub(), "ESC%d: %s. %s \t", motor_index,
-								      esc_fault_reason_str(fault_reason_index), user_action);
-					}
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d overcurrent detected",
+							     actuator_function_index + 1);
 				}
 			}
 		}
