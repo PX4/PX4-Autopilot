@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,13 +33,11 @@
 
 #include "ekf.h"
 #include <aid_sources/aux_global_position/aux_global_position_control.hpp>
-#include <aid_sources/aux_global_position/aux_global_position.hpp>
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 
-AgpSource::AgpSource(int slot, AuxGlobalPosition *manager)
-	: _manager(manager)
-	, _slot(slot)
+AgpSource::AgpSource(int slot)
+	: _slot(slot)
 {
 	initParams();
 	advertise();
@@ -148,7 +146,6 @@ bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 					}
 
 					if (fused || reset) {
-						ekf.enableControlStatusAuxGpos();
 						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
 						_state = State::kActive;
 					}
@@ -158,7 +155,6 @@ bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 					if (ekf.resetGlobalPositionTo(sample.latitude, sample.longitude, sample.altitude_amsl, pos_var,
 								      sq(sample.epv))) {
 						ekf.resetAidSourceStatusZeroInnovation(_aid_src);
-						ekf.enableControlStatusAuxGpos();
 						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
 						_state = State::kActive;
 					}
@@ -183,19 +179,11 @@ bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 					} else {
 						_state = State::kStopped;
-
-						if (!_manager->anySourceFusing()) {
-							ekf.disableControlStatusAuxGpos();
-						}
 					}
 				}
 
 			} else {
 				_state = State::kStopped;
-
-				if (!_manager->anySourceFusing()) {
-					ekf.disableControlStatusAuxGpos();
-				}
 			}
 
 			break;
@@ -213,11 +201,6 @@ bool AgpSource::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 	} else if ((_state != State::kStopped) && isTimedOut(_time_last_buffer_push, imu_delayed.time_us, (uint64_t)5e6)) {
 		_state = State::kStopped;
-
-		if (!_manager->anySourceFusing()) {
-			ekf.disableControlStatusAuxGpos();
-		}
-
 		ECL_INFO("Aux global position data stopped for slot %d", _slot);
 	}
 

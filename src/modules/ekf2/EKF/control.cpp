@@ -118,6 +118,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 	_aux_global_position.update(*this, imu_delayed);
+	_control_status.flags.aux_gpos = _aux_global_position.anySourceFusing();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 
 #if defined(CONFIG_EKF2_AIRSPEED)

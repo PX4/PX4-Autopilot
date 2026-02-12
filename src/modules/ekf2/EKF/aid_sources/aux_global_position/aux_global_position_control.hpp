@@ -44,12 +44,11 @@
 #include <uORB/topics/aux_global_position.h>
 
 class Ekf;
-class AuxGlobalPosition;
 
 class AgpSource
 {
 public:
-	AgpSource(int slot, AuxGlobalPosition *manager);
+	AgpSource(int slot);
 	~AgpSource() = default;
 
 	void bufferData(const aux_global_position_s &msg, const estimator::imuSample &imu_delayed);
@@ -101,8 +100,6 @@ private:
 	float _test_ratio_filtered{0.f};
 	uint64_t _time_last_buffer_push{0};
 	reset_counters_s _reset_counters{};
-
-	AuxGlobalPosition *_manager;
 	int _slot;
 
 	struct ParamHandles {
