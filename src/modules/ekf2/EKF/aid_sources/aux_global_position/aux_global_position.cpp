@@ -43,7 +43,7 @@ AuxGlobalPosition::AuxGlobalPosition() : ModuleParams(nullptr)
 		_id_param_values[slot] = getAgpParamInt32("ID", slot);
 
 		if (_id_param_values[slot] != 0) {
-			_sources[slot] = new AgpSource(slot, this);
+			_sources[slot] = new AgpSource(slot);
 			_n_sources++;
 		}
 	}

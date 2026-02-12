@@ -36,7 +36,7 @@
 
 #include <stdint.h>
 
-#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/aux_global_position.h>
 
 class MavlinkStreamGLobalPosition : public MavlinkStream
 {
