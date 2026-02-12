@@ -127,7 +127,8 @@ The following list shows the build commands for the [Pixhawk standard](../flight
 - [Pixhawk 1 (FMUv2)](../flight_controller/pixhawk.md): `make px4_fmu-v2_default`
 
   :::warning
-  You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build. Building with an unsupported GCC may fail, as PX4 is close to the board's 1MB flash limit.
+  You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build.
+  Building with an unsupported GCC may fail, as PX4 is close to the board's 1MB flash limit.
   :::
 
 - Pixhawk 1 with 2 MB flash: `make px4_fmu-v3_default`
@@ -238,7 +239,7 @@ You may need to install it using:
     pip3 install --user jinja2
 ```
 
-If you have already installed these dependencies this may be because there is more than one Python version on the computer (e.g. Python 2.7.16 Python 3.8.3), and the module is not present in the version used by the build toolchain.
+If you have already installed these dependencies this may be because there is more than one Python version on the computer (e.g. Python 2.7.16 and Python 3.8.3), and the module is not present in the version used by the build toolchain.
 
 You should be able to fix this by explicitly installing the dependencies as shown:
 
