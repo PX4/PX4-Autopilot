@@ -152,12 +152,12 @@ int ADS7128::adc_get()
 		// Read LSB data
 		send_data[1] = RECENT_CH0_LSB + (i * 2);
 		int ret = transfer(&send_data[0], 2, nullptr, 0);
-		ret |= transfer(nullptr, 0, &recv_data[0], 2);
+		ret |= transfer(nullptr, 0, &recv_data[0], 1);
 
 		// Read MSB data
 		send_data[1] = RECENT_CH0_LSB + (i * 2) + 1;
 		ret |= transfer(&send_data[0], 2, nullptr, 0);
-		ret |= transfer(nullptr, 0, &recv_data[1], 2);
+		ret |= transfer(nullptr, 0, &recv_data[1], 1);
 
 		uint16_t raw_value = (((uint16_t)recv_data[1]) << 4) | (recv_data[0] >> 4);
 
