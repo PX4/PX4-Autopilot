@@ -221,7 +221,7 @@ void DLVR::gather_measurement()
 		publish_pressure(pressure_p, temperature_c, timestamp_sample);
 
 	} else {
-		/* In ca of an error, ignore the results */
+		/* In case of an error, ignore the results */
 		perf_count(_comms_errors);
 	}
 
