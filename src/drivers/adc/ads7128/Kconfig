@@ -1,0 +1,5 @@
+menuconfig DRIVERS_ADC_ADS7128
+	bool "ADS7128 driver"
+	default n
+	---help---
+		Enable support for ADS7128
