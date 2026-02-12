@@ -26,13 +26,13 @@ features:
   - title: Developer Friendly
     details: First-class MAVLink and DDS/ROS 2 integration. Comprehensive SITL simulation, hardware-in-the-loop testing, and log analysis tools. MAVSDK provides a high-level SDK/API for programmatic vehicle interaction.
   - title: Autonomy Ready
-    details: Native support for computer vision integration, obstacle avoidance, and GPS-denied navigation. The framework provides the building blocks for localization and path planning algorithms.
+    details: Extensible architecture for advanced autonomy. External modes, offboard control, and DDS/ROS 2 interfaces provide the building blocks for computer vision, GPS-denied navigation, and custom flight behaviors.
   - title: Proven at Scale
     details: Millions of vehicles deployed worldwide across commercial, defense, and research applications. Continuous flight testing validates the codebase across multirotors, fixed-wing, VTOL, helicopters, rovers, and more.
   - title: Permissive License
     details: BSD 3-Clause. Use it, modify it, ship it in proprietary products. You only need to include the original copyright notice and license text.
   - title: Interoperability
-    details: Part of a modular ecosystem. PX4 (autopilot), MAVLink (protocol), QGroundControl (ground station), Pixhawk (hardware standard), and MAVSDK (SDK/API). All Dronecode projects, all open source.
+    details: Part of a modular ecosystem. PX4 (autopilot), MAVLink (protocol), QGroundControl (ground station), Pixhawk (hardware standard), MAVSDK (SDK/API), and ROS 2 via DDS. All Dronecode projects, all open source.
   - title: Vendor Neutral Governance
     details: Hosted by the Dronecode Foundation under the Linux Foundation. No single company owns the name or controls the roadmap. Community-driven with a weekly open dev call.
 

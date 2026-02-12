@@ -72,6 +72,7 @@ cd PX4-Autopilot
 make px4_sitl
 ```
 
+> [!NOTE]
 > See the [Development Guide](https://docs.px4.io/main/en/development/development.html) for toolchain setup and build options.
 
 ## Documentation & Resources
