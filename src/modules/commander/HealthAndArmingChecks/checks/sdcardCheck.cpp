@@ -126,6 +126,57 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
+#if CONFIG_MODULES_TASK_WATCHDOG
+	// Check for task watchdog dump files
+
+	if (!_watchdog_checked_once && _param_com_arm_watchdog_check.get()) {
+		_watchdog_checked_once = true;
+
+		DIR *wdp = opendir(PX4_STORAGEDIR "/task_watchdog");
+
+		if (wdp != nullptr) {
+
+			struct dirent *wresult;
+
+			while ((wresult = readdir(wdp)) && !_watchdog_file_present) {
+
+				// Check for pattern wdg_*.log or load_*.log
+				const size_t len = strlen(wresult->d_name);
+
+				if (len > 5 && strcmp(wresult->d_name + len - 4, ".log") == 0) {
+					if (strncmp("wdg_", wresult->d_name, 4) == 0
+					    || strncmp("load_", wresult->d_name, 5) == 0) {
+						_watchdog_file_present = true;
+					}
+				}
+			}
+
+			closedir(wdp);
+		}
+	}
+
+	if (_watchdog_file_present && _param_com_arm_watchdog_check.get()) {
+		/* EVENT
+		 * @description
+		 * The SD card contains task watchdog dump files from a previous task starvation event.
+		 *
+		 * <profile name="dev">
+		 * Remove the files in the 'task_watchdog' directory on the SD card after analysis.
+		 *
+		 * This check can be configured via <param>COM_ARM_WDG_CHK</param> parameter.
+		 * </profile>
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::system,
+				       events::ID("check_task_watchdog_present"),
+				       events::Log::Error, "Task watchdog dumps present on SD card");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Task watchdog dumps present on SD");
+		}
+	}
+
+#endif /* CONFIG_MODULES_TASK_WATCHDOG */
+
 #endif /* __PX4_NUTTX */
 #endif /* PX4_STORAGEDIR */
 }
