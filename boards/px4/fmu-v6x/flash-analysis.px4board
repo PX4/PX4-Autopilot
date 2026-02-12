@@ -1,1 +1,2 @@
+CONFIG_BOARD_LABEL_PRETTY="Flash Analysis"
 CONFIG_BOARD_LINKER_PREFIX="flash-analysis"

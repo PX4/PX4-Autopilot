@@ -45,6 +45,30 @@ When changing the `cyphal.px4board` it only stores the delta of the Kconfig keys
 When modifying a Kconfig key in `default.px4board` it will be modified in all derivative configurations of the same board that had the same config as well.
 :::
 
+## Board Metadata Fields
+
+PX4 board files can include metadata used by ground stations for firmware discovery and display.
+
+### `CONFIG_BOARD_LABEL_PRETTY`
+
+A human-readable name for the build variant (e.g. `"Multicopter"`, `"Rover"`).
+Ground stations like QGroundControl display this instead of raw target strings.
+
+```
+CONFIG_BOARD_LABEL_PRETTY="Multicopter"
+```
+
+::: warning
+Due to [Kconfig label inheritance](#px4-kconfig-label-inheritance), every variant file must set its own `CONFIG_BOARD_LABEL_PRETTY`.
+If omitted, a variant inherits the value from `default.px4board`, which is typically wrong.
+:::
+
+### `CONFIG_BOARD_FIRMWARE_CATEGORY`
+
+Optional override for the auto-detected firmware category (`vehicle`, `peripheral`, `dev`, or `bootloader`).
+Normally this is inferred from the build label and does not need to be set.
+See [Firmware Manifest & Metadata](firmware_manifest.md) for details on the auto-detection rules and when to use this override.
+
 ## PX4 Menuconfig Setup
 
 The [menuconfig](https://pypi.org/project/kconfiglib/#menuconfig-interfaces) tool is used to modify the PX4 board configuration, adding/removing modules, drivers, and other features.

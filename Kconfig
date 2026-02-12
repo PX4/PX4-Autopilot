@@ -54,6 +54,30 @@ menu "Toolchain"
         string "Architecture"
         default ""
 
+    config BOARD_LABEL_PRETTY
+        string "Human-readable label for this build variant"
+        default ""
+        help
+            A short display name for this build variant (e.g. "Multicopter",
+            "Rover"). Used by ground stations like QGC to show a user-friendly
+            name instead of raw target strings. Must be set in every .px4board
+            variant file because non-base variants inherit from default.
+
+    config BOARD_FIRMWARE_CATEGORY
+        string "Firmware category override (vehicle, peripheral, dev, bootloader)"
+        default ""
+        help
+            Override the auto-detected firmware category. Normally inferred
+            from the build label and board config: vehicle types (multicopter,
+            fixedwing, etc.) map to "vehicle", bootloader/canbootloader map to
+            "bootloader", CAN peripheral boards (ROMFSROOT=cannode) map to
+            "peripheral", and everything else maps to "dev". Set this only
+            when the auto-detection is wrong for a particular board variant.
+            IMPORTANT: If you add a new vehicle type with a label not yet in
+            _VEHICLE_LABELS (in gen_board_manifest_from_defconfig.py), either
+            add it there or set this to "vehicle" — otherwise the build will
+            be hidden from end-users in QGC.
+
     config BOARD_LTO
         bool "(EXPERIMENTAL) Link Time Optimization (LTO)"
         default n
