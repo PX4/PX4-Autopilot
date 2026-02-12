@@ -42,6 +42,7 @@
 #include "KF_orientation.h"
 
 #include <px4_platform_common/defines.h>
+#include <vte_orientation_derivation/generated/predictCov.h>
 
 namespace vision_target_estimator
 {
@@ -84,23 +85,10 @@ void KF_orientation::predictState(float dt, const EmptyInput &input,
 
 	x_out = phi * x_in;
 	x_out(State::yaw) = matrix::wrap_pi(x_out(State::yaw));
-	P_out = phi * P_in * phi.transpose();
 
-	// Add process noise assuming a white-noise yaw acceleration model
-	// Q = q * [[dt^3/3, dt^2/2],
-	//          [dt^2/2, dt]]
-	if (PX4_ISFINITE(_yaw_acc_var) && (_yaw_acc_var > 0.f)) {
-		const float dt2 = dt * dt;
-		const float dt3 = dt2 * dt;
-
-		matrix::SquareMatrix<float, State::size> Q{};
-		Q(State::yaw, State::yaw) = (dt3 / 3.f) * _yaw_acc_var;
-		Q(State::yaw, State::yaw_rate) = (dt2 / 2.f) * _yaw_acc_var;
-		Q(State::yaw_rate, State::yaw) = Q(State::yaw, State::yaw_rate);
-		Q(State::yaw_rate, State::yaw_rate) = dt * _yaw_acc_var;
-
-		P_out = P_out + Q;
-	}
+	// Keep invalid values from injecting covariance and use generated covariance propagation.
+	const float yaw_acc_var = (PX4_ISFINITE(_yaw_acc_var) && (_yaw_acc_var > 0.f)) ? _yaw_acc_var : 0.f;
+	sym::Predictcov(dt, yaw_acc_var, P_in, &P_out);
 }
 
 void KF_orientation::computeInnovation(const matrix::Vector<float, State::size> &state,
