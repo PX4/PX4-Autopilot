@@ -5,9 +5,7 @@ A mission is a predefined flight plan, which can be planned in QGroundControl an
 Missions typically include items for controlling taking off, flying a sequence of waypoints, capturing images and/or video, deploying cargo, and landing.
 QGroundControl allows you to plan missions using a fully manual approach, or you can use its more advanced features to plan ground area surveys, corridor surveys, or structure surveys.
 
-This topic provides an overview of how to plan and fly missions. 
-
-
+This topic provides an overview of how to plan and fly missions.
 
 ## Planning Missions
 

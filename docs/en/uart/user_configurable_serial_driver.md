@@ -24,7 +24,6 @@ where,
 To make driver configurable:
 
 1. Create a YAML module configuration file:
-
    - Add a new file in the driver's source directory named **module.yaml**
    - Insert the following text and adjust as needed:
 

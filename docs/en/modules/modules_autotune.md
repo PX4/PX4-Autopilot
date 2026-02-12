@@ -1,14 +1,10 @@
 # Modules Reference: Autotune
 
-
-
 ## fw_autotune_attitude_control
 
 Source: [modules/fw_autotune_attitude_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/fw_autotune_attitude_control)
 
-
 ### Description
-
 
 ### Usage {#fw_autotune_attitude_control_usage}
 
@@ -27,9 +23,7 @@ fw_autotune_attitude_control <command> [arguments...]
 
 Source: [modules/mc_autotune_attitude_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mc_autotune_attitude_control)
 
-
 ### Description
-
 
 ### Usage {#mc_autotune_attitude_control_usage}
 

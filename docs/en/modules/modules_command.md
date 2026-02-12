@@ -1,11 +1,8 @@
 # Modules Reference: Command
 
-
-
 ## actuator_test
 
 Source: [systemcmds/actuator_test](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/actuator_test)
-
 
 Utility to test actuators.
 
@@ -36,6 +33,7 @@ actuator_test <command> [arguments...]
 Source: [systemcmds/bl_update](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/bl_update)
 
 Utility to flash the bootloader from a file
+
 ### Usage {#bl_update_usage}
 
 ```
@@ -51,6 +49,7 @@ bl_update [arguments...]
 Source: [systemcmds/bsondump](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/bsondump)
 
 Utility to read BSON from a file and print or output document size.
+
 ### Usage {#bsondump_usage}
 
 ```
@@ -63,6 +62,7 @@ bsondump [arguments...]
 Source: [systemcmds/dumpfile](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/dumpfile)
 
 Dump file utility. Prints file size and contents in binary mode (don't replace LF with CR LF) to stdout.
+
 ### Usage {#dumpfile_usage}
 
 ```
@@ -74,15 +74,15 @@ dumpfile [arguments...]
 
 Source: [systemcmds/dyn](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/dyn)
 
-
 ### Description
+
 Load and run a dynamic PX4 module, which was not compiled into the PX4 binary.
 
 ### Example
+
 ```
 dyn ./hello.px4mod start
 ```
-
 
 ### Usage {#dyn_usage}
 
@@ -96,14 +96,16 @@ dyn [arguments...]
 
 Source: [systemcmds/failure](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/failure)
 
-
 ### Description
+
 Inject failures into system.
 
 ### Implementation
+
 This system command sends a vehicle command over uORB to trigger failure.
 
 ### Examples
+
 Test the GPS failsafe by stopping GPS:
 
 failure gps off
@@ -125,31 +127,36 @@ failure [arguments...]
 
 Source: [systemcmds/gpio](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/gpio)
 
-
 ### Description
+
 This command is used to read and write GPIOs
+
 ```
 gpio read <PORT><PIN>/<DEVICE> [PULLDOWN|PULLUP] [--force]
 gpio write <PORT><PIN>/<DEVICE> <VALUE> [PUSHPULL|OPENDRAIN] [--force]
 ```
 
 ### Examples
+
 Read the value on port H pin 4 configured as pullup, and it is high
+
 ```
 gpio read H4 PULLUP
 ```
+
 1 OK
 
 Set the output value on Port E pin 7 to high
+
 ```
 gpio write E7 1 --force
 ```
 
 Set the output value on device /dev/gpio1 to high
+
 ```
 gpio write /dev/gpio1 1
 ```
-
 
 ### Usage {#gpio_usage}
 
@@ -203,6 +210,7 @@ hardfault_log <command> [arguments...]
 Source: [systemcmds/hist](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hist)
 
 Command-line tool to show the px4 message history. There are no arguments.
+
 ### Usage {#hist_usage}
 
 ```
@@ -214,6 +222,7 @@ hist [arguments...]
 Source: [systemcmds/i2cdetect](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/i2cdetect)
 
 Utility to scan for I2C devices on a particular bus.
+
 ### Usage {#i2cdetect_usage}
 
 ```
@@ -226,8 +235,8 @@ i2cdetect [arguments...]
 
 Source: [systemcmds/led_control](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/led_control)
 
-
 ### Description
+
 Command-line tool to control & test the (external) LED's.
 
 To use it make sure there's a driver running, which handles the led_control uorb topic.
@@ -237,11 +246,12 @@ module can blink N times with high priority, and the LED's automatically return 
 after the blinking. The `reset` command can also be used to return to a lower priority.
 
 ### Examples
+
 Blink the first LED 5 times in blue:
+
 ```
 led_control blink -c blue -l 0 -n 5
 ```
-
 
 ### Usage {#led_control_usage}
 
@@ -279,7 +289,6 @@ led_control <command> [arguments...]
 
 Source: [systemcmds/topic_listener](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/topic_listener)
 
-
 Utility to listen on uORB topics and print the data to the console.
 
 The listener can be exited any time by pressing Ctrl+C, Esc, or Q.
@@ -303,6 +312,7 @@ listener <command> [arguments...]
 Source: [systemcmds/mft](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mft)
 
 Utility interact with the manifest
+
 ### Usage {#mfd_usage}
 
 ```
@@ -316,6 +326,7 @@ mfd <command> [arguments...]
 Source: [systemcmds/mft_cfg](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mft_cfg)
 
 Tool to set and get manifest configuration
+
 ### Usage {#mft_cfg_usage}
 
 ```
@@ -336,6 +347,7 @@ mft_cfg <command> [arguments...]
 Source: [systemcmds/mtd](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/mtd)
 
 Utility to mount and test partitions (based on FRAM/EEPROM storage as defined by the board)
+
 ### Usage {#mtd_usage}
 
 ```
@@ -378,8 +390,8 @@ nshterm [arguments...]
 
 Source: [systemcmds/param](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/param)
 
-
 ### Description
+
 Command to access and manipulate parameters via shell or script.
 
 This is used for example in the startup script to set airframe-specific parameters.
@@ -396,7 +408,9 @@ Each parameter has a 'used' flag, which is set when it's read during boot. It is
 parameters to a ground control station.
 
 ### Examples
+
 Change the airframe and make sure the airframe's default parameters are loaded:
+
 ```
 param set SYS_AUTOSTART 4001
 param set SYS_AUTOCONFIG 1
@@ -476,11 +490,10 @@ param <command> [arguments...]
 
 Source: [modules/payload_deliverer](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/payload_deliverer)
 
-
 ### Description
+
 Handles payload delivery with either Gripper or a Winch with an appropriate timeout / feedback sensor setting,
 and communicates back the delivery result as an acknowledgement internally
-
 
 ### Usage {#payload_deliverer_usage}
 
@@ -505,6 +518,7 @@ payload_deliverer <command> [arguments...]
 Source: [systemcmds/perf](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/perf)
 
 Tool to print performance counters
+
 ### Usage {#perf_usage}
 
 ```
@@ -521,6 +535,7 @@ perf [arguments...]
 Source: [systemcmds/reboot](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/reboot)
 
 Reboot the system
+
 ### Usage {#reboot_usage}
 
 ```
@@ -535,6 +550,7 @@ reboot [arguments...]
 Source: [systemcmds/sd_bench](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/sd_bench)
 
 Test the speed of an SD Card
+
 ### Usage {#sd_bench_usage}
 
 ```
@@ -557,6 +573,7 @@ sd_bench [arguments...]
 Source: [systemcmds/sd_stress](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/sd_stress)
 
 Test operations on an SD Card
+
 ### Usage {#sd_stress_usage}
 
 ```
@@ -592,7 +609,6 @@ serial_passthru [arguments...]
 
 Source: [systemcmds/system_time](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/system_time)
 
-
 ### Description
 
 Command-line tool to set and get system time.
@@ -600,6 +616,7 @@ Command-line tool to set and get system time.
 ### Examples
 
 Set the system time and read it back
+
 ```
 system_time set 1600775044
 system_time get
@@ -620,6 +637,7 @@ system_time <command> [arguments...]
 Source: [systemcmds/top](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/top)
 
 Monitor running processes and their CPU, stack usage, priority and state
+
 ### Usage {#top_usage}
 
 ```
@@ -633,6 +651,7 @@ Source: [systemcmds/usb_connected](https://github.com/PX4/PX4-Autopilot/tree/mai
 
 Utility to check if USB is connected. Was previously used in startup scripts.
 A return value of 0 means USB is connected, 1 otherwise.
+
 ### Usage {#usb_connected_usage}
 
 ```
@@ -644,6 +663,7 @@ usb_connected [arguments...]
 Source: [systemcmds/ver](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/ver)
 
 Tool to print various version information
+
 ### Usage {#ver_usage}
 
 ```
