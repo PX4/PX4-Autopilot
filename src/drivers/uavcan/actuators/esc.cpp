@@ -54,8 +54,7 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin); // Highest priority
 }
 
-int
-UavcanEscController::init()
+int UavcanEscController::init()
 {
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
@@ -86,8 +85,7 @@ UavcanEscController::init()
 	return res;
 }
 
-void
-UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size)
+void UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size)
 {
 	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
@@ -107,14 +105,12 @@ UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t out
 	_uavcan_pub_raw_cmd.broadcast(msg);
 }
 
-void
-UavcanEscController::set_rotor_count(uint8_t count)
+void UavcanEscController::set_rotor_count(uint8_t count)
 {
 	_rotor_count = count;
 }
 
-void
-UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
+void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
 		esc_report_s &esc_report = _esc_status.esc[msg.esc_index];
@@ -158,8 +154,7 @@ void UavcanEscController::esc_status_extended_sub_cb(const uavcan::ReceivedDataS
 	}
 }
 
-uint8_t
-UavcanEscController::check_escs_status()
+uint8_t UavcanEscController::check_escs_status()
 {
 	int esc_status_flags = 0;
 	const hrt_abstime now = hrt_absolute_time();
