@@ -285,7 +285,7 @@ These are converted into a [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.m
 For rover-specific control setpoints and better behaviour we recommend using the [Rover Setpoints](#rover-setpoints) via ROS 2.
 
 ::: info
-Rover MAVLink setpoints are gated by the MAVLink parameter `MAV_FWDEXTSP` (Forward external setpoint messages).
+Rover MAVLink setpoints are gated by the MAVLink parameter [MAV_FWDEXTSP](../advanced_config/parameter_reference.md#MAV_FWDEXTSP) (Forward external setpoint messages).
 :::
 
 - [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
