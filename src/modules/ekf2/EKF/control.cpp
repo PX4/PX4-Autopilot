@@ -160,7 +160,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 	_zero_velocity_update.update(*this, imu_delayed);
 
-	if (_params.ekf2_imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias)) {
+	if (_fc.imu.intended & static_cast<int32_t>(ImuCtrl::GyroBias)) {
 		_zero_gyro_update.update(*this, imu_delayed);
 	}
 

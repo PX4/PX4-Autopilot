@@ -110,6 +110,17 @@ uint16 VEHICLE_CMD_DO_WINCH = 42600 # Command to operate winch.
 
 uint16 VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE = 43003 # External reset of estimator global position when dead reckoning.
 uint16 VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE = 43004
+uint16 VEHICLE_CMD_SET_EKF_SENSOR_FUSION = 43005 # Enable/disable EKF sensor fusion. |sensor (FUSION_SOURCE_*)|instance (0-based, for multi-instance types)|action (0=disable, 1=enable)|Unused|Unused|Unused|Unused|
+# Sensor fusion source types for VEHICLE_CMD_SET_EKF_SENSOR_FUSION
+uint8 FUSION_SOURCE_GPS = 1   # GNSS (EKF2_GPS_CTRL)
+uint8 FUSION_SOURCE_OF = 2    # Optical Flow (EKF2_OF_CTRL)
+uint8 FUSION_SOURCE_EV = 3    # External Vision (EKF2_EV_CTRL)
+uint8 FUSION_SOURCE_AGP = 4   # Auxiliary Global Position (EKF2_AGP{i}_CTRL, use instance param)
+uint8 FUSION_SOURCE_BARO = 5  # Barometer (EKF2_BARO_CTRL)
+uint8 FUSION_SOURCE_RNG = 6   # Range Finder (EKF2_RNG_CTRL)
+uint8 FUSION_SOURCE_DRAG = 7  # Drag (EKF2_DRAG_CTRL)
+uint8 FUSION_SOURCE_MAG = 8   # Magnetometer (EKF2_MAG_TYPE)
+uint8 FUSION_SOURCE_IMU = 9   # IMU (EKF2_IMU_CTRL)
 
 # PX4 vehicle commands (beyond 16 bit MAVLink commands).
 uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehicle commands (> UINT16_MAX).

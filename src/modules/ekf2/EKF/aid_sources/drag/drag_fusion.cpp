@@ -45,7 +45,7 @@
 
 void Ekf::controlDragFusion(const imuSample &imu_delayed)
 {
-	if ((_params.ekf2_drag_ctrl > 0) && _drag_buffer) {
+	if ((_fc.drag.intended > 0) && _drag_buffer) {
 
 		if (!_control_status.flags.wind && !_control_status.flags.fake_pos && _control_status.flags.in_air) {
 			_control_status.flags.wind = true;

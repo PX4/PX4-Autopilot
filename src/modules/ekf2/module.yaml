@@ -192,3 +192,28 @@ parameters:
         long: When enabled, constant position fusion is enabled when the vehicle is landeded if position has been initialized but has currently no vel/pos aiding.
       type: boolean
       default: 0
+
+    EKF2_EN_BOOT:
+      description:
+        short: Sensor fusion enable at boot
+        long: 'Bitmask to control which sensor fusion sources are active at boot.
+          Sources whose bit is cleared will be disabled at startup.
+          They can be toggled at runtime via MAVLink command
+          (VEHICLE_CMD_SET_EKF_SENSOR_FUSION), which also updates this param.'
+      type: bitmask
+      bit:
+        0: GNSS
+        1: Optical flow
+        2: External vision
+        3: Aux global position 0
+        4: Aux global position 1
+        5: Aux global position 2
+        6: Aux global position 3
+        7: Barometer
+        8: Range finder
+        9: Drag
+        10: Magnetometer
+        11: IMU
+      default: 4095
+      min: 0
+      max: 4095

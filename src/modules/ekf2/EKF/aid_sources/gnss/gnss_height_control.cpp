@@ -82,7 +82,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 						       && _gnss_checks.passed()
 						       && !_control_status.flags.gnss_fault;
 
-		const bool continuing_conditions_passing = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VPOS))
+		const bool continuing_conditions_passing = (_fc.gps.intended & static_cast<int32_t>(GnssCtrl::VPOS))
 				&& common_conditions_passing;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
