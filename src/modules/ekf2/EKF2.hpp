@@ -394,6 +394,22 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
+#if defined(CONFIG_EKF2_GNSS)
+	uint8_t _gps_ctrl_cache {0};
+#endif
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	uint8_t _of_ctrl_cache {0};
+#endif
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+	uint8_t _ev_ctrl_cache {0};
+#endif
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+	static constexpr uint8_t MAX_AGP_INSTANCES = 2;
+	uint8_t _agp_ctrl_cache[MAX_AGP_INSTANCES] {0, 0, 0, 0};
+#endif
+
+	void handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack);
+
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 

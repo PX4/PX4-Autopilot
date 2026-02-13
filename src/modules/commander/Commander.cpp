@@ -1607,6 +1607,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_CAMERA_INFORMATION:
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE:
+	case vehicle_command_s::VEHICLE_CMD_SET_EKF_SENSOR_FUSION:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 

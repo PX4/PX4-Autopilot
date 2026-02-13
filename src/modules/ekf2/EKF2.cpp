@@ -598,6 +598,12 @@ void EKF2::Run()
 				command_ack.timestamp = hrt_absolute_time();
 				_vehicle_command_ack_pub.publish(command_ack);
 			}
+
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_EKF_SENSOR_FUSION) {
+				handleSensorFusionCommand(vehicle_command, command_ack);
+				command_ack.timestamp = hrt_absolute_time();
+				_vehicle_command_ack_pub.publish(command_ack);
+			}
 		}
 	}
 
@@ -963,6 +969,111 @@ void EKF2::VerifyParams()
 					   "EKF2_DELAY_MAX increased to {2}ms, please reboot", _param_ekf2_delay_max.get(),
 					   delay_max);
 		_param_ekf2_delay_max.commit_no_notification(delay_max);
+	}
+}
+
+void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_command_ack_s &ack)
+{
+	const int32_t source = static_cast<int32_t>(cmd.param1);
+	const int32_t action = static_cast<int32_t>(cmd.param3);  // 0 = disable, 1 = enable
+
+	if (action != 0 && action != 1) {
+		ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+		return;
+	}
+
+	switch (source) {
+#if defined(CONFIG_EKF2_GNSS)
+
+	case vehicle_command_s::FUSION_SOURCE_GPS: {
+			const uint8_t current = static_cast<uint8_t>(_param_ekf2_gps_ctrl.get());
+
+			if (action == 0) {
+				if (current != 0) {
+					_gps_ctrl_cache = current;
+				}
+
+				_param_ekf2_gps_ctrl.set(0);
+				_param_ekf2_gps_ctrl.commit_no_notification();
+
+			} else {
+				if (_gps_ctrl_cache != 0) {
+					_param_ekf2_gps_ctrl.set(_gps_ctrl_cache);
+					_param_ekf2_gps_ctrl.commit_no_notification();
+				}
+			}
+
+			ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			return;
+		}
+
+#endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
+	case vehicle_command_s::FUSION_SOURCE_OF: {
+			const uint8_t current = static_cast<uint8_t>(_param_ekf2_of_ctrl.get());
+
+			if (action == 0) {
+				if (current != 0) {
+					_of_ctrl_cache = current;
+				}
+
+				_param_ekf2_of_ctrl.set(0);
+				_param_ekf2_of_ctrl.commit_no_notification();
+
+			} else {
+				if (_of_ctrl_cache != 0) {
+					_param_ekf2_of_ctrl.set(_of_ctrl_cache);
+					_param_ekf2_of_ctrl.commit_no_notification();
+				}
+			}
+
+			ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			return;
+		}
+
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+	case vehicle_command_s::FUSION_SOURCE_EV: {
+			const uint8_t current = static_cast<uint8_t>(_param_ekf2_ev_ctrl.get());
+
+			if (action == 0) {
+				if (current != 0) {
+					_ev_ctrl_cache = current;
+				}
+
+				_param_ekf2_ev_ctrl.set(0);
+				_param_ekf2_ev_ctrl.commit_no_notification();
+
+			} else {
+				if (_ev_ctrl_cache != 0) {
+					_param_ekf2_ev_ctrl.set(_ev_ctrl_cache);
+					_param_ekf2_ev_ctrl.commit_no_notification();
+				}
+			}
+
+			ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			return;
+		}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+
+	// TODO: rebase on multi AGP, use instance param to select
+	case vehicle_command_s::FUSION_SOURCE_AGP: {
+			ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			return;
+		}
+
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
+	default:
+		ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+		return;
 	}
 }
 
