@@ -42,6 +42,7 @@
 #include <lib/mathlib/mathlib.h>
 
 using namespace time_literals;
+using namespace matrix;
 
 bool GotoControl::checkForSetpoint(const hrt_abstime &now, const bool enabled)
 {
@@ -64,8 +65,8 @@ bool GotoControl::checkForSetpoint(const hrt_abstime &now, const bool enabled)
 	return need_to_run;
 }
 
-void GotoControl::update(const float dt, const matrix::Vector3f &position, const matrix::Vector3f &velocity,
-	const matrix::Vector3f &acceleration, const float heading)
+void GotoControl::update(const float dt, const Vector3f &position, const Vector3f &velocity, const Vector3f &acceleration,
+			 const float heading)
 {
 	if (!_is_initialized) {
 		resetPositionSmoother(position, velocity, acceleration);
@@ -139,8 +140,7 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 	_vehicle_constraints_pub.publish(vehicle_constraints);
 }
 
-void GotoControl::resetPositionSmoother(const matrix::Vector3f &position, const matrix::Vector3f &velocity,
-	const matrix::Vector3f &acceleration)
+void GotoControl::resetPositionSmoother(const Vector3f &position, const Vector3f &velocity, const Vector3f &acceleration)
 {
 	if (!position.isAllFinite()) {
 		// TODO: error messaging
