@@ -111,7 +111,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 		}
 
 		// determine if we should use height aiding
-		const bool continuing_conditions_passing = (_params.ekf2_baro_ctrl == 1)
+		const bool continuing_conditions_passing = (_fc.baro.intended == 1)
 				&& measurement_valid
 				&& (_baro_counter > _obs_buffer_length)
 				&& !_control_status.flags.baro_fault;
