@@ -795,6 +795,9 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &msg)
 	sensor_gps.spoofing_state = 0;
 	sensor_gps.vel_ned_valid = true;
 	sensor_gps.satellites_used = _sim_gps_used.get();
+	sensor_gps.position_offset_x = 0.0f;
+	sensor_gps.position_offset_y = 0.0f;
+	sensor_gps.position_offset_z = 0.0f;
 
 	_sensor_gps_pub.publish(sensor_gps);
 }

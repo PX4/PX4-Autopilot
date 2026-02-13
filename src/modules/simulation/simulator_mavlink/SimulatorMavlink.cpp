@@ -466,6 +466,9 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 
 			gps.heading = NAN;
 			gps.heading_offset = NAN;
+			gps.position_offset_x = 0.0f;
+			gps.position_offset_y = 0.0f;
+			gps.position_offset_z = 0.0f;
 
 			_gps_prev = gps;
 
