@@ -41,7 +41,7 @@
 
 void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
-	if (!_gps_buffer || (_params.ekf2_gps_ctrl == 0)) {
+	if (!_gps_buffer || (_fc.gps.intended == 0)) {
 		stopGnssFusion();
 		return;
 	}
@@ -133,7 +133,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool force_reset)
 {
-	const bool continuing_conditions_passing = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
+	const bool continuing_conditions_passing = (_fc.gps.intended & static_cast<int32_t>(GnssCtrl::VEL))
 			&& _control_status.flags.tilt_align
 			&& _control_status.flags.yaw_align
 			&& !_control_status.flags.gnss_fault
@@ -189,7 +189,7 @@ void Ekf::controlGnssVelFusion(estimator_aid_source3d_s &aid_src, const bool for
 
 void Ekf::controlGnssPosFusion(estimator_aid_source2d_s &aid_src, const bool force_reset)
 {
-	const bool gnss_pos_enabled = (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::HPOS));
+	const bool gnss_pos_enabled = (_fc.gps.intended & static_cast<int32_t>(GnssCtrl::HPOS));
 
 	const bool continuing_conditions_passing = gnss_pos_enabled
 			&& _control_status.flags.tilt_align
@@ -392,8 +392,8 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 		_yawEstimator.fuseVelocity(vel_xy, vel_var, _control_status.flags.in_air);
 
 		// Try to align yaw using estimate if available
-		if (((_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
-		     || (_params.ekf2_gps_ctrl & static_cast<int32_t>(GnssCtrl::HPOS)))
+		if (((_fc.gps.intended & static_cast<int32_t>(GnssCtrl::VEL))
+		     || (_fc.gps.intended & static_cast<int32_t>(GnssCtrl::HPOS)))
 		    && !_control_status.flags.yaw_align
 		    && _control_status.flags.tilt_align) {
 			if (resetYawToEKFGSF()) {

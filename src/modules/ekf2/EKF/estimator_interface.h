@@ -155,6 +155,7 @@ public:
 	// return a address to the parameters struct
 	// in order to give access to the application
 	parameters *getParamHandle() { return &_params; }
+	FusionControl *getFusionControlHandle() { return &_fc; }
 
 	// set vehicle landed status data
 	void set_in_air_status(bool in_air)
@@ -336,6 +337,7 @@ protected:
 	virtual bool init(uint64_t timestamp) = 0;
 
 	parameters _params{};		// filter parameters
+	FusionControl _fc{};
 
 	/*
 	 OBS_BUFFER_LENGTH defines how many observations (non-IMU measurements) we can buffer

@@ -42,7 +42,7 @@
 
 void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 {
-	if (!_flow_buffer || (_params.ekf2_of_ctrl != 1)) {
+	if (!_flow_buffer || (_fc.of.intended != 1)) {
 		stopFlowFusion();
 		return;
 	}
@@ -146,7 +146,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					       && !flow_sample.flow_rate.longerThan(_flow_max_rate)
 					       && !flow_compensated.longerThan(_flow_max_rate);
 
-		const bool continuing_conditions_passing = (_params.ekf2_of_ctrl == 1)
+		const bool continuing_conditions_passing = (_fc.of.intended == 1)
 				&& _control_status.flags.tilt_align
 				&& is_within_sensor_dist;
 

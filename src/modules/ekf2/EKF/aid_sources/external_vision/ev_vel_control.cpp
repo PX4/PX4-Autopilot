@@ -51,7 +51,7 @@ void Ekf::controlEvVelFusion(ExternalVisionVel &ev, const bool common_starting_c
 					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
 
 	// determine if we should use EV velocity aiding
-	bool continuing_conditions_passing = (_params.ekf2_ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))
+	bool continuing_conditions_passing = (_fc.ev.intended & static_cast<int32_t>(EvCtrl::VEL))
 					     && _control_status.flags.tilt_align
 					     && ev._sample.vel.isAllFinite()
 					     && !ev._sample.vel.longerThan(_params.ekf2_vel_lim);

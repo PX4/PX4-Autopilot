@@ -284,6 +284,27 @@ struct systemFlagUpdate {
 	bool in_transition{false};
 };
 
+// Runtime fusion control. Populated by EKF2 module, read by EKF core.
+static constexpr uint8_t MAX_AGP_INSTANCES = 4;
+
+
+struct FusionSensor {
+	bool exists{false};
+	int32_t intended{0};
+};
+
+struct FusionControl {
+	FusionSensor gps;
+	FusionSensor of;
+	FusionSensor ev;
+	FusionSensor agp[MAX_AGP_INSTANCES];
+	FusionSensor baro;
+	FusionSensor rng;
+	FusionSensor drag;
+	FusionSensor mag{false, 5};  // MagFuseType::NONE
+	FusionSensor imu;
+};
+
 struct parameters {
 
 	int32_t ekf2_predict_us{10000};         ///< filter update interval in microseconds

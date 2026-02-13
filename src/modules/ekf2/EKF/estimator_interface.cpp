@@ -519,7 +519,7 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 {
 	// down-sample the drag specific force data by accumulating and calculating the mean when
 	// sufficient samples have been collected
-	if (_params.ekf2_drag_ctrl > 0) {
+	if (_fc.drag.intended > 0) {
 
 		// Allocate the required buffer size if not previously done
 		if (_drag_buffer == nullptr) {
