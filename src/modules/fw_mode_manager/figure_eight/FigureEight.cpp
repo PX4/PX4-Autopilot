@@ -105,7 +105,7 @@ FigureEight::FigureEightPatternParameters FigureEight::sanitizeParameters(const 
 }
 
 void FigureEight::initializePattern(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-				    const FigureEightPatternParameters &parameters, FigureEightPatternPoints pattern_points)
+				    const FigureEightPatternParameters &parameters, const FigureEightPatternPoints &pattern_points)
 {
 	// Initialize the currently active segment, if it hasn't been active yet, or the pattern has been changed.
 	if ((_current_segment == FigureEightSegment::SEGMENT_UNDEFINED) || (_active_parameters != parameters)) {

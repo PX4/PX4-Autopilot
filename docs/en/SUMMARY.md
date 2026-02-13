@@ -253,7 +253,7 @@
       - [Benewake TFmini Lidar](sensor/tfmini.md)
       - [LeddarOne Lidar](sensor/leddar_one.md)
       - [Lidar-Lite](sensor/lidar_lite.md)
-      - [Lightware Lidars (SF/LW)](sensor/sfxx_lidar.md)
+      - [Lightware Lidars (SF/LW/GRF)](sensor/sfxx_lidar.md)
         - [Lightware SF45 Rotary Lidar](sensor/sf45_rotating_lidar.md)
       - [TeraRanger](sensor/teraranger.md)
       - [✘ Lanbao PSK-CM8JL65-CC5](sensor/cm8jl65_ir_distance_sensor.md)
