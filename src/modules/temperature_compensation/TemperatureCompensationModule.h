@@ -39,7 +39,7 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_config.h>
@@ -65,10 +65,12 @@ using namespace time_literals;
 namespace temperature_compensation
 {
 
-class TemperatureCompensationModule : public ModuleBase<TemperatureCompensationModule>, public ModuleParams,
+class TemperatureCompensationModule : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	TemperatureCompensationModule();
 	~TemperatureCompensationModule() override;
 

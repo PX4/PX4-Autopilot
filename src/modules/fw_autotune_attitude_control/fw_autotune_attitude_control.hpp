@@ -46,7 +46,7 @@
 #include <lib/system_identification/system_identification.hpp>
 #include <lib/system_identification/signal_generator.hpp>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
@@ -72,10 +72,12 @@ enum class SignalType : uint8_t {
 	kLogSineSweep
 };
 
-class FwAutotuneAttitudeControl : public ModuleBase<FwAutotuneAttitudeControl>, public ModuleParams,
+class FwAutotuneAttitudeControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	FwAutotuneAttitudeControl(bool is_vtol);
 	~FwAutotuneAttitudeControl() override;
 

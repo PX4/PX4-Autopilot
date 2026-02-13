@@ -45,7 +45,7 @@
 #include <drivers/gyroscope/PX4Gyroscope.hpp>
 #include <drivers/magnetometer/PX4Magnetometer.hpp>
 #include <perf/perf_counter.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
@@ -59,8 +59,10 @@
 
 #include "sensor.h"
 
-class ILabs : public ModuleBase<ILabs>, public ModuleParams, public px4::ScheduledWorkItem {
+class ILabs : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem {
 public:
+	static Descriptor desc;
+
 	ILabs(const char *port);
 	~ILabs() override;
 

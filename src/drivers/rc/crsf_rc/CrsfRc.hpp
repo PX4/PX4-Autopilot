@@ -38,7 +38,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/Serial.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -56,9 +56,11 @@
 
 using namespace device;
 
-class CrsfRc : public ModuleBase<CrsfRc>, public ModuleParams, public px4::ScheduledWorkItem
+class CrsfRc : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	CrsfRc(const char *device);
 	~CrsfRc() override;
 

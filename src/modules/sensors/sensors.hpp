@@ -43,7 +43,7 @@
 
 #include <lib/sensor_calibration/Utilities.hpp>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -91,9 +91,11 @@
 using namespace sensors;
 using namespace time_literals;
 
-class Sensors : public ModuleBase<Sensors>, public ModuleParams, public px4::ScheduledWorkItem
+class Sensors : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	explicit Sensors(bool hil_enabled);
 	~Sensors() override;
 

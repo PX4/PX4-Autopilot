@@ -46,7 +46,7 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_arch/adc.h>
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
@@ -62,9 +62,11 @@ using namespace time_literals;
 
 #define ADC_TOTAL_CHANNELS 		32
 
-class ADC : public ModuleBase<ADC>, public px4::ScheduledWorkItem
+class ADC : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	ADC(uint32_t base_address = SYSTEM_ADC_BASE, uint32_t channels = ADC_CHANNELS, bool publish_adc_report = true);
 
 	~ADC() override;

@@ -38,7 +38,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
 #include <uORB/topics/parameter_update.h>
@@ -52,9 +52,11 @@
 
 using namespace time_literals;
 
-class PWMSim : public ModuleBase<PWMSim>, public OutputModuleInterface
+class PWMSim : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	PWMSim(bool hil_mode_enabled);
 	~PWMSim() override;
 

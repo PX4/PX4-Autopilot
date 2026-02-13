@@ -43,7 +43,7 @@
 #include <sbgEComLib.h>
 #include <version/sbgVersion.h>
 
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
@@ -63,9 +63,11 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
-class SbgEcom : public ModuleBase<SbgEcom>, public ModuleParams, public px4::ScheduledWorkItem
+class SbgEcom : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	SbgEcom(const char *port, uint32_t baudrate, const char *config_file, const char *config_string);
 	~SbgEcom() override;

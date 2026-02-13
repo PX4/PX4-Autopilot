@@ -47,7 +47,7 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 
 // publications
@@ -95,14 +95,19 @@ using arm_disarm_reason_t = events::px4::enums::arm_disarm_reason_t;
 
 using namespace time_literals;
 
-class Commander : public ModuleBase<Commander>, public ModuleParams
+class Commander : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Commander();
 	~Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Commander *instantiate(int argc, char *argv[]);

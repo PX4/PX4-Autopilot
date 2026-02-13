@@ -49,7 +49,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/Serial.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -64,9 +64,11 @@ using namespace device;
 
 using namespace time_literals;
 
-class Voxl2IO final : public ModuleBase<Voxl2IO>, public OutputModuleInterface
+class Voxl2IO final : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	Voxl2IO();
 	~Voxl2IO() override;
 

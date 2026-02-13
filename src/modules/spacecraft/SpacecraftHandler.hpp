@@ -44,7 +44,7 @@
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
@@ -67,9 +67,11 @@
 #include "SpacecraftAttitudeControl/SpacecraftAttitudeControl.hpp"
 #include "SpacecraftPositionControl/SpacecraftPositionControl.hpp"
 
-class SpacecraftHandler : public ModuleBase<SpacecraftHandler>, public ModuleParams, public px4::ScheduledWorkItem
+class SpacecraftHandler : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	SpacecraftHandler();
 

@@ -40,7 +40,7 @@
 
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -84,9 +84,11 @@
 
 using namespace time_literals;
 
-class GZBridge : public ModuleBase<GZBridge>, public ModuleParams, public px4::ScheduledWorkItem
+class GZBridge : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	GZBridge(const std::string &world, const std::string &model_name);
 	~GZBridge() override;
 

@@ -35,7 +35,7 @@
 
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -55,9 +55,11 @@ static constexpr float PRESSURE_MSL = 101325.0; // pressure at MSL [Pa]
 static constexpr float LAPSE_RATE = 0.0065; // reduction in temperature with altitude for troposphere [K/m]
 static constexpr float AIR_DENSITY_MSL = 1.225; // air density at MSL [kg/m^3]
 
-class SensorAirspeedSim : public ModuleBase<SensorAirspeedSim>, public ModuleParams, public px4::ScheduledWorkItem
+class SensorAirspeedSim : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SensorAirspeedSim();
 	~SensorAirspeedSim() override;
 

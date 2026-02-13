@@ -42,7 +42,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -52,9 +52,11 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 
-class DsmRc : public ModuleBase<DsmRc>, public px4::ScheduledWorkItem
+class DsmRc : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	DsmRc(const char *device);
 	virtual ~DsmRc();

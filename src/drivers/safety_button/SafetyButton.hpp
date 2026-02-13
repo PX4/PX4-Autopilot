@@ -36,13 +36,15 @@
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <button/ButtonPublisher.hpp>
 
-class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
+class SafetyButton : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SafetyButton();
 	~SafetyButton() override;
 

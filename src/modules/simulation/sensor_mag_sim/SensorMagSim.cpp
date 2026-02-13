@@ -38,6 +38,8 @@
 
 using namespace matrix;
 
+ModuleBase::Descriptor SensorMagSim::desc{task_spawn, custom_command, print_usage};
+
 SensorMagSim::SensorMagSim() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -91,7 +93,7 @@ void SensorMagSim::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -147,8 +149,8 @@ int SensorMagSim::task_spawn(int argc, char *argv[])
 	SensorMagSim *instance = new SensorMagSim();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -159,8 +161,8 @@ int SensorMagSim::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -192,5 +194,5 @@ int SensorMagSim::print_usage(const char *reason)
 
 extern "C" __EXPORT int sensor_mag_sim_main(int argc, char *argv[])
 {
-	return SensorMagSim::main(argc, argv);
+	return ModuleBase::main(SensorMagSim::desc, argc, argv);
 }

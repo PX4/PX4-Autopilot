@@ -37,7 +37,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_sensor.h>
 #include <lib/crc/crc.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
@@ -71,10 +71,12 @@ private:
 	struct i2c_master_s *_i2c {nullptr};
 };
 
-class AuterionAutostarter : public ModuleBase<AuterionAutostarter>, public px4::ScheduledWorkItem
+class AuterionAutostarter : public ModuleBase, public px4::ScheduledWorkItem
 {
 
 public:
+	static Descriptor desc;
+
 	AuterionAutostarter();
 	virtual ~AuterionAutostarter();
 

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -41,15 +41,20 @@
 
 extern "C" __EXPORT int rc_controller_main(int argc, char *argv[]);
 
-class RC_ControllerModule : public ModuleBase<RC_ControllerModule>, public ModuleParams
+class RC_ControllerModule : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	RC_ControllerModule();
 
 	virtual ~RC_ControllerModule() = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static RC_ControllerModule *instantiate(int argc, char *argv[]);

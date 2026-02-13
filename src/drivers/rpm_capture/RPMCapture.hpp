@@ -37,7 +37,7 @@
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/mathlib/math/filter/MedianFilter.hpp>
 #include <px4_arch/micro_hal.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
@@ -47,9 +47,11 @@
 
 using namespace time_literals;
 
-class RPMCapture : public ModuleBase<RPMCapture>, public px4::ScheduledWorkItem, public ModuleParams
+class RPMCapture : public ModuleBase, public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	RPMCapture();
 	virtual ~RPMCapture();
 

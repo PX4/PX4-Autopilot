@@ -44,7 +44,7 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
@@ -60,9 +60,11 @@ using namespace time_literals;
 #define CONTROLLER_PERIOD_DEFAULT    10000
 #define TEMPERATURE_TARGET_THRESHOLD 2.5f
 
-class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem
+class Heater : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	Heater();
 
 	virtual ~Heater();

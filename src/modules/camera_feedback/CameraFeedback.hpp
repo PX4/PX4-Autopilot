@@ -44,7 +44,7 @@
 #include <lib/parameters/param.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
@@ -57,9 +57,11 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
 
-class CameraFeedback : public ModuleBase<CameraFeedback>, public ModuleParams, public px4::WorkItem
+class CameraFeedback : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	CameraFeedback();
 	~CameraFeedback() override = default;
 

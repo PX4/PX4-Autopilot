@@ -36,7 +36,7 @@
 #include <lib/battery/battery.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
@@ -50,9 +50,11 @@
 
 using namespace time_literals;
 
-class BatterySimulator : public ModuleBase<BatterySimulator>, public ModuleParams, public px4::ScheduledWorkItem
+class BatterySimulator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	BatterySimulator();
 	~BatterySimulator() override;
 

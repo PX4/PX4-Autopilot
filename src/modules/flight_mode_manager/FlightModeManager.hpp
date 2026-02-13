@@ -37,7 +37,7 @@
 #include "FlightTasks_generated.hpp"
 
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
@@ -65,9 +65,11 @@ enum class FlightTaskError : int {
 	ActivationFailed = -2
 };
 
-class FlightModeManager : public ModuleBase<FlightModeManager>, public ModuleParams, public px4::WorkItem
+class FlightModeManager : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	FlightModeManager();
 	~FlightModeManager() override;
 

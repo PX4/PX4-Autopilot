@@ -35,7 +35,7 @@
 
 #include <stdint.h>
 #include <px4_platform_common/app.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -48,9 +48,11 @@
 
 using namespace time_literals;
 
-class I2CLauncher : public ModuleBase<I2CLauncher>, public ModuleParams, public px4::ScheduledWorkItem
+class I2CLauncher : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	I2CLauncher(int bus, int batt_index);
 
 	~I2CLauncher() override;

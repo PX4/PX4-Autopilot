@@ -3,7 +3,7 @@
 #include "trajectories/lissajous.hpp"
 
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -69,9 +69,11 @@ namespace rlt = rl_tools;
 
 using namespace time_literals;
 
-class Raptor : public ModuleBase<Raptor>, public ModuleParams, public px4::ScheduledWorkItem
+class Raptor : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	Raptor();
 	~Raptor() override;
 

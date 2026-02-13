@@ -35,7 +35,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
@@ -53,10 +53,12 @@
 namespace internal_combustion_engine_control
 {
 
-class InternalCombustionEngineControl : public ModuleBase<InternalCombustionEngineControl>, public ModuleParams,
+class InternalCombustionEngineControl : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	InternalCombustionEngineControl();
 	~InternalCombustionEngineControl() override;
 

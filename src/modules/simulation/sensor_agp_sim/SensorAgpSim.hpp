@@ -36,7 +36,7 @@
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -47,9 +47,11 @@
 
 using namespace time_literals;
 
-class SensorAgpSim : public ModuleBase<SensorAgpSim>, public ModuleParams, public px4::ScheduledWorkItem
+class SensorAgpSim : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SensorAgpSim();
 	~SensorAgpSim() override;
 

@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/getopt.h>
@@ -86,9 +86,11 @@ using matrix::Vector2f;
 
 static constexpr float sq(float x) { return x * x; };
 
-class MicroStrain : public ModuleBase<MicroStrain>, public ModuleParams, public px4::ScheduledWorkItem
+class MicroStrain : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	MicroStrain(const char *_device);
 	~MicroStrain() override;
 

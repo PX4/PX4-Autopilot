@@ -45,6 +45,7 @@
 #include <px4_platform_common/log.h>
 #include <systemlib/px4_macros.h>
 
+#include <cstring>
 #include <stdbool.h>
 #include <stdint.h>
 

@@ -48,7 +48,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -67,9 +67,11 @@
 # include <systemlib/ppm_decode.h>
 #endif
 
-class RCInput : public ModuleBase<RCInput>, public ModuleParams, public px4::ScheduledWorkItem
+class RCInput : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	RCInput(const char *device);
 	virtual ~RCInput();

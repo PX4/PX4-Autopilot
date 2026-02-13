@@ -40,7 +40,7 @@
 #include <sys/time.h>
 
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
@@ -50,9 +50,11 @@
 #include "subscribers/uorb_subscriber.hpp"
 
 
-class ZENOH : public ModuleBase<ZENOH>, public ModuleParams
+class ZENOH : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	ZENOH();
 
 	~ZENOH();
@@ -77,6 +79,8 @@ public:
 	 * @see ModuleBase::task_spawn
 	 */
 	static int task_spawn(int argc, char *argv[]);
+
+	static int run_trampoline(int argc, char *argv[]);
 
 	static ZENOH *instantiate(int argc, char *argv[]);
 

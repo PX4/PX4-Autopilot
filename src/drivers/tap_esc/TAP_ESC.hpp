@@ -36,7 +36,7 @@
 #include <stdint.h>
 
 #include <px4_defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/posix.h>
@@ -79,9 +79,11 @@ using namespace time_literals;
 /*
  * This driver connects to TAP ESCs via serial.
  */
-class TAP_ESC : public ModuleBase<TAP_ESC>, public OutputModuleInterface
+class TAP_ESC : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	TAP_ESC(const char *device, uint8_t channels_count);
 	virtual ~TAP_ESC();
 

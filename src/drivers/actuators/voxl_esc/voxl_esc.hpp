@@ -39,7 +39,7 @@
 #include <lib/perf/perf_counter.h>
 
 #include <px4_log.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 
 #include <battery/battery.h>
 
@@ -58,9 +58,11 @@
 
 using namespace device;
 
-class VoxlEsc : public ModuleBase<VoxlEsc>, public OutputModuleInterface
+class VoxlEsc : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	VoxlEsc();
 	virtual ~VoxlEsc();
 

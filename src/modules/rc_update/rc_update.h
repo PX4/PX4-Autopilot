@@ -41,7 +41,7 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
@@ -70,9 +70,11 @@ namespace rc_update
  *
  * Handling of RC updates
  */
-class RCUpdate : public ModuleBase<RCUpdate>, public ModuleParams, public px4::WorkItem
+class RCUpdate : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	RCUpdate();
 	~RCUpdate() override;
 

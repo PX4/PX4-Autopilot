@@ -42,7 +42,7 @@
 
 #include "definitions.hpp"
 
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <uORB/topics/uORBTopics.hpp>
 
 namespace px4
@@ -55,15 +55,20 @@ namespace px4
  * to replay. This is necessary because data messages from different subscriptions don't need to be in
  * monotonic increasing order.
  */
-class Replay : public ModuleBase<Replay>
+class Replay : public ModuleBase
 {
 public:
+	static Descriptor desc;
+
 	Replay() = default;
 
 	virtual ~Replay();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Replay *instantiate(int argc, char *argv[]);

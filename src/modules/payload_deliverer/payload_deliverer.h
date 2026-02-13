@@ -38,7 +38,7 @@
 #include "gripper.h"
 
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
@@ -69,9 +69,11 @@ static constexpr int8_t GRIPPER_ACTION_NONE = -1;
  *
  * This module communicates with the Navigator which handles publishing such vehicle commands.
  */
-class PayloadDeliverer : public ModuleBase<PayloadDeliverer>, public ModuleParams, public px4::ScheduledWorkItem
+class PayloadDeliverer : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	PayloadDeliverer();
 
 	/** @see ModuleBase **/

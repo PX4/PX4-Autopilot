@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 
 #include <src/modules/uxrce_dds_client/dds_topics.h>
@@ -56,9 +56,11 @@
 #define STREAM_HISTORY  4
 #define BUFFER_SIZE (UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY) // MTU==512 by default
 
-class UxrceddsClient : public ModuleBase<UxrceddsClient>, public ModuleParams
+class UxrceddsClient : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	enum class Transport {
 		Serial,
 		Udp
@@ -71,6 +73,9 @@ public:
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static UxrceddsClient *instantiate(int argc, char *argv[]);

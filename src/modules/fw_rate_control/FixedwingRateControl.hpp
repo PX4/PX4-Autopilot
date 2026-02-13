@@ -45,7 +45,7 @@
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
@@ -79,10 +79,12 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class FixedwingRateControl final : public ModuleBase<FixedwingRateControl>, public ModuleParams,
+class FixedwingRateControl final : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	FixedwingRateControl(bool vtol = false);
 	~FixedwingRateControl() override;
 

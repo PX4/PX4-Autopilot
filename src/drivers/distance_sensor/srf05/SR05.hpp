@@ -43,7 +43,7 @@
 
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 
 #include <uORB/Subscription.hpp>
 #include <board_config.h>
@@ -67,9 +67,11 @@ static constexpr uint32_t HXSRX0X_CONVERSION_INTERVAL{50_ms};
 // Maximum time to wait for a conversion to complete.
 static constexpr uint32_t HXSRX0X_CONVERSION_TIMEOUT{30_ms};
 
-class SRF05 : public ModuleBase<SRF05>, public px4::ScheduledWorkItem
+class SRF05 : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SRF05(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~SRF05() override;
 

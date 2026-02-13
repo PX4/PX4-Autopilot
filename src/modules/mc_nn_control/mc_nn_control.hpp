@@ -44,7 +44,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <matrix/matrix/math.hpp>
@@ -80,10 +80,12 @@
 #include <uORB/topics/arming_check_reply.h>
 
 using namespace time_literals; // For the 1_s in the subscription interval
-class MulticopterNeuralNetworkControl : public ModuleBase<MulticopterNeuralNetworkControl>, public ModuleParams,
+class MulticopterNeuralNetworkControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	MulticopterNeuralNetworkControl();
 	~MulticopterNeuralNetworkControl() override;

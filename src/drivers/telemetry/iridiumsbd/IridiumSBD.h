@@ -43,7 +43,7 @@
 #include <uORB/topics/iridiumsbd_status.h>
 
 #include <px4_platform_common/atomic.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 
 typedef enum {
 	SATCOM_OK = 0,
@@ -99,14 +99,19 @@ typedef enum {
  * 	- Improve TX buffer handling:
  * 		- Do not reset the full TX buffer but delete the oldest HIGH_LATENCY2 message if one is in the buffer or delete the oldest message in general
  */
-class IridiumSBD : public cdev::CDev, public ModuleBase<IridiumSBD>
+class IridiumSBD : public cdev::CDev, public ModuleBase
 {
 public:
+	static Descriptor desc;
+
 	IridiumSBD();
 	~IridiumSBD();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static IridiumSBD *instantiate(int argc, char *argv[]);

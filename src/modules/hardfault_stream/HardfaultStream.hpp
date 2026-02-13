@@ -38,7 +38,7 @@
 #include <sys/stat.h>
 
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
@@ -52,9 +52,11 @@
 namespace hardfault_stream
 {
 
-class HardfaultStream : public ModuleBase<HardfaultStream>, public ModuleParams, public px4::ScheduledWorkItem
+class HardfaultStream : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	HardfaultStream();
 	~HardfaultStream() override;
 

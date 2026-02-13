@@ -56,7 +56,7 @@
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
@@ -93,9 +93,11 @@ using namespace time_literals;
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
-class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public ModuleParams, public px4::WorkItem
+class VtolAttitudeControl : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	VtolAttitudeControl();
 	~VtolAttitudeControl() override;

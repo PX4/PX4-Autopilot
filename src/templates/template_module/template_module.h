@@ -56,6 +56,8 @@ public:
 	/** @see ModuleBase */
 	static TemplateModule *instantiate(int argc, char *argv[]);
 
+	static int run_trampoline(int argc, char *argv[]);
+
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 

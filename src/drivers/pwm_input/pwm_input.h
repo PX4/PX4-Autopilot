@@ -34,7 +34,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/device.h>
 
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 
 #include <uORB/uORB.h>
 #include <uORB/Publication.hpp>
@@ -120,9 +120,11 @@
 #error PWMIN_TIMER_CHANNEL must be either 1 and 2.
 #endif
 
-class PWMIN : public ModuleBase<PWMIN>
+class PWMIN : public ModuleBase
 {
 public:
+	static Descriptor desc;
+
 	void start();
 	void publish(uint16_t status, uint32_t period, uint32_t pulse_width);
 	int print_status() override;

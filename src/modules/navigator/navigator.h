@@ -62,7 +62,7 @@
 #endif // CONFIG_NAVIGATOR_ADSB
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/events.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -97,9 +97,11 @@ using namespace time_literals;
  */
 #define NAVIGATOR_MODE_ARRAY_SIZE 8
 
-class Navigator : public ModuleBase<Navigator>, public ModuleParams
+class Navigator : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Navigator();
 	~Navigator() override;
 
@@ -108,6 +110,9 @@ public:
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Navigator *instantiate(int argc, char *argv[]);

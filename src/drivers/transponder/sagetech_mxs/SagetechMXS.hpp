@@ -34,7 +34,7 @@
 #pragma once
 
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/getopt.h>
@@ -65,9 +65,11 @@
 
 using namespace time_literals;
 
-class SagetechMXS : public ModuleBase<SagetechMXS>, public ModuleParams, public px4::ScheduledWorkItem
+class SagetechMXS : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SagetechMXS(const char *port);
 	~SagetechMXS() override;
 

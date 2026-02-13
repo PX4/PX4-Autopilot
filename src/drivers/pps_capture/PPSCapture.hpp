@@ -35,7 +35,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_arch/micro_hal.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -44,9 +44,11 @@
 
 using namespace time_literals;
 
-class PPSCapture : public ModuleBase<PPSCapture>, public px4::ScheduledWorkItem
+class PPSCapture : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	PPSCapture();
 	virtual ~PPSCapture();
 

@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -45,10 +45,12 @@
 
 using namespace time_literals;
 
-class AirshipAttitudeControl : public ModuleBase<AirshipAttitudeControl>, public ModuleParams,
+class AirshipAttitudeControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	AirshipAttitudeControl();
 
 	virtual ~AirshipAttitudeControl();

@@ -35,7 +35,7 @@
 #include <drivers/drv_dshot.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -57,9 +57,11 @@ static constexpr int DSHOT_DISARM_VALUE = 0;
 static constexpr int DSHOT_MIN_THROTTLE = 1;
 static constexpr int DSHOT_MAX_THROTTLE = 1999;
 
-class DShot final : public ModuleBase<DShot>, public OutputModuleInterface
+class DShot final : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	DShot();
 	~DShot() override;
 

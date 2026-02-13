@@ -48,8 +48,8 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module_base.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -72,9 +72,11 @@ using namespace time_literals;
 namespace land_detector
 {
 
-class LandDetector : public ModuleBase<LandDetector>, ModuleParams, px4::ScheduledWorkItem
+class LandDetector : public ModuleBase, ModuleParams, px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	LandDetector();
 	virtual ~LandDetector();
 
