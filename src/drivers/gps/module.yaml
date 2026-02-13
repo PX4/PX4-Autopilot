@@ -1,3 +1,5 @@
+__max_num_gps_instances: &max_num_gps_instances 2
+
 module_name: GPS
 serial_config:
     # secondary gps must be first
@@ -13,3 +15,48 @@ serial_config:
         group: GPS
         default: GPS1
       label: Main GPS
+
+parameters:
+    - group: GPS
+      definitions:
+        GPS_${i}_POS_X:
+            description:
+                short: GPS ${i} X position offset in body frame
+                long: |
+                    Forward (X) position of GPS antenna ${i} in body frame (FRD).
+                    Positive X is forward relative to the vehicle center of gravity.
+            category: System
+            type: float
+            default: 0.0
+            unit: m
+            decimal: 3
+            num_instances: *max_num_gps_instances
+            instance_start: 1
+
+        GPS_${i}_POS_Y:
+            description:
+                short: GPS ${i} Y position offset in body frame
+                long: |
+                    Right (Y) position of GPS antenna ${i} in body frame (FRD).
+                    Positive Y is right relative to the vehicle center of gravity.
+            category: System
+            type: float
+            default: 0.0
+            unit: m
+            decimal: 3
+            num_instances: *max_num_gps_instances
+            instance_start: 1
+
+        GPS_${i}_POS_Z:
+            description:
+                short: GPS ${i} Z position offset in body frame
+                long: |
+                    Down (Z) position of GPS antenna ${i} in body frame (FRD).
+                    Positive Z is down relative to the vehicle center of gravity.
+            category: System
+            type: float
+            default: 0.0
+            unit: m
+            decimal: 3
+            num_instances: *max_num_gps_instances
+            instance_start: 1
