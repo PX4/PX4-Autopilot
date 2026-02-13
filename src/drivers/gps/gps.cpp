@@ -1086,6 +1086,9 @@ GPS::run()
 			memset(&_sensor_gps, 0, sizeof(_sensor_gps));
 			_sensor_gps.heading = NAN;
 			_sensor_gps.heading_offset = heading_offset;
+			_sensor_gps.position_offset_x = gps_pos_x;
+			_sensor_gps.position_offset_y = gps_pos_y;
+			_sensor_gps.position_offset_z = gps_pos_z;
 
 			if (_mode == gps_driver_mode_t::UBX) {
 
