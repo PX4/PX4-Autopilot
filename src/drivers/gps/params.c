@@ -381,3 +381,87 @@ PARAM_DEFINE_INT32(GPS_1_GNSS, 0);
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_2_GNSS, 0);
+
+/**
+ * Primary GPS Antenna X position offset
+ *
+ * Position offset of the GPS antenna in body frame.
+ * Forward offset is positive.
+ *
+ * @unit m
+ * @min -100
+ * @max 100
+ * @decimal 3
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_1_POS_X, 0.0f);
+
+/**
+ * Primary GPS Antenna Y position offset
+ *
+ * Position offset of the GPS antenna in body frame.
+ * Rightward offset is positive.
+ *
+ * @unit m
+ * @min -100
+ * @max 100
+ * @decimal 3
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_1_POS_Y, 0.0f);
+
+/**
+ * Primary GPS Antenna Z position offset
+ *
+ * Position offset of the GPS antenna in body frame.
+ * Downward offset is positive.
+ *
+ * @unit m
+ * @min -100
+ * @max 100
+ * @decimal 3
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_1_POS_Z, 0.0f);
+
+/**
+ * Secondary GPS Antenna X position offset
+ *
+ * Position offset of the GPS antenna in body frame.
+ * Forward offset is positive.
+ *
+ * @unit m
+ * @min -100
+ * @max 100
+ * @decimal 3
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_2_POS_X, 0.0f);
+
+/**
+ * Secondary GPS Antenna Y position offset
+ *
+ * Position offset of the GPS antenna in body frame.
+ * Rightward offset is positive.
+ *
+ * @unit m
+ * @min -100
+ * @max 100
+ * @decimal 3
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_2_POS_Y, 0.0f);
+
+/**
+ * Secondary GPS Antenna Z position offset
+ *
+ * Position offset of the GPS antenna in body frame.
+ * Downward offset is positive.
+ *
+ * @unit m
+ * @min -100
+ * @max 100
+ * @decimal 3
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_2_POS_Z, 0.0f);

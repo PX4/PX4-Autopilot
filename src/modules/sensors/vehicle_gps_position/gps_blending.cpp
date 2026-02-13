@@ -372,13 +372,16 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 	// initialise the blended states so we can accumulate the results using the weightings for each GPS receiver.
 	sensor_gps_s gps_blended_state{_gps_state[gps_best_index]}; // start with best GPS for all other misc fields
 
-	// zerp all fields that are an accumulated blend below
+	// zero all fields that are an accumulated blend below
 	gps_blended_state.timestamp = 0;
 	gps_blended_state.timestamp_sample = 0;
 	gps_blended_state.vel_m_s = 0;
 	gps_blended_state.vel_n_m_s = 0;
 	gps_blended_state.vel_e_m_s = 0;
 	gps_blended_state.vel_d_m_s = 0;
+	gps_blended_state.position_offset_x = 0.0f;
+	gps_blended_state.position_offset_y = 0.0f;
+	gps_blended_state.position_offset_z = 0.0f;
 
 	// combine the the GPS states into a blended solution using the weights calculated in calc_blend_weights()
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
@@ -438,10 +441,10 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 			}
 		}
 
-		// TODO read parameters for individual GPS antenna positions and blend
-		// Vector3f temp_antenna_offset = _antenna_offset[i];
-		// temp_antenna_offset *= blend_weights[i];
-		// _blended_antenna_offset += temp_antenna_offset;
+		// Blend the GPS antenna position offsets using the same weights
+		gps_blended_state.position_offset_x += _gps_state[i].position_offset_x * blend_weights[i];
+		gps_blended_state.position_offset_y += _gps_state[i].position_offset_y * blend_weights[i];
+		gps_blended_state.position_offset_z += _gps_state[i].position_offset_z * blend_weights[i];
 	}
 
 	/*

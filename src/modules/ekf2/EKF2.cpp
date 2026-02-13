@@ -2411,6 +2411,11 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 
+		// Update GPS position offset from sensor data (supports per-GPS offsets)
+		_params->gps_pos_body(0) = vehicle_gps_position.position_offset_x;
+		_params->gps_pos_body(1) = vehicle_gps_position.position_offset_y;
+		_params->gps_pos_body(2) = vehicle_gps_position.position_offset_z;
+
 		Vector3f vel_ned;
 
 		if (vehicle_gps_position.vel_ned_valid) {

@@ -87,4 +87,9 @@ uint8 RTCM_MSG_USED_NOT_USED = 1
 uint8 RTCM_MSG_USED_USED = 2
 uint8 rtcm_msg_used		# Indicates if the RTCM message was used successfully by the receiver
 
+# GPS antenna position offset in body frame (FRD)
+float32 position_offset_x	# GPS antenna X position offset in body frame (forward positive), m
+float32 position_offset_y	# GPS antenna Y position offset in body frame (right positive), m
+float32 position_offset_z	# GPS antenna Z position offset in body frame (down positive), m
+
 # TOPICS sensor_gps vehicle_gps_position

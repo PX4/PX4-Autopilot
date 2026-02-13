@@ -880,6 +880,55 @@ GPS::run()
 		param_get(handle, &gnssSystemsParam);
 	}
 
+	// Read GPS antenna position offset parameters
+	float gps_pos_x = 0.0f;
+	float gps_pos_y = 0.0f;
+	float gps_pos_z = 0.0f;
+
+	if (_instance == Instance::Main) {
+		handle = param_find("GPS_1_POS_X");
+
+		if (handle != PARAM_INVALID) {
+			param_get(handle, &gps_pos_x);
+		}
+
+		handle = param_find("GPS_1_POS_Y");
+
+		if (handle != PARAM_INVALID) {
+			param_get(handle, &gps_pos_y);
+		}
+
+		handle = param_find("GPS_1_POS_Z");
+
+		if (handle != PARAM_INVALID) {
+			param_get(handle, &gps_pos_z);
+		}
+
+	} else if (_instance == Instance::Secondary) {
+		handle = param_find("GPS_2_POS_X");
+
+		if (handle != PARAM_INVALID) {
+			param_get(handle, &gps_pos_x);
+		}
+
+		handle = param_find("GPS_2_POS_Y");
+
+		if (handle != PARAM_INVALID) {
+			param_get(handle, &gps_pos_y);
+		}
+
+		handle = param_find("GPS_2_POS_Z");
+
+		if (handle != PARAM_INVALID) {
+			param_get(handle, &gps_pos_z);
+		}
+	}
+
+	// Set position offsets in sensor_gps struct (these will be published with each GPS message)
+	_sensor_gps.position_offset_x = gps_pos_x;
+	_sensor_gps.position_offset_y = gps_pos_y;
+	_sensor_gps.position_offset_z = gps_pos_z;
+
 	initializeCommunicationDump();
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
