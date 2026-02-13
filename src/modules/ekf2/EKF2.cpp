@@ -35,7 +35,6 @@
 #include "EKF2.hpp"
 
 using namespace time_literals;
-using math::constrain;
 using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector3f;
