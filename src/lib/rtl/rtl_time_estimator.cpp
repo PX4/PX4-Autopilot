@@ -148,14 +148,13 @@ float RtlTimeEstimator::getCruiseGroundSpeed(const matrix::Vector2f &direction_n
 		// the assumption always holds. Otherwise it breaks down when
 		// flying upwind, and the RTL time estimate is optimistic.
 
-		float fw_gnd_spd_min;
+		float fw_gnd_spd_min = 5.0f;
 
-		if (_param_fw_gnd_spd_min == PARAM_INVALID || param_get(_param_fw_gnd_spd_min, &fw_gnd_spd_min) != PX4_OK) {
-			cruise_speed = ground_speed;
-
-		} else {
-			cruise_speed = fmaxf(ground_speed, fw_gnd_spd_min);
+		if (_param_fw_gnd_spd_min != PARAM_INVALID) {
+			param_get(_param_fw_gnd_spd_min, &fw_gnd_spd_min);
 		}
+
+		cruise_speed = fmaxf(ground_speed, fw_gnd_spd_min);
 	}
 
 	return cruise_speed;
