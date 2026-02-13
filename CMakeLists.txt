@@ -519,11 +519,13 @@ add_library(kernel_events_interface INTERFACE)
 
 # Include PX4 library-defining macros
 include(px4_add_library)
+
 # Add src/lib directory to build for generic libraries
 add_subdirectory(src/lib EXCLUDE_FROM_ALL)
 
 # Add platform-specific PX4 source directory
 add_subdirectory(platforms/${PX4_PLATFORM}/src/px4)
+
 # Add the platforms directory for platform-specific code
 add_subdirectory(platforms EXCLUDE_FROM_ALL)
 
@@ -539,6 +541,7 @@ endforeach()
 
 # Add events library after modules so it sees all source files
 add_subdirectory(src/lib/events EXCLUDE_FROM_ALL)
+
 # Metadata library needs PX4_MODULE_CONFIG_FILES; add after modules
 add_subdirectory(src/lib/metadata EXCLUDE_FROM_ALL)
 
