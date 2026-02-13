@@ -38,7 +38,7 @@
  *
  * All the acknowledgments and credits for the fw wing app are reported in those files.
  *
- * @author Tim Hansen <t.hansen@jacobs-university.de>
+ * @author Tim Hansen <timhansen93@googlemail.com>
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
  */
 
@@ -142,7 +142,6 @@ private:
 		(ParamFloat<px4::params::UUV_HGT_I>) _param_hgt_i,
 		(ParamFloat<px4::params::UUV_HGT_I_SPD>) _param_hgt_i_speed,
 		(ParamFloat<px4::params::UUV_HGT_STR>) _param_hgt_strength,
-		(ParamInt<px4::params::UUV_HGT_MODE>) _param_hgt_mode,
 		(ParamInt<px4::params::UUV_HGT_B_UP>) _param_hgt_b_up,
 		(ParamInt<px4::params::UUV_HGT_B_DOWN>) _param_hgt_b_down
 	)

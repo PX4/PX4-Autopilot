@@ -38,13 +38,13 @@
  *
  * All the acknowledgments and credits for the fw wing app are reported in those files.
  *
- * @author Tim Hansen <t.hansen@jacobs-university.de>
+ * @author Tim Hansen <timhansen93@googlemail.com>
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
  */
 
 #include "uuv_pos_control.hpp"
 
-#include <iostream>
+
 
 
 /**
@@ -294,7 +294,7 @@ void UUVPOSControl::Run()
 			|| _vcontrol_mode.flag_control_position_enabled)
 		    && _vcontrol_mode.flag_armed) {
 			/* Update manual setpoints */
-			//
+
 			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled
 							&& ! _vcontrol_mode.flag_control_position_enabled;
 

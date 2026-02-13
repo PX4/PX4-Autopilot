@@ -41,7 +41,7 @@
  *
  * All the ackowledgments and credits for the fw wing/rover app are reported in those files.
  *
- * @author Tim Hansen <t.hansen@jacobs-university.de>
+ * @author Tim Hansen <timhansen93@googlemail.com>
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
  */
 
@@ -178,12 +178,3 @@ PARAM_DEFINE_INT32(UUV_HGT_B_UP, 11);
  */
 PARAM_DEFINE_INT32(UUV_HGT_B_DOWN, 12);
 
-
-/**
- * Hgt mode. Stabilize one depth based on local pose. Control hgt over arrows on control pad 0 = no hgt control, 1 = hgt control
- *
- * @group UUV Attitude Control
- * @min 0
- * @max 1
- */
-PARAM_DEFINE_INT32(UUV_HGT_MODE, 0);
