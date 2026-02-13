@@ -36,7 +36,6 @@
 using namespace time_literals;
 using namespace matrix;
 
-using math::constrain;
 using math::interpolate;
 using math::radians;
 

@@ -124,10 +124,10 @@ Once that is done you don't need to do anything else; the toolchain will automat
 
 This section includes guidance on setup and build errors.
 
-### Ubuntu 18.04: "Visual Studio Code is unable to watch for file changes in this large workspace"
+### "Visual Studio Code is unable to watch for file changes in this large workspace"
 
 This error surfaces on startup.
-On some systems, there is an upper-limit of 8192 file handles imposed on applications, which means that VSCode might not be able to detect file modifications in `/PX4-Autopilot`.
+On some systems, there is an upper-limit on file handles imposed on applications, which means that VSCode might not be able to detect file modifications in `/PX4-Autopilot`.
 
 You can increase this limit to avoid the error, at the expense of memory consumption.
 Follow the [instructions here](https://code.visualstudio.com/docs/setup/linux#_visual-studio-code-is-unable-to-watch-for-file-changes-in-this-large-workspace-error-enospc).

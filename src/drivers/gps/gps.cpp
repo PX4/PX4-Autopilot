@@ -318,9 +318,13 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	_instance(instance)
 {
 	/* store port name */
-	strncpy(_port, path, sizeof(_port) - 1);
-	/* enforce null termination */
-	_port[sizeof(_port) - 1] = '\0';
+	if (path != nullptr) {
+		strncpy(_port, path, sizeof(_port) - 1);
+		_port[sizeof(_port) - 1] = '\0';
+
+	} else {
+		_port[0] = '\0';
+	}
 
 	_sensor_gps.heading = NAN;
 	_sensor_gps.heading_offset = NAN;

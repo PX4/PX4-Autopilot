@@ -1890,7 +1890,7 @@ void Logger::write_info(LogType type, const char *name, const char *value)
 
 	/* copy string value directly to buffer */
 	if (vlen < (sizeof(msg) - msg_size)) {
-		memcpy(&buffer[msg_size], value, vlen);
+		memcpy(&buffer[msg_size], value, vlen + 1);
 		msg_size += vlen;
 
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
@@ -1916,7 +1916,7 @@ void Logger::write_info_multiple(LogType type, const char *name, const char *val
 
 	/* copy string value directly to buffer */
 	if (vlen < (sizeof(msg) - msg_size)) {
-		memcpy(&buffer[msg_size], value, vlen);
+		memcpy(&buffer[msg_size], value, vlen + 1);
 		msg_size += vlen;
 
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;

@@ -20,7 +20,7 @@ The equipment below is highly recommended:
   :::
   - Lenovo Thinkpad with i5-core running Windows 11
   - MacBook Pro (early 2015 and later) with macOS 10.15 or later
-  - Lenovo Thinkpad i5 with Ubuntu Linux 20.04 or later
+  - Lenovo Thinkpad i5 with Ubuntu Linux 22.04 or later
 
 - **Ground control station** (computer or tablet):
   - iPad (may require Wifi telemetry adapter)
@@ -39,9 +39,9 @@ Install the [QGroundControl Daily Build](../dev_setup/qgc_daily_build.md) for a 
 To configure the vehicle:
 
 1. [Install PX4 firmware](../config/firmware.md#installing-px4-main-beta-or-custom-firmware) (including "custom" firmware with your own changes).
-1. [Start with the airframe](../config/airframe.md) that best-matches your vehicle from the [airframe reference](../airframes/airframe_reference.md).
-1. [Basic Configuration](../config/index.md) explains how to perform basic configuration.
-1. [Parameter Configuration](../advanced_config/parameters.md) explains how you can find and modify individual parameters.
+2. [Start with the airframe](../config/airframe.md) that best-matches your vehicle from the [airframe reference](../airframes/airframe_reference.md).
+3. [Basic Configuration](../config/index.md) explains how to perform basic configuration.
+4. [Parameter Configuration](../advanced_config/parameters.md) explains how you can find and modify individual parameters.
 
 ::: info
 
