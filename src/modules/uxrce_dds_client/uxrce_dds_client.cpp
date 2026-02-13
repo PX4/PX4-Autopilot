@@ -926,11 +926,11 @@ int UxrceddsClient::run_trampoline(int argc, char *argv[])
 int UxrceddsClient::task_spawn(int argc, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("uxrce_dds_client",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
-				      PX4_STACK_ADJUSTED(8000),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_DEFAULT,
+					  PX4_STACK_ADJUSTED(8000),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
 	if (desc.task_id < 0) {
 		desc.task_id = -1;

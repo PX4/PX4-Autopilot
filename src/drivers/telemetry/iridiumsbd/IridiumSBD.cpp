@@ -75,11 +75,11 @@ int IridiumSBD::run_trampoline(int argc, char *argv[])
 int IridiumSBD::task_spawn(int argc, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("iridiumsbd",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_SLOW_DRIVER,
-				      1350,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_SLOW_DRIVER,
+					  1350,
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
 	if (desc.task_id < 0) {
 		desc.task_id = -1;

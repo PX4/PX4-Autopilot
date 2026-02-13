@@ -1518,6 +1518,7 @@ int PX4IO::bind(int argc, char *argv[])
 	}
 
 	static_cast<PX4IO *>(desc.object.load())->ioctl(nullptr, DSM_BIND_START, pulses);
+
 	return 0;
 }
 

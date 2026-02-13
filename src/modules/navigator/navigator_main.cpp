@@ -1107,11 +1107,11 @@ int Navigator::run_trampoline(int argc, char *argv[])
 int Navigator::task_spawn(int argc, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("navigator",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_NAVIGATION,
-				      PX4_STACK_ADJUSTED(2230),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_NAVIGATION,
+					  PX4_STACK_ADJUSTED(2230),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
 	if (desc.task_id < 0) {
 		desc.task_id = -1;

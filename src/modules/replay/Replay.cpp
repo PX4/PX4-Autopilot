@@ -1172,11 +1172,11 @@ Replay::task_spawn(int argc, char *argv[])
 	}
 
 	desc.task_id = px4_task_spawn_cmd("replay",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX - 5,
-				      4000,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_MAX - 5,
+					  4000,
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
 	if (desc.task_id < 0) {
 		desc.task_id = -1;

@@ -2732,11 +2732,11 @@ int Commander::run_trampoline(int argc, char *argv[])
 int Commander::task_spawn(int argc, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("commander",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT + 40,
-				      PX4_STACK_ADJUSTED(3250),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_DEFAULT + 40,
+					  PX4_STACK_ADJUSTED(3250),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
 	if (desc.task_id < 0) {
 		desc.task_id = -1;

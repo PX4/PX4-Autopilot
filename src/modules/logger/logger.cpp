@@ -183,11 +183,11 @@ int Logger::run_trampoline(int argc, char *argv[])
 int Logger::task_spawn(int argc, char *argv[])
 {
 	desc.task_id = px4_task_spawn_cmd("logger",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_LOG_CAPTURE,
-				      PX4_STACK_ADJUSTED(CONFIG_LOGGER_STACK_SIZE),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_LOG_CAPTURE,
+					  PX4_STACK_ADJUSTED(CONFIG_LOGGER_STACK_SIZE),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
 	if (desc.task_id < 0) {
 		desc.task_id = -1;
