@@ -45,12 +45,12 @@
 #include <chrono>
 #endif
 
+ModuleBase::Descriptor MulticopterNeuralNetworkControl::desc{task_spawn, custom_command, print_usage};
+
 namespace
 {
 // This number should be the number of operations in the model, like tanh and fully connected
 using NNControlOpResolver = tflite::MicroMutableOpResolver<3>;
-
-ModuleBase::Descriptor MulticopterNeuralNetworkControl::desc{task_spawn, custom_command, print_usage};
 
 TfLiteStatus RegisterOps(NNControlOpResolver &op_resolver)
 {
