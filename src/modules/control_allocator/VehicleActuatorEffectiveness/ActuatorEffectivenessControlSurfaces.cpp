@@ -112,6 +112,7 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 			pwm_center_set = true;
 		}
 	}
+
 	param_get(_param_handle_ca_sv_lau_lk, &_param_ca_sv_lau_lk);
 
 	for (int i = 0; i < _count; i++) {
