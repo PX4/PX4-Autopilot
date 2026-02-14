@@ -22,6 +22,9 @@
 
 . ${R}etc/init.d/rc.uuv_defaults
 
+# Overwrite DDS AG IP to `192.168.0.1`
+param set-default UXRCE_DDS_AG_IP -1062731775
+
 # param set-default MAV_1_CONFIG 102
 
 param set-default BAT1_A_PER_V 37.8798
