@@ -2430,6 +2430,11 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 				vehicle_gps_position.heading = matrix::wrap_pi(vehicle_gps_position.heading - yaw_offset);
 			}
 		}
+		if (vehicle_gps_position.position_offset_valid) {
+			_params->gps_pos_body(0) = vehicle_gps_position.position_offset_x;
+			_params->gps_pos_body(1) = vehicle_gps_position.position_offset_y;
+			_params->gps_pos_body(2) = vehicle_gps_position.position_offset_z;
+		}
 
 		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);

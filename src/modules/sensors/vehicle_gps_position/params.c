@@ -83,3 +83,57 @@ PARAM_DEFINE_FLOAT(SENS_GPS_TAU, 10.0f);
  * @max 127
  */
 PARAM_DEFINE_INT32(SENS_GPS_PRIME, 0);
+
+/**
+ * GNSS instance 0 antenna offset X in body frame
+ *
+ * @group Sensors
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(SENS_GNSS0_POS_X, 0.0f);
+
+/**
+ * GNSS instance 0 antenna offset Y in body frame
+ *
+ * @group Sensors
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(SENS_GNSS0_POS_Y, 0.0f);
+
+/**
+ * GNSS instance 0 antenna offset Z in body frame
+ *
+ * @group Sensors
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(SENS_GNSS0_POS_Z, 0.0f);
+
+/**
+ * GNSS instance 1 antenna offset X in body frame
+ *
+ * @group Sensors
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(SENS_GNSS1_POS_X, 0.0f);
+
+/**
+ * GNSS instance 1 antenna offset Y in body frame
+ *
+ * @group Sensors
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(SENS_GNSS1_POS_Y, 0.0f);
+
+/**
+ * GNSS instance 1 antenna offset Z in body frame
+ *
+ * @group Sensors
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(SENS_GNSS1_POS_Z, 0.0f);

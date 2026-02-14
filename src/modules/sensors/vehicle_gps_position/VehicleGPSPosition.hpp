@@ -100,7 +100,13 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
 		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau,
-		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime
+		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime,
+		(ParamFloat<px4::params::SENS_GNSS0_POS_X>) _param_sens_gnss0_pos_x,
+		(ParamFloat<px4::params::SENS_GNSS0_POS_Y>) _param_sens_gnss0_pos_y,
+		(ParamFloat<px4::params::SENS_GNSS0_POS_Z>) _param_sens_gnss0_pos_z,
+		(ParamFloat<px4::params::SENS_GNSS1_POS_X>) _param_sens_gnss1_pos_x,
+		(ParamFloat<px4::params::SENS_GNSS1_POS_Y>) _param_sens_gnss1_pos_y,
+		(ParamFloat<px4::params::SENS_GNSS1_POS_Z>) _param_sens_gnss1_pos_z
 	)
 };
 }; // namespace sensors

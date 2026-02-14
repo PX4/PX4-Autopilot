@@ -82,6 +82,13 @@ uint8 selected_rtcm_instance	# uorb instance that is being used for RTCM correct
 
 bool rtcm_crc_failed		# RTCM message CRC failure detected
 
+# Per-GNSS antenna position offset in body frame [m].
+# If position_offset_valid is false EKF2 should use legacy EKF2_GPS_POS_* params.
+float32 position_offset_x
+float32 position_offset_y
+float32 position_offset_z
+bool position_offset_valid
+
 uint8 RTCM_MSG_USED_UNKNOWN = 0
 uint8 RTCM_MSG_USED_NOT_USED = 1
 uint8 RTCM_MSG_USED_USED = 2

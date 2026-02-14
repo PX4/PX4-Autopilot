@@ -37,6 +37,7 @@
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/drivers/device/Device.hpp>
+#include <float.h>
 
 namespace sensors
 {
@@ -130,6 +131,15 @@ void VehicleGPSPosition::Run()
 			any_gps_updated = true;
 
 			_sensor_gps_sub[i].copy(&gps_data);
+
+			const bool gnss0 = (i == 0);
+			gps_data.position_offset_x = gnss0 ? _param_sens_gnss0_pos_x.get() : _param_sens_gnss1_pos_x.get();
+			gps_data.position_offset_y = gnss0 ? _param_sens_gnss0_pos_y.get() : _param_sens_gnss1_pos_y.get();
+			gps_data.position_offset_z = gnss0 ? _param_sens_gnss0_pos_z.get() : _param_sens_gnss1_pos_z.get();
+			gps_data.position_offset_valid = (fabsf(gps_data.position_offset_x) > FLT_EPSILON)
+							|| (fabsf(gps_data.position_offset_y) > FLT_EPSILON)
+							|| (fabsf(gps_data.position_offset_z) > FLT_EPSILON);
+
 			_gps_blending.setGpsData(gps_data, i);
 
 			if (math::isInRange(static_cast<int>(gps_prime), 2, 127)) {
