@@ -499,15 +499,39 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 {
 	const uint64_t timestamp = hrt_absolute_time();
+	static constexpr const char *kObstaclePrefix = "obstacle_";
+	static constexpr float kDefaultObstacleRadius = 8.f;
+	static constexpr float kDefaultObstacleMargin = 4.f;
+
+	fw_mpc_obstacles_s obstacles{};
+	obstacles.timestamp = timestamp;
+	obstacles.frame = fw_mpc_obstacles_s::FRAME_LOCAL_NED;
 
 	for (int p = 0; p < msg.pose_size(); p++) {
-		if (msg.pose(p).name() == _model_name) {
+		const gz::msgs::Pose &pose = msg.pose(p);
+		const std::string &name = pose.name();
+
+		if ((obstacles.count < fw_mpc_obstacles_s::MAX_OBSTACLES)
+		    && (name.rfind(kObstaclePrefix, 0) == 0)) {
+			const gz::msgs::Vector3d &obstacle_position = pose.position();
+			const uint8_t index = obstacles.count;
+
+			// Position conversion: Gazebo ENU to PX4 NED.
+			obstacles.x[index] = obstacle_position.y();   // North
+			obstacles.y[index] = obstacle_position.x();   // East
+			obstacles.z[index] = -obstacle_position.z();  // Down
+			obstacles.radius[index] = kDefaultObstacleRadius;
+			obstacles.margin[index] = kDefaultObstacleMargin;
+			obstacles.count++;
+		}
+
+		if (name == _model_name) {
 
 			const double dt = math::constrain((timestamp - _timestamp_prev) * 1e-6, 0.001, 0.1);
 			_timestamp_prev = timestamp;
 
-			gz::msgs::Vector3d pose_position = msg.pose(p).position();
-			gz::msgs::Quaternion pose_orientation = msg.pose(p).orientation();
+			const gz::msgs::Vector3d &pose_position = pose.position();
+			const gz::msgs::Quaternion &pose_orientation = pose.orientation();
 
 			// ground truth
 			gz::math::Quaterniond q_gr = gz::math::Quaterniond(
@@ -582,9 +606,10 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &msg)
 
 			local_position_groundtruth.timestamp = timestamp;
 			_lpos_ground_truth_pub.publish(local_position_groundtruth);
-			return;
 		}
 	}
+
+	_fw_mpc_obstacles_pub.publish(obstacles);
 }
 
 void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)

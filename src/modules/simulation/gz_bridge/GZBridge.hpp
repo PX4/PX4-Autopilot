@@ -60,6 +60,7 @@
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/obstacle_distance.h>
+#include <uORB/topics/fw_mpc_obstacles.h>
 #include <uORB/topics/wheel_encoders.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -144,6 +145,7 @@ private:
 	uORB::Publication<distance_sensor_s>          _distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<obstacle_distance_s>        _obstacle_distance_pub{ORB_ID(obstacle_distance)};
+	uORB::Publication<fw_mpc_obstacles_s>         _fw_mpc_obstacles_pub{ORB_ID(fw_mpc_obstacles)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
