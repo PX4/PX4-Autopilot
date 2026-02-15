@@ -7,7 +7,6 @@
  * @value 1 Enabled
  * @min 0
  * @max 1
- * @reboot_required true
  * @group FW MPC Avoidance
  */
 PARAM_DEFINE_INT32(FW_MPC_AVOID_EN, 0);
