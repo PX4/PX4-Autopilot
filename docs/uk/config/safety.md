@@ -281,7 +281,7 @@ Acting on a detected failure during flight is deactivated by default (enable by 
 During **takeoff** the failure detector [attitude trigger](#attitude-trigger) invokes the [disarm action](#act_disarm) if the vehicle flips (disarm kills the motors but, unlike flight termination, will not launch a parachute or perform other failure actions).
 Note that this check is _always enabled on takeoff_, irrespective of the `CBRK_FLIGHTTERM` parameter.
 
-The failure detector is active in all vehicle types and modes, except for those where the vehicle is _expected_ to do flips (i.e. [Acro mode (MC)](../flight_modes_mc/altitude.md), [Acro mode (FW)](../flight_modes_fw/altitude.md), and [Manual (FW)](../flight_modes_fw/manual.md)).
+The failure detector is active in all vehicle types and modes, except for those where the vehicle is _expected_ to do flips (i.e. [Acro mode (MC)](../flight_modes_mc/acro.md), [Acro mode (FW)](../flight_modes_fw/acro.md), and [Manual (FW)](../flight_modes_fw/manual.md)).
 
 ### Тригер висоти
 

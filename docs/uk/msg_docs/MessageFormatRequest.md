@@ -1,6 +1,31 @@
+---
+pageClass: is-wide-page
+---
+
 # MessageFormatRequest (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/MessageFormatRequest.msg)
+**TOPICS:** message_formatrequest
+
+## Fields
+
+| Назва                                 | Тип        | Unit [Frame] | Range/Enum | Опис                                                                                                                                                                       |
+| ------------------------------------- | ---------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                             | `uint64`   |                                                                  |            | time since system start (microseconds)                                                                                                                  |
+| protocol_version | `uint16`   |                                                                  |            | Must be set to LATEST_PROTOCOL_VERSION. Do not change this field, it must be the first field after the timestamp |
+| topic_name       | `char[50]` |                                                                  |            | Наприклад, /fmu/in/vehicle_command                                                                                                                    |
+
+## Constants
+
+| Назва                                                                                                     | Тип      | Значення | Опис                                                                                                                                                |
+| --------------------------------------------------------------------------------------------------------- | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a href="#LATEST_PROTOCOL_VERSION"></a> LATEST_PROTOCOL_VERSION | `uint16` | 1        | Current version of this protocol. Increase this whenever the MessageFormatRequest or MessageFormatResponse changes. |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/MessageFormatRequest.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp # time since system start (microseconds)
@@ -12,5 +37,6 @@ uint16 LATEST_PROTOCOL_VERSION = 1 # Current version of this protocol. Increase 
 uint16 protocol_version           # Must be set to LATEST_PROTOCOL_VERSION. Do not change this field, it must be the first field after the timestamp
 
 char[50] topic_name  # E.g. /fmu/in/vehicle_command
-
 ```
+
+:::

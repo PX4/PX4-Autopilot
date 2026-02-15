@@ -1,10 +1,35 @@
+---
+pageClass: is-wide-page
+---
+
 # VehicleLocalPositionSetpoint (повідомлення UORB)
 
-Місцева позиція задана в рамці NED
-Телеметрія контролера позиції PID для відстеження.
-NaN means the state was not controlled
+Local position setpoint in NED frame. Telemetry of PID position controller to monitor tracking. NaN means the state was not controlled.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleLocalPositionSetpoint.msg)
+**TOPICS:** vehicle_localposition_setpoint
+
+## Fields
+
+| Назва        | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
+| ------------ | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| timestamp    | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| x            | `float32`    |                                                                  |            | in meters NED                                             |
+| y            | `float32`    |                                                                  |            | in meters NED                                             |
+| z            | `float32`    |                                                                  |            | in meters NED                                             |
+| vx           | `float32`    |                                                                  |            | in meters/sec                                             |
+| vy           | `float32`    |                                                                  |            | in meters/sec                                             |
+| vz           | `float32`    |                                                                  |            | in meters/sec                                             |
+| acceleration | `float32[3]` |                                                                  |            | in meters/sec^2                                           |
+| thrust       | `float32[3]` |                                                                  |            | normalized thrust vector in NED                           |
+| yaw          | `float32`    |                                                                  |            | in radians NED -PI..+PI   |
+| yawspeed     | `float32`    |                                                                  |            | in radians/sec                                            |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleLocalPositionSetpoint.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Local position setpoint in NED frame
@@ -26,5 +51,6 @@ float32[3] thrust	# normalized thrust vector in NED
 
 float32 yaw		# in radians NED -PI..+PI
 float32 yawspeed	# in radians/sec
-
 ```
+
+:::
