@@ -22,7 +22,6 @@ To level the horizon:
 :::
 
 4. Place the vehicle in its level flight orientation on a level surface:
-
    - For planes this is the position during level flight (planes tend to have their wings slightly pitched up!)
    - For copters this is the hover position.
 

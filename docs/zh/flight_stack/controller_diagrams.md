@@ -30,7 +30,7 @@ The diagrams use the standard [PX4 notation](../contribute/notation.md) (and eac
 
   ::: info
   The IMU pipeline is:
-  gyro data > apply calibration parameters > remove estimated bias > notch filter (`IMU_GYRO_NF0_BW` and `IMU_GYRO_NF0_FRQ`) > low-pass filter (`IMU_GYRO_CUTOFF`) > vehicle_angular_velocity (_filtered angular rate used by the P and I controllers_) > derivative -> low-pass filter (`IMU_DGYRO_CUTOFF`) > vehicle_angular_acceleration (_filtered angular acceleration used by the D controller_)
+  gyro data > apply calibration parameters > remove estimated bias > notch filter (`IMU_GYRO_NF0_BW` and `IMU_GYRO_NF0_FRQ`) > low-pass filter (`IMU_GYRO_CUTOFF`) > vehicle_angular_velocity (\_filtered angular rate used by the P and I controllers_) > derivative -> low-pass filter (`IMU_DGYRO_CUTOFF`) > vehicle_angular_acceleration (\_filtered angular acceleration used by the D controller_)
 
   ![IMU pipeline](../../assets/diagrams/px4_imu_pipeline.png)
 
@@ -177,7 +177,7 @@ The angular position of the control effectors (ailerons, elevators, rudders, ...
 此外，由于控制面在高速时更有效，而在低速时效率较低，因此根据巡航速度调整的控制器使用空速测量值进行缩放（如果使用这样的传感器）。
 
 :::info
-If no airspeed sensor is used then gain scheduling for the FW attitude controller is  disabled (it's open loop); no correction is/can be made in TECS using airspeed feedback.
+If no airspeed sensor is used then gain scheduling for the FW attitude controller is disabled (it's open loop); no correction is/can be made in TECS using airspeed feedback.
 :::
 
 前馈增益用于补偿空气动力阻尼。
@@ -187,7 +187,7 @@ If no airspeed sensor is used then gain scheduling for the FW attitude controlle
 ### Turn coordination
 
 滚转和俯仰控制器具有相同的结构，并且假设纵向和横向动力学足够解耦，可以独立工作。
-但是，为了将飞机侧滑产生的侧向加速度最小化，偏航控制器利用转向协调约束产生偏航速率设定值。  The turn coordination algorithm is based solely on coordinated turn geometry calculation.
+但是，为了将飞机侧滑产生的侧向加速度最小化，偏航控制器利用转向协调约束产生偏航速率设定值。 The turn coordination algorithm is based solely on coordinated turn geometry calculation.
 
 $$\dot{\Psi}_{sp} = \frac{g}{V_T} \tan{\phi_{sp}} \cos{\theta_{sp}}$$
 
