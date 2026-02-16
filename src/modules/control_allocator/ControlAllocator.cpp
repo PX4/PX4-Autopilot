@@ -395,6 +395,7 @@ ControlAllocator::Run()
 
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
 		_thrust_sp = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
+		// TODO: stop the motors on axes that have NAN
 	}
 
 	if (do_update) {
