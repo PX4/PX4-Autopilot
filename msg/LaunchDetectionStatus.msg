@@ -8,4 +8,4 @@ uint8 STATE_FLYING 				= 2 # launch detected, use normal takeoff/flying configur
 
 uint8 launch_detection_state
 
-bool selected_control_surface_disarmed		# [] flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation)
+bool selected_control_surface_disarmed		# [-] flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation)

@@ -105,11 +105,11 @@ private:
 	};
 	ParamHandles _param_handles[MAX_COUNT];
 	param_t _count_handle;
-	param_t _param_handle_ca_sv_lau_lk;
+	param_t _param_handle_ca_cs_laun_lk;
 
 	Params _params[MAX_COUNT] {};
 	int32_t _count{0};
-	int32_t _param_ca_sv_lau_lk{0};
+	int32_t _param_ca_cs_laun_lk{0};
 
 	SlewRate<float> _flaps_setpoint_with_slewrate;
 	SlewRate<float> _spoilers_setpoint_with_slewrate;

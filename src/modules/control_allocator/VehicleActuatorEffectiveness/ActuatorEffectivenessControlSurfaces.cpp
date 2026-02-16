@@ -63,7 +63,7 @@ ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(Modul
 	_spoilers_setpoint_with_slewrate.setSlewRate(kSpoilersSlewRate);
 
 	_count_handle = param_find("CA_SV_CS_COUNT");
-	_param_handle_ca_sv_lau_lk = param_find("CA_SV_LAU_LK");
+	_param_handle_ca_cs_laun_lk = param_find("CA_CS_LAUN_LK");
 	updateParams();
 }
 
@@ -113,7 +113,7 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		}
 	}
 
-	param_get(_param_handle_ca_sv_lau_lk, &_param_ca_sv_lau_lk);
+	param_get(_param_handle_ca_cs_laun_lk, &_param_ca_cs_laun_lk);
 
 	for (int i = 0; i < _count; i++) {
 		param_get(_param_handles[i].type, (int32_t *)&_params[i].type);
@@ -243,7 +243,7 @@ void ActuatorEffectivenessControlSurfaces::applyLaunchLock(int first_actuator_id
 {
 	for (int i = 0; i < _count; ++i) {
 
-		if (_param_ca_sv_lau_lk & (1u << i)) {
+		if (_param_ca_cs_laun_lk & (1u << i)) {
 			actuator_sp(i + first_actuator_idx) = NAN;
 		}
 	}

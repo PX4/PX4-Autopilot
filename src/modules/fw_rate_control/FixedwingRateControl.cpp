@@ -292,7 +292,7 @@ void FixedwingRateControl::Run()
 
 			bool control_surfaces_locked = false;
 
-			if (hrt_elapsed_time(&launch_detection_status.timestamp) < 200_ms
+			if (hrt_elapsed_time(&launch_detection_status.timestamp) < 100_ms
 			    && launch_detection_status.selected_control_surface_disarmed) {
 				control_surfaces_locked = true;
 			}
