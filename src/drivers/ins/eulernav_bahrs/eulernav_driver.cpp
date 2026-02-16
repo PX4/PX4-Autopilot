@@ -239,12 +239,12 @@ void EulerNavDriver::deinitialize()
 	_is_initialized = false;
 }
 
+ModuleBase::Descriptor EulerNavDriver::desc{task_spawn, custom_command, print_usage};
+
 void EulerNavDriver::processDataBuffer()
 {
 	static_assert(Config::MIN_MESSAGE_LENGTH >= (sizeof(CSerialProtocol::SMessageHeader) + sizeof(CSerialProtocol::CrcType_t)));
 	using EMessageIds = CSerialProtocol::EMessageIds;
-
-ModuleBase::Descriptor EulerNavDriver::desc{task_spawn, custom_command, print_usage};
 
 	while (_data_buffer.space_used() >= Config::MIN_MESSAGE_LENGTH)
 	{

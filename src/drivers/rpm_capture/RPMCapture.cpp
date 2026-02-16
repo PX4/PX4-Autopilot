@@ -214,7 +214,7 @@ void RPMCapture::stop()
 
 extern "C" __EXPORT int rpm_capture_main(int argc, char *argv[])
 {
-	if (argc >= 2 && !strcmp(argv[1], "stop") && RPMCapture::is_running(desc)) {
+	if (argc >= 2 && !strcmp(argv[1], "stop") && RPMCapture::is_running(RPMCapture::desc)) {
 		RPMCapture::stop();
 	}
 

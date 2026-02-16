@@ -319,7 +319,6 @@ if(CONFIG_ARCH_CHIP_ESP32)
 			${nuttx_libs}
 			${NUTTX_STARTUP_OBJS}
 			${NUTTX_NETWORK_LIB}
-			${module_libraries}
 		-Wl,--end-group
 
 		m
@@ -329,6 +328,8 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		if(NOT USE_LD_GOLD)
 			target_link_libraries(px4 PRIVATE -Wl,--print-memory-usage)
 		endif()
+
+		target_link_libraries(px4 PRIVATE ${module_libraries})
 		if(config_romfs_root)
 			add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
 			target_link_libraries(px4 PRIVATE romfs)
@@ -371,7 +372,6 @@ else()
 
 		-Wl,--start-group
 			${nuttx_libs}
-			${module_libraries}
 		-Wl,--end-group
 
 		m
@@ -381,6 +381,8 @@ else()
 	if(NOT USE_LD_GOLD)
 		target_link_libraries(px4 PRIVATE -Wl,--print-memory-usage)
 	endif()
+
+	target_link_libraries(px4 PRIVATE ${module_libraries})
 
 	if(config_romfs_root)
 		add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)

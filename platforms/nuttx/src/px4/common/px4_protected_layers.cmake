@@ -5,6 +5,7 @@ add_library(px4_layer
 	board_dma_alloc.c
 	board_fat_dma_alloc.c
 	tasks.cpp
+	${PX4_SOURCE_DIR}/platforms/common/module_base.cpp
 	console_buffer_usr.cpp
 	${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/print_load.cpp
 	${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/cpuload.cpp

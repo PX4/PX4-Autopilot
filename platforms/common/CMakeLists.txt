@@ -47,7 +47,6 @@ add_library(px4_platform STATIC
 	i2c.cpp
 	i2c_spi_buses.cpp
 	module.cpp
-	module_base.cpp
 	px4_getopt.c
 	px4_cli.cpp
 	shutdown.cpp
