@@ -1,0 +1,93 @@
+#!/bin/sh
+#
+# @name TUDa FSR EduFly
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer UAS Team FSR@TUDa <uas@fsr.tu-darmstadt.de>
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+# Square quadrotor X PX4 numbering
+TODO: Adjust for correct distances
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.08
+param set-default CA_ROTOR0_PY 0.143
+param set-default CA_ROTOR1_PX -0.11
+param set-default CA_ROTOR1_PY -0.113
+param set-default CA_ROTOR2_PX 0.08
+param set-default CA_ROTOR2_PY -0.143
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.11
+param set-default CA_ROTOR3_PY 0.113
+param set-default CA_ROTOR3_KM -0.05
+
+# Motor and Controller Tuning
+param set-default MC_PITCHRATE_K 1.5000
+param set-default MC_PITCHRATE_D 0.0010
+param set-default MC_ROLLRATE_K 1.5000
+param set-default MC_ROLLRATE_D 0.0010
+
+
+param set-default PWM_AUX_FUNC1 101
+param set-default PWM_AUX_FUNC2 102
+param set-default PWM_AUX_FUNC3 103
+param set-default PWM_AUX_FUNC4 104
+param set-default PWM_AUX_TIM0 -3
+param set-default THR_MDL_FAC 0.3000
+
+param set-default MPC_THR_HOVER 0.3500
+
+# EKF2 sensors
+
+## GPS
+param set-default EKF2_GPS_POS_X 0.1068
+param set-default EKF2_GPS_POS_Y 0.0000
+param set-default EKF2_GPS_POS_Z -0.0226
+
+## Range finder
+param set-default EKF2_RNG_POS_X 0.1070
+param set-default EKF2_RNG_POS_Y 0.0000
+param set-default EKF2_RNG_POS_Z -0.0200
+param set-default EKF2_RNG_A_HMAX 4.0000
+param set-default EKF2_RNG_A_VMAX 2.0000
+param set-default EKF2_MIN_RNG 0.2000
+param set-default EKF2_RNG_NOISE 0.6000
+param set-default EKF2_RNG_SFE 0.1000
+param set-default EKF2_HGT_REF 2
+srf02 start -X -a 112
+
+# Battery
+param set-default BAT1_N_CELLS 4
+param set-default BAT1_V_DIV 0.9993
+param set-default BAT1_V_CHARGED 4.2000
+
+# Micro XRCE DDS Agent
+param set-default MAV_2_CONFIG 1000
+param set-default MAV_2_BROADCAST 1
+param set-default MAV_2_MODE 2
+param set-default MAV_2_RATE 100000 
+param set-default MAV_2_REMOTE_PRT 14540
+param set-default MAV_2_UDP_PRT 14540
+param set-default SER_TEL1_BAUD 115200
+param set-default UXRCE_DDS_AG_IP -1062731775  # 192.168.0.2
+param set-default UXRCE_DDS_CFG 1000
+
+# RC setup
+param set-default COM_FLTMODE1 2
+param set-default COM_FLTMODE2 6
+param set-default COM_FLTMODE3 5
+param set-default COM_FLTMODE4 8
+param set-default COM_FLTMODE5 3
+param set-default COM_FLTMODE6 7
+
+# Miscellaneous
+param set-default RTL_LAND_DELAY 0.0000
+param set-default RTL_RETURN_ALT 5.0000
+param set-default COM_RC_LOSS_T 1.0000
+param set-default GF_ACTION 3
+param set-default MAN_ARM_GESTURE 0
+param set-default MPC_XY_VEL_ALL 1.0000
+param set-default MPC_Z_VEL_ALL 1.0000
