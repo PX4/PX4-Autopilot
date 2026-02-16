@@ -33078,6 +33078,44 @@ Use SENS_MAG_SIDES instead
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 63      |
 
+### GRF_RATE_CFG (`INT32`) {#GRF_RATE_CFG}
+
+Lightware GRF lidar update rate.
+
+The Lightware GRF distance sensor can increase the update rate to enable greater resolution.
+
+**Values:**
+
+- `1`: 1 Hz
+- `2`: 2 Hz
+- `3`: 4 Hz
+- `4`: 5 Hz
+- `5`: 10 Hz
+- `6`: 20 Hz
+- `7`: 30 Hz
+- `8`: 40 Hz
+- `9`: 50 Hz
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 4       |
+
+### GRF_SENS_MODEL (`INT32`) {#GRF_SENS_MODEL}
+
+GRF Sensor model.
+
+GRF Sensor Model used to distinush between the GRF250 and GRF500 since both have different max distance range.
+
+**Values:**
+
+- `0`: disable
+- `1`: GRF250
+- `2`: GRF500
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
+
 ### ILABS_MODE (`INT32`) {#ILABS_MODE}
 
 InertialLabs INS sensor mode configuration.
@@ -34285,6 +34323,31 @@ Enable simulated GPS sinstance.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 1        |           | 0       |
+
+### SENS_EN_GRF_CFG (`INT32`) {#SENS_EN_GRF_CFG}
+
+Serial Configuration for Lightware GRF Rangefinder (serial).
+
+Configure on which serial port to run Lightware GRF Rangefinder (serial).
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
 
 ### SENS_EN_INA220 (`INT32`) {#SENS_EN_INA220}
 
