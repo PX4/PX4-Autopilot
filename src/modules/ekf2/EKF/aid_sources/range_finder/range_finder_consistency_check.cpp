@@ -76,6 +76,7 @@ void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
 {
 	if (fabsf(_signed_test_ratio_lpf.getState()) >= 1.f) {
 		uint64_t timeout_us = _signed_test_ratio_tau * 1e6f;
+
 		if ((time_us - _time_last_horizontal_motion) > timeout_us) {
 			_is_kinematically_consistent = false;
 			_time_last_inconsistent_us = time_us;
