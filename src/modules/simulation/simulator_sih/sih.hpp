@@ -208,8 +208,8 @@ private:
 	matrix::Quatf       _q{};             // quaternion attitude in local navigation frame
 	matrix::Vector3f    _w_B{};           // body rates in body frame [rad/s]
 
-	matrix::Vector3f    _v_wind{};        // velocity of the wind in local navigation frame [m/s]
-	matrix::Vector3f    _v_N_apparent{};  // velocity in local frame relative to the air, for aerodynamic calculations [m/s]
+	matrix::Vector3f _v_wind{}; // velocity of the wind in local navigation frame [m/s]
+	matrix::Vector3f _v_N_apparent{}; // velocity in local frame relative to the air, for aerodynamic calculations [m/s]
 
 	LatLonAlt _lla{};
 

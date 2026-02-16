@@ -340,7 +340,6 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
  */
 PARAM_DEFINE_INT32(SIH_VEHICLE_TYPE, 0);
 
-
 /**
  * Wind velocity in north direction.
  *
