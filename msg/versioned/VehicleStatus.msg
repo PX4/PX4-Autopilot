@@ -127,6 +127,8 @@ bool open_drone_id_system_healthy
 bool parachute_system_present
 bool parachute_system_healthy
 
+bool traffic_avoidance_system_present
+
 bool rc_calibration_in_progress
 bool calibration_enabled
 

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2025 PX4 Development Team.
+ * Copyright (c) 2026 PX4 Development Team.
  * SPDX-License-Identifier: BSD-3-Clause
  ****************************************************************************/
 #pragma once
@@ -19,6 +19,7 @@ public:
 	static constexpr const char* kTopic = "fmu/out/vehicle_status";
 
 	static void fromOlder(const MessageOlder &msg_older, MessageNewer &msg_newer) {
+		// Set msg_newer from msg_older
 		msg_newer.timestamp = msg_older.timestamp;
 		msg_newer.armed_time = msg_older.armed_time;
 		msg_newer.takeoff_time = msg_older.takeoff_time;
@@ -56,13 +57,14 @@ public:
 		msg_newer.open_drone_id_system_healthy = msg_older.open_drone_id_system_healthy;
 		msg_newer.parachute_system_present = msg_older.parachute_system_present;
 		msg_newer.parachute_system_healthy = msg_older.parachute_system_healthy;
+		msg_newer.traffic_avoidance_system_present = false; // New field, default to false
 		msg_newer.rc_calibration_in_progress = msg_older.rc_calibration_in_progress;
 		msg_newer.calibration_enabled = msg_older.calibration_enabled;
 		msg_newer.pre_flight_checks_pass = msg_older.pre_flight_checks_pass;
 	}
 
 	static void toOlder(const MessageNewer &msg_newer, MessageOlder &msg_older) {
-		// copy everything except the new executor_nav_state
+		// Set msg_older from msg_newer
 		msg_older.timestamp = msg_newer.timestamp;
 		msg_older.armed_time = msg_newer.armed_time;
 		msg_older.takeoff_time = msg_newer.takeoff_time;
@@ -73,6 +75,7 @@ public:
 		msg_older.nav_state_user_intention = msg_newer.nav_state_user_intention;
 		msg_older.nav_state = msg_newer.nav_state;
 		msg_older.executor_in_charge = msg_newer.executor_in_charge;
+		// nav_state_display dropped (not in V1)
 		msg_older.valid_nav_states_mask = msg_newer.valid_nav_states_mask;
 		msg_older.can_set_nav_states_mask = msg_newer.can_set_nav_states_mask;
 		msg_older.failure_detector_status = msg_newer.failure_detector_status;
@@ -99,6 +102,7 @@ public:
 		msg_older.open_drone_id_system_healthy = msg_newer.open_drone_id_system_healthy;
 		msg_older.parachute_system_present = msg_newer.parachute_system_present;
 		msg_older.parachute_system_healthy = msg_newer.parachute_system_healthy;
+		// traffic_avoidance_system_present is dropped (not in V1)
 		msg_older.rc_calibration_in_progress = msg_newer.rc_calibration_in_progress;
 		msg_older.calibration_enabled = msg_newer.calibration_enabled;
 		msg_older.pre_flight_checks_pass = msg_newer.pre_flight_checks_pass;
