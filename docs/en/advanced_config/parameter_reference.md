@@ -40288,7 +40288,7 @@ starve other nodes on the bus.
 UAVCAN ANTI_COLLISION light operating mode.
 
 This parameter defines the minimum condition under which the system will command
-the ANTI_COLLISION lights on
+lights with anti-collision function to turn on (white).
 0 - Always off
 1 - When autopilot is armed
 2 - When autopilot is prearmed
@@ -40305,67 +40305,97 @@ the ANTI_COLLISION lights on
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 3        |           | 2       |
 
-### UAVCAN_LGT_LAND (`INT32`) {#UAVCAN_LGT_LAND}
+### UAVCAN_LGT_FN0 (`INT32`) {#UAVCAN_LGT_FN0}
 
-UAVCAN LIGHT_ID_LANDING light operating mode.
+Light 0 function.
 
-This parameter defines the minimum condition under which the system will command
-the LIGHT_ID_LANDING lights on
-0 - Always off
-1 - When autopilot is armed
-2 - When autopilot is prearmed
-3 - Always on
+Function assigned to light 0.
+0: Status - displays system status colors
+1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
 
 **Values:**
 
-- `0`: Always off
-- `1`: When autopilot is armed
-- `2`: When autopilot is prearmed
-- `3`: Always on
+- `0`: Status Light
+- `1`: Anti-collision Light
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 3        |           | 0       |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1        |           | 0       |
 
-### UAVCAN_LGT_NAV (`INT32`) {#UAVCAN_LGT_NAV}
+### UAVCAN_LGT_FN1 (`INT32`) {#UAVCAN_LGT_FN1}
 
-UAVCAN RIGHT_OF_WAY light operating mode.
+Light 1 function.
 
-This parameter defines the minimum condition under which the system will command
-the RIGHT_OF_WAY lights on
-0 - Always off
-1 - When autopilot is armed
-2 - When autopilot is prearmed
-3 - Always on
+Function assigned to light 1.
+0: Status - displays system status colors
+1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
 
 **Values:**
 
-- `0`: Always off
-- `1`: When autopilot is armed
-- `2`: When autopilot is prearmed
-- `3`: Always on
+- `0`: Status Light
+- `1`: Anti-collision Light
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 3        |           | 3       |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1        |           | 0       |
 
-### UAVCAN_LGT_STROB (`INT32`) {#UAVCAN_LGT_STROB}
+### UAVCAN_LGT_FN2 (`INT32`) {#UAVCAN_LGT_FN2}
 
-UAVCAN STROBE light operating mode.
+Light 2 function.
 
-This parameter defines the minimum condition under which the system will command
-the STROBE lights on
-0 - Always off
-1 - When autopilot is armed
-2 - When autopilot is prearmed
-3 - Always on
+Function assigned to light 2.
+0: Status - displays system status colors
+1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
 
 **Values:**
 
-- `0`: Always off
-- `1`: When autopilot is armed
-- `2`: When autopilot is prearmed
-- `3`: Always on
+- `0`: Status Light
+- `1`: Anti-collision Light
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1        |           | 0       |
+
+### UAVCAN_LGT_ID0 (`INT32`) {#UAVCAN_LGT_ID0}
+
+Light 0 ID.
+
+specifies the light_id value for light 0 in UAVCAN LightsCommand messages.
+This determines which physical LED responds to commands for this light slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### UAVCAN_LGT_ID1 (`INT32`) {#UAVCAN_LGT_ID1}
+
+Light 1 ID.
+
+specifies the light_id value for light 1 in UAVCAN LightsCommand messages.
+This determines which physical LED responds to commands for this light slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### UAVCAN_LGT_ID2 (`INT32`) {#UAVCAN_LGT_ID2}
+
+Light 2 ID.
+
+specifies the light_id value for light 2 in UAVCAN LightsCommand messages.
+This determines which physical LED responds to commands for this light slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### UAVCAN_LGT_NUM (`INT32`) {#UAVCAN_LGT_NUM}
+
+Number of UAVCAN lights to configure.
+
+Number of lights to control via UAVCAN LightsCommand messages.
+Set to 0 to disable UAVCAN light control.
+Each light uses two parameters: LGT_IDx for the light_id and LGT_FNx for the function.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
