@@ -50,7 +50,6 @@ See [DroneCAN Lights](../dronecan/index.md#lights) for configuration instruction
 
 The `light_id` for each LED is calculated as: `esc_index × 3 + BASE_ID`, where `BASE_ID` is 1 for RGB and 2 for White.
 
-
 ### DShot/PWM Configuration
 
 Instructions for integrating the motor/ESC using PWM and DShot can be found in [PWM and DShot Control with a Flight Controller](https://iqmotion.readthedocs.io/en/latest/tutorials/pwm_control_flight_controller.html).
