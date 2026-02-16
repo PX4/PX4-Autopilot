@@ -46,6 +46,7 @@ target_link_libraries(px4_layer
 
 add_library(px4_kernel_layer
 	${KERNEL_SRCS}
+	${PX4_SOURCE_DIR}/platforms/common/module_base.cpp
 	SerialImpl.cpp
 )
 
