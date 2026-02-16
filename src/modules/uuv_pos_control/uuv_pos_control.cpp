@@ -77,6 +77,7 @@ bool UUVPOSControl::init()
 
 	hgtData[0] = 0.0f;
 	hgtData[1] = 0.0f;
+	altitudeStateFlag = false;
 	return true;
 }
 
@@ -269,6 +270,7 @@ void UUVPOSControl::Run()
 		return;
 	}
 
+
 	perf_begin(_loop_perf);
 
 	/* check vehicle control mode for changes to publication state */
@@ -280,6 +282,11 @@ void UUVPOSControl::Run()
 	//vehicle_attitude_s attitude;
 	vehicle_local_position_s vlocal_pos;
 
+	//state observer for hgt controller
+	if (!_vcontrol_mode.flag_control_altitude_enabled && altitudeStateFlag && ! _vcontrol_mode.flag_control_position_enabled) {
+		altitudeStateFlag = false;
+	}
+
 	/* only run controller if local_pos changed */
 	if (_vehicle_local_position_sub.update(&vlocal_pos)) {
 		const float dt = math::constrain(((vlocal_pos.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
@@ -288,6 +295,7 @@ void UUVPOSControl::Run()
 		// Update vehicle attitude
 		_vehicle_attitude_sub.update(&_vehicle_attitude);
 
+
 		/* Run position or altitude mode from manual setpoints*/
 		if (_vcontrol_mode.flag_control_manual_enabled
 		    && (_vcontrol_mode.flag_control_altitude_enabled
@@ -295,18 +303,20 @@ void UUVPOSControl::Run()
 		    && _vcontrol_mode.flag_armed) {
 			/* Update manual setpoints */
 
-			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled
-							&& ! _vcontrol_mode.flag_control_position_enabled;
 
 			_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
 			// Ensure no nan and sufficiently recent setpoint
 			check_setpoint_validity(vlocal_pos);
 
+			const bool altitude_only_flag = _vcontrol_mode.flag_control_altitude_enabled && ! _vcontrol_mode.flag_control_position_enabled;
+
 			if (altitude_only_flag) {
-
-
-
+				// reset hgt desired position if altitude mode is turned on
+				if (!altitudeStateFlag) {
+					hgtData[0] = vlocal_pos.z ;
+					altitudeStateFlag = true;
+				}
 
 				// Avoid accumulating absolute yaw error with arming stick gesture
 				// roll and pitch for future implementation
@@ -328,19 +338,7 @@ void UUVPOSControl::Run()
 				q_sp.copyTo(_attitude_setpoint.q_d);
 
 
-
-
-				float maximumDistanceAllowed = 0.3f;
-
-				//Making sure, the difference between des hgt and actual hgt is not to high
-				if (vlocal_pos.z - hgtData[0] >= maximumDistanceAllowed) {
-					hgtData[0] = vlocal_pos.z - maximumDistanceAllowed;
-
-				} else {
-					if (vlocal_pos.z - hgtData[0] <= -maximumDistanceAllowed) {
-						hgtData[0] = vlocal_pos.z + maximumDistanceAllowed;
-					}
-				}
+				float maximumDistanceAllowed = _param_hgt_max_diff.get();
 
 				//change the desired hgt
 				if (_manual_control_setpoint.buttons & (1 << _param_hgt_b_up.get())) { //up

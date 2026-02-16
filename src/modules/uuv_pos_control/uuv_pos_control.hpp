@@ -119,7 +119,7 @@ private:
 
 	//control variables
 	float hgtData[2];//des_hgt,integrated hgt error
-
+	bool altitudeStateFlag;
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::UUV_GAIN_X_P>) _param_pose_gain_x,
 		(ParamFloat<px4::params::UUV_GAIN_Y_P>) _param_pose_gain_y,
@@ -143,7 +143,8 @@ private:
 		(ParamFloat<px4::params::UUV_HGT_I_SPD>) _param_hgt_i_speed,
 		(ParamFloat<px4::params::UUV_HGT_STR>) _param_hgt_strength,
 		(ParamInt<px4::params::UUV_HGT_B_UP>) _param_hgt_b_up,
-		(ParamInt<px4::params::UUV_HGT_B_DOWN>) _param_hgt_b_down
+		(ParamInt<px4::params::UUV_HGT_B_DOWN>) _param_hgt_b_down,
+		(ParamFloat<px4::params::UUV_HGT_MAX_DIFF>) _param_hgt_max_diff
 	)
 
 	void Run() override;

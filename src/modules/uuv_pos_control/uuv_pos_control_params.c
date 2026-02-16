@@ -161,6 +161,15 @@ PARAM_DEFINE_FLOAT(UUV_HGT_I_SPD, 1.0f);
 PARAM_DEFINE_FLOAT(UUV_HGT_STR, 1.0f);
 
 /**
+ * maximum hgt distance controlled by manual input. Diff between actual and desired hgt cant be higher than that
+ *
+ *
+ * @group UUV Attitude Control
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_HGT_MAX_DIFF, 0.3f);
+
+/**
  * hgt rc-button up
  *
  * @group UUV Attitude Control
