@@ -1,6 +1,6 @@
 # PX4 Autopilot Firmware for FSR@TUDa
 
-Base Version: **v1.15.4**
+Base Version: **v1.17.0**
 
 This fork adds airframes and board configurations required for operating the UAS fleet of FSR@TUDa.
 
