@@ -83,14 +83,6 @@ void ActuatorEffectivenessStandardVTOL::allocateAuxilaryControls(const float dt,
 	}
 }
 
-void ActuatorEffectivenessStandardVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
-{
-	if (matrix_index == 0) {
-		stopMaskedMotorsWithZeroThrust(_forwards_motors_mask, actuator_sp);
-	}
-}
-
 void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phase)
 {
 	if (_flight_phase == flight_phase) {
