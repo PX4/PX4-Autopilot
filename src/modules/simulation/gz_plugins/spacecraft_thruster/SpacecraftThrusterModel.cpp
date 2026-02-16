@@ -334,16 +334,18 @@ void SpacecraftThrusterModelPrivate::UpdateForcesAndMoments(
 	// d: cycle period
 	double targetDutyCycle = normalizedInput * (1.0 / this->dutyCycleFrequency);
 
-	if (this->actuatorNumber == 0)
+	if (this->actuatorNumber == 0) {
 		gzdbg << this->actuatorNumber
 		      << ": target duty cycle: " << targetDutyCycle << std::endl;
+	}
 
 	// Calculate cycle start time
 	if (this->samplingTime >= 1.0 / this->dutyCycleFrequency) {
-		if (this->actuatorNumber == 0)
+		if (this->actuatorNumber == 0) {
 			gzdbg << this->actuatorNumber
 			      << ": Cycle completed. Resetting cycle start time."
 			      << std::endl;
+		}
 
 		this->cycleStartTime = this->simTime;
 	}
@@ -351,22 +353,24 @@ void SpacecraftThrusterModelPrivate::UpdateForcesAndMoments(
 	// Calculate sampling time instant within the cycle
 	this->samplingTime = this->simTime - this->cycleStartTime;
 
-	if (this->actuatorNumber == 0)
+	if (this->actuatorNumber == 0) {
 		gzdbg << this->actuatorNumber
 		      << ": PWM Period: " << 1.0 / this->dutyCycleFrequency
 		      << " Cycle Start time: " << this->cycleStartTime
 		      << " Sampling time: " << this->samplingTime << std::endl;
+	}
 
 	// Apply force if the sampling time is less than the target ON duty cycle
 	double force = this->samplingTime <= targetDutyCycle ? this->maxThrust : 0.0;
 
 	if (targetDutyCycle < 1e-9) { force = 0.0; }
 
-	if (this->actuatorNumber == 0)
+	if (this->actuatorNumber == 0) {
 		gzdbg << this->actuatorNumber
 		      << ": Force: " << force
 		      << "  Sampling time: " << this->samplingTime
 		      << "  Tgt duty cycle: " << targetDutyCycle << std::endl;
+	}
 
 	// Apply force to the link
 	Link link(this->linkEntity);
@@ -374,10 +378,11 @@ void SpacecraftThrusterModelPrivate::UpdateForcesAndMoments(
 	link.AddWorldForce(_ecm,
 			   worldPose->Rot().RotateVector(math::Vector3d(0, 0, force)));
 
-	if (this->actuatorNumber == 0)
+	if (this->actuatorNumber == 0) {
 		gzdbg << this->actuatorNumber
 		      << ": Input Value: " << msg->velocity(this->actuatorNumber)
 		      << "  Calc. Force: " << force << std::endl;
+	}
 }
 
 GZ_ADD_PLUGIN(SpacecraftThrusterModel,

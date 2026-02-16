@@ -505,7 +505,7 @@ px4_sitl_default-clang:
 # To add manual exclusions, append to CLANG_TIDY_EXCLUDE_EXTRA below.
 # Submodules are automatically excluded - no action needed when adding new ones.
 CLANG_TIDY_SUBMODULES := $(shell git config --file .gitmodules --get-regexp path | awk '{print $$2}' | tr '\n' '|' | sed 's/|$$//')
-CLANG_TIDY_EXCLUDE_EXTRA := src/systemcmds/tests|src/examples|src/modules/gyro_fft/CMSIS_5|src/lib/drivers/smbus|src/drivers/gpio|src/modules/commander/failsafe/emscripten|failsafe_test\.dir
+CLANG_TIDY_EXCLUDE_EXTRA := src/systemcmds/tests|src/examples|src/modules/gyro_fft/CMSIS_5|src/lib/drivers/smbus|src/drivers/gpio|src/modules/commander/failsafe/emscripten|failsafe_test\.dir|\.pb\.cc
 CLANG_TIDY_EXCLUDE := $(CLANG_TIDY_SUBMODULES)|$(CLANG_TIDY_EXCLUDE_EXTRA)
 
 clang-tidy: px4_sitl_default-clang
