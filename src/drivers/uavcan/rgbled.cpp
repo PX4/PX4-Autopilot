@@ -149,7 +149,7 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 			break;
 
 		case LightFunction::AntiCollision:
-			uint8_t brigtness = is_anticolision_on(static_cast<LightMode>(_param_mode_anti_col.get())) ? 255 : 0;
+			uint8_t brigtness = is_anticolision_on() ? 255 : 0;
 			cmd.color = rgb888_to_rgb565(brigtness, brigtness, brigtness);
 			break;
 		}
@@ -160,22 +160,22 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 	_uavcan_pub_lights_cmd.broadcast(light_command);
 }
 
-bool UavcanRGBController::is_anticolision_on(LightMode mode)
+bool UavcanRGBController::is_anticolision_on()
 {
-	actuator_armed_s armed{};
-	_armed_sub.copy(&armed);
+	actuator_armed_s actuator_armed{};
+	_actuator_armed_sub.copy(&actuator_armed);
 
-	switch (mode) {
-	case LightMode::AlwaysOn:
+	switch (_param_uavcan_lgt_antcl.get()) {
+	case 3: // Always on
 		return true;
 
-	case LightMode::WhenPrearmed:
-		return armed.armed || armed.prearmed;
+	case 2: // When autopilot is prearmed
+		return actuator_armed.armed || actuator_armed.prearmed;
 
-	case LightMode::WhenArmed:
-		return armed.armed;
+	case 1: // When autopilot is armed
+		return actuator_armed.armed;
 
-	case LightMode::Off:
+	case 0: // Always off
 	default:
 		return false;
 	}
@@ -184,9 +184,9 @@ bool UavcanRGBController::is_anticolision_on(LightMode mode)
 uavcan::equipment::indication::RGB565 UavcanRGBController::rgb888_to_rgb565(uint8_t red, uint8_t green, uint8_t blue)
 {
 	// RGB565: Full brightness is (31, 63, 31), off is (0, 0, 0)
-	uavcan::equipment::indication::RGB565 color{};
-	color.red = (red * 31 + 127) / 255;
-	color.green = (green * 63 + 127) / 255;
-	color.blue = (blue * 31 + 127) / 255;
-	return color;
+	uavcan::equipment::indication::RGB565 rgb565{};
+	rgb565.red = (red * 31 + 127) / 255;
+	rgb565.green = (green * 63 + 127) / 255;
+	rgb565.blue = (blue * 31 + 127) / 255;
+	return rgb565;
 }

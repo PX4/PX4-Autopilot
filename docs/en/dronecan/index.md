@@ -287,7 +287,7 @@ PX4 can control LEDs via DroneCAN [LightsCommand](https://dronecan.github.io/Spe
 
 Configuration:
 
-1. Set [UAVCAN_LGT_NUM](../advanced_config/parameter_reference.md#UAVCAN_LGT_NUM) to the number of lights (0 disables, max 16). You might need to reopen the ground station to have parameters for new instances available.
+1. Set [UAVCAN_LGT_NUM](../advanced_config/parameter_reference.md#UAVCAN_LGT_NUM) to the number of lights (0 disables). You might need to reopen the ground station to have parameters for new instances available.
 2. For each light slot (0 to NUM-1), set:
    - `UAVCAN_LGT_IDx`: The `light_id` matching your peripheral.
    - `UAVCAN_LGT_FNx`: `Status` for system status colours, or `Anti-collision` for white beacon.

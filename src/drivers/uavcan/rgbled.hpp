@@ -63,19 +63,9 @@ private:
 		AntiCollision = 1  // White beacon based on arm state
 	};
 
-	enum class LightMode : uint8_t {
-		Off = 0,
-		WhenArmed = 1,
-		WhenPrearmed = 2,
-		AlwaysOn = 3
-	};
-
-	// White light intensity levels
-	enum class Brightness { None, Full };
-
 	void periodic_update(const uavcan::TimerEvent &);
 
-	bool is_anticolision_on(LightMode mode);
+	bool is_anticolision_on(); ///< Evaluates current on state of collision lights accordingt to UAVCAN_LGT_ANTCL
 
 	uavcan::equipment::indication::RGB565 rgb888_to_rgb565(uint8_t red, uint8_t green, uint8_t blue);
 
@@ -86,7 +76,7 @@ private:
 	uavcan::Publisher<uavcan::equipment::indication::LightsCommand> _uavcan_pub_lights_cmd;
 	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
 
-	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	LedController _led_controller;
 
@@ -101,6 +91,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UAVCAN_LGT_NUM>) _param_lgt_num,
-		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_mode_anti_col
+		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_uavcan_lgt_antcl
 	)
 };
