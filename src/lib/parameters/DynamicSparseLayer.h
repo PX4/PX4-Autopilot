@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,9 +60,19 @@ public:
 
 	virtual ~DynamicSparseLayer()
 	{
-		if (_slots.load()) {
-			free(_slots.load());
-		}
+		// Take the lock so concurrent readers can't observe a half-freed
+		// state (relevant on POSIX, where DynamicSparseLayer instances are
+		// statics in parameters.cpp and other threads may still be calling
+		// get()/contains() while the process is running atexit handlers).
+		// Zero _next_slot and _slots so any reader that acquires the mutex
+		// after us short-circuits on the empty layer instead of dereferencing
+		// freed memory.
+		AtomicTransaction transaction;
+		Slot *slots = _slots.load();
+		_slots.store(nullptr);
+		_next_slot = 0;
+		_n_slots = 0;
+		free(slots);
 	}
 
 	bool store(param_t param, param_value_u value) override
@@ -144,11 +154,13 @@ public:
 
 	int size() const override
 	{
+		const AtomicTransaction transaction;
 		return _next_slot;
 	}
 
 	int byteSize() const override
 	{
+		const AtomicTransaction transaction;
 		return _n_slots * sizeof(Slot);
 	}
 
@@ -197,23 +209,30 @@ private:
 			return false;
 		}
 
+		// We need to malloc/free without holding the lock:
+		//   - On NuttX, AtomicTransaction disables interrupts, and malloc
+		//     can't be called from an interrupt-disabled context.
+		//   - On POSIX, holding the lock across malloc would technically
+		//     work, but the same unlock-around-malloc pattern keeps the
+		//     code identical for both platforms.
+		// Since other writers can run during our malloc window, we use a
+		// CAS retry loop to commit the new buffer atomically.
 		int max_retries = 5;
 
-		// As malloc uses locking, so we need to re-enable IRQ's during malloc/free and
-		// then atomically exchange the buffer
 		while (_next_slot >= _n_slots && max_retries-- > 0) {
 			Slot *previous_slots = nullptr;
 			Slot *new_slots = nullptr;
 
 			do {
 				previous_slots = _slots.load();
+				int alloc_n_slots = _n_slots;
 				transaction.unlock();
 
 				if (new_slots) {
 					free(new_slots);
 				}
 
-				new_slots = (Slot *) malloc(sizeof(Slot) * (_n_slots + _n_grow));
+				new_slots = (Slot *) malloc(sizeof(Slot) * (alloc_n_slots + _n_grow));
 				transaction.lock();
 
 				if (new_slots == nullptr) {
