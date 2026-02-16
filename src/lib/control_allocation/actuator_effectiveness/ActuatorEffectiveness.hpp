@@ -213,15 +213,8 @@ public:
 	 */
 	virtual void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) {}
 
-	/**
-	 * Stops motors which are masked by stoppable_motors_mask and whose demanded thrust is zero
-	 *
-	 * @param stoppable_motors_mask mask of motors that should be stopped if there's no thrust demand
-	 * @param actuator_sp outcome of the allocation to determine if the motor should be stopped
-	 */
-	virtual void stopMaskedMotorsWithZeroThrust(ActuatorBitmask stoppable_motors_mask, ActuatorVector &actuator_sp);
-
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
 	ActuatorBitmask _stopped_motors_mask{0};
+
 };
