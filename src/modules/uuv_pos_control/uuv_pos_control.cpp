@@ -44,7 +44,7 @@
 
 #include "uuv_pos_control.hpp"
 
-
+#include <vector>
 
 
 /**
@@ -312,8 +312,8 @@ void UUVPOSControl::Run()
 				// float pitch = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).theta();
 				float yaw = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).psi();
 
-				float roll_setpoint = 0.0f;
-				float pitch_setpoint = 0.0f;
+				float roll_setpoint = M_PI_2 / 2.0; //0.0f;
+				float pitch_setpoint = 0.3;
 				float yaw_setpoint = yaw + _manual_control_setpoint.roll * dt * _param_sgm_yaw.get();
 
 				// Generate target quaternion
@@ -325,9 +325,7 @@ void UUVPOSControl::Run()
 
 				q_sp.copyTo(_attitude_setpoint.q_d);
 
-				const float throttle_manual_attitude_gain = _param_sgm_thrtl.get();
-				_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_attitude_gain; // surge +x
-				_attitude_setpoint.thrust_body[1] = _manual_control_setpoint.yaw * throttle_manual_attitude_gain; // sway +y
+
 
 
 				float maximumDistanceAllowed = 0.3f;
@@ -363,9 +361,26 @@ void UUVPOSControl::Run()
 					hgtData[1] = hgtData[1] + 0.005f * errorInZ * _param_hgt_i_speed.get();
 				}
 
-				_attitude_setpoint.thrust_body[2] = _param_hgt_p.get() * errorInZ - _param_hgt_d.get() * vlocal_pos.vz + _param_hgt_i.get() *
-								    hgtData[1];//PID values
+				matrix::Vector3f thrustxyz;
+				thrustxyz(2) = _param_hgt_p.get() * errorInZ - _param_hgt_d.get() * vlocal_pos.vz + _param_hgt_i.get() *
+					       hgtData[1];//PID values
 
+				const float throttle_manual_attitude_gain = _param_sgm_thrtl.get();
+
+				thrustxyz(0) = _manual_control_setpoint.throttle * throttle_manual_attitude_gain; // surge +x
+				thrustxyz(1) = _manual_control_setpoint.yaw * throttle_manual_attitude_gain; // sway +y
+
+				//Rotate thrust to compensate roll/pitch
+				float roll_att = Eulerf(matrix::Quatf(_vehicle_attitude.q)).phi();
+				float pitch_att = Eulerf(matrix::Quatf(_vehicle_attitude.q)).theta();
+				// attitude without yaw
+				Eulerf euler_att(roll_att, pitch_att, 0);
+				Quatf q_att = matrix::Quatf(euler_att);
+				thrustxyz = q_att.rotateVectorInverse(thrustxyz);
+
+				_attitude_setpoint.thrust_body[0] = thrustxyz(0);
+				_attitude_setpoint.thrust_body[1] = thrustxyz(1);
+				_attitude_setpoint.thrust_body[2] = thrustxyz(2);
 
 			} else {
 
