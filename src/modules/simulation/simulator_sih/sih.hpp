@@ -197,30 +197,34 @@ private:
 	hrt_abstime _airspeed_time{0};
 	hrt_abstime _dist_snsr_time{0};
 
-	bool        _grounded{true};// whether the vehicle is on the ground
+	bool _grounded{true}; // whether the vehicle is on the ground
 
-	matrix::Vector3f    _T_B{};           // thrust force in body frame [N]
-	matrix::Vector3f    _Mt_B{};          // thruster moments in the body frame [Nm]
-	matrix::Vector3f    _Ma_B{};          // aerodynamic moments in the body frame [Nm]
-	matrix::Vector3f    _lpos{};          // position in a local tangent-plane frame [m]
-	matrix::Vector3f    _v_N{};           // velocity in local navigation frame (NED, body-fixed) [m/s]
-	matrix::Vector3f    _v_N_dot{};       // time derivative of velocity in local navigation frame [m/s2]
-	matrix::Quatf       _q{};             // quaternion attitude in local navigation frame
-	matrix::Vector3f    _w_B{};           // body rates in body frame [rad/s]
+	// Quantities in body frame (FRD)
+	matrix::Vector3f _T_B{};  // thrust force [N]
+	matrix::Vector3f _Mt_B{}; // thruster moments [Nm]
+	matrix::Vector3f _Ma_B{}; // aerodynamic moments [Nm]
+	matrix::Vector3f _w_B{};  // body rates in body frame [rad/s]
 
-	matrix::Vector3f _v_wind{}; // velocity of the wind in local navigation frame [m/s]
-	matrix::Vector3f _v_N_apparent{}; // velocity in local frame relative to the air, for aerodynamic calculations [m/s]
-
-	LatLonAlt _lla{};
+	// Quantities in local navigation frame (NED, body-fixed)
+	matrix::Vector3f _v_N{};          // velocity [m/s]
+	matrix::Vector3f _v_N_dot{};      // time derivative of velocity [m/s^2]
+	matrix::Vector3f _v_wind{};       // wind velocity [m/s]
+	matrix::Vector3f _v_N_apparent{}; // vehicle velocity relative to the air [m/s]
 
 	// Quantities in Earth-centered-Earth-fixed coordinates
-	matrix::Vector3f    _Fa_E{};          // aerodynamic force in ECEF frame [N]
-	matrix::Vector3f    _specific_force_E{};
-	matrix::Quatf       _q_E{};
-	matrix::Vector3d    _p_E{};
-	matrix::Vector3f    _v_E{};
-	matrix::Vector3f    _v_E_dot{};
-	matrix::Dcmf        _R_N2E;           // local navigation to ECEF frame rotation matrix
+	matrix::Vector3f _Fa_E{};             // aerodynamic force [N]
+	matrix::Vector3d _p_E{};              // position [m]
+	matrix::Vector3f _v_E{};              // velocity [m/s]
+	matrix::Vector3f _v_E_dot{};          // time derivative of velocity [m/s^2]
+	matrix::Vector3f _specific_force_E{}; // acceleration except gravity (for IMU) [m/s^2]
+
+	// Frame conversion
+	matrix::Quatf _q_E{}; // Attitude quaternion (rotation from body to ECEF frame)
+	matrix::Quatf _q{};   // Attitude quaternion (rotation from body to local navigation frame)
+	matrix::Dcmf _R_N2E;  // Rotation matrix from local navigation to ECEF frame
+
+	LatLonAlt _lla{};
+	matrix::Vector3f _lpos{};  // position in a local tangent-plane frame [m]
 
 	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
 
