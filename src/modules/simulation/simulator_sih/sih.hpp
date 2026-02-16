@@ -208,8 +208,8 @@ private:
 	// Quantities in local navigation frame (NED, body-fixed)
 	matrix::Vector3f _v_N{};          // velocity [m/s]
 	matrix::Vector3f _v_N_dot{};      // time derivative of velocity [m/s^2]
-	matrix::Vector3f _v_wind{};       // wind velocity [m/s]
-	matrix::Vector3f _v_N_apparent{}; // vehicle velocity relative to the air [m/s]
+	matrix::Vector3f _v_wind_N{};     // wind velocity [m/s]
+	matrix::Vector3f _v_apparent_N{}; // vehicle velocity relative to the air [m/s]
 
 	// Quantities in Earth-centered-Earth-fixed coordinates
 	matrix::Vector3f _Fa_E{};             // aerodynamic force [N]
