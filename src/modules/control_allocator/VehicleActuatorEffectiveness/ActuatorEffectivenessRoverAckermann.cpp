@@ -48,9 +48,3 @@ ActuatorEffectivenessRoverAckermann::getEffectivenessMatrix(Configuration &confi
 	configuration.addActuator(ActuatorType::SERVOS, Vector3f{0.f, 0.f, 1.f}, Vector3f{});
 	return true;
 }
-
-void ActuatorEffectivenessRoverAckermann::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp, const ActuatorVector &actuator_min, const ActuatorVector &actuator_max)
-{
-	stopMaskedMotorsWithZeroThrust(_motors_mask, actuator_sp);
-}
