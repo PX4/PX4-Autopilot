@@ -202,45 +202,6 @@ lightware_sf45_serial <command> [arguments...]
    stop          Stop driver
 ```
 
-## lightware_grf_serial
-
-Source: [drivers/distance_sensor/lightware_grf_serial](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_grf_serial)
-
-### Description
-
-Serial bus driver for the LightWare GRF250, GRF500 Laser rangefinders.
-
-Most boards are configured to enable/start the driver on a specified UART using the SENS_GRF_CFG parameter.
-
-[Setup/usage information](../sensor/grf_lidar.md).
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-
-```
-lightware_grf_serial start -d /dev/ttyS1
-```
-
-Stop driver
-
-```
-lightware_grf_serial stop
-```
-
-### Usage {#lightware_grf_serial_usage}
-
-```
-lightware_grf_serial <command> [arguments...]
- Commands:
-   start         Start driver
-     -d <val>    Serial device
-     [-R <val>]  Sensor rotation - downward facing by default
-                 default: 25
-
-   stop          Stop driver
-```
-
 ## ll40ls
 
 Source: [drivers/distance_sensor/ll40ls](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/ll40ls)

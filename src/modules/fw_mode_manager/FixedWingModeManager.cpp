@@ -36,9 +36,6 @@
 #include <px4_platform_common/events.h>
 #include <uORB/topics/longitudinal_control_configuration.h>
 
-using math::constrain;
-using math::max;
-using math::min;
 using math::radians;
 
 using matrix::Dcmf;
