@@ -236,10 +236,6 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 				}
 			}
 		}
-
-		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
-			stopMaskedMotorsWithZeroThrust(_motors & ~_untiltable_motors, actuator_sp);
-		}
 	}
 }
 
