@@ -29,6 +29,17 @@ The vehicle will then match the configuration documented in the [Airframe Refere
 - **MAIN7:** motor 7 CCW, stern starboard vertical, propeller CW
 - **MAIN8:** motor 8 CCW, stern port vertical, propeller CCW
 
+## Manual Modes
+
+| Mode     | Description                                                                                                            |
+|----------|------------------------------------------------------------------------------------------------------------------------|
+| Manual   | Direct manual control of yaw and thrust.                                                                               |
+| Acro     | Manual control of yaw/thrust, but keeps roll/pitch zero                                                                |
+| Altitude | Manual control of x/y thrust and yaw. Control of height with PID, manually controlled by user.   Keeps roll/pitch zero |
+| Position | Controlls x/y/z and yaw. Manually controlled by user.  Keeps roll/pitch zero                                           |
+
+
+
 ## Airframe Configuration
 
 BlueROV2 does not come with PX4 installed.
