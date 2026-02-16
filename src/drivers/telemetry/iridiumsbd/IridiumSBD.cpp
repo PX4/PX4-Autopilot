@@ -87,7 +87,7 @@ int IridiumSBD::task_spawn(int argc, char *argv[])
 	}
 
 	// wait until task is up & running (max 6 seconds)
-	if (wait_until_running(6000) < 0) {
+	if (wait_until_running(desc, 6000) < 0) {
 		desc.task_id = -1;
 		return -1;
 	}
@@ -1104,7 +1104,7 @@ int IridiumSBD::custom_command(int argc, char *argv[])
 
 extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[])
 {
-	if (argc >= 2 && !strcmp(argv[1], "stop") && IridiumSBD::is_running(desc)) {
+	if (argc >= 2 && !strcmp(argv[1], "stop") && IridiumSBD::is_running(IridiumSBD::desc)) {
 		if (!IridiumSBD::can_stop()) {
 			PX4_ERR("Device is used. Stop all users first (mavlink stop-all)");
 			return -1;
