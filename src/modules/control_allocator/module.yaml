@@ -356,7 +356,7 @@ parameters:
             instance_start: 0
             default: 0
 
-        CA_SV_CS_LAU_LK:
+        CA_SV_LAU_LK:
             description:
                 short: Control surface ${i} launch lock enabled
                 long: If actuator launch lock is enabled, this surface is kept at the disarmed value.
@@ -874,7 +874,7 @@ mixer:
                             label: 'Spoiler Scale'
                             advanced: true
                             identifier: 'servo-scale-spoiler'
-                          - name: 'CA_SV_CS_LAU_LK'
+                          - name: 'CA_SV_LAU_LK'
                             label: 'Launch Lock'
                             advanced: true
                             identifier: 'servo-launch-lock'
