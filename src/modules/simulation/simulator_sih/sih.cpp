@@ -591,7 +591,7 @@ void Sih::ecefToNed()
 
 	// Transform velocity to NED frame
 	_v_N = C_SE * _v_E;
-	_v_N_apparent = _v_N - _v_wind;
+	_v_N_apparent = _v_N + _v_wind;
 
 	_q = Quatf(C_SE) * _q_E;
 	_q.normalize();
