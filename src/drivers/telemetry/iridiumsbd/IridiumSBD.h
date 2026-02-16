@@ -141,7 +141,7 @@ public:
 	 */
 	int ioctl(struct file *filp, int cmd, unsigned long arg);
 
-	static bool can_stop() { return !get_instance()->_cdev_used.load(); }
+	static bool can_stop() { return !static_cast<IridiumSBD *>(desc.object.load())->_cdev_used.load(); }
 
 private:
 	int init(int argc, char *argv[]);
