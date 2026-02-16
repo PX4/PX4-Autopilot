@@ -306,14 +306,16 @@ void UUVPOSControl::Run()
 			if (altitude_only_flag) {
 
 
+
+
 				// Avoid accumulating absolute yaw error with arming stick gesture
 				// roll and pitch for future implementation
 				// float roll = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).phi();
 				// float pitch = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).theta();
 				float yaw = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).psi();
 
-				float roll_setpoint = M_PI_2 / 2.0; //0.0f;
-				float pitch_setpoint = 0.3;
+				float roll_setpoint = 0.0f;
+				float pitch_setpoint = 0.0f;
 				float yaw_setpoint = yaw + _manual_control_setpoint.roll * dt * _param_sgm_yaw.get();
 
 				// Generate target quaternion
