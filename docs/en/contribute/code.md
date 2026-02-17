@@ -86,6 +86,20 @@ private:
 };
 ```
 
+## Coding Conventions
+
+The following conventions are enforced during code review:
+
+- **Return early** to reduce nesting depth.
+- **No `get`/`is` prefixes** on boolean methods: prefer `enabled()` over `isEnabled()`.
+- **Default member initialization** in class headers, not constructors (e.g. `float _value{0.f};`).
+- **Avoid `goto`.**
+- **Prefer `++i`** over `i++`.
+- **No `std::` containers or algorithms** in embedded (NuttX) code.
+- **No dynamic memory allocation after init.**
+
+Formatting source of truth: `Tools/astyle/astylerc`. Run `make format` to fix formatting project-wide, or `Tools/astyle/fix_code_style.sh <file>` for a single file.
+
 ## In-Source Documentation
 
 PX4 developers are encouraged to create appropriate in-source documentation.
