@@ -176,7 +176,7 @@ uint32_t UavcanEscController::get_failures(uint8_t esc_index)
 	uint32_t failures = 0;
 
 	// Update device vendor/model information from device_information topic
-	device_information_s device_information;
+	device_information_s device_information{};
 
 	char esc_name[80] {};
 
@@ -202,7 +202,7 @@ uint32_t UavcanEscController::get_failures(uint8_t esc_index)
 		}
 	}
 
-	if (esc_report.esc_address < UAVCAN_NODE_ID_MAX && (node_health == dronecan_node_status_s::HEALTH_OK ||
+	if (esc_report.esc_address <= uavcan::NodeID::Max && (node_health == dronecan_node_status_s::HEALTH_OK ||
 			node_health == dronecan_node_status_s::HEALTH_WARNING)) {
 		failures = 0;
 
