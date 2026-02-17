@@ -162,7 +162,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_EN_SF1XX>) _param_sens_en_sf1xx,
-		(ParamInt<px4::params::SF1XX_MODE>) _param_sf1xx_mode
+		(ParamInt<px4::params::SF1XX_MODE>) _param_sf1xx_mode,
+		(ParamInt<px4::params::SF1XX_ROT>) _param_sf1xx_rot
 	)
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -178,7 +179,7 @@ LightwareLaser::LightwareLaser(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
 	ModuleParams(nullptr),
-	_px4_rangefinder(get_device_id(), config.rotation)
+	_px4_rangefinder(get_device_id())
 {
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
 }
@@ -194,6 +195,9 @@ int LightwareLaser::init()
 {
 	int ret = PX4_ERROR;
 	updateParams();
+
+	_px4_rangefinder.set_orientation(_param_sf1xx_rot.get());
+
 	const int32_t hw_model = _param_sens_en_sf1xx.get();
 
 	switch (hw_model) {
@@ -630,7 +634,7 @@ void LightwareLaser::print_usage()
 		R"DESCR_STR(
 ### Description
 
-I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20, SF30/d.
+I2C bus driver for Lightware LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20, SF/LW30/d, GRF250, GRF500.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 )DESCR_STR");
@@ -640,28 +644,17 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x66);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
 extern "C" __EXPORT int lightware_laser_i2c_main(int argc, char *argv[])
 {
-	int ch;
 	using ThisDriver = LightwareLaser;
 	BusCLIArguments cli{true, false};
-	cli.rotation = (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = LIGHTWARE_LASER_BASEADDR;
 
-	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
-		switch (ch) {
-		case 'R':
-			cli.rotation = (Rotation)atoi(cli.optArg());
-			break;
-		}
-	}
-
-	const char *verb = cli.optArg();
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
 	if (!verb) {
 		ThisDriver::print_usage();
