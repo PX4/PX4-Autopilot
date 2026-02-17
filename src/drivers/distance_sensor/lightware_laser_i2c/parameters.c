@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Lightware SF1xx/SF20/LW20 laser rangefinder (i2c)
+ * Lightware laser rangefinder (i2c)
  *
  * @reboot_required true
  * @min 0
@@ -52,7 +52,7 @@
 PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 
 /**
- * Lightware SF1xx/SF20/LW20 Operation Mode
+ * Lightware laser rangefinder Operation Mode
  *
  * @value 0 Disabled
  * @value 1 Enabled
@@ -64,9 +64,10 @@ PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 PARAM_DEFINE_INT32(SF1XX_MODE, 1);
 
 /**
- * Lightware SF1xx/SF20/LW20 Rotation
+ * Lightware laser rangefinder Rotation
  *
  * Distance sensor orientation as MAV_SENSOR_ORIENTATION enum.
+ * Applies to all models supported by SENS_EN_SF1XX.
  *
  * @reboot_required true
  * @min 0
