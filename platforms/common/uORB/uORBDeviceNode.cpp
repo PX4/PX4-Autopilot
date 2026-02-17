@@ -57,7 +57,7 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t inst
 
 uORB::DeviceNode::~DeviceNode()
 {
-	free(_data);
+	free(_data.load());
 
 	const char *devname = get_devname();
 
@@ -148,7 +148,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	 *
 	 * Note that filp will usually be NULL.
 	 */
-	if (nullptr == _data) {
+	if (nullptr == _data.load()) {
 
 #ifdef __PX4_NUTTX
 
@@ -158,13 +158,15 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 			lock();
 
 			/* re-check size */
-			if (nullptr == _data) {
+			if (nullptr == _data.load()) {
 				const size_t data_size = _meta->o_size * _meta->o_queue;
-				_data = (uint8_t *) px4_cache_aligned_alloc(data_size);
+				uint8_t *data = (uint8_t *) px4_cache_aligned_alloc(data_size);
 
-				if (_data) {
-					memset(_data, 0, data_size);
+				if (data) {
+					memset(data, 0, data_size);
 				}
+
+				_data.store(data);
 			}
 
 			unlock();
@@ -175,7 +177,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 #endif /* __PX4_NUTTX */
 
 		/* failed or could not allocate */
-		if (nullptr == _data) {
+		if (nullptr == _data.load()) {
 			return -ENOMEM;
 		}
 	}
@@ -190,7 +192,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation.fetch_add(1);
 
-	memcpy(_data + (_meta->o_size * (generation % _meta->o_queue)), buffer, _meta->o_size);
+	memcpy(_data.load() + (_meta->o_size * (generation % _meta->o_queue)), buffer, _meta->o_size);
 
 	// callbacks
 	for (auto item : _callbacks) {
@@ -232,7 +234,7 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 		return PX4_OK;
 
 	case ORBIOCISADVERTISED:
-		*(unsigned long *)arg = _advertised;
+		*(unsigned long *)arg = _advertised.load();
 
 		return PX4_OK;
 
@@ -310,7 +312,7 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 	 * of subscribers and publishers. But we also do not have a leak since future
 	 * publishers reuse the same DeviceNode object.
 	 */
-	devnode->_advertised = false;
+	devnode->_advertised.store(false);
 
 	return PX4_OK;
 }
@@ -347,7 +349,7 @@ uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t even
 bool
 uORB::DeviceNode::print_statistics(int max_topic_length)
 {
-	if (!_advertised) {
+	if (!_advertised.load()) {
 		return false;
 	}
 
@@ -411,10 +413,10 @@ int16_t uORB::DeviceNode::process_add_subscription()
 	// send the data to the remote entity.
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (_data != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
+	if (_data.load() != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
 		// Only send the most recent data to initialize the remote end.
 		if (_data_valid) {
-			ch->send_message(_meta->o_name, _meta->o_size, _data + (_meta->o_size * ((_generation.load() - 1) % _meta->o_queue)));
+			ch->send_message(_meta->o_name, _meta->o_size, _data.load() + (_meta->o_size * ((_generation.load() - 1) % _meta->o_queue)));
 		}
 	}
 

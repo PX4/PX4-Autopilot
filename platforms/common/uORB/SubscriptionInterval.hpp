@@ -39,6 +39,7 @@
 #pragma once
 
 #include <uORB/uORB.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 
 #include "uORBDeviceNode.hpp"
@@ -132,11 +133,11 @@ public:
 	 * Set the last data update
 	 * @param t should be in range [now, now - _interval_us]
 	 */
-	void		set_last_update(hrt_abstime t) { _last_update = t; }
+	void		set_last_update(hrt_abstime t) { _last_update.store(t); }
 protected:
 
 	Subscription	_subscription;
-	uint64_t	_last_update{0};	// last subscription update in microseconds
+	px4::atomic<uint64_t>	_last_update{0};	// last subscription update in microseconds
 	uint32_t	_interval_us{0};	// maximum update interval in microseconds
 
 };
