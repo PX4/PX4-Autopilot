@@ -33,54 +33,8 @@
 
 #pragma once
 
+#include <px4_platform_common/Serial.hpp>
 #include <drivers/drv_hrt.h>
-
-typedef struct {
-	uint8_t reserved_0; //0
-	uint8_t eeprom_version; //1
-	uint8_t reserved_1; //2
-	struct {
-		uint8_t major; //3
-		uint8_t minor; //4
-	} version;
-	char firmware_name[12]; //5-16
-	uint8_t dir_reversed; // 17
-	uint8_t bi_direction; // 18
-	uint8_t use_sine_start; // 19
-	uint8_t comp_pwm; // 20
-	uint8_t variable_pwm; // 21
-	uint8_t stuck_rotor_protection; // 22
-	uint8_t advance_level; // 23
-	uint8_t pwm_frequency; // 24
-	uint8_t startup_power; // 25
-	uint8_t motor_kv; // 26
-	uint8_t motor_poles; // 27
-	uint8_t brake_on_stop; // 28
-	uint8_t stall_protection; // 29
-	uint8_t beep_volume; // 30
-	uint8_t telemetry_on_interval; // 31
-	struct {
-		uint8_t low_threshold; // 32
-		uint8_t high_threshold; // 33
-		uint8_t neutral; // 34
-		uint8_t dead_band; // 35
-	} servo;
-	uint8_t low_voltage_cut_off; // 36
-	uint8_t low_cell_volt_cutoff; // 37
-	uint8_t rc_car_reverse; // 38
-	uint8_t use_hall_sensors; // 39
-	uint8_t sine_mode_changeover_thottle_level; // 40
-	uint8_t drag_brake_strength; // 41
-	uint8_t driving_brake_strength; // 42
-	struct {
-		uint8_t temperature; // 43
-		uint8_t current; // 44
-	} limits;
-	uint8_t sine_mode_power; // 45
-	uint8_t input_type; // 46
-	uint8_t auto_advance; // 47
-	uint8_t crc; // 48
-} AM32_EEprom_st;
 
 class DShotTelemetry
 {
@@ -97,7 +51,6 @@ public:
 	static constexpr int esc_info_size_blheli32 = 64;
 	static constexpr int esc_info_size_kiss_v1 = 15;
 	static constexpr int esc_info_size_kiss_v2 = 21;
-	static constexpr int esc_info_size_am32 = 49;
 	static constexpr int max_esc_info_size = esc_info_size_blheli32;
 
 	struct OutputBuffer {
@@ -108,9 +61,7 @@ public:
 
 	~DShotTelemetry();
 
-	int init(const char *uart_device);
-
-	void deinit();
+	int init(const char *uart_device, bool swap_rxtx);
 
 	/**
 	 * Read telemetry from the UART (non-blocking) and handle timeouts.
@@ -118,16 +69,6 @@ public:
 	 * @return -1 if no update, -2 timeout, >= 0 for the motor index. Use @latestESCData() to get the data.
 	 */
 	int update(int num_motors);
-
-	/**
-	 * Redirect everything that is read into a different buffer.
-	 * Future calls to @update will write to that instead of an internal buffer, until @update returns
-	 * a value different from -1. No decoding is done.
-	 * The caller must ensure the buffer exists until that point.
-	 * @param buffer
-	 * @return 0 on success <0 on error
-	 */
-	int redirectOutput(OutputBuffer &buffer);
 
 	bool redirectActive() const { return _redirect_output != nullptr; }
 
@@ -148,17 +89,8 @@ public:
 
 	static void decodeAndPrintEscInfoPacket(const OutputBuffer &buffer);
 
-	static int decodeEscInfoPacketFwVersion(const OutputBuffer &buffer, uint8_t* fw_version_major, uint8_t* fw_version_minor);
-
 private:
 	static constexpr int ESC_FRAME_SIZE = 10;
-
-	/**
-	 * set the Baudrate
-	 * @param baud
-	 * @return 0 on success, <0 on error
-	 */
-	int setBaudrate(unsigned baud);
 
 	void requestNextMotor(int num_motors);
 
@@ -170,10 +102,10 @@ private:
 	 */
 	bool decodeByte(uint8_t byte, bool &successful_decoding);
 
-	static inline uint8_t updateCrc8(uint8_t crc, uint8_t crc_seed);
 	static uint8_t crc8(const uint8_t *buf, uint8_t len);
 
-	int _uart_fd{-1};
+	device::Serial _uart {};
+
 	uint8_t _frame_buffer[ESC_FRAME_SIZE];
 	int _frame_position{0};
 
@@ -187,4 +119,5 @@ private:
 	// statistics
 	int _num_timeouts{0};
 	int _num_successful_responses{0};
+	int _num_checksum_errors{0};
 };

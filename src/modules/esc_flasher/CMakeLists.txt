@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,9 +34,9 @@
 px4_add_module(
 	MODULE modules__esc_flasher
 	MAIN esc_flasher
-	COMPILE_FLAGS
 	SRCS
 		EscFlasher.cpp
-		EscFlasher.hpp
-		AM32Firmware.c
-	)
+		am32_protocol.cpp
+	DEPENDS
+		px4_work_queue
+)
