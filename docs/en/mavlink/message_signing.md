@@ -35,7 +35,7 @@ This message contains:
 - A 64-bit initial timestamp
 
 ::: warning
-For security, PX4 only accepts `SETUP_SIGNING` messages received on a **USB serial** (UART) connection.
+For security, PX4 only accepts `SETUP_SIGNING` messages received on a **USB** connection.
 The message is silently ignored on all other link types (telemetry radios, network, etc.).
 This ensures that an attacker cannot remotely change the signing key.
 :::
