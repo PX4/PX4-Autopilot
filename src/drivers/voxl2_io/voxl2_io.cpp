@@ -613,22 +613,22 @@ int Voxl2IO::task_spawn(int argc, char *argv[])
 			switch (ch) {
 			case 'v':
 				PX4_INFO("Verbose mode enabled");
-				static_cast<Voxl2IO *>(desc.object.load())->_debug = true;
+				get_instance<Voxl2IO>(desc)->_debug = true;
 				break;
 
 			case 'd':
 				PX4_INFO("M0065 PWM outputs disabled");
-				static_cast<Voxl2IO *>(desc.object.load())->_outputs_disabled = true;
+				get_instance<Voxl2IO>(desc)->_outputs_disabled = true;
 				break;
 
 			case 'e':
 				PX4_INFO("M0065 using external RC");
-				static_cast<Voxl2IO *>(desc.object.load())->_rc_mode = RC_MODE::EXTERNAL;
+				get_instance<Voxl2IO>(desc)->_rc_mode = RC_MODE::EXTERNAL;
 				break;
 
 			case 'p':
 				if (valid_port(atoi(myoptarg))) {
-					snprintf(static_cast<Voxl2IO *>(desc.object.load())->_device, 2, "%s", myoptarg);
+					snprintf(get_instance<Voxl2IO>(desc)->_device, 2, "%s", myoptarg);
 
 				} else {
 					PX4_ERR("Bad UART port number: %s (must be 2, 6, or 7).", myoptarg);
@@ -770,21 +770,21 @@ int Voxl2IO::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "status")) {
-		return static_cast<Voxl2IO *>(desc.object.load())->print_status();
+		return get_instance<Voxl2IO>(desc)->print_status();
 	}
 
 
 	if (!strcmp(verb, "calibrate_escs")) {
-		if (static_cast<Voxl2IO *>(desc.object.load())->_outputs_disabled) {
+		if (get_instance<Voxl2IO>(desc)->_outputs_disabled) {
 			PX4_WARN("Can't calibrate ESCs while outputs are disabled.");
 			return -1;
 		}
 
-		return static_cast<Voxl2IO *>(desc.object.load())->calibrate_escs();
+		return get_instance<Voxl2IO>(desc)->calibrate_escs();
 	}
 
 	if (!strcmp(verb, "enable_debug")) {
-		static_cast<Voxl2IO *>(desc.object.load())->_debug = true;
+		get_instance<Voxl2IO>(desc)->_debug = true;
 	}
 
 	return print_usage("unknown custom command");

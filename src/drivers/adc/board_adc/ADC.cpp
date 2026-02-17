@@ -365,7 +365,7 @@ int ADC::custom_command(int argc, char *argv[])
 
 	if (!strcmp(verb, "test")) {
 		if (is_running(desc)) {
-			return static_cast<ADC *>(desc.object.load())->test();
+			return get_instance<ADC>(desc)->test();
 		}
 
 		return PX4_ERROR;

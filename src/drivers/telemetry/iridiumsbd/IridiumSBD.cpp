@@ -1095,7 +1095,7 @@ int IridiumSBD::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[0], "test")) {
-		static_cast<IridiumSBD *>(desc.object.load())->test(argc, argv);
+		get_instance<IridiumSBD>(desc)->test(argc, argv);
 		return 0;
 	}
 

@@ -154,19 +154,19 @@ int Logger::custom_command(int argc, char *argv[])
 #ifdef __PX4_NUTTX
 
 	if (!strcmp(argv[0], "trigger_watchdog")) {
-		static_cast<Logger *>(desc.object.load())->trigger_watchdog_now();
+		get_instance<Logger>(desc)->trigger_watchdog_now();
 		return 0;
 	}
 
 #endif
 
 	if (!strcmp(argv[0], "on")) {
-		static_cast<Logger *>(desc.object.load())->set_arm_override(true);
+		get_instance<Logger>(desc)->set_arm_override(true);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "off")) {
-		static_cast<Logger *>(desc.object.load())->set_arm_override(false);
+		get_instance<Logger>(desc)->set_arm_override(false);
 		return 0;
 	}
 
@@ -443,7 +443,7 @@ void Logger::update_params()
 bool Logger::request_stop_static()
 {
 	if (is_running(desc)) {
-		static_cast<Logger *>(desc.object.load())->request_stop();
+		get_instance<Logger>(desc)->request_stop();
 		return false;
 	}
 

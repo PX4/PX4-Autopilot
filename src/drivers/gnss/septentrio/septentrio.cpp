@@ -503,7 +503,7 @@ int SeptentrioDriver::custom_command(int argc, char *argv[])
 		return -1;
 	}
 
-	driver_instance = static_cast<SeptentrioDriver *>(desc.object.load());
+	driver_instance = get_instance<SeptentrioDriver>(desc);
 
 	if (argc >= 1 && strcmp(argv[0], "reset") == 0) {
 		if (argc == 2) {

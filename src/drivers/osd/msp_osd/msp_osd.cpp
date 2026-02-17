@@ -703,7 +703,7 @@ int MspOsd::custom_command(int argc, char *argv[])
 			PX4_INFO("Please provide a channel");
 
 		} else if (is_running(desc) && desc.object.load()) {
-			MspOsd *object = static_cast<MspOsd *>(desc.object.load());
+			MspOsd *object = get_instance<MspOsd>(desc);
 			int ret = object->set_channel(argv[1]);
 
 			if (ret == -1) {

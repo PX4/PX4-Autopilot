@@ -1431,7 +1431,7 @@ GPS::custom_command(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	GPS *_instance = static_cast<GPS *>(desc.object.load());
+	GPS *_instance = get_instance<GPS>(desc);
 
 	bool res = false;
 

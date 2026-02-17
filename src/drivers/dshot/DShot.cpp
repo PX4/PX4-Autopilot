@@ -705,7 +705,7 @@ int DShot::custom_command(int argc, char *argv[])
 				return -1;
 			}
 
-			return static_cast<DShot *>(desc.object.load())->send_command_thread_safe(commands[i].command, commands[i].num_repetitions, motor_index);
+			return get_instance<DShot>(desc)->send_command_thread_safe(commands[i].command, commands[i].num_repetitions, motor_index);
 		}
 	}
 

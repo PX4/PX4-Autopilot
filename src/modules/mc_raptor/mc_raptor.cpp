@@ -1009,7 +1009,7 @@ int Raptor::custom_command(int argc, char *argv[])
 				return PX4_ERROR;
 			}
 
-			Raptor *instance = static_cast<Raptor *>(desc.object.load());
+			Raptor *instance = get_instance<Raptor>(desc);
 
 			if (instance == nullptr) {
 				PX4_ERR("mc_raptor is not running");

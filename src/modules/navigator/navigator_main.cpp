@@ -1349,14 +1349,14 @@ int Navigator::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[0], "fencefile")) {
-		static_cast<Navigator *>(desc.object.load())->load_fence_from_file(GEOFENCE_FILENAME);
+		get_instance<Navigator>(desc)->load_fence_from_file(GEOFENCE_FILENAME);
 		return 0;
 
 #if CONFIG_NAVIGATOR_ADSB
 
 	} else if (!strcmp(argv[0], "fake_traffic")) {
 
-		static_cast<Navigator *>(desc.object.load())->run_fake_traffic();
+		get_instance<Navigator>(desc)->run_fake_traffic();
 
 		return 0;
 #endif // CONFIG_NAVIGATOR_ADSB

@@ -78,28 +78,28 @@ int RC_ControllerModule::custom_command(int argc, char *argv[])
 
 	if (!strcmp(argv[0], "throttle")) {
 		uint16_t val = atoi(argv[1]);
-		static_cast<RC_ControllerModule *>(desc.object.load())->set_throttle(val);
+		get_instance<RC_ControllerModule>(desc)->set_throttle(val);
 		PX4_INFO("Setting throttle to %u", val);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "yaw")) {
 		uint16_t val = atoi(argv[1]);
-		static_cast<RC_ControllerModule *>(desc.object.load())->set_yaw(val);
+		get_instance<RC_ControllerModule>(desc)->set_yaw(val);
 		PX4_INFO("Setting yaw to %u", val);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "pitch")) {
 		uint16_t val = atoi(argv[1]);
-		static_cast<RC_ControllerModule *>(desc.object.load())->set_pitch(val);
+		get_instance<RC_ControllerModule>(desc)->set_pitch(val);
 		PX4_INFO("Setting pitch to %u", val);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "roll")) {
 		uint16_t val = atoi(argv[1]);
-		static_cast<RC_ControllerModule *>(desc.object.load())->set_roll(val);
+		get_instance<RC_ControllerModule>(desc)->set_roll(val);
 		PX4_INFO("Setting roll to %u", val);
 		return 0;
 	}

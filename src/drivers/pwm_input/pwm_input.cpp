@@ -150,7 +150,7 @@ PWMIN::pwmin_tim_isr(int irq, void *context, void *arg)
 	/* ack the interrupts we just read */
 	rSR = 0;
 
-	auto obj = static_cast<PWMIN *>(desc.object.load());
+	auto obj = get_instance<PWMIN>(desc);
 
 	if (obj != nullptr) {
 		obj->publish(status, period, pulse_width);

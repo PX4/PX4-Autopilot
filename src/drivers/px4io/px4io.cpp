@@ -1517,7 +1517,7 @@ int PX4IO::bind(int argc, char *argv[])
 		pulses = atoi(argv[1]);
 	}
 
-	static_cast<PX4IO *>(desc.object.load())->ioctl(nullptr, DSM_BIND_START, pulses);
+	get_instance<PX4IO>(desc)->ioctl(nullptr, DSM_BIND_START, pulses);
 
 	return 0;
 }
@@ -1673,7 +1673,7 @@ int PX4IO::custom_command(int argc, char *argv[])
 		}
 
 		uint8_t level = atoi(argv[1]);
-		int ret = static_cast<PX4IO *>(desc.object.load())->ioctl(nullptr, PX4IO_SET_DEBUG, level);
+		int ret = get_instance<PX4IO>(desc)->ioctl(nullptr, PX4IO_SET_DEBUG, level);
 
 		if (ret != 0) {
 			PX4_ERR("SET_DEBUG failed: %d", ret);
@@ -1694,7 +1694,7 @@ int PX4IO::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "sbus1_out")) {
-		int ret = static_cast<PX4IO *>(desc.object.load())->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
+		int ret = get_instance<PX4IO>(desc)->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
 
 		if (ret != 0) {
 			PX4_ERR("S.BUS v1 failed (%i)", ret);
@@ -1705,7 +1705,7 @@ int PX4IO::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "sbus2_out")) {
-		int ret = static_cast<PX4IO *>(desc.object.load())->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 2);
+		int ret = get_instance<PX4IO>(desc)->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 2);
 
 		if (ret != 0) {
 			PX4_ERR("S.BUS v2 failed (%i)", ret);
@@ -1716,12 +1716,12 @@ int PX4IO::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "test_fmu_fail")) {
-		static_cast<PX4IO *>(desc.object.load())->test_fmu_fail(true);
+		get_instance<PX4IO>(desc)->test_fmu_fail(true);
 		return 0;
 	}
 
 	if (!strcmp(verb, "test_fmu_ok")) {
-		static_cast<PX4IO *>(desc.object.load())->test_fmu_fail(false);
+		get_instance<PX4IO>(desc)->test_fmu_fail(false);
 		return 0;
 	}
 

@@ -146,6 +146,16 @@ public:
 	 */
 	bool should_exit() const { return _task_should_exit.load(); }
 
+	/**
+	 * @brief Typed accessor for the running module instance.
+	 *        Centralizes the ModuleBase* -> T* downcast in one place.
+	 */
+	template<typename T>
+	static T *get_instance(Descriptor &desc)
+	{
+		return static_cast<T *>(desc.object.load()); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+	}
+
 	static constexpr int task_id_is_work_queue = -2;
 
 protected:

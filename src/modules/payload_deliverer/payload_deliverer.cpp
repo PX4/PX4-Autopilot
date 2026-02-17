@@ -319,15 +319,15 @@ int PayloadDeliverer::custom_command(int argc, char *argv[])
 	if (argc >= 1) {
 		// Tests the basic payload open / close ability
 		if (strcmp(argv[0], "gripper_test") == 0) {
-			static_cast<PayloadDeliverer *>(desc.object.load())->gripper_test();
+			get_instance<PayloadDeliverer>(desc)->gripper_test();
 			return 0;
 
 		} else if (strcmp(argv[0], "gripper_open") == 0) {
-			static_cast<PayloadDeliverer *>(desc.object.load())->gripper_open();
+			get_instance<PayloadDeliverer>(desc)->gripper_open();
 			return 0;
 
 		} else if (strcmp(argv[0], "gripper_close") == 0) {
-			static_cast<PayloadDeliverer *>(desc.object.load())->gripper_close();
+			get_instance<PayloadDeliverer>(desc)->gripper_close();
 			return 0;
 		}
 	}
