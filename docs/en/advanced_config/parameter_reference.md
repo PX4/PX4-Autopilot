@@ -19596,6 +19596,18 @@ Launch is detected when acceleration in body forward direction is above FW_LAUN_
 | ------ | -------- | -------- | --------- | ------- | ----- |
 | &nbsp; | 0        |          | 0.5       | 30.0    | m/s^2 |
 
+### FW_LAUN_CS_LK_DY (`FLOAT`) {#FW_LAUN_CS_LK_DY}
+
+Control surface launch delay.
+
+Locks control surfaces during pre-launch (armed) and until this time since launch has passed.
+Only affects control surfaces that have corresponding flag set, and not active for runway takeoff.
+Set to 0 to disable any surface locking after arming.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          | 0.1       | 0.      | s    |
+
 ### FW_LAUN_DETCN_ON (`INT32`) {#FW_LAUN_DETCN_ON}
 
 Fixed-wing launch detection.
@@ -21324,6 +21336,27 @@ Some are generic, while others are specifically fit to a certain vehicle with a 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 0       |
+
+### CA_CS_LAUN_LK (`INT32`) {#CA_CS_LAUN_LK}
+
+Control surface launch lock enabled.
+
+If actuator launch lock is enabled, this surface is kept at the disarmed value.
+
+**Bitmask:**
+
+- `0`: Control Surface 1
+- `1`: Control Surface 2
+- `2`: Control Surface 3
+- `3`: Control Surface 4
+- `4`: Control Surface 5
+- `5`: Control Surface 6
+- `6`: Control Surface 7
+- `7`: Control Surface 8
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
 
 ### CA_FAILURE_MODE (`INT32`) {#CA_FAILURE_MODE}
 
