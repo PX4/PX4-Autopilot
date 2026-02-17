@@ -136,6 +136,12 @@ public:
 	void enable_message_statistics() { _message_statistics_enabled = true; }
 	void print_detailed_rx_stats() const;
 
+	/**
+	 * Run service state machines (parameters, missions, FTP, log handler).
+	 * Called from TX thread only. These may enqueue messages via _mavlink.enqueue_tx().
+	 */
+	void service_send_cycle();
+
 	void request_stop() { _should_exit.store(true); }
 
 private:

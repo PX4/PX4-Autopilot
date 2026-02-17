@@ -68,7 +68,10 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				rsync.target_component = msg->compid;
 				rsync.target_system = msg->sysid;
 
-				mavlink_msg_timesync_send_struct(_mavlink.get_channel(), &rsync);
+				mavlink_message_t encoded;
+				mavlink_msg_timesync_encode_chan(mavlink_system.sysid, mavlink_system.compid,
+								_mavlink.get_channel(), &encoded, &rsync);
+				_mavlink.enqueue_tx(encoded);
 
 				return;
 

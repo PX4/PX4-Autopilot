@@ -50,6 +50,7 @@
 MavlinkParametersManager::MavlinkParametersManager(Mavlink &mavlink) :
 	_mavlink(mavlink)
 {
+	pthread_mutex_init(&_mutex, nullptr);
 }
 
 unsigned
@@ -61,6 +62,8 @@ MavlinkParametersManager::get_size()
 void
 MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 {
+	pthread_mutex_lock(&_mutex);
+
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
 			/* request all parameters */
@@ -121,6 +124,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					send_error(MAV_PARAM_ERROR_READ_ONLY, name, -1, msg->sysid, msg->compid);
 
 					/* No other action taken, return */
+					pthread_mutex_unlock(&_mutex);
 					return;
 				}
 
@@ -202,7 +206,10 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						strncpy(param_value.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 						param_value.param_type = MAV_PARAM_TYPE_UINT32;
 						memcpy(&param_value.param_value, &hash, sizeof(hash));
-						mavlink_msg_param_value_send_struct(_mavlink.get_channel(), &param_value);
+						mavlink_message_t encoded;
+						mavlink_msg_param_value_encode_chan(mavlink_system.sysid, mavlink_system.compid,
+										   _mavlink.get_channel(), &encoded, &param_value);
+						_mavlink.enqueue_tx(encoded);
 
 					} else {
 						/* local name buffer to enforce null-terminated string */
@@ -310,11 +317,15 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 	default:
 		break;
 	}
+
+	pthread_mutex_unlock(&_mutex);
 }
 
 void
 MavlinkParametersManager::send()
 {
+	pthread_mutex_lock(&_mutex);
+
 	if (!_first_send) {
 		// parameters QGC can't tolerate not finding (2020-11-11)
 		param_find("BAT_CRIT_THR");
@@ -356,9 +367,10 @@ MavlinkParametersManager::send()
 
 	int i = 0;
 
-	// Send while burst is not exceeded, we still have buffer space and still something to send
-	while ((i++ < max_num_to_send) && (_mavlink.get_free_tx_buf() >= get_size()) && !_mavlink.radio_status_critical()
-	       && send_params()) {}
+	// Send while burst is not exceeded and still something to send
+	while ((i++ < max_num_to_send) && send_params()) {}
+
+	pthread_mutex_unlock(&_mutex);
 }
 
 bool
@@ -421,8 +433,7 @@ MavlinkParametersManager::send_untransmitted()
 					break;
 				}
 			}
-		} while ((_mavlink.get_free_tx_buf() >= get_size()) && !_mavlink.radio_status_critical()
-			 && (_param_update_index < (int) param_count()));
+		} while (_param_update_index < (int) param_count());
 
 		// Flag work as done once all params have been sent
 		if (_param_update_index >= (int) param_count()) {
@@ -461,7 +472,10 @@ MavlinkParametersManager::send_one()
 			strncpy(msg.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 			msg.param_type = MAV_PARAM_TYPE_UINT32;
 			memcpy(&msg.param_value, &hash, sizeof(hash));
-			mavlink_msg_param_value_send_struct(_mavlink.get_channel(), &msg);
+			mavlink_message_t encoded;
+			mavlink_msg_param_value_encode_chan(mavlink_system.sysid, mavlink_system.compid,
+							   _mavlink.get_channel(), &encoded, &msg);
+			_mavlink.enqueue_tx(encoded);
 
 			/* after this we should start sending all params */
 			_send_all_index = 0;
@@ -501,11 +515,6 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 {
 
 	if (param == PARAM_INVALID) {
-		return 1;
-	}
-
-	/* no free TX buf to send this param */
-	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_VALUE_LEN) {
 		return 1;
 	}
 
@@ -570,16 +579,12 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 		msg.param_type = MAVLINK_TYPE_FLOAT;
 	}
 
-	/* default component ID */
-	if (component_id < 0) {
-		mavlink_msg_param_value_send_struct(_mavlink.get_channel(), &msg);
-
-	} else {
-		// Re-pack the message with a passed component ID
-		mavlink_message_t mavlink_packet;
-		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet, &msg);
-		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
-	}
+	/* encode and queue */
+	const int comp = (component_id < 0) ? mavlink_system.compid : component_id;
+	mavlink_message_t encoded;
+	mavlink_msg_param_value_encode_chan(mavlink_system.sysid, comp,
+					   _mavlink.get_channel(), &encoded, &msg);
+	_mavlink.enqueue_tx(encoded);
 
 	_last_param_sent = hrt_absolute_time();
 
@@ -591,12 +596,7 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 		const int target_sysid, const int target_compid,
 		int component_id)
 {
-	/* no free TX buf to send this param error message */
-	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_ERROR_LEN) {
-		return 1;
-	}
-
-	mavlink_param_error_t msg;
+	mavlink_param_error_t msg{};
 	msg.target_system = target_sysid;
 	msg.target_component = target_compid;
 	msg.error = error;
@@ -623,16 +623,12 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 #endif/* code */
 	}
 
-	/* default component ID */
-	if (component_id < 0) {
-		mavlink_msg_param_error_send_struct(_mavlink.get_channel(), &msg);
-
-	} else {
-		// Re-pack the message with a different component ID
-		mavlink_message_t mavlink_packet;
-		mavlink_msg_param_error_encode_chan(mavlink_system.sysid, component_id, _mavlink.get_channel(), &mavlink_packet, &msg);
-		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
-	}
+	/* encode and queue */
+	const int comp = (component_id < 0) ? mavlink_system.compid : component_id;
+	mavlink_message_t encoded;
+	mavlink_msg_param_error_encode_chan(mavlink_system.sysid, comp,
+					   _mavlink.get_channel(), &encoded, &msg);
+	_mavlink.enqueue_tx(encoded);
 
 	return 0;
 }
@@ -683,11 +679,11 @@ bool MavlinkParametersManager::send_uavcan()
 			msg.param_type = MAVLINK_TYPE_INT32_T;
 		}
 
-		// Re-pack the message with the UAVCAN node ID
+		// Encode and queue with the UAVCAN node ID
 		mavlink_message_t mavlink_packet{};
 		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, value.node_id, _mavlink.get_channel(), &mavlink_packet,
 						    &msg);
-		_mavlink_resend_uart(_mavlink.get_channel(), &mavlink_packet);
+		_mavlink.enqueue_tx(mavlink_packet);
 
 		return true;
 	}
