@@ -106,7 +106,6 @@ void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flig
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
 		_forwards_motors_mask = 0;
-		_stopped_motors_mask = 0;
 		break;
 	}
 }

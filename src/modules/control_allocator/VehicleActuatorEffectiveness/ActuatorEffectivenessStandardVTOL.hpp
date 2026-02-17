@@ -81,9 +81,6 @@ private:
 	ActuatorEffectivenessRotors _rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 
-	uint32_t _upwards_motors_mask{};
-	uint32_t _forwards_motors_mask{};
-
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 
 	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
