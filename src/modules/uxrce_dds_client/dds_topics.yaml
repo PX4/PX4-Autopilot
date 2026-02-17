@@ -190,9 +190,6 @@ subscriptions:
   - topic: /fmu/in/actuator_servos
     type: px4_msgs::msg::ActuatorServos
 
-  - topic: /fmu/in/aux_global_position
-    type: px4_msgs::msg::AuxGlobalPosition
-
   - topic: /fmu/in/fixed_wing_longitudinal_setpoint
     type: px4_msgs::msg::FixedWingLongitudinalSetpoint
 
@@ -226,5 +223,9 @@ subscriptions:
   - topic: /fmu/in/landing_gear
     type: px4_msgs::msg::LandingGear
 
-# Create uORB::PublicationMulti
-subscriptions_multi:
+# Subscriptions demultiplexed to uORB multi-instances based on a message field
+subscriptions_demux:
+  - topic: /fmu/in/aux_global_position
+    type: px4_msgs::msg::AuxGlobalPosition
+    route_field: id
+    max_instances: 4
