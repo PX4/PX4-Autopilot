@@ -201,7 +201,28 @@ public:
 	/**
 	 * Get a bitmask of motors to be stopped
 	 */
-	virtual uint32_t getStoppedMotors() const { return _stopped_motors_mask; }
+	uint32_t getStoppedMotors() const
+	{
+		// Motors can be stopped (here) for two reasons:
+		//  a) they are turned off because they are generally not used in the given flight phase.
+		uint32_t stopped_motors_mask = _stopped_motors_mask_due_to_flight_phase;
+
+		//  b) they are stopped because the thrust setpoint in a given direction is NaN
+		if (_forwards_motors_stopped_by_thrust) {
+			stopped_motors_mask |= _forwards_motors_mask;
+		}
+
+		if (_upwards_motors_stopped_by_thrust) {
+			stopped_motors_mask |= _upwards_motors_mask;
+		}
+
+		// They can also be stopped in the ControlAllocator, due to
+		// motor failure. The difference is that the stopped mask in the
+		// allocator applies after the slew rate, and the mask here
+		// applies before.
+
+		return stopped_motors_mask;
+	}
 
 	/**
 	 * Fill in the unallocated torque and thrust, customized by effectiveness type.
@@ -209,7 +230,23 @@ public:
 	 */
 	virtual void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) {}
 
+	virtual void setForwardsMotorsStoppedByThrust(bool stopped)
+	{
+		_forwards_motors_stopped_by_thrust = stopped;
+	}
+
+	virtual void setUpwardsMotorsStoppedByThrust(bool stopped)
+	{
+		_upwards_motors_stopped_by_thrust = stopped;
+	}
+
 protected:
+	uint32_t _upwards_motors_mask{};
+	uint32_t _forwards_motors_mask{};
+
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
-	uint32_t _stopped_motors_mask{0};
+	uint32_t _stopped_motors_mask_due_to_flight_phase{0};
+
+	bool _forwards_motors_stopped_by_thrust{false};
+	bool _upwards_motors_stopped_by_thrust{false};
 };
