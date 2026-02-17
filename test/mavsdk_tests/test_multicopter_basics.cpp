@@ -48,7 +48,7 @@ TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 	tester.set_takeoff_altitude(takeoff_altitude);
 	tester.store_home();
 	// The sleep here is necessary for the takeoff altitude to be applied properly
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	tester.sleep_for(std::chrono::seconds(1));
 
 	// Capture altitude before takeoff
 	std::array<float, 3> initial_position = tester.get_current_position_ned();
@@ -63,5 +63,5 @@ TEST_CASE("Takeoff and hold position", "[multicopter][vtol]")
 	// Monitor altitude and fail if it exceeds the tolerance
 	tester.start_checking_altitude(0.15);
 
-	std::this_thread::sleep_for(std::chrono::seconds(15));
+	tester.sleep_for(std::chrono::seconds(15));
 }
