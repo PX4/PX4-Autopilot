@@ -70,7 +70,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 
 				mavlink_message_t encoded;
 				mavlink_msg_timesync_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-								_mavlink.get_channel(), &encoded, &rsync);
+								 _mavlink.get_channel(), &encoded, &rsync);
 				_mavlink.enqueue_tx(encoded);
 
 				return;

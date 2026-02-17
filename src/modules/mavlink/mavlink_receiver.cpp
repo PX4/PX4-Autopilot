@@ -1734,7 +1734,7 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 		ping.target_component = msg->compid;
 		mavlink_message_t encoded;
 		mavlink_msg_ping_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-					    _mavlink.get_channel(), &encoded, &ping);
+					     _mavlink.get_channel(), &encoded, &ping);
 		_mavlink.enqueue_tx(encoded);
 
 	} else if ((ping.target_system == mavlink_system.sysid) &&
@@ -2312,7 +2312,7 @@ MavlinkReceiver::get_message_interval(int msgId)
 	mi.interval_us = interval;
 	mavlink_message_t encoded;
 	mavlink_msg_message_interval_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-						_mavlink.get_channel(), &encoded, &mi);
+			_mavlink.get_channel(), &encoded, &mi);
 	_mavlink.enqueue_tx(encoded);
 }
 

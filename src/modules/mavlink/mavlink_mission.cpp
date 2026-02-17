@@ -274,7 +274,7 @@ MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t t
 
 	mavlink_message_t encoded;
 	mavlink_msg_mission_ack_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-					   _mavlink.get_channel(), &encoded, &wpa);
+					    _mavlink.get_channel(), &encoded, &wpa);
 	_mavlink.enqueue_tx(encoded);
 
 	PX4_DEBUG("WPM: Send MISSION_ACK type %u to ID %u", wpa.type, wpa.target_system);
@@ -296,7 +296,7 @@ MavlinkMissionManager::send_mission_current(uint16_t seq)
 	wpc.rally_points_id = _crc32[MAV_MISSION_TYPE_RALLY];
 	mavlink_message_t encoded;
 	mavlink_msg_mission_current_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-					       _mavlink.get_channel(), &encoded, &wpc);
+						_mavlink.get_channel(), &encoded, &wpc);
 	_mavlink.enqueue_tx(encoded);
 
 	PX4_DEBUG("WPM: Send MISSION_CURRENT seq %d", seq);
@@ -318,7 +318,7 @@ MavlinkMissionManager::send_mission_count(uint8_t sysid, uint8_t compid, uint16_
 
 	mavlink_message_t encoded;
 	mavlink_msg_mission_count_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-					     _mavlink.get_channel(), &encoded, &wpc);
+					      _mavlink.get_channel(), &encoded, &wpc);
 	_mavlink.enqueue_tx(encoded);
 
 	PX4_DEBUG("WPM: Send MISSION_COUNT %u to ID %u, mission type=%i", wpc.count, wpc.target_system, mission_type);
@@ -386,7 +386,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 
 			mavlink_message_t encoded;
 			mavlink_msg_mission_item_int_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-								_mavlink.get_channel(), &encoded, &wp);
+					_mavlink.get_channel(), &encoded, &wp);
 			_mavlink.enqueue_tx(encoded);
 
 			PX4_DEBUG("WPM: Send MISSION_ITEM_INT seq %u to ID %u", wp.seq, wp.target_system);
@@ -402,7 +402,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 
 			mavlink_message_t encoded;
 			mavlink_msg_mission_item_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-							    _mavlink.get_channel(), &encoded, &wp);
+							     _mavlink.get_channel(), &encoded, &wp);
 			_mavlink.enqueue_tx(encoded);
 
 			PX4_DEBUG("WPM: Send MISSION_ITEM seq %u to ID %u", wp.seq, wp.target_system);
@@ -472,7 +472,7 @@ MavlinkMissionManager::send_mission_request(uint8_t sysid, uint8_t compid, uint1
 			wpr.mission_type = _mission_type;
 			mavlink_message_t encoded;
 			mavlink_msg_mission_request_int_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-								   _mavlink.get_channel(), &encoded, &wpr);
+					_mavlink.get_channel(), &encoded, &wpr);
 			_mavlink.enqueue_tx(encoded);
 
 			PX4_DEBUG("WPM: Send MISSION_REQUEST_INT seq %u to ID %u", wpr.seq, wpr.target_system);
@@ -487,7 +487,7 @@ MavlinkMissionManager::send_mission_request(uint8_t sysid, uint8_t compid, uint1
 
 			mavlink_message_t encoded;
 			mavlink_msg_mission_request_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-							       _mavlink.get_channel(), &encoded, &wpr);
+								_mavlink.get_channel(), &encoded, &wpr);
 			_mavlink.enqueue_tx(encoded);
 
 			PX4_DEBUG("WPM: Send MISSION_REQUEST seq %u to ID %u", wpr.seq, wpr.target_system);
@@ -511,7 +511,7 @@ MavlinkMissionManager::send_mission_item_reached(uint16_t seq)
 
 	mavlink_message_t encoded;
 	mavlink_msg_mission_item_reached_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-						    _mavlink.get_channel(), &encoded, &wp_reached);
+			_mavlink.get_channel(), &encoded, &wp_reached);
 	_mavlink.enqueue_tx(encoded);
 
 	PX4_DEBUG("WPM: Send MISSION_ITEM_REACHED reached_seq %u", wp_reached.seq);
@@ -620,6 +620,7 @@ void
 MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
 {
 	pthread_mutex_lock(&_mutex);
+
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_MISSION_ACK:
 		handle_mission_ack(msg);

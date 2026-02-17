@@ -246,7 +246,7 @@ void MavlinkLogHandler::state_sending_data()
 
 		mavlink_message_t encoded;
 		mavlink_msg_log_data_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-						_mavlink.get_channel(), &encoded, &msg);
+						 _mavlink.get_channel(), &encoded, &msg);
 		_mavlink.enqueue_tx(encoded);
 
 		bytes_sent += MAVLINK_PACKET_SIZE;
@@ -485,7 +485,7 @@ void MavlinkLogHandler::send_log_entry(uint32_t time_utc, uint32_t size_bytes)
 	msg.last_log_num = _list_request.last_id;
 	mavlink_message_t encoded;
 	mavlink_msg_log_entry_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-					 _mavlink.get_channel(), &encoded, &msg);
+					  _mavlink.get_channel(), &encoded, &msg);
 	_mavlink.enqueue_tx(encoded);
 }
 

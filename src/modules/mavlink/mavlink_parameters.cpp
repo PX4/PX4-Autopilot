@@ -208,7 +208,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						memcpy(&param_value.param_value, &hash, sizeof(hash));
 						mavlink_message_t encoded;
 						mavlink_msg_param_value_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-										   _mavlink.get_channel(), &encoded, &param_value);
+										    _mavlink.get_channel(), &encoded, &param_value);
 						_mavlink.enqueue_tx(encoded);
 
 					} else {
@@ -474,7 +474,7 @@ MavlinkParametersManager::send_one()
 			memcpy(&msg.param_value, &hash, sizeof(hash));
 			mavlink_message_t encoded;
 			mavlink_msg_param_value_encode_chan(mavlink_system.sysid, mavlink_system.compid,
-							   _mavlink.get_channel(), &encoded, &msg);
+							    _mavlink.get_channel(), &encoded, &msg);
 			_mavlink.enqueue_tx(encoded);
 
 			/* after this we should start sending all params */
@@ -583,7 +583,7 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 	const int comp = (component_id < 0) ? mavlink_system.compid : component_id;
 	mavlink_message_t encoded;
 	mavlink_msg_param_value_encode_chan(mavlink_system.sysid, comp,
-					   _mavlink.get_channel(), &encoded, &msg);
+					    _mavlink.get_channel(), &encoded, &msg);
 	_mavlink.enqueue_tx(encoded);
 
 	_last_param_sent = hrt_absolute_time();
@@ -627,7 +627,7 @@ int MavlinkParametersManager:: send_error(MAV_PARAM_ERROR error, const char *par
 	const int comp = (component_id < 0) ? mavlink_system.compid : component_id;
 	mavlink_message_t encoded;
 	mavlink_msg_param_error_encode_chan(mavlink_system.sysid, comp,
-					   _mavlink.get_channel(), &encoded, &msg);
+					    _mavlink.get_channel(), &encoded, &msg);
 	_mavlink.enqueue_tx(encoded);
 
 	return 0;
