@@ -28,55 +28,71 @@
  * Public Data
  ****************************************************************************/
 
+enum {
+	/* SPI instructions */
+
+	READ_FAST = 0,
+	READ_STATUS_REG = 1,
+	WRITE_ENABLE = 3,
+	SECTOR_ERASE_4K = 5,
+	READ_FAST_QUAD_OUTPUT = 6,
+	PAGE_PROGRAM_QUAD_INPUT = 7,
+	ERASE_BLOCK = 8,
+	PAGE_PROGRAM = 9,
+	CHIP_ERASE = 11,
+};
+
 locate_data(".boot_hdr.conf")
 const struct flexspi_nor_config_s g_flash_config = {
 	.mem_config =
 	{
-		.tag = FLEXSPI_CFG_BLK_TAG,
-		.version = FLEXSPI_CFG_BLK_VERSION,
-		.read_sample_clksrc =  FLASH_READ_SAMPLE_CLK_LOOPBACK_FROM_SCKPAD,
-		.cs_hold_time = 1u,
-		.cs_setup_time = 1u,
-		.column_address_width = 0u,
-		.device_type = FLEXSPI_DEVICE_TYPE_SERIAL_NOR,
-		.sflash_pad_type = SERIAL_FLASH_4PADS,
-		.serial_clk_freq = FLEXSPI_SERIAL_CLKFREQ_133MHz,
-		.sflash_a1size = 8u * 1024u * 1024u,
-		.data_valid_time =
+		.tag                    = FLEXSPI_CFG_BLK_TAG,
+		.version                = FLEXSPI_CFG_BLK_VERSION,
+		.read_sample_clksrc     =  FLASH_READ_SAMPLE_CLK_LOOPBACK_FROM_SCKPAD,
+		.cs_hold_time           = 1u,
+		.cs_setup_time          = 1u,
+		.column_address_width   = 0u,
+		.device_type            = FLEXSPI_DEVICE_TYPE_SERIAL_NOR,
+		.sflash_pad_type        = SERIAL_FLASH_4PADS,
+		.serial_clk_freq        = FLEXSPI_SERIAL_CLKFREQ_133MHz,
+		.sflash_a1size          = 8u * 1024u * 1024u,
+		.lookup_table           =
 		{
-			0u, 0u
-		},
-		.lookup_table =
-		{
-			/* Fast Read Quad I/O */
-			[0 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0xeb,
-						  RADDR_SDR, FLEXSPI_4PAD, 0x18),
-			[0 + 1] = FLEXSPI_LUT_SEQ(DUMMY_SDR, FLEXSPI_4PAD, 0x06,
-						  READ_SDR, FLEXSPI_4PAD, 0x04),
+			[4 * READ_FAST] =       FLEXSPI_LUT_SEQ(CMD_SDR,   FLEXSPI_1PAD, 0xeb,
+								RADDR_SDR, FLEXSPI_4PAD, 0x18),
+			[4 * READ_FAST + 1] =   FLEXSPI_LUT_SEQ(DUMMY_SDR, FLEXSPI_4PAD, 0x06,
+								READ_SDR,  FLEXSPI_4PAD, 0x04),
 
-			/* Read Status Register-1 */
-			[4 * 1 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x05,
-						      READ_SDR, FLEXSPI_1PAD, 0x04),
+			[4 * READ_STATUS_REG] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x05,
+								READ_SDR,  FLEXSPI_1PAD, 0x04),
 
-			/* Write Status Register-1 */
-			[4 * 3 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x01, STOP, FLEXSPI_1PAD, 0x0),
+			[4 * WRITE_ENABLE] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x06,
+							     STOP, FLEXSPI_1PAD, 0),
 
-			/* Sector Erase (4KB) */
-			[4 * 5 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x20,
-						      RADDR_SDR, FLEXSPI_1PAD, 0x18),
+			[4 * SECTOR_ERASE_4K] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x20,
+								RADDR_SDR, FLEXSPI_1PAD, 0x18),
 
-			/* Block Erase (64KB) */
-			[4 * 8 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0xd8,
-						      RADDR_SDR, FLEXSPI_1PAD, 0x18),
+			[4 * CHIP_ERASE] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x60,
+							   STOP, FLEXSPI_1PAD, 0),
 
-			/* Page Program */
-			[4 * 9 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x02,
-						      RADDR_SDR, FLEXSPI_1PAD, 0x18),
-			[4 * 9 + 1] = FLEXSPI_LUT_SEQ(WRITE_SDR, FLEXSPI_1PAD, 0x04,
-						      STOP, FLEXSPI_1PAD, 0x0),
+			[4 * ERASE_BLOCK] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0xd8,
+							    RADDR_SDR, FLEXSPI_1PAD, 0x18),
 
-			/* Chip Erase */
-			[4 * 11 + 0] =  FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x60, STOP, FLEXSPI_1PAD, 0x0),
+			[4 * PAGE_PROGRAM] =     FLEXSPI_LUT_SEQ(CMD_SDR,   FLEXSPI_1PAD, 0x02,
+					RADDR_SDR, FLEXSPI_1PAD, 0x18),
+			[4 * PAGE_PROGRAM + 1] = FLEXSPI_LUT_SEQ(WRITE_SDR, FLEXSPI_1PAD, 0x04,
+					STOP,      FLEXSPI_1PAD, 0x0),
+
+			[4 * READ_FAST_QUAD_OUTPUT] =     FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x6b,
+					RADDR_SDR, FLEXSPI_1PAD, 0x18),
+			[4 * READ_FAST_QUAD_OUTPUT + 1] = FLEXSPI_LUT_SEQ(DUMMY_SDR, FLEXSPI_4PAD, 0x08,
+					READ_SDR,  FLEXSPI_4PAD, 0x04),
+
+			[4 * PAGE_PROGRAM_QUAD_INPUT] =     FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x32,
+					RADDR_SDR, FLEXSPI_1PAD, 0x18),
+			[4 * PAGE_PROGRAM_QUAD_INPUT + 1] = FLEXSPI_LUT_SEQ(WRITE_SDR, FLEXSPI_4PAD, 0x04,
+					STOP,      FLEXSPI_1PAD, 0),
+
 		},
 	},
 

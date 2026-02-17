@@ -36,7 +36,6 @@
 using namespace time_literals;
 using namespace matrix;
 
-using math::constrain;
 using math::interpolate;
 using math::radians;
 
@@ -150,7 +149,7 @@ FixedwingRateControl::vehicle_land_detected_poll()
 	}
 }
 
-float FixedwingRateControl::get_airspeed_and_update_scaling()
+float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 {
 	_airspeed_validated_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
@@ -162,6 +161,13 @@ float FixedwingRateControl::get_airspeed_and_update_scaling()
 	if (_param_fw_use_airspd.get() && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
+
+		if (dt > 1.f) {
+			_airspeed_filter_for_torque_scaling.reset(airspeed);
+
+		} else {
+			airspeed = _airspeed_filter_for_torque_scaling.update(airspeed, dt);
+		}
 
 	} else {
 		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
@@ -274,16 +280,27 @@ void FixedwingRateControl::Run()
 
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
-			const float airspeed = get_airspeed_and_update_scaling();
+			const float airspeed = get_airspeed_and_update_scaling(dt);
 
 			/* reset integrals where needed */
 			if (_rates_sp.reset_integral) {
 				_rate_control.resetIntegral();
 			}
 
-			// Reset integrators if the aircraft is on ground or not in a state where the fw attitude controller is run
-			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition) {
+			launch_detection_status_s launch_detection_status{};
+			_launch_detection_status_sub.copy(&launch_detection_status);
 
+			bool control_surfaces_locked = false;
+
+			if (hrt_elapsed_time(&launch_detection_status.timestamp) < 100_ms
+			    && launch_detection_status.selected_control_surface_disarmed) {
+				control_surfaces_locked = true;
+			}
+
+			// Reset integrators if the aircraft is on ground or not in a state where the fw attitude controller is run
+			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition || control_surfaces_locked) {
+
+				_gain_compression.reset();
 				_rate_control.resetIntegral();
 			}
 
@@ -363,10 +380,11 @@ void FixedwingRateControl::Run()
 				_rate_control.setFeedForwardGain(scaled_gain_ff);
 
 				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
-				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
-						_landed);
+				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt, _landed);
 
-				Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling;
+				Vector3f control_u = _gain_compression.getGains().emult(angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling);
+
+				_gain_compression.update(control_u, dt);
 
 				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_EN is not set then don't rate-control yaw
 				if (!_vcontrol_mode.flag_control_attitude_enabled && _vcontrol_mode.flag_control_manual_enabled
@@ -410,6 +428,7 @@ void FixedwingRateControl::Run()
 
 		} else {
 			// full manual
+			_gain_compression.reset();
 			_rate_control.resetIntegral();
 		}
 

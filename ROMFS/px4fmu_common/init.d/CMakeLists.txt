@@ -123,3 +123,9 @@ if(CONFIG_MODULES_TEMPERATURE_COMPENSATION)
 		rc.thermal_cal
 	)
 endif()
+
+if(CONFIG_DRIVERS_VTXTABLE)
+	px4_add_romfs_files(
+		rc.vtxtable
+	)
+endif()

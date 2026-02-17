@@ -237,15 +237,22 @@ void UUVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 
 void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 {
+	const bool js_heave_sway_mode = joystick_heave_sway_mode();
+
 	// Avoid accumulating absolute yaw error with arming stick gesture
 	float roll = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).phi();
 	float pitch = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).theta();
 	float yaw = Eulerf(matrix::Quatf(_attitude_setpoint.q_d)).psi();
 
-	// Integrate manual control inputs
+	float roll_setpoint = 0.0f;
+	float pitch_setpoint = 0.0f;
 	float yaw_setpoint = yaw + _manual_control_setpoint.yaw * dt * _param_sgm_yaw.get();
-	float roll_setpoint = roll + _manual_control_setpoint.roll * dt * _param_sgm_roll.get();
-	float pitch_setpoint = pitch + -_manual_control_setpoint.pitch * dt * _param_sgm_pitch.get();
+
+	if (!js_heave_sway_mode) {
+		// Integrate roll/pitch from sticks
+		roll_setpoint = roll + _manual_control_setpoint.roll * dt * _param_sgm_roll.get();
+		pitch_setpoint = pitch + -_manual_control_setpoint.pitch * dt * _param_sgm_pitch.get();
+	}
 
 	// Generate target quaternion
 	Eulerf euler_sp(roll_setpoint, pitch_setpoint, yaw_setpoint);
@@ -256,21 +263,52 @@ void UUVAttitudeControl::generate_attitude_setpoint(float dt)
 
 	q_sp.copyTo(_attitude_setpoint.q_d);
 
-	_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * _param_sgm_thrtl.get();
+	// Thrust mapping
+	const float throttle_manual_attitude_gain = _param_sgm_thrtl.get();
+
+	if (js_heave_sway_mode) {
+		// XYZ thrust
+		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_attitude_gain; // surge +x
+		_attitude_setpoint.thrust_body[1] = _manual_control_setpoint.roll * throttle_manual_attitude_gain; // sway +y
+		_attitude_setpoint.thrust_body[2] = -_manual_control_setpoint.pitch * throttle_manual_attitude_gain; // heave +z down
+
+	} else {
+		// Throttle only on +x (surge)
+		_attitude_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_attitude_gain;
+		_attitude_setpoint.thrust_body[1] = 0.f;
+		_attitude_setpoint.thrust_body[2] = 0.f;
+	}
 
 	_attitude_setpoint.timestamp = hrt_absolute_time();
 }
 
 void UUVAttitudeControl::generate_rates_setpoint(float dt)
 {
-	// Integrate manual control inputs
-	_rates_setpoint.roll = _manual_control_setpoint.roll * dt * _param_rgm_roll.get();
-	_rates_setpoint.pitch = -_manual_control_setpoint.pitch * dt * _param_rgm_pitch.get();
-	_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
+	const bool js_heave_sway_mode = joystick_heave_sway_mode();
+	const float throttle_manual_rate_gain = _param_rgm_thrtl.get();
 
-	_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * _param_rgm_thrtl.get();
+	if (js_heave_sway_mode) {
+		// Hold pitch/roll level. Only yaw is a rate command. XYZ thrust
+		_rates_setpoint.roll = 0.0f;
+		_rates_setpoint.pitch = 0.0f;
+		_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
+
+		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_rate_gain; // surge +x
+		_rates_setpoint.thrust_body[1] = _manual_control_setpoint.roll * throttle_manual_rate_gain; // sway +y
+		_rates_setpoint.thrust_body[2] = -_manual_control_setpoint.pitch * throttle_manual_rate_gain; // heave +z down
+
+	} else {
+		// Roll/pitch/yaw are rate commands; thrust only surge
+		_rates_setpoint.roll = _manual_control_setpoint.roll * dt * _param_rgm_roll.get();
+		_rates_setpoint.pitch = -_manual_control_setpoint.pitch * dt * _param_rgm_pitch.get();
+		_rates_setpoint.yaw = _manual_control_setpoint.yaw * dt * _param_rgm_yaw.get();
+
+		_rates_setpoint.thrust_body[0] = _manual_control_setpoint.throttle * throttle_manual_rate_gain;
+		_rates_setpoint.thrust_body[1] = 0.f;
+		_rates_setpoint.thrust_body[2] = 0.f;
+	}
+
 	_rates_setpoint.timestamp = hrt_absolute_time();
-
 }
 
 void UUVAttitudeControl::check_setpoint_validity(vehicle_attitude_s &v_att)
@@ -352,13 +390,33 @@ void UUVAttitudeControl::Run()
 
 			} else if (!_vcontrol_mode.flag_control_attitude_enabled
 				   && !_vcontrol_mode.flag_control_rates_enabled) {
+
 				/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
-				constrain_actuator_commands(_manual_control_setpoint.roll * _param_mgm_roll.get(),
-							    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
-							    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),
-							    _manual_control_setpoint.throttle * _param_mgm_thrtl.get(),
-							    0.f,
-							    0.f);
+				const bool js_heave_sway_mode = joystick_heave_sway_mode();
+
+				if (js_heave_sway_mode) {
+					// Keep roll/pitch level, yaw torque, full XYZ thrust
+					const float throttle_manual_gain = _param_mgm_thrtl.get();
+
+					const float roll_u = 0.0f;
+					const float pitch_u = 0.0f;
+					const float yaw_u = _manual_control_setpoint.yaw * _param_mgm_yaw.get();
+
+					const float thrust_x = _manual_control_setpoint.throttle * throttle_manual_gain; // surge
+					const float thrust_y = _manual_control_setpoint.roll * throttle_manual_gain; // sway
+					const float thrust_z = -_manual_control_setpoint.pitch * throttle_manual_gain; // heave
+
+					constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
+
+				} else {
+					// Pitch/roll/yaw torques from sticks, thrust only surge
+					constrain_actuator_commands(_manual_control_setpoint.roll * _param_mgm_roll.get(),
+								    -_manual_control_setpoint.pitch * _param_mgm_pitch.get(),
+								    _manual_control_setpoint.yaw * _param_mgm_yaw.get(),
+								    _manual_control_setpoint.throttle * _param_mgm_thrtl.get(),
+								    0.f,
+								    0.f);
+				}
 			}
 
 		} else {

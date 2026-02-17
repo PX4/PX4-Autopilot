@@ -1,4 +1,4 @@
-# MacOS 개발 환경
+# macOS Development Environment
 
 아래에서 macOS용 PX4 개발 환경 설정 방법을 설명합니다.
 PX4 빌드에 사용되어 집니다.
@@ -22,8 +22,8 @@ The "base" macOS setup installs the tools needed for building firmware, and incl
 ### Environment Setup
 
 :::details
-Apple Silicon Macbook users!
-If you have an Apple M1, M2 etc. Macbook, make sure to run the terminal as x86 by setting up an x86 terminal:
+Apple Silicon MacBook users!
+If you have an Apple M1, M2 etc. MacBook, make sure to run the terminal as x86 by setting up an x86 terminal:
 
 1. Locate the Terminal application within the Utilities folder (**Finder > Go menu > Utilities**)
 2. Select _Terminal.app_ and right-click on it, then choose **Duplicate**.
@@ -38,21 +38,21 @@ First set up the environment
 
 1. Enable more open files by appending the following line to the `~/.zshenv` file (creating it if necessary):
 
-  ```sh
-  echo ulimit -S -n 2048 >> ~/.zshenv
-  ```
+   ```sh
+   echo ulimit -S -n 2048 >> ~/.zshenv
+   ```
 
-  ::: info
-  If you don't do this, the build toolchain may report the error: `"LD: too many open files"`
+   ::: info
+   If you don't do this, the build toolchain may report the error: `"LD: too many open files"`
 
 :::
 
 2. Enforce Python 3 by appending the following lines to `~/.zshenv`
 
-  ```sh
-  # Point pip3 to MacOS system python 3 pip
-  alias pip3=/usr/bin/pip3
-  ```
+   ```sh
+   # Point pip3 to macOS system python 3 pip
+   alias pip3=/usr/bin/pip3
+   ```
 
 ### 공통 도구
 
@@ -62,19 +62,19 @@ To setup the environment to be able to build for Pixhawk/NuttX hardware (and ins
 
 2. Run these commands in your shell to install the common tools:
 
-  ```sh
-  brew tap PX4/px4
-  brew install px4-dev
-  ```
+   ```sh
+   brew tap PX4/px4
+   brew install px4-dev
+   ```
 
 3. Install the required Python packages:
 
-  ```sh
-  # install required packages using pip3
-  python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
-  # if this fails with a permissions error, your Python install is in a system path - use this command instead:
-  sudo -H python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
-  ```
+   ```sh
+   # install required packages using pip3
+   python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
+   # if this fails with a permissions error, your Python install is in a system path - use this command instead:
+   sudo -H python3 -m pip install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging kconfiglib future jsonschema
+   ```
 
 ## Gazebo Classic Simulation
 
@@ -82,35 +82,35 @@ To setup the environment for [Gazebo Classic](../sim_gazebo_classic/index.md) si
 
 1. Run the following commands in your shell:
 
-  ```sh
-  brew unlink tbb
-  sed -i.bak '/disable! date:/s/^/  /; /disable! date:/s/./#/3' $(brew --prefix)/Library/Taps/homebrew/homebrew-core/Formula/tbb@2020.rb
-  brew install tbb@2020
-  brew link tbb@2020
-  ```
+   ```sh
+   brew unlink tbb
+   sed -i.bak '/disable! date:/s/^/  /; /disable! date:/s/./#/3' $(brew --prefix)/Library/Taps/homebrew/homebrew-core/Formula/tbb@2020.rb
+   brew install tbb@2020
+   brew link tbb@2020
+   ```
 
-  ::: info
-  September 2021: The commands above are a workaround to this bug: [PX4-Autopilot#17644](https://github.com/PX4/PX4-Autopilot/issues/17644).
-  They can be removed once it is fixed (along with this note).
+   ::: info
+   September 2021: The commands above are a workaround to this bug: [PX4-Autopilot#17644](https://github.com/PX4/PX4-Autopilot/issues/17644).
+   They can be removed once it is fixed (along with this note).
 
 :::
 
 2. To install SITL simulation with Gazebo Classic:
 
-  ```sh
-  brew install --cask temurin
-  brew install --cask xquartz
-  brew install px4-sim-gazebo
-  ```
+   ```sh
+   brew install --cask temurin
+   brew install --cask xquartz
+   brew install px4-sim-gazebo
+   ```
 
 3. Run the macOS setup script: `PX4-Autopilot/Tools/setup/macos.sh`
-  The easiest way to do this is to clone the PX4 source, and then run the script from the directory, as shown:
+   The easiest way to do this is to clone the PX4 source, and then run the script from the directory, as shown:
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-  cd PX4-Autopilot/Tools/setup
-  sh macos.sh
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+   cd PX4-Autopilot/Tools/setup
+   sh macos.sh
+   ```
 
 ## 다음 단계
 

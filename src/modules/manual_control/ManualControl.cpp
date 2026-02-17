@@ -52,6 +52,15 @@ ManualControl::~ManualControl()
 
 bool ManualControl::init()
 {
+#if defined(PAYLOAD_POWER_EN)
+
+	// If the payload power switch is mapped, default to power off until the RC switch explicitly commands it on.
+	if (_param_rc_map_pay_sw.get()) {
+		PAYLOAD_POWER_EN(false);
+	}
+
+#endif // PAYLOAD_POWER_EN
+
 	ScheduleNow();
 	return true;
 }
@@ -293,6 +302,18 @@ void ManualControl::processSwitches(hrt_abstime &now)
 			} else if (!_armed) {
 				// Directly initialize mode using RC switch but only before arming
 				evaluateModeSlot(switches.mode_slot);
+#if defined(PAYLOAD_POWER_EN)
+
+				// Apply payload power state on first switch receipt if not armed
+				if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_ON) {
+					PAYLOAD_POWER_EN(true);
+
+				} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF
+					   || switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_MIDDLE) {
+					PAYLOAD_POWER_EN(false);
+				}
+
+#endif // PAYLOAD_POWER_EN
 			}
 
 			_previous_switches = switches;
@@ -309,9 +330,9 @@ void ManualControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
-	_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
-	_button_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+	_stick_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
+	_stick_disarm_hysteresis.set_hysteresis_time_from(false, 1_s);
+	_button_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
 	_stick_kill_hysteresis.set_hysteresis_time_from(false, _param_man_kill_gest_t.get() * 1_s);
 
 	_selector.setRcInMode(_param_com_rc_in_mode.get());
@@ -590,6 +611,7 @@ int8_t ManualControl::navStateFromParam(int32_t param_value)
 		case 13: return vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
 		case 14: return vehicle_status_s::NAVIGATION_STATE_ORBIT;
 		case 15: return vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+		case 16: return vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE;
 
 		case 100: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL1;
 		case 101: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL2;

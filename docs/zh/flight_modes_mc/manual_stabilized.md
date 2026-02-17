@@ -31,7 +31,7 @@ Throttle is rescaled (see [below](#params)) and passed directly to control alloc
 自动驾驶仪控制着飞机的姿态角，这意味着当 RC 摇杆居中时自驾仪调整飞机的滚转和俯仰角为零（从而实现飞机姿态的改平）。
 自动驾驶仪不能补偿由于风（或其他来源）引起的漂移。
 
-- 回正摇杆（内带死区）：
+- Centered sticks:
   - Roll/Pitch sticks level vehicle.
 - 外部中心：
   - Roll/Pitch sticks control tilt angle in those orientations, resulting in corresponding left-right and forward-back movement.

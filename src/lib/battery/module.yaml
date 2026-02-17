@@ -105,15 +105,20 @@ parameters:
             description:
                 short: Battery ${i} monitoring source.
                 long: |
-                    This parameter controls the source of battery data. The value 'Power Module'
-                    means that measurements are expected to come from a power module. If the value is set to
-                    'External' then the system expects to receive mavlink battery status messages.
+                    This parameter controls the source of battery data. The value 'Power Module / Analog'
+                    means that measurements are expected to come from either analog (ADC) inputs
+                    or an I2C power monitor (e.g. INA226). Analog inputs are voltage and current
+                    measurements read from the board's ADC channels, typically from an onboard
+                    voltage divider and current shunt, or an external analog power module.
+                    I2C power monitors are digital sensors on the I2C bus.
+                    If the value is set to 'External' then the system expects to receive MAVLink
+                    or CAN battery status messages, or the battery data is published by an external driver.
                     If the value is set to 'ESCs', the battery information are taken from the esc_status message.
-                    This requires the ESC to provide both voltage as well as current.
+                    This requires the ESC to provide both voltage as well as current (via ESC telemetry).
             type: enum
             values:
                 -1: Disabled
-                0: Power Module
+                0: Power Module / Analog
                 1: External
                 2: ESCs
             reboot_required: true

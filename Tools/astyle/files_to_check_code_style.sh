@@ -21,11 +21,13 @@ exec find boards msg src platforms test \
     -path src/lib/crypto/monocypher -prune -o \
     -path src/lib/events/libevents -prune -o \
     -path src/lib/parameters/uthash -prune -o \
+    -path src/lib/rl_tools/rl_tools -prune -o \
     -path src/lib/wind_estimator/python/generated -prune -o \
     -path src/modules/ekf2/EKF/python/ekf_derivation/generated -prune -o \
     -path src/modules/ekf2/EKF/yaw_estimator/derivation/generated -prune -o \
     -path src/modules/gyro_fft/CMSIS_5 -prune -o \
     -path src/modules/mavlink/mavlink -prune -o \
+    -path src/modules/mc_raptor/blob -prune -o \
     -path test/fuzztest -prune -o \
     -path test/mavsdk_tests/catch2 -prune -o \
     -path src/lib/crypto/monocypher -prune -o \
@@ -39,4 +41,5 @@ exec find boards msg src platforms test \
     -path boards/modalai/voxl2/libfc-sensor-api -prune -o \
     -path src/drivers/actuators/vertiq_io/iq-module-communication-cpp -prune -o \
     -path src/lib/tensorflow_lite_micro/tflite_micro -prune -o \
+    -path src/drivers/ins/sbgecom/sbgECom -prune -o \
     \( -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) -print \) | grep $PATTERN

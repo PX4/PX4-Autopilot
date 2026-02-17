@@ -148,7 +148,6 @@ protected:
 		uint16_t min[RC_MAX_CHAN_COUNT];
 		uint16_t trim[RC_MAX_CHAN_COUNT];
 		uint16_t max[RC_MAX_CHAN_COUNT];
-		uint16_t dz[RC_MAX_CHAN_COUNT];
 		bool rev[RC_MAX_CHAN_COUNT];
 
 		int32_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
@@ -159,7 +158,6 @@ protected:
 		param_t trim[RC_MAX_CHAN_COUNT];
 		param_t max[RC_MAX_CHAN_COUNT];
 		param_t rev[RC_MAX_CHAN_COUNT];
-		param_t dz[RC_MAX_CHAN_COUNT];
 
 		param_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the parameters which are bound

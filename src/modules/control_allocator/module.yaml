@@ -312,7 +312,11 @@ parameters:
         CA_SV_CS${i}_TRIM:
             description:
                 short: Control Surface ${i} trim
-                long: Can be used to add an offset to the servo control.
+                long: |
+                  Can be used to add an offset to the servo control.
+
+                  NOTE: Do not use for PWM servos. Use the PWM CENTER parameters instead (e.g., PWM_MAIN_CENT, PWM_AUX_CENT) instead.
+                  This parameter can only be set if all PWM Center parameters are set to default.
             type: float
             decimal: 2
             min: -1.0
@@ -332,6 +336,15 @@ parameters:
             instance_start: 0
             default: 0
 
+        CA_SV_FLAP_SLEW:
+            description:
+                short: Control Surface slew rate for normalized flaps setpoint
+            type: float
+            decimal: 1
+            min: 0.0
+            max: 5.0
+            default: 0.5
+
         CA_SV_CS${i}_SPOIL:
             description:
                 short: Control Surface ${i} configuration as spoiler
@@ -341,6 +354,22 @@ parameters:
             max: 1.0
             num_instances: *max_num_servos
             instance_start: 0
+            default: 0
+
+        CA_CS_LAUN_LK:
+            description:
+                short: Control surface launch lock enabled
+                long: If actuator launch lock is enabled, this surface is kept at the disarmed value.
+            type: bitmask
+            bit:
+                0: Control Surface 1
+                1: Control Surface 2
+                2: Control Surface 3
+                3: Control Surface 4
+                4: Control Surface 5
+                5: Control Surface 6
+                6: Control Surface 7
+                7: Control Surface 8
             default: 0
 
         # Tilts
@@ -592,6 +621,22 @@ parameters:
                 1: Remove first failed motor from effectiveness
             default: 0
 
+        CA_ICE_PERIOD:
+            description:
+                short: Ice shedding cycle period
+                long: |
+                    Ice shedding prevents ice buildup in VTOL aircraft motors by
+                    periodically spinning inactive rotors. When enabled (period
+                    > 0), every cycle lasts for the defined period and includes
+                    a 2‑second spin at 0.01 motor output. If period <= 0, the
+                    feature is disabled.
+            type: float
+            decimal: 1
+            unit: s
+            increment: 0.1
+            min: 0.0
+            default: 0.0
+
 # Mixer
 mixer:
     actuator_types:
@@ -630,7 +675,7 @@ mixer:
 
     rules:
       - select_identifier: 'servo-type' # restrict torque based on servo type
-        apply_identifiers: ['servo-torque-roll', 'servo-torque-pitch', 'servo-torque-yaw', 'servo-scale-flap', 'servo-scale-spoiler']
+        apply_identifiers: ['servo-torque-roll', 'servo-torque-pitch', 'servo-torque-yaw', 'servo-scale-flap', 'servo-scale-spoiler', 'servo-launch-lock']
         items:
         # Convention: horizontal surfaces: up=positive, vertical: right=positive, mixed: up=positive.
         # By default the scale is set to 1/N, where N is the amount of actuators with an effect on
@@ -829,6 +874,12 @@ mixer:
                             label: 'Spoiler Scale'
                             advanced: true
                             identifier: 'servo-scale-spoiler'
+                          - name: 'CA_CS_LAUN_LK'
+                            label: 'Launch Lock'
+                            advanced: true
+                            identifier: 'servo-launch-lock'
+                            index_offset: 0
+                            show_as: 'bitset'
 
             2: # Standard VTOL
                 title: 'Standard VTOL'

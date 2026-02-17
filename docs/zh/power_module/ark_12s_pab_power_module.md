@@ -47,6 +47,6 @@ Order this module from:
 - Set the `INA238_SHUNT` parameter to 0.0001.
 - Reboot the flight controller.
 
-## See Also
+## 另见
 
 - [ARK 12S PAB Power Module Documentation](https://arkelectron.gitbook.io/ark-documentation/power/ark-12s-pab-power-module) (ARK Docs)

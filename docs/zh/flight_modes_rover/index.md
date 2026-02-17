@@ -12,7 +12,7 @@ Selecting any other mode than those listed below will either stop the rover or c
 
 ## Manual Modes
 
-| Mode                                    | 描述                                                                                                                                                                                                                                                                                  |
+| 模式                                      | 描述                                                                                                                                                                                                                                                                                  |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Manual](manual.md#manual-mode)         | No autopilot support. User is responsible for keeping the rover on the desired course and maintaining speed and rate of turn.                                                                                                                       |
 | [Acro](manual.md#acro-mode)             | + Maintains the yaw rate (feels more like driving a car than manual mode). <br>+ Allows maximum yaw rate to be limited (protects against roll over).                                                          |
@@ -21,7 +21,7 @@ Selecting any other mode than those listed below will either stop the rover or c
 
 ## Auto Modes
 
-| Mode                            | 描述                                                                                      |
+| 模式                              | 描述                                                                                      |
 | ------------------------------- | --------------------------------------------------------------------------------------- |
 | [Mission](auto.md#mission-mode) | Automatic mode that causes the vehicle to execute a predefined mission. |
 | [Return](auto.md#return-mode)   | Automatic mode that returns the vehicle to the launch position.         |

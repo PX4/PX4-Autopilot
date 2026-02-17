@@ -180,7 +180,6 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 
 	initSPIFmumID(V6X_16, {
 		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		}, {GPIO::PortI, GPIO::Pin11}),
 		initSPIBus(SPI::Bus::SPI2, {
 			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),

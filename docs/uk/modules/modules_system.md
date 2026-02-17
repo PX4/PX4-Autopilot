@@ -127,6 +127,10 @@ commander <command> [arguments...]
 
    check         Run preflight checks
 
+   safety        Change prearm safety state
+     on|off      [on] to activate safety, [off] to deactivate safety and allow
+                 control surface movements
+
    arm
      [-f]        Force arming (do not run preflight checks)
 
@@ -140,9 +144,9 @@ commander <command> [arguments...]
    transition    VTOL transition
 
    mode          Change flight mode
-     manual|acro|offboard|stabilized|altctl|posctl|position:slow|auto:mission|au
-                 to:loiter|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1
-                 Flight mode
+     manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|position:slow
+                 |auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:
+                 precland|ext1 Flight mode
 
    pair
 
@@ -153,6 +157,9 @@ commander <command> [arguments...]
      lat, lon, alt Origin Latitude, Longitude, Altitude
 
    lat|lon|alt   Origin latitude longitude altitude
+
+   set_heading   Set current heading
+     heading     degrees from True North [0 360]
 
    poweroff      Power off board (if supported)
 
@@ -1062,7 +1069,9 @@ uxrce_dds_client <command> [arguments...]
                  values: <IP>
      [-p <val>]  Agent listening port. If not provided, defaults to
                  UXRCE_DDS_PRT
-     [-n <val>]  Client DDS namespace
+     [-n <val>]  Client DDS namespace. If not provided but UXRCE_DDS_NS_IDX is
+                 between 0 and 9999 inclusive, then uav_ + UXRCE_DDS_NS_IDX will
+                 be used
 
    stop
 

@@ -114,9 +114,6 @@ private:
 	Vector2f _start_ned{};
 	Vector2f _target_waypoint_ned{};
 	float _arrival_speed{0.f};
-	float _vehicle_yaw{0.f};
-	float _max_yaw_rate{0.f};
-	float _yaw_setpoint{NAN};
 	float _vehicle_speed{0.f};
 	float _cruising_speed{NAN};
 	bool _stopped{false};

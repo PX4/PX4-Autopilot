@@ -408,6 +408,7 @@ void MulticopterPositionControl::Run()
 				} else if (previous_position_control_enabled && !_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					// clear existing setpoint when controller is no longer active
 					_setpoint = PositionControl::empty_trajectory_setpoint;
+					_control.setInputSetpoint(_setpoint);
 				}
 			}
 		}
@@ -432,7 +433,7 @@ void MulticopterPositionControl::Run()
 						  && !_trajectory_setpoint_sub.updated();
 
 		if (_goto_control.checkForSetpoint(vehicle_local_position.timestamp_sample, goto_setpoint_enable)) {
-			_goto_control.update(dt, states.position, states.yaw);
+			_goto_control.update(dt, states.position, states.velocity, states.acceleration, states.yaw);
 		}
 
 		_trajectory_setpoint_sub.update(&_setpoint);

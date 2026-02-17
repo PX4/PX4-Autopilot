@@ -34,4 +34,3 @@ You can locate the parameters in QGroundControl as shown below:
   Positive angles increase in CCW direction, negative angles increase in CW direction.
 - [SENS_BOARD_Z_OFF](../advanced_config/parameter_reference.md#SENS_BOARD_Z_OFF): Rotation, in degrees, around PX4FMU's Z axis Yaw axis.
   Positive angles increase in CCW direction, negative angles increase in CW direction.
-  

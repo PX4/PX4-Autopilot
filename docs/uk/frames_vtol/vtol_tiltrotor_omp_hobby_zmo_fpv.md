@@ -93,7 +93,7 @@ ZMO FPV в його початковому стані.
 ### ESC регулятори швидкості
 
 1. Відпаяйте сигнальні контакти PWM та контакти заземлення ESC регулятора швидкості та припаяйте до контактів подовжувач сервоприводу.
-  Кабель повинен бути достатньо довгим, щоб підключити дріт до контактів FMU плати керування польотом.
+   Кабель повинен бути достатньо довгим, щоб підключити дріт до контактів FMU плати керування польотом.
 
 2. Розпаяйте 3 роз’єми «банан» заднього двигуна (може не знадобитися для інтеграції Pixhawk 6).
 
@@ -103,17 +103,17 @@ ZMO FPV в його початковому стані.
 
 5. Припаяйте сигнальні та GND-дроти до входу PWM ESC регулятора швидкості.
 
-  ![ESC 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-01.jpg)
+   ![ESC 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-01.jpg)
 
 6. Зніміть гніздову вилку на ESC.
-  Це надасть вам більше місця для встановлення польотного контролера.
+   Це надасть вам більше місця для встановлення польотного контролера.
 
-  ![ESC 02](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-02.jpg)
+   ![ESC 02](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-02.jpg)
 
 7. Припаяйте проводи заднього двигуна до ESC регулятора швидкості.
-  Переконайтеся, що підключаєте так, щоб двигун обертався у правильному напрямку.
+   Переконайтеся, що підключаєте так, щоб двигун обертався у правильному напрямку.
 
-  ![ESC 03](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-03.jpg)
+   ![ESC 03](../../assets/airframes/vtol/omp_hobby_zmo_fpv/esc-03.jpg)
 
 ### З'єднувач крила
 
@@ -122,9 +122,9 @@ ZMO FPV в його початковому стані.
 
 1. Приклейте з'єднувачі крила до деталі, надрукованої на 3D-принтері, гарячим клеєм або 5 хвилинною епоксидною смолою.
 2. Приклейте 3D-друковану частину разом із з'єднувачем у фюзеляж.
-  Переконайтеся, що правильно вирівняли з'єднувач, поки клей сохне.
+   Переконайтеся, що правильно вирівняли з'єднувач, поки клей сохне.
 
-  Найпростіший спосіб вирівняти роз'єм - встановити крило, поки клей застигає, але переконайтеся, що клей не потрапив між фюзеляжем і крилом, інакше крило може застрягти.
+   Найпростіший спосіб вирівняти роз'єм - встановити крило, поки клей застигає, але переконайтеся, що клей не потрапив між фюзеляжем і крилом, інакше крило може застрягти.
 
 Роз'єм, вклеєний у 3D-друковану частину
 
@@ -137,58 +137,58 @@ ZMO FPV в його початковому стані.
 ### Плати адаптерів Pixhawk та BEC
 
 1. Виріжте пінопласт, як показано на малюнках, щоб створити простір для кріплення адаптерних плат Pixhawk і BEC двостороннім скотчем.
-  Плата FMU розміщується зліва (у напрямку польоту) від фюзеляжу.
-  Зпаяйте серво конектор та кабель для напруги батареї до BEC.
+   Плата FMU розміщується зліва (у напрямку польоту) від фюзеляжу.
+   Зпаяйте серво конектор та кабель для напруги батареї до BEC.
 
-  ![Foam cutout 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/foam-cut-01.png)
-  ![Pixhawk adapter board mount 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/pixhawk-adapter-01.jpg)
+   ![Foam cutout 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/foam-cut-01.png)
+   ![Pixhawk adapter board mount 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/pixhawk-adapter-01.jpg)
 
 2. Підготуйте BEC для підключення до IO плати та батареї.
-  BEC також можна припаяти безпосередньо до акумуляторних колодок ESC.
+   BEC також можна припаяти безпосередньо до акумуляторних колодок ESC.
 
-  ![BEC preparation](../../assets/airframes/vtol/omp_hobby_zmo_fpv/bec-01.jpg)
+   ![BEC preparation](../../assets/airframes/vtol/omp_hobby_zmo_fpv/bec-01.jpg)
 
 3. Закріпіть BEC двостороннім скотчем.
 
-  ![BEC mounting](../../assets/airframes/vtol/omp_hobby_zmo_fpv/bec-02.jpg)
+   ![BEC mounting](../../assets/airframes/vtol/omp_hobby_zmo_fpv/bec-02.jpg)
 
 ### Кабелі
 
 1. Відріжте роз’єми від сервоприводів і припаяйте подовжувачі сервоприводів до кабелів.
-  Переконайтеся, що кабелі достатньо довгі, щоб дістатися до адаптерної плати Pixhawk.
-  Якщо у вас є обтискний інструмент, ви також можете безпосередньо додати роз’єми без пайки.
+   Переконайтеся, що кабелі достатньо довгі, щоб дістатися до адаптерної плати Pixhawk.
+   Якщо у вас є обтискний інструмент, ви також можете безпосередньо додати роз’єми без пайки.
 
 2. Під'єднайте кабелі сервоприводу до IO плати адаптера в такому порядку:
-  - 1 - Aileron left
-  - 2 - Aileron right
-  - 3 - V-Tail left
-  - 4 - V-Tail right
-  - 5 - Tilt left
-  - 6 - Tilt right
+   - 1 - Aileron left
+   - 2 - Aileron right
+   - 3 - V-Tail left
+   - 4 - V-Tail right
+   - 5 - Tilt left
+   - 6 - Tilt right
 
 3. Під'єднайте сигнальні кабелі мотора до адаптерної плати FMU у такому порядку:
-  - 1 - Передній лівий
-  - 2 - Передній правий
-  - 3 - Задній
+   - 1 - Передній лівий
+   - 2 - Передній правий
+   - 3 - Задній
 
 ### Датчики
 
 #### Трубка Піто
 
 1. Спочатку перевірте, чи трубка Піто влазить у кріплення, надруковане на 3D-принтері.
-  Якщо це так, то приклейте трубку Піто на місце у кріплення.
+   Якщо це так, то приклейте трубку Піто на місце у кріплення.
 
-  Щоб вирівняти трубку пропустіть її через другий отвір праворуч від передньої пластини FPV.
-  Кріплення дозволить вам вдавити трубку назад у фюзеляж, щоб захистити її під час транспортування та обробки.
-  Датчик може бути встановлений зверху на кріпленні, надрукованому на 3D-принтері, за допомогою двостороннього скотчу.
+   Щоб вирівняти трубку пропустіть її через другий отвір праворуч від передньої пластини FPV.
+   Кріплення дозволить вам вдавити трубку назад у фюзеляж, щоб захистити її під час транспортування та обробки.
+   Датчик може бути встановлений зверху на кріпленні, надрукованому на 3D-принтері, за допомогою двостороннього скотчу.
 
 2. Приклейте кріплення, надруковане на 3D-принтері, на місце.
 
-  ![Pitot tube 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/pitot-tube-01.png)
+   ![Pitot tube 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/pitot-tube-01.png)
 
 3. Датчик може бути встановлений зверху на кріпленні, надрукованому на 3D-принтері.
 
-  ![Pitot tube 02](../../assets/airframes/vtol/omp_hobby_zmo_fpv/pitot-tube-02.png)
+   ![Pitot tube 02](../../assets/airframes/vtol/omp_hobby_zmo_fpv/pitot-tube-02.png)
 
 #### Лідар
 
@@ -209,9 +209,9 @@ ZMO FPV в його початковому стані.
 2. Вийміть GPS із пластикового корпусу та від’єднайте роз’єм.
 3. Протягніть кабель через вуглецевий лонжерон.
 4. Glue the 3D-Printed part with 5 min epoxy in place.
-  ![Glue the GPS mount into place](../../assets/airframes/vtol/omp_hobby_zmo_fpv/gps-01.jpg)
+   ![Glue the GPS mount into place](../../assets/airframes/vtol/omp_hobby_zmo_fpv/gps-01.jpg)
 5. After the glue has cured, screw the GPS with 4x M2.5x10 screws to the plate.
-  ![Screw the GPS to the mount2](../../assets/airframes/vtol/omp_hobby_zmo_fpv/gps-02.jpg)
+   ![Screw the GPS to the mount2](../../assets/airframes/vtol/omp_hobby_zmo_fpv/gps-02.jpg)
 
 #### USB Камера
 
@@ -219,9 +219,9 @@ ZMO FPV в його початковому стані.
 2. Відріжте кабель USB-адаптера на 25 см і спаяйте два кабелі між собою.
 3. Для встановлення камери потрібно вирізати отвір у пінопласті перегородки.
 
-  ![USB Camera 01: Hole to feed the USB cable through the wall.](../../assets/airframes/vtol/omp_hobby_zmo_fpv/camera-01.jpg)
+   ![USB Camera 01: Hole to feed the USB cable through the wall.](../../assets/airframes/vtol/omp_hobby_zmo_fpv/camera-01.jpg)
 
-  Потім ви можете закріпити камеру на перегородці за допомогою двостороннього скотча.
+   Потім ви можете закріпити камеру на перегородці за допомогою двостороннього скотча.
 
 ### Політний контролер
 
@@ -237,7 +237,7 @@ ZMO FPV в його початковому стані.
 
 1. Помістіть його на верхню частину ESC і позначте 2 задніх місця кріплення на литій пластиковій частині ZMO.
 2. Remove the Skynode from the vehicle and drill 2 holes with a 2.8 mm drill bit into the plastic part.
-  ![Mounting holes for the Skynode in the back](../../assets/airframes/vtol/omp_hobby_zmo_fpv/flight-controller-01.jpg)
+   ![Mounting holes for the Skynode in the back](../../assets/airframes/vtol/omp_hobby_zmo_fpv/flight-controller-01.jpg)
 3. Встановіть Skynode на місце і прикрутіть його 2-ма гвинтами M3x10.
 
 Інший варіант - додати в отвори різьбові вставки.
@@ -245,9 +245,9 @@ ZMO FPV в його початковому стані.
 
 1. Прикрутіть переднє кріплення Skynode 2-ма гвинтами M3x10 до Skynode.
 2. Потім додайте трохи епоксидного клею на 5 хвилин в нижню частину кріплення і покладіть вантаж зверху на Skynode, поки клей не затвердіє.
-  Щоб отримати доступ до 2 кріпильних гвинтів спереду, проткніть 2 отвори зверху через пінопласт.
+   Щоб отримати доступ до 2 кріпильних гвинтів спереду, проткніть 2 отвори зверху через пінопласт.
 
-  ![Skynode mount in the front](../../assets/airframes/vtol/omp_hobby_zmo_fpv/flight-controller-02.jpg)
+   ![Skynode mount in the front](../../assets/airframes/vtol/omp_hobby_zmo_fpv/flight-controller-02.jpg)
 
 ### Антени та RC приймач
 
@@ -258,14 +258,14 @@ An inexpensive example would be a [SiK Telemetry Radio](../telemetry/sik_radio.m
 :::
 
 1. Одна антена LTE може бути встановлена в нижній частині транспортного засобу.
-  Для цього ви можете протягнути дріт антени через отвір для радіатора ESC.
+   Для цього ви можете протягнути дріт антени через отвір для радіатора ESC.
 
-  ![LTE antenna 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/lte-antenna-01.jpg)
+   ![LTE antenna 01](../../assets/airframes/vtol/omp_hobby_zmo_fpv/lte-antenna-01.jpg)
 
 2. Другу антену можна встановити всередині транспортного засобу з лівого боку акумуляторного відсіку.
-  Пульт дистанційного керування також можна розмістити з лівого боку батарейного відсіку.
+   Пульт дистанційного керування також можна розмістити з лівого боку батарейного відсіку.
 
-  ![LTE antenna 2 and RC receiver](../../assets/airframes/vtol/omp_hobby_zmo_fpv/lte-antenna-02.jpg)
+   ![LTE antenna 2 and RC receiver](../../assets/airframes/vtol/omp_hobby_zmo_fpv/lte-antenna-02.jpg)
 
 ## Налаштування програмного забезпечення
 
@@ -332,9 +332,9 @@ The airspeed sensor can be enabled in the [Parameters](../advanced_config/parame
 1. Switch the vehicle into manual mode (either via the flight mode switch or type `commander mode manual` into the MAVLink shell).
 
 2. Перевірте, чи двигуни спрямовані вгору.
-  Якщо двигуни спрямовані вперед, то пов'язані з ними сервоприводи нахилу потрібно змінити на протилежні (встановіть прапорець біля кожного сервоприводу).
+   Якщо двигуни спрямовані вперед, то пов'язані з ними сервоприводи нахилу потрібно змінити на протилежні (встановіть прапорець біля кожного сервоприводу).
 
-  ![Tilt Servo adjustment](../../assets/airframes/vtol/omp_hobby_zmo_fpv/tilt-limits-01.jpg)
+   ![Tilt Servo adjustment](../../assets/airframes/vtol/omp_hobby_zmo_fpv/tilt-limits-01.jpg)
 
 3. Adjust the minimum (or, if revesed: maximum) value such that the rotor thrust can point backward (needed for proper yaw allocation in Multicopter mode).
 

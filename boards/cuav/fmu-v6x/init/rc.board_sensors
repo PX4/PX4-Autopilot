@@ -66,15 +66,15 @@ then
 	fi
 fi
 
+iim42652 -R 6 -s -C 32768 start
 bmi088 -A -R 4 -s start
 bmi088 -G -R 4 -s start
-iim42652 -R 6 -s start
 icm45686 -R 2 -s start
 
 rm3100 -I -b 4 start
 
-icp201xx -I -a 0x64 start
 bmp581 -b 2 -X -a 0x47 start
+icp201xx -I -a 0x64 start
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start

@@ -2,25 +2,23 @@
 
 ## Objective
 
-To test that optical flow works as expected
+Test that optical flow works as expected
 
 ## Preflight
 
-Disconnect all GPS / compasses and ensure vehicle is using optical flow for navigation
-([Setup Information here](../sensor/optical_flow.md))
+Disconnect all GPS / compasses and ensure vehicle is using optical flow for navigation ([setup information here](../sensor/optical_flow.md))
 
-Ensure there are no other sources of positioning besides optical flow
+Ensure there are no other sources of positioning besides optical flow:
 
 - [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL): `1`
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): `0`
 - [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL): `0`
-- [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG): `0`
 
-Ensure that the drone can go into Altitude / Position flight mode while still on the ground
+Ensure that the drone can go into Altitude / Position mode while still on the ground
 
 ## Flight Tests
 
-❏ Altitude flight mode
+❏ [Altitude mode](../flight_modes_mc/altitude.md)
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Vertical position should hold current value with stick centered
 
@@ -28,7 +26,7 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response set to climb/descent rate
 
-❏ Position flight mode
+❏ [Position mode](../flight_modes_mc/position.md)
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Horizontal position should hold current value with stick centered
 
@@ -37,6 +35,16 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Throttle response set to climb/descent rate
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Pitch/Roll/Yaw response set to pitch/roll/yaw rates
+
+❏ Varying height terrain
+
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Put boxes on the ground to create varying heights in terrain
+
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Take off in position mode and fly over the boxes such that the downward facing rangefinder varies in value
+
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Do a few passes with varying amounts of time over the boxes (1-30 seconds if possible)
+
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Drone should not raise in height when flying over boxes
 
 ## Landing
 
@@ -47,7 +55,8 @@ Ensure that the drone can go into Altitude / Position flight mode while still on
 ## Expected Results
 
 - Take-off should be smooth as throttle is raised
-- Drone should hold altitude in Altitude Flight mode without wandering
-- Drone should hold position within 1 meter in Position Flight mode without pilot moving sticks
+- Drone should hold altitude in Altitude mode without wandering (over surface with many features)
+- Drone should hold position within 1 meter in Position mode without pilot moving sticks
 - No oscillations should present in any of the above flight modes
+- Drone should not raise in height when flying over boxes
 - Upon landing, copter should not bounce on the ground

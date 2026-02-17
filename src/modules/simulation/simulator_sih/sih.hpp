@@ -131,7 +131,7 @@ private:
 	uORB::Publication<vehicle_global_position_s>  _global_position_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs_sim)};
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;

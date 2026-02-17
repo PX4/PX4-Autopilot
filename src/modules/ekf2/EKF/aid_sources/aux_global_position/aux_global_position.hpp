@@ -43,7 +43,7 @@
 //  WelfordMean for rate
 
 #include "../../common.h"
-#include "../../RingBuffer.h"
+#include <lib/ringbuffer/TimestampedRingBuffer.hpp>
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 
@@ -95,7 +95,7 @@ private:
 	};
 
 	estimator_aid_source2d_s _aid_src_aux_global_position{};
-	RingBuffer<AuxGlobalPositionSample> _aux_global_position_buffer{20}; // TODO: size with _obs_buffer_length and actual publication rate
+	TimestampedRingBuffer<AuxGlobalPositionSample> _aux_global_position_buffer{20}; // TODO: size with _obs_buffer_length and actual publication rate
 	uint64_t _time_last_buffer_push{0};
 
 	enum class Ctrl : uint8_t {

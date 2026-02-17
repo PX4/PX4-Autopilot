@@ -83,19 +83,39 @@ private:
 	static constexpr uint8_t I2C_LEGACY_CMD_WRITE_LASER_CONTROL = 5;
 
 	enum class Register : uint8_t {
-		// see http://support.lightware.co.za/sf20/#/commands
+		// Common registers
 		ProductName = 0,
-		DistanceOutput = 27,
 		DistanceData = 44,
 		LaserFiring = 50,
+		Protocol = 120,
+	};
+
+	enum class RegisterSF20 : uint8_t {
+		// See http://support.lightware.co.za/sf20/#/commands
+		DistanceOutput = 27,
 		MeasurementMode = 93,
 		ZeroOffset = 94,
 		LostSignalCounter = 95,
-		Protocol = 120,
 		ServoConnected = 121,
 	};
 
-	static constexpr uint16_t output_data_config = 0b11010110100;
+	enum class RegisterSF30 : uint8_t {
+		// See https://lightwarelidar.com/wp-content/uploads/2025/06/SF30D-Product-Guide-v3.pdf
+		DistanceOutput = 29,
+		UpdateRate = 76,
+		LostSignalCounter = 115,
+		ZeroOffset = 116,
+	};
+
+	enum class RegisterGRF : uint8_t {
+		DistanceOutput = 27,
+		UpdateRate = 74,
+	};
+
+
+	static constexpr uint16_t output_data_config_sf20 = 0b110'1011'0100;
+	static constexpr uint8_t output_data_config_sf30 = 0b0111'1110;
+
 	struct OutputData {
 		int16_t first_return_median;
 		int16_t first_return_strength;
@@ -107,7 +127,9 @@ private:
 
 	enum class Type {
 		Generic = 0,
-		LW20c
+		LW20c,
+		SF30d,
+		GRF,
 	};
 	enum class State {
 		Configuring,
@@ -118,10 +140,11 @@ private:
 
 	void start();
 
-	int readRegister(Register reg, uint8_t *data, int len);
+	template<typename RegisterType>
+	int readRegister(RegisterType reg, uint8_t *data, int len);
 
 	int configure();
-	int enableI2CBinaryProtocol();
+	int enableI2CBinaryProtocol(const char *product_name1, const char *product_name2);
 	int collect();
 
 	int updateRestriction();
@@ -139,7 +162,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_EN_SF1XX>) _param_sens_en_sf1xx,
-		(ParamInt<px4::params::SF1XX_MODE>) _param_sf1xx_mode
+		(ParamInt<px4::params::SF1XX_MODE>) _param_sf1xx_mode,
+		(ParamInt<px4::params::SF1XX_ROT>) _param_sf1xx_rot
 	)
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -155,7 +179,7 @@ LightwareLaser::LightwareLaser(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
 	ModuleParams(nullptr),
-	_px4_rangefinder(get_device_id(), config.rotation)
+	_px4_rangefinder(get_device_id())
 {
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
 }
@@ -171,6 +195,9 @@ int LightwareLaser::init()
 {
 	int ret = PX4_ERROR;
 	updateParams();
+
+	_px4_rangefinder.set_orientation(_param_sf1xx_rot.get());
+
 	const int32_t hw_model = _param_sens_en_sf1xx.get();
 
 	switch (hw_model) {
@@ -219,10 +246,25 @@ int LightwareLaser::init()
 		break;
 
 	case 7:
-		/* SF/LW30/d (200m 49-20'000Hz) */
+		/* SF/SF30/d (200m 39-20'000Hz) */
 		_px4_rangefinder.set_min_distance(0.2f);
 		_px4_rangefinder.set_max_distance(200.0f);
-		_conversion_interval = 20409;
+		_conversion_interval = 25641;
+		_type = Type::SF30d;
+		break;
+
+	case 8:  /* GRF250 (250m 5Hz) */
+		_px4_rangefinder.set_min_distance(0.1f);
+		_px4_rangefinder.set_max_distance(250.0f);
+		_conversion_interval = 200000;
+		_type = Type::GRF;
+		break;
+
+	case 9:  /* GRF500 (500m 5Hz) */
+		_px4_rangefinder.set_min_distance(0.1f);
+		_px4_rangefinder.set_max_distance(500.0f);
+		_conversion_interval = 200000;
+		_type = Type::GRF;
 		break;
 
 	default:
@@ -240,7 +282,8 @@ int LightwareLaser::init()
 	return ret;
 }
 
-int LightwareLaser::readRegister(Register reg, uint8_t *data, int len)
+template<typename RegisterType>
+int LightwareLaser::readRegister(RegisterType reg, uint8_t *data, int len)
 {
 	const uint8_t cmd = (uint8_t)reg;
 	return transfer(&cmd, 1, data, len);
@@ -256,12 +299,24 @@ int LightwareLaser::probe()
 		}
 
 	case Type::LW20c:
-		// try to enable I2C binary protocol
-		int ret = enableI2CBinaryProtocol();
+		return enableI2CBinaryProtocol("SF20", "LW20");
 
-		if (ret != 0) {
-			return ret;
-		}
+	case Type::SF30d:
+		return enableI2CBinaryProtocol("SF30", "LW30");
+
+	case  Type::GRF:
+		return enableI2CBinaryProtocol("GRF250", "GRF500");
+	}
+
+	return -1;
+}
+
+int LightwareLaser::enableI2CBinaryProtocol(const char *product_name1, const char *product_name2)
+{
+	for (int i = 0; i < 3; ++i) {
+		// try to enable I2C binary protocol (this command is undocumented)
+		const uint8_t cmd[] = {(uint8_t)Register::Protocol, 0xaa, 0xaa};
+		int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
 
 		// read the product name
 		uint8_t product_name[16];
@@ -269,43 +324,10 @@ int LightwareLaser::probe()
 		product_name[sizeof(product_name) - 1] = '\0';
 		PX4_DEBUG("product: %s", product_name);
 
-		if (ret == 0 && (strncmp((const char *)product_name, "SF20", sizeof(product_name)) == 0 ||
-				 strncmp((const char *)product_name, "LW20", sizeof(product_name)) == 0)) {
+		if (ret == 0 && (strncmp((const char *)product_name, product_name1, sizeof(product_name)) == 0 ||
+				 strncmp((const char *)product_name, product_name2, sizeof(product_name)) == 0)) {
 			return 0;
 		}
-
-		return -1;
-	}
-
-	return -1;
-}
-
-int LightwareLaser::enableI2CBinaryProtocol()
-{
-	const uint8_t cmd[] = {(uint8_t)Register::Protocol, 0xaa, 0xaa};
-	int ret = transfer(cmd, sizeof(cmd), nullptr, 0);
-
-	if (ret != 0) {
-		return ret;
-	}
-
-	// Now read and check against the expected values
-	for (int i = 0; i < 2; ++i) {
-		uint8_t value[2];
-		ret = transfer(cmd, 1, value, sizeof(value));
-
-		if (ret != 0) {
-			return ret;
-		}
-
-		PX4_DEBUG("protocol values: 0x%" PRIx8 " 0x%" PRIx8, value[0], value[1]);
-
-		if (value[0] == 0xcc && value[1] == 0x00) {
-			return 0;
-		}
-
-		// Occasionally the previous transfer returns ret == value[0] == value[1] == 0. If so, wait a bit and retry
-		px4_usleep(1000);
 	}
 
 	return -1;
@@ -330,23 +352,53 @@ int LightwareLaser::configure()
 		}
 		break;
 
-	case Type::LW20c:
+	case Type::LW20c: {
+			// There are commonly 2 hardware variants (SF + LW) with the same specifications
+			int ret = enableI2CBinaryProtocol("SF20", "LW20");
+			const uint8_t cmd1[] = {(uint8_t)RegisterSF20::ServoConnected, 0};
+			ret |= transfer(cmd1, sizeof(cmd1), nullptr, 0);
+			const uint8_t cmd2[] = {(uint8_t)RegisterSF20::ZeroOffset, 0, 0, 0, 0};
+			ret |= transfer(cmd2, sizeof(cmd2), nullptr, 0);
+			const uint8_t cmd3[] = {(uint8_t)RegisterSF20::MeasurementMode, 1}; // 48Hz
+			ret |= transfer(cmd3, sizeof(cmd3), nullptr, 0);
+			const uint8_t cmd4[] = {(uint8_t)RegisterSF20::DistanceOutput, output_data_config_sf20 & 0xff, (output_data_config_sf20 >> 8) & 0xff, 0, 0};
+			ret |= transfer(cmd4, sizeof(cmd4), nullptr, 0);
+			const uint8_t cmd5[] = {(uint8_t)RegisterSF20::LostSignalCounter, 0, 0, 0, 0}; // immediately report lost signal
+			ret |= transfer(cmd5, sizeof(cmd5), nullptr, 0);
+			const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
+			ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
 
-		int ret = enableI2CBinaryProtocol();
-		const uint8_t cmd1[] = {(uint8_t)Register::ServoConnected, 0};
-		ret |= transfer(cmd1, sizeof(cmd1), nullptr, 0);
-		const uint8_t cmd2[] = {(uint8_t)Register::ZeroOffset, 0, 0, 0, 0};
-		ret |= transfer(cmd2, sizeof(cmd2), nullptr, 0);
-		const uint8_t cmd3[] = {(uint8_t)Register::MeasurementMode, 1}; // 48Hz
-		ret |= transfer(cmd3, sizeof(cmd3), nullptr, 0);
-		const uint8_t cmd4[] = {(uint8_t)Register::DistanceOutput, output_data_config & 0xff, (output_data_config >> 8) & 0xff, 0, 0};
-		ret |= transfer(cmd4, sizeof(cmd4), nullptr, 0);
-		const uint8_t cmd5[] = {(uint8_t)Register::LostSignalCounter, 0, 0, 0, 0}; // immediately report lost signal
-		ret |= transfer(cmd5, sizeof(cmd5), nullptr, 0);
-		const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
-		ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
+			return ret;
+		}
+		break;
 
-		return ret;
+	case Type::SF30d: {
+			// There are commonly 2 hardware variants (SF + LW) with the same specifications
+			int ret = enableI2CBinaryProtocol("SF30", "LW30");
+			const uint8_t cmd2[] = {(uint8_t)RegisterSF30::ZeroOffset, 0, 0, 0, 0};
+			ret |= transfer(cmd2, sizeof(cmd2), nullptr, 0);
+			const uint8_t cmd3[] = {(uint8_t)RegisterSF30::UpdateRate, 9}; // 39Hz
+			ret |= transfer(cmd3, sizeof(cmd3), nullptr, 0);
+			const uint8_t cmd4[] = {(uint8_t)RegisterSF30::DistanceOutput, output_data_config_sf30, 0, 0, 0};
+			ret |= transfer(cmd4, sizeof(cmd4), nullptr, 0);
+			const uint8_t cmd5[] = {(uint8_t)RegisterSF30::LostSignalCounter, 0, 0, 0, 0}; // immediately report lost signal
+			ret |= transfer(cmd5, sizeof(cmd5), nullptr, 0);
+			const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
+			ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
+
+			return ret;
+		}
+		break;
+
+	case Type::GRF: {
+			int ret = enableI2CBinaryProtocol("GRF250", "GRF500");
+			const uint8_t cmd1[] = {(uint8_t) RegisterGRF::UpdateRate, 0, 0, 0, 50};
+			ret |= transfer(cmd1, sizeof(cmd1), nullptr, 0);
+			uint8_t cmd2[] = {(uint8_t)RegisterGRF::DistanceOutput, 0, 0, 1};
+			ret |= transfer(cmd2, sizeof(cmd2), nullptr, 0);
+
+			return ret;
+		}
 		break;
 	}
 
@@ -377,7 +429,31 @@ int LightwareLaser::collect()
 			break;
 		}
 
+	case Type::GRF: {
+
+			/* read from the sensor */
+			perf_begin(_sample_perf);
+			uint8_t val[4] {};
+			const hrt_abstime timestamp_sample = hrt_absolute_time();
+
+			if (readRegister((uint8_t)Register::DistanceData, &val[0], 4) < 0) {
+				perf_count(_comms_errors);
+				perf_end(_sample_perf);
+				PX4_INFO("Register Read Error");
+				return PX4_ERROR;
+			}
+
+			perf_end(_sample_perf);
+
+			uint16_t distance_cm = val[2] << 16 | val[1] << 8 | val[0];
+			float distance_m = float(distance_cm) * 1e-1f;
+
+			_px4_rangefinder.update(timestamp_sample, distance_m);
+			break;
+		}
+
 	case Type::LW20c:
+	case Type::SF30d:
 
 		/* read from the sensor */
 		perf_begin(_sample_perf);
@@ -402,6 +478,8 @@ int LightwareLaser::collect()
 
 		_px4_rangefinder.update(timestamp_sample, distance_m, quality);
 		break;
+
+
 	}
 
 	return PX4_OK;
@@ -479,9 +557,14 @@ int LightwareLaser::updateRestriction()
 				return transfer(cmd, sizeof(cmd), nullptr, 0);
 			}
 
-		case Type::LW20c: {
+		case Type::LW20c:
+		case Type::SF30d: {
 				const uint8_t cmd[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
 				return transfer(cmd, sizeof(cmd), nullptr, 0);
+			}
+
+		case Type::GRF: {
+				return 0;
 			}
 		}
 	}
@@ -551,7 +634,7 @@ void LightwareLaser::print_usage()
 		R"DESCR_STR(
 ### Description
 
-I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20.
+I2C bus driver for Lightware LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20, SF/LW30/d, GRF250, GRF500.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 )DESCR_STR");
@@ -561,28 +644,17 @@ Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x66);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
 extern "C" __EXPORT int lightware_laser_i2c_main(int argc, char *argv[])
 {
-	int ch;
 	using ThisDriver = LightwareLaser;
 	BusCLIArguments cli{true, false};
-	cli.rotation = (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = LIGHTWARE_LASER_BASEADDR;
 
-	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
-		switch (ch) {
-		case 'R':
-			cli.rotation = (Rotation)atoi(cli.optArg());
-			break;
-		}
-	}
-
-	const char *verb = cli.optArg();
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
 	if (!verb) {
 		ThisDriver::print_usage();

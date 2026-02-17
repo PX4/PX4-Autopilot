@@ -31,6 +31,7 @@ export default defineConfig({
       tabsPlugin(md); //https://github.com/Red-Asuka/vitepress-plugin-tabs
     },
   },
+  cleanUrls: true,
 
   vite: {
     plugins: [
@@ -197,7 +198,8 @@ export default defineConfig({
         text: "Version",
         items: [
           { text: "main", link: "https://docs.px4.io/main/en/" },
-          { text: "v1.15 (stable)", link: "https://docs.px4.io/v1.15/en/" },
+          { text: "v1.16 (stable)", link: "https://docs.px4.io/v1.16/en/" },
+          { text: "v1.15", link: "https://docs.px4.io/v1.15/en/" },
           { text: "v1.14", link: "https://docs.px4.io/v1.14/en/" },
           { text: "v1.13", link: "https://docs.px4.io/v1.13/en/" },
           { text: "v1.12", link: "https://docs.px4.io/v1.12/en/" },
@@ -252,7 +254,63 @@ export default defineConfig({
       head.push(["link", { rel: "canonical", href: canonicalUrlToAdd }]);
     }
 
-    // Add any other custom head tags you might want later
+    // Build version-aware site URL for OG tags
+    const branch = process.env.BRANCH_NAME || "main";
+    const siteUrl = `https://docs.px4.io/${branch}`;
+
+    // OG image — same image for all pages, but URL includes version base
+    const ogImage =
+      pageData.frontmatter.ogImage || `${siteUrl}/og-image.png`;
+
+    // Build the actual page URL (version-aware, includes locale prefix)
+    let ogPath = pageData.relativePath.replace(/\.md$/, "");
+    if (ogPath === "index") ogPath = "";
+    else if (ogPath.endsWith("/index"))
+      ogPath = ogPath.slice(0, -"/index".length);
+    const ogUrl = `${siteUrl}/${ogPath}`;
+
+    // Open Graph
+    head.push(
+      [
+        "meta",
+        {
+          property: "og:title",
+          content: pageData.title || "PX4 Autopilot",
+        },
+      ],
+      [
+        "meta",
+        {
+          property: "og:description",
+          content:
+            pageData.description ||
+            "Open-source flight stack for drones and autonomous vehicles.",
+        },
+      ],
+      ["meta", { property: "og:url", content: ogUrl }],
+      ["meta", { property: "og:image", content: ogImage }],
+    );
+
+    // Twitter Card
+    head.push(
+      [
+        "meta",
+        {
+          name: "twitter:title",
+          content: pageData.title || "PX4 Autopilot",
+        },
+      ],
+      [
+        "meta",
+        {
+          name: "twitter:description",
+          content:
+            pageData.description ||
+            "Open-source flight stack for drones and autonomous vehicles.",
+        },
+      ],
+      ["meta", { name: "twitter:image", content: ogImage }],
+    );
 
     // Return head that will be merged.
     return head;
@@ -274,6 +332,14 @@ export default defineConfig({
       gtag('js', new Date());
       gtag('config', 'G-91EWVWRQ93');`,
     ],
+    // Open Graph
+    ["meta", { property: "og:site_name", content: "PX4 Autopilot" }],
+    ["meta", { property: "og:type", content: "website" }],
+    ["meta", { property: "og:image:width", content: "1200" }],
+    ["meta", { property: "og:image:height", content: "630" }],
+    ["meta", { property: "og:image:type", content: "image/png" }],
+    // Twitter Card
+    ["meta", { name: "twitter:card", content: "summary_large_image" }],
   ],
 
   vue: {

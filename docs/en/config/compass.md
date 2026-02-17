@@ -10,7 +10,7 @@ If you have [mounted the compass](../assembly/mount_gps_compass.md#compass-orien
 
 ## Overview
 
-You will need to calibrate your compass(es) when you first setup your vehicle, and you may need to recalibrate it if the vehicles is ever exposed to a very strong magnetic field, or if it is used in an area with abnormal magnetic characteristics.
+You will need to calibrate your compass(es) when you first setup your vehicle, and you may need to [recalibrate](#recalibration) it if the vehicles is ever exposed to a very strong magnetic field, or if it is used in an area with abnormal magnetic characteristics.
 
 :::tip
 Indications of a poor compass calibration include multicopter circling during hover, toilet bowling (circling at increasing radius/spiraling-out, usually constant altitude, leading to fly-way), or veering off-path when attempting to fly straight.
@@ -20,13 +20,16 @@ _QGroundControl_ should also notify the error `mag sensors inconsistent`.
 The process calibrates all compasses and autodetects the orientation of any external compasses.
 If any external magnetometers are available, it then disables the internal magnetometers (these are primarily needed for automatic rotation detection of external magnetometers).
 
+### Types of Calibration
+
 Several types of compass calibration are available:
 
 1. [Complete](#complete-calibration): This calibration is required after installing the autopilot on an airframe for the first time or when the configuration of the vehicle has changed significantly.
    It compensates for hard and soft iron effects by estimating an offset and a scale factor for each axis.
 1. [Partial](#partial-quick-calibration): This calibration can be performed as a routine when preparing the vehicle for a flight, after changing the payload, or simply when the compass rose seems inaccurate.
    This type of calibration only estimates the offsets to compensate for a hard iron effect.
-1. [Large vehicle](#large-vehicle-calibration): This calibration can be performed when the vehicle is too large or heavy to perform a complete calibration. This type of calibration only estimates the offsets to compensate for a hard iron effect.
+1. [Large vehicle](#large-vehicle-calibration): This calibration can be performed when the vehicle is too large or heavy to perform a complete calibration.
+   This type of calibration only estimates the offsets to compensate for a hard iron effect.
 
 ## Performing the Calibration
 
@@ -48,23 +51,27 @@ Before starting the calibration:
 The calibration steps are:
 
 1. Start _QGroundControl_ and connect the vehicle.
-1. Select **"Q" icon > Vehicle Setup > Sensors** (sidebar) to open _Sensor Setup_.
-1. Click the **Compass** sensor button.
+2. Select **"Q" icon > Vehicle Setup > Sensors** (sidebar) to open _Sensor Setup_.
+3. Click the **Compass** sensor button.
 
    ![Select Compass calibration PX4](../../assets/qgc/setup/sensor/sensor_compass_select_px4.png)
 
    ::: info
-   You should already have set the [Autopilot Orientation](../config/flight_controller_orientation.md). If not, you can also set it here.
+   You should already have set the [Autopilot Orientation](../config/flight_controller_orientation.md).
+   If not, you can also set it here.
    :::
 
-1. Click **OK** to start the calibration.
-1. Place the vehicle in any of the orientations shown in red (incomplete) and hold it still. Once prompted (the orientation-image turns yellow) rotate the vehicle around the specified axis in either/both directions. Once the calibration is complete for the current orientation the associated image on the screen will turn green.
+4. Click **OK** to start the calibration.
+5. Place the vehicle in any of the orientations shown in red (incomplete) and hold it still.
+   Once prompted (the orientation-image turns yellow) rotate the vehicle around the specified axis in either/both directions.
+   Once the calibration is complete for the current orientation the associated image on the screen will turn green.
 
    ![Compass calibration steps on PX4](../../assets/qgc/setup/sensor/sensor_compass_calibrate_px4.png)
 
-1. Repeat the calibration process for all vehicle orientations.
+6. Repeat the calibration process for all vehicle orientations.
 
-Once you've calibrated the vehicle in all the positions _QGroundControl_ will display _Calibration complete_ (all orientation images will be displayed in green and the progress bar will fill completely). You can then proceed to the next sensor.
+Once you've calibrated the vehicle in all the positions _QGroundControl_ will display _Calibration complete_ (all orientation images will be displayed in green and the progress bar will fill completely).
+You can then proceed to the next sensor.
 
 ### Partial "Quick" Calibration
 
@@ -87,7 +94,8 @@ Notes:
 
 This calibration process leverages external knowledge of vehicle's orientation and location, and a World Magnetic Model (WMM) to calibrate the hard iron biases.
 
-1. Ensure GNSS Fix. This is required to find the expected Earth magnetic field in WMM tables.
+1. Ensure GNSS Fix.
+   This is required to find the expected Earth magnetic field in WMM tables.
 2. Align the vehicle to face True North.
    Be as accurate as possible for best results.
 3. Open the [QGroundControl MAVLink Console](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_console.html) and send the following command:
@@ -106,6 +114,30 @@ Notes:
 ## Verification
 
 After the calibration is complete, check that the heading indicator and the heading of the arrow on the map are stable and match the orientation of the vehicle when turning it e.g. to the cardinal directions.
+
+## Recalibration
+
+Recalibration is recommended whenever the magnetic environment of the vehicle has changed or when heading behavior appears unreliable.
+
+You can use either complete calibration or mag quick calibration depending on the size of the vehicle and your ability to rotate it through the required orientations.
+Complete calibration provides the most accurate soft-iron compensation.
+
+Recalibrate the compass when:
+
+- _The compass module or its mounting orientation has changed._
+  This includes replacing the GPS or mag unit, rotating the mast, or altering how the module is fixed to the airframe.
+- _The vehicle has been exposed to a strong magnetic disturbance._
+  Examples include transport or storage near large steel structures, welding operations near the airframe, or operation close to high-current equipment.
+- _Structural, wiring, or payload changes may have altered the magnetic field around the sensors._
+  New payloads, rerouted wires, additional batteries, or metal fasteners can introduce soft-iron effects that affect heading accuracy.
+- _The vehicle is operated in a region with significantly different magnetic characteristics._
+  Large changes in latitude, longitude, or magnetic inclination can require re-estimation of offsets.
+- _QGroundControl reports magnetometer inconsistencies_.
+  For example, if you see the error `mag sensors inconsistent`.
+- _Heading behavior does not match the vehicle’s observed orientation._
+  Symptoms include drifting yaw, sudden heading jumps when attempting to fly straight, and toilet bowling
+- _QGroundControl_ sends the error `mag sensors inconsistent`.
+  This indicates that multiple magnetometers are reporting different headings.
 
 ## Additional Calibration/Configuration
 

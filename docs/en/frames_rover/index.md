@@ -7,15 +7,20 @@ Support for rover is [experimental](../airframes/index.md#experimental-vehicles)
 Maintainer volunteers, [contribution](../contribute/index.md) of new features, new frame configurations, or other improvements would all be very welcome!
 :::
 
+::: tip
+Rover is not in the default PX4 firmware downloaded from QGC.
+Unlike for other vehicle types you will need to install it as custom firmware.
+For more information see [Flashing the Rover Build](../config_rover/index.md#flashing-the-rover-build).
+:::
+
 ![Rovers](../../assets/airframes/rover/rovers.png)
 
-
 PX4 provides support for the three most common types of rovers:
-| Rover Type                        | Steering                                                                                                                                                      |
+| Rover Type | Steering |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [**Ackermann**](#ackermann)       | Direction is controlled by pointing wheels in the direction of travel. This kind of steering is used on most commercial vehicles, including cars, trucks etc. |
-| [**Differential**](#differential) | Direction is controlled by moving the left- and right-side wheels at different speeds.                                                                        |
-| [**Mecanum**](#mecanum)           | Direction is controlled by moving each mecanum wheel individually at different speeds and in different directions.                                            |
+| [**Ackermann**](#ackermann) | Direction is controlled by pointing wheels in the direction of travel. This kind of steering is used on most commercial vehicles, including cars, trucks etc. |
+| [**Differential**](#differential) | Direction is controlled by moving the left- and right-side wheels at different speeds. |
+| [**Mecanum**](#mecanum) | Direction is controlled by moving each mecanum wheel individually at different speeds and in different directions. |
 
 The supported frames can be seen in [Airframes Reference > Rover](../airframes/airframe_reference.md#rover).
 
@@ -57,15 +62,17 @@ Each wheel is driven by its own motor, and by controlling the speed and directio
 
 ## See Also
 
-- [Drive Modes](../flight_modes_rover/index.md).
+- [Drive Modes](../flight_modes_rover/index.md)
 - [Configuration/Tuning](../config_rover/index.md)
+- [Apps & API](../flight_modes_rover/api.md)
 - [Complete Vehicles](../complete_vehicles_rover/index.md)
 
 ## Simulation
 
-[Gazebo](../sim_gazebo_gz/index.md) provides simulations for ackermann and differential rovers:
+PX4 provides synthetic simulation models for [Gazebo](../sim_gazebo_gz/index.md) of all three rover types to test the software and validate changes and new features:
 
 - [Ackermann rover](../sim_gazebo_gz/vehicles.md#ackermann-rover)
 - [Differential rover](../sim_gazebo_gz/vehicles.md#differential-rover)
+- [Mecanum rover](../sim_gazebo_gz/vehicles.md#mecanum-rover)
 
 ![Rover gazebo simulation](../../assets/airframes/rover/rover_simulation.png)

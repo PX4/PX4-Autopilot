@@ -29,10 +29,10 @@ The [Advanced Trimming](#advanced-trimming) section introduces parameters that c
 
 1. Trim the servos by physically adjusting the linkages lengths if possible and fine tune by trimming the PWM channels (use `PWM_MAIN/AUX_TRIMx`) on the bench to properly set the control surfaces to their theoretical position.
 2. Fly in stabilized mode at cruise speed and set the pitch setpoint offset (`FW_PSP_OFF`) to desired angle of attack.
-  Необхідний кут атаки при крейсерській швидкості відповідає куту крена, який потрібно літаку летіти, щоб утримати постійну висоту під час польоту з вирівняним крилом.
-  If you are using an airspeed sensor, also set the correct cruise airspeed (`FW_AIRSPD_TRIM`).
+   Необхідний кут атаки при крейсерській швидкості відповідає куту крена, який потрібно літаку летіти, щоб утримати постійну висоту під час польоту з вирівняним крилом.
+   If you are using an airspeed sensor, also set the correct cruise airspeed (`FW_AIRSPD_TRIM`).
 3. Look at the actuator controls in the log file (upload it to [Flight Review](https://logs.px4.io) and check the _Actuator Controls_ plot for example) and set the pitch trim (`TRIM_PITCH`).
-  Встановіть це значення на середнє зміщення сигналу тану під час польоту на рівні крила.
+   Встановіть це значення на середнє зміщення сигналу тану під час польоту на рівні крила.
 
 Крок 3 можна виконати перед кроком 2, якщо ви не хочете дивитися на журнал або якщо вам зручно керувати літаком вручну.
 You can then trim your remote (with the trim switches) and report the values to `TRIM_PITCH` (and remove the trims from your transmitter) or update `TRIM_PITCH` directly during flight via telemetry and QGC.

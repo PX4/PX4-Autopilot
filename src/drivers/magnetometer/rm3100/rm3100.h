@@ -91,8 +91,12 @@
 #define RM3100_REVID		0x22
 
 /* interface factories */
+#if defined(CONFIG_SPI)
 extern device::Device *RM3100_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
+#endif // CONFIG_SPI
+#if defined(CONFIG_I2C)
 extern device::Device *RM3100_I2C_interface(int bus, int bus_frequency);
+#endif // CONFIG_I2C
 
 #define RM3100_ADDRESS		0x20
 

@@ -33,7 +33,7 @@ _QGroundControl for Windows_ is additionally required if you need to:
   Note that you can also use it to monitor a simulation, but you must manually [connect to the simulation running in WSL](#qgroundcontrol-on-windows).
 
 ::: info
-Connecting to an USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the  [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
+Connecting to an USB device from within WSL is not natively supported, however it can still be achieved by using the [USBIPD-WIN](https://learn.microsoft.com/en-us/windows/wsl/connect-usb) project. With this you can automatically upload firmware from the command line in WSL using the [`upload`](../dev_setup/building_px4.md#uploading-firmware-flashing-the-board) function.
 :::
 
 ::: info
@@ -58,20 +58,20 @@ To install WSL2 with Ubuntu on a new installation of Windows 10 or 11:
      wsl --install
      ```
 
-   - Ubuntu 20.04 ([Gazebo-Classic Simulation](../sim_gazebo_classic/index.md))
-
-     ```sh
-     wsl --install -d Ubuntu-20.04
-     ```
-
    - Ubuntu 22.04 ([Gazebo Simulation](../sim_gazebo_gz/index.md))
 
      ```sh
      wsl --install -d Ubuntu-22.04
      ```
 
+   - Ubuntu 24.04 ([Gazebo Simulation](../sim_gazebo_gz/index.md))
+
+     ```sh
+     wsl --install -d Ubuntu-24.04
+     ```
+
    ::: info
-   You can also install[Ubuntu 20.04](https://www.microsoft.com/store/productId/9MTTCL66CPXJ) and [Ubuntu 22.04](https://www.microsoft.com/store/productId/9PN20MSR04DW) from the store, which allows you to delete the application using the normal Windows Add/Remove settings:
+   You can also [Ubuntu 24.04](https://www.microsoft.com/store/productId/9nz3klhxdjp5) or [Ubuntu 22.04](https://www.microsoft.com/store/productId/9PN20MSR04DW) from Microsoft Store, which allows you to delete the application using the normal Windows Add/Remove settings.
    :::
 
 1. WSL will prompt you for a user name and password for the Ubuntu installation.
@@ -106,7 +106,7 @@ To open a WSL shell using a command prompt:
    ```
 
    ```sh
-   wsl -d Ubuntu-20.04
+   wsl -d Ubuntu-24.04
    ```
 
    If you only have one version of Ubuntu, you can just use `wsl`.
@@ -325,3 +325,9 @@ sudo add-apt-repository ppa:kisak/kisak-mesa
 sudo apt update
 sudo apt upgrade
 ```
+
+### QGroundControl not connecting to PX4 SITL
+
+- The connection between PX4 SITL on WSL2 and QGroundControl on Windows requires [broadcasting](../simulation/index.md#enable-udp-broadcasting) or [streaming to a specific address](../simulation/index.md#enable-streaming-to-specific-address) to be enabled.
+  Streaming to a specific address should be enabled by default, but is something to check if a connection can't be established.
+- Network traffic might be blocked by firewall or antivirus on you system.

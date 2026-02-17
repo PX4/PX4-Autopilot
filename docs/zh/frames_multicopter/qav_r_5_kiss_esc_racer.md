@@ -270,6 +270,6 @@ Ideally you should also do:
 ### 调试
 
 Airframe selection sets _default_ autopilot parameters for the frame.
-These are good enough to fly with, but it is a good idea to tune the parameters for a specific frame build.
+这些足以让它起飞，但是为你的特定框架调整专有参数是一个好主意。
 
 For instructions on how, start from [Autotune](../config/autotune_mc.md).

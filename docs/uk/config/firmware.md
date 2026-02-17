@@ -61,10 +61,10 @@ Next you will need to specify the [vehicle airframe](../config/airframe.md) (and
 2. Check **Advanced settings** and select the version from the dropdown list:
    - **Standard Version (stable):** The default version (i.e. no need to use advanced settings to install this!)
    - **Beta Testing (beta):** A beta/candidate release.
-      Лише доступно, коли готується новий реліз.
+     Лише доступно, коли готується новий реліз.
    - **Developer Build (master):** The latest build of PX4/PX4-Autopilot _main_ branch.
    - **Custom Firmware file...:** A custom firmware file (e.g. [that you have built locally](../dev_setup/building_px4.md)).
-      Якщо ви виберете це, вам доведеться вибрати власну прошивку з файлової системи на наступному кроці.
+     Якщо ви виберете це, вам доведеться вибрати власну прошивку з файлової системи на наступному кроці.
 
 Оновлення прошивки потім продовжується, як і раніше.
 

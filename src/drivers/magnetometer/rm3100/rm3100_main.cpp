@@ -45,12 +45,16 @@ I2CSPIDriverBase *RM3100::instantiate(const I2CSPIDriverConfig &config, int runt
 {
 	device::Device *interface = nullptr;
 
+#if defined(CONFIG_I2C)
+
 	if (config.bus_type == BOARD_I2C_BUS) {
 		interface = RM3100_I2C_interface(config.bus, config.bus_frequency);
 
-	} else if (config.bus_type == BOARD_SPI_BUS) {
-		interface = RM3100_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
-	}
+	} else
+#endif // CONFIG_I2C
+		if (config.bus_type == BOARD_SPI_BUS) {
+			interface = RM3100_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
+		}
 
 	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
@@ -93,8 +97,12 @@ extern "C" int rm3100_main(int argc, char *argv[])
 	using ThisDriver = RM3100;
 	int ch;
 	BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
 	cli.default_i2c_frequency = 400000;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 	cli.default_spi_frequency = 1 * 1000 * 1000;
+#endif // CONFIG_SPI
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -111,7 +119,9 @@ extern "C" int rm3100_main(int argc, char *argv[])
 		return -1;
 	}
 
+#if defined(CONFIG_I2C)
 	cli.i2c_address = RM3100_ADDRESS;
+#endif // CONFIG_I2C
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_RM3100);
 

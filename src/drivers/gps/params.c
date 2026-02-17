@@ -70,6 +70,70 @@ PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
 PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 
 /**
+ * u-blox GPS DGNSS timeout
+ *
+ * When set to 0 (default), default DGNSS timeout set by u-blox will be used.
+ *
+ * @min 0
+ * @max 255
+ * @unit s
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_DGNSS_TO, 0);
+
+/**
+ * u-blox GPS minimum satellite signal level for navigation
+ *
+ * When set to 0 (default), default minimum satellite signal level set by u-blox wll be used.
+ *
+ * @min 0
+ * @max 255
+ * @unit dBHz
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MIN_CNO, 0);
+
+/**
+ * u-blox GPS minimum elevation for a GNSS satellite to be used in navigation
+ *
+ * When set to 0 (default), default minimum elevation set by u-blox will be used.
+ *
+ * @min 0
+ * @max 127
+ * @unit deg
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MIN_ELEV, 0);
+
+/**
+ * u-blox GPS output rate
+ *
+ * Configure the output rate of u-blox GPS receivers (protocol v27+).
+ * When set to 0, automatic rate selection is used based on the receiver model.
+ * Default rates: M9N=8Hz, F9P L1L2=5Hz, F9P L1L5=5Hz, Others=10Hz.
+ *
+ * Note: Higher rates reduce satellite count (e.g., >8Hz limits to 16 SVs on M9N).
+ * Max rates vary by model and RTK mode: F9P L1L2=5-7Hz, F9P L1L5=7-8Hz, X20=25Hz.
+ * High rates at 115200 baud may cause dropouts.
+ *
+ * @min 0
+ * @max 25
+ * @unit Hz
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_RATE, 0);
+
+/**
  * Enable sat info (if available)
  *
  * Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
@@ -143,6 +207,29 @@ PARAM_DEFINE_INT32(GPS_UBX_BAUD2, 230400);
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
+
+/**
+ * Enable MSM7 message output for PPK workflow.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_PPK, 0);
+
+/**
+ * u-blox GPS jamming detection high sensitivity mode
+ *
+ * Enables or disables the high sensitivity mode for the u-blox jamming detection
+ * (CFG-SEC-JAMDET_SENSITIVITY_HI). When enabled, the receiver uses a
+ * more sensitive algorithm to detect jamming. Disabling this may reduce false
+ * positives in electrically noisy environments.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_JAM_DET, 1);
 
 /**
  * Wipes the flash config of UBX modules.

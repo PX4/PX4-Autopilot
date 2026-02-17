@@ -183,3 +183,11 @@ parameters:
       max: 299792458
       unit: m/s
       decimal: 1
+
+    EKF2_ENGINE_WRM:
+      description:
+        short: Enable constant position fusion during engine warmup
+        long: When enabled, constant position fusion is enabled when the vehicle is landed and armed.
+         This is intended for IC engine warmup (e.g., fuel engines on catapult) to allow mode transitions to auto/takeoff despite vibrations from running engines.
+      type: boolean
+      default: 0

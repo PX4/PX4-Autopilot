@@ -25,7 +25,9 @@ PX4 also supports [Real Time Kinematic (RTK)](../gps_compass/rtk_gps.md) and **P
 | 设备                                                           |             GPS             |              罗盘             | [CAN](../dronecan/index.md) |    Buzzer / SafeSw / LED    | 备注                                                          |
 | :----------------------------------------------------------- | :-------------------------: | :-------------------------: | :-------------------------: | :-------------------------: | :---------------------------------------------------------- |
 | [ARK GPS](../dronecan/ark_gps.md)                            |             M9N             |            BMM150           | &check; | &check; | + Baro, IMU                                                 |
+| [ARK DAN GPS](../gps_compass/ark_dan_gps.md)                 |           DAN-F10N          |           IIS2MDC           |                             | &check; |                                                             |
 | [ARK SAM GPS](../gps_compass/ark_sam_gps.md)                 |           SAM-M10Q          |           IIS2MDC           |                             | &check; |                                                             |
+| [ARK SAM GPS MINI ](../gps_compass/ark_sam_gps_mini.md)      |           SAM-M10Q          |           IIS2MDC           |                             | &check; |                                                             |
 | [ARK TESEO GPS](../dronecan/ark_teseo_gps.md)                |         Teseo-LIV4F         |            BMM150           | &check; | &check; | + Baro, IMU                                                 |
 | [Avionics Anonymous UAVCAN GNSS/Mag][avionics_anon_can_gnss] |           SAM-M8Q           |          MMC5983MA          | &check; |              ✘              |                                                             |
 | [CUAV NEO 3 GPS](../gps_compass/gps_cuav_neo_3.md)           |             M9N             |           IST8310           |                             | &check; |                                                             |
@@ -145,21 +147,21 @@ To ensure the port is set up correctly perform a [Serial Port Configuration](../
 The following steps show how to configure a secondary GPS on the `GPS 2` port in _QGroundControl_:
 
 1. [Find and set](../advanced_config/parameters.md) the parameter [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to **GPS 2**.
-  - Open _QGroundControl_ and navigate to the **Vehicle Setup > Parameters** section.
-  - Select the **GPS** tab, then open the [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) parameter and select `GPS 2` from the dropdown list.
+   - Open _QGroundControl_ and navigate to the **Vehicle Setup > Parameters** section.
+   - Select the **GPS** tab, then open the [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) parameter and select `GPS 2` from the dropdown list.
 
-    ![QGC Serial Example](../../assets/peripherals/qgc_serial_config_example.png)
+     ![QGC Serial Example](../../assets/peripherals/qgc_serial_config_example.png)
 
 2. Reboot the vehicle in order to make the other parameters visible.
 
 3. Select the **Serial** tab, and open the [SER_GPS2_BAUD](../advanced_config/parameter_reference.md#SER_GPS2_BAUD) parameter (`GPS 2` port baud rate): set it to _Auto_ (or 115200 for the Trimble).
 
-  ![QGC Serial Baudrate Example](../../assets/peripherals/qgc_serial_baudrate_example.png)
+   ![QGC Serial Baudrate Example](../../assets/peripherals/qgc_serial_baudrate_example.png)
 
 After setting up the second GPS port:
 
 1. Configure the ECL/EKF2 estimator to blend data from both GPS systems.
-  For detailed instructions see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
+   For detailed instructions see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
 
 ### DroneCAN GNSS Configuration
 
@@ -197,11 +199,21 @@ It is possible to have low DOP (good satellite geometry) but still have high EPH
 
 EPH/EPV values therefore provide a more immediate and practical estimate of the actual GPS accuracy you can expect under current conditions.
 
+### GNSS Position Fusion
+
+GNSS position fusion will not begin until yaw alignment is established.
+If a magnetometer is available, the EKF aligns yaw using the magnetic heading, allowing GPS position fusion to start soon after boot.
+If no magnetometer is present, the system must rely on GPS yaw (from a dual-antenna setup) or movement-based yaw estimation.
+Until one of these provides a valid heading, the EKF will not start GPS position fusion, and the vehicle will remain in a “no position” state even though attitude data is valid.
+This behavior prevents large position errors that could occur when the yaw reference is uncertain.
+
 ## 开发人员信息
 
 - GPS/RTK-GPS
   - [RTK-GPS](../advanced/rtk_gps.md)
+  - [PPS Time Synchronization](../advanced/pps_time_sync.md)
   - [GPS driver](../modules/modules_driver.md#gps)
+  - [PPS driver](../modules/modules_driver.md#pps-capture)
   - [DroneCAN Example](../dronecan/index.md)
 - 罗盘
   - [Driver source code](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer) (Compasses)

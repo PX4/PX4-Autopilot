@@ -39,7 +39,6 @@
 
 #include "sensor_bridge.hpp"
 #include <uORB/topics/airspeed.h>
-
 #include <uavcan/equipment/air_data/IndicatedAirspeed.hpp>
 #include <uavcan/equipment/air_data/TrueAirspeed.hpp>
 #include <uavcan/equipment/air_data/StaticTemperature.hpp>
@@ -49,7 +48,7 @@ class UavcanAirspeedBridge : public UavcanSensorBridgeBase
 public:
 	static const char *const NAME;
 
-	UavcanAirspeedBridge(uavcan::INode &node);
+	UavcanAirspeedBridge(uavcan::INode &node, NodeInfoPublisher *node_info_publisher);
 
 	const char *get_name() const override { return NAME; }
 

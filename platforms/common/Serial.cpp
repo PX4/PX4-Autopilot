@@ -74,6 +74,11 @@ ssize_t Serial::bytesAvailable()
 	return _impl.bytesAvailable();
 }
 
+ssize_t Serial::txSpaceAvailable()
+{
+	return _impl.txSpaceAvailable();
+}
+
 ssize_t Serial::read(uint8_t *buffer, size_t buffer_size)
 {
 	return _impl.read(buffer, buffer_size);
@@ -87,6 +92,11 @@ ssize_t Serial::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t characte
 ssize_t Serial::write(const void *buffer, size_t buffer_size)
 {
 	return _impl.write(buffer, buffer_size);
+}
+
+ssize_t Serial::writeBlocking(const void *buffer, size_t buffer_size, uint32_t timeout_ms)
+{
+	return _impl.writeBlocking(buffer, buffer_size, timeout_ms);
 }
 
 void Serial::flush()

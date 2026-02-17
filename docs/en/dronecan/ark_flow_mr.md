@@ -1,6 +1,6 @@
 # ARK Flow MR
 
-ARK Flow MR ("Mid Range") is an open source [DroneCAN](index.md) [optical flow](../sensor/optical_flow.md), [distance sensor](../sensor/rangefinders.md), and IMU module. 
+ARK Flow MR ("Mid Range") is an open source [DroneCAN](index.md) [optical flow](../sensor/optical_flow.md), [distance sensor](../sensor/rangefinders.md), and IMU module.
 It is the next generation of the [Ark Flow](ark_flow.md), designed for mid-range applications.
 
 ![ARK Flow MR](../../assets/hardware/sensors/optical_flow/ark_flow_mr.jpg)
@@ -28,7 +28,7 @@ Order this module from:
 - Invensense IIM-42653 6-Axis IMU
 - Two Pixhawk Standard CAN Connectors (4 Pin JST GH)
 - Pixhawk Standard Debug Connector (6 Pin JST SH)
-- Software controlled built-in CAN termination resistor via node parameter (CANNODE_TERM)  
+- Software controlled built-in CAN termination resistor via node parameter (CANNODE_TERM)
 - Small Form Factor
   - 3cm x 3cm x 1.4cm
 - LED Indicators
@@ -70,7 +70,6 @@ The Ark Flow MR will not boot if there is no SD card in the flight controller wh
 
 ### Enable DroneCAN
 
-
 The steps are:
 
 - In _QGroundControl_ set the parameter [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to `2` for dynamic node allocation (or `3` if using [DroneCAN ESCs](../dronecan/escs.md)) and reboot (see [Finding/Updating Parameters](../advanced_config/parameters.md)).
@@ -92,6 +91,7 @@ Set the following parameters in _QGroundControl_:
 - To optionally disable GPS aiding, set [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to `0`.
 - Enable [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW).
 - Enable [UAVCAN_SUB_RNG](../advanced_config/parameter_reference.md#UAVCAN_SUB_RNG).
+- Set [EKF2_RNG_CTRL](../advanced_config/parameter_reference.md#EKF2_RNG_CTRL) to `1`.
 - Set [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX) to `10`.
 - Set [EKF2_RNG_QLTY_T](../advanced_config/parameter_reference.md#EKF2_RNG_QLTY_T) to `0.2`.
 - Set [UAVCAN_RNG_MIN](../advanced_config/parameter_reference.md#UAVCAN_RNG_MIN) to `0.08`.
@@ -105,15 +105,15 @@ Set the following parameters in _QGroundControl_:
 
 You may need to [configure the following parameters](../dronecan/index.md#qgc-cannode-parameter-configuration) on the ARK Flow MR itself:
 
-| Parameter                                                                                       | Description                   |
-| ----------------------------------------------------------------------------------------------- | ----------------------------- |
-| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM) | CAN built-in bus termination. |
+| Parameter                                                                                                | Description                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID. |
+| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)          | CAN built-in bus termination.                                                                                                         |
 
 ## LED Meanings
 
 - Blinking green is normal operation
 - Rapid blinking blue and red is firmware update
-
 
 If you see a solid red LED there is an error and you should check the following:
 

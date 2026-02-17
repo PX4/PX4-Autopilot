@@ -416,6 +416,22 @@ public:
 	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
 
+	void resetHeadingToExternalObservation(float heading, float heading_accuracy)
+	{
+		if (_control_status.flags.yaw_align) {
+			resetYawByFusion(heading, heading_accuracy);
+
+		} else {
+			resetQuatStateYaw(heading, heading_accuracy);
+			_control_status.flags.yaw_align = true;
+		}
+
+		// Force the mag consistency check to pass again since an external heading reset is often done to
+		// counter mag disturbances.
+		_control_status.flags.mag_heading_consistent = false;
+		_control_status.flags.yaw_manual = true;
+	}
+
 	void updateParameters();
 
 	friend class AuxGlobalPosition;
@@ -565,6 +581,8 @@ private:
 	estimator_aid_source2d_s _aid_src_gnss_pos{};
 	estimator_aid_source3d_s _aid_src_gnss_vel{};
 
+	uint64_t _time_last_gnss_hgt_rejected{0};
+
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	estimator_aid_source1d_s _aid_src_gnss_yaw {};
 # endif // CONFIG_EKF2_GNSS_YAW
@@ -647,8 +665,8 @@ private:
 	bool initialiseAltitudeTo(float altitude, float vpos_var = NAN);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
-	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
-	void computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const;
+	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW, const bool reset = false);
+	void computeYawInnovVarAndH(float observation_variance, float &innovation_variance, VectorState &H_YAW) const;
 
 	void updateIMUBiasInhibit(const imuSample &imu_delayed);
 
@@ -749,7 +767,6 @@ private:
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
 	bool fuseHaglRng(estimator_aid_source1d_s &aid_src, bool update_height, bool update_terrain);
-	void updateRangeHagl(estimator_aid_source1d_s &aid_src);
 	void resetTerrainToRng(estimator_aid_source1d_s &aid_src);
 	float getRngVar() const;
 # endif // CONFIG_EKF2_RANGE_FINDER
@@ -871,6 +888,7 @@ private:
 
 	void controlGnssHeightFusion(const gnssSample &gps_sample);
 	void stopGpsHgtFusion();
+	bool isGnssHgtResetAllowed();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	void controlGnssYawFusion(const gnssSample &gps_sample);
@@ -999,6 +1017,9 @@ private:
 	// yaw : Euler yaw angle (rad)
 	// yaw_variance : yaw error variance (rad^2)
 	void resetQuatStateYaw(float yaw, float yaw_variance);
+	void propagateQuatReset(const Quatf &quat_before_reset);
+	void resetYawByFusion(float yaw, float yaw_variance);
+	void resetHorizontalVelocityToMatchYaw(float delta_yaw);
 
 	HeightSensor _height_sensor_ref{HeightSensor::UNKNOWN};
 	PositionSensor _position_sensor_ref{PositionSensor::GNSS};

@@ -28,7 +28,6 @@ Missions are uploaded onto a SD card that needs to be inserted **before** bootin
 At high level all vehicle types behave in the same way when MISSION mode is engaged:
 
 1. If no mission is stored, or if PX4 has finished executing all mission commands, or if the [mission is not feasible](#mission-feasibility-checks):
-
    - If flying the vehicle will loiter.
    - If landed the vehicle will "wait".
 
@@ -162,6 +161,10 @@ Mission Items:
 - [MAV_CMD_OBLIQUE_SURVEY](https://mavlink.io/en/messages/common.html#MAV_CMD_OBLIQUE_SURVEY)
 - [MAV_CMD_DO_SET_CAMERA_ZOOM](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_CAMERA_ZOOM)
 - [MAV_CMD_DO_SET_CAMERA_FOCUS](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_CAMERA_FOCUS)
+- [MAV_CMD_DO_AUTOTUNE_ENABLE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_AUTOTUNE_ENABLE)
+  - Disabling autotune by setting `param1` to zero is currently not supported. To abort autotune during a mission, switch to another flight mode.
+  - Axis selection specified in the MAVLink message is ignored (`param2` must be set to 0).
+    Instead, the axis bitmask defined by [`FW_AT_AXES`](../advanced_config/parameter_reference.md#FW_AT_AXES) is used.
 
 GeoFence Definitions
 

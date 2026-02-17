@@ -291,6 +291,20 @@ int16_t uORB::AppsProtobufChannel::register_handler(uORBCommunicator::IChannelRx
 	return 0;
 }
 
+int16_t uORB::AppsProtobufChannel::shutdown()
+{
+	if (_ShutdownRequested) {
+		return 0;
+	}
+
+	_ShutdownRequested = true;
+
+	PX4_ERR("Sending kill command to SLPI!!!");
+	fc_sensor_kill_slpi();
+	sleep(1);
+	return 0;
+}
+
 int16_t uORB::AppsProtobufChannel::send_message(const char *messageName, int length, uint8_t *data)
 {
 	// This is done to slow down high rate debug messages.
