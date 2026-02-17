@@ -2492,12 +2492,12 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 	ranging_beacon.timestamp_sample = beacon_pos.time_usec;
 	ranging_beacon.beacon_id = beacon_pos.beacon_id;
 	ranging_beacon.range = beacon_pos.range;
-	ranging_beacon.lat = beacon_pos.lat;
-	ranging_beacon.lon = beacon_pos.lon;
+	ranging_beacon.lat = static_cast<double>(beacon_pos.lat) * 1e-7;
+	ranging_beacon.lon = static_cast<double>(beacon_pos.lon) * 1e-7;
 	ranging_beacon.alt = beacon_pos.alt_msl;
 	ranging_beacon.alt_ellipsoid = beacon_pos.alt_ellipsoid;
 	ranging_beacon.hacc = beacon_pos.hacc_est;
-	ranging_beacon.vacc = beacon_pos.hacc_est;
+	ranging_beacon.vacc = beacon_pos.vacc_est;
 	ranging_beacon.rssi_node = beacon_pos.rssi_node;
 	ranging_beacon.rssi_beacon = beacon_pos.rssi_beacon;
 	ranging_beacon.battery_status = beacon_pos.battery_status;

@@ -16,11 +16,11 @@ float32 alt_ellipsoid		# Altitude above ellipsoid, (meters)
 uint32 hacc
 uint32 vacc
 
-float32 rssi_node
-float32 rssi_beacon
+int8 rssi_node
+int8 rssi_beacon
 uint8 battery_status
 uint8 sequence
-uint32 carrier_freq
+uint16 carrier_freq
 float32 range_accuracy
 
 
