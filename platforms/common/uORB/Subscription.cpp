@@ -55,7 +55,7 @@ bool Subscription::subscribe()
 
 		if (node) {
 			_node = node;
-			_last_generation = initial_generation;
+			_last_generation.store(initial_generation);
 			return true;
 		}
 	}
@@ -70,13 +70,16 @@ void Subscription::unsubscribe()
 	}
 
 	_node = nullptr;
-	_last_generation = 0;
+	_last_generation.store(0);
 }
 
 bool Subscription::update(void *dst)
 {
 	if (subscribe()) {
-		return Manager::orb_data_copy(_node, dst, _last_generation, true);
+		unsigned gen = _last_generation.load();
+		bool ret = Manager::orb_data_copy(_node, dst, gen, true);
+		_last_generation.store(gen);
+		return ret;
 	}
 
 	return false;
@@ -85,7 +88,10 @@ bool Subscription::update(void *dst)
 bool Subscription::copy(void *dst)
 {
 	if (subscribe()) {
-		return Manager::orb_data_copy(_node, dst, _last_generation, false);
+		unsigned gen = _last_generation.load();
+		bool ret = Manager::orb_data_copy(_node, dst, gen, false);
+		_last_generation.store(gen);
+		return ret;
 	}
 
 	return false;
@@ -166,7 +172,7 @@ bool Subscription::advertised()
 bool Subscription::updated()
 {
 	if (subscribe()) {
-		return Manager::updates_available(_node, _last_generation);
+		return Manager::updates_available(_node, _last_generation.load());
 	}
 
 	return false;
