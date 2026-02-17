@@ -52,25 +52,25 @@
 pthread_mutex_t uORB::Manager::_communicator_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
-uORB::Manager *uORB::Manager::_Instance = nullptr;
+px4::atomic<uORB::Manager *> uORB::Manager::_Instance{nullptr};
 
 bool uORB::Manager::initialize()
 {
-	if (_Instance == nullptr) {
-		_Instance = new uORB::Manager();
+	if (_Instance.load() == nullptr) {
+		_Instance.store(new uORB::Manager());
 	}
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 	px4_register_boardct_ioctl(_ORBIOCDEVBASE, orb_ioctl);
 #endif
-	return _Instance != nullptr;
+	return _Instance.load() != nullptr;
 }
 
 bool uORB::Manager::terminate()
 {
-	if (_Instance != nullptr) {
-		delete _Instance;
-		_Instance = nullptr;
+	if (_Instance.load() != nullptr) {
+		delete _Instance.load();
+		_Instance.store(nullptr);
 		return true;
 	}
 
@@ -277,14 +277,14 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 			if (_publisher_rule.ignore_other_topics) {
 				if (!findTopic(_publisher_rule, meta->o_name)) {
 					PX4_DEBUG("not allowing %s to publish topic %s", prog_name, meta->o_name);
-					return (orb_advert_t)_Instance;
+					return (orb_advert_t)_Instance.load();
 				}
 			}
 
 		} else {
 			if (findTopic(_publisher_rule, meta->o_name)) {
 				PX4_DEBUG("not allowing %s to publish topic %s", prog_name, meta->o_name);
-				return (orb_advert_t)_Instance;
+				return (orb_advert_t)_Instance.load();
 			}
 		}
 	}
@@ -337,7 +337,7 @@ int uORB::Manager::orb_unadvertise(orb_advert_t handle)
 {
 #ifdef ORB_USE_PUBLISHER_RULES
 
-	if (handle == _Instance) {
+	if (handle == _Instance.load()) {
 		return PX4_OK; //pretend success
 	}
 
@@ -366,7 +366,7 @@ int uORB::Manager::orb_publish(const struct orb_metadata *meta, orb_advert_t han
 {
 #ifdef ORB_USE_PUBLISHER_RULES
 
-	if (handle == _Instance) {
+	if (handle == _Instance.load()) {
 		return PX4_OK; //pretend success
 	}
 

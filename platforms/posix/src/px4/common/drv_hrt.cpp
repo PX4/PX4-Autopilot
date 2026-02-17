@@ -162,13 +162,13 @@ static void hrt_latency_update()
 	/* bounded buckets */
 	for (index = 0; index < LATENCY_BUCKET_COUNT; index++) {
 		if (latency <= latency_buckets[index]) {
-			latency_counters[index]++;
+			__atomic_fetch_add(&latency_counters[index], 1, __ATOMIC_RELAXED);
 			return;
 		}
 	}
 
 	/* catch-all at the end */
-	latency_counters[index]++;
+	__atomic_fetch_add(&latency_counters[index], 1, __ATOMIC_RELAXED);
 }
 
 /*
