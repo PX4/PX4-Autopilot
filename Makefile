@@ -412,7 +412,7 @@ tests:
 	$(call cmake-build,px4_sitl_test)
 
 # work around lcov bug #316; remove once lcov is fixed (see https://github.com/linux-test-project/lcov/issues/316)
-LCOBUG = --ignore-errors mismatch
+LCOBUG = --ignore-errors mismatch,negative
 tests_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory tests PX4_CMAKE_BUILD_TYPE=Coverage
