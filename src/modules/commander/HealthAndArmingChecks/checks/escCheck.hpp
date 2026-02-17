@@ -40,6 +40,7 @@
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_detector_status.h>
+#include <mixer_module/output_functions.hpp>
 
 class EscChecks : public HealthAndArmingCheckBase
 {
@@ -60,7 +61,6 @@ private:
 	uint16_t checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
 	uint16_t checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
 	void updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
-
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
@@ -83,5 +83,4 @@ private:
 					(ParamInt<px4::params::MOTFAIL_TOUT>) _param_motfail_tout,
 					(ParamFloat<px4::params::MOTFAIL_LOW_OFF>) _param_motfail_low_off,
 					(ParamFloat<px4::params::MOTFAIL_HIGH_OFF>) _param_motfail_high_off);
-
 };
