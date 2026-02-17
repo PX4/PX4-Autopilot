@@ -49,17 +49,12 @@
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
 #include <uavcan/equipment/esc/StatusExtended.hpp>
-#include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
 #include <uORB/topics/dronecan_node_status.h>
-#include <uORB/topics/device_information.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/uavcan/node_info.hpp>
 #include "../node_info.hpp"
 
 class UavcanEscController
@@ -67,7 +62,6 @@ class UavcanEscController
 public:
 	static constexpr int MAX_ACTUATORS = esc_status_s::CONNECTED_ESC_MAX;
 	static constexpr unsigned MAX_RATE_HZ = 400;
-	static constexpr int16_t UAVCAN_NODE_ID_MAX = 128; // UAVCAN supports up to 128 nodes (0-127)
 
 	static_assert(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize >= MAX_ACTUATORS, "Too many actuators");
 
