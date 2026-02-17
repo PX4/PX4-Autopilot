@@ -225,18 +225,10 @@ void AutopilotTester::wait_until_hovering()
 
 void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout, float delta)
 {
-	auto prom = std::promise<void> {};
-	auto fut = prom.get_future();
-
-	Telemetry::PositionVelocityNedHandle handle = _telemetry->subscribe_position_velocity_ned([&prom, rel_altitude_m, delta, &handle,
-	       this](Telemetry::PositionVelocityNed new_position) {
-		if (fabs(rel_altitude_m + new_position.position.down_m) <= delta) {
-			_telemetry->unsubscribe_position_velocity_ned(handle);
-			prom.set_value();
-		}
-	});
-
-	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+	REQUIRE(poll_condition_with_timeout(
+		[this, rel_altitude_m, delta]() {
+			return fabs(rel_altitude_m + _telemetry->position_velocity_ned().position.down_m) <= delta;
+		}, timeout));
 }
 
 void AutopilotTester::wait_until_fixedwing(std::chrono::seconds timeout)
@@ -643,9 +635,6 @@ void AutopilotTester::start_checking_altitude(const float max_deviation_m)
 	_check_altitude_handle = _telemetry->subscribe_position_velocity_ned([target_altitude, max_deviation_m,
 			 this](Telemetry::PositionVelocityNed new_position) {
 		const float current_deviation = fabs(target_altitude - new_position.position.down_m);
-		printf("target_altitude: %.3f\n", (double)target_altitude);
-		// printf("position_velocity_ned.position.down_m: %.3f\n", (double)position_velocity_ned.position.down_m);
-		printf("new_position.position.down_m: %.3f\n", (double)new_position.position.down_m);
 		CHECK(current_deviation <= max_deviation_m);
 	});
 }
@@ -874,22 +863,11 @@ bool AutopilotTester::ground_truth_horizontal_position_far_from(const Telemetry:
 
 void AutopilotTester::start_and_wait_for_mission_sequence(int sequence_number)
 {
-	auto prom = std::promise<void> {};
-	auto fut = prom.get_future();
-
-	Mission::MissionProgressHandle handle = _mission->subscribe_mission_progress(
-	[&prom, &handle, this, sequence_number](Mission::MissionProgress progress) {
-		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
-
-		if (progress.current >= sequence_number) {
-			_mission->unsubscribe_mission_progress(handle);
-			prom.set_value();
-		}
-	});
-
 	REQUIRE(_mission->start_mission() == Mission::Result::Success);
-
-	REQUIRE(fut.wait_for(std::chrono::seconds(60)) == std::future_status::ready);
+	REQUIRE(poll_condition_with_timeout(
+		[this, sequence_number]() {
+			return _mission->mission_progress().current >= sequence_number;
+		}, std::chrono::seconds(60)));
 }
 
 void AutopilotTester::start_and_wait_for_mission_sequence_raw(int sequence_number)
@@ -914,56 +892,29 @@ void AutopilotTester::start_and_wait_for_mission_sequence_raw(int sequence_numbe
 
 void AutopilotTester::wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout)
 {
-	auto prom = std::promise<void> {};
-	auto fut = prom.get_future();
-
-	Telemetry::FlightModeHandle handle = _telemetry->subscribe_flight_mode(
-	[&prom, &handle, flight_mode, this](Telemetry::FlightMode new_flight_mode) {
-		if (new_flight_mode == flight_mode) {
-			_telemetry->unsubscribe_flight_mode(handle);
-			prom.set_value();
-		}
-	});
-
-	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+	REQUIRE(poll_condition_with_timeout(
+		[this, flight_mode]() {
+			return _telemetry->flight_mode() == flight_mode;
+		}, timeout));
 }
 
 void AutopilotTester::wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout)
 {
-	auto prom = std::promise<void> {};
-	auto fut = prom.get_future();
-
-	Telemetry::LandedStateHandle handle = _telemetry->subscribe_landed_state(
-	[&prom, &handle, landed_state, this](Telemetry::LandedState new_landed_state) {
-		if (new_landed_state == landed_state) {
-			_telemetry->unsubscribe_landed_state(handle);
-			prom.set_value();
-		}
-	});
-
-	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+	REQUIRE(poll_condition_with_timeout(
+		[this, landed_state]() {
+			return _telemetry->landed_state() == landed_state;
+		}, timeout));
 }
 
 void AutopilotTester::wait_until_speed_lower_than(float speed, std::chrono::seconds timeout)
 {
-	auto prom = std::promise<void> {};
-	auto fut = prom.get_future();
-
-	Telemetry::PositionVelocityNedHandle handle = _telemetry->subscribe_position_velocity_ned(
-	[&prom, &handle, speed, this](Telemetry::PositionVelocityNed position_velocity_ned) {
-		std::array<float, 3> current_velocity;
-		current_velocity[0] = position_velocity_ned.velocity.north_m_s;
-		current_velocity[1] = position_velocity_ned.velocity.east_m_s;
-		current_velocity[2] = position_velocity_ned.velocity.down_m_s;
-		const float current_speed = norm(current_velocity);
-
-		if (current_speed <= speed) {
-			_telemetry->unsubscribe_position_velocity_ned(handle);
-			prom.set_value();
-		}
-	});
-
-	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
+	REQUIRE(poll_condition_with_timeout(
+		[this, speed]() {
+			auto vel = _telemetry->position_velocity_ned().velocity;
+			return std::sqrt(vel.north_m_s * vel.north_m_s +
+					 vel.east_m_s * vel.east_m_s +
+					 vel.down_m_s * vel.down_m_s) < speed;
+		}, timeout));
 }
 
 void AutopilotTester::wait_for_mission_finished(std::chrono::seconds timeout)
