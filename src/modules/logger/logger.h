@@ -44,7 +44,7 @@
 #include <version/version.h>
 #include <parameters/param.h>
 #include <px4_platform_common/printload.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 
 #include <uORB/PublicationMulti.hpp>

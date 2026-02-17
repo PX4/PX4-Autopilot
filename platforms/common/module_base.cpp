@@ -42,9 +42,7 @@
 #define MODULE_NAME "module"
 #endif
 
-#include <px4_platform_common/module_base.h>
-#include <px4_platform_common/time.h>
-#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/module.h>
 
 #include <pthread.h>
 #include <cstring>

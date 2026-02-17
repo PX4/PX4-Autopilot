@@ -49,7 +49,7 @@
 
 #include <uORB/topics/distance_sensor.h>
 
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/tasks.h>
 

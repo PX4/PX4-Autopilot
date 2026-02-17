@@ -47,7 +47,7 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 
 // publications

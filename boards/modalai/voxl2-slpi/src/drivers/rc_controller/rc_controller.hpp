@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>

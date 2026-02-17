@@ -36,7 +36,7 @@
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <button/ButtonPublisher.hpp>
 

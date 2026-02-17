@@ -35,7 +35,7 @@
 #include <drivers/drv_dshot.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>

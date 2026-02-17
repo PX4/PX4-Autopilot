@@ -43,7 +43,7 @@
 
 #include <lib/sensor_calibration/Utilities.hpp>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>

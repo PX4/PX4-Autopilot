@@ -62,7 +62,7 @@
 #endif // CONFIG_NAVIGATOR_ADSB
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/events.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>

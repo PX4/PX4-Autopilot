@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,23 +33,27 @@
 
 /**
  * @file module.h
+ *
+ * Non-template base class for modules. Replaces the CRTP ModuleBase<T>
+ * pattern with a descriptor-based approach that shares a single copy of the
+ * common static methods (main, start, stop, status, etc.) across all modules.
  */
 
 #pragma once
 
-#include <pthread.h>
-#include <unistd.h>
-#include <stdbool.h>
-
-#include <px4_platform_common/atomic.h>
-#include <px4_platform_common/time.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
 #include <px4_platform_common/tasks.h>
 #include <systemlib/px4_macros.h>
 
+#include <pthread.h>
+#include <unistd.h>
+#include <stdbool.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 
-#include <cstring>
+#include <px4_platform_common/atomic.h>
 
 /**
  * @brief This mutex protects against race conditions during startup & shutdown of modules.
@@ -59,161 +63,155 @@
  */
 extern pthread_mutex_t px4_modules_mutex;
 
+/**
+ * @class ModuleBase
+ *      Non-template base class for modules, implementing common functionality
+ *      such as 'start', 'stop' and 'status' commands.
+ *
+ *      Each module provides a static Descriptor instance that holds
+ *      module-specific function pointers and per-module storage (object
+ *      pointer and task ID). The shared static methods operate on the
+ *      descriptor instead of CRTP template statics.
+ */
+class ModuleBase
+{
+public:
+	/**
+	 * Per-module descriptor providing module-specific function pointers
+	 * and storage (object pointer, task ID).
+	 */
+	struct Descriptor {
+		Descriptor(int (*ts)(int, char **), int (*cc)(int, char **), int (*pu)(const char *))
+			: task_spawn(ts), custom_command(cc), print_usage(pu) {}
+
+		int (*task_spawn)(int argc, char *argv[]);
+		int (*custom_command)(int argc, char *argv[]);
+		int (*print_usage)(const char *reason);
+		px4::atomic<ModuleBase *> object{nullptr};
+		int task_id{-1};
+	};
+
+	ModuleBase() = default;
+	virtual ~ModuleBase() = default;
+
+	/**
+	 * @brief Main entry point to the module that should be called directly
+	 *        from the module's main method.
+	 */
+	static int main(Descriptor &desc, int argc, char *argv[]);
+
+	/**
+	 * @brief Start command: checks if running, calls desc.task_spawn().
+	 */
+	static int start_command(Descriptor &desc, int argc, char *argv[]);
+
+	/**
+	 * @brief Stop command: request stop and wait for exit.
+	 */
+	static int stop_command(Descriptor &desc);
+
+	/**
+	 * @brief Status command: call print_status() on running instance.
+	 */
+	static int status_command(Descriptor &desc);
+
+	/**
+	 * @brief Cleanup: delete object, reset task_id. Called from module thread.
+	 */
+	static void exit_and_cleanup(Descriptor &desc);
+
+	/**
+	 * @brief Check if the module is running.
+	 */
+	static bool is_running(const Descriptor &desc) { return desc.task_id != -1; }
+
+	/**
+	 * @brief Wait until the object is initialized (called from task_spawn).
+	 */
+	static int wait_until_running(Descriptor &desc, int timeout_ms = 1000);
+
+	/**
+	 * @brief Shared run-trampoline for thread-based modules.
+	 *
+	 * Each thread-based module provides a thin per-module trampoline
+	 * that calls this with its descriptor + instantiate function.
+	 */
+	using instantiate_fn = ModuleBase * (*)(int argc, char *argv[]);
+	static int run_trampoline_impl(Descriptor &desc, instantiate_fn instantiate,
+				       int argc, char *argv[]);
+
+	/**
+	 * @brief Main loop method for modules running in their own thread.
+	 */
+	virtual void run() {}
+
+	/**
+	 * @brief Print the status of the module.
+	 */
+	virtual int print_status();
+
+	/**
+	 * @brief Tells the module to stop.
+	 */
+	virtual void request_stop() { _task_should_exit.store(true); }
+
+	/**
+	 * @brief Checks if the module should stop.
+	 */
+	bool should_exit() const { return _task_should_exit.load(); }
+
+	/**
+	 * @brief Typed accessor for the running module instance.
+	 *        Centralizes the ModuleBase* -> T* downcast in one place.
+	 */
+	template<typename T>
+	static T *get_instance(Descriptor &desc)
+	{
+		return static_cast<T *>(desc.object.load()); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+	}
+
+	static constexpr int task_id_is_work_queue = -2;
+
+protected:
+	px4::atomic_bool _task_should_exit{false};
+};
+
 #endif /* __cplusplus */
 
 
+/* -------- C-linkage declarations for PRINT_MODULE_* helpers -------- */
+
 __BEGIN_DECLS
 
-/**
- * @brief Module documentation and command usage help methods.
- *        These are extracted with the Tools/px_process_module_doc.py
- *        script and must be kept in sync.
- */
-
 #ifdef __PX4_NUTTX
-/**
- * @note Disable module description on NuttX to reduce Flash usage.
- *       There's a GCC bug (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=55971), preventing us to use
- *       a macro, but GCC will remove the string as well with this empty inline method.
- * @param description The provided functionality of the module and potentially the most important parameters.
- */
 static inline void PRINT_MODULE_DESCRIPTION(const char *description) {}
 #else
-
-/**
- * @brief Prints module documentation (will also be used for online documentation). It uses Markdown syntax
- *        and should include these sections:
- * - ### Description
- *   Provided functionality of the module and potentially the most important parameters.
- * - ### Implementation
- *   High-level implementation overview
- * - ### Examples
- *   Examples how to use the CLI interface (if it's non-trivial)
- *
- * In addition to the Markdown syntax, a line beginning with '$ ' can be used to mark a command:
- * $ module start -p param
- */
 __EXPORT void PRINT_MODULE_DESCRIPTION(const char *description);
 #endif
 
-/**
- * @brief Prints the command name.
- * @param executable_name: command name used in scripts & CLI
- * @param category one of: driver, estimator, controller, system, communication, command, template
- */
 __EXPORT void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category);
-
-/**
- * @brief Specify a subcategory (optional).
- * @param subcategory e.g. if the category is 'driver', subcategory can be 'distance_sensor'
- */
 __EXPORT void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory);
-
-/**
- * @brief Prints the name for a command without any sub-commands (@see PRINT_MODULE_USAGE_NAME()).
- */
 __EXPORT void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category);
-
-
-/**
- * @brief Prints a command with a short description what it does.
- */
 __EXPORT void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *description);
 
 #define PRINT_MODULE_USAGE_COMMAND(name) \
 	PRINT_MODULE_USAGE_COMMAND_DESCR(name, NULL);
 
-/**
- * @brief Prints the default commands: stop & status.
- */
 #define PRINT_MODULE_USAGE_DEFAULT_COMMANDS() \
 	PRINT_MODULE_USAGE_COMMAND("stop"); \
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "print status info");
 
-/**
- * Print default params for I2C or SPI drivers
- * @param i2c_support true if the driver supports I2C
- * @param spi_support true if the driver supports SPI
- */
 __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support);
-
-/**
- * Configurable I2C address (via -a <address>)
- */
 __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(uint8_t default_address);
-
-/**
- * -k flag
- */
 __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG(void);
-
-/** @note Each of the PRINT_MODULE_USAGE_PARAM_* methods apply to the previous PRINT_MODULE_USAGE_COMMAND_DESCR(). */
-
-/**
- * @brief Prints an integer parameter.
- * @param option_char The option character.
- * @param default_val The parameter default value (set to -1 if not applicable).
- * @param min_val The parameter minimum value.
- * @param max_val The parameter value.
- * @param description Pointer to the usage description.
- * @param is_optional true if this parameter is optional
- */
 __EXPORT void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val,
 		const char *description, bool is_optional);
-
-/**
- * @brief Prints a float parameter.
- * @note See PRINT_MODULE_USAGE_PARAM_INT().
- * @param default_val The parameter default value (set to NaN if not applicable).
- * @param min_val The parameter minimum value.
- * @param max_val The parameter maximum value.
- * @param description Pointer to the usage description. Pointer to the usage description.
- * @param is_optional true if this parameter is optional
- */
 __EXPORT void PRINT_MODULE_USAGE_PARAM_FLOAT(char option_char, float default_val, float min_val, float max_val,
 		const char *description, bool is_optional);
-
-/**
- * @brief Prints a flag parameter, without any value.
- * @note See PRINT_MODULE_USAGE_PARAM_INT().
- * @param option_char The option character.
- * @param description Pointer to the usage description.
- * @param is_optional true if this parameter is optional
- */
 __EXPORT void PRINT_MODULE_USAGE_PARAM_FLAG(char option_char, const char *description, bool is_optional);
-
-/**
- * @brief Prints a string parameter.
- * @param option_char The option character.
- * @param default_val The default value, can be nullptr.
- * @param values The valid values, it has one of the following forms:
- *               - nullptr: leave unspecified, or any value is valid
- *               - "<file>" or "<file:dev>": a file or more specifically a device file (eg. serial device)
- *               - "<topic_name>": uORB topic name
- *               - "<value1> [<value2>]": a list of values
- *               - "on|off": a concrete set of valid strings separated by "|".
- * @param description Pointer to the usage description.
- * @param is_optional True iff this parameter is optional.
- */
 __EXPORT void PRINT_MODULE_USAGE_PARAM_STRING(char option_char, const char *default_val, const char *values,
 		const char *description, bool is_optional);
-
-/**
- * @brief Prints a comment, that applies to the next arguments or parameters. For example to indicate that
- *        a parameter applies to several or all commands.
- * @param comment
- */
 __EXPORT void PRINT_MODULE_USAGE_PARAM_COMMENT(const char *comment);
-
-
-/**
- * @brief Prints the definition for an argument, which does not have the typical -p <val> form,
- *        but for example 'param set <param> <value>'
- * @param values eg. "<file>", "<param> <value>" or "<value1> [<value2>]"
- * @param description Pointer to the usage description.
- * @param is_optional true if this parameter is optional
- */
 __EXPORT void PRINT_MODULE_USAGE_ARG(const char *values, const char *description, bool is_optional);
-
 
 __END_DECLS

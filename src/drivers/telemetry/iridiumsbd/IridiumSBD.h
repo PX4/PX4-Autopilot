@@ -43,7 +43,7 @@
 #include <uORB/topics/iridiumsbd_status.h>
 
 #include <px4_platform_common/atomic.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 
 typedef enum {
 	SATCOM_OK = 0,

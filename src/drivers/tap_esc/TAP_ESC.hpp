@@ -36,7 +36,7 @@
 #include <stdint.h>
 
 #include <px4_defines.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/posix.h>

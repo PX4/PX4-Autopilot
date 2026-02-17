@@ -37,7 +37,7 @@
 #include "rc_loss_alarm.h"
 
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_command.h>

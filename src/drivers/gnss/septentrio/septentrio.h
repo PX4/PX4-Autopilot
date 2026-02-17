@@ -45,7 +45,7 @@
 
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/Serial.hpp>
 #include <uORB/uORB.h>
 #include <uORB/Publication.hpp>

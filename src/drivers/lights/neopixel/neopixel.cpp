@@ -46,7 +46,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <drivers/drv_neopixel.h>
 
 class NEOPIXEL : public px4::ScheduledWorkItem,  public ModuleBase

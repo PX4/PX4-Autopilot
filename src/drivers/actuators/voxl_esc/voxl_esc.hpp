@@ -39,7 +39,7 @@
 #include <lib/perf/perf_counter.h>
 
 #include <px4_log.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 
 #include <battery/battery.h>
 

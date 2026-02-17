@@ -42,7 +42,7 @@
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/posix.h>
 
 static constexpr int TASK_STACK_SIZE   = PX4_STACK_ADJUSTED(1224);

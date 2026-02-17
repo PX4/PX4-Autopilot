@@ -40,7 +40,7 @@
 #include <sys/time.h>
 
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>

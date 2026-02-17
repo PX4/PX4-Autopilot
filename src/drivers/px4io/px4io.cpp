@@ -39,7 +39,7 @@
  */
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/events.h>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>

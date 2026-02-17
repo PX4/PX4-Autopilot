@@ -42,7 +42,7 @@
 #include <px4_log.h>
 #include <drivers/device/device.h>
 #include <lib/mixer_module/mixer_module.hpp>
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/getopt.h>

@@ -42,7 +42,7 @@
 
 #include "definitions.hpp"
 
-#include <px4_platform_common/module_base.h>
+#include <px4_platform_common/module.h>
 #include <uORB/topics/uORBTopics.hpp>
 
 namespace px4
