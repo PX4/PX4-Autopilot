@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   RUNS_IN_DOCKER: true
@@ -35,15 +35,15 @@ jobs:
       matrix:
         include:
           # Default (Gazebo) builds
-          - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04", target: default }
-          - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04", target: default }
-          - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04", target: default }
-          - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04", target: default }
+          - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04", target: default, setup_flags: "" }
+          - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04", target: default, setup_flags: "" }
+          - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04", target: default, setup_flags: "" }
+          - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04", target: default, setup_flags: "" }
           # SIH (no Gazebo) builds
-          - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04", target: sih }
-          - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04", target: sih }
-          - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04", target: sih }
-          - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04", target: sih }
+          - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04", target: sih, setup_flags: "--no-sim-tools" }
+          - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04", target: sih, setup_flags: "--no-sim-tools" }
+          - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04", target: sih, setup_flags: "--no-sim-tools" }
+          - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04", target: sih, setup_flags: "--no-sim-tools" }
 
     steps:
       - name: Fix git in container
@@ -57,10 +57,11 @@ jobs:
           fetch-tags: true
 
       - name: Install dependencies
-        run: ./Tools/setup/ubuntu.sh --no-nuttx
+        run: ./Tools/setup/ubuntu.sh --no-nuttx ${{ matrix.setup_flags }}
 
       - name: Restore ccache
-        uses: actions/cache@v4
+        id: ccache-restore
+        uses: actions/cache/restore@v4
         with:
           path: ~/.ccache
           key: deb-ccache-${{ matrix.target }}-${{ matrix.codename }}-${{ matrix.arch }}-${{ github.sha }}
@@ -74,9 +75,21 @@ jobs:
           echo "compression = true" >> ~/.ccache/ccache.conf
           echo "compression_level = 6" >> ~/.ccache/ccache.conf
           echo "max_size = 400M" >> ~/.ccache/ccache.conf
+          ccache -z
 
       - name: Build PX4 SITL
         run: make px4_sitl_${{ matrix.target }}
+
+      - name: ccache stats
+        if: always()
+        run: ccache -s
+
+      - name: Save ccache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.ccache
+          key: deb-ccache-${{ matrix.target }}-${{ matrix.codename }}-${{ matrix.arch }}-${{ github.sha }}
 
       - name: Build .deb package
         run: |
