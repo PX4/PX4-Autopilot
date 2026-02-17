@@ -133,8 +133,10 @@ public:
 	void call() override
 	{
 		// schedule immediately if updated (queue depth or subscription interval)
-		if ((_required_updates == 0)
-		    || (Manager::updates_available(_subscription.get_node(), _subscription.get_last_generation()) >= _required_updates)) {
+		uint8_t req = _required_updates.load();
+
+		if ((req == 0)
+		    || (Manager::updates_available(_subscription.get_node(), _subscription.get_last_generation()) >= req)) {
 			if (updated()) {
 				_work_item->ScheduleNow();
 			}
@@ -149,13 +151,13 @@ public:
 	void set_required_updates(uint8_t required_updates)
 	{
 		// TODO: constrain to queue depth?
-		_required_updates = required_updates;
+		_required_updates.store(required_updates);
 	}
 
 private:
 	px4::WorkItem *_work_item;
 
-	uint8_t _required_updates{0};
+	px4::atomic<uint8_t> _required_updates{0};
 };
 
 } // namespace uORB
