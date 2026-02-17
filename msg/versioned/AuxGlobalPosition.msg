@@ -3,7 +3,7 @@
 # This message provides global position data from an external source such as
 # pseudolites, visual navigation, or other positioning system.
 
-uint32 MESSAGE_VERSION = 0
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # [us] Time since system start
 uint64 timestamp_sample # [us] Timestamp of the raw data
