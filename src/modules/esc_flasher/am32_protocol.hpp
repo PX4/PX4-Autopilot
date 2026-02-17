@@ -44,7 +44,8 @@
 
 #include <stdint.h>
 
-namespace am32 {
+namespace am32
+{
 
 // AM32 bootloader command bytes
 static constexpr uint8_t CMD_RUN         = 0x00;

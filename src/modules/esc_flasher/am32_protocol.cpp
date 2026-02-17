@@ -44,7 +44,8 @@
 #include <px4_platform_common/micro_hal.h>
 #include <drivers/drv_hrt.h>
 
-namespace am32 {
+namespace am32
+{
 
 // Bootloader handshake packet (8 zero bytes + 0x0D + "BLHeli" + CRC)
 static const uint8_t boot_init[] = {

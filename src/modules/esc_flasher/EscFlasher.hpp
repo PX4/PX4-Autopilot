@@ -136,8 +136,8 @@ private:
 	uint8_t  _target_esc{255};          // from vehicle_command param1
 	uint8_t  _current_esc{0};           // index into _gpio_pins[]
 	uint8_t  _esc_count{0};
-	uint32_t _gpio_pins[MAX_ESCS]{};
-	uint8_t  _device_info[am32::DEVICE_INFO_SIZE]{};
+	uint32_t _gpio_pins[MAX_ESCS] {};
+	uint8_t  _device_info[am32::DEVICE_INFO_SIZE] {};
 
 	// --- firmware file ---
 	int      _fw_fd{-1};
