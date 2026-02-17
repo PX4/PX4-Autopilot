@@ -31,14 +31,6 @@
  *
  ****************************************************************************/
 
-/**
- * @file health_and_arming_checks_params.c
- *
- * Parameters used by the Health and Arming Checks module.
- *
- * @author Nick Truttmann <nick.truttmann@icloud.com>
- */
-
 #include <px4_platform_common/px4_config.h>
 #include <parameters/param.h>
 
