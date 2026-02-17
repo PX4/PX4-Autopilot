@@ -33,32 +33,24 @@
 
 # packaging
 
-set(CPACK_PACKAGE_NAME ${PROJECT_NAME}-${PX4_CONFIG})
-
 set(CPACK_PACKAGE_VENDOR "px4")
+set(CPACK_PACKAGE_CONTACT "daniel@agar.ca")
+set(CPACK_RESOURCE_FILE_LICENSE "${PX4_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${PX4_SOURCE_DIR}/README.md")
+
+set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
+
+# Debian version: convert git describe to Debian-compliant format
+# v1.17.0-beta1 -> 1.17.0~beta1, v1.17.0 -> 1.17.0
+string(REGEX REPLACE "^v" "" DEB_VERSION "${PX4_GIT_TAG}")
+# Replace first hyphen with tilde for pre-release (Debian sorts ~ before anything)
+string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+)-([a-zA-Z])" "\\1~\\2" DEB_VERSION "${DEB_VERSION}")
+# Strip any trailing commit info (e.g. -42-gabcdef)
+string(REGEX REPLACE "-[0-9]+-g[0-9a-f]+$" "" DEB_VERSION "${DEB_VERSION}")
 
 set(CPACK_PACKAGE_VERSION_MAJOR ${PX4_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${PX4_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${PX4_VERSION_PATCH})
-#set(CPACK_PACKAGE_VERSION ${PX4_GIT_TAG})
-
-set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PX4_CONFIG}-${PX4_GIT_TAG}")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PX4_CONFIG}-${PX4_GIT_TAG}-src")
-
-set(CPACK_PACKAGE_CONTACT "daniel@agar.ca")
-
-set(CPACK_RESOURCE_FILE_LICENSE "${PX4_SOURCE_DIR}/LICENSE")
-set(CPACK_RESOURCE_FILE_README "${PX4_SOURCE_DIR}/README.md")
-
-set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)#ONE_PER_GROUP)
-# without this you won't be able to pack only specified component
-set(CPACK_DEB_COMPONENT_INSTALL YES)
-
-#set(CPACK_STRIP_FILES YES)
-
-set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
-set(CPACK_PACKAGING_INSTALL_PREFIX "")
-set(CPACK_SET_DESTDIR "OFF")
 
 if("${CMAKE_SYSTEM}" MATCHES "Linux")
 	set(CPACK_GENERATOR "TBZ2")
@@ -67,30 +59,45 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 	if(EXISTS ${DPKG_PROGRAM})
 		list(APPEND CPACK_GENERATOR "DEB")
 
-		set(CPACK_SET_DESTDIR true)
-		set(CPACK_PACKAGING_INSTALL_PREFIX "/tmp")
+		execute_process(COMMAND ${DPKG_PROGRAM} --print-architecture
+			OUTPUT_VARIABLE DEB_ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-		execute_process(COMMAND ${DPKG_PROGRAM} --print-architecture OUTPUT_VARIABLE DEB_ARCHITECTURE OUTPUT_STRIP_TRAILING_WHITESPACE)
-		message("Architecture:  " ${DEB_ARCHITECTURE})
-		set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}_${DEB_ARCHITECTURE}")
+		# Detect Ubuntu/Debian codename for version suffix
+		find_program(LSB_RELEASE lsb_release)
+		if(EXISTS ${LSB_RELEASE})
+			execute_process(COMMAND ${LSB_RELEASE} -cs
+				OUTPUT_VARIABLE DEB_CODENAME OUTPUT_STRIP_TRAILING_WHITESPACE)
+		else()
+			set(DEB_CODENAME "unknown")
+		endif()
 
-		set(CPACK_INSTALL_PREFIX @DEB_INSTALL_PREFIX@)
-		message ("==> CPACK_INSTALL_PREFIX = " ${CPACK_INSTALL_PREFIX})
+		# Override CPACK_PACKAGE_VERSION with full Debian version.
+		# CPack DEB ignores CPACK_PACKAGE_VERSION_MAJOR/MINOR/PATCH
+		# when CPACK_PACKAGE_VERSION is set, so we must replace them.
+		unset(CPACK_PACKAGE_VERSION_MAJOR)
+		unset(CPACK_PACKAGE_VERSION_MINOR)
+		unset(CPACK_PACKAGE_VERSION_PATCH)
+		set(CPACK_PACKAGE_VERSION "${DEB_VERSION}-${DEB_CODENAME}")
 
-		################################################################################
+		# Install to /opt/px4-sitl (self-contained, avoids FHS collisions)
+		set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4-sitl")
 
-		set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Daniel Agar <${CPACK_PACKAGE_CONTACT}>")
-		set(CPACK_DEBIAN_PACKAGE_VERSION ${CPACK_PACKAGE_VERSION})
-		set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
-
-		set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 autopilot")
-		set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+		# Package metadata
+		set(CPACK_DEBIAN_PACKAGE_NAME "px4-sitl")
+		set(CPACK_DEBIAN_FILE_NAME "px4-sitl_${DEB_VERSION}-${DEB_CODENAME}_${DEB_ARCHITECTURE}.deb")
+		set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, gz-sim8-cli, libgz-sim8-plugins, libgz-physics7-dartsim, gz-tools2")
+		set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 SITL autopilot with Gazebo Harmonic simulation resources")
 		set(CPACK_DEBIAN_PACKAGE_SECTION "misc")
-		set(CPACK_DEBIAN_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
+		set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+		set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Daniel Agar <${CPACK_PACKAGE_CONTACT}>")
+		set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+			"${PX4_SOURCE_DIR}/Tools/packaging/postinst;${PX4_SOURCE_DIR}/Tools/packaging/postrm")
 
-		# autogenerate dependency information
 		set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 		set(CPACK_DEBIAN_COMPRESSION_TYPE xz)
+		set(CPACK_DEBIAN_ARCHITECTURE ${DEB_ARCHITECTURE})
+
+		message(STATUS "PX4 SITL .deb version: ${DEB_VERSION}-${DEB_CODENAME} (${DEB_ARCHITECTURE})")
 
 	endif()
 else()

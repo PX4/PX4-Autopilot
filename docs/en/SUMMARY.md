@@ -460,6 +460,7 @@
       - [Visual Studio Code IDE](dev_setup/vscode.md)
       - [QGC Daily Build](dev_setup/qgc_daily_build.md)
     - [Building the Code](dev_setup/building_px4.md)
+    - [PX4 SITL .deb Package](packaging/px4_sitl_deb.md)
     - [Writing your First Application](modules/hello_sky.md)
     - [Application/Module Template](modules/module_template.md)
   - [Concepts](concept/index.md)

@@ -1,0 +1,123 @@
+name: Build .deb Packages
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'cmake/package.cmake'
+      - 'platforms/posix/CMakeLists.txt'
+      - 'Tools/packaging/**'
+      - '.github/workflows/build_deb_package.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  RUNS_IN_DOCKER: true
+
+jobs:
+  build-deb:
+    name: "Build .deb (${{ matrix.codename }}/${{ matrix.arch }})"
+    runs-on: [runs-on,"runner=4cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",spot=false]
+    container:
+      image: ${{ matrix.container }}
+      volumes:
+        - /github/workspace:/github/workspace
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04" }
+          - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04" }
+          - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04" }
+          - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04" }
+
+    steps:
+      - name: Fix git in container
+        run: |
+          apt update && apt install git -y
+          git config --global --add safe.directory $(realpath .)
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install dependencies
+        run: ./Tools/setup/ubuntu.sh --no-nuttx
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: deb-ccache-${{ matrix.codename }}-${{ matrix.arch }}-${{ github.sha }}
+          restore-keys: |
+            deb-ccache-${{ matrix.codename }}-${{ matrix.arch }}-
+
+      - name: Configure ccache
+        run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
+          echo "max_size = 400M" >> ~/.ccache/ccache.conf
+
+      - name: Build PX4 SITL
+        run: make px4_sitl_default
+
+      - name: Build .deb package
+        run: |
+          cd build/px4_sitl_default
+          cpack -G DEB
+
+      - name: Validate px4-sitl package
+        run: |
+          cd build/px4_sitl_default
+          echo "--- Package info ---"
+          dpkg-deb -I px4-sitl_*.deb
+          echo "--- Package contents ---"
+          dpkg-deb -c px4-sitl_*.deb
+          echo "--- Verify single package (no px4-sitl-gazebo) ---"
+          test ! -f px4-sitl-gazebo_*.deb || { echo "FAIL: gazebo package should not exist"; exit 1; }
+          echo "--- Verify Gazebo resources in package ---"
+          dpkg-deb -c px4-sitl_*.deb | grep -q share/gz/models || { echo "FAIL: models missing"; exit 1; }
+          dpkg-deb -c px4-sitl_*.deb | grep -q share/gz/worlds || { echo "FAIL: worlds missing"; exit 1; }
+          echo "--- Install test ---"
+          dpkg -i px4-sitl_*.deb
+          test -x /opt/px4-sitl/bin/px4 || { echo "FAIL: px4 binary not found"; exit 1; }
+          test -x /opt/px4-sitl/bin/px4-sitl || { echo "FAIL: wrapper not found"; exit 1; }
+          test -L /usr/bin/px4-sitl || { echo "FAIL: symlink not created"; exit 1; }
+          test -d /opt/px4-sitl/share/gz/models || { echo "FAIL: Gazebo models not installed"; exit 1; }
+          echo "--- Smoke test ---"
+          /opt/px4-sitl/bin/px4 -h
+          echo "PASS: package validation successful"
+
+      - name: Upload .deb artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: px4-sitl-debs-${{ matrix.codename }}-${{ matrix.arch }}
+          path: build/px4_sitl_default/px4-sitl*.deb
+          if-no-files-found: error
+
+  release:
+    needs: [build-deb]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: px4-sitl-debs-*
+          merge-multiple: true
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: "*.deb"
