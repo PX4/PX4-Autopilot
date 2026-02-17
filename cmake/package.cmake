@@ -79,19 +79,28 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 		unset(CPACK_PACKAGE_VERSION_PATCH)
 		set(CPACK_PACKAGE_VERSION "${DEB_VERSION}-${DEB_CODENAME}")
 
-		# Install to /opt/px4-sitl (self-contained, avoids FHS collisions)
-		set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4-sitl")
+		# Label-aware package metadata
+		if(PX4_BOARD_LABEL STREQUAL "sih")
+			set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4-sitl-sih")
+			set(CPACK_DEBIAN_PACKAGE_NAME "px4-sitl-sih")
+			set(CPACK_DEBIAN_FILE_NAME "px4-sitl-sih_${DEB_VERSION}-${DEB_CODENAME}_${DEB_ARCHITECTURE}.deb")
+			set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6")
+			set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 SITL autopilot with SIH physics (no Gazebo)")
+			set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+				"${PX4_SOURCE_DIR}/Tools/packaging/sih/postinst;${PX4_SOURCE_DIR}/Tools/packaging/sih/postrm")
+		else()
+			set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4-sitl")
+			set(CPACK_DEBIAN_PACKAGE_NAME "px4-sitl")
+			set(CPACK_DEBIAN_FILE_NAME "px4-sitl_${DEB_VERSION}-${DEB_CODENAME}_${DEB_ARCHITECTURE}.deb")
+			set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, gz-sim8-cli, libgz-sim8-plugins, libgz-physics7-dartsim, gz-tools2")
+			set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 SITL autopilot with Gazebo Harmonic simulation resources")
+			set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+				"${PX4_SOURCE_DIR}/Tools/packaging/postinst;${PX4_SOURCE_DIR}/Tools/packaging/postrm")
+		endif()
 
-		# Package metadata
-		set(CPACK_DEBIAN_PACKAGE_NAME "px4-sitl")
-		set(CPACK_DEBIAN_FILE_NAME "px4-sitl_${DEB_VERSION}-${DEB_CODENAME}_${DEB_ARCHITECTURE}.deb")
-		set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, gz-sim8-cli, libgz-sim8-plugins, libgz-physics7-dartsim, gz-tools2")
-		set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 SITL autopilot with Gazebo Harmonic simulation resources")
 		set(CPACK_DEBIAN_PACKAGE_SECTION "misc")
 		set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 		set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Daniel Agar <${CPACK_PACKAGE_CONTACT}>")
-		set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
-			"${PX4_SOURCE_DIR}/Tools/packaging/postinst;${PX4_SOURCE_DIR}/Tools/packaging/postrm")
 
 		set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 		set(CPACK_DEBIAN_COMPRESSION_TYPE xz)

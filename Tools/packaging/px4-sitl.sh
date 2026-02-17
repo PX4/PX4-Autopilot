@@ -2,7 +2,7 @@
 # px4-sitl: Launch PX4 SITL from the installed .deb package
 set -e
 
-PX4_SITL_DIR="/opt/px4-sitl"
+PX4_SITL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PX4_BINARY="${PX4_SITL_DIR}/bin/px4"
 
 # XDG-compliant state directory (matches AppImage PR #25105 patterns)

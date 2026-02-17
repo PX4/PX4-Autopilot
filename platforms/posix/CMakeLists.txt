@@ -267,6 +267,7 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 		RENAME px4-sitl
 		)
 
+	if(CONFIG_MODULES_SIMULATION_GZ_BRIDGE)
 	# Gazebo models
 	install(
 		DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/simulation/gz/models
@@ -302,6 +303,7 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 		DESTINATION lib/gz/plugins
 		OPTIONAL
 		)
+	endif()
 
 	endif() # DPKG_PROGRAM AND NOT emcc
 
