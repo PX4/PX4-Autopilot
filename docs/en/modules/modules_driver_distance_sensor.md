@@ -98,6 +98,49 @@ leddar_one <command> [arguments...]
    stop          Stop driver
 ```
 
+## lightware_grf_serial
+
+Source: [drivers/distance_sensor/lightware_grf_serial](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_grf_serial)
+
+### Description
+
+Serial bus driver for the Lightware GRF Laser rangefinder.
+
+### Configuration
+
+https://docs.px4.io/main/en/sensor/grf_lidar
+
+### Parameters
+
+https://docs.px4.io/main/en/advanced_config/parameter_reference#GRF_SENS_MODEL
+https://docs.px4.io/main/en/advanced_config/parameter_reference#GRF_RATE_CFG
+https://docs.px4.io/main/en/advanced_config/parameter_reference#SENS_EN_GRF_CFG
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+
+```
+lightware_grf_serial start -d /dev/ttyS1
+```
+
+Stop driver
+
+```
+lightware_grf_serial stop
+```
+
+### Usage {#lightware_grf_serial_usage}
+
+```
+lightware_grf_serial <command> [arguments...]
+ Commands:
+   start         Start driver
+     -d <val>    Serial device
+
+   stop          Stop driver
+```
+
 ## lightware_laser_i2c
 
 Source: [drivers/distance_sensor/lightware_laser_i2c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/distance_sensor/lightware_laser_i2c)

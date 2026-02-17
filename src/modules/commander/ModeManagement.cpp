@@ -107,7 +107,7 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 	int matching_idx = -1;
 
 	for (int i = 0; i < MAX_NUM; ++i) {
-		char hash_param_name[20];
+		char hash_param_name[17];
 		snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", i);
 		const param_t handle = param_find(hash_param_name);
 		int32_t current_hash{};
@@ -164,7 +164,7 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 
 	if (new_mode_idx != -1 && !_modes[new_mode_idx].valid) {
 		if (need_to_update_param) {
-			char hash_param_name[20];
+			char hash_param_name[17];
 			snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", new_mode_idx);
 			const param_t handle = param_find(hash_param_name);
 
