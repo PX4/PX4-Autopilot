@@ -134,7 +134,10 @@ void hrt_store_absolute_time(volatile hrt_abstime *t)
  */
 bool	hrt_called(struct hrt_call *entry)
 {
-	return (entry->deadline == 0);
+	hrt_lock();
+	bool result = (entry->deadline == 0);
+	hrt_unlock();
+	return result;
 }
 
 /*
@@ -241,6 +244,13 @@ hrt_call_enter(struct hrt_call *entry)
 static void
 hrt_tim_isr(void *p)
 {
+	// Take the HRT lock for the whole "tick": latency_actual / latency_baseline
+	// are also written from hrt_call_reschedule() under this lock from other
+	// threads (any caller of hrt_call_every / hrt_call_after etc.), so reading
+	// them in hrt_latency_update() outside the lock is a data race. The mutex
+	// is recursive, so the nested acquire inside hrt_call_invoke() is fine.
+	hrt_lock();
+
 	/* grab the timer for latency tracking purposes */
 	latency_actual = hrt_absolute_time();
 
@@ -249,8 +259,6 @@ hrt_tim_isr(void *p)
 
 	/* run any callouts that have met their deadline */
 	hrt_call_invoke();
-
-	hrt_lock();
 
 	/* and schedule the next interrupt */
 	hrt_call_reschedule();
@@ -416,12 +424,15 @@ hrt_call_invoke()
 		call->deadline = 0;
 
 		/* invoke the callout (if there is one) */
-		if (call->callout) {
+		hrt_callout callout = call->callout;
+		void *arg = call->arg;
+
+		if (callout) {
 			// Unlock so we don't deadlock in callback
 			hrt_unlock();
 
-			//PX4_INFO("call %p: %p(%p)", call, call->callout, call->arg);
-			call->callout(call->arg);
+			//PX4_INFO("call %p: %p(%p)", call, callout, arg);
+			callout(arg);
 
 			hrt_lock();
 		}
