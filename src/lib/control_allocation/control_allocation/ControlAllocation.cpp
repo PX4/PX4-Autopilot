@@ -112,15 +112,23 @@ void ControlAllocation::applySlewRateLimit(float dt)
 {
 	for (int i = 0; i < _num_actuators; i++) {
 		if (_actuator_slew_rate_limit(i) > FLT_EPSILON) {
+
+			float input = _actuator_sp(i);
+			float previous = _prev_actuator_sp(i);
+
 			float delta_sp_max = dt * (_actuator_max(i) - _actuator_min(i)) / _actuator_slew_rate_limit(i);
-			float delta_sp = _actuator_sp(i) - _prev_actuator_sp(i);
+			float delta_sp = input - previous;
+
+			float output = input;
 
 			if (delta_sp > delta_sp_max) {
-				_actuator_sp(i) = _prev_actuator_sp(i) + delta_sp_max;
+				output = previous + delta_sp_max;
 
 			} else if (delta_sp < -delta_sp_max) {
-				_actuator_sp(i) = _prev_actuator_sp(i) - delta_sp_max;
+				output = previous - delta_sp_max;
 			}
+
+			_actuator_sp(i) = output;
 		}
 	}
 }
