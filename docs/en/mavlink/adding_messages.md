@@ -5,7 +5,7 @@ This topic explains how to add new MAVLink messages and commands that are expect
 ## Standard MAVLink Messages
 
 The PX4/PX4-Autopilot source code uses only messages that have been standardized by MAVLink.
-That is to say, the standard definitions in [common.xml](https://mavlink.io/en/messages/common.html) in releases, and [development.xml](https://mavlink.io/en/messages/development.html) during development.
+That is to say, the definitions in [common.xml](https://mavlink.io/en/messages/common.html) or [development.xml](https://mavlink.io/en/messages/development.html) in releases, and [development.xml](https://mavlink.io/en/messages/development.html) during development.
 These messages are present in at least one significant flight stack, and members of other flight stacks have accepted them as a reasonable design that would likely be adopted if the same functionality was required.
 
 ::: tip
