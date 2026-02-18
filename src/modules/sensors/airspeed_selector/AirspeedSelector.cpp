@@ -40,7 +40,7 @@ using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
 
-AirspeedModule::AirspeedModule():
+AirspeedSelector::AirspeedSelector():
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
@@ -55,7 +55,7 @@ AirspeedModule::AirspeedModule():
 	_wind_est_pub[1].advertise();
 }
 
-AirspeedModule::~AirspeedModule()
+AirspeedSelector::~AirspeedSelector()
 {
 	ScheduleClear();
 
@@ -63,9 +63,9 @@ AirspeedModule::~AirspeedModule()
 }
 
 int
-AirspeedModule::task_spawn(int argc, char *argv[])
+AirspeedSelector::task_spawn(int argc, char *argv[])
 {
-	AirspeedModule *dev = new AirspeedModule();
+	AirspeedSelector *dev = new AirspeedSelector();
 
 	// check if the trampoline is called for the first time
 	if (!dev) {
@@ -81,7 +81,7 @@ AirspeedModule::task_spawn(int argc, char *argv[])
 
 }
 void
-AirspeedModule::init()
+AirspeedSelector::init()
 {
 	check_for_connected_airspeed_sensors();
 
@@ -112,7 +112,7 @@ AirspeedModule::init()
 }
 
 void
-AirspeedModule::check_for_connected_airspeed_sensors()
+AirspeedSelector::check_for_connected_airspeed_sensors()
 {
 	// check for new connected airspeed sensor
 	int detected_airspeed_sensors = 0;
@@ -137,7 +137,7 @@ AirspeedModule::check_for_connected_airspeed_sensors()
 
 
 void
-AirspeedModule::Run()
+AirspeedSelector::Run()
 {
 	_time_now_usec = hrt_absolute_time(); // hrt time of the current cycle
 
@@ -294,7 +294,7 @@ AirspeedModule::Run()
 	}
 }
 
-void AirspeedModule::update_params()
+void AirspeedSelector::update_params()
 {
 	updateParams();
 
@@ -362,7 +362,7 @@ void AirspeedModule::update_params()
 	}
 }
 
-void AirspeedModule::poll_topics()
+void AirspeedSelector::poll_topics()
 {
 	// use primary estimator_status
 	if (_estimator_selector_status_sub.updated()) {
@@ -406,7 +406,7 @@ void AirspeedModule::poll_topics()
 			       || _estimator_status.control_mode_flags & (static_cast<uint64_t>(1) << estimator_status_s::CS_GNSS_VEL));
 }
 
-void AirspeedModule::update_wind_estimator_sideslip()
+void AirspeedSelector::update_wind_estimator_sideslip()
 {
 	// update wind and airspeed estimator
 	_wind_estimator_sideslip.update(_time_now_usec);
@@ -435,7 +435,7 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	_wind_estimate_sideslip.source = airspeed_wind_s::SOURCE_AS_BETA_ONLY;
 }
 
-void AirspeedModule::update_ground_minus_wind_airspeed()
+void AirspeedSelector::update_ground_minus_wind_airspeed()
 {
 	const float wind_uncertainty = sqrtf(_wind_estimate_sideslip.variance_north + _wind_estimate_sideslip.variance_east);
 
@@ -453,7 +453,7 @@ void AirspeedModule::update_ground_minus_wind_airspeed()
 }
 
 
-void AirspeedModule::select_airspeed_and_publish()
+void AirspeedSelector::select_airspeed_and_publish()
 {
 	// we need to re-evaluate the sensors if we're currently not on a phyisical sensor or the current sensor got invalid
 	bool airspeed_sensor_switching_necessary = false;
@@ -623,7 +623,7 @@ void AirspeedModule::select_airspeed_and_publish()
 
 }
 
-float AirspeedModule::get_synthetic_airspeed(float throttle)
+float AirspeedSelector::get_synthetic_airspeed(float throttle)
 {
 	float synthetic_airspeed;
 	_flight_phase_estimation_sub.update();
@@ -650,7 +650,7 @@ float AirspeedModule::get_synthetic_airspeed(float throttle)
 	return synthetic_airspeed;
 }
 
-void AirspeedModule::update_throttle_filter(hrt_abstime now)
+void AirspeedSelector::update_throttle_filter(hrt_abstime now)
 {
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
@@ -677,10 +677,10 @@ void AirspeedModule::update_throttle_filter(hrt_abstime now)
 	}
 }
 
-int AirspeedModule::custom_command(int argc, char *argv[])
+int AirspeedSelector::custom_command(int argc, char *argv[])
 {
 	if (!is_running()) {
-		int ret = AirspeedModule::task_spawn(argc, argv);
+		int ret = AirspeedSelector::task_spawn(argc, argv);
 
 		if (ret) {
 			return ret;
@@ -690,7 +690,7 @@ int AirspeedModule::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int AirspeedModule::print_usage(const char *reason)
+int AirspeedSelector::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -718,5 +718,5 @@ and also publishes those.
 
 extern "C" __EXPORT int airspeed_selector_main(int argc, char *argv[])
 {
-	return AirspeedModule::main(argc, argv);
+	return AirspeedSelector::main(argc, argv);
 }

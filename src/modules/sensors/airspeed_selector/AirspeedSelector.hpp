@@ -72,14 +72,14 @@
 #include <uORB/topics/airspeed_wind.h>
 #include <uORB/topics/flight_phase_estimation.h>
 
-class AirspeedModule : public ModuleBase<AirspeedModule>, public ModuleParams,
+class AirspeedSelector : public ModuleBase<AirspeedSelector>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
 
-	AirspeedModule();
+	AirspeedSelector();
 
-	~AirspeedModule() override;
+	~AirspeedSelector() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
