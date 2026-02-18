@@ -69,7 +69,7 @@ public:
 
 	void Run();
 
-	void request_stop() { _should_exit.store(true); }
+	void request_stop() { _should_exit.store(true); SignalWorkerThread(); }
 
 	void print_status(bool last = false);
 
@@ -80,7 +80,14 @@ private:
 
 	bool should_exit() const { return _should_exit.load(); }
 
-	inline void SignalWorkerThread();
+	inline void SignalWorkerThread()
+	{
+		int sem_val;
+
+		if (px4_sem_getvalue(&_process_lock, &sem_val) == 0 && sem_val <= 0) {
+			px4_sem_post(&_process_lock);
+		}
+	}
 
 #ifdef __PX4_NUTTX
 	// In NuttX work can be enqueued from an ISR
