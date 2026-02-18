@@ -456,6 +456,10 @@ ControlAllocator::Run()
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
 								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
 
+			if (i == 0) {
+				_control_allocation[i]->applyNanToActuators(_actuator_effectiveness->getStoppedMotors());
+			}
+
 			if (_has_slew_rate) {
 				_control_allocation[i]->applySlewRateLimit(dt);
 			}
