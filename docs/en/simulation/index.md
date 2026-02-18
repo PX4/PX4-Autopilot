@@ -26,8 +26,10 @@ There are also a number of [Community Supported Simulators](../simulation/commun
 
 ### Choosing a Simulator
 
-- **SIH (Simulation In Hardware):** Quick verification, no GPU needed, headless CI, basic flight logic testing. Runs as a PX4 module (no external process). Ideal for controller and estimator validation.
-- **Gazebo:** Sensor simulation (camera, lidar, depth), multi-vehicle, visual testing, environment interaction. Requires more resources.
+- **SIH (Simulation In Hardware):** Quick verification, no GPU needed, headless CI, basic flight logic testing.
+  Runs as a PX4 module (no external process). Ideal for controller and estimator validation.
+- **Gazebo:** Sensor simulation (camera, lidar, depth), multi-vehicle, visual testing, environment interaction.
+  Requires more resources.
 
 Use SIH when you need fast, lightweight testing of control logic or CI pipelines. Use Gazebo when you need realistic sensor data or visual environment interaction.
 
