@@ -34,7 +34,7 @@
 px4_add_module(
 	MODULE systemcmds__microbench
 	MAIN microbench
-	STACK_MAIN 4096
+	STACK_MAIN 16384
 	COMPILE_FLAGS
 		-Wno-double-promotion
 		-Wno-unused-but-set-variable
