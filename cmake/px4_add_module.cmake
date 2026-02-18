@@ -66,6 +66,7 @@ include(px4_list_make_absolute)
 #		DEPENDS			: targets which this module depends on
 #		EXTERNAL		: flag to indicate that this module is out-of-tree
 #		DYNAMIC			: don't compile into the px4 binary, but build a separate dynamically loadable module (posix)
+#		LOADABLE		: build as loadable ELF module for SD card (nuttx only, requires CONFIG_ELF)
 #		UNITY_BUILD		: merge all source files and build this module as a single compilation unit
 #
 #	Output:
@@ -87,7 +88,7 @@ function(px4_add_module)
 		NAME px4_add_module
 		ONE_VALUE MODULE MAIN STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS MODULE_CONFIG
-		OPTIONS EXTERNAL DYNAMIC UNITY_BUILD
+		OPTIONS EXTERNAL DYNAMIC LOADABLE UNITY_BUILD
 		REQUIRED MODULE MAIN
 		ARGN ${ARGN})
 
@@ -165,7 +166,17 @@ function(px4_add_module)
 		set (KERNEL TRUE)
 	endif()
 
-	if(NOT DYNAMIC)
+	if(LOADABLE AND (${PX4_PLATFORM} STREQUAL "nuttx") AND CONFIG_ELF)
+		# Loadable ELF module: compile with relocatable flags, exclude from firmware
+		target_link_libraries(${MODULE} PRIVATE prebuild_targets px4_platform systemlib perf)
+		target_link_libraries(${MODULE} PRIVATE events_interface parameters_interface px4_layer uORB)
+		target_compile_options(${MODULE} PRIVATE -mlong-calls -fno-common)
+		set_property(GLOBAL APPEND PROPERTY PX4_LOADABLE_MODULE_LIBRARIES ${MODULE})
+		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+		px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${SRCS})
+		set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
+
+	elseif(NOT DYNAMIC)
 		target_link_libraries(${MODULE} PRIVATE prebuild_targets px4_platform systemlib perf)
 		if (${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT AND KERNEL)
 			target_link_libraries(${MODULE} PRIVATE
@@ -179,10 +190,6 @@ function(px4_add_module)
 		px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${SRCS})
 		set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
 	endif()
-
-	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
-	px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${SRCS})
-	set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
 
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)

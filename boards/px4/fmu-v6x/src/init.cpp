@@ -55,6 +55,10 @@
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
+#ifdef CONFIG_ELF
+#include <nuttx/symtab.h>
+#include <sys/boardctl.h>
+#endif
 #include <nuttx/spi/spi.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
@@ -92,6 +96,10 @@ __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
+#ifdef CONFIG_ELF
+extern const struct symtab_s g_px4_exports[];
+extern const int g_px4_nexports;
+#endif
 __END_DECLS
 
 
@@ -225,6 +233,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* Need hrt running before using the ADC */
 
 	px4_platform_init();
+
+#ifdef CONFIG_ELF
+	/* Register symbol table for loadable ELF modules */
+	struct boardioc_symtab_s symdesc;
+	symdesc.symtab   = (FAR struct symtab_s *)g_px4_exports;
+	symdesc.nsymbols = g_px4_nexports;
+	boardctl(BOARDIOC_APP_SYMTAB, (uintptr_t)&symdesc);
+#endif
 
 	// Use the default HW_VER_REV(0x0,0x0) for Ramtron
 

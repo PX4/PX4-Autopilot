@@ -45,6 +45,8 @@ extern size_t orb_topics_count() __EXPORT;
 /*
  * Returns array of topics metadata
  */
+__BEGIN_DECLS
 extern const struct orb_metadata *const *orb_get_topics() __EXPORT;
+__END_DECLS
 
 #endif /* MODULES_UORB_UORBTOPICS_H_ */

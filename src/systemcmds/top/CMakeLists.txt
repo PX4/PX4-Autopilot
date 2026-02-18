@@ -40,4 +40,5 @@ px4_add_module(
 		top.cpp
 	DEPENDS
 		systemlib
+	LOADABLE
 )

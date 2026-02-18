@@ -389,12 +389,66 @@ else()
 		target_link_libraries(px4 PRIVATE romfs)
 	endif()
 
+	# When CONFIG_ELF is enabled, the export symbol table (px4_elf_symtab.cpp)
+	# in libpx4_layer introduces new undefined references that create circular
+	# dependencies with platform libraries. A --start-group pass at the end
+	# ensures all cross-library references are resolved.
+	if(CONFIG_ELF)
+		target_link_libraries(px4 PRIVATE
+			-Wl,--start-group
+			$<TARGET_FILE:perf>
+			$<TARGET_FILE:systemlib>
+			$<TARGET_FILE:parameters>
+			$<TARGET_FILE:px4_layer>
+			$<TARGET_FILE:px4_platform>
+			$<TARGET_FILE:px4_work_queue>
+			$<TARGET_FILE:drivers_board>
+			$<TARGET_FILE:uORB>
+			-Wl,--end-group
+		)
+	endif()
+
 	add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
 		COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_OUTPUT}
 		DEPENDS px4
 	)
 endif()
 
+endif()
+
+# Build loadable ELF modules for SD card
+if(CONFIG_ELF)
+	get_property(loadable_module_libraries GLOBAL PROPERTY PX4_LOADABLE_MODULE_LIBRARIES)
+
+	if(loadable_module_libraries)
+		set(LOADABLE_ELF_OUTPUT_DIR ${PX4_BINARY_DIR}/sdcard/px4/bin)
+		file(MAKE_DIRECTORY ${LOADABLE_ELF_OUTPUT_DIR})
+
+		set(loadable_elf_targets)
+
+		foreach(module ${loadable_module_libraries})
+			get_target_property(MAIN ${module} MAIN)
+
+			if(MAIN)
+				set(ELF_OUTPUT ${LOADABLE_ELF_OUTPUT_DIR}/${MAIN})
+
+				add_custom_command(
+					OUTPUT ${ELF_OUTPUT}
+					COMMAND ${CMAKE_LINKER} -r -e ${MAIN}_main
+						-T ${PX4_SOURCE_DIR}/platforms/nuttx/src/px4/common/elf_merge.ld
+						-o ${ELF_OUTPUT}
+						--whole-archive $<TARGET_FILE:${module}> --no-whole-archive
+					COMMAND ${CMAKE_STRIP} --strip-debug ${ELF_OUTPUT}
+					DEPENDS ${module}
+					COMMENT "Building loadable ELF: ${MAIN}"
+				)
+
+				list(APPEND loadable_elf_targets ${ELF_OUTPUT})
+			endif()
+		endforeach()
+
+		add_custom_target(loadable_elfs ALL DEPENDS ${loadable_elf_targets})
+	endif()
 endif()
 
 # create .hex if configured in NuttX

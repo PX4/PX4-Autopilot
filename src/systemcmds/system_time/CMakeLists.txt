@@ -36,4 +36,5 @@ px4_add_module(
 	SRCS
 		system_time.cpp
 	DEPENDS
+	LOADABLE
 	)
