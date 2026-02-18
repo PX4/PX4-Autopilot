@@ -49,6 +49,11 @@ bool GnssChecks::run(const gnssSample &gnss, uint64_t time_us)
 
 	bool passed = false;
 
+	// Run strict checks while not flying yet
+	if (!_control_status.flags.in_air) {
+		_initial_checks_passed = false;
+	}
+
 	if (_initial_checks_passed) {
 		if (runSimplifiedChecks(gnss)) {
 			_time_last_pass_us = time_us;

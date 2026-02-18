@@ -170,7 +170,6 @@ FC повинен бути налаштований для підключенн�
    ![Image of baseboard showing FC USB-C connector](../../assets/companion_computer/holybro_pixhawk_rpi_cm4_baseboard/baseboard_fc_usb_c.jpg)
 
 2. [Встановіть параметри](../advanced_config/parameters.md):
-
    - `MAV_1_CONFIG` = `102`
    - `MAV_1_MODE = 2`
    - `SER_TEL2_BAUD` = `921600`
@@ -184,7 +183,6 @@ FC повинен бути налаштований для підключенн�
 1. Connect to the RPi (using WiFi, a router, or a WiFi Dongle).
 
 2. Увімкніть послідовний порт RPi, запустивши `RPi-config`
-
    - Перейдіть до `3 Варіанти інтерфейсу`, потім `I6 Серійний порт`.
      Потім введіть:
      - `login shell accessible over serial → No`

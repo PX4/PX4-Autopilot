@@ -1,0 +1,44 @@
+module_name: Lightware GRF Rangefinder (serial)
+serial_config:
+    - command: lightware_grf_serial start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_EN_GRF_CFG
+        group: Sensors
+      num_instances: 1
+      supports_networking: false
+
+parameters:
+    - group: Sensors
+      definitions:
+          GRF_RATE_CFG:
+              description:
+                  short: Lightware GRF lidar update rate.
+                  long: |
+                      The Lightware GRF distance sensor can increase the update rate to enable greater resolution.
+              type: enum
+              values:
+                  1: 1 Hz
+                  2: 2 Hz
+                  3: 4 Hz
+                  4: 5 Hz
+                  5: 10 Hz
+                  6: 20 Hz
+                  7: 30 Hz
+                  8: 40 Hz
+                  9: 50 Hz
+              reboot_required: true
+              num_instances: 1
+              default: 4
+          GRF_SENS_MODEL:
+              description:
+                  short: GRF Sensor model
+                  long: |
+                      GRF Sensor Model used to distinush between the GRF250 and GRF500 since both have different max distance range.
+              type: enum
+              values:
+                  0: disable
+                  1: GRF250
+                  2: GRF500
+              reboot_required: true
+              num_instances: 1
+              default: 0

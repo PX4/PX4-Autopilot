@@ -994,9 +994,10 @@ UavcanNode::Run()
 void UavcanNode::publish_can_interface_statuses()
 {
 	constexpr hrt_abstime status_pub_interval = 100_ms;
+	const hrt_abstime now = hrt_absolute_time();
 
-	if (hrt_absolute_time() - _last_can_status_pub >= status_pub_interval) {
-		_last_can_status_pub = hrt_absolute_time();
+	if (now - _last_can_status_pub >= status_pub_interval) {
+		_last_can_status_pub = now;
 
 		for (int i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
 			if (i > UAVCAN_NUM_IFACES) {
@@ -1011,7 +1012,7 @@ void UavcanNode::publish_can_interface_statuses()
 
 			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
 			can_interface_status_s status{
-				.timestamp = hrt_absolute_time(),
+				.timestamp = now,
 				.io_errors = iface_perf_cnt.errors,
 				.frames_tx = iface_perf_cnt.frames_tx,
 				.frames_rx = iface_perf_cnt.frames_rx,
@@ -1031,13 +1032,15 @@ void UavcanNode::publish_can_interface_statuses()
 void UavcanNode::publish_node_statuses()
 {
 	constexpr hrt_abstime status_pub_interval = 100_ms;
+	const hrt_abstime now = hrt_absolute_time();
 
-	if (hrt_absolute_time() - _last_node_status_pub >= status_pub_interval) {
-		_last_node_status_pub = hrt_absolute_time();
+	if (now - _last_node_status_pub >= status_pub_interval) {
+		_last_node_status_pub = now;
 
 		_node_status_monitor.forEachNode([this](uavcan::NodeID node_id, uavcan::NodeStatusMonitor::NodeStatus node_status) {
+			auto node_id_val = node_id.get();
 
-			if (node_id.get() == 0) {
+			if (node_id_val == 0) {
 				return;
 			}
 
@@ -1045,7 +1048,7 @@ void UavcanNode::publish_node_statuses()
 			int uorb_index = -1;
 
 			for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-				if (_node_status_uorb_index_map[i] == node_id.get()) {
+				if (_node_status_uorb_index_map[i] == node_id_val) {
 					uorb_index = i;
 					break;
 				}
@@ -1055,10 +1058,10 @@ void UavcanNode::publish_node_statuses()
 				// use next available index
 				for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 					if (_node_status_uorb_index_map[i] == 0) {
-						_node_status_uorb_index_map[i] = node_id.get();
+						_node_status_uorb_index_map[i] = node_id_val;
 						uorb_index = i;
 						// advertise
-						PX4_INFO("advertising node_id %u on index %u", node_id.get(), i);
+						PX4_INFO("advertising node_id %u on index %u", node_id_val, i);
 						int instance{0};
 						_node_status_pub_handles[i] = orb_advertise_multi(ORB_ID(dronecan_node_status), nullptr, &instance);
 						break;
@@ -1071,7 +1074,7 @@ void UavcanNode::publish_node_statuses()
 				dronecan_node_status_s status{
 					.timestamp = hrt_absolute_time(),
 					.uptime_sec = node_status.uptime_sec,
-					.node_id = node_id.get(),
+					.node_id = node_id_val,
 					.vendor_specific_status_code = node_status.vendor_specific_status_code,
 					.health = node_status.health,
 					.mode = node_status.mode,
@@ -1158,6 +1161,11 @@ UavcanNode::print_info()
 	printf("\tReserved:  %" PRIu16 " blocks\n", _pool_allocator.getNumReservedBlocks());
 	printf("\tAllocated: %" PRIu16 " blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
+	printf("\n");
+
+	// See https://github.com/PX4/PX4-Autopilot/issues/22871
+	printf("WARNING: CAN error counter values below may increase during this function call due to internal counter reading implementation.\n");
+	printf("Do not fully trust these counters until this issue is fixed.\n");
 	printf("\n");
 
 	// UAVCAN node perfcounters

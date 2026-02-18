@@ -1714,8 +1714,8 @@ void Logger::write_formats(LogType type)
 
 	formats_to_write.set(_event_subscription.get_topic()->o_id);
 
-
-	static_assert(sizeof(msg.format) > uORB::orb_tokenized_fields_max_length, "uORB message definition too long");
+	// Due to leftover_length we need to add 150 bytes of margin, measured empirically
+	static_assert(sizeof(msg.format) > (uORB::orb_untokenized_fields_max_length + 150u), "uORB message definition too long");
 	uORB::MessageFormatReader format_reader(msg.format, sizeof(msg.format));
 	bool done = false;
 
@@ -1890,7 +1890,7 @@ void Logger::write_info(LogType type, const char *name, const char *value)
 
 	/* copy string value directly to buffer */
 	if (vlen < (sizeof(msg) - msg_size)) {
-		memcpy(&buffer[msg_size], value, vlen);
+		memcpy(&buffer[msg_size], value, vlen + 1);
 		msg_size += vlen;
 
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
@@ -1916,7 +1916,7 @@ void Logger::write_info_multiple(LogType type, const char *name, const char *val
 
 	/* copy string value directly to buffer */
 	if (vlen < (sizeof(msg) - msg_size)) {
-		memcpy(&buffer[msg_size], value, vlen);
+		memcpy(&buffer[msg_size], value, vlen + 1);
 		msg_size += vlen;
 
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;

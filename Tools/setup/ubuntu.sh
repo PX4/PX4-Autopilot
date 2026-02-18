@@ -6,9 +6,9 @@ set -e
 ## Can also be used in docker.
 ##
 ## Installs:
-## - Common dependencies and tools for nuttx, jMAVSim, Gazebo
+## - Common dependencies and tools for nuttx, Gazebo
 ## - NuttX toolchain (omit with arg: --no-nuttx)
-## - jMAVSim and Gazebo9 simulator (omit with arg: --no-sim-tools)
+## - Gazebo Harmonic simulator (omit with arg: --no-sim-tools)
 ##
 
 INSTALL_NUTTX="true"
@@ -176,8 +176,10 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 		echo
 		echo "Fetching Xtensa compilers"
-		wget -q -P $DIR https://github.com/espressif/crosstool-NG/releases/download/esp-13.2.0_20240530/xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu.tar.xz
-		sudo tar -xf $DIR/xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu.tar.xz -C /opt
+		XTENSA_FILE_NAME=xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu.tar.xz
+		wget -q -P $DIR https://github.com/espressif/crosstool-NG/releases/download/esp-13.2.0_20240530/$XTENSA_FILE_NAME
+		sudo tar -xf $DIR/$XTENSA_FILE_NAME -C /opt
+		rm $DIR/$XTENSA_FILE_NAME
 		echo 'export PATH=$PATH:/opt/xtensa-esp-elf/bin/' >> /home/$USER/.bashrc
 	fi
 
@@ -205,37 +207,18 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		bc \
 		;
 
-	# Gazebo / Gazebo classic installation
-	if [[ "${UBUNTU_RELEASE}" == "18.04" || "${UBUNTU_RELEASE}" == "20.04" ]]; then
-		sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
-		wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
-		# Update list, since new gazebo-stable.list has been added
-		sudo apt-get update -y --quiet
+	# Gazebo Harmonic installation (Ubuntu 22.04+)
+	echo "[ubuntu.sh] Gazebo (Harmonic) will be installed"
+	# Add Gazebo binary repository
+	sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
+	sudo apt-get update -y --quiet
 
-		# Install Gazebo classic
-		if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
-			gazebo_classic_version=9
-			gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
-		else
-			# default and Ubuntu 20.04
-			gazebo_classic_version=11
-			gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
-		fi
-	else
-		# Expects Ubuntu 22.04 > by default
-		echo "[ubuntu.sh] Gazebo (Harmonic) will be installed"
-		echo "[ubuntu.sh] Earlier versions will be removed"
-		# Add Gazebo binary repository
-		sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
-		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
-		sudo apt-get update -y --quiet
+	# Install Gazebo
+	gazebo_packages="gz-harmonic libunwind-dev"
 
-		# Install Gazebo
-		gazebo_packages="gz-harmonic libunwind-dev"
-
-		if [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
-			gazebo_packages="$gazebo_packages cppzmq-dev"
-		fi
+	if [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
+		gazebo_packages="$gazebo_packages cppzmq-dev"
 	fi
 
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \

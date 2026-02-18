@@ -2,6 +2,7 @@
 
 :::warning
 This article has been tested against:
+
 - **Ubuntu:** 20.04
 - **ROS:** Noetic
 - **PX4 Firmware:** v1.13
@@ -13,13 +14,14 @@ However these steps are fairly general and so it should work with other distros/
 
 ## MAVROS Installation
 
-Follow *Source Installation* instructions from [mavlink/mavros](https://github.com/mavlink/mavros/blob/master/mavros/index.md) to install "ROS Kinetic".
+Follow _Source Installation_ instructions from [mavlink/mavros](https://github.com/mavlink/mavros/blob/master/mavros/index.md) to install "ROS Kinetic".
 
 ## MAVROS
 
 1. We start by creating a new MAVROS plugin, in this example named **keyboard_command.cpp** (in **workspace/src/mavros/mavros_extras/src/plugins**) by using the code below:
 
    The code subscribes a 'char' message from ROS topic `/mavros/keyboard_command/keyboard_sub` and sends it as a MAVLink message.
+
    ```c
     #include <mavros/mavros_plugin.h>
     #include <pluginlib/class_list_macros.h>
@@ -66,6 +68,7 @@ Follow *Source Installation* instructions from [mavlink/mavros](https://github.c
    ```
 
 1. Edit **mavros_plugins.xml** (in **workspace/src/mavros/mavros_extras**) and add the following lines:
+
    ```xml
    <class name="keyboard_command" type="mavros::extra_plugins::KeyboardCommandPlugin" base_class_type="mavros::plugin::PluginBase">
         <description>Accepts keyboard command.</description>
@@ -73,10 +76,11 @@ Follow *Source Installation* instructions from [mavlink/mavros](https://github.c
    ```
 
 1. Edit **CMakeLists.txt** (in **workspace/src/mavros/mavros_extras**) and add the following line in `add_library`.
+
    ```cmake
-   add_library( 
+   add_library(
    ...
-     src/plugins/keyboard_command.cpp 
+     src/plugins/keyboard_command.cpp
    )
    ```
 
@@ -93,6 +97,7 @@ Follow *Source Installation* instructions from [mavlink/mavros](https://github.c
 ## PX4 Changes
 
 1. Inside **common.xml** (in **PX4-Autopilot/src/modules/mavlink/mavlink/message_definitions/v1.0**), add your MAVLink message as following (same procedure as for MAVROS section above):
+
    ```xml
    ...
      <message id="229" name="KEY_COMMAND">
@@ -106,10 +111,11 @@ Follow *Source Installation* instructions from [mavlink/mavros](https://github.c
    Make sure that the **common.xml** files in the following directories are exactly the same:
    - `PX4-Autopilot/src/modules/mavlink/mavlink/message_definitions/v1.0`
    - `workspace/src/mavlink/message_definitions/v1.0`
-   are exactly the same.
-   :::
+     are exactly the same.
+     :::
 
 1. Make your own uORB message file **key_command.msg** in (PX4-Autopilot/msg). For this example the "key_command.msg" has only the code:
+
    ```
    uint64 timestamp # time since system start (microseconds)
    char cmd
@@ -142,6 +148,7 @@ Follow *Source Installation* instructions from [mavlink/mavros](https://github.c
 
 1. Edit **mavlink_receiver.cpp** (in **PX4-Autopilot/src/modules/mavlink**).
    This is where PX4 receives the MAVLink message sent from ROS, and publishes it as a uORB topic.
+
    ```cpp
    ...
    void MavlinkReceiver::handle_message(mavlink_message_t *msg)
@@ -221,7 +228,7 @@ Follow *Source Installation* instructions from [mavlink/mavros](https://github.c
 
        int error_counter = 0;
 
-	   for (int i = 0; i < 10; i++)
+      for (int i = 0; i < 10; i++)
        {
            int poll_ret = px4_poll(fds, 1, 1000);
 
@@ -258,10 +265,10 @@ Follow *Source Installation* instructions from [mavlink/mavros](https://github.c
 
    ```
     menuconfig MODULES_KEY_RECEIVER
-	bool "key_receiver"
-	default n
-	---help---
-		Enable support for key_receiver
+   bool "key_receiver"
+   default n
+   ---help---
+   	Enable support for key_receiver
 
    ```
 
@@ -283,7 +290,7 @@ Now you are ready to build all your work!
 ### Build for ROS
 
 1. In your workspace enter: `catkin build`.
-1. Beforehand, you have to set your "px4.launch" in (/workspace/src/mavros/mavros/launch). 
+1. Beforehand, you have to set your "px4.launch" in (/workspace/src/mavros/mavros/launch).
    Edit "px4.launch" as below.
    If you are using USB to connect your computer with Pixhawk, you have to set "fcu_url" as shown below.
    But, if you are using CP2102 to connect your computer with Pixhawk, you have to replace "ttyACM0" with "ttyUSB0".
@@ -301,22 +308,25 @@ Now you are ready to build all your work!
 ### Build for PX4
 
 1. Clean the previously built PX4-Autopilot directory. In the root of **PX4-Autopilot** directory:
-    ```sh
-    make clean
-    ```
 
-1. Build PX4-Autopilot and upload [in the normal way](../dev_setup/building_px4.md#nuttx-pixhawk-based-boards). 
+   ```sh
+   make clean
+   ```
 
-    For example:
-    
-    - to build for Pixhawk 4/FMUv5 execute the following command in the root of the PX4-Autopilot directory:
-    ```sh
-    make px4_fmu-v5_default upload
-    ```
-    - to build for SITL execute the following command in the root of the PX4-Autopilot directory (using jmavsim simulation):
-    ```sh
-    make px4_sitl jmavsim
-    ```
+1. Build PX4-Autopilot and upload [in the normal way](../dev_setup/building_px4.md#nuttx-pixhawk-based-boards).
+
+   For example:
+   - to build for Pixhawk 4/FMUv5 execute the following command in the root of the PX4-Autopilot directory:
+
+   ```sh
+   make px4_fmu-v5_default upload
+   ```
+
+   - to build for SITL execute the following command in the root of the PX4-Autopilot directory (using jmavsim simulation):
+
+   ```sh
+   make px4_sitl jmavsim
+   ```
 
 ## Running the Code
 
@@ -338,6 +348,7 @@ Next test if the MAVROS message is sent to PX4.
 
 1. Enter the Pixhawk nutshell through UDP.
    Replace xxx.xx.xxx.xxx with your IP.
+
    ```sh
    cd PX4-Autopilot/Tools
    ./mavlink_shell.py xxx.xx.xxx.xxx:14557 --baudrate 57600
