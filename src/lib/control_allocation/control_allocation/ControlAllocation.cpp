@@ -110,12 +110,36 @@ const
 
 void ControlAllocation::applySlewRateLimit(float dt)
 {
+	// For motors, an actuator setpoint of NaN represents switching off the
+	// motor (giving it disarmed PWM). Physically it results in zero thrust,
+	// therefore for the purpose of slew limiting we need to consider NaN
+	// equivalent to zero. But after the slew limiting, we again replace by
+	// NaN.
+
+	// We want the slew rate to behave like this on different input transitions:
+	//  - between 0 and NaN: immediately match input
+	//  - nonzero to NaN: sink to zero with slew rate, then replace zero by NaN
+	//  - NaN to nonzero: replace NaN by zero, then rise with slew rate to input
+	//  - between nonzero and 0: slew limit, then match input
+
 	for (int i = 0; i < _num_actuators; i++) {
 		if (_actuator_slew_rate_limit(i) > FLT_EPSILON) {
 
 			float input = _actuator_sp(i);
 			float previous = _prev_actuator_sp(i);
 
+			// Before slew limiting, transform NaN to 0, but remember if the input was NaN
+			const bool input_is_nan = std::isnan(input);
+
+			if (input_is_nan) {
+				input = 0.f;
+			}
+
+			if (std::isnan(previous)) {
+				previous = 0.f;
+			}
+
+			// Slew limit without any NaN involved
 			float delta_sp_max = dt * (_actuator_max(i) - _actuator_min(i)) / _actuator_slew_rate_limit(i);
 			float delta_sp = input - previous;
 
@@ -126,6 +150,11 @@ void ControlAllocation::applySlewRateLimit(float dt)
 
 			} else if (delta_sp < -delta_sp_max) {
 				output = previous - delta_sp_max;
+			}
+
+			// Transform back to NaN if appropriate
+			if (input_is_nan && fabsf(output) < FLT_EPSILON) {
+				output = NAN;
 			}
 
 			_actuator_sp(i) = output;
