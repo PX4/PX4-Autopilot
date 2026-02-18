@@ -96,6 +96,15 @@ Sensors::~Sensors()
 		sub.unregisterCallback();
 	}
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+
+	if (_airspeed_selector) {
+		_airspeed_selector->Stop();
+		delete _airspeed_selector;
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
+
 #if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
 	_vehicle_acceleration.Stop();
 #endif // CONFIG_SENSORS_VEHICLE_ACCELERATION
@@ -396,6 +405,21 @@ void Sensors::adc_poll()
 #endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
 }
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED)
+
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+void Sensors::InitializeAirspeedSelector()
+{
+	if (_param_sys_has_num_aspd.get()) {
+		if (_airspeed_selector == nullptr) {
+			_airspeed_selector = new AirspeedSelector();
+
+			if (_airspeed_selector) {
+				_airspeed_selector->Start();
+			}
+		}
+	}
+}
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 void Sensors::InitializeVehicleAirData()

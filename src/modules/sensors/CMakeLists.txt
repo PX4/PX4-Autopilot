@@ -91,6 +91,8 @@ endif()
 
 if(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	target_link_libraries(modules__sensors PRIVATE airspeed)
+	add_subdirectory(airspeed_selector)
+	target_link_libraries(modules__sensors PRIVATE airspeed_selector)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
