@@ -145,7 +145,9 @@ private:
 
 	void publish_actuator_controls();
 
-	float get_ice_shedding_output(hrt_abstime now, bool any_stopped_motor_failed);
+	void apply_ice_shedding(ActuatorVector &actuator_sp, const uint32_t stopped_motors, const uint32_t stopped_motors_due_to_effectiveness,
+				const hrt_abstime now);
+	float get_ice_shedding_output(hrt_abstime now);
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
