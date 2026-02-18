@@ -127,7 +127,8 @@ The following list shows the build commands for the [Pixhawk standard](../flight
 - [Pixhawk 1 (FMUv2)](../flight_controller/pixhawk.md): `make px4_fmu-v2_default`
 
   :::warning
-  You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build. Building with an unsupported GCC may fail, as PX4 is close to the board's 1MB flash limit.
+  You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build.
+  Building with an unsupported GCC may fail, as PX4 is close to the board's 1MB flash limit.
   :::
 
 - Pixhawk 1 with 2 MB flash: `make px4_fmu-v3_default`
@@ -230,7 +231,7 @@ sudo ln -s /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/* /us
 
 ### Failed to import Python packages
 
-"Failed to import" errors when running the `make px4_sitl jmavsim` command indicates that some Python packages are not installed (where expected).
+"Failed to import" errors when running the `make px4_sitl gz_x500` command indicates that some Python packages are not installed (where expected).
 
 ```sh
 Failed to import jinja2: No module named 'jinja2'
@@ -238,12 +239,12 @@ You may need to install it using:
     pip3 install --user jinja2
 ```
 
-If you have already installed these dependencies this may be because there is more than one Python version on the computer (e.g. Python 2.7.16 Python 3.8.3), and the module is not present in the version used by the build toolchain.
+If you have already installed these dependencies this may be because there is more than one Python version on the computer (e.g. Python 2.7.16 and Python 3.8.3), and the module is not present in the version used by the build toolchain.
 
-You should be able to fix this by explicitly installing the dependencies as shown:
+You should be able to fix this by installing the dependencies from the repository's requirements file:
 
 ```sh
-pip3 install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging
+pip3 install --user -r Tools/setup/requirements.txt
 ```
 
 ## PX4 Make Build Targets

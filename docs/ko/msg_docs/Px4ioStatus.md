@@ -1,6 +1,54 @@
+---
+pageClass: is-wide-page
+---
+
 # Px4ioStatus (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Px4ioStatus.msg)
+**TOPICS:** px4io_status
+
+## Fields
+
+| 명칭                                                                                        | 형식           | Unit [Frame] | Range/Enum | 설명                                                        |
+| ----------------------------------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| timestamp                                                                                 | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| free_memory_bytes                               | `uint16`     |                                                                  |            |                                                           |
+| voltage_v                                                            | `float32`    |                                                                  |            | Servo rail voltage in volts                               |
+| rssi_v                                                               | `float32`    |                                                                  |            | RSSI pin voltage in volts                                 |
+| status_arm_sync                                 | `bool`       |                                                                  |            |                                                           |
+| status_failsafe                                                      | `bool`       |                                                                  |            |                                                           |
+| status_fmu_initialized                          | `bool`       |                                                                  |            |                                                           |
+| status_fmu_ok                                   | `bool`       |                                                                  |            |                                                           |
+| status_init_ok                                  | `bool`       |                                                                  |            |                                                           |
+| status_outputs_armed                            | `bool`       |                                                                  |            |                                                           |
+| status_raw_pwm                                  | `bool`       |                                                                  |            |                                                           |
+| status_rc_ok                                    | `bool`       |                                                                  |            |                                                           |
+| status_rc_dsm                                   | `bool`       |                                                                  |            |                                                           |
+| status_rc_ppm                                   | `bool`       |                                                                  |            |                                                           |
+| status_rc_sbus                                  | `bool`       |                                                                  |            |                                                           |
+| status_rc_st24                                  | `bool`       |                                                                  |            |                                                           |
+| status_rc_sumd                                  | `bool`       |                                                                  |            |                                                           |
+| status_safety_button_event | `bool`       |                                                                  |            | px4io safety button was pressed for longer than 1 second  |
+| alarm_pwm_error                                 | `bool`       |                                                                  |            |                                                           |
+| alarm_rc_lost                                   | `bool`       |                                                                  |            |                                                           |
+| arming_failsafe_custom                          | `bool`       |                                                                  |            |                                                           |
+| arming_fmu_armed                                | `bool`       |                                                                  |            |                                                           |
+| arming_fmu_prearmed                             | `bool`       |                                                                  |            |                                                           |
+| arming_termination                                                   | `bool`       |                                                                  |            |                                                           |
+| arming_io_arm_ok           | `bool`       |                                                                  |            |                                                           |
+| arming_lockdown                                                      | `bool`       |                                                                  |            |                                                           |
+| arming_termination_failsafe                     | `bool`       |                                                                  |            |                                                           |
+| pwm                                                                                       | `uint16[8]`  |                                                                  |            |                                                           |
+| pwm_disarmed                                                         | `uint16[8]`  |                                                                  |            |                                                           |
+| pwm_failsafe                                                         | `uint16[8]`  |                                                                  |            |                                                           |
+| pwm_rate_hz                                     | `uint16[8]`  |                                                                  |            |                                                           |
+| raw_inputs                                                           | `uint16[18]` |                                                                  |            |                                                           |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Px4ioStatus.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp		# time since system start (microseconds)
@@ -46,5 +94,6 @@ uint16[8] pwm_failsafe
 uint16[8] pwm_rate_hz
 
 uint16[18] raw_inputs
-
 ```
+
+:::

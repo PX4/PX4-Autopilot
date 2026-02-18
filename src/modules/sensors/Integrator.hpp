@@ -132,7 +132,7 @@ protected:
 		// Use trapezoidal integration to calculate the delta integral
 		_integrated_samples++;
 		_integral_dt += dt;
-		const matrix::Vector3f delta_alpha{(val + _last_val) *dt * 0.5f};
+		matrix::Vector3f delta_alpha{(val + _last_val) *dt * 0.5f};
 		_last_val = val;
 
 		return delta_alpha;

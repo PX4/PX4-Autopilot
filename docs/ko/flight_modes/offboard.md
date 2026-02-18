@@ -231,7 +231,7 @@ The following MAVLink messages and their particular fields and field values are 
 
     - Position setpoint **and** velocity setpoint (the velocity setpoint is used as feedforward; it is added to the output of the position controller and the result is used as the input to the velocity controller).
 
-  - PX4 supports the following `coordinate_frame` values (only): [MAV_FRAME_GLOBAL](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL).
+  - PX4 supports the following `coordinate_frame` values (only): [MAV_FRAME_GLOBAL_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_INT), [MAV_FRAME_GLOBAL_RELATIVE_ALT_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_RELATIVE_ALT_INT), [MAV_FRAME_GLOBAL_TERRAIN_ALT_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_TERRAIN_ALT_INT).
 
 - [SET_ATTITUDE_TARGET](https://mavlink.io/en/messages/common.html#SET_ATTITUDE_TARGET)
   - 다음 입력 조합이 지원됩니다.
@@ -278,7 +278,7 @@ The following MAVLink messages and their particular fields and field values are 
         - 12288 : Loiter 설정점 (설정점을 중심으로 선회 비행합니다).
         - 16384 : 유휴 설정점 (제로 스로틀, 제로 롤/피치).
 
-  - PX4 supports the following `coordinate_frame` values (only): [MAV_FRAME_GLOBAL](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL).
+  - PX4 supports the following `coordinate_frame` values (only): [MAV_FRAME_GLOBAL_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_INT), [MAV_FRAME_GLOBAL_RELATIVE_ALT_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_RELATIVE_ALT_INT), [MAV_FRAME_GLOBAL_TERRAIN_ALT_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_TERRAIN_ALT_INT).
 
 - [SET_ATTITUDE_TARGET](https://mavlink.io/en/messages/common.html#SET_ATTITUDE_TARGET)
   - 다음 입력 조합이 지원됩니다.
@@ -287,7 +287,29 @@ The following MAVLink messages and their particular fields and field values are 
 
 ### 탐사선
 
-Rover does not support a MAVLink offboard API (ROS2 is supported).
+Rover supports offboard control using the generic MAVLink position/velocity setpoint messages listed below.
+These are converted into a [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) internally, and then into rover setpoints by the rover offboard modes.
+For rover-specific control setpoints and better behaviour we recommend using the [Rover Setpoints](#rover-setpoints) via ROS 2.
+
+:::info
+Rover MAVLink setpoints are gated by the MAVLink parameter [MAV_FWDEXTSP](../advanced_config/parameter_reference.md#MAV_FWDEXTSP) (Forward external setpoint messages).
+:::
+
+- [SET_POSITION_TARGET_LOCAL_NED](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED)
+  - Position setpoint: `x`, `y` in [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) (`z` is ignored by rover modules).
+  - Velocity setpoint: `vx`, `vy` in [MAV_FRAME_LOCAL_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_LOCAL_NED) or [MAV_FRAME_BODY_NED](https://mavlink.io/en/messages/common.html#MAV_FRAME_BODY_NED).
+  - `yaw`/`yaw_rate`:
+    - Ackermann/Differential: ignored (in velocity control the yaw setpoint is derived from the velocity direction).
+    - Mecanum: can be controlled independently (decoupled) using `yaw`/`yaw_rate`.
+  - Acceleration setpoints (`afx`, `afy`, `afz`) are ignored by rover modules.
+
+- [SET_POSITION_TARGET_GLOBAL_INT](https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT)
+  - Position setpoint: `lat_int`, `lon_int`, `alt` (converted into local NED internally; rover modules only use the horizontal components).
+  - Velocity setpoint: `vx`, `vy`, `vz` (rover modules use only the horizontal components).
+  - PX4 supports the following `coordinate_frame` values (only): [MAV_FRAME_GLOBAL_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_INT), [MAV_FRAME_GLOBAL_RELATIVE_ALT_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_RELATIVE_ALT_INT), [MAV_FRAME_GLOBAL_TERRAIN_ALT_INT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_TERRAIN_ALT_INT).
+
+- [SET_ATTITUDE_TARGET](https://mavlink.io/en/messages/common.html#SET_ATTITUDE_TARGET)
+  - Not supported for rover offboard control.
 
 ## 오프보드 매개변수
 

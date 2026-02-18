@@ -41,9 +41,7 @@ To use the MicroStrain driver:
 1. Include the module in firmware in the [kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) by setting the kconfig variables: `CONFIG_DRIVERS_INS_MICROSTRAIN` or `CONFIG_COMMON_INS`.
 
 2. Configure the driver mode by setting [MS_MODE](../advanced_config/parameter_reference.md#MS_MODE)
-
    - To use the MicroStrain sensor to provide raw IMU data to EKF2
-
      1. Set [MS_MODE](../advanced_config/parameter_reference.md#MS_MODE) to 0
      2. Update the [EKF2_MULTI_IMU](../advanced_config/parameter_reference.md#EKF2_MULTI_IMU) parameter to account for the added MicroStrain sensor.
      3. Enable EKF2 by setting [EKF2_EN](../advanced_config/parameter_reference.md#EKF2_EN) to 1
@@ -78,22 +76,18 @@ To use the MicroStrain driver:
 ## MicroStrain Configuration
 
 1. Rates:
-
    - By default, accel and gyro data are published at 500 Hz, magnetometer at 50 Hz, and barometric pressure at 50 Hz.
      This can be changed by adjusting the following parameters:
-
      - [MS_IMU_RATE_HZ](../advanced_config/parameter_reference.md#MS_IMU_RATE_HZ)
      - [MS_MAG_RATE_HZ](../advanced_config/parameter_reference.md#MS_MAG_RATE_HZ)
      - [MS_BARO_RATE_HZ](../advanced_config/parameter_reference.md#MS_BARO_RATE_HZ)
 
    - Global position, local position, attitude and odometry will be published at 250 Hz by default.
      This can be configured via:
-
      - [MS_FILT_RATE_HZ](../advanced_config/parameter_reference.md#MS_FILT_RATE_HZ)
 
    - For the CV7-GNSS/INS, the GNSS receiver 1 and 2 will publish data at 5Hz by default.
      This can be changed using:
-
      - [MS_GNSS_RATE_HZ](../advanced_config/parameter_reference.md#MS_GNSS_RATE_HZ)
 
    - The driver will automatically configure data outputs based on the specific sensor model and available data streams.
@@ -105,7 +99,6 @@ To use the MicroStrain driver:
    - If supported, GNSS position and velocity aiding are always enabled.
 
    - Internal/external magnetometer and heading aiding, as well as optical flow aiding, are disabled by default. They can be enabled using the following parameters:
-
      - [MS_INT_MAG_EN](../advanced_config/parameter_reference.md#MS_INT_MAG_EN)
      - [MS_INT_HEAD_EN](../advanced_config/parameter_reference.md#MS_INT_HEAD_EN)
      - [MS_EXT_HEAD_EN](../advanced_config/parameter_reference.md#MS_EXT_HEAD_EN)
@@ -113,7 +106,6 @@ To use the MicroStrain driver:
      - [MS_OPT_FLOW_EN](../advanced_config/parameter_reference.md#MS_OPT_FLOW_EN)
 
    - The aiding frames for external sources can be configured using the following parameters:
-
      - [MS_EHEAD_YAW](../advanced_config/parameter_reference.md#MS_EHEAD_YAW)
      - [MS_EMAG_ROLL](../advanced_config/parameter_reference.md#MS_EMAG_ROLL)
      - [MS_EMAG_PTCH](../advanced_config/parameter_reference.md#MS_EMAG_PTCH)
@@ -124,7 +116,6 @@ To use the MicroStrain driver:
      - [SENS_FLOW_ROT](../advanced_config/parameter_reference.md#SENS_FLOW_ROT)
 
    - The uncertainty for optical flow and external magnetometer aiding must be specified using the following parameters:
-
      - [MS_EMAG_UNCERT](../advanced_config/parameter_reference.md#MS_EMAG_UNCERT)
      - [MS_OFLW_UNCERT](../advanced_config/parameter_reference.md#MS_OFLW_UNCERT)
 
@@ -137,25 +128,18 @@ To use the MicroStrain driver:
 :::
 
 3. Initial heading alignment:
-
    - Initial heading alignment is set to kinematic by default. This can be changed by adjusting
-
      - [MS_ALIGNMENT](../advanced_config/parameter_reference.md#MS_ALIGNMENT)
 
 4. GNSS Aiding Source Control (GNSS/INS only)
-
    - The Source of the GNSS aiding data can be configured using:
-
      - [MS_GNSS_AID_SRC](../advanced_config/parameter_reference.md#MS_GNSS_AID_SRC)
 
 5. Sensor to vehicle transform:
-
    - If the sensor is mounted in an orientation different from the vehicle frame. A sensor to vehicle transform can be enabled using
-
      - [MS_SVT_EN](../advanced_config/parameter_reference.md#MS_SVT_EN)
 
    - The transform is defined using the following parameters
-
      - [MS_SENSOR_ROLL](../advanced_config/parameter_reference.md#MS_SENSOR_ROLL)
      - [MS_SENSOR_PTCH](../advanced_config/parameter_reference.md#MS_SENSOR_PTCH)
      - [MS_SENSOR_YAW](../advanced_config/parameter_reference.md#MS_SENSOR_YAW)
@@ -163,7 +147,6 @@ To use the MicroStrain driver:
 6. IMU ranges:
 
    - The accelerometer and gyroscope ranges on the device are configurable using:
-
      - [MS_ACCEL_RANGE](../advanced_config/parameter_reference.md#MS_ACCEL_RANGE)
      - [MS_GYRO_RANGE](../advanced_config/parameter_reference.md#MS_GYRO_RANGE)
 
@@ -175,15 +158,12 @@ To use the MicroStrain driver:
 :::
 
 7. GNSS Lever arm offsets:
-
    - The lever arm offset for the external GNSS receiver can be configured using:
-
      - [MS_GNSS_OFF1_X](../advanced_config/parameter_reference.md#MS_GNSS_OFF1_X)
      - [MS_GNSS_OFF1_Y](../advanced_config/parameter_reference.md#MS_GNSS_OFF1_Y)
      - [MS_GNSS_OFF1_Z](../advanced_config/parameter_reference.md#MS_GNSS_OFF1_Z)
 
    - For dual-antenna configurations, the second GNSS receiver’s offset is configured using:
-
      - [MS_GNSS_OFF2_X](../advanced_config/parameter_reference.md#MS_GNSS_OFF2_X)
      - [MS_GNSS_OFF2_Y](../advanced_config/parameter_reference.md#MS_GNSS_OFF2_Y)
      - [MS_GNSS_OFF2_Z](../advanced_config/parameter_reference.md#MS_GNSS_OFF2_Z)

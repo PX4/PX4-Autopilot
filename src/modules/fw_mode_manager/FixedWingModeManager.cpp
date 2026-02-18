@@ -36,9 +36,6 @@
 #include <px4_platform_common/events.h>
 #include <uORB/topics/longitudinal_control_configuration.h>
 
-using math::constrain;
-using math::max;
-using math::min;
 using math::radians;
 
 using matrix::Dcmf;
@@ -1210,6 +1207,7 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 			_takeoff_init_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
 			_launch_current_yaw = _yaw;
+			_time_launch_detected = now;
 		}
 
 		const Vector2f launch_local_position = _global_local_proj_ref.project(_takeoff_init_position(0),
@@ -1285,6 +1283,9 @@ FixedWingModeManager::control_auto_takeoff(const hrt_abstime &now, const float c
 		launch_detection_status_s launch_detection_status;
 		launch_detection_status.timestamp = now;
 		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
+		launch_detection_status.selected_control_surface_disarmed =
+			hrt_elapsed_time(&_time_launch_detected) < _param_fw_laun_cs_lk_dy.get() * 1_s
+			|| _time_launch_detected == 0;
 		_launch_detection_status_pub.publish(launch_detection_status);
 	}
 
@@ -1380,6 +1381,7 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 			_launch_detected = true;
 			_takeoff_ground_alt = _current_altitude;
+			_time_launch_detected = now;
 		}
 
 		/* Launch has been detected, hence we have to control the plane. */
@@ -1411,6 +1413,9 @@ FixedWingModeManager::control_auto_takeoff_no_nav(const hrt_abstime &now, const 
 		launch_detection_status_s launch_detection_status;
 		launch_detection_status.timestamp = now;
 		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
+		launch_detection_status.selected_control_surface_disarmed =
+			hrt_elapsed_time(&_time_launch_detected) < _param_fw_laun_cs_lk_dy.get() * 1_s
+			|| _time_launch_detected == 0;
 		_launch_detection_status_pub.publish(launch_detection_status);
 	}
 
@@ -2314,6 +2319,8 @@ FixedWingModeManager::reset_takeoff_state()
 	_launchDetector.reset();
 
 	_launch_detected = false;
+
+	_time_launch_detected = 0;
 
 	_takeoff_ground_alt = _current_altitude;
 }
