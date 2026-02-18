@@ -2177,6 +2177,10 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 				_heartbeat_type_adsb = now;
 				break;
 
+			case MAV_TYPE_FLARM:
+				_heartbeat_type_flarm = now;
+				break;
+
 			case MAV_TYPE_CAMERA:
 				_heartbeat_type_camera = now;
 				camera_status.timestamp = now;
@@ -2925,6 +2929,7 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_type_onboard_controller      = (t <= TIMEOUT + _heartbeat_type_onboard_controller);
 		tstatus.heartbeat_type_gimbal                  = (t <= TIMEOUT + _heartbeat_type_gimbal);
 		tstatus.heartbeat_type_adsb                    = (t <= TIMEOUT + _heartbeat_type_adsb);
+		tstatus.heartbeat_type_flarm                   = (t <= TIMEOUT + _heartbeat_type_flarm);
 		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
 		tstatus.heartbeat_type_parachute               = (t <= TIMEOUT + _heartbeat_type_parachute);
 		tstatus.heartbeat_type_open_drone_id           = (t <= TIMEOUT + _heartbeat_type_open_drone_id);

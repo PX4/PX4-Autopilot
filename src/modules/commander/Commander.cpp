@@ -2408,9 +2408,10 @@ bool Commander::handleModeIntentionAndFailsafe()
 	_mode_management.setFailsafeState(_failsafe.selectedAction() > FailsafeBase::Action::Warn);
 	_vehicle_status.nav_state_user_intention = _mode_management.getNavStateReplacementIfValid(_user_mode_intention.get(),
 			false);
-	_vehicle_status.nav_state = _mode_management.getNavStateReplacementIfValid(FailsafeBase::modeFromAction(
-					    _failsafe.selectedAction(), _user_mode_intention.get()));
+	_vehicle_status.nav_state =
+		_mode_management.getNavStateReplacementIfValid(FailsafeBase::modeFromAction(_failsafe.selectedAction(), _user_mode_intention.get()));
 	_vehicle_status.executor_in_charge = _mode_management.modeExecutorInCharge(); // Set this in sync with nav_state
+	_vehicle_status.nav_state_display = _mode_management.getNavStateDisplay(_vehicle_status.nav_state);
 
 	switch (_failsafe.selectedAction()) {
 	case FailsafeBase::Action::Disarm:
@@ -2879,6 +2880,22 @@ void Commander::dataLinkCheck()
 				_vehicle_status.open_drone_id_system_present = true;
 				_vehicle_status.open_drone_id_system_healthy = healthy;
 			}
+
+			// Traffic avoidance system (ADSB or FLARM)
+			if (telemetry.heartbeat_type_adsb || telemetry.heartbeat_type_flarm) {
+				if (_traffic_avoidance_system_lost) { // recovered
+					_traffic_avoidance_system_lost = false;
+
+					if (_datalink_last_heartbeat_traffic_avoidance_system != 0) {
+						mavlink_log_info(&_mavlink_log_pub, "Traffic avoidance system regained\t");
+						events::send(events::ID("commander_traffic_avoidance_regained"), events::Log::Info,
+							     "Traffic avoidance system regained");
+					}
+				}
+
+				_datalink_last_heartbeat_traffic_avoidance_system = telemetry.timestamp;
+				_vehicle_status.traffic_avoidance_system_present = true;
+			}
 		}
 	}
 
@@ -2928,6 +2945,16 @@ void Commander::dataLinkCheck()
 		_vehicle_status.open_drone_id_system_present = false;
 		_vehicle_status.open_drone_id_system_healthy = false;
 		_open_drone_id_system_lost = true;
+		_status_changed = true;
+	}
+
+	// Traffic avoidance system (ADSB/FLARM)
+	if ((hrt_elapsed_time(&_datalink_last_heartbeat_traffic_avoidance_system) > 3_s)
+	    && !_traffic_avoidance_system_lost) {
+		mavlink_log_critical(&_mavlink_log_pub, "Traffic avoidance system lost");
+		events::send(events::ID("commander_traffic_avoidance_lost"), events::Log::Critical, "Traffic avoidance system lost");
+		_vehicle_status.traffic_avoidance_system_present = false;
+		_traffic_avoidance_system_lost = true;
 		_status_changed = true;
 	}
 }
