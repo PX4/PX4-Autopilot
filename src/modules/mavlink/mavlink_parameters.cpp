@@ -716,6 +716,12 @@ void MavlinkParametersManager::enque_uavcan_request(uavcan_parameter_request_s *
 	}
 
 	_uavcan_open_request_list_item *new_reqest = new _uavcan_open_request_list_item;
+
+	if (new_reqest == nullptr) {
+		PX4_ERR("uavcan request alloc failed");
+		return;
+	}
+
 	new_reqest->req = *req;
 	new_reqest->next = nullptr;
 

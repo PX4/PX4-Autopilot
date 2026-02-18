@@ -525,6 +525,12 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	}
 
 	Subscription *subscription = new Subscription();
+
+	if (subscription == nullptr) {
+		delete compat;
+		return ReadAndAndAddSubResult::kFailure;
+	}
+
 	subscription->orb_meta = orb_meta;
 	subscription->multi_id = multi_id;
 	subscription->compat = compat;

@@ -869,12 +869,12 @@ bool UxrceddsClient::setBaudrate(int fd, unsigned baud)
 
 bool UxrceddsClient::add_replier(SrvBase *replier)
 {
-	if (_num_of_repliers < MAX_NUM_REPLIERS) {
-		_repliers[_num_of_repliers] = replier;
-
-		_num_of_repliers++;
+	if (replier == nullptr || _num_of_repliers >= MAX_NUM_REPLIERS) {
+		return true;
 	}
 
+	_repliers[_num_of_repliers] = replier;
+	_num_of_repliers++;
 	return false;
 }
 
