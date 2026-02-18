@@ -31,6 +31,20 @@
  *
  ****************************************************************************/
 
+/**
+ * @file AirspeedSelector.hpp
+ *
+ * This class provides a single airspeed_validated topic, containing indicated (IAS),
+ * calibrated (CAS), true airspeed (TAS) and the information if the estimation currently
+ * is invalid and if based sensor readings or on groundspeed minus windspeed.
+ * Supporting the input of multiple "raw" airspeed inputs, this class automatically switches
+ * to a valid sensor in case of failure detection. For failure detection as well as for
+ * the estimation of a scale factor from IAS to CAS, it runs several wind estimators
+ * and also publishes those.
+ *
+ * @author Silvan Fuhrer <silvan@auterion.com>
+ */
+
 #pragma once
 
 #include "AirspeedValidator.hpp"
@@ -41,7 +55,6 @@
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/events.h>
-#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/airspeed/airspeed.h>
@@ -72,23 +85,14 @@
 #include <uORB/topics/airspeed_wind.h>
 #include <uORB/topics/flight_phase_estimation.h>
 
-class AirspeedSelector : public ModuleBase<AirspeedSelector>, public ModuleParams,
-	public px4::ScheduledWorkItem
+class AirspeedSelector : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-
 	AirspeedSelector();
-
 	~AirspeedSelector() override;
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
+	void Start();
+	void Stop();
 
 private:
 	static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};	/**< The schedule interval in usec (10 Hz) */

@@ -63,6 +63,7 @@
 # include <uORB/topics/airspeed.h>
 # include <uORB/topics/differential_pressure.h>
 # include <uORB/topics/vehicle_air_data.h>
+# include "airspeed_selector/AirspeedSelector.hpp"
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
@@ -115,17 +116,13 @@ public:
 	bool init();
 
 private:
-
 	int		parameters_update();
 
+	void InitializeAirspeedSelector();
 	void		InitializeVehicleAirData();
-
 	void		InitializeVehicleGPSPosition();
-
 	void		InitializeVehicleIMU();
-
 	void		InitializeVehicleMagnetometer();
-
 	void		InitializeVehicleOpticalFlow();
 
 	const bool _hil_enabled;	/**< if true, HIL is active */
@@ -159,6 +156,8 @@ private:
 	uORB::Publication<sensor_combined_s> _sensor_pub{ORB_ID(sensor_combined)};
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+	AirspeedSelector *_airspeed_selector {nullptr};
+
 	/**
 	 * Poll the differential pressure sensor for updated data.
 	 *
@@ -248,6 +247,9 @@ private:
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
 
 	DEFINE_PARAMETERS(
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+		(ParamBool<px4::params::SYS_HAS_NUM_ASPD>) _param_sys_has_num_aspd,
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA

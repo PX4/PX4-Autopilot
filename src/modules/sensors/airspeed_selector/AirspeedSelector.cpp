@@ -58,30 +58,20 @@ AirspeedSelector::AirspeedSelector():
 AirspeedSelector::~AirspeedSelector()
 {
 	ScheduleClear();
-
-	perf_free(_perf_elapsed);
 }
 
-int
-AirspeedSelector::task_spawn(int argc, char *argv[])
+void AirspeedSelector::Start()
 {
-	AirspeedSelector *dev = new AirspeedSelector();
-
-	// check if the trampoline is called for the first time
-	if (!dev) {
-		PX4_ERR("alloc failed");
-		return PX4_ERROR;
-	}
-
-	_object.store(dev);
-
-	dev->ScheduleOnInterval(SCHEDULE_INTERVAL, 10000);
-	_task_id = task_id_is_work_queue;
-	return PX4_OK;
-
+	ScheduleOnInterval(SCHEDULE_INTERVAL, 10000);
 }
-void
-AirspeedSelector::init()
+
+void AirspeedSelector::Stop()
+{
+	ScheduleClear();
+	Deinit();
+}
+
+void AirspeedSelector::init()
 {
 	check_for_connected_airspeed_sensors();
 
@@ -111,8 +101,7 @@ AirspeedSelector::init()
 	_prev_airspeed_src = _valid_airspeed_src;
 }
 
-void
-AirspeedSelector::check_for_connected_airspeed_sensors()
+void AirspeedSelector::check_for_connected_airspeed_sensors()
 {
 	// check for new connected airspeed sensor
 	int detected_airspeed_sensors = 0;
@@ -135,9 +124,7 @@ AirspeedSelector::check_for_connected_airspeed_sensors()
 	_number_of_airspeed_sensors = detected_airspeed_sensors;
 }
 
-
-void
-AirspeedSelector::Run()
+void AirspeedSelector::Run()
 {
 	_time_now_usec = hrt_absolute_time(); // hrt time of the current cycle
 
@@ -288,10 +275,6 @@ AirspeedSelector::Run()
 	_armed_prev = armed;
 
 	perf_end(_perf_elapsed);
-
-	if (should_exit()) {
-		exit_and_cleanup();
-	}
 }
 
 void AirspeedSelector::update_params()
@@ -675,48 +658,4 @@ void AirspeedSelector::update_throttle_filter(hrt_abstime now)
 			_throttle_filtered.update(forward_thrust, dt);
 		}
 	}
-}
-
-int AirspeedSelector::custom_command(int argc, char *argv[])
-{
-	if (!is_running()) {
-		int ret = AirspeedSelector::task_spawn(argc, argv);
-
-		if (ret) {
-			return ret;
-		}
-	}
-
-	return print_usage("unknown command");
-}
-
-int AirspeedSelector::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-This module provides a single airspeed_validated topic, containing indicated (IAS),
-calibrated (CAS), true airspeed (TAS) and the information if the estimation currently
-is invalid and if based sensor readings or on groundspeed minus windspeed.
-Supporting the input of multiple "raw" airspeed inputs, this module automatically switches
-to a valid sensor in case of failure detection. For failure detection as well as for
-the estimation of a scale factor from IAS to CAS, it runs several wind estimators
-and also publishes those.
-
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("airspeed_estimator", "estimator");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
-}
-
-extern "C" __EXPORT int airspeed_selector_main(int argc, char *argv[])
-{
-	return AirspeedSelector::main(argc, argv);
 }
