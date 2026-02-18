@@ -238,7 +238,6 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
             ( 'disarmed', 'Disarmed', 'DIS', False ),
             ( 'min', 'Minimum', 'MIN', False ),
             ( 'max', 'Maximum', 'MAX', False ),
-            ( 'center', 'Center\n(for Servos)', 'CENT', False ),
             ( 'failsafe', 'Failsafe', 'FAIL', True ),
             ]
         for key, label, param_suffix, advanced in standard_params_array:
@@ -256,7 +255,11 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 if show_if: param['show-if'] = show_if
                 per_channel_params.append(param)
 
-
+        center = {
+            'label': 'Center\n(for Servos)',
+            'name': param_prefix+'_CENT${i}',
+        }
+        per_channel_params.append(center)
         param = {
                 'label': 'Rev Range\n(for Servos)',
                 'name': param_prefix+'_REV',
