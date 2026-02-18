@@ -140,13 +140,11 @@ It is pre-built and installed automatically by _QGroundControl_ when the appropr
 
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
-```
+```sh
 make cuav_x25-super_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD Interface](../debug/swd_debug.md) operate on the **FMU Debug** port.
 
