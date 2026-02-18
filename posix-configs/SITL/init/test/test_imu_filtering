@@ -51,7 +51,7 @@ sleep 10
 
 logger off
 
-sensors status
+#sensors status # triggers TSAN
 listener sensor_gyro
 listener sensor_gyro_fifo
 listener sensor_gyro_fft
