@@ -53,6 +53,10 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC ${OpenCV_LIBS}
     PUBLIC ${OpticalFlow_LIBS}
 )
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    BUILD_RPATH "${CMAKE_BINARY_DIR}/OpticalFlow/install/lib"
+    INSTALL_RPATH "${CMAKE_BINARY_DIR}/OpticalFlow/install/lib"
+)
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
