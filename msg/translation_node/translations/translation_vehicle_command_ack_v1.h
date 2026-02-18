@@ -4,9 +4,9 @@
  ****************************************************************************/
 #pragma once
 
-// Translate ExampleTopic v0 <--> v1
-#include <px4_msgs_old/msg/example_topic_v0.hpp>
-#include <px4_msgs/msg/example_topic.hpp>
+// Translate VehicleCommandAck v0 <--> v1
+include <px4_msgs_old/msg/vehicle_command_ack_v0.hpp>
+include <px4_msgs/msg/vehicle_command_ack.hpp>
 
 class VehicleCommandAckV1Translation {
 public:
@@ -34,7 +34,12 @@ public:
 		// Set msg_older from msg_newer
 		msg_older.timestamp = msg_newer.timestamp;
 		msg_older.command = msg_newer.command;
-		msg_older.result = msg_newer.result;
+        if msg_newer.result > VEHICLE_CMD_RESULT_CANCELLED {
+        	msg_older.result = VEHICLE_CMD_RESULT_DENIED;
+        }
+        else {
+		    msg_older.result = msg_newer.result;
+		}
 		msg_older.result_param1 = msg_newer.result_param1;
 		msg_older.result_param2 = msg_newer.result_param2;
 		msg_older.target_system = msg_newer.target_system;
