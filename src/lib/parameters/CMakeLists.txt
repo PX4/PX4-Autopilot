@@ -145,11 +145,22 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
 
 # generate px4_parameters.hpp
+set(READONLY_PARAMS_CONFIG "${PX4_BOARD_DIR}/readonly_params.yaml")
+if(EXISTS ${READONLY_PARAMS_CONFIG})
+	set(READONLY_PARAMS_ARG "--readonly-config" "${READONLY_PARAMS_CONFIG}")
+	set(READONLY_PARAMS_DEPEND "${READONLY_PARAMS_CONFIG}")
+else()
+	set(READONLY_PARAMS_ARG "")
+	set(READONLY_PARAMS_DEPEND "")
+endif()
+
 add_custom_command(OUTPUT px4_parameters.hpp
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
 		--xml ${parameters_xml} --dest ${CMAKE_CURRENT_BINARY_DIR}
+		${READONLY_PARAMS_ARG}
 	DEPENDS
 		${PX4_BINARY_DIR}/parameters.xml
+		${READONLY_PARAMS_DEPEND}
 		px_generate_params.py
 		templates/px4_parameters.hpp.jinja
 	)
