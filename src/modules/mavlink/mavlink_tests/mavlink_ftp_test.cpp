@@ -969,13 +969,15 @@ bool MavlinkFtpTest::_setup_ftp_msg(const MavlinkFTP::PayloadHeader	*payload_hea
 	payload->padding = 0;
 
 	msg->checksum = 0;
-	mavlink_msg_file_transfer_protocol_pack(clientSystemId,		// Sender system id
-						clientComponentId,	// Sender component id
-						msg,			// Message to pack payload into
-						0,			// Target network
-						serverSystemId,		// Target system id
-						serverComponentId,	// Target component id
-						payload_bytes);		// Payload to pack into message
+	mavlink_status_t local_status{};
+	mavlink_msg_file_transfer_protocol_pack_status(clientSystemId,		// Sender system id
+			clientComponentId,	// Sender component id
+			&local_status,		// Local status to avoid global race
+			msg,			// Message to pack payload into
+			0,			// Target network
+			serverSystemId,		// Target system id
+			serverComponentId,	// Target component id
+			payload_bytes);		// Payload to pack into message
 
 	return true;
 }
