@@ -55,8 +55,8 @@ parameters:
       description:
         short: Light ${i} function
         long: |
-          Function for light ${i}. Navigation lights ("Anti-collision" to "White Navigation") follow UAVCAN_LGT_MODE.
-          Hybrid ("Status / Anti-collision" - "Status / White Navigation"): status when UAVCAN_LGT_MODE is inactive, second function to use when active.
+          Function for light ${i}.
+          UAVCAN_LGT_MODE determines when the first option or second option is active Off/On.
       type: enum
       num_instances: *max_num_uavcan_lights
       instance_start: 0
@@ -64,16 +64,14 @@ parameters:
       max: 9
       default: 0
       values:
-        0: Status
-        1: Anti-collision
-        2: Red Navigation
-        3: Green Navigation
-        4: White Navigation
-        5: Status / Anti-collision
-        6: Status / Red Navigation
-        7: Status / Green Navigation
-        8: Status / White Navigation
-        9: Status / Off
+        0: Status/Status
+        1: Off/White
+        2: Off/Red
+        3: Off/Green
+        4: Status/White
+        5: Status/Red
+        6: Status/Green
+        7: Status/Off
 actuator_output:
   show_subgroups_if: 'UAVCAN_ENABLE>=3'
   config_parameters:
