@@ -95,7 +95,9 @@ public:
 		} else
 #endif // __PX4_NUTTX
 		{
-			return __atomic_load_n(&_value, __ATOMIC_SEQ_CST);
+			T val;
+			__atomic_load(&_value, &val, __ATOMIC_SEQ_CST);
+			return val;
 		}
 	}
 
