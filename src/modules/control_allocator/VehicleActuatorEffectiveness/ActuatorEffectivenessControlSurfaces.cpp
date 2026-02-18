@@ -221,9 +221,14 @@ void ActuatorEffectivenessControlSurfaces::applyFlaps(float flaps_control, int f
 	_flaps_setpoint_with_slewrate.update(flaps_control, dt);
 
 	for (int i = 0; i < _count; ++i) {
-		// map [0, 1] to [-1, 1]
-		// TODO: this currently only works for dedicated flaps, not flaperons
-		actuator_sp(i + first_actuator_idx) += (_flaps_setpoint_with_slewrate.getState() * 2.f - 1.f) * _params[i].scale_flap;
+		if (_params[i].type == Type::LeftFlap || _params[i].type == Type::RightFlap) {
+			// map [0, 1] to [-1, 1] for pure flaps
+			actuator_sp(i + first_actuator_idx) += (_flaps_setpoint_with_slewrate.getState() * 2.f - 1.f) * _params[i].scale_flap;
+
+		} else {
+			// map [0, 1] to [0, 1] for flaperons (ailerons deflected down)
+			actuator_sp(i + first_actuator_idx) += _flaps_setpoint_with_slewrate.getState() * _params[i].scale_flap;
+		}
 	}
 }
 
@@ -233,8 +238,14 @@ void ActuatorEffectivenessControlSurfaces::applySpoilers(float spoilers_control,
 	_spoilers_setpoint_with_slewrate.update(spoilers_control, dt);
 
 	for (int i = 0; i < _count; ++i) {
-		// TODO: this currently only works for spoilerons, not dedicated spoilers
-		actuator_sp(i + first_actuator_idx) += _spoilers_setpoint_with_slewrate.getState() * _params[i].scale_spoiler;
+		if (_params[i].type == Type::LeftSpoiler || _params[i].type == Type::RightSpoiler) {
+			// map [0, 1] to [-1, 1] for pure spoilers
+			actuator_sp(i + first_actuator_idx) += (_spoilers_setpoint_with_slewrate.getState() * 2.f - 1.f) * _params[i].scale_spoiler;
+
+		} else {
+			// map [0, 1] to [0, 1] for spoilerons (ailerons deflected up)
+			actuator_sp(i + first_actuator_idx) += _spoilers_setpoint_with_slewrate.getState() * _params[i].scale_spoiler;
+		}
 	}
 }
 
