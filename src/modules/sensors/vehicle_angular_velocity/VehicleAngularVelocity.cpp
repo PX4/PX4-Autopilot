@@ -73,14 +73,15 @@ bool VehicleAngularVelocity::Start()
 	// force initial updates
 	ParametersUpdate(true);
 
+	// initial sensor selection before registering callbacks to avoid data race with Run()
+	if (!SensorSelectionUpdate(hrt_absolute_time(), true)) {
+		ScheduleNow();
+	}
+
 	// sensor_selection needed to change the active sensor if the primary stops updating
 	if (!_sensor_selection_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
-	}
-
-	if (!SensorSelectionUpdate(hrt_absolute_time(), true)) {
-		ScheduleNow();
 	}
 
 	return true;
@@ -281,7 +282,7 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 					}
 
 					if (sensor_gyro_fifo_sub.get().device_id == device_id) {
-						if (_sensor_gyro_fifo_sub.ChangeInstance(i) && _sensor_gyro_fifo_sub.registerCallback()) {
+						if (_sensor_gyro_fifo_sub.ChangeInstance(i)) {
 							// make sure non-FIFO sub is unregistered
 							_sensor_sub.unregisterCallback();
 
@@ -296,13 +297,16 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 							_bias.zero();
 							_fifo_available = true;
 
-							perf_count(_selection_changed_perf);
-							PX4_DEBUG("selecting sensor_gyro_fifo:%" PRIu8 " %" PRIu32, i, _selected_sensor_device_id);
-							return true;
+							// register callback after all member writes to avoid data race with Run()
+							if (_sensor_gyro_fifo_sub.registerCallback()) {
+								perf_count(_selection_changed_perf);
+								PX4_DEBUG("selecting sensor_gyro_fifo:%" PRIu8 " %" PRIu32, i, _selected_sensor_device_id);
+								return true;
 
-						} else {
-							PX4_ERR("unable to register callback for sensor_gyro_fifo:%" PRIu8 " %" PRIu32,
-								i, sensor_gyro_fifo_sub.get().device_id);
+							} else {
+								PX4_ERR("unable to register callback for sensor_gyro_fifo:%" PRIu8 " %" PRIu32,
+									i, sensor_gyro_fifo_sub.get().device_id);
+							}
 						}
 					}
 				}
@@ -323,7 +327,7 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 					}
 
 					if (sensor_gyro_sub.get().device_id == device_id) {
-						if (_sensor_sub.ChangeInstance(i) && _sensor_sub.registerCallback()) {
+						if (_sensor_sub.ChangeInstance(i)) {
 							// make sure FIFO sub is unregistered
 							_sensor_gyro_fifo_sub.unregisterCallback();
 
@@ -338,13 +342,16 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 							_bias.zero();
 							_fifo_available = false;
 
-							perf_count(_selection_changed_perf);
-							PX4_DEBUG("selecting sensor_gyro:%" PRIu8 " %" PRIu32, i, _selected_sensor_device_id);
-							return true;
+							// register callback after all member writes to avoid data race with Run()
+							if (_sensor_sub.registerCallback()) {
+								perf_count(_selection_changed_perf);
+								PX4_DEBUG("selecting sensor_gyro:%" PRIu8 " %" PRIu32, i, _selected_sensor_device_id);
+								return true;
 
-						} else {
-							PX4_ERR("unable to register callback for sensor_gyro:%" PRIu8 " %" PRIu32,
-								i, sensor_gyro_sub.get().device_id);
+							} else {
+								PX4_ERR("unable to register callback for sensor_gyro:%" PRIu8 " %" PRIu32,
+									i, sensor_gyro_sub.get().device_id);
+							}
 						}
 					}
 				}
