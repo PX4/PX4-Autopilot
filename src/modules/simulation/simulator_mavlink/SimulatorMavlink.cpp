@@ -1687,6 +1687,7 @@ int simulator_mavlink_main(int argc, char *argv[])
 
 		} else {
 			px4_task_delete(g_sim_task);
+			px4_task_join(g_sim_task);
 			g_sim_task = -1;
 		}
 
