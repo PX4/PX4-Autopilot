@@ -34,5 +34,21 @@
 #include "atomic_transaction.h"
 
 #ifdef __PX4_POSIX
-_MutexHolder  AtomicTransaction::_mutex_holder = _MutexHolder {};
+static pthread_mutex_t _param_mutex;
+static pthread_once_t _param_mutex_once = PTHREAD_ONCE_INIT;
+
+static void _init_param_mutex()
+{
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&_param_mutex, &attr);
+	pthread_mutexattr_destroy(&attr);
+}
+
+pthread_mutex_t *AtomicTransaction::_get_mutex()
+{
+	pthread_once(&_param_mutex_once, _init_param_mutex);
+	return &_param_mutex;
+}
 #endif
