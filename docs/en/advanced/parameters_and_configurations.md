@@ -411,7 +411,7 @@ Read-only parameters are enforced at all entry points:
 
 ### Notes
 
-- The read-only list is compiled into firmware as a constexpr array, so there is zero runtime overhead when the list is empty.
+- The read-only list is compiled into firmware as a `constexpr` array, so there is zero runtime overhead when the list is empty.
 - If no `readonly_params.yaml` file exists for a board, `param lock` is a no-op.
 
 ## Further Information
