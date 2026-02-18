@@ -55,6 +55,18 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 
 	_time_us = time_us;
 
+	// Collect entries that need wakeup while holding _timed_waits_mutex,
+	// then broadcast outside of it to avoid lock-order-inversion with
+	// cond_timedwait() (which holds passed_lock while acquiring _timed_waits_mutex).
+	struct WakeUp {
+		pthread_cond_t *cond;
+		pthread_mutex_t *lock;
+	};
+
+	static constexpr int MAX_WAKEUPS = 32;
+	WakeUp wakeups[MAX_WAKEUPS];
+	int num_wakeups = 0;
+
 	{
 		std::unique_lock<std::mutex> lock_timed_waits(_timed_waits_mutex);
 		_setting_time = true;
@@ -81,16 +93,28 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 
 			if (timed_wait->time_us <= time_us &&
 			    !timed_wait->timeout) {
-				// We are abusing the condition here to signal that the time
-				// has passed.
-				pthread_mutex_lock(timed_wait->passed_lock);
+				// Mark as timed out and collect for broadcast
 				timed_wait->timeout = true;
-				pthread_cond_broadcast(timed_wait->passed_cond);
-				pthread_mutex_unlock(timed_wait->passed_lock);
+
+				if (num_wakeups < MAX_WAKEUPS) {
+					wakeups[num_wakeups++] = {timed_wait->passed_cond, timed_wait->passed_lock};
+				}
 			}
 
 			timed_wait_prev = timed_wait;
 			timed_wait = timed_wait->next;
+		}
+	}
+
+	// Broadcast under _broadcast_mutex (not _timed_waits_mutex) so that
+	// locking passed_lock here doesn't create an ordering cycle.
+	{
+		std::lock_guard<std::mutex> lock_broadcast(_broadcast_mutex);
+
+		for (int i = 0; i < num_wakeups; ++i) {
+			pthread_mutex_lock(wakeups[i].lock);
+			pthread_cond_broadcast(wakeups[i].cond);
+			pthread_mutex_unlock(wakeups[i].lock);
 		}
 
 		_setting_time = false;
@@ -101,7 +125,7 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 {
 	// A TimedWait object might still be in timed_waits_ after we return, so its lifetime needs to be
 	// longer. And using thread_local is more efficient than malloc.
-	static thread_local TimedWait timed_wait;
+	static thread_local TimedWait timed_wait{};
 	{
 		std::lock_guard<std::mutex> lock_timed_waits(_timed_waits_mutex);
 
@@ -144,9 +168,13 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 		// deadlock due to a different locking order in set_absolute_time().
 		// Note that this case does not happen too frequently, and thus can be
 		// a bit more expensive.
+		// We wait for both the iteration phase (_timed_waits_mutex) and the
+		// broadcast phase (_broadcast_mutex) to complete.
 		pthread_mutex_unlock(lock);
 		_timed_waits_mutex.lock();
 		_timed_waits_mutex.unlock();
+		_broadcast_mutex.lock();
+		_broadcast_mutex.unlock();
 		pthread_mutex_lock(lock);
 	}
 

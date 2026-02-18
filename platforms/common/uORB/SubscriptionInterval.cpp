@@ -38,7 +38,9 @@ namespace uORB
 
 bool SubscriptionInterval::updated()
 {
-	if (advertised() && (hrt_elapsed_time(&_last_update) >= _interval_us)) {
+	hrt_abstime last_update = _last_update.load();
+
+	if (advertised() && (hrt_elapsed_time(&last_update) >= _interval_us)) {
 		return _subscription.updated();
 	}
 
@@ -62,10 +64,10 @@ bool SubscriptionInterval::copy(void *dst)
 		// make sure we don't set a timestamp before the timer started counting (now - _interval_us would wrap because it's unsigned)
 		if (now > _interval_us) {
 			// shift last update time forward, but don't let it get further behind than the interval
-			_last_update = math::constrain(_last_update + _interval_us, now - _interval_us, now);
+			_last_update.store(math::constrain(_last_update.load() + _interval_us, now - _interval_us, now));
 
 		} else {
-			_last_update = now;
+			_last_update.store(now);
 		}
 
 		return true;

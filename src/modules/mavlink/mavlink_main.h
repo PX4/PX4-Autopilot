@@ -62,6 +62,7 @@
 #include <parameters/param.h>
 #include <lib/variable_length_ringbuffer/VariableLengthRingbuffer.hpp>
 #include <perf/perf_counter.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -132,8 +133,8 @@ public:
 	static Mavlink *new_instance();
 	static Mavlink *get_instance_for_device(const char *device_name);
 
-	mavlink_message_t *get_buffer() { return &_mavlink_buffer; }
-	mavlink_status_t *get_status() { return &_mavlink_status; }
+	mavlink_message_t *get_buffer();
+	mavlink_status_t *get_status();
 
 	void setProtocolVersion(uint8_t version);
 	uint8_t getProtocolVersion() const { return _protocol_version; };
@@ -255,7 +256,7 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
-	bool			is_gcs_connected() { return _tstatus.heartbeat_type_gcs; }
+	bool			is_gcs_connected() { lock_telemetry_status(); bool r = _tstatus.heartbeat_type_gcs; unlock_telemetry_status(); return r; }
 
 #if defined(MAVLINK_UDP)
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
@@ -383,34 +384,39 @@ public:
 	float			get_baudrate() { return _baudrate; }
 
 	/* Functions for waiting to start transmission until message received. */
-	void			set_has_received_messages(bool received_messages) { _received_messages = received_messages; }
-	bool			get_has_received_messages() { return _received_messages; }
+	void			set_has_received_messages(bool received_messages) { _received_messages.store(received_messages); }
+	bool			get_has_received_messages() { return _received_messages.load(); }
 	void			set_wait_to_transmit(bool wait) { _wait_to_transmit = wait; }
 	bool			get_wait_to_transmit() { return _wait_to_transmit; }
-	bool			should_transmit() { return (_transmitting_enabled && (!_wait_to_transmit || (_wait_to_transmit && _received_messages))); }
+	bool			should_transmit() { return (_transmitting_enabled && (!_wait_to_transmit || (_wait_to_transmit && _received_messages.load()))); }
 
 	/**
 	 * Count transmitted bytes
 	 */
-	void			count_txbytes(unsigned n) { _bytes_tx += n; };
+	void			count_txbytes(unsigned n) { _bytes_tx.fetch_add(n); };
 
 	/**
 	 * Count bytes not transmitted because of errors
 	 */
-	void			count_txerrbytes(unsigned n) { _bytes_txerr += n; };
+	void			count_txerrbytes(unsigned n) { _bytes_txerr.fetch_add(n); };
 
 	/**
 	 * Count received bytes
 	 */
-	void			count_rxbytes(unsigned n) { _bytes_rx += n; };
+	void			count_rxbytes(unsigned n) { _bytes_rx.fetch_add(n); };
 
 	/**
 	 * Get the receive status of this MAVLink link
 	 */
 	telemetry_status_s	&telemetry_status() { return _tstatus; }
-	void                    telemetry_status_updated() { _tstatus_updated = true; }
+	void                    lock_telemetry_status() { pthread_mutex_lock(&_tstatus_mutex); }
+	void                    unlock_telemetry_status() { pthread_mutex_unlock(&_tstatus_mutex); }
+	void                    telemetry_status_updated() { _tstatus_updated.store(true); }
 
-	void			set_telemetry_status_type(uint8_t type) { _tstatus.type = type; }
+	void			set_telemetry_status_type(uint8_t type) { pthread_mutex_lock(&_tstatus_mutex); _tstatus.type = type; pthread_mutex_unlock(&_tstatus_mutex); }
+
+	void			lock_send();
+	void			unlock_send();
 
 	void			update_radio_status(const radio_status_s &radio_status);
 
@@ -521,14 +527,15 @@ private:
 	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
 	static constexpr float	MAVLINK_MIN_MULTIPLIER{0.0005f};
 
-	mavlink_message_t	_mavlink_buffer {};
-	mavlink_status_t	_mavlink_status {};
+	// Used before _instance_id is assigned; copied to static per-channel arrays in set_instance_id()
+	mavlink_message_t	_mavlink_buffer_early {};
+	mavlink_status_t	_mavlink_status_early {};
 
 	/* states */
 	bool			_hil_enabled{false};		/**< Hardware In the Loop mode */
 	bool			_is_usb_uart{false};		/**< Port is USB */
 	bool			_wait_to_transmit{false};  	/**< Wait to transmit until received messages. */
-	bool			_received_messages{false};	/**< Whether we've received valid mavlink messages. */
+	px4::atomic_bool	_received_messages{false};	/**< Whether we've received valid mavlink messages. */
 
 	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
 	px4::atomic_bool	_sending_parameters{false};     /**< True if parameters are currently sent out */
@@ -580,9 +587,9 @@ private:
 	uint64_t		_mavlink_start_time{0};
 	uint8_t _protocol_version = 0; ///< after initialization the only values are 1 and 2
 
-	unsigned		_bytes_tx{0};
-	unsigned		_bytes_txerr{0};
-	unsigned		_bytes_rx{0};
+	px4::atomic<unsigned>	_bytes_tx{0};
+	px4::atomic<unsigned>	_bytes_txerr{0};
+	px4::atomic<unsigned>	_bytes_rx{0};
 	hrt_abstime		_bytes_timestamp{0};
 
 #if defined(MAVLINK_UDP)
@@ -613,14 +620,14 @@ private:
 
 	radio_status_s		_rstatus {};
 	telemetry_status_s	_tstatus {};
-	bool                    _tstatus_updated{false};
+	px4::atomic_bool        _tstatus_updated{false};
+	pthread_mutex_t		_tstatus_mutex {};
 
 	ping_statistics_s	_ping_stats {};
 
 	pthread_mutex_t		_message_buffer_mutex{};
 	VariableLengthRingbuffer _message_buffer{};
 
-	pthread_mutex_t		_send_mutex {};
 	pthread_mutex_t         _radio_status_mutex {};
 
 	DEFINE_PARAMETERS(

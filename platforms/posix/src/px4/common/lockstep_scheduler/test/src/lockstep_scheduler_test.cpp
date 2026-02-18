@@ -65,11 +65,12 @@ void test_condition_timing_out()
 	ls.set_absolute_time(some_time_us);
 
 	std::atomic<bool> should_have_timed_out{false};
-	pthread_mutex_lock(&lock);
 
-	// Use a thread to wait for condition while we already have the lock.
-	// This ensures the synchronization happens in the right order.
+	// The thread that calls cond_timedwait must also lock the mutex,
+	// otherwise set_absolute_time() would re-lock the main thread's
+	// own mutex in its broadcast phase, causing a deadlock.
 	TestThread thread([&ls, &cond, &lock, &should_have_timed_out]() {
+		pthread_mutex_lock(&lock);
 		EXPECT_EQ(ls.cond_timedwait(&cond, &lock, some_time_us + 1000), ETIMEDOUT);
 		EXPECT_TRUE(should_have_timed_out);
 		// It should be re-locked afterwards, so we should be able to unlock it.
@@ -100,16 +101,24 @@ void test_locked_semaphore_getting_unlocked()
 	LockstepScheduler ls;
 	ls.set_absolute_time(some_time_us);
 
-	pthread_mutex_lock(&lock);
-	// Use a thread to wait for condition while we already have the lock.
-	// This ensures the synchronization happens in the right order.
-	TestThread thread([&ls, &cond, &lock]() {
+	std::atomic<bool> thread_locked{false};
 
+	// The thread locks the mutex itself (POSIX requires the calling thread
+	// to own the mutex passed to pthread_cond_wait).
+	TestThread thread([&ls, &cond, &lock, &thread_locked]() {
+		pthread_mutex_lock(&lock);
+		thread_locked = true;
 		ls.set_absolute_time(some_time_us + 500);
 		EXPECT_EQ(ls.cond_timedwait(&cond, &lock, some_time_us + 1000), 0);
 		// It should be re-locked afterwards, so we should be able to unlock it.
 		EXPECT_EQ(pthread_mutex_unlock(&lock), 0);
 	});
+
+	// Wait until thread has locked the mutex. Our pthread_mutex_lock below
+	// will then block until cond_timedwait releases it via pthread_cond_wait.
+	while (!thread_locked) {
+		std::this_thread::yield();
+	}
 
 	pthread_mutex_lock(&lock);
 	pthread_cond_broadcast(&cond);
@@ -142,8 +151,9 @@ public:
 
 	void run()
 	{
-		pthread_mutex_lock(&_lock);
 		_thread = std::make_shared<TestThread>([this]() {
+			pthread_mutex_lock(&_lock);
+			_thread_ready = true;
 			_result = _ls.cond_timedwait(&_cond, &_lock, _timeout);
 			pthread_mutex_unlock(&_lock);
 		});
@@ -151,7 +161,7 @@ public:
 
 	void check()
 	{
-		if (_is_done) {
+		if (_is_done || !_thread_ready) {
 			return;
 		}
 
@@ -186,6 +196,7 @@ private:
 	pthread_mutex_t _lock;
 	LockstepScheduler &_ls;
 	std::atomic<bool> _is_done{false};
+	std::atomic<bool> _thread_ready{false};
 	std::atomic<int> _result {INITIAL_RESULT};
 	std::shared_ptr<TestThread> _thread{};
 };
@@ -310,7 +321,7 @@ void test_usleep()
 TEST(LockstepScheduler, All)
 {
 	for (unsigned iteration = 1; iteration <= 100; ++iteration) {
-		//std::cout << "Test iteration: " << iteration << "\n";
+		std::cout << "Test iteration: " << iteration << "\n";
 		test_absolute_time();
 		test_condition_timing_out();
 		test_locked_semaphore_getting_unlocked();

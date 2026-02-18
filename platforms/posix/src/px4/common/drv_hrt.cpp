@@ -134,7 +134,10 @@ void hrt_store_absolute_time(volatile hrt_abstime *t)
  */
 bool	hrt_called(struct hrt_call *entry)
 {
-	return (entry->deadline == 0);
+	hrt_lock();
+	bool result = (entry->deadline == 0);
+	hrt_unlock();
+	return result;
 }
 
 /*
@@ -162,13 +165,13 @@ static void hrt_latency_update()
 	/* bounded buckets */
 	for (index = 0; index < LATENCY_BUCKET_COUNT; index++) {
 		if (latency <= latency_buckets[index]) {
-			latency_counters[index]++;
+			__atomic_fetch_add(&latency_counters[index], 1, __ATOMIC_RELAXED);
 			return;
 		}
 	}
 
 	/* catch-all at the end */
-	latency_counters[index]++;
+	__atomic_fetch_add(&latency_counters[index], 1, __ATOMIC_RELAXED);
 }
 
 /*
@@ -416,12 +419,15 @@ hrt_call_invoke()
 		call->deadline = 0;
 
 		/* invoke the callout (if there is one) */
-		if (call->callout) {
+		hrt_callout callout = call->callout;
+		void *arg = call->arg;
+
+		if (callout) {
 			// Unlock so we don't deadlock in callback
 			hrt_unlock();
 
-			//PX4_INFO("call %p: %p(%p)", call, call->callout, call->arg);
-			call->callout(call->arg);
+			//PX4_INFO("call %p: %p(%p)", call, callout, arg);
+			callout(arg);
 
 			hrt_lock();
 		}

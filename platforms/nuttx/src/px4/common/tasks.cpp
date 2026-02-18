@@ -40,6 +40,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 
 #include <nuttx/board.h>
 #include <nuttx/kthread.h>
@@ -89,6 +90,16 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 int px4_task_delete(int pid)
 {
 	return task_delete(pid);
+}
+
+int px4_task_join(int pid)
+{
+	// Wait for the task to exit by polling whether it still exists
+	while (kill(pid, 0) == 0) {
+		px4_usleep(10000);
+	}
+
+	return 0;
 }
 
 const char *px4_get_taskname(void)

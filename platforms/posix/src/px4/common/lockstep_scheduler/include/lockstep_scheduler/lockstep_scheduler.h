@@ -86,7 +86,7 @@ private:
 		pthread_cond_t *passed_cond{nullptr};
 		pthread_mutex_t *passed_lock{nullptr};
 		uint64_t time_us{0};
-		bool timeout{false};
+		std::atomic<bool> timeout{false};
 		std::atomic<bool> done{false};
 		std::atomic<bool> removed{true};
 
@@ -98,6 +98,7 @@ private:
 	std::atomic<uint64_t> _time_us{0};
 
 	TimedWait *_timed_waits{nullptr}; ///< head of linked list
-	std::mutex _timed_waits_mutex;
+	std::mutex _timed_waits_mutex;   ///< protects _timed_waits linked list
+	std::mutex _broadcast_mutex;     ///< protects the broadcast phase in set_absolute_time()
 	std::atomic<bool> _setting_time{false}; ///< true if set_absolute_time() is currently being executed
 };

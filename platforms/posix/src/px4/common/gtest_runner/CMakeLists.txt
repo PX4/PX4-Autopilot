@@ -36,4 +36,9 @@ set(SRCS
    )
 
 px4_add_library(gtest_functional_main ${SRCS})
-target_link_libraries(gtest_functional_main PUBLIC gtest fuzztest::init_fuzztest)
+if(TARGET fuzztest::init_fuzztest)
+	target_link_libraries(gtest_functional_main PUBLIC gtest fuzztest::init_fuzztest)
+	target_compile_definitions(gtest_functional_main PRIVATE HAVE_FUZZTEST)
+else()
+	target_link_libraries(gtest_functional_main PUBLIC gtest)
+endif()

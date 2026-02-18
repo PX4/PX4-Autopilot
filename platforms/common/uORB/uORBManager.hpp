@@ -184,7 +184,7 @@ public:
 	 * Make sure initialize() is called first.
 	 * @return uORB::Manager*
 	 */
-	static uORB::Manager *get_instance() { return _Instance; }
+	static uORB::Manager *get_instance() { return _Instance.load(); }
 
 	/**
 	 * Get the DeviceMaster. If it does not exist,
@@ -489,7 +489,7 @@ private: // class methods
 	int node_open(const struct orb_metadata *meta, bool advertiser, int *instance = nullptr);
 
 private: // data members
-	static Manager *_Instance;
+	static px4::atomic<Manager *> _Instance;
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	// the communicator channel instance.

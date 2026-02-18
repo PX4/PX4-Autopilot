@@ -48,6 +48,8 @@
 
 #include "perf_counter.h"
 
+#include <px4_platform_common/atomic.h>
+
 /**
  * Header common to all counters.
  */
@@ -61,34 +63,34 @@ struct perf_ctr_header {
  * PC_EVENT counter.
  */
 struct perf_ctr_count : public perf_ctr_header {
-	uint64_t		event_count{0};
+	px4::atomic<uint64_t>	event_count;
 };
 
 /**
  * PC_ELAPSED counter.
  */
 struct perf_ctr_elapsed : public perf_ctr_header {
-	uint64_t		event_count{0};
-	uint64_t		time_start{0};
-	uint64_t		time_total{0};
-	uint32_t		time_least{0};
-	uint32_t		time_most{0};
-	float			mean{0.0f};
-	float			M2{0.0f};
+	px4::atomic<uint64_t>	event_count;
+	px4::atomic<uint64_t>	time_start;
+	px4::atomic<uint64_t>	time_total;
+	px4::atomic<uint32_t>	time_least;
+	px4::atomic<uint32_t>	time_most;
+	px4::atomic<float>	mean;
+	px4::atomic<float>	M2;
 };
 
 /**
  * PC_INTERVAL counter.
  */
 struct perf_ctr_interval : public perf_ctr_header {
-	uint64_t		event_count{0};
-	uint64_t		time_event{0};
-	uint64_t		time_first{0};
-	uint64_t		time_last{0};
-	uint32_t		time_least{0};
-	uint32_t		time_most{0};
-	float			mean{0.0f};
-	float			M2{0.0f};
+	px4::atomic<uint64_t>	event_count;
+	px4::atomic<uint64_t>	time_event;
+	px4::atomic<uint64_t>	time_first;
+	px4::atomic<uint64_t>	time_last;
+	px4::atomic<uint32_t>	time_least;
+	px4::atomic<uint32_t>	time_most;
+	px4::atomic<float>	mean;
+	px4::atomic<float>	M2;
 };
 
 /**
@@ -100,12 +102,8 @@ static sq_queue_t	perf_counters = { nullptr, nullptr };
  * mutex protecting access to the perf_counters linked list (which is read from & written to by different threads)
  */
 pthread_mutex_t perf_counters_mutex = PTHREAD_MUTEX_INITIALIZER;
-// FIXME: the mutex does **not** protect against access to/from the perf
-// counter's data. It can still happen that a counter is updated while it is
-// printed. This can lead to inconsistent output, or completely bogus values
-// (especially the 64bit values which are in general not atomically updated).
-// The same holds for shared perf counters (perf_alloc_once), that can be updated
-// concurrently (this affects the 'ctrl_latency' counter).
+// Note: the mutex only protects the linked list, not individual counter data.
+// All counter field accesses use px4::atomic to prevent torn reads/writes.
 
 
 perf_counter_t
@@ -208,7 +206,7 @@ perf_count(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_COUNT:
-		((struct perf_ctr_count *)handle)->event_count++;
+		((struct perf_ctr_count *)handle)->event_count.fetch_add(1);
 		break;
 
 	case PC_INTERVAL:
@@ -229,7 +227,7 @@ perf_begin(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_ELAPSED:
-		((struct perf_ctr_elapsed *)handle)->time_start = hrt_absolute_time();
+		((struct perf_ctr_elapsed *)handle)->time_start.store(hrt_absolute_time());
 		break;
 
 	default:
@@ -247,9 +245,10 @@ perf_end(perf_counter_t handle)
 	switch (handle->type) {
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+			hrt_abstime ts = pce->time_start.load();
 
-			if (pce->time_start != 0) {
-				perf_set_elapsed(handle, hrt_elapsed_time(&pce->time_start));
+			if (ts != 0) {
+				perf_set_elapsed(handle, hrt_absolute_time() - ts);
 			}
 		}
 		break;
@@ -271,25 +270,33 @@ perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 
 			if (elapsed >= 0) {
-				pce->event_count++;
-				pce->time_total += elapsed;
+				uint64_t ec = pce->event_count.fetch_add(1) + 1;
+				pce->time_total.fetch_add((uint64_t)elapsed);
 
-				if ((pce->time_least > (uint32_t)elapsed) || (pce->time_least == 0)) {
-					pce->time_least = elapsed;
+				uint32_t tl = pce->time_least.load();
+
+				if ((tl > (uint32_t)elapsed) || (tl == 0)) {
+					pce->time_least.store((uint32_t)elapsed);
 				}
 
-				if (pce->time_most < (uint32_t)elapsed) {
-					pce->time_most = elapsed;
+				uint32_t tm = pce->time_most.load();
+
+				if (tm < (uint32_t)elapsed) {
+					pce->time_most.store((uint32_t)elapsed);
 				}
 
 				// maintain mean and variance of the elapsed time in seconds
 				// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
 				float dt = elapsed / 1e6f;
-				float delta_intvl = dt - pce->mean;
-				pce->mean += delta_intvl / pce->event_count;
-				pce->M2 += delta_intvl * (dt - pce->mean);
+				float mean_val = pce->mean.load();
+				float delta_intvl = dt - mean_val;
+				mean_val += delta_intvl / ec;
+				pce->mean.store(mean_val);
+				float m2_val = pce->M2.load();
+				m2_val += delta_intvl * (dt - mean_val);
+				pce->M2.store(m2_val);
 
-				pce->time_start = 0;
+				pce->time_start.store((uint64_t)0);
 			}
 		}
 		break;
@@ -309,42 +316,55 @@ perf_count_interval(perf_counter_t handle, hrt_abstime now)
 	switch (handle->type) {
 	case PC_INTERVAL: {
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+			uint64_t ec = pci->event_count.load();
 
-			switch (pci->event_count) {
+			switch (ec) {
 			case 0:
-				pci->time_first = now;
+				pci->time_first.store(now);
 				break;
 
-			case 1:
-				pci->time_least = (uint32_t)(now - pci->time_last);
-				pci->time_most = (uint32_t)(now - pci->time_last);
-				pci->mean = pci->time_least / 1e6f;
-				pci->M2 = 0;
-				break;
+			case 1: {
+					uint64_t tl = pci->time_last.load();
+					uint32_t interval = (uint32_t)(now - tl);
+					pci->time_least.store(interval);
+					pci->time_most.store(interval);
+					pci->mean.store(interval / 1e6f);
+					pci->M2.store(0.0f);
+					break;
+				}
 
 			default: {
-					hrt_abstime interval = now - pci->time_last;
+					uint64_t tl = pci->time_last.load();
+					hrt_abstime interval = now - tl;
 
-					if ((uint32_t)interval < pci->time_least) {
-						pci->time_least = (uint32_t)interval;
+					uint32_t least = pci->time_least.load();
+
+					if ((uint32_t)interval < least) {
+						pci->time_least.store((uint32_t)interval);
 					}
 
-					if ((uint32_t)interval > pci->time_most) {
-						pci->time_most = (uint32_t)interval;
+					uint32_t most = pci->time_most.load();
+
+					if ((uint32_t)interval > most) {
+						pci->time_most.store((uint32_t)interval);
 					}
 
 					// maintain mean and variance of interval in seconds
 					// Knuth/Welford recursive mean and variance of update intervals (via Wikipedia)
 					float dt = interval / 1e6f;
-					float delta_intvl = dt - pci->mean;
-					pci->mean += delta_intvl / pci->event_count;
-					pci->M2 += delta_intvl * (dt - pci->mean);
+					float mean_val = pci->mean.load();
+					float delta_intvl = dt - mean_val;
+					mean_val += delta_intvl / ec;
+					pci->mean.store(mean_val);
+					float m2_val = pci->M2.load();
+					m2_val += delta_intvl * (dt - mean_val);
+					pci->M2.store(m2_val);
 					break;
 				}
 			}
 
-			pci->time_last = now;
-			pci->event_count++;
+			pci->time_last.store(now);
+			pci->event_count.fetch_add(1);
 			break;
 		}
 
@@ -362,7 +382,7 @@ perf_set_count(perf_counter_t handle, uint64_t count)
 
 	switch (handle->type) {
 	case PC_COUNT: {
-			((struct perf_ctr_count *)handle)->event_count = count;
+			((struct perf_ctr_count *)handle)->event_count.store(count);
 		}
 		break;
 
@@ -382,8 +402,7 @@ perf_cancel(perf_counter_t handle)
 	switch (handle->type) {
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-
-			pce->time_start = 0;
+			pce->time_start.store((uint64_t)0);
 		}
 		break;
 
@@ -401,31 +420,31 @@ perf_reset(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_COUNT:
-		((struct perf_ctr_count *)handle)->event_count = 0;
+		((struct perf_ctr_count *)handle)->event_count.store((uint64_t)0);
 		break;
 
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-			pce->event_count = 0;
-			pce->time_start = 0;
-			pce->time_total = 0;
-			pce->time_least = 0;
-			pce->time_most = 0;
-			pce->mean = 0.0f;
-			pce->M2 = 0.0f;
+			pce->event_count.store((uint64_t)0);
+			pce->time_start.store((uint64_t)0);
+			pce->time_total.store((uint64_t)0);
+			pce->time_least.store((uint32_t)0);
+			pce->time_most.store((uint32_t)0);
+			pce->mean.store(0.0f);
+			pce->M2.store(0.0f);
 			break;
 		}
 
 	case PC_INTERVAL: {
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			pci->event_count = 0;
-			pci->time_event = 0;
-			pci->time_first = 0;
-			pci->time_last = 0;
-			pci->time_least = 0;
-			pci->time_most = 0;
-			pci->mean = 0.0f;
-			pci->M2 = 0.0f;
+			pci->event_count.store((uint64_t)0);
+			pci->time_event.store((uint64_t)0);
+			pci->time_first.store((uint64_t)0);
+			pci->time_last.store((uint64_t)0);
+			pci->time_least.store((uint32_t)0);
+			pci->time_most.store((uint32_t)0);
+			pci->mean.store(0.0f);
+			pci->M2.store(0.0f);
 			break;
 		}
 	}
@@ -439,38 +458,43 @@ perf_print_counter(perf_counter_t handle)
 	}
 
 	switch (handle->type) {
-	case PC_COUNT:
-		PX4_INFO_RAW("%s: %" PRIu64 " events\n",
-			     handle->name,
-			     ((struct perf_ctr_count *)handle)->event_count);
-		break;
+	case PC_COUNT: {
+			uint64_t ec = ((struct perf_ctr_count *)handle)->event_count.load();
+			PX4_INFO_RAW("%s: %" PRIu64 " events\n",
+				     handle->name, ec);
+			break;
+		}
 
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
+			uint64_t ec = pce->event_count.load();
+			uint64_t tt = pce->time_total.load();
+			uint32_t tl = pce->time_least.load();
+			uint32_t tm = pce->time_most.load();
+			float m2 = pce->M2.load();
+			float rms = sqrtf(m2 / (ec - 1));
 			PX4_INFO_RAW("%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
 				     "us %5.3fus rms\n",
-				     handle->name,
-				     pce->event_count,
-				     pce->time_total,
-				     (pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
-				     pce->time_least,
-				     pce->time_most,
-				     (double)(1e6f * rms));
+				     handle->name, ec, tt,
+				     (ec == 0) ? 0 : (double)tt / (double)ec,
+				     tl, tm, (double)(1e6f * rms));
 			break;
 		}
 
 	case PC_INTERVAL: {
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
+			uint64_t ec = pci->event_count.load();
+			uint64_t tf = pci->time_first.load();
+			uint64_t tla = pci->time_last.load();
+			uint32_t tl = pci->time_least.load();
+			uint32_t tm = pci->time_most.load();
+			float m2 = pci->M2.load();
+			float rms = sqrtf(m2 / (ec - 1));
 
 			PX4_INFO_RAW("%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
-				     handle->name,
-				     pci->event_count,
-				     (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
-				     pci->time_least,
-				     pci->time_most,
-				     (double)(1e6f * rms));
+				     handle->name, ec,
+				     (ec == 0) ? 0 : (double)(tla - tf) / (double)ec,
+				     tl, tm, (double)(1e6f * rms));
 			break;
 		}
 
@@ -493,35 +517,44 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 	case PC_COUNT:
 		num_written = snprintf(buffer, length, "%s: %" PRIu64 " events",
 				       handle->name,
-				       ((struct perf_ctr_count *)handle)->event_count);
+				       ((struct perf_ctr_count *)handle)->event_count.load());
 		break;
 
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
+			uint64_t ec = pce->event_count.load();
+			uint64_t tt = pce->time_total.load();
+			uint32_t tl = pce->time_least.load();
+			uint32_t tm = pce->time_most.load();
+			float m2 = pce->M2.load();
+			float rms = sqrtf(m2 / (ec - 1));
 			num_written = snprintf(buffer, length,
 					       "%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
 					       handle->name,
-					       pce->event_count,
-					       pce->time_total,
-					       (pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
-					       pce->time_least,
-					       pce->time_most,
+					       ec,
+					       tt,
+					       (ec == 0) ? 0 : (double)tt / (double)ec,
+					       tl,
+					       tm,
 					       (double)(1e6f * rms));
 			break;
 		}
 
 	case PC_INTERVAL: {
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
+			uint64_t ec = pci->event_count.load();
+			uint32_t tl = pci->time_least.load();
+			uint32_t tm = pci->time_most.load();
+			float m2 = pci->M2.load();
+			float rms = sqrtf(m2 / (ec - 1));
 
 			num_written = snprintf(buffer, length,
 					       "%s: %" PRIu64 " events, %.2f avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
 					       handle->name,
-					       pci->event_count,
-					       (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
-					       pci->time_least,
-					       pci->time_most,
+					       ec,
+					       (ec == 0) ? 0 : (double)(pci->time_last.load() - pci->time_first.load()) / (double)ec,
+					       tl,
+					       tm,
 					       (double)(1e6f * rms));
 			break;
 		}
@@ -543,16 +576,16 @@ perf_event_count(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_COUNT:
-		return ((struct perf_ctr_count *)handle)->event_count;
+		return ((struct perf_ctr_count *)handle)->event_count.load();
 
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-			return pce->event_count;
+			return pce->event_count.load();
 		}
 
 	case PC_INTERVAL: {
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			return pci->event_count;
+			return pci->event_count.load();
 		}
 
 	default:
@@ -572,12 +605,12 @@ perf_mean(perf_counter_t handle)
 	switch (handle->type) {
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
-			return pce->mean;
+			return pce->mean.load();
 		}
 
 	case PC_INTERVAL: {
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
-			return pci->mean;
+			return pci->mean.load();
 		}
 
 	default:
