@@ -651,17 +651,17 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 }
 
 float
-ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_motor_failed)
+ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_motor_failed)
 {
 	const float period_sec = _param_ice_shedding_period.get();
 
 	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON;
 	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
 
-	// If any stopped motor has failed, the feature will create much more
-	// torque than in the nominal case, and becomes pointless anyway as we
-	// cannot go back to multicopter
-	const bool apply_shedding = _is_vtol && in_forward_flight && !any_stopped_motor_failed;
+	// If any motor has failed, the feature will create much more torque
+	// than in the nominal case, and becomes pointless anyway as we cannot
+	// go back to multicopter anyway
+	const bool apply_shedding = _is_vtol && in_forward_flight && !any_motor_failed;
 
 	if (feature_disabled_by_param || !apply_shedding) {
 		// Bypass slew limit and immediately set zero, to not
@@ -703,15 +703,9 @@ ControlAllocator::publish_actuator_controls()
 	int actuator_idx = 0;
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
-	const uint32_t stopped_motors_due_to_effectiveness = _actuator_effectiveness->getStoppedMotors();
+	const uint32_t failed_motors_mask = _handled_motor_failure_bitmask | _motor_stop_mask;
 
-	const uint32_t stopped_motors = stopped_motors_due_to_effectiveness
-					| _handled_motor_failure_bitmask
-					| _motor_stop_mask;
-
-	const bool any_stopped_motor_failed = 0 != (stopped_motors_due_to_effectiveness & (_handled_motor_failure_bitmask | _motor_stop_mask));
-
-	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp, any_stopped_motor_failed);
+	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp, failed_motors_mask != 0);
 
 	// motors
 	int motors_idx;
@@ -721,7 +715,7 @@ ControlAllocator::publish_actuator_controls()
 		float actuator_sp = _control_allocation[selected_matrix]->getActuatorSetpoint()(actuator_idx_matrix[selected_matrix]);
 		actuator_motors.control[motors_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
 
-		if (stopped_motors & (1u << motors_idx)) {
+		if (failed_motors_mask & (1u << motors_idx)) {
 			actuator_motors.control[motors_idx] = NAN;
 
 			if (ice_shedding_output > FLT_EPSILON) {
