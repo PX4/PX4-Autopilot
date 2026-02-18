@@ -13,4 +13,10 @@ pwm_out_sim start
 
 tests @test_name@
 
+pwm_out_sim stop
+tone_alarm stop
+work_queue stop
+simulator_mavlink stop
+dataman stop
+
 shutdown
