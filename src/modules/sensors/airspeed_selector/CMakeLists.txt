@@ -32,7 +32,8 @@
 ############################################################################
 
 px4_add_library(airspeed_selector
-	airspeed_selector_main.cpp
+	AirspeedSelector.cpp
+	AirspeedSelector.hpp
 	AirspeedValidator.cpp
 	AirspeedValidator.hpp
 )
