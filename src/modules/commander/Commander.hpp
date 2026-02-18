@@ -243,6 +243,7 @@ private:
 	hrt_abstime _datalink_last_heartbeat_gcs{0};
 	hrt_abstime _datalink_last_heartbeat_onboard_controller{0};
 	hrt_abstime _datalink_last_heartbeat_parachute_system{0};
+	hrt_abstime _datalink_last_heartbeat_traffic_avoidance_system{0};
 
 	hrt_abstime _last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
@@ -268,6 +269,7 @@ private:
 	bool _open_drone_id_system_lost{true};
 	bool _onboard_controller_lost{false};
 	bool _parachute_system_lost{true};
+	bool _traffic_avoidance_system_lost{true};
 
 	bool _last_overload{false};
 	bool _mode_switch_mapped{false};

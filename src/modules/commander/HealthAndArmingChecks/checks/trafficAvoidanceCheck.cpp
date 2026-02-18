@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,49 +31,41 @@
  *
  ****************************************************************************/
 
-#ifndef CURRENT_MODE_HPP
-#define CURRENT_MODE_HPP
+#include "trafficAvoidanceCheck.hpp"
 
-#include <uORB/topics/vehicle_status.h>
-#include <lib/modes/standard_modes.hpp>
 
-class MavlinkStreamCurrentMode : public MavlinkStream
+void TrafficAvoidanceChecks::checkAndReport(const Context &context, Report &reporter)
 {
-public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamCurrentMode(mavlink); }
+	NavModes affected_modes{NavModes::None}; // COM_ARM_TRAFF 1 - warning only, arming allowed, affected_modes stays None
 
-	static constexpr const char *get_name_static() { return "CURRENT_MODE"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_CURRENT_MODE; }
+	switch (_param_com_arm_traff.get()) {
+	case 0:
+		return; // Check disabled
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
+	case 2:
+		affected_modes = NavModes::All; // Disallow arming for all modes
+		break;
 
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_CURRENT_MODE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	case 3:
+		affected_modes = NavModes::Mission; // Disallow arming for mission
+		break;
 	}
 
-private:
-	explicit MavlinkStreamCurrentMode(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	if (!context.status().traffic_avoidance_system_present) {
+		/* EVENT
+		 * @description
+		 * Traffic avoidance system (ADSB/FLARM) failed to report. Make sure it is setup and connected properly.
+		 *
+		 * <profile name="dev">
+		 * This check can be configured via <param>COM_ARM_TRAFF</param> parameter.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(affected_modes, health_component_t::traffic_avoidance,
+					    events::ID("check_traffic_avoidance_missing"),
+					    events::Log::Error, "Traffic avoidance system missing");
 
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-
-	bool send() override
-	{
-		vehicle_status_s vehicle_status;
-
-		if (_vehicle_status_sub.update(&vehicle_status)) {
-			mavlink_current_mode_t current_mode{};
-			current_mode.custom_mode = get_px4_custom_mode(vehicle_status.nav_state_display).data;
-			current_mode.intended_custom_mode = get_px4_custom_mode(vehicle_status.nav_state_user_intention).data;
-			current_mode.standard_mode =
-				(uint8_t) mode_util::getStandardModeFromNavState(vehicle_status.nav_state_display, vehicle_status.vehicle_type, vehicle_status.is_vtol);
-			mavlink_msg_current_mode_send_struct(_mavlink->get_channel(), &current_mode);
-			return true;
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Traffic avoidance system missing");
 		}
-
-		return false;
 	}
-};
-
-#endif // CURRENT_MODE_HPP
+}

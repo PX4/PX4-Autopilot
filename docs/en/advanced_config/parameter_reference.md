@@ -16365,6 +16365,25 @@ Arm switch is a momentary button.
 | ------ | -------- | -------- | --------- | ------------ | ---- |
 | &nbsp; |          |          |           | Disabled (0) |
 
+### COM_ARM_TRAFF (`INT32`) {#COM_ARM_TRAFF}
+
+Enable Traffic Avoidance system detection check.
+
+This check detects if a traffic avoidance system (ADSB/FLARM transponder)
+is missing. Depending on the value of the parameter, the check can be
+disabled, warn only, or deny arming.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warning only
+- `2`: Enforce for all modes
+- `3`: Enforce for mission modes only
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
 ### COM_ARM_WO_GPS (`INT32`) {#COM_ARM_WO_GPS}
 
 Arming without GNSS configuration.

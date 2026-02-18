@@ -10,53 +10,55 @@ Encodes the system state of the vehicle published by commander.
 
 ## Fields
 
-| Name                         | Type     | Unit [Frame] | Range/Enum | Description                                                                                     |
-| ---------------------------- | -------- | ------------ | ---------- | ----------------------------------------------------------------------------------------------- |
-| timestamp                    | `uint64` |              |            | time since system start (microseconds)                                                          |
-| armed_time                   | `uint64` |              |            | Arming timestamp (microseconds)                                                                 |
-| takeoff_time                 | `uint64` |              |            | Takeoff timestamp (microseconds)                                                                |
-| arming_state                 | `uint8`  |              |            |
-| latest_arming_reason         | `uint8`  |              |            |
-| latest_disarming_reason      | `uint8`  |              |            |
-| nav_state_timestamp          | `uint64` |              |            | time when current nav_state activated                                                           |
-| nav_state_user_intention     | `uint8`  |              |            | Mode that the user selected (might be different from nav_state in a failsafe situation)         |
-| nav_state                    | `uint8`  |              |            | Currently active mode                                                                           |
-| executor_in_charge           | `uint8`  |              |            | Current mode executor in charge (0=Autopilot)                                                   |
-| valid_nav_states_mask        | `uint32` |              |            | Bitmask for all valid nav_state values                                                          |
-| can_set_nav_states_mask      | `uint32` |              |            | Bitmask for all modes that a user can select                                                    |
-| failure_detector_status      | `uint16` |              |            |
-| hil_state                    | `uint8`  |              |            |
-| vehicle_type                 | `uint8`  |              |            |
-| failsafe                     | `bool`   |              |            | true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)                           |
-| failsafe_and_user_took_over  | `bool`   |              |            | true if system is in failsafe state but the user took over control                              |
-| failsafe_defer_state         | `uint8`  |              |            | one of FAILSAFE*DEFER_STATE*\*                                                                  |
-| gcs_connection_lost          | `bool`   |              |            | datalink to GCS lost                                                                            |
-| gcs_connection_lost_counter  | `uint8`  |              |            | counts unique GCS connection lost events                                                        |
-| high_latency_data_link_lost  | `bool`   |              |            | Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost |
-| is_vtol                      | `bool`   |              |            | True if the system is VTOL capable                                                              |
-| is_vtol_tailsitter           | `bool`   |              |            | True if the system performs a 90° pitch down rotation during transition from MC to FW           |
-| in_transition_mode           | `bool`   |              |            | True if VTOL is doing a transition                                                              |
-| in_transition_to_fw          | `bool`   |              |            | True if VTOL is doing a transition from MC to FW                                                |
-| system_type                  | `uint8`  |              |            | system type, contains mavlink MAV_TYPE                                                          |
-| system_id                    | `uint8`  |              |            | system id, contains MAVLink's system ID field                                                   |
-| component_id                 | `uint8`  |              |            | subsystem / component id, contains MAVLink's component ID field                                 |
-| safety_button_available      | `bool`   |              |            | Set to true if a safety button is connected                                                     |
-| safety_off                   | `bool`   |              |            | Set to true if safety is off                                                                    |
-| power_input_valid            | `bool`   |              |            | set if input power is valid                                                                     |
-| usb_connected                | `bool`   |              |            | set to true (never cleared) once telemetry received from usb link                               |
-| open_drone_id_system_present | `bool`   |              |            |
-| open_drone_id_system_healthy | `bool`   |              |            |
-| parachute_system_present     | `bool`   |              |            |
-| parachute_system_healthy     | `bool`   |              |            |
-| rc_calibration_in_progress   | `bool`   |              |            |
-| calibration_enabled          | `bool`   |              |            |
-| pre_flight_checks_pass       | `bool`   |              |            | true if all checks necessary to arm pass                                                        |
+| Name                             | Type     | Unit [Frame] | Range/Enum | Description                                                                                     |
+| -------------------------------- | -------- | ------------ | ---------- | ----------------------------------------------------------------------------------------------- |
+| timestamp                        | `uint64` |              |            | time since system start (microseconds)                                                          |
+| armed_time                       | `uint64` |              |            | Arming timestamp (microseconds)                                                                 |
+| takeoff_time                     | `uint64` |              |            | Takeoff timestamp (microseconds)                                                                |
+| arming_state                     | `uint8`  |              |            |
+| latest_arming_reason             | `uint8`  |              |            |
+| latest_disarming_reason          | `uint8`  |              |            |
+| nav_state_timestamp              | `uint64` |              |            | time when current nav_state activated                                                           |
+| nav_state_user_intention         | `uint8`  |              |            | Mode that the user selected (might be different from nav_state in a failsafe situation)         |
+| nav_state                        | `uint8`  |              |            | Currently active mode                                                                           |
+| executor_in_charge               | `uint8`  |              |            | Current mode executor in charge (0=Autopilot)                                                   |
+| nav_state_display                | `uint8`  |              |            | User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)         |
+| valid_nav_states_mask            | `uint32` |              |            | Bitmask for all valid nav_state values                                                          |
+| can_set_nav_states_mask          | `uint32` |              |            | Bitmask for all modes that a user can select                                                    |
+| failure_detector_status          | `uint16` |              |            |
+| hil_state                        | `uint8`  |              |            |
+| vehicle_type                     | `uint8`  |              |            |
+| failsafe                         | `bool`   |              |            | true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)                           |
+| failsafe_and_user_took_over      | `bool`   |              |            | true if system is in failsafe state but the user took over control                              |
+| failsafe_defer_state             | `uint8`  |              |            | one of FAILSAFE*DEFER_STATE*\*                                                                  |
+| gcs_connection_lost              | `bool`   |              |            | datalink to GCS lost                                                                            |
+| gcs_connection_lost_counter      | `uint8`  |              |            | counts unique GCS connection lost events                                                        |
+| high_latency_data_link_lost      | `bool`   |              |            | Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost |
+| is_vtol                          | `bool`   |              |            | True if the system is VTOL capable                                                              |
+| is_vtol_tailsitter               | `bool`   |              |            | True if the system performs a 90° pitch down rotation during transition from MC to FW           |
+| in_transition_mode               | `bool`   |              |            | True if VTOL is doing a transition                                                              |
+| in_transition_to_fw              | `bool`   |              |            | True if VTOL is doing a transition from MC to FW                                                |
+| system_type                      | `uint8`  |              |            | system type, contains mavlink MAV_TYPE                                                          |
+| system_id                        | `uint8`  |              |            | system id, contains MAVLink's system ID field                                                   |
+| component_id                     | `uint8`  |              |            | subsystem / component id, contains MAVLink's component ID field                                 |
+| safety_button_available          | `bool`   |              |            | Set to true if a safety button is connected                                                     |
+| safety_off                       | `bool`   |              |            | Set to true if safety is off                                                                    |
+| power_input_valid                | `bool`   |              |            | set if input power is valid                                                                     |
+| usb_connected                    | `bool`   |              |            | set to true (never cleared) once telemetry received from usb link                               |
+| open_drone_id_system_present     | `bool`   |              |            |
+| open_drone_id_system_healthy     | `bool`   |              |            |
+| parachute_system_present         | `bool`   |              |            |
+| parachute_system_healthy         | `bool`   |              |            |
+| traffic_avoidance_system_present | `bool`   |              |            |
+| rc_calibration_in_progress       | `bool`   |              |            |
+| calibration_enabled              | `bool`   |              |            |
+| pre_flight_checks_pass           | `bool`   |              |            | true if all checks necessary to arm pass                                                        |
 
 ## Constants
 
 | Name                                                                                      | Type     | Value | Description                                      |
 | ----------------------------------------------------------------------------------------- | -------- | ----- | ------------------------------------------------ |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                           | `uint32` | 1     |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                           | `uint32` | 2     |
 | <a href="#ARMING_STATE_DISARMED"></a> ARMING_STATE_DISARMED                               | `uint8`  | 1     |
 | <a href="#ARMING_STATE_ARMED"></a> ARMING_STATE_ARMED                                     | `uint8`  | 2     |
 | <a href="#ARM_DISARM_REASON_STICK_GESTURE"></a> ARM_DISARM_REASON_STICK_GESTURE           | `uint8`  | 1     |
@@ -129,7 +131,7 @@ Encodes the system state of the vehicle published by commander.
 ```c
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 2
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -192,6 +194,7 @@ uint8 NAVIGATION_STATE_EXTERNAL8 = 30
 uint8 NAVIGATION_STATE_MAX = 31
 
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
+uint8 nav_state_display                         # User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)
 
 uint32 valid_nav_states_mask                    # Bitmask for all valid nav_state values
 uint32 can_set_nav_states_mask                  # Bitmask for all modes that a user can select
@@ -254,6 +257,8 @@ bool open_drone_id_system_healthy
 
 bool parachute_system_present
 bool parachute_system_healthy
+
+bool traffic_avoidance_system_present
 
 bool rc_calibration_in_progress
 bool calibration_enabled

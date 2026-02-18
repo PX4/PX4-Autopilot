@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,49 +31,20 @@
  *
  ****************************************************************************/
 
-#ifndef CURRENT_MODE_HPP
-#define CURRENT_MODE_HPP
+#pragma once
 
-#include <uORB/topics/vehicle_status.h>
-#include <lib/modes/standard_modes.hpp>
+#include "../Common.hpp"
 
-class MavlinkStreamCurrentMode : public MavlinkStream
+class TrafficAvoidanceChecks : public HealthAndArmingCheckBase
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamCurrentMode(mavlink); }
+	TrafficAvoidanceChecks() = default;
+	~TrafficAvoidanceChecks() = default;
 
-	static constexpr const char *get_name_static() { return "CURRENT_MODE"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_CURRENT_MODE; }
-
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_CURRENT_MODE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
+	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	explicit MavlinkStreamCurrentMode(Mavlink *mavlink) : MavlinkStream(mavlink) {}
-
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-
-	bool send() override
-	{
-		vehicle_status_s vehicle_status;
-
-		if (_vehicle_status_sub.update(&vehicle_status)) {
-			mavlink_current_mode_t current_mode{};
-			current_mode.custom_mode = get_px4_custom_mode(vehicle_status.nav_state_display).data;
-			current_mode.intended_custom_mode = get_px4_custom_mode(vehicle_status.nav_state_user_intention).data;
-			current_mode.standard_mode =
-				(uint8_t) mode_util::getStandardModeFromNavState(vehicle_status.nav_state_display, vehicle_status.vehicle_type, vehicle_status.is_vtol);
-			mavlink_msg_current_mode_send_struct(_mavlink->get_channel(), &current_mode);
-			return true;
-		}
-
-		return false;
-	}
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::COM_ARM_TRAFF>) _param_com_arm_traff
+				       )
 };
-
-#endif // CURRENT_MODE_HPP
