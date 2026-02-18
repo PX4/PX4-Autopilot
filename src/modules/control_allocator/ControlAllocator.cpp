@@ -399,20 +399,14 @@ ControlAllocator::Run()
 		// As defined in VehicleThrustSetpoint.msg, a thrust of NaN means stopping the motor.
 		// No sideways motors implemented for now...
 		const bool stop_forwards_motors = std::isnan(_thrust_sp(0));
-		const bool stop_upwards_motors = std::isnan(_thrust_sp(2));
 
 		// also only if it is actually about motors....
 		_actuator_effectiveness->setForwardsMotorsStoppedByThrust(stop_forwards_motors);
-		_actuator_effectiveness->setUpwardsMotorsStoppedByThrust(stop_upwards_motors);
 
 		// Now that the intent of stopping motors is stored, transform
 		// NaN to 0 to represent physical thrust again
 		if (stop_forwards_motors) {
 			_thrust_sp(0) = 0.f;
-		}
-
-		if (stop_upwards_motors) {
-			_thrust_sp(2) = 0.f;
 		}
 	}
 

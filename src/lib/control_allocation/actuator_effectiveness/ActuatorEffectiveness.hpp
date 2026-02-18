@@ -212,10 +212,6 @@ public:
 			stopped_motors_mask |= _forwards_motors_mask;
 		}
 
-		if (_upwards_motors_stopped_by_thrust) {
-			stopped_motors_mask |= _upwards_motors_mask;
-		}
-
 		// They can also be stopped in the ControlAllocator, due to
 		// motor failure. The difference is that the stopped mask in the
 		// allocator applies after the slew rate, and the mask here
@@ -235,11 +231,6 @@ public:
 		_forwards_motors_stopped_by_thrust = stopped;
 	}
 
-	virtual void setUpwardsMotorsStoppedByThrust(bool stopped)
-	{
-		_upwards_motors_stopped_by_thrust = stopped;
-	}
-
 protected:
 	uint32_t _upwards_motors_mask{};
 	uint32_t _forwards_motors_mask{};
@@ -248,5 +239,4 @@ protected:
 	uint32_t _stopped_motors_mask_due_to_flight_phase{0};
 
 	bool _forwards_motors_stopped_by_thrust{false};
-	bool _upwards_motors_stopped_by_thrust{false};
 };
