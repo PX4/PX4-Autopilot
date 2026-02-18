@@ -30,13 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE modules__airspeed_selector
-	MAIN airspeed_selector
-	SRCS
-		airspeed_selector_main.cpp
-		AirspeedValidator.cpp
-		AirspeedValidator.hpp
-	DEPENDS
-		wind_estimator
+
+px4_add_library(airspeed_selector
+	airspeed_selector_main.cpp
+	AirspeedValidator.cpp
+	AirspeedValidator.hpp
 )
+
+target_link_libraries(airspeed_selector PRIVATE wind_estimator)
