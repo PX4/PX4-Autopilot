@@ -189,7 +189,7 @@ See [System Startup](../concept/system_startup.md) for more information.
 ### Environment Configuration
 
 SITL simulation behaviour can be configured using the following environment variables.
-Set them before the `make` command, either inline or via `export`.
+These can be specified inline, before the `make` command, or set for the environment using `export`.
 
 ::: info
 For Gazebo-specific environment variables (such as `PX4_GZ_WORLD`, `PX4_GZ_STANDALONE`, etc.), see [Gazebo > Usage/Configuration Options](../sim_gazebo_gz/index.md#usage-configuration-options).
@@ -197,6 +197,12 @@ For Gazebo-specific environment variables (such as `PX4_GZ_WORLD`, `PX4_GZ_STAND
 
 - `PX4_SIM_SPEED_FACTOR`:
   Sets the speed factor to run the simulation at faster or slower than realtime.
+  For example, to run Gazebo simulation at two times the speed factor:
+
+  ```sh
+  PX4_SIM_SPEED_FACTOR=2 make px4_sitl gz_x500
+  ```
+
   For more information see [Run Simulation Faster than Realtime](#simulation_speed).
 
 - `PX4_PARAM_{name}={value}`:

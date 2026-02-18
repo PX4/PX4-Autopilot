@@ -307,7 +307,7 @@ where `ARGS` is a list of environment variables including:
   See [Environment Configuration](../simulation/index.md#environment-configuration) for more information.
 
 ::: info
-For other general simulation environment variables (not Gazebo-specific), such as `PX4_SIM_SPEED_FACTOR` and `PX4_NET_INTERFACE`, see [Simulation > Environment Configuration](../simulation/index.md#environment-configuration).
+See [Simulation > Environment Configuration](../simulation/index.md#environment-configuration) for simulation environment variables that are common to all simulators.
 :::
 
 The PX4 Gazebo worlds and and models databases [can be found on GitHub here](https://github.com/PX4/PX4-gazebo-models).
