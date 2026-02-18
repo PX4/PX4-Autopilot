@@ -1,8 +1,12 @@
-px4_add_git_submodule(TARGET git_fuzztest PATH "fuzztest")
-
-message(STATUS "Adding fuzztest")
-# This will also add GTest
-add_subdirectory(fuzztest EXCLUDE_FROM_ALL)
+if(CMAKE_BUILD_TYPE STREQUAL "ThreadSanitizer")
+	message(STATUS "TSAN build: skipping fuzztest, fetching GTest only")
+	px4_setup_gtest_without_fuzztest()
+else()
+	px4_add_git_submodule(TARGET git_fuzztest PATH "fuzztest")
+	message(STATUS "Adding fuzztest")
+	# This will also add GTest
+	add_subdirectory(fuzztest EXCLUDE_FROM_ALL)
+endif()
 
 # Ensure there's no -R without any filter expression since that trips newer ctest versions
 if(TESTFILTER)

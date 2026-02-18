@@ -28,7 +28,7 @@ add_executable(px4
 	apps.cpp
 	)
 
-if (BUILD_TESTING)
+if (BUILD_TESTING AND TARGET fuzztest::fuzztest)
 	# Build mavlink fuzz tests. These run other modules and thus cannot be a functional/unit test
 	add_executable(mavlink_fuzz_tests EXCLUDE_FROM_ALL
 		src/px4/common/mavlink_fuzz_tests.cpp
