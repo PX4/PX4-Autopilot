@@ -214,7 +214,6 @@ The Lua script works by extracting the `obstacle_distance_fused` data at each ti
 
 3. Open PlotJuggler and navigate to the **Tools > Reactive Script Editor** section.
    In the **Script Editor** tab, add following scripts in the appropriate sections:
-
    - **Global code, executed once:**
 
      ```lua

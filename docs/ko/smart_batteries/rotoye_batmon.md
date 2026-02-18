@@ -47,7 +47,7 @@ In _QGroundControl_:
 3. Start the [batt_smbus driver](../modules/modules_driver.md) in the console.
    예를 들어 동일한 버스에서 두 개의 BatMon을 실행하려면:
    ```sh
-   batt_smbus start -X -b 1 -a 11 # External bus 1, address 0x0b  
+   batt_smbus start -X -b 1 -a 11 # External bus 1, address 0x0b
    batt_smbus start -X -b 1 -a 12 # External bus 1, address 0x0c
    ```
 
