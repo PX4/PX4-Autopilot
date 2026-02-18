@@ -117,7 +117,7 @@ publish_gam_message(const uint8_t *buffer)
 
 	esc.esc[0].actuator_function = actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
 	esc.esc[0].esc_rpm = (uint16_t)((msg.rpm_H << 8) | (msg.rpm_L & 0xff)) * 10;
-	esc.esc[0].esc_temperature = static_cast<float>(msg.temperature1 - 20);
+	esc.esc[0].esc_temperature = static_cast<int>(msg.temperature1 - 20);
 	esc.esc[0].esc_voltage = static_cast<float>((msg.main_voltage_H << 8) | (msg.main_voltage_L & 0xff)) * 0.1F;
 	esc.esc[0].esc_current = static_cast<float>((msg.current_H << 8) | (msg.current_L & 0xff)) * 0.1F;
 
