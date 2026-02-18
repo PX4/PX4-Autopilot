@@ -144,15 +144,6 @@ void WorkQueue::Add(WorkItem *item)
 	SignalWorkerThread();
 }
 
-void WorkQueue::SignalWorkerThread()
-{
-	int sem_val;
-
-	if (px4_sem_getvalue(&_process_lock, &sem_val) == 0 && sem_val <= 0) {
-		px4_sem_post(&_process_lock);
-	}
-}
-
 void WorkQueue::Remove(WorkItem *item)
 {
 	work_lock();
