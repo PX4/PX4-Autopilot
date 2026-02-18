@@ -59,32 +59,21 @@ private:
 
 	// Light function types - must match values in module.yaml UAVCAN_LGT_FN
 	enum class LightFunction : uint8_t {
-		Status = 0,                    // System status colors from led_control
-		AntiCollision = 1,             // White beacon based on arm state
-		RedNavigation = 2,             // Red navigation light
-		GreenNavigation = 3,           // Green navigation light
-		WhiteNavigation = 4,           // White navigation light
-		StatusOrAntiCollision = 5,     // Status when LGT_MODE inactive, white beacon when active
-		StatusOrRedNavigation = 6,     // Status when LGT_MODE inactive, red nav when active
-		StatusOrGreenNavigation = 7,   // Status when LGT_MODE inactive, green nav when active
-		StatusOrWhiteNavigation = 8,   // Status when LGT_MODE inactive, white nav when active
-		StatusOrOff = 9                // Status when LGT_MODE inactive, off when active
+		Status = 0,
+		White = 1,
+		Red = 2,
+		Green = 3,
+		StatusOrWhite = 4,
+		StatusOrRed = 5,
+		StatusOrGreen = 6,
+		StatusOrOff = 7
 	};
-
-	enum class LightMode : uint8_t {
-		Off = 0,
-		WhenArmed = 1,
-		WhenPrearmed = 2,
-		AlwaysOn = 3
-	};
-
-	// White light intensity levels
-	enum class Brightness { None, Full };
 
 	void periodic_update(const uavcan::TimerEvent &);
 
-	bool check_light_state(LightMode mode);
+	bool is_light_on();
 
+	uavcan::equipment::indication::RGB565 color_to_rgb565(uint8_t color, uint8_t brightness = 255);
 	uavcan::equipment::indication::RGB565 rgb888_to_rgb565(uint8_t red, uint8_t green, uint8_t blue);
 
 	typedef uavcan::MethodBinder<UavcanRGBController *, void (UavcanRGBController::*)(const uavcan::TimerEvent &)>
@@ -108,7 +97,7 @@ private:
 	param_t _light_fn_params[MAX_NUM_UAVCAN_LIGHTS] {};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UAVCAN_LGT_NUM>) _param_lgt_num,
-		(ParamInt<px4::params::UAVCAN_LGT_MODE>) _param_lgt_mode
+		(ParamInt<px4::params::UAVCAN_LGT_NUM>) _param_uavcan_lgt_num,
+		(ParamInt<px4::params::UAVCAN_LGT_MODE>) _param_uavcan_lgt_mode
 	)
 };

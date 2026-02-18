@@ -46,7 +46,7 @@ UavcanRGBController::UavcanRGBController(uavcan::INode &node) :
 int UavcanRGBController::init()
 {
 	// Cache number of lights (0 disables the feature)
-	_num_lights = math::min(static_cast<uint8_t>(_param_lgt_num.get()), MAX_NUM_UAVCAN_LIGHTS);
+	_num_lights = math::min(static_cast<uint8_t>(_param_uavcan_lgt_num.get()), MAX_NUM_UAVCAN_LIGHTS);
 
 	if (_num_lights == 0) {
 		return 0; // Disabled, don't start timer
@@ -98,109 +98,71 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 	}
 
 	// Compute status color from led_control_data
-	uavcan::equipment::indication::RGB565 status_color{};
-	uint8_t brightness = led_control_data.leds[0].brightness;
-
-	switch (led_control_data.leds[0].color) {
-	case led_control_s::COLOR_RED:
-		status_color = rgb888_to_rgb565(brightness, 0, 0);
-		break;
-
-	case led_control_s::COLOR_GREEN:
-		status_color = rgb888_to_rgb565(0, brightness, 0);
-		break;
-
-	case led_control_s::COLOR_BLUE:
-		status_color = rgb888_to_rgb565(0, 0, brightness);
-		break;
-
-	case led_control_s::COLOR_AMBER: // make it the same as yellow
-	case led_control_s::COLOR_YELLOW:
-		status_color = rgb888_to_rgb565(brightness, brightness, 0);
-		break;
-
-	case led_control_s::COLOR_PURPLE:
-		status_color = rgb888_to_rgb565(brightness, 0, brightness);
-		break;
-
-	case led_control_s::COLOR_CYAN:
-		status_color = rgb888_to_rgb565(0, brightness, brightness);
-		break;
-
-	case led_control_s::COLOR_WHITE:
-		status_color = rgb888_to_rgb565(brightness, brightness, brightness);
-		break;
-
-	case led_control_s::COLOR_OFF:
-	default:
-		break;
-	}
+	uavcan::equipment::indication::RGB565 status_color = color_to_rgb565(led_control_data.leds[0].color, led_control_data.leds[0].brightness);
 
 	// Build and send light commands for all configured lights
 	uavcan::equipment::indication::LightsCommand light_command;
-
-	const bool light_mode_active = check_light_state(static_cast<LightMode>(_param_lgt_mode.get()));
-	brightness = light_mode_active ? 255 : 0;
+	const bool light_on = is_light_on();
 
 	for (uint8_t i = 0; i < _num_lights; i++) {
-		uavcan::equipment::indication::SingleLightCommand cmd;
-		cmd.light_id = _light_ids[i];
+		uavcan::equipment::indication::RGB565 color_on, color_off;
+		color_on = color_off = color_to_rgb565(led_control_s::COLOR_OFF);
 
 		switch (_light_functions[i]) {
+		// Always show status
 		case LightFunction::Status:
-			cmd.color = status_color;
+			color_on = color_off = status_color;
 			break;
 
-		case LightFunction::AntiCollision:
-			cmd.color = rgb888_to_rgb565(brightness, brightness, brightness);
+		// Static color when UAVCAN_LGT_MODE active
+		case LightFunction::White:
+			color_on = color_to_rgb565(led_control_s::COLOR_WHITE);
 			break;
 
-		case LightFunction::RedNavigation:
-			cmd.color = rgb888_to_rgb565(brightness, 0, 0);
+		case LightFunction::Red:
+			color_on = color_to_rgb565(led_control_s::COLOR_RED);
 			break;
 
-		case LightFunction::GreenNavigation:
-			cmd.color = rgb888_to_rgb565(0, brightness, 0);
+		case LightFunction::Green:
+			color_on = color_to_rgb565(led_control_s::COLOR_GREEN);
 			break;
 
-		case LightFunction::WhiteNavigation:
-			cmd.color = rgb888_to_rgb565(brightness, brightness, brightness);
+		// Hybrid functions: show status when UAVCAN_LGT_MODE inactive, static color when active
+		case LightFunction::StatusOrWhite:
+			color_on = color_to_rgb565(led_control_s::COLOR_WHITE);
+			color_off = status_color;
 			break;
 
-		// Hybrid functions: show status when UAVCAN_LGT_MODE inactive, navigation light when active
-		case LightFunction::StatusOrAntiCollision:
-			cmd.color = light_mode_active ? rgb888_to_rgb565(brightness, brightness, brightness) : status_color;
+		case LightFunction::StatusOrRed:
+			color_on = color_to_rgb565(led_control_s::COLOR_RED);
+			color_off = status_color;
 			break;
 
-		case LightFunction::StatusOrRedNavigation:
-			cmd.color = light_mode_active ? rgb888_to_rgb565(brightness, 0, 0) : status_color;
-			break;
-
-		case LightFunction::StatusOrGreenNavigation:
-			cmd.color = light_mode_active ? rgb888_to_rgb565(0, brightness, 0) : status_color;
-			break;
-
-		case LightFunction::StatusOrWhiteNavigation:
-			cmd.color = light_mode_active ? rgb888_to_rgb565(brightness, brightness, brightness) : status_color;
+		case LightFunction::StatusOrGreen:
+			color_on = color_to_rgb565(led_control_s::COLOR_GREEN);
+			color_off = status_color;
 			break;
 
 		case LightFunction::StatusOrOff:
-			cmd.color = light_mode_active ? rgb888_to_rgb565(0, 0, 0) : status_color;
+			color_off = status_color;
 			break;
 		}
 
+		uavcan::equipment::indication::SingleLightCommand cmd;
+		cmd.light_id = _light_ids[i];
+		cmd.color = light_on ? color_on : color_off;
 		light_command.commands.push_back(cmd);
 	}
 
 	_uavcan_pub_lights_cmd.broadcast(light_command);
 }
 
-bool UavcanRGBController::check_light_state(LightMode mode)
+bool UavcanRGBController::is_light_on()
 {
 	actuator_armed_s actuator_armed{};
 	_actuator_armed_sub.copy(&actuator_armed);
 
-	switch (_param_lgt_mode.get()) {
+	switch (_param_uavcan_lgt_mode.get()) {
 	case 3: // Always on
 		return true;
 
@@ -214,6 +176,53 @@ bool UavcanRGBController::check_light_state(LightMode mode)
 	default:
 		return false;
 	}
+}
+
+uavcan::equipment::indication::RGB565 UavcanRGBController::color_to_rgb565(uint8_t color, uint8_t brightness)
+{
+	uint8_t R = 0, G = 0, B = 0;
+
+	switch (color) {
+	case led_control_s::COLOR_RED:
+		R = brightness;
+		break;
+
+	case led_control_s::COLOR_GREEN:
+		G = brightness;
+		break;
+
+	case led_control_s::COLOR_BLUE:
+		B = brightness;
+		break;
+
+	case led_control_s::COLOR_AMBER: // make it the same as yellow
+	case led_control_s::COLOR_YELLOW:
+		R = brightness;
+		G = brightness;
+		break;
+
+	case led_control_s::COLOR_PURPLE:
+		R = brightness;
+		B = brightness;
+		break;
+
+	case led_control_s::COLOR_CYAN:
+		G = brightness;
+		B = brightness;
+		break;
+
+	case led_control_s::COLOR_WHITE:
+		R = brightness;
+		G = brightness;
+		B = brightness;
+		break;
+
+	default:
+	case led_control_s::COLOR_OFF:
+		break;
+	}
+
+	return rgb888_to_rgb565(R, G, B);
 }
 
 uavcan::equipment::indication::RGB565 UavcanRGBController::rgb888_to_rgb565(uint8_t red, uint8_t green, uint8_t blue)
