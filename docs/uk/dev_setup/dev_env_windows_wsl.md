@@ -61,20 +61,20 @@ The approach is similar to installing PX4 in your _own_ virtual machine, as desc
      wsl --install
      ```
 
-   - Ubuntu 20.04 ([Gazebo-Classic Simulation](../sim_gazebo_classic/index.md))
-
-     ```sh
-     wsl --install -d Ubuntu-20.04
-     ```
-
    - Ubuntu 22.04 ([Gazebo Simulation](../sim_gazebo_gz/index.md))
 
      ```sh
      wsl --install -d Ubuntu-22.04
      ```
 
+   - Ubuntu 24.04 ([Gazebo Simulation](../sim_gazebo_gz/index.md))
+
+     ```sh
+     wsl --install -d Ubuntu-24.04
+     ```
+
    ::: info
-   You can also install[Ubuntu 20.04](https://www.microsoft.com/store/productId/9MTTCL66CPXJ) and [Ubuntu 22.04](https://www.microsoft.com/store/productId/9PN20MSR04DW) from the store, which allows you to delete the application using the normal Windows Add/Remove settings:
+   You can also [Ubuntu 24.04](https://www.microsoft.com/store/productId/9nz3klhxdjp5) or [Ubuntu 22.04](https://www.microsoft.com/store/productId/9PN20MSR04DW) from Microsoft Store, which allows you to delete the application using the normal Windows Add/Remove settings.
 
 :::
 
@@ -110,7 +110,7 @@ If you're using [Windows Terminal](https://learn.microsoft.com/en-us/windows/ter
    ```
 
    ```sh
-   wsl -d Ubuntu-20.04
+   wsl -d Ubuntu-24.04
    ```
 
    If you only have one version of Ubuntu, you can just use `wsl`.

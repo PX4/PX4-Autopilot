@@ -1,6 +1,36 @@
+---
+pageClass: is-wide-page
+---
+
 # EstimatorAidSource2d (повідомлення UORB)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorAidSource2d.msg)
+**TOPICS:** estimator_aid_src_ev_pos estimator_aid_src_fake_pos estimator_aid_src_gnss_pos estimator_aid_src_aux_global_position estimator_aid_src_aux_vel estimator_aid_src_optical_flow estimator_aid_src_drag
+
+## Fields
+
+| Назва                                                         | Тип          | Unit [Frame] | Range/Enum | Опис                                                            |
+| ------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------- |
+| timestamp                                                     | `uint64`     |                                                                  |            | time since system start (microseconds)       |
+| timestamp_sample                         | `uint64`     |                                                                  |            | the timestamp of the raw data (microseconds) |
+| estimator_instance                       | `uint8`      |                                                                  |            |                                                                 |
+| device_id                                | `uint32`     |                                                                  |            |                                                                 |
+| time_last_fuse      | `uint64`     |                                                                  |            |                                                                 |
+| observation                                                   | `float64[2]` |                                                                  |            |                                                                 |
+| observation_variance                     | `float32[2]` |                                                                  |            |                                                                 |
+| innovation                                                    | `float32[2]` |                                                                  |            |                                                                 |
+| innovation_filtered                      | `float32[2]` |                                                                  |            |                                                                 |
+| innovation_variance                      | `float32[2]` |                                                                  |            |                                                                 |
+| test_ratio                               | `float32[2]` |                                                                  |            | normalized innovation squared                                   |
+| test_ratio_filtered | `float32[2]` |                                                                  |            | signed filtered test ratio                                      |
+| innovation_rejected                      | `bool`       |                                                                  |            | true if the observation has been rejected                       |
+| fused                                                         | `bool`       |                                                                  |            | true if the sample was successfully fused                       |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorAidSource2d.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint64 timestamp                # time since system start (microseconds)
@@ -29,5 +59,6 @@ bool fused                      # true if the sample was successfully fused
 # TOPICS estimator_aid_src_ev_pos estimator_aid_src_fake_pos estimator_aid_src_gnss_pos estimator_aid_src_aux_global_position
 # TOPICS estimator_aid_src_aux_vel estimator_aid_src_optical_flow
 # TOPICS estimator_aid_src_drag
-
 ```
+
+:::

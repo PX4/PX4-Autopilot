@@ -1,6 +1,10 @@
+---
+pageClass: is-wide-page
+---
+
 # AirspeedWind (повідомлення UORB)
 
-Wind estimate (from airspeed_selector)
+Wind estimate (from airspeed_selector).
 
 Contains wind estimation and airspeed innovation information estimated by the WindEstimator
 in the airspeed selector module.
@@ -8,7 +12,42 @@ in the airspeed selector module.
 This message is published by the airspeed selector for debugging purposes, and is not
 subscribed to by any other modules.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/AirspeedWind.msg)
+**TOPICS:** airspeed_wind
+
+## Fields
+
+| Назва                                                                            | Тип       | Unit [Frame] | Range/Enum | Опис                                                                                                                 |
+| -------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                                        | `uint64`  | us                                                               |            | Time since system start                                                                                              |
+| timestamp_sample                                            | `uint64`  | us                                                               |            | Timestamp of the raw data                                                                                            |
+| windspeed_north                                             | `float32` | m/s                                                              |            | Wind component in north / X direction                                                                                |
+| windspeed_east                                              | `float32` | m/s                                                              |            | Wind component in east / Y direction                                                                                 |
+| variance_north                                              | `float32` | (m/s)^2                                       |            | Wind estimate error variance in north / X direction (Invalid: 0 if not estimated) |
+| variance_east                                               | `float32` | (m/s)^2                                       |            | Wind estimate error variance in east / Y direction (Invalid: 0 if not estimated)  |
+| tas_innov                                                   | `float32` | m/s                                                              |            | True airspeed innovation                                                                                             |
+| tas_innov_var                          | `float32` | m/s                                                              |            | True airspeed innovation variance                                                                                    |
+| tas_scale_raw                          | `float32` |                                                                  |            | Estimated true airspeed scale factor (not validated)                                              |
+| tas_scale_raw_var | `float32` |                                                                  |            | True airspeed scale factor variance                                                                                  |
+| tas_scale_validated                    | `float32` |                                                                  |            | Estimated true airspeed scale factor after validation                                                                |
+| beta_innov                                                  | `float32` | rad                                                              |            | Sideslip measurement innovation                                                                                      |
+| beta_innov_var                         | `float32` | rad^2                                                            |            | Sideslip measurement innovation variance                                                                             |
+| source                                                                           | `uint8`   |                                                                  |            | source of wind estimate                                                                                              |
+
+## Constants
+
+| Назва                                                                                                                  | Тип     | Значення | Опис                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------------------- | ------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| <a href="#SOURCE_AS_BETA_ONLY"></a> SOURCE_AS_BETA_ONLY | `uint8` | 0        | Wind estimate only based on synthetic sideslip fusion                                                 |
+| <a href="#SOURCE_AS_SENSOR_1"></a> SOURCE_AS_SENSOR_1   | `uint8` | 1        | Combined synthetic sideslip and airspeed fusion (data from first airspeed sensor)  |
+| <a href="#SOURCE_AS_SENSOR_2"></a> SOURCE_AS_SENSOR_2   | `uint8` | 2        | Combined synthetic sideslip and airspeed fusion (data from second airspeed sensor) |
+| <a href="#SOURCE_AS_SENSOR_3"></a> SOURCE_AS_SENSOR_3   | `uint8` | 3        | Combined synthetic sideslip and airspeed fusion (data from third airspeed sensor)  |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/AirspeedWind.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Wind estimate (from airspeed_selector)
@@ -45,5 +84,6 @@ uint8 SOURCE_AS_BETA_ONLY = 0 # Wind estimate only based on synthetic sideslip f
 uint8 SOURCE_AS_SENSOR_1 = 1 # Combined synthetic sideslip and airspeed fusion (data from first airspeed sensor)
 uint8 SOURCE_AS_SENSOR_2 = 2 # Combined synthetic sideslip and airspeed fusion (data from second airspeed sensor)
 uint8 SOURCE_AS_SENSOR_3 = 3 # Combined synthetic sideslip and airspeed fusion (data from third airspeed sensor)
-
 ```
+
+:::

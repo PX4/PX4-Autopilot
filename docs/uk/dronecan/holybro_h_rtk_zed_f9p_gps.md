@@ -100,7 +100,6 @@ In order to use dual ZED-F9P GPS heading in PX4, follow these steps:
 3. Components should be visible on the left panel.
    Click on the first `_Component_<ID#>` that maps to the ZED-F9P DroneCAN node (below shown as _Component 124_).
 4. Click on the _GPS_ subsection and configure the parameters listed below:
-
    - `GPS_TYPE`: Either set to `17` for moving baseline _base_, or set to `18` to be the moving baseline _rover_.
      One F9P MUST be _rover_, and the other MUST be _base_.
    - `GPS_AUTO_CONFIG`: set to 1 for both the rover and base
