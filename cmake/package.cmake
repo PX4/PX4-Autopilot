@@ -81,21 +81,27 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 
 		# Label-aware package metadata
 		if(PX4_BOARD_LABEL STREQUAL "sih")
-			set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4-sitl-sih")
-			set(CPACK_DEBIAN_PACKAGE_NAME "px4-sitl-sih")
-			set(CPACK_DEBIAN_FILE_NAME "px4-sitl-sih_${DEB_VERSION}-${DEB_CODENAME}_${DEB_ARCHITECTURE}.deb")
+			set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4")
+			set(CPACK_DEBIAN_PACKAGE_NAME "px4")
+			set(CPACK_DEBIAN_FILE_NAME "px4_${DEB_VERSION}-${DEB_CODENAME}_${DEB_ARCHITECTURE}.deb")
 			set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6")
 			set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 SITL autopilot with SIH physics (no Gazebo)")
 			set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
 				"${PX4_SOURCE_DIR}/Tools/packaging/sih/postinst;${PX4_SOURCE_DIR}/Tools/packaging/sih/postrm")
 		else()
-			set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4-sitl")
-			set(CPACK_DEBIAN_PACKAGE_NAME "px4-sitl")
-			set(CPACK_DEBIAN_FILE_NAME "px4-sitl_${DEB_VERSION}-${DEB_CODENAME}_${DEB_ARCHITECTURE}.deb")
+			set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4-gazebo")
+			set(CPACK_DEBIAN_PACKAGE_NAME "px4-gazebo")
+			set(CPACK_DEBIAN_FILE_NAME "px4-gazebo_${DEB_VERSION}-${DEB_CODENAME}_${DEB_ARCHITECTURE}.deb")
 			set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, gz-sim8-cli, libgz-sim8-plugins, libgz-physics7-dartsim, gz-tools2")
 			set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "PX4 SITL autopilot with Gazebo Harmonic simulation resources")
 			set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
 				"${PX4_SOURCE_DIR}/Tools/packaging/postinst;${PX4_SOURCE_DIR}/Tools/packaging/postrm")
+		endif()
+
+		# Bake the install prefix into the px4 binary so it can locate its ROMFS
+		# (etc/) without a wrapper script or command-line argument.
+		if(TARGET px4)
+			target_compile_definitions(px4 PRIVATE PX4_INSTALL_PREFIX="${CPACK_PACKAGING_INSTALL_PREFIX}")
 		endif()
 
 		set(CPACK_DEBIAN_PACKAGE_SECTION "misc")

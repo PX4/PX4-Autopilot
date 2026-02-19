@@ -259,6 +259,24 @@ int main(int argc, char **argv)
 			PX4_INFO("instance: %i", instance);
 		}
 
+#if defined(PX4_INSTALL_PREFIX)
+
+		// When installed as a .deb package, default to the baked-in install prefix.
+		// Working directory defaults to XDG_DATA_HOME/px4/rootfs/<instance>.
+		if (commands_file.empty() && data_path.empty() && working_directory.empty()
+		    && dir_exists(PX4_INSTALL_PREFIX"/etc")
+		   ) {
+			data_path = PX4_INSTALL_PREFIX"/etc";
+
+			const char *xdg_data_home = getenv("XDG_DATA_HOME");
+			std::string state_base = xdg_data_home ? xdg_data_home
+			                                       : (std::string(getenv("HOME") ? getenv("HOME") : "") + "/.local/share");
+			working_directory = state_base + "/px4/rootfs";
+			working_directory_default = true;
+		}
+
+#endif // PX4_INSTALL_PREFIX
+
 #if defined(PX4_BINARY_DIR)
 
 		// data_path & working_directory: if no commands specified or in current working directory),
@@ -745,13 +763,34 @@ std::string pwd()
 	return (getcwd(temp, PATH_MAX) ? std::string(temp) : std::string(""));
 }
 
+static int mkdir_p(const std::string &path)
+{
+	std::string tmp = path;
+
+	for (size_t i = 1; i < tmp.size(); ++i) {
+		if (tmp[i] == '/') {
+			tmp[i] = '\0';
+
+			if (mkdir(tmp.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) != 0 && errno != EEXIST) {
+				return -1;
+			}
+
+			tmp[i] = '/';
+		}
+	}
+
+	if (mkdir(tmp.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) != 0 && errno != EEXIST) {
+		return -1;
+	}
+
+	return 0;
+}
+
 int change_directory(const std::string &directory)
 {
-	// create directory
+	// create directory (including intermediate components)
 	if (!dir_exists(directory)) {
-		int ret = mkdir(directory.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
-
-		if (ret == -1) {
+		if (mkdir_p(directory) != 0) {
 			PX4_ERR("Error creating directory: %s (%s)", directory.c_str(), strerror(errno));
 			return -1;
 		}

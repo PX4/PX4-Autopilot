@@ -64,27 +64,9 @@ runs:
       run: |
         cd build/px4_sitl_${{ inputs.target }}
         echo "--- Package info ---"
-        dpkg-deb -I px4-sitl*.deb
+        dpkg-deb -I *.deb
         echo "--- Package contents ---"
-        dpkg-deb -c px4-sitl*.deb
-
-    - name: Validate default package
-      if: inputs.target == 'default'
-      shell: bash
-      run: |
-        cd build/px4_sitl_default
-        echo "--- Verify Gazebo resources in package ---"
-        dpkg-deb -c px4-sitl_*.deb | grep share/gz/models > /dev/null || { echo "FAIL: models missing"; exit 1; }
-        dpkg-deb -c px4-sitl_*.deb | grep share/gz/worlds > /dev/null || { echo "FAIL: worlds missing"; exit 1; }
-        echo "--- Install test ---"
-        dpkg -i px4-sitl_*.deb
-        test -x /opt/px4-sitl/bin/px4 || { echo "FAIL: px4 binary not found"; exit 1; }
-        test -x /opt/px4-sitl/bin/px4-sitl || { echo "FAIL: wrapper not found"; exit 1; }
-        test -L /usr/bin/px4-sitl || { echo "FAIL: symlink not created"; exit 1; }
-        test -d /opt/px4-sitl/share/gz/models || { echo "FAIL: Gazebo models not installed"; exit 1; }
-        echo "--- Smoke test ---"
-        /opt/px4-sitl/bin/px4 -h
-        echo "PASS: default package validation successful"
+        dpkg-deb -c *.deb
 
     - name: Validate sih package
       if: inputs.target == 'sih'
@@ -92,20 +74,37 @@ runs:
       run: |
         cd build/px4_sitl_sih
         echo "--- Verify NO Gazebo resources ---"
-        ! dpkg-deb -c px4-sitl-sih_*.deb | grep share/gz > /dev/null && echo "PASS: no Gazebo" || { echo "FAIL: Gazebo found"; exit 1; }
+        ! dpkg-deb -c px4_*.deb | grep share/gz > /dev/null && echo "PASS: no Gazebo" || { echo "FAIL: Gazebo found"; exit 1; }
         echo "--- Install test ---"
-        dpkg -i px4-sitl-sih_*.deb
-        test -x /opt/px4-sitl-sih/bin/px4 || { echo "FAIL: px4 binary not found"; exit 1; }
-        test -x /opt/px4-sitl-sih/bin/px4-sitl || { echo "FAIL: wrapper not found"; exit 1; }
-        test -L /usr/bin/px4-sitl-sih || { echo "FAIL: symlink not created"; exit 1; }
-        test ! -d /opt/px4-sitl-sih/share/gz || { echo "FAIL: Gazebo dir should not exist"; exit 1; }
+        dpkg -i px4_*.deb
+        test -x /opt/px4/bin/px4 || { echo "FAIL: px4 binary not found"; exit 1; }
+        test -L /usr/bin/px4 || { echo "FAIL: symlink not created"; exit 1; }
+        test ! -d /opt/px4/share/gz || { echo "FAIL: Gazebo dir should not exist"; exit 1; }
         echo "--- Smoke test ---"
-        /opt/px4-sitl-sih/bin/px4 -h
+        /opt/px4/bin/px4 -h
         echo "PASS: sih package validation successful"
+
+    - name: Validate gazebo package
+      if: inputs.target == 'default'
+      shell: bash
+      run: |
+        cd build/px4_sitl_default
+        echo "--- Verify Gazebo resources in package ---"
+        dpkg-deb -c px4-gazebo_*.deb | grep share/gz/models > /dev/null || { echo "FAIL: models missing"; exit 1; }
+        dpkg-deb -c px4-gazebo_*.deb | grep share/gz/worlds > /dev/null || { echo "FAIL: worlds missing"; exit 1; }
+        echo "--- Install test ---"
+        dpkg -i px4-gazebo_*.deb
+        test -x /opt/px4-gazebo/bin/px4 || { echo "FAIL: px4 binary not found"; exit 1; }
+        test -x /opt/px4-gazebo/bin/px4-gazebo || { echo "FAIL: wrapper not found"; exit 1; }
+        test -L /usr/bin/px4-gazebo || { echo "FAIL: symlink not created"; exit 1; }
+        test -d /opt/px4-gazebo/share/gz/models || { echo "FAIL: Gazebo models not installed"; exit 1; }
+        echo "--- Smoke test ---"
+        /opt/px4-gazebo/bin/px4 -h
+        echo "PASS: gazebo package validation successful"
 
     - name: Upload .deb artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.artifact-name }}
-        path: build/px4_sitl_${{ inputs.target }}/px4-sitl*.deb
+        path: build/px4_sitl_${{ inputs.target }}/*.deb
         if-no-files-found: error

@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
-ln -sf /opt/px4-sitl/bin/px4-sitl /usr/bin/px4-sitl
+ln -sf /opt/px4-gazebo/bin/px4-gazebo /usr/bin/px4-gazebo
 exit 0

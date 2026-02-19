@@ -23,6 +23,9 @@ px4_posix_generate_alias(
 
 add_definitions(-DPX4_SOURCE_DIR="${PX4_SOURCE_DIR}" -DPX4_BINARY_DIR="${PX4_BINARY_DIR}")
 
+# PX4_INSTALL_PREFIX is set by cmake/package.cmake after this file is processed.
+# It is passed via target_compile_definitions on the px4 target from package.cmake.
+
 add_executable(px4
 	src/px4/common/main.cpp
 	apps.cpp
@@ -260,12 +263,14 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 		USE_SOURCE_PERMISSIONS
 		)
 
-	# wrapper script
+	if(CONFIG_MODULES_SIMULATION_GZ_BRIDGE)
+	# Gazebo wrapper script (sets GZ_SIM_* env vars pointing at installed resources)
 	install(
-		PROGRAMS ${PROJECT_SOURCE_DIR}/Tools/packaging/px4-sitl.sh
+		PROGRAMS ${PROJECT_SOURCE_DIR}/Tools/packaging/px4-gazebo.sh
 		DESTINATION bin
-		RENAME px4-sitl
+		RENAME px4-gazebo
 		)
+	endif()
 
 	if(CONFIG_MODULES_SIMULATION_GZ_BRIDGE)
 	# Gazebo models
