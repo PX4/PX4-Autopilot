@@ -44,7 +44,6 @@
 
 #include "uuv_pos_control.hpp"
 
-#include <vector>
 
 
 /**
