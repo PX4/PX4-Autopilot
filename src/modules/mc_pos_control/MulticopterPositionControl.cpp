@@ -403,7 +403,7 @@ void MulticopterPositionControl::Run()
 		if (_vehicle_control_mode_sub.updated()) {
 			const bool previous_position_control_enabled = _vehicle_control_mode.flag_multicopter_position_control_enabled;
 
-			if (_vehicle_control_mode_sub.update(&_vehicle_control_mode)) {
+			if (_vehicle_control_mode_sub.copy(&_vehicle_control_mode)) {
 				if (!previous_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					_time_position_control_enabled = _vehicle_control_mode.timestamp;
 
@@ -420,7 +420,7 @@ void MulticopterPositionControl::Run()
 		if (_hover_thrust_estimate_sub.updated()) {
 			hover_thrust_estimate_s hte;
 
-			if (_hover_thrust_estimate_sub.update(&hte)) {
+			if (_hover_thrust_estimate_sub.copy(&hte)) {
 				if (hte.valid) {
 					_control.updateHoverThrust(hte.hover_thrust);
 				}
