@@ -19,12 +19,22 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
 
 """
                   )
+        
+        # Define the groups and parameters that are specific to certain boards, to allow for a note to be added to the documentation.
+        BOARD_SPECIFIC_GROUPS = ['Actuator Outputs']
+        BOARD_SPECIFIC_PARAMETERS = []
 
         for group in groups:
             result += f'## {group.GetName()}\n\n'
 
+            group_is_board_specific = (group.GetName() in BOARD_SPECIFIC_GROUPS)
+ 
             for param in group.GetParams():
                 name = param.GetName()
+                
+                # Apply note if either the group or the parameter is board specific.
+                apply_board_specific_note = group_is_board_specific or (name in BOARD_SPECIFIC_PARAMETERS)
+
                 short_desc = param.GetFieldValue("short_desc") or ''
 
                 # Add fullstop to short_desc if not present
@@ -82,6 +92,8 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
                     result += f'{short_desc}\n\n'
                 if long_desc:
                     result += f'{long_desc}\n\n'
+                if apply_board_specific_note:
+                    result += f'::: info\nThis parameter is only present on some boards.\n:::\n\n'
                 if enum_codes:
                     result += enum_output
                 if bitmask_list:
