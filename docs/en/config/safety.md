@@ -111,13 +111,7 @@ The settings and underlying parameters are shown below.
 
 ## Manual Control Loss Failsafe
 
-The manual control loss failsafe may be triggered if the connection to the [RC transmitter](../getting_started/rc_transmitter_receiver.md) or [joystick](../config/joystick.md) is lost, and there is no fallback.
-If using an [RC transmitter](../getting_started/rc_transmitter_receiver.md) this is triggered if the RC [transmitter link is lost](../getting_started/rc_transmitter_receiver.md#set-signal-loss-behaviour).
-If using [joysticks](../config/joystick.md) connected over a MAVLink data link, this is triggered if the joysticks are disconnected or the data link is lost.
-
-::: info
-PX4 and the receiver may also need to be configured in order to _detect RC loss_: [Radio Setup > RC Loss Detection](../config/radio.md#rc-loss-detection).
-:::
+A [Manual Control Loss Failsafe](../config/safety.md#manual-control-loss-failsafe) is triggered after a [manual control loss timeout](#COM_RC_LOSS_T) in which none of the configured [Manual Controllers](../config/manual_control.md) are available.
 
 ![Safety - RC Loss (QGC)](../../assets/qgc/setup/safety/safety_rc_loss.png)
 
