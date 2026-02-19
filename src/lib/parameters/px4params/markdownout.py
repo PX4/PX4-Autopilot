@@ -91,20 +91,20 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
                     def_val='Disabled (0)'
 
                 result += f'### {name} (`{type}`)' + ' {#' + name + '}\n\n'
+                if apply_note_board_specific_group:
+                    result += f'<Badge type="warning" text="This parameter is only present on some boards." />\n\n'
+                if apply_timer_param_note:
+                    result += f'<Badge type="info" text="The exact output numbers where this timer applies are board-specific." />\n\n'
                 if short_desc:
                     result += f'{short_desc}\n\n'
                 if long_desc:
                     result += f'{long_desc}\n\n'
-                if apply_note_board_specific_group:
-                    result += f'::: info\nThis parameter is only present on some boards.\n:::\n\n'
-                if apply_timer_param_note:
-                    result += f'::: info\nThe exact output numbers where this timer applies are board-specific.\n:::\n\n'
                 if enum_codes:
                     result += enum_output
                 if bitmask_list:
                     result += bitmask_output
                 # Format the ranges as a table.
-                result += f"Reboot | minValue | maxValue | increment | default | unit\n--- | --- | --- | --- | --- | ---\n{'&check;' if reboot_required else '&nbsp;' } | {min_val} | {max_val} | {increment} | {def_val} | {unit} \n\n"
+                result += f"Reboot | minValue | maxValue | increment | default | unit\n--- | --- | --- | --- | --- | ---\n{'&check;' if reboot_required else '&nbsp;' } | {min_val} | {max_val} | {increment} | {def_val} | {unit} | \n\n"
 
         self.output = result
 
