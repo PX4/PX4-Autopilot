@@ -57,9 +57,11 @@
 using namespace drv_pca9685_pwm;
 using namespace time_literals;
 
-class PCA9685Wrapper : public ModuleBase<PCA9685Wrapper>, public OutputModuleInterface
+class PCA9685Wrapper : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	PCA9685Wrapper();
 	~PCA9685Wrapper() override;
 	PCA9685Wrapper(const PCA9685Wrapper &) = delete;
@@ -112,6 +114,8 @@ private:
 	void Run() override;
 	int registers_check();
 };
+
+ModuleBase::Descriptor PCA9685Wrapper::desc{task_spawn, custom_command, print_usage};
 
 PCA9685Wrapper::PCA9685Wrapper() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
@@ -187,7 +191,7 @@ void PCA9685Wrapper::Run()
 		delete pca9685;
 		pca9685 = nullptr;
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -415,8 +419,8 @@ int PCA9685Wrapper::task_spawn(int argc, char **argv) {
     auto *instance = new PCA9685Wrapper();
 
     if (instance) {
-        _object.store(instance);
-        _task_id = task_id_is_work_queue;
+        desc.object.store(instance);
+        desc.task_id = task_id_is_work_queue;
 
         instance->pca9685 = new PCA9685(iicbus, address);
         if(instance->pca9685==nullptr){
@@ -438,8 +442,8 @@ int PCA9685Wrapper::task_spawn(int argc, char **argv) {
 
     driverInstanceAllocFailed:
     delete instance;
-    _object.store(nullptr);
-    _task_id = -1;
+    desc.object.store(nullptr);
+    desc.task_id = -1;
 
     return PX4_ERROR;
 }
@@ -470,5 +474,5 @@ void PCA9685Wrapper::updateParams() {
 }
 
 extern "C" __EXPORT int pca9685_pwm_out_main(int argc, char *argv[]){
-	return PCA9685Wrapper::main(argc, argv);
+	return ModuleBase::main(PCA9685Wrapper::desc, argc, argv);
 }

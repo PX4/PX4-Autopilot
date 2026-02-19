@@ -97,9 +97,11 @@ using namespace time_literals;
  */
 #define NAVIGATOR_MODE_ARRAY_SIZE 8
 
-class Navigator : public ModuleBase<Navigator>, public ModuleParams
+class Navigator : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Navigator();
 	~Navigator() override;
 
@@ -108,6 +110,9 @@ public:
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Navigator *instantiate(int argc, char *argv[]);

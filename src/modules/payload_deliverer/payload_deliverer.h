@@ -69,9 +69,11 @@ static constexpr int8_t GRIPPER_ACTION_NONE = -1;
  *
  * This module communicates with the Navigator which handles publishing such vehicle commands.
  */
-class PayloadDeliverer : public ModuleBase<PayloadDeliverer>, public ModuleParams, public px4::ScheduledWorkItem
+class PayloadDeliverer : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	PayloadDeliverer();
 
 	/** @see ModuleBase **/

@@ -48,6 +48,8 @@
 
 #include "uuv_att_control.hpp"
 
+ModuleBase::Descriptor UUVAttitudeControl::desc{task_spawn, custom_command, print_usage};
+
 
 /**
  * UUV attitude control app start / stop handling function
@@ -336,7 +338,7 @@ void UUVAttitudeControl::Run()
 {
 	if (should_exit()) {
 		_vehicle_attitude_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -456,8 +458,8 @@ int UUVAttitudeControl::task_spawn(int argc, char *argv[])
 	UUVAttitudeControl *instance = new UUVAttitudeControl();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -468,8 +470,8 @@ int UUVAttitudeControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -516,5 +518,5 @@ $ uuv_att_control stop
 
 int uuv_att_control_main(int argc, char *argv[])
 {
-	return UUVAttitudeControl::main(argc, argv);
+	return ModuleBase::main(UUVAttitudeControl::desc, argc, argv);
 }

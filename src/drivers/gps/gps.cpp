@@ -117,7 +117,7 @@ struct GPS_Sat_Info {
 static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2040);
 
 
-class GPS : public ModuleBase<GPS>, public device::Device
+class GPS : public ModuleBase, public device::Device
 {
 public:
 
@@ -132,6 +132,8 @@ public:
 	GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, Instance instance,
 	    unsigned configured_baudrate);
 	~GPS() override;
+
+	static Descriptor desc;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -149,6 +151,11 @@ public:
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
+
+	/**
+	 * task spawn trampoline for the primary GPS
+	 */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/**
 	 * task spawn trampoline for the secondary GPS
@@ -302,6 +309,7 @@ private:
 
 px4::atomic_bool GPS::_is_gps_main_advertised{false};
 px4::atomic<GPS *> GPS::_secondary_instance{nullptr};
+ModuleBase::Descriptor GPS::desc{task_spawn, custom_command, print_usage};
 
 /*
  * Driver 'main' command.
@@ -1418,12 +1426,12 @@ int
 GPS::custom_command(int argc, char *argv[])
 {
 	// Check if the driver is running.
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		PX4_INFO("not running");
 		return PX4_ERROR;
 	}
 
-	GPS *_instance = get_instance();
+	GPS *_instance = get_instance<GPS>(desc);
 
 	bool res = false;
 
@@ -1517,15 +1525,22 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 				   entry_point, (char *const *)argv);
 
 	if (task_id < 0) {
-		_task_id = -1;
+		desc.task_id = -1;
 		return -errno;
 	}
 
 	if (instance == Instance::Main) {
-		_task_id = task_id;
+		desc.task_id = task_id;
 	}
 
 	return 0;
+}
+
+int GPS::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return GPS::instantiate(ac, av);
+	}, argc, argv);
 }
 
 int GPS::run_trampoline_secondary(int argc, char *argv[])
@@ -1693,5 +1708,5 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 int
 gps_main(int argc, char *argv[])
 {
-	return GPS::main(argc, argv);
+	return ModuleBase::main(GPS::desc, argc, argv);
 }

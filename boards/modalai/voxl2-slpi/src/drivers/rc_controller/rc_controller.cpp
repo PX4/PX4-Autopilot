@@ -59,6 +59,8 @@
 
 #include "rc_controller.hpp"
 
+ModuleBase::Descriptor RC_ControllerModule::desc{task_spawn, custom_command, print_usage};
+
 int RC_ControllerModule::print_status()
 {
 	PX4_INFO("Running");
@@ -69,35 +71,35 @@ int RC_ControllerModule::print_status()
 
 int RC_ControllerModule::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("not running");
 		return 1;
 	}
 
 	if (!strcmp(argv[0], "throttle")) {
 		uint16_t val = atoi(argv[1]);
-		get_instance()->set_throttle(val);
+		get_instance<RC_ControllerModule>(desc)->set_throttle(val);
 		PX4_INFO("Setting throttle to %u", val);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "yaw")) {
 		uint16_t val = atoi(argv[1]);
-		get_instance()->set_yaw(val);
+		get_instance<RC_ControllerModule>(desc)->set_yaw(val);
 		PX4_INFO("Setting yaw to %u", val);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "pitch")) {
 		uint16_t val = atoi(argv[1]);
-		get_instance()->set_pitch(val);
+		get_instance<RC_ControllerModule>(desc)->set_pitch(val);
 		PX4_INFO("Setting pitch to %u", val);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "roll")) {
 		uint16_t val = atoi(argv[1]);
-		get_instance()->set_roll(val);
+		get_instance<RC_ControllerModule>(desc)->set_roll(val);
 		PX4_INFO("Setting roll to %u", val);
 		return 0;
 	}
@@ -106,17 +108,24 @@ int RC_ControllerModule::custom_command(int argc, char *argv[])
 }
 
 
+int RC_ControllerModule::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return RC_ControllerModule::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int RC_ControllerModule::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("RC_ControllerModule",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX,
-				      1024,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("RC_ControllerModule",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_MAX,
+					  1024,
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -252,5 +261,5 @@ int RC_ControllerModule::print_usage(const char *reason)
 
 int rc_controller_main(int argc, char *argv[])
 {
-	return RC_ControllerModule::main(argc, argv);
+	return ModuleBase::main(RC_ControllerModule::desc, argc, argv);
 }

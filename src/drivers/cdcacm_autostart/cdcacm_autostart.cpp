@@ -45,6 +45,8 @@ __END_DECLS
 
 #include <px4_platform_common/shutdown.h>
 
+ModuleBase::Descriptor CdcAcmAutostart::desc{task_spawn, custom_command, print_usage};
+
 #define USB_DEVICE_PATH "/dev/ttyACM0"
 
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
@@ -95,7 +97,7 @@ int CdcAcmAutostart::Start()
 void CdcAcmAutostart::Run()
 {
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -566,8 +568,8 @@ int CdcAcmAutostart::task_spawn(int argc, char *argv[])
 		return ret;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 
 	return ret;
 }
@@ -660,7 +662,7 @@ and continue to check for VBUS and start mavlink once it is detected.
 extern "C" __EXPORT int cdcacm_autostart_main(int argc, char *argv[])
 {
 #if defined(CONFIG_SYSTEM_CDCACM)
-	return CdcAcmAutostart::main(argc, argv);
+	return ModuleBase::main(CdcAcmAutostart::desc, argc, argv);
 #endif
 	return 1;
 }

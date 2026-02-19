@@ -63,9 +63,11 @@ static constexpr uint16_t DSHOT_DISARM_VALUE = 0;
 static constexpr uint16_t DSHOT_MIN_THROTTLE = 1;
 static constexpr uint16_t DSHOT_MAX_THROTTLE = 1999;
 
-class DShot final : public ModuleBase<DShot>, public OutputModuleInterface
+class DShot final : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	DShot();
 	~DShot() override;
 

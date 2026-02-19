@@ -67,9 +67,11 @@ static constexpr uint32_t HXSRX0X_CONVERSION_INTERVAL{50_ms};
 // Maximum time to wait for a conversion to complete.
 static constexpr uint32_t HXSRX0X_CONVERSION_TIMEOUT{30_ms};
 
-class SRF05 : public ModuleBase<SRF05>, public px4::ScheduledWorkItem
+class SRF05 : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SRF05(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~SRF05() override;
 
