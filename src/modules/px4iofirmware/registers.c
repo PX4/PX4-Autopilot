@@ -47,7 +47,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <stm32_pwr.h>
 #include <rc/dsm.h>
 #include <rc/sbus.h>
 
@@ -110,9 +109,17 @@ uint16_t		r_page_raw_rc_input[] = {
 };
 
 /**
+ * PAGE 6
+ *
+ * Raw ADC input
+ */
+uint16_t 		r_page_raw_adc_input[] = {
+	[PX4IO_P_RAW_ADC_BASE ...(PX4IO_P_RAW_ADC_BASE + PX4IO_ADC_CHANNEL_COUNT)] = 0,
+};
+
+/**
  * Scratch page; used for registers that are constructed as-read.
  *
- * PAGE 6 Raw ADC input.
  * PAGE 7 PWM rate maps.
  */
 uint16_t		r_page_scratch[32];
@@ -522,56 +529,6 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	/*
 	 * Handle pages that are updated dynamically at read time.
 	 */
-	case PX4IO_PAGE_STATUS:
-		/* PX4IO_P_STATUS_FREEMEM */
-
-		/* XXX PX4IO_P_STATUS_CPULOAD */
-
-		/* PX4IO_P_STATUS_FLAGS maintained externally */
-
-		/* PX4IO_P_STATUS_ALARMS maintained externally */
-
-#ifdef ADC_VSERVO
-		/* PX4IO_P_STATUS_VSERVO */
-		{
-			unsigned counts = adc_measure(ADC_VSERVO);
-
-			if (counts != 0xffff) {
-				// use 3:1 scaling on 3.3V ADC input
-				unsigned mV = counts * 9900 / 4096;
-				r_page_status[PX4IO_P_STATUS_VSERVO] = mV;
-			}
-		}
-
-#endif
-#ifdef ADC_RSSI
-		/* PX4IO_P_STATUS_VRSSI */
-		{
-			unsigned counts = adc_measure(ADC_RSSI);
-
-			if (counts != 0xffff) {
-				// use 1:1 scaling on 3.3V ADC input
-				unsigned mV = counts * 3300 / 4096;
-				r_page_status[PX4IO_P_STATUS_VRSSI] = mV;
-			}
-		}
-#endif
-		/* XXX PX4IO_P_STATUS_PRSSI */
-
-		SELECT_PAGE(r_page_status);
-		break;
-
-	case PX4IO_PAGE_RAW_ADC_INPUT:
-		memset(r_page_scratch, 0, sizeof(r_page_scratch));
-
-#ifdef ADC_VSERVO
-		r_page_scratch[0] = adc_measure(ADC_VSERVO);
-#endif
-#ifdef ADC_RSSI
-		r_page_scratch[1] = adc_measure(ADC_RSSI);
-#endif
-		SELECT_PAGE(r_page_scratch);
-		break;
 
 	case PX4IO_PAGE_PWM_INFO:
 		memset(r_page_scratch, 0, sizeof(r_page_scratch));
@@ -588,6 +545,24 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 	 */
 
 	/* status pages */
+	case PX4IO_PAGE_STATUS:
+		/* PX4IO_P_STATUS_FREEMEM */
+
+		/* XXX PX4IO_P_STATUS_CPULOAD */
+
+		/* PX4IO_P_STATUS_FLAGS maintained externally */
+
+		/* PX4IO_P_STATUS_ALARMS maintained externally */
+
+		/* PX4IO_P_STATUS_VSERVO maintaned externally */
+
+		/* PX4IO_P_STATUS_VRSSI maintaned externally */
+
+		/* XXX PX4IO_P_STATUS_PRSSI */
+
+		SELECT_PAGE(r_page_status);
+		break;
+
 	case PX4IO_PAGE_CONFIG:
 		SELECT_PAGE(r_page_config);
 		break;
@@ -598,6 +573,10 @@ registers_get(uint8_t page, uint8_t offset, uint16_t **values, unsigned *num_val
 
 	case PX4IO_PAGE_RAW_RC_INPUT:
 		SELECT_PAGE(r_page_raw_rc_input);
+		break;
+
+	case PX4IO_PAGE_RAW_ADC_INPUT:
+		SELECT_PAGE(r_page_raw_adc_input);
 		break;
 
 	/* readback of input pages */
