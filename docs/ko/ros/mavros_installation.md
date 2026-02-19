@@ -26,7 +26,7 @@ They cover the _ROS Melodic and Noetic_ releases.
 
 :::tab ROS Noetic (Ubuntu 20.04)
 
-If you're working with [ROS Noetic](https://wiki.ros.org/noetic) on Ubuntu 20.04:
+If you're working with [ROS "Noetic"](https://wiki.ros.org/noetic) on Ubuntu 20.04:
 
 1. Install PX4 without the simulator toolchain:
    1. [Download PX4 Source Code](../dev_setup/building_px4.md):
@@ -57,7 +57,7 @@ If you're working with [ROS Noetic](https://wiki.ros.org/noetic) on Ubuntu 20.04
 
 :::tab ROS Melodic (Ubuntu 18.04)
 
-If you're working with ROS "Melodic on Ubuntu 18.04:
+If you're working with ROS "Melodic" on Ubuntu 18.04:
 
 1. Download the [ubuntu_sim_ros_melodic.sh](https://raw.githubusercontent.com/PX4/Devguide/master/build_scripts/ubuntu_sim_ros_melodic.sh) script in a bash shell:
 
@@ -148,21 +148,21 @@ Now you are ready to do the build:
 2. 릴리스 또는 최신 버전을 사용하여 소스에서 MAVROS를 설치합니다.
    - 출시/안정
 
-      ```sh
-      rosinstall_generator --upstream mavros | tee -a /tmp/mavros.rosinstall
-      ```
+     ```sh
+     rosinstall_generator --upstream mavros | tee -a /tmp/mavros.rosinstall
+     ```
 
    - 최신 소스
 
-      ```sh
-      rosinstall_generator --upstream-development mavros | tee -a /tmp/mavros.rosinstall
-      ```
+     ```sh
+     rosinstall_generator --upstream-development mavros | tee -a /tmp/mavros.rosinstall
+     ```
 
-      ```sh
-      # For fetching all the dependencies into your catkin_ws,
-      # just add '--deps' to the above scripts, E.g.:
-      #   rosinstall_generator --upstream mavros --deps | tee -a /tmp/mavros.rosinstall
-      ```
+     ```sh
+     # For fetching all the dependencies into your catkin_ws,
+     # just add '--deps' to the above scripts, E.g.:
+     #   rosinstall_generator --upstream mavros --deps | tee -a /tmp/mavros.rosinstall
+     ```
 
 3. Create workspace & deps
 

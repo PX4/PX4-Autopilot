@@ -44,6 +44,8 @@ using namespace time_literals;
 namespace rc_update
 {
 
+ModuleBase::Descriptor RCUpdate::desc{task_spawn, custom_command, print_usage};
+
 // TODO: find a better home for this
 static bool operator ==(const manual_control_switches_s &a, const manual_control_switches_s &b)
 {
@@ -336,7 +338,7 @@ void RCUpdate::Run()
 {
 	if (should_exit()) {
 		_input_rc_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -691,8 +693,8 @@ int RCUpdate::task_spawn(int argc, char *argv[])
 	RCUpdate *instance = new RCUpdate();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -703,8 +705,8 @@ int RCUpdate::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -763,5 +765,5 @@ To reduce control latency, the module is scheduled on input_rc publications.
 
 extern "C" __EXPORT int rc_update_main(int argc, char *argv[])
 {
-	return rc_update::RCUpdate::main(argc, argv);
+	return ModuleBase::main(rc_update::RCUpdate::desc, argc, argv);
 }

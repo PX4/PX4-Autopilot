@@ -32,11 +32,11 @@
  ****************************************************************************/
 
 /**
- * Lightware SF1xx/SF20/LW20 laser rangefinder (i2c)
+ * Lightware laser rangefinder (i2c)
  *
  * @reboot_required true
  * @min 0
- * @max 7
+ * @max 9
  * @group Sensors
  * @value 0 Disabled
  * @value 1 SF10/a
@@ -46,11 +46,13 @@
  * @value 5 SF/LW20/b
  * @value 6 SF/LW20/c
  * @value 7 SF/LW30/d
+ * @value 8 GRF250
+ * @value 9 GRF500
  */
 PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 
 /**
- * Lightware SF1xx/SF20/LW20 Operation Mode
+ * Lightware laser rangefinder Operation Mode
  *
  * @value 0 Disabled
  * @value 1 Enabled
@@ -60,3 +62,22 @@ PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
  * @max 2
  */
 PARAM_DEFINE_INT32(SF1XX_MODE, 1);
+
+/**
+ * Lightware laser rangefinder Rotation
+ *
+ * Distance sensor orientation as MAV_SENSOR_ORIENTATION enum.
+ * Applies to all models supported by SENS_EN_SF1XX.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 25
+ * @group Sensors
+ * @value 0 Forward
+ * @value 2 Right
+ * @value 4 Backward
+ * @value 6 Left
+ * @value 24 Upward
+ * @value 25 Downward
+ */
+PARAM_DEFINE_INT32(SF1XX_ROT, 25);

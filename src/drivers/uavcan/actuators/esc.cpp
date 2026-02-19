@@ -43,8 +43,6 @@
 #include <drivers/drv_hrt.h>
 #include <lib/atmosphere/atmosphere.h>
 
-#define MOTOR_BIT(x) (1<<(x))
-
 using namespace time_literals;
 
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
@@ -91,7 +89,7 @@ UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t out
 
 	_prev_cmd_pub = timestamp;
 
-	uavcan::equipment::esc::RawCommand msg = {};
+	uavcan::equipment::esc::RawCommand msg{};
 
 	for (unsigned i = 0; i < output_array_size; i++) {
 		msg.cmd.push_back(static_cast<int>(outputs[i]));
@@ -127,6 +125,13 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status_pub.publish(_esc_status);
+	}
+
+	// Register device capability for each ESC channel
+	if (_node_info_publisher != nullptr) {
+		uint8_t node_id = msg.getSrcNodeID().get();
+		uint32_t device_id = msg.esc_index;
+		_node_info_publisher->registerDeviceCapability(node_id, device_id, NodeInfoPublisher::DeviceCapability::ESC);
 	}
 }
 

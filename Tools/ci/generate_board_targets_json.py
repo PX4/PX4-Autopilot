@@ -25,22 +25,31 @@ parser.add_argument('-p', '--pretty', dest='pretty', action='store_true',
                     help='Pretty output instead of a single line')
 parser.add_argument('-g', '--groups', dest='group', action='store_true',
                     help='Groups targets')
-parser.add_argument('-f', '--filter', dest='filter', help='comma separated list of board names to use instead of all')
+parser.add_argument('-f', '--filter', dest='filter', help='comma separated list of build target name prefixes to include instead of all e.g. "px4_fmu-v5_"')
 
 args = parser.parse_args()
 verbose = args.verbose
 
-board_filter = []
+target_filter = []
 if args.filter:
-    for board in args.filter.split(','):
-        board_filter.append(board)
+    for target in args.filter.split(','):
+        target_filter.append(target)
 
 default_container = 'ghcr.io/px4/px4-dev:v1.16.0-rc1-258-g0369abd556'
+voxl2_container = 'ghcr.io/px4/px4-dev-voxl2:v1.5'
 build_configs = []
 grouped_targets = {}
-excluded_boards = ['modalai_voxl2', 'px4_ros2', 'espressif_esp32']  # TODO: fix and enable
+excluded_boards = ['px4_ros2', 'espressif_esp32']  # TODO: fix and enable
 excluded_manufacturers = ['atlflight']
-excluded_platforms = ['qurt']
+excluded_platforms = []
+
+# Container overrides for platforms/boards that need a non-default container
+platform_container_overrides = {
+    'qurt': voxl2_container,
+}
+board_container_overrides = {
+    'modalai_voxl2': voxl2_container,
+}
 excluded_labels = [
     'stackcheck',
     'nolockstep', 'replay', 'test',
@@ -88,7 +97,20 @@ def process_target(px4board_file, target_name):
 
     if platform not in excluded_platforms:
         container = default_container
-        if platform == 'posix':
+
+        # Extract board name (manufacturer_board) from target name
+        board_name = '_'.join(target_name.split('_')[:2])
+
+        # Apply container overrides for specific platforms or boards
+        if platform in platform_container_overrides:
+            container = platform_container_overrides[platform]
+        if board_name in board_container_overrides:
+            container = board_container_overrides[board_name]
+
+        # Boards with container overrides get their own group
+        if board_name in board_container_overrides or platform in platform_container_overrides:
+            group = 'voxl2'
+        elif platform == 'posix':
             group = 'base'
             if toolchain:
                 if toolchain.startswith('aarch64'):
@@ -144,7 +166,7 @@ for manufacturer in os.scandir(os.path.join(source_dir, '../boards')):
                 label = files.name[:-9]
                 target_name = manufacturer.name + '_' + board.name + '_' + label
 
-                if board_filter and not board_name in board_filter:
+                if target_filter and not any(target_name.startswith(f) for f in target_filter):
                     if verbose: print(f'excluding board {board_name} ({target_name})')
                     continue
 
@@ -203,7 +225,7 @@ if (args.group):
     if(verbose):
         print(f'=:Architectures: [{grouped_targets.keys()}]')
     for arch in grouped_targets:
-        runner = 'x64' if arch == 'nuttx' else 'arm64'
+        runner = 'x64' if arch in ('nuttx', 'voxl2') else 'arm64'
         if(verbose):
             print(f'=:Processing: [{arch}]')
         temp_group = []

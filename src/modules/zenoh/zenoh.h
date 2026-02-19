@@ -50,9 +50,11 @@
 #include "subscribers/uorb_subscriber.hpp"
 
 
-class ZENOH : public ModuleBase<ZENOH>, public ModuleParams
+class ZENOH : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	ZENOH();
 
 	~ZENOH();
@@ -78,6 +80,8 @@ public:
 	 */
 	static int task_spawn(int argc, char *argv[]);
 
+	static int run_trampoline(int argc, char *argv[]);
+
 	static ZENOH *instantiate(int argc, char *argv[]);
 
 	void run() override;
@@ -97,11 +101,12 @@ private:
 	Zenoh_Config _config;
 
 	int _pub_count;
-	uORB_Zenoh_Publisher **_zenoh_publishers;
+	uORB_Zenoh_Publisher **_zenoh_publishers = nullptr;
 	int _sub_count;
-	Zenoh_Subscriber **_zenoh_subscribers;
+	Zenoh_Subscriber **_zenoh_subscribers = nullptr;
 
 	z_owned_session_t _s;
+	bool connected = false;
 
 	px4_guid_t _px4_guid{};
 

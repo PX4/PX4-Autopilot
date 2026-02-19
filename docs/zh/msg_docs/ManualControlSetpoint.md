@@ -1,6 +1,53 @@
+---
+pageClass: is-wide-page
+---
+
 # ManualControlSetpoint (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ManualControlSetpoint.msg)
+**TOPICS:** manual_control_setpoint manual_control_input
+
+## Fields
+
+| 参数名                                   | 类型        | Unit [Frame] | Range/Enum | 描述                                                                                              |
+| ------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------- |
+| timestamp                             | `uint64`  |                                                                  |            | time since system start (microseconds)                                       |
+| timestamp_sample | `uint64`  |                                                                  |            | the timestamp of the raw data (microseconds)                                 |
+| valid                                 | `bool`    |                                                                  |            |                                                                                                 |
+| data_source      | `uint8`   |                                                                  |            |                                                                                                 |
+| roll                                  | `float32` |                                                                  |            | move right, positive roll rotation, right side down                                             |
+| pitch                                 | `float32` |                                                                  |            | move forward, negative pitch rotation, nose down                                                |
+| yaw                                   | `float32` |                                                                  |            | positive yaw rotation, clockwise when seen top down                                             |
+| throttle                              | `float32` |                                                                  |            | move up, positive thrust, -1 is minimum available 0% or -100% +1 is 100% thrust                 |
+| flaps                                 | `float32` |                                                                  |            | position of flaps switch/knob/lever [-1, 1] |
+| aux1                                  | `float32` |                                                                  |            |                                                                                                 |
+| aux2                                  | `float32` |                                                                  |            |                                                                                                 |
+| aux3                                  | `float32` |                                                                  |            |                                                                                                 |
+| aux4                                  | `float32` |                                                                  |            |                                                                                                 |
+| aux5                                  | `float32` |                                                                  |            |                                                                                                 |
+| aux6                                  | `float32` |                                                                  |            |                                                                                                 |
+| sticks_moving    | `bool`    |                                                                  |            |                                                                                                 |
+| buttons                               | `uint16`  |                                                                  |            | From uint16 buttons field of Mavlink manual_control message                |
+
+## Constants
+
+| 参数名                                                                                         | 类型       | 值 | 描述                                                               |
+| ------------------------------------------------------------------------------------------- | -------- | - | ---------------------------------------------------------------- |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                        | `uint32` | 0 |                                                                  |
+| <a href="#SOURCE_UNKNOWN"></a> SOURCE_UNKNOWN                          | `uint8`  | 0 |                                                                  |
+| <a href="#SOURCE_RC"></a> SOURCE_RC                                    | `uint8`  | 1 | radio control (input_rc) |
+| <a href="#SOURCE_MAVLINK_0"></a> SOURCE_MAVLINK_0 | `uint8`  | 2 | mavlink instance 0                                               |
+| <a href="#SOURCE_MAVLINK_1"></a> SOURCE_MAVLINK_1 | `uint8`  | 3 | mavlink instance 1                                               |
+| <a href="#SOURCE_MAVLINK_2"></a> SOURCE_MAVLINK_2 | `uint8`  | 4 | mavlink instance 2                                               |
+| <a href="#SOURCE_MAVLINK_3"></a> SOURCE_MAVLINK_3 | `uint8`  | 5 | mavlink instance 3                                               |
+| <a href="#SOURCE_MAVLINK_4"></a> SOURCE_MAVLINK_4 | `uint8`  | 6 | mavlink instance 4                                               |
+| <a href="#SOURCE_MAVLINK_5"></a> SOURCE_MAVLINK_5 | `uint8`  | 7 | mavlink instance 5                                               |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/ManualControlSetpoint.msg)
+
+:::details
+Click here to see original file
 
 ```c
 uint32 MESSAGE_VERSION = 0
@@ -51,5 +98,6 @@ uint16 buttons		# From uint16 buttons field of Mavlink manual_control message
 # DEPRECATED: float32 y
 # DEPRECATED: float32 z
 # DEPRECATED: float32 r
-
 ```
+
+:::

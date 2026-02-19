@@ -43,6 +43,6 @@ Hold mode behaviour can be configured using the parameters below.
 
 <!-- Code for this here: https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/loiter.cpp#L61 -->
 
-## See Also
+## 另见
 
 [Hold Mode (FW)](../flight_modes_fw/hold.md)

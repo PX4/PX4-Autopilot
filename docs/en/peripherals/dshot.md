@@ -11,6 +11,10 @@ DShot is an alternative ESC protocol that has several advantages over [PWM](../p
 
 This topic shows how to connect and configure DShot ESCs.
 
+## Supported ESC
+
+[ESCs & Motors > Supported ESCs](../peripherals/esc_motors#supported-esc) has a list of supported ESC (check "Protocols" column for DShot ESC).
+
 ## Wiring/Connections {#wiring}
 
 DShot ESC are wired the same way as [PWM ESCs](pwm_escs_and_servo.md).
@@ -76,7 +80,6 @@ The most important ones are:
   ```
 
 - Permanently set the spin direction of a motor connected to FMU output pin 1 (while motors are _not_ spinning):
-
   - Set spin direction to `reversed`:
 
     ```sh
@@ -104,7 +107,6 @@ The most important ones are:
     ```
 
   ::: info
-
   - The commands will have no effect if the motors are spinning, or if the ESC is already set to the corresponding direction.
   - The ESC will revert to its last saved direction (normal or reversed) on reboot if `save` is not called after changing the direction.
 

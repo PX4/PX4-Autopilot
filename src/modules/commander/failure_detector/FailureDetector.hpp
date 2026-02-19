@@ -111,11 +111,10 @@ private:
 	hrt_abstime _imu_status_timestamp_prev{0};
 
 	// Motor failure check
-	uint8_t _motor_failure_esc_valid_current_mask{};  // ESC 1-8, true if ESC telemetry was valid at some point
-	uint8_t _motor_failure_esc_timed_out_mask{};      // ESC telemetry no longer available -> failure
-	uint8_t _motor_failure_esc_under_current_mask{};  // ESC drawing too little current -> failure
-	bool _motor_failure_esc_has_current[actuator_motors_s::NUM_CONTROLS] {false}; // true if some ESC had non-zero current (some don't support it)
-	hrt_abstime _motor_failure_undercurrent_start_time[actuator_motors_s::NUM_CONTROLS] {};
+	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if ESC reported non-zero current before (some never report any)
+	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
+	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
+	uint16_t _motor_failure_mask = 0; // actuator function indexed
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)}; // TODO: multi-instance
@@ -142,6 +141,8 @@ private:
 		(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
 		(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_act_mot_thr,
 		(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_act_mot_c2t,
-		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_act_mot_tout
+		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_act_mot_tout,
+		(ParamFloat<px4::params::FD_ACT_LOW_OFF>) _param_fd_act_low_off,
+		(ParamFloat<px4::params::FD_ACT_HIGH_OFF>) _param_fd_act_high_off
 	)
 };

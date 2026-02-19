@@ -1,4 +1,4 @@
-# Holybro Kakute H743-Wing 
+# Holybro Kakute H743-Wing
 
 <Badge type="tip" text="PX4 v1.16" />
 
@@ -9,7 +9,6 @@ Contact the [manufacturer](https://holybro.com/) for hardware support or complia
 
 The [Holybro Kakute H743 Wing](https://holybro.com/products/kakute-h743-wing) is a fully featured flight controller specifically aimed at fixed-wing and VTOL applications. It has the STM32 H743 Processor running at 480 MHz and CAN Bus support, along with dual camera support & switch, ON/OFF Pit Switch, 5V, 6V/8V, 9V/12 BEC, and plug-and-play GPS, CAN, I2C ports.
 
-
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
@@ -19,7 +18,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 The board can be bought from one of the following shops (for example):
 
 - [Holybro](https://holybro.com/products/kakute-h743-wing)
-
 
 ## Connectors and Pins
 
@@ -69,15 +67,15 @@ Firmware can be manually installed in any of the normal ways:
 
 ## Serial Port Mapping
 
-| UART   | Device     | Port                  | Default function |
-| ------ | ---------- | --------------------- | ---------------- |
-| USART1 | /dev/ttyS0 | GPS 1                 | GPS1             |
-| USART2 | /dev/ttyS1 | R2, T2                | GPS2             |
-| USART3 | /dev/ttyS2 | R3, T3                | TELEM1           |
-| UART5  | /dev/ttyS3 | R5, T5                | TELEM2           |
-| USART6 | /dev/ttyS4 | R6, (T6)              | RC input         |
-| UART7  | /dev/ttyS5 | R7, T7, RTS, CTS      | TELEM3           |
-| UART8  | /dev/ttyS6 | R8, T8                | Console          |
+| UART   | Device     | Port             | Default function |
+| ------ | ---------- | ---------------- | ---------------- |
+| USART1 | /dev/ttyS0 | GPS 1            | GPS1             |
+| USART2 | /dev/ttyS1 | R2, T2           | GPS2             |
+| USART3 | /dev/ttyS2 | R3, T3           | TELEM1           |
+| UART5  | /dev/ttyS3 | R5, T5           | TELEM2           |
+| USART6 | /dev/ttyS4 | R6, (T6)         | RC input         |
+| UART7  | /dev/ttyS5 | R7, T7, RTS, CTS | TELEM3           |
+| UART8  | /dev/ttyS6 | R8, T8           | Console          |
 
 ## Debug Port
 

@@ -199,18 +199,6 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 3);
 
 /**
- * Manual control input arm/disarm command duration
- *
- * The default value of 1000 requires the stick to be held in the arm or disarm position for 1 second.
- *
- * @group Commander
- * @min 100
- * @max 1500
- * @unit ms
- */
-PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
-
-/**
  * Time-out for auto disarm after landing
  *
  * A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
@@ -243,14 +231,16 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
 /**
- * GPS preflight check
+ * Arming without GNSS configuration
  *
- * Measures taken when a check defined by EKF2_GPS_CHECK is failing.
+ * Configures whether arming is allowed without GNSS, for modes that require a global position
+ * (specifically, in those modes when a check defined by EKF2_GPS_CHECK fails).
+ * The settings deny arming and warn, allow arming and warn, or silently allow arming.
  *
  * @group Commander
  * @value 0 Deny arming
- * @value 1 Warning only
- * @value 2 Disabled
+ * @value 1 Allow arming (with warning)
+ * @value 2 Allow arming (no warning)
  */
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
@@ -258,8 +248,7 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
  * Arm switch is a momentary button
  *
  * 0: Arming/disarming triggers on switch transition.
- * 1: Arming/disarming triggers when holding the momentary button down
- * for COM_RC_ARM_HYST like the stick gesture.
+ * 1: Arming/disarming triggers when holding the momentary button down like the stick gesture.
  *
  * @group Commander
  * @boolean
@@ -618,13 +607,14 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 /**
  * Manual control loss exceptions
  *
- * Specify modes where manual control loss is ignored and no failsafe is triggered.
+ * Specify modes in which stick input is ignored and no failsafe action is triggered.
  * External modes requiring stick input will still failsafe.
+ * Auto modes are: Hold, Takeoff, Land, RTL, Descend, Follow Target, Precland, Orbit.
  *
  * @min 0
  * @max 31
  * @bit 0 Mission
- * @bit 1 Hold
+ * @bit 1 Auto modes
  * @bit 2 Offboard
  * @bit 3 External Mode
  * @bit 4 Altitude Cruise
@@ -635,13 +625,16 @@ PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
 /**
  * Datalink loss exceptions
  *
- * Specify modes in which datalink loss is ignored and the failsafe action not triggered.
+ * Specify modes in which ground control station connection loss is ignored and no failsafe action is triggered.
+ * See also COM_RCL_EXCEPT.
  *
  * @min 0
- * @max 7
+ * @max 31
  * @bit 0 Mission
- * @bit 1 Hold
+ * @bit 1 Auto modes
  * @bit 2 Offboard
+ * @bit 3 External Mode
+ * @bit 4 Altitude Cruise
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_DLL_EXCEPT, 0);
@@ -842,6 +835,21 @@ PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
  * @value 2 Enforce Open Drone ID system presence
  */
 PARAM_DEFINE_INT32(COM_ARM_ODID, 0);
+
+/**
+ * Enable Traffic Avoidance system detection check
+ *
+ * This check detects if a traffic avoidance system (ADSB/FLARM transponder)
+ * is missing. Depending on the value of the parameter, the check can be
+ * disabled, warn only, or deny arming.
+ *
+ * @group Commander
+ * @value 0 Disabled
+ * @value 1 Warning only
+ * @value 2 Enforce for all modes
+ * @value 3 Enforce for mission modes only
+ */
+PARAM_DEFINE_INT32(COM_ARM_TRAFF, 0);
 
 /**
  * Enforced delay between arming and further navigation

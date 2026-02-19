@@ -20,6 +20,7 @@
     - Багатосмуговий RTK зі швидкими часами збіжності та надійною продуктивністю
     - Висока швидкість оновлення для високодинамічних додатків
     - Centimetre accuracy in a small and energy efficient module
+    - Moving Base for Heading
   - Bosch BMM150 Magnetometer
   - Bosch BMP388 Barometer
   - Invensense ICM-42688-P 6-Axis IMU

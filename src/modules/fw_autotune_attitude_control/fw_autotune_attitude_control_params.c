@@ -39,22 +39,7 @@
  * @author Mathieu Bresciani <mathieu@auterion.com>
  */
 
-/**
- * Start the autotuning sequence
- *
- * WARNING: this will inject steps to the rate controller
- * and can be dangerous. Only activate if you know what you
- * are doing, and in a safe environment.
- *
- * Any motion of the remote stick will abort the signal
- * injection and reset this parameter
- * Best is to perform the identification in position or
- * hold mode.
- *
- * @boolean
- * @group Autotune
- */
-PARAM_DEFINE_INT32(FW_AT_START, 0);
+
 
 /**
  * Controls when to apply the new gains

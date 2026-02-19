@@ -332,9 +332,11 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
   - [UXRCE_DDS_SYNCT](../advanced_config/parameter_reference.md#UXRCE_DDS_SYNCT): Bridge time synchronization enable.
     The uXRCE-DDS client module can synchronize the timestamp of the messages exchanged over the bridge.
     This is the default configuration. In certain situations, for example during [simulations](../ros2/user_guide.md#ros-gazebo-and-px4-time-synchronization), this feature may be disabled.
-  - [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX): Index-based namespace definition
+  - [UXRCE_DDS_NS_IDX](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) <Badge type="tip" text="PX4 v1.17" />: Index-based namespace definition.
     Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
     See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
+  - [`UXRCE_DDS_FLCTRL`](../advanced_config/parameter_reference.md#UXRCE_DDS_FLCTRL) <Badge type="tip" text="main (planned for: PX4 v1.18)" />: Serial port hardware flow control enable.
+    To use hardware flow control, a custom MicroXRCE Agent needs to be adopted. Please refer to [this PR](https://github.com/eProsima/Micro-XRCE-DDS-Agent/pull/407) for the required changes, cherry-pick them on top of the [agent version](#build-run-within-ros-2-workspace) you need to use and then run the agent with the additional `--flow-control` option.
 
 :::info
 Many ports are already have a default configuration.
@@ -439,7 +441,7 @@ PX4_UXRCE_DDS_NS=uav_1 make px4_sitl gz_x500
 
 :::
 
-- A simple index-based namespace can be applied by setting the parameter [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) to a value between 0 and 9999.
+- A simple index-based namespace can be applied by setting the parameter [`UXRCE_DDS_NS_IDX`](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) <Badge type="tip" text="PX4 v1.17" /> to a value between 0 and 9999.
   This will generate a namespace such as `/uav_0`, `/uav_1`, and so on.
   This technique is ideal if vehicles must be persistently associated with namespaces because their clients are automatically started through PX4.
 
@@ -454,6 +456,7 @@ uxrce_dds_client start -n fancy_uav
 ```
 
 This can be included in `etc/extras.txt` as part of a custom [System Startup](../concept/system_startup.md).
+:::
 
 ## PX4 ROS 2 QoS Settings
 
@@ -515,6 +518,11 @@ publications:
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
+  - topic: /fmu/out/vehicle_imu
+    type: px4_msgs::msg::VehicleImu
+    rate_limit: 50.
+    instance: 1 # OPTIONAL
+
 subscriptions:
 
   - topic: /fmu/in/offboard_control_mode
@@ -547,6 +555,9 @@ Each (`topic`,`type`) pairs defines:
 4. The message type (`VehicleOdometry`, `VehicleStatus`, `OffboardControlMode`, etc.) and the ROS 2 package (`px4_msgs`) that is expected to provide the message definition.
 5. **(Optional)**: An additional `rate_limit` field (only for publication entries), which specifies the maximum rate (Hz) at which messages will be published on this topic by PX4 to ROS 2.
    If left unspecified, the maximum publication rate limit is set to 100 Hz.
+6. <Badge type="tip" text="main (planned for: PX4 v1.18)" /> **(Optional)**: An additional `instance` field (only for publication entries), which lets you select which instance of a [multi-instance topic](./uorb.md#multi-instance) you want to be published to ROS 2.
+   If provided, this option changes the ROS 2 topic name of the advertised uORB topic appending the instance number: `fmu/out/[uorb topic name][instance]` (plus eventual namespace and message version).
+   In the example above the final topic name would be `/fmu/out/vehicle_imu1`.
 
 `subscriptions` and `subscriptions_multi` allow us to choose the uORB topic instance that ROS 2 topics are routed to: either a shared instance that may also be getting updates from internal PX4 uORB publishers, or a separate instance that is reserved for ROS2 publications, respectively.
 Without this mechanism all ROS 2 messages would be routed to the _same_ uORB topic instance (because ROS 2 does not have the concept of [multiple topic instances](../middleware/uorb.md#multi-instance)), and it would not be possible for PX4 subscribers to differentiate between streams from ROS 2 or PX4 publishers.
@@ -588,7 +599,7 @@ For a list of services, details and examples see the [service documentation](../
 These guidelines explain how to migrate from using PX4 v1.13 [Fast-RTPS](../middleware/micrortps.md) middleware to PX4 v1.14 `uXRCE-DDS` middleware.
 These are useful if you have [ROS 2 applications written for PX4 v1.13](https://docs.px4.io/v1.13/en/ros/ros2_comm.html), or you have used Fast-RTPS to interface your applications to PX4 [directly](https://docs.px4.io/v1.13/en/middleware/micrortps.html#agent-in-an-offboard-fast-dds-interface-ros-independent).
 
-::: info
+:::info
 This section contains migration-specific information.
 You should also read the rest of this page to properly understand uXRCE-DDS.
 :::

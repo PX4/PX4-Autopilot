@@ -86,7 +86,7 @@ void RunwayTakeoff::update(const hrt_abstime &time_now, const float takeoff_airs
 
 	case RunwayTakeoffState::CLIMBOUT:
 		if (vehicle_altitude > clearance_altitude) {
-			takeoff_state_ = RunwayTakeoffState::FLY;
+			takeoff_state_ = RunwayTakeoffState::FLYING;
 			events::send(events::ID("runway_takeoff_reached_clearance_altitude"), events::Log::Info, "Reached clearance altitude");
 		}
 
@@ -134,7 +134,7 @@ float RunwayTakeoff::getThrottle(const float idle_throttle) const
 
 		break;
 
-	case RunwayTakeoffState::FLY:
+	case RunwayTakeoffState::FLYING:
 		throttle = NAN;
 	}
 
@@ -147,7 +147,7 @@ float RunwayTakeoff::getMinPitch(float min_pitch_in_climbout, float min_pitch) c
 		// constrain to the taxi pitch setpoint
 		return math::radians(param_rwto_psp_.get() - 0.01f);
 
-	} else if (takeoff_state_ < RunwayTakeoffState::FLY) {
+	} else if (takeoff_state_ < RunwayTakeoffState::FLYING) {
 		// ramp in the climbout pitch constraint over the rotation transition time
 		const float taxi_pitch_min = math::radians(param_rwto_psp_.get() - 0.01f);
 		return interpolateValuesOverAbsoluteTime(taxi_pitch_min, min_pitch_in_climbout, takeoff_time_,
@@ -164,7 +164,7 @@ float RunwayTakeoff::getMaxPitch(const float max_pitch) const
 		// constrain to the taxi pitch setpoint
 		return math::radians(param_rwto_psp_.get() + 0.01f);
 
-	} else if (takeoff_state_ < RunwayTakeoffState::FLY) {
+	} else if (takeoff_state_ < RunwayTakeoffState::FLYING) {
 		// ramp in the climbout pitch constraint over the rotation transition time
 		const float taxi_pitch_max = math::radians(param_rwto_psp_.get() + 0.01f);
 		return interpolateValuesOverAbsoluteTime(taxi_pitch_max, max_pitch, takeoff_time_, param_rwto_rot_time_.get());

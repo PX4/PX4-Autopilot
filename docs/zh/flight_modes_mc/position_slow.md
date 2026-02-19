@@ -88,6 +88,6 @@ The value can be updated from a message at any time, and is latched until either
 
 Note that PX4 does not provide velocity limit telemetry (i.e. it does not support streaming the [VELOCITY_LIMITS](https://mavlink.io/en/messages/development.html#VELOCITY_LIMITS) message).
 
-## See Also
+## 另见
 
 - [Position Slow Mode](../flight_modes_mc/position.md)

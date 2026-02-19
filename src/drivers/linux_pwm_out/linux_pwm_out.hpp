@@ -49,9 +49,11 @@
 
 using namespace time_literals;
 
-class LinuxPWMOut : public ModuleBase<LinuxPWMOut>, public OutputModuleInterface
+class LinuxPWMOut : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	LinuxPWMOut();
 	virtual ~LinuxPWMOut();
 

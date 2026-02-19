@@ -39,6 +39,7 @@
 #include <map>
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
 
 #include "MUORBTest.hpp"
 #include "uORB/uORBCommunicator.hpp"
@@ -148,6 +149,16 @@ public:
 	int16_t send_message(const char *messageName, int length, uint8_t *data);
 
 	/**
+	 * @brief Interface to notify the remote entity of a shutdown.
+	 *
+	 * @return
+	 * 	0 = success; This means the shutdown is successfully sent to the receiver
+	 * 		Note: This does not mean that the receiver has received it.
+	 *  otherwise = failure.
+	 */
+	int16_t shutdown();
+
+	/**
 	 * @brief Interface to test the functions of the protobuf channel.
 	 *
 	 * @return
@@ -157,6 +168,9 @@ public:
 	bool Test();
 
 private:
+
+	static void keepalive_task();
+
 	/**
 	 * Data Members
 	 */
@@ -167,8 +181,10 @@ private:
 	static pthread_mutex_t                      _tx_mutex;
 	static pthread_mutex_t                      _rx_mutex;
 	static bool                                 _Debug;
+	static hrt_abstime                          _last_keepalive;
 
 	bool                                        _Initialized;
+	bool                                        _ShutdownRequested{false};
 	uint32_t                                    _MessageCounter;
 
 private:
@@ -180,6 +196,7 @@ private:
 	bool Test(MUORBTestType test_type);
 
 	static bool test_flag;
+	static px4_task_t _task_handle;
 
 	static void ReceiveCallback(const char *topic,
 				    const uint8_t *data,

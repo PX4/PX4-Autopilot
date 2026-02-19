@@ -74,6 +74,8 @@ using namespace time_literals;
 namespace px4
 {
 
+ModuleBase::Descriptor Replay::desc{task_spawn, custom_command, print_usage};
+
 char *Replay::_replay_file = nullptr;
 
 Replay::CompatSensorCombinedDtType::CompatSensorCombinedDtType(int gyro_integral_dt_offset_log,
@@ -1149,6 +1151,14 @@ Replay::custom_command(int argc, char *argv[])
 }
 
 int
+Replay::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return Replay::instantiate(ac, av);
+	}, argc, argv);
+}
+
+int
 Replay::task_spawn(int argc, char *argv[])
 {
 	// check if a log file was found
@@ -1161,15 +1171,15 @@ Replay::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_task_id = px4_task_spawn_cmd("replay",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX - 5,
-				      4000,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("replay",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_MAX - 5,
+					  4000,
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 

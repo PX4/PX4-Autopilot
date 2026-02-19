@@ -44,9 +44,11 @@
 
 using namespace time_literals;
 
-class SystemPowerSimulator : public ModuleBase<SystemPowerSimulator>, public px4::ScheduledWorkItem
+class SystemPowerSimulator : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SystemPowerSimulator();
 	~SystemPowerSimulator() override;
 

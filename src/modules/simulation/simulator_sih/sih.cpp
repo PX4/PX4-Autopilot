@@ -53,6 +53,8 @@ using namespace math;
 using namespace matrix;
 using namespace time_literals;
 
+ModuleBase::Descriptor Sih::desc{task_spawn, custom_command, print_usage};
+
 Sih::Sih() :
 	ModuleParams(nullptr)
 {}
@@ -79,14 +81,12 @@ void Sih::run()
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
 
-	_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
-
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	lockstep_loop();
 #else
 	realtime_loop();
 #endif
-	exit_and_cleanup();
+	exit_and_cleanup(desc);
 }
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -847,17 +847,24 @@ int Sih::print_status()
 	return 0;
 }
 
+int Sih::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return Sih::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int Sih::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("sih",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_MAX,
-				      1560,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("sih",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_MAX,
+					  1560,
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -916,5 +923,5 @@ Most of the variables are declared global in the .hpp file to avoid stack overfl
 
 extern "C" __EXPORT int simulator_sih_main(int argc, char *argv[])
 {
-	return Sih::main(argc, argv);
+	return ModuleBase::main(Sih::desc, argc, argv);
 }

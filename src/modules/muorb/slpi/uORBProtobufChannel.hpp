@@ -40,6 +40,7 @@
 #include <pthread.h>
 #include <termios.h>
 
+#include <drivers/drv_hrt.h>
 #include "uORB/uORBCommunicator.hpp"
 #include "mUORBAggregator.hpp"
 
@@ -161,6 +162,10 @@ public:
 		pthread_mutex_unlock(&_tx_mutex);
 	}
 
+	static void keepalive_thread_func(void *ptr);
+
+	static void keepalive() { _last_keepalive = hrt_absolute_time(); }
+
 private:
 	/**
 	 * Data Members
@@ -172,6 +177,8 @@ private:
 	static pthread_mutex_t                      _tx_mutex;
 	static pthread_mutex_t                      _rx_mutex;
 	static bool                                 _debug;
+	static hrt_abstime                          _last_keepalive;
+	static char                                 _keepalive_filename[];
 
 	/**
 	 * Class Members

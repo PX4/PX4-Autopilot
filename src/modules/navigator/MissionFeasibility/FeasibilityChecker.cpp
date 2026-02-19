@@ -257,6 +257,7 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_CONDITION_GATE &&
 	    mission_item.nav_cmd != NAV_CMD_DO_WINCH &&
 	    mission_item.nav_cmd != NAV_CMD_DO_GRIPPER &&
+	    mission_item.nav_cmd != NAV_CMD_DO_AUTOTUNE_ENABLE &&
 	    mission_item.nav_cmd != NAV_CMD_DO_JUMP &&
 	    mission_item.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_HOME &&

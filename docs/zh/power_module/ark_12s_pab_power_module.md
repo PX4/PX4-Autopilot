@@ -13,25 +13,21 @@ Order this module from:
 ## Hardware Specifications
 
 - **TI INA238 Digital Power Monitor**
-
   - 0.0001 Ohm Shunt
   - I2C Interface
 
 - **5.2V 6A Step-Down Regulator**
-
   - 66V Maximum Input Voltage
   - 10V Minimum Input Voltage at 6A Out
   - Output Over-Current Protection
 
 - **Connections**
-
   - Solder Pads Battery Input
   - Solder Pads Battery Output
   - 6 Pin Molex CLIK-Mate Output
     - [Matches ARK PAB Carrier Power Pinout](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-pixhawk-autopilot-bus-carrier/pinout)
 
 - **Other**
-
   - USA Built
   - Includes 6 Pin Molex CLIK-Mate Cable
 
@@ -47,6 +43,6 @@ Order this module from:
 - Set the `INA238_SHUNT` parameter to 0.0001.
 - Reboot the flight controller.
 
-## See Also
+## 另见
 
 - [ARK 12S PAB Power Module Documentation](https://arkelectron.gitbook.io/ark-documentation/power/ark-12s-pab-power-module) (ARK Docs)

@@ -6,14 +6,14 @@
 
 // Translate VehicleStatus v0 <--> v1
 #include <px4_msgs_old/msg/vehicle_status_v0.hpp>
-#include <px4_msgs/msg/vehicle_status.hpp>
+#include <px4_msgs_old/msg/vehicle_status_v1.hpp>
 
 class VehicleStatusV1Translation {
 public:
 	using MessageOlder = px4_msgs_old::msg::VehicleStatusV0;
 	static_assert(MessageOlder::MESSAGE_VERSION == 0);
 
-	using MessageNewer = px4_msgs::msg::VehicleStatus;
+	using MessageNewer = px4_msgs_old::msg::VehicleStatusV1;
 	static_assert(MessageNewer::MESSAGE_VERSION == 1);
 
 	static constexpr const char* kTopic = "fmu/out/vehicle_status";

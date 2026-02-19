@@ -115,7 +115,6 @@ The altitude control mode determine whether the vehicle altitude is relative to 
   Відносна відстань до дрона до цілі зміниться, коли ви підніметесь та опуститесь (використовуйте обережно в гірській місцевості).
 
 - `2D + Terrain` makes the drone follow at a fixed height relative to the terrain underneath it, using information from a distance sensor.
-
   - If the vehicle does not have a distance sensor following will be identical to `2D tracking`.
   - Датчики відстані не завжди точні, і транспортні засоби можуть бути "скачущими" під час польоту в цьому режимі.
   - Зверніть увагу, що висота вимірюється відносно землі під транспортним засобом, а не цільового об'єкта.

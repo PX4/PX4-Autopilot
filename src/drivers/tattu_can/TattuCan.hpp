@@ -77,9 +77,11 @@ typedef struct {
 	const void *payload;
 } CanFrame;
 
-class TattuCan : public ModuleBase<TattuCan>, public px4::ScheduledWorkItem
+class TattuCan : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	TattuCan();
 
 	virtual ~TattuCan();

@@ -63,10 +63,12 @@
 
 using namespace time_literals;
 
-class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>, public ModuleParams,
+class MulticopterAttitudeControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	MulticopterAttitudeControl(bool vtol = false);
 	~MulticopterAttitudeControl() override;
 
@@ -126,7 +128,6 @@ private:
 	SlewRate<float> _hover_thrust_slew_rate{.5f};
 
 	float _yaw_setpoint_stabilized{0.f};
-	bool _heading_good_for_control{true}; // initialized true to have heading lock when local position never published
 	float _unaided_heading{NAN}; // initialized NAN to not distract heading lock when local position never published
 	float _man_tilt_max{0.f};			/**< maximum tilt allowed for manual flight [rad] */
 

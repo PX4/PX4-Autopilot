@@ -47,9 +47,11 @@
 
 using namespace time_literals;
 
-class SensorAgpSim : public ModuleBase<SensorAgpSim>, public ModuleParams, public px4::ScheduledWorkItem
+class SensorAgpSim : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SensorAgpSim();
 	~SensorAgpSim() override;
 

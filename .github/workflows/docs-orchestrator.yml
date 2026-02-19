@@ -1,0 +1,416 @@
+# Docs - Orchestrator
+#
+# Trigger paths:
+#   push (main, release/**)  → metadata-regen → build-site → deploy-aws
+#   pull_request              → detect-changes → pr-metadata-regen → link-check → build-site (if docs/source changed)
+#   workflow_dispatch         → metadata-regen → build-site → deploy-aws
+#
+# Container jobs (pr-metadata-regen, metadata-regen) run in px4-dev image and
+# require safe.directory + fetch-depth: 0 for git operations.
+
+name: Docs - Orchestrator
+
+on:
+  push:
+    branches:
+      - "main"
+      - "release/**"
+    paths:
+      - "docs/**"
+      - "src/**"
+      - "msg/**"
+      - "ROMFS/**"
+      - "Tools/module_config/**"
+      - ".github/workflows/docs-orchestrator.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs-orchestrator.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: docs-orchestrator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =============================================================================
+  # Detect Changes (PR only)
+  # =============================================================================
+  detect-changes:
+    name: "T1: Detect Changes"
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      source_changed: ${{ steps.changes.outputs.source }}
+      docs_changed: ${{ steps.changes.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            source:
+              - 'src/**'
+              - 'msg/**'
+              - 'ROMFS/**'
+              - 'Tools/module_config/**'
+            docs:
+              - 'docs/**'
+
+  # =============================================================================
+  # PR Metadata Regen (conditional - only when PR touches source files)
+  # =============================================================================
+  pr-metadata-regen:
+    name: "T2: PR Metadata"
+    needs: [detect-changes]
+    if: github.event_name == 'pull_request' && needs.detect-changes.outputs.source_changed == 'true'
+    permissions:
+      contents: read
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    container:
+      image: px4io/px4-dev:v1.17.0-beta1
+    steps:
+      - uses: runs-on/action@v1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Git ownership workaround
+        run: git config --system --add safe.directory '*'
+
+      - name: Cache Restore - ccache
+        id: cache-ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.ccache
+          key: ccache-docs-metadata-${{ github.sha }}
+          restore-keys: |
+            ccache-docs-metadata-
+
+      - name: Setup ccache
+        run: |
+          mkdir -p ~/.ccache
+          echo "max_size = 1G" > ~/.ccache/ccache.conf
+
+      - name: Build px4_sitl_default
+        run: |
+          make px4_sitl_default
+        env:
+          CCACHE_DIR: ~/.ccache
+
+      - name: Cache Save - ccache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.ccache
+          key: ccache-docs-metadata-${{ github.sha }}
+
+      - name: Generate and sync metadata
+        run: Tools/ci/metadata_sync.sh --generate --sync parameters airframes modules msg_docs failsafe_web
+        env:
+          CCACHE_DIR: ~/.ccache
+
+      - name: Upload metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-metadata
+          path: docs/
+          retention-days: 1
+
+  # =============================================================================
+  # Push Metadata Regen (main/release branches)
+  # =============================================================================
+  metadata-regen:
+    name: "T2: Metadata Sync"
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    container:
+      image: px4io/px4-dev:v1.17.0-beta1
+    steps:
+      - uses: runs-on/action@v1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Git ownership workaround
+        run: git config --system --add safe.directory '*'
+
+      - name: Cache Restore - ccache
+        id: cache-ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.ccache
+          key: ccache-docs-metadata-${{ github.sha }}
+          restore-keys: |
+            ccache-docs-metadata-
+
+      - name: Setup ccache
+        run: |
+          mkdir -p ~/.ccache
+          echo "max_size = 1G" > ~/.ccache/ccache.conf
+
+      - name: Build px4_sitl_default
+        run: |
+          make px4_sitl_default
+        env:
+          CCACHE_DIR: ~/.ccache
+
+      - name: Cache Save - ccache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.ccache
+          key: ccache-docs-metadata-${{ github.sha }}
+
+      - name: Generate and sync metadata
+        run: Tools/ci/metadata_sync.sh --generate --sync parameters airframes modules msg_docs failsafe_web
+        env:
+          CCACHE_DIR: ~/.ccache
+
+      - name: Install Node.js and Yarn
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          corepack enable
+
+      - name: Format markdown with Prettier
+        run: |
+          cd docs
+          yarn install --frozen-lockfile
+          yarn prettier --write "en/**/*.md"
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "${{ secrets.PX4BUILDBOT_USER }}"
+          git config --global user.email "${{ secrets.PX4BUILDBOT_EMAIL }}"
+          git add docs/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "docs: auto-sync metadata [skip ci]
+
+            Co-Authored-By: PX4 BuildBot <${{ secrets.PX4BUILDBOT_EMAIL }}>"
+            git push
+          fi
+
+  # =============================================================================
+  # Link Check
+  # =============================================================================
+  link-check:
+    name: "T2: Link Check"
+    needs: [detect-changes, pr-metadata-regen]
+    if: always() && (github.event_name == 'pull_request')
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Download metadata artifact
+        if: needs.pr-metadata-regen.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-metadata
+          path: docs/
+
+      - name: Get changed doc files
+        id: changed-files
+        uses: tj-actions/changed-files@v46.0.5
+        with:
+          json: true
+          write_output_files: true
+          output_dir: ./logs
+          base_sha: ${{ github.event.pull_request.base.sha }}
+          sha: ${{ github.event.pull_request.head.sha }}
+          files: |
+            docs/en/**/*.md
+
+      - name: Save changed files list
+        run: |
+          mv ./logs/all_changed_files.json ./logs/prFiles.json
+          echo "Changed files:"
+          cat ./logs/prFiles.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run filtered link checker (changed files)
+        run: |
+          npm -g install markdown_link_checker_sc@0.0.138
+          if [ "$(jq length ./logs/prFiles.json)" -gt 0 ]; then
+            markdown_link_checker_sc \
+              -r "$GITHUB_WORKSPACE" \
+              -d docs \
+              -e en \
+              -f ./logs/prFiles.json \
+              -i assets \
+              -u docs.px4.io/main/ \
+              > ./logs/filtered-link-check-results.md || true
+          fi
+          if [ ! -s ./logs/filtered-link-check-results.md ]; then
+            echo "No broken links found in changed files." > ./logs/filtered-link-check-results.md
+          fi
+          cat ./logs/filtered-link-check-results.md
+
+      - name: Run full link checker
+        run: |
+          markdown_link_checker_sc \
+            -r "$GITHUB_WORKSPACE" \
+            -d docs \
+            -e en \
+            -i assets \
+            -u docs.px4.io/main/ \
+            > ./logs/link-check-results.md || true
+          cat ./logs/link-check-results.md
+
+      - name: Post PR comment with link check results
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: flaws
+          path: ./logs/filtered-link-check-results.md
+
+      - name: Upload link check results
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-check-results
+          path: logs/
+          retention-days: 7
+
+  # =============================================================================
+  # Build Site
+  # =============================================================================
+  build-site:
+    name: "T3: Build Site"
+    needs: [detect-changes, pr-metadata-regen, metadata-regen, link-check]
+    if: >-
+      always() &&
+      (needs.metadata-regen.result == 'success' || needs.metadata-regen.result == 'skipped') &&
+      (needs.link-check.result == 'success' || needs.link-check.result == 'skipped') &&
+      (github.event_name != 'pull_request' || needs.detect-changes.outputs.docs_changed == 'true' || needs.detect-changes.outputs.source_changed == 'true')
+    permissions:
+      contents: read
+    runs-on: [runs-on,runner=4cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    outputs:
+      branchname: ${{ steps.set-branch.outputs.branchname }}
+      releaseversion: ${{ steps.set-version.outputs.releaseversion }}
+    steps:
+      - uses: runs-on/action@v1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Download metadata artifact (PR)
+        if: github.event_name == 'pull_request' && needs.pr-metadata-regen.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-metadata
+          path: docs/
+
+      - id: set-branch
+        run: echo "branchname=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+
+      - id: set-version
+        run: |
+          branch="${{ steps.set-branch.outputs.branchname }}"
+          if [[ "$branch" == "main" ]]; then
+            version="main"
+          elif [[ "$branch" =~ ^release/ ]]; then
+            version="v${branch#release/}"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            version="main"
+          else
+            echo "::error::Unsupported branch for docs deploy: $branch (expected main or release/*)"
+            exit 1
+          fi
+          echo "releaseversion=$version" >> $GITHUB_OUTPUT
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ./docs/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --cwd ./docs
+
+      - name: Build with VitePress
+        working-directory: ./docs
+        env:
+          BRANCH_NAME: ${{ steps.set-version.outputs.releaseversion }}
+        run: |
+          npm run docs:build_ubuntu
+          touch .vitepress/dist/.nojekyll
+          npm run docs:sitemap
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: px4_docs_build
+          path: docs/.vitepress/dist/
+          retention-days: 1
+
+  # =============================================================================
+  # Deploy to AWS (push + workflow_dispatch)
+  # =============================================================================
+  deploy-aws:
+    name: "T4: Deploy"
+    needs: [metadata-regen, build-site]
+    if: >-
+      always() &&
+      needs.metadata-regen.result == 'success' &&
+      needs.build-site.result == 'success' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: px4_docs_build
+          path: ~/_book
+
+      - name: Configure AWS from OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: Sanity check AWS credentials
+        run: aws sts get-caller-identity
+
+      - name: Upload HTML with short cache
+        run: |
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build-site.outputs.releaseversion }}/ \
+            --delete \
+            --exclude "*" --include "*.html" \
+            --cache-control "public, max-age=60"
+
+      - name: Upload assets with long cache
+        run: |
+          aws s3 sync ~/_book/ s3://px4-docs/${{ needs.build-site.outputs.releaseversion }}/ \
+            --delete \
+            --exclude "*.html" \
+            --cache-control "public, max-age=86400, immutable"

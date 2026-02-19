@@ -35,8 +35,8 @@ PX4-Autopilot contains a template for writing a new application (module) that ru
 
    ```cpp
    WorkItemExample::WorkItemExample() :
-       ModuleParams(nullptr),
-       ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1)
+      ModuleParams(nullptr),
+      ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1)
    {
    }
    ```

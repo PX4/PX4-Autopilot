@@ -37,6 +37,7 @@
 #include "fc_sensor.h"
 
 bool uORB::AppsProtobufChannel::test_flag = false;
+px4_task_t uORB::AppsProtobufChannel::_task_handle = -1;
 
 // Initialize the static members
 uORB::AppsProtobufChannel *uORB::AppsProtobufChannel::_InstancePtr = nullptr;
@@ -46,6 +47,7 @@ std::map<std::string, int> uORB::AppsProtobufChannel::_SlpiSubscriberCache;
 pthread_mutex_t uORB::AppsProtobufChannel::_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t uORB::AppsProtobufChannel::_rx_mutex = PTHREAD_MUTEX_INITIALIZER;
 bool uORB::AppsProtobufChannel::_Debug = false;
+hrt_abstime uORB::AppsProtobufChannel::_last_keepalive = 0;
 
 
 void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
@@ -60,6 +62,9 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 
 	} else if (strcmp(topic, "slpi_error") == 0) {
 		PX4_ERR("%s", (const char *) data);
+
+	} else if (strcmp(topic, "keepalive") == 0) {
+		_last_keepalive = hrt_absolute_time();
 
 	} else if (IS_MUORB_TEST(topic)) {
 		// Validate the test data received
@@ -221,6 +226,28 @@ bool uORB::AppsProtobufChannel::Test()
 	return true;
 }
 
+void uORB::AppsProtobufChannel::keepalive_task()
+{
+
+	// Messages cannot be sent with no data
+	uint8_t data[1] {0x5A};
+
+	while (true) {
+		uORB::AppsProtobufChannel::GetInstance()->send_message("keepalive", 1, data);
+
+		usleep(100000); // Update every 100ms
+
+		if (_last_keepalive) {
+			hrt_abstime elapsed_time = hrt_elapsed_time(&_last_keepalive);
+
+			if (elapsed_time > 1000000) {
+				PX4_ERR("Keep alive timeout from DSP: %lu ms", elapsed_time);
+				_last_keepalive = hrt_absolute_time();
+			}
+		}
+	}
+}
+
 bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 {
 	if (! _Initialized) {
@@ -233,6 +260,19 @@ bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 
 		} else {
 			PX4_INFO("muorb protobuf initalize method succeeded");
+
+			_task_handle = px4_task_spawn_cmd("muorb_keepalive",
+							  SCHED_DEFAULT,
+							  SCHED_PRIORITY_DEFAULT,
+							  1024,
+							  (px4_main_t) &keepalive_task,
+							  nullptr);
+
+			if (_task_handle < 0) {
+				PX4_ERR("task start failed");
+				return false;
+			}
+
 			_Initialized = true;
 		}
 
@@ -291,6 +331,20 @@ int16_t uORB::AppsProtobufChannel::register_handler(uORBCommunicator::IChannelRx
 	return 0;
 }
 
+int16_t uORB::AppsProtobufChannel::shutdown()
+{
+	if (_ShutdownRequested) {
+		return 0;
+	}
+
+	_ShutdownRequested = true;
+
+	PX4_ERR("Sending kill command to SLPI!!!");
+	fc_sensor_kill_slpi();
+	sleep(1);
+	return 0;
+}
+
 int16_t uORB::AppsProtobufChannel::send_message(const char *messageName, int length, uint8_t *data)
 {
 	// This is done to slow down high rate debug messages.
@@ -305,7 +359,7 @@ int16_t uORB::AppsProtobufChannel::send_message(const char *messageName, int len
 		int has_subscribers = _SlpiSubscriberCache[messageName];
 		pthread_mutex_unlock(&_rx_mutex);
 
-		if (has_subscribers) {
+		if ((has_subscribers) || (strcmp("keepalive", messageName) == 0)) {
 			if (_Debug && enable_debug) {
 				PX4_INFO("Sending data for topic %s", messageName);
 			}

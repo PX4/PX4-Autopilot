@@ -112,6 +112,6 @@ If you see a red LED there is an error and you should check the following:
 - Make sure the ARK GPS has `ark_can-gps_canbootloader` installed prior to flashing `ark_can-gps_default`.
 - Remove binaries from the root and ufw directories of the SD card and try to build and flash again.
 
-## See Also
+## 另见
 
 - [ARK GPS](https://arkelectron.gitbook.io/ark-documentation/sensors/ark-gps) (ARK Docs)

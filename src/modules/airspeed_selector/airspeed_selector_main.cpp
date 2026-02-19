@@ -66,7 +66,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/airspeed_wind.h>
 #include <uORB/topics/flight_phase_estimation.h>
 
@@ -80,10 +80,12 @@ using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
 
-class AirspeedModule : public ModuleBase<AirspeedModule>, public ModuleParams,
+class AirspeedModule : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	AirspeedModule();
 
@@ -127,7 +129,7 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
+	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _position_setpoint_sub{ORB_ID(position_setpoint)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
@@ -228,6 +230,8 @@ private:
 	void update_throttle_filter(hrt_abstime t_now);
 };
 
+ModuleBase::Descriptor AirspeedModule::desc{task_spawn, custom_command, print_usage};
+
 AirspeedModule::AirspeedModule():
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
@@ -261,10 +265,10 @@ AirspeedModule::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(dev);
+	desc.object.store(dev);
 
 	dev->ScheduleOnInterval(SCHEDULE_INTERVAL, 10000);
-	_task_id = task_id_is_work_queue;
+	desc.task_id = task_id_is_work_queue;
 	return PX4_OK;
 
 }
@@ -478,7 +482,7 @@ AirspeedModule::Run()
 	perf_end(_perf_elapsed);
 
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 	}
 }
 
@@ -841,16 +845,16 @@ float AirspeedModule::get_synthetic_airspeed(float throttle)
 void AirspeedModule::update_throttle_filter(hrt_abstime now)
 {
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		vehicle_thrust_setpoint_s vehicle_thrust_setpoint_0{};
-		_vehicle_thrust_setpoint_0_sub.copy(&vehicle_thrust_setpoint_0);
+		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
+		_vehicle_rates_setpoint_sub.copy(&vehicle_rates_setpoint);
 
-		float forward_thrust = vehicle_thrust_setpoint_0.xyz[0];
+		float forward_thrust = vehicle_rates_setpoint.thrust_body[0];
 
 		// if VTOL, use the total thrust vector length (otherwise needs special handling for tailsitters and tiltrotors)
 		if (_vehicle_status.is_vtol) {
-			forward_thrust = sqrtf(vehicle_thrust_setpoint_0.xyz[0] * vehicle_thrust_setpoint_0.xyz[0] +
-					       vehicle_thrust_setpoint_0.xyz[1] * vehicle_thrust_setpoint_0.xyz[1] +
-					       vehicle_thrust_setpoint_0.xyz[2] * vehicle_thrust_setpoint_0.xyz[2]);
+			forward_thrust = sqrtf(vehicle_rates_setpoint.thrust_body[0] * vehicle_rates_setpoint.thrust_body[0] +
+					       vehicle_rates_setpoint.thrust_body[1] * vehicle_rates_setpoint.thrust_body[1] +
+					       vehicle_rates_setpoint.thrust_body[2] * vehicle_rates_setpoint.thrust_body[2]);
 		}
 
 		const float dt = static_cast<float>(now - _t_last_throttle_fw) * 1e-6f;
@@ -867,7 +871,7 @@ void AirspeedModule::update_throttle_filter(hrt_abstime now)
 
 int AirspeedModule::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		int ret = AirspeedModule::task_spawn(argc, argv);
 
 		if (ret) {
@@ -906,5 +910,5 @@ and also publishes those.
 
 extern "C" __EXPORT int airspeed_selector_main(int argc, char *argv[])
 {
-	return AirspeedModule::main(argc, argv);
+	return ModuleBase::main(AirspeedModule::desc, argc, argv);
 }

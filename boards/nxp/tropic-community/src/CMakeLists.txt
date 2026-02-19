@@ -51,6 +51,8 @@ set_source_files_properties(imxrt_ocram_initialize.c PROPERTIES COMPILE_FLAGS -f
 
 target_link_libraries(drivers_board
 	PRIVATE
+		arch_board_romapi
+		arch_spi
 		nuttx_arch # sdio
 		nuttx_drivers # sdio
 		px4_layer

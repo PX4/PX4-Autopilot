@@ -6,6 +6,16 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_raptor:
+      short: px4_sitl_raptor
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_raptor
+    px4_sitl_raptor_debug:
+      short: px4_sitl_raptor_debug
+      buildType: Debug
+      settings:
+        CONFIG: px4_sitl_raptor
     px4_sitl_spacecraft:
       short: px4_sitl_spacecraft
       buildType: RelWithDebInfo
@@ -531,3 +541,13 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: svehicle_e2_default
+    x-mav_ap-h743r1_bootloader:
+      short: x-mav_ap-h743r1-boot
+      buildType: MinSizeRel
+      settings:
+        CONFIG: x-mav_ap-h743r1_bootloader
+    x-mav_ap-h743r1_default:
+      short: x-mav_ap-h743r1
+      buildType: MinSizeRel
+      settings:
+        CONFIG: x-mav_ap-h743r1_default

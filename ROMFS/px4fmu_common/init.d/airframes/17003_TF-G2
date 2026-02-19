@@ -16,6 +16,8 @@
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
+# @board px4_fmu-v6x exclude
+# @board ark_fmu-v6x exclude
 #
 
 . ${R}etc/init.d/rc.fw_defaults
@@ -36,8 +38,6 @@ param set-default FW_R_LIM 40
 param set-default FW_P_LIM_MAX 25
 param set-default FW_P_LIM_MIN -5
 param set-default FW_P_RMAX_NEG 20
-
-param set-default CA_AIRFRAME 1
 
 param set-default CA_ROTOR_COUNT 1
 param set-default CA_ROTOR0_PX 0.3

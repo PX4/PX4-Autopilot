@@ -132,7 +132,7 @@ int logger_main(int argc, char *argv[])
 		return 1;
 	}
 
-	return Logger::main(argc, argv);
+	return ModuleBase::main(Logger::desc, argc, argv);
 }
 
 namespace px4
@@ -140,11 +140,13 @@ namespace px4
 namespace logger
 {
 
+ModuleBase::Descriptor Logger::desc{task_spawn, custom_command, print_usage};
+
 constexpr const char *Logger::LOG_ROOT[(int)LogType::Count];
 
 int Logger::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("logger not running");
 		return 1;
 	}
@@ -152,36 +154,43 @@ int Logger::custom_command(int argc, char *argv[])
 #ifdef __PX4_NUTTX
 
 	if (!strcmp(argv[0], "trigger_watchdog")) {
-		get_instance()->trigger_watchdog_now();
+		get_instance<Logger>(desc)->trigger_watchdog_now();
 		return 0;
 	}
 
 #endif
 
 	if (!strcmp(argv[0], "on")) {
-		get_instance()->set_arm_override(true);
+		get_instance<Logger>(desc)->set_arm_override(true);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "off")) {
-		get_instance()->set_arm_override(false);
+		get_instance<Logger>(desc)->set_arm_override(false);
 		return 0;
 	}
 
 	return print_usage("unknown command");
 }
 
+int Logger::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return Logger::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int Logger::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("logger",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_LOG_CAPTURE,
-				      PX4_STACK_ADJUSTED(CONFIG_LOGGER_STACK_SIZE),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("logger",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_LOG_CAPTURE,
+					  PX4_STACK_ADJUSTED(CONFIG_LOGGER_STACK_SIZE),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -433,8 +442,8 @@ void Logger::update_params()
 
 bool Logger::request_stop_static()
 {
-	if (is_running()) {
-		get_instance()->request_stop();
+	if (is_running(desc)) {
+		get_instance<Logger>(desc)->request_stop();
 		return false;
 	}
 
@@ -1714,8 +1723,8 @@ void Logger::write_formats(LogType type)
 
 	formats_to_write.set(_event_subscription.get_topic()->o_id);
 
-
-	static_assert(sizeof(msg.format) > uORB::orb_tokenized_fields_max_length, "uORB message definition too long");
+	// Due to leftover_length we need to add 150 bytes of margin, measured empirically
+	static_assert(sizeof(msg.format) > (uORB::orb_untokenized_fields_max_length + 150u), "uORB message definition too long");
 	uORB::MessageFormatReader format_reader(msg.format, sizeof(msg.format));
 	bool done = false;
 
@@ -1890,7 +1899,7 @@ void Logger::write_info(LogType type, const char *name, const char *value)
 
 	/* copy string value directly to buffer */
 	if (vlen < (sizeof(msg) - msg_size)) {
-		memcpy(&buffer[msg_size], value, vlen);
+		memcpy(&buffer[msg_size], value, vlen + 1);
 		msg_size += vlen;
 
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
@@ -1916,7 +1925,7 @@ void Logger::write_info_multiple(LogType type, const char *name, const char *val
 
 	/* copy string value directly to buffer */
 	if (vlen < (sizeof(msg) - msg_size)) {
-		memcpy(&buffer[msg_size], value, vlen);
+		memcpy(&buffer[msg_size], value, vlen + 1);
 		msg_size += vlen;
 
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
