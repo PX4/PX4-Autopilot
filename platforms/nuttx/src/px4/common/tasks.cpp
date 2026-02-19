@@ -45,6 +45,7 @@
 #include <nuttx/kthread.h>
 
 #include <sys/wait.h>
+#include <syslog.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,7 +89,8 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 
 int px4_task_delete(int pid)
 {
-	return task_delete(pid);
+	syslog(LOG_ERR, "Ignoring force task delete on NuttX\n");
+	return ERROR;
 }
 
 const char *px4_get_taskname(void)
