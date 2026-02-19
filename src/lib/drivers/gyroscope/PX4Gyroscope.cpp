@@ -144,10 +144,8 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 	}
 
 	sample.device_id = _device_id;
-	sample.scale = _scale;
 	sample.timestamp = hrt_absolute_time();
 	_sensor_fifo_pub.publish(sample);
-
 
 	// publish
 	sensor_gyro_s report;

@@ -843,7 +843,7 @@ void VehicleAngularVelocity::Run()
 					float data[FIFO_SIZE_MAX];
 
 					for (int n = 0; n < N; n++) {
-						data[n] = sensor_fifo_data.scale * raw_data_array[axis][n];
+						data[n] = raw_data_array[axis][n];
 					}
 
 					// save last filtered sample
