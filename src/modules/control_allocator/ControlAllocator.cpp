@@ -402,9 +402,28 @@ ControlAllocator::Run()
 	if (do_update) {
 		_last_run = now;
 
-		check_for_motor_failures();
+		// Decide if and for what reasons the effectiveness matrix needs updating
+		{
+			check_for_motor_failures();
 
-		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
+			const hrt_abstime time_since_last_effectiveness_udpate = now - _last_effectiveness_update;
+
+			// If the above check_for_motor_failures has already triggered
+			// an effectiveness update, these timing checks all return false
+			// and no additional update is done. This is by design, because
+			// an effectiveness update due to MOTOR_ACTIVATION_UPDATE also
+			// updates the battery scale and directions of tiltable rotors.
+
+			if (time_since_last_effectiveness_udpate > 1_s) {
+				// Update battery scaling at relatively low rate
+				update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::BATTERY_SCALE_UPDATE);
+
+			} else if (time_since_last_effectiveness_udpate > 100_ms) {
+				// Update periodically for "no external" reason,
+				// allowing tiltrotor directions to update.
+				update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
+			}
+		}
 
 		// Set control setpoint vector(s)
 		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];
@@ -469,11 +488,6 @@ void
 ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReason reason)
 {
 	ActuatorEffectiveness::Configuration config{};
-
-	if (reason == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE
-	    && hrt_elapsed_time(&_last_effectiveness_update) < 100_ms) { // rate-limit updates
-		return;
-	}
 
 	if (_actuator_effectiveness->getEffectivenessMatrix(config, reason)) {
 		_last_effectiveness_update = hrt_absolute_time();
