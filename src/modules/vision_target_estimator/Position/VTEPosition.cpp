@@ -316,9 +316,11 @@ void VTEPosition::processObservations(ObsValidMaskU &fusion_mask,
 
 	target_gnss_s target_gnss{};
 
-	if (_target_gnss_sub.update(&target_gnss) && isTargetGpsPositionValid(target_gnss)) {
+	if (_target_gnss_sub.update(&target_gnss)) {
+		const bool target_gps_position_valid = isTargetGpsPositionValid(target_gnss);
 
-		if (_vte_aid_mask.flags.use_target_gps_pos && _uav_gps_position.valid && target_gnss.abs_pos_updated) {
+		if (_vte_aid_mask.flags.use_target_gps_pos && _uav_gps_position.valid
+		    && target_gps_position_valid && target_gnss.abs_pos_updated) {
 			fusion_mask.flags.fuse_target_gps_pos = processObsGNSSPosTarget(target_gnss,
 								observations[obsIndex(ObsType::Target_gps_pos)]);
 		}
