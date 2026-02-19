@@ -9,12 +9,14 @@ PX4 also supports using RC and/or multiple Joysticks, with fallback from one typ
 
 _Joystick_ setups use QGroundControl to encode the control information from a "standard" computer gaming joystick into [MAVLink messages](https://mavlink.io/en/services/manual_control.html) that are sent to the vehicle over the (shared) telemetry radio channel.
 They are often used in integrated GCS/manual control systems because it is cheaper and easier to integrate a joystick than a separate radio system.
-For most applications there is no practical benefit to using RC provided your telemetry channel has a high enough bandwidth/low latency.
-They are also perfect for flying the PX4 simulator, because you can plug them directly into your ground control computer and start flying.
+
+Joysticks are suitable for most applications provided your telemetry channel has a high enough bandwidth/low latency.
+They are perfect for flying the PX4 simulator, because you can plug them directly into your ground control computer and start flying.
 
 _RC systems_ use a dedicated ground-based radio transmitter and vehicle-based receiver for sending control information.
-They offer lower latency, and are very highly recommended when first tuning/testing a new frame design, when flying racers/acrobatically, and in other cases where low latency is important.
-Note that they usually require significantly more configuration and calibration, much of which may be brand or model-specific.
+They offer lower latency than Joysticks, and are very highly recommended when first tuning/testing a new frame design, when flying racers/acrobatically, and in other cases where low latency is important.
+They can also be useful as a robust backup link for safety.
+Note RC systems usually require significantly more configuration and calibration, much of which may be brand or model-specific.
 
 ::: info
 PX4 does not _require_ a manual control system for autonomous flight modes.
