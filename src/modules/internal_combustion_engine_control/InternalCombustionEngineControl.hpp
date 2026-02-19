@@ -53,10 +53,12 @@
 namespace internal_combustion_engine_control
 {
 
-class InternalCombustionEngineControl : public ModuleBase<InternalCombustionEngineControl>, public ModuleParams,
+class InternalCombustionEngineControl : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	InternalCombustionEngineControl();
 	~InternalCombustionEngineControl() override;
 

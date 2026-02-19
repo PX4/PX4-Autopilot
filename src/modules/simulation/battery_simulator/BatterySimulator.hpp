@@ -50,9 +50,11 @@
 
 using namespace time_literals;
 
-class BatterySimulator : public ModuleBase<BatterySimulator>, public ModuleParams, public px4::ScheduledWorkItem
+class BatterySimulator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	BatterySimulator();
 	~BatterySimulator() override;
 

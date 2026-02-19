@@ -84,9 +84,11 @@
 
 using namespace time_literals;
 
-class GZBridge : public ModuleBase<GZBridge>, public ModuleParams, public px4::ScheduledWorkItem
+class GZBridge : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	GZBridge(const std::string &world, const std::string &model_name);
 	~GZBridge() override;
 

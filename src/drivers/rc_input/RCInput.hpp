@@ -67,9 +67,11 @@
 # include <systemlib/ppm_decode.h>
 #endif
 
-class RCInput : public ModuleBase<RCInput>, public ModuleParams, public px4::ScheduledWorkItem
+class RCInput : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	RCInput(const char *device);
 	virtual ~RCInput();

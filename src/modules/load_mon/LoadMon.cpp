@@ -49,6 +49,8 @@ using namespace time_literals;
 namespace load_mon
 {
 
+ModuleBase::Descriptor LoadMon::desc{task_spawn, custom_command, print_usage};
+
 LoadMon::LoadMon() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
@@ -70,8 +72,8 @@ int LoadMon::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_object.store(obj);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(obj);
+	desc.task_id = task_id_is_work_queue;
 
 	/* Schedule a cycle to start things. */
 	obj->start();
@@ -114,7 +116,7 @@ void LoadMon::Run()
 #if defined (__PX4_LINUX)
 		fclose(_proc_fd);
 #endif
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 	}
 
 	perf_end(_cycle_perf);
@@ -327,7 +329,7 @@ which will also appear in the log file.
 
 extern "C" __EXPORT int load_mon_main(int argc, char *argv[])
 {
-	return LoadMon::main(argc, argv);
+	return ModuleBase::main(LoadMon::desc, argc, argv);
 }
 
 } // namespace load_mon

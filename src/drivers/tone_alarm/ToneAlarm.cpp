@@ -42,6 +42,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor ToneAlarm::desc{task_spawn, custom_command, print_usage};
+
 ToneAlarm::ToneAlarm() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
@@ -87,7 +89,7 @@ void ToneAlarm::Run()
 
 	if (should_exit()) {
 		_tune_control_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -247,8 +249,8 @@ int ToneAlarm::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 
 	return PX4_OK;
 }
@@ -275,5 +277,5 @@ This module is responsible for the tone alarm.
 
 extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[])
 {
-	return ToneAlarm::main(argc, argv);
+	return ModuleBase::main(ToneAlarm::desc, argc, argv);
 }

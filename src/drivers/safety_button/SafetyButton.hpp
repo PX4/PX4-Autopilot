@@ -40,9 +40,11 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <button/ButtonPublisher.hpp>
 
-class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
+class SafetyButton : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SafetyButton();
 	~SafetyButton() override;
 

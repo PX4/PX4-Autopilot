@@ -55,9 +55,11 @@
 
 using namespace time_literals;
 
-class ManualControl : public ModuleBase<ManualControl>, public ModuleParams, public px4::ScheduledWorkItem
+class ManualControl : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	ManualControl();
 	~ManualControl() override;
 

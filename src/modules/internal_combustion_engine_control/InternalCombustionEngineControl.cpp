@@ -40,6 +40,8 @@ using namespace time_literals;
 namespace internal_combustion_engine_control
 {
 
+ModuleBase::Descriptor InternalCombustionEngineControl::desc{task_spawn, custom_command, print_usage};
+
 InternalCombustionEngineControl::InternalCombustionEngineControl() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
@@ -62,8 +64,8 @@ int InternalCombustionEngineControl::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	_object.store(obj);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(obj);
+	desc.task_id = task_id_is_work_queue;
 
 	/* Schedule a cycle to start things. */
 	obj->start();
@@ -80,7 +82,7 @@ void InternalCombustionEngineControl::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 	}
 
 	// check for parameter updates
@@ -423,7 +425,7 @@ The architecture is as shown below:
 
 extern "C" __EXPORT int internal_combustion_engine_control_main(int argc, char *argv[])
 {
-	return InternalCombustionEngineControl::main(argc, argv);
+	return ModuleBase::main(InternalCombustionEngineControl::desc, argc, argv);
 }
 
 } // namespace internal_combustion_engine_control

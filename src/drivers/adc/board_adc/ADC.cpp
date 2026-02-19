@@ -39,6 +39,8 @@
 #include <nuttx/ioexpander/gpio.h>
 #endif
 
+ModuleBase::Descriptor ADC::desc{task_spawn, custom_command, print_usage};
+
 ADC::ADC(uint32_t base_address, uint32_t channels, bool publish_adc_report) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_publish_adc_report(publish_adc_report),
@@ -362,8 +364,8 @@ int ADC::custom_command(int argc, char *argv[])
 	const char *verb = argv[0];
 
 	if (!strcmp(verb, "test")) {
-		if (is_running()) {
-			return _object.load()->test();
+		if (is_running(desc)) {
+			return get_instance<ADC>(desc)->test();
 		}
 
 		return PX4_ERROR;
@@ -378,8 +380,8 @@ int ADC::task_spawn(int argc, char *argv[])
 	ADC *instance = new ADC(SYSTEM_ADC_BASE, ADC_CHANNELS, publish_adc_report);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
@@ -390,8 +392,8 @@ int ADC::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -421,5 +423,5 @@ ADC driver.
 
 extern "C" __EXPORT int board_adc_main(int argc, char *argv[])
 {
-	return ADC::main(argc, argv);
+	return ModuleBase::main(ADC::desc, argc, argv);
 }
