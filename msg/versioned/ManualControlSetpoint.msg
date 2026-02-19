@@ -27,11 +27,10 @@ uint8 SOURCE_MAVLINK_5 = 7 # MAVLink instance 5
 # Stick positions [-1,1]
 # on a common RC mode 1/2/3/4 remote/joystick the stick deflection: -1 is down/left, 1 is up/right
 # Note: QGC sends throttle/z in range [0,1000] - [0,1]. The MAVLink input conversion [0,1] to [-1,1] is at the moment kept backwards compatible.
-# Positive values are generally used for:
-float32 roll # [@range -1,1] [@invalid NaN] move right, positive roll rotation, right side down
-float32 pitch # [@range -1,1] [@invalid NaN] move forward, negative pitch rotation, nose down
-float32 yaw # [@range -1,1] [@invalid NaN] positive yaw rotation, clockwise when seen top down
-float32 throttle # [@range -1,1] [@invalid NaN] move up, positive thrust, -1 is minimum available 0% or -100% +1 is 100% thrust
+float32 roll # [@range -1,1] [@invalid NaN] Positive values are generally used for: move right, positive roll rotation, right side down
+float32 pitch # [@range -1,1] [@invalid NaN] Positive values are generally used for: move forward, negative pitch rotation, nose down
+float32 yaw # [@range -1,1] [@invalid NaN] Positive values are generally used for: positive yaw rotation, clockwise when seen top down
+float32 throttle # [@range -1,1] [@invalid NaN] Positive values are generally used for: move up, positive thrust, -1 is minimum available 0% or -100% +1 is 100% thrust
 
 float32 flaps # [@range -1, 1] [@invalid NaN] Position of flaps switch/knob/lever
 
