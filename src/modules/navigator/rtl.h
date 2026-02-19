@@ -59,6 +59,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/prec_land_status.h>
 #include <uORB/topics/rtl_status.h>
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/telemetry_status.h>
