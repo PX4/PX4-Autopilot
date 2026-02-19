@@ -21,8 +21,6 @@ uint8 SOURCE_MAVLINK_3 = 5 # MAVLink instance 3
 uint8 SOURCE_MAVLINK_4 = 6 # MAVLink instance 4
 uint8 SOURCE_MAVLINK_5 = 7 # MAVLink instance 5
 
-# Any of the channels may not be available and be set to NaN
-# to indicate that it does not contain valid data.
 
 # Stick positions [-1,1]
 # on a common RC mode 1/2/3/4 remote/joystick the stick deflection: -1 is down/left, 1 is up/right
