@@ -1,0 +1,125 @@
+module_name: Cdus Rate Control
+
+parameters:
+  - group: "Cdus Rate Control"
+    definitions:
+      CDUS_P_ROLL:
+        description:
+          short: Cdus roll rate P gain
+          long: |
+            Proportional gain for roll body rate in the Cdus custom rate controller.
+        type: float
+        min: 0.0
+        max: 10.0
+        decimal: 3
+        unit: 1/s
+        default: 0.1
+
+      CDUS_P_PITCH:
+        description:
+          short: Cdus pitch rate P gain
+          long: |
+            Proportional gain for pitch body rate in the Cdus custom rate controller.
+        type: float
+        min: 0.0
+        max: 10.0
+        decimal: 3
+        unit: 1/s
+        default: 0.1
+
+      CDUS_P_YAW:
+        description:
+          short: Cdus yaw rate P gain
+          long: |
+            Proportional gain for yaw body rate in the Cdus custom rate controller.
+        type: float
+        min: 0.0
+        max: 10.0
+        decimal: 3
+        unit: 1/s
+        default: 0.05
+
+      CDUS_I_ROLL:
+        description:
+          short: Cdus roll rate I gain
+          long: |
+            Integral gain for roll body rate in the Cdus custom rate controller.
+        type: float
+        min: 0.0
+        max: 10.0
+        decimal: 3
+        unit: 1/s
+        default: 0.05
+
+      CDUS_I_PITCH:
+        description:
+          short: Cdus pitch rate I gain
+          long: |
+            Integral gain for pitch body rate in the Cdus custom rate controller.
+        type: float
+        min: 0.0
+        max: 10.0
+        decimal: 3
+        unit: 1/s
+        default: 0.05
+
+      CDUS_I_YAW:
+        description:
+          short: Cdus yaw rate I gain
+          long: |
+            Integral gain for yaw body rate in the Cdus custom rate controller.
+        type: float
+        min: 0.0
+        max: 10.0
+        decimal: 3
+        unit: 1/s
+        default: 0.02
+
+      CDUS_D_ROLL:
+        description:
+          short: Cdus roll rate D gain
+          long: |
+            Derivative gain for roll body rate in the Cdus custom rate controller.
+        type: float
+        min: 0.0
+        max: 1.0
+        decimal: 4
+        unit: s
+        default: 0.002
+
+      CDUS_D_PITCH:
+        description:
+          short: Cdus pitch rate D gain
+          long: |
+            Derivative gain for pitch body rate in the Cdus custom rate controller.
+        type: float
+        min: 0.0
+        max: 1.0
+        decimal: 4
+        unit: s
+        default: 0.002
+
+      CDUS_D_YAW:
+        description:
+          short: Cdus yaw rate D gain
+          long: |
+            Derivative gain for yaw body rate in the Cdus custom rate controller.
+        type: float
+        min: 0.0
+        max: 1.0
+        decimal: 4
+        unit: s
+        default: 0.001
+
+      CDUS_INT_LIM:
+        description:
+          short: Cdus rate controller integrator limit
+          long: |
+            Absolute integrator limit applied to all rate controller axes in the Cdus custom controller.
+        type: float
+        min: 0.0
+        max: 10.0
+        decimal: 3
+        unit: rad/s
+        default: 0.5
+
