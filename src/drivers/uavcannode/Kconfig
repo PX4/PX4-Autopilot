@@ -30,6 +30,10 @@ if DRIVERS_UAVCANNODE
         bool "Include flow measurement"
         default n
 
+    config UAVCANNODE_GLOBAL_NAVIGATION_SOLUTION
+        bool "Include Global Navigation Solution"
+        default n
+
     config UAVCANNODE_GNSS_FIX
         bool "Include GNSS fix"
         default n
