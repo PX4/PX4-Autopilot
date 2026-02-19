@@ -91,7 +91,6 @@ public:
 	static constexpr int MAX_NUM_MOTORS = actuator_motors_s::NUM_CONTROLS;
 	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
 
-	static constexpr float ICE_SHEDDING_MAX_SLEWRATE = 0.1f;
 	static constexpr float ICE_SHEDDING_ON_SEC = 2.0f;
 	static constexpr float ICE_SHEDDING_OUTPUT = 0.01f;
 
@@ -224,9 +223,6 @@ private:
 	Params _params{};
 	bool _has_slew_rate{false};
 
-
-	SlewRate<float> _slew_limited_ice_shedding_output;
-	hrt_abstime _last_ice_shedding_update{};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
