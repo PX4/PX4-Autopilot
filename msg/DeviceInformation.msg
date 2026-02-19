@@ -23,7 +23,7 @@ uint8 DEVICE_TYPE_DIFFERENTIAL_PRESSURE = 13  # Differential pressure
 uint8 DEVICE_TYPE_BATTERY = 14                # Battery
 uint8 DEVICE_TYPE_HYGROMETER = 15             # Hygrometer
 
-char[80] name  # Name of node
+char[80] name # Name of device e.g. DroneCAN node name
 
 uint32   device_id         # [-] [@invalid 0 if not available] Unique device ID for the sensor. Does not change between power cycles.
 char[24] firmware_version  # [-] [@invalid empty if not available] Firmware version.

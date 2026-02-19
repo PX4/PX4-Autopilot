@@ -129,8 +129,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
 		_esc_status.esc_online_flags = check_escs_status();
 		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
-		_esc_status.timestamp = hrt_absolute_time();
-
+		_esc_status.timestamp = esc_report.timestamp;
 		_esc_status_pub.publish(_esc_status);
 	}
 
@@ -172,29 +171,15 @@ uint8_t UavcanEscController::check_escs_status()
 
 uint32_t UavcanEscController::get_failures(uint8_t esc_index)
 {
-	esc_report_s &esc_report = _esc_status.esc[esc_index];
-	uint32_t failures = 0;
-
-	// Update device vendor/model information from device_information topic
-	device_information_s device_information{};
-
-	char esc_name[80] {};
-
-	if (_device_information_sub.copy(&device_information)
-	    && device_information.device_type == device_information_s::DEVICE_TYPE_ESC
-	    && device_information.device_id == esc_index) {
-		strncpy(esc_name, device_information.name, sizeof(esc_name) - 1);
-		esc_name[sizeof(esc_name) - 1] = '\0';
-	}
-
-	// Update node health from all available dronecan_node_status messages
-	dronecan_node_status_s node_status {};
-	uint8_t node_health{dronecan_node_status_s::HEALTH_OK};
-	uint16_t vendor_specific_status_code{0};
+	// Check DoneCAN node health of the ESC
+	dronecan_node_status_s node_status{};
+	uint8_t esc_node_id = _esc_status.esc[esc_index].esc_address;
+	uint8_t node_health = dronecan_node_status_s::HEALTH_OK;
+	uint16_t vendor_specific_status_code = 0;
 
 	for (auto &dronecan_node_status_sub : _dronecan_node_status_subs) {
 		if (dronecan_node_status_sub.copy(&node_status)) {
-			if (node_status.node_id == esc_report.esc_address) {
+			if (node_status.node_id == esc_node_id) {
 				node_health = node_status.health;
 				vendor_specific_status_code = node_status.vendor_specific_status_code;
 				break;
@@ -202,12 +187,20 @@ uint32_t UavcanEscController::get_failures(uint8_t esc_index)
 		}
 	}
 
-	if (esc_report.esc_address <= uavcan::NodeID::Max && (node_health == dronecan_node_status_s::HEALTH_OK ||
-			node_health == dronecan_node_status_s::HEALTH_WARNING)) {
-		failures = 0;
+	const bool failure = (node_health == dronecan_node_status_s::HEALTH_ERROR)
+			     || (node_health == dronecan_node_status_s::HEALTH_CRITICAL);
 
-	} else if (strstr(esc_name, "iq_motion") != nullptr) {
-		// Parse iq_motion ESC errors
+	if (!failure) {
+		return 0;
+	}
+
+	// Parse VertiQ = iq_motion ESC error flags
+	device_information_s device_information{};
+
+	if (_device_information_sub.copy(&device_information)
+	    && device_information.device_type == device_information_s::DEVICE_TYPE_ESC
+	    && device_information.device_id == esc_index
+	    && strstr(device_information.name, "iq_motion") != nullptr) {
 		static const struct {
 			uint8_t bit;
 			uint8_t failure_type;
@@ -226,16 +219,17 @@ uint32_t UavcanEscController::get_failures(uint8_t esc_index)
 			{11, esc_report_s::FAILURE_OVER_VOLTAGE},
 		};
 
+		uint32_t failures = 0;
+
 		for (const auto &mapping : bit_to_failure_map) {
 			if (vendor_specific_status_code & (1 << mapping.bit)) {
 				failures |= (1 << mapping.failure_type);
 			}
 		}
 
-	} else {
-		// Generic parsing
-		failures |= (1 << esc_report_s::FAILURE_GENERIC);
+		return failures;
 	}
 
-	return failures;
+	// Generic parsing
+	return (1 << esc_report_s::FAILURE_GENERIC);
 }

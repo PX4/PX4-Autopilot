@@ -74,6 +74,7 @@ public:
 	bool initialized() { return _initialized; };
 
 	void update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size);
+
 	/**
 	 * Sets the number of rotors and enable timer
 	 */
@@ -100,7 +101,6 @@ private:
 	 */
 	uint8_t check_escs_status();
 
-
 	/**
 	 * Gets failure flags for a specific ESC
 	 */
@@ -110,13 +110,12 @@ private:
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
-		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended>&)>
-		StatusExtendedCbBinder;
+		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended>&)> StatusExtendedCbBinder;
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
-	bool _initialized{};
+	bool _initialized = false;
 
 	esc_status_s	_esc_status{};
 
@@ -133,7 +132,7 @@ private:
 	uavcan::INode								&_node;
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
-	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder>	_uavcan_sub_status_extended;
+	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder> _uavcan_sub_status_extended;
 
 	NodeInfoPublisher *_node_info_publisher{nullptr};
 };
