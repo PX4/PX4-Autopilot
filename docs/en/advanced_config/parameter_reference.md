@@ -15405,6 +15405,18 @@ A value of -1 means to use the board default.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | -1      |
 
+### BAT1_I_FILT (`FLOAT`) {#BAT1_I_FILT}
+
+Battery 1 current filter time constant.
+
+Low-pass filter time constant for the battery current ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
+
 ### BAT1_I_OVERWRITE (`FLOAT`) {#BAT1_I_OVERWRITE}
 
 Battery 1 idle current overwrite.
@@ -15537,6 +15549,18 @@ it drops off to a voltage level damaging the cells.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          | 0.01      | 3.6     | V    |
 
+### BAT1_V_FILT (`FLOAT`) {#BAT1_V_FILT}
+
+Battery 1 voltage filter time constant.
+
+Low-pass filter time constant for the battery voltage ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
+
 ### BAT2_A_PER_V (`FLOAT`) {#BAT2_A_PER_V}
 
 Battery 2 current per volt (A/V).
@@ -15569,6 +15593,18 @@ A value of -1 means to use the board default.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | -1      |
+
+### BAT2_I_FILT (`FLOAT`) {#BAT2_I_FILT}
+
+Battery 2 current filter time constant.
+
+Low-pass filter time constant for the battery current ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
 
 ### BAT2_I_OVERWRITE (`FLOAT`) {#BAT2_I_OVERWRITE}
 
@@ -15701,6 +15737,18 @@ it drops off to a voltage level damaging the cells.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          | 0.01      | 3.6     | V    |
+
+### BAT2_V_FILT (`FLOAT`) {#BAT2_V_FILT}
+
+Battery 2 voltage filter time constant.
+
+Low-pass filter time constant for the battery voltage ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
 
 ### BAT3_CAPACITY (`FLOAT`) {#BAT3_CAPACITY}
 
