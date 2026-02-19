@@ -35,7 +35,7 @@ parameters:
         long: Measurement noise for the optical flow sensor when it's reported quality
           metric is at the maximum
       type: float
-      default: 0.15
+      default: 0.1
       min: 0.05
       unit: rad/s
       decimal: 2
@@ -45,7 +45,7 @@ parameters:
         long: Measurement noise for the optical flow sensor when it's reported quality
           metric is at the minimum
       type: float
-      default: 0.5
+      default: 0.2
       min: 0.05
       unit: rad/s
       decimal: 2
