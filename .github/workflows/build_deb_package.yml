@@ -1,0 +1,68 @@
+name: Build .deb Packages
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'cmake/package.cmake'
+      - 'platforms/posix/CMakeLists.txt'
+      - 'Tools/packaging/**'
+      - 'boards/px4/sitl/sih.px4board'
+      - '.github/workflows/build_deb_package.yml'
+      - '.github/actions/build-deb/**'
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  RUNS_IN_DOCKER: true
+
+jobs:
+  build-deb:
+    name: "Build .deb (${{ matrix.target }}/${{ matrix.codename }}/${{ matrix.arch }})"
+    runs-on: [runs-on,"runner=4cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",spot=false]
+    container:
+      image: ${{ matrix.container }}
+      volumes:
+        - /github/workspace:/github/workspace
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Default (Gazebo) builds
+          - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04", target: default, setup_flags: "" }
+          - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04", target: default, setup_flags: "" }
+          - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04", target: default, setup_flags: "" }
+          - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04", target: default, setup_flags: "" }
+          # SIH (no Gazebo) builds
+          - { codename: noble,  arch: amd64, runner: x64,   container: "ubuntu:24.04", target: sih, setup_flags: "--no-sim-tools" }
+          - { codename: noble,  arch: arm64, runner: arm64, container: "ubuntu:24.04", target: sih, setup_flags: "--no-sim-tools" }
+          - { codename: jammy,  arch: amd64, runner: x64,   container: "ubuntu:22.04", target: sih, setup_flags: "--no-sim-tools" }
+          - { codename: jammy,  arch: arm64, runner: arm64, container: "ubuntu:22.04", target: sih, setup_flags: "--no-sim-tools" }
+
+    steps:
+      - name: Fix git in container
+        run: |
+          apt update && apt install git -y
+          git config --global --add safe.directory $(realpath .)
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install dependencies
+        run: ./Tools/setup/ubuntu.sh --no-nuttx ${{ matrix.setup_flags }}
+
+      - name: Build and package .deb
+        uses: ./.github/actions/build-deb
+        with:
+          target: ${{ matrix.target }}
+          artifact-name: px4-sitl-debs-${{ matrix.target }}-${{ matrix.codename }}-${{ matrix.arch }}
+          ccache-key-prefix: deb-ccache-${{ matrix.target }}-${{ matrix.codename }}-${{ matrix.arch }}

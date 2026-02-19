@@ -23,6 +23,9 @@ px4_posix_generate_alias(
 
 add_definitions(-DPX4_SOURCE_DIR="${PX4_SOURCE_DIR}" -DPX4_BINARY_DIR="${PX4_BINARY_DIR}")
 
+# PX4_INSTALL_PREFIX is set by cmake/package.cmake after this file is processed.
+# It is passed via target_compile_definitions on the px4 target from package.cmake.
+
 add_executable(px4
 	src/px4/common/main.cpp
 	apps.cpp
@@ -80,9 +83,15 @@ target_link_libraries(px4 PRIVATE uORB)
 # install
 #
 
+# Detect dpkg early so install rules can branch on it.
+# find_program caches the result, so the later call in package.cmake is a no-op.
+find_program(DPKG_PROGRAM dpkg)
+
 # TODO: extend to snapdragon
 
-# px4 dirs
+# Legacy top-level install (posix-configs, test data, etc into px4/ prefix).
+# Skip when building .deb packages which use a clean /opt/px4-sitl{,-sih}/ layout.
+if(NOT DPKG_PROGRAM)
 install(
 	DIRECTORY
 		${PROJECT_SOURCE_DIR}/posix-configs
@@ -93,6 +102,7 @@ install(
 		${PROJECT_NAME}
 	USE_SOURCE_PERMISSIONS
 )
+endif()
 
 # Module Symlinks
 px4_posix_generate_symlinks(
@@ -154,6 +164,11 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	)
 
 	# install
+
+	# Legacy install rules (used by ROS launch, existing CPack tarball workflow).
+	# Skip when building .deb packages: the .deb rules below provide a clean
+	# /opt/px4-sitl{,-sih}/ layout and these would duplicate/bloat the package.
+	if(NOT DPKG_PROGRAM)
 
 	# px4 dirs
 	install(
@@ -218,5 +233,83 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 			${PROJECT_NAME}/Tools/simulation/gazebo-classic/sitl_gazebo-classic
 		OPTIONAL
 		)
+
+	endif() # NOT DPKG_PROGRAM
+
+	####################################################################
+	# Install rules for .deb package (only when dpkg is available)
+	####################################################################
+	if(DPKG_PROGRAM AND NOT CMAKE_C_COMPILER MATCHES "emcc$")
+
+	# px4 binary
+	install(TARGETS px4
+		RUNTIME DESTINATION bin
+		)
+
+	# module symlinks and alias script
+	install(
+		DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/
+		DESTINATION bin
+		USE_SOURCE_PERMISSIONS
+		FILES_MATCHING
+			PATTERN "px4-*"
+			PATTERN "px4-alias.sh"
+		)
+
+	# ROMFS (init scripts, mixers, etc.)
+	install(
+		DIRECTORY ${PX4_BINARY_DIR}/etc
+		DESTINATION .
+		USE_SOURCE_PERMISSIONS
+		)
+
+	if(CONFIG_MODULES_SIMULATION_GZ_BRIDGE)
+	# Gazebo wrapper script (sets GZ_SIM_* env vars pointing at installed resources)
+	install(
+		PROGRAMS ${PROJECT_SOURCE_DIR}/Tools/packaging/px4-gazebo.sh
+		DESTINATION bin
+		RENAME px4-gazebo
+		)
+	endif()
+
+	if(CONFIG_MODULES_SIMULATION_GZ_BRIDGE)
+	# Gazebo models
+	install(
+		DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/simulation/gz/models
+		DESTINATION share/gz
+		OPTIONAL
+		)
+
+	# Gazebo worlds
+	install(
+		DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/simulation/gz/worlds
+		DESTINATION share/gz
+		OPTIONAL
+		)
+
+	# Gazebo server config
+	install(
+		FILES ${PROJECT_SOURCE_DIR}/Tools/simulation/gz/server.config
+		DESTINATION share/gz
+		OPTIONAL
+		)
+
+	# Gazebo plugins (built .so files)
+	install(
+		DIRECTORY ${CMAKE_BINARY_DIR}/src/modules/simulation/gz_plugins/
+		DESTINATION lib/gz/plugins
+		FILES_MATCHING PATTERN "*.so"
+		PATTERN "CMakeFiles" EXCLUDE
+		)
+
+	# OpticalFlow external library (runtime dep of OpticalFlowSystem plugin)
+	install(
+		FILES ${CMAKE_BINARY_DIR}/OpticalFlow/install/lib/libOpticalFlow.so
+		DESTINATION lib/gz/plugins
+		OPTIONAL
+		)
+	endif()
+
+	endif() # DPKG_PROGRAM AND NOT emcc
 
 endif()
