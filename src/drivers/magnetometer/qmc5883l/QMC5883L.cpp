@@ -52,6 +52,7 @@ QMC5883L::~QMC5883L()
 	perf_free(_reset_perf);
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
+	perf_free(_overflow_perf);
 }
 
 int QMC5883L::init()
@@ -81,6 +82,7 @@ void QMC5883L::print_status()
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
+	perf_print_counter(_overflow_perf);
 }
 
 int QMC5883L::probe()
@@ -137,8 +139,8 @@ void QMC5883L::RunImpl()
 				ScheduleDelayed(100_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				PX4_DEBUG("Reset not complete, check again in 100 ms");
+				ScheduleDelayed(100_ms);
 			}
 		}
 
@@ -180,32 +182,35 @@ void QMC5883L::RunImpl()
 			uint8_t cmd = static_cast<uint8_t>(Register::X_LSB);
 
 			if (transfer(&cmd, 1, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
-				// process data if successful transfer, no overflow
-				if ((buffer.STATUS & STATUS_BIT::OVL) == 0) {
-					int16_t x = combine(buffer.X_MSB, buffer.X_LSB);
-					int16_t y = combine(buffer.Y_MSB, buffer.Y_LSB);
-					int16_t z = combine(buffer.Z_MSB, buffer.Z_LSB);
 
-					if (x != _prev_data[0] || y != _prev_data[1] || z != _prev_data[2]) {
-						_prev_data[0] = x;
-						_prev_data[1] = y;
-						_prev_data[2] = z;
+				const int16_t x = combine(buffer.X_MSB, buffer.X_LSB);
+				const int16_t y = combine(buffer.Y_MSB, buffer.Y_LSB);
+				const int16_t z = combine(buffer.Z_MSB, buffer.Z_LSB);
 
-						// Sensor orientation
-						//  Forward X := +X
-						//  Right   Y := -Y
-						//  Down    Z := -Z
-						y = (y == INT16_MIN) ? INT16_MAX : -y; // -y
-						z = (z == INT16_MIN) ? INT16_MAX : -z; // -z
+				const bool data_ready = (buffer.STATUS & STATUS_BIT::DRDY);
+				const bool overflow = (buffer.STATUS & STATUS_BIT::OVL);
 
-						_px4_mag.update(now, x, y, z);
+				const bool data_changed = ((x != _prev_data[0] || y != _prev_data[1] || z != _prev_data[2]));
+				_prev_data[0] = x;
+				_prev_data[1] = y;
+				_prev_data[2] = z;
 
-						success = true;
+				// publish data if successful transfer of new data, no overflow
+				if (data_ready && !overflow && data_changed) {
+					// Sensor orientation
+					//  Forward X := +X
+					//  Right   Y := -Y
+					//  Down    Z := -Z
+					_px4_mag.update(now, x, math::negate(y), math::negate(z));
 
-						if (_failure_count > 0) {
-							_failure_count--;
-						}
+					success = true;
+
+					if (_failure_count > 0) {
+						_failure_count--;
 					}
+
+				} else if (overflow) {
+					perf_count(_overflow_perf);
 				}
 
 			} else {
