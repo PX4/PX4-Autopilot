@@ -39,6 +39,7 @@
 #include <map>
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
 
 #include "MUORBTest.hpp"
 #include "uORB/uORBCommunicator.hpp"
@@ -167,6 +168,9 @@ public:
 	bool Test();
 
 private:
+
+	static void keepalive_task();
+
 	/**
 	 * Data Members
 	 */
@@ -177,6 +181,7 @@ private:
 	static pthread_mutex_t                      _tx_mutex;
 	static pthread_mutex_t                      _rx_mutex;
 	static bool                                 _Debug;
+	static hrt_abstime                          _last_keepalive;
 
 	bool                                        _Initialized;
 	bool                                        _ShutdownRequested{false};
@@ -191,6 +196,7 @@ private:
 	bool Test(MUORBTestType test_type);
 
 	static bool test_flag;
+	static px4_task_t _task_handle;
 
 	static void ReceiveCallback(const char *topic,
 				    const uint8_t *data,

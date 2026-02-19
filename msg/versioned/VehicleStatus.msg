@@ -1,6 +1,6 @@
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 2
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -63,6 +63,7 @@ uint8 NAVIGATION_STATE_EXTERNAL8 = 30
 uint8 NAVIGATION_STATE_MAX = 31
 
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
+uint8 nav_state_display                         # User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)
 
 uint32 valid_nav_states_mask                    # Bitmask for all valid nav_state values
 uint32 can_set_nav_states_mask                  # Bitmask for all modes that a user can select
@@ -125,6 +126,8 @@ bool open_drone_id_system_healthy
 
 bool parachute_system_present
 bool parachute_system_healthy
+
+bool traffic_avoidance_system_present
 
 bool rc_calibration_in_progress
 bool calibration_enabled

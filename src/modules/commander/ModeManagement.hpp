@@ -150,6 +150,12 @@ public:
 	 */
 	int modeExecutorInCharge() const;
 
+	/**
+	 * Returns the executor's navigation state if active, otherwise nav_state.
+	 * Exposes the high-level goal rather than the effective sub-mode.
+	 */
+	uint8_t getNavStateDisplay(uint8_t nav_state) const;
+
 	void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) override;
 	uint8_t getReplacedModeIfAny(uint8_t nav_state) override;
 
@@ -208,6 +214,7 @@ public:
 	void setFailsafeState(bool failsafe_action_active) {}
 
 	int modeExecutorInCharge() const { return ModeExecutors::AUTOPILOT_EXECUTOR_ID; }
+	uint8_t getNavStateDisplay(uint8_t nav_state) const { return nav_state; }
 
 	void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) override {}
 	uint8_t getReplacedModeIfAny(uint8_t nav_state) override { return nav_state; }

@@ -1,9 +1,44 @@
+---
+pageClass: is-wide-page
+---
+
 # EstimatorSensorBias (повідомлення UORB)
 
-Показання датчиків та похибки в процесі роботи в одиницях СІ. Показання датчиків компенсуються для статичних зсувів,
-похибки шкали, зсув під час роботи та тепловий зсув (якщо термокомпенсація увімкнена та доступна).
+Показання датчиків та похибки в процесі роботи в одиницях СІ. Sensor readings are compensated for static offsets,. scale errors, in-run bias and thermal drift (if thermal compensation is enabled and available).
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorSensorBias.msg)
+**TOPICS:** estimator_sensorbias
+
+## Fields
+
+| Назва                                                         | Тип          | Unit [Frame] | Range/Enum | Опис                                                                                    |
+| ------------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| timestamp                                                     | `uint64`     |                                                                  |            | time since system start (microseconds)                               |
+| timestamp_sample                         | `uint64`     |                                                                  |            | the timestamp of the raw data (microseconds)                         |
+| gyro_device_id      | `uint32`     |                                                                  |            | unique device ID for the sensor that does not change between power cycles               |
+| gyro_bias                                | `float32[3]` |                                                                  |            | gyroscope in-run bias in body frame (rad/s)                          |
+| gyro_bias_limit     | `float32`    |                                                                  |            | magnitude of maximum gyroscope in-run bias in body frame (rad/s)     |
+| gyro_bias_variance  | `float32[3]` |                                                                  |            |                                                                                         |
+| gyro_bias_valid     | `bool`       |                                                                  |            |                                                                                         |
+| gyro_bias_stable    | `bool`       |                                                                  |            | true when the gyro bias estimate is stable enough to use for calibration                |
+| accel_device_id     | `uint32`     |                                                                  |            | unique device ID for the sensor that does not change between power cycles               |
+| accel_bias                               | `float32[3]` |                                                                  |            | accelerometer in-run bias in body frame (m/s^2)                      |
+| accel_bias_limit    | `float32`    |                                                                  |            | magnitude of maximum accelerometer in-run bias in body frame (m/s^2) |
+| accel_bias_variance | `float32[3]` |                                                                  |            |                                                                                         |
+| accel_bias_valid    | `bool`       |                                                                  |            |                                                                                         |
+| accel_bias_stable   | `bool`       |                                                                  |            | true when the accel bias estimate is stable enough to use for calibration               |
+| mag_device_id       | `uint32`     |                                                                  |            | unique device ID for the sensor that does not change between power cycles               |
+| mag_bias                                 | `float32[3]` |                                                                  |            | magnetometer in-run bias in body frame (Gauss)                       |
+| mag_bias_limit      | `float32`    |                                                                  |            | magnitude of maximum magnetometer in-run bias in body frame (Gauss)  |
+| mag_bias_variance   | `float32[3]` |                                                                  |            |                                                                                         |
+| mag_bias_valid      | `bool`       |                                                                  |            |                                                                                         |
+| mag_bias_stable     | `bool`       |                                                                  |            | true when the mag bias estimate is stable enough to use for calibration                 |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorSensorBias.msg)
+
+:::details
+Click here to see original file
 
 ```c
 #
@@ -36,5 +71,6 @@ float32 mag_bias_limit          # magnitude of maximum magnetometer in-run bias 
 float32[3] mag_bias_variance
 bool mag_bias_valid
 bool mag_bias_stable		# true when the mag bias estimate is stable enough to use for calibration
-
 ```
+
+:::

@@ -63,6 +63,7 @@ ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(Modul
 	_spoilers_setpoint_with_slewrate.setSlewRate(kSpoilersSlewRate);
 
 	_count_handle = param_find("CA_SV_CS_COUNT");
+	_param_handle_ca_cs_laun_lk = param_find("CA_CS_LAUN_LK");
 	updateParams();
 }
 
@@ -80,7 +81,7 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 
 	// Helper to check if a PWM center parameter is enabled, and clamp it to valid range
 	auto check_pwm_center = [](const char *prefix, int channel) -> bool {
-		char param_name[20];
+		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_CENT%d", prefix, channel);
 		param_t param = param_find(param_name);
 
@@ -111,6 +112,8 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 			pwm_center_set = true;
 		}
 	}
+
+	param_get(_param_handle_ca_cs_laun_lk, &_param_ca_cs_laun_lk);
 
 	for (int i = 0; i < _count; i++) {
 		param_get(_param_handles[i].type, (int32_t *)&_params[i].type);
@@ -218,9 +221,14 @@ void ActuatorEffectivenessControlSurfaces::applyFlaps(float flaps_control, int f
 	_flaps_setpoint_with_slewrate.update(flaps_control, dt);
 
 	for (int i = 0; i < _count; ++i) {
-		// map [0, 1] to [-1, 1]
-		// TODO: this currently only works for dedicated flaps, not flaperons
-		actuator_sp(i + first_actuator_idx) += (_flaps_setpoint_with_slewrate.getState() * 2.f - 1.f) * _params[i].scale_flap;
+		if (_params[i].type == Type::LeftFlap || _params[i].type == Type::RightFlap) {
+			// map [0, 1] to [-1, 1] for pure flaps
+			actuator_sp(i + first_actuator_idx) += (_flaps_setpoint_with_slewrate.getState() * 2.f - 1.f) * _params[i].scale_flap;
+
+		} else {
+			// map [0, 1] to [0, 1] for flaperons (ailerons deflected down)
+			actuator_sp(i + first_actuator_idx) += _flaps_setpoint_with_slewrate.getState() * _params[i].scale_flap;
+		}
 	}
 }
 
@@ -230,7 +238,24 @@ void ActuatorEffectivenessControlSurfaces::applySpoilers(float spoilers_control,
 	_spoilers_setpoint_with_slewrate.update(spoilers_control, dt);
 
 	for (int i = 0; i < _count; ++i) {
-		// TODO: this currently only works for spoilerons, not dedicated spoilers
-		actuator_sp(i + first_actuator_idx) += _spoilers_setpoint_with_slewrate.getState() * _params[i].scale_spoiler;
+		if (_params[i].type == Type::LeftSpoiler || _params[i].type == Type::RightSpoiler) {
+			// map [0, 1] to [-1, 1] for pure spoilers
+			actuator_sp(i + first_actuator_idx) += (_spoilers_setpoint_with_slewrate.getState() * 2.f - 1.f) * _params[i].scale_spoiler;
+
+		} else {
+			// map [0, 1] to [0, 1] for spoilerons (ailerons deflected up)
+			actuator_sp(i + first_actuator_idx) += _spoilers_setpoint_with_slewrate.getState() * _params[i].scale_spoiler;
+		}
+	}
+}
+
+void ActuatorEffectivenessControlSurfaces::applyLaunchLock(int first_actuator_idx,
+		ActuatorVector &actuator_sp)
+{
+	for (int i = 0; i < _count; ++i) {
+
+		if (_param_ca_cs_laun_lk & (1u << i)) {
+			actuator_sp(i + first_actuator_idx) = NAN;
+		}
 	}
 }

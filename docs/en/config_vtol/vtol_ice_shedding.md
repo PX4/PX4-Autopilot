@@ -14,7 +14,8 @@ seconds. In each cycle, the rotors are spun for two seconds at a motor output of
 :::warning
 When enabling the feature on a new airframe, there is the risk of producing
 torques that disturb the fixed-wing rate controller. To mitigate this risk:
- - Set your `PWM_MIN` values correctly, so that the motor output 0.01 actually
-   produces 1% thrust
- - Be prepared to take control and switch back to multicopter
-:::
+
+- Set your `PWM_MIN` values correctly, so that the motor output 0.01 actually
+  produces 1% thrust
+- Be prepared to take control and switch back to multicopter
+  :::
