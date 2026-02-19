@@ -190,12 +190,14 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	int accel_best_index = _accel.last_best_vote;
 	int gyro_best_index = _gyro.last_best_vote;
 
+	bool failover = false;
+
 	if (!_parameter_update) {
 		// update current accel/gyro selection, skipped on cycles where parameters update
 		_accel.voter.get_best(time_now_us, &accel_best_index);
 		_gyro.voter.get_best(time_now_us, &gyro_best_index);
 
-		if (!_param_sens_imu_mode.get() && ((_selection.timestamp != 0) || (_sensor_selection_sub.updated()))) {
+		if ((_param_sens_imu_mode.get() == 0) && ((_selection.timestamp != 0) || (_sensor_selection_sub.updated()))) {
 			// use sensor_selection to find best
 			if (_sensor_selection_sub.update(&_selection)) {
 				// reset inconsistency checks against primary
@@ -217,27 +219,101 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 		} else {
 			// use sensor voter to find best if SENS_IMU_MODE is enabled or ORB_ID(sensor_selection) has never published
-			checkFailover(_accel, "Accel", events::px4::enums::sensor_type_t::accel);
-			checkFailover(_gyro, "Gyro", events::px4::enums::sensor_type_t::gyro);
+			failover = checkFailover(_accel, "Accel", events::px4::enums::sensor_type_t::accel);
+			failover = checkFailover(_gyro, "Gyro", events::px4::enums::sensor_type_t::gyro);
 		}
 	}
+
 
 	// write data for the best sensor to output variables
 	if ((accel_best_index >= 0) && (accel_best_index < MAX_SENSOR_COUNT) && (_accel_device_id[accel_best_index] != 0)
 	    && (gyro_best_index >= 0) && (gyro_best_index < MAX_SENSOR_COUNT) && (_gyro_device_id[gyro_best_index] != 0)) {
 
 		raw.timestamp = _last_sensor_data[gyro_best_index].timestamp;
-		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[accel_best_index].accelerometer_m_s2,
-		       sizeof(raw.accelerometer_m_s2));
-		memcpy(&raw.gyro_rad, &_last_sensor_data[gyro_best_index].gyro_rad, sizeof(raw.gyro_rad));
 
-		raw.accelerometer_integral_dt = _last_sensor_data[accel_best_index].accelerometer_integral_dt;
-		raw.accelerometer_clipping    = _last_sensor_data[accel_best_index].accelerometer_clipping;
-		raw.accel_calibration_count   = _last_sensor_data[accel_best_index].accel_calibration_count;
+		// Only run median selection if there are no failures
+		if ((_param_sens_imu_mode.get() == 2) && !failover) {
+			// Find the median of each axis
+			size_t accel_median_index[3] = {};
+			size_t gyro_median_index[3] = {};
 
-		raw.gyro_integral_dt          = _last_sensor_data[gyro_best_index].gyro_integral_dt;
-		raw.gyro_clipping             = _last_sensor_data[gyro_best_index].gyro_clipping;
-		raw.gyro_calibration_count    = _last_sensor_data[gyro_best_index].gyro_calibration_count;
+			accel_median_index[0] = find_median_index(_last_sensor_data[0].accelerometer_m_s2[0],
+						_last_sensor_data[1].accelerometer_m_s2[0],
+						_last_sensor_data[2].accelerometer_m_s2[0]);
+
+			accel_median_index[1] = find_median_index(_last_sensor_data[0].accelerometer_m_s2[1],
+						_last_sensor_data[1].accelerometer_m_s2[1],
+						_last_sensor_data[2].accelerometer_m_s2[1]);
+
+			accel_median_index[2] = find_median_index(_last_sensor_data[0].accelerometer_m_s2[2],
+						_last_sensor_data[1].accelerometer_m_s2[2],
+						_last_sensor_data[2].accelerometer_m_s2[2]);
+
+			gyro_median_index[0] = find_median_index(_last_sensor_data[0].gyro_rad[0], _last_sensor_data[1].gyro_rad[0],
+					       _last_sensor_data[2].gyro_rad[0]);
+
+			gyro_median_index[1] = find_median_index(_last_sensor_data[0].gyro_rad[1], _last_sensor_data[1].gyro_rad[1],
+					       _last_sensor_data[2].gyro_rad[1]);
+
+			gyro_median_index[2] = find_median_index(_last_sensor_data[0].gyro_rad[2], _last_sensor_data[1].gyro_rad[2],
+					       _last_sensor_data[2].gyro_rad[2]);
+
+			size_t accel_median_dt_index = find_median_index(_last_sensor_data[0].accelerometer_integral_dt,
+						       _last_sensor_data[1].accelerometer_integral_dt,
+						       _last_sensor_data[2].accelerometer_integral_dt);
+
+			size_t gyro_median_dt_index = find_median_index(_last_sensor_data[0].gyro_integral_dt,
+						      _last_sensor_data[1].gyro_integral_dt,
+						      _last_sensor_data[2].gyro_integral_dt);
+
+			raw.accelerometer_m_s2[0] = _last_sensor_data[accel_median_index[0]].accelerometer_m_s2[0];
+			raw.accelerometer_m_s2[1] = _last_sensor_data[accel_median_index[1]].accelerometer_m_s2[1];
+			raw.accelerometer_m_s2[2] = _last_sensor_data[accel_median_index[2]].accelerometer_m_s2[2];
+
+			raw.gyro_rad[0] = _last_sensor_data[gyro_median_index[0]].gyro_rad[0];
+			raw.gyro_rad[1] = _last_sensor_data[gyro_median_index[1]].gyro_rad[1];
+			raw.gyro_rad[2] = _last_sensor_data[gyro_median_index[2]].gyro_rad[2];
+
+			raw.accel_median_axis_index[0] = accel_median_index[0];
+			raw.accel_median_axis_index[1] = accel_median_index[1];
+			raw.accel_median_axis_index[2] = accel_median_index[2];
+
+			raw.gyro_median_axis_index[0] = gyro_median_index[0];
+			raw.gyro_median_axis_index[1] = gyro_median_index[1];
+			raw.gyro_median_axis_index[2] = gyro_median_index[2];
+
+			raw.accelerometer_integral_dt = _last_sensor_data[accel_median_dt_index].accelerometer_integral_dt;
+			raw.gyro_integral_dt          = _last_sensor_data[gyro_median_dt_index].gyro_integral_dt;
+
+			// Get the bitfield for each axis
+			raw.accelerometer_clipping    = (_last_sensor_data[accel_median_index[0]].accelerometer_clipping & 0x1) |
+							(_last_sensor_data[accel_median_index[1]].accelerometer_clipping & 0x2) |
+							(_last_sensor_data[accel_median_index[2]].accelerometer_clipping & 0x4);
+			raw.gyro_clipping             = (_last_sensor_data[gyro_median_index[0]].gyro_clipping & 0x1) |
+							(_last_sensor_data[gyro_median_index[1]].gyro_clipping & 0x2) |
+							(_last_sensor_data[gyro_median_index[2]].gyro_clipping & 0x4);
+
+			raw.accel_calibration_count   = _last_sensor_data[0].accel_calibration_count +
+							_last_sensor_data[1].accel_calibration_count +
+							_last_sensor_data[2].accel_calibration_count;
+
+			raw.gyro_calibration_count    = _last_sensor_data[0].gyro_calibration_count +
+							_last_sensor_data[1].gyro_calibration_count +
+							_last_sensor_data[2].gyro_calibration_count;
+
+		} else {
+			memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[accel_best_index].accelerometer_m_s2,
+			       sizeof(raw.accelerometer_m_s2));
+			memcpy(&raw.gyro_rad, &_last_sensor_data[gyro_best_index].gyro_rad, sizeof(raw.gyro_rad));
+
+			raw.accelerometer_integral_dt = _last_sensor_data[accel_best_index].accelerometer_integral_dt;
+			raw.accelerometer_clipping    = _last_sensor_data[accel_best_index].accelerometer_clipping;
+			raw.accel_calibration_count   = _last_sensor_data[accel_best_index].accel_calibration_count;
+
+			raw.gyro_integral_dt          = _last_sensor_data[gyro_best_index].gyro_integral_dt;
+			raw.gyro_clipping             = _last_sensor_data[gyro_best_index].gyro_clipping;
+			raw.gyro_calibration_count    = _last_sensor_data[gyro_best_index].gyro_calibration_count;
+		}
 
 		if ((accel_best_index != _accel.last_best_vote) || (_selection.accel_device_id != _accel_device_id[accel_best_index])) {
 			_accel.last_best_vote = (uint8_t)accel_best_index;
@@ -268,7 +344,7 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	}
 
 	// publish sensor selection if changed
-	if (_param_sens_imu_mode.get() || (_selection.timestamp == 0)) {
+	if ((_param_sens_imu_mode.get() == 1) || (_selection.timestamp == 0)) {
 		if (_selection_changed) {
 			// don't publish until selected IDs are valid
 			if (_selection.accel_device_id > 0 && _selection.gyro_device_id > 0) {
@@ -492,6 +568,58 @@ void VotedSensorsUpdate::calcGyroInconsistency()
 			if ((_gyro_device_id[sensor_index] != 0) && (_gyro.priority[sensor_index] > 0)) {
 				_gyro_diff[sensor_index] = 0.95f * _gyro_diff[sensor_index] + 0.05f * (gyro_all[sensor_index] - gyro_mean);
 			}
+		}
+	}
+}
+
+float VotedSensorsUpdate::median(float x, float y, float z)
+{
+	if (x < y) {
+		if (y < z) {
+			return y;
+
+		} else if (x < z) {
+			return z;
+
+		} else {
+			return x;
+		}
+
+	} else {
+		if (x < z) {
+			return x;
+
+		} else if (y < z) {
+			return z;
+
+		} else {
+			return y;
+		}
+	}
+}
+
+size_t VotedSensorsUpdate::find_median_index(float x, float y, float z)
+{
+	if (x < y) {
+		if (y < z) {
+			return 1;
+
+		} else if (x < z) {
+			return 2;
+
+		} else {
+			return 0;
+		}
+
+	} else {
+		if (x < z) {
+			return 0;
+
+		} else if (y < z) {
+			return 2;
+
+		} else {
+			return 1;
 		}
 	}
 }
