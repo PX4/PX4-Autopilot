@@ -58,7 +58,7 @@ PMW3901::sensorInit()
 
 	// Power on reset
 	writeRegister(0x3A, 0x5A);
-	usleep(5000);
+	usleep(5_ms);
 
 	// Reading the motion registers one time
 	readRegister(0x02, &data[0], 1);
@@ -67,7 +67,7 @@ PMW3901::sensorInit()
 	readRegister(0x05, &data[3], 1);
 	readRegister(0x06, &data[4], 1);
 
-	usleep(1000);
+	usleep(1_ms);
 
 	// set performance optimization registers
 	// from PixArt PMW3901MB Optical Motion Tracking chip demo kit V3.20 (21 Aug 2018)
@@ -184,7 +184,7 @@ PMW3901::sensorInit()
 	writeRegister(0x40, 0x41);
 	writeRegister(0x70, 0x00);
 
-	px4_usleep(10000); // delay 10ms
+	px4_usleep(10_ms); // delay 10ms
 
 	writeRegister(0x32, 0x44);
 	writeRegister(0x7F, 0x07);
