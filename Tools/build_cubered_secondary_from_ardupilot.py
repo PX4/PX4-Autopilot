@@ -149,7 +149,7 @@ def main() -> int:
         temp_workspace = args.workdir.expanduser().resolve()
         temp_workspace.mkdir(parents=True, exist_ok=True)
     else:
-        managed_tempdir = tempfile.TemporaryDirectory(prefix="cubered_secondary_build_", dir="/tmp")
+        managed_tempdir = tempfile.TemporaryDirectory(prefix="cubered_secondary_build_")
         temp_workspace = Path(managed_tempdir.name)
 
     build_root = temp_workspace / "ardupilot_src"

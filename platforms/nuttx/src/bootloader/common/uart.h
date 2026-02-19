@@ -40,6 +40,10 @@
 #pragma once
 
 extern void uart_cinit(void *config);
+extern void uart2_cinit(void *config);
 extern void uart_cfini(void);
+extern void uart2_cfini(void);
 extern int uart_cin(void);
+extern int uart2_cin(void);
 extern void uart_cout(uint8_t *buf, unsigned len);
+extern void uart2_cout(uint8_t *buf, unsigned len);
