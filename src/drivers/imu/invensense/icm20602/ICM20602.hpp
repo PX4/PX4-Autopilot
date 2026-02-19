@@ -98,11 +98,12 @@ private:
 
 	bool Reset();
 
+	bool CheckConfiguration();
 	bool Configure();
-	void ConfigureAccel();
-	void ConfigureGyro();
 	void ConfigureSampleRate(int sample_rate);
 	void ConfigureFIFOWatermark(uint8_t samples);
+
+	void RecordSensorOffsets();
 
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
 	void DataReady();
@@ -129,6 +130,7 @@ private:
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
+	perf_counter_t _configure_perf{perf_alloc(PC_COUNT, MODULE_NAME": configured")};
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _fifo_empty_perf{perf_alloc(PC_COUNT, MODULE_NAME": FIFO empty")};
@@ -147,6 +149,7 @@ private:
 		RESET,
 		WAIT_FOR_RESET,
 		CONFIGURE,
+		CHECK_CONFIGURATION,
 		FIFO_READ,
 	} _state{STATE::RESET};
 
