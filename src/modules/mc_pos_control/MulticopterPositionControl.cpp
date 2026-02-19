@@ -294,7 +294,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 					    "Hover thrust has been constrained by min/max thrust", _param_mpc_thr_hover.get());
 		}
 
-		if (!_param_mpc_use_hte.get() || !_hover_thrust_initialized) {
+		if (!_hover_thrust_initialized) {
 			_control.setHoverThrust(_param_mpc_thr_hover.get());
 			_hover_thrust_initialized = true;
 		}
@@ -403,7 +403,7 @@ void MulticopterPositionControl::Run()
 		if (_vehicle_control_mode_sub.updated()) {
 			const bool previous_position_control_enabled = _vehicle_control_mode.flag_multicopter_position_control_enabled;
 
-			if (_vehicle_control_mode_sub.update(&_vehicle_control_mode)) {
+			if (_vehicle_control_mode_sub.copy(&_vehicle_control_mode)) {
 				if (!previous_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					_time_position_control_enabled = _vehicle_control_mode.timestamp;
 
@@ -417,10 +417,10 @@ void MulticopterPositionControl::Run()
 
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 
-		if (_param_mpc_use_hte.get()) {
+		if (_hover_thrust_estimate_sub.updated()) {
 			hover_thrust_estimate_s hte;
 
-			if (_hover_thrust_estimate_sub.update(&hte)) {
+			if (_hover_thrust_estimate_sub.copy(&hte)) {
 				if (hte.valid) {
 					_control.updateHoverThrust(hte.hover_thrust);
 				}
