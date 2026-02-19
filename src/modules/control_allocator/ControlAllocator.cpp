@@ -76,8 +76,6 @@ ControlAllocator::ControlAllocator() :
 	}
 
 	parameters_updated();
-
-	_slew_limited_ice_shedding_output.setSlewRate(ICE_SHEDDING_MAX_SLEWRATE);
 }
 
 ControlAllocator::~ControlAllocator()
@@ -665,23 +663,15 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_moto
 	const bool apply_shedding = _is_vtol && in_forward_flight && !any_stopped_motor_failed;
 
 	if (feature_disabled_by_param || !apply_shedding) {
-		// Bypass slew limit and immediately set zero, to not
-		// interfere with backtransition in any way
-		_slew_limited_ice_shedding_output.setForcedValue(0.0f);
+		return 0.0f;
 
 	} else {
-		// Raw square wave output
+		// Square wave output
 		const float elapsed_in_period = fmodf(static_cast<float>(now) / 1_s, period_sec);
-		const float raw_ice_shedding_output = elapsed_in_period < ICE_SHEDDING_ON_SEC ? ICE_SHEDDING_OUTPUT : 0.0f;
+		const float ice_shedding_output = elapsed_in_period < ICE_SHEDDING_ON_SEC ? ICE_SHEDDING_OUTPUT : 0.0f;
 
-		// Apply slew rate limit
-		const float dt = static_cast<float>(now - _last_ice_shedding_update) / 1_s;
-		_slew_limited_ice_shedding_output.update(raw_ice_shedding_output, dt);
+		return ice_shedding_output;
 	}
-
-	_last_ice_shedding_update = now;
-
-	return _slew_limited_ice_shedding_output.getState();
 }
 
 void
