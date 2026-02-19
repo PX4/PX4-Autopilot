@@ -36,10 +36,10 @@ If you have an RC system and/or one or more Joysticks then you can use the [COM_
 - `2`: RC or MAVLink with fallback (switches if current source becomes invalid).
 - `3`: RC or MAVLink keep first (locks to the first valid source until reboot).
 - `4`: Disable manual control (ignores all sources).
-- `5`: RC priority, then MAVLink (lower instance before higher) — `RC > MAV 1 > MAV 2`
-- `6`: MAVLink priority (lower instance before higher), then RC — `MAVL 1 > MAVL 2 > RC`
-- `7`: RC priority, then MAVLink (higher instance before lower) — `RC > MAVL 2 > MAVL 1`
-- `8`: MAVLink priority (higher instance before lower), then RCL — `MAVL 2 > MAVL 1 > RC`
+- `5`: RC priority, then MAVLink (lower instance before higher) — `RC > MAVLink 1 > MAVLink 2`
+- `6`: MAVLink priority (lower instance before higher), then RC — `MAVLink 1 > MAVLink 2 > RC`
+- `7`: RC priority, then MAVLink (higher instance before lower) — `RC > MAVLink 2 > MAVLink 1`
+- `8`: MAVLink priority (higher instance before lower), then RC — `MAVLink 2 > MAVLink 1 > RC`
 
 RC calibration is required and RC checks are run for any option that uses RC (so not for `MAVLink only` or `Disable manual control`).
 When using priority sources, sources are evaluated as soon as they becomes valid and may trigger an immediate switch (if higher priority than other sources).
