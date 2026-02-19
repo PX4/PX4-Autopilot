@@ -107,11 +107,10 @@ make px4_fmu-v6x boardconfig
 
       ![QGC Auto-connect settings for HITL](../../assets/gcs/qgc_hitl_autoconnect.png)
 
-5. (Optional) Configure Joystick and Failsafe.
+5. (Optional) Configure your manual controller priority and failsafe:
    - [Enable an COM_RC_IN_MODE mode that allows Joystick](../config/manual_control.md#px4-configuration).
      The default `RC or MAVLink keep first` should work if you plan to only have a Joystick (no RC).
-   - Set [NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT) to `Disabled`.
-     This ensures that no RC failsafe actions interfere when not running HITL with a radio control.
+   - You can set [NAV_RCL_ACT](../advanced_config/parameter_reference.md#NAV_RCL_ACT) to disable manual control loss failsafe while flying in a simulation.
 
    :::tip
    The _QGroundControl User Guide_ also has instructions on [Joystick](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/joystick.html) and [Virtual Joystick](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/virtual_joystick.html) setup.
