@@ -127,6 +127,7 @@ private:
 	static constexpr uint8_t size_register_cfg{4};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register                | Set bits, Clear bits
+		// Sees.ai to modify here for forced mode
 		{ Register::POWER_CONTROL, POWER_CONTROL_BIT::PowerControl, POWER_CONTROL_BIT::SoftReset },
 		{ Register::OP_MODE,       OP_MODE_BIT::ODR_20HZ_SET, OP_MODE_BIT::ODR_20HZ_CLEAR | OP_MODE_BIT::Opmode_Sleep | OP_MODE_BIT::Self_Test },
 		{ Register::REPXY,         REPXY_BIT::XY_HA_SET, REPXY_BIT::XY_HA_CLEAR },
