@@ -136,6 +136,14 @@ add_custom_command(
 	)
 
 
+# Compute IO firmware path for filepaths generator
+set(iofw_path_arg)
+if(CONFIG_BOARD_IO)
+	if(CONFIG_BOARD_ROOT_PATH)
+		set(iofw_path_arg --iofw-path ${CONFIG_BOARD_ROOT_PATH}/px4/extras/${CONFIG_BOARD_IO}.bin)
+	endif()
+endif()
+
 set(romfs_copy_stamp ${CMAKE_CURRENT_BINARY_DIR}/romfs_copy.stamp)
 add_custom_command(
 	OUTPUT
@@ -157,6 +165,7 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/filepaths/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--params-file ${CONFIG_BOARD_PARAM_FILE}
+		${iofw_path_arg}
 	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_copy_stamp}
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
 	DEPENDS ${romfs_tar_file}
@@ -255,7 +264,8 @@ set(OPTIONAL_BOARD_EXTRAS)
 file(GLOB OPTIONAL_BOARD_EXTRAS ${PX4_BOARD_DIR}/extras/*)
 
 # bootloader (optional)
-#  - if systemcmds/bl_update included and board bootloader available then generate rc.board_bootloader_upgrade and copy bootloader binary
+#  - if systemcmds/bl_update included and board bootloader available then generate rc.board_bootloader_upgrade
+#  - when CONFIG_BOARD_ROOT_PATH is set, bootloader binary is on SD card (not in ROMFS)
 #  - otherwise remove bootloader binary from extras in final ROMFS
 foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 	file(RELATIVE_PATH extra_file_base_name ${PX4_BOARD_DIR}/extras/ ${board_extra_file})
@@ -263,6 +273,13 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 		if(CONFIG_SYSTEMCMDS_BL_UPDATE)
 			# generate rc.board_bootloader_upgrade
 			set(BOARD_FIRMWARE_BIN "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
+
+			if(CONFIG_BOARD_ROOT_PATH)
+				set(BOARD_FIRMWARE_PATH "${CONFIG_BOARD_ROOT_PATH}/px4/extras/${BOARD_FIRMWARE_BIN}")
+			else()
+				set(BOARD_FIRMWARE_PATH "/etc/extras/${BOARD_FIRMWARE_BIN}")
+			endif()
+
 			message(STATUS "ROMFS:  Adding platforms/nuttx/init/rc.board_bootloader_upgrade -> /etc/init.d/rc.board_bootloader_upgrade")
 
 			# Generate the file using configure_file at configure time to a temporary location
@@ -286,12 +303,18 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			list(APPEND extras_dependencies
 				rc.board_bootloader_upgrade.stamp
 			)
-		else()
-			# remove bootloader from extras
-			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()
+
+		# remove bootloader binary from ROMFS extras (either on SD card or bl_update not enabled)
+		list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 	endif()
 endforeach()
+
+# When CONFIG_BOARD_ROOT_PATH is set, IO firmware is on SD card - remove from ROMFS extras
+if(CONFIG_BOARD_ROOT_PATH AND CONFIG_BOARD_IO)
+	set(_io_bin_path "${PX4_BOARD_DIR}/extras/${CONFIG_BOARD_IO}.bin")
+	list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${_io_bin_path})
+endif()
 
 foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 

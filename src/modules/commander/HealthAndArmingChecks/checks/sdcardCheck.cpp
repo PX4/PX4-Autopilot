@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "sdcardCheck.hpp"
+#include <sdcard_check/sdcard_check.h>
 #include <dirent.h>
 #include <string.h>
 
@@ -52,7 +53,10 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 
 		if (!_sdcard_detected && statfs(PX4_STORAGEDIR, &statfs_buf) == 0) {
 			// on NuttX we get a data block count f_blocks and byte count per block f_bsize if an SD card is inserted
-			_sdcard_detected = (statfs_buf.f_blocks > 0) && (statfs_buf.f_bsize > 0);
+			if ((statfs_buf.f_blocks > 0) && (statfs_buf.f_bsize > 0)) {
+				_sdcard_detected = true;
+				_sdcard_detected_time = hrt_absolute_time();
+			}
 		}
 
 		if (!_sdcard_detected) {
@@ -127,5 +131,56 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 #endif /* __PX4_NUTTX */
+
+	// Check SD card metadata file integrity (delay to allow upload after flash)
+	if (!_metadata_checked && _param_com_arm_metadata_check.get() && _sdcard_detected
+	    && hrt_elapsed_time(&_sdcard_detected_time) > 10_s) {
+		_metadata_checked = true;
+		auto result = sdcard_check::verify_all();
+
+		_metadata_missing = result.num_missing > 0;
+		_metadata_mismatch = result.num_mismatch > 0;
+
+		if (!_metadata_missing && !_metadata_mismatch && result.num_checked > 0) {
+			PX4_INFO("SD card files verified: %d files OK", result.num_checked);
+		}
+	}
+
+	if (_metadata_missing && _param_com_arm_metadata_check.get()) {
+		/* EVENT
+		 * @description
+		 * SD card metadata files are missing. Re-upload the SD card files matching this firmware version.
+		 *
+		 * <profile name="dev">
+		 * This check can be configured via <param>COM_ARM_META_CHK</param> parameter.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+					    events::ID("check_sdcard_metadata_missing"),
+					    events::Log::Error, "SD card metadata files missing");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: SD card metadata files missing");
+		}
+	}
+
+	if (_metadata_mismatch && _param_com_arm_metadata_check.get()) {
+		/* EVENT
+		 * @description
+		 * SD card metadata files do not match the firmware. Re-upload the SD card files matching this firmware version.
+		 *
+		 * <profile name="dev">
+		 * This check can be configured via <param>COM_ARM_META_CHK</param> parameter.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+					    events::ID("check_sdcard_metadata_mismatch"),
+					    events::Log::Error, "SD card metadata files mismatch");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: SD card metadata mismatch");
+		}
+	}
+
 #endif /* PX4_STORAGEDIR */
 }
