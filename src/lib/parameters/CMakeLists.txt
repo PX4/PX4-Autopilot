@@ -114,6 +114,16 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 	COMMENT "Generating serial_params.c"
 )
 
+# readonly params config (used by both px_process_params.py and px_generate_params.py)
+set(READONLY_PARAMS_CONFIG "${PX4_BOARD_DIR}/readonly_params.yaml")
+if(EXISTS ${READONLY_PARAMS_CONFIG})
+	set(READONLY_PARAMS_ARG "--readonly-config" "${READONLY_PARAMS_CONFIG}")
+	set(READONLY_PARAMS_DEPEND "${READONLY_PARAMS_CONFIG}")
+else()
+	set(READONLY_PARAMS_ARG "")
+	set(READONLY_PARAMS_DEPEND "")
+endif()
+
 set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
 set(parameters_json ${PX4_BINARY_DIR}/parameters.json)
 file(GLOB_RECURSE param_src_files ${PX4_SOURCE_DIR}/src/*params.c ${PX4_SOURCE_DIR}/src/*parameters.c)
@@ -125,6 +135,7 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--compress
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
 		--board ${PX4_BOARD}
+		${READONLY_PARAMS_ARG}
 		#--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
 		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/parameter.schema.json
@@ -135,24 +146,18 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		${param_src_files}
 		${generated_serial_params_file}
 		${generated_module_params_file}
+		${READONLY_PARAMS_DEPEND}
 		px4params/srcparser.py
 		px4params/srcscanner.py
 		px4params/jsonout.py
 		px4params/xmlout.py
+		px4params/readonly_config.py
 		px_process_params.py
 	COMMENT "Generating parameters.xml"
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
 
 # generate px4_parameters.hpp
-set(READONLY_PARAMS_CONFIG "${PX4_BOARD_DIR}/readonly_params.yaml")
-if(EXISTS ${READONLY_PARAMS_CONFIG})
-	set(READONLY_PARAMS_ARG "--readonly-config" "${READONLY_PARAMS_CONFIG}")
-	set(READONLY_PARAMS_DEPEND "${READONLY_PARAMS_CONFIG}")
-else()
-	set(READONLY_PARAMS_ARG "")
-	set(READONLY_PARAMS_DEPEND "")
-endif()
 
 add_custom_command(OUTPUT px4_parameters.hpp
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
