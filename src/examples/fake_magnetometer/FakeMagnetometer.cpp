@@ -38,6 +38,8 @@
 using namespace matrix;
 using namespace time_literals;
 
+ModuleBase::Descriptor FakeMagnetometer::desc{task_spawn, custom_command, print_usage};
+
 FakeMagnetometer::FakeMagnetometer() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
@@ -56,7 +58,7 @@ void FakeMagnetometer::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -94,8 +96,8 @@ int FakeMagnetometer::task_spawn(int argc, char *argv[])
 	FakeMagnetometer *instance = new FakeMagnetometer();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -106,8 +108,8 @@ int FakeMagnetometer::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -138,5 +140,5 @@ Requires vehicle_attitude and vehicle_gps_position.
 
 extern "C" __EXPORT int fake_magnetometer_main(int argc, char *argv[])
 {
-	return FakeMagnetometer::main(argc, argv);
+	return ModuleBase::main(FakeMagnetometer::desc, argc, argv);
 }

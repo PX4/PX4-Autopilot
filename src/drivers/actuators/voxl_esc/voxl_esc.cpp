@@ -37,6 +37,8 @@
 
 #include "voxl_esc.hpp"
 
+ModuleBase::Descriptor VoxlEsc::desc{task_spawn, custom_command, print_usage};
+
 // future use:
 #define MODALAI_PUBLISH_ESC_STATUS	0
 
@@ -425,8 +427,8 @@ int VoxlEsc::task_spawn(int argc, char *argv[])
 	}
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
@@ -439,8 +441,8 @@ int VoxlEsc::task_spawn(int argc, char *argv[])
 	// This will cause a crash on SLPI DSP
 	// delete instance;
 
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -693,12 +695,12 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 
 	/* start the driver if not running */
 	if (!strcmp(verb, "start")) {
-		if (!is_running()) {
+		if (!is_running(desc)) {
 			return VoxlEsc::task_spawn(argc, argv);
 		}
 	}
 
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		PX4_INFO("Not running");
 		return -1;
 
@@ -761,7 +763,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 			PX4_ERR("Reset ESC: %i", esc_id);
 			cmd.len = qc_esc_create_reset_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = false;
-			return get_instance()->send_cmd_thread_safe(&cmd);
+			return get_instance<VoxlEsc>(desc)->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC ID, use 0-3");
@@ -774,7 +776,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 			cmd.len = qc_esc_create_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = true;
 			cmd.resp_delay_us = 2000;
-			return get_instance()->send_cmd_thread_safe(&cmd);
+			return get_instance<VoxlEsc>(desc)->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC ID, use 0-3");
@@ -787,7 +789,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 			cmd.len = qc_esc_create_extended_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = true;
 			cmd.resp_delay_us = 5000;
-			return get_instance()->send_cmd_thread_safe(&cmd);
+			return get_instance<VoxlEsc>(desc)->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC ID, use 0-3");
@@ -799,7 +801,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 			PX4_ERR("Request tone for ESC mask: %i", esc_id);
 			cmd.len = qc_esc_create_sound_packet(period, duration, power, esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = false;
-			return get_instance()->send_cmd_thread_safe(&cmd);
+			return get_instance<VoxlEsc>(desc)->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC ID, use 0-3");
@@ -808,14 +810,14 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "led")) {
 		if (led_mask <= 0x0FFF) {
-			get_instance()->_led_rsc.test = true;
-			get_instance()->_led_rsc.breath_en = false;
+			get_instance<VoxlEsc>(desc)->_led_rsc.test = true;
+			get_instance<VoxlEsc>(desc)->_led_rsc.breath_en = false;
 			PX4_ERR("Request LED control for ESCs with mask: %i", led_mask);
 
-			get_instance()->_esc_chans[0].led = (led_mask & 0x0007);
-			get_instance()->_esc_chans[1].led = (led_mask & 0x0038) >> 3;
-			get_instance()->_esc_chans[2].led = (led_mask & 0x01C0) >> 6;
-			get_instance()->_esc_chans[3].led = (led_mask & 0x0E00) >> 9;
+			get_instance<VoxlEsc>(desc)->_esc_chans[0].led = (led_mask & 0x0007);
+			get_instance<VoxlEsc>(desc)->_esc_chans[1].led = (led_mask & 0x0038) >> 3;
+			get_instance<VoxlEsc>(desc)->_esc_chans[2].led = (led_mask & 0x01C0) >> 6;
+			get_instance<VoxlEsc>(desc)->_esc_chans[3].led = (led_mask & 0x0E00) >> 9;
 			return 0;
 
 		} else {
@@ -851,7 +853,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 							       id_fb,
 							       cmd.buf,
 							       sizeof(cmd.buf),
-							       get_instance()->_extended_rpm);
+							       get_instance<VoxlEsc>(desc)->_extended_rpm);
 
 			cmd.response        = true;
 			cmd.repeats         = repeat_count;
@@ -862,7 +864,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 			PX4_ERR("Feedback id debug: %i", id_fb);
 			PX4_ERR("Sending UART ESC RPM command %i", rate);
 
-			return get_instance()->send_cmd_thread_safe(&cmd);
+			return get_instance<VoxlEsc>(desc)->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC ID, use 0-3");
@@ -907,7 +909,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 			PX4_ERR("Feedback id debug: %i", id_fb);
 			PX4_ERR("Sending UART ESC power command %i", rate);
 
-			return get_instance()->send_cmd_thread_safe(&cmd);
+			return get_instance<VoxlEsc>(desc)->send_cmd_thread_safe(&cmd);
 
 		} else {
 			print_usage("Invalid ESC ID, use 0-3");
@@ -1422,7 +1424,7 @@ void VoxlEsc::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -1446,7 +1448,7 @@ void VoxlEsc::Run()
 		PX4_ERR("Failed to initialize device, exiting the module");
 		ScheduleClear();
 		_mixing_output.unregister();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -1767,5 +1769,5 @@ extern "C" __EXPORT int voxl_esc_main(int argc, char *argv[]);
 
 int voxl_esc_main(int argc, char *argv[])
 {
-	return VoxlEsc::main(argc, argv);
+	return ModuleBase::main(VoxlEsc::desc, argc, argv);
 }

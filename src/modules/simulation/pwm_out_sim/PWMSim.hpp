@@ -52,9 +52,11 @@
 
 using namespace time_literals;
 
-class PWMSim : public ModuleBase<PWMSim>, public OutputModuleInterface
+class PWMSim : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	PWMSim(bool hil_mode_enabled);
 	~PWMSim() override;
 

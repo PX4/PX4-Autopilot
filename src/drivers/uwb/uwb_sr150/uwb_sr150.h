@@ -84,9 +84,11 @@ typedef struct {
 	uint8_t stop; 					// Should be 0x1B
 } __attribute__((packed)) distance_msg_t;
 
-class UWB_SR150 : public ModuleBase<UWB_SR150>, public ModuleParams, public px4::ScheduledWorkItem
+class UWB_SR150 : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	UWB_SR150(const char *port);
 	~UWB_SR150();
 

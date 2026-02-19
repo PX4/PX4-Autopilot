@@ -33,6 +33,8 @@
 
 #include "WorkItemExample.hpp"
 
+ModuleBase::Descriptor WorkItemExample::desc{task_spawn, custom_command, print_usage};
+
 WorkItemExample::WorkItemExample() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1)
@@ -63,7 +65,7 @@ void WorkItemExample::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -132,8 +134,8 @@ int WorkItemExample::task_spawn(int argc, char *argv[])
 	WorkItemExample *instance = new WorkItemExample();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -144,8 +146,8 @@ int WorkItemExample::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -184,5 +186,5 @@ Example of a simple module running out of a work queue.
 
 extern "C" __EXPORT int work_item_example_main(int argc, char *argv[])
 {
-	return WorkItemExample::main(argc, argv);
+	return ModuleBase::main(WorkItemExample::desc, argc, argv);
 }

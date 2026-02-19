@@ -70,10 +70,12 @@
 
 using namespace time_literals;
 
-class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>, public ModuleParams,
+class MulticopterPositionControl : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	MulticopterPositionControl(bool vtol = false);
 	~MulticopterPositionControl() override;
 

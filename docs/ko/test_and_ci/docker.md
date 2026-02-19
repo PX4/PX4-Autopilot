@@ -1,12 +1,11 @@
 # PX4 도커 컨테이너
 
-Docker containers are provided for the complete [PX4 development toolchain](../dev_setup/dev_env.md#supported-targets) including NuttX and Linux based hardware, [Gazebo Classic](../sim_gazebo_classic/index.md) simulation, and [ROS](../simulation/ros_interface.md).
+Docker containers are provided for the complete [PX4 development toolchain](../dev_setup/dev_env.md#supported-targets) including NuttX and Linux based hardware, [Gazebo](../sim_gazebo_gz/index.md) simulation, and [ROS 2](../ros2/user_guide.md).
 
 This topic shows how to use the [available docker containers](#px4_containers) to access the build environment in a local Linux computer.
 
 :::info
-Dockerfiles and README can be found on [Github here](https://github.com/PX4/PX4-containers/tree/master?tab=readme-ov-file#container-hierarchy).
-They are built automatically on [Docker Hub](https://hub.docker.com/u/px4io/).
+The recommended `px4-dev` container is built from the [Dockerfile in the PX4-Autopilot source tree](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/Dockerfile) by the [Container build workflow](https://github.com/PX4/PX4-Autopilot/actions/workflows/dev_container.yml).
 :::
 
 ## 준비 사항
@@ -35,32 +34,35 @@ sudo usermod -aG docker $USER
 # Log in/out again before using docker!
 ```
 
-## Container Hierarchy {#px4_containers}
+## px4-dev Container (Recommended) {#px4_containers}
 
-The available containers are on [GitHub here](https://github.com/PX4/PX4-containers/tree/master?tab=readme-ov-file#container-hierarchy).
+The **`px4-dev`** container is the recommended container for building PX4 firmware.
+It is a single, multi-architecture container (linux/amd64 and linux/arm64) based on Ubuntu 24.04 that includes everything needed to build PX4 for NuttX hardware targets.
 
-이를 통하여 다양한 빌드 대상 및 구성을 테스트할 수 있습니다(포함된 도구는 이름에서 유추할 수 있음).
-The containers are hierarchical, such that containers have the functionality of their parents.
-For example, the partial hierarchy below shows that the docker container with NuttX build tools (`px4-dev-nuttx-focal`) does not include ROS 2, while the simulation containers do:
+It is published to both registries simultaneously:
 
-```plain
-- px4io/px4-dev-base-focal
-  - px4io/px4-dev-nuttx-focal
-  - px4io/px4-dev-simulation-focal
-    - px4io/px4-dev-ros-noetic
-      - px4io/px4-dev-ros2-foxy
-  - px4io/px4-dev-ros2-rolling
-- px4io/px4-dev-base-jammy
-  - px4io/px4-dev-nuttx-jammy
-```
+- **GitHub Container Registry:** [ghcr.io/px4/px4-dev](https://github.com/PX4/PX4-Autopilot/pkgs/container/px4-dev)
+- **Docker Hub:** [px4io/px4-dev](https://hub.docker.com/r/px4io/px4-dev)
 
-The most recent version can be accessed using the `latest` tag: `px4io/px4-dev-nuttx-focal:latest`
-(available tags are listed for each container on _hub.docker.com_.
-For example, the `px4io/px4-dev-nuttx-focal` tags can be found on [hub.docker.com here](https://hub.docker.com/r/px4io/px4-dev-nuttx-focal/tags?page=1&ordering=last_updated)).
+The container includes:
+
+- Ubuntu 24.04 base
+- ARM cross-compiler (`gcc-arm-none-eabi`) and Xtensa compiler (for ESP32 targets)
+- Build tools: `cmake`, `ninja`, `ccache`, `make`
+- Python 3 with PX4 build dependencies
+- NuttX toolchain libraries (`libnewlib-arm-none-eabi`, etc.)
+
+The container is built from the [Dockerfile](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/Dockerfile) in the PX4 source tree using the [Container build workflow](https://github.com/PX4/PX4-Autopilot/actions/workflows/dev_container.yml).
+Images are tagged with the PX4 version (e.g. `px4io/px4-dev:v1.16.0`).
 
 :::tip
-Typically you should use a recent container, but not necessarily the `latest` (as this changes too often).
+A `px4-sim` container with simulation tools (Gazebo Harmonic) is planned to complement `px4-dev` for simulation workflows.
 :::
+
+### Legacy Containers
+
+The older per-distro containers from [PX4/PX4-containers](https://github.com/PX4/PX4-containers) (e.g. `px4-dev-nuttx-jammy`, `px4-dev-ros2-humble`, etc.) are no longer recommended.
+They will be replaced by `px4-dev` (for builds) and the upcoming `px4-sim` (for simulation).
 
 ## 도커 컨테이너 활용
 
@@ -121,7 +123,7 @@ docker run -it --privileged \
 - `<host_src>`: The host computer directory to be mapped to `<container_src>` in the container. This should normally be the **PX4-Autopilot** directory.
 - `<container_src>`: The location of the shared (source) directory when inside the container.
 - `<local_container_name>`: A name for the docker container being created. 나중에 컨테이너를 다시 참조해야 하는 경우에 사용할 수 있습니다.
-- `<container>:<tag>`: The container with version tag to start - e.g.: `px4io/px4-dev-ros:2017-10-23`.
+- `<container>:<tag>`: The container with version tag to start - e.g.: `px4io/px4-dev:v1.16.0`.
 - `<build_command>`: The command to invoke on the new container. 예: `bash` is used to open a bash shell in the container.
 
 The concrete example below shows how to open a bash shell and share the directory **~/src/PX4-Autopilot** on the host computer.
@@ -137,7 +139,7 @@ docker run -it --privileged \
 -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
 -e DISPLAY=:0 \
 --network host \
---name=px4-ros px4io/px4-dev-ros2-foxy:2022-07-31 bash
+--name=px4-dev px4io/px4-dev:v1.16.0 bash
 ```
 
 :::info
@@ -155,7 +157,7 @@ On other hosts you might iterate the value of `0` in `-e DISPLAY=:0` until the "
 
 ```sh
 cd src/PX4-Autopilot    #This is <container_src>
-make px4_sitl_default gazebo-classic
+make px4_sitl gz_x500
 ```
 
 ### 컨테이너 재진입
@@ -219,7 +221,7 @@ The example above uses the line `--env=LOCAL_USER_ID="$(id -u)"` to create a use
 
 #### 그래픽 드라이버 문제
 
-It's possible that running Gazebo Classic will result in a similar error message like the following:
+It's possible that running Gazebo will result in a similar error message like the following:
 
 ```sh
 libGL error: failed to load driver: swrast
@@ -239,7 +241,7 @@ Nvidia 드라이버의 경우 다음 명령어를 사용합니다(그렇지 않�
 
 다음 설정은 테스트 되었습니다.
 
-- VMWare Fusion 및 Ubuntu 14.04가 포함된 OS X(Parallels에서 GUI를 지원하는 Docker 컨테이너로 인해 X-Server가 충돌함).
+- OS X with VMWare Fusion and Ubuntu 22.04 (Docker container with GUI support on Parallels make the X-Server crash).
 
 **Memory**
 

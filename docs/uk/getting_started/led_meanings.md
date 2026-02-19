@@ -20,7 +20,7 @@ It is possible to have a GPS lock (Green LED) and still not be able to arm the v
 :::
 
 :::tip
-In the event of an error (blinking red), or if the vehicle can't achieve GPS lock (change from blue to green),   check for more detailed status information in _QGroundControl_ including calibration status, and errors messages reported by the [Preflight Checks (Internal)](../flying/pre_flight_checks.md).
+In the event of an error (blinking red), or if the vehicle can't achieve GPS lock (change from blue to green), check for more detailed status information in _QGroundControl_ including calibration status, and errors messages reported by the [Preflight Checks (Internal)](../flying/pre_flight_checks.md).
 Також перевірте, чи правильно підключений GPS-модуль, чи правильно Pixhawk зчитує ваш GPS, і чи правильно GPS передає дані про місцеперебування.
 :::
 
@@ -47,7 +47,8 @@ In the event of an error (blinking red), or if the vehicle can't achieve GPS loc
   Під час аварійного режиму апарат намагатиметься повернутися до місця зльоту або може просто знизитися там, де він зараз перебуває.
 
 - **[Solid Amber] Low Battery Warning:** Indicates your vehicle's battery is running dangerously low.
-  Після певного моменту пристрій перейде у failsafe режим. Однак цей режим повинен сигналізувати про те, що настав час завершити політ.
+  Після певного моменту пристрій перейде у failsafe режим. However, this mode should signal caution that it's time to end
+  this flight.
 
 - **[Blinking Red] Error / Setup Required:** Indicates that your autopilot needs to be configured or calibrated before flying.
   Під'єднайте автопілот до наземної станції керування, щоб перевірити, в чому проблема.
@@ -77,11 +78,11 @@ The LED labels shown above are commonly used, but might differ on some boards.
 
 Більш детальна інформація про те, як інтерпретувати світлодіодні індикатори, наведені нижче (де "х" означає "будь-який стан")
 
-| Червоний/помаранчевий | Синій | Зелений | Значення                                                                                                                                                                             |
-| --------------------- | ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 10 Гц                 | x     | x       | Overload CPU load > 80%, or RAM usage > 98%                                                                                                                                          |
-| ВИМК                  | x     | x       | Overload CPU load <= 80%, or RAM usage <= 98%                                                                                      |
-| NA                    | ВИМК  | 4 Гц    | actuator_armed->armed && failsafe                                                                                       |
-| NA                    | УВІМК | 4 Гц    | actuator_armed->armed && !failsafe                                                                                      |
-| NA                    | ВИМК  | 1 Гц    | !actuator_armed-> armed && actuator_armed->ready_to_arm  |
-| NA                    | ВИМК  | 10 Гц   | !actuator_armed->armed  && !actuator_armed->ready_to_arm |
+| Червоний/помаранчевий | Синій | Зелений | Значення                                                                                                                                                                            |
+| --------------------- | ----- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10 Гц                 | x     | x       | Overload CPU load > 80%, or RAM usage > 98%                                                                                                                                         |
+| ВИМК                  | x     | x       | Overload CPU load <= 80%, or RAM usage <= 98%                                                                                     |
+| NA                    | ВИМК  | 4 Гц    | actuator_armed->armed && failsafe                                                                                      |
+| NA                    | УВІМК | 4 Гц    | actuator_armed->armed && !failsafe                                                                                     |
+| NA                    | ВИМК  | 1 Гц    | !actuator_armed-> armed && actuator_armed->ready_to_arm |
+| NA                    | ВИМК  | 10 Гц   | !actuator_armed->armed && !actuator_armed->ready_to_arm |

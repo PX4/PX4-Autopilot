@@ -1,12 +1,117 @@
+---
+pageClass: is-wide-page
+---
+
 # BatteryStatus (UORB message)
 
-Battery status
+Battery status.
 
 Battery status information for up to 3 battery instances.
 These are populated from power module and smart battery device drivers, and one battery updated from MAVLink.
 Battery instance information is also logged and streamed in MAVLink telemetry.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/BatteryStatus.msg)
+**TOPICS:** battery_status
+
+## Fields
+
+| 명칭                                                                                     | 형식            | Unit [Frame] | Range/Enum                                                                    | 설명                                                                                                                                                             |
+| -------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                                              | `uint64`      | us                                                               |                                                                               | Time since system start                                                                                                                                        |
+| connected                                                                              | `bool`        |                                                                  |                                                                               | Whether or not a battery is connected. For power modules this is based on a voltage threshold.                                 |
+| voltage_v                                                         | `float32`     | V                                                                |                                                                               | Battery voltage (Invalid: 0)                                                                                                |
+| current_a                                                         | `float32`     | A                                                                |                                                                               | Battery current (Invalid: -1)                                                                                               |
+| current_average_a                            | `float32`     | A                                                                |                                                                               | Battery current average (for FW average in level flight) (Invalid: -1)                                   |
+| discharged_mah                                                    | `float32`     | mAh                                                              |                                                                               | Discharged amount (Invalid: -1)                                                                                             |
+| remaining                                                                              | `float32`     |                                                                  | [0 : 1]   | Remaining capacity (Invalid: -1)                                                                                            |
+| scale                                                                                  | `float32`     |                                                                  | [1 : -]   | Scaling factor to compensate for lower actuation power caused by voltage sag (Invalid: -1)                                  |
+| time_remaining_s                             | `float32`     | s                                                                |                                                                               | Predicted time remaining until battery is empty under previous averaged load (Invalid: NaN)                                 |
+| temperature                                                                            | `float32`     | °C                                                               |                                                                               | Temperature of the battery (Invalid: NaN)                                                                                   |
+| cell_count                                                        | `uint8`       |                                                                  |                                                                               | Number of cells (Invalid: 0)                                                                                                |
+| source                                                                                 | `uint8`       |                                                                  | [SOURCE](#SOURCE)                                                             | Battery source                                                                                                                                                 |
+| priority                                                                               | `uint8`       |                                                                  |                                                                               | Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1                                              |
+| capacity                                                                               | `uint16`      | mAh                                                              |                                                                               | Capacity of the battery when fully charged                                                                                                                     |
+| cycle_count                                                       | `uint16`      |                                                                  |                                                                               | Number of discharge cycles the battery has experienced                                                                                                         |
+| average_time_to_empty   | `uint16`      | minutes                                                          |                                                                               | Predicted remaining battery capacity based on the average rate of discharge                                                                                    |
+| manufacture_date                                                  | `uint16`      |                                                                  |                                                                               | Manufacture date, part of serial number of the battery pack. Formatted as: Day + Month×32 + (Year–1980)×512 |
+| state_of_health                              | `uint16`      | %                                                                | [0 : 100] | State of health. FullChargeCapacity/DesignCapacity                                                                                             |
+| max_error                                                         | `uint16`      | %                                                                | [1 : 100] | Max error, expected margin of error in the state-of-charge calculation                                                                                         |
+| id                                                                                     | `uint8`       |                                                                  |                                                                               | ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed                               |
+| interface_error                                                   | `uint16`      |                                                                  |                                                                               | Interface error counter                                                                                                                                        |
+| voltage_cell_v                               | `float32[14]` | V                                                                |                                                                               | Battery individual cell voltages (Invalid: 0)                                                                               |
+| max_cell_voltage_delta  | `float32`     | V                                                                |                                                                               | Max difference between individual cell voltages                                                                                                                |
+| is_powering_off                              | `bool`        |                                                                  |                                                                               | Power off event imminent indication, false if unknown                                                                                                          |
+| is_required                                                       | `bool`        |                                                                  |                                                                               | Set if the battery is explicitly required before arming                                                                                                        |
+| warning                                                                                | `uint8`       |                                                                  | [WARNING](#WARNING)[STATE](#STATE)                                            | Current battery warning                                                                                                                                        |
+| faults                                                                                 | `uint16`      |                                                                  | [FAULT](#FAULT)                                                               | Smart battery supply status/fault flags (bitmask) for health indication                                                                     |
+| full_charge_capacity_wh | `float32`     | Wh                                                               |                                                                               | Compensated battery capacity                                                                                                                                   |
+| remaining_capacity_wh                        | `float32`     | Wh                                                               |                                                                               | Compensated battery capacity remaining                                                                                                                         |
+| over_discharge_count                         | `uint16`      |                                                                  |                                                                               | Number of battery overdischarge                                                                                                                                |
+| nominal_voltage                                                   | `float32`     | V                                                                |                                                                               | Nominal voltage of the battery pack                                                                                                                            |
+| internal_resistance_estimate                 | `float32`     | Ohm                                                              |                                                                               | Internal resistance per cell estimate                                                                                                                          |
+| ocv_estimate                                                      | `float32`     | V                                                                |                                                                               | Open circuit voltage estimate                                                                                                                                  |
+| ocv_estimate_filtered                        | `float32`     | V                                                                |                                                                               | Filtered open circuit voltage estimate                                                                                                                         |
+| volt_based_soc_estimate | `float32`     |                                                                  | [0 : 1]   | Normalized volt based state of charge estimate                                                                                                                 |
+| voltage_prediction                                                | `float32`     | V                                                                |                                                                               | Predicted voltage                                                                                                                                              |
+| prediction_error                                                  | `float32`     | V                                                                |                                                                               | Prediction error                                                                                                                                               |
+| estimation_covariance_norm                   | `float32`     |                                                                  |                                                                               | Norm of the covariance matrix                                                                                                                                  |
+
+## Enums
+
+### SOURCE {#SOURCE}
+
+| 명칭                                                                                                | 형식      | Value | 설명                                                                |
+| ------------------------------------------------------------------------------------------------- | ------- | ----- | ----------------------------------------------------------------- |
+| <a href="#SOURCE_POWER_MODULE"></a> SOURCE_POWER_MODULE | `uint8` | 0     | Power module (analog ADC or I2C power monitor) |
+| <a href="#SOURCE_EXTERNAL"></a> SOURCE_EXTERNAL                              | `uint8` | 1     | External (MAVLink, CAN, or external driver)    |
+| <a href="#SOURCE_ESCS"></a> SOURCE_ESCS                                      | `uint8` | 2     | ESCs (via ESC telemetry)                       |
+
+### WARNING {#WARNING}
+
+| 명칭                                                                       | 형식      | Value | 설명                                           |
+| ------------------------------------------------------------------------ | ------- | ----- | -------------------------------------------- |
+| <a href="#WARNING_NONE"></a> WARNING_NONE           | `uint8` | 0     | No battery low voltage warning active        |
+| <a href="#WARNING_LOW"></a> WARNING_LOW             | `uint8` | 1     | Low voltage warning                          |
+| <a href="#WARNING_CRITICAL"></a> WARNING_CRITICAL   | `uint8` | 2     | Critical voltage, return / abort immediately |
+| <a href="#WARNING_EMERGENCY"></a> WARNING_EMERGENCY | `uint8` | 3     | Immediate landing required                   |
+| <a href="#WARNING_FAILED"></a> WARNING_FAILED       | `uint8` | 4     | Battery has failed completely                |
+
+### STATE {#STATE}
+
+| 명칭                                                                   | 형식      | Value | 설명                                                                                                                                                                                   |
+| -------------------------------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a href="#STATE_UNHEALTHY"></a> STATE_UNHEALTHY | `uint8` | 6     | Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field |
+| <a href="#STATE_CHARGING"></a> STATE_CHARGING   | `uint8` | 7     | Battery is charging                                                                                                                                                                  |
+
+### FAULT {#FAULT}
+
+| 명칭                                                                                                                     | 형식      | Value | 설명                                                                                                                                |
+| ---------------------------------------------------------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------------------------------------------------------------------------- |
+| <a href="#FAULT_DEEP_DISCHARGE"></a> FAULT_DEEP_DISCHARGE                    | `uint8` | 0     | Battery has deep discharged                                                                                                       |
+| <a href="#FAULT_SPIKES"></a> FAULT_SPIKES                                                         | `uint8` | 1     | Voltage spikes                                                                                                                    |
+| <a href="#FAULT_CELL_FAIL"></a> FAULT_CELL_FAIL                              | `uint8` | 2     | One or more cells have failed                                                                                                     |
+| <a href="#FAULT_OVER_CURRENT"></a> FAULT_OVER_CURRENT                        | `uint8` | 3     | Over-current                                                                                                                      |
+| <a href="#FAULT_OVER_TEMPERATURE"></a> FAULT_OVER_TEMPERATURE                | `uint8` | 4     | Over-temperature                                                                                                                  |
+| <a href="#FAULT_UNDER_TEMPERATURE"></a> FAULT_UNDER_TEMPERATURE              | `uint8` | 5     | Under-temperature fault                                                                                                           |
+| <a href="#FAULT_INCOMPATIBLE_VOLTAGE"></a> FAULT_INCOMPATIBLE_VOLTAGE        | `uint8` | 6     | Vehicle voltage is not compatible with this battery (batteries on same power rail should have similar voltage) |
+| <a href="#FAULT_INCOMPATIBLE_FIRMWARE"></a> FAULT_INCOMPATIBLE_FIRMWARE      | `uint8` | 7     | Battery firmware is not compatible with current autopilot firmware                                                                |
+| <a href="#FAULT_INCOMPATIBLE_MODEL"></a> FAULT_INCOMPATIBLE_MODEL            | `uint8` | 8     | Battery model is not supported by the system                                                                                      |
+| <a href="#FAULT_HARDWARE_FAILURE"></a> FAULT_HARDWARE_FAILURE                | `uint8` | 9     | Hardware problem                                                                                                                  |
+| <a href="#FAULT_FAILED_TO_ARM"></a> FAULT_FAILED_TO_ARM | `uint8` | 10    | Battery had a problem while arming                                                                                                |
+| <a href="#FAULT_COUNT"></a> FAULT_COUNT                                                           | `uint8` | 11    | Counter. Keep this as last element                                                                                |
+
+## Constants
+
+| 명칭                                                                   | 형식       | Value | 설명 |
+| -------------------------------------------------------------------- | -------- | ----- | -- |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 1     |    |
+| <a href="#MAX_INSTANCES"></a> MAX_INSTANCES     | `uint8`  | 3     |    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/BatteryStatus.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # Battery status
@@ -88,5 +193,6 @@ float32 volt_based_soc_estimate       # [-] [@range 0, 1] Normalized volt based 
 float32 voltage_prediction            # [V] Predicted voltage
 float32 prediction_error              # [V] Prediction error
 float32 estimation_covariance_norm    # [-] Norm of the covariance matrix
-
 ```
+
+:::

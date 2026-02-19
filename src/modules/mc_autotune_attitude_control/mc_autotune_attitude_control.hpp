@@ -63,10 +63,12 @@
 
 using namespace time_literals;
 
-class McAutotuneAttitudeControl : public ModuleBase<McAutotuneAttitudeControl>, public ModuleParams,
+class McAutotuneAttitudeControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	McAutotuneAttitudeControl();
 	~McAutotuneAttitudeControl() override;
 

@@ -70,9 +70,11 @@ namespace rc_update
  *
  * Handling of RC updates
  */
-class RCUpdate : public ModuleBase<RCUpdate>, public ModuleParams, public px4::WorkItem
+class RCUpdate : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	RCUpdate();
 	~RCUpdate() override;
 

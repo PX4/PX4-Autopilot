@@ -176,9 +176,6 @@
 
 #define BOARD_BATTERY1_V_DIV	 (21.0f) // (20k + 1k) / 1k = 21
 
-#define BOARD_BATTERY_ADC_VOLTAGE_FILTER_S 0.075f
-#define BOARD_BATTERY_ADC_CURRENT_FILTER_S 0.125f
-
 #define ADC_SCALED_PAYLOAD_SENSE ADC_SCALED_12V_CHANNEL
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
@@ -225,16 +222,6 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   9
-
-#define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
-#define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
-#define GPIO_FMU_CH3                    /* PH11 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN11)
-#define GPIO_FMU_CH4                    /* PH10 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN10)
-#define GPIO_FMU_CH5                    /* PI5  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN5)
-#define GPIO_FMU_CH6                    /* PI6  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN6)
-#define GPIO_FMU_CH7                    /* PI7  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN7)
-#define GPIO_FMU_CH8                    /* PI2  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN2)
-#define GPIO_FMU_CH9                    /* PD12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN12)
 
 #define GPIO_SPIX_SYNC                  /* PE9  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN9)
 
@@ -339,15 +326,6 @@
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_nARMED_INIT,                 \
 		SPI6_nRESET_EXTERNAL1,            \
-		GPIO_FMU_CH1,     	          \
-		GPIO_FMU_CH2,     	          \
-		GPIO_FMU_CH3,     	          \
-		GPIO_FMU_CH4,     	          \
-		GPIO_FMU_CH5,     	          \
-		GPIO_FMU_CH6,     	          \
-		GPIO_FMU_CH7,     	          \
-		GPIO_FMU_CH8,     	          \
-		GPIO_FMU_CH9,     	          \
 		GPIO_SPIX_SYNC                    \
 	}
 

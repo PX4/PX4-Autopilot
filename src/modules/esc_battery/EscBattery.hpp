@@ -48,11 +48,13 @@
 
 using namespace time_literals;
 
-class EscBattery : public ModuleBase<EscBattery>, public ModuleParams, public px4::WorkItem
+class EscBattery : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
 	EscBattery();
 	~EscBattery() = default;
+
+	static Descriptor desc;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);

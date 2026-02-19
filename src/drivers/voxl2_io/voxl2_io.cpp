@@ -33,6 +33,8 @@
 
 #include "voxl2_io.hpp"
 
+ModuleBase::Descriptor Voxl2IO::desc{task_spawn, custom_command, print_usage};
+
 
 Voxl2IO::Voxl2IO() :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(VOXL2_IO_DEFAULT_PORT)),
@@ -558,7 +560,7 @@ void Voxl2IO::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -603,35 +605,35 @@ int Voxl2IO::task_spawn(int argc, char *argv[])
 		int ch;
 		const char *myoptarg = nullptr;
 
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 		argv++;
 
 		while ((ch = px4_getopt(argc - 1, argv, "vdep:", &myoptind, &myoptarg)) != EOF) {
 			switch (ch) {
 			case 'v':
 				PX4_INFO("Verbose mode enabled");
-				get_instance()->_debug = true;
+				get_instance<Voxl2IO>(desc)->_debug = true;
 				break;
 
 			case 'd':
 				PX4_INFO("M0065 PWM outputs disabled");
-				get_instance()->_outputs_disabled = true;
+				get_instance<Voxl2IO>(desc)->_outputs_disabled = true;
 				break;
 
 			case 'e':
 				PX4_INFO("M0065 using external RC");
-				get_instance()->_rc_mode = RC_MODE::EXTERNAL;
+				get_instance<Voxl2IO>(desc)->_rc_mode = RC_MODE::EXTERNAL;
 				break;
 
 			case 'p':
 				if (valid_port(atoi(myoptarg))) {
-					snprintf(get_instance()->_device, 2, "%s", myoptarg);
+					snprintf(get_instance<Voxl2IO>(desc)->_device, 2, "%s", myoptarg);
 
 				} else {
 					PX4_ERR("Bad UART port number: %s (must be 2, 6, or 7).", myoptarg);
-					_object.store(nullptr);
-					_task_id = -1;
+					desc.object.store(nullptr);
+					desc.task_id = -1;
 					return PX4_ERROR;
 				}
 
@@ -651,8 +653,8 @@ int Voxl2IO::task_spawn(int argc, char *argv[])
 		PX4_ERR("alloc failed");
 	}
 
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -754,7 +756,7 @@ int Voxl2IO::custom_command(int argc, char *argv[])
 
 	/* start if not running */
 	if (!strcmp(verb, "start")) {
-		if (!is_running()) {
+		if (!is_running(desc)) {
 			return Voxl2IO::task_spawn(argc, argv);
 		}
 
@@ -762,27 +764,27 @@ int Voxl2IO::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		PX4_INFO("Not running");
 		return -1;
 	}
 
 	if (!strcmp(verb, "status")) {
-		return get_instance()->print_status();
+		return get_instance<Voxl2IO>(desc)->print_status();
 	}
 
 
 	if (!strcmp(verb, "calibrate_escs")) {
-		if (get_instance()->_outputs_disabled) {
+		if (get_instance<Voxl2IO>(desc)->_outputs_disabled) {
 			PX4_WARN("Can't calibrate ESCs while outputs are disabled.");
 			return -1;
 		}
 
-		return get_instance()->calibrate_escs();
+		return get_instance<Voxl2IO>(desc)->calibrate_escs();
 	}
 
 	if (!strcmp(verb, "enable_debug")) {
-		get_instance()->_debug = true;
+		get_instance<Voxl2IO>(desc)->_debug = true;
 	}
 
 	return print_usage("unknown custom command");
@@ -881,5 +883,5 @@ extern "C" __EXPORT int voxl2_io_main(int argc, char *argv[]);
 
 int voxl2_io_main(int argc, char *argv[])
 {
-	return Voxl2IO::main(argc, argv);
+	return ModuleBase::main(Voxl2IO::desc, argc, argv);
 }
