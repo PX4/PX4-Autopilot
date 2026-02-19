@@ -128,10 +128,15 @@ PrecLand::on_active()
 	if (_param_pld_yaw_en.get()) {
 		vision_target_est_orientation_s target_orientation;
 
-		if (_target_orientation_sub.update(&target_orientation) && target_orientation.orientation_valid) {
-			_target_yaw_valid = true;
-			_last_target_yaw_update = target_orientation.timestamp;
-			_target_yaw = target_orientation.yaw;
+		if (_target_orientation_sub.update(&target_orientation)) {
+			if (target_orientation.orientation_valid) {
+				_target_yaw_valid = true;
+				_last_target_yaw_update = target_orientation.timestamp;
+				_target_yaw = target_orientation.yaw;
+
+			} else {
+				_target_yaw_valid = false;
+			}
 		}
 
 		if ((hrt_elapsed_time(&_last_target_yaw_update) / 1e6f) > _param_pld_btout.get()) {
