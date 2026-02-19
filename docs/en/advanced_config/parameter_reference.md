@@ -24630,18 +24630,6 @@ Maximum allowed norm of the angular velocity (roll, pitch) in the landed state.
 | ------ | -------- | -------- | --------- | ------- | ----- |
 | &nbsp; |          |          |           | 20.0    | deg/s |
 
-### LNDMC_TRIG_TIME (`FLOAT`) {#LNDMC_TRIG_TIME}
-
-Multicopter land detection trigger time.
-
-Total time it takes to go through all three land detection stages:
-ground contact, maybe landed, landed
-when all necessary conditions are constantly met.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 10.0     |           | 1.0     | s    |
-
 ### LNDMC_XY_VEL_MAX (`FLOAT`) {#LNDMC_XY_VEL_MAX}
 
 Multicopter max horizontal velocity.
@@ -26992,7 +26980,7 @@ With MPC_THR_HOVER 0.5 it's equivalent to No rescale.
 Vertical thrust required to hover.
 
 Mapped to center throttle stick in Stabilized mode (see MPC_THR_CURVE).
-Used for initialization of the hover thrust estimator (see MPC_USE_HTE).
+Used for initialization of the hover thrust estimator.
 The estimated hover thrust is used as base for zero vertical acceleration in altitude control.
 The hover thrust is important for land detection to work correctly.
 
@@ -27073,17 +27061,6 @@ Takeoff climb rate.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1        | 5        |           | 1.5     | m/s  |
-
-### MPC_USE_HTE (`INT32`) {#MPC_USE_HTE}
-
-Use hover thrust estimate for altitude control.
-
-Disable to use the fixed parameter MPC_THR_HOVER instead of the hover thrust estimate in the position controller.
-This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
-
-| Reboot | minValue | maxValue | increment | default     | unit |
-| ------ | -------- | -------- | --------- | ----------- | ---- |
-| &nbsp; |          |          |           | Enabled (1) |
 
 ### MPC_VELD_LP (`FLOAT`) {#MPC_VELD_LP}
 
