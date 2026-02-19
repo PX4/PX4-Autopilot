@@ -52,9 +52,11 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 
-class DsmRc : public ModuleBase<DsmRc>, public px4::ScheduledWorkItem
+class DsmRc : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	DsmRc(const char *device);
 	virtual ~DsmRc();

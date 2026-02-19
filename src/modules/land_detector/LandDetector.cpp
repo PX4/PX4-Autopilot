@@ -45,6 +45,8 @@ using namespace time_literals;
 namespace land_detector
 {
 
+ModuleBase::Descriptor LandDetector::desc{task_spawn, custom_command, print_usage};
+
 LandDetector::LandDetector() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
@@ -205,7 +207,7 @@ void LandDetector::Run()
 
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 	}
 }
 

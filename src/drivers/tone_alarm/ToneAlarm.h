@@ -55,11 +55,13 @@
 
 #include <string.h>
 
-class ToneAlarm : public ModuleBase<ToneAlarm>, public px4::ScheduledWorkItem
+class ToneAlarm : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
 	ToneAlarm();
 	~ToneAlarm() override;
+
+	static Descriptor desc;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);

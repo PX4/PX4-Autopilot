@@ -80,9 +80,11 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
 
-class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
+class ControlAllocator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	static constexpr int NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
 	static constexpr int NUM_AXES = ControlAllocation::NUM_AXES;
 

@@ -43,6 +43,8 @@ using namespace matrix;
 using namespace time_literals;
 using math::radians;
 
+ModuleBase::Descriptor MulticopterRateControl::desc{task_spawn, custom_command, print_usage};
+
 MulticopterRateControl::MulticopterRateControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -104,7 +106,7 @@ MulticopterRateControl::Run()
 {
 	if (should_exit()) {
 		_vehicle_angular_velocity_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -308,8 +310,8 @@ int MulticopterRateControl::task_spawn(int argc, char *argv[])
 	MulticopterRateControl *instance = new MulticopterRateControl(vtol);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -320,8 +322,8 @@ int MulticopterRateControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -357,5 +359,5 @@ The controller has a PID loop for angular rate error.
 
 extern "C" __EXPORT int mc_rate_control_main(int argc, char *argv[])
 {
-	return MulticopterRateControl::main(argc, argv);
+	return ModuleBase::main(MulticopterRateControl::desc, argc, argv);
 }

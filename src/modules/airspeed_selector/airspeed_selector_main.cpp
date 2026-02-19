@@ -80,10 +80,12 @@ using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
 
-class AirspeedModule : public ModuleBase<AirspeedModule>, public ModuleParams,
+class AirspeedModule : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	AirspeedModule();
 
@@ -228,6 +230,8 @@ private:
 	void update_throttle_filter(hrt_abstime t_now);
 };
 
+ModuleBase::Descriptor AirspeedModule::desc{task_spawn, custom_command, print_usage};
+
 AirspeedModule::AirspeedModule():
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
@@ -261,10 +265,10 @@ AirspeedModule::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(dev);
+	desc.object.store(dev);
 
 	dev->ScheduleOnInterval(SCHEDULE_INTERVAL, 10000);
-	_task_id = task_id_is_work_queue;
+	desc.task_id = task_id_is_work_queue;
 	return PX4_OK;
 
 }
@@ -478,7 +482,7 @@ AirspeedModule::Run()
 	perf_end(_perf_elapsed);
 
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 	}
 }
 
@@ -867,7 +871,7 @@ void AirspeedModule::update_throttle_filter(hrt_abstime now)
 
 int AirspeedModule::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		int ret = AirspeedModule::task_spawn(argc, argv);
 
 		if (ret) {
@@ -906,5 +910,5 @@ and also publishes those.
 
 extern "C" __EXPORT int airspeed_selector_main(int argc, char *argv[])
 {
-	return AirspeedModule::main(argc, argv);
+	return ModuleBase::main(AirspeedModule::desc, argc, argv);
 }

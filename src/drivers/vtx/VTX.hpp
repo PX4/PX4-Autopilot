@@ -56,9 +56,11 @@
 /**
  * @author Niklas Hauser <niklas@auterion.com>
  */
-class VTX : public ModuleBase<VTX>, public ModuleParams, public px4::ScheduledWorkItem
+class VTX : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	VTX(const char *device);
 	virtual ~VTX();

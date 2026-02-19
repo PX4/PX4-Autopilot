@@ -79,10 +79,12 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class FixedwingRateControl final : public ModuleBase<FixedwingRateControl>, public ModuleParams,
+class FixedwingRateControl final : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	FixedwingRateControl(bool vtol = false);
 	~FixedwingRateControl() override;
 

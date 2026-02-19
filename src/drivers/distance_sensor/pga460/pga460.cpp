@@ -40,6 +40,8 @@
 
 #include "pga460.h"
 
+ModuleBase::Descriptor PGA460::desc{task_spawn, custom_command, print_usage};
+
 
 PGA460::PGA460(const char *port)
 {
@@ -751,6 +753,13 @@ int PGA460::take_measurement(const uint8_t mode)
 	return PX4_OK;
 }
 
+int PGA460::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return PGA460::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int PGA460::task_spawn(int argc, char *argv[])
 {
 	px4_main_t entry_point = (px4_main_t)&run_trampoline;
@@ -765,7 +774,7 @@ int PGA460::task_spawn(int argc, char *argv[])
 		return -errno;
 	}
 
-	_task_id = task_id;
+	desc.task_id = task_id;
 
 	return PX4_OK;
 }
@@ -905,5 +914,5 @@ int PGA460::write_register(const uint8_t reg, const uint8_t val)
 
 extern "C" __EXPORT int pga460_main(int argc, char *argv[])
 {
-	return PGA460::main(argc, argv);
+	return ModuleBase::main(PGA460::desc, argc, argv);
 }

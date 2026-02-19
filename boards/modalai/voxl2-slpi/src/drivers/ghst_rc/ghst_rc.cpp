@@ -49,6 +49,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor GhstRc::desc{task_spawn, custom_command, print_usage};
+
 uint32_t GhstRc::baudrate = GHST_BAUDRATE;
 
 GhstRc::GhstRc(const char *device) :
@@ -114,8 +116,8 @@ int GhstRc::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 
 	instance->ScheduleNow();
 
@@ -174,7 +176,7 @@ void GhstRc::Run()
 	if (should_exit()) {
 		ScheduleClear();
 		_rc_fd = -1;
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -308,5 +310,5 @@ This module parses the GHST RC uplink protocol and can generate GHST downlink te
 
 extern "C" __EXPORT int ghst_rc_main(int argc, char *argv[])
 {
-	return GhstRc::main(argc, argv);
+	return ModuleBase::main(GhstRc::desc, argc, argv);
 }

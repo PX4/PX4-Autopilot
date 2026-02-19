@@ -46,10 +46,12 @@
 
 using namespace time_literals;
 
-class VoxlSaveCalParams : public ModuleBase<VoxlSaveCalParams>, public ModuleParams,
+class VoxlSaveCalParams : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	VoxlSaveCalParams();
 	~VoxlSaveCalParams() = default;
 
