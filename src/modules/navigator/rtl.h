@@ -59,10 +59,13 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/prec_land_status.h>
 #include <uORB/topics/rtl_status.h>
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/telemetry_status.h>
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include <uORB/topics/prec_land_status.h>
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 class Navigator;
 

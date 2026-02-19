@@ -59,9 +59,9 @@
 #include <uORB/topics/vision_target_est_input.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/prec_land_status.h>
-#endif
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 #include <parameters/param.h>
 #include <px4_platform_common/module_params.h>

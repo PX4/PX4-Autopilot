@@ -56,9 +56,9 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vision_target_est_input.h>
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <uORB/topics/prec_land_status.h>
-#endif
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <matrix/Quaternion.hpp>
 #include <matrix/Vector.hpp>
 
