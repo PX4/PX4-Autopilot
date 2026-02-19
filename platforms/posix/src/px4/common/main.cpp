@@ -269,8 +269,15 @@ int main(int argc, char **argv)
 			data_path = PX4_INSTALL_PREFIX"/etc";
 
 			const char *xdg_data_home = getenv("XDG_DATA_HOME");
-			std::string state_base = xdg_data_home ? xdg_data_home
-			                                       : (std::string(getenv("HOME") ? getenv("HOME") : "") + "/.local/share");
+			std::string state_base;
+
+			if (xdg_data_home) {
+				state_base = xdg_data_home;
+
+			} else {
+				const char *home = getenv("HOME");
+				state_base = std::string(home ? home : "") + "/.local/share";
+			}
 			working_directory = state_base + "/px4/rootfs";
 			working_directory_default = true;
 		}
