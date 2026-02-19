@@ -278,6 +278,7 @@ int main(int argc, char **argv)
 				const char *home = getenv("HOME");
 				state_base = std::string(home ? home : "") + "/.local/share";
 			}
+
 			working_directory = state_base + "/px4/rootfs";
 			working_directory_default = true;
 		}
