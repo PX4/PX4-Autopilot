@@ -25,7 +25,7 @@ PX4 does not _require_ a manual control system for autonomous flight modes.
 ## PX4 Configuration
 
 ::: tip
-This section explains how to configure the PX4 to choose and prioritise various manual control sources (other configuration is covered in the guides for each type of manual control).
+This section explains how to configure the PX4 to use and prioritise various manual control sources (other configuration is covered in the guides for each type of manual control).
 :::
 
 If you only have one manual control system, either RC or Joystick, then by default no manual control selection is required.
@@ -43,14 +43,14 @@ If you have an RC system and/or one or more Joysticks then you can use the [COM_
 - `7`: RC priority, then MAVLink (higher instance before lower) — `RC > MAVLink 2 > MAVLink 1`
 - `8`: MAVLink priority (higher instance before lower), then RC — `MAVLink 2 > MAVLink 1 > RC`
 
-RC checks are run for any option that uses RC (so not for `MAVLink only` or `Disable manual control`).
-When using priority sources, sources are evaluated as soon as they become valid and may trigger an immediate switch (if higher priority than other sources).
 The [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances) refers an instance assigned to a serial port, such as [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG).
 
-<!-- Switching
-Info on manual control loss vs Data loss and error fallback.
-Is no RC calibration a criteria for validity?
--->
+Notes:
+
+- RC checks are run for any option that uses RC (so not for `MAVLink only` or `Disable manual control`).
+- When using priority sources, sources are evaluated as soon as they become valid and may trigger an immediate switch (if higher priority than other sources).
+- A [Manual Control Loss Failsafe](../config/safety.md#manual-control-loss-failsafe) is triggered when none of the manual control inputs allowed by the `COM_RC_IN_MODE` mode are available for a time that is greater than the RC Loss Timeout.
+  As long as there is a fallback input source available, the failsafe is not triggered.
 
 ## See Also
 
