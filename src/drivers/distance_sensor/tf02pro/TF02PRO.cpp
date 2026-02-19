@@ -47,7 +47,14 @@ TF02PRO::TF02PRO(const I2CSPIDriverConfig &config) :
 	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 	_px4_rangefinder.set_max_distance(TF02PRO_MAX_DISTANCE);
 	_px4_rangefinder.set_min_distance(TF02PRO_MIN_DISTANCE);
+	// get the rotation value from the parameter
+	int32_t value;
+	param_get(param_find("SENS_TF02PRO_ROT"), &value);
+	_px4_rangefinder.set_orientation(value);
 	_px4_rangefinder.set_fov(math::radians(3.0f));
+	// get the address value from the parameter
+	param_get(param_find("SENS_TF02PRO_ADD"), &value);
+	set_device_address(value);
 }
 
 /**

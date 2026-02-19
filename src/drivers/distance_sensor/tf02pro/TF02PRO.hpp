@@ -45,6 +45,7 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/module_params.h>
 
 /* Configuration Constants */
 #define TF02PRO_BASEADDR			0x10 	// 7-bit address. 8-bit address is 0x20.
