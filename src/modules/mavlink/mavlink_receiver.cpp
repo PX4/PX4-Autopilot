@@ -3028,9 +3028,23 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 
 		fiducial_marker_pos_report.timestamp = now;
 		fiducial_marker_pos_report.timestamp_sample = timestamp_sample;
-		fiducial_marker_pos_report.rel_pos[0] = target_relative.x;
-		fiducial_marker_pos_report.rel_pos[1] = target_relative.y;
-		fiducial_marker_pos_report.rel_pos[2] = target_relative.z;
+		matrix::Vector3f target_relative_frame(target_relative.x, target_relative.y, target_relative.z);
+
+		// TARGET_OBS_FRAME_LOCAL_NED is absolute in local frame: convert to vehicle-relative.
+		if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
+			if (!_vehicle_local_position_sub.copy(&vehicle_local_position)
+			    || !vehicle_local_position.xy_valid || !vehicle_local_position.z_valid) {
+				return;
+			}
+
+			target_relative_frame(0) -= vehicle_local_position.x;
+			target_relative_frame(1) -= vehicle_local_position.y;
+			target_relative_frame(2) -= vehicle_local_position.z;
+		}
+
+		fiducial_marker_pos_report.rel_pos[0] = target_relative_frame(0);
+		fiducial_marker_pos_report.rel_pos[1] = target_relative_frame(1);
+		fiducial_marker_pos_report.rel_pos[2] = target_relative_frame(2);
 
 		fiducial_marker_pos_report.cov_rel_pos[0] = target_relative.pos_std[0] * target_relative.pos_std[0];
 		fiducial_marker_pos_report.cov_rel_pos[1] = target_relative.pos_std[1] * target_relative.pos_std[1];
