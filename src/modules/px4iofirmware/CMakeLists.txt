@@ -40,13 +40,13 @@ add_library(px4iofirmware
 	px4io.cpp
 	registers.c
 	safety_button.cpp
-	serial.cpp
 )
 
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES px4iofirmware)
 target_link_libraries(px4iofirmware
 	PUBLIC
 		arch_io_pins
+		arch_io_serial
 		arch_watchdog_iwdg
 		nuttx_apps
 		nuttx_arch

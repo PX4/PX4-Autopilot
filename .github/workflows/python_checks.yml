@@ -24,10 +24,13 @@ jobs:
       run: sudo apt-get install python3 python3-setuptools python3-pip -y
 
     - name: Install tools
-      run: python3 -m pip install mypy types-requests flake8 --break-system-packages
+      run: python3 -m pip install mypy types-requests flake8 pyserial --break-system-packages
 
     - name: Check MAVSDK test scripts with mypy
       run: $HOME/.local/bin/mypy --strict test/mavsdk_tests/*.py
 
     - name: Check MAVSDK test scripts with flake8
       run: $HOME/.local/bin/flake8 test/mavsdk_tests/*.py
+
+    - name: Run px4 uploader tests
+      run: python3 -m unittest discover -s test -p 'test_px4_uploader.py'

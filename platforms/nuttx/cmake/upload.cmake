@@ -33,30 +33,59 @@
 
 # Uploader script auto-detects PX4 devices by USB VID/PID
 set(PX4_UPLOADER_SCRIPT "${PX4_SOURCE_DIR}/Tools/px4_uploader.py")
+if (NOT DEFINED UPLOAD_FIRMWARE_FILES)
+	set(UPLOAD_FIRMWARE_FILES ${fw_package})
+endif()
+if (NOT DEFINED UPLOAD_FIRMWARE_PRIMARY_FILE)
+	set(UPLOAD_FIRMWARE_PRIMARY_FILE ${fw_package})
+endif()
+if (NOT DEFINED UPLOAD_FIRMWARE_SECONDARY_FILE)
+	set(UPLOAD_FIRMWARE_SECONDARY_FILE "")
+endif()
 
 add_custom_target(upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} ${fw_package}
-	DEPENDS ${fw_package}
-	COMMENT "uploading px4"
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --update-mode primary ${UPLOAD_FIRMWARE_PRIMARY_FILE}
+	DEPENDS ${UPLOAD_FIRMWARE_PRIMARY_FILE}
+	COMMENT "uploading px4 primary firmware"
 	VERBATIM
 	USES_TERMINAL
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 )
 
 add_custom_target(force-upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --force ${fw_package}
-	DEPENDS ${fw_package}
-	COMMENT "uploading px4 with --force"
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --force --update-mode primary ${UPLOAD_FIRMWARE_PRIMARY_FILE}
+	DEPENDS ${UPLOAD_FIRMWARE_PRIMARY_FILE}
+	COMMENT "uploading px4 primary firmware with --force"
 	VERBATIM
 	USES_TERMINAL
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 )
 
 add_custom_target(upload-verbose
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --verbose ${fw_package}
-	DEPENDS ${fw_package}
-	COMMENT "uploading px4 with verbose output"
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --verbose --update-mode primary ${UPLOAD_FIRMWARE_PRIMARY_FILE}
+	DEPENDS ${UPLOAD_FIRMWARE_PRIMARY_FILE}
+	COMMENT "uploading px4 primary firmware with verbose output"
 	VERBATIM
 	USES_TERMINAL
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 )
+
+if (UPLOAD_FIRMWARE_SECONDARY_FILE)
+	add_custom_target(upload-secondary
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --update-mode secondary ${UPLOAD_FIRMWARE_FILES}
+		DEPENDS ${UPLOAD_FIRMWARE_FILES}
+		COMMENT "uploading px4 secondary firmware"
+		VERBATIM
+		USES_TERMINAL
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
+
+	add_custom_target(upload-both
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_UPLOADER_SCRIPT} --update-mode both ${UPLOAD_FIRMWARE_FILES}
+		DEPENDS ${UPLOAD_FIRMWARE_FILES}
+		COMMENT "uploading px4 primary and secondary firmware"
+		VERBATIM
+		USES_TERMINAL
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
+endif()
