@@ -119,9 +119,9 @@ PARAM_DEFINE_FLOAT(UUV_PGM_VEL, 0.5f);
  */
 PARAM_DEFINE_INT32(UUV_POS_MODE, 1);
 
-// hgt Control
+
 /**
- * hgt proportional gain
+ * Height proportional gain
  *
  * @group UUV Attitude Control
  * @decimal 2
@@ -129,7 +129,7 @@ PARAM_DEFINE_INT32(UUV_POS_MODE, 1);
 PARAM_DEFINE_FLOAT(UUV_HGT_P, 1.0f);
 
 /**
- * hgt differential gain
+ * Height differential gain
  *
  * @group UUV Attitude Control
  * @decimal 2
@@ -137,7 +137,7 @@ PARAM_DEFINE_FLOAT(UUV_HGT_P, 1.0f);
 PARAM_DEFINE_FLOAT(UUV_HGT_D, 1.0f);
 
 /**
- * hgt integrational gain
+ * Height integrational gain
  *
  * @group UUV Attitude Control
  * @decimal 2
@@ -153,7 +153,7 @@ PARAM_DEFINE_FLOAT(UUV_HGT_I, 0.2f);
 PARAM_DEFINE_FLOAT(UUV_HGT_I_SPD, 1.0f);
 
 /**
- * hgt change strength from manual input
+ * Height change strength from manual input
  *
  * @group UUV Attitude Control
  * @decimal 2
@@ -161,7 +161,7 @@ PARAM_DEFINE_FLOAT(UUV_HGT_I_SPD, 1.0f);
 PARAM_DEFINE_FLOAT(UUV_HGT_STR, 1.0f);
 
 /**
- * maximum hgt distance controlled by manual input. Diff between actual and desired hgt cant be higher than that
+ * maximum Height distance controlled by manual input. Diff between actual and desired Height cant be higher than that
  *
  *
  * @group UUV Attitude Control
@@ -170,7 +170,7 @@ PARAM_DEFINE_FLOAT(UUV_HGT_STR, 1.0f);
 PARAM_DEFINE_FLOAT(UUV_HGT_MAX_DIFF, 0.3f);
 
 /**
- * hgt rc-button up
+ * Height rc-button up
  *
  * @group UUV Attitude Control
  * @min 0
@@ -179,7 +179,7 @@ PARAM_DEFINE_FLOAT(UUV_HGT_MAX_DIFF, 0.3f);
 PARAM_DEFINE_INT32(UUV_HGT_B_UP, 11);
 
 /**
- * hgt rc-button down
+ * Height rc-button down
  *
  * @group UUV Attitude Control
  * @min 0
