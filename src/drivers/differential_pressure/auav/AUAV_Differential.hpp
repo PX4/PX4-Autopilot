@@ -80,4 +80,6 @@ private:
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 	int32_t _cal_range{10};
+
+	static const uint8_t _status_byte_expected = 0x50;
 };

@@ -49,7 +49,7 @@ static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interfac
 class AUAV : public device::I2C, public I2CSPIDriver<AUAV>
 {
 public:
-	explicit AUAV(const I2CSPIDriverConfig &config);
+	explicit AUAV(const I2CSPIDriverConfig &config, const uint8_t status_byte_expected);
 	virtual ~AUAV();
 
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, const int runtime_instance);
@@ -125,6 +125,24 @@ protected:
 
 	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
+
+	/*
+	bit 0
+		alu_ok & 0x1 == 0,
+	bit 1 == 0
+	bit 2
+		memory_ok & 0x4 == 0,
+	bit 3 and 4
+		mode_abs & 0x10 != 0
+		mode_diff & 0x00 != 0
+	bit 5
+		sensor_data_ready & 0x20 == 0,
+	bit 6
+		power_on & 0x40 != 0
+	bit 7 == 0
+	 // diff_pressure or baro - expected status
+	*/
+	const uint8_t _status_byte;
 
 private:
 	int probe() override;
