@@ -140,8 +140,8 @@ void ControlAllocation::applySlewRateLimit(float dt)
 			}
 
 			// Slew limit without any NaN involved
-			float delta_sp_max = dt * (_actuator_max(i) - _actuator_min(i)) / _actuator_slew_rate_limit(i);
-			float delta_sp = input - previous;
+			const float delta_sp_max = dt * (_actuator_max(i) - _actuator_min(i)) / _actuator_slew_rate_limit(i);
+			const float delta_sp = input - previous;
 
 			float output = input;
 
