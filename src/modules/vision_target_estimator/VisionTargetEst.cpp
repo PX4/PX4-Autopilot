@@ -515,9 +515,6 @@ bool VisionTargetEst::isNewTaskAvailable()
 		return true;
 	}
 
-	// To add a new task:
-	// else if ((_vte_task_mask.value & <new task bit>) && _is_in_new_task) {...}
-
 	return false;
 }
 
