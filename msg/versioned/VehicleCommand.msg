@@ -80,6 +80,7 @@ uint16 VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION = 283 # Command to ask information 
 uint16 VEHICLE_CMD_MISSION_START = 300 # Start running a mission. |first_item: the first mission item to run|last_item: the last mission item to run (after this item is run, the mission ends)|
 uint16 VEHICLE_CMD_ACTUATOR_TEST = 310 # Actuator testing command. |[@range -1,1] value|[s] timeout|Unused|Unused|output function|
 uint16 VEHICLE_CMD_CONFIGURE_ACTUATOR = 311 # Actuator configuration command. |configuration|Unused|Unused|Unused|output function|
+uint16 VEHICLE_CMD_ESC_REQUEST_EEPROM = 312 # Request EEPROM data from an ESC. |ESC index|Firmware type (ESC_FIRMWARE enum)|Unused|Unused||Unused|Unused|
 uint16 VEHICLE_CMD_COMPONENT_ARM_DISARM = 400 # Arms / Disarms a component. |1 to arm, 0 to disarm.
 uint16 VEHICLE_CMD_RUN_PREARM_CHECKS = 401 # Instructs a target system to run pre-arm checks.
 uint16 VEHICLE_CMD_INJECT_FAILURE = 420 # Inject artificial failure for testing purposes.
@@ -128,6 +129,13 @@ uint8 VEHICLE_ROI_WPINDEX = 2 # Point toward given MISSION.
 uint8 VEHICLE_ROI_LOCATION = 3 # Point toward fixed location.
 uint8 VEHICLE_ROI_TARGET = 4 # Point toward target.
 uint8 VEHICLE_ROI_ENUM_END = 5
+
+uint8 ACTUATOR_CONFIGURATION_NONE = 0 # Do nothing.
+uint8 ACTUATOR_CONFIGURATION_BEEP = 1 # Command the actuator to beep now.
+uint8 ACTUATOR_CONFIGURATION_3D_MODE_ON = 2 # Permanently set the actuator (ESC) to 3D mode (reversible thrust).
+uint8 ACTUATOR_CONFIGURATION_3D_MODE_OFF = 3 # Permanently set the actuator (ESC) to non 3D mode (non-reversible thrust).
+uint8 ACTUATOR_CONFIGURATION_SPIN_DIRECTION1 = 4 # Permanently set the actuator (ESC) to spin direction 1 (which can be clockwise or counter-clockwise).
+uint8 ACTUATOR_CONFIGURATION_SPIN_DIRECTION2 = 5 # Permanently set the actuator (ESC) to spin direction 2 (opposite of direction 1).
 
 uint8 PARACHUTE_ACTION_DISABLE = 0
 uint8 PARACHUTE_ACTION_ENABLE = 1

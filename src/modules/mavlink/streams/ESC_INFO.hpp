@@ -70,7 +70,7 @@ private:
 		uint16_t counter;
 		uint8_t esc_count;
 		uint8_t esc_connectiontype;
-		uint8_t esc_online_flags;
+		uint16_t esc_online_flags;
 	};
 
 	struct EscInfo {
@@ -98,7 +98,7 @@ private:
 				_interface[i].esc_connectiontype = esc.esc_connectiontype;
 
 				// Capture online_flags, we will map from index to motor number
-				uint8_t online_flags = esc.esc_online_flags;
+				uint16_t online_flags = esc.esc_online_flags;
 				_interface[i].esc_online_flags = 0;
 
 				for (int j = 0; j < esc_status_s::CONNECTED_ESC_MAX; j++) {
@@ -108,11 +108,14 @@ private:
 					if (is_motor) {
 						// Map OutputFunction number to index
 						int index = (int)esc.esc[j].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
-						_escs[index].online = online_flags & (1 << j);
-						_escs[index].failure_flags = esc.esc[j].failures;
-						_escs[index].error_count = esc.esc[j].esc_errorcount;
-						_escs[index].timestamp = esc.esc[j].timestamp;
-						_escs[index].temperature = esc.esc[j].esc_temperature * 100.f;
+
+						if (index >= 0 && index < MAX_ESC_OUTPUTS) {
+							_escs[index].online = online_flags & (1 << j);
+							_escs[index].failure_flags = esc.esc[j].failures;
+							_escs[index].error_count = esc.esc[j].esc_errorcount;
+							_escs[index].timestamp = esc.esc[j].timestamp;
+							_escs[index].temperature = esc.esc[j].esc_temperature * 100.f;
+						}
 					}
 				}
 			}
