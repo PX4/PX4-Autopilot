@@ -77,7 +77,7 @@ int QShell::main()
 	fds[0].fd = sub_qshell_req;
 	fds[0].events = POLLIN;
 
-	while (!appState.exitRequested()) {
+	while (appState.isRunning()) {
 
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
 
