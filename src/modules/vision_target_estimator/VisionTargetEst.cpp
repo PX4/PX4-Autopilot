@@ -57,6 +57,8 @@
 namespace vision_target_estimator
 {
 
+ModuleBase::Descriptor VisionTargetEst::desc{task_spawn, custom_command, print_usage};
+
 VisionTargetEst::VisionTargetEst() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::vte)
@@ -90,8 +92,8 @@ int VisionTargetEst::task_spawn(int argc, char *argv[])
 	VisionTargetEst *instance = new VisionTargetEst();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -102,8 +104,8 @@ int VisionTargetEst::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -176,7 +178,7 @@ void VisionTargetEst::Run()
 void VisionTargetEst::handleExit()
 {
 	_vehicle_attitude_sub.unregisterCallback();
-	exit_and_cleanup();
+	exit_and_cleanup(desc);
 }
 
 bool VisionTargetEst::init()
@@ -906,7 +908,7 @@ The module runs periodically on the px4::wq_configurations::vte queue.
 
 extern "C" __EXPORT int vision_target_estimator_main(int argc, char *argv[])
 {
-	return VisionTargetEst::main(argc, argv);
+	return ModuleBase::main(VisionTargetEst::desc, argc, argv);
 }
 
 } // namespace vision_target_estimator

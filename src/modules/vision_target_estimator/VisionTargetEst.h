@@ -78,9 +78,11 @@ class VisionTargetEstTestable;
 namespace vision_target_estimator
 {
 
-class VisionTargetEst : public ModuleBase<VisionTargetEst>, ModuleParams, px4::ScheduledWorkItem
+class VisionTargetEst : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	VisionTargetEst();
 	virtual ~VisionTargetEst();
 
