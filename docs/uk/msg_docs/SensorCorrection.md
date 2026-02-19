@@ -1,8 +1,49 @@
+---
+pageClass: is-wide-page
+---
+
 # SensorCorrection (Повідомлення UORB)
 
-Датчики корекції по SI-одиницях для датчика голосувань
+Sensor corrections in SI-unit form for the voted sensor.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorCorrection.msg)
+**TOPICS:** sensor_correction
+
+## Fields
+
+| Назва                                                      | Тип          | Unit [Frame] | Range/Enum | Опис                                                             |
+| ---------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | ---------------------------------------------------------------- |
+| timestamp                                                  | `uint64`     |                                                                  |            | time since system start (microseconds)        |
+| accel_device_ids | `uint32[4]`  |                                                                  |            |                                                                  |
+| accel_temperature                     | `float32[4]` |                                                                  |            |                                                                  |
+| accel_offset_0   | `float32[3]` |                                                                  |            | accelerometer 0 offsets in the FRD board frame XYZ-axis in m/s^s |
+| accel_offset_1   | `float32[3]` |                                                                  |            | accelerometer 1 offsets in the FRD board frame XYZ-axis in m/s^s |
+| accel_offset_2   | `float32[3]` |                                                                  |            | accelerometer 2 offsets in the FRD board frame XYZ-axis in m/s^s |
+| accel_offset_3   | `float32[3]` |                                                                  |            | accelerometer 3 offsets in the FRD board frame XYZ-axis in m/s^s |
+| gyro_device_ids  | `uint32[4]`  |                                                                  |            |                                                                  |
+| gyro_temperature                      | `float32[4]` |                                                                  |            |                                                                  |
+| gyro_offset_0    | `float32[3]` |                                                                  |            | gyro 0 XYZ offsets in the sensor frame in rad/s                  |
+| gyro_offset_1    | `float32[3]` |                                                                  |            | gyro 1 XYZ offsets in the sensor frame in rad/s                  |
+| gyro_offset_2    | `float32[3]` |                                                                  |            | gyro 2 XYZ offsets in the sensor frame in rad/s                  |
+| gyro_offset_3    | `float32[3]` |                                                                  |            | gyro 3 XYZ offsets in the sensor frame in rad/s                  |
+| mag_device_ids   | `uint32[4]`  |                                                                  |            |                                                                  |
+| mag_temperature                       | `float32[4]` |                                                                  |            |                                                                  |
+| mag_offset_0     | `float32[3]` |                                                                  |            | magnetometer 0 offsets in the FRD board frame XYZ-axis in m/s^s  |
+| mag_offset_1     | `float32[3]` |                                                                  |            | magnetometer 1 offsets in the FRD board frame XYZ-axis in m/s^s  |
+| mag_offset_2     | `float32[3]` |                                                                  |            | magnetometer 2 offsets in the FRD board frame XYZ-axis in m/s^s  |
+| mag_offset_3     | `float32[3]` |                                                                  |            | magnetometer 3 offsets in the FRD board frame XYZ-axis in m/s^s  |
+| baro_device_ids  | `uint32[4]`  |                                                                  |            |                                                                  |
+| baro_temperature                      | `float32[4]` |                                                                  |            |                                                                  |
+| baro_offset_0    | `float32`    |                                                                  |            | barometric pressure 0 offsets in the sensor frame in Pascals     |
+| baro_offset_1    | `float32`    |                                                                  |            | barometric pressure 1 offsets in the sensor frame in Pascals     |
+| baro_offset_2    | `float32`    |                                                                  |            | barometric pressure 2 offsets in the sensor frame in Pascals     |
+| baro_offset_3    | `float32`    |                                                                  |            | barometric pressure 3 offsets in the sensor frame in Pascals     |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorCorrection.msg)
+
+:::details
+Click here to see original file
 
 ```c
 #
@@ -46,5 +87,6 @@ float32 baro_offset_0		# barometric pressure 0 offsets in the sensor frame in Pa
 float32 baro_offset_1		# barometric pressure 1 offsets in the sensor frame in Pascals
 float32 baro_offset_2		# barometric pressure 2 offsets in the sensor frame in Pascals
 float32 baro_offset_3		# barometric pressure 3 offsets in the sensor frame in Pascals
-
 ```
+
+:::

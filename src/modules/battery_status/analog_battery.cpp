@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <stdio.h>
+#include <float.h>
 #include <lib/battery/battery.h>
 #include "analog_battery.h"
 
@@ -71,6 +72,12 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 
 	snprintf(param_name, sizeof(param_name), "BAT%d_I_OVERWRITE", index);
 	_analog_param_handles.i_overwrite = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_V_FILT", index);
+	_analog_param_handles.v_filt = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_I_FILT", index);
+	_analog_param_handles.i_filt = param_find(param_name);
 }
 
 void
@@ -81,23 +88,22 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 			       (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 	float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
 
-#if defined(BOARD_BATTERY_ADC_VOLTAGE_FILTER_S) || defined(BOARD_BATTERY_ADC_CURRENT_FILTER_S)
+	if (_analog_params.v_filt > FLT_EPSILON || _analog_params.i_filt > FLT_EPSILON) {
+		if (_last_timestamp == 0) {
+			_last_timestamp = timestamp;
+		}
 
-	if (_last_timestamp == 0) {
+		const float dt = (timestamp - _last_timestamp) / 1e6f;
 		_last_timestamp = timestamp;
+
+		if (_analog_params.v_filt > FLT_EPSILON) {
+			voltage_v = _voltage_filter.update(fmaxf(voltage_v, 0.f), dt);
+		}
+
+		if (_analog_params.i_filt > FLT_EPSILON) {
+			current_a = _current_filter.update(fmaxf(current_a, 0.f), dt);
+		}
 	}
-
-	const float dt = (timestamp - _last_timestamp) / 1e6f;
-	_last_timestamp = timestamp;
-#endif
-
-#ifdef BOARD_BATTERY_ADC_VOLTAGE_FILTER_S
-	voltage_v = _voltage_filter.update(fmaxf(voltage_v, 0.f), dt);
-#endif
-
-#ifdef BOARD_BATTERY_ADC_CURRENT_FILTER_S
-	current_a = _current_filter.update(fmaxf(current_a, 0.f), dt);
-#endif
 
 	// Overwrite the measured current if current overwrite is defined and vehicle is unarmed
 	if (_analog_params.i_overwrite > 0) {
@@ -158,6 +164,16 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
 	param_get(_analog_param_handles.i_overwrite, &_analog_params.i_overwrite);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
+	param_get(_analog_param_handles.v_filt, &_analog_params.v_filt);
+	param_get(_analog_param_handles.i_filt, &_analog_params.i_filt);
+
+	if (_analog_params.v_filt > FLT_EPSILON) {
+		_voltage_filter = AlphaFilter<float>(_analog_params.v_filt);
+	}
+
+	if (_analog_params.i_filt > FLT_EPSILON) {
+		_current_filter = AlphaFilter<float>(_analog_params.i_filt);
+	}
 
 	Battery::updateParams();
 }

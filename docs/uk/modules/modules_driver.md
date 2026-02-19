@@ -45,6 +45,26 @@ atxxxx <command> [arguments...]
    status        print status info
 ```
 
+## auterion_autostarter
+
+Source: [drivers/auterion_autostarter](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/auterion_autostarter)
+
+### Опис
+
+Driver for starting and auto-detecting different power monitors.
+
+### Usage {#auterion_autostarter_usage}
+
+```
+auterion_autostarter <command> [arguments...]
+ Commands:
+   start
+
+   stop
+
+   status        print status info
+```
+
 ## batmon
 
 Source: [drivers/smart_battery/batmon](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/smart_battery/batmon)
@@ -925,26 +945,6 @@ pca9685_pwm_out <command> [arguments...]
    status        print status info
 ```
 
-## pm_selector_auterion
-
-Source: [drivers/power_monitor/pm_selector_auterion](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/power_monitor/pm_selector_auterion)
-
-### Опис
-
-Driver for starting and auto-detecting different power monitors.
-
-### Usage {#pm_selector_auterion_usage}
-
-```
-pm_selector_auterion <command> [arguments...]
- Commands:
-   start
-
-   stop
-
-   status        print status info
-```
-
 ## pmw3901
 
 Source: [drivers/optical_flow/pmw3901](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/optical_flow/pmw3901)
@@ -1109,7 +1109,7 @@ px4io <command> [arguments...]
 
 ## rgbled
 
-Source: [drivers/lights/rgbled_ncp5623c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled_ncp5623c)
+Source: [drivers/lights/rgbled](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/lights/rgbled)
 
 ### Usage {#rgbled_usage}
 
@@ -1124,9 +1124,7 @@ rgbled <command> [arguments...]
      [-f <val>]  bus frequency in kHz
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
-                 default: 57
-     [-o <val>]  RGB PWM Assignment
-                 default: 123
+                 default: 85
 
    stop
 
@@ -1438,6 +1436,30 @@ tap_esc <command> [arguments...]
                  default: 4
 ```
 
+## tmp102
+
+Source: [drivers/temperature_sensor/tmp102](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/temperature_sensor/tmp102)
+
+### Usage {#tmp102_usage}
+
+```
+tmp102 <command> [arguments...]
+ Commands:
+   start
+     [-I]        Internal I2C bus(es)
+     [-X]        External I2C bus(es)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-a <val>]  I2C address
+                 default: 72
+
+   stop
+
+   status        print status info
+```
+
 ## tone_alarm
 
 Source: [drivers/tone_alarm](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/tone_alarm)
@@ -1625,6 +1647,76 @@ voxlpm [arguments...]
    stop
 
    status        print status info
+```
+
+## vtx
+
+Source: [drivers/vtx](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/vtx)
+
+### Опис
+
+This module communicates with a VTX camera via serial port. It can be used to
+configure the camera settings and to control the camera's video transmission.
+Supported protocols are:
+
+- SmartAudio v1, v2.0, v2.1
+- Tramp
+
+### Usage {#vtx_usage}
+
+```
+vtx <command> [arguments...]
+ Commands:
+   start
+     -d <val>    VTX device
+                 values: <file:dev>
+
+   <int>         Sets an entry in the mapping table: <index> <aux channel>
+                 <band> <channel> <power level> <start range> <end range>
+
+   stop
+
+   status        print status info
+```
+
+## vtxtable
+
+Source: [drivers/vtxtable](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/vtxtable)
+
+### Опис
+
+Manages the VTX frequency, power level and RC mapping table for VTX configuration.
+
+### Usage {#vtxtable_usage}
+
+```
+vtxtable <command> [arguments...]
+ Commands:
+   status        Shows the current VTX table configuration.
+
+   name          Sets the VTX table name: <string>
+
+   bands         Sets the number of bands: <int>
+
+   band          Sets the band frequencies: <1-index> <name> <letter>
+                 <attribute> <frequencies...>
+
+   channels      Sets the number of channels: <int>
+
+   powerlevels   Sets number of power levels: <int>
+
+   powervalues   Sets the power level values: <int...>
+
+   powerlabels   Sets the power level labels: <3 chars...>
+
+   <int>         Sets an entry in the mapping table: <0-index> <aux channel>
+                 <band> <channel> <power level> <start range> <end range>
+
+   clear         Clears the VTX table configuration.
+
+   save          Saves the VTX config to a file: <file>
+
+   load          Loads the VTX config from a file: <file>
 ```
 
 ## zenoh

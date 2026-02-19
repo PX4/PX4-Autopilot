@@ -17,4 +17,5 @@
 #include "translation_register_ext_component_request_v1.h"
 #include "translation_vehicle_attitude_setpoint_v1.h"
 #include "translation_vehicle_status_v1.h"
+#include "translation_vehicle_status_v2.h"
 #include "translation_vehicle_local_position_v1.h"

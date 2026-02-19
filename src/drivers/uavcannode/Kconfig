@@ -38,6 +38,10 @@ if DRIVERS_UAVCANNODE
         bool "Include hardpoint commands"
         default n
 
+    config UAVCANNODE_GNSS_FIX2
+        bool "Include GNSS Fix2 publisher"
+        default y
+
     config UAVCANNODE_HYGROMETER_MEASUREMENT
         bool "Include hygrometer measurement"
         default n

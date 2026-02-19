@@ -1,9 +1,36 @@
+---
+pageClass: is-wide-page
+---
+
 # EventV0 (UORB message)
 
-this message is required here in the msg_old folder because other msg are depending on it
-Events interface
+this message is required here in the msg_old folder because other msg are depending on it. Events interface.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/EventV0.msg)
+**TOPICS:** eventv0
+
+## Fields
+
+| 参数名                                 | 类型          | Unit [Frame] | Range/Enum | 描述                                                                                                     |
+| ----------------------------------- | ----------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------ |
+| timestamp                           | `uint64`    |                                                                  |            | time since system start (microseconds)                                              |
+| id                                  | `uint32`    |                                                                  |            | Event ID                                                                                               |
+| event_sequence | `uint16`    |                                                                  |            | Event sequence number                                                                                  |
+| arguments                           | `uint8[25]` |                                                                  |            | (optional) arguments, depend on event id                                            |
+| log_levels     | `uint8`     |                                                                  |            | Log levels: 4 bits MSB: internal, 4 bits LSB: external |
+
+## Constants
+
+| 参数名                                                                                         | 类型       | 值  | 描述 |
+| ------------------------------------------------------------------------------------------- | -------- | -- | -- |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                        | `uint32` | 0  |    |
+| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 16 |    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/EventV0.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # this message is required here in the msg_old folder because other msg are depending on it
@@ -20,5 +47,6 @@ uint8[25] arguments         # (optional) arguments, depend on event id
 uint8 log_levels            # Log levels: 4 bits MSB: internal, 4 bits LSB: external
 
 uint8 ORB_QUEUE_LENGTH = 16
-
 ```
+
+:::

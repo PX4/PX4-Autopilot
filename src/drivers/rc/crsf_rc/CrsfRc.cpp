@@ -44,6 +44,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor CrsfRc::desc{task_spawn, custom_command, print_usage};
+
 #define CRSF_BAUDRATE 420000
 
 CrsfRc::CrsfRc(const char *device) :
@@ -109,8 +111,8 @@ int CrsfRc::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
 
 	instance->ScheduleNow();
 
@@ -128,7 +130,7 @@ void CrsfRc::Run()
 			_uart = nullptr;
 		}
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -548,7 +550,7 @@ int CrsfRc::custom_command(int argc, char *argv[])
 #ifdef CONFIG_RC_CRSF_INJECT
 
 	if (!strcmp(argv[0], "start")) {
-		if (is_running()) {
+		if (is_running(desc)) {
 			return print_usage("already running");
 		}
 
@@ -559,7 +561,7 @@ int CrsfRc::custom_command(int argc, char *argv[])
 		}
 	}
 
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		return print_usage("not running");
 	}
 
@@ -612,5 +614,5 @@ This module parses the CRSF RC uplink protocol and generates CRSF downlink telem
 
 extern "C" __EXPORT int crsf_rc_main(int argc, char *argv[])
 {
-	return CrsfRc::main(argc, argv);
+	return ModuleBase::main(CrsfRc::desc, argc, argv);
 }

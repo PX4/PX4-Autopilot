@@ -391,6 +391,7 @@ private:
 	hrt_abstime _heartbeat_type_onboard_controller{0};
 	hrt_abstime _heartbeat_type_gimbal{0};
 	hrt_abstime _heartbeat_type_adsb{0};
+	hrt_abstime _heartbeat_type_flarm{0};
 	hrt_abstime _heartbeat_type_camera{0};
 	hrt_abstime _heartbeat_type_parachute{0};
 	hrt_abstime _heartbeat_type_open_drone_id{0};

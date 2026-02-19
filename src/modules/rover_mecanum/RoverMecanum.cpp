@@ -35,6 +35,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor RoverMecanum::desc{task_spawn, custom_command, print_usage};
+
 RoverMecanum::RoverMecanum() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
@@ -195,8 +197,8 @@ int RoverMecanum::task_spawn(int argc, char *argv[])
 	RoverMecanum *instance = new RoverMecanum();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -207,8 +209,8 @@ int RoverMecanum::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -238,5 +240,5 @@ Rover mecanum module.
 
 extern "C" __EXPORT int rover_mecanum_main(int argc, char *argv[])
 {
-	return RoverMecanum::main(argc, argv);
+	return ModuleBase::main(RoverMecanum::desc, argc, argv);
 }

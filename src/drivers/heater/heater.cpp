@@ -48,6 +48,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_io_heater.h>
 
+ModuleBase::Descriptor Heater::desc{task_spawn, custom_command, print_usage};
+
 #if defined(BOARD_USES_PX4IO_VERSION) and defined(PX4IO_HEATER_ENABLED)
 // Heater on some boards is on IO MCU
 // Use ioctl calls to IO driver to turn heater on/off
@@ -75,7 +77,7 @@ Heater::~Heater()
 int Heater::custom_command(int argc, char *argv[])
 {
 	// Check if the driver is running.
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		PX4_INFO("not running");
 		return PX4_ERROR;
 	}
@@ -180,7 +182,7 @@ void Heater::Run()
 		}
 
 #endif
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -292,8 +294,8 @@ int Heater::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(heater);
-	_task_id = task_id_is_work_queue;
+	desc.object.store(heater);
+	desc.task_id = task_id_is_work_queue;
 
 	heater->start();
 	return 0;
@@ -334,5 +336,5 @@ This task can be started at boot from the startup scripts by setting SENS_EN_THE
 
 extern "C" __EXPORT int heater_main(int argc, char *argv[])
 {
-	return Heater::main(argc, argv);
+	return ModuleBase::main(Heater::desc, argc, argv);
 }

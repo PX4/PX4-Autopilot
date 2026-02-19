@@ -49,6 +49,8 @@
 #include <ctype.h>
 #include <string.h>
 
+ModuleBase::Descriptor UWB_SR150::desc{task_spawn, custom_command, print_usage};
+
 // Timeout between bytes. If there is more time than this between bytes, then this driver assumes
 // that it is the boundary between messages.
 // See uwb_sr150::run() for more detailed explanation.
@@ -117,7 +119,7 @@ void UWB_SR150::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -248,8 +250,8 @@ int UWB_SR150::task_spawn(int argc, char *argv[])
 	UWB_SR150 *instance = new UWB_SR150(device_name);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		instance->ScheduleOnInterval(5000_us);
 
@@ -262,15 +264,15 @@ int UWB_SR150::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
 
 int uwb_sr150_main(int argc, char *argv[])
 {
-	return UWB_SR150::main(argc, argv);
+	return ModuleBase::main(UWB_SR150::desc, argc, argv);
 }
 
 void UWB_SR150::parameters_update()

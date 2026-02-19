@@ -93,9 +93,11 @@ using namespace time_literals;
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
-class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public ModuleParams, public px4::WorkItem
+class VtolAttitudeControl : public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	VtolAttitudeControl();
 	~VtolAttitudeControl() override;

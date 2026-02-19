@@ -97,7 +97,7 @@ private:
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
-	bool _initialized{};
+	bool _initialized = false;
 
 	esc_status_s	_esc_status{};
 

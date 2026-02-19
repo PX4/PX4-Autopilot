@@ -65,10 +65,12 @@
 
 using namespace time_literals;
 
-class MulticopterHoverThrustEstimator : public ModuleBase<MulticopterHoverThrustEstimator>, public ModuleParams,
+class MulticopterHoverThrustEstimator : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	MulticopterHoverThrustEstimator();
 	~MulticopterHoverThrustEstimator() override;
 

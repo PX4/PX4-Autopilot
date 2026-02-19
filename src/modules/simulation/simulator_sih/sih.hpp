@@ -86,14 +86,19 @@
 
 using namespace time_literals;
 
-class Sih : public ModuleBase<Sih>, public ModuleParams
+class Sih : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Sih();
 	virtual ~Sih();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Sih *instantiate(int argc, char *argv[]);
