@@ -77,15 +77,8 @@ protected:
 	bool _get_rotational_movement() override { return _rotational_movement; }
 	bool _get_close_to_ground_or_skipped_check() override { return _close_to_ground_or_skipped_check; }
 
-	void _set_hysteresis_factor(const int factor) override;
 private:
 	bool _is_close_to_ground();
-
-	/** Time in us that freefall has to hold before triggering freefall */
-	static constexpr hrt_abstime FREEFALL_TRIGGER_TIME_US = 300_ms;
-
-	/** Distance above ground below which entering ground contact state is possible when distance to ground is available. */
-	static constexpr float DIST_FROM_GROUND_THRESHOLD = 1.0f;
 
 	struct {
 		param_t minThrottle;
@@ -124,6 +117,8 @@ private:
 
 	systemlib::Hysteresis _minimum_thrust_8s_hysteresis{false};
 
+	bool _dist_bottom_is_observable{false}; ///< there was a valid distance to bottom estimate before so we have a downwards facing distance sensor
+
 	bool _in_descend{false};		///< vehicle is commanded to desend
 	bool _horizontal_movement{false};	///< vehicle is moving horizontally
 	bool _vertical_movement{false};
@@ -134,7 +129,6 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
-		(ParamFloat<px4::params::LNDMC_TRIG_TIME>)   _param_lndmc_trig_time,
 		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
 		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
 		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max,
