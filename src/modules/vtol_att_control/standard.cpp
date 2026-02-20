@@ -215,6 +215,14 @@ void Standard::update_transition_state()
 						     _param_vt_psher_slew.get() * dt, _param_vt_f_trans_thr.get());
 
 			_last_time_pusher_transition_update = now;
+
+		} else if (std::isnan(_pusher_throttle)) {
+
+			// In MC, the pusher throttle is given by pusher assist. Because there we map low thrust values
+			// to NaN to completely turn off the motor, it can be NaN when starting the front transition.
+			// For the transition and particularly the slew rate above, we consider NaN equivalent to zero.
+
+			_pusher_throttle = 0.0f;
 		}
 
 		_airspeed_trans_blend_margin = getTransitionAirspeed() - getBlendAirspeed();

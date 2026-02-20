@@ -89,7 +89,7 @@ void MulticopterLandDetector::_update_topics()
 	vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
 
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
-		_vehicle_thrust_setpoint_throttle = -vehicle_thrust_setpoint.xyz[2];
+		_vehicle_thrust_setpoint_throttle = PX4_ISFINITE(vehicle_thrust_setpoint.xyz[2]) ? -vehicle_thrust_setpoint.xyz[2] : 0.f;
 	}
 
 	vehicle_control_mode_s vehicle_control_mode;
