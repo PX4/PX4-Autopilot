@@ -48,7 +48,6 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <matrix/matrix/math.hpp>
-#include <mixer_module/output_functions.hpp>
 #include <px4_platform_common/module_params.h>
 
 // subscriptions
@@ -79,18 +78,16 @@ union failure_detector_status_u {
 
 using uORB::SubscriptionData;
 
-class HealthAndArmingChecks;
-
 class FailureDetector : public ModuleParams
 {
 public:
-	FailureDetector(ModuleParams *parent, HealthAndArmingChecks &health_and_arming_checks);
+	FailureDetector(ModuleParams *parent);
 	~FailureDetector() = default;
 
 	bool update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode);
 	const failure_detector_status_u &getStatus() const { return _failure_detector_status; }
 
-	void publishStatus();
+	void publishStatus(bool esc_arm_status, uint16_t motor_failure_mask);
 
 private:
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
@@ -98,8 +95,6 @@ private:
 	void updateImbalancedPropStatus();
 
 	failure_detector_status_u _failure_detector_status{};
-
-	HealthAndArmingChecks &_health_and_arming_checks;
 
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
@@ -127,5 +122,6 @@ private:
 		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
-		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr)
+		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr
+	)
 };
