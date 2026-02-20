@@ -141,18 +141,3 @@ PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1900);
  * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_IMB_PROP_THR, 30);
-
-/**
- * Enable Actuator Failure check
- *
- * If enabled, the HealthAndArmingChecks will verify that for motors, a minimum amount of ESC current per throttle
- * level is being consumed.
- * Otherwise this indicates an motor failure.
- * This check only works for ESCs that report current consumption.
- *
- * @boolean
- * @reboot_required true
- *
- * @group Motor Failure
- */
-PARAM_DEFINE_INT32(FD_ACT_EN, 0);
