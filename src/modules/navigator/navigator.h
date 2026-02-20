@@ -325,6 +325,7 @@ private:
 	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
 
+	uORB::Publication<position_controller_status_s>	_position_controller_status_pub{ORB_ID(position_controller_status)};
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
 	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
 	uORB::Publication<navigator_status_s>		_navigator_status_pub{ORB_ID(navigator_status)};
@@ -420,6 +421,8 @@ private:
 	void publish_mission_result();
 
 	void publish_navigator_status();
+
+	void publish_position_controller_status();
 
 	void publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
 
