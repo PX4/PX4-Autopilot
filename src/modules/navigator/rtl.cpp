@@ -220,6 +220,12 @@ void RTL::publishRemainingTimeEstimate()
 
 void RTL::on_activation()
 {
+	_global_pos_sub.update();
+	_vehicle_status_sub.update();
+	_mission_sub.update();
+	_home_pos_sub.update();
+	_wind_sub.update();
+
 	setRtlTypeAndDestination();
 
 	switch (_rtl_type) {
@@ -228,12 +234,21 @@ void RTL::on_activation()
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
+			_rtl_mission_type_handle->run(true);
 		}
+
+		_rtl_direct.run(false);
 
 		break;
 
 	case RtlType::RTL_DIRECT:
 		_rtl_direct.setReturnAltMin(_enforce_rtl_alt);
+		_rtl_direct.run(true);
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->run(false);
+		}
+
 		break;
 
 	default:
