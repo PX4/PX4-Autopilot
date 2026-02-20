@@ -604,11 +604,11 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 void
 ControlAllocator::handle_stopped_motors(const hrt_abstime now)
 {
-	const uint32_t stopped_motors_due_to_effectiveness = _actuator_effectiveness->getStoppedMotors();
+	const ActuatorBitmask stopped_motors_due_to_effectiveness = _actuator_effectiveness->getStoppedMotors();
 
-	const uint32_t stopped_motors = stopped_motors_due_to_effectiveness
-					| _handled_motor_failure_bitmask
-					| _motor_stop_mask;
+	const ActuatorBitmask stopped_motors = stopped_motors_due_to_effectiveness
+					       | _handled_motor_failure_bitmask
+					       | _motor_stop_mask;
 
 	// Handle stopped motors by setting NaN
 	const unsigned int allocation_index = 0;
