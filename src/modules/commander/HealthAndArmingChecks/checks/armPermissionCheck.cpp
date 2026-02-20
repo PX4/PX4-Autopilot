@@ -37,13 +37,13 @@ void ArmPermissionChecks::checkAndReport(const Context &context, Report &reporte
 {
 	if (_param_com_armable.get() < 1) {
 		/* EVENT
-		* @description
-		* Vehicle is in safety configuration and denies arming.
-		*
-		* <profile name="dev">
-		* This check can be configured via <param>COM_ARMABLE</param> parameter.
-		* </profile>
-		*/
+		 * @description
+		 * Vehicle is in safety configuration and denies arming.
+		 *
+		 * <profile name="dev">
+		 * This check can be configured via <param>COM_ARMABLE</param> parameter.
+		 * </profile>
+		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 					    events::ID("check_armable_configuration"),
 					    events::Log::Error, "Vehicle is in safety configuration");
