@@ -34,10 +34,8 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include "fw_pitch_controller.h"
-#include "fw_roll_controller.h"
+
 #include "fw_wheel_controller.h"
-#include "fw_yaw_controller.h"
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -161,12 +159,9 @@ private:
 
 		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
 		(ParamFloat<px4::params::FW_MAN_YR_MAX>) _param_man_yr_max
-
 	)
 
-	RollController _roll_ctrl;
-	PitchController _pitch_ctrl;
-	YawController _yaw_ctrl;
+	matrix::Vector3f _proportional_gain;
 	WheelController _wheel_ctrl;
 
 	void parameters_update();
