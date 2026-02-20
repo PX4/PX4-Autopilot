@@ -96,6 +96,7 @@ public:
 
 
 	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
+	using ActuatorBitmask = ActuatorEffectiveness::ActuatorBitmask;
 
 	ControlAllocator();
 
