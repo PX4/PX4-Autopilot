@@ -76,10 +76,10 @@ param load
 # IMU (accelerometer / gyroscope)
 if [ "$PLATFORM" == "M0104" ]; then
     /bin/echo "Starting IMU driver with rotation 12"
-    qshell icm42688p start -s -R 12
+    qshell icm42688p start -s -R 12 -C 32768
 else
     /bin/echo "Starting IMU driver with no rotation"
-    qshell icm42688p start -s
+    qshell icm42688p start -s -C 32768
 fi
 
 # Start Invensense ICP 101xx barometer built on to VOXL 2
