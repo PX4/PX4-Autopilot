@@ -98,7 +98,6 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 			(vehicle_status_s::FAILURE_ROLL | vehicle_status_s::FAILURE_PITCH | vehicle_status_s::FAILURE_ALT |
 			 vehicle_status_s::FAILURE_EXT);
 
-
 	reporter.failsafeFlags().fd_imbalanced_prop = context.status().failure_detector_status &
 			vehicle_status_s::FAILURE_IMBALANCED_PROP;
 
@@ -118,7 +117,4 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Imbalanced propeller detected");
 		}
 	}
-
-
-
 }
