@@ -146,8 +146,8 @@ private:
 
 	void publish_actuator_controls();
 
-	void apply_ice_shedding(ActuatorVector &actuator_sp, const ActuatorBitmask stopped_motors,
-				const ActuatorBitmask stopped_motors_due_to_effectiveness, const hrt_abstime now);
+	void handle_stopped_motors(const hrt_abstime now);
+
 	float get_ice_shedding_output(hrt_abstime now);
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
