@@ -65,5 +65,5 @@ private:
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 
-	uint32_t _forwards_motors_mask{};
+	ActuatorBitmask _forwards_motors_mask{};
 };

@@ -427,11 +427,11 @@ ControlAllocator::Run()
 			}
 		}
 
-		const uint32_t stopped_motors_due_to_effectiveness = _actuator_effectiveness->getStoppedMotors();
+		const ActuatorBitmask stopped_motors_due_to_effectiveness = _actuator_effectiveness->getStoppedMotors();
 
-		const uint32_t stopped_motors = stopped_motors_due_to_effectiveness
-						| _handled_motor_failure_bitmask
-						| _motor_stop_mask;
+		const ActuatorBitmask stopped_motors = stopped_motors_due_to_effectiveness
+						       | _handled_motor_failure_bitmask
+						       | _motor_stop_mask;
 
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
@@ -665,8 +665,8 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 }
 
 void
-ControlAllocator::apply_ice_shedding(ActuatorVector &actuator_sp, const uint32_t stopped_motors,
-				     const uint32_t stopped_motors_due_to_effectiveness, const hrt_abstime now)
+ControlAllocator::apply_ice_shedding(ActuatorVector &actuator_sp, const ActuatorBitmask stopped_motors,
+				     const ActuatorBitmask stopped_motors_due_to_effectiveness, const hrt_abstime now)
 {
 
 	const bool any_stopped_motor_failed = 0 != (stopped_motors_due_to_effectiveness & (_handled_motor_failure_bitmask | _motor_stop_mask));

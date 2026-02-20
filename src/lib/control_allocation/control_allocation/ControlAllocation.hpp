@@ -83,6 +83,7 @@ public:
 	static constexpr uint8_t NUM_AXES = ActuatorEffectiveness::NUM_AXES;
 
 	using ActuatorVector = matrix::Vector<float, NUM_ACTUATORS>;
+	using ActuatorBitmask = ActuatorEffectiveness::ActuatorBitmask;
 
 	enum ControlAxis {
 		ROLL = 0,
@@ -231,7 +232,7 @@ public:
 	 * @param nan_actuators_mask Bitmask indicating which actuators to set to NaN.
 	 *                           If (nan_actuators_mask & (1 << i)), _actuator_sp(i) becomes NaN.
 	 */
-	void applyNanToActuators(uint32_t nan_actuators_mask)
+	void applyNanToActuators(ActuatorBitmask nan_actuators_mask)
 	{
 		for (int i = 0; i < _num_actuators; i++) {
 			if (nan_actuators_mask & (1u << i)) {
