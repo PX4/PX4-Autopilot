@@ -1,0 +1,12 @@
+menuconfig MODULES_FW_WIND_ESTIMATOR
+	bool "fw_wind_estimator"
+	default n
+	---help---
+		Enable support for fw_wind_estimator
+
+menuconfig USER_FW_RATE_CONTROL
+	bool "fw_wind_estimator running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_FW_WIND_ESTIMATOR
+	---help---
+		Put fw_wind_estimator in userspace memory
