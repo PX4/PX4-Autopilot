@@ -50,10 +50,7 @@ public:
 
 	void checkAndReport(const Context &context, Report &reporter) override;
 
-	uint16_t getMotorFailureMask() const
-	{
-		return _motor_failure_mask;
-	}
+	uint16_t getMotorFailureMask() const { return _motor_failure_mask; }
 	bool getEscArmStatus() const { return _esc_arm_hysteresis.get_state(); }
 
 private:
@@ -63,7 +60,6 @@ private:
 	void updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
-	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 
 	const hrt_abstime _start_time{hrt_absolute_time()};
@@ -80,7 +76,7 @@ private:
 					(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
 					(ParamFloat<px4::params::MOTFAIL_THR>) _param_motfail_thr,
 					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,
-					(ParamInt<px4::params::MOTFAIL_TOUT>) _param_motfail_tout,
+					(ParamInt<px4::params::MOTFAIL_TIME>) _param_motfail_time,
 					(ParamFloat<px4::params::MOTFAIL_LOW_OFF>) _param_motfail_low_off,
 					(ParamFloat<px4::params::MOTFAIL_HIGH_OFF>) _param_motfail_high_off);
 };
