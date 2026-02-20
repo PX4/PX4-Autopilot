@@ -32,6 +32,21 @@
  ****************************************************************************/
 
 /**
+ * Enable Actuator Failure check
+ *
+ * If enabled, the HealthAndArmingChecks will verify that for motors, a minimum amount of ESC current per throttle
+ * level is being consumed.
+ * Otherwise this indicates an motor failure.
+ * This check only works for ESCs that report current consumption.
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group Motor Failure
+ */
+PARAM_DEFINE_INT32(FD_ACT_EN, 0);
+
+/**
  * Motor Failure Thrust Threshold
  *
  * Failure detection per motor only triggers above this thrust value.
