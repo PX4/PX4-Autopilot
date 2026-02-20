@@ -237,7 +237,7 @@ int DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelem
 
 		esc_status.esc[telemetry_index].esc_voltage     = static_cast<float>(data.voltage) * 0.01f;
 		esc_status.esc[telemetry_index].esc_current     = static_cast<float>(data.current) * 0.01f;
-		esc_status.esc[telemetry_index].esc_temperature = static_cast<float>(data.temperature);
+		esc_status.esc[telemetry_index].esc_temperature = static_cast<int>(data.temperature);
 		// TODO: accumulate consumption and use for battery estimation
 	}
 
