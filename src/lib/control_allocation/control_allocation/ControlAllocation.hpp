@@ -233,7 +233,7 @@ public:
 	 */
 	void applyNanToActuators(uint32_t nan_actuators_mask)
 	{
-		for (int i = 0; i < _num_actuators && i < 32; i++) {
+		for (int i = 0; i < _num_actuators; i++) {
 			if (nan_actuators_mask & (1u << i)) {
 				_actuator_sp(i) = NAN;
 			}
