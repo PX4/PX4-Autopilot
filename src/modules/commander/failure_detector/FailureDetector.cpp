@@ -43,9 +43,8 @@
 
 using namespace time_literals;
 
-FailureDetector::FailureDetector(ModuleParams *parent, HealthAndArmingChecks &health_and_arming_checks) :
-	ModuleParams(parent),
-	_health_and_arming_checks(health_and_arming_checks)
+FailureDetector::FailureDetector(ModuleParams *parent) :
+	ModuleParams(parent)
 {
 }
 
@@ -76,19 +75,19 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 	return _failure_detector_status.value != status_prev.value;
 }
 
-void FailureDetector::publishStatus()
+void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_mask)
 {
 	failure_detector_status_s failure_detector_status{};
 	failure_detector_status.fd_roll = _failure_detector_status.flags.roll;
 	failure_detector_status.fd_pitch = _failure_detector_status.flags.pitch;
 	failure_detector_status.fd_alt = _failure_detector_status.flags.alt;
 	failure_detector_status.fd_ext = _failure_detector_status.flags.ext;
-	failure_detector_status.fd_arm_escs = _health_and_arming_checks.getEscArmStatus() || (_health_and_arming_checks.getMotorFailureMask() != 0);
+	failure_detector_status.fd_arm_escs = esc_arm_status || (motor_failure_mask != 0);
 	failure_detector_status.fd_battery = _failure_detector_status.flags.battery;
 	failure_detector_status.fd_imbalanced_prop = _failure_detector_status.flags.imbalanced_prop;
-	failure_detector_status.fd_motor = (_health_and_arming_checks.getMotorFailureMask() != 0) || (_failure_injector.getMotorStopMask() != 0);
+	failure_detector_status.fd_motor = (motor_failure_mask != 0) || (_failure_injector.getMotorStopMask() != 0);
 	failure_detector_status.imbalanced_prop_metric = _imbalanced_prop_lpf.getState();
-	failure_detector_status.motor_failure_mask = _health_and_arming_checks.getMotorFailureMask();
+	failure_detector_status.motor_failure_mask = motor_failure_mask;
 	failure_detector_status.motor_stop_mask = _failure_injector.getMotorStopMask();
 	failure_detector_status.timestamp = hrt_absolute_time();
 	_failure_detector_status_pub.publish(failure_detector_status);
