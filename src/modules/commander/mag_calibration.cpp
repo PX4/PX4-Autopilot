@@ -71,7 +71,7 @@ using namespace time_literals;
 
 static constexpr char sensor_name[] {"mag"};
 static constexpr int MAX_MAGS = 4;
-static constexpr float MAG_SPHERE_RADIUS_DEFAULT = 0.2f;
+static constexpr float MAG_SPHERE_RADIUS_DEFAULT = 0.4f;
 static constexpr unsigned int calibration_total_points = 240;	///< The total points per magnetometer
 static constexpr unsigned int calibraton_duration_s = 42; 	///< The total duration the routine is allowed to take
 
