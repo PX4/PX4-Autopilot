@@ -66,4 +66,8 @@ private:
 	 */
 	void set_loiter_position();
 
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
+	)
+
 };
