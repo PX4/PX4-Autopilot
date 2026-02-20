@@ -83,7 +83,7 @@ void FailureDetector::publishStatus()
 	failure_detector_status.fd_pitch = _failure_detector_status.flags.pitch;
 	failure_detector_status.fd_alt = _failure_detector_status.flags.alt;
 	failure_detector_status.fd_ext = _failure_detector_status.flags.ext;
-	failure_detector_status.fd_arm_escs = _health_and_arming_checks.getEscArmStatus();
+	failure_detector_status.fd_arm_escs = _health_and_arming_checks.getEscArmStatus() || (_health_and_arming_checks.getMotorFailureMask() != 0);
 	failure_detector_status.fd_battery = _failure_detector_status.flags.battery;
 	failure_detector_status.fd_imbalanced_prop = _failure_detector_status.flags.imbalanced_prop;
 	failure_detector_status.fd_motor = (_health_and_arming_checks.getMotorFailureMask() != 0) || (_failure_injector.getMotorStopMask() != 0);
