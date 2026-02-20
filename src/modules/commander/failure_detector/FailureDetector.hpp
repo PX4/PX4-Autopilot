@@ -54,8 +54,6 @@
 // subscriptions
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/pwm_input.h>
 #include <uORB/topics/sensor_selection.h>
@@ -114,11 +112,9 @@ private:
 
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)}; // TODO: multi-instance
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 
 	uORB::Publication<failure_detector_status_s> _failure_detector_status_pub{ORB_ID(failure_detector_status)};
 
