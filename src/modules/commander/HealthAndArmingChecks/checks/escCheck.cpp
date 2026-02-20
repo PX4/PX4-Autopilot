@@ -62,7 +62,6 @@ static constexpr const char *esc_fault_reason_str(esc_fault_reason_t esc_fault_r
 	case esc_fault_reason_t::esc_warn_temp: return "over temperature";
 
 	case esc_fault_reason_t::esc_over_temp: return "critical temperature";
-
 	}
 
 	return "";
@@ -85,20 +84,21 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 
 		uint16_t mask = 0;
 
-		mask |= checkEscOnline(context, reporter, esc_status);
-		mask |= checkEscStatus(context, reporter, esc_status);
-		updateEscsStatus(context, reporter, esc_status);
+		if (_param_com_arm_chk_escs.get() > 0) {
+			mask |= checkEscOnline(context, reporter, esc_status, now);
+			mask |= checkEscStatus(context, reporter, esc_status);
+		}
 
 		if (_param_fd_act_en.get() > 0) {
-			mask |= checkMotorStatus(context, reporter, esc_status);
+			updateEscsStatus(context, reporter, esc_status, now);
+			mask |= checkMotorStatus(context, reporter, esc_status, now);
 		}
 
 		_motor_failure_mask = mask;
 		reporter.setIsPresent(health_component_t::motors_escs);
 		reporter.failsafeFlags().fd_motor_failure = mask != 0;
 
-	} else if ((_param_com_arm_chk_escs.get() > 0) && now - _start_time > esc_telemetry_timeout) { // Allow esc's to init
-
+	} else if ((_param_com_arm_chk_escs.get() > 0) && now - _start_time > esc_telemetry_timeout) { // Allow ESCs to init
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -114,13 +114,9 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 }
 
-uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status)
+uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)
 {
 	// Check if one or more the ESCs are offline
-	if (_param_com_arm_chk_escs.get() == 0) {
-		return 0;
-	}
-
 	uint16_t mask = 0;
 	char esc_fail_msg[esc_status_s::CONNECTED_ESC_MAX * 6 + 1] {};
 	esc_fail_msg[0] = '\0';
@@ -131,7 +127,7 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 			continue; // Skip unmapped ESC status entries
 		}
 
-		const bool timeout = hrt_absolute_time() > esc_status.esc[esc_index].timestamp + 300_ms;
+		const bool timeout = now > esc_status.esc[esc_index].timestamp + 300_ms;
 		const bool is_offline = (esc_status.esc_online_flags & (1 << esc_index)) == 0;
 
 		// Set failure bits for this motor
@@ -161,14 +157,9 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 
 uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
 {
-	if (_param_com_arm_chk_escs.get() == 0) {
-		return 0;
-	}
-
 	uint16_t mask = 0;
 
 	for (int esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
-
 		if (!math::isInRange(esc_status.esc[esc_index].actuator_function, (uint8_t)OutputFunction::Motor1, (uint8_t)OutputFunction::MotorMax)) {
 			continue; // Skip unmapped ESC status entries
 		}
@@ -227,13 +218,8 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 	return mask;
 }
 
-uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
+uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)
 {
-	if (_param_fd_act_en.get() == 0) {
-		return 0;
-	}
-
-	const hrt_abstime now = hrt_absolute_time();
 	uint16_t mask = 0;
 
 	// Only check while armed
@@ -277,12 +263,12 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_ms);
 
 			if (!_esc_undercurrent_hysteresis[i].get_state()) {
-				// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
+				// Only set, never clear mid-air: stopping the motor in response could make it appear healthy again
 				_esc_undercurrent_hysteresis[i].set_state_and_update(thrust_above_threshold && current_too_low, now);
 			}
 
 			if (!_esc_overcurrent_hysteresis[i].get_state()) {
-				// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
+				// Only set, never clear mid-air: stopping the motor in response could make it appear healthy again
 				_esc_overcurrent_hysteresis[i].set_state_and_update(current_too_high, now);
 			}
 
@@ -297,7 +283,7 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				 * </profile>
 				 */
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
-								events::ID("check_failure_detector_motor_uc"),
+								events::ID("check_motor_undercurrent"),
 								events::Log::Critical, "Motor {1} undercurrent detected", actuator_function_index + 1);
 
 				if (reporter.mavlink_log_pub()) {
@@ -314,7 +300,7 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				 * </profile>
 				 */
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
-								events::ID("check_failure_detector_motor_oc"),
+								events::ID("check_motor_overcurrent"),
 								events::Log::Critical, "Motor {1} overcurrent detected", actuator_function_index + 1);
 
 				if (reporter.mavlink_log_pub()) {
@@ -334,14 +320,8 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 	return mask;
 }
 
-void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
+void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)
 {
-	if (_param_com_arm_chk_escs.get() == 0) {
-		return;
-	}
-
-	hrt_abstime now = hrt_absolute_time();
-
 	if (context.status().arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		const int limited_esc_count = math::min(esc_status.esc_count, esc_status_s::CONNECTED_ESC_MAX);
 		const int all_escs_armed_mask = (1 << limited_esc_count) - 1;
