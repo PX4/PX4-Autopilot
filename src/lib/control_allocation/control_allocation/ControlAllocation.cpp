@@ -129,13 +129,13 @@ void ControlAllocation::applySlewRateLimit(float dt)
 			float previous = _prev_actuator_sp(i);
 
 			// Before slew limiting, transform NaN to 0, but remember if the input was NaN
-			const bool input_is_nan = std::isnan(input);
+			const bool input_is_nan = !PX4_ISFINITE(input);
 
 			if (input_is_nan) {
 				input = 0.f;
 			}
 
-			if (std::isnan(previous)) {
+			if (!PX4_ISFINITE(previous)) {
 				previous = 0.f;
 			}
 
