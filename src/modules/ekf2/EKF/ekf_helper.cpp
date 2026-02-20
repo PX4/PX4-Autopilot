@@ -541,7 +541,7 @@ float Ekf::getHorizontalPositionInnovationTestRatio() const
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 
 	if (_control_status.flags.aux_gpos) {
-		test_ratio = math::max(test_ratio, fabsf(_aux_global_position.test_ratio_filtered()));
+		test_ratio = math::max(test_ratio, fabsf(_aux_global_position.testRatioFiltered()));
 	}
 
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION

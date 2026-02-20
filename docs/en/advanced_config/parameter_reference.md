@@ -266,6 +266,166 @@ This parameter defines the squawk code. Value should be between 0000 and 7777.
 
 ## Actuator Outputs
 
+### PCA9685_CENT1 (`INT32`) {#PCA9685_CENT1}
+
+PCA9685 Output Channel 1 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT10 (`INT32`) {#PCA9685_CENT10}
+
+PCA9685 Output Channel 10 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT11 (`INT32`) {#PCA9685_CENT11}
+
+PCA9685 Output Channel 11 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT12 (`INT32`) {#PCA9685_CENT12}
+
+PCA9685 Output Channel 12 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT13 (`INT32`) {#PCA9685_CENT13}
+
+PCA9685 Output Channel 13 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT14 (`INT32`) {#PCA9685_CENT14}
+
+PCA9685 Output Channel 14 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT15 (`INT32`) {#PCA9685_CENT15}
+
+PCA9685 Output Channel 15 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT16 (`INT32`) {#PCA9685_CENT16}
+
+PCA9685 Output Channel 16 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT2 (`INT32`) {#PCA9685_CENT2}
+
+PCA9685 Output Channel 2 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT3 (`INT32`) {#PCA9685_CENT3}
+
+PCA9685 Output Channel 3 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT4 (`INT32`) {#PCA9685_CENT4}
+
+PCA9685 Output Channel 4 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT5 (`INT32`) {#PCA9685_CENT5}
+
+PCA9685 Output Channel 5 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT6 (`INT32`) {#PCA9685_CENT6}
+
+PCA9685 Output Channel 6 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT7 (`INT32`) {#PCA9685_CENT7}
+
+PCA9685 Output Channel 7 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT8 (`INT32`) {#PCA9685_CENT8}
+
+PCA9685 Output Channel 8 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT9 (`INT32`) {#PCA9685_CENT9}
+
+PCA9685 Output Channel 9 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
 ### PCA9685_DIS1 (`INT32`) {#PCA9685_DIS1}
 
 PCA9685 Output Channel 1 Disarmed Value.
