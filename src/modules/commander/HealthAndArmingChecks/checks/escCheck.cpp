@@ -85,12 +85,12 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 
 		uint16_t mask = 0;
 
-		mask |= checkEscOnline(context, reporter, esc_status);
+		mask |= checkEscOnline(context, reporter, esc_status, now);
 		mask |= checkEscStatus(context, reporter, esc_status);
-		updateEscsStatus(context, reporter, esc_status);
 
 		if (_param_fd_act_en.get() > 0) {
-			mask |= checkMotorStatus(context, reporter, esc_status);
+			updateEscsStatus(context, reporter, esc_status, now);
+			mask |= checkMotorStatus(context, reporter, esc_status, now);
 		}
 
 		_motor_failure_mask = mask;
@@ -114,7 +114,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 }
 
-uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status)
+uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)
 {
 	// Check if one or more the ESCs are offline
 	if (_param_com_arm_chk_escs.get() == 0) {
@@ -131,7 +131,7 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 			continue; // Skip unmapped ESC status entries
 		}
 
-		const bool timeout = hrt_absolute_time() > esc_status.esc[esc_index].timestamp + 300_ms;
+		const bool timeout = now > esc_status.esc[esc_index].timestamp + 300_ms;
 		const bool is_offline = (esc_status.esc_online_flags & (1 << esc_index)) == 0;
 
 		// Set failure bits for this motor
@@ -227,13 +227,8 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 	return mask;
 }
 
-uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
+uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)
 {
-	if (_param_fd_act_en.get() == 0) {
-		return 0;
-	}
-
-	const hrt_abstime now = hrt_absolute_time();
 	uint16_t mask = 0;
 
 	// Only check while armed
@@ -242,12 +237,12 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 		_actuator_motors_sub.copy(&actuator_motors);
 
 		// Check individual ESC reports
-		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
+		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
 			// Map the esc status index to the actuator function index
-			const uint8_t actuator_function_index = esc_status.esc[i].actuator_function - static_cast<uint8_t>(OutputFunction::Motor1);
+			const uint8_t actuator_function_index = esc_status.esc[i].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
 
-			if (!math::isInRange(esc_status.esc[i].actuator_function, (uint8_t)OutputFunction::Motor1, (uint8_t)OutputFunction::MotorMax)) {
-				continue; // Skip unmapped ESC status entries
+			if (actuator_function_index >= actuator_motors_s::NUM_CONTROLS) {
+				continue; // Skip unmapped ESC status entries (underflow makes values below MOTOR1 wrap to large indices)
 			}
 
 			const float current = esc_status.esc[i].esc_current;
@@ -277,12 +272,12 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_ms);
 
 			if (!_esc_undercurrent_hysteresis[i].get_state()) {
-				// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
+				// Only set, never clear mid-air: stopping the motor in response could make it appear healthy again
 				_esc_undercurrent_hysteresis[i].set_state_and_update(thrust_above_threshold && current_too_low, now);
 			}
 
 			if (!_esc_overcurrent_hysteresis[i].get_state()) {
-				// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
+				// Only set, never clear mid-air: stopping the motor in response could make it appear healthy again
 				_esc_overcurrent_hysteresis[i].set_state_and_update(current_too_high, now);
 			}
 
@@ -297,7 +292,7 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				 * </profile>
 				 */
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
-								events::ID("check_failure_detector_motor_uc"),
+								events::ID("check_motor_undercurrent"),
 								events::Log::Critical, "Motor {1} undercurrent detected", actuator_function_index + 1);
 
 				if (reporter.mavlink_log_pub()) {
@@ -314,7 +309,7 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				 * </profile>
 				 */
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
-								events::ID("check_failure_detector_motor_oc"),
+								events::ID("check_motor_overcurrent"),
 								events::Log::Critical, "Motor {1} overcurrent detected", actuator_function_index + 1);
 
 				if (reporter.mavlink_log_pub()) {
@@ -334,14 +329,8 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 	return mask;
 }
 
-void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
+void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)
 {
-	if (_param_com_arm_chk_escs.get() == 0) {
-		return;
-	}
-
-	hrt_abstime now = hrt_absolute_time();
-
 	if (context.status().arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		const int limited_esc_count = math::min(esc_status.esc_count, esc_status_s::CONNECTED_ESC_MAX);
 		const int all_escs_armed_mask = (1 << limited_esc_count) - 1;
