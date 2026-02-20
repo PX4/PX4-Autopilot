@@ -50,11 +50,14 @@ private:
 #ifdef __PX4_NUTTX
 	bool _hardfault_checked_once {false};
 	bool _hardfault_file_present {false};
+	bool _watchdog_checked_once {false};
+	bool _watchdog_file_present {false};
 #endif
 #endif
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::COM_ARM_SDCARD>) _param_com_arm_sdcard,
-					(ParamBool<px4::params::COM_ARM_HFLT_CHK>) _param_com_arm_hardfault_check
+					(ParamBool<px4::params::COM_ARM_HFLT_CHK>) _param_com_arm_hardfault_check,
+					(ParamBool<px4::params::COM_ARM_WDG_CHK>) _param_com_arm_watchdog_check
 				       )
 };
