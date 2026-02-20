@@ -37,6 +37,10 @@ endif()
 
 include(cygwin_cygpath)
 
+# Keep dual-MCU secondary firmware flow explicit: disabled by default.
+set(PX4_ENABLE_SECONDARY_MCU OFF CACHE BOOL
+	"Enable secondary MCU firmware packaging/upload flow")
+
 add_executable(px4 ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
@@ -424,6 +428,9 @@ endif()
 if (TARGET parameters_xml AND TARGET airframes_xml)
 
 	string(REPLACE ".elf" ".px4" fw_package ${PX4_BINARY_DIR}/${FW_NAME})
+	set(UPLOAD_FIRMWARE_PRIMARY_FILE ${fw_package})
+	set(UPLOAD_FIRMWARE_SECONDARY_FILE "")
+	set(UPLOAD_FIRMWARE_FILES ${fw_package})
 
 	add_custom_command(
 		OUTPUT ${fw_package}
@@ -443,6 +450,85 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 		)
 
 	add_custom_target(px4_package ALL DEPENDS ${fw_package})
+
+	# optionally create secondary firmware package (for dual-MCU platforms)
+	set(PX4_SECONDARY_FIRMWARE_IMAGE "" CACHE FILEPATH "Optional secondary firmware image")
+	set(PX4_CUBERED_ARDUPILOT_DIR "$ENV{PX4_CUBERED_ARDUPILOT_DIR}" CACHE PATH
+		"Optional ArduPilot source tree used to build CubeRed secondary firmware")
+
+	if (PX4_ENABLE_SECONDARY_MCU)
+		set(fw_secondary_prototype ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware_secondary.prototype)
+		set(fw_secondary_git_identity ${PX4_SOURCE_DIR})
+		set(fw_secondary_metadata_json ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_secondary_metadata.json)
+		set(fw_secondary_metadata_dep "")
+
+		if (PX4_SECONDARY_FIRMWARE_IMAGE)
+			set(fw_secondary_image ${PX4_SECONDARY_FIRMWARE_IMAGE})
+		else()
+			set(fw_secondary_image ${PX4_BOARD_DIR}/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_secondary.bin)
+		endif()
+
+		set(fw_secondary_image_generated FALSE)
+
+		if ((NOT PX4_SECONDARY_FIRMWARE_IMAGE)
+		    AND (NOT EXISTS "${fw_secondary_image}")
+		    AND EXISTS "${fw_secondary_prototype}"
+		    AND ("${PX4_BOARD_VENDOR}" STREQUAL "cubepilot")
+		    AND ("${PX4_BOARD_MODEL}" STREQUAL "cubered")
+		    AND PX4_CUBERED_ARDUPILOT_DIR)
+
+			add_custom_command(
+				OUTPUT
+					${fw_secondary_image}
+					${fw_secondary_metadata_json}
+				COMMAND
+					${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/build_cubered_secondary_from_ardupilot.py
+						--ardupilot-dir ${PX4_CUBERED_ARDUPILOT_DIR}
+						--output ${fw_secondary_image}
+						--metadata-out ${fw_secondary_metadata_json}
+				DEPENDS
+					${PX4_SOURCE_DIR}/Tools/build_cubered_secondary_from_ardupilot.py
+				COMMENT "Building CubeRed secondary firmware from ${PX4_CUBERED_ARDUPILOT_DIR}"
+				VERBATIM
+				)
+
+			set(fw_secondary_image_generated TRUE)
+			set(fw_secondary_git_identity ${PX4_CUBERED_ARDUPILOT_DIR})
+			set(fw_secondary_metadata_dep ${fw_secondary_metadata_json})
+		endif()
+
+		if (EXISTS "${fw_secondary_prototype}" AND (EXISTS "${fw_secondary_image}" OR fw_secondary_image_generated))
+			string(REPLACE ".elf" "_secondary.px4" fw_package_secondary ${PX4_BINARY_DIR}/${FW_NAME})
+
+			add_custom_command(
+				OUTPUT ${fw_package_secondary}
+				COMMAND
+					${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
+						--prototype ${fw_secondary_prototype}
+						--git_identity ${fw_secondary_git_identity}
+						--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
+						--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
+						--image ${fw_secondary_image} > ${fw_package_secondary}
+				DEPENDS
+					${fw_secondary_image}
+					airframes_xml
+					parameters_xml
+					${fw_secondary_metadata_dep}
+				COMMENT "Creating ${fw_package_secondary}"
+				WORKING_DIRECTORY ${PX4_BINARY_DIR}
+				)
+
+			add_custom_target(px4_package_secondary ALL DEPENDS ${fw_package_secondary})
+			if (("${PX4_BOARD_VENDOR}" STREQUAL "cubepilot") AND ("${PX4_BOARD_MODEL}" STREQUAL "cubered"))
+				add_custom_target(cubepilot_cubered_secondary_package DEPENDS ${fw_package_secondary})
+			endif()
+			set(UPLOAD_FIRMWARE_SECONDARY_FILE ${fw_package_secondary})
+			list(APPEND UPLOAD_FIRMWARE_FILES ${fw_package_secondary})
+
+		elseif(EXISTS "${fw_secondary_prototype}" AND PX4_SECONDARY_FIRMWARE_IMAGE AND NOT EXISTS "${fw_secondary_image}")
+			message(FATAL_ERROR "Secondary firmware image not found: ${fw_secondary_image}")
+		endif()
+	endif()
 
 	# upload helper
 	# create upload target helper if NuttX USB CDCACM is present
