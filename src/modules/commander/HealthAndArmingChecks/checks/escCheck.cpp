@@ -140,11 +140,11 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 
 			uint8_t esc_nr = esc_index + 1;
 			/* EVENT
-				* @description
-				* <profile name="dev">
-				* This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
-				* </profile>
-				*/
+			 * @description
+			 * <profile name="dev">
+			 * This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
+			 * </profile>
+			 */
 			reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs, events::ID("check_escs_offline"),
 							events::Log::Critical, "ESC {1} offline", esc_nr);
 			snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", esc_nr);
@@ -206,13 +206,13 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 			}
 
 			/* EVENT
-				* @description
-				* {3}
-				*
-				* <profile name="dev">
-				* This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
-				* </profile>
-				*/
+			 * @description
+			 * {3}
+			 *
+			 * <profile name="dev">
+			 * This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
+			 * </profile>
+			 */
 			reporter.healthFailure<uint8_t, events::px4::enums::esc_fault_reason_t, events::px4::enums::suggested_action_t>(
 				NavModes::All, health_component_t::motors_escs, events::ID("check_failure_detector_arm_esc"),
 				events::Log::Critical, "ESC {1}: {2}", esc_index + 1, fault_reason_index, action);
@@ -291,11 +291,11 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 
 			if (_esc_undercurrent_hysteresis[i].get_state()) {
 				/* EVENT
-					* @description
-					* <profile name="dev">
-					* This check can be configured via <param>FD_ACT_EN</param> parameter.
-					* </profile>
-					*/
+				 * @description
+				 * <profile name="dev">
+				 * This check can be configured via <param>FD_ACT_EN</param> parameter.
+				 * </profile>
+				 */
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
 								events::ID("check_failure_detector_motor_uc"),
 								events::Log::Critical, "Motor {1} undercurrent detected", actuator_function_index + 1);
@@ -308,11 +308,11 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 
 			if (_esc_overcurrent_hysteresis[i].get_state()) {
 				/* EVENT
-					* @description
-					* <profile name="dev">
-					* This check can be configured via <param>FD_ACT_EN</param> parameter.
-					* </profile>
-					*/
+				 * @description
+				 * <profile name="dev">
+				 * This check can be configured via <param>FD_ACT_EN</param> parameter.
+				 * </profile>
+				 */
 				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::motors_escs,
 								events::ID("check_failure_detector_motor_oc"),
 								events::Log::Critical, "Motor {1} overcurrent detected", actuator_function_index + 1);
@@ -352,11 +352,11 @@ void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const
 
 		if (_esc_arm_hysteresis.get_state()) {
 			/* EVENT
-				* @description
-				* <profile name="dev">
-				* This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
-				* </profile>
-				*/
+			 * @description
+			 * <profile name="dev">
+			 * This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
+			 * </profile>
+			 */
 			reporter.healthFailure(NavModes::All, health_component_t::motors_escs,
 					       events::ID("check_escs_not_all_armed"),
 					       events::Log::Critical, "Not all ESCs are armed");
