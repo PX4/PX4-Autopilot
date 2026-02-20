@@ -168,6 +168,7 @@ struct RcvTopicsPubs {
 		{ORB_ID(@(sub['topic_simple']))}@('' if idx == sub['max_instances']-1 else ',')
 @[        end for]@
 	};
+	// Maps route_field values (arbitrary, not bounded to [0, max_instances)) to uORB instance indices
 	struct {
 		uint8_t assigned_ids[@(sub['max_instances'])] {};
 		uint8_t num_assigned {0};

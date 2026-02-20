@@ -152,4 +152,4 @@ subscriptions:
     type: px4_msgs::msg::AuxGlobalPosition
 
 # Create uORB::PublicationMulti
-subscriptions_multi:
+subscriptions_demux:
