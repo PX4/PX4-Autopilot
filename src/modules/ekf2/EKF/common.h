@@ -187,6 +187,7 @@ struct imuSample {
 };
 
 struct gnssSample {
+	uint32_t device_id{};
 	uint64_t    time_us{};    ///< timestamp of the measurement (uSec)
 	double      lat{};        ///< latitude (degrees)
 	double      lon{};        ///< longitude (degrees)
@@ -333,6 +334,10 @@ struct parameters {
 	float ekf2_gps_delay{110.0f};           ///< GPS measurement delay relative to the IMU (mSec)
 
 	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)
+	Vector3f gps_pos_body_p1{};
+	Vector3f gps_pos_body_p2{};
+	int32_t gps_device_id_p1{0};           ///< device ID of GPS antenna P1 (for offset selection)
+	int32_t gps_device_id_p2{0};           ///< device ID of GPS antenna P2 (for offset selection)
 
 	// position and velocity fusion
 	float ekf2_gps_v_noise{0.5f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
@@ -505,6 +510,14 @@ struct parameters {
 	const float auxvel_noise{0.5f};         ///< minimum observation noise, uses reported noise if greater (m/s)
 	const float auxvel_gate{5.0f};          ///< velocity fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_AUXVEL
+
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+	int32_t agp_ctrl{0};
+	int32_t agp_mode{0};
+	float agp_delay{0.0f};
+	float agp_noise{0.9f};
+	float agp_gate{3.0f};
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 
 };
 

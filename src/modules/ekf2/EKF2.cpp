@@ -69,6 +69,13 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #if defined(CONFIG_EKF2_AUXVEL)
 	_param_ekf2_avel_delay(_params->ekf2_avel_delay),
 #endif // CONFIG_EKF2_AUXVEL
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+	_param_ekf2_agp_ctrl(_params->agp_ctrl),
+	_param_ekf2_agp_mode(_params->agp_mode),
+	_param_ekf2_agp_delay(_params->agp_delay),
+	_param_ekf2_agp_noise(_params->agp_noise),
+	_param_ekf2_agp_gate(_params->agp_gate),
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 	_param_ekf2_gyr_noise(_params->ekf2_gyr_noise),
 	_param_ekf2_acc_noise(_params->ekf2_acc_noise),
 	_param_ekf2_gyr_b_noise(_params->ekf2_gyr_b_noise),
@@ -84,6 +91,17 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gps_pos_x(_params->gps_pos_body(0)),
 	_param_ekf2_gps_pos_y(_params->gps_pos_body(1)),
 	_param_ekf2_gps_pos_z(_params->gps_pos_body(2)),
+	_param_ekf2_gps_p1_x(_params->gps_pos_body_p1(0)),
+        _param_ekf2_gps_p1_y(_params->gps_pos_body_p1(1)),
+	_param_ekf2_gps_p1_z(_params->gps_pos_body_p1(2)),
+
+	_param_ekf2_gps_p2_x(_params->gps_pos_body_p2(0)),
+	_param_ekf2_gps_p2_y(_params->gps_pos_body_p2(1)),
+	_param_ekf2_gps_p2_z(_params->gps_pos_body_p2(2)),
+
+	_param_ekf2_gps_id_p1(_params->gps_device_id_p1),
+	_param_ekf2_gps_id_p2(_params->gps_device_id_p2),
+
 	_param_ekf2_gps_v_noise(_params->ekf2_gps_v_noise),
 	_param_ekf2_gps_p_noise(_params->ekf2_gps_p_noise),
 	_param_ekf2_gps_p_gate(_params->ekf2_gps_p_gate),
@@ -2439,6 +2457,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 					      && vehicle_gps_position.timestamp_sample != vehicle_gps_position.timestamp;
 
 		gnssSample gnss_sample{
+			.device_id = vehicle_gps_position.device_id,
 			.time_us = pps_compensation ? vehicle_gps_position.timestamp_sample : vehicle_gps_position.timestamp,
 			.lat = vehicle_gps_position.latitude_deg,
 			.lon = vehicle_gps_position.longitude_deg,

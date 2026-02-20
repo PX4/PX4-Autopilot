@@ -1,0 +1,29 @@
+# Run these in the PX4 shell (pxh>) after SITL is up (make px4_sitl_default).
+# Copy-paste each block, or run line by line.
+# Replace <that_id> with the device_id from listener vehicle_gps_position 1.
+# If you only have one GPS, use the same ID for both P1 and P2.
+
+# 1) Confirm the ID params exist
+param show EKF2_GPS_ID_P1
+param show EKF2_GPS_ID_P2
+
+# 2) Get the GPS device IDs (note device_id in the output)
+listener vehicle_gps_position 1
+
+# 3) Set the IDs (use the device_id you saw; same ID for both if only one GPS)
+param set EKF2_GPS_ID_P1 <that_id>
+param set EKF2_GPS_ID_P2 <that_id>
+param save
+
+# 4) Set antenna offsets
+param set EKF2_GPS_P1_X 0.3
+param set EKF2_GPS_P1_Y 0.0
+param set EKF2_GPS_P1_Z 0.0
+param set EKF2_GPS_P2_X -0.3
+param set EKF2_GPS_P2_Y 0.0
+param set EKF2_GPS_P2_Z 0.0
+param save
+
+# 5) Restart EKF2 (SITL has no "reboot" command)
+ekf2 stop
+ekf2 start

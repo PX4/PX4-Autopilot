@@ -494,6 +494,14 @@ private:
 		_param_ekf2_avel_delay,	///< auxiliary velocity measurement delay relative to the IMU (mSec)
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+		(ParamExtInt<px4::params::EKF2_AGP_CTRL>) _param_ekf2_agp_ctrl,
+		(ParamExtInt<px4::params::EKF2_AGP_MODE>) _param_ekf2_agp_mode,
+		(ParamExtFloat<px4::params::EKF2_AGP_DELAY>) _param_ekf2_agp_delay,
+		(ParamExtFloat<px4::params::EKF2_AGP_NOISE>) _param_ekf2_agp_noise,
+		(ParamExtFloat<px4::params::EKF2_AGP_GATE>) _param_ekf2_agp_gate,
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
 		(ParamExtFloat<px4::params::EKF2_GYR_NOISE>)
 		_param_ekf2_gyr_noise,	///< IMU angular rate noise used for covariance prediction (rad/sec)
 		(ParamExtFloat<px4::params::EKF2_ACC_NOISE>)
@@ -519,6 +527,17 @@ private:
 		(ParamExtFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps_pos_x,
 		(ParamExtFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps_pos_y,
 		(ParamExtFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps_pos_z,
+
+		(ParamExtFloat<px4::params::EKF2_GPS_P1_X>) _param_ekf2_gps_p1_x,
+		(ParamExtFloat<px4::params::EKF2_GPS_P1_Y>) _param_ekf2_gps_p1_y,
+		(ParamExtFloat<px4::params::EKF2_GPS_P1_Z>) _param_ekf2_gps_p1_z,
+
+		(ParamExtFloat<px4::params::EKF2_GPS_P2_X>) _param_ekf2_gps_p2_x,
+		(ParamExtFloat<px4::params::EKF2_GPS_P2_Y>) _param_ekf2_gps_p2_y,
+		(ParamExtFloat<px4::params::EKF2_GPS_P2_Z>) _param_ekf2_gps_p2_z,
+
+		(ParamExtInt<px4::params::EKF2_GPS_ID_P1>) _param_ekf2_gps_id_p1,
+		(ParamExtInt<px4::params::EKF2_GPS_ID_P2>) _param_ekf2_gps_id_p2,
 
 		(ParamExtFloat<px4::params::EKF2_GPS_V_NOISE>) _param_ekf2_gps_v_noise,
 		(ParamExtFloat<px4::params::EKF2_GPS_P_NOISE>) _param_ekf2_gps_p_noise,
