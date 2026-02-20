@@ -90,7 +90,7 @@ public:
 	using ActuatorVector = matrix::Vector<float, NUM_ACTUATORS>;
 	using ActuatorBitmask = uint32_t;
 
-	static_assert(NUM_ACTUATORS <= std::numeric_limits<ActuatorBitmask>::digits,
+	static_assert(NUM_ACTUATORS <= 8 * sizeof(ActuatorBitmask),
 		      "NUM_ACTUATORS exceeds the number of bits available in the mask type.");
 
 	enum class FlightPhase {
