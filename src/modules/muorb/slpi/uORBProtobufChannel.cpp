@@ -115,6 +115,9 @@ void uORB::ProtobufChannel::keepalive_thread_func(void *ptr)
 {
 	PX4_INFO("muorb keepalive thread running");
 
+	// Give the system time to initialize before monitoring keepalives
+	px4_sleep(4);
+
 	// Delete any keepalive fail file that may exist from a previous error
 	struct stat buffer;
 
@@ -400,9 +403,9 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		uORB::Manager::get_instance()->set_uorb_communicator(
 			uORB::ProtobufChannel::GetInstance());
 
-		px4::WorkQueueManagerStart();
-
 		param_init();
+
+		px4::WorkQueueManagerStart();
 
 		uORB::ProtobufChannel::GetInstance()->RegisterSendHandler(slpi_send_aggregated_topics);
 
