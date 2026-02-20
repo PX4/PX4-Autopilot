@@ -88,6 +88,10 @@ public:
 
 	using EffectivenessMatrix = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>;
 	using ActuatorVector = matrix::Vector<float, NUM_ACTUATORS>;
+	using ActuatorBitmask = uint32_t;
+
+	static_assert(NUM_ACTUATORS <= 8 * sizeof(ActuatorBitmask),
+		      "NUM_ACTUATORS exceeds the number of bits available in the mask type.");
 
 	enum class FlightPhase {
 		HOVER_FLIGHT = 0,
@@ -201,7 +205,7 @@ public:
 	/**
 	 * Get a bitmask of motors to be stopped
 	 */
-	virtual uint32_t getStoppedMotors() const { return _stopped_motors_mask; }
+	virtual ActuatorBitmask getStoppedMotors() const { return _stopped_motors_mask; }
 
 	/**
 	 * Fill in the unallocated torque and thrust, customized by effectiveness type.
@@ -215,9 +219,9 @@ public:
 	 * @param stoppable_motors_mask mask of motors that should be stopped if there's no thrust demand
 	 * @param actuator_sp outcome of the allocation to determine if the motor should be stopped
 	 */
-	virtual void stopMaskedMotorsWithZeroThrust(uint32_t stoppable_motors_mask, ActuatorVector &actuator_sp);
+	virtual void stopMaskedMotorsWithZeroThrust(ActuatorBitmask stoppable_motors_mask, ActuatorVector &actuator_sp);
 
 protected:
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
-	uint32_t _stopped_motors_mask{0};
+	ActuatorBitmask _stopped_motors_mask{0};
 };
