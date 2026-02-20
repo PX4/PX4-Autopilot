@@ -224,7 +224,7 @@ private:
 
 	Failsafe		_failsafe_instance{this};
 	FailsafeBase		&_failsafe{_failsafe_instance};
-	FailureDetector		_failure_detector{this, _health_and_arming_checks};
+	FailureDetector		_failure_detector{this};
 	HealthAndArmingChecks	_health_and_arming_checks{this, _vehicle_status};
 	MulticopterThrowLaunch  _multicopter_throw_launch{this};
 	Safety			_safety{};
