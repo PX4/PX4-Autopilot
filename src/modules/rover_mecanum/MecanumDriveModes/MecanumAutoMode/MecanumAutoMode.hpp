@@ -80,10 +80,11 @@ private:
 	 * @param max_speed Maximum speed setpoint [m/s]
 	 * @param speed_red Tuning parameter for the speed reduction during waypoint transition.
 	 * @param curr_wp_type Type of the current waypoint.
+	 * @param curr_wp_valid validity flag of the current waypoint.
 	 * @return Speed setpoint [m/s].
 	 */
 	float arrivalSpeed(const float cruising_speed, const float waypoint_transition_angle, const float max_speed,
-			   const float speed_red, int curr_wp_type);
+			   const float speed_red, const int curr_wp_type, const bool curr_wp_valid);
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
