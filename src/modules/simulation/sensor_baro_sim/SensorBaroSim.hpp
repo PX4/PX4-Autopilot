@@ -48,9 +48,11 @@
 
 using namespace time_literals;
 
-class SensorBaroSim : public ModuleBase<SensorBaroSim>, public ModuleParams, public px4::ScheduledWorkItem
+class SensorBaroSim : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SensorBaroSim();
 	~SensorBaroSim() override;
 

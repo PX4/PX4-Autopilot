@@ -85,8 +85,8 @@ PX4_GZ_MODEL_POSE=0,0,2.2 PX4_GZ_WORLD=moving_platform make px4_sitl gz_standard
 
 The plugin can be configured with the following environment variables:
 
- - `PX4_GZ_PLATFORM_VEL`: Platform speed (m/s).
- - `PX4_GZ_PLATFORM_HEADING_DEG`: Platform heading and direction of velocity (degrees). 0 = east, positive direction is counterclockwise.
+- `PX4_GZ_PLATFORM_VEL`: Platform speed (m/s).
+- `PX4_GZ_PLATFORM_HEADING_DEG`: Platform heading and direction of velocity (degrees). 0 = east, positive direction is counterclockwise.
 
 [PX4-gazebo-models/main/worlds/moving_platform.sdf](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/moving_platform.sdf)
 

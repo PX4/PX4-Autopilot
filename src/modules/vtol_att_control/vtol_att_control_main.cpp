@@ -54,6 +54,8 @@
 using namespace matrix;
 using namespace time_literals;
 
+ModuleBase::Descriptor VtolAttitudeControl::desc{task_spawn, custom_command, print_usage};
+
 VtolAttitudeControl::VtolAttitudeControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
@@ -74,7 +76,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 		_vtol_type = new Standard(this);
 
 	} else {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 	}
 
 	_flaps_setpoint_pub.advertise();
@@ -285,7 +287,7 @@ VtolAttitudeControl::Run()
 	if (should_exit()) {
 		_vehicle_torque_setpoint_virtual_fw_sub.unregisterCallback();
 		_vehicle_torque_setpoint_virtual_mc_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -307,7 +309,7 @@ VtolAttitudeControl::Run()
 			_initialized = true;
 
 		} else {
-			exit_and_cleanup();
+			exit_and_cleanup(desc);
 			return;
 		}
 	}
@@ -500,8 +502,8 @@ VtolAttitudeControl::task_spawn(int argc, char *argv[])
 	VtolAttitudeControl *instance = new VtolAttitudeControl();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -512,8 +514,8 @@ VtolAttitudeControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -546,5 +548,5 @@ fw_att_control is the fixed wing attitude controller.
 
 int vtol_att_control_main(int argc, char *argv[])
 {
-	return VtolAttitudeControl::main(argc, argv);
+	return ModuleBase::main(VtolAttitudeControl::desc, argc, argv);
 }

@@ -19,7 +19,7 @@ if DRIVERS_VTXTABLE
 		default n if !(VTXTABLE_CONFIG_FILE != "")
 
 	config VTXTABLE_AUX_MAP
-		string "VTX Auxiliary Map"
+		bool "VTX Auxiliary Map"
 		default n
 		---help---
 			Enable the AUX map for mapping AUX channel ranges to VTX

@@ -68,6 +68,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
    ```
 
 2. Edit **mavros_plugins.xml** (in **workspace/src/mavros/mavros_extras**) and add the following lines:
+
    ```xml
    <class name="keyboard_command" type="mavros::extra_plugins::KeyboardCommandPlugin" base_class_type="mavros::plugin::PluginBase">
         <description>Accepts keyboard command.</description>
@@ -75,10 +76,11 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
    ```
 
 3. Edit **CMakeLists.txt** (in **workspace/src/mavros/mavros_extras**) and add the following line in `add_library`.
+
    ```cmake
-   add_library( 
+   add_library(
    ...
-     src/plugins/keyboard_command.cpp 
+     src/plugins/keyboard_command.cpp
    )
    ```
 
@@ -148,6 +150,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
 4. Edit **mavlink_receiver.cpp** (in **PX4-Autopilot/src/modules/mavlink**).
    Саме тут PX4 отримує повідомлення MAVLink від ROS, і публікує його як тему uORB.
+
    ```cpp
    ...
    void MavlinkReceiver::handle_message(mavlink_message_t *msg)
@@ -227,7 +230,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
        int error_counter = 0;
 
-       for (int i = 0; i < 10; i++)
+      for (int i = 0; i < 10; i++)
        {
            int poll_ret = px4_poll(fds, 1, 1000);
 
@@ -264,10 +267,10 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
    ```
     menuconfig MODULES_KEY_RECEIVER
-    bool "key_receiver"
-    default n
-    ---help---
-    	Enable support for key_receiver
+   bool "key_receiver"
+   default n
+   ---help---
+   	Enable support for key_receiver
 
    ```
 
@@ -308,6 +311,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 ### Збірка для PX4
 
 1. Очистіть попередньо зібраний каталог PX4-Autopilot. In the root of **PX4-Autopilot** directory:
+
    ```sh
    make clean
    ```
@@ -348,6 +352,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
 1. Введіть оболонку Pixhawk через UDP.
    Замініть xxx.xx.xxx.xxx своїм IP.
+
    ```sh
    cd PX4-Autopilot/Tools
    ./mavlink_shell.py xxx.xx.xxx.xxx:14557 --baudrate 57600

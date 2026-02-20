@@ -81,9 +81,11 @@ struct LoggerSubscription : public uORB::SubscriptionInterval {
 	uint8_t msg_id{MSG_ID_INVALID};
 };
 
-class Logger : public ModuleBase<Logger>, public ModuleParams
+class Logger : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	enum class LogMode {
 		while_armed = 0,
 		boot_until_disarm,
@@ -113,6 +115,9 @@ public:
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Logger *instantiate(int argc, char *argv[]);

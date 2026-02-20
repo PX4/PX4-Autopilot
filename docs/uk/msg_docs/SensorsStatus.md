@@ -1,8 +1,32 @@
+---
+pageClass: is-wide-page
+---
+
 # SensorsStatus (повідомлення UORB)
 
 Метрики перевірки датчика. Це значення буде нульовим для датчика, який є первинним або незаповненим.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorsStatus.msg)
+**TOPICS:** sensors_status_baro sensors_status_mag
+
+## Fields
+
+| Назва                                                       | Тип          | Unit [Frame] | Range/Enum | Опис                                                      |
+| ----------------------------------------------------------- | ------------ | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| timestamp                                                   | `uint64`     |                                                                  |            | time since system start (microseconds) |
+| device_id_primary | `uint32`     |                                                                  |            | current primary device id for reference                   |
+| device_ids                             | `uint32[4]`  |                                                                  |            |                                                           |
+| inconsistency                                               | `float32[4]` |                                                                  |            | magnitude of difference between sensor instance and mean  |
+| healthy                                                     | `bool[4]`    |                                                                  |            | sensor healthy                                            |
+| priority                                                    | `uint8[4]`   |                                                                  |            |                                                           |
+| enabled                                                     | `bool[4]`    |                                                                  |            |                                                           |
+| external                                                    | `bool[4]`    |                                                                  |            |                                                           |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorsStatus.msg)
+
+:::details
+Click here to see original file
 
 ```c
 #
@@ -20,5 +44,6 @@ bool[4] enabled
 bool[4] external
 
 # TOPICS sensors_status_baro sensors_status_mag
-
 ```
+
+:::

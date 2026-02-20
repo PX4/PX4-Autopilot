@@ -35,6 +35,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor CameraFeedback::desc{task_spawn, custom_command, print_usage};
+
 CameraFeedback::CameraFeedback() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -64,7 +66,7 @@ CameraFeedback::Run()
 {
 	if (should_exit()) {
 		_trigger_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -159,8 +161,8 @@ CameraFeedback::task_spawn(int argc, char *argv[])
 	CameraFeedback *instance = new CameraFeedback();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -171,8 +173,8 @@ CameraFeedback::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -225,5 +227,5 @@ from the `CameraTrigger` and position information from the vehicle.
 
 extern "C" __EXPORT int camera_feedback_main(int argc, char *argv[])
 {
-	return CameraFeedback::main(argc, argv);
+	return ModuleBase::main(CameraFeedback::desc, argc, argv);
 }

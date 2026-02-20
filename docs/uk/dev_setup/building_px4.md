@@ -39,16 +39,6 @@ Navigate into the **PX4-Autopilot** directory and start [Gazebo SITL](../sim_gaz
 make px4_sitl gz_x500
 ```
 
-:::details
-If you installed Gazebo Classic
-Start  [Gazebo Classic SITL](../sim_gazebo_classic/index.md) using the following command:
-
-```sh
-make px4_sitl gazebo-classic
-```
-
-:::
-
 This will bring up the PX4 console:
 
 ![PX4 Console](../../assets/toolchain/console_gazebo.png)
@@ -88,6 +78,16 @@ For example, to build for [Pixhawk 4](../flight_controller/pixhawk4.md) hardware
 cd PX4-Autopilot
 make px4_fmu-v5_default
 ```
+
+:::tip
+You can also build using the [px4-dev Docker container](../test_and_ci/docker.md) without installing the toolchain locally.
+From the PX4-Autopilot directory:
+
+```sh
+./Tools/docker_run.sh 'make px4_fmu-v5_default'
+```
+
+:::
 
 Успішне виконання виведе в консолі приблизно наступне в кінці:
 
@@ -145,7 +145,8 @@ The following list shows the build commands for the [Pixhawk standard](../flight
 - [Pixhawk 1 (FMUv2)](../flight_controller/pixhawk.md): `make px4_fmu-v2_default`
 
   :::warning
-  You **must** use a supported version of GCC to build this board (e.g. the same as used by [CI/docker](../test_and_ci/docker.md)) or remove modules from the build. Збірка прошивки за допомогою компілятора GCC, який не підтримується може зазнати невдачі, оскільки обсяг памʼяті, який займає PX4, близький до ліміту пам'яті плати в 1 МБ.
+  You **must** use a supported version of GCC to build this board (e.g. the `gcc-arm-none-eabi` package from the current Ubuntu LTS, which is the same toolchain used by CI) or remove modules from the build.
+  Збірка прошивки за допомогою компілятора GCC, який не підтримується може зазнати невдачі, оскільки обсяг памʼяті, який займає PX4, близький до ліміту пам'яті плати в 1 МБ.
 
 :::
 
@@ -211,7 +212,7 @@ The `region 'flash' overflowed by XXXX bytes` error indicates that the firmware 
 This is common for `make px4_fmu-v2_default` builds, where the flash size is limited to 1MB.
 
 If you're building the _vanilla_ master branch, the most likely cause is using an unsupported version of GCC.
-In this case, install the version specified in the [Developer Toolchain](../dev_setup/dev_env.md) instructions.
+In this case, install the `gcc-arm-none-eabi` package from the current Ubuntu LTS as described in the [Developer Toolchain](../dev_setup/dev_env.md) instructions.
 
 If building your own branch, it is possible that you have increased the firmware size over the 1MB limit.
 В цьому випадку вам доведеться видалити всі не потрібні при цій збірці модулі та драйвера.
@@ -224,7 +225,7 @@ MacOS дозволяє тримати за замовчуванням відкр
 The build toolchain will then report `Too many open files` for many files, as shown below:
 
 ```sh
-/usr/local/Cellar/gcc-arm-none-eabi/20171218/bin/../lib/gcc/arm-none-eabi/7.2.1/../../../../arm-none-eabi/bin/ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
+arm-none-eabi-ld: cannot find NuttX/nuttx/fs/libfs.a: Too many open files
 ```
 
 Рішення полягає в збільшенні максимально дозволеної кількості відкритих файлів (наприклад, до 300).
@@ -247,34 +248,9 @@ xcode-select --install
 sudo ln -s /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/* /usr/local/include/
 ```
 
-### Ubuntu 18.04: Помилки компіляції пов'язані з arm_none_eabi_gcc
-
-Build issues related to `arm_none_eabi_gcc`may be due to a broken g++ toolchain installation.
-Ви можете перевірити чи це так, перевіряючи чи є відсутні залежності:
-
-```sh
-arm-none-eabi-gcc --version
-arm-none-eabi-g++ --version
-arm-none-eabi-gdb --version
-arm-none-eabi-size --version
-```
-
-Приклад виводу bash з відсутніми залежностями:
-
-```sh
-arm-none-eabi-gdb --version
-arm-none-eabi-gdb: command not found
-```
-
-This can be resolved by removing and [reinstalling the compiler](https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa).
-
-### Ubuntu 18.04: "Visual Studio Code не може спостерігати за змінами в коді у великому робочому середовищі
-
-See [Visual Studio Code IDE (VSCode) > Troubleshooting](../dev_setup/vscode.md#troubleshooting).
-
 ### Не вдалося імпортувати пакети Python
 
-"Failed to import" errors when running the `make px4_sitl jmavsim` command indicates that some Python packages are not installed (where expected).
+"Failed to import" errors when running the `make px4_sitl gz_x500` command indicates that some Python packages are not installed (where expected).
 
 ```sh
 Failed to import jinja2: No module named 'jinja2'
@@ -282,12 +258,12 @@ You may need to install it using:
     pip3 install --user jinja2
 ```
 
-Якщо ці залежності вже встановлені, це може бути тому, що на комп'ютері є декілька версій Python (наприклад Python 2.7.16, Python 3.8.3) і модуль не існує в версії, яка використовується в інструментарії збірки.
+If you have already installed these dependencies this may be because there is more than one Python version on the computer (e.g. Python 2.7.16 and Python 3.8.3), and the module is not present in the version used by the build toolchain.
 
-Ви зможете виправити це явним чином встановивши залежності як показано:
+You should be able to fix this by installing the dependencies from the repository's requirements file:
 
 ```sh
-pip3 install --user pyserial empty toml numpy pandas jinja2 pyyaml pyros-genmsg packaging
+pip3 install --user -r Tools/setup/requirements.txt
 ```
 
 ## Цілі збірки PX4

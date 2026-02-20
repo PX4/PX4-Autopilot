@@ -44,9 +44,11 @@
 
 using namespace time_literals;
 
-class PPSCapture : public ModuleBase<PPSCapture>, public px4::ScheduledWorkItem
+class PPSCapture : public ModuleBase, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	PPSCapture();
 	virtual ~PPSCapture();
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
 #include <pthread.h>
 #include <termios.h>
 
+#include <drivers/drv_hrt.h>
 #include "uORB/uORBCommunicator.hpp"
 #include "mUORBAggregator.hpp"
 
@@ -154,12 +155,25 @@ public:
 
 	bool DebugEnabled()	{ return _debug; }
 
-	void SendAggregateData()
+	void SendAggregateData(hrt_abstime timeout);
+
+	void PrintStatus();
+
+	void UpdateRxStatistics(uint32_t cnt)
 	{
-		pthread_mutex_lock(&_tx_mutex);
-		_Aggregator.SendData();
-		pthread_mutex_unlock(&_tx_mutex);
+		_total_bytes_received += cnt;
+		_bytes_received_since_last_status_check += cnt;
 	}
+
+	void RecordAggregateSend(int length)
+	{
+		_total_bytes_sent += length;
+		_bytes_sent_since_last_status_check += length;
+	}
+
+	static void keepalive_thread_func(void *ptr);
+
+	static void keepalive() { _last_keepalive = hrt_absolute_time(); }
 
 private:
 	/**
@@ -172,6 +186,17 @@ private:
 	static pthread_mutex_t                      _tx_mutex;
 	static pthread_mutex_t                      _rx_mutex;
 	static bool                                 _debug;
+
+	/*
+	 * Status
+	 */
+	static uint32_t                             _total_bytes_sent;
+	static uint32_t                             _bytes_sent_since_last_status_check;
+	static uint32_t                             _total_bytes_received;
+	static uint32_t                             _bytes_received_since_last_status_check;
+	static hrt_abstime                          _last_status_check_time;
+	static hrt_abstime                          _last_keepalive;
+	static char                                 _keepalive_filename[];
 
 	/**
 	 * Class Members

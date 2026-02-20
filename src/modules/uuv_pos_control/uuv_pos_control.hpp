@@ -80,9 +80,11 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class UUVPOSControl: public ModuleBase<UUVPOSControl>, public ModuleParams, public px4::WorkItem
+class UUVPOSControl: public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	UUVPOSControl();
 	~UUVPOSControl();
 

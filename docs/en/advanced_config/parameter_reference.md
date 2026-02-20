@@ -266,6 +266,166 @@ This parameter defines the squawk code. Value should be between 0000 and 7777.
 
 ## Actuator Outputs
 
+### PCA9685_CENT1 (`INT32`) {#PCA9685_CENT1}
+
+PCA9685 Output Channel 1 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT10 (`INT32`) {#PCA9685_CENT10}
+
+PCA9685 Output Channel 10 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT11 (`INT32`) {#PCA9685_CENT11}
+
+PCA9685 Output Channel 11 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT12 (`INT32`) {#PCA9685_CENT12}
+
+PCA9685 Output Channel 12 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT13 (`INT32`) {#PCA9685_CENT13}
+
+PCA9685 Output Channel 13 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT14 (`INT32`) {#PCA9685_CENT14}
+
+PCA9685 Output Channel 14 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT15 (`INT32`) {#PCA9685_CENT15}
+
+PCA9685 Output Channel 15 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT16 (`INT32`) {#PCA9685_CENT16}
+
+PCA9685 Output Channel 16 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT2 (`INT32`) {#PCA9685_CENT2}
+
+PCA9685 Output Channel 2 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT3 (`INT32`) {#PCA9685_CENT3}
+
+PCA9685 Output Channel 3 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT4 (`INT32`) {#PCA9685_CENT4}
+
+PCA9685 Output Channel 4 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT5 (`INT32`) {#PCA9685_CENT5}
+
+PCA9685 Output Channel 5 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT6 (`INT32`) {#PCA9685_CENT6}
+
+PCA9685 Output Channel 6 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT7 (`INT32`) {#PCA9685_CENT7}
+
+PCA9685 Output Channel 7 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT8 (`INT32`) {#PCA9685_CENT8}
+
+PCA9685 Output Channel 8 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT9 (`INT32`) {#PCA9685_CENT9}
+
+PCA9685 Output Channel 9 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
 ### PCA9685_DIS1 (`INT32`) {#PCA9685_DIS1}
 
 PCA9685 Output Channel 1 Disarmed Value.
@@ -4957,6 +5117,50 @@ Note that non-motor outputs might already be active in prearm state if COM_PREAR
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 1000     |           | 0       |
 
+### SIM_GZ_EC_DIS13 (`INT32`) {#SIM_GZ_EC_DIS13}
+
+SIM_GZ ESC 13 Disarmed Value.
+
+This is the output value that is set when not armed.
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 0       |
+
+### SIM_GZ_EC_DIS14 (`INT32`) {#SIM_GZ_EC_DIS14}
+
+SIM_GZ ESC 14 Disarmed Value.
+
+This is the output value that is set when not armed.
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 0       |
+
+### SIM_GZ_EC_DIS15 (`INT32`) {#SIM_GZ_EC_DIS15}
+
+SIM_GZ ESC 15 Disarmed Value.
+
+This is the output value that is set when not armed.
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 0       |
+
+### SIM_GZ_EC_DIS16 (`INT32`) {#SIM_GZ_EC_DIS16}
+
+SIM_GZ ESC 16 Disarmed Value.
+
+This is the output value that is set when not armed.
+Note that non-motor outputs might already be active in prearm state if COM_PREARM_MODE is set.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 0       |
+
 ### SIM_GZ_EC_DIS2 (`INT32`) {#SIM_GZ_EC_DIS2}
 
 SIM_GZ ESC 2 Disarmed Value.
@@ -5084,6 +5288,50 @@ SIM_GZ ESC 12 Failsafe Value.
 
 This is the output value that is set when in failsafe mode.
 When set to -1 (default), the value depends on the function (see SIM_GZ_EC_FUNC12).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 1000     |           | -1      |
+
+### SIM_GZ_EC_FAIL13 (`INT32`) {#SIM_GZ_EC_FAIL13}
+
+SIM_GZ ESC 13 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+When set to -1 (default), the value depends on the function (see SIM_GZ_EC_FUNC13).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 1000     |           | -1      |
+
+### SIM_GZ_EC_FAIL14 (`INT32`) {#SIM_GZ_EC_FAIL14}
+
+SIM_GZ ESC 14 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+When set to -1 (default), the value depends on the function (see SIM_GZ_EC_FUNC14).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 1000     |           | -1      |
+
+### SIM_GZ_EC_FAIL15 (`INT32`) {#SIM_GZ_EC_FAIL15}
+
+SIM_GZ ESC 15 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+When set to -1 (default), the value depends on the function (see SIM_GZ_EC_FUNC15).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 1000     |           | -1      |
+
+### SIM_GZ_EC_FAIL16 (`INT32`) {#SIM_GZ_EC_FAIL16}
+
+SIM_GZ ESC 16 Failsafe Value.
+
+This is the output value that is set when in failsafe mode.
+When set to -1 (default), the value depends on the function (see SIM_GZ_EC_FUNC16).
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -5395,6 +5643,290 @@ The default failsafe value is set according to the selected function:
 SIM_GZ ESC 12 Output Function.
 
 Select what should be output on SIM_GZ ESC 12.
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### SIM_GZ_EC_FUNC13 (`INT32`) {#SIM_GZ_EC_FUNC13}
+
+SIM_GZ ESC 13 Output Function.
+
+Select what should be output on SIM_GZ ESC 13.
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### SIM_GZ_EC_FUNC14 (`INT32`) {#SIM_GZ_EC_FUNC14}
+
+SIM_GZ ESC 14 Output Function.
+
+Select what should be output on SIM_GZ ESC 14.
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### SIM_GZ_EC_FUNC15 (`INT32`) {#SIM_GZ_EC_FUNC15}
+
+SIM_GZ ESC 15 Output Function.
+
+Select what should be output on SIM_GZ ESC 15.
+The default failsafe value is set according to the selected function:
+
+- 'Min' for ConstantMin
+- 'Max' for ConstantMax
+- 'Max' for Parachute
+- ('Max'+'Min')/2 for Servos
+- 'Disarmed' for the rest
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Constant Min
+- `2`: Constant Max
+- `101`: Motor 1
+- `102`: Motor 2
+- `103`: Motor 3
+- `104`: Motor 4
+- `105`: Motor 5
+- `106`: Motor 6
+- `107`: Motor 7
+- `108`: Motor 8
+- `109`: Motor 9
+- `110`: Motor 10
+- `111`: Motor 11
+- `112`: Motor 12
+- `201`: Servo 1
+- `202`: Servo 2
+- `203`: Servo 3
+- `204`: Servo 4
+- `205`: Servo 5
+- `206`: Servo 6
+- `207`: Servo 7
+- `208`: Servo 8
+- `301`: Peripheral via Actuator Set 1
+- `302`: Peripheral via Actuator Set 2
+- `303`: Peripheral via Actuator Set 3
+- `304`: Peripheral via Actuator Set 4
+- `305`: Peripheral via Actuator Set 5
+- `306`: Peripheral via Actuator Set 6
+- `400`: Landing Gear
+- `401`: Parachute
+- `402`: RC Roll
+- `403`: RC Pitch
+- `404`: RC Throttle
+- `405`: RC Yaw
+- `406`: RC Flaps
+- `407`: RC AUX 1
+- `408`: RC AUX 2
+- `409`: RC AUX 3
+- `410`: RC AUX 4
+- `411`: RC AUX 5
+- `412`: RC AUX 6
+- `420`: Gimbal Roll
+- `421`: Gimbal Pitch
+- `422`: Gimbal Yaw
+- `430`: Gripper
+- `440`: Landing Gear Wheel
+- `450`: IC Engine Ignition
+- `451`: IC Engine Throttle
+- `452`: IC Engine Choke
+- `453`: IC Engine Starter
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### SIM_GZ_EC_FUNC16 (`INT32`) {#SIM_GZ_EC_FUNC16}
+
+SIM_GZ ESC 16 Output Function.
+
+Select what should be output on SIM_GZ ESC 16.
 The default failsafe value is set according to the selected function:
 
 - 'Min' for ConstantMin
@@ -6069,6 +6601,46 @@ Maxmimum output value (when not disarmed).
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 1000     |           | 1000    |
 
+### SIM_GZ_EC_MAX13 (`INT32`) {#SIM_GZ_EC_MAX13}
+
+SIM_GZ ESC 13 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 1000    |
+
+### SIM_GZ_EC_MAX14 (`INT32`) {#SIM_GZ_EC_MAX14}
+
+SIM_GZ ESC 14 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 1000    |
+
+### SIM_GZ_EC_MAX15 (`INT32`) {#SIM_GZ_EC_MAX15}
+
+SIM_GZ ESC 15 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 1000    |
+
+### SIM_GZ_EC_MAX16 (`INT32`) {#SIM_GZ_EC_MAX16}
+
+SIM_GZ ESC 16 Maximum Value.
+
+Maxmimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 1000    |
+
 ### SIM_GZ_EC_MAX2 (`INT32`) {#SIM_GZ_EC_MAX2}
 
 SIM_GZ ESC 2 Maximum Value.
@@ -6189,6 +6761,46 @@ Minimum output value (when not disarmed).
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 1000     |           | 0       |
 
+### SIM_GZ_EC_MIN13 (`INT32`) {#SIM_GZ_EC_MIN13}
+
+SIM_GZ ESC 13 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 0       |
+
+### SIM_GZ_EC_MIN14 (`INT32`) {#SIM_GZ_EC_MIN14}
+
+SIM_GZ ESC 14 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 0       |
+
+### SIM_GZ_EC_MIN15 (`INT32`) {#SIM_GZ_EC_MIN15}
+
+SIM_GZ ESC 15 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 0       |
+
+### SIM_GZ_EC_MIN16 (`INT32`) {#SIM_GZ_EC_MIN16}
+
+SIM_GZ ESC 16 Minimum Value.
+
+Minimum output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1000     |           | 0       |
+
 ### SIM_GZ_EC_MIN2 (`INT32`) {#SIM_GZ_EC_MIN2}
 
 SIM_GZ ESC 2 Minimum Value.
@@ -6290,10 +6902,14 @@ Note: this is only useful for servos.
 - `9`: SIM_GZ ESC 10
 - `10`: SIM_GZ ESC 11
 - `11`: SIM_GZ ESC 12
+- `12`: SIM_GZ ESC 13
+- `13`: SIM_GZ ESC 14
+- `14`: SIM_GZ ESC 15
+- `15`: SIM_GZ ESC 16
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 4095     |           | 0       |
+| &nbsp; | 0        | 65535    |           | 0       |
 
 ### SIM_GZ_SV_DIS1 (`INT32`) {#SIM_GZ_SV_DIS1}
 
@@ -14949,6 +15565,18 @@ A value of -1 means to use the board default.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | -1      |
 
+### BAT1_I_FILT (`FLOAT`) {#BAT1_I_FILT}
+
+Battery 1 current filter time constant.
+
+Low-pass filter time constant for the battery current ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
+
 ### BAT1_I_OVERWRITE (`FLOAT`) {#BAT1_I_OVERWRITE}
 
 Battery 1 idle current overwrite.
@@ -15081,6 +15709,18 @@ it drops off to a voltage level damaging the cells.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          | 0.01      | 3.6     | V    |
 
+### BAT1_V_FILT (`FLOAT`) {#BAT1_V_FILT}
+
+Battery 1 voltage filter time constant.
+
+Low-pass filter time constant for the battery voltage ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
+
 ### BAT2_A_PER_V (`FLOAT`) {#BAT2_A_PER_V}
 
 Battery 2 current per volt (A/V).
@@ -15113,6 +15753,18 @@ A value of -1 means to use the board default.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | -1      |
+
+### BAT2_I_FILT (`FLOAT`) {#BAT2_I_FILT}
+
+Battery 2 current filter time constant.
+
+Low-pass filter time constant for the battery current ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
 
 ### BAT2_I_OVERWRITE (`FLOAT`) {#BAT2_I_OVERWRITE}
 
@@ -15245,6 +15897,18 @@ it drops off to a voltage level damaging the cells.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          | 0.01      | 3.6     | V    |
+
+### BAT2_V_FILT (`FLOAT`) {#BAT2_V_FILT}
+
+Battery 2 voltage filter time constant.
+
+Low-pass filter time constant for the battery voltage ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
 
 ### BAT3_CAPACITY (`FLOAT`) {#BAT3_CAPACITY}
 
@@ -15909,6 +16573,25 @@ Arm switch is a momentary button.
 | ------ | -------- | -------- | --------- | ------------ | ---- |
 | &nbsp; |          |          |           | Disabled (0) |
 
+### COM_ARM_TRAFF (`INT32`) {#COM_ARM_TRAFF}
+
+Enable Traffic Avoidance system detection check.
+
+This check detects if a traffic avoidance system (ADSB/FLARM transponder)
+is missing. Depending on the value of the parameter, the check can be
+disabled, warn only, or deny arming.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Warning only
+- `2`: Enforce for all modes
+- `3`: Enforce for mission modes only
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
 ### COM_ARM_WO_GPS (`INT32`) {#COM_ARM_WO_GPS}
 
 Arming without GNSS configuration.
@@ -15980,17 +16663,20 @@ A negative value disables autmoatic disarming triggered by a pre-takeoff timeout
 
 Datalink loss exceptions.
 
-Specify modes in which datalink loss is ignored and the failsafe action not triggered.
+Specify modes in which ground control station connection loss is ignored and no failsafe action is triggered.
+See also COM_RCL_EXCEPT.
 
 **Bitmask:**
 
 - `0`: Mission
-- `1`: Hold
+- `1`: Auto modes
 - `2`: Offboard
+- `3`: External Mode
+- `4`: Altitude Cruise
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 7        |           | 0       |
+| &nbsp; | 0        | 31       |           | 0       |
 
 ### COM_DL_LOSS_T (`INT32`) {#COM_DL_LOSS_T}
 
@@ -16695,13 +17381,14 @@ A negative value disables the check.
 
 Manual control loss exceptions.
 
-Specify modes where manual control loss is ignored and no failsafe is triggered.
+Specify modes in which stick input is ignored and no failsafe action is triggered.
 External modes requiring stick input will still failsafe.
+Auto modes are: Hold, Takeoff, Land, RTL, Descend, Follow Target, Precland, Orbit.
 
 **Bitmask:**
 
 - `0`: Mission
-- `1`: Hold
+- `1`: Auto modes
 - `2`: Offboard
 - `3`: External Mode
 - `4`: Altitude Cruise
@@ -19136,6 +19823,18 @@ Launch is detected when acceleration in body forward direction is above FW_LAUN_
 | ------ | -------- | -------- | --------- | ------- | ----- |
 | &nbsp; | 0        |          | 0.5       | 30.0    | m/s^2 |
 
+### FW_LAUN_CS_LK_DY (`FLOAT`) {#FW_LAUN_CS_LK_DY}
+
+Control surface launch delay.
+
+Locks control surfaces during pre-launch (armed) and until this time since launch has passed.
+Only affects control surfaces that have corresponding flag set, and not active for runway takeoff.
+Set to 0 to disable any surface locking after arming.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          | 0.1       | 0.      | s    |
+
 ### FW_LAUN_DETCN_ON (`INT32`) {#FW_LAUN_DETCN_ON}
 
 Fixed-wing launch detection.
@@ -20138,25 +20837,48 @@ If enabled, failure detector will verify that for motors, a minimum amount of ES
 level is being consumed.
 Otherwise this indicates an motor failure.
 
-| Reboot  | minValue | maxValue | increment | default     | unit |
-| ------- | -------- | -------- | --------- | ----------- | ---- |
-| &check; |          |          |           | Enabled (1) |
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
 
-### FD_ACT_MOT_C2T (`FLOAT`) {#FD_ACT_MOT_C2T}
+### FD_ACT_HIGH_OFF (`FLOAT`) {#FD_ACT_HIGH_OFF}
 
-Motor Failure Current/Throttle Threshold.
+Overcurrent motor failure limit offset.
 
-Motor failure triggers only below this current value
+threshold = FD_ACT_MOT_C2T \* thrust + FD_ACT_HIGH_OFF
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.0      | 50.0     | 1         | 2.0     | A/%  |
+| &nbsp; | 0        | 30       | 1         | 10.     | A    |
+
+### FD_ACT_LOW_OFF (`FLOAT`) {#FD_ACT_LOW_OFF}
+
+Undercurrent motor failure limit offset.
+
+threshold = FD_ACT_MOT_C2T \* thrust - FD_ACT_LOW_OFF
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 30       | 1         | 10.     | A    |
+
+### FD_ACT_MOT_C2T (`FLOAT`) {#FD_ACT_MOT_C2T}
+
+Motor Failure Current/Throttle Scale.
+
+Determines the slope between expected steady state current and linearized, normalized thrust command.
+E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
+FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 50.0     | 1         | 35.     | A/%  |
 
 ### FD_ACT_MOT_THR (`FLOAT`) {#FD_ACT_MOT_THR}
 
-Motor Failure Throttle Threshold.
+Motor Failure Thrust Threshold.
 
-Motor failure triggers only above this throttle value.
+Failure detection per motor only triggers above this thrust value.
+Set to 1 to disable the detection.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -20164,14 +20886,13 @@ Motor failure triggers only above this throttle value.
 
 ### FD_ACT_MOT_TOUT (`INT32`) {#FD_ACT_MOT_TOUT}
 
-Motor Failure Time Threshold.
+Motor Failure Hysteresis Time.
 
-Motor failure triggers only if the throttle threshold and the
-current to throttle threshold are violated for this time.
+Motor failure only triggers after current thresholds are exceeded for this time.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 10       | 10000    | 100       | 100     | ms   |
+| &nbsp; | 10       | 10000    | 100       | 1000    | ms   |
 
 ### FD_ESCS_EN (`INT32`) {#FD_ESCS_EN}
 
@@ -20594,6 +21315,16 @@ u-blox protocol configuration for interfaces.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 32       |           | 0       |
 
+### GPS_UBX_DGNSS_TO (`INT32`) {#GPS_UBX_DGNSS_TO}
+
+u-blox GPS DGNSS timeout.
+
+When set to 0 (default), default DGNSS timeout set by u-blox will be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 255      |           | 0       | s    |
+
 ### GPS_UBX_DYNMODEL (`INT32`) {#GPS_UBX_DYNMODEL}
 
 u-blox GPS dynamic platform model.
@@ -20612,6 +21343,39 @@ the expected application environment.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 9        |           | 7       |
+
+### GPS_UBX_JAM_DET (`INT32`) {#GPS_UBX_JAM_DET}
+
+u-blox GPS jamming detection high sensitivity mode.
+
+Enables or disables the high sensitivity mode for the u-blox jamming detection
+(CFG-SEC-JAMDET_SENSITIVITY_HI). When enabled, the receiver uses a
+more sensitive algorithm to detect jamming. Disabling this may reduce false
+positives in electrically noisy environments.
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          |          |           | Enabled (1) |
+
+### GPS_UBX_MIN_CNO (`INT32`) {#GPS_UBX_MIN_CNO}
+
+u-blox GPS minimum satellite signal level for navigation.
+
+When set to 0 (default), default minimum satellite signal level set by u-blox wll be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 255      |           | 0       | dBHz |
+
+### GPS_UBX_MIN_ELEV (`INT32`) {#GPS_UBX_MIN_ELEV}
+
+u-blox GPS minimum elevation for a GNSS satellite to be used in navigation.
+
+When set to 0 (default), default minimum elevation set by u-blox will be used.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 127      |           | 0       | deg  |
 
 ### GPS_UBX_MODE (`INT32`) {#GPS_UBX_MODE}
 
@@ -20649,6 +21413,21 @@ Enable MSM7 message output for PPK workflow.
 | Reboot  | minValue | maxValue | increment | default      | unit |
 | ------- | -------- | -------- | --------- | ------------ | ---- |
 | &check; |          |          |           | Disabled (0) |
+
+### GPS_UBX_RATE (`INT32`) {#GPS_UBX_RATE}
+
+u-blox GPS output rate.
+
+Configure the output rate of u-blox GPS receivers (protocol v27+).
+When set to 0, automatic rate selection is used based on the receiver model.
+Default rates: M9N=8Hz, F9P L1L2=5Hz, F9P L1L5=5Hz, Others=10Hz.
+Note: Higher rates reduce satellite count (e.g., >8Hz limits to 16 SVs on M9N).
+Max rates vary by model and RTK mode: F9P L1L2=5-7Hz, F9P L1L5=7-8Hz, X20=25Hz.
+High rates at 115200 baud may cause dropouts.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 25       |           | 0       | Hz   |
 
 ### GPS_YAW_OFFSET (`FLOAT`) {#GPS_YAW_OFFSET}
 
@@ -20784,6 +21563,27 @@ Some are generic, while others are specifically fit to a certain vehicle with a 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 0       |
+
+### CA_CS_LAUN_LK (`INT32`) {#CA_CS_LAUN_LK}
+
+Control surface launch lock enabled.
+
+If actuator launch lock is enabled, this surface is kept at the disarmed value.
+
+**Bitmask:**
+
+- `0`: Control Surface 1
+- `1`: Control Surface 2
+- `2`: Control Surface 3
+- `3`: Control Surface 4
+- `4`: Control Surface 5
+- `5`: Control Surface 6
+- `6`: Control Surface 7
+- `7`: Control Surface 8
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
 
 ### CA_FAILURE_MODE (`INT32`) {#CA_FAILURE_MODE}
 
@@ -20988,6 +21788,21 @@ tail_output += CA_HELI_YAW_TH_S \* throttle
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | -2       | 2        | 0.1       | 0.0     |
+
+### CA_ICE_PERIOD (`FLOAT`) {#CA_ICE_PERIOD}
+
+Ice shedding cycle period.
+
+Ice shedding prevents ice buildup in VTOL aircraft motors by
+periodically spinning inactive rotors. When enabled (period
+
+> 0), every cycle lasts for the defined period and includes
+> a 2‑second spin at 0.01 motor output. If period <= 0, the
+> feature is disabled.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          | 0.1       | 0.0     | s    |
 
 ### CA_MAX_SVO_THROW (`FLOAT`) {#CA_MAX_SVO_THROW}
 
@@ -23229,6 +24044,14 @@ Total number of Control Surfaces.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 0       |
 
+### CA_SV_FLAP_SLEW (`FLOAT`) {#CA_SV_FLAP_SLEW}
+
+Control Surface slew rate for normalized flaps setpoint.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.5     |
+
 ### CA_SV_TL0_CT (`INT32`) {#CA_SV_TL0_CT}
 
 Tilt 0 is used for control.
@@ -23966,18 +24789,6 @@ Maximum allowed norm of the angular velocity (roll, pitch) in the landed state.
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
 | &nbsp; |          |          |           | 20.0    | deg/s |
-
-### LNDMC_TRIG_TIME (`FLOAT`) {#LNDMC_TRIG_TIME}
-
-Multicopter land detection trigger time.
-
-Total time it takes to go through all three land detection stages:
-ground contact, maybe landed, landed
-when all necessary conditions are constantly met.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 10.0     |           | 1.0     | s    |
 
 ### LNDMC_XY_VEL_MAX (`FLOAT`) {#LNDMC_XY_VEL_MAX}
 
@@ -25579,10 +26390,11 @@ and relies on the IMU's attitude estimation.
 - `0`: Disable
 - `1`: Stabilize all axis
 - `2`: Stabilize yaw for absolute/lock mode.
+- `3`: Stabilize pitch for absolute/lock mode.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 2        |           | 0       |
+| &nbsp; |          |          |           | 0       |
 
 ### MNT_LND_P_MAX (`FLOAT`) {#MNT_LND_P_MAX}
 
@@ -25674,6 +26486,26 @@ If MNT_MODE_OUT is MAVLink gimbal protocol v1, mount configure/control commands 
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 1       |
 
+### MNT_MAX_PITCH (`FLOAT`) {#MNT_MAX_PITCH}
+
+Max positive angle of pitch setpoint (only in MNT_MODE_OUT=AUX).
+
+Use output driver settings to calibrate (e.g. PWM_CENT/\_MIN/\_MAX).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 45.0    | deg  |
+
+### MNT_MIN_PITCH (`FLOAT`) {#MNT_MIN_PITCH}
+
+Min negative angle of pitch setpoint (only in MNT_MODE_OUT=AUX).
+
+Use output driver settings to calibrate (e.g. PWM_CENT/\_MIN/\_MAX).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | -45.0   | deg  |
+
 ### MNT_MODE_IN (`INT32`) {#MNT_MODE_IN}
 
 Mount input mode.
@@ -25712,41 +26544,11 @@ Recommended is the MAVLink gimbal protocol v2 if the gimbal supports it.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 2        |           | 0       |
 
-### MNT_OFF_PITCH (`FLOAT`) {#MNT_OFF_PITCH}
-
-Offset for pitch channel output in degrees.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -360.0   | 360.0    |           | 0.0     | deg  |
-
-### MNT_OFF_ROLL (`FLOAT`) {#MNT_OFF_ROLL}
-
-Offset for roll channel output in degrees.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -360.0   | 360.0    |           | 0.0     | deg  |
-
-### MNT_OFF_YAW (`FLOAT`) {#MNT_OFF_YAW}
-
-Offset for yaw channel output in degrees.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -360.0   | 360.0    |           | 0.0     | deg  |
-
-### MNT_RANGE_PITCH (`FLOAT`) {#MNT_RANGE_PITCH}
-
-Range of pitch channel output in degrees (only in AUX output mode).
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 1.0      | 720.0    |           | 90.0    | deg  |
-
 ### MNT_RANGE_ROLL (`FLOAT`) {#MNT_RANGE_ROLL}
 
-Range of roll channel output in degrees (only in AUX output mode).
+Range of roll channel output (only in MNT_MODE_OUT=AUX).
+
+Use output driver settings to calibrate (e.g. PWM_CENT/\_MIN/\_MAX). Note that only symmetric angular ranges are supported.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -25754,7 +26556,9 @@ Range of roll channel output in degrees (only in AUX output mode).
 
 ### MNT_RANGE_YAW (`FLOAT`) {#MNT_RANGE_YAW}
 
-Range of yaw channel output in degrees (only in AUX output mode).
+Range of yaw channel output (only in MNT_MODE_OUT=AUX).
+
+Use output driver settings to calibrate (e.g. PWM_CENT/\_MIN/\_MAX). Note that only symmetric angular ranges are supported.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -25792,6 +26596,18 @@ Input mode for RC gimbal input.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 1        |           | 1       |
+
+### MNT_TAU (`FLOAT`) {#MNT_TAU}
+
+Alpha filter time constant defining the convergence rate (in seconds) for open-loop AUX mount control.
+
+Use when no angular position feedback is available.
+With MNT_MODE_OUT set to AUX, the mount operates in open-loop and directly commands the servo output.
+Parameters must be tuned for the specific servo to approximate its speed and response.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      |          |           | 0.3     |
 
 ## Multicopter Acro Mode
 
@@ -26324,7 +27140,7 @@ With MPC_THR_HOVER 0.5 it's equivalent to No rescale.
 Vertical thrust required to hover.
 
 Mapped to center throttle stick in Stabilized mode (see MPC_THR_CURVE).
-Used for initialization of the hover thrust estimator (see MPC_USE_HTE).
+Used for initialization of the hover thrust estimator.
 The estimated hover thrust is used as base for zero vertical acceleration in altitude control.
 The hover thrust is important for land detection to work correctly.
 
@@ -26405,17 +27221,6 @@ Takeoff climb rate.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1        | 5        |           | 1.5     | m/s  |
-
-### MPC_USE_HTE (`INT32`) {#MPC_USE_HTE}
-
-Use hover thrust estimate for altitude control.
-
-Disable to use the fixed parameter MPC_THR_HOVER instead of the hover thrust estimate in the position controller.
-This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
-
-| Reboot | minValue | maxValue | increment | default     | unit |
-| ------ | -------- | -------- | --------- | ----------- | ---- |
-| &nbsp; |          |          |           | Enabled (1) |
 
 ### MPC_VELD_LP (`FLOAT`) {#MPC_VELD_LP}
 
@@ -26870,6 +27675,55 @@ The lowest input maps and is clamped to this rate.
 | Reboot | minValue | maxValue | increment | default | unit  |
 | ------ | -------- | -------- | --------- | ------- | ----- |
 | &nbsp; | 1        |          | 0.1       | 3.      | deg/s |
+
+## Multicopter Raptor
+
+### MC_RAPTOR_ENABLE (`INT32`) {#MC_RAPTOR_ENABLE}
+
+Enable Raptor flight mode.
+
+When enabled, the Raptor flight mode will be available. Please set MC_RAPTOR_OFFB according to your use case.
+
+| Reboot | minValue | maxValue | increment | default      | unit |
+| ------ | -------- | -------- | --------- | ------------ | ---- |
+| &nbsp; |          |          |           | Disabled (0) |
+
+### MC_RAPTOR_INTREF (`INT32`) {#MC_RAPTOR_INTREF}
+
+Use internal reference instead of trajectory_setpoint.
+
+When enabled, instead of using the trajectory_setpoint, the position and yaw of the vehicle at the point when the Raptor mode is activated will be used as reference.
+Use `mc_raptor intref lissajous <A> <B> <C> <fa> <fb> <fc> <duration> <ramp>` to configure the trajectory.
+
+**Values:**
+
+- `0`: None
+- `1`: Lissajous
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### MC_RAPTOR_OFFB (`INT32`) {#MC_RAPTOR_OFFB}
+
+Enable Offboard mode replacement.
+
+When enabled, the Raptor mode will replace the Offboard mode.
+If disabled, the Raptor mode will be available as a separate external mode. In the latter case, Raptor will just hold the position, without requiring external setpoints. When Raptor replaces the Offboard mode, it requires external setpoints to be activated.
+
+| Reboot | minValue | maxValue | increment | default      | unit |
+| ------ | -------- | -------- | --------- | ------------ | ---- |
+| &nbsp; |          |          |           | Disabled (0) |
+
+### MC_RAPTOR_VERBOS (`INT32`) {#MC_RAPTOR_VERBOS}
+
+Enable verbose output.
+
+When enabled, the Raptor flight mode will print verbose output to the console.
+
+| Reboot | minValue | maxValue | increment | default      | unit |
+| ------ | -------- | -------- | --------- | ------------ | ---- |
+| &nbsp; |          |          |           | Disabled (0) |
 
 ## Multicopter Rate Control
 
@@ -29540,10 +30394,11 @@ Return mode destination and flight path (home location, rally point, mission lan
 **Values:**
 
 - `0`: Return to closest safe point (home or rally point) via direct path.
-- `1`: Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always chose closest safe landing point if vehicle is a VTOL in hover mode.
+- `1`: Return to closest safe point other than home (mission landing pattern or rally point), via direct path. If no mission landing or rally points are defined return home via direct path. Always choose closest safe landing point if vehicle is a VTOL in hover mode.
 - `2`: Return to a planned mission landing, if available, using the mission path, else return to home via the reverse mission path. Do not consider rally points.
 - `3`: Return via direct path to closest destination: home, start of mission landing pattern or safe point. If the destination is a mission landing pattern, follow the pattern to land.
 - `4`: Return to the planned mission landing, or to home via the reverse mission path, whichever is closer by counting waypoints. Do not consider rally points.
+- `5`: Return directly to safe landing point (do not consider mission landing and Home)
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
@@ -32460,6 +33315,44 @@ Use SENS_MAG_SIDES instead
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 63      |
 
+### GRF_RATE_CFG (`INT32`) {#GRF_RATE_CFG}
+
+Lightware GRF lidar update rate.
+
+The Lightware GRF distance sensor can increase the update rate to enable greater resolution.
+
+**Values:**
+
+- `1`: 1 Hz
+- `2`: 2 Hz
+- `3`: 4 Hz
+- `4`: 5 Hz
+- `5`: 10 Hz
+- `6`: 20 Hz
+- `7`: 30 Hz
+- `8`: 40 Hz
+- `9`: 50 Hz
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 4       |
+
+### GRF_SENS_MODEL (`INT32`) {#GRF_SENS_MODEL}
+
+GRF Sensor model.
+
+GRF Sensor Model used to distinush between the GRF250 and GRF500 since both have different max distance range.
+
+**Values:**
+
+- `0`: disable
+- `1`: GRF250
+- `2`: GRF500
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
+
 ### ILABS_MODE (`INT32`) {#ILABS_MODE}
 
 InertialLabs INS sensor mode configuration.
@@ -33668,6 +34561,31 @@ Enable simulated GPS sinstance.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 1        |           | 0       |
 
+### SENS_EN_GRF_CFG (`INT32`) {#SENS_EN_GRF_CFG}
+
+Serial Configuration for Lightware GRF Rangefinder (serial).
+
+Configure on which serial port to run Lightware GRF Rangefinder (serial).
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
+
 ### SENS_EN_INA220 (`INT32`) {#SENS_EN_INA220}
 
 Enable INA220 Power Monitor.
@@ -33893,7 +34811,7 @@ Lightware Laser Rangefinder hardware model (serial).
 
 ### SENS_EN_SF1XX (`INT32`) {#SENS_EN_SF1XX}
 
-Lightware SF1xx/SF20/LW20 laser rangefinder (i2c).
+Lightware laser rangefinder (i2c).
 
 **Values:**
 
@@ -33905,10 +34823,12 @@ Lightware SF1xx/SF20/LW20 laser rangefinder (i2c).
 - `5`: SF/LW20/b
 - `6`: SF/LW20/c
 - `7`: SF/LW30/d
+- `8`: GRF250
+- `9`: GRF500
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 7        |           | 0       |
+| &check; | 0        | 9        |           | 0       |
 
 ### SENS_EN_SF45_CFG (`INT32`) {#SENS_EN_SF45_CFG}
 
@@ -33988,6 +34908,16 @@ Thermal control of sensor temperature.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | -1      |
+
+### SENS_EN_TMP102 (`INT32`) {#SENS_EN_TMP102}
+
+Enable TMP102.
+
+Enable the driver for the TMP102 temperature sensor
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
 
 ### SENS_EN_TRANGER (`INT32`) {#SENS_EN_TRANGER}
 
@@ -34125,13 +35055,16 @@ When no blending is active, this defines the preferred GPS receiver instance.
 The GPS selection logic waits until the primary receiver is available to
 send data to the EKF even if a secondary instance is already available.
 The secondary instance is then only used if the primary one times out.
-To have an equal priority of all the instances, set this parameter to -1 and
-the best receiver will be used.
+Accepted values:
+-1 : Auto (equal priority for all instances)
+0 : Main serial GPS instance
+1 : Secondary serial GPS instance
+2-127 : UAVCAN module node ID
 This parameter has no effect if blending is active.
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | -1       | 1        |           | 0       |
+| &nbsp; | -1       | 127      |           | 0       |
 
 ### SENS_GPS_TAU (`FLOAT`) {#SENS_GPS_TAU}
 
@@ -35052,6 +35985,26 @@ Configure on which serial port to run VectorNav (VN-100, VN-200, VN-300).
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |
+
+### SF1XX_ROT (`INT32`) {#SF1XX_ROT}
+
+Lightware laser rangefinder Rotation.
+
+Distance sensor orientation as MAV_SENSOR_ORIENTATION enum.
+Applies to all models supported by SENS_EN_SF1XX.
+
+**Values:**
+
+- `0`: Forward
+- `2`: Right
+- `4`: Backward
+- `6`: Left
+- `24`: Upward
+- `25`: Downward
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 25       |           | 25      |
 
 ### SF45_ORIENT_CFG (`INT32`) {#SF45_ORIENT_CFG}
 
@@ -39499,6 +40452,17 @@ UAVCAN CAN node ID (0 for dynamic allocation).
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 127      |           | 0       |
 
+### CANNODE_PUB_BAR (`INT32`) {#CANNODE_PUB_BAR}
+
+Enable barometer publication.
+
+Enables publication of static pressure and static temperature
+from the barometer sensor over UAVCAN.
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          | 1        |           | Enabled (1) |
+
 ### CANNODE_PUB_IMU (`INT32`) {#CANNODE_PUB_IMU}
 
 Enable RawIMU pub.
@@ -39506,6 +40470,17 @@ Enable RawIMU pub.
 | Reboot | minValue | maxValue | increment | default      | unit |
 | ------ | -------- | -------- | --------- | ------------ | ---- |
 | &nbsp; |          | 1        |           | Disabled (0) |
+
+### CANNODE_PUB_MAG (`INT32`) {#CANNODE_PUB_MAG}
+
+Enable magnetometer publication.
+
+Enables publication of magnetic field strength
+from the magnetometer sensor over UAVCAN.
+
+| Reboot  | minValue | maxValue | increment | default     | unit |
+| ------- | -------- | -------- | --------- | ----------- | ---- |
+| &check; |          | 1        |           | Enabled (1) |
 
 ### CANNODE_PUB_MBD (`INT32`) {#CANNODE_PUB_MBD}
 
@@ -39633,7 +40608,7 @@ starve other nodes on the bus.
 UAVCAN ANTI_COLLISION light operating mode.
 
 This parameter defines the minimum condition under which the system will command
-the ANTI_COLLISION lights on
+lights with anti-collision function to turn on (white).
 0 - Always off
 1 - When autopilot is armed
 2 - When autopilot is prearmed
@@ -39650,67 +40625,97 @@ the ANTI_COLLISION lights on
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 3        |           | 2       |
 
-### UAVCAN_LGT_LAND (`INT32`) {#UAVCAN_LGT_LAND}
+### UAVCAN_LGT_FN0 (`INT32`) {#UAVCAN_LGT_FN0}
 
-UAVCAN LIGHT_ID_LANDING light operating mode.
+Light 0 function.
 
-This parameter defines the minimum condition under which the system will command
-the LIGHT_ID_LANDING lights on
-0 - Always off
-1 - When autopilot is armed
-2 - When autopilot is prearmed
-3 - Always on
+Function assigned to light 0.
+0: Status - displays system status colors
+1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
 
 **Values:**
 
-- `0`: Always off
-- `1`: When autopilot is armed
-- `2`: When autopilot is prearmed
-- `3`: Always on
+- `0`: Status Light
+- `1`: Anti-collision Light
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 3        |           | 0       |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1        |           | 0       |
 
-### UAVCAN_LGT_NAV (`INT32`) {#UAVCAN_LGT_NAV}
+### UAVCAN_LGT_FN1 (`INT32`) {#UAVCAN_LGT_FN1}
 
-UAVCAN RIGHT_OF_WAY light operating mode.
+Light 1 function.
 
-This parameter defines the minimum condition under which the system will command
-the RIGHT_OF_WAY lights on
-0 - Always off
-1 - When autopilot is armed
-2 - When autopilot is prearmed
-3 - Always on
+Function assigned to light 1.
+0: Status - displays system status colors
+1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
 
 **Values:**
 
-- `0`: Always off
-- `1`: When autopilot is armed
-- `2`: When autopilot is prearmed
-- `3`: Always on
+- `0`: Status Light
+- `1`: Anti-collision Light
 
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 3        |           | 3       |
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1        |           | 0       |
 
-### UAVCAN_LGT_STROB (`INT32`) {#UAVCAN_LGT_STROB}
+### UAVCAN_LGT_FN2 (`INT32`) {#UAVCAN_LGT_FN2}
 
-UAVCAN STROBE light operating mode.
+Light 2 function.
 
-This parameter defines the minimum condition under which the system will command
-the STROBE lights on
-0 - Always off
-1 - When autopilot is armed
-2 - When autopilot is prearmed
-3 - Always on
+Function assigned to light 2.
+0: Status - displays system status colors
+1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
 
 **Values:**
 
-- `0`: Always off
-- `1`: When autopilot is armed
-- `2`: When autopilot is prearmed
-- `3`: Always on
+- `0`: Status Light
+- `1`: Anti-collision Light
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 1        |           | 0       |
+
+### UAVCAN_LGT_ID0 (`INT32`) {#UAVCAN_LGT_ID0}
+
+Light 0 ID.
+
+specifies the light_id value for light 0 in UAVCAN LightsCommand messages.
+This determines which physical LED responds to commands for this light slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### UAVCAN_LGT_ID1 (`INT32`) {#UAVCAN_LGT_ID1}
+
+Light 1 ID.
+
+specifies the light_id value for light 1 in UAVCAN LightsCommand messages.
+This determines which physical LED responds to commands for this light slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### UAVCAN_LGT_ID2 (`INT32`) {#UAVCAN_LGT_ID2}
+
+Light 2 ID.
+
+specifies the light_id value for light 2 in UAVCAN LightsCommand messages.
+This determines which physical LED responds to commands for this light slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### UAVCAN_LGT_NUM (`INT32`) {#UAVCAN_LGT_NUM}
+
+Number of UAVCAN lights to configure.
+
+Number of lights to control via UAVCAN LightsCommand messages.
+Set to 0 to disable UAVCAN light control.
+Each light uses two parameters: LGT_IDx for the light_id and LGT_FNx for the function.
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
@@ -40392,6 +41397,17 @@ uXRCE-DDS domain ID
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |
 
+### UXRCE_DDS_FLCTRL (`INT32`) {#UXRCE_DDS_FLCTRL}
+
+Enable serial flow control for UXRCE interface.
+
+This is used to enable flow control for the serial uXRCE instance.
+Used for reliable high bandwidth communication.
+
+| Reboot  | minValue | maxValue | increment | default      | unit |
+| ------- | -------- | -------- | --------- | ------------ | ---- |
+| &check; |          |          |           | Disabled (0) |
+
 ### UXRCE_DDS_KEY (`INT32`) {#UXRCE_DDS_KEY}
 
 uXRCE-DDS session key.
@@ -40500,6 +41516,21 @@ Default rate is 250Kbps, which is used in off-the-shelf MoadalAI ESC products.
 | ------ | -------- | -------- | --------- | ------- | ----- |
 | &nbsp; |          |          |           | 250000  | bit/s |
 
+### VOXL_ESC_CMD (`INT32`) {#VOXL_ESC_CMD}
+
+UART ESC command type.
+
+Selects between RPM or PWM commands
+
+**Values:**
+
+- `0`: - RPM
+- `1`: - PWM
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1        |           | 0       |
+
 ### VOXL_ESC_CONFIG (`INT32`) {#VOXL_ESC_CONFIG}
 
 UART ESC configuration.
@@ -40558,6 +41589,18 @@ Only applicable to ESCs that report total battery voltage and current
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 0        | 1        |           | 1       |
+
+### VOXL_ESC_PWR_MIN (`FLOAT`) {#VOXL_ESC_PWR_MIN}
+
+UART ESC Minimum motor power.
+
+Minimum motor power for ESC when VOXL_ESC_CMD is set for PWM.
+Make sure to set this high enough so that the motors are always spinning
+while armed.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 1.0      |           | 0.05    |
 
 ### VOXL_ESC_RPM_MAX (`INT32`) {#VOXL_ESC_RPM_MAX}
 
@@ -41178,6 +42221,187 @@ Altitude relative to home at which vehicle will loiter after front transition.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 20       | 300      | 1         | 80      | m    |
 
+## VTX
+
+### VTX_BAND (`INT32`) {#VTX_BAND}
+
+VTX band.
+
+VTX table band 1-24
+
+**Values:**
+
+- `0`: Band 1
+- `1`: Band 2
+- `2`: Band 3
+- `3`: Band 4
+- `4`: Band 5
+- `5`: Band 6
+- `6`: Band 7
+- `7`: Band 8
+- `8`: Band 9
+- `9`: Band 10
+- `10`: Band 11
+- `11`: Band 12
+- `12`: Band 13
+- `13`: Band 14
+- `14`: Band 15
+- `15`: Band 16
+- `16`: Band 17
+- `17`: Band 18
+- `18`: Band 19
+- `19`: Band 20
+- `20`: Band 21
+- `21`: Band 22
+- `22`: Band 23
+- `23`: Band 24
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### VTX_CHANNEL (`INT32`) {#VTX_CHANNEL}
+
+VTX channel.
+
+VTX table channel 1-16
+
+**Values:**
+
+- `0`: Channel 1
+- `1`: Channel 2
+- `2`: Channel 3
+- `3`: Channel 4
+- `4`: Channel 5
+- `5`: Channel 6
+- `6`: Channel 7
+- `7`: Channel 8
+- `8`: Channel 9
+- `9`: Channel 10
+- `10`: Channel 11
+- `11`: Channel 12
+- `12`: Channel 13
+- `13`: Channel 14
+- `14`: Channel 15
+- `15`: Channel 16
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### VTX_DEVICE (`INT32`) {#VTX_DEVICE}
+
+VTX device.
+
+Specific VTX device useful for workarounds and optimizations
+
+**Values:**
+
+- `0`: SmartAudio v1, v2, v2.1 Protocol
+- `100`: Tramp Protocol
+- `5120`: Peak THOR T67
+- `10240`: Rush MAX SOLO
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
+
+### VTX_FREQUENCY (`INT32`) {#VTX_FREQUENCY}
+
+VTX frequency in MHz.
+
+If the VTX frequency is set, it will overwrite the band and channel
+settings. Set to 0 to use band and channel settings.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 32000    |           | 0       |
+
+### VTX_MAP_CONFIG (`INT32`) {#VTX_MAP_CONFIG}
+
+VTX mapping configuration.
+
+Configure how VTX settings are controlled. Options include using
+MSP commands, AUX channels or a combination of both. To use MSP
+commands, you must use a CRSF receiver with MSP support enabled in
+the PX4 build.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: MSP for Power, Band and Channel
+- `2`: MSP for Band and Channel, AUX for Power
+- `3`: MSP for Power, AUX for Band and Channel
+- `4`: AUX for Power, Band and Channel
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### VTX_PIT_MODE (`INT32`) {#VTX_PIT_MODE}
+
+VTX pit mode.
+
+VTX pit mode reduces power to the minimum
+
+| Reboot | minValue | maxValue | increment | default      | unit |
+| ------ | -------- | -------- | --------- | ------------ | ---- |
+| &nbsp; |          |          |           | Disabled (0) |
+
+### VTX_POWER (`INT32`) {#VTX_POWER}
+
+VTX power level.
+
+VTX transmission power level 1-16
+
+**Values:**
+
+- `0`: Level 1
+- `1`: Level 2
+- `2`: Level 3
+- `3`: Level 4
+- `4`: Level 5
+- `5`: Level 6
+- `6`: Level 7
+- `7`: Level 8
+- `8`: Level 9
+- `9`: Level 10
+- `10`: Level 11
+- `11`: Level 12
+- `12`: Level 13
+- `13`: Level 14
+- `14`: Level 15
+- `15`: Level 16
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### VTX_SER_CFG (`INT32`) {#VTX_SER_CFG}
+
+Serial Configuration for VTX Serial Port.
+
+Configure on which serial port to run VTX Serial Port.
+
+**Values:**
+
+- `0`: Disabled
+- `6`: UART 6
+- `101`: TELEM 1
+- `102`: TELEM 2
+- `103`: TELEM 3
+- `104`: TELEM/SERIAL 4
+- `201`: GPS 1
+- `202`: GPS 2
+- `203`: GPS 3
+- `300`: Radio Controller
+- `301`: Wifi Port
+- `401`: EXT2
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |
+
 ## Vertiq IO
 
 ### VERTIQ_IO_CFG (`INT32`) {#VERTIQ_IO_CFG}
@@ -41610,7 +42834,7 @@ Gyro filter settings.
 
 ### SF1XX_MODE (`INT32`) {#SF1XX_MODE}
 
-Lightware SF1xx/SF20/LW20 Operation Mode.
+Lightware laser rangefinder Operation Mode.
 
 **Values:**
 

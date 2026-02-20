@@ -1989,6 +1989,10 @@ MavlinkReceiver::handle_message_tunnel(mavlink_message_t *msg)
 		_esc_serial_passthru_pub.publish(tunnel);
 		break;
 
+	case MAV_TUNNEL_PAYLOAD_TYPE_MODALAI_IO_UART_PASSTHRU:
+		_io_serial_passthru_pub.publish(tunnel);
+		break;
+
 	default:
 		_mavlink_tunnel_pub.publish(tunnel);
 		break;
@@ -2171,6 +2175,10 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			case MAV_TYPE_ADSB:
 				_heartbeat_type_adsb = now;
+				break;
+
+			case MAV_TYPE_FLARM:
+				_heartbeat_type_flarm = now;
 				break;
 
 			case MAV_TYPE_CAMERA:
@@ -2921,6 +2929,7 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_type_onboard_controller      = (t <= TIMEOUT + _heartbeat_type_onboard_controller);
 		tstatus.heartbeat_type_gimbal                  = (t <= TIMEOUT + _heartbeat_type_gimbal);
 		tstatus.heartbeat_type_adsb                    = (t <= TIMEOUT + _heartbeat_type_adsb);
+		tstatus.heartbeat_type_flarm                   = (t <= TIMEOUT + _heartbeat_type_flarm);
 		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
 		tstatus.heartbeat_type_parachute               = (t <= TIMEOUT + _heartbeat_type_parachute);
 		tstatus.heartbeat_type_open_drone_id           = (t <= TIMEOUT + _heartbeat_type_open_drone_id);

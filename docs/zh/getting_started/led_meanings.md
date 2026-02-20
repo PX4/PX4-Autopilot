@@ -20,7 +20,7 @@ It is possible to have a GPS lock (Green LED) and still not be able to arm the v
 :::
 
 :::tip
-In the event of an error (blinking red), or if the vehicle can't achieve GPS lock (change from blue to green),   check for more detailed status information in _QGroundControl_ including calibration status, and errors messages reported by the [Preflight Checks (Internal)](../flying/pre_flight_checks.md).
+In the event of an error (blinking red), or if the vehicle can't achieve GPS lock (change from blue to green), check for more detailed status information in _QGroundControl_ including calibration status, and errors messages reported by the [Preflight Checks (Internal)](../flying/pre_flight_checks.md).
 还要检查GPS模块是否正确连接，Pixhawk是否正确读取GPS信息，GPS是否发送正确的GPS位置。
 :::
 
@@ -47,7 +47,8 @@ In the event of an error (blinking red), or if the vehicle can't achieve GPS loc
   在故障保护模式时，飞行器将试图返回起飞位置，或者降落在当前位置。
 
 - **[Solid Amber] Low Battery Warning:** Indicates your vehicle's battery is running dangerously low.
-  在某一点之后，飞行器将进入故障保护模式。 但是，此模式警告此次飞行应该结束。
+  在某一点之后，飞行器将进入故障保护模式。 However, this mode should signal caution that it's time to end
+  this flight.
 
 - **[Blinking Red] Error / Setup Required:** Indicates that your autopilot needs to be configured or calibrated before flying.
   将飞行器连接到地面站以找出问题所在。
@@ -77,11 +78,11 @@ The LED labels shown above are commonly used, but might differ on some boards.
 
 下面给出了LED更详细的信息(“x”表示任意状态)
 
-| 红色/琥珀色 | 蓝色 | 绿色    | 含义                                                                                                                                                                                   |
-| ------ | -- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 10Hz   | x  | x     | Overload CPU load > 80%, or RAM usage > 98%                                                                                                                                          |
-| 关闭     | x  | x     | Overload CPU load <= 80%, or RAM usage <= 98%                                                                                      |
-| 不可用    | 关闭 | 4 赫兹  | actuator_armed->armed && failsafe                                                                                       |
-| 不可用    | 打开 | 4 赫兹  | actuator_armed->armed && !failsafe                                                                                      |
-| 不可用    | 关闭 | 1 赫兹  | !actuator_armed-> armed && actuator_armed->ready_to_arm  |
-| 不可用    | 关闭 | 10 赫兹 | !actuator_armed->armed  && !actuator_armed->ready_to_arm |
+| 红色/琥珀色 | 蓝色 | 绿色    | 含义                                                                                                                                                                                  |
+| ------ | -- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10Hz   | x  | x     | Overload CPU load > 80%, or RAM usage > 98%                                                                                                                                         |
+| 关闭     | x  | x     | Overload CPU load <= 80%, or RAM usage <= 98%                                                                                     |
+| 不可用    | 关闭 | 4 赫兹  | actuator_armed->armed && failsafe                                                                                      |
+| 不可用    | 打开 | 4 赫兹  | actuator_armed->armed && !failsafe                                                                                     |
+| 不可用    | 关闭 | 1 赫兹  | !actuator_armed-> armed && actuator_armed->ready_to_arm |
+| 不可用    | 关闭 | 10 赫兹 | !actuator_armed->armed && !actuator_armed->ready_to_arm |

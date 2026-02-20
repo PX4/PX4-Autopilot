@@ -24,7 +24,8 @@
             "test_filter": "GlobalPositionInterfaceTest.*",
             "timeout_min": 10,
             "env": {
-                "PX4_PARAM_EKF2_AGP_CTRL": 1
+                "PX4_PARAM_EKF2_AGP0_ID": 1,
+                "PX4_PARAM_EKF2_AGP0_CTRL": 1
             }
         }
     ]

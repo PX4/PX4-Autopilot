@@ -35,6 +35,8 @@
 
 #include <termios.h>
 
+ModuleBase::Descriptor SbusRc::desc{task_spawn, custom_command, print_usage};
+
 SbusRc::SbusRc(const char *device) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
@@ -98,8 +100,8 @@ int SbusRc::task_spawn(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		instance->ScheduleOnInterval(_current_update_interval);
 
@@ -126,7 +128,7 @@ void SbusRc::Run()
 
 		close(_rcs_fd);
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -265,7 +267,7 @@ void SbusRc::Run()
 
 int SbusRc::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		int ret = SbusRc::task_spawn(argc, argv);
 
 		if (ret) {
@@ -317,5 +319,5 @@ This module does SBUS RC input parsing.
 
 extern "C" __EXPORT int sbus_rc_main(int argc, char *argv[])
 {
-	return SbusRc::main(argc, argv);
+	return ModuleBase::main(SbusRc::desc, argc, argv);
 }

@@ -1163,6 +1163,11 @@ UavcanNode::print_info()
 
 	printf("\n");
 
+	// See https://github.com/PX4/PX4-Autopilot/issues/22871
+	printf("WARNING: CAN error counter values below may increase during this function call due to internal counter reading implementation.\n");
+	printf("Do not fully trust these counters until this issue is fixed.\n");
+	printf("\n");
+
 	// UAVCAN node perfcounters
 	printf("UAVCAN node status:\n");
 	printf("\tInternal failures: %" PRIu64 "\n", _node.getInternalFailureCount());

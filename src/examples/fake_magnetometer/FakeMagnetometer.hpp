@@ -52,9 +52,11 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_gps.h>
 
-class FakeMagnetometer : public ModuleBase<FakeMagnetometer>, public ModuleParams, public px4::ScheduledWorkItem
+class FakeMagnetometer : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	FakeMagnetometer();
 	~FakeMagnetometer() override = default;
 

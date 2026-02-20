@@ -153,7 +153,6 @@ RTK GPS 연결은 기본적으로 플러그앤플레이입니다.
    ![survey-in](../../assets/qgc/setup/rtk/qgc_rtk_survey-in.png)
 
 4. Survey-in이 완료되면 :
-
    - The RTK GPS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
 
      ![RTK streaming](../../assets/qgc/setup/rtk/qgc_rtk_streaming.png)

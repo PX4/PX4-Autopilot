@@ -48,19 +48,27 @@ using namespace time_literals;
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
-	_uavcan_sub_status(node)
+	_uavcan_sub_status(node),
+	_uavcan_sub_status_extended(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin); // Highest priority
 }
 
-int
-UavcanEscController::init()
+int UavcanEscController::init()
 {
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
 
 	if (res < 0) {
 		PX4_ERR("ESC status sub failed %i", res);
+		return res;
+	}
+
+	// ESC Status Extended subscription
+	res = _uavcan_sub_status_extended.start(StatusExtendedCbBinder(this, &UavcanEscController::esc_status_extended_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("ESC status extended sub failed %i", res);
 		return res;
 	}
 
@@ -77,8 +85,7 @@ UavcanEscController::init()
 	return res;
 }
 
-void
-UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size)
+void UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t output_array_size)
 {
 	// TODO: configurable rate limit
 	const auto timestamp = _node.getMonotonicTime();
@@ -89,7 +96,7 @@ UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t out
 
 	_prev_cmd_pub = timestamp;
 
-	uavcan::equipment::esc::RawCommand msg = {};
+	uavcan::equipment::esc::RawCommand msg{};
 
 	for (unsigned i = 0; i < output_array_size; i++) {
 		msg.cmd.push_back(static_cast<int>(outputs[i]));
@@ -98,32 +105,31 @@ UavcanEscController::update_outputs(uint16_t outputs[MAX_ACTUATORS], uint8_t out
 	_uavcan_pub_raw_cmd.broadcast(msg);
 }
 
-void
-UavcanEscController::set_rotor_count(uint8_t count)
+void UavcanEscController::set_rotor_count(uint8_t count)
 {
 	_rotor_count = count;
 }
 
-void
-UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
+void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
-		auto &ref = _esc_status.esc[msg.esc_index];
-
-		ref.timestamp       = hrt_absolute_time();
-		ref.esc_address = msg.getSrcNodeID().get();
-		ref.esc_voltage     = msg.voltage;
-		ref.esc_current     = msg.current;
-		ref.esc_temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
-		ref.esc_rpm         = msg.rpm;
-		ref.esc_errorcount  = msg.error_count;
+		esc_report_s &esc_report = _esc_status.esc[msg.esc_index];
+		esc_report.timestamp = hrt_absolute_time();
+		esc_report.esc_address = msg.getSrcNodeID().get();
+		esc_report.esc_voltage = msg.voltage;
+		esc_report.esc_current = msg.current;
+		esc_report.esc_temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
+		// esc_report.motor_temperature is filled in the extended status callback
+		esc_report.esc_rpm = msg.rpm;
+		esc_report.esc_errorcount = msg.error_count;
+		esc_report.failures = get_failures(msg.esc_index);
 
 		_esc_status.esc_count = _rotor_count;
 		_esc_status.counter += 1;
 		_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
 		_esc_status.esc_online_flags = check_escs_status();
 		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
-		_esc_status.timestamp = hrt_absolute_time();
+		_esc_status.timestamp = esc_report.timestamp;
 		_esc_status_pub.publish(_esc_status);
 	}
 
@@ -135,8 +141,19 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	}
 }
 
-uint8_t
-UavcanEscController::check_escs_status()
+void UavcanEscController::esc_status_extended_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg)
+{
+	uint8_t index = msg.esc_index;
+
+	if (index < esc_status_s::CONNECTED_ESC_MAX) {
+		esc_report_s &esc_report = _esc_status.esc[index];
+		// published with the non-extended esc::Status
+		esc_report.motor_temperature = msg.motor_temperature_degC;
+		esc_report.esc_power = msg.input_pct;
+	}
+}
+
+uint8_t UavcanEscController::check_escs_status()
 {
 	int esc_status_flags = 0;
 	const hrt_abstime now = hrt_absolute_time();
@@ -150,4 +167,69 @@ UavcanEscController::check_escs_status()
 	}
 
 	return esc_status_flags;
+}
+
+uint32_t UavcanEscController::get_failures(uint8_t esc_index)
+{
+	// Check DoneCAN node health of the ESC
+	dronecan_node_status_s node_status{};
+	uint8_t esc_node_id = _esc_status.esc[esc_index].esc_address;
+	uint8_t node_health = dronecan_node_status_s::HEALTH_OK;
+	uint16_t vendor_specific_status_code = 0;
+
+	for (auto &dronecan_node_status_sub : _dronecan_node_status_subs) {
+		if (dronecan_node_status_sub.copy(&node_status)) {
+			if (node_status.node_id == esc_node_id) {
+				node_health = node_status.health;
+				vendor_specific_status_code = node_status.vendor_specific_status_code;
+				break;
+			}
+		}
+	}
+
+	const bool failure = (node_health == dronecan_node_status_s::HEALTH_ERROR)
+			     || (node_health == dronecan_node_status_s::HEALTH_CRITICAL);
+
+	if (!failure) {
+		return 0;
+	}
+
+	// Parse VertiQ = iq_motion ESC error flags
+	device_information_s device_information{};
+
+	if (_device_information_sub.copy(&device_information)
+	    && device_information.device_type == device_information_s::DEVICE_TYPE_ESC
+	    && device_information.device_id == esc_index
+	    && strstr(device_information.name, "iq_motion") != nullptr) {
+		static const struct {
+			uint8_t bit;
+			uint8_t failure_type;
+		} bit_to_failure_map[] = {
+			{0,  esc_report_s::FAILURE_OVER_VOLTAGE},
+			{1,  esc_report_s::FAILURE_OVER_VOLTAGE},
+			{2,  esc_report_s::FAILURE_OVER_VOLTAGE},
+			{3,  esc_report_s::FAILURE_OVER_CURRENT},
+			{4,  esc_report_s::FAILURE_OVER_CURRENT},
+			{5,  esc_report_s::FAILURE_OVER_ESC_TEMPERATURE},
+			{6,  esc_report_s::FAILURE_MOTOR_OVER_TEMPERATURE},
+			{7,  esc_report_s::FAILURE_GENERIC},
+			{8,  esc_report_s::FAILURE_OVER_RPM},
+			{9,  esc_report_s::FAILURE_WARN_ESC_TEMPERATURE},
+			{10, esc_report_s::FAILURE_MOTOR_WARN_TEMPERATURE},
+			{11, esc_report_s::FAILURE_OVER_VOLTAGE},
+		};
+
+		uint32_t failures = 0;
+
+		for (const auto &mapping : bit_to_failure_map) {
+			if (vendor_specific_status_code & (1 << mapping.bit)) {
+				failures |= (1 << mapping.failure_type);
+			}
+		}
+
+		return failures;
+	}
+
+	// Generic parsing
+	return (1 << esc_report_s::FAILURE_GENERIC);
 }

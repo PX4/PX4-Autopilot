@@ -52,7 +52,7 @@ publications:
 
   - topic: /fmu/out/transponder_report
     type: px4_msgs::msg::TransponderReport
- 
+
   # - topic: /fmu/out/vehicle_angular_velocity
   #   type: px4_msgs::msg::VehicleAngularVelocity
 
@@ -191,7 +191,7 @@ subscriptions:
     type: px4_msgs::msg::ActuatorServos
 
   - topic: /fmu/in/aux_global_position
-    type: px4_msgs::msg::VehicleGlobalPosition
+    type: px4_msgs::msg::AuxGlobalPosition
 
   - topic: /fmu/in/fixed_wing_longitudinal_setpoint
     type: px4_msgs::msg::FixedWingLongitudinalSetpoint

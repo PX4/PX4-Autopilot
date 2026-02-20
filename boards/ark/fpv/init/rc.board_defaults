@@ -26,6 +26,8 @@ then
 fi
 
 param set-default BAT1_V_DIV 21.0
+param set-default BAT1_V_FILT 0.075
+param set-default BAT1_I_FILT 0.5
 
 param set-default RC_CRSF_PRT_CFG 300
 param set-default RC_SBUS_PRT_CFG 0
