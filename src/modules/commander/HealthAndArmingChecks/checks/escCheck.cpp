@@ -273,8 +273,8 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 			bool current_too_low = current < (thrust * _param_motfail_c2t.get()) - _param_motfail_low_off.get();
 			bool current_too_high = current > (thrust * _param_motfail_c2t.get()) + _param_motfail_high_off.get();
 
-			_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_tout.get() * 1_ms);
-			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_tout.get() * 1_ms);
+			_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_ms);
+			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_ms);
 
 			if (!_esc_undercurrent_hysteresis[i].get_state()) {
 				// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again

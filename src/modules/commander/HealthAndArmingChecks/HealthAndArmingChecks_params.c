@@ -31,9 +31,6 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <parameters/param.h>
-
 /**
  * Motor Failure Thrust Threshold
  *
@@ -66,19 +63,6 @@ PARAM_DEFINE_FLOAT(MOTFAIL_THR, 0.2f);
 PARAM_DEFINE_FLOAT(MOTFAIL_C2T, 35.f);
 
 /**
- * Motor Failure Hysteresis Time
- *
- * Motor failure only triggers after current thresholds are exceeded for this time.
- *
- * @group Motor Failure
- * @unit ms
- * @min 10
- * @max 10000
- * @increment 100
- */
-PARAM_DEFINE_INT32(MOTFAIL_TOUT, 1000);
-
-/**
  * Undercurrent motor failure limit offset
  *
  * threshold = FD_ACT_MOT_C2T * thrust - FD_ACT_LOW_OFF
@@ -105,3 +89,16 @@ PARAM_DEFINE_FLOAT(MOTFAIL_LOW_OFF, 10.f);
  * @increment 1
  */
 PARAM_DEFINE_FLOAT(MOTFAIL_HIGH_OFF, 10.f);
+
+/**
+ * Motor Failure Hysteresis Time
+ *
+ * Motor failure only triggers after current thresholds are exceeded for this time.
+ *
+ * @group Motor Failure
+ * @unit ms
+ * @min 10
+ * @max 10000
+ * @increment 100
+ */
+PARAM_DEFINE_INT32(MOTFAIL_TIME, 1000);
