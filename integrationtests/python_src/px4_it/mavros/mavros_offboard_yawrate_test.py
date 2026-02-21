@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #***************************************************************************
 #
 #   Copyright (c) 2020 PX4 Development Team. All rights reserved.
@@ -35,8 +35,6 @@
 # @author Pedro Roque <padr@kth.se>
 #
 
-from __future__ import division
-
 PKG = 'px4'
 
 import rospy
@@ -44,7 +42,6 @@ from geometry_msgs.msg import Quaternion, Vector3
 from mavros_msgs.msg import AttitudeTarget
 from mavros_test_common import MavrosTestCommon
 from pymavlink import mavutil
-from six.moves import xrange
 from std_msgs.msg import Header
 from threading import Thread
 from tf.transformations import quaternion_from_euler
@@ -134,7 +131,7 @@ class MavrosOffboardYawrateTest(MavrosTestCommon):
         loop_freq = 2  # Hz
         rate = rospy.Rate(loop_freq)
         crossed = False
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             if (self.local_position.pose.position.x < boundary_x and
 	    	    self.local_position.pose.position.x > -boundary_x and
                     self.local_position.pose.position.y < boundary_y and

@@ -1,0 +1,21 @@
+name: Build Gazebo Classic SITL
+description: Build PX4 firmware and Gazebo Classic plugins with ccache stats
+
+runs:
+  using: composite
+  steps:
+    - name: Build - PX4 Firmware (SITL)
+      shell: bash
+      run: make px4_sitl_default
+
+    - name: Cache - Stats after PX4 Firmware
+      shell: bash
+      run: ccache -s
+
+    - name: Build - Gazebo Classic Plugins
+      shell: bash
+      run: make px4_sitl_default sitl_gazebo-classic
+
+    - name: Cache - Stats after Gazebo Plugins
+      shell: bash
+      run: ccache -s
