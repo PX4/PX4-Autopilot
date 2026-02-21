@@ -1,0 +1,35 @@
+_voxl_inspect_pipe_info() {
+
+  # bash completion to just return all pipe names
+  local cur
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+
+  # only complete the first argument
+  (( COMP_CWORD != 1 )) && return 0
+
+  # Build the candidate list from /run/mpa using globbing only
+  # nullglob avoids literal pattern when directory is empty
+  local -a items=()
+  local f
+  shopt -s nullglob
+  for f in /run/mpa/*; do
+    [[ -e $f ]] || continue
+    items+=( "${f##*/}" )
+  done
+  shopt -u nullglob
+
+  # Ask readline to treat results like filenames (adds quoting/trailing slashes)
+  compopt -o filenames 2>/dev/null
+
+  # Preserve spaces in names by shell-quoting each word for compgen -W
+  local wordlist=""
+  local w
+  for w in "${items[@]}"; do
+    wordlist+=$(printf '%q ' "$w")
+  done
+
+  COMPREPLY=( $(compgen -W "$wordlist" -- "$cur") )
+}
+
+complete -F _voxl_inspect_pipe_info voxl-inspect-pipe-info

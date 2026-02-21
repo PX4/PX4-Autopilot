@@ -1,0 +1,9 @@
+Package: libmodal-pipe
+Version: 2.14.9
+Section: base
+Priority: optional
+Architecture: arm64
+Depends: libmodal-json(>=0.3.7)
+Conflicts: voxl-cpu-monitor(<<0.7.0)
+Maintainer: james@modalai.com
+Description: Interface for services to communicate over posix named pipes
