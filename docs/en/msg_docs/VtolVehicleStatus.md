@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE.
 
-**TOPICS:** vtol_vehiclestatus
+**TOPICS:** vtol_vehicle_status
 
 ## Fields
 

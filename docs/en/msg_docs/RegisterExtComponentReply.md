@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # RegisterExtComponentReply (UORB message)
 
-**TOPICS:** register_extcomponent_reply
+**TOPICS:** register_ext_component_reply
 
 ## Fields
 

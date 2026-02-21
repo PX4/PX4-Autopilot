@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Auxiliary control fields for fixed-wing runway takeoff/landing.
 
-**TOPICS:** fixed_wingrunway_control
+**TOPICS:** fixed_wing_runway_control
 
 ## Fields
 

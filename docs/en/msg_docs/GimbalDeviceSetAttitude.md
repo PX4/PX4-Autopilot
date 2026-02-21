@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # GimbalDeviceSetAttitude (UORB message)
 
-**TOPICS:** gimbal_deviceset_attitude
+**TOPICS:** gimbal_device_set_attitude
 
 ## Fields
 

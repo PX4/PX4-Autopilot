@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # RateCtrlStatus (UORB message)
 
-**TOPICS:** rate_ctrlstatus
+**TOPICS:** rate_ctrl_status
 
 ## Fields
 

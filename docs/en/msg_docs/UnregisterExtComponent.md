@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # UnregisterExtComponent (UORB message)
 
-**TOPICS:** unregister_extcomponent
+**TOPICS:** unregister_ext_component
 
 ## Fields
 

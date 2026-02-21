@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Request to register an external component.
 
-**TOPICS:** register_extcomponent_requestv0
+**TOPICS:** register_ext_component_request_v0
 
 ## Fields
 

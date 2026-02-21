@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # FlightPhaseEstimation (UORB message)
 
-**TOPICS:** flight_phaseestimation
+**TOPICS:** flight_phase_estimation
 
 ## Fields
 

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # InternalCombustionEngineStatus (UORB message)
 
-**TOPICS:** internal_combustionengine_status
+**TOPICS:** internal_combustion_engine_status
 
 ## Fields
 

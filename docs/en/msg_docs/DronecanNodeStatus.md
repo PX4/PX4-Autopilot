@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # DronecanNodeStatus (UORB message)
 
-**TOPICS:** dronecan_nodestatus
+**TOPICS:** dronecan_node_status
 
 ## Fields
 

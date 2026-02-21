@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # ArmingCheckReplyV0 (UORB message)
 
-**TOPICS:** arming_checkreplyv0
+**TOPICS:** arming_check_reply_v0
 
 ## Fields
 

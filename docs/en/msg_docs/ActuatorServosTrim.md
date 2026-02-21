@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Servo trims, added as offset to servo outputs.
 
-**TOPICS:** actuator_servostrim
+**TOPICS:** actuator_servos_trim
 
 ## Fields
 

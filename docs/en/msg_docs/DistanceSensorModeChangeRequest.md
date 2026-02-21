@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # DistanceSensorModeChangeRequest (UORB message)
 
-**TOPICS:** distance_sensormode_changerequest
+**TOPICS:** distance_sensor_mode_change_request
 
 ## Fields
 

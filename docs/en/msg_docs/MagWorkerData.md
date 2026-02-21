@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # MagWorkerData (UORB message)
 
-**TOPICS:** mag_workerdata
+**TOPICS:** mag_worker_data
 
 ## Fields
 

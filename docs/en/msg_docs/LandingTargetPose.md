@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Relative position of precision land target in navigation (body fixed, north aligned, NED) and inertial (world fixed, north aligned, NED) frames.
 
-**TOPICS:** landing_targetpose
+**TOPICS:** landing_target_pose
 
 ## Fields
 

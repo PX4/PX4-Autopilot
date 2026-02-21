@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # SensorGyroFft (UORB message)
 
-**TOPICS:** sensor_gyrofft
+**TOPICS:** sensor_gyro_fft
 
 ## Fields
 

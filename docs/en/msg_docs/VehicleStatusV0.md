@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Encodes the system state of the vehicle published by commander.
 
-**TOPICS:** vehicle_statusv0
+**TOPICS:** vehicle_status_v0
 
 ## Fields
 

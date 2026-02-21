@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # VehicleLandDetected (UORB message)
 
-**TOPICS:** vehicle_landdetected
+**TOPICS:** vehicle_land_detected
 
 ## Fields
 

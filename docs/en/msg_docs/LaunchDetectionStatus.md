@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Status of the launch detection state machine (fixed-wing only).
 
-**TOPICS:** launch_detectionstatus
+**TOPICS:** launch_detection_status
 
 ## Fields
 

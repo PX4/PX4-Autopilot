@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # GpsInjectData (UORB message)
 
-**TOPICS:** gps_injectdata
+**TOPICS:** gps_inject_data
 
 ## Fields
 

@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 ParameterResetRequest : Used by the primary to reset one or all parameter value(s) on the remote.
 
-**TOPICS:** parameter_resetrequest
+**TOPICS:** parameter_reset_request
 
 ## Fields
 

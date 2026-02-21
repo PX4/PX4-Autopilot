@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # RtlTimeEstimate (UORB message)
 
-**TOPICS:** rtl_timeestimate
+**TOPICS:** rtl_time_estimate
 
 ## Fields
 

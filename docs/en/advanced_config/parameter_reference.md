@@ -17996,9 +17996,9 @@ Accelerometer noise for covariance prediction.
 | ------ | -------- | -------- | --------- | ------- | ----- |
 | &nbsp; | 0.01     | 1.0      |           | 0.35    | m/s^2 |
 
-### EKF2_AGP_CTRL (`INT32`) {#EKF2_AGP_CTRL}
+### EKF2_AGP0_CTRL (`INT32`) {#EKF2_AGP0_CTRL}
 
-Aux global position (AGP) sensor aiding.
+Auxiliary global position sensor 0 aiding.
 
 Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
 
@@ -18011,17 +18011,17 @@ Set bits in the following positions to enable: 0 : Horizontal position fusion 1 
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 3        |           | 0       |
 
-### EKF2_AGP_DELAY (`FLOAT`) {#EKF2_AGP_DELAY}
+### EKF2_AGP0_DELAY (`FLOAT`) {#EKF2_AGP0_DELAY}
 
-Aux global position estimator delay relative to IMU measurements.
+Auxiliary global position sensor 0 delay (to IMU).
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 300      |           | 0       | ms   |
+| &check; | 0        | 1000     |           | 0       | ms   |
 
-### EKF2_AGP_GATE (`FLOAT`) {#EKF2_AGP_GATE}
+### EKF2_AGP0_GATE (`FLOAT`) {#EKF2_AGP0_GATE}
 
-Gate size for aux global position fusion.
+Gate size for auxiliary global position sensor 0 fusion.
 
 Sets the number of standard deviations used by the innovation consistency test.
 
@@ -18029,9 +18029,19 @@ Sets the number of standard deviations used by the innovation consistency test.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1.0      |          |           | 3.0     | SD   |
 
-### EKF2_AGP_MODE (`INT32`) {#EKF2_AGP_MODE}
+### EKF2_AGP0_ID (`INT32`) {#EKF2_AGP0_ID}
 
-Fusion reset mode.
+Auxiliary global position sensor 0 ID.
+
+Sensor ID for slot 0. Set to 0 to disable this slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### EKF2_AGP0_MODE (`INT32`) {#EKF2_AGP0_MODE}
+
+Fusion reset mode for sensor 0.
 
 Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
 
@@ -18044,15 +18054,219 @@ Automatic: reset on fusion timeout if no other source of position is available D
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 0       |
 
-### EKF2_AGP_NOISE (`FLOAT`) {#EKF2_AGP_NOISE}
+### EKF2_AGP0_NOISE (`FLOAT`) {#EKF2_AGP0_NOISE}
 
-Measurement noise for aux global position measurements.
+Measurement noise for auxiliary global position sensor 0.
 
 Used to lower bound or replace the uncertainty included in the message
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     |          |           | 0.9     | m    |
+| &nbsp; | 0.01     |          |           | 1.0     | m    |
+
+### EKF2_AGP1_CTRL (`INT32`) {#EKF2_AGP1_CTRL}
+
+Auxiliary global position sensor 1 aiding.
+
+Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+
+**Bitmask:**
+
+- `0`: Horizontal position
+- `1`: Vertical position
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 3        |           | 0       |
+
+### EKF2_AGP1_DELAY (`FLOAT`) {#EKF2_AGP1_DELAY}
+
+Auxiliary global position sensor 1 delay (to IMU).
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 0       | ms   |
+
+### EKF2_AGP1_GATE (`FLOAT`) {#EKF2_AGP1_GATE}
+
+Gate size for auxiliary global position sensor 1 fusion.
+
+Sets the number of standard deviations used by the innovation consistency test.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 1.0      |          |           | 3.0     | SD   |
+
+### EKF2_AGP1_ID (`INT32`) {#EKF2_AGP1_ID}
+
+Auxiliary global position sensor 1 ID.
+
+Sensor ID for slot 1. Set to 0 to disable this slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### EKF2_AGP1_MODE (`INT32`) {#EKF2_AGP1_MODE}
+
+Fusion reset mode for sensor 1.
+
+Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+
+**Values:**
+
+- `0`: Automatic
+- `1`: Dead-reckoning
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### EKF2_AGP1_NOISE (`FLOAT`) {#EKF2_AGP1_NOISE}
+
+Measurement noise for auxiliary global position sensor 1.
+
+Used to lower bound or replace the uncertainty included in the message
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.01     |          |           | 1.0     | m    |
+
+### EKF2_AGP2_CTRL (`INT32`) {#EKF2_AGP2_CTRL}
+
+Auxiliary global position sensor 2 aiding.
+
+Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+
+**Bitmask:**
+
+- `0`: Horizontal position
+- `1`: Vertical position
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 3        |           | 0       |
+
+### EKF2_AGP2_DELAY (`FLOAT`) {#EKF2_AGP2_DELAY}
+
+Auxiliary global position sensor 2 delay (to IMU).
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 0       | ms   |
+
+### EKF2_AGP2_GATE (`FLOAT`) {#EKF2_AGP2_GATE}
+
+Gate size for auxiliary global position sensor 2 fusion.
+
+Sets the number of standard deviations used by the innovation consistency test.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 1.0      |          |           | 3.0     | SD   |
+
+### EKF2_AGP2_ID (`INT32`) {#EKF2_AGP2_ID}
+
+Auxiliary global position sensor 2 ID.
+
+Sensor ID for slot 2. Set to 0 to disable this slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### EKF2_AGP2_MODE (`INT32`) {#EKF2_AGP2_MODE}
+
+Fusion reset mode for sensor 2.
+
+Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+
+**Values:**
+
+- `0`: Automatic
+- `1`: Dead-reckoning
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### EKF2_AGP2_NOISE (`FLOAT`) {#EKF2_AGP2_NOISE}
+
+Measurement noise for auxiliary global position sensor 2.
+
+Used to lower bound or replace the uncertainty included in the message
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.01     |          |           | 1.0     | m    |
+
+### EKF2_AGP3_CTRL (`INT32`) {#EKF2_AGP3_CTRL}
+
+Auxiliary global position sensor 3 aiding.
+
+Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+
+**Bitmask:**
+
+- `0`: Horizontal position
+- `1`: Vertical position
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 3        |           | 0       |
+
+### EKF2_AGP3_DELAY (`FLOAT`) {#EKF2_AGP3_DELAY}
+
+Auxiliary global position sensor 3 delay (to IMU).
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 0       | ms   |
+
+### EKF2_AGP3_GATE (`FLOAT`) {#EKF2_AGP3_GATE}
+
+Gate size for auxiliary global position sensor 3 fusion.
+
+Sets the number of standard deviations used by the innovation consistency test.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 1.0      |          |           | 3.0     | SD   |
+
+### EKF2_AGP3_ID (`INT32`) {#EKF2_AGP3_ID}
+
+Auxiliary global position sensor 3 ID.
+
+Sensor ID for slot 3. Set to 0 to disable this slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### EKF2_AGP3_MODE (`INT32`) {#EKF2_AGP3_MODE}
+
+Fusion reset mode for sensor 3.
+
+Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+
+**Values:**
+
+- `0`: Automatic
+- `1`: Dead-reckoning
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### EKF2_AGP3_NOISE (`FLOAT`) {#EKF2_AGP3_NOISE}
+
+Measurement noise for auxiliary global position sensor 3.
+
+Used to lower bound or replace the uncertainty included in the message
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.01     |          |           | 1.0     | m    |
 
 ### EKF2_ANGERR_INIT (`FLOAT`) {#EKF2_ANGERR_INIT}
 
@@ -40965,6 +41179,70 @@ uavcan::equipment::range_sensor::Measurement
 | &check; |          |          |           | Disabled (0) |
 
 ## UUV Attitude Control
+
+### UUV_HGT_B_DOWN (`INT32`) {#UUV_HGT_B_DOWN}
+
+Height rc-button down.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 16       |           | 12      |
+
+### UUV_HGT_B_UP (`INT32`) {#UUV_HGT_B_UP}
+
+Height rc-button up.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 16       |           | 11      |
+
+### UUV_HGT_D (`FLOAT`) {#UUV_HGT_D}
+
+Height differential gain.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1.0     |
+
+### UUV_HGT_I (`FLOAT`) {#UUV_HGT_I}
+
+Height integrational gain.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.2     |
+
+### UUV_HGT_I_SPD (`FLOAT`) {#UUV_HGT_I_SPD}
+
+sum speed of error for integrational gain.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1.0     |
+
+### UUV_HGT_MAX_DIFF (`FLOAT`) {#UUV_HGT_MAX_DIFF}
+
+maximum Height distance controlled by manual input. Diff between actual and desired Height cant be higher than that.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.3     |
+
+### UUV_HGT_P (`FLOAT`) {#UUV_HGT_P}
+
+Height proportional gain.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1.0     |
+
+### UUV_HGT_STR (`FLOAT`) {#UUV_HGT_STR}
+
+Height change strength from manual input.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1.0     |
 
 ### UUV_MGM_PITCH (`FLOAT`) {#UUV_MGM_PITCH}
 

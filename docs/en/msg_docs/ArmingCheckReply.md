@@ -13,7 +13,7 @@ The request is sent regularly to all registered ROS modes, even while armed, so 
 Note that the external component is identified by its registration_id, which is allocated to the component during registration (arming_check_id in RegisterExtComponentReply).
 The message is not used by internal/FMU components, as their mode requirements are known at compile time.
 
-**TOPICS:** arming_checkreply
+**TOPICS:** arming_check_reply
 
 ## Fields
 

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # ControlAllocatorStatus (UORB message)
 
-**TOPICS:** control_allocatorstatus
+**TOPICS:** control_allocator_status
 
 ## Fields
 

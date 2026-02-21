@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # ManualControlSwitches (UORB message)
 
-**TOPICS:** manual_controlswitches
+**TOPICS:** manual_control_switches
 
 ## Fields
 

@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 this message is required here in the msg_old folder because other msg are depending on it. Events interface.
 
-**TOPICS:** eventv0
+**TOPICS:** event_v0
 
 ## Fields
 

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # GimbalManagerInformation (UORB message)
 
-**TOPICS:** gimbal_managerinformation
+**TOPICS:** gimbal_manager_information
 
 ## Fields
 

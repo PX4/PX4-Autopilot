@@ -13,7 +13,7 @@ The request is sent regularly, even while armed, so that the FMU always knows th
 The reply will include the published request_id, allowing correlation of all arming check information for a particular request.
 The reply will also include the registration_id for each external component, provided to it during the registration process (RegisterExtComponentReply).
 
-**TOPICS:** arming_checkrequest
+**TOPICS:** arming_check_request
 
 ## Fields
 

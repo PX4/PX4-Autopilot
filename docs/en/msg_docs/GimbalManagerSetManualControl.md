@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # GimbalManagerSetManualControl (UORB message)
 
-**TOPICS:** gimbal_managerset_manualcontrol
+**TOPICS:** gimbal_manager_set_manual_control
 
 ## Fields
 

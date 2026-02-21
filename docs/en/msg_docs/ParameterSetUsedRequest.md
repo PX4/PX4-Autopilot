@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 ParameterSetUsedRequest : Used by a remote to update the used flag for a parameter on the primary.
 
-**TOPICS:** parameter_setused_request
+**TOPICS:** parameter_set_used_request
 
 ## Fields
 

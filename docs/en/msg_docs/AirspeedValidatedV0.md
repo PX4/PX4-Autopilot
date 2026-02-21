@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # AirspeedValidatedV0 (UORB message)
 
-**TOPICS:** airspeed_validatedv0
+**TOPICS:** airspeed_validated_v0
 
 ## Fields
 

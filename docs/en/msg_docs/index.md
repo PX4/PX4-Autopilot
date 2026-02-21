@@ -18,6 +18,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [AirspeedValidated](AirspeedValidated.md) — Validated airspeed.
 - [ArmingCheckReply](ArmingCheckReply.md) — Arming check reply.
 - [ArmingCheckRequest](ArmingCheckRequest.md) — Arming check request.
+- [AuxGlobalPosition](AuxGlobalPosition.md) — Auxiliary global position.
 - [BatteryStatus](BatteryStatus.md) — Battery status.
 - [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors.
 - [Event](Event.md) — Events interface.
@@ -267,6 +268,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RegisterExtComponentReplyV0](RegisterExtComponentReplyV0.md)
 - [RegisterExtComponentRequestV0](RegisterExtComponentRequestV0.md) — Request to register an external component.
 - [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
+- [VehicleGlobalPositionV0](VehicleGlobalPositionV0.md) — Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 - [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
 - [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.

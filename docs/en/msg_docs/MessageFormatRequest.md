@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # MessageFormatRequest (UORB message)
 
-**TOPICS:** message_formatrequest
+**TOPICS:** message_format_request
 
 ## Fields
 

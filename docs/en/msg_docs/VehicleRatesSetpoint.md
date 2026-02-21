@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # VehicleRatesSetpoint (UORB message)
 
-**TOPICS:** vehicle_ratessetpoint
+**TOPICS:** vehicle_rates_setpoint
 
 ## Fields
 

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # FuelTankStatus (UORB message)
 
-**TOPICS:** fuel_tankstatus
+**TOPICS:** fuel_tank_status
 
 ## Fields
 

@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 power button state notification message.
 
-**TOPICS:** power_buttonstate
+**TOPICS:** power_button_state
 
 ## Fields
 

@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Fixed Wing Lateral Control Configuration message. Used by the fw_lateral_longitudinal_control module to constrain FixedWingLateralSetpoint messages.
 
-**TOPICS:** lateral_controlconfiguration
+**TOPICS:** lateral_control_configuration
 
 ## Fields
 

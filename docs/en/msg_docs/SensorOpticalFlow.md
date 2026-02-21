@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # SensorOpticalFlow (UORB message)
 
-**TOPICS:** sensor_opticalflow
+**TOPICS:** sensor_optical_flow
 
 ## Fields
 

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # RcParameterMap (UORB message)
 
-**TOPICS:** rc_parametermap
+**TOPICS:** rc_parameter_map
 
 ## Fields
 

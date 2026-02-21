@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Fixed Wing Longitudinal Setpoint message. Used by the fw_lateral_longitudinal_control module. If pitch_direct and throttle_direct are not both finite, then the controller relies on altitude/height_rate and equivalent_airspeed to control vertical motion. If both altitude and height_rate are NAN, the controller maintains the current altitude.
 
-**TOPICS:** fixed_winglongitudinal_setpoint
+**TOPICS:** fixed_wing_longitudinal_setpoint
 
 ## Fields
 

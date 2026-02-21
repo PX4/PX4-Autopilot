@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 stack information for a single running process.
 
-**TOPICS:** task_stackinfo
+**TOPICS:** task_stack_info
 
 ## Fields
 

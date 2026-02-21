@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
 
-**TOPICS:** vehicle_commandack
+**TOPICS:** vehicle_command_ack
 
 ## Fields
 

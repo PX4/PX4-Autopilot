@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Ack a previously sent ulog_stream message that had. the NEED_ACK flag set.
 
-**TOPICS:** ulog_streamack
+**TOPICS:** ulog_stream_ack
 
 ## Fields
 

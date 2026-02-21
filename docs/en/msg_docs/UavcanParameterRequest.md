@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 UAVCAN-MAVLink parameter bridge request type.
 
-**TOPICS:** uavcan_parameterrequest
+**TOPICS:** uavcan_parameter_request
 
 ## Fields
 

@@ -2,7 +2,7 @@
 pageClass: is-wide-page
 ---
 
-# VehicleGlobalPosition (UORB message)
+# VehicleGlobalPositionV0 (UORB message)
 
 Fused global position in WGS84. This struct contains global position estimation. It is not the raw GPS. measurement (@see vehicle_gps_position). This topic is usually published by the position. estimator, which will take more sources of information into account than just GPS,. e.g. control inputs of the vehicle in a Kalman-filter implementation.
 
@@ -39,7 +39,7 @@ Fused global position in WGS84. This struct contains global position estimation.
 
 ## Source Message
 
-[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/versioned/VehicleGlobalPosition.msg)
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/VehicleGlobalPositionV0.msg)
 
 ::: details Click here to see original file
 

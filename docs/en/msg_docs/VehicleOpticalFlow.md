@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Optical flow in XYZ body frame in SI units.
 
-**TOPICS:** vehicle_opticalflow
+**TOPICS:** vehicle_optical_flow
 
 ## Fields
 

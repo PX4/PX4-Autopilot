@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 GPS home position in WGS84 coordinates.
 
-**TOPICS:** home_positionv0
+**TOPICS:** home_position_v0
 
 ## Fields
 
