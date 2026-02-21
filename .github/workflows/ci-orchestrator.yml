@@ -1,0 +1,1339 @@
+name: CI Pipeline (Orchestrator)
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'stable'
+      - 'beta'
+      - 'release/**'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+  pull-requests: write
+
+env:
+  MIN_FLASH_POS_DIFF_FOR_COMMENT: 50
+  MIN_FLASH_NEG_DIFF_FOR_COMMENT: -50
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════
+  # CONFIG: Load CI configuration (runner labels, toggles, cache sizes)
+  # Root of the DAG — all jobs depend on this. Forks override via .github/ci-config.yml.
+  # ═══════════════════════════════════════════════════════════════════
+
+  load-config:
+    name: "Load CI Configuration"
+    runs-on: ubuntu-latest
+    outputs:
+      # Runner labels (JSON arrays for runs-on)
+      # Upstream defaults: RunsOn/AWS. Forks override to github-hosted or self-hosted.
+      runner_small:   ${{ steps.config.outputs.runner_small }}
+      runner_medium:  ${{ steps.config.outputs.runner_medium }}
+      runner_large:   ${{ steps.config.outputs.runner_large }}
+      runner_utility: ${{ steps.config.outputs.runner_utility }}
+      # Cache max sizes
+      cache_max_size_sitl:            ${{ steps.config.outputs.cache_max_size_sitl }}
+      cache_max_size_sitl_gazebo:     ${{ steps.config.outputs.cache_max_size_sitl_gazebo }}
+      cache_max_size_clang_tidy:      ${{ steps.config.outputs.cache_max_size_clang_tidy }}
+      cache_max_size_ubuntu:          ${{ steps.config.outputs.cache_max_size_ubuntu }}
+      cache_max_size_macos:           ${{ steps.config.outputs.cache_max_size_macos }}
+      cache_max_size_itcm:            ${{ steps.config.outputs.cache_max_size_itcm }}
+      cache_max_size_flash:           ${{ steps.config.outputs.cache_max_size_flash }}
+      cache_max_size_ros_integration: ${{ steps.config.outputs.cache_max_size_ros_integration }}
+      cache_max_size_ros_translation: ${{ steps.config.outputs.cache_max_size_ros_translation }}
+      # Infrastructure hint
+      is_gha: ${{ steps.config.outputs.is_gha }}
+      # Job toggles
+      enable_gate_checks:           ${{ steps.config.outputs.enable_gate_checks }}
+      enable_shellcheck:            ${{ steps.config.outputs.enable_shellcheck }}
+      enable_mavsdk_checks:         ${{ steps.config.outputs.enable_mavsdk_checks }}
+      enable_macos_build:           ${{ steps.config.outputs.enable_macos_build }}
+      enable_clang_tidy:            ${{ steps.config.outputs.enable_clang_tidy }}
+      enable_ubuntu_builds:         ${{ steps.config.outputs.enable_ubuntu_builds }}
+      enable_itcm_check:            ${{ steps.config.outputs.enable_itcm_check }}
+      enable_flash_analysis:        ${{ steps.config.outputs.enable_flash_analysis }}
+      enable_failsafe_sim:          ${{ steps.config.outputs.enable_failsafe_sim }}
+      enable_sitl_build:            ${{ steps.config.outputs.enable_sitl_build }}
+      enable_gazebo_classic_build:  ${{ steps.config.outputs.enable_gazebo_classic_build }}
+      enable_sitl_tests:            ${{ steps.config.outputs.enable_sitl_tests }}
+      enable_ros_integration:       ${{ steps.config.outputs.enable_ros_integration }}
+      enable_mavros_tests:          ${{ steps.config.outputs.enable_mavros_tests }}
+      enable_ros_translation_node:  ${{ steps.config.outputs.enable_ros_translation_node }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/ci-config.yml
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+
+      - name: Load CI Config
+        id: config
+        run: |
+          # Defaults — all enabled, RunsOn AWS runners
+          RUNNER_SMALL='["runs-on","runner=4cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}","spot=false","extras=s3-cache"]'
+          RUNNER_MEDIUM='["runs-on","runner=8cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}","spot=false","extras=s3-cache"]'
+          RUNNER_LARGE='["runs-on","runner=16cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}","spot=false","extras=s3-cache"]'
+          RUNNER_UTILITY='["runs-on","runner=1cpu-linux-x64","image=ubuntu24-full-x64","run-id=${{ github.run_id }}"]'
+          IS_GHA=false
+          ENABLE_GATE_CHECKS=true
+          ENABLE_SHELLCHECK=true
+          ENABLE_MAVSDK_CHECKS=true
+          ENABLE_MACOS_BUILD=true
+          ENABLE_CLANG_TIDY=true
+          ENABLE_UBUNTU_BUILDS=true
+          ENABLE_ITCM_CHECK=true
+          ENABLE_FLASH_ANALYSIS=true
+          ENABLE_FAILSAFE_SIM=true
+          ENABLE_SITL_BUILD=true
+          ENABLE_GAZEBO_CLASSIC_BUILD=true
+          ENABLE_SITL_TESTS=true
+          ENABLE_ROS_INTEGRATION=true
+          ENABLE_MAVROS_TESTS=true
+          ENABLE_ROS_TRANSLATION_NODE=true
+          CACHE_SITL=300M
+          CACHE_SITL_GAZEBO=350M
+          CACHE_CLANG_TIDY=150M
+          CACHE_UBUNTU=200M
+          CACHE_MACOS=200M
+          CACHE_ITCM=200M
+          CACHE_FLASH=200M
+          CACHE_ROS_INTEGRATION=400M
+          CACHE_ROS_TRANSLATION=150M
+
+          # Override from .github/ci-config.yml if present
+          if [ -f .github/ci-config.yml ]; then
+            echo "Found .github/ci-config.yml — applying overrides"
+            get() { yq -r ".$1 // empty" .github/ci-config.yml; }
+            v=$(get is_gha);              [ -n "$v" ] && IS_GHA="$v"
+            v=$(get runners.small);       [ -n "$v" ] && RUNNER_SMALL="$v"
+            v=$(get runners.medium);      [ -n "$v" ] && RUNNER_MEDIUM="$v"
+            v=$(get runners.large);       [ -n "$v" ] && RUNNER_LARGE="$v"
+            v=$(get runners.utility);     [ -n "$v" ] && RUNNER_UTILITY="$v"
+            v=$(get jobs.gate_checks);          [ -n "$v" ] && ENABLE_GATE_CHECKS="$v"
+            v=$(get jobs.shellcheck);           [ -n "$v" ] && ENABLE_SHELLCHECK="$v"
+            v=$(get jobs.mavsdk_checks);        [ -n "$v" ] && ENABLE_MAVSDK_CHECKS="$v"
+            v=$(get jobs.macos_build);          [ -n "$v" ] && ENABLE_MACOS_BUILD="$v"
+            v=$(get jobs.clang_tidy);           [ -n "$v" ] && ENABLE_CLANG_TIDY="$v"
+            v=$(get jobs.ubuntu_builds);        [ -n "$v" ] && ENABLE_UBUNTU_BUILDS="$v"
+            v=$(get jobs.itcm_check);           [ -n "$v" ] && ENABLE_ITCM_CHECK="$v"
+            v=$(get jobs.flash_analysis);       [ -n "$v" ] && ENABLE_FLASH_ANALYSIS="$v"
+            v=$(get jobs.failsafe_sim);         [ -n "$v" ] && ENABLE_FAILSAFE_SIM="$v"
+            v=$(get jobs.sitl_build);           [ -n "$v" ] && ENABLE_SITL_BUILD="$v"
+            v=$(get jobs.gazebo_classic_build); [ -n "$v" ] && ENABLE_GAZEBO_CLASSIC_BUILD="$v"
+            v=$(get jobs.sitl_tests);           [ -n "$v" ] && ENABLE_SITL_TESTS="$v"
+            v=$(get jobs.ros_integration);      [ -n "$v" ] && ENABLE_ROS_INTEGRATION="$v"
+            v=$(get jobs.mavros_tests);         [ -n "$v" ] && ENABLE_MAVROS_TESTS="$v"
+            v=$(get jobs.ros_translation_node); [ -n "$v" ] && ENABLE_ROS_TRANSLATION_NODE="$v"
+            v=$(get cache.sitl);                [ -n "$v" ] && CACHE_SITL="$v"
+            v=$(get cache.sitl_gazebo_classic); [ -n "$v" ] && CACHE_SITL_GAZEBO="$v"
+            v=$(get cache.clang_tidy);          [ -n "$v" ] && CACHE_CLANG_TIDY="$v"
+            v=$(get cache.ubuntu_builds);       [ -n "$v" ] && CACHE_UBUNTU="$v"
+            v=$(get cache.macos);               [ -n "$v" ] && CACHE_MACOS="$v"
+            v=$(get cache.itcm);                [ -n "$v" ] && CACHE_ITCM="$v"
+            v=$(get cache.flash);               [ -n "$v" ] && CACHE_FLASH="$v"
+            v=$(get cache.ros_integration);     [ -n "$v" ] && CACHE_ROS_INTEGRATION="$v"
+            v=$(get cache.ros_translation);     [ -n "$v" ] && CACHE_ROS_TRANSLATION="$v"
+          else
+            echo "No .github/ci-config.yml found — using defaults"
+          fi
+
+          echo "is_gha=$IS_GHA"                 >> $GITHUB_OUTPUT
+          echo "runner_small=$RUNNER_SMALL"     >> $GITHUB_OUTPUT
+          echo "runner_medium=$RUNNER_MEDIUM"   >> $GITHUB_OUTPUT
+          echo "runner_large=$RUNNER_LARGE"     >> $GITHUB_OUTPUT
+          echo "runner_utility=$RUNNER_UTILITY" >> $GITHUB_OUTPUT
+          echo "enable_gate_checks=$ENABLE_GATE_CHECKS"                     >> $GITHUB_OUTPUT
+          echo "enable_shellcheck=$ENABLE_SHELLCHECK"                       >> $GITHUB_OUTPUT
+          echo "enable_mavsdk_checks=$ENABLE_MAVSDK_CHECKS"                 >> $GITHUB_OUTPUT
+          echo "enable_macos_build=$ENABLE_MACOS_BUILD"                     >> $GITHUB_OUTPUT
+          echo "enable_clang_tidy=$ENABLE_CLANG_TIDY"                     >> $GITHUB_OUTPUT
+          echo "enable_ubuntu_builds=$ENABLE_UBUNTU_BUILDS"               >> $GITHUB_OUTPUT
+          echo "enable_itcm_check=$ENABLE_ITCM_CHECK"                     >> $GITHUB_OUTPUT
+          echo "enable_flash_analysis=$ENABLE_FLASH_ANALYSIS"             >> $GITHUB_OUTPUT
+          echo "enable_failsafe_sim=$ENABLE_FAILSAFE_SIM"                 >> $GITHUB_OUTPUT
+          echo "enable_sitl_build=$ENABLE_SITL_BUILD"                     >> $GITHUB_OUTPUT
+          echo "enable_gazebo_classic_build=$ENABLE_GAZEBO_CLASSIC_BUILD" >> $GITHUB_OUTPUT
+          echo "enable_sitl_tests=$ENABLE_SITL_TESTS"                     >> $GITHUB_OUTPUT
+          echo "enable_ros_integration=$ENABLE_ROS_INTEGRATION"           >> $GITHUB_OUTPUT
+          echo "enable_mavros_tests=$ENABLE_MAVROS_TESTS"                 >> $GITHUB_OUTPUT
+          echo "enable_ros_translation_node=$ENABLE_ROS_TRANSLATION_NODE" >> $GITHUB_OUTPUT
+          echo "cache_max_size_sitl=$CACHE_SITL"                          >> $GITHUB_OUTPUT
+          echo "cache_max_size_sitl_gazebo=$CACHE_SITL_GAZEBO"            >> $GITHUB_OUTPUT
+          echo "cache_max_size_clang_tidy=$CACHE_CLANG_TIDY"              >> $GITHUB_OUTPUT
+          echo "cache_max_size_ubuntu=$CACHE_UBUNTU"                      >> $GITHUB_OUTPUT
+          echo "cache_max_size_macos=$CACHE_MACOS"                        >> $GITHUB_OUTPUT
+          echo "cache_max_size_itcm=$CACHE_ITCM"                          >> $GITHUB_OUTPUT
+          echo "cache_max_size_flash=$CACHE_FLASH"                        >> $GITHUB_OUTPUT
+          echo "cache_max_size_ros_integration=$CACHE_ROS_INTEGRATION"    >> $GITHUB_OUTPUT
+          echo "cache_max_size_ros_translation=$CACHE_ROS_TRANSLATION"    >> $GITHUB_OUTPUT
+
+  # ═══════════════════════════════════════════════════════════════════
+  # TIER 1: Quick Gate Checks
+  # Fastest checks that catch most common errors. Failures stop all downstream tiers.
+  # ═══════════════════════════════════════════════════════════════════
+
+  gate-checks:
+    name: "T1: Gate Checks [${{ matrix.check }}]"
+    needs: [load-config]
+    if: needs.load-config.outputs.enable_gate_checks == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_utility) }}
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-beta1
+    strategy:
+      fail-fast: true  # Stop all jobs immediately on first failure
+      matrix:
+        check: [
+          "check_format",
+          "check_newlines",
+          "validate_module_configs"
+        ]
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - name: Test - Run ${{ matrix.check }}
+        run: make ${{ matrix.check }}
+
+  shellcheck:
+    name: "T1: Shellcheck"
+    needs: [load-config]
+    if: needs.load-config.outputs.enable_shellcheck == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_utility) }}
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-beta1
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - name: Test - Run shellcheck_all
+        run: make shellcheck_all
+
+  mavsdk-python-checks:
+    name: "T1: MAVSDK Python [${{ matrix.check }}]"
+    needs: [load-config]
+    if: needs.load-config.outputs.enable_mavsdk_checks == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_utility) }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        check: ["mypy", "flake8"]
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Install Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Setup - Install Python Linters
+        run: pip install mypy types-requests flake8
+
+      - name: Test - Run mypy on MAVSDK Scripts
+        if: matrix.check == 'mypy'
+        run: mypy --strict test/mavsdk_tests/*.py
+
+      - name: Test - Run flake8 on MAVSDK Scripts
+        if: matrix.check == 'flake8'
+        run: flake8 test/mavsdk_tests/*.py
+
+  # ═══════════════════════════════════════════════════════════════════
+  # TIER 2: Builds, Analysis & Platform Checks
+  # Runs after Tier 1. Runner labels, cache sizes, and job toggles come from load-config.
+  # ═══════════════════════════════════════════════════════════════════
+
+  build-sitl:
+    name: "T2: Build SITL Cache Seed"
+    needs: [load-config, gate-checks, shellcheck, mavsdk-python-checks]
+    if: needs.load-config.outputs.enable_sitl_build == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_small) }}
+    permissions:
+      contents: read
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-beta1
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-sitl
+          max-size: ${{ needs.load-config.outputs.cache_max_size_sitl }}
+
+      - name: Build - px4_sitl_default
+        run: make px4_sitl_default
+
+      - uses: ./.github/actions/save-ccache
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+  build-sitl-gazebo-classic:
+    name: "T2: Build SITL Gazebo Classic Cache Seed"
+    needs: [load-config, gate-checks, shellcheck, mavsdk-python-checks]
+    if: needs.load-config.outputs.enable_gazebo_classic_build == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_small) }}
+    permissions:
+      contents: read
+    container:
+      image: px4io/px4-dev-simulation-focal:2021-09-08
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-sitl-gazebo-classic
+          max-size: ${{ needs.load-config.outputs.cache_max_size_sitl_gazebo }}
+
+      - name: Build - px4_sitl_default
+        run: make px4_sitl_default
+
+      - name: Cache - Stats after PX4 Firmware
+        run: ccache -s
+
+      - name: Build - Gazebo Classic Plugins
+        run: make px4_sitl_default sitl_gazebo-classic
+
+      - uses: ./.github/actions/save-ccache
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+  basic-tests:
+    name: "T2: Unit Tests"
+    needs: [load-config, gate-checks, shellcheck, mavsdk-python-checks, build-sitl]
+    if: needs.load-config.outputs.enable_sitl_build == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_small) }}
+    permissions:
+      contents: write   # needed for auto-commit of EKF CSVs on push to protected branches
+    env:
+      GIT_COMMITTER_EMAIL: bot@px4.io
+      GIT_COMMITTER_NAME: PX4BuildBot
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-beta1
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        with:
+          cache-key-prefix: ccache-sitl
+          max-size: ${{ needs.load-config.outputs.cache_max_size_sitl }}
+
+      - name: Build - tests
+        run: make tests
+
+      - name: Commit - Auto-update EKF change indication baselines
+        if: github.event_name == 'push'
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          file_pattern: 'src/modules/ekf2/test/change_indication/*.csv'
+          commit_user_name: ${{ env.GIT_COMMITTER_NAME }}
+          commit_user_email: ${{ env.GIT_COMMITTER_EMAIL }}
+          commit_message: |
+            [AUTO COMMIT] update EKF change indication
+
+            See .github/workflows/ci-orchestrator.yml for more details
+
+      - name: Validate - Check for EKF Functional Changes
+        run: git diff --exit-code
+        working-directory: src/modules/ekf2/test/change_indication
+
+      - name: Build - module_documentation
+        run: make module_documentation
+
+      - name: Cache - Stats
+        run: ccache -s
+
+  clang-tidy:
+    name: "T2: Clang-Tidy Static Analysis"
+    needs: [load-config, gate-checks, shellcheck, mavsdk-python-checks]
+    if: needs.load-config.outputs.enable_clang_tidy == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_large) }}
+    permissions:
+      contents: read
+    outputs:
+      has_findings: ${{ steps.clang_tidy.outputs.has_findings }}
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-beta1
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-clang-tidy
+          max-size: ${{ needs.load-config.outputs.cache_max_size_clang_tidy }}
+
+      - name: Build - px4_sitl_default (Clang)
+        run: make -j16 px4_sitl_default-clang
+
+      - name: Cache - Stats after Build
+        run: ccache -s
+
+      - name: Analysis - Run Clang-Tidy
+        id: clang_tidy
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            make -j$(nproc) clang-tidy
+            echo "has_findings=false" >> $GITHUB_OUTPUT
+          else
+            output=$(python3 Tools/ci/run-clang-tidy-pr.py origin/${{ github.base_ref }} 2>&1)
+            exit_code=$?
+            echo "$output"
+            # Script prints this message on both early-exit paths (no changed files / no TUs)
+            if echo "$output" | grep -q "skipping clang-tidy"; then
+              echo "has_findings=false" >> $GITHUB_OUTPUT
+            else
+              echo "has_findings=true" >> $GITHUB_OUTPUT
+            fi
+            exit $exit_code
+          fi
+
+      - name: Upload - compile_commands.json
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: compile-commands
+          path: build/px4_sitl_default-clang/compile_commands.json
+          retention-days: 1
+
+      - uses: ./.github/actions/save-ccache
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+  ubuntu-builds:
+    name: "T2: Ubuntu Build [${{ matrix.container }}]"
+    needs: [load-config, gate-checks, shellcheck, mavsdk-python-checks]
+    if: needs.load-config.outputs.enable_ubuntu_builds == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_small) }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        container: [
+          "ubuntu:22.04",
+          "ubuntu:24.04"
+        ]
+    container:
+      image: ${{ matrix.container }}
+      volumes:
+        - /github/workspace:/github/workspace
+    env:
+      RUNS_IN_DOCKER: true
+    steps:
+      - uses: runs-on/action@v2
+
+      - name: Setup - Install Git and Configure Safe Directory
+        run: |
+          apt update && apt install git -y
+          git config --global --add safe.directory $(realpath .)
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Install PX4 Dependencies
+        run: |
+          ./Tools/setup/ubuntu.sh --no-nuttx --no-sim-tools
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-ubuntu-${{ matrix.container }}
+          max-size: ${{ needs.load-config.outputs.cache_max_size_ubuntu }}
+
+      - name: Build - px4_sitl_default
+        run: make px4_sitl_default
+
+      - uses: ./.github/actions/save-ccache
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+  macos-build:
+    name: "T2: macOS Build"
+    needs: [load-config, gate-checks, shellcheck, mavsdk-python-checks]
+    if: needs.load-config.outputs.enable_macos_build == 'true'
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Setup - Install Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Cache - Restore Homebrew Packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew/downloads
+          key: macos-homebrew-${{ runner.arch }}-${{ hashFiles('Tools/setup/macos.sh') }}
+          restore-keys: |
+            macos-homebrew-${{ runner.arch }}-
+
+      - name: Cache - Restore pip Packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pip
+          key: macos-pip-${{ runner.arch }}-${{ hashFiles('Tools/setup/requirements.txt') }}
+          restore-keys: |
+            macos-pip-${{ runner.arch }}-
+
+      - name: Setup - Install macOS Dependencies
+        run: ./Tools/setup/macos.sh
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-macos
+          max-size: ${{ needs.load-config.outputs.cache_max_size_macos }}
+
+      - name: Build - px4_sitl (macOS)
+        run: make px4_sitl
+
+      - name: Cache - Stats after SITL
+        run: ccache -s
+
+      - name: Build - px4_fmu-v5_default
+        run: make px4_fmu-v5_default
+
+      - uses: ./.github/actions/save-ccache
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+  itcm-check:
+    name: "T2: ITCM Check [${{ matrix.target }}]"
+    needs: [load-config, gate-checks, shellcheck, mavsdk-python-checks]
+    if: needs.load-config.outputs.enable_itcm_check == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_small) }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: px4_fmu-v5x_default
+            scripts: >
+              boards/px4/fmu-v5x/nuttx-config/scripts/itcm_gen_functions.ld
+              boards/px4/fmu-v5x/nuttx-config/scripts/itcm_static_functions.ld
+          - target: px4_fmu-v6xrt_default
+            scripts: >
+              boards/px4/fmu-v6xrt/nuttx-config/scripts/itcm_functions_includes.ld
+              boards/px4/fmu-v6xrt/nuttx-config/scripts/itcm_static_functions.ld
+          - target: nxp_tropic-community_default
+            scripts: >
+              boards/nxp/tropic-community/nuttx-config/scripts/itcm_functions_includes.ld
+              boards/nxp/tropic-community/nuttx-config/scripts/itcm_static_functions.ld
+          - target: nxp_mr-tropic_default
+            scripts: >
+              boards/nxp/mr-tropic/nuttx-config/scripts/itcm_functions_includes.ld
+              boards/nxp/mr-tropic/nuttx-config/scripts/itcm_static_functions.ld
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-beta1
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-itcm-${{ matrix.target }}
+          max-size: ${{ needs.load-config.outputs.cache_max_size_itcm }}
+
+      - name: Build - ${{ matrix.target }}
+        run: make ${{ matrix.target }}
+
+      - name: Setup - Copy Built ELF Binary
+        run: cp ./build/**/*.elf ./built.elf
+
+      - name: Setup - Install ITCM Check Dependencies
+        run: pip3 install -r Tools/setup/optional-requirements.txt --break-system-packages
+
+      - name: Analyze - Run ITCM Placement Check
+        run: python3 Tools/itcm_check.py --elf-file built.elf --script-files ${{ matrix.scripts }}
+
+      - uses: ./.github/actions/save-ccache
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+  flash-analysis:
+    name: "T2: Flash Analysis [${{ matrix.target }}]"
+    needs: [load-config, gate-checks, shellcheck, mavsdk-python-checks]
+    if: needs.load-config.outputs.enable_flash_analysis == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_small) }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [px4_fmu-v5x, px4_fmu-v6x]
+    outputs:
+      px4_fmu-v5x-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v5x-bloaty-output }}
+      px4_fmu-v5x-bloaty-summary-map: ${{ steps.gen-output.outputs.px4_fmu-v5x-bloaty-summary-map }}
+      px4_fmu-v6x-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v6x-bloaty-output }}
+      px4_fmu-v6x-bloaty-summary-map: ${{ steps.gen-output.outputs.px4_fmu-v6x-bloaty-summary-map }}
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-beta1
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      # ── Current build (PR head) ──────────────────────────────────
+      - name: Cache - Restore ccache (current)
+        id: cache_current
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.ccache
+          key: ccache-flash-${{ matrix.target }}-current-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ccache-flash-${{ matrix.target }}-current-${{ github.ref_name }}-
+            ccache-flash-${{ matrix.target }}-current-
+
+      - name: Cache - Configure ccache
+        run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
+          echo "max_size = ${{ needs.load-config.outputs.cache_max_size_flash }}" >> ~/.ccache/ccache.conf
+          echo "hash_dir = false" >> ~/.ccache/ccache.conf
+          echo "compiler_check = content" >> ~/.ccache/ccache.conf
+          ccache -s
+          ccache -z
+
+      - name: Build - ${{ matrix.target }} (Current)
+        run: make ${{ matrix.target }}_flash-analysis
+
+      - name: Cache - Stats after Current Build
+        run: ccache -s
+
+      - name: Cache - Save ccache (current)
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.ccache
+          key: ${{ steps.cache_current.outputs.cache-primary-key }}
+
+      - name: Analyze - Save Current ELF Binary
+        run: cp ./build/**/*.elf ./with-change.elf
+
+      # ── Baseline build (merge target) ───────────────────────────
+      - name: Setup - Clean Workspace for Baseline
+        run: |
+          make clean
+          make distclean
+          make submodulesclean
+          ccache -C
+
+      - name: Setup - Checkout PR Base Branch
+        if: ${{ github.event.pull_request }}
+        run: git checkout ${{ github.event.pull_request.base.ref }}
+
+      - name: Setup - Checkout Previous Commit
+        if: github.event_name == 'push'
+        run: git checkout ${{ github.event.before }}
+
+      - name: Setup - Resolve Baseline SHA
+        id: baseline_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Cache - Restore ccache (baseline)
+        id: cache_baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.ccache
+          key: ccache-flash-${{ matrix.target }}-baseline-${{ steps.baseline_sha.outputs.sha }}
+          restore-keys: |
+            ccache-flash-${{ matrix.target }}-baseline-
+
+      - name: Cache - Reset ccache stats
+        run: ccache -z
+
+      - name: Setup - Update Submodules for Baseline
+        run: make submodulesupdate
+
+      - name: Build - ${{ matrix.target }} (Baseline)
+        run: make ${{ matrix.target }}_flash-analysis
+
+      - name: Cache - Stats after Baseline Build
+        run: ccache -s
+
+      - name: Cache - Save ccache (baseline)
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.ccache
+          key: ${{ steps.cache_baseline.outputs.cache-primary-key }}
+
+      # ── Compare ─────────────────────────────────────────────────
+      - name: Analyze - Save Baseline ELF Binary
+        run: cp ./build/**/*.elf ./before-change.elf
+
+      - name: Analyze - Compare Flash Usage (Bloaty)
+        uses: PX4/bloaty-action@v1.0.0
+        id: bloaty-step
+        with:
+          bloaty-file-args: ./with-change.elf -- ./before-change.elf
+          bloaty-additional-args: -d sections,symbols -s vm -n 20
+          output-to-summary: true
+
+      - name: Analyze - Export Results for PR Comment
+        id: gen-output
+        run: |
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "${{ matrix.target }}-bloaty-output<<$EOF" >> $GITHUB_OUTPUT
+          echo "${{ steps.bloaty-step.outputs.bloaty-output-encoded }}" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+          echo "${{ matrix.target }}-bloaty-summary-map<<$EOF" >> $GITHUB_OUTPUT
+          echo '${{ steps.bloaty-step.outputs.bloaty-summary-map }}' >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+  post-flash-comment:
+    name: "T2: Publish Flash Analysis Results"
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_utility) }}
+    needs: [load-config, flash-analysis]
+    permissions:
+      pull-requests: write
+    env:
+      V5X-SUMMARY-MAP-ABS: ${{ fromJSON(fromJSON(needs.flash-analysis.outputs.px4_fmu-v5x-bloaty-summary-map).vm-absolute) }}
+      V5X-SUMMARY-MAP-PERC: ${{ fromJSON(fromJSON(needs.flash-analysis.outputs.px4_fmu-v5x-bloaty-summary-map).vm-percentage) }}
+      V6X-SUMMARY-MAP-ABS: ${{ fromJSON(fromJSON(needs.flash-analysis.outputs.px4_fmu-v6x-bloaty-summary-map).vm-absolute) }}
+      V6X-SUMMARY-MAP-PERC: ${{ fromJSON(fromJSON(needs.flash-analysis.outputs.px4_fmu-v6x-bloaty-summary-map).vm-percentage) }}
+    if: >-
+      needs.load-config.outputs.enable_flash_analysis == 'true'
+      && github.event.pull_request
+      && github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: runs-on/action@v2
+
+      - name: Setup - Find Existing Flash Comment
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: FLASH Analysis
+
+      - name: Setup - Generate Comment Timestamp
+        id: bt
+        run: |
+          echo "timestamp=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_OUTPUT
+
+      - name: Upload - Post Flash Analysis to PR
+        if: |
+          steps.fc.outputs.comment-id != '' ||
+          env.V5X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
+          env.V5X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
+          env.V6X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
+          env.V6X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## 🔎 FLASH Analysis
+            <details>
+            <summary>px4_fmu-v5x [Total VM Diff: ${{ env.V5X-SUMMARY-MAP-ABS }} byte (${{ env.V5X-SUMMARY-MAP-PERC}} %)]</summary>
+
+            ```
+            ${{ needs.flash-analysis.outputs.px4_fmu-v5x-bloaty-output }}
+            ```
+            </details>
+
+            <details>
+            <summary>px4_fmu-v6x [Total VM Diff: ${{ env.V6X-SUMMARY-MAP-ABS }} byte (${{ env.V6X-SUMMARY-MAP-PERC }} %)]</summary>
+
+            ```
+            ${{ needs.flash-analysis.outputs.px4_fmu-v6x-bloaty-output }}
+            ```
+            </details>
+
+            **Updated: _${{ steps.bt.outputs.timestamp }}_**
+          edit-mode: replace
+
+  post-clang-tidy-comments:
+    name: "T2: Clang-Tidy PR Annotations"
+    needs: [clang-tidy]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    if: >-
+      always()
+      && github.event.pull_request
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && (needs.clang-tidy.result == 'success' || needs.clang-tidy.result == 'failure')
+      && needs.clang-tidy.outputs.has_findings == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup - Install clang-tools (for clang-tidy-diff)
+        run: sudo apt-get install -y clang-tools
+
+      - name: Download - compile_commands.json
+        uses: actions/download-artifact@v4
+        with:
+          name: compile-commands
+          path: build/px4_sitl_default-clang
+
+      - name: Analysis - Run clang-tidy-diff and export fixes
+        run: |
+          # WHY WE REWRITE compile_commands.json PATHS
+          #
+          # The clang-tidy gate job runs on a RunsOn/AWS runner where the workspace
+          # root is "/__w/PX4-Autopilot/PX4-Autopilot". All absolute paths baked
+          # into compile_commands.json (the "file" and "directory" fields, and every
+          # -I include path in "command") use that prefix.
+          #
+          # This annotation job runs on a GitHub-hosted runner where the workspace
+          # root is "/home/runner/work/PX4-Autopilot/PX4-Autopilot". When
+          # clang-tidy-diff invokes clang-tidy, it reads the "directory" field from
+          # compile_commands.json and calls chdir() on it. Since the AWS-style path
+          # does not exist here, clang-tidy crashes with:
+          #   LLVM ERROR: Cannot chdir into "/__w/.../build/px4_sitl_default-clang"
+          # and silently produces an empty fixes.yml — so no annotations are posted.
+          #
+          # Fix: rewrite all occurrences of the AWS workspace prefix to the current
+          # runner workspace ($GITHUB_WORKSPACE) before invoking clang-tidy-diff.
+          # This is safe because compile_commands.json is a local scratch file we
+          # downloaded from the artifact; we are not modifying any source file.
+          sed -i "s|/__w/PX4-Autopilot/PX4-Autopilot|${GITHUB_WORKSPACE}|g" \
+            build/px4_sitl_default-clang/compile_commands.json
+
+          mkdir -p clang-tidy-result
+          git diff -U0 origin/${{ github.base_ref }}...HEAD \
+            | clang-tidy-diff-18.py -p1 \
+                -path build/px4_sitl_default-clang \
+                -export-fixes clang-tidy-result/fixes.yml \
+                -j0 || true
+
+      - name: Post - Annotate PR with clang-tidy findings
+        uses: platisd/clang-tidy-pr-comments@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          clang_tidy_fixes: clang-tidy-result/fixes.yml
+          request_changes: false
+          suggestions_per_comment: 10
+
+  failsafe-sim:
+    name: "T2: Failsafe Web Simulator"
+    needs: [load-config, gate-checks, shellcheck, mavsdk-python-checks]
+    if: needs.load-config.outputs.enable_failsafe_sim == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_small) }}
+    permissions:
+      contents: read
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-beta1
+    steps:
+      - uses: runs-on/action@v2
+
+      - name: Setup - Install Node.js v20.18.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.0
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - name: Cache - Restore Emscripten SDK
+        id: cache-emsdk
+        uses: actions/cache@v4
+        with:
+          path: _emscripten_sdk
+          key: emsdk-4.0.15
+
+      - name: Setup - Install Emscripten
+        if: steps.cache-emsdk.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git _emscripten_sdk
+          cd _emscripten_sdk
+          git checkout 4.0.15
+          ./emsdk install latest
+          ./emsdk activate latest
+
+      - name: Build - failsafe_web
+        shell: bash
+        run: |
+          source _emscripten_sdk/emsdk_env.sh
+          make failsafe_web
+
+  # ═══════════════════════════════════════════════════════════════════
+  # TIER 2 GATE: Validate all T2 jobs before allowing T3 to start
+  # Distinguishes intentional skips (toggled off) from unexpected failures
+  # ═══════════════════════════════════════════════════════════════════
+
+  tier2-gate:
+    name: "T2: Gate (All T2 checks passed)"
+    needs: [load-config, build-sitl, build-sitl-gazebo-classic, basic-tests, clang-tidy,
+            ubuntu-builds, macos-build, itcm-check, flash-analysis, failsafe-sim]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check T2 results
+        env:
+          R_SITL_BUILD:   ${{ needs.build-sitl.result }}
+          R_GAZEBO_BUILD: ${{ needs.build-sitl-gazebo-classic.result }}
+          R_BASIC_TESTS:  ${{ needs.basic-tests.result }}
+          R_CLANG_TIDY:   ${{ needs.clang-tidy.result }}
+          R_UBUNTU:       ${{ needs.ubuntu-builds.result }}
+          R_MACOS:        ${{ needs.macos-build.result }}
+          R_ITCM:         ${{ needs.itcm-check.result }}
+          R_FLASH:        ${{ needs.flash-analysis.result }}
+          R_FAILSAFE:     ${{ needs.failsafe-sim.result }}
+          E_SITL_BUILD:   ${{ needs.load-config.outputs.enable_sitl_build }}
+          E_GAZEBO_BUILD: ${{ needs.load-config.outputs.enable_gazebo_classic_build }}
+          E_BASIC_TESTS:  ${{ needs.load-config.outputs.enable_sitl_build }}
+          E_CLANG_TIDY:   ${{ needs.load-config.outputs.enable_clang_tidy }}
+          E_UBUNTU:       ${{ needs.load-config.outputs.enable_ubuntu_builds }}
+          E_MACOS:        ${{ needs.load-config.outputs.enable_macos_build }}
+          E_ITCM:         ${{ needs.load-config.outputs.enable_itcm_check }}
+          E_FLASH:        ${{ needs.load-config.outputs.enable_flash_analysis }}
+          E_FAILSAFE:     ${{ needs.load-config.outputs.enable_failsafe_sim }}
+        run: |
+          check() {
+            local job=$1 result=$2 enabled=$3
+            if [ "$enabled" == "true" ] && [ "$result" != "success" ]; then
+              echo "❌ $job required but result: $result"; exit 1
+            fi
+            echo "✅ $job: $result (enabled=$enabled)"
+          }
+          check "build-sitl"               "$R_SITL_BUILD"   "$E_SITL_BUILD"
+          check "build-sitl-gazebo-classic" "$R_GAZEBO_BUILD" "$E_GAZEBO_BUILD"
+          check "basic-tests"              "$R_BASIC_TESTS"  "$E_BASIC_TESTS"
+          check "clang-tidy"               "$R_CLANG_TIDY"   "$E_CLANG_TIDY"
+          check "ubuntu-builds"            "$R_UBUNTU"       "$E_UBUNTU"
+          check "macos-build"              "$R_MACOS"        "$E_MACOS"
+          check "itcm-check"               "$R_ITCM"         "$E_ITCM"
+          check "flash-analysis"           "$R_FLASH"        "$E_FLASH"
+          check "failsafe-sim"             "$R_FAILSAFE"     "$E_FAILSAFE"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # TIER 3: Integration Tests
+  # Runs after tier2-gate succeeds. SITL simulations and ROS tests.
+  # ═══════════════════════════════════════════════════════════════════
+
+  sitl-tests:
+    name: "T3: SITL Tests [${{ matrix.config.model }}]"
+    needs: [load-config, tier2-gate, build-sitl-gazebo-classic]
+    if: >-
+      needs.tier2-gate.result == 'success'
+      && needs.load-config.outputs.enable_sitl_tests == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_medium) }}
+    permissions:
+      contents: read
+    container:
+      image: px4io/px4-dev-simulation-focal:2021-09-08
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {model: "iris",           latitude: "59.617693", longitude: "-151.145316", altitude:  "48"} # Alaska
+          # TODO: VTOL and tailsitter SITL tests disabled due to extreme flakiness.
+          # Overall SITL pass rate is 31.6%. VTOL accounts for 79% of all failures,
+          # tailsitter 37%, while iris (quadcopter) passes 99% of runs.
+          # Investigate root cause of flakiness (especially tailsitter RTL with Reverse Mission)
+          # and performance regression before re-enabling.
+          # - {model: "tailsitter",     latitude: "29.660316", longitude:  "-82.316658", altitude:  "30"} # Florida
+          # - {model: "standard_vtol",  latitude: "47.397742", longitude:    "8.545594", altitude: "488"} # Zurich
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        with:
+          cache-key-prefix: ccache-sitl-gazebo-classic
+          max-size: ${{ needs.load-config.outputs.cache_max_size_sitl_gazebo }}
+
+      - uses: ./.github/actions/build-gazebo-sitl
+
+      - name: Setup - Download MAVSDK Library
+        run: wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+
+      - name: Setup - Install MAVSDK Library
+        run: dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+
+      - name: Setup - Verify Environment Variables
+        env:
+          PX4_HOME_LAT: ${{matrix.config.latitude}}
+          PX4_HOME_LON: ${{matrix.config.longitude}}
+          PX4_HOME_ALT: ${{matrix.config.altitude}}
+        run: |
+          export
+          ulimit -a
+
+      - name: Build - MAVSDK Integration Tests
+        env:
+          DONT_RUN: 1
+        run: make px4_sitl_default sitl_gazebo-classic mavsdk_tests
+
+      - name: Cache - Stats after MAVSDK Tests Build
+        run: ccache -s
+
+      - name: Setup - Enable Core Dumps for Crash Analysis
+        run: |
+          ulimit -c unlimited
+          echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
+
+      - name: Test - Run SITL MAVSDK Integration Tests
+        env:
+          PX4_HOME_LAT: ${{matrix.config.latitude}}
+          PX4_HOME_LON: ${{matrix.config.longitude}}
+          PX4_HOME_ALT: ${{matrix.config.altitude}}
+        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --model ${{matrix.config.model}} test/mavsdk_tests/configs/sitl.json --verbose --force-color
+        timeout-minutes: 45
+
+      - name: Upload - Failed Test Logs and Flight Logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-${{matrix.config.model}}-logs.zip
+          path: |
+            logs/**/**/**/*.log
+            logs/**/**/**/*.ulg
+            build/px4_sitl_default/tmp_mavsdk_tests/rootfs/log/**/*.ulg
+
+  ros-integration-tests:
+    name: "T3: ROS Integration Tests"
+    needs: [load-config, tier2-gate]
+    if: >-
+      needs.tier2-gate.result == 'success'
+      && needs.load-config.outputs.enable_ros_integration == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_medium) }}
+    permissions:
+      contents: read
+    container:
+      image: px4io/px4-dev-ros2-galactic:2021-09-08
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - name: Setup - Update ROS 2 Galactic Package Keys
+        run: |
+          sudo rm /etc/apt/sources.list.d/ros2.list && \
+          sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+      - name: Setup - Install Gazebo 11 and GStreamer Plugins
+        run: apt update && apt install -y gazebo11 libgazebo11-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer-plugins-base1.0-dev
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-ros-integration
+          max-size: ${{ needs.load-config.outputs.cache_max_size_ros_integration }}
+
+      - name: Cache - Restore Micro-XRCE-DDS Agent
+        id: cache-xrce-agent
+        uses: actions/cache@v4
+        with:
+          path: /opt/Micro-XRCE-DDS-Agent
+          key: xrce-agent-v2.2.1-fastdds-2.8.2-galactic-2021-09-08
+
+      - name: Build - Micro-XRCE-DDS Agent (v2.2.1)
+        if: steps.cache-xrce-agent.outputs.cache-hit != 'true'
+        run: |
+          cd /opt
+          git clone --recursive https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+          cd Micro-XRCE-DDS-Agent
+          git checkout v2.2.1
+          sed -i 's/_fastdds_tag 2.8.x/_fastdds_tag 2.8.2/g' CMakeLists.txt
+          mkdir build
+          cd build
+          cmake ..
+          make -j2
+
+      - name: Cache - Restore PX4 ROS 2 Interface Library Workspace
+        id: cache-px4-ros2-ws
+        uses: actions/cache@v4
+        with:
+          path: /opt/px4_ws
+          # Bump 'v1' when updating px4-ros2-interface-lib (currently tracking default branch)
+          key: px4-ros2-ws-v1-galactic-2021-09-08-${{ hashFiles('msg/*.msg', 'msg/versioned/*.msg', 'srv/*.srv') }}
+
+      - name: Build - PX4 ROS 2 Interface Library
+        if: steps.cache-px4-ros2-ws.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          PX4_DIR="$(pwd)"
+          . /opt/ros/galactic/setup.bash
+          mkdir -p /opt/px4_ws/src
+          cd /opt/px4_ws/src
+          # Determine the interface lib branch to clone:
+          #   - PRs targeting main or feature branches → default branch (omit --branch)
+          #   - PRs targeting release/X.YZ → matching release/X.YZ branch
+          #   - Push to release/X.YZ → same
+          TARGET_BRANCH="${{ github.base_ref || github.ref_name }}"
+          if [[ "$TARGET_BRANCH" == release/* ]]; then
+            INTERFACE_LIB_BRANCH="$TARGET_BRANCH"
+          else
+            INTERFACE_LIB_BRANCH=""
+          fi
+          if [[ -n "$INTERFACE_LIB_BRANCH" ]]; then
+            if ! git ls-remote --exit-code --heads https://github.com/Auterion/px4-ros2-interface-lib.git "$INTERFACE_LIB_BRANCH" > /dev/null 2>&1; then
+              echo "::warning::Branch '$INTERFACE_LIB_BRANCH' not found in px4-ros2-interface-lib — falling back to default branch. Once the release branch is created, update the cache key (bump 'v1') to force a rebuild against the correct branch."
+              INTERFACE_LIB_BRANCH=""
+            fi
+          fi
+          CLONE_ARGS="--recursive"
+          [[ -n "$INTERFACE_LIB_BRANCH" ]] && CLONE_ARGS="$CLONE_ARGS --branch $INTERFACE_LIB_BRANCH"
+          git clone $CLONE_ARGS https://github.com/Auterion/px4-ros2-interface-lib.git
+          # Ignore python packages due to compilation issue (can be enabled when updating ROS)
+          touch px4-ros2-interface-lib/px4_ros2_py/COLCON_IGNORE || true
+          touch px4-ros2-interface-lib/examples/python/COLCON_IGNORE || true
+          cd ..
+          "${PX4_DIR}/Tools/copy_to_ros_ws.sh" "$(pwd)"
+          rm -rf src/translation_node src/px4_msgs_old
+          colcon build --symlink-install
+
+      - name: Cache - Stats after ROS 2 Interface Library
+        run: ccache -s
+
+      - uses: ./.github/actions/build-gazebo-sitl
+
+      - name: Setup - Enable Core Dumps for Crash Analysis
+        run: |
+          ulimit -c unlimited
+          echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
+
+      - name: Test - Run ROS 2 Integration Tests (Iris model)
+        shell: bash
+        run: |
+          . /opt/px4_ws/install/setup.bash
+          /opt/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent udp4 localhost -p 8888 -v 0 &
+          test/ros_test_runner.py --verbose --model iris --upload --force-color
+        timeout-minutes: 45
+
+      - uses: ./.github/actions/save-ccache
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+      - name: Upload - Failed Test Logs and Flight Logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-ros-logs.zip
+          path: |
+            logs/**/**/**/*.log
+            logs/**/**/**/*.ulg
+            build/px4_sitl_default/tmp_ros_tests/rootfs/log/**/*.ulg
+
+  mavros-tests:
+    name: "T3: MAVROS Tests [${{ matrix.config.name }}]"
+    needs: [load-config, tier2-gate, build-sitl-gazebo-classic]
+    if: >-
+      needs.tier2-gate.result == 'success'
+      && needs.load-config.outputs.enable_mavros_tests == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_small) }}
+    permissions:
+      contents: read
+    container:
+      image: px4io/px4-dev-ros-noetic:2021-09-08
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {name: "Mission", test_file: "mavros_posix_test_mission.test", params: "mission:=MC_mission_box vehicle:=iris"}
+          - {name: "Offboard", test_file: "mavros_posix_tests_offboard_posctl.test", params: "vehicle:=iris"}
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - name: Setup - Install Python Test Dependencies
+        run: pip3 install -r Tools/setup/requirements.txt
+
+      - uses: ./.github/actions/setup-ccache
+        with:
+          cache-key-prefix: ccache-sitl-gazebo-classic
+          max-size: ${{ needs.load-config.outputs.cache_max_size_sitl_gazebo }}
+
+      - uses: ./.github/actions/build-gazebo-sitl
+
+      - name: Test - MAVROS ${{ matrix.config.name }}
+        run: |
+          ./test/rostest_px4_run.sh \
+            ${{ matrix.config.test_file }} \
+            ${{ matrix.config.params }}
+        timeout-minutes: 10
+
+      - name: Upload - Failed Test Logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-mavros-${{ matrix.config.name }}-logs.zip
+          path: |
+            logs/**/**/**/*.log
+            logs/**/**/**/*.ulg
+
+  ros-translation-node:
+    name: "T3: ROS Translation Node [${{ matrix.config.ros_version }}]"
+    needs: [load-config, tier2-gate]
+    if: >-
+      needs.tier2-gate.result == 'success'
+      && needs.load-config.outputs.enable_ros_translation_node == 'true'
+    runs-on: ${{ fromJSON(needs.load-config.outputs.runner_small) }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {ros_version: "humble", ubuntu: "jammy"}
+          - {ros_version: "jazzy", ubuntu: "noble"}
+    container:
+      image: ros:${{ matrix.config.ros_version }}-ros-base-${{ matrix.config.ubuntu }}
+    steps:
+      - uses: runs-on/action@v2
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup - Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-ros-translation-${{ matrix.config.ros_version }}
+          max-size: ${{ needs.load-config.outputs.cache_max_size_ros_translation }}
+          base-dir: /ros_ws
+          install-ccache: 'true'
+
+      - name: Validate - Check Message File Versioning
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          ./Tools/ci/check_msg_versioning.sh ${{ github.event.pull_request.base.sha }} ${{github.event.pull_request.head.sha}}
+
+      - name: Build - Translation Node
+        shell: bash
+        run: |
+          ros_ws=/ros_ws
+          mkdir -p $ros_ws/src
+          ./Tools/copy_to_ros_ws.sh $ros_ws
+          cd $ros_ws
+          source /opt/ros/${{ matrix.config.ros_version }}/setup.sh
+          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache --symlink-install --event-handlers=console_cohesion+
+
+      - name: Test - Translation Node Unit Tests
+        shell: bash
+        run: |
+          source /ros_ws/install/setup.sh
+          /ros_ws/build/translation_node/translation_node_unit_tests
+
+      - uses: ./.github/actions/save-ccache
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+  # ═══════════════════════════════════════════════════════════════════
+  # TIER 4: Full Build Matrix (~200 board targets)
+  # Triggered by build_all_targets.yml after this workflow completes, or on tagged releases.
+  # See: .github/workflows/build_all_targets.yml
