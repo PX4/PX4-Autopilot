@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025-2026 ModalAI, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__barometer__dps310
-	MAIN dps310
-	SRCS
-		DPS310.cpp
-		DPS310.hpp
-		DPS310_I2C.cpp
-		DPS310_SPI.cpp
-		dps310_main.cpp
-	DEPENDS
-		drivers__device
-		px4_work_queue
-	)
+
+px4_add_git_submodule(TARGET git_mpa_libmodal-json PATH "libmodal-json")
+px4_add_git_submodule(TARGET git_mpa_libmodal-pipe PATH "libmodal-pipe")
+
+px4_add_library(mpa mpa.cpp)
+
+target_link_libraries(mpa PRIVATE ${CMAKE_DL_LIBS})
+
+target_include_directories(mpa PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}/libmodal-json/library/include
+	${CMAKE_CURRENT_SOURCE_DIR}/libmodal-pipe/library/include
+)
