@@ -123,9 +123,13 @@ struct sys_state_s {
 
 extern struct sys_state_s system_state;
 
+#ifdef GPIO_SBUS_OENABLE
 # define ENABLE_SBUS_OUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
+#endif
 
+#ifdef GPIO_SERVO_FAULT_DETECT
 # define VDD_SERVO_FAULT		(!px4_arch_gpioread(GPIO_SERVO_FAULT_DETECT))
+#endif
 
 # define PX4IO_ADC_CHANNEL_COUNT	2
 # define ADC_VSERVO			4
