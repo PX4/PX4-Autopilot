@@ -114,6 +114,7 @@ uint16 VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE = 43004
 uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehicle commands (> UINT16_MAX).
 uint32 VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN = 100000 # Sets the GPS coordinates of the vehicle local origin (0,0,0) position. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL from GNSS, positive above ground)|
 uint32 VEHICLE_CMD_SET_NAV_STATE = 100001 # Change mode by specifying nav_state directly. |nav_state|Unused|Unused|Unused|Unused|Unused|Unused|
+uint32 VEHICLE_CMD_ESC_FIRMWARE_UPDATE = 100002 # Trigger AM32 ESC firmware update from SD card. |ESC index (0-based, 255=all)|ESC type (0=AM32)|Unused|Unused|Unused|Unused|Unused|
 
 uint8 VEHICLE_MOUNT_MODE_RETRACT = 0 # Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.
 uint8 VEHICLE_MOUNT_MODE_NEUTRAL = 1 # Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.
