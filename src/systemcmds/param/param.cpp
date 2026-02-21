@@ -81,6 +81,7 @@ static int	do_import(const char *param_file_name = nullptr);
 static int	do_show(const char *search_string, bool only_changed);
 static int	do_show_for_airframe();
 static int	do_show_all();
+static int	do_show_locked();
 static int	do_show_quiet(const char *param_name);
 static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
@@ -138,6 +139,7 @@ $ reboot
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Show parameter values");
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Show all parameters (not just used)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed params (unused too)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('l', "Show only locked (read-only) params", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('q', "quiet mode, print only param value (name needs to be exact)", true);
 	PRINT_MODULE_USAGE_ARG("<filter>", "Filter by param name (wildcard at end allowed, eg. sys_*)", true);
 
@@ -179,6 +181,8 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<index>", "Index: an integer >= 0", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("find", "Show index of a param");
 	PRINT_MODULE_USAGE_ARG("<param>", "param name", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("lock", "Lock read-only params (reject future set/reset)");
 }
 
 int
@@ -267,6 +271,9 @@ param_main(int argc, char *argv[])
 
 				} else if (!strcmp(argv[2], "-a")) {
 					return do_show_all();
+
+				} else if (!strcmp(argv[2], "-l")) {
+					return do_show_locked();
 
 				} else if (!strcmp(argv[2], "-q")) {
 					if (argc >= 4) {
@@ -405,6 +412,11 @@ param_main(int argc, char *argv[])
 				return 1;
 			}
 		}
+
+		if (!strcmp(argv[1], "lock")) {
+			param_lock_readonly();
+			return 0;
+		}
 	}
 
 	print_usage();
@@ -508,7 +520,7 @@ do_save_default()
 static int
 do_show(const char *search_string, bool only_changed)
 {
-	PX4_INFO_RAW("Symbols: x = used, + = saved, * = unsaved\n");
+	PX4_INFO_RAW("Symbols: x = used, + = saved, * = unsaved, l = locked\n");
 	// also show unused params if we show non-default values only
 	param_foreach(do_show_print, (char *)search_string, only_changed, !only_changed);
 	PX4_INFO_RAW("\n %u/%u parameters used.\n", param_count_used(), param_count());
@@ -531,9 +543,26 @@ do_show_for_airframe()
 static int
 do_show_all()
 {
-	PX4_INFO_RAW("Symbols: x = used, + = saved, * = unsaved\n");
+	PX4_INFO_RAW("Symbols: x = used, + = saved, * = unsaved, l = locked\n");
 	param_foreach(do_show_print, nullptr, false, false);
 	PX4_INFO_RAW("\n %u parameters total, %u used.\n", param_count(), param_count_used());
+
+	return 0;
+}
+
+static void
+do_show_print_locked(void *arg, param_t param)
+{
+	if (param_is_readonly(param)) {
+		do_show_print(arg, param);
+	}
+}
+
+static int
+do_show_locked()
+{
+	PX4_INFO_RAW("Symbols: x = used, + = saved, * = unsaved, l = locked\n");
+	param_foreach(do_show_print_locked, nullptr, false, false);
 
 	return 0;
 }
@@ -607,8 +636,9 @@ do_show_index(const char *index, bool used_index)
 		return 1;
 	}
 
-	PX4_INFO_RAW("index %d: %c %c %s [%d,%d] : ", i, (param_used(param) ? 'x' : ' '),
+	PX4_INFO_RAW("index %d: %c %c %c %s [%d,%d] : ", i, (param_used(param) ? 'x' : ' '),
 		    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+		    param_is_readonly(param) ? 'l' : ' ',
 		    param_name(param), param_get_used_index(param), param_get_index(param));
 
 	switch (param_type(param)) {
@@ -677,8 +707,9 @@ do_show_print(void *arg, param_t param)
 		}
 	}
 
-	PX4_INFO_RAW("%c %c %s [%d,%d] : ", (param_used(param) ? 'x' : ' '),
+	PX4_INFO_RAW("%c %c %c %s [%d,%d] : ", (param_used(param) ? 'x' : ' '),
 		    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+		    param_is_readonly(param) ? 'l' : ' ',
 		    param_name(param), param_get_used_index(param), param_get_index(param));
 
 	/*
@@ -772,6 +803,11 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 		return (fail_on_not_found) ? 1 : 0;
 	}
 
+	if (param_is_readonly(param)) {
+		PX4_ERR("Parameter %s is read-only.", name);
+		return 1;
+	}
+
 	/*
 	 * Set parameter if type is known and conversion from string to value turns out fine
 	 */
@@ -836,6 +872,14 @@ do_set_custom_default(const char *name, const char *val, bool silent_fail)
 	if (param == PARAM_INVALID && !silent_fail) {
 		/* param not found - fail silenty in scripts as it prevents booting */
 		PX4_ERR("Parameter %s not found.", name);
+		return PX4_ERROR;
+	}
+
+	if (param_is_readonly(param)) {
+		if (!silent_fail) {
+			PX4_ERR("Parameter %s is read-only.", name);
+		}
+
 		return PX4_ERROR;
 	}
 

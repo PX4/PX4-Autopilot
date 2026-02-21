@@ -176,6 +176,23 @@ __EXPORT const char	*param_name(param_t param);
 __EXPORT bool		param_is_volatile(param_t param);
 
 /**
+ * Obtain the read-only state of a parameter.
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @return			true if the parameter is read-only
+ */
+__EXPORT bool		param_is_readonly(param_t param);
+
+/**
+ * Lock all read-only parameters.
+ *
+ * Before this call, read-only parameters can be freely modified (e.g. by
+ * startup scripts).  After this call, any attempt to set, set-default, or
+ * reset a read-only parameter will be rejected.
+ */
+__EXPORT void		param_lock_readonly(void);
+
+/**
  * Test whether a parameter's value has changed from the default.
  *
  * @return		If true, the parameter's value has not been changed from the default.

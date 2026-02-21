@@ -648,6 +648,10 @@ else
 		. ${R}etc/init.d/rc.autostart.post
 	fi
 
+	#
+	# Lock read-only parameters (if configured for this board).
+	#
+	param lock
 
 	set BOARD_BOOTLOADER_UPGRADE ${R}etc/init.d/rc.board_bootloader_upgrade
 	if [ -f $BOARD_BOOTLOADER_UPGRADE ]

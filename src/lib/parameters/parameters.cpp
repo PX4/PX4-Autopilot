@@ -413,6 +413,11 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		return PX4_ERROR;
 	}
 
+	if (param_is_readonly(param)) {
+		PX4_WARN("param %s is read-only", param_name(param));
+		return PX4_ERROR;
+	}
+
 	int result = -1;
 	bool param_changed = false;
 	perf_begin(param_set_perf);
@@ -544,6 +549,11 @@ int param_set_default_value(param_t param, const void *val)
 		return PX4_ERROR;
 	}
 
+	if (param_is_readonly(param)) {
+		PX4_WARN("param %s is read-only", param_name(param));
+		return PX4_ERROR;
+	}
+
 	int result = PX4_ERROR;
 
 
@@ -614,6 +624,10 @@ static int param_reset_internal(param_t param, bool notify = true, bool autosave
 	// Remote doesn't support reset
 	return false;
 #endif
+
+	if (param_is_readonly(param)) {
+		return 0;  // silently skip — param_reset_all loops over all params
+	}
 
 	bool param_found = user_config.contains(param);
 
