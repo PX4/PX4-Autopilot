@@ -314,6 +314,16 @@ then
 else
 	param set UXRCE_DDS_DOM_ID 0
 fi
+if [ -n "$ROS_LOCALHOST_ONLY" ]
+  then
+  	# Match UXRCE_DDS_PTCFG with ROS_LOCALHOST_ONLY, if defined.
+  	if [ "$ROS_LOCALHOST_ONLY" = "1" ]
+  	then
+  		param set UXRCE_DDS_PTCFG 1
+  	else
+  		param set UXRCE_DDS_PTCFG 0
+  	fi
+fi
 uxrce_dds_port=8888
 if [ -n "$PX4_UXRCE_DDS_PORT" ]
 then
