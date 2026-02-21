@@ -103,6 +103,11 @@ int MulticopterNeuralNetworkControl::InitializeNetwork()
 	static uint8_t tensor_arena[kTensorArenaSize];
 	_interpreter = new tflite::MicroInterpreter(control_model, resolver, tensor_arena, kTensorArenaSize);
 
+	if (_interpreter == nullptr) {
+		PX4_ERR("interpreter alloc failed");
+		return -1;
+	}
+
 	// Allocate memory for the model's tensors
 	TfLiteStatus allocate_status = _interpreter->AllocateTensors();
 

@@ -1229,6 +1229,12 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 		/* copy stream name */
 		unsigned n = strlen(stream_name) + 1;
 		char *s = new char[n];
+
+		if (s == nullptr) {
+			PX4_ERR("stream allocation failed");
+			return;
+		}
+
 		strcpy(s, stream_name);
 
 		/* set subscription task */
@@ -2524,7 +2530,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_receiver.stop();
 
-	delete _subscribe_to_stream;
+	delete[] _subscribe_to_stream;
 	_subscribe_to_stream = nullptr;
 
 	/* delete streams */

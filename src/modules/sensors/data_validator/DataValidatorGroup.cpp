@@ -54,6 +54,11 @@ DataValidatorGroup::DataValidatorGroup(unsigned siblings)
 	for (unsigned i = 0; i < siblings; i++) {
 		next = new DataValidator();
 
+		if (next == nullptr) {
+			PX4_ERR("alloc failed");
+			break;
+		}
+
 		if (i == 0) {
 			_first = next;
 
@@ -64,7 +69,7 @@ DataValidatorGroup::DataValidatorGroup(unsigned siblings)
 		prev = next;
 	}
 
-	_last = next;
+	_last = prev;
 
 	if (_first) {
 		_timeout_interval_us = _first->get_timeout();
@@ -89,8 +94,14 @@ DataValidator *DataValidatorGroup::add_new_validator()
 		return nullptr;
 	}
 
-	_last->setSibling(validator);
-	_last = validator;
+	if (_last) {
+		_last->setSibling(validator);
+		_last = validator;
+
+	} else {
+		_first = _last = validator;
+	}
+
 	_last->set_timeout(_timeout_interval_us);
 	return _last;
 }
