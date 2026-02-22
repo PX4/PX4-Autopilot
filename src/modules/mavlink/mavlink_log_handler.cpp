@@ -41,18 +41,6 @@ static const char *kLogListFilePath = PX4_STORAGEDIR "/logdata.txt";
 static const char *kLogListFilePathTemp = PX4_STORAGEDIR "/$log$.txt";
 static const char *kLogDir = PX4_STORAGEDIR "/log";
 
-#ifdef __PX4_NUTTX
-#define PX4LOG_REGULAR_FILE DTYPE_FILE
-#define PX4LOG_DIRECTORY    DTYPE_DIRECTORY
-#define PX4_MAX_FILEPATH 	CONFIG_PATH_MAX
-#else
-#ifndef PATH_MAX
-#define PATH_MAX 1024 // maximum on macOS
-#endif
-#define PX4LOG_REGULAR_FILE DT_REG
-#define PX4LOG_DIRECTORY    DT_DIR
-#define PX4_MAX_FILEPATH 	PATH_MAX
-#endif
 
 MavlinkLogHandler::MavlinkLogHandler(Mavlink &mavlink)
 	: _mavlink(mavlink)
@@ -174,7 +162,7 @@ void MavlinkLogHandler::state_listing()
 		char filepath[PX4_MAX_FILEPATH];
 
 		// If parsed lined successfully, send the entry
-		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %s", &time_utc, &size_bytes, filepath) != 3) {
+		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %" STRINGIFY(PX4_MAX_FILEPATH_SCANF) "s", &time_utc, &size_bytes, filepath) != 3) {
 			PX4_DEBUG("sscanf failed");
 			continue;
 		}
@@ -506,7 +494,7 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 			continue;
 		}
 
-		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %s", &(entry->time_utc), &(entry->size_bytes), entry->filepath) != 3) {
+		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %" STRINGIFY(PX4_MAX_FILEPATH_SCANF) "s", &(entry->time_utc), &(entry->size_bytes), entry->filepath) != 3) {
 			PX4_DEBUG("sscanf failed");
 			continue;
 		}
