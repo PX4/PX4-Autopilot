@@ -628,6 +628,15 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 }
 
 
+void px4muorb_request_reset(void)
+{
+	uORB::ProtobufChannel *channel = uORB::ProtobufChannel::GetInstance();
+
+	if (channel) {
+		(void) channel->add_subscription("RESET", 0);
+	}
+}
+
 float px4muorb_get_cpu_load(void)
 {
 
