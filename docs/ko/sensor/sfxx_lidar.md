@@ -15,8 +15,8 @@ LightWare는 UAV에 장착에 적합한 경량의 범용 레이저 고도계( "�
 | [LW20/C](https://lightware.co.za/products/lw20-c-100-m) | 100                       | I2C 버스       | 감지 및 회피 애플리케이션을 위한 서보가 있는 방수 (IP67)                                                        |
 | [SF30/D](https://lightwarelidar.com/shop/sf30-d-200-m/) | 200                       | I2C 버스       | Waterproofed (IP67)                                                                        |
 | [SF45/B](../sensor/sf45_rotating_lidar.md)              | 50                        | 직렬           | Rotary Lidar (Used for [Collision Prevention](../computer_vision/collision_prevention.md)) |
-| [GRF250](https://lightwarelidar.com/shop/grf-250/)      | 250                       | I2C          | Gimbal Range Finder                                                                                           |
-| [GRF500](https://lightwarelidar.com/shop/grf-500/)      | 500                       | I2C          | Gimbal Range Finder                                                                                           |
+| [GRF250](../sensor/grf_lidar.md)                        | 250                       | 직렬 또는 I2C 버스 | Gimbal Range Finder                                                                                           |
+| [GRF500](../sensor/grf_lidar.md)                        | 500                       | 직렬 또는 I2C 버스 | Gimbal Range Finder                                                                                           |
 
 :::details
 Discontinued

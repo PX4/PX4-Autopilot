@@ -181,17 +181,22 @@ Due to the inherent danger of this, this function is disabled using [CBRK_FLIGHT
 | <a id="GF_PREDICT"></a>Preemptive geofence triggering              | [GF_PREDICT](../advanced_config/parameter_reference.md#GF_PREDICT)           | (Experimental) Trigger geofence if current motion of the vehicle is predicted to trigger the breach (rather than late triggering after the breach). |
 | <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | 비행 종료 작업을 활성화/비활성화합니다 (기본적으로 비활성화 됨).                                                                                                                                  |
 
-## Position (GNSS) Loss Failsafe
+## Position Estimation Failsafes
+
+This section describes failsafes related to the quality of the vehicle's position estimate.
+
+### Position Loss Failsafe
 
 The _Position Loss Failsafe_ is triggered if the quality of the PX4 position estimate falls below acceptable levels (this might be caused by GPS loss) while in a mode that requires an acceptable position estimate.
-The sections below cover first the trigger and then the failsafe action taken by the controller.
 
 ### Position Loss Failsafe Trigger
 
-There are basically two mechanisms in PX4 to trigger position failsafes:
+The position loss failsafe triggers if the position estimate becomes _invalid_. There are two mechanisms in PX4 to invalidate the position estimate:
 
-- A timeout since the last sensor data was fused that provides direct speed or horizontal position measurements. Sensors that fall into that category are: GNSS, optical flow, airspeed, VIO, auxiliary global position.
-- The estimated horizontal position accuracy exceeds a certain threshold. This check is only done on hovering systems (rotary wing vehicles or VTOLs in hover phase).
+- A timeout since the last sensor data was fused that provides direct speed or horizontal position measurements.
+  - Sensors that fall into that category are: GNSS, optical flow, airspeed, VIO, auxiliary global position.
+- The estimated horizontal position inaccuracy exceeds the threshold [COM_POS_LOW_EPH](../advanced_config/parameter_reference.md#COM_POS_LOW_EPH)
+  - This check is only done on hovering systems (rotary-wing vehicles or VTOLs in hover phase). For fixed-wing vehicles, refer to the [Position Accuracy Low](#position-accuracy-low-failsafe) section.
 
 The relevant parameters shown below.
 
@@ -207,14 +212,24 @@ Multicopters will switch to [Altitude mode](../flight_modes_mc/altitude.md) if a
 Fixed-wing planes, and VTOLs not configured to land in hover ([NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT)), have a parameter ([FW_GPSF_LT](../advanced_config/parameter_reference.md#FW_GPSF_LT)) that defines how long they will loiter (circle with a constant roll angle ([FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)) at the current altitude) after losing position before attempting to land.
 If VTOLs have are configured to switch to hover for landing ([NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT)) then they will first transition and then descend.
 
-The relevant parameters for all vehicles shown below.
+The relevant parameters are:
 
-Parameters that only affect Fixed-wing vehicles:
+| 매개변수                                                                                                                                      | 설명                                                                                                                                                                                                              |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="FW_GPSF_LT"></a>[FW_GPSF_LT](../advanced_config/parameter_reference.md#FW_GPSF_LT)       | Fixed-wing only: Loiter time (waiting at current altitude for position estimation recovery before starting to descend). 비활성화 하려면 0으로 설정하십시오. |
+| <a id="FW_GPSF_R"></a>[FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)          | 선회 비행시 고정 롤/뱅크 각도.                                                                                                                                                                              |
+| <a id="NAV_FORCE_VT"></a>[NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) | If true, force VTOL takeoff and landing, even in `Descend` failsafe.                                                                                                                            |
 
-| 매개변수                                                                                                                                | 설명                                                                                                                                                             |
-| ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="FW_GPSF_LT"></a>[FW_GPSF_LT](../advanced_config/parameter_reference.md#FW_GPSF_LT) | Loiter time (waiting for GPS recovery before it goes into land or flight termination). 비활성화 하려면 0으로 설정하십시오. |
-| <a id="FW_GPSF_R"></a>[FW_GPSF_R](../advanced_config/parameter_reference.md#FW_GPSF_R)    | 선회 비행시 고정 롤/뱅크 각도.                                                                                                                             |
+### Position Accuracy Low Failsafe
+
+In Fixed-wing, the position estimate is never strictly invalidated as long as we have a horizontal aiding source, such as an airspeed sensor. In that case, a separate failsafe can be configured that triggers if the position estimate inacuraccy exceeds the threshold [COM_POS_LOW_EPH](../advanced_config/parameter_reference.md#COM_POS_LOW_EPH). The failsafe action is taken if the vehicle is in mission or hold mode, otherwise it is only a warning. The relevant parameters are:
+
+| 매개변수                                                                                                                                                                    | 설명                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="COM_POS_LOW_EPH"></a>[COM_POS_LOW_EPH](../advanced_config/parameter_reference.md#COM_POS_LOW_EPH) | Position inaccuracy threshold above which COM_POS_LOW_ACT is taken. |
+| <a id="COM_POS_LOW_ACT"></a>[COM_POS_LOW_ACT](../advanced_config/parameter_reference.md#COM_POS_LOW_ACT) | Failsafe action taken when position inaccuracy is above configured threshold.                                                      |
+
+Note that if there is no horizontal aiding source anymore, the position estimate is invalidated after `EKF2_NOAID_TOUT`, and the standard position loss failsafe applies.
 
 ## 오프 보드 안전 장치
 

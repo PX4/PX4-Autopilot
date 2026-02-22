@@ -258,6 +258,7 @@
       - [Lidar-Lite](sensor/lidar_lite.md)
       - [Lightware Lidars (SF/LW/GRF)](sensor/sfxx_lidar.md)
         - [Lightware SF45 Rotary Lidar](sensor/sf45_rotating_lidar.md)
+        - [Lightware GRF250/GRF500 Gimbal Lidar](sensor/grf_lidar.md)
       - [TeraRanger ](sensor/teraranger.md)
       - [✘ Lanbao PSK-CM8JL65-CC5](sensor/cm8jl65_ir_distance_sensor.md)
       - [Avionics Anonymous Laser Altimeter UAVCAN Interface (CAN)](dronecan/avanon_laser_interface.md)
@@ -439,6 +440,7 @@
 
   - [고급 설정](advanced_config/index.md)
     - [Using PX4's Navigation Filter (EKF2)](advanced_config/tuning_the_ecl_ekf.md)
+    - [GNSS-Denied & Degraded Flight](advanced_config/gnss_degraded_or_denied_flight.md)
     - [매개변수 검색 및 수정](advanced_config/parameters.md)
     - [전체 매개변수 정의서](advanced_config/parameter_reference.md)
 
