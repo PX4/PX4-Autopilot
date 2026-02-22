@@ -44,6 +44,17 @@ enum class ModeChangeSource {
 class ModeChangeHandler
 {
 public:
+        ModeChangeHandler() = default;
+	virtual ~ModeChangeHandler() = default;
+
+	/**
+	 * Explicitly disable copying/moving
+	 */
+	ModeChangeHandler(const ModeChangeHandler &) = delete;
+	ModeChangeHandler &operator=(const ModeChangeHandler &) = delete;
+	ModeChangeHandler(ModeChangeHandler &&) = delete;
+	ModeChangeHandler &operator=(ModeChangeHandler &&) = delete;
+
 	virtual void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) = 0;
 
 	/**
@@ -63,6 +74,12 @@ public:
 	UserModeIntention(const vehicle_status_s &vehicle_status,
 			  const HealthAndArmingChecks &health_and_arming_checks, ModeChangeHandler *handler);
 	~UserModeIntention() = default;
+
+	/**
+	 * Explicitly disable copying/moving
+	 */
+	UserModeIntention(const UserModeIntention &) = delete;
+	UserModeIntention &operator=(const UserModeIntention &) = delete;
 
 	/**
 	 * Change the user intended mode

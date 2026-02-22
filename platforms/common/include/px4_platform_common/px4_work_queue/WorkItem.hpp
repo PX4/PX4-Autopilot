@@ -83,13 +83,14 @@ public:
 
 	const char *ItemName() const { return _item_name; }
 
+	virtual ~WorkItem();
+
 protected:
 
 	explicit WorkItem(const char *name, const wq_config_t &config);
 
 	explicit WorkItem(const char *name, const WorkItem &work_item);
 
-	virtual ~WorkItem();
 
 	/**
 	 * Remove work item from the runnable queue, if it's there
