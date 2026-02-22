@@ -44,7 +44,7 @@ enum class ModeChangeSource {
 class ModeChangeHandler
 {
 public:
-        ModeChangeHandler() = default;
+	ModeChangeHandler() = default;
 	virtual ~ModeChangeHandler() = default;
 
 	/**
