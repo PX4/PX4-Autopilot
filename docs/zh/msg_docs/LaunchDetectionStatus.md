@@ -10,10 +10,11 @@ Status of the launch detection state machine (fixed-wing only).
 
 ## Fields
 
-| 参数名                                                              | 类型       | Unit [Frame] | Range/Enum | 描述                                                        |
-| ---------------------------------------------------------------- | -------- | ---------------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| timestamp                                                        | `uint64` |                                                                  |            | time since system start (microseconds) |
-| launch_detection_state | `uint8`  |                                                                  |            |                                                           |
+| 参数名                                                                                              | 类型       | Unit [Frame] | Range/Enum | 描述                                                                                                                               |
+| ------------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                                                        | `uint64` |                                                                  |            | time since system start (microseconds)                                                                        |
+| launch_detection_state                                 | `uint8`  |                                                                  |            |                                                                                                                                  |
+| selected_control_surface_disarmed | `bool`   |                                                                  |            | flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation) |
 
 ## Constants
 
@@ -40,6 +41,8 @@ uint8 STATE_LAUNCH_DETECTED_DISABLED_MOTOR 	= 1 # launch detected, but keep moto
 uint8 STATE_FLYING 				= 2 # launch detected, use normal takeoff/flying configuration
 
 uint8 launch_detection_state
+
+bool selected_control_surface_disarmed		# [-] flag indicating whether selected actuators should kept disarmed (have to be configured in control allocation)
 ```
 
 :::

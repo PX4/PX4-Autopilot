@@ -269,3 +269,4 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VehicleAttitudeSetpointV0](VehicleAttitudeSetpointV0.md)
 - [VehicleLocalPositionV0](VehicleLocalPositionV0.md) — Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
 - [VehicleStatusV0](VehicleStatusV0.md) — Encodes the system state of the vehicle published by commander.
+- [VehicleStatusV1](VehicleStatusV1.md) — Encodes the system state of the vehicle published by commander.
