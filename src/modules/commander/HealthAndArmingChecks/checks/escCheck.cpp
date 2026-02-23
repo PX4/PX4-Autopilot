@@ -254,7 +254,6 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				thrust = fabsf(actuator_motors.control[actuator_function_index]);
 			}
 
-			bool thrust_above_threshold = thrust > _param_motfail_thr.get();
 			bool current_too_low = current < (thrust * _param_motfail_c2t.get()) - _param_motfail_low_off.get();
 			bool current_too_high = current > (thrust * _param_motfail_c2t.get()) + _param_motfail_high_off.get();
 
@@ -263,7 +262,7 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 
 			if (!_esc_undercurrent_hysteresis[i].get_state()) {
 				// Only set, never clear mid-air: stopping the motor in response could make it appear healthy again
-				_esc_undercurrent_hysteresis[i].set_state_and_update(thrust_above_threshold && current_too_low, now);
+				_esc_undercurrent_hysteresis[i].set_state_and_update(current_too_low, now);
 			}
 
 			if (!_esc_overcurrent_hysteresis[i].get_state()) {

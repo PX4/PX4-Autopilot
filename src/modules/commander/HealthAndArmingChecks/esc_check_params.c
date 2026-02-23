@@ -46,21 +46,6 @@
 PARAM_DEFINE_INT32(FD_ACT_EN, 0);
 
 /**
- * Motor Failure Thrust Threshold
- *
- * Failure detection per motor only triggers above this thrust value.
- * Set to 1 to disable the detection.
- *
- * @group Motor Failure
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(MOTFAIL_THR, 0.2f);
-
-/**
  * Motor Failure Current/Throttle Scale
  *
  * Determines the slope between expected steady state current and linearized, normalized thrust command.
