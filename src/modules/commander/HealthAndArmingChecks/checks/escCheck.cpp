@@ -75,7 +75,6 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 
 	esc_status_s esc_status;
 
-
 	// Run motor status checks even when no new ESC data arrives (to detect timeouts)
 	if (_esc_status_sub.copy(&esc_status)) {
 		if (esc_status.esc_count <= 0) {
@@ -257,8 +256,8 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 			bool current_too_low = current < (thrust * _param_motfail_c2t.get()) - _param_motfail_low_off.get();
 			bool current_too_high = current > (thrust * _param_motfail_c2t.get()) + _param_motfail_high_off.get();
 
-			_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_ms);
-			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_ms);
+			_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_s);
+			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_motfail_time.get() * 1_s);
 
 			if (!_esc_undercurrent_hysteresis[i].get_state()) {
 				// Only set, never clear mid-air: stopping the motor in response could make it appear healthy again

@@ -95,9 +95,10 @@ PARAM_DEFINE_FLOAT(MOTFAIL_HIGH_OFF, 10.f);
  * Motor failure only triggers after current thresholds are exceeded for this time.
  *
  * @group Motor Failure
- * @unit ms
- * @min 10
- * @max 10000
- * @increment 100
+ * @unit s
+ * @min 0.01
+ * @max 10
+ * @decimal 2
+ * @increment 1
  */
-PARAM_DEFINE_INT32(MOTFAIL_TIME, 1000);
+PARAM_DEFINE_FLOAT(MOTFAIL_TIME, 1.f);
