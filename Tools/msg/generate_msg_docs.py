@@ -511,7 +511,7 @@ pageClass: is-wide-page
             markdown += "--- | --- | --- |---\n"
             for name, command in self.commandConstants.items():
                 description = f" {command.comment} " if enum.comment else " "
-                markdown += f'<a href="#{name}"></a> {name} | `{command.type}` | {command.value} |{description}\n'            
+                markdown += f'<a id="#{name}"></a> {name} | `{command.type}` | {command.value} |{description}\n'            
             """
             for commandConstant in self.commandConstants.values():
                 #print(commandConstant)
@@ -538,7 +538,7 @@ pageClass: is-wide-page
             markdown += "--- | --- | --- |---\n"
             for name, enum in self.constantFields.items():
                 description = f" {enum.comment} " if enum.comment else " "
-                markdown += f'<a href="#{name}"></a> {name} | `{enum.type}` | {enum.value} |{description}\n'
+                markdown += f'<a id="#{name}"></a> {name} | `{enum.type}` | {enum.value} |{description}\n'
 
 
 
