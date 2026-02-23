@@ -40817,78 +40817,49 @@ starve other nodes on the bus.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | 1        | 255      |           | 255     |
 
-### UAVCAN_LGT_ANTCL (`INT32`) {#UAVCAN_LGT_ANTCL}
-
-UAVCAN ANTI_COLLISION light operating mode.
-
-This parameter defines the minimum condition under which the system will command
-lights with anti-collision function to turn on (white).
-0 - Always off
-1 - When autopilot is armed
-2 - When autopilot is prearmed
-3 - Always on
-
-**Values:**
-
-- `0`: Always off
-- `1`: When autopilot is armed
-- `2`: When autopilot is prearmed
-- `3`: Always on
-
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 3        |           | 2       |
-
 ### UAVCAN_LGT_FN0 (`INT32`) {#UAVCAN_LGT_FN0}
 
 Light 0 function.
 
-Function assigned to light 0.
-0: Status - displays system status colors
-1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
+Function for light 0.
+UAVCAN_LGT_MODE determines when the first option or second option is active Off/On.
 
 **Values:**
 
-- `0`: Status Light
-- `1`: Anti-collision Light
+- `0`: Status/Status
+- `1`: Off/White
+- `2`: Off/Red
+- `3`: Off/Green
+- `4`: Status/White
+- `5`: Status/Red
+- `6`: Status/Green
+- `7`: Status/Off
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        |           | 0       |
+| &nbsp; | 0        | 9        |           | 0       |
 
 ### UAVCAN_LGT_FN1 (`INT32`) {#UAVCAN_LGT_FN1}
 
 Light 1 function.
 
-Function assigned to light 1.
-0: Status - displays system status colors
-1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
+Function for light 1.
+UAVCAN_LGT_MODE determines when the first option or second option is active Off/On.
 
 **Values:**
 
-- `0`: Status Light
-- `1`: Anti-collision Light
+- `0`: Status/Status
+- `1`: Off/White
+- `2`: Off/Red
+- `3`: Off/Green
+- `4`: Status/White
+- `5`: Status/Red
+- `6`: Status/Green
+- `7`: Status/Off
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        |           | 0       |
-
-### UAVCAN_LGT_FN2 (`INT32`) {#UAVCAN_LGT_FN2}
-
-Light 2 function.
-
-Function assigned to light 2.
-0: Status - displays system status colors
-1: Anti-collision - white beacon controlled by LGT_ANTCL parameter
-
-**Values:**
-
-- `0`: Status Light
-- `1`: Anti-collision Light
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1        |           | 0       |
+| &nbsp; | 0        | 9        |           | 0       |
 
 ### UAVCAN_LGT_ID0 (`INT32`) {#UAVCAN_LGT_ID0}
 
@@ -40912,16 +40883,30 @@ This determines which physical LED responds to commands for this light slot.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 255      |           | 0       |
 
-### UAVCAN_LGT_ID2 (`INT32`) {#UAVCAN_LGT_ID2}
+### UAVCAN_LGT_MODE (`INT32`) {#UAVCAN_LGT_MODE}
 
-Light 2 ID.
+UAVCAN Navigation light operating mode.
 
-specifies the light_id value for light 2 in UAVCAN LightsCommand messages.
-This determines which physical LED responds to commands for this light slot.
+This parameter defines the minimum condition under which the system will command
+Navigation lights to turn on. Affects lights with functions: Anti-collision, Colored Navigation Lights or Hybrid lights.
+For hybrid functions (StatusOrAntiCollision, etc.), the light
+displays status colors when this mode is inactive, and switches to the
+navigation light function when this mode becomes active.
+0 - Always off
+1 - When autopilot is armed
+2 - When autopilot is prearmed
+3 - Always on
 
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 255      |           | 0       |
+**Values:**
+
+- `0`: Always off
+- `1`: When autopilot is armed
+- `2`: When autopilot is prearmed
+- `3`: Always on
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 3        |           | 1       |
 
 ### UAVCAN_LGT_NUM (`INT32`) {#UAVCAN_LGT_NUM}
 
@@ -40933,7 +40918,7 @@ Each light uses two parameters: LGT_IDx for the light_id and LGT_FNx for the fun
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 3        |           | 1       |
+| &check; | 0        | 2        |           | 1       |
 
 ### UAVCAN_NODE_ID (`INT32`) {#UAVCAN_NODE_ID}
 
