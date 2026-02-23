@@ -376,6 +376,14 @@ void EKF2::AdvertiseTopics()
 
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_RANGING_BEACON)
+
+		if (_param_ekf2_rngbc_ctrl.get()) {
+			_estimator_aid_src_ranging_beacon_pub.advertise();
+		}
+
+#endif // CONFIG_EKF2_RANGING_BEACON
+
 #if defined(CONFIG_EKF2_SIDESLIP)
 
 		if (_param_ekf2_fuse_beta.get()) {
@@ -2500,7 +2508,11 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.jammed = vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_DETECTED,
 		};
 
-		_ekf.setGpsData(gnss_sample, pps_compensation);
+		// DEBUG: disable GPS above 660m for ranging beacon testing
+		if (altitude_amsl < 650.f) {
+			_ekf.setGpsData(gnss_sample, pps_compensation);
+		}
+
 
 		const float geoid_height = altitude_ellipsoid - altitude_amsl;
 
