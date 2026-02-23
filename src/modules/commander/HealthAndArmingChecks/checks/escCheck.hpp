@@ -40,7 +40,6 @@
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_detector_status.h>
-#include <mixer_module/output_functions.hpp>
 
 class EscChecks : public HealthAndArmingCheckBase
 {
