@@ -85,19 +85,20 @@ typedef enum {
 	LOG_LOAD
 } log_type_t;
 
-class TaskWatchdog : public ModuleBase<TaskWatchdog>, public ModuleParams
+class TaskWatchdog : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	TaskWatchdog();
 	~TaskWatchdog() override;
 
 	static int task_spawn(int argc, char *argv[]);
+	static int run_trampoline(int argc, char *argv[]);
 	static int custom_command(int argc, char *argv[]);
 	static int print_usage(const char *reason = nullptr);
 
-	static TaskWatchdog *instantiate(int argc, char *argv[]);
-
-	void run();
+	void run() override;
 
 private:
 	void start();

@@ -55,6 +55,8 @@ using namespace time_literals;
 namespace task_watchdog
 {
 
+ModuleBase::Descriptor TaskWatchdog::desc{task_spawn, custom_command, print_usage};
+
 TaskWatchdog::TaskWatchdog() :
 	ModuleParams(nullptr)
 {
@@ -66,32 +68,36 @@ TaskWatchdog::~TaskWatchdog()
 	px4_sem_destroy(&_sem);
 }
 
+int TaskWatchdog::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		TaskWatchdog *instance = new TaskWatchdog();
+
+		if (instance == nullptr)
+		{
+			PX4_ERR("alloc failed");
+		}
+
+		return instance;
+	}, argc, argv);
+}
+
 int TaskWatchdog::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("task_watchdog",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_LOG_WRITER,
-				      PX4_STACK_ADJUSTED(3250),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("task_watchdog",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_LOG_WRITER,
+					  PX4_STACK_ADJUSTED(3250),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		PX4_ERR("task start failed: %d", _task_id);
-		return -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
+		PX4_ERR("task start failed: %d", errno);
+		return -errno;
 	}
 
 	return 0;
-}
-
-TaskWatchdog *TaskWatchdog::instantiate(int argc, char *argv[])
-{
-	TaskWatchdog *instance = new TaskWatchdog();
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-	}
-
-	return instance;
 }
 
 void TaskWatchdog::start()
@@ -435,13 +441,13 @@ int TaskWatchdog::format_file_path(log_type_t type, char *buf, size_t bufsz)
 
 int TaskWatchdog::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("task_watchdog not running");
 		return 1;
 	}
 
 	if (!strcmp(argv[0], "trigger")) {
-		get_instance()->_shared.manual_trigger = true;
+		get_instance<TaskWatchdog>(desc)->_shared.manual_trigger = true;
 		PX4_INFO("manual watchdog trigger requested");
 		return 0;
 	}
@@ -475,5 +481,5 @@ and saves a cpuload snapshot.
 
 extern "C" __EXPORT int task_watchdog_main(int argc, char *argv[])
 {
-	return task_watchdog::TaskWatchdog::main(argc, argv);
+	return ModuleBase::main(task_watchdog::TaskWatchdog::desc, argc, argv);
 }
