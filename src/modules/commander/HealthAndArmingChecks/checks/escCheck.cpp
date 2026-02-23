@@ -122,8 +122,8 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 	esc_fail_msg[0] = '\0';
 
 	for (int esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
-		// check if mapped
-		if (!math::isInRange(esc_status.esc[esc_index].actuator_function, (uint8_t)OutputFunction::Motor1, (uint8_t)OutputFunction::MotorMax)) {
+		if (!math::isInRange(esc_status.esc[esc_index].actuator_function,
+				     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
 			continue; // Skip unmapped ESC status entries
 		}
 
@@ -160,18 +160,18 @@ uint16_t EscChecks::checkEscStatus(const Context &context, Report &reporter, con
 	uint16_t mask = 0;
 
 	for (int esc_index = 0; esc_index < esc_status_s::CONNECTED_ESC_MAX; esc_index++) {
-		if (!math::isInRange(esc_status.esc[esc_index].actuator_function, (uint8_t)OutputFunction::Motor1, (uint8_t)OutputFunction::MotorMax)) {
+		if (!math::isInRange(esc_status.esc[esc_index].actuator_function,
+				     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
 			continue; // Skip unmapped ESC status entries
 		}
 
-		const uint8_t act_function_index =
-			esc_status.esc[esc_index].actuator_function - static_cast<uint8_t>(OutputFunction::Motor1);
+		const uint8_t actuator_function_index = esc_status.esc[esc_index].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
 
 		if (esc_status.esc[esc_index].failures == 0) {
 			continue;
 
 		} else {
-			mask |= (1u << act_function_index); // Set bit in mask
+			mask |= (1u << actuator_function_index); // Set bit in mask
 		}
 
 		for (uint8_t fault_index = 0; fault_index <= static_cast<uint8_t>(esc_fault_reason_t::_max); fault_index++) {
@@ -229,13 +229,12 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 
 		// Check individual ESC reports
 		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; i++) {
-			// Map the esc status index to the actuator function index
-			const uint8_t actuator_function_index = esc_status.esc[i].actuator_function - static_cast<uint8_t>(OutputFunction::Motor1);
-
-			if (!math::isInRange(esc_status.esc[i].actuator_function, (uint8_t)OutputFunction::Motor1, (uint8_t)OutputFunction::MotorMax)) {
+			if (!math::isInRange(esc_status.esc[i].actuator_function,
+					     esc_report_s::ACTUATOR_FUNCTION_MOTOR1, esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
 				continue; // Skip unmapped ESC status entries
 			}
 
+			const uint8_t actuator_function_index = esc_status.esc[i].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
 			const float current = esc_status.esc[i].esc_current;
 
 			// First wait for ESC telemetry reporting non-zero current. Before that happens, don't check it.
