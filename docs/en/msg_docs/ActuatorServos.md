@@ -21,10 +21,10 @@ Published by the vehicle's allocation and consumed by the actuator output driver
 
 ## Constants
 
-| Name                                            | Type     | Value | Description |
-| ----------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
-| <a href="#NUM_CONTROLS"></a> NUM_CONTROLS       | `uint8`  | 8     |
+| Name                                          | Type     | Value | Description |
+| --------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
+| <a id="#NUM_CONTROLS"></a> NUM_CONTROLS       | `uint8`  | 8     |
 
 ## Source Message
 

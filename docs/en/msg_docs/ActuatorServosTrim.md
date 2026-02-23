@@ -17,9 +17,9 @@ Servo trims, added as offset to servo outputs.
 
 ## Constants
 
-| Name                                      | Type    | Value | Description |
-| ----------------------------------------- | ------- | ----- | ----------- |
-| <a href="#NUM_CONTROLS"></a> NUM_CONTROLS | `uint8` | 8     |
+| Name                                    | Type    | Value | Description |
+| --------------------------------------- | ------- | ----- | ----------- |
+| <a id="#NUM_CONTROLS"></a> NUM_CONTROLS | `uint8` | 8     |
 
 ## Source Message
 

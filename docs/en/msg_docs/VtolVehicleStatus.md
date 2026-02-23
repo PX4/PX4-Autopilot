@@ -18,14 +18,14 @@ VEHICLE_VTOL_STATE, should match 1:1 MAVLinks's MAV_VTOL_STATE.
 
 ## Constants
 
-| Name                                                                                    | Type     | Value | Description |
-| --------------------------------------------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                         | `uint32` | 0     |
-| <a href="#VEHICLE_VTOL_STATE_UNDEFINED"></a> VEHICLE_VTOL_STATE_UNDEFINED               | `uint8`  | 0     |
-| <a href="#VEHICLE_VTOL_STATE_TRANSITION_TO_FW"></a> VEHICLE_VTOL_STATE_TRANSITION_TO_FW | `uint8`  | 1     |
-| <a href="#VEHICLE_VTOL_STATE_TRANSITION_TO_MC"></a> VEHICLE_VTOL_STATE_TRANSITION_TO_MC | `uint8`  | 2     |
-| <a href="#VEHICLE_VTOL_STATE_MC"></a> VEHICLE_VTOL_STATE_MC                             | `uint8`  | 3     |
-| <a href="#VEHICLE_VTOL_STATE_FW"></a> VEHICLE_VTOL_STATE_FW                             | `uint8`  | 4     |
+| Name                                                                                  | Type     | Value | Description |
+| ------------------------------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                         | `uint32` | 0     |
+| <a id="#VEHICLE_VTOL_STATE_UNDEFINED"></a> VEHICLE_VTOL_STATE_UNDEFINED               | `uint8`  | 0     |
+| <a id="#VEHICLE_VTOL_STATE_TRANSITION_TO_FW"></a> VEHICLE_VTOL_STATE_TRANSITION_TO_FW | `uint8`  | 1     |
+| <a id="#VEHICLE_VTOL_STATE_TRANSITION_TO_MC"></a> VEHICLE_VTOL_STATE_TRANSITION_TO_MC | `uint8`  | 2     |
+| <a id="#VEHICLE_VTOL_STATE_MC"></a> VEHICLE_VTOL_STATE_MC                             | `uint8`  | 3     |
+| <a id="#VEHICLE_VTOL_STATE_FW"></a> VEHICLE_VTOL_STATE_FW                             | `uint8`  | 4     |
 
 ## Source Message
 

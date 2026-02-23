@@ -21,10 +21,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                  | Type    | Value | Description                                                                    |
-| ----------------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------ |
-| <a href="#RC_PARAM_MAP_NCHAN"></a> RC_PARAM_MAP_NCHAN | `uint8` | 3     | This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h |
-| <a href="#PARAM_ID_LEN"></a> PARAM_ID_LEN             | `uint8` | 16    | corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN                      |
+| Name                                                | Type    | Value | Description                                                                    |
+| --------------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------ |
+| <a id="#RC_PARAM_MAP_NCHAN"></a> RC_PARAM_MAP_NCHAN | `uint8` | 3     | This limit is also hardcoded in the enum RC_CHANNELS_FUNCTION in rc_channels.h |
+| <a id="#PARAM_ID_LEN"></a> PARAM_ID_LEN             | `uint8` | 16    | corresponds to MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN                      |
 
 ## Source Message
 

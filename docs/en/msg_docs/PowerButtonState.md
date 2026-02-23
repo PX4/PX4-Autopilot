@@ -17,12 +17,12 @@ power button state notification message.
 
 ## Constants
 
-| Name                                                                                | Type    | Value | Description                                                             |
-| ----------------------------------------------------------------------------------- | ------- | ----- | ----------------------------------------------------------------------- |
-| <a href="#PWR_BUTTON_STATE_IDEL"></a> PWR_BUTTON_STATE_IDEL                         | `uint8` | 0     | Button went up without meeting shutdown button down time (delete event) |
-| <a href="#PWR_BUTTON_STATE_DOWN"></a> PWR_BUTTON_STATE_DOWN                         | `uint8` | 1     | Button went Down                                                        |
-| <a href="#PWR_BUTTON_STATE_UP"></a> PWR_BUTTON_STATE_UP                             | `uint8` | 2     | Button went Up                                                          |
-| <a href="#PWR_BUTTON_STATE_REQUEST_SHUTDOWN"></a> PWR_BUTTON_STATE_REQUEST_SHUTDOWN | `uint8` | 3     | Button went Up after meeting shutdown button down time                  |
+| Name                                                                              | Type    | Value | Description                                                             |
+| --------------------------------------------------------------------------------- | ------- | ----- | ----------------------------------------------------------------------- |
+| <a id="#PWR_BUTTON_STATE_IDEL"></a> PWR_BUTTON_STATE_IDEL                         | `uint8` | 0     | Button went up without meeting shutdown button down time (delete event) |
+| <a id="#PWR_BUTTON_STATE_DOWN"></a> PWR_BUTTON_STATE_DOWN                         | `uint8` | 1     | Button went Down                                                        |
+| <a id="#PWR_BUTTON_STATE_UP"></a> PWR_BUTTON_STATE_UP                             | `uint8` | 2     | Button went Up                                                          |
+| <a id="#PWR_BUTTON_STATE_REQUEST_SHUTDOWN"></a> PWR_BUTTON_STATE_REQUEST_SHUTDOWN | `uint8` | 3     | Button went Up after meeting shutdown button down time                  |
 
 ## Source Message
 

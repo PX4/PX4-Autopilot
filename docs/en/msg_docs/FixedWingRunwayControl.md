@@ -19,12 +19,12 @@ Auxiliary control fields for fixed-wing runway takeoff/landing.
 
 ## Constants
 
-| Name                                                            | Type    | Value | Description                                                   |
-| --------------------------------------------------------------- | ------- | ----- | ------------------------------------------------------------- |
-| <a href="#STATE_THROTTLE_RAMP"></a> STATE_THROTTLE_RAMP         | `uint8` | 0     | ramping up throttle                                           |
-| <a href="#STATE_CLAMPED_TO_RUNWAY"></a> STATE_CLAMPED_TO_RUNWAY | `uint8` | 1     | clamped to runway, controlling yaw directly (wheel or rudder) |
-| <a href="#STATE_CLIMBOUT"></a> STATE_CLIMBOUT                   | `uint8` | 2     | climbout to safe height before navigation                     |
-| <a href="#STATE_FLYING"></a> STATE_FLYING                       | `uint8` | 3     | navigate freely                                               |
+| Name                                                          | Type    | Value | Description                                                   |
+| ------------------------------------------------------------- | ------- | ----- | ------------------------------------------------------------- |
+| <a id="#STATE_THROTTLE_RAMP"></a> STATE_THROTTLE_RAMP         | `uint8` | 0     | ramping up throttle                                           |
+| <a id="#STATE_CLAMPED_TO_RUNWAY"></a> STATE_CLAMPED_TO_RUNWAY | `uint8` | 1     | clamped to runway, controlling yaw directly (wheel or rudder) |
+| <a id="#STATE_CLIMBOUT"></a> STATE_CLIMBOUT                   | `uint8` | 2     | climbout to safe height before navigation                     |
+| <a id="#STATE_FLYING"></a> STATE_FLYING                       | `uint8` | 3     | navigate freely                                               |
 
 ## Source Message
 

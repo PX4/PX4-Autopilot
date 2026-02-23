@@ -49,9 +49,9 @@ Fits ROS REP 147 for aerial vehicles
 
 ## Constants
 
-| Name                                            | Type     | Value | Description |
-| ----------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
+| Name                                          | Type     | Value | Description |
+| --------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
 
 ## Source Message
 

@@ -33,11 +33,11 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                    | Type     | Value | Description |
-| ----------------------------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                         | `uint32` | 0     |
-| <a href="#HEALTH_COMPONENT_INDEX_NONE"></a> HEALTH_COMPONENT_INDEX_NONE | `uint8`  | 0     |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                       | `uint8`  | 4     |
+| Name                                                                  | Type     | Value | Description |
+| --------------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                         | `uint32` | 0     |
+| <a id="#HEALTH_COMPONENT_INDEX_NONE"></a> HEALTH_COMPONENT_INDEX_NONE | `uint8`  | 0     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                       | `uint8`  | 4     |
 
 ## Source Message
 

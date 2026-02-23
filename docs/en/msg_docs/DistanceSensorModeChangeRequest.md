@@ -15,10 +15,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                    | Type    | Value | Description |
-| --------------------------------------- | ------- | ----- | ----------- |
-| <a href="#REQUEST_OFF"></a> REQUEST_OFF | `uint8` | 0     |
-| <a href="#REQUEST_ON"></a> REQUEST_ON   | `uint8` | 1     |
+| Name                                  | Type    | Value | Description |
+| ------------------------------------- | ------- | ----- | ----------- |
+| <a id="#REQUEST_OFF"></a> REQUEST_OFF | `uint8` | 0     |
+| <a id="#REQUEST_ON"></a> REQUEST_ON   | `uint8` | 1     |
 
 ## Source Message
 

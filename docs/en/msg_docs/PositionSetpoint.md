@@ -35,16 +35,16 @@ this file is only used in the position_setpoint triple as a dependency.
 
 ## Constants
 
-| Name                                                            | Type    | Value | Description                                                    |
-| --------------------------------------------------------------- | ------- | ----- | -------------------------------------------------------------- |
-| <a href="#SETPOINT_TYPE_POSITION"></a> SETPOINT_TYPE_POSITION   | `uint8` | 0     | position setpoint                                              |
-| <a href="#SETPOINT_TYPE_VELOCITY"></a> SETPOINT_TYPE_VELOCITY   | `uint8` | 1     | velocity setpoint                                              |
-| <a href="#SETPOINT_TYPE_LOITER"></a> SETPOINT_TYPE_LOITER       | `uint8` | 2     | loiter setpoint                                                |
-| <a href="#SETPOINT_TYPE_TAKEOFF"></a> SETPOINT_TYPE_TAKEOFF     | `uint8` | 3     | takeoff setpoint                                               |
-| <a href="#SETPOINT_TYPE_LAND"></a> SETPOINT_TYPE_LAND           | `uint8` | 4     | land setpoint, altitude must be ignored, descend until landing |
-| <a href="#SETPOINT_TYPE_IDLE"></a> SETPOINT_TYPE_IDLE           | `uint8` | 5     | do nothing, switch off motors or keep at idle speed (MC)       |
-| <a href="#LOITER_TYPE_ORBIT"></a> LOITER_TYPE_ORBIT             | `uint8` | 0     | Circular pattern                                               |
-| <a href="#LOITER_TYPE_FIGUREEIGHT"></a> LOITER_TYPE_FIGUREEIGHT | `uint8` | 1     | Pattern resembling an 8                                        |
+| Name                                                          | Type    | Value | Description                                                    |
+| ------------------------------------------------------------- | ------- | ----- | -------------------------------------------------------------- |
+| <a id="#SETPOINT_TYPE_POSITION"></a> SETPOINT_TYPE_POSITION   | `uint8` | 0     | position setpoint                                              |
+| <a id="#SETPOINT_TYPE_VELOCITY"></a> SETPOINT_TYPE_VELOCITY   | `uint8` | 1     | velocity setpoint                                              |
+| <a id="#SETPOINT_TYPE_LOITER"></a> SETPOINT_TYPE_LOITER       | `uint8` | 2     | loiter setpoint                                                |
+| <a id="#SETPOINT_TYPE_TAKEOFF"></a> SETPOINT_TYPE_TAKEOFF     | `uint8` | 3     | takeoff setpoint                                               |
+| <a id="#SETPOINT_TYPE_LAND"></a> SETPOINT_TYPE_LAND           | `uint8` | 4     | land setpoint, altitude must be ignored, descend until landing |
+| <a id="#SETPOINT_TYPE_IDLE"></a> SETPOINT_TYPE_IDLE           | `uint8` | 5     | do nothing, switch off motors or keep at idle speed (MC)       |
+| <a id="#LOITER_TYPE_ORBIT"></a> LOITER_TYPE_ORBIT             | `uint8` | 0     | Circular pattern                                               |
+| <a id="#LOITER_TYPE_FIGUREEIGHT"></a> LOITER_TYPE_FIGUREEIGHT | `uint8` | 1     | Pattern resembling an 8                                        |
 
 ## Source Message
 
