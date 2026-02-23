@@ -494,7 +494,8 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 			continue;
 		}
 
-		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %" STRINGIFY(PX4_MAX_FILEPATH_SCANF) "s", &(entry->time_utc), &(entry->size_bytes), entry->filepath) != 3) {
+		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %" STRINGIFY(PX4_MAX_FILEPATH_SCANF) "s", &(entry->time_utc), &(entry->size_bytes),
+			   entry->filepath) != 3) {
 			PX4_DEBUG("sscanf failed");
 			continue;
 		}
