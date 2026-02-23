@@ -73,7 +73,7 @@ private:
 					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs,
 					(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
 					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,
-					(ParamInt<px4::params::MOTFAIL_TIME>) _param_motfail_time,
+					(ParamFloat<px4::params::MOTFAIL_TIME>) _param_motfail_time,
 					(ParamFloat<px4::params::MOTFAIL_LOW_OFF>) _param_motfail_low_off,
 					(ParamFloat<px4::params::MOTFAIL_HIGH_OFF>) _param_motfail_high_off);
 };
