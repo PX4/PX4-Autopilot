@@ -3,6 +3,7 @@
 """
 
 import argparse
+from copy import deepcopy
 import lzma #to create .xz file
 import json
 import os
@@ -180,6 +181,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 channel_labels = [process_channel_label(module_name, label, no_prefix)
                     for label in group['channel_labels']]
                 standard_params = group.get('standard_params', [])
+                custom_params = group.get('custom_params', [])
                 extra_function_groups = group.get('extra_function_groups', [])
                 pwm_timer_param = group.get('pwm_timer_param', None)
                 if 'timer_config_file' in group:
@@ -191,6 +193,16 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                     param_prefix, channel_labels,
                     standard_params, extra_function_groups, pwm_timer_param,
                     verbose=verbose)
+                for tg in timer_output_groups:
+                    tg['custom_params'] = deepcopy(custom_params)
+                    # Propagate show_if from standard params (hides PWM-only
+                    # params like center when DShot is selected)
+                    for sp_val in tg.get('standard_params', {}).values():
+                        if 'show_if' in sp_val:
+                            for cp in tg['custom_params']:
+                                if 'show_if' not in cp:
+                                    cp['show_if'] = sp_val['show_if']
+                            break
                 output_groups.extend(timer_output_groups)
             else:
                 raise Exception('unknown generator {:}'.format(group['generator']))
@@ -238,7 +250,6 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
             ( 'disarmed', 'Disarmed', 'DIS', False ),
             ( 'min', 'Minimum', 'MIN', False ),
             ( 'max', 'Maximum', 'MAX', False ),
-            ( 'center', 'Center\n(for Servos)', 'CENT', False ),
             ( 'failsafe', 'Failsafe', 'FAIL', True ),
             ]
         for key, label, param_suffix, advanced in standard_params_array:
