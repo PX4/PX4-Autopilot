@@ -284,7 +284,7 @@ void UavcanNode::fill_node_info()
 	char fw_git_short[9] = {};
 	std::memmove(fw_git_short, px4_firmware_version_string(), 8);
 	char *end = nullptr;
-	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
+	swver.vcs_commit = std::strtoul(fw_git_short, &end, 16);
 	swver.optional_field_flags |= swver.OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 	swver.major = AppDescriptor.major_version;
 	swver.minor = AppDescriptor.minor_version;

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025-2026 ModalAI, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__barometer__dps310
-	MAIN dps310
+	MODULE modules__sensor_baro_bridge
+	MAIN sensor_baro_bridge
+	INCLUDES
+		${CMAKE_CURRENT_SOURCE_DIR}/../../lib/mpa
 	SRCS
-		DPS310.cpp
-		DPS310.hpp
-		DPS310_I2C.cpp
-		DPS310_SPI.cpp
-		dps310_main.cpp
+		sensor_baro_bridge.cpp
 	DEPENDS
-		drivers__device
-		px4_work_queue
+		mpa
 	)

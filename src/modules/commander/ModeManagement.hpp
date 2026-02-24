@@ -130,7 +130,7 @@ class ModeManagement : public ModeChangeHandler
 {
 public:
 	ModeManagement(ExternalChecks &external_checks);
-	~ModeManagement() = default;
+	virtual ~ModeManagement() = default;
 
 	struct UpdateRequest {
 		bool change_user_intended_nav_state{false};
@@ -202,7 +202,7 @@ class ModeManagement : public ModeChangeHandler
 {
 public:
 	ModeManagement() = default;
-	~ModeManagement() = default;
+	virtual ~ModeManagement() = default;
 
 	struct UpdateRequest {
 		bool change_user_intended_nav_state{false};
