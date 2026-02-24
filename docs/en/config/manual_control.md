@@ -31,7 +31,7 @@ This section explains how to configure the PX4 to use and prioritise various man
 If you only have one manual control system, either RC or Joystick, then by default no manual control selection is required.
 In this case PX4 locks to the first valid manual control source it detects and uses that source until the vehicle is rebooted.
 
-If you have an RC system and/or one or more Joysticks then you can use the [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) parameter to control what source(s) are used, and their priority in the case of fallbacks ([parameters can be set](../advanced_config/parameters.md#finding-a-parameter) using QGC):
+If you have multiple control sources, such as an RC system and/or one or more Joysticks, then you can use the [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) parameter to determine which source is active, specifying selection priorities and fallback behavior ([parameters can be set](../advanced_config/parameters.md#finding-a-parameter) using QGC):
 
 - `0`: RC only.
 - `1`: MAVLink only.
@@ -48,7 +48,7 @@ The [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances) 
 Notes:
 
 - RC checks are run for any option that uses RC (so not for `MAVLink only` or `Disable manual control`).
-- When using priority sources, sources are evaluated as soon as they become valid and may trigger an immediate switch (if higher priority than other sources).
+- When using priority sources, sources are evaluated as soon as they become valid and may trigger an immediate switch (if higher priority than the currently active source).
 - A [Manual Control Loss Failsafe](../config/safety.md#manual-control-loss-failsafe) is triggered when none of the manual control inputs allowed by the `COM_RC_IN_MODE` mode are available for a time that is greater than the RC Loss Timeout.
   As long as there is a fallback input source available, the failsafe is not triggered.
 

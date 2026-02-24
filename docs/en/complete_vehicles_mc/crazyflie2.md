@@ -215,7 +215,7 @@ make venv
 To use a [Joystick](../config/joystick.md):
 
 - Make sure you're using a [`COM_RC_IN_MODE` that allows Joystick](../config/manual_control.md#px4-configuration).
-- Calibrate the Joystick and set the Joystick message frequency in QGroundControl to any value between 5 to 14 Hz (10 Hz is recommended).
+- Calibrate the Joystick and set the Joystick message frequency in QGroundControl if needed (25 Hz is the default).
   To be able to set the frequency, the advanced option should be enabled.
 
   ![QGC UI for setting message frequency](../../assets/hardware/joystick-message-frequency.png)
