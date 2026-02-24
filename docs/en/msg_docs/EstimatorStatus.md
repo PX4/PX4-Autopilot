@@ -51,52 +51,52 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                            | Type    | Value | Description                                                                                   |
-| ------------------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------------------------------------- |
-| <a href="#GPS_CHECK_FAIL_GPS_FIX"></a> GPS_CHECK_FAIL_GPS_FIX                   | `uint8` | 0     | 0 : insufficient fix type (no 3D solution)                                                    |
-| <a href="#GPS_CHECK_FAIL_MIN_SAT_COUNT"></a> GPS_CHECK_FAIL_MIN_SAT_COUNT       | `uint8` | 1     | 1 : minimum required sat count fail                                                           |
-| <a href="#GPS_CHECK_FAIL_MAX_PDOP"></a> GPS_CHECK_FAIL_MAX_PDOP                 | `uint8` | 2     | 2 : maximum allowed PDOP fail                                                                 |
-| <a href="#GPS_CHECK_FAIL_MAX_HORZ_ERR"></a> GPS_CHECK_FAIL_MAX_HORZ_ERR         | `uint8` | 3     | 3 : maximum allowed horizontal position error fail                                            |
-| <a href="#GPS_CHECK_FAIL_MAX_VERT_ERR"></a> GPS_CHECK_FAIL_MAX_VERT_ERR         | `uint8` | 4     | 4 : maximum allowed vertical position error fail                                              |
-| <a href="#GPS_CHECK_FAIL_MAX_SPD_ERR"></a> GPS_CHECK_FAIL_MAX_SPD_ERR           | `uint8` | 5     | 5 : maximum allowed speed error fail                                                          |
-| <a href="#GPS_CHECK_FAIL_MAX_HORZ_DRIFT"></a> GPS_CHECK_FAIL_MAX_HORZ_DRIFT     | `uint8` | 6     | 6 : maximum allowed horizontal position drift fail - requires stationary vehicle              |
-| <a href="#GPS_CHECK_FAIL_MAX_VERT_DRIFT"></a> GPS_CHECK_FAIL_MAX_VERT_DRIFT     | `uint8` | 7     | 7 : maximum allowed vertical position drift fail - requires stationary vehicle                |
-| <a href="#GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR"></a> GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR | `uint8` | 8     | 8 : maximum allowed horizontal speed fail - requires stationary vehicle                       |
-| <a href="#GPS_CHECK_FAIL_MAX_VERT_SPD_ERR"></a> GPS_CHECK_FAIL_MAX_VERT_SPD_ERR | `uint8` | 9     | 9 : maximum allowed vertical velocity discrepancy fail                                        |
-| <a href="#GPS_CHECK_FAIL_SPOOFED"></a> GPS_CHECK_FAIL_SPOOFED                   | `uint8` | 10    | 10 : GPS signal is spoofed                                                                    |
-| <a href="#GPS_CHECK_FAIL_JAMMED"></a> GPS_CHECK_FAIL_JAMMED                     | `uint8` | 11    | 11 : GPS signal is jammed                                                                     |
-| <a href="#CS_TILT_ALIGN"></a> CS_TILT_ALIGN                                     | `uint8` | 0     | 0 - true if the filter tilt alignment is complete                                             |
-| <a href="#CS_YAW_ALIGN"></a> CS_YAW_ALIGN                                       | `uint8` | 1     | 1 - true if the filter yaw alignment is complete                                              |
-| <a href="#CS_GNSS_POS"></a> CS_GNSS_POS                                         | `uint8` | 2     | 2 - true if GNSS position measurements are being fused                                        |
-| <a href="#CS_OPT_FLOW"></a> CS_OPT_FLOW                                         | `uint8` | 3     | 3 - true if optical flow measurements are being fused                                         |
-| <a href="#CS_MAG_HDG"></a> CS_MAG_HDG                                           | `uint8` | 4     | 4 - true if a simple magnetic yaw heading is being fused                                      |
-| <a href="#CS_MAG_3D"></a> CS_MAG_3D                                             | `uint8` | 5     | 5 - true if 3-axis magnetometer measurement are being fused                                   |
-| <a href="#CS_MAG_DEC"></a> CS_MAG_DEC                                           | `uint8` | 6     | 6 - true if synthetic magnetic declination measurements are being fused                       |
-| <a href="#CS_IN_AIR"></a> CS_IN_AIR                                             | `uint8` | 7     | 7 - true when thought to be airborne                                                          |
-| <a href="#CS_WIND"></a> CS_WIND                                                 | `uint8` | 8     | 8 - true when wind velocity is being estimated                                                |
-| <a href="#CS_BARO_HGT"></a> CS_BARO_HGT                                         | `uint8` | 9     | 9 - true when baro data is being fused                                                        |
-| <a href="#CS_RNG_HGT"></a> CS_RNG_HGT                                           | `uint8` | 10    | 10 - true when range finder data is being fused for height aiding                             |
-| <a href="#CS_GPS_HGT"></a> CS_GPS_HGT                                           | `uint8` | 11    | 11 - true when GPS altitude is being fused                                                    |
-| <a href="#CS_EV_POS"></a> CS_EV_POS                                             | `uint8` | 12    | 12 - true when local position data from external vision is being fused                        |
-| <a href="#CS_EV_YAW"></a> CS_EV_YAW                                             | `uint8` | 13    | 13 - true when yaw data from external vision measurements is being fused                      |
-| <a href="#CS_EV_HGT"></a> CS_EV_HGT                                             | `uint8` | 14    | 14 - true when height data from external vision measurements is being fused                   |
-| <a href="#CS_BETA"></a> CS_BETA                                                 | `uint8` | 15    | 15 - true when synthetic sideslip measurements are being fused                                |
-| <a href="#CS_MAG_FIELD"></a> CS_MAG_FIELD                                       | `uint8` | 16    | 16 - true when only the magnetic field states are updated by the magnetometer                 |
-| <a href="#CS_FIXED_WING"></a> CS_FIXED_WING                                     | `uint8` | 17    | 17 - true when thought to be operating as a fixed wing vehicle with constrained sideslip      |
-| <a href="#CS_MAG_FAULT"></a> CS_MAG_FAULT                                       | `uint8` | 18    | 18 - true when the magnetometer has been declared faulty and is no longer being used          |
-| <a href="#CS_ASPD"></a> CS_ASPD                                                 | `uint8` | 19    | 19 - true when airspeed measurements are being fused                                          |
-| <a href="#CS_GND_EFFECT"></a> CS_GND_EFFECT                                     | `uint8` | 20    | 20 - true when when protection from ground effect induced static pressure rise is active      |
-| <a href="#CS_RNG_STUCK"></a> CS_RNG_STUCK                                       | `uint8` | 21    | 21 - true when a stuck range finder sensor has been detected                                  |
-| <a href="#CS_GPS_YAW"></a> CS_GPS_YAW                                           | `uint8` | 22    | 22 - true when yaw (not ground course) data from a GPS receiver is being fused                |
-| <a href="#CS_MAG_ALIGNED"></a> CS_MAG_ALIGNED                                   | `uint8` | 23    | 23 - true when the in-flight mag field alignment has been completed                           |
-| <a href="#CS_EV_VEL"></a> CS_EV_VEL                                             | `uint8` | 24    | 24 - true when local frame velocity data fusion from external vision measurements is intended |
-| <a href="#CS_SYNTHETIC_MAG_Z"></a> CS_SYNTHETIC_MAG_Z                           | `uint8` | 25    | 25 - true when we are using a synthesized measurement for the magnetometer Z component        |
-| <a href="#CS_VEHICLE_AT_REST"></a> CS_VEHICLE_AT_REST                           | `uint8` | 26    | 26 - true when the vehicle is at rest                                                         |
-| <a href="#CS_GPS_YAW_FAULT"></a> CS_GPS_YAW_FAULT                               | `uint8` | 27    | 27 - true when the GNSS heading has been declared faulty and is no longer being used          |
-| <a href="#CS_RNG_FAULT"></a> CS_RNG_FAULT                                       | `uint8` | 28    | 28 - true when the range finder has been declared faulty and is no longer being used          |
-| <a href="#CS_GNSS_VEL"></a> CS_GNSS_VEL                                         | `uint8` | 44    | 44 - true if GNSS velocity measurement fusion is intended                                     |
-| <a href="#CS_GNSS_FAULT"></a> CS_GNSS_FAULT                                     | `uint8` | 45    | 45 - true if GNSS measurements have been declared faulty and are no longer used               |
-| <a href="#CS_YAW_MANUAL"></a> CS_YAW_MANUAL                                     | `uint8` | 46    | 46 - true if yaw has been set manually                                                        |
+| Name                                                                          | Type    | Value | Description                                                                                   |
+| ----------------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------------------------------------- |
+| <a id="#GPS_CHECK_FAIL_GPS_FIX"></a> GPS_CHECK_FAIL_GPS_FIX                   | `uint8` | 0     | 0 : insufficient fix type (no 3D solution)                                                    |
+| <a id="#GPS_CHECK_FAIL_MIN_SAT_COUNT"></a> GPS_CHECK_FAIL_MIN_SAT_COUNT       | `uint8` | 1     | 1 : minimum required sat count fail                                                           |
+| <a id="#GPS_CHECK_FAIL_MAX_PDOP"></a> GPS_CHECK_FAIL_MAX_PDOP                 | `uint8` | 2     | 2 : maximum allowed PDOP fail                                                                 |
+| <a id="#GPS_CHECK_FAIL_MAX_HORZ_ERR"></a> GPS_CHECK_FAIL_MAX_HORZ_ERR         | `uint8` | 3     | 3 : maximum allowed horizontal position error fail                                            |
+| <a id="#GPS_CHECK_FAIL_MAX_VERT_ERR"></a> GPS_CHECK_FAIL_MAX_VERT_ERR         | `uint8` | 4     | 4 : maximum allowed vertical position error fail                                              |
+| <a id="#GPS_CHECK_FAIL_MAX_SPD_ERR"></a> GPS_CHECK_FAIL_MAX_SPD_ERR           | `uint8` | 5     | 5 : maximum allowed speed error fail                                                          |
+| <a id="#GPS_CHECK_FAIL_MAX_HORZ_DRIFT"></a> GPS_CHECK_FAIL_MAX_HORZ_DRIFT     | `uint8` | 6     | 6 : maximum allowed horizontal position drift fail - requires stationary vehicle              |
+| <a id="#GPS_CHECK_FAIL_MAX_VERT_DRIFT"></a> GPS_CHECK_FAIL_MAX_VERT_DRIFT     | `uint8` | 7     | 7 : maximum allowed vertical position drift fail - requires stationary vehicle                |
+| <a id="#GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR"></a> GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR | `uint8` | 8     | 8 : maximum allowed horizontal speed fail - requires stationary vehicle                       |
+| <a id="#GPS_CHECK_FAIL_MAX_VERT_SPD_ERR"></a> GPS_CHECK_FAIL_MAX_VERT_SPD_ERR | `uint8` | 9     | 9 : maximum allowed vertical velocity discrepancy fail                                        |
+| <a id="#GPS_CHECK_FAIL_SPOOFED"></a> GPS_CHECK_FAIL_SPOOFED                   | `uint8` | 10    | 10 : GPS signal is spoofed                                                                    |
+| <a id="#GPS_CHECK_FAIL_JAMMED"></a> GPS_CHECK_FAIL_JAMMED                     | `uint8` | 11    | 11 : GPS signal is jammed                                                                     |
+| <a id="#CS_TILT_ALIGN"></a> CS_TILT_ALIGN                                     | `uint8` | 0     | 0 - true if the filter tilt alignment is complete                                             |
+| <a id="#CS_YAW_ALIGN"></a> CS_YAW_ALIGN                                       | `uint8` | 1     | 1 - true if the filter yaw alignment is complete                                              |
+| <a id="#CS_GNSS_POS"></a> CS_GNSS_POS                                         | `uint8` | 2     | 2 - true if GNSS position measurements are being fused                                        |
+| <a id="#CS_OPT_FLOW"></a> CS_OPT_FLOW                                         | `uint8` | 3     | 3 - true if optical flow measurements are being fused                                         |
+| <a id="#CS_MAG_HDG"></a> CS_MAG_HDG                                           | `uint8` | 4     | 4 - true if a simple magnetic yaw heading is being fused                                      |
+| <a id="#CS_MAG_3D"></a> CS_MAG_3D                                             | `uint8` | 5     | 5 - true if 3-axis magnetometer measurement are being fused                                   |
+| <a id="#CS_MAG_DEC"></a> CS_MAG_DEC                                           | `uint8` | 6     | 6 - true if synthetic magnetic declination measurements are being fused                       |
+| <a id="#CS_IN_AIR"></a> CS_IN_AIR                                             | `uint8` | 7     | 7 - true when thought to be airborne                                                          |
+| <a id="#CS_WIND"></a> CS_WIND                                                 | `uint8` | 8     | 8 - true when wind velocity is being estimated                                                |
+| <a id="#CS_BARO_HGT"></a> CS_BARO_HGT                                         | `uint8` | 9     | 9 - true when baro data is being fused                                                        |
+| <a id="#CS_RNG_HGT"></a> CS_RNG_HGT                                           | `uint8` | 10    | 10 - true when range finder data is being fused for height aiding                             |
+| <a id="#CS_GPS_HGT"></a> CS_GPS_HGT                                           | `uint8` | 11    | 11 - true when GPS altitude is being fused                                                    |
+| <a id="#CS_EV_POS"></a> CS_EV_POS                                             | `uint8` | 12    | 12 - true when local position data from external vision is being fused                        |
+| <a id="#CS_EV_YAW"></a> CS_EV_YAW                                             | `uint8` | 13    | 13 - true when yaw data from external vision measurements is being fused                      |
+| <a id="#CS_EV_HGT"></a> CS_EV_HGT                                             | `uint8` | 14    | 14 - true when height data from external vision measurements is being fused                   |
+| <a id="#CS_BETA"></a> CS_BETA                                                 | `uint8` | 15    | 15 - true when synthetic sideslip measurements are being fused                                |
+| <a id="#CS_MAG_FIELD"></a> CS_MAG_FIELD                                       | `uint8` | 16    | 16 - true when only the magnetic field states are updated by the magnetometer                 |
+| <a id="#CS_FIXED_WING"></a> CS_FIXED_WING                                     | `uint8` | 17    | 17 - true when thought to be operating as a fixed wing vehicle with constrained sideslip      |
+| <a id="#CS_MAG_FAULT"></a> CS_MAG_FAULT                                       | `uint8` | 18    | 18 - true when the magnetometer has been declared faulty and is no longer being used          |
+| <a id="#CS_ASPD"></a> CS_ASPD                                                 | `uint8` | 19    | 19 - true when airspeed measurements are being fused                                          |
+| <a id="#CS_GND_EFFECT"></a> CS_GND_EFFECT                                     | `uint8` | 20    | 20 - true when when protection from ground effect induced static pressure rise is active      |
+| <a id="#CS_RNG_STUCK"></a> CS_RNG_STUCK                                       | `uint8` | 21    | 21 - true when a stuck range finder sensor has been detected                                  |
+| <a id="#CS_GPS_YAW"></a> CS_GPS_YAW                                           | `uint8` | 22    | 22 - true when yaw (not ground course) data from a GPS receiver is being fused                |
+| <a id="#CS_MAG_ALIGNED"></a> CS_MAG_ALIGNED                                   | `uint8` | 23    | 23 - true when the in-flight mag field alignment has been completed                           |
+| <a id="#CS_EV_VEL"></a> CS_EV_VEL                                             | `uint8` | 24    | 24 - true when local frame velocity data fusion from external vision measurements is intended |
+| <a id="#CS_SYNTHETIC_MAG_Z"></a> CS_SYNTHETIC_MAG_Z                           | `uint8` | 25    | 25 - true when we are using a synthesized measurement for the magnetometer Z component        |
+| <a id="#CS_VEHICLE_AT_REST"></a> CS_VEHICLE_AT_REST                           | `uint8` | 26    | 26 - true when the vehicle is at rest                                                         |
+| <a id="#CS_GPS_YAW_FAULT"></a> CS_GPS_YAW_FAULT                               | `uint8` | 27    | 27 - true when the GNSS heading has been declared faulty and is no longer being used          |
+| <a id="#CS_RNG_FAULT"></a> CS_RNG_FAULT                                       | `uint8` | 28    | 28 - true when the range finder has been declared faulty and is no longer being used          |
+| <a id="#CS_GNSS_VEL"></a> CS_GNSS_VEL                                         | `uint8` | 44    | 44 - true if GNSS velocity measurement fusion is intended                                     |
+| <a id="#CS_GNSS_FAULT"></a> CS_GNSS_FAULT                                     | `uint8` | 45    | 45 - true if GNSS measurements have been declared faulty and are no longer used               |
+| <a id="#CS_YAW_MANUAL"></a> CS_YAW_MANUAL                                     | `uint8` | 46    | 46 - true if yaw has been set manually                                                        |
 
 ## Source Message
 

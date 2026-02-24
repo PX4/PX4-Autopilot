@@ -54,7 +54,6 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <termios.h>
-#include <arpa/inet.h>
 
 #include <limits>
 

@@ -40,13 +40,15 @@ if [ $RETURNCODE -ne 0 ]; then
     fi
 fi
 
-# We can only run on M0052, M0054, or M0104 so exit with error if that is not the case
+# We can only run on M0052, M0054, M0104, or M0197 so exit with error if that is not the case
 if [ $PLATFORM = "M0052" ]; then
     /bin/echo "Running on M0052"
 elif [ $PLATFORM = "M0054" ]; then
     /bin/echo "Running on M0054"
 elif [ $PLATFORM = "M0104" ]; then
     /bin/echo "Running on M0104"
+elif [ $PLATFORM = "M0197" ]; then
+    /bin/echo "Running on M0197"
 else
     /bin/echo "Error, cannot determine platform!"
     exit 0
@@ -77,13 +79,22 @@ param load
 if [ "$PLATFORM" == "M0104" ]; then
     /bin/echo "Starting IMU driver with rotation 12"
     qshell icm42688p start -s -R 12 -C 32768
+elif [ "$PLATFORM" == "M0197" ]; then
+    /bin/echo "Starting bmi270 IMU driver with rotation 26"
+    qshell bmi270 start -s -R 26
 else
     /bin/echo "Starting IMU driver with no rotation"
     qshell icm42688p start -s -C 32768
 fi
 
-# Start Invensense ICP 101xx barometer built on to VOXL 2
-qshell icp101xx start -I -b 5
+# Start onboard barometer
+if [ "$PLATFORM" == "M0197" ]; then
+    /bin/echo "Starting dps368 barometer on M0197"
+    qshell dps310 start -I -b 5
+else
+    # Start Invensense ICP 101xx barometer built on to VOXL 2
+    qshell icp101xx start -I -b 5
+fi
 
 # Auto detect the magnetometer. If one or both of these devices
 # are not connected it will fail but not cause any harm.
@@ -97,6 +108,9 @@ if [ "$GPS" != "NONE" ]; then
     # On M0052 the GPS driver runs on the apps processor
     if [ $PLATFORM = "M0052" ]; then
         gps start -d /dev/ttyHS2
+    # On M0197 the GPS driver runs on the apps processor
+    elif [ $PLATFORM = "M0197" ]; then
+        gps start -d /dev/ttyHS7
     # On M0054 and M0104 the GPS driver runs on SLPI DSP
     else
         qshell gps start -d 6

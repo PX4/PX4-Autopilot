@@ -25,11 +25,11 @@ Request to register an external component.
 
 ## Constants
 
-| Name                                                                    | Type     | Value | Description                                                                                                                                                            |
-| ----------------------------------------------------------------------- | -------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                         | `uint32` | 0     |
-| <a href="#LATEST_PX4_ROS2_API_VERSION"></a> LATEST_PX4_ROS2_API_VERSION | `uint16` | 1     | API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change. |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                       | `uint8`  | 2     |
+| Name                                                                  | Type     | Value | Description                                                                                                                                                            |
+| --------------------------------------------------------------------- | -------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                         | `uint32` | 0     |
+| <a id="#LATEST_PX4_ROS2_API_VERSION"></a> LATEST_PX4_ROS2_API_VERSION | `uint16` | 1     | API version compatibility. Increase this on a breaking semantic change. Changes to any message field are detected separately and do not require an API version change. |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                       | `uint8`  | 2     |
 
 ## Source Message
 

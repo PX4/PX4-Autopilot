@@ -18,9 +18,9 @@ GPIO mask and state.
 
 ## Constants
 
-| Name                                        | Type    | Value | Description |
-| ------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#MAX_INSTANCES"></a> MAX_INSTANCES | `uint8` | 8     |
+| Name                                      | Type    | Value | Description |
+| ----------------------------------------- | ------- | ----- | ----------- |
+| <a id="#MAX_INSTANCES"></a> MAX_INSTANCES | `uint8` | 8     |
 
 ## Source Message
 

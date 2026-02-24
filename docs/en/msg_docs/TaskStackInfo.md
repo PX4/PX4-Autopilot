@@ -18,9 +18,9 @@ stack information for a single running process.
 
 ## Constants
 
-| Name                                              | Type    | Value | Description |
-| ------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 2     |
+| Name                                            | Type    | Value | Description |
+| ----------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 2     |
 
 ## Source Message
 

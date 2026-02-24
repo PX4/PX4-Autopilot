@@ -18,10 +18,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                              | Type    | Value | Description |
-| ------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 8     |
-| <a href="#MAX_INSTANCES"></a> MAX_INSTANCES       | `uint8` | 2     |
+| Name                                            | Type    | Value | Description |
+| ----------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 8     |
+| <a id="#MAX_INSTANCES"></a> MAX_INSTANCES       | `uint8` | 2     |
 
 ## Source Message
 

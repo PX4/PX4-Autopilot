@@ -17,13 +17,13 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                            | Type    | Value | Description           |
-| --------------------------------------------------------------- | ------- | ----- | --------------------- |
-| <a href="#NOT_ABORTED"></a> NOT_ABORTED                         | `uint8` | 0     |
-| <a href="#ABORTED_BY_OPERATOR"></a> ABORTED_BY_OPERATOR         | `uint8` | 1     |
-| <a href="#TERRAIN_NOT_FOUND"></a> TERRAIN_NOT_FOUND             | `uint8` | 2     | FW_LND_ABORT (1 << 0) |
-| <a href="#TERRAIN_TIMEOUT"></a> TERRAIN_TIMEOUT                 | `uint8` | 3     | FW_LND_ABORT (1 << 1) |
-| <a href="#UNKNOWN_ABORT_CRITERION"></a> UNKNOWN_ABORT_CRITERION | `uint8` | 4     |
+| Name                                                          | Type    | Value | Description           |
+| ------------------------------------------------------------- | ------- | ----- | --------------------- |
+| <a id="#NOT_ABORTED"></a> NOT_ABORTED                         | `uint8` | 0     |
+| <a id="#ABORTED_BY_OPERATOR"></a> ABORTED_BY_OPERATOR         | `uint8` | 1     |
+| <a id="#TERRAIN_NOT_FOUND"></a> TERRAIN_NOT_FOUND             | `uint8` | 2     | FW_LND_ABORT (1 << 0) |
+| <a id="#TERRAIN_TIMEOUT"></a> TERRAIN_TIMEOUT                 | `uint8` | 3     | FW_LND_ABORT (1 << 1) |
+| <a id="#UNKNOWN_ABORT_CRITERION"></a> UNKNOWN_ABORT_CRITERION | `uint8` | 4     |
 
 ## Source Message
 

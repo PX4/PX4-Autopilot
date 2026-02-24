@@ -16,10 +16,10 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                  | Type    | Value | Description         |
-| --------------------------------------------------------------------- | ------- | ----- | ------------------- |
-| <a href="#NUM_ACTUATOR_OUTPUTS"></a> NUM_ACTUATOR_OUTPUTS             | `uint8` | 16    |
-| <a href="#NUM_ACTUATOR_OUTPUT_GROUPS	"></a> NUM_ACTUATOR_OUTPUT_GROUPS | `uint8` | 4     | for sanity checking |
+| Name                                                                | Type    | Value | Description         |
+| ------------------------------------------------------------------- | ------- | ----- | ------------------- |
+| <a id="#NUM_ACTUATOR_OUTPUTS"></a> NUM_ACTUATOR_OUTPUTS             | `uint8` | 16    |
+| <a id="#NUM_ACTUATOR_OUTPUT_GROUPS	"></a> NUM_ACTUATOR_OUTPUT_GROUPS | `uint8` | 4     | for sanity checking |
 
 ## Source Message
 

@@ -26,31 +26,31 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                          | Type    | Value | Description                                                                  |
-| ----------------------------------------------------------------------------- | ------- | ----- | ---------------------------------------------------------------------------- |
-| <a href="#ACTUATOR_FUNCTION_MOTOR1"></a> ACTUATOR_FUNCTION_MOTOR1             | `uint8` | 101   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR2"></a> ACTUATOR_FUNCTION_MOTOR2             | `uint8` | 102   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR3"></a> ACTUATOR_FUNCTION_MOTOR3             | `uint8` | 103   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR4"></a> ACTUATOR_FUNCTION_MOTOR4             | `uint8` | 104   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR5"></a> ACTUATOR_FUNCTION_MOTOR5             | `uint8` | 105   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR6"></a> ACTUATOR_FUNCTION_MOTOR6             | `uint8` | 106   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR7"></a> ACTUATOR_FUNCTION_MOTOR7             | `uint8` | 107   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR8"></a> ACTUATOR_FUNCTION_MOTOR8             | `uint8` | 108   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR9"></a> ACTUATOR_FUNCTION_MOTOR9             | `uint8` | 109   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR10"></a> ACTUATOR_FUNCTION_MOTOR10           | `uint8` | 110   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR11"></a> ACTUATOR_FUNCTION_MOTOR11           | `uint8` | 111   |
-| <a href="#ACTUATOR_FUNCTION_MOTOR12"></a> ACTUATOR_FUNCTION_MOTOR12           | `uint8` | 112   |
-| <a href="#FAILURE_OVER_CURRENT"></a> FAILURE_OVER_CURRENT                     | `uint8` | 0     | (1 << 0)                                                                     |
-| <a href="#FAILURE_OVER_VOLTAGE"></a> FAILURE_OVER_VOLTAGE                     | `uint8` | 1     | (1 << 1)                                                                     |
-| <a href="#FAILURE_MOTOR_OVER_TEMPERATURE"></a> FAILURE_MOTOR_OVER_TEMPERATURE | `uint8` | 2     | (1 << 2)                                                                     |
-| <a href="#FAILURE_OVER_RPM"></a> FAILURE_OVER_RPM                             | `uint8` | 3     | (1 << 3)                                                                     |
-| <a href="#FAILURE_INCONSISTENT_CMD"></a> FAILURE_INCONSISTENT_CMD             | `uint8` | 4     | (1 << 4) Set if ESC received an inconsistent command (i.e out of boundaries) |
-| <a href="#FAILURE_MOTOR_STUCK"></a> FAILURE_MOTOR_STUCK                       | `uint8` | 5     | (1 << 5)                                                                     |
-| <a href="#FAILURE_GENERIC"></a> FAILURE_GENERIC                               | `uint8` | 6     | (1 << 6)                                                                     |
-| <a href="#FAILURE_MOTOR_WARN_TEMPERATURE"></a> FAILURE_MOTOR_WARN_TEMPERATURE | `uint8` | 7     | (1 << 7)                                                                     |
-| <a href="#FAILURE_WARN_ESC_TEMPERATURE"></a> FAILURE_WARN_ESC_TEMPERATURE     | `uint8` | 8     | (1 << 8)                                                                     |
-| <a href="#FAILURE_OVER_ESC_TEMPERATURE"></a> FAILURE_OVER_ESC_TEMPERATURE     | `uint8` | 9     | (1 << 9)                                                                     |
-| <a href="#ESC_FAILURE_COUNT"></a> ESC_FAILURE_COUNT                           | `uint8` | 10    | Counter - keep it as last element!                                           |
+| Name                                                                        | Type    | Value | Description                                                                  |
+| --------------------------------------------------------------------------- | ------- | ----- | ---------------------------------------------------------------------------- |
+| <a id="#ACTUATOR_FUNCTION_MOTOR1"></a> ACTUATOR_FUNCTION_MOTOR1             | `uint8` | 101   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR2"></a> ACTUATOR_FUNCTION_MOTOR2             | `uint8` | 102   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR3"></a> ACTUATOR_FUNCTION_MOTOR3             | `uint8` | 103   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR4"></a> ACTUATOR_FUNCTION_MOTOR4             | `uint8` | 104   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR5"></a> ACTUATOR_FUNCTION_MOTOR5             | `uint8` | 105   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR6"></a> ACTUATOR_FUNCTION_MOTOR6             | `uint8` | 106   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR7"></a> ACTUATOR_FUNCTION_MOTOR7             | `uint8` | 107   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR8"></a> ACTUATOR_FUNCTION_MOTOR8             | `uint8` | 108   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR9"></a> ACTUATOR_FUNCTION_MOTOR9             | `uint8` | 109   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR10"></a> ACTUATOR_FUNCTION_MOTOR10           | `uint8` | 110   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR11"></a> ACTUATOR_FUNCTION_MOTOR11           | `uint8` | 111   |
+| <a id="#ACTUATOR_FUNCTION_MOTOR12"></a> ACTUATOR_FUNCTION_MOTOR12           | `uint8` | 112   |
+| <a id="#FAILURE_OVER_CURRENT"></a> FAILURE_OVER_CURRENT                     | `uint8` | 0     | (1 << 0)                                                                     |
+| <a id="#FAILURE_OVER_VOLTAGE"></a> FAILURE_OVER_VOLTAGE                     | `uint8` | 1     | (1 << 1)                                                                     |
+| <a id="#FAILURE_MOTOR_OVER_TEMPERATURE"></a> FAILURE_MOTOR_OVER_TEMPERATURE | `uint8` | 2     | (1 << 2)                                                                     |
+| <a id="#FAILURE_OVER_RPM"></a> FAILURE_OVER_RPM                             | `uint8` | 3     | (1 << 3)                                                                     |
+| <a id="#FAILURE_INCONSISTENT_CMD"></a> FAILURE_INCONSISTENT_CMD             | `uint8` | 4     | (1 << 4) Set if ESC received an inconsistent command (i.e out of boundaries) |
+| <a id="#FAILURE_MOTOR_STUCK"></a> FAILURE_MOTOR_STUCK                       | `uint8` | 5     | (1 << 5)                                                                     |
+| <a id="#FAILURE_GENERIC"></a> FAILURE_GENERIC                               | `uint8` | 6     | (1 << 6)                                                                     |
+| <a id="#FAILURE_MOTOR_WARN_TEMPERATURE"></a> FAILURE_MOTOR_WARN_TEMPERATURE | `uint8` | 7     | (1 << 7)                                                                     |
+| <a id="#FAILURE_WARN_ESC_TEMPERATURE"></a> FAILURE_WARN_ESC_TEMPERATURE     | `uint8` | 8     | (1 << 8)                                                                     |
+| <a id="#FAILURE_OVER_ESC_TEMPERATURE"></a> FAILURE_OVER_ESC_TEMPERATURE     | `uint8` | 9     | (1 << 9)                                                                     |
+| <a id="#ESC_FAILURE_COUNT"></a> ESC_FAILURE_COUNT                           | `uint8` | 10    | Counter - keep it as last element!                                           |
 
 ## Source Message
 

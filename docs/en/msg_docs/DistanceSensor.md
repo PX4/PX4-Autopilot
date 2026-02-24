@@ -28,30 +28,30 @@ DISTANCE_SENSOR message data.
 
 ## Constants
 
-| Name                                                                          | Type    | Value | Description                   |
-| ----------------------------------------------------------------------------- | ------- | ----- | ----------------------------- |
-| <a href="#MAV_DISTANCE_SENSOR_LASER"></a> MAV_DISTANCE_SENSOR_LASER           | `uint8` | 0     |
-| <a href="#MAV_DISTANCE_SENSOR_ULTRASOUND"></a> MAV_DISTANCE_SENSOR_ULTRASOUND | `uint8` | 1     |
-| <a href="#MAV_DISTANCE_SENSOR_INFRARED"></a> MAV_DISTANCE_SENSOR_INFRARED     | `uint8` | 2     |
-| <a href="#MAV_DISTANCE_SENSOR_RADAR"></a> MAV_DISTANCE_SENSOR_RADAR           | `uint8` | 3     |
-| <a href="#ROTATION_YAW_0		"></a> ROTATION_YAW_0                                 | `uint8` | 0     | MAV_SENSOR_ROTATION_NONE      |
-| <a href="#ROTATION_YAW_45		"></a> ROTATION_YAW_45                               | `uint8` | 1     | MAV_SENSOR_ROTATION_YAW_45    |
-| <a href="#ROTATION_YAW_90		"></a> ROTATION_YAW_90                               | `uint8` | 2     | MAV_SENSOR_ROTATION_YAW_90    |
-| <a href="#ROTATION_YAW_135		"></a> ROTATION_YAW_135                             | `uint8` | 3     | MAV_SENSOR_ROTATION_YAW_135   |
-| <a href="#ROTATION_YAW_180		"></a> ROTATION_YAW_180                             | `uint8` | 4     | MAV_SENSOR_ROTATION_YAW_180   |
-| <a href="#ROTATION_YAW_225		"></a> ROTATION_YAW_225                             | `uint8` | 5     | MAV_SENSOR_ROTATION_YAW_225   |
-| <a href="#ROTATION_YAW_270		"></a> ROTATION_YAW_270                             | `uint8` | 6     | MAV_SENSOR_ROTATION_YAW_270   |
-| <a href="#ROTATION_YAW_315		"></a> ROTATION_YAW_315                             | `uint8` | 7     | MAV_SENSOR_ROTATION_YAW_315   |
-| <a href="#ROTATION_FORWARD_FACING	"></a> ROTATION_FORWARD_FACING               | `uint8` | 0     | MAV_SENSOR_ROTATION_NONE      |
-| <a href="#ROTATION_RIGHT_FACING	"></a> ROTATION_RIGHT_FACING                   | `uint8` | 2     | MAV_SENSOR_ROTATION_YAW_90    |
-| <a href="#ROTATION_BACKWARD_FACING	"></a> ROTATION_BACKWARD_FACING             | `uint8` | 4     | MAV_SENSOR_ROTATION_YAW_180   |
-| <a href="#ROTATION_LEFT_FACING	"></a> ROTATION_LEFT_FACING                     | `uint8` | 6     | MAV_SENSOR_ROTATION_YAW_270   |
-| <a href="#ROTATION_UPWARD_FACING"></a> ROTATION_UPWARD_FACING                 | `uint8` | 24    | MAV_SENSOR_ROTATION_PITCH_90  |
-| <a href="#ROTATION_DOWNWARD_FACING"></a> ROTATION_DOWNWARD_FACING             | `uint8` | 25    | MAV_SENSOR_ROTATION_PITCH_270 |
-| <a href="#ROTATION_CUSTOM"></a> ROTATION_CUSTOM                               | `uint8` | 100   | MAV_SENSOR_ROTATION_CUSTOM    |
-| <a href="#MODE_UNKNOWN"></a> MODE_UNKNOWN                                     | `uint8` | 0     |
-| <a href="#MODE_ENABLED"></a> MODE_ENABLED                                     | `uint8` | 1     |
-| <a href="#MODE_DISABLED"></a> MODE_DISABLED                                   | `uint8` | 2     |
+| Name                                                                        | Type    | Value | Description                   |
+| --------------------------------------------------------------------------- | ------- | ----- | ----------------------------- |
+| <a id="#MAV_DISTANCE_SENSOR_LASER"></a> MAV_DISTANCE_SENSOR_LASER           | `uint8` | 0     |
+| <a id="#MAV_DISTANCE_SENSOR_ULTRASOUND"></a> MAV_DISTANCE_SENSOR_ULTRASOUND | `uint8` | 1     |
+| <a id="#MAV_DISTANCE_SENSOR_INFRARED"></a> MAV_DISTANCE_SENSOR_INFRARED     | `uint8` | 2     |
+| <a id="#MAV_DISTANCE_SENSOR_RADAR"></a> MAV_DISTANCE_SENSOR_RADAR           | `uint8` | 3     |
+| <a id="#ROTATION_YAW_0		"></a> ROTATION_YAW_0                                 | `uint8` | 0     | MAV_SENSOR_ROTATION_NONE      |
+| <a id="#ROTATION_YAW_45		"></a> ROTATION_YAW_45                               | `uint8` | 1     | MAV_SENSOR_ROTATION_YAW_45    |
+| <a id="#ROTATION_YAW_90		"></a> ROTATION_YAW_90                               | `uint8` | 2     | MAV_SENSOR_ROTATION_YAW_90    |
+| <a id="#ROTATION_YAW_135		"></a> ROTATION_YAW_135                             | `uint8` | 3     | MAV_SENSOR_ROTATION_YAW_135   |
+| <a id="#ROTATION_YAW_180		"></a> ROTATION_YAW_180                             | `uint8` | 4     | MAV_SENSOR_ROTATION_YAW_180   |
+| <a id="#ROTATION_YAW_225		"></a> ROTATION_YAW_225                             | `uint8` | 5     | MAV_SENSOR_ROTATION_YAW_225   |
+| <a id="#ROTATION_YAW_270		"></a> ROTATION_YAW_270                             | `uint8` | 6     | MAV_SENSOR_ROTATION_YAW_270   |
+| <a id="#ROTATION_YAW_315		"></a> ROTATION_YAW_315                             | `uint8` | 7     | MAV_SENSOR_ROTATION_YAW_315   |
+| <a id="#ROTATION_FORWARD_FACING	"></a> ROTATION_FORWARD_FACING               | `uint8` | 0     | MAV_SENSOR_ROTATION_NONE      |
+| <a id="#ROTATION_RIGHT_FACING	"></a> ROTATION_RIGHT_FACING                   | `uint8` | 2     | MAV_SENSOR_ROTATION_YAW_90    |
+| <a id="#ROTATION_BACKWARD_FACING	"></a> ROTATION_BACKWARD_FACING             | `uint8` | 4     | MAV_SENSOR_ROTATION_YAW_180   |
+| <a id="#ROTATION_LEFT_FACING	"></a> ROTATION_LEFT_FACING                     | `uint8` | 6     | MAV_SENSOR_ROTATION_YAW_270   |
+| <a id="#ROTATION_UPWARD_FACING"></a> ROTATION_UPWARD_FACING                 | `uint8` | 24    | MAV_SENSOR_ROTATION_PITCH_90  |
+| <a id="#ROTATION_DOWNWARD_FACING"></a> ROTATION_DOWNWARD_FACING             | `uint8` | 25    | MAV_SENSOR_ROTATION_PITCH_270 |
+| <a id="#ROTATION_CUSTOM"></a> ROTATION_CUSTOM                               | `uint8` | 100   | MAV_SENSOR_ROTATION_CUSTOM    |
+| <a id="#MODE_UNKNOWN"></a> MODE_UNKNOWN                                     | `uint8` | 0     |
+| <a id="#MODE_ENABLED"></a> MODE_ENABLED                                     | `uint8` | 1     |
+| <a id="#MODE_DISABLED"></a> MODE_DISABLED                                   | `uint8` | 2     |
 
 ## Source Message
 
