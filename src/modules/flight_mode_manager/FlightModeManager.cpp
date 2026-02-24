@@ -33,6 +33,7 @@
 
 #include "FlightModeManager.hpp"
 
+#include <cmath>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 
@@ -324,7 +325,7 @@ void FlightModeManager::handleCommand()
 		if (_current_task.task) {
 			// check for other commands not related to task switching
 			if ((command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED)
-			    && (static_cast<uint8_t>(command.param1 + .5f) == vehicle_command_s::SPEED_TYPE_GROUNDSPEED)
+			    && (static_cast<uint8_t>(lroundf(command.param1)) == vehicle_command_s::SPEED_TYPE_GROUNDSPEED)
 			    && (command.param2 > 0.f)) {
 				_current_task.task->overrideCruiseSpeed(command.param2);
 			}
