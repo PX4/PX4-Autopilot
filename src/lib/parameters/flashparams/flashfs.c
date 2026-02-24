@@ -44,7 +44,7 @@
 
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
-#include <crc32.h>
+#include <nuttx/crc32.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdbool.h>
