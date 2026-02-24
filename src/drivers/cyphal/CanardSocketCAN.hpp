@@ -44,7 +44,6 @@
 #include <sys/socket.h>
 
 #include <nuttx/can.h>
-#include <netpacket/can.h>
 
 #include <canard.h>
 
