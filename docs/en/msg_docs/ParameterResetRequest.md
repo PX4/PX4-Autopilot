@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 ParameterResetRequest : Used by the primary to reset one or all parameter value(s) on the remote.
 
-**TOPICS:** parameter_resetrequest
+**TOPICS:** parameter_reset_request
 
 ## Fields
 
@@ -18,9 +18,9 @@ ParameterResetRequest : Used by the primary to reset one or all parameter value(
 
 ## Constants
 
-| Name                                              | Type    | Value | Description |
-| ------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 4     |
+| Name                                            | Type    | Value | Description |
+| ----------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 4     |
 
 ## Source Message
 

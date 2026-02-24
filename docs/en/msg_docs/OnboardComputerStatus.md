@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 ONBOARD_COMPUTER_STATUS message data.
 
-**TOPICS:** onboard_computerstatus
+**TOPICS:** onboard_computer_status
 
 ## Fields
 

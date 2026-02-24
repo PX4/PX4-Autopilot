@@ -250,6 +250,7 @@ set(msg_files
 	versioned/AirspeedValidated.msg
 	versioned/ArmingCheckReply.msg
 	versioned/ArmingCheckRequest.msg
+	versioned/AuxGlobalPosition.msg
 	versioned/BatteryStatus.msg
 	versioned/ConfigOverrides.msg
 	versioned/FixedWingLateralSetpoint.msg

@@ -266,6 +266,166 @@ This parameter defines the squawk code. Value should be between 0000 and 7777.
 
 ## Actuator Outputs
 
+### PCA9685_CENT1 (`INT32`) {#PCA9685_CENT1}
+
+PCA9685 Output Channel 1 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT10 (`INT32`) {#PCA9685_CENT10}
+
+PCA9685 Output Channel 10 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT11 (`INT32`) {#PCA9685_CENT11}
+
+PCA9685 Output Channel 11 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT12 (`INT32`) {#PCA9685_CENT12}
+
+PCA9685 Output Channel 12 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT13 (`INT32`) {#PCA9685_CENT13}
+
+PCA9685 Output Channel 13 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT14 (`INT32`) {#PCA9685_CENT14}
+
+PCA9685 Output Channel 14 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT15 (`INT32`) {#PCA9685_CENT15}
+
+PCA9685 Output Channel 15 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT16 (`INT32`) {#PCA9685_CENT16}
+
+PCA9685 Output Channel 16 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT2 (`INT32`) {#PCA9685_CENT2}
+
+PCA9685 Output Channel 2 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT3 (`INT32`) {#PCA9685_CENT3}
+
+PCA9685 Output Channel 3 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT4 (`INT32`) {#PCA9685_CENT4}
+
+PCA9685 Output Channel 4 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT5 (`INT32`) {#PCA9685_CENT5}
+
+PCA9685 Output Channel 5 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT6 (`INT32`) {#PCA9685_CENT6}
+
+PCA9685 Output Channel 6 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT7 (`INT32`) {#PCA9685_CENT7}
+
+PCA9685 Output Channel 7 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT8 (`INT32`) {#PCA9685_CENT8}
+
+PCA9685 Output Channel 8 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
+### PCA9685_CENT9 (`INT32`) {#PCA9685_CENT9}
+
+PCA9685 Output Channel 9 Center Value.
+
+Servo Center output value (when not disarmed).
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | -1       | 2200     |           | -1      |
+
 ### PCA9685_DIS1 (`INT32`) {#PCA9685_DIS1}
 
 PCA9685 Output Channel 1 Disarmed Value.
@@ -15405,6 +15565,18 @@ A value of -1 means to use the board default.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | -1      |
 
+### BAT1_I_FILT (`FLOAT`) {#BAT1_I_FILT}
+
+Battery 1 current filter time constant.
+
+Low-pass filter time constant for the battery current ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
+
 ### BAT1_I_OVERWRITE (`FLOAT`) {#BAT1_I_OVERWRITE}
 
 Battery 1 idle current overwrite.
@@ -15537,6 +15709,18 @@ it drops off to a voltage level damaging the cells.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          | 0.01      | 3.6     | V    |
 
+### BAT1_V_FILT (`FLOAT`) {#BAT1_V_FILT}
+
+Battery 1 voltage filter time constant.
+
+Low-pass filter time constant for the battery voltage ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
+
 ### BAT2_A_PER_V (`FLOAT`) {#BAT2_A_PER_V}
 
 Battery 2 current per volt (A/V).
@@ -15569,6 +15753,18 @@ A value of -1 means to use the board default.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | -1      |
+
+### BAT2_I_FILT (`FLOAT`) {#BAT2_I_FILT}
+
+Battery 2 current filter time constant.
+
+Low-pass filter time constant for the battery current ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
 
 ### BAT2_I_OVERWRITE (`FLOAT`) {#BAT2_I_OVERWRITE}
 
@@ -15701,6 +15897,18 @@ it drops off to a voltage level damaging the cells.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          | 0.01      | 3.6     | V    |
+
+### BAT2_V_FILT (`FLOAT`) {#BAT2_V_FILT}
+
+Battery 2 voltage filter time constant.
+
+Low-pass filter time constant for the battery voltage ADC reading (in seconds).
+A higher value results in more smoothing and less noise, but slower response.
+A value of 0 disables the filter.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.0      | 5.0      |           | 0.0     | s    |
 
 ### BAT3_CAPACITY (`FLOAT`) {#BAT3_CAPACITY}
 
@@ -17788,9 +17996,9 @@ Accelerometer noise for covariance prediction.
 | ------ | -------- | -------- | --------- | ------- | ----- |
 | &nbsp; | 0.01     | 1.0      |           | 0.35    | m/s^2 |
 
-### EKF2_AGP_CTRL (`INT32`) {#EKF2_AGP_CTRL}
+### EKF2_AGP0_CTRL (`INT32`) {#EKF2_AGP0_CTRL}
 
-Aux global position (AGP) sensor aiding.
+Auxiliary global position sensor 0 aiding.
 
 Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
 
@@ -17803,17 +18011,17 @@ Set bits in the following positions to enable: 0 : Horizontal position fusion 1 
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 0        | 3        |           | 0       |
 
-### EKF2_AGP_DELAY (`FLOAT`) {#EKF2_AGP_DELAY}
+### EKF2_AGP0_DELAY (`FLOAT`) {#EKF2_AGP0_DELAY}
 
-Aux global position estimator delay relative to IMU measurements.
+Auxiliary global position sensor 0 delay (to IMU).
 
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; | 0        | 300      |           | 0       | ms   |
+| &check; | 0        | 1000     |           | 0       | ms   |
 
-### EKF2_AGP_GATE (`FLOAT`) {#EKF2_AGP_GATE}
+### EKF2_AGP0_GATE (`FLOAT`) {#EKF2_AGP0_GATE}
 
-Gate size for aux global position fusion.
+Gate size for auxiliary global position sensor 0 fusion.
 
 Sets the number of standard deviations used by the innovation consistency test.
 
@@ -17821,9 +18029,19 @@ Sets the number of standard deviations used by the innovation consistency test.
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1.0      |          |           | 3.0     | SD   |
 
-### EKF2_AGP_MODE (`INT32`) {#EKF2_AGP_MODE}
+### EKF2_AGP0_ID (`INT32`) {#EKF2_AGP0_ID}
 
-Fusion reset mode.
+Auxiliary global position sensor 0 ID.
+
+Sensor ID for slot 0. Set to 0 to disable this slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### EKF2_AGP0_MODE (`INT32`) {#EKF2_AGP0_MODE}
+
+Fusion reset mode for sensor 0.
 
 Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
 
@@ -17836,15 +18054,219 @@ Automatic: reset on fusion timeout if no other source of position is available D
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; |          |          |           | 0       |
 
-### EKF2_AGP_NOISE (`FLOAT`) {#EKF2_AGP_NOISE}
+### EKF2_AGP0_NOISE (`FLOAT`) {#EKF2_AGP0_NOISE}
 
-Measurement noise for aux global position measurements.
+Measurement noise for auxiliary global position sensor 0.
 
 Used to lower bound or replace the uncertainty included in the message
 
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.01     |          |           | 0.9     | m    |
+| &nbsp; | 0.01     |          |           | 1.0     | m    |
+
+### EKF2_AGP1_CTRL (`INT32`) {#EKF2_AGP1_CTRL}
+
+Auxiliary global position sensor 1 aiding.
+
+Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+
+**Bitmask:**
+
+- `0`: Horizontal position
+- `1`: Vertical position
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 3        |           | 0       |
+
+### EKF2_AGP1_DELAY (`FLOAT`) {#EKF2_AGP1_DELAY}
+
+Auxiliary global position sensor 1 delay (to IMU).
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 0       | ms   |
+
+### EKF2_AGP1_GATE (`FLOAT`) {#EKF2_AGP1_GATE}
+
+Gate size for auxiliary global position sensor 1 fusion.
+
+Sets the number of standard deviations used by the innovation consistency test.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 1.0      |          |           | 3.0     | SD   |
+
+### EKF2_AGP1_ID (`INT32`) {#EKF2_AGP1_ID}
+
+Auxiliary global position sensor 1 ID.
+
+Sensor ID for slot 1. Set to 0 to disable this slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### EKF2_AGP1_MODE (`INT32`) {#EKF2_AGP1_MODE}
+
+Fusion reset mode for sensor 1.
+
+Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+
+**Values:**
+
+- `0`: Automatic
+- `1`: Dead-reckoning
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### EKF2_AGP1_NOISE (`FLOAT`) {#EKF2_AGP1_NOISE}
+
+Measurement noise for auxiliary global position sensor 1.
+
+Used to lower bound or replace the uncertainty included in the message
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.01     |          |           | 1.0     | m    |
+
+### EKF2_AGP2_CTRL (`INT32`) {#EKF2_AGP2_CTRL}
+
+Auxiliary global position sensor 2 aiding.
+
+Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+
+**Bitmask:**
+
+- `0`: Horizontal position
+- `1`: Vertical position
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 3        |           | 0       |
+
+### EKF2_AGP2_DELAY (`FLOAT`) {#EKF2_AGP2_DELAY}
+
+Auxiliary global position sensor 2 delay (to IMU).
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 0       | ms   |
+
+### EKF2_AGP2_GATE (`FLOAT`) {#EKF2_AGP2_GATE}
+
+Gate size for auxiliary global position sensor 2 fusion.
+
+Sets the number of standard deviations used by the innovation consistency test.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 1.0      |          |           | 3.0     | SD   |
+
+### EKF2_AGP2_ID (`INT32`) {#EKF2_AGP2_ID}
+
+Auxiliary global position sensor 2 ID.
+
+Sensor ID for slot 2. Set to 0 to disable this slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### EKF2_AGP2_MODE (`INT32`) {#EKF2_AGP2_MODE}
+
+Fusion reset mode for sensor 2.
+
+Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+
+**Values:**
+
+- `0`: Automatic
+- `1`: Dead-reckoning
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### EKF2_AGP2_NOISE (`FLOAT`) {#EKF2_AGP2_NOISE}
+
+Measurement noise for auxiliary global position sensor 2.
+
+Used to lower bound or replace the uncertainty included in the message
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.01     |          |           | 1.0     | m    |
+
+### EKF2_AGP3_CTRL (`INT32`) {#EKF2_AGP3_CTRL}
+
+Auxiliary global position sensor 3 aiding.
+
+Set bits in the following positions to enable: 0 : Horizontal position fusion 1 : Vertical position fusion
+
+**Bitmask:**
+
+- `0`: Horizontal position
+- `1`: Vertical position
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 3        |           | 0       |
+
+### EKF2_AGP3_DELAY (`FLOAT`) {#EKF2_AGP3_DELAY}
+
+Auxiliary global position sensor 3 delay (to IMU).
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1000     |           | 0       | ms   |
+
+### EKF2_AGP3_GATE (`FLOAT`) {#EKF2_AGP3_GATE}
+
+Gate size for auxiliary global position sensor 3 fusion.
+
+Sets the number of standard deviations used by the innovation consistency test.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 1.0      |          |           | 3.0     | SD   |
+
+### EKF2_AGP3_ID (`INT32`) {#EKF2_AGP3_ID}
+
+Auxiliary global position sensor 3 ID.
+
+Sensor ID for slot 3. Set to 0 to disable this slot.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 255      |           | 0       |
+
+### EKF2_AGP3_MODE (`INT32`) {#EKF2_AGP3_MODE}
+
+Fusion reset mode for sensor 3.
+
+Automatic: reset on fusion timeout if no other source of position is available Dead-reckoning: reset on fusion timeout if no source of velocity is available
+
+**Values:**
+
+- `0`: Automatic
+- `1`: Dead-reckoning
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0       |
+
+### EKF2_AGP3_NOISE (`FLOAT`) {#EKF2_AGP3_NOISE}
+
+Measurement noise for auxiliary global position sensor 3.
+
+Used to lower bound or replace the uncertainty included in the message
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0.01     |          |           | 1.0     | m    |
 
 ### EKF2_ANGERR_INIT (`FLOAT`) {#EKF2_ANGERR_INIT}
 
@@ -24582,18 +25004,6 @@ Maximum allowed norm of the angular velocity (roll, pitch) in the landed state.
 | ------ | -------- | -------- | --------- | ------- | ----- |
 | &nbsp; |          |          |           | 20.0    | deg/s |
 
-### LNDMC_TRIG_TIME (`FLOAT`) {#LNDMC_TRIG_TIME}
-
-Multicopter land detection trigger time.
-
-Total time it takes to go through all three land detection stages:
-ground contact, maybe landed, landed
-when all necessary conditions are constantly met.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0.1      | 10.0     |           | 1.0     | s    |
-
 ### LNDMC_XY_VEL_MAX (`FLOAT`) {#LNDMC_XY_VEL_MAX}
 
 Multicopter max horizontal velocity.
@@ -26944,7 +27354,7 @@ With MPC_THR_HOVER 0.5 it's equivalent to No rescale.
 Vertical thrust required to hover.
 
 Mapped to center throttle stick in Stabilized mode (see MPC_THR_CURVE).
-Used for initialization of the hover thrust estimator (see MPC_USE_HTE).
+Used for initialization of the hover thrust estimator.
 The estimated hover thrust is used as base for zero vertical acceleration in altitude control.
 The hover thrust is important for land detection to work correctly.
 
@@ -27025,17 +27435,6 @@ Takeoff climb rate.
 | Reboot | minValue | maxValue | increment | default | unit |
 | ------ | -------- | -------- | --------- | ------- | ---- |
 | &nbsp; | 1        | 5        |           | 1.5     | m/s  |
-
-### MPC_USE_HTE (`INT32`) {#MPC_USE_HTE}
-
-Use hover thrust estimate for altitude control.
-
-Disable to use the fixed parameter MPC_THR_HOVER instead of the hover thrust estimate in the position controller.
-This parameter does not influence Stabilized mode throttle curve (see MPC_THR_CURVE).
-
-| Reboot | minValue | maxValue | increment | default     | unit |
-| ------ | -------- | -------- | --------- | ----------- | ---- |
-| &nbsp; |          |          |           | Enabled (1) |
 
 ### MPC_VELD_LP (`FLOAT`) {#MPC_VELD_LP}
 
@@ -40780,6 +41179,70 @@ uavcan::equipment::range_sensor::Measurement
 | &check; |          |          |           | Disabled (0) |
 
 ## UUV Attitude Control
+
+### UUV_HGT_B_DOWN (`INT32`) {#UUV_HGT_B_DOWN}
+
+Height rc-button down.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 16       |           | 12      |
+
+### UUV_HGT_B_UP (`INT32`) {#UUV_HGT_B_UP}
+
+Height rc-button up.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; | 0        | 16       |           | 11      |
+
+### UUV_HGT_D (`FLOAT`) {#UUV_HGT_D}
+
+Height differential gain.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1.0     |
+
+### UUV_HGT_I (`FLOAT`) {#UUV_HGT_I}
+
+Height integrational gain.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.2     |
+
+### UUV_HGT_I_SPD (`FLOAT`) {#UUV_HGT_I_SPD}
+
+sum speed of error for integrational gain.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1.0     |
+
+### UUV_HGT_MAX_DIFF (`FLOAT`) {#UUV_HGT_MAX_DIFF}
+
+maximum Height distance controlled by manual input. Diff between actual and desired Height cant be higher than that.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 0.3     |
+
+### UUV_HGT_P (`FLOAT`) {#UUV_HGT_P}
+
+Height proportional gain.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1.0     |
+
+### UUV_HGT_STR (`FLOAT`) {#UUV_HGT_STR}
+
+Height change strength from manual input.
+
+| Reboot | minValue | maxValue | increment | default | unit |
+| ------ | -------- | -------- | --------- | ------- | ---- |
+| &nbsp; |          |          |           | 1.0     |
 
 ### UUV_MGM_PITCH (`FLOAT`) {#UUV_MGM_PITCH}
 

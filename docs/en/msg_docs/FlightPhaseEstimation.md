@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # FlightPhaseEstimation (UORB message)
 
-**TOPICS:** flight_phaseestimation
+**TOPICS:** flight_phase_estimation
 
 ## Fields
 
@@ -15,12 +15,12 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                      | Type    | Value | Description                     |
-| --------------------------------------------------------- | ------- | ----- | ------------------------------- |
-| <a href="#FLIGHT_PHASE_UNKNOWN"></a> FLIGHT_PHASE_UNKNOWN | `uint8` | 0     | vehicle flight phase is unknown |
-| <a href="#FLIGHT_PHASE_LEVEL"></a> FLIGHT_PHASE_LEVEL     | `uint8` | 1     | Vehicle is in level flight      |
-| <a href="#FLIGHT_PHASE_DESCEND"></a> FLIGHT_PHASE_DESCEND | `uint8` | 2     | vehicle is in descend           |
-| <a href="#FLIGHT_PHASE_CLIMB"></a> FLIGHT_PHASE_CLIMB     | `uint8` | 3     | vehicle is climbing             |
+| Name                                                    | Type    | Value | Description                     |
+| ------------------------------------------------------- | ------- | ----- | ------------------------------- |
+| <a id="#FLIGHT_PHASE_UNKNOWN"></a> FLIGHT_PHASE_UNKNOWN | `uint8` | 0     | vehicle flight phase is unknown |
+| <a id="#FLIGHT_PHASE_LEVEL"></a> FLIGHT_PHASE_LEVEL     | `uint8` | 1     | Vehicle is in level flight      |
+| <a id="#FLIGHT_PHASE_DESCEND"></a> FLIGHT_PHASE_DESCEND | `uint8` | 2     | vehicle is in descend           |
+| <a id="#FLIGHT_PHASE_CLIMB"></a> FLIGHT_PHASE_CLIMB     | `uint8` | 3     | vehicle is climbing             |
 
 ## Source Message
 

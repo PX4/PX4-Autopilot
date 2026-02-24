@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # FollowTargetStatus (UORB message)
 
-**TOPICS:** follow_targetstatus
+**TOPICS:** follow_target_status
 
 ## Fields
 

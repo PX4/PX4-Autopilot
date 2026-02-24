@@ -82,3 +82,37 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [0, 0]
+
+        BAT${i}_V_FILT:
+            description:
+                short: Battery ${i} voltage filter time constant
+                long: |
+                    Low-pass filter time constant for the battery voltage ADC reading (in seconds).
+                    A higher value results in more smoothing and less noise, but slower response.
+                    A value of 0 disables the filter.
+
+            type: float
+            decimal: 3
+            min: 0.0
+            max: 5.0
+            unit: s
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0.0, 0.0]
+
+        BAT${i}_I_FILT:
+            description:
+                short: Battery ${i} current filter time constant
+                long: |
+                    Low-pass filter time constant for the battery current ADC reading (in seconds).
+                    A higher value results in more smoothing and less noise, but slower response.
+                    A value of 0 disables the filter.
+
+            type: float
+            decimal: 3
+            min: 0.0
+            max: 5.0
+            unit: s
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0.0, 0.0]

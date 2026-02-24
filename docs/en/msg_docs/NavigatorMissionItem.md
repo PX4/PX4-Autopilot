@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # NavigatorMissionItem (UORB message)
 
-**TOPICS:** navigator_missionitem
+**TOPICS:** navigator_mission_item
 
 ## Fields
 

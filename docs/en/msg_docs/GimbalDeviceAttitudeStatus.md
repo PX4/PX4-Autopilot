@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # GimbalDeviceAttitudeStatus (UORB message)
 
-**TOPICS:** gimbal_deviceattitude_status
+**TOPICS:** gimbal_device_attitude_status
 
 ## Fields
 
@@ -26,15 +26,15 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                                | Type     | Value | Description |
-| ----------------------------------------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#DEVICE_FLAGS_RETRACT"></a> DEVICE_FLAGS_RETRACT                           | `uint16` | 1     |
-| <a href="#DEVICE_FLAGS_NEUTRAL"></a> DEVICE_FLAGS_NEUTRAL                           | `uint16` | 2     |
-| <a href="#DEVICE_FLAGS_ROLL_LOCK"></a> DEVICE_FLAGS_ROLL_LOCK                       | `uint16` | 4     |
-| <a href="#DEVICE_FLAGS_PITCH_LOCK"></a> DEVICE_FLAGS_PITCH_LOCK                     | `uint16` | 8     |
-| <a href="#DEVICE_FLAGS_YAW_LOCK"></a> DEVICE_FLAGS_YAW_LOCK                         | `uint16` | 16    |
-| <a href="#DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME"></a> DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME | `uint16` | 32    |
-| <a href="#DEVICE_FLAGS_YAW_IN_EARTH_FRAME"></a> DEVICE_FLAGS_YAW_IN_EARTH_FRAME     | `uint16` | 64    |
+| Name                                                                              | Type     | Value | Description |
+| --------------------------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#DEVICE_FLAGS_RETRACT"></a> DEVICE_FLAGS_RETRACT                           | `uint16` | 1     |
+| <a id="#DEVICE_FLAGS_NEUTRAL"></a> DEVICE_FLAGS_NEUTRAL                           | `uint16` | 2     |
+| <a id="#DEVICE_FLAGS_ROLL_LOCK"></a> DEVICE_FLAGS_ROLL_LOCK                       | `uint16` | 4     |
+| <a id="#DEVICE_FLAGS_PITCH_LOCK"></a> DEVICE_FLAGS_PITCH_LOCK                     | `uint16` | 8     |
+| <a id="#DEVICE_FLAGS_YAW_LOCK"></a> DEVICE_FLAGS_YAW_LOCK                         | `uint16` | 16    |
+| <a id="#DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME"></a> DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME | `uint16` | 32    |
+| <a id="#DEVICE_FLAGS_YAW_IN_EARTH_FRAME"></a> DEVICE_FLAGS_YAW_IN_EARTH_FRAME     | `uint16` | 64    |
 
 ## Source Message
 

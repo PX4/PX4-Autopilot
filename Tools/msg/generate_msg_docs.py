@@ -511,7 +511,7 @@ pageClass: is-wide-page
             markdown += "--- | --- | --- |---\n"
             for name, command in self.commandConstants.items():
                 description = f" {command.comment} " if enum.comment else " "
-                markdown += f'<a href="#{name}"></a> {name} | `{command.type}` | {command.value} |{description}\n'            
+                markdown += f'<a id="#{name}"></a> {name} | `{command.type}` | {command.value} |{description}\n'            
             """
             for commandConstant in self.commandConstants.values():
                 #print(commandConstant)
@@ -538,7 +538,7 @@ pageClass: is-wide-page
             markdown += "--- | --- | --- |---\n"
             for name, enum in self.constantFields.items():
                 description = f" {enum.comment} " if enum.comment else " "
-                markdown += f'<a href="#{name}"></a> {name} | `{enum.type}` | {enum.value} |{description}\n'
+                markdown += f'<a id="#{name}"></a> {name} | `{enum.type}` | {enum.value} |{description}\n'
 
 
 
@@ -729,10 +729,10 @@ pageClass: is-wide-page
 
             # Fix up topics if the topic is empty
             def camel_to_snake(name):
-                # Match upper case not at start of string
-                s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-                # Handle cases with multiple capital first letter
-                return re.sub('([A-Z]+)([A-Z][a-z]*)', r'\1_\2', s1).lower()
+                # Insert underscore between lowercase/digit and uppercase letter
+                s1 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', name)
+                # Insert underscore between consecutive uppercase and uppercase+lowercase
+                return re.sub('([A-Z]+)([A-Z][a-z])', r'\1_\2', s1).lower()
 
             defaultTopic = camel_to_snake(self.name)
             if len(self.topics) == 0:
@@ -745,7 +745,7 @@ pageClass: is-wide-page
                     error = Error("topic_error", self.filename, "", f"WARNING: TOPIC {defaultTopic} unnecessarily declared for {self.name}")
                 else:
                     # Declared topic is not default topic
-                    error = Error("topic_error", self.filename, "", f"NOTE: TOPIC {self.topics[1]}: Only Declared topic is not default topic {defaultTopic} for {self.name}")
+                    error = Error("topic_error", self.filename, "", f"NOTE: TOPIC {self.topics[0]}: Only Declared topic is not default topic {defaultTopic} for {self.name}")
                 if not "topic_error" in self.errors:
                     self.errors["topic_error"] = []
                     self.errors["topic_error"].append(error)

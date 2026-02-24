@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # SensorOpticalFlow (UORB message)
 
-**TOPICS:** sensor_opticalflow
+**TOPICS:** sensor_optical_flow
 
 ## Fields
 
@@ -28,12 +28,12 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                    | Type    | Value | Description |
-| ------------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#MODE_UNKNOWN"></a> MODE_UNKNOWN               | `uint8` | 0     |
-| <a href="#MODE_BRIGHT"></a> MODE_BRIGHT                 | `uint8` | 1     |
-| <a href="#MODE_LOWLIGHT"></a> MODE_LOWLIGHT             | `uint8` | 2     |
-| <a href="#MODE_SUPER_LOWLIGHT"></a> MODE_SUPER_LOWLIGHT | `uint8` | 3     |
+| Name                                                  | Type    | Value | Description |
+| ----------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#MODE_UNKNOWN"></a> MODE_UNKNOWN               | `uint8` | 0     |
+| <a id="#MODE_BRIGHT"></a> MODE_BRIGHT                 | `uint8` | 1     |
+| <a id="#MODE_LOWLIGHT"></a> MODE_LOWLIGHT             | `uint8` | 2     |
+| <a id="#MODE_SUPER_LOWLIGHT"></a> MODE_SUPER_LOWLIGHT | `uint8` | 3     |
 
 ## Source Message
 

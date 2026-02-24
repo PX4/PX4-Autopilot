@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # TiltrotorExtraControls (UORB message)
 
-**TOPICS:** tiltrotor_extracontrols
+**TOPICS:** tiltrotor_extra_controls
 
 ## Fields
 

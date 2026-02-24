@@ -22,33 +22,33 @@ This message is used to control the tunes, when the tune_id is set to CUSTOM. th
 
 ## Constants
 
-| Name                                                                      | Type    | Value | Description |
-| ------------------------------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#TUNE_ID_STOP"></a> TUNE_ID_STOP                                 | `uint8` | 0     |
-| <a href="#TUNE_ID_STARTUP"></a> TUNE_ID_STARTUP                           | `uint8` | 1     |
-| <a href="#TUNE_ID_ERROR"></a> TUNE_ID_ERROR                               | `uint8` | 2     |
-| <a href="#TUNE_ID_NOTIFY_POSITIVE"></a> TUNE_ID_NOTIFY_POSITIVE           | `uint8` | 3     |
-| <a href="#TUNE_ID_NOTIFY_NEUTRAL"></a> TUNE_ID_NOTIFY_NEUTRAL             | `uint8` | 4     |
-| <a href="#TUNE_ID_NOTIFY_NEGATIVE"></a> TUNE_ID_NOTIFY_NEGATIVE           | `uint8` | 5     |
-| <a href="#TUNE_ID_ARMING_WARNING"></a> TUNE_ID_ARMING_WARNING             | `uint8` | 6     |
-| <a href="#TUNE_ID_BATTERY_WARNING_SLOW"></a> TUNE_ID_BATTERY_WARNING_SLOW | `uint8` | 7     |
-| <a href="#TUNE_ID_BATTERY_WARNING_FAST"></a> TUNE_ID_BATTERY_WARNING_FAST | `uint8` | 8     |
-| <a href="#TUNE_ID_GPS_WARNING"></a> TUNE_ID_GPS_WARNING                   | `uint8` | 9     |
-| <a href="#TUNE_ID_ARMING_FAILURE"></a> TUNE_ID_ARMING_FAILURE             | `uint8` | 10    |
-| <a href="#TUNE_ID_PARACHUTE_RELEASE"></a> TUNE_ID_PARACHUTE_RELEASE       | `uint8` | 11    |
-| <a href="#TUNE_ID_SINGLE_BEEP"></a> TUNE_ID_SINGLE_BEEP                   | `uint8` | 12    |
-| <a href="#TUNE_ID_HOME_SET"></a> TUNE_ID_HOME_SET                         | `uint8` | 13    |
-| <a href="#TUNE_ID_SD_INIT"></a> TUNE_ID_SD_INIT                           | `uint8` | 14    |
-| <a href="#TUNE_ID_SD_ERROR"></a> TUNE_ID_SD_ERROR                         | `uint8` | 15    |
-| <a href="#TUNE_ID_PROG_PX4IO"></a> TUNE_ID_PROG_PX4IO                     | `uint8` | 16    |
-| <a href="#TUNE_ID_PROG_PX4IO_OK"></a> TUNE_ID_PROG_PX4IO_OK               | `uint8` | 17    |
-| <a href="#TUNE_ID_PROG_PX4IO_ERR"></a> TUNE_ID_PROG_PX4IO_ERR             | `uint8` | 18    |
-| <a href="#TUNE_ID_POWER_OFF"></a> TUNE_ID_POWER_OFF                       | `uint8` | 19    |
-| <a href="#NUMBER_OF_TUNES"></a> NUMBER_OF_TUNES                           | `uint8` | 20    |
-| <a href="#VOLUME_LEVEL_MIN"></a> VOLUME_LEVEL_MIN                         | `uint8` | 0     |
-| <a href="#VOLUME_LEVEL_DEFAULT"></a> VOLUME_LEVEL_DEFAULT                 | `uint8` | 20    |
-| <a href="#VOLUME_LEVEL_MAX"></a> VOLUME_LEVEL_MAX                         | `uint8` | 100   |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                         | `uint8` | 4     |
+| Name                                                                    | Type    | Value | Description |
+| ----------------------------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#TUNE_ID_STOP"></a> TUNE_ID_STOP                                 | `uint8` | 0     |
+| <a id="#TUNE_ID_STARTUP"></a> TUNE_ID_STARTUP                           | `uint8` | 1     |
+| <a id="#TUNE_ID_ERROR"></a> TUNE_ID_ERROR                               | `uint8` | 2     |
+| <a id="#TUNE_ID_NOTIFY_POSITIVE"></a> TUNE_ID_NOTIFY_POSITIVE           | `uint8` | 3     |
+| <a id="#TUNE_ID_NOTIFY_NEUTRAL"></a> TUNE_ID_NOTIFY_NEUTRAL             | `uint8` | 4     |
+| <a id="#TUNE_ID_NOTIFY_NEGATIVE"></a> TUNE_ID_NOTIFY_NEGATIVE           | `uint8` | 5     |
+| <a id="#TUNE_ID_ARMING_WARNING"></a> TUNE_ID_ARMING_WARNING             | `uint8` | 6     |
+| <a id="#TUNE_ID_BATTERY_WARNING_SLOW"></a> TUNE_ID_BATTERY_WARNING_SLOW | `uint8` | 7     |
+| <a id="#TUNE_ID_BATTERY_WARNING_FAST"></a> TUNE_ID_BATTERY_WARNING_FAST | `uint8` | 8     |
+| <a id="#TUNE_ID_GPS_WARNING"></a> TUNE_ID_GPS_WARNING                   | `uint8` | 9     |
+| <a id="#TUNE_ID_ARMING_FAILURE"></a> TUNE_ID_ARMING_FAILURE             | `uint8` | 10    |
+| <a id="#TUNE_ID_PARACHUTE_RELEASE"></a> TUNE_ID_PARACHUTE_RELEASE       | `uint8` | 11    |
+| <a id="#TUNE_ID_SINGLE_BEEP"></a> TUNE_ID_SINGLE_BEEP                   | `uint8` | 12    |
+| <a id="#TUNE_ID_HOME_SET"></a> TUNE_ID_HOME_SET                         | `uint8` | 13    |
+| <a id="#TUNE_ID_SD_INIT"></a> TUNE_ID_SD_INIT                           | `uint8` | 14    |
+| <a id="#TUNE_ID_SD_ERROR"></a> TUNE_ID_SD_ERROR                         | `uint8` | 15    |
+| <a id="#TUNE_ID_PROG_PX4IO"></a> TUNE_ID_PROG_PX4IO                     | `uint8` | 16    |
+| <a id="#TUNE_ID_PROG_PX4IO_OK"></a> TUNE_ID_PROG_PX4IO_OK               | `uint8` | 17    |
+| <a id="#TUNE_ID_PROG_PX4IO_ERR"></a> TUNE_ID_PROG_PX4IO_ERR             | `uint8` | 18    |
+| <a id="#TUNE_ID_POWER_OFF"></a> TUNE_ID_POWER_OFF                       | `uint8` | 19    |
+| <a id="#NUMBER_OF_TUNES"></a> NUMBER_OF_TUNES                           | `uint8` | 20    |
+| <a id="#VOLUME_LEVEL_MIN"></a> VOLUME_LEVEL_MIN                         | `uint8` | 0     |
+| <a id="#VOLUME_LEVEL_DEFAULT"></a> VOLUME_LEVEL_DEFAULT                 | `uint8` | 20    |
+| <a id="#VOLUME_LEVEL_MAX"></a> VOLUME_LEVEL_MAX                         | `uint8` | 100   |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                         | `uint8` | 4     |
 
 ## Source Message
 

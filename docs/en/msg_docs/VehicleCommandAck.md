@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle command being received. Follows the MAVLink COMMAND_ACK message definition.
 
-**TOPICS:** vehicle_commandack
+**TOPICS:** vehicle_command_ack
 
 ## Fields
 
@@ -23,23 +23,23 @@ Vehicle Command Ackonwledgement uORB message. Used for acknowledging the vehicle
 
 ## Constants
 
-| Name                                                                                            | Type     | Value | Description                       |
-| ----------------------------------------------------------------------------------------------- | -------- | ----- | --------------------------------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                 | `uint32` | 0     |
-| <a href="#VEHICLE_CMD_RESULT_ACCEPTED"></a> VEHICLE_CMD_RESULT_ACCEPTED                         | `uint8`  | 0     | Command ACCEPTED and EXECUTED     |
-| <a href="#VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED"></a> VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED | `uint8`  | 1     | Command TEMPORARY REJECTED/DENIED |
-| <a href="#VEHICLE_CMD_RESULT_DENIED"></a> VEHICLE_CMD_RESULT_DENIED                             | `uint8`  | 2     | Command PERMANENTLY DENIED        |
-| <a href="#VEHICLE_CMD_RESULT_UNSUPPORTED"></a> VEHICLE_CMD_RESULT_UNSUPPORTED                   | `uint8`  | 3     | Command UNKNOWN/UNSUPPORTED       |
-| <a href="#VEHICLE_CMD_RESULT_FAILED"></a> VEHICLE_CMD_RESULT_FAILED                             | `uint8`  | 4     | Command executed, but failed      |
-| <a href="#VEHICLE_CMD_RESULT_IN_PROGRESS"></a> VEHICLE_CMD_RESULT_IN_PROGRESS                   | `uint8`  | 5     | Command being executed            |
-| <a href="#VEHICLE_CMD_RESULT_CANCELLED"></a> VEHICLE_CMD_RESULT_CANCELLED                       | `uint8`  | 6     | Command Canceled                  |
-| <a href="#ARM_AUTH_DENIED_REASON_GENERIC"></a> ARM_AUTH_DENIED_REASON_GENERIC                   | `uint16` | 0     |
-| <a href="#ARM_AUTH_DENIED_REASON_NONE"></a> ARM_AUTH_DENIED_REASON_NONE                         | `uint16` | 1     |
-| <a href="#ARM_AUTH_DENIED_REASON_INVALID_WAYPOINT"></a> ARM_AUTH_DENIED_REASON_INVALID_WAYPOINT | `uint16` | 2     |
-| <a href="#ARM_AUTH_DENIED_REASON_TIMEOUT"></a> ARM_AUTH_DENIED_REASON_TIMEOUT                   | `uint16` | 3     |
-| <a href="#ARM_AUTH_DENIED_REASON_AIRSPACE_IN_USE"></a> ARM_AUTH_DENIED_REASON_AIRSPACE_IN_USE   | `uint16` | 4     |
-| <a href="#ARM_AUTH_DENIED_REASON_BAD_WEATHER"></a> ARM_AUTH_DENIED_REASON_BAD_WEATHER           | `uint16` | 5     |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                               | `uint8`  | 8     |
+| Name                                                                                          | Type     | Value | Description                       |
+| --------------------------------------------------------------------------------------------- | -------- | ----- | --------------------------------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                 | `uint32` | 0     |
+| <a id="#VEHICLE_CMD_RESULT_ACCEPTED"></a> VEHICLE_CMD_RESULT_ACCEPTED                         | `uint8`  | 0     | Command ACCEPTED and EXECUTED     |
+| <a id="#VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED"></a> VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED | `uint8`  | 1     | Command TEMPORARY REJECTED/DENIED |
+| <a id="#VEHICLE_CMD_RESULT_DENIED"></a> VEHICLE_CMD_RESULT_DENIED                             | `uint8`  | 2     | Command PERMANENTLY DENIED        |
+| <a id="#VEHICLE_CMD_RESULT_UNSUPPORTED"></a> VEHICLE_CMD_RESULT_UNSUPPORTED                   | `uint8`  | 3     | Command UNKNOWN/UNSUPPORTED       |
+| <a id="#VEHICLE_CMD_RESULT_FAILED"></a> VEHICLE_CMD_RESULT_FAILED                             | `uint8`  | 4     | Command executed, but failed      |
+| <a id="#VEHICLE_CMD_RESULT_IN_PROGRESS"></a> VEHICLE_CMD_RESULT_IN_PROGRESS                   | `uint8`  | 5     | Command being executed            |
+| <a id="#VEHICLE_CMD_RESULT_CANCELLED"></a> VEHICLE_CMD_RESULT_CANCELLED                       | `uint8`  | 6     | Command Canceled                  |
+| <a id="#ARM_AUTH_DENIED_REASON_GENERIC"></a> ARM_AUTH_DENIED_REASON_GENERIC                   | `uint16` | 0     |
+| <a id="#ARM_AUTH_DENIED_REASON_NONE"></a> ARM_AUTH_DENIED_REASON_NONE                         | `uint16` | 1     |
+| <a id="#ARM_AUTH_DENIED_REASON_INVALID_WAYPOINT"></a> ARM_AUTH_DENIED_REASON_INVALID_WAYPOINT | `uint16` | 2     |
+| <a id="#ARM_AUTH_DENIED_REASON_TIMEOUT"></a> ARM_AUTH_DENIED_REASON_TIMEOUT                   | `uint16` | 3     |
+| <a id="#ARM_AUTH_DENIED_REASON_AIRSPACE_IN_USE"></a> ARM_AUTH_DENIED_REASON_AIRSPACE_IN_USE   | `uint16` | 4     |
+| <a id="#ARM_AUTH_DENIED_REASON_BAD_WEATHER"></a> ARM_AUTH_DENIED_REASON_BAD_WEATHER           | `uint16` | 5     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                               | `uint8`  | 8     |
 
 ## Source Message
 

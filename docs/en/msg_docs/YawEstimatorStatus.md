@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # YawEstimatorStatus (UORB message)
 
-**TOPICS:** yaw_estimatorstatus
+**TOPICS:** yaw_estimator_status
 
 ## Fields
 

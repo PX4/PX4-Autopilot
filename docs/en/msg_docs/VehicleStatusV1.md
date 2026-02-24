@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Encodes the system state of the vehicle published by commander.
 
-**TOPICS:** vehicle_statusv1
+**TOPICS:** vehicle_status_v1
 
 ## Fields
 
@@ -124,23 +124,23 @@ Encodes the system state of the vehicle published by commander.
 
 ## Constants
 
-| Name                                                                                      | Type     | Value | Description |
-| ----------------------------------------------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                           | `uint32` | 1     |
-| <a href="#ARMING_STATE_DISARMED"></a> ARMING_STATE_DISARMED                               | `uint8`  | 1     |
-| <a href="#ARMING_STATE_ARMED"></a> ARMING_STATE_ARMED                                     | `uint8`  | 2     |
-| <a href="#ARM_DISARM_REASON_STICK_GESTURE"></a> ARM_DISARM_REASON_STICK_GESTURE           | `uint8`  | 1     |
-| <a href="#ARM_DISARM_REASON_RC_SWITCH"></a> ARM_DISARM_REASON_RC_SWITCH                   | `uint8`  | 2     |
-| <a href="#ARM_DISARM_REASON_COMMAND_INTERNAL"></a> ARM_DISARM_REASON_COMMAND_INTERNAL     | `uint8`  | 3     |
-| <a href="#ARM_DISARM_REASON_COMMAND_EXTERNAL"></a> ARM_DISARM_REASON_COMMAND_EXTERNAL     | `uint8`  | 4     |
-| <a href="#ARM_DISARM_REASON_MISSION_START"></a> ARM_DISARM_REASON_MISSION_START           | `uint8`  | 5     |
-| <a href="#ARM_DISARM_REASON_LANDING"></a> ARM_DISARM_REASON_LANDING                       | `uint8`  | 6     |
-| <a href="#ARM_DISARM_REASON_PREFLIGHT_INACTION"></a> ARM_DISARM_REASON_PREFLIGHT_INACTION | `uint8`  | 7     |
-| <a href="#ARM_DISARM_REASON_KILL_SWITCH"></a> ARM_DISARM_REASON_KILL_SWITCH               | `uint8`  | 8     |
-| <a href="#ARM_DISARM_REASON_RC_BUTTON"></a> ARM_DISARM_REASON_RC_BUTTON                   | `uint8`  | 13    |
-| <a href="#ARM_DISARM_REASON_FAILSAFE"></a> ARM_DISARM_REASON_FAILSAFE                     | `uint8`  | 14    |
-| <a href="#HIL_STATE_OFF"></a> HIL_STATE_OFF                                               | `uint8`  | 0     |
-| <a href="#HIL_STATE_ON"></a> HIL_STATE_ON                                                 | `uint8`  | 1     |
+| Name                                                                                    | Type     | Value | Description |
+| --------------------------------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                           | `uint32` | 1     |
+| <a id="#ARMING_STATE_DISARMED"></a> ARMING_STATE_DISARMED                               | `uint8`  | 1     |
+| <a id="#ARMING_STATE_ARMED"></a> ARMING_STATE_ARMED                                     | `uint8`  | 2     |
+| <a id="#ARM_DISARM_REASON_STICK_GESTURE"></a> ARM_DISARM_REASON_STICK_GESTURE           | `uint8`  | 1     |
+| <a id="#ARM_DISARM_REASON_RC_SWITCH"></a> ARM_DISARM_REASON_RC_SWITCH                   | `uint8`  | 2     |
+| <a id="#ARM_DISARM_REASON_COMMAND_INTERNAL"></a> ARM_DISARM_REASON_COMMAND_INTERNAL     | `uint8`  | 3     |
+| <a id="#ARM_DISARM_REASON_COMMAND_EXTERNAL"></a> ARM_DISARM_REASON_COMMAND_EXTERNAL     | `uint8`  | 4     |
+| <a id="#ARM_DISARM_REASON_MISSION_START"></a> ARM_DISARM_REASON_MISSION_START           | `uint8`  | 5     |
+| <a id="#ARM_DISARM_REASON_LANDING"></a> ARM_DISARM_REASON_LANDING                       | `uint8`  | 6     |
+| <a id="#ARM_DISARM_REASON_PREFLIGHT_INACTION"></a> ARM_DISARM_REASON_PREFLIGHT_INACTION | `uint8`  | 7     |
+| <a id="#ARM_DISARM_REASON_KILL_SWITCH"></a> ARM_DISARM_REASON_KILL_SWITCH               | `uint8`  | 8     |
+| <a id="#ARM_DISARM_REASON_RC_BUTTON"></a> ARM_DISARM_REASON_RC_BUTTON                   | `uint8`  | 13    |
+| <a id="#ARM_DISARM_REASON_FAILSAFE"></a> ARM_DISARM_REASON_FAILSAFE                     | `uint8`  | 14    |
+| <a id="#HIL_STATE_OFF"></a> HIL_STATE_OFF                                               | `uint8`  | 0     |
+| <a id="#HIL_STATE_ON"></a> HIL_STATE_ON                                                 | `uint8`  | 1     |
 
 ## Source Message
 

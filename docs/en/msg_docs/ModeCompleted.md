@@ -18,11 +18,11 @@ Mode completion result, published by an active mode. The possible values of nav_
 
 ## Constants
 
-| Name                                                      | Type     | Value | Description                 |
-| --------------------------------------------------------- | -------- | ----- | --------------------------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION           | `uint32` | 0     |
-| <a href="#RESULT_SUCCESS"></a> RESULT_SUCCESS             | `uint8`  | 0     |
-| <a href="#RESULT_FAILURE_OTHER"></a> RESULT_FAILURE_OTHER | `uint8`  | 100   | Mode failed (generic error) |
+| Name                                                    | Type     | Value | Description                 |
+| ------------------------------------------------------- | -------- | ----- | --------------------------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION           | `uint32` | 0     |
+| <a id="#RESULT_SUCCESS"></a> RESULT_SUCCESS             | `uint8`  | 0     |
+| <a id="#RESULT_FAILURE_OTHER"></a> RESULT_FAILURE_OTHER | `uint8`  | 100   | Mode failed (generic error) |
 
 ## Source Message
 

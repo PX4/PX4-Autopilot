@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # InternalCombustionEngineStatus (UORB message)
 
-**TOPICS:** internal_combustionengine_status
+**TOPICS:** internal_combustion_engine_status
 
 ## Fields
 
@@ -36,36 +36,36 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                                          | Type     | Value  | Description                                            |
-| --------------------------------------------------------------------------------------------- | -------- | ------ | ------------------------------------------------------ |
-| <a href="#STATE_STOPPED"></a> STATE_STOPPED                                                   | `uint8`  | 0      | The engine is not running. This is the default state.  |
-| <a href="#STATE_STARTING"></a> STATE_STARTING                                                 | `uint8`  | 1      | The engine is starting. This is a transient state.     |
-| <a href="#STATE_RUNNING"></a> STATE_RUNNING                                                   | `uint8`  | 2      | The engine is running normally.                        |
-| <a href="#STATE_FAULT"></a> STATE_FAULT                                                       | `uint8`  | 3      | The engine can no longer function.                     |
-| <a href="#FLAG_GENERAL_ERROR"></a> FLAG_GENERAL_ERROR                                         | `uint32` | 1      | General error.                                         |
-| <a href="#FLAG_CRANKSHAFT_SENSOR_ERROR_SUPPORTED"></a> FLAG_CRANKSHAFT_SENSOR_ERROR_SUPPORTED | `uint32` | 2      | Error of the crankshaft sensor. This flag is optional. |
-| <a href="#FLAG_CRANKSHAFT_SENSOR_ERROR"></a> FLAG_CRANKSHAFT_SENSOR_ERROR                     | `uint32` | 4      |
-| <a href="#FLAG_TEMPERATURE_SUPPORTED"></a> FLAG_TEMPERATURE_SUPPORTED                         | `uint32` | 8      | Temperature levels. These flags are optional           |
-| <a href="#FLAG_TEMPERATURE_BELOW_NOMINAL"></a> FLAG_TEMPERATURE_BELOW_NOMINAL                 | `uint32` | 16     | Under-temperature warning                              |
-| <a href="#FLAG_TEMPERATURE_ABOVE_NOMINAL"></a> FLAG_TEMPERATURE_ABOVE_NOMINAL                 | `uint32` | 32     | Over-temperature warning                               |
-| <a href="#FLAG_TEMPERATURE_OVERHEATING"></a> FLAG_TEMPERATURE_OVERHEATING                     | `uint32` | 64     | Critical overheating                                   |
-| <a href="#FLAG_TEMPERATURE_EGT_ABOVE_NOMINAL"></a> FLAG_TEMPERATURE_EGT_ABOVE_NOMINAL         | `uint32` | 128    | Exhaust gas over-temperature warning                   |
-| <a href="#FLAG_FUEL_PRESSURE_SUPPORTED"></a> FLAG_FUEL_PRESSURE_SUPPORTED                     | `uint32` | 256    | Fuel pressure. These flags are optional                |
-| <a href="#FLAG_FUEL_PRESSURE_BELOW_NOMINAL"></a> FLAG_FUEL_PRESSURE_BELOW_NOMINAL             | `uint32` | 512    | Under-pressure warning                                 |
-| <a href="#FLAG_FUEL_PRESSURE_ABOVE_NOMINAL"></a> FLAG_FUEL_PRESSURE_ABOVE_NOMINAL             | `uint32` | 1024   | Over-pressure warning                                  |
-| <a href="#FLAG_DETONATION_SUPPORTED"></a> FLAG_DETONATION_SUPPORTED                           | `uint32` | 2048   | Detonation warning. This flag is optional.             |
-| <a href="#FLAG_DETONATION_OBSERVED"></a> FLAG_DETONATION_OBSERVED                             | `uint32` | 4096   | Detonation condition observed warning                  |
-| <a href="#FLAG_MISFIRE_SUPPORTED"></a> FLAG_MISFIRE_SUPPORTED                                 | `uint32` | 8192   | Misfire warning. This flag is optional.                |
-| <a href="#FLAG_MISFIRE_OBSERVED"></a> FLAG_MISFIRE_OBSERVED                                   | `uint32` | 16384  | Misfire condition observed warning                     |
-| <a href="#FLAG_OIL_PRESSURE_SUPPORTED"></a> FLAG_OIL_PRESSURE_SUPPORTED                       | `uint32` | 32768  | Oil pressure. These flags are optional                 |
-| <a href="#FLAG_OIL_PRESSURE_BELOW_NOMINAL"></a> FLAG_OIL_PRESSURE_BELOW_NOMINAL               | `uint32` | 65536  | Under-pressure warning                                 |
-| <a href="#FLAG_OIL_PRESSURE_ABOVE_NOMINAL"></a> FLAG_OIL_PRESSURE_ABOVE_NOMINAL               | `uint32` | 131072 | Over-pressure warning                                  |
-| <a href="#FLAG_DEBRIS_SUPPORTED"></a> FLAG_DEBRIS_SUPPORTED                                   | `uint32` | 262144 | Debris warning. This flag is optional                  |
-| <a href="#FLAG_DEBRIS_DETECTED"></a> FLAG_DEBRIS_DETECTED                                     | `uint32` | 524288 | Detection of debris warning                            |
-| <a href="#SPARK_PLUG_SINGLE"></a> SPARK_PLUG_SINGLE                                           | `uint8`  | 0      |
-| <a href="#SPARK_PLUG_FIRST_ACTIVE"></a> SPARK_PLUG_FIRST_ACTIVE                               | `uint8`  | 1      |
-| <a href="#SPARK_PLUG_SECOND_ACTIVE"></a> SPARK_PLUG_SECOND_ACTIVE                             | `uint8`  | 2      |
-| <a href="#SPARK_PLUG_BOTH_ACTIVE"></a> SPARK_PLUG_BOTH_ACTIVE                                 | `uint8`  | 3      |
+| Name                                                                                        | Type     | Value  | Description                                            |
+| ------------------------------------------------------------------------------------------- | -------- | ------ | ------------------------------------------------------ |
+| <a id="#STATE_STOPPED"></a> STATE_STOPPED                                                   | `uint8`  | 0      | The engine is not running. This is the default state.  |
+| <a id="#STATE_STARTING"></a> STATE_STARTING                                                 | `uint8`  | 1      | The engine is starting. This is a transient state.     |
+| <a id="#STATE_RUNNING"></a> STATE_RUNNING                                                   | `uint8`  | 2      | The engine is running normally.                        |
+| <a id="#STATE_FAULT"></a> STATE_FAULT                                                       | `uint8`  | 3      | The engine can no longer function.                     |
+| <a id="#FLAG_GENERAL_ERROR"></a> FLAG_GENERAL_ERROR                                         | `uint32` | 1      | General error.                                         |
+| <a id="#FLAG_CRANKSHAFT_SENSOR_ERROR_SUPPORTED"></a> FLAG_CRANKSHAFT_SENSOR_ERROR_SUPPORTED | `uint32` | 2      | Error of the crankshaft sensor. This flag is optional. |
+| <a id="#FLAG_CRANKSHAFT_SENSOR_ERROR"></a> FLAG_CRANKSHAFT_SENSOR_ERROR                     | `uint32` | 4      |
+| <a id="#FLAG_TEMPERATURE_SUPPORTED"></a> FLAG_TEMPERATURE_SUPPORTED                         | `uint32` | 8      | Temperature levels. These flags are optional           |
+| <a id="#FLAG_TEMPERATURE_BELOW_NOMINAL"></a> FLAG_TEMPERATURE_BELOW_NOMINAL                 | `uint32` | 16     | Under-temperature warning                              |
+| <a id="#FLAG_TEMPERATURE_ABOVE_NOMINAL"></a> FLAG_TEMPERATURE_ABOVE_NOMINAL                 | `uint32` | 32     | Over-temperature warning                               |
+| <a id="#FLAG_TEMPERATURE_OVERHEATING"></a> FLAG_TEMPERATURE_OVERHEATING                     | `uint32` | 64     | Critical overheating                                   |
+| <a id="#FLAG_TEMPERATURE_EGT_ABOVE_NOMINAL"></a> FLAG_TEMPERATURE_EGT_ABOVE_NOMINAL         | `uint32` | 128    | Exhaust gas over-temperature warning                   |
+| <a id="#FLAG_FUEL_PRESSURE_SUPPORTED"></a> FLAG_FUEL_PRESSURE_SUPPORTED                     | `uint32` | 256    | Fuel pressure. These flags are optional                |
+| <a id="#FLAG_FUEL_PRESSURE_BELOW_NOMINAL"></a> FLAG_FUEL_PRESSURE_BELOW_NOMINAL             | `uint32` | 512    | Under-pressure warning                                 |
+| <a id="#FLAG_FUEL_PRESSURE_ABOVE_NOMINAL"></a> FLAG_FUEL_PRESSURE_ABOVE_NOMINAL             | `uint32` | 1024   | Over-pressure warning                                  |
+| <a id="#FLAG_DETONATION_SUPPORTED"></a> FLAG_DETONATION_SUPPORTED                           | `uint32` | 2048   | Detonation warning. This flag is optional.             |
+| <a id="#FLAG_DETONATION_OBSERVED"></a> FLAG_DETONATION_OBSERVED                             | `uint32` | 4096   | Detonation condition observed warning                  |
+| <a id="#FLAG_MISFIRE_SUPPORTED"></a> FLAG_MISFIRE_SUPPORTED                                 | `uint32` | 8192   | Misfire warning. This flag is optional.                |
+| <a id="#FLAG_MISFIRE_OBSERVED"></a> FLAG_MISFIRE_OBSERVED                                   | `uint32` | 16384  | Misfire condition observed warning                     |
+| <a id="#FLAG_OIL_PRESSURE_SUPPORTED"></a> FLAG_OIL_PRESSURE_SUPPORTED                       | `uint32` | 32768  | Oil pressure. These flags are optional                 |
+| <a id="#FLAG_OIL_PRESSURE_BELOW_NOMINAL"></a> FLAG_OIL_PRESSURE_BELOW_NOMINAL               | `uint32` | 65536  | Under-pressure warning                                 |
+| <a id="#FLAG_OIL_PRESSURE_ABOVE_NOMINAL"></a> FLAG_OIL_PRESSURE_ABOVE_NOMINAL               | `uint32` | 131072 | Over-pressure warning                                  |
+| <a id="#FLAG_DEBRIS_SUPPORTED"></a> FLAG_DEBRIS_SUPPORTED                                   | `uint32` | 262144 | Debris warning. This flag is optional                  |
+| <a id="#FLAG_DEBRIS_DETECTED"></a> FLAG_DEBRIS_DETECTED                                     | `uint32` | 524288 | Detection of debris warning                            |
+| <a id="#SPARK_PLUG_SINGLE"></a> SPARK_PLUG_SINGLE                                           | `uint8`  | 0      |
+| <a id="#SPARK_PLUG_FIRST_ACTIVE"></a> SPARK_PLUG_FIRST_ACTIVE                               | `uint8`  | 1      |
+| <a id="#SPARK_PLUG_SECOND_ACTIVE"></a> SPARK_PLUG_SECOND_ACTIVE                             | `uint8`  | 2      |
+| <a id="#SPARK_PLUG_BOTH_ACTIVE"></a> SPARK_PLUG_BOTH_ACTIVE                                 | `uint8`  | 3      |
 
 ## Source Message
 

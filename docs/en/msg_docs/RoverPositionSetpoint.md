@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Rover Position Setpoint.
 
-**TOPICS:** rover_positionsetpoint
+**TOPICS:** rover_position_setpoint
 
 ## Fields
 

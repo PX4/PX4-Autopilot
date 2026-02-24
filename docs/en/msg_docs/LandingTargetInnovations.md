@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # LandingTargetInnovations (UORB message)
 
-**TOPICS:** landing_targetinnovations
+**TOPICS:** landing_target_innovations
 
 ## Fields
 

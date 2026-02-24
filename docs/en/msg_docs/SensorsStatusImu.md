@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Sensor check metrics. This will be zero for a sensor that's primary or unpopulated.
 
-**TOPICS:** sensors_statusimu
+**TOPICS:** sensors_status_imu
 
 ## Fields
 
