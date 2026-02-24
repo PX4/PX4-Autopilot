@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2013, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,7 +54,8 @@ enum AIRSPEED_SENSOR_MODEL {
 enum AIRSPEED_COMPENSATION_MODEL {
 	AIRSPEED_COMPENSATION_MODEL_PITOT = 0,
 	AIRSPEED_COMPENSATION_MODEL_NO_PITOT = 1,
-	AIRSPEED_COMPENSATION_TUBE_PRESSURE_LOSS = 2
+	AIRSPEED_COMPENSATION_TUBE_PRESSURE_LOSS = 2,
+	AIRSPEED_COMPENSATION_TFSLOT = 3
 };
 
 /**
@@ -68,9 +69,10 @@ enum AIRSPEED_COMPENSATION_MODEL {
  * @param static_pressure pressure at the side of the tube/airplane
  * @return indicated airspeed in m/s
  */
-__EXPORT float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel,
-				  enum AIRSPEED_SENSOR_MODEL smodel,
-				  float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius);
+__EXPORT float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
+				  float tube_len, float tube_dia_mm, float venturi_input_crs, float venturi_1st_crs,
+				  float venturi_2nd_crs, float differential_pressure, float pressure_ambient, float temperature_celsius);
+
 
 /**
  * Calculate indicated airspeed (IAS).
