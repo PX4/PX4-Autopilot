@@ -570,7 +570,7 @@ int CdcAcmAutostart::execute_process(char *const *argv)
 	int pid = -1;
 	sched_lock();
 
-	pid = exec_builtin(argv[0], argv, nullptr, 0);
+	pid = exec_builtin(argv[0], argv, nullptr);
 
 	sched_unlock();
 	return pid;
