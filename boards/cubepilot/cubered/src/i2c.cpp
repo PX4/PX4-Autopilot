@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +31,9 @@
  *
  ****************************************************************************/
 
-/**
- * @file uart.h
- *
- * UART bootloader definitions.
- */
+#include <px4_arch/i2c_hw_description.h>
 
-#pragma once
-
-extern void uart_cinit(void *config);
-extern void uart2_cinit(void *config);
-extern void uart_cfini(void);
-extern void uart2_cfini(void);
-extern int uart_cin(void);
-extern int uart2_cin(void);
-extern void uart_cout(uint8_t *buf, unsigned len);
-extern void uart2_cout(uint8_t *buf, unsigned len);
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	initI2CBusExternal(2),
+	initI2CBusInternal(4),
+};

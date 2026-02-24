@@ -117,7 +117,7 @@
 // #define PROTO_EXTF_READ_MULTI    0x36  // read bytes at address and increment
 // #define PROTO_EXTF_GET_CRC       0x37  // compute & return a CRC of data in external flash
 
-#define PROTO_RESERVED_0X38         0x38  // Reserved
+#define PROTO_SERIAL_FORWARD        0x38  // forward active interface to SERIAL1 until idle
 #define PROTO_RESERVED_0X39         0x39  // Reserved
 #define PROTO_CHIP_FULL_ERASE       0x40  // Full erase, without any flash wear optimization
 
@@ -186,6 +186,14 @@ inline void cinit(void *config, uint8_t interface)
 	}
 
 #endif
+
+#if defined(INTERFACE_USART_CONFIG2)
+
+	if (interface == USART2_IFACE) {
+		return uart2_cinit(config);
+	}
+
+#endif
 }
 inline void cfini(void)
 {
@@ -194,6 +202,9 @@ inline void cfini(void)
 #endif
 #if INTERFACE_USART
 	uart_cfini();
+#endif
+#if defined(INTERFACE_USART_CONFIG2)
+	uart2_cfini();
 #endif
 }
 inline int cin(uint32_t devices)
@@ -224,6 +235,19 @@ inline int cin(uint32_t devices)
 
 #endif
 
+#if defined(INTERFACE_USART_CONFIG2)
+
+	if ((bl_type == NONE || bl_type == USART2_IFACE) && (devices & SERIAL1_DEV) != 0) {
+		int uart2_in = uart2_cin();
+
+		if (uart2_in >= 0) {
+			last_input = USART2_IFACE;
+			return uart2_in;
+		}
+	}
+
+#endif
+
 	return -1;
 }
 
@@ -240,6 +264,14 @@ inline void cout(uint8_t *buf, unsigned len)
 
 	if (bl_type == USART) {
 		uart_cout(buf, len);
+	}
+
+#endif
+
+#if defined(INTERFACE_USART_CONFIG2)
+
+	if (bl_type == USART2_IFACE) {
+		uart2_cout(buf, len);
 	}
 
 #endif
@@ -548,6 +580,38 @@ cin_wait(unsigned timeout)
 	return c;
 }
 
+#if defined(BOOTLOADER_SERIAL_FORWARD_TO_SERIAL1)
+static void serial_forward_to_serial1(void)
+{
+	const unsigned idle_timeout_ms = 1000;
+	timer[TIMER_DELAY] = idle_timeout_ms;
+
+	while (timer[TIMER_DELAY] > 0) {
+		bool forwarded = false;
+
+		int host_in = cin(board_get_devices());
+
+		if (host_in >= 0) {
+			uint8_t b = host_in;
+			uart2_cout(&b, 1);
+			forwarded = true;
+		}
+
+		int secondary_in = uart2_cin();
+
+		if (secondary_in >= 0) {
+			uint8_t b = secondary_in;
+			cout(&b, 1);
+			forwarded = true;
+		}
+
+		if (forwarded) {
+			timer[TIMER_DELAY] = idle_timeout_ms;
+		}
+	}
+}
+#endif
+
 /**
  * Function to wait for EOC
  *
@@ -641,6 +705,7 @@ bootloader(unsigned timeout)
 	while (true) {
 		volatile int c;
 		int arg;
+		bool start_serial_forward = false;
 		static union {
 			uint8_t   c[256];
 			uint32_t  w[64];
@@ -1021,6 +1086,31 @@ bootloader(unsigned timeout)
 			}
 			break;
 
+		case PROTO_SERIAL_FORWARD:
+#if defined(BOOTLOADER_SERIAL_FORWARD_TO_SERIAL1)
+			if (!wait_for_eoc(2)) {
+				goto cmd_bad;
+			}
+
+			if ((board_get_devices() & SERIAL1_DEV) == 0) {
+				goto cmd_bad;
+			}
+
+			/* Forwarding requires a dedicated host interface (USB or SERIAL0). */
+			if (bl_type == USART2_IFACE || last_input == USART2_IFACE) {
+				goto cmd_bad;
+			}
+
+			if (bl_type == NONE) {
+				bl_type = last_input;
+			}
+
+			start_serial_forward = true;
+#else
+			goto cmd_bad;
+#endif
+			break;
+
 #ifdef BOOT_DELAY_ADDRESS
 
 		case PROTO_SET_DELAY: {
@@ -1111,6 +1201,14 @@ bootloader(unsigned timeout)
 		// We got a sync command as well as a get_device command, we are very likely talking to the uploader.
 		if ((bl_state & STATE_ALLOWS_BOOTLOADER) == STATE_ALLOWS_BOOTLOADER) {
 			timeout = 0;
+		}
+
+		if (start_serial_forward) {
+			sync_response();
+#if defined(BOOTLOADER_SERIAL_FORWARD_TO_SERIAL1)
+			serial_forward_to_serial1();
+#endif
+			continue;
 		}
 
 		// Set the bootloader port based on the port from which we received the first valid command

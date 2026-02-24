@@ -202,6 +202,7 @@ class BootloaderCommand(IntEnum):
     GET_CHIP_DES = 0x2E  # rev5+, get chip description in ASCII
     GET_VERSION = 0x2F  # rev5+, get bootloader version in ASCII
     REBOOT = 0x30
+    SERIAL_FORWARD = 0x38  # forward active host interface to SERIAL1
     CHIP_FULL_ERASE = 0x40  # Full erase of flash, rev6+
 
 
@@ -756,6 +757,12 @@ class BootloaderProtocol:
         self._send_command(BootloaderCommand.GET_SYNC)
         self._get_sync()
         logger.debug("Sync successful")
+
+    def start_serial_forward(self) -> None:
+        """Enable temporary host<->SERIAL1 forwarding mode in bootloader."""
+        logger.info("Starting serial-forward passthrough")
+        self._send_command(BootloaderCommand.SERIAL_FORWARD)
+        self._get_sync()
 
     def _get_device_info(self, param: int) -> int:
         """Get device information parameter.
@@ -1575,10 +1582,24 @@ class UploaderConfig:
     windowed: bool = False
     noninteractive: bool = False
     json_output: bool = False
+    update_mode: str = "primary"
+
+
+@dataclass
+class UploadPlan:
+    """Resolved upload plan for the connected board."""
+
+    primary_firmware: Optional["Firmware"] = None
+    secondary_firmware: Optional["Firmware"] = None
+    upload_primary: bool = False
+    upload_secondary: bool = False
 
 
 class Uploader:
     """Orchestrates firmware upload to PX4 bootloader."""
+
+    # Primary board ID -> secondary board ID mapping for dual-MCU upload flow
+    SECONDARY_BOARD_ID_MAP: dict[int, int] = {1069: 1070}  # CubeRed
 
     def __init__(self, config: UploaderConfig):
         self.config = config
@@ -1719,15 +1740,224 @@ class Uploader:
             if not self._try_identify(transport, protocol):
                 return False
 
-            # Find matching firmware
-            firmware = self._select_firmware(firmwares, protocol)
+            plan = self._resolve_upload_plan(firmwares, protocol.board_type)
 
-            # Perform upload
-            self._do_upload(protocol, firmware)
-            return True
+            if plan.upload_primary and plan.upload_secondary:
+                self._do_upload(protocol, plan.primary_firmware, reboot=False)
+                self._upload_secondary_firmware(transport, protocol, plan.secondary_firmware)
+                return True
+
+            if plan.upload_secondary:
+                self._upload_secondary_firmware(transport, protocol, plan.secondary_firmware)
+                return True
+
+            if plan.upload_primary:
+                self._do_upload(protocol, plan.primary_firmware)
+                return True
+
+            raise UploadError("No upload action selected")
 
         finally:
             transport.close()
+
+    def _find_firmware_for_board_id(
+        self, firmwares: list[Firmware], board_id: int
+    ) -> Optional[Firmware]:
+        """Return matching firmware for board ID, if available."""
+        for fw in firmwares:
+            if fw.board_id == board_id:
+                return fw
+        return None
+
+    def _select_secondary_firmware(
+        self, firmwares: list[Firmware], primary_board_id: int
+    ) -> Optional[Firmware]:
+        """Select optional secondary firmware based on connected primary board."""
+        secondary_board_id = self.SECONDARY_BOARD_ID_MAP.get(primary_board_id)
+        if secondary_board_id is None:
+            return None
+
+        fw = self._find_firmware_for_board_id(firmwares, secondary_board_id)
+        # Only acknowledge the secondary when multiple images are provided.
+        # A single image is always treated as a primary upload target (or
+        # force-uploaded), so we avoid misinterpreting it as secondary.
+        if fw and len(firmwares) > 1:
+            print(f"Using firmware {fw.path}")
+            return fw
+        return None
+
+    def _resolve_upload_plan(
+        self, firmwares: list[Firmware], connected_board_id: int
+    ) -> UploadPlan:
+        """Resolve what to upload for the connected board and configured update mode."""
+        mode = self.config.update_mode
+        primary_firmware = self._find_firmware_for_board_id(firmwares, connected_board_id)
+        secondary_firmware = self._select_secondary_firmware(firmwares, connected_board_id)
+        has_secondary_route = connected_board_id in self.SECONDARY_BOARD_ID_MAP
+
+        if mode not in {"auto", "primary", "secondary", "both"}:
+            raise UploadError(f"Invalid update mode: {mode}")
+
+        # Legacy force behavior for one image keeps existing semantics.
+        if (
+            primary_firmware is None
+            and self.config.force
+            and len(firmwares) == 1
+            and mode in {"auto", "primary", "secondary"}
+        ):
+            primary_firmware = firmwares[0]
+
+        if mode == "auto":
+            mode = "both" if (has_secondary_route and secondary_firmware is not None) else "primary"
+
+        if mode == "primary":
+            if primary_firmware is None:
+                raise BoardMismatchError(
+                    f"No suitable firmware for board {connected_board_id}",
+                    details=f"available: {[fw.board_id for fw in firmwares]}",
+                )
+            return UploadPlan(primary_firmware=primary_firmware, upload_primary=True)
+
+        if mode == "secondary":
+            if has_secondary_route:
+                if secondary_firmware is None:
+                    secondary_board_id = self.SECONDARY_BOARD_ID_MAP[connected_board_id]
+                    raise BoardMismatchError(
+                        f"Secondary firmware required for board {connected_board_id}",
+                        details=f"expected board_id {secondary_board_id}",
+                    )
+                return UploadPlan(
+                    secondary_firmware=secondary_firmware,
+                    upload_secondary=True,
+                )
+
+            if primary_firmware is None:
+                raise BoardMismatchError(
+                    f"No suitable firmware for board {connected_board_id}",
+                    details=f"available: {[fw.board_id for fw in firmwares]}",
+                )
+            return UploadPlan(primary_firmware=primary_firmware, upload_primary=True)
+
+        # mode == "both"
+        if not has_secondary_route:
+            raise UploadError(
+                f"Update mode 'both' is not supported for board {connected_board_id}"
+            )
+
+        if primary_firmware is None:
+            raise BoardMismatchError(
+                f"Primary firmware required for board {connected_board_id}",
+                details=f"available: {[fw.board_id for fw in firmwares]}",
+            )
+
+        if secondary_firmware is None:
+            secondary_board_id = self.SECONDARY_BOARD_ID_MAP[connected_board_id]
+            raise BoardMismatchError(
+                f"Secondary firmware required for board {connected_board_id}",
+                details=f"expected board_id {secondary_board_id}",
+            )
+
+        return UploadPlan(
+            primary_firmware=primary_firmware,
+            secondary_firmware=secondary_firmware,
+            upload_primary=True,
+            upload_secondary=True,
+        )
+
+    def _upload_secondary_firmware(
+        self,
+        transport: SerialTransport,
+        primary_protocol: BootloaderProtocol,
+        secondary_firmware: Firmware,
+    ) -> None:
+        """Upload secondary MCU firmware through bootloader serial forwarding."""
+        if not self.config.json_output:
+            print("\nStarting secondary upload via serial-forward...")
+
+        primary_protocol.start_serial_forward()
+        time.sleep(0.1)
+
+        error: Optional[Exception] = None
+
+        try:
+            secondary_protocol = BootloaderProtocol(
+                transport,
+                windowed=self.config.windowed,
+            )
+
+            identify_deadline = time.monotonic() + 5.0
+            while True:
+                try:
+                    secondary_protocol.identify()
+                    break
+                except (ProtocolError, TimeoutError):
+                    if time.monotonic() >= identify_deadline:
+                        raise TimeoutError(
+                            "Timed out waiting for secondary bootloader",
+                            port=transport.port_name,
+                            operation="secondary_identify",
+                        )
+                    time.sleep(0.1)
+
+            self._print_message(
+                "board",
+                board_type=secondary_protocol.board_type,
+                board_rev=secondary_protocol.board_rev,
+                protocol_version=secondary_protocol.bl_rev,
+                port=transport.port_name,
+            )
+
+            if secondary_protocol.board_type != secondary_firmware.board_id:
+                raise BoardMismatchError(
+                    "Secondary bootloader board ID mismatch",
+                    details=(
+                        f"expected {secondary_firmware.board_id}, "
+                        f"got {secondary_protocol.board_type}"
+                    ),
+                )
+
+            self._do_upload(secondary_protocol, secondary_firmware)
+
+        except Exception as exc:  # Keep original upload error but still recover primary.
+            error = exc
+
+        # Wait for passthrough idle timeout, then reboot primary.
+        try:
+            self._wait_for_primary_after_serial_forward(primary_protocol)
+        except Exception as exc:
+            if error is None:
+                error = exc
+            else:
+                logger.warning(f"Primary resync failed after secondary upload: {exc}")
+
+        try:
+            primary_protocol.reboot()
+        except Exception as exc:
+            if error is None:
+                error = exc
+            else:
+                logger.warning(f"Primary reboot failed after secondary upload: {exc}")
+
+        if error is not None:
+            raise error
+
+    def _wait_for_primary_after_serial_forward(
+        self, primary_protocol: BootloaderProtocol, timeout_s: float = 5.0
+    ) -> None:
+        """Wait for serial-forward mode to expire and primary bootloader to resync."""
+        deadline = time.monotonic() + timeout_s
+        while time.monotonic() < deadline:
+            try:
+                primary_protocol.sync()
+                return
+            except (ProtocolError, TimeoutError, ConnectionError):
+                time.sleep(0.1)
+
+        raise TimeoutError(
+            "Timed out waiting for primary bootloader after secondary upload",
+            port=primary_protocol.transport.port_name,
+            operation="serial_forward",
+        )
 
     def _try_identify(
         self, transport: SerialTransport, protocol: BootloaderProtocol
@@ -1857,12 +2087,15 @@ class Uploader:
             details=f"available: {[fw.board_id for fw in firmwares]}",
         )
 
-    def _do_upload(self, protocol: BootloaderProtocol, firmware: Firmware) -> None:
+    def _do_upload(
+        self, protocol: BootloaderProtocol, firmware: Firmware, reboot: bool = True
+    ) -> None:
         """Perform the actual upload sequence.
 
         Args:
             protocol: Bootloader protocol handler
             firmware: Firmware to upload
+            reboot: Reboot board after upload
         """
         # Print firmware info
         self._print_message(
@@ -1929,7 +2162,8 @@ class Uploader:
             protocol.set_boot_delay(self.config.boot_delay)
 
         # Reboot and show summary
-        protocol.reboot()
+        if reboot:
+            protocol.reboot()
         progress.finish()
 
     def _print_board_info(self, protocol: BootloaderProtocol) -> None:
@@ -2023,6 +2257,15 @@ Examples:
         help="Use windowed mode for faster uploads on real serial ports (FTDI)",
     )
     parser.add_argument(
+        "--update-mode",
+        choices=["primary", "secondary", "both", "auto"],
+        default="primary",
+        help=(
+            "Select update path: primary (default), secondary, both, or auto. "
+            "Auto uploads both only when a mapped secondary image is present."
+        ),
+    )
+    parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose output"
     )
     parser.add_argument(
@@ -2073,6 +2316,7 @@ Examples:
         windowed=args.windowed,
         noninteractive=args.noninteractive or args.noninteractive_json,
         json_output=args.noninteractive_json,
+        update_mode=args.update_mode,
     )
 
     if not args.noninteractive_json:

@@ -334,6 +334,7 @@ bootloaders_update: \
 	cuav_x25-evo_bootloader \
 	cubepilot_cubeorange_bootloader \
 	cubepilot_cubeorangeplus_bootloader \
+	cubepilot_cubered_bootloader \
 	hkust_nxt-dual_bootloader \
 	hkust_nxt-v1_bootloader \
 	holybro_durandal-v1_bootloader \
