@@ -213,8 +213,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_follow_target(msg);
 		break;
 
-	case MAVLINK_MSG_ID_GLOBAL_POSITION:
-		handle_message_global_position(msg);
+	case MAVLINK_MSG_ID_GLOBAL_POSITION_SENSOR:
+		handle_message_global_position_sensor(msg);
 		break;
 
 	case MAVLINK_MSG_ID_LANDING_TARGET:
@@ -2497,10 +2497,10 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 }
 
 void
-MavlinkReceiver::handle_message_global_position(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_global_position_sensor(mavlink_message_t *msg)
 {
-	mavlink_global_position_t global_pos;
-	mavlink_msg_global_position_decode(msg, &global_pos);
+	mavlink_global_position_sensor_t global_pos;
+	mavlink_msg_global_position_sensor_decode(msg, &global_pos);
 
 	aux_global_position_s aux_global_position{};
 
