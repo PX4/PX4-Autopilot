@@ -71,4 +71,5 @@ private:
 	int read_factory_data() override;
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+	static const uint8_t _status_byte_expected = 0x40;
 };
