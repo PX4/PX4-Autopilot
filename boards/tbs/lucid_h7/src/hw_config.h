@@ -110,7 +110,7 @@
 #define BOARD_LED_OFF                  1
 
 // Enable serial break detection to allow uploader to trigger bootloader mode
-// #define SERIAL_BREAK_DETECT_DISABLED   1
+#define SERIAL_BREAK_DETECT_DISABLED   1
 
 #if !defined(ARCH_SN_MAX_LENGTH)
 # define ARCH_SN_MAX_LENGTH 12

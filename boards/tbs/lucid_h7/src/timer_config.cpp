@@ -34,57 +34,51 @@
 #include <px4_arch/io_timer_hw_description.h>
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-    // index‑0 ─ TIM3  : DMA1 / Stream‑2 / Channel‑5  (unchanged)
+    // index‑0 ─ TIM3  : DMA1 / Stream‑2 / Channel‑5  (PWM 1-2: PB0, PB1)
     initIOTimer(Timer::Timer3,  DMA{DMA::Index1, DMA::Stream2, DMA::Channel5}),
 
-    // index‑1 ─ TIM5  : DMA1 / Stream‑0 / Channel‑6  (unchanged)
+    // index‑1 ─ TIM2  : DMA1 / Stream‑X / Channel‑X  (PWM 3-4: PA0, PA1)
+    initIOTimer(Timer::Timer2,  DMA{DMA::Index1}),
+
+    // index‑2 ─ TIM5  : DMA1 / Stream‑0 / Channel‑6  (PWM 5-6: PA2, PA3)
     initIOTimer(Timer::Timer5,  DMA{DMA::Index1, DMA::Stream0, DMA::Channel6}),
 
-    // index‑2 ─ TIM4  : DMA1 / Stream‑6 / Channel‑2  (unchanged)
+    // index‑3 ─ TIM4  : DMA1 / Stream‑6 / Channel‑2  (PWM 7-10: PD12-PD15)
     initIOTimer(Timer::Timer4,  DMA{DMA::Index1, DMA::Stream6, DMA::Channel2}),
 
-    // index‑3 ─ TIM1  : ADVANCED timer for motors 9‑10  (replaces TIM8)
-    //                 Uses DMA1 with DMAMUX‑assigned request; no fixed stream needed.
-    initIOTimer(Timer::Timer1,  DMA{DMA::Index1}),
-
-    // index‑4 ─ TIM15 : Aux 11‑12  (unchanged; software PWM OK if DMA not required)
-    // initIOTimer(Timer::Timer2),
-
-    // index‑4 ─ TIM15 : Aux 11‑12  (unchanged; software PWM OK if DMA not required)
+    // index‑4 ─ TIM15 : Aux 11‑12  (PWM 11-12: PE5, PE6 - NODMA for LED)
     initIOTimer(Timer::Timer15),
 
-    // index‑5 ─ TIM16 : future / capture  (unchanged)
-    // initIOTimer(Timer::Timer16),
+    // index‑5 ─ TIM1  : LED PWM 13 (PA8 - WS2812)
+    initIOTimer(Timer::Timer1,  DMA{DMA::Index1}),
 };
 
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
+    // ─── TIM3 : PWM 1-2 (PB0, PB1) ────────────────────────────────────────────
+    initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel3}, {GPIO::PortB, GPIO::Pin0}),
+    initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel4}, {GPIO::PortB, GPIO::Pin1}),
 
-    // ─── TIM5 (32‑bit, DMA‑burst) : Motors 1‑4 ────────────────────────────────
-    initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
-    initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel2}, {GPIO::PortA, GPIO::Pin1}),
+    // ─── TIM2 : PWM 3-4 (PA0, PA1) ────────────────────────────────────────────
+    initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
+    initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel2}, {GPIO::PortA, GPIO::Pin1}),
+
+    // ─── TIM5 : PWM 5-6 (PA2, PA3) ────────────────────────────────────────────
     initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel3}, {GPIO::PortA, GPIO::Pin2}),
     initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel4}, {GPIO::PortA, GPIO::Pin3}),
 
-    // ─── TIM4 (DMA‑capable GP) : Motors 5‑8 ───────────────────────────────────
+    // ─── TIM4 : PWM 7-10 (PD12-PD15) ──────────────────────────────────────────
     initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel1}, {GPIO::PortD, GPIO::Pin12}),
     initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel2}, {GPIO::PortD, GPIO::Pin13}),
     initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel3}, {GPIO::PortD, GPIO::Pin14}),
     initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel4}, {GPIO::PortD, GPIO::Pin15}),
 
-    // ─── TIM1 (advanced) : Motors 9‑10 ────────────────────────────────────────
-    initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel2}, {GPIO::PortE, GPIO::Pin11}),
-    initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel3}, {GPIO::PortA, GPIO::Pin10}),
-
-    // ─── TIM15 : Aux 11‑12 ────────────────────────────────────────────────────
+    // ─── TIM15 : PWM 11-12 (PE5, PE6 - NODMA for LED) ─────────────────────────
     initIOTimerChannel(io_timers, {Timer::Timer15, Timer::Channel1}, {GPIO::PortE, GPIO::Pin5}),
     initIOTimerChannel(io_timers, {Timer::Timer15, Timer::Channel2}, {GPIO::PortE, GPIO::Pin6}),
 
-    // ─── TIM3 : Aux / Capture 13‑16 ───────────────────────────────────────────
-    initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel1}, {GPIO::PortC, GPIO::Pin6}),
-    initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel2}, {GPIO::PortC, GPIO::Pin7}),
-    initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel3}, {GPIO::PortC, GPIO::Pin8}),
-    initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel4}, {GPIO::PortC, GPIO::Pin9}),
+    // ─── TIM1 : PWM 13 (PA8 - WS2812 LED) ─────────────────────────────────────
+    initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel1}, {GPIO::PortA, GPIO::Pin8}),
 };
 
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =

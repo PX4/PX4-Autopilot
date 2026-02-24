@@ -2,3 +2,9 @@
 #
 # tbs lucid h7 specific board extras init
 #------------------------------------------------------------------------------
+
+# Retry commander if it failed to start during boot (timeout issue)
+# This is a workaround for commander thread creation timeout during boot
+
+
+

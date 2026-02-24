@@ -176,6 +176,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (result != OK) {
 		syslog(LOG_ERR, "[boot] Failed to initialize SDIO: %d\n", result);
 		led_on(LED_BLUE);
+	} else {
+		/* Give SD card time to stabilize after initialization before attempting format/mount */
+		/* This delay helps prevent format failures due to card not being ready */
+		up_mdelay(100);
 	}
 
 #endif

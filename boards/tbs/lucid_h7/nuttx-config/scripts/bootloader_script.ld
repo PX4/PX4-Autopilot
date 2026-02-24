@@ -34,7 +34,7 @@
  *
  ****************************************************************************/
 
-/* The board uses an STM32H743VI has 2048Kb of main FLASH memory.
+/* The board uses an STM32H743VI and has 2048Kb of main FLASH memory.
  * The flash memory is partitioned into a User Flash memory and a System
  * Flash memory. Each of these memories has two banks:
  *
@@ -63,7 +63,7 @@
  * the STM32 will boot to address 0x0800:0000 in FLASH unless the swiutch is
  * drepresed, then the boot will be from 0x1FF0:0000
  *
- * The STM32H743ZI also has 1024Kb of data SRAM.
+ * The STM32H743VI also has 1024Kb of data SRAM.
  * SRAM is split up into several blocks and into three power domains:
  *
  *   1) TCM SRAMs are dedicated to the Cortex-M7 and are accessible with

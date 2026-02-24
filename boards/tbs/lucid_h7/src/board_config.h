@@ -123,8 +123,16 @@
 
 
 /* PWM
+ * TIM3: 2 channels (PWM 1-2: PB0, PB1)
+ * TIM2: 2 channels (PWM 3-4: PA0, PA1)
+ * TIM5: 2 channels (PWM 5-6: PA2, PA3)
+ * TIM4: 4 channels (PWM 7-10: PD12-PD15)
+ * TIM15: 2 channels (PWM 11-12: PE5, PE6)
+ * TIM1: 1 channel (PWM 13: PA8 - WS2812 LED)
+ * Total: 13 channels (12 motor outputs + 1 LED)
+ * Note: PWM 13 (TIM1_CH1 on PA8) is used for LED/WS2812
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   16
+#define DIRECT_PWM_OUTPUT_CHANNELS   13
 #define DIRECT_INPUT_TIMER_CHANNELS  6
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
@@ -170,12 +178,14 @@
 
 /* High-resolution timer */
 /* High‑resolution timer (HRT) --------------------------------------------- */
-#define HRT_TIMER               2   /* use TIM2 for the HRT               */
-#define HRT_TIMER_CHANNEL       3   /* use capture/compare channel 1      */
+/* Changed to TIM8 to free TIM2 for PWM 3-4 (PA0, PA1) to match ArduPilot */
+#define HRT_TIMER               8   /* use TIM8 for the HRT (was TIM2)     */
+#define HRT_TIMER_CHANNEL       1   /* use capture/compare channel 1      */
 
-/* PPM input on TIM2_CH1 (PA15) -------------------------------------------- */
-#define HRT_PPM_CHANNEL		1
-#define GPIO_PPM_IN             GPIO_TIM2_CH1IN_2
+/* PPM input - Note: PPM input was on TIM2_CH1 (PA15), but TIM2 is now used for PWM */
+/* PPM input functionality may need to be reconfigured if needed */
+// #define HRT_PPM_CHANNEL		1
+// #define GPIO_PPM_IN             GPIO_TIM2_CH1IN_2
 
 /* Safety button ----------------------------------------------------------- */
 #define GPIO_BTN_SAFETY         (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN15)

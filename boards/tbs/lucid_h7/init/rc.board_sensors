@@ -11,7 +11,7 @@ board_adc start
 icm42688 -s -b 1 -R 6 start
 
 # IMU 2 – ICM42688 on SPI4 (CS=PE11) - 180° Yaw rotation (ROTATION_YAW_180)
-icm42688 -s -b 4 -R 4 start
+# icm42688 -s -b 4 -R 4 start
 
 # ───────────────────────────────────────────────────────────────
 # Internal DPS310 Barometer on I2C2 at address 0x76 (118 decimal)
@@ -21,3 +21,5 @@ dps310 -I start -a 118
 # External magnetometers can be connected via I2C bus 4 (external)
 # PX4 will automatically probe and start supported magnetometer drivers
 # if they are detected on the I2C bus. No manual start required.
+
+# ───────────────────────────────────────────────────────────────

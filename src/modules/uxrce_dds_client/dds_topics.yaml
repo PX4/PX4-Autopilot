@@ -112,17 +112,17 @@ publications:
     # type: px4_msgs::msg::EstimatorSensorBias
     # rate_limit: 5.
 
-  - topic: /fmu/out/estimator_aid_src_rng_hgt
+  - topic: /fmu/out/estimator_aid_src_ev_pos
+    type: px4_msgs::msg::EstimatorAidSource2d
+    rate_limit: 50.
+
+  - topic: /fmu/out/estimator_aid_src_ev_yaw
     type: px4_msgs::msg::EstimatorAidSource1d
     rate_limit: 50.
 
-  # - topic: /fmu/out/estimator_aid_src_baro_hgt
-    # type: px4_msgs::msg::EstimatorAidSource1d
-    # rate_limit: 50.
-
-  # - topic: /fmu/out/vehicle_local_position_setpoint
-    # type: px4_msgs::msg::VehicleLocalPositionSetpoint
-    # rate_limit: 50.
+  - topic: /fmu/out/vehicle_local_position_setpoint
+    type: px4_msgs::msg::VehicleLocalPositionSetpoint
+    rate_limit: 50.
 
   - topic: /fmu/out/sensor_gps
     type: px4_msgs::msg::SensorGps
@@ -182,8 +182,6 @@ subscriptions:
   - topic: /fmu/in/goto_setpoint
     type: px4_msgs::msg::GotoSetpoint
 
-  # - topic: /fmu/in/landing_target_pose #naor add this
-  #   type: px4_msgs::msg::LandingTargetPose
 
   - topic: /fmu/in/telemetry_status
     type: px4_msgs::msg::TelemetryStatus
