@@ -50,7 +50,7 @@ void WQueueScheduledTest::Run()
 	//PX4_INFO("iter: %d elapsed: %" PRId64 " us", _iter, hrt_elapsed_time(&_qtime));
 
 	if (_iter > 1000) {
-		appState.requestExit();
+		appState.setRunning(false);
 	}
 
 	_iter++;
@@ -66,7 +66,7 @@ int WQueueScheduledTest::main()
 	ScheduleOnInterval(4000);
 
 	// Wait for work to finsh
-	while (!appState.exitRequested()) {
+	while (appState.isRunning()) {
 		px4_usleep(10000);
 	}
 

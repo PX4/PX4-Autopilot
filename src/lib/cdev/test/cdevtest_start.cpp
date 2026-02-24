@@ -76,7 +76,7 @@ int cdev_test_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		CDevExample::appState.requestExit();
+		CDevExample::appState.setRunning(false);
 		return 0;
 	}
 

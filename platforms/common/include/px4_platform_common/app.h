@@ -48,16 +48,12 @@ class AppState
 public:
 	~AppState() {}
 
-	AppState() : _exitRequested(false), _isRunning(false) {}
-
-	bool exitRequested() { return _exitRequested; }
-	void requestExit() { _exitRequested = true; }
+	AppState() :_isRunning(false) {}
 
 	bool isRunning() { return _isRunning; }
 	void setRunning(bool running) { _isRunning = running; }
 
 protected:
-	bool _exitRequested;
 	bool _isRunning;
 private:
 	AppState(const AppState &);

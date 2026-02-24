@@ -87,7 +87,7 @@ int qshell_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		QShell::appState.requestExit();
+		QShell::appState.setRunning(false);
 		return 0;
 	}
 
