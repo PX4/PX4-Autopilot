@@ -25,7 +25,7 @@ PX4 does not _require_ a manual control system for autonomous flight modes.
 ## PX4 Configuration
 
 ::: tip
-This section explains how to configure the PX4 to use and prioritise various manual control sources (other configuration is covered in the guides for each type of manual control).
+This section explains how to configure PX4 to use and prioritise various manual control sources (other configuration is covered in the guides for each type of manual control).
 :::
 
 If you only have one manual control system, either RC or Joystick, then by default no manual control selection is required.
@@ -43,7 +43,7 @@ If you have multiple control sources, such as an RC system and/or one or more Jo
 - `7`: RC priority, then MAVLink (higher instance before lower) — `RC > MAVLink 2 > MAVLink 1`
 - `8`: MAVLink priority (higher instance before lower), then RC — `MAVLink 2 > MAVLink 1 > RC`
 
-The [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances) refers an instance assigned to a serial port, such as [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG).
+The [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances) refers to an instance assigned to a serial port, such as [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG).
 
 Notes:
 

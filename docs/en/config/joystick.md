@@ -23,7 +23,7 @@ Information about how to set up a joystick is covered in: [QGroundControl > Joys
 In summary:
 
 - Open _QGroundControl_
-- [Enable an `COM_RC_IN_MODE` mode that allows Joystick](../config/manual_control.md#px4-configuration).
+- [Enable a `COM_RC_IN_MODE` mode that allows Joystick](../config/manual_control.md#px4-configuration).
   The default `RC or MAVLink keep first` should work if you plan to only have a Joystick connected.
 - Connect the joystick
 - Configure the connected joystick in: **Vehicle Setup > Joystick**.
