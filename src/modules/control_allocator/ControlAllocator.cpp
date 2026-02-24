@@ -397,6 +397,19 @@ ControlAllocator::Run()
 
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
 		_thrust_sp = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
+
+		// As defined in VehicleThrustSetpoint.msg, a thrust of NaN means stopping the motor.
+		// No sideways motors implemented for now...
+		const bool stop_forwards_motors = std::isnan(_thrust_sp(0));
+
+		// also only if it is actually about motors....
+		_actuator_effectiveness->setForwardsMotorsStoppedByThrust(stop_forwards_motors);
+
+		// Now that the intent of stopping motors is stored, transform
+		// NaN to 0 to represent physical thrust again
+		if (stop_forwards_motors) {
+			_thrust_sp(0) = 0.f;
+		}
 	}
 
 	if (do_update) {
@@ -438,6 +451,10 @@ ControlAllocator::Run()
 			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
 								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
+
+			if (i == 0) {
+				_control_allocation[i]->applyNanToActuators(_actuator_effectiveness->getStoppedMotors());
+			}
 
 			if (_has_slew_rate) {
 				_control_allocation[i]->applySlewRateLimit(dt);
@@ -652,17 +669,17 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 }
 
 float
-ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_stopped_motor_failed)
+ControlAllocator::get_ice_shedding_output(hrt_abstime now, bool any_motor_failed)
 {
 	const float period_sec = _param_ice_shedding_period.get();
 
 	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON;
 	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
 
-	// If any stopped motor has failed, the feature will create much more
-	// torque than in the nominal case, and becomes pointless anyway as we
-	// cannot go back to multicopter
-	const bool apply_shedding = _is_vtol && in_forward_flight && !any_stopped_motor_failed;
+	// If any motor has failed, the feature will create much more torque
+	// than in the nominal case, and becomes pointless anyway as we cannot
+	// go back to multicopter anyway
+	const bool apply_shedding = _is_vtol && in_forward_flight && !any_motor_failed;
 
 	if (feature_disabled_by_param || !apply_shedding) {
 		// Bypass slew limit and immediately set zero, to not
@@ -704,15 +721,9 @@ ControlAllocator::publish_actuator_controls()
 	int actuator_idx = 0;
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
-	const uint32_t stopped_motors_due_to_effectiveness = _actuator_effectiveness->getStoppedMotors();
+	const uint32_t failed_motors_mask = _handled_motor_failure_bitmask | _motor_stop_mask;
 
-	const uint32_t stopped_motors = stopped_motors_due_to_effectiveness
-					| _handled_motor_failure_bitmask
-					| _motor_stop_mask;
-
-	const bool any_stopped_motor_failed = 0 != (stopped_motors_due_to_effectiveness & (_handled_motor_failure_bitmask | _motor_stop_mask));
-
-	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp, any_stopped_motor_failed);
+	const float ice_shedding_output = get_ice_shedding_output(actuator_motors.timestamp, failed_motors_mask != 0);
 
 	// motors
 	int motors_idx;
@@ -722,7 +733,7 @@ ControlAllocator::publish_actuator_controls()
 		float actuator_sp = _control_allocation[selected_matrix]->getActuatorSetpoint()(actuator_idx_matrix[selected_matrix]);
 		actuator_motors.control[motors_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
 
-		if (stopped_motors & (1u << motors_idx)) {
+		if (failed_motors_mask & (1u << motors_idx)) {
 			actuator_motors.control[motors_idx] = NAN;
 
 			if (ice_shedding_output > FLT_EPSILON) {
