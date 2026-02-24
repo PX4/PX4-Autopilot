@@ -430,7 +430,7 @@ void Pxh::_setup_term()
 	term.c_lflag &= ~ICANON;
 	term.c_lflag &= ~ECHO;
 	tcsetattr(0, TCSANOW, &term);
-	setbuf(stdin, nullptr);
+	(void)setvbuf(stdin, nullptr, _IONBF, 0);
 }
 
 void Pxh::_restore_term()
