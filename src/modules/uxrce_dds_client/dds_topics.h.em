@@ -163,16 +163,20 @@ struct RcvTopicsPubs {
 @[    end for]@
 
 @[    for sub in subscriptions_demux]@
+@[        if sub.get('route_field')]@
 	uORB::PublicationMulti<@(sub['simple_base_type'])_s> @(sub['topic_simple'])_pubs[@(sub['max_instances'])] {
-@[        for idx in range(sub['max_instances'])]@
+@[            for idx in range(sub['max_instances'])]@
 		{ORB_ID(@(sub['topic_simple']))}@('' if idx == sub['max_instances']-1 else ',')
-@[        end for]@
+@[            end for]@
 	};
 	// Maps route_field values (arbitrary, not bounded to [0, max_instances)) to uORB instance indices
 	struct {
-		uint8_t assigned_ids[@(sub['max_instances'])] {};
+		uint32_t assigned_ids[@(sub['max_instances'])] {};
 		uint8_t num_assigned {0};
 	} @(sub['topic_simple'])_demux;
+@[        else]@
+	uORB::PublicationMulti<@(sub['simple_base_type'])_s> @(sub['topic_simple'])_pub{ORB_ID(@(sub['topic_simple']))};
+@[        end if]@
 @[    end for]@
 
 	uint32_t num_payload_received{};
@@ -206,6 +210,7 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 
 			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
 				//print_message(ORB_ID(@(sub['simple_base_type'])), data);
+@[        if sub.get('route_field')]@
 				int instance = -1;
 
 				for (uint8_t i = 0; i < pubs->@(sub['topic_simple'])_demux.num_assigned; i++) {
@@ -223,6 +228,9 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 				if (instance >= 0) {
 					pubs->@(sub['topic_simple'])_pubs[instance].publish(data);
 				}
+@[        else]@
+				pubs->@(sub['topic_simple'])_pub.publish(data);
+@[        end if]@
 			}
 		}
 		break;
@@ -246,7 +254,7 @@ bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id
 @[    end for]@
 @[    for idx, sub in enumerate(subscriptions_demux)]@
 	{
-			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['topic_simple']))) * @(sub['max_instances']); // scale queue for multiple sources
+			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['topic_simple']))) * @(sub.get('max_instances', 2)); // scale queue for multiple sources
 			uint32_t message_version = get_message_version<@(sub['simple_base_type'])_s>();
 			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx + len(subscriptions)), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth);
 	}
