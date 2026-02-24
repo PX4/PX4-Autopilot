@@ -1174,13 +1174,8 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 
 	UAVCAN_STM32H7_LOG("Bitrate %lu mode %d", static_cast<unsigned long>(bitrate), static_cast<int>(mode));
 
-	static bool initialized_once = false;
 
-	if (!initialized_once) {
-		initialized_once = true;
-		UAVCAN_STM32H7_LOG("First initialization");
-		initOnce();
-	}
+	initOnce();
 
 	/*
 	 * FDCAN1
