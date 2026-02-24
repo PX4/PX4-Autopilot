@@ -39,6 +39,7 @@
 */
 
 #include "FailureDetector.hpp"
+#include "../HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 
 using namespace time_literals;
 
@@ -67,21 +68,6 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		_failure_detector_status.flags.ext = false;
 	}
 
-	// esc_status subscriber is shared between subroutines
-	esc_status_s esc_status;
-
-	if (_esc_status_sub.update(&esc_status)) {
-		_failure_injector.manipulateEscStatus(esc_status);
-
-		if (_param_escs_en.get()) {
-			updateEscsStatus(vehicle_status, esc_status);
-		}
-
-		if (_param_fd_act_en.get()) {
-			updateMotorStatus(vehicle_status, esc_status);
-		}
-	}
-
 	if (_param_fd_imb_prop_thr.get() > 0) {
 		updateImbalancedPropStatus();
 	}
@@ -89,19 +75,19 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 	return _failure_detector_status.value != status_prev.value;
 }
 
-void FailureDetector::publishStatus()
+void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_mask)
 {
 	failure_detector_status_s failure_detector_status{};
 	failure_detector_status.fd_roll = _failure_detector_status.flags.roll;
 	failure_detector_status.fd_pitch = _failure_detector_status.flags.pitch;
 	failure_detector_status.fd_alt = _failure_detector_status.flags.alt;
 	failure_detector_status.fd_ext = _failure_detector_status.flags.ext;
-	failure_detector_status.fd_arm_escs = _failure_detector_status.flags.arm_escs;
+	failure_detector_status.fd_arm_escs = esc_arm_status || (motor_failure_mask != 0);
 	failure_detector_status.fd_battery = _failure_detector_status.flags.battery;
 	failure_detector_status.fd_imbalanced_prop = _failure_detector_status.flags.imbalanced_prop;
-	failure_detector_status.fd_motor = _failure_detector_status.flags.motor;
+	failure_detector_status.fd_motor = (motor_failure_mask != 0) || (_failure_injector.getMotorStopMask() != 0);
 	failure_detector_status.imbalanced_prop_metric = _imbalanced_prop_lpf.getState();
-	failure_detector_status.motor_failure_mask = _motor_failure_mask;
+	failure_detector_status.motor_failure_mask = motor_failure_mask;
 	failure_detector_status.motor_stop_mask = _failure_injector.getMotorStopMask();
 	failure_detector_status.timestamp = hrt_absolute_time();
 	_failure_detector_status_pub.publish(failure_detector_status);
@@ -172,34 +158,6 @@ void FailureDetector::updateExternalAtsStatus()
 	}
 }
 
-void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status)
-{
-	hrt_abstime now = hrt_absolute_time();
-
-	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-		const int limited_esc_count = math::min(esc_status.esc_count, esc_status_s::CONNECTED_ESC_MAX);
-		const int all_escs_armed_mask = (1 << limited_esc_count) - 1;
-		const bool is_all_escs_armed = (all_escs_armed_mask == esc_status.esc_armed_flags);
-
-		bool is_esc_failure = !is_all_escs_armed;
-
-		for (int i = 0; i < limited_esc_count; i++) {
-			is_esc_failure = is_esc_failure || (esc_status.esc[i].failures > 0);
-		}
-
-		_esc_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
-		_esc_failure_hysteresis.set_state_and_update(is_esc_failure, now);
-
-		if (_esc_failure_hysteresis.get_state()) {
-			_failure_detector_status.flags.arm_escs = true;
-		}
-
-	} else {
-		// reset ESC bitfield
-		_esc_failure_hysteresis.set_state_and_update(false, now);
-		_failure_detector_status.flags.arm_escs = false;
-	}
-}
 
 void FailureDetector::updateImbalancedPropStatus()
 {
@@ -256,84 +214,5 @@ void FailureDetector::updateImbalancedPropStatus()
 				_failure_detector_status.flags.imbalanced_prop = is_imbalanced;
 			}
 		}
-	}
-}
-
-void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status)
-{
-	// 1. Telemetry times out -> communication or power lost on that ESC
-	// 2. Too low current draw compared to commanded thrust
-	// Overvoltage, overcurrent do not have checks yet esc_report.failures are handled separately
-
-	const hrt_abstime now = hrt_absolute_time();
-
-	// Only check while armed
-	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-		actuator_motors_s actuator_motors{};
-		_actuator_motors_sub.copy(&actuator_motors);
-
-		// Check individual ESC reports
-		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
-			// Map the esc status index to the actuator function index
-			const uint8_t actuator_function_index =
-				esc_status.esc[i].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1;
-
-			if (actuator_function_index >= actuator_motors_s::NUM_CONTROLS) {
-				continue; // Invalid mapping
-			}
-
-			const bool timeout = now > esc_status.esc[i].timestamp + 300_ms;
-			const float current = esc_status.esc[i].esc_current;
-
-			// First wait for ESC telemetry reporting non-zero current. Before that happens, don't check it.
-			if (current > FLT_EPSILON) {
-				_esc_has_reported_current[i] = true;
-			}
-
-			if (!_esc_has_reported_current[i]) {
-				continue;
-			}
-
-			_motor_failure_mask &= ~(1u << actuator_function_index); // Reset bit in mask to accumulate failures again
-			_motor_failure_mask |= (static_cast<uint16_t>(timeout) << actuator_function_index); // Telemetry timeout
-
-			// Current limits
-			float thrust = 0.f;
-
-			if (PX4_ISFINITE(actuator_motors.control[actuator_function_index])) {
-				// Normalized motor thrust commands before thrust model factor is applied, NAN means motor is turned off -> 0 thrust
-				thrust = fabsf(actuator_motors.control[actuator_function_index]);
-			}
-
-			bool thrust_above_threshold = thrust > _param_fd_act_mot_thr.get();
-			bool current_too_low = current < (thrust * _param_fd_act_mot_c2t.get()) - _param_fd_act_low_off.get();
-			bool current_too_high = current > (thrust * _param_fd_act_mot_c2t.get()) + _param_fd_act_high_off.get();
-
-			_esc_undercurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
-			_esc_overcurrent_hysteresis[i].set_hysteresis_time_from(false, _param_fd_act_mot_tout.get() * 1_ms);
-
-			if (!_esc_undercurrent_hysteresis[i].get_state()) {
-				// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
-				_esc_undercurrent_hysteresis[i].set_state_and_update(thrust_above_threshold && current_too_low && !timeout, now);
-			}
-
-			if (!_esc_overcurrent_hysteresis[i].get_state()) {
-				// Do not clear mid operation because a reaction could be to stop the motor and that would be conidered healthy again
-				_esc_overcurrent_hysteresis[i].set_state_and_update(current_too_high && !timeout, now);
-			}
-
-			_motor_failure_mask |= (static_cast<uint16_t>(_esc_undercurrent_hysteresis[i].get_state()) << actuator_function_index);
-			_motor_failure_mask |= (static_cast<uint16_t>(_esc_overcurrent_hysteresis[i].get_state()) << actuator_function_index);
-		}
-
-		_failure_detector_status.flags.motor = (_motor_failure_mask != 0u);
-
-	} else { // Disarmed
-		for (uint8_t i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
-			_esc_undercurrent_hysteresis[i].set_state_and_update(false, now);
-			_esc_overcurrent_hysteresis[i].set_state_and_update(false, now);
-		}
-
-		_failure_detector_status.flags.motor = false;
 	}
 }

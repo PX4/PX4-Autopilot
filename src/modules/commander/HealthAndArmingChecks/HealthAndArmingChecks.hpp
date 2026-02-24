@@ -109,6 +109,9 @@ public:
 
 	const failsafe_flags_s &failsafeFlags() const { return _failsafe_flags; }
 
+	uint16_t getMotorFailureMask() const {return _esc_checks.getMotorFailureMask(); }
+	bool getEscArmStatus() const { return _esc_checks.getEscArmStatus(); }
+
 #ifndef CONSTRAINED_FLASH
 	ExternalChecks &externalChecks() { return _external_checks; }
 #endif

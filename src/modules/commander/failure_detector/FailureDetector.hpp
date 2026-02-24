@@ -53,8 +53,6 @@
 // subscriptions
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/pwm_input.h>
 #include <uORB/topics/sensor_selection.h>
@@ -89,13 +87,11 @@ public:
 	bool update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode);
 	const failure_detector_status_u &getStatus() const { return _failure_detector_status; }
 
-	void publishStatus();
+	void publishStatus(bool esc_arm_status, uint16_t motor_failure_mask);
 
 private:
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
 	void updateExternalAtsStatus();
-	void updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
-	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateImbalancedPropStatus();
 
 	failure_detector_status_u _failure_detector_status{};
@@ -103,25 +99,17 @@ private:
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
-	systemlib::Hysteresis _esc_failure_hysteresis{false};
 
 	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
 	uint32_t _selected_accel_device_id{0};
 	hrt_abstime _imu_status_timestamp_prev{0};
 
-	// Motor failure check
-	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if ESC reported non-zero current before (some never report any)
-	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
-	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
-	uint16_t _motor_failure_mask = 0; // actuator function indexed
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)}; // TODO: multi-instance
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
-	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 
 	uORB::Publication<failure_detector_status_s> _failure_detector_status_pub{ORB_ID(failure_detector_status)};
 
@@ -134,15 +122,6 @@ private:
 		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
-		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en,
-		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
-
-		// Actuator failure
-		(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
-		(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_act_mot_thr,
-		(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_act_mot_c2t,
-		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_act_mot_tout,
-		(ParamFloat<px4::params::FD_ACT_LOW_OFF>) _param_fd_act_low_off,
-		(ParamFloat<px4::params::FD_ACT_HIGH_OFF>) _param_fd_act_high_off
+		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr
 	)
 };

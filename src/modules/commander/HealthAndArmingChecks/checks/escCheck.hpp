@@ -35,8 +35,11 @@
 
 #include "../Common.hpp"
 
+#include <lib/hysteresis/hysteresis.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/failure_detector_status.h>
 
 class EscChecks : public HealthAndArmingCheckBase
 {
@@ -46,14 +49,31 @@ public:
 
 	void checkAndReport(const Context &context, Report &reporter) override;
 
+	uint16_t getMotorFailureMask() const { return _motor_failure_mask; }
+	bool getEscArmStatus() const { return _esc_arm_hysteresis.get_state(); }
+
 private:
-	void checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
+	uint16_t checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
+	uint16_t checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
+	uint16_t checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
+	void updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 
 	const hrt_abstime _start_time{hrt_absolute_time()};
 
+	uint16_t _motor_failure_mask = 0;
+	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {};
+	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
+	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
+	systemlib::Hysteresis _esc_arm_hysteresis;
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs
-				       )
+					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs,
+					(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
+					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,
+					(ParamFloat<px4::params::MOTFAIL_TIME>) _param_motfail_time,
+					(ParamFloat<px4::params::MOTFAIL_LOW_OFF>) _param_motfail_low_off,
+					(ParamFloat<px4::params::MOTFAIL_HIGH_OFF>) _param_motfail_high_off);
 };

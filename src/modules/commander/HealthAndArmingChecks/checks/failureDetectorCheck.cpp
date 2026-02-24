@@ -98,27 +98,6 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 			(vehicle_status_s::FAILURE_ROLL | vehicle_status_s::FAILURE_PITCH | vehicle_status_s::FAILURE_ALT |
 			 vehicle_status_s::FAILURE_EXT);
 
-
-	reporter.failsafeFlags().fd_esc_arming_failure = context.status().failure_detector_status &
-			vehicle_status_s::FAILURE_ARM_ESC;
-
-	if (reporter.failsafeFlags().fd_esc_arming_failure) {
-		/* EVENT
-		 * @description
-		 * One or more ESCs failed to arm.
-		 *
-		 * <profile name="dev">
-		 * This check can be configured via <param>FD_ESCS_EN</param> parameter.
-		 * </profile>
-		 */
-		reporter.healthFailure(NavModes::All, health_component_t::motors_escs, events::ID("check_failure_detector_arm_esc"),
-				       events::Log::Critical, "ESC failure");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: ESC failure detected");
-		}
-	}
-
 	reporter.failsafeFlags().fd_imbalanced_prop = context.status().failure_detector_status &
 			vehicle_status_s::FAILURE_IMBALANCED_PROP;
 
@@ -138,22 +117,4 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Imbalanced propeller detected");
 		}
 	}
-
-	reporter.failsafeFlags().fd_motor_failure = context.status().failure_detector_status & vehicle_status_s::FAILURE_MOTOR;
-
-	if (reporter.failsafeFlags().fd_motor_failure) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * This check can be configured via <param>FD_ACT_EN</param> parameter.
-		 * </profile>
-		 */
-		reporter.healthFailure(NavModes::All, health_component_t::motors_escs, events::ID("check_failure_detector_motor"),
-				       events::Log::Critical, "Motor failure detected");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Motor failure detected");
-		}
-	}
-
 }

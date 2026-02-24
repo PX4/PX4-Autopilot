@@ -39,9 +39,6 @@
  * @author Mathieu Bresciani <brescianimathieu@gmail.com>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <parameters/param.h>
-
 /**
  * FailureDetector Max Roll
  *
@@ -131,18 +128,6 @@ PARAM_DEFINE_INT32(FD_EXT_ATS_EN, 0);
 PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1900);
 
 /**
- * Enable checks on ESCs that report their arming state.
- *
- * If enabled, failure detector will verify that all the ESCs have successfully armed when the vehicle has transitioned to the armed state.
- * Timeout for receiving an acknowledgement from the ESCs is 0.3s, if no feedback is received the failure detector will auto disarm the vehicle.
- *
- * @boolean
- *
- * @group Failure Detector
- */
-PARAM_DEFINE_INT32(FD_ESCS_EN, 1);
-
-/**
  * Imbalanced propeller check threshold
  *
  * Value at which the imbalanced propeller metric (based on horizontal and
@@ -156,89 +141,3 @@ PARAM_DEFINE_INT32(FD_ESCS_EN, 1);
  * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_IMB_PROP_THR, 30);
-
-/**
- * Enable Actuator Failure check
- *
- * If enabled, failure detector will verify that for motors, a minimum amount of ESC current per throttle
- * level is being consumed.
- * Otherwise this indicates an motor failure.
- *
- * @boolean
- * @reboot_required true
- *
- * @group Failure Detector
- */
-PARAM_DEFINE_INT32(FD_ACT_EN, 0);
-
-/**
- * Motor Failure Thrust Threshold
- *
- * Failure detection per motor only triggers above this thrust value.
- * Set to 1 to disable the detection.
- *
- * @group Failure Detector
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(FD_ACT_MOT_THR, 0.2f);
-
-/**
- * Motor Failure Current/Throttle Scale
- *
- * Determines the slope between expected steady state current and linearized, normalized thrust command.
- * E.g. FD_ACT_MOT_C2T A represents the expected steady state current at 100%.
- * FD_ACT_LOW_OFF and FD_ACT_HIGH_OFF offset the threshold from that slope.
- *
- * @group Failure Detector
- * @min 0.0
- * @max 50.0
- * @unit A/%
- * @decimal 2
- * @increment 1
- */
-PARAM_DEFINE_FLOAT(FD_ACT_MOT_C2T, 35.f);
-
-/**
- * Motor Failure Hysteresis Time
- *
- * Motor failure only triggers after current thresholds are exceeded for this time.
- *
- * @group Failure Detector
- * @unit ms
- * @min 10
- * @max 10000
- * @increment 100
- */
-PARAM_DEFINE_INT32(FD_ACT_MOT_TOUT, 1000);
-
-/**
- * Undercurrent motor failure limit offset
- *
- * threshold = FD_ACT_MOT_C2T * thrust - FD_ACT_LOW_OFF
- *
- * @group Failure Detector
- * @min 0
- * @max 30
- * @unit A
- * @decimal 2
- * @increment 1
- */
-PARAM_DEFINE_FLOAT(FD_ACT_LOW_OFF, 10.f);
-
-/**
- * Overcurrent motor failure limit offset
- *
- * threshold = FD_ACT_MOT_C2T * thrust + FD_ACT_HIGH_OFF
- *
- * @group Failure Detector
- * @min 0
- * @max 30
- * @unit A
- * @decimal 2
- * @increment 1
- */
-PARAM_DEFINE_FLOAT(FD_ACT_HIGH_OFF, 10.f);
