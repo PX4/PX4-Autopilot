@@ -60,7 +60,7 @@
 
 #include "arm_internal.h"
 #include "arm_internal.h"
-#include "barriers.h"
+#include <arch/barriers.h>
 
 #include "stm32_gpio.h"
 #include "stm32_dma.h"
@@ -103,7 +103,7 @@
 
 /* QSPI memory synchronization */
 
-#define MEMORY_SYNC()     do { ARM_DSB(); ARM_ISB(); } while (0)
+#define MEMORY_SYNC()     do { arm_dsb(); arm_isb(); } while (0)
 
 /* Ensure that the DMA buffers are word-aligned. */
 

@@ -40,7 +40,7 @@
 #include <px4_arch/imxrt_romapi.h>
 #include "board_config.h"
 #include "hardware/imxrt_pinmux.h"
-#include "barriers.h"
+#include <arch/barriers.h>
 
 /* Used sectors must be multiple of the flash block size
  * i.e. W25Q32JV has a block size of 64KB
