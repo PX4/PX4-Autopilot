@@ -203,7 +203,7 @@ void VertiqSerialInterface::ProcessSerialRx(ClientAbstract **client_array, uint8
 	ReOpenSerial();
 
 	//We have bytes
-	if (CheckForRx()) {
+	while (CheckForRx()) {
 		uint8_t *data_ptr = ReadAndSetRxBytes();
 
 		//While we've got packets to look at, give the packet to each of the clients so that each

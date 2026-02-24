@@ -133,7 +133,7 @@ private:
 	VertiqClientManager *_client_manager;
 
 	vertiq_telemetry_pause_states _telem_state; //Keep track of whether or not we've paused telemetry
-	IQUartFlightControllerInterfaceClient *_telem_interface; //Used for reading responses from our telemetry targets
+	IQUartFlightControllerInterfaceClient _telem_interface; //Used for reading responses from our telemetry targets
 	esc_status_s _esc_status; //We want to publish our ESC Status to anyone who will listen
 	static const uint8_t MAX_SUPPORTABLE_MODULE_IDS = 63; //[0, 62] //The max number of module IDs that we can support
 	static const uint8_t MAX_ESC_STATUS_ENTRIES =
