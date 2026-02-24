@@ -981,7 +981,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_SET_NAV_STATE: { // Used from ROS
-			uint8_t desired_nav_state = (uint8_t)(cmd.param1 + 0.5f);
+			uint8_t desired_nav_state = static_cast<uint8_t>(lroundf(cmd.param1));
 
 			if (_user_mode_intention.change(desired_nav_state, getSourceFromCommand(cmd))) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
@@ -1676,7 +1676,7 @@ unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 
 	actuator_test_s actuator_test{};
 	actuator_test.timestamp = hrt_absolute_time();
-	actuator_test.function = (int)(cmd.param5 + 0.5);
+	actuator_test.function = static_cast<int>(lroundf(cmd.param5));
 
 	if (actuator_test.function < 1000) {
 		const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
@@ -1701,7 +1701,7 @@ unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 	actuator_test.value = cmd.param1;
 
 	actuator_test.action = actuator_test_s::ACTION_DO_CONTROL;
-	int timeout_ms = (int)(cmd.param2 * 1000.f + 0.5f);
+	int timeout_ms = static_cast<int>(lroundf(cmd.param2 * 1000.f));
 
 	if (timeout_ms <= 0) {
 		actuator_test.action = actuator_test_s::ACTION_RELEASE_CONTROL;

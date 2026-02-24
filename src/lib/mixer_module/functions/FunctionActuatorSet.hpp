@@ -35,6 +35,7 @@
 
 #include "FunctionProviderBase.hpp"
 
+#include <math.h>
 #include <uORB/topics/vehicle_command.h>
 
 /**
@@ -58,7 +59,7 @@ public:
 
 		while (_topic.update(&vehicle_command)) {
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ACTUATOR) {
-				int index = (int)(vehicle_command.param7 + 0.5f);
+				int index = static_cast<int>(lroundf(vehicle_command.param7));
 
 				if (index == 0) {
 					if (PX4_ISFINITE(vehicle_command.param1)) { _data[0] = vehicle_command.param1; }
