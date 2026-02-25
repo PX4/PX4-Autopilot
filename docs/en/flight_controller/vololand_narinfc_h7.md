@@ -1,5 +1,10 @@
 # VOLOLAND NarinFC-H7
 
+:::warning
+PX4 does not manufacture this (or any) autopilot.
+Contact the [manufacturer](https://vololand.com) for hardware support or compliance issues.
+:::
+
 The NarinFC-H7 is an advanced flight controller family designed and produced by [VOLOLAND Inc.](https://vololand.com "VOLOLAND Inc.")
 
 It uses a higher-performance STM32H7 processor and integrates industrial-grade sensors.
@@ -7,6 +12,10 @@ It uses a higher-performance STM32H7 processor and integrates industrial-grade s
 Compared with previous autopilots, it has better performance and higher reliability.
 
 ![NarinFC-H7](../../assets/flight_controller/vololand_narinfc_h7/narinfc_header.jpg "NarinFC")
+
+::: info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
+:::
 
 ## Features/Specifications
 
