@@ -4,3 +4,6 @@
 
 
 set PARAM_FILE {{ params_file }}
+{% if iofw_path %}
+set IOFW "{{ iofw_path }}"
+{% endif %}

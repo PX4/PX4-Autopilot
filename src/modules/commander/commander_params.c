@@ -823,6 +823,17 @@ PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
 PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
 
 /**
+ * Enable SD card metadata integrity check
+ *
+ * Verifies SD card files match the firmware version at startup.
+ * If disabled, no check is performed.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_ARM_META_CHK, 1);
+
+/**
  * Enable Drone ID system detection and health check
  *
  * This check detects if the Open Drone ID system is missing.
