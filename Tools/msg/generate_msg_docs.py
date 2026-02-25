@@ -833,7 +833,7 @@ def generate_dds_yaml_doc(allMessageFiles, output_file = 'dds_topics.md'):
         for message in data["subscriptions"]:
             all_message_types.add(message['type'].split("::")[-1])
             all_topics.add(message['topic'].split('/')[-1])
-        for message in (data.get("subscriptions_demux") or []):
+        for message in (data.get("subscriptions_multi") or []):
             all_message_types.add(message['type'].split("::")[-1])
             all_topics.add(message['topic'].split('/')[-1])
         for message in allMessageFiles:
@@ -870,14 +870,14 @@ Topic | Type| Rate Limit
             px4Type=type.split("::")[-1]
             dds_markdown += f"{message['topic']} | [{type}](../msg_docs/{px4Type}.md)\n"
 
-        dds_markdown += "\n## Subscriptions Demux\n\n"
+        dds_markdown += "\n## Subscriptions Multi\n\n"
 
-        subscriptions_demux = data.get("subscriptions_demux") or []
-        if not subscriptions_demux:
+        subscriptions_multi = data.get("subscriptions_multi") or []
+        if not subscriptions_multi:
             dds_markdown += "None\n"
         else:
             dds_markdown += "Topic | Type | Route Field | Max Instances\n--- | --- | --- | ---\n"
-            for message in subscriptions_demux:
+            for message in subscriptions_multi:
                 type = message['type']
                 px4Type = type.split("::")[-1]
                 route_field = f"`{message['route_field']}`" if 'route_field' in message else "-"

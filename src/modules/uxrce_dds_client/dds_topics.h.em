@@ -162,7 +162,7 @@ struct RcvTopicsPubs {
 	uORB::Publication<@(sub['simple_base_type'])_s> @(sub['topic_simple'])_pub{ORB_ID(@(sub['topic_simple']))};
 @[    end for]@
 
-@[    for sub in subscriptions_demux]@
+@[    for sub in subscriptions_multi]@
 @[        if sub.get('route_field')]@
 	uORB::PublicationMulti<@(sub['simple_base_type'])_s> @(sub['topic_simple'])_pubs[@(sub['max_instances'])] {
 @[            for idx in range(sub['max_instances'])]@
@@ -204,7 +204,7 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 		break;
 
 @[    end for]@
-@[    for idx, sub in enumerate(subscriptions_demux)]@
+@[    for idx, sub in enumerate(subscriptions_multi)]@
 	case @(idx + len(subscriptions))+ (65535U / 32U) + 1: {
 			@(sub['simple_base_type'])_s data;
 
@@ -252,7 +252,7 @@ bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id
 			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic'])", message_version, "@(sub['dds_type'])", queue_depth);
 	}
 @[    end for]@
-@[    for idx, sub in enumerate(subscriptions_demux)]@
+@[    for idx, sub in enumerate(subscriptions_multi)]@
 	{
 			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['topic_simple']))) * @(sub.get('max_instances', 2)); // scale queue for multiple sources
 			uint32_t message_version = get_message_version<@(sub['simple_base_type'])_s>();

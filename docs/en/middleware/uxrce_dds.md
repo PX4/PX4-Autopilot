@@ -520,7 +520,7 @@ subscriptions:
   - topic: /fmu/in/vehicle_trajectory_waypoint
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
-subscriptions_demux:
+subscriptions_multi:
 
   - topic: /fmu/in/aux_global_position
     type: px4_msgs::msg::AuxGlobalPosition
@@ -531,7 +531,7 @@ subscriptions_demux:
 
 Each (`topic`,`type`) pairs defines:
 
-1. A new `publication`, `subscription`, or `subscriptions_demux`, depending on the list to which it is added.
+1. A new `publication`, `subscription`, or `subscriptions_multi`, depending on the list to which it is added.
 2. The topic _base name_, which **must** coincide with the desired uORB topic name that you want to publish/subscribe.
    It is identified by the last token in `topic:` that starts with `/` and does not contains any `/` in it.
    `vehicle_odometry`, `vehicle_status` and `offboard_control_mode` are examples of base names.
@@ -546,32 +546,36 @@ Each (`topic`,`type`) pairs defines:
    If provided, this option changes the ROS 2 topic name of the advertised uORB topic appending the instance number: `fmu/out/[uorb topic name][instance]` (plus eventual namespace and message version).
    In the example above the final topic name would be `/fmu/out/vehicle_imu1`.
 
-`subscriptions` and `subscriptions_demux` allow us to choose how ROS2 topics are routed to uORB topic instances.
+`subscriptions` and `subscriptions_multi` allow us to choose the uORB topic instance that ROS 2 topics are routed to: either a shared instance that may also be getting updates from internal PX4 uORB publishers, or a separate instance that is reserved for ROS 2 publications, respectively.
 Without this mechanism all ROS 2 messages would be routed to the _same_ uORB topic instance (because ROS 2 does not have the concept of [multiple topic instances](../middleware/uorb.md#multi-instance)), and it would not be possible for PX4 subscribers to differentiate between streams from ROS 2 or PX4 publishers.
 
 Add a topic to the `subscriptions` section to:
 
-- Create a unidirectional route going from the ROS2 topic to the _default_ instance (instance 0) of the associated uORB topic.
-  For example, it creates a ROS2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher of `vehicle_odometry`.
-- If other (internal) PX4 modules are already publishing on the same uORB topic instance as the ROS2 publisher, the instance's subscribers will receive all streams of messages.
-  The uORB subscriber will not be able to determine if an incoming message was published by PX4 or by ROS2.
-- This is the desired behavior when the ROS2 publisher is expected to be the sole publisher on the topic instance (for example, replacing an internal publisher to the topic during offboard control), or when the source of multiple publishing streams does not matter.
+- Create a unidirectional route going from the ROS 2 topic to the _default_ instance (instance 0) of the associated uORB topic.
+  For example, it creates a ROS 2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher of `vehicle_odometry`.
+- If other (internal) PX4 modules are already publishing on the same uORB topic instance as the ROS 2 publisher, the instance's subscribers will receive all streams of messages.
+  The uORB subscriber will not be able to determine if an incoming message was published by PX4 or by ROS 2.
+- This is the desired behavior when the ROS 2 publisher is expected to be the sole publisher on the topic instance (for example, replacing an internal publisher to the topic during offboard control), or when the source of multiple publishing streams does not matter.
 
-Add a topic to the `subscriptions_demux` section to publish received messages using `uORB::PublicationMulti`, which auto-assigns a new uORB topic instance (rather than always publishing to instance 0 as `subscriptions` does).
-This is useful when other PX4 modules are already publishing on the default instance and the ROS2 stream must be distinguishable.
+Add a topic to the `subscriptions_multi` section to:
 
-Without `route_field`, each incoming message is published to a single auto-assigned uORB instance (equivalent to the former `subscriptions_multi` behavior).
+- Create a unidirectional route going from the ROS 2 topic to a _new_ instance of the associated uORB topic.
+  For example, if `vehicle_odometry` has already `2` instances, it creates a ROS 2 subscriber of `/fmu/in/vehicle_odometry` and a uORB publisher on instance `3` of `vehicle_odometry`.
+- This ensures that no other internal PX4 module will publish on the same instance used by uXRCE-DDS.
+  The subscribers will be able to subscribe to the desired instance and distinguish between publishers.
+- Without `route_field`, this guarantees separation between PX4 and ROS 2 publishers, but not among multiple ROS 2 publishers. In that scenario, their messages will still be routed to the same instance.
+- This is the desired behavior, for example, when you want PX4 to log the readings of two equal sensors; they will both publish on the same topic, but one will use instance 0 and the other will use instance 1.
 
-With `route_field` and `max_instances`, a single ROS2 topic is demultiplexed into multiple uORB instances based on a message field value:
+Optionally, add `route_field` and `max_instances` to demultiplex a single ROS 2 topic into multiple uORB instances based on a message field value:
 
 - Each unique value of `route_field` is dynamically assigned to a separate uORB instance on first arrival, up to `max_instances`.
-  For example, a single `/fmu/in/aux_global_position` ROS2 topic can be demultiplexed to up to 4 separate uORB instances of `aux_global_position`, with each unique `id` value mapped to its own instance.
-- This allows multiple ROS2 publishers to share a single DDS topic while PX4 subscribers can distinguish between them by subscribing to different uORB instances.
+  For example, a single `/fmu/in/aux_global_position` ROS 2 topic can be demultiplexed to up to 4 separate uORB instances of `aux_global_position`, with each unique `id` value mapped to its own instance.
+- This allows multiple ROS 2 publishers to share a single DDS topic while PX4 subscribers can distinguish between them by subscribing to different uORB instances.
 - `route_field` must be a field present in the message definition. `max_instances` is required when `route_field` is set and limits how many distinct sources can be demultiplexed simultaneously.
 
 ::: warning
-The `subscriptions_demux` feature is currently only implemented in the uXRCE-DDS client.
-The Zenoh bridge module does not yet support demux routing — topics listed under `subscriptions_demux` in `dds_topics.yaml` will be ignored by the Zenoh bridge.
+The `subscriptions_multi` feature with `route_field` is currently only implemented in the uXRCE-DDS client.
+The Zenoh bridge module does not yet support demux routing — topics listed under `subscriptions_multi` in `dds_topics.yaml` will be ignored by the Zenoh bridge.
 :::
 
 You can arbitrarily change the configuration.
