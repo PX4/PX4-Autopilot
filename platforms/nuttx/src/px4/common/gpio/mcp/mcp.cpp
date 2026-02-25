@@ -106,10 +106,10 @@ int mcp230XX_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor, 
 
 		if (!_gpio[i].registered) {
 			if (dir_mask & mask) {
-				_gpio[i] = { {GPIO_INPUT_PIN, {}, &mcp_gpio_ops}, mask, false, nullptr};
+				_gpio[i] = mcp_gpio_dev_s{{GPIO_INPUT_PIN, {}, (uintptr_t) &mcp_gpio_ops}, mask, false, nullptr};
 
 			} else {
-				_gpio[i] = { {GPIO_OUTPUT_PIN, {}, &mcp_gpio_ops}, mask, false, nullptr};
+				_gpio[i] = mcp_gpio_dev_s{{GPIO_OUTPUT_PIN, {}, (uintptr_t) &mcp_gpio_ops}, mask, false, nullptr};
 			}
 
 			int ret = gpio_pin_register(&_gpio[i].gpio, first_minor + i);

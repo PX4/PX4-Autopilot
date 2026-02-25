@@ -48,7 +48,7 @@
 #include <malloc.h>
 #include <poll.h>
 #include <signal.h>
-#include <crc32.h>
+#include <nuttx/crc32.h>
 #include <syslog.h>
 
 #include <drivers/drv_pwm_output.h>

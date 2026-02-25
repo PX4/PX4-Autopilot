@@ -45,7 +45,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/sem.hpp>
 
-#include <crc32.h>
+#include <nuttx/crc32.h>
 
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>

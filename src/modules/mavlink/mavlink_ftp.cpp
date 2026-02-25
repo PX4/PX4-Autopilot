@@ -34,7 +34,11 @@
 /// @file mavlink_ftp.cpp
 ///	@author px4dev, Don Gagne <don@thegagnes.com>
 
+#if defined(__PX4_NUTTX)
+#include <nuttx/crc32.h>
+#else
 #include <crc32.h>
+#endif
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>

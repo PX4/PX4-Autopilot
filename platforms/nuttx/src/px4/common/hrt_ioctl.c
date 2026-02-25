@@ -47,6 +47,8 @@
 #  define MODULE_NAME "hrt_ioctl"
 #endif
 
+#if !defined(CONFIG_BUILD_FLAT)
+
 #define HRT_ENTRY_QUEUE_MAX_SIZE 3
 static px4_sem_t g_wait_sem;
 static struct hrt_call *next_hrt_entry[HRT_ENTRY_QUEUE_MAX_SIZE];
@@ -170,3 +172,13 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 	return OK;
 }
+
+#else /* CONFIG_BUILD_FLAT */
+
+/* For flat builds, hrt functions are called directly, no ioctl needed */
+void hrt_ioctl_init(void)
+{
+	/* Nothing to do for flat builds */
+}
+
+#endif /* !CONFIG_BUILD_FLAT */

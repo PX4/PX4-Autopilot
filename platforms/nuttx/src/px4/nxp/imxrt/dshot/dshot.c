@@ -41,7 +41,7 @@
 #include <px4_arch/io_timer.h>
 #include <drivers/drv_dshot.h>
 #include <stdio.h>
-#include "barriers.h"
+#include <arch/barriers.h>
 
 #include "arm_internal.h"
 

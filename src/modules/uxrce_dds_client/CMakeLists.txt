@@ -62,6 +62,10 @@ else()
 		set(lib_dir "lib")
 	endif()
 
+	if(PX4_PLATFORM STREQUAL "nuttx")
+		set(c_flags_with_includes "${c_flags_with_includes} -Wno-cast-align -D__PX4_NUTTX")
+	endif()
+
 	include(ExternalProject)
 	ExternalProject_Add(
 		libmicroxrceddsclient_project
