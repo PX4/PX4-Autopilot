@@ -14,7 +14,7 @@ uint64 timestamp_sample # [us] Timestamp of the raw data
 
 bool valid # True if the current data is valid.
 
-uint8 data_source [@enum SOURCE] # Source of the manual control setpoint
+uint8 data_source # [@enum SOURCE] Source of the manual control setpoint
 uint8 SOURCE_UNKNOWN = 0 # Unknown source
 uint8 SOURCE_RC = 1 # Radio control (input_rc)
 uint8 SOURCE_MAVLINK_0 = 2 # MAVLink instance 0
