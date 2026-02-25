@@ -1123,6 +1123,18 @@ Mavlink::send_autopilot_capabilities()
 		board_get_uuid32(uid);
 		msg.uid = (((uint64_t)uid[PX4_CPU_UUID_WORD32_UNIQUE_M]) << 32) | uid[PX4_CPU_UUID_WORD32_UNIQUE_H];
 
+#if defined(GET_HW_BASE_ID)
+		msg.base_id = GET_HW_BASE_ID();
+#else
+		msg.base_id = 0;
+#endif
+
+#if defined(GET_HW_FMUM_ID)
+		msg.fmu_id = GET_HW_FMUM_ID();
+#else
+		msg.fmu_id = 0;
+#endif
+
 #ifndef BOARD_HAS_NO_UUID
 		px4_guid_t px4_guid;
 		board_get_px4_guid(px4_guid);
