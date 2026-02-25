@@ -1,6 +1,6 @@
 # MindPX Hardware
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](http://mindpx.net) for hardware support or compliance issues.
 :::
@@ -79,14 +79,14 @@ For detailed Pin diagram, please refer to the [User Guide](http://mindpx.net/ass
 
 ### Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make airmind_mindpx-v2_default
 ```
 
@@ -104,7 +104,7 @@ And the max BAUD rate is the same with px4 family, which is up to 921600.
 The user guide is [here](http://mindpx.net/assets/accessories/UserGuide9.18_2_pdf.pdf).
 :::
 
-## Where to Buy
+## Where to Buy {#store}
 
 MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 You can also find MindRacer at Amazon<sup>&reg;</sup> or eBay<sup>&reg;</sup>.

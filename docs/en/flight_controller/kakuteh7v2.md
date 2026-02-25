@@ -1,6 +1,6 @@
 # Holybro Kakute H7 V2
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -36,13 +36,13 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Dimensions: 35x35mm
 - Weight: 8g
 
-## Where to Buy
+## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
 
 - [Holybro](https://holybro.com/products/kakute-h7-v2)
 
-:::tip
+::: tip
 The _Kakute H7v2_ is designed to work with the _Tekko32_ 4-in-1 ESC and they can be bought in combination.
 :::
 
@@ -83,7 +83,7 @@ Download the [holybro_kakuteh7v2_bootloader.hex](https://github.com/PX4/PX4-Auto
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_kakuteh7v2_default
 ```
 
@@ -98,7 +98,7 @@ Firmware can be manually installed in any of the normal ways:
 
 - Build and upload the source:
 
-  ```
+  ```sh
   make holybro_kakuteh7v2_default upload
   ```
 

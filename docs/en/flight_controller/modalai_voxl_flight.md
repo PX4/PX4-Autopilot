@@ -2,11 +2,11 @@
 
 <Badge type="info" text="Discontinued" /> <Badge type="tip" text="PX4 v1.11" />
 
-:::warning
+::: warning
 This frame has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://forum.modalai.com/) for hardware support or compliance issues.
 :::
@@ -176,7 +176,7 @@ The full user guide is available [here](https://docs.modalai.com/voxl-flight-qui
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make modalai_fc-v1
 ```
 

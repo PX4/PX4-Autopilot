@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.13" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -36,13 +36,13 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Dimensions: 35x35mm
 - Weight: 8g
 
-## Where to Buy
+## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
 
 - [Holybro](https://holybro.com/products/kakute-h7)
 
-:::tip
+::: tip
 The _Kakute H7_ is designed to work with the _Tekko32_ 4-in-1 ESC and they can be bought in combination.
 :::
 

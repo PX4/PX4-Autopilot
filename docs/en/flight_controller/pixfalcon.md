@@ -2,11 +2,11 @@
 
 <Badge type="info" text="Discontinued" px4_current="v1.15" year="2024"/>
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -47,14 +47,14 @@ Optional hardware:
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v2_default
 ```
 

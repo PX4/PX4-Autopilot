@@ -1,6 +1,6 @@
 # Sky-Drones AIRLink
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://sky-drones.com/) for hardware support or compliance issues.
 :::
@@ -71,7 +71,7 @@ AIRLink has two computers and integrated LTE Module:
   - Antenna, 4x4 MIMO
   - Bands: Worldwide
 
-## Where to Buy
+## Where to Buy {#store}
 
 Purchase from the original Sky-Drones Store (worldwide shipping with 1-2 days order processing time):
 
@@ -344,14 +344,14 @@ AIRLink has 16 PWM ouputs. Main outputs 1-8 and connected to IO MCU. AUX outputs
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make sky-drones_smartap-airlink
 ```
 

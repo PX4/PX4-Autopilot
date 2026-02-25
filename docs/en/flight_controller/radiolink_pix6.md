@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.17" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://radiolink.com.cn/) for hardware support or compliance issues.
 :::
@@ -48,7 +48,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Weight 80g
   - Size 94mm x 51.5mm x 14.5mm
 
-## Where to Buy
+## Where to Buy {#store}
 
 [Radiolink Amazon](https://www.radiolink.com.cn/pix6_where_to_buy)（International users）
 

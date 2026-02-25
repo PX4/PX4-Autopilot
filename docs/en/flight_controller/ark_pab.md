@@ -1,6 +1,6 @@
 # ARK Pixhawk Autopilot Bus Carrier
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware support or compliance issues.
 :::
@@ -11,7 +11,7 @@ The PAB form factor enables the ARK PAB Carrier to be used with any [PAB-compati
 
 ![ARKPAB Main Photo](../../assets/flight_controller/arkpab/ark_pab_main.jpg)
 
-### Where To Buy
+### Where To Buy {#store}
 
 Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopilot-bus-carrier/) (US)
 

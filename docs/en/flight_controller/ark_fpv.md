@@ -1,6 +1,6 @@
 # ARK FPV Flight Controller
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware support or compliance issues.
 :::
@@ -9,11 +9,11 @@ The USA-built ARK FPV flight controller is based on the [ARKV6X](https://arkelec
 
 ![ARK FPV Main Photo](../../assets/flight_controller/arkfpv/ark_fpv.jpg)
 
-:::info
+::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Where To Buy
+## Where To Buy {#store}
 
 Order from [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 

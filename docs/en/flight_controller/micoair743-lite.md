@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.17" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://micoair.com/) for hardware support or compliance issues.
 :::
@@ -67,7 +67,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ![MicoAir743-Lite Size](../../assets/flight_controller/micoair743_lite/size.png)
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [MicoAir Tech Store](https://store.micoair.com/product/micoair743-lite/).
 
@@ -90,7 +90,7 @@ Pinouts definition can be found in the [MicoAir743-Lite_pinout.xlsx](https://raw
 
 ## Interfaces Diagram
 
-::: note
+::: info
 All the connectors used on the board are SH1.0
 :::
 

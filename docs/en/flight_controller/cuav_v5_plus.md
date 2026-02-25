@@ -1,6 +1,6 @@
 # CUAV V5+ Autopilot
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
@@ -58,7 +58,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Other Characteristics:
   - Operating temperature: -20 ~ 80°c（Measured value）
 
-## Where to Buy
+## Where to Buy {#store}
 
 [CUAV Aliexpress](https://www.aliexpress.com/item/32890380056.html?spm=a2g0o.detail.1000060.1.7a7233e7mLTlVl&gps-id=pcDetailBottomMoreThisSeller&scm=1007.13339.90158.0&scm_id=1007.13339.90158.0&scm-url=1007.13339.90158.0&pvid=d899bfab-a7ca-46e1-adf2-72ad1d649822) (International users)
 
@@ -101,20 +101,20 @@ Under these conditions all power sources will be used in this order to power the
 The _V5+_ has over current protection on the 5 Volt Peripheral and 5 Volt high power, which limits the current to 2.5A.
 The _V5+_ has short circuit protection.
 
-:::warning
+::: warning
 Up to 2.5 A can be delivered to the connectors listed as pin 1 (although these are only rated at 1 A).
 :::
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
@@ -142,7 +142,7 @@ The provided debug cable does not connect to the SWD port `Vref` pin (1).
 
 ![CUAV Debug cable](../../assets/flight_controller/cuav_v5_plus/cuav_v5_debug_cable.jpg)
 
-:::warning
+::: warning
 The SWD Vref pin (1) uses 5V as Vref but the CPU is run at 3.3V!
 
 Some JTAG adapters (SEGGER J-Link) will use the Vref voltage to set the voltage on the SWD lines.
@@ -219,7 +219,7 @@ For example, the serial number Batch V011904((V01 is the number of V5, 1904 is t
 
 #### SBUS / DSM / RSSI interface Pin1 unfused
 
-:::warning
+::: warning
 This is a safety issue.
 :::
 

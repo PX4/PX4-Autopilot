@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.17" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 :::
 
@@ -45,7 +45,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
   - FMU Debug
   - IO Debug
 
-## Purchase Channels
+## Purchase Channels {#store}
 
 Order from [X-MAV](https://www.x-mav.cn/).
 

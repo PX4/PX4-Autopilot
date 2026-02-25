@@ -1,6 +1,6 @@
 # PilotPi with Ubuntu Server
 
-:::warning
+::: warning
 Ubuntu Server on RPi 4B consumes a lot of current and generates a lot of heat.
 Design for better heat dissipation and high power consumption when using this hardware.
 :::
@@ -205,7 +205,7 @@ Don't forget to turn off the switch when it is not needed!
 
 #### CSI camera
 
-:::warning
+::: warning
 Enable CSI camera will stop anything works on I2C-0.
 :::
 

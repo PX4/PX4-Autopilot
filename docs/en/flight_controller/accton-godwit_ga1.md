@@ -1,6 +1,6 @@
 # Accton Godwit G-A1
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or compliance issues.
 :::
@@ -12,7 +12,7 @@ It also has independent buses and power supplies, and is designed for safety and
 
 With an integrated 10/100M Ethernet Physical Layer (PHY), the G-A1 can also communicate with a mission computer (airborne computer), high-end surveying and mapping cameras, and other UxV-mounted equipment for high-speed communications, meeting the needs of advanced UxV systems.
 
-:::tip
+::: tip
 Visit [Accton-IoT Godwit](https://www.accton-iot.com/godwit/) for more information.
 :::
 
@@ -65,7 +65,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - 92.2 (L) x 51.2 (W) x 28.3 (H) mm
 - 77.6g (carrier board with IMU)
 
-## Where to Buy
+## Where to Buy {#store}
 
 - [Accton-IoT Godwit](https://www.accton-iot.com/godwit/)
 - [sales@accton-iot.com](sales@accton-iot.com)

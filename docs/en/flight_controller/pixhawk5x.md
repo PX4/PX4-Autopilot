@@ -1,6 +1,6 @@
 # Holybro Pixhawk 5X
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -12,7 +12,7 @@ It comes with the latest PX4 Autopilot​® pre-installed, triple redundancy, te
 
 <img src="../../assets/flight_controller/pixhawk5x/pixhawk5x_hero_upright.jpg" width="250px" title="Pixhawk5x Upright Image" /> <img src="../../assets/flight_controller/pixhawk5x/pixhawk5x_exploded_diagram.jpg" width="450px" title="Pixhawk5x Exploded Image" />
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -111,7 +111,7 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
 - Other Characteristics:
   - Operating & storage temperature: -40 ~ 85°c
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-5x).
 
@@ -181,20 +181,18 @@ Analog battery monitoring via an ADC is not supported on this particular board, 
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5x_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

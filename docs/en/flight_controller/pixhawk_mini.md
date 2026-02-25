@@ -1,6 +1,6 @@
 # Holybro Pixhawk Mini (Discontinued)
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -19,7 +19,7 @@ This flight controller was designed by 3DR in collaboration with HobbyKing<sup>&
 It was formerly known as the 3DR Pixhawk Mini.
 :::
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -67,7 +67,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - **Weight:** 22.4g
 - **Dimensions:** 37x37x12mm
 
-## Where to Buy
+## Where to Buy {#store}
 
 Discontinued.
 
@@ -185,7 +185,7 @@ Pixhawk Mini features an advanced processor and sensor technology from ST Microe
 
 ## Wiring Quick Start
 
-:::warning
+::: warning
 The _Pixhawk Mini_ is no longer manufactured or available from 3DR.
 :::
 
@@ -280,12 +280,12 @@ If this switch is hard to access on a particular vehicle you can attach the (opt
 
 The mappings between MAIN/AUX output ports and motor/servos for all supported air and ground frames are listed in the [Airframe Reference](../airframes/airframe_reference.md).
 
-:::warning
+::: warning
 The mapping is not consistent across frames (e.g. you can't rely on the throttle being on the same output for all plane frames).
 Make sure to use the correct mapping for your vehicle.
 :::
 
-:::tip
+::: tip
 If your frame is not listed in the reference then use a "generic" airframe of the correct type.
 ::: infos:
 
@@ -306,14 +306,14 @@ QuadPlane specific configuration is covered here: [QuadPlane VTOL Configuration]
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 

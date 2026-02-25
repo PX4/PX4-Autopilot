@@ -1,6 +1,6 @@
 # ModalAI VOXL 2
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://forum.modalai.com/) for hardware support or compliance issues.
 :::

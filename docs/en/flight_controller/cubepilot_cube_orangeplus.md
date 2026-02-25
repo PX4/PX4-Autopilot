@@ -1,6 +1,6 @@
 # CubePilot Cube Orange+ Flight Controller
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or compliance issues.
 :::
@@ -19,8 +19,12 @@ This is automatically configured and enabled in the default PX4 firmware.
 
 Cube includes vibration isolation on two of the IMU's, with a third fixed IMU as a reference / backup.
 
-:::tip
+::: tip
 The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube/introduction/specifications).
+:::
+
+::: info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
 ## Key Features
@@ -37,9 +41,7 @@ The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopi
 - High-power, multi-tone piezo audio indicator
 - microSD card for high-rate logging over extended periods of time
 
-<a id="stores"></a>
-
-## Where to Buy
+## Where to Buy {#store}
 
 - [Reseller list](https://www.cubepilot.com/#/reseller/list)
 
@@ -224,13 +226,13 @@ The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopi
 
 ## Building Firmware
 
-:::warning
+::: warning
 The firmware for Orange+ will be present in releases from PX4 v1.14.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target, open up the terminal and enter:
 
-```
+```sh
 make cubepilot_cubeorangeplus
 ```
 

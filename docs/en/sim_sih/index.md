@@ -123,7 +123,7 @@ make px4_fmu-v6x boardconfig
 
 After uploading, check that the required modules are present.
 
-::: note
+::: info
 To use rover in SIH you must use the [rover build](../config_rover/index.md#flashing-the-rover-build) or add the rover modules to your board configuration.
 :::
 
