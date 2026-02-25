@@ -78,6 +78,15 @@ Download Corvon V5 pinouts from here: [corvon_V5_pinout.xlsx](https://github.com
 UART8 is reserved for an optional onboard UM982 module footprint and is not intended for general external use.
 :::
 
+## Radio Control
+
+RC inputs (both CPPM and Spektrum/S.Bus) are physically connected directly to the FMU. The `rc` and `spektrum` drivers are enabled by default for this board.
+
+- S.Bus and Spektrum / DSM receivers connect to the **SBUS_RC** port.
+- CPPM receivers connect to the dedicated CPPM input.
+
+For more information about selecting and connecting a radio receiver, see [Radio Control Registration](../getting_started/rc_transmitter_receiver.md).
+
 ## Voltage Ratings
 
 CORVON V5 must be powered from the **POWER** connector during flight, and may also be powered from **USB** for bench testing.
