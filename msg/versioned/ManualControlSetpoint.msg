@@ -1,7 +1,7 @@
 # Manual control setpoint message
 #
 # This message provides a representation of a manual control input, such as an RC controller or MAVLink controller (Joystick).
-# It also defines the manual_control_setpoint topic, which represents the selected input.
+# It defines the manual_control_input topic to represent configured inputs, and the manual_control_setpoint topic ot represent the selected input.
 # The message includes fields for the roll, pitch, yaw, throttle and flaps, along with auxiliary channels and button states.
 
 uint32 MESSAGE_VERSION = 0
