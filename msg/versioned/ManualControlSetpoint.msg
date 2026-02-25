@@ -3,6 +3,9 @@
 # This message provides a representation of a manual control input, such as an RC controller or MAVLink controller (Joystick).
 # It defines the manual_control_input topic to represent configured inputs, and the manual_control_setpoint topic ot represent the selected input.
 # The message includes fields for the roll, pitch, yaw, throttle and flaps, along with auxiliary channels and button states.
+#
+# Note: On a common RC mode 1/2/3/4 remote/joystick the stick deflection: -1 is down/left, 1 is up/right.
+# Note: QGC sends throttle/z in range [0,1000] - [0,1]. The MAVLink input conversion [0,1] to [-1,1] is at the moment kept backwards compatible.
 
 uint32 MESSAGE_VERSION = 0
 
