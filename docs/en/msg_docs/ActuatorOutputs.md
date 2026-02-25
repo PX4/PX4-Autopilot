@@ -19,7 +19,7 @@ pageClass: is-wide-page
 | Name                                                                | Type    | Value | Description         |
 | ------------------------------------------------------------------- | ------- | ----- | ------------------- |
 | <a id="#NUM_ACTUATOR_OUTPUTS"></a> NUM_ACTUATOR_OUTPUTS             | `uint8` | 16    |
-| <a id="#NUM_ACTUATOR_OUTPUT_GROUPS	"></a> NUM_ACTUATOR_OUTPUT_GROUPS | `uint8` | 4     | for sanity checking |
+| <a id="#NUM_ACTUATOR_OUTPUT_GROUPS"></a> NUM_ACTUATOR_OUTPUT_GROUPS | `uint8` | 4     | for sanity checking |
 
 ## Source Message
 
