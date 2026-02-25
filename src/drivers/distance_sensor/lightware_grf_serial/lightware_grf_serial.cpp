@@ -256,8 +256,8 @@ void GRFLaserSerial::Run()
 		/* clear ONLCR flag (which appends a CR for every LF) */
 		uart_config.c_oflag &= ~ONLCR;
 
-		/* no parity, one stop bit */
-		uart_config.c_cflag &= ~(CSTOPB | PARENB);
+		/* no parity, one stop bit, no hardware flow control */
+		uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
 
 		unsigned speed = B115200;
 
