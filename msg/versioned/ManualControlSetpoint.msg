@@ -25,8 +25,6 @@ uint8 SOURCE_MAVLINK_4 = 6 # MAVLink instance 4
 uint8 SOURCE_MAVLINK_5 = 7 # MAVLink instance 5
 
 
-# on a common RC mode 1/2/3/4 remote/joystick the stick deflection: -1 is down/left, 1 is up/right
-# Note: QGC sends throttle/z in range [0,1000] - [0,1]. The MAVLink input conversion [0,1] to [-1,1] is at the moment kept backwards compatible.
 float32 roll # [@range -1,1] [@invalid NaN] Positive values are generally used for: move right, positive roll rotation, right side down
 float32 pitch # [@range -1,1] [@invalid NaN] Positive values are generally used for: move forward, negative pitch rotation, nose down
 float32 yaw # [@range -1,1] [@invalid NaN] Positive values are generally used for: positive yaw rotation, clockwise when seen top down
