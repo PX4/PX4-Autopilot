@@ -1,16 +1,13 @@
 # CORVON V5 Autopilot
 
 :::warning
-PX4 does not manufacture this (or any) autopilot. Contact the [manufacturer](https://corvon.tech) for hardware support or compliance issues.
+PX4 does not manufacture this (or any) autopilot.
+Contact the [manufacturer](https://corvon.tech) for hardware support or compliance issues.
 :::
 
-![CORVON V5 front view](../../assets/flight_controller/corvon_V5/frontview.png)
+The CORVON V5 is based on the Pixhawk FMUv5 design standard and runs PX4 on NuttX.
 
 ![CORVON V5 side view 1](../../assets/flight_controller/corvon_V5/sideview_1.png)
-
-![CORVON V5 side view 2](../../assets/flight_controller/corvon_V5/sideview_2.png)
-
-The CORVON V5 is based on the Pixhawk FMUv5 design standard and runs PX4 on NuttX.
 
 :::info
 This flight controller is [manufacturer supported](autopilot_manufacturer_supported.md).
@@ -63,21 +60,23 @@ This flight controller is [manufacturer supported](autopilot_manufacturer_suppor
 
 ## Pinouts
 
-Download Corvon V5 pinouts from here: [corvon_V5_pinout.xlsx](../../assets/flight_controller/corvon_V5/corvon_V5_pinout.xlsx)
+Download Corvon V5 pinouts from here: [corvon_V5_pinout.xlsx](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/corvon_V5/corvon_V5_pinout.xlsx)
 
 ## Serial Port Mapping
 
-| UART | Device | Port |
-|---|---|---|
-| UART1 | `/dev/ttyS0` | GPS |
-| USART2 | `/dev/ttyS1` | TELEM1 |
-| USART3 | `/dev/ttyS2` | TELEM2 |
-| UART4 | `/dev/ttyS3` | TELEM4 |
-| USART6 | `/dev/ttyS4` | TX is RC input from SBUS_RC connector |
-| UART7 | `/dev/ttyS5` | Debug Console |
-| UART8 | `/dev/ttyS6` | Reserved for optional onboard RTK module |
+| UART   | Device       | Port                                     |
+| ------ | ------------ | ---------------------------------------- |
+| UART1  | `/dev/ttyS0` | GPS                                      |
+| USART2 | `/dev/ttyS1` | TELEM1                                   |
+| USART3 | `/dev/ttyS2` | TELEM2                                   |
+| UART4  | `/dev/ttyS3` | TELEM4                                   |
+| USART6 | `/dev/ttyS4` | TX is RC input from SBUS_RC connector    |
+| UART7  | `/dev/ttyS5` | Debug Console                            |
+| UART8  | `/dev/ttyS6` | Reserved for optional onboard RTK module |
 
-Note: UART8 is reserved for an optional onboard UM982 module footprint and is not intended for general external use.
+::: info
+UART8 is reserved for an optional onboard UM982 module footprint and is not intended for general external use.
+:::
 
 ## Voltage Ratings
 
@@ -86,7 +85,8 @@ CORVON V5 must be powered from the **POWER** connector during flight, and may al
 - **POWER input:** 4.75~5.5V
 - **USB input:** 4.75~5.25V
 
-The **PM2** connector **cannot power** the flight controller. On PX4 this interface is **not supported / do not use**.
+The **PM2** connector **cannot power** the flight controller.
+On PX4, **do not use** this interface.
 
 ## Building Firmware
 
@@ -106,15 +106,22 @@ The firmware can be installed in any of the normal ways:
   make corvon_V5_default upload
   ```
 
-- **Load the firmware using *QGroundControl*.** You can use either pre-built firmware or your own custom firmware.
+- **Load the firmware using _QGroundControl_.** You can use either pre-built firmware or your own custom firmware.
 
 :::info
-If this target is not listed in *QGroundControl*, build and upload from source or load a custom firmware file (see Installing PX4 Main, Beta or Custom Firmware).
+If this target is not listed in _QGroundControl_, build and upload from source or load a custom firmware file (see [Installing PX4 Main, Beta or Custom Firmware](../config/firmware.md#installing-px4-main-beta-or-custom-firmware)).
 :::
 
 ## Supported Platforms / Airframes
 
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos. The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
+Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
+The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
+
+## Images
+
+![CORVON V5 front view](../../assets/flight_controller/corvon_V5/frontview.png)
+![CORVON V5 side view 1](../../assets/flight_controller/corvon_V5/sideview_1.png)
+![CORVON V5 side view 2](../../assets/flight_controller/corvon_V5/sideview_2.png)
 
 ## Further Information
 
