@@ -253,7 +253,7 @@ void SF45LaserSerial::Run()
 		uart_config.c_oflag &= ~ONLCR;
 
 		/* no parity, one stop bit */
-		uart_config.c_cflag &= ~(CSTOPB | PARENB);
+		uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
 
 		unsigned speed = B921600;
 
