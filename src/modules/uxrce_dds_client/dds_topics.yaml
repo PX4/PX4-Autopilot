@@ -133,8 +133,8 @@ subscriptions:
   - topic: /fmu/in/config_control_setpoints
     type: px4_msgs::msg::VehicleControlMode
 
-  - topic: /fmu/in/distance_sensor
-    type: px4_msgs::msg::DistanceSensor
+  # - topic: /fmu/in/distance_sensor
+  #   type: px4_msgs::msg::DistanceSensor
 
   - topic: /fmu/in/manual_control_input
     type: px4_msgs::msg::ManualControlSetpoint
@@ -229,3 +229,5 @@ subscriptions_demux:
     type: px4_msgs::msg::AuxGlobalPosition
     route_field: id
     max_instances: 4
+  - topic: /fmu/in/distance_sensor
+    type: px4_msgs::msg::DistanceSensor
