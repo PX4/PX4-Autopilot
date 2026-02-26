@@ -51,7 +51,7 @@ Other
 - Open source AM32 firmware
 - [DIU Blue Framework Listed](https://www.diu.mil/blue-uas/framework)
 
-## Configuration
+## PX4 Configuration
 
 The ARK 4IN1 ESC supports DShot 300/600, Bidirectional DShot, and PWM input protocols.
 
