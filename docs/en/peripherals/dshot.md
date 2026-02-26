@@ -137,7 +137,7 @@ dshot esc_info -m 1
 ```
 
 :::tip
-You may have to configure the per-motor pole count parameters (`DSHOT_MOT_POL1`–`DSHOT_MOT_POL12`) to get correct RPM values.
+You may have to configure the per-motor pole count parameters ([`DSHOT_MOT_POL1`–`DSHOT_MOT_POL12`](../advanced_config/parameter_reference.md#DSHOT_MOT_POL1) to get correct RPM values.
 The default is 14 poles, which is typical for 5-inch prop motors.
 :::
 
