@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="main (planned for: PX4 v1.18)" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
@@ -91,7 +91,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
     ![CUAV X25-SUPER](../../assets/flight_controller/cuav_x25-super/x25-super_size.png)
 
-## Purchase Channels
+## Purchase Channels {#store}
 
 Order from [CUAV](https://store.cuav.net/).
 
@@ -139,7 +139,7 @@ Digital DroneCAN/UAVCAN battery monitoring is enabled by default.
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
@@ -150,9 +150,7 @@ To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 make cuav_x25-super_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD Interface](../debug/swd_debug.md) operate on the **FMU Debug** port.
 
