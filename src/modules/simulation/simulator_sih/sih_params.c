@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2025 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -134,12 +134,14 @@ PARAM_DEFINE_FLOAT(SIH_IXZ, 0.0f);
 PARAM_DEFINE_FLOAT(SIH_IYZ, 0.0f);
 
 /**
- * Max propeller thrust force
+ * Max multicopter propeller thrust force
  *
  * This is the maximum force delivered by one propeller
  * when the motor is running at full speed.
  *
  * This value is usually about 5 times the mass of the quadrotor.
+ *
+ * Refer to SIH_F_T_MAX for the thrust for FW, Tailsitter, and VTOL pusher.
  *
  * @unit N
  * @min 0.0
@@ -150,12 +152,14 @@ PARAM_DEFINE_FLOAT(SIH_IYZ, 0.0f);
 PARAM_DEFINE_FLOAT(SIH_T_MAX, 5.0f);
 
 /**
- * Max propeller torque
+ * Max multicopter propeller torque
  *
  * This is the maximum torque delivered by one propeller
  * when the motor is running at full speed.
  *
  * This value is usually about few percent of the maximum thrust force.
+ *
+ * Refer to SIH_F_Q_MAX for the propeller torque for FW, Tailsitter, and VTOL pusher.
  *
  * @unit Nm
  * @min 0.0
@@ -339,3 +343,112 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
  * @group Simulation In Hardware
  */
 PARAM_DEFINE_INT32(SIH_VEHICLE_TYPE, 0);
+
+/**
+ * Forward thruster max thrust (N)
+ *
+ * This is used for the Fixed-Wing, Tailsitter, or pusher of the Standard VTOL
+ * if SIH_F_CT0 <= 0.
+ * If SIH_F_CT0 > 0, propeller model with advance ration J is used
+ * and this parameter value is overridden at simulation startup.
+ *
+ * @unit N
+ * @min 0.0
+ * @decimal 3
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_F_T_MAX, 2.0f);
+
+/**
+ * Forward thruster max torque (Nm)
+ *
+ * This is used for the Fixed-Wing, Tailsitter, or pusher of the Standard VTOL
+ * if SIH_F_CP0 <= 0.
+ * If SIH_F_CP0 > 0, propeller model with advance ration J is used
+ * and this parameter value is overridden at simulation startup.
+ *
+ * @unit Nm
+ * @min 0.0
+ * @decimal 3
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_F_Q_MAX, 0.0165f);
+
+/**
+ * Forward thruster static thrust coefficient
+ *
+ * @min 0.0
+ * @decimal 3
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_F_CT0, 0.00f);
+
+/**
+ * Forward thruster thrust coefficient 1
+ *
+ * CT(J) = CT0 + CT1*J + CT2*J^2
+ *
+ * @decimal 3
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_F_CT1, 0.00f);
+
+/**
+ * Forward thruster thrust coefficient 2
+ *
+ * CT(J) = CT0 + CT1*J + CT2*J^2
+ *
+ * @max 0.0
+ * @decimal 3
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_F_CT2, 0.00f);
+
+/**
+ * Forward thruster static power coefficient
+ *
+ * @min 0.0
+ * @decimal 3
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_F_CP0, 0.00f);
+
+/**
+ * Forward thruster power coefficient 1
+ *
+ * CP(J) = CP0 + CP1*J + CP2*J^2
+ *
+ * @decimal 3
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_F_CP1, 0.00f);
+
+/**
+ * Forward thruster power coefficient 2
+ *
+ * CP(J) = CP0 + CP1*J + CP2*J^2
+ *
+ * @max 0.0
+ * @decimal 3
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_F_CP2, 0.00f);
+
+/**
+ * Forward thruster propeller diameter in inches
+ *
+ * @min 0.1
+ * @decimal 1
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_F_DIA_INCH, 0.1f);
+
+/**
+ * Forward thruster max RPM
+ *
+ * @min 0.1
+ * @decimal 1
+ * @group Simulation In Hardware
+ */
+PARAM_DEFINE_FLOAT(SIH_F_RPM_MAX, 6000.0f);
+

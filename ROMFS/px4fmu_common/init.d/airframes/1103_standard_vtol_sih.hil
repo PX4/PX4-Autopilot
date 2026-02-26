@@ -56,6 +56,7 @@ param set-default CA_SV_CS2_TYPE 4  # rudder
 param set-default FW_AIRSPD_MIN 7
 param set-default FW_AIRSPD_TRIM 10
 param set-default FW_AIRSPD_MAX 12
+param set-default VT_FWD_THRUST_EN 1
 
 param set-default HIL_ACT_FUNC1 101
 param set-default HIL_ACT_FUNC2 102
@@ -77,6 +78,7 @@ param set-default CBRK_SUPPLY_CHK 894281
 
 param set-default SENS_DPRES_OFF 0.001
 
+# quadrotor propellers
 param set SIH_T_MAX 2.0
 param set SIH_Q_MAX 0.0165
 param set SIH_MASS 0.2
@@ -87,6 +89,19 @@ param set SIH_IZZ 0.00300
 param set SIH_IXZ 0
 param set SIH_KDV 0.2
 param set SIH_L_ROLL 0.2
+
+# pusher propeller model with advance ratio, model from UIUC APC 8x6"
+param set SIH_F_T_MAX 6
+param set SIH_F_Q_MAX 0.03
+# if SIH_F_CT0 > 0, SIH_F_T_MAX and SIH_F_Q_MAX will be overridden
+param set SIH_F_CT0 0.131
+param set SIH_F_CT1 0.004
+param set SIH_F_CT2 -0.146
+param set SIH_F_CP0 0.0777
+param set SIH_F_CP1 0.0498
+param set SIH_F_CP2 -0.11
+param set SIH_F_DIA_INCH 8
+param set SIH_F_RPM_MAX 9000
 
 # sih as standard vtol
 param set SIH_VEHICLE_TYPE 3
