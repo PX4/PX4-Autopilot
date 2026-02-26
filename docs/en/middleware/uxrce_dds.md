@@ -360,11 +360,12 @@ By default the client is started on localhost UDP port `8888` with no additional
 Environment variables are provided that override some [UXRCE-DDS parameters](../advanced_config/parameter_reference.md#uxrce-dds-client).
 These allow users to create custom startup files for their simulations:
 
-- `PX4_UXRCE_DDS_NS`: Use this to specify the topic [namespace](#customizing-the-namespace)).
+- `PX4_UXRCE_DDS_NS`: Use this to specify the topic [namespace](#customizing-the-namespace).
 - `ROS_DOMAIN_ID`: Use this to replace [UXRCE_DDS_DOM_ID](../advanced_config/parameter_reference.md#UXRCE_DDS_DOM_ID).
+- `ROS_LOCALHOST_ONLY`: Use this to replace [UXRCE_DDS_PTCFG](../advanced_config/parameter_reference.md#UXRCE_DDS_PTCFG) (valid values: `0` or `1`).
 - `PX4_UXRCE_DDS_PORT`: Use this to replace [UXRCE_DDS_PRT](../advanced_config/parameter_reference.md#UXRCE_DDS_PRT).
 
-For example, the following command can be used to start a Gazebo simulation with che client operating on the DDS domain `3`, port `9999` and topic namespace `drone`.
+For example, the following command can be used to start a Gazebo simulation with the client operating on the DDS domain `3`, port `9999` and topic namespace `drone`.
 
 ```sh
 ROS_DOMAIN_ID=3 PX4_UXRCE_DDS_PORT=9999 PX4_UXRCE_DDS_NS=drone make px4_sitl gz_x500
