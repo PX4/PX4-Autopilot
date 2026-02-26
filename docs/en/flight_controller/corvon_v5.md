@@ -9,7 +9,7 @@ Contact the [manufacturer](https://corvon.tech) for hardware support or complian
 
 The CORVON V5 is based on the Pixhawk FMUv5 design standard and runs PX4 on NuttX.
 
-![CORVON V5 side view 1](../../assets/flight_controller/corvon_V5/sideview_1.png)
+![CORVON V5 side view 1](../../assets/flight_controller/corvon_v5/sideview_1.png)
 
 :::info
 This flight controller is [manufacturer supported](autopilot_manufacturer_supported.md).
@@ -58,11 +58,11 @@ This flight controller is [manufacturer supported](autopilot_manufacturer_suppor
 
 ## Connectors and Interfaces
 
-![Connectors and Interfaces](../../assets/flight_controller/corvon_V5/connectors_and_interfaces.png)
+![Connectors and Interfaces](../../assets/flight_controller/corvon_v5/connectors_and_interfaces.png)
 
 ## Pinouts
 
-Download Corvon V5 pinouts from here: [corvon_V5_pinout.xlsx](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/corvon_V5/corvon_V5_pinout.xlsx)
+Download Corvon V5 pinouts from here: [corvon_v5_pinout.xlsx](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/corvon_v5/corvon_v5_pinout.xlsx)
 
 ## Serial Port Mapping
 
@@ -104,7 +104,7 @@ On PX4, **do not use** this interface.
 To build PX4 for this target:
 
 ```sh
-make corvon_V5_default
+make corvon_v5_default
 ```
 
 ## Installing PX4 Firmware
@@ -114,7 +114,7 @@ The firmware can be installed in any of the normal ways:
 - **Build and upload the source**
 
   ```sh
-  make corvon_V5_default upload
+  make corvon_v5_default upload
   ```
 
 - **Load the firmware using _QGroundControl_.** You can use either pre-built firmware or your own custom firmware.
@@ -130,9 +130,9 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 
 ## Images
 
-![CORVON V5 front view](../../assets/flight_controller/corvon_V5/frontview.png)
-![CORVON V5 side view 1](../../assets/flight_controller/corvon_V5/sideview_1.png)
-![CORVON V5 side view 2](../../assets/flight_controller/corvon_V5/sideview_2.png)
+![CORVON V5 front view](../../assets/flight_controller/corvon_v5/frontview.png)
+![CORVON V5 side view 1](../../assets/flight_controller/corvon_v5/sideview_1.png)
+![CORVON V5 side view 2](../../assets/flight_controller/corvon_v5/sideview_2.png)
 
 ## Further Information
 
