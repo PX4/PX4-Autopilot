@@ -66,6 +66,210 @@
 // #include <lib/mathlib/mathlib.h>
 #include <math.h>
 
+// class Thruster using the terminology from UIUC Propeller Data site https://m-selig.ae.illinois.edu/props/propDB.html
+class Thruster
+{
+private:
+	static constexpr float INCH_TO_M = 0.0254f;
+	float CT0, CT1, CT2, CP0, CP1, CP2;
+	float _d_m;
+	float _rpm_max;
+	float T_MAX;
+	float Q_MAX;
+public:
+
+	// public implicit constructor
+	Thruster() {
+		Thruster(0.1f,1000.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f);
+	}
+
+	/** public explicit constructor for static model
+	 * using the maximum thrust and torque.
+	 * In this case, the prop diameter and RPM are not needed.
+	 */
+	Thruster(float Tmax, float Qmax) {
+		T_MAX = Tmax;
+		Q_MAX = Qmax;
+		CT0 = 0.0f;
+		CP0 = 0.0f;
+	}
+
+	/** public explicit constructor
+	 * - prop_dia_inch: propeller diameter in inches
+	 * - rpm_max: max RPM
+	 * - ct0, ct1, ct2: second order thrust coefficient
+	 * - cp0, cp1, cp2: second order power coefficient
+	 */
+	Thruster(float prop_dia_inch, float rpm_max, float ct0, float ct1, float ct2, float cp0, float cp1, float cp2) {
+		_d_m = dia_inch_to_m(prop_dia_inch);
+		_rpm_max = rpm_max;
+		CT0 = ct0;
+		CT1 = ct1;
+		CT2 = ct2;
+		CP0 = cp0;
+		CP1 = cp1;
+		CP2 = cp2;
+		T_MAX = compute_thrust_from_throttle(1.0f);
+		Q_MAX = compute_torque_from_throttle(1.0f);
+	}
+
+	/** advance_ratio(float n_rev_s, float vx_ms)
+	 * compute the advance ratio J = vx_ms / n_rev_s / d_m
+	 * with
+	 * - n_rev_s is the propeller rotational speed in revolution/s
+	 * - vx_ms is the valocity seen by the thruster in m/s,
+	 *   usually projected on the propeller revolution axis
+	 */
+	float advance_ratio(float n_rev_s, float vx_ms) {
+		return vx_ms/n_rev_s/_d_m;
+	}
+
+	/** fCT(float J, float ct0, float ct1, float ct2)
+	 * Compute the thrust coefficient ct from the advance ratio J
+	 *
+	 */
+	float fCT(float J) {
+		if (!PX4_ISFINITE(J)) {
+			return 0;
+		}
+		// do not allow ct < 0 (i.e. windmill)
+		return fmaxf(CT0 + CT1*J + CT2*J*J,0.0f);
+	}
+
+	/** fCP(float J, float cp0, float cp1, float cp2)
+	 * Compute the power coefficient cp from the advance ratio J
+	 *
+	 */
+	float fCP(float J) {
+		if (!PX4_ISFINITE(J)) {
+			return 0;
+		}
+		return fmaxf(CP0 + CP1*J + CP2*J*J,0.0f);
+	}
+
+	/** compute_thrust(float n_rev_s, float vx_ms=0.0f, float rho=1.225f)
+	 * Compute the thrust force in (N) given
+	 * - n_rev_s is the propeller rotational speed in revolution/s
+	 * - vx_ms is the velocity seen by the thruster in m/s,
+	 *   usually projected on the propeller revolution axis
+	 * - rho is the density in kg/m^3
+	 */
+	float compute_thrust(float n_rev_s, float vx_ms=0.0f, float rho=1.225f) {
+		if (CT0<=0.0f || n_rev_s <= 1.0e-4f) {
+			return 0.0f;
+		}
+		float J = advance_ratio(n_rev_s,vx_ms);
+		return fCT(J) * rho * n_rev_s*n_rev_s * _d_m*_d_m*_d_m*_d_m;
+	}
+
+	/** compute_thrust_from_throttle(float u, float vx_ms=0.0f, float rho=1.225f)
+	 * Compute the thrust force in (N) given
+	 * - u is the thruster unit throttle in range [0,1]
+	 * - vx_ms is the velocity seen by the thruster in m/s,
+	 *   usually projected on the propeller revolution axis
+	 * - rho is the density in kg/m^3
+	 */
+	float compute_thrust_from_throttle(float u, float vx_ms=0.0f, float rho=1.225f) {
+		if (CT0<=0.0f) {
+			return T_MAX*u;
+		}
+		float n_rev_s = throttle_to_rev_s(u,_rpm_max);
+		return compute_thrust(n_rev_s,vx_ms,rho);
+	}
+
+	/** compute_torque(float n_rev_s, float vx_ms=0.0f, float rho=1.225f)
+	 * Compute the propeller torque in (Nm) given
+	 * - n_rev_s is the propeller rotational speed in revolution/s
+	 * - vx_ms is the velocity seen by the thruster in m/s,
+	 *   usually projected on the propeller revolution axis
+	 * - rho is the density in kg/m^3
+	 */
+	float compute_torque(float n_rev_s, float vx_ms=0.0f, float rho=1.225f) {
+		if (CP0<=0.0f || n_rev_s <= 1.0e-4f) {
+			return 0.0f;
+		}
+		float J = advance_ratio(n_rev_s,vx_ms);
+		float cq = fCP(J)/2.0f/M_PI_F;
+		return cq * rho * n_rev_s*n_rev_s * _d_m*_d_m*_d_m*_d_m*_d_m;
+	}
+
+	/** compute_torque_from_throttle(float u, float vx_ms=0.0f, float rho=1.225f)
+	 * Compute the propeller torque in (Nm) given
+	 * - u is the thruster unit throttle in range [0,1]
+	 * - vx_ms is the velocity seen by the thruster in m/s,
+	 *   usually projected on the propeller revolution axis
+	 * - rho is the density in kg/m^3
+	 */
+	float compute_torque_from_throttle(float u, float vx_ms=0.0f, float rho=1.225f) {
+		if (CP0<=0.0f) {
+			return Q_MAX*u;
+		}
+		float n_rev_s = throttle_to_rev_s(u,_rpm_max);
+		return compute_torque(n_rev_s,vx_ms,rho);
+	}
+
+	/** dia_inch_to_m(float dia_inch)
+	 * compute the propeller diameter in meter,
+	 * given dia_inch the propeller diameter in inches.
+	 */
+	static float dia_inch_to_m(float dia_inch) {
+		return dia_inch * INCH_TO_M;
+	}
+
+	/** rpm_to_rev_s(float rpm)
+	 * compute the propeller revolutions per seconds,
+	 * given the propeller rpm.
+	 */
+	static float rpm_to_rev_s(float rpm) {
+		return rpm / 60.0f;
+	}
+
+	/** rev_s_to_rpm(float n_rev_s)
+	 * compute the propeller rpm,
+	 * given the propeller revolutions per seconds.
+	 */
+	static float rev_s_to_rpm(float n_rev_s) {
+		return n_rev_s * 60.0f;
+	}
+
+	/** throttle_to_rpm(float throttle, const float rpm_max)
+	 * compute the propeller rpm,
+	 * given the unit throttle u (in range [0,1])
+	 * and the max RPM rpm_max.
+	 */
+	static float throttle_to_rpm(float u, const float rpm_max) {
+		return rpm_max * sqrtf(u);
+	}
+
+	/** throttle_to_rev_s(float throttle, const float rpm_max)
+	 * compute the propeller revolution per seconds,
+	 * given the unit throttle u (in range [0,1])
+	 * and the max RPM rpm_max.
+	 */
+	static float throttle_to_rev_s(float u, const float rpm_max) {
+		return rpm_to_rev_s(throttle_to_rpm(u,rpm_max));
+	}
+
+	float get_T_max() {
+		return T_MAX;
+	}
+
+	float get_Q_max() {
+		return Q_MAX;
+	}
+
+	void print_status() {
+		if (CT0<=0.0f) {
+			printf("Thruster simple model: Tmax %.4f N, Qmax %.4f Nm\n", (double)T_MAX, (double)Q_MAX);
+		} else {
+			printf("Thruster dyn. model: dia %.4f m, max rpm %.0f, Tmax %.4f N, Qmax %.4f Nm\n",
+					(double)_d_m, (double)_rpm_max, (double)T_MAX, (double)Q_MAX);
+			printf("   Tmax: %.3f N at 10 m/s, %.3f N at 20 m/s\n",
+				(double)compute_thrust_from_throttle(1.0f,10.0f),(double)compute_thrust_from_throttle(1.0f,20.0f));
+		}
+	}
+};
+
 // class Aerodynamic Segment ------------------------------------------------------------------------
 class AeroSeg
 {
