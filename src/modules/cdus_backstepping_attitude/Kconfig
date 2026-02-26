@@ -1,0 +1,12 @@
+menuconfig MODULES_CDUS_BACKSTEPPING_ATTITUDE
+	bool "cdus_backstepping_attitude"
+	default n
+	---help---
+		Enable support for cdus_backstepping_attitude
+
+menuconfig USER_CDUS_BACKSTEPPING_ATTITUDE
+	bool "cdus_backstepping_attitude running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && CDUS_BACKSTEPPING_ATTITUDE
+	---help---
+		Put cdus_backstepping_attitude in userspace memory
