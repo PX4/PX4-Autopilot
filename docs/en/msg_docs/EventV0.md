@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 this message is required here in the msg_old folder because other msg are depending on it. Events interface.
 
-**TOPICS:** eventv0
+**TOPICS:** event_v0
 
 ## Fields
 
@@ -20,10 +20,10 @@ this message is required here in the msg_old folder because other msg are depend
 
 ## Constants
 
-| Name                                              | Type     | Value | Description |
-| ------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 0     |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 16    |
+| Name                                            | Type     | Value | Description |
+| ----------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 0     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 16    |
 
 ## Source Message
 

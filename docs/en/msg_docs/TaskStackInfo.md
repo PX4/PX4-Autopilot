@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 stack information for a single running process.
 
-**TOPICS:** task_stackinfo
+**TOPICS:** task_stack_info
 
 ## Fields
 
@@ -18,9 +18,9 @@ stack information for a single running process.
 
 ## Constants
 
-| Name                                              | Type    | Value | Description |
-| ------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 2     |
+| Name                                            | Type    | Value | Description |
+| ----------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 2     |
 
 ## Source Message
 

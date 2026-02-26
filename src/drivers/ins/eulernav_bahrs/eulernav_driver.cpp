@@ -52,20 +52,27 @@ EulerNavDriver::~EulerNavDriver()
 	deinitialize();
 }
 
+int EulerNavDriver::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return EulerNavDriver::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int EulerNavDriver::task_spawn(int argc, char *argv[])
 {
 	int task_id = px4_task_spawn_cmd("bahrs", SCHED_DEFAULT, SCHED_PRIORITY_FAST_DRIVER,
 					 Config::TASK_STACK_SIZE, (px4_main_t)&run_trampoline, argv);
 
 	if (task_id < 0) {
-		_task_id = -1;
+		desc.task_id = -1;
 		PX4_ERR("Failed to spawn task.");
 
 	} else {
-		_task_id = task_id;
+		desc.task_id = task_id;
 	}
 
-	return (_task_id < 0) ? 1 : 0;
+	return (desc.task_id < 0) ? 1 : 0;
 }
 
 EulerNavDriver *EulerNavDriver::instantiate(int argc, char *argv[])
@@ -231,6 +238,8 @@ void EulerNavDriver::deinitialize()
 	_barometer_pub.unadvertise();
 	_is_initialized = false;
 }
+
+ModuleBase::Descriptor EulerNavDriver::desc{task_spawn, custom_command, print_usage};
 
 void EulerNavDriver::processDataBuffer()
 {

@@ -39,12 +39,10 @@ Order this module from:
 - 10 Pin JST-SH Debug
 
 - Motor & Battery Connectors (with-connector version)
-
   - MR30 Connector Limit Per Motor: 30A Continuous, 40A Burst
   - Four MR30 Motor Connectors
 
 - Dimensions (with connectors)
-
   - Size: 77.00mm x 42.00mm x 9.43mm
   - Mounting Pattern: 30.5mm
   - Weight: 24g

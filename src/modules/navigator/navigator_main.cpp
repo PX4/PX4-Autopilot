@@ -1097,17 +1097,24 @@ void Navigator::geofence_breach_check()
 	}
 }
 
+int Navigator::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return Navigator::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int Navigator::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("navigator",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_NAVIGATION,
-				      PX4_STACK_ADJUSTED(2230),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("navigator",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_NAVIGATION,
+					  PX4_STACK_ADJUSTED(2230),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
@@ -1336,20 +1343,20 @@ bool Navigator::force_vtol()
 
 int Navigator::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("not running");
 		return 1;
 	}
 
 	if (!strcmp(argv[0], "fencefile")) {
-		get_instance()->load_fence_from_file(GEOFENCE_FILENAME);
+		get_instance<Navigator>(desc)->load_fence_from_file(GEOFENCE_FILENAME);
 		return 0;
 
 #if CONFIG_NAVIGATOR_ADSB
 
 	} else if (!strcmp(argv[0], "fake_traffic")) {
 
-		get_instance()->run_fake_traffic();
+		get_instance<Navigator>(desc)->run_fake_traffic();
 
 		return 0;
 #endif // CONFIG_NAVIGATOR_ADSB
@@ -1717,5 +1724,5 @@ controller.
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[])
 {
-	return Navigator::main(argc, argv);
+	return ModuleBase::main(Navigator::desc, argc, argv);
 }

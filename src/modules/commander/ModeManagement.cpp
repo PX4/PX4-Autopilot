@@ -519,6 +519,18 @@ int ModeManagement::modeExecutorInCharge() const
 	return _mode_executor_in_charge;
 }
 
+uint8_t ModeManagement::getNavStateDisplay(uint8_t nav_state) const
+{
+	const int executor_in_charge = modeExecutorInCharge();
+
+	if (_mode_executors.valid(executor_in_charge)) {
+		return _mode_executors.executor(executor_in_charge).owned_nav_state;
+
+	} else {
+		return nav_state;
+	}
+}
+
 bool ModeManagement::updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode) const
 {
 	bool ret = false;

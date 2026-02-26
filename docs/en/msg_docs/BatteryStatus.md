@@ -101,10 +101,10 @@ Battery instance information is also logged and streamed in MAVLink telemetry.
 
 ## Constants
 
-| Name                                            | Type     | Value | Description |
-| ----------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 1     |
-| <a href="#MAX_INSTANCES"></a> MAX_INSTANCES     | `uint8`  | 3     |
+| Name                                          | Type     | Value | Description |
+| --------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 1     |
+| <a id="#MAX_INSTANCES"></a> MAX_INSTANCES     | `uint8`  | 3     |
 
 ## Source Message
 

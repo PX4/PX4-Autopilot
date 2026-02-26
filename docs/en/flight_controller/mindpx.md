@@ -1,6 +1,6 @@
 # MindPX Hardware
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](http://mindpx.net) for hardware support or compliance issues.
 :::
@@ -19,7 +19,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 The main hardware documentation is [here](http://mindpx.net/assets/accessories/Specification9.18_3_pdf.pdf).
 :::
 
-MindPX is a new generation autopilot system branched from Pixhawk<sup>&reg;</sup>, been revised in schematic and structure, and been further enhanced with new features to make un-manned vehicle more smart and more friendly to use.
+MindPX is a new generation autopilot system branched from Pixhawk<sup>&reg;</sup>, has been revised in schematic and structure, and has been further enhanced with new features to make unmanned vehicle more smart and more friendly to use.
 
 MindPX increases total PWM output channels to 16 (8 main outputs + 8 aux outputs).
 This means that MindPX can support more complicated VTOL configurations and more fine control.
@@ -79,14 +79,14 @@ For detailed Pin diagram, please refer to the [User Guide](http://mindpx.net/ass
 
 ### Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make airmind_mindpx-v2_default
 ```
 
@@ -96,7 +96,7 @@ MindPX has a USB-TO-UART Bridge IC on the board.
 A micro-USB to USB type A cable is used for the connection.
 Connect micro-USB end to the 'OBC' port of MindPX and USB type A end to companion computer.
 
-And the max BAUD rate is the same with px4 family, which is up to 921600.
+And the max BAUD rate is the same as for the PX4 family, which is up to 921600.
 
 ## User Guide
 
@@ -104,7 +104,7 @@ And the max BAUD rate is the same with px4 family, which is up to 921600.
 The user guide is [here](http://mindpx.net/assets/accessories/UserGuide9.18_2_pdf.pdf).
 :::
 
-## Where to Buy
+## Where to Buy {#store}
 
 MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 You can also find MindRacer at Amazon<sup>&reg;</sup> or eBay<sup>&reg;</sup>.

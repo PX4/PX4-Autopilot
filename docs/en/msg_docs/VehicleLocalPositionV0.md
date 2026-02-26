@@ -67,12 +67,12 @@ Fused local position in NED. The coordinate system origin is the vehicle positio
 
 ## Constants
 
-| Name                                                              | Type     | Value | Description                                                                               |
-| ----------------------------------------------------------------- | -------- | ----- | ----------------------------------------------------------------------------------------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                   | `uint32` | 0     |
-| <a href="#DIST_BOTTOM_SENSOR_NONE"></a> DIST_BOTTOM_SENSOR_NONE   | `uint8`  | 0     |
-| <a href="#DIST_BOTTOM_SENSOR_RANGE"></a> DIST_BOTTOM_SENSOR_RANGE | `uint8`  | 1     | (1 << 0) a range sensor is used to estimate dist_bottom field                             |
-| <a href="#DIST_BOTTOM_SENSOR_FLOW"></a> DIST_BOTTOM_SENSOR_FLOW   | `uint8`  | 2     | (1 << 1) a flow sensor is used to estimate dist_bottom field (mostly fixed-wing use case) |
+| Name                                                            | Type     | Value | Description                                                                               |
+| --------------------------------------------------------------- | -------- | ----- | ----------------------------------------------------------------------------------------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                   | `uint32` | 0     |
+| <a id="#DIST_BOTTOM_SENSOR_NONE"></a> DIST_BOTTOM_SENSOR_NONE   | `uint8`  | 0     |
+| <a id="#DIST_BOTTOM_SENSOR_RANGE"></a> DIST_BOTTOM_SENSOR_RANGE | `uint8`  | 1     | (1 << 0) a range sensor is used to estimate dist_bottom field                             |
+| <a id="#DIST_BOTTOM_SENSOR_FLOW"></a> DIST_BOTTOM_SENSOR_FLOW   | `uint8`  | 2     | (1 << 1) a flow sensor is used to estimate dist_bottom field (mostly fixed-wing use case) |
 
 ## Source Message
 

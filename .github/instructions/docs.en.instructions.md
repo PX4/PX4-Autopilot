@@ -21,8 +21,10 @@ applyTo: "docs/en/**"
   - Do not apply bold or italic styling inside a heading.
 - **Formatting:** 
   - **Bold:** Only for UI elements (buttons, menu items).
-  - **Italics (Emphasis):** For tool names (e.g., *QGroundControl*).
   - **Inline Code:** Use backticks for file paths, parameters, and CLI commands (e.g., `prettier`).
+    Backticks are optional for hyperlinked CLI commands and tool names.
+  - **Italics (Emphasis):** Use for application names (e.g., *QGroundControl*).
+    Emphasis is optional for hyperlinked applications.
 - **Structure:** End every line at the end of a sentence (Semantic Line Breaks).
 
 ## Linking & Navigation

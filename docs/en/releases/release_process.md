@@ -195,7 +195,7 @@ The release vote takes place during the [Weekly Community Q&A Call](../contribut
 - Present the release status and test results
 - **Vote 1:** Core maintainers vote on whether to publish the release
 - **Vote 2:** Decide the name/number of the next release version
-- The call happens Wednesdays at 17:00 CET on [Discord](https://discord.gg/BDYmr6FA6Q)
+- The call happens Wednesdays at 17:00 CET on [Discord](https://discord.com/invite/BDYmr6FA6Q)
 
 ### 8. Create and Push Release Tag
 
@@ -254,7 +254,7 @@ Review and finalize the release notes that have been developed throughout the re
 Announce the release through official channels:
 
 - [PX4 Discuss Forum](https://discuss.px4.io/)
-- [PX4 Discord](https://discord.gg/dronecode)
+- [PX4 Discord](https://discord.com/invite/dronecode)
 - Social media (Twitter/X, LinkedIn)
 - Dronecode newsletter
 

@@ -36,6 +36,7 @@ pageClass: is-wide-page
 | heartbeat_type_onboard_controller   | `bool`    |              |            | MAV_TYPE_ONBOARD_CONTROLLER               |
 | heartbeat_type_gimbal               | `bool`    |              |            | MAV_TYPE_GIMBAL                           |
 | heartbeat_type_adsb                 | `bool`    |              |            | MAV_TYPE_ADSB                             |
+| heartbeat_type_flarm                | `bool`    |              |            | MAV_TYPE_FLARM                            |
 | heartbeat_type_camera               | `bool`    |              |            | MAV_TYPE_CAMERA                           |
 | heartbeat_type_parachute            | `bool`    |              |            | MAV_TYPE_PARACHUTE                        |
 | heartbeat_type_open_drone_id        | `bool`    |              |            | MAV_TYPE_ODID                             |
@@ -51,14 +52,14 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                | Type     | Value   | Description                                     |
-| ------------------------------------------------------------------- | -------- | ------- | ----------------------------------------------- |
-| <a href="#LINK_TYPE_GENERIC"></a> LINK_TYPE_GENERIC                 | `uint8`  | 0       |
-| <a href="#LINK_TYPE_UBIQUITY_BULLET"></a> LINK_TYPE_UBIQUITY_BULLET | `uint8`  | 1       |
-| <a href="#LINK_TYPE_WIRE"></a> LINK_TYPE_WIRE                       | `uint8`  | 2       |
-| <a href="#LINK_TYPE_USB"></a> LINK_TYPE_USB                         | `uint8`  | 3       |
-| <a href="#LINK_TYPE_IRIDIUM"></a> LINK_TYPE_IRIDIUM                 | `uint8`  | 4       |
-| <a href="#HEARTBEAT_TIMEOUT_US"></a> HEARTBEAT_TIMEOUT_US           | `uint64` | 2500000 | Heartbeat timeout (tolerate missing 1 + jitter) |
+| Name                                                              | Type     | Value   | Description                                     |
+| ----------------------------------------------------------------- | -------- | ------- | ----------------------------------------------- |
+| <a id="#LINK_TYPE_GENERIC"></a> LINK_TYPE_GENERIC                 | `uint8`  | 0       |
+| <a id="#LINK_TYPE_UBIQUITY_BULLET"></a> LINK_TYPE_UBIQUITY_BULLET | `uint8`  | 1       |
+| <a id="#LINK_TYPE_WIRE"></a> LINK_TYPE_WIRE                       | `uint8`  | 2       |
+| <a id="#LINK_TYPE_USB"></a> LINK_TYPE_USB                         | `uint8`  | 3       |
+| <a id="#LINK_TYPE_IRIDIUM"></a> LINK_TYPE_IRIDIUM                 | `uint8`  | 4       |
+| <a id="#HEARTBEAT_TIMEOUT_US"></a> HEARTBEAT_TIMEOUT_US           | `uint64` | 2500000 | Heartbeat timeout (tolerate missing 1 + jitter) |
 
 ## Source Message
 
@@ -112,6 +113,7 @@ bool heartbeat_type_gcs                     # MAV_TYPE_GCS
 bool heartbeat_type_onboard_controller      # MAV_TYPE_ONBOARD_CONTROLLER
 bool heartbeat_type_gimbal                  # MAV_TYPE_GIMBAL
 bool heartbeat_type_adsb                    # MAV_TYPE_ADSB
+bool heartbeat_type_flarm                   # MAV_TYPE_FLARM
 bool heartbeat_type_camera                  # MAV_TYPE_CAMERA
 bool heartbeat_type_parachute               # MAV_TYPE_PARACHUTE
 bool heartbeat_type_open_drone_id           # MAV_TYPE_ODID

@@ -44,9 +44,11 @@
 
 using namespace time_literals;
 
-class CdcAcmAutostart : public ModuleBase<CdcAcmAutostart>, public ModuleParams, public px4::ScheduledWorkItem
+class CdcAcmAutostart : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	CdcAcmAutostart();
 	~CdcAcmAutostart() override;
 

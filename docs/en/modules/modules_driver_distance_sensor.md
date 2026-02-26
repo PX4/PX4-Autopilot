@@ -147,7 +147,7 @@ Source: [drivers/distance_sensor/lightware_laser_i2c](https://github.com/PX4/PX4
 
 ### Description
 
-I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20, SF30/d.
+I2C bus driver for Lightware LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20, SF/LW30/d, GRF250, GRF500.
 
 Setup/usage information: https://docs.px4.io/main/en/sensor/sfxx_lidar.html
 
@@ -165,8 +165,6 @@ lightware_laser_i2c <command> [arguments...]
      [-q]        quiet startup (no message if no device found)
      [-a <val>]  I2C address
                  default: 102
-     [-R <val>]  Sensor rotation - downward facing by default
-                 default: 25
 
    stop
 

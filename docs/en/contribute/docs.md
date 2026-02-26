@@ -54,7 +54,7 @@ If you already have a clone of the [PX4-Autopilot](https://github.com/PX4/PX4-Au
 To get the library(s) sources onto your local computer you will need to use the git toolchain.
 The instructions below explain how to get git and use it on your local computer.
 
-1. Download git for your computer from [https://git-scm.com/downloads](https://git-scm.com/downloads)
+1. Download git for your computer from [https://git-scm.com/downloads/](https://git-scm.com/downloads/)
 1. [Sign up](https://github.com/signup) for Github if you haven't already
 1. Create a copy (Fork) of the [PX4-Autopilot repo](https://github.com/PX4/PX4-Autopilot) on Github ([instructions here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)).
 1. Clone (copy) your forked repository to your local computer:
@@ -79,7 +79,7 @@ The instructions below explain how to get git and use it on your local computer.
 1. Add a _remote_ called "upstream" to point to the "official" PX4 version of the library:
 
    ```sh
-   git remote add upstream https://github.com/PX4/PX4-Autopilot.git
+   git remote add upstream https://github.com/PX4/PX4-Autopilot
    ```
 
    :::tip

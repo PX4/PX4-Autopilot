@@ -7,7 +7,7 @@ const { site } = useData();
 
 <div v-if="site.title !== 'PX4 Guide (main)'">
   <div class="custom-block danger">
-    <p class="custom-block-title">This page may be out out of date. <a href="https://docs.px4.io/main/en/contribute/support.html">See the latest version</a>.</p>
+    <p class="custom-block-title">This page may be out out of date. <a href="https://docs.px4.io/main/en/contribute/support">See the latest version</a>.</p>
   </div>
 </div>
 
@@ -18,7 +18,7 @@ This section shows how you can get help from the core dev team and the wider com
 The core development team and community are active on the following channels:
 
 - [PX4 Discuss Forum](https://discuss.px4.io/) - Post here first!
-- [PX4 Discord](https://discord.gg/dronecode) - Post here if you don't get a response in discuss within a few days (include a link to your forum topic).
+- [PX4 Discord](https://discord.com/invite/dronecode) - Post here if you don't get a response in discuss within a few days (include a link to your forum topic).
 
 :::tip
 The Discuss Forum is much preferred because it is indexed by search engines and serves as a common knowledge base.

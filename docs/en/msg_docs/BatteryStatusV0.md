@@ -10,7 +10,7 @@ Battery status information for up to 4 battery instances.
 These are populated from power module and smart battery device drivers, and one battery updated from MAVLink.
 Battery instance information is also logged and streamed in MAVLink telemetry.
 
-**TOPICS:** battery_statusv0
+**TOPICS:** battery_status_v0
 
 ## Fields
 
@@ -102,10 +102,10 @@ Battery instance information is also logged and streamed in MAVLink telemetry.
 
 ## Constants
 
-| Name                                            | Type     | Value | Description |
-| ----------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
-| <a href="#MAX_INSTANCES"></a> MAX_INSTANCES     | `uint8`  | 4     |
+| Name                                          | Type     | Value | Description |
+| --------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
+| <a id="#MAX_INSTANCES"></a> MAX_INSTANCES     | `uint8`  | 4     |
 
 ## Source Message
 

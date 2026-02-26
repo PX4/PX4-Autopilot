@@ -122,8 +122,9 @@ AirspeedValidator::update_CAS_scale_validated(bool gnss_valid, const matrix::Vec
 		reset_CAS_scale_check();
 	}
 
-	const float course_over_ground_rad = matrix::wrap_2pi(atan2f(vI(0), vI(1)));
-	const int segment_index = int(SCALE_CHECK_SAMPLES * course_over_ground_rad / (2.f * M_PI_F));
+	const float course_over_ground_rad = matrix::wrap_2pi(atan2f(vI(1), vI(0)));
+	const int segment_index = static_cast<int>(SCALE_CHECK_SAMPLES * course_over_ground_rad / (2.f * M_PI_F))
+				  % SCALE_CHECK_SAMPLES;
 
 	_scale_check_groundspeed(segment_index) = vI.norm();
 	_scale_check_TAS(segment_index) = airspeed_true_raw;

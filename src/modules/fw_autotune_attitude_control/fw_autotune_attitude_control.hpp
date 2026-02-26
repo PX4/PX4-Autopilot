@@ -72,10 +72,12 @@ enum class SignalType : uint8_t {
 	kLogSineSweep
 };
 
-class FwAutotuneAttitudeControl : public ModuleBase<FwAutotuneAttitudeControl>, public ModuleParams,
+class FwAutotuneAttitudeControl : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	FwAutotuneAttitudeControl(bool is_vtol);
 	~FwAutotuneAttitudeControl() override;
 

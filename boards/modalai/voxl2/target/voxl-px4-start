@@ -4,10 +4,12 @@
 . px4-alias.sh
 
 echo -e "\n*************************"
+echo "AIRFRAME: $AIRFRAME"
 echo "GPS: $GPS"
 echo "RC: $RC"
 echo "ESC: $ESC"
 echo "POWER MANAGER: $POWER_MANAGER"
+echo "AIRSPEED SENSOR: $AIRSPEED_SENSOR"
 echo "DISTANCE SENSOR: $DISTANCE_SENSOR"
 echo "OSD: $OSD"
 echo "EXTRA STEPS:"
@@ -23,6 +25,8 @@ echo -e "*************************\n"
 # and modules manually from the px4 command shell
 if [ ! -z $MINIMAL_PX4 ]; then
     /bin/echo "Running minimal script"
+    param select /data/px4/param/parameters
+    param load
     exit 0
 fi
 
@@ -33,23 +37,30 @@ if [ $RETURNCODE -ne 0 ]; then
     # If we couldn't get the platform from the voxl-platform utility then check
     # /etc/version to see if there is an M0052 substring in the version string. If so,
     # then we assume that we are on M0052.
-    VERSIONSTRING=$(</etc/version)
+    VERSIONSTRING=""
+    if [ -f /etc/version ]; then
+        VERSIONSTRING=$(</etc/version)
+    fi
     M0052SUBSTRING="M0052"
     if [[ "$VERSIONSTRING" == *"$M0052SUBSTRING"* ]]; then
         PLATFORM="M0052"
     fi
 fi
 
-# We can only run on M0052, M0054, or M0104 so exit with error if that is not the case
+# We can only run on M0054, M0104, or M0197 so exit with error if that is not the case
 if [ $PLATFORM = "M0052" ]; then
     /bin/echo "Running on M0052"
+    /bin/echo "Error M0052 is no longer supported!!!"
+    exit 1
 elif [ $PLATFORM = "M0054" ]; then
     /bin/echo "Running on M0054"
 elif [ $PLATFORM = "M0104" ]; then
     /bin/echo "Running on M0104"
+elif [ $PLATFORM = "M0197" ]; then
+    /bin/echo "Running on M0197"
 else
     /bin/echo "Error, cannot determine platform!"
-    exit 0
+    exit 1
 fi
 
 # Sleep a little here. A lot happens when the uorb and muorb start
@@ -76,14 +87,43 @@ param load
 # IMU (accelerometer / gyroscope)
 if [ "$PLATFORM" == "M0104" ]; then
     /bin/echo "Starting IMU driver with rotation 12"
-    qshell icm42688p start -s -R 12
+    qshell icm42688p start -s -R 12 -C 32768
+elif [ "$PLATFORM" == "M0197" ]; then
+    /bin/echo "Starting bmi270 IMU driver with rotation 26"
+    qshell bmi270 start -s -R 26
 else
     /bin/echo "Starting IMU driver with no rotation"
-    qshell icm42688p start -s
+    qshell icm42688p start -s -C 32768
 fi
 
-# Start Invensense ICP 101xx barometer built on to VOXL 2
-qshell icp101xx start -I -b 5
+# First look for any external barometers connected to the apps proc
+EXTERNAL_BAROMETER=0
+
+/bin/echo "Looking for external DPS368 barometer"
+if dps310 start -X -b /dev/i2c-0; then
+	/bin/echo "Detected external DPS368 barometer"
+	EXTERNAL_BAROMETER=1
+fi
+
+if (( EXTERNAL_BAROMETER == 0 )); then
+	/bin/echo "Looking for external ICP10100 barometer"
+	if icp101xx start -X -b /dev/i2c-0; then
+		/bin/echo "Detected external ICP10100 barometer"
+		EXTERNAL_BAROMETER=1
+	fi
+fi
+
+# If no external barometers found, use the builtin barometer
+if (( EXTERNAL_BAROMETER == 0 )); then
+    /bin/echo "Did not detect an external barometer, starting onboard barometer"
+    if [ "$PLATFORM" == "M0197" ]; then
+       /bin/echo "Starting dps368 barometer on M0197"
+       qshell dps310 start -I -b 5
+    else
+        # Start Invensense ICP 101xx barometer built on to VOXL 2
+        qshell icp101xx start -I -b 5
+    fi
+fi
 
 # Auto detect the magnetometer. If one or both of these devices
 # are not connected it will fail but not cause any harm.
@@ -91,15 +131,19 @@ qshell icp101xx start -I -b 5
 qshell qmc5883l start -R 10 -X -b 1
 /bin/echo "Looking for ist8310 magnetometer"
 qshell ist8310 start -R 10 -X -b 1
+/bin/echo "Looking for ist8308 magnetometer"
+# Rotation 12 = PITCH_180
+qshell ist8308 start -R 12 -X -b 1
+/bin/echo "Looking for iis2mdc magnetometer"
+# Note: Rotation may not be correct
+qshell iis2mdc start -R 10 -X -b 1
 
 # GPS and magnetometer
 if [ "$GPS" != "NONE" ]; then
-    # On M0052 the GPS driver runs on the apps processor
-    if [ $PLATFORM = "M0052" ]; then
-        gps start -d /dev/ttyHS2
-    # On M0054 and M0104 the GPS driver runs on SLPI DSP
+    if [ "$PLATFORM" == "M0197" ]; then
+	gps start -d /dev/ttyHS7
     else
-        qshell gps start -d 6
+	qshell gps start
     fi
 fi
 
@@ -144,20 +188,12 @@ elif [ "$RC" == "CRSF_MAV" ]; then
     qshell mavlink_rc_in start -m -p 7 -b 115200
 elif [ "$RC" == "SPEKTRUM" ]; then
     /bin/echo "Starting Spektrum RC"
-    # On M0052 the RC driver runs on the apps processor
-    if [ $PLATFORM = "M0052" ]; then
-        rc_input start -d /dev/ttyHS1
-    # On M0054 and M0104 the RC driver runs on SLPI DSP
-    else
-        qshell spektrum_rc start
-    fi
+    qshell spektrum_rc start
 elif [ "$RC" == "GHST" ]; then
     /bin/echo "Starting GHST RC driver"
     qshell ghst_rc start -d 7
 elif [ "$RC" == "M0065_SBUS" ]; then
-    if [ $PLATFORM = "M0052" ]; then
-        apps_sbus start
-    elif [ "$ESC" != "VOXL2_IO_PWM_ESC" ]; then
+    if [ "$ESC" != "VOXL2_IO_PWM_ESC" ]; then
         /bin/echo "Attempting to start M0065 SBUS RC driver for original M0065 FW"
         qshell dsp_sbus start
         retVal=$?
@@ -181,6 +217,10 @@ if [ "$POWER_MANAGER" == "VOXLPM" ]; then
     qshell voxlpm start -X -b 2
 fi
 
+if [ "$AIRSPEED_SENSOR" == "MS4525DO" ]; then
+	qshell ms4525do start -X -b 4
+fi
+
 # Optional distance sensor on spare i2c
 # qshell vl53l0x start -X -b 4
 # qshell vl53l1x start -X -b 4
@@ -188,22 +228,27 @@ fi
 # Start all of the processing modules on DSP
 qshell sensors start
 qshell ekf2 start
-qshell mc_pos_control start
-qshell mc_att_control start
-qshell mc_rate_control start
-qshell mc_hover_thrust_estimator start
-qshell mc_autotune_attitude_control start
-qshell land_detector start multicopter
+
+if [ "$AIRFRAME" == "FIXED_WING" ]; then
+	qshell fw_pos_control start
+	qshell fw_att_control start
+	qshell fw_rate_control start
+	qshell airspeed_selector start
+	qshell fw_autotune_attitude_control start
+	qshell land_detector start fixedwing
+elif [ $AIRFRAME = "MULTICOPTER" ]; then
+	qshell mc_pos_control start
+	qshell mc_att_control start
+	qshell mc_rate_control start
+	qshell mc_hover_thrust_estimator start
+	qshell mc_autotune_attitude_control start
+	qshell land_detector start multicopter
+fi
+
 qshell manual_control start
 qshell control_allocator start
 qshell load_mon start
-
-# Only start the rc_update module if an actual RC driver
-# is publishing input_rc topics. Otherwise for external RC
-# over Mavlink this isn't needed.
-if [ "$RC" != "EXTERNAL" ]; then
-    qshell rc_update start
-fi
+qshell rc_update start
 
 qshell commander start
 
@@ -213,20 +258,14 @@ qshell flight_mode_manager start
 # Start all of the processing modules on the applications processor
 dataman start
 navigator start
-
-# This bridge allows raw data packets to be sent over UART to the ESC
-# voxl2_io_bridge start
+vehicle_air_data_bridge start
+sensor_baro_bridge start
+vehicle_local_position_bridge start
 
 # Start uxrce_dds_client for ros2 offboard messages from agent over localhost
 uxrce_dds_client start -t udp -h 127.0.0.1 -p 8888
 
 voxl_save_cal_params start
-
-# On M0052 there is only one IMU. So, PX4 needs to
-# publish IMU samples externally for VIO to use.
-if [ $PLATFORM = "M0052" ]; then
-    imu_server start
-fi
 
 # start the onboard fast link to connect to voxl-mavlink-server
 mavlink start -x -u 14556 -o 14557 -r 100000 -n lo -m onboard
@@ -238,16 +277,11 @@ mavlink stream -u 14556 -s ATTITUDE_QUATERNION -r 10
 mavlink stream -u 14556 -s GLOBAL_POSITION_INT -r 30
 mavlink stream -u 14556 -s SCALED_PRESSURE -r 10
 
+# Increase heartbeat rate so VFC can get faster mode updates
+mavlink stream -u 14556 -s HEARTBEAT -r 10
+
 # start the slow normal mode for voxl-mavlink-server to forward to GCS
 mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
-
-# Start logging and use timestamps for log files when possible.
-# Add the "-e" option to start logging immediately. Default is
-# to log only when armed. Caution must be used with the "-e" option
-# because if power is removed without stopping the logger gracefully then
-# the log file may be corrupted. Rather than using "-e" option it's better
-# to use the SDLOG_MODE to do that.
-logger start -t -b 256
 
 mavlink boot_complete
 
@@ -263,3 +297,9 @@ for i in "${EXTRA_STEPS[@]}"
 do
     $i
 done
+
+# Start logging module. This is done as the last step because any topics
+# marked as optional will only be logged if they have been advertised when
+# this is started. By starting it last it makes sure to see those
+# advertisements as the other modules are starting before it.
+logger start

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # EstimatorGpsStatus (UORB message)
 
-**TOPICS:** estimator_gpsstatus
+**TOPICS:** estimator_gps_status
 
 ## Fields
 

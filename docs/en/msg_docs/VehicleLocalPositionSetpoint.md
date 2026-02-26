@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Local position setpoint in NED frame. Telemetry of PID position controller to monitor tracking. NaN means the state was not controlled.
 
-**TOPICS:** vehicle_localposition_setpoint
+**TOPICS:** vehicle_local_position_setpoint
 
 ## Fields
 

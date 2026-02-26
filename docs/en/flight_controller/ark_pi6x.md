@@ -1,10 +1,19 @@
 # ARK Pi6X Flow
 
+::: warning
+PX4 does not manufacture this (or any) autopilot.
+Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware support or compliance issues.
+:::
+
 The [ARK Pi6X Flow](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-pi6x-flow) integrates a Raspberry Pi Compute Module 4 (CM4) Carrier, [ARKV6X Flight Controller](../flight_controller/ark_v6x.md), [ARK Flow sensors](../dronecan/ark_flow.md) , [ARK PAB Power Module](../power_module/ark_pab_power_module.md), and a 4-in-1 ESC, all mounted onto one compact board.
 
 ![ARK Pi6X Flow Flight Controller](../../assets/flight_controller/ark_pi6x_flow/ark_pi6xflow.jpg)
 
-## Where to Buy
+::: info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
+:::
+
+## Where to Buy {#store}
 
 Order this module from:
 

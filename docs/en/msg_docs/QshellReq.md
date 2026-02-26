@@ -17,9 +17,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                  | Type     | Value | Description |
-| ------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MAX_STRLEN"></a> MAX_STRLEN | `uint32` | 100   |
+| Name                                | Type     | Value | Description |
+| ----------------------------------- | -------- | ----- | ----------- |
+| <a id="#MAX_STRLEN"></a> MAX_STRLEN | `uint32` | 100   |
 
 ## Source Message
 

@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # MessageFormatResponse (UORB message)
 
-**TOPICS:** message_formatresponse
+**TOPICS:** message_format_response
 
 ## Fields
 

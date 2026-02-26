@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Fixed Wing Lateral Status message. Published by the fw_lateral_longitudinal_control module to report the resultant lateral setpoint.
 
-**TOPICS:** fixed_winglateral_status
+**TOPICS:** fixed_wing_lateral_status
 
 ## Fields
 

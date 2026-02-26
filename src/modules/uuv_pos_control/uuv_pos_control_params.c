@@ -41,7 +41,7 @@
  *
  * All the ackowledgments and credits for the fw wing/rover app are reported in those files.
  *
- * @author Tim Hansen <t.hansen@jacobs-university.de>
+ * @author Tim Hansen <timhansen93@googlemail.com>
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
  */
 
@@ -118,3 +118,71 @@ PARAM_DEFINE_FLOAT(UUV_PGM_VEL, 0.5f);
  * @group UUV Position Control
  */
 PARAM_DEFINE_INT32(UUV_POS_MODE, 1);
+
+
+/**
+ * Height proportional gain
+ *
+ * @group UUV Attitude Control
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_HGT_P, 1.0f);
+
+/**
+ * Height differential gain
+ *
+ * @group UUV Attitude Control
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_HGT_D, 1.0f);
+
+/**
+ * Height integrational gain
+ *
+ * @group UUV Attitude Control
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_HGT_I, 0.2f);
+
+/**
+ * sum speed of error for integrational gain
+ *
+ * @group UUV Attitude Control
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_HGT_I_SPD, 1.0f);
+
+/**
+ * Height change strength from manual input
+ *
+ * @group UUV Attitude Control
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_HGT_STR, 1.0f);
+
+/**
+ * maximum Height distance controlled by manual input. Diff between actual and desired Height cant be higher than that
+ *
+ *
+ * @group UUV Attitude Control
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UUV_HGT_MAX_DIFF, 0.3f);
+
+/**
+ * Height rc-button up
+ *
+ * @group UUV Attitude Control
+ * @min 0
+ * @max 16
+ */
+PARAM_DEFINE_INT32(UUV_HGT_B_UP, 11);
+
+/**
+ * Height rc-button down
+ *
+ * @group UUV Attitude Control
+ * @min 0
+ * @max 16
+ */
+PARAM_DEFINE_INT32(UUV_HGT_B_DOWN, 12);

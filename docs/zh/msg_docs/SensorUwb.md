@@ -1,9 +1,45 @@
+---
+pageClass: is-wide-page
+---
+
 # SensorUwb (UORB message)
 
-UWB distance contains the distance information measured by an ultra-wideband positioning system,
-such as Pozyx or NXP Rddrone.
+UWB distance contains the distance information measured by an ultra-wideband positioning system,. such as Pozyx or NXP Rddrone.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorUwb.msg)
+**TOPICS:** sensor_uwb
+
+## Fields
+
+| 参数名                                                                                   | 类型        | Unit [Frame] | Range/Enum | 描述                                                                                                    |
+| ------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| timestamp                                                                             | `uint64`  |                                                                  |            | time since system start (microseconds)                                             |
+| sessionid                                                                             | `uint32`  |                                                                  |            | UWB SessionID                                                                                         |
+| time_offset                                                      | `uint32`  |                                                                  |            | Time between Ranging Rounds in ms                                                                     |
+| counter                                                                               | `uint32`  |                                                                  |            | Number of Ranges since last Start of Ranging                                                          |
+| mac                                                                                   | `uint16`  |                                                                  |            | MAC adress of Initiator (controller)                                               |
+| mac_dest                                                         | `uint16`  |                                                                  |            | MAC adress of Responder (Controlee)                                                |
+| status                                                                                | `uint16`  |                                                                  |            | status feedback #                                                                                     |
+| nlos                                                                                  | `uint8`   |                                                                  |            | None line of site condition y/n                                                                       |
+| distance                                                                              | `float32` |                                                                  |            | distance in m to the UWB receiver                                                                     |
+| aoa_azimuth_dev                             | `float32` |                                                                  |            | Angle of arrival of first incomming RX msg                                                            |
+| aoa_elevation_dev                           | `float32` |                                                                  |            | Angle of arrival of first incomming RX msg                                                            |
+| aoa_azimuth_resp                            | `float32` |                                                                  |            | Angle of arrival of first incomming RX msg at the responder                                           |
+| aoa_elevation_resp                          | `float32` |                                                                  |            | Angle of arrival of first incomming RX msg at the responder                                           |
+| aoa_azimuth_fom                             | `uint8`   |                                                                  |            | AOA Azimuth FOM                                                                                       |
+| aoa_elevation_fom                           | `uint8`   |                                                                  |            | AOA Elevation FOM                                                                                     |
+| aoa_dest_azimuth_fom   | `uint8`   |                                                                  |            | AOA Azimuth FOM                                                                                       |
+| aoa_dest_elevation_fom | `uint8`   |                                                                  |            | AOA Elevation FOM                                                                                     |
+| orientation                                                                           | `uint8`   |                                                                  |            | Direction the sensor faces from MAV_SENSOR_ORIENTATION enum |
+| offset_x                                                         | `float32` |                                                                  |            | UWB initiator offset in X axis (NED drone frame)                                   |
+| offset_y                                                         | `float32` |                                                                  |            | UWB initiator offset in Y axis (NED drone frame)                                   |
+| offset_z                                                         | `float32` |                                                                  |            | UWB initiator offset in Z axis (NED drone frame)                                   |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SensorUwb.msg)
+
+:::details
+Click here to see original file
 
 ```c
 # UWB distance contains the distance information measured by an ultra-wideband positioning system,
@@ -40,5 +76,6 @@ uint8 orientation		# Direction the sensor faces from MAV_SENSOR_ORIENTATION enum
 float32 offset_x		# UWB initiator offset in X axis (NED drone frame)
 float32 offset_y		# UWB initiator offset in Y axis (NED drone frame)
 float32 offset_z		# UWB initiator offset in Z axis (NED drone frame)
-
 ```
+
+:::

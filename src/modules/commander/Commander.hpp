@@ -95,14 +95,19 @@ using arm_disarm_reason_t = events::px4::enums::arm_disarm_reason_t;
 
 using namespace time_literals;
 
-class Commander : public ModuleBase<Commander>, public ModuleParams
+class Commander : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Commander();
 	~Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Commander *instantiate(int argc, char *argv[]);
@@ -243,6 +248,7 @@ private:
 	hrt_abstime _datalink_last_heartbeat_gcs{0};
 	hrt_abstime _datalink_last_heartbeat_onboard_controller{0};
 	hrt_abstime _datalink_last_heartbeat_parachute_system{0};
+	hrt_abstime _datalink_last_heartbeat_traffic_avoidance_system{0};
 
 	hrt_abstime _last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
@@ -268,6 +274,7 @@ private:
 	bool _open_drone_id_system_lost{true};
 	bool _onboard_controller_lost{false};
 	bool _parachute_system_lost{true};
+	bool _traffic_avoidance_system_lost{true};
 
 	bool _last_overload{false};
 	bool _mode_switch_mapped{false};

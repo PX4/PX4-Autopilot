@@ -11,7 +11,7 @@ and is subscribed to by the respective attitude controllers to command rate setp
 
 The rate_sp field is consumed by the controllers, while the remaining fields (model coefficients, gains, filters, and autotune state) are used for logging and debugging.
 
-**TOPICS:** autotune_attitudecontrol_status
+**TOPICS:** autotune_attitude_control_status
 
 ## Fields
 

@@ -57,7 +57,6 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
-#include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
 
 using namespace time_literals;

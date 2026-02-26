@@ -48,9 +48,11 @@
 
 using namespace time_literals;
 
-class SensorMagSim : public ModuleBase<SensorMagSim>, public ModuleParams, public px4::ScheduledWorkItem
+class SensorMagSim : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SensorMagSim();
 	~SensorMagSim() override;
 

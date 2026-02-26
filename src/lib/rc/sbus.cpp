@@ -237,7 +237,7 @@ sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 		* currently ignoring single bit channels.  */
 
 		for (unsigned i = 0; (i < num_values) && (i < 16); ++i) {
-			value = (uint16_t)(((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR) + .5f);
+			value = static_cast<uint16_t>(lround((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR));
 
 			/*protect from out of bounds values and limit to 11 bits*/
 			if (value > 0x07ff) {
@@ -643,7 +643,7 @@ sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num
 
 
 		/* convert 0-2048 values to 1000-2000 ppm encoding in a not too sloppy fashion */
-		values[channel] = (uint16_t)(value * SBUS_SCALE_FACTOR + .5f) + SBUS_SCALE_OFFSET;
+		values[channel] = static_cast<uint16_t>(lround(value * SBUS_SCALE_FACTOR) + SBUS_SCALE_OFFSET);
 	}
 
 	/* decode switch channels if data fields are wide enough */

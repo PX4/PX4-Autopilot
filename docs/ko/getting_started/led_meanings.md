@@ -20,7 +20,7 @@ It is possible to have a GPS lock (Green LED) and still not be able to arm the v
 :::
 
 :::tip
-In the event of an error (blinking red), or if the vehicle can't achieve GPS lock (change from blue to green),   check for more detailed status information in _QGroundControl_ including calibration status, and errors messages reported by the [Preflight Checks (Internal)](../flying/pre_flight_checks.md).
+In the event of an error (blinking red), or if the vehicle can't achieve GPS lock (change from blue to green), check for more detailed status information in _QGroundControl_ including calibration status, and errors messages reported by the [Preflight Checks (Internal)](../flying/pre_flight_checks.md).
 또한 GPS 모듈이 연결 여부, Pixhawk와 GPS 연동 여부, 정확한 GPS 위치를 전송 여부를 확인하십시오.
 :::
 
@@ -47,7 +47,8 @@ In the event of an error (blinking red), or if the vehicle can't achieve GPS loc
   사고 방지 모드에서는 기체는 이륙 위치로 복귀하거나, 현재 위치에 착륙할 수 있습니다.
 
 - **[Solid Amber] Low Battery Warning:** Indicates your vehicle's battery is running dangerously low.
-  특정 시점이 지나면, 차량은 안전 방지 모드로 전환됩니다. 그러나, 이 모드는 종료시점에는 경고 메시지를 표시합니다.
+  특정 시점이 지나면, 차량은 안전 방지 모드로 전환됩니다. However, this mode should signal caution that it's time to end
+  this flight.
 
 - **[Blinking Red] Error / Setup Required:** Indicates that your autopilot needs to be configured or calibrated before flying.
   자동조종장치를 지상관제국에 연결하여 무슨 문제인지를 확인하십시오.
@@ -77,11 +78,11 @@ The LED labels shown above are commonly used, but might differ on some boards.
 
 LED가 의미하는 메시지에 관한  자세한 정보는 아래에서 설명합니다( "x"는 "모든 상태"를 의미).
 
-| 적색/황색 | 청색  | 녹색    | 설명                                                                                                                                                                                   |
-| ----- | --- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 10Hz  | x   | x     | Overload CPU load > 80%, or RAM usage > 98%                                                                                                                                          |
-| OFF   | x   | x     | Overload CPU load <= 80%, or RAM usage <= 98%                                                                                      |
-| NA    | OFF | 4 Hz  | actuator_armed->armed && failsafe                                                                                       |
-| NA    | ON  | 4 Hz  | actuator_armed->armed && !failsafe                                                                                      |
-| NA    | OFF | 1 Hz  | !actuator_armed-> armed && actuator_armed->ready_to_arm  |
-| NA    | OFF | 10 Hz | !actuator_armed->armed  && !actuator_armed->ready_to_arm |
+| 적색/황색 | 청색  | 녹색    | 설명                                                                                                                                                                                  |
+| ----- | --- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 10Hz  | x   | x     | Overload CPU load > 80%, or RAM usage > 98%                                                                                                                                         |
+| OFF   | x   | x     | Overload CPU load <= 80%, or RAM usage <= 98%                                                                                     |
+| NA    | OFF | 4 Hz  | actuator_armed->armed && failsafe                                                                                      |
+| NA    | ON  | 4 Hz  | actuator_armed->armed && !failsafe                                                                                     |
+| NA    | OFF | 1 Hz  | !actuator_armed-> armed && actuator_armed->ready_to_arm |
+| NA    | OFF | 10 Hz | !actuator_armed->armed && !actuator_armed->ready_to_arm |

@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 UAVCAN-MAVLink parameter bridge request type.
 
-**TOPICS:** uavcan_parameterrequest
+**TOPICS:** uavcan_parameter_request
 
 ## Fields
 
@@ -23,16 +23,16 @@ UAVCAN-MAVLink parameter bridge request type.
 
 ## Constants
 
-| Name                                                                            | Type    | Value | Description                       |
-| ------------------------------------------------------------------------------- | ------- | ----- | --------------------------------- |
-| <a href="#MESSAGE_TYPE_PARAM_REQUEST_READ"></a> MESSAGE_TYPE_PARAM_REQUEST_READ | `uint8` | 20    | MAVLINK_MSG_ID_PARAM_REQUEST_READ |
-| <a href="#MESSAGE_TYPE_PARAM_REQUEST_LIST"></a> MESSAGE_TYPE_PARAM_REQUEST_LIST | `uint8` | 21    | MAVLINK_MSG_ID_PARAM_REQUEST_LIST |
-| <a href="#MESSAGE_TYPE_PARAM_SET"></a> MESSAGE_TYPE_PARAM_SET                   | `uint8` | 23    | MAVLINK_MSG_ID_PARAM_SET          |
-| <a href="#NODE_ID_ALL"></a> NODE_ID_ALL                                         | `uint8` | 0     | MAV_COMP_ID_ALL                   |
-| <a href="#PARAM_TYPE_UINT8"></a> PARAM_TYPE_UINT8                               | `uint8` | 1     | MAV_PARAM_TYPE_UINT8              |
-| <a href="#PARAM_TYPE_INT64"></a> PARAM_TYPE_INT64                               | `uint8` | 8     | MAV_PARAM_TYPE_INT64              |
-| <a href="#PARAM_TYPE_REAL32"></a> PARAM_TYPE_REAL32                             | `uint8` | 9     | MAV_PARAM_TYPE_REAL32             |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                               | `uint8` | 4     |
+| Name                                                                          | Type    | Value | Description                       |
+| ----------------------------------------------------------------------------- | ------- | ----- | --------------------------------- |
+| <a id="#MESSAGE_TYPE_PARAM_REQUEST_READ"></a> MESSAGE_TYPE_PARAM_REQUEST_READ | `uint8` | 20    | MAVLINK_MSG_ID_PARAM_REQUEST_READ |
+| <a id="#MESSAGE_TYPE_PARAM_REQUEST_LIST"></a> MESSAGE_TYPE_PARAM_REQUEST_LIST | `uint8` | 21    | MAVLINK_MSG_ID_PARAM_REQUEST_LIST |
+| <a id="#MESSAGE_TYPE_PARAM_SET"></a> MESSAGE_TYPE_PARAM_SET                   | `uint8` | 23    | MAVLINK_MSG_ID_PARAM_SET          |
+| <a id="#NODE_ID_ALL"></a> NODE_ID_ALL                                         | `uint8` | 0     | MAV_COMP_ID_ALL                   |
+| <a id="#PARAM_TYPE_UINT8"></a> PARAM_TYPE_UINT8                               | `uint8` | 1     | MAV_PARAM_TYPE_UINT8              |
+| <a id="#PARAM_TYPE_INT64"></a> PARAM_TYPE_INT64                               | `uint8` | 8     | MAV_PARAM_TYPE_INT64              |
+| <a id="#PARAM_TYPE_REAL32"></a> PARAM_TYPE_REAL32                             | `uint8` | 9     | MAV_PARAM_TYPE_REAL32             |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                               | `uint8` | 4     |
 
 ## Source Message
 

@@ -45,6 +45,8 @@
 #include <chrono>
 #endif
 
+ModuleBase::Descriptor MulticopterNeuralNetworkControl::desc{task_spawn, custom_command, print_usage};
+
 namespace
 {
 // This number should be the number of operations in the model, like tanh and fully connected
@@ -412,8 +414,8 @@ int MulticopterNeuralNetworkControl::task_spawn(int argc, char *argv[])
 	MulticopterNeuralNetworkControl *instance = new MulticopterNeuralNetworkControl();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init() and instance->InitializeNetwork() == PX4_OK) {
 			return PX4_OK;
@@ -427,8 +429,8 @@ int MulticopterNeuralNetworkControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -442,7 +444,7 @@ void MulticopterNeuralNetworkControl::Run()
 			UnregisterNeuralFlightMode(_arming_check_id, _mode_id);
 		}
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -624,5 +626,5 @@ Outputs: [Actuator motors(4)]
 
 extern "C" __EXPORT int mc_nn_control_main(int argc, char *argv[])
 {
-	return MulticopterNeuralNetworkControl::main(argc, argv);
+	return ModuleBase::main(MulticopterNeuralNetworkControl::desc, argc, argv);
 }

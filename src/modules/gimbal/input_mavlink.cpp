@@ -323,9 +323,9 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 		// Stabilization params are ignored. Use MNT_DO_STAB param instead.
 
 		const int params[] = {
-			(int)((float) vehicle_command.param5 + 0.5f),
-			(int)((float) vehicle_command.param6 + 0.5f),
-			(int)(vehicle_command.param7 + 0.5f)
+			static_cast<int>(lroundf(vehicle_command.param5)),
+			static_cast<int>(lroundf(vehicle_command.param6)),
+			static_cast<int>(lroundf(vehicle_command.param7))
 		};
 
 		for (int i = 0; i < 3; ++i) {
@@ -779,9 +779,9 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 		// Stabilization params are ignored. Use MNT_DO_STAB param instead.
 
 		const int params[] = {
-			(int)((float) vehicle_command.param5 + 0.5f),
-			(int)((float) vehicle_command.param6 + 0.5f),
-			(int)(vehicle_command.param7 + 0.5f)
+			static_cast<int>(lroundf(vehicle_command.param5)),
+			static_cast<int>(lroundf(vehicle_command.param6)),
+			static_cast<int>(lroundf(vehicle_command.param7))
 		};
 
 		for (int i = 0; i < 3; ++i) {

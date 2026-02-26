@@ -38,6 +38,7 @@
  *     uavcan.equipment.esc.RawCommand
  *     uavcan.equipment.esc.RPMCommand
  *     uavcan.equipment.esc.Status
+ *     uavcan.equipment.esc.StatusExtended
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
@@ -47,8 +48,13 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
+#include <uavcan/equipment/esc/StatusExtended.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/esc_report.h>
+#include <uORB/topics/dronecan_node_status.h>
 #include "../node_info.hpp"
 
 class UavcanEscController
@@ -85,14 +91,26 @@ private:
 	 * ESC status message reception will be reported via this callback.
 	 */
 	void esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg);
+	/**
+	 * ESC extended status message reception will be stored via this callback.
+	 */
+	void esc_status_extended_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg);
 
 	/**
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
 	 */
 	uint8_t check_escs_status();
 
+	/**
+	 * Gets failure flags for a specific ESC
+	 */
+	uint32_t get_failures(uint8_t esc_index);
+
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
+
+	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended>&)> StatusExtendedCbBinder;
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
@@ -102,6 +120,8 @@ private:
 	esc_status_s	_esc_status{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	uORB::SubscriptionMultiArray<dronecan_node_status_s, ORB_MULTI_MAX_INSTANCES> _dronecan_node_status_subs{ORB_ID::dronecan_node_status};
+	uORB::Subscription _device_information_sub{ORB_ID(device_information)};
 
 	uint8_t		_rotor_count{0};
 
@@ -112,6 +132,7 @@ private:
 	uavcan::INode								&_node;
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
+	uavcan::Subscriber<uavcan::equipment::esc::StatusExtended, StatusExtendedCbBinder> _uavcan_sub_status_extended;
 
 	NodeInfoPublisher *_node_info_publisher{nullptr};
 };

@@ -27,16 +27,16 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                    | Type    | Value | Description |
-| ------------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#BRICK1_VALID_SHIFTS"></a> BRICK1_VALID_SHIFTS | `uint8` | 0     |
-| <a href="#BRICK1_VALID_MASK"></a> BRICK1_VALID_MASK     | `uint8` | 1     |
-| <a href="#BRICK2_VALID_SHIFTS"></a> BRICK2_VALID_SHIFTS | `uint8` | 1     |
-| <a href="#BRICK2_VALID_MASK"></a> BRICK2_VALID_MASK     | `uint8` | 2     |
-| <a href="#BRICK3_VALID_SHIFTS"></a> BRICK3_VALID_SHIFTS | `uint8` | 2     |
-| <a href="#BRICK3_VALID_MASK"></a> BRICK3_VALID_MASK     | `uint8` | 4     |
-| <a href="#BRICK4_VALID_SHIFTS"></a> BRICK4_VALID_SHIFTS | `uint8` | 3     |
-| <a href="#BRICK4_VALID_MASK"></a> BRICK4_VALID_MASK     | `uint8` | 8     |
+| Name                                                  | Type    | Value | Description |
+| ----------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#BRICK1_VALID_SHIFTS"></a> BRICK1_VALID_SHIFTS | `uint8` | 0     |
+| <a id="#BRICK1_VALID_MASK"></a> BRICK1_VALID_MASK     | `uint8` | 1     |
+| <a id="#BRICK2_VALID_SHIFTS"></a> BRICK2_VALID_SHIFTS | `uint8` | 1     |
+| <a id="#BRICK2_VALID_MASK"></a> BRICK2_VALID_MASK     | `uint8` | 2     |
+| <a id="#BRICK3_VALID_SHIFTS"></a> BRICK3_VALID_SHIFTS | `uint8` | 2     |
+| <a id="#BRICK3_VALID_MASK"></a> BRICK3_VALID_MASK     | `uint8` | 4     |
+| <a id="#BRICK4_VALID_SHIFTS"></a> BRICK4_VALID_SHIFTS | `uint8` | 3     |
+| <a id="#BRICK4_VALID_MASK"></a> BRICK4_VALID_MASK     | `uint8` | 8     |
 
 ## Source Message
 

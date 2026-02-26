@@ -44,12 +44,15 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/aux_global_position.h>
 
 using namespace time_literals;
 
-class SensorAgpSim : public ModuleBase<SensorAgpSim>, public ModuleParams, public px4::ScheduledWorkItem
+class SensorAgpSim : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	SensorAgpSim();
 	~SensorAgpSim() override;
 
@@ -83,7 +86,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 
-	uORB::PublicationMulti<vehicle_global_position_s> _aux_global_position_pub{ORB_ID(aux_global_position)};
+	uORB::PublicationMulti<aux_global_position_s> _aux_global_position_pub{ORB_ID(aux_global_position)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

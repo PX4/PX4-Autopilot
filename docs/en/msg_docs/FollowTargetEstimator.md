@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # FollowTargetEstimator (UORB message)
 
-**TOPICS:** follow_targetestimator
+**TOPICS:** follow_target_estimator
 
 ## Fields
 

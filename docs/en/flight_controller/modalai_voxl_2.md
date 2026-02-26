@@ -1,11 +1,11 @@
 # ModalAI VOXL 2
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://forum.modalai.com/) for hardware support or compliance issues.
 :::
 
-The ModalAI [VOXL 2](https://modalai.com/voxl-2) ([Datasheet](https://docs.modalai.com/voxl2-datasheets/)) is ModalAI’s next-gen autonomous computing platform built around the Qualcomm QRB5165 processor. VOXL 2 boasts 8 cores, integrated PX4, seven camera concurrency, advanced onboard AI up to 15+ TOPS, and 5G connectivity. At 16 grams, VOXL 2 is the future of fully autonomous and connected drones!
+The ModalAI [VOXL 2](https://www.modalai.com/products/voxl-2) ([Datasheet](https://docs.modalai.com/voxl2-datasheets/)) is ModalAI's next-gen autonomous computing platform built around the Qualcomm QRB5165 processor. VOXL 2 boasts 8 cores, integrated PX4, seven camera concurrency, advanced onboard AI up to 15+ TOPS, and 5G connectivity. At 16 grams, VOXL 2 is the future of fully autonomous and connected drones!
 
 ![VOXL-2](../../assets/flight_controller/modalai/voxl_2/voxl-2-hero.jpg)
 
@@ -70,7 +70,7 @@ PX4 mainline supports VOXL 2 (board documentation [here](https://github.com/PX4/
 
 ## QGroundControl Support
 
-This board supported in QGroundControl 4.0 and later.
+This board is supported in QGroundControl 4.0 and later.
 
 ## Availability
 
