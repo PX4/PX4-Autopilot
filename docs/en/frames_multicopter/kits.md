@@ -17,6 +17,7 @@ Kits generally do not include:
 
 The following kits are currently available:
 
+- [Holybro X650 PX4 Development Kit](https://holybro.com/collections/x650-kits) (Pixhawk 6C/6X)
 - [Holybro X500 v2 PX4 Development Kit](https://holybro.com/collections/x500-kits) (Pixhawk 6c) ([Build instructions](../frames_multicopter/holybro_x500v2_pixhawk6c.md))
 - [Holybro S500 Kit v2](https://holybro.com/collections/s500/products/s500-v2-development-kit) (Pixhawk 6c)
 - [Holybro QAV250 Kit](https://holybro.com/products/qav250-kit) (Pixhawk 6c)
