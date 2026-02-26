@@ -1,5 +1,7 @@
 # CORVON V5 Autopilot
 
+<Badge type="tip" text="main (planned for: PX4 v1.18)" />
+
 :::warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://corvon.tech) for hardware support or compliance issues.
