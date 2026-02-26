@@ -37,21 +37,19 @@
 name: Build all targets
 
 on:
+  # Triggered by CI orchestrator for all branches/PRs (after all tiers pass)
+  workflow_run:
+    workflows: ["CI Pipeline (Orchestrator)"]
+    types: [completed]
+    branches: ['**']
+  # Direct trigger for tagged releases (orchestrator doesn't run on tags)
   push:
     tags:
       - 'v*'
-    branches:
-      - 'main'
-      - 'stable'
-      - 'beta'
-      - 'release/**'
     paths-ignore:
       - 'docs/**'
-  pull_request:
-    branches:
-      - '**'
-    paths-ignore:
-      - 'docs/**'
+  # Manual trigger for debugging
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -65,14 +63,27 @@ permissions:
 jobs:
   group_targets:
     name: Scan for Board Targets
+    # Only run if:
+    # 1. Direct push to tag (independent trigger for releases), OR
+    # 2. Orchestrator workflow_run completed successfully (for all branches/PRs), OR
+    # 3. Manual workflow_dispatch
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     # runs-on: ubuntu-latest
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    permissions:
+      contents: read
+      actions: read
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
       branchname: ${{ steps.set-branch.outputs.branchname }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Cache Python pip
         uses: actions/cache@v4
@@ -102,12 +113,13 @@ jobs:
       - id: set-branch
         name: Save Current Branch Name
         run: |
-          echo "branchname=${{
-            github.event_name == 'pull_request' &&
-            format('pr-{0}', github.event.pull_request.number) ||
-            github.head_ref ||
-            github.ref_name
-          }}" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # For workflow_run events, get branch from the triggering workflow
+            echo "branchname=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+          else
+            # For push/workflow_dispatch events
+            echo "branchname=${{ github.head_ref || github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Debug Matrix Output
         if: runner.debug == '1'
@@ -121,6 +133,9 @@ jobs:
     # runs-on: ubuntu-latest
     runs-on: [runs-on,"runner=8cpu-linux-${{ matrix.runner }}","image=ubuntu24-full-${{ matrix.runner }}","run-id=${{ github.run_id }}",spot=false]
     needs: group_targets
+    permissions:
+      contents: read
+      packages: read
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
       fail-fast: false
@@ -133,6 +148,7 @@ jobs:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
 
       - name: Git ownership workaround
@@ -207,6 +223,8 @@ jobs:
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: [setup, group_targets]
     if: startsWith(github.ref, 'refs/tags/v') || contains(fromJSON('["main","stable","beta"]'), needs.group_targets.outputs.branchname)
+    permissions:
+      contents: write
     outputs:
       uploadlocation: ${{ steps.upload-location.outputs.uploadlocation }}
     steps:

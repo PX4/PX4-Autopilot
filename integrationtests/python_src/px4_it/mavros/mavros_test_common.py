@@ -1,5 +1,4 @@
-#!/usr/bin/env python2
-from __future__ import division
+#!/usr/bin/env python3
 
 import unittest
 import rospy
@@ -11,7 +10,6 @@ from mavros_msgs.srv import CommandBool, ParamGet, ParamSet, SetMode, SetModeReq
                             WaypointPush
 from pymavlink import mavutil
 from sensor_msgs.msg import NavSatFix, Imu
-from six.moves import xrange
 
 
 class MavrosTestCommon(unittest.TestCase):
@@ -183,7 +181,7 @@ class MavrosTestCommon(unittest.TestCase):
         loop_freq = 1  # Hz
         rate = rospy.Rate(loop_freq)
         arm_set = False
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             if self.state.armed == arm:
                 arm_set = True
                 rospy.loginfo("set arm success | seconds: {0} of {1}".format(
@@ -213,7 +211,7 @@ class MavrosTestCommon(unittest.TestCase):
         loop_freq = 1  # Hz
         rate = rospy.Rate(loop_freq)
         mode_set = False
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             if self.state.mode == mode:
                 mode_set = True
                 rospy.loginfo("set mode success | seconds: {0} of {1}".format(
@@ -247,7 +245,7 @@ class MavrosTestCommon(unittest.TestCase):
         loop_freq = 1  # Hz
         rate = rospy.Rate(loop_freq)
         param_set = False
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             try:
                 res = self.set_param_srv(param_id, param_value)
                 if res.success:
@@ -274,7 +272,7 @@ class MavrosTestCommon(unittest.TestCase):
         loop_freq = 1  # Hz
         rate = rospy.Rate(loop_freq)
         simulation_ready = False
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             if all(value for value in self.sub_topics_ready.values()):
                 simulation_ready = True
                 rospy.loginfo("simulation topics ready | seconds: {0} of {1}".
@@ -297,7 +295,7 @@ class MavrosTestCommon(unittest.TestCase):
         loop_freq = 10  # Hz
         rate = rospy.Rate(loop_freq)
         landed_state_confirmed = False
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             if self.extended_state.landed_state == desired_landed_state:
                 landed_state_confirmed = True
                 rospy.loginfo("landed state confirmed | seconds: {0} of {1}".
@@ -325,7 +323,7 @@ class MavrosTestCommon(unittest.TestCase):
         loop_freq = 10  # Hz
         rate = rospy.Rate(loop_freq)
         transitioned = False
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             if transition == self.extended_state.vtol_state:
                 rospy.loginfo("transitioned | seconds: {0} of {1}".format(
                     i / loop_freq, timeout))
@@ -348,7 +346,7 @@ class MavrosTestCommon(unittest.TestCase):
         loop_freq = 1  # Hz
         rate = rospy.Rate(loop_freq)
         wps_cleared = False
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             if not self.mission_wp.waypoints:
                 wps_cleared = True
                 rospy.loginfo("clear waypoints success | seconds: {0} of {1}".
@@ -381,7 +379,7 @@ class MavrosTestCommon(unittest.TestCase):
         rate = rospy.Rate(loop_freq)
         wps_sent = False
         wps_verified = False
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             if not wps_sent:
                 try:
                     res = self.wp_push_srv(start_index=0, waypoints=waypoints)
@@ -417,7 +415,7 @@ class MavrosTestCommon(unittest.TestCase):
         loop_freq = 1  # Hz
         rate = rospy.Rate(loop_freq)
         res = False
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             try:
                 res = self.get_param_srv('MAV_TYPE')
                 if res.success:

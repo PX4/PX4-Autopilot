@@ -1,0 +1,67 @@
+# PX4 CI Configuration for Forks
+# Copy to .github/ci-config.yml and customize.
+# All settings are optional — omit any key to use the upstream default.
+#
+# This example is tuned for GitHub-hosted runners.
+# The upstream PX4 repo uses RunsOn/AWS for all jobs.
+
+# Infrastructure hint — set to true when running on GitHub-hosted runners.
+# The upstream PX4 repo uses RunsOn/AWS (is_gha: false by default).
+# Jobs may use this flag to skip steps that require RunsOn-specific
+# infrastructure (e.g. S3 cache access, spot instance features).
+# No job behavior is gated on this today — it is wired for future use.
+is_gha: true
+
+# Runner labels — one label per size tier.
+# For GitHub-hosted runners, all tiers can point to ubuntu-latest.
+# For self-hosted runners, map each tier to the appropriate pool.
+runners:
+  small:   '["ubuntu-latest"]'
+  medium:  '["ubuntu-latest"]'
+  large:   '["ubuntu-latest"]'
+  utility: '["ubuntu-latest"]'
+
+# Job toggles — enable only what your fork needs.
+# Jobs marked false below are upstream-specific (hardware boards,
+# platform-specific builds) and rarely useful for feature forks.
+jobs:
+  # T1 — gate checks (disable only if you have a very good reason)
+  gate_checks:          true   # format, newlines, module config validation
+  shellcheck:           true   # shell script linting
+  mavsdk_checks:        true   # mypy + flake8 on MAVSDK Python scripts
+
+  # T2 — core checks (recommended for all forks)
+  sitl_build:           true
+  clang_tidy:           true
+
+  # T2 — upstream-specific, disable for most forks
+  gazebo_classic_build: false  # only needed if running sitl_tests/mavros_tests
+  ubuntu_builds:        false  # verifies clean builds on bare Ubuntu images
+  macos_build:          false  # macOS platform verification
+  itcm_check:           false  # NuttX board ITCM placement, board-specific
+  flash_analysis:       false  # binary size diffing against PR base, repo-specific
+  failsafe_sim:         false  # Emscripten web simulation build
+
+  # T3 — integration tests (expensive, disable unless you need them)
+  sitl_tests:           false  # requires gazebo_classic_build
+  ros_integration:      false  # requires Galactic ROS container
+  mavros_tests:         false  # requires gazebo_classic_build
+  ros_translation_node: true   # lightweight, runs on standard ROS images
+
+# Cache sizes — adjust if you hit your cache storage limit.
+# GitHub-hosted runners share a 10 GB per-repo native cache.
+# With the job set above (~60% of jobs disabled), total warm footprint
+# is roughly 15-20% of the 10 GB limit per concurrent PR.
+# If you re-enable more jobs, total footprint scales up proportionally.
+# Raise your repo's cache limit if needed:
+#   Settings → Actions → Caches (up to 10 TB configurable)
+cache:
+  sitl:                300M   # ~94% fill at current default — do not lower
+  sitl_gazebo_classic: 350M   # only relevant if gazebo_classic_build: true
+  clang_tidy:          150M   # ~40% fill, sized with headroom
+  ubuntu_builds:       200M   # only relevant if ubuntu_builds: true
+  macos:               200M   # only relevant if macos_build: true
+  itcm:                200M   # only relevant if itcm_check: true, growing
+  flash:               200M   # only relevant if flash_analysis: true
+  ros_integration:     400M   # ~70% fill, trending up
+  ros_translation:     150M   # ~35% fill, sized with headroom

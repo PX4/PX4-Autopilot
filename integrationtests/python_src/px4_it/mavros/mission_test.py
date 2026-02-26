@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #***************************************************************************
 #
 #   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
@@ -36,10 +36,6 @@
 # @author Andreas Antener <andreas@uaventure.com>
 #
 
-# The shebang of this file is currently Python2 because some
-# dependencies such as pymavlink don't play well with Python3 yet.
-from __future__ import division
-
 PKG = 'px4'
 
 import rospy
@@ -47,13 +43,13 @@ import glob
 import json
 import math
 import os
-from px4tools import ulog
+import numpy as np
+from pyulog import ULog
 import sys
 from mavros import mavlink
 from mavros_msgs.msg import Mavlink, Waypoint, WaypointReached
 from mavros_test_common import MavrosTestCommon
 from pymavlink import mavutil
-from six.moves import xrange
 from threading import Thread
 
 
@@ -68,6 +64,49 @@ def get_last_log():
     last_log_dir = sorted(glob.glob(os.path.join(log_path, '*')))[-1]
     last_log = sorted(glob.glob(os.path.join(last_log_dir, '*.ulg')))[-1]
     return last_log
+
+
+def analyze_estimator_attitude(log_file):
+    """Compute attitude estimator error metrics from a ULog file."""
+    ulog = ULog(log_file)
+
+    att = ulog.get_dataset('vehicle_attitude').data
+    att_gt = ulog.get_dataset('vehicle_attitude_groundtruth').data
+
+    def quat_to_euler(q0, q1, q2, q3):
+        """Quaternion (w,x,y,z) to (roll, pitch, yaw) via ZYX Tait-Bryan."""
+        roll = np.arctan2(2 * (q0 * q1 + q2 * q3), 1 - 2 * (q1**2 + q2**2))
+        sinp = 2 * (q0 * q2 - q3 * q1)
+        pitch = np.where(np.abs(sinp) >= 1,
+                         np.copysign(np.pi / 2, sinp), np.arcsin(sinp))
+        yaw = np.arctan2(2 * (q0 * q3 + q1 * q2), 1 - 2 * (q2**2 + q3**2))
+        return roll, pitch, yaw
+
+    roll, pitch, yaw = quat_to_euler(
+        att['q[0]'], att['q[1]'], att['q[2]'], att['q[3]'])
+    roll_gt, pitch_gt, yaw_gt = quat_to_euler(
+        att_gt['q[0]'], att_gt['q[1]'], att_gt['q[2]'], att_gt['q[3]'])
+
+    # interpolate groundtruth onto attitude timestamps
+    ts = att['timestamp']
+    ts_gt = att_gt['timestamp']
+    roll_gt = np.interp(ts, ts_gt, roll_gt)
+    pitch_gt = np.interp(ts, ts_gt, pitch_gt)
+    yaw_gt = np.interp(ts, ts_gt, yaw_gt)
+
+    wrap = lambda x: np.arcsin(np.sin(x))
+    e_roll = wrap(roll - roll_gt)
+    e_pitch = wrap(pitch - pitch_gt)
+    e_yaw = wrap(yaw - yaw_gt)
+
+    return {
+        'roll_error_mean': np.rad2deg(np.mean(e_roll)),
+        'pitch_error_mean': np.rad2deg(np.mean(e_pitch)),
+        'yaw_error_mean': np.rad2deg(np.mean(e_yaw)),
+        'roll_error_std': np.rad2deg(np.std(e_roll)),
+        'pitch_error_std': np.rad2deg(np.std(e_pitch)),
+        'yaw_error_std': np.rad2deg(np.std(e_yaw)),
+    }
 
 
 def read_mission(mission_filename):
@@ -188,7 +227,7 @@ class MavrosMissionTest(MavrosTestCommon):
         # does it reach the position in 'timeout' seconds?
         loop_freq = 2  # Hz
         rate = rospy.Rate(loop_freq)
-        for i in xrange(timeout * loop_freq):
+        for i in range(timeout * loop_freq):
             pos_xy_d, pos_z_d = self.distance_to_wp(lat, lon, alt)
 
             # remember best distances
@@ -295,9 +334,7 @@ class MavrosMissionTest(MavrosTestCommon):
         rospy.loginfo("mission done, calculating performance metrics")
         last_log = get_last_log()
         rospy.loginfo("log file {0}".format(last_log))
-        data = ulog.read_ulog(last_log).concat(dt=0.1)
-        data = ulog.compute_data(data)
-        res = ulog.estimator_analysis(data, False)
+        res = analyze_estimator_attitude(last_log)
 
         # enforce performance
         self.assertTrue(abs(res['roll_error_mean']) < 5.0, str(res))
