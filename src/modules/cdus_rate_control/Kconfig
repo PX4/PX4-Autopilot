@@ -1,0 +1,12 @@
+menuconfig MODULES_CDUS_RATE_CONTROL
+	bool "cdus_rate_control"
+	default n
+	---help---
+		Enable support for cdus_rate_control
+
+menuconfig USER_CDUS_RATE_CONTROL
+	bool "cdus_rate_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && CDUS_RATE_CONTROL
+	---help---
+		Put cdus_rate_control in userspace memory
