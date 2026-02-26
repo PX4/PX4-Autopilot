@@ -44,6 +44,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <px4_platform_common/defines.h>
+#include <type_traits>
 
 namespace math
 {
@@ -82,7 +84,18 @@ private:
 
 	static int cmp(const void *a, const void *b)
 	{
-		return (*(T *)a >= *(T *)b) ? 1 : -1;
+		const T va = *(const T *)a;
+		const T vb = *(const T *)b;
+
+		if constexpr (std::is_floating_point_v<T>) {
+			if(!PX4_ISFINITE(va) && !PX4_ISFINITE(vb)) { return  0; } 
+			else if(!PX4_ISFINITE(va))                 { return  1; }
+			else if(!PX4_ISFINITE(vb))                 { return -1; }
+		}
+
+		if (va < vb) { return -1; }
+		if (va > vb) { return  1; }
+		return 0;
 	}
 
 	T _buffer[WINDOW] {};
