@@ -46,14 +46,14 @@
 #include <string.h>
 #include <px4_platform_common/defines.h>
 
-// Minimal float detection without headers
+
+namespace math
+{
+
 template<typename U> struct px4_is_floating_point { static constexpr bool value = false; };
 template<> struct px4_is_floating_point<float> { static constexpr bool value = true; };
 template<> struct px4_is_floating_point<double> { static constexpr bool value = true; };
 template<> struct px4_is_floating_point<long double> { static constexpr bool value = true; };
-
-namespace math
-{
 
 template<typename T, int WINDOW = 3>
 class MedianFilter
