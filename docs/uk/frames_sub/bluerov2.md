@@ -2,9 +2,11 @@
 
 <Badge type="tip" text="PX4 v1.12" />
 
-The [BlueROV2](https://bluerobotics.com/store/rov/bluerov2-upgrade-kits/brov2-heavy-retrofit-r1-rp/BlueROV2) is an affordable high-performance underwater vehicle that is perfect for inspections, research, and adventuring.
+The [BlueROV2](https://bluerobotics.com/store/rov/bluerov2-upgrade-kits/brov2-heavy-retrofit-r1-rp/BlueROV2) is an
+affordable high-performance underwater vehicle that is perfect for inspections, research, and adventuring.
 
-PX4 provides [experimental support](index.md) for an 8-thrust vectored configuration, known as the _BlueROV2 Heavy Configuration_.
+PX4 provides [experimental support](index.md) for an 8-thrust vectored configuration, known as the _BlueROV2 Heavy
+Configuration_.
 
 ![Hero](../../assets/airframes/sub/bluerov/bluerov_hero.jpg)
 
@@ -14,9 +16,11 @@ PX4 provides [experimental support](index.md) for an 8-thrust vectored configura
 
 ### Відповідність двигунів/підключення
 
-Мотори повинні бути підключені до контролера польоту відповідно до стандартних інструкцій, наданих BlueRobotics для цього транспортного засобу.
+The motors must be wired to the flight controller following the standard instructions supplied by BlueRobotics for this
+vehicle .
 
-The vehicle will then match the configuration documented in the [Airframe Reference](../airframes/airframe_reference.md#vectored-6-dof-uuv):
+The vehicle will then match the configuration documented in
+the [Airframe Reference](../airframes/airframe_reference.md#vectored-6-dof-uuv):
 
 <img src="../../assets/airframes/types/Vectored6DofUUV.svg" width="29%" style="max-height: 180px;"/>
 
@@ -28,6 +32,15 @@ The vehicle will then match the configuration documented in the [Airframe Refere
 - **MAIN6:** motor 6 CCW, bow port vertical, propeller CW
 - **MAIN7:** motor 7 CCW, stern starboard vertical, propeller CW
 - **MAIN8:** motor 8 CCW, stern port vertical, propeller CCW
+
+## Manual Modes
+
+| Режим     | Опис                                                                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Manual    | Direct manual control of yaw and thrust.                                                                                               |
+| Acro      | Manual control of yaw/thrust, but keeps roll/pitch zero                                                                                                |
+| Altitude  | Manual control of x/y thrust and yaw. Control of height with PID, manually controlled by user.   Keeps roll/pitch zero |
+| Положення | Controlls x/y/z and yaw. Manually controlled by user.  Keeps roll/pitch zero                                           |
 
 ## Конфігурація планера
 

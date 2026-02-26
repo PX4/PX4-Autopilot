@@ -78,6 +78,23 @@ You will now find a new parameter called [SER_TEL2_BAUD](../advanced_config/para
 | <a id="NAV_TRAFF_A_VER"></a>[NAV_TRAFF_A_VER](../advanced_config/parameter_reference.md#NAV_TRAFF_A_VER)    | Vertical height above and below vehicle of the cylinder that defines its airspace (also see [NAV_TRAFF_A_HOR](#NAV_TRAFF_A_HOR)).          |
 | <a id="NAV_TRAFF_COLL_T"></a>[NAV_TRAFF_COLL_T](../advanced_config/parameter_reference.md#NAV_TRAFF_COLL_T) | Поріг часу зіткнення. Уникнення буде викликати якщо передбачуваний час, поки зіткнення не знизиться нижче цієї вартості (орієнтовний час ґрунтується на відносній швидкості руху та UAV). |
 
+### Arming Check
+
+PX4 can be configured to check for the presence of a traffic avoidance system (ADSB or FLARM transponder) before arming.
+This ensures that a traffic avoidance system is connected and functioning before flight.
+
+The check is configured using the [COM_ARM_TRAFF](../advanced_config/parameter_reference.md#COM_ARM_TRAFF) parameter:
+
+| Значення | Опис                                                                                                                                                       |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0        | Disabled (default). No check is performed.                                                              |
+| 1        | Warning only. A warning is issued if no traffic avoidance system is detected, but arming is allowed.                       |
+| 2        | Enforce for all modes. Arming is denied if no traffic avoidance system is detected, regardless of flight mode.             |
+| 3        | Enforce for mission modes only. Arming is denied if no traffic avoidance system is detected and a mission mode is planned. |
+
+When a traffic avoidance system is detected, the system tracks its presence with a 3-second timeout.
+If the system is lost or regained, corresponding events are logged ("Traffic avoidance system lost" / "Traffic avoidance system regained").
+
 ## Імплементація
 
 ### ADSB/FLARM

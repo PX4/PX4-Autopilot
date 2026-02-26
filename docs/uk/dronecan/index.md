@@ -287,6 +287,19 @@ If the rangefinder is connected via DroneCAN (whether inbuilt or separate), you 
 Select the specific CAN interface(s) used for ESC data output using the [UAVCAN_ESC_IFACE](../advanced_config/parameter_reference.md#UAVCAN_ESC_IFACE) parameter (all that all interfaces are selected by default).
 Note that DroneCAN ESCs should be on their own dedicated CAN interface(s) because ESC messages can saturate the bus and starve other nodes of bandwidth.
 
+### Lights
+
+PX4 can control LEDs via DroneCAN [LightsCommand](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#lightscommand) messages.
+
+Configuration:
+
+1. Set [UAVCAN_LGT_NUM](../advanced_config/parameter_reference.md#UAVCAN_LGT_NUM) to the number of lights (0 disables). You might need to reopen the ground station to have parameters for new instances available.
+2. For each light slot (0 to NUM-1), set:
+   - `UAVCAN_LGT_IDx`: The `light_id` matching your peripheral.
+   - `UAVCAN_LGT_FNx`: `Status` for system status colours, or `Anti-collision` for white beacon.
+3. For anti-collision lights, [UAVCAN_LGT_ANTCL](../advanced_config/parameter_reference.md#UAVCAN_LGT_ANTCL) controls when they illuminate (off, armed, prearmed, always on).
+4. Reboot for any changes to take effect.
+
 ## Налаштування параметрів CANNODE QGC
 
 QGroundControl може переглядати та змінювати параметри, що належать до пристроїв CAN, підключених до автопілота, за умови, що пристрої підключені до автопілота до запуску QGC.
