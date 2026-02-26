@@ -488,6 +488,7 @@
       - [Worlds](sim_gazebo_classic/worlds.md)
       - [Multi-Vehicle Sim](sim_gazebo_classic/multi_vehicle_simulation.md)
     - [Simulate Failsafes](simulation/failsafes.md)
+    - [PX4 .deb Packages](packaging/px4_sitl_deb.md)
   - [Hardware](hardware/index.md)
     - [Flight Controller Reference Design](hardware/reference_design.md)
     - [Manufacturer’s Board Support Guide](hardware/board_support_guide.md)

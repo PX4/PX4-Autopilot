@@ -1,0 +1,110 @@
+name: Build PX4 .deb Package
+description: Build PX4 SITL, run cpack, validate the .deb, and upload artifact
+
+inputs:
+  target:
+    description: 'Build target: default or sih'
+    required: true
+  artifact-name:
+    description: Name for the uploaded artifact
+    required: true
+  ccache-key-prefix:
+    description: Prefix for ccache cache keys
+    default: deb-ccache
+  ccache-max-size:
+    description: Maximum ccache size
+    default: 400M
+
+runs:
+  using: composite
+  steps:
+    - name: Restore ccache
+      id: ccache-restore
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.ccache
+        key: ${{ inputs.ccache-key-prefix }}-${{ github.sha }}
+        restore-keys: |
+          ${{ inputs.ccache-key-prefix }}-
+
+    - name: Configure ccache
+      shell: bash
+      run: |
+        mkdir -p ~/.ccache
+        echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+        echo "compression = true" >> ~/.ccache/ccache.conf
+        echo "compression_level = 6" >> ~/.ccache/ccache.conf
+        echo "max_size = ${{ inputs.ccache-max-size }}" >> ~/.ccache/ccache.conf
+        ccache -z
+
+    - name: Build PX4 SITL
+      shell: bash
+      run: make px4_sitl_${{ inputs.target }}
+
+    - name: ccache stats
+      if: always()
+      shell: bash
+      run: ccache -s
+
+    - name: Save ccache
+      uses: actions/cache/save@v4
+      if: always()
+      with:
+        path: ~/.ccache
+        key: ${{ inputs.ccache-key-prefix }}-${{ github.sha }}
+
+    - name: Build .deb package
+      shell: bash
+      run: |
+        cd build/px4_sitl_${{ inputs.target }}
+        cpack -G DEB
+
+    - name: Print package info and contents
+      shell: bash
+      run: |
+        cd build/px4_sitl_${{ inputs.target }}
+        echo "--- Package info ---"
+        dpkg-deb -I *.deb
+        echo "--- Package contents ---"
+        dpkg-deb -c *.deb
+
+    - name: Validate sih package
+      if: inputs.target == 'sih'
+      shell: bash
+      run: |
+        cd build/px4_sitl_sih
+        echo "--- Verify NO Gazebo resources ---"
+        ! dpkg-deb -c px4_*.deb | grep share/gz > /dev/null && echo "PASS: no Gazebo" || { echo "FAIL: Gazebo found"; exit 1; }
+        echo "--- Install test ---"
+        dpkg -i px4_*.deb
+        test -x /opt/px4/bin/px4 || { echo "FAIL: px4 binary not found"; exit 1; }
+        test -L /usr/bin/px4 || { echo "FAIL: symlink not created"; exit 1; }
+        test ! -d /opt/px4/share/gz || { echo "FAIL: Gazebo dir should not exist"; exit 1; }
+        echo "--- Smoke test ---"
+        /opt/px4/bin/px4 -h
+        echo "PASS: sih package validation successful"
+
+    - name: Validate gazebo package
+      if: inputs.target == 'default'
+      shell: bash
+      run: |
+        cd build/px4_sitl_default
+        echo "--- Verify Gazebo resources in package ---"
+        dpkg-deb -c px4-gazebo_*.deb | grep share/gz/models > /dev/null || { echo "FAIL: models missing"; exit 1; }
+        dpkg-deb -c px4-gazebo_*.deb | grep share/gz/worlds > /dev/null || { echo "FAIL: worlds missing"; exit 1; }
+        echo "--- Install test ---"
+        dpkg -i px4-gazebo_*.deb
+        test -x /opt/px4-gazebo/bin/px4 || { echo "FAIL: px4 binary not found"; exit 1; }
+        test -x /opt/px4-gazebo/bin/px4-gazebo || { echo "FAIL: wrapper not found"; exit 1; }
+        test -L /usr/bin/px4-gazebo || { echo "FAIL: symlink not created"; exit 1; }
+        test -d /opt/px4-gazebo/share/gz/models || { echo "FAIL: Gazebo models not installed"; exit 1; }
+        echo "--- Smoke test ---"
+        /opt/px4-gazebo/bin/px4 -h
+        echo "PASS: gazebo package validation successful"
+
+    - name: Upload .deb artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: build/px4_sitl_${{ inputs.target }}/*.deb
+        if-no-files-found: error

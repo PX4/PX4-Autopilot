@@ -24,6 +24,10 @@ The following simulators are supported by the PX4 core development team.
 
 There are also a number of [Community Supported Simulators](../simulation/community_supported_simulators.md).
 
+:::tip
+To run PX4 SITL without setting up a build environment, pre-built [`.deb` packages](../packaging/px4_sitl_deb.md) are available for Ubuntu 22.04 and 24.04.
+:::
+
 ---
 
 The remainder of this topic is a "somewhat generic" description of how the simulation infrastructure works.

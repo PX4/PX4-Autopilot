@@ -64,6 +64,13 @@ target_include_directories(${PROJECT_NAME}
 
 add_dependencies(${PROJECT_NAME} OpticalFlow)
 
+# Add $ORIGIN to RPATH so the plugin finds libOpticalFlow.so in its own
+# directory when installed (the packaging copies both .so files together).
+set_target_properties(${PROJECT_NAME} PROPERTIES
+	BUILD_RPATH "$ORIGIN;${OPTICAL_FLOW_INSTALL_PREFIX}/lib"
+	INSTALL_RPATH "$ORIGIN"
+)
+
 if (NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib/px4_gz_plugins)
 endif()
