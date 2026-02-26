@@ -91,3 +91,26 @@ TEST_F(MedianFilterTest, test5i_100)
 		EXPECT_EQ(median_filter5.apply(i), max(0, i - 2));
 	}
 }
+
+TEST_F(MedianFilterTest, test5f_nan_majority_finite)
+{
+	MedianFilter<float, 5> median_filter5;
+	median_filter5.insert(1.0f);
+	median_filter5.insert(2.0f);
+	median_filter5.insert(NAN);
+	median_filter5.insert(3.0f);
+	median_filter5.insert(NAN);
+	EXPECT_TRUE(PX4_ISFINITE(median_filter5.median()));
+	EXPECT_EQ(median_filter5.median(), 3.0f);
+}
+
+TEST_F(MedianFilterTest, test5f_nan_majority_nan)
+{
+	MedianFilter<float, 5> median_filter5;
+	median_filter5.insert(NAN);
+	median_filter5.insert(NAN);
+	median_filter5.insert(1.0f);
+	median_filter5.insert(NAN);
+	median_filter5.insert(2.0f);
+	EXPECT_FALSE(PX4_ISFINITE(median_filter5.median()));
+}
