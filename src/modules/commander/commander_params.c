@@ -812,26 +812,15 @@ PARAM_DEFINE_FLOAT(COM_LKDOWN_TKO, 3.0f);
 PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
 
 /**
- * Enable FMU SD card hardfault detection check
+ * Enable FMU SD card hardfault / watchdog detection check
  *
- * This check detects if there are hardfault files present on the
+ * This check detects if there are hardfault / watchdog files present on the
  * SD card. If so, and the parameter is enabled, arming is prevented.
  *
  * @group Commander
  * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
-
-/**
- * Enable task watchdog dump detection check
- *
- * This check detects if there are task watchdog dump files present on
- * the SD card, indicating a previous task starvation event.
- *
- * @group Commander
- * @boolean
- */
-PARAM_DEFINE_INT32(COM_ARM_WDG_CHK, 1);
 
 /**
  * Enable Drone ID system detection and health check

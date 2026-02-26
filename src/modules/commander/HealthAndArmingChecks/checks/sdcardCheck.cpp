@@ -129,7 +129,7 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 #if CONFIG_MODULES_TASK_WATCHDOG
 	// Check for task watchdog dump files
 
-	if (!_watchdog_checked_once && _param_com_arm_watchdog_check.get()) {
+	if (!_watchdog_checked_once && _param_com_arm_hardfault_check.get()) {
 		_watchdog_checked_once = true;
 
 		DIR *wdp = opendir(PX4_STORAGEDIR "/task_watchdog");
@@ -155,7 +155,7 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (_watchdog_file_present && _param_com_arm_watchdog_check.get()) {
+	if (_watchdog_file_present && _param_com_arm_hardfault_check.get()) {
 		/* EVENT
 		 * @description
 		 * The SD card contains task watchdog dump files from a previous task starvation event.
@@ -163,7 +163,7 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 		 * <profile name="dev">
 		 * Remove the files in the 'task_watchdog' directory on the SD card after analysis.
 		 *
-		 * This check can be configured via <param>COM_ARM_WDG_CHK</param> parameter.
+		 * This check can be configured via <param>COM_ARM_HFLT_CHK</param> parameter.
 		 * </profile>
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::system,

@@ -85,7 +85,7 @@ typedef enum {
 	LOG_LOAD
 } log_type_t;
 
-class TaskWatchdog : public ModuleBase, public ModuleParams
+class TaskWatchdog : public ModuleBase
 {
 public:
 	static Descriptor desc;

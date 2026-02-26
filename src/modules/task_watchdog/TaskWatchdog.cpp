@@ -57,8 +57,7 @@ namespace task_watchdog
 
 ModuleBase::Descriptor TaskWatchdog::desc{task_spawn, custom_command, print_usage};
 
-TaskWatchdog::TaskWatchdog() :
-	ModuleParams(nullptr)
+TaskWatchdog::TaskWatchdog()
 {
 }
 
@@ -148,6 +147,8 @@ void TaskWatchdog::isr_callback(void *arg)
 
 	// Already triggered — wait for the task side to process
 	if (shared->triggered.load()) {
+		// Wake the task, otherwise it can get stuck when starved before entering the sem wait
+		px4_sem_post(shared->sem);
 		return;
 	}
 
@@ -158,7 +159,7 @@ void TaskWatchdog::isr_callback(void *arg)
 		param.sched_priority = shared->original_priority;
 		sched_setparam(watchdog_task.tcb->pid, &param);
 
-		/* Only trigger once as the system may be in an unstable state */
+		// Only trigger once as the system may be in an unstable state
 		shared->monitored_task_index = -1;
 		return;
 	}
