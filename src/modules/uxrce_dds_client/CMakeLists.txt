@@ -50,8 +50,8 @@ else()
 
 	# Include NuttX headers
 	get_property(include_dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
-	set(c_flags_with_includes "${CMAKE_C_FLAGS}")
-	set(cxx_flags_with_includes "${CMAKE_CXX_FLAGS}")
+	set(c_flags_with_includes "${CMAKE_C_FLAGS} -D__PX4")
+	set(cxx_flags_with_includes "${CMAKE_CXX_FLAGS} -D__PX4")
 	foreach(dir ${include_dirs})
 		set(c_flags_with_includes "${c_flags_with_includes} -I${dir}")
 		set(cxx_flags_with_includes "${cxx_flags_with_includes} -I${dir}")
