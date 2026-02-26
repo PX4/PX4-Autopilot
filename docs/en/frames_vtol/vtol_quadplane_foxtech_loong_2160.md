@@ -43,14 +43,14 @@ The following options have been tested:
 - [Holybro PM08D Power Module (alternative to Auterion PM)](https://holybro.com/collections/power-modules-pdbs/products/pm08d-digital-power-module-14s-200a)
 - [GPS F9P (included in Skynode eval. kit)](../gps_compass/rtk_gps_holybro_h-rtk-f9p.md)
 - [GPS M9N (cheaper alternative to F9P)](../gps_compass/rtk_gps_holybro_h-rtk-m8p.md)
-- [Airspeed sensor (included in Skynode eval. kit)](https://www.dualrc.com/parts/airspeed-sensor-sdp33) — recommended for improved safety and performance
+- [Airspeed sensor (included in Skynode eval. kit)](http://www.dualrc.com/parts/p/airspeed-sensor-sdp33) — recommended for improved safety and performance
 - [Airspeed sensor (cheaper alternative)](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Lidar Lightware lw20-c (included in Skynode eval. kit)](../sensor/sfxx_lidar.md) (Optional)
 - [Lidar Seeed Studio PSK-CM8JL65-CC5 (cheaper alternative)](https://www.seeedstudio.com/PSK-CM8JL65-CC5-Infrared-Distance-Measuring-Sensor-p-4028.html) (Optional)
 - [Radio (RC) System](../getting_started/rc_transmitter_receiver.md) of your preference
 - [Groundstation and Radio link](https://holybro.com/collections/rc-radio-transmitter-receiver/products/skydroid-h12?variant=42940989931709)
 - [USB-C extension cable](https://www.digitec.ch/en/s1/product/powerguard-usb-c-usb-c-025-m-usb-cables-22529949?dbq=1&gclid=Cj0KCQjw2cWgBhDYARIsALggUhrh-z-7DSU0wKfLBVa8filkXLQaxUpi7pC0ffQyRzLng8Ph01h2R1gaAp0mEALw_wcB&gclsrc=aw.ds)
-- [I2C Splitter](https://www.3dxr.co.uk/autopilots-c2/the-cube-aka-pixhawk-2-1-c9/cube-cables-accessories-sensors-c15/cubepilot-i2c-can-splitter-jst-gh-4pin-p2840)
+- [I2C Splitter](https://www.3dxr.co.uk/autopilots-c2/the-cube-aka-pixhawk-2-1-c9/cube-cables-accessories-sensors-c15/cubepilot-i2c-can-splitter-jst-gh-4pin-hx4-06152-p2840)
 - [3D-Printed mounts](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/foxtech_loong_2160/loong-3d-prints.zip)
   - 1x Baseplate
   - 1x Stack-fixture
@@ -301,7 +301,7 @@ To load the file:
 
 - If the [Lidar Lightware lw20-c (included in Skynode eval. kit)](../sensor/sfxx_lidar.md) is used, [SENS_EN_SF1XX](../advanced_config/parameter_reference.md#SENS_EN_SF1XX) needs to be set to 6 (SF/LW/20c).
 - Make that the correct airspeed sensor is selected.
-  If you use the recommended [SDP33 airspeed sensor](https://www.dualrc.com/parts/airspeed-sensor-sdp33) no changes will be needed as [SENS_EN_SDP3X](../advanced_config/parameter_reference.md#SENS_EN_SDP3X) is enabled (set to `1`) in the parameter file.
+  If you use the recommended [SDP33 airspeed sensor](http://www.dualrc.com/parts/p/airspeed-sensor-sdp33) no changes will be needed as [SENS_EN_SDP3X](../advanced_config/parameter_reference.md#SENS_EN_SDP3X) is enabled (set to `1`) in the parameter file.
 
 ### Sensor Calibration
 

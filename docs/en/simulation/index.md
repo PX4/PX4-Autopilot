@@ -67,7 +67,7 @@ The messages are described below (see links for specific detail).
 
 <!-- above ^^^ links for table -->
 
-PX4 directly uses the [Gazebo API](https://gazebosim.org/docs) to interface with [Gazebo](../sim_gazebo_gz/index.md) and MAVlink is not required.
+PX4 directly uses the [Gazebo API](https://gazebosim.org/docs/) to interface with [Gazebo](../sim_gazebo_gz/index.md) and MAVlink is not required.
 
 ## Default PX4 MAVLink UDP Ports
 

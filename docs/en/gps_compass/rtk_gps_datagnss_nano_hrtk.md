@@ -117,7 +117,7 @@ GPS and RTK configuration on PX4 via _QGroundControl_ is plug and play (see [RTK
 
 ## More information
 
-- [NANO RTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/NANO/nano-rtk-receiver)
+- [NANO RTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/NANO/nano-rtk-receiver/)
 - [HELIX Antenna for RTK](https://www.datagnss.com/collections/rtk-antenna/products/smart-helix-antenna)
 - [RTK Antenna AGR6302G](https://www.datagnss.com/collections/rtk-antenna/products/antenna-agr6302g)
 - [AT400 RTK Antenna](https://www.datagnss.com/collections/rtk-antenna/products/at400-multi-band-antenna-for-rtk)

@@ -170,7 +170,7 @@ _Note: 1000 Series connectors accessible from the STM32/PX4_
 
 ### User Guide
 
-The full user guide is available [here](https://docs.modalai.com/voxl-flight-quickstart).
+The full user guide is available [here](https://docs.modalai.com/voxl-flight-quickstart/).
 
 ### How to Build
 
