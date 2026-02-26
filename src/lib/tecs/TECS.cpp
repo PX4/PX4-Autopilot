@@ -474,6 +474,11 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 		// Calculate pitch integrator input term
 		float pitch_integ_input = _getControlError(seb_rate) * param.integrator_gain_pitch / climb_angle_to_SEB_rate;
 
+		// Guard against NaN integrator input - discard bad input sample (e.g., exiting offboard velocity mode)
+		if (!PX4_ISFINITE(pitch_integ_input)) {
+			pitch_integ_input = 0.f;
+		}
+
 		// Prevent the integrator changing in a direction that will increase pitch demand saturation
 		if (_pitch_setpoint >= param.pitch_max) {
 			pitch_integ_input = min(pitch_integ_input, 0.f);
@@ -482,8 +487,13 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 			pitch_integ_input = max(pitch_integ_input, 0.f);
 		}
 
-		// Update the pitch integrator state.
+		// Update the pitch integrator state
 		_pitch_integ_state = _pitch_integ_state + pitch_integ_input * dt;
+
+		// Safety check: reset integrator if state became corrupted 
+		if (!PX4_ISFINITE(_pitch_integ_state)) {
+			_pitch_integ_state = 0.f;
+		}
 
 	} else {
 		_pitch_integ_state = 0.0f;
