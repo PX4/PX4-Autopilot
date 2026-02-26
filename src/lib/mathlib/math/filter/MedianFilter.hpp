@@ -47,9 +47,9 @@
 #include <px4_platform_common/defines.h>
 
 // Minimal float detection without headers
-template<typename U> struct px4_is_floating_point   { static constexpr bool value = false; };
-template<> struct px4_is_floating_point<float>       { static constexpr bool value = true; };
-template<> struct px4_is_floating_point<double>      { static constexpr bool value = true; };
+template<typename U> struct px4_is_floating_point { static constexpr bool value = false; };
+template<> struct px4_is_floating_point<float> { static constexpr bool value = true; };
+template<> struct px4_is_floating_point<double> { static constexpr bool value = true; };
 template<> struct px4_is_floating_point<long double> { static constexpr bool value = true; };
 
 namespace math
@@ -92,14 +92,18 @@ private:
 		const T va = *(const T *)a;
 		const T vb = *(const T *)b;
 
-		 if constexpr (px4_is_floating_point<T>::value) {
-			if(!PX4_ISFINITE(va) && !PX4_ISFINITE(vb)) { return  0; } 
-			else if(!PX4_ISFINITE(va))                 { return  1; }
-			else if(!PX4_ISFINITE(vb))                 { return -1; }
-		 }
+		if constexpr(px4_is_floating_point<T>::value) {
+			if (!PX4_ISFINITE(va) && !PX4_ISFINITE(vb)) { return  0; }
+
+			else if (!PX4_ISFINITE(va))                 { return  1; }
+
+			else if (!PX4_ISFINITE(vb))                 { return -1; }
+		}
 
 		if (va < vb) { return -1; }
+
 		if (va > vb) { return  1; }
+
 		return 0;
 	}
 
