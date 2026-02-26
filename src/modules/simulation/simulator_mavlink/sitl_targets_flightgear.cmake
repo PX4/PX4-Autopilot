@@ -1,6 +1,12 @@
 if(ENABLE_LOCKSTEP_SCHEDULER STREQUAL "no")
 
-	find_program(FGFS_PATH "fgfs")
+    	# if the PX4-FlightGear-bridge environment variable FG_BINARY exists, it uses it
+    	if(DEFINED ENV{FG_BINARY})
+        	set(FGFS_PATH $ENV{FG_BINARY})
+    	else()
+    		# if it doesn't exist, the FlightGear "fgfs" program is searched for
+		find_program(FGFS_PATH "fgfs")
+	endif()
 
 	if(FGFS_PATH)
 
@@ -80,5 +86,7 @@ if(ENABLE_LOCKSTEP_SCHEDULER STREQUAL "no")
 				DEPENDS px4 flightgear_bridge
 			)
 		endforeach()
+	else()
+        	message(ERROR " Unable to find the executable FlightGear file!")
 	endif()
 endif()
