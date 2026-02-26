@@ -56,7 +56,7 @@ Other
 The ARK 4IN1 ESC supports DShot 300/600, Bidirectional DShot, and PWM input protocols.
 
 - **Bidirectional DShot**: Select BDShot300 or BDShot600 in the [Actuator Configuration](../config/actuators.md) to enable eRPM telemetry.
-- **Extended DShot Telemetry (EDT)**: AM32 firmware supports EDT, which provides temperature, voltage, and current through the BDShot signal. Enable with `DSHOT_BIDIR_EDT=1`.
+- **[Extended DShot Telemetry (EDT)](https://github.com/bird-sanctuary/extended-dshot-telemetry)**: AM32 firmware supports EDT, which provides temperature, voltage, and current through the BDShot signal. Enable with `DSHOT_BIDIR_EDT=1`.
 - **AM32 EEPROM Settings**: Set `DSHOT_ESC_TYPE=1` to enable reading and writing ESC firmware settings via a ground station.
 
 See [DShot ESCs](../peripherals/dshot.md) for full setup details.
@@ -64,3 +64,5 @@ See [DShot ESCs](../peripherals/dshot.md) for full setup details.
 ## See Also
 
 - [ARK 4IN1 ESC CONS](https://docs.arkelectron.com/electronic-speed-controller/ark-4in1-esc) (ARK Docs)
+- [DShot and Bidirectional DShot](https://brushlesswhoop.com/dshot-and-bidirectional-dshot/) (brushlesswhoop.com - General DShot reference)
+- [Extended DShot Telemetry (EDT) Specification](https://github.com/bird-sanctuary/extended-dshot-telemetry) (bird-sanctuary)
