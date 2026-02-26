@@ -83,7 +83,7 @@ void Mission::setActiveMissionItems() => https://github.com/PX4/PX4-Autopilot/bl
 Issuing command:
 MissionBlock::issue_command(const mission_item_s &item) =>  https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/mission_block.cpp#L543-L562
   At end this publishes the current vehicle command
-  _navigator->publish_vehicle_command(&vehicle_command);
+  _navigator.publish_vehicle_command(vehicle_command);
 
 Publishing command:
 void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)  => https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/navigator_main.cpp#L1395
@@ -112,7 +112,7 @@ PX4 видає команди [MAVLink Camera Protocol v2](https://mavlink.io/en
 
 1. Змініть невикористаний параметр `MAV_n_CONFIG`, такий як [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG), щоб він був присвоєний порту, до якого підключена ваша камера/компаньйонський комп'ютер.
 2. Встановіть відповідний [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) на `2` (На борту).
-  Це забезпечує, що правильний набір повідомлень MAVLink випромінюється для супутнього комп'ютера (або камери).
+   Це забезпечує, що правильний набір повідомлень MAVLink випромінюється для супутнього комп'ютера (або камери).
 3. Встановіть [MAV_2_FORWARD](../advanced_config/parameter_reference.md#MAV_2_FORWARD), щоб дозволити пересилання комунікацій з порту на інші порти, такі як той, що підключений до наземної станції.
 4. Можливо, вам доведеться встановити деякі інші параметри, залежно від типу підключення та будь-яких конкретних вимог камери щодо очікуваної швидкості передачі даних і т. д.
 
@@ -137,9 +137,9 @@ PX4 видає команди [MAVLink Camera Protocol v2](https://mavlink.io/en
 - [Менеджер камери MAVLink](https://github.com/mavlink/mavlink-camera-manager) - Розширюваний крос-платформенний сервер камери MAVLink, побудований на базі GStreamer та Rust-MAVLink.
 - [Менеджер камери Dronecode](https://camera-manager.dronecode.org/en/) - Додає інтерфейс протоколу камери для камер, підключених до комп'ютера з Linux.
 
-Специфічні менеджери камери:
+Camera-specific camera managers:
 
-- [Менеджер камери SIYI A8 mini](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Менеджер камери на основі плагіна MAVSDK для [SIYI A8 mini] (включає навчальний посібник).
+- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - MAVSDK-plugin based camera manager for the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini-gimbal-camera) (includes tutorial).
 
   ::: tip
   Це добрий приклад того, як MAVSDK може бути використаний для створення інтерфейсу протоколу камери MAVLink для певної камери.
@@ -150,6 +150,6 @@ PX4 видає команди [MAVLink Camera Protocol v2](https://mavlink.io/en
 
 Додаткову інформацію щодо камерного менеджера та налаштувань компаньйона можна знайти в:
 
-- [Менеджер камери SIYI A8 mini](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Навчальний посібник з інтеграції з [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini), використовуючи менеджер камери на основі MAVSDK, який працює на комп'ютері-компаньйоні Raspberry Pi.
+- [SIYI A8 mini camera manager](https://github.com/julianoes/siyi-a8-mini-camera-manager) - Tutorial for integrating with the [SIYI A8 mini](https://shop.siyi.biz/products/siyi-a8-mini-gimbal-camera) using a MAVSDK-based camera manager running on a Raspberry Pi companion computer.
 - [Використання комп'ютера-компаньйона з контролерами Pixhawk](../companion_computer/pixhawk_companion.md)
 - [Компаньйони комп'ютери > Програмне забезпечення комп'ютера-компаньйона](../companion_computer/index.md#companion-computer-software): Зауважте [MAVLink-Router](https://github.com/mavlink-router/mavlink-router), який можна налаштувати для маршрутизації трафіку MAVLink між послідовним портом та IP-лінком (або іншим інтерфейсом керування камерою).

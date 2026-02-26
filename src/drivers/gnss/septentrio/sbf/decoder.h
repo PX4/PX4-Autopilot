@@ -206,6 +206,13 @@ public:
 	 * become ready for the next message.
 	 */
 	void reset();
+
+	/**
+	 * @brief Check whether a full message has been received and is valid.
+	 *
+	 * @return `true` if the data can be parsed, `false` if the message is incomplete or not valid.
+	*/
+	bool can_parse() const;
 private:
 	/**
 	 * @brief Check whether a full message has been received.
@@ -216,15 +223,8 @@ private:
 	*/
 	bool done() const;
 
-	/**
-	 * @brief Check whether a full message has been received and is valid.
-	 *
-	 * @return `true` if the data can be parsed, `false` if the message is incomplete or not valid.
-	*/
-	bool can_parse() const;
-
 	State _state{State::SearchingSync1};
-	uint16_t _current_index;
+	uint16_t _current_index{0};
 	message_t _message;
 };
 

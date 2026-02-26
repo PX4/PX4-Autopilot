@@ -1,4 +1,10 @@
-# Pixhack V3
+# CUAV Pixhack V3 (Discontinued)
+
+<Badge type="info" text="Discontinued" />
+
+:::warning
+This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -53,7 +59,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 보드는 아래에서 구입할 수 있습니다.
 
-- [store.cuav.net](http://store.cuav.net/index.php?id_product=8&id_product_attribute=0&rewrite=pixhack-v3-autopilot&controller=product&id_lang=3)
 - [leixun.aliexpress.com/store](https://leixun.aliexpress.com/store)
 
 ## 펌웨어 빌드
@@ -65,13 +70,11 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 
-## 핀배열과 회로도
-
-- [Documentation/wiring guides](http://doc.cuav.net/flight-controller/pixhack/en/pixhack-v3.html)
+<!-- Pinouts and Schematics: section removed as guides no longer published -->
 
 ## 시리얼 포트 매핑
 
@@ -81,5 +84,5 @@ make px4_fmu-v3_default
 | USART2 | /dev/ttyS1 | TELEM1 (흐름 제어) |
 | USART3 | /dev/ttyS2 | TELEM2 (흐름 제어) |
 | UART4  |            |                                   |
-| UART7  | 콘솔         |                                   |
-| UART8  | SERIAL4    |                                   |
+| UART7  |            | 콘솔                                |
+| UART8  |            | SERIAL4                           |

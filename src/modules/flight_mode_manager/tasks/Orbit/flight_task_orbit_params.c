@@ -50,7 +50,7 @@ PARAM_DEFINE_FLOAT(MC_ORBIT_RAD_MAX, 1000.0f);
  * @value 1 Hold Initial Heading
  * @value 2 Uncontrolled
  * @value 3 Hold Front Tangent to Circle
- * @value 4 RC Controlled
+ * @value 4 Manually (yaw stick) Controlled
  * @group Flight Task Orbit
  */
 PARAM_DEFINE_INT32(MC_ORBIT_YAW_MOD, 0);

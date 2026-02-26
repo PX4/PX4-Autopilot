@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+param set-default BAT1_V_DIV 18
+param set-default BAT2_V_DIV 18
+
+param set-default BAT1_A_PER_V 24
+param set-default BAT2_A_PER_V 24
+
+# Enable IMU thermal control
+param set-default SENS_EN_THERMAL 1
+
+param set-default SENS_TEMP_ID 6946850
+
+rgbled_pwm start
+safety_button start

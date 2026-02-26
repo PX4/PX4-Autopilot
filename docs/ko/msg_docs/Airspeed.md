@@ -1,15 +1,44 @@
+---
+pageClass: is-wide-page
+---
+
 # Airspeed (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Airspeed.msg)
+Airspeed data from sensors.
+
+This is published by airspeed sensor drivers, CAN airspeed sensors, simulators.
+It is subscribed by the airspeed selector module, which validates the data from multiple sensors and passes on a single estimation to the EKF, controllers and telemetry providers.
+
+**TOPICS:** airspeed
+
+## Fields
+
+| 명칭                                                                                    | 형식        | Unit [Frame] | Range/Enum                                                                  | 설명                               |
+| ------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------- |
+| timestamp                                                                             | `uint64`  | us                                                               |                                                                             | Time since system start          |
+| timestamp_sample                                                 | `uint64`  | us                                                               |                                                                             | Timestamp of the raw data        |
+| indicated_airspeed_m_s | `float32` | m/s                                                              |                                                                             | Indicated airspeed               |
+| true_airspeed_m_s      | `float32` | m/s                                                              |                                                                             | True airspeed                    |
+| confidence                                                                            | `float32` |                                                                  | [0 : 1] | Confidence value for this sensor |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/Airspeed.msg)
+
+:::details
+Click here to see original file
 
 ```c
-uint64 timestamp                 # time since system start (microseconds)
-uint64 timestamp_sample
+# Airspeed data from sensors
+#
+# This is published by airspeed sensor drivers, CAN airspeed sensors, simulators.
+# It is subscribed by the airspeed selector module, which validates the data from multiple sensors and passes on a single estimation to the EKF, controllers and telemetry providers.
 
-float32 indicated_airspeed_m_s   # indicated airspeed in m/s
-
-float32 true_airspeed_m_s        # true filtered airspeed in m/s
-
-float32 confidence               # confidence value from 0 to 1 for this sensor
-
+uint64 timestamp                 # [us] Time since system start
+uint64 timestamp_sample          # [us] Timestamp of the raw data
+float32 indicated_airspeed_m_s   # [m/s] Indicated airspeed
+float32 true_airspeed_m_s        # [m/s] True airspeed
+float32 confidence               # [@range 0,1] Confidence value for this sensor
 ```
+
+:::

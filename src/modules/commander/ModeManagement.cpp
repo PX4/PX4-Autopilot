@@ -107,7 +107,7 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 	int matching_idx = -1;
 
 	for (int i = 0; i < MAX_NUM; ++i) {
-		char hash_param_name[20];
+		char hash_param_name[17];
 		snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", i);
 		const param_t handle = param_find(hash_param_name);
 		int32_t current_hash{};
@@ -164,7 +164,7 @@ uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 
 	if (new_mode_idx != -1 && !_modes[new_mode_idx].valid) {
 		if (need_to_update_param) {
-			char hash_param_name[20];
+			char hash_param_name[17];
 			snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", new_mode_idx);
 			const param_t handle = param_find(hash_param_name);
 
@@ -232,6 +232,7 @@ void ModeManagement::checkNewRegistrations(UpdateRequest &update_request)
 		static_assert(sizeof(request.name) == sizeof(reply.name), "size mismatch");
 		memcpy(reply.name, request.name, sizeof(request.name));
 		reply.request_id = request.request_id;
+		reply.not_user_selectable = request.not_user_selectable;
 		reply.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
 
 		// validate
@@ -364,10 +365,8 @@ void ModeManagement::checkUnregistrations(uint8_t user_intended_nav_state, Updat
 	}
 }
 
-void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, bool failsafe_action_active,
-			    UpdateRequest &update_request)
+void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request)
 {
-	_failsafe_action_active = failsafe_action_active;
 	_external_checks.update();
 
 	bool allow_update_while_armed = _external_checks.allowUpdateWhileArmed();
@@ -475,6 +474,29 @@ uint8_t ModeManagement::getReplacedModeIfAny(uint8_t nav_state)
 	return nav_state;
 }
 
+uint8_t ModeManagement::onDisarm(uint8_t stored_nav_state)
+{
+	// Switch to the owned mode if an executor is active
+	uint8_t returned_nav_state = stored_nav_state;
+
+	if (_mode_executors.valid(_mode_executor_in_charge)) {
+		returned_nav_state = _mode_executors.executor(_mode_executor_in_charge).owned_nav_state;
+	}
+
+	// Switch to Hold if the mode is unresponsive
+	if (_modes.valid(returned_nav_state)) {
+		if (_external_checks.isUnresponsive(_modes.mode(returned_nav_state).arming_check_registration_id)) {
+			returned_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+		}
+	}
+
+	// Update _mode_executor_in_charge if needed (in case stored_nav_state belongs to an executor
+	// that is currently not active)
+	onUserIntendedNavStateChange(ModeChangeSource::User, returned_nav_state);
+
+	return returned_nav_state;
+}
+
 void ModeManagement::removeModeExecutor(int mode_executor_id)
 {
 	if (mode_executor_id == -1) {
@@ -495,6 +517,18 @@ int ModeManagement::modeExecutorInCharge() const
 	}
 
 	return _mode_executor_in_charge;
+}
+
+uint8_t ModeManagement::getNavStateDisplay(uint8_t nav_state) const
+{
+	const int executor_in_charge = modeExecutorInCharge();
+
+	if (_mode_executors.valid(executor_in_charge)) {
+		return _mode_executors.executor(executor_in_charge).owned_nav_state;
+
+	} else {
+		return nav_state;
+	}
 }
 
 bool ModeManagement::updateControlMode(uint8_t nav_state, vehicle_control_mode_s &control_mode) const
@@ -539,6 +573,10 @@ void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overr
 
 		if (executor_overrides.disable_auto_disarm) {
 			current_overrides.disable_auto_disarm = true;
+		}
+
+		if (executor_overrides.disable_auto_set_home) {
+			current_overrides.disable_auto_set_home = true;
 		}
 
 		if (executor_overrides.defer_failsafes) {

@@ -54,8 +54,6 @@ RtlDirect::RtlDirect(Navigator *navigator) :
 	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL),
 	ModuleParams(navigator)
 {
-	_destination.lat = static_cast<double>(NAN);
-	_destination.lon = static_cast<double>(NAN);
 	_land_approach.lat = static_cast<double>(NAN);
 	_land_approach.lon = static_cast<double>(NAN);
 	_land_approach.height_m = NAN;
@@ -77,7 +75,7 @@ void RtlDirect::on_activation()
 
 	parameters_update();
 
-	_rtl_state = getActivationLandState();
+	_rtl_state = getActivationState();
 
 	// reset cruising speed and throttle to default for RTL
 	_navigator->reset_cruising_speed();
@@ -127,28 +125,12 @@ void RtlDirect::on_inactive()
 
 void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s loiter_pos)
 {
-	_home_pos_sub.update();
-
 	parameters_update();
 
 	// Only allow to set a new approach if the mode is not activated yet.
 	if (!isActive()) {
 		_destination = rtl_position;
 		_force_heading = false;
-
-		// Input sanitation
-		if (!PX4_ISFINITE(_destination.lat) || !PX4_ISFINITE(_destination.lon)) {
-			// We don't have a valid rtl position, use the home position instead.
-			_destination.lat = _home_pos_sub.get().lat;
-			_destination.lon = _home_pos_sub.get().lon;
-			_destination.alt = _home_pos_sub.get().alt;
-			_destination.yaw = _home_pos_sub.get().yaw;
-		}
-
-		if (!PX4_ISFINITE(_destination.alt)) {
-			// Not a valid rtl land altitude. Assume same altitude as home position.
-			_destination.alt = _home_pos_sub.get().alt;
-		}
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
 
@@ -244,7 +226,7 @@ void RtlDirect::set_rtl_item()
 				.alt = _rtl_alt,
 				.yaw = _param_wv_en.get() ? NAN : _navigator->get_local_position()->heading,
 			};
-			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, _navigator->get_loiter_radius());
+			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, _navigator->get_default_loiter_rad());
 
 			break;
 		}
@@ -405,24 +387,28 @@ void RtlDirect::set_rtl_item()
 	publish_rtl_direct_navigator_mission_item(); // for logging
 }
 
-RtlDirect::RTLState RtlDirect::getActivationLandState()
+RtlDirect::RTLState RtlDirect::getActivationState()
 {
 	_land_detected_sub.update();
 
-	RTLState land_state;
+	RTLState activation_state;
 
-	if (_land_detected_sub.get().landed) {
+	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		// Skip to LAND state if we are a rover
+		activation_state = RTLState::LAND;
+
+	} else if (_land_detected_sub.get().landed) {
 		// For safety reasons don't go into RTL if landed.
-		land_state = RTLState::IDLE;
+		activation_state = RTLState::IDLE;
 
 	} else if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
-		land_state = RTLState::CLIMBING;
+		activation_state = RTLState::CLIMBING;
 
 	} else {
-		land_state = RTLState::MOVE_TO_LOITER;
+		activation_state = RTLState::MOVE_TO_LOITER;
 	}
 
-	return land_state;
+	return activation_state;
 }
 
 rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
@@ -438,7 +424,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		start_state_for_estimate = _rtl_state;
 
 	} else {
-		start_state_for_estimate = getActivationLandState();
+		start_state_for_estimate = getActivationState();
 	}
 
 	// Calculate RTL time estimate only when there is a valid destination
@@ -503,7 +489,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		case RTLState::MOVE_TO_LAND:
 		case RTLState::TRANSITION_TO_MC:
 		case RTLState::MOVE_TO_LAND_HOVER: {
-				// Add cruise segment to home
+				// Add cruise segment to destination
 				float move_to_land_dist{0.f};
 				matrix::Vector2f direction{};
 

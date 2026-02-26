@@ -1,6 +1,6 @@
 # CUAV Pixhawk V6X
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
@@ -11,7 +11,7 @@ It is based on the [Pixhawk​​® Autopilot FMUv6X Standard](https://github.co
 
 ![Pixhawk V6X](../../assets/flight_controller/cuav_pixhawk_v6x/pixhawk_v6x.jpg)
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -61,7 +61,7 @@ The Pixhawk® V6X is ideal for corporate research labs, academic research and co
 - 16- PWM servo outputs
 - 1 Dedicated R/C input for Spektrum / DSM and S.Bus with analog / PWM RSSI input
 - 3 TELEM Ports（with full flow control）
-- 1 UART4(Seial and I2C)
+- 1 UART4(Serial and I2C)
 - 2 GPS ports
   - 1 full GPS plus Safety Switch Port(GPS1)
   - 1 basic GPS port(with I2C,GPS2)
@@ -96,7 +96,6 @@ The Pixhawk® V6X is ideal for corporate research labs, academic research and co
   - Baseboard: 56g
 - Operating & storage temperature: -20 ~ 85°c
 - Size
-
   - Flight controller
 
     ![Pixhawk V6X](../../assets/flight_controller/cuav_pixhawk_v6x/v6x_size.jpg)
@@ -105,7 +104,7 @@ The Pixhawk® V6X is ideal for corporate research labs, academic research and co
 
     ![Pixhawk V6X](../../assets/flight_controller/cuav_pixhawk_v6x/core.png)
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [CUAV](https://store.cuav.net/).
 
@@ -167,20 +166,18 @@ Analog battery monitoring via an ADC is not supported on this particular board, 
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6x_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 
@@ -206,7 +203,7 @@ For information about wiring and using this port see:
 
 ## Peripherals
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

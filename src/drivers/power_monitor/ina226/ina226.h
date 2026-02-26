@@ -206,6 +206,10 @@ private:
 	int read(uint8_t address, int16_t &data);
 	int write(uint8_t address, uint16_t data);
 
+	uint8_t _connected{0};
+	// returns state unchanged
+	bool setConnected(bool state);
+
 	/**
 	* Initialise the automatic measurement state machine and start it.
 	*

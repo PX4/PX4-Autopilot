@@ -60,9 +60,11 @@ using namespace time_literals;
 #define CONTROLLER_PERIOD_DEFAULT    10000
 #define TEMPERATURE_TARGET_THRESHOLD 2.5f
 
-class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem
+class Heater : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	Heater();
 
 	virtual ~Heater();
@@ -142,7 +144,6 @@ private:
 	bool _heater_on              = false;
 	bool _temperature_target_met = false;
 
-	int _controller_period_usec = CONTROLLER_PERIOD_DEFAULT;
 	int _controller_time_on_usec = 0;
 
 	float _integrator_value   = 0.0f;

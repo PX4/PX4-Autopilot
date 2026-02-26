@@ -23,7 +23,7 @@ The steps to create new unit tests are as follows:
 Tests can be run via `make tests`, after which you will find the binary in `build/px4_sitl_test/unit-MyNewUnit`.
 It can be run directly in a debugger.
 
-## Writing a GTest Functional Test
+## Writing a GTest Functional Test {#functional-test}
 
 GTest functional tests should be used when the test or the components being tested depend on parameters, uORB messages and/or advanced GTest functionality.
 Additionally, functional tests can contain local usage of STL data structures (although be careful of platform differences between e.g. macOS and Linux).
@@ -133,7 +133,7 @@ The steps to create new SITL unit tests are as follows:
    }
    ```
 
-   `OPTION` can be `OPT_NOALLTEST`,`OPT_NOJIGTEST` or `0` and is considered if within px4 shell one of the two commands are called:
+   `OPTION` can be `OPT_NOALLTEST`,`OPT_NOJIGTEST` or `0` and is considered if within PX4 shell one of the two commands are called:
 
    ```sh
    pxh> tests all
@@ -170,3 +170,10 @@ For example:
 - `make tests TESTFILTER=unit` only run GTest unit tests
 - `make tests TESTFILTER=sitl` only run simulation tests
 - `make tests TESTFILTER=Attitude` only run the `AttitudeControl` test
+
+## Fuzz Testing
+
+Fuzz tests are a generalised form of unit test that ensures code is robust against any input.
+They are run as part of the unit tests, and also more extensively in their own testing mode.
+
+For more information see [Fuzz Tests](../test_and_ci/fuzz_tests.md).

@@ -2,7 +2,7 @@
 
 <Badge type="info" text="Discontinued" />
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 
 PX4 v1.11 is the last release that has (experimental) support for this platform.

@@ -38,7 +38,7 @@ MAVLink applications, such as ground stations, can also control the gripper usin
 
 Підтримка захоплювача PX4 пов'язана з функцією доставки пакетів, яка повинна бути увімкнена та налаштована для можливості використання захоплювача.
 
-1. Set [PD_GRIPPER_EN](../advanced_config/parameter_reference.md#PD_GRIPPER_EN) parameter to 1 (reboot required after change).
+1. Ensure your board has the Payload Deliverer module enabled: CONFIG_MODULES_PAYLOAD_DELIVERER.
 2. Set [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) to match your gripper.
    For example, set to `Servo` for a [Servo Gripper](gripper_servo.md).
 
@@ -75,13 +75,13 @@ For grippers that do not provide sensor-based feedback of their state, which is 
 
    - Run the `payload_deliverer` test in the QGC [MAVLink Shell](../debug/mavlink_shell.md):
 
-      ```sh
-      > payload_deliverer gripper_test
-      ```
+     ```sh
+     > payload_deliverer gripper_test
+     ```
 
-      ::: info
-      If you get an error message like "[payload_deliverer] not running", repeat the setup procedures above.
-      You might also run the `payload_deliverer start` command in the Nuttx shell.
+     ::: info
+     If you get an error message like "[payload_deliverer] not running", repeat the setup procedures above.
+     You might also run the `payload_deliverer start` command in the Nuttx shell.
 
 :::
 

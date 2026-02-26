@@ -38,7 +38,7 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
 
 - Modular flight controller
   - separated IMU, FMU, and Base system connected by a 100-pin & a 50-pin Pixhawk® Autopilot Bus connector, designed for flexible and customizable systems
-- Redundancy
+- 冗余
   - 3x IMU sensors & 2x Barometer sensors on separate buses, allowing parallel and continuous operation even in the event of a hardware failure
 - Triple redundancy domains
   - Completely isolated sensor domains with separate buses and separate power control
@@ -62,7 +62,6 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
   - 32 位 Arm® Cortex®-M3，24MHz，8KB SRAM
 
 - On-board Sensors:
-
   - Accel/Gyro: ICM-20649
   - Accel/Gyro: ICM-42688P
   - 加速度计 / 陀螺仪：ICM-20602
@@ -70,7 +69,6 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
   - Barometer: 2x BMP388
 
 - 接口
-
   - 16- PWM servo outputs
   - R/C input for Spektrum / DSM
   - Dedicated R/C input for PPM and S.Bus input
@@ -100,18 +98,15 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
     - 2 Dedicated debug and GPIO lines
 
 - 额定电压
-
   - Max input voltage: 6V
   - USB 电源输入：4.75~5.25V
   - 伺服导轨输入电压：0~36V
 
 - 尺寸
-
   - Flight Controller Module: 38.8 x 31.8 x 14.6mm
   - Standard Baseboard: 52.4 x 103.4 x 16.7mm
 
 - 重量
-
   - Flight Controller Module: 23g
   - Standard Baseboard: 51g
 
@@ -147,7 +142,7 @@ Connector pin assignments are left to right (i.e. Pin 1 is the left-most pin).
 | ------ | ---------- | ------------------------------- |
 | USART1 | /dev/ttyS0 | GPS                             |
 | USART2 | /dev/ttyS1 | TELEM3                          |
-| USART3 | /dev/ttyS2 | Debug Console                   |
+| USART3 | /dev/ttyS2 | 调试控制台                           |
 | UART4  | /dev/ttyS3 | UART4 & I2C |
 | UART5  | /dev/ttyS4 | TELEM2                          |
 | USART6 | /dev/ttyS5 | PX4IO/RC                        |
@@ -161,7 +156,7 @@ Connector pin assignments are left to right (i.e. Pin 1 is the left-most pin).
 ## 额定电压
 
 _Pixhawk 5X_ can be triple-redundant on the power supply if three power sources are supplied. The three power rails are: **POWER1**, **POWER2** and **USB**.
-The **POWER1** & **POWER2** ports on the Pixhawk 5X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/molex/products/part-detail/pcb_receptacles/5024430670).
+The **POWER1** & **POWER2** ports on the Pixhawk 5X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/en-us/products/part-detail/5024430670).
 
 **Normal Operation Maximum Ratings**
 
@@ -227,7 +222,7 @@ For information about using this port see:
 
 ## 外部设备
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

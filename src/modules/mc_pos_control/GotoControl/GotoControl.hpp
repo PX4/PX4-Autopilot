@@ -64,9 +64,11 @@ public:
 	/**
 	 * @brief resets the position smoother at the current position with zero velocity and acceleration.
 	 *
-	 * @param position [m] (NED) local vehicle position
+	 * @param position [m] vehicle position state NED local frame
+	 * @param velocity [m/s] vehicle velocity state
+	 * @param acceleration [m/s^2] vehicle acceleration state
 	 */
-	void resetPositionSmoother(const matrix::Vector3f &position);
+	void resetPositionSmoother(const matrix::Vector3f &position, const matrix::Vector3f &velocity, const matrix::Vector3f &acceleration);
 
 	/**
 	 * @brief resets the heading smoother at the current heading with zero heading rate and acceleration.
@@ -80,12 +82,15 @@ public:
 	 * loops to track.
 	 *
 	 * @param[in] dt [s] time since last control update
-	 * @param[in] position [m] (NED) local vehicle position
+	 * @param[in] position [m] vehicle position state NED local frame
+	 * @param[in] velocity [m/s] vehicle velocity state
+	 * @param[in] acceleration [m/s^2] vehicle acceleration state
 	 * @param[in] heading [rad] (from North) vehicle heading
 	 * @param[in] goto_setpoint struct containing current go-to setpoints
 	 * @param[out] trajectory_setpoint struct containing trajectory (tracking) setpoints
 	 */
-	void update(const float dt, const matrix::Vector3f &position, const float heading);
+	void update(const float dt, const matrix::Vector3f &position, const matrix::Vector3f &velocity, const matrix::Vector3f &acceleration,
+		    const float heading);
 
 	// Setting all parameters from the outside saves 300bytes flash
 	void setParamMpcAccHor(const float param_mpc_acc_hor) { _param_mpc_acc_hor = param_mpc_acc_hor; }
@@ -115,10 +120,11 @@ private:
 	 */
 	void setHeadingSmootherLimits(const goto_setpoint_s &goto_setpoint);
 
-	uORB::SubscriptionData<goto_setpoint_s> _goto_setpoint_sub{ORB_ID(goto_setpoint)};
+	uORB::Subscription _goto_setpoint_sub{ORB_ID(goto_setpoint)};
 	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};
 
+	goto_setpoint_s _goto_setpoint{};
 	PositionSmoothing _position_smoothing;
 	HeadingSmoothing _heading_smoothing;
 

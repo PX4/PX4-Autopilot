@@ -135,18 +135,14 @@
 
 
 /* PWM Timers */
-#define BOARD_NUM_IO_TIMERS 2
-#define DIRECT_PWM_OUTPUT_CHANNELS   8
+/* 3 for PWM outputs, 1 for input capture */
+#define BOARD_NUM_IO_TIMERS 4
+/* 9 for PWM outputs, 1 for input capture */
+#define DIRECT_PWM_OUTPUT_CHANNELS 10
 
 /* High-resolution timer */
-#define HRT_TIMER               8  /* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
-
-#define HRT_PPM_CHANNEL         /* T8C2 */  2  /* use capture/compare channel 1 */
-#define GPIO_PPM_IN             /* PC7  */ GPIO_TIM8_CH2IN_1
-
-/* RC Serial port (input only) */
-#define RC_SERIAL_PORT          "/dev/ttyS4"
+#define HRT_TIMER               4  /* use timer4 for the HRT */
+#define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -173,6 +169,10 @@
 
 /* Enable the buffer for the dmesg command */
 #define BOARD_ENABLE_CONSOLE_BUFFER
+
+/* No CDCACM driver for this board, so this is manually defined for version.c
+ * so that the px4_board_version reports the correct board id to the companion */
+#define CONFIG_CDCACM_PRODUCTID 60
 
 __BEGIN_DECLS
 

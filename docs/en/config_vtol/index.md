@@ -9,3 +9,4 @@ Then perform VTOL-specific configuration and tuning:
 - [Back-transition Tuning](../config_vtol/vtol_back_transition_tuning.md)
 - [VTOL w/o Airspeed Sensor](../config_vtol/vtol_without_airspeed_sensor.md)
 - [VTOL Weather Vane](../config_vtol/vtol_weathervane.md)
+- [Ice Shedding](../config_vtol/vtol_ice_shedding.md)

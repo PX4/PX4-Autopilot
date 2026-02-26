@@ -47,7 +47,6 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
   - Зовнішній порт microUSB
 
 - Система живлення:
-
   - Ідеальний діодний контролер з автоматичним перемиканням на резервне живлення
   - Сервопривід високої потужності (7 В) і готовий до великого струму
   - Усі периферійні виводи захищені від перевантаження по струму, усі входи захищені від електростатичного розряду
@@ -102,8 +101,8 @@ See [3DR Pixhawk 1 > Pinouts](../flight_controller/pixhawk.md#pinouts)
 
 The board is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv3** open hardware design.
 
-- [FMUv3 schematic](https://github.com/PX4/Hardware/raw/master/FMUv3_REV_D/Schematic%20Print/Schematic%20Prints.PDF) -- Schematic and layout
+- [FMUv3 schematic](https://github.com/pixhawk/Hardware/raw/master/FMUv3_REV_D/Schematic%20Print/Schematic%20Prints.PDF) -- Schematic and layout
 
 :::info
-As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files are [available](https://github.com/PX4/Hardware).
+As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files are [available](https://github.com/pixhawk/Hardware).
 :::

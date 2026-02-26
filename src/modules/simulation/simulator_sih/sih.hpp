@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2019-2025 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -86,14 +86,19 @@
 
 using namespace time_literals;
 
-class Sih : public ModuleBase<Sih>, public ModuleParams
+class Sih : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Sih();
 	virtual ~Sih();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Sih *instantiate(int argc, char *argv[]);
@@ -131,7 +136,7 @@ private:
 	uORB::Publication<vehicle_global_position_s>  _global_position_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs_sim)};
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
@@ -151,7 +156,7 @@ private:
 	void read_motors(const float dt);
 
 	// generate the motors thrust and torque in the body frame
-	void generate_force_and_torques();
+	void generate_force_and_torques(const float dt);
 
 	// apply the equations of motion of a rigid body and integrate one step
 	void equations_of_motion(const float dt);
@@ -163,6 +168,7 @@ private:
 	void publish_ground_truth(const hrt_abstime &time_now_us);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust);
 	void generate_ts_aerodynamics();
+	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
 	void sensor_step();
 	static float computeGravity(double lat);
 
@@ -218,11 +224,10 @@ private:
 	matrix::Vector3f    _v_E_dot{};
 	matrix::Dcmf        _R_N2E;           // local navigation to ECEF frame rotation matrix
 
-	float       _u[NUM_ACTUATORS_MAX] {};         // thruster signals
+	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
 
-	enum class VehicleType {Multicopter, FixedWing, TailsitterVTOL, StandardVTOL};
-
-	VehicleType _vehicle = VehicleType::Multicopter;
+	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, First = Quadcopter, Last = RoverAckermann}; // numbering dependent on parameter SIH_VEHICLE_TYPE
+	VehicleType _vehicle = VehicleType::Quadcopter;
 
 	// aerodynamic segments for the fixedwing
 	AeroSeg _wing_l = AeroSeg(SPAN / 2.0f, MAC, -4.0f, matrix::Vector3f(0.0f, -SPAN / 4.0f, 0.0f), 3.0f,

@@ -1,6 +1,6 @@
 # mRo Pixracer
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.mrobotics.io/) for hardware support or compliance issues.
 :::
@@ -10,13 +10,13 @@ In contrast to [Pixfalcon](../flight_controller/pixfalcon.md) and [Pixhawk](../f
 
 <img src="../../assets/flight_controller/pixracer/pixracer_hero_grey.jpg" width="300px" title="pixracer + 8266 grey" />
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
 ## Key Features
 
-- Main System-on-Chip: [STM32F427VIT6 rev.3](http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1789)
+- Main System-on-Chip: [STM32F427VIT6 rev.3](https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html)
   - CPU: 180 MHz ARM Cortex<sup>&reg;</sup> M4 with single-precision FPU
   - RAM: 256 KB SRAM (L1)
 - Standard FPV form factor: 36x36 mm with standard 30.5 mm hole pattern
@@ -30,18 +30,19 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - OneShot PWM out (configurable)
 - Optional: Safety switch and buzzer
 
-## Where to Buy
+## Where to Buy {#store}
 
-Pixracer is available from the [mRobotics.io](https://store.mrobotics.io/mRo-PixRacer-R15-Official-p/m10023a.htm).
+Pixracer Pro is available from the [store.3dr.com](https://store.3dr.com/pixracer-pro/).
 
 Accessories include:
 
 - [Digital airspeed sensor](https://hobbyking.com/en_us/hkpilot-32-digital-air-speed-sensor-and-pitot-tube-set.html)
-- [Hobbyking<sup>&reg;</sup> OSD + EU Telemetry (433 MHz)](https://hobbyking.com/en_us/micro-hkpilot-telemetry-radio-module-with-on-screen-display-osd-unit-433mhz.html)
+- Hobbyking<sup>&reg;</sup> OSD + EU Telemetry (433 MHz) (Discontinued)
 
 ## Kit
 
-The Pixracer is designed to use a separate avionics power supply. This is necessary to avoid current surges from motors or ESCs to flow back to the flight controller and disturb its delicate sensors.
+The Pixracer is designed to use a separate avionics power supply.
+This is necessary to avoid current surges from motors or ESCs to flow back to the flight controller and disturb its delicate sensors.
 
 - Power module (with voltage and current sensing)
 - I2C splitter (supporting AUAV, Hobbyking and 3DR<sup>&reg;</sup> peripherals)
@@ -53,7 +54,7 @@ One of the main features of the board is its ability to use Wifi for flashing ne
 This frees it of the need of any desktop system.
 
 - [ESP8266 Wifi](../telemetry/esp8266_wifi_module.md)
-- [Custom ESP8266 MAVLink firmware](https://github.com/dogmaphobic/mavesp8266)
+- [Custom ESP8266 MAVLink firmware](https://github.com/BeyondRobotix/mavesp8266)
 
 ::: info
 Firmware upgrade is not yet enabled over WiFi (it is supported by the default bootloader but not yet enabled).
@@ -85,7 +86,7 @@ For more information see: [Pixracer Wiring Quickstart > External Telemetry](../a
 
 ## Connectors
 
-All connectors follow the [Pixhawk connector standard](https://pixhawk.org/pixhawk-connector-standard/).
+All connectors follow the [Pixhawk connector standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 Unless noted otherwise all connectors are JST GH.
 
 ## Pinouts
@@ -204,19 +205,19 @@ The reference is provided as: [Altium Design Files](https://github.com/AUAV-Open
 
 The following PDF files are provided for _convenience only_:
 
-- [pixracer-rc12-12-06-2015-1330.pdf](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixracer/pixracer-rc12-12-06-2015-1330.pdf)
-- [pixracer-r14.pdf](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixracer/pixracer-r14.pdf) - R14 or RC14 is printed next to the SDCard socket
+- [pixracer-rc12-12-06-2015-1330.pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixracer/pixracer-rc12-12-06-2015-1330.pdf)
+- [pixracer-r14.pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixracer/pixracer-r14.pdf) - R14 or RC14 is printed next to the SDCard socket
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v4_default
 ```
 

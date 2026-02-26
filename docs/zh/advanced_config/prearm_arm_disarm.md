@@ -55,19 +55,17 @@ RC controllers will use different sticks for throttle and yaw [based on their mo
   - _Arm:_ Left-stick to right, right-stick to bottom.
   - _Disarm:_ Left-stick to left, right-stick to the bottom.
 
-The required hold time can be configured using [COM_RC_ARM_HYST](#COM_RC_ARM_HYST).
 Note that by default ([COM_DISARM_MAN](#COM_DISARM_MAN)) you can also disarm in flight using gestures/buttons: you may choose to disable this to avoid accidental disarming.
 
-| 参数                                                                                                                                                                      | 描述                                                                                                                                                                                                      |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE)                      | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default).                                             |
-| <a id="COM_DISARM_MAN"></a>[COM_DISARM_MAN](../advanced_config/parameter_reference.md#COM_DISARM_MAN)                         | Enable disarming in flight via switch/stick/button in MC manual thrust modes. `0`: Disabled, `1`: Enabled (default). |
-| <a id="COM_RC_ARM_HYST"></a>[COM_RC_ARM_HYST](../advanced_config/parameter_reference.md#COM_RC_ARM_HYST) | Time that RC stick must be held in arm/disarm position before arming/disarming occurs (default: `1` second).                                         |
+| 参数                                                                                                                                                 | 描述                                                                                                                                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="MAN_ARM_GESTURE"></a>[MAN_ARM_GESTURE](../advanced_config/parameter_reference.md#MAN_ARM_GESTURE) | Enable arm/disarm stick guesture. `0`: Disabled, `1`: Enabled (default).                                             |
+| <a id="COM_DISARM_MAN"></a>[COM_DISARM_MAN](../advanced_config/parameter_reference.md#COM_DISARM_MAN)    | Enable disarming in flight via switch/stick/button in MC manual thrust modes. `0`: Disabled, `1`: Enabled (default). |
 
 ## Arming Button/Switch {#arm_disarm_switch}
 
 An _arming button_ or "momentary switch" can be configured to trigger arm/disarm _instead_ of [gesture-based arming](#arm_disarm_gestures) (setting an arming switch disables arming gestures).
-The button should be held down for ([nominally](#COM_RC_ARM_HYST)) one second to arm (when disarmed) or disarm (when armed).
+The button should be held down for one second to arm (when disarmed) or disarm (when armed).
 
 A two-position switch can also be used for arming/disarming, where the respective arm/disarm commands are sent on switch _transitions_.
 
@@ -80,7 +78,7 @@ The switch or button is assigned (and enabled) using [RC_MAP_ARM_SW](#RC_MAP_ARM
 | 参数                                                                                                                                                                | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="RC_MAP_ARM_SW"></a>[RC_MAP_ARM_SW](../advanced_config/parameter_reference.md#RC_MAP_ARM_SW) | RC arm switch channel (default: 0 - unassigned). If defined, the specified RC channel (button/switch) is used for arming instead of a stick gesture. <br>**Note:**<br>- This setting _disables the stick gesture_!<br>- This setting applies to RC controllers. It does not apply to Joystick controllers that are connected via _QGroundControl_. |
-| <a id="COM_ARM_SWISBTN"></a>[COM_ARM_SWISBTN](../advanced_config/parameter_reference.md#COM_ARM_SWISBTN)                | Arm switch is a momentary button. <br>- `0`: Arm switch is a 2-position switch where arm/disarm commands are sent on switch transitions.<br>-`1`: Arm switch is a button or momentary button where the arm/disarm command ae sent after holding down button for set time ([COM_RC_ARM_HYST](#COM_RC_ARM_HYST)).        |
+| <a id="COM_ARM_SWISBTN"></a>[COM_ARM_SWISBTN](../advanced_config/parameter_reference.md#COM_ARM_SWISBTN)                | Arm switch is a momentary button. <br>- `0`: Arm switch is a 2-position switch where arm/disarm commands are sent on switch transitions.<br>-`1`: Arm switch is a momentary button where the arm/disarm command is sent after holding down the button for one second.                                                                                                                                    |
 
 :::info
 The switch can also be set as part of _QGroundControl_ [Flight Mode](../config/flight_mode.md) configuration.
@@ -109,7 +107,7 @@ Arming is prevented if:
 - The current mode requires an adequate global position estimate but the vehicle does not have GPS lock.
 - Many more (see [arming/disarming safety settings](../config/safety.md#arming-disarming-settings) for more information).
 
-The current failed checks can be viewed in QGroundControl (v4.2.0 and later) [Arming Check Report](../flying/pre_flight_checks.md#qgc-arming-check-report) (see also [Fly View > Arming and Preflight Checks](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view.md#arm)).
+The current failed checks can be viewed in QGroundControl (v4.2.0 and later) [Arming Check Report](../flying/pre_flight_checks.md#qgc-arming-check-report) (see also [Fly View > Toolbar > Flight Status](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/fly_view/fly_view_toolbar.html#flight-status)).
 
 Note that internally PX4 runs arming checks at 10Hz.
 A list of the failed checks is kept, and if the list changes PX4 emits the current list using the [Events interface](../concept/events_interface.md).
@@ -153,15 +151,14 @@ It corresponds to: [COM_PREARM_MODE=1](#COM_PREARM_MODE) (safety switch) and [CB
 The default startup sequence is:
 
 1. Power-up.
-  - All actuators locked into disarmed position
-  - Not possible to arm.
+   - All actuators locked into disarmed position
+   - Not possible to arm.
 2. Safety switch is pressed.
-  - System now prearmed: non-throttling actuators can move (e.g. ailerons).
-  - System safety is off: Arming possible.
+   - System now prearmed: non-throttling actuators can move (e.g. ailerons).
+   - System safety is off: Arming possible.
 3. Arm command is issued.
-
-  - The system is armed.
-  - All motors and actuators can move.
+   - The system is armed.
+   - All motors and actuators can move.
 
 ### COM_PREARM_MODE=Disabled and Safety Switch
 
@@ -171,15 +168,14 @@ This corresponds to [COM_PREARM_MODE=0](#COM_PREARM_MODE) (Disabled) and [CBRK_I
 The startup sequence is:
 
 1. Power-up.
-  - All actuators locked into disarmed position
-  - Not possible to arm.
+   - All actuators locked into disarmed position
+   - Not possible to arm.
 2. Safety switch is pressed.
-  - _All actuators stay locked into disarmed position (same as disarmed)._
-  - System safety is off: Arming possible.
+   - _All actuators stay locked into disarmed position (same as disarmed)._
+   - System safety is off: Arming possible.
 3. Arm command is issued.
-
-  - The system is armed.
-  - All motors and actuators can move.
+   - The system is armed.
+   - All motors and actuators can move.
 
 ### COM_PREARM_MODE=Always and Safety Switch
 
@@ -190,13 +186,13 @@ This corresponds to [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Always) and [CBRK_IO_
 The startup sequence is:
 
 1. Power-up.
-  - System now prearmed: non-throttling actuators can move (e.g. ailerons).
-  - Not possible to arm.
+   - System now prearmed: non-throttling actuators can move (e.g. ailerons).
+   - Not possible to arm.
 2. Safety switch is pressed.
-  - System safety is off: Arming possible.
+   - System safety is off: Arming possible.
 3. Arm command is issued.
-  - The system is armed.
-  - All motors and actuators can move.
+   - The system is armed.
+   - All motors and actuators can move.
 
 ### COM_PREARM_MODE=Safety or Disabled and No Safety Switch
 
@@ -206,11 +202,11 @@ This corresponds to [COM_PREARM_MODE=0 or 1](#COM_PREARM_MODE) (Disabled/Safety 
 The startup sequence is:
 
 1. Power-up.
-  - All actuators locked into disarmed position
-  - System safety is off: Arming possible.
+   - All actuators locked into disarmed position
+   - System safety is off: Arming possible.
 2. Arm command is issued.
-  - The system is armed.
-  - All motors and actuators can move.
+   - The system is armed.
+   - All motors and actuators can move.
 
 ### COM_PREARM_MODE=Always and No Safety Switch
 
@@ -220,11 +216,11 @@ This corresponds to [COM_PREARM_MODE=2](#COM_PREARM_MODE) (Always) and [CBRK_IO_
 The startup sequence is:
 
 1. Power-up.
-  - System now prearmed: non-throttling actuators can move (e.g. ailerons).
-  - System safety is off: Arming possible.
+   - System now prearmed: non-throttling actuators can move (e.g. ailerons).
+   - System safety is off: Arming possible.
 2. Arm command is issued.
-  - The system is armed.
-  - All motors and actuators can move.
+   - The system is armed.
+   - All motors and actuators can move.
 
 ### 参数
 

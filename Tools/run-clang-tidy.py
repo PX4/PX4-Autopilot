@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #===- run-clang-tidy.py - Parallel clang-tidy runner ---------*- python -*--===#
 #
@@ -110,10 +110,11 @@ def run_tidy(args, tmpdir, build_path, queue):
                                      args.extra_arg, args.extra_arg_before)
 
     try:
-      subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
+      subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'w'), stderr=open(os.devnull, 'w'))
     except subprocess.CalledProcessError as e:
-      sys.stdout.write(' '.join(invocation) + '\n')
-      subprocess.call(invocation)
+      sys.stdout.write(f'failed on {name} --> {" ".join(invocation)}\n')
+      # Now run again to see the actual output
+      subprocess.call(invocation, stdin=None)
       global tidy_failures
       tidy_failures = tidy_failures + 1
 
@@ -143,6 +144,8 @@ def main():
                       help='number of tidy instances to be run in parallel.')
   parser.add_argument('files', nargs='*', default=['.*'],
                       help='files to be processed (regex on path)')
+  parser.add_argument('-exclude', dest='exclude', default=None,
+                      help='regular expression matching files to exclude')
   parser.add_argument('-fix', action='store_true', help='apply fix-its')
   parser.add_argument('-format', action='store_true', help='Reformat code '
                       'after applying fixes')
@@ -191,6 +194,7 @@ def main():
 
   # Build up a big regexy filter from all command line arguments.
   file_name_re = re.compile('(' + ')|('.join(args.files) + ')')
+  exclude_re = re.compile(args.exclude) if args.exclude else None
 
   try:
     # Spin up a bunch of tidy-launching threads.
@@ -204,6 +208,8 @@ def main():
     # Fill the queue with files.
     for name in files:
       if file_name_re.search(name):
+        if exclude_re and exclude_re.search(name):
+          continue
         queue.put(name)
 
     # Wait for all threads to be done.

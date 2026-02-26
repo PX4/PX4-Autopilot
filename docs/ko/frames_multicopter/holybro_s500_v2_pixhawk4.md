@@ -45,8 +45,8 @@ FrSky Taranis 무선 조종기를 사용하여 조립하는 경우를 예시로 
 | 축거 : 480mm             | 1  |
 | 암                                      | 4  |
 | 착륙 기어 세트                               | 2  |
-| M3\*8 나사                               | 18 |
-| M2 5\*6 나사                             | 24 |
+| M3\*8 screws                           | 18 |
+| M2 5\*6 screws                         | 24 |
 | 배터리 혁지                                 | 1  |
 | 프로펠러 1045 (V2 업데이트) | 1  |
 
@@ -73,8 +73,8 @@ FrSky Taranis 무선 조종기를 사용하여 조립하는 경우를 예시로 
 | USB 케이블                                                | 1   |
 | 'X'타입 접이식 받침대 마운트                                      | 1   |
 | 70mm & 140mm carbon rod standoff   | 2   |
-| 6\*3 2.54mm 피치 수평 핀                    | 1   |
-| 8\*3 2.54mm 피치 수평 핀                    | 2   |
+| 6\*3 2.54mm pitch Horizontal Pin       | 1   |
+| 8\*3 2.54mm pitch Horizontal Pin       | 2   |
 | 폼 세트                                                   | 1   |
 | Pixhawk 4 빠른 시작 가이드                                    | 1   |
 | Pixhawk4 핀아웃                                           | 1   |
@@ -115,11 +115,11 @@ FrSky Taranis 무선 조종기를 사용하여 조립하는 경우를 예시로 
 조립 예상 시간은 90분 정도이며 프레임 조립에 약 45분과 QGroundControl의 자동조종장치 설정에 45분정도 걸립니다.
 
 1. 랜딩 기어 조립.
-  먼저 착륙 기어를 수직 기둥에 조립합니다. 랜딩 기어 나사를 풀고, 수직 기둥을 삽입합니다.
+   먼저 착륙 기어를 수직 기둥에 조립합니다. 랜딩 기어 나사를 풀고, 수직 기둥을 삽입합니다.
 
-  ![Figure 1](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig1.jpg)
+   ![Figure 1](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig1.jpg)
 
-  ![Figure 2](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig2.jpg)
+   ![Figure 2](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig2.jpg)
 
 2. 전원 관리 보드를 랜딩 기어에 조립합니다. 조립된 전원 관리 보드에 수직 기둥이 있는 랜딩 기어를 나사로 고정합니다.
 
@@ -132,132 +132,132 @@ M3X8 나사 (총 8개, 각 측면에 4개)로 연결합니다.
 ![Figure 4](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig4.jpg)
 
 1. 전원 관리 보드에 팔을 조립합니다.
-  전원 관리 보드에 팔을 조립합니다.
+   전원 관리 보드에 팔을 조립합니다.
 
-  ![Figure 6](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig7.jpg)
+   ![Figure 6](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig7.jpg)
 
-  ![Figure 7](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig8.jpg)
+   ![Figure 7](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig8.jpg)
 
-  각 팔에 총 2개의 M2 5X6 나사를 사용합니다.
-  플레이트 바닥에서 나사를 삽입합니다.
+   각 팔에 총 2개의 M2 5X6 나사를 사용합니다.
+   플레이트 바닥에서 나사를 삽입합니다.
 
-  ![Figure 8](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig9.jpg)
+   ![Figure 8](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig9.jpg)
 
-  ESC 케이블이 팔 중앙을 통과하는지 확인하십시오.
+   ESC 케이블이 팔 중앙을 통과하는지 확인하십시오.
 
-  ![Figure 9](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig91.jpg)
+   ![Figure 9](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig91.jpg)
 
 2. Assemble the 8_3 2.54mm pitch Horizontal Pin to the 10 to 10 pin cable (PWM) to the Power Management Board.
-  Connect the 10 to 10 pin cable (PWM) to the 8_3 2.54mm pitch Horizontal Pin.
+   Connect the 10 to 10 pin cable (PWM) to the 8_3 2.54mm pitch Horizontal Pin.
 
-  ![Figure 10](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig10.jpg)
+   ![Figure 10](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig10.jpg)
 
-  3M 테이프 조각을 잘라 수평 핀 하단에 부착합니다.
+   3M 테이프 조각을 잘라 수평 핀 하단에 부착합니다.
 
-  ![Figure 11](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig11.jpg)
+   ![Figure 11](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig11.jpg)
 
-  수평 핀을 전원 관리 보드에 고정 :
+   수평 핀을 전원 관리 보드에 고정 :
 
-  ![Figure 12](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig12.jpg)
+   ![Figure 12](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig12.jpg)
 
-  ![Figure 13](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig13.jpg)
+   ![Figure 13](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig13.jpg)
 
 3. 모터를 팔에 조립합니다. M3X7 나사 16개, 모터 4개, 팔 4개가 필요합니다.
 
-  각 팔에 모터를 장착하고, 팔의 바닥을 통해 나사를 삽입합니다.
+   각 팔에 모터를 장착하고, 팔의 바닥을 통해 나사를 삽입합니다.
 
-  ![Figure 14](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig14.jpg)
+   ![Figure 14](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig14.jpg)
 
-  ![Figure 15](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig15.jpg)
+   ![Figure 15](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig15.jpg)
 
-  4개의 모터를 팔에 장착 한 후, 케이블 (빨간색, 파란색, 검은 색)을 잡고 팔 나사산에 끼웁니다.
-  색상으로 구분된 3개의 케이블을 ESC에 연결합니다.
+   4개의 모터를 팔에 장착 한 후, 케이블 (빨간색, 파란색, 검은 색)을 잡고 팔 나사산에 끼웁니다.
+   색상으로 구분된 3개의 케이블을 ESC에 연결합니다.
 
-  ![Figure 16](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig16.jpg)
+   ![Figure 16](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig16.jpg)
 
-  ![Figure 17](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig17.jpg)
+   ![Figure 17](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig17.jpg)
 
 4. 프레임에 GPS를 장착합니다.
-  Pixhawk 4 GPS와 마운팅된 플레이트가 필요합니다.
+   Pixhawk 4 GPS와 마운팅된 플레이트가 필요합니다.
 
-  ![GPS Parts](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_gpskit.png)
+   ![GPS Parts](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_gpskit.png)
 
-  보드 뒷면에 GPS 마스트를 장착하고 4개의 나사를 사용합니다.
+   보드 뒷면에 GPS 마스트를 장착하고 4개의 나사를 사용합니다.
 
-  ![Figure 18](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig18.jpg)
+   ![Figure 18](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig18.jpg)
 
-  ![Figure 19](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig19.jpg)
+   ![Figure 19](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig19.jpg)
 
-  테이프를 사용하고, GPS를 GPS 마스트 상단에 붙입니다.
+   테이프를 사용하고, GPS를 GPS 마스트 상단에 붙입니다.
 
-  ![Figure 20](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig20.jpg)
+   ![Figure 20](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig20.jpg)
 
 5. FrSky를 보드에 붙여 넣습니다. 양면 테이프 (3M)로 FrSky를 하단 보드에 붙여 넣습니다.
-  FrSky를 프레임에 부착합니다.
+   FrSky를 프레임에 부착합니다.
 
-  ![Figure 21](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig21.jpg)
+   ![Figure 21](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig21.jpg)
 
-  ![Figure 22](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig22.jpg)
+   ![Figure 22](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig22.jpg)
 
 6. 텔레메트리를 프레임에 부착합니다.
-  다음 단계는 Holybro 텔레메트리를 프레임에 부착하고 3M 테이프를 사용합니다.
+   다음 단계는 Holybro 텔레메트리를 프레임에 부착하고 3M 테이프를 사용합니다.
 
-  ![Figure 23](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig23.jpg)
+   ![Figure 23](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig23.jpg)
 
-  ![Figure 24](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig24.jpg)
+   ![Figure 24](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig24.jpg)
 
-  차량 전방을 향하는 프레임 내부에 부착하였습니다.
-  아래의 사진에는 프레임 하단에있는 라디오가 표시됩니다.
+   차량 전방을 향하는 프레임 내부에 부착하였습니다.
+   아래의 사진에는 프레임 하단에있는 라디오가 표시됩니다.
 
-  ![Figure 25](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig25.jpg)
+   ![Figure 25](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig25.jpg)
 
 7. Pixhawk 4를 플레이트에 장착합니다.
-  양면 테이프를 사용하여 Pixhawk 4를 중앙 플레이트에 부착합니다.
+   양면 테이프를 사용하여 Pixhawk 4를 중앙 플레이트에 부착합니다.
 
-  ![Figure 26](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig26.jpg)
+   ![Figure 26](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig26.jpg)
 
-  ![Figure 27](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig27.jpg)
+   ![Figure 27](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig27.jpg)
 
-  ![Figure 28](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig28.jpg)
+   ![Figure 28](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig28.jpg)
 
-  다음 단계는 플레이트와 함께 Pixhawk 4를 프레임에 장착하는 것입니다.
-  M2 5X6 나사가 필요합니다.
-  플레이트를 프레임에 맞추고 나사를 삽입합니다.
-  플레이트를 장착하기 전에 전원 모듈에 테이프를 붙이는 것이 좋습니다(단단하게 고정됨).
+   다음 단계는 플레이트와 함께 Pixhawk 4를 프레임에 장착하는 것입니다.
+   M2 5X6 나사가 필요합니다.
+   플레이트를 프레임에 맞추고 나사를 삽입합니다.
+   플레이트를 장착하기 전에 전원 모듈에 테이프를 붙이는 것이 좋습니다(단단하게 고정됨).
 
-  ![Figure 29](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig29.jpg)
+   ![Figure 29](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig29.jpg)
 
-  ![Figure 30](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig30.jpg)
+   ![Figure 30](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig30.jpg)
 
 8. 프레임에 배터리 마운트 조립.
-  M2 5X6 나사와 배터리 마운트가 필요합니다.
+   M2 5X6 나사와 배터리 마운트가 필요합니다.
 
-  ![Figure 31](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig31.jpg)
+   ![Figure 31](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig31.jpg)
 
-  긴 막대를 작은 링에 삽입합니다.
+   긴 막대를 작은 링에 삽입합니다.
 
-  ![Figure 32](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig32.png)
+   ![Figure 32](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig32.png)
 
-  ![Figure 33](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig33.png)
+   ![Figure 33](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig33.png)
 
-  프레임에 부착하고, 나사를 삽입하기 위해 사면이 모두 정렬되어 있는 지 확인하십시오.
+   프레임에 부착하고, 나사를 삽입하기 위해 사면이 모두 정렬되어 있는 지 확인하십시오.
 
-  ![Figure 34](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig34.jpg)
+   ![Figure 34](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig34.jpg)
 
-  작은 판을 다리에 조립하고, 사면 모두에서 나사로 조입니다.
+   작은 판을 다리에 조립하고, 사면 모두에서 나사로 조입니다.
 
-  ![Figure 35](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig35.jpg)
+   ![Figure 35](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig35.jpg)
 
-  마지막 단계는 플레이트를 부착하는 것입니다.
+   마지막 단계는 플레이트를 부착하는 것입니다.
 
-  ![Figure 36](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig36.jpg)
+   ![Figure 36](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig36.jpg)
 
 9. Pixhawk 4 배선. Pixhawk 4의 배선 방법은 몇 가지 방법이 있습니다.
-  아래에는 Pixhawk에 필요한 전선들과 연결된 모양이 설명되어 있습니다.
+   아래에는 Pixhawk에 필요한 전선들과 연결된 모양이 설명되어 있습니다.
 
 10. 플러그인 원격 측정 및 GPS 모듈을 비행 컨트롤러에 연결합니다 (그림 37 참조). RC 수신기, 4 개의 ESC 모두를 비행 컨트롤러와 전원 모듈에 연결합니다.
 
-  ![Figure 37](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig37.png)
+    ![Figure 37](../../assets/airframes/multicopter/s500_holybro_pixhawk4/s500_fig37.png)
 
 완전히 조립된 키트의 예는 아래와 같습니다.
 
@@ -268,7 +268,7 @@ M3X8 나사 (총 8개, 각 측면에 4개)로 연결합니다.
 ## PX4 설정
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the QAV250 frame.
-[Download and install](http://qgroundcontrol.com/downloads/) _QGroundControl_ for your platform.
+[Download and install](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).

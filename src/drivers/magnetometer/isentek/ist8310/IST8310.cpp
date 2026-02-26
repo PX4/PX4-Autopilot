@@ -94,9 +94,11 @@ int IST8310::probe()
 
 	while (hrt_elapsed_time(&start_time) < 50_ms) {
 		set_device_address(start_addr);
-		const int WAI = RegisterRead(Register::WAI);
 
-		if (WAI == Device_ID) {
+		const uint8_t wai = RegisterRead(Register::WAI);
+
+		if ((wai == IST8310_Device_ID) || (wai == IST8310J_Device_ID)) {
+
 			// Device has the right I2C address and register content
 			return PX4_OK;
 		}
@@ -128,30 +130,31 @@ void IST8310::RunImpl()
 		ScheduleDelayed(50_ms); // Power On Reset: max 50ms
 		break;
 
-	case STATE::WAIT_FOR_RESET:
+	case STATE::WAIT_FOR_RESET: {
+			// SRST: This bit is automatically reset to zero after POR routine
+			const uint8_t wai = RegisterRead(Register::WAI);
 
-		// SRST: This bit is automatically reset to zero after POR routine
-		if ((RegisterRead(Register::WAI) == Device_ID)
-		    && ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SRST) == 0)) {
-
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
-			ScheduleDelayed(10_ms);
-
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
+			if (((wai == IST8310_Device_ID) || (wai == IST8310J_Device_ID))
+			    && ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SRST) == 0)) {
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(10_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
-			}
-		}
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
 
-		break;
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
+			}
+
+			break;
+		}
 
 	case STATE::CONFIGURE:
 		if (Configure()) {

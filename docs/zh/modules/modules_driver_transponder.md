@@ -24,9 +24,7 @@ Set the Squawk Code
 $ sagetech_mxs squawk 1200
 ```
 
-<a id="sagetech_mxs_usage"></a>
-
-### 用法
+### Usage {#sagetech_mxs_usage}
 
 ```
 sagetech_mxs <command> [arguments...]

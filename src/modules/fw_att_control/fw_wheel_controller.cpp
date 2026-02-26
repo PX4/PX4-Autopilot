@@ -58,7 +58,7 @@ float WheelController::control_bodyrate(float dt, float body_z_rate, float groun
 
 	if (_k_i > 0.f && groundspeed > 1.f) { // only start integrating when above 1m/s
 
-		float id = rate_error * dt * groundspeed_scaler;
+		float id = rate_error * dt * groundspeed_scaler * groundspeed_scaler;
 
 		if (_last_output < -1.f) {
 			/* only allow motion to center: increase value */
@@ -74,7 +74,7 @@ float WheelController::control_bodyrate(float dt, float body_z_rate, float groun
 
 	/* Apply PI rate controller and store non-limited output */
 	_last_output = _body_rate_setpoint * _k_ff * groundspeed_scaler +
-		       groundspeed_scaler * groundspeed_scaler * (rate_error * _k_p + _integrator);
+		       groundspeed_scaler * groundspeed_scaler * (rate_error * _k_p) + _integrator;
 
 	return math::constrain(_last_output, -1.f, 1.f);
 }

@@ -49,7 +49,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - 其它特性:
   - 工作温度：-40 ~ 85°C
 
-Additional information can be found in the [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf).
+Additional information can be found in the [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/blob/main/docs/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf).
 
 ## 购买渠道
 
@@ -75,15 +75,15 @@ The exception is the [debug port(s)](#debug_port) (pin 1 is the right-most, as s
 
 ## 串口映射
 
-| UART   | 设备         | Port                                     |
-| ------ | ---------- | ---------------------------------------- |
-| UART1  | /dev/ttyS0 | GPS                                      |
-| USART2 | /dev/ttyS1 | TELEM1 (flow control) |
-| USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  | /dev/ttyS3 | TELEM4                                   |
-| USART6 | /dev/ttyS4 | RC SBUS                                  |
-| UART7  | /dev/ttyS5 | Debug Console                            |
-| UART8  | /dev/ttyS6 | PX4IO                                    |
+| UART   | 设备         | Port                           |
+| ------ | ---------- | ------------------------------ |
+| UART1  | /dev/ttyS0 | GPS                            |
+| USART2 | /dev/ttyS1 | TELEM1 (流控) |
+| USART3 | /dev/ttyS2 | TELEM2 (流控) |
+| UART4  | /dev/ttyS3 | TELEM4                         |
+| USART6 | /dev/ttyS4 | RC SBUS                        |
+| UART7  | /dev/ttyS5 | 调试控制台                          |
+| UART8  | /dev/ttyS6 | PX4IO                          |
 
 ## 尺寸
 
@@ -157,7 +157,7 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 
 ## 更多信息
 
-- [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf)
+- [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165).
 - [Pixhawk 4 Wiring QuickStart](../assembly/quick_start_pixhawk4.md)
 - [Pixhawk 4 Pinouts](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Pixhawk4-Pinouts.pdf) (Holybro)

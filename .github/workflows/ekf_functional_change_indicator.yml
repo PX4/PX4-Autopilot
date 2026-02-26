@@ -3,29 +3,33 @@ name: EKF Change Indicator
 on:
   pull_request:
     branches:
-    - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
+
+# If two events are triggered within a short time in the same PR, cancel the run of the oldest event
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   unit_tests:
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
-    - name: main test
-      uses: addnab/docker-run-action@v3
-      with:
-        image: px4io/px4-dev-base-focal:2021-09-08
-        options: -v ${{ github.workspace }}:/workspace
+    container:
+      image: px4io/px4-dev:v1.16.0-rc1-258-g0369abd556
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: main test
         run: |
-          cd /workspace
-          git config --global --add safe.directory /workspace
+          cd "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           make tests TESTFILTER=EKF
 
-    - name: Check if there is a functional change
-      run: git diff --exit-code
-      working-directory: src/modules/ekf2/test/change_indication
+      - name: Check if there is a functional change
+        run: git diff --exit-code
+        working-directory: src/modules/ekf2/test/change_indication

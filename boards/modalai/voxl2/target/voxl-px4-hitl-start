@@ -17,13 +17,15 @@ if [ $RETURNCODE -ne 0 ]; then
     fi
 fi
 
-# We can only run on M0052, M0054, or M0104 so exit with error if that is not the case
+# We can only run on M0052, M0054, M0104, or M0197 so exit with error if that is not the case
 if [ $PLATFORM = "M0052" ]; then
     /bin/echo "Running on M0052"
 elif [ $PLATFORM = "M0054" ]; then
     /bin/echo "Running on M0054"
 elif [ $PLATFORM = "M0104" ]; then
     /bin/echo "Running on M0104"
+elif [ $PLATFORM = "M0197" ]; then
+    /bin/echo "Running on M0197"
 else
     /bin/echo "Error, cannot determine platform!"
     exit 0
@@ -76,7 +78,11 @@ microdds_client start -t udp -h 127.0.0.1 -p 8888
 qshell pwm_out_sim start -m hil
 # g = gps, m = mag, o = odometry (vio), h = distance sensor, f = optic flow
 # qshell dsp_hitl start -g -m -o -h -f
-qshell dsp_hitl start -g -m
+if [ "$PLATFORM" == "M0197" ]; then
+    qshell dsp_hitl start -g -m -p 6
+else
+    qshell dsp_hitl start -g -m
+fi
 
 # start the onboard fast link to connect to voxl-mavlink-server
 mavlink start -x -u 14556 -o 14557 -r 100000 -n lo -m onboard

@@ -40,6 +40,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor RCInput::desc{task_spawn, custom_command, print_usage};
+
 constexpr char const *RCInput::RC_SCAN_STRING[];
 
 RCInput::RCInput(const char *device) :
@@ -108,6 +110,18 @@ RCInput::init()
 #ifdef GPIO_PPM_IN
 	// disable CPPM input by mapping it away from the timer capture input
 	px4_arch_unconfiggpio(GPIO_PPM_IN);
+
+#ifdef RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
+	// If we use the same STM32 pin for PPM input as well as serial input, we
+	// need to configure the serial port, as long as we're actually using that
+	// serial device.
+	if (strcmp(_device, RC_SERIAL_PORT) == 0) {
+		px4_arch_configgpio(RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX);
+	}
+
+#endif // RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
 #endif // GPIO_PPM_IN
 
 	rc_io_invert(false);
@@ -169,8 +183,8 @@ RCInput::task_spawn(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		instance->ScheduleOnInterval(_current_update_interval);
 
@@ -326,7 +340,7 @@ void  RCInput::swap_rx_tx()
 void RCInput::Run()
 {
 	if (should_exit()) {
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -336,7 +350,7 @@ void RCInput::Run()
 
 		} else {
 			PX4_ERR("init failed");
-			exit_and_cleanup();
+			exit_and_cleanup(desc);
 		}
 
 	} else {
@@ -661,6 +675,15 @@ void RCInput::Run()
 #ifdef HRT_PPM_CHANNEL
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = cycle_timestamp;
+
+#ifdef RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
+				if (strcmp(_device, RC_SERIAL_PORT) == 0) {
+					px4_arch_unconfiggpio(RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX);
+				}
+
+#endif // RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
 				// Configure timer input pin for CPPM
 				px4_arch_configgpio(GPIO_PPM_IN);
 
@@ -684,6 +707,15 @@ void RCInput::Run()
 			} else {
 				// disable CPPM input by mapping it away from the timer capture input
 				px4_arch_unconfiggpio(GPIO_PPM_IN);
+
+#ifdef RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
+				if (strcmp(_device, RC_SERIAL_PORT) == 0) {
+					px4_arch_configgpio(RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX);
+				}
+
+#endif // RC_SERIAL_PORT_SHARED_PPM_PIN_GPIO_RX
+
 				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_CRSF);
 			}
@@ -889,7 +921,7 @@ int RCInput::custom_command(int argc, char *argv[])
 #endif /* SPEKTRUM_POWER */
 
 	/* start the FMU if not running */
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		int ret = RCInput::task_spawn(argc, argv);
 
 		if (ret) {
@@ -988,6 +1020,7 @@ This module does the RC input parsing and auto-selecting the method. Supported m
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("rc_input", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("radio_control");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "RC device", true);
 
@@ -1002,5 +1035,5 @@ This module does the RC input parsing and auto-selecting the method. Supported m
 
 extern "C" __EXPORT int rc_input_main(int argc, char *argv[])
 {
-	return RCInput::main(argc, argv);
+	return ModuleBase::main(RCInput::desc, argc, argv);
 }

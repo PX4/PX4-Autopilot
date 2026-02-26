@@ -1,6 +1,6 @@
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 2
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -13,20 +13,16 @@ uint8 ARMING_STATE_ARMED    = 2
 
 uint8 latest_arming_reason
 uint8 latest_disarming_reason
-uint8 ARM_DISARM_REASON_TRANSITION_TO_STANDBY = 0
 uint8 ARM_DISARM_REASON_STICK_GESTURE = 1
 uint8 ARM_DISARM_REASON_RC_SWITCH = 2
 uint8 ARM_DISARM_REASON_COMMAND_INTERNAL = 3
 uint8 ARM_DISARM_REASON_COMMAND_EXTERNAL = 4
 uint8 ARM_DISARM_REASON_MISSION_START = 5
-uint8 ARM_DISARM_REASON_SAFETY_BUTTON = 6
-uint8 ARM_DISARM_REASON_AUTO_DISARM_LAND = 7
-uint8 ARM_DISARM_REASON_AUTO_DISARM_PREFLIGHT = 8
-uint8 ARM_DISARM_REASON_KILL_SWITCH = 9
-uint8 ARM_DISARM_REASON_LOCKDOWN = 10
-uint8 ARM_DISARM_REASON_FAILURE_DETECTOR = 11
-uint8 ARM_DISARM_REASON_SHUTDOWN = 12
-uint8 ARM_DISARM_REASON_UNIT_TEST = 13
+uint8 ARM_DISARM_REASON_LANDING = 6
+uint8 ARM_DISARM_REASON_PREFLIGHT_INACTION = 7
+uint8 ARM_DISARM_REASON_KILL_SWITCH = 8
+uint8 ARM_DISARM_REASON_RC_BUTTON = 13
+uint8 ARM_DISARM_REASON_FAILSAFE = 14
 
 uint64 nav_state_timestamp # time when current nav_state activated
 
@@ -41,7 +37,7 @@ uint8 NAVIGATION_STATE_AUTO_LOITER = 4          # Auto loiter mode
 uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Auto return to launch mode
 uint8 NAVIGATION_STATE_POSITION_SLOW = 6
 uint8 NAVIGATION_STATE_FREE5 = 7
-uint8 NAVIGATION_STATE_FREE4 = 8
+uint8 NAVIGATION_STATE_ALTITUDE_CRUISE = 8      # Altitude with Cruise mode
 uint8 NAVIGATION_STATE_FREE3 = 9
 uint8 NAVIGATION_STATE_ACRO = 10                # Acro mode
 uint8 NAVIGATION_STATE_FREE2 = 11
@@ -67,6 +63,7 @@ uint8 NAVIGATION_STATE_EXTERNAL8 = 30
 uint8 NAVIGATION_STATE_MAX = 31
 
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
+uint8 nav_state_display                         # User-visible nav state sent via MAVLink (executor state if active, otherwise nav_state)
 
 uint32 valid_nav_states_mask                    # Bitmask for all valid nav_state values
 uint32 can_set_nav_states_mask                  # Bitmask for all modes that a user can select
@@ -89,9 +86,10 @@ uint8 HIL_STATE_ON = 1
 
 # Current vehicle locomotion method. A vehicle can have different methods (e.g. VTOL transitions from RW to FW method)
 uint8 vehicle_type
-uint8 VEHICLE_TYPE_ROTARY_WING = 0
-uint8 VEHICLE_TYPE_FIXED_WING = 1
-uint8 VEHICLE_TYPE_ROVER = 2
+uint8 VEHICLE_TYPE_UNSPECIFIED = 0
+uint8 VEHICLE_TYPE_ROTARY_WING = 1
+uint8 VEHICLE_TYPE_FIXED_WING = 2
+uint8 VEHICLE_TYPE_ROVER = 3
 
 uint8 FAILSAFE_DEFER_STATE_DISABLED = 0
 uint8 FAILSAFE_DEFER_STATE_ENABLED = 1
@@ -128,6 +126,8 @@ bool open_drone_id_system_healthy
 
 bool parachute_system_present
 bool parachute_system_healthy
+
+bool traffic_avoidance_system_present
 
 bool rc_calibration_in_progress
 bool calibration_enabled

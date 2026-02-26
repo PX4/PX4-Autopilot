@@ -50,6 +50,7 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	flags.mode_req_local_position = 0;
 	flags.mode_req_local_position_relaxed = 0;
 	flags.mode_req_global_position = 0;
+	flags.mode_req_global_position_relaxed = 0;
 	flags.mode_req_local_alt = 0;
 	flags.mode_req_mission = 0;
 	flags.mode_req_offboard_signal = 0;
@@ -68,6 +69,13 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_local_alt);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_manual_control);
 
+	// NAVIGATION_STATE_ALTITUDE_CRUISE
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_req_angular_velocity);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_req_attitude);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE, flags.mode_req_local_alt);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE,
+		       flags.mode_req_manual_control); // COM_RCL_EXCEPT can override this
+
 	// NAVIGATION_STATE_POSCTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_attitude);
@@ -85,8 +93,16 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	// NAVIGATION_STATE_AUTO_MISSION
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_attitude);
-	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_local_position);
-	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_global_position);
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_global_position_relaxed);
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_local_position_relaxed);
+
+	} else {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_global_position);
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_local_position);
+	}
+
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_local_alt);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_mission);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, flags.mode_req_wind_and_flight_time_compliance);
@@ -94,16 +110,32 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	// NAVIGATION_STATE_AUTO_LOITER
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, flags.mode_req_attitude);
-	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, flags.mode_req_local_position);
-	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, flags.mode_req_global_position);
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, flags.mode_req_global_position_relaxed);
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, flags.mode_req_local_position_relaxed);
+
+	} else {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, flags.mode_req_global_position);
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, flags.mode_req_local_position);
+	}
+
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, flags.mode_req_local_alt);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, flags.mode_req_wind_and_flight_time_compliance);
 
 	// NAVIGATION_STATE_AUTO_RTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_attitude);
-	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_local_position);
-	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_global_position);
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_global_position_relaxed);
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_local_position_relaxed);
+
+	} else {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_global_position);
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_local_position);
+	}
+
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_local_alt);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_home_position);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_prevent_arming);
@@ -133,8 +165,12 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	// NAVIGATION_STATE_AUTO_TAKEOFF
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, flags.mode_req_attitude);
-	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, flags.mode_req_local_position);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, flags.mode_req_local_alt);
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		// only require local position for rotary wing vehicles, fixed wing vehicles can take off without it
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, flags.mode_req_local_position);
+	}
 
 	// NAVIGATION_STATE_AUTO_LAND
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND, flags.mode_req_angular_velocity);
@@ -169,8 +205,14 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	// NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_attitude);
-	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_position);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_alt);
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_position_relaxed);
+
+	} else {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF, flags.mode_req_local_position);
+	}
 
 	// NAVIGATION_STATE_EXTERNALx: handled outside
 

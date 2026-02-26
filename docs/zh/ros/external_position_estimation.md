@@ -90,9 +90,7 @@ You can also disable GNSS, baro and range finder fusion using [EKF2_GPS_CTRL](..
 Reboot the flight controller in order for parameter changes to take effect.
 :::
 
-<a id="tuning-EKF2_EV_DELAY"></a>
-
-#### 调参 EKF2_EV_DELAY
+#### Tuning EKF2_EV_DELAY {#tuning-EKF2_EV_DELAY}
 
 [EKF2_EV_DELAY](../advanced_config/parameter_reference.md#EKF2_EV_DELAY) is the _Vision Position Estimator delay relative to IMU measurements_.
 
@@ -171,9 +169,7 @@ VIO and MoCap systems have different ways of obtaining pose data, and have their
 The setup for specific systems is covered [below](#setup_specific_systems).
 When using external heading estimation, magnetic North is ignored and faked with a vector corresponding to world <em x-id="3">x</em> axis (which can be placed freely during Vision/MoCap calibration). Yaw angle is therefore given with respect to local <em x-id="3">x</em>.
 
-<a id="relaying_pose_data_to_px4"></a>
-
-### 将数据回传给 PX4
+### Relaying Pose Data to PX4 {#relaying_pose_data_to_px4}
 
 MAVROS has plugins to relay a visual estimation from a VIO or MoCap system using the following pipelines:
 
@@ -187,7 +183,7 @@ MAVROS has plugins to relay a visual estimation from a VIO or MoCap system using
 You can use any of the above pipelines with LPE.
 
 If you're working with EKF2, only the "vision" pipelines are supported.
-To use MoCap data with EKF2 you will have to [remap](http://wiki.ros.org/roslaunch/XML/remap) the pose topic that you get from MoCap:
+To use MoCap data with EKF2 you will have to [remap](https://wiki.ros.org/roslaunch/XML/remap) the pose topic that you get from MoCap:
 
 - MoCap ROS topics of type `geometry_msgs/PoseStamped` or `geometry_msgs/PoseWithCovarianceStamped` must be remapped to `/mavros/vision_pose/pose`.
   The `geometry_msgs/PoseStamped` topic is most common as MoCap doesn't usually have associated covariances to the data.
@@ -205,7 +201,7 @@ The local/world and world frames used by ROS and PX4 are different.
 | 世界坐标系 | FRD or NED (X **N**orth, Y **E**ast, Z **D**own) | FLU or ENU (X **E**ast, Y **N**orth, Z **U**p), with the naming being `odom` or `map` |
 
 :::tip
-See [REP105: Coordinate Frames for Mobile Platforms](http://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
+See [REP105: Coordinate Frames for Mobile Platforms](https://www.ros.org/reps/rep-0105.html) for more information about ROS frames.
 :::
 
 如果你把机体命名为 <code>robot1</code>，你会得到一个主题，比如 <code>/vrpn_client_node/robot1/pose</code>
@@ -236,7 +232,7 @@ You therefore have to add the external pose's body frame to the tf tree. This ca
 ```
 
 Make sure that you change the values of yaw, pitch and roll such that it properly attaches the external pose's body frame to the `base_link` or `base_link_frd`.
-Have a look at the [tf package](http://wiki.ros.org/tf#static_transform_publisher) for further help on how to specify the transformation between the frames.
+Have a look at the [tf package](https://wiki.ros.org/tf#static_transform_publisher) for further help on how to specify the transformation between the frames.
 You can use rviz to check if you attached the frame right. The name of the `external_pose_child_frame` has to match the child_frame_id of your `nav_msgs/Odometry` message.
 The same also applies for the reference frame of the external pose. You have to attach the reference frame of the external pose as child to either the `odom` or `odom_frd` frame. Adapt therefore the following code line accordingly.
 
@@ -253,13 +249,11 @@ When using the MAVROS _odom_ plugin, it is important that no other node is publi
 This might break the _tf_ tree.
 :::
 
-<a id="setup_specific_systems"></a>
-
-## 特定的系统设置
+## Specific System Setups {#setup_specific_systems}
 
 ### 光学跟踪 MoCap
 
-The following steps explain how to feed position estimates from an [OptiTrack](https://optitrack.com/motion-capture-robotics/) system to PX4.
+The following steps explain how to feed position estimates from an [OptiTrack](https://optitrack.com/applications/robotics/) system to PX4.
 It is assumed that the MoCap system is calibrated.
 See [this video](https://www.youtube.com/watch?v=cNZaFEghTBU) for a tutorial on the calibration process.
 

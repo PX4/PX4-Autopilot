@@ -71,8 +71,15 @@ VtolTakeoff::on_active()
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-				_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat,
-							    _mission_item.lon, _loiter_location(0), _loiter_location(1)));
+
+				if (!PX4_ISFINITE(_transition_direction_deg)) {
+					_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_navigator->get_home_position()->lat,
+								    _navigator->get_home_position()->lon, _loiter_location(0), _loiter_location(1)));
+
+				} else {
+					_mission_item.yaw = wrap_pi(math::radians(_transition_direction_deg));
+				}
+
 				_mission_item.force_heading = true;
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 				pos_sp_triplet->current.cruising_speed = -1.f;
@@ -116,7 +123,7 @@ VtolTakeoff::on_active()
 				// as the loiter is established. therefore, set a small loiter time so that the mission item will be reached quickly,
 				// however it will just continue loitering as there is no next mission item
 				_mission_item.time_inside = 1.f;
-				_mission_item.loiter_radius = _navigator->get_loiter_radius();
+				_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 				_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
 				_mission_item.altitude = _takeoff_alt_msl + _param_loiter_alt.get();
 

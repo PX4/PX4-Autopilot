@@ -1,0 +1,5 @@
+menuconfig DRIVERS_TEMPERATURE_SENSOR_TMP102
+	bool "TMP102 temperature sensor"
+	default n
+	---help---
+		Enable support for the TMP102 temperature sensor

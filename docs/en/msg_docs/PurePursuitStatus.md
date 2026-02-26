@@ -1,18 +1,39 @@
+---
+pageClass: is-wide-page
+---
+
 # PurePursuitStatus (UORB message)
 
+Pure pursuit status.
 
+**TOPICS:** pure_pursuit_status
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/PurePursuitStatus.msg)
+## Fields
+
+| Name                 | Type      | Unit [Frame] | Range/Enum                                          | Description                                              |
+| -------------------- | --------- | ------------ | --------------------------------------------------- | -------------------------------------------------------- |
+| timestamp            | `uint64`  | us           |                                                     | Time since system start                                  |
+| lookahead_distance   | `float32` | m            | [0 : inf]                                           | Lookahead distance of pure the pursuit controller        |
+| target_bearing       | `float32` | rad [NED]    | [-pi : pi]                                          | Target bearing calculated by the pure pursuit controller |
+| crosstrack_error     | `float32` | m            | [-inf (Left of the path) : inf (Right of the path)] | Shortest distance from the vehicle to the path           |
+| distance_to_waypoint | `float32` | m            | [-inf : inf]                                        | Distance from the vehicle to the current waypoint        |
+| bearing_to_waypoint  | `float32` | rad [NED]    | [-pi : pi]                                          | Bearing towards current waypoint                         |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/PurePursuitStatus.msg)
+
+::: details Click here to see original file
 
 ```c
-uint64 timestamp # time since system start (microseconds)
+# Pure pursuit status
 
-float32 lookahead_distance   # [m] Lookahead distance of pure the pursuit controller
-float32 target_bearing       # [rad] Target bearing calculated by the pure pursuit controller
-float32 crosstrack_error     # [m] Shortest distance from the vehicle to the path (Positiv: Vehicle is on the right hand side with respect to the oriented path vector, Negativ: Left of the path)
-float32 distance_to_waypoint # [m] Distance from the vehicle to the current waypoint
-float32 bearing_to_waypoint  # [rad] Bearing towards current waypoint
-
-# TOPICS pure_pursuit_status
-
+uint64 timestamp              # [us] Time since system start
+float32 lookahead_distance    # [m] [@range 0, inf] Lookahead distance of pure the pursuit controller
+float32 target_bearing        # [rad] [@range -pi, pi] [@frame NED] Target bearing calculated by the pure pursuit controller
+float32 crosstrack_error      # [m] [@range -inf (Left of the path), inf (Right of the path)] Shortest distance from the vehicle to the path
+float32 distance_to_waypoint  # [m] [@range -inf, inf]Distance from the vehicle to the current waypoint
+float32 bearing_to_waypoint   # [rad] [@range -pi, pi] [@frame NED]Bearing towards current waypoint
 ```
+
+:::

@@ -94,7 +94,6 @@ public:
 		bat_status.connected = bat_info.status_flags & legacy_equipment_power_BatteryInfo_1_0_STATUS_FLAG_IN_USE;
 		bat_status.source = 1; // External
 		bat_status.capacity = bat_info.full_charge_capacity_wh;
-		bat_status.serial_number = bat_info.model_instance_id & 0xFFFF; // Take first 16 bits
 		bat_status.state_of_health = bat_info.state_of_health_pct; // External
 		bat_status.id = bat_info.battery_id;
 
@@ -118,9 +117,17 @@ public:
 
 		_battery_status_pub.publish(bat_status);
 		print_message(ORB_ID(battery_status), bat_status);
+
+		battery_info_s battery_info{};
+		battery_info.timestamp = bat_status.timestamp;
+		battery_info.id = bat_status.id;
+		snprintf(battery_info.serial_number, sizeof(battery_info.serial_number), "%" PRIu32,
+			 bat_info.model_instance_id);
+		_battery_info_pub.publish(battery_info);
 	};
 
 private:
+	uORB::PublicationMulti<battery_info_s> _battery_info_pub{ORB_ID(battery_info)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 };

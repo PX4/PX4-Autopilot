@@ -44,7 +44,7 @@ The main hardware documentation is [here](http://mindpx.net/assets/accessories/m
 |                     IMU                    |                                                   10DOF                                                   |
 |                IMU isolation               |                                                YES/Optional                                               |
 |               Radio Receiver               |                                S.BUS/PPM/DSM/DSM2/DSMX/SUMD                               |
-|                  Telemetry                 | FrSky<sup>&reg;</sup> D.Port, S.Port, Wifi, 3DR radio |
+|                     数传                     | FrSky<sup>&reg;</sup> D.Port, S.Port, Wifi, 3DR radio |
 | On board TF card for flight data recording |                                                    YES                                                    |
 |             OneShot ESC Support            |                                                    YES                                                    |
 |               Expansion Slots              |                                       2x7(pin)x2                                       |
@@ -89,7 +89,7 @@ The user guide is [here](http://mindpx.net/assets/accessories/mindracer_user_gui
 
 ## 购买渠道
 
-MindRacer is available at [AirMind Store](http://drupal.xitronet.com/?q=catalog).
+MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 You can also find MindRacer at Amazon<sup>&reg;</sup> or eBay<sup>&reg;</sup>.
 
 ## 技术支持

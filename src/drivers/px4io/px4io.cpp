@@ -99,9 +99,11 @@ using namespace time_literals;
  *
  * Encapsulates PX4FMU to PX4IO communications modeled as file operations.
  */
-class PX4IO : public cdev::CDev, public ModuleBase<PX4IO>, public OutputModuleInterface
+class PX4IO : public cdev::CDev, public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	/**
 	 * Constructor.
 	 *
@@ -153,7 +155,7 @@ public:
 
 	uint16_t		system_status() const { return _status; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
 private:
@@ -339,6 +341,8 @@ private:
 	)
 };
 
+ModuleBase::Descriptor PX4IO::desc{task_spawn, custom_command, print_usage};
+
 #define PX4IO_DEVICE_PATH	"/dev/px4io"
 
 PX4IO::PX4IO(device::Device *interface) :
@@ -360,7 +364,7 @@ PX4IO::~PX4IO()
 	perf_free(_interface_write_perf);
 }
 
-bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool PX4IO::updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	for (size_t i = 0; i < num_outputs; i++) {
@@ -512,7 +516,7 @@ void PX4IO::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -791,20 +795,20 @@ PX4IO::io_set_arming_state()
 			clear |= PX4IO_P_SETUP_ARMING_FMU_PREARMED;
 		}
 
-		if ((armed.lockdown || armed.manual_lockdown) && !_lockdown_override) {
+		if ((armed.lockdown || armed.kill) && !_lockdown_override) {
 			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = true;
 
-		} else if (!(armed.lockdown || armed.manual_lockdown) && _lockdown_override) {
+		} else if (!(armed.lockdown || armed.kill) && _lockdown_override) {
 			clear |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = false;
 		}
 
-		if (armed.force_failsafe) {
-			set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+		if (armed.termination) {
+			set |= PX4IO_P_SETUP_ARMING_TERMINATION;
 
 		} else {
-			clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+			clear |= PX4IO_P_SETUP_ARMING_TERMINATION;
 		}
 
 		if (armed.ready_to_arm) {
@@ -988,7 +992,7 @@ int PX4IO::io_get_status()
 		status.arming_fmu_prearmed         = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FMU_PREARMED;
 		status.arming_failsafe_custom      = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM;
 		status.arming_lockdown             = SETUP_ARMING & PX4IO_P_SETUP_ARMING_LOCKDOWN;
-		status.arming_force_failsafe       = SETUP_ARMING & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
+		status.arming_termination          = SETUP_ARMING & PX4IO_P_SETUP_ARMING_TERMINATION;
 		status.arming_termination_failsafe = SETUP_ARMING & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
@@ -1030,7 +1034,10 @@ int PX4IO::io_publish_raw_rc()
 	const bool rc_updated = (rc_valid_update_count != _rc_valid_update_count);
 	_rc_valid_update_count = rc_valid_update_count;
 
-	if (!rc_updated) {
+	// only publish if the IO status indicates that the RC is OK
+	const uint16_t status_rc_ok = _status & PX4IO_P_STATUS_FLAGS_RC_OK;
+
+	if (!rc_updated | !status_rc_ok) {
 		return 0;
 	}
 
@@ -1227,8 +1234,8 @@ int PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint1
 int PX4IO::print_status()
 {
 	/* basic configuration */
-	printf("protocol %" PRIu32 " hardware %" PRIu32 " bootloader %" PRIu32 " buffer %" PRIu32 "B crc 0x%04" PRIu32 "%04"
-	       PRIu32 "\n",
+	printf("protocol %" PRIu32 " hardware %" PRIu32 " bootloader %" PRIu32 " buffer %" PRIu32 "B crc 0x%04" PRIx32 "%04"
+	       PRIx32 "\n",
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_HARDWARE_VERSION),
 	       io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_BOOTLOADER_VERSION),
@@ -1510,7 +1517,8 @@ int PX4IO::bind(int argc, char *argv[])
 		pulses = atoi(argv[1]);
 	}
 
-	get_instance()->ioctl(nullptr, DSM_BIND_START, pulses);
+	get_instance<PX4IO>(desc)->ioctl(nullptr, DSM_BIND_START, pulses);
+
 	return 0;
 }
 
@@ -1526,8 +1534,8 @@ int PX4IO::task_spawn(int argc, char *argv[])
 	PX4IO *instance = new PX4IO(interface);
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
@@ -1538,8 +1546,8 @@ int PX4IO::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -1553,7 +1561,7 @@ int PX4IO::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "checkcrc")) {
-		if (is_running()) {
+		if (is_running(desc)) {
 			PX4_ERR("io must be stopped");
 			return 1;
 		}
@@ -1563,7 +1571,7 @@ int PX4IO::custom_command(int argc, char *argv[])
 
 	if (!strcmp(verb, "update")) {
 
-		if (is_running()) {
+		if (is_running(desc)) {
 			PX4_ERR("io must be stopped");
 			return 1;
 		}
@@ -1653,7 +1661,7 @@ int PX4IO::custom_command(int argc, char *argv[])
 
 
 	/* commands below here require a started driver */
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		PX4_ERR("not running");
 		return 1;
 	}
@@ -1665,7 +1673,7 @@ int PX4IO::custom_command(int argc, char *argv[])
 		}
 
 		uint8_t level = atoi(argv[1]);
-		int ret = get_instance()->ioctl(nullptr, PX4IO_SET_DEBUG, level);
+		int ret = get_instance<PX4IO>(desc)->ioctl(nullptr, PX4IO_SET_DEBUG, level);
 
 		if (ret != 0) {
 			PX4_ERR("SET_DEBUG failed: %d", ret);
@@ -1677,7 +1685,7 @@ int PX4IO::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "bind")) {
-		if (!is_running()) {
+		if (!is_running(desc)) {
 			PX4_ERR("io must be running");
 			return 1;
 		}
@@ -1686,7 +1694,7 @@ int PX4IO::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "sbus1_out")) {
-		int ret = get_instance()->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
+		int ret = get_instance<PX4IO>(desc)->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
 
 		if (ret != 0) {
 			PX4_ERR("S.BUS v1 failed (%i)", ret);
@@ -1697,7 +1705,7 @@ int PX4IO::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "sbus2_out")) {
-		int ret = get_instance()->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 2);
+		int ret = get_instance<PX4IO>(desc)->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 2);
 
 		if (ret != 0) {
 			PX4_ERR("S.BUS v2 failed (%i)", ret);
@@ -1708,12 +1716,12 @@ int PX4IO::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "test_fmu_fail")) {
-		get_instance()->test_fmu_fail(true);
+		get_instance<PX4IO>(desc)->test_fmu_fail(true);
 		return 0;
 	}
 
 	if (!strcmp(verb, "test_fmu_ok")) {
-		get_instance()->test_fmu_fail(false);
+		get_instance<PX4IO>(desc)->test_fmu_fail(false);
 		return 0;
 	}
 
@@ -1761,5 +1769,5 @@ extern "C" __EXPORT int px4io_main(int argc, char *argv[])
 		PX4_INFO("PX4IO Not Supported");
 		return -1;
 	}
-	return PX4IO::main(argc, argv);
+	return ModuleBase::main(PX4IO::desc, argc, argv);
 }

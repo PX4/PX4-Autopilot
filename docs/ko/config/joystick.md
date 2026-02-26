@@ -2,7 +2,7 @@
 
 A [computer joystick](https://en.wikipedia.org/wiki/Joystick) or gamepad connected through _QGroundControl_ can be used to manually control the vehicle (_instead_ of using an [RC Transmitter](../config/radio.md)).
 
-This approach may be used by manual control units that have an integrated ground control station (like the _UAVComponents_ [MicroNav](https://uxvtechnologies.com/ground-control-stations/micronav/) shown below).
+This approach may be used by manual control units that have an integrated ground control station (like the _UAVComponents_ [MicroNav](https://www.uxvtechnologies.com/ground-control-stations/micronav) shown below).
 조이스틱은 일반적으로 비행 시뮬레이션용으로 많이 사용합니다.
 
 ![Joystick MicroNav](../../assets/peripherals/joystick/micronav.jpg)
@@ -12,7 +12,7 @@ This approach may be used by manual control units that have an integrated ground
 :::
 
 :::info
-_QGroundControl_ uses the cross-platform [SDL2](http://www.libsdl.org/index.php) library to convert joystick movements to MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) messages, which are then sent to PX4 over the telemetry channel.
+_QGroundControl_ uses the cross-platform [SDL2](https://www.libsdl.org/index.php) library to convert joystick movements to MAVLink [MANUAL_CONTROL](https://mavlink.io/en/messages/common.html#MANUAL_CONTROL) messages, which are then sent to PX4 over the telemetry channel.
 결과적으로 조이스틱 기반 제어 시스템은 차량이 조이스틱 움직임에 반응하기 위해 안정적인 고대역폭 원격 채널이 필요합니다.
 :::
 

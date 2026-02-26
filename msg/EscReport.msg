@@ -4,12 +4,26 @@ int32 esc_rpm						# Motor RPM, negative for reverse rotation [RPM] - if support
 float32 esc_voltage					# Voltage measured from current ESC [V] - if supported
 float32 esc_current					# Current measured from current ESC [A] - if supported
 float32 esc_temperature					# Temperature measured from current ESC [degC] - if supported
+int16 motor_temperature 				# Temperature measured from current motor [degC] - if supported
 uint8 esc_address					# Address of current ESC (in most cases 1-8 / must be set by driver)
 uint8 esc_cmdcount					# Counter of number of commands
 
 uint8 esc_state					# State of ESC - depend on Vendor
 
 uint8 actuator_function				# actuator output function (one of Motor1...MotorN)
+
+uint8 ACTUATOR_FUNCTION_MOTOR1 = 101
+uint8 ACTUATOR_FUNCTION_MOTOR2 = 102
+uint8 ACTUATOR_FUNCTION_MOTOR3 = 103
+uint8 ACTUATOR_FUNCTION_MOTOR4 = 104
+uint8 ACTUATOR_FUNCTION_MOTOR5 = 105
+uint8 ACTUATOR_FUNCTION_MOTOR6 = 106
+uint8 ACTUATOR_FUNCTION_MOTOR7 = 107
+uint8 ACTUATOR_FUNCTION_MOTOR8 = 108
+uint8 ACTUATOR_FUNCTION_MOTOR9 = 109
+uint8 ACTUATOR_FUNCTION_MOTOR10 = 110
+uint8 ACTUATOR_FUNCTION_MOTOR11 = 111
+uint8 ACTUATOR_FUNCTION_MOTOR12 = 112
 
 uint16 failures					# Bitmask to indicate the internal ESC faults
 int8 esc_power					# Applied power 0-100 in % (negative values reserved)

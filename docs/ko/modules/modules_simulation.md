@@ -21,9 +21,7 @@ signals given by the control allocation module.
 적분에는 순방향 오일러가 사용됩니다.
 대부분의 변수는 스택 오버플로를 피하기 위하여 .hpp 파일에서 전역으로 선언됩니다.
 
-<a id="simulator_sih_usage"></a>
-
-### 사용법
+### Usage {#simulator_sih_usage}
 
 ```
 simulator_sih <command> [arguments...]

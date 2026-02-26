@@ -8,9 +8,7 @@ Source: [modules/attitude_estimator_q](https://github.com/PX4/PX4-Autopilot/tree
 
 Attitude and position estimator using an Extended Kalman Filter. It is used for Multirotors and Fixed-Wing.
 
-<a id="AttitudeEstimatorQ_usage"></a>
-
-### 用法
+### Usage {#AttitudeEstimatorQ_usage}
 
 ```
 AttitudeEstimatorQ <command> [arguments...]
@@ -36,9 +34,7 @@ to a valid sensor in case of failure detection. For failure detection as well as
 the estimation of a scale factor from IAS to CAS, it runs several wind estimators
 and also publishes those.
 
-<a id="airspeed_estimator_usage"></a>
-
-### 用法
+### Usage {#airspeed_estimator_usage}
 
 ```
 airspeed_estimator <command> [arguments...]
@@ -63,9 +59,7 @@ The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.p
 ekf2 can be started in replay mode (`-r`): in this mode, it does not access the system time, but only uses the
 timestamps from the sensor topics.
 
-<a id="ekf2_usage"></a>
-
-### 用法
+### Usage {#ekf2_usage}
 
 ```
 ekf2 <command> [arguments...]
@@ -90,9 +84,7 @@ Source: [modules/local_position_estimator](https://github.com/PX4/PX4-Autopilot/
 
 基于扩展卡尔曼滤波器的姿态和位置估计器。
 
-<a id="local_position_estimator_usage"></a>
-
-### 用法
+### Usage {#local_position_estimator_usage}
 
 ```
 local_position_estimator <command> [arguments...]
@@ -110,9 +102,7 @@ Source: [modules/mc_hover_thrust_estimator](https://github.com/PX4/PX4-Autopilot
 
 ### 描述
 
-<a id="mc_hover_thrust_estimator_usage"></a>
-
-### 用法
+### Usage {#mc_hover_thrust_estimator_usage}
 
 ```
 mc_hover_thrust_estimator <command> [arguments...]

@@ -3,13 +3,15 @@
 A Radio Control (RC) system can be used to _manually_ control your vehicle from a handheld RC controller.
 This topic provides an overview of how RC works, how to choose an appropriate radio system for your vehicle, and how to connect it to your flight controller.
 
-:::tip
-PX4 can also be manually controlled using a [Joystick](../config/joystick.md) or gamepad-like controller: this is different to an RC system!
-The [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) parameter [can be set](../advanced_config/parameters.md) to choose whether RC (default), Joystick, both, or neither, are enabled.
+::: info
+PX4 does not require a manual control system for autonomous flight modes.
 :::
 
-::: info
-PX4 does not require a remote control system for autonomous flight modes.
+:::tip
+PX4 can also be [manually controlled](../config/manual_control.md) using a [Joystick](../config/joystick.md) or gamepad-like controller.
+
+By default PX4 will latch the first valid controller it discovers and use it until the vehicle reboots.
+If you have multiple controllers and you want to define their priority see [Manual Control > PX4 Configuration](../config/manual_control.md#px4-configuration).
 :::
 
 ## How do RC Systems Work?
@@ -97,11 +99,11 @@ _PX4_ and _Pixhawk_ have been validated with:
 
 - PPM sum receivers
 - S.BUS and S.BUS2 receivers from:
-
   - Futaba
   - FrSky S.BUS and PPM models
   - TBS Crossfire with SBUS as output protocol
   - Herelink
+
 - TBS Crossfire with ([CRSF protocol](../telemetry/crsf_telemetry.md))
 - Express LRS with ([CRSF protocol](../telemetry/crsf_telemetry.md))
 
@@ -111,12 +113,10 @@ _PX4_ and _Pixhawk_ have been validated with:
 
 Receivers from other vendors that use a supported protocol are likely to work but have not been tested.
 
-
 ::: info
 Historically there were differences and incompatibilities between receiver models, largely due to a lack of detailed specification of protocols.
 The receivers we have tested all now appear to be compatible, but it is possible that others may not be.
 :::
-
 
 ## Connecting Receivers
 
@@ -127,7 +127,7 @@ As general guidance, receivers connect to the flight controller using the port a
 - Graupner HoTT receivers: SUMD output must connect to a **SPKT/DSM** input (as above).
 - PPM-Sum and S.BUS receivers must connect directly to the **RC** ground, power and signal pins.
   This is typically labeled: `RC IN`, `RCIN` or `RC`, but has in some FCs has been labeled `PPM RC` or `PPM`.
-- PPM receivers that have an individual wire for each channel must connect to the RCIN channel _via_ a PPM encoder [like this one](http://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
+- PPM receivers that have an individual wire for each channel must connect to the RCIN channel _via_ a PPM encoder [like this one](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
 - TBS Crossfire/Express LRS Receivers using [CRSF Telemetry](../telemetry/crsf_telemetry.md) connect via a spare UART.
 
 Flight controllers usually include appropriate cables for connecting common receiver types.

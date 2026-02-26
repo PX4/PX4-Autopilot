@@ -1,6 +1,6 @@
 # Holybro Pixhawk 6X Pro
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -111,7 +111,7 @@ It can also be used with any other Pixhawk Autopilot Bus (PAB) specification-com
 
 :::
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6x-pro).
 
@@ -161,7 +161,7 @@ Notes:
 
 _Pixhawk 6X Pro_ can be triple-redundant on the power supply if three power sources are supplied.
 The three power rails are: **POWER1**, **POWER2** and **USB**.
-The **POWER1** & **POWER2** ports on the Pixhawk 6X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/molex/products/part-detail/pcb_receptacles/5024430670).
+The **POWER1** & **POWER2** ports on the Pixhawk 6X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/en-us/products/part-detail/5024430670).
 
 **Normal Operation Maximum Ratings**
 
@@ -188,14 +188,14 @@ Analog battery monitoring via an ADC is not supported on this particular board, 
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6x_default
 ```
 

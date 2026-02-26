@@ -1,12 +1,12 @@
 # Lumenier QAV-R 5" Racer (Pixracer)
 
 The Lumenier QAV-R 5" FPV Racing Quadcopter is a rigid, light, and fast FPV racer with removable arms.
-This topic provides full build and configuration instructions for using the frame with the *Pixracer* flight controller and *KISS 24A Race Edition* ESCs.
+This topic provides full build and configuration instructions for using the frame with the _Pixracer_ flight controller and _KISS 24A Race Edition_ ESCs.
 It also provides information on the (optional) FPV setup.
 
 Key information:
 
-- **Frame:** [Lumenier QAV-R 5"](http://www.getfpv.com/qav-r-fpv-racing-quadcopter-5.html)
+- **Frame:** [Lumenier QAV-R 5"](https://www.getfpv.com/qav-r-fpv-racing-quadcopter-5.html)
 - **Flight controller:** [Pixracer](../flight_controller/pixracer.md)
 
 <lite-youtube videoid="wMYgqvsNEwQ" title="QAV-R 5 PX4 FPV Racequad"/>
@@ -14,29 +14,28 @@ Key information:
 ![QAV Racer complete](../../assets/airframes/multicopter/qav_r_5_kiss_esc_racer/preview.jpg)
 ![QAV Racer complete 2](../../assets/airframes/multicopter/qav_r_5_kiss_esc_racer/preview2.jpg)
 
-
 ## Parts List
 
 ### Vehicle (needed for flying)
 
-* Autopilot: [Pixracer](../flight_controller/pixracer.md) from [AUAV](https://store.mrobotics.io/mRo-PixRacer-R14-Official-p/auav-pxrcr-r14-mr.htm) including ESP8266  WiFi- and [ACSP5](https://store.mrobotics.io/product-p/auav-acsp5-mr.htm)  power-module
-* Frame:  [Lumenier QAV-R 5"](http://www.getfpv.com/qav-r-fpv-racing-quadcopter-5.html)
-* Motors:  [Lumenier RX2206-11 2350KV](http://www.getfpv.com/lumenier-rx2206-11-2350kv-motor.html)
-* ESCs:  [KISS 24A Race Edition](http://www.getfpv.com/kiss-24a-esc-race-edition-32bit-brushless-motor-ctrl.html)
-* Props: HQProp 5x4.5x3 [CW](http://www.getfpv.com/hqprop-5x4-5x3rg-cw-propeller-3-blade-2-pack-green-nylon-glass-fiber.html) [CCW](http://www.getfpv.com/hqprop-5x4-5x3g-ccw-propeller-3-blade-2-pack-green-nylon-glass-fiber.html)
-* GPS / Ext. Mag.: M8N taken from a [Pixhawk Mini (Discontinued)](../flight_controller/pixhawk_mini.md) set and rewired
-* Battery: [TATTU 1800mAh 4s 75c Lipo](http://www.getfpv.com/tattu-1800mah-4s-75c-lipo-battery.html)
-* RC Receiver: [FrSky X4R-SB](http://www.getfpv.com/frsky-x4r-sb-3-16-channel-receiver-w-sbus.html)
-* RC Transmitter: [FrSky Taranis](http://www.getfpv.com/frsky-taranis-x9d-plus-2-4ghz-accst-radio-w-soft-case-mode-2.html)
-* FC dampening: [O-Rings](http://www.getfpv.com/multipurpose-o-ring-set-of-8.html)
-* GPS Mount: [GPS mast](http://www.getfpv.com/folding-aluminum-gps-mast-for-dji.html)
+- Autopilot: [Pixracer](../flight_controller/pixracer.md) from [AUAV](https://store.mrobotics.io/mRo-PixRacer-R14-Official-p/auav-pxrcr-r14-mr.htm) including ESP8266 WiFi- and [ACSP5](https://store.mrobotics.io/product-p/auav-acsp5-mr.htm) power-module
+- Frame: [Lumenier QAV-R 5"](https://www.getfpv.com/qav-r-fpv-racing-quadcopter-5.html)
+- Motors: [Lumenier RX2206-11 2350KV](https://www.getfpv.com/lumenier-rx2206-11-2350kv-motor.html)
+- ESCs: [KISS 24A Race Edition](https://www.getfpv.com/kiss-24a-esc-race-edition-32bit-brushless-motor-ctrl.html)
+- Props: HQProp 5x4.5x3 [CW](https://www.getfpv.com/hqprop-5x4-5x3rg-cw-propeller-3-blade-2-pack-green-nylon-glass-fiber.html) [CCW](https://www.getfpv.com/hqprop-5x4-5x3g-ccw-propeller-3-blade-2-pack-green-nylon-glass-fiber.html)
+- GPS / Ext. Mag.: M8N taken from a [Pixhawk Mini (Discontinued)](../flight_controller/pixhawk_mini.md) set and rewired
+- Battery: [TATTU 1800mAh 4s 75c Lipo](https://www.getfpv.com/tattu-1800mah-4s-75c-lipo-battery.html)
+- RC Receiver: [FrSky X4R-SB](https://www.getfpv.com/frsky-x4r-sb-3-16-channel-receiver-w-sbus.html)
+- RC Transmitter: [FrSky Taranis](https://www.getfpv.com/frsky-taranis-x9d-plus-2-4ghz-accst-radio-w-soft-case-mode-2.html)
+- FC dampening: [O-Rings](https://www.getfpv.com/multipurpose-o-ring-set-of-8.html)
+- GPS Mount: [GPS mast](https://www.getfpv.com/folding-aluminum-gps-mast-for-dji.html)
 
 ### FPV (optional)
 
-* Camera: [RunCam Swift RR Edition](https://www.getfpv.com/runcam-swift-rotor-riot-special-edition-ir-block-black.html) **includes must-have high quality wide angle lens from GoPro!**
-* Video Tx: [ImmersionRC Tramp HV 5.8GHz 600mW](https://www.getfpv.com/immersionrc-tramp-hv-5-8ghz-video-tx-us-version.html) (Discontinued).
-* Video Antennas: [TBS Triumph 5.8GHz CP](http://www.getfpv.com/fpv/antennas/tbs-triumph-5-8ghz-cp-fpv-antenna-3275.html) (SMA port fits ImmercionRC Tx)
-* FPV voltage source plug: [Male JST Battery Pigtail](http://www.getfpv.com/male-jst-battery-pigtail-10cm-10pcs-bag.html)
+- Camera: [RunCam Swift RR Edition](https://www.getfpv.com/runcam-swift-rotor-riot-special-edition-ir-block-black.html) **includes must-have high quality wide angle lens from GoPro!**
+- Video Tx: [ImmersionRC Tramp HV 5.8GHz 600mW](https://www.getfpv.com/immersionrc-tramp-hv-5-8ghz-video-tx-us-version.html) (Discontinued).
+- Video Antennas: [TBS Triumph 5.8GHz CP](https://www.getfpv.com/fpv/antennas/tbs-triumph-5-8ghz-cp-fpv-antenna-3275.html) (SMA port fits ImmercionRC Tx)
+- FPV voltage source plug: [Male JST Battery Pigtail](https://www.getfpv.com/male-jst-battery-pigtail-10cm-10pcs-bag.html)
 
 ::: info
 These parts cover the sending side for standard FPV 5.8GHz analog FM video. You need to have a compatible receiver and display device to actually consume the live video stream.
@@ -85,7 +84,7 @@ Choosing this cable order resulted in all the motors spinning counter-clockwise 
 
 ### Power Module
 
-First I soldered the XT60 connector which comes with the frame to the labeled battery side of the *ACSP5 power module* that was shipped with the Pixracer and added the elco capacitor delivered with the power module with the correct polarity to the same side.
+First I soldered the XT60 connector which comes with the frame to the labeled battery side of the _ACSP5 power module_ that was shipped with the Pixracer and added the elco capacitor delivered with the power module with the correct polarity to the same side.
 
 ![ACSP5 power module](../../assets/airframes/multicopter/qav_r_5_kiss_esc_racer/acsp5_power_module.jpg)
 
@@ -94,7 +93,7 @@ Make sure to not have any cold solder joint here because the quad will not end u
 Using the additional power distribution board of the frame would make the job a lot easier but also takes too much space on such a small frame...
 
 :::tip
-If you are also including the FPV parts don't forget to also solder your JST male power plug to the output side of the power module. 
+If you are also including the FPV parts don't forget to also solder your JST male power plug to the output side of the power module.
 You'll need it for your [FPV setup](#fpv-setup) later on.
 :::
 
@@ -174,14 +173,14 @@ Sadly the pin assignment was completely wrong and I rewired the connector again 
 
 #### Pixracer GPS/I2C Port
 
-| Pin  | Assignment |
-| ---- | ---------- |
-| 1    | GND        |
-| 2    | SDA        |
-| 3    | SCL        |
-| 4    | RX         |
-| 5    | TX         |
-| 6    | +5V        |
+| Pin | Assignment |
+| --- | ---------- |
+| 1   | GND        |
+| 2   | SDA        |
+| 3   | SCL        |
+| 4   | RX         |
+| 5   | TX         |
+| 6   | +5V        |
 
 #### M8N 3DR Pixhawk mini GPS Connector
 
@@ -205,7 +204,7 @@ You'll need the additional FPV parts listed at the beginning.
 The FPV transmission described here is electronically independent of the flight controller, it only takes the battery voltage after the power module.
 
 I first did a bench test to make sure everything is working correctly.
-For this connect the video signal cable that comes with your transmitter and plug it to the back of your FPV camera and to the matching plug of the transmitter. Screw the  Then connect the JST power plug to your draft vehicle or to some other voltage source.
+For this connect the video signal cable that comes with your transmitter and plug it to the back of your FPV camera and to the matching plug of the transmitter. Screw the Then connect the JST power plug to your draft vehicle or to some other voltage source.
 The transmitter LED should light up.
 Use your 5.8GHz receiver device tuned in to the correct channel to check for the video.
 To configure the transmitter to an other channel and adjust the transmission power please refer to the [Tramp HV User Manual](https://www.immersionrc.com/?download=5016).
@@ -225,8 +224,8 @@ I mounted it like you can see in the next picture. The two screws and nuts to lo
 
 ## PX4 Configuration
 
-*QGroundControl* is used to install the PX4 autopilot and configure/tune it for the frame.
-[Download and install](http://qgroundcontrol.com/downloads/) *QGroundControl* for your platform.
+_QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the frame.
+[Download and install](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).
@@ -237,13 +236,12 @@ Always make sure to have either battery or propellers physically removed from yo
 Better safe than sorry!
 :::
 
-
 First update the firmware, airframe, and actuator mappings:
 
 - [Firmware](../config/firmware.md)
 - [Airframe](../config/airframe.md)
 
-  You will need to select the *Generic 250 Racer* airframe (**Quadrotor x > Generic 250 Racer**).
+  You will need to select the _Generic 250 Racer_ airframe (**Quadrotor x > Generic 250 Racer**).
 
   ![QGC airframe selection of generic 250 racer](../../assets/airframes/multicopter/qav_r_5_kiss_esc_racer/qgc_airframe_generic_250_racer.png)
 
@@ -254,12 +252,12 @@ First update the firmware, airframe, and actuator mappings:
 
 Then perform the mandatory setup/calibration:
 
-* [Sensor Orientation](../config/flight_controller_orientation.md)
-* [Compass](../config/compass.md)
-* [Accelerometer](../config/accelerometer.md)
-* [Level Horizon Calibration](../config/level_horizon_calibration.md)
-* [Radio Setup](../config/radio.md)
-* [Flight Modes](../config/flight_mode.md)
+- [Sensor Orientation](../config/flight_controller_orientation.md)
+- [Compass](../config/compass.md)
+- [Accelerometer](../config/accelerometer.md)
+- [Level Horizon Calibration](../config/level_horizon_calibration.md)
+- [Radio Setup](../config/radio.md)
+- [Flight Modes](../config/flight_mode.md)
 
 Ideally you should also do:
 
@@ -268,10 +266,9 @@ Ideally you should also do:
   - 4S (4 cell LiPo) with charged cell voltage 4.15V and empty cell voltage 3.5V (or appropriate values for your battery).
 - [Safety](../config/safety.md)
 
-
 ### Tuning
 
-Airframe selection sets *default* autopilot parameters for the frame.
+Airframe selection sets _default_ autopilot parameters for the frame.
 These are good enough to fly with, but it is a good idea to tune the parameters for a specific frame build.
 
 For instructions on how, start from [Autotune](../config/autotune_mc.md).

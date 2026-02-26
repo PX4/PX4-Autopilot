@@ -46,8 +46,6 @@ Note that `aptitude` is needed because it can resolve dependency conflicts (by r
 
 ::: tip
 You could also modify the installation script to install Gazebo Classic on Ubuntu 22.04 before it is run for the first time.
-
-Additional installation instructions can be found on [gazebosim.org](http://gazebosim.org/tutorials?cat=guided_b&tut=guided_b1).
 :::
 
 ## Running the Simulation
@@ -80,8 +78,6 @@ For the full list of build targets run `make px4_sitl list_vmd_make_targets` (an
 | [Standard Plane (with catapult launch)](../sim_gazebo_classic/vehicles.md#standard-plane-with-catapult-launch)                     | `make px4_sitl gazebo-classic_plane_catapult`             |
 | [Standard VTOL](../sim_gazebo_classic/vehicles.md#standard-vtol)                                                                   | `make px4_sitl gazebo-classic_standard_vtol`              |
 | [Tailsitter VTOL](../sim_gazebo_classic/vehicles.md#tailsitter-vtol)                                                               | `make px4_sitl gazebo-classic_tailsitter`                 |
-| [Ackerman UGV (Rover)](../sim_gazebo_classic/vehicles.md#ackermann-ugv)                                                            | `make px4_sitl gazebo-classic_rover`                      |
-| [Differential UGV (Rover)](../sim_gazebo_classic/vehicles.md#differential-ugv)                                                     | `make px4_sitl gazebo-classic_r1_rover`                   |
 | [HippoCampus TUHH (UUV: Unmanned Underwater Vehicle)](../sim_gazebo_classic/vehicles.md#unmanned-underwater-vehicle-uuv-submarine) | `make px4_sitl gazebo-classic_uuv_hippocampus`            |
 | [Boat (USV: Unmanned Surface Vehicle)](../sim_gazebo_classic/vehicles.md#hippocampus-tuhh-uuv)                                     | `make px4_sitl gazebo-classic_boat`                       |
 | [Cloudship (Airship)](../sim_gazebo_classic/vehicles.md#airship)                                                                   | `make px4_sitl gazebo-classic_cloudship`                  |
@@ -120,7 +116,7 @@ INFO  [simulator] Waiting for simulator to connect on TCP port 4560
 Gazebo multi-robot simulator, version 9.0.0
 Copyright (C) 2012 Open Source Robotics Foundation.
 Released under the Apache 2 License.
-http://gazebosim.org
+https://gazebosim.org/home
 ...
 INFO  [ecl/EKF] 5188000: commencing GPS fusion
 ```
@@ -349,7 +345,7 @@ The video below shows that the location of the environment is aligned with the w
 
 For extended development sessions it might be more convenient to start Gazebo Classic and PX4 separately or even from within an IDE.
 
-In addition to the existing cmake targets that run `sitl_run.sh` with parameters for px4 to load the correct model it creates a launcher targets named `px4_<mode>` that is a thin wrapper around original sitl px4 app.
+In addition to the existing cmake targets that run `sitl_run.sh` with parameters for PX4 to load the correct model it creates a launcher targets named `px4_<mode>` that is a thin wrapper around original sitl PX4 app.
 This thin wrapper simply embeds app arguments like current working directories and the path to the model file.
 
 To start Gazebo Classic and PX4 separately:
@@ -369,7 +365,7 @@ To start Gazebo Classic and PX4 separately:
 - In your IDE select `px4_<mode>` target you want to debug (e.g. `px4_iris`)
 - Start the debug session directly from IDE
 
-This approach significantly reduces the debug cycle time because simulator is always running in background and you only re-run the px4 process which is very light.
+This approach significantly reduces the debug cycle time because simulator is always running in background and you only re-run the PX4 process which is very light.
 
 ## Simulated Survey Camera
 
@@ -534,7 +530,7 @@ To disable lockstep in:
 ## Extending and Customizing
 
 To extend or customize the simulation interface, edit the files in the `Tools/simulation/gazebo/sitl_gazebo` folder.
-The code is available on the [sitl_gazebo repository](https://github.com/PX4/PX4-SITL_gazebo) on Github.
+The code is available on the [sitl_gazebo repository](https://github.com/PX4/PX4-SITL_gazebo-classic) on GitHub.
 
 ::: info
 The build system enforces the correct GIT submodules, including the simulator.

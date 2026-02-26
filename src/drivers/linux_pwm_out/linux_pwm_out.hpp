@@ -49,9 +49,11 @@
 
 using namespace time_literals;
 
-class LinuxPWMOut : public ModuleBase<LinuxPWMOut>, public OutputModuleInterface
+class LinuxPWMOut : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	LinuxPWMOut();
 	virtual ~LinuxPWMOut();
 
@@ -71,7 +73,7 @@ public:
 
 	int init();
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:

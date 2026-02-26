@@ -28,21 +28,22 @@ logger help
 
 ## 配置
 
-The logging system is configured by default to collect sensible logs for [flight reporting](../getting_started/flight_reporting.md) with [Flight Review](http://logs.px4.io).
+The logging system is configured by default to collect sensible logs for [flight reporting](../getting_started/flight_reporting.md) with [Flight Review](https://logs.px4.io/).
 
 Logging may further be configured using the [SD Logging](../advanced_config/parameter_reference.md#sd-logging) parameters.
 The parameters you are most likely to change are listed below.
 
-| 参数                                                                                            | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [SDLOG_MODE](../advanced_config/parameter_reference.md#SDLOG_MODE)       | 日志模式 Defines when logging starts and stops.<br />- `-1`: Logging disabled.<br />- `0`: Log when armed until disarm (default).<br />- `1`: Log from boot until disarm.<br />- `2`: Log from boot until shutdown.<br />- `3`: Log based on the [AUX1 RC channel](../advanced_config/parameter_reference.md#RC_MAP_AUX1).<br />- `4`: Log from first armed until shutdown. |
-| [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) | Logging profile. Use this to enable less common logging/analysis (e.g. for EKF2 replay, high rate logging for PID & filter tuning, thermal temperature calibration).                                                                                                                                                                                                                                                                                                                                |
-| [SDLOG_MISSION](../advanced_config/parameter_reference.md#SDLOG_MISSION) | Create very small additional "Mission Log".<br>This log can _not_ be used with [Flight Review](../log/flight_log_analysis.md#flight-review-online-tool), but is useful when you need a small log for geotagging or regulatory compliance.                                                                                                                                                                                                                                                                                                                                  |
+| 参数                                                                                            | 描述                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [SDLOG_MODE](../advanced_config/parameter_reference.md#SDLOG_MODE)       | 日志模式 Defines when logging starts and stops.<br />- `0`: Log when armed until disarm (default).<br />- `1`: Log from boot until disarm.<br />- `2`: Log from boot until shutdown.<br />- `3`: Log based on the [AUX1 RC channel](../advanced_config/parameter_reference.md#RC_MAP_AUX1).<br />- `4`: Log from first armed until shutdown. |
+| [SDLOG_BACKEND](../advanced_config/parameter_reference.md#SDLOG_BACKEND) | Logging Backend (bitmask). Setting a bit enables the corresponding backend. If no backend is selected, the logger is disabled.<br />- bit `0`: SD card logging.</br >- bit `1`: Mavlink logging.                                                                                                                                                                                                         |
+| [SDLOG_PROFILE](../advanced_config/parameter_reference.md#SDLOG_PROFILE) | Logging profile. Use this to enable less common logging/analysis (e.g. for EKF2 replay, high rate logging for PID & filter tuning, thermal temperature calibration).                                                                                                                                                                                                                                                                 |
+| [SDLOG_MISSION](../advanced_config/parameter_reference.md#SDLOG_MISSION) | Create very small additional "Mission Log".<br>This log can _not_ be used with [Flight Review](../log/flight_log_analysis.md#flight-review-online-tool), but is useful when you need a small log for geotagging or regulatory compliance.                                                                                                                                                                                                                                                                   |
 
 Useful settings for specific cases:
 
 - Raw sensor data for comparison: [SDLOG_MODE=1](../advanced_config/parameter_reference.md#SDLOG_MODE) and [SDLOG_PROFILE=64](../advanced_config/parameter_reference.md#SDLOG_PROFILE).
-- Disabling logging altogether: [SDLOG_MODE=`-1`](../advanced_config/parameter_reference.md#SDLOG_MODE)
+- Disabling logging altogether: [SDLOG_BACKEND=`0`](../advanced_config/parameter_reference.md#SDLOG_BACKEND)
 
 ### Logger module
 
@@ -160,7 +161,7 @@ There are different clients that support ulog streaming:
 
 - If log streaming does not start, make sure the `logger` is running (see above), and inspect the console output while starting.
 - If it still does not work, make sure that Mavlink 2 is used. Enforce it by setting <code>MAV_PROTO_VER</code> to 2.
-  Enforce it by setting `MAV_PROTO_VER` to 2.
+  `MAV_PROTO_VER` needs to be set to 2.
 - Log streaming uses a maximum of 70% of the configured MAVLink rate (`-r` parameter).
   如果需要更大的速率，数据会丢失。
   The currently used percentage can be inspected with `mavlink status` (1.8% is used in this example):
@@ -185,6 +186,6 @@ There are different clients that support ulog streaming:
   Also make sure `txerr` stays at 0.
   Also make sure <code>txerr</code> stays at 0. If this goes up, either the NuttX sending buffer is too small, the physical link is saturated or the hardware is too slow to handle the data.
 
-## See Also
+## 另见
 
 - [Encrypted logging](../dev_log/log_encryption.md)

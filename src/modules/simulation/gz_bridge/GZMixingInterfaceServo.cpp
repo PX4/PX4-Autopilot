@@ -33,6 +33,8 @@
 
 #include "GZMixingInterfaceServo.hpp"
 
+#include <gz/msgs/double.pb.h>
+
 
 float
 GZMixingInterfaceServo::get_servo_angle_max(const size_t index)
@@ -115,8 +117,8 @@ bool GZMixingInterfaceServo::init(const std::string &model_name)
 			return false;
 		}
 
-		double min_val = get_servo_angle_min(i);
-		double max_val = get_servo_angle_max(i);
+		double min_val = (double)get_servo_angle_min(i);
+		double max_val = (double)get_servo_angle_max(i);
 		_angle_min_rad.push_back(min_val);
 		_angular_range_rad.push_back(max_val - min_val);
 	}
@@ -128,7 +130,7 @@ bool GZMixingInterfaceServo::init(const std::string &model_name)
 	return true;
 }
 
-bool GZMixingInterfaceServo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool GZMixingInterfaceServo::updateOutputs(uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
 	bool updated = false;

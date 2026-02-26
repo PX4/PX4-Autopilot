@@ -1,6 +1,6 @@
 # SPRacingH7EXTREME (PX4 Edition)
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://shop.seriouslypro.com) for hardware support or compliance issues.
 :::
@@ -72,7 +72,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 36x36mm with 30.5\*30.5 mouting pattern, M4 holes.
   - Soft-mount M4 to M3 grommets supplied.
 
-## Where to Buy
+## Where to Buy {#store}
 
 The SPRacingH7EXTREME is available from the [Seriously Pro shop](https://shop.seriouslypro.com/sp-racing-h7-extreme).
 
@@ -83,7 +83,7 @@ Select the PX4 edition when purchasing!
 ## Manual, Pinouts and Connection Diagrams
 
 The manual with pinouts can be downloaded from [here](http://seriouslypro.com/files/SPRacingH7EXTREME-Manual-latest.pdf).
-See the [SPRacingH7EXTREME website](http://seriouslypro.com/spracingh7extreme) for other diagrams.
+See the [SPRacingH7EXTREME website](http://seriouslypro.com/products/spracingh7extreme) for other diagrams.
 
 ## Credits
 

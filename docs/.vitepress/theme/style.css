@@ -160,3 +160,53 @@
  .vp-doc img {
   display: inline; /* block by default set by vitepress */
 }
+
+
+/**
+ * Custom style to hide search on the ome page
+ * -------------------------------------------------------------------------- */
+
+.home #local-search {
+    display: none;
+  }
+
+
+/**
+ * Custom styles for wide pages
+ * -------------------------------------------------------------------------- */
+
+.is-wide-page .content-container {
+  max-width: 100% !important;
+}
+@media (min-width: 1280px) {
+  .is-wide-page .content {
+    min-width: 940px !important;
+  }
+}
+
+/* Make page width larger  */
+@media (min-width: 1440px) {
+  .is-wide-page .VPSidebar {
+    padding-left: 32px !important;
+    width: var(--vp-sidebar-width) !important;
+  }
+  .is-wide-page .VPContent.has-sidebar {
+    padding-left: var(--vp-sidebar-width) !important;
+    padding-right: 0 !important;
+  }
+
+  .is-wide-page .VPNavBar.has-sidebar .title {
+    padding-left: 32px !important;
+  }
+
+  .is-wide-page .VPNavBar.has-sidebar .content {
+    padding-left: var(--vp-sidebar-width) !important;
+    padding-right: 32px !important;
+  }
+
+  /* Very hacky */
+  .is-wide-page .VPNavBar.has-sidebar #local-search {
+    z-index: 10;
+  }
+
+}

@@ -1,12 +1,11 @@
 # PX4 도커 컨테이너
 
-Docker containers are provided for the complete [PX4 development toolchain](../dev_setup/dev_env.md#supported-targets) including NuttX and Linux based hardware, [Gazebo Classic](../sim_gazebo_classic/index.md) simulation, and [ROS](../simulation/ros_interface.md).
+Docker containers are provided for the complete [PX4 development toolchain](../dev_setup/dev_env.md#supported-targets) including NuttX and Linux based hardware, [Gazebo](../sim_gazebo_gz/index.md) simulation, and [ROS 2](../ros2/user_guide.md).
 
 This topic shows how to use the [available docker containers](#px4_containers) to access the build environment in a local Linux computer.
 
 :::info
-Dockerfiles and README can be found on [Github here](https://github.com/PX4/PX4-containers/tree/master?tab=readme-ov-file#container-hierarchy).
-They are built automatically on [Docker Hub](https://hub.docker.com/u/px4io/).
+The recommended `px4-dev` container is built from the [Dockerfile in the PX4-Autopilot source tree](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/Dockerfile) by the [Container build workflow](https://github.com/PX4/PX4-Autopilot/actions/workflows/dev_container.yml).
 :::
 
 ## 준비 사항
@@ -16,16 +15,16 @@ PX4 containers are currently only supported on Linux (if you don't have Linux yo
 Do not use `boot2docker` with the default Linux image because it contains no X-Server.
 :::
 
-[Install Docker](https://docs.docker.com/installation/) for your Linux computer, preferably using one of the Docker-maintained package repositories to get the latest stable version. You can use either the _Enterprise Edition_ or (free) _Community Edition_.
+[Install Docker](https://docs.docker.com/get-started/get-docker/) for your Linux computer, preferably using one of the Docker-maintained package repositories to get the latest stable version. You can use either the _Enterprise Edition_ or (free) _Community Edition_.
 
-For local installation of non-production setups on _Ubuntu_, the quickest and easiest way to install Docker is to use the [convenience script](https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-using-the-convenience-script) as shown below (alternative installation methods are found on the same page):
+For local installation of non-production setups on _Ubuntu_, the quickest and easiest way to install Docker is to use the [convenience script](https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script) as shown below (alternative installation methods are found on the same page):
 
 ```sh
 curl -fsSL get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
 ```
 
-The default installation requires that you invoke _Docker_ as the root user (i.e. using `sudo`). However, for building the PX4 firmware we suggest to [use docker as a non-root user](https://docs.docker.com/install/linux/linux-postinstall/#manage-docker-as-a-non-root-user). 그렇게하면, docker를 사용한 후 빌드 폴더를 관리자가 소유하지 않습니다.
+The default installation requires that you invoke _Docker_ as the root user (i.e. using `sudo`). However, for building the PX4 firmware we suggest to [use docker as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user). 그렇게하면, docker를 사용한 후 빌드 폴더를 관리자가 소유하지 않습니다.
 
 ```sh
 # Create docker group (may not be required)
@@ -35,34 +34,35 @@ sudo usermod -aG docker $USER
 # Log in/out again before using docker!
 ```
 
-<a id="px4_containers"></a>
+## px4-dev Container (Recommended) {#px4_containers}
 
-## 컨테이너 계층
+The **`px4-dev`** container is the recommended container for building PX4 firmware.
+It is a single, multi-architecture container (linux/amd64 and linux/arm64) based on Ubuntu 24.04 that includes everything needed to build PX4 for NuttX hardware targets.
 
-The available containers are on [Github here](https://github.com/PX4/PX4-containers/tree/master?tab=readme-ov-file#container-hierarchy).
+It is published to both registries simultaneously:
 
-이를 통하여 다양한 빌드 대상 및 구성을 테스트할 수 있습니다(포함된 도구는 이름에서 유추할 수 있음).
-The containers are hierarchical, such that containers have the functionality of their parents.
-For example, the partial hierarchy below shows that the docker container with nuttx build tools (`px4-dev-nuttx-focal`) does not include ROS 2, while the simulation containers do:
+- **GitHub Container Registry:** [ghcr.io/px4/px4-dev](https://github.com/PX4/PX4-Autopilot/pkgs/container/px4-dev)
+- **Docker Hub:** [px4io/px4-dev](https://hub.docker.com/r/px4io/px4-dev)
 
-```plain
-- px4io/px4-dev-base-focal
-  - px4io/px4-dev-nuttx-focal
-  - px4io/px4-dev-simulation-focal
-    - px4io/px4-dev-ros-noetic
-      - px4io/px4-dev-ros2-foxy
-  - px4io/px4-dev-ros2-rolling
-- px4io/px4-dev-base-jammy
-  - px4io/px4-dev-nuttx-jammy
-```
+The container includes:
 
-The most recent version can be accessed using the `latest` tag: `px4io/px4-dev-nuttx-focal:latest`
-(available tags are listed for each container on _hub.docker.com_.
-For example, the `px4io/px4-dev-nuttx-focal` tags can be found here).
+- Ubuntu 24.04 base
+- ARM cross-compiler (`gcc-arm-none-eabi`) and Xtensa compiler (for ESP32 targets)
+- Build tools: `cmake`, `ninja`, `ccache`, `make`
+- Python 3 with PX4 build dependencies
+- NuttX toolchain libraries (`libnewlib-arm-none-eabi`, etc.)
+
+The container is built from the [Dockerfile](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/Dockerfile) in the PX4 source tree using the [Container build workflow](https://github.com/PX4/PX4-Autopilot/actions/workflows/dev_container.yml).
+Images are tagged with the PX4 version (e.g. `px4io/px4-dev:v1.16.0`).
 
 :::tip
-Typically you should use a recent container, but not necessarily the `latest` (as this changes too often).
+A `px4-sim` container with simulation tools (Gazebo Harmonic) is planned to complement `px4-dev` for simulation workflows.
 :::
+
+### Legacy Containers
+
+The older per-distro containers from [PX4/PX4-containers](https://github.com/PX4/PX4-containers) (e.g. `px4-dev-nuttx-jammy`, `px4-dev-ros2-humble`, etc.) are no longer recommended.
+They will be replaced by `px4-dev` (for builds) and the upcoming `px4-sim` (for simulation).
 
 ## 도커 컨테이너 활용
 
@@ -97,9 +97,7 @@ For example, to build SITL you would call (from within the **/PX4-Autopilot** di
 The script is easy because you don't need to know anything much about _Docker_ or think about what container to use. 그러나, 특별히 견고하지는 않습니다! The manual approach discussed in the [section below](#manual_start) is more flexible and should be used if you have any problems with the script.
 :::
 
-<a id="manual_start"></a>
-
-### 도커 수동 호출
+### Calling Docker Manually {#manual_start}
 
 일반적인 명령어 구문은 다음과 같습니다.
 이것은 X 포워딩을 지원하는 Docker 컨테이너를 실행합니다(컨테이너 내부에서 시뮬레이션 GUI를 사용할 수 있게 함).
@@ -125,7 +123,7 @@ docker run -it --privileged \
 - `<host_src>`: The host computer directory to be mapped to `<container_src>` in the container. This should normally be the **PX4-Autopilot** directory.
 - `<container_src>`: The location of the shared (source) directory when inside the container.
 - `<local_container_name>`: A name for the docker container being created. 나중에 컨테이너를 다시 참조해야 하는 경우에 사용할 수 있습니다.
-- `<container>:<tag>`: The container with version tag to start - e.g.: `px4io/px4-dev-ros:2017-10-23`.
+- `<container>:<tag>`: The container with version tag to start - e.g.: `px4io/px4-dev:v1.16.0`.
 - `<build_command>`: The command to invoke on the new container. 예: `bash` is used to open a bash shell in the container.
 
 The concrete example below shows how to open a bash shell and share the directory **~/src/PX4-Autopilot** on the host computer.
@@ -141,7 +139,7 @@ docker run -it --privileged \
 -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
 -e DISPLAY=:0 \
 --network host \
---name=px4-ros px4io/px4-dev-ros2-foxy:2022-07-31 bash
+--name=px4-dev px4io/px4-dev:v1.16.0 bash
 ```
 
 :::info
@@ -159,12 +157,13 @@ On other hosts you might iterate the value of `0` in `-e DISPLAY=:0` until the "
 
 ```sh
 cd src/PX4-Autopilot    #This is <container_src>
-make px4_sitl_default gazebo-classic
+make px4_sitl gz_x500
 ```
 
 ### 컨테이너 재진입
 
-The `docker run` command can only be used to create a new container. 변경 사항을 유지하는 이 컨테이너로 돌아가려면 다음을 실행하십시오.
+The `docker run` command can only be used to create a new container.
+변경 사항을 유지하는 이 컨테이너로 돌아가려면 다음을 실행하십시오.
 
 ```sh
 # start the container
@@ -193,9 +192,14 @@ docker rm 45eeb98f1dd9
 
 ### QGroundControl
 
-When running a simulation instance e.g. SITL inside the docker container and controlling it via _QGroundControl_ from the host, the communication link has to be set up manually. The autoconnect feature of _QGroundControl_ does not work here.
+When running a simulation instance e.g. SITL inside the docker container and controlling it via _QGroundControl_ from the host, the communication link has to be set up manually.
+The autoconnect feature of _QGroundControl_ does not work here.
 
-In _QGroundControl_, navigate to [Settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/settings_view.html) and select Comm Links. ::: The port depends on the used [configuration](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS) e.g. port 14570 for the SITL config. IP 주소는 도커 컨테이너 중 하나이며, 기본 네트워크는 172.17.0.1/16입니다. The IP address of the docker container can be found with the following command (assuming the container name is `mycontainer`):
+In _QGroundControl_, navigate to [Settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/settings_view.html) and select Comm Links.
+:::
+The port depends on the used [configuration](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS) e.g. port 14570 for the SITL config.
+IP 주소는 도커 컨테이너 중 하나이며, 기본 네트워크는 172.17.0.1/16입니다.
+The IP address of the docker container can be found with the following command (assuming the container name is `mycontainer`):
 
 ```sh
 $ docker inspect -f '{ {range .NetworkSettings.Networks}}{ {.IPAddress}}{ {end}}' mycontainer
@@ -209,35 +213,35 @@ Spaces between double curly braces above should be not be present (they are need
 
 #### 권한 에러
 
-컨테이너는 기본 사용자(일반적으로 "루트") 계정으로 파일을 생성합니다. 이것 때문에, 호스트 컴퓨터의 사용자가 컨테이너에서 생성한 파일에 액세스할 수 없는 상황이 발생합니다.
+컨테이너는 기본 사용자(일반적으로 "루트") 계정으로 파일을 생성합니다.
+이것 때문에, 호스트 컴퓨터의 사용자가 컨테이너에서 생성한 파일에 액세스할 수 없는 상황이 발생합니다.
 
-The example above uses the line `--env=LOCAL_USER_ID="$(id -u)"` to create a user in the container with the same UID as the user on the host. 이렇게 하면 컨테이너 내에서 생성된 모든 파일을 호스트에서 액세스할 수 있습니다.
+The example above uses the line `--env=LOCAL_USER_ID="$(id -u)"` to create a user in the container with the same UID as the user on the host.
+이렇게 하면 컨테이너 내에서 생성된 모든 파일을 호스트에서 액세스할 수 있습니다.
 
 #### 그래픽 드라이버 문제
 
-It's possible that running Gazebo Classic will result in a similar error message like the following:
+It's possible that running Gazebo will result in a similar error message like the following:
 
 ```sh
 libGL error: failed to load driver: swrast
 ```
 
-이 경우 호스트 시스템의 기본 그래픽 드라이버를 설치합니다. 올바른 드라이버를 다운로드하여 컨테이너 내부에 설치합니다. Nvidia 드라이버의 경우 다음 명령어를 사용합니다(그렇지 않으면 설치 프로그램이 호스트에서 로드된 모듈을 보고 진행을 거부합니다).
+이 경우 호스트 시스템의 기본 그래픽 드라이버를 설치합니다.
+올바른 드라이버를 다운로드하여 컨테이너 내부에 설치합니다.
+Nvidia 드라이버의 경우 다음 명령어를 사용합니다(그렇지 않으면 설치 프로그램이 호스트에서 로드된 모듈을 보고 진행을 거부합니다).
 
 ```sh
 ./NVIDIA-DRIVER.run -a -N --ui=none --no-kernel-module
 ```
 
-More information on this can be found [here](http://gernotklingler.com/blog/howto-get-hardware-accelerated-opengl-support-docker/).
-
-<a id="virtual_machine"></a>
-
-## 가상 머신 지원
+## Virtual Machine Support {#virtual_machine}
 
 최신 Linux 배포판에서는 정상적으로 작동하여야 합니다.
 
 다음 설정은 테스트 되었습니다.
 
-- VMWare Fusion 및 Ubuntu 14.04가 포함된 OS X(Parallels에서 GUI를 지원하는 Docker 컨테이너로 인해 X-Server가 충돌함).
+- OS X with VMWare Fusion and Ubuntu 22.04 (Docker container with GUI support on Parallels make the X-Server crash).
 
 **Memory**
 

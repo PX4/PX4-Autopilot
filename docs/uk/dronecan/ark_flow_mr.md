@@ -91,6 +91,7 @@ Set the following parameters in _QGroundControl_:
 - To optionally disable GPS aiding, set [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to `0`.
 - Enable [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW).
 - Enable [UAVCAN_SUB_RNG](../advanced_config/parameter_reference.md#UAVCAN_SUB_RNG).
+- Set [EKF2_RNG_CTRL](../advanced_config/parameter_reference.md#EKF2_RNG_CTRL) to `1`.
 - Set [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX) to `10`.
 - Set [EKF2_RNG_QLTY_T](../advanced_config/parameter_reference.md#EKF2_RNG_QLTY_T) to `0.2`.
 - Set [UAVCAN_RNG_MIN](../advanced_config/parameter_reference.md#UAVCAN_RNG_MIN) to `0.08`.
@@ -104,13 +105,15 @@ Set the following parameters in _QGroundControl_:
 
 You may need to [configure the following parameters](../dronecan/index.md#qgc-cannode-parameter-configuration) on the ARK Flow MR itself:
 
-| Параметр                                                                                                             | Опис                                           |
-| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM) | Вбудована завершення шини CAN. |
+| Параметр                                                                                                                                           | Опис                                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID. |
+| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)                               | Вбудована завершення шини CAN.                                                                                                                                                                              |
 
 ## Значення LED індикаторів
 
-You will see both red and blue LEDs on the ARK Flow MR when it is being flashed, and a solid blue LED if it is running properly.
+- Blinking green is normal operation
+- Rapid blinking blue and red is firmware update
 
 Якщо ви бачите червоний світлодіод, це означає, що виникла помилка, і вам слід перевірити наступне:
 

@@ -1,4 +1,4 @@
-{   
+{
     "gitbook": ">= 3.2.2",
     "title": "PX4 User Guide",
     "variables": {
@@ -56,7 +56,7 @@
                     "icon": "fa fa-bug",
                     "position" : "left",
                     "url": "https://github.com/PX4/px4_user_guide/issues/new?title=Doc+Bug:+{{title}}&body=DESCRIBE+PROBLEM+WITH+DOCS+HERE%0A%0ABug+Page:+[{{title}}]({{url}})"
-                    
+
                 },
                 {
                     "label": "GitHub",
@@ -71,7 +71,7 @@
                 }
             ]
         },
-        
+
         "versions": {
             "gitbookConfigURL": "https://raw.githubusercontent.com/PX4/px4_user_guide/main/book.json",
             "options": [
@@ -94,7 +94,7 @@
                 {
                     "value": "https://docs.px4.io/v1.12/en/",
                     "text": "v1.12"
-                },				 
+                },
                 {
                     "value": "https://docs.px4.io/v1.11/en/",
                     "text": "v1.11"
@@ -105,4 +105,3 @@
     }
 
 }
-

@@ -3,11 +3,6 @@
 [Rotoye Batmon](https://rotoye.com/batmon/) is a kit for adding smart battery functionality to off-the-shelf Lithium-Ion and LiPo batteries.
 Його можна придбати як самостійний пристрій або як частину заводсько зібраної розумної батареї.
 
-:::info
-At time of writing you can only use Batmon by [building a custom branch of PX4](#build-px4-firmware).
-Support in the codeline is pending [PR approval](https://github.com/PX4/PX4-Autopilot/pull/16723).
-:::
-
 ![Rotoye Batmon Board](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye.jpg)
 
 ![Pre-assembled Rotoye smart battery](../../assets/hardware/smart_batteries/rotoye_batmon/smart-battery-rotoye-pack.jpg)
@@ -52,7 +47,7 @@ In _QGroundControl_:
 3. Start the [batt_smbus driver](../modules/modules_driver.md) in the console.
    Наприклад, для запуску двох BatMons у одному підключенні:
    ```sh
-   batt_smbus start -X -b 1 -a 11 # External bus 1, address 0x0b  
+   batt_smbus start -X -b 1 -a 11 # External bus 1, address 0x0b
    batt_smbus start -X -b 1 -a 12 # External bus 1, address 0x0c
    ```
 

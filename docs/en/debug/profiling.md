@@ -9,7 +9,7 @@ PMSP is a shell script that operates by interrupting execution of the firmware p
 Sampled stack traces are appended into a text file.
 Once sampling is finished (which normally takes about an hour or more), the collected stack traces are _folded_.
 The result of _folding_ is another text file that contains the same stack traces, except that all similar stack traces (i.e. those that were obtained at the same point in the program) are joined together, and the number of their occurrences is recorded.
-The folded stacks are then fed into the visualization script, for which purpose we employ [FlameGraph - an open source stack trace visualizer](http://www.brendangregg.com/flamegraphs.html).
+The folded stacks are then fed into the visualization script, for which purpose we employ [FlameGraph - an open source stack trace visualizer](https://www.brendangregg.com/flamegraphs.html).
 
 ## Basic Usage
 
@@ -17,14 +17,14 @@ The folded stacks are then fed into the visualization script, for which purpose 
 
 The profiler relies on GDB to run PX4 on the embedded target.
 So before profiling a target, you must have the hardware you wish to profile, and you must compile and upload the firmware to that hardware.
-You will then need a [debug probe](../debug/swd_debug.md#debug-probes) (such as the DroneCode Probe), to run the GDB server and interact with the board.
+You will then need a [debug probe](../debug/swd_debug.md#debug-probes) (such as the Zubax BugFace BF1), to run the GDB server and interact with the board.
 
 ### Determine the Debugger Device
 
-The `poor-mans-profiler.sh` automatically detects and uses the correct USB device if you use it with a [DroneCode Probe](../debug/probe_bmp.md#dronecode-probe).
+The `poor-mans-profiler.sh` automatically detects and uses the correct USB device if you use it with a [Zubax BugFace BF1](../debug/probe_bmp.md#dronecode-probe).
 If you use a different kind of probe you may need to pass in the specific _device_ on which the debugger is located.
 You can use the bash command `ls -alh /dev/serial/by-id/` to enumerate the possible devices on Ubuntu.
-For example the following devices are enumerated with a Pixhawk 4 and DroneCode Probe connected over USB:
+For example the following devices are enumerated with a Pixhawk 4 and Zubax BugFace BF1 connected over USB:
 
 ```sh
 user@ubuntu:~/PX4-Autopilot$ ls -alh /dev/serial/by-id/
@@ -48,7 +48,7 @@ Then pass in the appropriate device using the `--gdbdev` argument like this:
 ### Running
 
 Basic usage of the profiler is available through the build system.
-For example, the following command builds and profiles px4_fmu-v4pro target with 10000 samples (fetching _FlameGraph_ and adding it to the path as needed).
+For example, the following command builds and profiles px4*fmu-v4pro target with 10000 samples (fetching \_FlameGraph* and adding it to the path as needed).
 
 ```sh
 make px4_fmu-v4pro_default profile

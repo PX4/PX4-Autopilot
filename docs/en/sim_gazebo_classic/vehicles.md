@@ -98,26 +98,6 @@ make px4_sitl gazebo-classic_tailsitter
 
 ![Tailsitter VTOL in Gazebo Classic](../../assets/simulation/gazebo_classic/vehicles/tailsitter.png)
 
-<a id="ugv"></a>
-
-## Unmmanned Ground Vehicle (UGV/Rover/Car)
-
-### Ackermann UGV
-
-```sh
-make px4_sitl gazebo-classic_rover
-```
-
-![Rover in Gazebo Classic](../../assets/simulation/gazebo_classic/vehicles/rover.png)
-
-### Differential UGV
-
-```sh
-make px4_sitl gazebo-classic_r1_rover
-```
-
-![Rover in Gazebo Classic](../../assets/simulation/gazebo_classic/vehicles/r1_rover.png)
-
 ## Unmanned Underwater Vehicle (UUV/Submarine)
 
 ### HippoCampus TUHH UUV

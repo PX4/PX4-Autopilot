@@ -7,8 +7,8 @@ It may or may not work with current versions of PX4.
 See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
 :::
 
-[FlightGear](https://www.flightgear.org/) is a flight simulator with powerful [FDM engines](http://wiki.flightgear.org/Flight_Dynamics_Model).
-This allows FlightGear to simulate rotorcrafts under various meteorological conditions (which is why the bridge was originally developed by [ThunderFly s.r.o.](https://www.thunderfly.cz/)).
+[FlightGear](https://wiki.flightgear.org/Flight_Dynamics_Model) is a flight simulator with powerful [FDM engines](https://wiki.flightgear.org/Flight_Dynamics_Model).
+This allows FlightGear to simulate rotorcraft under various meteorological conditions (which is why the bridge was originally developed by [ThunderFly s.r.o.](https://www.thunderfly.cz/)).
 
 This page describes FlightGear's single-vehicle use in SITL.
 For information about multi-vehicle use see: [Multi-Vehicle Simulation with FlightGear](../sim_flightgear/multi_vehicle.md).
@@ -40,35 +40,35 @@ These instructions were tested on Ubuntu 18.04
 
 2. Install FlightGear:
 
-  ```sh
-  sudo add-apt-repository ppa:saiarcot895/flightgear
-  sudo apt update
-  sudo apt install flightgear
-  ```
+   ```sh
+   sudo add-apt-repository ppa:saiarcot895/flightgear
+   sudo apt update
+   sudo apt install flightgear
+   ```
 
-  This installs the latest stable FlightGear version from the PAA repository along with the FGdata package.
+   This installs the latest stable FlightGear version from the PAA repository along with the FGdata package.
 
-  :::tip
-  For some models (e.g. those with electric engines) the daily build with the newest features may be necessary.
-  Install this using the [daily build PPA](https://launchpad.net/~saiarcot895/+archive/ubuntu/flightgear-edge).
+   :::tip
+   For some models (e.g. those with electric engines) the daily build with the newest features may be necessary.
+   Install this using the [daily build PPA](https://launchpad.net/~saiarcot895/+archive/ubuntu/flightgear-edge).
 
 :::
 
 3. Check that you are able to run FlightGear:
 
-  ```sh
-  fgfs --launcher
-  ```
+   ```sh
+   fgfs --launcher
+   ```
 
 4. Set write permissions to the **Protocols** folder in the FlightGear installation directory:
 
-  ```sh
-  sudo chmod a+w /usr/share/games/flightgear/Protocol
-  ```
+   ```sh
+   sudo chmod a+w /usr/share/games/flightgear/Protocol
+   ```
 
-  Setting the permissions is required because the PX4-FlightGear-Bridge puts the communication definition file here.
+   Setting the permissions is required because the PX4-FlightGear-Bridge puts the communication definition file here.
 
-Additional installation instructions can be found on [FlightGear wiki](http://wiki.flightgear.org/Howto:Install_Flightgear_from_a_PPA).
+Additional installation instructions can be found on [FlightGear wiki](https://wiki.flightgear.org/Howto:Install_Flightgear_from_a_PPA).
 
 ## Running the Simulation
 
@@ -191,7 +191,7 @@ Takeoff location in SITL FlightGear can be set using additional variables.
 Setting the variable will override the default takeoff location.
 
 The variables which can be set are as follows: `--airport`, `--runway`, and `--offset-distance`.
-Other options can be found on [FlightGear wiki](http://wiki.flightgear.org/Command_line_options#Initial_Position_and_Orientation)
+Other options can be found on [FlightGear wiki](https://wiki.flightgear.org/Command_line_options#Initial_Position_and_Orientation)
 
 예:
 
@@ -199,7 +199,7 @@ Other options can be found on [FlightGear wiki](http://wiki.flightgear.org/Comma
 FG_ARGS_EX="--airport=PHNL"  make px4_sitl_nolockstep flightgear_rascal
 ```
 
-The example above starts the simulation on the [Honolulu international airport](http://wiki.flightgear.org/Suggested_airports)
+The example above starts the simulation on the [Honolulu international airport](https://wiki.flightgear.org/Suggested_airports)
 
 ### Using a Joystick
 

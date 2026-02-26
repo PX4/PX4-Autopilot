@@ -83,13 +83,15 @@ This is done using the the parameters named like `UAVCAN_SUB_*` in the parameter
 
 On the ARK CANnode, you may need to configure the following parameters:
 
-| 参数                                                                                                                   | 描述                                            |
-| -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM) | CAN built-in bus termination. |
+| 参数                                                                                                                                                 | 描述                                                                                                                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID. |
+| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)                               | CAN built-in bus termination.                                                                                                                                                                               |
 
 ## LED含义
 
-You will see both red and blue LEDs on the ARK CANnode when it is being flashed, and a solid blue LED if it is running properly.
+- Blinking green is normal operation
+- Rapid blinking blue and red is firmware update
 
 If you see a solid red LED there is an error and you should check the following:
 
@@ -97,6 +99,6 @@ If you see a solid red LED there is an error and you should check the following:
 - Make sure the ARK CANnode has `ark_cannode_canbootloader` installed prior to flashing `ark_cannode_default`.
 - Remove binaries from the root and ufw directories of the SD card and try to build and flash again.
 
-## See Also
+## 另见
 
 - [ARK CANnode Documentation](https://arkelectron.gitbook.io/ark-documentation/sensors/ark-cannode) (ARK Docs)

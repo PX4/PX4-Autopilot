@@ -4,7 +4,7 @@ The [Holybro Pixhawk Jetson Baseboard](https://holybro.com/products/pixhawk-jets
 
 ![Jetson Carrier with Pixhawk](../../assets/companion_computer/holybro_pixhawk_jetson_baseboard/hero_image.png)
 
-The board comes with either the [Jetson Orin NX (16GB RAM)](https://holybro.com/products/nvidia-jetson-orin-nx-16g) or [Jetson Orin Nano (4GB RAM)](https://holybro.com/products/nvidia-jetson-orin-nx-16g?variant=44391410598077).
+The board comes with either the _Jetson Orin NX_ (16GB RAM) or _Jetson Orin Nano_ (4GB RAM) (see [NVIDIA Jetson Orin™](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/)).
 It can be used with any Pixhawk Autopilot Bus (PAB) specification-compliant Pixhawk flight controller, such as the Pixhawk 6 or Pixhawk 6X.
 
 This guide walks through the process of setting up the board and connecting to PX4, including:
@@ -20,7 +20,7 @@ This guide walks through the process of setting up the board and connecting to P
 You will temporarily need the following hardware in order to log into your Jetson and get its IP address, after which you will be able to log in via SSH:
 
 - External display.
-  If your display doesn't have a mini HDMI connector you will also need a [Mini HDMI to HDMI converter](https://a.co/d/6N815N9) if your external display has HDMI input
+  If your display doesn't have a mini HDMI connector you will also need a [Mini HDMI to HDMI converter](https://www.amazon.com/dp/B014I8UEGY/) if your external display has HDMI input
 - Ethernet cable
 - Mouse and keyboard (the baseboard has 4 USB ports exposed from Jetson, two of which are USB 3.0)
 
@@ -44,7 +44,6 @@ This information comes from the [Holybro Pixhawk-Jetson Baseboard Documentation]
 [Dimensions and weight](https://docs.holybro.com/autopilot/pixhawk-baseboards/pixhawk-jetson-baseboard/dimension-and-weight) (Holybro)
 
 - Dimensions
-
   - 126 x 80 x 45mm (with Jetson Orin NX + Heatsink/Fan & FC Module)
   - 126 x 80 x 22.9mm (without Jetson and FC Module)
 
@@ -56,37 +55,30 @@ This information comes from the [Holybro Pixhawk-Jetson Baseboard Documentation]
 ::: tab Jetson connectors
 
 - 2x Gigabit Ethernet Port
-
   - Connected to both Jetson & Autopilot via Ethernet switch (RTL8367S)
   - Ethernet Switch powered by the same circuit as the Pixhawk
   - 8-pin JST-GH
   - RJ45
 
 - 2x MIPI CSI Camera Inputs
-
   - 4 Lanes each
   - 22-Pin Raspberry Pi Cam FFC
 
 - 2x USB 3.0 Host Port
-
   - USB A
   - 5A Current Limit
 
 - 2x USB 2.0 Host Port
-
   - 5-Pin JST-GH
   - 0A Current Limit
 
 - USB 2.0 for Programming/Debugging
-
   - USB-C
 
 - 2 Key M 2242/2280 for NVMe SSD
-
   - PCIEx4
 
 - 2 Key E 2230 for WiFi/BT
-
   - PCIEx2
   - USB
   - UART
@@ -95,27 +87,21 @@ This information comes from the [Holybro Pixhawk-Jetson Baseboard Documentation]
 - Mini HDMI Out
 
 - 4x GPIO
-
   - 6-pin JST-GH
 
 - CAN Port
-
   - Connected to Autopilot's CAN2 (4 Pin JST-GH)
 
 - SPI Port
-
   - 7-Pin JST-GH
 
 - I2C Port
-
   - 4-Pin JST-GH
 
 - I2S Port
-
   - 7-Pin JST-GH
 
 - 2x UART Port
-
   - 1 for debug
   - 1 connected to Autopilot's telem2
 
@@ -128,12 +114,10 @@ This information comes from the [Holybro Pixhawk-Jetson Baseboard Documentation]
 ::: tab Autopilot connectors
 
 - Pixhawk Autopilot Bus Interface
-
   - 100 Pin Hirose DF40
   - 50 Pin Hirose DF40
 
 - Redundant Digital Power Module Inputs
-
   - I2C Power Monitor Support
   - 2x 6-Pin Molex CLIK-Mate
 
@@ -142,66 +126,52 @@ This information comes from the [Holybro Pixhawk-Jetson Baseboard Documentation]
 - Overvoltage Protection
 
 - Voltage Ratings
-
   - Max input voltage: 6V
   - USB Power Input: 4.75~5.25V
 
 - Full GPS Plus Safety Switch Port
-
   - 10-Pin JST-GH
 
 - Secondary (GPS2) Port
-
   - 6-Pin JST-GH
 
 - 2x CAN Ports
-
   - 4-Pin JST-GH
 
 - 3x Telemetry Ports with Flow Control
-
   - 2x 6-Pin JST-GH
   - 1 is connected to Jetson's `UART1` Port
 
 - 16 PWM Outputs
-
   - 2x 10-Pin JST-GH
 
 - UART4 & I2C Port
-
   - 6-Pin JST-GH
 
 - 2x Gigabit Ethernet Port
-
   - Connected to both Jetson & Autopilot via Ethernet switch (RTL8367S)
   - 8-Pin JST-GH
   - RJ45
 
 - AD & IO
-
   - 8-Pin JST-GH
 
 - USB 2.0
-
   - USB-C
   - 4-Pin JST-GH
 
 - DSM Input
-
   - 3-Pin JST-ZH 1.5mm Pitch
 
 - RC In
-
   - PPM/SBUS
   - 5-Pin JST-GH
 
 - SPI Port
-
   - External Sensor Bus (SPI5)
   - 11-Pin JST-GH
 
 - 2x Debug Port
-
   - 1 for FMU
   - 1 for IO
   - 10-Pin JST-SH
@@ -223,7 +193,6 @@ The Jetson has separate input power circuitry from the Pixhawk autopilot:
 During development using the following wired power supply is recommended:
 
 - [Power Adapter for Jetson Orin](https://holybro.com/products/power_adapter_for_jetson_orin)
-
 
 The complete power supply block diagram is shown below:
 
@@ -1079,7 +1048,7 @@ python ~/MAVSDK-Python/examples/telemetry.py
 
 The output below is expected:
 
-``` sh
+```sh
 In air: False
 Battery: -1.0
 In air: False
@@ -1184,7 +1153,7 @@ uxrce_dds_client status
 
 A healthy output should show:
 
-``` sh
+```sh
 nsh> uxrce_dds_client status
 INFO [uxrce_dds_client] Running, disconnected
 INFO [uxrce_dds_client] Using transport: serial
@@ -1300,7 +1269,7 @@ sudo systemctl status microxrceagent.service
 
 If the service is running, you should see output like this:
 
-``` sh
+```sh
 holybro@ubuntu:~$ sudo systemctl status microxrceagent.service
 ● microxrceagent.service - Micro XRCE Agent Service
    Loaded: loaded (/etc/systemd/system/microxrceagent.service; enabled; vendor preset: enabled)
@@ -1331,7 +1300,7 @@ You can now start your ROS2 nodes and continue the development.
 You can test the Client and agent by using the `sensor_combined` example in [Build ROS 2 Workspace](../ros2/user_guide.md#build-ros-2-workspace) (ROS2 User Guide).
 
 ::: tip
-[VSCode over SSH](https://code.visualstudio.com/learn/develop-cloud/ssh-lab-machines) enables faster development and application of changes to your ROS 2 code!
+[VSCode over SSH](https://code.visualstudio.com/docs/remote/ssh) enables faster development and application of changes to your ROS 2 code!
 :::
 
 After getting to the point of running the example:
@@ -1342,7 +1311,7 @@ ros2 launch px4_ros_com sensor_combined_listener.launch.py
 
 You should see high frequency sensor messages as the output:
 
-``` sh
+```sh
 [sensor_combined_listener-1] RECEIVED SENSOR COMBINED DATA
 [sensor_combined_listener-1] ====================================
 [sensor_combined_listener-1] ts: 1722316316179649

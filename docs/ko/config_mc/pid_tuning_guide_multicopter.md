@@ -58,13 +58,13 @@ Users can select the form that is used by setting the proportional gain for the 
 두 가지 형식이 아래에 기술되어 있습니다.
 
 :::info
-The derivative term (**D**) is on the feedback path in order to avoid an effect known as the [derivative kick](http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/).
+The derivative term (**D**) is on the feedback path in order to avoid an effect known as the [derivative kick](http://brettbeauregard.com/blog/2011/04/improving-the-beginners-pid-derivative-kick/).
 :::
 
 :::tip
 더 자세한 정보는 다음을 참고하십시오.
 
-- [Not all PID controllers are the same](https://www.controleng.com/articles/not-all-pid-controllers-are-the-same/) (www.controleng.com)
+- [Not all PID controllers are the same](https://www.controleng.com/not-all-pid-controllers-are-the-same/) (www.controleng.com)
 - [PID controller > Standard versus parallel (ideal) PID form](https://en.wikipedia.org/wiki/PID_controller#Standard_versus_parallel_\(ideal\)_form) (Wikipedia)
 
 :::

@@ -1,6 +1,6 @@
 # Початковий завантажувач STM32
 
-The code for the PX4 bootloader is available from the Github [Bootloader](https://github.com/px4/bootloader) repository.
+The code for the PX4 bootloader is available from the Github [Bootloader](https://github.com/PX4/PX4-Bootloader) repository.
 
 ## Підтримувані плати
 
@@ -14,7 +14,7 @@ The code for the PX4 bootloader is available from the Github [Bootloader](https:
 ## Збираємо початковий завантажувач
 
 ```sh
-git clone https://github.com/PX4/Bootloader.git
+git clone https://github.com/PX4/PX4-Bootloader.git
 cd Bootloader
 git submodule init
 git submodule update
@@ -29,7 +29,7 @@ make
 The right power sequence is critical for some boards to allow JTAG / SWD access. Виконайте ці кроки точно так, як описано.
 :::
 
-Інструкції нижче дійсні для Blackmagic / Dronecode адаптерів.
+The instructions below are valid for a Blackmagic / Zubax BugFace BF1 probe.
 Для інших JTAG адаптерів будуть потрібні інші, але подібні кроки.
 Розробники, які намагаються прошити завантажувач повинні мати необхідні знання.
 Якщо ви не знаєте, як це зробити, то ймовірно, слід переглянути, чи дійсно вам потрібно щось змінювати у початковому завантажувачі.
@@ -40,7 +40,7 @@ The right power sequence is critical for some boards to allow JTAG / SWD access.
 2. Під'єднайте USB-кабель живлення
 3. Під'єднати кабель JTAG
 
-### Black Magic / Dronecode адаптери
+### Black Magic / Zubax BugFace BF1 Probe
 
 #### Використовуємо правильний послідовний порт
 

@@ -69,15 +69,6 @@ if(CONFIG_MODULES_MC_RATE_CONTROL)
 	)
 endif()
 
-if(CONFIG_MODULES_ROVER_POS_CONTROL)
-	px4_add_romfs_files(
-		rc.rover_apps
-		rc.rover_defaults
-
-		rc.boat_defaults # hack
-	)
-endif()
-
 if(CONFIG_MODULES_ROVER_DIFFERENTIAL)
 	px4_add_romfs_files(
 		rc.rover_differential_apps
@@ -130,5 +121,11 @@ endif()
 if(CONFIG_MODULES_TEMPERATURE_COMPENSATION)
 	px4_add_romfs_files(
 		rc.thermal_cal
+	)
+endif()
+
+if(CONFIG_DRIVERS_VTXTABLE)
+	px4_add_romfs_files(
+		rc.vtxtable
 	)
 endif()

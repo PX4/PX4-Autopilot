@@ -1,6 +1,6 @@
 # CUAV V5+ Autopilot
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
@@ -14,7 +14,7 @@ The autopilot is recommended for commercial systems integration, but is also sui
 
 Some of its main features include:
 
-- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://pixhawk.org/pixhawk-connector-standard/) for all external interfaces.
+- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) for all external interfaces.
 - More advanced processor, RAM and flash memory than FMU v3, along with more stable and reliable sensors.
 - Firmware-compatible with PX4.
 - Modular design allows users to customize their own carrier board.
@@ -32,7 +32,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - IO Processor: STM32F100
   - 32 Bit Arm® Cortex®-M3, 24MHz, 8KB SRAM
 - On-board sensors:
-
   - Accelerometer/Gyroscope: ICM-20689
   - Accelerometer/Gyroscope: BMI055
   - Magnetometer: IST8310
@@ -57,12 +56,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Weight: 90g
   - Dimensions: 85.5\*42\*33mm
 - Other Characteristics:
-
   - Operating temperature: -20 ~ 80°c（Measured value）
 
-## Where to Buy
-
-<!-- [CUAV Store](https://store.cuav.net/index.php?id_product=95&id_product_attribute=0&rewrite=cuav-new-pixhack-v5-autopilot-m8n-gps-for-fpv-rc-drone-quadcopter-helicopter-flight-simulator-free-shipping-whole-sale&controller=product&id_lang=1) -->
+## Where to Buy {#store}
 
 [CUAV Aliexpress](https://www.aliexpress.com/item/32890380056.html?spm=a2g0o.detail.1000060.1.7a7233e7mLTlVl&gps-id=pcDetailBottomMoreThisSeller&scm=1007.13339.90158.0&scm_id=1007.13339.90158.0&scm-url=1007.13339.90158.0&pvid=d899bfab-a7ca-46e1-adf2-72ad1d649822) (International users)
 
@@ -105,20 +101,20 @@ Under these conditions all power sources will be used in this order to power the
 The _V5+_ has over current protection on the 5 Volt Peripheral and 5 Volt high power, which limits the current to 2.5A.
 The _V5+_ has short circuit protection.
 
-:::warning
+::: warning
 Up to 2.5 A can be delivered to the connectors listed as pin 1 (although these are only rated at 1 A).
 :::
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
@@ -129,7 +125,7 @@ The board does not have an I/O debug interface.
 
 ![Debug port (DSU7)](../../assets/flight_controller/cuav_v5_plus/debug_port_dsu7.jpg)
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | Pin     | Signal         | Volt  |
 | ------- | -------------- | ----- |
@@ -146,7 +142,7 @@ The provided debug cable does not connect to the SWD port `Vref` pin (1).
 
 ![CUAV Debug cable](../../assets/flight_controller/cuav_v5_plus/cuav_v5_debug_cable.jpg)
 
-:::warning
+::: warning
 The SWD Vref pin (1) uses 5V as Vref but the CPU is run at 3.3V!
 
 Some JTAG adapters (SEGGER J-Link) will use the Vref voltage to set the voltage on the SWD lines.
@@ -201,7 +197,7 @@ CUAV adopts some differentiated designs and is incompatible with some hardware, 
 
 The _Neo v2.0 GPS_ recommended for use with _CUAV V5+_ and _CUAV V5 nano_ is not fully compatible with other Pixhawk flight controllers (specifically, the buzzer part is not compatible and there may be issues with the safety switch).
 
-The UAVCAN [NEO V2 PRO GNSS receiver](http://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
+The UAVCAN [NEO V2 PRO GNSS receiver](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
 
 <a id="compatibility_jtag"></a>
 
@@ -209,7 +205,7 @@ The UAVCAN [NEO V2 PRO GNSS receiver](http://doc.cuav.net/gps/neo-series-gnss/en
 
 `DSU7` FMU Debug Pin 1 is 5 volts - not the 3.3 volts of the CPU.
 
-Some JTAG use this voltage to set the IO levels when communicating to the target.
+Some JTAG adapters use this voltage to set the IO levels when communicating to the target.
 
 For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts of DSM/SBUS/RSSI pin 4 as Pin 1 on the debug connector (`Vtref`).
 
@@ -223,7 +219,7 @@ For example, the serial number Batch V011904((V01 is the number of V5, 1904 is t
 
 #### SBUS / DSM / RSSI interface Pin1 unfused
 
-:::warning
+::: warning
 This is a safety issue.
 :::
 
@@ -235,7 +231,7 @@ Please do not connect other equipment (except RC receiver) on SBUS / DSM / RSSI 
 ## Further Information
 
 - [CUAV V5+ Manual](http://manual.cuav.net/V5-Plus.pdf)
-- [CUAV V5+ docs](http://doc.cuav.net/flight-controller/v5-autopilot/en/v5+.html)
+- [CUAV V5+ docs](https://doc.cuav.net/controller/v5-autopilot/en/v5+.html)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165)
 - [CUAV Github](https://github.com/cuav)
 - [Base board design reference](https://github.com/cuav/hardware/tree/master/V5_Autopilot/V5%2B/V5%2BBASE)

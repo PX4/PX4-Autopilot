@@ -38,7 +38,7 @@
  *
  * All the acknowledgments and credits for the fw wing app are reported in those files.
  *
- * @author Tim Hansen <t.hansen@jacobs-university.de>
+ * @author Tim Hansen <timhansen93@googlemail.com>
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
  */
 
@@ -59,8 +59,9 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/trajectory_setpoint6dof.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -79,9 +80,11 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class UUVPOSControl: public ModuleBase<UUVPOSControl>, public ModuleParams, public px4::WorkItem
+class UUVPOSControl: public ModuleBase, public ModuleParams, public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	UUVPOSControl();
 	~UUVPOSControl();
 
@@ -101,17 +104,24 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint6dof)};
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
 	vehicle_attitude_s _vehicle_attitude{};
-	trajectory_setpoint_s _trajectory_setpoint{};
+	trajectory_setpoint6dof_s _trajectory_setpoint{};
+	manual_control_setpoint_s _manual_control_setpoint{};
 	vehicle_control_mode_s _vcontrol_mode{};
+	vehicle_attitude_setpoint_s _attitude_setpoint{};
 
 	perf_counter_t	_loop_perf;
+	hrt_abstime _last_run{0};
 
+	//control variables
+	float hgtData[2];//des_hgt,integrated hgt error
+	bool altitudeStateFlag;
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::UUV_GAIN_X_P>) _param_pose_gain_x,
 		(ParamFloat<px4::params::UUV_GAIN_Y_P>) _param_pose_gain_y,
@@ -119,10 +129,24 @@ private:
 		(ParamFloat<px4::params::UUV_GAIN_X_D>) _param_pose_gain_d_x,
 		(ParamFloat<px4::params::UUV_GAIN_Y_D>) _param_pose_gain_d_y,
 		(ParamFloat<px4::params::UUV_GAIN_Z_D>) _param_pose_gain_d_z,
+		(ParamInt<px4::params::UUV_STAB_MODE>) _param_stab_mode,
+		(ParamFloat<px4::params::UUV_POS_STICK_DB>) _param_pos_stick_db,
+		(ParamFloat<px4::params::UUV_PGM_VEL>) _param_pgm_vel,
+		(ParamFloat<px4::params::UUV_SGM_ROLL>) _param_sgm_roll,
+		(ParamFloat<px4::params::UUV_SGM_PITCH>) _param_sgm_pitch,
+		(ParamFloat<px4::params::UUV_SGM_YAW>) _param_sgm_yaw,
+		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_setpoint_max_age,
+		(ParamInt<px4::params::UUV_POS_MODE>) _param_pos_mode,
 
-		(ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
-		(ParamInt<px4::params::UUV_STAB_MODE>) _param_stabilization,
-		(ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl
+		(ParamFloat<px4::params::UUV_SGM_THRTL>) _param_sgm_thrtl,
+		(ParamFloat<px4::params::UUV_HGT_P>) _param_hgt_p,
+		(ParamFloat<px4::params::UUV_HGT_D>) _param_hgt_d,
+		(ParamFloat<px4::params::UUV_HGT_I>) _param_hgt_i,
+		(ParamFloat<px4::params::UUV_HGT_I_SPD>) _param_hgt_i_speed,
+		(ParamFloat<px4::params::UUV_HGT_STR>) _param_hgt_strength,
+		(ParamInt<px4::params::UUV_HGT_B_UP>) _param_hgt_b_up,
+		(ParamInt<px4::params::UUV_HGT_B_DOWN>) _param_hgt_b_down,
+		(ParamFloat<px4::params::UUV_HGT_MAX_DIFF>) _param_hgt_max_diff
 	)
 
 	void Run() override;
@@ -136,10 +160,12 @@ private:
 	 */
 	void publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
 				       const float roll_des, const float pitch_des, const float yaw_des);
-	void pose_controller_6dof(const Vector3f &pos_des,
-				  const float roll_des, const float pitch_des, const float yaw_des,
-				  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+	void pose_controller_6dof(const Vector3f &pos_des, vehicle_attitude_s &vehicle_attitude,
+				  vehicle_local_position_s &vlocal_pos, bool altitude_mode);
 	void stabilization_controller_6dof(const Vector3f &pos_des,
 					   const float roll_des, const float pitch_des, const float yaw_des,
 					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+	void generate_trajectory_setpoint(vehicle_local_position_s &vlocal_pos, vehicle_attitude_s &vehicle_attitude, float dt);
+	void reset_trajectory_setpoint(vehicle_local_position_s &vlocal_pos);
+	void check_setpoint_validity(vehicle_local_position_s &vlocal_pos);
 };

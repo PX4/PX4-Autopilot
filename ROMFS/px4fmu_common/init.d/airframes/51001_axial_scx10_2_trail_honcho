@@ -7,9 +7,6 @@
 # @type Rover
 # @class Rover
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.rover_ackermann_defaults
 
@@ -33,14 +30,16 @@ param set-default RO_MAX_THR_SPEED 2.8
 param set-default RO_YAW_RATE_I 0.1
 param set-default RO_YAW_RATE_P 0.1
 param set-default RO_YAW_RATE_LIM 120
+param set-default RO_YAW_RATE_CORR 1
 
 # Rover Attitude Control Parameters
 param set-default RO_YAW_P 2.5
 
-# Rover Position Control Parameters
+# Rover Velocity Control Parameters
 param set-default RO_SPEED_LIM 2.5
 param set-default RO_SPEED_I 0.01
 param set-default RO_SPEED_P 0.1
+param set-default RO_SPEED_RED 1
 
 # Pure pursuit parameters
 param set-default PP_LOOKAHD_GAIN 1

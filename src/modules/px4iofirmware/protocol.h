@@ -162,7 +162,7 @@
 #define PX4IO_P_SETUP_ARMING_FMU_PREARMED         (1 << 2) /* FMU is already prearmed */
 #define PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM      (1 << 3) /* use custom failsafe values */
 #define PX4IO_P_SETUP_ARMING_LOCKDOWN             (1 << 4) /* If set, the system operates normally, but won't actuate any servos */
-#define PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE       (1 << 5) /* If set, the system will always output the failsafe values */
+#define PX4IO_P_SETUP_ARMING_TERMINATION          (1 << 5) /* If set, the system will always output the failsafe values */
 #define PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE (1 << 6) /* If set, the system will never return from a failsafe, but remain in failsafe once triggered. */
 
 #define PX4IO_P_SETUP_PWM_RATES                 2	/* bitmask, 0 = low rate, 1 = high rate */

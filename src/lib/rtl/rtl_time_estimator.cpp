@@ -54,8 +54,9 @@ RtlTimeEstimator::RtlTimeEstimator() : ModuleParams(nullptr)
 	_param_fw_climb_rate = param_find("FW_T_CLMB_R_SP");
 	_param_fw_sink_rate = param_find("FW_T_SINK_R_SP");
 	_param_fw_airspeed_trim = param_find("FW_AIRSPD_TRIM");
+	_param_fw_gnd_spd_min = param_find("FW_GND_SPD_MIN");
 	_param_mpc_xy_cruise = param_find("MPC_XY_CRUISE");
-	_param_rover_cruise_speed = param_find("GND_SPEED_THR_SC");
+	_param_rover_cruise_speed = param_find("RO_SPEED_LIM");
 };
 
 rtl_time_estimate_s RtlTimeEstimator::getEstimate() const
@@ -142,7 +143,18 @@ float RtlTimeEstimator::getCruiseGroundSpeed(const matrix::Vector2f &direction_n
 		const float ground_speed = sqrtf(cruise_speed * cruise_speed - wind_across_dir * wind_across_dir) + fminf(
 						   0.f, wind_along_dir);
 
-		cruise_speed = ground_speed;
+		// Assume that minimum ground speed is always satisfied. If
+		//   windspeed < cas2tas(FW_AIRSPD_MAX) - FW_GND_SPD_MIN
+		// the assumption always holds. Otherwise it breaks down when
+		// flying upwind, and the RTL time estimate is optimistic.
+
+		float fw_gnd_spd_min = 5.0f;
+
+		if (_param_fw_gnd_spd_min != PARAM_INVALID) {
+			param_get(_param_fw_gnd_spd_min, &fw_gnd_spd_min);
+		}
+
+		cruise_speed = fmaxf(ground_speed, fw_gnd_spd_min);
 	}
 
 	return cruise_speed;

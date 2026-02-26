@@ -14,8 +14,8 @@ This topic provides full instructions for building the kit and configuring PX4 u
 
 조립에 필요한 부품들입니다.
 
-- Flight controller: CUAV V5+:
-  - GPS: [CUAV NEO V2 GPS](https://store.cuav.net/index.php?id_product=97&id_product_attribute=0&rewrite=cuav-new-ublox-neo-m8n-gps-module-with-shell-stand-holder-for-flight-controller-gps-compass-for-pixhack-v5-plus-rc-parts-px4&controller=product&id_lang=1)
+- Flight controller: [CUAV V5+](https://store.cuav.net/uav-flight-controller/):
+  - GPS: CUAV NEO V2 GPS (Discontined)
   - 전원 모듈
 - Frame: [DJI F450](https://www.amazon.com/Flame-Wheel-Basic-Quadcopter-Drone/dp/B00HNMVQHY)
 - Propellers: [DJI Phantom Built-in Nut Upgrade Propellers 9.4x5](https://www.masterairscrew.com/products/dji-phantom-built-in-nut-upgrade-propellers-in-black-mr-9-4x5-prop-set-x4-phantom)
@@ -43,8 +43,8 @@ FrSky Taranis 조종기를 사용할 수 있습니다.
 | DJI F450 밑판                                        | 1  |
 | DJI F450 윗판                                        | 1  |
 | DJI F450 랜딩기어 역할을 하는 다리                            | 4  |
-| M3\*8 나사                                           | 18 |
-| M2 5\*6 나사                                         | 24 |
+| M3\*8 screws                                       | 18 |
+| M2 5\*6 screws                                     | 24 |
 | 벨크로 배터리 스트랩                                        | 1  |
 | DJI Phantom 나사 내장 업그레이드 프로펠러 9.4x5 | 1  |
 
@@ -108,53 +108,53 @@ FrSky Taranis 조종기를 사용할 수 있습니다.
 
 1. 제공된 나사를 이용하여 하판에 팔 4개를 결합합니다.
 
-  ![Arms to bottom plate](../../assets/airframes/multicopter/dji_f450_cuav_5plus/1_attach_arms_bottom_plate.jpg)
+   ![Arms to bottom plate](../../assets/airframes/multicopter/dji_f450_cuav_5plus/1_attach_arms_bottom_plate.jpg)
 
 2. ESC (변속기) 의 양극 (빨강)과 음극 (검정)을 보드에 납땜합니다.
 
-  ![Solder ESCs](../../assets/airframes/multicopter/dji_f450_cuav_5plus/2_solder_esc.jpg)
+   ![Solder ESCs](../../assets/airframes/multicopter/dji_f450_cuav_5plus/2_solder_esc.jpg)
 
 3. 전원 모듈의 양극 (빨강)과 음극 (검정)을 납땜합니다.
 
-  ![Solder power module](../../assets/airframes/multicopter/dji_f450_cuav_5plus/3_solder_power_module.jpg)
+   ![Solder power module](../../assets/airframes/multicopter/dji_f450_cuav_5plus/3_solder_power_module.jpg)
 
 4. 위치에 따라 모터를 ESC에 연결합니다.
 
-  ![Plug in motors](../../assets/airframes/multicopter/dji_f450_cuav_5plus/4_plug_in_motors.jpg)
+   ![Plug in motors](../../assets/airframes/multicopter/dji_f450_cuav_5plus/4_plug_in_motors.jpg)
 
 5. 각각의 모터를 해당하는 팔에 고정합니다.
 
-  ![Attach motors to arms (white)](../../assets/airframes/multicopter/dji_f450_cuav_5plus/5a_attach_motors_to_arms.jpg)
-  ![Attach motors to arms (red)](../../assets/airframes/multicopter/dji_f450_cuav_5plus/5b_attach_motors_to_arms.jpg)
+   ![Attach motors to arms (white)](../../assets/airframes/multicopter/dji_f450_cuav_5plus/5a_attach_motors_to_arms.jpg)
+   ![Attach motors to arms (red)](../../assets/airframes/multicopter/dji_f450_cuav_5plus/5b_attach_motors_to_arms.jpg)
 
 6. (다리의 윗부분과 나사로 결합하여) 상판을 장착합니다.
 
-  ![Add top board](../../assets/airframes/multicopter/dji_f450_cuav_5plus/6_add_top_board.jpg)
+   ![Add top board](../../assets/airframes/multicopter/dji_f450_cuav_5plus/6_add_top_board.jpg)
 
 7. CUAV V5 + 비행 컨트롤러에 양면 테이프(3M)를 추가합니다 (내부 진동 감쇠 기능이있어 폼을 사용할 필요가 없음).
 
-  ![Tape CUAV v5+](../../assets/airframes/multicopter/dji_f450_cuav_5plus/7_attach_cuav5plus.jpg)
+   ![Tape CUAV v5+](../../assets/airframes/multicopter/dji_f450_cuav_5plus/7_attach_cuav5plus.jpg)
 
 8. FrSky 수신기를 양면 테이프를 이용하여 하판에 부착합니다.
 
-  ![Attach FrSky receiver with double-sided tape](../../assets/airframes/multicopter/dji_f450_cuav_5plus/8_attach_frsky.jpg)
+   ![Attach FrSky receiver with double-sided tape](../../assets/airframes/multicopter/dji_f450_cuav_5plus/8_attach_frsky.jpg)
 
 9. 텔레메트리 모듈을 기체의 아랫판에 양면테이프를 이용하여 부착합니다.
 
-  ![Attach telemetry radio](../../assets/airframes/multicopter/dji_f450_cuav_5plus/9a_telemtry_radio.jpg)
-  ![Attach telemetry radio](../../assets/airframes/multicopter/dji_f450_cuav_5plus/9b_telemtry_radio.jpg)
+   ![Attach telemetry radio](../../assets/airframes/multicopter/dji_f450_cuav_5plus/9a_telemtry_radio.jpg)
+   ![Attach telemetry radio](../../assets/airframes/multicopter/dji_f450_cuav_5plus/9b_telemtry_radio.jpg)
 
 10. 알루미늄 GPS 지지대를 밑판에 추가한후 GPS를 부착합니다.
 
 11. Plug in Telemetry (`TELEM1`) and GPS module (`GPS/SAFETY`) to the flight controller.
-  ![Attach GPS](../../assets/airframes/multicopter/dji_f450_cuav_5plus/11a_gps.jpg)
-  ![Attach GPS](../../assets/airframes/multicopter/dji_f450_cuav_5plus/11b_gps.jpg)
+    ![Attach GPS](../../assets/airframes/multicopter/dji_f450_cuav_5plus/11a_gps.jpg)
+    ![Attach GPS](../../assets/airframes/multicopter/dji_f450_cuav_5plus/11b_gps.jpg)
 
 12. Plug in the RC receiver (`RC`), all 4 ESC’s (`M1-M4`), and the power module (`Power1`) into the flight controller.
-  ![Attach peripherals to flight controller](../../assets/airframes/multicopter/dji_f450_cuav_5plus/12_fc_attach_periperhals.jpg)
+    ![Attach peripherals to flight controller](../../assets/airframes/multicopter/dji_f450_cuav_5plus/12_fc_attach_periperhals.jpg)
 
-  ::: info
-  The motor order is defined in the [Airframe Reference > Quadrotor x](../airframes/airframe_reference.md#quadrotor-x)
+    ::: info
+    The motor order is defined in the [Airframe Reference > Quadrotor x](../airframes/airframe_reference.md#quadrotor-x)
 
 :::
 
@@ -166,7 +166,7 @@ FrSky Taranis 조종기를 사용할 수 있습니다.
 ## PX4 설정
 
 _QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the frame.
-[Download and install](http://qgroundcontrol.com/downloads/)
+[Download and install](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html)
 _QGroundControl_ for your platform.
 
 :::tip

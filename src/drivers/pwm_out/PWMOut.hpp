@@ -53,9 +53,11 @@
 
 using namespace time_literals;
 
-class PWMOut final : public ModuleBase<PWMOut>, public OutputModuleInterface
+class PWMOut final : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	PWMOut();
 	~PWMOut() override;
 
@@ -71,7 +73,7 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:

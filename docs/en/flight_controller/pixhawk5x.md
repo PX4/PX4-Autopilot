@@ -1,6 +1,6 @@
 # Holybro Pixhawk 5X
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -12,7 +12,7 @@ It comes with the latest PX4 Autopilot​® pre-installed, triple redundancy, te
 
 <img src="../../assets/flight_controller/pixhawk5x/pixhawk5x_hero_upright.jpg" width="250px" title="Pixhawk5x Upright Image" /> <img src="../../assets/flight_controller/pixhawk5x/pixhawk5x_exploded_diagram.jpg" width="450px" title="Pixhawk5x Exploded Image" />
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -60,7 +60,6 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
 - IO Processor: STM32F100
   - 32 Bit Arm® Cortex®-M3, 24MHz, 8KB SRAM
 - On-board Sensors:
-
   - Accel/Gyro: ICM-20649
   - Accel/Gyro: ICM-42688P
   - Accel/Gyro: ICM-20602
@@ -68,7 +67,6 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
   - Barometer: 2x BMP388
 
 - Interfaces
-
   - 16- PWM servo outputs
   - R/C input for Spektrum / DSM
   - Dedicated R/C input for PPM and S.Bus input
@@ -98,25 +96,22 @@ The Pixhawk® 5X is perfect for developers at corporate research labs, startups,
     - 2 Dedicated debug and GPIO lines
 
 - Voltage Ratings
-
   - Max input voltage: 6V
   - USB Power Input: 4.75~5.25V
   - Servo Rail Input: 0~36V
 
 - Dimensions
-
   - Flight Controller Module: 38.8 x 31.8 x 14.6mm
   - Standard Baseboard: 52.4 x 103.4 x 16.7mm
 
 - Weight
-
   - Flight Controller Module: 23g
   - Standard Baseboard: 51g
 
 - Other Characteristics:
   - Operating & storage temperature: -40 ~ 85°c
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-5x).
 
@@ -134,7 +129,7 @@ The [Pixhawk 5X Wiring Quick Start](../assembly/quick_start_pixhawk5x.md) provid
 
 ::: info
 Connector pin assignments are left to right (i.e. Pin 1 is the left-most pin).
-::: infos:
+:::
 
 - The [camera capture pin](../camera/fc_connected_camera.md#camera-capture-configuration) (`PI0`) is pin 2 on the AD&IO port, marked above as `FMU_CAP1`.
 - _Pixhawk 5X_ pinouts can be downloaded in PDF from from [here](https://github.com/PX4/PX4-user_guide/blob/main/assets/flight_controller/pixhawk5x/pixhawk5x_pinout.pdf) or [here](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Holybro_Pixhawk5X_Pinout.pdf).
@@ -159,7 +154,7 @@ Connector pin assignments are left to right (i.e. Pin 1 is the left-most pin).
 ## Voltage Ratings
 
 _Pixhawk 5X_ can be triple-redundant on the power supply if three power sources are supplied. The three power rails are: **POWER1**, **POWER2** and **USB**.
-The **POWER1** & **POWER2** ports on the Pixhawk 5X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/molex/products/part-detail/pcb_receptacles/5024430670).
+The **POWER1** & **POWER2** ports on the Pixhawk 5X uses the 6 circuit [2.00mm Pitch CLIK-Mate Wire-to-Board PCB Receptacle](https://www.molex.com/en-us/products/part-detail/5024430670).
 
 **Normal Operation Maximum Ratings**
 
@@ -186,20 +181,18 @@ Analog battery monitoring via an ADC is not supported on this particular board, 
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5x_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 
@@ -225,7 +218,7 @@ For information about using this port see:
 
 ## Peripherals
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](https://holybro.com/collections/telemetry-radios?orderby=date)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 

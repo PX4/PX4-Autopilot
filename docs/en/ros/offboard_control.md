@@ -39,9 +39,7 @@ Usually, there are three ways of setting up offboard communication.
 2. One connected to a ground station computer
 
    Example radios include:
-
-   - [Lairdtech RM024](http://www.lairdtech.com/products/rm024)
-   - [Digi International XBee Pro](http://www.digi.com/products/xbee-rf-solutions/modules)
+   - [Digi International XBee Pro](https://www.digi.com/products/embedded-systems/digi-xbee/rf-modules/sub-1-ghz-rf-modules)
 
 [![Mermaid graph: mavlink channel](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggVEQ7XG4gIGduZFtHcm91bmQgU3RhdGlvbl0gLS1NQVZMaW5rLS0-IHJhZDFbR3JvdW5kIFJhZGlvXTtcbiAgcmFkMSAtLVJhZGlvUHJvdG9jb2wtLT4gcmFkMltWZWhpY2xlIFJhZGlvXTtcbiAgcmFkMiAtLU1BVkxpbmstLT4gYVtBdXRvcGlsb3RdOyIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)](https://mermaid-js.github.io/mermaid-live-editor/#/edit/eyJjb2RlIjoiZ3JhcGggVEQ7XG4gIGduZFtHcm91bmQgU3RhdGlvbl0gLS1NQVZMaW5rLS0-IHJhZDFbR3JvdW5kIFJhZGlvXTtcbiAgcmFkMSAtLVJhZGlvUHJvdG9jb2wtLT4gcmFkMltWZWhpY2xlIFJhZGlvXTtcbiAgcmFkMiAtLU1BVkxpbmstLT4gYVtBdXRvcGlsb3RdOyIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In0sInVwZGF0ZUVkaXRvciI6ZmFsc2V9)
 
@@ -54,7 +52,7 @@ graph TD;
 
 ### On-board processor
 
-A small computer mounted onto the vehicle, connected to the autopilot through a serial port or Ehthernet port.
+A small computer mounted onto the vehicle, connected to the autopilot through a serial port or Ethernet port.
 There are many possibilities here and it will depend on what kind of additional on-board processing you want to do in addition to sending commands to the autopilot.
 Some examples are provided in [Companion Computers](../companion_computer/index.md#companion-computer-options).
 

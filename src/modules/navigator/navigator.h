@@ -97,9 +97,11 @@ using namespace time_literals;
  */
 #define NAVIGATOR_MODE_ARRAY_SIZE 8
 
-class Navigator : public ModuleBase<Navigator>, public ModuleParams
+class Navigator : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Navigator();
 	~Navigator() override;
 
@@ -108,6 +110,9 @@ public:
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Navigator *instantiate(int argc, char *argv[]);
@@ -179,7 +184,8 @@ public:
 
 	Geofence &get_geofence() { return _geofence; }
 
-	float get_loiter_radius() { return _param_nav_loiter_rad.get(); }
+	float get_default_loiter_rad() { return fabsf(_param_nav_loiter_rad.get()); }
+	bool get_default_loiter_CCW() { return _param_nav_loiter_rad.get() < -FLT_EPSILON; }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
@@ -280,6 +286,13 @@ public:
 	void acquire_gimbal_control();
 	void release_gimbal_control();
 	void set_gimbal_neutral();
+
+	/* Set gimbal to neutral position (level with horizon) to reduce risk of damage on landing.
+	The commands are executed after time delay. */
+	void neutralize_gimbal_if_control_activated();
+	/* Accepts a new timestamp only if the current timestamp is UINT64_MAX, preventing the
+	timer from resetting during an ongoing neutral command. */
+	void activate_set_gimbal_neutral_timer(const hrt_abstime timestamp);
 
 	void preproject_stop_point(double &lat, double &lon);
 
@@ -389,6 +402,9 @@ private:
 
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
 
+
+	// timer to trigger a delayed set gimbal neutral command
+	hrt_abstime _gimbal_neutral_activation_time{UINT64_MAX};
 
 	// update subscriptions
 	void params_update();

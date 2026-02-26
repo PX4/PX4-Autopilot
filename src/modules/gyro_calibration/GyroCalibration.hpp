@@ -52,9 +52,11 @@
 
 using namespace time_literals;
 
-class GyroCalibration : public ModuleBase<GyroCalibration>, public ModuleParams, public px4::ScheduledWorkItem
+class GyroCalibration : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	GyroCalibration();
 	~GyroCalibration() override;
 

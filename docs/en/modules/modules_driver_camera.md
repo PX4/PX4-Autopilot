@@ -1,7 +1,8 @@
 # Modules Reference: Camera (Driver)
-## camera_trigger
-Source: [drivers/camera_trigger](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger)
 
+## camera_trigger
+
+Source: [drivers/camera_trigger](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger)
 
 ### Description
 
@@ -33,8 +34,8 @@ In particular:
 
 [Setup/usage information](../camera/index.md).
 
-<a id="camera_trigger_usage"></a>
-### Usage
+### Usage {#camera_trigger_usage}
+
 ```
 camera_trigger <command> [arguments...]
  Commands:

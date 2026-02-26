@@ -157,9 +157,8 @@ make px4_sitl none_iris
 
 시뮬레이션은 환경 변수를 통하여 추가로 설정이 가능합니다.
 
-- `PX4_ESTIMATOR`: This variable configures which estimator to use.
-  Possible options are: `ekf2` (default), `lpe` (deprecated).
-  It can be set via `export PX4_ESTIMATOR=lpe` before running the simulation.
+- Any of the [PX4 parameters](../advanced_config/parameter_reference.md) can be overridden via `export PX4_PARAM_{name}={value}`.
+  For example changing the estimator: `export PX4_PARAM_EKF2_EN=0; export PX4_PARAM_ATT_EN=1`.
 
 The syntax described here is simplified, and there are many other options that you can configure via _make_ - for example, to set that you wish to connect to an IDE or debugger.
 For more information see: [Building the Code > PX4 Make Build Targets](../dev_setup/building_px4.md#px4-make-build-targets).
@@ -218,20 +217,20 @@ The simulated camera is a gazebo classic plugin that implements the [MAVLink Cam
 PX4 connects/integrates with this camera in _exactly the same way_ as it would with any other MAVLink camera:
 
 1. [TRIG_INTERFACE](../advanced_config/parameter_reference.md#TRIG_INTERFACE) must be set to `3` to configure the camera trigger driver for use with a MAVLink camera
-  :::tip
-  In this mode the driver just sends a [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) message whenever an image capture is requested.
-  For more information see [Cameras Connected to Flight Controller Outputs](../camera/fc_connected_camera.md).
+   :::tip
+   In this mode the driver just sends a [CAMERA_TRIGGER](https://mavlink.io/en/messages/common.html#CAMERA_TRIGGER) message whenever an image capture is requested.
+   For more information see [Cameras Connected to Flight Controller Outputs](../camera/fc_connected_camera.md).
 
 :::
 2. PX4는 GCS와 (시뮬레이터) MAVLink 카메라 사이의 모든 카메라 명령을 전달하여야 합니다.
-  You can do this by starting [MAVLink](../modules/modules_communication.md#mavlink) with the `-f` flag as shown, specifying the UDP ports for the new connection.
+   You can do this by starting [MAVLink](../modules/modules_communication.md#mavlink) with the `-f` flag as shown, specifying the UDP ports for the new connection.
 
-  ```sh
-  mavlink start -u 14558 -o 14530 -r 4000 -f -m camera
-  ```
+   ```sh
+   mavlink start -u 14558 -o 14530 -r 4000 -f -m camera
+   ```
 
-  ::: info
-  More than just the camera MAVLink messages will be forwarded, but the camera will ignore those that it doesn't consider relevant.
+   ::: info
+   More than just the camera MAVLink messages will be forwarded, but the camera will ignore those that it doesn't consider relevant.
 
 :::
 

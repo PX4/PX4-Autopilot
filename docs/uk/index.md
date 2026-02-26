@@ -1,107 +1,69 @@
-<div style="float:right; padding:10px; margin-right:20px;"><a href="https://px4.io/"><img src="../assets/site/logo_pro_small.png" title="PX4 Logo" width="180px" /></a></div>
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData();
+</script>
 
 # Посібник користувача автопілота PX4
 
 [![Releases](https://img.shields.io/badge/release-main-blue.svg)](https://github.com/PX4/PX4-Autopilot/releases) [![Discuss](https://img.shields.io/badge/discuss-px4-ff69b4.svg)](https://discuss.px4.io//) [![Discord](https://discordapp.com/api/guilds/1022170275984457759/widget.png?style=shield)](https://discord.gg/dronecode)
 
-PX4 is the _Professional Autopilot_.
-Розроблений розробниками світового класу з дрон індустрії та наукових закладів і активно підтримується спільнотою у світі. Він дозволяє працювати з різними типами безпілотних транспортних засобів від гоночних, вантажних дронів до сухопутних автомобілів та надводних човнів.
+PX4 is an open-source autopilot for drones and autonomous vehicles. It runs on multirotors, fixed-wing, VTOL, helicopters, rovers, and more. This guide covers everything from assembly and configuration to flight operations and development.
 
-:::tip
-This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle. Хочете зробити внесок? Check out the [Development](development/development.md) section.
-
-:::
+<div v-if="site.title == 'PX4 Guide (main)'">
 
 :::warning
+
 This guide is for the _development_ version of PX4 (`main` branch).
 Use the **Version** selector to find the current _stable_ version.
 
 Documented changes since the stable release are captured in the evolving [release note](releases/main.md).
 :::
 
-## Як почати?
+</div>
 
-[Basic Concepts](getting_started/px4_basic_concepts.md) should be read by all users!
-It provides an overview of PX4, including features provided by the flight stack (flight modes and safety features) and the supported hardware (flight controller, vehicle types, telemetry systems, RC control systems).
+## For Developers
 
-Залежно від того, чого ви хочете досягти, наступні поради допоможуть вам мандрувати по цьому посібнику:
+:::tip
+Building on PX4 or extending the platform? Start here: [Development Guide](development/development.md). Set up your [dev environment](dev_setup/config_initial.md), [build from source](dev_setup/building_px4.md), run [SITL simulation](simulation/index.md), or integrate via [ROS 2](ros2/index.md) and [MAVSDK](https://mavsdk.mavlink.io/).
+:::
 
-### I want a vehicle that works with PX4
+## Початок роботи
 
-In the [Multicopter](frames_multicopter/index.md), [VTOL](frames_vtol/index.md), and [Plane (Fixed-Wing)](frames_plane/index.md) sections you'll find topics like the following (these links are for multicopter):
+Start with [Basic Concepts](getting_started/px4_basic_concepts.md) for an overview of the flight stack, flight modes, safety features, and supported hardware.
 
-- [Complete Vehicles](complete_vehicles_mc/index.md) list "Ready to Fly" (RTF) pre-built vehicles
-- [Kits](frames_multicopter/kits.md) lists drones that you have to build yourself from a set of preselected parts
-- [DIY Builds](frames_multicopter/diy_builds.md) shows some examples of drones that have been built using parts that were sourced individually
+## Build a Vehicle
 
-Both kits and complete vehicles usually include everything you need except for a battery and RC System.
-Kits are usually not hard to build, provide a good introduction to how drones fit together, and are relatively inexpensive.
-We provide generic instructions for assembly, such as [Assembling a Multicopter](assembly/assembly_mc.md), and most kits come with specific instructions too.
+Pick your frame type: [Multicopter](frames_multicopter/index.md), [Fixed-Wing](frames_plane/index.md), [VTOL](frames_vtol/index.md), [Helicopter](frames_helicopter/index.md), or [Rover](frames_rover/index.md). Each section covers complete vehicles, kits, and DIY builds. For assembly instructions see [Assembling a Multicopter](assembly/assembly_mc.md) or the equivalent for your frame.
 
-If the kits and complete drones aren't quite right for you then you can build a vehicle from scratch, but this requires more knowledge.
-[Airframe Builds](airframes/index.md) lists the supported frame starting points to give you some idea of what is possible.
+## Configure and Tune
 
-Once you have a vehicle that supports PX4 you will need to configure it and calibrate the sensors.
-Each vehicle type has its own configuration section that explains the main steps, such as [Multicopter Configuration/Tuning](config_mc/index.md).
+Once assembled, follow the configuration guide for your vehicle type (e.g. [Multicopter Configuration](config_mc/index.md)). This covers sensor calibration, flight mode setup, and tuning.
 
-### I want to add a payload/camera
+## Апаратне забезпечення(Hardware)
 
-The [Payloads](payloads/index.md) section describes how to add a camera and how to configure PX4 to enable you to deliver packages.
+The [Hardware Selection & Setup](hardware/drone_parts.md) section covers flight controllers, sensors, telemetry, RC systems, and payloads. See [Payloads](payloads/index.md) for camera and delivery integrations.
 
-### I am modifying a supported vehicle
+## Fly
 
-The [Hardware Selection & Setup](hardware/drone_parts.md) section provides both high level and product-specific information about hardware that you might use with PX4 and its configuration.
-This is the first place you should look if you want to modify a drone and add new components.
+Read [Operations](config/operations.md) to understand safety features and failsafe behavior before your first flight. Then see [Basic Flying (Multicopter)](flying/basic_flying_mc.md) or the equivalent for your frame type.
 
-### I want to fly
+## Підтримка
 
-Before you fly you should read [Operations](config/operations.md) to understand how to set up the safety features of your vehicle and the common behaviours of all frame types.
-Once you've done that you're ready to fly.
-
-Basic instructions for flying each vehicle type are provided in the respective sections, such as [Basic Flying (Multicopter)](flying/basic_flying_mc.md).
-
-### I want to run PX4 on a new Flight Controller and extend the platform
-
-The [Development](development/development.md) section explains how to support new airframes and types of vehicles, modify flight algorithms, add new modes, integrate new hardware, communicate with PX4 from outside the flight controller, and contribute to PX4.
-
-## Отримання допомоги
-
-The [Support](contribute/support.md) page explains how to get help from the core dev team and the wider community.
-
-Серед інших речей, які вона покриває:
-
-- [Forums where you can get help](contribute/support.md#forums-and-chat)
-- [Diagnosing issues](contribute/support.md#diagnosing-problems)
-- [How to report bugs](contribute/support.md#issue-bug-reporting)
-- [Weekly dev call](contribute/support.md#weekly-dev-call)
-
-## Reporting Bugs & Issues
-
-If you have any problems using PX4 first post them on the [support forums](contribute/support.md#forums-and-chat) (as they may be caused by vehicle configuration).
-
-If directed by the development team, code issues may be raised on [Github here](https://github.com/PX4/PX4-Autopilot/issues).
-Where possible provide [flight logs](getting_started/flight_reporting.md) and other information requested in the issue template.
+Get help on the [discussion forums](https://discuss.px4.io/) or [Discord](https://discord.gg/dronecode). See the [Support](contribute/support.md) page for diagnosing problems, reporting bugs, and joining the [weekly dev call](contribute/dev_call.md).
 
 ## Долучитись до проєкту
 
-Information on how to contribute to code and documentation can be found in the [Contributing](contribute/index.md) section:
-
-- [Code](contribute/index.md)
-- [Documentation](contribute/docs.md)
-- [Translation](contribute/translation.md)
+See the [Contributing](contribute/index.md) section for code, [documentation](contribute/docs.md), and [translation](contribute/translation.md) guidelines.
 
 ## Переклади
 
-There are several [translations](contribute/translation.md) of this guide.
-Ви можете отримати доступ до вибору конкретного доступного переклада з меню Мови (вгорі праворуч):
-
-![Language Selector](../assets/vuepress/language_selector.png)
+There are several [translations](contribute/translation.md) of this guide. Use the language selector in the top navigation.
 
 <!--@include: _contributors.md-->
 
 ## Ліцензія
 
-PX4 code is free to use and modify under the terms of the permissive [BSD 3-clause license](https://opensource.org/licenses/BSD-3-Clause).
+PX4 code is free to use and modify under the terms of the permissive [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause).
 This documentation is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 For more information see: [Licences](contribute/licenses.md).
 
@@ -127,12 +89,14 @@ The calendar default timezone is Central European Time (CET).
 
 <img src="../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" /> _placeholder_ icon made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
 
-<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ icon made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
+<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ icon made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
 
 ## Управління
 
-The PX4 flight stack is hosted under the governance of the [Dronecode Project](https://www.dronecode.org/).
+The PX4 Autopilot project is hosted by the [Dronecode Foundation](https://www.dronecode.org/), a [Linux Foundation](https://www.linuxfoundation.org/) Collaborative Project. Dronecode holds all PX4 trademarks and serves as the project's legal guardian, ensuring vendor-neutral stewardship. No single company owns the name or controls the roadmap. The source code is licensed under the [BSD 3-Clause](https://opensource.org/license/BSD-3-Clause) license, so you are free to use, modify, and distribute it in your own projects.
 
-<a href="https://www.dronecode.org/" style="padding:20px" ><img src="https://mavlink.io/assets/site/logo_dronecode.png" alt="Dronecode Logo" width="110px"/></a> <a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="https://mavlink.io/assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
+<a href="https://www.dronecode.org/" style="padding:20px"><img src="../assets/site/dronecode_logo.svg" alt="Dronecode Logo" width="140px"/></a> <a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="../assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
 
 <div style="padding:10px">&nbsp;</div>
+
+Doc build time: {{ $buildTime }}

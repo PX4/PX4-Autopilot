@@ -20,6 +20,7 @@
     - Багатосмуговий RTK зі швидкими часами збіжності та надійною продуктивністю
     - Висока швидкість оновлення для високодинамічних додатків
     - Centimetre accuracy in a small and energy efficient module
+    - Moving Base for Heading
   - Bosch BMM150 Magnetometer
   - Bosch BMP388 Barometer
   - Invensense ICM-42688-P 6-Axis IMU
@@ -27,7 +28,7 @@
 - Кнопка безпеки
 - Зумер
 - Два роз'єми стандарту CAN для Pixhawk (4 контакти JST GH)
-- Роз'єм F9P "UART 2"
+- F9P `UART 2` Connector
   - 3-контактний JST-GH
   - TX, RX, GND
 - Роз'єм для відлагодження стандарту Pixhawk (6 контактів JST SH)
@@ -85,7 +86,34 @@ You need to set necessary [DroneCAN](index.md) parameters and define offsets if 
 - Enable GPS blending to ensure the heading is always published by setting [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) to 7 (all three bits checked).
 - Enable [UAVCAN_SUB_GPS](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS), [UAVCAN_SUB_MAG](../advanced_config/parameter_reference.md#UAVCAN_SUB_MAG), and [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO).
 - The parameters [EKF2_GPS_POS_X](../advanced_config/parameter_reference.md#EKF2_GPS_POS_X), [EKF2_GPS_POS_Y](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Y) and [EKF2_GPS_POS_Z](../advanced_config/parameter_reference.md#EKF2_GPS_POS_Z) can be set to account for the offset of the ARK RTK GPS from the vehicles centre of gravity.
-- Set [CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM) to `1` on the GPS if this it that last node on the CAN bus.
+
+### ARK RTK GPS Configuration
+
+You may need to [configure the following parameters](../dronecan/index.md#qgc-cannode-parameter-configuration) on the ARK RTK GPS itself:
+
+| Параметр                                                                                                                                           | Опис                                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID. |
+| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)                               | Вбудована завершення шини CAN. Set to `1` if this is the last node on the CAN bus.                                                                                                          |
+
+### Setting Up Rover and Fixed Base
+
+Position of the rover is established using RTCM messages from the RTK base module (the base module is connected to QGC, which sends the RTCM information to PX4 via MAVLink).
+
+Параметри PX4 DroneCAN:
+
+- [UAVCAN_PUB_RTCM](../advanced_config/parameter_reference.md#UAVCAN_PUB_RTCM):
+  - Makes PX4 publish RTCM messages ([RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream)) to the bus (which it gets from the RTK base module via QGC).
+
+Rover module parameters (also [set using QGC](../dronecan/index.md#qgc-cannode-parameter-configuration)):
+
+- [CANNODE_SUB_RTCM](../advanced_config/parameter_reference.md#CANNODE_SUB_RTCM) tells the rover that it should subscribe to [RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream) RTCM messages on the bus (from the moving base).
+
+:::info
+Use [UAVCAN_PUB_MBD](../advanced_config/parameter_reference.md#UAVCAN_PUB_MBD) and [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD) instead if you want to implement moving base (see below) at the same time.
+:::
+
+For more information see [Rover and Fixed Base](../dronecan/index.md#rover-and-fixed-base) in the DroneCAN guide.
 
 ### Setting Up Moving Baseline & GPS Heading
 
@@ -128,10 +156,11 @@ You need to set necessary [DroneCAN](index.md) parameters and define offsets if 
 - On the _Moving Base_, set the following:
   - [GPS_UBX_MODE](../advanced_config/parameter_reference.md#GPS_UBX_MODE) to `2`.
 
+For more information see [Rover and Moving Base](../dronecan/index.md#rover-and-moving-base) in the DroneCAN guide.
+
 ## Значення LED індикаторів
 
 - Світлодіоди статусу GPS розташовані праворуч від роз'ємів
-
   - Миготіння зеленого - це фіксація GPS
   - Миготіння синього - це отримані корекції та RTK Float
   - Сталий синій - це RTK зафіксовано
@@ -140,7 +169,7 @@ You need to set necessary [DroneCAN](index.md) parameters and define offsets if 
   - Повільне блимання зеленого - чекає на підключення CAN
   - Швидко блимаюче зелене світло - нормальна робота
   - Повільне блимання зеленим і синім - перелік CAN
-  - Повільне блимання зеленого, синього і червоного - оновлення прошивки в процесі
+  - Fast blinking blue and red is firmware update in progress
   - Миготливий червоний - помилка
     - Якщо ви бачите червоний світлодіод, це означає, що виникла помилка, і вам слід перевірити наступне
       - Переконайтеся, що у польотному контролері встановлено SD-картку

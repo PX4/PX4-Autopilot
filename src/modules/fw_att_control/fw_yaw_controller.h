@@ -71,9 +71,9 @@ public:
 	float get_body_rate_setpoint() { return _body_rate_setpoint; }
 
 private:
-	float _max_rate;
-	float _euler_rate_setpoint;
-	float _body_rate_setpoint;
+	float _max_rate{};
+	float _euler_rate_setpoint{};
+	float _body_rate_setpoint{};
 };
 
 #endif // FW_YAW_CONTROLLER_H

@@ -1,6 +1,6 @@
 # STM32 Bootloader
 
-The code for the PX4 bootloader is available from the Github [Bootloader](https://github.com/px4/bootloader) repository.
+The code for the PX4 bootloader is available from the Github [Bootloader](https://github.com/PX4/PX4-Bootloader) repository.
 
 ## 支持的飞控板
 
@@ -14,7 +14,7 @@ The code for the PX4 bootloader is available from the Github [Bootloader](https:
 ## 构建 Bootloader
 
 ```sh
-git clone https://github.com/PX4/Bootloader.git
+git clone https://github.com/PX4/PX4-Bootloader.git
 cd Bootloader
 git submodule init
 git submodule update
@@ -29,7 +29,7 @@ make
 The right power sequence is critical for some boards to allow JTAG / SWD access. 其他 JTAG 仿真器需要不同但相似的步骤。
 :::
 
-The instructions below are valid for a Blackmagic / Dronecode probe.
+The instructions below are valid for a Blackmagic / Zubax BugFace BF1 probe.
 Other JTAG probes will need different but similar steps.
 Developers attempting to flash the bootloader should have the required knowledge.
 If you do not know how to do this you probably should reconsider if you really need to change anything about the bootloader.
@@ -40,7 +40,7 @@ If you do not know how to do this you probably should reconsider if you really n
 2. 连接 USB 电源线
 3. 连接 JTAG 电缆
 
-### 黑魔法/无人机探测器
+### Black Magic / Zubax BugFace BF1 Probe
 
 #### 使用正确的串行端口
 

@@ -82,8 +82,8 @@ TEST_F(EkfReplayTest, ekfGsfReset)
 	_sensor_simulator.startGps();
 	_ekf_wrapper.enableGpsFusion();
 	auto params = _ekf->getParamHandle();
-	params->gps_vel_innov_gate = 1.f;
-	params->gps_pos_innov_gate = 1.f;
+	params->ekf2_gps_v_gate = 1.f;
+	params->ekf2_gps_p_gate = 1.f;
 
 	uint8_t logging_rate_hz = 10;
 

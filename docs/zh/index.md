@@ -1,113 +1,75 @@
-<div style="float:right; padding:10px; margin-right:20px;"><a href="https://px4.io/"><img src="../assets/site/logo_pro_small.png" title="PX4 Logo" width="180px" /></a></div>
+<script setup>
+import { useData } from 'vitepress'
+const { site } = useData();
+</script>
 
 # PX4 自动驾驶仪用户指南
 
 [![Releases](https://img.shields.io/badge/release-main-blue.svg)](https://github.com/PX4/PX4-Autopilot/releases) [![Discuss](https://img.shields.io/badge/discuss-px4-ff69b4.svg)](https://discuss.px4.io//) [![Discord](https://discordapp.com/api/guilds/1022170275984457759/widget.png?style=shield)](https://discord.gg/dronecode)
 
-PX4 is the _Professional Autopilot_.
-它由来自业界和学术界的世界级开发商开发，并得到活跃的全球社区的支持，为从竞速和物流无人机到地面车辆和潜水艇的各种载具提供动力。
+PX4 is an open-source autopilot for drones and autonomous vehicles. It runs on multirotors, fixed-wing, VTOL, helicopters, rovers, and more. This guide covers everything from assembly and configuration to flight operations and development.
 
-:::tip
-This guide contains everything you need to assemble, configure, and safely fly a PX4-based vehicle. 对贡献感兴趣吗 Check out the [Development](development/development.md) section.
-
-:::
+<div v-if="site.title == 'PX4 Guide (main)'">
 
 :::warning
-This guide is for the _development_ version of PX4 (`main` branch).
-Use the **Version** selector to find the current _stable_ version.
 
-Documented changes since the stable release are captured in the evolving [release note](releases/main.md).
+本指南适用于_development_ version of PX4 (`main` 分支)。
+使用 **版本** 选择器查找当前的 _稳定_ 版本。
+
+自稳定版本发布以来的已记录变更，收录在不断更新的(releases/main.md ) 中。
 :::
 
-## 如何开始？
+</div>
 
-[Basic Concepts](getting_started/px4_basic_concepts.md) should be read by all users!
-It provides an overview of PX4, including features provided by the flight stack (flight modes and safety features) and the supported hardware (flight controller, vehicle types, telemetry systems, RC control systems).
+## For Developers
 
-根据您想要实现的目标，以下提示将帮助您浏览本指南：
+:::tip
+Building on PX4 or extending the platform? Start here: [Development Guide](development/development.md). Set up your [dev environment](dev_setup/config_initial.md), [build from source](dev_setup/building_px4.md), run [SITL simulation](simulation/index.md), or integrate via [ROS 2](ros2/index.md) and [MAVSDK](https://mavsdk.mavlink.io/).
+:::
 
-### 我想要一个能与PX4配合使用的载具
+## 入门指南
 
-In the [Multicopter](frames_multicopter/index.md), [VTOL](frames_vtol/index.md), and [Plane (Fixed-Wing)](frames_plane/index.md) sections you'll find topics like the following (these links are for multicopter):
+Start with [Basic Concepts](getting_started/px4_basic_concepts.md) for an overview of the flight stack, flight modes, safety features, and supported hardware.
 
-- [Complete Vehicles](complete_vehicles_mc/index.md) list "Ready to Fly" (RTF) pre-built vehicles
-- [Kits](frames_multicopter/kits.md) lists drones that you have to build yourself from a set of preselected parts
-- [DIY Builds](frames_multicopter/diy_builds.md) shows some examples of drones that have been built using parts that were sourced individually
+## Build a Vehicle
 
-Both kits and complete vehicles usually include everything you need except for a battery and RC System.
-Kits are usually not hard to build, provide a good introduction to how drones fit together, and are relatively inexpensive.
-We provide generic instructions for assembly, such as [Assembling a Multicopter](assembly/assembly_mc.md), and most kits come with specific instructions too.
+Pick your frame type: [Multicopter](frames_multicopter/index.md), [Fixed-Wing](frames_plane/index.md), [VTOL](frames_vtol/index.md), [Helicopter](frames_helicopter/index.md), or [Rover](frames_rover/index.md). Each section covers complete vehicles, kits, and DIY builds. For assembly instructions see [Assembling a Multicopter](assembly/assembly_mc.md) or the equivalent for your frame.
 
-If the kits and complete drones aren't quite right for you then you can build a vehicle from scratch, but this requires more knowledge.
-[Airframe Builds](airframes/index.md) lists the supported frame starting points to give you some idea of what is possible.
+## Configure and Tune
 
-Once you have a vehicle that supports PX4 you will need to configure it and calibrate the sensors.
-Each vehicle type has its own configuration section that explains the main steps, such as [Multicopter Configuration/Tuning](config_mc/index.md).
+Once assembled, follow the configuration guide for your vehicle type (e.g. [Multicopter Configuration](config_mc/index.md)). This covers sensor calibration, flight mode setup, and tuning.
 
-### I want to add a payload/camera
+## 硬件
 
-The [Payloads](payloads/index.md) section describes how to add a camera and how to configure PX4 to enable you to deliver packages.
+The [Hardware Selection & Setup](hardware/drone_parts.md) section covers flight controllers, sensors, telemetry, RC systems, and payloads. See [Payloads](payloads/index.md) for camera and delivery integrations.
 
-### I am modifying a supported vehicle
+## Fly
 
-The [Hardware Selection & Setup](hardware/drone_parts.md) section provides both high level and product-specific information about hardware that you might use with PX4 and its configuration.
-This is the first place you should look if you want to modify a drone and add new components.
+Read [Operations](config/operations.md) to understand safety features and failsafe behavior before your first flight. Then see [Basic Flying (Multicopter)](flying/basic_flying_mc.md) or the equivalent for your frame type.
 
-### I want to fly
+## 技术支持
 
-Before you fly you should read [Operations](config/operations.md) to understand how to set up the safety features of your vehicle and the common behaviours of all frame types.
-Once you've done that you're ready to fly.
-
-Basic instructions for flying each vehicle type are provided in the respective sections, such as [Basic Flying (Multicopter)](flying/basic_flying_mc.md).
-
-### I want to run PX4 on a new Flight Controller and extend the platform
-
-The [Development](development/development.md) section explains how to support new airframes and types of vehicles, modify flight algorithms, add new modes, integrate new hardware, communicate with PX4 from outside the flight controller, and contribute to PX4.
-
-## 获取帮助
-
-The [Support](contribute/support.md) page explains how to get help from the core dev team and the wider community.
-
-除此以外，它还包括了：
-
-- [Forums where you can get help](contribute/support.md#forums-and-chat)
-- [Diagnosing issues](contribute/support.md#diagnosing-problems)
-- [How to report bugs](contribute/support.md#issue-bug-reporting)
-- [Weekly dev call](contribute/support.md#weekly-dev-call)
-
-## Reporting Bugs & Issues
-
-If you have any problems using PX4 first post them on the [support forums](contribute/support.md#forums-and-chat) (as they may be caused by vehicle configuration).
-
-If directed by the development team, code issues may be raised on [Github here](https://github.com/PX4/PX4-Autopilot/issues).
-Where possible provide [flight logs](getting_started/flight_reporting.md) and other information requested in the issue template.
+Get help on the [discussion forums](https://discuss.px4.io/) or [Discord](https://discord.gg/dronecode). See the [Support](contribute/support.md) page for diagnosing problems, reporting bugs, and joining the [weekly dev call](contribute/dev_call.md).
 
 ## 参与贡献
 
-Information on how to contribute to code and documentation can be found in the [Contributing](contribute/index.md) section:
-
-- [Code](contribute/index.md)
-- [Documentation](contribute/docs.md)
-- [Translation](contribute/translation.md)
+See the [Contributing](contribute/index.md) section for code, [documentation](contribute/docs.md), and [translation](contribute/translation.md) guidelines.
 
 ## 翻译
 
-There are several [translations](contribute/translation.md) of this guide.
-您可以从语言菜单中访问到它们（右上角）：
-
-![Language Selector](../assets/vuepress/language_selector.png)
+本指南有多种 [译文](contribute/translation.md)。 Use the language selector in the top navigation.
 
 <!--@include: _contributors.md-->
 
 ## 许可证
 
-PX4 code is free to use and modify under the terms of the permissive [BSD 3-clause license](https://opensource.org/licenses/BSD-3-Clause).
-This documentation is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-For more information see: [Licences](contribute/licenses.md).
+PX4 代码可依据宽松的 [BSD 3-clause license](https://opensource.org/license/BSD-3-Clause) 免费使用和修改。
+此文档已使用 [CC BY 4.0]授权。(https://creativecommons.org/licenses/by/4.0/)。
+详情见： [Licences](contribute/licenses.md)。
 
-## Calendar & Events
+## 日历和活动
 
-The _Dronecode Calendar_ shows important community events for platform users and developers.
+_Dronecode 日历_ 展示了面向平台用户和开发者的重要社区活动。
 选择以下链接将其显示在您所在的时区日历中(并将其添加到您自己的日历中)：
 
 - [Switzerland – Zurich](https://calendar.google.com/calendar/embed?src=linuxfoundation.org_g21tvam24m7pm7jhev01bvlqh8%40group.calendar.google.com&ctz=Europe%2FZurich)
@@ -115,7 +77,7 @@ The _Dronecode Calendar_ shows important community events for platform users and
 - [Australia – Melbourne/Sydney/Hobart](https://calendar.google.com/calendar/embed?src=linuxfoundation.org_g21tvam24m7pm7jhev01bvlqh8%40group.calendar.google.com&ctz=Australia%2FSydney)
 
 :::tip
-The calendar default timezone is Central European Time (CET).
+日历的默认时区为中欧时间（CET）。
 
 :::
 
@@ -125,14 +87,16 @@ The calendar default timezone is Central European Time (CET).
 
 此库中使用的以下图标是单独授权的（如下所示）：
 
-<img src="../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" /> _placeholder_ icon made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
+<img src="../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" /> _placeholder_icon 由 <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> 通过 <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> 创作，使用 <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 By</a> 授权。
 
-<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ icon made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>.
+<img src="../assets/site/automatic_mode.svg" title="Automatic mode" width="30px" /> _camera-automatic-mode_ 图标由 <a href="https://www.freepik.com" title="Freepik">Freepik</a> 从 <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> 是由 <a href="https://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 By</a> 授权的。
 
 ## 治理
 
-The PX4 flight stack is hosted under the governance of the [Dronecode Project](https://www.dronecode.org/).
+The PX4 Autopilot project is hosted by the [Dronecode Foundation](https://www.dronecode.org/), a [Linux Foundation](https://www.linuxfoundation.org/) Collaborative Project. Dronecode holds all PX4 trademarks and serves as the project's legal guardian, ensuring vendor-neutral stewardship. No single company owns the name or controls the roadmap. The source code is licensed under the [BSD 3-Clause](https://opensource.org/license/BSD-3-Clause) license, so you are free to use, modify, and distribute it in your own projects.
 
-<a href="https://www.dronecode.org/" style="padding:20px" ><img src="https://mavlink.io/assets/site/logo_dronecode.png" alt="Dronecode Logo" width="110px"/></a> <a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="https://mavlink.io/assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
+<a href="https://www.dronecode.org/" style="padding:20px"><img src="../assets/site/dronecode_logo.svg" alt="Dronecode Logo" width="140px"/></a> <a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="../assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
 
 <div style="padding:10px">&nbsp;</div>
+
+文档构建时间：{{ $buildTime }}

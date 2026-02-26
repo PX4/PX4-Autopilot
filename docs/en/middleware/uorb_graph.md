@@ -10,7 +10,6 @@ Usage instructions are provided [below](#graph-properties).
 import { withBase } from 'vitepress';
 </script>
 
-
 ## Graph Properties
 
 The graph has the following properties:
@@ -27,6 +26,5 @@ The graph has the following properties:
 - Double-clicking on a topic opens its message definition.
 - Make sure your browser window is wide enough to display the full graph (the sidebar menu can be hidden with the icon in the top-left corner).
   You can also zoom the image.
-- The *Preset* selection list allows you to refine the list of modules that are shown.
-- The *Search* box can be used to find particular modules/topics (topics that are not selected by the search are greyed-out).
-
+- The _Preset_ selection list allows you to refine the list of modules that are shown.
+- The _Search_ box can be used to find particular modules/topics (topics that are not selected by the search are greyed-out).

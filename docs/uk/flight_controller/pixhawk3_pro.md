@@ -36,14 +36,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Де купити
 
-From [Drotek store](https://store.drotek.com/) (EU) :
-
-- [Pixhawk 3 Pro (Pack)](https://store.drotek.com/autopilots/844-pixhawk-3-pro-pack.html)
-- [Pixhawk 3 Pro](https://store.drotek.com/autopilots/821-pixhawk-pro-autopilot-8944595120557.html)
-
-From [readymaderc](https://www.readymaderc.com) (USA) :
-
-- [Pixhawk 3 Pro](https://www.readymaderc.com/products/details/pixhawk-3-pro-flight-controller)
+No longer available.
 
 ## Збірка прошивки
 

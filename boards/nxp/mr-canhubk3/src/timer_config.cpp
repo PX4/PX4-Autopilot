@@ -51,18 +51,25 @@
 
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOTimer(Timer::EMIOS0)
+	initIOTimer(Timer::EMIOS0_Channel0, Timer::Channel0),
+	initIOTimer(Timer::EMIOS0_Channel1, Timer::Channel1),
+	initIOTimer(Timer::EMIOS0_Channel2, Timer::Channel2),
+	initIOTimer(Timer::EMIOS0_Channel3, Timer::Channel3),
+	initIOTimer(Timer::EMIOS0_Channel4, Timer::Channel4),
+	initIOTimer(Timer::EMIOS0_Channel5, Timer::Channel5),
+	initIOTimer(Timer::EMIOS0_Channel6, Timer::Channel6),
+	initIOTimer(Timer::EMIOS0_Channel7, Timer::Channel7),
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	initIOTimerChannel(io_timers, {Timer::EMIOS0, Timer::Channel0}, PIN_EMIOS0_CH0_1),
-	initIOTimerChannel(io_timers, {Timer::EMIOS0, Timer::Channel1}, PIN_EMIOS0_CH1_1),
-	initIOTimerChannel(io_timers, {Timer::EMIOS0, Timer::Channel2}, PIN_EMIOS0_CH2_1),
-	initIOTimerChannel(io_timers, {Timer::EMIOS0, Timer::Channel3}, PIN_EMIOS0_CH3_2),
-	initIOTimerChannel(io_timers, {Timer::EMIOS0, Timer::Channel4}, PIN_EMIOS0_CH4_2),
-	initIOTimerChannel(io_timers, {Timer::EMIOS0, Timer::Channel5}, PIN_EMIOS0_CH5_2),
-	initIOTimerChannel(io_timers, {Timer::EMIOS0, Timer::Channel6}, PIN_EMIOS0_CH6_1),
-	initIOTimerChannel(io_timers, {Timer::EMIOS0, Timer::Channel7}, PIN_EMIOS0_CH7_2),
+	initIOTimerChannel(io_timers, {Timer::EMIOS0_Channel0, Timer::Channel0}, PIN_EMIOS0_CH0_1),
+	initIOTimerChannel(io_timers, {Timer::EMIOS0_Channel1, Timer::Channel1}, PIN_EMIOS0_CH1_1),
+	initIOTimerChannel(io_timers, {Timer::EMIOS0_Channel2, Timer::Channel2}, PIN_EMIOS0_CH2_1),
+	initIOTimerChannel(io_timers, {Timer::EMIOS0_Channel3, Timer::Channel3}, PIN_EMIOS0_CH3_2),
+	initIOTimerChannel(io_timers, {Timer::EMIOS0_Channel4, Timer::Channel4}, PIN_EMIOS0_CH4_2),
+	initIOTimerChannel(io_timers, {Timer::EMIOS0_Channel5, Timer::Channel5}, PIN_EMIOS0_CH5_2),
+	initIOTimerChannel(io_timers, {Timer::EMIOS0_Channel6, Timer::Channel6}, PIN_EMIOS0_CH6_1),
+	initIOTimerChannel(io_timers, {Timer::EMIOS0_Channel7, Timer::Channel7}, PIN_EMIOS0_CH7_2),
 };
 
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =

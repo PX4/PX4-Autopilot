@@ -1,6 +1,6 @@
 # PilotPi with Ubuntu Server
 
-:::warning
+::: warning
 Ubuntu Server on RPi 4B consumes a lot of current and generates a lot of heat.
 Design for better heat dissipation and high power consumption when using this hardware.
 :::
@@ -48,7 +48,7 @@ First install required package:
 sudo apt-get install crda
 ```
 
-Edit the file `/etc/default/crda` to change the correct WiFi region. [Reference List](https://www.arubanetworks.com/techdocs/InstantWenger_Mobile/Advanced/Content/Instant%20User%20Guide%20-%20volumes/Country_Codes_List.htm)
+Edit the file `/etc/default/crda` to change the correct WiFi region. [Reference List](https://arubanetworking.hpe.com/techdocs/InstantWenger_Mobile/Advanced/Content/Instant%20User%20Guide%20-%20volumes/Country_Codes_List.htm)
 
 ```sh
 sudo nano /etc/default/crda
@@ -205,8 +205,8 @@ Don't forget to turn off the switch when it is not needed!
 
 #### CSI camera
 
-:::warning
-Enable CSI camera will stop anything works on I2C-0.
+::: warning
+Enabling CSI camera will stop anything that works on I2C-0.
 :::
 
 ```sh

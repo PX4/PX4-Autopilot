@@ -100,8 +100,8 @@ private:
 			}
 
 
-			// uint32_t custom_mode - A bitfield for use for autopilot-specific flags
-			union px4_custom_mode custom_mode {get_px4_custom_mode(vehicle_status.nav_state)};
+			// uint32_t custom_mode - Bitfield for autopilot-specific flags
+			union px4_custom_mode custom_mode = get_px4_custom_mode(vehicle_status.nav_state_display);
 
 
 			// uint8_t system_status (MAV_STATE) - System status flag.
@@ -119,9 +119,8 @@ private:
 			}
 
 			// system_status overrides
-			if (actuator_armed.force_failsafe || (actuator_armed.lockdown
-							      && vehicle_status.hil_state == vehicle_status_s::HIL_STATE_OFF) || actuator_armed.manual_lockdown
-			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
+			if (actuator_armed.termination || actuator_armed.kill
+			    || (actuator_armed.lockdown && vehicle_status.hil_state == vehicle_status_s::HIL_STATE_OFF)) {
 
 				system_status = MAV_STATE_FLIGHT_TERMINATION;
 			}

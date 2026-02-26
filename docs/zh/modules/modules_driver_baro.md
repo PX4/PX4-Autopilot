@@ -4,9 +4,7 @@
 
 Source: [drivers/barometer/bmp280](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/bmp280)
 
-<a id="bmp280_usage"></a>
-
-### 用法
+### Usage {#bmp280_usage}
 
 ```
 bmp280 <command> [arguments...]
@@ -42,9 +40,7 @@ bmp280 <command> [arguments...]
 
 Source: [drivers/barometer/bmp388](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/bmp388)
 
-<a id="bmp388_usage"></a>
-
-### 用法
+### Usage {#bmp388_usage}
 
 ```
 bmp388 <command> [arguments...]
@@ -72,9 +68,7 @@ bmp388 <command> [arguments...]
 
 Source: [drivers/barometer/bmp581](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/bmp581)
 
-<a id="bmp581_usage"></a>
-
-### 用法
+### Usage {#bmp581_usage}
 
 ```
 bmp581 <command> [arguments...]
@@ -102,9 +96,7 @@ bmp581 <command> [arguments...]
 
 Source: [drivers/barometer/dps310](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/dps310)
 
-<a id="dps310_usage"></a>
-
-### 用法
+### Usage {#dps310_usage}
 
 ```
 dps310 <command> [arguments...]
@@ -140,9 +132,7 @@ dps310 <command> [arguments...]
 
 Source: [drivers/barometer/invensense/icp101xx](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/invensense/icp101xx)
 
-<a id="icp101xx_usage"></a>
-
-### 用法
+### Usage {#icp101xx_usage}
 
 ```
 icp101xx <command> [arguments...]
@@ -166,9 +156,7 @@ icp101xx <command> [arguments...]
 
 Source: [drivers/barometer/invensense/icp201xx](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/invensense/icp201xx)
 
-<a id="icp201xx_usage"></a>
-
-### 用法
+### Usage {#icp201xx_usage}
 
 ```
 icp201xx <command> [arguments...]
@@ -192,9 +180,7 @@ icp201xx <command> [arguments...]
 
 Source: [drivers/barometer/lps22hb](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/lps22hb)
 
-<a id="lps22hb_usage"></a>
-
-### 用法
+### Usage {#lps22hb_usage}
 
 ```
 lps22hb <command> [arguments...]
@@ -220,9 +206,7 @@ lps22hb <command> [arguments...]
 
 Source: [drivers/barometer/lps25h](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/lps25h)
 
-<a id="lps25h_usage"></a>
-
-### 用法
+### Usage {#lps25h_usage}
 
 ```
 lps25h <command> [arguments...]
@@ -248,9 +232,7 @@ lps25h <command> [arguments...]
 
 Source: [drivers/barometer/lps33hw](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/lps33hw)
 
-<a id="lps33hw_usage"></a>
-
-### 用法
+### Usage {#lps33hw_usage}
 
 ```
 lps33hw <command> [arguments...]
@@ -279,9 +261,7 @@ lps33hw <command> [arguments...]
 
 Source: [drivers/barometer/maiertek/mpc2520](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/maiertek/mpc2520)
 
-<a id="mpc2520_usage"></a>
-
-### 用法
+### Usage {#mpc2520_usage}
 
 ```
 mpc2520 <command> [arguments...]
@@ -305,9 +285,7 @@ mpc2520 <command> [arguments...]
 
 Source: [drivers/barometer/mpl3115a2](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/mpl3115a2)
 
-<a id="mpl3115a2_usage"></a>
-
-### 用法
+### Usage {#mpl3115a2_usage}
 
 ```
 mpl3115a2 <command> [arguments...]
@@ -331,9 +309,7 @@ mpl3115a2 <command> [arguments...]
 
 Source: [drivers/barometer/ms5611](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/ms5611)
 
-<a id="ms5611_usage"></a>
-
-### 用法
+### Usage {#ms5611_usage}
 
 ```
 ms5611 <command> [arguments...]
@@ -369,9 +345,7 @@ ms5611 <command> [arguments...]
 
 Source: [drivers/barometer/ms5837](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/ms5837)
 
-<a id="ms5837_usage"></a>
-
-### 用法
+### Usage {#ms5837_usage}
 
 ```
 ms5837 <command> [arguments...]
@@ -393,9 +367,7 @@ ms5837 <command> [arguments...]
 
 Source: [drivers/barometer/goertek/spa06](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/goertek/spa06)
 
-<a id="spa06_usage"></a>
-
-### 用法
+### Usage {#spa06_usage}
 
 ```
 spa06 <command> [arguments...]
@@ -431,9 +403,7 @@ spa06 <command> [arguments...]
 
 Source: [drivers/barometer/goertek/spl06](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/goertek/spl06)
 
-<a id="spl06_usage"></a>
-
-### 用法
+### Usage {#spl06_usage}
 
 ```
 spl06 <command> [arguments...]

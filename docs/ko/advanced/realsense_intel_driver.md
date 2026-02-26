@@ -41,7 +41,7 @@ The specifications of the host computer where the Virtual Box is running, the Vi
 
 ## ROS 인디고 설치
 
-- Follow instructions given at [ROS indigo installation guide](http://wiki.ros.org/indigo/Installation/Ubuntu):
+- Follow instructions given at [ROS indigo installation guide](https://wiki.ros.org/indigo/Installation/Ubuntu):
   - 데스크톱 전체 버전을 설치하십시오.
   - "Initialize rosdep"과 "Environment setup" 부분에 설명한 단계를 실행하십시오.
 
@@ -54,7 +54,6 @@ The specifications of the host computer where the Virtual Box is running, the Vi
   ```
 
 - Download and install the driver:
-
   - Clone [RealSense_ROS repository](https://github.com/bestmodule/RealSense_ROS):
 
     ```sh
@@ -62,7 +61,6 @@ The specifications of the host computer where the Virtual Box is running, the Vi
     ```
 
 - Follow instructions given in [here](https://github.com/bestmodule/RealSense_ROS/tree/master/r200_install).
-
   - 패키지 설치할 지 여부를 물어보면 엔터키를 입력하십시오.
 
     ```sh
@@ -86,11 +84,9 @@ The specifications of the host computer where the Virtual Box is running, the Vi
 - 설치 과정이 끝나면, 가상 머신을 다시 시작하십시오.
 
 - 카메라 드라이버 시험:
-
   - 인텔 리얼센스 카메라 헤드를 USB3 케이블로 USB3 방식을 따르는 컴퓨터의 포트에 연결하십시오.
   - Click on Devices->USB-> Intel Corp Intel RealSense 3D Camera R200 in the menu bar of the Virtual Box, in order to forward the camera USB connection to the Virtual Machine.
   - [패키지 해제 폴더]/Bin/DSReadCameraInfo 파일을 실행하십시오:
-
     - 다음 오류 메시지가 나타나면 카메라 연결을 해제하십시오(컴퓨터에서 물리적으로 USB 케이블을 뽑아내십시오). Plug it in again + Click on Devices->USB-> Intel Corp Intel RealSense 3D Camera R200 in the menu bar of the Virtual Box again and execute again the file [unpacked folder]/Bin/DSReadCameraInfo.
 
       ```sh

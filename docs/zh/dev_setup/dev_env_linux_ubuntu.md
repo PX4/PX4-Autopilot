@@ -1,20 +1,17 @@
 # Ubuntu LTS/Debian Linux 的开发环境
 
-The following instructions use a bash script to set up the PX4 development environment on the [Ubuntu Linux LTS](https://wiki.ubuntu.com/LTS) versions supported by PX4: Ubuntu 22.04 (Jammy Jellyfish), 20.04 (Focal Fossa), and 18.04 (Bionic Beaver).
+The following instructions use a bash script to set up the PX4 development environment on the [Ubuntu Linux LTS](https://wiki.ubuntu.com/LTS) versions supported by PX4: Ubuntu 24.04 (Nimble Numbat) and Ubuntu 22.04 (Jammy Jellyfish).
 
 The environment includes:
 
-- [Gazebo Simulator](../sim_gazebo_gz/index.md) ("Harmonic") on Ubuntu 22.04
-- [Gazebo Classic Simulator](../sim_gazebo_classic/index.md) on Ubuntu 20.04 and Ubuntu 18.04
-- [Build toolchain for Pixhawk (and other NuttX-based hardware)](../dev_setup/building_px4.md#nuttx-pixhawk-based-boards).
+- [Gazebo Simulator](../sim_gazebo_gz/index.md) (Gazebo Harmonic)
+- [Build toolchain for Pixhawk (and other NuttX-based hardware)](../dev_setup/building_px4.md#nuttx-pixhawk-based-boards) using the `gcc-arm-none-eabi` compiler from the Ubuntu package manager.
+
+The build toolchain for other flight controllers, simulators, and working with ROS are discussed in the [Other Targets](#other-targets) section below.
 
 :::info
-The build toolchain for other flight controllers, simulators, and working with ROS are discussed in the [Other Targets](#other-targets) section below.
-:::
-
-:::tip
-if you need to use Gazebo on Ubuntu 20.04 you can [manually install Gazebo "Garden"](../sim_gazebo_gz/index.md#installation-ubuntu-linux), with the caveat that this is end-of-life in November 2024.
-If you want to use Gazebo Classic on Ubuntu 22.04 (say) then you can manually install it by following the instructions in [Gazebo Classic > Installation](../sim_gazebo_classic/index.md#installation).
+PX4 targets the **current Ubuntu LTS** (24.04) for CI and release builds, with the **previous LTS** (22.04) also supported.
+Older Ubuntu versions are not supported and may not work.
 :::
 
 ## Simulation and NuttX (Pixhawk) Targets
@@ -29,24 +26,24 @@ To install the toolchain:
 
 1. [Download PX4 Source Code](../dev_setup/building_px4.md):
 
-  ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-  ```
+   ```sh
+   git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+   ```
 
-  ::: info
-  The environment setup scripts in the source usually work for recent PX4 releases.
-  If working with an older version of PX4 you may need to [get the source code specific to your release](../contribute/git_examples.md#get-a-specific-release).
+   ::: info
+   The environment setup scripts in the source usually work for recent PX4 releases.
+   If working with an older version of PX4 you may need to [get the source code specific to your release](../contribute/git_examples.md#get-a-specific-release).
 
 :::
 
 2. Run the **ubuntu.sh** with no arguments (in a bash shell) to install everything:
 
-  ```sh
-  bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
-  ```
+   ```sh
+   bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
+   ```
 
-  - 在安装过程中确认并通过所有的提示。
-  - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
+   - 在安装过程中确认并通过所有的提示。
+   - You can use the `--no-nuttx` and `--no-sim-tools` options to omit the NuttX and/or simulation tools.
 
 3. 完成后重新启动计算机。
 
@@ -57,13 +54,14 @@ These notes are provided "for information only":
 - This setup is supported by the PX4 Dev Team.
   The instructions may also work on other Debian Linux based systems.
 
-- You can verify the NuttX installation by confirming the `gcc` version as shown:
+- You can verify the NuttX installation by confirming `gcc` is available.
+  The version depends on your Ubuntu release (e.g. GCC 13.2.1 on Ubuntu 24.04):
 
   ```sh
-  $arm-none-eabi-gcc --version
+  $ arm-none-eabi-gcc --version
 
-  arm-none-eabi-gcc (GNU Arm Embedded Toolchain 9-2020-q2-update) 9.3.1 20200408 (release)
-  Copyright (C) 2019 Free Software Foundation, Inc.
+  arm-none-eabi-gcc (15:13.2.rel1-2) 13.2.1 20231009
+  Copyright (C) 2023 Free Software Foundation, Inc.
   This is free software; see the source for copying conditions.  There is NO
   warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
   ```
@@ -79,17 +77,6 @@ These notes are provided "for information only":
 
 
 :::
-
-## 一键安装脚本
-
-This video shows how to install the toolchain for NuttX and simulation targets ([as covered below](#simulation-and-nuttx-pixhawk-targets)) along with the basic testing covered in [Building PX4 Software](../dev_setup/building_px4.md).
-
-:::warning
-The video suggests that you build source using JMAVSim, entering the command: `make px4_sitl jmavsim`.
-As JMAVSim is now community-supported, you should instead build using Gazebo or Gazebo Classic, as shown in [Building the Code](../dev_setup/building_px4.md#first-build-using-a-simulator)
-:::
-
-<lite-youtube videoid="OtValQdAdrU" title=" Setting up your PX4 development environment on Linux"/>
 
 ## Other Targets
 

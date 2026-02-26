@@ -1,13 +1,13 @@
 # mRo Pixhawk Flight Controller (Pixhawk 1)
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.mrobotics.io/) for hardware support or compliance issues.
 :::
 
 The _mRo Pixhawk<sup>&reg;</sup>_ is a hardware compatible version of the original [Pixhawk 1](../flight_controller/pixhawk.md). It runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
 
-:::tip
+::: tip
 The controller can be used as a drop-in replacement for the 3DR<sup>&reg;</sup> [Pixhawk 1](../flight_controller/pixhawk.md).
 The main difference is that it is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv3** open hardware design, which corrects a bug that limited the original Pixhawk 1 to 1MB of flash.
 :::
@@ -16,7 +16,7 @@ The main difference is that it is based on the [Pixhawk-project](https://pixhawk
 
 Assembly/setup instructions for use with PX4 are provided here: [Pixhawk Wiring Quickstart](../assembly/quick_start_pixhawk.md)
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -44,7 +44,6 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
   - 3.3 and 6.6V ADC inputs
   - External microUSB port
 - Power System:
-
   - Ideal diode controller with automatic failover
   - Servo rail high-power (7 V) and high-current ready
   - All peripheral outputs over-current protected, all inputs ESD protected
@@ -63,14 +62,14 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 
@@ -99,8 +98,8 @@ See [3DR Pixhawk 1 > Pinouts](../flight_controller/pixhawk.md#pinouts)
 
 The board is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv3** open hardware design.
 
-- [FMUv3 schematic](https://github.com/PX4/Hardware/raw/master/FMUv3_REV_D/Schematic%20Print/Schematic%20Prints.PDF) -- Schematic and layout
+- [FMUv3 schematic](https://github.com/pixhawk/Hardware/raw/master/FMUv3_REV_D/Schematic%20Print/Schematic%20Prints.PDF) -- Schematic and layout
 
 ::: info
-As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files are [available](https://github.com/PX4/Hardware).
+As a CC-BY-SA 3.0 licensed Open Hardware design, all schematics and design files are [available](https://github.com/pixhawk/Hardware).
 :::

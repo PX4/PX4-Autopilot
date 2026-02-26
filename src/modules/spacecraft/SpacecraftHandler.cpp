@@ -34,16 +34,77 @@
 /**
  * @file SpacecraftHandler.cpp
  *
- * Control allocator.
+ * Spacecraft control handler.
  *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ * @author Pedro Roque <padr@kth.se>
  */
 
 #include "SpacecraftHandler.hpp"
 
+
+using namespace time_literals;
+
+ModuleBase::Descriptor SpacecraftHandler::desc{task_spawn, custom_command, print_usage};
+
+SpacecraftHandler::SpacecraftHandler() :
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+{
+	updateParams();
+}
+
+bool SpacecraftHandler::init()
+{
+	ScheduleOnInterval(4_ms); // 250 Hz
+	return true;
+}
+
+void SpacecraftHandler::updateParams()
+{
+	ModuleParams::updateParams();
+}
+
+void SpacecraftHandler::Run()
+{
+	if (_parameter_update_sub.updated()) {
+		updateParams();
+	}
+
+	if (_vehicle_control_mode_sub.updated()) {
+		_vehicle_control_mode_sub.copy(&_vehicle_control_mode);
+	}
+
+	const hrt_abstime timestamp_prev = _timestamp;
+	_timestamp = hrt_absolute_time();
+	_dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+
+	_spacecraft_position_control.updatePositionControl();
+	_spacecraft_attitude_control.updateAttitudeControl();
+	_spacecraft_rate_control.updateRateControl();
+
+}
+
 int SpacecraftHandler::task_spawn(int argc, char *argv[])
 {
-	return 0;
+	SpacecraftHandler *instance = new SpacecraftHandler();
+
+	if (instance) {
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
+
+	return PX4_ERROR;
 }
 
 int SpacecraftHandler::print_status()
@@ -75,6 +136,7 @@ int SpacecraftHandler::print_usage(const char *reason)
 
 	PRINT_MODULE_USAGE_NAME("spacecraft", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND("status");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -87,5 +149,5 @@ extern "C" __EXPORT int spacecraft_main(int argc, char *argv[]);
 
 int spacecraft_main(int argc, char *argv[])
 {
-	return SpacecraftHandler::main(argc, argv);
+	return ModuleBase::main(SpacecraftHandler::desc, argc, argv);
 }

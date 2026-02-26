@@ -41,7 +41,7 @@ RealSense R200 相机头如下图所示:
 
 ## 安装 ROS Indigo
 
-- Follow instructions given at [ROS indigo installation guide](http://wiki.ros.org/indigo/Installation/Ubuntu):
+- Follow instructions given at [ROS indigo installation guide](https://wiki.ros.org/indigo/Installation/Ubuntu):
   - 安装桌面完整版。
   - 执行 "初始化 rosdep" 和 "环境设置" 部分中描述的步骤。
 
@@ -54,7 +54,6 @@ RealSense R200 相机头如下图所示:
   ```
 
 - 下载并安装驱动:
-
   - Clone [RealSense_ROS repository](https://github.com/bestmodule/RealSense_ROS):
 
     ```sh
@@ -62,7 +61,6 @@ RealSense R200 相机头如下图所示:
     ```
 
 - Follow instructions given in [here](https://github.com/bestmodule/RealSense_ROS/tree/master/r200_install).
-
   - 无论要不要安装如下包都敲击回车：
 
     ```sh
@@ -86,11 +84,9 @@ RealSense R200 相机头如下图所示:
 - 安装结束后，重启虚拟机。
 
 - 测试摄像头驱动：
-
   - 使用 USB 线缆，一头连接电脑的 USB3 接口，另一端连接　Intel RealSense 相机。
   - Click on Devices->USB-> Intel Corp Intel RealSense 3D Camera R200 in the menu bar of the Virtual Box, in order to forward the camera USB connection to the Virtual Machine.
   - 执行文件 [unpacked folder]/bin/dsreadcamerainfo：
-
     - 如果出现以下错误消息，请拔下相机 (从计算机物理上拔下 usb 电缆)。 Plug it in again + Click on Devices->USB-> Intel Corp Intel RealSense 3D Camera R200 in the menu bar of the Virtual Box again and execute again the file [unpacked folder]/Bin/DSReadCameraInfo.
 
       ```sh

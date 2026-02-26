@@ -45,28 +45,6 @@ div.frame_variant td, div.frame_variant th {
 }
 </style>
 
-## 2D Space Robot
-
-### Space Robot
-
-<div class="frame_common">
-<img src="../../assets/airframes/types/AirframeUnknown.svg"/>
-</div>
-
-<div class="frame_variant">
-<table>
- <thead>
-   <tr><th>参数名</th><th></th></tr>
- </thead>
-<tbody>
-<tr id="2d_space_robot_space_robot_kth_space_robot">
- <td>KTH Space Robot</td>
- <td>Maintainer: DISCOWER<p><code>SYS_AUTOSTART</code> = 70000</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-
 ## 旋翼机
 
 ### 旋翼机
@@ -617,12 +595,16 @@ div.frame_variant td, div.frame_variant th {
    <tr><th>参数名</th><th></th></tr>
  </thead>
 <tbody>
+<tr id="rover_rover_sih_rover_ackermann">
+ <td>SIH Rover Ackermann</td>
+ <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 1104</p></td>
+</tr>
 <tr id="rover_rover_generic_rover_differential">
  <td>Generic Rover Differential</td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 50000</p></td>
 </tr>
 <tr id="rover_rover_aion_robotics_r1_ugv">
- <td><a href="https://www.aionrobotics.com/r1">Aion Robotics R1 UGV</a></td>
+ <td><a href="https://docs.px4.io/main/en/complete_vehicles_rover/aion_r1.html">Aion Robotics R1 UGV</a></td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 50001</p></td>
 </tr>
 <tr id="rover_rover_generic_rover_ackermann">
@@ -633,17 +615,44 @@ div.frame_variant td, div.frame_variant th {
  <td><a href="https://www.axialadventure.com/product/1-10-scx10-ii-trail-honcho-4wd-rock-crawler-brushed-rtr/AXID9059.html">Axial SCX10 2 Trail Honcho</a></td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51001</p></td>
 </tr>
+<tr id="rover_rover_nxp_b3rb_rover_ackermann">
+ <td>NXP B3RB Rover Ackermann</td>
+ <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 51002</p></td>
+</tr>
 <tr id="rover_rover_generic_rover_mecanum">
  <td>Generic Rover Mecanum</td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 52000</p></td>
 </tr>
-<tr id="rover_rover_generic_ground_vehicle_(deprecated)">
- <td>Generic Ground Vehicle (Deprecated)</td>
- <td><p><code>SYS_AUTOSTART</code> = 59000</p><br><b>Specific Outputs:</b><ul><li><b>电机1</b>: 油门</li><li><b>舵机1</b>: 转向</li></ul></td>
+</tbody>
+</table>
+</div>
+
+## Spacecraft
+
+### Free-Flyer
+
+<div class="frame_common">
+<img src="../../assets/airframes/types/FreeFlyer.svg"/>
+<table>
+ <thead>
+   <tr><th>常规输出接法</th></tr>
+ </thead>
+ <tbody>
+<tr>
+ <td><ul><li><b>Motor1</b>: back left thruster, +x thrust</li><li><b>Motor2</b>: front left thruster, -x thrust</li><li><b>Motor3</b>: back right thruster, +x thrust</li><li><b>Motor4</b>: front right thruster, -x thrust</li><li><b>Motor5</b>: front left thruster, +y thrust</li><li><b>Motor6</b>: front right thruster, -y thrust</li><li><b>Motor7</b>: back left thruster, +y thrust</li><li><b>Motor8</b>: back right thruster, -y thrust</li></ul></td>
 </tr>
-<tr id="rover_rover_nxp_cup_car:_df_robot_gpx_(deprecated)">
- <td>NXP Cup car: DF Robot GPX (Deprecated)</td>
- <td>Maintainer: Katrin Moritz<p><code>SYS_AUTOSTART</code> = 59001</p><br><b>Specific Outputs:</b><ul><li><b>电机1</b>: 剩余轮子速度</li><li><b>舵机1</b>: 转向</li></ul></td>
+</tbody></table>
+</div>
+
+<div class="frame_variant">
+<table>
+ <thead>
+   <tr><th>参数名</th><th></th></tr>
+ </thead>
+<tbody>
+<tr id="spacecraft_free-flyer_kth-atmos">
+ <td><a href="https://atmos.discower.io">KTH-ATMOS</a></td>
+ <td>Maintainer: DISCOWER<p><code>SYS_AUTOSTART</code> = 70000</p></td>
 </tr>
 </tbody>
 </table>
@@ -797,4 +806,3 @@ div.frame_variant td, div.frame_variant th {
 </tbody>
 </table>
 </div>
-

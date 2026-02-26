@@ -27,7 +27,6 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 
 1. Create a new directory **PX4-Autopilot/src/examples/px4_simple_app**.
 1. Create a new C file in that directory named **px4_simple_app.c**:
-
    - Copy in the default header to the top of the page.
      This should be present in all contributed files!
 
@@ -89,13 +88,17 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
      ```
 
      :::tip
+
      The main function must be named `<module_name>_main` and exported from the module as shown.
+
      :::
 
      :::tip
+
      `PX4_INFO` is the equivalent of `printf` for the PX4 shell (included from **px4_platform_common/log.h**).
      There are different log levels: `PX4_INFO`, `PX4_WARN`, `PX4_ERR`, `PX4_DEBUG`.
      Warnings and errors are additionally added to the [ULog](../dev_log/ulog_file_format.md) and shown on [Flight Review](https://logs.px4.io/).
+
      :::
 
 1. Create and open a new _cmake_ definition file named **CMakeLists.txt**.
@@ -145,7 +148,6 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
    ```
 
    The `px4_add_module()` method builds a static library from a module description.
-
    - The `MODULE` block is the Firmware-unique name of the module (by convention the module name is prefixed by parent directories back to `src`).
    - The `MAIN` block lists the entry point of the module, which registers the command with NuttX so that it can be called from the PX4 shell or SITL console.
 
@@ -162,7 +164,7 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
 1. Create and open a new _Kconfig_ definition file named **Kconfig** and define your symbol for naming (see [Kconfig naming convention](../hardware/porting_guide_config.md#px4-kconfig-symbol-naming-convention)).
    Copy in the text below:
 
-   ```
+   ```text
    menuconfig EXAMPLES_PX4_SIMPLE_APP
    	bool "px4_simple_app"
    	default n
@@ -303,7 +305,7 @@ int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
 
 The `sensor_sub_fd` is a topic handle and can be used to very efficiently perform a blocking wait for new data.
 The current thread goes to sleep and is woken up automatically by the scheduler once new data is available, not consuming any CPU cycles while waiting.
-To do this, we use the [poll()](http://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
+To do this, we use the [poll()](https://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
 
 Adding `poll()` to the subscription looks like (_pseudocode, look for the full implementation below_):
 
@@ -436,6 +438,7 @@ The [complete example code](https://github.com/PX4/PX4-Autopilot/blob/main/src/e
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
 #include <unistd.h>

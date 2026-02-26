@@ -35,7 +35,7 @@ The I2C interface of non-blue-label Lidar-Lite (v1) devices has stability limita
 권장되는 강력한 설정은 PWM 인터페이스를 가진 v1 장치입니다.
 :::
 
-The standard wiring instructions for Lidar-Lite 3 (from the [Operation Manual](http://static.garmin.com/pumac/LIDAR_Lite_v3_Operation_Manual_and_Technical_Specifications.pdf)) are shown below.
+The standard wiring instructions for Lidar-Lite 3 (from the [Operation Manual](https://static.garmin.com/pumac/LIDAR_Lite_v3_Operation_Manual_and_Technical_Specifications.pdf)) are shown below.
 Lidar-Lite v2와 v3은 커넥터의 핀 순서가 역전된다는 점을 제외하면 동일합니다 (즉, 커넥터가 뒤집힌 것처럼).
 
 ![LidarLite v3 - Standard Wiring from Garmin Specification](../../assets/hardware/sensors/lidar_lite/lidar_lite2_standard_wiring_spec.jpg)
@@ -83,4 +83,4 @@ If missing, you would also need to add the driver (`drivers/ll40ls`) to the boar
 
 ## 추가 정보
 
-- [LIDAR_Lite_v3_Operation_Manual_and_Technical_Specifications.pdf](http://static.garmin.com/pumac/LIDAR_Lite_v3_Operation_Manual_and_Technical_Specifications.pdf) (Garmin)
+- [LIDAR_Lite_v3_Operation_Manual_and_Technical_Specifications.pdf](https://static.garmin.com/pumac/LIDAR_Lite_v3_Operation_Manual_and_Technical_Specifications.pdf) (Garmin)

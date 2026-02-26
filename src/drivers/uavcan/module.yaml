@@ -1,4 +1,77 @@
+__max_num_uavcan_lights: &max_num_uavcan_lights 2 # NOTE: This value must match MAX_NUM_UAVCAN_LIGHTS in rgbled.hpp
+
+
 module_name: UAVCAN
+parameters:
+- group: UAVCAN
+  definitions:
+    UAVCAN_ESC_IFACE:
+      description:
+        short: Which CAN interfaces to output ESC messages on.
+        long: |
+          Since ESC messages are high priority and sent at a high rate, it is
+          recommended to only enable the interfaces that are actually used.
+          Otherwise, the ESC messages will arbitrate lower priority messages and
+          starve other nodes on the bus.
+      type: bitmask
+      bit:
+        0: CAN1
+        1: CAN2
+        2: CAN3
+        3: CAN4
+        4: CAN5
+        5: CAN6
+        6: CAN7
+        7: CAN8
+      default: 255
+      min: 1
+      max: 255
+      reboot_required: true
+    UAVCAN_LGT_NUM:
+      description:
+        short: Number of UAVCAN lights to configure
+        long: |
+          Number of lights to control via UAVCAN LightsCommand messages.
+          Set to 0 to disable UAVCAN light control.
+          Each light uses two parameters: LGT_IDx for the light_id and LGT_FNx for the function.
+      type: int32
+      min: 0
+      max: *max_num_uavcan_lights
+      default: 1
+      reboot_required: true
+    UAVCAN_LGT_ID${i}:
+      description:
+        short: Light ${i} ID
+        long: |
+          specifies the light_id value for light ${i} in UAVCAN LightsCommand messages.
+          This determines which physical LED responds to commands for this light slot.
+      type: int32
+      num_instances: *max_num_uavcan_lights
+      instance_start: 0
+      min: 0
+      max: 255
+      default: 0
+    UAVCAN_LGT_FN${i}:
+      description:
+        short: Light ${i} function
+        long: |
+          Function for light ${i}.
+          UAVCAN_LGT_MODE determines when the first option or second option is active Off/On.
+      type: enum
+      num_instances: *max_num_uavcan_lights
+      instance_start: 0
+      min: 0
+      max: 9
+      default: 0
+      values:
+        0: Status/Status
+        1: Off/White
+        2: Off/Red
+        3: Off/Green
+        4: Status/White
+        5: Status/Red
+        6: Status/Green
+        7: Status/Off
 actuator_output:
   show_subgroups_if: 'UAVCAN_ENABLE>=3'
   config_parameters:

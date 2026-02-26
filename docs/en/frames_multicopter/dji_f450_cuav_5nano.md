@@ -1,6 +1,6 @@
 # DJI FlameWheel 450 + CUAV V5 nano Build
 
-This topic provides full instructions for building the kit and configuring PX4 using *QGroundControl*.
+This topic provides full instructions for building the kit and configuring PX4 using _QGroundControl_.
 
 Key information
 
@@ -13,6 +13,7 @@ Key information
 ## Bill of materials
 
 The components needed for this build are:
+
 - Flight controller: [CUAV V5 nano](https://store.cuav.net/shop/v5-nano/):
   - GPS: [CUAV NEO V2 GPS](https://store.cuav.net/index.php?id_product=97&id_product_attribute=0&rewrite=cuav-new-ublox-neo-m8n-gps-module-with-shell-stand-holder-for-flight-controller-gps-compass-for-pixhack-v5-plus-rc-parts-px4&controller=product&id_lang=1)
   - Power Module
@@ -24,7 +25,6 @@ The components needed for this build are:
 - Motors: [DJI E305 2312E Motor (960kv,CW)](https://www.amazon.com/DJI-E305-2312E-Motor-960kv/dp/B072MBMCZN)
 - ESC: Hobbywing XRotor 20A APAC Brushless ESC 3-4S For RC Multicopters
 
-
 In addition, we used an FrSky Taranis controller.
 You will also need zip ties, double-sided tape, a soldering iron.
 
@@ -32,65 +32,61 @@ The image below shows both frame and electronic components.
 
 ![All components used in this build](../../assets/airframes/multicopter/dji_f450_cuav_5nano/all_components.jpg)
 
-
 ## Hardware
 
 ### Frame
 
 This section lists all hardware for the frame.
 
-Description | Quantity
----|---
-DJI F450 Bottom plate | 1
-DJI F450 Top plate | 1
-DJI F450 legs with landing gear | 4
-M3*8 screws | 18
-M2 5*6 screws | 24
-Velcro Battery Strap | 1
-DJI Phantom Built-in Nut Upgrade Propellers 9.4x5 | 1
+| Description                                       | Quantity |
+| ------------------------------------------------- | -------- |
+| DJI F450 Bottom plate                             | 1        |
+| DJI F450 Top plate                                | 1        |
+| DJI F450 legs with landing gear                   | 4        |
+| M3\*8 screws                                      | 18       |
+| M2 5\*6 screws                                    | 24       |
+| Velcro Battery Strap                              | 1        |
+| DJI Phantom Built-in Nut Upgrade Propellers 9.4x5 | 1        |
 
 ![F450 frame components](../../assets/airframes/multicopter/dji_f450_cuav_5nano/f450_frame_components.png)
-
 
 ### CUAV v5 nano Package
 
 This section lists the components in the CUAV v5 nano package.
 
-Description | Quantity (Default Package) | Quantity (+GPS Package)
---- | --- | ---
-V5 nano flight controller | 1 | 1
-DuPont Cable             | 2 | 2
-I2C/CAN Cable            | 2 | 2
-ADC 6.6 Cable            | 2 | 2
-SBUS Signal Cable        | 1 | 1
-IRSSI Cable              | 1 | 1
-DSM Signal Cable         | 1 | 1
-ADC 3.3 Cable            | 1 | 1
-Debug Cable              | 1 | 1
-Safety Switch Cable      | 1 | 1
-Voltage & Current Cable  | 1 | 1
-PW-Link Module Cable     | 1 | 1
-Power Module             | 1 | 1
-SanDisk 16GB Memory Card | 1 | 1
-12C Expansion Board      | 1 | 1
-TTL Plate                | 1 | 1
-NEO GPS                  | - | 1
-GPS Bracket              | - | 1
-
+| Description               | Quantity (Default Package) | Quantity (+GPS Package) |
+| ------------------------- | -------------------------- | ----------------------- |
+| V5 nano flight controller | 1                          | 1                       |
+| DuPont Cable              | 2                          | 2                       |
+| I2C/CAN Cable             | 2                          | 2                       |
+| ADC 6.6 Cable             | 2                          | 2                       |
+| SBUS Signal Cable         | 1                          | 1                       |
+| IRSSI Cable               | 1                          | 1                       |
+| DSM Signal Cable          | 1                          | 1                       |
+| ADC 3.3 Cable             | 1                          | 1                       |
+| Debug Cable               | 1                          | 1                       |
+| Safety Switch Cable       | 1                          | 1                       |
+| Voltage & Current Cable   | 1                          | 1                       |
+| PW-Link Module Cable      | 1                          | 1                       |
+| Power Module              | 1                          | 1                       |
+| SanDisk 16GB Memory Card  | 1                          | 1                       |
+| 12C Expansion Board       | 1                          | 1                       |
+| TTL Plate                 | 1                          | 1                       |
+| NEO GPS                   | -                          | 1                       |
+| GPS Bracket               | -                          | 1                       |
 
 ### Electronics
 
-Description | Quantity
---- | --- 
-CUAV V5 nano | 1
-CUAV NEO V2 GPS | 1
-Holibro Telemetry | 1
-FrSky D4R-II 2.4G 4CH ACCST Telemetry Receiver | 1
-DJI E305 2312E Motor (800kv,CW) | 4
-Hobbywing XRotor 20A APAC Brushless ESC | 4
-Power Module(Included in the CUAV V5 nano package) | 1
-Turnigy High Capacity 5200mAh 3S 12C Lipo Pack w/XT60 | 1
-
+| Description                                           | Quantity |
+| ----------------------------------------------------- | -------- |
+| CUAV V5 nano                                          | 1        |
+| CUAV NEO V2 GPS                                       | 1        |
+| Holibro Telemetry                                     | 1        |
+| FrSky D4R-II 2.4G 4CH ACCST Telemetry Receiver        | 1        |
+| DJI E305 2312E Motor (800kv,CW)                       | 4        |
+| Hobbywing XRotor 20A APAC Brushless ESC               | 4        |
+| Power Module(Included in the CUAV V5 nano package)    | 1        |
+| Turnigy High Capacity 5200mAh 3S 12C Lipo Pack w/XT60 | 1        |
 
 ### Tools needed
 
@@ -101,7 +97,6 @@ The following tools are used in this assembly:
 - Wire cutters
 - Precision tweezers
 - Soldering iron
-
 
 ![Required tools](../../assets/airframes/multicopter/dji_f450_cuav_5nano/required_tools.jpg)
 
@@ -134,7 +129,7 @@ Estimated time to assemble is approximately 90 minutes (about 45 minutes for the
 
    ![Add top board](../../assets/airframes/multicopter/dji_f450_cuav_5nano/6_add_top_board.jpg)
 
-1. Add damping foam to the *CUAV V5 nano* flight controller.
+1. Add damping foam to the _CUAV V5 nano_ flight controller.
 
    ![Damping foam](../../assets/airframes/multicopter/dji_f450_cuav_5nano/7a_attach_cuav5nano.jpg)
    ![Damping foam](../../assets/airframes/multicopter/dji_f450_cuav_5nano/7b_attach_cuav5nano.jpg)
@@ -154,7 +149,7 @@ Estimated time to assemble is approximately 90 minutes (about 45 minutes for the
 
 1. Plug in Telemetry (`TELEM1`), GPS module (`GPS/SAFETY`), RC receiver (`RC`), all 4 ESC’s (`M1-M4`), and the power module (`Power1`) into the flight controller.
    ![Attach peripherals to flight controller](../../assets/airframes/multicopter/dji_f450_cuav_5nano/12_fc_attach_periperhals.jpg)
-   
+
    ::: info
    The motor order is defined in the [Airframe Reference > Quadrotor x](../airframes/airframe_reference.md#quadrotor-x)
    :::
@@ -164,11 +159,10 @@ The final build is shown below:
 
 ![Finished Setup](../../assets/airframes/multicopter/dji_f450_cuav_5nano/f450_cuav5_nano_complete.jpg)
 
-
 ## PX4 Configuration
 
-*QGroundControl* is used to install the PX4 autopilot and configure/tune it for the frame.
-[Download and install](http://qgroundcontrol.com/downloads/) *QGroundControl* for your platform.
+_QGroundControl_ is used to install the PX4 autopilot and configure/tune it for the frame.
+[Download and install](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/getting_started/download_and_install.html) _QGroundControl_ for your platform.
 
 :::tip
 Full instructions for installing and configuring PX4 can be found in [Basic Configuration](../config/index.md).
@@ -180,16 +174,15 @@ First update the firmware, airframe, geometry and outputs:
 - [Airframe](../config/airframe.md)
 
   ::: info
-  You will need to select the *Generic Quadcopter* airframe (**Quadrotor x > Generic Quadcopter**).
+  You will need to select the _Generic Quadcopter_ airframe (**Quadrotor x > Generic Quadcopter**).
 
   ![QGroundControl - Select Generic Quadcopter](../../assets/airframes/multicopter/dji_f450_cuav_5nano/qgc_airframe_generic_quadx.png)
   :::
-  
+
 - [Actuators](../config/actuators.md)
   - Update the vehicle geometry to match the frame.
   - Assign actuator functions to outputs to match your wiring.
   - Test the configuration using the sliders.
-
 
 Then perform the mandatory setup/calibration:
 
@@ -201,7 +194,7 @@ Then perform the mandatory setup/calibration:
 - [Flight Modes](../config/flight_mode.md)
 
   ::: info
-  For this build we set up modes *Stabilized*, *Altitude* and *Position* on a three-way switch on the receiver (mapped to a single channel - 5).
+  For this build we set up modes _Stabilized_, _Altitude_ and _Position_ on a three-way switch on the receiver (mapped to a single channel - 5).
   This is the recommended minimal set of modes for beginners.
   :::
 
@@ -211,19 +204,16 @@ Ideally you should also do:
 - [Battery Estimation Tuning](../config/battery.md)
 - [Safety](../config/safety.md)
 
-
 ## Tuning
 
-Airframe selection sets *default* autopilot parameters for the frame.
+Airframe selection sets _default_ autopilot parameters for the frame.
 These may be good enough to fly with, but you should tune each frame build.
 
 For instructions on how, start from [Autotune](../config/autotune_mc.md).
 
-
 ## Video
 
 <lite-youtube videoid="b0bKNdDqVHw" title="CUAV Nano"/>
-
 
 ## Acknowledgments
 

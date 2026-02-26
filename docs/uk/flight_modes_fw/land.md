@@ -41,11 +41,12 @@ The vehicle will flare if configured to do so (see [Flaring](../flight_modes_fw/
 
 Поведінку режиму приземлення можна налаштувати за допомогою наведених нижче параметрів.
 
-| Параметр                                                                                                                                        | Опис                                                                                            |
-| ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| <a id="NAV_LOITER_RAD"></a>[NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD) | Радіус блукання, який контролер відстежує протягом усієї послідовності посадки. |
-| <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)             | Виставте кут шляху пункту налаштувань.                                          |
-| <a id="FW_LND_AIRSPD"></a>[FW_LND_AIRSPD](../advanced_config/parameter_reference.md#FW_LND_AIRSPD)    | Налаштування швидкості.                                                         |
+| Параметр                                                                                                                                                                   | Опис                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="NAV_LOITER_RAD"></a>[NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)                            | Радіус блукання, який контролер відстежує протягом усієї послідовності посадки.                                                                                                                                              |
+| <a id="FW_LND_ANG"></a>[FW_LND_ANG](../advanced_config/parameter_reference.md#FW_LND_ANG)                                        | Виставте кут шляху пункту налаштувань.                                                                                                                                                                                       |
+| <a id="FW_LND_AIRSPD"></a>[FW_LND_AIRSPD](../advanced_config/parameter_reference.md#FW_LND_AIRSPD)                               | Налаштування швидкості.                                                                                                                                                                                                      |
+| <a id="FW_AIRSPD_FLP_SC"></a>[FW_AIRSPD_FLP_SC](../advanced_config/parameter_reference.md#FW_AIRSPD_FLP_SC) | Factor applied to the minimum airspeed when flaps are fully deployed. Necessary if FW_LND_AIRSPD is below FW_AIRSPD_MIN. |
 
 ## Дивіться також
 

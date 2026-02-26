@@ -54,7 +54,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_test.h>
-#include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -96,14 +95,19 @@ using arm_disarm_reason_t = events::px4::enums::arm_disarm_reason_t;
 
 using namespace time_literals;
 
-class Commander : public ModuleBase<Commander>, public ModuleParams
+class Commander : public ModuleBase, public ModuleParams
 {
 public:
+	static Descriptor desc;
+
 	Commander();
 	~Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static Commander *instantiate(int argc, char *argv[]);
@@ -230,7 +234,7 @@ private:
 		_health_and_arming_checks.externalChecks()
 #endif
 	};
-	UserModeIntention	_user_mode_intention {this, _vehicle_status, _health_and_arming_checks, &_mode_management};
+	UserModeIntention _user_mode_intention {_vehicle_status, _health_and_arming_checks, &_mode_management};
 
 	const failsafe_flags_s &_failsafe_flags{_health_and_arming_checks.failsafeFlags()};
 	HomePosition 		_home_position{_failsafe_flags};
@@ -244,6 +248,7 @@ private:
 	hrt_abstime _datalink_last_heartbeat_gcs{0};
 	hrt_abstime _datalink_last_heartbeat_onboard_controller{0};
 	hrt_abstime _datalink_last_heartbeat_parachute_system{0};
+	hrt_abstime _datalink_last_heartbeat_traffic_avoidance_system{0};
 
 	hrt_abstime _last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
@@ -269,6 +274,7 @@ private:
 	bool _open_drone_id_system_lost{true};
 	bool _onboard_controller_lost{false};
 	bool _parachute_system_lost{true};
+	bool _traffic_avoidance_system_lost{true};
 
 	bool _last_overload{false};
 	bool _mode_switch_mapped{false};
@@ -279,6 +285,7 @@ private:
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
+	bool _mission_in_progress{false};
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
@@ -312,7 +319,6 @@ private:
 	// Publications
 	uORB::Publication<actuator_armed_s>			_actuator_armed_pub{ORB_ID(actuator_armed)};
 	uORB::Publication<actuator_test_s>			_actuator_test_pub{ORB_ID(actuator_test)};
-	uORB::Publication<failure_detector_status_s>		_failure_detector_status_pub{ORB_ID(failure_detector_status)};
 	uORB::Publication<vehicle_command_ack_s>		_vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_command_s>			_vehicle_command_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_control_mode_s>		_vehicle_control_mode_pub{ORB_ID(vehicle_control_mode)};

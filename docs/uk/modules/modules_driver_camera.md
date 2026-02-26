@@ -34,9 +34,7 @@ The driver is configured using [Camera Trigger parameters](../advanced_config/pa
 
 [Setup/usage information](../camera/index.md).
 
-<a id="camera_trigger_usage"></a>
-
-### Використання
+### Usage {#camera_trigger_usage}
 
 ```
 camera_trigger <command> [arguments...]

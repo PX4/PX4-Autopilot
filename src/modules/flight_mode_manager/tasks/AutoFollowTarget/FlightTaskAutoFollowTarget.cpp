@@ -144,7 +144,7 @@ void FlightTaskAutoFollowTarget::updateRcAdjustedFollowHeight(const Sticks &stic
 {
 	// Only apply Follow height adjustment if height setpoint and current height are within time window
 	if (fabsf(_position_setpoint(2) - _position(2)) < FOLLOW_HEIGHT_USER_ADJUST_SPEED * USER_ADJUSTMENT_ERROR_TIME_WINDOW) {
-		// RC Throttle stick input for changing follow height
+		// Manual Throttle stick input for changing follow height
 		const float height_change_speed = FOLLOW_HEIGHT_USER_ADJUST_SPEED * sticks.getThrottleZeroCenteredExpo();
 		const float new_height = _follow_height + height_change_speed * _deltatime;
 		_follow_height = constrain(new_height, MINIMUM_SAFETY_ALTITUDE, FOLLOW_HEIGHT_MAX);
@@ -157,7 +157,7 @@ void FlightTaskAutoFollowTarget::updateRcAdjustedFollowDistance(const Sticks &st
 	// Only apply Follow distance adjustment if distance setting and current distance are within time window
 	if (fabsf(drone_to_target_vector.length() - _follow_distance) < FOLLOW_DISTANCE_USER_ADJUST_SPEED *
 	    USER_ADJUSTMENT_ERROR_TIME_WINDOW) {
-		// RC Pitch stick input for changing distance
+		// Manual Pitch stick input for changing distance
 		const float distance_change_speed = FOLLOW_DISTANCE_USER_ADJUST_SPEED * sticks.getPitchExpo();
 		const float new_distance = _follow_distance + distance_change_speed * _deltatime;
 		_follow_distance = constrain(new_distance, MINIMUM_DISTANCE_TO_TARGET_FOR_YAW_CONTROL, FOLLOW_DISTANCE_MAX);
@@ -171,9 +171,9 @@ void FlightTaskAutoFollowTarget::updateRcAdjustedFollowAngle(const Sticks &stick
 	// Wrap orbit angle difference, to get the shortest angle between them
 	if (fabsf(matrix::wrap_pi(measured_orbit_angle - tracked_orbit_angle_setpoint)) < FOLLOW_ANGLE_USER_ADJUST_SPEED *
 	    USER_ADJUSTMENT_ERROR_TIME_WINDOW) {
-		// RC Roll stick input for changing follow angle. When user commands RC stick input: +Roll (right), angle increases (clockwise)
+		// Manual Roll stick input for changing follow angle. When user commands manual stick input: +Roll (right), angle increases (clockwise)
 		// Constrain adjust speed [rad/s] so that drone can actually catch up. Otherwise, the follow angle
-		// command can be too ahead that drone's behavior would be un-responsive to RC stick inputs.
+		// command can be too ahead that drone's behavior would be un-responsive to manual stick inputs.
 		const float angle_adjust_speed_max = min(FOLLOW_ANGLE_USER_ADJUST_SPEED,
 						     _param_flw_tgt_max_vel.get() / _follow_distance);
 		const float angle_change_speed = angle_adjust_speed_max * sticks.getRollExpo();
@@ -319,7 +319,7 @@ bool FlightTaskAutoFollowTarget::update()
 		// Actual orbit angle measured around the target, which is pointing from target to drone, so M_PI_F difference.
 		const float measured_orbit_angle = matrix::wrap_pi(drone_to_target_heading + M_PI_F);
 
-		// Update the sticks object to fetch recent data and update follow distance, angle and height via RC commands
+		// Update the sticks object to fetch recent data and update follow distance, angle and height via manual commands
 		_sticks.checkAndUpdateStickInputs();
 
 		if (_sticks.isAvailable()) {

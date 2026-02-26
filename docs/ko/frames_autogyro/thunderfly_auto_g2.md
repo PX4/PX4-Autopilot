@@ -6,11 +6,12 @@ Durafly™ Auto-G2 Gyrocopter RC model, with several parts of the original model
 ![Auto-G2](../../assets/airframes/autogyro/auto-g2/autog2_title.jpg)
 
 :::info
-Auto-G2 autogyro’s airframe is developed and maintained by ThuderFly s.r.o. company.
+Auto-G2 autogyro’s airframe was originally developed by [ThunderFly](https://www.thunderfly.cz/) and has since evolved into the updated [TF-G2 platform](https://docs.thunderfly.cz/instruments/TF-G2).
+Check out our site for more information on the current [TF-G2 commercial airframe](https://www.thunderfly.cz/tf-g2.html).
 :::
 
-All the added parts are available on [GitHub](https://github.com/ThunderFly-aerospace/TF-G2/) as an open-source project.
-Printed parts are designed in [OpenSCAD](https://www.openscad.org/).
+All the added parts are available on [GitHub](https://github.com/ThunderFly-aerospace/Auto-G2) as an open-source project.
+Printed parts are designed in [OpenSCAD](https://openscad.org/).
 
 ## 수정 내역
 
@@ -23,7 +24,7 @@ Durafly 모델의 수정 내역은 아래와 같습니다.
 
 - 자율 비행 기능 추가
 - 두 개의 자유 축(피치, 롤)이 있는 로터 헤드
-- 안전 파손이 가능한 로터 플레이트가 있는 2 개의 블레이드 로터
+- Two-blade rotor with safely breakable rotor plate
 - 랜딩 기어 크기 증가
 
 ### 오토파일럿
@@ -31,14 +32,14 @@ Durafly 모델의 수정 내역은 아래와 같습니다.
 수정된 모델의 항공기의 중량은 매우 무겁습니다.
 Therefore a low-weight flight controller is recommended (e.g. [Holybro pix32](../flight_controller/holybro_pix32.md) or [CUAV nano](../flight_controller/cuav_v5_nano.md)).
 
-자율비행장치는 3D 프린트 진동 방지 패드의 오토자이로 하단에 장착되어야 합니다.
+The autopilot should be mounted on the bottom side of the autogyro on a 3D-printed damping pad.
 We have used the damping platform found on [thingiverse](https://www.thingiverse.com/thing:160655)
 
 ### 로터 헤드
 
-로터 헤드는 (원래 오토자이로와 비교하여)  롤과 피치 축에서도 작동하도록 수정되었습니다.
+The rotor head is (compared to the original autogyro) modified so that it allows a motion in both roll and pitch axes.
 헤드 로터는 오토자이로의 회전과 등반 제어가 모두 가능하게 되었습니다.
-오토자이로는  낮은 속도에서도 러더 및 엘리베이터의 제어가 가능합니다.
+Directional control of an autogyro by the rotor is possible even in the case of low airspeed compared to the original rudder and elevator control.
 
 인쇄된 로터 헤드는 세 부분으로 구성됩니다.
 바닥 부분은 M2.5 나사를 사용하여 원래 합판 철탑에 나사로 고정됩니다.
@@ -49,49 +50,49 @@ We have used the damping platform found on [thingiverse](https://www.thingiverse
 M3x50 고강도 나사로 만들어진 로터 축은 세 번째 부분을 통과합니다.
 사용된 베어링은 623 2Z C3 SKF입니다.
 이 부분의 끝에는 M2.5 나사를 통해 파일론의 바닥 부분에 위치한 서보에 부착된 볼로드가 있습니다.
-이 부분의 끝에는 M2.5 나사를 통해 관통 파일론의 바닥에 부착된 볼로드가 있습니다.
+It is preferable to exchange these original servos for better quality ones as they are weak and in the original construction, they help each other.
 
 ![Rotorhead](../../assets/airframes/autogyro/auto-g2/modif_rh.png)
 
 ### 이중 날 로터
 
-원래 Durafly Auto-G2 오토자이로는 3날 로터이었으나, 2날 로터를 사용하도록 수정되었습니다.
+The original Durafly Auto-G2 autogyro has a three-blade rotor, which has been modified in this build to use a two-blade rotor.
 수정의 주된 이유는 진동이 적고 조립이 간편하기 때문입니다.
 인쇄된 중앙 부품은 중국산 Durafly 블레이드 또는 3D 인쇄 블레이드와 함께 사용하도록 설계되었습니다.
 
-로터의 중앙 부분은 다음과 같은 역할을하는 부품들로 구성됩니다.
+The rotor's central part consists of several components, which have the following roles:
 
 - 블레이드를 펄럭일 수 있습니다.
-- 그들은지면과의 충돌시 변형 가능한 영역이 있습니다.
+- They have deformation zones that break upon impact with the ground.
   덕분에 일반적으로 하나의 부품만 교체로 로터를 신속하게 수리 할 수 있습니다.
-- 블레이드 공격각을 손쉽게 설정 가능합니다.
+- Easy setup of blades' angle-of-attack.
 
 #### HobbyKing 로터 블레이드
 
 원 블레이드와 함께 로터의 인쇄된 중앙 부분을 사용할 수 있습니다.
-These blades can be bought on [HobbyKing](https://hobbyking.com/en_us/duraflytm-auto-g-gyrocopter-821mm-replacement-main-blade-1pcs-bag.html).
-Hobbyking 블레이드는 무게 중심이 다르므로 적절한 균형을 유지하여야 합니다.
+The blades used were "Durafly™ Auto-G2 Gyrocopter 821mm - Replacement Main Blade" (Discontinued)
+Hobbyking blades differ in the position of the center of gravity, and it is therefore necessary to balance them properly.
 
 #### 3D 프린팅 로터 블레이드
 
 로터 블레이드를 인쇄할 수 있습니다.
 
-인쇄된 로터 블래드는 아직 개발 중이지만, 예비 테스트에서 정확한 모양과 세로 홈이 없기 때문에 품질이 더 우수한 것으로 나타났습니다.
+The printed rotor blades are still under development, but preliminary tests show they are of better quality, mostly thanks to their precise shape and absence of longitudinal grooves.
 그러나, 일부 제작 과정은 아직도 튜닝중입니다.
 
 ![Blades assembly](../../assets/airframes/autogyro/auto-g2/modif_blade.png)
 
 #### 균형 유지
 
-적절한 블레이드 균형은 진동 최소화에 매우 중요합니다.
+Proper blade balance is very important to minimize vibrations.
 블레이드는 무게 중심이 로터 축의 중앙에 위치하도록 균형을 맞추어야 합니다.
 
-인쇄된 블레이드는 생산 과정에서 균형을 이미 잡았으므로, 더 이상 균형을 잡을 필요가 없습니다.
+Printed blades are balanced in the production process, and there is no need to further balance them.
 
 ### 릴리스 장치
 
-윈치를 사용하여 자동 자이로를 시작하거나 견인하여 시작하려면 릴리스 장치를 인쇄하여야 합니다.
-핀을 빼내고 로프를 풀어주는 서보가 장착된 작은 상자입니다.
+If you want to launch an autogyro using a winch or if you want to launch it by towing, you need to print a release device.
+It is a small box equipped with a servo that pulls out the pin and releases the rope.
 
 전체 부품은 오토자이로 본체 하단에있는 엔진 아래에 핫멜트 접착제를 사용하여 접착됩니다.
 오토자이로가 로프로 견인되는 경우 엔진이 켜지지 않아야 합니다.
@@ -105,7 +106,7 @@ Hobbyking 블레이드는 무게 중심이 다르므로 적절한 균형을 유�
 
 - Autopilot ([Holybro pix32](../flight_controller/holybro_pix32.md), [CUAV nano](../flight_controller/cuav_v5_nano.md))
 - GPS (GPS Module NEO-6M, with patch antenna)
-- Airspeed sensor ([SDP3x](https://www.sensirion.com/en/flow-sensors/differential-pressure-sensors/worlds-smallest-differential-pressure-sensor/))
+- Airspeed sensor ([SDP3x series](https://sensirion.com/products/catalog?categories=differential-pressure&series=SDP3x&page=1&page_size=12))
 - Stronger servos as a substitution for the original ones (optional), ([BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm))
 - 릴리스 장치용 추가 서보 (옵션)
 
@@ -142,7 +143,7 @@ Hobbyking 블레이드는 무게 중심이 다르므로 적절한 균형을 유�
 - Servos with improved quality (recommended [BlueBird BMS-125WV](https://www.blue-bird-model.com/products_detail/411.htm), original servos are not very durable))
 - Propeller ([APC 10x7](https://www.apcprop.com/product/10x7e/))
 - 변형 영역이있는 로터 중앙 플레이트 (3D 인쇄)
-- Rotor blades ([HobbyKing](https://hobbyking.com/en_us/duraflytm-auto-g-gyrocopter-821mm-replacement-main-blade-1pcs-bag.html) or 3D printed)
+- Rotor blades ("Durafly™ Auto-G2 Gyrocopter 821mm" (Discontinued on HobbyKing), similar blades, or 3D printed)
 
 ## 비디오
 

@@ -57,7 +57,7 @@ PARAM_DEFINE_INT32(UAVCAN_ENABLE, 0);
 /**
  * UAVCAN Node ID.
  *
- * Read the specs at http://uavcan.org to learn more about Node ID.
+ * Read the specs at https://dronecan.github.io/ to learn more about Node ID.
  *
  * @min 1
  * @max 125
@@ -132,10 +132,14 @@ PARAM_DEFINE_FLOAT(UAVCAN_ECU_MAXF, 15.0f);
 PARAM_DEFINE_INT32(UAVCAN_ECU_FUELT, 1);
 
 /**
- * UAVCAN ANTI_COLLISION light operating mode
+ * UAVCAN Navigation light operating mode
  *
  * This parameter defines the minimum condition under which the system will command
- * the ANTI_COLLISION lights on
+ * Navigation lights to turn on. Affects lights with functions: Anti-collision, Colored Navigation Lights or Hybrid lights.
+ *
+ * For hybrid functions (StatusOrAntiCollision, etc.), the light
+ * displays status colors when this mode is inactive, and switches to the
+ * navigation light function when this mode becomes active.
  *
  *  0 - Always off
  *  1 - When autopilot is armed
@@ -151,73 +155,7 @@ PARAM_DEFINE_INT32(UAVCAN_ECU_FUELT, 1);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_LGT_ANTCL, 2);
-
-/**
- * UAVCAN STROBE light operating mode
- *
- * This parameter defines the minimum condition under which the system will command
- * the STROBE lights on
- *
- *  0 - Always off
- *  1 - When autopilot is armed
- *  2 - When autopilot is prearmed
- *  3 - Always on
- *
- * @min 0
- * @max 3
- * @value 0 Always off
- * @value 1 When autopilot is armed
- * @value 2 When autopilot is prearmed
- * @value 3 Always on
- * @reboot_required true
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(UAVCAN_LGT_STROB, 1);
-
-/**
- * UAVCAN RIGHT_OF_WAY light operating mode
- *
- * This parameter defines the minimum condition under which the system will command
- * the RIGHT_OF_WAY lights on
- *
- *  0 - Always off
- *  1 - When autopilot is armed
- *  2 - When autopilot is prearmed
- *  3 - Always on
- *
- * @min 0
- * @max 3
- * @value 0 Always off
- * @value 1 When autopilot is armed
- * @value 2 When autopilot is prearmed
- * @value 3 Always on
- * @reboot_required true
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(UAVCAN_LGT_NAV, 3);
-
-/**
- * UAVCAN LIGHT_ID_LANDING light operating mode
- *
- * This parameter defines the minimum condition under which the system will command
- * the LIGHT_ID_LANDING lights on
- *
- *  0 - Always off
- *  1 - When autopilot is armed
- *  2 - When autopilot is prearmed
- *  3 - Always on
- *
- * @min 0
- * @max 3
- * @value 0 Always off
- * @value 1 When autopilot is armed
- * @value 2 When autopilot is prearmed
- * @value 3 Always on
- * @reboot_required true
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(UAVCAN_LGT_LAND, 0);
+PARAM_DEFINE_INT32(UAVCAN_LGT_MODE, 1);
 
 /**
  * publish Arming Status stream
@@ -288,10 +226,11 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_BARO, 0);
  * Enable UAVCAN battery subscription.
  *  uavcan::equipment::power::BatteryInfo
  *  ardupilot::equipment::power::BatteryInfoAux
+ *  cuav::equipment::power::CBAT
  *
  *  0 - Disable
  *  1 - Use raw data. Recommended for Smart battery
- *  2 - Filter the data with internal battery library
+ *  2 - Filter the data with internal battery library (unsupported with CBAT)
  *
  * @min 0
  * @max 2
@@ -435,3 +374,15 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_RNG, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_SUB_BTN, 0);
+
+/**
+ * subscription MovingBaselineData
+ *
+ * Enable UAVCAN MovingBaselineData subscription.
+ *  ardupilot::gnss::MovingBaselineData
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_MBD, 0);

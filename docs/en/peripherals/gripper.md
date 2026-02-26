@@ -38,7 +38,7 @@ MAVLink applications, such as ground stations, can also control the gripper usin
 
 PX4 gripper support is tied to the package delivery feature, which must be enabled and configured in order to be able to use a gripper.
 
-1. Set [PD_GRIPPER_EN](../advanced_config/parameter_reference.md#PD_GRIPPER_EN) parameter to 1 (reboot required after change).
+1. Ensure your board has the Payload Deliverer module enabled: CONFIG_MODULES_PAYLOAD_DELIVERER.
 1. Set [PD_GRIPPER_TYPE](../advanced_config/parameter_reference.md#PD_GRIPPER_TYPE) to match your gripper.
    For example, set to `Servo` for a [Servo Gripper](gripper_servo.md).
 
@@ -72,7 +72,6 @@ To set the actuation timeout:
 
    There are two easy ways to open and close the gripper.
    While the drone is on a bench and the propellers are removed:
-
    - Run the `payload_deliverer` test in the QGC [MAVLink Shell](../debug/mavlink_shell.md):
 
      ```sh

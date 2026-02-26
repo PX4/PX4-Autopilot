@@ -32,6 +32,9 @@
  ****************************************************************************/
 
 #include "BatterySimulator.hpp"
+#include <cmath>
+
+ModuleBase::Descriptor BatterySimulator::desc{task_spawn, custom_command, print_usage};
 
 BatterySimulator::BatterySimulator() :
 	ModuleParams(nullptr),
@@ -55,7 +58,7 @@ void BatterySimulator::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -128,9 +131,9 @@ void BatterySimulator::updateCommands()
 		bool handled = false;
 		bool supported = false;
 
-		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
-		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
-		const int instance = static_cast<int>(vehicle_command.param3 + 0.5f);
+		const int failure_unit = static_cast<int>(lroundf(vehicle_command.param1));
+		const int failure_type = static_cast<int>(lroundf(vehicle_command.param2));
+		const int instance = static_cast<int>(lroundf(vehicle_command.param3));
 
 		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SYSTEM_BATTERY) {
 
@@ -175,8 +178,8 @@ int BatterySimulator::task_spawn(int argc, char *argv[])
 	BatterySimulator *instance = new BatterySimulator();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -187,8 +190,8 @@ int BatterySimulator::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -220,5 +223,5 @@ int BatterySimulator::print_usage(const char *reason)
 
 extern "C" __EXPORT int battery_simulator_main(int argc, char *argv[])
 {
-	return BatterySimulator::main(argc, argv);
+	return ModuleBase::main(BatterySimulator::desc, argc, argv);
 }

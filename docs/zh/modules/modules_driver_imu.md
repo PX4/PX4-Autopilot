@@ -4,9 +4,7 @@
 
 Source: [drivers/imu/analog_devices/adis16448](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/analog_devices/adis16448)
 
-<a id="adis16448_usage"></a>
-
-### 用法
+### Usage {#adis16448_usage}
 
 ```
 adis16448 <command> [arguments...]
@@ -32,9 +30,7 @@ adis16448 <command> [arguments...]
 
 Source: [drivers/imu/analog_devices/adis16470](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/analog_devices/adis16470)
 
-<a id="adis16470_usage"></a>
-
-### 用法
+### Usage {#adis16470_usage}
 
 ```
 adis16470 <command> [arguments...]
@@ -60,9 +56,7 @@ adis16470 <command> [arguments...]
 
 Source: [drivers/imu/analog_devices/adis16477](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/analog_devices/adis16477)
 
-<a id="adis16477_usage"></a>
-
-### 用法
+### Usage {#adis16477_usage}
 
 ```
 adis16477 <command> [arguments...]
@@ -88,9 +82,7 @@ adis16477 <command> [arguments...]
 
 Source: [drivers/imu/analog_devices/adis16497](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/analog_devices/adis16497)
 
-<a id="adis16497_usage"></a>
-
-### 用法
+### Usage {#adis16497_usage}
 
 ```
 adis16497 <command> [arguments...]
@@ -116,9 +108,7 @@ adis16497 <command> [arguments...]
 
 Source: [drivers/imu/analog_devices/adis16507](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/analog_devices/adis16507)
 
-<a id="adis16507_usage"></a>
-
-### 用法
+### Usage {#adis16507_usage}
 
 ```
 adis16507 <command> [arguments...]
@@ -144,9 +134,7 @@ adis16507 <command> [arguments...]
 
 Source: [drivers/imu/bosch/bmi055](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/bosch/bmi055)
 
-<a id="bmi055_usage"></a>
-
-### 用法
+### Usage {#bmi055_usage}
 
 ```
 bmi055 <command> [arguments...]
@@ -174,9 +162,7 @@ bmi055 <command> [arguments...]
 
 Source: [drivers/imu/bosch/bmi085](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/bosch/bmi085)
 
-<a id="bmi085_usage"></a>
-
-### 用法
+### Usage {#bmi085_usage}
 
 ```
 bmi085 <command> [arguments...]
@@ -204,9 +190,7 @@ bmi085 <command> [arguments...]
 
 Source: [drivers/imu/bosch/bmi088](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/bosch/bmi088)
 
-<a id="bmi088_usage"></a>
-
-### 用法
+### Usage {#bmi088_usage}
 
 ```
 bmi088 <command> [arguments...]
@@ -234,9 +218,7 @@ bmi088 <command> [arguments...]
 
 Source: [drivers/imu/bosch/bmi088_i2c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/bosch/bmi088_i2c)
 
-<a id="bmi088_i2c_usage"></a>
-
-### 用法
+### Usage {#bmi088_i2c_usage}
 
 ```
 bmi088_i2c <command> [arguments...]
@@ -264,9 +246,7 @@ bmi088_i2c <command> [arguments...]
 
 Source: [drivers/imu/bosch/bmi270](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/bosch/bmi270)
 
-<a id="bmi270_usage"></a>
-
-### 用法
+### Usage {#bmi270_usage}
 
 ```
 bmi270 <command> [arguments...]
@@ -292,9 +272,7 @@ bmi270 <command> [arguments...]
 
 Source: [drivers/imu/nxp/fxas21002c](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/nxp/fxas21002c)
 
-<a id="fxas21002c_usage"></a>
-
-### 用法
+### Usage {#fxas21002c_usage}
 
 ```
 fxas21002c <command> [arguments...]
@@ -328,9 +306,7 @@ fxas21002c <command> [arguments...]
 
 Source: [drivers/imu/nxp/fxos8701cq](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/nxp/fxos8701cq)
 
-<a id="fxos8701cq_usage"></a>
-
-### 用法
+### Usage {#fxos8701cq_usage}
 
 ```
 fxos8701cq <command> [arguments...]
@@ -364,9 +340,7 @@ fxos8701cq <command> [arguments...]
 
 Source: [drivers/imu/invensense/iam20680hp](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/iam20680hp)
 
-<a id="iam20680hp_usage"></a>
-
-### 用法
+### Usage {#iam20680hp_usage}
 
 ```
 iam20680hp <command> [arguments...]
@@ -392,9 +366,7 @@ iam20680hp <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm20602](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm20602)
 
-<a id="icm20602_usage"></a>
-
-### 用法
+### Usage {#icm20602_usage}
 
 ```
 icm20602 <command> [arguments...]
@@ -420,9 +392,7 @@ icm20602 <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm20608g](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm20608g)
 
-<a id="icm20608g_usage"></a>
-
-### 用法
+### Usage {#icm20608g_usage}
 
 ```
 icm20608g <command> [arguments...]
@@ -448,9 +418,7 @@ icm20608g <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm20649](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm20649)
 
-<a id="icm20649_usage"></a>
-
-### 用法
+### Usage {#icm20649_usage}
 
 ```
 icm20649 <command> [arguments...]
@@ -476,9 +444,7 @@ icm20649 <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm20689](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm20689)
 
-<a id="icm20689_usage"></a>
-
-### 用法
+### Usage {#icm20689_usage}
 
 ```
 icm20689 <command> [arguments...]
@@ -504,9 +470,7 @@ icm20689 <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm20948](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm20948)
 
-<a id="icm20948_usage"></a>
-
-### 用法
+### Usage {#icm20948_usage}
 
 ```
 icm20948 <command> [arguments...]
@@ -533,9 +497,7 @@ icm20948 <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm20948](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm20948)
 
-<a id="icm20948_i2c_passthrough_usage"></a>
-
-### 用法
+### Usage {#icm20948_i2c_passthrough_usage}
 
 ```
 icm20948_i2c_passthrough <command> [arguments...]
@@ -559,9 +521,7 @@ icm20948_i2c_passthrough <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm40609d](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm40609d)
 
-<a id="icm40609d_usage"></a>
-
-### 用法
+### Usage {#icm40609d_usage}
 
 ```
 icm40609d <command> [arguments...]
@@ -587,9 +547,7 @@ icm40609d <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm42605](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm42605)
 
-<a id="icm42605_usage"></a>
-
-### 用法
+### Usage {#icm42605_usage}
 
 ```
 icm42605 <command> [arguments...]
@@ -615,9 +573,7 @@ icm42605 <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm42670p](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm42670p)
 
-<a id="icm42670p_usage"></a>
-
-### 用法
+### Usage {#icm42670p_usage}
 
 ```
 icm42670p <command> [arguments...]
@@ -643,9 +599,7 @@ icm42670p <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm42688p](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm42688p)
 
-<a id="icm42688p_usage"></a>
-
-### 用法
+### Usage {#icm42688p_usage}
 
 ```
 icm42688p <command> [arguments...]
@@ -674,9 +628,7 @@ icm42688p <command> [arguments...]
 
 Source: [drivers/imu/invensense/icm45686](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm45686)
 
-<a id="icm45686_usage"></a>
-
-### 用法
+### Usage {#icm45686_usage}
 
 ```
 icm45686 <command> [arguments...]
@@ -704,9 +656,7 @@ icm45686 <command> [arguments...]
 
 Source: [drivers/imu/invensense/iim42652](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/iim42652)
 
-<a id="iim42652_usage"></a>
-
-### 用法
+### Usage {#iim42652_usage}
 
 ```
 iim42652 <command> [arguments...]
@@ -734,9 +684,7 @@ iim42652 <command> [arguments...]
 
 Source: [drivers/imu/invensense/iim42653](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/iim42653)
 
-<a id="iim42653_usage"></a>
-
-### 用法
+### Usage {#iim42653_usage}
 
 ```
 iim42653 <command> [arguments...]
@@ -764,9 +712,7 @@ iim42653 <command> [arguments...]
 
 Source: [drivers/imu/st/l3gd20](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/st/l3gd20)
 
-<a id="l3gd20_usage"></a>
-
-### 用法
+### Usage {#l3gd20_usage}
 
 ```
 l3gd20 <command> [arguments...]
@@ -796,9 +742,7 @@ l3gd20 <command> [arguments...]
 
 Source: [drivers/imu/st/lsm303d](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/st/lsm303d)
 
-<a id="lsm303d_usage"></a>
-
-### 用法
+### Usage {#lsm303d_usage}
 
 ```
 lsm303d <command> [arguments...]
@@ -824,9 +768,7 @@ lsm303d <command> [arguments...]
 
 Source: [drivers/imu/st/lsm9ds1](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/st/lsm9ds1)
 
-<a id="lsm9ds1_usage"></a>
-
-### 用法
+### Usage {#lsm9ds1_usage}
 
 ```
 lsm9ds1 <command> [arguments...]
@@ -852,9 +794,7 @@ lsm9ds1 <command> [arguments...]
 
 Source: [drivers/imu/invensense/mpu6000](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/mpu6000)
 
-<a id="mpu6000_usage"></a>
-
-### 用法
+### Usage {#mpu6000_usage}
 
 ```
 mpu6000 <command> [arguments...]
@@ -880,9 +820,7 @@ mpu6000 <command> [arguments...]
 
 Source: [drivers/imu/invensense/mpu9250](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/mpu9250)
 
-<a id="mpu9250_usage"></a>
-
-### 用法
+### Usage {#mpu9250_usage}
 
 ```
 mpu9250 <command> [arguments...]
@@ -909,9 +847,7 @@ mpu9250 <command> [arguments...]
 
 Source: [drivers/imu/invensense/mpu9250](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/mpu9250)
 
-<a id="mpu9250_i2c_usage"></a>
-
-### 用法
+### Usage {#mpu9250_i2c_usage}
 
 ```
 mpu9250_i2c <command> [arguments...]
@@ -937,9 +873,7 @@ mpu9250_i2c <command> [arguments...]
 
 Source: [drivers/imu/invensense/mpu6500](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/mpu6500)
 
-<a id="mpu9520_usage"></a>
-
-### 用法
+### Usage {#mpu9520_usage}
 
 ```
 mpu9520 <command> [arguments...]
@@ -965,9 +899,7 @@ mpu9520 <command> [arguments...]
 
 Source: [drivers/imu/murata/sch16t](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/murata/sch16t)
 
-<a id="sch16t_usage"></a>
-
-### 用法
+### Usage {#sch16t_usage}
 
 ```
 sch16t <command> [arguments...]

@@ -182,20 +182,30 @@ make px4_sitl gz_tiltrotor
 
 ### Differential Rover
 
-[Differential Rover](../frames_rover/differential.md) uses the [rover world](../sim_gazebo_gz/worlds.md#rover) by default.
+[Differential Rover](../frames_rover/index.md#differential) uses the [rover world](../sim_gazebo_gz/worlds.md#rover) by default.
 
 ```sh
-make px4_sitl gz_r1_rover
+make px4_sitl gz_rover_differential
 ```
 
 ![Differential Rover in Gazebo](../../assets/simulation/gazebo/vehicles/rover_differential.png)
 
 ### Ackermann Rover
 
-[Ackermann Rover](../frames_rover/ackermann.md) uses the [rover world](../sim_gazebo_gz/worlds.md#rover) by default.
+[Ackermann Rover](../frames_rover/index.md#ackermann) uses the [rover world](../sim_gazebo_gz/worlds.md#rover) by default.
 
 ```sh
 make px4_sitl gz_rover_ackermann
 ```
 
 ![Ackermann Rover in Gazebo](../../assets/simulation/gazebo/vehicles/rover_ackermann.png)
+
+### Mecanum Rover
+
+[Mecanum Rover](../frames_rover/index.md#mecanum) uses the [rover world](../sim_gazebo_gz/worlds.md#rover) by default.
+
+```sh
+make px4_sitl gz_rover_mecanum
+```
+
+![Mecanum Rover in Gazebo](../../assets/simulation/gazebo/vehicles/rover_mecanum.png)

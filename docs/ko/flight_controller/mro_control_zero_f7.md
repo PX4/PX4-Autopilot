@@ -22,20 +22,17 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ## 주요 특징
 
 - 마이크로 프로세서:
-
   - FPU가있는 32 비트 STM32F777 코어 텍스<sup>&reg;</sup> M4 코어. 3
   - 216 MHz/512 KB RAM/2 MB 플래시
   - F-RAM Cypress MF25V02-G 256Kbit 비휘발성 메모리(RAM만큼 빠른 플래시 메모리)
 
 - 센서:
-
-  - [Bosch BMI088](https://www.bosch-sensortec.com/bst/products/all_products/bmi088_1) 3-axis accelerometer/gyroscope (internally vibration dampened)
-  - [Invensense ICM-20602](https://www.invensense.com/products/motion-tracking/6-axis/icm-20602/) 3-axis accelerometer/gyroscope
-  - [Invensense ICM-20948](https://www.invensense.com/products/motion-tracking/9-axis/icm-20948/) 3-axis accelerometer/gyroscope/magnetometer
-  - [Infineon DPS310 barometer](https://www.infineon.com/cms/en/product/sensor/pressure-sensors/pressure-sensors-for-iot/dps310/) (So smooth and NO more light sensitivity)
+  - [Bosch BMI088](https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/) 3-axis accelerometer/gyroscope (internally vibration dampened)
+  - [Invensense ICM-20602](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-20602/) 3-axis accelerometer/gyroscope
+  - [Invensense ICM-20948](https://invensense.tdk.com/products/motion-tracking/9-axis/icm-20948/) 3-axis accelerometer/gyroscope/magnetometer
+  - [Infineon DPS310 barometer](https://www.infineon.com/assets/row/public/documents/24/49/infineon-dps310-datasheet-en.pdf) - [Discontinued](https://www.infineon.com/part/DPS310) (So smooth and NO more light sensitivity)
 
 - 인터페이스:
-
   - 6x UART(총 직렬 포트), 3x(HW 흐름 제어 포함), 1x FRSky Telemetry(D 또는 X 유형), 1x 콘솔 및 1x GPS + I2C
   - PWM 출력(모든 DShot 가능) 8개
   - CAN 1개
@@ -52,7 +49,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 삼색 LED
 
 - 중량 및 크기(케이스 없음):
-
   - 중량: 5.3g (0.19oz)
   - 넓이: 20mm (0.79")
   - 길이: 32mm (1.26")
@@ -84,11 +80,11 @@ make mro_ctrl-zero-f7
 The [PX4 System Console](../debug/system_console.md) runs on `USART7` using the pins listed below.
 This is a standard serial pinout, designed to connect to a [3.3V FTDI](https://www.digikey.com/en/products/detail/TTL-232R-3V3/768-1015-ND/1836393) cable (5V tolerant).
 
-| mRo control zero f7 |             | FTDI |                                 |
-| ------------------- | ----------- | ---- | ------------------------------- |
-| 17                  | USART7 Tx   | 5    | FTDI RX (황)  |
-| 19                  | USART7 Rx   | 4    | FTDI TX (적황) |
-| 6                   | USART21 GND | 1    | FTDI GND (흑) |
+\| mRo control zero f7 |             | FTDI |
+\| ------------------- | ----------- | ---- | ---------------- |
+\| 17                  | USART7 Tx   | 5    | FTDI RX (yellow) |
+\| 19                  | USART7 Rx   | 4    | FTDI TX (orange) |
+\| 6                   | USART21 GND | 1    | FTDI GND (black) |
 
 ### SWD 포트
 
@@ -96,7 +92,7 @@ The [SWD port](../debug/swd_debug.md) (JTAG) for FMU debugging is a TC2030 debug
 
 ![mro swd port](../../assets/flight_controller/mro_control_zero_f7/mro_control_zero_f7_swd.jpg)
 
-You can use the [Tag Connect](https://www.tag-connect.com/) cable [TC2030 IDC NL](https://www.tag-connect.com/product/tc2030-idc-nl) below (with associated [retaining clip](https://www.tag-connect.com/product/tc2030-clip-retaining-clip-board-for-tc2030-nl-cables)) to attach to either a BlackMagic probe or a ST-LINK V2 debugger.
+You can use the [Tag Connect](https://www.tag-connect.com/) cable [TC2030 IDC NL](https://www.tag-connect.com/product/tc2030-idc-nl) below (with associated [retaining clip](https://www.tag-connect.com/product/tc2030-retaining-clip-board-3-pack)) to attach to either a BlackMagic probe or a ST-LINK V2 debugger.
 
 ![tc2030 idc nl cable](../../assets/flight_controller/mro_control_zero_f7/tc2030_idc_nl.jpg)
 

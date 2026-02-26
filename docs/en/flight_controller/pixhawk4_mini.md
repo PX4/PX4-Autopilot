@@ -1,6 +1,8 @@
 # Holybro Pixhawk 4 Mini (Discontinued)
 
-:::warning
+<Badge type="info" text="Discontinued" px4_current="v1.15" year="2024"/>
+
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -14,7 +16,7 @@ It is based on the [Pixhawk](https://pixhawk.org/) **FMUv5** design standard and
 
 ![Pixhawk4 mini](../../assets/flight_controller/pixhawk4mini/pixhawk4mini_iso_1.png)
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -50,23 +52,23 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - Other Characteristics:
   - Operating temperature: -40 ~ 85°c
 
-Additional information can be found in the [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf).
+Additional information can be found in the [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf).
 
-## Where to Buy
+## Where to Buy {#store}
 
-Order from [Holybro](https://holybro.com/collections/autopilot-flight-controllers/products/pixhawk4-mini).
+No longer available.
 
 ## Interfaces
 
 ![Pixhawk 4 Mini interfaces](../../assets/flight_controller/pixhawk4mini/pixhawk4mini_interfaces.png)
 
-:::warning
+::: warning
 The **RC IN** and **PPM** ports are for RC receivers only. These are powered! NEVER connect any servos, power supplies or batteries (or to any connected receiver).
 :::
 
 ## Pinouts
 
-Download _Pixhawk 4 Mini_ pinouts from [here](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_pinouts.pdf).
+Download _Pixhawk 4 Mini_ pinouts from [here](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_pinouts.pdf).
 
 ## Dimensions
 
@@ -102,14 +104,14 @@ The [_Pixhawk 4 Mini_ Wiring Quick Start](../assembly/quick_start_pixhawk4_mini.
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
@@ -120,7 +122,8 @@ In order to access these ports, the user must remove the _Pixhawk 4 Mini_ casing
 
 ![Pixhawk 4 Mini FMU Debug](../../assets/flight_controller/pixhawk4mini/pixhawk4mini_fmu_debug.png)
 
-The port has a standard serial pinout and can be connected to a standard FTDI cable (3.3V, but it's 5V tolerant) or a [Dronecode probe](https://kb.zubax.com/display/MAINKB/Dronecode+Probe+documentation). The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) pinout. Please refer to the [wiring](../debug/system_console.md) page for details of how to wire up this port.
+The port has a standard serial pinout and can be connected to a standard FTDI cable (3.3V, but it's 5V tolerant) or a [Zubax BugFace BF1](https://github.com/Zubax/bugface_bf1).
+The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) pinout. Please refer to the [wiring](../debug/system_console.md) page for details of how to wire up this port.
 
 ## Serial Port Mapping
 
@@ -136,7 +139,7 @@ The port has a standard serial pinout and can be connected to a standard FTDI ca
 
 ## Peripherals
 
-- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor)
+- [Digital Airspeed Sensor](https://holybro.com/products/digital-air-speed-sensor-ms4525do)
 - [Telemetry Radio Modules](../telemetry/index.md)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
@@ -145,7 +148,7 @@ The port has a standard serial pinout and can be connected to a standard FTDI ca
 Motors and servos are connected to the **MAIN OUT** ports in the order specified for your vehicle in the [Airframe Reference](../airframes/airframe_reference.md).
 This reference lists the output port to motor/servo mapping for all supported air and ground frames (if your frame is not listed in the reference then use a "generic" airframe of the correct type).
 
-:::warning
+::: warning
 _Pixhawk 4 Mini_ does not have AUX ports.
 The board cannot be used with frames that require more than 8 ports or which use AUX ports for motors or control surfaces.
 It can be used for airframes that use AUX for non-essential peripherals (e.g. "feed-through of RC AUX1 channel").
@@ -153,5 +156,5 @@ It can be used for airframes that use AUX for non-essential peripherals (e.g. "f
 
 ## Further info
 
-- [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf)
+- [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165).

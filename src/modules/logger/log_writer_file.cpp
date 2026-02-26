@@ -40,8 +40,11 @@
 
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/crypto.h>
 #include <px4_platform_common/log.h>
+
+#if defined(PX4_CRYPTO)
+# include <px4_platform_common/crypto.h>
+#endif // PX4_CRYPTO
 
 #if defined(__PX4_NUTTX)
 # include <malloc.h>
@@ -288,7 +291,11 @@ int LogWriterFile::thread_start()
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
+#ifdef CONFIG_FS_LITTLEFS
+	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1800));  /* littlefs needs more stack */
+#else
 	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1170));
+#endif
 
 	int ret = pthread_create(&_thread, &thr_attr, &LogWriterFile::run_helper, this);
 	pthread_attr_destroy(&thr_attr);
@@ -378,7 +385,7 @@ void LogWriterFile::run()
 #if defined(PX4_CRYPTO)
 				// Split into min blocksize chunks, so it is good for encrypting in pieces
 				available = (available / _min_blocksize) * _min_blocksize;
-#endif
+#endif // PX4_CRYPTO
 
 				/* if sufficient data available or partial read or terminating, write data */
 				if (available >= min_available[i] || is_part || (!buffer._should_run && available > 0)) {
@@ -408,7 +415,7 @@ void LogWriterFile::run()
 						}
 					}
 
-#endif
+#endif // PX4_CRYPTO
 
 					int written = buffer.write_to_file(read_ptr, available, call_fsync);
 
@@ -469,7 +476,7 @@ void LogWriterFile::run()
 				/* close the crypto session */
 
 				_crypto.close();
-#endif
+#endif // PX4_CRYPTO
 
 				break;
 			}

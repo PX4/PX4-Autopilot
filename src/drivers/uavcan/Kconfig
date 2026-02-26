@@ -47,7 +47,7 @@ if DRIVERS_UAVCAN
         default y
 
     config UAVCAN_SENSOR_BATTERY
-        bool "Subscribe to Battery:                     uavcan::equipment::power::BatteryInfo | ardupilot::equipment::power::BatteryInfoAux"
+        bool "Subscribe to Battery:                     uavcan::equipment::power::BatteryInfo | ardupilot::equipment::power::BatteryInfoAux | cuav::equipment::power::CBAT"
         default y
 
     config UAVCAN_SENSOR_DIFFERENTIAL_PRESSURE

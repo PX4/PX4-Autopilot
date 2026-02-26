@@ -1,11 +1,11 @@
 # Запуск системи
 
 Запуск PX4 контрольований скриптами оболонки.
-На NuttX вони знаходяться у директорії [ROMFS/px4fmu_common/init.d](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d), деякі з них також використовуються на Posix системах (Linux/MacOS).
+On NuttX they reside in the [ROMFS/px4fmu_common/init.d](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d) folder - some of these are also used on Posix (Linux/macOS).
 Скрипти які використовуються тільки на Posix системах знаходяться у [ROMFS/px4fmu_common/init.d-posix](https://github.com/PX4/PX4-Autopilot/tree/main/ROMFS/px4fmu_common/init.d-posix).
 
 Усі файли, які починаються з числа і підкреслення (наприклад, `10000_airaipl`) є попередньо визначеними конфігураціями планерів.
-Вони експортуються під час збірки в файл `airframes.xml` який потім аналізується [QGroundControl](http://qgroundcontrol.com) для користувацького інтерфейсу вибору планера.
+They are exported at build-time into an `airframes.xml` file which is parsed by [QGroundControl](https://qgroundcontrol.com) for the airframe selection UI.
 Як додати нову конфігурацію описано [тут](../dev_airframes/adding_a_new_frame.md).
 
 Файли що залишилися є частиною загальної логіки запуску.
@@ -13,9 +13,9 @@
 
 Наступні секції розділені відповідно до операційної системи, на яких виконується PX4.
 
-## Posix (Linux/MacOS)
+## POSIX (Linux/macOS)
 
-На Posix системна оболонка використовується як інтерпретатор скриптів (наприклад, /bin/sh що є символьним посиланням на dash в Ubuntu).
+On POSIX, the system shell is used as script interpreter (e.g. /bin/sh, being symlinked to dash on Ubuntu).
 Щоб це працювало потрібно кілька речей:
 
 - Модулі PX4 повинні виглядати для системи як окремі виконувані файли.
@@ -33,7 +33,7 @@
 
 - Оболонка запускає кожен модуль як новий (клієнтський) процес.
   Кожен клієнтський процес повинен спілкуватися з головним екземпляром px4 (сервером), де справжні модулі працюють як потоки.
-  Це зроблено через [сокет UNIX](http://man7.org/linux/man-pages/man7/unix.7.html).
+  This is done through a [UNIX socket](https://man7.org/linux/man-pages/man7/unix.7.html).
   Сервер прослуховує сокет, до якого клієнти можуть під'єднатися та надіслати команду.
   Сервер відправляє вихідні дані та код повернення назад до клієнта.
 
@@ -59,7 +59,7 @@ cd <PX4-Autopilot>/build/px4_sitl_default/bin
 ### Динамічні модулі
 
 Зазвичай всі модулі компілюються в єдиний виконуваний файл PX4.
-Однак, на Posix системах, є можливість компіляції модуля в окремий файл, який можна завантажити в PX4 використовуючи команду `dyn`.
+However, on POSIX, there's the option of compiling a module into a separate file, which can be loaded into PX4 using the `dyn` command.
 
 ```sh
 dyn ./test.px4mod
@@ -95,6 +95,8 @@ NuttX має інтегрований інтерпретатор оболонк�
 Найкращий спосіб змінити запуск системи - це ввести [нову конфігурацію планера](../dev_airframes/adding_a_new_frame.md).
 Файл конфігурації планеру може бути включений у прошивку або на SD карту.
 
+#### Dynamic Customization
+
 Якщо вам потрібно "підлаштувати" конфігурацію що існує, наприклад запустити один або більше застосунків або встановити значення кількох параметрів, можна вказати це створивши два файли у директорії `/etc/` на SD картці:
 
 - [/etc/config.txt](#customizing-the-configuration-config-txt): modify parameter values
@@ -111,7 +113,7 @@ NuttX має інтегрований інтерпретатор оболонк�
 Ці файли згадуються в коді PX4 як `/fs/microsd/etc/config.txt` та `/fs/microsd/etc/extras.txt`, де коренева директорія microSD карти визначається шляхом `/fs/microsd`.
 :::
 
-#### Налаштування конфігурації (config.txt)
+##### Налаштування конфігурації (config.txt)
 
 Файл `config.txt` можна використовувати для зміни параметрів.
 Він завантажується після того, як головна система була налаштована та _перед тим_ як завантажена.
@@ -123,7 +125,7 @@ param set-default PWM_MAIN_DIS3 1000
 param set-default PWM_MAIN_MIN3 1120
 ```
 
-#### Запуск додаткових застосунків (extras.txt)
+##### Запуск додаткових застосунків (extras.txt)
 
 `extras.txt` можна використовувати для запуску додаткових застосунків після завантаження основної системи.
 Зазвичай це будуть контролери корисного навантаження або подібні необов'язкові користувацькі компоненти.
@@ -149,4 +151,38 @@ param set-default PWM_MAIN_MIN3 1120
   set -e
 
   mandatory_app start     # Will abort boot if mandatory_app is unknown or fails
+  ```
+
+#### Additional Init-File Customization
+
+In rare cases where the desired setup cannot be achieved through frame configuration or dynamic customization, you can add a script that will be compiled into the binary for a particular `make` target build variant.
+
+:::warning
+In almost all cases, you should use a frame configuration.
+This method should only be used for edge-cases such as customizing `cannode` based boards.
+:::
+
+Кроки наступні:
+
+- Add a new init script in `boards/<vendor>/<board>/init` that will run during board startup.
+  Наприклад:
+
+  ```sh
+  # File: boards/<vendor>/<board>/init/rc.additional
+  param set-default <param> <value>
+  ```
+
+- Add a new board variant in `boards/<vendor>/<board>/<variant>.px4board` that includes the additional script.
+  Наприклад:
+
+  ```sh
+  # File: boards/<vendor>/<board>/var.px4board
+  CONFIG_BOARD_ADDITIONAL_INIT="rc.additional"
+  ```
+
+- Compile the firmware with your new variant by appending the variant name to the compile target.
+  Наприклад:
+
+  ```sh
+  make <target>_var
   ```

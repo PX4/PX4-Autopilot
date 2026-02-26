@@ -1,6 +1,12 @@
-# Pixhack V3
+# CUAV Pixhack V3 (Discontinued)
 
-:::warning
+<Badge type="info" text="Discontinued" />
+
+::: warning
+This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
+
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
@@ -53,25 +59,22 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 The board can be purchased from:
 
-- [store.cuav.net](http://store.cuav.net/index.php?id_product=8&id_product_attribute=0&rewrite=pixhack-v3-autopilot&controller=product&id_lang=3)
 - [leixun.aliexpress.com/store](https://leixun.aliexpress.com/store)
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 
-## Pinouts and Schematics
-
-- [Documentation/wiring guides](http://doc.cuav.net/flight-controller/pixhack/en/pixhack-v3.html)
+<!-- Pinouts and Schematics: section removed as guides no longer published -->
 
 ## Serial Port Mapping
 
@@ -80,6 +83,6 @@ make px4_fmu-v3_default
 | UART1  | /dev/ttyS0 | IO debug              |
 | USART2 | /dev/ttyS1 | TELEM1 (flow control) |
 | USART3 | /dev/ttyS2 | TELEM2 (flow control) |
-| UART4  |            |
-| UART7  | CONSOLE    |
-| UART8  | SERIAL4    |
+| UART4  |            |                       |
+| UART7  |            | CONSOLE               |
+| UART8  |            | SERIAL4               |

@@ -1,6 +1,6 @@
 # ARK Electronics ARKV6X
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware support or compliance issues.
 :::
@@ -16,7 +16,7 @@ The Pixhawk Autopilot Bus (PAB) form factor enables the ARKV6X to be used on any
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Where To Buy
+## Where To Buy {#store}
 
 Order From [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 
@@ -25,7 +25,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 - [Dual Invensense ICM-42688-P IMUs](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/)
 - [Invensense IIM-42652 Industrial IMU](https://invensense.tdk.com/products/smartindustrial/iim-42652/)
 - [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp390/)
-- [Bosch BMM150 Magnetometer](https://www.bosch-sensortec.com/products/motion-sensors/magnetometers/bmm150/)
+- [Bosch BMM150 Magnetometer](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf)
 
 ## Microprocessor
 

@@ -92,6 +92,7 @@ target_sources(mavlink_c
 target_include_directories(mavlink_c
 	INTERFACE
 		${MAVLINK_LIBRARY_DIR}
+		${MAVLINK_LIBRARY_DIR}/../
 		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}
 		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}
 )

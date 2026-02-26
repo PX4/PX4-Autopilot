@@ -6,37 +6,40 @@ on:
     - 'main'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
   pull_request:
     branches:
-    - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
-      matrix:
-        config:
-          - {vehicle: "iris",          mission: "MC_mission_box"}
-          - {vehicle: "rover",         mission: "rover_mission_1"}
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Build SITL and Run Tests
-      uses: addnab/docker-run-action@v3
-      with:
-        image: px4io/px4-dev-ros-melodic:2021-09-08
-        options: -v ${{ github.workspace }}:/workspace
+      - name: Build SITL and Run Tests (inside old ROS container)
         run: |
-          cd /workspace
-          git config --global --add safe.directory /workspace
-          make px4_sitl_default
-          make px4_sitl_default sitl_gazebo-classic
-          ./test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=${{matrix.config.mission}} vehicle:=${{matrix.config.vehicle}}
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/workspace" \
+            -w /workspace \
+            px4io/px4-dev-ros-melodic:2021-09-08 \
+            bash -c '
+              git config --global --add safe.directory /workspace
+              make px4_sitl_default
+              make px4_sitl_default sitl_gazebo-classic
+              ./test/rostest_px4_run.sh \
+                mavros_posix_test_mission.test \
+                mission:=MC_mission_box \
+                vehicle:=iris
+            '

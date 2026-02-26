@@ -99,14 +99,19 @@ typedef enum {
  * 	- Improve TX buffer handling:
  * 		- Do not reset the full TX buffer but delete the oldest HIGH_LATENCY2 message if one is in the buffer or delete the oldest message in general
  */
-class IridiumSBD : public cdev::CDev, public ModuleBase<IridiumSBD>
+class IridiumSBD : public cdev::CDev, public ModuleBase
 {
 public:
+	static Descriptor desc;
+
 	IridiumSBD();
 	~IridiumSBD();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int run_trampoline(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static IridiumSBD *instantiate(int argc, char *argv[]);
@@ -136,7 +141,7 @@ public:
 	 */
 	int ioctl(struct file *filp, int cmd, unsigned long arg);
 
-	static bool can_stop() { return !get_instance()->_cdev_used.load(); }
+	static bool can_stop() { return !get_instance<IridiumSBD>(desc)->_cdev_used.load(); }
 
 private:
 	int init(int argc, char *argv[]);

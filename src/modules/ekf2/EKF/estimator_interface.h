@@ -62,7 +62,7 @@
 #endif
 
 #include "common.h"
-#include "RingBuffer.h"
+#include <lib/ringbuffer/TimestampedRingBuffer.hpp>
 #include "imu_down_sampler/imu_down_sampler.hpp"
 #include "output_predictor/output_predictor.h"
 
@@ -70,6 +70,10 @@
 # include "aid_sources/range_finder/range_finder_consistency_check.hpp"
 # include "aid_sources/range_finder/sensor_range_finder.hpp"
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_GNSS)
+# include "aid_sources/gnss/gnss_checks.hpp"
+#endif // CONFIG_EKF2_GNSS
 
 #include <lib/atmosphere/atmosphere.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
@@ -85,13 +89,13 @@ public:
 	void setIMUData(const imuSample &imu_sample);
 
 #if defined(CONFIG_EKF2_GNSS)
-	void setGpsData(const gnssSample &gnss_sample);
+	void setGpsData(const gnssSample &gnss_sample, const bool pps_compensation = false);
 
 	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
-	float gps_horizontal_position_drift_rate_m_s() const { return _gps_horizontal_position_drift_rate_m_s; }
-	float gps_vertical_position_drift_rate_m_s() const { return _gps_vertical_position_drift_rate_m_s; }
-	float gps_filtered_horizontal_velocity_m_s() const { return _gps_filtered_horizontal_velocity_m_s; }
+	float gps_horizontal_position_drift_rate_m_s() const { return _gnss_checks.horizontal_position_drift_rate_m_s(); }
+	float gps_vertical_position_drift_rate_m_s() const { return _gnss_checks.vertical_position_drift_rate_m_s(); }
+	float gps_filtered_horizontal_velocity_m_s() const { return _gnss_checks.filtered_horizontal_velocity_m_s(); }
 
 #endif // CONFIG_EKF2_GNSS
 
@@ -105,6 +109,7 @@ public:
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	void setAirspeedData(const airspeedSample &airspeed_sample);
+	void setSyntheticAirspeed(const bool synthetic_airspeed) { _synthetic_airspeed = synthetic_airspeed; }
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -185,9 +190,6 @@ public:
 	// return true if the attitude is usable
 	bool attitude_valid() const { return _control_status.flags.tilt_align; }
 
-	// get vehicle landed status data
-	bool get_in_air_status() const { return _control_status.flags.in_air; }
-
 #if defined(CONFIG_EKF2_WIND)
 	bool get_wind_status() const { return _control_status.flags.wind || _external_wind_init; }
 #endif // CONFIG_EKF2_WIND
@@ -195,8 +197,10 @@ public:
 	// set vehicle is fixed wing status
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
 
+	void set_in_transition_to_fw(bool in_transition) { _control_status.flags.in_transition_to_fw = in_transition; }
+
 	// set flag if static pressure rise due to ground effect is expected
-	// use _params.gnd_effect_deadzone to adjust for expected rise in static pressure
+	// use _params.ekf2_gnd_eff_dz to adjust for expected rise in static pressure
 	// flag will clear after GNDEFFECT_TIMEOUT uSec
 	void set_gnd_effect()
 	{
@@ -209,6 +213,7 @@ public:
 
 	bool isOnlyActiveSourceOfHorizontalAiding(bool aiding_flag) const;
 	bool isOnlyActiveSourceOfHorizontalPositionAiding(bool aiding_flag) const;
+	bool isOnlyActiveSourceOfHorizontalVelocityAiding(bool aiding_flag) const;
 
 	/*
 	 * Check if there are any other active source of horizontal aiding
@@ -222,10 +227,12 @@ public:
 	 */
 	bool isOtherSourceOfHorizontalAidingThan(bool aiding_flag) const;
 	bool isOtherSourceOfHorizontalPositionAidingThan(bool aiding_flag) const;
+	bool isOtherSourceOfHorizontalVelocityAidingThan(bool aiding_flag) const;
 
 	// Return true if at least one source of horizontal aiding is active
 	// the flags considered are opt_flow, gps, ev_vel and ev_pos
 	bool isHorizontalAidingActive() const;
+	bool isHorizontalPositionAidingActive() const;
 	bool isVerticalAidingActive() const;
 	bool isNorthEastAidingActive() const;
 
@@ -242,6 +249,7 @@ public:
 	int getNumberOfActiveVerticalVelocityAidingSources() const;
 
 	const matrix::Quatf &getQuaternion() const { return _output_predictor.getQuaternion(); }
+	Vector3f getAngularVelocityAndResetAccumulator() { return _output_predictor.getAngularVelocityAndResetAccumulator(); }
 	float getUnaidedYaw() const { return _output_predictor.getUnaidedYaw(); }
 	Vector3f getVelocity() const { return _output_predictor.getVelocity(); }
 
@@ -256,10 +264,10 @@ public:
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
 	// Returns true when the declination can be saved
-	// At the next startup, set param.mag_declination_deg to the value saved
+	// At the next startup, set param.ekf2_mag_decl to the value saved
 	bool get_mag_decl_deg(float &val) const
 	{
-		if (PX4_ISFINITE(_wmm_declination_rad) && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
+		if (PX4_ISFINITE(_wmm_declination_rad) && (_params.ekf2_decl_type & GeoDeclinationMask::SAVE_GEO_DECL)) {
 			val = math::degrees(_wmm_declination_rad);
 			return true;
 
@@ -295,15 +303,9 @@ public:
 	const filter_control_status_u &control_status_prev() const { return _control_status_prev; }
 	const decltype(filter_control_status_u::flags) &control_status_prev_flags() const { return _control_status_prev.flags; }
 
-	void enableControlStatusAuxGpos() { _control_status.flags.aux_gpos = true; }
-	void disableControlStatusAuxGpos() { _control_status.flags.aux_gpos = false; }
-
 	// get EKF internal fault status
 	const fault_status_u &fault_status() const { return _fault_status; }
 	const decltype(fault_status_u::flags) &fault_status_flags() const { return _fault_status.flags; }
-
-	const innovation_fault_status_u &innov_check_fail_status() const { return _innov_check_fail_status; }
-	const decltype(innovation_fault_status_u::flags) &innov_check_fail_status_flags() const { return _innov_check_fail_status.flags; }
 
 	const information_event_status_u &information_event_status() const { return _information_events; }
 	const decltype(information_event_status_u::flags) &information_event_flags() const { return _information_events.flags; }
@@ -364,7 +366,7 @@ protected:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	RingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
+	TimestampedRingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
 	uint64_t _time_last_range_buffer_push{0};
 
 	sensor::SensorRangeFinder _range_sensor{};
@@ -372,7 +374,7 @@ protected:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	RingBuffer<flowSample> 	*_flow_buffer {nullptr};
+	TimestampedRingBuffer<flowSample> 	*_flow_buffer {nullptr};
 
 	flowSample _flow_sample_delayed{};
 
@@ -392,17 +394,24 @@ protected:
 	float _local_origin_alt{NAN};
 
 #if defined(CONFIG_EKF2_GNSS)
-	RingBuffer<gnssSample> *_gps_buffer {nullptr};
+	TimestampedRingBuffer<gnssSample> *_gps_buffer {nullptr};
 	uint64_t _time_last_gps_buffer_push{0};
 
 	gnssSample _gps_sample_delayed{};
 
-	float _gps_horizontal_position_drift_rate_m_s{NAN}; // Horizontal position drift rate (m/s)
-	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)
-	float _gps_filtered_horizontal_velocity_m_s{NAN};   // Filtered horizontal velocity (m/s)
-
-	MapProjection _gps_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
-	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
+	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
+	GnssChecks _gnss_checks{_params.ekf2_gps_check,
+			   _params.ekf2_req_nsats,
+			   _params.ekf2_req_pdop,
+			   _params.ekf2_req_eph,
+			   _params.ekf2_req_epv,
+			   _params.ekf2_req_sacc,
+			   _params.ekf2_req_hdrift,
+			   _params.ekf2_req_vdrift,
+			   _params.ekf2_req_fix,
+			   _params.ekf2_vel_lim,
+			   _min_gps_health_time_us,
+			   _control_status};
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// innovation consistency check monitoring ratios
@@ -411,11 +420,9 @@ protected:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	RingBuffer<dragSample> *_drag_buffer {nullptr};
+	TimestampedRingBuffer<dragSample> *_drag_buffer {nullptr};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 #endif // CONFIG_EKF2_DRAG_FUSION
-
-	innovation_fault_status_u _innov_check_fail_status{};
 
 	bool _horizontal_deadreckon_time_exceeded{true};
 	bool _vertical_position_deadreckon_time_exceeded{true};
@@ -426,28 +433,29 @@ protected:
 
 	// data buffer instances
 	static constexpr uint8_t kBufferLengthDefault = 12;
-	RingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
+	TimestampedRingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	RingBuffer<magSample> *_mag_buffer {nullptr};
+	TimestampedRingBuffer<magSample> *_mag_buffer {nullptr};
 	uint64_t _time_last_mag_buffer_push{0};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-	RingBuffer<airspeedSample> *_airspeed_buffer {nullptr};
+	TimestampedRingBuffer<airspeedSample> *_airspeed_buffer {nullptr};
+	bool _synthetic_airspeed{false};
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	RingBuffer<extVisionSample> *_ext_vision_buffer {nullptr};
+	TimestampedRingBuffer<extVisionSample> *_ext_vision_buffer {nullptr};
 	uint64_t _time_last_ext_vision_buffer_push{0};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_AUXVEL)
-	RingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
+	TimestampedRingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
 #endif // CONFIG_EKF2_AUXVEL
-	RingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
+	TimestampedRingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	RingBuffer<baroSample> *_baro_buffer {nullptr};
+	TimestampedRingBuffer<baroSample> *_baro_buffer {nullptr};
 	uint64_t _time_last_baro_buffer_push{0};
 #endif // CONFIG_EKF2_BAROMETER
 
@@ -495,6 +503,6 @@ protected:
 
 	void printBufferAllocationFailed(const char *buffer_name);
 
-	ImuDownSampler _imu_down_sampler{_params.filter_update_interval_us};
+	ImuDownSampler _imu_down_sampler{_params.ekf2_predict_us};
 };
 #endif // !EKF_ESTIMATOR_INTERFACE_H

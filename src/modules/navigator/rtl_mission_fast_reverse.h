@@ -69,13 +69,15 @@ private:
 	void setActiveMissionItems() override;
 	void handleLanding(WorkItemType &new_work_item_type);
 
-	int _mission_index_prior_rtl{-1};
+	int32_t _mission_index_prior_rtl{INT32_C(-1)};
 
 	bool _in_landing_phase{false};
 
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		RtlBase,
-		(ParamInt<px4::params::RTL_PLD_MD>)       _param_rtl_pld_md
+		(ParamInt<px4::params::RTL_PLD_MD>)       _param_rtl_pld_md,
+		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,
+		(ParamFloat<px4::params::RTL_LAND_DELAY>)  _param_rtl_land_delay
 	)
 };

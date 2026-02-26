@@ -89,7 +89,7 @@ This protocol is commonly use is for connecting [optical flow](../sensor/optical
 | SCK  | ![black][blkcircle] Black | ![yellow][ycircle] Yellow |
 | MISO | ![black][blkcircle] Black | ![blue][bluecircle] Blue  |
 | MOSI | ![black][blkcircle] Black | ![green][gcircle] Green   |
-| CS!  | ![black][blkcircle] Black | ![white][wcircle] White   |
+| CS1  | ![black][blkcircle] Black | ![white][wcircle] White   |
 | CS2  | ![black][blkcircle] Black | ![blue][bluecircle] Blue  |
 | GND  | ![black][blkcircle] Black | ![black][blkcircle] Black |
 

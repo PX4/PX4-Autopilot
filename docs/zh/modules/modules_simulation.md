@@ -21,9 +21,7 @@ signals given by the control allocation module.
 积分计算采用前向欧拉法。
 为避免堆栈溢出，大部分变量在 .hpp 文件中声明为全局变量。
 
-<a id="simulator_sih_usage"></a>
-
-### 用法
+### Usage {#simulator_sih_usage}
 
 ```
 simulator_sih <command> [arguments...]

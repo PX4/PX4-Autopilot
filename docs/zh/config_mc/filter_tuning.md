@@ -70,7 +70,7 @@ Airframes with more than two frequency noise spikes typically clean the first tw
 Dynamic notch filters use ESC RPM feedback and/or the onboard FFT analysis.
 The ESC RPM feedback is used to track the rotor blade pass frequency and its harmonics, while the FFT analysis can be used to track a frequency of another vibration source, such as a fuel engine.
 
-ESC RPM feedback requires ESCs capable of providing RPM feedback such as [DShot](../peripherals/esc_motors.md#dshot) with telemetry connected, a bidirectional DShot set up ([work in progress](https://github.com/PX4/PX4-Autopilot/pull/23863)), or [UAVCAN/DroneCAN ESCs](../dronecan/escs.md).
+ESC RPM feedback requires ESCs capable of providing RPM feedback such as [DShot](../peripherals/dshot.md) with telemetry connected, a bidirectional DShot set up ([work in progress](https://github.com/PX4/PX4-Autopilot/pull/23863)), or [UAVCAN/DroneCAN ESCs](../dronecan/escs.md).
 Before enabling, make sure that the ESC RPM is correct.
 You might have to adjust the [pole count of the motors](../advanced_config/parameter_reference.md#MOT_POLE_COUNT).
 
@@ -166,11 +166,11 @@ The low pass filters and the notch filter can be tuned independently (i.e. you d
 ## Additional Tips
 
 1. Acceptable latency depends on vehicle size and expectations.
-  FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
-  For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
+   FPV racers typically tune for the absolute minimal latency (as a ballpark `IMU_GYRO_CUTOFF` around 120, `IMU_DGYRO_CUTOFF` of 50 to 80).
+   For bigger vehicles latency is less critical and `IMU_GYRO_CUTOFF` of around 80 might be acceptable.
 
 2. You can start tuning at higher `IMU_GYRO_CUTOFF` values (e.g. 100Hz), which might be desirable because the default tuning of `IMU_GYRO_CUTOFF` is set very low (30Hz).
-  The only caveat is that you must be aware of the risks:
-  - Don't fly for more than 20-30 seconds
-  - Check that the motors are not getting to hot
-  - Listen for odd sounds and symptoms of excessive noise, as discussed above.
+   The only caveat is that you must be aware of the risks:
+   - Don't fly for more than 20-30 seconds
+   - Check that the motors are not getting to hot
+   - Listen for odd sounds and symptoms of excessive noise, as discussed above.

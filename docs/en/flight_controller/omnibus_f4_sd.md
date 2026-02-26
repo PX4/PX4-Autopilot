@@ -1,10 +1,10 @@
 # Omnibus F4 SD
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the manufacturer for support or compliance issues.
 :::
@@ -23,7 +23,7 @@ These are the main differences compared to a [Pixracer](../flight_controller/pix
 - Same board dimensions as a _Pixracer_, but slightly smaller form factor (because it has less connectors)
 - Integrated OSD (not yet implemented in software)
 
-:::tip
+::: tip
 All the usual PX4 features can still be used for your racer!
 :::
 
@@ -46,15 +46,15 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Built-in current sensor
 - Built-in OSD chip (AB7456 via SPI)
 
-## Where to Buy
+## Where to Buy {#store}
 
 The board is produced by different vendors, with some variations (e.g. with or without a barometer).
 
-:::tip
+::: tip
 PX4 is compatible with boards that support the Betaflight OMNIBUSF4SD target (if _OMNIBUSF4SD_ is present on the product page the board should work with PX4).
 :::
 
-:::tip
+::: tip
 Any Omnibus F4 labeled derivative (e.g. clone) should work as well. However, power distribution on these boards is of varying quality.
 :::
 
@@ -67,13 +67,11 @@ These are the boards tested and known to work:
   :::
 
   Purchase from:
-
   - [Hobbywing XRotor F4 Flight Controller w/OSD](https://www.getfpv.com/hobbywing-xrotor-f4-flight-controller-w-osd.html) (getfpv)
 
 - Original Airbot Omnibus F4 SD
 
   Purchase from:
-
   - [Airbot (CN manufacturer)](https://store.myairbot.com/omnibusf4prov3.html)
   - [Ready To Fly Quads (US reseller)](https://quadsrtf.com/product/flip-32-f4-omnibus-rev-2/)
 
@@ -116,7 +114,6 @@ Some Omnibus F4 boards have a jumper connecting either or both the MCU SBUS and 
 ### UARTs
 
 - UART6: GPS port
-
   - TX: MCU pin PC6
   - RX: MCU pin PC7
 
@@ -125,7 +122,6 @@ Some Omnibus F4 boards have a jumper connecting either or both the MCU SBUS and 
   ![Omnibus F4 SD UART6](../../assets/flight_controller/omnibus_f4_sd/uart6.jpg)
 
 - UART4
-
   - TX: MCU pin PA0
   - RX: MCU pin PA1
   - 57600 baud
@@ -191,13 +187,13 @@ If you use CRSF Telemetry you will need to build custom PX4 firmware.
 By contrast, FrSky telemetry can use prebuilt firmware.
 :::
 
-For Omnibus we recommend the [TBS Crossfire Nano RX](http://team-blacksheep.com/products/prod:crossfire_nano_rx), since it is specifically designed for small Quads.
+For Omnibus we recommend the [TBS Crossfire Nano RX](https://www.team-blacksheep.com/products/prod:crossfire_nano_rx), since it is specifically designed for small Quads.
 
-On the handheld controller (e.g. Taranis) you will also need a [Transmitter Module](http://team-blacksheep.com/shop/cat:rc_transmitters#product_listing).
+On the handheld controller (e.g. Taranis) you will also need a [Transmitter Module](https://www.team-blacksheep.com/shop/cat:tbs-crossfire-radio-transmitter#product_listing).
 This can be plugged into the back of the RC controller.
 
 ::: info
-The referenced links above contains the documentation for the TX/RX modules.
+The referenced links above contain the documentation for the TX/RX modules.
 :::
 
 #### Setup
@@ -210,30 +206,26 @@ Connect the Nano RX and Omnibus pins as shown:
 | RX            | Ch1     |
 
 Next update the TX/RX modules to use the CRSF protocol and set up telemetry.
-Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
+Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
 
 #### PX4 CRSF Configuration
 
 You will need to build custom firmware to use CRSF.
 For more information see [CRSF Telemetry](../telemetry/crsf_telemetry.md#px4-configuration).
 
-## Schematics
+<!-- no longer available 202507 -->
 
-The schematics are provided by [Airbot](https://myairbot.com/): [OmnibusF4-Pro-Sch.pdf](http://bit.ly/obf4pro).
-
-<a id="bootloader"></a>
-
-## PX4 Bootloader Update
+## PX4 Bootloader Update {#bootloader}
 
 The board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki).
 Before PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
-Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/omnibus_f4_sd/omnibusf4sd_bl_d52b70cb39.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
+Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/omnibus_f4_sd/omnibusf4sd_bl_d52b70cb39.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
 ## Building Firmware
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make omnibus_f4sd_default
 ```
 
@@ -241,7 +233,7 @@ make omnibus_f4sd_default
 
 You can use either pre-built firmware or your own custom firmware.
 
-:::warning  
+::: warning  
 If you use [CRSF Telemetry](../telemetry/crsf_telemetry.md#px4-configuration) in your radio system, as describe above, then you must use custom firmware.
 :::
 
@@ -249,7 +241,7 @@ The firmware can be installed in any of the normal ways:
 
 - Build and upload the source
 
-  ```
+  ```sh
   make omnibus_f4sd_default upload
   ```
 
@@ -266,4 +258,4 @@ In addition to the [basic configuration](../config/index.md), the following para
 
 ## Further Info
 
-[This page](https://blog.dronetrest.com/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.
+[This page](https://blog.unmanned.tech/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.

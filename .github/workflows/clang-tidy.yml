@@ -1,4 +1,4 @@
-name: Clang Tidy
+name: Static Analysis
 
 on:
   push:
@@ -6,27 +6,64 @@ on:
     - 'main'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
   pull_request:
     branches:
-    - '*'
+      - '**'
     paths-ignore:
       - 'docs/**'
-      - '.github/**'
+
+permissions:
+  contents: read
+
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  clang_tidy:
+    name: Clang-Tidy
+    runs-on: [runs-on, runner=16cpu-linux-x64, "run-id=${{ github.run_id }}", "extras=s3-cache"]
+    container:
+      image: px4io/px4-dev:v1.17.0-beta1
     steps:
+    - uses: runs-on/action@v2
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        fetch-tags: true
 
-    - name: Testing (clang-tidy-quiet)
-      uses: addnab/docker-run-action@v3
+    - name: Configure Git Safe Directory
+      run: git config --system --add safe.directory '*'
+
+    - name: Restore Compiler Cache
+      id: cc_restore
+      uses: actions/cache/restore@v4
       with:
-        image: px4io/px4-dev-clang:2021-09-08
-        options: -v ${{ github.workspace }}:/workspace
-        run: |
-          cd /workspace
-          git config --global --add safe.directory /workspace
-          make clang-tidy-quiet
+        path: ~/.ccache
+        key: ccache-clang-tidy-${{ github.head_ref || github.ref_name }}
+        restore-keys: |
+          ccache-clang-tidy-${{ github.head_ref || github.ref_name }}-
+          ccache-clang-tidy-main-
+          ccache-clang-tidy-
+
+    - name: Configure Compiler Cache
+      run: |
+        mkdir -p ~/.ccache
+        echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+        echo "compression = true" >> ~/.ccache/ccache.conf
+        echo "compression_level = 6" >> ~/.ccache/ccache.conf
+        echo "max_size = 120M" >> ~/.ccache/ccache.conf
+        echo "hash_dir = false" >> ~/.ccache/ccache.conf
+        echo "compiler_check = content" >> ~/.ccache/ccache.conf
+        ccache -s
+        ccache -z
+
+    - name: Run Clang-Tidy Analysis
+      run: make -j16 clang-tidy
+
+    - name: Compiler Cache Stats
+      if: always()
+      run: ccache -s
+
+    - name: Save Compiler Cache
+      if: always()
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.ccache
+        key: ${{ steps.cc_restore.outputs.cache-primary-key }}

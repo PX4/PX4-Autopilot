@@ -12,8 +12,6 @@ Moving the compass away from power-carrying cables is the easiest and most effec
 The process is demonstrated for a multicopter, but is equally valid for other vehicle types.
 :::
 
-<a id="when"></a>
-
 ## When is Power Compensation Applicable?
 
 Performing this power compensation is advisable only if all the following statements are true:
@@ -24,8 +22,6 @@ Performing this power compensation is advisable only if all the following statem
    ![Corrupted mag](../../assets/advanced_config/corrupted_mag.png)
 
 1. The drone cables are all fixed in place/do not move (calculated compensation parameters will be invalid if the current-carrying cables can move).
-
-<a id="how"></a>
 
 ## How to Compensate the Compass
 
@@ -39,7 +35,6 @@ Performing this power compensation is advisable only if all the following statem
    ![strap](../../assets/advanced_config/strap.png)
 
 1. Power the vehicle and switch into [ACRO flight mode](../flight_modes_mc/acro.md) (using this mode ensures the vehicle won't attempt to compensate for movement resulting from the straps).
-
    - Arm the vehicle and slowly raise the throttle to the maximum
    - Slowly lower the throttle down to zero
    - Disarm the vehicle
@@ -54,10 +49,9 @@ Performing this power compensation is advisable only if all the following statem
    python mag_compensation.py ~/path/to/log/logfile.ulg <type> [--instance <number>]
    ```
 
-   where: 
-   
-      - `<type>`: `current` or `thrust` (power signal used for compensation)
-      - `--instance <number>` (optional): The number is `0` (default) or `1`, the instance of the current or thrust signal to use.
+   where:
+   - `<type>`: `current` or `thrust` (power signal used for compensation)
+   - `--instance <number>` (optional): The number is `0` (default) or `1`, the instance of the current or thrust signal to use.
 
    ::: info
    If your log does not contain battery current measurements, you will need to comment out the respective lines in the Python script, such that it does the calculation for thrust only.

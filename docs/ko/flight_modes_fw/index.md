@@ -17,6 +17,8 @@ Manual-Easy:
   Airspeed is actively controlled if an airspeed sensor is installed.
 - [Altitude](../flight_modes_fw/altitude.md) — Easiest and safest _non-GPS_ manual mode.
   The only difference compared to _Position mode_ is that the pilot always directly controls the roll angle of the plane and there is no automatic course holding.
+- Altitude Cruise mode — It behaves exactly like _Altitude mode_, with the only difference being that the manual control failsafe can be disabled. This is done by setting the corresponding flag in [COM_RCL_EXCEPT](../advanced_config/parameter_reference.md#COM_RCL_EXCEPT). In that case the current altitude, airspeed and heading (by leveling out the roll angle) are kept until the manual control link is regained or the mode is exited.
+  It is highly recommended to only disable the manual control loss failsafe for this mode if there is a stable data link connection to the vehicle at all times, or to enable the data link loss failsafe through [NAV_DLL_ACT](../advanced_config/parameter_reference.md#NAV_DLL_ACT).
 - [Stabilized mode](../flight_modes_fw/stabilized.md) — The pilot directly commands the roll and pitch angle and the vehicle keeps the setpoint until the sticks are moved again.
   Thrust is directly set by the pilot.
   Turn coordination is still handled by the controller.
@@ -56,5 +58,4 @@ Select the mode-specific sidebar topics for detailed technical information.
 - [Basic Configuration > Flight Modes](../config/flight_mode.md) - How to map RC control switches to specific flight modes
 - [Flight Modes (Multicopter)](../flight_modes_mc/index.md)
 - [Flight Modes (VTOL)](../flight_modes_vtol/index.md)
-- [Drive Modes (Differential Rover)](../flight_modes_rover/differential.md)
-- [Drive Modes (Ackermann Rover)](../flight_modes_rover/ackermann.md)
+- [Drive Modes (Rover)](../flight_modes_rover/index.md)

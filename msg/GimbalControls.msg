@@ -4,4 +4,4 @@ uint8 INDEX_PITCH = 1
 uint8 INDEX_YAW = 2
 
 uint64 timestamp_sample	    # the timestamp the data this control response is based on was sampled
-float32[3] control
+float32[3] control	# Normalized output. 1 means maximum positive position. -1 maximum negative position. 0 means no deflection. NaN maps to disarmed.

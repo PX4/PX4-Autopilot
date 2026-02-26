@@ -1,6 +1,6 @@
 # Holybro Pixhawk 4
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -12,7 +12,7 @@ It is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv5** open hardwa
 
 <img src="../../assets/flight_controller/pixhawk4/pixhawk4_hero_upright.jpg" width="200px" title="Pixhawk4 Upright Image" /> <img src="../../assets/flight_controller/pixhawk4/pixhawk4_logo_view.jpg" width="420px" title="Pixhawk4 Image" />
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -49,9 +49,9 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - Other Characteristics:
   - Operating temperature: -40 ~ 85°c
 
-Additional information can be found in the [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf).
+Additional information can be found in the [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/blob/main/docs/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf).
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-4).
 
@@ -59,7 +59,7 @@ Order from [Holybro](https://holybro.com/products/pixhawk-4).
 
 ![Pixhawk 4 connectors](../../assets/flight_controller/pixhawk4/pixhawk4-connectors.jpg)
 
-:::warning
+::: warning
 The **DSM/SBUS RC** and **PPM RC** ports are for RC receivers only.
 These are powered! NEVER connect any servos, power supplies or batteries (or to any connected receiver).
 :::
@@ -119,20 +119,18 @@ The [Pixhawk 4 Wiring Quick Start](../assembly/quick_start_pixhawk4.md) provides
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port, while the I/O console and SWD interface can be accessed via **I/O Debug** port.
 In order to access these ports, the user must remove the _Pixhawk 4_ casing.
@@ -157,7 +155,7 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 
 ## Further info
 
-- [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf)
+- [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf)
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165).
 - [Pixhawk 4 Wiring QuickStart](../assembly/quick_start_pixhawk4.md)
 - [Pixhawk 4 Pinouts](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Pixhawk4-Pinouts.pdf) (Holybro)

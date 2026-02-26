@@ -65,10 +65,12 @@ using namespace time_literals;
 namespace temperature_compensation
 {
 
-class TemperatureCompensationModule : public ModuleBase<TemperatureCompensationModule>, public ModuleParams,
+class TemperatureCompensationModule : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	TemperatureCompensationModule();
 	~TemperatureCompensationModule() override;
 

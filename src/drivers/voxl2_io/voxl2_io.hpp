@@ -55,6 +55,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/mavlink_tunnel.h>
 
 #include "voxl2_io_packet.h"
 #include "voxl2_io_packet_types.h"
@@ -63,9 +64,11 @@ using namespace device;
 
 using namespace time_literals;
 
-class Voxl2IO final : public ModuleBase<Voxl2IO>, public OutputModuleInterface
+class Voxl2IO final : public ModuleBase, public OutputModuleInterface
 {
 public:
+	static Descriptor desc;
+
 	Voxl2IO();
 	~Voxl2IO() override;
 
@@ -82,7 +85,7 @@ public:
 	int print_status() override;
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
+	bool updateOutputs(uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	virtual int	init();
@@ -188,9 +191,11 @@ private:
 
 	/* Subscriptions */
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription	_io_serial_passthru_sub{ORB_ID(io_serial_passthru)};
 
 	bool		_pwm_on{false};
 	bool		_outputs_disabled{false};
+	hrt_abstime	_last_uart_passthru{0};
 
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;
@@ -208,4 +213,5 @@ private:
 	int update_params();
 	int calibrate_escs();
 	std::string board_id_to_name(int board_id);
+	int handle_uart_passthru();
 };

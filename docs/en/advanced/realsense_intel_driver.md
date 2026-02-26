@@ -41,7 +41,7 @@ The tutorial is ordered in the following way: In a first part it is shown how to
 
 ## Installing ROS Indigo
 
-- Follow instructions given at [ROS indigo installation guide](http://wiki.ros.org/indigo/Installation/Ubuntu):
+- Follow instructions given at [ROS indigo installation guide](https://wiki.ros.org/indigo/Installation/Ubuntu):
   - Install Desktop-Full version.
   - Execute steps described in the sections "Initialize rosdep" and "Environment setup".
 
@@ -54,7 +54,6 @@ The tutorial is ordered in the following way: In a first part it is shown how to
   ```
 
 - Download and install the driver:
-
   - Clone [RealSense_ROS repository](https://github.com/bestmodule/RealSense_ROS):
 
     ```sh
@@ -62,7 +61,6 @@ The tutorial is ordered in the following way: In a first part it is shown how to
     ```
 
 - Follow instructions given in [here](https://github.com/bestmodule/RealSense_ROS/tree/master/r200_install).
-
   - Press the enter button when the questions whether to install the following installation packages show up:
 
     ```sh
@@ -86,11 +84,9 @@ The tutorial is ordered in the following way: In a first part it is shown how to
 - After the installation has completed, reboot the Virtual Machine.
 
 - Test camera driver:
-
   - Connect the Intel RealSense camera head with the computer with a USB3 cable that is plugged into a USB3 receptacle on the computer.
   - Click on Devices->USB-> Intel Corp Intel RealSense 3D Camera R200 in the menu bar of the Virtual Box, in order to forward the camera USB connection to the Virtual Machine.
   - Execute the file [unpacked folder]/Bin/DSReadCameraInfo:
-
     - If the following error message appears, unplug the camera (physically unplug USB cable from the computer). Plug it in again + Click on Devices->USB-> Intel Corp Intel RealSense 3D Camera R200 in the menu bar of the Virtual Box again and execute again the file [unpacked folder]/Bin/DSReadCameraInfo.
 
       ```sh

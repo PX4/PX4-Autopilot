@@ -12,7 +12,7 @@
 
 ## Характеристики обладнання
 
-- [Open Source Schematic and BOM](https://github.com/ARK-Electronics/ARK_MosaicX5_GPS)
+- [Open Source Schematic and BOM](https://github.com/ARK-Electronics/ARK_MOSAIC-X5_GPS)
 - Датчики
   - [Septentrio Mosaic-X5 GPS](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-x5)
     - Triple Band L1/L2/L5

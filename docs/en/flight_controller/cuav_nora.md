@@ -1,6 +1,6 @@
 # CUAV Nora Flight Controller
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.cuav.net) for hardware support or compliance issues.
 :::
@@ -30,7 +30,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Car-grade RM3100 compass
 - High performance processor
 
-:::tip
+::: tip
 The manufacturer [CUAV Docs](https://doc.cuav.net/flight-controller/x7/en/nora.html) are the canonical reference for Nora.
 They should be used by preference as they contain the most complete and up to date information.
 :::
@@ -39,7 +39,6 @@ They should be used by preference as they contain the most complete and up to da
 
 - Main FMU Processor: STM32H743
 - On-board sensors:
-
   - Accelerometer/Gyroscope: ICM-20689
   - Accelerometer/Gyroscope: ICM-20649
   - Accelerometer/Gyroscope: BMI088
@@ -73,7 +72,7 @@ When it runs PX4 firmware, only 8 PWM outputs work.
 The remaining 6 PWM ports are still being adapted (so it is not compatible with VOLT at time of writing).
 :::
 
-## Where to Buy
+## Where to Buy {#store}
 
 - [CUAV Store](https://store.cuav.net)<\br>
 - [CUAV Aliexpress](https://www.aliexpress.com/item/4001042501927.html?gps-id=8041884&scm=1007.14677.110221.0&scm_id=1007.14677.110221.0&scm-url=1007.14677.110221.0&pvid=3dc0a3ba-fa82-43d2-b0b3-6280e4329cef&spm=a2g0o.store_home.promoteRecommendProducts_7913969.58)
@@ -88,7 +87,7 @@ The remaining 6 PWM ports are still being adapted (so it is not compatible with 
 
 ![X7 pinouts](../../assets/flight_controller/cuav_nora/nora-pinouts.jpg)
 
-:::warning
+::: warning
 The `RCIN` port is limited to powering the rc receiver and cannot be connected to any power/load.
 :::
 
@@ -110,14 +109,14 @@ Under these conditions all power sources will be used in this order to power the
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make cuav_nora_default
 ```
 
@@ -126,7 +125,7 @@ make cuav_nora_default
 The _Nora_ has over-current protection on the 5 Volt Peripheral and 5 Volt high power, which limits the current to 2.5A.
 The _Nora_ has short circuit protection.
 
-:::warning
+::: warning
 Up to 2.5 A can be delivered to the connectors listed as pin 1 (although these are only rated at 1 A).
 :::
 
@@ -137,7 +136,7 @@ Simply connect the FTDI cable to the DSU7 connector (the product list contains t
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | Pin     | Signal         | Volt  |
 | ------- | -------------- | ----- |
@@ -154,7 +153,7 @@ The provided debug cable does not connect to the SWD port `Vref` pin (1).
 
 ![CUAV Debug cable](../../assets/flight_controller/cuav_v5_plus/cuav_v5_debug_cable.jpg)
 
-:::warning
+::: warning
 The SWD Vref pin (1) uses 5V as Vref but the CPU is run at 3.3V!
 
 Some JTAG adapters (SEGGER J-Link) will use the Vref voltage to set the voltage on the SWD lines.
@@ -169,5 +168,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## Further info
 
 - [Quick start](https://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-nora.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

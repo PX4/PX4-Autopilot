@@ -23,9 +23,9 @@ See the documentation [Ark Electronics GitBook](https://arkelectron.gitbook.io/a
 
 ## 센서
 
-- [Invensense IIM-42653 Industrial IMU](https://invensense.tdk.com/products/motion-tracking/6-axis/iim-42653/)
+- [Invensense IIM-42653 Industrial IMU](https://invensense.tdk.com/products/smartindustrial/iim-42653/)
 - [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp390/)
-- [ST IIS2MDC Magnetometer](https://www.st.com/en/magnetic-sensors/iis2mdc.html)
+- [ST IIS2MDC Magnetometer](https://www.st.com/en/mems-and-sensors/iis2mdc.html)
 
 ## Microprocessor
 
@@ -86,5 +86,3 @@ See the documentation [Ark Electronics GitBook](https://arkelectron.gitbook.io/a
 ## 핀배열
 
 See the [DS-10 Pixhawk Autopilot Bus Standard](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-fpv/pinout)
-
-

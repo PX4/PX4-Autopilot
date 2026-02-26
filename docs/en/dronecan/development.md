@@ -8,6 +8,6 @@ Additional documentation on how to use Babel/other SLCAN adapters, the DroneCAN 
 
 ## Debugging with Zubax Babel
 
-A great tool to debug the transmission on the CAN bus is the [Zubax Babel](https://zubax.com/products/babel) in combination with the [GUI tool](http://dronecan.github.io/GUI_Tool/Overview/).
+A great tool to debug the transmission on the CAN bus is the [Zubax Babel](https://shop.zubax.com/products/zubax-babel) in combination with the [GUI tool](https://dronecan.github.io/GUI_Tool/Overview/).
 
 They can also be used independently from Pixhawk hardware in order to test a node or manually control DroneCAN enabled ESCs.

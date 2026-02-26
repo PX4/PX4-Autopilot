@@ -28,7 +28,6 @@ It is especially meaningful for those FMU-V4 based flight controllers as MindPX 
 ![](../../assets/hardware/hardware-mindpx-specs.png)
 
 - Main System-on-Chip: STM32F427
-
   - CPU: 32bits, 168 MHz ARM Cortex<sup>&reg;</sup> M4 with FPU
   - RAM: 256 KB SRAM
   - 2MB Flash
@@ -107,20 +106,20 @@ The user guide is [here](http://mindpx.net/assets/accessories/UserGuide9.18_2_pd
 
 ## 购买渠道
 
-MindRacer is available at [AirMind Store](http://drupal.xitronet.com/?q=catalog) on internet.
+MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 You can also find MindRacer at Amazon<sup>&reg;</sup> or eBay<sup>&reg;</sup>.
 
 ## 串口映射
 
-| UART   | 设备         | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | RC            |
-| USART2 | /dev/ttyS1 | TELEM1        |
-| USART3 | /dev/ttyS2 | TELEM2        |
-| UART4  | /dev/ttyS3 | GPS1          |
-| USART6 | /dev/ttyS4 | ?             |
-| UART7  | /dev/ttyS5 | Debug Console |
-| UART8  | /dev/ttyS6 | ?             |
+| UART   | 设备         | Port   |
+| ------ | ---------- | ------ |
+| USART1 | /dev/ttyS0 | RC     |
+| USART2 | /dev/ttyS1 | TELEM1 |
+| USART3 | /dev/ttyS2 | TELEM2 |
+| UART4  | /dev/ttyS3 | GPS1   |
+| USART6 | /dev/ttyS4 | ?      |
+| UART7  | /dev/ttyS5 | 调试控制台  |
+| UART8  | /dev/ttyS6 | ?      |
 
 <!-- Note: Got ports using https://github.com/PX4/PX4-user_guide/pull/672#issuecomment-598198434 -->
 

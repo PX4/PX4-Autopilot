@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.13" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -36,13 +36,13 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Dimensions: 35x35mm
 - Weight: 8g
 
-## Where to Buy
+## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
 
 - [Holybro](https://holybro.com/products/kakute-h7)
 
-:::tip
+::: tip
 The _Kakute H7_ is designed to work with the _Tekko32_ 4-in-1 ESC and they can be bought in combination.
 :::
 
@@ -74,12 +74,11 @@ This is the silkscreen for the _Kakute H7_, showing the top of the board:
 | M5 to M8 | Motor signal outputs (located in plug for use in 4-in-1 ESCs)     |                     |
 | Boot     | Bootloader button                                                 |                     |
 
-
 ## PX4 Bootloader Update {#bootloader}
 
 The board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki).
 Before PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
-Download the [kakuteh7_bl.hex](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/kakuteh7/holybro_kakuteh7_bootloader.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
+Download the [kakuteh7_bl.hex](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/kakuteh7/holybro_kakuteh7_bootloader.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
 ## Building Firmware
 
@@ -103,7 +102,7 @@ The firmware can be installed in any of the normal ways:
   You can use either pre-built firmware or your own custom firmware.
 
 ::: info
-If you are loading the pre-built firmware via QGroundcontrol, you must use QGC Daily or QGC version newer than 4.1.7.
+If you are loading the pre-built firmware via QGroundControl, you must use QGC Daily or QGC version newer than 4.1.7.
 :::
 
 ## PX4 Configuration

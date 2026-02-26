@@ -1,24 +1,22 @@
 # DATAGNSS GEM1305 RTK Receiver with antenna
 
-GEM1305 is a RTK receiver with antenna designed and manufactured by [DATAGNSS](https://www.datagnss.com/).
+GEM1305 is an [RTK GNSS](../gps_compass/rtk_gps.md) receiver with antenna designed and manufactured by [DATAGNSS](https://www.datagnss.com/).
 
 GEM1305 is based on the new generation CYNOSURE IV dual-core GNSS SoC.
 It supports RTK functionality with a maximum data update rate of 10Hz, and comes with cables for connecting to GPS ports on most Pixhawk devices.
 
-<img src="../../assets/hardware/gps/datagnss_gem1305/datagnss-gem1305-02.png" width="500px" alt="DATAGNSS GEM1305 RTK Receiver">
+![DATAGNSS GEM1305 RTK Receiver](../../assets/hardware/gps/datagnss_gem1305/datagnss-gem1305-02.png)
 
-::: info
-
-- GEM1305 RTK doesn't support moving base mode yet.
-- GEM1305 RTK does not include a compass.
-
+:::info
+GEM1305 supports both base and rover options.
+It does not yet support _moving base_ mode.
 :::
 
 ## 购买渠道
 
 - [GEM1305 RTK receiver with antenna](https://www.datagnss.com/collections/gnss-for-drone/products/gem1305) (www.datagnss.com)
 
-  <img src="../../assets/hardware/gps/datagnss_gem1305/gem1305_hero.png" width="500px" alt="DATAGNSS GEM1305 RTK Receiver">
+  ![DATAGNSS GEM1305 RTK Receiver](../../assets/hardware/gps/datagnss_gem1305/gem1305_hero.png)
 
 - [DGM10 RTK Receiver](https://www.datagnss.com/collections/gnss-for-drone/products/dgm10-rtk-receiver) (same receiver in a casing).
 
@@ -28,6 +26,7 @@ It supports RTK functionality with a maximum data update rate of 10Hz, and comes
 
 - Full constellation, multi-frequency GNSS satellite receiver
 - Support RTK with up to 10hz output rate
+- IST8310 compass
 - Standard UART serial interface
 - Lightweight only 50g or 26g(NANO RTK receiver)
 - High performance antenna
@@ -73,16 +72,7 @@ The board is connected to the autopilot via UART interface.
 
 ![GEM1305 connector](../../assets/hardware/gps/datagnss_gem1305/gem1305_connector.png)
 
-The 1.25mm pitch 6P connector (from left: PIN1 to PIN6):
-
-- 1: GND
-- 2: NC
-- 3: PPS
-- 4: Rx
-- 5: Tx
-- 6: 5V
-
-The board does not include a compass and so does not require connections for a compass part.
+The 1.25mm pitch 6P connector (from left: PIN1 to PIN6) supports UART for GNSS and I2C for compass.
 
 ## 硬件安装
 
@@ -125,10 +115,10 @@ GPS and RTK configuration on PX4 via _QGroundControl_ is plug and play (see [RTK
 
 ## Resources
 
-- [GEM1305 2D drawing file](https://wiki.datagnss.com/index.php/GEM1305)
 - [NANO RTK Receiver 2D drawing file](https://wiki.datagnss.com/images/3/31/EVK-DG-1206_V.2.0.pdf)
-- [GEM1305 Wiki](https://wiki.datagnss.com/index.php/GEM1305) (DATAGNSS WiKi)
-- [HED-10L Heading RTK Receiver](https://wiki.datagnss.com/index.php/HED-10L)
+- [GEM1305 Wiki](https://docs.datagnss.com/gnss/rtk_receiver/GEM1305/) (DATAGNSS WiKi)
+- [HED-10L Heading RTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/HED-10L/)
+- [NANO HRTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/NANO/nano-helix-rtk/)
 
 ## More information
 

@@ -1,12 +1,12 @@
 # CUAV v5 (Discontinued)
 
-<Badge type="info" text="Discontinued" />
+<Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
@@ -25,7 +25,6 @@ It is intended primarily for academic and commercial developers.
 - IO Processor: STM32F100
   - 32 Bit Arm® Cortex®-M3, 24MHz, 8KB SRAM
 - On-board sensors:
-
   - Accelerometer/Gyroscope: ICM-20689
   - Accelerometer/Gyroscope: BMI055
   - Magnetometer: IST8310
@@ -53,7 +52,7 @@ It is intended primarily for academic and commercial developers.
 - Other Characteristics:
   - Operating temperature: -20 ~ 80°C （Measured value）
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [CUAV](https://cuav.taobao.com/index.htm?spm=2013.1.w5002-16371268426.2.411f26d9E18eAz).
 
@@ -61,7 +60,7 @@ Order from [CUAV](https://cuav.taobao.com/index.htm?spm=2013.1.w5002-16371268426
 
 ![CUAV v5](../../assets/flight_controller/cuav_v5/pixhack_v5_connector.jpg)
 
-:::warning
+::: warning
 The RCIN interface is limited to powering the rc receiver and cannot be connected to any power/load.
 :::
 
@@ -83,14 +82,14 @@ Under these conditions all power sources will be used in this order to power the
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
@@ -142,5 +141,4 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## Further info
 
 - [FMUv5 reference design pinout](https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY/edit#gid=912976165).
-- [CUAV v5 docs](http://doc.cuav.net/flight-controller/v5-autopilot/en/v5.html)
 - [CUAV Github](https://github.com/cuav)

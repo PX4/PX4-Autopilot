@@ -1,11 +1,11 @@
 # Holybro Pixhawk Mini (Discontinued)
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
 
-The Holybro *Pixhawk<sup>&reg;</sup> Mini* autopilot is a next-generation evolution of the Pixhawk.
+The Holybro _Pixhawk<sup>&reg;</sup> Mini_ autopilot is a next-generation evolution of the Pixhawk.
 It is about 1/3rd the size of the original Pixhawk and has more powerful processors and sensors.
 
 The Pixhawk Mini is based on the PX4 open-hardware project and has been optimized for the PX4 flight stack.
@@ -19,7 +19,7 @@ This flight controller was designed by 3DR in collaboration with HobbyKing<sup>&
 It was formerly known as the 3DR Pixhawk Mini.
 :::
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -42,7 +42,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - **Power module output:** 4.1\~5.5V
 - **Max input voltage:** 45V (10S LiPo)
 - **Max current sensing:** 90A
-- **USB Power Input:** 4.1\`5.5V
+- **USB Power Input:** 4.1\~5.5V
 - **Servo Rail Input:** 0\~10V
 
 **Interfaces:**
@@ -67,7 +67,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - **Weight:** 22.4g
 - **Dimensions:** 37x37x12mm
 
-## Where to Buy
+## Where to Buy {#store}
 
 Discontinued.
 
@@ -117,7 +117,7 @@ The _Pixhawk Mini_ is shipped with the following contents:
 | Safety switch                                                      | ![Safety switch](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_safety_switch_drawing.png)                                 |
 | 8 Channel PWM Breakout cable                                       | ![8 Channel PWM Breakout cable](../../assets/flight_controller/pixhawk_mini/pixhawk_mini_8channel_pwm_breakout_cable_drawing.png)    |
 | Mounting foam                                                      | ![Mounting foam](../../assets/hardware/mounting/3dr_anti_vibration_mounting_foam.png)                                                |
-| I2C breakout board ? - not listed parts on handout                 |  -                                                                                                                                   |
+| I2C breakout board ? - not listed parts on handout                 | -                                                                                                                                    |
 
 ## Optional accessories
 
@@ -185,7 +185,7 @@ Pixhawk Mini features an advanced processor and sensor technology from ST Microe
 
 ## Wiring Quick Start
 
-:::warning
+::: warning
 The _Pixhawk Mini_ is no longer manufactured or available from 3DR.
 :::
 
@@ -263,7 +263,7 @@ Pixhawk Mini supports many different radio receiver models:
 
   <img src="../../assets/flight_controller/pixhawk_mini/pixhawk_mini_port_rcin.png" width="350px" title="Pixhawk Mini - Radio port for PPM receivers" />
 
-- PPM and PWM receivers that have an _individual wire for each channel_ must connect to the **RCIN** port _via a PPM encoder_ [like this one](http://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
+- PPM and PWM receivers that have an _individual wire for each channel_ must connect to the **RCIN** port _via a PPM encoder_ [like this one](https://www.getfpv.com/radios/radio-accessories/holybro-ppm-encoder-module.html) (PPM-Sum receivers use a single signal wire for all channels).
 
 For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).
 
@@ -280,14 +280,14 @@ If this switch is hard to access on a particular vehicle you can attach the (opt
 
 The mappings between MAIN/AUX output ports and motor/servos for all supported air and ground frames are listed in the [Airframe Reference](../airframes/airframe_reference.md).
 
-:::warning
+::: warning
 The mapping is not consistent across frames (e.g. you can't rely on the throttle being on the same output for all plane frames).
 Make sure to use the correct mapping for your vehicle.
 :::
 
-:::tip
+::: tip
 If your frame is not listed in the reference then use a "generic" airframe of the correct type.
-::: infos:
+:::
 
 - The output rail must be separately powered, as discussed in the [Power](#power) section above.
 - Pixhawk Mini cannot be used for QuadPlane VTOL airframes. This is because QuadPlane requires 9 outputs (4 Main, 5 AUX) and the Pixhawk Mini only has 8 outputs (8 Main).
@@ -306,14 +306,14 @@ QuadPlane specific configuration is covered here: [QuadPlane VTOL Configuration]
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v3_default
 ```
 

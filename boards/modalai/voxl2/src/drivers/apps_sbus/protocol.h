@@ -189,7 +189,7 @@
 #define PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE	(1 << 6) /* Output of PWM right after startup enabled to help ESCs initialize and prevent them from beeping */
 #define PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED	(1 << 7) /* Disable the IO-internal evaluation of the RC */
 #define PX4IO_P_SETUP_ARMING_LOCKDOWN		(1 << 8) /* If set, the system operates normally, but won't actuate any servos */
-#define PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE	(1 << 9) /* If set, the system will always output the failsafe values */
+#define PX4IO_P_SETUP_ARMING_TERMINATION	(1 << 9) /* If set, the system will always output the failsafe values */
 #define PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE	(1 << 10) /* If set, the system will never return from a failsafe, but remain in failsafe once triggered. */
 #define PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE	(1 << 11) /* If set then on FMU failure override is immediate. Othewise it waits for the mode switch to go past the override thrshold */
 

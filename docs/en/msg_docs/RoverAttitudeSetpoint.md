@@ -1,14 +1,31 @@
+---
+pageClass: is-wide-page
+---
+
 # RoverAttitudeSetpoint (UORB message)
 
+Rover Attitude Setpoint.
 
+**TOPICS:** rover_attitude_setpoint
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverAttitudeSetpoint.msg)
+## Fields
+
+| Name         | Type      | Unit [Frame] | Range/Enum   | Description             |
+| ------------ | --------- | ------------ | ------------ | ----------------------- |
+| timestamp    | `uint64`  | us           |              | Time since system start |
+| yaw_setpoint | `float32` | rad [NED]    | [-inf : inf] | Yaw setpoint            |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/RoverAttitudeSetpoint.msg)
+
+::: details Click here to see original file
 
 ```c
-uint64 timestamp # time since system start (microseconds)
+# Rover Attitude Setpoint
 
-float32 yaw_setpoint # [rad] Expressed in NED frame
-
-# TOPICS rover_attitude_setpoint
-
+uint64 timestamp      # [us] Time since system start
+float32 yaw_setpoint  # [rad] [@range -inf, inf] [@frame NED] Yaw setpoint
 ```
+
+:::

@@ -127,6 +127,9 @@
 #define SPI6_nRESET_EXTERNAL1       /* PF10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN10)
 #define SPI6_RESET(on_true)          px4_arch_gpiowrite(SPI6_nRESET_EXTERNAL1, !(on_true))
 
+// ADIS16507 hardware reset
+#define GPIO_ADIS16507_RESET(reset) SPI6_RESET(reset)
+
 /* I2C busses */
 
 /* Devices on the onboard buses.
@@ -238,16 +241,7 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   8
-
-#define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
-#define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
-#define GPIO_FMU_CH3                    /* PH11 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN11)
-#define GPIO_FMU_CH4                    /* PH10 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN10)
-#define GPIO_FMU_CH5                    /* PD13 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN13)
-#define GPIO_FMU_CH6                    /* PD14 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN14)
-#define GPIO_FMU_CH7                    /* PH6  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN6)
-#define GPIO_FMU_CH8                    /* PH9  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN9)
+#define DIRECT_PWM_OUTPUT_CHANNELS   9
 
 #define GPIO_FMU_CAP                    /* PE11 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN11)
 #define GPIO_SPIX_SYNC                  /* PE9  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN9)
@@ -318,10 +312,6 @@
 
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
-
-/* RC Serial port */
-
-#define RC_SERIAL_PORT                     "/dev/ttyS5"
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  1
@@ -466,14 +456,6 @@
 		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_PG6,                         \
 		GPIO_nARMED_INIT,                 \
-		GPIO_FMU_CH1,     	          \
-		GPIO_FMU_CH2,     	          \
-		GPIO_FMU_CH3,     	          \
-		GPIO_FMU_CH4,     	          \
-		GPIO_FMU_CH5,     	          \
-		GPIO_FMU_CH6,     	          \
-		GPIO_FMU_CH7,     	          \
-		GPIO_FMU_CH8,     	          \
 		GPIO_FMU_CAP,     	          \
 		GPIO_SPIX_SYNC                    \
 	}
@@ -483,7 +465,7 @@
 #define PX4_I2C_BUS_MTD      4,5
 
 
-#define BOARD_NUM_IO_TIMERS  3
+#define BOARD_NUM_IO_TIMERS  4
 #define BOARD_SPIX_SYNC_FREQ 32000
 
 __BEGIN_DECLS

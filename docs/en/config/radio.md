@@ -1,10 +1,12 @@
 # Radio Control (RC) Setup
 
-The _Radio Setup_ screen is used to configure the mapping of your RC controller's main attitude control sticks (roll, pitch, yaw, throttle) to channels, and to calibrate the minimum, maximum, trim and reverse settings for all other transmitter controls/RC channels.
+The _Radio Setup_ screen is used to configure the mapping of your [RC controller's](../getting_started/rc_transmitter_receiver.md) main attitude control sticks (roll, pitch, yaw, throttle) to channels, and to calibrate the minimum, maximum, trim and reverse settings for all other transmitter controls/RC channels.
 
 ::: info
-A [Joystick](../config/joystick.md) can be used instead of RC for manual control.
-The [COM_RC_IN_MODE](../advanced_config/parameter_reference.md#COM_RC_IN_MODE) parameter [can be set](../advanced_config/parameters.md) to define what kind of manual controller(s) are enabled.
+A [Joystick](../config/joystick.md) can also be used for [Manual Control](../config/manual_control.md).
+
+By default PX4 will latch the first valid controller it discovers and use it until the vehicle reboots.
+If you have multiple controllers and you want to define their priority see [Manual Control > PX4 Configuration](../config/manual_control.md#px4-configuration).
 :::
 
 ## Binding the Receiver

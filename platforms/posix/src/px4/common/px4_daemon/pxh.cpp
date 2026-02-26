@@ -101,7 +101,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 
 		// Note that argv[argc] always needs to be a nullptr.
 		// Therefore add one more entry.
-		const char *arg[words.size() + 1];
+		char **arg = new char *[words.size() + 1];
 
 		for (unsigned i = 0; i < words.size(); ++i) {
 			arg[i] = (char *)words[i].c_str();
@@ -110,13 +110,15 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 		// Explicitly set this nullptr.
 		arg[words.size()] = nullptr;
 
-		int retval = _apps[command](words.size(), (char **)arg);
+		int retval = _apps[command](words.size(), arg);
 
 		if (retval) {
 			if (!silently_fail) {
 				printf("Command '%s' failed, returned %d.\n", command.c_str(), retval);
 			}
 		}
+
+		delete[] arg;
 
 		return retval;
 
@@ -428,7 +430,7 @@ void Pxh::_setup_term()
 	term.c_lflag &= ~ICANON;
 	term.c_lflag &= ~ECHO;
 	tcsetattr(0, TCSANOW, &term);
-	setbuf(stdin, nullptr);
+	(void)setvbuf(stdin, nullptr, _IONBF, 0);
 }
 
 void Pxh::_restore_term()

@@ -89,7 +89,7 @@ The user guide is [here](http://mindpx.net/assets/accessories/mindracer_user_gui
 
 ## Де купити
 
-MindRacer is available at [AirMind Store](http://drupal.xitronet.com/?q=catalog).
+MindRacer is available at [AirMind Store](https://airmind.mindpx.net/catalog).
 Ви також можете знайти MindRacer на Amazon<sup>&reg;</sup> або на eBay<sup>&reg;</sup>.
 
 ## Підтримка

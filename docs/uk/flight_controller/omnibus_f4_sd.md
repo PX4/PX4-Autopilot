@@ -192,9 +192,9 @@ If you use CRSF Telemetry you will need to build custom PX4 firmware.
 На відміну від цього, телеметрія FrSky може використовувати завчасно побудоване програмне забезпечення.
 :::
 
-For Omnibus we recommend the [TBS Crossfire Nano RX](http://team-blacksheep.com/products/prod:crossfire_nano_rx), since it is specifically designed for small Quads.
+For Omnibus we recommend the [TBS Crossfire Nano RX](https://www.team-blacksheep.com/products/prod:crossfire_nano_rx), since it is specifically designed for small Quads.
 
-On the handheld controller (e.g. Taranis) you will also need a [Transmitter Module](http://team-blacksheep.com/shop/cat:rc_transmitters#product_listing).
+On the handheld controller (e.g. Taranis) you will also need a [Transmitter Module](https://www.team-blacksheep.com/shop/cat:tbs-crossfire-radio-transmitter#product_listing).
 Це можна підключити ззаду до пульта радіо керування.
 
 :::info
@@ -211,24 +211,20 @@ The referenced links above contains the documentation for the TX/RX modules.
 | RX            | Ch1     |
 
 Наступне оновіть модулі TX/RX для використання протоколу CRSF та налаштуйте телеметрію.
-Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
+Instructions for this are provided in the [TBS Crossfire Manual](https://www.team-blacksheep.com/media/files/tbs-crossfire-manual.pdf) (search for 'Setting up radio for CRSF').
 
 #### Налаштування CRSF PX4
 
 Вам потрібно буде створити власну прошивку, щоб використовувати CRSF.
 For more information see [CRSF Telemetry](../telemetry/crsf_telemetry.md#px4-configuration).
 
-## Креслення
+<!-- no longer available 202507 -->
 
-The schematics are provided by [Airbot](https://myairbot.com/): [OmnibusF4-Pro-Sch.pdf](http://bit.ly/obf4pro).
-
-<a id="bootloader"></a>
-
-## Оновлення завантажувача PX4
+## PX4 Bootloader Update {#bootloader}
 
 The board comes pre-installed with [Betaflight](https://github.com/betaflight/betaflight/wiki).
 Before PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
-Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-user_guide/raw/main/assets/flight_controller/omnibus_f4_sd/omnibusf4sd_bl_d52b70cb39.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
+Download the [omnibusf4sd_bl.hex](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/omnibus_f4_sd/omnibusf4sd_bl_d52b70cb39.hex) bootloader binary and read [this page](../advanced_config/bootloader_update_from_betaflight.md) for flashing instructions.
 
 ## Збірка прошивки
 
@@ -267,4 +263,4 @@ In addition to the [basic configuration](../config/index.md), the following para
 
 ## Додаткова інформація
 
-[This page](https://blog.dronetrest.com/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.
+[This page](https://blog.unmanned.tech/omnibus-f4-flight-controller-guide/) provides a good overview with pinouts and setup instructions.

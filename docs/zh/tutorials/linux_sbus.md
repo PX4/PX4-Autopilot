@@ -10,9 +10,7 @@ For an S.Bus receiver (or encoder - e.g. from Futaba, RadioLink, etc.) you will 
 
 Then [Start the PX4 RC Driver](#start_driver) on the device, as shown below.
 
-<a id="start_driver"></a>
-
-## 启动驱动程序
+## Starting the Driver {#start_driver}
 
 To start the RC driver on a particular UART (e.g. in this case `/dev/ttyS2`):
 
@@ -20,11 +18,9 @@ To start the RC driver on a particular UART (e.g. in this case `/dev/ttyS2`):
 linux_sbus start|stop|status -d &lt;device&gt; -c &lt;channel&gt;
 ```
 
-For other driver usage information see: [rc_input](../modules/modules_driver.md#rc-input).
+For other driver usage information see: [rc_input](../modules/modules_driver_radio_control.md#rc-input).
 
-<a id="signal_inverter_circuit"></a>
-
-## 信号反相器电路 (仅限S.Bus)
+## Signal Inverter Circuit (S.Bus only) {#signal_inverter_circuit}
 
 S.Bus is an _inverted_ UART communication signal.
 

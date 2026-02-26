@@ -20,7 +20,7 @@ Before analyzing a flight log it is important to establish its context:
 
 If a log file ends mid-air, two main causes are possible: a power failure _or_ a hard fault of the operating system.
 
-On autopilots based on the [STM32 series](http://www.st.com/en/microcontrollers/stm32-32-bit-arm-cortex-mcus.html), hard faults are logged to the SD card.
+On autopilots based on the [STM32 series](https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html), hard faults are logged to the SD card.
 These are located on the top level of the SD card and named _fault_date.log_, e.g. **fault_2017_04_03_00_26_05.log**.
 You should check for the presence of this file if a flight log ends abruptly.
 
@@ -28,7 +28,7 @@ You should check for the presence of this file if a flight log ends abruptly.
 
 ### Flight Review (Online Tool)
 
-[Flight Review](http://logs.px4.io) is the successor of _Log Muncher_.
+[Flight Review](https://logs.px4.io/) is the successor of _Log Muncher_.
 It is used in combination with the new [ULog](../dev_log/ulog_file_format.md) logging format.
 
 Key features:
@@ -40,6 +40,23 @@ Key features:
 ![Flight Review Charts](../../assets/flight_log_analysis/flight_review/flight-review-example.png)
 
 See [Log Analysis using Flight Review](../log/flight_review.md) for an introduction.
+
+### Foxglove
+
+[Foxglove](https://foxglove.dev/) is a purpose-built robotics observation platform that works natively with ULog.
+It allows you to replay your flights and seek through the timeline to find data of interest.
+
+Key features:
+
+- Native support for ULog files — open files by dragging and dropping or using the file dialog.
+- Multiple visualization panels, including Raw Messages, Plot, 3D, and Map panels.
+- [PX4 Converter extension](https://github.com/foxglove/px4_converter) that translates selected uORB messages and creates Foxglove schemas for enhanced visualizations.
+- Save and share custom layouts with panels and their settings.
+- Cross-platform desktop application (Windows, macOS, Linux).
+
+See [Foxglove PX4 Docs](https://docs.foxglove.dev/docs/getting-started/frameworks/px4) for more detailed information and instructions.
+
+![Foxglove](../../assets/flight_log_analysis/foxglove/foxglove_px4.png)
 
 ### PlotJuggler
 

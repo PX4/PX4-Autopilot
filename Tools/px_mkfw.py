@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ############################################################################
 #
 #   Copyright (C) 2012, 2013 PX4 Development Team. All rights reserved.

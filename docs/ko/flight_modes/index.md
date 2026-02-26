@@ -7,8 +7,7 @@ For information about flight modes available to specific frames see the followin
 - [Flight Modes (Multicopter)](../flight_modes_mc/index.md)
 - [Flight Modes (Fixed-Wing)](../flight_modes_fw/index.md)
 - [Flight Modes (VTOL)](../flight_modes_vtol/index.md)
-- [Drive Modes (Differential Rover)](../flight_modes_rover/differential.md)
-- [Drive Modes (Ackermann Rover)](../flight_modes_rover/ackermann.md)
+- [Drive Modes (Rover)](../flight_modes_rover/index.md)
 
 :::info
 The mode sub-topics in this section contain information that is common to all vehicles, but may not be relevant to the normal/default setup.

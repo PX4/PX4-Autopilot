@@ -158,7 +158,7 @@ To only allow arming when a Remote ID is ready, [set](../advanced_config/paramet
 Це найлегше зробити за допомогою стороннього додатку на вашому мобільному пристрої:
 
 - [Drone Scanner](https://github.com/dronetag/drone-scanner) (Google Play or Apple App store)
-- OpenDroneID OSM (Google Play)
+- [OpenDroneID OSM](https://play.google.com/store/apps/details?id=org.opendroneid.android_osm&hl=en&gl=US) (Google Play)
 
 ## Імплементація
 
@@ -166,7 +166,6 @@ PX4 v1.14 передає ці повідомлення за замовчуван
 
 - [OPEN_DRONE_ID_LOCATION](https://mavlink.io/en/messages/common.html#OPEN_DRONE_ID_LOCATION) (1 Hz) - UAV location, altitude, direction, and speed.
 - [OPEN_DRONE_ID_SYSTEM](https://mavlink.io/en/messages/common.html#OPEN_DRONE_ID_SYSTEM) (1 Hz) Operator location/altitude, multiple aircraft information (group/swarm, if applicable), full timestamp and possible category/class information.
-
   - Реалізація передбачає, що оператор знаходиться в домашньому положенні транспортного засобу (ще не підтримує отримання позиції оператора з ПЗУ).
     Вважається, що це відповідає вимогам лише для віддалених ідентифікаторів трансляції.
 
@@ -245,11 +244,11 @@ If the Remote ID CAN node is present and the messages are not being received, th
 2. Navigate to the [Application settings](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/settings_view/general.html): **Application Settings > General > Miscellaneous**.
 
 3. Select `Enable Remote ID`.
-  The Remote ID tab should appear.
+   The Remote ID tab should appear.
 
-  ::: info
-  If this option is not present you may be in a very recent version of QGC.
-  In that case, open the view at: **Application Settings > Remote ID**.
+   ::: info
+   If this option is not present you may be in a very recent version of QGC.
+   In that case, open the view at: **Application Settings > Remote ID**.
 
 :::
 

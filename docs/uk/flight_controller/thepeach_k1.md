@@ -14,21 +14,17 @@ It is based on the **Pixhawk-project FMUv3** open hardware design and runs **PX4
 ## Характеристики
 
 - Основний процесор: STM32F427VIT6
-
   - 32-бітний ARM Cortex-M4, 168 МГц 256 КБ ОЗП 2 МБ флеш-пам'яті
 
 - IO процесор: STM32F100C8T6
-
   - ARM Cortex-M3, 32 бітний ARM Cortex-M3, 24 МГц, 8КБ SRAM
 
 - Сенсори на платі
-
   - Акселератор/гіроскоп: ICM-20602
   - Акселератор/гіроскоп/Магнітометр: MPU-9250
   - Барометр: MS5611
 
 - Інтерфейси
-
   - 8+5 PWM виходів (8 з IO, 5 з FMU)
   - Spektrum DSM / DSM2 / DSM-X Satellite сумісний вхід
   - Futaba S.BUS сумісний вхід та вихід
@@ -98,4 +94,4 @@ make thepeach_k1_default
 
 ## Де купити
 
-Order from [ThePeach](http://thepeach.shop/)
+Order from [ThePeach](https://thepeach.shop/)

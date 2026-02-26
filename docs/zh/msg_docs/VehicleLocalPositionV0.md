@@ -1,0 +1,173 @@
+---
+pageClass: is-wide-page
+---
+
+# VehicleLocalPositionV0 (UORB message)
+
+Fused local position in NED. The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
+
+**TOPICS:** vehicle_local_position vehicle_local_position_groundtruth external_ins_local_position estimator_local_position
+
+## Fields
+
+| 参数名                                                                                        | 类型           | Unit [Frame] | Range/Enum | 描述                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------ | ------------ | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                                                                                  | `uint64`     |                                                                  |            | time since system start (microseconds)                                                                                                |
+| timestamp_sample                                                      | `uint64`     |                                                                  |            | the timestamp of the raw data (microseconds)                                                                                          |
+| xy_valid                                                              | `bool`       |                                                                  |            | true if x and y are valid                                                                                                                                |
+| z_valid                                                               | `bool`       |                                                                  |            | true if z is valid                                                                                                                                       |
+| v_xy_valid                                       | `bool`       |                                                                  |            | true if vx and vy are valid                                                                                                                              |
+| v_z_valid                                        | `bool`       |                                                                  |            | true if vz is valid                                                                                                                                      |
+| x                                                                                          | `float32`    |                                                                  |            | North position in NED earth-fixed frame, (metres)                                                                                     |
+| y                                                                                          | `float32`    |                                                                  |            | East position in NED earth-fixed frame, (metres)                                                                                      |
+| z                                                                                          | `float32`    |                                                                  |            | Down position (negative altitude) in NED earth-fixed frame, (metres)                                               |
+| delta_xy                                                              | `float32[2]` |                                                                  |            | Amount of lateral shift of position estimate in latest reset (in x and y) [m]     |
+| xy_reset_counter                                 | `uint8`      |                                                                  |            | Index of latest lateral position estimate reset                                                                                                          |
+| delta_z                                                               | `float32`    |                                                                  |            | Amount of vertical shift of position estimate in latest reset [m]                                    |
+| z_reset_counter                                  | `uint8`      |                                                                  |            | Index of latest vertical position estimate reset                                                                                                         |
+| vx                                                                                         | `float32`    |                                                                  |            | North velocity in NED earth-fixed frame, (metres/sec)                                                                                 |
+| vy                                                                                         | `float32`    |                                                                  |            | East velocity in NED earth-fixed frame, (metres/sec)                                                                                  |
+| vz                                                                                         | `float32`    |                                                                  |            | Down velocity in NED earth-fixed frame, (metres/sec)                                                                                  |
+| z_deriv                                                               | `float32`    |                                                                  |            | Down position time derivative in NED earth-fixed frame, (metres/sec)                                                                  |
+| delta_vxy                                                             | `float32[2]` |                                                                  |            | Amount of lateral shift of velocity estimate in latest reset (in x and y) [m/s]   |
+| vxy_reset_counter                                | `uint8`      |                                                                  |            | Index of latest vertical velocity estimate reset                                                                                                         |
+| delta_vz                                                              | `float32`    |                                                                  |            | Amount of vertical shift of velocity estimate in latest reset [m/s]                                  |
+| vz_reset_counter                                 | `uint8`      |                                                                  |            | Index of latest vertical velocity estimate reset                                                                                                         |
+| ax                                                                                         | `float32`    |                                                                  |            | North velocity derivative in NED earth-fixed frame, (metres/sec^2)                                                                    |
+| ay                                                                                         | `float32`    |                                                                  |            | East velocity derivative in NED earth-fixed frame, (metres/sec^2)                                                                     |
+| az                                                                                         | `float32`    |                                                                  |            | Down velocity derivative in NED earth-fixed frame, (metres/sec^2)                                                                     |
+| heading                                                                                    | `float32`    |                                                                  |            | Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI, (radians) |
+| heading_var                                                           | `float32`    |                                                                  |            |                                                                                                                                                          |
+| unaided_heading                                                       | `float32`    |                                                                  |            | Same as heading but generated by integrating corrected gyro data only                                                                                    |
+| delta_heading                                                         | `float32`    |                                                                  |            | Heading delta caused by latest heading reset [rad]                                                   |
+| heading_reset_counter                            | `uint8`      |                                                                  |            | Index of latest heading reset                                                                                                                            |
+| heading_good_for_control    | `bool`       |                                                                  |            |                                                                                                                                                          |
+| tilt_var                                                              | `float32`    |                                                                  |            |                                                                                                                                                          |
+| xy_global                                                             | `bool`       |                                                                  |            | true if position (x, y) has a valid global reference (ref_lat, ref_lon)  |
+| z_global                                                              | `bool`       |                                                                  |            | true if z has a valid global reference (ref_alt)                                                                 |
+| ref_timestamp                                                         | `uint64`     |                                                                  |            | Time when reference position was set since system start, (microseconds)                                                               |
+| ref_lat                                                               | `float64`    |                                                                  |            | Reference point latitude, (degrees)                                                                                                   |
+| ref_lon                                                               | `float64`    |                                                                  |            | Reference point longitude, (degrees)                                                                                                  |
+| ref_alt                                                               | `float32`    |                                                                  |            | Reference altitude AMSL, (metres)                                                                                                     |
+| dist_bottom_valid                                | `bool`       |                                                                  |            | true if distance to bottom surface is valid                                                                                                              |
+| dist_bottom                                                           | `float32`    |                                                                  |            | Distance from from bottom surface to ground, (metres)                                                                                 |
+| dist_bottom_var                                  | `float32`    |                                                                  |            | terrain estimate variance (m^2)                                                                                                       |
+| delta_dist_bottom                                | `float32`    |                                                                  |            | Amount of vertical shift of dist bottom estimate in latest reset [m]                                 |
+| dist_bottom_reset_counter   | `uint8`      |                                                                  |            | Index of latest dist bottom estimate reset                                                                                                               |
+| dist_bottom_sensor_bitfield | `uint8`      |                                                                  |            | bitfield indicating what type of sensor is used to estimate dist_bottom                                                             |
+| eph                                                                                        | `float32`    |                                                                  |            | Standard deviation of horizontal position error, (metres)                                                                             |
+| epv                                                                                        | `float32`    |                                                                  |            | Standard deviation of vertical position error, (metres)                                                                               |
+| evh                                                                                        | `float32`    |                                                                  |            | Standard deviation of horizontal velocity error, (metres/sec)                                                                         |
+| evv                                                                                        | `float32`    |                                                                  |            | Standard deviation of vertical velocity error, (metres/sec)                                                                           |
+| dead_reckoning                                                        | `bool`       |                                                                  |            | True if this position is estimated through dead-reckoning                                                                                                |
+| vxy_max                                                               | `float32`    |                                                                  |            | maximum horizontal speed - set to 0 when limiting not required (meters/sec)                                                           |
+| vz_max                                                                | `float32`    |                                                                  |            | maximum vertical speed - set to 0 when limiting not required (meters/sec)                                                             |
+| hagl_min                                                              | `float32`    |                                                                  |            | minimum height above ground level - set to 0 when limiting not required (meters)                                                      |
+| hagl_max                                                              | `float32`    |                                                                  |            | maximum height above ground level - set to 0 when limiting not required (meters)                                                      |
+
+## Constants
+
+| 参数名                                                                                                                              | 类型       | 值 | 描述                                                                                                                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------- | -------- | - | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                             | `uint32` | 0 |                                                                                                                                                                                                        |
+| <a href="#DIST_BOTTOM_SENSOR_NONE"></a> DIST_BOTTOM_SENSOR_NONE   | `uint8`  | 0 |                                                                                                                                                                                                        |
+| <a href="#DIST_BOTTOM_SENSOR_RANGE"></a> DIST_BOTTOM_SENSOR_RANGE | `uint8`  | 1 | (1 << 0) a range sensor is used to estimate dist_bottom field                                                |
+| <a href="#DIST_BOTTOM_SENSOR_FLOW"></a> DIST_BOTTOM_SENSOR_FLOW   | `uint8`  | 2 | (1 << 1) a flow sensor is used to estimate dist_bottom field (mostly fixed-wing use case) |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/VehicleLocalPositionV0.msg)
+
+:::details
+Click here to see original file
+
+```c
+# Fused local position in NED.
+# The coordinate system origin is the vehicle position at the time when the EKF2-module was started.
+
+uint32 MESSAGE_VERSION = 0
+
+uint64 timestamp			# time since system start (microseconds)
+uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
+
+bool xy_valid				# true if x and y are valid
+bool z_valid				# true if z is valid
+bool v_xy_valid				# true if vx and vy are valid
+bool v_z_valid				# true if vz is valid
+
+# Position in local NED frame
+float32 x				# North position in NED earth-fixed frame, (metres)
+float32 y				# East position in NED earth-fixed frame, (metres)
+float32 z				# Down position (negative altitude) in NED earth-fixed frame, (metres)
+
+# Position reset delta
+float32[2] delta_xy			# Amount of lateral shift of position estimate in latest reset (in x and y) [m]
+uint8 xy_reset_counter			# Index of latest lateral position estimate reset
+float32 delta_z				# Amount of vertical shift of position estimate in latest reset [m]
+uint8 z_reset_counter			# Index of latest vertical position estimate reset
+
+# Velocity in NED frame
+float32 vx 				# North velocity in NED earth-fixed frame, (metres/sec)
+float32 vy				# East velocity in NED earth-fixed frame, (metres/sec)
+float32 vz				# Down velocity in NED earth-fixed frame, (metres/sec)
+float32 z_deriv				# Down position time derivative in NED earth-fixed frame, (metres/sec)
+
+# Velocity reset delta
+float32[2] delta_vxy			# Amount of lateral shift of velocity estimate in latest reset (in x and y) [m/s]
+uint8 vxy_reset_counter			# Index of latest vertical velocity estimate reset
+float32 delta_vz			# Amount of vertical shift of velocity estimate in latest reset [m/s]
+uint8 vz_reset_counter			# Index of latest vertical velocity estimate reset
+
+# Acceleration in NED frame
+float32 ax        # North velocity derivative in NED earth-fixed frame, (metres/sec^2)
+float32 ay        # East velocity derivative in NED earth-fixed frame, (metres/sec^2)
+float32 az        # Down velocity derivative in NED earth-fixed frame, (metres/sec^2)
+
+float32 heading				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians)
+float32 heading_var
+float32 unaided_heading                 # Same as heading but generated by integrating corrected gyro data only
+float32 delta_heading			# Heading delta caused by latest heading reset [rad]
+uint8 heading_reset_counter		# Index of latest heading reset
+bool heading_good_for_control
+
+float32 tilt_var
+
+# Position of reference point (local NED frame origin) in global (GPS / WGS84) frame
+bool xy_global				# true if position (x, y) has a valid global reference (ref_lat, ref_lon)
+bool z_global				# true if z has a valid global reference (ref_alt)
+uint64 ref_timestamp			# Time when reference position was set since system start, (microseconds)
+float64 ref_lat				# Reference point latitude, (degrees)
+float64 ref_lon				# Reference point longitude, (degrees)
+float32 ref_alt				# Reference altitude AMSL, (metres)
+
+# Distance to surface
+bool dist_bottom_valid			# true if distance to bottom surface is valid
+float32 dist_bottom			# Distance from from bottom surface to ground, (metres)
+float32 dist_bottom_var                 # terrain estimate variance (m^2)
+
+float32 delta_dist_bottom               # Amount of vertical shift of dist bottom estimate in latest reset [m]
+uint8 dist_bottom_reset_counter         # Index of latest dist bottom estimate reset
+
+uint8 dist_bottom_sensor_bitfield	# bitfield indicating what type of sensor is used to estimate dist_bottom
+uint8 DIST_BOTTOM_SENSOR_NONE = 0
+uint8 DIST_BOTTOM_SENSOR_RANGE = 1	# (1 << 0) a range sensor is used to estimate dist_bottom field
+uint8 DIST_BOTTOM_SENSOR_FLOW = 2	# (1 << 1) a flow sensor is used to estimate dist_bottom field (mostly fixed-wing use case)
+
+float32 eph				# Standard deviation of horizontal position error, (metres)
+float32 epv				# Standard deviation of vertical position error, (metres)
+float32 evh				# Standard deviation of horizontal velocity error, (metres/sec)
+float32 evv				# Standard deviation of vertical velocity error, (metres/sec)
+
+bool dead_reckoning                     # True if this position is estimated through dead-reckoning
+
+# estimator specified vehicle limits
+float32 vxy_max				# maximum horizontal speed - set to 0 when limiting not required (meters/sec)
+float32 vz_max				# maximum vertical speed - set to 0 when limiting not required (meters/sec)
+float32 hagl_min			# minimum height above ground level - set to 0 when limiting not required (meters)
+float32 hagl_max			# maximum height above ground level - set to 0 when limiting not required (meters)
+
+# TOPICS vehicle_local_position vehicle_local_position_groundtruth external_ins_local_position
+# TOPICS estimator_local_position
+```
+
+:::

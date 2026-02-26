@@ -1,6 +1,6 @@
 # PX4 ROS 2 Message Translation Node
 
-<Badge type="tip" text="main (planned for: PX4 v1.16+)" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.16" /> <Badge type="warning" text="Experimental" />
 
 The message translation node allows ROS 2 applications that were compiled against different versions of the PX4 messages to interwork with newer versions of PX4, and vice versa, without having to change either the application or the PX4 side.
 
@@ -207,7 +207,7 @@ Message translations can be either _direct_ or _generic_.
 
 ### File Structure
 
-Starting from PX4 v1.16 (main), the PX4-Autopilot `msg/` and `srv/` directories are structured as follows:
+Starting from PX4 v1.16, the PX4-Autopilot `msg/` and `srv/` directories are structured as follows:
 
 ```
 PX4-Autopilot
@@ -305,7 +305,6 @@ The example describes the process of updating the `VehicleAttitude` message defi
    Update the existing translations header files `msg/translation_node/translations/*.h` to reference the newly archived message definition.
 
    For example, update references in those files:<br>
-
    - Replace `px4_msgs::msg::VehicleAttitude` → `px4_msgs_old::msg::VehicleAttitudeV3`
    - Replace `#include <px4_msgs/msg/vehicle_attitude.hpp>` → `#include <px4_msgs_old/msg/vehicle_attitude_v3.hpp>`
 
@@ -386,7 +385,6 @@ The example describes the process of updating the `VehicleAttitude` message defi
    ```
 
    Version translation templates are provided here:
-
    - [Direct Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_direct_v1.h)
    - [Generic Topic Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_multi_v2.h)
    - [Direct Service Message Translation Template](https://github.com/PX4/PX4-Autopilot/blob/main/msg/translation_node/translations/example_translation_service_v1.h)
@@ -440,7 +438,7 @@ For translations with multiple input topics, the translation continues once all 
 - Services messages only support a linear history, i.e. no message splitting or merging.
 - Having both publishers and subscribers for two different versions of the same topic is currently not handled by the translation node and would trigger infinite circular publications.
   This refers to the following problematic configuration:
-  
+
   ```
   app 1: pub topic_v1, sub topic_v1
   app 2: pub topic_v2, sub topic_v2

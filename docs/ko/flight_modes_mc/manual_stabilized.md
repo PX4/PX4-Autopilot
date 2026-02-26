@@ -31,7 +31,7 @@ Throttle is rescaled (see [below](#params)) and passed directly to control alloc
 자동 조종 장치는 자세를 제어합니다. 즉, RC 스틱이 컨트롤러 데드 존 내부에 집중 될 때 롤과 피치 각을 제로로 조절합니다 (결과적으로 태도가 수평이 됨).
 자동 조종 장치는 바람 (또는 다른 원인)으로 인한 드리프트를 보상하지 않습니다.
 
-- 중앙 스틱 (데드밴드 내부) :
+- Centered sticks:
   - Roll/Pitch sticks level vehicle.
 - Outside center:
   - Roll/Pitch sticks control tilt angle in those orientations, resulting in corresponding left-right and forward-back movement.

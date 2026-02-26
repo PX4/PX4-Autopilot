@@ -1,6 +1,6 @@
 # CUAV V5 nano Autopilot
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
@@ -17,7 +17,7 @@ The V5 nano is similar to the [CUAV V5+](../flight_controller/cuav_v5_plus.md), 
 
 Some of its main features include:
 
-- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://pixhawk.org/pixhawk-connector-standard/) for all external interfaces.
+- Full compatibility with the [Pixhawk project](https://pixhawk.org/) **FMUv5** design standard and uses the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) for all external interfaces.
 - More advanced processor, RAM and flash memory than FMU v3, along with more stable and reliable sensors.
 - Firmware-compatible with PX4.
 - Generous 2.6mm spacing for I/O pins, making it easier to use all the interfaces.
@@ -31,7 +31,6 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 Main FMU Processor: STM32F765◦32 Bit Arm® Cortex®-M7, 216MHz, 2MB memory, 512KB RAM
 
 - On-board sensors:
-
   - Accel/Gyro: ICM-20689
   - Accel/Gyro: ICM-20602
   - Accel/Gyro: BMI055
@@ -39,7 +38,6 @@ Main FMU Processor: STM32F765◦32 Bit Arm® Cortex®-M7, 216MHz, 2MB memory, 51
   - Barometer: MS5611
 
 - Interfaces: 8 PWM outputs
-
   - 3 dedicated PWM/Capture inputs on FMU
   - Dedicated R/C input for CPPM
   - Dedicated R/C input for Spektrum / DSM and S.Bus
@@ -60,7 +58,7 @@ Main FMU Processor: STM32F765◦32 Bit Arm® Cortex®-M7, 216MHz, 2MB memory, 51
 - Other Characteristics:
   - Operating temperature: -20 ~ 85°C （Measured value）
 
-## Where to Buy
+## Where to Buy {#store}
 
 [CUAV Store](https://store.cuav.net/shop/v5-nano/)
 
@@ -84,27 +82,25 @@ Download **V5 nano** pinouts from [here](http://manual.cuav.net/V5-Plus.pdf).
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 The board does not have an I/O debug interface.
 
 ![Debug port (DSU7)](../../assets/flight_controller/cuav_v5_nano/debug_port_dsu7.jpg)
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | Pin     | Signal         | Volt  |
 | ------- | -------------- | ----- |
@@ -121,7 +117,7 @@ The provided debug cable does not connect to the SWD port `Vref` pin (1).
 
 ![CUAV Debug cable](../../assets/flight_controller/cuav_v5_nano/cuav_nano_debug_cable.jpg)
 
-:::warning
+::: warning
 The SWD Vref pin (1) uses 5V as Vref but the CPU is run at 3.3V!
 
 Some JTAG adapters (SEGGER J-Link) will use the Vref voltage to set the voltage on the SWD lines.
@@ -184,7 +180,7 @@ CUAV adopts some differentiated designs and is incompatible with some hardware, 
 
 The _Neo v2.0 GPS_ that is recommended for use with _CUAV V5+_ and _CUAV V5 nano_ is not fully compatible with other Pixhawk flight controllers (specifically, the buzzer part is not compatible and there may be issues with the safety switch).
 
-The UAVCAN [NEO V2 PRO GNSS receiver](http://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
+The UAVCAN [NEO V2 PRO GNSS receiver](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html) can also be used, and is compatible with other flight controllers.
 
 <a id="compatibility_jtag"></a>
 
@@ -202,7 +198,7 @@ For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts of 
 
 `PM2` can only measure battery voltage and current, but **not** power the flight controller.
 
-:::warning
+::: warning
 PX4 does not support this interface.
 :::
 
@@ -216,7 +212,7 @@ For example, the serial number Batch V011904((V01 is the number of V5, 1904 is t
 
 #### SBUS / DSM / RSSI interface Pin1 unfused
 
-:::warning
+::: warning
 This is a safety issue.
 :::
 

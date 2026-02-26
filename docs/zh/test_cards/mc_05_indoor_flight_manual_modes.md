@@ -33,7 +33,7 @@
 
 ❏ 以稳定或高度模式着陆，油门低于 40％
 
-❏ Upon touching ground, copter should disarm automatically within 2 seconds (disarm time set by parameter: [COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND))
+一旦触地，直升机应在2秒内自动上锁（上锁时间由参数[COM_DISARM_LAND](../advanced_config/parameter_reference.md#COM_DISARM_LAND)设置）
 
 ## 预期成果
 

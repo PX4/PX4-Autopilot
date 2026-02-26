@@ -51,6 +51,37 @@
 PARAM_DEFINE_FLOAT(RO_YAW_STICK_DZ, 0.1f);
 
 /**
+ * Yaw rate expo factor
+ *
+ * Exponential factor for tuning the input curve shape.
+ *
+ * 0 Purely linear input curve
+ * 1 Purely cubic input curve
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @group Rover Rate Control
+ */
+PARAM_DEFINE_FLOAT(RO_YAW_EXPO, 0.f);
+
+/**
+ * Yaw rate super expo factor
+ *
+ * "Superexponential" factor for refining the input curve shape tuned using RO_YAW_EXPO.
+ *
+ * 0 Pure Expo function
+ * 0.7 reasonable shape enhancement for intuitive stick feel
+ * 0.95 very strong bent input curve only near maxima have effect
+ *
+ * @min 0
+ * @max 0.95
+ * @decimal 2
+ * @group Rover Rate Control
+ */
+PARAM_DEFINE_FLOAT(RO_YAW_SUPEXPO, 0.f);
+
+/**
  * Yaw rate measurement threshold
  *
  * The minimum threshold for the yaw rate measurement not to be interpreted as zero.
@@ -130,6 +161,22 @@ PARAM_DEFINE_FLOAT(RO_YAW_ACCEL_LIM, -1.f);
  * @group Rover Rate Control
  */
 PARAM_DEFINE_FLOAT(RO_YAW_DECEL_LIM, -1.f);
+
+/**
+ * Yaw rate correction factor
+ *
+ * Multiplicative correction factor for the feedforward mapping of the yaw rate controller.
+ * Increase this value (x > 1) if the measured yaw rate is lower than the setpoint, decrease (0 < x < 1) otherwise.
+ * Note: Tuning this is particularly useful for skid-steered rovers, or rovers with misaligned wheels/steering axes
+ * that cause a lot of friction when turning.
+ *
+ * @min 0.01
+ * @max 10000
+ * @increment 0.01
+ * @decimal 2
+ * @group Rover Rate Control
+ */
+PARAM_DEFINE_FLOAT(RO_YAW_RATE_CORR, 1.f);
 
 /**
  * Proportional gain for closed loop yaw controller
@@ -253,3 +300,21 @@ PARAM_DEFINE_FLOAT(RO_JERK_LIM, -1.f);
  * @group Rover Velocity Control
  */
 PARAM_DEFINE_FLOAT(RO_SPEED_TH, 0.1f);
+
+/**
+ * Tuning parameter for the speed reduction based on the course error
+ *
+ * Reduced_speed = RO_MAX_THR_SPEED * (1 - normalized_course_error * RO_SPEED_RED)
+ * The normalized course error is the angle between the current course and the bearing setpoint
+ * interpolated from [0, 180] -> [0, 1].
+ * Higher value -> More speed reduction.
+ * Note: This is also used to calculate the speed at which the vehicle arrives at a waypoint in auto modes.
+ * Set to -1 to disable bearing error based speed reduction.
+ *
+ * @min -1
+ * @max 100
+ * @increment 0.01
+ * @decimal 2
+ * @group Rover Velocity Control
+ */
+PARAM_DEFINE_FLOAT(RO_SPEED_RED, -1.f);

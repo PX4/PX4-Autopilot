@@ -40,7 +40,6 @@ The manufacturer [CUAV Docs](https://doc.cuav.net/flight-controller/x7/en/nora.h
 - Головний FMU процесор: STM32H743
 
 - Бортові сенсори:
-
   - Акселерометр/Гіроскоп: ICM-20689
   - Прискорювач/гіроскоп: ICM-20649
   - Акселерометр/Гіроскоп: BMI088
@@ -141,7 +140,7 @@ The system's serial console and SWD interface operate on the **DSU7** port.
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 
-The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/product-detail/en/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/455-1582-1-ND/807850) connector and has the following pinout:
+The debug port (`DSU7`) uses a [JST BM06B](https://www.digikey.com.au/en/products/detail/jst-sales-america-inc/BM06B-GHS-TBT-LF-SN-N/807850) connector and has the following pinout:
 
 | Pin                        | Сигнал                            | Вольтаж               |
 | -------------------------- | --------------------------------- | --------------------- |
@@ -173,5 +172,5 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 ## Подальша інформація
 
 - [Quick start](https://doc.cuav.net/flight-controller/x7/en/quick-start/quick-start-nora.html)
-- [CUAV docs](http://doc.cuav.net)
+- [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

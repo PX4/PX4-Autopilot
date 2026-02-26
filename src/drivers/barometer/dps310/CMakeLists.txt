@@ -40,5 +40,6 @@ px4_add_module(
 		DPS310_SPI.cpp
 		dps310_main.cpp
 	DEPENDS
+		drivers__device
 		px4_work_queue
 	)

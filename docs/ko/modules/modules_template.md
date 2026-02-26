@@ -1,5 +1,36 @@
 # 모듈 참고: 템플릿
 
+## mc_raptor
+
+Source: [modules/mc_raptor](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mc_raptor)
+
+### 설명
+
+RAPTOR Policy Flight Mode
+
+### Usage {#mc_raptor_usage}
+
+```
+mc_raptor <command> [arguments...]
+ Commands:
+   start
+
+   intref        Modify internal reference
+     lissajous   Set Lissajous trajectory parameters
+     <A>         Amplitude X [m]
+     <B>         Amplitude Y [m]
+     <C>         Amplitude Z [m]
+     <fa>        Frequency a
+     <fb>        Frequency b
+     <fc>        Frequency c
+     <duration>  Total duration [s]
+     <ramp>      Ramp duration [s]
+
+   stop
+
+   status        print status info
+```
+
 ## module
 
 Source: [templates/template_module](https://github.com/PX4/PX4-Autopilot/tree/main/src/templates/template_module)
@@ -16,15 +47,13 @@ Source: [templates/template_module](https://github.com/PX4/PX4-Autopilot/tree/ma
 
 ### 예
 
-CLI 사용 예:
+CLI usage example:
 
 ```
 module start -f -p 42
 ```
 
-<a id="module_usage"></a>
-
-### 사용법
+### Usage {#module_usage}
 
 ```
 module <command> [arguments...]
@@ -47,9 +76,7 @@ Source: [examples/work_item](https://github.com/PX4/PX4-Autopilot/tree/main/src/
 
 작업 대기열에서 실행되는 간단한 모듈의 예입니다.
 
-<a id="work_item_example_usage"></a>
-
-### 사용법
+### Usage {#work_item_example_usage}
 
 ```
 work_item_example <command> [arguments...]

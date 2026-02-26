@@ -57,7 +57,7 @@ void Ekf::initialiseCovariance()
 
 	// velocity
 #if defined(CONFIG_EKF2_GNSS)
-	const float vel_var = sq(fmaxf(_params.gps_vel_noise, 0.01f));
+	const float vel_var = sq(fmaxf(_params.ekf2_gps_v_noise, 0.01f));
 #else
 	const float vel_var = sq(0.5f);
 #endif
@@ -65,26 +65,26 @@ void Ekf::initialiseCovariance()
 
 	// position
 #if defined(CONFIG_EKF2_BAROMETER)
-	float z_pos_var = sq(fmaxf(_params.baro_noise, 0.01f));
+	float z_pos_var = sq(fmaxf(_params.ekf2_baro_noise, 0.01f));
 #else
 	float z_pos_var = sq(1.f);
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-	const float xy_pos_var = sq(fmaxf(_params.gps_pos_noise, 0.01f));
+	const float xy_pos_var = sq(fmaxf(_params.ekf2_gps_p_noise, 0.01f));
 
 	if (_control_status.flags.gps_hgt) {
-		z_pos_var = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
+		z_pos_var = sq(fmaxf(1.5f * _params.ekf2_gps_p_noise, 0.01f));
 	}
 
 #else
-	const float xy_pos_var = sq(fmaxf(_params.pos_noaid_noise, 0.01f));
+	const float xy_pos_var = sq(fmaxf(_params.ekf2_noaid_noise, 0.01f));
 #endif
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
 	if (_control_status.flags.rng_hgt) {
-		z_pos_var = sq(fmaxf(_params.range_noise, 0.01f));
+		z_pos_var = sq(fmaxf(_params.ekf2_rng_noise, 0.01f));
 	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -106,7 +106,7 @@ void Ekf::initialiseCovariance()
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// use the ground clearance value as our uncertainty
-	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.rng_gnd_clearance));
+	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.ekf2_min_rng));
 #endif // CONFIG_EKF2_TERRAIN
 }
 
@@ -116,11 +116,11 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	const float dt = 0.5f * (imu_delayed.delta_vel_dt + imu_delayed.delta_ang_dt);
 
 	// gyro noise variance
-	float gyro_noise = _params.gyro_noise;
+	float gyro_noise = _params.ekf2_gyr_noise;
 	const float gyro_var = sq(gyro_noise);
 
 	// accel noise variance
-	float accel_noise = _params.accel_noise;
+	float accel_noise = _params.ekf2_acc_noise;
 	Vector3f accel_var;
 
 	for (unsigned i = 0; i < 3; i++) {
@@ -144,7 +144,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	// gyro bias: add process noise
 	{
-		const float gyro_bias_sig = dt * _params.gyro_bias_p_noise;
+		const float gyro_bias_sig = dt * _params.ekf2_gyr_b_noise;
 		const float gyro_bias_process_noise = sq(gyro_bias_sig);
 
 		for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
@@ -158,7 +158,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	// accel bias: add process noise
 	{
-		const float accel_bias_sig = dt * _params.accel_bias_p_noise;
+		const float accel_bias_sig = dt * _params.ekf2_acc_b_noise;
 		const float accel_bias_process_noise = sq(accel_bias_sig);
 
 		for (unsigned index = 0; index < State::accel_bias.dof; index++) {
@@ -173,25 +173,25 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// mag_I: add process noise
-	float mag_I_sig = dt * _params.mage_p_noise;
+	float mag_I_sig = dt * _params.ekf2_mag_e_noise;
 	float mag_I_process_noise = sq(mag_I_sig);
 
 	for (unsigned index = 0; index < State::mag_I.dof; index++) {
 		const unsigned i = State::mag_I.idx + index;
 
-		if (P(i, i) < sq(_params.mag_noise)) {
+		if (P(i, i) < sq(_params.ekf2_mag_noise)) {
 			P(i, i) += mag_I_process_noise;
 		}
 	}
 
 	// mag_B: add process noise
-	float mag_B_sig = dt * _params.magb_p_noise;
+	float mag_B_sig = dt * _params.ekf2_mag_b_noise;
 	float mag_B_process_noise = sq(mag_B_sig);
 
 	for (unsigned index = 0; index < State::mag_B.dof; index++) {
 		const unsigned i = State::mag_B.idx + index;
 
-		if (P(i, i) < sq(_params.mag_noise)) {
+		if (P(i, i) < sq(_params.ekf2_mag_noise)) {
 			P(i, i) += mag_B_process_noise;
 		}
 	}
@@ -203,7 +203,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	// wind vel: add process noise
 	const float height_rate = _height_rate_lpf.update(_state.vel(2), imu_delayed.delta_vel_dt);
-	const float wind_vel_nsd_scaled = _params.wind_vel_nsd * (1.f + _params.wind_vel_nsd_scaler * fabsf(height_rate));
+	const float wind_vel_nsd_scaled = _params.ekf2_wind_nsd * (1.f + _params.wind_vel_nsd_scaler * fabsf(height_rate));
 	const float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
 
 	for (unsigned index = 0; index < State::wind_vel.dof; index++) {
@@ -221,10 +221,10 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	if (_height_sensor_ref != HeightSensor::RANGE) {
 		// predict the state variance growth where the state is the vertical position of the terrain underneath the vehicle
 		// process noise due to errors in vehicle height estimate
-		float terrain_process_noise = sq(imu_delayed.delta_vel_dt * _params.terrain_p_noise);
+		float terrain_process_noise = sq(imu_delayed.delta_vel_dt * _params.ekf2_terr_noise);
 
 		// process noise due to terrain gradient
-		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(
+		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.ekf2_terr_grad) * (sq(_state.vel(0)) + sq(_state.vel(
 						 1)));
 		P(State::terrain.idx, State::terrain.idx) += terrain_process_noise;
 	}
@@ -313,7 +313,7 @@ void Ekf::constrainStateVarLimitRatio(const IdxDof &state, float min, float max,
 
 void Ekf::resetQuatCov(const float yaw_noise)
 {
-	const float tilt_var = sq(math::max(_params.initial_tilt_err, 0.01f));
+	const float tilt_var = sq(math::max(_params.ekf2_angerr_init, 0.01f));
 	float yaw_var = sq(0.01f);
 
 	// update the yaw angle variance using the variance of the measurement
@@ -334,19 +334,19 @@ void Ekf::resetGyroBiasCov()
 {
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
-	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, sq(_params.switch_on_gyro_bias));
+	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, sq(_params.ekf2_gbias_init));
 }
 
 void Ekf::resetGyroBiasZCov()
 {
-	P.uncorrelateCovarianceSetVariance<1>(State::gyro_bias.idx + 2, sq(_params.switch_on_gyro_bias));
+	P.uncorrelateCovarianceSetVariance<1>(State::gyro_bias.idx + 2, sq(_params.ekf2_gbias_init));
 }
 
 void Ekf::resetAccelBiasCov()
 {
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
-	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, sq(_params.switch_on_accel_bias));
+	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, sq(_params.ekf2_abias_init));
 }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -354,13 +354,13 @@ void Ekf::resetMagEarthCov()
 {
 	ECL_INFO("reset mag earth covariance");
 
-	P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, sq(_params.mag_noise));
+	P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, sq(_params.ekf2_mag_noise));
 }
 
 void Ekf::resetMagBiasCov()
 {
 	ECL_INFO("reset mag bias covariance");
 
-	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, sq(_params.mag_noise));
+	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, sq(_params.ekf2_mag_noise));
 }
 #endif // CONFIG_EKF2_MAGNETOMETER

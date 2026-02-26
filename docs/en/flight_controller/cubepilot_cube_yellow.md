@@ -1,6 +1,6 @@
 # CubePilot Cube Yellow Flight Controller
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or compliance issues.
 :::
@@ -10,12 +10,16 @@ The Cube Yellow flight controller is a flexible autopilot intended primarily for
 ![Cube Yellow](../../assets/flight_controller/cube/yellow/cube_yellow_hero.jpg)
 
 The controller is designed to be used with a domain-specific carrier board in order to reduce the wiring, improve reliability, and ease of assembly.
-For example, a carrier board for a commercial inspection vehicle might include connections for a companion computer, while a carrier board for a racer could includes ESCs for the frame of the vehicle.
+For example, a carrier board for a commercial inspection vehicle might include connections for a companion computer, while a carrier board for a racer could include ESCs for the frame of the vehicle.
 
 Cube includes vibration isolation on two of the IMU's, with a third fixed IMU as a reference / backup.
 
-:::tip
-The manufacturer [Cube Docs](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview) contain detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview#differences-between-cube-colours).
+::: tip
+The manufacturer [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube) contains detailed information, including an overview of the [Differences between Cube Colours](https://docs.cubepilot.org/user-guides/autopilot/the-cube/introduction/specifications).
+:::
+
+::: info
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
 ## Key Features
@@ -32,9 +36,7 @@ The manufacturer [Cube Docs](https://docs.cubepilot.org/user-guides/autopilot/th
 - High-power, multi-tone piezo audio indicator
 - microSD card for high-rate logging over extended periods of time
 
-<a id="stores"></a>
-
-## Where to Buy
+## Where to Buy {#store}
 
 - [Reseller list](https://www.cubepilot.com/#/reseller/list)
 
@@ -47,9 +49,9 @@ The manufacturer [Cube Docs](https://docs.cubepilot.org/user-guides/autopilot/th
 - **Processor:**
   - STM32F777VI (32bit [ARM Cortex M7](https://en.wikipedia.org/wiki/ARM_Cortex-M#Cortex-M7))
   - 400 MHz
-  - 512 KB MB RAM
+  - 512 KB RAM
   - 2 MB Flash
-- **Failsafe co-processor:** <!-- inconsistent info on failsafe processor: 32 bit STM32F103 failsafe co-processor http://www.proficnc.com/all-products/191-pixhawk2-suite.html -->
+- **Failsafe co-processor:** <!-- inconsistent info on failsafe processor: 32 bit STM32F103 failsafe co-processor -->
   - STM32F100 (32bit _ARM Cortex-M3_)
   - 24 MHz
   - 8 KB SRAM
@@ -121,14 +123,14 @@ Board schematics and other documentation can be found here: [The Cube Project](h
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make cubepilot_cubeyellow
 ```
 
@@ -140,6 +142,5 @@ CAN1 and CAN2 silk screen on the Cube are flipped (CAN1 is CAN2 and vice versa).
 
 - [Cube Wiring Quickstart](../assembly/quick_start_cube.md)
 - Cube Docs (Manufacturer):
-  - [Cube Module Overview](https://docs.cubepilot.org/user-guides/autopilot/the-cube-module-overview)
-  - [Cube User Manual](https://docs.cubepilot.org/user-guides/autopilot/the-cube-user-manual)
+  - [Cube User Guide](https://docs.cubepilot.org/user-guides/autopilot/the-cube)
   - [Mini Carrier Board](https://docs.cubepilot.org/user-guides/carrier-boards/mini-carrier-board)

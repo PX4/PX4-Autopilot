@@ -78,6 +78,8 @@ public:
 	void enableGpsFusion();
 	void disableGpsFusion();
 	bool isIntendingGpsFusion() const;
+	bool isGnssFaultDetected() const;
+	void setGnssDeadReckonMode();
 
 	void enableGpsHeadingFusion();
 	void disableGpsHeadingFusion();
@@ -100,9 +102,11 @@ public:
 	void disableExternalVisionHeadingFusion();
 	bool isIntendingExternalVisionHeadingFusion() const;
 
+	bool isIntendingMagFusion() const;
 	bool isIntendingMagHeadingFusion() const;
 	bool isIntendingMag3DFusion() const;
 	bool isMagHeadingConsistent() const;
+	bool isMagFaultDetected() const;
 	void setMagFuseTypeNone();
 	void enableMagStrengthCheck();
 	void enableMagInclinationCheck();

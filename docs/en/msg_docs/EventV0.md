@@ -1,0 +1,51 @@
+---
+pageClass: is-wide-page
+---
+
+# EventV0 (UORB message)
+
+this message is required here in the msg_old folder because other msg are depending on it. Events interface.
+
+**TOPICS:** event_v0
+
+## Fields
+
+| Name           | Type        | Unit [Frame] | Range/Enum | Description                                            |
+| -------------- | ----------- | ------------ | ---------- | ------------------------------------------------------ |
+| timestamp      | `uint64`    |              |            | time since system start (microseconds)                 |
+| id             | `uint32`    |              |            | Event ID                                               |
+| event_sequence | `uint16`    |              |            | Event sequence number                                  |
+| arguments      | `uint8[25]` |              |            | (optional) arguments, depend on event id               |
+| log_levels     | `uint8`     |              |            | Log levels: 4 bits MSB: internal, 4 bits LSB: external |
+
+## Constants
+
+| Name                                            | Type     | Value | Description |
+| ----------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION   | `uint32` | 0     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8`  | 16    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/px4_msgs_old/msg/EventV0.msg)
+
+::: details Click here to see original file
+
+```c
+# this message is required here in the msg_old folder because other msg are depending on it
+# Events interface
+
+uint32 MESSAGE_VERSION = 0
+
+uint64 timestamp			# time since system start (microseconds)
+
+uint32 id                   # Event ID
+uint16 event_sequence       # Event sequence number
+uint8[25] arguments         # (optional) arguments, depend on event id
+
+uint8 log_levels            # Log levels: 4 bits MSB: internal, 4 bits LSB: external
+
+uint8 ORB_QUEUE_LENGTH = 16
+```
+
+:::

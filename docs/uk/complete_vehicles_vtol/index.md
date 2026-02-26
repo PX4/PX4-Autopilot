@@ -18,7 +18,7 @@ They may come either fully assembled or in parts.
 
 У цьому розділі перелічені ВЗІП транспортні засоби, які продаються повністю зібраними та готові до польоту (RTF), з встановленим PX4.
 
-- [Вертикальні Технології DeltaQuad](https://px4.io/портфоліо/deltaquad-vtol/)
+- [Vertical Technologies DeltaQuad](https://px4.io/project/deltaquad-vtol/)
 
 <!-- ## PX4 Compatible -->
 
@@ -27,8 +27,8 @@ They may come either fully assembled or in parts.
 Цей розділ містить споживчі транспортні засоби, які працюють на _спеціальній_ версії PX4 (підтримується їхніми постачальниками).
 Вони можуть оновлюватися або не оновлюватися для запуску "vanilla" PX4.
 
-- [WingtraOne Tailsitter VTOL](https://px4.io/portfolio/wingtraone-tailsitter-vtol/)
-- [Flightwave Edge](https://px4.io/portfolio/flywave-edge/)
+- [WingtraOne Tailsitter VTOL](https://px4.io/project/wingtraone-tailsitter-vtol/)
+- [Flightwave Edge](https://px4.io/project/flywave-edge/)
 
 ## Дивіться також
 

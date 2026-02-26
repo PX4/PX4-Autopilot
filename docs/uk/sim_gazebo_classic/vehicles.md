@@ -98,26 +98,6 @@ make px4_sitl gazebo-classic_tailsitter
 
 ![Tailsitter VTOL in Gazebo Classic](../../assets/simulation/gazebo_classic/vehicles/tailsitter.png)
 
-<a id="ugv"></a>
-
-## Безпілотний наземний засіб (Ровер/Автомобіль)
-
-### Наземний засіб з трапецією Аккермана
-
-```sh
-make px4_sitl gazebo-classic_rover
-```
-
-![Rover in Gazebo Classic](../../assets/simulation/gazebo_classic/vehicles/rover.png)
-
-### Наземний засіб з диференціалом
-
-```sh
-make px4_sitl gazebo-classic_r1_rover
-```
-
-![Rover in Gazebo Classic](../../assets/simulation/gazebo_classic/vehicles/r1_rover.png)
-
 ## Безпілотний підводний засіб(Підводний човен)
 
 ### HippoCampus TUHH

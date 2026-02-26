@@ -28,4 +28,3 @@ import { withBase } from 'vitepress';
   이미지를 줌으로 확대할 수도 있습니다.
 - The _Preset_ selection list allows you to refine the list of modules that are shown.
 - The _Search_ box can be used to find particular modules/topics (topics that are not selected by the search are greyed-out).
-

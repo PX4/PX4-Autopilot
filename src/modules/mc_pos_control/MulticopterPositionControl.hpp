@@ -70,10 +70,12 @@
 
 using namespace time_literals;
 
-class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>, public ModuleParams,
+class MulticopterPositionControl : public ModuleBase, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	MulticopterPositionControl(bool vtol = false);
 	~MulticopterPositionControl() override;
 
@@ -113,6 +115,7 @@ private:
 	hrt_abstime _time_position_control_enabled{0};
 
 	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
+	trajectory_setpoint_s _last_valid_setpoint{PositionControl::empty_trajectory_setpoint};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
 	vehicle_constraints_s _vehicle_constraints {
@@ -147,7 +150,6 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)  _param_mpc_tiltmax_air,
 		(ParamFloat<px4::params::MPC_THR_HOVER>)    _param_mpc_thr_hover,
-		(ParamBool<px4::params::MPC_USE_HTE>)       _param_mpc_use_hte,
 		(ParamBool<px4::params::MPC_ACC_DECOUPLE>)  _param_mpc_acc_decouple,
 
 		(ParamFloat<px4::params::MPC_VEL_LP>)       _param_mpc_vel_lp,

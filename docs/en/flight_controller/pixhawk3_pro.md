@@ -1,6 +1,6 @@
 # Pixhawk 3 Pro (Discontinued)
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store-drotek.com/) for hardware support or compliance issues.
 :::
@@ -14,7 +14,7 @@ The board was designed by [Drotek<sup>&reg;</sup>](https://drotek.com) and PX4.
 The main hardware documentation is here: https://drotek.gitbook.io/pixhawk-3-pro/hardware
 :::
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -36,25 +36,18 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 ## Where to buy
 
-From [Drotek store](https://store.drotek.com/) (EU) :
-
-- [Pixhawk 3 Pro (Pack)](https://store.drotek.com/autopilots/844-pixhawk-3-pro-pack.html)
-- [Pixhawk 3 Pro](https://store.drotek.com/autopilots/821-pixhawk-pro-autopilot-8944595120557.html)
-
-From [readymaderc](https://www.readymaderc.com) (USA) :
-
-- [Pixhawk 3 Pro](https://www.readymaderc.com/products/details/pixhawk-3-pro-flight-controller)
+No longer available.
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v4pro_default
 ```
 

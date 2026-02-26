@@ -45,7 +45,7 @@ void Ekf::controlEvYawFusion(const imuSample &imu_sample, const extVisionSample 
 	static constexpr const char *AID_SRC_NAME = "EV yaw";
 
 	float obs = getEulerYaw(ev_sample.quat);
-	float obs_var = math::max(ev_sample.orientation_var(2), _params.ev_att_noise, sq(0.01f));
+	float obs_var = math::max(ev_sample.orientation_var(2), _params.ekf2_eva_noise, sq(0.01f));
 
 	float innov = wrap_pi(getEulerYaw(_R_to_earth) - obs);
 	float innov_var = 0.f;
@@ -59,14 +59,14 @@ void Ekf::controlEvYawFusion(const imuSample &imu_sample, const extVisionSample 
 			      obs_var,                                     // observation variance
 			      innov,                                       // innovation
 			      innov_var,                                   // innovation variance
-			      math::max(_params.heading_innov_gate, 1.f)); // innovation gate
+			      math::max(_params.ekf2_hdg_gate, 1.f)); // innovation gate
 
 	if (ev_reset) {
 		_control_status.flags.ev_yaw_fault = false;
 	}
 
 	// determine if we should use EV yaw aiding
-	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::YAW))
+	bool continuing_conditions_passing = (_params.ekf2_ev_ctrl & static_cast<int32_t>(EvCtrl::YAW))
 					     && _control_status.flags.tilt_align
 					     && !_control_status.flags.ev_yaw_fault
 					     && PX4_ISFINITE(aid_src.observation)

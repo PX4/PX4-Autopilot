@@ -1,13 +1,17 @@
 # ModalAI VOXL Flight
 
-<Badge type="tip" text="PX4 v1.11" />
+<Badge type="info" text="Discontinued" /> <Badge type="tip" text="PX4 v1.11" />
+
+:::warning
+This frame has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
+:::
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://forum.modalai.com/) for hardware support or compliance issues.
 :::
 
-The ModalAI [VOXL Flight](https://modalai.com/voxl-flight) ([Datasheet](https://docs.modalai.com/voxl-flight-datasheet)) is one of the first computing platforms to combine the power and sophistication of Snapdragon with the flexibility and ease of use of PX4 on an STM32F7.
+The ModalAI VOXL Flight is one of the first computing platforms to combine the power and sophistication of Snapdragon with the flexibility and ease of use of PX4 on an STM32F7.
 Made in the USA, VOXL Flight supports obstacle avoidance and GPS-denied (indoor) navigation fused with a PX4 flight controller on a single PCB.
 
 ![VOXL-Flight](../../assets/flight_controller/modalai/voxl_flight/voxl-flight-dk.jpg)
@@ -76,9 +80,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 [stm32f765ii]: https://www.st.com/en/microcontrollers-microprocessors/stm32f765ii.html
 [px4]: https://github.com/PX4/PX4-Autopilot/tree/main/boards/modalai/fc-v1
-[icm-20602]: https://www.invensense.com/products/motion-tracking/6-axis/icm-20602/
-[bmi088]: https://www.bosch-sensortec.com/bst/products/all_products/bmi088_1
-[bmp388]: https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp388/
+[icm-20602]: https://invensense.tdk.com/products/motion-tracking/6-axis/icm-20602/
+[bmi088]: https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/
+[bmp388]: https://www.adafruit.com/product/3966
 [a71ch]: https://www.nxp.com/products/security-and-authentication/authentication/plug-and-trust-the-fast-easy-way-to-deploy-secure-iot-connections:A71CH
 
 :::info
@@ -106,10 +110,7 @@ More information about the firmware can be found [here](https://docs.modalai.com
 
 ## 구매처
 
-- [VOXL Flight Complete Kit](https://modalai.com/voxl-flight)
-- [VOXL Flight Board](https://www.modalai.com/products/voxl-flight?variant=31707275362355) (only)
-- [VOXL Flight integrated with Obstacle Avoidance Cameras (VOXL Flight Deck)](https://modalai.com/flight-deck) ([Datasheet](https://docs.modalai.com/voxl-flight-deck-platform-datasheet/))
-- [VOXL Flight in a ready to fly VOXL m500 Development Drone](https://www.modalai.com/collections/development-drones/products/voxl-m500) ([Datasheet](https://docs.modalai.com/voxl-m500-reference-drone-datasheet/))
+No longer available.
 
 ## 빠른 시작
 
@@ -132,12 +133,12 @@ _Note: 1000 Series connectors accessible from the STM32/PX4_
 
 | 커넥터   | 요약                                                                  | 사용처                                                  |
 | ----- | ------------------------------------------------------------------- | ---------------------------------------------------- |
-| J2    | 4k 이미지 센서 (CSI0) 고용                              | Snapdragon - 리눅스                                     |
-| J3    | 스테레오 이미지 센서 (CSI1)                               | Snapdragon - 리눅스                                     |
-| J6    | 냉각 팬 커넥터                                                            | Snapdragon - 리눅스                                     |
-| J7    | BLSP6 (GPIO) and BLSP9 (UART) | Snapdragon - 리눅스                                     |
-| J13   | 확장 B2B                                                              | Snapdragon - 리눅스                                     |
-| J14   | 통합 GNSS 안테나 연결                                                      | Snapdragon - 리눅스                                     |
+| J2    | 4k 이미지 센서 (CSI0) 고용                              | Snapdragon - Linux                                   |
+| J3    | 스테레오 이미지 센서 (CSI1)                               | Snapdragon - Linux                                   |
+| J6    | 냉각 팬 커넥터                                                            | Snapdragon - Linux                                   |
+| J7    | BLSP6 (GPIO) and BLSP9 (UART) | Snapdragon - Linux                                   |
+| J13   | 확장 B2B                                                              | Snapdragon - Linux                                   |
+| J14   | 통합 GNSS 안테나 연결                                                      | Snapdragon - Linux                                   |
 | J1001 | 프로그래밍 및 디버그/UART3                                                   | STM32 - PX4                                          |
 | J1002 | UART ESC, UART2/TELEM3                                              | STM32 - PX4                                          |
 | J1003 | PPM RC 입력                                                           | STM32 - PX4                                          |
@@ -159,13 +160,13 @@ _Note: 1000 Series connectors accessible from the STM32/PX4_
 
 | 커넥터          | 요약                                     | 사용처                         |
 | ------------ | -------------------------------------- | --------------------------- |
-| J4           | 추적/광류 이미지 센서 (CSI2) | Snapdragon - 리눅스            |
+| J4           | 추적/광류 이미지 센서 (CSI2) | Snapdragon - Linux          |
 | J8           | USB 3.0 OTG            | Snapdragon - Linux, **adb** |
-| J10          | BLSP7 UART 및 I2C 오프보드                  | Snapdragon - 리눅스            |
-| J11          | BLSP12 UART 및 I2C 오프보드                 | Snapdragon - 리눅스            |
-| VOXL microSD |                                        | Snapdragon - 리눅스            |
+| J10          | BLSP7 UART 및 I2C 오프보드                  | Snapdragon - Linux          |
+| J11          | BLSP12 UART 및 I2C 오프보드                 | Snapdragon - Linux          |
+| VOXL microSD |                                        | Snapdragon - Linux          |
 | PX4 microSD  | 32Gb Max                               | STM32 - PX4                 |
-| Wi-Fi 안테나    | 포함됨.                   | Snapdragon - 리눅스            |
+| Wi-Fi 안테나    | 포함됨.                   | Snapdragon - Linux          |
 
 ### 사용자 가이드
 

@@ -50,7 +50,7 @@ static bool generate_topic_name(char *topic_name, const char *client_namespace, 
 }
 
 static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrObjectId participant_id,
-			       ORB_ID orb_id, const char *client_namespace, const char *topic, uint32_t message_version, const char *type_name,
+			       ORB_ID orb_id, const char *client_namespace, const char *topic, uint32_t message_version, uint8_t instance, const char *type_name,
 			       uxrObjectId &datawriter_id)
 {
 	// topic
@@ -61,7 +61,7 @@ static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_str
 		return false;
 	}
 
-	uxrObjectId topic_id = topic_id_from_orb(orb_id);
+	uxrObjectId topic_id = topic_id_from_orb(orb_id, instance);
 	uint16_t topic_req = uxr_buffer_create_topic_bin(session, reliable_out_stream_id, topic_id, participant_id, topic_name,
 			     type_name, UXR_REPLACE);
 

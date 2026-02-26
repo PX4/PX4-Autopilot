@@ -14,16 +14,15 @@ param set-default MAV_2_RATE 100000
 param set-default MAV_2_REMOTE_PRT 14550
 param set-default MAV_2_UDP_PRT 14550
 
-param set-default SENS_EN_INA238 0
-param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA226 1
-
 param set-default SENS_EN_THERMAL 1
 param set-default SENS_IMU_MODE 1
 param set-default SENS_IMU_TEMP 10.0
 #param set-default SENS_IMU_TEMP_FF 0.0
 #param set-default SENS_IMU_TEMP_I 0.025
 #param set-default SENS_IMU_TEMP_P 1.0
+
+param set-default UAVCAN_ESC_IFACE 2
 
 if ver hwtypecmp ARKV6X000
 then

@@ -123,10 +123,7 @@ Decoder::State Decoder::add_byte(uint8_t byte)
 
 void Decoder::reset()
 {
-	if (_message) {
-		delete[] _message;
-	}
-
+	delete[] _message;
 	_message = new uint8_t[INITIAL_BUFFER_LENGTH];
 	_current_index = 0;
 	_message_length = 0;

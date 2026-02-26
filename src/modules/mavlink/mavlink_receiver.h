@@ -240,6 +240,8 @@ private:
 	void update_message_statistics(const mavlink_message_t &message);
 	void update_rx_stats(const mavlink_message_t &message);
 
+	void publish_hil_battery();
+
 	px4::atomic_bool 	_should_exit{false};
 	pthread_t		_thread {};
 	/**
@@ -308,6 +310,7 @@ private:
 	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};
 	uORB::Publication<mavlink_tunnel_s>			_mavlink_tunnel_pub{ORB_ID(mavlink_tunnel)};
 	uORB::Publication<mavlink_tunnel_s>			_esc_serial_passthru_pub{ORB_ID(esc_serial_passthru)};
+	uORB::Publication<mavlink_tunnel_s>			_io_serial_passthru_pub{ORB_ID(io_serial_passthru)};
 	uORB::Publication<obstacle_distance_s>			_obstacle_distance_pub{ORB_ID(obstacle_distance)};
 	uORB::Publication<offboard_control_mode_s>		_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
@@ -388,6 +391,7 @@ private:
 	hrt_abstime _heartbeat_type_onboard_controller{0};
 	hrt_abstime _heartbeat_type_gimbal{0};
 	hrt_abstime _heartbeat_type_adsb{0};
+	hrt_abstime _heartbeat_type_flarm{0};
 	hrt_abstime _heartbeat_type_camera{0};
 	hrt_abstime _heartbeat_type_parachute{0};
 	hrt_abstime _heartbeat_type_open_drone_id{0};
@@ -403,7 +407,10 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
-		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr
+		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
+		(ParamInt<px4::params::BAT1_N_CELLS>)       _param_bat_cells_count,
+		(ParamFloat<px4::params::BAT1_V_CHARGED>)   _param_bat_v_charged,
+		(ParamFloat<px4::params::BAT1_V_EMPTY>)     _param_bat_v_empty
 	);
 
 	// Disallow copy construction and move assignment.

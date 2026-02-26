@@ -69,9 +69,11 @@ static constexpr int8_t GRIPPER_ACTION_NONE = -1;
  *
  * This module communicates with the Navigator which handles publishing such vehicle commands.
  */
-class PayloadDeliverer : public ModuleBase<PayloadDeliverer>, public ModuleParams, public px4::ScheduledWorkItem
+class PayloadDeliverer : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	PayloadDeliverer();
 
 	/** @see ModuleBase **/
@@ -104,7 +106,7 @@ private:
 	/**
 	 * @brief Initialize or deinitialize gripper instance based on parameter settings
 	 *
-	 * Depending on `PD_GRIPPER_EN` and the state of `_gripper` instance, this function will
+	 * Depending on the state of `_gripper` instance, this function will
 	 * either try to initialize or de-initialize the gripper appropriately.
 	 */
 	void configure_gripper();
@@ -159,7 +161,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::PD_GRIPPER_TO>)	_param_gripper_timeout_s,
-		(ParamInt<px4::params::PD_GRIPPER_TYPE>)	_param_gripper_type,
-		(ParamBool<px4::params::PD_GRIPPER_EN>)		_param_gripper_enable
+		(ParamInt<px4::params::PD_GRIPPER_TYPE>)	_param_gripper_type
 	)
 };

@@ -37,6 +37,8 @@
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_command.h>
 
+ModuleBase::Descriptor ManualControl::desc{task_spawn, custom_command, print_usage};
+
 ManualControl::ManualControl() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -52,6 +54,15 @@ ManualControl::~ManualControl()
 
 bool ManualControl::init()
 {
+#if defined(PAYLOAD_POWER_EN)
+
+	// If the payload power switch is mapped, default to power off until the RC switch explicitly commands it on.
+	if (_param_rc_map_pay_sw.get()) {
+		PAYLOAD_POWER_EN(false);
+	}
+
+#endif // PAYLOAD_POWER_EN
+
 	ScheduleNow();
 	return true;
 }
@@ -60,7 +71,7 @@ void ManualControl::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -237,6 +248,11 @@ void ManualControl::processSwitches(hrt_abstime &now)
 					}
 				}
 
+				if (switches.termination_switch != _previous_switches.termination_switch
+				    && switches.termination_switch == manual_control_switches_s::SWITCH_POS_ON) {
+					sendActionRequest(action_request_s::ACTION_TERMINATION, action_request_s::SOURCE_RC_SWITCH);
+				}
+
 				if (switches.gear_switch != _previous_switches.gear_switch
 				    && _previous_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) {
 
@@ -277,7 +293,8 @@ void ManualControl::processSwitches(hrt_abstime &now)
 					if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_ON) {
 						PAYLOAD_POWER_EN(true);
 
-					} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+					} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF
+						   || switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_MIDDLE) {
 						PAYLOAD_POWER_EN(false);
 					}
 				}
@@ -287,6 +304,18 @@ void ManualControl::processSwitches(hrt_abstime &now)
 			} else if (!_armed) {
 				// Directly initialize mode using RC switch but only before arming
 				evaluateModeSlot(switches.mode_slot);
+#if defined(PAYLOAD_POWER_EN)
+
+				// Apply payload power state on first switch receipt if not armed
+				if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_ON) {
+					PAYLOAD_POWER_EN(true);
+
+				} else if (switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_OFF
+					   || switches.payload_power_switch == manual_control_switches_s::SWITCH_POS_MIDDLE) {
+					PAYLOAD_POWER_EN(false);
+				}
+
+#endif // PAYLOAD_POWER_EN
 			}
 
 			_previous_switches = switches;
@@ -303,9 +332,9 @@ void ManualControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
-	_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
-	_button_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+	_stick_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
+	_stick_disarm_hysteresis.set_hysteresis_time_from(false, 1_s);
+	_button_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
 	_stick_kill_hysteresis.set_hysteresis_time_from(false, _param_man_kill_gest_t.get() * 1_s);
 
 	_selector.setRcInMode(_param_com_rc_in_mode.get());
@@ -514,8 +543,8 @@ int ManualControl::task_spawn(int argc, char *argv[])
 	ManualControl *instance = new ManualControl();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -526,8 +555,8 @@ int ManualControl::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -584,6 +613,7 @@ int8_t ManualControl::navStateFromParam(int32_t param_value)
 		case 13: return vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
 		case 14: return vehicle_status_s::NAVIGATION_STATE_ORBIT;
 		case 15: return vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+		case 16: return vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE;
 
 		case 100: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL1;
 		case 101: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL2;
@@ -599,5 +629,5 @@ int8_t ManualControl::navStateFromParam(int32_t param_value)
 
 extern "C" __EXPORT int manual_control_main(int argc, char *argv[])
 {
-	return ManualControl::main(argc, argv);
+	return ModuleBase::main(ManualControl::desc, argc, argv);
 }

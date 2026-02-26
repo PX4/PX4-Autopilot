@@ -52,11 +52,10 @@ PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 /**
  * MAVLink protocol version
  * @group MAVLink
- * @value 0 Default to 1, switch to 2 if GCS sends version 2
- * @value 1 Always use version 1
- * @value 2 Always use version 2
+ * @value 1 Version 1 with auto-upgrade to v2 if detected
+ * @value 2 Version 2
  */
-PARAM_DEFINE_INT32(MAV_PROTO_VER, 0);
+PARAM_DEFINE_INT32(MAV_PROTO_VER, 2);
 
 /**
  * MAVLink SiK Radio ID

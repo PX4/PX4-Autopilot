@@ -21,7 +21,7 @@ This topic explains how to setup and use [MCU Eclipse](https://gnu-mcu-eclipse.g
 
 To install _Eclipse_:
 
-1. Download [Eclipse CDT for C/C++ Developers](https://github.com/gnu-mcu-eclipse/org.eclipse.epp.packages/releases/) (MCU GitHub).
+1. Download [Eclipse CDT for C/C++ Developers](https://github.com/eclipse-embed-cdt/org.eclipse.epp.packages/releases) (MCU GitHub).
 2. Eclipse 폴더의 압축을 풀고 적당한 폴더에 복사합니다(설치 스크립트를 실행할 필요가 없음).
 3. Run _Eclipse_ and choose a location for your initial workbench.
 
@@ -52,19 +52,18 @@ For more information, see: [https://gnu-mcu-eclipse.github.io/debug/jlink/instal
    ![Eclipse: Segger J-Link Path](../../assets/debug/eclipse_segger_jlink_path.png)
 
 7. 패키지를 업데이트합니다.
-
    - Click the small icon on the top right called _Open Perspective_ and open the _Packs_ perspective.
-      ![Eclipse: Workspace](../../assets/debug/eclipse_workspace_perspective.png)
+     ![Eclipse: Workspace](../../assets/debug/eclipse_workspace_perspective.png)
 
    - Click the **update all** button.
 
-      :::tip
-      This takes a VERY LONG TIME (10 minutes).
-      누락된 패키지에 대한 오류를 무시하십시오.
+     :::tip
+     This takes a VERY LONG TIME (10 minutes).
+     누락된 패키지에 대한 오류를 무시하십시오.
 
 :::
 
-      ![Eclipse: Workspace Packs Perspective](../../assets/debug/eclipse_packs_perspective.jpg)
+     ![Eclipse: Workspace Packs Perspective](../../assets/debug/eclipse_packs_perspective.jpg)
 
    - The STM32Fxx devices are found in the Keil folder, install by right-clicking and then selecting **install** on the according device for F4 and F7.
 
@@ -80,24 +79,24 @@ For more information, see: [https://gnu-mcu-eclipse.github.io/debug/jlink/instal
    ![Eclipse: Debug config](../../assets/debug/eclipse_settings_debug_config.png)
 
 10. Then select _GDB SEGGER J-Link Debugging_ and then the **New config** button on the top left.
-   ![Eclipse: GDB Segger Debug config](../../assets/debug/eclipse_settings_debug_config_gdb_segger.png)
+    ![Eclipse: GDB Segger Debug config](../../assets/debug/eclipse_settings_debug_config_gdb_segger.png)
 
 11. 빌드 구성을 설정합니다.
 
-   - Give it a name and set the _C/C++ Application_ to the corresponding **.elf** file.
-   - Choose _Disable Auto build_
+    - Give it a name and set the _C/C++ Application_ to the corresponding **.elf** file.
+    - Choose _Disable Auto build_
 
       ::: info
       Remember that you must build the target from the command line before starting a debug session.
 
 :::
 
-   ![Eclipse: GDB Segger Debug config](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config.png)
+    ![Eclipse: GDB Segger Debug config](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config.png)
 
 12. The _Debugger_ and _Startup_ tabs shouldn’t need any modifications (just verify your settings with the screenshots below)
 
-   ![Eclipse: GDB Segger Debug config: debugger tab](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config_debugger_tab.png)
-   ![Eclipse: GDB Segger Debug config: startup tab](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config_startup_tab.png)
+    ![Eclipse: GDB Segger Debug config: debugger tab](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config_debugger_tab.png)
+    ![Eclipse: GDB Segger Debug config: startup tab](../../assets/debug/eclipse_settings_debug_config_gdb_segger_build_config_startup_tab.png)
 
 ## SEGGER Task-aware debugging
 
@@ -107,20 +106,19 @@ This is quite useful since PX4 tends to run many different tasks.
 To enable this feature for use in Eclipse:
 
 1. You first need to enable `CONFIG_DEBUG_TCBINFO` in the NuttX configuration for your build (to expose the TCB offsets).
-
    - Open a terminal in the root of your PX4-Autopilot source code
 
    - In the terminal, open `menuconfig` using the appropriate make target for the build.
-      This will be something like:
+     This will be something like:
 
-      ```sh
-      make px4_fmu-v5_default boardguiconfig
-      ```
+     ```sh
+     make px4_fmu-v5_default boardguiconfig
+     ```
 
-      (See [PX4 Menuconfig Setup](../hardware/porting_guide_config.md#px4-menuconfig-setup) for more information) on using the config tools).
+     (See [PX4 Menuconfig Setup](../hardware/porting_guide_config.md#px4-menuconfig-setup) for more information) on using the config tools).
 
    - Ensure that the _Enable TCBinfo struct for debug_ is selected as shown:
-      ![NuttX: Menuconfig: CONFIG_DEBUG_TCBINFO](../../assets/debug/nuttx_tcb_task_aware.png)
+     ![NuttX: Menuconfig: CONFIG_DEBUG_TCBINFO](../../assets/debug/nuttx_tcb_task_aware.png)
 
 2. Compile the **jlink-nuttx.so** library in the terminal by running the following command in the terminal: `make jlink-nuttx`
 
@@ -149,7 +147,7 @@ Adding missing SVD files for the _Peripheral View_:
 
    ![Eclipse: MCU Packages](../../assets/debug/eclipse_mcu_packages.png)
 
-2. http://www.keil.com/dd2/Pack/ 에서 누락된 패키지를 다운로드하십시오
+2. Download missing packages from: https://www.keil.arm.com/devices/
 
 3. Open downloaded pack with a decompression tool, and extract the **.SVD** files from: **/CMSIS/SVD**.
 
