@@ -44,16 +44,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <px4_platform_common/defines.h>
-
 
 namespace math
 {
 
-template<typename U> struct px4_is_floating_point { static constexpr bool value = false; };
-template<> struct px4_is_floating_point<float> { static constexpr bool value = true; };
-template<> struct px4_is_floating_point<double> { static constexpr bool value = true; };
-template<> struct px4_is_floating_point<long double> { static constexpr bool value = true; };
+template<typename U> struct is_floating_point { static constexpr bool value = false; };
+template<> struct is_floating_point<float> { static constexpr bool value = true; };
+template<> struct is_floating_point<double> { static constexpr bool value = true; };
+template<> struct is_floating_point<long double> { static constexpr bool value = true; };
 
 template<typename T, int WINDOW = 3>
 class MedianFilter
@@ -92,17 +90,25 @@ private:
 		const T va = *(const T *)a;
 		const T vb = *(const T *)b;
 
-		if constexpr(px4_is_floating_point<T>::value) {
-			if (!PX4_ISFINITE(va) && !PX4_ISFINITE(vb)) { return  0; }
+		if constexpr(is_floating_point<T>::value) {
+			if (!__builtin_isfinite(va) && !__builtin_isfinite(vb)) {
+				return 0;
 
-			else if (!PX4_ISFINITE(va))                 { return  1; }
+			} else if (!__builtin_isfinite(va)) {
+				return  1;
 
-			else if (!PX4_ISFINITE(vb))                 { return -1; }
+			} else if (!__builtin_isfinite(vb)) {
+				return -1;
+			}
 		}
 
-		if (va < vb) { return -1; }
+		if (va < vb) {
+			return -1;
+		}
 
-		if (va > vb) { return  1; }
+		if (va > vb) {
+			return  1;
+		}
 
 		return 0;
 	}
