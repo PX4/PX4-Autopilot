@@ -42,6 +42,7 @@ px4_add_module(
 	SRCS
 		dsp_hitl.cpp
 	DEPENDS
+		mavlink_c_generate
 		px4_work_queue
 		drivers_accelerometer
 		drivers_gyroscope
