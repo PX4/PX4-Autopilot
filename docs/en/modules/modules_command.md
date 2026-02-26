@@ -209,7 +209,7 @@ hardfault_log <command> [arguments...]
 
 Source: [systemcmds/hist](https://github.com/PX4/PX4-Autopilot/tree/main/src/systemcmds/hist)
 
-Command-line tool to show the PX4 message history. There are no arguments.
+Command-line tool to show the px4 message history. There are no arguments.
 
 ### Usage {#hist_usage}
 
