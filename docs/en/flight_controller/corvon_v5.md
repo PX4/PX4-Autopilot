@@ -89,6 +89,30 @@ RC inputs (both CPPM and Spektrum/S.Bus) are physically connected directly to th
 
 For more information about selecting and connecting a radio receiver, see [Radio Control Registration](../getting_started/rc_transmitter_receiver.md).
 
+<a id="debug_port"></a>
+
+## Debug Port
+
+The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
+
+The debug port (`DSU7`) has the following pinout:
+
+| Pin | Signal         | Volt  |
+| --- | -------------- | ----- |
+| 1   | GND            | GND   |
+| 2   | FMU_SWCLK      | +3.3V |
+| 3   | FMU_SWDIO      | +3.3V |
+| 4   | DEBUG RX       | +3.3V |
+| 5   | DEBUG TX       | +3.3V |
+| 6   | 5V+            | +5V   |
+
+:::warning
+The 5V+ pin (6) provides 5V, but the CPU logic runs at 3.3V!
+
+Some JTAG/SWD adapters (like SEGGER J-Link) may use the Vref voltage pin to set the logic level on the SWD data lines. Connecting 5V to the adapter's `Vtref` can damage the CPU.
+For a direct connection to a *Segger Jlink*, we recommend you use a 3.3V source to provide `Vtref` to the JTAG adapter (i.e. providing 3.3V and *NOT* 5V).
+:::
+
 ## Voltage Ratings
 
 CORVON V5 must be powered from the **POWER** connector during flight, and may also be powered from **USB** for bench testing.
