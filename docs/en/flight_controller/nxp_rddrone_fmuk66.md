@@ -2,11 +2,11 @@
 
 <Badge type="info" text="Discontinued" />
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.nxp.com/) for hardware support or compliance issues.
 :::
@@ -49,7 +49,7 @@ A "Lite" version RDDRONE-FMUK66L is also available which does not include the po
 
 Additional information can be found in the [Technical Data Sheet](https://www.nxp.com/design/design-center/development-boards-and-designs/px4-robotic-drone-vehicle-flight-management-unit-vmu-fmu-rddrone-fmuk66:RDDRONE-FMUK66). <!-- www.nxp.com/rddrone-fmuk66 -->
 
-## Where to Buy
+## Where to Buy {#store}
 
 **RDDRONE-FMUK66** reference design kit may be purchased direct from NXP or from any of NXP's authorised worldwide network of [electronics distributors](https://www.nxp.com/support/sample-and-buy/distributor-network:DISTRIBUTORS).
 
@@ -83,14 +83,14 @@ https://nxp.gitbook.io/hovergames
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make nxp_fmuk66-v3_default
 ```
 
@@ -117,7 +117,7 @@ The complete set of supported configurations can be seen in the [Airframes Refer
 
 ![HoverGames Drone Kit](../../assets/flight_controller/nxp_rddrone_fmuk66/hovergames_drone_14042019_xl001.jpg)
 
-:::tip
+::: tip
 The NXP [HoverGames Drone Kit](https://www.nxp.com/kit-hgdronek66) (shown above) is a complete drone development kit that includes everything needed to build a quadcopter.
 You only need to supply the 3S/4S LiPo battery.
 :::

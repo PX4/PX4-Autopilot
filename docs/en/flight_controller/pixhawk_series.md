@@ -6,7 +6,7 @@ Pixhawk is the reference hardware platform for PX4, and runs PX4 on the [NuttX](
 
 Manufacturers have created many different boards based on the open designs, with form factors that are optimised for applications from cargo carrying though to first person view (FPV) racers.
 
-:::tip
+::: tip
 For computationally intensive tasks (e.g. computer vision) you will need a separate companion computer (e.g. [Raspberry Pi 2/3 Navio2](../flight_controller/raspberry_pi_navio2.md)) or a platform with an integrated companion solution.
 :::
 
@@ -135,7 +135,7 @@ Products that are based on independently created schematics are considered origi
 Product names/brands can also be trademarked.
 Trademarked names may not be used without the permission of the owner.
 
-:::tip
+::: tip
 _Pixhawk_ is a trademark, and cannot be used in product names without permission.
 :::
 

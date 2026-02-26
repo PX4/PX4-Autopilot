@@ -635,8 +635,8 @@ pageClass: is-wide-page
             temp = fieldOrConstant.split("=")
             value = temp[-1]
             typeAndName = temp[0].split(" ")
-            type = typeAndName[0]
-            name = typeAndName[1]
+            type = typeAndName[0].strip()
+            name = typeAndName[1].strip()
             if name.startswith("VEHICLE_CMD_") and parentMessage.name == 'VehicleCommand': #it's a command.
                 #print(f"DEBUG: startswith VEHICLE_CMD_ {name}")
                 commandConstant = CommandConstant(name, type, value, comment, line_number, parentMessage)
@@ -944,9 +944,6 @@ if __name__ == "__main__":
 
     for msg_file in msg_files:
         # Add messages to set of allowed types (compound types)
-        #msg_type = msg_file.rsplit('/')[-1]
-        #msg_type = msg_type.rsplit('\\')[-1]
-        #msg_type = msg_type.rsplit('.')[0]
         msg_name = os.path.splitext(os.path.basename(msg_file))[0]
         msgTypes.add(msg_name)
 

@@ -2,12 +2,12 @@
 
 <Badge type="info" text="Discontinued" />
 
-:::warning
+::: warning
 _Crazyflie 2.0_ has been [discontinued/superseded](../flight_controller/autopilot_experimental.md).
 Try [Bitcraze Crazyflie 2.1](../complete_vehicles_mc/crazyflie21.md) instead!
 :::
 
-:::warning
+::: warning
 
 - PX4 does not manufacture this (or any) autopilot.
   Contact the [manufacturer](https://www.bitcraze.io/) for hardware support or compliance issues.
@@ -202,7 +202,7 @@ Next, launch the cfbridge by giving the same channel and address as the first an
 - After using _cfbridge_, you can deactivate the virtualenv if you activated it by pressing `CTRL+z`.
   Most of the time, launching _cfbridge_ again from the same terminal doesn't connect to crazyflie, this can be solved by closing the terminal and relaunching _cfbridge_ in a new terminal.
 
-:::tip
+::: tip
 If you change any driver in [crazyflie-lib-python](https://github.com/bitcraze/crazyflie-lib-python) or if launching _cfbridge_ in a new terminal does not find crazyflie, you can try navigating to the crazyflie-lib-python folder and run the script below to rebuild cflib.
 
 ```sh
@@ -251,7 +251,7 @@ Then, you need to stick the battery on top of the SD card deck using a double si
 Crazyflie is able to fly in _Altitude_ mode if you use a [Z-ranger deck](https://store.bitcraze.io/collections/decks/products/z-ranger-deck).
 According to the datasheet, the maximum height (above ground) the range finder can sense is 2 m. However, when tested on dark surfaces this value decreases to 0.5 m. On a light floor, it goes up to max 1.3 m. This means you cannot hold altitudes above this value in _Altitude_ or _Position_ flight modes.
 
-:::tip
+::: tip
 If the Crazyflie 2.0 height drifts at mid-throttle command in _Altitude mode_ or _Position mode_, first try rebooting the vehicle. If this does not fix the problem, recalibrate the accel and mag (compass).
 :::
 
