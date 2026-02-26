@@ -710,6 +710,10 @@ int BMP581::get_sensor_data(bmp5_sensor_data *sensor_data)
 		/* Division by 2^6(whose equivalent value is 64) is performed to get pressure data in Pa */
 		sensor_data->pressure = (float)(raw_data_p / 64.0);
 
+		if (sensor_data->pressure < BMP5_PRESSURE_MIN_PA || sensor_data->pressure > BMP5_PRESSURE_MAX_PA) {
+			return PX4_ERROR;
+		}
+
 	} else {
 		sensor_data->pressure = 0.0;
 	}
