@@ -67,3 +67,5 @@ Moving the sensor around at various distances from a surface will have the `curr
 ## Troubleshooting
 
 If you are having problems with connecting to the sensor you may need to unassign a the default serial port. [Unassign Default Serial Port](../peripherals/serial_configuration.md)
+
+On Cube Orange Models `CubeOrange` and `CubeOrange+`, there seems to be an issue with using telem ports for the serial driver. The Driver does work on `GPS2` for these two CubeOrange Models.
