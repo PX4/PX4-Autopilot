@@ -28,6 +28,7 @@ param set-default VT_FW_DIFTHR_EN 1
 param set-default VT_FW_DIFTHR_S_Y 0.3
 param set-default MPC_MAN_Y_MAX 60
 param set-default MC_PITCH_P 5
+param set-default FW_PSP_OFF 5
 
 param set-default CA_AIRFRAME 4
 param set-default CA_ROTOR_COUNT 2
@@ -56,7 +57,6 @@ param set-default HIL_ACT_REV 32
 param set-default MAV_TYPE 19
 
 
-
 # set SYS_HITL to 2 to start the SIH and avoid sensors startup
 param set-default SYS_HITL 2
 
@@ -66,8 +66,9 @@ param set-default CBRK_SUPPLY_CHK 894281
 
 param set-default SENS_DPRES_OFF 0.001
 
-param set SIH_T_MAX 2.0
-param set SIH_Q_MAX 0.0165
+# tailsitter is equipped with two forward propellers
+param set SIH_F_T_MAX 2
+param set SIH_F_Q_MAX 0.0165
 param set SIH_MASS 0.2
 # IXX and IZZ are inverted from the thesis as the body frame is pitched by 90 deg
 param set SIH_IXX 0.00354
@@ -76,6 +77,19 @@ param set SIH_IZZ 0.00300
 param set SIH_IXZ 0
 param set SIH_KDV 0.2
 param set SIH_L_ROLL 0.145
+
+# propeller diameter, rpm, and coeffs coming from the thesis
+# Modeling and control of a flying wing tailsitter unmanned aerial vehicle."
+# Chiappinelli, Romain, supervised by Nahon, Meyer, McGill University, Masters thesis, 2018.
+# if SIH_F_CT0 > 0, SIH_F_T_MAX and SIH_F_Q_MAX will be overridden
+param set SIH_F_CT0 0.1342
+param set SIH_F_CT1 -0.1196
+param set SIH_F_CT2 -0.1281
+param set SIH_F_CP0 0.0522
+param set SIH_F_CP1 -0.0146
+param set SIH_F_CP2 -0.0602
+param set SIH_F_DIA_INCH 5
+param set SIH_F_RPM_MAX 14000
 
 # sih as tailsitter
 param set SIH_VEHICLE_TYPE 2
