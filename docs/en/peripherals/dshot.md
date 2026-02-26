@@ -158,6 +158,8 @@ Check manufacturer documentation for confirmation/details.
 
 ## Bidirectional DShot (Telemetry)
 
+<Badge type="tip" text="PX4 v1.16" />
+
 Bidirectional DShot (BDShot) enables the ESC to send eRPM telemetry back to the flight controller on the same signal wire used for throttle commands — no additional telemetry wire is needed for RPM data.
 High-rate eRPM data significantly improves the performance of [Dynamic Notch Filters](../config_mc/filter_tuning.md#dynamic-notch-filters) and enables more precise vehicle tuning.
 
