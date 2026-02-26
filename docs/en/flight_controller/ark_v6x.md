@@ -1,6 +1,6 @@
 # ARK Electronics ARKV6X
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://arkelectron.com/contact-us/) for hardware support or compliance issues.
 :::
@@ -16,7 +16,7 @@ The Pixhawk Autopilot Bus (PAB) form factor enables the ARKV6X to be used on any
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Where To Buy
+## Where To Buy {#store}
 
 Order From [Ark Electronics](https://arkelectron.com/product/arkv6x/) (US)
 

@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.17" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://radiolink.com.cn/) for hardware support or compliance issues.
 :::
@@ -27,7 +27,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - 32KB FRAM - FM25V02A
   - AT7456E OSD
 - Sensors
-  - Bosh BMI088 IMU (accel, gyro)
+  - Bosch BMI088 IMU (accel, gyro)
   - InvenSense ICM-42688 IMU (accel, gyro)
   - SPA06 barometer
   - IST8310 magnetometer
@@ -48,7 +48,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - Weight 80g
   - Size 94mm x 51.5mm x 14.5mm
 
-## Where to Buy
+## Where to Buy {#store}
 
 [Radiolink Amazon](https://www.radiolink.com.cn/pix6_where_to_buy)（International users）
 
@@ -277,7 +277,7 @@ In addition to the [basic configuration](../config/index.md), the following para
 ### Powering the PIX6
 
 The PIX6 has 2 dedicated power monitor ports, each with a 6 pin connector.
-One is the Analog power monitor (`POWER1`), and the others is the I2C power monitor (`POWER2`).
+One is the Analog power monitor (`POWER1`), and the other is the I2C power monitor (`POWER2`).
 
 The power module that comes with the flight controller with a wide voltage input range of 2-12S (7.4-50.4V), a maximum detection current of 90A (single ESC maximum detection current is 22.5A), a BEC output voltage of 5.3±0.2V, and a BEC output current of 2A.
 

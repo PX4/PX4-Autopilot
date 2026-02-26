@@ -1,6 +1,6 @@
 # Holybro Pixhawk 6C Mini
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -12,7 +12,7 @@ It complies with the Pixhawk [Connector Standard](https://github.com/pixhawk/Pix
 
 ![Pixhawk6c mini A&B Image](../../assets/flight_controller/pixhawk6c_mini/HB_6C_MINI-A_B.jpg)
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -58,7 +58,7 @@ The Pixhawk® 6C Mini is perfect for developers at corporate research labs, star
   - USB Power Input: 4.75\~5.25V
   - Servo Rail Input: 0\~36V
 - Current Ratings:
-  - `TELEM1`` Max output current limiter: 1A
+  - `TELEM1` Max output current limiter: 1A
   - All other port combined output current limiter: 1A
 
 ### **Mechanical data**
@@ -87,7 +87,7 @@ The Pixhawk® 6C Mini is perfect for developers at corporate research labs, star
 - Other Characteristics:
   - Operating & storage temperature: -40 ~ 85°c
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [Holybro](https://holybro.com/products/pixhawk-6c-mini).
 
@@ -151,20 +151,18 @@ Holybro makes various analog [power modules](../power_module/index.md) for diffe
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v6c_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) run on the **FMU Debug** port.
 

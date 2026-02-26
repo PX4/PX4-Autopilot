@@ -345,7 +345,7 @@ The video below shows that the location of the environment is aligned with the w
 
 For extended development sessions it might be more convenient to start Gazebo Classic and PX4 separately or even from within an IDE.
 
-In addition to the existing cmake targets that run `sitl_run.sh` with parameters for px4 to load the correct model it creates a launcher targets named `px4_<mode>` that is a thin wrapper around original sitl px4 app.
+In addition to the existing cmake targets that run `sitl_run.sh` with parameters for PX4 to load the correct model it creates a launcher targets named `px4_<mode>` that is a thin wrapper around original sitl PX4 app.
 This thin wrapper simply embeds app arguments like current working directories and the path to the model file.
 
 To start Gazebo Classic and PX4 separately:
@@ -365,7 +365,7 @@ To start Gazebo Classic and PX4 separately:
 - In your IDE select `px4_<mode>` target you want to debug (e.g. `px4_iris`)
 - Start the debug session directly from IDE
 
-This approach significantly reduces the debug cycle time because simulator is always running in background and you only re-run the px4 process which is very light.
+This approach significantly reduces the debug cycle time because simulator is always running in background and you only re-run the PX4 process which is very light.
 
 ## Simulated Survey Camera
 

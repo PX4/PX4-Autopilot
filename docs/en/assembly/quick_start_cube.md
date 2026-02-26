@@ -18,7 +18,7 @@ Further/updated information may be available in the [Cube User Manual](https://d
 
 ## Accessories
 
-Cube comes with most (or all) of the accessories you will need when [purchased](../flight_controller/pixhawk-2.md#stores).
+Cube comes with most (or all) of the accessories you will need when [purchased](../flight_controller/pixhawk-2.md#store).
 
 ![Cube Accessories](../../assets/flight_controller/cube/cube_accessories.jpg)
 
