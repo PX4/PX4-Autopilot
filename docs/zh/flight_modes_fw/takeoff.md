@@ -85,6 +85,7 @@ The vehicle always respects normal FW max/min throttle settings during takeoff (
 In _catapult/hand-launch mode_ the vehicle waits to detect launch (based on acceleration trigger).
 On launch it enables the motor(s) and climbs with the maximum climb rate [FW_T_CLMB_MAX](#FW_T_CLMB_MAX) while keeping the pitch setpoint above [FW_TKO_PITCH_MIN](#FW_TKO_PITCH_MIN).
 Once it reaches [MIS_TAKEOFF_ALT](#MIS_TAKEOFF_ALT) it will automatically switch to [Hold mode](../flight_modes_fw/hold.md) and loiter.
+It is possible to delay the activation of the motors and control surfaces separately, see parameters [FW_LAUN_MOT_DEL](#FW_LAUN_MOT_DEL), [FW_LAUN_CS_LK_DY](#FW_LAUN_CS_LK_DY) and [CA_CS_LAUN_LK](#CA_CS_LAUN_LK). The later is also exposed in the actuator configuration page under the advanced view.
 
 All RC stick movement is ignored during the full takeoff sequence.
 
@@ -99,12 +100,14 @@ To launch in this mode:
 
 The _launch detector_ is affected by the following parameters:
 
-| 参数                                                                                                                                                                         | 描述                                                                                                          |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| <a id="FW_LAUN_DETCN_ON"></a>[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON) | Enable automatic launch detection. If disabled motors spin up on arming already             |
-| <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)    | Acceleration threshold (acceleration in body-forward direction must be above this value) |
-| <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)             | Trigger time (acceleration must be above threshold for this amount of seconds)           |
-| <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)    | Delay from launch detection to motor spin up                                                                |
+| 参数                                                                                                                                                                                              | 描述                                                                                                          |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| <a id="FW_LAUN_DETCN_ON"></a>[FW_LAUN_DETCN_ON](../advanced_config/parameter_reference.md#FW_LAUN_DETCN_ON)                      | Enable automatic launch detection. If disabled motors spin up on arming already             |
+| <a id="FW_LAUN_AC_THLD"></a>[FW_LAUN_AC_THLD](../advanced_config/parameter_reference.md#FW_LAUN_AC_THLD)                         | Acceleration threshold (acceleration in body-forward direction must be above this value) |
+| <a id="FW_LAUN_AC_T"></a>[FW_LAUN_AC_T](../advanced_config/parameter_reference.md#FW_LAUN_AC_T)                                  | Trigger time (acceleration must be above threshold for this amount of seconds)           |
+| <a id="FW_LAUN_MOT_DEL"></a>[FW_LAUN_MOT_DEL](../advanced_config/parameter_reference.md#FW_LAUN_MOT_DEL)                         | Delay from launch detection to motor spin up                                                                |
+| <a id="FW_LAUN_CS_LK_DY"></a>[FW_LAUN_CS_LK_DY](../advanced_config/parameter_reference.md#FW_LAUN_CS_LK_DY) | Delay from launch detection to unlocking the control surfaces                                               |
+| <a id="CA_CS_LAUN_LK"></a>[CA_CS_LAUN_LK](../advanced_config/parameter_reference.md#CA_CS_LAUN_LK)                               | Bitmask to select which control surfaces are to be locked during launch                                     |
 
 ## Runway Takeoff {#runway_launch}
 

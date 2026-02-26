@@ -40,7 +40,7 @@ Information about how the parameters affect landing can be found below in [Land 
 如果由于缺少传感器而无法达到条件，则默认情况下认为该条件为真。
 For instance, in [Acro mode](../flight_modes_mc/acro.md) and no sensor is active except for the gyro sensor, then the detection solely relies on thrust output and time.
 
-In order to proceed to the next state, each condition has to be true for a third of the configured total land detector trigger time [LNDMC_TRIG_TIME](../advanced_config/parameter_reference.md#LNDMC_TRIG_TIME).
+In order to proceed to the next state, each condition has to be true for 300ms.
 If the vehicle is equipped with a distance sensor, but the distance to ground is currently not measurable (usually because it is too large), the trigger time is increased by a factor of 3.
 
 如果一个条件失败，则陆地探测器立即退出当前状态。

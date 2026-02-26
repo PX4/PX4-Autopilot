@@ -362,6 +362,10 @@ PX4 的 GNSS 故障检测使用基于测量验证的选择性融合控制来防�
   如果没有其他位置或速度源可用，EKF2 可能会重置。
   如果 GNSS 高度或水平位置数据漂移，系统将同时禁用这两个测量值的融合（即使其中一个仍能通过验证），并避免执行重置。
 
+:::tip
+See also [Fault Detection](https://youtu.be/CMGQJNPiTJg?si=sFtdf4AQbcOH8-u8) in "Fuse, Reset, or Reject? Handling Various Data-sources in EKF2" _PX4 Developer Summit 2025_, Marco Hauswirth, Auterion AG
+:::
+
 ##### 检测逻辑
 
 水平位置：
@@ -896,3 +900,4 @@ GPS 数据丢失会表现为速度与位置创新测试比值“贴平(flat-lini
 ## 更多信息
 
 - [PX4 State Estimation Overview](https://youtu.be/HkYRJJoyBwQ)，_PX4 Developer Summit 2019_，Dr. Paul Riseborough：估计器概览、2018/19 的主要变化，以及 2019/20 期间的预期改进。
+- [Fuse, Reset, or Reject? Handling Various Data-sources in EKF2](https://www.youtube.com/watch?v=CMGQJNPiTJg) - _PX4 Developer Summit 2025_, Marco Hauswirth, Auterion AG
