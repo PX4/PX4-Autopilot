@@ -52,6 +52,7 @@ bool wind_limit_exceeded              # Wind limit exceeded
 bool flight_time_limit_exceeded       # Maximum flight time exceeded
 bool position_accuracy_low            # Position estimate has dropped below threshold, but is currently still declared valid
 bool navigator_failure        	      # Navigator failed to execute a mode
+bool dead_reckoning_invalid           # Postion estimate based on dead reckoning is too old to be trusted
 
 # Failure detector
 bool fd_critical_failure              # Critical failure (attitude/altitude limit exceeded, or external ATS)
