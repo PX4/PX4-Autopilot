@@ -93,7 +93,7 @@ make holybro_kakuteh7mini_default
 ## Installing PX4 Firmware
 
 ::: info
-If you are loading the pre-built firmware via QGroundcontrol, you must use QGC Daily or QGC version newer than 4.1.7.
+If you are loading the pre-built firmware via QGroundControl, you must use QGC Daily or QGC version newer than 4.1.7.
 Prior to that release you will need to manually build and install the firmware.
 :::
 

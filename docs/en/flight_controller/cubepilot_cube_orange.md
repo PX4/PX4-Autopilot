@@ -10,7 +10,7 @@ The [Cube Orange](https://www.cubepilot.com/#/cube/features) flight controller i
 ![Cube Orange](../../assets/flight_controller/cube/orange/cube_orange_hero.jpg)
 
 The controller is designed to be used with a domain-specific carrier board in order to reduce the wiring, improve reliability, and ease of assembly.
-For example, a carrier board for a commercial inspection vehicle might include connections for a companion computer, while a carrier board for a racer could includes ESCs for the frame of the vehicle.
+For example, a carrier board for a commercial inspection vehicle might include connections for a companion computer, while a carrier board for a racer could include ESCs for the frame of the vehicle.
 
 The ADS-B carrier board includes a customized 1090MHz ADSB-In receiver from uAvionix.
 This provides attitude and location of commercial manned aircraft within the range of Cube.

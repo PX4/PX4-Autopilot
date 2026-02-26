@@ -193,7 +193,7 @@ On the handheld controller (e.g. Taranis) you will also need a [Transmitter Modu
 This can be plugged into the back of the RC controller.
 
 ::: info
-The referenced links above contains the documentation for the TX/RX modules.
+The referenced links above contain the documentation for the TX/RX modules.
 :::
 
 #### Setup

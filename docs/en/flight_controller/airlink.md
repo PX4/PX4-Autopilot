@@ -26,7 +26,7 @@ AIRLink has two computers and integrated LTE Module:
 ## Specifications
 
 - **Sensors**
-  - 3x Accelerometers, 3x Gyroscopes, 3x Magnetometers, 3x Pressure sensorss
+  - 3x Accelerometers, 3x Gyroscopes, 3x Magnetometers, 3x Pressure sensors
   - GNSS, Rangefinders, Lidars, Optical Flow, Cameras
   - 3x-redundant IMU
   - Vibration dampening
@@ -92,7 +92,7 @@ The standard set contains:
 - 1x FPV camera with CSI cable
 - 1x WiFi antenna with MMCX connector
 - 2x/4x LTE/5G antenna with MMCX connector
-- 1x HDMI to mini HDMI cable1x set of cables (7 cables for all connectors)
+- 1x HDMI to mini HDMI cable, 1x set of cables (7 cables for all connectors)
 
 [AIRLink Telemetry](https://sky-drones.com/sets/airlink-telemetry-set.html) based on the Microhard LAN/IP-based RF micromodule is available as an add-on and is fully compatible with AIRLink.
 

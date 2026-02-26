@@ -205,7 +205,7 @@ The UAVCAN [NEO V2 PRO GNSS receiver](https://doc.cuav.net/gps/neo-series-gnss/e
 
 `DSU7` FMU Debug Pin 1 is 5 volts - not the 3.3 volts of the CPU.
 
-Some JTAG use this voltage to set the IO levels when communicating to the target.
+Some JTAG adapters use this voltage to set the IO levels when communicating to the target.
 
 For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts of DSM/SBUS/RSSI pin 4 as Pin 1 on the debug connector (`Vtref`).
 

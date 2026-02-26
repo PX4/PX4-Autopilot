@@ -70,7 +70,7 @@ PX4 mainline supports VOXL 2 (board documentation [here](https://github.com/PX4/
 
 ## QGroundControl Support
 
-This board supported in QGroundControl 4.0 and later.
+This board is supported in QGroundControl 4.0 and later.
 
 ## Availability
 

@@ -106,7 +106,7 @@ More information about the firmware can be found [here](https://docs.modalai.com
 
 ## QGroundControl Support
 
-This board supported in QGroundControl 4.0 and later.
+This board is supported in QGroundControl 4.0 and later.
 
 ## Availability
 

@@ -209,7 +209,7 @@ Run the following commands on the BeagleBone Blue (i.e. via SSH):
 
 ## Changes in config
 
-All changes can be made in de px4.config file directly on beaglebone.
+All changes can be made in the px4.config file directly on beaglebone.
 For example, you can change the WIFI to wlan.
 
 ::: info

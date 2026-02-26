@@ -76,7 +76,7 @@ See the documentation [Ark Electronics GitBook](https://arkelectron.gitbook.io/a
 
 ## Additional Information
 
-- Weight: 7.5 g g with MicroSD card
+- Weight: 7.5 g with MicroSD card
 - Dimensions: 3.6 x 3.6 x 0.8 cm
 - USA Built - NDAA compliant
 - Heater: 1W for warming sensors in extreme cold

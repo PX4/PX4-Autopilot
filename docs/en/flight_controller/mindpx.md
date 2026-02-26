@@ -19,7 +19,7 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 The main hardware documentation is [here](http://mindpx.net/assets/accessories/Specification9.18_3_pdf.pdf).
 :::
 
-MindPX is a new generation autopilot system branched from Pixhawk<sup>&reg;</sup>, been revised in schematic and structure, and been further enhanced with new features to make un-manned vehicle more smart and more friendly to use.
+MindPX is a new generation autopilot system branched from Pixhawk<sup>&reg;</sup>, has been revised in schematic and structure, and has been further enhanced with new features to make unmanned vehicle more smart and more friendly to use.
 
 MindPX increases total PWM output channels to 16 (8 main outputs + 8 aux outputs).
 This means that MindPX can support more complicated VTOL configurations and more fine control.
@@ -96,7 +96,7 @@ MindPX has a USB-TO-UART Bridge IC on the board.
 A micro-USB to USB type A cable is used for the connection.
 Connect micro-USB end to the 'OBC' port of MindPX and USB type A end to companion computer.
 
-And the max BAUD rate is the same with px4 family, which is up to 921600.
+And the max BAUD rate is the same as for the PX4 family, which is up to 921600.
 
 ## User Guide
 

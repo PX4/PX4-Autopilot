@@ -206,7 +206,7 @@ Don't forget to turn off the switch when it is not needed!
 #### CSI camera
 
 ::: warning
-Enable CSI camera will stop anything works on I2C-0.
+Enabling CSI camera will stop anything that works on I2C-0.
 :::
 
 ```sh

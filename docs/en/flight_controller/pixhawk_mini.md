@@ -42,7 +42,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 - **Power module output:** 4.1\~5.5V
 - **Max input voltage:** 45V (10S LiPo)
 - **Max current sensing:** 90A
-- **USB Power Input:** 4.1\`5.5V
+- **USB Power Input:** 4.1\~5.5V
 - **Servo Rail Input:** 0\~10V
 
 **Interfaces:**
@@ -287,7 +287,7 @@ Make sure to use the correct mapping for your vehicle.
 
 ::: tip
 If your frame is not listed in the reference then use a "generic" airframe of the correct type.
-::: infos:
+:::
 
 - The output rail must be separately powered, as discussed in the [Power](#power) section above.
 - Pixhawk Mini cannot be used for QuadPlane VTOL airframes. This is because QuadPlane requires 9 outputs (4 Main, 5 AUX) and the Pixhawk Mini only has 8 outputs (8 Main).

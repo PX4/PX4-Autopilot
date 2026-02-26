@@ -58,7 +58,7 @@ The Pixhawk® 6C Mini is perfect for developers at corporate research labs, star
   - USB Power Input: 4.75\~5.25V
   - Servo Rail Input: 0\~36V
 - Current Ratings:
-  - `TELEM1`` Max output current limiter: 1A
+  - `TELEM1` Max output current limiter: 1A
   - All other port combined output current limiter: 1A
 
 ### **Mechanical data**

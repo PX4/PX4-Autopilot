@@ -175,7 +175,7 @@ This switch is connected to Pin22(BCM25).
 System rc script will check its value and decide whether PX4 should start alongside with system booting or not.
 
 - On: start PX4 automatically
-- Off: don' t start PX4
+- Off: don't start PX4
 
 ## Developer Quick Start
 

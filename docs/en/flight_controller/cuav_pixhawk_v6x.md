@@ -61,7 +61,7 @@ The Pixhawk® V6X is ideal for corporate research labs, academic research and co
 - 16- PWM servo outputs
 - 1 Dedicated R/C input for Spektrum / DSM and S.Bus with analog / PWM RSSI input
 - 3 TELEM Ports（with full flow control）
-- 1 UART4(Seial and I2C)
+- 1 UART4(Serial and I2C)
 - 2 GPS ports
   - 1 full GPS plus Safety Switch Port(GPS1)
   - 1 basic GPS port(with I2C,GPS2)

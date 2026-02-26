@@ -39,7 +39,7 @@ Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopil
   - 6 Pin JST-GH
 - Dual CAN Ports
   - 4 Pin JST-GH
-- Triple Telemetry Ports with Flow - Control
+- Triple Telemetry Ports with Flow Control
   - 6 Pin JST-GH
 - Eight PWM Outputs
   - 10 Pin JST-GH

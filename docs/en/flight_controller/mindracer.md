@@ -79,7 +79,7 @@ MindRacer has an attached Adapt IO board.
 MindRacer has a built-in UART-to-USB converter.
 To connect a companion computer, stack MindRacer on an interface board, and connect the companion computer to the USB port on the interface board.
 
-And the max BAUD rate is the same with px4 family, which is up to 921600.
+And the max BAUD rate is the same as for the PX4 family, which is up to 921600.
 
 ### User Guide
 

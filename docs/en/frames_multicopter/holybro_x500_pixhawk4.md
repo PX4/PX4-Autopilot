@@ -118,7 +118,7 @@ Estimate time to assemble is 3.75 hours (180 minutes for frame, 45 minutes for a
    _Figure 7_: ESC power module and signal wiring
 
    The color on top of the motor indicate the spin direction (figure 7-1), black tip is clockwise, and white tip is counter-clockwise.
-   Make sure the follow the px4 quadrotor x airframe reference for motor direction (figure 7-2).
+   Make sure the follow the PX4 quadrotor x airframe reference for motor direction (figure 7-2).
 
    <img src="../../assets/airframes/multicopter/x500_holybro_pixhawk4/quadx.png" width="240">
 
