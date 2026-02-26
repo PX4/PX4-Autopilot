@@ -89,9 +89,7 @@ RC inputs (both CPPM and Spektrum/S.Bus) are physically connected directly to th
 
 For more information about selecting and connecting a radio receiver, see [Radio Control Registration](../getting_started/rc_transmitter_receiver.md).
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD interface](../debug/swd_debug.md) operate on the **FMU Debug** port (`DSU7`).
 
@@ -106,7 +104,7 @@ The debug port (`DSU7`) has the following pinout:
 | 5   | DEBUG TX       | +3.3V |
 | 6   | 5V+            | +5V   |
 
-:::warning
+::: warning
 The 5V+ pin (6) provides 5V, but the CPU logic runs at 3.3V!
 
 Some JTAG/SWD adapters (like SEGGER J-Link) may use the Vref voltage pin to set the logic level on the SWD data lines. Connecting 5V to the adapter's `Vtref` can damage the CPU.
