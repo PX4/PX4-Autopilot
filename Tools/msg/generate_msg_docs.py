@@ -529,7 +529,7 @@ pageClass: is-wide-page
 
                 for enumValueName, enumValue in enum.enumValues.items():
                     description = f" {enumValue.comment} " if enumValue.comment else " "
-                    markdown += f'<a href="#{enumValueName}"></a> {enumValueName} | `{enumValue.type}` | {enumValue.value} |{description}\n'
+                    markdown += f'<a id="#{enumValueName}"></a> {enumValueName} | `{enumValue.type}` | {enumValue.value} |{description}\n'
 
         # Generate table for constants docs
         if len(self.constantFields) > 0:
