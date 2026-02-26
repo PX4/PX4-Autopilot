@@ -34,4 +34,3 @@ This section provides information about a number of power modules and power dist
   - [CUAV CAN PMU](../dronecan/cuav_can_pmu.md)
   - [Pomegranate Systems Power Module](../dronecan/pomegranate_systems_pm.md)
   - [RaccoonLab Power Connectors and PMU](../dronecan/raccoonlab_power.md)
-  - [Holybro PM08-CAN](../dronecan/holybro_pm08-CAN.md)
