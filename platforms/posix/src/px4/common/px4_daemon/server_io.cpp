@@ -60,20 +60,21 @@ using namespace px4_daemon;
 
 FILE *get_stdout(bool *isatty_)
 {
-	Server::CmdThreadSpecificData *thread_data_ptr;
-
-	// If we are not in a thread that has been started by a client, we don't
-	// have any thread specific data set and we won't have a pipe to write
-	// stdout to.
-	if (!Server::is_running() ||
-	    (thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
-				       Server::get_pthread_key())) == nullptr) {
+	// If the server is not running, we are not in a thread that has been started
+	if (!Server::is_running()) {
 		if (isatty_) { *isatty_ = isatty(1); }
 
 		return stdout;
 	}
 
-	if (thread_data_ptr->thread_stdout == nullptr) {
+	Server::CmdThreadSpecificData *thread_data_ptr;
+	thread_data_ptr = static_cast<Server::CmdThreadSpecificData *>(pthread_getspecific(
+				  Server::get_pthread_key()));
+
+	// If we are not in a thread that has been started by a client, we don't
+	// have any thread specific data set and we won't have a pipe to write
+	// stdout to.
+	if (thread_data_ptr == nullptr || thread_data_ptr->thread_stdout == nullptr) {
 		if (isatty_) { *isatty_ = isatty(1); }
 
 		return stdout;
