@@ -52,7 +52,7 @@ This flight controller is [manufacturer supported](autopilot_manufacturer_suppor
 - **Other Characteristics:**
   - Operating temperature: -20 ~ 85°C (Measured value)
 
-## Where to Buy
+## Where to Buy {#store}
 
 - [CORVON Store](https://corvon.tech)
 
