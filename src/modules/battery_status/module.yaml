@@ -51,19 +51,6 @@ parameters:
             instance_start: 1
             default: [-1, -1]
 
-        BAT${i}_I_CHANNEL:
-            description:
-                short: Battery ${i} Current ADC Channel
-                long: |
-                    This parameter specifies the ADC channel used to monitor current of main power battery.
-                    A value of -1 means to use the board default.
-
-            type: int32
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: [-1, -1]
-
         BAT${i}_I_OVERWRITE:
             description:
                 short: Battery ${i} idle current overwrite
