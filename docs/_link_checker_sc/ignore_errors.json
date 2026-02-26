@@ -1017,5 +1017,135 @@
       "text": ""
     },
     "hideReason": "405 Method Not Allowed - works in browser"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/development-tools/stsw-stm32080.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.molex.com/en-us/products/part-detail/5024430670", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/development-tools/stlink-v3minie.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/development-tools/stsw-link004.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/mems-and-sensors/iis2mdc.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/positioning/teseo-liv4f.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/development-tools/st-link-v2.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f0-series.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f427-437.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f745vg.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32f765ii.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/microcontrollers/stm32f405rg.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32h750vb.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://review.px4.io/plot_app?log=6a1a279c-1df8-4736-9f55-70ec16656d1e", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.skypull.technology/", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.te.com/usa-en/product-CAT-BLPS0003.html", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://wiki.flightgear.org/Flight_Dynamics_Model", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://wiki.flightgear.org/Howto:Install_Flightgear_from_a_PPA", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://wiki.flightgear.org/Command_line_options", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://wiki.flightgear.org/Suggested_airports", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://wiki.flightgear.org/Howto:Multiplayer", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://wiki.flightgear.org/Property_tree", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.nxp.com/", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
+  },
+  {
+    "link": { "url": "https://www.hovergames.com/", "text": "" },
+    "hideReason": "timeout - bot block",
+    "expiry": "2026-08-26"
   }
 ]
