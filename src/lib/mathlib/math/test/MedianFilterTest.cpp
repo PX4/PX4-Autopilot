@@ -114,3 +114,31 @@ TEST_F(MedianFilterTest, test5f_nan_majority_nan)
 	median_filter5.insert(2.0f);
 	EXPECT_FALSE(PX4_ISFINITE(median_filter5.median()));
 }
+
+TEST_F(MedianFilterTest, test3f_equal_values)
+{
+	MedianFilter<float, 3> median_filter3;
+	median_filter3.insert(5.0f);
+	median_filter3.insert(5.0f);
+	median_filter3.insert(5.0f);
+	EXPECT_EQ(median_filter3.median(), 5.0f);
+}
+
+TEST_F(MedianFilterTest, test3f_nan_spike_recovery)
+{
+	MedianFilter<float, 3> median_filter3;
+
+	// Fill with finite values
+	median_filter3.apply(1.0f);
+	median_filter3.apply(2.0f);
+	EXPECT_EQ(median_filter3.apply(3.0f), 2.0f); // window: [1, 2, 3]
+
+	// NaN spike enters — majority still finite
+	EXPECT_TRUE(PX4_ISFINITE(median_filter3.apply(NAN))); // window: [2, 3, NaN]
+	EXPECT_EQ(median_filter3.median(), 3.0f);
+
+	// Recovery — NaN leaves the window
+	EXPECT_EQ(median_filter3.apply(4.0f), 4.0f); // window: [3, NaN, 4] → sorted [3, 4, NaN] → median 4
+	EXPECT_EQ(median_filter3.apply(5.0f), 5.0f); // window: [NaN, 4, 5] → sorted [4, 5, NaN] → median 5
+	EXPECT_EQ(median_filter3.apply(6.0f), 5.0f); // window: [4, 5, 6] → all finite again
+}
