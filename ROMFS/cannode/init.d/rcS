@@ -70,8 +70,11 @@ unset BOARD_RC_ADDITIONAL_INIT
 #
 # Start system state indicator.
 #
-rgbled start -X -q
-rgbled_ncp5623c start -X -q
+if [ -z "$NO_CANNODE_RGB" ]
+then
+	rgbled start -X -q
+	rgbled_ncp5623c start -X -q
+fi
 
 #
 # board sensors: rc.sensors
