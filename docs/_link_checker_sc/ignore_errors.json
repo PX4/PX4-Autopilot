@@ -1010,5 +1010,12 @@
       "text": "PX4 v1.13 Docs"
     },
     "hideReason": "intended"
+  },
+  {
+    "link": {
+      "url": "https://logs.px4.io/",
+      "text": ""
+    },
+    "hideReason": "405 Method Not Allowed - works in browser"
   }
 ]
