@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.12" />
 
-The [BlueROV2](https://bluerobotics.com/store/rov/bluerov2-upgrade-kits/brov2-heavy-retrofit-r1-rp/BlueROV2) is an
+The [BlueROV2](https://bluerobotics.com/store/rov/bluerov2/) is an
 affordable high-performance underwater vehicle that is perfect for inspections, research, and adventuring.
 
 PX4 provides [experimental support](index.md) for an 8-thrust vectored configuration, known as the _BlueROV2 Heavy
@@ -12,7 +12,7 @@ Configuration_.
 
 ## Where to Buy
 
-[BlueROV2](https://bluerobotics.com/store/rov/bluerov2/) + [BlueROV2 Heavy Configuration Retrofit Kit](https://bluerobotics.com/store/rov/bluerov2-upgrade-kits/brov2-heavy-retrofit-r1-rp/)
+[BlueROV2](https://bluerobotics.com/store/rov/bluerov2/) + [BlueROV2 Heavy Configuration Retrofit Kit](https://bluerobotics.com/store/rov/bluerov2-upgrade-kits/brov2-heavy-retrofit/)
 
 ### Motor Mapping/Wiring
 

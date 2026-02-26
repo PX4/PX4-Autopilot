@@ -20,7 +20,7 @@ Adding a feature to PX4 follows a defined workflow. In order to share your contr
   ```sh
   cd PX4-Autopilot
   git submodule update --init --recursive
-  git remote add upstream https://github.com/PX4/PX4-Autopilot.git
+  git remote add upstream https://github.com/PX4/PX4-Autopilot
   ```
 
 - You should have now two remote repositories: One repository is called `upstream` that points to PX4/PX4-Autopilot, and one repository `origin` that points to your forked copy of the PX4 repository.
@@ -55,7 +55,7 @@ Adding a feature to PX4 follows a defined workflow. In order to share your contr
 
   For a good commit message, please refer to the [Source Code Management](../contribute/code.md#commits-and-commit-messages) section.
 
-- Some time might have passed and the [upstream main](https://github.com/PX4/PX4-Autopilot.git) has changed.
+- Some time might have passed and the [upstream main](https://github.com/PX4/PX4-Autopilot) has changed.
   PX4 prefers a linear commit history and uses [git rebase](https://git-scm.com/book/en/v2/Git-Branching-Rebasing).
   To include the newest changes from upstream in your local branch, switch to your main branch
 
@@ -134,7 +134,7 @@ To get the source code for a _specific older release_ (tag):
 1. Clone the PX4-Autopilot repo and navigate into _PX4-Autopilot_ directory:
 
    ```sh
-   git clone https://github.com/PX4/PX4-Autopilot.git
+   git clone https://github.com/PX4/PX4-Autopilot
    cd PX4-Autopilot
    ```
 
@@ -173,7 +173,7 @@ To get a release branch:
 - Clone the PX4-Autopilot repo and navigate into _PX4-Autopilot_ directory:
 
   ```sh
-  git clone https://github.com/PX4/PX4-Autopilot.git
+  git clone https://github.com/PX4/PX4-Autopilot
   cd PX4-Autopilot
   ```
 
