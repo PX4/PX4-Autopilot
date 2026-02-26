@@ -178,7 +178,7 @@ The ESC must be connected to FMU outputs only.
 These are labeled `MAIN` on controllers with a single PWM bus, and `AUX` on controllers with both `MAIN` and `AUX` ports (i.e. those with an IO board).
 :::
 
-### Configuration {#bidirectional-dshot-configuration}
+### PX4 Configuration {#bidirectional-dshot-configuration}
 
 BDShot is enabled **per-timer** in the [Actuator Configuration](../config/actuators.md) UI.
 Select **BDShot150**, **BDShot300**, or **BDShot600** as the output protocol instead of the corresponding DShot speed.
