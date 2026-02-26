@@ -78,7 +78,7 @@ void RtlMissionFastReverse::on_activation()
 	} else {
 		int32_t previous_mission_item_index;
 		size_t num_found_items{0U};
-		getPreviousPositionItems(math::max(_mission_index_prior_rtl - INT32_C(1), INT32_C(0)), &previous_mission_item_index,
+		getPreviousPositionItems(_mission_index_prior_rtl, &previous_mission_item_index,
 					 num_found_items, UINT8_C(1));
 
 		if (num_found_items > 0U) {
