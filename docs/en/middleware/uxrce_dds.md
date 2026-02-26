@@ -566,7 +566,7 @@ Add a topic to the `subscriptions_multi` section to:
 - Without `route_field`, this guarantees separation between PX4 and ROS 2 publishers, but not among multiple ROS 2 publishers. In that scenario, their messages will still be routed to the same instance.
 - This is the desired behavior, for example, when you want PX4 to log the readings of two equal sensors; they will both publish on the same topic, but one will use instance 0 and the other will use instance 1.
 
-Optionally, add `route_field` and `max_instances` to demultiplex a single ROS 2 topic into multiple uORB instances based on a message field value:
+<Badge type="tip" text="PX4 v1.18" /> Optionally, add `route_field` and `max_instances` to demultiplex a single ROS 2 topic into multiple uORB instances based on a message field value:
 
 - Each unique value of `route_field` is dynamically assigned to a separate uORB instance on first arrival, up to `max_instances`.
   For example, a single `/fmu/in/aux_global_position` ROS 2 topic can be demultiplexed to up to 4 separate uORB instances of `aux_global_position`, with each unique `id` value mapped to its own instance.
