@@ -282,6 +282,8 @@ void Sih::parameters_updated()
 	_distance_snsr_override = _sih_distance_snsr_override.get();
 
 	_T_TAU = _sih_thrust_tau.get();
+
+	_v_wind_N = Vector3f(_sih_wind_n.get(), _sih_wind_e.get(), 0.f);
 }
 
 void Sih::init_variables()
@@ -291,6 +293,7 @@ void Sih::init_variables()
 	_lpos = Vector3f(0.0f, 0.0f, 0.0f);
 	_v_N = Vector3f(0.0f, 0.0f, 0.0f);
 	_v_N_dot = Vector3f(0.0f, 0.0f, 0.0f);
+	_v_apparent_N = Vector3f();
 	_p_E = Vector3d(Wgs84::equatorial_radius, 0.0, 0.0);
 	_v_E = Vector3f(0.0f, 0.0f, 0.0f);
 	_q = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
@@ -326,8 +329,9 @@ void Sih::generate_force_and_torques(const float dt)
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
 				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
-		_Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
-		_Ma_B = -_KDW * _w_B;   // first order angular damper
+
+		_Fa_E = -_KDV * _R_N2E * _v_apparent_N; // first order drag to slow down the aircraft
+		_Ma_B = -_KDW * _w_B; // first order angular damper
 
 	} else if (_vehicle == VehicleType::Hexacopter) {
 		/*     m5    m0      ┬
@@ -341,7 +345,8 @@ void Sih::generate_force_and_torques(const float dt)
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-.5f * _u[0] - _u[1] - .5f * _u[2] + .5f * _u[3] + _u[4] + .5f * _u[5]),
 				 _L_PITCH * _T_MAX * (M_SQRT3_F / 2.f) * (+_u[0] - _u[2] - _u[3] + _u[5]),
 				 _Q_MAX * (+_u[0] - _u[1] + _u[2] - _u[3] + _u[4] - _u[5]));
-		_Fa_E = -_KDV * _v_E; // first order drag to slow down the aircraft
+
+		_Fa_E = -_KDV * _R_N2E * _v_apparent_N; // first order drag to slow down the aircraft
 		_Ma_B = -_KDW * _w_B; // first order angular damper
 
 	} else if (_vehicle == VehicleType::FixedWing) {
@@ -355,8 +360,8 @@ void Sih::generate_force_and_torques(const float dt)
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (_u[1] - _u[0]), 0.0f, _Q_MAX * (_u[1] - _u[0]));
 		generate_ts_aerodynamics();
 
-		// _Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
-		// _Ma_B = -_KDW * _w_B;   // first order angular damper
+		// _Fa_E = -_KDV * _R_N2E * _v_apparent_N; // first order drag to slow down the aircraft
+		// _Ma_B = -_KDW * _w_B; // first order angular damper
 
 	} else if (_vehicle == VehicleType::StandardVTOL) {
 
@@ -377,7 +382,7 @@ void Sih::generate_force_and_torques(const float dt)
 void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd,
 				   const float throttle_cmd)
 {
-	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
+	const Vector3f v_B = _q.rotateVectorInverse(_v_apparent_N);
 	const float &alt = _lla.altitude();
 
 	_wing_l.update_aero(v_B, _w_B, alt, roll_cmd * FLAP_MAX);
@@ -399,7 +404,7 @@ void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, 
 void Sih::generate_ts_aerodynamics()
 {
 	// velocity in body frame [m/s]
-	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
+	const Vector3f v_B = _q.rotateVectorInverse(_v_apparent_N);
 
 	// the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
 	Vector3f v_ts = _R_S2B.transpose() * v_B;
@@ -588,6 +593,8 @@ void Sih::ecefToNed()
 
 	// Transform velocity to NED frame
 	_v_N = C_SE * _v_E;
+	_v_apparent_N = _v_N + _v_wind_N;
+
 	_q = Quatf(C_SE) * _q_E;
 	_q.normalize();
 }
@@ -646,8 +653,8 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
 
-	// regardless of vehicle type, body frame, etc this holds as long as wind=0
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_E.norm() + generate_wgn() * 0.2f);
+	// Assume the pitot tube always points against the wind to not have tailsitter edge cases
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_apparent_N.norm() + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
