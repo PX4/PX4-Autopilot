@@ -16,9 +16,13 @@ Recommended digital airspeed sensors include:
     - [Digital Differential Airspeed Sensor Kit - MS4525DO](https://store-drotek.com/793-digital-differential-airspeed-sensor-kit-.html) (Drotek).
     - [Holybro Digital Air Speed Sensor - MS4525DO](https://holybro.com/collections/sensors/products/digital-air-speed-sensor-ms4525do)
     - [Holybro Digital Air Speed Sensor - MS5525DSO](https://holybro.com/collections/sensors/products/digital-air-speed-sensor-ms5525dso)
-  - I2C Sensirion series (e.g. SDP33)
+  - I2C _Sensirion_ series (e.g. SDP33)
     - [ThunderFly TFPITOT01 Lightweight Pitot Tube](https://docs.thunderfly.cz/avionics/TFPITOT01/)
     - [Drotek SDP3x Airspeed Sensor Kit](https://store-drotek.com/848-sdp3x-airspeed-sensor-kit-sdp33.html)
+  - I2C _Amphenol All Sensors_ Digital Low Voltage R-Series (DLVR) Pressure Sensors.
+    Continuous-sampling sensors only (see for [SENS_EN_DLVR](../advanced_config/parameter_reference.md#SENS_EN_DLVR) for supported sensors).
+    - [MATEKSYS Digital AirSpeed sensor ASPD-DLVR](https://www.mateksys.com/?portfolio=aspd-dlvr)
+    - [RCDrone Digital AirSpeed sensor ASPD-DLVR](https://rcdrone.top/products/matek-mateksys-digital-airspeed-sensor-aspd-dlvr)
   - DroneCAN interface
     - [Holybro High Precision DroneCAN Airspeed Sensor - DLVR](https://holybro.com/collections/sensors/products/high-precision-dronecan-airspeed-sensor-dlvr)
     - [RaccoonLab Cyphal/CAN and DroneCAN Airspeed Sensor - MS4525DO](https://raccoonlab.co/tproduct/360882105-652259850171-cyphal-and-dronecan-airspeed-v2)
@@ -31,12 +35,13 @@ Recommended digital airspeed sensors include:
 ### Enable Airspeed Sensors
 
 Airspeed sensor drivers are not started automatically.
-Enable each type using its [corresponding parameter](../advanced_config/parameters.md):
+Enable each driver and/or variant using its [corresponding parameter](../advanced_config/parameters.md):
 
-- **Sensirion SDP3X:** [SENS_EN_SDP3X](../advanced_config/parameter_reference.md#SENS_EN_SDP3X)
-- **TE MS4525:** [SENS_EN_MS4525DO](../advanced_config/parameter_reference.md#SENS_EN_MS4525DO)
-- **TE MS5525:** [SENS_EN_MS5525DS](../advanced_config/parameter_reference.md#SENS_EN_MS5525DS)
-- **Eagle Tree airspeed sensor:** [SENS_EN_ETSASPD](../advanced_config/parameter_reference.md#SENS_EN_ETSASPD)
+- **[Sensirion SDP3X](../modules/modules/modules_driver_airspeed_sensor.md#sdp3x)** — [SENS_EN_SDP3X](../advanced_config/parameter_reference.md#SENS_EN_SDP3X)
+- **[TE MS4525](../modules/modules/modules_driver_airspeed_sensor.md#ms4525do)** — [SENS_EN_MS4525DO](../advanced_config/parameter_reference.md#SENS_EN_MS4525DO)
+- **[TE MS5525](../modules/modules/modules_driver_airspeed_sensor.md#ms5525dso)** — [SENS_EN_MS5525DS](../advanced_config/parameter_reference.md#SENS_EN_MS5525DS)
+- **Eagle Tree airspeed sensor:** — [SENS_EN_ETSASPD](../advanced_config/parameter_reference.md#SENS_EN_ETSASPD)
+- **[Amphenol All Sensors DLVR](../modules/modules/modules_driver_airspeed_sensor.md#dlvr) (continuous-sampling sensors only)** — [SENS_EN_DLVR](../advanced_config/parameter_reference.md#SENS_EN_DLVR)
 
 You should also check [ASPD_PRIMARY](../advanced_config/parameter_reference.md#ASPD_PRIMARY) is `1` (see next section - this is the default).
 
