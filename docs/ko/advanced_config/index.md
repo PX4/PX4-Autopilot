@@ -10,6 +10,7 @@ This topic lists configuration topics that are not particularly vehicle specific
 ## Feature configuration
 
 - [Using PX4's Navigation Filter (EKF2)](../advanced_config/tuning_the_ecl_ekf.md)
+- [GNSS-Denied and Degraded Flight](../advanced_config/gnss_degraded_or_denied_flight.md)
 - [Flight Termination Configuration](../advanced_config/flight_termination.md)
 - [Land Detector Configuration](../advanced_config/land_detector.md)
 - [Prearm/Arm/Disarm Configuration](../advanced_config/prearm_arm_disarm.md)
