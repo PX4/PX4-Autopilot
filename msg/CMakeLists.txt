@@ -282,6 +282,19 @@ set(msg_files
 )
 list(SORT msg_files)
 
+if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
+	list(APPEND msg_files
+		TargetGnss.msg
+		VisionTargetEstInput.msg
+		VisionTargetEstPosition.msg
+		VisionTargetEstOrientation.msg
+		VteAidSource1d.msg
+		VteAidSource3d.msg
+		FiducialMarkerPosReport.msg
+		FiducialMarkerYawReport.msg
+		PrecLandStatus.msg)
+endif()
+
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")

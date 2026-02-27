@@ -8,7 +8,7 @@ static const uint64_t 	TARGET_TIMEOUT =   2000000; // [us]
 
 void BlockLocalPositionEstimator::landingTargetInit()
 {
-	if (_param_ltest_mode.get() == Target_Moving) {
+	if (!_sub_landing_target_pose.get().is_static) {
 		// target is in moving mode, do not initialize
 		return;
 	}
@@ -24,7 +24,7 @@ void BlockLocalPositionEstimator::landingTargetInit()
 
 int BlockLocalPositionEstimator::landingTargetMeasure(Vector<float, n_y_target> &y)
 {
-	if (_param_ltest_mode.get() == Target_Stationary) {
+	if (_sub_landing_target_pose.get().is_static) {
 		if (_sub_landing_target_pose.get().rel_vel_valid) {
 			y(0) = _sub_landing_target_pose.get().vx_rel;
 			y(1) = _sub_landing_target_pose.get().vy_rel;
@@ -43,7 +43,7 @@ int BlockLocalPositionEstimator::landingTargetMeasure(Vector<float, n_y_target> 
 
 void BlockLocalPositionEstimator::landingTargetCorrect()
 {
-	if (_param_ltest_mode.get() == Target_Moving) {
+	if (!_sub_landing_target_pose.get().is_static) {
 		// nothing to do in this mode
 		return;
 	}

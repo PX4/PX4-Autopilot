@@ -38,4 +38,5 @@ px4_add_library(ringbuffer
 target_include_directories(ringbuffer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 px4_add_unit_gtest(SRC RingbufferTest.cpp LINKLIBS ringbuffer)
-px4_add_unit_gtest(SRC TimestampedRingBufferTest.cpp)
+px4_add_unit_gtest(SRC TimestampedRingBufferDynamicTest.cpp)
+px4_add_unit_gtest(SRC TimestampedRingBufferStaticTest.cpp)

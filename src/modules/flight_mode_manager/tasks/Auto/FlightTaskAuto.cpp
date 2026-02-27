@@ -238,13 +238,23 @@ void FlightTaskAuto::_prepareLandSetpoints()
 
 	if (_type_previous != WaypointType::land) {
 		// initialize yaw and xy-position
-		_land_heading = _yaw_setpoint;
+		_land_heading = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw_setpoint_previous;
+
+		if (!PX4_ISFINITE(_land_heading)) {
+			_land_heading = _yaw;
+		}
+
 		_stick_acceleration_xy.resetPosition(Vector2f(_triplet_current));
 		_initial_land_position = Vector3f(_triplet_current(0), _triplet_current(1), NAN);
 	}
 
 	// Update xy-position in case of landing position changes (etc. precision landing)
 	_land_position = Vector3f(_triplet_current(0), _triplet_current(1), NAN);
+
+	// Control yaw while landing
+	if (_param_pld_yaw_en.get() && PX4_ISFINITE(_yaw_setpoint)) {
+		_land_heading = _yaw_setpoint;
+	}
 
 	// User input assisted landing
 	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {

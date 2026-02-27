@@ -119,3 +119,14 @@ PARAM_DEFINE_FLOAT(PLD_SRCH_TOUT, 10.0f);
  * @group Precision Land
  */
 PARAM_DEFINE_INT32(PLD_MAX_SRCH, 3);
+
+/**
+ * Set to true to control yaw while landing.
+ *
+ * Control the orientation when landing. The orientation comes from the topic vision_target_est_orientation.
+ *
+ * @boolean
+ *
+ * @group Precision Land
+ */
+PARAM_DEFINE_INT32(PLD_YAW_EN, 0);

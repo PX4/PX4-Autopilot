@@ -52,6 +52,13 @@ Landing Phases Flow Diagram
 
 A flow diagram showing the phases can be found in [landing phases flow Diagram](#landing-phases-flow-diagram) below.
 
+### Yaw Alignment
+
+Precision landing can optionally align the multicopter's yaw to match the detected target orientation while the vehicle is approaching or descending above the pad.
+Enable this behaviour with [PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN).
+When enabled, PX4 uses the `vision_target_est_orientation` topic (published by the [Vision Target Estimator](../advanced_features/vision_target_estimator.md)) to command the yaw setpoint as long as the orientation data remains valid.
+If the orientation feed times out (see [PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)) or the parameter is disabled, yaw control falls back to the default mission behaviour.
+
 ## Initiating a Precision Landing
 
 Precision landing can be used in missions, during the landing phase in _Return mode_, or by entering the _Precision Land_ mode.
@@ -157,6 +164,7 @@ Some of the most useful ones are listed below.
 | <a id="PLD_BTOUT"></a>[PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)                | Landing Target Timeout, after which the target is assumed lost. Default is 5 seconds.                               |
 | <a id="PLD_FAPPR_ALT"></a>[PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)    | Final approach altitude. Default is 0.1 metres.                                                                     |
 | <a id="PLD_MAX_SRCH"></a>[PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH)       | Maximum number of search attempts in an required landing.                                                           |
+| <a id="PLD_YAW_EN"></a>[PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN)             | Enable yaw alignment during precision landing when target orientation is available.                                 |
 | <a id="RTL_PLD_MD"></a>[RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD)             | RTL precision land mode. `0`: disabled, `1`: [Opportunistic](#opportunistic-mode), `2`: [Required](#required-mode). |
 
 ### IR Beacon Scaling
