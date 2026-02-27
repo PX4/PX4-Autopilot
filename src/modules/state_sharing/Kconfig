@@ -1,0 +1,5 @@
+menuconfig MODULES_STATE_SHARING
+	bool "state_sharing"
+	default n
+	---help---
+		Enable support for state_sharing
