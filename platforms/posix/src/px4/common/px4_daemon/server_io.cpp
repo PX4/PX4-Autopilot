@@ -67,9 +67,8 @@ FILE *get_stdout(bool *isatty_)
 		return stdout;
 	}
 
-	Server::CmdThreadSpecificData *thread_data_ptr;
-	thread_data_ptr = static_cast<Server::CmdThreadSpecificData *>(pthread_getspecific(
-				  Server::get_pthread_key()));
+	Server::CmdThreadSpecificData *thread_data_ptr = static_cast<Server::CmdThreadSpecificData *>(pthread_getspecific(
+				Server::get_pthread_key()));
 
 	// If we are not in a thread that has been started by a client, we don't
 	// have any thread specific data set and we won't have a pipe to write

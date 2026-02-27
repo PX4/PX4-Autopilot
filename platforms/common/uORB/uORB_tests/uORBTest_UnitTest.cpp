@@ -941,10 +941,8 @@ int uORBTest::UnitTest::pub_test_queue_entry(int argc, char *argv[])
 int uORBTest::UnitTest::pub_test_queue_main()
 {
 	orb_test_medium_s t{};
-	orb_advert_t ptopic{nullptr};
+	orb_advert_t ptopic = orb_advertise(ORB_ID(orb_test_medium_queue_poll), &t);
 	const int queue_size = orb_get_queue_size(ORB_ID(orb_test_medium_queue_poll));
-
-	ptopic = orb_advertise(ORB_ID(orb_test_medium_queue_poll), &t);
 
 	if (ptopic == nullptr) {
 		_thread_should_exit = true;
