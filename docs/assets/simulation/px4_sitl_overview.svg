@@ -653,7 +653,7 @@
          id="tspan2761"
          x="-83.335098"
          y="147.11555"
-         style="font-size:3.88056px;writing-mode:lr-tb;stroke-width:0.264583px">simulator_mavlink.cpp</tspan></text>
+         style="font-size:3.88056px;writing-mode:lr-tb;stroke-width:0.264583px">SimulatorMavlink.cpp</tspan></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.79375;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:1.5875, 0.79375;stroke-dashoffset:2.46063;stroke-opacity:1;marker-start:url(#marker3113)"
        d="m -42.713286,146.11223 h 8.466662"

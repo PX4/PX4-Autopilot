@@ -46,7 +46,6 @@ Then adjust the sliders (as discussed below) to improve the tracking of the resp
   These need to be set low, but such that the **motors never stop** when the vehicle is armed.
 
   This can be tested in [Acro mode](../flight_modes_mc/acro.md) or in [Stabilized mode](../flight_modes_mc/manual_stabilized.md):
-
   - Remove propellers
   - Arm the vehicle and lower the throttle to the minimum
   - Tilt the vehicle to all directions, about 60 degrees
@@ -77,7 +76,6 @@ The tuning procedure is:
    As a result, the optimal tuning at hover thrust may not be ideal when the vehicle is operating at higher thrust.
 
    The thrust curve value can be used to compensate for this non-linearity:
-
    - For PWM controllers, 0.3 is a good default (which may benefit from [further tuning](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve)).
    - For RPM-based controllers, use 1 (no further tuning is required as these have a quadratic thrust curve).
 
@@ -120,7 +118,6 @@ The tuning procedure is:
      :::
 1. Repeat the tuning process for the attitude controller on all the axes.
 1. Repeat the tuning process for the velocity and positions controllers (on all the axes).
-
    - Use Position mode when tuning these controllers
    - Select the **Simple position control** option in the _Position control mode ..._ selector (this allows direct control for the generation of step inputs)
 

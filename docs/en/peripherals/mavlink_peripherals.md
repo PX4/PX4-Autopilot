@@ -28,7 +28,6 @@ The parameters for each instance are:
   For more information see [Serial Port Configuration](../peripherals/serial_configuration.md).
 - <a id="MAV_X_MODE"></a>[MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) - Specify the telemetry mode/target (the set of messages to stream for the current instance and their rate).
   The default values are:
-
   - _Normal_: Standard set of messages for a GCS.
   - _Custom_ or _Magic_: Nothing (in the default PX4 implementation).
     Modes may be used for testing when developing a new mode.

@@ -39,8 +39,8 @@ Navigate into the **PX4-Autopilot** directory and start [Gazebo SITL](../sim_gaz
 make px4_sitl gz_x500
 ```
 
-::: details  If you installed Gazebo Classic
-Start  [Gazebo Classic SITL](../sim_gazebo_classic/index.md) using the following command:
+::: details If you installed Gazebo Classic
+Start [Gazebo Classic SITL](../sim_gazebo_classic/index.md) using the following command:
 
 ```sh
 make px4_sitl gazebo-classic

@@ -49,6 +49,7 @@
 
 #include <px4_platform_common/external_reset_lockout.h>
 #include <px4_platform_common/log.h>
+#include <uORB/uORB.h>
 
 #include <stdint.h>
 #include <errno.h>
@@ -173,6 +174,8 @@ static void shutdown_worker(void *arg)
 	const bool delay_elapsed = (now > shutdown_time_us);
 
 	if (delay_elapsed && ((done && shutdown_lock_counter == 0) || (now > (shutdown_time_us + shutdown_timeout_us)))) {
+		uorb_shutdown();
+
 		if (shutdown_args & SHUTDOWN_ARG_REBOOT) {
 #if defined(CONFIG_BOARDCTL_RESET)
 			PX4_INFO_RAW("Reboot NOW.");

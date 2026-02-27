@@ -31,6 +31,7 @@ For more information see the topics for each data type:
 - [Parameters & Configurations > Creating/Defining Parameters](../advanced/parameters_and_configurations.md#creating-defining-parameters)
 - [Events Interface](../concept/events_interface.md)
 - [Actuator Metadata](#actuator-metadata) (below)
+
 ## Metadata Toolchain
 
 The process for handling metadata is the same for all metadata types.
@@ -69,6 +70,7 @@ The parameter XML file of the main branch is copied into the QGC source tree via
 The following diagram shows how actuator metadata is assembled from the source code and used by QGroundControl:
 
 ![Actuators Metadata](../../assets/diagrams/actuator_metadata_processing.svg)
+
 <!-- Source: https://docs.google.com/drawings/d/1hMQmIijdFjr21rREcXj50qz0C1b47JW0OEa6p5P231k/edit -->
 
 - **Left**: the metadata is defined in `module.yml` files in different modules.

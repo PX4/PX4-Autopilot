@@ -66,17 +66,17 @@ This shows the position / velocity relationship described above in detail.
 
 ::: info
 Try out the boat testing log analysis yourself by downloading the ULog and Layout file used above!
+
 - [Boat testing ULog](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_log_analysis/plot_juggler/sample_log_boat_testing_2022-7-28-13-31-16.ulg)
 - [Boat testing Analysis Layout](https://raw.githubusercontent.com/PX4/PX4-user_guide/main/assets/flight_log_analysis/plot_juggler/sample_log_boat_testing_layout.xml)
-:::
+  :::
 
 ### Layout Templates
 
 There are a number of PlotJuggler layout files shared by PX4 Developers.
 Each can be used for a specific purpose (Multicopter tuning, VTOL tuning, Boat debugging, etc.):
 
-* [Sample View layout](https://github.com/PX4/PX4-user_guide/blob/main/assets/flight_log_analysis/plot_juggler/plotjuggler_sample_view.xml) : Template used in the [Multi-panel example](#splitting-horizontally-vertically-multi-panel) above.
-
+- [Sample View layout](https://github.com/PX4/PX4-user_guide/blob/main/assets/flight_log_analysis/plot_juggler/plotjuggler_sample_view.xml) : Template used in the [Multi-panel example](#splitting-horizontally-vertically-multi-panel) above.
 
 ## Advanced Usage
 
@@ -105,6 +105,7 @@ Here the custom series `Roll` is displayed along with other timeseries, includin
 ![Quaternion Roll plotted](../../assets/flight_log_analysis/plot_juggler/plotjuggler_quaternion_roll_plotted.png)
 
 The `quat_to_roll` function looks like this:
+
 ```lua
 w = value
 x = v1

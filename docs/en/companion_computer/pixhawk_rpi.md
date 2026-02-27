@@ -91,7 +91,7 @@ During PX4 setup and configuration the USB connection with your ground station l
 
 These instructions work on PX4 v1.14 and later.
 
-If you need to update the firmware then connect the Pixhawk to your laptop/desktop via the `USB` port and use QGroundControl to update the firmware as described [Firmware > Install Stable PX4](../config/firmware.md#install-stable-px4). 
+If you need to update the firmware then connect the Pixhawk to your laptop/desktop via the `USB` port and use QGroundControl to update the firmware as described [Firmware > Install Stable PX4](../config/firmware.md#install-stable-px4).
 If you want the latest developer version then update the firmware to the "main" as described in [Firmware > Installing PX4 Master, Beta or Custom Firmware](../config/firmware.md#installing-px4-main-beta-or-custom-firmware).
 
 ::: info
@@ -143,7 +143,6 @@ Enter the following commands (in sequence) a terminal to configure Ubuntu for RP
    ```
 
 1. Go to the **Interface Option** and then click **Serial Port**.
-
    - Select **No** to disable serial login shell.
    - Select **Yes** to enable the serial interface.
    - Click **Finish** and restart the RPi.
@@ -162,7 +161,6 @@ Enter the following commands (in sequence) a terminal to configure Ubuntu for RP
    ```
 
 1. Then save the file and restart the RPi.
-
    - In `nano` you can save the file using the following sequence of keyboard shortcuts: **ctrl+x**, **ctrl+y**, **Enter**.
 
 1. Check that the serial port is available.

@@ -63,7 +63,6 @@ The tool is available for Windows, Linux and macOS.
    ![Flash bootloader through Secure provisioning - Step 6](../../assets/advanced_config/bootloader_6xrt/bootloader_update_v6xrt_step6.png)
 
    To get the Pixhawk V6X-RT into "ISP bootloader mode" there are 2 options:
-
    1. Launch QGC connect the Pixhawk select **Analayze Tools** and then **MAVLINK Console**.
       On the console type `reboot -i`.
       This will put the Pixhawk V6X-RT into "ISP bootloader mode"

@@ -5,7 +5,6 @@ A universal protocol is used for [all Inertial Labs sensors](https://inertiallab
 
 ![INS-U](../../assets/hardware/sensors/inertial/ilabs-ins-u.png)
 
-
 Benefits to PX4 users:
 
 - Higher accuracy heading, pitch, and roll estimates

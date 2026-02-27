@@ -82,7 +82,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		checkEscStatus(context, reporter, esc_status);
 		reporter.setIsPresent(health_component_t::motors_escs);
 
-	} else if (_param_escs_checks_required.get()
+	} else if (_param_com_arm_chk_escs.get()
 		   && now - _start_time > 5_s) { // Wait a bit after startup to allow esc's to init
 
 		/* EVENT
@@ -102,40 +102,37 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 
 void EscChecks::checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status)
 {
-	const NavModes required_modes = _param_escs_checks_required.get() ? NavModes::All : NavModes::None;
+	const NavModes required_modes = _param_com_arm_chk_escs.get() ? NavModes::All : NavModes::None;
 
 	if (esc_status.esc_count > 0) {
-
+		// Check if one or more the ESCs are offline
 		char esc_fail_msg[50];
 		esc_fail_msg[0] = '\0';
 
-		int online_bitmask = (1 << esc_status.esc_count) - 1;
+		for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
+			const bool mapped = math::isInRange(esc_status.esc[i].actuator_function, actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1,
+							    uint8_t(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + actuator_motors_s::NUM_CONTROLS - 1));
+			const bool offline = (esc_status.esc_online_flags & (1 << i)) == 0;
 
-		// Check if one or more the ESCs are offline
-		if (online_bitmask != esc_status.esc_online_flags) {
-
-			for (int index = 0; index < esc_status.esc_count; index++) {
-				if ((esc_status.esc_online_flags & (1 << index)) == 0) {
-					uint8_t motor_index = esc_status.esc[index].actuator_function - actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + 1;
-					/* EVENT
-					 * @description
-					 * <profile name="dev">
-					 * This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
-					 * </profile>
-					 */
-					reporter.healthFailure<uint8_t>(required_modes, health_component_t::motors_escs, events::ID("check_escs_offline"),
-									events::Log::Critical, "ESC {1} offline", motor_index);
-					snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", motor_index);
-					esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
-				}
-			}
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "%soffline. %s\t", esc_fail_msg, context.isArmed() ? "Land now!" : "");
+			if (mapped && offline) {
+				/* EVENT
+					* @description
+					* <profile name="dev">
+					* This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
+					* </profile>
+					*/
+				reporter.healthFailure<uint8_t>(required_modes, health_component_t::motors_escs, events::ID("check_escs_offline"),
+								events::Log::Critical, "ESC {1} offline", i + 1);
+				snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", i + 1);
+				esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
 			}
 		}
 
-		for (int index = 0; index < esc_status.esc_count; index++) {
+		if ((esc_fail_msg[0] != '\0') && reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "%soffline. %s\t", esc_fail_msg, context.isArmed() ? "Land now!" : "");
+		}
+
+		for (int index = 0; index < math::min(esc_status.esc_count, esc_status_s::CONNECTED_ESC_MAX); ++index) {
 
 			if (esc_status.esc[index].failures != 0) {
 

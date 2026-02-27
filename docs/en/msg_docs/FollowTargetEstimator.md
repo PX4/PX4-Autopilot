@@ -1,8 +1,33 @@
+---
+pageClass: is-wide-page
+---
+
 # FollowTargetEstimator (UORB message)
 
+**TOPICS:** follow_targetestimator
 
+## Fields
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/FollowTargetEstimator.msg)
+| Name                        | Type         | Unit [Frame] | Range/Enum | Description                                                                                                                               |
+| --------------------------- | ------------ | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| timestamp                   | `uint64`     |              |            | time since system start (microseconds)                                                                                                    |
+| last_filter_reset_timestamp | `uint64`     |              |            | time of last filter reset (microseconds)                                                                                                  |
+| valid                       | `bool`       |              |            | True if estimator states are okay to be used                                                                                              |
+| stale                       | `bool`       |              |            | True if estimator stopped receiving follow_target messages for some time. The estimate can still be valid, though it might be inaccurate. |
+| lat_est                     | `float64`    |              |            | Estimated target latitude                                                                                                                 |
+| lon_est                     | `float64`    |              |            | Estimated target longitude                                                                                                                |
+| alt_est                     | `float32`    |              |            | Estimated target altitude                                                                                                                 |
+| pos_est                     | `float32[3]` |              |            | Estimated target NED position (m)                                                                                                         |
+| vel_est                     | `float32[3]` |              |            | Estimated target NED velocity (m/s)                                                                                                       |
+| acc_est                     | `float32[3]` |              |            | Estimated target NED acceleration (m^2/s)                                                                                                 |
+| prediction_count            | `uint64`     |              |            |
+| fusion_count                | `uint64`     |              |            |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/FollowTargetEstimator.msg)
+
+::: details Click here to see original file
 
 ```c
 uint64 timestamp                     # time since system start (microseconds)
@@ -21,5 +46,6 @@ float32[3] acc_est      # Estimated target NED acceleration (m^2/s)
 
 uint64 prediction_count
 uint64 fusion_count
-
 ```
+
+:::

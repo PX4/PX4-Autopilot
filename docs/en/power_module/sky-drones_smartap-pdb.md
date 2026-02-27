@@ -21,7 +21,6 @@ SmartAP PDB makes connecting high-power lines easier and much more reliable.
 - Integrated electromagnetic sounder (buzzer)
 - Power output for the flight controller (both 5V regulated and battery voltage level output)
 
-
 ## Size and Weight
 
 - Length: 65mm
@@ -38,11 +37,9 @@ The key configuration settings are:
 - Voltage divider: 15.51
 - Amps per volt: 36.00
 
-
 ## Where to buy
 
 [SmartAP PDB](https://sky-drones.com/parts/smartap-pdb.html)
-
 
 ## Wiring / Pinout
 
@@ -60,7 +57,6 @@ SmartAP PDB has integrated voltage and current sensors.
 The current sensor is located on the bottom side of the PDB.
 
 ![SmartAP PDB](../../assets/hardware/power_module/sky-drones_smartap-pdb/smartap-pdb-current-sensor.png)
-
 
 ## Further Information
 

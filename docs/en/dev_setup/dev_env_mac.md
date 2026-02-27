@@ -107,7 +107,6 @@ To setup the environment for [Gazebo Classic](../sim_gazebo_classic/index.md) si
    sh macos.sh
    ```
 
-
 ## Next Steps
 
 Once you have finished setting up the command-line toolchain:

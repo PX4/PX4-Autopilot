@@ -86,7 +86,6 @@ This section contains videos that are specific to Tailsitter VTOL (videos that a
 
 <lite-youtube videoid="pWt6uoqpPIw" title="UAV Works VALAQ"/>
 
-
 ## Gallery
 
 <div class="grid_wrapper three_column">

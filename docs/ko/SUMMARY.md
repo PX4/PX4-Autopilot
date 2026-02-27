@@ -93,6 +93,7 @@
     - [후방 이동 튜닝](config_vtol/vtol_back_transition_tuning.md)
     - [항속 센서 미장착 VTOL](config_vtol/vtol_without_airspeed_sensor.md)
     - [VTOL 날씨 풍향](config_vtol/vtol_weathervane.md)
+    - [VTOL Ice Shedding](config_vtol/vtol_ice_shedding.md)
   - [비행 모드 ](flight_modes_vtol/index.md)
     - [Mission Mode (VTOL)](flight_modes_vtol/mission.md)
     - [Return Mode (VTOL)](flight_modes_vtol/return.md)
@@ -360,6 +361,8 @@
     - [TBS Crossfire (CRSF) Telemetry](telemetry/crsf_telemetry.md)
 
     - [Satellite Comms (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
+
+    - [Analog Video Transmitters](vtx/index.md)
 
   - [Power Systems](power_systems/index.md)
     - [Battery Estimation Tuning](config/battery.md)

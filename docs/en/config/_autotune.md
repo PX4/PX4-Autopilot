@@ -82,14 +82,9 @@ The test steps are:
    If an [Enable/Disable Autotune Switch](#enable-disable-autotune-switch) is configured you can just toggle the switch to the "enabled" position.
 
    </div></div>
-
    1. In QGroundControl, open the menu **Vehicle setup > PID Tuning**:
 
-      ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png)
-
-   2. Select either the _Rate Controller_ or _Attitude Controller_ tabs.
-   3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors).
-   4. Read the warning popup and click on **OK** to start tuning.
+   ![Tuning Setup > Autotune Enabled](../../assets/qgc/setup/autotune/autotune.png) 2. Select either the _Rate Controller_ or _Attitude Controller_ tabs. 3. Ensure that the **Autotune enabled** button is enabled (this will display the **Autotune** button and remove the manual tuning selectors). 4. Read the warning popup and click on **OK** to start tuning.
 
 <div style="display: inline;" v-if="$frontmatter.frame === 'Multicopter'">
 
@@ -197,10 +192,7 @@ By default, the autotune maneuvers ensure that a sufficient angular rate is reac
 
 If the signal-to-noise ratio of the vehicle is low, the system identification algorithm might have issues finding the correct coefficients. Ensure that there is no excessive noise and/or platform vibration.
 
-
-
 </div>
-
 
 ### The drone oscillates after auto-tuning
 

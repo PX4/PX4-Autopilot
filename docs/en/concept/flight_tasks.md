@@ -32,7 +32,6 @@ The instructions below might be used to create a task named _MyTask_:
    - FlightTaskMyTask.hpp
    - FlightTaskMyTask.cpp
 3. Update **CMakeLists.txt** for the new task
-
    - Copy the contents of the **CMakeLists.txt** for another task - e.g. [Orbit/CMakeLists.txt](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/flight_mode_manager/tasks/Orbit/CMakeLists.txt)
    - Update the copyright to the current year
 
@@ -135,7 +134,6 @@ The instructions below might be used to create a task named _MyTask_:
    Usually a parameter is used to select when a particular flight task should be used.
 
    For example, to enable our new `MyTask` in multicopter Position mode:
-
    - Update `MPC_POS_MODE` ([multicopter_position_mode_params.c](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/mc_pos_control/multicopter_position_mode_params.c)) to add an option for selecting "MyTask" if the parameter has a previously unused value like 5:
 
      ```c

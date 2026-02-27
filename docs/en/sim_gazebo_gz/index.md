@@ -68,7 +68,6 @@ Note that all gazebo make targets have the prefix `gz_`.
 | [Ackermann Rover](../sim_gazebo_gz/vehicles.md#ackermann-rover)                                                               | `make px4_sitl gz_rover_ackermann`    | 51000               |
 | [Mecanum Rover](../sim_gazebo_gz/vehicles.md#mecanum-rover)                                                                   | `make px4_sitl gz_rover_mecanum`      | 52000               |
 
-
 All [vehicle models](../sim_gazebo_gz/vehicles.md) (and [worlds](#specify-world)) are included as a submodule from the [Gazebo Models Repository](../sim_gazebo_gz/gazebo_models.md) repository.
 
 The commands above launch a single vehicle with the full UI.
@@ -136,6 +135,7 @@ HEADLESS=1 make px4_sitl gz_x500
 ```
 
 ### Set Custom Takeoff Location
+
 The takeoff location in Gazebo Classic can be set using environment variables.
 
 The variables to set are: PX4_HOME_LAT, PX4_HOME_LON, and PX4_HOME_ALT.
@@ -254,13 +254,11 @@ where `ARGS` is a list of environment variables including:
 - `PX4_GZ_MODEL_NAME`:
   Sets the name of an _existing_ model in the gazebo simulation.
   If provided, the startup script tries to bind a new PX4 instance to the Gazebo resource matching exactly that name.
-
   - The setting is mutually exclusive with `PX4_SIM_MODEL`.
 
 - `PX4_SIM_MODEL`:
   Sets the name of a new Gazebo model to be spawned in the simulator.
   If provided, the startup script looks for a model in the Gazebo resource path that matches the given variable, spawns it and binds a new PX4 instance to it.
-
   - The setting is mutually exclusive with `PX4_GZ_MODEL_NAME`.
 
   ::: info
@@ -270,7 +268,6 @@ where `ARGS` is a list of environment variables including:
 - `PX4_GZ_MODEL_POSE`:
   Sets the spawning position and orientation of the model when `PX4_SIM_MODEL` is adopted.
   If provided, the startup script spawns the model at a pose following the syntax `"x,y,z,roll,pitch,yaw"`, where the positions are given in metres and the angles are in radians.
-
   - If omitted, the zero pose `[0,0,0,0,0,0]` is used.
   - If less then 6 values are provided, the missing ones are fixed to zero.
   - This can only be used with `PX4_SIM_MODEL` (not `PX4_GZ_MODEL_NAME`).
@@ -278,7 +275,6 @@ where `ARGS` is a list of environment variables including:
 - `PX4_GZ_WORLD`:
   Sets the Gazebo world file for a new simulation.
   If it is not given, then [default](https://github.com/PX4/PX4-gazebo-models/blob/main/worlds/default.sdf) is used.
-
   - This variable is ignored if an existing simulation is already running.
   - This value should be [specified for the selected airframe](#adding-new-worlds-and-models) but may be overridden using this argument.
   - If the [moving platform world](../sim_gazebo_gz/worlds.md#moving-platform) is selected using `PX4_GZ_WORLD=moving_platform` (or any world using the moving platform plugin), the platform can be configured using environment variables:
@@ -287,7 +283,6 @@ where `ARGS` is a list of environment variables including:
 
 - `PX4_SIMULATOR=GZ`:
   Sets the simulator, which for Gazebo must be `gz`.
-
   - This value should be [set for the selected airframe](#adding-new-worlds-and-models), in which case it does not need to be set as an argument.
 
 - `PX4_GZ_STANDALONE`:
@@ -375,7 +370,6 @@ To add a new model:
      ```
 
 1. Add CMake Target for the [airframe](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/airframes/CMakeLists.txt).
-
    - If you plan to use "regular" mode, add your model SDF to `Tools/simulation/gz/models/`.
    - If you plan to use _standalone_ mode, add your model SDF to `~/.simulation-gazebo/models/`
 
@@ -387,7 +381,6 @@ To add a new world:
 
 1. Add your world to the list of worlds found in the [`CMakeLists.txt` here](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/gz_bridge/CMakeLists.txt).
    This is required in order to allow `CMake` to generate correct targets.
-
    - If you plan to use "normal" mode, add your world sdf to `Tools/simulation/gz/worlds/`.
    - If you plan to use _standalone_ mode, add your world SDF to `~/.simulation-gazebo/worlds/`
 

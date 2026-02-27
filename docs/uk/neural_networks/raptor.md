@@ -35,7 +35,7 @@ The method we developed for training the RAPTOR policy is called Meta-Imitation 
 
 You can torture test the RAPTOR policy in your browser at [https://raptor.rl.tools](https://raptor.rl.tools) or in the embedded app here:
 
-<iframe src="https://rl-tools.github.io/raptor.rl.tools?raptor=false" width="100%" height="1000" style="border: none;"></iframe>
+<iframe src="https://raptor.rl.tools?raptor=false" width="100%" height="1000" style="border: none;"></iframe>
 
 For more information please refer to the paper at [https://arxiv.org/abs/2509.11481](https://arxiv.org/abs/2509.11481).
 

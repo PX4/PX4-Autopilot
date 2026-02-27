@@ -1,8 +1,24 @@
+---
+pageClass: is-wide-page
+---
+
 # OrbTestLarge (UORB message)
 
+**TOPICS:** orb_testlarge
 
+## Fields
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/OrbTestLarge.msg)
+| Name      | Type         | Unit [Frame] | Range/Enum | Description                            |
+| --------- | ------------ | ------------ | ---------- | -------------------------------------- |
+| timestamp | `uint64`     |              |            | time since system start (microseconds) |
+| val       | `int32`      |              |            |
+| junk      | `uint8[512]` |              |            |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/OrbTestLarge.msg)
+
+::: details Click here to see original file
 
 ```c
 uint64 timestamp		# time since system start (microseconds)
@@ -10,5 +26,6 @@ uint64 timestamp		# time since system start (microseconds)
 int32 val
 
 uint8[512] junk
-
 ```
+
+:::

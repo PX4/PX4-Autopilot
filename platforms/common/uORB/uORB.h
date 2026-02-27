@@ -121,6 +121,7 @@ __BEGIN_DECLS
 int uorb_start(void);
 int uorb_status(void);
 int uorb_top(char **topic_filter, int num_filters);
+void uorb_shutdown(void);
 
 /**
  * ORB topic advertiser handle.

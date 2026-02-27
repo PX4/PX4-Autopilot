@@ -18,7 +18,6 @@ The equipment below is highly recommended:
   ::: info
   The listed computers have acceptable performance, but a more recent and powerful computer is recommended.
   :::
-
   - Lenovo Thinkpad with i5-core running Windows 11
   - MacBook Pro (early 2015 and later) with macOS 10.15 or later
   - Lenovo Thinkpad i5 with Ubuntu Linux 20.04 or later
