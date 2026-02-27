@@ -378,7 +378,7 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 	return true;
 }
 
-bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item, const int current_index)
+bool FeasibilityChecker::checkFixedWingLandApproach(mission_item_s &mission_item, const int current_index)
 {
 	if (mission_item.nav_cmd == NAV_CMD_LAND && current_index > 0) {
 
