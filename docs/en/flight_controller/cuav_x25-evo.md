@@ -1,6 +1,6 @@
 # CUAV X25-EVO
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
@@ -83,19 +83,19 @@ These flight controllers are [manufacturer supported](../flight_controller/autop
 
 ### Mechanical Data
 
- - Not provided.
+- Not provided.
 
-## Purchase Channels
+## Purchase Channels {#store}
 
 Order from [CUAV](https://store.cuav.net/).
 
 ## Assembly/Setup
 
- - Not provided.
+- Not provided.
 
 ## Pin Definitions
 
- - Not provided.
+- Not provided.
 
 ## Serial Port Mapping
 
@@ -112,11 +112,13 @@ Order from [CUAV](https://store.cuav.net/).
 ## Voltage Ratings
 
 The _X25-EVO_ achieves triple redundancy on power supplies if three power sources are provided. The three power rails are POWERC1, POWERC2, and USB.
+
 - **POWER C1** and **POWER C2** are DroneCAN/UAVCAN battery interfaces.
 
 **Normal Operation Maximum Ratings**
 
 Under these conditions, all power sources will be used to power the system in the following order:
+
 1. **POWER C1** and **POWER C2** Inputs (10V to 18V)
 2. USB Input (4.75V to 5.25V)
 
@@ -126,31 +128,29 @@ Digital DroneCAN/UAVCAN battery monitoring is enabled by default.
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users do not need to build this firmware!
 It is pre-built and installed automatically by _QGroundControl_ when the appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target, execute:
 
-```
+```sh
 make cuav_x25-evo_default
 ```
 
-<a id="debug_port"></a>
-
-## Debug Port
+## Debug Port {#debug_port}
 
 The [PX4 System Console](../debug/system_console.md) and [SWD Interface](../debug/swd_debug.md) operate on the **FMU Debug** port.
 
-| Pin      | Signal           | Volt  |
-| -------- | ---------------- | ----- |
-| 1 (red)  | 5V+              | +5V   |
-| 2 (blk)  | DEBUG TX (OUT)   | +3.3V |
-| 3 (blk)  | DEBUG RX (IN)    | +3.3V |
-| 4 (blk)  | FMU_SWDIO        | +3.3V |
-| 5 (blk)  | FMU_SWCLK        | +3.3V |
-| 6 (blk)  | GND              | GND   |
+| Pin     | Signal         | Volt  |
+| ------- | -------------- | ----- |
+| 1 (red) | 5V+            | +5V   |
+| 2 (blk) | DEBUG TX (OUT) | +3.3V |
+| 3 (blk) | DEBUG RX (IN)  | +3.3V |
+| 4 (blk) | FMU_SWDIO      | +3.3V |
+| 5 (blk) | FMU_SWCLK      | +3.3V |
+| 6 (blk) | GND            | GND   |
 
 ## Supported Platforms / Airframes
 

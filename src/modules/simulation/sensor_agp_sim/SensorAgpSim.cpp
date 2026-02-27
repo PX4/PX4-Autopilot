@@ -39,6 +39,8 @@
 
 using namespace matrix;
 
+ModuleBase::Descriptor SensorAgpSim::desc{task_spawn, custom_command, print_usage};
+
 SensorAgpSim::SensorAgpSim() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -87,7 +89,7 @@ void SensorAgpSim::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -112,7 +114,7 @@ void SensorAgpSim::Run()
 		_time_last_update = now;
 
 		if (!(_param_sim_agp_fail.get() & static_cast<int32_t>(FailureMode::Stuck))) {
-			_measured_lla = LatLonAlt(gpos.lat, gpos.lon, gpos.alt_ellipsoid);
+			_measured_lla = LatLonAlt(gpos.lat, gpos.lon, gpos.alt);
 		}
 
 		if (_param_sim_agp_fail.get() & static_cast<int32_t>(FailureMode::Drift)) {
@@ -129,17 +131,17 @@ void SensorAgpSim::Run()
 					 CONSTANTS_RADIUS_OF_EARTH);
 		const double altitude = (double)(_measured_lla.altitude() + (generate_wgn() * 0.5f));
 
-		vehicle_global_position_s sample{};
+		aux_global_position_s sample{};
 
+		sample.id = 123;
+		sample.source = aux_global_position_s::SOURCE_VISION;
 		sample.timestamp_sample = gpos.timestamp_sample;
 		sample.lat = latitude;
 		sample.lon = longitude;
 		sample.alt = altitude;
-		sample.lat_lon_valid = true;
-		sample.alt_ellipsoid = altitude;
-		sample.alt_valid = true;
 		sample.eph = 20.f;
 		sample.epv = 5.f;
+		sample.lat_lon_reset_counter = 0;
 
 		sample.timestamp = hrt_absolute_time();
 		_aux_global_position_pub.publish(sample);
@@ -153,8 +155,8 @@ int SensorAgpSim::task_spawn(int argc, char *argv[])
 	SensorAgpSim *instance = new SensorAgpSim();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -165,8 +167,8 @@ int SensorAgpSim::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -198,5 +200,5 @@ Module to simulate auxiliary global position measurements with optional failure 
 
 extern "C" __EXPORT int sensor_agp_sim_main(int argc, char *argv[])
 {
-	return SensorAgpSim::main(argc, argv);
+	return ModuleBase::main(SensorAgpSim::desc, argc, argv);
 }

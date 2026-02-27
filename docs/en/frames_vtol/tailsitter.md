@@ -86,12 +86,11 @@ This section contains videos that are specific to Tailsitter VTOL (videos that a
 
 <lite-youtube videoid="pWt6uoqpPIw" title="UAV Works VALAQ"/>
 
-
 ## Gallery
 
 <div class="grid_wrapper three_column">
   <div class="grid_item">
-    <div class="grid_item_heading"><big><a href="https://wingtra.com/mapping-drone-wingtraone/">WingtraOne</a></big></div>
+    <div class="grid_item_heading"><big><a href="https://wingtra.com/mapping-drone-fast-accurate-surveying/">WingtraOne</a></big></div>
     <div class="grid_text">
     <img src="../../assets/airframes/vtol/wingtraone/hero.jpg" title="Wingtra: WingtraOne VTOL Duo Tailsitter" alt="wingtraone" />
     </div>

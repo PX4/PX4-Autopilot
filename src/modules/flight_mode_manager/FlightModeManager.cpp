@@ -33,10 +33,13 @@
 
 #include "FlightModeManager.hpp"
 
+#include <cmath>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 
 using namespace time_literals;
+
+ModuleBase::Descriptor FlightModeManager::desc{task_spawn, custom_command, print_usage};
 
 FlightModeManager::FlightModeManager() :
 	ModuleParams(nullptr),
@@ -80,7 +83,7 @@ void FlightModeManager::Run()
 {
 	if (should_exit()) {
 		_vehicle_local_position_sub.unregisterCallback();
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -322,7 +325,7 @@ void FlightModeManager::handleCommand()
 		if (_current_task.task) {
 			// check for other commands not related to task switching
 			if ((command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED)
-			    && (static_cast<uint8_t>(command.param1 + .5f) == vehicle_command_s::SPEED_TYPE_GROUNDSPEED)
+			    && (static_cast<uint8_t>(lroundf(command.param1)) == vehicle_command_s::SPEED_TYPE_GROUNDSPEED)
 			    && (command.param2 > 0.f)) {
 				_current_task.task->overrideCruiseSpeed(command.param2);
 			}
@@ -443,8 +446,8 @@ int FlightModeManager::task_spawn(int argc, char *argv[])
 	FlightModeManager *instance = new FlightModeManager();
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		if (instance->init()) {
 			return PX4_OK;
@@ -455,8 +458,8 @@ int FlightModeManager::task_spawn(int argc, char *argv[])
 	}
 
 	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	desc.object.store(nullptr);
+	desc.task_id = -1;
 
 	return PX4_ERROR;
 }
@@ -502,5 +505,5 @@ and outputs setpoints for controllers.
 
 extern "C" __EXPORT int flight_mode_manager_main(int argc, char *argv[])
 {
-	return FlightModeManager::main(argc, argv);
+	return ModuleBase::main(FlightModeManager::desc, argc, argv);
 }

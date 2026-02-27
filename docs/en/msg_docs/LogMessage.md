@@ -1,8 +1,32 @@
+---
+pageClass: is-wide-page
+---
+
 # LogMessage (UORB message)
 
-A logging message, output with PX4_WARN, PX4_ERR, PX4_INFO
+A logging message, output with PX4_WARN, PX4_ERR, PX4_INFO.
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/LogMessage.msg)
+**TOPICS:** log_message
+
+## Fields
+
+| Name      | Type        | Unit [Frame] | Range/Enum | Description                                              |
+| --------- | ----------- | ------------ | ---------- | -------------------------------------------------------- |
+| timestamp | `uint64`    |              |            | time since system start (microseconds)                   |
+| severity  | `uint8`     |              |            | log level (same as in the linux kernel, starting with 0) |
+| text      | `char[127]` |              |            |
+
+## Constants
+
+| Name                                            | Type    | Value | Description |
+| ----------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH | `uint8` | 4     |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/LogMessage.msg)
+
+::: details Click here to see original file
 
 ```c
 # A logging message, output with PX4_WARN, PX4_ERR, PX4_INFO
@@ -13,5 +37,6 @@ uint8 severity # log level (same as in the linux kernel, starting with 0)
 char[127] text
 
 uint8 ORB_QUEUE_LENGTH = 4
-
 ```
+
+:::

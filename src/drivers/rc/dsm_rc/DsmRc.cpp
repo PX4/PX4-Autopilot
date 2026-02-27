@@ -39,6 +39,8 @@
 
 using namespace time_literals;
 
+ModuleBase::Descriptor DsmRc::desc{task_spawn, custom_command, print_usage};
+
 DsmRc::DsmRc(const char *device) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device)),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
@@ -106,8 +108,8 @@ int DsmRc::task_spawn(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		desc.object.store(instance);
+		desc.task_id = task_id_is_work_queue;
 
 		instance->ScheduleOnInterval(_current_update_interval);
 
@@ -136,7 +138,7 @@ void DsmRc::Run()
 
 		dsm_deinit();
 
-		exit_and_cleanup();
+		exit_and_cleanup(desc);
 		return;
 	}
 
@@ -362,7 +364,7 @@ int DsmRc::custom_command(int argc, char *argv[])
 
 #endif // SPEKTRUM_POWER
 
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		int ret = DsmRc::task_spawn(argc, argv);
 
 		if (ret) {
@@ -419,5 +421,5 @@ This module does Spektrum DSM RC input parsing.
 
 extern "C" __EXPORT int dsm_rc_main(int argc, char *argv[])
 {
-	return DsmRc::main(argc, argv);
+	return ModuleBase::main(DsmRc::desc, argc, argv);
 }

@@ -121,6 +121,10 @@
 #include "Subscribers/ServoArrayCommand.hpp"
 #endif // CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND
 
+#if defined(CONFIG_UAVCANNODE_HARDPOINT_COMMAND)
+#include "Subscribers/HardpointCommand.hpp"
+#endif // CONFIG_UAVCANNODE_HARDPOINT_COMMAND
+
 using namespace time_literals;
 
 namespace uavcannode
@@ -280,7 +284,7 @@ void UavcanNode::fill_node_info()
 	char fw_git_short[9] = {};
 	std::memmove(fw_git_short, px4_firmware_version_string(), 8);
 	char *end = nullptr;
-	swver.vcs_commit = std::strtol(fw_git_short, &end, 16);
+	swver.vcs_commit = std::strtoul(fw_git_short, &end, 16);
 	swver.optional_field_flags |= swver.OPTIONAL_FIELD_FLAG_VCS_COMMIT;
 	swver.major = AppDescriptor.major_version;
 	swver.minor = AppDescriptor.minor_version;
@@ -484,6 +488,10 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #if defined(CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND)
 	_subscriber_list.add(new ServoArrayCommand(_node));
 #endif // CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND
+
+#if defined(CONFIG_UAVCANNODE_HARDPOINT_COMMAND)
+	_subscriber_list.add(new HardpointCommand(_node));
+#endif // CONFIG_UAVCANNODE_HARDPOINT_COMMAND
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();

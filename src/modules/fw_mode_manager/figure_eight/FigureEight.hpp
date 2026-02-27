@@ -140,7 +140,7 @@ private:
 	 * @param[in] pattern_points are the figure of eight pattern points.
 	 */
 	void initializePattern(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-			       const FigureEightPatternParameters &parameters, FigureEightPatternPoints pattern_points);
+			       const FigureEightPatternParameters &parameters, const FigureEightPatternPoints &pattern_points);
 
 	/**
 	 * @brief Calculate figure eight pattern points

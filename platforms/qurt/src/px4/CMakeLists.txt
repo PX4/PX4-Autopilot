@@ -35,6 +35,7 @@
 set(QURT_LAYER_SRCS
 	drv_hrt.cpp
 	tasks.cpp
+	${PX4_SOURCE_DIR}/platforms/common/module_base.cpp
 	px4_qurt_impl.cpp
 	main.cpp
 	qurt_log.cpp

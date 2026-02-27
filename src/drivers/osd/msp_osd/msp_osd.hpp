@@ -100,9 +100,11 @@ enum SymbolIndex : uint8_t {
 	POWER			= 21
 };
 
-class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
+class MspOsd : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	MspOsd(const char *device);
 
 	~MspOsd() override;

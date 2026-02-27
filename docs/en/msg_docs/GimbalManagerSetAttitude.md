@@ -1,8 +1,43 @@
+---
+pageClass: is-wide-page
+---
+
 # GimbalManagerSetAttitude (UORB message)
 
+**TOPICS:** gimbal_manager_set_attitude
 
+## Fields
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GimbalManagerSetAttitude.msg)
+| Name               | Type         | Unit [Frame] | Range/Enum | Description                            |
+| ------------------ | ------------ | ------------ | ---------- | -------------------------------------- |
+| timestamp          | `uint64`     |              |            | time since system start (microseconds) |
+| origin_sysid       | `uint8`      |              |            |
+| origin_compid      | `uint8`      |              |            |
+| target_system      | `uint8`      |              |            |
+| target_component   | `uint8`      |              |            |
+| flags              | `uint32`     |              |            |
+| gimbal_device_id   | `uint8`      |              |            |
+| q                  | `float32[4]` |              |            |
+| angular_velocity_x | `float32`    |              |            |
+| angular_velocity_y | `float32`    |              |            |
+| angular_velocity_z | `float32`    |              |            |
+
+## Constants
+
+| Name                                                                          | Type     | Value | Description |
+| ----------------------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#GIMBAL_MANAGER_FLAGS_RETRACT"></a> GIMBAL_MANAGER_FLAGS_RETRACT       | `uint32` | 1     |
+| <a id="#GIMBAL_MANAGER_FLAGS_NEUTRAL"></a> GIMBAL_MANAGER_FLAGS_NEUTRAL       | `uint32` | 2     |
+| <a id="#GIMBAL_MANAGER_FLAGS_ROLL_LOCK"></a> GIMBAL_MANAGER_FLAGS_ROLL_LOCK   | `uint32` | 4     |
+| <a id="#GIMBAL_MANAGER_FLAGS_PITCH_LOCK"></a> GIMBAL_MANAGER_FLAGS_PITCH_LOCK | `uint32` | 8     |
+| <a id="#GIMBAL_MANAGER_FLAGS_YAW_LOCK"></a> GIMBAL_MANAGER_FLAGS_YAW_LOCK     | `uint32` | 16    |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                               | `uint8`  | 2     |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/GimbalManagerSetAttitude.msg)
+
+::: details Click here to see original file
 
 ```c
 uint64 timestamp						# time since system start (microseconds)
@@ -29,5 +64,6 @@ float32 angular_velocity_y
 float32 angular_velocity_z
 
 uint8 ORB_QUEUE_LENGTH = 2
-
 ```
+
+:::

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,11 @@ static bool enable_debug = false;
 int
 muorb_main(int argc, char *argv[])
 {
+	if (uORB::AppsProtobufChannel::isInstance()) {
+		uORB::AppsProtobufChannel::GetInstance()->PrintStatus();
+		return 0;
+	}
+
 	return muorb_init();
 }
 
@@ -58,7 +63,9 @@ muorb_init()
 	if (channel && channel->Initialize(enable_debug)) {
 		uORB::Manager::get_instance()->set_uorb_communicator(channel);
 
-		if (channel->Test()) { return OK; }
+		if (channel->Test()) {
+			return OK;
+		}
 	}
 
 	return -EINVAL;

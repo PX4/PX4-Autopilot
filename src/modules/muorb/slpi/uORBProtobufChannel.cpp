@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,9 @@
 #include "uORB/uORBManager.hpp"
 #include "MUORBTest.hpp"
 #include <string>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
@@ -63,6 +66,14 @@ pthread_mutex_t uORB::ProtobufChannel::_rx_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t uORB::ProtobufChannel::_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 bool uORB::ProtobufChannel::_debug = false;
+uint32_t uORB::ProtobufChannel::_total_bytes_sent = 0;
+uint32_t uORB::ProtobufChannel::_bytes_sent_since_last_status_check = 0;
+uint32_t uORB::ProtobufChannel::_total_bytes_received = 0;
+uint32_t uORB::ProtobufChannel::_bytes_received_since_last_status_check = 0;
+hrt_abstime uORB::ProtobufChannel::_last_status_check_time = 0;
+hrt_abstime uORB::ProtobufChannel::_last_keepalive = 0;
+char uORB::ProtobufChannel::_keepalive_filename[] = "/data/px4/slpi/keepalive_fail";
+
 bool _px4_muorb_debug = false;
 static bool px4muorb_orb_initialized = false;
 
@@ -74,17 +85,82 @@ const uint32_t aggregator_thread_priority = 240;
 const uint32_t aggregator_stack_size = 8096;
 char aggregator_stack[aggregator_stack_size];
 
+// Thread for keep alives
+qurt_thread_t keepalive_tid;
+qurt_thread_attr_t keepalive_attr;
+// 1 is highest priority, 255 is lowest. Set it very low.
+const uint32_t keepalive_thread_priority = 250;
+const uint32_t keepalive_stack_size = 4096;
+char keepalive_stack[keepalive_stack_size];
+
 static void aggregator_thread_func(void *ptr)
 {
 	PX4_INFO("muorb aggregator thread running");
 
 	uORB::ProtobufChannel *muorb = uORB::ProtobufChannel::GetInstance();
 
+	const uint64_t SEND_TIMEOUT = 3000; // 3 ms
+
 	while (true) {
 		// Check for timeout. Send buffer if timeout happened.
-		muorb->SendAggregateData();
+		muorb->SendAggregateData(SEND_TIMEOUT);
 
-		qurt_timer_sleep(2000);
+		qurt_timer_sleep(SEND_TIMEOUT);
+	}
+
+	qurt_thread_exit(QURT_EOK);
+}
+
+void uORB::ProtobufChannel::keepalive_thread_func(void *ptr)
+{
+	PX4_INFO("muorb keepalive thread running");
+
+	// Give the system time to initialize before monitoring keepalives
+	px4_sleep(4);
+
+	// Delete any keepalive fail file that may exist from a previous error
+	struct stat buffer;
+
+	if (stat(_keepalive_filename, &buffer) == 0) {
+		PX4_INFO("Deleting %s", _keepalive_filename);
+
+		if (remove(_keepalive_filename)) {
+			PX4_ERR("Could not delete %s", _keepalive_filename);
+		}
+	}
+
+	uORB::ProtobufChannel *muorb = uORB::ProtobufChannel::GetInstance();
+
+	const uint64_t SEND_TIMEOUT = 100000; // 100 ms
+
+	while (true) {
+		// Check for timeout. Send a keepalive if timeout happened.
+		muorb->send_message("keepalive", 0, nullptr);
+
+		qurt_timer_sleep(SEND_TIMEOUT);
+
+		if (_last_keepalive) {
+			hrt_abstime elapsed_time = hrt_elapsed_time(&_last_keepalive);
+
+			if (elapsed_time > 1000000) {
+				PX4_ERR("Keep alive timeout from Apps: %lu ms", elapsed_time);
+
+				// Create a file in the file system to indicate a keepalive failure happened
+				if (stat(_keepalive_filename, &buffer)) {
+					FILE *fptr = fopen(_keepalive_filename, "w");
+
+					if (fptr == NULL) {
+						PX4_ERR("Error creating file %s", _keepalive_filename);
+
+					} else {
+						PX4_INFO("Created file %s", _keepalive_filename);
+						fclose(fptr);
+					}
+				}
+
+				_last_keepalive = hrt_absolute_time();
+			}
+		}
 	}
 
 	qurt_thread_exit(QURT_EOK);
@@ -154,6 +230,11 @@ int16_t uORB::ProtobufChannel::send_message(const char *messageName, int32_t len
 		is_not_slpi_log = false;
 	}
 
+	// keep alives also get special treatment
+	if (strcmp(messageName, "keepalive") == 0) {
+		is_not_slpi_log = false;
+	}
+
 	if (muorb_func_ptrs.topic_data_func_ptr) {
 		if ((_debug) && (is_not_slpi_log)) {
 			PX4_INFO("Got message for topic %s", messageName);
@@ -177,6 +258,9 @@ int16_t uORB::ProtobufChannel::send_message(const char *messageName, int32_t len
 				rc = _Aggregator.ProcessTransmitTopic(messageName, data, length);
 
 			} else {
+				_total_bytes_sent += length;
+				_bytes_sent_since_last_status_check += length;
+
 				// SLPI logs don't go through the aggregator
 				rc = muorb_func_ptrs.topic_data_func_ptr(messageName, data, length);
 			}
@@ -197,6 +281,38 @@ int16_t uORB::ProtobufChannel::send_message(const char *messageName, int32_t len
 	}
 
 	return -1;
+}
+
+void uORB::ProtobufChannel::PrintStatus()
+{
+	PX4_INFO("total bytes sent: %u, total bytes received: %u", _total_bytes_sent, _total_bytes_received);
+	PX4_INFO("sent since last status: %u, received since last status: %u", _bytes_sent_since_last_status_check,
+		 _bytes_received_since_last_status_check);
+
+	hrt_abstime elapsed = hrt_elapsed_time(&_last_status_check_time);
+	double seconds = (double) elapsed / 1000000.0;
+	double sent_kbps = ((double) _bytes_sent_since_last_status_check / seconds) / 1000.0;
+	double rxed_kbps = ((double) _bytes_received_since_last_status_check / seconds) / 1000.0;
+
+	PX4_INFO("Current tx rate: %.2f KBps, rx rate %.2f KBps", sent_kbps, rxed_kbps);
+
+	_bytes_sent_since_last_status_check = 0;
+	_bytes_received_since_last_status_check = 0;
+	_last_status_check_time = hrt_absolute_time();
+}
+
+void uORB::ProtobufChannel::SendAggregateData(hrt_abstime timeout)
+{
+	const hrt_abstime last = _Aggregator.GetLastSendTime();
+
+	// The aggregator buffer will get sent out whenever it fills up. If that
+	// hasn't happened for awhile then just send what we have now to avoid
+	// large periods of time with no topic data
+	if (hrt_elapsed_time(&last) > timeout) {
+		pthread_mutex_lock(&_tx_mutex);
+		_Aggregator.SendData();
+		pthread_mutex_unlock(&_tx_mutex);
+	}
 }
 
 static void *test_runner(void *)
@@ -239,6 +355,18 @@ __BEGIN_DECLS
 extern int slpi_main(int argc, char *argv[]);
 __END_DECLS
 
+static int slpi_send_aggregated_topics(const char *name, const uint8_t *data, int len)
+{
+
+	uORB::ProtobufChannel *channel = uORB::ProtobufChannel::GetInstance();
+
+	if (channel) { channel->RecordAggregateSend(len); }
+
+	muorb_func_ptrs.topic_data_func_ptr(name, data, len);
+
+	return 0;
+}
+
 int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 {
 	hrt_set_absolute_time_offset(clock_offset_us);
@@ -275,11 +403,11 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		uORB::Manager::get_instance()->set_uorb_communicator(
 			uORB::ProtobufChannel::GetInstance());
 
-		px4::WorkQueueManagerStart();
-
 		param_init();
 
-		uORB::ProtobufChannel::GetInstance()->RegisterSendHandler(muorb_func_ptrs.topic_data_func_ptr);
+		px4::WorkQueueManagerStart();
+
+		uORB::ProtobufChannel::GetInstance()->RegisterSendHandler(slpi_send_aggregated_topics);
 
 		// Configure the I2C driver function pointers
 		device::I2C::configure_callbacks(muorb_func_ptrs._config_i2c_bus_func_t, muorb_func_ptrs._set_i2c_address_func_t,
@@ -312,11 +440,21 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		qurt_thread_attr_init(&aggregator_attr);
 		qurt_thread_attr_set_stack_addr(&aggregator_attr, aggregator_stack);
 		qurt_thread_attr_set_stack_size(&aggregator_attr, aggregator_stack_size);
-		char thread_name[QURT_THREAD_ATTR_NAME_MAXLEN];
-		strncpy(thread_name, "PX4_muorb_agg", QURT_THREAD_ATTR_NAME_MAXLEN);
-		qurt_thread_attr_set_name(&aggregator_attr, thread_name);
+		char agg_thread_name[QURT_THREAD_ATTR_NAME_MAXLEN];
+		strncpy(agg_thread_name, "PX4_muorb_agg", QURT_THREAD_ATTR_NAME_MAXLEN);
+		qurt_thread_attr_set_name(&aggregator_attr, agg_thread_name);
 		qurt_thread_attr_set_priority(&aggregator_attr, aggregator_thread_priority);
 		(void) qurt_thread_create(&aggregator_tid, &aggregator_attr, aggregator_thread_func, NULL);
+
+		// Setup the thread to send keep alives to the apps proc
+		qurt_thread_attr_init(&keepalive_attr);
+		qurt_thread_attr_set_stack_addr(&keepalive_attr, keepalive_stack);
+		qurt_thread_attr_set_stack_size(&keepalive_attr, keepalive_stack_size);
+		char ka_thread_name[QURT_THREAD_ATTR_NAME_MAXLEN];
+		strncpy(ka_thread_name, "PX4_muorb_keepalive", QURT_THREAD_ATTR_NAME_MAXLEN);
+		qurt_thread_attr_set_name(&keepalive_attr, ka_thread_name);
+		qurt_thread_attr_set_priority(&keepalive_attr, keepalive_thread_priority);
+		(void) qurt_thread_create(&keepalive_tid, &keepalive_attr, uORB::ProtobufChannel::keepalive_thread_func, NULL);
 
 		px4muorb_orb_initialized = true;
 
@@ -464,6 +602,13 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 	uORB::ProtobufChannel *channel = uORB::ProtobufChannel::GetInstance();
 
 	if (channel) {
+		if (strcmp("keepalive", topic_name) == 0) {
+			uORB::ProtobufChannel::keepalive();
+			return 0;
+		}
+
+		channel->UpdateRxStatistics(data_len_in_bytes);
+
 		uORBCommunicator::IChannelRxHandler *rxHandler = channel->GetRxHandler();
 
 		if (rxHandler) {
@@ -482,6 +627,15 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 	return -1;
 }
 
+
+void px4muorb_request_reset(void)
+{
+	uORB::ProtobufChannel *channel = uORB::ProtobufChannel::GetInstance();
+
+	if (channel) {
+		(void) channel->add_subscription("RESET", 0);
+	}
+}
 
 float px4muorb_get_cpu_load(void)
 {

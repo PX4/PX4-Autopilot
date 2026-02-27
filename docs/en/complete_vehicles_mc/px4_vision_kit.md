@@ -67,7 +67,7 @@ Difference between the PX4 Vision V1 and V1.5 can be found [here](https://docs.h
 
 ![PV4 Vision v1.5](../../assets/hardware/px4_vision_devkit/px4_vision_v1.5_whats_inside.jpg)
 
-What's inside the PX4 Vision V1 can be found here in the [PX4 v1.13 Docs here](https://docs.px4.io/v1.13/en/complete_vehicles/px4_vision_kit.html#what-is-inside).
+What's inside the PX4 Vision V1 can be found here in the [PX4 v1.13 Docs here](https://docs.px4.io/v1.13/en/complete_vehicles/px4_vision_kit#what-is-inside).
 
 The PX4 Vision DevKit contains following components:
 
@@ -381,7 +381,7 @@ The carrier board pinouts and other information are in the [downloads section](h
 ## Other Development Resources
 
 - [_UP Core_ Wiki](https://github.com/up-board/up-community/wiki/Ubuntu) - _Up Core_ companion computer technical information
-- [Occipital Developer Forum](https://structure.io/developers/) - _Structure Core_ camera information
+- [Occipital Developer Forum](https://structure.io/structure-sdk) - _Structure Core_ camera information
 - [Pixhawk 4 Overview](../flight_controller/pixhawk4.md)
 - [Pixhawk 6C Overview](../flight_controller/pixhawk6c.md)
 

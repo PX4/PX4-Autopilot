@@ -55,11 +55,13 @@
 namespace load_mon
 {
 
-class LoadMon : public ModuleBase<LoadMon>, public ModuleParams, public px4::ScheduledWorkItem
+class LoadMon : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	LoadMon();
 	~LoadMon() override;
+
+	static Descriptor desc;
 
 	static int task_spawn(int argc, char *argv[]);
 

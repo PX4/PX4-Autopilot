@@ -48,7 +48,6 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_io_heater.h>
 
-
 #if defined(BOARD_USES_PX4IO_VERSION) and defined(PX4IO_HEATER_ENABLED)
 // Heater on some boards is on IO MCU
 // Use ioctl calls to IO driver to turn heater on/off
@@ -117,7 +116,6 @@ Heater::~Heater()
 {
 	disable_heater();
 	ScheduleClear();
-
 }
 
 void Heater::disable_heater()

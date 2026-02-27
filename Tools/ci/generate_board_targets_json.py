@@ -36,11 +36,20 @@ if args.filter:
         target_filter.append(target)
 
 default_container = 'ghcr.io/px4/px4-dev:v1.16.0-rc1-258-g0369abd556'
+voxl2_container = 'ghcr.io/px4/px4-dev-voxl2:v1.5'
 build_configs = []
 grouped_targets = {}
-excluded_boards = ['modalai_voxl2', 'px4_ros2', 'espressif_esp32']  # TODO: fix and enable
+excluded_boards = ['px4_ros2', 'espressif_esp32']  # TODO: fix and enable
 excluded_manufacturers = ['atlflight']
-excluded_platforms = ['qurt']
+excluded_platforms = []
+
+# Container overrides for platforms/boards that need a non-default container
+platform_container_overrides = {
+    'qurt': voxl2_container,
+}
+board_container_overrides = {
+    'modalai_voxl2': voxl2_container,
+}
 excluded_labels = [
     'stackcheck',
     'nolockstep', 'replay', 'test',
@@ -88,7 +97,20 @@ def process_target(px4board_file, target_name):
 
     if platform not in excluded_platforms:
         container = default_container
-        if platform == 'posix':
+
+        # Extract board name (manufacturer_board) from target name
+        board_name = '_'.join(target_name.split('_')[:2])
+
+        # Apply container overrides for specific platforms or boards
+        if platform in platform_container_overrides:
+            container = platform_container_overrides[platform]
+        if board_name in board_container_overrides:
+            container = board_container_overrides[board_name]
+
+        # Boards with container overrides get their own group
+        if board_name in board_container_overrides or platform in platform_container_overrides:
+            group = 'voxl2'
+        elif platform == 'posix':
             group = 'base'
             if toolchain:
                 if toolchain.startswith('aarch64'):
@@ -126,18 +148,18 @@ grouped_targets['base']['manufacturers'] = {}
 grouped_targets['base']['manufacturers']['px4'] = []
 grouped_targets['base']['manufacturers']['px4'] += metadata_targets
 
-for manufacturer in os.scandir(os.path.join(source_dir, '../boards')):
+for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), key=lambda e: e.name):
     if not manufacturer.is_dir():
         continue
     if manufacturer.name in excluded_manufacturers:
         if verbose: print(f'excluding manufacturer {manufacturer.name}')
         continue
 
-    for board in os.scandir(manufacturer.path):
+    for board in sorted(os.scandir(manufacturer.path), key=lambda e: e.name):
         if not board.is_dir():
             continue
 
-        for files in os.scandir(board.path):
+        for files in sorted(os.scandir(board.path), key=lambda e: e.name):
             if files.is_file() and files.name.endswith('.px4board'):
 
                 board_name = manufacturer.name + '_' + board.name
@@ -203,7 +225,7 @@ if (args.group):
     if(verbose):
         print(f'=:Architectures: [{grouped_targets.keys()}]')
     for arch in grouped_targets:
-        runner = 'x64' if arch == 'nuttx' else 'arm64'
+        runner = 'x64' if arch in ('nuttx', 'voxl2') else 'arm64'
         if(verbose):
             print(f'=:Processing: [{arch}]')
         temp_group = []

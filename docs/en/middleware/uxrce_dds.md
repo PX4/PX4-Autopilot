@@ -3,7 +3,7 @@
 <Badge type="tip" text="PX4 v1.14" />
 
 ::: info
-uXRCE-DDS replaces the [Fast-RTPS Bridge](https://docs.px4.io/v1.13/en/middleware/micrortps.html#rtps-dds-interface-px4-fast-rtps-dds-bridge) used in PX4 v1.13.
+uXRCE-DDS replaces the [Fast-RTPS Bridge](https://docs.px4.io/v1.13/en/middleware/micrortps#rtps-dds-interface-px4-fast-rtps-dds-bridge) used in PX4 v1.13.
 If you were using the Fast-RTPS Bridge, please follow the [migration guidelines](#fast-rtps-to-uxrce-dds-migration-guidelines).
 :::
 
@@ -324,7 +324,7 @@ The configuration can be done using the [UXRCE-DDS parameters](../advanced_confi
   - [UXRCE_DDS_NS_IDX](../advanced_config/parameter_reference.md#UXRCE_DDS_NS_IDX) <Badge type="tip" text="PX4 v1.17" />: Index-based namespace definition.
     Setting this parameter to any value other than `-1` creates a namespace with the prefix `uav_` and the specified value, e.g. `uav_0`, `uav_1`, etc.
     See [namespace](#customizing-the-namespace) for methods to define richer or arbitrary namespaces.
-  - [`UXRCE_DDS_FLCTRL`](../advanced_config/parameter_reference.md#UXRCE_DDS_FLCTRL) <Badge type="tip" text="PX4 main" />: Serial port hardware flow control enable.
+  - [`UXRCE_DDS_FLCTRL`](../advanced_config/parameter_reference.md#UXRCE_DDS_FLCTRL) <Badge type="tip" text="main (planned for: PX4 v1.18)" />: Serial port hardware flow control enable.
     To use hardware flow control, a custom MicroXRCE Agent needs to be adopted. Please refer to [this PR](https://github.com/eProsima/Micro-XRCE-DDS-Agent/pull/407) for the required changes, cherry-pick them on top of the [agent version](#build-run-within-ros-2-workspace) you need to use and then run the agent with the additional `--flow-control` option.
 
 ::: info
@@ -584,7 +584,7 @@ For a list of services, details and examples see the [service documentation](../
 ## Fast-RTPS to uXRCE-DDS Migration Guidelines
 
 These guidelines explain how to migrate from using PX4 v1.13 [Fast-RTPS](../middleware/micrortps.md) middleware to PX4 v1.14 `uXRCE-DDS` middleware.
-These are useful if you have [ROS 2 applications written for PX4 v1.13](https://docs.px4.io/v1.13/en/ros/ros2_comm.html), or you have used Fast-RTPS to interface your applications to PX4 [directly](https://docs.px4.io/v1.13/en/middleware/micrortps.html#agent-in-an-offboard-fast-dds-interface-ros-independent).
+These are useful if you have [ROS 2 applications written for PX4 v1.13](https://docs.px4.io/v1.13/en/ros/ros2_comm), or you have used Fast-RTPS to interface your applications to PX4 [directly](https://docs.px4.io/v1.13/en/middleware/micrortps#agent-in-an-offboard-fast-dds-interface-ros-independent).
 
 ::: info
 This section contains migration-specific information.
@@ -593,7 +593,7 @@ You should also read the rest of this page to properly understand uXRCE-DDS.
 
 #### Dependencies do not need to be removed
 
-uXRCE-DDS does not need the dependencies that were required for Fast-RTPS, such as those installed by following the topic [Fast DDS Installation](https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation.html).
+uXRCE-DDS does not need the dependencies that were required for Fast-RTPS, such as those installed by following the topic [Fast DDS Installation](https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation).
 You can keep them if you want, without affecting your uXRCE-DDS applications.
 
 If you do choose to remove the dependencies, take care not to remove anything that is used by applications (for example, Java).
@@ -646,7 +646,7 @@ There are many ways to install it on your PC / companion computer - for more inf
 
 #### Application-Specific Changes
 
-If you where not using ROS 2 alongside the agent ([Fast DDS Interface ROS-Independent](https://docs.px4.io/v1.13/en/middleware/micrortps.html#agent-in-an-offboard-fast-dds-interface-ros-independent)), then you need to migrate to [eProsima Fast DDS](https://fast-dds.docs.eprosima.com/en/latest/index.html).
+If you where not using ROS 2 alongside the agent ([Fast DDS Interface ROS-Independent](https://docs.px4.io/v1.13/en/middleware/micrortps#agent-in-an-offboard-fast-dds-interface-ros-independent)), then you need to migrate to [eProsima Fast DDS](https://fast-dds.docs.eprosima.com/en/latest/index.html).
 
 ROS 2 applications still need to compile alongside the PX4 messages, which you do by adding the [px4_msgs](https://github.com/PX4/px4_msgs) package to your workspace.
 You can remove the [px4_ros_com](https://github.com/PX4/px4_ros_com) package as it is no longer needed, other than for example code.

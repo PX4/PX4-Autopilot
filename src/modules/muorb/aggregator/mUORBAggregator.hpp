@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,7 @@
 
 #include <string>
 #include <string.h>
+#include <drivers/drv_hrt.h>
 #include "uORB/uORBCommunicator.hpp"
 
 namespace mUORB
@@ -54,6 +55,8 @@ public:
 	void ProcessReceivedTopic(const char *topic, const uint8_t *data, uint32_t length_in_bytes);
 
 	int16_t SendData();
+
+	hrt_abstime GetLastSendTime() { return _last_send_time; }
 
 private:
 	static const bool debugFlag;
@@ -78,6 +81,8 @@ private:
 	uORBCommunicator::IChannelRxHandler *_RxHandler;
 
 	sendFuncPtr sendFunc;
+
+	hrt_abstime _last_send_time;
 
 	bool isAggregate(const char *name) { return (strcmp(name, topicName.c_str()) == 0); }
 

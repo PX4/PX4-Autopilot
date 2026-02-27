@@ -12,7 +12,7 @@ This is ideal for survey drones, agricultural drones and other application scena
 
 ## Where to Buy
 
-[cuav Store](https://store.cuav.net/shop/c-rtk-9ps/)
+[cuav Store](https://store.cuav.net/index.php?route=product/product&path=61&product_id=187)
 
 ## Specification
 

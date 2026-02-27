@@ -74,6 +74,8 @@
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/tune_control.h>
 
+ModuleBase::Descriptor Commander::desc{task_spawn, custom_command, print_usage};
+
 typedef enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED  = 1,   /* 0b00000001 Reserved for future use. | */
 	VEHICLE_MODE_FLAG_TEST_ENABLED         = 2,   /* 0b00000010 system has a test mode enabled. This flag is intended for temporary system tests and should not be used for stable implementations. | */
@@ -232,7 +234,7 @@ static bool broadcast_vehicle_command(const uint32_t cmd, const float param1 = N
 
 int Commander::custom_command(int argc, char *argv[])
 {
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		print_usage("not running");
 		return 1;
 	}
@@ -527,7 +529,7 @@ int Commander::print_status()
 
 extern "C" __EXPORT int commander_main(int argc, char *argv[])
 {
-	return Commander::main(argc, argv);
+	return ModuleBase::main(Commander::desc, argc, argv);
 }
 
 static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_reason)
@@ -917,6 +919,12 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+
+				} else {
+					main_ret = TRANSITION_DENIED;
+					mavlink_log_critical(&_mavlink_log_pub, "Unsupported main mode\t");
+					events::send(events::ID("commander_unsupported_main_mode"), events::Log::Error,
+						     "Unsupported main mode");
 				}
 
 			} else {
@@ -934,6 +942,12 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					} else {
 						desired_nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 					}
+
+				} else {
+					main_ret = TRANSITION_DENIED;
+					mavlink_log_critical(&_mavlink_log_pub, "Unsupported base mode\t");
+					events::send(events::ID("commander_unsupported_base_mode"), events::Log::Error,
+						     "Unsupported base mode");
 				}
 			}
 
@@ -967,7 +981,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_SET_NAV_STATE: { // Used from ROS
-			uint8_t desired_nav_state = (uint8_t)(cmd.param1 + 0.5f);
+			uint8_t desired_nav_state = static_cast<uint8_t>(lroundf(cmd.param1));
 
 			if (_user_mode_intention.change(desired_nav_state, getSourceFromCommand(cmd))) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
@@ -1662,7 +1676,7 @@ unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 
 	actuator_test_s actuator_test{};
 	actuator_test.timestamp = hrt_absolute_time();
-	actuator_test.function = (int)(cmd.param5 + 0.5);
+	actuator_test.function = static_cast<int>(lroundf(cmd.param5));
 
 	if (actuator_test.function < 1000) {
 		const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
@@ -1687,7 +1701,7 @@ unsigned Commander::handleCommandActuatorTest(const vehicle_command_s &cmd)
 	actuator_test.value = cmd.param1;
 
 	actuator_test.action = actuator_test_s::ACTION_DO_CONTROL;
-	int timeout_ms = (int)(cmd.param2 * 1000.f + 0.5f);
+	int timeout_ms = static_cast<int>(lroundf(cmd.param2 * 1000.f));
 
 	if (timeout_ms <= 0) {
 		actuator_test.action = actuator_test_s::ACTION_RELEASE_CONTROL;
@@ -2396,9 +2410,10 @@ bool Commander::handleModeIntentionAndFailsafe()
 	_mode_management.setFailsafeState(_failsafe.selectedAction() > FailsafeBase::Action::Warn);
 	_vehicle_status.nav_state_user_intention = _mode_management.getNavStateReplacementIfValid(_user_mode_intention.get(),
 			false);
-	_vehicle_status.nav_state = _mode_management.getNavStateReplacementIfValid(FailsafeBase::modeFromAction(
-					    _failsafe.selectedAction(), _user_mode_intention.get()));
+	_vehicle_status.nav_state =
+		_mode_management.getNavStateReplacementIfValid(FailsafeBase::modeFromAction(_failsafe.selectedAction(), _user_mode_intention.get()));
 	_vehicle_status.executor_in_charge = _mode_management.modeExecutorInCharge(); // Set this in sync with nav_state
+	_vehicle_status.nav_state_display = _mode_management.getNavStateDisplay(_vehicle_status.nav_state);
 
 	switch (_failsafe.selectedAction()) {
 	case FailsafeBase::Action::Disarm:
@@ -2708,23 +2723,30 @@ void Commander::answer_command(const vehicle_command_s &cmd, uint8_t result)
 	_vehicle_command_ack_pub.publish(command_ack);
 }
 
+int Commander::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return Commander::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int Commander::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("commander",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT + 40,
-				      PX4_STACK_ADJUSTED(3250),
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	desc.task_id = px4_task_spawn_cmd("commander",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_DEFAULT + 40,
+					  PX4_STACK_ADJUSTED(3250),
+					  (px4_main_t)&run_trampoline,
+					  (char *const *)argv);
 
-	if (_task_id < 0) {
-		_task_id = -1;
+	if (desc.task_id < 0) {
+		desc.task_id = -1;
 		return -errno;
 	}
 
 	// wait until task is up & running
-	if (wait_until_running() < 0) {
-		_task_id = -1;
+	if (wait_until_running(desc) < 0) {
+		desc.task_id = -1;
 		return -1;
 	}
 
@@ -2867,6 +2889,22 @@ void Commander::dataLinkCheck()
 				_vehicle_status.open_drone_id_system_present = true;
 				_vehicle_status.open_drone_id_system_healthy = healthy;
 			}
+
+			// Traffic avoidance system (ADSB or FLARM)
+			if (telemetry.heartbeat_type_adsb || telemetry.heartbeat_type_flarm) {
+				if (_traffic_avoidance_system_lost) { // recovered
+					_traffic_avoidance_system_lost = false;
+
+					if (_datalink_last_heartbeat_traffic_avoidance_system != 0) {
+						mavlink_log_info(&_mavlink_log_pub, "Traffic avoidance system regained\t");
+						events::send(events::ID("commander_traffic_avoidance_regained"), events::Log::Info,
+							     "Traffic avoidance system regained");
+					}
+				}
+
+				_datalink_last_heartbeat_traffic_avoidance_system = telemetry.timestamp;
+				_vehicle_status.traffic_avoidance_system_present = true;
+			}
 		}
 	}
 
@@ -2916,6 +2954,16 @@ void Commander::dataLinkCheck()
 		_vehicle_status.open_drone_id_system_present = false;
 		_vehicle_status.open_drone_id_system_healthy = false;
 		_open_drone_id_system_lost = true;
+		_status_changed = true;
+	}
+
+	// Traffic avoidance system (ADSB/FLARM)
+	if ((hrt_elapsed_time(&_datalink_last_heartbeat_traffic_avoidance_system) > 3_s)
+	    && !_traffic_avoidance_system_lost) {
+		mavlink_log_critical(&_mavlink_log_pub, "Traffic avoidance system lost");
+		events::send(events::ID("commander_traffic_avoidance_lost"), events::Log::Critical, "Traffic avoidance system lost");
+		_vehicle_status.traffic_avoidance_system_present = false;
+		_traffic_avoidance_system_lost = true;
 		_status_changed = true;
 	}
 }

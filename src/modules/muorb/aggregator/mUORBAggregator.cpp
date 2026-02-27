@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022-2026 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,6 +76,8 @@ int16_t mUORB::Aggregator::SendData()
 	if (sendFunc) {
 		if (aggregationEnabled) {
 			if (bufferWriteIndex) {
+				// Record the time when we send out any aggregated data
+				_last_send_time = hrt_absolute_time();
 				rc = sendFunc(topicName.c_str(), buffer[bufferId], bufferWriteIndex);
 				MoveToNextBuffer();
 			}

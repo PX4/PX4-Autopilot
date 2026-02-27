@@ -2,12 +2,12 @@
 
 <Badge type="info" text="Discontinued" />
 
-:::warning
+::: warning
 _Crazyflie 2.0_ has been [discontinued/superseded](../flight_controller/autopilot_experimental.md).
 Try [Bitcraze Crazyflie 2.1](../complete_vehicles_mc/crazyflie21.md) instead!
 :::
 
-:::warning
+::: warning
 
 - PX4 does not manufacture this (or any) autopilot.
   Contact the [manufacturer](https://www.bitcraze.io/) for hardware support or compliance issues.
@@ -202,7 +202,7 @@ Next, launch the cfbridge by giving the same channel and address as the first an
 - After using _cfbridge_, you can deactivate the virtualenv if you activated it by pressing `CTRL+z`.
   Most of the time, launching _cfbridge_ again from the same terminal doesn't connect to crazyflie, this can be solved by closing the terminal and relaunching _cfbridge_ in a new terminal.
 
-:::tip
+::: tip
 If you change any driver in [crazyflie-lib-python](https://github.com/bitcraze/crazyflie-lib-python) or if launching _cfbridge_ in a new terminal does not find crazyflie, you can try navigating to the crazyflie-lib-python folder and run the script below to rebuild cflib.
 
 ```sh
@@ -212,13 +212,17 @@ make venv
 :::
 
 ::: info
-To use Joystick, set `COM_RC_IN_MODE` in QGroundControl to "Joystick/No RC Checks".
-Calibrate the Joystick and set the Joystick message frequency in QGroundControl to any value between 5 to 14 Hz (10 Hz is recommended).
-To be able to set the frequency, the advanced option should be enabled.
-This is the rate at which Joystick commands are sent from QGroundControl to Crazyflie 2.0 (to do this, you will need to follow the instructions [here](https://github.com/mavlink/qgroundcontrol) to obtain the latest QGroundControl source code (master) and build it).
-:::
+To use a [Joystick](../config/joystick.md):
 
-![](../../assets/hardware/joystick-message-frequency.png)
+- Make sure you're using a [`COM_RC_IN_MODE` that allows Joystick](../config/manual_control.md#px4-configuration).
+- Calibrate the Joystick and set the Joystick message frequency in QGroundControl if needed (25 Hz is the default).
+  To be able to set the frequency, the advanced option should be enabled.
+
+  ![QGC UI for setting message frequency](../../assets/hardware/joystick-message-frequency.png)
+
+  This is the rate at which Joystick commands are sent from QGroundControl to Crazyflie 2.0 (to do this, you will need to follow the instructions [here](https://github.com/mavlink/qgroundcontrol) to obtain the latest QGroundControl source code (master) and build it).
+
+:::
 
 ## Hardware Setup
 
@@ -247,7 +251,7 @@ Then, you need to stick the battery on top of the SD card deck using a double si
 Crazyflie is able to fly in _Altitude_ mode if you use a [Z-ranger deck](https://store.bitcraze.io/collections/decks/products/z-ranger-deck).
 According to the datasheet, the maximum height (above ground) the range finder can sense is 2 m. However, when tested on dark surfaces this value decreases to 0.5 m. On a light floor, it goes up to max 1.3 m. This means you cannot hold altitudes above this value in _Altitude_ or _Position_ flight modes.
 
-:::tip
+::: tip
 If the Crazyflie 2.0 height drifts at mid-throttle command in _Altitude mode_ or _Position mode_, first try rebooting the vehicle. If this does not fix the problem, recalibrate the accel and mag (compass).
 :::
 

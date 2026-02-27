@@ -67,6 +67,8 @@ using namespace device;
 namespace septentrio
 {
 
+ModuleBase::Descriptor SeptentrioDriver::desc{task_spawn, custom_command, print_usage};
+
 /**
  * RTC drift time when time synchronization is needed (in seconds).
 */
@@ -347,6 +349,13 @@ void SeptentrioDriver::run()
 
 }
 
+int SeptentrioDriver::run_trampoline(int argc, char *argv[])
+{
+	return ModuleBase::run_trampoline_impl(desc, [](int ac, char *av[]) -> ModuleBase * {
+		return SeptentrioDriver::instantiate(ac, av);
+	}, argc, argv);
+}
+
 int SeptentrioDriver::task_spawn(int argc, char *argv[])
 {
 	return task_spawn(argc, argv, Instance::Main);
@@ -372,14 +381,14 @@ int SeptentrioDriver::task_spawn(int argc, char *argv[], Instance instance)
 						(char *const *)argv);
 
 	if (task_id < 0) {
-		// `_task_id` of module that hasn't been started before or has been stopped should already be -1.
+		// `desc.task_id` of module that hasn't been started before or has been stopped should already be -1.
 		// This is just to make sure.
-		_task_id = -1;
+		desc.task_id = -1;
 		return -errno;
 	}
 
 	if (instance == Instance::Main) {
-		_task_id = task_id;
+		desc.task_id = task_id;
 	}
 
 	return 0;
@@ -489,12 +498,12 @@ int SeptentrioDriver::custom_command(int argc, char *argv[])
 	const char *failure_reason {"unknown command"};
 	SeptentrioDriver *driver_instance;
 
-	if (!is_running()) {
+	if (!is_running(desc)) {
 		PX4_INFO("not running");
 		return -1;
 	}
 
-	driver_instance = get_instance();
+	driver_instance = get_instance<SeptentrioDriver>(desc);
 
 	if (argc >= 1 && strcmp(argv[0], "reset") == 0) {
 		if (argc == 2) {
@@ -1861,5 +1870,5 @@ uint32_t SeptentrioDriver::get_parameter(const char *name, float *value)
 
 extern "C" __EXPORT int septentrio_main(int argc, char *argv[])
 {
-	return septentrio::SeptentrioDriver::main(argc, argv);
+	return ModuleBase::main(septentrio::SeptentrioDriver::desc, argc, argv);
 }

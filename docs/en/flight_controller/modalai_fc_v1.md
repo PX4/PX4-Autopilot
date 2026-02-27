@@ -2,21 +2,21 @@
 
 <Badge type="info" text="Discontinued" /> <Badge type="tip" text="PX4 v1.11" />
 
-:::warning
+::: warning
 This frame has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://forum.modalai.com/) for hardware support or compliance issues.
 :::
 
-The ModalAI _Flight Core v1_ ([Datasheet](https://docs.modalai.com/flight-core-datasheet)) is a flight controller for PX4, made in the USA.
+The ModalAI _Flight Core v1_ ([Datasheet](https://docs.modalai.com/flight-core-datasheet/)) is a flight controller for PX4, made in the USA.
 The Flight Core can be paired with ModalAI VOXL for obstacle avoidance and GPS-denied navigation, or used independently as a standalone flight controller.
 
 ![FlightCoreV1](../../assets/flight_controller/modalai/fc_v1/main.jpg)
 
-Flight Core is identical to the PX4 Flight Controller portion of [VOXL Flight](https://www.modalai.com/voxl-flight) ([Datasheet](https://docs.modalai.com/voxl-flight-datasheet/)) which integrates the VOXL Companion Computer and Flight Core into a single PCB.
+Flight Core is identical to the PX4 Flight Controller portion of [VOXL Flight](https://www.modalai.com/pages/eol) ([Datasheet](https://docs.modalai.com/voxl-flight-datasheet/)) which integrates the VOXL Companion Computer and Flight Core into a single PCB.
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -77,7 +77,7 @@ More information about the firmware can be found [here](https://docs.modalai.com
 
 ## QGroundControl Support
 
-This board supported in QGroundControl 4.0 and later.
+This board is supported in QGroundControl 4.0 and later.
 
 ## Availability
 
@@ -93,7 +93,7 @@ The diagram below shows the recommended orientation, which corresponds to `ROTAT
 
 ### Connectors
 
-Detailed information about the pinouts can be found [here](https://docs.modalai.com/flight-core-datasheet-connectors).
+Detailed information about the pinouts can be found [here](https://docs.modalai.com/flight-core-datasheet-connectors/).
 
 ![FlightCoreV1Top](../../assets/flight_controller/modalai/fc_v1/top.png)
 
@@ -122,7 +122,7 @@ The full user guide is available [here](https://docs.modalai.com/flight-core-man
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make modalai_fc-v1
 ```
 

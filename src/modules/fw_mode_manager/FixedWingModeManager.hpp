@@ -151,10 +151,12 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 // [] Stick deadzon
 static constexpr float kStickDeadBand = 0.06f;
 
-class FixedWingModeManager final : public ModuleBase<FixedWingModeManager>, public ModuleParams,
+class FixedWingModeManager final : public ModuleBase, public ModuleParams,
 	public px4::WorkItem
 {
 public:
+	static Descriptor desc;
+
 	FixedWingModeManager();
 	~FixedWingModeManager() override;
 
@@ -297,6 +299,9 @@ private:
 
 	// true if a launch, specifically using the launch detector, has been detected
 	bool _launch_detected{false};
+
+	// [us] time stamp of (runway/catapult) launch detection
+	hrt_abstime _time_launch_detected{0};
 
 	// [deg] global position of the vehicle at the time launch is detected (using launch detector) or takeoff is started (runway)
 	Vector2d _takeoff_init_position{0, 0};
@@ -865,6 +870,10 @@ private:
 		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
 		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_t_spdweight,
 
+		// Launch detection parameters
+		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
+		(ParamFloat<px4::params::FW_LAUN_CS_LK_DY>) _param_fw_laun_cs_lk_dy,
+
 		// external parameters
 		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
@@ -881,7 +890,6 @@ private:
 		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
 		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
-		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,

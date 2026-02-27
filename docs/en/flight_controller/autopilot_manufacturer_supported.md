@@ -2,7 +2,7 @@
 
 Manufacturer-supported autopilots are maintained and supported by a board manufacturer (manufacturers commit to delivering compatibility with the current stable PX4 release within 4 months of the official release announcement).
 
-:::tip
+::: tip
 For more information about PX4 project autopilot board support levels see: [px4.io/autopilots/](https://px4.io/autopilots/).
 :::
 
@@ -18,13 +18,14 @@ The boards in this category are:
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md) (and [ARK Electronics Pixhawk Autopilot Bus Carrier](../flight_controller/ark_pab.md))
 - [ARK FPV Flight Controller](../flight_controller/ark_fpv.md)
 - [ARK Pi6X Flow Flight Controller](../flight_controller/ark_pi6x.md)
-- [CUAV Nora](../flight_controller/cuav_nora.md)（CUAV X7 variant)
+- [CUAV Nora](../flight_controller/cuav_nora.md) (CUAV X7 variant)
 - [CUAV V5+](../flight_controller/cuav_v5_plus.md) (FMUv5)
 - [CUAV V5 nano](../flight_controller/cuav_v5_nano.md) (FMUv5)
 - [CUAV X25 EVO](../flight_controller/cuav_x25-evo.md)
 - [CubePilot Cube Orange+](../flight_controller/cubepilot_cube_orangeplus.md)
 - [CubePilot Cube Orange](../flight_controller/cubepilot_cube_orange.md)
 - [CubePilot Cube Yellow](../flight_controller/cubepilot_cube_yellow.md)
+- [Gear Up AirBrainH743](../flight_controller/gearup_airbrainh743.md)
 - [Holybro Kakute H7v2](../flight_controller/kakuteh7v2.md)
 - [Holybro Kakute H7mini](../flight_controller/kakuteh7mini.md)
 - [Holybro Kakute H7](../flight_controller/kakuteh7.md)

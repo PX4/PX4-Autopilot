@@ -1375,7 +1375,7 @@ bool MissionBase::haveCachedCameraModeItems()
 bool MissionBase::cameraWasTriggering()
 {
 	return (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_TRIGGER_CONTROL
-		&& (int)(_last_camera_trigger_item.params[0] + 0.5f) == 1) ||
+		&& static_cast<int>(lround(_last_camera_trigger_item.params[0])) == 1) ||
 	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE) ||
 	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST
 		&& _last_camera_trigger_item.params[0] > FLT_EPSILON);

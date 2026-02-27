@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.17" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://micoair.com/) for hardware support or compliance issues.
 :::
@@ -12,7 +12,7 @@ MicoAir743-Lite is an ultra-high performance H743 flight controller with an unbe
 ![MicoAir743-Lite Front View](../../assets/flight_controller/micoair743_lite/front_view.png)
 
 Equipped with a high-performance H7 processor, the MicoAir743-Lite features a compact form factor with SH1.0 connectors (which are more suitable than Pixhawk-standard GH1.25 for this board size).
-When paired with with Bluetooth telemetry, the board can be debugged with a phone or PC.
+When paired with Bluetooth telemetry, the board can be debugged with a phone or PC.
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -67,7 +67,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ![MicoAir743-Lite Size](../../assets/flight_controller/micoair743_lite/size.png)
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [MicoAir Tech Store](https://store.micoair.com/product/micoair743-lite/).
 
@@ -85,12 +85,12 @@ Pinouts definition can be found in the [MicoAir743-Lite_pinout.xlsx](https://raw
 | UART4  | /dev/ttyS3 | TELEM2 |
 | UART5  | /dev/ttyS4 | TELEM3 |
 | USART6 | /dev/ttyS5 | RC     |
-| UART7  | /dev/ttyS6 | URT6   |
+| UART7  | /dev/ttyS6 | UART6  |
 | UART8  | /dev/ttyS7 | TELEM4 |
 
 ## Interfaces Diagram
 
-::: note
+::: info
 All the connectors used on the board are SH1.0
 :::
 

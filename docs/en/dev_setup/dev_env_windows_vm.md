@@ -29,7 +29,7 @@ There is also an incomplete section for VirtualBox at the end (we'd welcome expa
 
 VMWare performance is acceptable for basic usage (building Firmware) but not for running ROS or Gazebo Classic.
 
-1. Download [VMWare Player Freeware](https://www.vmware.com/products/workstation-player/workstation-player-evaluation.html)
+1. Download [VMWare Player Freeware](https://www.vmware.com/info/workstation-player/evaluation)
 1. Install it on your Windows system
 1. Download the desired version of [Ubuntu Desktop ISO Image](https://ubuntu.com/download/desktop).
    (see [Linux Instructions Page](../dev_setup/dev_env_linux.md) for recommended Ubuntu version).

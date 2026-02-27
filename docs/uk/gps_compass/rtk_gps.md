@@ -152,7 +152,6 @@ This should be set by default, but if not, follow the [MAVLink2 configuration in
    ![survey-in](../../assets/qgc/setup/rtk/qgc_rtk_survey-in.png)
 
 4. Після завершення опитування:
-
    - The RTK GPS icon changes to white and _QGroundControl_ starts to stream position data to the vehicle:
 
      ![RTK streaming](../../assets/qgc/setup/rtk/qgc_rtk_streaming.png)

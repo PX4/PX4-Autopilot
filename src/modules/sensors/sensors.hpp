@@ -91,9 +91,11 @@
 using namespace sensors;
 using namespace time_literals;
 
-class Sensors : public ModuleBase<Sensors>, public ModuleParams, public px4::ScheduledWorkItem
+class Sensors : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+	static Descriptor desc;
+
 	explicit Sensors(bool hil_enabled);
 	~Sensors() override;
 

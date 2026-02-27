@@ -1,6 +1,70 @@
+---
+pageClass: is-wide-page
+---
+
 # TransponderReport (UORB message)
 
-[source file](https://github.com/PX4/PX4-Autopilot/blob/main/msg/TransponderReport.msg)
+**TOPICS:** transponder_report
+
+## Fields
+
+| Name          | Type        | Unit [Frame] | Range/Enum | Description                                                    |
+| ------------- | ----------- | ------------ | ---------- | -------------------------------------------------------------- |
+| timestamp     | `uint64`    |              |            | time since system start (microseconds)                         |
+| icao_address  | `uint32`    |              |            | ICAO address                                                   |
+| lat           | `float64`   |              |            | Latitude, expressed as degrees                                 |
+| lon           | `float64`   |              |            | Longitude, expressed as degrees                                |
+| altitude_type | `uint8`     |              |            | Type from ADSB_ALTITUDE_TYPE enum                              |
+| altitude      | `float32`   |              |            | Altitude(ASL) in meters                                        |
+| heading       | `float32`   |              |            | Course over ground in radians, 0 to 2pi, 0 is north            |
+| hor_velocity  | `float32`   |              |            | The horizontal velocity in m/s                                 |
+| ver_velocity  | `float32`   |              |            | The vertical velocity in m/s, positive is up                   |
+| callsign      | `char[9]`   |              |            | The callsign, 8+null                                           |
+| emitter_type  | `uint8`     |              |            | Type from ADSB_EMITTER_TYPE enum                               |
+| tslc          | `uint8`     |              |            | Time since last communication in seconds                       |
+| flags         | `uint16`    |              |            | Flags to indicate various statuses including valid data fields |
+| squawk        | `uint16`    |              |            | Squawk code                                                    |
+| uas_id        | `uint8[18]` |              |            | Unique UAS ID                                                  |
+
+## Constants
+
+| Name                                                                                  | Type     | Value | Description |
+| ------------------------------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#PX4_ADSB_FLAGS_VALID_COORDS"></a> PX4_ADSB_FLAGS_VALID_COORDS                 | `uint16` | 1     |
+| <a id="#PX4_ADSB_FLAGS_VALID_ALTITUDE"></a> PX4_ADSB_FLAGS_VALID_ALTITUDE             | `uint16` | 2     |
+| <a id="#PX4_ADSB_FLAGS_VALID_HEADING"></a> PX4_ADSB_FLAGS_VALID_HEADING               | `uint16` | 4     |
+| <a id="#PX4_ADSB_FLAGS_VALID_VELOCITY"></a> PX4_ADSB_FLAGS_VALID_VELOCITY             | `uint16` | 8     |
+| <a id="#PX4_ADSB_FLAGS_VALID_CALLSIGN"></a> PX4_ADSB_FLAGS_VALID_CALLSIGN             | `uint16` | 16    |
+| <a id="#PX4_ADSB_FLAGS_VALID_SQUAWK"></a> PX4_ADSB_FLAGS_VALID_SQUAWK                 | `uint16` | 32    |
+| <a id="#PX4_ADSB_FLAGS_RETRANSLATE"></a> PX4_ADSB_FLAGS_RETRANSLATE                   | `uint16` | 256   |
+| <a id="#ADSB_EMITTER_TYPE_NO_INFO"></a> ADSB_EMITTER_TYPE_NO_INFO                     | `uint16` | 0     |
+| <a id="#ADSB_EMITTER_TYPE_LIGHT"></a> ADSB_EMITTER_TYPE_LIGHT                         | `uint16` | 1     |
+| <a id="#ADSB_EMITTER_TYPE_SMALL"></a> ADSB_EMITTER_TYPE_SMALL                         | `uint16` | 2     |
+| <a id="#ADSB_EMITTER_TYPE_LARGE"></a> ADSB_EMITTER_TYPE_LARGE                         | `uint16` | 3     |
+| <a id="#ADSB_EMITTER_TYPE_HIGH_VORTEX_LARGE"></a> ADSB_EMITTER_TYPE_HIGH_VORTEX_LARGE | `uint16` | 4     |
+| <a id="#ADSB_EMITTER_TYPE_HEAVY"></a> ADSB_EMITTER_TYPE_HEAVY                         | `uint16` | 5     |
+| <a id="#ADSB_EMITTER_TYPE_HIGHLY_MANUV"></a> ADSB_EMITTER_TYPE_HIGHLY_MANUV           | `uint16` | 6     |
+| <a id="#ADSB_EMITTER_TYPE_ROTOCRAFT"></a> ADSB_EMITTER_TYPE_ROTOCRAFT                 | `uint16` | 7     |
+| <a id="#ADSB_EMITTER_TYPE_UNASSIGNED"></a> ADSB_EMITTER_TYPE_UNASSIGNED               | `uint16` | 8     |
+| <a id="#ADSB_EMITTER_TYPE_GLIDER"></a> ADSB_EMITTER_TYPE_GLIDER                       | `uint16` | 9     |
+| <a id="#ADSB_EMITTER_TYPE_LIGHTER_AIR"></a> ADSB_EMITTER_TYPE_LIGHTER_AIR             | `uint16` | 10    |
+| <a id="#ADSB_EMITTER_TYPE_PARACHUTE"></a> ADSB_EMITTER_TYPE_PARACHUTE                 | `uint16` | 11    |
+| <a id="#ADSB_EMITTER_TYPE_ULTRA_LIGHT"></a> ADSB_EMITTER_TYPE_ULTRA_LIGHT             | `uint16` | 12    |
+| <a id="#ADSB_EMITTER_TYPE_UNASSIGNED2"></a> ADSB_EMITTER_TYPE_UNASSIGNED2             | `uint16` | 13    |
+| <a id="#ADSB_EMITTER_TYPE_UAV"></a> ADSB_EMITTER_TYPE_UAV                             | `uint16` | 14    |
+| <a id="#ADSB_EMITTER_TYPE_SPACE"></a> ADSB_EMITTER_TYPE_SPACE                         | `uint16` | 15    |
+| <a id="#ADSB_EMITTER_TYPE_UNASSGINED3"></a> ADSB_EMITTER_TYPE_UNASSGINED3             | `uint16` | 16    |
+| <a id="#ADSB_EMITTER_TYPE_EMERGENCY_SURFACE"></a> ADSB_EMITTER_TYPE_EMERGENCY_SURFACE | `uint16` | 17    |
+| <a id="#ADSB_EMITTER_TYPE_SERVICE_SURFACE"></a> ADSB_EMITTER_TYPE_SERVICE_SURFACE     | `uint16` | 18    |
+| <a id="#ADSB_EMITTER_TYPE_POINT_OBSTACLE"></a> ADSB_EMITTER_TYPE_POINT_OBSTACLE       | `uint16` | 19    |
+| <a id="#ADSB_EMITTER_TYPE_ENUM_END"></a> ADSB_EMITTER_TYPE_ENUM_END                   | `uint16` | 20    |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                       | `uint8`  | 16    |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/TransponderReport.msg)
+
+::: details Click here to see original file
 
 ```c
 uint64 timestamp	# time since system start (microseconds)
@@ -53,5 +117,6 @@ uint16 ADSB_EMITTER_TYPE_POINT_OBSTACLE=19
 uint16 ADSB_EMITTER_TYPE_ENUM_END=20
 
 uint8 ORB_QUEUE_LENGTH = 16
-
 ```
+
+:::

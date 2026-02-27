@@ -49,9 +49,11 @@ namespace events
 extern "C" __EXPORT int send_event_main(int argc, char *argv[]);
 
 /** @class SendEvent The SendEvent class manages the RC loss audible alarm, LED status display, and thermal calibration. */
-class SendEvent : public ModuleBase<SendEvent>, public ModuleParams, public px4::ScheduledWorkItem
+class SendEvent : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
+
+	static Descriptor desc;
 
 	SendEvent();
 
