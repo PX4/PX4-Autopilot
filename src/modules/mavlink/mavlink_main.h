@@ -83,6 +83,7 @@
 #include "mavlink_events.h"
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
+#include "mavlink_sign_control.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
@@ -120,6 +121,7 @@ public:
 	{
 		_task_should_exit.store(true);
 		_receiver.request_stop();
+		_sign_control.write_key_and_timestamp();
 	}
 
 	void display_status();
@@ -134,6 +136,7 @@ public:
 
 	mavlink_message_t *get_buffer() { return &_mavlink_buffer; }
 	mavlink_status_t *get_status() { return &_mavlink_status; }
+	static Mavlink *get_instance_for_status(const mavlink_status_t *status);
 
 	void setProtocolVersion(uint8_t version);
 	uint8_t getProtocolVersion() const { return _protocol_version; };
@@ -142,8 +145,8 @@ public:
 	static int get_status_all_instances(bool show_streams_status);
 	static bool serial_instance_exists(const char *device_name, Mavlink *self);
 
-	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
 	static void forward_message(const mavlink_message_t *msg, Mavlink *self);
+	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
 
 	bool check_events() const { return _should_check_events.load(); }
 	void check_events_enable() { _should_check_events.store(true); }
@@ -467,6 +470,7 @@ public:
 	bool ftp_enabled() const { return _ftp_on; }
 
 	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
+	int32_t sign_mode() const { return _param_mav_sign_mode.get(); }
 	bool forward_heartbeats_enabled() const { return _param_mav_hb_forw_en.get(); }
 
 	bool failure_injection_enabled() const { return _param_sys_failure_injection_enabled.get(); }
@@ -490,8 +494,13 @@ public:
 
 	bool radio_status_critical() const { return _radio_status_critical; }
 
+	bool accept_unsigned(int32_t sign_mode, bool is_usb_uart, uint32_t message_id) { return _sign_control.accept_unsigned(sign_mode, is_usb_uart, message_id); }
+
+
 private:
 	MavlinkReceiver 	_receiver;
+
+	MavlinkSignControl	_sign_control{};
 
 	int			_instance_id{-1};
 	int			_task_id{-1};
@@ -632,6 +641,7 @@ private:
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
+		(ParamInt<px4::params::MAV_SIGN_MODE>) _param_mav_sign_mode,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl,
