@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *       Author: David Sidrane <david.sidrane@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +32,72 @@
  *
  ****************************************************************************/
 
-/**
- * @file uart.h
+#include <nuttx/config.h>
+#include "arm_internal.h"
+#include "chip.h"
+
+#include "nvic.h"
+
+#include "stm32_wdg.h"
+
+/****************************************************************************
+ * Name: watchdog_pet()
  *
- * UART bootloader definitions.
- */
+ * Description:
+ *   This function resets the Independent watchdog (IWDG)
+ *
+ *
+ * Input Parameters:
+ *   none.
+ *
+ * Returned value:
+ *   none.
+ *
+ ****************************************************************************/
 
-#pragma once
+void watchdog_pet(void)
+{
+	putreg32(IWDG_KR_KEY_RELOAD, STM32_IWDG_KR);
+}
 
-extern void uart_cinit(void *config);
-extern void uart2_cinit(void *config);
-extern void uart_cfini(void);
-extern void uart2_cfini(void);
-extern int uart_cin(void);
-extern int uart2_cin(void);
-extern void uart_cout(uint8_t *buf, unsigned len);
-extern void uart2_cout(uint8_t *buf, unsigned len);
+/****************************************************************************
+ * Name: watchdog_init()
+ *
+ * Description:
+ *   This function initialize the Independent watchdog (IWDG)
+ *
+ *
+ * Input Parameters:
+ *   none.
+ *
+ * Returned value:
+ *   none.
+ *
+ ****************************************************************************/
+
+void watchdog_init(void)
+{
+#if defined(CONFIG_STM32H7_JTAG_FULL_ENABLE) || \
+    defined(CONFIG_STM32H7_JTAG_NOJNTRST_ENABLE) || \
+    defined(CONFIG_STM32H7_JTAG_SW_ENABLE)
+	putreg32(getreg32(STM32_DBGMCU_APB1_FZ) | DBGMCU_APB1_IWDGSTOP, STM32_DBGMCU_APB1_FZ);
+#endif
+
+	/* unlock */
+
+	putreg32(IWDG_KR_KEY_ENABLE, STM32_IWDG_KR);
+
+	/* Set the prescale value */
+
+	putreg32(IWDG_PR_DIV16, STM32_IWDG_PR);
+
+	/* Set the reload value */
+
+	putreg32(IWDG_RLR_MAX, STM32_IWDG_RLR);
+
+	/* Start the watch dog */
+
+	putreg32(IWDG_KR_KEY_START, STM32_IWDG_KR);
+
+	watchdog_pet();
+}

@@ -36,9 +36,10 @@
 #include<stdio.h>
 #include<fcntl.h>
 #include<termios.h>
+#include <stdlib.h>
 //#define SERIAL_TRACE
 
-int g_uart_df = -1;
+static int g_uart_df[2] = {-1, -1};
 
 #if defined(SERIAL_TRACE)
 int in = 0;
@@ -48,11 +49,11 @@ char out_trace[254];
 #endif
 
 
-void uart_cinit(void *config)
+static void uart_cinit_port(unsigned port, void *config, const char *default_device)
 {
 	char *init =  strdup(config ? (char *) config : "");
 	char *pt = strtok((char *) init, ",");
-	char *device = "/dev/ttyS0";
+	char *device = (char *)default_device;
 	int baud = 115200;
 
 	if (pt != NULL) {
@@ -68,32 +69,55 @@ void uart_cinit(void *config)
 
 	if (fd >= 0) {
 
-		g_uart_df = fd;
+		g_uart_df[port] = fd;
 		struct termios t;
 
-		tcgetattr(g_uart_df, &t);
+		tcgetattr(g_uart_df[port], &t);
 		t.c_cflag &= ~(CSIZE | PARENB | CSTOPB);
 		t.c_cflag |= (CS8);
 		cfsetspeed(&t, baud);
-		tcsetattr(g_uart_df, TCSANOW, &t);
+		tcsetattr(g_uart_df[port], TCSANOW, &t);
 	}
 
 	free(init);
 }
 
+void uart_cinit(void *config)
+{
+	uart_cinit_port(0, config, "/dev/ttyS0");
+}
+
+void uart2_cinit(void *config)
+{
+	uart_cinit_port(1, config, "/dev/ttyS1");
+}
+
+static void uart_cfini_port(unsigned port)
+{
+	if (g_uart_df[port] >= 0) {
+		close(g_uart_df[port]);
+		g_uart_df[port] = -1;
+	}
+}
+
 void uart_cfini(void)
 {
-	close(g_uart_df);
-	g_uart_df = -1;
+	uart_cfini_port(0);
 }
-int uart_cin(void)
+
+void uart2_cfini(void)
+{
+	uart_cfini_port(1);
+}
+
+static int uart_cin_port(unsigned port)
 {
 	int c = -1;
 
-	if (g_uart_df >= 0) {
+	if (g_uart_df[port] >= 0) {
 		char b;
 
-		if (read(g_uart_df, &b, 1) == 1) {
+		if (read(g_uart_df[port], &b, 1) == 1) {
 			c = b;
 #if defined(SERIAL_TRACE)
 			in_trace[in] = b;
@@ -105,13 +129,28 @@ int uart_cin(void)
 
 	return c;
 }
-void uart_cout(uint8_t *buf, unsigned len)
+
+int uart_cin(void)
 {
+	return uart_cin_port(0);
+}
+
+int uart2_cin(void)
+{
+	return uart_cin_port(1);
+}
+
+static void uart_cout_port(unsigned port, uint8_t *buf, unsigned len)
+{
+	if (g_uart_df[port] < 0) {
+		return;
+	}
+
 	uint32_t timeout = 1000;
 
 	for (unsigned i = 0; i  < len; i++) {
 		while (timeout) {
-			if (write(g_uart_df, &buf[i], 1) == 1) {
+			if (write(g_uart_df[port], &buf[i], 1) == 1) {
 #if defined(SERIAL_TRACE)
 				out_trace[out] = buf[i];
 				out++;
@@ -127,4 +166,14 @@ void uart_cout(uint8_t *buf, unsigned len)
 			}
 		}
 	}
+}
+
+void uart_cout(uint8_t *buf, unsigned len)
+{
+	uart_cout_port(0, buf, len);
+}
+
+void uart2_cout(uint8_t *buf, unsigned len)
+{
+	uart_cout_port(1, buf, len);
 }
