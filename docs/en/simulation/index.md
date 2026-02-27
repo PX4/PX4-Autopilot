@@ -186,6 +186,52 @@ See [System Startup](../concept/system_startup.md) for more information.
 
 [Simulate Failsafes](../simulation/failsafes.md) explains how to trigger safety failsafes like GPS failure and battery drain.
 
+### Environment Configuration
+
+SITL simulation behaviour can be configured using the following environment variables.
+These can be specified inline, before the `make` command, or set for the environment using `export`.
+
+::: info
+For Gazebo-specific environment variables (such as `PX4_GZ_WORLD`, `PX4_GZ_STANDALONE`, etc.), see [Gazebo > Usage/Configuration Options](../sim_gazebo_gz/index.md#usage-configuration-options).
+:::
+
+- `PX4_SIM_SPEED_FACTOR`:
+  Sets the speed factor to run the simulation at faster or slower than realtime.
+  For example, to run Gazebo simulation at two times the speed factor:
+
+  ```sh
+  PX4_SIM_SPEED_FACTOR=2 make px4_sitl gz_x500
+  ```
+
+  For more information see [Run Simulation Faster than Realtime](#simulation_speed).
+
+- `PX4_PARAM_{name}={value}`:
+  Overrides any [PX4 parameter](../advanced_config/parameter_reference.md) for the simulation session.
+  For example, to switch from EKF2 to the attitude estimator:
+
+  ```sh
+  export PX4_PARAM_EKF2_EN=0
+  export PX4_PARAM_ATT_EN=1
+  ```
+
+- `PX4_NET_INTERFACE`:
+  Binds all MAVLink connections to a specific network interface (e.g. `eth0`).
+  This is useful when running simulations in containerized environments (e.g. Docker) or on systems with multiple network interfaces where you need MAVLink traffic to use a particular interface.
+
+  ```sh
+  export PX4_NET_INTERFACE=eth0
+  make px4_sitl gz_x500
+  ```
+
+  Or inline with the make command:
+
+  ```sh
+  PX4_NET_INTERFACE=eth0 make px4_sitl gz_x500
+  ```
+
+  This sets the `-n` flag on all `mavlink start` commands in [/ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/px4-rc.mavlink), binding MAVLink to the specified interface.
+  When `PX4_NET_INTERFACE` is not set, MAVLink binds to all interfaces (default behaviour).
+
 ## HITL Simulation Environment
 
 With Hardware-in-the-Loop (HITL) simulation the normal PX4 firmware is run on real hardware.
