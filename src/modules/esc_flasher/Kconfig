@@ -1,0 +1,5 @@
+menuconfig MODULES_ESC_FLASHER
+	bool "esc_flasher"
+	default n
+	---help---
+		Enable support for ESC Flasher module
