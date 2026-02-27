@@ -54,12 +54,14 @@ constexpr const char MavlinkFTP::_root_dir[];
 MavlinkFTP::MavlinkFTP(Mavlink &mavlink) :
 	_mavlink(mavlink)
 {
+	pthread_mutex_init(&_mutex, nullptr);
 	// initialize session
 	_session_info.fd = -1;
 }
 
 MavlinkFTP::~MavlinkFTP()
 {
+	pthread_mutex_destroy(&_mutex);
 	delete[] _work_buffer1;
 	delete[] _work_buffer2;
 }
@@ -134,7 +136,9 @@ MavlinkFTP::handle_message(const mavlink_message_t *msg)
 
 		if ((ftp_request.target_system == _getServerSystemId() || ftp_request.target_system == 0) &&
 		    (ftp_request.target_component == _getServerComponentId() || ftp_request.target_component == 0)) {
+			pthread_mutex_lock(&_mutex);
 			_process_request(&ftp_request, msg->sysid, msg->compid);
+			pthread_mutex_unlock(&_mutex);
 		}
 	}
 }
@@ -176,7 +180,10 @@ MavlinkFTP::_process_request(
 #ifdef MAVLINK_FTP_UNIT_TEST
 			_utRcvMsgFunc(last_reply, _worker_data);
 #else
-			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), last_reply);
+			mavlink_message_t encoded;
+			mavlink_msg_file_transfer_protocol_encode_chan(mavlink_system.sysid, mavlink_system.compid,
+					_mavlink.get_channel(), &encoded, last_reply);
+			_mavlink.enqueue_tx(encoded);
 #endif
 			return;
 		}
@@ -336,7 +343,10 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	// Unit test hook is set, call that instead
 	_utRcvMsgFunc(ftp_req, _worker_data);
 #else
-	mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), ftp_req);
+	mavlink_message_t encoded;
+	mavlink_msg_file_transfer_protocol_encode_chan(mavlink_system.sysid, mavlink_system.compid,
+			_mavlink.get_channel(), &encoded, ftp_req);
+	_mavlink.enqueue_tx(encoded);
 #endif
 
 }
@@ -1012,6 +1022,7 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 
 void MavlinkFTP::send()
 {
+	pthread_mutex_lock(&_mutex);
 
 	if (_work_buffer1 || _work_buffer2) {
 		// free the work buffers if they are not used for a while
@@ -1040,21 +1051,16 @@ void MavlinkFTP::send()
 
 	// Anything to stream?
 	if (!_session_info.stream_download) {
+		pthread_mutex_unlock(&_mutex);
 		return;
 	}
 
 #ifndef MAVLINK_FTP_UNIT_TEST
-	// Skip send if not enough room
-	unsigned max_bytes_to_send = _mavlink.get_free_tx_buf();
-	PX4_DEBUG("MavlinkFTP::send max_bytes_to_send(%u) get_free_tx_buf(%u)", max_bytes_to_send, _mavlink.get_free_tx_buf());
-
-	if (max_bytes_to_send < get_size()) {
-		return;
-	}
-
+	// Limit burst: up to ~35K per send() cycle, enforced by stream_chunk_transmitted below
+	unsigned burst_bytes_remaining = 35000;
 #endif
 
-	// Send stream packets until buffer is full
+	// Send stream packets until burst limit reached
 
 	bool more_data;
 
@@ -1119,22 +1125,19 @@ void MavlinkFTP::send()
 		} else {
 #ifndef MAVLINK_FTP_UNIT_TEST
 
-			if (max_bytes_to_send < (get_size() * 2)) {
+			/* perform transfers in 35K chunks - this is determined empirical */
+			if (_session_info.stream_chunk_transmitted > 35000 || burst_bytes_remaining < get_size()) {
+				payload->burst_complete = true;
+				_session_info.stream_download = false;
+				_session_info.stream_chunk_transmitted = 0;
 				more_data = false;
 
-				/* perform transfers in 35K chunks - this is determined empirical */
-				if (_session_info.stream_chunk_transmitted > 35000) {
-					payload->burst_complete = true;
-					_session_info.stream_download = false;
-					_session_info.stream_chunk_transmitted = 0;
-				}
-
 			} else {
+				burst_bytes_remaining -= get_size();
 #endif
 				more_data = true;
 				payload->burst_complete = false;
 #ifndef MAVLINK_FTP_UNIT_TEST
-				max_bytes_to_send -= get_size();
 			}
 
 #endif
@@ -1145,6 +1148,8 @@ void MavlinkFTP::send()
 		ftp_msg.target_component = _session_info.stream_target_component_id;
 		_reply(&ftp_msg);
 	} while (more_data);
+
+	pthread_mutex_unlock(&_mutex);
 }
 
 bool MavlinkFTP::_validatePathIsWritable(const char *path)

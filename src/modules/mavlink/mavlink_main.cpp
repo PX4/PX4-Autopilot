@@ -1312,13 +1312,16 @@ Mavlink::update_rate_mult()
 		mavlink_ulog_streaming_rate_inv = 1.0f - _mavlink_ulog->current_data_rate();
 	}
 
-	/* scale up and down as the link permits */
-	float bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
-
-	/* Reduce rate while sending parameters in low bandwidth mode */
-	if (sending_parameters() && _mode == Mavlink::MAVLINK_MODE_LOW_BANDWIDTH) {
-		bandwidth_mult = fminf(bandwidth_mult, 0.25f);
+	/* Update service traffic EMA from last cycle */
+	{
+		const float dt = _main_loop_delay * 1e-6f;
+		const float current_service_rate = (dt > 0.f) ? (_service_bytes_this_window / dt) : 0.f;
+		_service_rate_avg = 0.5f * _service_rate_avg + 0.5f * current_service_rate;
+		_service_bytes_this_window = 0;
 	}
+
+	/* scale up and down as the link permits, subtracting service traffic */
+	float bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate - _service_rate_avg) / rate;
 
 	/* if we do not have flow control, limit to the set data rate */
 	if (!get_flow_control_enabled()) {
@@ -2288,6 +2291,12 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 	}
 
+	/* initialize service TX queue for bandwidth-managed service sends */
+	if (!_tx_queue.init()) {
+		PX4_ERR("tx queue alloc fail");
+		return PX4_ERROR;
+	}
+
 	/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
 	_transmitting_enabled = true;
 	_transmitting_enabled_commanded = true;
@@ -2428,6 +2437,16 @@ Mavlink::task_main(int argc, char *argv[])
 					}
 				}
 			}
+		}
+
+		/* run service state machines (may enqueue messages) */
+		_receiver.service_send_cycle();
+
+		/* drain service TX queue with bandwidth budget */
+		{
+			const float cycle_sec = _main_loop_delay * 1e-6f;
+			const unsigned total_budget = (unsigned)(_datarate * cycle_sec);
+			_service_bytes_this_window += _tx_queue.drain(*this, total_budget);
 		}
 
 		/* check for ulog streaming messages */

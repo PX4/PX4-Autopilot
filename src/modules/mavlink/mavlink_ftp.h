@@ -37,6 +37,7 @@
 ///     @author px4dev, Don Gagne <don@thegagnes.com>
 
 #include <dirent.h>
+#include <pthread.h>
 #include <queue.h>
 
 #include <px4_platform_common/defines.h>
@@ -187,6 +188,7 @@ private:
 	void			*_worker_data{nullptr};	///< Additional parameter to _utRcvMsgFunc;
 
 	Mavlink &_mavlink;
+	pthread_mutex_t _mutex{};
 
 	/* do not allow copying this class */
 	MavlinkFTP(const MavlinkFTP &);

@@ -1743,7 +1743,10 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 
 		ping.target_system = msg->sysid;
 		ping.target_component = msg->compid;
-		mavlink_msg_ping_send_struct(_mavlink.get_channel(), &ping);
+		mavlink_message_t encoded;
+		mavlink_msg_ping_encode_chan(mavlink_system.sysid, mavlink_system.compid,
+					     _mavlink.get_channel(), &encoded, &ping);
+		_mavlink.enqueue_tx(encoded);
 
 	} else if ((ping.target_system == mavlink_system.sysid) &&
 		   (ping.target_component ==
@@ -2318,8 +2321,14 @@ MavlinkReceiver::get_message_interval(int msgId)
 		}
 	}
 
-	// send back this value...
-	mavlink_msg_message_interval_send(_mavlink.get_channel(), msgId, interval);
+	// encode and queue this value
+	mavlink_message_interval_t mi{};
+	mi.message_id = msgId;
+	mi.interval_us = interval;
+	mavlink_message_t encoded;
+	mavlink_msg_message_interval_encode_chan(mavlink_system.sysid, mavlink_system.compid,
+			_mavlink.get_channel(), &encoded, &mi);
+	_mavlink.enqueue_tx(encoded);
 }
 
 void
@@ -3161,6 +3170,24 @@ void MavlinkReceiver::handle_message_open_drone_id_system(
 
 	_open_drone_id_system_pub.publish(odid_system);
 }
+
+void
+MavlinkReceiver::service_send_cycle()
+{
+	_mission_manager.check_active_mission();
+	_mission_manager.send();
+
+	if (_mavlink.get_mode() != Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM) {
+		_parameters_manager.send();
+	}
+
+	if (_mavlink.ftp_enabled()) {
+		_mavlink_ftp.send();
+	}
+
+	_mavlink_log_handler.send();
+}
+
 void
 MavlinkReceiver::run()
 {
@@ -3205,7 +3232,6 @@ MavlinkReceiver::run()
 #endif // MAVLINK_UDP
 
 	ssize_t nread = 0;
-	hrt_abstime last_send_update = 0;
 
 	while (!_should_exit.load()) {
 
@@ -3334,22 +3360,8 @@ MavlinkReceiver::run()
 
 		CheckHeartbeats(t);
 
-		if (t - last_send_update > timeout * 1000) {
-			_mission_manager.check_active_mission();
-			_mission_manager.send();
-
-			if (_mavlink.get_mode() != Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM) {
-				_parameters_manager.send();
-				_mavlink.set_sending_parameters(_parameters_manager.send_active());
-			}
-
-			if (_mavlink.ftp_enabled()) {
-				_mavlink_ftp.send();
-			}
-
-			_mavlink_log_handler.send();
-			last_send_update = t;
-		}
+		// Service send() calls have been moved to the TX thread
+		// (Mavlink::task_main -> service_send_cycle)
 
 		if (_tune_publisher != nullptr) {
 			_tune_publisher->publish_next_tune(t);

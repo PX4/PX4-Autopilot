@@ -119,6 +119,7 @@ px4_add_module(
 		mavlink_simple_analyzer.cpp
 		mavlink_stream.cpp
 		mavlink_timesync.cpp
+		mavlink_tx_queue.cpp
 		mavlink_ulog.cpp
 		MavlinkStatustextHandler.cpp
 		open_drone_id_translations.cpp

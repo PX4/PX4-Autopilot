@@ -42,6 +42,7 @@
 
 #pragma once
 
+#include <pthread.h>
 #include <parameters/param.h>
 
 #include "mavlink_bridge_header.h"
@@ -65,7 +66,7 @@ class MavlinkParametersManager
 {
 public:
 	explicit MavlinkParametersManager(Mavlink &mavlink);
-	~MavlinkParametersManager() = default;
+	~MavlinkParametersManager() { pthread_mutex_destroy(&_mutex); }
 
 	/**
 	 * Handle sending of messages. Call this regularly at a fixed frequency.
@@ -179,6 +180,7 @@ protected:
 	int _param_update_index{0};
 
 	Mavlink &_mavlink;
+	pthread_mutex_t _mutex{};
 
 	hrt_abstime _last_param_sent{0};
 

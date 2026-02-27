@@ -56,10 +56,13 @@ static const char *kLogDir = PX4_STORAGEDIR "/log";
 
 MavlinkLogHandler::MavlinkLogHandler(Mavlink &mavlink)
 	: _mavlink(mavlink)
-{}
+{
+	pthread_mutex_init(&_mutex, nullptr);
+}
 
 MavlinkLogHandler::~MavlinkLogHandler()
 {
+	pthread_mutex_destroy(&_mutex);
 	perf_free(_create_file_elapsed);
 	perf_free(_listing_elapsed);
 
@@ -73,6 +76,8 @@ MavlinkLogHandler::~MavlinkLogHandler()
 
 void MavlinkLogHandler::send()
 {
+	pthread_mutex_lock(&_mutex);
+
 	switch (_state) {
 	case LogHandlerState::Idle: {
 			state_idle();
@@ -89,10 +94,14 @@ void MavlinkLogHandler::send()
 			break;
 		}
 	}
+
+	pthread_mutex_unlock(&_mutex);
 }
 
 void MavlinkLogHandler::handle_message(const mavlink_message_t *msg)
 {
+	pthread_mutex_lock(&_mutex);
+
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_LOG_REQUEST_LIST:
 		handle_log_request_list(msg);
@@ -110,6 +119,8 @@ void MavlinkLogHandler::handle_message(const mavlink_message_t *msg)
 		handle_log_erase(msg);
 		break;
 	}
+
+	pthread_mutex_unlock(&_mutex);
 }
 
 void MavlinkLogHandler::state_idle()
@@ -132,12 +143,6 @@ void MavlinkLogHandler::state_idle()
 
 void MavlinkLogHandler::state_listing()
 {
-	static constexpr uint32_t MAVLINK_PACKET_SIZE = MAVLINK_NUM_NON_PAYLOAD_BYTES + MAVLINK_MSG_ID_LOG_ENTRY_LEN;
-
-	if (_mavlink.get_free_tx_buf() <= MAVLINK_PACKET_SIZE) {
-		return;
-	}
-
 	DIR *dp = opendir(kLogDir);
 
 	if (!dp) {
@@ -183,8 +188,8 @@ void MavlinkLogHandler::state_listing()
 		bytes_sent += sizeof(mavlink_log_entry_t);
 		_list_request.current_id++;
 
-		// Yield if we've exceed mavlink burst or buffer limit
-		if (_mavlink.get_free_tx_buf() <= MAVLINK_PACKET_SIZE || bytes_sent >= MAX_BYTES_BURST) {
+		// Yield if we've exceeded burst limit
+		if (bytes_sent >= MAX_BYTES_BURST) {
 			_list_request.file_index = ftell(fp);
 			fclose(fp);
 			closedir(dp);
@@ -208,7 +213,7 @@ void MavlinkLogHandler::state_sending_data()
 	static constexpr uint32_t MAVLINK_PACKET_SIZE = MAVLINK_NUM_NON_PAYLOAD_BYTES + MAVLINK_MSG_ID_LOG_DATA_LEN;
 	size_t bytes_sent = 0;
 
-	while (_mavlink.get_free_tx_buf() > MAVLINK_PACKET_SIZE && bytes_sent < MAX_BYTES_BURST) {
+	while (bytes_sent < MAX_BYTES_BURST) {
 
 		// Only seek if we need to
 		long int offset = _current_entry.offset - ftell(_current_entry.fp);
@@ -239,7 +244,10 @@ void MavlinkLogHandler::state_sending_data()
 		msg.id = _current_entry.id;
 		msg.ofs = _current_entry.offset;
 
-		mavlink_msg_log_data_send_struct(_mavlink.get_channel(), &msg);
+		mavlink_message_t encoded;
+		mavlink_msg_log_data_encode_chan(mavlink_system.sysid, mavlink_system.compid,
+						 _mavlink.get_channel(), &encoded, &msg);
+		_mavlink.enqueue_tx(encoded);
 
 		bytes_sent += MAVLINK_PACKET_SIZE;
 		_current_entry.offset += msg.count;
@@ -475,7 +483,10 @@ void MavlinkLogHandler::send_log_entry(uint32_t time_utc, uint32_t size_bytes)
 	msg.id           = _list_request.current_id;
 	msg.num_logs     = _num_logs;
 	msg.last_log_num = _list_request.last_id;
-	mavlink_msg_log_entry_send_struct(_mavlink.get_channel(), &msg);
+	mavlink_message_t encoded;
+	mavlink_msg_log_entry_encode_chan(mavlink_system.sysid, mavlink_system.compid,
+					  _mavlink.get_channel(), &encoded, &msg);
+	_mavlink.enqueue_tx(encoded);
 }
 
 bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
