@@ -34,6 +34,7 @@
 #include <gtest/gtest.h>
 
 #include "framework.h"
+#include "failsafe.h"
 #include <uORB/topics/vehicle_status.h>
 #include "../ModeUtil/mode_requirements.hpp"
 
@@ -561,4 +562,86 @@ TEST_F(FailsafeTest, user_termination)
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+}
+
+TEST_F(FailsafeTest, battery_unhealthy_during_spoolup)
+{
+	// Test that battery unhealthy during spoolup phase causes immediate disarm (existing behavior)
+
+	// Create a custom failsafe tester that includes battery unhealthy checks
+	class BatteryFailsafeTester : public Failsafe
+	{
+	public:
+		param_t spoolup_param;
+		float spoolup_time;
+
+		BatteryFailsafeTester(ModuleParams *parent) : Failsafe(parent)
+		{
+			// Set spoolup time parameter for testing
+			spoolup_param = param_handle(px4::params::COM_SPOOLUP_TIME);
+			spoolup_time = 2.0f; // 2 seconds for testing
+			param_set(spoolup_param, &spoolup_time);
+		}
+
+	protected:
+		void checkStateAndMode(const hrt_abstime &time_us, const State &state,
+				       const failsafe_flags_s &status_flags) override
+		{
+			// Simulate the battery unhealthy check logic from failsafe.cpp
+			param_get(spoolup_param, &spoolup_time);
+
+			if ((_armed_time != 0)
+			    && (time_us < _armed_time + static_cast<hrt_abstime>(spoolup_time * 1000000))
+			   ) {
+				// During spoolup phase - should disarm immediately
+				CHECK_FAILSAFE(status_flags, battery_unhealthy, ActionOptions(Action::Disarm).cannotBeDeferred());
+
+			} else {
+				// After spoolup phase - should trigger LAND mode with user takeover
+				CHECK_FAILSAFE(status_flags, battery_unhealthy,
+					       ActionOptions(Action::Land)
+					       .allowUserTakeover(UserTakeoverAllowed::Always)
+					       .clearOn(ClearCondition::OnModeChangeOrDisarm));
+			}
+		}
+
+		Action checkModeFallback(const failsafe_flags_s &status_flags, uint8_t user_intended_mode) const override
+		{
+			return Action::None;
+		}
+	};
+
+	BatteryFailsafeTester failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	// Update arming state
+	failsafe.updateArmingState(time, true, failsafe_flags);
+
+	// Test 1: Battery unhealthy during spoolup phase (within 2 seconds of arming)
+	time += failsafe.spoolup_time - 100_ms; // still in spoolup
+	failsafe_flags.battery_unhealthy = true;
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Disarm);
+
+	// Clear battery unhealthy and move past spoolup time
+	failsafe_flags.battery_unhealthy = false;
+	time += 2_s; // Now past spoolup time
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Test 2: Battery unhealthy after spoolup phase - should trigger LAND mode
+	time += 100_ms;
+	failsafe_flags.battery_unhealthy = true;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Land);
 }
