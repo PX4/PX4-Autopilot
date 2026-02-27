@@ -170,7 +170,9 @@ int MspV1::Receive(uint8_t *payload, uint8_t *message_id)
 		}
 
 		while (bytes_available > 4) {
-			if ((ret = read(_fd, header, 1)) != 1) {
+			ret = read(_fd, header, 1);
+
+			if (ret != 1) {
 				return ret;
 			}
 
@@ -186,7 +188,9 @@ int MspV1::Receive(uint8_t *payload, uint8_t *message_id)
 			return -EWOULDBLOCK;
 		}
 
-		if ((ret = read(_fd, &header[1], 4)) != 4) {
+		ret = read(_fd, &header[1], 4);
+
+		if (ret != 4) {
 			return ret;
 		}
 
@@ -198,7 +202,9 @@ int MspV1::Receive(uint8_t *payload, uint8_t *message_id)
 	payload_size = header[3];
 	*message_id = header[4];
 
-	if ((ret = read(_fd, payload, payload_size + MSP_CRC_SIZE)) != payload_size + MSP_CRC_SIZE) {
+	ret = read(_fd, payload, payload_size + MSP_CRC_SIZE);
+
+	if (ret != payload_size + MSP_CRC_SIZE) {
 		if (ret != -EWOULDBLOCK) {
 			has_header = false;
 		}

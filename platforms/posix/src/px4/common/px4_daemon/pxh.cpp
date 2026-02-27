@@ -209,9 +209,9 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 		if (fds[0].revents & POLLIN) {
 
 			uint8_t buffer[512];
-			size_t len;
+			size_t len = read(pipe_stderr, buffer, sizeof(buffer));
 
-			if ((len = read(pipe_stderr, buffer, sizeof(buffer))) <= 0) {
+			if (len <= 0) {
 				break; //EOF or ERROR
 			}
 
@@ -233,9 +233,9 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 		if (fds[1].revents & POLLIN) {
 
 			uint8_t buffer[512];
-			size_t len;
+			size_t len = read(pipe_stdout, buffer, sizeof(buffer));
 
-			if ((len = read(pipe_stdout, buffer, sizeof(buffer))) <= 0) {
+			if (len <= 0) {
 				break; //EOF or ERROR
 			}
 

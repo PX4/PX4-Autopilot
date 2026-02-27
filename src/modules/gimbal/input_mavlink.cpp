@@ -182,7 +182,9 @@ InputMavlinkCmdMount::~InputMavlinkCmdMount()
 
 int InputMavlinkCmdMount::initialize()
 {
-	if ((_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command))) < 0) {
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
+	if (_vehicle_command_sub < 0) {
 		return -errno;
 	}
 
@@ -438,11 +440,15 @@ int InputMavlinkGimbalV2::initialize()
 		return -errno;
 	}
 
-	if ((_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command))) < 0) {
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
+	if (_vehicle_command_sub < 0) {
 		return -errno;
 	}
 
-	if ((_gimbal_manager_set_manual_control_sub = orb_subscribe(ORB_ID(gimbal_manager_set_manual_control))) < 0) {
+	_gimbal_manager_set_manual_control_sub = orb_subscribe(ORB_ID(gimbal_manager_set_manual_control));
+
+	if (_gimbal_manager_set_manual_control_sub < 0) {
 		return -errno;
 	}
 

@@ -128,10 +128,10 @@ bool SerialImpl::configure()
 
 	struct termios uart_config;
 
-	int termios_state;
+	int termios_state = tcgetattr(_serial_fd, &uart_config);
 
 	/* fill the struct for the new configuration */
-	if ((termios_state = tcgetattr(_serial_fd, &uart_config)) < 0) {
+	if (termios_state < 0) {
 		PX4_ERR("ERR: %d (tcgetattr)", termios_state);
 		return false;
 	}
@@ -199,17 +199,23 @@ bool SerialImpl::configure()
 	}
 
 	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+	termios_state = cfsetispeed(&uart_config, speed);
+
+	if (termios_state < 0) {
 		PX4_ERR("ERR: %d (cfsetispeed)", termios_state);
 		return false;
 	}
 
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+	termios_state = cfsetospeed(&uart_config, speed);
+
+	if (termios_state < 0) {
 		PX4_ERR("ERR: %d (cfsetospeed)", termios_state);
 		return false;
 	}
 
-	if ((termios_state = tcsetattr(_serial_fd, TCSANOW, &uart_config)) < 0) {
+	termios_state = tcsetattr(_serial_fd, TCSANOW, &uart_config);
+
+	if (termios_state < 0) {
 		PX4_ERR("ERR: %d (tcsetattr)", termios_state);
 		return false;
 	}
