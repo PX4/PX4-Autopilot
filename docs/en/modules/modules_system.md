@@ -921,6 +921,30 @@ system_power_simulation <command> [arguments...]
    status        print status info
 ```
 
+## task_watchdog
+
+Source: [modules/task_watchdog](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/task_watchdog)
+
+### Description
+
+Detects when a higher-priority task starves the system by running too long.
+When starvation is detected, dumps the offending task's registers and stack,
+and saves a cpuload snapshot.
+
+### Usage {#task_watchdog_usage}
+
+```
+task_watchdog <command> [arguments...]
+ Commands:
+   start
+
+   trigger       Manually trigger the watchdog
+
+   stop
+
+   status        print status info
+```
+
 ## tattu_can
 
 Source: [drivers/tattu_can](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/tattu_can)
