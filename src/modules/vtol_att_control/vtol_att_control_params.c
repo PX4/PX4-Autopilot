@@ -393,3 +393,26 @@ PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, 0.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_SPOILER_MC_LD, 0.f);
+
+/**
+ * Tailsitter: Disable control surfaces in hover mode
+ *
+ * Bitmask to disable specific control surfaces for attitude control in hover.
+ * Set the bit to 1 to disable the corresponding surface (e.g., surfaces outside
+ * propeller slipstream). Default 0 means all surfaces enabled.
+ *
+ * Only takes effect when VT_ELEV_MC_LOCK=0.
+ *
+ * @min 0
+ * @max 255
+ * @bit 0 Surface 0 (CA_SV_CS0)
+ * @bit 1 Surface 1 (CA_SV_CS1)
+ * @bit 2 Surface 2 (CA_SV_CS2)
+ * @bit 3 Surface 3 (CA_SV_CS3)
+ * @bit 4 Surface 4 (CA_SV_CS4)
+ * @bit 5 Surface 5 (CA_SV_CS5)
+ * @bit 6 Surface 6 (CA_SV_CS6)
+ * @bit 7 Surface 7 (CA_SV_CS7)
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_TS_CS_HVR_DIS, 0);
