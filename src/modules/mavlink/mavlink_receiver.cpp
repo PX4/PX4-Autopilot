@@ -517,7 +517,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		return;
 	}
 
-	if (cmd_mavlink.frame != MAV_FRAME_GLOBAL_INT) {
+	if (cmd_mavlink.frame != MAV_FRAME_GLOBAL && cmd_mavlink.frame != MAV_FRAME_GLOBAL_INT) {
 		// PX4 only supports global frame.
 		PX4_ERR("frame invalid for command %" PRIu16, cmd_mavlink.command);
 		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED_MAV_FRAME);
