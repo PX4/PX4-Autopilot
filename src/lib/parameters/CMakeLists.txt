@@ -223,3 +223,4 @@ if(${PX4_PLATFORM} STREQUAL "posix" OR ${PX4_PLATFORM} STREQUAL "ros2")
 endif()
 
 px4_add_functional_gtest(SRC ParameterTest.cpp LINKLIBS parameters)
+px4_add_functional_gtest(SRC DynamicSparseLayerTest.cpp LINKLIBS parameters)

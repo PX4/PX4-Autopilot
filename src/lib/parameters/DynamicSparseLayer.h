@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -144,11 +144,13 @@ public:
 
 	int size() const override
 	{
+		const AtomicTransaction transaction;
 		return _next_slot;
 	}
 
 	int byteSize() const override
 	{
+		const AtomicTransaction transaction;
 		return _n_slots * sizeof(Slot);
 	}
 
@@ -197,23 +199,25 @@ private:
 			return false;
 		}
 
+#ifdef __PX4_NUTTX
 		int max_retries = 5;
 
-		// As malloc uses locking, so we need to re-enable IRQ's during malloc/free and
-		// then atomically exchange the buffer
+		// On NuttX, malloc/free can't be called with IRQs disabled,
+		// so we unlock around them and use CAS to handle races.
 		while (_next_slot >= _n_slots && max_retries-- > 0) {
 			Slot *previous_slots = nullptr;
 			Slot *new_slots = nullptr;
 
 			do {
 				previous_slots = _slots.load();
+				int alloc_n_slots = _n_slots;
 				transaction.unlock();
 
 				if (new_slots) {
 					free(new_slots);
 				}
 
-				new_slots = (Slot *) malloc(sizeof(Slot) * (_n_slots + _n_grow));
+				new_slots = (Slot *) malloc(sizeof(Slot) * (alloc_n_slots + _n_grow));
 				transaction.lock();
 
 				if (new_slots == nullptr) {
@@ -234,6 +238,31 @@ private:
 			free(previous_slots);
 			transaction.lock();
 		}
+
+#else
+
+		// On POSIX, malloc/free work fine under the mutex, so we can
+		// hold the lock throughout and avoid CAS/ABA race conditions.
+		if (_next_slot >= _n_slots) {
+			Slot *old = _slots.load();
+			Slot *new_slots = (Slot *)malloc(sizeof(Slot) * (_n_slots + _n_grow));
+
+			if (new_slots == nullptr) {
+				return false;
+			}
+
+			memcpy(new_slots, old, sizeof(Slot) * _n_slots);
+
+			for (int i = _n_slots; i < _n_slots + _n_grow; i++) {
+				new_slots[i] = {UINT16_MAX, param_value_u{}};
+			}
+
+			_slots.store(new_slots);
+			_n_slots += _n_grow;
+			free(old);
+		}
+
+#endif
 
 		return _next_slot < _n_slots;
 	}
