@@ -54,5 +54,5 @@ protected:
 	ActuatorEffectivenessRotors _motors;
 	ActuatorEffectivenessControlSurfaces _torque;
 
-	uint32_t _motors_mask{};
+	ActuatorBitmask _motors_mask{};
 };

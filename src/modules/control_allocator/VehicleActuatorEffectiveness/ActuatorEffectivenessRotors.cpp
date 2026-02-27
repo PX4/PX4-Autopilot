@@ -224,14 +224,14 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 	return num_actuators;
 }
 
-uint32_t ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts,
+ActuatorBitmask ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts,
 		float collective_tilt_control)
 {
 	if (!PX4_ISFINITE(collective_tilt_control)) {
 		collective_tilt_control = -1.f;
 	}
 
-	uint32_t nontilted_motors = 0;
+	ActuatorBitmask nontilted_motors = 0;
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
 		int tilt_index = _geometry.rotors[i].tilt_index;
@@ -256,9 +256,9 @@ Vector3f ActuatorEffectivenessRotors::tiltedAxis(float tilt_angle, float tilt_di
 	return Dcmf{Eulerf{0.f, -tilt_angle, tilt_direction}} * axis;
 }
 
-uint32_t ActuatorEffectivenessRotors::getMotors() const
+ActuatorBitmask ActuatorEffectivenessRotors::getMotors() const
 {
-	uint32_t motors = 0;
+	ActuatorBitmask motors = 0;
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
 		motors |= 1u << i;
@@ -267,9 +267,9 @@ uint32_t ActuatorEffectivenessRotors::getMotors() const
 	return motors;
 }
 
-uint32_t ActuatorEffectivenessRotors::getUpwardsMotors() const
+ActuatorBitmask ActuatorEffectivenessRotors::getUpwardsMotors() const
 {
-	uint32_t upwards_motors = 0;
+	ActuatorBitmask upwards_motors = 0;
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
 		const Vector3f &axis = _geometry.rotors[i].axis;
@@ -282,9 +282,9 @@ uint32_t ActuatorEffectivenessRotors::getUpwardsMotors() const
 	return upwards_motors;
 }
 
-uint32_t ActuatorEffectivenessRotors::getForwardsMotors() const
+ActuatorBitmask ActuatorEffectivenessRotors::getForwardsMotors() const
 {
-	uint32_t forward_motors = 0;
+	ActuatorBitmask forward_motors = 0;
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
 		const Vector3f &axis = _geometry.rotors[i].axis;

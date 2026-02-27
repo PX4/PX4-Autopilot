@@ -84,7 +84,7 @@ protected:
 	ActuatorEffectivenessRotors _mc_rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 
-	uint32_t _forwards_motors_mask{};
+	ActuatorBitmask _forwards_motors_mask{};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 

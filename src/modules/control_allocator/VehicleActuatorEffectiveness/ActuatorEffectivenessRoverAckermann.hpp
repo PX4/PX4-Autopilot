@@ -48,5 +48,5 @@ public:
 
 	const char *name() const override { return "Rover (Ackermann)"; }
 private:
-	uint32_t _motors_mask{};
+	ActuatorBitmask _motors_mask{};
 };

@@ -51,6 +51,8 @@ class ActuatorEffectivenessTilts;
 
 using namespace time_literals;
 
+using ActuatorBitmask = ActuatorEffectiveness::ActuatorBitmask;
+
 class ActuatorEffectivenessRotors : public ModuleParams, public ActuatorEffectiveness
 {
 public:
@@ -108,7 +110,7 @@ public:
 	 * @param tilt_control current tilt control in [-1, 1] (can be NAN)
 	 * @return the motors as bitset which are not tiltable
 	 */
-	uint32_t updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts, float tilt_control);
+	ActuatorBitmask updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts, float tilt_control);
 
 	const Geometry &geometry() const { return _geometry; }
 
@@ -126,9 +128,9 @@ public:
 
 	void enableThreeDimensionalThrust(bool enable) { _geometry.three_dimensional_thrust_disabled = !enable; }
 
-	uint32_t getMotors() const;
-	uint32_t getUpwardsMotors() const;
-	uint32_t getForwardsMotors() const;
+	ActuatorBitmask getMotors() const;
+	ActuatorBitmask getUpwardsMotors() const;
+	ActuatorBitmask getForwardsMotors() const;
 
 private:
 	void updateParams() override;

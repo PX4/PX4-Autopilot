@@ -84,8 +84,8 @@ private:
 	ActuatorEffectivenessRotors _rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 
-	uint32_t _upwards_motors_mask{};
-	uint32_t _forwards_motors_mask{};
+	ActuatorBitmask _upwards_motors_mask{};
+	ActuatorBitmask _forwards_motors_mask{};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 

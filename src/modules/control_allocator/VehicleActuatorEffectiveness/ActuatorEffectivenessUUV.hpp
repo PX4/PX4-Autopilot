@@ -62,5 +62,5 @@ public:
 protected:
 	ActuatorEffectivenessRotors _rotors;
 
-	uint32_t _motors_mask{};
+	ActuatorBitmask _motors_mask{};
 };
