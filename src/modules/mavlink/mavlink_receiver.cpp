@@ -2503,26 +2503,22 @@ MavlinkReceiver::handle_message_global_position_sensor(mavlink_message_t *msg)
 	mavlink_msg_global_position_sensor_decode(msg, &global_pos);
 
 	aux_global_position_s aux_global_position{};
+	const hrt_abstime now = hrt_absolute_time();
+	aux_global_position.timestamp = now;
+	aux_global_position.timestamp_sample = now;
 
-	if (global_pos.eph > FLT_EPSILON) {
+	aux_global_position.id = global_pos.id;
+	aux_global_position.source = global_pos.source;
 
-		const hrt_abstime now = hrt_absolute_time();
-		aux_global_position.timestamp = now;
-		aux_global_position.timestamp_sample = now;
+	aux_global_position.lat = global_pos.lat * 1e-7;
+	aux_global_position.lon = global_pos.lon * 1e-7;
+	aux_global_position.alt = global_pos.alt;
 
-		aux_global_position.id = global_pos.id;
-		aux_global_position.source = global_pos.source;
+	aux_global_position.lat_lon_reset_counter = 0;
+	aux_global_position.eph = global_pos.eph;
+	aux_global_position.epv = global_pos.epv;
 
-		aux_global_position.lat = global_pos.lat * 1e-7;
-		aux_global_position.lon = global_pos.lon * 1e-7;
-		aux_global_position.alt = global_pos.alt;
-
-		aux_global_position.lat_lon_reset_counter = 0;
-		aux_global_position.eph = global_pos.eph;
-		aux_global_position.epv = global_pos.epv;
-
-		_aux_global_position_pub.publish(aux_global_position);
-	}
+	_aux_global_position_pub.publish(aux_global_position);
 }
 
 void
