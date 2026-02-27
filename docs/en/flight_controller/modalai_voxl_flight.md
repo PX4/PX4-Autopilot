@@ -30,25 +30,25 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Companion Computer
 
-| Feature               | Details                                                                                                                                                                                                                                                            |
-| :-------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Base Operation System | Linux Yocto Jethro with 3.18 kernel. Additional Linux Operating Systems can be used by running Docker on VOXL, details [here](https://docs.modalai.com/docker-on-voxl/)                                                                                            |
-| Compute               | Qualcomm Snapdragon 821 w/ 4GB LPDDR4 1866MHz, Snapdragon 821 [Datasheet](https://developer.qualcomm.com/download/sd820e/qualcomm-snapdragon-820e-processor-apq8096sge-device-specification.pdf), [Docs](https://developer.qualcomm.com/hardware/apq-8096sg/tools) |
-| CPU                   | Quad-core CPU up to 2.15GHz                                                                                                                                                                                                                                        |
-| GPU                   | Adreno 530 GPU at 624MHz                                                                                                                                                                                                                                           |
-| Compute DSP           | Hexagon compute DSP (cDSP) 825MHz                                                                                                                                                                                                                                  |
-| Sensor DSP            | Hexagon sensor DSP (sDSP) 700MHz                                                                                                                                                                                                                                   |
-| Video                 | 4k30 Video Capture h.264/5 w/ 720p FPV                                                                                                                                                                                                                             |
-| Camera Interfaces     | Support for MIPI-CSI2, USB UVC, HDMI                                                                                                                                                                                                                               |
-| Wi-Fi                 | Pre-certified Wi-Fi module [QCNFA324 FCC ID:PPD-QCNFA324](https://fccid.io/PPD-QCNFA324), QCA6174A modem, 802.11ac 2x2 Dual-band, Bluetooth 4.2 (dual-mode)                                                                                                        |
-| 4G LTE                | [Optional add-on module](https://www.modalai.com/collections/voxl-add-ons/products/voxl-lte)                                                                                                                                                                       |
-| Microhard pDDL        | [Optional add-on module](https://www.modalai.com/collections/voxl-add-ons/products/voxl-microhard-modem-usb-hub)                                                                                                                                                   |
-| GNSS                  | WGR7640 10Hz                                                                                                                                                                                                                                                       |
-| I/O                   | 1x USB3.0 OTG (ADB port), 1x USB2.0 (expansion port), 2x UART, 3x I2C, additional GPIO and SPI can be configured                                                                                                                                                   |
-| Storage               | 32GB (UFS 2.0), Micro SD Card                                                                                                                                                                                                                                      |
-| Software              | Docker, OpenCV 2.4.11, 3.4.6, 4.2, ROS Indigo, Qualcomm Machine Vision SDK, see [GitLab](https://gitlab.com/voxl-public) for lots of open source examples!                                                                                                         |
-| IMUs                  | ICM-42688 (SPI10), ICM-20948 (SPI1)                                                                                                                                                                                                                                |
-| Barometer             | BMP280                                                                                                                                                                                                                                                             |
+| Feature               | Details                                                                                                                                                                 |
+| :-------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Base Operation System | Linux Yocto Jethro with 3.18 kernel. Additional Linux Operating Systems can be used by running Docker on VOXL, details [here](https://docs.modalai.com/docker-on-voxl/) |
+| Compute               | Qualcomm Snapdragon 821 w/ 4GB LPDDR4 1866MHz, Snapdragon 821 [Datasheet](https://manuals.plus/m/1409295179a6c50b5baa1ae6a7113ff67112341756058e9d0466bdb832800a60)      |
+| CPU                   | Quad-core CPU up to 2.15GHz                                                                                                                                             |
+| GPU                   | Adreno 530 GPU at 624MHz                                                                                                                                                |
+| Compute DSP           | Hexagon compute DSP (cDSP) 825MHz                                                                                                                                       |
+| Sensor DSP            | Hexagon sensor DSP (sDSP) 700MHz                                                                                                                                        |
+| Video                 | 4k30 Video Capture h.264/5 w/ 720p FPV                                                                                                                                  |
+| Camera Interfaces     | Support for MIPI-CSI2, USB UVC, HDMI                                                                                                                                    |
+| Wi-Fi                 | Pre-certified Wi-Fi module [QCNFA324 FCC ID:PPD-QCNFA324](https://fccid.io/PPD-QCNFA324), QCA6174A modem, 802.11ac 2x2 Dual-band, Bluetooth 4.2 (dual-mode)             |
+| 4G LTE                | [Optional add-on module](https://www.modalai.com/collections/voxl-add-ons/products/voxl-lte)                                                                            |
+| Microhard pDDL        | [Optional add-on module](https://www.modalai.com/collections/voxl-add-ons/products/voxl-microhard-modem-usb-hub)                                                        |
+| GNSS                  | WGR7640 10Hz                                                                                                                                                            |
+| I/O                   | 1x USB3.0 OTG (ADB port), 1x USB2.0 (expansion port), 2x UART, 3x I2C, additional GPIO and SPI can be configured                                                        |
+| Storage               | 32GB (UFS 2.0), Micro SD Card                                                                                                                                           |
+| Software              | Docker, OpenCV 2.4.11, 3.4.6, 4.2, ROS Indigo, Qualcomm Machine Vision SDK, see [GitLab](https://gitlab.com/voxl-public) for lots of open source examples!              |
+| IMUs                  | ICM-42688 (SPI10), ICM-20948 (SPI1)                                                                                                                                     |
+| Barometer             | BMP280                                                                                                                                                                  |
 
 ### Flight Controller
 
@@ -118,8 +118,8 @@ A quickstart from the vendor is located [here](https://docs.modalai.com/voxl-fli
 
 ### voxl-vision-px4
 
-The VOXL Flight runs [voxl-vision-px4](https://gitlab.com/voxl-public/modal-pipe-architecture/voxl-vision-px4) on the companion computer portion of the hardware serving as a sort of MAVLink proxy.
-For details, the source code is available [here](https://gitlab.com/voxl-public/modal-pipe-architecture/voxl-vision-px4)
+The VOXL Flight runs [voxl-vision-px4](https://gitlab.com/voxl-public/voxl-sdk/services/voxl-vision-hub) on the companion computer portion of the hardware serving as a sort of MAVLink proxy.
+For details, the source code is available [here](https://gitlab.com/voxl-public/voxl-sdk/services/voxl-vision-hub)
 
 ### Connectors
 

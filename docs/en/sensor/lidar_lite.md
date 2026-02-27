@@ -6,7 +6,7 @@ LIDAR-Lite is a compact, high-performance optical distant measurement sensor sol
 
 ## Where to Buy
 
-- [LIDAR-Lite v3](https://buy.garmin.com/en-AU/AU/p/557294) (5cm - 40m)
+- [LIDAR-Lite v3](https://www.garmin.com/en-AU/p/557294/) (5cm - 40m)
 
 ## Pinouts
 

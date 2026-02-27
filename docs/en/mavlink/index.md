@@ -77,7 +77,7 @@ You will need to work with the [MAVLink team](https://mavlink.io/en/contributing
 :::
 
 PX4 includes the [mavlink/mavlink](https://github.com/mavlink/mavlink) repo as a submodule under [/src/modules/mavlink](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mavlink).
-This contains XML definition files in [/mavlink/messages/1.0/](https://github.com/mavlink/mavlink/blob/master/message_definitions/v1.0/).
+This contains XML definition files in [/mavlink/messages/1.0/](https://github.com/mavlink/mavlink/tree/master/message_definitions/v1.0).
 
 The build toolchain generates the MAVLink 2 C header files at build time.
 The XML file for which headers files are generated may be defined in the [PX4 kconfig board configuration](../hardware/porting_guide_config.md#px4-board-configuration-kconfig) on a per-board basis, using the variable `CONFIG_MAVLINK_DIALECT`:

@@ -71,7 +71,7 @@ It is used in a number of products, including some from: Bitcraze, Tindie, Hex, 
 ### Other Cameras/Sensors
 
 It is also possible to use a board/quad that has an integrated camera.
-For this the [Optical Flow repo](https://github.com/PX4/OpticalFlow) can be used (see also [snap_cam](https://github.com/PX4/snap_cam)).
+For this the [Optical Flow repo](https://github.com/PX4/PX4-OpticalFlow) can be used (see also [snap_cam](https://github.com/PX4/snap_cam)).
 
 ## Range Finders
 

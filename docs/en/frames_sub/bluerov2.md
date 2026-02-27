@@ -12,7 +12,7 @@ Configuration_.
 
 ## Where to Buy
 
-[BlueROV2](https://bluerobotics.com/store/rov/bluerov2/) + [BlueROV2 Heavy Configuration Retrofit Kit](https://bluerobotics.com/store/rov/bluerov2-accessories/brov2-heavy-retrofit/)
+[BlueROV2](https://bluerobotics.com/store/rov/bluerov2/) + [BlueROV2 Heavy Configuration Retrofit Kit](https://bluerobotics.com/store/rov/bluerov2-accessories/brov2-heavy-kit/)
 
 ### Motor Mapping/Wiring
 

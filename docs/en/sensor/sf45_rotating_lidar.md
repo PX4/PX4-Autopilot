@@ -12,7 +12,7 @@ You will need to [create and use a custom build](#add-the-driver-to-the-px4-buil
 
 ## LightWare Studio Setup
 
-In the [LightWare Studio](https://www.lightwarelidar.com/resources-software) app set following values:
+In the [LightWare Studio](https://lightwarelidar.com/resources-software/) app set following values:
 
 | Parameter | Description |
 | --------- | ----------- |

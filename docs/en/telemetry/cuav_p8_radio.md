@@ -19,7 +19,7 @@ It supports multiple modes such as point-to-point, point-to-multipoint, and rela
 
 ## Where to Buy
 
-- [CUAV store](https://www.cuav.net/en/p8-2/)
+- [CUAV store](https://www.cuav.net/en/p8-en/)
 - [CUAV alibaba](https://www.alibaba.com/product-detail/Free-shipping-CUAV-UAV-P8-Radio_1600324379418.html?spm=a2747.manage.0.0.2dca71d2bY4B0M)
 
 ## PX4 Configuration

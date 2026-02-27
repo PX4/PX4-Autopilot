@@ -17,7 +17,7 @@ Note that after training the network you will need to update and rebuild PX4.
 
 TLFM is a mature inference library intended for use on embedded devices.
 It has support for several architectures, so there is a high likelihood that you can build it for the board you want to use.
-If not, there are other possible NN frameworks, such as [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) and [Executorch](https://pytorch.org/executorch-overview).
+If not, there are other possible NN frameworks, such as [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) and [Executorch](https://docs.pytorch.org/executorch-overview).
 
 This document explains how you can include the module in your PX4 build, and provides a broad overview of how it works.
 The other documents in the section provide more information about the integration, allowing you to replace the NN with a version trained on different data, or even to replace the TLFM library altogether.

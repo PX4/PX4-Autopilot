@@ -12,7 +12,7 @@ Recommended digital airspeed sensors include:
 
 - Based on [Pitot tube](https://en.wikipedia.org/wiki/Pitot_tube)
   - I2C MEAS Spec series (e.g. [MS4525DO](https://www.te.com/usa-en/product-CAT-BLPS0002.html), [MS5525](https://www.te.com/usa-en/product-CAT-BLPS0003.html))
-    - [mRo I2C Airspeed Sensor JST-GH MS4525DO](https://store.3dr.com/mro-i2c-airspeed-sensor-jst-gh-ms4525do/) (3DR store)
+    - [mRo I2C Airspeed Sensor JST-GH MS4525DO](https://store.3dr.com/airspeed-sensor-jst-gh-ms4525do/) (3DR store)
     - [Digital Differential Airspeed Sensor Kit - MS4525DO](https://store-drotek.com/793-digital-differential-airspeed-sensor-kit-.html) (Drotek).
     - [Holybro Digital Air Speed Sensor - MS4525DO](https://holybro.com/collections/sensors/products/digital-air-speed-sensor-ms4525do)
     - [Holybro Digital Air Speed Sensor - MS5525DSO](https://holybro.com/collections/sensors/products/digital-air-speed-sensor-ms5525dso)
