@@ -1,6 +1,6 @@
 # CUAV X25-SUPER
 
-<Badge type="tip" text="main (planned for: PX4 v1.18)" />
+<Badge type="tip" text="PX4 v1.18)" />
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
@@ -140,7 +140,7 @@ Digital DroneCAN/UAVCAN battery monitoring is enabled by default.
 ## Building Firmware
 
 ::: tip
-Most users will not need to build this firmware!
+Most users will not need to build this firmware from PX4 v1.18.
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
