@@ -928,6 +928,10 @@ void Navigator::run()
 
 		publish_navigator_status();
 
+		if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			publish_position_controller_status();
+		}
+
 		publish_distance_sensor_mode_request();
 
 		_geofence.run();
@@ -1423,6 +1427,41 @@ void Navigator::publish_navigator_status()
 		_navigator_status_updated = false;
 		_last_navigator_status_publication = hrt_absolute_time();
 	}
+}
+
+void Navigator::publish_position_controller_status()
+{
+	if (!_pos_sp_triplet.current.valid) {
+		return;
+	}
+
+	position_controller_status_s pos_ctrl_status{};
+
+	const double cur_lat = _global_pos.lat;
+	const double cur_lon = _global_pos.lon;
+	const double wp_lat = _pos_sp_triplet.current.lat;
+	const double wp_lon = _pos_sp_triplet.current.lon;
+
+	const float bearing = get_bearing_to_next_waypoint(cur_lat, cur_lon, wp_lat, wp_lon);
+	pos_ctrl_status.nav_bearing = bearing;
+	pos_ctrl_status.target_bearing = bearing;
+	pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(cur_lat, cur_lon, wp_lat, wp_lon);
+
+	if (_pos_sp_triplet.previous.valid) {
+		crosstrack_error_s xtrack{};
+
+		if (get_distance_to_line(xtrack, cur_lat, cur_lon,
+					 _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
+					 wp_lat, wp_lon) == 0) {
+			pos_ctrl_status.xtrack_error = xtrack.distance;
+		}
+	}
+
+	pos_ctrl_status.acceptance_radius = _pos_sp_triplet.current.acceptance_radius;
+	pos_ctrl_status.type = _pos_sp_triplet.current.type;
+
+	pos_ctrl_status.timestamp = hrt_absolute_time();
+	_position_controller_status_pub.publish(pos_ctrl_status);
 }
 
 void Navigator::publish_vehicle_command(vehicle_command_s &vehicle_command)
