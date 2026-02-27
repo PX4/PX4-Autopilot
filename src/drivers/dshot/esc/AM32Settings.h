@@ -33,61 +33,25 @@
 
 #pragma once
 
-#include <px4_platform_common/Serial.hpp>
+#include "ESCSettingsInterface.h"
 #include <uORB/Publication.hpp>
-#include "DShotCommon.h"
-#include "esc/AM32Settings.h"
+#include <uORB/topics/esc_eeprom_read.h>
 
-class DShotTelemetry
+static constexpr int EEPROM_SIZE = 48;
+
+class AM32Settings : public ESCSettingsInterface
 {
 public:
+	AM32Settings(int index);
 
-	~DShotTelemetry();
+	int getExpectedResponseSize() override;
+	bool decodeInfoResponse(const uint8_t *buf, int size) override;
 
-	int init(const char *uart_device, bool swap_rxtx);
-	void printStatus() const;
-
-	void startTelemetryRequest();
-	bool telemetryResponseFinished();
-
-	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
-
-	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
-	int parseCommandResponse();
-	bool commandResponseFinished();
-	bool commandResponseStarted();
-
-	void setExpectCommandResponse(int motor_index, uint16_t command);
-	void initSettingsHandlers(ESCType esc_type, uint8_t output_mask);
-	void publish_esc_settings();
+	void publish_latest() override;
 
 private:
-	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 192;
-	static constexpr int TELEMETRY_FRAME_SIZE = 10;
-	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
+	int _esc_index{};
+	uint8_t _eeprom_data[EEPROM_SIZE] {};
 
-	device::Serial _uart{};
-
-	// Command response
-	int _command_response_motor_index{-1};
-	uint16_t _command_response_command{0};
-	uint8_t _command_response_buffer[COMMAND_RESPONSE_MAX_SIZE];
-	int _command_response_position{0};
-	hrt_abstime _command_response_start{0};
-
-	// Telemetry packet
-	EscData _latest_data{};
-	uint8_t _frame_buffer[TELEMETRY_FRAME_SIZE];
-	int _frame_position{0};
-	hrt_abstime _telemetry_request_start{0};
-
-	// statistics
-	int _num_timeouts{0};
-	int _num_successful_responses{0};
-	int _num_checksum_errors{0};
-
-	// Settings
-	ESCSettingsInterface *_settings_handlers[DSHOT_MAXIMUM_CHANNELS] = {nullptr};
-	ESCType _esc_type{ESCType::Unknown};
-	bool _settings_initialized{false};
+	static uORB::Publication<esc_eeprom_read_s> _esc_eeprom_read_pub;
 };

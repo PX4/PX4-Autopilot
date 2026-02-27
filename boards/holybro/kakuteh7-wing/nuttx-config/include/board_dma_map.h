@@ -58,11 +58,13 @@
 //#define DMAMAP_USART6_RX  DMAMAP_DMA12_USART6RX_0   /* 5 DMA1:71 PX4IO */
 //#define DMAMAP_USART6_TX  DMAMAP_DMA12_USART6TX_0   /* 6 DMA1:72 PX4IO */
 
-// Assigned in timer_config.cpp
-
-// TODO
-// Timer 4                                          /* 7 DMA1:32 TIM4UP */
-// Timer 5                                          /* 8 DMA1:50 TIM5UP */
+// Dynamically assigned in timer_config.cpp for DShot (allocated/freed per cycle):
+// Timer 1 TIM1UP (burst) + TIM1CH1-4 (capture)
+// Timer 2 TIM2UP (burst) + TIM2CH1-4 (capture)
+// Timer 3 TIM3UP (burst) + TIM3CH1-4 (capture)
+// Timer 4 TIM4UP (burst) + TIM4CH1-3 (capture, CH4 has no DMA)
+// Timer 5 TIM5UP (burst) + TIM5CH1-4 (capture)
+// Timer 15 - no TIM15UP DMA, cannot do DShot
 
 // DMAMUX2 Using at most 8 Channels on DMA2 --------   Assigned
 //                                                     V

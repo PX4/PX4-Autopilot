@@ -90,10 +90,13 @@ private:
 					if (is_motor) {
 						// Map OutputFunction number to index
 						int index = (int)esc.esc[j].actuator_function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
-						_escs[index].timestamp = esc.esc[j].timestamp;
-						_escs[index].rpm = esc.esc[j].esc_rpm;
-						_escs[index].voltage = esc.esc[j].esc_voltage;
-						_escs[index].current = esc.esc[j].esc_current;
+
+						if (index >= 0 && index < MAX_ESC_OUTPUTS) {
+							_escs[index].timestamp = esc.esc[j].timestamp;
+							_escs[index].rpm = esc.esc[j].esc_rpm;
+							_escs[index].voltage = esc.esc[j].esc_voltage;
+							_escs[index].current = esc.esc[j].esc_current;
+						}
 					}
 				}
 			}

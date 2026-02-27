@@ -137,7 +137,12 @@ dshot esc_info -m 1
 ```
 
 :::tip
-You may have to configure [MOT_POLE_COUNT](../advanced_config/parameter_reference.md#MOT_POLE_COUNT) to get the correct RPM values.
+You may have to configure the per-motor pole count parameters ([`DSHOT_MOT_POL1`–`DSHOT_MOT_POL12`](../advanced_config/parameter_reference.md#DSHOT_MOT_POL1) to get correct RPM values.
+The default value for these is 14 poles, which is typical for 5-inch prop motors.
+:::
+
+:::tip
+[Extended DShot Telemetry (EDT)](#extended-dshot-telemetry-edt) can provide temperature, voltage, and current through the BDShot signal — no serial telemetry wire needed.
 :::
 
 :::tip
@@ -155,35 +160,63 @@ Check manufacturer documentation for confirmation/details.
 
 <Badge type="tip" text="PX4 v1.16" />
 
-Bidirectional DShot is a protocol that can provide telemetry including: high rate ESC RPM data, voltage, current, and temperature with a single wire.
+Bidirectional DShot (BDShot) enables the ESC to send eRPM telemetry back to the flight controller on the same signal wire used for throttle commands — no additional telemetry wire is needed for RPM data.
+High-rate eRPM data significantly improves the performance of [Dynamic Notch Filters](../config_mc/filter_tuning.md#dynamic-notch-filters) and enables more precise vehicle tuning.
 
-The PX4 implementation currently enables only ESC RPM (eRPM) data collection from each ESC at high frequencies.
-This telemetry significantly improves the performance of [Dynamic Notch Filters](../config_mc/filter_tuning.md#dynamic-notch-filters) and enables more precise vehicle tuning.
+With [Extended DShot Telemetry (EDT)](#extended-dshot-telemetry-edt) enabled, BDShot can also provide temperature, voltage, and current data.
+
+### Hardware Support
+
+BDShot requires a flight controller with DMA-capable timers.
+Any FMU output on a supported timer can be used for BDShot — multiple timers are supported through sequential burst/capture.
+
+Supported processors:
+
+- **STM32H7**: All FMU outputs on DMA-capable timers
+- **i.MXRT** (V6X-RT & Tropic): All FMU outputs
 
 ::: info
-The [ESC Telemetry](#esc-telemetry) described above is currently still necessary if you want voltage, current, or temperature information.
-It's setup and use is independent of bidirectional DShot.
-:::
-
-### Hardware Setup
-
 The ESC must be connected to FMU outputs only.
-These will be labeled `MAIN` on flight controllers that only have one PWM bus, and `AUX` on controllers that have both `MAIN` and `AUX` ports (i.e. FCs that have an IO board).
-
-:::warning **Limited hardware support**
-This feature is only supported on flight controllers with the following processors:
-
-- STM32H7: First four FMU outputs
-  - Must be connected to the first 4 FMU outputs, and these outputs must also be mapped to the same timer.
-  - [KakuteH7](../flight_controller/kakuteh7v2.md) is not supported because the outputs are not mapped to the same timer.
-- [i.MXRT](../flight_controller/nxp_mr_vmu_rt1176.md) (V6X-RT & Tropic): 8 FMU outputs.
-
-No other boards are supported.
+These are labeled `MAIN` on controllers with a single PWM bus, and `AUX` on controllers with both `MAIN` and `AUX` ports (i.e. those with an IO board).
 :::
 
-### Configuration {#bidirectional-dshot-configuration}
+### PX4 Configuration {#bidirectional-dshot-configuration}
 
-To enable bidirectional DShot, set the [DSHOT_BIDIR_EN](../advanced_config/parameter_reference.md#DSHOT_BIDIR_EN) parameter.
+BDShot is enabled **per-timer** in the [Actuator Configuration](../config/actuators.md) UI.
+Select **BDShot150**, **BDShot300**, or **BDShot600** as the output protocol instead of the corresponding DShot speed.
+There is no separate enable parameter — choosing a BDShot protocol activates bidirectional telemetry on that timer's outputs.
 
-The system calculates actual motor RPM from the received eRPM data using the [MOT_POLE_COUNT](../advanced_config/parameter_reference.md#MOT_POLE_COUNT) parameter.
-This parameter must be set correctly for accurate RPM reporting.
+The system calculates actual motor RPM from eRPM data using per-motor pole count parameters: `DSHOT_MOT_POL1` through `DSHOT_MOT_POL12` (one per motor output).
+The default is 14 poles, which is typical for 5-inch prop motors.
+If you are using AM32 ESCs, the motor pole count must also be set in the AM32 firmware configuration (e.g. via the AM32 configurator tool) to match.
+
+### Extended DShot Telemetry (EDT)
+
+EDT extends BDShot by interleaving temperature, voltage, and current data into the eRPM telemetry frames.
+This allows ESC health monitoring through the same signal wire, without requiring a separate serial telemetry connection.
+
+To enable EDT:
+
+1. Configure BDShot on the desired outputs (see above).
+2. Set `DSHOT_BIDIR_EDT` to `1` and reboot.
+
+The ESC firmware must support EDT (e.g. [AM32](https://github.com/am32-firmware/AM32)).
+
+When both serial telemetry and BDShot/EDT are enabled, the driver merges data from both sources.
+
+## AM32 ESC Settings (EEPROM)
+
+PX4 can read and write AM32 ESC firmware settings (EEPROM) via a ground station, enabling remote ESC configuration without connecting directly to each ESC.
+
+### Requirements
+
+- ESCs running [AM32 firmware](https://github.com/am32-firmware/AM32) with serial telemetry connected ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG))
+- `DSHOT_ESC_TYPE` set to `1` (AM32)
+- Ground station with ESC EEPROM support (QGroundControl feature in development)
+- MAVLink development dialect enabled on the flight controller
+
+### How It Works
+
+PX4 automatically reads the full EEPROM from each ESC on boot.
+The ground station can then display individual settings and allow the user to modify them.
+Changes are written back to the ESC one byte at a time using the DShot programming protocol.

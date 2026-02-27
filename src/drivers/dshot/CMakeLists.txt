@@ -42,9 +42,11 @@ px4_add_module(
 	MAIN dshot
 	COMPILE_FLAGS
 		-DPARAM_PREFIX="${PARAM_PREFIX}"
+		# -DDEBUG_BUILD
 	SRCS
 		DShot.cpp
 		DShotTelemetry.cpp
+		esc/AM32Settings.cpp
 	DEPENDS
 		arch_io_pins
 		arch_dshot

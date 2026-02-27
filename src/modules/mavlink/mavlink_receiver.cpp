@@ -329,6 +329,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_SET_VELOCITY_LIMITS:
 		handle_message_set_velocity_limits(msg);
 		break;
+
+#endif
+
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
+
+	case MAVLINK_MSG_ID_ESC_EEPROM:
+		handle_message_esc_eeprom(msg);
+		break;
 #endif
 
 	default:
@@ -601,14 +609,23 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
 
-		if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
-			get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 
-		} else {
-			result = handle_request_message_command(message_id,
-								vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
-								vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-		}
+		// NOTE: ESC_EEPROM message request handling is deferred - DShot driver handles and triggers reading
+		if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
+			PX4_INFO("publishing MAV_CMD_REQUEST_MESSAGE for MAVLINK_MSG_ID_ESC_EEPROM");
+			_cmd_pub.publish(vehicle_command);
+
+		} else
+#endif
+			if (message_id == MAVLINK_MSG_ID_MESSAGE_INTERVAL) {
+				get_message_interval((int)(cmd_mavlink.param2 + 0.5f));
+
+			} else {
+				result = handle_request_message_command(message_id,
+									vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
+									vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+			}
 
 	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink.failure_injection_enabled()) {
@@ -1310,6 +1327,43 @@ void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
 	_velocity_limits_pub.publish(velocity_limits);
 }
 #endif // MAVLINK_MSG_ID_SET_VELOCITY_LIMITS
+
+#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
+void
+MavlinkReceiver::handle_message_esc_eeprom(mavlink_message_t *msg)
+{
+	mavlink_esc_eeprom_t message;
+	mavlink_msg_esc_eeprom_decode(msg, &message);
+
+	esc_eeprom_write_s eeprom{};
+	eeprom.timestamp = hrt_absolute_time();
+	eeprom.firmware = message.firmware;
+	eeprom.index = message.esc_index;
+
+	uint8_t min_length = sizeof(eeprom.data);
+	int length = message.length;
+
+	if (length > min_length) {
+		length = min_length;
+	}
+
+	for (int i = 0; i < length && i < min_length; i++) {
+		int mask_index = i / 32;  // Which uint32_t in the write_mask array
+		int bit_index = i % 32;   // Which bit within that uint32_t
+
+		if (message.write_mask[mask_index] & (1U << bit_index)) {
+			eeprom.data[i] = message.data[i];
+		}
+	}
+
+	eeprom.length = length;
+	memcpy(eeprom.write_mask, message.write_mask, sizeof(eeprom.write_mask));
+
+	PX4_INFO("ESC EEPROM write request for ESC%d", eeprom.index + 1);
+
+	_esc_eeprom_write_pub.publish(eeprom);
+}
+#endif // MAVLINK_MSG_ID_ESC_EEPROM
 
 void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
