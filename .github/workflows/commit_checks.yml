@@ -1,0 +1,165 @@
+name: Commit Quality
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+  IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+
+jobs:
+  pr-title:
+    name: PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: Tools/ci
+          fetch-depth: 1
+
+      - name: Check PR title
+        id: check
+        run: |
+          python3 Tools/ci/check_pr_title.py "${{ github.event.pull_request.title }}" --markdown > comment.md 2>/dev/null && rc=0 || rc=$?
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+
+      - name: Post or clear comment
+        if: env.IS_FORK == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ steps.check.outputs.exit_code }}" != "0" ]; then
+            python3 Tools/ci/pr_comment.py --marker pr-title --pr "$PR_NUMBER" --result fail < comment.md
+          else
+            python3 Tools/ci/pr_comment.py --marker pr-title --pr "$PR_NUMBER" --result pass
+          fi
+
+      - name: Result
+        if: always()
+        run: |
+          if [ "${{ steps.check.outputs.exit_code }}" != "0" ]; then
+            # Show the error in the step that fails so it's visible
+            python3 Tools/ci/check_pr_title.py "${{ github.event.pull_request.title }}" 2>&1 || true
+            echo ""
+            echo "::error::PR title does not follow the required format. See output above."
+            exit 1
+          else
+            echo "PR title is valid."
+          fi
+
+  commit-messages:
+    name: Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: Tools/ci
+          fetch-depth: 1
+
+      - name: Check commit messages
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          commits=$(gh api \
+            "repos/${{ github.repository }}/pulls/${PR_NUMBER}/commits?per_page=100")
+          echo "$commits" | python3 Tools/ci/check_commit_messages.py --markdown > comment.md && rc=0 || rc=$?
+          # Store commits for the result step
+          echo "$commits" > commits.json
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          # Check for warnings (non-empty markdown on exit 0)
+          if [ "$rc" -eq 0 ] && [ -s comment.md ]; then
+            echo "has_warnings=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_warnings=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post or clear comment
+        if: env.IS_FORK == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ steps.check.outputs.exit_code }}" != "0" ]; then
+            python3 Tools/ci/pr_comment.py --marker commit-msgs --pr "$PR_NUMBER" --result fail < comment.md
+          elif [ "${{ steps.check.outputs.has_warnings }}" == "true" ]; then
+            python3 Tools/ci/pr_comment.py --marker commit-msgs --pr "$PR_NUMBER" --result warn < comment.md
+          else
+            python3 Tools/ci/pr_comment.py --marker commit-msgs --pr "$PR_NUMBER" --result pass
+          fi
+
+      - name: Result
+        if: always()
+        run: |
+          if [ "${{ steps.check.outputs.exit_code }}" != "0" ]; then
+            # Show the error in the step that fails so it's visible
+            python3 Tools/ci/check_commit_messages.py < commits.json || true
+            echo ""
+            echo "::error::Commit message errors found. See output above."
+            exit 1
+          elif [ "${{ steps.check.outputs.has_warnings }}" == "true" ]; then
+            python3 Tools/ci/check_commit_messages.py < commits.json || true
+          else
+            echo "All commit messages are valid."
+          fi
+
+  pr-body:
+    name: PR Description
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        if: env.IS_FORK == 'false'
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: Tools/ci
+          fetch-depth: 1
+
+      - name: Check PR body
+        id: check
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          message=""
+          if [ -z "$PR_BODY" ]; then
+            message="PR description is empty. Please add a summary of the changes."
+            echo "::warning::PR description is empty."
+          else
+            cleaned=$(echo "$PR_BODY" | sed 's/<!--.*-->//g' | tr -d '[:space:]')
+            if [ -z "$cleaned" ]; then
+              message="PR description contains only template comments. Please fill in the details."
+              echo "::warning::PR description contains only template comments."
+            fi
+          fi
+          echo "message=$message" >> "$GITHUB_OUTPUT"
+
+      - name: Post or clear comment
+        if: env.IS_FORK == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "${{ steps.check.outputs.message }}" ]; then
+            printf '%s\n' \
+              "## PR Description (advisory)" \
+              "" \
+              "This is **not blocking**, but your PR description appears to be empty or incomplete." \
+              "" \
+              "${{ steps.check.outputs.message }}" \
+              "" \
+              "A good PR description helps reviewers understand what changed and why." \
+              "" \
+              "---" \
+              "*This comment will be automatically removed once the issue is resolved.*" \
+            | python3 Tools/ci/pr_comment.py --marker pr-body --pr "$PR_NUMBER" --result warn
+          else
+            python3 Tools/ci/pr_comment.py --marker pr-body --pr "$PR_NUMBER" --result pass
+          fi
