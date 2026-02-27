@@ -2,7 +2,7 @@
 
 This section contains information about _community-supported_ development setups, IDEs, simulators, and other tools.
 
-:::warning
+::: warning
 These setups are not maintained, tested, or supported, by the core development team.
 They may or may not work with current versions of PX4.
 
@@ -21,3 +21,4 @@ Questions about these tools should be raised on the [discussion forums](../contr
 - IDEs
   - [Qt Creator IDE](../dev_setup/qtcreator.md)
 - [Simulators](../simulation/community_supported_simulators.md) — [Simulation-In-Hardware](../sim_sih/index.md), [FlightGear](../sim_flightgear/index.md), [JSBSim](../sim_jsbsim/index.md), [AirSim](../sim_airsim/index.md), [HITL](../simulation/hitl.md)
+- [Gazebo Terrain Generator](../simulation/gazebo_terrain_generator.md)
