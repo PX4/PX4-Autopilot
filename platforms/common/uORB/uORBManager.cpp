@@ -445,6 +445,11 @@ void uORB::Manager::orb_remove_internal_subscriber(void *node_handle)
 
 uint8_t uORB::Manager::orb_get_queue_size(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->get_queue_size(); }
 
+int8_t uORB::Manager::orb_get_subscriber_count(const void *node_handle)
+{
+	return static_cast<const DeviceNode *>(node_handle)->subscriber_count();
+}
+
 bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated)
 {
 	if (!is_advertised(node_handle)) {

@@ -66,7 +66,7 @@ protected:
 	{
 		if (_handle != nullptr) {
 			// don't automatically unadvertise queued publications (eg vehicle_command)
-			if (Manager::orb_get_queue_size(_handle) == 1) {
+			if ((Manager::orb_get_queue_size(_handle) == 1) && (Manager::orb_get_subscriber_count(_handle) <= 0)) {
 				unadvertise();
 			}
 		}
