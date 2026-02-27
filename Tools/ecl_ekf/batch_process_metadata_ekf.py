@@ -41,7 +41,7 @@ for filename in os.listdir(metadata_directory):
             c=x[2]
             try:
                 single_log_data[a]=float(b)
-            except:
+            except Exception:
                 single_log_data[a]=b
         file.close()
         population_data[filename]=single_log_data

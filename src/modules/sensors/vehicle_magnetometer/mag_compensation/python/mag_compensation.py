@@ -49,7 +49,7 @@ def get_data(topic_name, variable_name, index):
    try:
       dataset = log.get_dataset(topic_name, index)
       return dataset.data[variable_name]
-   except:
+   except Exception:
       return []
 
 def ms2s_list(time_ms_list):

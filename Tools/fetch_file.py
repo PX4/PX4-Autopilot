@@ -88,7 +88,7 @@ def _get_file(ser, fn, fn_out, force, timeout):
         # Check if file already exists with the same size
         try:
             os.stat(fn_out)
-        except:
+        except Exception:
             pass
         else:
             print("already fetched, skip")
@@ -123,7 +123,7 @@ def _get_file(ser, fn, fn_out, force, timeout):
 def _get_files_in_dir(ser, path, path_out, force, timeout):
     try:
         os.mkdir(path_out)
-    except:
+    except Exception:
         pass
     for fn in _ls_dir(ser, path, timeout):
         path_fn = os.path.join(path, fn[0])

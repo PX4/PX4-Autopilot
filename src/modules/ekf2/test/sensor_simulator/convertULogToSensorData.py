@@ -57,7 +57,7 @@ def getRangeFinderData(ulog: ULog) -> pd.DataFrame:
 			'quality': range_0["signal_quality"]
 			})
 		range = pd.concat([range, rng_0], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		pass
 
 	try:
@@ -68,7 +68,7 @@ def getRangeFinderData(ulog: ULog) -> pd.DataFrame:
 			'quality': range_1["signal_quality"]
 			})
 		range = pd.concat([range, rng_1], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		pass
 
 	try:
@@ -79,7 +79,7 @@ def getRangeFinderData(ulog: ULog) -> pd.DataFrame:
 			'quality': range_2["signal_quality"]
 			})
 		range = pd.concat([range, rng_2], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		pass
 
 	return range

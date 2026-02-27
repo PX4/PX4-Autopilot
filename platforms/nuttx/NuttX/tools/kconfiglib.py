@@ -5913,7 +5913,7 @@ def _save_old(path):
             # Only import as needed, to save some startup time
             import shutil
             shutil.copyfile(path, backup)
-    except:
+    except Exception:
         # Ignore errors from 'filename' missing as well as other errors. The
         # backup file is more of a nice-to-have, and not worth erroring out
         # over e.g. if .<filename>.old happens to be a directory.

@@ -185,7 +185,7 @@ def print_wmm_table(key_name):
                 if result['warning']:
                     latitude_blackout_zone = True
 
-            except:
+            except Exception:
                 pass
 
         if latitude_blackout_zone:

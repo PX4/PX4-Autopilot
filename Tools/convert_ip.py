@@ -27,7 +27,7 @@ if( args.reverse == False ):
 
     try:
         ip_parts = [int(x) for x in args.input.split('.')]
-    except:
+    except Exception:
         raise ValueError("Not a valid IP")
     if( len(ip_parts)!=4 ):
         raise ValueError("Not a valid IP")
@@ -44,7 +44,7 @@ if( args.reverse == False ):
 else:
     try:
         ip = int(args.input)
-    except:
+    except Exception:
         raise ValueError("Not a valid IP")
     if(ip < 0):
         ip = ip + 0x100000000

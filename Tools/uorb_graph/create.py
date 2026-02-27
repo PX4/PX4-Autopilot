@@ -492,7 +492,7 @@ class Graph(object):
         with codecs.open(file_name, 'r', 'utf-8') as f:
             try:
                 content = f.read()
-            except:
+            except Exception:
                 print('Failed reading file: %s, skipping content.' % file_name)
                 return
 

@@ -31,7 +31,7 @@ class SourceScanner(object):
         with codecs.open(path, 'r', 'utf-8') as f:
             try:
                 contents = f.read()
-            except:
+            except Exception:
                 contents = ''
                 print('Failed reading file: %s, skipping content.' % path)
                 pass

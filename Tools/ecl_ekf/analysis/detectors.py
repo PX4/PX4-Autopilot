@@ -45,7 +45,7 @@ class InAirDetector(object):
         try:
             self._vehicle_land_detected = ulog.get_dataset('vehicle_land_detected').data
             self._landed = self._vehicle_land_detected['landed']
-        except:
+        except Exception:
             self._in_air = []
             raise PreconditionError(
                 'InAirDetector: Could not find vehicle land detected message and/or landed field'
@@ -145,7 +145,7 @@ class InAirDetector(object):
         """
         try:
             data = self._ulog.get_dataset(dataset).data
-        except:
+        except Exception:
             print('InAirDetector: {:s} not found in log.'.format(dataset))
             return []
 
@@ -168,7 +168,7 @@ class InAirDetector(object):
         """
         try:
             data = self._ulog.get_dataset(dataset).data
-        except:
+        except Exception:
             raise PreconditionError('InAirDetector: {:s} not found in log.'.format(dataset))
 
         airtime = []

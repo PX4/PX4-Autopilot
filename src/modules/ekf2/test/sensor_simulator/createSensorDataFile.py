@@ -31,7 +31,7 @@ def main() -> None:
 
 	try:
 		ulog = ULog(args.input_file)
-	except:
+	except Exception:
 		print("Could not find ulog file")
 		exit(-1)
 
@@ -39,63 +39,63 @@ def main() -> None:
 		imu = util.getImuData(ulog)
 		print("IMU data detected")
 		table = pd.concat([table, imu], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		print("IMU data not detected")
 
 	try:
 		mag = util.getMagnetometerData(ulog)
 		print("Mag data detected")
 		table = pd.concat([table, mag], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		print("Mag data not detected")
 
 	try:
 		baro = util.getBarometerData(ulog)
 		print("Baro data detected")
 		table = pd.concat([table, baro], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		print("Baro data not detected")
 
 	try:
 		gps = util.getGpsData(ulog)
 		print("GPS data detected")
 		table = pd.concat([table, gps], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		print("GPS data not detected")
 
 	try:
 		airspeed = util.getAirspeedData(ulog)
 		print("Airspeed data detected")
 		table = pd.concat([table, airspeed], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		print("Airspeed data not detected")
 
 	try:
 		flow = util.getOpticalFlowData(ulog)
 		print("Flow data detected")
 		table = pd.concat([table, flow], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		print("Flow data not detected")
 
 	try:
 		range = util.getRangeFinderData(ulog)
 		print("Range data detected")
 		table = pd.concat([table, range], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		print("Range data not detected")
 
 	try:
 		vio = util.getVioData(ulog)
 		print("VIO data detected")
 		table = pd.concat([table, vio], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		print("VIO data not detected")
 
 	try:
 		land = util.getVehicleLandingStatus(ulog)
 		print("Landing data detected")
 		table = pd.concat([table, land], ignore_index=True, sort=False)
-	except:
+	except Exception:
 		print("Landing data not detected")
 
 	table = table.sort_values('timestamp', axis=0, ascending=True)
@@ -116,7 +116,7 @@ def main() -> None:
 		with open(args.output_file, "w") as out_file:
 			csv_writer = csv.writer(out_file)
 			csv_writer.writerows(result)
-	except:
+	except Exception:
 		print("Could not write to specified output file")
 
 

@@ -30,22 +30,22 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
 
     try:
         estimator_status = ulog.get_dataset('estimator_status', multi_instance).data
-    except:
+    except Exception:
         raise PreconditionError('could not find estimator_status instance', multi_instance)
 
     try:
         estimator_status_flags = ulog.get_dataset('estimator_status_flags', multi_instance).data
-    except:
+    except Exception:
         raise PreconditionError('could not find estimator_status_flags instance', multi_instance)
 
     try:
         estimator_states = ulog.get_dataset('estimator_states', multi_instance).data
-    except:
+    except Exception:
         raise PreconditionError('could not find estimator_states instance', multi_instance)
 
     try:
         estimator_sensor_bias = ulog.get_dataset('estimator_sensor_bias', multi_instance).data
-    except:
+    except Exception:
         raise PreconditionError('could not find estimator_sensor_bias instance', multi_instance)
 
     try:
@@ -75,7 +75,7 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
 
         print('found innovation data (merged estimator_innovations + estimator_innovation_variances) instance', multi_instance)
 
-    except:
+    except Exception:
         raise PreconditionError('could not find innovation data')
 
     gps_fail_flags = get_gps_check_fail_flags(estimator_status)
@@ -284,7 +284,7 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
                     data_plot.save()
                     data_plot.close()
 
-            except:
+            except Exception:
                 pass
 
 

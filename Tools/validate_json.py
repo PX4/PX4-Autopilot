@@ -47,6 +47,6 @@ for json_file in json_files:
 
     try:
         validate(instance=json_data, schema=schema)
-    except:
+    except Exception:
         print("JSON validation for {:} failed (schema: {:})".format(json_file, schema_file))
         raise

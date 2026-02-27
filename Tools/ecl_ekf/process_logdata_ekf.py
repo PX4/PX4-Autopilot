@@ -54,7 +54,7 @@ def create_results_table(
             test_results_table = {
                 row['check_id']: [float('NaN'), row['check_description']] for row in reader}
         print('Using test description loaded from {:s}'.format(check_table_filename))
-    except:
+    except Exception:
         raise PreconditionError('could not find {:s}'.format(check_table_filename))
 
     # store metrics
@@ -87,7 +87,7 @@ def process_logdata_ekf(
     ## load the log and extract the necessary data for the analyses
     try:
         ulog = ULog(filename)
-    except:
+    except Exception:
         raise PreconditionError('could not open {:s}'.format(filename))
 
     ekf_instances = 1
@@ -102,7 +102,7 @@ def process_logdata_ekf(
 
         print(ekf_instances, 'ekf instances')
 
-    except:
+    except Exception:
         print('could not find estimator_selector_status data')
 
     try:
@@ -111,7 +111,7 @@ def process_logdata_ekf(
             reader = csv.DictReader(file)
             check_levels = {row['check_id']: float(row['threshold']) for row in reader}
         print('Using test criteria loaded from {:s}'.format(check_level_dict_filename))
-    except:
+    except Exception:
         raise PreconditionError('could not find {:s}'.format(check_level_dict_filename))
 
     in_air_margin = 5.0 if sensor_safety_margins else 0.0

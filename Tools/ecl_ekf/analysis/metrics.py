@@ -163,7 +163,7 @@ def calculate_imu_metrics(ulog: ULog, multi_instance, in_air_no_ground_effects: 
                         imu_metrics['{:s}_peak'.format(result)] = peak
                         imu_metrics['{:s}_mean'.format(result)] = calculate_stat_from_signal(vehicle_imu_status_data, 'vehicle_imu_status', signal, in_air_no_ground_effects, np.mean)
 
-        except:
+        except Exception:
             pass
 
 

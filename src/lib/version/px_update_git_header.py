@@ -24,7 +24,7 @@ validate = args.validate
 try:
     fp_header = open(filename, 'r')
     old_header = fp_header.read()
-except:
+except Exception:
     old_header = ''
 
 
@@ -48,7 +48,7 @@ try:
     # get the tag if we're on a tagged commit
     tag_or_branch = subprocess.check_output((git_describe_cmd+' --exact-match').split(),
                                             stderr=subprocess.STDOUT).decode('utf-8').strip()
-except:
+except Exception:
     tag_or_branch = None
 
 if validate:
@@ -82,7 +82,7 @@ git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),
 try:
     git_branch_name = subprocess.check_output('git symbolic-ref -q --short HEAD'.split(),
                                           stderr=subprocess.STDOUT).decode('utf-8').strip()
-except:
+except Exception:
     git_branch_name = ''
 git_version_short = git_version[0:16]
 
@@ -91,7 +91,7 @@ try:
     oem_tag = subprocess.check_output('git describe --match ext/oem-* --tags'.split(),
                                       stderr=subprocess.STDOUT).decode('utf-8').strip()
     oem_tag = oem_tag[8:]
-except:
+except Exception:
     oem_tag = ''
 
 if tag_or_branch is None:

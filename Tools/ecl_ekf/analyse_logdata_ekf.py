@@ -32,22 +32,22 @@ def analyse_ekf(
 
     try:
         estimator_states = ulog.get_dataset('estimator_states', multi_instance).data
-    except:
+    except Exception:
         raise PreconditionError('could not find estimator_states instance', multi_instance)
 
     try:
         estimator_status = ulog.get_dataset('estimator_status', multi_instance).data
-    except:
+    except Exception:
         raise PreconditionError('could not find estimator_status instance', multi_instance)
 
     try:
         estimator_status_flags = ulog.get_dataset('estimator_status_flags', multi_instance).data
-    except:
+    except Exception:
         raise PreconditionError('could not find estimator_status_flags instance', multi_instance)
 
     try:
         _ = ulog.get_dataset('estimator_innovations', multi_instance).data
-    except:
+    except Exception:
         raise PreconditionError('could not find estimator_innovations instance', multi_instance)
 
     try:

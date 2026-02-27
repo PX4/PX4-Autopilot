@@ -96,7 +96,7 @@ class NX_register_set(object):
 		content = resp.split()[-1]
 		try:
 			return int(content)
-		except:
+		except Exception:
 			return 0
 
 	@classmethod
@@ -219,7 +219,7 @@ class NX_task(object):
 					return '{}({})'.format(waitsem.address, holder.name)
 				else:
 					return '{}(<bad holder>)'.format(waitsem.address)
-			except:
+			except Exception:
 				return 'EXCEPTION'
 		if self._state_is('TSTATE_WAIT_SIG'):
 			return 'signal'

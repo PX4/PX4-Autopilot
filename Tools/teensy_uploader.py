@@ -68,7 +68,7 @@ class uploader(object):
         try:
             self.mavlink.wait_heartbeat()
             self.mavlink.reboot_autopilot(True)
-        except:
+        except Exception:
             pass
         return True
 
