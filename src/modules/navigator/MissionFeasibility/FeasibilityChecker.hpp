@@ -201,7 +201,7 @@ private:
 	 * @param current_index The current mission index
 	 * @return False if the check failed.
 	*/
-	bool checkFixedWindLandApproach(mission_item_s &mission_item, const int current_index);
+	bool checkFixedWingLandApproach(mission_item_s &mission_item, const int current_index);
 
 	// methods which are called once at the end
 	/**
