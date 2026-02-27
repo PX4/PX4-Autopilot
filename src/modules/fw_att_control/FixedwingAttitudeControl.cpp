@@ -72,14 +72,9 @@ FixedwingAttitudeControl::init()
 void
 FixedwingAttitudeControl::parameters_update()
 {
-	_roll_ctrl.set_time_constant(_param_fw_r_tc.get());
-	_roll_ctrl.set_max_rate(radians(_param_fw_r_rmax.get()));
-
-	_pitch_ctrl.set_time_constant(_param_fw_p_tc.get());
-	_pitch_ctrl.set_max_rate_pos(radians(_param_fw_p_rmax_pos.get()));
-	_pitch_ctrl.set_max_rate_neg(radians(_param_fw_p_rmax_neg.get()));
-
-	_yaw_ctrl.set_max_rate(radians(_param_fw_y_rmax.get()));
+	_proportional_gain = matrix::Vector3f(1.0f / _param_fw_r_tc.get(),
+					      1.0f / _param_fw_p_tc.get(),
+					      0.0f);
 
 	_wheel_ctrl.set_k_p(_param_fw_wr_p.get());
 	_wheel_ctrl.set_k_i(_param_fw_wr_i.get());
@@ -99,7 +94,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 			if (!_vcontrol_mode.flag_control_climb_rate_enabled && _vcontrol_mode.flag_control_attitude_enabled) {
 
-				// STABILIZED mode generate the attitude setpoint from manual user inputs
+				// STABILIZED mode: setpoint generation
 
 				const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
 
@@ -108,10 +103,10 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 				pitch_body = constrain(pitch_body,
 						       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
-				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
-
 				const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
 				q.copyTo(_att_sp.q_d);
+
+				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 
 				_att_sp.timestamp = hrt_absolute_time();
 
@@ -207,7 +202,7 @@ void FixedwingAttitudeControl::Run()
 			dt = math::constrain((att.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
 			_last_run = att.timestamp_sample;
 
-			// get current rotation matrix and euler angles from control state quaternions
+			// get current rotation matrix from control state quaternions
 			_R = matrix::Quatf(att.q);
 		}
 
@@ -299,20 +294,61 @@ void FixedwingAttitudeControl::Run()
 				const Quatf q_sp(_att_sp.q_d);
 
 				if (q_sp.isAllFinite()) {
-					const Eulerf euler_sp(q_sp);
-					const float roll_sp = euler_sp.phi();
-					const float pitch_sp = euler_sp.theta();
 
-					_roll_ctrl.control_roll(roll_sp, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
-								euler_angles.theta());
-					_pitch_ctrl.control_pitch(pitch_sp, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
-								  euler_angles.theta());
-					_yaw_ctrl.control_yaw(roll_sp, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
-							      euler_angles.theta(), get_airspeed_constrained());
+					const Quatf q_current(att.q);
+					const Vector3f ez_world(0.f, 0.f, 1.f);
+					const Vector3f ex_c = q_current.dcm_x();
+					const Vector3f ez_c = q_current.dcm_z();
+					const Vector3f ez_sp = q_sp.dcm_z();
 
-					/* Update input data for rate controllers */
-					Vector3f body_rates_setpoint = Vector3f(_roll_ctrl.get_body_rate_setpoint(), _pitch_ctrl.get_body_rate_setpoint(),
-										_yaw_ctrl.get_body_rate_setpoint());
+					// Tilt-only error quaternion
+					Quatf q_tilt_err(ez_c, ez_sp);
+
+					// Reduced desired attitude
+					Quatf q_des_red = (q_tilt_err * q_current).normalized();
+					Quatf q_err = (q_current.inversed() * q_des_red).canonical();
+					Vector3f e = 2.f * q_err.imag();
+
+					Vector3f body_rates_setpoint;
+					body_rates_setpoint(0) = _proportional_gain(0) * e(0);
+					body_rates_setpoint(1) = _proportional_gain(1) * e(1) * 2.5f;   // multiplied by 2.5 to maintain the gains
+					body_rates_setpoint(2) = 0.f;
+
+					// Turn coordination
+					const float V = math::max(get_airspeed_constrained(), 0.1f);
+
+					Vector3f x_h = ex_c - ez_world * ex_c.dot(ez_world);   // forward projected to horizontal
+					float r_tc_ff = 0.f;
+
+					const float xhn = x_h.norm();
+
+					if (xhn > 1e-3f) {
+
+						x_h /= xhn;
+						Vector3f y_h = ez_world.cross(x_h);
+						const float yhn = y_h.norm();
+
+						if (yhn > 1e-6f) {
+
+							y_h /= yhn;
+							const float cos_tilt = ez_c.dot(ez_world);
+							const float sin_bank = ez_c.dot(y_h);
+
+							float tan_bank = 0.f;
+
+							if (fabsf(cos_tilt) > 0.1f) {
+								tan_bank = sin_bank / cos_tilt;
+							}
+
+							r_tc_ff = (9.81f / V) * tan_bank * 0.6f;
+						}
+					}
+
+					body_rates_setpoint(2) = -r_tc_ff;
+
+					body_rates_setpoint(0) = math::constrain(body_rates_setpoint(0), -radians(_param_fw_r_rmax.get()), radians(_param_fw_r_rmax.get()));
+					body_rates_setpoint(1) = math::constrain(body_rates_setpoint(1), -radians(_param_fw_p_rmax_neg.get()), radians(_param_fw_p_rmax_pos.get()));
+					body_rates_setpoint(2) = math::constrain(body_rates_setpoint(2), -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 
 					autotune_attitude_control_status_s pid_autotune;
 					matrix::Vector3f bodyrate_autotune_ff;

@@ -519,6 +519,48 @@ public:
 	}
 
 	/**
+	 * Corresponding body x-axis to an attitude quaternion /
+	 * first orthogonal unit basis vector
+	 *
+	 * == first column of the equivalent rotation matrix
+	 * but calculated more efficiently than a full conversion
+	 */
+	Vector3<Type> dcm_x() const
+	{
+		const Quaternion &q = *this;
+		Vector3<Type> R_x;
+		const Type a = q(0);
+		const Type b = q(1);
+		const Type c = q(2);
+		const Type d = q(3);
+		R_x(0) = a * a + b * b - c * c - d * d;
+		R_x(1) = 2 * (b * c + a * d);
+		R_x(2) = 2 * (b * d - a * c);
+		return R_x;
+	}
+
+	/**
+	 * Corresponding body y-axis to an attitude quaternion /
+	 * second orthogonal unit basis vector
+	 *
+	 * == second column of the equivalent rotation matrix
+	 * but calculated more efficiently than a full conversion
+	 */
+	Vector3<Type> dcm_y() const
+	{
+		const Quaternion &q = *this;
+		Vector3<Type> R_y;
+		const Type a = q(0);
+		const Type b = q(1);
+		const Type c = q(2);
+		const Type d = q(3);
+		R_y(0) = 2 * (b * c - a * d);
+		R_y(1) = a * a - b * b + c * c - d * d;
+		R_y(2) = 2 * (c * d + a * b);
+		return R_y;
+	}
+
+	/**
 	 * Corresponding body z-axis to an attitude quaternion /
 	 * last orthogonal unit basis vector
 	 *
