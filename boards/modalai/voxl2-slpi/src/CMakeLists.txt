@@ -36,6 +36,38 @@
 # from other modules that are not running on the DSP.
 set(DISABLE_PARAMS_MODULE_SCOPING TRUE PARENT_SCOPE)
 
+# Generate mavlink headers for SLPI drivers that need them (dsp_hitl, mavlink_rc_in).
+# This eliminates the dependency on the voxl2 (apps proc) build having run first.
+set(MAVLINK_GIT_DIR "${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink")
+set(MAVLINK_LIBRARY_DIR "${CMAKE_BINARY_DIR}/mavlink")
+file(RELATIVE_PATH MAVLINK_GIT_DIR_RELATIVE ${PX4_SOURCE_DIR} ${MAVLINK_GIT_DIR})
+
+px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${MAVLINK_GIT_DIR}")
+
+add_custom_command(
+	OUTPUT ${MAVLINK_LIBRARY_DIR}/common/common.h
+	COMMAND
+		${PYTHON_EXECUTABLE} ${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
+			--lang C --wire-protocol 2.0
+			--output ${MAVLINK_LIBRARY_DIR}
+			${MAVLINK_GIT_DIR}/message_definitions/v1.0/common.xml > ${CMAKE_CURRENT_BINARY_DIR}/mavgen_common.log
+	DEPENDS
+		git_mavlink_v2
+		${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
+		${MAVLINK_GIT_DIR}/message_definitions/v1.0/common.xml
+	COMMENT "Generating Mavlink common headers for SLPI"
+)
+add_custom_target(mavlink_c_generate DEPENDS ${MAVLINK_LIBRARY_DIR}/common/common.h)
+
+add_library(mavlink_c INTERFACE)
+add_dependencies(mavlink_c mavlink_c_generate)
+target_compile_options(mavlink_c INTERFACE -Wno-address-of-packed-member -Wno-cast-align)
+target_include_directories(mavlink_c
+	INTERFACE
+		${MAVLINK_LIBRARY_DIR}
+		${MAVLINK_LIBRARY_DIR}/common
+)
+
 add_library(drivers_board
 	board_config.h
 	i2c.cpp
