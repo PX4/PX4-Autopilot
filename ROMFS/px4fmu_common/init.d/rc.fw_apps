@@ -18,7 +18,7 @@ fw_att_control start
 fw_mode_manager start
 fw_lat_lon_control start
 airspeed_selector start
-
+fw_wind_estimator start
 #
 # Start attitude control auto-tuner
 #
