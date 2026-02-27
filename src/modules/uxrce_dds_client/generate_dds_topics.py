@@ -130,12 +130,11 @@ if subs_not_empty:
 
 merged_em_globals['subscriptions'] = msg_map['subscriptions'] if subs_not_empty else []
 
-subs_multi_not_empty = msg_map['subscriptions_multi'] is not None
-if subs_multi_not_empty:
-    for sm in msg_map['subscriptions_multi']:
-        process_message_type(sm)
+subs_multi = msg_map.get('subscriptions_multi') or []
+for sd in subs_multi:
+    process_message_type(sd)
 
-merged_em_globals['subscriptions_multi'] = msg_map['subscriptions_multi'] if subs_multi_not_empty else []
+merged_em_globals['subscriptions_multi'] = subs_multi
 
 merged_em_globals['type_includes'] = sorted(set(all_type_includes))
 
