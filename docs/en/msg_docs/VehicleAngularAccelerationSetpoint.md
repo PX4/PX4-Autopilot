@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # VehicleAngularAccelerationSetpoint (UORB message)
 
-**TOPICS:** vehicle_angularacceleration_setpoint
+**TOPICS:** vehicle_angular_acceleration_setpoint
 
 ## Fields
 

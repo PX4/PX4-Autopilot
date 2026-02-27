@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # SensorAccelFifo (UORB message)
 
-**TOPICS:** sensor_accelfifo
+**TOPICS:** sensor_accel_fifo
 
 ## Fields
 

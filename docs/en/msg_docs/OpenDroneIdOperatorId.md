@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # OpenDroneIdOperatorId (UORB message)
 
-**TOPICS:** open_droneid_operatorid
+**TOPICS:** open_drone_id_operator_id
 
 ## Fields
 

@@ -148,18 +148,18 @@ grouped_targets['base']['manufacturers'] = {}
 grouped_targets['base']['manufacturers']['px4'] = []
 grouped_targets['base']['manufacturers']['px4'] += metadata_targets
 
-for manufacturer in os.scandir(os.path.join(source_dir, '../boards')):
+for manufacturer in sorted(os.scandir(os.path.join(source_dir, '../boards')), key=lambda e: e.name):
     if not manufacturer.is_dir():
         continue
     if manufacturer.name in excluded_manufacturers:
         if verbose: print(f'excluding manufacturer {manufacturer.name}')
         continue
 
-    for board in os.scandir(manufacturer.path):
+    for board in sorted(os.scandir(manufacturer.path), key=lambda e: e.name):
         if not board.is_dir():
             continue
 
-        for files in os.scandir(board.path):
+        for files in sorted(os.scandir(board.path), key=lambda e: e.name):
             if files.is_file() and files.name.endswith('.px4board'):
 
                 board_name = manufacturer.name + '_' + board.name

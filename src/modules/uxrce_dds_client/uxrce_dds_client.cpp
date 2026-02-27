@@ -851,17 +851,23 @@ bool UxrceddsClient::setBaudrate(int fd, unsigned baud)
 	}
 
 	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+	termios_state = cfsetispeed(&uart_config, speed);
+
+	if (termios_state < 0) {
 		PX4_ERR("ERR: %d (cfsetispeed)", termios_state);
 		return false;
 	}
 
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+	termios_state = cfsetospeed(&uart_config, speed);
+
+	if (termios_state < 0) {
 		PX4_ERR("ERR: %d (cfsetospeed)", termios_state);
 		return false;
 	}
 
-	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
+	termios_state = tcsetattr(fd, TCSANOW, &uart_config);
+
+	if (termios_state < 0) {
 		PX4_ERR("ERR: %d (tcsetattr)", termios_state);
 		return false;
 	}

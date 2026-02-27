@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.13" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -40,7 +40,7 @@ PX4 runs on the H7 mini v1.3 and later.
 - Dimensions: 30x31x6mm
 - Weight: 5.5g
 
-## Where to Buy
+## Where to Buy {#store}
 
 The board can be bought from one of the following shops (for example):
 
@@ -86,14 +86,14 @@ Download the [holybro_kakuteh7mini_bootloader.hex](https://github.com/PX4/PX4-Au
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make holybro_kakuteh7mini_default
 ```
 
 ## Installing PX4 Firmware
 
 ::: info
-If you are loading the pre-built firmware via QGroundcontrol, you must use QGC Daily or QGC version newer than 4.1.7.
+If you are loading the pre-built firmware via QGroundControl, you must use QGC Daily or QGC version newer than 4.1.7.
 Prior to that release you will need to manually build and install the firmware.
 :::
 
@@ -101,7 +101,7 @@ Firmware can be manually installed in any of the normal ways:
 
 - Build and upload the source:
 
-  ```
+  ```sh
   make holybro_kakuteh7mini_default upload
   ```
 

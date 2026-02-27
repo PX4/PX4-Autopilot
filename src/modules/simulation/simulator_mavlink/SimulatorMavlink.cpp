@@ -54,7 +54,6 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <termios.h>
-#include <arpa/inet.h>
 
 #include <limits>
 
@@ -1121,7 +1120,9 @@ void SimulatorMavlink::run()
 
 	if (_ip == InternetProtocol::UDP) {
 
-		if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+		if (_fd < 0) {
 			PX4_ERR("Creating UDP socket failed: %s", strerror(errno));
 			return;
 		}
@@ -1154,7 +1155,9 @@ void SimulatorMavlink::run()
 		PX4_INFO("Waiting for simulator to accept connection on TCP port %u", _port);
 
 		while (true) {
-			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+			_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+			if (_fd < 0) {
 				PX4_ERR("Creating TCP socket failed: %s", strerror(errno));
 				return;
 			}
@@ -1256,9 +1259,9 @@ void SimulatorMavlink::check_failure_injections()
 		bool handled = false;
 		bool supported = false;
 
-		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
-		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
-		const int instance = static_cast<int>(vehicle_command.param3 + 0.5f);
+		const int failure_unit = static_cast<int>(std::lround(vehicle_command.param1));
+		const int failure_type = static_cast<int>(std::lround(vehicle_command.param2));
+		const int instance = static_cast<int>(std::lround(vehicle_command.param3));
 
 		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_GPS) {
 			handled = true;

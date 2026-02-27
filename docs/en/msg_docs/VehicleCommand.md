@@ -1526,50 +1526,50 @@ Change mode by specifying nav_state directly.
 
 ## Constants
 
-| Name                                                                                                        | Type     | Value | Description                                                                                |
-| ----------------------------------------------------------------------------------------------------------- | -------- | ----- | ------------------------------------------------------------------------------------------ |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                             | `uint32` | 0     |
-| <a href="#PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION"></a> PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION | `uint16` | 3     | Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration.        |
-| <a href="#VEHICLE_MOUNT_MODE_RETRACT"></a> VEHICLE_MOUNT_MODE_RETRACT                                       | `uint8`  | 0     | Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization. |
-| <a href="#VEHICLE_MOUNT_MODE_NEUTRAL"></a> VEHICLE_MOUNT_MODE_NEUTRAL                                       | `uint8`  | 1     | Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.                     |
-| <a href="#VEHICLE_MOUNT_MODE_MAVLINK_TARGETING"></a> VEHICLE_MOUNT_MODE_MAVLINK_TARGETING                   | `uint8`  | 2     | Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization.         |
-| <a href="#VEHICLE_MOUNT_MODE_RC_TARGETING"></a> VEHICLE_MOUNT_MODE_RC_TARGETING                             | `uint8`  | 3     | Load neutral position and start RC Roll,Pitch,Yaw control with stabilization.              |
-| <a href="#VEHICLE_MOUNT_MODE_GPS_POINT"></a> VEHICLE_MOUNT_MODE_GPS_POINT                                   | `uint8`  | 4     | Load neutral position and start to point to Lat,Lon,Alt.                                   |
-| <a href="#VEHICLE_MOUNT_MODE_ENUM_END"></a> VEHICLE_MOUNT_MODE_ENUM_END                                     | `uint8`  | 5     |
-| <a href="#PARACHUTE_ACTION_DISABLE"></a> PARACHUTE_ACTION_DISABLE                                           | `uint8`  | 0     |
-| <a href="#PARACHUTE_ACTION_ENABLE"></a> PARACHUTE_ACTION_ENABLE                                             | `uint8`  | 1     |
-| <a href="#PARACHUTE_ACTION_RELEASE"></a> PARACHUTE_ACTION_RELEASE                                           | `uint8`  | 2     |
-| <a href="#FAILURE_UNIT_SENSOR_GYRO"></a> FAILURE_UNIT_SENSOR_GYRO                                           | `uint8`  | 0     |
-| <a href="#FAILURE_UNIT_SENSOR_ACCEL"></a> FAILURE_UNIT_SENSOR_ACCEL                                         | `uint8`  | 1     |
-| <a href="#FAILURE_UNIT_SENSOR_MAG"></a> FAILURE_UNIT_SENSOR_MAG                                             | `uint8`  | 2     |
-| <a href="#FAILURE_UNIT_SENSOR_BARO"></a> FAILURE_UNIT_SENSOR_BARO                                           | `uint8`  | 3     |
-| <a href="#FAILURE_UNIT_SENSOR_GPS"></a> FAILURE_UNIT_SENSOR_GPS                                             | `uint8`  | 4     |
-| <a href="#FAILURE_UNIT_SENSOR_OPTICAL_FLOW"></a> FAILURE_UNIT_SENSOR_OPTICAL_FLOW                           | `uint8`  | 5     |
-| <a href="#FAILURE_UNIT_SENSOR_VIO"></a> FAILURE_UNIT_SENSOR_VIO                                             | `uint8`  | 6     |
-| <a href="#FAILURE_UNIT_SENSOR_DISTANCE_SENSOR"></a> FAILURE_UNIT_SENSOR_DISTANCE_SENSOR                     | `uint8`  | 7     |
-| <a href="#FAILURE_UNIT_SENSOR_AIRSPEED"></a> FAILURE_UNIT_SENSOR_AIRSPEED                                   | `uint8`  | 8     |
-| <a href="#FAILURE_UNIT_SYSTEM_BATTERY"></a> FAILURE_UNIT_SYSTEM_BATTERY                                     | `uint8`  | 100   |
-| <a href="#FAILURE_UNIT_SYSTEM_MOTOR"></a> FAILURE_UNIT_SYSTEM_MOTOR                                         | `uint8`  | 101   |
-| <a href="#FAILURE_UNIT_SYSTEM_SERVO"></a> FAILURE_UNIT_SYSTEM_SERVO                                         | `uint8`  | 102   |
-| <a href="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                 | `uint8`  | 103   |
-| <a href="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL                                 | `uint8`  | 104   |
-| <a href="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL                       | `uint8`  | 105   |
-| <a href="#FAILURE_TYPE_OK"></a> FAILURE_TYPE_OK                                                             | `uint8`  | 0     |
-| <a href="#FAILURE_TYPE_OFF"></a> FAILURE_TYPE_OFF                                                           | `uint8`  | 1     |
-| <a href="#FAILURE_TYPE_STUCK"></a> FAILURE_TYPE_STUCK                                                       | `uint8`  | 2     |
-| <a href="#FAILURE_TYPE_GARBAGE"></a> FAILURE_TYPE_GARBAGE                                                   | `uint8`  | 3     |
-| <a href="#FAILURE_TYPE_WRONG"></a> FAILURE_TYPE_WRONG                                                       | `uint8`  | 4     |
-| <a href="#FAILURE_TYPE_SLOW"></a> FAILURE_TYPE_SLOW                                                         | `uint8`  | 5     |
-| <a href="#FAILURE_TYPE_DELAYED"></a> FAILURE_TYPE_DELAYED                                                   | `uint8`  | 6     |
-| <a href="#FAILURE_TYPE_INTERMITTENT"></a> FAILURE_TYPE_INTERMITTENT                                         | `uint8`  | 7     |
-| <a href="#ARMING_ACTION_DISARM"></a> ARMING_ACTION_DISARM                                                   | `int8`   | 0     |
-| <a href="#ARMING_ACTION_ARM"></a> ARMING_ACTION_ARM                                                         | `int8`   | 1     |
-| <a href="#GRIPPER_ACTION_RELEASE"></a> GRIPPER_ACTION_RELEASE                                               | `uint8`  | 0     |
-| <a href="#GRIPPER_ACTION_GRAB"></a> GRIPPER_ACTION_GRAB                                                     | `uint8`  | 1     |
-| <a href="#SAFETY_OFF"></a> SAFETY_OFF                                                                       | `uint8`  | 0     |
-| <a href="#SAFETY_ON"></a> SAFETY_ON                                                                         | `uint8`  | 1     |
-| <a href="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                                           | `uint8`  | 8     |
-| <a href="#COMPONENT_MODE_EXECUTOR_START"></a> COMPONENT_MODE_EXECUTOR_START                                 | `uint16` | 1000  |
+| Name                                                                                                      | Type     | Value | Description                                                                                |
+| --------------------------------------------------------------------------------------------------------- | -------- | ----- | ------------------------------------------------------------------------------------------ |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                             | `uint32` | 0     |
+| <a id="#PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION"></a> PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION | `uint16` | 3     | Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration.        |
+| <a id="#VEHICLE_MOUNT_MODE_RETRACT"></a> VEHICLE_MOUNT_MODE_RETRACT                                       | `uint8`  | 0     | Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization. |
+| <a id="#VEHICLE_MOUNT_MODE_NEUTRAL"></a> VEHICLE_MOUNT_MODE_NEUTRAL                                       | `uint8`  | 1     | Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.                     |
+| <a id="#VEHICLE_MOUNT_MODE_MAVLINK_TARGETING"></a> VEHICLE_MOUNT_MODE_MAVLINK_TARGETING                   | `uint8`  | 2     | Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization.         |
+| <a id="#VEHICLE_MOUNT_MODE_RC_TARGETING"></a> VEHICLE_MOUNT_MODE_RC_TARGETING                             | `uint8`  | 3     | Load neutral position and start RC Roll,Pitch,Yaw control with stabilization.              |
+| <a id="#VEHICLE_MOUNT_MODE_GPS_POINT"></a> VEHICLE_MOUNT_MODE_GPS_POINT                                   | `uint8`  | 4     | Load neutral position and start to point to Lat,Lon,Alt.                                   |
+| <a id="#VEHICLE_MOUNT_MODE_ENUM_END"></a> VEHICLE_MOUNT_MODE_ENUM_END                                     | `uint8`  | 5     |
+| <a id="#PARACHUTE_ACTION_DISABLE"></a> PARACHUTE_ACTION_DISABLE                                           | `uint8`  | 0     |
+| <a id="#PARACHUTE_ACTION_ENABLE"></a> PARACHUTE_ACTION_ENABLE                                             | `uint8`  | 1     |
+| <a id="#PARACHUTE_ACTION_RELEASE"></a> PARACHUTE_ACTION_RELEASE                                           | `uint8`  | 2     |
+| <a id="#FAILURE_UNIT_SENSOR_GYRO"></a> FAILURE_UNIT_SENSOR_GYRO                                           | `uint8`  | 0     |
+| <a id="#FAILURE_UNIT_SENSOR_ACCEL"></a> FAILURE_UNIT_SENSOR_ACCEL                                         | `uint8`  | 1     |
+| <a id="#FAILURE_UNIT_SENSOR_MAG"></a> FAILURE_UNIT_SENSOR_MAG                                             | `uint8`  | 2     |
+| <a id="#FAILURE_UNIT_SENSOR_BARO"></a> FAILURE_UNIT_SENSOR_BARO                                           | `uint8`  | 3     |
+| <a id="#FAILURE_UNIT_SENSOR_GPS"></a> FAILURE_UNIT_SENSOR_GPS                                             | `uint8`  | 4     |
+| <a id="#FAILURE_UNIT_SENSOR_OPTICAL_FLOW"></a> FAILURE_UNIT_SENSOR_OPTICAL_FLOW                           | `uint8`  | 5     |
+| <a id="#FAILURE_UNIT_SENSOR_VIO"></a> FAILURE_UNIT_SENSOR_VIO                                             | `uint8`  | 6     |
+| <a id="#FAILURE_UNIT_SENSOR_DISTANCE_SENSOR"></a> FAILURE_UNIT_SENSOR_DISTANCE_SENSOR                     | `uint8`  | 7     |
+| <a id="#FAILURE_UNIT_SENSOR_AIRSPEED"></a> FAILURE_UNIT_SENSOR_AIRSPEED                                   | `uint8`  | 8     |
+| <a id="#FAILURE_UNIT_SYSTEM_BATTERY"></a> FAILURE_UNIT_SYSTEM_BATTERY                                     | `uint8`  | 100   |
+| <a id="#FAILURE_UNIT_SYSTEM_MOTOR"></a> FAILURE_UNIT_SYSTEM_MOTOR                                         | `uint8`  | 101   |
+| <a id="#FAILURE_UNIT_SYSTEM_SERVO"></a> FAILURE_UNIT_SYSTEM_SERVO                                         | `uint8`  | 102   |
+| <a id="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                 | `uint8`  | 103   |
+| <a id="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL                                 | `uint8`  | 104   |
+| <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL                       | `uint8`  | 105   |
+| <a id="#FAILURE_TYPE_OK"></a> FAILURE_TYPE_OK                                                             | `uint8`  | 0     |
+| <a id="#FAILURE_TYPE_OFF"></a> FAILURE_TYPE_OFF                                                           | `uint8`  | 1     |
+| <a id="#FAILURE_TYPE_STUCK"></a> FAILURE_TYPE_STUCK                                                       | `uint8`  | 2     |
+| <a id="#FAILURE_TYPE_GARBAGE"></a> FAILURE_TYPE_GARBAGE                                                   | `uint8`  | 3     |
+| <a id="#FAILURE_TYPE_WRONG"></a> FAILURE_TYPE_WRONG                                                       | `uint8`  | 4     |
+| <a id="#FAILURE_TYPE_SLOW"></a> FAILURE_TYPE_SLOW                                                         | `uint8`  | 5     |
+| <a id="#FAILURE_TYPE_DELAYED"></a> FAILURE_TYPE_DELAYED                                                   | `uint8`  | 6     |
+| <a id="#FAILURE_TYPE_INTERMITTENT"></a> FAILURE_TYPE_INTERMITTENT                                         | `uint8`  | 7     |
+| <a id="#ARMING_ACTION_DISARM"></a> ARMING_ACTION_DISARM                                                   | `int8`   | 0     |
+| <a id="#ARMING_ACTION_ARM"></a> ARMING_ACTION_ARM                                                         | `int8`   | 1     |
+| <a id="#GRIPPER_ACTION_RELEASE"></a> GRIPPER_ACTION_RELEASE                                               | `uint8`  | 0     |
+| <a id="#GRIPPER_ACTION_GRAB"></a> GRIPPER_ACTION_GRAB                                                     | `uint8`  | 1     |
+| <a id="#SAFETY_OFF"></a> SAFETY_OFF                                                                       | `uint8`  | 0     |
+| <a id="#SAFETY_ON"></a> SAFETY_ON                                                                         | `uint8`  | 1     |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                                           | `uint8`  | 8     |
+| <a id="#COMPONENT_MODE_EXECUTOR_START"></a> COMPONENT_MODE_EXECUTOR_START                                 | `uint16` | 1000  |
 
 ## Source Message
 

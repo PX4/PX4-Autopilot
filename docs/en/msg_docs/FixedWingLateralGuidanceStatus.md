@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Fixed Wing Lateral Guidance Status message. Published by fw_pos_control module to report the resultant lateral setpoints and NPFG debug outputs.
 
-**TOPICS:** fixed_winglateral_guidancestatus
+**TOPICS:** fixed_wing_lateral_guidance_status
 
 ## Fields
 

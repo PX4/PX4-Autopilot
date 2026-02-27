@@ -157,7 +157,11 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 
 			if (_spi_transfer != NULL) {
 				pthread_mutex_lock(&_mutex);
-				ret = _spi_transfer(_fd, send, recv, len);
+
+				if (recv) { ret = _spi_transfer(_fd, send, recv, len); }
+
+				else { ret = _spi_transfer(_fd, send, send, len); }
+
 				pthread_mutex_unlock(&_mutex);
 
 			} else {

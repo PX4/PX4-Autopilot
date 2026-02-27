@@ -22,11 +22,11 @@ Published by the vehicle's allocation and consumed by the ESC protocol drivers e
 
 ## Constants
 
-| Name                                                              | Type     | Value | Description |
-| ----------------------------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION                   | `uint32` | 0     |
-| <a href="#ACTUATOR_FUNCTION_MOTOR1"></a> ACTUATOR_FUNCTION_MOTOR1 | `uint8`  | 101   |
-| <a href="#NUM_CONTROLS"></a> NUM_CONTROLS                         | `uint8`  | 12    |
+| Name                                                            | Type     | Value | Description |
+| --------------------------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                   | `uint32` | 0     |
+| <a id="#ACTUATOR_FUNCTION_MOTOR1"></a> ACTUATOR_FUNCTION_MOTOR1 | `uint8`  | 101   |
+| <a id="#NUM_CONTROLS"></a> NUM_CONTROLS                         | `uint8`  | 12    |
 
 ## Source Message
 

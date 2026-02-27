@@ -2,12 +2,12 @@
 
 <Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 It has been superseded by the [CUAV X7+](https://doc.cuav.net/controller/x7/en/).
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.cuav.net) for hardware support or compliance issues.
 :::
@@ -38,7 +38,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Car-grade RM3100 compass
 - High performance processor
 
-:::tip
+::: tip
 The manufacturer [CUAV Docs](https://doc.cuav.net/flight-controller/x7/en/) are the canonical reference for the X7.
 They should be used by preference as they contain the most complete and up to date information.
 :::
@@ -79,7 +79,7 @@ They should be used by preference as they contain the most complete and up to da
 When it runs PX4 firmware, only 8 pwm works, the remaining 6 pwm are still being adapted, so it is not compatible with VOLT now.
 :::
 
-## Where to Buy
+## Where to Buy {#store}
 
 [CUAV Store](https://store.cuav.net)
 
@@ -95,7 +95,7 @@ When it runs PX4 firmware, only 8 pwm works, the remaining 6 pwm are still being
 
 ![X7 pinouts](../../assets/flight_controller/cuav_x7/x7-pinouts.jpg)
 
-:::warning
+::: warning
 The `RCIN` port is limited to powering the RC receiver and cannot be connected to any power/load.
 :::
 
@@ -118,14 +118,14 @@ Under these conditions all power sources will be used in this order to power the
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make cuav_x7pro_default
 ```
 
@@ -134,7 +134,7 @@ make cuav_x7pro_default
 The _X7_ has over-current protection on the 5 Volt Peripheral and 5 Volt high power, which limits the current to 2.5A.
 The _X7_ has short circuit protection.
 
-:::warning
+::: warning
 Up to 2.5 A can be delivered to the connectors listed as pin 1 (although these are only rated at 1 A).
 :::
 
@@ -164,7 +164,7 @@ The provided debug cable does not connect to the SWD port `Vref` pin (1).
 
 ![CUAV Debug cable](../../assets/flight_controller/cuav_v5_plus/cuav_v5_debug_cable.jpg)
 
-:::warning
+::: warning
 The SWD Vref pin (1) uses 5V as Vref but the CPU is run at 3.3V!
 
 Some JTAG adapters (SEGGER J-Link) will use the Vref voltage to set the voltage on the SWD lines.

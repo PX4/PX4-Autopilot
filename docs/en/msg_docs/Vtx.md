@@ -24,20 +24,20 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                                | Type    | Value | Description                               |
-| ------------------------------------------------------------------- | ------- | ----- | ----------------------------------------- |
-| <a href="#BAND_NAME_LENGTH"></a> BAND_NAME_LENGTH                   | `uint8` | 12    |
-| <a href="#POWER_LABEL_LENGTH"></a> POWER_LABEL_LENGTH               | `uint8` | 4     |
-| <a href="#PROTOCOL_NONE"></a> PROTOCOL_NONE                         | `uint8` | 0     | No protocol is detected, usually an error |
-| <a href="#PROTOCOL_SMART_AUDIO_V1"></a> PROTOCOL_SMART_AUDIO_V1     | `uint8` | 10    |
-| <a href="#PROTOCOL_SMART_AUDIO_V2"></a> PROTOCOL_SMART_AUDIO_V2     | `uint8` | 20    |
-| <a href="#PROTOCOL_SMART_AUDIO_V2_1"></a> PROTOCOL_SMART_AUDIO_V2_1 | `uint8` | 21    |
-| <a href="#PROTOCOL_TRAMP"></a> PROTOCOL_TRAMP                       | `uint8` | 100   |
-| <a href="#DEVICE_UNKNOWN"></a> DEVICE_UNKNOWN                       | `uint8` | 0     |
-| <a href="#DEVICE_PEAK_THOR_T67"></a> DEVICE_PEAK_THOR_T67           | `uint8` | 20    |
-| <a href="#DEVICE_RUSH_MAX_SOLO"></a> DEVICE_RUSH_MAX_SOLO           | `uint8` | 40    |
-| <a href="#MODE_NORMAL"></a> MODE_NORMAL                             | `uint8` | 0     |
-| <a href="#MODE_PIT"></a> MODE_PIT                                   | `uint8` | 1     |
+| Name                                                              | Type    | Value | Description                               |
+| ----------------------------------------------------------------- | ------- | ----- | ----------------------------------------- |
+| <a id="#BAND_NAME_LENGTH"></a> BAND_NAME_LENGTH                   | `uint8` | 12    |
+| <a id="#POWER_LABEL_LENGTH"></a> POWER_LABEL_LENGTH               | `uint8` | 4     |
+| <a id="#PROTOCOL_NONE"></a> PROTOCOL_NONE                         | `uint8` | 0     | No protocol is detected, usually an error |
+| <a id="#PROTOCOL_SMART_AUDIO_V1"></a> PROTOCOL_SMART_AUDIO_V1     | `uint8` | 10    |
+| <a id="#PROTOCOL_SMART_AUDIO_V2"></a> PROTOCOL_SMART_AUDIO_V2     | `uint8` | 20    |
+| <a id="#PROTOCOL_SMART_AUDIO_V2_1"></a> PROTOCOL_SMART_AUDIO_V2_1 | `uint8` | 21    |
+| <a id="#PROTOCOL_TRAMP"></a> PROTOCOL_TRAMP                       | `uint8` | 100   |
+| <a id="#DEVICE_UNKNOWN"></a> DEVICE_UNKNOWN                       | `uint8` | 0     |
+| <a id="#DEVICE_PEAK_THOR_T67"></a> DEVICE_PEAK_THOR_T67           | `uint8` | 20    |
+| <a id="#DEVICE_RUSH_MAX_SOLO"></a> DEVICE_RUSH_MAX_SOLO           | `uint8` | 40    |
+| <a id="#MODE_NORMAL"></a> MODE_NORMAL                             | `uint8` | 0     |
+| <a id="#MODE_PIT"></a> MODE_PIT                                   | `uint8` | 1     |
 
 ## Source Message
 

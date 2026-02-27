@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # VehicleLandDetected (UORB message)
 
-**TOPICS:** vehicle_landdetected
+**TOPICS:** vehicle_land_detected
 
 ## Fields
 
@@ -26,9 +26,9 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                            | Type     | Value | Description |
-| ----------------------------------------------- | -------- | ----- | ----------- |
-| <a href="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
+| Name                                          | Type     | Value | Description |
+| --------------------------------------------- | -------- | ----- | ----------- |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION | `uint32` | 0     |
 
 ## Source Message
 

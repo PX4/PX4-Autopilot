@@ -182,7 +182,9 @@ InputMavlinkCmdMount::~InputMavlinkCmdMount()
 
 int InputMavlinkCmdMount::initialize()
 {
-	if ((_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command))) < 0) {
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
+	if (_vehicle_command_sub < 0) {
 		return -errno;
 	}
 
@@ -323,9 +325,9 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 		// Stabilization params are ignored. Use MNT_DO_STAB param instead.
 
 		const int params[] = {
-			(int)((float) vehicle_command.param5 + 0.5f),
-			(int)((float) vehicle_command.param6 + 0.5f),
-			(int)(vehicle_command.param7 + 0.5f)
+			static_cast<int>(lroundf(vehicle_command.param5)),
+			static_cast<int>(lroundf(vehicle_command.param6)),
+			static_cast<int>(lroundf(vehicle_command.param7))
 		};
 
 		for (int i = 0; i < 3; ++i) {
@@ -438,11 +440,15 @@ int InputMavlinkGimbalV2::initialize()
 		return -errno;
 	}
 
-	if ((_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command))) < 0) {
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
+	if (_vehicle_command_sub < 0) {
 		return -errno;
 	}
 
-	if ((_gimbal_manager_set_manual_control_sub = orb_subscribe(ORB_ID(gimbal_manager_set_manual_control))) < 0) {
+	_gimbal_manager_set_manual_control_sub = orb_subscribe(ORB_ID(gimbal_manager_set_manual_control));
+
+	if (_gimbal_manager_set_manual_control_sub < 0) {
 		return -errno;
 	}
 
@@ -779,9 +785,9 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 		// Stabilization params are ignored. Use MNT_DO_STAB param instead.
 
 		const int params[] = {
-			(int)((float) vehicle_command.param5 + 0.5f),
-			(int)((float) vehicle_command.param6 + 0.5f),
-			(int)(vehicle_command.param7 + 0.5f)
+			static_cast<int>(lroundf(vehicle_command.param5)),
+			static_cast<int>(lroundf(vehicle_command.param6)),
+			static_cast<int>(lroundf(vehicle_command.param7))
 		};
 
 		for (int i = 0; i < 3; ++i) {

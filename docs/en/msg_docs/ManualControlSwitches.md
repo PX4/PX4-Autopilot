@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # ManualControlSwitches (UORB message)
 
-**TOPICS:** manual_controlswitches
+**TOPICS:** manual_control_switches
 
 ## Fields
 
@@ -29,20 +29,20 @@ pageClass: is-wide-page
 
 ## Constants
 
-| Name                                                | Type    | Value | Description                       |
-| --------------------------------------------------- | ------- | ----- | --------------------------------- |
-| <a href="#SWITCH_POS_NONE"></a> SWITCH_POS_NONE     | `uint8` | 0     | switch is not mapped              |
-| <a href="#SWITCH_POS_ON"></a> SWITCH_POS_ON         | `uint8` | 1     | switch activated (value = 1)      |
-| <a href="#SWITCH_POS_MIDDLE"></a> SWITCH_POS_MIDDLE | `uint8` | 2     | middle position (value = 0)       |
-| <a href="#SWITCH_POS_OFF"></a> SWITCH_POS_OFF       | `uint8` | 3     | switch not activated (value = -1) |
-| <a href="#MODE_SLOT_NONE"></a> MODE_SLOT_NONE       | `uint8` | 0     | no mode slot assigned             |
-| <a href="#MODE_SLOT_1"></a> MODE_SLOT_1             | `uint8` | 1     | mode slot 1 selected              |
-| <a href="#MODE_SLOT_2"></a> MODE_SLOT_2             | `uint8` | 2     | mode slot 2 selected              |
-| <a href="#MODE_SLOT_3"></a> MODE_SLOT_3             | `uint8` | 3     | mode slot 3 selected              |
-| <a href="#MODE_SLOT_4"></a> MODE_SLOT_4             | `uint8` | 4     | mode slot 4 selected              |
-| <a href="#MODE_SLOT_5"></a> MODE_SLOT_5             | `uint8` | 5     | mode slot 5 selected              |
-| <a href="#MODE_SLOT_6"></a> MODE_SLOT_6             | `uint8` | 6     | mode slot 6 selected              |
-| <a href="#MODE_SLOT_NUM"></a> MODE_SLOT_NUM         | `uint8` | 6     | number of slots                   |
+| Name                                              | Type    | Value | Description                       |
+| ------------------------------------------------- | ------- | ----- | --------------------------------- |
+| <a id="#SWITCH_POS_NONE"></a> SWITCH_POS_NONE     | `uint8` | 0     | switch is not mapped              |
+| <a id="#SWITCH_POS_ON"></a> SWITCH_POS_ON         | `uint8` | 1     | switch activated (value = 1)      |
+| <a id="#SWITCH_POS_MIDDLE"></a> SWITCH_POS_MIDDLE | `uint8` | 2     | middle position (value = 0)       |
+| <a id="#SWITCH_POS_OFF"></a> SWITCH_POS_OFF       | `uint8` | 3     | switch not activated (value = -1) |
+| <a id="#MODE_SLOT_NONE"></a> MODE_SLOT_NONE       | `uint8` | 0     | no mode slot assigned             |
+| <a id="#MODE_SLOT_1"></a> MODE_SLOT_1             | `uint8` | 1     | mode slot 1 selected              |
+| <a id="#MODE_SLOT_2"></a> MODE_SLOT_2             | `uint8` | 2     | mode slot 2 selected              |
+| <a id="#MODE_SLOT_3"></a> MODE_SLOT_3             | `uint8` | 3     | mode slot 3 selected              |
+| <a id="#MODE_SLOT_4"></a> MODE_SLOT_4             | `uint8` | 4     | mode slot 4 selected              |
+| <a id="#MODE_SLOT_5"></a> MODE_SLOT_5             | `uint8` | 5     | mode slot 5 selected              |
+| <a id="#MODE_SLOT_6"></a> MODE_SLOT_6             | `uint8` | 6     | mode slot 6 selected              |
+| <a id="#MODE_SLOT_NUM"></a> MODE_SLOT_NUM         | `uint8` | 6     | number of slots                   |
 
 ## Source Message
 

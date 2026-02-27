@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # PositionControllerStatus (UORB message)
 
-**TOPICS:** position_controllerstatus
+**TOPICS:** position_controller_status
 
 ## Fields
 

@@ -7,7 +7,7 @@ const { site } = useData();
 
 <div v-if="site.title !== 'PX4 Guide (main)'">
   <div class="custom-block danger">
-    <p class="custom-block-title">This page may be out out of date. <a href="https://docs.px4.io/main/en/contribute/dev_call.html">See the latest version</a>.</p>
+    <p class="custom-block-title">This page may be out out of date. <a href="https://docs.px4.io/main/en/contribute/dev_call">See the latest version</a>.</p>
   </div>
 </div>
 
@@ -36,4 +36,4 @@ Please add your topics for discussion to the agenda before the meeting begins, b
 ## Schedule
 
 - TIME: Wednesday 17h00 CET ([subscribe to calendar](https://dronecode.org/calendar/))
-- **Join the call**: [https://discord.gg/BDYmr6FA6Q](https://discord.gg/BDYmr6FA6Q)
+- **Join the call**: [https://discord.com/invite/BDYmr6FA6Q](https://discord.com/invite/BDYmr6FA6Q)

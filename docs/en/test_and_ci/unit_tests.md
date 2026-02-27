@@ -133,7 +133,7 @@ The steps to create new SITL unit tests are as follows:
    }
    ```
 
-   `OPTION` can be `OPT_NOALLTEST`,`OPT_NOJIGTEST` or `0` and is considered if within px4 shell one of the two commands are called:
+   `OPTION` can be `OPT_NOALLTEST`,`OPT_NOJIGTEST` or `0` and is considered if within PX4 shell one of the two commands are called:
 
    ```sh
    pxh> tests all

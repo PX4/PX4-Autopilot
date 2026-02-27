@@ -6,7 +6,7 @@ pageClass: is-wide-page
 
 Gnss quality indicators.
 
-**TOPICS:** sensor_gnssstatus
+**TOPICS:** sensor_gnss_status
 
 ## Fields
 

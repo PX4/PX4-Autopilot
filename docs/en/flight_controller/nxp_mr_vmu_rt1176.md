@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="PX4 v1.15" />
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.nxp.com) for hardware support (https://community.nxp.com/) or compliance issues.
 :::
@@ -23,7 +23,7 @@ It also removes the IO processor to enable 12 PWM ports, with 8 providing Dshot 
 This board takes advantage of multiple Pixhawk​​® open standards, such as the FMUv6X-RT Standard, [Autopilot Bus Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf), and [Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 Equipped with a high performance NXP i.mx RT1176 dual core Processor, modular design, triple redundancy, temperature-controlled IMU board, isolated sensor domains, delivering incredible performance, reliability, and flexibility.
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -133,7 +133,7 @@ Similar variants will be available from our licensees.
 - Other Characteristics:
   - Operating & storage temperature: -40 ~ 85°c
 
-## Where to Buy
+## Where to Buy {#store}
 
 Order from [NXP](https://www.nxp.com).
 
@@ -214,7 +214,7 @@ Analog battery monitoring via an ADC is not supported on this particular board, 
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::

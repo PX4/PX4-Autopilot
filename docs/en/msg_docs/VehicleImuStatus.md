@@ -4,7 +4,7 @@ pageClass: is-wide-page
 
 # VehicleImuStatus (UORB message)
 
-**TOPICS:** vehicle_imustatus
+**TOPICS:** vehicle_imu_status
 
 ## Fields
 

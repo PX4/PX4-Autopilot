@@ -143,8 +143,8 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 	errno = ret;
 
 	if (ret != 0 && ret != ETIMEDOUT) {
-		setbuf(stdout, nullptr);
-		setbuf(stderr, nullptr);
+		(void)setvbuf(stdout, nullptr, _IONBF, 0);
+		(void)setvbuf(stderr, nullptr, _IONBF, 0);
 		const unsigned NAMELEN = 32;
 		char thread_name[NAMELEN] = {};
 		(void)pthread_getname_np(pthread_self(), thread_name, NAMELEN);
