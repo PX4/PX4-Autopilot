@@ -28,6 +28,7 @@ fi
 fw_rate_control start vtol
 fw_att_control start vtol
 fw_mode_manager start
+fw_guidance_control start
 fw_lat_lon_control start vtol
 fw_autotune_attitude_control start vtol
 
