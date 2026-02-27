@@ -1,0 +1,13 @@
+{
+    "board_id": 53,
+    "magic": "A2M6Xv1",
+    "description": "Firmware for the A2M6X board",
+    "image": "",
+    "build_time": 0,
+    "summary": "A2M6X",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1966080,
+    "git_identity": "",
+    "board_revision": 0
+}
