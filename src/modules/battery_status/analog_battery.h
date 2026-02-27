@@ -78,7 +78,6 @@ protected:
 		param_t v_div;
 		param_t a_per_v;
 		param_t v_channel;
-		param_t i_channel;
 		param_t i_overwrite;
 		param_t v_filt;
 		param_t i_filt;
@@ -89,7 +88,6 @@ protected:
 		float v_div;
 		float a_per_v;
 		int32_t v_channel;
-		int32_t i_channel;
 		float i_overwrite;
 		float v_filt;
 		float i_filt;
