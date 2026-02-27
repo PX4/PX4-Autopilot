@@ -8,7 +8,10 @@ ENV LC_ALL=C.UTF-8
 ENV DISPLAY=:99
 ENV TERM=xterm
 ENV TZ=UTC
-ENV RUNS_IN_DOCKER=true
+
+# Workaround for .dockerenv not existing during docker build
+# https://github.com/moby/buildkit/issues/4503#issuecomment-2454920501
+RUN touch /.dockerenv
 
 # SITL UDP PORTS
 EXPOSE 14556/udp

@@ -31,7 +31,7 @@ echo "[ubuntu.sh] Starting..."
 echo "[ubuntu.sh] arch: $INSTALL_ARCH"
 
 # detect if running in docker
-if [ "$RUNS_IN_DOCKER" = "true" ]; then
+if [ -f "/.dockerenv" ]; then
 	echo "[ubuntu.sh] Running within docker, installing initial dependencies";
 	apt-get --quiet -y update && DEBIAN_FRONTEND=noninteractive apt-get --quiet -y install \
 		ca-certificates \

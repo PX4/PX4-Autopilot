@@ -15,9 +15,6 @@ on:
     paths-ignore:
       - 'docs/**'
 
-env:
-  RUNS_IN_DOCKER: true
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
