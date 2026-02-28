@@ -1087,7 +1087,7 @@ Mavlink::send_autopilot_capabilities()
 			param_t param_handle = param_find_no_notification("MNT_MODE_IN");
 			int32_t mnt_mode_in = 0;
 
-			if (mnt_mode_in != PARAM_INVALID) {
+			if (param_handle != PARAM_INVALID) {
 				param_get(param_handle, &mnt_mode_in);
 
 				if (mnt_mode_in == 4) {
