@@ -90,6 +90,10 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 	uORB::SubscriptionBlocking<vehicle_acceleration_s> vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	while (true) {
+		// Yield CPU — updateBlocking() returns immediately when data is
+		// already available, so with high-rate sensors the loop never blocks.
+		px4_usleep(1000);
+
 		vehicle_acceleration_s accel;
 
 		if (vehicle_acceleration_sub.updateBlocking(accel, 100000)) {

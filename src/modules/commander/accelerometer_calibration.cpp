@@ -178,6 +178,10 @@ static calibrate_return read_accelerometer_avg(accel_worker_data_s *worker_data,
 
 	/* use the first sensor to pace the readout, but do per-sensor counts */
 	while (counts[0] < samples_num) {
+		// Yield CPU — updatedBlocking() returns immediately when data is
+		// already available, so with high-rate sensors the loop never blocks.
+		px4_usleep(1000);
+
 		if (accel_sub[0].updatedBlocking(100000)) {
 			for (unsigned accel_index = 0; accel_index < MAX_ACCEL_SENS; accel_index++) {
 				sensor_accel_s arp;
