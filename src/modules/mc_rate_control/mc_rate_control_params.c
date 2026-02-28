@@ -279,20 +279,6 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_K, 1.0f);
 
 /**
- * Battery power level scaler
- *
- * This compensates for voltage drop of the battery over time by attempting to
- * normalize performance across the operating range of the battery. The copter
- * should constantly behave as if it was fully charged with reduced max acceleration
- * at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
- * it will still be 0.5 at 60% battery.
- *
- * @boolean
- * @group Multicopter Rate Control
- */
-PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
-
-/**
  * Low pass filter cutoff frequency for yaw torque setpoint
  *
  * Reduces vibrations by lowering high frequency torque caused by rotor acceleration.
