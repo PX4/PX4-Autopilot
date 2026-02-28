@@ -164,6 +164,7 @@
  * Connected to the IO MCU; tell compiler to enable support
  */
 #define PX4IO_HEATER_ENABLED
+#define HEATER_NUM 1
 
 __BEGIN_DECLS
 

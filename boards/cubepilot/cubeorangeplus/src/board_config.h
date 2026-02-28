@@ -69,6 +69,7 @@
 #define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
 
 #define PX4IO_HEATER_ENABLED
+#define HEATER_NUM 1
 
 /* LEDs */
 #define GPIO_nLED_AMBER        /* PE12 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
