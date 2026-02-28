@@ -30,14 +30,14 @@ Used by controllers, estimators and for airspeed reporting to operator.
 
 ### SOURCE {#SOURCE}
 
-| Name                                                              | Type   | Value | Description             |
-| ----------------------------------------------------------------- | ------ | ----- | ----------------------- |
-| <a href="#SOURCE_DISABLED"></a> SOURCE_DISABLED                   | `int8` | -1    | Disabled                |
-| <a href="#SOURCE_GROUND_MINUS_WIND"></a> SOURCE_GROUND_MINUS_WIND | `int8` | 0     | Ground speed minus wind |
-| <a href="#SOURCE_SENSOR_1"></a> SOURCE_SENSOR_1                   | `int8` | 1     | Sensor 1                |
-| <a href="#SOURCE_SENSOR_2"></a> SOURCE_SENSOR_2                   | `int8` | 2     | Sensor 2                |
-| <a href="#SOURCE_SENSOR_3"></a> SOURCE_SENSOR_3                   | `int8` | 3     | Sensor 3                |
-| <a href="#SOURCE_SYNTHETIC"></a> SOURCE_SYNTHETIC                 | `int8` | 4     | Synthetic airspeed      |
+| Name                                                            | Type   | Value | Description             |
+| --------------------------------------------------------------- | ------ | ----- | ----------------------- |
+| <a id="#SOURCE_DISABLED"></a> SOURCE_DISABLED                   | `int8` | -1    | Disabled                |
+| <a id="#SOURCE_GROUND_MINUS_WIND"></a> SOURCE_GROUND_MINUS_WIND | `int8` | 0     | Ground speed minus wind |
+| <a id="#SOURCE_SENSOR_1"></a> SOURCE_SENSOR_1                   | `int8` | 1     | Sensor 1                |
+| <a id="#SOURCE_SENSOR_2"></a> SOURCE_SENSOR_2                   | `int8` | 2     | Sensor 2                |
+| <a id="#SOURCE_SENSOR_3"></a> SOURCE_SENSOR_3                   | `int8` | 3     | Sensor 3                |
+| <a id="#SOURCE_SYNTHETIC"></a> SOURCE_SYNTHETIC                 | `int8` | 4     | Synthetic airspeed      |
 
 ## Constants
 

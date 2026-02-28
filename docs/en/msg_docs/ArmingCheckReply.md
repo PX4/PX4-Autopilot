@@ -45,9 +45,9 @@ The message is not used by internal/FMU components, as their mode requirements a
 
 ### HEALTH_COMPONENT_INDEX {#HEALTH_COMPONENT_INDEX}
 
-| Name                                                                    | Type    | Value | Description                                               |
-| ----------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------- |
-| <a href="#HEALTH_COMPONENT_INDEX_NONE"></a> HEALTH_COMPONENT_INDEX_NONE | `uint8` | 0     | Index of health component for which this response applies |
+| Name                                                                  | Type    | Value | Description                                               |
+| --------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------- |
+| <a id="#HEALTH_COMPONENT_INDEX_NONE"></a> HEALTH_COMPONENT_INDEX_NONE | `uint8` | 0     | Index of health component for which this response applies |
 
 ## Constants
 
