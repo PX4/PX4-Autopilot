@@ -238,6 +238,7 @@ uint8_t orb_get_queue_size(const struct orb_metadata *meta)
 	return 0;
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 void orb_print_message_internal(const orb_metadata *meta, const void *data, bool print_topic_name)
 {
 	if (print_topic_name) {
@@ -494,6 +495,7 @@ void orb_print_message_internal(const orb_metadata *meta, const void *data, bool
 				}
 
 				PX4_INFO_RAW(" (%s):\n", topic_name);
+
 				orb_print_message_internal(found_topic, data_ptr + data_offset, false);
 				data_offset += found_topic->o_size;
 			}

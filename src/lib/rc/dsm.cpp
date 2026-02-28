@@ -213,13 +213,11 @@ static bool dsm_guess_format(bool reset)
 	static uint16_t seen_channels_count_cs11[DSM_MAX_CHANNEL_COUNT] {};
 	static uint16_t seen_channels_count_cs10[DSM_MAX_CHANNEL_COUNT] {};
 
-	/* reset the 10/11 bit sniffed channel masks */
-	if (reset) {
+	auto reset_state = [&]() {
 		PX4_DEBUG("dsm_guess_format reset");
 		cs10 = 0;
 		cs11 = 0;
 		samples = 0;
-
 		dsm_channel_shift = 0;
 		good_cs10_frame_count = 0;
 		good_cs11_frame_count = 0;
@@ -228,7 +226,11 @@ static bool dsm_guess_format(bool reset)
 			seen_channels_count_cs10[i] = 0;
 			seen_channels_count_cs11[i] = 0;
 		}
+	};
 
+	/* reset the 10/11 bit sniffed channel masks */
+	if (reset) {
+		reset_state();
 		return false;
 	}
 
@@ -429,7 +431,7 @@ static bool dsm_guess_format(bool reset)
 #ifdef DSM_DEBUG
 	printf("DSM: format detect fail\n");
 #endif
-	dsm_guess_format(true);
+	reset_state();
 	return false;
 }
 
