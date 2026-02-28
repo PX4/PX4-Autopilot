@@ -168,6 +168,7 @@
       - [ARK Electronics ARKV6X](flight_controller/ark_v6x.md)
       - [ARK FPV Flight Controller](flight_controller/ark_fpv.md)
       - [ARK Pi6X Flow Flight Controller](flight_controller/ark_pi6x.md)
+      - [CORVON V5](flight_controller/corvon_v5.md)
       - [CUAV Nora](flight_controller/cuav_nora.md)
       - [CUAV V5+ (FMUv5)](flight_controller/cuav_v5_plus.md)
         - [Wiring Quickstart](assembly/quick_start_cuav_v5_plus.md)
