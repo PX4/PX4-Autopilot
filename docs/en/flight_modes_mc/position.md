@@ -78,7 +78,7 @@ All the parameters in the [Multicopter Position Control](../advanced_config/para
 ### Position Loss/Safety
 
 Position mode is dependent on having an acceptable position estimate.
-If the estimate falls below acceptable levels, for example due to GPS loss, this may trigger a [Position (GPS) Loss Failsafe](../config/safety.md#position-gnss-loss-failsafe).
+If the estimate falls below acceptable levels, for example due to GPS loss, this may trigger a [Position (GPS) Loss Failsafe](../config/safety.md#position-loss-failsafe).
 Depending on configuration, whether you have a remote control, and whether there is an adequate altitude estimate, PX4 may switch to altitude mode, manual mode, land mode or terminate.
 
 ## See Also

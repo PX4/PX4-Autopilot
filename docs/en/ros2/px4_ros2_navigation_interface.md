@@ -220,7 +220,7 @@ private:
 
 ### Global Position Updates
 
-First ensure that the PX4 parameter [`EKF2_AGP_CTRL`](../advanced_config/parameter_reference.md#EKF2_AGP_CTRL) is properly configured to fuse external global measurements, by setting the appropriate bits to `true`:
+First ensure that the PX4 [`EKF2_AGP_CTRLn`](../advanced_config/parameter_reference.md#EKF2_AGP0_CTRL) parameters are properly configured to fuse external global measurements, by setting the appropriate bits to `true`:
 
 - `0`: Horizontal position data
 - `1`: Vertical position data
