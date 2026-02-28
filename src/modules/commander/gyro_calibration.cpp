@@ -91,11 +91,23 @@ static calibrate_return gyro_calibration_worker(gyro_worker_data_t &worker_data)
 
 	/* use slowest gyro to pace, but count correctly per-gyro for statistics */
 	unsigned slow_count = 0;
+	unsigned iterations_since_cancel_check = 0;
 
 	while (slow_count < CALIBRATION_COUNT) {
-		if (calibrate_cancel_check(worker_data.mavlink_log_pub, calibration_started)) {
-			return calibrate_return_cancelled;
+		// Throttle cancel check — calibrate_cancel_check() creates a new
+		// uORB::Subscription each call, triggering an O(n) topic lookup.
+		// At high sensor rates this dominates CPU.
+		if (++iterations_since_cancel_check >= 100) {
+			iterations_since_cancel_check = 0;
+
+			if (calibrate_cancel_check(worker_data.mavlink_log_pub, calibration_started)) {
+				return calibrate_return_cancelled;
+			}
 		}
+
+		// Yield CPU — updatedBlocking() returns immediately when data is
+		// already available, so with high-rate sensors the loop never blocks.
+		px4_usleep(1000);
 
 		if (gyro_sub[0].updatedBlocking(100000)) {
 			unsigned update_count = CALIBRATION_COUNT;

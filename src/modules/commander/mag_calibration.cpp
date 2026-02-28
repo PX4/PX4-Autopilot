@@ -278,14 +278,22 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 	uORB::SubscriptionBlocking<sensor_gyro_s> gyro_sub{ORB_ID(sensor_gyro)};
 
+	unsigned iterations_since_cancel_check = 0;
+
 	while (fabsf(gyro_x_integral) < gyro_int_thresh_rad &&
 	       fabsf(gyro_y_integral) < gyro_int_thresh_rad &&
 	       fabsf(gyro_z_integral) < gyro_int_thresh_rad) {
 
-		/* abort on request */
-		if (calibrate_cancel_check(worker_data->mavlink_log_pub, calibration_started)) {
-			result = calibrate_return_cancelled;
-			return result;
+		// Throttle cancel check — calibrate_cancel_check() creates a new
+		// uORB::Subscription each call, triggering an O(n) topic lookup.
+		// At high sensor rates this dominates CPU.
+		if (++iterations_since_cancel_check >= 100) {
+			iterations_since_cancel_check = 0;
+
+			if (calibrate_cancel_check(worker_data->mavlink_log_pub, calibration_started)) {
+				result = calibrate_return_cancelled;
+				return result;
+			}
 		}
 
 		/* abort with timeout */
@@ -297,6 +305,10 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 
 		/* Wait clocking for new data on all gyro */
+		// Yield CPU — updateBlocking() returns immediately when data is
+		// already available, so with high-rate sensors the loop never blocks.
+		px4_usleep(1000);
+
 		sensor_gyro_s gyro;
 
 		if (gyro_sub.updateBlocking(gyro, 1000_ms)) {
@@ -326,13 +338,26 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	unsigned poll_errcount = 0;
 	unsigned calibration_counter_side = 0;
 
+	iterations_since_cancel_check = 0;
+
 	while (hrt_absolute_time() < calibration_deadline &&
 	       calibration_counter_side < worker_data->calibration_points_perside) {
 
-		if (calibrate_cancel_check(worker_data->mavlink_log_pub, calibration_started)) {
-			result = calibrate_return_cancelled;
-			break;
+		// Throttle cancel check — calibrate_cancel_check() creates a new
+		// uORB::Subscription each call, triggering an O(n) topic lookup.
+		// At high sensor rates this dominates CPU.
+		if (++iterations_since_cancel_check >= 100) {
+			iterations_since_cancel_check = 0;
+
+			if (calibrate_cancel_check(worker_data->mavlink_log_pub, calibration_started)) {
+				result = calibrate_return_cancelled;
+				break;
+			}
 		}
+
+		// Yield CPU — updatedBlocking() returns immediately when data is
+		// already available, so with high-rate sensors the loop never blocks.
+		px4_usleep(1000);
 
 		if (mag_sub[0].updatedBlocking(1000_ms)) {
 			bool rejected = false;
