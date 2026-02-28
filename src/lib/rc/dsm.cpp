@@ -213,224 +213,225 @@ static bool dsm_guess_format(bool reset)
 	static uint16_t seen_channels_count_cs11[DSM_MAX_CHANNEL_COUNT] {};
 	static uint16_t seen_channels_count_cs10[DSM_MAX_CHANNEL_COUNT] {};
 
-	/* reset the 10/11 bit sniffed channel masks */
-	if (reset) {
-		PX4_DEBUG("dsm_guess_format reset");
-		cs10 = 0;
-		cs11 = 0;
-		samples = 0;
+	while (true) {
+		/* reset the 10/11 bit sniffed channel masks */
+		if (reset) {
+			PX4_DEBUG("dsm_guess_format reset");
+			cs10 = 0;
+			cs11 = 0;
+			samples = 0;
 
-		dsm_channel_shift = 0;
-		good_cs10_frame_count = 0;
-		good_cs11_frame_count = 0;
+			dsm_channel_shift = 0;
+			good_cs10_frame_count = 0;
+			good_cs11_frame_count = 0;
+
+			for (unsigned i = 0; i < DSM_MAX_CHANNEL_COUNT; i++) {
+				seen_channels_count_cs10[i] = 0;
+				seen_channels_count_cs11[i] = 0;
+			}
+
+			return false;
+		}
+
+		px4::Bitset<DSM_MAX_CHANNEL_COUNT> channels_found_10;
+		px4::Bitset<DSM_MAX_CHANNEL_COUNT> channels_found_11;
+
+		bool cs10_frame_valid = true;
+		bool cs11_frame_valid = true;
+
+		/* scan the channels in the current dsm_frame in both 10- and 11-bit mode */
+		for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
+
+			uint8_t *dp = &dsm_frame[2 + (2 * i)];
+			uint16_t raw = (dp[0] << 8) | dp[1];
+
+			uint8_t channel = 0;
+			uint16_t value = 0;
+
+			/* if the channel decodes, remember the assigned number */
+			if (dsm_decode_channel(raw, 10, channel, value)) {
+				if (channel == CHANNEL_UNUSED) {
+					continue;
+				}
+
+				// invalidate entire frame (for 1024) if channel already found, no duplicate channels per DSM frame
+				if (channels_found_10[channel]) {
+					cs10_frame_valid = false;
+
+				} else {
+					seen_channels_count_cs10[channel]++;
+					channels_found_10.set(channel);
+				}
+			}
+
+			if (dsm_decode_channel(raw, 11, channel, value)) {
+				if (channel == CHANNEL_UNUSED) {
+					continue;
+				}
+
+				// invalidate entire frame (for 2048) if channel already found, no duplicate channels per DSM frame
+				if (channels_found_11[channel]) {
+					cs11_frame_valid = false;
+
+				} else {
+					seen_channels_count_cs11[channel]++;
+
+					channels_found_11.set(channel);
+				}
+			}
+		}
+
+		// add valid cs10 channels
+		if (cs10_frame_valid) {
+			good_cs10_frame_count++;
+
+			for (unsigned channel = 0; channel < DSM_MAX_CHANNEL_COUNT; channel++) {
+				if (channels_found_10[channel]) {
+					cs10 |= 1 << channel;
+				}
+			}
+		}
+
+		// add valid cs11 channels
+		if (cs11_frame_valid) {
+			good_cs11_frame_count++;
+
+			for (unsigned channel = 0; channel < DSM_MAX_CHANNEL_COUNT; channel++) {
+				if (channels_found_11[channel]) {
+					cs11 |= 1 << channel;
+				}
+			}
+		}
+
+		samples++;
+
+		/* wait until we have seen plenty of frames */
+		if (samples < 15) {
+			return false;
+		}
+
+		/*
+		* 10 or 11 bit decoding guess requirements
+		*  For CS10 or CS11...
+		*  At least `samples - bad_samples_allowance` must decode correctly (no duplicates, valid channel ranges for CS10)
+		*  Even distribution of all found channels
+		*  Channels must begin at 0 and no channel gaps after that (ie, the last channel is the one before the first unseen channel starting from zero)
+		 */
+
+		bool cs10_channel_gap_found = false;
+		bool cs11_channel_gap_found = false;
+		bool valid_channel_counts_cs10 = false;
+		bool valid_channel_counts_cs11 = false;
+		uint32_t cs10_channel_count = 0;
+		uint32_t cs11_channel_count = 0;
+		bool found_channels_end = false;
+
+		// Count of allowed bad frames
+		static constexpr uint16_t bad_samples_allowance = 5;
+		static constexpr uint16_t minimum_channel_count = 5;
+		static constexpr uint16_t minimum_channel_seen_count = 4;
+
+		// Check for continous channels in 10bit decoding
+		found_channels_end = false;
 
 		for (unsigned i = 0; i < DSM_MAX_CHANNEL_COUNT; i++) {
-			seen_channels_count_cs10[i] = 0;
-			seen_channels_count_cs11[i] = 0;
-		}
-
-		return false;
-	}
-
-	px4::Bitset<DSM_MAX_CHANNEL_COUNT> channels_found_10;
-	px4::Bitset<DSM_MAX_CHANNEL_COUNT> channels_found_11;
-
-	bool cs10_frame_valid = true;
-	bool cs11_frame_valid = true;
-
-	/* scan the channels in the current dsm_frame in both 10- and 11-bit mode */
-	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
-
-		uint8_t *dp = &dsm_frame[2 + (2 * i)];
-		uint16_t raw = (dp[0] << 8) | dp[1];
-
-		uint8_t channel = 0;
-		uint16_t value = 0;
-
-		/* if the channel decodes, remember the assigned number */
-		if (dsm_decode_channel(raw, 10, channel, value)) {
-			if (channel == CHANNEL_UNUSED) {
-				continue;
-			}
-
-			// invalidate entire frame (for 1024) if channel already found, no duplicate channels per DSM frame
-			if (channels_found_10[channel]) {
-				cs10_frame_valid = false;
+			// This bit is set
+			if (cs10 & (1 << i)) {
+				if (found_channels_end) {
+					// Channel gap found
+					cs10_channel_gap_found = true;
+					break;
+				}
 
 			} else {
-				seen_channels_count_cs10[channel]++;
-				channels_found_10.set(channel);
+				if (!found_channels_end) {
+					cs10_channel_count = i;
+				}
+
+				found_channels_end = true;
 			}
 		}
 
-		if (dsm_decode_channel(raw, 11, channel, value)) {
-			if (channel == CHANNEL_UNUSED) {
-				continue;
-			}
+		// Check for continous channels in 11bit decoding
+		found_channels_end = false;
 
-			// invalidate entire frame (for 2048) if channel already found, no duplicate channels per DSM frame
-			if (channels_found_11[channel]) {
-				cs11_frame_valid = false;
+		for (unsigned i = 0; i < DSM_MAX_CHANNEL_COUNT; i++) {
+			// This bit is set
+			if (cs11 & (1 << i)) {
+				if (found_channels_end) {
+					// Channel gap found
+					cs11_channel_gap_found = true;
+					break;
+				}
 
 			} else {
-				seen_channels_count_cs11[channel]++;
+				if (!found_channels_end) {
+					cs11_channel_count = i;
+				}
 
-				channels_found_11.set(channel);
+				found_channels_end = true;
 			}
 		}
-	}
 
-	// add valid cs10 channels
-	if (cs10_frame_valid) {
-		good_cs10_frame_count++;
+		// Check channel seen counts C10
+		if (cs10_channel_count && !cs10_channel_gap_found) {
+			valid_channel_counts_cs10 = true;
 
-		for (unsigned channel = 0; channel < DSM_MAX_CHANNEL_COUNT; channel++) {
-			if (channels_found_10[channel]) {
-				cs10 |= 1 << channel;
+			for (unsigned i = 0; i < ((cs10_channel_count > 12) ? 12 : cs10_channel_count); i++) {
+				if (seen_channels_count_cs10[i] < minimum_channel_seen_count) {
+					valid_channel_counts_cs10 = false;
+					break;
+				}
+
 			}
 		}
-	}
 
-	// add valid cs11 channels
-	if (cs11_frame_valid) {
-		good_cs11_frame_count++;
+		// Check channel seen counts C11
+		if (cs11_channel_count && !cs11_channel_gap_found) {
+			valid_channel_counts_cs11 = true;
 
-		for (unsigned channel = 0; channel < DSM_MAX_CHANNEL_COUNT; channel++) {
-			if (channels_found_11[channel]) {
-				cs11 |= 1 << channel;
+			for (unsigned i = 0; i < ((cs11_channel_count > 12) ? 12 : cs11_channel_count); i++) {
+				if (seen_channels_count_cs11[i] < minimum_channel_seen_count) {
+					valid_channel_counts_cs11 = false;
+					break;
+				}
+
 			}
 		}
-	}
-
-	samples++;
-
-	/* wait until we have seen plenty of frames */
-	if (samples < 15) {
-		return false;
-	}
-
-	/*
-	* 10 or 11 bit decoding guess requirements
-	*  For CS10 or CS11...
-	*  At least `samples - bad_samples_allowance` must decode correctly (no duplicates, valid channel ranges for CS10)
-	*  Even distribution of all found channels
-	*  Channels must begin at 0 and no channel gaps after that (ie, the last channel is the one before the first unseen channel starting from zero)
-	 */
-
-	bool cs10_channel_gap_found = false;
-	bool cs11_channel_gap_found = false;
-	bool valid_channel_counts_cs10 = false;
-	bool valid_channel_counts_cs11 = false;
-	uint32_t cs10_channel_count = 0;
-	uint32_t cs11_channel_count = 0;
-	bool found_channels_end = false;
-
-	// Count of allowed bad frames
-	static constexpr uint16_t bad_samples_allowance = 5;
-	static constexpr uint16_t minimum_channel_count = 5;
-	static constexpr uint16_t minimum_channel_seen_count = 4;
-
-	// Check for continous channels in 10bit decoding
-	found_channels_end = false;
-
-	for (unsigned i = 0; i < DSM_MAX_CHANNEL_COUNT; i++) {
-		// This bit is set
-		if (cs10 & (1 << i)) {
-			if (found_channels_end) {
-				// Channel gap found
-				cs10_channel_gap_found = true;
-				break;
-			}
-
-		} else {
-			if (!found_channels_end) {
-				cs10_channel_count = i;
-			}
-
-			found_channels_end = true;
-		}
-	}
-
-	// Check for continous channels in 11bit decoding
-	found_channels_end = false;
-
-	for (unsigned i = 0; i < DSM_MAX_CHANNEL_COUNT; i++) {
-		// This bit is set
-		if (cs11 & (1 << i)) {
-			if (found_channels_end) {
-				// Channel gap found
-				cs11_channel_gap_found = true;
-				break;
-			}
-
-		} else {
-			if (!found_channels_end) {
-				cs11_channel_count = i;
-			}
-
-			found_channels_end = true;
-		}
-	}
-
-	// Check channel seen counts C10
-	if (cs10_channel_count && !cs10_channel_gap_found) {
-		valid_channel_counts_cs10 = true;
-
-		for (unsigned i = 0; i < ((cs10_channel_count > 12) ? 12 : cs10_channel_count); i++) {
-			if (seen_channels_count_cs10[i] < minimum_channel_seen_count) {
-				valid_channel_counts_cs10 = false;
-				break;
-			}
-
-		}
-	}
-
-	// Check channel seen counts C11
-	if (cs11_channel_count && !cs11_channel_gap_found) {
-		valid_channel_counts_cs11 = true;
-
-		for (unsigned i = 0; i < ((cs11_channel_count > 12) ? 12 : cs11_channel_count); i++) {
-			if (seen_channels_count_cs11[i] < minimum_channel_seen_count) {
-				valid_channel_counts_cs11 = false;
-				break;
-			}
-
-		}
-	}
 
 #ifdef DSM_DEBUG
-	printf("DSM guess: CS10 (%li good frames, %i gap found, %li channel count, %i dist)\r\n", good_cs10_frame_count,
-	       cs10_channel_gap_found, cs10_channel_count, valid_channel_counts_cs10);
-	printf("DSM guess: CS11 (%li good frames, %i gap found, %li channel count, %i dist)\r\n", good_cs11_frame_count,
-	       cs11_channel_gap_found, cs11_channel_count, valid_channel_counts_cs11);
+		printf("DSM guess: CS10 (%li good frames, %i gap found, %li channel count, %i dist)\r\n", good_cs10_frame_count,
+		       cs10_channel_gap_found, cs10_channel_count, valid_channel_counts_cs10);
+		printf("DSM guess: CS11 (%li good frames, %i gap found, %li channel count, %i dist)\r\n", good_cs11_frame_count,
+		       cs11_channel_gap_found, cs11_channel_count, valid_channel_counts_cs11);
 #endif
 
-	if (good_cs11_frame_count > samples - bad_samples_allowance && !cs11_channel_gap_found
-	    && cs11_channel_count >= minimum_channel_count && valid_channel_counts_cs11) {
+		if (good_cs11_frame_count > samples - bad_samples_allowance && !cs11_channel_gap_found
+		    && cs11_channel_count >= minimum_channel_count && valid_channel_counts_cs11) {
 #ifdef DSM_DEBUG
-		printf("DSM guess: CS11 guessed!\n");
+			printf("DSM guess: CS11 guessed!\n");
 #endif
-		dsm_chan_count = cs11_channel_count;
-		dsm_channel_shift = 11;
-		return true;
+			dsm_chan_count = cs11_channel_count;
+			dsm_channel_shift = 11;
+			return true;
+		}
+
+		if (good_cs10_frame_count > samples - bad_samples_allowance && !cs10_channel_gap_found
+		    && cs10_channel_count >= minimum_channel_count && valid_channel_counts_cs10) {
+#ifdef DSM_DEBUG
+			printf("DSM guess: CS10 guessed!\n");
+#endif
+			dsm_chan_count = cs10_channel_count;
+			dsm_channel_shift = 10;
+			return true;
+		}
+
+		/* call ourselves to reset our state ... we have to try again */
+#ifdef DSM_DEBUG
+		printf("DSM: format detect fail\n");
+#endif
+		reset = true;
 	}
-
-	if (good_cs10_frame_count > samples - bad_samples_allowance && !cs10_channel_gap_found
-	    && cs10_channel_count >= minimum_channel_count && valid_channel_counts_cs10) {
-#ifdef DSM_DEBUG
-		printf("DSM guess: CS10 guessed!\n");
-#endif
-		dsm_chan_count = cs10_channel_count;
-		dsm_channel_shift = 10;
-		return true;
-	}
-
-	/* call ourselves to reset our state ... we have to try again */
-#ifdef DSM_DEBUG
-	printf("DSM: format detect fail\n");
-#endif
-	dsm_guess_format(true);
-	return false;
 }
 
 int dsm_config(int fd)

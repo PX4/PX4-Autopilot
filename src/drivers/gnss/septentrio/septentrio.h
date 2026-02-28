@@ -237,6 +237,7 @@ public:
 
 	/** @see ModuleBase */
 	int print_status() override;
+	void print_status_internal();
 
 	/** @see ModuleBase */
 	void run() override;

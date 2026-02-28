@@ -38,6 +38,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ftw.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_gps.h>
@@ -249,56 +250,31 @@ int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb
 	return PX4_OK;
 }
 
+static int remove_callback(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+{
+	int rv = 0;
+
+	/* remove the file or directory */
+	if (typeflag == FTW_DP || typeflag == FTW_D) {
+		rv = rmdir(fpath);
+
+	} else {
+		rv = unlink(fpath);
+	}
+
+	if (rv != 0) {
+		perror(fpath);
+	}
+
+	return rv;
+}
+
 int remove_directory(const char *dir)
 {
-	DIR *d = opendir(dir);
-	size_t dir_len = strlen(dir);
-	struct dirent *p;
-	int ret = 0;
-
-	if (!d) {
-		return -1;
-	}
-
-	while (!ret && (p = readdir(d))) {
-		int ret2 = -1;
-		char *buf;
-		size_t len;
-
-		if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
-			continue;
-		}
-
-		len = dir_len + strlen(p->d_name) + 2;
-		buf = new char[len];
-
-		if (buf) {
-			struct stat statbuf;
-
-			snprintf(buf, len, "%s/%s", dir, p->d_name);
-
-			if (!stat(buf, &statbuf)) {
-				if (S_ISDIR(statbuf.st_mode)) {
-					ret2 = remove_directory(buf);
-
-				} else {
-					ret2 = unlink(buf);
-				}
-			}
-
-			delete[] buf;
-		}
-
-		ret = ret2;
-	}
-
-	closedir(d);
-
-	if (!ret) {
-		ret = rmdir(dir);
-	}
-
-	return ret;
+	// FTW_DEPTH: Perform a post-order traversal (children before parents)
+	// FTW_PHYS: Do not follow symbolic links
+	// 10: The maximum num of file descriptors nftw can hold open at once
+	return nftw(dir, remove_callback, 10, FTW_DEPTH | FTW_PHYS);
 }
 
 } //namespace util

@@ -171,6 +171,12 @@ public:
 	int print_status() override;
 
 	/**
+	 * Print internal status of the driver, without calling print_status() on the secondary
+	 * instance. This is used to avoid duplicate prints when both GPS instances are running.
+	 */
+	void print_status_internal();
+
+	/**
 	 * Schedule reset of the GPS device
 	 */
 	void schedule_reset(GPSRestartType restart_type);
@@ -1243,6 +1249,20 @@ GPS::run()
 int
 GPS::print_status()
 {
+
+	GPS *secondary_instance = _secondary_instance.load();
+	print_status_internal();
+
+	if (_instance == Instance::Main && _secondary_instance.load()) {
+		secondary_instance->print_status_internal();
+	}
+
+	return 0;
+}
+
+void
+GPS::print_status_internal()
+{
 	switch (_instance) {
 	case Instance::Main:
 		PX4_INFO("Main GPS");
@@ -1306,13 +1326,6 @@ GPS::print_status()
 
 	perf_print_counter(_uart_tx_buffer_full_perf);
 	perf_print_counter(_rtcm_buffer_full_perf);
-
-	if (_instance == Instance::Main && _secondary_instance.load()) {
-		GPS *secondary_instance = _secondary_instance.load();
-		secondary_instance->print_status();
-	}
-
-	return 0;
 }
 
 void
@@ -1320,9 +1333,12 @@ GPS::schedule_reset(GPSRestartType restart_type)
 {
 	_scheduled_reset.store((int)restart_type);
 
-	if (_instance == Instance::Main && _secondary_instance.load()) {
+	if (_instance == Instance::Main) {
 		GPS *secondary_instance = _secondary_instance.load();
-		secondary_instance->schedule_reset(restart_type);
+
+		if (secondary_instance) {
+			_scheduled_reset.store((int)restart_type);
+		}
 	}
 }
 
