@@ -233,6 +233,17 @@ int SeptentrioDriver::print_status()
 {
 	SeptentrioDriver *secondary_instance = _secondary_instance.load();
 
+	print_status_internal();
+
+	if (_instance == Instance::Main && secondary_instance) {
+		secondary_instance->print_status_internal();
+	}
+
+	return 0;
+}
+
+void SeptentrioDriver::print_status_internal()
+{
 	switch (_instance) {
 	case Instance::Main:
 		PX4_INFO("Main GPS");
@@ -253,12 +264,6 @@ int SeptentrioDriver::print_status()
 		PX4_INFO("rate RTCM injection: %6.2f Hz", static_cast<double>(rtcm_injection_frequency()));
 		print_message(ORB_ID(sensor_gps), _sensor_gps);
 	}
-
-	if (_instance == Instance::Main && secondary_instance) {
-		secondary_instance->print_status();
-	}
-
-	return 0;
 }
 
 void SeptentrioDriver::run()
@@ -704,12 +709,13 @@ int SeptentrioDriver::await_second_instance_shutdown()
 
 void SeptentrioDriver::schedule_reset(ReceiverResetType reset_type)
 {
-	SeptentrioDriver *secondary_instance = _secondary_instance.load();
-
 	_scheduled_reset.store((int)reset_type);
 
-	if (_instance == Instance::Main && secondary_instance) {
-		secondary_instance->schedule_reset(reset_type);
+	if (_instance == Instance::Main) {
+		SeptentrioDriver *secondary_instance = _secondary_instance.load();
+		if (secondary_instance) {
+			secondary_instance->_scheduled_reset.store((int)reset_type);
+		}
 	}
 }
 
