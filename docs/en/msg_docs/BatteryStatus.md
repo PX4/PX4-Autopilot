@@ -59,45 +59,45 @@ Battery instance information is also logged and streamed in MAVLink telemetry.
 
 ### SOURCE {#SOURCE}
 
-| Name                                                    | Type    | Value | Description                                    |
-| ------------------------------------------------------- | ------- | ----- | ---------------------------------------------- |
-| <a href="#SOURCE_POWER_MODULE"></a> SOURCE_POWER_MODULE | `uint8` | 0     | Power module (analog ADC or I2C power monitor) |
-| <a href="#SOURCE_EXTERNAL"></a> SOURCE_EXTERNAL         | `uint8` | 1     | External (MAVLink, CAN, or external driver)    |
-| <a href="#SOURCE_ESCS"></a> SOURCE_ESCS                 | `uint8` | 2     | ESCs (via ESC telemetry)                       |
+| Name                                                  | Type    | Value | Description                                    |
+| ----------------------------------------------------- | ------- | ----- | ---------------------------------------------- |
+| <a id="#SOURCE_POWER_MODULE"></a> SOURCE_POWER_MODULE | `uint8` | 0     | Power module (analog ADC or I2C power monitor) |
+| <a id="#SOURCE_EXTERNAL"></a> SOURCE_EXTERNAL         | `uint8` | 1     | External (MAVLink, CAN, or external driver)    |
+| <a id="#SOURCE_ESCS"></a> SOURCE_ESCS                 | `uint8` | 2     | ESCs (via ESC telemetry)                       |
 
 ### WARNING {#WARNING}
 
-| Name                                                | Type    | Value | Description                                  |
-| --------------------------------------------------- | ------- | ----- | -------------------------------------------- |
-| <a href="#WARNING_NONE"></a> WARNING_NONE           | `uint8` | 0     | No battery low voltage warning active        |
-| <a href="#WARNING_LOW"></a> WARNING_LOW             | `uint8` | 1     | Low voltage warning                          |
-| <a href="#WARNING_CRITICAL"></a> WARNING_CRITICAL   | `uint8` | 2     | Critical voltage, return / abort immediately |
-| <a href="#WARNING_EMERGENCY"></a> WARNING_EMERGENCY | `uint8` | 3     | Immediate landing required                   |
-| <a href="#WARNING_FAILED"></a> WARNING_FAILED       | `uint8` | 4     | Battery has failed completely                |
+| Name                                              | Type    | Value | Description                                  |
+| ------------------------------------------------- | ------- | ----- | -------------------------------------------- |
+| <a id="#WARNING_NONE"></a> WARNING_NONE           | `uint8` | 0     | No battery low voltage warning active        |
+| <a id="#WARNING_LOW"></a> WARNING_LOW             | `uint8` | 1     | Low voltage warning                          |
+| <a id="#WARNING_CRITICAL"></a> WARNING_CRITICAL   | `uint8` | 2     | Critical voltage, return / abort immediately |
+| <a id="#WARNING_EMERGENCY"></a> WARNING_EMERGENCY | `uint8` | 3     | Immediate landing required                   |
+| <a id="#WARNING_FAILED"></a> WARNING_FAILED       | `uint8` | 4     | Battery has failed completely                |
 
 ### STATE {#STATE}
 
-| Name                                            | Type    | Value | Description                                                                                                                                       |
-| ----------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a href="#STATE_UNHEALTHY"></a> STATE_UNHEALTHY | `uint8` | 6     | Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field |
-| <a href="#STATE_CHARGING"></a> STATE_CHARGING   | `uint8` | 7     | Battery is charging                                                                                                                               |
+| Name                                          | Type    | Value | Description                                                                                                                                       |
+| --------------------------------------------- | ------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="#STATE_UNHEALTHY"></a> STATE_UNHEALTHY | `uint8` | 6     | Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field |
+| <a id="#STATE_CHARGING"></a> STATE_CHARGING   | `uint8` | 7     | Battery is charging                                                                                                                               |
 
 ### FAULT {#FAULT}
 
-| Name                                                                    | Type    | Value | Description                                                                                                    |
-| ----------------------------------------------------------------------- | ------- | ----- | -------------------------------------------------------------------------------------------------------------- |
-| <a href="#FAULT_DEEP_DISCHARGE"></a> FAULT_DEEP_DISCHARGE               | `uint8` | 0     | Battery has deep discharged                                                                                    |
-| <a href="#FAULT_SPIKES"></a> FAULT_SPIKES                               | `uint8` | 1     | Voltage spikes                                                                                                 |
-| <a href="#FAULT_CELL_FAIL"></a> FAULT_CELL_FAIL                         | `uint8` | 2     | One or more cells have failed                                                                                  |
-| <a href="#FAULT_OVER_CURRENT"></a> FAULT_OVER_CURRENT                   | `uint8` | 3     | Over-current                                                                                                   |
-| <a href="#FAULT_OVER_TEMPERATURE"></a> FAULT_OVER_TEMPERATURE           | `uint8` | 4     | Over-temperature                                                                                               |
-| <a href="#FAULT_UNDER_TEMPERATURE"></a> FAULT_UNDER_TEMPERATURE         | `uint8` | 5     | Under-temperature fault                                                                                        |
-| <a href="#FAULT_INCOMPATIBLE_VOLTAGE"></a> FAULT_INCOMPATIBLE_VOLTAGE   | `uint8` | 6     | Vehicle voltage is not compatible with this battery (batteries on same power rail should have similar voltage) |
-| <a href="#FAULT_INCOMPATIBLE_FIRMWARE"></a> FAULT_INCOMPATIBLE_FIRMWARE | `uint8` | 7     | Battery firmware is not compatible with current autopilot firmware                                             |
-| <a href="#FAULT_INCOMPATIBLE_MODEL"></a> FAULT_INCOMPATIBLE_MODEL       | `uint8` | 8     | Battery model is not supported by the system                                                                   |
-| <a href="#FAULT_HARDWARE_FAILURE"></a> FAULT_HARDWARE_FAILURE           | `uint8` | 9     | Hardware problem                                                                                               |
-| <a href="#FAULT_FAILED_TO_ARM"></a> FAULT_FAILED_TO_ARM                 | `uint8` | 10    | Battery had a problem while arming                                                                             |
-| <a href="#FAULT_COUNT"></a> FAULT_COUNT                                 | `uint8` | 11    | Counter. Keep this as last element                                                                             |
+| Name                                                                  | Type    | Value | Description                                                                                                    |
+| --------------------------------------------------------------------- | ------- | ----- | -------------------------------------------------------------------------------------------------------------- |
+| <a id="#FAULT_DEEP_DISCHARGE"></a> FAULT_DEEP_DISCHARGE               | `uint8` | 0     | Battery has deep discharged                                                                                    |
+| <a id="#FAULT_SPIKES"></a> FAULT_SPIKES                               | `uint8` | 1     | Voltage spikes                                                                                                 |
+| <a id="#FAULT_CELL_FAIL"></a> FAULT_CELL_FAIL                         | `uint8` | 2     | One or more cells have failed                                                                                  |
+| <a id="#FAULT_OVER_CURRENT"></a> FAULT_OVER_CURRENT                   | `uint8` | 3     | Over-current                                                                                                   |
+| <a id="#FAULT_OVER_TEMPERATURE"></a> FAULT_OVER_TEMPERATURE           | `uint8` | 4     | Over-temperature                                                                                               |
+| <a id="#FAULT_UNDER_TEMPERATURE"></a> FAULT_UNDER_TEMPERATURE         | `uint8` | 5     | Under-temperature fault                                                                                        |
+| <a id="#FAULT_INCOMPATIBLE_VOLTAGE"></a> FAULT_INCOMPATIBLE_VOLTAGE   | `uint8` | 6     | Vehicle voltage is not compatible with this battery (batteries on same power rail should have similar voltage) |
+| <a id="#FAULT_INCOMPATIBLE_FIRMWARE"></a> FAULT_INCOMPATIBLE_FIRMWARE | `uint8` | 7     | Battery firmware is not compatible with current autopilot firmware                                             |
+| <a id="#FAULT_INCOMPATIBLE_MODEL"></a> FAULT_INCOMPATIBLE_MODEL       | `uint8` | 8     | Battery model is not supported by the system                                                                   |
+| <a id="#FAULT_HARDWARE_FAILURE"></a> FAULT_HARDWARE_FAILURE           | `uint8` | 9     | Hardware problem                                                                                               |
+| <a id="#FAULT_FAILED_TO_ARM"></a> FAULT_FAILED_TO_ARM                 | `uint8` | 10    | Battery had a problem while arming                                                                             |
+| <a id="#FAULT_COUNT"></a> FAULT_COUNT                                 | `uint8` | 11    | Counter. Keep this as last element                                                                             |
 
 ## Constants
 

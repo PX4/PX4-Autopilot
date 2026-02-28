@@ -93,7 +93,7 @@ It has a sensor range from (5cm - 40m) and can be connected to either PWM or I2C
 
 ### MaxBotix I2CXL-MaxSonar-EZ
 
-The MaxBotix [I2CXL-MaxSonar-EZ](https://www.maxbotix.com/product-category/i2cxl-maxsonar-ez-products) range has a number of relatively short-ranged sonar based rangefinders that are suitable for assisted takeoff/landing and collision avoidance.
+The MaxBotix [I2CXL-MaxSonar-EZ](https://maxbotix.com/collections/i2cxl-maxsonar-ez-products) range has a number of relatively short-ranged sonar based rangefinders that are suitable for assisted takeoff/landing and collision avoidance.
 These can be connected using an I2C port.
 
 The rangefinders are enabled using the parameter [SENS_EN_MB12XX](../advanced_config/parameter_reference.md#SENS_EN_MB12XX).
@@ -163,7 +163,7 @@ Features:
 
 - [VL53L1CBV0FY-1](https://www.st.com/resource/en/datasheet/vl53l1.pdf) sensor
 - Input voltage sensor
-- CAN connectors: 2 [UCANPHY Micro (JST-GH 4)](https://raccoonlabdev.github.io/docs/guide/wires/).
+- CAN connectors: 2 [UCANPHY Micro (JST-GH 4)](https://docs.raccoonlab.co/guide/wires/).
 
 ## Configuration/Setup {#configuration}
 

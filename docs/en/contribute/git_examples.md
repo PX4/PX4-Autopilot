@@ -45,7 +45,7 @@ Adding a feature to PX4 follows a defined workflow. In order to share your contr
   git add <file name>
   ```
 
-  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](https://nuclearsquid.com/writings/git-add/).
+  If you prefer having a GUI to add your files see [Gitk](https://git-scm.com/book/en/v2/Appendix-A:-Git-in-Other-Environments-Graphical-Interfaces) or [`git add -p`](https://nuclearsquid.com/writings/git-add/).
 
 - Commit the added files with a meaningful message explaining your changes
 

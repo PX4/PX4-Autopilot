@@ -39,7 +39,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - High performance processor
 
 ::: tip
-The manufacturer [CUAV Docs](https://doc.cuav.net/flight-controller/x7/en/) are the canonical reference for the X7.
+The manufacturer [CUAV Docs](https://doc.cuav.net/controller/x7/en/) are the canonical reference for the X7.
 They should be used by preference as they contain the most complete and up to date information.
 :::
 

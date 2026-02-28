@@ -62,7 +62,7 @@ arm-none-eabi-gdb
 
 ### J-Link
 
-These instructions are for the [J-Link GDB server](https://www.segger.com/jlink-gdb-server.html).
+These instructions are for the [J-Link GDB server](https://www.segger.com/products/debug-probes/j-link/tools/j-link-gdb-server/about-j-link-gdb-server/).
 
 #### Prerequisites
 

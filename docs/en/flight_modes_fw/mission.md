@@ -95,8 +95,8 @@ _QGroundControl_ provides additional GCS-level mission handling support (in addi
 
 For more information see:
 
-- [Remove mission after vehicle lands](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/releases/stable_v3.2_long.html#remove-mission-after-vehicle-lands)
-- [Resume mission after Return mode](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/releases/stable_v3.2_long.html#resume-mission)
+- [Remove mission after vehicle lands](https://docs.qgroundcontrol.com/Stable_V4.3/en/qgc-user-guide/releases/stable_v3.2_long.html#remove-mission-after-vehicle-lands)
+- [Resume mission after Return mode](https://docs.qgroundcontrol.com/Stable_V4.3/en/qgc-user-guide/releases/stable_v3.2_long.html#resume-mission)
 
 ## Mission Parameters
 

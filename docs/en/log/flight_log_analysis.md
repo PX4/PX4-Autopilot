@@ -156,7 +156,7 @@ Key features:
 ### PX4Tools
 
 [PX4Tools](https://github.com/dronecrew/px4tools) is a log analysis toolbox for the PX4 autopilot written in Python.
-The recommended installation procedure is to use [anaconda3](https://conda.io/docs/index.html). See [px4tools github page](https://github.com/dronecrew/px4tools) for details.
+The recommended installation procedure is to use [anaconda3](https://docs.conda.io/docs/index.html). See [px4tools github page](https://github.com/dronecrew/px4tools) for details.
 
 Key features:
 

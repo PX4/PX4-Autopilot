@@ -90,7 +90,7 @@ Note that for the base we recommend the [NANO RTK Receiver](https://www.datagnss
 
 ![DATAGNSS NANO RTK Receiver with case](../../assets/hardware/gps/datagnss_gem1305/nano_rtk_with_case.png)
 
-See to [How to setup Base station](https://wiki.datagnss.com/index.php/GEM1305-autopilot#Base_station_setup) for information on how to configure the module for use as a base station (not including step 6 and later, for which you would QGroundControl instead of Mission Planner).
+See to [How to setup Base station](https://docs.datagnss.com/#Base_station_setup) for information on how to configure the module for use as a base station (not including step 6 and later, for which you would QGroundControl instead of Mission Planner).
 
 ### Rover Setup (PX4)
 
@@ -111,13 +111,12 @@ GPS and RTK configuration on PX4 via _QGroundControl_ is plug and play (see [RTK
 
 ## Resources
 
-- [NANO RTK Receiver 2D drawing file](https://wiki.datagnss.com/images/3/31/EVK-DG-1206_V.2.0.pdf)
 - [NANO HRTK Receiver Wiki](https://docs.datagnss.com/gnss/rtk_receiver/NANO/nano-helix-rtk/) (DATAGNSS WiKi)
 - [HED-10L Heading RTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/HED-10L/)
 
 ## More information
 
-- [NANO RTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/NANO/nano-rtk-receiver)
+- [NANO RTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/NANO/nano-rtk-receiver/)
 - [HELIX Antenna for RTK](https://www.datagnss.com/collections/rtk-antenna/products/smart-helix-antenna)
 - [RTK Antenna AGR6302G](https://www.datagnss.com/collections/rtk-antenna/products/antenna-agr6302g)
 - [AT400 RTK Antenna](https://www.datagnss.com/collections/rtk-antenna/products/at400-multi-band-antenna-for-rtk)

@@ -1490,34 +1490,34 @@ Change mode by specifying nav_state directly.
 
 ### ORBIT_YAW_BEHAVIOUR {#ORBIT_YAW_BEHAVIOUR}
 
-| Name                                                                                                              | Type    | Value | Description |
-| ----------------------------------------------------------------------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER"></a> ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER   | `uint8` | 0     |
-| <a href="#ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING"></a> ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING                 | `uint8` | 1     |
-| <a href="#ORBIT_YAW_BEHAVIOUR_UNCONTROLLED"></a> ORBIT_YAW_BEHAVIOUR_UNCONTROLLED                                 | `uint8` | 2     |
-| <a href="#ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE"></a> ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE | `uint8` | 3     |
-| <a href="#ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED"></a> ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED                               | `uint8` | 4     |
-| <a href="#ORBIT_YAW_BEHAVIOUR_UNCHANGED"></a> ORBIT_YAW_BEHAVIOUR_UNCHANGED                                       | `uint8` | 5     |
+| Name                                                                                                            | Type    | Value | Description |
+| --------------------------------------------------------------------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER"></a> ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER   | `uint8` | 0     |
+| <a id="#ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING"></a> ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING                 | `uint8` | 1     |
+| <a id="#ORBIT_YAW_BEHAVIOUR_UNCONTROLLED"></a> ORBIT_YAW_BEHAVIOUR_UNCONTROLLED                                 | `uint8` | 2     |
+| <a id="#ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE"></a> ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE | `uint8` | 3     |
+| <a id="#ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED"></a> ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED                               | `uint8` | 4     |
+| <a id="#ORBIT_YAW_BEHAVIOUR_UNCHANGED"></a> ORBIT_YAW_BEHAVIOUR_UNCHANGED                                       | `uint8` | 5     |
 
 ### VEHICLE_ROI {#VEHICLE_ROI}
 
-| Name                                                      | Type    | Value | Description                  |
-| --------------------------------------------------------- | ------- | ----- | ---------------------------- |
-| <a href="#VEHICLE_ROI_NONE"></a> VEHICLE_ROI_NONE         | `uint8` | 0     | No region of interest.       |
-| <a href="#VEHICLE_ROI_WPNEXT"></a> VEHICLE_ROI_WPNEXT     | `uint8` | 1     | Point toward next MISSION.   |
-| <a href="#VEHICLE_ROI_WPINDEX"></a> VEHICLE_ROI_WPINDEX   | `uint8` | 2     | Point toward given MISSION.  |
-| <a href="#VEHICLE_ROI_LOCATION"></a> VEHICLE_ROI_LOCATION | `uint8` | 3     | Point toward fixed location. |
-| <a href="#VEHICLE_ROI_TARGET"></a> VEHICLE_ROI_TARGET     | `uint8` | 4     | Point toward target.         |
-| <a href="#VEHICLE_ROI_ENUM_END"></a> VEHICLE_ROI_ENUM_END | `uint8` | 5     |
+| Name                                                    | Type    | Value | Description                  |
+| ------------------------------------------------------- | ------- | ----- | ---------------------------- |
+| <a id="#VEHICLE_ROI_NONE"></a> VEHICLE_ROI_NONE         | `uint8` | 0     | No region of interest.       |
+| <a id="#VEHICLE_ROI_WPNEXT"></a> VEHICLE_ROI_WPNEXT     | `uint8` | 1     | Point toward next MISSION.   |
+| <a id="#VEHICLE_ROI_WPINDEX"></a> VEHICLE_ROI_WPINDEX   | `uint8` | 2     | Point toward given MISSION.  |
+| <a id="#VEHICLE_ROI_LOCATION"></a> VEHICLE_ROI_LOCATION | `uint8` | 3     | Point toward fixed location. |
+| <a id="#VEHICLE_ROI_TARGET"></a> VEHICLE_ROI_TARGET     | `uint8` | 4     | Point toward target.         |
+| <a id="#VEHICLE_ROI_ENUM_END"></a> VEHICLE_ROI_ENUM_END | `uint8` | 5     |
 
 ### SPEED_TYPE {#SPEED_TYPE}
 
-| Name                                                              | Type    | Value | Description |
-| ----------------------------------------------------------------- | ------- | ----- | ----------- |
-| <a href="#SPEED_TYPE_AIRSPEED"></a> SPEED_TYPE_AIRSPEED           | `uint8` | 0     |
-| <a href="#SPEED_TYPE_GROUNDSPEED"></a> SPEED_TYPE_GROUNDSPEED     | `uint8` | 1     |
-| <a href="#SPEED_TYPE_CLIMB_SPEED"></a> SPEED_TYPE_CLIMB_SPEED     | `uint8` | 2     |
-| <a href="#SPEED_TYPE_DESCEND_SPEED"></a> SPEED_TYPE_DESCEND_SPEED | `uint8` | 3     |
+| Name                                                            | Type    | Value | Description |
+| --------------------------------------------------------------- | ------- | ----- | ----------- |
+| <a id="#SPEED_TYPE_AIRSPEED"></a> SPEED_TYPE_AIRSPEED           | `uint8` | 0     |
+| <a id="#SPEED_TYPE_GROUNDSPEED"></a> SPEED_TYPE_GROUNDSPEED     | `uint8` | 1     |
+| <a id="#SPEED_TYPE_CLIMB_SPEED"></a> SPEED_TYPE_CLIMB_SPEED     | `uint8` | 2     |
+| <a id="#SPEED_TYPE_DESCEND_SPEED"></a> SPEED_TYPE_DESCEND_SPEED | `uint8` | 3     |
 
 ### MAV_MOUNT_MODE {#MAV_MOUNT_MODE}
 

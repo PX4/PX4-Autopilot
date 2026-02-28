@@ -9,7 +9,7 @@ Source: [drivers/ins/microstrain](https://github.com/PX4/PX4-Autopilot/tree/main
 MicroStrain by HBK Inertial Sensor Driver.
 Currently supports the following sensors:
 
--[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference-units--vru-/3dm-cv7-ar) -[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading-reference-systems--ahrs-/3dm-cv7-ahrs) -[CV7-INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/inertial-navigation-systems--ins-/3dm-cv7-ins) -[CV7-GNSS/INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/inertial-navigation-systems--ins-/3dm-cv7-gnss-ins)
+-[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference/3dm-cv7-ar) -[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading-reference-systems--ahrs-/3dm-cv7-ahrs) -[CV7-INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/inertial-navigation-systems--ins-/3dm-cv7-ins) -[CV7-GNSS/INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/inertial-navigation-systems--ins-/3dm-cv7-gnss-ins)
 
 This driver is not included in the firmware by default.
 Include the module in firmware by setting the

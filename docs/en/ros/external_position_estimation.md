@@ -253,7 +253,7 @@ This might break the _tf_ tree.
 
 ### OptiTrack MoCap
 
-The following steps explain how to feed position estimates from an [OptiTrack](https://optitrack.com/applications/robotics/) system to PX4.
+The following steps explain how to feed position estimates from an [OptiTrack](https://optitrack.com/applications/robotics) system to PX4.
 It is assumed that the MoCap system is calibrated.
 See [this video](https://www.youtube.com/watch?v=cNZaFEghTBU) for a tutorial on the calibration process.
 
