@@ -17706,9 +17706,9 @@ This param is specific for ESCs reporting status. It shall be used only if ESCs 
 
 ### COM_ARM_HFLT_CHK (`INT32`) {#COM_ARM_HFLT_CHK}
 
-Enable FMU SD card hardfault / watchdog detection check.
+Enable FMU SD card hardfault detection check.
 
-This check detects if there are hardfault / watchdog files present on the
+This check detects if there are hardfault files present on the
 SD card. If so, and the parameter is enabled, arming is prevented.
 
 | Reboot | minValue | maxValue | increment | default     | unit |

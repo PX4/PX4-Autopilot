@@ -115,7 +115,6 @@ GPS and RTK configuration on PX4 via _QGroundControl_ is plug and play (see [RTK
 
 ## Resources
 
-
 - [GEM1305 Wiki](https://docs.datagnss.com/gnss/rtk_receiver/GEM1305/) (DATAGNSS WiKi)
 - [HED-10L Heading RTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/HED-10L/)
 - [NANO HRTK Receiver](https://docs.datagnss.com/gnss/rtk_receiver/NANO/nano-helix-rtk/)
