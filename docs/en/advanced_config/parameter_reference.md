@@ -17252,14 +17252,6 @@ it drops off to a voltage level damaging the cells.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          | 0.01      | 3.6     | V    |
 
-### BAT_ADC_CHANNEL (`INT32`) {#BAT_ADC_CHANNEL}
-
-This parameter is deprecated. Please use BAT1_I_CHANNEL.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | -1      |      |
-
 ### BAT_AVRG_CURRENT (`FLOAT`) {#BAT_AVRG_CURRENT}
 
 Expected battery current in flight.
