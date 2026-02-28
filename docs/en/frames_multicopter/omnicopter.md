@@ -18,7 +18,7 @@ The components needed for this build are:
     ::: info
     You can select your own flight controller of choice, it just needs to support 8 DShot outputs.
     :::
-  - GPS: [ZED-F9P](https://gnss.store/zed-f9p-gnss-modules/105-elt0092.html)
+  - GPS: [ZED-F9P](https://gnss.store/en/zed-f9p-gnss-modules/105-elt0092.html)
   - [GPS helix antenna](https://gnss.store/products/elt0014)
     ::: info
     Any other GPS may work as well, however a helix antenna is expected to perform better for inverted flights.

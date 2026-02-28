@@ -62,7 +62,7 @@ ModalAI is actively maintaining a [branched PX4 version](https://github.com/moda
 
 As VOXL 2 runs Ubuntu, the production releases of PX4 for VOXL 2 are distributed through [apt package management](https://docs.modalai.com/configure-pkg-manager/) and the [VOXL SDK](https://docs.modalai.com/voxl-sdk/).
 
-More information about the firmware can be found [here](https://docs.modalai.com/voxl2-px4-developer-guide/).
+More information about the firmware can be found [here](https://docs.modalai.com/voxl-px4-developer-guide/).
 
 ### main branch
 
@@ -84,7 +84,7 @@ This board is supported in QGroundControl 4.0 and later.
 
 ## Quick Start
 
-Quickstarts from the vendor are located [here](https://docs.modalai.com/voxl2-quickstarts/).
+Quickstarts from the vendor are located [here](https://docs.modalai.com/voxl-2-hardware-quickstart/).
 
 ### VOXL SDK
 
@@ -127,7 +127,7 @@ The PX4 developer guide for VOXL 2 is available [here](https://docs.modalai.com/
 
 ### How to Build
 
-See the [VOXL PX4 Build Guide](https://docs.modalai.com/voxl2-px4-build-guide/) on how to build.
+See the [VOXL PX4 Build Guide](https://docs.modalai.com/voxl-px4-dev-build-guide/) on how to build.
 
 ## Support
 

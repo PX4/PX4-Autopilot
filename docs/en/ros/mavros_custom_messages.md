@@ -14,7 +14,7 @@ However these steps are fairly general and so it should work with other distros/
 
 ## MAVROS Installation
 
-Follow _Source Installation_ instructions from [mavlink/mavros](https://github.com/mavlink/mavros/blob/master/mavros/index.md) to install "ROS Kinetic".
+Follow _Source Installation_ instructions from [mavlink/mavros](https://github.com/mavlink/mavros/blob/master/mavros/README.md) to install "ROS Kinetic".
 
 ## MAVROS
 

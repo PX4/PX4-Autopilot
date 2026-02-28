@@ -61,6 +61,6 @@ CUAV P8 Radio does not support power supply from the flight controller, it needs
 
 ## More information
 
-[P8 manual](http://manual.cuav.net/data-transmission/p8-radio/p8-user-manual-en.pdf)
+[P8 manual](https://manual.cuav.net/data-transmission/p8-radio/p8_user_manual_cn.pdf)
 
 [CUAV P8 Radio](https://doc.cuav.net/data-transmission/p8-radio/en/) (Official Guide)
