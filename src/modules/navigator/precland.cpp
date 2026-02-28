@@ -487,7 +487,10 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		// if we're already in this state, only leave it if target becomes unusable, don't care about horizontall offset to target
 		if (_state == PrecLandState::DescendAboveTarget) {
 			// if we're close to the ground, we're more critical of target timeouts so we quickly go into descend
-			if (check_state_conditions(PrecLandState::FinalApproach)) {
+			const bool is_final_approach = _target_pose_valid && _target_pose.abs_pos_valid
+						       && (_target_pose.z_abs - vehicle_local_position->z) < _param_pld_fappr_alt.get();
+
+			if (is_final_approach) {
 				return hrt_absolute_time() - _target_pose.timestamp < 500000; // 0.5s
 
 			} else {

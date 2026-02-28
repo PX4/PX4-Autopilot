@@ -59,23 +59,31 @@ Block::Block(SuperBlock *parent, const char *name) :
 
 void Block::getName(char *buf, size_t n)
 {
-	if (getParent() == nullptr) {
-		strncpy(buf, _name, n);
-		// ensure string is terminated
-		buf[n - 1] = '\0';
+	if (n == 0 || buf == nullptr) { return; }
 
-	} else {
-		char parentName[blockNameLengthMax];
-		getParent()->getName(parentName, n);
+	strncpy(buf, _name, n);
+	buf[n - 1] = '\0';
 
-		if (!strcmp(_name, "")) {
-			strncpy(buf, parentName, n);
-			// ensure string is terminated
+	Block *p = getParent();
+
+	// traverse through parents and prepend their names to the buffer
+	while (p != nullptr) {
+		if (p->_name[0] != '\0') {
+			char temp[blockNameLengthMax];
+			strncpy(temp, buf, sizeof(temp));
+			temp[sizeof(temp) - 1] = '\0';
+
+			if (buf[0] == '\0') {
+				strncpy(buf, p->_name, n);
+
+			} else {
+				snprintf(buf, n, "%s_%s", p->_name, temp);
+			}
+
 			buf[n - 1] = '\0';
-
-		} else {
-			snprintf(buf, n, "%s_%s", parentName, _name);
 		}
+
+		p = p->getParent();
 	}
 }
 
