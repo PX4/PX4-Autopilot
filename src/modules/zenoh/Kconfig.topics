@@ -61,6 +61,10 @@ menu "Zenoh publishers/subscribers"
 		bool "autotune_attitude_control_status"
 		default n
 
+	config ZENOH_PUBSUB_AUX_GLOBAL_POSITION
+		bool "aux_global_position"
+		default n
+
 	config ZENOH_PUBSUB_BATTERY_INFO
 		bool "battery_info"
 		default n
@@ -131,6 +135,10 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_DEBUG_VECT
 		bool "debug_vect"
+		default n
+
+	config ZENOH_PUBSUB_DEVICE_INFORMATION
+		bool "device_information"
 		default n
 
 	config ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
@@ -267,6 +275,10 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_FUEL_TANK_STATUS
 		bool "fuel_tank_status"
+		default n
+
+	config ZENOH_PUBSUB_GAIN_COMPRESSION
+		bool "gain_compression"
 		default n
 
 	config ZENOH_PUBSUB_GENERATOR_STATUS
@@ -605,6 +617,14 @@ menu "Zenoh publishers/subscribers"
 		bool "radio_status"
 		default n
 
+	config ZENOH_PUBSUB_RAPTOR_INPUT
+		bool "raptor_input"
+		default n
+
+	config ZENOH_PUBSUB_RAPTOR_STATUS
+		bool "raptor_status"
+		default n
+
 	config ZENOH_PUBSUB_RATE_CTRL_STATUS
 		bool "rate_ctrl_status"
 		default n
@@ -933,6 +953,10 @@ menu "Zenoh publishers/subscribers"
 		bool "vtol_vehicle_status"
 		default n
 
+	config ZENOH_PUBSUB_VTX
+		bool "vtx"
+		default n
+
 	config ZENOH_PUBSUB_WHEEL_ENCODERS
 		bool "wheel_encoders"
 		default n
@@ -965,6 +989,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_ARMING_CHECK_REPLY
 	select ZENOH_PUBSUB_ARMING_CHECK_REQUEST
 	select ZENOH_PUBSUB_AUTOTUNE_ATTITUDE_CONTROL_STATUS
+	select ZENOH_PUBSUB_AUX_GLOBAL_POSITION
 	select ZENOH_PUBSUB_BATTERY_INFO
 	select ZENOH_PUBSUB_BATTERY_STATUS
 	select ZENOH_PUBSUB_BUTTON_EVENT
@@ -983,6 +1008,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_DEBUG_KEY_VALUE
 	select ZENOH_PUBSUB_DEBUG_VALUE
 	select ZENOH_PUBSUB_DEBUG_VECT
+	select ZENOH_PUBSUB_DEVICE_INFORMATION
 	select ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
 	select ZENOH_PUBSUB_DISTANCE_SENSOR
 	select ZENOH_PUBSUB_DISTANCE_SENSOR_MODE_CHANGE_REQUEST
@@ -1017,6 +1043,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_FOLLOW_TARGET_ESTIMATOR
 	select ZENOH_PUBSUB_FOLLOW_TARGET_STATUS
 	select ZENOH_PUBSUB_FUEL_TANK_STATUS
+	select ZENOH_PUBSUB_GAIN_COMPRESSION
 	select ZENOH_PUBSUB_GENERATOR_STATUS
 	select ZENOH_PUBSUB_GEOFENCE_RESULT
 	select ZENOH_PUBSUB_GEOFENCE_STATUS
@@ -1101,6 +1128,8 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_QSHELL_REQ
 	select ZENOH_PUBSUB_QSHELL_RETVAL
 	select ZENOH_PUBSUB_RADIO_STATUS
+	select ZENOH_PUBSUB_RAPTOR_INPUT
+	select ZENOH_PUBSUB_RAPTOR_STATUS
 	select ZENOH_PUBSUB_RATE_CTRL_STATUS
 	select ZENOH_PUBSUB_RC_CHANNELS
 	select ZENOH_PUBSUB_RC_PARAMETER_MAP
@@ -1183,6 +1212,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_VEHICLE_TORQUE_SETPOINT
 	select ZENOH_PUBSUB_VELOCITY_LIMITS
 	select ZENOH_PUBSUB_VTOL_VEHICLE_STATUS
+	select ZENOH_PUBSUB_VTX
 	select ZENOH_PUBSUB_WHEEL_ENCODERS
 	select ZENOH_PUBSUB_WIND
 	select ZENOH_PUBSUB_YAW_ESTIMATOR_STATUS
