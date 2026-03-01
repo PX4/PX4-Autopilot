@@ -89,7 +89,7 @@ To use a custom MAVLink repository or dialect, override these in a `CustomOverri
 QGC uses the **all** dialect by default, which includes **common.xml**.
 You can include your messages in either file, or [generate your own MAVLink Libraries](https://mavlink.io/en/getting_started/generate_libraries.html).
 
-Note that if you use your own _custom dialect_ then it should include **ArduPilotMega.xml** (or it will miss all the existing messages), and you will need to set `QGC_MAVLINK_DIALECT` accordingly in `CustomOverrides.cmake`.
+Note that if you use your own _custom dialect_ then it should include **all.xml** (or it may miss all the existing messages), and you will need to set `QGC_MAVLINK_DIALECT` accordingly in `CustomOverrides.cmake`.
 
 ### Updating MAVSDK
 
