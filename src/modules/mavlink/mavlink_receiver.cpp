@@ -213,6 +213,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_follow_target(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GLOBAL_POSITION_SENSOR:
+		handle_message_global_position_sensor(msg);
+		break;
+
 	case MAVLINK_MSG_ID_LANDING_TARGET:
 		handle_message_landing_target(msg);
 		break;
@@ -522,6 +526,13 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		// This looks like NAN was by accident sent as int.
 		PX4_ERR("x/y invalid of command %" PRIu16, cmd_mavlink.command);
 		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+		return;
+	}
+
+	if (cmd_mavlink.frame != MAV_FRAME_GLOBAL_INT) {
+		// PX4 only supports global frame.
+		PX4_ERR("frame invalid for command %" PRIu16, cmd_mavlink.command);
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED_MAV_FRAME);
 		return;
 	}
 
@@ -2537,6 +2548,31 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	gps.timestamp = hrt_absolute_time();
 
 	_sensor_gps_pub.publish(gps);
+}
+
+void
+MavlinkReceiver::handle_message_global_position_sensor(mavlink_message_t *msg)
+{
+	mavlink_global_position_sensor_t global_pos;
+	mavlink_msg_global_position_sensor_decode(msg, &global_pos);
+
+	aux_global_position_s aux_global_position{};
+	const hrt_abstime now = hrt_absolute_time();
+	aux_global_position.timestamp = now;
+	aux_global_position.timestamp_sample = now;
+
+	aux_global_position.id = global_pos.id;
+	aux_global_position.source = global_pos.source;
+
+	aux_global_position.lat = global_pos.lat * 1e-7;
+	aux_global_position.lon = global_pos.lon * 1e-7;
+	aux_global_position.alt = global_pos.alt;
+
+	aux_global_position.lat_lon_reset_counter = 0;
+	aux_global_position.eph = global_pos.eph;
+	aux_global_position.epv = global_pos.epv;
+
+	_aux_global_position_pub.publish(aux_global_position);
 }
 
 void

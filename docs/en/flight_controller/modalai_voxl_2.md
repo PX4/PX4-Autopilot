@@ -1,11 +1,11 @@
 # ModalAI VOXL 2
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://forum.modalai.com/) for hardware support or compliance issues.
 :::
 
-The ModalAI [VOXL 2](https://modalai.com/voxl-2) ([Datasheet](https://docs.modalai.com/voxl2-datasheets/)) is ModalAI’s next-gen autonomous computing platform built around the Qualcomm QRB5165 processor. VOXL 2 boasts 8 cores, integrated PX4, seven camera concurrency, advanced onboard AI up to 15+ TOPS, and 5G connectivity. At 16 grams, VOXL 2 is the future of fully autonomous and connected drones!
+The ModalAI [VOXL 2](https://www.modalai.com/products/voxl-2) ([Datasheet](https://docs.modalai.com/voxl2-datasheets/)) is ModalAI's next-gen autonomous computing platform built around the Qualcomm QRB5165 processor. VOXL 2 boasts 8 cores, integrated PX4, seven camera concurrency, advanced onboard AI up to 15+ TOPS, and 5G connectivity. At 16 grams, VOXL 2 is the future of fully autonomous and connected drones!
 
 ![VOXL-2](../../assets/flight_controller/modalai/voxl_2/voxl-2-hero.jpg)
 
@@ -62,7 +62,7 @@ ModalAI is actively maintaining a [branched PX4 version](https://github.com/moda
 
 As VOXL 2 runs Ubuntu, the production releases of PX4 for VOXL 2 are distributed through [apt package management](https://docs.modalai.com/configure-pkg-manager/) and the [VOXL SDK](https://docs.modalai.com/voxl-sdk/).
 
-More information about the firmware can be found [here](https://docs.modalai.com/voxl2-px4-developer-guide/).
+More information about the firmware can be found [here](https://docs.modalai.com/voxl-px4-developer-guide/).
 
 ### main branch
 
@@ -70,7 +70,7 @@ PX4 mainline supports VOXL 2 (board documentation [here](https://github.com/PX4/
 
 ## QGroundControl Support
 
-This board supported in QGroundControl 4.0 and later.
+This board is supported in QGroundControl 4.0 and later.
 
 ## Availability
 
@@ -84,7 +84,7 @@ This board supported in QGroundControl 4.0 and later.
 
 ## Quick Start
 
-Quickstarts from the vendor are located [here](https://docs.modalai.com/voxl2-quickstarts/).
+Quickstarts from the vendor are located [here](https://docs.modalai.com/voxl-2-hardware-quickstart/).
 
 ### VOXL SDK
 
@@ -127,7 +127,7 @@ The PX4 developer guide for VOXL 2 is available [here](https://docs.modalai.com/
 
 ### How to Build
 
-See the [VOXL PX4 Build Guide](https://docs.modalai.com/voxl2-px4-build-guide/) on how to build.
+See the [VOXL PX4 Build Guide](https://docs.modalai.com/voxl-px4-dev-build-guide/) on how to build.
 
 ## Support
 

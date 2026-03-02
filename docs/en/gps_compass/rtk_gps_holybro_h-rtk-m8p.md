@@ -16,7 +16,7 @@ Using RTK allows PX4 to get its position with centimeter-level accuracy, which i
 
 ## Where to Buy
 
-- [H-RTK M8P (GPS RTK Mounts)](https://holybro.com/products/vertical-mount-for-h-rtk-helical)
+- [H-RTK M8P (GPS RTK Mounts)](https://holybro.com/collections/gps-accessories/products/vertical-mount-for-h-rtk-helical)
 
 ## Configuration
 

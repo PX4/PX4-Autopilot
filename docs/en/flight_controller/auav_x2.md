@@ -2,11 +2,11 @@
 
 <Badge type="info" text="Discontinued" />
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.mrobotics.io/) for hardware support or compliance issues.
 :::

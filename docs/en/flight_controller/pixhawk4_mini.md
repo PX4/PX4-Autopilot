@@ -2,7 +2,7 @@
 
 <Badge type="info" text="Discontinued" px4_current="v1.15" year="2024"/>
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://holybro.com/) for hardware support or compliance issues.
 :::
@@ -16,7 +16,7 @@ It is based on the [Pixhawk](https://pixhawk.org/) **FMUv5** design standard and
 
 ![Pixhawk4 mini](../../assets/flight_controller/pixhawk4mini/pixhawk4mini_iso_1.png)
 
-:::tip
+::: tip
 This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md) by the PX4 maintenance and test teams.
 :::
 
@@ -54,7 +54,7 @@ This autopilot is [supported](../flight_controller/autopilot_pixhawk_standard.md
 
 Additional information can be found in the [_Pixhawk 4 Mini_ Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/flight_controller/pixhawk4mini/pixhawk4mini_technical_data_sheet.pdf).
 
-## Where to Buy
+## Where to Buy {#store}
 
 No longer available.
 
@@ -62,7 +62,7 @@ No longer available.
 
 ![Pixhawk 4 Mini interfaces](../../assets/flight_controller/pixhawk4mini/pixhawk4mini_interfaces.png)
 
-:::warning
+::: warning
 The **RC IN** and **PPM** ports are for RC receivers only. These are powered! NEVER connect any servos, power supplies or batteries (or to any connected receiver).
 :::
 
@@ -104,14 +104,14 @@ The [_Pixhawk 4 Mini_ Wiring Quick Start](../assembly/quick_start_pixhawk4_mini.
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make px4_fmu-v5_default
 ```
 
@@ -148,7 +148,7 @@ The pinout uses the standard [Pixhawk debug connector](https://github.com/pixhaw
 Motors and servos are connected to the **MAIN OUT** ports in the order specified for your vehicle in the [Airframe Reference](../airframes/airframe_reference.md).
 This reference lists the output port to motor/servo mapping for all supported air and ground frames (if your frame is not listed in the reference then use a "generic" airframe of the correct type).
 
-:::warning
+::: warning
 _Pixhawk 4 Mini_ does not have AUX ports.
 The board cannot be used with frames that require more than 8 ports or which use AUX ports for motors or control surfaces.
 It can be used for airframes that use AUX for non-essential peripherals (e.g. "feed-through of RC AUX1 channel").

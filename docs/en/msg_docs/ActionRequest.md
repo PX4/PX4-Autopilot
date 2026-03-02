@@ -25,26 +25,26 @@ Request are published by `manual_control` and subscribed by the `commander` and 
 
 ### ACTION {#ACTION}
 
-| Name                                                                                        | Type    | Value | Description                                                           |
-| ------------------------------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------------- |
-| <a href="#ACTION_DISARM"></a> ACTION_DISARM                                                 | `uint8` | 0     | Disarm vehicle                                                        |
-| <a href="#ACTION_ARM"></a> ACTION_ARM                                                       | `uint8` | 1     | Arm vehicle                                                           |
-| <a href="#ACTION_TOGGLE_ARMING"></a> ACTION_TOGGLE_ARMING                                   | `uint8` | 2     | Toggle arming                                                         |
-| <a href="#ACTION_UNKILL"></a> ACTION_UNKILL                                                 | `uint8` | 3     | Revert a kill action                                                  |
-| <a href="#ACTION_KILL"></a> ACTION_KILL                                                     | `uint8` | 4     | Kill vehicle (instantly stop the motors)                              |
-| <a href="#ACTION_SWITCH_MODE"></a> ACTION_SWITCH_MODE                                       | `uint8` | 5     | Switch mode. The target mode is set in the `mode` field.              |
-| <a href="#ACTION_VTOL_TRANSITION_TO_MULTICOPTER"></a> ACTION_VTOL_TRANSITION_TO_MULTICOPTER | `uint8` | 6     | Transition to hover flight                                            |
-| <a href="#ACTION_VTOL_TRANSITION_TO_FIXEDWING"></a> ACTION_VTOL_TRANSITION_TO_FIXEDWING     | `uint8` | 7     | Transition to fast forward flight                                     |
-| <a href="#ACTION_TERMINATION"></a> ACTION_TERMINATION                                       | `uint8` | 8     | Irreversibly output failsafe values on all outputs, trigger parachute |
+| Name                                                                                      | Type    | Value | Description                                                           |
+| ----------------------------------------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------------- |
+| <a id="#ACTION_DISARM"></a> ACTION_DISARM                                                 | `uint8` | 0     | Disarm vehicle                                                        |
+| <a id="#ACTION_ARM"></a> ACTION_ARM                                                       | `uint8` | 1     | Arm vehicle                                                           |
+| <a id="#ACTION_TOGGLE_ARMING"></a> ACTION_TOGGLE_ARMING                                   | `uint8` | 2     | Toggle arming                                                         |
+| <a id="#ACTION_UNKILL"></a> ACTION_UNKILL                                                 | `uint8` | 3     | Revert a kill action                                                  |
+| <a id="#ACTION_KILL"></a> ACTION_KILL                                                     | `uint8` | 4     | Kill vehicle (instantly stop the motors)                              |
+| <a id="#ACTION_SWITCH_MODE"></a> ACTION_SWITCH_MODE                                       | `uint8` | 5     | Switch mode. The target mode is set in the `mode` field.              |
+| <a id="#ACTION_VTOL_TRANSITION_TO_MULTICOPTER"></a> ACTION_VTOL_TRANSITION_TO_MULTICOPTER | `uint8` | 6     | Transition to hover flight                                            |
+| <a id="#ACTION_VTOL_TRANSITION_TO_FIXEDWING"></a> ACTION_VTOL_TRANSITION_TO_FIXEDWING     | `uint8` | 7     | Transition to fast forward flight                                     |
+| <a id="#ACTION_TERMINATION"></a> ACTION_TERMINATION                                       | `uint8` | 8     | Irreversibly output failsafe values on all outputs, trigger parachute |
 
 ### SOURCE {#SOURCE}
 
-| Name                                                      | Type    | Value | Description                                                     |
-| --------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------- |
-| <a href="#SOURCE_STICK_GESTURE"></a> SOURCE_STICK_GESTURE | `uint8` | 0     | Triggered by holding the sticks in a certain position           |
-| <a href="#SOURCE_RC_SWITCH"></a> SOURCE_RC_SWITCH         | `uint8` | 1     | Triggered by an RC switch moving into a certain position        |
-| <a href="#SOURCE_RC_BUTTON"></a> SOURCE_RC_BUTTON         | `uint8` | 2     | Triggered by a momentary button on the RC being pressed or held |
-| <a href="#SOURCE_RC_MODE_SLOT"></a> SOURCE_RC_MODE_SLOT   | `uint8` | 3     | Mode change through the RC mode selection mechanism             |
+| Name                                                    | Type    | Value | Description                                                     |
+| ------------------------------------------------------- | ------- | ----- | --------------------------------------------------------------- |
+| <a id="#SOURCE_STICK_GESTURE"></a> SOURCE_STICK_GESTURE | `uint8` | 0     | Triggered by holding the sticks in a certain position           |
+| <a id="#SOURCE_RC_SWITCH"></a> SOURCE_RC_SWITCH         | `uint8` | 1     | Triggered by an RC switch moving into a certain position        |
+| <a id="#SOURCE_RC_BUTTON"></a> SOURCE_RC_BUTTON         | `uint8` | 2     | Triggered by a momentary button on the RC being pressed or held |
+| <a id="#SOURCE_RC_MODE_SLOT"></a> SOURCE_RC_MODE_SLOT   | `uint8` | 3     | Mode change through the RC mode selection mechanism             |
 
 ## Source Message
 

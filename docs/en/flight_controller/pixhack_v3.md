@@ -2,11 +2,11 @@
 
 <Badge type="info" text="Discontinued" />
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.cuav.net/) for hardware support or compliance issues.
 :::
@@ -63,7 +63,7 @@ The board can be purchased from:
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::

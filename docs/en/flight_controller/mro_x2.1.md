@@ -2,11 +2,11 @@
 
 <Badge type="info" text="Discontinued" /> <!-- 202507 / PX4v1.16 -->
 
-:::warning
+::: warning
 This flight controller has been [discontinued](../flight_controller/autopilot_experimental.md) and is no longer commercially available.
 :::
 
-:::warning
+::: warning
 PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://store.mrobotics.io/) for hardware support or compliance issues.
 :::
@@ -92,14 +92,14 @@ This product can be ordered at the [mRobotics<sup>&reg;</sup> Store](https://sto
 
 ## Building Firmware
 
-:::tip
+::: tip
 Most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
-```
+```sh
 make mro_x21_default
 ```
 
