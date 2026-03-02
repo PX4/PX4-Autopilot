@@ -180,6 +180,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 channel_labels = [process_channel_label(module_name, label, no_prefix)
                     for label in group['channel_labels']]
                 standard_params = group.get('standard_params', [])
+                center = group.get('center', None)
                 extra_function_groups = group.get('extra_function_groups', [])
                 pwm_timer_param = group.get('pwm_timer_param', None)
                 if 'timer_config_file' in group:
@@ -189,7 +190,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 timer_groups = get_timer_groups(timer_config_file, verbose)
                 timer_output_groups, timer_params = get_output_groups(timer_groups,
                     param_prefix, channel_labels,
-                    standard_params, extra_function_groups, pwm_timer_param,
+                    standard_params, center, extra_function_groups, pwm_timer_param,
                     verbose=verbose)
                 output_groups.extend(timer_output_groups)
             else:
@@ -233,6 +234,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
         per_channel_params = []
         param_prefix = process_param_prefix(group['param_prefix'])
         standard_params = group.get('standard_params', {})
+        center = group.get('center', None)
         standard_params_array = [
             ( 'function', 'Function', 'FUNC', False ),
             ( 'disarmed', 'Disarmed', 'DIS', False ),
@@ -255,11 +257,12 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 if show_if: param['show-if'] = show_if
                 per_channel_params.append(param)
 
-        center = {
-            'label': 'Center\n(for Servos)',
-            'name': param_prefix+'_CENT${i}',
-        }
-        per_channel_params.append(center)
+        if center is not None:
+            center_param = {
+                'label': 'Center\n(for Servos)',
+                'name': param_prefix+'_CENT${i}',
+            }
+            per_channel_params.append(center_param)
         param = {
                 'label': 'Rev Range\n(for Servos)',
                 'name': param_prefix+'_REV',

@@ -202,6 +202,7 @@ def get_actuator_output_params(yaml_config, output_functions,
                 channel_labels = [process_channel_label(module_name, label, no_prefix)
                     for label in group['channel_labels']]
                 standard_params = group.get('standard_params', [])
+                center = group.get('center', None)
                 extra_function_groups = group.get('extra_function_groups', [])
                 pwm_timer_param = group.get('pwm_timer_param', None)
                 if 'timer_config_file' in group:
@@ -211,7 +212,7 @@ def get_actuator_output_params(yaml_config, output_functions,
                 timer_groups = get_timer_groups(timer_config_file, verbose)
                 timer_output_groups, timer_params = get_output_groups(timer_groups,
                     param_prefix, channel_labels,
-                    standard_params, extra_function_groups, pwm_timer_param,
+                    standard_params, center, extra_function_groups, pwm_timer_param,
                     verbose=verbose)
                 all_params.update(timer_params)
                 output_groups.extend(timer_output_groups)
@@ -225,6 +226,7 @@ def get_actuator_output_params(yaml_config, output_functions,
         no_prefix = not group.get('channel_label_module_name_prefix', True)
         channel_label = process_channel_label(module_name, group['channel_label'], no_prefix)
         standard_params = group.get('standard_params', {})
+        center_param = group.get('center', None)
         instance_start = group.get('instance_start', 1)
         instance_start_label = group.get('instance_start_label', instance_start)
         if len(param_prefix) > 9: # 16 - len('_FAIL') - 2 (2 digits for index)
@@ -299,7 +301,6 @@ When set to -1 (default), the value depends on the function (see {:}).
         standard_params_array = [
             ( 'disarmed', 'Disarmed', 'DIS', disarmed_description ),
             ( 'min', 'Minimum', 'MIN', minimum_description ),
-            ( 'center', 'Center', 'CENT', center_description ),
             ( 'max', 'Maximum', 'MAX', maximum_description ),
             ( 'failsafe', 'Failsafe', 'FAIL', failsafe_description ),
             ]
@@ -313,10 +314,6 @@ When set to -1 (default), the value depends on the function (see {:}).
                     raise Exception('maximum value for {:} expected <= {:} (got {:})'.format(key, 1<<16, standard_params[key]['max']))
 
                 if key == 'failsafe':
-                    standard_params[key]['default'] = -1
-                    standard_params[key]['min'] = -1
-
-                if key == 'center':
                     standard_params[key]['default'] = -1
                     standard_params[key]['min'] = -1
 
@@ -334,6 +331,33 @@ When set to -1 (default), the value depends on the function (see {:}).
                     'default': standard_params[key]['default'],
                     }
                 add_local_param(param_prefix+'_'+param_suffix+'${i}', param)
+
+        # center param is handled after standard params
+        if center_param is not None:
+
+            # values must be in range of an uint16_t
+            if center_param['min'] < 0:
+                raise Exception('minimum value for center expected >= 0 (got {:})'.format(center_param['min']))
+            if center_param['max'] >= 1<<16:
+                raise Exception('maximum value for center expected <= {:} (got {:})'.format(1<<16, center_param['max']))
+
+            center_param['default'] = -1
+            center_param['min'] = -1
+
+            param = {
+                'description': {
+                    'short': channel_label+' ${i} Center Value',
+                    'long': center_description
+                    },
+                'type': 'int32',
+                'instance_start': instance_start,
+                'instance_start_label': instance_start_label,
+                'num_instances': num_channels,
+                'min': center_param['min'],
+                'max': center_param['max'],
+                'default': center_param['default'],
+                }
+            add_local_param(param_prefix+'_CENT${i}', param)
 
     # add reverse range param
     for param_prefix in all_param_prefixes:
