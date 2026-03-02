@@ -170,16 +170,7 @@
 #define GPIO_HW_REV_SENSE      /* PH4 */  GPIO_ADC3_INP15
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 
-/* HEATER
- * PWM in future
- */
-// IMU BOARD HEATER
-#define GPIO_HEATER_OUTPUT        /* PB10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
-#define HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
-
-// CORE BOARD HEATER
-#define GPIO_CORE_HEATER_OUTPUT    /* PE6 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN6)
-#define CORE_HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_CORE_HEATER_OUTPUT, (on_true))
+// TODO: add multi-heater definitions, see https://github.com/PX4/PX4-Autopilot/pull/26325
 
 /* PE7 is nARMED
  *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
@@ -404,8 +395,6 @@
 		GPIO_CAN2_RX,                   \
 		GPIO_CAN1_SILENT_S0,		\
 		GPIO_CAN2_SILENT_S1,            \
-		GPIO_HEATER_OUTPUT,             \
-		GPIO_CORE_HEATER_OUTPUT,	\
 		GPIO_nPOWER_IN_A,               \
 		GPIO_nPOWER_IN_B,               \
 		GPIO_nPOWER_IN_C,               \

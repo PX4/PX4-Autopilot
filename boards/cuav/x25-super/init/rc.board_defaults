@@ -29,7 +29,9 @@ param set-default SENS_TEMP_ID 5963786
 # CUAV core board IMU thermal control
 param set-default CORE_IMU_TEMP 45
 param set-default CORE_TEMP_ID 3014698
-core_heater start
+
+# TODO: replace with heater using the multi-heater defines from https://github.com/PX4/PX4-Autopilot/pull/26325
+# core_heater start
 
 # CUAV pwm voltage 3.3V/5V switch
 pwm_voltage_apply start
