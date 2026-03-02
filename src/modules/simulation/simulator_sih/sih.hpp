@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2019-2025 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2019-2026 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -40,19 +40,19 @@
  * Coriolis g Corporation - January 2019
  */
 
-// The sensor signals reconstruction and noise levels are from [1]
-// [1] Bulka E, and Nahon M, "Autonomous fixed-wing aerobatics: from theory to flight."
-//     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
-// The aerodynamic model is from [2]
-// [2] Khan W, supervised by Nahon M, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
-//     McGill University (Canada), PhD thesis, 2016.
-// The quaternion integration are from [3]
-// [3] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration for the Quaternion Kinematics."
-//     Journal of Guidance, Control, and Dynamics. 2019 Dec;42(12):2747-54.
-// The tailsitter model is from [4]
-// [4] Chiappinelli R, supervised by Nahon M, "Modeling and control of a flying wing tailsitter unmanned aerial vehicle."
-//     McGill University (Canada), Masters Thesis, 2018.
-
+/** The sensor signals reconstruction and noise levels are from [1]. The aerodynamic model is from [2].
+ * The quaternion integration are from [3]. The tailsitter model is from [4]. The propeller models are from [5]
+ * [1] Bulka E, and Nahon M, "Autonomous fixed-wing aerobatics: from theory to flight."
+ *     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
+ * [2] Khan W, supervised by Nahon M, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
+ *     McGill University (Canada), PhD thesis, 2016.
+ * [3] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration for the Quaternion Kinematics."
+ *     Journal of Guidance, Control, and Dynamics. 2019 Dec;42(12):2747-54.
+ * [4] Chiappinelli R, supervised by Nahon M, "Modeling and control of a flying wing tailsitter unmanned aerial vehicle."
+ *     McGill University (Canada), Masters Thesis, 2018.
+ * [5] J.B. Brandt, R.W. Deters, G.K. Ananda, O.D. Dantsker, and M.S. Selig 2026, UIUC Propeller Database,
+ *     Vols 1-4, University of Illinois at Urbana-Champaign, Department of Aerospace Engineering, retrieved from https://m-selig.ae.illinois.edu/props/propDB.html.
+ */
 #pragma once
 
 #include <px4_platform_common/module.h>
@@ -140,6 +140,7 @@ private:
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
+	static constexpr uint16_t NUM_DYN_THRUSTER = 2;		// number of dynamic thruster model with advance ratio
 	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
 	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
@@ -166,7 +167,7 @@ private:
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
-	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust);
+	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust_for_prowash);
 	void generate_ts_aerodynamics();
 	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
 	void sensor_step();
@@ -212,6 +213,7 @@ private:
 	matrix::Vector3f    _v_N_dot{};       // time derivative of velocity in local navigation frame [m/s2]
 	matrix::Quatf       _q{};             // quaternion attitude in local navigation frame
 	matrix::Vector3f    _w_B{};           // body rates in body frame [rad/s]
+	matrix::Vector3f    _v_B{};	// body frame velocity
 
 	LatLonAlt _lla{};
 
@@ -225,6 +227,9 @@ private:
 	matrix::Dcmf        _R_N2E;           // local navigation to ECEF frame rotation matrix
 
 	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
+	float       _T[NUM_DYN_THRUSTER] {};         // thruster forces (N)
+	float       _Q[NUM_DYN_THRUSTER] {};         // thruster torque (Nm)
+	Thruster    _thruster[NUM_DYN_THRUSTER] {};	// thruster objects
 
 	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, First = Quadcopter, Last = RoverAckermann}; // numbering dependent on parameter SIH_VEHICLE_TYPE
 	VehicleType _vehicle = VehicleType::Quadcopter;
@@ -261,22 +266,10 @@ private:
 		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f - TS_CM,  0.239f, 0.0f), 0.0f, TS_AR)
 	};
 
-	// AeroSeg _ts[NB_TS_SEG] = {
-	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f, -0.239f, TS_CM-0.083f), 0.0f, TS_AR),
-	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f, -0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f, -0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
-	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f, -0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0750f, 0.231f, -90.0f, matrix::Vector3f(0.0f,  0.000f, TS_CM-0.173f), 0.0f, TS_AR),
-	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f,  0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f,  0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
-	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f,  0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
-	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f,  0.239f, TS_CM-0.083f), 0.0f, TS_AR)
-	// 	};
-
 	// parameters
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
-	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU;
+	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU, _F_T_MAX, _F_Q_MAX;
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 
@@ -306,6 +299,18 @@ private:
 		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
 		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
+		// forward propeller
+		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,
+		(ParamFloat<px4::params::SIH_F_Q_MAX>) _sih_f_torque_max,
+		(ParamFloat<px4::params::SIH_F_CT0>) _sih_f_ct0,
+		(ParamFloat<px4::params::SIH_F_CT1>) _sih_f_ct1,
+		(ParamFloat<px4::params::SIH_F_CT2>) _sih_f_ct2,
+		(ParamFloat<px4::params::SIH_F_CP0>) _sih_f_cp0,
+		(ParamFloat<px4::params::SIH_F_CP1>) _sih_f_cp1,
+		(ParamFloat<px4::params::SIH_F_CP2>) _sih_f_cp2,
+		(ParamFloat<px4::params::SIH_F_DIA_INCH>) _sih_forward_diameter_inch,
+		(ParamFloat<px4::params::SIH_F_RPM_MAX>) _sih_forward_rpm_max,
+
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype
 	)
 };
