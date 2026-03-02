@@ -68,8 +68,7 @@ TEST(StickYawTest, UnaidedYawNanTransitionNoYawJump)
 	const float yaw_sp_before = yaw_sp;
 	ASSERT_TRUE(PX4_ISFINITE(yaw_sp_before));
 
-	// Phase 3: unaided_yaw becomes NAN (e.g. sensor glitch).
-	// The yaw setpoint must not jump.
+	// Phase 3: unaided_yaw becomes NAN — yaw setpoint must not jump.
 	stick_yaw.generateYawSetpoint(yawspeed_sp, yaw_sp, 0.f, 0.3f, dt, NAN);
 
 	EXPECT_NEAR(yaw_sp, yaw_sp_before, 0.01f)
