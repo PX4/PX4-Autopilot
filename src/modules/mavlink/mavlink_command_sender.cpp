@@ -63,12 +63,6 @@ MavlinkCommandSender &MavlinkCommandSender::instance()
 {
 	if (_instance == nullptr) {
 		initialize();
-
-		if (_instance == nullptr) {
-			PX4_ERR("MavlinkCommandSender unavailable");
-			static MavlinkCommandSender fallback;
-			_instance = &fallback;
-		}
 	}
 
 	return *_instance;
