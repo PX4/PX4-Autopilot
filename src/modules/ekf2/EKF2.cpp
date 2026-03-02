@@ -1853,7 +1853,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
 	static constexpr float kMinTestRatioPreflight = 0.5f;
-	status.pre_flt_fail_innov_heading   = (kMinTestRatioPreflight < status.hdg_test_ratio);
+	status.pre_flt_fail_innov_heading   = (kMinTestRatioPreflight < status.hdg_test_ratio) || !_ekf.control_status_flags().yaw_align;
 	status.pre_flt_fail_innov_height    = (kMinTestRatioPreflight < status.hgt_test_ratio);
 	status.pre_flt_fail_innov_pos_horiz = (kMinTestRatioPreflight < status.pos_test_ratio);
 	status.pre_flt_fail_innov_vel_horiz = (kMinTestRatioPreflight < vel_xy_test_ratio);
@@ -2945,7 +2945,7 @@ int EKF2::print_usage(const char *reason)
 ### Description
 Attitude and position estimator using an Extended Kalman Filter. It is used for Multirotors and Fixed-Wing.
 
-The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/main/en/advanced_config/tuning_the_ecl_ekf.html) page.
+The documentation can be found on the [ECL/EKF Overview & Tuning](../advanced_config/tuning_the_ecl_ekf.md) page.
 
 ekf2 can be started in replay mode (`-r`): in this mode, it does not access the system time, but only uses the
 timestamps from the sensor topics.

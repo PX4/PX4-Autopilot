@@ -67,7 +67,7 @@ The messages are described below (see links for specific detail).
 
 <!-- above ^^^ links for table -->
 
-PX4 directly uses the [Gazebo API](https://gazebosim.org/docs) to interface with [Gazebo](../sim_gazebo_gz/index.md) and MAVlink is not required.
+PX4 directly uses the [Gazebo API](https://gazebosim.org/docs/) to interface with [Gazebo](../sim_gazebo_gz/index.md) and MAVlink is not required.
 
 ## Default PX4 MAVLink UDP Ports
 
@@ -209,7 +209,7 @@ For setup information see the _QGroundControl User Guide_:
 PX4 supports capture of both still images and video from within the [Gazebo Classic](../sim_gazebo_classic/index.md) simulated environment.
 This can be enabled/set up as described in [Gazebo Glassic > Video Streaming](../sim_gazebo_classic/index.md#video-streaming).
 
-The simulated camera is a gazebo classic plugin that implements the [MAVLink Camera Protocol](https://mavlink.io/en/protocol/camera.html) <!-- **PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/src/gazebo_geotagged_images_plugin.cpp -->.
+The simulated camera is a gazebo classic plugin that implements the [MAVLink Camera Protocol](https://mavlink.io/en/services/camera.html) <!-- **PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/src/gazebo_geotagged_images_plugin.cpp -->.
 PX4 connects/integrates with this camera in _exactly the same way_ as it would with any other MAVLink camera:
 
 1. [TRIG_INTERFACE](../advanced_config/parameter_reference.md#TRIG_INTERFACE) must be set to `3` to configure the camera trigger driver for use with a MAVLink camera

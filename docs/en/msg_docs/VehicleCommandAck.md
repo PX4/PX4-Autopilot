@@ -28,18 +28,18 @@ Follows the MAVLink COMMAND_ACK message definition
 
 ### VEHICLE_CMD_RESULT {#VEHICLE_CMD_RESULT}
 
-| Name                                                                                              | Type    | Value | Description                                          |
-| ------------------------------------------------------------------------------------------------- | ------- | ----- | ---------------------------------------------------- |
-| <a href="#VEHICLE_CMD_RESULT_ACCEPTED"></a> VEHICLE_CMD_RESULT_ACCEPTED                           | `uint8` | 0     | Command ACCEPTED and EXECUTED                        |
-| <a href="#VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED"></a> VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED   | `uint8` | 1     | Command TEMPORARY REJECTED/DENIED                    |
-| <a href="#VEHICLE_CMD_RESULT_DENIED"></a> VEHICLE_CMD_RESULT_DENIED                               | `uint8` | 2     | Command PERMANENTLY DENIED                           |
-| <a href="#VEHICLE_CMD_RESULT_UNSUPPORTED"></a> VEHICLE_CMD_RESULT_UNSUPPORTED                     | `uint8` | 3     | Command UNKNOWN/UNSUPPORTED                          |
-| <a href="#VEHICLE_CMD_RESULT_FAILED"></a> VEHICLE_CMD_RESULT_FAILED                               | `uint8` | 4     | Command executed, but failed                         |
-| <a href="#VEHICLE_CMD_RESULT_IN_PROGRESS"></a> VEHICLE_CMD_RESULT_IN_PROGRESS                     | `uint8` | 5     | Command being executed                               |
-| <a href="#VEHICLE_CMD_RESULT_CANCELLED"></a> VEHICLE_CMD_RESULT_CANCELLED                         | `uint8` | 6     | Command Canceled                                     |
-| <a href="#VEHICLE_CMD_RESULT_COMMAND_LONG_ONLY"></a> VEHICLE_CMD_RESULT_COMMAND_LONG_ONLY         | `uint8` | 7     | Command is only accepted when sent as a COMMAND_LONG |
-| <a href="#VEHICLE_CMD_RESULT_COMMAND_INT_ONLY"></a> VEHICLE_CMD_RESULT_COMMAND_INT_ONLY           | `uint8` | 8     | Command is only accepted when sent as a COMMAND_INT  |
-| <a href="#VEHICLE_CMD_RESULT_UNSUPPORTED_MAV_FRAME"></a> VEHICLE_CMD_RESULT_UNSUPPORTED_MAV_FRAME | `uint8` | 9     | Command does not support specified frame             |
+| Name                                                                                            | Type    | Value | Description                                          |
+| ----------------------------------------------------------------------------------------------- | ------- | ----- | ---------------------------------------------------- |
+| <a id="#VEHICLE_CMD_RESULT_ACCEPTED"></a> VEHICLE_CMD_RESULT_ACCEPTED                           | `uint8` | 0     | Command ACCEPTED and EXECUTED                        |
+| <a id="#VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED"></a> VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED   | `uint8` | 1     | Command TEMPORARY REJECTED/DENIED                    |
+| <a id="#VEHICLE_CMD_RESULT_DENIED"></a> VEHICLE_CMD_RESULT_DENIED                               | `uint8` | 2     | Command PERMANENTLY DENIED                           |
+| <a id="#VEHICLE_CMD_RESULT_UNSUPPORTED"></a> VEHICLE_CMD_RESULT_UNSUPPORTED                     | `uint8` | 3     | Command UNKNOWN/UNSUPPORTED                          |
+| <a id="#VEHICLE_CMD_RESULT_FAILED"></a> VEHICLE_CMD_RESULT_FAILED                               | `uint8` | 4     | Command executed, but failed                         |
+| <a id="#VEHICLE_CMD_RESULT_IN_PROGRESS"></a> VEHICLE_CMD_RESULT_IN_PROGRESS                     | `uint8` | 5     | Command being executed                               |
+| <a id="#VEHICLE_CMD_RESULT_CANCELLED"></a> VEHICLE_CMD_RESULT_CANCELLED                         | `uint8` | 6     | Command Canceled                                     |
+| <a id="#VEHICLE_CMD_RESULT_COMMAND_LONG_ONLY"></a> VEHICLE_CMD_RESULT_COMMAND_LONG_ONLY         | `uint8` | 7     | Command is only accepted when sent as a COMMAND_LONG |
+| <a id="#VEHICLE_CMD_RESULT_COMMAND_INT_ONLY"></a> VEHICLE_CMD_RESULT_COMMAND_INT_ONLY           | `uint8` | 8     | Command is only accepted when sent as a COMMAND_INT  |
+| <a id="#VEHICLE_CMD_RESULT_UNSUPPORTED_MAV_FRAME"></a> VEHICLE_CMD_RESULT_UNSUPPORTED_MAV_FRAME | `uint8` | 9     | Command does not support specified frame             |
 
 ## Constants
 

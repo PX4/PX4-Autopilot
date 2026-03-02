@@ -36,14 +36,14 @@ class Error:
 
 
         if 'trailing_whitespace' == self.type:
-            if self.issueString.strip():    
+            if self.issueString.strip():
                 print(f"NOTE: Line has trailing whitespace ({self.message}: {self.linenumber}): {self.issueString}")
             else:
                 print(f"NOTE: Line has trailing whitespace ({self.message}: {self.linenumber})")
         elif 'leading_whitespace_field_or_constant' == self.type:
-            print(f"NOTE: Whitespace before field or constant ({self.message}: {self.linenumber}): {self.issueString}")             
+            print(f"NOTE: Whitespace before field or constant ({self.message}: {self.linenumber}): {self.issueString}")
         elif 'field_or_constant_has_multiple_whitepsace' == self.type:
-            print(f"NOTE: Field/constant has more than one sequential whitespace character ({self.message}: {self.linenumber}): {self.issueString}") 
+            print(f"NOTE: Field/constant has more than one sequential whitespace character ({self.message}: {self.linenumber}): {self.issueString}")
         elif 'empty_start_line' == self.type:
             print(f"NOTE: Empty line at start of file ({self.message}: {self.linenumber})")
         elif 'internal_comment' == self.type:
@@ -191,7 +191,7 @@ class CommandParam:
                             if not "unknown_frame" in self.parent.errors:
                                 self.parent.errors["unknown_frame"] = []
                             self.parent.errors["unknown_frame"].append(error)
-                        """    
+                        """
                     else:
                         print(f"WARNING: Unhandled metadata in message comment: {item}")
                         # TODO - report errors for different kinds of metadata
@@ -202,9 +202,9 @@ class CommandParam:
 
                     if item == "-":
                         unit = ""
-                    
+
                     if unit and unit not in self.units:
-                        self.units.append(unit) 
+                        self.units.append(unit)
 
                     if unit not in ALLOWED_UNITS:
                         invalid_units.add(unit)
@@ -221,7 +221,7 @@ class CommandParam:
         print(f"   paramText: {self.paramText}\n  unit:  {self.units}\n  enums: {self.enums}\n  lineNumber: {self.lineNumber}\n  range: {self.range}\n  minValue: {self.minValue}\n  maxValue: {self.maxValue}\n  invalidValue: {self.invalidValue}\n  frameValue: {self.frameValue}\n  parent: {self.parent}\n  ")
 
 
-        
+
 class CommandConstant:
     """
     Represents a constant that is a command definition.
@@ -252,9 +252,9 @@ class CommandConstant:
         if not self.comment: # This is an bug for a command
             #print(f"Debug WARNING: NO COMMENT in CommandConstant: {self.name}")  ## TODO make into ERROR
             return
-            
+
         # Parse command comment to get the description and parameters.
-        # print(f"Debug CommandConstant: {self.comment}") 
+        # print(f"Debug CommandConstant: {self.comment}")
         if not "|" in self.comment:
             # This is an error for a command constant
             error = Error("command_no_params_pipes", self.parent.filename, self.line_number, self.comment, self.name)
@@ -263,7 +263,7 @@ class CommandConstant:
                 self.parent.errors["command_no_params_pipes"] = []
             self.parent.errors["command_no_params_pipes"].append(error)
             return
-        
+
         # Split on pipes
         commandSplit = self.comment.split("|")
         if len(commandSplit) < 9:
@@ -318,7 +318,7 @@ Param | Units | Range/Enum | Description
 
                 output+=f"{i} | {", ".join(val.units)}|{', '.join(f"[{e}](#{e})" for e in val.enums)}{rangeVal} | {val.description}\n"
             else:
-                output+=f"{i} | | | ?\n"                
+                output+=f"{i} | | | ?\n"
 
         output+=f"\n"
         return output
@@ -419,7 +419,7 @@ class MessageField:
 class UORBMessage:
     """
     Represents a whole message, including fields, enums, commands, constants.
-    The parser function delegates the parsing of each part of the message to 
+    The parser function delegates the parsing of each part of the message to
     more appropriate classes, once the specific type of line has been identified.
     """
 
@@ -511,11 +511,11 @@ pageClass: is-wide-page
             markdown += "--- | --- | --- |---\n"
             for name, command in self.commandConstants.items():
                 description = f" {command.comment} " if enum.comment else " "
-                markdown += f'<a id="#{name}"></a> {name} | `{command.type}` | {command.value} |{description}\n'            
+                markdown += f'<a id="#{name}"></a> {name} | `{command.type}` | {command.value} |{description}\n'
             """
             for commandConstant in self.commandConstants.values():
                 #print(commandConstant)
-                markdown += commandConstant.markdown_out()     
+                markdown += commandConstant.markdown_out()
 
         # Generate enum docs
         if len(self.enums) > 0:
@@ -529,7 +529,7 @@ pageClass: is-wide-page
 
                 for enumValueName, enumValue in enum.enumValues.items():
                     description = f" {enumValue.comment} " if enumValue.comment else " "
-                    markdown += f'<a href="#{enumValueName}"></a> {enumValueName} | `{enumValue.type}` | {enumValue.value} |{description}\n'
+                    markdown += f'<a id="#{enumValueName}"></a> {enumValueName} | `{enumValue.type}` | {enumValue.value} |{description}\n'
 
         # Generate table for constants docs
         if len(self.constantFields) > 0:
@@ -708,7 +708,7 @@ pageClass: is-wide-page
                     if stripped_line.startswith("#"):
                         # Its an internal comment
                         stripped_line=stripped_line[1:].strip()
-                        
+
                         if stripped_line:
                             #print(f"{self.filename}: Internal comment: [{line_number}]\n {line}")
                             error = Error("internal_comment", self.filename, line_number, line)
@@ -723,7 +723,7 @@ pageClass: is-wide-page
                             self.errors["internal_comment_empty"].append(error)
                             #pass # Empty comment
                         continue
-                    
+
                     # Must be a field or a comment.
                     self.handleField(line, line_number, parentMessage=self)
 

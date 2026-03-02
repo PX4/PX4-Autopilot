@@ -1,6 +1,6 @@
 # CUAV C-RTK 9Ps
 
-The CUAV [C-RTK 9Ps](https://www.cuav.net/en/c_rtk_9ps/) is a multi-satellite, multi-band, centimeter-level, RTK GNSS system.
+The CUAV [C-RTK 9Ps](https://www.cuav.net/en/c-rtk-9ps-en/) is a multi-satellite, multi-band, centimeter-level, RTK GNSS system.
 
 The module simultaneously receives GPS, GLONASS, Galileo and Beidou satellite signals, enabling faster positioning and higher accuracy.
 It also supports [RTK GPS Heading](../gps_compass/u-blox_f9p_heading.md) using dual modules.
@@ -12,7 +12,7 @@ This is ideal for survey drones, agricultural drones and other application scena
 
 ## Where to Buy
 
-[cuav Store](https://store.cuav.net/index.php?route=product/product&path=61&product_id=187)
+[cuav Store](https://store.cuav.net/?route=product%2Fproduct&path=61&product_id=187)
 
 ## Specification
 

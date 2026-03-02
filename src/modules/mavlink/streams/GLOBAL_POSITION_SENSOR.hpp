@@ -31,75 +31,79 @@
  *
  ****************************************************************************/
 
-#ifndef GLOBAL_POSITION_HPP
-#define GLOBAL_POSITION_HPP
+#ifndef GLOBAL_POSITION_SENSOR_HPP
+#define GLOBAL_POSITION_SENSOR_HPP
 
 #include <stdint.h>
 
 #include <uORB/topics/aux_global_position.h>
 
-class MavlinkStreamGLobalPosition : public MavlinkStream
+class MavlinkStreamGlobalPositionSensor : public MavlinkStream
 {
 public:
-	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGLobalPosition(mavlink); }
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamGlobalPositionSensor(mavlink); }
 
-	static constexpr const char *get_name_static() { return "GLOBAL_POSITION"; }
-	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_GLOBAL_POSITION; }
+	static constexpr const char *get_name_static() { return "GLOBAL_POSITION_SENSOR"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_GLOBAL_POSITION_SENSOR; }
 
 	const char *get_name() const override { return get_name_static(); }
 	uint16_t get_id() override { return get_id_static(); }
 
 	unsigned get_size() override
 	{
-		return _aux_global_position_sub.advertised() ? (MAVLINK_MSG_ID_GLOBAL_POSITION_LEN +
+		return _aux_global_position_sub.advertised() ? (MAVLINK_MSG_ID_GLOBAL_POSITION_SENSOR_LEN +
 				MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
-	explicit MavlinkStreamGLobalPosition(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamGlobalPositionSensor(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _aux_global_position_sub{ORB_ID(aux_global_position)};
+	uORB::SubscriptionMultiArray<aux_global_position_s, 4> _aux_global_position_sub{ORB_ID::aux_global_position};
 
 	bool send() override
 	{
-		vehicle_global_position_s pos{};
+		aux_global_position_s pos{};
+		bool sent = false;
 
-		if (_aux_global_position_sub.update(&pos)) {
-			mavlink_global_position_t msg{};
+		for (int i = 0; i < _aux_global_position_sub.size(); i++) {
+			if (_aux_global_position_sub[i].update(&pos)) {
+				mavlink_global_position_sensor_t msg{};
 
-			msg.id = UINT8_C(1);
-			msg.time_usec = pos.timestamp;
-			msg.source = GLOBAL_POSITION_UNKNOWN;
-			msg.flags = 0;
+				msg.target_system = 0;
+				msg.target_component = 0;
+				msg.id = pos.id;
+				msg.time_usec = pos.timestamp;
+				msg.source = pos.source;
 
-			if (PX4_ISFINITE(pos.lat)) {
-				msg.lat = static_cast<int32_t>(pos.lat * 1e7);
+				if (PX4_ISFINITE(pos.lat)) {
+					msg.lat = static_cast<int32_t>(pos.lat * 1e7);
 
-			} else {
-				msg.lat = INT32_MAX;
+				} else {
+					msg.lat = INT32_MAX;
+				}
+
+				if (PX4_ISFINITE(pos.lon)) {
+					msg.lon = static_cast<int32_t>(pos.lon * 1e7);
+
+				} else {
+					msg.lon = INT32_MAX;
+				}
+
+				msg.alt = pos.alt;
+				msg.alt_ellipsoid = pos.alt;
+
+				msg.eph = pos.eph;
+				msg.epv = pos.epv;
+
+
+				mavlink_msg_global_position_sensor_send_struct(_mavlink->get_channel(), &msg);
+
+				sent = true;
 			}
-
-			if (PX4_ISFINITE(pos.lon)) {
-				msg.lon = static_cast<int32_t>(pos.lon * 1e7);
-
-			} else {
-				msg.lon = INT32_MAX;
-			}
-
-			msg.alt = pos.alt;
-			msg.alt_ellipsoid = pos.alt_ellipsoid;
-
-			msg.eph = pos.eph;
-			msg.epv = pos.epv;
-
-
-			mavlink_msg_global_position_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
 		}
 
-		return false;
+		return sent;
 	}
 };
 
-#endif // GLOBAL_POSITION_HPP
+#endif // GLOBAL_POSITION_SENSOR_HPP

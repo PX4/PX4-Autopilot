@@ -30,15 +30,15 @@ pseudolites, visual navigation, or other positioning system.
 
 ### SOURCE {#SOURCE}
 
-| Name                                                  | Type    | Value | Description    |
-| ----------------------------------------------------- | ------- | ----- | -------------- |
-| <a href="#SOURCE_UNKNOWN"></a> SOURCE_UNKNOWN         | `uint8` | 0     | Unknown source |
-| <a href="#SOURCE_GNSS"></a> SOURCE_GNSS               | `uint8` | 1     | GNSS           |
-| <a href="#SOURCE_VISION"></a> SOURCE_VISION           | `uint8` | 2     | Vision         |
-| <a href="#SOURCE_PSEUDOLITES"></a> SOURCE_PSEUDOLITES | `uint8` | 3     | Pseudolites    |
-| <a href="#SOURCE_TERRAIN"></a> SOURCE_TERRAIN         | `uint8` | 4     | Terrain        |
-| <a href="#SOURCE_MAGNETIC"></a> SOURCE_MAGNETIC       | `uint8` | 5     | Magnetic       |
-| <a href="#SOURCE_ESTIMATOR"></a> SOURCE_ESTIMATOR     | `uint8` | 6     | Estimator      |
+| Name                                                | Type    | Value | Description    |
+| --------------------------------------------------- | ------- | ----- | -------------- |
+| <a id="#SOURCE_UNKNOWN"></a> SOURCE_UNKNOWN         | `uint8` | 0     | Unknown source |
+| <a id="#SOURCE_GNSS"></a> SOURCE_GNSS               | `uint8` | 1     | GNSS           |
+| <a id="#SOURCE_VISION"></a> SOURCE_VISION           | `uint8` | 2     | Vision         |
+| <a id="#SOURCE_PSEUDOLITES"></a> SOURCE_PSEUDOLITES | `uint8` | 3     | Pseudolites    |
+| <a id="#SOURCE_TERRAIN"></a> SOURCE_TERRAIN         | `uint8` | 4     | Terrain        |
+| <a id="#SOURCE_MAGNETIC"></a> SOURCE_MAGNETIC       | `uint8` | 5     | Magnetic       |
+| <a id="#SOURCE_ESTIMATOR"></a> SOURCE_ESTIMATOR     | `uint8` | 6     | Estimator      |
 
 ## Constants
 

@@ -1120,7 +1120,9 @@ void SimulatorMavlink::run()
 
 	if (_ip == InternetProtocol::UDP) {
 
-		if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+		if (_fd < 0) {
 			PX4_ERR("Creating UDP socket failed: %s", strerror(errno));
 			return;
 		}
@@ -1153,7 +1155,9 @@ void SimulatorMavlink::run()
 		PX4_INFO("Waiting for simulator to accept connection on TCP port %u", _port);
 
 		while (true) {
-			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+			_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+			if (_fd < 0) {
 				PX4_ERR("Creating TCP socket failed: %s", strerror(errno));
 				return;
 			}

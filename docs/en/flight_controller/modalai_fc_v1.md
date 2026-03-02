@@ -116,7 +116,7 @@ Detailed information about the pinouts can be found [here](https://docs.modalai.
 
 ### User Guide
 
-The full user guide is available [here](https://docs.modalai.com/flight-core-manual/).
+The full user guide is available [here](https://docs.modalai.com/flight-core/).
 
 ### How to Build
 

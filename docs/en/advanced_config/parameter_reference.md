@@ -17252,14 +17252,6 @@ it drops off to a voltage level damaging the cells.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          | 0.01      | 3.6     | V    |
 
-### BAT_ADC_CHANNEL (`INT32`) {#BAT_ADC_CHANNEL}
-
-This parameter is deprecated. Please use BAT1_I_CHANNEL.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | -1      |      |
-
 ### BAT_AVRG_CURRENT (`FLOAT`) {#BAT_AVRG_CURRENT}
 
 Expected battery current in flight.
@@ -17706,9 +17698,9 @@ This param is specific for ESCs reporting status. It shall be used only if ESCs 
 
 ### COM_ARM_HFLT_CHK (`INT32`) {#COM_ARM_HFLT_CHK}
 
-Enable FMU SD card hardfault detection check.
+Enable FMU SD card hardfault / watchdog detection check.
 
-This check detects if there are hardfault files present on the
+This check detects if there are hardfault / watchdog files present on the
 SD card. If so, and the parameter is enabled, arming is prevented.
 
 | Reboot | minValue | maxValue | increment | default     | unit |

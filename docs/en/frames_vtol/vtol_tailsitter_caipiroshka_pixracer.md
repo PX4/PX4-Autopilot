@@ -24,7 +24,7 @@ A number of other components have been updated in the parts list too.
   - [GetFPV](https://www.getfpv.com/lumenier-30a-blheli-s-esc-opto-2-4s.html)
 - BEC (3A, 5-5.3V) (only needed if you are using ESCs which cannot act as a 5V power supply for the output rail)
 - 3S 2200 mA LiPo battery
-  - Team Orion 3S 11.1V 50 C ([Hobbyshop store](https://www.hobbyshop.ch/modellbau-elektronik/akku/team-orion-lipo-2200-3s-11-1v-50c-xt60-ori60163.html))
+  - Team Orion 3S 11.1V 50 C ([Hobbyshop store](https://www.hobbyshop.ch/team-orion-lipo-2200-3s-11-1v-50c-xt60-ori60163.html))
 - [Pixracer autopilot board + power module](../flight_controller/pixracer.md)
 - [Digital airspeed sensor](https://hobbyking.com/en_us/hkpilot-32-digital-air-speed-sensor-and-pitot-tube-set.html)
 
