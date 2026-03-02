@@ -363,7 +363,7 @@ Source: [modules/gimbal](https://github.com/PX4/PX4-Autopilot/tree/main/src/modu
 Mount/gimbal Gimbal control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
 output (eg. AUX channels or MAVLink).
 
-Documentation how to use it is on the [gimbal_control](https://docs.px4.io/main/en/advanced/gimbal_control.html) page.
+Documentation how to use it is on the [gimbal_control](../advanced/gimbal_control.md) page.
 
 ### Examples
 

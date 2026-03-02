@@ -732,7 +732,7 @@ The module is typically used together with uORB publisher rules, to specify whic
 The replay module will just publish all messages that are found in the log. It also applies the parameters from
 the log.
 
-The replay procedure is documented on the [System-wide Replay](https://docs.px4.io/main/en/debug/system_wide_replay.html)
+The replay procedure is documented on the [System-wide Replay](../debug/system_wide_replay.md)
 page.
 
 ### Usage {#replay_usage}
