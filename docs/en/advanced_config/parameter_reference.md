@@ -34801,6 +34801,177 @@ GRF Sensor Model used to distinush between the GRF250 and GRF500 since both have
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |      |
 
+### HEATER1_IMU_ID (`INT32`) {#HEATER1_IMU_ID}
+
+The ID of the IMU controlled by heater 1.
+
+Specifies the sensor device ID (DEVID) that this heater instance controls.
+-1 disables this heater instance.
+If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |      |
+
+### HEATER1_TEMP (`FLOAT`) {#HEATER1_TEMP}
+
+Target temperature for heater 1.
+
+Specify the target stable temperature (in degrees Celsius) for the IMU.
+It is generally recommended to set this between 40°C and 60°C,
+which must be higher than the maximum ambient temperature.
+
+| Reboot  | minValue | maxValue | increment | default | unit    |
+| ------- | -------- | -------- | --------- | ------- | ------- |
+| &check; | 0        | 85.0     |           | 55.0    | celcius |
+
+### HEATER1_TEMP_FF (`FLOAT`) {#HEATER1_TEMP_FF}
+
+IMU heater controller 1 feedforward value.
+
+Used to predict the baseline power consumption required to maintain temperature,
+helping to reduce adjustment time.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1.0      |           | 0.05    | %    |
+
+### HEATER1_TEMP_I (`FLOAT`) {#HEATER1_TEMP_I}
+
+IMU heater controller 1 integrator gain value.
+
+Integral gain is used to eliminate steady-state error,
+ensuring that the temperature ultimately reaches the setpoint target.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1.0      |           | 0.025   | us/C |
+
+### HEATER1_TEMP_P (`FLOAT`) {#HEATER1_TEMP_P}
+
+IMU heater controller 1 proportional gain value.
+
+The proportional gain determines how quickly the controller responds to temperature deviations.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 2.0      |           | 1.0     | us/C |
+
+### HEATER2_IMU_ID (`INT32`) {#HEATER2_IMU_ID}
+
+The ID of the IMU controlled by heater 2.
+
+Specifies the sensor device ID (DEVID) that this heater instance controls.
+-1 disables this heater instance.
+If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |      |
+
+### HEATER2_TEMP (`FLOAT`) {#HEATER2_TEMP}
+
+Target temperature for heater 2.
+
+Specify the target stable temperature (in degrees Celsius) for the IMU.
+It is generally recommended to set this between 40°C and 60°C,
+which must be higher than the maximum ambient temperature.
+
+| Reboot  | minValue | maxValue | increment | default | unit    |
+| ------- | -------- | -------- | --------- | ------- | ------- |
+| &check; | 0        | 85.0     |           | 55.0    | celcius |
+
+### HEATER2_TEMP_FF (`FLOAT`) {#HEATER2_TEMP_FF}
+
+IMU heater controller 2 feedforward value.
+
+Used to predict the baseline power consumption required to maintain temperature,
+helping to reduce adjustment time.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1.0      |           | 0.05    | %    |
+
+### HEATER2_TEMP_I (`FLOAT`) {#HEATER2_TEMP_I}
+
+IMU heater controller 2 integrator gain value.
+
+Integral gain is used to eliminate steady-state error,
+ensuring that the temperature ultimately reaches the setpoint target.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1.0      |           | 0.025   | us/C |
+
+### HEATER2_TEMP_P (`FLOAT`) {#HEATER2_TEMP_P}
+
+IMU heater controller 2 proportional gain value.
+
+The proportional gain determines how quickly the controller responds to temperature deviations.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 2.0      |           | 1.0     | us/C |
+
+### HEATER3_IMU_ID (`INT32`) {#HEATER3_IMU_ID}
+
+The ID of the IMU controlled by heater 3.
+
+Specifies the sensor device ID (DEVID) that this heater instance controls.
+-1 disables this heater instance.
+If set to 0, auto-select is only supported when HEATER_NUM == 1. On boards with multiple heater outputs,
+a valid DEVID must be configured for each heater to ensure a 1:1 mapping between heater output and IMU.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; |          |          |           | 0       |      |
+
+### HEATER3_TEMP (`FLOAT`) {#HEATER3_TEMP}
+
+Target temperature for heater 3.
+
+Specify the target stable temperature (in degrees Celsius) for the IMU.
+It is generally recommended to set this between 40°C and 60°C,
+which must be higher than the maximum ambient temperature.
+
+| Reboot  | minValue | maxValue | increment | default | unit    |
+| ------- | -------- | -------- | --------- | ------- | ------- |
+| &check; | 0        | 85.0     |           | 55.0    | celcius |
+
+### HEATER3_TEMP_FF (`FLOAT`) {#HEATER3_TEMP_FF}
+
+IMU heater controller 3 feedforward value.
+
+Used to predict the baseline power consumption required to maintain temperature,
+helping to reduce adjustment time.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1.0      |           | 0.05    | %    |
+
+### HEATER3_TEMP_I (`FLOAT`) {#HEATER3_TEMP_I}
+
+IMU heater controller 3 integrator gain value.
+
+Integral gain is used to eliminate steady-state error,
+ensuring that the temperature ultimately reaches the setpoint target.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 1.0      |           | 0.025   | us/C |
+
+### HEATER3_TEMP_P (`FLOAT`) {#HEATER3_TEMP_P}
+
+IMU heater controller 3 proportional gain value.
+
+The proportional gain determines how quickly the controller responds to temperature deviations.
+
+| Reboot  | minValue | maxValue | increment | default | unit |
+| ------- | -------- | -------- | --------- | ------- | ---- |
+| &check; | 0        | 2.0      |           | 1.0     | us/C |
+
 ### ILABS_MODE (`INT32`) {#ILABS_MODE}
 
 InertialLabs INS sensor mode configuration.
@@ -36582,38 +36753,6 @@ Sensors hub IMU mode.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 1       |      |
 
-### SENS_IMU_TEMP (`FLOAT`) {#SENS_IMU_TEMP}
-
-Target IMU temperature.
-
-| Reboot | minValue | maxValue | increment | default | unit    |
-| ------ | -------- | -------- | --------- | ------- | ------- |
-| &nbsp; | 0        | 85.0     |           | 55.0    | celcius |
-
-### SENS_IMU_TEMP_FF (`FLOAT`) {#SENS_IMU_TEMP_FF}
-
-IMU heater controller feedforward value.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1.0      |           | 0.05    | %    |
-
-### SENS_IMU_TEMP_I (`FLOAT`) {#SENS_IMU_TEMP_I}
-
-IMU heater controller integrator gain value.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 1.0      |           | 0.025   | us/C |
-
-### SENS_IMU_TEMP_P (`FLOAT`) {#SENS_IMU_TEMP_P}
-
-IMU heater controller proportional gain value.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; | 0        | 2.0      |           | 1.0     | us/C |
-
 ### SENS_INT_BARO_EN (`INT32`) {#SENS_INT_BARO_EN}
 
 Enable internal barometers.
@@ -37309,14 +37448,6 @@ Configure on which serial port to run Lightware Laser Rangefinder (serial).
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; |          |          |           | 0       |      |
-
-### SENS_TEMP_ID (`INT32`) {#SENS_TEMP_ID}
-
-Target IMU device ID to regulate temperature.
-
-| Reboot | minValue | maxValue | increment | default | unit |
-| ------ | -------- | -------- | --------- | ------- | ---- |
-| &nbsp; |          |          |           | 0       |      |
 
 ### SENS_TFLOW_CFG (`INT32`) {#SENS_TFLOW_CFG}
 
