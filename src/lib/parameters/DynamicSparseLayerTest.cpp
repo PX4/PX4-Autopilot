@@ -150,7 +150,7 @@ TEST_F(DynamicSparseLayerConcurrentTest, ConcurrentMultipleWriters)
 	constexpr int TOTAL = NUM_WRITERS * PARAMS_PER_WRITER;
 
 	for (int rep = 0; rep < 20; rep++) {
-		DynamicSparseLayer layer(&stub, /*n_prealloc=*/2, /*n_grow=*/1);
+		DynamicSparseLayer layer(&stub, /*n_prealloc=*/TOTAL, /*n_grow=*/1);
 
 		std::vector<std::thread> writers;
 
