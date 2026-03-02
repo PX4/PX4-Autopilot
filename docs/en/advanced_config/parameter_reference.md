@@ -16796,17 +16796,6 @@ Defines the capacity of battery 1 in mAh.
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | -1.0     | 100000   | 50        | -1.0    | mAh  |
 
-### BAT1_I_CHANNEL (`INT32`) {#BAT1_I_CHANNEL}
-
-Battery 1 Current ADC Channel.
-
-This parameter specifies the ADC channel used to monitor current of main power battery.
-A value of -1 means to use the board default.
-
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; |          |          |           | -1      |      |
-
 ### BAT1_I_FILT (`FLOAT`) {#BAT1_I_FILT}
 
 Battery 1 current filter time constant.
@@ -16984,17 +16973,6 @@ Defines the capacity of battery 2 in mAh.
 | Reboot  | minValue | maxValue | increment | default | unit |
 | ------- | -------- | -------- | --------- | ------- | ---- |
 | &check; | -1.0     | 100000   | 50        | -1.0    | mAh  |
-
-### BAT2_I_CHANNEL (`INT32`) {#BAT2_I_CHANNEL}
-
-Battery 2 Current ADC Channel.
-
-This parameter specifies the ADC channel used to monitor current of main power battery.
-A value of -1 means to use the board default.
-
-| Reboot  | minValue | maxValue | increment | default | unit |
-| ------- | -------- | -------- | --------- | ------- | ---- |
-| &check; |          |          |           | -1      |      |
 
 ### BAT2_I_FILT (`FLOAT`) {#BAT2_I_FILT}
 
