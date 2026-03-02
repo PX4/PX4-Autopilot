@@ -161,10 +161,9 @@ void MavlinkLogHandler::state_listing()
 		// We can send!
 		uint32_t size_bytes = 0;
 		uint32_t time_utc = 0;
-		char filepath[PX4_MAX_FILEPATH];
 
-		// If parsed lined successfully, send the entry
-		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %" STRINGIFY(PX4_MAX_FILEPATH_SCANF) "s", &time_utc, &size_bytes, filepath) != 3) {
+		// If parsed line successfully, send the entry (filepath is not needed here)
+		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %*s", &time_utc, &size_bytes) != 2) {
 			PX4_DEBUG("sscanf failed");
 			continue;
 		}
@@ -470,18 +469,10 @@ void MavlinkLogHandler::send_log_entry(uint32_t time_utc, uint32_t size_bytes)
 
 bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 {
-	DIR *dp = opendir(kLogDir);
-
-	if (!dp) {
-		PX4_INFO("No logs available");
-		return false;
-	}
-
 	FILE *fp = fopen(kLogListFilePath, "r");
 
 	if (!fp) {
 		PX4_DEBUG("Failed to open %s", kLogListFilePath);
-		closedir(dp);
 		return false;
 	}
 
@@ -508,7 +499,6 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 	}
 
 	fclose(fp);
-	closedir(dp);
 
 	return found_entry;
 }
