@@ -262,6 +262,8 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 'label': 'Center\n(for Servos)',
                 'name': param_prefix+'_CENT${i}',
             }
+            if 'show_if' in center:
+                center_param['show-if'] = center['show_if']
             per_channel_params.append(center_param)
         param = {
                 'label': 'Rev Range\n(for Servos)',
