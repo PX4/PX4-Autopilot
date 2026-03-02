@@ -699,7 +699,8 @@ bool EstimatorInterface::isNorthEastAidingActive() const
 {
 	return _control_status.flags.gnss_pos
 	       || _control_status.flags.gnss_vel
-	       || _control_status.flags.aux_gpos;
+	       || _control_status.flags.aux_gpos
+	       || (_control_status.flags.ev_pos && _control_status.flags.yaw_align);
 }
 
 void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
