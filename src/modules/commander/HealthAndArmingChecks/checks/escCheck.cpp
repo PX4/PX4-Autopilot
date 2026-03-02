@@ -71,7 +71,7 @@ static constexpr const char *esc_fault_reason_str(esc_fault_reason_t esc_fault_r
 void EscChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	const hrt_abstime now = hrt_absolute_time();
-	const hrt_abstime esc_telemetry_timeout = 700_ms; // Some DShot ESCs are unresponsive for ~550ms during their initialization
+	const hrt_abstime esc_init_time = 700_ms; // Some DShot ESCs are unresponsive for ~550ms during their initialization
 
 	esc_status_s esc_status;
 
@@ -97,7 +97,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.setIsPresent(health_component_t::motors_escs);
 		reporter.failsafeFlags().fd_motor_failure = mask != 0;
 
-	} else if ((_param_com_arm_chk_escs.get() > 0) && now - _start_time > esc_telemetry_timeout) { // Allow ESCs to init
+	} else if ((_param_com_arm_chk_escs.get() > 0) && now - _start_time > esc_init_time) { // Allow ESCs to init
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -126,7 +126,7 @@ uint16_t EscChecks::checkEscOnline(const Context &context, Report &reporter, con
 			continue; // Skip unmapped ESC status entries
 		}
 
-		const bool timeout = now > esc_status.esc[esc_index].timestamp + 300_ms;
+		const bool timeout = now > esc_status.esc[esc_index].timestamp + ESC_TIMEOUT_US;
 		const bool is_offline = (esc_status.esc_online_flags & (1 << esc_index)) == 0;
 
 		// Set failure bits for this motor
@@ -324,7 +324,7 @@ void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const
 		const int all_escs_armed_mask = (1 << limited_esc_count) - 1;
 		const bool is_all_escs_armed = (all_escs_armed_mask == esc_status.esc_armed_flags);
 
-		_esc_arm_hysteresis.set_hysteresis_time_from(false, 300_ms);
+		_esc_arm_hysteresis.set_hysteresis_time_from(false, ESC_TIMEOUT_US);
 		_esc_arm_hysteresis.set_state_and_update(!is_all_escs_armed, now);
 
 		if (_esc_arm_hysteresis.get_state()) {
