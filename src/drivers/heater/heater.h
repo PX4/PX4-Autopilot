@@ -146,7 +146,7 @@ private:
 	float _integrator_value   = 0.0f;
 	float _proportional_value = 0.0f;
 
-	uORB::Publication<heater_status_s> _heater_status_pub{ORB_ID(heater_status)};
+	uORB::PublicationMulti<heater_status_s> _heater_status_pub{ORB_ID(heater_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
