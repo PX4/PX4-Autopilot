@@ -292,6 +292,91 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 }
 
+TEST_F(GpsBlendingTest, singleReceiverAntennaOffset)
+{
+	GpsBlending gps_blending;
+
+	gps_blending.setPrimaryInstance(-1);
+	sensor_gps_s gps_data = getDefaultGpsData();
+
+	const Vector3f offset0(0.1f, 0.0f, -0.05f);
+	gps_blending.setAntennaOffset(offset0, 1);
+
+	gps_blending.setGpsData(gps_data, 1);
+	gps_blending.update(_time_now_us);
+
+	_time_now_us += 200e3;
+	gps_data.timestamp = _time_now_us - 10e3;
+	gps_blending.setGpsData(gps_data, 1);
+	gps_blending.update(_time_now_us);
+
+	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
+
+	const Vector3f &out = gps_blending.getOutputAntennaOffset();
+	EXPECT_FLOAT_EQ(out(0), offset0(0));
+	EXPECT_FLOAT_EQ(out(1), offset0(1));
+	EXPECT_FLOAT_EQ(out(2), offset0(2));
+}
+
+TEST_F(GpsBlendingTest, dualReceiverBlendedAntennaOffset)
+{
+	GpsBlending gps_blending;
+
+	sensor_gps_s gps_data0 = getDefaultGpsData();
+	sensor_gps_s gps_data1 = getDefaultGpsData();
+
+	gps_blending.setBlendingUseHPosAccuracy(true);
+
+	// Equal accuracy → equal weights (0.5 each)
+	const Vector3f offset0(0.1f, 0.0f, -0.05f);
+	const Vector3f offset1(-0.1f, 0.0f, -0.05f);
+	gps_blending.setAntennaOffset(offset0, 0);
+	gps_blending.setAntennaOffset(offset1, 1);
+
+	gps_blending.setGpsData(gps_data0, 0);
+	gps_blending.setGpsData(gps_data1, 1);
+	gps_blending.update(_time_now_us);
+
+	EXPECT_EQ(gps_blending.getSelectedGps(), 2); // blended
+
+	const Vector3f &out = gps_blending.getOutputAntennaOffset();
+	// Equal weights → average of offsets
+	EXPECT_NEAR(out(0), 0.0f, 1e-5f);
+	EXPECT_NEAR(out(1), 0.0f, 1e-5f);
+	EXPECT_NEAR(out(2), -0.05f, 1e-5f);
+}
+
+TEST_F(GpsBlendingTest, failoverAntennaOffset)
+{
+	GpsBlending gps_blending;
+
+	gps_blending.setPrimaryInstance(0);
+	gps_blending.setBlendingUseSpeedAccuracy(false);
+	gps_blending.setBlendingUseHPosAccuracy(false);
+	gps_blending.setBlendingUseVPosAccuracy(false);
+
+	const Vector3f offset0(0.1f, 0.0f, 0.0f);
+	const Vector3f offset1(-0.1f, 0.0f, 0.0f);
+	gps_blending.setAntennaOffset(offset0, 0);
+	gps_blending.setAntennaOffset(offset1, 1);
+
+	// Only secondary available
+	sensor_gps_s gps_data1 = getDefaultGpsData();
+	runSeconds(10.f, gps_blending, gps_data1, 1);
+
+	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
+	EXPECT_FLOAT_EQ(gps_blending.getOutputAntennaOffset()(0), offset1(0));
+
+	// Now primary becomes available
+	sensor_gps_s gps_data0 = getDefaultGpsData();
+	gps_data0.timestamp = gps_data1.timestamp;
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
+
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+	EXPECT_FLOAT_EQ(gps_blending.getOutputAntennaOffset()(0), offset0(0));
+}
+
 TEST_F(GpsBlendingTest, dualReceiverUTCTime)
 {
 	GpsBlending gps_blending;
