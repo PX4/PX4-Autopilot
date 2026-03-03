@@ -127,7 +127,7 @@ param set-default CA_ROTOR3_KM -0.05
 ### Example - HolyBro QAV250 Complete Vehicle
 
 A more complete configuration file for a real vehicle is provided below.
-This is the configuration for the [HolyBro QAV250](https://docs.px4.io/main/en/frames_multicopter/holybro_qav250_pixhawk4_mini.html) quadrotor ([original file here](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/4052_holybro_qav250)).
+This is the configuration for the [HolyBro QAV250](../frames_multicopter/holybro_qav250_pixhawk4_mini.md) quadrotor ([original file here](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d/airframes/4052_holybro_qav250)).
 
 The shebang and documentation sections are similar to those for the generic frame.
 Here we also add a `@url` link to the vehicle documentation, a `@maintainer`, and additional board exclusions.
@@ -137,7 +137,7 @@ Here we also add a `@url` link to the vehicle documentation, a `@maintainer`, an
 #
 # @name HolyBro QAV250
 #
-# @url https://docs.px4.io/main/en/frames_multicopter/holybro_qav250_pixhawk4_mini.html
+# @url https://docs.px4.io/main/en/frames_multicopter/holybro_qav250_pixhawk4_mini
 #
 # @type Quadrotor x
 # @class Copter

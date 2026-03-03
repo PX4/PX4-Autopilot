@@ -50,4 +50,3 @@ In _QGroundControl_:
    batt_smbus start -X -b 1 -a 11 # External bus 1, address 0x0b
    batt_smbus start -X -b 1 -a 12 # External bus 1, address 0x0c
    ```
-

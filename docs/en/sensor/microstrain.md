@@ -8,7 +8,7 @@ Widely used across industries like aerospace, robotics, industrial automation, a
 The driver currently supports the following hardware:
 
 - [`MicroStrain CV7-AR`](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference/3dm-cv7-ar): Inertial Measurement Unit (IMU) and Vertical Reference Unit (VRU)
-- [`MicroStrain CV7-AHRS`](https://www.microstrain.com/inertial-sensors/3dm-cv7-ahrs): Inertial Measurement Unit (IMU) and Attitude Heading Reference System (AHRS)
+- [`MicroStrain CV7-AHRS`](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading/3dm-cv7-ahrs): Inertial Measurement Unit (IMU) and Attitude Heading Reference System (AHRS)
 - [`MicroStrain CV7-INS`](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-ins): Inertial Measurement Unit (IMU) and Inertial Navigation System (INS).
 - [`MicroStrain CV7-GNSS/INS`](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-gnss-ins): Inertial Measurement Unit (IMU) and Inertial Navigation System (INS) combined with dual multiband (GNSS) receivers.
 

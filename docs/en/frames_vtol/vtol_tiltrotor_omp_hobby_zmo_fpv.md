@@ -25,9 +25,9 @@ Depending on the final takeoff weight the hover time might be limited (there is 
 
 ## Where to Buy
 
-- [OMP-Hobby](https://www.omphobby.com/OMPHOBBY-ZMO-VTOL-FPV-Aircraft-With-DJI-Goggles-And-Remote-Controller-p3069854.html)
 - [GetFPV](https://www.getfpv.com/omphobby-zmo-z3-vtol-fpv-1200mm-arf-plane-kit-no-fpv-system.html)
 - [FoxtechFPV](https://www.foxtechfpv.com/zmo-pro-fpv-vtol.html)
+- [RMRC](https://www.readymaderc.com/products/details/omp-hobby-zmo-vtol-fpv-airplane-rtf-goggles-radio)
 
 ## Flight Controller
 
