@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_PX4_FMU_V6X_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_PX4_FMU_V6X_INCLUDE_BOARD_H
+#ifndef __NUTTX_CONFIG_PX4_FMU_V6S_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_PX4_FMU_V6S_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -406,9 +406,6 @@
 
 /* SPI
  * SPI1 is sensors1
- * SPI2 is sensors2
- * SPI3 is sensors3
- * SPI4 is Not Used
  * SPI5 is FRAM
  * SPI6 is EXTERNAL1
  *
@@ -419,14 +416,6 @@
 #define GPIO_SPI1_MISO   GPIO_SPI1_MISO_3               /* PG9  */
 #define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_2               /* PB5  */
 #define GPIO_SPI1_SCK    ADJ_SLEW_RATE(GPIO_SPI1_SCK_1) /* PA5  */
-
-#define GPIO_SPI2_MISO   GPIO_SPI2_MISO_3               /* PI2  */
-#define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_4               /* PI3  */
-#define GPIO_SPI2_SCK    ADJ_SLEW_RATE(GPIO_SPI2_SCK_6) /* PI1  */
-
-#define GPIO_SPI3_MISO   GPIO_SPI3_MISO_2               /* PC11 */
-#define GPIO_SPI3_MOSI   GPIO_SPI3_MOSI_3               /* PB2  */
-#define GPIO_SPI3_SCK    ADJ_SLEW_RATE(GPIO_SPI3_SCK_2) /* PC10 */
 
 #define GPIO_SPI5_MISO   GPIO_SPI5_MISO_2               /* PH7  */
 #define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_1               /* PF11 */
@@ -555,4 +544,4 @@
 # define PROBE_MARK(n)
 #endif
 
-#endif  /*__NUTTX_CONFIG_PX4_FMU_V6X_INCLUDE_BOARD_H  */
+#endif  /*__NUTTX_CONFIG_PX4_FMU_V6S_INCLUDE_BOARD_H  */

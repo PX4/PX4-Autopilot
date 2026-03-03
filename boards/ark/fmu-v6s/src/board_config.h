@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * ARKFMU-v6x internal definitions
+ * ARKFMU-v6s internal definitions
  */
 
 #pragma once
@@ -212,12 +212,11 @@
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PH4 */  GPIO_ADC3_INP15
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
-#define HW_INFO_INIT_PREFIX    "ARKV6X"
+#define HW_INFO_INIT_PREFIX    "ARKV6S"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 1
 //                 Base/FMUM
-#define ARKV6X_0   HW_FMUM_ID(0x0) // ARKV6X,     Sensor Set  Rev 0
-#define ARKV6X_1   HW_FMUM_ID(0x1) // ARKV6X,     Sensor Set  Rev 1
+#define ARKV6S_0   HW_FMUM_ID(0x0) // ARKV6S,     Sensor Set  Rev 0
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
@@ -345,7 +344,7 @@
 #define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
 
 /*
- * ARKV6X has a separate RC_IN
+ * ARKV6S has a separate RC_IN
  *
  * GPIO PPM_IN on PI5 T8CH1
  * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC7
@@ -379,7 +378,7 @@
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
 
-/* ARKV6X never powers off the Servo rail */
+/* ARKV6S never powers off the Servo rail */
 
 #define BOARD_ADC_SERVO_VALID     (1)
 
