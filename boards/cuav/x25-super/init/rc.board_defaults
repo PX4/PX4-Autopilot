@@ -26,7 +26,7 @@ param set-default SENS_EN_THERMAL 1
 param set-default HEATER1_IMU_ID 2818066
 param set-default HEATER1_TEMP 45
 param set-default HEATER2_IMU_ID 3014698
-param set-default HEATER2_TEMP 65
+param set-default HEATER2_TEMP 45
 
 # CUAV pwm voltage 3.3V/5V switch
 pwm_voltage_apply start
