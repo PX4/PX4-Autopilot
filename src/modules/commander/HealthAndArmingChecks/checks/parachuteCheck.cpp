@@ -42,6 +42,10 @@ void ParachuteChecks::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
+	reporter.failsafeFlags().parachute_unhealthy =
+		!context.status().parachute_system_present ||
+		!context.status().parachute_system_healthy;
+
 	if (!context.status().parachute_system_present) {
 		/* EVENT
 		 * @description
