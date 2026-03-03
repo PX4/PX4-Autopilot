@@ -1134,7 +1134,7 @@ bool Logger::start_stop_logging()
 		}
 	}
 
-	desired_state = desired_state || _manually_logging_override;
+	desired_state = desired_state || _manually_logging_override.load();
 
 	// only start/stop if this is a state transition
 	if (updated && _prev_file_log_start_state != desired_state) {

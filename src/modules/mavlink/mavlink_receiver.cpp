@@ -1732,7 +1732,9 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 
 		ping.target_system = msg->sysid;
 		ping.target_component = msg->compid;
+		_mavlink.lock_send();
 		mavlink_msg_ping_send_struct(_mavlink.get_channel(), &ping);
+		_mavlink.unlock_send();
 
 	} else if ((ping.target_system == mavlink_system.sysid) &&
 		   (ping.target_component ==
@@ -2304,7 +2306,9 @@ MavlinkReceiver::get_message_interval(int msgId)
 	}
 
 	// send back this value...
+	_mavlink.lock_send();
 	mavlink_msg_message_interval_send(_mavlink.get_channel(), msgId, interval);
+	_mavlink.unlock_send();
 }
 
 void
@@ -2918,6 +2922,7 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 	}
 
 	if ((t >= _last_heartbeat_check + (TIMEOUT / 2)) || force) {
+		_mavlink.lock_telemetry_status();
 		telemetry_status_s &tstatus = _mavlink.telemetry_status();
 
 		tstatus.heartbeat_type_antenna_tracker         = (t <= TIMEOUT + _heartbeat_type_antenna_tracker);
@@ -2937,6 +2942,7 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_component_udp_bridge         = (t <= TIMEOUT + _heartbeat_component_udp_bridge);
 		tstatus.heartbeat_component_uart_bridge        = (t <= TIMEOUT + _heartbeat_component_uart_bridge);
 
+		_mavlink.unlock_telemetry_status();
 		_mavlink.telemetry_status_updated();
 		_last_heartbeat_check = t;
 	}
@@ -3295,6 +3301,7 @@ MavlinkReceiver::run()
 
 		if (t - last_send_update > timeout * 1000) {
 			_mission_manager.check_active_mission();
+			_mavlink.lock_send();
 			_mission_manager.send();
 
 			if (_mavlink.get_mode() != Mavlink::MAVLINK_MODE::MAVLINK_MODE_IRIDIUM) {
@@ -3307,6 +3314,7 @@ MavlinkReceiver::run()
 			}
 
 			_mavlink_log_handler.send();
+			_mavlink.unlock_send();
 			last_send_update = t;
 		}
 

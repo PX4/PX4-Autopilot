@@ -55,7 +55,7 @@ bool Subscription::subscribe()
 
 		if (node) {
 			_node = node;
-			_last_generation = initial_generation;
+			_last_generation.store(initial_generation);
 			return true;
 		}
 	}
@@ -70,7 +70,7 @@ void Subscription::unsubscribe()
 	}
 
 	_node = nullptr;
-	_last_generation = 0;
+	_last_generation.store(0);
 }
 
 bool Subscription::ChangeInstance(uint8_t instance)

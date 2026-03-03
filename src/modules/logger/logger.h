@@ -144,7 +144,7 @@ public:
 
 	void print_statistics(LogType type);
 
-	void set_arm_override(bool override) { _manually_logging_override = override; }
+	void set_arm_override(bool override) { _manually_logging_override.store(override); }
 
 	void trigger_watchdog_now()
 	{
@@ -345,7 +345,7 @@ private:
 	LogFileName					_file_name[(int)LogType::Count];
 
 	bool						_prev_file_log_start_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
-	bool						_manually_logging_override{false};
+	px4::atomic_bool				_manually_logging_override{false};
 
 	Statistics					_statistics[(int)LogType::Count];
 	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
