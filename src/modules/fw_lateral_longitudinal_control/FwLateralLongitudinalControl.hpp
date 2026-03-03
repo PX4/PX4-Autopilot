@@ -192,6 +192,7 @@ private:
 	hrt_abstime _time_wind_last_received{0};
 	SlewRate<float> _roll_slew_rate;
 	float _yaw{0.f};
+	float _roll{0.f};
 	struct lateral_control_state {
 		matrix::Vector2f ground_speed;
 		matrix::Vector2f wind_speed;

@@ -165,7 +165,7 @@ private:
 	WheelController _wheel_ctrl;
 
 	void parameters_update();
-	void vehicle_manual_poll(const float yaw_body);
+	void vehicle_manual_poll(const float yaw_body, const float roll);
 	void vehicle_attitude_setpoint_poll();
 	void vehicle_land_detected_poll();
 	float get_airspeed_constrained();
