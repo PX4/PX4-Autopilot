@@ -112,20 +112,17 @@ void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 	pthread_mutex_lock(&_node_mutex);
 
 	static const matrix::Quatf q_FLU_to_FRD = matrix::Quatf(0.0f, 1.0f, 0.0f, 0.0f);
+	static const matrix::Quatf q_ENU_to_NED = matrix::Quatf(0.0f, 0.707107, 0.707107, 0.0f);
 
-	// Get the gimbal orientation relative to vehicle body. Gimbal frame is FLU in Gazebo.
-	// The IMU reports gimbal orientation in body frame (relative to vehicle).
+	// Get the gimbal orientation in world frame. Gimbal frame is FLU in Gazebo, world frame is ENU.
+	// The IMU reports absolute orientation in world frame (ENU).
 	const matrix::Quatf q_gimbal_FLU = matrix::Quatf(IMU_data.orientation().w(),
 					   IMU_data.orientation().x(),
 					   IMU_data.orientation().y(),
 					   IMU_data.orientation().z());
 
-	// Convert gimbal orientation from FLU (Gazebo) to FRD (PX4) in body frame
-	const matrix::Quatf q_gimbal_body_FRD = q_gimbal_FLU * q_FLU_to_FRD.inversed();
-
-	// Transform gimbal orientation from body frame to world frame (NED)
-	// using vehicle's world orientation
-	_q_gimbal = _q_vehicle * q_gimbal_body_FRD;
+	// Convert from ENU/FLU (Gazebo) to NED/FRD (PX4) world frame
+	_q_gimbal = q_ENU_to_NED * q_gimbal_FLU * q_FLU_to_FRD.inversed();
 
 	matrix::Vector3f rate = q_FLU_to_FRD.rotateVector(matrix::Vector3f(IMU_data.angular_velocity().x(),
 				IMU_data.angular_velocity().y(),
