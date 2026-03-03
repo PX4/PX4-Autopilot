@@ -20,15 +20,12 @@ param set-default USB_MAV_MODE 5
 param set-default UAVCAN_SUB_GPS 1
 param set-default UAVCAN_SUB_BAT 1
 
-# Enable IMU thermal control
+# IMU thermal control (multi-instance heater)
 param set-default SENS_EN_THERMAL 1
-param set-default SENS_IMU_TEMP 45
 param set-default HEATER1_IMU_ID 2818058
-
-# CUAV core board IMU thermal control
-param set-default CORE_IMU_TEMP 45
-param set-default CORE_TEMP_ID 3014698
-core_heater start
+param set-default HEATER1_TEMP 45
+param set-default HEATER2_IMU_ID 3014698
+param set-default HEATER2_TEMP 45
 
 # CUAV pwm voltage 3.3V/5V switch
 pwm_voltage_apply start
