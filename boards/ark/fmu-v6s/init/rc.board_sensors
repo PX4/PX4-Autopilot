@@ -1,0 +1,107 @@
+#!/bin/sh
+#
+# ARK FMU V6X specific board sensors init
+#------------------------------------------------------------------------------
+set HAVE_PM2 yes
+set HAVE_PM3 yes
+
+if mft query -q -k MFT -s MFT_PM2 -v 0
+then
+	set HAVE_PM2 no
+	set HAVE_PM3 no
+fi
+
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
+
+	if [ $HAVE_PM3 = yes ]
+	then
+		ina226 -X -b 3 -t 3 -k start
+	fi
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
+
+	if [ $HAVE_PM3 = yes ]
+	then
+		ina228 -X -b 3 -t 3 -k start
+	fi
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+
+	if [ $HAVE_PM3 = yes ]
+	then
+		ina238 -X -b 3 -t 3 -k start
+	fi
+fi
+
+if ver hwtypecmp ARKV6X000
+then
+	# Internal SPI bus IIM42652
+	iim42652 -R 3 -s -b 1 start
+
+	# Internal SPI bus ICM42688p
+	icm42688p -R 9 -s -b 2 start
+
+	# Internal SPI bus ICM42688p
+	icm42688p -R 6 -s -b 3 start
+fi
+
+if ver hwtypecmp ARKV6X001
+then
+	# Internal SPI bus IIM42653
+	iim42653 -R 3 -s -b 1 start
+
+	# Internal SPI bus IIM42653
+	iim42653 -R 9 -s -b 2 start
+
+	# Internal SPI bus IIM42653
+	iim42653 -R 6 -s -b 3 start
+fi
+
+# Internal magnetometer on I2C
+bmm150 -I start
+
+# Internal Baro on I2C
+bmp388 -I start
+
+# Start an external PWM generator
+if param greater PCA9685_EN_BUS 0
+then
+	pca9685_pwm_out start
+fi
+
+unset HAVE_PM2
+unset HAVE_PM3

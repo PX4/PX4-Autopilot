@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+param set-default EKF2_MULTI_IMU 0
+
+# Mavlink ethernet (CFG 1000)
+param set-default MAV_2_CONFIG 1000
+param set-default MAV_2_BROADCAST 1
+param set-default MAV_2_MODE 0
+param set-default MAV_2_RADIO_CTL 0
+param set-default MAV_2_RATE 100000
+param set-default MAV_2_REMOTE_PRT 14550
+param set-default MAV_2_UDP_PRT 14550
+
+param set-default SENS_EN_INA226 1
+param set-default SENS_EN_THERMAL 1
+param set-default SENS_IMU_MODE 1
+param set-default SENS_IMU_TEMP 10.0
+#param set-default SENS_IMU_TEMP_FF 0.0
+#param set-default SENS_IMU_TEMP_I 0.025
+#param set-default SENS_IMU_TEMP_P 1.0
+
+param set-default UAVCAN_ESC_IFACE 2
+
+if ver hwtypecmp ARKV6X000
+then
+	param set-default HEATER1_IMU_ID 2818058
+fi
+
+if ver hwtypecmp ARKV6X001
+then
+	param set-default HEATER1_IMU_ID 3014666
+fi
+
+safety_button start
